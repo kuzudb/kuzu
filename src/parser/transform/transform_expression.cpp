@@ -568,15 +568,17 @@ std::string Transformer::transformPropertyKeyName(CypherParser::OC_PropertyKeyNa
 
 std::unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
     CypherParser::OC_IntegerLiteralContext& ctx) {
+    auto text = ctx.DecimalInteger()->getText();
     auto value = std::make_unique<common::Value>(
-        common::TypeUtils::convertStringToNumber<int64_t>(ctx.DecimalInteger()->getText().c_str()));
+        common::StringCastUtils::castToNum<int64_t>(text.c_str(), text.length()));
     return std::make_unique<ParsedLiteralExpression>(std::move(value), ctx.getText());
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformDoubleLiteral(
     CypherParser::OC_DoubleLiteralContext& ctx) {
-    auto value = std::make_unique<common::Value>(common::TypeUtils::convertStringToNumber<double_t>(
-        ctx.RegularDecimalReal()->getText().c_str()));
+    auto text = ctx.RegularDecimalReal()->getText();
+    auto value = std::make_unique<common::Value>(
+        common::StringCastUtils::castToNum<double_t>(text.c_str(), text.length()));
     return std::make_unique<ParsedLiteralExpression>(std::move(value), ctx.getText());
 }
 

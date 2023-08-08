@@ -374,6 +374,8 @@ LogicalType LogicalTypeUtils::dataTypeFromString(const std::string& dataTypeStri
         dataType = *parseStructType(trimmedStr);
     } else if (upperDataTypeString.starts_with("MAP")) {
         dataType = *parseMapType(trimmedStr);
+    } else if (upperDataTypeString.starts_with("UNION")) {
+        dataType = *parseUnionType(trimmedStr);
     } else {
         dataType.typeID = dataTypeIDFromString(upperDataTypeString);
     }
@@ -668,26 +670,31 @@ std::unique_ptr<LogicalType> LogicalTypeUtils::parseFixedListType(const std::str
         std::make_unique<FixedListTypeInfo>(std::move(childType), fixedNumElementsInList));
 }
 
-std::unique_ptr<LogicalType> LogicalTypeUtils::parseStructType(const std::string& trimmedStr) {
-    auto leftBracketPos = trimmedStr.find('(');
-    auto rightBracketPos = trimmedStr.find_last_of(')');
+std::vector<std::unique_ptr<StructField>> LogicalTypeUtils::parseStructTypeInfo(
+    const std::string& structTypeStr) {
+    auto leftBracketPos = structTypeStr.find('(');
+    auto rightBracketPos = structTypeStr.find_last_of(')');
     if (leftBracketPos == std::string::npos || rightBracketPos == std::string::npos) {
-        throw Exception("Cannot parse struct type: " + trimmedStr);
+        throw Exception("Cannot parse struct type: " + structTypeStr);
     }
     // Remove the leading and trailing brackets.
-    auto structTypeStr =
-        trimmedStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1);
-    auto structFieldsStr = parseStructFields(structTypeStr);
+    auto structFieldsStr =
+        structTypeStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1);
     std::vector<std::unique_ptr<StructField>> structFields;
-    for (auto& structFieldStr : structFieldsStr) {
+    auto structFieldStrs = parseStructFields(structFieldsStr);
+    for (auto& structFieldStr : structFieldStrs) {
         auto pos = structFieldStr.find(' ');
         auto fieldName = structFieldStr.substr(0, pos);
         auto fieldTypeString = structFieldStr.substr(pos + 1);
         structFields.emplace_back(std::make_unique<StructField>(
             fieldName, std::make_unique<LogicalType>(dataTypeFromString(fieldTypeString))));
     }
+    return structFields;
+}
+
+std::unique_ptr<LogicalType> LogicalTypeUtils::parseStructType(const std::string& trimmedStr) {
     return std::make_unique<LogicalType>(
-        LogicalTypeID::STRUCT, std::make_unique<StructTypeInfo>(std::move(structFields)));
+        LogicalTypeID::STRUCT, std::make_unique<StructTypeInfo>(parseStructTypeInfo(trimmedStr)));
 }
 
 std::unique_ptr<LogicalType> LogicalTypeUtils::parseMapType(const std::string& trimmedStr) {
@@ -707,6 +714,15 @@ std::unique_ptr<LogicalType> LogicalTypeUtils::parseMapType(const std::string& t
         LogicalTypeID::STRUCT, std::make_unique<StructTypeInfo>(std::move(structFields)));
     return std::make_unique<LogicalType>(
         LogicalTypeID::MAP, std::make_unique<VarListTypeInfo>(std::move(childType)));
+}
+
+std::unique_ptr<LogicalType> LogicalTypeUtils::parseUnionType(const std::string& trimmedStr) {
+    auto unionFields = parseStructTypeInfo(trimmedStr);
+    auto unionTagField = std::make_unique<StructField>(
+        UnionType::TAG_FIELD_NAME, std::make_unique<LogicalType>(UnionType::TAG_FIELD_TYPE));
+    unionFields.insert(unionFields.begin(), std::move(unionTagField));
+    return std::make_unique<LogicalType>(
+        LogicalTypeID::UNION, std::make_unique<StructTypeInfo>(std::move(unionFields)));
 }
 
 } // namespace common

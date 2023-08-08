@@ -56,8 +56,8 @@ void StringNodeColumn::scanInternal(
     auto nodeGroupIdx = getNodeGroupIdxFromNodeOffset(startNodeOffset);
     auto chunkStartPageIdx = metadataDA->get(nodeGroupIdx, transaction->getType()).pageIdx;
     NodeColumn::scanInternal(transaction, nodeIDVector, resultVector);
-    for (auto i = 0u; i < resultVector->state->selVector->selectedSize; i++) {
-        auto pos = resultVector->state->selVector->selectedPositions[i];
+    for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
+        auto pos = nodeIDVector->state->selVector->selectedPositions[i];
         if (resultVector->isNull(pos)) {
             continue;
         }

@@ -213,7 +213,6 @@ public:
     std::vector<LogicalType*> getChildrenTypes() const;
     std::vector<std::string> getChildrenNames() const;
     std::vector<StructField*> getStructFields() const;
-
     bool operator==(const kuzu::common::StructTypeInfo& other) const;
 
     static std::unique_ptr<ExtraTypeInfo> deserialize(FileInfo* fileInfo, uint64_t& offset);
@@ -381,11 +380,27 @@ struct MapType {
 };
 
 struct UnionType {
+    static constexpr union_field_idx_t TAG_FIELD_IDX = 0;
+
+    static constexpr LogicalTypeID TAG_FIELD_TYPE = LogicalTypeID::INT64;
+
+    static constexpr char TAG_FIELD_NAME[] = "tag";
+
     static inline union_field_idx_t getInternalFieldIdx(union_field_idx_t idx) { return idx + 1; }
 
     static inline std::string getFieldName(const LogicalType* type, union_field_idx_t idx) {
         assert(type->getLogicalTypeID() == LogicalTypeID::UNION);
         return StructType::getFieldNames(type)[getInternalFieldIdx(idx)];
+    }
+
+    static inline LogicalType* getFieldType(const LogicalType* type, union_field_idx_t idx) {
+        assert(type->getLogicalTypeID() == LogicalTypeID::UNION);
+        return StructType::getFieldTypes(type)[getInternalFieldIdx(idx)];
+    }
+
+    static inline uint64_t getNumFields(const LogicalType* type) {
+        assert(type->getLogicalTypeID() == LogicalTypeID::UNION);
+        return StructType::getNumFields(type) - 1;
     }
 };
 
@@ -412,8 +427,11 @@ private:
     static std::vector<std::string> parseStructFields(const std::string& structTypeStr);
     static std::unique_ptr<LogicalType> parseVarListType(const std::string& trimmedStr);
     static std::unique_ptr<LogicalType> parseFixedListType(const std::string& trimmedStr);
+    static std::vector<std::unique_ptr<StructField>> parseStructTypeInfo(
+        const std::string& structTypeStr);
     static std::unique_ptr<LogicalType> parseStructType(const std::string& trimmedStr);
     static std::unique_ptr<LogicalType> parseMapType(const std::string& trimmedStr);
+    static std::unique_ptr<LogicalType> parseUnionType(const std::string& trimmedStr);
 };
 
 enum class DBFileType : uint8_t { ORIGINAL = 0, WAL_VERSION = 1 };

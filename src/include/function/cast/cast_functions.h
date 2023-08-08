@@ -11,19 +11,19 @@ namespace function {
 
 struct CastStringToDate {
     static inline void operation(common::ku_string_t& input, common::date_t& result) {
-        result = common::Date::FromCString((const char*)input.getData(), input.len);
+        result = common::Date::fromCString((const char*)input.getData(), input.len);
     }
 };
 
 struct CastStringToTimestamp {
     static inline void operation(common::ku_string_t& input, common::timestamp_t& result) {
-        result = common::Timestamp::FromCString((const char*)input.getData(), input.len);
+        result = common::Timestamp::fromCString((const char*)input.getData(), input.len);
     }
 };
 
 struct CastStringToInterval {
     static inline void operation(common::ku_string_t& input, common::interval_t& result) {
-        result = common::Interval::FromCString((const char*)input.getData(), input.len);
+        result = common::Interval::fromCString((const char*)input.getData(), input.len);
     }
 };
 
@@ -67,7 +67,7 @@ struct CastToBlob {
 
 struct CastDateToTimestamp {
     static inline void operation(common::date_t& input, common::timestamp_t& result) {
-        result = common::Timestamp::FromDatetime(input, common::dtime_t{});
+        result = common::Timestamp::fromDateTime(input, common::dtime_t{});
     }
 };
 

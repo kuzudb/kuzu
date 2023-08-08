@@ -23,7 +23,7 @@ template<>
 inline void DayName::operation(common::timestamp_t& input, common::ku_string_t& result) {
     common::dtime_t time{};
     common::date_t date{};
-    common::Timestamp::Convert(input, date, time);
+    common::Timestamp::convert(input, date, time);
     std::string dayName = common::Date::getDayName(date);
     result.set(dayName);
 }
@@ -45,7 +45,7 @@ template<>
 inline void MonthName::operation(common::timestamp_t& input, common::ku_string_t& result) {
     common::dtime_t time{};
     common::date_t date{};
-    common::Timestamp::Convert(input, date, time);
+    common::Timestamp::convert(input, date, time);
     std::string monthName = common::Date::getMonthName(date);
     result.set(monthName);
 }
@@ -66,7 +66,7 @@ template<>
 inline void LastDay::operation(common::timestamp_t& input, common::date_t& result) {
     common::date_t date{};
     common::dtime_t time{};
-    common::Timestamp::Convert(input, date, time);
+    common::Timestamp::convert(input, date, time);
     result = common::Date::getLastDay(date);
 }
 
@@ -81,7 +81,7 @@ template<>
 inline void DatePart::operation(
     common::ku_string_t& partSpecifier, common::date_t& input, int64_t& result) {
     common::DatePartSpecifier specifier;
-    common::Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
+    common::Interval::tryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
     result = common::Date::getDatePart(specifier, input);
 }
 
@@ -89,7 +89,7 @@ template<>
 inline void DatePart::operation(
     common::ku_string_t& partSpecifier, common::timestamp_t& input, int64_t& result) {
     common::DatePartSpecifier specifier;
-    common::Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
+    common::Interval::tryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
     result = common::Timestamp::getTimestampPart(specifier, input);
 }
 
@@ -97,7 +97,7 @@ template<>
 inline void DatePart::operation(
     common::ku_string_t& partSpecifier, common::interval_t& input, int64_t& result) {
     common::DatePartSpecifier specifier;
-    common::Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
+    common::Interval::tryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
     result = common::Interval::getIntervalPart(specifier, input);
 }
 
@@ -112,7 +112,7 @@ template<>
 inline void DateTrunc::operation(
     common::ku_string_t& partSpecifier, common::date_t& input, common::date_t& result) {
     common::DatePartSpecifier specifier;
-    common::Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
+    common::Interval::tryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
     result = common::Date::trunc(specifier, input);
 }
 
@@ -120,7 +120,7 @@ template<>
 inline void DateTrunc::operation(
     common::ku_string_t& partSpecifier, common::timestamp_t& input, common::timestamp_t& result) {
     common::DatePartSpecifier specifier;
-    common::Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
+    common::Interval::tryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
     result = common::Timestamp::trunc(specifier, input);
 }
 
@@ -141,7 +141,7 @@ struct Least {
 struct MakeDate {
     static inline void operation(
         int64_t& year, int64_t& month, int64_t& day, common::date_t& result) {
-        result = common::Date::FromDate(year, month, day);
+        result = common::Date::fromDate(year, month, day);
     }
 };
 

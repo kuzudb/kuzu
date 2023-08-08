@@ -34,6 +34,10 @@ private:
     static std::string parseStructFieldName(const std::string& structString, uint64_t& curPos);
     std::string parseStructFieldValue(const std::string& structString, uint64_t& curPos);
     void write(const common::Value& val, uint64_t posToWrite) final;
+    void copyStructFromArrowStruct(
+        arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
+    void copyStructFromArrowString(
+        arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
 };
 
 } // namespace storage

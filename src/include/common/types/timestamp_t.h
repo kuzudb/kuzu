@@ -51,26 +51,28 @@ KUZU_API struct timestamp_t {
 // timestamp/datetime uses 64 bits, high 32 bits for date and low 32 bits for time
 class Timestamp {
 public:
-    KUZU_API static timestamp_t FromCString(const char* str, uint64_t len);
+    KUZU_API static timestamp_t fromCString(const char* str, uint64_t len);
 
     // Convert a timestamp object to a std::string in the format "YYYY-MM-DD hh:mm:ss".
     KUZU_API static std::string toString(timestamp_t timestamp);
 
-    KUZU_API static date_t GetDate(timestamp_t timestamp);
+    KUZU_API static date_t getDate(timestamp_t timestamp);
 
-    KUZU_API static dtime_t GetTime(timestamp_t timestamp);
+    KUZU_API static dtime_t getTime(timestamp_t timestamp);
 
     // Create a Timestamp object from a specified (date, time) combination.
-    KUZU_API static timestamp_t FromDatetime(date_t date, dtime_t time);
+    KUZU_API static timestamp_t fromDateTime(date_t date, dtime_t time);
+
+    KUZU_API static bool tryConvertTimestamp(const char* str, uint64_t len, timestamp_t& result);
 
     // Extract the date and time from a given timestamp object.
-    KUZU_API static void Convert(timestamp_t timestamp, date_t& out_date, dtime_t& out_time);
+    KUZU_API static void convert(timestamp_t timestamp, date_t& out_date, dtime_t& out_time);
 
     // Create a Timestamp object from the specified epochMs.
-    KUZU_API static timestamp_t FromEpochMs(int64_t epochMs);
+    KUZU_API static timestamp_t fromEpochMs(int64_t epochMs);
 
     // Create a Timestamp object from the specified epochSec.
-    KUZU_API static timestamp_t FromEpochSec(int64_t epochSec);
+    KUZU_API static timestamp_t fromEpochSec(int64_t epochSec);
 
     KUZU_API static int32_t getTimestampPart(DatePartSpecifier specifier, timestamp_t& timestamp);
 
@@ -78,7 +80,7 @@ public:
 
     KUZU_API static int64_t getEpochNanoSeconds(const timestamp_t& timestamp);
 
-    KUZU_API static bool TryParseUTCOffset(
+    KUZU_API static bool tryParseUTCOffset(
         const char* str, uint64_t& pos, uint64_t len, int& hour_offset, int& minute_offset);
 
 private:

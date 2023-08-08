@@ -218,7 +218,7 @@ def test_to_torch_geometric_heterogeneous_graph(establish_connection):
     with warnings.catch_warnings(record=True) as ws:
         torch_geometric_data, pos_to_idx, unconverted_properties, edge_properties = res.get_as_torch_geometric()
 
-    assert len(ws) == 11
+    assert len(ws) == 12
     warnings_ground_truth = set([
         "Property organisation.name of type STRING is not supported by torch_geometric. The property is marked as unconverted.",
         "Property person.height of type FLOAT is not supported by torch_geometric. The property is marked as unconverted.",
@@ -230,7 +230,8 @@ def test_to_torch_geometric_heterogeneous_graph(establish_connection):
         "Property organisation.history of type STRING is not supported by torch_geometric. The property is marked as unconverted.",
         "Property person.usedNames of type STRING is not supported by torch_geometric. The property is marked as unconverted.",
         "Property organisation.licenseValidInterval of type INTERVAL is not supported by torch_geometric. The property is marked as unconverted.",
-        "Property organisation.state of type STRUCT(revenue:INT16, location:STRING is not supported by torch_geometric. The property is marked as unconverted."
+        "Property organisation.state of type STRUCT(revenue:INT16, location:STRING is not supported by torch_geometric. The property is marked as unconverted.",
+        "Property organisation.info of type UNION(price:FLOAT, movein:DATE, note:STRING) is not supported by torch_geometric. The property is marked as unconverted."
     ])
 
     for w in ws:
@@ -360,7 +361,7 @@ def test_to_torch_geometric_heterogeneous_graph(establish_connection):
                                                    ]['rating'] - torch_geometric_data['organisation'].rating[i].item() < 1e-6
 
     assert 'organisation' in unconverted_properties
-    assert len(unconverted_properties['organisation']) == 4
+    assert len(unconverted_properties['organisation']) == 5
     assert 'name' in unconverted_properties['organisation']
     for i in range(2):
         assert ground_truth.TINY_SNB_ORGANISATIONS_GROUND_TRUTH[pos_to_idx['organisation'][i]

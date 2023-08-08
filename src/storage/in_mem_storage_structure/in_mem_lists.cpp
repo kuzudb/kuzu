@@ -183,7 +183,7 @@ void InMemLists::setValue(common::offset_t nodeOffset, uint64_t pos, uint8_t* va
 template<typename T>
 void InMemLists::setValueFromString(
     common::offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
-    auto numericVal = common::TypeUtils::convertStringToNumber<T>(val);
+    auto numericVal = common::StringCastUtils::castToNum<T>(val);
     setValue(nodeOffset, pos, (uint8_t*)&numericVal);
 }
 
@@ -209,7 +209,7 @@ void InMemLists::setValueFromString<uint8_t*>(
 template<>
 void InMemLists::setValueFromString<interval_t>(
     common::offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
-    auto intervalVal = Interval::FromCString(val, length);
+    auto intervalVal = Interval::fromCString(val, length);
     setValue(nodeOffset, pos, (uint8_t*)&intervalVal);
 }
 
@@ -217,7 +217,7 @@ void InMemLists::setValueFromString<interval_t>(
 template<>
 void InMemLists::setValueFromString<date_t>(
     common::offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
-    auto dateVal = Date::FromCString(val, length);
+    auto dateVal = Date::fromCString(val, length);
     setValue(nodeOffset, pos, (uint8_t*)&dateVal);
 }
 
@@ -225,7 +225,7 @@ void InMemLists::setValueFromString<date_t>(
 template<>
 void InMemLists::setValueFromString<timestamp_t>(
     common::offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
-    auto timestampVal = Timestamp::FromCString(val, length);
+    auto timestampVal = Timestamp::fromCString(val, length);
     setValue(nodeOffset, pos, (uint8_t*)&timestampVal);
 }
 

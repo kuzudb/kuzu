@@ -68,30 +68,30 @@ public:
     KUZU_API constexpr static const int32_t DAYS_PER_YEAR_INTERVAL = 146097;
 
     // Convert a string in the format "YYYY-MM-DD" to a date object
-    KUZU_API static date_t FromCString(const char* str, uint64_t len);
+    KUZU_API static date_t fromCString(const char* str, uint64_t len);
     // Convert a date object to a string in the format "YYYY-MM-DD"
     KUZU_API static std::string toString(date_t date);
     // Try to convert text in a buffer to a date; returns true if parsing was successful
-    KUZU_API static bool TryConvertDate(
+    KUZU_API static bool tryConvertDate(
         const char* buf, uint64_t len, uint64_t& pos, date_t& result);
 
     // private:
     // Returns true if (year) is a leap year, and false otherwise
-    KUZU_API static bool IsLeapYear(int32_t year);
+    KUZU_API static bool isLeapYear(int32_t year);
     // Returns true if the specified (year, month, day) combination is a valid
     // date
-    KUZU_API static bool IsValid(int32_t year, int32_t month, int32_t day);
+    KUZU_API static bool isValid(int32_t year, int32_t month, int32_t day);
     // Extract the year, month and day from a given date object
-    KUZU_API static void Convert(
+    KUZU_API static void convert(
         date_t date, int32_t& out_year, int32_t& out_month, int32_t& out_day);
     // Create a Date object from a specified (year, month, day) combination
-    KUZU_API static date_t FromDate(int32_t year, int32_t month, int32_t day);
+    KUZU_API static date_t fromDate(int32_t year, int32_t month, int32_t day);
 
     // Helper function to parse two digits from a string (e.g. "30" -> 30, "03" -> 3, "3" -> 3)
-    KUZU_API static bool ParseDoubleDigit(
+    KUZU_API static bool parseDoubleDigit(
         const char* buf, uint64_t len, uint64_t& pos, int32_t& result);
 
-    KUZU_API static int32_t MonthDays(int32_t year, int32_t month);
+    KUZU_API static int32_t monthDays(int32_t year, int32_t month);
 
     KUZU_API static std::string getDayName(date_t& date);
 
@@ -106,7 +106,7 @@ public:
     KUZU_API static int64_t getEpochNanoSeconds(const date_t& date);
 
 private:
-    static void ExtractYearOffset(int32_t& n, int32_t& year, int32_t& year_offset);
+    static void extractYearOffset(int32_t& n, int32_t& year, int32_t& year_offset);
 };
 
 } // namespace common

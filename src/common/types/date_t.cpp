@@ -42,7 +42,7 @@ date_t date_t::operator+(const interval_t& interval) const {
     date_t result{};
     if (interval.months != 0) {
         int32_t year, month, day, maxDayInMonth;
-        Date::Convert(*this, year, month, day);
+        Date::convert(*this, year, month, day);
         int32_t year_diff = interval.months / Interval::MONTHS_PER_YEAR;
         year += year_diff;
         month += interval.months - year_diff * Interval::MONTHS_PER_YEAR;
@@ -55,9 +55,9 @@ date_t date_t::operator+(const interval_t& interval) const {
         }
         // handle date overflow
         // example: 2020-01-31 + "1 months"
-        maxDayInMonth = Date::MonthDays(year, month);
+        maxDayInMonth = Date::monthDays(year, month);
         day = day > maxDayInMonth ? maxDayInMonth : day;
-        result = Date::FromDate(year, month, day);
+        result = Date::fromDate(year, month, day);
     } else {
         result = *this;
     }
@@ -83,7 +83,7 @@ int64_t date_t::operator-(const date_t& rhs) const {
 }
 
 bool date_t::operator==(const timestamp_t& rhs) const {
-    return Timestamp::FromDatetime(*this, dtime_t(0)).value == rhs.value;
+    return Timestamp::fromDateTime(*this, dtime_t(0)).value == rhs.value;
 }
 
 bool date_t::operator!=(const timestamp_t& rhs) const {
@@ -91,7 +91,7 @@ bool date_t::operator!=(const timestamp_t& rhs) const {
 }
 
 bool date_t::operator<(const timestamp_t& rhs) const {
-    return Timestamp::FromDatetime(*this, dtime_t(0)).value < rhs.value;
+    return Timestamp::fromDateTime(*this, dtime_t(0)).value < rhs.value;
 }
 
 bool date_t::operator<=(const timestamp_t& rhs) const {
@@ -178,7 +178,7 @@ const int32_t Date::CUMULATIVE_YEAR_DAYS[] = {0, 365, 730, 1096, 1461, 1826, 219
     139522, 139888, 140253, 140618, 140983, 141349, 141714, 142079, 142444, 142810, 143175, 143540,
     143905, 144271, 144636, 145001, 145366, 145732, 146097};
 
-void Date::ExtractYearOffset(int32_t& n, int32_t& year, int32_t& year_offset) {
+void Date::extractYearOffset(int32_t& n, int32_t& year, int32_t& year_offset) {
     year = Date::EPOCH_YEAR;
     // first we normalize n to be in the year range [1970, 2370]
     // since leap years repeat every 400 years, we can safely normalize just by "shifting" the
@@ -204,31 +204,32 @@ void Date::ExtractYearOffset(int32_t& n, int32_t& year, int32_t& year_offset) {
     KU_ASSERT(n >= Date::CUMULATIVE_YEAR_DAYS[year_offset]);
 }
 
-void Date::Convert(date_t d, int32_t& year, int32_t& month, int32_t& day) {
-    auto n = d.days;
+void Date::convert(date_t date, int32_t& out_year, int32_t& out_month, int32_t& out_day) {
+    auto n = date.days;
     int32_t year_offset;
-    Date::ExtractYearOffset(n, year, year_offset);
+    Date::extractYearOffset(n, out_year, year_offset);
 
-    day = n - Date::CUMULATIVE_YEAR_DAYS[year_offset];
-    KU_ASSERT(day >= 0 && day <= 365);
+    out_day = n - Date::CUMULATIVE_YEAR_DAYS[year_offset];
+    KU_ASSERT(out_day >= 0 && out_day <= 365);
 
     bool is_leap_year = (Date::CUMULATIVE_YEAR_DAYS[year_offset + 1] -
                             Date::CUMULATIVE_YEAR_DAYS[year_offset]) == 366;
     if (is_leap_year) {
-        month = Date::LEAP_MONTH_PER_DAY_OF_YEAR[day];
-        day -= Date::CUMULATIVE_LEAP_DAYS[month - 1];
+        out_month = Date::LEAP_MONTH_PER_DAY_OF_YEAR[out_day];
+        out_day -= Date::CUMULATIVE_LEAP_DAYS[out_month - 1];
     } else {
-        month = Date::MONTH_PER_DAY_OF_YEAR[day];
-        day -= Date::CUMULATIVE_DAYS[month - 1];
+        out_month = Date::MONTH_PER_DAY_OF_YEAR[out_day];
+        out_day -= Date::CUMULATIVE_DAYS[out_month - 1];
     }
-    day++;
-    KU_ASSERT(day > 0 && day <= (is_leap_year ? Date::LEAP_DAYS[month] : Date::NORMAL_DAYS[month]));
-    KU_ASSERT(month > 0 && month <= 12);
+    out_day++;
+    KU_ASSERT(out_day > 0 && out_day <= (is_leap_year ? Date::LEAP_DAYS[out_month] :
+                                                        Date::NORMAL_DAYS[out_month]));
+    KU_ASSERT(out_month > 0 && out_month <= 12);
 }
 
-date_t Date::FromDate(int32_t year, int32_t month, int32_t day) {
+date_t Date::fromDate(int32_t year, int32_t month, int32_t day) {
     int32_t n = 0;
-    if (!Date::IsValid(year, month, day)) {
+    if (!Date::isValid(year, month, day)) {
         throw ConversionException(
             StringUtils::string_format("Date out of range: {}-{}-{}.", year, month, day));
     }
@@ -241,13 +242,13 @@ date_t Date::FromDate(int32_t year, int32_t month, int32_t day) {
         n += Date::DAYS_PER_YEAR_INTERVAL;
     }
     n += Date::CUMULATIVE_YEAR_DAYS[year - 1970];
-    n += Date::IsLeapYear(year) ? Date::CUMULATIVE_LEAP_DAYS[month - 1] :
+    n += Date::isLeapYear(year) ? Date::CUMULATIVE_LEAP_DAYS[month - 1] :
                                   Date::CUMULATIVE_DAYS[month - 1];
     n += day - 1;
     return date_t(n);
 }
 
-bool Date::ParseDoubleDigit(const char* buf, uint64_t len, uint64_t& pos, int32_t& result) {
+bool Date::parseDoubleDigit(const char* buf, uint64_t len, uint64_t& pos, int32_t& result) {
     if (pos < len && StringUtils::CharacterIsDigit(buf[pos])) {
         result = buf[pos++] - '0';
         if (pos < len && StringUtils::CharacterIsDigit(buf[pos])) {
@@ -264,7 +265,7 @@ bool Date::ParseDoubleDigit(const char* buf, uint64_t len, uint64_t& pos, int32_
 // trailing "BC". 3) we do not allow the "strict/non-strict" parsing, which lets the caller
 // configure this function to either strictly return false if the date std::string has trailing
 // characters that won't be parsed or just ignore those characters. We always run in strict mode.
-bool Date::TryConvertDate(const char* buf, uint64_t len, uint64_t& pos, date_t& result) {
+bool Date::tryConvertDate(const char* buf, uint64_t len, uint64_t& pos, date_t& result) {
     pos = 0;
     if (len == 0) {
         return false;
@@ -307,7 +308,7 @@ bool Date::TryConvertDate(const char* buf, uint64_t len, uint64_t& pos, date_t& 
     }
 
     // parse the month
-    if (!Date::ParseDoubleDigit(buf, len, pos, month)) {
+    if (!Date::parseDoubleDigit(buf, len, pos, month)) {
         return false;
     }
 
@@ -324,7 +325,7 @@ bool Date::TryConvertDate(const char* buf, uint64_t len, uint64_t& pos, date_t& 
     }
 
     // now parse the day
-    if (!Date::ParseDoubleDigit(buf, len, pos, day)) {
+    if (!Date::parseDoubleDigit(buf, len, pos, day)) {
         return false;
     }
 
@@ -337,16 +338,16 @@ bool Date::TryConvertDate(const char* buf, uint64_t len, uint64_t& pos, date_t& 
         return false;
     }
 
-    result = Date::FromDate(year, month, day);
+    result = Date::fromDate(year, month, day);
     return true;
 }
 
-date_t Date::FromCString(const char* buf, uint64_t len) {
+date_t Date::fromCString(const char* str, uint64_t len) {
     date_t result;
     uint64_t pos;
-    if (!TryConvertDate(buf, len, pos, result)) {
+    if (!tryConvertDate(str, len, pos, result)) {
         throw ConversionException("Error occurred during parsing date. Given: \"" +
-                                  std::string(buf, len) + "\". Expected format: (YYYY-MM-DD)");
+                                  std::string(str, len) + "\". Expected format: (YYYY-MM-DD)");
     }
     return result;
 }
@@ -355,7 +356,7 @@ std::string Date::toString(date_t date) {
     int32_t date_units[3];
     uint64_t year_length;
     bool add_bc;
-    Date::Convert(date, date_units[0], date_units[1], date_units[2]);
+    Date::convert(date, date_units[0], date_units[1], date_units[2]);
 
     auto length = DateToStringCast::Length(date_units, year_length, add_bc);
     auto buffer = std::unique_ptr<char[]>(new char[length]);
@@ -363,11 +364,11 @@ std::string Date::toString(date_t date) {
     return std::string(buffer.get(), length);
 }
 
-bool Date::IsLeapYear(int32_t year) {
+bool Date::isLeapYear(int32_t year) {
     return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
 }
 
-bool Date::IsValid(int32_t year, int32_t month, int32_t day) {
+bool Date::isValid(int32_t year, int32_t month, int32_t day) {
     if (month < 1 || month > 12) {
         return false;
     }
@@ -377,12 +378,12 @@ bool Date::IsValid(int32_t year, int32_t month, int32_t day) {
     if (day < 1) {
         return false;
     }
-    return Date::IsLeapYear(year) ? day <= Date::LEAP_DAYS[month] : day <= Date::NORMAL_DAYS[month];
+    return Date::isLeapYear(year) ? day <= Date::LEAP_DAYS[month] : day <= Date::NORMAL_DAYS[month];
 }
 
-int32_t Date::MonthDays(int32_t year, int32_t month) {
+int32_t Date::monthDays(int32_t year, int32_t month) {
     KU_ASSERT(month >= 1 && month <= 12);
-    return Date::IsLeapYear(year) ? Date::LEAP_DAYS[month] : Date::NORMAL_DAYS[month];
+    return Date::isLeapYear(year) ? Date::LEAP_DAYS[month] : Date::NORMAL_DAYS[month];
 }
 
 std::string Date::getDayName(date_t& date) {
@@ -395,26 +396,26 @@ std::string Date::getMonthName(date_t& date) {
     std::string monthNames[] = {"January", "February", "March", "April", "May", "June", "July",
         "August", "September", "October", "November", "December"};
     int32_t year, month, day;
-    Date::Convert(date, year, month, day);
+    Date::convert(date, year, month, day);
     return monthNames[month - 1];
 }
 
 date_t Date::getLastDay(date_t& date) {
     int32_t year, month, day;
-    Date::Convert(date, year, month, day);
+    Date::convert(date, year, month, day);
     year += (month / 12);
     month %= 12;
     ++month;
-    return Date::FromDate(year, month, 1) - 1;
+    return Date::fromDate(year, month, 1) - 1;
 }
 
 int32_t Date::getDatePart(DatePartSpecifier specifier, date_t& date) {
     int32_t year, month, day;
-    Date::Convert(date, year, month, day);
+    Date::convert(date, year, month, day);
     switch (specifier) {
     case DatePartSpecifier::YEAR:
         int32_t yearOffset;
-        ExtractYearOffset(date.days, year, yearOffset);
+        extractYearOffset(date.days, year, yearOffset);
         return year;
     case DatePartSpecifier::MONTH:
         return month;
@@ -443,27 +444,27 @@ int32_t Date::getDatePart(DatePartSpecifier specifier, date_t& date) {
 date_t Date::trunc(DatePartSpecifier specifier, date_t& date) {
     switch (specifier) {
     case DatePartSpecifier::YEAR:
-        return Date::FromDate(
+        return Date::fromDate(
             Date::getDatePart(DatePartSpecifier::YEAR, date), 1 /* month */, 1 /* day */);
     case DatePartSpecifier::MONTH:
-        return Date::FromDate(Date::getDatePart(DatePartSpecifier::YEAR, date),
+        return Date::fromDate(Date::getDatePart(DatePartSpecifier::YEAR, date),
             Date::getDatePart(DatePartSpecifier::MONTH, date), 1 /* day */);
     case DatePartSpecifier::DAY:
         return date;
     case DatePartSpecifier::DECADE:
-        return Date::FromDate((Date::getDatePart(DatePartSpecifier::YEAR, date) / 10) * 10,
+        return Date::fromDate((Date::getDatePart(DatePartSpecifier::YEAR, date) / 10) * 10,
             1 /* month */, 1 /* day */);
     case DatePartSpecifier::CENTURY:
-        return Date::FromDate((Date::getDatePart(DatePartSpecifier::YEAR, date) / 100) * 100,
+        return Date::fromDate((Date::getDatePart(DatePartSpecifier::YEAR, date) / 100) * 100,
             1 /* month */, 1 /* day */);
     case DatePartSpecifier::MILLENNIUM:
-        return Date::FromDate((Date::getDatePart(DatePartSpecifier::YEAR, date) / 1000) * 1000,
+        return Date::fromDate((Date::getDatePart(DatePartSpecifier::YEAR, date) / 1000) * 1000,
             1 /* month */, 1 /* day */);
     case DatePartSpecifier::QUARTER:
         int32_t year, month, day;
-        Date::Convert(date, year, month, day);
+        Date::convert(date, year, month, day);
         month = 1 + (((month - 1) / 3) * 3);
-        return Date::FromDate(year, month, 1);
+        return Date::fromDate(year, month, 1);
     default:
         return date;
     }

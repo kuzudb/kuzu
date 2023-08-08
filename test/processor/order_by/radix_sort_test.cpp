@@ -224,10 +224,10 @@ TEST_F(RadixSortTest, singleOrderByColBoolTest) {
 
 TEST_F(RadixSortTest, singleOrderByColDateTest) {
     std::vector<date_t> sortingData = {
-        Date::FromCString("1970-01-01", strlen("1970-01-01")) /* days=0 */,
-        Date::FromCString("1970-01-02", strlen("1970-01-02")) /* positive days */,
-        Date::FromCString("2003-10-12", strlen("2003-10-12")) /* large positive days */,
-        Date::FromCString("1968-12-21", strlen("1968-12-21")) /* negative days */,
+        Date::fromCString("1970-01-01", strlen("1970-01-01")) /* days=0 */,
+        Date::fromCString("1970-01-02", strlen("1970-01-02")) /* positive days */,
+        Date::fromCString("2003-10-12", strlen("2003-10-12")) /* large positive days */,
+        Date::fromCString("1968-12-21", strlen("1968-12-21")) /* negative days */,
         date_t(0) /*NULL*/};
     std::vector<bool> nullMasks = {false, false, false, false, true};
     std::vector<uint64_t> expectedFTBlockOffsetOrder = {3, 0, 1, 2, 4};
@@ -237,13 +237,13 @@ TEST_F(RadixSortTest, singleOrderByColDateTest) {
 
 TEST_F(RadixSortTest, singleOrderByColTimestampTest) {
     std::vector<timestamp_t> sortingData = {
-        Timestamp::FromCString("1970-01-01 00:00:00", strlen("1970-01-01 00:00:00")) /* micros=0 */,
-        Timestamp::FromCString(
+        Timestamp::fromCString("1970-01-01 00:00:00", strlen("1970-01-01 00:00:00")) /* micros=0 */,
+        Timestamp::fromCString(
             "1970-01-02 14:21:11", strlen("1970-01-02 14:21:11")) /* positive micros */,
         timestamp_t(0) /*NULL*/,
-        Timestamp::FromCString(
+        Timestamp::fromCString(
             "2003-10-12 08:21:10", strlen("2003-10-12 08:21:10")) /* large positive micros */,
-        Timestamp::FromCString(
+        Timestamp::fromCString(
             "1959-03-20 11:12:13.500", strlen("1959-03-20 11:12:13.500")) /* negative micros */
     };
 
@@ -257,11 +257,11 @@ TEST_F(RadixSortTest, singleOrderByColIntervalTest) {
     // We need to normalize days and micros in intervals.
     std::vector<interval_t> sortingData = {
         interval_t(0, 0, 0) /* NULL */,
-        Interval::FromCString(
+        Interval::fromCString(
             "100 days 3 years 2 hours 178 minutes", strlen("100 days 3 years 2 hours 178 minutes")),
-        Interval::FromCString("2 years 466 days 20 minutes",
+        Interval::fromCString("2 years 466 days 20 minutes",
             strlen("2 years 466 days 20 minutes")) /* =3 years 106 days 20 minutes */,
-        Interval::FromCString("3 years 99 days 200 hours 100 minutes",
+        Interval::fromCString("3 years 99 days 200 hours 100 minutes",
             strlen("3 years 99 days 100 hours 100 minutes")) /* =3 years 107 days 8 hours 100
                                                                 minutes */
         ,
@@ -374,19 +374,19 @@ TEST_F(RadixSortTest, multipleOrderByColNoTieTest) {
     stringFlatValueVector->setNull(3, true);
     stringFlatValueVector->setValue<std::string>(4, "short str");
     timestampFlatValueVector->setValue(
-        0, Timestamp::FromCString("1970-01-01 00:00:00", strlen("1970-01-01 00:00:00")));
+        0, Timestamp::fromCString("1970-01-01 00:00:00", strlen("1970-01-01 00:00:00")));
     timestampFlatValueVector->setValue(
-        1, Timestamp::FromCString("1962-04-07 14:11:23", strlen("1962-04-07 14:11:23")));
+        1, Timestamp::fromCString("1962-04-07 14:11:23", strlen("1962-04-07 14:11:23")));
     timestampFlatValueVector->setValue(
-        2, Timestamp::FromCString("1970-01-01 01:00:00", strlen("1970-01-01 01:00:00")));
+        2, Timestamp::fromCString("1970-01-01 01:00:00", strlen("1970-01-01 01:00:00")));
     timestampFlatValueVector->setValue(
-        3, Timestamp::FromCString("1953-01-12 21:12:00", strlen("2053-01-12 21:12:00")));
+        3, Timestamp::fromCString("1953-01-12 21:12:00", strlen("2053-01-12 21:12:00")));
     timestampFlatValueVector->setNull(4, true);
-    dateFlatValueVector->setValue(0, Date::FromCString("1978-09-12", strlen("1978-09-12")));
-    dateFlatValueVector->setValue(1, Date::FromCString("2035-07-04", strlen("2035-07-04")));
+    dateFlatValueVector->setValue(0, Date::fromCString("1978-09-12", strlen("1978-09-12")));
+    dateFlatValueVector->setValue(1, Date::fromCString("2035-07-04", strlen("2035-07-04")));
     dateFlatValueVector->setNull(2, true);
-    dateFlatValueVector->setValue(3, Date::FromCString("1964-01-21", strlen("1964-01-21")));
-    dateFlatValueVector->setValue(4, Date::FromCString("2000-11-13", strlen("2000-11-13")));
+    dateFlatValueVector->setValue(3, Date::fromCString("1964-01-21", strlen("1964-01-21")));
+    dateFlatValueVector->setValue(4, Date::fromCString("2000-11-13", strlen("2000-11-13")));
 
     std::unique_ptr<FactorizedTableSchema> tableSchema = std::make_unique<FactorizedTableSchema>();
     tableSchema->appendColumn(

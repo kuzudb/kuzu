@@ -77,7 +77,7 @@ bool Time::TryConvertTime(const char* buf, uint64_t len, uint64_t& pos, dtime_t&
         return false;
     }
 
-    if (!Date::ParseDoubleDigit(buf, len, pos, hour)) {
+    if (!Date::parseDoubleDigit(buf, len, pos, hour)) {
         return false;
     }
 
@@ -92,7 +92,7 @@ bool Time::TryConvertTime(const char* buf, uint64_t len, uint64_t& pos, dtime_t&
         return false;
     }
 
-    if (!Date::ParseDoubleDigit(buf, len, pos, min)) {
+    if (!Date::parseDoubleDigit(buf, len, pos, min)) {
         return false;
     }
 
@@ -104,7 +104,7 @@ bool Time::TryConvertTime(const char* buf, uint64_t len, uint64_t& pos, dtime_t&
         return false;
     }
 
-    if (!Date::ParseDoubleDigit(buf, len, pos, sec)) {
+    if (!Date::parseDoubleDigit(buf, len, pos, sec)) {
         return false;
     }
 

@@ -213,15 +213,15 @@ Value PyConnection::transformPythonValue(py::handle val) {
         auto minute = PyDateTime_DATE_GET_MINUTE(ptr);
         auto second = PyDateTime_DATE_GET_SECOND(ptr);
         auto micros = PyDateTime_DATE_GET_MICROSECOND(ptr);
-        auto date = Date::FromDate(year, month, day);
+        auto date = Date::fromDate(year, month, day);
         auto time = Time::FromTime(hour, minute, second, micros);
-        return Value::createValue<timestamp_t>(Timestamp::FromDatetime(date, time));
+        return Value::createValue<timestamp_t>(Timestamp::fromDateTime(date, time));
     } else if (py::isinstance(val, datetime_date)) {
         auto ptr = val.ptr();
         auto year = PyDateTime_GET_YEAR(ptr);
         auto month = PyDateTime_GET_MONTH(ptr);
         auto day = PyDateTime_GET_DAY(ptr);
-        return Value::createValue<date_t>(Date::FromDate(year, month, day));
+        return Value::createValue<date_t>(Date::fromDate(year, month, day));
     } else if (py::isinstance(val, time_delta)) {
         auto ptr = val.ptr();
         auto days = PyDateTime_DELTA_GET_DAYS(ptr);

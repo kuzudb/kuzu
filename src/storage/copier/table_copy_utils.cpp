@@ -269,27 +269,27 @@ std::unique_ptr<uint8_t[]> TableCopyUtils::getArrowFixedList(const std::string& 
         }
         switch (childDataType->getLogicalTypeID()) {
         case LogicalTypeID::INT64: {
-            auto val = TypeUtils::convertStringToNumber<int64_t>(element.c_str());
+            auto val = StringCastUtils::castToNum<int64_t>(element.c_str(), element.length());
             memcpy(listVal.get() + numElementsRead * sizeof(int64_t), &val, sizeof(int64_t));
             numElementsRead++;
         } break;
         case LogicalTypeID::INT32: {
-            auto val = TypeUtils::convertStringToNumber<int32_t>(element.c_str());
+            auto val = StringCastUtils::castToNum<int32_t>(element.c_str(), element.length());
             memcpy(listVal.get() + numElementsRead * sizeof(int32_t), &val, sizeof(int32_t));
             numElementsRead++;
         } break;
         case LogicalTypeID::INT16: {
-            auto val = TypeUtils::convertStringToNumber<int16_t>(element.c_str());
+            auto val = StringCastUtils::castToNum<int16_t>(element.c_str(), element.length());
             memcpy(listVal.get() + numElementsRead * sizeof(int16_t), &val, sizeof(int16_t));
             numElementsRead++;
         } break;
         case LogicalTypeID::DOUBLE: {
-            auto val = TypeUtils::convertStringToNumber<double_t>(element.c_str());
+            auto val = StringCastUtils::castToNum<double_t>(element.c_str(), element.length());
             memcpy(listVal.get() + numElementsRead * sizeof(double_t), &val, sizeof(double_t));
             numElementsRead++;
         } break;
         case LogicalTypeID::FLOAT: {
-            auto val = TypeUtils::convertStringToNumber<float_t>(element.c_str());
+            auto val = StringCastUtils::castToNum<float_t>(element.c_str(), element.length());
             memcpy(listVal.get() + numElementsRead * sizeof(float_t), &val, sizeof(float_t));
             numElementsRead++;
         } break;
@@ -340,7 +340,8 @@ std::shared_ptr<arrow::DataType> TableCopyUtils::toArrowDataType(const LogicalTy
     case LogicalTypeID::VAR_LIST:
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING:
-    case LogicalTypeID::STRUCT: {
+    case LogicalTypeID::STRUCT:
+    case LogicalTypeID::UNION: {
         return arrow::utf8();
     }
     default: {
@@ -350,44 +351,90 @@ std::shared_ptr<arrow::DataType> TableCopyUtils::toArrowDataType(const LogicalTy
     }
 }
 
+bool TableCopyUtils::tryCast(
+    const common::LogicalType& targetType, const char* value, uint64_t length) {
+    switch (targetType.getLogicalTypeID()) {
+    case LogicalTypeID::BOOL: {
+        bool result;
+        return StringCastUtils::tryCastToBoolean(value, length, result);
+    }
+    case LogicalTypeID::INT64: {
+        int64_t result;
+        return StringCastUtils::tryCastToNum(value, length, result);
+    }
+    case LogicalTypeID::INT32: {
+        int32_t result;
+        return StringCastUtils::tryCastToNum(value, length, result);
+    }
+    case LogicalTypeID::INT16: {
+        int16_t result;
+        return StringCastUtils::tryCastToNum(value, length, result);
+    }
+    case LogicalTypeID::DOUBLE: {
+        double_t result;
+        return StringCastUtils::tryCastToNum(value, length, result);
+    }
+    case LogicalTypeID::FLOAT: {
+        float_t result;
+        return StringCastUtils::tryCastToNum(value, length, result);
+    }
+    case LogicalTypeID::DATE: {
+        date_t result;
+        uint64_t pos;
+        return Date::tryConvertDate(value, length, pos, result);
+    }
+    case LogicalTypeID::TIMESTAMP: {
+        timestamp_t result;
+        return Timestamp::tryConvertTimestamp(value, length, result);
+    }
+    case LogicalTypeID::STRING: {
+        return true;
+    }
+    default: {
+        return false;
+    }
+    }
+}
+
 std::unique_ptr<Value> TableCopyUtils::convertStringToValue(
     std::string element, const LogicalType& type, const CopyDescription& copyDescription) {
     std::unique_ptr<Value> value;
     switch (type.getLogicalTypeID()) {
     case LogicalTypeID::INT64: {
-        value = std::make_unique<Value>(TypeUtils::convertStringToNumber<int64_t>(element.c_str()));
+        value = std::make_unique<Value>(
+            StringCastUtils::castToNum<int64_t>(element.c_str(), element.length()));
     } break;
     case LogicalTypeID::INT32: {
-        value = std::make_unique<Value>(TypeUtils::convertStringToNumber<int32_t>(element.c_str()));
+        value = std::make_unique<Value>(
+            StringCastUtils::castToNum<int32_t>(element.c_str(), element.length()));
     } break;
     case LogicalTypeID::INT16: {
-        value = std::make_unique<Value>(TypeUtils::convertStringToNumber<int16_t>(element.c_str()));
+        value = std::make_unique<Value>(
+            StringCastUtils::castToNum<int16_t>(element.c_str(), element.length()));
     } break;
     case LogicalTypeID::FLOAT: {
-        value = std::make_unique<Value>(TypeUtils::convertStringToNumber<float_t>(element.c_str()));
+        value = std::make_unique<Value>(
+            StringCastUtils::castToNum<float_t>(element.c_str(), element.length()));
     } break;
     case LogicalTypeID::DOUBLE: {
-        value =
-            std::make_unique<Value>(TypeUtils::convertStringToNumber<double_t>(element.c_str()));
+        value = std::make_unique<Value>(
+            StringCastUtils::castToNum<double_t>(element.c_str(), element.length()));
     } break;
     case LogicalTypeID::BOOL: {
-        transform(element.begin(), element.end(), element.begin(), ::tolower);
-        std::istringstream is(element);
-        bool b;
-        is >> std::boolalpha >> b;
-        value = std::make_unique<Value>(b);
+        value =
+            std::make_unique<Value>(StringCastUtils::castToBool(element.c_str(), element.length()));
     } break;
     case LogicalTypeID::STRING: {
         value = make_unique<Value>(LogicalType{LogicalTypeID::STRING}, element);
     } break;
     case LogicalTypeID::DATE: {
-        value = std::make_unique<Value>(Date::FromCString(element.c_str(), element.length()));
+        value = std::make_unique<Value>(Date::fromCString(element.c_str(), element.length()));
     } break;
     case LogicalTypeID::TIMESTAMP: {
-        value = std::make_unique<Value>(Timestamp::FromCString(element.c_str(), element.length()));
+        value = std::make_unique<Value>(Timestamp::fromCString(element.c_str(), element.length()));
     } break;
     case LogicalTypeID::INTERVAL: {
-        value = std::make_unique<Value>(Interval::FromCString(element.c_str(), element.length()));
+        value = std::make_unique<Value>(Interval::fromCString(element.c_str(), element.length()));
     } break;
     case LogicalTypeID::VAR_LIST: {
         value = getVarListValue(element, 1, element.length() - 2, type, copyDescription);

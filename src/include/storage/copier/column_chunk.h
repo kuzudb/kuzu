@@ -55,7 +55,7 @@ public:
 
     template<typename T>
     void setValueFromString(const char* value, uint64_t length, common::offset_t pos) {
-        auto val = common::TypeUtils::convertStringToNumber<T>(value);
+        auto val = common::StringCastUtils::castToNum<T>(value, length);
         setValue<T>(val, pos);
     }
 
@@ -70,6 +70,11 @@ public:
 
     virtual void resize(uint64_t numValues);
 
+    template<typename T>
+    inline void setValue(T val, common::offset_t pos) {
+        ((T*)buffer.get())[pos] = val;
+    }
+
 protected:
     ColumnChunk(common::LogicalType dataType, common::offset_t numValues,
         common::CopyDescription* copyDescription, bool hasNullChunk);
@@ -81,11 +86,6 @@ protected:
     template<typename T>
     void templateCopyValuesAsString(
         arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
-
-    template<typename T>
-    inline void setValue(T val, common::offset_t pos) {
-        ((T*)buffer.get())[pos] = val;
-    }
 
     virtual inline common::page_idx_t getNumPagesForBuffer() const {
         return getNumPagesForBytes(numBytes);

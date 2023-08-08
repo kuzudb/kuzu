@@ -387,14 +387,14 @@ void ColumnChunk::setValueFromString<uint8_t*>(const char* value, uint64_t lengt
 // Interval
 template<>
 void ColumnChunk::setValueFromString<interval_t>(const char* value, uint64_t length, uint64_t pos) {
-    auto val = Interval::FromCString(value, length);
+    auto val = Interval::fromCString(value, length);
     setValue(val, pos);
 }
 
 // Date
 template<>
 void ColumnChunk::setValueFromString<date_t>(const char* value, uint64_t length, uint64_t pos) {
-    auto val = Date::FromCString(value, length);
+    auto val = Date::fromCString(value, length);
     setValue(val, pos);
 }
 
@@ -402,7 +402,7 @@ void ColumnChunk::setValueFromString<date_t>(const char* value, uint64_t length,
 template<>
 void ColumnChunk::setValueFromString<timestamp_t>(
     const char* value, uint64_t length, uint64_t pos) {
-    auto val = Timestamp::FromCString(value, length);
+    auto val = Timestamp::fromCString(value, length);
     setValue(val, pos);
 }
 
