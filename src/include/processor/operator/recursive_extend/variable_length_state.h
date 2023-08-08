@@ -42,7 +42,7 @@ struct VariableLengthMorsel : public BaseBFSMorsel {
         while(topEntry && topEntry->bfsLevel != bfsSharedState->currentLevel) {
             topEntry = topEntry->next;
         }
-        return topEntry->multiplicity.load();
+        return topEntry->multiplicity.load(std::memory_order_relaxed);
     }
 
     // TODO: Populate this for nTkS scheduler type recursive join
