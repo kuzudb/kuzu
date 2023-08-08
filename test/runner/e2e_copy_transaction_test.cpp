@@ -98,20 +98,20 @@ public:
 
     void validateTinysnbKnowsDateProperty() {
         std::multiset<date_t, std::greater<>> expectedResult = {
-            Date::FromCString("1905-12-12", strlen("1905-12-12")),
-            Date::FromCString("1905-12-12", strlen("1905-12-12")),
-            Date::FromCString("1950-05-14", strlen("1950-05-14")),
-            Date::FromCString("1950-05-14", strlen("1950-05-14")),
-            Date::FromCString("1950-05-14", strlen("1950-05-14")),
-            Date::FromCString("1950-05-14", strlen("1950-05-14")),
-            Date::FromCString("2000-01-01", strlen("2000-01-01")),
-            Date::FromCString("2000-01-01", strlen("2000-01-01")),
-            Date::FromCString("2021-06-30", strlen("2021-06-30")),
-            Date::FromCString("2021-06-30", strlen("2021-06-30")),
-            Date::FromCString("2021-06-30", strlen("2021-06-30")),
-            Date::FromCString("2021-06-30", strlen("2021-06-30")),
-            Date::FromCString("2021-06-30", strlen("2021-06-30")),
-            Date::FromCString("2021-06-30", strlen("2021-06-30"))};
+            Date::fromCString("1905-12-12", strlen("1905-12-12")),
+            Date::fromCString("1905-12-12", strlen("1905-12-12")),
+            Date::fromCString("1950-05-14", strlen("1950-05-14")),
+            Date::fromCString("1950-05-14", strlen("1950-05-14")),
+            Date::fromCString("1950-05-14", strlen("1950-05-14")),
+            Date::fromCString("1950-05-14", strlen("1950-05-14")),
+            Date::fromCString("2000-01-01", strlen("2000-01-01")),
+            Date::fromCString("2000-01-01", strlen("2000-01-01")),
+            Date::fromCString("2021-06-30", strlen("2021-06-30")),
+            Date::fromCString("2021-06-30", strlen("2021-06-30")),
+            Date::fromCString("2021-06-30", strlen("2021-06-30")),
+            Date::fromCString("2021-06-30", strlen("2021-06-30")),
+            Date::fromCString("2021-06-30", strlen("2021-06-30")),
+            Date::fromCString("2021-06-30", strlen("2021-06-30"))};
         std::multiset<date_t, std::greater<>> actualResult;
         auto queryResult = conn->query("match (:person)-[e:knows]->(:person) return e.date");
         while (queryResult->hasNext()) {

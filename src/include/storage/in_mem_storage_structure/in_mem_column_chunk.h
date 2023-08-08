@@ -65,7 +65,7 @@ public:
     template<typename T, typename... Args>
     void setValueFromString(
         const char* value, uint64_t length, common::offset_t pos, Args... args) {
-        auto val = common::TypeUtils::convertStringToNumber<T>(value);
+        auto val = common::StringCastUtils::castToNum<T>(value, length);
         setValue(val, pos);
     }
 

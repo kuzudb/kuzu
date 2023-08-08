@@ -196,7 +196,7 @@ class UnionVector {
 public:
     static inline ValueVector* getTagVector(const ValueVector* vector) {
         assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::UNION);
-        return StructVector::getFieldVector(vector, 0).get();
+        return StructVector::getFieldVector(vector, UnionType::TAG_FIELD_IDX).get();
     }
 
     static inline void referenceVector(ValueVector* vector, union_field_idx_t fieldIdx,

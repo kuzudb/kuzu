@@ -200,8 +200,8 @@ Value Util::TransformNapiValue(
             throw Exception("Expected a date for parameter " + key + ".");
         }
         auto napiDate = napiValue.As<Napi::Date>();
-        timestamp_t timestamp = Timestamp::FromEpochMs(napiDate.ValueOf());
-        auto dateVal = Timestamp::GetDate(timestamp);
+        timestamp_t timestamp = Timestamp::fromEpochMs(napiDate.ValueOf());
+        auto dateVal = Timestamp::getDate(timestamp);
         return Value(dateVal);
     }
     case LogicalTypeID::TIMESTAMP: {
@@ -209,7 +209,7 @@ Value Util::TransformNapiValue(
             throw Exception("Expected a date for parameter " + key + ".");
         }
         auto napiDate = napiValue.As<Napi::Date>();
-        timestamp_t timestamp = Timestamp::FromEpochMs(napiDate.ValueOf());
+        timestamp_t timestamp = Timestamp::fromEpochMs(napiDate.ValueOf());
         return Value(timestamp);
     }
     case LogicalTypeID::INTERVAL: {
@@ -220,7 +220,7 @@ Value Util::TransformNapiValue(
         auto microseconds = napiInterval * Interval::MICROS_PER_MSEC;
         auto intervalVal = interval_t(0, 0, microseconds);
         int64_t normalizedMonths, normalizedDays, normalizedMicros;
-        Interval::NormalizeIntervalEntries(
+        Interval::normalizeIntervalEntries(
             intervalVal, normalizedMonths, normalizedDays, normalizedMicros);
         auto normalizedInterval = interval_t(normalizedMonths, normalizedDays, normalizedMicros);
         return Value(normalizedInterval);

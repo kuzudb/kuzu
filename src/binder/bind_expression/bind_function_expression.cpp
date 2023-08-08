@@ -140,12 +140,12 @@ std::shared_ptr<Expression> ExpressionBinder::staticEvaluate(
     auto strVal = ((LiteralExpression*)children[0].get())->getValue()->getValue<std::string>();
     std::unique_ptr<Value> value;
     if (functionName == CAST_TO_DATE_FUNC_NAME) {
-        value = std::make_unique<Value>(Date::FromCString(strVal.c_str(), strVal.length()));
+        value = std::make_unique<Value>(Date::fromCString(strVal.c_str(), strVal.length()));
     } else if (functionName == CAST_TO_TIMESTAMP_FUNC_NAME) {
-        value = std::make_unique<Value>(Timestamp::FromCString(strVal.c_str(), strVal.length()));
+        value = std::make_unique<Value>(Timestamp::fromCString(strVal.c_str(), strVal.length()));
     } else {
         assert(functionName == CAST_TO_INTERVAL_FUNC_NAME);
-        value = std::make_unique<Value>(Interval::FromCString(strVal.c_str(), strVal.length()));
+        value = std::make_unique<Value>(Interval::fromCString(strVal.c_str(), strVal.length()));
     }
     return createLiteralExpression(std::move(value));
 }

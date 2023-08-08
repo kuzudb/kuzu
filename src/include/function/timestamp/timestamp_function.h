@@ -14,13 +14,13 @@ struct Century {
 
 struct EpochMs {
     static inline void operation(int64_t& ms, common::timestamp_t& result) {
-        result = common::Timestamp::FromEpochMs(ms);
+        result = common::Timestamp::fromEpochMs(ms);
     }
 };
 
 struct ToTimestamp {
     static inline void operation(int64_t& sec, common::timestamp_t& result) {
-        result = common::Timestamp::FromEpochSec(sec);
+        result = common::Timestamp::fromEpochSec(sec);
     }
 };
 

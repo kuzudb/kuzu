@@ -101,7 +101,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     case LogicalTypeID::DATE: {
         auto dateVal = value.getValue<date_t>();
         int32_t year, month, day;
-        Date::Convert(dateVal, year, month, day);
+        Date::convert(dateVal, year, month, day);
         return py::cast<py::object>(PyDate_FromDate(year, month, day));
     }
     case LogicalTypeID::TIMESTAMP: {
@@ -109,8 +109,8 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         int32_t year, month, day, hour, min, sec, micros;
         date_t date;
         dtime_t time;
-        Timestamp::Convert(timestampVal, date, time);
-        Date::Convert(date, year, month, day);
+        Timestamp::convert(timestampVal, date, time);
+        Date::convert(date, year, month, day);
         Time::Convert(time, hour, min, sec, micros);
         return py::cast<py::object>(
             PyDateTime_FromDateAndTime(year, month, day, hour, min, sec, micros));

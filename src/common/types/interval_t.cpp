@@ -4,7 +4,6 @@
 #include "common/string_utils.h"
 #include "common/types/cast_helpers.h"
 #include "common/types/timestamp_t.h"
-#include "common/utils.h"
 
 namespace kuzu {
 namespace common {
@@ -23,7 +22,7 @@ bool interval_t::operator!=(const interval_t& rhs) const {
 }
 
 bool interval_t::operator>(const interval_t& rhs) const {
-    return Interval::GreaterThan(*this, rhs);
+    return Interval::greaterThan(*this, rhs);
 }
 
 bool interval_t::operator<=(const interval_t& rhs) const {
@@ -121,24 +120,24 @@ void Interval::parseIntervalField(
     addition(result, number, specifierStr);
 }
 
-interval_t Interval::FromCString(const char* ku_str, uint64_t len) {
-    std::string str = std::string(ku_str, len);
+interval_t Interval::fromCString(const char* str, uint64_t len) {
+    std::string intervalStr = std::string(str, len);
     interval_t result;
     uint64_t pos = 0;
     result.days = 0;
     result.micros = 0;
     result.months = 0;
 
-    if (str[pos] == '@') {
+    if (intervalStr[pos] == '@') {
         pos++;
     }
 
     while (pos < len) {
-        if (isdigit(str[pos])) {
-            parseIntervalField(str, pos, len, result);
-        } else if (!isspace(str[pos])) {
+        if (isdigit(intervalStr[pos])) {
+            parseIntervalField(intervalStr, pos, len, result);
+        } else if (!isspace(intervalStr[pos])) {
             throw ConversionException(
-                "Error occurred during parsing interval. Given: \"" + str + "\".");
+                "Error occurred during parsing interval. Given: \"" + intervalStr + "\".");
         }
         pos++;
     }
@@ -152,7 +151,7 @@ std::string Interval::toString(interval_t interval) {
 }
 
 // helper function of interval comparison
-void Interval::NormalizeIntervalEntries(
+void Interval::normalizeIntervalEntries(
     interval_t input, int64_t& months, int64_t& days, int64_t& micros) {
     int64_t extra_months_d = input.days / Interval::DAYS_PER_MONTH;
     int64_t extra_months_micros = input.micros / Interval::MICROS_PER_MONTH;
@@ -167,11 +166,11 @@ void Interval::NormalizeIntervalEntries(
     micros = input.micros;
 }
 
-bool Interval::GreaterThan(const interval_t& left, const interval_t& right) {
+bool Interval::greaterThan(const interval_t& left, const interval_t& right) {
     int64_t lMonths, lDays, lMicros;
     int64_t rMonths, rDays, rMicros;
-    NormalizeIntervalEntries(left, lMonths, lDays, lMicros);
-    NormalizeIntervalEntries(right, rMonths, rDays, rMicros);
+    normalizeIntervalEntries(left, lMonths, lDays, lMicros);
+    normalizeIntervalEntries(right, rMonths, rDays, rMicros);
     if (lMonths > rMonths) {
         return true;
     } else if (lMonths < rMonths) {
@@ -185,7 +184,7 @@ bool Interval::GreaterThan(const interval_t& left, const interval_t& right) {
     return lMicros > rMicros;
 }
 
-void Interval::TryGetDatePartSpecifier(std::string specifier, DatePartSpecifier& result) {
+void Interval::tryGetDatePartSpecifier(std::string specifier, DatePartSpecifier& result) {
     StringUtils::toLower(specifier);
     if (specifier == "year" || specifier == "y" || specifier == "years") {
         result = DatePartSpecifier::YEAR;

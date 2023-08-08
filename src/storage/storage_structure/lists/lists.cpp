@@ -212,13 +212,13 @@ void ListPropertyLists::readListFromPages(
             readNullBitsFromAPage(
                 valueVector, frame, pageCursor.elemPosInPage, vectorPos, numValuesToReadInPage);
             for (auto i = 0u; i < numValuesToReadInPage; i++) {
-                if (!valueVector->isNull(vectorPos)) {
+                if (!valueVector->isNull(vectorPos + i)) {
                     diskOverflowFile.readListToVector(
-                        TransactionType::READ_ONLY, kuListsToRead[i], valueVector, vectorPos);
+                        TransactionType::READ_ONLY, kuListsToRead[i], valueVector, vectorPos + i);
                 }
-                vectorPos++;
             }
         });
+        vectorPos += numValuesToReadInPage;
         pageCursor.nextPage();
     }
 }
@@ -387,12 +387,12 @@ std::unordered_set<uint64_t> RelIDList::getDeletedRelOffsetsInListForNodeOffset(
                 if (listsUpdatesStore->isRelDeletedInPersistentStore(
                         storageStructureIDAndFName.storageStructureID.listFileID, nodeOffset,
                         relID)) {
-                    deletedRelOffsetsInList.emplace(numElementsRead);
+                    deletedRelOffsetsInList.emplace(numElementsRead + i);
                 }
-                numElementsRead++;
                 buffer += elementSize;
             }
         });
+        numElementsRead += numElementsToReadInCurPage;
         pageCursor.nextPage();
     }
     return deletedRelOffsetsInList;
@@ -414,13 +414,13 @@ list_offset_t RelIDList::getListOffset(offset_t nodeOffset, offset_t relOffset) 
             for (auto i = 0u; i < numElementsToReadInCurPage; i++) {
                 auto relIDInList = *(int64_t*)buffer;
                 if (relIDInList == relOffset) {
-                    retVal = numElementsRead;
+                    retVal = numElementsRead + i;
                     return;
                 }
-                numElementsRead++;
                 buffer += elementSize;
             }
         });
+        numElementsRead += numElementsToReadInCurPage;
         pageCursor.nextPage();
     }
     // If we don't find the associated listOffset for the given relID in persistent store list,

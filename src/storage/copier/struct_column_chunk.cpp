@@ -2,6 +2,7 @@
 
 #include "common/string_utils.h"
 #include "storage/copier/string_column_chunk.h"
+#include "storage/copier/table_copy_utils.h"
 #include "storage/copier/var_list_column_chunk.h"
 
 using namespace kuzu::common;
@@ -22,50 +23,11 @@ void StructColumnChunk::append(
     arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
     switch (array->type_id()) {
     case arrow::Type::STRUCT: {
-        auto structArray = (arrow::StructArray*)array;
-        auto arrayData = structArray->data();
-        if (common::StructType::getNumFields(&dataType) != structArray->type()->fields().size()) {
-            throw CopyException{"Unmatched number of struct fields in StructColumnChunk::append."};
-        }
-        for (auto i = 0u; i < structArray->num_fields(); i++) {
-            auto fieldName = structArray->type()->fields()[i]->name();
-            auto fieldIdx = common::StructType::getFieldIdx(&dataType, fieldName);
-            if (fieldIdx == INVALID_STRUCT_FIELD_IDX) {
-                throw CopyException{"Unmatched struct field name: " + fieldName + "."};
-            }
-            childrenChunks[fieldIdx]->append(
-                structArray->field(i).get(), startPosInChunk, numValuesToAppend);
-        }
-        if (arrayData->MayHaveNulls()) {
-            for (auto i = 0u; i < numValuesToAppend; i++) {
-                auto posInChunk = startPosInChunk + i;
-                if (arrayData->IsNull(i)) {
-                    nullChunk->setNull(posInChunk, true);
-                    continue;
-                }
-            }
-        }
+        copyStructFromArrowStruct(array, startPosInChunk, numValuesToAppend);
+
     } break;
     case arrow::Type::STRING: {
-        auto* stringArray = (arrow::StringArray*)array;
-        auto arrayData = stringArray->data();
-        if (arrayData->MayHaveNulls()) {
-            for (auto i = 0u; i < numValuesToAppend; i++) {
-                auto posInChunk = startPosInChunk + i;
-                if (arrayData->IsNull(i)) {
-                    nullChunk->setNull(posInChunk, true);
-                    continue;
-                }
-                auto value = stringArray->GetView(i);
-                setStructFields(value.data(), value.length(), posInChunk);
-            }
-        } else {
-            for (auto i = 0u; i < numValuesToAppend; i++) {
-                auto posInChunk = startPosInChunk + i;
-                auto value = stringArray->GetView(i);
-                setStructFields(value.data(), value.length(), posInChunk);
-            }
-        }
+        copyStructFromArrowString(array, startPosInChunk, numValuesToAppend);
     } break;
     default: {
         throw NotImplementedException("StructColumnChunk::append");
@@ -86,11 +48,38 @@ void StructColumnChunk::append(ColumnChunk* other, common::offset_t startPosInOt
 }
 
 void StructColumnChunk::setStructFields(const char* value, uint64_t length, uint64_t pos) {
-    // Removes the leading and trailing '{', '}';
-    auto structString = std::string(value, length).substr(1, length - 2);
-    auto structFieldIdxAndValuePairs = parseStructFieldNameAndValues(dataType, structString);
-    for (auto& fieldIdxAndValue : structFieldIdxAndValuePairs) {
-        setValueToStructField(pos, fieldIdxAndValue.fieldValue, fieldIdxAndValue.fieldIdx);
+    // Removes the leading and the trailing brackets.
+    switch (dataType.getLogicalTypeID()) {
+    case LogicalTypeID::STRUCT: {
+        auto structString = std::string(value, length).substr(1, length - 2);
+        auto structFieldIdxAndValuePairs = parseStructFieldNameAndValues(dataType, structString);
+        for (auto& fieldIdxAndValue : structFieldIdxAndValuePairs) {
+            setValueToStructField(pos, fieldIdxAndValue.fieldValue, fieldIdxAndValue.fieldIdx);
+        }
+    } break;
+    case LogicalTypeID::UNION: {
+        union_field_idx_t selectedFieldIdx = INVALID_STRUCT_FIELD_IDX;
+        for (auto i = 0u; i < UnionType::getNumFields(&dataType); i++) {
+            auto internalFieldIdx = UnionType::getInternalFieldIdx(i);
+            if (TableCopyUtils::tryCast(*UnionType::getFieldType(&dataType, i), value, length)) {
+                childrenChunks[internalFieldIdx]->getNullChunk()->setNull(pos, false /* isNull */);
+                setValueToStructField(pos, std::string(value, length), internalFieldIdx);
+                selectedFieldIdx = i;
+                break;
+            } else {
+                childrenChunks[internalFieldIdx]->getNullChunk()->setNull(pos, true /* isNull */);
+            }
+        }
+        if (selectedFieldIdx == INVALID_STRUCT_FIELD_IDX) {
+            throw ParserException{StringUtils::string_format(
+                "No parsing rule matches value: {}.", std::string(value, length))};
+        }
+        childrenChunks[UnionType::TAG_FIELD_IDX]->setValue(selectedFieldIdx, pos);
+        childrenChunks[UnionType::TAG_FIELD_IDX]->getNullChunk()->setNull(pos, false /* isNull */);
+    } break;
+    default: {
+        throw NotImplementedException("StructColumnChunk::setStructFields");
+    }
     }
 }
 
@@ -232,6 +221,56 @@ void StructColumnChunk::write(const common::Value& val, uint64_t posToWrite) {
     auto numElements = NestedVal::getChildrenSize(&val);
     for (auto i = 0u; i < numElements; i++) {
         childrenChunks[i]->write(*NestedVal::getChildVal(&val, i), posToWrite);
+    }
+}
+
+void StructColumnChunk::copyStructFromArrowStruct(
+    arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
+    auto structArray = (arrow::StructArray*)array;
+    auto arrayData = structArray->data();
+    if (common::StructType::getNumFields(&dataType) != structArray->type()->fields().size()) {
+        throw CopyException{"Unmatched number of struct fields in StructColumnChunk::append."};
+    }
+    for (auto i = 0u; i < structArray->num_fields(); i++) {
+        auto fieldName = structArray->type()->fields()[i]->name();
+        auto fieldIdx = common::StructType::getFieldIdx(&dataType, fieldName);
+        if (fieldIdx == INVALID_STRUCT_FIELD_IDX) {
+            throw CopyException{"Unmatched struct field name: " + fieldName + "."};
+        }
+        childrenChunks[fieldIdx]->append(
+            structArray->field(i).get(), startPosInChunk, numValuesToAppend);
+    }
+    if (arrayData->MayHaveNulls()) {
+        for (auto i = 0u; i < numValuesToAppend; i++) {
+            auto posInChunk = startPosInChunk + i;
+            if (arrayData->IsNull(i)) {
+                nullChunk->setNull(posInChunk, true);
+                continue;
+            }
+        }
+    }
+}
+
+void StructColumnChunk::copyStructFromArrowString(
+    arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
+    auto* stringArray = (arrow::StringArray*)array;
+    auto arrayData = stringArray->data();
+    if (arrayData->MayHaveNulls()) {
+        for (auto i = 0u; i < numValuesToAppend; i++) {
+            auto posInChunk = startPosInChunk + i;
+            if (arrayData->IsNull(i)) {
+                nullChunk->setNull(posInChunk, true);
+                continue;
+            }
+            auto value = stringArray->GetView(i);
+            setStructFields(value.data(), value.length(), posInChunk);
+        }
+    } else {
+        for (auto i = 0u; i < numValuesToAppend; i++) {
+            auto posInChunk = startPosInChunk + i;
+            auto value = stringArray->GetView(i);
+            setStructFields(value.data(), value.length(), posInChunk);
+        }
     }
 }
 

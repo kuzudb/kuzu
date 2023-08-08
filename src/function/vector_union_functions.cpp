@@ -20,8 +20,8 @@ std::unique_ptr<FunctionBindData> UnionValueVectorFunction::bindFunc(
     assert(arguments.size() == 1);
     std::vector<std::unique_ptr<common::StructField>> fields;
     // TODO(Ziy): Use UINT8 to represent tag value.
-    fields.push_back(std::make_unique<common::StructField>(common::InternalKeyword::TAG,
-        std::make_unique<common::LogicalType>(common::LogicalTypeID::INT64)));
+    fields.push_back(std::make_unique<common::StructField>(common::UnionType::TAG_FIELD_NAME,
+        std::make_unique<common::LogicalType>(common::UnionType::TAG_FIELD_TYPE)));
     fields.push_back(std::make_unique<common::StructField>(arguments[0]->getAlias(),
         std::make_unique<common::LogicalType>(arguments[0]->getDataType())));
     auto resultType = common::LogicalType(
@@ -32,7 +32,7 @@ std::unique_ptr<FunctionBindData> UnionValueVectorFunction::bindFunc(
 void UnionValueVectorFunction::execFunc(
     const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
     common::ValueVector& result) {
-    common::UnionVector::setTagField(&result, 0 /* tagFieldIdx */);
+    common::UnionVector::setTagField(&result, common::UnionType::TAG_FIELD_IDX);
 }
 
 void UnionValueVectorFunction::compileFunc(FunctionBindData* bindData,
@@ -41,7 +41,8 @@ void UnionValueVectorFunction::compileFunc(FunctionBindData* bindData,
     assert(parameters.size() == 1);
     result->setState(parameters[0]->state);
     common::UnionVector::getTagVector(result.get())->setState(parameters[0]->state);
-    common::UnionVector::referenceVector(result.get(), 0 /* fieldIdx */, parameters[0]);
+    common::UnionVector::referenceVector(
+        result.get(), common::UnionType::TAG_FIELD_IDX, parameters[0]);
 }
 
 vector_function_definitions UnionTagVectorFunction::getDefinitions() {

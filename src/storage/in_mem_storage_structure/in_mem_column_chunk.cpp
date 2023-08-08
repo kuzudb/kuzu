@@ -610,7 +610,7 @@ void InMemColumnChunk::setValueFromString<uint8_t*>(
 template<>
 void InMemColumnChunk::setValueFromString<interval_t>(
     const char* value, uint64_t length, uint64_t pos) {
-    auto val = Interval::FromCString(value, length);
+    auto val = Interval::fromCString(value, length);
     setValue(val, pos);
 }
 
@@ -618,7 +618,7 @@ void InMemColumnChunk::setValueFromString<interval_t>(
 template<>
 void InMemColumnChunk::setValueFromString<date_t>(
     const char* value, uint64_t length, uint64_t pos) {
-    auto val = Date::FromCString(value, length);
+    auto val = Date::fromCString(value, length);
     setValue(val, pos);
 }
 
@@ -626,7 +626,7 @@ void InMemColumnChunk::setValueFromString<date_t>(
 template<>
 void InMemColumnChunk::setValueFromString<timestamp_t>(
     const char* value, uint64_t length, uint64_t pos) {
-    auto val = Timestamp::FromCString(value, length);
+    auto val = Timestamp::fromCString(value, length);
     setValue(val, pos);
 }
 

@@ -8,11 +8,44 @@
 namespace kuzu {
 namespace common {
 
+// This class is used to cast c++ const char* to c++ primitive types. Should be moved to parser
+// once the csv parser is implemented.
+class StringCastUtils {
+
+public:
+    static bool tryCastToBoolean(const char* data, uint64_t length, bool& result);
+    static bool castToBool(const char* data, uint64_t length);
+    template<typename T>
+    static bool tryCastToNum(const char* data, uint64_t length, T& result) {
+        auto numStr = std::string{data, length};
+        removeSpace(numStr);
+        std::istringstream iss{numStr};
+        if (iss.str().empty()) {
+            throw ConversionException{"Empty string."};
+        }
+        iss >> result;
+        if (iss.fail() || !iss.eof()) {
+            return false;
+        }
+        return true;
+    }
+    template<typename T>
+    static T castToNum(const char* data, uint64_t length) {
+        T result;
+        if (!tryCastToNum(data, length, result)) {
+            throw ConversionException{"Invalid number: " + std::string{data} + "."};
+        }
+        return result;
+    }
+
+private:
+    static void removeSpace(std::string& str);
+};
+
 class TypeUtils {
 
 public:
     static uint32_t convertToUint32(const char* data);
-    static bool convertToBoolean(const char* data);
 
     static inline std::string toString(bool boolVal) { return boolVal ? "True" : "False"; }
     static inline std::string toString(int64_t val) { return std::to_string(val); }
@@ -43,24 +76,10 @@ public:
         memcpy(&pageOffset, ((uint8_t*)&overflowPtr) + 4, 2);
     }
 
-    template<typename T>
-    static T convertStringToNumber(const char* data) {
-        std::istringstream iss{data};
-        if (iss.str().empty()) {
-            throw ConversionException{"Empty string."};
-        }
-        T retVal;
-        iss >> retVal;
-        if (iss.fail() || !iss.eof()) {
-            throw ConversionException{"Invalid number: " + std::string{data} + "."};
-        }
-        return retVal;
-    }
+    static std::string prefixConversionExceptionMessage(const char* data, LogicalTypeID dataTypeID);
 
 private:
     static std::string castValueToString(const LogicalType& dataType, uint8_t* value, void* vector);
-
-    static std::string prefixConversionExceptionMessage(const char* data, LogicalTypeID dataTypeID);
 };
 
 } // namespace common

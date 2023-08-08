@@ -467,6 +467,7 @@ std::unique_ptr<NodeColumn> NodeColumnFactory::createNodeColumn(const LogicalTyp
         return std::make_unique<VarListNodeColumn>(
             dataType, metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal);
     }
+    case LogicalTypeID::UNION:
     case LogicalTypeID::STRUCT: {
         return std::make_unique<StructNodeColumn>(
             dataType, metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal);

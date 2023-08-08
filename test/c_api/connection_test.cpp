@@ -175,7 +175,8 @@ TEST_F(CApiConnectionTest, GetNodePropertyNames) {
         "\tnote STRING\n"
         "\tdescription STRUCT(rating:DOUBLE, views:INT64, release:TIMESTAMP, film:DATE)\n"
         "\tcontent BLOB\n"
-        "\taudience MAP(STRING: INT64)\n");
+        "\taudience MAP(STRING: INT64)\n"
+        "\tgrade UNION(credit:BOOL, grade1:DOUBLE, grade2:INT64)\n");
     free(result);
 }
 

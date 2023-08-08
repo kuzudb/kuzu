@@ -7,6 +7,31 @@
 namespace kuzu {
 namespace common {
 
+bool StringCastUtils::tryCastToBoolean(const char* data, uint64_t length, bool& result) {
+    auto booleanStr = std::string{data, length};
+    booleanStr = StringUtils::rtrim(StringUtils::ltrim(booleanStr));
+    std::istringstream iss{booleanStr};
+    iss >> std::boolalpha >> result;
+    if (iss.fail()) {
+        return false;
+    }
+    return true;
+}
+
+bool StringCastUtils::castToBool(const char* data, uint64_t length) {
+    bool result;
+    if (!tryCastToBoolean(data, length, result)) {
+        throw ConversionException(
+            TypeUtils::prefixConversionExceptionMessage(data, LogicalTypeID::BOOL) +
+            ". Input is not equal to True or False (in a case-insensitive manner)");
+    }
+    return result;
+}
+
+void StringCastUtils::removeSpace(std::string& str) {
+    str = StringUtils::rtrim(StringUtils::ltrim(str));
+}
+
 uint32_t TypeUtils::convertToUint32(const char* data) {
     std::istringstream iss(data);
     uint32_t val;
@@ -15,20 +40,6 @@ uint32_t TypeUtils::convertToUint32(const char* data) {
             StringUtils::string_format("Failed to convert {} to uint32_t", data));
     }
     return val;
-}
-
-bool TypeUtils::convertToBoolean(const char* data) {
-    auto len = strlen(data);
-    if (len == 4 && 't' == tolower(data[0]) && 'r' == tolower(data[1]) && 'u' == tolower(data[2]) &&
-        'e' == tolower(data[3])) {
-        return true;
-    } else if (len == 5 && 'f' == tolower(data[0]) && 'a' == tolower(data[1]) &&
-               'l' == tolower(data[2]) && 's' == tolower(data[3]) && 'e' == tolower(data[4])) {
-        return false;
-    }
-    throw ConversionException(
-        prefixConversionExceptionMessage(data, LogicalTypeID::BOOL) +
-        ". Input is not equal to True or False (in a case-insensitive manner)");
 }
 
 std::string TypeUtils::castValueToString(

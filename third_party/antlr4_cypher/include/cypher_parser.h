@@ -598,6 +598,7 @@ public:
     virtual size_t getRuleIndex() const override;
     OC_SymbolicNameContext *oC_SymbolicName();
     KU_ListIdentifiersContext *kU_ListIdentifiers();
+    antlr4::tree::TerminalNode *UNION();
     KU_PropertyDefinitionsContext *kU_PropertyDefinitions();
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
