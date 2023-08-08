@@ -212,13 +212,13 @@ void ListPropertyLists::readListFromPages(
             readNullBitsFromAPage(
                 valueVector, frame, pageCursor.elemPosInPage, vectorPos, numValuesToReadInPage);
             for (auto i = 0u; i < numValuesToReadInPage; i++) {
-                if (!valueVector->isNull(vectorPos)) {
+                if (!valueVector->isNull(vectorPos + i)) {
                     diskOverflowFile.readListToVector(
-                        TransactionType::READ_ONLY, kuListsToRead[i], valueVector, vectorPos);
+                        TransactionType::READ_ONLY, kuListsToRead[i], valueVector, vectorPos + i);
                 }
-                vectorPos++;
             }
         });
+        vectorPos += numValuesToReadInPage;
         pageCursor.nextPage();
     }
 }
@@ -387,12 +387,12 @@ std::unordered_set<uint64_t> RelIDList::getDeletedRelOffsetsInListForNodeOffset(
                 if (listsUpdatesStore->isRelDeletedInPersistentStore(
                         storageStructureIDAndFName.storageStructureID.listFileID, nodeOffset,
                         relID)) {
-                    deletedRelOffsetsInList.emplace(numElementsRead);
+                    deletedRelOffsetsInList.emplace(numElementsRead + i);
                 }
-                numElementsRead++;
                 buffer += elementSize;
             }
         });
+        numElementsRead += numElementsInPersistentStore;
         pageCursor.nextPage();
     }
     return deletedRelOffsetsInList;
@@ -417,6 +417,7 @@ list_offset_t RelIDList::getListOffset(offset_t nodeOffset, offset_t relOffset) 
                     retVal = numElementsRead;
                     return;
                 }
+                // TODO(Ziyi): Fix this too.
                 numElementsRead++;
                 buffer += elementSize;
             }
