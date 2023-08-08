@@ -14,7 +14,7 @@ void QueryPlanner::appendScanNodeID(std::shared_ptr<NodeExpression>& node, Logic
     plan.setLastOperator(std::move(scan));
 }
 
-void QueryPlanner::appendScanNodePropIfNecessary(const expression_vector& propertyExpressions,
+void QueryPlanner::appendScanNodeProperties(const expression_vector& propertyExpressions,
     std::shared_ptr<NodeExpression> node, LogicalPlan& plan) {
     expression_vector propertyExpressionToScan;
     for (auto& propertyExpression : propertyExpressions) {

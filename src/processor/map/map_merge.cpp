@@ -26,7 +26,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapMerge(planner::LogicalOperator*
     }
     std::vector<std::unique_ptr<RelInsertExecutor>> relInsertExecutors;
     for (auto& info : logicalMerge->getCreateRelInfosRef()) {
-        relInsertExecutors.push_back(getRelInsertExecutor(relsStore, info.get(), *inSchema));
+        relInsertExecutors.push_back(
+            getRelInsertExecutor(relsStore, info.get(), *inSchema, *outSchema));
     }
     std::vector<std::unique_ptr<NodeSetExecutor>> onCreateNodeSetExecutors;
     for (auto& info : logicalMerge->getOnCreateSetNodeInfosRef()) {

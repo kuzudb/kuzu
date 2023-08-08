@@ -176,7 +176,7 @@ void QueryPlanner::createPathNodePropertyScanPlan(
     for (auto& property : recursiveNode->getPropertyExpressions()) {
         properties.push_back(property->copy());
     }
-    appendScanNodePropIfNecessary(properties, recursiveNode, plan);
+    appendScanNodeProperties(properties, recursiveNode, plan);
     auto expressionsToProject = properties;
     expressionsToProject.push_back(recursiveNode->getInternalIDProperty());
     expressionsToProject.push_back(recursiveNode->getLabelExpression());

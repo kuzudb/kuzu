@@ -9,12 +9,16 @@ namespace planner {
 struct LogicalCreateNodeInfo {
     std::shared_ptr<binder::NodeExpression> node;
     std::shared_ptr<binder::Expression> primaryKey;
+    binder::expression_vector propertiesToReturn;
 
     LogicalCreateNodeInfo(std::shared_ptr<binder::NodeExpression> node,
-        std::shared_ptr<binder::Expression> primaryKey)
-        : node{std::move(node)}, primaryKey{std::move(primaryKey)} {}
+        std::shared_ptr<binder::Expression> primaryKey,
+        binder::expression_vector propertiesToReturn)
+        : node{std::move(node)}, primaryKey{std::move(primaryKey)}, propertiesToReturn{std::move(
+                                                                        propertiesToReturn)} {}
     LogicalCreateNodeInfo(const LogicalCreateNodeInfo& other)
-        : node{other.node}, primaryKey{other.primaryKey} {}
+        : node{other.node}, primaryKey{other.primaryKey}, propertiesToReturn{
+                                                              other.propertiesToReturn} {}
 
     inline std::unique_ptr<LogicalCreateNodeInfo> copy() const {
         return std::make_unique<LogicalCreateNodeInfo>(*this);
@@ -27,12 +31,14 @@ struct LogicalCreateNodeInfo {
 struct LogicalCreateRelInfo {
     std::shared_ptr<binder::RelExpression> rel;
     std::vector<binder::expression_pair> setItems;
+    binder::expression_vector propertiesToReturn;
 
-    LogicalCreateRelInfo(
-        std::shared_ptr<binder::RelExpression> rel, std::vector<binder::expression_pair> setItems)
-        : rel{std::move(rel)}, setItems{std::move(setItems)} {}
+    LogicalCreateRelInfo(std::shared_ptr<binder::RelExpression> rel,
+        std::vector<binder::expression_pair> setItems, binder::expression_vector propertiesToReturn)
+        : rel{std::move(rel)}, setItems{std::move(setItems)}, propertiesToReturn{
+                                                                  std::move(propertiesToReturn)} {}
     LogicalCreateRelInfo(const LogicalCreateRelInfo& other)
-        : rel{other.rel}, setItems{other.setItems} {}
+        : rel{other.rel}, setItems{other.setItems}, propertiesToReturn{other.propertiesToReturn} {}
 
     inline std::unique_ptr<LogicalCreateRelInfo> copy() const {
         return std::make_unique<LogicalCreateRelInfo>(*this);
@@ -76,8 +82,8 @@ public:
         : LogicalOperator{LogicalOperatorType::CREATE_REL, std::move(child)}, infos{std::move(
                                                                                   infos)} {}
 
-    inline void computeFactorizedSchema() final { copyChildSchema(0); }
-    inline void computeFlatSchema() final { copyChildSchema(0); }
+    void computeFactorizedSchema() final;
+    void computeFlatSchema() final;
 
     std::string getExpressionsForPrinting() const final;
 

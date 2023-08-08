@@ -94,22 +94,15 @@ std::vector<std::unique_ptr<LogicalPlan>> QueryPlanner::getInitialEmptyPlans() {
     return plans;
 }
 
-expression_vector QueryPlanner::getPropertiesForNode(NodeExpression& node) {
-    expression_vector result;
-    for (auto& expression : propertiesToScan) {
-        auto property = (PropertyExpression*)expression.get();
-        if (property->getVariableName() == node.getUniqueName()) {
-            result.push_back(expression);
-        }
+expression_vector QueryPlanner::getProperties(const binder::Expression& nodeOrRel) {
+    auto typeID = nodeOrRel.getDataType().getLogicalTypeID();
+    if (typeID != common::LogicalTypeID::NODE && typeID != common::LogicalTypeID::REL) {
+        throw common::NotImplementedException("QueryPlanner::getProperties");
     }
-    return result;
-}
-
-expression_vector QueryPlanner::getPropertiesForRel(RelExpression& rel) {
     expression_vector result;
     for (auto& expression : propertiesToScan) {
         auto property = (PropertyExpression*)expression.get();
-        if (property->getVariableName() == rel.getUniqueName()) {
+        if (property->getVariableName() == nodeOrRel.getUniqueName()) {
             result.push_back(expression);
         }
     }

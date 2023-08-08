@@ -11,14 +11,18 @@ namespace planner {
 std::unique_ptr<LogicalCreateNodeInfo> QueryPlanner::createLogicalCreateNodeInfo(
     BoundCreateInfo* boundCreateInfo) {
     auto node = std::static_pointer_cast<NodeExpression>(boundCreateInfo->nodeOrRel);
+    auto propertiesToReturn = getProperties(*node);
     auto extraInfo = (ExtraCreateNodeInfo*)boundCreateInfo->extraInfo.get();
-    return std::make_unique<LogicalCreateNodeInfo>(node, extraInfo->primaryKey);
+    return std::make_unique<LogicalCreateNodeInfo>(
+        node, extraInfo->primaryKey, std::move(propertiesToReturn));
 }
 
 std::unique_ptr<LogicalCreateRelInfo> QueryPlanner::createLogicalCreateRelInfo(
     BoundCreateInfo* boundCreateInfo) {
     auto rel = std::static_pointer_cast<RelExpression>(boundCreateInfo->nodeOrRel);
-    return std::make_unique<LogicalCreateRelInfo>(rel, boundCreateInfo->setItems);
+    auto propertiesToReturn = getProperties(*rel);
+    return std::make_unique<LogicalCreateRelInfo>(
+        rel, boundCreateInfo->setItems, std::move(propertiesToReturn));
 }
 
 std::vector<std::unique_ptr<BoundSetPropertyInfo>> QueryPlanner::createLogicalSetPropertyInfo(

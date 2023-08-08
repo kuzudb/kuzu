@@ -165,7 +165,7 @@ private:
 
     // Append scan operators
     void appendScanNodeID(std::shared_ptr<NodeExpression>& node, LogicalPlan& plan);
-    void appendScanNodePropIfNecessary(const expression_vector& propertyExpressions,
+    void appendScanNodeProperties(const expression_vector& propertyExpressions,
         std::shared_ptr<NodeExpression> node, LogicalPlan& plan);
 
     // Append extend operators
@@ -219,8 +219,7 @@ private:
 
     static std::vector<std::unique_ptr<LogicalPlan>> getInitialEmptyPlans();
 
-    expression_vector getPropertiesForNode(NodeExpression& node);
-    expression_vector getPropertiesForRel(RelExpression& rel);
+    expression_vector getProperties(const binder::Expression& nodeOrRel);
 
     std::unique_ptr<JoinOrderEnumeratorContext> enterContext(
         binder::expression_vector nodeIDsToScanFromInnerAndOuter);
