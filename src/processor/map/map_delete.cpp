@@ -9,19 +9,18 @@ namespace kuzu {
 namespace processor {
 
 static std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(
-    storage::NodesStore* store, const LogicalDeleteNodeInfo& info, const Schema& inSchema) {
-    auto node = info.node;
-    auto nodeIDPos = DataPos(inSchema.getExpressionPos(*node->getInternalIDProperty()));
-    if (node->isMultiLabeled()) {
+    storage::NodesStore* store, const binder::NodeExpression& node, const Schema& inSchema) {
+    auto nodeIDPos = DataPos(inSchema.getExpressionPos(*node.getInternalIDProperty()));
+    if (node.isMultiLabeled()) {
         std::unordered_map<common::table_id_t, storage::NodeTable*> tableIDToTableMap;
-        for (auto tableID : node->getTableIDs()) {
+        for (auto tableID : node.getTableIDs()) {
             auto table = store->getNodeTable(tableID);
             tableIDToTableMap.insert({tableID, table});
         }
         return std::make_unique<MultiLabelNodeDeleteExecutor>(
             std::move(tableIDToTableMap), nodeIDPos);
     } else {
-        auto table = store->getNodeTable(node->getSingleTableID());
+        auto table = store->getNodeTable(node.getSingleTableID());
         return std::make_unique<SingleLabelNodeDeleteExecutor>(table, nodeIDPos);
     }
 }
@@ -32,8 +31,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDeleteNode(LogicalOperator* log
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto nodesStore = &storageManager.getNodesStore();
     std::vector<std::unique_ptr<NodeDeleteExecutor>> executors;
-    for (auto& info : logicalDeleteNode->getInfosRef()) {
-        executors.push_back(getNodeDeleteExecutor(nodesStore, *info, *inSchema));
+    for (auto& node : logicalDeleteNode->getNodesRef()) {
+        executors.push_back(getNodeDeleteExecutor(nodesStore, *node, *inSchema));
     }
     return std::make_unique<DeleteNode>(std::move(executors), std::move(prevOperator),
         getOperatorID(), logicalDeleteNode->getExpressionsForPrinting());

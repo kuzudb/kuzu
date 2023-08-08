@@ -95,7 +95,7 @@ void NodeTable::update(
 
 void NodeTable::delete_(
     Transaction* transaction, ValueVector* nodeIDVector, DeleteState* deleteState) {
-    lookup(transaction, nodeIDVector, {pkPropertyID}, {deleteState->pkVector.get()});
+    read(transaction, nodeIDVector, {pkPropertyID}, {deleteState->pkVector.get()});
     if (pkIndex) {
         pkIndex->delete_(deleteState->pkVector.get());
     }
