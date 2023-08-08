@@ -257,9 +257,8 @@ void ColumnChunk::templateCopyArrowArray<bool>(
         auto arrowNullBitMap = boolArray->null_bitmap_data();
 
         // Offset should apply to both bool data and nulls
-        NullMask::copyNullMask((uint64_t*)arrowNullBitMap, boolArray->offset(),
-            (uint64_t*)nullChunk->buffer.get(), startPosInChunk, numValuesToAppend,
-            true /*invert*/);
+        nullChunk->copyFromBuffer((uint64_t*)arrowNullBitMap, boolArray->offset(), startPosInChunk,
+            numValuesToAppend, true /*invert*/);
     }
 }
 
@@ -386,6 +385,12 @@ void BoolColumnChunk::append(ColumnChunk* other, common::offset_t startPosInOthe
             other->getNullChunk(), startPosInOtherChunk, startPosInChunk, numValuesToAppend);
     }
     numValues += numValuesToAppend;
+}
+
+void NullColumnChunk::append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
+    common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
+    copyFromBuffer((uint64_t*)static_cast<NullColumnChunk*>(other)->buffer.get(),
+        startPosInOtherChunk, startPosInChunk, numValuesToAppend);
 }
 
 void FixedListColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,

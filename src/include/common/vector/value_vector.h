@@ -36,9 +36,7 @@ public:
     // On return true, there are no null. On return false, there may or may not be nulls.
     inline bool hasNoNullsGuarantee() const { return nullMask->hasNoNullsGuarantee(); }
     inline void setRangeNonNull(uint32_t startPos, uint32_t len) {
-        for (auto i = 0u; i < len; ++i) {
-            setNull(startPos + i, false);
-        }
+        nullMask->setNullFromRange(startPos, len, false);
     }
     inline const uint64_t* getNullMaskData() { return nullMask->getData(); }
     inline void setNull(uint32_t pos, bool isNull) { nullMask->setNull(pos, isNull); }

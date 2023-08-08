@@ -21,9 +21,9 @@ void StringNodeColumnFunc::writeStringValuesToPage(
 
 StringNodeColumn::StringNodeColumn(LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
     BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-    transaction::Transaction* transaction)
+    transaction::Transaction* transaction, RWPropertyStats stats)
     : NodeColumn{std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
-          transaction, true} {
+          transaction, stats, true} {
     if (this->dataType.getLogicalTypeID() == LogicalTypeID::STRING) {
         writeNodeColumnFunc = StringNodeColumnFunc::writeStringValuesToPage;
     }

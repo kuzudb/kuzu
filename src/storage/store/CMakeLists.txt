@@ -5,6 +5,7 @@ add_library(kuzu_storage_store
         node_table.cpp
         nodes_statistics_and_deleted_ids.cpp
         nodes_store.cpp
+        property_statistics.cpp
         rel_table.cpp
         rels_statistics.cpp
         rels_store.cpp

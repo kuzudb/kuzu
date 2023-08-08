@@ -13,9 +13,13 @@ class RelStatistics : public TableStatistics {
     friend class RelsStatistics;
 
 public:
-    RelStatistics() : TableStatistics{0 /* numTuples */}, nextRelOffset{0} {}
-    RelStatistics(uint64_t numRels, common::offset_t nextRelOffset)
-        : TableStatistics{numRels}, nextRelOffset{nextRelOffset} {}
+    RelStatistics(const catalog::TableSchema& tableSchema)
+        : TableStatistics{tableSchema}, nextRelOffset{0} {}
+    RelStatistics(uint64_t numRels,
+        std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&&
+            propertyStats,
+        common::offset_t nextRelOffset)
+        : TableStatistics{numRels, std::move(propertyStats)}, nextRelOffset{nextRelOffset} {}
 
     inline common::offset_t getNextRelOffset() const { return nextRelOffset; }
 
@@ -64,7 +68,7 @@ protected:
 
     inline std::unique_ptr<TableStatistics> constructTableStatistic(
         catalog::TableSchema* tableSchema) override {
-        return std::make_unique<RelStatistics>();
+        return std::make_unique<RelStatistics>(*tableSchema);
     }
 
     inline std::unique_ptr<TableStatistics> constructTableStatistic(
@@ -84,6 +88,8 @@ protected:
     }
 
     std::unique_ptr<TableStatistics> deserializeTableStatistics(uint64_t numTuples,
+        std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&&
+            propertyStats,
         uint64_t& offset, common::FileInfo* fileInfo, uint64_t tableID) override;
 
     void serializeTableStatistics(

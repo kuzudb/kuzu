@@ -24,8 +24,19 @@ void TablesStatistics::readFromFile(const std::string& directory) {
         SerDeser::deserializeValue<uint64_t>(numTuples, fileInfo.get(), offset);
         table_id_t tableID;
         SerDeser::deserializeValue<uint64_t>(tableID, fileInfo.get(), offset);
+
+        uint64_t numProperties;
+        SerDeser::deserializeValue<uint64_t>(numProperties, fileInfo.get(), offset);
+        std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>
+            propertyStats;
+        for (auto j = 0u; j < numProperties; j++) {
+            property_id_t propertyId;
+            SerDeser::deserializeValue(propertyId, fileInfo.get(), offset);
+            propertyStats[propertyId] = PropertyStatistics::deserialize(fileInfo.get(), offset);
+        }
         tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable[tableID] =
-            deserializeTableStatistics(numTuples, offset, fileInfo.get(), tableID);
+            deserializeTableStatistics(
+                numTuples, std::move(propertyStats), offset, fileInfo.get(), tableID);
     }
 }
 
@@ -45,6 +56,16 @@ void TablesStatistics::saveToFile(const std::string& directory, DBFileType dbFil
         auto tableStatistics = tableStatistic.second.get();
         SerDeser::serializeValue(tableStatistics->getNumTuples(), fileInfo.get(), offset);
         SerDeser::serializeValue(tableStatistic.first, fileInfo.get(), offset);
+
+        SerDeser::serializeValue(
+            tableStatistics->getPropertyStatistics().size(), fileInfo.get(), offset);
+        for (auto& propertyPair : tableStatistics->getPropertyStatistics()) {
+            auto propertyId = propertyPair.first;
+            auto propertyStatistics = propertyPair.second.get();
+            SerDeser::serializeValue(propertyId, fileInfo.get(), offset);
+            propertyStatistics->serialize(fileInfo.get(), offset);
+        }
+
         serializeTableStatistics(tableStatistics, offset, fileInfo.get());
     }
     logger->info("Wrote {} to {}.", getTableTypeForPrinting(), filePath);

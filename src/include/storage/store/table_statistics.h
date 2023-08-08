@@ -6,6 +6,7 @@
 #include "catalog/table_schema.h"
 #include "common/ser_deser.h"
 #include "spdlog/spdlog.h"
+#include "storage/store/property_statistics.h"
 #include "transaction/transaction.h"
 
 namespace kuzu {
@@ -15,14 +16,27 @@ using lock_t = std::unique_lock<std::mutex>;
 using atomic_uint64_vec_t = std::vector<std::atomic<uint64_t>>;
 
 class TableStatistics {
-
 public:
-    TableStatistics() : numTuples{0} {}
-
     virtual ~TableStatistics() = default;
 
-    explicit TableStatistics(uint64_t numTuples) : numTuples{numTuples} {
+    explicit TableStatistics(const catalog::TableSchema& schema) : numTuples{0} {
+        for (auto property : schema.getProperties()) {
+            propertyStatistics[property->getPropertyID()] = std::make_unique<PropertyStatistics>();
+        }
+    }
+
+    explicit TableStatistics(uint64_t numTuples,
+        std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&&
+            propertyStatistics)
+        : numTuples{numTuples}, propertyStatistics{std::move(propertyStatistics)} {
         assert(numTuples != UINT64_MAX);
+    }
+
+    explicit TableStatistics(const TableStatistics& other) : numTuples{other.numTuples} {
+        for (auto& propertyStats : other.propertyStatistics) {
+            propertyStatistics[propertyStats.first] =
+                std::make_unique<PropertyStatistics>(*propertyStats.second.get());
+        }
     }
 
     inline bool isEmpty() const { return numTuples == 0; }
@@ -34,8 +48,25 @@ public:
         numTuples = numTuples_;
     }
 
+    inline PropertyStatistics& getPropertyStatistics(common::property_id_t propertyID) {
+        assert(propertyStatistics.contains(propertyID));
+        return *(propertyStatistics.at(propertyID));
+    }
+
+    inline const std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&
+    getPropertyStatistics() {
+        return propertyStatistics;
+    }
+
+    inline void setPropertyStatistics(
+        common::property_id_t propertyID, PropertyStatistics newStats) {
+        propertyStatistics[propertyID] = std::make_unique<PropertyStatistics>(newStats);
+    }
+
 private:
     uint64_t numTuples;
+    std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>
+        propertyStatistics;
 };
 
 struct TablesStatisticsContent {
@@ -44,7 +75,6 @@ struct TablesStatisticsContent {
 };
 
 class TablesStatistics {
-
 public:
     TablesStatistics();
 
@@ -81,6 +111,32 @@ public:
             ->getNumTuples();
     }
 
+    PropertyStatistics& getWritePropertyStatisticsForTable(
+        common::table_id_t tableID, common::property_id_t propertyID) {
+        initTableStatisticPerTableForWriteTrxIfNecessary();
+        auto tableStatistics =
+            tablesStatisticsContentForWriteTrx->tableStatisticPerTable.at(tableID).get();
+        return tableStatistics->getPropertyStatistics(propertyID);
+    }
+
+    inline PropertyStatistics* getReadPropertyStatisticsForTable(
+        common::table_id_t tableID, common::property_id_t propertyID) {
+        auto readResult =
+            tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable.find(tableID);
+        if (readResult != tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable.end()) {
+            return &(readResult->second->getPropertyStatistics(propertyID));
+        }
+        return nullptr;
+    }
+
+    void setPropertyStatisticsForTable(
+        common::table_id_t tableID, common::property_id_t propertyID, PropertyStatistics stats) {
+        initTableStatisticPerTableForWriteTrxIfNecessary();
+        auto tableStatistics =
+            tablesStatisticsContentForWriteTrx->tableStatisticPerTable.at(tableID).get();
+        tableStatistics->setPropertyStatistics(propertyID, stats);
+    }
+
 protected:
     virtual inline std::string getTableTypeForPrinting() const = 0;
 
@@ -93,8 +149,10 @@ protected:
     virtual inline std::string getTableStatisticsFilePath(
         const std::string& directory, common::DBFileType dbFileType) = 0;
 
-    virtual std::unique_ptr<TableStatistics> deserializeTableStatistics(
-        uint64_t numTuples, uint64_t& offset, common::FileInfo* fileInfo, uint64_t tableID) = 0;
+    virtual std::unique_ptr<TableStatistics> deserializeTableStatistics(uint64_t numTuples,
+        std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&&
+            propertyStats,
+        uint64_t& offset, common::FileInfo* fileInfo, uint64_t tableID) = 0;
 
     virtual void serializeTableStatistics(
         TableStatistics* tableStatistics, uint64_t& offset, common::FileInfo* fileInfo) = 0;

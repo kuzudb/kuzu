@@ -9,13 +9,14 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-NodeStatisticsAndDeletedIDs::NodeStatisticsAndDeletedIDs(
-    table_id_t tableID, offset_t maxNodeOffset, const std::vector<offset_t>& deletedNodeOffsets)
-    : tableID{tableID} {
-    auto numTuples = geNumTuplesFromMaxNodeOffset(maxNodeOffset);
-    TableStatistics::setNumTuples(numTuples);
-    if (numTuples > 0) {
-        hasDeletedNodesPerMorsel.resize((numTuples / DEFAULT_VECTOR_CAPACITY) + 1, false);
+NodeStatisticsAndDeletedIDs::NodeStatisticsAndDeletedIDs(table_id_t tableID, offset_t maxNodeOffset,
+    const std::vector<offset_t>& deletedNodeOffsets,
+    std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&&
+        propertyStatistics)
+    : tableID{tableID}, TableStatistics{getNumTuplesFromMaxNodeOffset(maxNodeOffset),
+                            std::move(propertyStatistics)} {
+    if (getNumTuples() > 0) {
+        hasDeletedNodesPerMorsel.resize((getNumTuples() / DEFAULT_VECTOR_CAPACITY) + 1, false);
     }
     for (offset_t deletedNodeOffset : deletedNodeOffsets) {
         auto morselIdxAndOffset =
@@ -206,18 +207,19 @@ void NodesStatisticsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(
 void NodesStatisticsAndDeletedIDs::addNodeStatisticsAndDeletedIDs(
     catalog::NodeTableSchema* tableSchema) {
     initTableStatisticPerTableForWriteTrxIfNecessary();
-    // We use UINT64_MAX to represent an empty nodeTable which doesn't contain any nodes.
     tablesStatisticsContentForWriteTrx->tableStatisticPerTable[tableSchema->tableID] =
-        std::make_unique<NodeStatisticsAndDeletedIDs>(
-            tableSchema->tableID, UINT64_MAX /* maxNodeOffset */);
+        constructTableStatistic(tableSchema);
 }
 
 std::unique_ptr<TableStatistics> NodesStatisticsAndDeletedIDs::deserializeTableStatistics(
-    uint64_t numTuples, uint64_t& offset, FileInfo* fileInfo, uint64_t tableID) {
+    uint64_t numTuples,
+    std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&& propertyStats,
+    uint64_t& offset, FileInfo* fileInfo, uint64_t tableID) {
     std::vector<offset_t> deletedNodeIDs;
     SerDeser::deserializeVector(deletedNodeIDs, fileInfo, offset);
     return make_unique<NodeStatisticsAndDeletedIDs>(tableID,
-        NodeStatisticsAndDeletedIDs::getMaxNodeOffsetFromNumTuples(numTuples), deletedNodeIDs);
+        NodeStatisticsAndDeletedIDs::getMaxNodeOffsetFromNumTuples(numTuples), deletedNodeIDs,
+        std::move(propertyStats));
 }
 
 void NodesStatisticsAndDeletedIDs::serializeTableStatistics(
