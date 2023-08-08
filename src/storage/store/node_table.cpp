@@ -71,20 +71,31 @@ void NodeTable::lookup(Transaction* transaction, ValueVector* nodeIDVector,
     }
 }
 
-offset_t NodeTable::insert(Transaction* transaction, ValueVector* primaryKeyVector) {
-    auto offset = nodesStatisticsAndDeletedIDs->addNode(tableID);
-    if (primaryKeyVector) {
-        assert(pkIndex);
-        insertPK(offset, primaryKeyVector);
+void NodeTable::insert(Transaction* transaction, ValueVector* nodeIDVector,
+    const std::vector<common::ValueVector*>& propertyVectors,
+    const std::unordered_map<common::property_id_t, common::vector_idx_t>& propertyIDToVectorIdx) {
+    // We assume that offsets are given in the ascending order, thus lastOffset is the max one.
+    offset_t lastOffset;
+    for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
+        auto pos = nodeIDVector->state->selVector->selectedPositions[i];
+        auto offset = nodesStatisticsAndDeletedIDs->addNode(tableID);
+        nodeIDVector->setValue(pos, nodeID_t{offset, tableID});
+        lastOffset = offset;
+    }
+    if (pkIndex) {
+        assert(propertyIDToVectorIdx.contains(pkPropertyID));
+        insertPK(nodeIDVector, propertyVectors[propertyIDToVectorIdx.at(pkPropertyID)]);
     }
     auto currentNumNodeGroups = getNumNodeGroups(transaction);
-    if (offset == StorageUtils::getStartOffsetForNodeGroup(currentNumNodeGroups)) {
+    if (lastOffset >= StorageUtils::getStartOffsetForNodeGroup(currentNumNodeGroups)) {
         auto newNodeGroup = std::make_unique<NodeGroup>(this);
         newNodeGroup->setNodeGroupIdx(currentNumNodeGroups);
         append(newNodeGroup.get());
     }
-    setPropertiesToNull(offset);
-    return offset;
+    for (auto& [propertyID, column] : propertyColumns) {
+        assert(propertyIDToVectorIdx.contains(propertyID));
+        column->write(nodeIDVector, propertyVectors[propertyIDToVectorIdx.at(propertyID)]);
+    }
 }
 
 void NodeTable::update(
@@ -149,23 +160,20 @@ void NodeTable::rollbackInMemory() {
     pkIndex->rollbackInMemory();
 }
 
-void NodeTable::setPropertiesToNull(offset_t offset) {
-    for (auto& [_, column] : propertyColumns) {
-        column->setNull(offset);
-    }
-}
-
-void NodeTable::insertPK(offset_t offset, ValueVector* primaryKeyVector) {
-    assert(primaryKeyVector->state->selVector->selectedSize == 1);
-    auto pkValPos = primaryKeyVector->state->selVector->selectedPositions[0];
-    if (primaryKeyVector->isNull(pkValPos)) {
-        throw RuntimeException(ExceptionMessage::nullPKException());
-    }
-    if (!pkIndex->insert(primaryKeyVector, pkValPos, offset)) {
-        std::string pkStr = primaryKeyVector->dataType.getLogicalTypeID() == LogicalTypeID::INT64 ?
-                                std::to_string(primaryKeyVector->getValue<int64_t>(pkValPos)) :
-                                primaryKeyVector->getValue<ku_string_t>(pkValPos).getAsString();
-        throw RuntimeException(ExceptionMessage::existedPKException(pkStr));
+void NodeTable::insertPK(ValueVector* nodeIDVector, ValueVector* primaryKeyVector) {
+    for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
+        auto pos = nodeIDVector->state->selVector->selectedPositions[i];
+        auto offset = nodeIDVector->readNodeOffset(pos);
+        if (primaryKeyVector->isNull(pos)) {
+            throw RuntimeException(ExceptionMessage::nullPKException());
+        }
+        if (!pkIndex->insert(primaryKeyVector, pos, offset)) {
+            std::string pkStr =
+                primaryKeyVector->dataType.getLogicalTypeID() == LogicalTypeID::INT64 ?
+                    std::to_string(primaryKeyVector->getValue<int64_t>(pos)) :
+                    primaryKeyVector->getValue<ku_string_t>(pos).getAsString();
+            throw RuntimeException(ExceptionMessage::existedPKException(pkStr));
+        }
     }
 }
 

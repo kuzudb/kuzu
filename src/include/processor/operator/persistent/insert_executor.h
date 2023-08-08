@@ -10,11 +10,14 @@ namespace processor {
 // TODO(Guodong): the following class should be moved to storage.
 class NodeInsertExecutor {
 public:
-    NodeInsertExecutor(storage::NodeTable* table,
-        std::unique_ptr<evaluator::ExpressionEvaluator> primaryKeyEvaluator,
-        std::vector<storage::RelTable*> relTablesToInit, const DataPos& outNodeIDVectorPos)
-        : table{table}, primaryKeyEvaluator{std::move(primaryKeyEvaluator)},
-          relTablesToInit{std::move(relTablesToInit)}, outNodeIDVectorPos{outNodeIDVectorPos} {}
+    NodeInsertExecutor(storage::NodeTable* table, std::vector<storage::RelTable*> relTablesToInit,
+        const DataPos& nodeIDVectorPos, std::vector<DataPos> propertyLhsPositions,
+        std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> propertyRhsEvaluators,
+        std::unordered_map<common::property_id_t, common::vector_idx_t> propertyIDToVectorIdx)
+        : table{table}, relTablesToInit{std::move(relTablesToInit)},
+          nodeIDVectorPos{nodeIDVectorPos}, propertyLhsPositions{std::move(propertyLhsPositions)},
+          propertyRhsEvaluators{std::move(propertyRhsEvaluators)}, propertyIDToVectorIdx{std::move(
+                                                                       propertyIDToVectorIdx)} {}
     NodeInsertExecutor(const NodeInsertExecutor& other);
 
     void init(ResultSet* resultSet, ExecutionContext* context);
@@ -30,23 +33,27 @@ public:
 
 private:
     storage::NodeTable* table;
-    std::unique_ptr<evaluator::ExpressionEvaluator> primaryKeyEvaluator;
     std::vector<storage::RelTable*> relTablesToInit;
-    DataPos outNodeIDVectorPos;
+    DataPos nodeIDVectorPos;
+    std::vector<DataPos> propertyLhsPositions;
+    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> propertyRhsEvaluators;
+    // TODO(Guodong): remove this.
+    std::unordered_map<common::property_id_t, common::vector_idx_t> propertyIDToVectorIdx;
 
-    common::ValueVector* primaryKeyVector = nullptr;
-    common::ValueVector* outNodeIDVector = nullptr;
+    common::ValueVector* nodeIDVector;
+    std::vector<common::ValueVector*> propertyLhsVectors;
+    std::vector<common::ValueVector*> propertyRhsVectors;
 };
 
 class RelInsertExecutor {
 public:
     RelInsertExecutor(storage::RelsStatistics& relsStatistics, storage::RelTable* table,
         const DataPos& srcNodePos, const DataPos& dstNodePos,
-        std::vector<DataPos> lhsVectorPositions,
-        std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> evaluators)
+        std::vector<DataPos> propertyLhsPositions,
+        std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> propertyRhsEvaluators)
         : relsStatistics{relsStatistics}, table{table}, srcNodePos{srcNodePos},
-          dstNodePos{dstNodePos}, lhsVectorPositions{std::move(lhsVectorPositions)},
-          evaluators{std::move(evaluators)} {}
+          dstNodePos{dstNodePos}, propertyLhsPositions{std::move(propertyLhsPositions)},
+          propertyRhsEvaluators{std::move(propertyRhsEvaluators)} {}
     RelInsertExecutor(const RelInsertExecutor& other);
 
     void init(ResultSet* resultSet, ExecutionContext* context);
@@ -65,13 +72,13 @@ private:
     storage::RelTable* table;
     DataPos srcNodePos;
     DataPos dstNodePos;
-    std::vector<DataPos> lhsVectorPositions;
-    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> evaluators;
+    std::vector<DataPos> propertyLhsPositions;
+    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> propertyRhsEvaluators;
 
     common::ValueVector* srcNodeIDVector = nullptr;
     common::ValueVector* dstNodeIDVector = nullptr;
-    std::vector<common::ValueVector*> lhsVectors;
-    std::vector<common::ValueVector*> rhsVectors;
+    std::vector<common::ValueVector*> propertyLhsVectors;
+    std::vector<common::ValueVector*> propertyRhsVectors;
 };
 
 } // namespace processor

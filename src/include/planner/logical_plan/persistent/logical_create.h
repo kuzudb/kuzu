@@ -8,17 +8,16 @@ namespace planner {
 
 struct LogicalCreateNodeInfo {
     std::shared_ptr<binder::NodeExpression> node;
-    std::shared_ptr<binder::Expression> primaryKey;
+    std::vector<binder::expression_pair> setItems;
     binder::expression_vector propertiesToReturn;
 
     LogicalCreateNodeInfo(std::shared_ptr<binder::NodeExpression> node,
-        std::shared_ptr<binder::Expression> primaryKey,
-        binder::expression_vector propertiesToReturn)
-        : node{std::move(node)}, primaryKey{std::move(primaryKey)}, propertiesToReturn{std::move(
-                                                                        propertiesToReturn)} {}
+        std::vector<binder::expression_pair> setItems, binder::expression_vector propertiesToReturn)
+        : node{std::move(node)}, setItems{std::move(setItems)}, propertiesToReturn{std::move(
+                                                                    propertiesToReturn)} {}
     LogicalCreateNodeInfo(const LogicalCreateNodeInfo& other)
-        : node{other.node}, primaryKey{other.primaryKey}, propertiesToReturn{
-                                                              other.propertiesToReturn} {}
+        : node{other.node}, setItems{other.setItems}, propertiesToReturn{other.propertiesToReturn} {
+    }
 
     inline std::unique_ptr<LogicalCreateNodeInfo> copy() const {
         return std::make_unique<LogicalCreateNodeInfo>(*this);

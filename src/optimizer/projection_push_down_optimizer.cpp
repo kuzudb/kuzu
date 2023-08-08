@@ -162,8 +162,8 @@ void ProjectionPushDownOptimizer::visitUnwind(planner::LogicalOperator* op) {
 void ProjectionPushDownOptimizer::visitCreateNode(planner::LogicalOperator* op) {
     auto createNode = (LogicalCreateNode*)op;
     for (auto& info : createNode->getInfosRef()) {
-        if (info->primaryKey != nullptr) {
-            collectExpressionsInUse(info->primaryKey);
+        for (auto& setItem : info->setItems) {
+            collectExpressionsInUse(setItem.second);
         }
     }
 }
@@ -202,8 +202,8 @@ void ProjectionPushDownOptimizer::visitMerge(planner::LogicalOperator* op) {
     auto merge = (LogicalMerge*)op;
     collectExpressionsInUse(merge->getMark());
     for (auto& info : merge->getCreateNodeInfosRef()) {
-        if (info->primaryKey != nullptr) {
-            collectExpressionsInUse(info->primaryKey);
+        for (auto& setItem : info->setItems) {
+            collectExpressionsInUse(setItem.second);
         }
     }
     for (auto& info : merge->getCreateRelInfosRef()) {

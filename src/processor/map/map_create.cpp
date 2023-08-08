@@ -11,6 +11,19 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace processor {
 
+static std::vector<DataPos> populateLhsVectorPositions(
+    const std::vector<binder::expression_pair>& setItems, const Schema& outSchema) {
+    std::vector<DataPos> result;
+    for (auto& [lhs, rhs] : setItems) {
+        if (outSchema.isExpressionInScope(*lhs)) {
+            result.emplace_back(outSchema.getExpressionPos(*lhs));
+        } else {
+            result.emplace_back(INVALID_DATA_CHUNK_POS, INVALID_DATA_CHUNK_POS);
+        }
+    }
+    return result;
+}
+
 std::unique_ptr<NodeInsertExecutor> PlanMapper::getNodeInsertExecutor(
     storage::NodesStore* nodesStore, storage::RelsStore* relsStore,
     planner::LogicalCreateNodeInfo* info, const planner::Schema& inSchema,
@@ -18,10 +31,6 @@ std::unique_ptr<NodeInsertExecutor> PlanMapper::getNodeInsertExecutor(
     auto node = info->node;
     auto nodeTableID = node->getSingleTableID();
     auto table = nodesStore->getNodeTable(nodeTableID);
-    std::unique_ptr<ExpressionEvaluator> evaluator = nullptr;
-    if (info->primaryKey != nullptr) {
-        evaluator = expressionMapper.mapExpression(info->primaryKey, inSchema);
-    }
     std::vector<RelTable*> relTablesToInit;
     for (auto& schema : catalog->getReadOnlyVersion()->getRelTableSchemas()) {
         if (schema->isSrcOrDstTable(nodeTableID)) {
@@ -29,8 +38,17 @@ std::unique_ptr<NodeInsertExecutor> PlanMapper::getNodeInsertExecutor(
         }
     }
     auto nodeIDPos = DataPos(outSchema.getExpressionPos(*node->getInternalIDProperty()));
-    return std::make_unique<NodeInsertExecutor>(
-        table, std::move(evaluator), std::move(relTablesToInit), nodeIDPos);
+    std::vector<DataPos> lhsVectorPositions = populateLhsVectorPositions(info->setItems, outSchema);
+    std::vector<std::unique_ptr<ExpressionEvaluator>> evaluators;
+    std::unordered_map<common::property_id_t, common::vector_idx_t> propertyIDToVectorIdx;
+    for (auto i = 0u; i < info->setItems.size(); ++i) {
+        auto& [lhs, rhs] = info->setItems[i];
+        auto propertyExpression = (binder::PropertyExpression*)lhs.get();
+        evaluators.push_back(expressionMapper.mapExpression(rhs, inSchema));
+        propertyIDToVectorIdx.insert({propertyExpression->getPropertyID(nodeTableID), i});
+    }
+    return std::make_unique<NodeInsertExecutor>(table, std::move(relTablesToInit), nodeIDPos,
+        std::move(lhsVectorPositions), std::move(evaluators), std::move(propertyIDToVectorIdx));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateNode(LogicalOperator* logicalOperator) {
@@ -57,14 +75,9 @@ std::unique_ptr<RelInsertExecutor> PlanMapper::getRelInsertExecutor(storage::Rel
     auto dstNode = rel->getDstNode();
     auto srcNodePos = DataPos(inSchema.getExpressionPos(*srcNode->getInternalIDProperty()));
     auto dstNodePos = DataPos(inSchema.getExpressionPos(*dstNode->getInternalIDProperty()));
-    std::vector<DataPos> lhsVectorPositions;
+    auto lhsVectorPositions = populateLhsVectorPositions(info->setItems, outSchema);
     std::vector<std::unique_ptr<ExpressionEvaluator>> evaluators;
     for (auto& [lhs, rhs] : info->setItems) {
-        if (outSchema.isExpressionInScope(*lhs)) {
-            lhsVectorPositions.emplace_back(outSchema.getExpressionPos(*lhs));
-        } else {
-            lhsVectorPositions.emplace_back(INVALID_DATA_CHUNK_POS, INVALID_DATA_CHUNK_POS);
-        }
         evaluators.push_back(expressionMapper.mapExpression(rhs, inSchema));
     }
     return std::make_unique<RelInsertExecutor>(relsStore->getRelsStatistics(), table, srcNodePos,
