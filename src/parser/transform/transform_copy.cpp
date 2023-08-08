@@ -1,6 +1,8 @@
 #include "parser/copy.h"
 #include "parser/transformer.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace parser {
 
@@ -18,7 +20,7 @@ std::unique_ptr<Statement> Transformer::transformCopyFromCSV(
                               transformParsingOptions(*ctx.kU_ParsingOptions()) :
                               std::unordered_map<std::string, std::unique_ptr<ParsedExpression>>();
     return std::make_unique<CopyFrom>(std::move(filePaths), std::move(tableName),
-        std::move(parsingOptions), common::CopyDescription::FileType::UNKNOWN);
+        std::move(parsingOptions), CopyDescription::FileType::UNKNOWN);
 }
 
 std::unique_ptr<Statement> Transformer::transformCopyFromNPY(
@@ -27,7 +29,7 @@ std::unique_ptr<Statement> Transformer::transformCopyFromNPY(
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
     auto parsingOptions = std::unordered_map<std::string, std::unique_ptr<ParsedExpression>>();
     return std::make_unique<CopyFrom>(std::move(filePaths), std::move(tableName),
-        std::move(parsingOptions), common::CopyDescription::FileType::NPY);
+        std::move(parsingOptions), CopyDescription::FileType::NPY);
 }
 
 std::vector<std::string> Transformer::transformFilePaths(

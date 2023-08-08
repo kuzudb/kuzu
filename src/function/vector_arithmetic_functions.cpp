@@ -286,7 +286,7 @@ vector_function_definitions Atan2VectorFunction::getDefinitions() {
 vector_function_definitions RoundVectorFunction::getDefinitions() {
     vector_function_definitions result;
     result.push_back(make_unique<VectorFunctionDefinition>(ROUND_FUNC_NAME,
-        std::vector<common::LogicalTypeID>{LogicalTypeID::DOUBLE, LogicalTypeID::INT64},
+        std::vector<LogicalTypeID>{LogicalTypeID::DOUBLE, LogicalTypeID::INT64},
         LogicalTypeID::DOUBLE, BinaryExecFunction<double_t, int64_t, double_t, Round>));
     return result;
 }

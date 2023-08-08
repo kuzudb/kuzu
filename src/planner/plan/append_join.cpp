@@ -22,7 +22,7 @@ void QueryPlanner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType
     hashJoin->computeFactorizedSchema();
     // Check for sip
     auto ratio = probePlan.getCardinality() / buildPlan.getCardinality();
-    if (ratio > common::PlannerKnobs::SIP_RATIO) {
+    if (ratio > PlannerKnobs::SIP_RATIO) {
         hashJoin->setSIP(SidewaysInfoPassing::PROHIBIT_PROBE_TO_BUILD);
     } else {
         hashJoin->setSIP(SidewaysInfoPassing::PROHIBIT_BUILD_TO_PROBE);
@@ -69,7 +69,7 @@ void QueryPlanner::appendIntersect(const std::shared_ptr<Expression>& intersectN
         appendFlattens(intersect->getGroupsPosToFlattenOnBuildSide(i), *buildPlans[i]);
         intersect->setChild(i + 1, buildPlans[i]->getLastOperator());
         auto ratio = probePlan.getCardinality() / buildPlans[i]->getCardinality();
-        if (ratio > common::PlannerKnobs::SIP_RATIO) {
+        if (ratio > PlannerKnobs::SIP_RATIO) {
             intersect->setSIP(SidewaysInfoPassing::PROHIBIT_PROBE_TO_BUILD);
         }
     }

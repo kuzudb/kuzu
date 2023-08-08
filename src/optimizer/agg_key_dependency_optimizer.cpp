@@ -7,6 +7,7 @@
 #include "planner/logical_plan/logical_distinct.h"
 
 using namespace kuzu::binder;
+using namespace kuzu::common;
 using namespace kuzu::planner;
 
 namespace kuzu {
@@ -50,7 +51,7 @@ AggKeyDependencyOptimizer::resolveKeysAndDependentKeys(const binder::expression_
     // Collect primary keys from group keys.
     std::vector<binder::PropertyExpression*> primaryKeys;
     for (auto& expression : keys) {
-        if (expression->expressionType == common::PROPERTY) {
+        if (expression->expressionType == PROPERTY) {
             auto propertyExpression = (binder::PropertyExpression*)expression.get();
             if (propertyExpression->isPrimaryKey() || propertyExpression->isInternalID()) {
                 primaryKeys.push_back(propertyExpression);
@@ -65,7 +66,7 @@ AggKeyDependencyOptimizer::resolveKeysAndDependentKeys(const binder::expression_
     binder::expression_vector groupExpressions;
     binder::expression_vector dependentExpressions;
     for (auto& expression : keys) {
-        if (expression->expressionType == common::PROPERTY) {
+        if (expression->expressionType == PROPERTY) {
             auto propertyExpression = (binder::PropertyExpression*)expression.get();
             if (propertyExpression->isPrimaryKey() || propertyExpression->isInternalID()) {
                 groupExpressions.push_back(expression);

@@ -50,7 +50,7 @@ bool BuiltInVectorFunctions::canApplyStaticEvaluation(
 }
 
 VectorFunctionDefinition* BuiltInVectorFunctions::matchVectorFunction(
-    const std::string& name, const std::vector<common::LogicalType>& inputTypes) {
+    const std::string& name, const std::vector<LogicalType>& inputTypes) {
     auto& functionDefinitions = vectorFunctions.at(name);
     bool isOverload = functionDefinitions.size() > 1;
     std::vector<VectorFunctionDefinition*> candidateFunctions;
@@ -85,22 +85,22 @@ uint32_t BuiltInVectorFunctions::getCastCost(
             return 0;
         }
         switch (inputTypeID) {
-        case common::LogicalTypeID::ANY:
+        case LogicalTypeID::ANY:
             // ANY type can be any type
             return 0;
-        case common::LogicalTypeID::INT64:
+        case LogicalTypeID::INT64:
             return castInt64(targetTypeID);
-        case common::LogicalTypeID::INT32:
+        case LogicalTypeID::INT32:
             return castInt32(targetTypeID);
-        case common::LogicalTypeID::INT16:
+        case LogicalTypeID::INT16:
             return castInt16(targetTypeID);
-        case common::LogicalTypeID::DOUBLE:
+        case LogicalTypeID::DOUBLE:
             return castDouble(targetTypeID);
-        case common::LogicalTypeID::FLOAT:
+        case LogicalTypeID::FLOAT:
             return castFloat(targetTypeID);
-        case common::LogicalTypeID::DATE:
+        case LogicalTypeID::DATE:
             return castDate(targetTypeID);
-        case common::LogicalTypeID::SERIAL:
+        case LogicalTypeID::SERIAL:
             return castSerial(targetTypeID);
         default:
             return UNDEFINED_CAST_COST;
@@ -108,21 +108,21 @@ uint32_t BuiltInVectorFunctions::getCastCost(
     }
 }
 
-uint32_t BuiltInVectorFunctions::getTargetTypeCost(common::LogicalTypeID typeID) {
+uint32_t BuiltInVectorFunctions::getTargetTypeCost(LogicalTypeID typeID) {
     switch (typeID) {
-    case common::LogicalTypeID::INT32: {
+    case LogicalTypeID::INT32: {
         return 103;
     }
-    case common::LogicalTypeID::INT64: {
+    case LogicalTypeID::INT64: {
         return 101;
     }
-    case common::LogicalTypeID::FLOAT: {
+    case LogicalTypeID::FLOAT: {
         return 110;
     }
-    case common::LogicalTypeID::DOUBLE: {
+    case LogicalTypeID::DOUBLE: {
         return 102;
     }
-    case common::LogicalTypeID::TIMESTAMP: {
+    case LogicalTypeID::TIMESTAMP: {
         return 120;
     }
     default: {
@@ -131,67 +131,67 @@ uint32_t BuiltInVectorFunctions::getTargetTypeCost(common::LogicalTypeID typeID)
     }
 }
 
-uint32_t BuiltInVectorFunctions::castInt64(common::LogicalTypeID targetTypeID) {
+uint32_t BuiltInVectorFunctions::castInt64(LogicalTypeID targetTypeID) {
     switch (targetTypeID) {
-    case common::LogicalTypeID::FLOAT:
-    case common::LogicalTypeID::DOUBLE:
+    case LogicalTypeID::FLOAT:
+    case LogicalTypeID::DOUBLE:
         return getTargetTypeCost(targetTypeID);
     default:
         return UNDEFINED_CAST_COST;
     }
 }
 
-uint32_t BuiltInVectorFunctions::castInt32(common::LogicalTypeID targetTypeID) {
+uint32_t BuiltInVectorFunctions::castInt32(LogicalTypeID targetTypeID) {
     switch (targetTypeID) {
-    case common::LogicalTypeID::INT64:
-    case common::LogicalTypeID::FLOAT:
-    case common::LogicalTypeID::DOUBLE:
+    case LogicalTypeID::INT64:
+    case LogicalTypeID::FLOAT:
+    case LogicalTypeID::DOUBLE:
         return getTargetTypeCost(targetTypeID);
     default:
         return UNDEFINED_CAST_COST;
     }
 }
 
-uint32_t BuiltInVectorFunctions::castInt16(common::LogicalTypeID targetTypeID) {
+uint32_t BuiltInVectorFunctions::castInt16(LogicalTypeID targetTypeID) {
     switch (targetTypeID) {
-    case common::LogicalTypeID::INT32:
-    case common::LogicalTypeID::INT64:
-    case common::LogicalTypeID::FLOAT:
-    case common::LogicalTypeID::DOUBLE:
+    case LogicalTypeID::INT32:
+    case LogicalTypeID::INT64:
+    case LogicalTypeID::FLOAT:
+    case LogicalTypeID::DOUBLE:
         return getTargetTypeCost(targetTypeID);
     default:
         return UNDEFINED_CAST_COST;
     }
 }
 
-uint32_t BuiltInVectorFunctions::castDouble(common::LogicalTypeID targetTypeID) {
+uint32_t BuiltInVectorFunctions::castDouble(LogicalTypeID targetTypeID) {
     switch (targetTypeID) {
     default:
         return UNDEFINED_CAST_COST;
     }
 }
 
-uint32_t BuiltInVectorFunctions::castFloat(common::LogicalTypeID targetTypeID) {
+uint32_t BuiltInVectorFunctions::castFloat(LogicalTypeID targetTypeID) {
     switch (targetTypeID) {
-    case common::LogicalTypeID::DOUBLE:
+    case LogicalTypeID::DOUBLE:
         return getTargetTypeCost(targetTypeID);
     default:
         return UNDEFINED_CAST_COST;
     }
 }
 
-uint32_t BuiltInVectorFunctions::castDate(common::LogicalTypeID targetTypeID) {
+uint32_t BuiltInVectorFunctions::castDate(LogicalTypeID targetTypeID) {
     switch (targetTypeID) {
-    case common::LogicalTypeID::TIMESTAMP:
+    case LogicalTypeID::TIMESTAMP:
         return getTargetTypeCost(targetTypeID);
     default:
         return UNDEFINED_CAST_COST;
     }
 }
 
-uint32_t BuiltInVectorFunctions::castSerial(common::LogicalTypeID targetTypeID) {
+uint32_t BuiltInVectorFunctions::castSerial(LogicalTypeID targetTypeID) {
     switch (targetTypeID) {
-    case common::LogicalTypeID::INT64:
+    case LogicalTypeID::INT64:
         return 0;
     default:
         return castInt64(targetTypeID);
@@ -497,8 +497,7 @@ void BuiltInVectorFunctions::registerPathFunctions() {
 void BuiltInVectorFunctions::addFunction(
     std::string name, function::vector_function_definitions definitions) {
     if (vectorFunctions.contains(name)) {
-        throw common::CatalogException{
-            common::StringUtils::string_format("function {} already exists.", name)};
+        throw CatalogException{StringUtils::string_format("function {} already exists.", name)};
     }
     vectorFunctions.emplace(std::move(name), std::move(definitions));
 }

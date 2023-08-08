@@ -186,7 +186,7 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "PROFILE";
     }
     default:
-        throw common::NotImplementedException("physicalOperatorTypeToString()");
+        throw NotImplementedException("physicalOperatorTypeToString()");
     }
 }
 

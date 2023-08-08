@@ -8,6 +8,8 @@
 #include "parser/expression/parsed_literal_expression.h"
 #include "parser/transformer.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace parser {
 
@@ -77,7 +79,7 @@ std::unique_ptr<Statement> Transformer::transformAddProperty(
         ctx.kU_AlterOptions()->kU_AddProperty()->oC_Expression() ?
             transformExpression(*ctx.kU_AlterOptions()->kU_AddProperty()->oC_Expression()) :
             std::make_unique<ParsedLiteralExpression>(
-                std::make_unique<common::Value>(common::Value::createNullValue()), "NULL"));
+                std::make_unique<Value>(Value::createNullValue()), "NULL"));
 }
 
 std::unique_ptr<Statement> Transformer::transformDropProperty(

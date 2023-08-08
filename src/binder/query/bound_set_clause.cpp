@@ -1,10 +1,11 @@
 #include "binder/query/updating_clause/bound_set_clause.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace binder {
 
-BoundSetClause::BoundSetClause(const BoundSetClause& other)
-    : BoundUpdatingClause{common::ClauseType::SET} {
+BoundSetClause::BoundSetClause(const BoundSetClause& other) : BoundUpdatingClause{ClauseType::SET} {
     for (auto& info : other.infos) {
         infos.push_back(info->copy());
     }

@@ -23,8 +23,7 @@ void Catalog::prepareCommitOrRollback(TransactionAction action) {
     if (hasUpdates()) {
         wal->logCatalogRecord();
         if (action == TransactionAction::COMMIT) {
-            catalogContentForWriteTrx->saveToFile(
-                wal->getDirectory(), common::DBFileType::WAL_VERSION);
+            catalogContentForWriteTrx->saveToFile(wal->getDirectory(), DBFileType::WAL_VERSION);
         }
     }
 }

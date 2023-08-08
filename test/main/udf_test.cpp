@@ -1,6 +1,8 @@
 #include "function/string/functions/concat_function.h"
 #include "main_test_helper/main_test_helper.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace testing {
 
@@ -17,9 +19,8 @@ TEST_F(ApiTest, UnaryUDFInt64) {
 }
 
 TEST_F(ApiTest, UnaryUDFAddDate) {
-    conn->createScalarFunction("addFiveDays",
-        std::vector<common::LogicalTypeID>{common::LogicalTypeID::DATE},
-        common::LogicalTypeID::DATE, &add5);
+    conn->createScalarFunction(
+        "addFiveDays", std::vector<LogicalTypeID>{LogicalTypeID::DATE}, LogicalTypeID::DATE, &add5);
     auto actualResult = TestHelper::convertResultToString(
         *conn->query("MATCH (p:person) return addFiveDays(p.birthdate)"));
     auto expectedResult = std::vector<std::string>{"1900-01-06", "1900-01-06", "1940-06-27",
@@ -53,7 +54,7 @@ TEST_F(ApiTest, UnaryUDFDouble) {
     sortAndCheckTestResults(actualResult, expectedResult);
 }
 
-static int16_t strDoubleLen(common::ku_string_t str) {
+static int16_t strDoubleLen(ku_string_t str) {
     return str.len * 2;
 }
 
@@ -79,7 +80,7 @@ TEST_F(ApiTest, BinaryUDFFlatUnflat) {
     sortAndCheckTestResults(actualResult, expectedResult);
 }
 
-static int64_t computeStringLenPlus(common::ku_string_t str, int32_t y) {
+static int64_t computeStringLenPlus(ku_string_t str, int32_t y) {
     return str.len + y;
 }
 
@@ -97,9 +98,8 @@ static int64_t addMicroSeconds(int64_t timestamp, int32_t microSeconds) {
 
 TEST_F(ApiTest, BinaryAddMicroSeconds) {
     conn->createScalarFunction("addMicro",
-        std::vector<common::LogicalTypeID>{
-            common::LogicalTypeID::TIMESTAMP, common::LogicalTypeID::INT32},
-        common::LogicalTypeID::TIMESTAMP, &addMicroSeconds);
+        std::vector<LogicalTypeID>{LogicalTypeID::TIMESTAMP, LogicalTypeID::INT32},
+        LogicalTypeID::TIMESTAMP, &addMicroSeconds);
     auto actualResult = TestHelper::convertResultToString(
         *conn->query("MATCH (p:person) return addMicro(p.registerTime, to_int32(p.ID))"));
     auto expectedResult = std::vector<std::string>{"2011-08-20 11:25:30",
@@ -121,15 +121,15 @@ TEST_F(ApiTest, TernaryUDFInt) {
     sortAndCheckTestResults(actualResult, expectedResult);
 }
 
-int32_t ternaryLenTotal(common::ku_string_t a, common::blob_t b, common::ku_string_t c) {
+int32_t ternaryLenTotal(ku_string_t a, blob_t b, ku_string_t c) {
     return (int32_t)(a.len + b.value.len + c.len);
 }
 
 TEST_F(ApiTest, TernaryUDFStr) {
     conn->createScalarFunction("ternaryLenTotal",
-        std::vector<common::LogicalTypeID>{common::LogicalTypeID::STRING,
-            common::LogicalTypeID::BLOB, common::LogicalTypeID::STRING},
-        common::LogicalTypeID::INT32, &ternaryLenTotal);
+        std::vector<LogicalTypeID>{
+            LogicalTypeID::STRING, LogicalTypeID::BLOB, LogicalTypeID::STRING},
+        LogicalTypeID::INT32, &ternaryLenTotal);
     auto actualResult = TestHelper::convertResultToString(
         *conn->query("MATCH (m:movies) return ternaryLenTotal(m.name, m.content, m.note)"));
     auto expectedResult = std::vector<std::string>{"64", "68", "84"};
@@ -139,10 +139,10 @@ TEST_F(ApiTest, TernaryUDFStr) {
 static void validateUDFError(std::function<void()> createFunc, std::string errMsg) {
     try {
         createFunc();
-    } catch (common::CatalogException& e) {
+    } catch (CatalogException& e) {
         ASSERT_EQ(std::string(e.what()), errMsg);
         return;
-    } catch (common::Exception&) { FAIL(); }
+    } catch (Exception&) { FAIL(); }
     FAIL();
 }
 
@@ -155,9 +155,8 @@ TEST_F(ApiTest, UDFError) {
 TEST_F(ApiTest, UDFTypeError) {
     validateUDFError(
         [&]() {
-            conn->createScalarFunction("add5",
-                std::vector<common::LogicalTypeID>{common::LogicalTypeID::FLOAT},
-                common::LogicalTypeID::INT32, &add5);
+            conn->createScalarFunction("add5", std::vector<LogicalTypeID>{LogicalTypeID::FLOAT},
+                LogicalTypeID::INT32, &add5);
         },
         "Catalog exception: Incompatible udf parameter/return type and templated type.");
 }
@@ -166,9 +165,8 @@ TEST_F(ApiTest, UnaryUDFMoreParamType) {
     validateUDFError(
         [&]() {
             conn->createScalarFunction("addFiveDays",
-                std::vector<common::LogicalTypeID>{
-                    common::LogicalTypeID::DATE, common::LogicalTypeID::INT32},
-                common::LogicalTypeID::DATE, &add5);
+                std::vector<LogicalTypeID>{LogicalTypeID::DATE, LogicalTypeID::INT32},
+                LogicalTypeID::DATE, &add5);
         },
         "Catalog exception: Expected exactly one parameter type for unary udf. Got: 2.");
 }
@@ -177,8 +175,8 @@ TEST_F(ApiTest, BinaryUDFMoreParamType) {
     validateUDFError(
         [&]() {
             conn->createScalarFunction("addMicro",
-                std::vector<common::LogicalTypeID>{common::LogicalTypeID::TIMESTAMP},
-                common::LogicalTypeID::TIMESTAMP, &addMicroSeconds);
+                std::vector<LogicalTypeID>{LogicalTypeID::TIMESTAMP}, LogicalTypeID::TIMESTAMP,
+                &addMicroSeconds);
         },
         "Catalog exception: Expected exactly two parameter types for binary udf. Got: 1.");
 }
@@ -187,16 +185,15 @@ TEST_F(ApiTest, TernaryUDFMoreParamType) {
     validateUDFError(
         [&]() {
             conn->createScalarFunction("ternaryLenTotal",
-                std::vector<common::LogicalTypeID>{common::LogicalTypeID::STRING,
-                    common::LogicalTypeID::BLOB, common::LogicalTypeID::STRING,
-                    common::LogicalTypeID::INT32},
-                common::LogicalTypeID::INT32, &ternaryLenTotal);
+                std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::BLOB,
+                    LogicalTypeID::STRING, LogicalTypeID::INT32},
+                LogicalTypeID::INT32, &ternaryLenTotal);
         },
         "Catalog exception: Expected exactly three parameter types for ternary udf. Got: 4.");
 }
 
-static void addFour(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
-    common::ValueVector& result) {
+static void addFour(
+    const std::vector<std::shared_ptr<ValueVector>>& parameters, ValueVector& result) {
     assert(parameters.size() == 1);
     auto parameter = parameters[0];
     result.resetAuxiliaryBuffer();
@@ -221,23 +218,22 @@ TEST_F(ApiTest, vectorizedUnaryAddFour) {
 }
 
 struct AddDate {
-    static inline void operation(common::date_t& left, int64_t& right, common::date_t& result) {
+    static inline void operation(date_t& left, int64_t& right, date_t& result) {
         result.days = (int32_t)(left.days + right);
     }
 };
 
-static void addDate(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
-    common::ValueVector& result) {
+static void addDate(
+    const std::vector<std::shared_ptr<ValueVector>>& parameters, ValueVector& result) {
     assert(parameters.size() == 2);
-    function::BinaryFunctionExecutor::execute<common::date_t, int64_t, common::date_t, AddDate>(
+    function::BinaryFunctionExecutor::execute<date_t, int64_t, date_t, AddDate>(
         *parameters[0], *parameters[1], result);
 }
 
 TEST_F(ApiTest, vectorizedBinaryAddDate) {
     conn->createVectorizedFunction("addDate",
-        std::vector<common::LogicalTypeID>{
-            common::LogicalTypeID::DATE, common::LogicalTypeID::INT64},
-        common::LogicalTypeID::DATE, &addDate);
+        std::vector<LogicalTypeID>{LogicalTypeID::DATE, LogicalTypeID::INT64}, LogicalTypeID::DATE,
+        &addDate);
     auto actualResult = TestHelper::convertResultToString(
         *conn->query("MATCH (p:person) return addDate(p.birthdate, p.age)"));
     auto expectedResult = std::vector<std::string>{"1900-01-31", "1900-02-05", "1940-08-06",
@@ -246,8 +242,8 @@ TEST_F(ApiTest, vectorizedBinaryAddDate) {
 }
 
 struct ConditionalConcat {
-    static inline void operation(common::ku_string_t& a, bool& b, common::ku_string_t& c,
-        common::ku_string_t& result, common::ValueVector& resultVector) {
+    static inline void operation(
+        ku_string_t& a, bool& b, ku_string_t& c, ku_string_t& result, ValueVector& resultVector) {
         // Concat a,c if b is true, otherwise concat c,a.
         if (b) {
             function::Concat::operation(a, c, result, resultVector);
@@ -257,17 +253,16 @@ struct ConditionalConcat {
     }
 };
 
-static void conditionalConcat(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
-    common::ValueVector& result) {
+static void conditionalConcat(
+    const std::vector<std::shared_ptr<ValueVector>>& parameters, ValueVector& result) {
     assert(parameters.size() == 3);
-    function::TernaryFunctionExecutor::executeString<common::ku_string_t, bool, common::ku_string_t,
-        common::ku_string_t, ConditionalConcat>(
-        *parameters[0], *parameters[1], *parameters[2], result);
+    function::TernaryFunctionExecutor::executeString<ku_string_t, bool, ku_string_t, ku_string_t,
+        ConditionalConcat>(*parameters[0], *parameters[1], *parameters[2], result);
 }
 
 TEST_F(ApiTest, vectorizedTernaryConditionalAdd) {
-    conn->createVectorizedFunction<common::ku_string_t, common::ku_string_t, bool,
-        common::ku_string_t>("conditionalConcat", &conditionalConcat);
+    conn->createVectorizedFunction<ku_string_t, ku_string_t, bool, ku_string_t>(
+        "conditionalConcat", &conditionalConcat);
     auto actualResult = TestHelper::convertResultToString(
         *conn->query("MATCH (p:person)-[:knows]->(p1:person) return conditionalConcat(p.fName, "
                      "p.isStudent, p1.fName)"));

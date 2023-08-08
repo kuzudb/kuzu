@@ -464,8 +464,7 @@ std::vector<std::string> TableCopyUtils::getColumnNamesToRead(catalog::TableSche
     return columnNamesToRead;
 }
 
-void TableCopyUtils::validateNumElementsInList(
-    uint64_t numElementsRead, const common::LogicalType& type) {
+void TableCopyUtils::validateNumElementsInList(uint64_t numElementsRead, const LogicalType& type) {
     auto numElementsInList = FixedListType::getNumElementsInList(&type);
     if (numElementsRead != numElementsInList) {
         throw CopyException(StringUtils::string_format(
@@ -474,9 +473,8 @@ void TableCopyUtils::validateNumElementsInList(
     }
 }
 
-std::unique_ptr<common::Value> TableCopyUtils::parseVarList(const std::string& l, int64_t from,
-    int64_t to, const common::LogicalType& dataType,
-    const common::CopyDescription& copyDescription) {
+std::unique_ptr<Value> TableCopyUtils::parseVarList(const std::string& l, int64_t from, int64_t to,
+    const LogicalType& dataType, const CopyDescription& copyDescription) {
     auto split = splitByDelimiter(l, from, to, copyDescription);
     std::vector<std::unique_ptr<Value>> values;
     auto childDataType = VarListType::getChildType(&dataType);
@@ -499,9 +497,8 @@ std::unique_ptr<common::Value> TableCopyUtils::parseVarList(const std::string& l
         std::move(values));
 }
 
-std::unique_ptr<common::Value> TableCopyUtils::parseMap(const std::string& l, int64_t from,
-    int64_t to, const common::LogicalType& dataType,
-    const common::CopyDescription& copyDescription) {
+std::unique_ptr<Value> TableCopyUtils::parseMap(const std::string& l, int64_t from, int64_t to,
+    const LogicalType& dataType, const CopyDescription& copyDescription) {
     auto split = splitByDelimiter(l, from, to, copyDescription);
     std::vector<std::unique_ptr<Value>> values;
     auto childDataType = VarListType::getChildType(&dataType);
@@ -522,8 +519,8 @@ std::unique_ptr<common::Value> TableCopyUtils::parseMap(const std::string& l, in
     return make_unique<Value>(dataType, std::move(values));
 }
 
-std::pair<std::string, std::string> TableCopyUtils::parseMapFields(const std::string& l,
-    int64_t from, int64_t length, const common::CopyDescription& copyDescription) {
+std::pair<std::string, std::string> TableCopyUtils::parseMapFields(
+    const std::string& l, int64_t from, int64_t length, const CopyDescription& copyDescription) {
     std::string key;
     std::string value;
     auto numListBeginChars = 0u;
@@ -552,7 +549,7 @@ std::pair<std::string, std::string> TableCopyUtils::parseMapFields(const std::st
             }
         }
     }
-    throw common::ParserException{
+    throw ParserException{
         StringUtils::string_format("Invalid map field string {}.", l.substr(from, length))};
 }
 

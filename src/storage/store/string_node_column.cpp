@@ -29,9 +29,9 @@ StringNodeColumn::StringNodeColumn(LogicalType dataType, const MetadataDAHInfo& 
     }
 }
 
-void StringNodeColumn::scan(transaction::Transaction* transaction,
-    common::node_group_idx_t nodeGroupIdx, common::offset_t startOffsetInGroup,
-    common::offset_t endOffsetInGroup, common::ValueVector* resultVector, uint64_t offsetInVector) {
+void StringNodeColumn::scan(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
+    uint64_t offsetInVector) {
     nullColumn->scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup, resultVector,
         offsetInVector);
     NodeColumn::scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup, resultVector,

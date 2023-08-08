@@ -46,7 +46,7 @@ void QueryPlanner::planCreateClause(
     if (plan.isEmpty()) { // E.g. CREATE (a:Person {age:20})
         appendDummyScan(plan);
     } else {
-        appendAccumulate(common::AccumulateType::REGULAR, plan);
+        appendAccumulate(AccumulateType::REGULAR, plan);
     }
     if (createClause.hasNodeInfo()) {
         appendCreateNode(createClause.getNodeInfos(), plan);
@@ -132,7 +132,7 @@ void QueryPlanner::planMergeClause(binder::BoundUpdatingClause& updatingClause, 
 }
 
 void QueryPlanner::planSetClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan) {
-    appendAccumulate(common::AccumulateType::REGULAR, plan);
+    appendAccumulate(AccumulateType::REGULAR, plan);
     auto& setClause = (BoundSetClause&)updatingClause;
     if (setClause.hasNodeInfo()) {
         appendSetNodeProperty(setClause.getNodeInfos(), plan);
@@ -144,7 +144,7 @@ void QueryPlanner::planSetClause(binder::BoundUpdatingClause& updatingClause, Lo
 
 void QueryPlanner::planDeleteClause(
     binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan) {
-    appendAccumulate(common::AccumulateType::REGULAR, plan);
+    appendAccumulate(AccumulateType::REGULAR, plan);
     auto& deleteClause = (BoundDeleteClause&)updatingClause;
     if (deleteClause.hasRelInfo()) {
         appendDeleteRel(deleteClause.getRelInfos(), plan);

@@ -26,10 +26,10 @@ void NodeInsertExecutor::insert(transaction::Transaction* transaction) {
         primaryKeyEvaluator->evaluate();
     }
     auto offset = table->insert(transaction, primaryKeyVector);
-    common::nodeID_t nodeID{offset, table->getTableID()};
+    nodeID_t nodeID{offset, table->getTableID()};
     assert(outNodeIDVector->state->selVector->selectedSize == 1);
     auto pos = outNodeIDVector->state->selVector->selectedPositions[0];
-    outNodeIDVector->setValue<common::nodeID_t>(pos, nodeID);
+    outNodeIDVector->setValue<nodeID_t>(pos, nodeID);
     for (auto& relTable : relTablesToInit) {
         relTable->initEmptyRelsForNewNode(nodeID);
     }

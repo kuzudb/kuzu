@@ -2,6 +2,7 @@
 #include "processor/operator/cross_product.h"
 #include "processor/plan_mapper.h"
 
+using namespace kuzu::common;
 using namespace kuzu::planner;
 
 namespace kuzu {
@@ -29,7 +30,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCrossProduct(LogicalOperator* l
     auto info =
         std::make_unique<CrossProductInfo>(std::move(outVecPos), std::move(colIndicesToScan));
     auto table = resultCollector->getResultFactorizedTable();
-    auto maxMorselSize = table->hasUnflatCol() ? 1 : common::DEFAULT_VECTOR_CAPACITY;
+    auto maxMorselSize = table->hasUnflatCol() ? 1 : DEFAULT_VECTOR_CAPACITY;
     auto localState = std::make_unique<CrossProductLocalState>(table, maxMorselSize);
     return make_unique<CrossProduct>(std::move(info), std::move(localState),
         std::move(probeSidePrevOperator), std::move(resultCollector), getOperatorID(),

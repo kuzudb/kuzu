@@ -1,10 +1,11 @@
 #include "processor/operator/recursive_extend/frontier.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace processor {
 
-void Frontier::addEdge(
-    common::nodeID_t boundNodeID, common::nodeID_t nbrNodeID, common::nodeID_t relID) {
+void Frontier::addEdge(nodeID_t boundNodeID, nodeID_t nbrNodeID, nodeID_t relID) {
     if (!bwdEdges.contains(nbrNodeID)) {
         nodeIDs.push_back(nbrNodeID);
         bwdEdges.insert({nbrNodeID, std::vector<frontier::node_rel_id_t>{}});
@@ -12,7 +13,7 @@ void Frontier::addEdge(
     bwdEdges.at(nbrNodeID).emplace_back(boundNodeID, relID);
 }
 
-void Frontier::addNodeWithMultiplicity(common::nodeID_t nodeID, uint64_t multiplicity) {
+void Frontier::addNodeWithMultiplicity(nodeID_t nodeID, uint64_t multiplicity) {
     if (nodeIDToMultiplicity.contains(nodeID)) {
         nodeIDToMultiplicity.at(nodeID) += multiplicity;
     } else {

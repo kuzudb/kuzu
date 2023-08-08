@@ -4,6 +4,7 @@
 #include "processor/operator/semi_masker.h"
 #include "processor/plan_mapper.h"
 
+using namespace kuzu::common;
 using namespace kuzu::planner;
 
 namespace kuzu {
@@ -14,8 +15,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
     auto inSchema = semiMasker->getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto node = semiMasker->getNode();
-    std::unordered_map<common::table_id_t, std::vector<SemiMaskerInfo::mask_with_idx>>
-        masksPerTable;
+    std::unordered_map<table_id_t, std::vector<SemiMaskerInfo::mask_with_idx>> masksPerTable;
     for (auto tableID : node->getTableIDs()) {
         masksPerTable.insert({tableID, std::vector<SemiMaskerInfo::mask_with_idx>{}});
     }
@@ -39,7 +39,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
             }
         } break;
         default:
-            throw common::NotImplementedException("PlanMapper::mapLogicalSemiMaskerToPhysical");
+            throw NotImplementedException("PlanMapper::mapLogicalSemiMaskerToPhysical");
         }
     }
     auto keyPos = DataPos(inSchema->getExpressionPos(*semiMasker->getKey()));
@@ -64,7 +64,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
         }
     }
     default:
-        throw common::NotImplementedException("PlanMapper::mapLogicalSemiMaskerToPhysical");
+        throw NotImplementedException("PlanMapper::mapLogicalSemiMaskerToPhysical");
     }
 }
 

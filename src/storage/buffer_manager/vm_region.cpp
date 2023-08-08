@@ -45,7 +45,7 @@ VMRegion::VMRegion(PageSizeClass pageSizeClass, uint64_t maxRegionSize) : numFra
 }
 
 #ifdef _WIN32
-uint8_t* VMRegion::getFrame(common::frame_idx_t frameIdx) {
+uint8_t* VMRegion::getFrame(frame_idx_t frameIdx) {
     auto result = VirtualAlloc(
         region + ((std::uint64_t)frameIdx * frameSize), frameSize, MEM_COMMIT, PAGE_READWRITE);
     if (result == NULL) {
@@ -65,7 +65,7 @@ VMRegion::~VMRegion() {
 #endif
 }
 
-void VMRegion::releaseFrame(common::frame_idx_t frameIdx) {
+void VMRegion::releaseFrame(frame_idx_t frameIdx) {
 #ifdef _WIN32
     // TODO: VirtualAlloc(..., MEM_RESET, ...) may be faster
     // See https://arvid.io/2018/04/02/memory-mapping-on-windows/#1

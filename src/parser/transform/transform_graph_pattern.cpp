@@ -1,6 +1,8 @@
 #include "parser/query/graph_pattern/pattern_element.h"
 #include "parser/transformer.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace parser {
 
@@ -92,15 +94,15 @@ std::unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
     } else {
         arrowDirection = ArrowDirection::BOTH;
     }
-    auto relType = common::QueryRelType::NON_RECURSIVE;
+    auto relType = QueryRelType::NON_RECURSIVE;
     std::unique_ptr<RecursiveRelPatternInfo> recursiveInfo;
     if (relDetail->oC_RangeLiteral()) {
         if (relDetail->oC_RangeLiteral()->ALL()) {
-            relType = common::QueryRelType::ALL_SHORTEST;
+            relType = QueryRelType::ALL_SHORTEST;
         } else if (relDetail->oC_RangeLiteral()->SHORTEST()) {
-            relType = common::QueryRelType::SHORTEST;
+            relType = QueryRelType::SHORTEST;
         } else {
-            relType = common::QueryRelType::VARIABLE_LENGTH;
+            relType = QueryRelType::VARIABLE_LENGTH;
         }
         auto range = relDetail->oC_RangeLiteral();
         auto lowerBound = range->oC_IntegerLiteral()[0]->getText();

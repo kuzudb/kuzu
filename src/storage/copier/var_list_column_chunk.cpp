@@ -81,7 +81,7 @@ void VarListColumnChunk::copyVarListFromArrowList(
     //        listArray->offsets().get(), startOffset, endOffset - startOffset);
 }
 
-void VarListColumnChunk::write(const common::Value& listVal, uint64_t posToWrite) {
+void VarListColumnChunk::write(const Value& listVal, uint64_t posToWrite) {
     assert(listVal.getDataType()->getPhysicalType() == PhysicalTypeID::VAR_LIST);
     auto numValuesInList = NestedVal::getChildrenSize(&listVal);
     resizeDataChunk(varListDataColumnChunk.numValuesInDataChunk + numValuesInList);

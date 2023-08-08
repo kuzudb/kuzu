@@ -3,6 +3,7 @@
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::binder;
+using namespace kuzu::common;
 using namespace kuzu::planner;
 
 namespace kuzu {
@@ -22,8 +23,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeProperty(
         outVectorsPos.emplace_back(outSchema->getExpressionPos(*expression));
     }
     if (node->isMultiLabeled()) {
-        std::unordered_map<common::table_id_t, std::vector<uint32_t>> tableIDToColumns;
-        std::unordered_map<common::table_id_t, storage::NodeTable*> tables;
+        std::unordered_map<table_id_t, std::vector<uint32_t>> tableIDToColumns;
+        std::unordered_map<table_id_t, storage::NodeTable*> tables;
         for (auto& tableID : node->getTableIDs()) {
             tables.insert({tableID, nodeStore.getNodeTable(tableID)});
             std::vector<uint32_t> columns;

@@ -5,6 +5,8 @@
 #include "common/constants.h"
 #include "main/db_config.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace main {
 
@@ -12,12 +14,12 @@ ActiveQuery::ActiveQuery() : interrupted{false} {}
 
 void ActiveQuery::reset() {
     interrupted = false;
-    timer = common::Timer();
+    timer = Timer();
 }
 
 ClientContext::ClientContext()
     : numThreadsForExecution{std::thread::hardware_concurrency()},
-      timeoutInMS{common::ClientContextConstants::TIMEOUT_IN_MS} {}
+      timeoutInMS{ClientContextConstants::TIMEOUT_IN_MS} {}
 
 void ClientContext::startTimingIfEnabled() {
     if (isTimeOutEnabled()) {
@@ -28,7 +30,7 @@ void ClientContext::startTimingIfEnabled() {
 std::string ClientContext::getCurrentSetting(std::string optionName) {
     auto option = main::DBConfig::getOptionByName(optionName);
     if (option == nullptr) {
-        throw common::RuntimeException{"Invalid option name: " + optionName + "."};
+        throw RuntimeException{"Invalid option name: " + optionName + "."};
     }
     return option->getSetting(this);
 }

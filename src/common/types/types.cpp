@@ -39,7 +39,7 @@ std::string PhysicalTypeUtils::physicalTypeToString(PhysicalTypeID physicalType)
     case PhysicalTypeID::VAR_LIST:
         return "VAR_LIST";
     default:
-        throw common::NotImplementedException{"Unrecognized physicalType."};
+        throw NotImplementedException{"Unrecognized physicalType."};
     }
 }
 
@@ -424,8 +424,8 @@ LogicalTypeID LogicalTypeUtils::dataTypeIDFromString(const std::string& dataType
 std::string LogicalTypeUtils::dataTypeToString(const LogicalType& dataType) {
     switch (dataType.typeID) {
     case LogicalTypeID::MAP: {
-        auto structType = common::VarListType::getChildType(&dataType);
-        auto fieldTypes = common::StructType::getFieldTypes(structType);
+        auto structType = VarListType::getChildType(&dataType);
+        auto fieldTypes = StructType::getFieldTypes(structType);
         return "MAP(" + dataTypeToString(*fieldTypes[0]) + ": " + dataTypeToString(*fieldTypes[1]) +
                ")";
     }

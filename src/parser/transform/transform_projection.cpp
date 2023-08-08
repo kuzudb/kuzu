@@ -2,6 +2,8 @@
 #include "parser/query/return_with_clause/with_clause.h"
 #include "parser/transformer.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace parser {
 
@@ -45,8 +47,8 @@ std::vector<std::unique_ptr<ParsedExpression>> Transformer::transformProjectionI
     CypherParser::OC_ProjectionItemsContext& ctx) {
     std::vector<std::unique_ptr<ParsedExpression>> projectionExpressions;
     if (ctx.STAR()) {
-        projectionExpressions.push_back(std::make_unique<ParsedExpression>(
-            common::ExpressionType::STAR, ctx.STAR()->getText()));
+        projectionExpressions.push_back(
+            std::make_unique<ParsedExpression>(ExpressionType::STAR, ctx.STAR()->getText()));
     }
     for (auto& projectionItem : ctx.oC_ProjectionItem()) {
         projectionExpressions.push_back(transformProjectionItem(*projectionItem));

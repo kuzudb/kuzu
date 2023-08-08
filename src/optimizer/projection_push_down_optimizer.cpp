@@ -64,7 +64,7 @@ void ProjectionPushDownOptimizer::visitExtend(planner::LogicalOperator* op) {
 
 void ProjectionPushDownOptimizer::visitAccumulate(planner::LogicalOperator* op) {
     auto accumulate = (LogicalAccumulate*)op;
-    if (accumulate->getAccumulateType() != common::AccumulateType::REGULAR) {
+    if (accumulate->getAccumulateType() != AccumulateType::REGULAR) {
         return;
     }
     auto expressionsBeforePruning = accumulate->getExpressions();
@@ -269,11 +269,11 @@ void ProjectionPushDownOptimizer::visitSetRelProperty(planner::LogicalOperator* 
 // See comments above this class for how to collect expressions in use.
 void ProjectionPushDownOptimizer::collectExpressionsInUse(
     std::shared_ptr<binder::Expression> expression) {
-    if (expression->expressionType == common::PROPERTY) {
+    if (expression->expressionType == PROPERTY) {
         propertiesInUse.insert(std::move(expression));
         return;
     }
-    if (expression->expressionType == common::VARIABLE) {
+    if (expression->expressionType == VARIABLE) {
         variablesInUse.insert(expression);
     }
     for (auto& child : ExpressionChildrenCollector::collectChildren(*expression)) {
@@ -286,12 +286,12 @@ binder::expression_vector ProjectionPushDownOptimizer::pruneExpressions(
     expression_set expressionsAfterPruning;
     for (auto& expression : expressions) {
         switch (expression->expressionType) {
-        case common::VARIABLE: {
+        case VARIABLE: {
             if (variablesInUse.contains(expression)) {
                 expressionsAfterPruning.insert(expression);
             }
         } break;
-        case common::PROPERTY: {
+        case PROPERTY: {
             if (propertiesInUse.contains(expression)) {
                 expressionsAfterPruning.insert(expression);
             }

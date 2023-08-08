@@ -9,6 +9,7 @@
 #include "processor/operator/copy_to/copy_to.h"
 #include "processor/plan_mapper.h"
 
+using namespace kuzu::common;
 using namespace kuzu::planner;
 using namespace kuzu::storage;
 
@@ -24,7 +25,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logic
     case catalog::TableType::REL:
         return mapCopyRel(logicalOperator);
     default:
-        throw common::NotImplementedException{"PlanMapper::mapCopy"};
+        throw NotImplementedException{"PlanMapper::mapCopy"};
     }
 }
 
@@ -46,10 +47,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNode(
     planner::LogicalOperator* logicalOperator) {
     auto copy = (LogicalCopyFrom*)logicalOperator;
     auto fileType = copy->getCopyDescription().fileType;
-    if (fileType != common::CopyDescription::FileType::CSV &&
-        fileType != common::CopyDescription::FileType::PARQUET &&
-        fileType != common::CopyDescription::FileType::NPY) {
-        throw common::NotImplementedException{"PlanMapper::mapLogicalCopyFromToPhysical"};
+    if (fileType != CopyDescription::FileType::CSV &&
+        fileType != CopyDescription::FileType::PARQUET &&
+        fileType != CopyDescription::FileType::NPY) {
+        throw NotImplementedException{"PlanMapper::mapLogicalCopyFromToPhysical"};
     }
     std::unique_ptr<ReadFile> readFile;
     std::shared_ptr<ReadFileSharedState> readFileSharedState;
@@ -62,21 +63,21 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNode(
     }
     auto nodeTableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(copy->getTableID());
     switch (copy->getCopyDescription().fileType) {
-    case (common::CopyDescription::FileType::CSV): {
+    case (CopyDescription::FileType::CSV): {
         readFileSharedState =
             std::make_shared<ReadCSVSharedState>(copy->getCopyDescription().filePaths,
                 *copy->getCopyDescription().csvReaderConfig, nodeTableSchema);
         readFile = std::make_unique<ReadCSV>(dataColumnPoses, readFileSharedState, getOperatorID(),
             copy->getExpressionsForPrinting());
     } break;
-    case (common::CopyDescription::FileType::PARQUET): {
+    case (CopyDescription::FileType::PARQUET): {
         readFileSharedState =
             std::make_shared<ReadParquetSharedState>(copy->getCopyDescription().filePaths,
                 *copy->getCopyDescription().csvReaderConfig, nodeTableSchema);
         readFile = std::make_unique<ReadParquet>(dataColumnPoses, readFileSharedState,
             getOperatorID(), copy->getExpressionsForPrinting());
     } break;
-    case (common::CopyDescription::FileType::NPY): {
+    case (CopyDescription::FileType::NPY): {
         readFileSharedState =
             std::make_shared<ReadNPYSharedState>(copy->getCopyDescription().filePaths,
                 *copy->getCopyDescription().csvReaderConfig, nodeTableSchema);
@@ -84,7 +85,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNode(
             copy->getExpressionsForPrinting());
     } break;
     default:
-        throw common::NotImplementedException("PlanMapper::mapLogicalCopyNodeToPhysical");
+        throw NotImplementedException("PlanMapper::mapLogicalCopyNodeToPhysical");
     }
     auto copyNodeSharedState = std::make_shared<CopyNodeSharedState>(readFileSharedState->numRows,
         catalog->getReadOnlyVersion()->getNodeTableSchema(copy->getTableID()),

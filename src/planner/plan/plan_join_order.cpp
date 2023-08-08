@@ -3,6 +3,8 @@
 #include "planner/logical_plan/scan/logical_scan_node.h"
 #include "planner/query_planner.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace planner {
 
@@ -187,17 +189,17 @@ void QueryPlanner::appendExtendAndFilter(std::shared_ptr<NodeExpression> boundNo
     std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
     ExtendDirection direction, const expression_vector& predicates, LogicalPlan& plan) {
     switch (rel->getRelType()) {
-    case common::QueryRelType::NON_RECURSIVE: {
+    case QueryRelType::NON_RECURSIVE: {
         auto properties = getProperties(*rel);
         appendNonRecursiveExtend(boundNode, nbrNode, rel, direction, properties, plan);
     } break;
-    case common::QueryRelType::VARIABLE_LENGTH:
-    case common::QueryRelType::SHORTEST:
-    case common::QueryRelType::ALL_SHORTEST: {
+    case QueryRelType::VARIABLE_LENGTH:
+    case QueryRelType::SHORTEST:
+    case QueryRelType::ALL_SHORTEST: {
         appendRecursiveExtend(boundNode, nbrNode, rel, direction, plan);
     } break;
     default:
-        throw common::NotImplementedException("JoinOrderEnumerator::appendExtendAndFilter");
+        throw NotImplementedException("JoinOrderEnumerator::appendExtendAndFilter");
     }
     appendFilters(predicates, plan);
 }
@@ -431,7 +433,7 @@ void QueryPlanner::planInnerHashJoin(const SubqueryGraph& subgraph,
                 auto leftPlanProbeCopy = leftPlan->shallowCopy();
                 auto rightPlanBuildCopy = rightPlan->shallowCopy();
                 appendHashJoin(
-                    joinNodeIDs, common::JoinType::INNER, *leftPlanProbeCopy, *rightPlanBuildCopy);
+                    joinNodeIDs, JoinType::INNER, *leftPlanProbeCopy, *rightPlanBuildCopy);
                 appendFilters(predicates, *leftPlanProbeCopy);
                 context->addPlan(newSubgraph, std::move(leftPlanProbeCopy));
             }
@@ -441,7 +443,7 @@ void QueryPlanner::planInnerHashJoin(const SubqueryGraph& subgraph,
                 auto leftPlanBuildCopy = leftPlan->shallowCopy();
                 auto rightPlanProbeCopy = rightPlan->shallowCopy();
                 appendHashJoin(
-                    joinNodeIDs, common::JoinType::INNER, *rightPlanProbeCopy, *leftPlanBuildCopy);
+                    joinNodeIDs, JoinType::INNER, *rightPlanProbeCopy, *leftPlanBuildCopy);
                 appendFilters(predicates, *rightPlanProbeCopy);
                 context->addPlan(newSubgraph, std::move(rightPlanProbeCopy));
             }
@@ -457,7 +459,7 @@ std::vector<std::unique_ptr<LogicalPlan>> QueryPlanner::planCrossProduct(
         for (auto& rightPlan : rightPlans) {
             auto leftPlanCopy = leftPlan->shallowCopy();
             auto rightPlanCopy = rightPlan->shallowCopy();
-            appendCrossProduct(common::AccumulateType::REGULAR, *leftPlanCopy, *rightPlanCopy);
+            appendCrossProduct(AccumulateType::REGULAR, *leftPlanCopy, *rightPlanCopy);
             result.push_back(std::move(leftPlanCopy));
         }
     }

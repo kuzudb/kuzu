@@ -65,8 +65,8 @@ void WALReplayerUtils::createEmptyHashIndexFiles(
     }
 }
 
-void WALReplayerUtils::renameDBFilesForRelProperty(const std::string& directory,
-    kuzu::catalog::RelTableSchema* relTableSchema, kuzu::common::property_id_t propertyID) {
+void WALReplayerUtils::renameDBFilesForRelProperty(
+    const std::string& directory, RelTableSchema* relTableSchema, property_id_t propertyID) {
     for (auto direction : RelDataDirectionUtils::getRelDataDirections()) {
         if (relTableSchema->isSingleMultiplicityInDirection(direction)) {
             replaceOriginalColumnFilesWithWALVersionIfExists(

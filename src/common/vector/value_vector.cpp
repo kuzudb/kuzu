@@ -303,7 +303,7 @@ void ListVector::copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_
 void ListVector::copyToRowData(const ValueVector* vector, uint32_t pos, uint8_t* rowData,
     InMemOverflowBuffer* rowOverflowBuffer) {
     auto& srcListEntry = vector->getValue<list_entry_t>(pos);
-    auto srcListDataVector = common::ListVector::getDataVector(vector);
+    auto srcListDataVector = ListVector::getDataVector(vector);
     auto& dstListEntry = *(ku_list_t*)rowData;
     dstListEntry.size = srcListEntry.size;
     auto nullBytesSize = NullBuffer::getNumBytesForNullValues(dstListEntry.size);
@@ -326,8 +326,8 @@ void ListVector::copyToRowData(const ValueVector* vector, uint32_t pos, uint8_t*
 
 void ListVector::copyFromVectorData(ValueVector* dstVector, uint8_t* dstData,
     const ValueVector* srcVector, const uint8_t* srcData) {
-    auto& srcListEntry = *(common::list_entry_t*)(srcData);
-    auto& dstListEntry = *(common::list_entry_t*)(dstData);
+    auto& srcListEntry = *(list_entry_t*)(srcData);
+    auto& dstListEntry = *(list_entry_t*)(dstData);
     dstListEntry = addList(dstVector, srcListEntry.size);
     auto srcDataVector = getDataVector(srcVector);
     auto srcPos = srcListEntry.offset;

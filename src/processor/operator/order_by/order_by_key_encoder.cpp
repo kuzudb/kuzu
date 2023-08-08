@@ -233,7 +233,7 @@ void OrderByKeyEncoder::getEncodingFunction(PhysicalTypeID physicalType, encode_
     }
     default: {
         throw RuntimeException("Cannot encode data with physical type: " +
-                               common::PhysicalTypeUtils::physicalTypeToString(physicalType));
+                               PhysicalTypeUtils::physicalTypeToString(physicalType));
     }
     }
 }

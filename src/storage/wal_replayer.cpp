@@ -362,7 +362,7 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
                     catalog->getReadOnlyVersion()->getRelTableSchema(tableID), wal->getDirectory());
             } break;
             default: {
-                throw common::NotImplementedException{"WALReplayer::replayDropTableRecord"};
+                throw NotImplementedException{"WALReplayer::replayDropTableRecord"};
             }
             }
         } else {
@@ -385,7 +385,7 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
                     wal->getDirectory());
             } break;
             default: {
-                throw common::NotImplementedException{"WALReplayer::replayDropTableRecord"};
+                throw NotImplementedException{"WALReplayer::replayDropTableRecord"};
             }
             }
         }
@@ -412,7 +412,7 @@ void WALReplayer::replayDropPropertyRecord(const kuzu::storage::WALRecord& walRe
                     catalog->getReadOnlyVersion()->getRelTableSchema(tableID), propertyID);
             } break;
             default: {
-                throw common::NotImplementedException{"WALReplayer::replayDropPropertyRecord"};
+                throw NotImplementedException{"WALReplayer::replayDropPropertyRecord"};
             }
             }
         } else {
@@ -432,7 +432,7 @@ void WALReplayer::replayDropPropertyRecord(const kuzu::storage::WALRecord& walRe
                     propertyID);
             } break;
             default: {
-                throw common::NotImplementedException{"WALReplayer::replayDropPropertyRecord"};
+                throw NotImplementedException{"WALReplayer::replayDropPropertyRecord"};
             }
             }
         }
@@ -461,7 +461,7 @@ void WALReplayer::replayAddPropertyRecord(const kuzu::storage::WALRecord& walRec
                     *property, *reinterpret_cast<RelTableSchema*>(tableSchema));
             } break;
             default: {
-                throw common::NotImplementedException{"WALReplayer::replayDropPropertyRecord"};
+                throw NotImplementedException{"WALReplayer::replayDropPropertyRecord"};
             }
             }
         } else {
@@ -487,7 +487,7 @@ void WALReplayer::replayAddPropertyRecord(const kuzu::storage::WALRecord& walRec
                     reinterpret_cast<RelTableSchema*>(tableSchema), propertyID);
             } break;
             default: {
-                throw common::NotImplementedException{"WALReplayer::replayDropPropertyRecord"};
+                throw NotImplementedException{"WALReplayer::replayDropPropertyRecord"};
             }
             }
         }

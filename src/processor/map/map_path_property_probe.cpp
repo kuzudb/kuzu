@@ -5,30 +5,30 @@
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::binder;
+using namespace kuzu::common;
 using namespace kuzu::planner;
 
 namespace kuzu {
 namespace processor {
 
-static std::pair<std::vector<common::struct_field_idx_t>, std::vector<ft_col_idx_t>>
-getColIdxToScan(
-    const expression_vector& payloads, uint32_t numKeys, const common::LogicalType& structType) {
+static std::pair<std::vector<struct_field_idx_t>, std::vector<ft_col_idx_t>> getColIdxToScan(
+    const expression_vector& payloads, uint32_t numKeys, const LogicalType& structType) {
     std::unordered_map<std::string, ft_col_idx_t> propertyNameToColumnIdx;
     for (auto i = 0u; i < payloads.size(); ++i) {
-        if (payloads[i]->expressionType == common::PROPERTY) {
+        if (payloads[i]->expressionType == PROPERTY) {
             auto propertyName = ((PropertyExpression*)payloads[i].get())->getPropertyName();
-            common::StringUtils::toUpper(propertyName);
+            StringUtils::toUpper(propertyName);
             propertyNameToColumnIdx.insert({propertyName, i + numKeys});
         } else { // label expression
-            propertyNameToColumnIdx.insert({common::InternalKeyword::LABEL, i + numKeys});
+            propertyNameToColumnIdx.insert({InternalKeyword::LABEL, i + numKeys});
         }
     }
-    auto structFields = common::StructType::getFields(&structType);
-    std::vector<common::struct_field_idx_t> structFieldIndices;
+    auto structFields = StructType::getFields(&structType);
+    std::vector<struct_field_idx_t> structFieldIndices;
     std::vector<ft_col_idx_t> colIndices;
     for (auto i = 0u; i < structFields.size(); ++i) {
         auto field = structFields[i];
-        auto fieldName = common::StringUtils::getUpper(field->getName());
+        auto fieldName = StringUtils::getUpper(field->getName());
         if (propertyNameToColumnIdx.contains(fieldName)) {
             structFieldIndices.push_back(i);
             colIndices.push_back(propertyNameToColumnIdx.at(fieldName));
@@ -75,12 +75,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     // Map probe
     auto relDataType = rel->getDataType();
-    auto nodesField = common::StructType::getField(&relDataType, common::InternalKeyword::NODES);
-    auto nodeStructType = common::VarListType::getChildType(nodesField->getType());
+    auto nodesField = StructType::getField(&relDataType, InternalKeyword::NODES);
+    auto nodeStructType = VarListType::getChildType(nodesField->getType());
     auto [nodeFieldIndices, nodeTableColumnIndices] =
         getColIdxToScan(nodePayloads, nodeKeys.size(), *nodeStructType);
-    auto relsField = common::StructType::getField(&relDataType, common::InternalKeyword::RELS);
-    auto relStructType = common::VarListType::getChildType(relsField->getType());
+    auto relsField = StructType::getField(&relDataType, InternalKeyword::RELS);
+    auto relStructType = VarListType::getChildType(relsField->getType());
     auto [relFieldIndices, relTableColumnIndices] =
         getColIdxToScan(relPayloads, relKeys.size(), *relStructType);
     auto pathPos = DataPos{logicalProbe->getSchema()->getExpressionPos(*rel)};

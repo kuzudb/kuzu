@@ -4,6 +4,8 @@
 #include "planner/logical_plan/factorization/sink_util.h"
 #include "planner/logical_plan/scan/logical_scan_node.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace planner {
 
@@ -33,8 +35,8 @@ void LogicalHashJoin::computeFactorizedSchema() {
     auto buildSchema = children[1]->getSchema();
     schema = probeSchema->copy();
     switch (joinType) {
-    case common::JoinType::INNER:
-    case common::JoinType::LEFT: {
+    case JoinType::INNER:
+    case JoinType::LEFT: {
         // resolve key groups
         std::unordered_map<f_group_pos, std::unordered_set<std::string>> keyGroupPosToKeys;
         for (auto& joinNodeID : joinNodeIDs) {
@@ -69,7 +71,7 @@ void LogicalHashJoin::computeFactorizedSchema() {
         SinkOperatorUtil::mergeSchema(
             *buildSchema, expressionsToMaterializeInNonKeyGroups, *schema);
     } break;
-    case common::JoinType::MARK: {
+    case JoinType::MARK: {
         std::unordered_set<f_group_pos> probeSideKeyGroupPositions;
         for (auto& joinNodeID : joinNodeIDs) {
             probeSideKeyGroupPositions.insert(probeSchema->getGroupPos(*joinNodeID));
@@ -81,7 +83,7 @@ void LogicalHashJoin::computeFactorizedSchema() {
         schema->insertToGroupAndScope(mark, markPos);
     } break;
     default:
-        throw common::NotImplementedException("HashJoin::computeFactorizedSchema()");
+        throw NotImplementedException("HashJoin::computeFactorizedSchema()");
     }
 }
 
@@ -90,8 +92,8 @@ void LogicalHashJoin::computeFlatSchema() {
     auto buildSchema = children[1]->getSchema();
     schema = probeSchema->copy();
     switch (joinType) {
-    case common::JoinType::INNER:
-    case common::JoinType::LEFT: {
+    case JoinType::INNER:
+    case JoinType::LEFT: {
         auto joinKeysSet = binder::expression_set{joinNodeIDs.begin(), joinNodeIDs.end()};
         for (auto& expression : buildSchema->getExpressionsInScope()) {
             if (joinKeysSet.contains(expression)) {
@@ -100,25 +102,25 @@ void LogicalHashJoin::computeFlatSchema() {
             schema->insertToGroupAndScope(expression, 0);
         }
     } break;
-    case common::JoinType::MARK: {
+    case JoinType::MARK: {
         schema->insertToGroupAndScope(mark, 0);
     } break;
     default:
-        throw common::NotImplementedException("HashJoin::computeFlatSchema()");
+        throw NotImplementedException("HashJoin::computeFlatSchema()");
     }
 }
 
 binder::expression_vector LogicalHashJoin::getExpressionsToMaterialize() const {
     switch (joinType) {
-    case common::JoinType::INNER:
-    case common::JoinType::LEFT: {
+    case JoinType::INNER:
+    case JoinType::LEFT: {
         return children[1]->getSchema()->getExpressionsInScope();
     }
-    case common::JoinType::MARK: {
+    case JoinType::MARK: {
         return binder::expression_vector{};
     }
     default:
-        throw common::NotImplementedException("HashJoin::getExpressionsToMaterialize");
+        throw NotImplementedException("HashJoin::getExpressionsToMaterialize");
     }
 }
 
@@ -129,7 +131,7 @@ bool LogicalHashJoin::requireFlatProbeKeys() {
     }
     // Flatten for left join.
     // TODO(Guodong): fix this.
-    if (joinType == common::JoinType::LEFT) {
+    if (joinType == JoinType::LEFT) {
         return true;
     }
     auto joinNodeID = joinNodeIDs[0].get();

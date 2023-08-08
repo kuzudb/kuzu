@@ -90,7 +90,7 @@ void CaseExpressionEvaluator::fillEntry(sel_t resultPos, const ValueVector& then
     if (thenVector.isNull(thenPos)) {
         resultVector->setNull(resultPos, true);
     } else {
-        if (thenVector.dataType.getLogicalTypeID() == common::LogicalTypeID::VAR_LIST) {
+        if (thenVector.dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST) {
             auto srcListEntry = thenVector.getValue<list_entry_t>(thenPos);
             list_entry_t resultEntry = ListVector::addList(resultVector.get(), srcListEntry.size);
             resultVector->copyFromVectorData(resultPos, &thenVector, thenPos);

@@ -20,7 +20,7 @@ void FixedSizedNodeColumnFunc::readValuesFromPage(uint8_t* frame, PageElementCur
 }
 
 void FixedSizedNodeColumnFunc::writeValueToPage(
-    uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector, uint32_t posInVector) {
+    uint8_t* frame, uint16_t posInFrame, ValueVector* vector, uint32_t posInVector) {
     auto numBytesPerValue = vector->getNumBytesPerValue();
     memcpy(frame + posInFrame * numBytesPerValue,
         vector->getData() + posInVector * numBytesPerValue, numBytesPerValue);
@@ -37,7 +37,7 @@ void FixedSizedNodeColumnFunc::readInternalIDValuesFromPage(uint8_t* frame,
 }
 
 void FixedSizedNodeColumnFunc::writeInternalIDValueToPage(
-    uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector, uint32_t posInVector) {
+    uint8_t* frame, uint16_t posInFrame, ValueVector* vector, uint32_t posInVector) {
     auto relID = vector->getValue<relID_t>(posInVector);
     memcpy(frame + posInFrame * sizeof(offset_t), &relID.offset, sizeof(offset_t));
 }
@@ -52,7 +52,7 @@ void NullNodeColumnFunc::readValuesFromPage(uint8_t* frame, PageElementCursor& p
 }
 
 void NullNodeColumnFunc::writeValueToPage(
-    uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector, uint32_t posInVector) {
+    uint8_t* frame, uint16_t posInFrame, ValueVector* vector, uint32_t posInVector) {
     // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
     // Otherwise it could read off the end of the page.
     NullMask::setNull(
@@ -190,8 +190,8 @@ void NodeColumn::lookupInternal(
     }
 }
 
-void NodeColumn::lookupValue(transaction::Transaction* transaction, common::offset_t nodeOffset,
-    common::ValueVector* resultVector, uint32_t posInVector) {
+void NodeColumn::lookupValue(transaction::Transaction* transaction, offset_t nodeOffset,
+    ValueVector* resultVector, uint32_t posInVector) {
     auto nodeGroupIdx = getNodeGroupIdxFromNodeOffset(nodeOffset);
     auto pageCursor = PageUtils::getPageElementCursorForPos(nodeOffset, numValuesPerPage);
     pageCursor.pageIdx += metadataDA->get(nodeGroupIdx, transaction->getType()).pageIdx;
@@ -236,7 +236,7 @@ void NodeColumn::write(ValueVector* nodeIDVector, ValueVector* vectorToWriteFrom
 }
 
 page_idx_t NodeColumn::append(
-    ColumnChunk* columnChunk, common::page_idx_t startPageIdx, uint64_t nodeGroupIdx) {
+    ColumnChunk* columnChunk, page_idx_t startPageIdx, uint64_t nodeGroupIdx) {
     // Main column chunk.
     page_idx_t numPagesFlushed = 0;
     auto numPagesForChunk = columnChunk->flushBuffer(dataFH, startPageIdx);
@@ -270,8 +270,8 @@ void NodeColumn::writeInternal(
     writeValue(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
 }
 
-void NodeColumn::writeValue(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
-    uint32_t posInVectorToWriteFrom) {
+void NodeColumn::writeValue(
+    offset_t nodeOffset, ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
     auto walPageInfo = createWALVersionOfPageForValue(nodeOffset);
     try {
         writeNodeColumnFunc(
@@ -338,9 +338,9 @@ void NodeColumn::rollbackInMemory() {
     }
 }
 
-void NodeColumn::scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-    common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
-    common::ValueVector* resultVector, uint64_t offsetInVector) {
+void NodeColumn::scan(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
+    uint64_t offsetInVector) {
     if (nullColumn) {
         nullColumn->scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup,
             resultVector, offsetInVector);
@@ -376,14 +376,14 @@ void NullNodeColumn::lookup(
 }
 
 page_idx_t NullNodeColumn::append(
-    ColumnChunk* columnChunk, common::page_idx_t startPageIdx, uint64_t nodeGroupIdx) {
+    ColumnChunk* columnChunk, page_idx_t startPageIdx, uint64_t nodeGroupIdx) {
     auto numPagesFlushed = columnChunk->flushBuffer(dataFH, startPageIdx);
     metadataDA->resize(nodeGroupIdx + 1);
     metadataDA->update(nodeGroupIdx, ColumnChunkMetadata{startPageIdx, numPagesFlushed});
     return numPagesFlushed;
 }
 
-void NullNodeColumn::setNull(common::offset_t nodeOffset) {
+void NullNodeColumn::setNull(offset_t nodeOffset) {
     auto walPageInfo = createWALVersionOfPageForValue(nodeOffset);
     try {
         NullMask::setNull((uint64_t*)walPageInfo.frame, walPageInfo.posInPage, true);
@@ -427,7 +427,7 @@ void SerialNodeColumn::lookup(
 }
 
 page_idx_t SerialNodeColumn::append(
-    ColumnChunk* columnChunk, common::page_idx_t startPageIdx, uint64_t nodeGroupIdx) {
+    ColumnChunk* columnChunk, page_idx_t startPageIdx, uint64_t nodeGroupIdx) {
     // DO NOTHING.
     return 0;
 }

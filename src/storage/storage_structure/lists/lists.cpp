@@ -34,7 +34,7 @@ void Lists::readValues(Transaction* transaction, ValueVector* valueVector, ListH
     }
 }
 
-void Lists::readFromList(common::ValueVector* valueVector, ListHandle& listHandle) {
+void Lists::readFromList(ValueVector* valueVector, ListHandle& listHandle) {
     auto pageCursor = PageUtils::getPageElementCursorForPos(
         headers->getCSROffset(listHandle.getBoundNodeOffset()) + listHandle.getStartElemOffset(),
         numElementsPerPage);
@@ -207,7 +207,7 @@ void ListPropertyLists::readListFromPages(
                 *fileHandle, physicalPageIdx, *wal, TransactionType::READ_ONLY);
         auto frameBytesOffset = getElemByteOffset(pageCursor.elemPosInPage);
         bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) {
-            auto kuListsToRead = reinterpret_cast<common::ku_list_t*>(frame + frameBytesOffset);
+            auto kuListsToRead = reinterpret_cast<ku_list_t*>(frame + frameBytesOffset);
             readNullBitsFromAPage(
                 valueVector, frame, pageCursor.elemPosInPage, vectorPos, numValuesToReadInPage);
             for (auto i = 0u; i < numValuesToReadInPage; i++) {
@@ -292,8 +292,8 @@ std::unique_ptr<std::vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
 // read a list of nodes and edges.
 void AdjLists::readFromList(ValueVector* valueVector, ListHandle& listHandle) {
     auto startOffsetToRead = listHandle.hasValidRangeToRead() ? listHandle.getEndElemOffset() : 0;
-    auto numValuesToRead = std::min(common::DEFAULT_VECTOR_CAPACITY,
-        (uint64_t)listHandle.getNumValuesInList() - startOffsetToRead);
+    auto numValuesToRead = std::min(
+        DEFAULT_VECTOR_CAPACITY, (uint64_t)listHandle.getNumValuesInList() - startOffsetToRead);
     valueVector->state->initOriginalAndSelectedSize(numValuesToRead);
     // We store the updates for adjLists in listsUpdatesStore, however we store the
     // updates for adjColumn in the WAL version of the page. The adjColumn needs to pass a

@@ -11,21 +11,21 @@ public:
     }
     std::string getUpdateRelQuery(std::string srcTable, std::string dstTable, std::string relation,
         int64_t srcID, int64_t dstID, std::string setPropertyClause) {
-        return kuzu::common::StringUtils::string_format(
+        return StringUtils::string_format(
                    "MATCH (p1:{})-[e:{}]->(p2:{}) WHERE p1.ID = {} AND p2.ID = {} ", srcTable,
                    relation, dstTable, srcID, dstID) +
                setPropertyClause;
     }
     std::string getInsertKnowsRelQuery(std::string srcTable, std::string dstTable, int64_t srcID,
         int64_t dstID, int64_t lengthProp) {
-        return kuzu::common::StringUtils::string_format(
+        return StringUtils::string_format(
             "MATCH (p1:{}), (p2:{}) WHERE p1.ID = {} AND p2.ID = {} create "
             "(p1)-[:knows {{length: {}}}]->(p2);",
             srcTable, dstTable, srcID, dstID, lengthProp);
     }
     std::string getDeleteKnowsRelQuery(
         std::string srcTable, std::string dstTable, int64_t srcID, int64_t dstID) {
-        return kuzu::common::StringUtils::string_format(
+        return StringUtils::string_format(
             "MATCH (p1:{})-[e:knows]->(p2:{}) WHERE p1.ID = {} AND p2.ID = {} DELETE e", srcTable,
             dstTable, srcID, dstID);
     }

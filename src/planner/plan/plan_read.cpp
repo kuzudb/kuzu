@@ -30,7 +30,7 @@ void QueryPlanner::planMatchClause(
     auto queryGraphCollection = boundMatchClause->getQueryGraphCollection();
     auto predicates = boundMatchClause->getPredicatesSplitOnAnd();
     switch (boundMatchClause->getMatchClauseType()) {
-    case common::MatchClauseType::MATCH: {
+    case MatchClauseType::MATCH: {
         if (plans.size() == 1 && plans[0]->isEmpty()) {
             plans = enumerateQueryGraphCollection(*queryGraphCollection, predicates);
         } else {
@@ -39,13 +39,13 @@ void QueryPlanner::planMatchClause(
             }
         }
     } break;
-    case common::MatchClauseType::OPTIONAL_MATCH: {
+    case MatchClauseType::OPTIONAL_MATCH: {
         for (auto& plan : plans) {
             planOptionalMatch(*queryGraphCollection, predicates, *plan);
         }
     } break;
     default:
-        throw common::NotImplementedException("QueryPlanner::planMatchClause");
+        throw NotImplementedException("QueryPlanner::planMatchClause");
     }
 }
 
@@ -65,7 +65,7 @@ void QueryPlanner::planInQueryCall(
         if (!plan->isEmpty()) {
             auto inQueryCallPlan = std::make_shared<LogicalPlan>();
             appendInQueryCall(*boundReadingClause, *inQueryCallPlan);
-            appendCrossProduct(common::AccumulateType::REGULAR, *plan, *inQueryCallPlan);
+            appendCrossProduct(AccumulateType::REGULAR, *plan, *inQueryCallPlan);
         } else {
             appendInQueryCall(*boundReadingClause, *plan);
         }

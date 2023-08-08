@@ -1,10 +1,12 @@
 #include "binder/query/updating_clause/bound_merge_clause.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace binder {
 
 BoundMergeClause::BoundMergeClause(const BoundMergeClause& other)
-    : BoundUpdatingClause{common::ClauseType::MERGE} {
+    : BoundUpdatingClause{ClauseType::MERGE} {
     queryGraphCollection = other.queryGraphCollection->copy();
     predicate = other.predicate;
     for (auto& createInfo : other.createInfos) {

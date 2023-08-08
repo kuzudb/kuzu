@@ -10,18 +10,19 @@
 #include "parser/expression/parsed_subquery_expression.h"
 #include "parser/expression/parsed_variable_expression.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace parser {
 
 ParsedExpression::ParsedExpression(
-    common::ExpressionType type, std::unique_ptr<ParsedExpression> child, std::string rawName)
+    ExpressionType type, std::unique_ptr<ParsedExpression> child, std::string rawName)
     : type{type}, rawName{std::move(rawName)} {
     children.push_back(std::move(child));
 }
 
-ParsedExpression::ParsedExpression(common::ExpressionType type,
-    std::unique_ptr<ParsedExpression> left, std::unique_ptr<ParsedExpression> right,
-    std::string rawName)
+ParsedExpression::ParsedExpression(ExpressionType type, std::unique_ptr<ParsedExpression> left,
+    std::unique_ptr<ParsedExpression> right, std::string rawName)
     : type{type}, rawName{std::move(rawName)} {
     children.push_back(std::move(left));
     children.push_back(std::move(right));
@@ -36,49 +37,49 @@ parsed_expression_vector ParsedExpression::copyChildren() const {
     return childrenCopy;
 }
 
-void ParsedExpression::serialize(common::FileInfo* fileInfo, uint64_t& offset) const {
-    common::SerDeser::serializeValue(type, fileInfo, offset);
-    common::SerDeser::serializeValue(alias, fileInfo, offset);
-    common::SerDeser::serializeValue(rawName, fileInfo, offset);
-    common::SerDeser::serializeVectorOfPtrs(children, fileInfo, offset);
+void ParsedExpression::serialize(FileInfo* fileInfo, uint64_t& offset) const {
+    SerDeser::serializeValue(type, fileInfo, offset);
+    SerDeser::serializeValue(alias, fileInfo, offset);
+    SerDeser::serializeValue(rawName, fileInfo, offset);
+    SerDeser::serializeVectorOfPtrs(children, fileInfo, offset);
     serializeInternal(fileInfo, offset);
 }
 
 std::unique_ptr<ParsedExpression> ParsedExpression::deserialize(
-    common::FileInfo* fileInfo, uint64_t& offset) {
-    common::ExpressionType type;
+    FileInfo* fileInfo, uint64_t& offset) {
+    ExpressionType type;
     std::string alias;
     std::string rawName;
     parsed_expression_vector children;
-    common::SerDeser::deserializeValue(type, fileInfo, offset);
-    common::SerDeser::deserializeValue(alias, fileInfo, offset);
-    common::SerDeser::deserializeValue(rawName, fileInfo, offset);
-    common::SerDeser::deserializeVectorOfPtrs(children, fileInfo, offset);
+    SerDeser::deserializeValue(type, fileInfo, offset);
+    SerDeser::deserializeValue(alias, fileInfo, offset);
+    SerDeser::deserializeValue(rawName, fileInfo, offset);
+    SerDeser::deserializeVectorOfPtrs(children, fileInfo, offset);
     std::unique_ptr<ParsedExpression> parsedExpression;
     switch (type) {
-    case common::ExpressionType::CASE_ELSE: {
+    case ExpressionType::CASE_ELSE: {
         parsedExpression = ParsedCaseExpression::deserialize(fileInfo, offset);
     } break;
-    case common::ExpressionType::FUNCTION: {
+    case ExpressionType::FUNCTION: {
         parsedExpression = ParsedFunctionExpression::deserialize(fileInfo, offset);
     } break;
-    case common::ExpressionType::LITERAL: {
+    case ExpressionType::LITERAL: {
         parsedExpression = ParsedLiteralExpression::deserialize(fileInfo, offset);
     } break;
-    case common::ExpressionType::PARAMETER: {
+    case ExpressionType::PARAMETER: {
         parsedExpression = ParsedParameterExpression::deserialize(fileInfo, offset);
     } break;
-    case common::ExpressionType::PROPERTY: {
+    case ExpressionType::PROPERTY: {
         parsedExpression = ParsedPropertyExpression::deserialize(fileInfo, offset);
     } break;
-    case common::ExpressionType::EXISTENTIAL_SUBQUERY: {
+    case ExpressionType::EXISTENTIAL_SUBQUERY: {
         parsedExpression = ParsedSubqueryExpression::deserialize(fileInfo, offset);
     } break;
-    case common::ExpressionType::VARIABLE: {
+    case ExpressionType::VARIABLE: {
         parsedExpression = ParsedVariableExpression::deserialize(fileInfo, offset);
     } break;
     default:
-        throw common::NotImplementedException{"ParsedExpression::deserialize"};
+        throw NotImplementedException{"ParsedExpression::deserialize"};
     }
     parsedExpression->alias = std::move(alias);
     parsedExpression->rawName = std::move(rawName);

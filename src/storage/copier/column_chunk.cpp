@@ -33,14 +33,14 @@ void ColumnChunk::resetToEmpty() {
 }
 
 void ColumnChunk::append(
-    common::ValueVector* vector, common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
+    ValueVector* vector, offset_t startPosInChunk, uint32_t numValuesToAppend) {
     assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::ARROW_COLUMN);
     auto array = ArrowColumnVector::getArrowColumn(vector).get();
     append(array, startPosInChunk, numValuesToAppend);
 }
 
-void ColumnChunk::append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
-    common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
+void ColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
+    offset_t startPosInChunk, uint32_t numValuesToAppend) {
     if (nullChunk) {
         nullChunk->append(
             other->nullChunk.get(), startPosInOtherChunk, startPosInChunk, numValuesToAppend);
@@ -72,10 +72,10 @@ void ColumnChunk::append(
         templateCopyArrowArray<float_t>(array, startPosInChunk, numValuesToAppend);
     } break;
     case arrow::Type::DATE32: {
-        templateCopyArrowArray<common::date_t>(array, startPosInChunk, numValuesToAppend);
+        templateCopyArrowArray<date_t>(array, startPosInChunk, numValuesToAppend);
     } break;
     case arrow::Type::TIMESTAMP: {
-        templateCopyArrowArray<common::timestamp_t>(array, startPosInChunk, numValuesToAppend);
+        templateCopyArrowArray<timestamp_t>(array, startPosInChunk, numValuesToAppend);
     } break;
     case arrow::Type::FIXED_SIZE_LIST: {
         templateCopyArrowArray<uint8_t*>(array, startPosInChunk, numValuesToAppend);
@@ -106,7 +106,7 @@ void ColumnChunk::append(
     }
 }
 
-void ColumnChunk::write(const common::Value& val, uint64_t posToWrite) {
+void ColumnChunk::write(const Value& val, uint64_t posToWrite) {
     nullChunk->setNull(posToWrite, val.isNull());
     if (val.isNull()) {
         return;
@@ -252,7 +252,7 @@ void ColumnChunk::templateCopyValuesAsString(
     }
 }
 
-common::page_idx_t ColumnChunk::getNumPages() const {
+page_idx_t ColumnChunk::getNumPages() const {
     auto numPagesToFlush = getNumPagesForBuffer();
     if (nullChunk) {
         numPagesToFlush += nullChunk->getNumPages();
@@ -263,13 +263,13 @@ common::page_idx_t ColumnChunk::getNumPages() const {
     return numPagesToFlush;
 }
 
-page_idx_t ColumnChunk::flushBuffer(BMFileHandle* dataFH, common::page_idx_t startPageIdx) {
+page_idx_t ColumnChunk::flushBuffer(BMFileHandle* dataFH, page_idx_t startPageIdx) {
     FileUtils::writeToFile(dataFH->getFileInfo(), buffer.get(), numBytes,
         startPageIdx * BufferPoolConstants::PAGE_4KB_SIZE);
     return getNumPagesForBuffer();
 }
 
-uint32_t ColumnChunk::getDataTypeSizeInChunk(common::LogicalType& dataType) {
+uint32_t ColumnChunk::getDataTypeSizeInChunk(LogicalType& dataType) {
     switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::STRUCT: {
         return 0;
@@ -301,13 +301,13 @@ uint32_t ColumnChunk::getDataTypeSizeInChunk(common::LogicalType& dataType) {
 // updated to support values sizes of less than one byte.
 // But for the moment, this is the only generic ColumnChunk function which is needed by
 // NullColumnChunk, and it's invoked directly on the nullColumn, so we don't need dynamic dispatch
-void NullColumnChunk::append(NullColumnChunk* other, common::offset_t startPosInOtherChunk,
+void NullColumnChunk::append(NullColumnChunk* other, offset_t startPosInOtherChunk,
     common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
     NullMask::copyNullMask((uint64_t*)other->buffer.get(), startPosInOtherChunk,
         (uint64_t*)buffer.get(), startPosInChunk, numValuesToAppend);
 }
 
-void FixedListColumnChunk::append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
+void FixedListColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
     common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
     auto otherChunk = (FixedListColumnChunk*)other;
     if (nullChunk) {
@@ -322,7 +322,7 @@ void FixedListColumnChunk::append(ColumnChunk* other, common::offset_t startPosI
     }
 }
 
-void FixedListColumnChunk::write(const common::Value& fixedListVal, uint64_t posToWrite) {
+void FixedListColumnChunk::write(const Value& fixedListVal, uint64_t posToWrite) {
     assert(fixedListVal.getDataType()->getPhysicalType() == PhysicalTypeID::FIXED_LIST);
     nullChunk->setNull(posToWrite, fixedListVal.isNull());
     if (fixedListVal.isNull()) {
@@ -333,7 +333,7 @@ void FixedListColumnChunk::write(const common::Value& fixedListVal, uint64_t pos
     auto numBytesPerValueInList = getDataTypeSizeInChunk(*childType);
     auto bufferToWrite = buffer.get() + posToWrite * numBytesPerValue;
     for (auto i = 0u; i < numValues; i++) {
-        auto val = common::NestedVal::getChildVal(&fixedListVal, i);
+        auto val = NestedVal::getChildVal(&fixedListVal, i);
         switch (childType->getPhysicalType()) {
         case PhysicalTypeID::INT64: {
             memcpy(bufferToWrite, &val->getValueReference<int64_t>(), numBytesPerValueInList);
@@ -432,12 +432,12 @@ void ColumnChunk::setValueFromString<timestamp_t>(
     setValue(val, pos);
 }
 
-common::offset_t ColumnChunk::getOffsetInBuffer(common::offset_t pos) const {
+offset_t ColumnChunk::getOffsetInBuffer(offset_t pos) const {
     auto numElementsInAPage =
         PageUtils::getNumElementsInAPage(numBytesPerValue, false /* hasNull */);
     auto posCursor = PageUtils::getPageByteCursorForPos(pos, numElementsInAPage, numBytesPerValue);
     auto offsetInBuffer =
-        posCursor.pageIdx * common::BufferPoolConstants::PAGE_4KB_SIZE + posCursor.offsetInPage;
+        posCursor.pageIdx * BufferPoolConstants::PAGE_4KB_SIZE + posCursor.offsetInPage;
     assert(offsetInBuffer + numBytesPerValue <= numBytes);
     return offsetInBuffer;
 }
@@ -452,7 +452,7 @@ void NullColumnChunk::resize(uint64_t numValues) {
     numBytes = numBytesAfterResize;
 }
 
-void NullColumnChunk::setRangeNoNull(common::offset_t startPosInChunk, uint32_t numValuesToSet) {
+void NullColumnChunk::setRangeNoNull(offset_t startPosInChunk, uint32_t numValuesToSet) {
     NullMask::setNullRange((uint64_t*)buffer.get(), startPosInChunk, numValuesToSet, false);
 }
 

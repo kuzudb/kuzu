@@ -4,6 +4,8 @@
 #include "parser/explain_statement.h"
 #include "parser/query/regular_query.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace parser {
 
@@ -11,8 +13,8 @@ std::unique_ptr<Statement> Transformer::transform() {
     auto statement = transformOcStatement(*root.oC_Statement());
     if (root.oC_AnyCypherOption()) {
         auto cypherOption = root.oC_AnyCypherOption();
-        auto explainType = cypherOption->oC_Explain() ? common::ExplainType::PHYSICAL_PLAN :
-                                                        common::ExplainType::PROFILE;
+        auto explainType =
+            cypherOption->oC_Explain() ? ExplainType::PHYSICAL_PLAN : ExplainType::PROFILE;
         return std::make_unique<ExplainStatement>(std::move(statement), explainType);
     }
     return statement;
@@ -65,7 +67,7 @@ std::string Transformer::transformSymbolicName(CypherParser::OC_SymbolicNameCont
 
 std::string Transformer::transformStringLiteral(antlr4::tree::TerminalNode& stringLiteral) {
     auto str = stringLiteral.getText();
-    return common::StringUtils::removeEscapedCharacters(str);
+    return StringUtils::removeEscapedCharacters(str);
 }
 
 } // namespace parser

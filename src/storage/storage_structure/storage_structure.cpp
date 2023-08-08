@@ -43,7 +43,7 @@ BaseColumnOrList::BaseColumnOrList(const StorageStructureIDAndFName& storageStru
     numElementsPerPage = PageUtils::getNumElementsInAPage(elementSize, hasInlineNullBytes);
 }
 
-void BaseColumnOrList::readBySequentialCopy(Transaction* transaction, common::ValueVector* vector,
+void BaseColumnOrList::readBySequentialCopy(Transaction* transaction, ValueVector* vector,
     PageElementCursor& cursor,
     const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper) {
     uint64_t numValuesToRead = vector->state->originalSize;

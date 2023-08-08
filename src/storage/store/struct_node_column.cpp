@@ -20,9 +20,9 @@ StructNodeColumn::StructNodeColumn(LogicalType dataType, const MetadataDAHInfo& 
     }
 }
 
-void StructNodeColumn::scan(transaction::Transaction* transaction,
-    common::node_group_idx_t nodeGroupIdx, common::offset_t startOffsetInGroup,
-    common::offset_t endOffsetInGroup, common::ValueVector* resultVector, uint64_t offsetInVector) {
+void StructNodeColumn::scan(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
+    uint64_t offsetInVector) {
     nullColumn->scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup, resultVector,
         offsetInVector);
     for (auto i = 0u; i < childrenColumns.size(); i++) {
@@ -40,8 +40,8 @@ void StructNodeColumn::scanInternal(
     }
 }
 
-void StructNodeColumn::lookupInternal(transaction::Transaction* transaction,
-    common::ValueVector* nodeIDVector, common::ValueVector* resultVector) {
+void StructNodeColumn::lookupInternal(
+    transaction::Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
     for (auto i = 0u; i < childrenColumns.size(); i++) {
         auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
         childrenColumns[i]->lookup(transaction, nodeIDVector, fieldVector);

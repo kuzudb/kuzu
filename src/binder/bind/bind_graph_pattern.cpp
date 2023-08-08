@@ -71,23 +71,23 @@ static std::unique_ptr<LogicalType> getRecursiveRelLogicalType(
 
 std::shared_ptr<Expression> Binder::createPathExpression(
     const std::string& pathName, const expression_vector& children) {
-    std::unordered_set<common::table_id_t> nodeTableIDSet;
-    std::unordered_set<common::table_id_t> relTableIDSet;
+    std::unordered_set<table_id_t> nodeTableIDSet;
+    std::unordered_set<table_id_t> relTableIDSet;
     for (auto& child : children) {
         switch (child->getDataType().getLogicalTypeID()) {
-        case common::LogicalTypeID::NODE: {
+        case LogicalTypeID::NODE: {
             auto node = (NodeExpression*)child.get();
             for (auto tableID : node->getTableIDs()) {
                 nodeTableIDSet.insert(tableID);
             }
         } break;
-        case common::LogicalTypeID::REL: {
+        case LogicalTypeID::REL: {
             auto rel = (RelExpression*)child.get();
             for (auto tableID : rel->getTableIDs()) {
                 relTableIDSet.insert(tableID);
             }
         } break;
-        case common::LogicalTypeID::RECURSIVE_REL: {
+        case LogicalTypeID::RECURSIVE_REL: {
             auto recursiveRel = (RelExpression*)child.get();
             auto recursiveInfo = recursiveRel->getRecursiveInfo();
             for (auto tableID : recursiveInfo->node->getTableIDs()) {
@@ -101,10 +101,9 @@ std::shared_ptr<Expression> Binder::createPathExpression(
             throw NotImplementedException("Binder::createPathExpression");
         }
     }
-    auto nodeTableIDs =
-        std::vector<common::table_id_t>{nodeTableIDSet.begin(), nodeTableIDSet.end()};
+    auto nodeTableIDs = std::vector<table_id_t>{nodeTableIDSet.begin(), nodeTableIDSet.end()};
     std::sort(nodeTableIDs.begin(), nodeTableIDs.end());
-    auto relTableIDs = std::vector<common::table_id_t>{relTableIDSet.begin(), relTableIDSet.end()};
+    auto relTableIDs = std::vector<table_id_t>{relTableIDSet.begin(), relTableIDSet.end()};
     std::sort(relTableIDs.begin(), relTableIDs.end());
     auto node = createQueryNode(InternalKeyword::ANONYMOUS, nodeTableIDs);
     auto rel = createNonRecursiveQueryRel(
@@ -215,7 +214,7 @@ std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern
         directionType = RelDirectionType::BOTH;
     } break;
     default:
-        throw common::NotImplementedException("Binder::bindQueryRel");
+        throw NotImplementedException("Binder::bindQueryRel");
     }
     // bind variable length
     std::shared_ptr<RelExpression> queryRel;
@@ -249,7 +248,7 @@ std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern
 }
 
 std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::string& parsedName,
-    const std::vector<common::table_id_t>& tableIDs, std::shared_ptr<NodeExpression> srcNode,
+    const std::vector<table_id_t>& tableIDs, std::shared_ptr<NodeExpression> srcNode,
     std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType) {
     auto queryRel = make_shared<RelExpression>(LogicalType(LogicalTypeID::REL),
         getUniqueExpressionName(parsedName), parsedName, tableIDs, std::move(srcNode),
@@ -269,27 +268,25 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
         relFields.push_back(std::make_unique<StructField>(
             propertyExpression->getPropertyName(), propertyExpression->getDataType().copy()));
     }
-    common::RelType::setExtraTypeInfo(
+    RelType::setExtraTypeInfo(
         queryRel->getDataTypeReference(), std::make_unique<StructTypeInfo>(std::move(relFields)));
     return queryRel;
 }
 
 std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::RelPattern& relPattern,
-    const std::vector<common::table_id_t>& tableIDs, std::shared_ptr<NodeExpression> srcNode,
+    const std::vector<table_id_t>& tableIDs, std::shared_ptr<NodeExpression> srcNode,
     std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType) {
-    std::unordered_set<common::table_id_t> recursiveNodeTableIDs;
+    std::unordered_set<table_id_t> recursiveNodeTableIDs;
     for (auto relTableID : tableIDs) {
         auto relTableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(relTableID);
         recursiveNodeTableIDs.insert(relTableSchema->getSrcTableID());
         recursiveNodeTableIDs.insert(relTableSchema->getDstTableID());
     }
     auto recursiveRelPatternInfo = relPattern.getRecursiveInfo();
-    auto tmpNode = createQueryNode(
-        InternalKeyword::ANONYMOUS, std::vector<common::table_id_t>{recursiveNodeTableIDs.begin(),
-                                        recursiveNodeTableIDs.end()});
-    auto tmpNodeCopy = createQueryNode(
-        InternalKeyword::ANONYMOUS, std::vector<common::table_id_t>{recursiveNodeTableIDs.begin(),
-                                        recursiveNodeTableIDs.end()});
+    auto tmpNode = createQueryNode(InternalKeyword::ANONYMOUS,
+        std::vector<table_id_t>{recursiveNodeTableIDs.begin(), recursiveNodeTableIDs.end()});
+    auto tmpNodeCopy = createQueryNode(InternalKeyword::ANONYMOUS,
+        std::vector<table_id_t>{recursiveNodeTableIDs.begin(), recursiveNodeTableIDs.end()});
     auto prevScope = saveScope();
     scope->clear();
     auto tmpRel = createNonRecursiveQueryRel(
@@ -394,8 +391,8 @@ std::shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodeP
 }
 
 std::shared_ptr<NodeExpression> Binder::createQueryNode(
-    const std::string& parsedName, const std::vector<common::table_id_t>& tableIDs) {
-    auto queryNode = make_shared<NodeExpression>(LogicalType(common::LogicalTypeID::NODE),
+    const std::string& parsedName, const std::vector<table_id_t>& tableIDs) {
+    auto queryNode = make_shared<NodeExpression>(LogicalType(LogicalTypeID::NODE),
         getUniqueExpressionName(parsedName), parsedName, tableIDs);
     queryNode->setAlias(parsedName);
     bindQueryNodeProperties(*queryNode);
@@ -411,7 +408,7 @@ std::shared_ptr<NodeExpression> Binder::createQueryNode(
         nodeFields.push_back(std::make_unique<StructField>(
             propertyExpression->getPropertyName(), propertyExpression->getDataType().copy()));
     }
-    common::NodeType::setExtraTypeInfo(
+    NodeType::setExtraTypeInfo(
         queryNode->getDataTypeReference(), std::make_unique<StructTypeInfo>(std::move(nodeFields)));
     return queryNode;
 }
@@ -434,10 +431,9 @@ void Binder::bindQueryNodeProperties(NodeExpression& node) {
     }
 }
 
-std::vector<common::table_id_t> Binder::bindNodeTableIDs(
-    const std::vector<std::string>& tableNames) {
+std::vector<table_id_t> Binder::bindNodeTableIDs(const std::vector<std::string>& tableNames) {
     if (catalog.getReadOnlyVersion()->getNodeTableIDs().empty()) {
-        throw common::BinderException("No node table exists in database.");
+        throw BinderException("No node table exists in database.");
     }
     std::unordered_set<table_id_t> tableIDs;
     if (tableNames.empty()) {
@@ -454,10 +450,9 @@ std::vector<common::table_id_t> Binder::bindNodeTableIDs(
     return result;
 }
 
-std::vector<common::table_id_t> Binder::bindRelTableIDs(
-    const std::vector<std::string>& tableNames) {
+std::vector<table_id_t> Binder::bindRelTableIDs(const std::vector<std::string>& tableNames) {
     if (catalog.getReadOnlyVersion()->getRelTableIDs().empty()) {
-        throw common::BinderException("No rel table exists in database.");
+        throw BinderException("No rel table exists in database.");
     }
     std::unordered_set<table_id_t> tableIDs;
     if (tableNames.empty()) {

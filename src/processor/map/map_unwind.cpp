@@ -3,6 +3,7 @@
 #include "processor/operator/unwind.h"
 #include "processor/plan_mapper.h"
 
+using namespace kuzu::common;
 using namespace kuzu::planner;
 
 namespace kuzu {
@@ -15,9 +16,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapUnwind(LogicalOperator* logical
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto dataPos = DataPos(outSchema->getExpressionPos(*unwind->getAliasExpression()));
     auto expressionEvaluator = expressionMapper.mapExpression(unwind->getExpression(), *inSchema);
-    return std::make_unique<Unwind>(
-        *common::VarListType::getChildType(&unwind->getExpression()->dataType), dataPos,
-        std::move(expressionEvaluator), std::move(prevOperator), getOperatorID(),
+    return std::make_unique<Unwind>(*VarListType::getChildType(&unwind->getExpression()->dataType),
+        dataPos, std::move(expressionEvaluator), std::move(prevOperator), getOperatorID(),
         unwind->getExpressionsForPrinting());
 }
 

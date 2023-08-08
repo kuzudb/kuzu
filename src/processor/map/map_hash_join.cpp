@@ -38,12 +38,12 @@ std::unique_ptr<HashJoinBuildInfo> PlanMapper::createHashBuildInfo(
                 LogicalTypeUtils::getRowLayoutSize(payload->dataType));
         } else {
             columnSchema = std::make_unique<ColumnSchema>(
-                true /* isUnFlat */, pos.dataChunkPos, (uint32_t)sizeof(common::overflow_value_t));
+                true /* isUnFlat */, pos.dataChunkPos, (uint32_t)sizeof(overflow_value_t));
         }
         tableSchema->appendColumn(std::move(columnSchema));
         payloadsPos.push_back(pos);
     }
-    auto pointerType = common::LogicalType(common::LogicalTypeID::INT64);
+    auto pointerType = LogicalType(LogicalTypeID::INT64);
     auto pointerColumn = std::make_unique<ColumnSchema>(false /* isUnFlat */,
         INVALID_DATA_CHUNK_POS, LogicalTypeUtils::getRowLayoutSize(pointerType));
     tableSchema->appendColumn(std::move(pointerColumn));
@@ -86,7 +86,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapHashJoin(LogicalOperator* logic
         probePayloadsOutPos.emplace_back(outSchema->getExpressionPos(*payload));
     }
     ProbeDataInfo probeDataInfo(probeKeysDataPos, probePayloadsOutPos);
-    if (hashJoin->getJoinType() == common::JoinType::MARK) {
+    if (hashJoin->getJoinType() == JoinType::MARK) {
         auto mark = hashJoin->getMark();
         auto markOutputPos = DataPos(outSchema->getExpressionPos(*mark));
         probeDataInfo.markDataPos = markOutputPos;

@@ -83,8 +83,8 @@ void JoinHashTable::buildHashSlots() {
     }
 }
 
-void JoinHashTable::probe(const std::vector<ValueVector*>& keyVectors,
-    common::ValueVector* hashVector, common::ValueVector* tmpHashVector, uint8_t** probedTuples) {
+void JoinHashTable::probe(const std::vector<ValueVector*>& keyVectors, ValueVector* hashVector,
+    ValueVector* tmpHashVector, uint8_t** probedTuples) {
     assert(keyVectors.size() == numKeyColumns);
     if (getNumTuples() == 0) {
         return;

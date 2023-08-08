@@ -2,6 +2,8 @@
 
 #include "common/statement_type.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace main {
 
@@ -18,7 +20,7 @@ void QuerySummary::setPreparedSummary(PreparedSummary preparedSummary_) {
 }
 
 bool QuerySummary::isExplain() const {
-    return preparedSummary.statementType == common::StatementType::EXPLAIN;
+    return preparedSummary.statementType == StatementType::EXPLAIN;
 }
 
 } // namespace main

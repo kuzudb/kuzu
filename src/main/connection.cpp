@@ -101,7 +101,7 @@ Connection::ConnectionTransactionMode Connection::getTransactionMode() {
 void Connection::setTransactionModeNoLock(ConnectionTransactionMode newTransactionMode) {
     if (activeTransaction && transactionMode == ConnectionTransactionMode::MANUAL &&
         newTransactionMode == ConnectionTransactionMode::AUTO_COMMIT) {
-        throw common::ConnectionException(
+        throw ConnectionException(
             "Cannot change transaction mode from MANUAL to AUTO_COMMIT when there is an "
             "active transaction. Need to first commit or rollback the active transaction.");
     }

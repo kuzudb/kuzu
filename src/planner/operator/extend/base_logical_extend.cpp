@@ -1,21 +1,23 @@
 #include "planner/logical_plan/extend/base_logical_extend.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace planner {
 
 static std::string relToString(const binder::RelExpression& rel) {
     auto result = rel.toString();
     switch (rel.getRelType()) {
-    case common::QueryRelType::SHORTEST: {
+    case QueryRelType::SHORTEST: {
         result += "SHORTEST";
     } break;
-    case common::QueryRelType::ALL_SHORTEST: {
+    case QueryRelType::ALL_SHORTEST: {
         result += "ALL SHORTEST";
     } break;
     default:
         break;
     }
-    if (common::QueryRelTypeUtils::isRecursive(rel.getRelType())) {
+    if (QueryRelTypeUtils::isRecursive(rel.getRelType())) {
         result += std::to_string(rel.getLowerBound());
         result += "..";
         result += std::to_string(rel.getUpperBound());
@@ -42,7 +44,7 @@ std::string BaseLogicalExtend::getExpressionsForPrinting() const {
         result += "->";
     } break;
     default:
-        throw common::NotImplementedException("BaseLogicalExtend::getExpressionsForPrinting");
+        throw NotImplementedException("BaseLogicalExtend::getExpressionsForPrinting");
     }
     result += nbrNode->toString();
     return result;

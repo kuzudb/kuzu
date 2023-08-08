@@ -3,6 +3,8 @@
 #include "main/plan_printer.h"
 #include "processor/physical_plan.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace processor {
 
@@ -15,14 +17,13 @@ bool Profile::getNextTuplesInternal(ExecutionContext* context) {
         return false;
     }
     localState.hasExecuted = true;
-    common::ku_string_t profileStr;
+    ku_string_t profileStr;
     auto planPrinter = std::make_unique<main::PlanPrinter>(info.physicalPlan, context->profiler);
     auto planInString = planPrinter->printPlanToOstream().str();
-    common::StringVector::addString(
-        outputVector, profileStr, planInString.c_str(), planInString.length());
+    StringVector::addString(outputVector, profileStr, planInString.c_str(), planInString.length());
     auto selVector = outputVector->state->selVector;
     selVector->selectedSize = 1;
-    outputVector->setValue<common::ku_string_t>(selVector->selectedPositions[0], profileStr);
+    outputVector->setValue<ku_string_t>(selVector->selectedPositions[0], profileStr);
     metrics->numOutputTuple.increase(1);
     return true;
 }
