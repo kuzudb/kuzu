@@ -110,6 +110,9 @@ std::vector<std::unique_ptr<BoundCreateInfo>> Binder::bindCreateInfos(
             result.push_back(bindCreateRelInfo(rel, keyValCollection));
         }
     }
+    if (result.empty()) {
+        throw BinderException("Cannot resolve any node or relationship to create.");
+    }
     return result;
 }
 
