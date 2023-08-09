@@ -129,7 +129,7 @@ public:
     // returns true if we have copied a nullBit with value 1 (indicates a null value) to
     // dstNullEntries.
     static bool copyNullMask(const uint64_t* srcNullEntries, uint64_t srcOffset,
-        uint64_t* dstNullEntries, uint64_t dstOffset, uint64_t numBitsToCopy);
+        uint64_t* dstNullEntries, uint64_t dstOffset, uint64_t numBitsToCopy, bool invert = false);
 
     bool copyFromNullBits(const uint64_t* srcNullEntries, uint64_t srcOffset, uint64_t dstOffset,
         uint64_t numBitsToCopy);

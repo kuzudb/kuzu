@@ -52,7 +52,20 @@ struct PageElementCursor {
 };
 
 struct PageUtils {
-    static uint32_t getNumElementsInAPage(uint32_t elementSize, bool hasNull);
+    static constexpr uint32_t getNumElementsInAPage(uint32_t elementSize, bool hasNull) {
+        assert(elementSize > 0);
+        auto numBytesPerNullEntry = common::NullMask::NUM_BITS_PER_NULL_ENTRY >> 3;
+        auto numNullEntries =
+            hasNull ?
+                (uint32_t)ceil((double)common::BufferPoolConstants::PAGE_4KB_SIZE /
+                               (double)(((uint64_t)elementSize
+                                            << common::NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2) +
+                                        numBytesPerNullEntry)) :
+                0;
+        return (common::BufferPoolConstants::PAGE_4KB_SIZE -
+                   (numNullEntries * numBytesPerNullEntry)) /
+               elementSize;
+    }
 
     // This function returns the page pageIdx of the page where element will be found and the pos of
     // the element in the page as the offset.
