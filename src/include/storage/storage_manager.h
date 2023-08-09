@@ -39,13 +39,14 @@ public:
     inline BMFileHandle* getDataFH() const { return dataFH.get(); }
     inline BMFileHandle* getMetadataFH() const { return metadataFH.get(); }
 
-    std::unique_ptr<catalog::MetadataDAHInfo> initMetadataDAHInfo(
+    std::unique_ptr<catalog::MetadataDAHInfo> createMetadataDAHInfo(
         const common::LogicalType& dataType);
 
 private:
     std::unique_ptr<BMFileHandle> dataFH;
     std::unique_ptr<BMFileHandle> metadataFH;
     catalog::Catalog& catalog;
+    MemoryManager& memoryManager;
     WAL* wal;
     std::unique_ptr<RelsStore> relsStore;
     std::unique_ptr<NodesStore> nodesStore;

@@ -6,7 +6,7 @@ namespace kuzu {
 namespace processor {
 
 void AddRelProperty::executeDDLInternal() {
-    AddProperty::executeDDLInternal();
+    catalog->addRelProperty(tableID, propertyName, dataType->copy());
     auto tableSchema = catalog->getWriteVersion()->getRelTableSchema(tableID);
     auto property = tableSchema->getProperty(tableSchema->getPropertyID(propertyName));
     StorageUtils::createFileForRelPropertyWithDefaultVal(

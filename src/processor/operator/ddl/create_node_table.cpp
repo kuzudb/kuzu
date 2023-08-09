@@ -10,14 +10,13 @@ namespace kuzu {
 namespace processor {
 
 void CreateNodeTable::executeDDLInternal() {
-    auto newTableID = catalog->addNodeTableSchema(
-        tableName, primaryKeyIdx, catalog::Property::copyProperties(properties));
+    for (auto& property : properties) {
+        property->setMetadataDAHInfo(
+            storageManager.createMetadataDAHInfo(*property->getDataType()));
+    }
+    auto newTableID = catalog->addNodeTableSchema(tableName, primaryKeyIdx, std::move(properties));
     nodesStatistics->addNodeStatisticsAndDeletedIDs(
         catalog->getWriteVersion()->getNodeTableSchema(newTableID));
-    auto tableSchema = catalog->getWriteVersion()->getNodeTableSchema(newTableID);
-    for (auto& property : tableSchema->properties) {
-        property->setMetadataDAHInfo(storageManager.initMetadataDAHInfo(*property->getDataType()));
-    }
 }
 
 std::string CreateNodeTable::getOutputMsg() {

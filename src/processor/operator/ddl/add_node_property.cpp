@@ -4,9 +4,9 @@ namespace kuzu {
 namespace processor {
 
 void AddNodeProperty::executeDDLInternal() {
-    AddProperty::executeDDLInternal();
-    auto property = catalog->getWriteVersion()->getNodeProperty(tableID, propertyName);
-    property->setMetadataDAHInfo(storageManager.initMetadataDAHInfo(*dataType));
+    auto metadataDAHInfo = storageManager.createMetadataDAHInfo(*dataType);
+    catalog->addNodeProperty(
+        tableID, propertyName, std::move(dataType), std::move(metadataDAHInfo));
 }
 
 } // namespace processor

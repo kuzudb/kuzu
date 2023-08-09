@@ -70,10 +70,19 @@ void Catalog::renameTable(table_id_t tableID, const std::string& newName) {
     catalogContentForWriteTrx->renameTable(tableID, newName);
 }
 
-void Catalog::addProperty(
+void Catalog::addNodeProperty(table_id_t tableID, const std::string& propertyName,
+    std::unique_ptr<LogicalType> dataType, std::unique_ptr<MetadataDAHInfo> metadataDAHInfo) {
+    initCatalogContentForWriteTrxIfNecessary();
+    catalogContentForWriteTrx->getTableSchema(tableID)->addNodeProperty(
+        propertyName, std::move(dataType), std::move(metadataDAHInfo));
+    wal->logAddPropertyRecord(
+        tableID, catalogContentForWriteTrx->getTableSchema(tableID)->getPropertyID(propertyName));
+}
+
+void Catalog::addRelProperty(
     table_id_t tableID, const std::string& propertyName, std::unique_ptr<LogicalType> dataType) {
     initCatalogContentForWriteTrxIfNecessary();
-    catalogContentForWriteTrx->getTableSchema(tableID)->addProperty(
+    catalogContentForWriteTrx->getTableSchema(tableID)->addRelProperty(
         propertyName, std::move(dataType));
     wal->logAddPropertyRecord(
         tableID, catalogContentForWriteTrx->getTableSchema(tableID)->getPropertyID(propertyName));

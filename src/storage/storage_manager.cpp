@@ -10,7 +10,7 @@ namespace kuzu {
 namespace storage {
 
 StorageManager::StorageManager(Catalog& catalog, MemoryManager& memoryManager, WAL* wal)
-    : catalog{catalog}, wal{wal} {
+    : catalog{catalog}, memoryManager{memoryManager}, wal{wal} {
     dataFH = memoryManager.getBufferManager()->getBMFileHandle(
         StorageUtils::getDataFName(wal->getDirectory()),
         FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
@@ -25,21 +25,26 @@ StorageManager::StorageManager(Catalog& catalog, MemoryManager& memoryManager, W
     nodesStore->getNodesStatisticsAndDeletedIDs().setAdjListsAndColumns(relsStore.get());
 }
 
-std::unique_ptr<MetadataDAHInfo> StorageManager::initMetadataDAHInfo(const LogicalType& dataType) {
+std::unique_ptr<MetadataDAHInfo> StorageManager::createMetadataDAHInfo(
+    const common::LogicalType& dataType) {
     auto metadataDAHInfo = std::make_unique<MetadataDAHInfo>();
-    metadataDAHInfo->dataDAHPageIdx = metadataFH->addNewPage();
-    metadataDAHInfo->nullDAHPageIdx = metadataFH->addNewPage();
+    metadataDAHInfo->dataDAHPageIdx = InMemDiskArray<ColumnChunkMetadata>::addDAHPageToFile(
+        *metadataFH, StorageStructureID{StorageStructureType::METADATA},
+        memoryManager.getBufferManager(), wal);
+    metadataDAHInfo->nullDAHPageIdx = InMemDiskArray<ColumnChunkMetadata>::addDAHPageToFile(
+        *metadataFH, StorageStructureID{StorageStructureType::METADATA},
+        memoryManager.getBufferManager(), wal);
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::STRUCT: {
         auto fields = StructType::getFields(&dataType);
         metadataDAHInfo->childrenInfos.resize(fields.size());
         for (auto i = 0u; i < fields.size(); i++) {
-            metadataDAHInfo->childrenInfos[i] = initMetadataDAHInfo(*fields[i]->getType());
+            metadataDAHInfo->childrenInfos[i] = createMetadataDAHInfo(*fields[i]->getType());
         }
     } break;
     case PhysicalTypeID::VAR_LIST: {
         metadataDAHInfo->childrenInfos.push_back(
-            initMetadataDAHInfo(*VarListType::getChildType(&dataType)));
+            createMetadataDAHInfo(*VarListType::getChildType(&dataType)));
     } break;
     default: {
         // DO NOTHING.

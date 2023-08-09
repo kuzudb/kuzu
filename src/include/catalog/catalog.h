@@ -66,7 +66,10 @@ public:
 
     void renameTable(common::table_id_t tableID, const std::string& newName);
 
-    void addProperty(common::table_id_t tableID, const std::string& propertyName,
+    void addNodeProperty(common::table_id_t tableID, const std::string& propertyName,
+        std::unique_ptr<common::LogicalType> dataType,
+        std::unique_ptr<MetadataDAHInfo> metadataDAHInfo);
+    void addRelProperty(common::table_id_t tableID, const std::string& propertyName,
         std::unique_ptr<common::LogicalType> dataType);
 
     void dropProperty(common::table_id_t tableID, common::property_id_t propertyID);
