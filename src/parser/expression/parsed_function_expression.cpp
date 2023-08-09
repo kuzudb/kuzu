@@ -2,22 +2,23 @@
 
 #include "common/ser_deser.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace parser {
 
 std::unique_ptr<ParsedFunctionExpression> ParsedFunctionExpression::deserialize(
-    common::FileInfo* fileInfo, uint64_t& offset) {
+    FileInfo* fileInfo, uint64_t& offset) {
     bool isDistinct;
-    common::SerDeser::deserializeValue(isDistinct, fileInfo, offset);
+    SerDeser::deserializeValue(isDistinct, fileInfo, offset);
     std::string functionName;
-    common::SerDeser::deserializeValue(functionName, fileInfo, offset);
+    SerDeser::deserializeValue(functionName, fileInfo, offset);
     return std::make_unique<ParsedFunctionExpression>(isDistinct, std::move(functionName));
 }
 
-void ParsedFunctionExpression::serializeInternal(
-    common::FileInfo* fileInfo, uint64_t& offset) const {
-    common::SerDeser::serializeValue(isDistinct, fileInfo, offset);
-    common::SerDeser::serializeValue(functionName, fileInfo, offset);
+void ParsedFunctionExpression::serializeInternal(FileInfo* fileInfo, uint64_t& offset) const {
+    SerDeser::serializeValue(isDistinct, fileInfo, offset);
+    SerDeser::serializeValue(functionName, fileInfo, offset);
 }
 
 } // namespace parser

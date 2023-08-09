@@ -605,7 +605,7 @@ void FactorizedTable::readUnflatCol(const uint8_t* tupleToRead, const SelectionV
 }
 
 void FactorizedTable::readFlatColToFlatVector(
-    uint8_t* tupleToRead, ft_col_idx_t colIdx, ValueVector& vector, common::sel_t pos) const {
+    uint8_t* tupleToRead, ft_col_idx_t colIdx, ValueVector& vector, sel_t pos) const {
     if (isNonOverflowColNull(tupleToRead + tableSchema->getNullMapOffset(), colIdx)) {
         vector.setNull(pos, true);
     } else {
@@ -614,8 +614,8 @@ void FactorizedTable::readFlatColToFlatVector(
     }
 }
 
-void FactorizedTable::readFlatCol(uint8_t** tuplesToRead, ft_col_idx_t colIdx,
-    common::ValueVector& vector, uint64_t numTuplesToRead) const {
+void FactorizedTable::readFlatCol(uint8_t** tuplesToRead, ft_col_idx_t colIdx, ValueVector& vector,
+    uint64_t numTuplesToRead) const {
     if (vector.state->isFlat()) {
         auto pos = vector.state->selVector->selectedPositions[0];
         readFlatColToFlatVector(tuplesToRead[0], colIdx, vector, pos);
@@ -670,24 +670,23 @@ void FactorizedTable::copyOverflowIfNecessary(
 
 void FactorizedTableUtils::appendStringToTable(
     FactorizedTable* factorizedTable, std::string& outputMsg, MemoryManager* memoryManager) {
-    auto outputMsgVector =
-        std::make_shared<common::ValueVector>(common::LogicalTypeID::STRING, memoryManager);
+    auto outputMsgVector = std::make_shared<ValueVector>(LogicalTypeID::STRING, memoryManager);
     outputMsgVector->state = DataChunkState::getSingleValueDataChunkState();
-    auto outputKUStr = common::ku_string_t();
-    outputKUStr.overflowPtr = reinterpret_cast<uint64_t>(
-        common::StringVector::getInMemOverflowBuffer(outputMsgVector.get())
-            ->allocateSpace(outputMsg.length()));
+    auto outputKUStr = ku_string_t();
+    outputKUStr.overflowPtr =
+        reinterpret_cast<uint64_t>(StringVector::getInMemOverflowBuffer(outputMsgVector.get())
+                                       ->allocateSpace(outputMsg.length()));
     outputKUStr.set(outputMsg);
     outputMsgVector->setValue(0, outputKUStr);
-    factorizedTable->append(std::vector<common::ValueVector*>{outputMsgVector.get()});
+    factorizedTable->append(std::vector<ValueVector*>{outputMsgVector.get()});
 }
 
 std::shared_ptr<FactorizedTable> FactorizedTableUtils::getFactorizedTableForOutputMsg(
     std::string& outputMsg, storage::MemoryManager* memoryManager) {
     auto ftTableSchema = std::make_unique<FactorizedTableSchema>();
-    ftTableSchema->appendColumn(std::make_unique<ColumnSchema>(false /* flat */,
-        0 /* dataChunkPos */,
-        LogicalTypeUtils::getRowLayoutSize(common::LogicalType{common::LogicalTypeID::STRING})));
+    ftTableSchema->appendColumn(
+        std::make_unique<ColumnSchema>(false /* flat */, 0 /* dataChunkPos */,
+            LogicalTypeUtils::getRowLayoutSize(LogicalType{LogicalTypeID::STRING})));
     auto factorizedTable =
         std::make_shared<FactorizedTable>(memoryManager, std::move(ftTableSchema));
     appendStringToTable(factorizedTable.get(), outputMsg, memoryManager);

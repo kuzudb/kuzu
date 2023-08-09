@@ -47,7 +47,7 @@ void QueryPlanner::planOptionalMatch(const QueryGraphCollection& queryGraphColle
     if (correlatedExpressions.empty()) {
         // No join condition, apply cross product.
         auto rightPlan = planQueryGraphCollection(queryGraphCollection, predicates);
-        appendCrossProduct(common::AccumulateType::OPTIONAL_, leftPlan, *rightPlan);
+        appendCrossProduct(AccumulateType::OPTIONAL_, leftPlan, *rightPlan);
         return;
     }
     if (ExpressionUtil::allExpressionsHaveDataType(
@@ -58,7 +58,7 @@ void QueryPlanner::planOptionalMatch(const QueryGraphCollection& queryGraphColle
         // scan only scans node ID and does not scan from storage (i.e. no property scan).
         auto rightPlan =
             planQueryGraphCollectionInNewContext(joinNodeIDs, queryGraphCollection, predicates);
-        appendHashJoin(joinNodeIDs, common::JoinType::LEFT, leftPlan, *rightPlan);
+        appendHashJoin(joinNodeIDs, JoinType::LEFT, leftPlan, *rightPlan);
     } else {
         throw NotImplementedException("Correlated optional match is not supported.");
     }
@@ -85,9 +85,9 @@ void QueryPlanner::planRegularMatch(const QueryGraphCollection& queryGraphCollec
     auto rightPlan = planQueryGraphCollectionInNewContext(
         joinNodeIDs, queryGraphCollection, predicatesToPushDown);
     if (joinNodeIDs.empty()) {
-        appendCrossProduct(common::AccumulateType::REGULAR, leftPlan, *rightPlan);
+        appendCrossProduct(AccumulateType::REGULAR, leftPlan, *rightPlan);
     } else {
-        appendHashJoin(joinNodeIDs, common::JoinType::INNER, leftPlan, *rightPlan);
+        appendHashJoin(joinNodeIDs, JoinType::INNER, leftPlan, *rightPlan);
     }
     for (auto& predicate : predicatesToPullUp) {
         appendFilter(predicate, leftPlan);

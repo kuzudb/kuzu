@@ -185,7 +185,7 @@ std::map<table_id_t, offset_t> NodesStatisticsAndDeletedIDs::getMaxNodeOffsetPer
 
 void NodesStatisticsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(
     transaction::Transaction* transaction, const std::shared_ptr<ValueVector>& nodeOffsetVector,
-    common::table_id_t tableID) {
+    table_id_t tableID) {
     // NOTE: We can remove the lock under the following assumptions, that should currently hold:
     // 1) During the phases when nodeStatisticsAndDeletedIDsPerTableForReadOnlyTrx change, which
     // is during checkpointing, this function, which is called during scans, cannot be called.

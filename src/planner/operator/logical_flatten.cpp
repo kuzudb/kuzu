@@ -1,5 +1,7 @@
 #include "planner/logical_plan/logical_flatten.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace planner {
 
@@ -9,7 +11,7 @@ void LogicalFlatten::computeFactorizedSchema() {
 }
 
 void LogicalFlatten::computeFlatSchema() {
-    throw common::InternalException("LogicalFlatten::computeFlatSchema() should never be used.");
+    throw InternalException("LogicalFlatten::computeFlatSchema() should never be used.");
 }
 
 } // namespace planner

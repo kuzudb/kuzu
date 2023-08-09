@@ -90,7 +90,7 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
     case LogicalTypeID::NODE:
     case LogicalTypeID::REL: {
         std::vector<std::unique_ptr<Value>> children;
-        for (auto& field : common::StructType::getFields(&dataType)) {
+        for (auto& field : StructType::getFields(&dataType)) {
             children.push_back(std::make_unique<Value>(createDefaultValue(*field->getType())));
         }
         return Value(dataType, std::move(children));
@@ -412,7 +412,7 @@ void Value::copyFromFixedList(const uint8_t* fixedList) {
     }
 }
 
-void Value::copyFromVarList(kuzu::common::ku_list_t& list, const LogicalType& childType) {
+void Value::copyFromVarList(ku_list_t& list, const LogicalType& childType) {
     if (list.size > children.size()) {
         children.reserve(list.size);
         for (auto i = children.size(); i < list.size; ++i) {
@@ -481,7 +481,7 @@ uint32_t NestedVal::getChildrenSize(const Value* val) {
 
 Value* NestedVal::getChildVal(const Value* val, uint32_t idx) {
     if (idx > val->childrenSize) {
-        throw common::RuntimeException("NestedVal::getChildPointer index out of bound.");
+        throw RuntimeException("NestedVal::getChildPointer index out of bound.");
     }
     return val->children[idx].get();
 }
@@ -531,7 +531,7 @@ void Value::serialize(FileInfo* fileInfo, uint64_t& offset) const {
     SerDeser::serializeValue(childrenSize, fileInfo, offset);
 }
 
-std::unique_ptr<Value> Value::deserialize(kuzu::common::FileInfo* fileInfo, uint64_t& offset) {
+std::unique_ptr<Value> Value::deserialize(FileInfo* fileInfo, uint64_t& offset) {
     LogicalType dataType = *LogicalType::deserialize(fileInfo, offset);
     bool isNull;
     SerDeser::deserializeValue(isNull, fileInfo, offset);

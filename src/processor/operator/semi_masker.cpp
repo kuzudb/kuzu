@@ -59,8 +59,7 @@ bool MultiTableSemiMasker::getNextTuplesInternal(ExecutionContext* context) {
 
 void PathSemiMasker::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     BaseSemiMasker::initLocalStateInternal(resultSet, context);
-    auto pathRelsFieldIdx =
-        common::StructType::getFieldIdx(&keyVector->dataType, InternalKeyword::RELS);
+    auto pathRelsFieldIdx = StructType::getFieldIdx(&keyVector->dataType, InternalKeyword::RELS);
     pathRelsVector = StructVector::getFieldVector(keyVector, pathRelsFieldIdx).get();
     auto pathRelsDataVector = ListVector::getDataVector(pathRelsVector);
     auto pathRelsSrcIDFieldIdx =

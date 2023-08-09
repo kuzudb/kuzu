@@ -3,6 +3,7 @@
 #include "binder/expression_binder.h"
 #include "parser/expression/parsed_case_expression.h"
 
+using namespace kuzu::common;
 using namespace kuzu::parser;
 
 namespace kuzu {
@@ -33,7 +34,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindCaseExpression(
             boundWhen = implicitCastIfNecessary(boundWhen, boundCase->dataType);
             // rewrite "CASE a.age WHEN 1" as "CASE WHEN a.age = 1"
             boundWhen = bindComparisonExpression(
-                common::EQUALS, std::vector<std::shared_ptr<Expression>>{boundCase, boundWhen});
+                EQUALS, std::vector<std::shared_ptr<Expression>>{boundCase, boundWhen});
             auto boundThen = bindExpression(*caseAlternative->thenExpression);
             boundThen = implicitCastIfNecessary(boundThen, outDataType);
             boundCaseExpression->addCaseAlternative(boundWhen, boundThen);
@@ -42,7 +43,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindCaseExpression(
         for (auto i = 0u; i < parsedCaseExpression.getNumCaseAlternative(); ++i) {
             auto caseAlternative = parsedCaseExpression.getCaseAlternative(i);
             auto boundWhen = bindExpression(*caseAlternative->whenExpression);
-            boundWhen = implicitCastIfNecessary(boundWhen, common::LogicalTypeID::BOOL);
+            boundWhen = implicitCastIfNecessary(boundWhen, LogicalTypeID::BOOL);
             auto boundThen = bindExpression(*caseAlternative->thenExpression);
             boundThen = implicitCastIfNecessary(boundThen, outDataType);
             boundCaseExpression->addCaseAlternative(boundWhen, boundThen);

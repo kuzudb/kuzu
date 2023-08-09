@@ -134,7 +134,7 @@ void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
             for (auto i = 0u; i < table->getNumTuples(); ++i) {
                 auto tuple = table->getTuple(i);
                 auto overflowValue =
-                    (kuzu::common::overflow_value_t*)(tuple + tableSchema->getColOffset(1));
+                    (overflow_value_t*)(tuple + tableSchema->getColOffset(1));
                 for (auto j = 0u; j < overflowValue->numElements; ++j) {
                     srcBuffer[j] = *(int64_t*)(tuple + tableSchema->getColOffset(0));
                 }
@@ -148,7 +148,7 @@ void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
             for (auto i = 0u; i < table->getNumTuples(); ++i) {
                 auto tuple = table->getTuple(i);
                 auto overflowValue =
-                    (kuzu::common::overflow_value_t*)(tuple + tableSchema->getColOffset(0));
+                    (overflow_value_t*)(tuple + tableSchema->getColOffset(0));
                 for (auto j = 0u; j < overflowValue->numElements; ++j) {
                     srcBuffer[j] = ((int64_t*)overflowValue->value)[j];
                 }

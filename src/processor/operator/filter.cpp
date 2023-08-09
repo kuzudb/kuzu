@@ -1,5 +1,7 @@
 #include "processor/operator/filter.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace processor {
 
@@ -32,7 +34,7 @@ void NodeLabelFiler::initLocalStateInternal(ResultSet* resultSet_, ExecutionCont
 }
 
 bool NodeLabelFiler::getNextTuplesInternal(ExecutionContext* context) {
-    common::sel_t numSelectValue;
+    sel_t numSelectValue;
     do {
         restoreSelVector(nodeIDVector->state->selVector);
         if (!children[0]->getNextTuple(context)) {
@@ -45,7 +47,7 @@ bool NodeLabelFiler::getNextTuplesInternal(ExecutionContext* context) {
             auto pos = nodeIDVector->state->selVector->selectedPositions[i];
             buffer[numSelectValue] = pos;
             numSelectValue +=
-                info->nodeLabelSet.contains(nodeIDVector->getValue<common::nodeID_t>(pos).tableID);
+                info->nodeLabelSet.contains(nodeIDVector->getValue<nodeID_t>(pos).tableID);
         }
         nodeIDVector->state->selVector->resetSelectorToValuePosBuffer();
     } while (numSelectValue == 0);

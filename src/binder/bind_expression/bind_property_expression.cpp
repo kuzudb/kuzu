@@ -48,7 +48,7 @@ expression_vector ExpressionBinder::bindRelPropertyStarExpression(const Expressi
 
 expression_vector ExpressionBinder::bindStructPropertyStarExpression(
     std::shared_ptr<Expression> child) {
-    assert(child->getDataType().getLogicalTypeID() == common::LogicalTypeID::STRUCT);
+    assert(child->getDataType().getLogicalTypeID() == LogicalTypeID::STRUCT);
     expression_vector result;
     auto childType = child->getDataType();
     for (auto field : StructType::getFields(&childType)) {
@@ -79,7 +79,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     } else if (ExpressionUtil::isRelVariable(*child)) {
         return bindRelPropertyExpression(*child, propertyName);
     } else {
-        assert(child->expressionType == common::FUNCTION);
+        assert(child->expressionType == FUNCTION);
         return bindStructPropertyExpression(child, propertyName);
     }
 }

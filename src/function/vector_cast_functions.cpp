@@ -7,26 +7,25 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-bool VectorCastFunction::hasImplicitCast(
-    const common::LogicalType& srcType, const common::LogicalType& dstType) {
+bool VectorCastFunction::hasImplicitCast(const LogicalType& srcType, const LogicalType& dstType) {
     // We allow cast between any numerical types
     if (LogicalTypeUtils::isNumerical(srcType) && LogicalTypeUtils::isNumerical(dstType)) {
         return true;
     }
     switch (srcType.getLogicalTypeID()) {
-    case common::LogicalTypeID::DATE: {
+    case LogicalTypeID::DATE: {
         switch (dstType.getLogicalTypeID()) {
-        case common::LogicalTypeID::TIMESTAMP:
+        case LogicalTypeID::TIMESTAMP:
             return true;
         default:
             return false;
         }
     }
-    case common::LogicalTypeID::STRING: {
+    case LogicalTypeID::STRING: {
         switch (dstType.getLogicalTypeID()) {
-        case common::LogicalTypeID::DATE:
-        case common::LogicalTypeID::TIMESTAMP:
-        case common::LogicalTypeID::INTERVAL:
+        case LogicalTypeID::DATE:
+        case LogicalTypeID::TIMESTAMP:
+        case LogicalTypeID::INTERVAL:
             return true;
         default:
             return false;
@@ -37,80 +36,78 @@ bool VectorCastFunction::hasImplicitCast(
     }
 }
 
-std::string VectorCastFunction::bindImplicitCastFuncName(const common::LogicalType& dstType) {
+std::string VectorCastFunction::bindImplicitCastFuncName(const LogicalType& dstType) {
     switch (dstType.getLogicalTypeID()) {
-    case common::LogicalTypeID::SERIAL:
+    case LogicalTypeID::SERIAL:
         return CAST_TO_SERIAL_FUNC_NAME;
-    case common::LogicalTypeID::INT64:
+    case LogicalTypeID::INT64:
         return CAST_TO_INT64_FUNC_NAME;
-    case common::LogicalTypeID::INT32:
+    case LogicalTypeID::INT32:
         return CAST_TO_INT32_FUNC_NAME;
-    case common::LogicalTypeID::INT16:
+    case LogicalTypeID::INT16:
         return CAST_TO_INT16_FUNC_NAME;
-    case common::LogicalTypeID::FLOAT:
+    case LogicalTypeID::FLOAT:
         return CAST_TO_FLOAT_FUNC_NAME;
-    case common::LogicalTypeID::DOUBLE:
+    case LogicalTypeID::DOUBLE:
         return CAST_TO_DOUBLE_FUNC_NAME;
-    case common::LogicalTypeID::DATE:
+    case LogicalTypeID::DATE:
         return CAST_TO_DATE_FUNC_NAME;
-    case common::LogicalTypeID::TIMESTAMP:
+    case LogicalTypeID::TIMESTAMP:
         return CAST_TO_TIMESTAMP_FUNC_NAME;
-    case common::LogicalTypeID::INTERVAL:
+    case LogicalTypeID::INTERVAL:
         return CAST_TO_INTERVAL_FUNC_NAME;
-    case common::LogicalTypeID::STRING:
+    case LogicalTypeID::STRING:
         return CAST_TO_STRING_FUNC_NAME;
     default:
-        throw common::NotImplementedException("bindImplicitCastFuncName()");
+        throw NotImplementedException("bindImplicitCastFuncName()");
     }
 }
 
-void VectorCastFunction::bindImplicitCastFunc(common::LogicalTypeID sourceTypeID,
-    common::LogicalTypeID targetTypeID, scalar_exec_func& func) {
+void VectorCastFunction::bindImplicitCastFunc(
+    LogicalTypeID sourceTypeID, LogicalTypeID targetTypeID, scalar_exec_func& func) {
     switch (targetTypeID) {
-    case common::LogicalTypeID::INT16: {
+    case LogicalTypeID::INT16: {
         bindImplicitNumericalCastFunc<int16_t, CastToInt16>(sourceTypeID, func);
         return;
     }
-    case common::LogicalTypeID::INT32: {
+    case LogicalTypeID::INT32: {
         bindImplicitNumericalCastFunc<int32_t, CastToInt32>(sourceTypeID, func);
         return;
     }
-    case common::LogicalTypeID::SERIAL:
-    case common::LogicalTypeID::INT64: {
+    case LogicalTypeID::SERIAL:
+    case LogicalTypeID::INT64: {
         bindImplicitNumericalCastFunc<int64_t, CastToInt64>(sourceTypeID, func);
         return;
     }
-    case common::LogicalTypeID::FLOAT: {
+    case LogicalTypeID::FLOAT: {
         bindImplicitNumericalCastFunc<float_t, CastToFloat>(sourceTypeID, func);
         return;
     }
-    case common::LogicalTypeID::DOUBLE: {
+    case LogicalTypeID::DOUBLE: {
         bindImplicitNumericalCastFunc<double_t, CastToDouble>(sourceTypeID, func);
         return;
     }
-    case common::LogicalTypeID::DATE: {
-        assert(sourceTypeID == common::LogicalTypeID::STRING);
+    case LogicalTypeID::DATE: {
+        assert(sourceTypeID == LogicalTypeID::STRING);
         func = &UnaryExecFunction<ku_string_t, date_t, CastStringToDate>;
         return;
     }
-    case common::LogicalTypeID::TIMESTAMP: {
-        assert(sourceTypeID == common::LogicalTypeID::STRING ||
-               sourceTypeID == common::LogicalTypeID::DATE);
-        func = sourceTypeID == common::LogicalTypeID::STRING ?
+    case LogicalTypeID::TIMESTAMP: {
+        assert(sourceTypeID == LogicalTypeID::STRING || sourceTypeID == LogicalTypeID::DATE);
+        func = sourceTypeID == LogicalTypeID::STRING ?
                    &UnaryExecFunction<ku_string_t, timestamp_t, CastStringToTimestamp> :
                    &UnaryExecFunction<date_t, timestamp_t, CastDateToTimestamp>;
         return;
     }
-    case common::LogicalTypeID::INTERVAL: {
-        assert(sourceTypeID == common::LogicalTypeID::STRING);
+    case LogicalTypeID::INTERVAL: {
+        assert(sourceTypeID == LogicalTypeID::STRING);
         func = &UnaryExecFunction<ku_string_t, interval_t, CastStringToInterval>;
         return;
     }
     default:
-        throw common::NotImplementedException(
-            "Unimplemented casting operation from " +
-            common::LogicalTypeUtils::dataTypeToString(sourceTypeID) + " to " +
-            common::LogicalTypeUtils::dataTypeToString(targetTypeID) + ".");
+        throw NotImplementedException("Unimplemented casting operation from " +
+                                      LogicalTypeUtils::dataTypeToString(sourceTypeID) + " to " +
+                                      LogicalTypeUtils::dataTypeToString(targetTypeID) + ".");
     }
 }
 

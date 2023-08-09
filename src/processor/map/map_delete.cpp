@@ -3,16 +3,19 @@
 #include "processor/operator/persistent/delete.h"
 #include "processor/plan_mapper.h"
 
+using namespace kuzu::binder;
+using namespace kuzu::common;
 using namespace kuzu::planner;
+using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
 
 static std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(
-    storage::NodesStore* store, const binder::NodeExpression& node, const Schema& inSchema) {
+    NodesStore* store, const NodeExpression& node, const Schema& inSchema) {
     auto nodeIDPos = DataPos(inSchema.getExpressionPos(*node.getInternalIDProperty()));
     if (node.isMultiLabeled()) {
-        std::unordered_map<common::table_id_t, storage::NodeTable*> tableIDToTableMap;
+        std::unordered_map<table_id_t, NodeTable*> tableIDToTableMap;
         for (auto tableID : node.getTableIDs()) {
             auto table = store->getNodeTable(tableID);
             tableIDToTableMap.insert({tableID, table});
@@ -47,8 +50,7 @@ static std::unique_ptr<RelDeleteExecutor> getRelDeleteExecutor(
     auto relIDPos = DataPos(inSchema.getExpressionPos(*rel.getInternalIDProperty()));
     auto statistics = &store->getRelsStatistics();
     if (rel.isMultiLabeled()) {
-        std::unordered_map<common::table_id_t,
-            std::pair<storage::RelTable*, storage::RelsStatistics*>>
+        std::unordered_map<table_id_t, std::pair<storage::RelTable*, storage::RelsStatistics*>>
             tableIDToTableMap;
         for (auto tableID : rel.getTableIDs()) {
             auto table = store->getRelTable(tableID);

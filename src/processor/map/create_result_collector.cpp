@@ -7,9 +7,9 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<ResultCollector> PlanMapper::createResultCollector(
-    common::AccumulateType accumulateType, const binder::expression_vector& expressions,
-    Schema* schema, std::unique_ptr<PhysicalOperator> prevOperator) {
+std::unique_ptr<ResultCollector> PlanMapper::createResultCollector(AccumulateType accumulateType,
+    const binder::expression_vector& expressions, Schema* schema,
+    std::unique_ptr<PhysicalOperator> prevOperator) {
     std::vector<DataPos> payloadsPos;
     auto tableSchema = std::make_unique<FactorizedTableSchema>();
     for (auto& expression : expressions) {

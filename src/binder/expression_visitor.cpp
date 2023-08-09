@@ -6,23 +6,25 @@
 #include "binder/expression/property_expression.h"
 #include "binder/expression/rel_expression.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace binder {
 
 expression_vector ExpressionChildrenCollector::collectChildren(const Expression& expression) {
     switch (expression.expressionType) {
-    case common::ExpressionType::CASE_ELSE: {
+    case ExpressionType::CASE_ELSE: {
         return collectCaseChildren(expression);
     }
-    case common::ExpressionType::EXISTENTIAL_SUBQUERY: {
+    case ExpressionType::EXISTENTIAL_SUBQUERY: {
         return collectExistentialSubqueryChildren(expression);
     }
-    case common::ExpressionType::VARIABLE: {
+    case ExpressionType::VARIABLE: {
         switch (expression.dataType.getLogicalTypeID()) {
-        case common::LogicalTypeID::NODE: {
+        case LogicalTypeID::NODE: {
             return collectNodeChildren(expression);
         }
-        case common::LogicalTypeID::REL: {
+        case LogicalTypeID::REL: {
             return collectRelChildren(expression);
         }
         default: {
@@ -99,16 +101,16 @@ std::unordered_set<std::string> ExpressionCollector::getDependentVariableNames(
     const std::shared_ptr<Expression>& expression) {
     assert(expressions.empty());
     collectExpressionsInternal(expression, [&](const Expression& expression) {
-        return expression.expressionType == common::ExpressionType::PROPERTY ||
-               expression.expressionType == common::ExpressionType::VARIABLE;
+        return expression.expressionType == ExpressionType::PROPERTY ||
+               expression.expressionType == ExpressionType::VARIABLE;
     });
     std::unordered_set<std::string> result;
     for (auto& expr : expressions) {
-        if (expr->expressionType == common::ExpressionType::PROPERTY) {
+        if (expr->expressionType == ExpressionType::PROPERTY) {
             auto property = (PropertyExpression*)expr.get();
             result.insert(property->getVariableName());
         } else {
-            assert(expr->expressionType == common::ExpressionType::VARIABLE);
+            assert(expr->expressionType == ExpressionType::VARIABLE);
             result.insert(expr->getUniqueName());
         }
     }

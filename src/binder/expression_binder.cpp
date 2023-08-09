@@ -82,7 +82,7 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
 }
 
 std::shared_ptr<Expression> ExpressionBinder::implicitCast(
-    const std::shared_ptr<Expression>& expression, const common::LogicalType& targetType) {
+    const std::shared_ptr<Expression>& expression, const LogicalType& targetType) {
     if (VectorCastFunction::hasImplicitCast(expression->dataType, targetType)) {
         auto functionName = VectorCastFunction::bindImplicitCastFuncName(targetType);
         auto children = expression_vector{expression};
@@ -95,11 +95,10 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCast(
             std::move(bindData), std::move(children), execFunc, nullptr /* selectFunc */,
             std::move(uniqueName));
     } else {
-        throw common::BinderException(
-            "Expression " + expression->toString() + " has data type " +
-            common::LogicalTypeUtils::dataTypeToString(expression->dataType) + " but expect " +
-            common::LogicalTypeUtils::dataTypeToString(targetType) +
-            ". Implicit cast is not supported.");
+        throw BinderException("Expression " + expression->toString() + " has data type " +
+                              LogicalTypeUtils::dataTypeToString(expression->dataType) +
+                              " but expect " + LogicalTypeUtils::dataTypeToString(targetType) +
+                              ". Implicit cast is not supported.");
     }
 }
 

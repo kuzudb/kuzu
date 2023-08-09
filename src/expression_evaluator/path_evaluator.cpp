@@ -10,14 +10,14 @@ namespace kuzu {
 namespace evaluator {
 
 // For each result field vector, find its corresponding input field vector if exist.
-static std::vector<common::ValueVector*> getFieldVectors(
-    const LogicalType& inputType, const LogicalType& resultType, common::ValueVector* inputVector) {
-    std::vector<common::ValueVector*> result;
+static std::vector<ValueVector*> getFieldVectors(
+    const LogicalType& inputType, const LogicalType& resultType, ValueVector* inputVector) {
+    std::vector<ValueVector*> result;
     for (auto field : StructType::getFields(&resultType)) {
         auto fieldName = StringUtils::getUpper(field->getName());
         if (StructType::hasField(&inputType, fieldName)) {
             auto idx = StructType::getFieldIdx(&inputType, fieldName);
-            result.push_back(common::StructVector::getFieldVector(inputVector, idx).get());
+            result.push_back(StructVector::getFieldVector(inputVector, idx).get());
         } else {
             result.push_back(nullptr);
         }
@@ -45,15 +45,15 @@ void PathExpressionEvaluator::init(
         auto vectors = std::make_unique<InputVectors>();
         vectors->input = children[i]->resultVector.get();
         switch (child->dataType.getLogicalTypeID()) {
-        case common::LogicalTypeID::NODE: {
+        case LogicalTypeID::NODE: {
             vectors->nodeFieldVectors = getFieldVectors(
                 child->dataType, pathExpression->getNode()->dataType, vectors->input);
         } break;
-        case common::LogicalTypeID::REL: {
+        case LogicalTypeID::REL: {
             vectors->relFieldVectors = getFieldVectors(
                 child->dataType, pathExpression->getRel()->dataType, vectors->input);
         } break;
-        case common::LogicalTypeID::RECURSIVE_REL: {
+        case LogicalTypeID::RECURSIVE_REL: {
             auto rel = (RelExpression*)child;
             auto recursiveNode = rel->getRecursiveInfo()->node;
             auto recursiveRel = rel->getRecursiveInfo()->rel;
@@ -70,7 +70,7 @@ void PathExpressionEvaluator::init(
                 pathExpression->getRel()->getDataType(), vectors->relsDataInput);
         } break;
         default:
-            throw common::NotImplementedException("PathExpressionEvaluator::init");
+            throw NotImplementedException("PathExpressionEvaluator::init");
         }
         inputVectorsPerChild.push_back(std::move(vectors));
     }
@@ -89,47 +89,47 @@ void PathExpressionEvaluator::evaluate() {
     }
 }
 
-static inline uint32_t getCurrentPos(common::ValueVector* vector, uint32_t pos) {
+static inline uint32_t getCurrentPos(ValueVector* vector, uint32_t pos) {
     if (vector->state->isFlat()) {
         return vector->state->selVector->selectedPositions[0];
     }
     return pos;
 }
 
-void PathExpressionEvaluator::copyNodes(common::sel_t resultPos) {
+void PathExpressionEvaluator::copyNodes(sel_t resultPos) {
     auto listSize = 0u;
     // Calculate list size.
     for (auto i = 0; i < pathExpression->getNumChildren(); ++i) {
         auto child = pathExpression->getChild(i).get();
         switch (child->dataType.getLogicalTypeID()) {
-        case common::LogicalTypeID::NODE: {
+        case LogicalTypeID::NODE: {
             listSize++;
         } break;
-        case common::LogicalTypeID::RECURSIVE_REL: {
+        case LogicalTypeID::RECURSIVE_REL: {
             auto vectors = inputVectorsPerChild[i].get();
             auto inputPos = getCurrentPos(vectors->input, resultPos);
-            listSize += vectors->nodesInput->getValue<common::list_entry_t>(inputPos).size;
+            listSize += vectors->nodesInput->getValue<list_entry_t>(inputPos).size;
         } break;
         default:
             break;
         }
     }
     // Add list entry.
-    auto entry = common::ListVector::addList(resultNodesVector, listSize);
+    auto entry = ListVector::addList(resultNodesVector, listSize);
     resultNodesVector->setValue(resultPos, entry);
     // Copy field vectors
-    common::offset_t resultDataPos = entry.offset;
+    offset_t resultDataPos = entry.offset;
     for (auto i = 0; i < pathExpression->getNumChildren(); ++i) {
         auto child = pathExpression->getChild(i).get();
         auto vectors = inputVectorsPerChild[i].get();
         auto inputPos = getCurrentPos(vectors->input, resultPos);
         switch (child->dataType.getLogicalTypeID()) {
-        case common::LogicalTypeID::NODE: {
+        case LogicalTypeID::NODE: {
             copyFieldVectors(
                 inputPos, vectors->nodeFieldVectors, resultDataPos, resultNodesFieldVectors);
         } break;
-        case common::LogicalTypeID::RECURSIVE_REL: {
-            auto& listEntry = vectors->nodesInput->getValue<common::list_entry_t>(inputPos);
+        case LogicalTypeID::RECURSIVE_REL: {
+            auto& listEntry = vectors->nodesInput->getValue<list_entry_t>(inputPos);
             for (auto j = 0; j < listEntry.size; ++j) {
                 copyFieldVectors(listEntry.offset + j, vectors->nodeFieldVectors, resultDataPos,
                     resultNodesFieldVectors);
@@ -141,40 +141,40 @@ void PathExpressionEvaluator::copyNodes(common::sel_t resultPos) {
     }
 }
 
-void PathExpressionEvaluator::copyRels(common::sel_t resultPos) {
+void PathExpressionEvaluator::copyRels(sel_t resultPos) {
     auto listSize = 0u;
     // Calculate list size.
     for (auto i = 0; i < pathExpression->getNumChildren(); ++i) {
         auto child = pathExpression->getChild(i).get();
         switch (child->dataType.getLogicalTypeID()) {
-        case common::LogicalTypeID::REL: {
+        case LogicalTypeID::REL: {
             listSize++;
         } break;
-        case common::LogicalTypeID::RECURSIVE_REL: {
+        case LogicalTypeID::RECURSIVE_REL: {
             auto vectors = inputVectorsPerChild[i].get();
             auto inputPos = getCurrentPos(vectors->input, resultPos);
-            listSize += vectors->relsInput->getValue<common::list_entry_t>(inputPos).size;
+            listSize += vectors->relsInput->getValue<list_entry_t>(inputPos).size;
         } break;
         default:
             break;
         }
     }
     // Add list entry.
-    auto entry = common::ListVector::addList(resultRelsVector, listSize);
+    auto entry = ListVector::addList(resultRelsVector, listSize);
     resultRelsVector->setValue(resultPos, entry);
     // Copy field vectors
-    common::offset_t resultDataPos = entry.offset;
+    offset_t resultDataPos = entry.offset;
     for (auto i = 0; i < pathExpression->getNumChildren(); ++i) {
         auto child = pathExpression->getChild(i).get();
         auto vectors = inputVectorsPerChild[i].get();
         auto inputPos = getCurrentPos(vectors->input, resultPos);
         switch (child->dataType.getLogicalTypeID()) {
-        case common::LogicalTypeID::REL: {
+        case LogicalTypeID::REL: {
             copyFieldVectors(
                 inputPos, vectors->relFieldVectors, resultDataPos, resultRelsFieldVectors);
         } break;
-        case common::LogicalTypeID::RECURSIVE_REL: {
-            auto& listEntry = vectors->relsInput->getValue<common::list_entry_t>(inputPos);
+        case LogicalTypeID::RECURSIVE_REL: {
+            auto& listEntry = vectors->relsInput->getValue<list_entry_t>(inputPos);
             for (auto j = 0; j < listEntry.size; ++j) {
                 copyFieldVectors(listEntry.offset + j, vectors->relFieldVectors, resultDataPos,
                     resultRelsFieldVectors);
@@ -186,9 +186,9 @@ void PathExpressionEvaluator::copyRels(common::sel_t resultPos) {
     }
 }
 
-void PathExpressionEvaluator::copyFieldVectors(common::offset_t inputVectorPos,
-    const std::vector<common::ValueVector*>& inputFieldVectors, common::offset_t& resultVectorPos,
-    const std::vector<common::ValueVector*>& resultFieldVectors) {
+void PathExpressionEvaluator::copyFieldVectors(offset_t inputVectorPos,
+    const std::vector<ValueVector*>& inputFieldVectors, offset_t& resultVectorPos,
+    const std::vector<ValueVector*>& resultFieldVectors) {
     assert(resultFieldVectors.size() == inputFieldVectors.size());
     for (auto i = 0u; i < inputFieldVectors.size(); ++i) {
         auto inputFieldVector = inputFieldVectors[i];

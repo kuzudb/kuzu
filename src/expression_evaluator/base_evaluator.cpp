@@ -1,5 +1,7 @@
 #include "expression_evaluator/base_evaluator.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace evaluator {
 
@@ -25,7 +27,7 @@ void ExpressionEvaluator::resolveResultStateFromChildren(
     }
     // All children are flat.
     isResultFlat_ = true;
-    resultVector->setState(common::DataChunkState::getSingleValueDataChunkState());
+    resultVector->setState(DataChunkState::getSingleValueDataChunkState());
 }
 
 } // namespace evaluator

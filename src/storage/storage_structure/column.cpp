@@ -9,8 +9,8 @@ namespace kuzu {
 namespace storage {
 
 Column::Column(const kuzu::storage::StorageStructureIDAndFName& structureIDAndFName,
-    const common::LogicalType& dataType, size_t elementSize,
-    kuzu::storage::BufferManager* bufferManager, kuzu::storage::WAL* wal, bool requireNullBits)
+    const LogicalType& dataType, size_t elementSize, BufferManager* bufferManager, WAL* wal,
+    bool requireNullBits)
     : BaseColumnOrList{
           structureIDAndFName, dataType, elementSize, bufferManager, false /*hasNULLBytes*/, wal} {
     readDataFunc = Column::readValuesFromPage;
@@ -23,7 +23,7 @@ Column::Column(const kuzu::storage::StorageStructureIDAndFName& structureIDAndFN
     }
 }
 
-void Column::batchLookup(const common::offset_t* nodeOffsets, size_t size, uint8_t* result) {
+void Column::batchLookup(const offset_t* nodeOffsets, size_t size, uint8_t* result) {
     for (auto i = 0u; i < size; ++i) {
         auto nodeOffset = nodeOffsets[i];
         auto cursor = PageUtils::getPageElementCursorForPos(nodeOffset, numElementsPerPage);
@@ -35,8 +35,7 @@ void Column::batchLookup(const common::offset_t* nodeOffsets, size_t size, uint8
     }
 }
 
-void Column::read(Transaction* transaction, common::ValueVector* nodeIDVector,
-    common::ValueVector* resultVector) {
+void Column::read(Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
     if (nullColumn) {
         nullColumn->read(transaction, nodeIDVector, resultVector);
     }
@@ -53,7 +52,7 @@ void Column::read(Transaction* transaction, common::ValueVector* nodeIDVector,
     }
 }
 
-void Column::write(common::ValueVector* nodeIDVector, common::ValueVector* vectorToWriteFrom) {
+void Column::write(ValueVector* nodeIDVector, ValueVector* vectorToWriteFrom) {
     if (nodeIDVector->state->isFlat() && vectorToWriteFrom->state->isFlat()) {
         auto nodeOffset =
             nodeIDVector->readNodeOffset(nodeIDVector->state->selVector->selectedPositions[0]);
@@ -80,11 +79,11 @@ void Column::write(common::ValueVector* nodeIDVector, common::ValueVector* vecto
     }
 }
 
-bool Column::isNull(common::offset_t nodeOffset, transaction::Transaction* transaction) {
+bool Column::isNull(offset_t nodeOffset, transaction::Transaction* transaction) {
     return nullColumn->readValue(nodeOffset, transaction);
 }
 
-void Column::setNull(common::offset_t nodeOffset) {
+void Column::setNull(offset_t nodeOffset) {
     nullColumn->setValue(nodeOffset);
     auto walPageInfo = createWALVersionOfPageIfNecessaryForElement(nodeOffset, numElementsPerPage);
     bufferManager->unpin(*wal->fileHandle, walPageInfo.pageIdxInWAL);
@@ -101,8 +100,8 @@ Value Column::readValueForTestingOnly(offset_t offset) {
     return retVal;
 }
 
-void Column::lookup(Transaction* transaction, common::ValueVector* nodeIDVector,
-    common::ValueVector* resultVector, uint32_t vectorPos) {
+void Column::lookup(Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector,
+    uint32_t vectorPos) {
     if (nodeIDVector->isNull(vectorPos)) {
         resultVector->setNull(vectorPos, true);
         return;
@@ -111,8 +110,8 @@ void Column::lookup(Transaction* transaction, common::ValueVector* nodeIDVector,
     lookup(transaction, nodeOffset, resultVector, vectorPos);
 }
 
-void Column::lookup(Transaction* transaction, common::offset_t nodeOffset,
-    common::ValueVector* resultVector, uint32_t vectorPos) {
+void Column::lookup(
+    Transaction* transaction, offset_t nodeOffset, ValueVector* resultVector, uint32_t vectorPos) {
     auto pageCursor = PageUtils::getPageElementCursorForPos(nodeOffset, numElementsPerPage);
     readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) {
         readDataFunc(
@@ -120,8 +119,8 @@ void Column::lookup(Transaction* transaction, common::offset_t nodeOffset,
     });
 }
 
-void Column::scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-    common::ValueVector* resultVector) {
+void Column::scan(
+    transaction::Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
     // In sequential read, we fetch start offset regardless of selected position.
     auto startOffset = nodeIDVector->readNodeOffset(0);
     uint64_t numValuesToRead = nodeIDVector->state->originalSize;
@@ -163,8 +162,8 @@ void Column::scan(transaction::Transaction* transaction, common::ValueVector* no
     }
 }
 
-void Column::write(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
-    uint32_t posInVectorToWriteFrom) {
+void Column::write(
+    offset_t nodeOffset, ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
     bool isNull = vectorToWriteFrom->isNull(posInVectorToWriteFrom);
     if (nullColumn) {
         nullColumn->write(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
@@ -185,7 +184,7 @@ void Column::write(common::offset_t nodeOffset, common::ValueVector* vectorToWri
     }
 }
 
-void Column::readFromPage(transaction::Transaction* transaction, common::page_idx_t pageIdx,
+void Column::readFromPage(transaction::Transaction* transaction, page_idx_t pageIdx,
     const std::function<void(uint8_t*)>& func) {
     auto [fileHandleToPin, pageIdxToPin] =
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
@@ -194,22 +193,22 @@ void Column::readFromPage(transaction::Transaction* transaction, common::page_id
 }
 
 void Column::readValuesFromPage(transaction::Transaction* transaction, uint8_t* frame,
-    PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
+    PageElementCursor& pageCursor, ValueVector* resultVector, uint32_t posInVector,
     uint32_t numValuesToRead, DiskOverflowFile* diskOverflowFile) {
     auto numBytesPerValue = resultVector->getNumBytesPerValue();
     memcpy(resultVector->getData() + posInVector * numBytesPerValue,
         frame + pageCursor.elemPosInPage * numBytesPerValue, numValuesToRead * numBytesPerValue);
 }
 
-void Column::writeValueToPage(uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector,
+void Column::writeValueToPage(uint8_t* frame, uint16_t posInFrame, ValueVector* vector,
     uint32_t posInVector, kuzu::storage::DiskOverflowFile* diskOverflowFile) {
     auto numBytesPerValue = vector->getNumBytesPerValue();
     memcpy(frame + posInFrame * numBytesPerValue,
         vector->getData() + posInVector * numBytesPerValue, numBytesPerValue);
 }
 
-void NullColumn::write(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
-    uint32_t posInVectorToWriteFrom) {
+void NullColumn::write(
+    offset_t nodeOffset, ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
     auto walPageInfo = createWALVersionOfPageIfNecessaryForElement(nodeOffset, numElementsPerPage);
     *(walPageInfo.frame + walPageInfo.posInPage) =
         vectorToWriteFrom->isNull(posInVectorToWriteFrom);
@@ -225,7 +224,7 @@ bool NullColumn::readValue(offset_t nodeOffset, Transaction* transaction) {
     return isNull;
 }
 
-void NullColumn::setValue(common::offset_t nodeOffset, bool isNull) {
+void NullColumn::setValue(offset_t nodeOffset, bool isNull) {
     auto walPageInfo = createWALVersionOfPageIfNecessaryForElement(nodeOffset, numElementsPerPage);
     *(walPageInfo.frame + walPageInfo.posInPage) = isNull;
     StorageStructureUtils::unpinWALPageAndReleaseOriginalPageLock(
@@ -233,9 +232,8 @@ void NullColumn::setValue(common::offset_t nodeOffset, bool isNull) {
 }
 
 void NullColumn::readNullsFromPage(transaction::Transaction* transaction, uint8_t* frame,
-    kuzu::storage::PageElementCursor& pageCursor, common::ValueVector* resultVector,
-    uint32_t posInVector, uint32_t numValuesToRead,
-    kuzu::storage::DiskOverflowFile* diskOverflowFile) {
+    kuzu::storage::PageElementCursor& pageCursor, ValueVector* resultVector, uint32_t posInVector,
+    uint32_t numValuesToRead, kuzu::storage::DiskOverflowFile* diskOverflowFile) {
     for (auto i = 0u; i < numValuesToRead; i++) {
         bool isNull = *(frame + pageCursor.elemPosInPage + i);
         resultVector->setNull(posInVector + i, isNull);
@@ -255,8 +253,7 @@ Value StringPropertyColumn::readValueForTestingOnly(offset_t offset) {
 }
 
 void StringPropertyColumn::writeStringToPage(uint8_t* frame, uint16_t posInFrame,
-    common::ValueVector* vector, uint32_t posInVector,
-    kuzu::storage::DiskOverflowFile* diskOverflowFile) {
+    ValueVector* vector, uint32_t posInVector, kuzu::storage::DiskOverflowFile* diskOverflowFile) {
     auto stringToWriteTo = (ku_string_t*)(frame + (posInFrame * sizeof(ku_string_t)));
     auto stringToWriteFrom = vector->getValue<ku_string_t>(posInVector);
     memcpy(stringToWriteTo, &stringToWriteFrom, sizeof(ku_string_t));
@@ -280,10 +277,10 @@ Value ListPropertyColumn::readValueForTestingOnly(offset_t offset) {
 }
 
 void ListPropertyColumn::readListsFromPage(transaction::Transaction* transaction, uint8_t* frame,
-    kuzu::storage::PageElementCursor& pageCursor, common::ValueVector* resultVector,
-    uint32_t posInVector, uint32_t numValuesToRead, DiskOverflowFile* diskOverflowFile) {
+    kuzu::storage::PageElementCursor& pageCursor, ValueVector* resultVector, uint32_t posInVector,
+    uint32_t numValuesToRead, DiskOverflowFile* diskOverflowFile) {
     auto frameBytesOffset = pageCursor.elemPosInPage * sizeof(ku_list_t);
-    auto kuListsToRead = reinterpret_cast<common::ku_list_t*>(frame + frameBytesOffset);
+    auto kuListsToRead = reinterpret_cast<ku_list_t*>(frame + frameBytesOffset);
     for (auto i = 0u; i < numValuesToRead; i++) {
         if (!resultVector->isNull(posInVector + i)) {
             diskOverflowFile->readListToVector(
@@ -292,9 +289,8 @@ void ListPropertyColumn::readListsFromPage(transaction::Transaction* transaction
     }
 }
 
-void ListPropertyColumn::writeListToPage(uint8_t* frame, uint16_t posInFrame,
-    common::ValueVector* vector, uint32_t posInVector,
-    kuzu::storage::DiskOverflowFile* diskOverflowFile) {
+void ListPropertyColumn::writeListToPage(uint8_t* frame, uint16_t posInFrame, ValueVector* vector,
+    uint32_t posInVector, kuzu::storage::DiskOverflowFile* diskOverflowFile) {
     auto kuListToWriteTo = (ku_list_t*)(frame + (posInFrame * sizeof(ku_list_t)));
     auto kuListToWriteFrom = vector->getValue<ku_list_t>(posInVector);
     memcpy(kuListToWriteTo, &kuListToWriteFrom, sizeof(ku_list_t));
@@ -303,12 +299,12 @@ void ListPropertyColumn::writeListToPage(uint8_t* frame, uint16_t posInFrame,
 }
 
 StructPropertyColumn::StructPropertyColumn(const StorageStructureIDAndFName& structureIDAndFName,
-    const common::LogicalType& dataType, BufferManager* bufferManager, WAL* wal)
+    const LogicalType& dataType, BufferManager* bufferManager, WAL* wal)
     : Column{dataType} {
     auto nullColumnStructureIDAndFName =
         StorageUtils::getNodeNullColumnStructureIDAndFName(structureIDAndFName);
     nullColumn = std::make_unique<NullColumn>(nullColumnStructureIDAndFName, bufferManager, wal);
-    auto structFields = common::StructType::getFields(&dataType);
+    auto structFields = StructType::getFields(&dataType);
     for (auto i = 0u; i < structFields.size(); i++) {
         auto fieldStructureIDAndFName = structureIDAndFName;
         fieldStructureIDAndFName.fName =
@@ -318,36 +314,36 @@ StructPropertyColumn::StructPropertyColumn(const StorageStructureIDAndFName& str
     }
 }
 
-void StructPropertyColumn::read(Transaction* transaction, common::ValueVector* nodeIDVector,
-    common::ValueVector* resultVector) {
+void StructPropertyColumn::read(
+    Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
     // TODO(Guodong/Ziyi): We currently do not support null struct value.
     resultVector->setAllNonNull();
     for (auto i = 0u; i < structFieldColumns.size(); i++) {
         structFieldColumns[i]->read(
-            transaction, nodeIDVector, common::StructVector::getFieldVector(resultVector, i).get());
+            transaction, nodeIDVector, StructVector::getFieldVector(resultVector, i).get());
     }
 }
 
-void StructPropertyColumn::setNull(common::offset_t nodeOffset) {
+void StructPropertyColumn::setNull(offset_t nodeOffset) {
     nullColumn->setValue(nodeOffset);
     // TODO(Ziyi): we currently only support create a node/rel with null struct property because
     // we don't have a mechanism to log the sub columns of a struct column.
 }
 
-void StructPropertyColumn::write(common::offset_t nodeOffset,
-    common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
+void StructPropertyColumn::write(
+    offset_t nodeOffset, ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
     bool isNull = vectorToWriteFrom->isNull(posInVectorToWriteFrom);
     if (nullColumn) {
         nullColumn->write(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
     }
     if (!isNull) {
-        throw common::RuntimeException{"Can only update a null value to struct column."};
+        throw RuntimeException{"Can only update a null value to struct column."};
     }
 }
 
 void InternalIDColumn::readInternalIDsFromPage(transaction::Transaction* transaction,
-    uint8_t* frame, PageElementCursor& pageCursor, common::ValueVector* resultVector,
-    uint32_t posInVector, uint32_t numValuesToRead, DiskOverflowFile* diskOverflowFile) {
+    uint8_t* frame, PageElementCursor& pageCursor, ValueVector* resultVector, uint32_t posInVector,
+    uint32_t numValuesToRead, DiskOverflowFile* diskOverflowFile) {
     auto resultData = (internalID_t*)resultVector->getData();
     for (auto i = 0u; i < numValuesToRead; i++) {
         auto posInFrame = pageCursor.elemPosInPage + i;
@@ -356,14 +352,13 @@ void InternalIDColumn::readInternalIDsFromPage(transaction::Transaction* transac
 }
 
 void InternalIDColumn::writeInternalIDToPage(uint8_t* frame, uint16_t posInFrame,
-    common::ValueVector* vector, uint32_t posInVector,
-    kuzu::storage::DiskOverflowFile* diskOverflowFile) {
-    auto relID = vector->getValue<common::relID_t>(posInVector);
+    ValueVector* vector, uint32_t posInVector, kuzu::storage::DiskOverflowFile* diskOverflowFile) {
+    auto relID = vector->getValue<relID_t>(posInVector);
     memcpy(frame + posInFrame * sizeof(offset_t), &relID.offset, sizeof(offset_t));
 }
 
-void SerialColumn::read(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-    common::ValueVector* resultVector) {
+void SerialColumn::read(
+    transaction::Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
     // Serial column cannot contain null values.
     for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[i];

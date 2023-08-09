@@ -19,13 +19,13 @@ std::unique_ptr<DataTypeInfo> DataTypeInfo::getInfoForDataType(
     const LogicalType& type, const std::string& name) {
     auto columnTypeInfo = std::make_unique<DataTypeInfo>(type.getLogicalTypeID(), name);
     switch (type.getLogicalTypeID()) {
-    case common::LogicalTypeID::INTERNAL_ID: {
+    case LogicalTypeID::INTERNAL_ID: {
         columnTypeInfo->childrenTypesInfo.push_back(
-            std::make_unique<DataTypeInfo>(common::LogicalTypeID::INT64, "offset"));
+            std::make_unique<DataTypeInfo>(LogicalTypeID::INT64, "offset"));
         columnTypeInfo->childrenTypesInfo.push_back(
-            std::make_unique<DataTypeInfo>(common::LogicalTypeID::INT64, "tableID"));
+            std::make_unique<DataTypeInfo>(LogicalTypeID::INT64, "tableID"));
     } break;
-    case common::LogicalTypeID::VAR_LIST: {
+    case LogicalTypeID::VAR_LIST: {
         auto parentTypeInfo = columnTypeInfo.get();
         auto childType = VarListType::getChildType(&type);
         parentTypeInfo->childrenTypesInfo.push_back(getInfoForDataType(*childType, ""));
@@ -62,7 +62,7 @@ std::vector<std::string> QueryResult::getColumnNames() const {
     return columnNames;
 }
 
-std::vector<common::LogicalType> QueryResult::getColumnDataTypes() const {
+std::vector<LogicalType> QueryResult::getColumnDataTypes() const {
     return columnDataTypes;
 }
 
@@ -82,12 +82,12 @@ std::vector<std::unique_ptr<DataTypeInfo>> QueryResult::getColumnTypesInfo() con
     std::vector<std::unique_ptr<DataTypeInfo>> result;
     for (auto i = 0u; i < columnDataTypes.size(); i++) {
         auto columnTypeInfo = DataTypeInfo::getInfoForDataType(columnDataTypes[i], columnNames[i]);
-        if (columnTypeInfo->typeID == common::LogicalTypeID::NODE) {
+        if (columnTypeInfo->typeID == LogicalTypeID::NODE) {
             auto value = tuple->getValue(i);
-            columnTypeInfo->childrenTypesInfo.push_back(DataTypeInfo::getInfoForDataType(
-                LogicalType(common::LogicalTypeID::INTERNAL_ID), "_id"));
-            columnTypeInfo->childrenTypesInfo.push_back(DataTypeInfo::getInfoForDataType(
-                LogicalType(common::LogicalTypeID::STRING), "_label"));
+            columnTypeInfo->childrenTypesInfo.push_back(
+                DataTypeInfo::getInfoForDataType(LogicalType(LogicalTypeID::INTERNAL_ID), "_id"));
+            columnTypeInfo->childrenTypesInfo.push_back(
+                DataTypeInfo::getInfoForDataType(LogicalType(LogicalTypeID::STRING), "_label"));
             auto numProperties = NodeVal::getNumProperties(value);
             for (auto j = 0u; i < numProperties; j++) {
                 auto name = NodeVal::getPropertyName(value, j);
@@ -95,12 +95,12 @@ std::vector<std::unique_ptr<DataTypeInfo>> QueryResult::getColumnTypesInfo() con
                 columnTypeInfo->childrenTypesInfo.push_back(
                     DataTypeInfo::getInfoForDataType(*val->getDataType(), name));
             }
-        } else if (columnTypeInfo->typeID == common::LogicalTypeID::REL) {
+        } else if (columnTypeInfo->typeID == LogicalTypeID::REL) {
             auto value = tuple->getValue(i);
-            columnTypeInfo->childrenTypesInfo.push_back(DataTypeInfo::getInfoForDataType(
-                LogicalType(common::LogicalTypeID::INTERNAL_ID), "_src"));
-            columnTypeInfo->childrenTypesInfo.push_back(DataTypeInfo::getInfoForDataType(
-                LogicalType(common::LogicalTypeID::INTERNAL_ID), "_dst"));
+            columnTypeInfo->childrenTypesInfo.push_back(
+                DataTypeInfo::getInfoForDataType(LogicalType(LogicalTypeID::INTERNAL_ID), "_src"));
+            columnTypeInfo->childrenTypesInfo.push_back(
+                DataTypeInfo::getInfoForDataType(LogicalType(LogicalTypeID::INTERNAL_ID), "_dst"));
             auto numProperties = RelVal::getNumProperties(value);
             for (auto j = 0u; i < numProperties; j++) {
                 auto name = NodeVal::getPropertyName(value, j);
@@ -238,12 +238,12 @@ void QueryResult::validateQuerySucceed() const {
 }
 
 std::unique_ptr<ArrowSchema> QueryResult::getArrowSchema() const {
-    return kuzu::common::ArrowConverter::toArrowSchema(getColumnTypesInfo());
+    return ArrowConverter::toArrowSchema(getColumnTypesInfo());
 }
 
 std::unique_ptr<ArrowArray> QueryResult::getNextArrowChunk(int64_t chunkSize) {
     auto data = std::make_unique<ArrowArray>();
-    kuzu::common::ArrowConverter::toArrowArray(*this, data.get(), chunkSize);
+    ArrowConverter::toArrowArray(*this, data.get(), chunkSize);
     return data;
 }
 

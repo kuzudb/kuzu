@@ -73,7 +73,7 @@ static std::unique_ptr<RelTableCollectionScanner> populateRelTableCollectionScan
             }
         } break;
         default:
-            throw common::NotImplementedException("populateRelTableCollectionScanner");
+            throw NotImplementedException("populateRelTableCollectionScanner");
         }
     }
     if (scanInfos.empty()) {

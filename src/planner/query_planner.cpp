@@ -96,8 +96,8 @@ std::vector<std::unique_ptr<LogicalPlan>> QueryPlanner::getInitialEmptyPlans() {
 
 expression_vector QueryPlanner::getProperties(const binder::Expression& nodeOrRel) {
     auto typeID = nodeOrRel.getDataType().getLogicalTypeID();
-    if (typeID != common::LogicalTypeID::NODE && typeID != common::LogicalTypeID::REL) {
-        throw common::NotImplementedException("QueryPlanner::getProperties");
+    if (typeID != LogicalTypeID::NODE && typeID != LogicalTypeID::REL) {
+        throw NotImplementedException("QueryPlanner::getProperties");
     }
     expression_vector result;
     for (auto& expression : propertiesToScan) {

@@ -112,8 +112,8 @@ void ListsUpdatesStore::insertRelIfNecessary(const ValueVector* srcNodeIDVector,
     }
 }
 
-void ListsUpdatesStore::deleteRelIfNecessary(common::ValueVector* srcNodeIDVector,
-    common::ValueVector* dstNodeIDVector, common::ValueVector* relIDVector) {
+void ListsUpdatesStore::deleteRelIfNecessary(
+    ValueVector* srcNodeIDVector, ValueVector* dstNodeIDVector, ValueVector* relIDVector) {
     auto srcNodeID = srcNodeIDVector->getValue<nodeID_t>(
         srcNodeIDVector->state->selVector->selectedPositions[0]);
     auto dstNodeID = dstNodeIDVector->getValue<nodeID_t>(

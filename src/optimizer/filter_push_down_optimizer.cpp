@@ -9,6 +9,7 @@
 #include "planner/logical_plan/scan/logical_scan_node_property.h"
 
 using namespace kuzu::binder;
+using namespace kuzu::common;
 using namespace kuzu::planner;
 
 namespace kuzu {
@@ -114,7 +115,7 @@ std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::visitScanNode
     auto primaryKeyEqualityComparison = predicateSet->popNodePKEqualityComparison(*node);
     if (primaryKeyEqualityComparison != nullptr) { // Try rewrite index scan
         auto rhs = primaryKeyEqualityComparison->getChild(1);
-        if (rhs->expressionType == common::ExpressionType::LITERAL) {
+        if (rhs->expressionType == ExpressionType::LITERAL) {
             // Rewrite to index scan
             auto expressionsScan = std::make_shared<LogicalDummyScan>();
             expressionsScan->computeFlatSchema();
@@ -203,7 +204,7 @@ std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::appendFilter(
 
 void FilterPushDownOptimizer::PredicateSet::addPredicate(
     std::shared_ptr<binder::Expression> predicate) {
-    if (predicate->expressionType == common::ExpressionType::EQUALS) {
+    if (predicate->expressionType == ExpressionType::EQUALS) {
         equalityPredicates.push_back(std::move(predicate));
     } else {
         nonEqualityPredicates.push_back(std::move(predicate));
@@ -211,7 +212,7 @@ void FilterPushDownOptimizer::PredicateSet::addPredicate(
 }
 
 static bool isNodePrimaryKey(const Expression& expression, const NodeExpression& node) {
-    if (expression.expressionType != common::ExpressionType::PROPERTY) {
+    if (expression.expressionType != ExpressionType::PROPERTY) {
         // not property
         return false;
     }
@@ -230,7 +231,7 @@ FilterPushDownOptimizer::PredicateSet::popNodePKEqualityComparison(
         return nullptr;
     }
     // We pop when the first primary key equality comparison is found.
-    auto resultPredicateIdx = common::INVALID_VECTOR_IDX;
+    auto resultPredicateIdx = INVALID_VECTOR_IDX;
     for (auto i = 0u; i < equalityPredicates.size(); ++i) {
         auto predicate = equalityPredicates[i];
         if (isNodePrimaryKey(*predicate->getChild(0), node)) {
@@ -246,7 +247,7 @@ FilterPushDownOptimizer::PredicateSet::popNodePKEqualityComparison(
             break;
         }
     }
-    if (resultPredicateIdx != common::INVALID_VECTOR_IDX) {
+    if (resultPredicateIdx != INVALID_VECTOR_IDX) {
         auto result = equalityPredicates[resultPredicateIdx];
         equalityPredicates.erase(equalityPredicates.begin() + resultPredicateIdx);
         return result;

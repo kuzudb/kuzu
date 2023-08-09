@@ -3,15 +3,17 @@
 #include "common/string_utils.h"
 #include "parser/create_macro.h"
 
+using namespace kuzu::common;
+using namespace kuzu::parser;
+
 namespace kuzu {
 namespace binder {
 
-std::unique_ptr<BoundStatement> Binder::bindCreateMacro(const parser::Statement& statement) {
-    auto& createMacro = reinterpret_cast<const parser::CreateMacro&>(statement);
+std::unique_ptr<BoundStatement> Binder::bindCreateMacro(const Statement& statement) {
+    auto& createMacro = reinterpret_cast<const CreateMacro&>(statement);
     auto macroName = createMacro.getMacroName();
     if (catalog.getReadOnlyVersion()->containMacro(macroName)) {
-        throw common::BinderException{
-            common::StringUtils::string_format("Macro {} already exists.", macroName)};
+        throw BinderException{StringUtils::string_format("Macro {} already exists.", macroName)};
     }
     parser::default_macro_args defaultArgs;
     for (auto& defaultArg : createMacro.getDefaultArgs()) {

@@ -3,6 +3,8 @@
 #include "common/constants.h"
 #include "planner/join_order/join_order_util.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace planner {
 
@@ -12,8 +14,8 @@ uint64_t CostModel::computeExtendCost(const LogicalPlan& childPlan) {
 
 uint64_t CostModel::computeRecursiveExtendCost(
     uint8_t upperBound, double extensionRate, const LogicalPlan& childPlan) {
-    return common::PlannerKnobs::BUILD_PENALTY * childPlan.estCardinality *
-           (uint64_t)extensionRate * upperBound;
+    return PlannerKnobs::BUILD_PENALTY * childPlan.estCardinality * (uint64_t)extensionRate *
+           upperBound;
 }
 
 uint64_t CostModel::computeHashJoinCost(const binder::expression_vector& joinNodeIDs,
@@ -22,8 +24,8 @@ uint64_t CostModel::computeHashJoinCost(const binder::expression_vector& joinNod
     cost += probe.getCost();
     cost += build.getCost();
     cost += probe.getCardinality();
-    cost += common::PlannerKnobs::BUILD_PENALTY *
-            JoinOrderUtil::getJoinKeysFlatCardinality(joinNodeIDs, build);
+    cost +=
+        PlannerKnobs::BUILD_PENALTY * JoinOrderUtil::getJoinKeysFlatCardinality(joinNodeIDs, build);
     return cost;
 }
 

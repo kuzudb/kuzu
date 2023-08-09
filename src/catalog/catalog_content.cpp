@@ -188,7 +188,7 @@ void CatalogContent::addScalarMacroFunction(
 }
 
 std::unique_ptr<CatalogContent> CatalogContent::copy() const {
-    std::unordered_map<common::table_id_t, std::unique_ptr<TableSchema>> tableSchemasToCopy;
+    std::unordered_map<table_id_t, std::unique_ptr<TableSchema>> tableSchemasToCopy;
     for (auto& [tableID, tableSchema] : tableSchemas) {
         tableSchemasToCopy.emplace(tableID, tableSchema->copy());
     }
@@ -203,7 +203,7 @@ std::unique_ptr<CatalogContent> CatalogContent::copy() const {
 void CatalogContent::validateStorageVersion(storage_version_t savedStorageVersion) {
     auto storageVersion = StorageVersionInfo::getStorageVersion();
     if (savedStorageVersion != storageVersion) {
-        throw common::RuntimeException(StringUtils::string_format(
+        throw RuntimeException(StringUtils::string_format(
             "Trying to read a database file with a different version. "
             "Database file version: {}, Current build storage version: {}",
             savedStorageVersion, storageVersion));
@@ -217,7 +217,7 @@ void CatalogContent::validateMagicBytes(FileInfo* fileInfo, offset_t& offset) {
         SerDeser::deserializeValue<uint8_t>(magicBytes[i], fileInfo, offset);
     }
     if (memcmp(magicBytes, StorageVersionInfo::MAGIC_BYTES, numMagicBytes) != 0) {
-        throw common::RuntimeException(
+        throw RuntimeException(
             "This is not a valid Kuzu database directory for the current version of Kuzu.");
     }
 }
@@ -235,8 +235,8 @@ void CatalogContent::registerBuiltInFunctions() {
     builtInTableFunctions = std::make_unique<function::BuiltInTableFunctions>();
 }
 
-std::vector<common::table_id_t> CatalogContent::getTableIDsByType(TableType tableType) const {
-    std::vector<common::table_id_t> tableIDs;
+std::vector<table_id_t> CatalogContent::getTableIDsByType(TableType tableType) const {
+    std::vector<table_id_t> tableIDs;
     for (auto& tableSchema : tableSchemas) {
         if (tableSchema.second->getTableType() == tableType) {
             tableIDs.push_back(tableSchema.first);

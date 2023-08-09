@@ -18,7 +18,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createFactorizedTableScan(
     }
     auto info = std::make_unique<FactorizedTableScanInfo>(
         std::move(outputPositions), std::move(columnIndices));
-    auto maxMorselSize = table->hasUnflatCol() ? 1 : common::DEFAULT_VECTOR_CAPACITY;
+    auto maxMorselSize = table->hasUnflatCol() ? 1 : DEFAULT_VECTOR_CAPACITY;
     auto sharedState = std::make_shared<FactorizedTableScanSharedState>(table, maxMorselSize);
     if (prevOperator == nullptr) {
         return make_unique<FactorizedTableScan>(std::move(info), sharedState, getOperatorID(),

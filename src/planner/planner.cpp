@@ -78,7 +78,7 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
         plan = planCreateMacro(statement);
     } break;
     default:
-        throw common::NotImplementedException("getBestPlan()");
+        throw NotImplementedException("getBestPlan()");
     }
     // Avoid sharing operator across plans.
     return plan->deepCopy();
@@ -179,10 +179,10 @@ std::unique_ptr<LogicalPlan> Planner::planCopyFrom(
     expression_vector arrowColumnExpressions;
     for (auto& property :
         catalog.getReadOnlyVersion()->getTableSchema(copyClause.getTableID())->properties) {
-        if (property->getDataType()->getLogicalTypeID() != common::LogicalTypeID::SERIAL) {
-            arrowColumnExpressions.push_back(std::make_shared<VariableExpression>(
-                common::LogicalType{common::LogicalTypeID::ARROW_COLUMN}, property->getName(),
-                property->getName()));
+        if (property->getDataType()->getLogicalTypeID() != LogicalTypeID::SERIAL) {
+            arrowColumnExpressions.push_back(
+                std::make_shared<VariableExpression>(LogicalType{LogicalTypeID::ARROW_COLUMN},
+                    property->getName(), property->getName()));
         }
     }
     auto copy = make_shared<LogicalCopyFrom>(copyClause.getCopyDescription(),

@@ -52,7 +52,7 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
         return bindCreateMacro(statement);
     }
     default:
-        assert(false);
+        throw NotImplementedException("Binder::bind");
     }
 }
 

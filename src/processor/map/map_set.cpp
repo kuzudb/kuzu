@@ -4,6 +4,7 @@
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::binder;
+using namespace kuzu::common;
 using namespace kuzu::planner;
 using namespace kuzu::evaluator;
 
@@ -21,7 +22,7 @@ std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(storage::NodesSt
     }
     auto evaluator = expressionMapper.mapExpression(info->setItem.second, inSchema);
     if (node->isMultiLabeled()) {
-        std::unordered_map<common::table_id_t, storage::NodeColumn*> tableIDToColumn;
+        std::unordered_map<table_id_t, storage::NodeColumn*> tableIDToColumn;
         for (auto tableID : node->getTableIDs()) {
             if (!property->hasPropertyID(tableID)) {
                 continue;
@@ -68,7 +69,7 @@ std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(storage::RelsStore
     }
     auto evaluator = expressionMapper.mapExpression(info->setItem.second, inSchema);
     if (rel->isMultiLabeled()) {
-        std::unordered_map<common::table_id_t, std::pair<storage::RelTable*, common::property_id_t>>
+        std::unordered_map<table_id_t, std::pair<storage::RelTable*, property_id_t>>
             tableIDToTableAndPropertyID;
         for (auto tableID : rel->getTableIDs()) {
             if (!property->hasPropertyID(tableID)) {

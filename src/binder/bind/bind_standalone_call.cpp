@@ -2,6 +2,8 @@
 #include "binder/bound_standalone_call.h"
 #include "parser/standalone_call.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace binder {
 
@@ -9,8 +11,7 @@ std::unique_ptr<BoundStatement> Binder::bindStandaloneCall(const parser::Stateme
     auto& callStatement = reinterpret_cast<const parser::StandaloneCall&>(statement);
     auto option = main::DBConfig::getOptionByName(callStatement.getOptionName());
     if (option == nullptr) {
-        throw common::BinderException{
-            "Invalid option name: " + callStatement.getOptionName() + "."};
+        throw BinderException{"Invalid option name: " + callStatement.getOptionName() + "."};
     }
     auto optionValue = expressionBinder.bindLiteralExpression(*callStatement.getOptionValue());
     // TODO(Ziyi): add casting rule for option value.

@@ -37,9 +37,9 @@ void ListCreationVectorFunction::execFunc(
     for (auto selectedPos = 0u; selectedPos < result.state->selVector->selectedSize;
          ++selectedPos) {
         auto pos = result.state->selVector->selectedPositions[selectedPos];
-        auto resultEntry = common::ListVector::addList(&result, parameters.size());
+        auto resultEntry = ListVector::addList(&result, parameters.size());
         result.setValue(pos, resultEntry);
-        auto resultDataVector = common::ListVector::getDataVector(&result);
+        auto resultDataVector = ListVector::getDataVector(&result);
         auto resultPos = resultEntry.offset;
         for (auto i = 0u; i < parameters.size(); i++) {
             auto parameter = parameters[i];
@@ -60,10 +60,10 @@ std::unique_ptr<FunctionBindData> ListCreationVectorFunction::bindFunc(
         std::make_unique<VarListTypeInfo>(std::make_unique<LogicalType>(LogicalTypeID::INT64));
     auto resultType = LogicalType{LogicalTypeID::VAR_LIST, std::move(varListTypeInfo)};
     for (auto& argument : arguments) {
-        if (argument->getDataType().getLogicalTypeID() != common::LogicalTypeID::ANY) {
+        if (argument->getDataType().getLogicalTypeID() != LogicalTypeID::ANY) {
             varListTypeInfo = std::make_unique<VarListTypeInfo>(
                 std::make_unique<LogicalType>(argument->getDataType()));
-            resultType = LogicalType{common::LogicalTypeID::VAR_LIST, std::move(varListTypeInfo)};
+            resultType = LogicalType{LogicalTypeID::VAR_LIST, std::move(varListTypeInfo)};
             break;
         }
     }
@@ -72,7 +72,7 @@ std::unique_ptr<FunctionBindData> ListCreationVectorFunction::bindFunc(
     for (auto& argument : arguments) {
         auto parameterType = argument->getDataType();
         if (parameterType != *resultChildType) {
-            if (parameterType.getLogicalTypeID() == common::LogicalTypeID::ANY) {
+            if (parameterType.getLogicalTypeID() == LogicalTypeID::ANY) {
                 binder::ExpressionBinder::resolveAnyDataType(*argument, *resultChildType);
             } else {
                 throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(
@@ -110,50 +110,50 @@ std::unique_ptr<FunctionBindData> ListExtractVectorFunction::bindFunc(
     switch (resultType->getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
         vectorFunctionDefinition->execFunc =
-            BinaryExecListStructFunction<common::list_entry_t, int64_t, uint8_t, ListExtract>;
+            BinaryExecListStructFunction<list_entry_t, int64_t, uint8_t, ListExtract>;
     } break;
     case PhysicalTypeID::INT64: {
         vectorFunctionDefinition->execFunc =
-            BinaryExecListStructFunction<common::list_entry_t, int64_t, int64_t, ListExtract>;
+            BinaryExecListStructFunction<list_entry_t, int64_t, int64_t, ListExtract>;
     } break;
     case PhysicalTypeID::INT32: {
         vectorFunctionDefinition->execFunc =
-            BinaryExecListStructFunction<common::list_entry_t, int64_t, int32_t, ListExtract>;
+            BinaryExecListStructFunction<list_entry_t, int64_t, int32_t, ListExtract>;
     } break;
     case PhysicalTypeID::INT16: {
         vectorFunctionDefinition->execFunc =
-            BinaryExecListStructFunction<common::list_entry_t, int64_t, int16_t, ListExtract>;
+            BinaryExecListStructFunction<list_entry_t, int64_t, int16_t, ListExtract>;
     } break;
     case PhysicalTypeID::DOUBLE: {
         vectorFunctionDefinition->execFunc =
-            BinaryExecListStructFunction<common::list_entry_t, int64_t, double_t, ListExtract>;
+            BinaryExecListStructFunction<list_entry_t, int64_t, double_t, ListExtract>;
     } break;
     case PhysicalTypeID::FLOAT: {
         vectorFunctionDefinition->execFunc =
-            BinaryExecListStructFunction<common::list_entry_t, int64_t, float_t, ListExtract>;
+            BinaryExecListStructFunction<list_entry_t, int64_t, float_t, ListExtract>;
     } break;
     case PhysicalTypeID::INTERVAL: {
         vectorFunctionDefinition->execFunc =
-            BinaryExecListStructFunction<common::list_entry_t, int64_t, interval_t, ListExtract>;
+            BinaryExecListStructFunction<list_entry_t, int64_t, interval_t, ListExtract>;
     } break;
     case PhysicalTypeID::STRING: {
         vectorFunctionDefinition->execFunc =
-            BinaryExecListStructFunction<common::list_entry_t, int64_t, ku_string_t, ListExtract>;
+            BinaryExecListStructFunction<list_entry_t, int64_t, ku_string_t, ListExtract>;
     } break;
     case PhysicalTypeID::VAR_LIST: {
         vectorFunctionDefinition->execFunc =
-            BinaryExecListStructFunction<common::list_entry_t, int64_t, list_entry_t, ListExtract>;
+            BinaryExecListStructFunction<list_entry_t, int64_t, list_entry_t, ListExtract>;
     } break;
     case PhysicalTypeID::STRUCT: {
-        vectorFunctionDefinition->execFunc = BinaryExecListStructFunction<common::list_entry_t,
-            int64_t, struct_entry_t, ListExtract>;
+        vectorFunctionDefinition->execFunc =
+            BinaryExecListStructFunction<list_entry_t, int64_t, struct_entry_t, ListExtract>;
     } break;
     case PhysicalTypeID::INTERNAL_ID: {
         vectorFunctionDefinition->execFunc =
-            BinaryExecListStructFunction<common::list_entry_t, int64_t, internalID_t, ListExtract>;
+            BinaryExecListStructFunction<list_entry_t, int64_t, internalID_t, ListExtract>;
     } break;
     default: {
-        throw common::NotImplementedException("ListExtractVectorFunction::bindFunc");
+        throw NotImplementedException("ListExtractVectorFunction::bindFunc");
     }
     }
     return std::make_unique<FunctionBindData>(*resultType);
@@ -262,7 +262,7 @@ std::unique_ptr<FunctionBindData> ListPrependVectorFunction::bindFunc(
             BinaryExecListStructFunction<internalID_t, list_entry_t, list_entry_t, ListPrepend>;
     } break;
     default: {
-        throw common::NotImplementedException("ListPrependVectorFunction::bindFunc");
+        throw NotImplementedException("ListPrependVectorFunction::bindFunc");
     }
     }
     return std::make_unique<FunctionBindData>(resultType);
@@ -289,7 +289,7 @@ std::unique_ptr<FunctionBindData> ListPositionVectorFunction::bindFunc(
     auto vectorFunctionDefinition = reinterpret_cast<VectorFunctionDefinition*>(definition);
     vectorFunctionDefinition->execFunc =
         getBinaryListExecFunc<ListPosition, int64_t>(arguments[1]->getDataType());
-    return std::make_unique<FunctionBindData>(LogicalType{common::LogicalTypeID::INT64});
+    return std::make_unique<FunctionBindData>(LogicalType{LogicalTypeID::INT64});
 }
 
 vector_function_definitions ListContainsVectorFunction::getDefinitions() {
@@ -305,7 +305,7 @@ std::unique_ptr<FunctionBindData> ListContainsVectorFunction::bindFunc(
     auto vectorFunctionDefinition = reinterpret_cast<VectorFunctionDefinition*>(definition);
     vectorFunctionDefinition->execFunc =
         getBinaryListExecFunc<ListContains, uint8_t>(arguments[1]->getDataType());
-    return std::make_unique<FunctionBindData>(LogicalType{common::LogicalTypeID::BOOL});
+    return std::make_unique<FunctionBindData>(LogicalType{LogicalTypeID::BOOL});
 }
 
 vector_function_definitions ListSliceVectorFunction::getDefinitions() {
@@ -314,15 +314,13 @@ vector_function_definitions ListSliceVectorFunction::getDefinitions() {
         std::vector<LogicalTypeID>{
             LogicalTypeID::VAR_LIST, LogicalTypeID::INT64, LogicalTypeID::INT64},
         LogicalTypeID::VAR_LIST,
-        TernaryExecListStructFunction<common::list_entry_t, int64_t, int64_t, common::list_entry_t,
-            ListSlice>,
+        TernaryExecListStructFunction<list_entry_t, int64_t, int64_t, list_entry_t, ListSlice>,
         nullptr, bindFunc, false /* isVarlength*/));
     result.push_back(std::make_unique<VectorFunctionDefinition>(LIST_SLICE_FUNC_NAME,
         std::vector<LogicalTypeID>{
             LogicalTypeID::STRING, LogicalTypeID::INT64, LogicalTypeID::INT64},
         LogicalTypeID::STRING,
-        TernaryExecListStructFunction<common::ku_string_t, int64_t, int64_t, common::ku_string_t,
-            ListSlice>,
+        TernaryExecListStructFunction<ku_string_t, int64_t, int64_t, ku_string_t, ListSlice>,
         false /* isVarlength */));
     return result;
 }
@@ -383,7 +381,7 @@ std::unique_ptr<FunctionBindData> ListSortVectorFunction::bindFunc(
         getExecFunction<interval_t>(arguments, vectorFunctionDefinition->execFunc);
     } break;
     default: {
-        throw common::NotImplementedException("ListSortVectorFunction::bindFunc");
+        throw NotImplementedException("ListSortVectorFunction::bindFunc");
     }
     }
     return std::make_unique<FunctionBindData>(arguments[0]->getDataType());
@@ -403,7 +401,7 @@ void ListSortVectorFunction::getExecFunction(
             ListSort<T>>;
         return;
     } else {
-        throw common::RuntimeException("Invalid number of arguments");
+        throw RuntimeException("Invalid number of arguments");
     }
 }
 
@@ -454,7 +452,7 @@ std::unique_ptr<FunctionBindData> ListReverseSortVectorFunction::bindFunc(
         getExecFunction<interval_t>(arguments, vectorFunctionDefinition->execFunc);
     } break;
     default: {
-        throw common::NotImplementedException("ListReverseSortVectorFunction::bindFunc");
+        throw NotImplementedException("ListReverseSortVectorFunction::bindFunc");
     }
     }
     return std::make_unique<FunctionBindData>(arguments[0]->getDataType());
@@ -471,7 +469,7 @@ void ListReverseSortVectorFunction::getExecFunction(
             ListReverseSort<T>>;
         return;
     } else {
-        throw common::RuntimeException("Invalid number of arguments");
+        throw RuntimeException("Invalid number of arguments");
     }
 }
 
@@ -510,7 +508,7 @@ std::unique_ptr<FunctionBindData> ListSumVectorFunction::bindFunc(
             UnaryExecListStructFunction<list_entry_t, float_t, ListSum>;
     } break;
     default: {
-        throw common::NotImplementedException("ListSumVectorFunction::bindFunc");
+        throw NotImplementedException("ListSumVectorFunction::bindFunc");
     }
     }
     return std::make_unique<FunctionBindData>(*resultType);
@@ -574,7 +572,7 @@ std::unique_ptr<FunctionBindData> ListDistinctVectorFunction::bindFunc(
             UnaryExecListStructFunction<list_entry_t, list_entry_t, ListDistinct<internalID_t>>;
     } break;
     default: {
-        throw common::NotImplementedException("ListDistinctVectorFunction::bindFunc");
+        throw NotImplementedException("ListDistinctVectorFunction::bindFunc");
     }
     }
     return std::make_unique<FunctionBindData>(arguments[0]->getDataType());
@@ -591,7 +589,7 @@ vector_function_definitions ListUniqueVectorFunction::getDefinitions() {
 std::unique_ptr<FunctionBindData> ListUniqueVectorFunction::bindFunc(
     const binder::expression_vector& arguments, FunctionDefinition* definition) {
     auto vectorFunctionDefinition = reinterpret_cast<VectorFunctionDefinition*>(definition);
-    switch (common::VarListType::getChildType(&arguments[0]->dataType)->getLogicalTypeID()) {
+    switch (VarListType::getChildType(&arguments[0]->dataType)->getLogicalTypeID()) {
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64: {
         vectorFunctionDefinition->execFunc =
@@ -635,10 +633,10 @@ std::unique_ptr<FunctionBindData> ListUniqueVectorFunction::bindFunc(
     } break;
     case LogicalTypeID::INTERNAL_ID: {
         vectorFunctionDefinition->execFunc =
-            UnaryExecListStructFunction<list_entry_t, int64_t, ListUnique<common::internalID_t>>;
+            UnaryExecListStructFunction<list_entry_t, int64_t, ListUnique<internalID_t>>;
     } break;
     default: {
-        throw common::NotImplementedException("ListUniqueVectorFunction::bindFunc");
+        throw NotImplementedException("ListUniqueVectorFunction::bindFunc");
     }
     }
     return std::make_unique<FunctionBindData>(LogicalType(LogicalTypeID::INT64));
@@ -707,7 +705,7 @@ std::unique_ptr<FunctionBindData> ListAnyValueVectorFunction::bindFunc(
             UnaryExecListStructFunction<list_entry_t, internalID_t, ListAnyValue>;
     } break;
     default: {
-        throw common::NotImplementedException("ListAnyValueVectorFunction::bindFunc");
+        throw NotImplementedException("ListAnyValueVectorFunction::bindFunc");
     }
     }
     return std::make_unique<FunctionBindData>(*resultType);

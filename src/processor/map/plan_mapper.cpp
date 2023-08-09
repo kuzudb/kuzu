@@ -168,7 +168,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
         physicalOperator = mapCreateMacro(logicalOperator);
     } break;
     default:
-        throw common::NotImplementedException("PlanMapper::mapLogicalOperatorToPhysical()");
+        throw NotImplementedException("PlanMapper::mapLogicalOperatorToPhysical()");
     }
     logicalOpToPhysicalOpMap.insert({logicalOperator, physicalOperator.get()});
     return physicalOperator;
@@ -191,7 +191,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::appendResultCollectorIfNotCopy(
     if (lastOperator->getOperatorType() != PhysicalOperatorType::COPY_REL &&
         lastOperator->getOperatorType() != PhysicalOperatorType::COPY_NPY) {
         lastOperator = createResultCollector(
-            common::AccumulateType::REGULAR, expressionsToCollect, schema, std::move(lastOperator));
+            AccumulateType::REGULAR, expressionsToCollect, schema, std::move(lastOperator));
     }
     return lastOperator;
 }

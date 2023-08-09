@@ -1,11 +1,13 @@
 #include "planner/logical_plan/logical_cross_product.h"
 #include "planner/query_planner.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace planner {
 
 void QueryPlanner::appendCrossProduct(
-    common::AccumulateType accumulateType, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+    AccumulateType accumulateType, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
     auto crossProduct = make_shared<LogicalCrossProduct>(
         accumulateType, probePlan.getLastOperator(), buildPlan.getLastOperator());
     crossProduct->computeFactorizedSchema();

@@ -78,7 +78,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause
     boundExpression =
         ExpressionBinder::implicitCastIfNecessary(boundExpression, LogicalTypeID::VAR_LIST);
     auto aliasExpression = createVariable(
-        unwindClause.getAlias(), *common::VarListType::getChildType(&boundExpression->dataType));
+        unwindClause.getAlias(), *VarListType::getChildType(&boundExpression->dataType));
     return make_unique<BoundUnwindClause>(std::move(boundExpression), std::move(aliasExpression));
 }
 
@@ -86,7 +86,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     auto& callStatement = reinterpret_cast<const parser::InQueryCallClause&>(readingClause);
     auto tableFunctionDefinition =
         catalog.getBuiltInTableFunction()->mathTableFunction(callStatement.getFuncName());
-    auto inputValues = std::vector<common::Value>{};
+    auto inputValues = std::vector<Value>{};
     for (auto& parameter : callStatement.getParameters()) {
         auto boundExpr = expressionBinder.bindLiteralExpression(*parameter);
         inputValues.push_back(*reinterpret_cast<LiteralExpression*>(boundExpr.get())->getValue());

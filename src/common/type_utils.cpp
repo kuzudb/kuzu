@@ -79,7 +79,7 @@ std::string TypeUtils::castValueToString(
 }
 
 std::string TypeUtils::toString(const list_entry_t& val, void* valueVector) {
-    auto listVector = (common::ValueVector*)valueVector;
+    auto listVector = (ValueVector*)valueVector;
     if (val.size == 0) {
         return "[]";
     }
@@ -98,7 +98,7 @@ std::string TypeUtils::toString(const list_entry_t& val, void* valueVector) {
 }
 
 std::string TypeUtils::toString(const struct_entry_t& val, void* valVector) {
-    auto structVector = (common::ValueVector*)valVector;
+    auto structVector = (ValueVector*)valVector;
     auto fields = StructType::getFields(&structVector->dataType);
     if (fields.size() == 0) {
         return "{}";

@@ -118,7 +118,7 @@ bool Timestamp::tryConvertTimestamp(const char* str, uint64_t len, timestamp_t& 
     // Find the string len for date
     uint32_t dateStrLen = 0;
     // Skip leading spaces.
-    while (common::StringUtils::CharacterIsSpace(str[dateStrLen])) {
+    while (StringUtils::CharacterIsSpace(str[dateStrLen])) {
         dateStrLen++;
     }
     while (dateStrLen < len && str[dateStrLen] != ' ' && str[dateStrLen] != 'T') {

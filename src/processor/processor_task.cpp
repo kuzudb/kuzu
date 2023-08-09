@@ -1,12 +1,14 @@
 #include "processor/processor_task.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace processor {
 
 void ProcessorTask::run() {
     // We need the lock when cloning because multiple threads can be accessing to clone,
     // which is not thread safe
-    common::lock_t lck{mtx};
+    lock_t lck{mtx};
     auto clonedPipelineRoot = sink->clone();
     lck.unlock();
     auto currentSink = (Sink*)clonedPipelineRoot.get();

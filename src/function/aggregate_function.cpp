@@ -99,7 +99,7 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getMaxFunction(
 }
 
 std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getCollectFunction(
-    const common::LogicalType& inputType, bool isDistinct) {
+    const LogicalType& inputType, bool isDistinct) {
     return std::make_unique<AggregateFunction>(CollectFunction::initialize,
         CollectFunction::updateAll, CollectFunction::updatePos, CollectFunction::combine,
         CollectFunction::finalize, inputType, isDistinct);
@@ -107,7 +107,7 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getCollectFunction(
 
 template<typename FUNC>
 std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinMaxFunction(
-    const common::LogicalType& inputType, bool isDistinct) {
+    const LogicalType& inputType, bool isDistinct) {
     switch (inputType.getPhysicalType()) {
     case PhysicalTypeID::BOOL:
         return std::make_unique<AggregateFunction>(MinMaxFunction<bool>::initialize,

@@ -41,7 +41,7 @@ page_idx_t FileHandle::addNewPage() {
     return addNewPages(1 /* numNewPages */);
 }
 
-common::page_idx_t FileHandle::addNewPages(page_idx_t numNewPages) {
+page_idx_t FileHandle::addNewPages(page_idx_t numNewPages) {
     std::unique_lock xlock(fhSharedMutex);
     auto numPagesBeforeChange = numPages;
     for (auto i = 0u; i < numNewPages; i++) {

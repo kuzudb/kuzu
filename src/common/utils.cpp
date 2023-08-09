@@ -55,7 +55,7 @@ std::string LoggerUtils::getLoggerName(LoggerConstants::LoggerEnum loggerEnum) {
         return "wal";
     } break;
     default: {
-        assert(false);
+        throw NotImplementedException("LoggerUtils::getLoggerName");
     }
     }
 }

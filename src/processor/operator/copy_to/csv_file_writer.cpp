@@ -27,7 +27,7 @@ void CSVFileWriter::writeHeader(const std::vector<std::string>& columnNames) {
     flush();
 }
 
-void CSVFileWriter::writeValues(std::vector<common::ValueVector*>& outputVectors) {
+void CSVFileWriter::writeValues(std::vector<ValueVector*>& outputVectors) {
     bool hasData = true;
     if (outputVectors.size() == 0) {
         return;
@@ -44,8 +44,7 @@ void CSVFileWriter::writeValues(std::vector<common::ValueVector*>& outputVectors
 }
 
 template<typename T>
-void CSVFileWriter::writeToBuffer(
-    common::ValueVector* vector, int64_t pos, bool escapeStringValue) {
+void CSVFileWriter::writeToBuffer(ValueVector* vector, int64_t pos, bool escapeStringValue) {
     auto value = TypeUtils::toString(vector->getValue<T>(pos));
     if (escapeStringValue) {
         escapeString(value);
@@ -54,7 +53,7 @@ void CSVFileWriter::writeToBuffer(
 }
 
 template<typename T>
-void CSVFileWriter::writeListToBuffer(common::ValueVector* vector, int64_t pos) {
+void CSVFileWriter::writeListToBuffer(ValueVector* vector, int64_t pos) {
     auto value = TypeUtils::toString(vector->getValue<T>(pos), vector);
     escapeString(value);
     writeToBuffer(value);
@@ -65,7 +64,7 @@ void CSVFileWriter::escapeString(std::string& value) {
     value = "\"" + value + "\"";
 }
 
-void CSVFileWriter::writeValue(common::ValueVector* vector) {
+void CSVFileWriter::writeValue(ValueVector* vector) {
     // vectors are always flat
     auto selPos = vector->state->selVector->selectedPositions[0];
     switch (vector->dataType.getLogicalTypeID()) {

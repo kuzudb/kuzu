@@ -18,7 +18,7 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionConte
     vectors->pathLengthVector = resultSet->getValueVector(dataInfo->pathLengthPos).get();
     std::vector<std::unique_ptr<BaseFrontierScanner>> scanners;
     switch (queryRelType) {
-    case common::QueryRelType::VARIABLE_LENGTH: {
+    case QueryRelType::VARIABLE_LENGTH: {
         switch (joinType) {
         case planner::RecursiveJoinType::TRACK_PATH: {
             vectors->pathVector = resultSet->getValueVector(dataInfo->pathPos).get();
@@ -37,10 +37,10 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionConte
             }
         } break;
         default:
-            throw common::NotImplementedException("BaseRecursiveJoin::initLocalStateInternal");
+            throw NotImplementedException("BaseRecursiveJoin::initLocalStateInternal");
         }
     } break;
-    case common::QueryRelType::SHORTEST: {
+    case QueryRelType::SHORTEST: {
         switch (joinType) {
         case planner::RecursiveJoinType::TRACK_PATH: {
             vectors->pathVector = resultSet->getValueVector(dataInfo->pathPos).get();
@@ -58,10 +58,10 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionConte
             }
         } break;
         default:
-            throw common::NotImplementedException("BaseRecursiveJoin::initLocalStateInternal");
+            throw NotImplementedException("BaseRecursiveJoin::initLocalStateInternal");
         }
     } break;
-    case common::QueryRelType::ALL_SHORTEST: {
+    case QueryRelType::ALL_SHORTEST: {
         switch (joinType) {
         case planner::RecursiveJoinType::TRACK_PATH: {
             vectors->pathVector = resultSet->getValueVector(dataInfo->pathPos).get();
@@ -80,15 +80,15 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionConte
             }
         } break;
         default:
-            throw common::NotImplementedException("BaseRecursiveJoin::initLocalStateInternal");
+            throw NotImplementedException("BaseRecursiveJoin::initLocalStateInternal");
         }
     } break;
     default:
-        throw common::NotImplementedException("BaseRecursiveJoin::initLocalStateInternal");
+        throw NotImplementedException("BaseRecursiveJoin::initLocalStateInternal");
     }
     if (vectors->pathVector != nullptr) {
-        auto pathNodesFieldIdx = common::StructType::getFieldIdx(
-            &vectors->pathVector->dataType, common::InternalKeyword::NODES);
+        auto pathNodesFieldIdx =
+            StructType::getFieldIdx(&vectors->pathVector->dataType, InternalKeyword::NODES);
         vectors->pathNodesVector =
             StructVector::getFieldVector(vectors->pathVector, pathNodesFieldIdx).get();
         auto pathNodesDataVector = ListVector::getDataVector(vectors->pathNodesVector);
@@ -96,8 +96,8 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionConte
             StructType::getFieldIdx(&pathNodesDataVector->dataType, InternalKeyword::ID);
         vectors->pathNodesIDDataVector =
             StructVector::getFieldVector(pathNodesDataVector, pathNodesIDFieldIdx).get();
-        auto pathRelsFieldIdx = common::StructType::getFieldIdx(
-            &vectors->pathVector->dataType, common::InternalKeyword::RELS);
+        auto pathRelsFieldIdx =
+            StructType::getFieldIdx(&vectors->pathVector->dataType, InternalKeyword::RELS);
         vectors->pathRelsVector =
             StructVector::getFieldVector(vectors->pathVector, pathRelsFieldIdx).get();
         auto pathRelsDataVector = ListVector::getDataVector(vectors->pathRelsVector);
@@ -147,9 +147,9 @@ bool RecursiveJoin::getNextTuplesInternal(ExecutionContext* context) {
 }
 
 bool RecursiveJoin::scanOutput() {
-    common::sel_t offsetVectorSize = 0u;
-    common::sel_t nodeIDDataVectorSize = 0u;
-    common::sel_t relIDDataVectorSize = 0u;
+    sel_t offsetVectorSize = 0u;
+    sel_t nodeIDDataVectorSize = 0u;
+    sel_t relIDDataVectorSize = 0u;
     if (vectors->pathVector != nullptr) {
         vectors->pathVector->resetAuxiliaryBuffer();
     }
@@ -163,12 +163,12 @@ bool RecursiveJoin::scanOutput() {
 }
 
 void RecursiveJoin::computeBFS(ExecutionContext* context) {
-    auto nodeID = vectors->srcNodeIDVector->getValue<common::nodeID_t>(
+    auto nodeID = vectors->srcNodeIDVector->getValue<nodeID_t>(
         vectors->srcNodeIDVector->state->selVector->selectedPositions[0]);
     bfsState->markSrc(nodeID);
     while (!bfsState->isComplete()) {
         auto boundNodeID = bfsState->getNextNodeID();
-        if (boundNodeID.offset != common::INVALID_OFFSET) {
+        if (boundNodeID.offset != INVALID_OFFSET) {
             // Found a starting node from current frontier.
             scanFrontier->setNodeID(boundNodeID);
             while (recursiveRoot->getNextTuple(context)) { // Exhaust recursive plan.
@@ -181,12 +181,12 @@ void RecursiveJoin::computeBFS(ExecutionContext* context) {
     }
 }
 
-void RecursiveJoin::updateVisitedNodes(common::nodeID_t boundNodeID) {
+void RecursiveJoin::updateVisitedNodes(nodeID_t boundNodeID) {
     auto boundNodeMultiplicity = bfsState->getMultiplicity(boundNodeID);
     for (auto i = 0u; i < vectors->recursiveDstNodeIDVector->state->selVector->selectedSize; ++i) {
         auto pos = vectors->recursiveDstNodeIDVector->state->selVector->selectedPositions[i];
-        auto nbrNodeID = vectors->recursiveDstNodeIDVector->getValue<common::nodeID_t>(pos);
-        auto edgeID = vectors->recursiveEdgeIDVector->getValue<common::relID_t>(pos);
+        auto nbrNodeID = vectors->recursiveDstNodeIDVector->getValue<nodeID_t>(pos);
+        auto edgeID = vectors->recursiveEdgeIDVector->getValue<relID_t>(pos);
         bfsState->markVisited(boundNodeID, nbrNodeID, edgeID, boundNodeMultiplicity);
     }
 }
@@ -216,7 +216,7 @@ void RecursiveJoin::populateTargetDstNodes() {
         if (semiMask->isEnabled()) {
             for (auto offset = 0u; offset < numNodes; ++offset) {
                 if (semiMask->isNodeMasked(offset)) {
-                    targetNodeIDs.insert(common::nodeID_t{offset, nodeTable->getTableID()});
+                    targetNodeIDs.insert(nodeID_t{offset, nodeTable->getTableID()});
                     numTargetNodes++;
                 }
             }

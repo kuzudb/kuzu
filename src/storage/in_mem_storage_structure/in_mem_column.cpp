@@ -14,7 +14,7 @@ InMemColumn::InMemColumn(std::string filePath, LogicalType dataType, bool requir
     // TODO(Guodong): Separate this as a function.
     switch (this->dataType.getPhysicalType()) {
     case PhysicalTypeID::STRUCT: {
-        auto fieldTypes = common::StructType::getFieldTypes(&this->dataType);
+        auto fieldTypes = StructType::getFieldTypes(&this->dataType);
         childColumns.reserve(fieldTypes.size());
         for (auto i = 0u; i < fieldTypes.size(); i++) {
             childColumns.push_back(std::make_unique<InMemColumn>(

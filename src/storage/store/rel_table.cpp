@@ -89,8 +89,8 @@ void DirectedRelTableData::resetColumnsAndLists(
 }
 
 void DirectedRelTableData::scanColumns(transaction::Transaction* transaction,
-    RelTableScanState& scanState, common::ValueVector* inNodeIDVector,
-    const std::vector<common::ValueVector*>& outputVectors) {
+    RelTableScanState& scanState, ValueVector* inNodeIDVector,
+    const std::vector<ValueVector*>& outputVectors) {
     // Note: The scan operator should guarantee that the first property in the output is adj column.
     adjColumn->read(transaction, inNodeIDVector, outputVectors[0]);
     if (!NodeIDVector::discardNull(*outputVectors[0])) {
@@ -114,7 +114,7 @@ void DirectedRelTableData::scanColumns(transaction::Transaction* transaction,
 
 void DirectedRelTableData::scanLists(transaction::Transaction* transaction,
     RelTableScanState& scanState, ValueVector* inNodeIDVector,
-    const std::vector<common::ValueVector*>& outputVectors) {
+    const std::vector<ValueVector*>& outputVectors) {
     if (scanState.syncState->isBoundNodeOffsetInValid()) {
         auto currentIdx = inNodeIDVector->state->selVector->selectedPositions[0];
         if (inNodeIDVector->isNull(currentIdx)) {
@@ -142,7 +142,7 @@ void DirectedRelTableData::scanLists(transaction::Transaction* transaction,
 }
 
 // Fill nbr table IDs for the vector scanned from an adj column.
-void DirectedRelTableData::fillNbrTableIDs(common::ValueVector* vector) const {
+void DirectedRelTableData::fillNbrTableIDs(ValueVector* vector) const {
     assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID);
     auto nodeIDs = (internalID_t*)vector->getData();
     for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
@@ -152,7 +152,7 @@ void DirectedRelTableData::fillNbrTableIDs(common::ValueVector* vector) const {
 }
 
 // Fill rel table IDs for the vector scanned from a RelID column.
-void DirectedRelTableData::fillRelTableIDs(common::ValueVector* vector) const {
+void DirectedRelTableData::fillRelTableIDs(ValueVector* vector) const {
     auto internalRelIDs = (internalID_t*)vector->getData();
     for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
         auto pos = vector->state->selVector->selectedPositions[i];
@@ -160,8 +160,8 @@ void DirectedRelTableData::fillRelTableIDs(common::ValueVector* vector) const {
     }
 }
 
-void DirectedRelTableData::insertRel(common::ValueVector* boundVector,
-    common::ValueVector* nbrVector, const std::vector<common::ValueVector*>& relPropertyVectors) {
+void DirectedRelTableData::insertRel(ValueVector* boundVector, ValueVector* nbrVector,
+    const std::vector<ValueVector*>& relPropertyVectors) {
     if (!isSingleMultiplicity()) {
         return;
     }
@@ -316,8 +316,8 @@ void RelTable::deleteRel(
     listsUpdatesStore->deleteRelIfNecessary(srcNodeIDVector, dstNodeIDVector, relIDVector);
 }
 
-void RelTable::updateRel(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
-    common::ValueVector* relIDVector, common::ValueVector* propertyVector, uint32_t propertyID) {
+void RelTable::updateRel(ValueVector* srcNodeIDVector, ValueVector* dstNodeIDVector,
+    ValueVector* relIDVector, ValueVector* propertyVector, uint32_t propertyID) {
     assert(srcNodeIDVector->state->isFlat() && dstNodeIDVector->state->isFlat() &&
            relIDVector->state->isFlat() && propertyVector->state->isFlat());
     auto srcNode = srcNodeIDVector->getValue<nodeID_t>(

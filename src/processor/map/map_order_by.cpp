@@ -4,6 +4,7 @@
 #include "processor/operator/order_by/order_by_scan.h"
 #include "processor/plan_mapper.h"
 
+using namespace kuzu::common;
 using namespace kuzu::planner;
 
 namespace kuzu {
@@ -15,11 +16,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(LogicalOperator* logica
     auto inSchema = logicalOrderBy.getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOrderBy.getChild(0).get());
     auto paramsString = logicalOrderBy.getExpressionsForPrinting();
-    std::vector<std::pair<DataPos, common::LogicalType>> keysPosAndType;
+    std::vector<std::pair<DataPos, LogicalType>> keysPosAndType;
     for (auto& expression : logicalOrderBy.getExpressionsToOrderBy()) {
         keysPosAndType.emplace_back(inSchema->getExpressionPos(*expression), expression->dataType);
     }
-    std::vector<std::pair<DataPos, common::LogicalType>> payloadsPosAndType;
+    std::vector<std::pair<DataPos, LogicalType>> payloadsPosAndType;
     std::vector<bool> isPayloadFlat;
     std::vector<DataPos> outVectorPos;
     for (auto& expression : logicalOrderBy.getExpressionsToMaterialize()) {

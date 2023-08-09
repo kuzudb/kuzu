@@ -29,7 +29,7 @@ int64_t FileInfo::getFileSize() {
     LARGE_INTEGER size;
     if (!GetFileSizeEx((HANDLE)handle, &size)) {
         auto error = GetLastError();
-        throw common::StorageException(
+        throw StorageException(
             StringUtils::string_format("Cannot read size of file. path: {} - Error {}: {}", path,
                 error, std::system_category().message(error)));
     }
@@ -141,14 +141,14 @@ void FileUtils::readFromFile(
     overlapped.OffsetHigh = position >> 32;
     if (!ReadFile((HANDLE)fileInfo->handle, buffer, numBytes, &numBytesRead, &overlapped)) {
         auto error = GetLastError();
-        throw common::StorageException(StringUtils::string_format(
+        throw StorageException(StringUtils::string_format(
             "Cannot read from file: {} handle: {} "
             "numBytesRead: {} numBytesToRead: {} position: {}. Error {}: {}",
             fileInfo->path, (intptr_t)fileInfo->handle, numBytesRead, numBytes, position, error,
             std::system_category().message(error)));
     }
     if (numBytesRead != numBytes && fileInfo->getFileSize() != position + numBytesRead) {
-        throw common::StorageException(
+        throw StorageException(
             StringUtils::string_format("Cannot read from file: {} handle: {} "
                                        "numBytesRead: {} numBytesToRead: {} position: {}",
                 fileInfo->path, (intptr_t)fileInfo->handle, numBytesRead, numBytes, position));

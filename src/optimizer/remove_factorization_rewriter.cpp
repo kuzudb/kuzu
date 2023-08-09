@@ -3,6 +3,7 @@
 #include "common/exception.h"
 #include "optimizer/logical_operator_collector.h"
 
+using namespace kuzu::common;
 using namespace kuzu::planner;
 
 namespace kuzu {
@@ -14,7 +15,7 @@ void RemoveFactorizationRewriter::rewrite(planner::LogicalPlan* plan) {
     auto collector = LogicalFlattenCollector();
     collector.collect(root.get());
     if (collector.hasOperators()) {
-        throw common::InternalException("Remove factorization rewriter failed.");
+        throw InternalException("Remove factorization rewriter failed.");
     }
 }
 

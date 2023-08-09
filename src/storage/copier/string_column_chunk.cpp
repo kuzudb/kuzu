@@ -50,7 +50,7 @@ void StringColumnChunk::resetToEmpty() {
 }
 
 void StringColumnChunk::append(
-    arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
+    arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
     assert(array->type_id() == arrow::Type::STRING || array->type_id() == arrow::Type::LIST);
     switch (array->type_id()) {
     case arrow::Type::STRING: {
@@ -74,8 +74,8 @@ void StringColumnChunk::append(
     }
 }
 
-void StringColumnChunk::append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
-    common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
+void StringColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
+    offset_t startPosInChunk, uint32_t numValuesToAppend) {
     auto otherChunk = dynamic_cast<StringColumnChunk*>(other);
     nullChunk->append(
         otherChunk->getNullChunk(), startPosInOtherChunk, startPosInChunk, numValuesToAppend);
@@ -126,7 +126,7 @@ void StringColumnChunk::appendStringColumnChunk(StringColumnChunk* other,
 
 template<typename T>
 void StringColumnChunk::templateCopyVarSizedValuesFromString(
-    arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
+    arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
     auto stringArray = (arrow::StringArray*)array;
     auto arrayData = stringArray->data();
     if (arrayData->MayHaveNulls()) {
@@ -148,7 +148,7 @@ void StringColumnChunk::templateCopyVarSizedValuesFromString(
     }
 }
 
-void StringColumnChunk::write(const common::Value& val, uint64_t posToWrite) {
+void StringColumnChunk::write(const Value& val, uint64_t posToWrite) {
     assert(val.getDataType()->getPhysicalType() == PhysicalTypeID::STRING);
     nullChunk->setNull(posToWrite, val.isNull());
     if (val.isNull()) {

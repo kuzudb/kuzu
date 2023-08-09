@@ -16,6 +16,7 @@
 #include "processor/operator/table_scan/factorized_table_scan.h"
 #include "processor/plan_mapper.h"
 
+using namespace kuzu::common;
 using namespace kuzu::planner;
 
 namespace kuzu {
@@ -75,7 +76,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAddProperty(LogicalOperator* lo
             std::move(expressionEvaluator), storageManager, getOutputPos(addProperty),
             getOperatorID(), addProperty->getExpressionsForPrinting());
     default:
-        throw common::NotImplementedException{"PlanMapper::mapAddProperty"};
+        throw NotImplementedException{"PlanMapper::mapAddProperty"};
     }
 }
 

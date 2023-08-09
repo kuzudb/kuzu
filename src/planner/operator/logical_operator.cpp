@@ -2,6 +2,8 @@
 
 #include "common/exception.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace planner {
 
@@ -143,7 +145,7 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "UNWIND";
     }
     default:
-        throw common::NotImplementedException("LogicalOperatorTypeToString()");
+        throw NotImplementedException("LogicalOperatorTypeToString()");
     }
 }
 

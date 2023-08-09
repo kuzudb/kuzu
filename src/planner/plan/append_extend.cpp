@@ -26,9 +26,9 @@ static bool extendHasAtMostOneNbrGuarantee(RelExpression& rel, NodeExpression& b
         rel.getSingleTableID(), relDirection);
 }
 
-static std::unordered_set<common::table_id_t> getBoundNodeTableIDSet(
+static std::unordered_set<table_id_t> getBoundNodeTableIDSet(
     const RelExpression& rel, ExtendDirection extendDirection, const catalog::Catalog& catalog) {
-    std::unordered_set<common::table_id_t> result;
+    std::unordered_set<table_id_t> result;
     for (auto tableID : rel.getTableIDs()) {
         auto tableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(tableID);
         switch (extendDirection) {
@@ -43,15 +43,15 @@ static std::unordered_set<common::table_id_t> getBoundNodeTableIDSet(
             result.insert(tableSchema->getBoundTableID(RelDataDirection::BWD));
         } break;
         default:
-            throw common::NotImplementedException("getBoundNodeTableIDSet");
+            throw NotImplementedException("getBoundNodeTableIDSet");
         }
     }
     return result;
 }
 
-static std::unordered_set<common::table_id_t> getNbrNodeTableIDSet(
+static std::unordered_set<table_id_t> getNbrNodeTableIDSet(
     const RelExpression& rel, ExtendDirection extendDirection, const catalog::Catalog& catalog) {
-    std::unordered_set<common::table_id_t> result;
+    std::unordered_set<table_id_t> result;
     for (auto tableID : rel.getTableIDs()) {
         auto tableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(tableID);
         switch (extendDirection) {
@@ -66,7 +66,7 @@ static std::unordered_set<common::table_id_t> getNbrNodeTableIDSet(
             result.insert(tableSchema->getNbrTableID(RelDataDirection::BWD));
         } break;
         default:
-            throw common::NotImplementedException("getNbrNodeTableIDSet");
+            throw NotImplementedException("getNbrNodeTableIDSet");
         }
     }
     return result;
@@ -104,7 +104,7 @@ void QueryPlanner::appendRecursiveExtend(std::shared_ptr<NodeExpression> boundNo
     std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
     ExtendDirection direction, LogicalPlan& plan) {
     auto recursiveInfo = rel->getRecursiveInfo();
-    appendAccumulate(common::AccumulateType::REGULAR, plan);
+    appendAccumulate(AccumulateType::REGULAR, plan);
     // Create recursive plan
     auto recursivePlan = std::make_unique<LogicalPlan>();
     createRecursivePlan(recursiveInfo->node, recursiveInfo->nodeCopy, recursiveInfo->rel, direction,
@@ -132,7 +132,7 @@ void QueryPlanner::appendRecursiveExtend(std::shared_ptr<NodeExpression> boundNo
     pathPropertyProbe->computeFactorizedSchema();
     // Check for sip
     auto ratio = plan.getCardinality() / pathRelPropertyScanPlan->getCardinality();
-    if (ratio > common::PlannerKnobs::SIP_RATIO) {
+    if (ratio > PlannerKnobs::SIP_RATIO) {
         pathPropertyProbe->setSIP(SidewaysInfoPassing::PROHIBIT_PROBE_TO_BUILD);
     }
     // Update cost
@@ -198,7 +198,7 @@ void QueryPlanner::createPathRelPropertyScanPlan(std::shared_ptr<NodeExpression>
 }
 
 void QueryPlanner::appendNodeLabelFilter(std::shared_ptr<Expression> nodeID,
-    std::unordered_set<common::table_id_t> tableIDSet, LogicalPlan& plan) {
+    std::unordered_set<table_id_t> tableIDSet, LogicalPlan& plan) {
     auto filter = std::make_shared<LogicalNodeLabelFilter>(
         std::move(nodeID), std::move(tableIDSet), plan.getLastOperator());
     filter->computeFactorizedSchema();
