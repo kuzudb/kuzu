@@ -11,6 +11,16 @@ void VarListDataColumnChunk::reset() {
     numValuesInDataChunk = 0;
 }
 
+void VarListDataColumnChunk::resize(uint64_t numValues) {
+    if (numValues <= capacityInDataChunk) {
+        return;
+    }
+    while (capacityInDataChunk < numValues) {
+        capacityInDataChunk *= VAR_LIST_RESIZE_RATIO;
+    }
+    dataChunk->resize(capacityInDataChunk);
+}
+
 VarListColumnChunk::VarListColumnChunk(LogicalType dataType, CopyDescription* copyDescription)
     : ColumnChunk{std::move(dataType), copyDescription, true /* hasNullChunk */},
       varListDataColumnChunk{ColumnChunkFactory::createColumnChunk(
@@ -20,18 +30,40 @@ VarListColumnChunk::VarListColumnChunk(LogicalType dataType, CopyDescription* co
 
 void VarListColumnChunk::append(
     arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    assert(array->type_id() == arrow::Type::STRING || array->type_id() == arrow::Type::LIST);
+    assert(array->type_id() == arrow::Type::STRING || array->type_id() == arrow::Type::LIST ||
+           array->type_id() == arrow::Type::LARGE_LIST);
     switch (array->type_id()) {
     case arrow::Type::STRING: {
         copyVarListFromArrowString(array, startPosInChunk, numValuesToAppend);
     } break;
     case arrow::Type::LIST: {
-        copyVarListFromArrowList(array, startPosInChunk, numValuesToAppend);
+        copyVarListFromArrowList<arrow::ListArray>(array, startPosInChunk, numValuesToAppend);
+    } break;
+    case arrow::Type::LARGE_LIST: {
+        copyVarListFromArrowList<arrow::LargeListArray>(array, startPosInChunk, numValuesToAppend);
     } break;
     default: {
         throw NotImplementedException("ListColumnChunk::appendArray");
     }
     }
+}
+
+void VarListColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
+    offset_t startPosInChunk, uint32_t numValuesToAppend) {
+    nullChunk->append(
+        other->getNullChunk(), startPosInOtherChunk, startPosInChunk, numValuesToAppend);
+    auto otherListChunk = reinterpret_cast<VarListColumnChunk*>(other);
+    auto offsetInDataChunkToAppend = varListDataColumnChunk.numValuesInDataChunk;
+    for (auto i = 0u; i < numValuesToAppend; i++) {
+        varListDataColumnChunk.numValuesInDataChunk +=
+            otherListChunk->getListLen(startPosInOtherChunk + i);
+        setValue(varListDataColumnChunk.numValuesInDataChunk, startPosInChunk + i);
+    }
+    auto startOffset = otherListChunk->getListOffset(startPosInOtherChunk);
+    auto endOffset = otherListChunk->getListOffset(startPosInOtherChunk + numValuesToAppend);
+    varListDataColumnChunk.resize(varListDataColumnChunk.numValuesInDataChunk);
+    varListDataColumnChunk.dataChunk->append(otherListChunk->varListDataColumnChunk.dataChunk.get(),
+        startOffset, offsetInDataChunkToAppend, endOffset - startOffset);
 }
 
 void VarListColumnChunk::copyVarListFromArrowString(
@@ -62,29 +94,10 @@ void VarListColumnChunk::copyVarListFromArrowString(
     }
 }
 
-void VarListColumnChunk::copyVarListFromArrowList(
-    arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    //    auto listArray = (arrow::ListArray*)array;
-    //    auto offsetArray = listArray->offsets()->Slice(1 /* offset */);
-    //    append(offsetArray.get(), startPosInChunk, numValuesToAppend);
-    //    if (offsetArray->data()->MayHaveNulls()) {
-    //        for (auto i = 0u; i < numValuesToAppend; i++) {
-    //            nullChunk->setNull(i + startPosInChunk, offsetArray->data()->IsNull(i));
-    //        }
-    //    } else {
-    //        nullChunk->setRangeNoNull(startPosInChunk, numValuesToAppend);
-    //    }
-    //    auto startOffset = listArray->value_offset(startPosInChunk);
-    //    auto endOffset = listArray->value_offset(startPosInChunk + numValuesToAppend);
-    //    varListDataColumnChunk.dataChunk->resize(endOffset - startOffset);
-    //    varListDataColumnChunk.dataChunk->append(
-    //        listArray->offsets().get(), startOffset, endOffset - startOffset);
-}
-
 void VarListColumnChunk::write(const Value& listVal, uint64_t posToWrite) {
     assert(listVal.getDataType()->getPhysicalType() == PhysicalTypeID::VAR_LIST);
     auto numValuesInList = NestedVal::getChildrenSize(&listVal);
-    resizeDataChunk(varListDataColumnChunk.numValuesInDataChunk + numValuesInList);
+    varListDataColumnChunk.resize(varListDataColumnChunk.numValuesInDataChunk + numValuesInList);
     for (auto i = 0u; i < numValuesInList; i++) {
         varListDataColumnChunk.dataChunk->write(
             *NestedVal::getChildVal(&listVal, i), varListDataColumnChunk.numValuesInDataChunk);
@@ -102,16 +115,6 @@ void VarListColumnChunk::setValueFromString(const char* value, uint64_t length, 
 void VarListColumnChunk::resetToEmpty() {
     ColumnChunk::resetToEmpty();
     varListDataColumnChunk.reset();
-}
-
-void VarListColumnChunk::resizeDataChunk(uint64_t numValues) {
-    if (numValues <= varListDataColumnChunk.capacityInDataChunk) {
-        return;
-    }
-    while (varListDataColumnChunk.capacityInDataChunk < numValues) {
-        varListDataColumnChunk.capacityInDataChunk *= 2;
-    }
-    varListDataColumnChunk.dataChunk->resize(varListDataColumnChunk.capacityInDataChunk);
 }
 
 } // namespace storage

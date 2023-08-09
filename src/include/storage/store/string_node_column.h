@@ -19,6 +19,12 @@ public:
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector = 0) final;
 
+    common::page_idx_t append(ColumnChunk* columnChunk, common::page_idx_t startPageIdx,
+        common::node_group_idx_t nodeGroupIdx) final;
+
+    void checkpointInMemory() final;
+    void rollbackInMemory() final;
+
 protected:
     void scanInternal(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector) final;
@@ -27,10 +33,10 @@ protected:
 
 private:
     void readStringValueFromOvf(transaction::Transaction* transaction, common::ku_string_t& kuStr,
-        common::ValueVector* resultVector, common::page_idx_t chunkStartPageIdx);
+        common::ValueVector* resultVector, common::node_group_idx_t nodeGroupIdx);
 
 private:
-    common::page_idx_t ovfPageIdxInChunk;
+    std::unique_ptr<InMemDiskArray<ColumnChunkMetadata>> overflowMetadataDA;
 };
 
 } // namespace storage
