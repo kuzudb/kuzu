@@ -57,20 +57,19 @@ describe("INT64", function () {
   });
 });
 
-// TODO(Aziz): Uncomment this when fixed SERIAL.
-// describe("SERIAL", function () {
-//   it("should convert SERIAL type", async function () {
-//     const queryResult = await conn.query(
-//       "MATCH (a:moviesSerial) WHERE a.ID = 2 RETURN a.ID;"
-//     );
-//     const result = await queryResult.getAll();
-//     assert.equal(result.length, 1);
-//     assert.equal(Object.keys(result[0]).length, 1);
-//     assert.isTrue("a.ID" in result[0]);
-//     assert.equal(typeof result[0]["a.ID"], "number");
-//     assert.equal(result[0]["a.ID"], 2);
-//   });
-// });
+describe("SERIAL", function () {
+  it("should convert SERIAL type", async function () {
+    const queryResult = await conn.query(
+      "MATCH (a:moviesSerial) WHERE a.ID = 2 RETURN a.ID;"
+    );
+    const result = await queryResult.getAll();
+    assert.equal(result.length, 1);
+    assert.equal(Object.keys(result[0]).length, 1);
+    assert.isTrue("a.ID" in result[0]);
+    assert.equal(typeof result[0]["a.ID"], "number");
+    assert.equal(result[0]["a.ID"], 2);
+  });
+});
 
 describe("FLOAT", function () {
   it("should convert FLOAT type", async function () {

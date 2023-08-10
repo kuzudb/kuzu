@@ -94,7 +94,9 @@ void NodeTable::insert(Transaction* transaction, ValueVector* nodeIDVector,
     }
     for (auto& [propertyID, column] : propertyColumns) {
         assert(propertyIDToVectorIdx.contains(propertyID));
-        column->write(nodeIDVector, propertyVectors[propertyIDToVectorIdx.at(propertyID)]);
+        if (column->getDataType().getLogicalTypeID() != LogicalTypeID::SERIAL) {
+            column->write(nodeIDVector, propertyVectors[propertyIDToVectorIdx.at(propertyID)]);
+        }
     }
 }
 
@@ -150,14 +152,18 @@ void NodeTable::checkpointInMemory() {
     for (auto& [_, column] : propertyColumns) {
         column->checkpointInMemory();
     }
-    pkIndex->checkpointInMemory();
+    if (pkIndex) {
+        pkIndex->checkpointInMemory();
+    }
 }
 
 void NodeTable::rollbackInMemory() {
     for (auto& [_, column] : propertyColumns) {
         column->rollbackInMemory();
     }
-    pkIndex->rollbackInMemory();
+    if (pkIndex) {
+        pkIndex->rollbackInMemory();
+    }
 }
 
 void NodeTable::insertPK(ValueVector* nodeIDVector, ValueVector* primaryKeyVector) {

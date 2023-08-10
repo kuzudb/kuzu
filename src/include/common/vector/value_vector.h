@@ -218,14 +218,11 @@ public:
 
 class ArrowColumnVector {
 public:
-    static inline std::shared_ptr<arrow::Array> getArrowColumn(ValueVector* vector) {
+    static inline std::shared_ptr<arrow::ChunkedArray> getArrowColumn(ValueVector* vector) {
         return reinterpret_cast<ArrowColumnAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())->column;
     }
 
-    static void setArrowColumn(ValueVector* vector, std::shared_ptr<arrow::Array> column);
-
-    // Slice the arrow column vector from the given offset to the end.
-    static void slice(ValueVector* vector, offset_t offset);
+    static void setArrowColumn(ValueVector* vector, std::shared_ptr<arrow::ChunkedArray> column);
 };
 
 class NodeIDVector {

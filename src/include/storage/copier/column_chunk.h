@@ -7,6 +7,10 @@
 #include "storage/wal/wal.h"
 #include "transaction/transaction.h"
 
+namespace arrow {
+class Array;
+}
+
 namespace kuzu {
 namespace storage {
 

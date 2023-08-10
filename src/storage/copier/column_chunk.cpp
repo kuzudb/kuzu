@@ -1,5 +1,6 @@
 #include "storage/copier/column_chunk.h"
 
+#include "arrow/array.h"
 #include "storage/copier/string_column_chunk.h"
 #include "storage/copier/struct_column_chunk.h"
 #include "storage/copier/table_copy_utils.h"
@@ -37,8 +38,17 @@ void ColumnChunk::resetToEmpty() {
 void ColumnChunk::append(
     ValueVector* vector, offset_t startPosInChunk, uint32_t numValuesToAppend) {
     assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::ARROW_COLUMN);
-    auto array = ArrowColumnVector::getArrowColumn(vector).get();
-    append(array, startPosInChunk, numValuesToAppend);
+    auto chunkedArray = ArrowColumnVector::getArrowColumn(vector).get();
+    for (auto array : chunkedArray->chunks()) {
+        auto numValuesInArrayToAppend =
+            std::min((uint64_t)array->length(), (uint64_t)numValuesToAppend);
+        if (numValuesInArrayToAppend <= 0) {
+            break;
+        }
+        append(array.get(), startPosInChunk, numValuesInArrayToAppend);
+        numValuesToAppend -= numValuesInArrayToAppend;
+        startPosInChunk += numValuesInArrayToAppend;
+    }
 }
 
 void ColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
@@ -285,6 +295,9 @@ uint32_t ColumnChunk::getDataTypeSizeInChunk(LogicalType& dataType) {
     }
     case LogicalTypeID::INTERNAL_ID: {
         return sizeof(offset_t);
+    }
+    case LogicalTypeID::SERIAL: {
+        return sizeof(int64_t);
     }
     // Used by NodeColumnn to represent the de-compressed size of booleans in-memory
     // Does not reflect the size of booleans on-disk in BoolColumnChunk

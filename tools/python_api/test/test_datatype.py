@@ -20,14 +20,13 @@ def test_int(establish_connection):
     result.close()
 
 
-# TODO(Aziz): Uncomment this test when fixed SERIAL
-# def test_serial(establish_connection):
-#     conn, db = establish_connection
-#     result = conn.execute("MATCH (a:moviesSerial) WHERE a.ID = 2 RETURN a.ID;")
-#     assert result.has_next()
-#     assert result.get_next() == [2]
-#     assert not result.has_next()
-#     result.close()
+def test_serial(establish_connection):
+     conn, db = establish_connection
+     result = conn.execute("MATCH (a:moviesSerial) WHERE a.ID = 2 RETURN a.ID;")
+     assert result.has_next()
+     assert result.get_next() == [2]
+     assert not result.has_next()
+     result.close()
 
 
 def test_double(establish_connection):

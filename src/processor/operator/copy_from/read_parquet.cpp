@@ -5,8 +5,11 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-std::shared_ptr<arrow::RecordBatch> ReadParquet::readTuples(
-    std::unique_ptr<ReadFileMorsel> morsel) {
+std::shared_ptr<arrow::Table> ReadParquet::readTuples(std::unique_ptr<ReadFileMorsel> morsel) {
+    if (preservingOrder) {
+        auto serialMorsel = reinterpret_cast<storage::ReadSerialMorsel*>(morsel.get());
+        return serialMorsel->recordTable;
+    }
     assert(!morsel->filePath.empty());
     if (!reader || filePath != morsel->filePath) {
         reader = TableCopyUtils::createParquetReader(morsel->filePath, sharedState->tableSchema);
@@ -18,7 +21,7 @@ std::shared_ptr<arrow::RecordBatch> ReadParquet::readTuples(
     arrow::TableBatchReader batchReader(*table);
     std::shared_ptr<arrow::RecordBatch> recordBatch;
     TableCopyUtils::throwCopyExceptionIfNotOK(batchReader.ReadNext(&recordBatch));
-    return recordBatch;
+    return arrow::Table::FromRecordBatches({recordBatch}).ValueOrDie();
 }
 
 } // namespace processor

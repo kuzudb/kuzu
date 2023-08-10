@@ -1,6 +1,7 @@
 #include "common/vector/auxiliary_buffer.h"
 
 #include "arrow/array.h"
+#include "arrow/chunked_array.h"
 #include "common/vector/value_vector.h"
 
 namespace kuzu {

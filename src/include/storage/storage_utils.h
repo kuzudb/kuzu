@@ -91,6 +91,11 @@ public:
         return nodeGroupIdx << common::StorageConstants::NODE_GROUP_SIZE_LOG2;
     }
 
+    static inline common::node_group_idx_t getNodeGroupIdxFromNodeOffset(
+        common::offset_t nodeOffset) {
+        return nodeOffset >> common::StorageConstants::NODE_GROUP_SIZE_LOG2;
+    }
+
     static std::string getNodeIndexFName(const std::string& directory,
         const common::table_id_t& tableID, common::DBFileType dbFileType);
 

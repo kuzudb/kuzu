@@ -112,11 +112,6 @@ protected:
     // StorageStructure::createWALVersionOfPageIfNecessaryForElement(). Should be cleared later.
     WALPageIdxPosInPageAndFrame createWALVersionOfPageForValue(common::offset_t nodeOffset);
 
-    static inline common::node_group_idx_t getNodeGroupIdxFromNodeOffset(
-        common::offset_t nodeOffset) {
-        return nodeOffset >> common::StorageConstants::NODE_GROUP_SIZE_LOG2;
-    }
-
 protected:
     StorageStructureID storageStructureID;
     common::LogicalType dataType;
