@@ -3,19 +3,21 @@
 #include "common/exception.h"
 #include "parser/expression/parsed_case_expression.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace parser {
 
 std::vector<ParsedExpression*> ParsedExpressionChildrenVisitor::collectChildren(
     const kuzu::parser::ParsedExpression& expression) {
     switch (expression.getExpressionType()) {
-    case common::ExpressionType::CASE_ELSE: {
+    case ExpressionType::CASE_ELSE: {
         return collectCaseChildren(expression);
     }
-    case common::ExpressionType::FUNCTION:
-    case common::ExpressionType::LITERAL:
-    case common::ExpressionType::PROPERTY:
-    case common::ExpressionType::VARIABLE: {
+    case ExpressionType::FUNCTION:
+    case ExpressionType::LITERAL:
+    case ExpressionType::PROPERTY:
+    case ExpressionType::VARIABLE: {
         std::vector<ParsedExpression*> parsedExpressions;
         parsedExpressions.reserve(expression.getNumChildren());
         for (auto& child : expression.children) {
@@ -24,7 +26,7 @@ std::vector<ParsedExpression*> ParsedExpressionChildrenVisitor::collectChildren(
         return parsedExpressions;
     }
     default: {
-        throw common::NotImplementedException{"ParsedExpressionChildrenCollector::collectChildren"};
+        throw NotImplementedException{"ParsedExpressionChildrenCollector::collectChildren"};
     }
     }
 }
@@ -32,17 +34,17 @@ std::vector<ParsedExpression*> ParsedExpressionChildrenVisitor::collectChildren(
 void ParsedExpressionChildrenVisitor::setChild(kuzu::parser::ParsedExpression& expression,
     uint64_t idx, std::unique_ptr<ParsedExpression> expressionToSet) {
     switch (expression.getExpressionType()) {
-    case common::ExpressionType::CASE_ELSE: {
+    case ExpressionType::CASE_ELSE: {
         setCaseChild(expression, idx, std::move(expressionToSet));
     } break;
-    case common::ExpressionType::FUNCTION:
-    case common::ExpressionType::LITERAL:
-    case common::ExpressionType::PROPERTY:
-    case common::ExpressionType::VARIABLE: {
+    case ExpressionType::FUNCTION:
+    case ExpressionType::LITERAL:
+    case ExpressionType::PROPERTY:
+    case ExpressionType::VARIABLE: {
         expression.children[idx] = std::move(expressionToSet);
     } break;
     default: {
-        throw common::NotImplementedException{"ParsedExpressionChildrenVisitor::setChild"};
+        throw NotImplementedException{"ParsedExpressionChildrenVisitor::setChild"};
     }
     }
 }

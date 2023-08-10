@@ -96,10 +96,15 @@ public:
         mayContainNulls = true;
     }
 
-    inline void setMayContainNulls() { mayContainNulls = true; }
     inline bool hasNoNullsGuarantee() const { return !mayContainNulls; }
 
-    void setNull(uint32_t pos, bool isNull);
+    static void setNull(uint64_t* nullEntries, uint32_t pos, bool isNull);
+    inline void setNull(uint32_t pos, bool isNull) {
+        setNull(data, pos, isNull);
+        if (isNull) {
+            mayContainNulls = true;
+        }
+    }
 
     static inline bool isNull(const uint64_t* nullEntries, uint32_t pos) {
         auto [entryPos, bitPosInEntry] = getNullEntryAndBitPos(pos);
@@ -108,17 +113,31 @@ public:
 
     inline bool isNull(uint32_t pos) const { return isNull(data, pos); }
 
-    inline uint64_t* getData() { return data; }
+    // const because updates to the data must set mayContainNulls if any value
+    // becomes non-null
+    // Modifying the underlying data shuld be done with setNull or copyFromNullData
+    inline const uint64_t* getData() { return data; }
 
     static inline uint64_t getNumNullEntries(uint64_t numNullBits) {
         return (numNullBits >> NUM_BITS_PER_NULL_ENTRY_LOG2) +
                ((numNullBits - (numNullBits << NUM_BITS_PER_NULL_ENTRY_LOG2)) == 0 ? 0 : 1);
     }
 
-    // This function returns true if we have copied a nullBit with value 1 (indicate a null
-    // value) to dstNullEntries.
+    // Copies bitpacked null flags from one buffer to another, starting at an arbitrary bit
+    // offset and preserving adjacent bits.
+    //
+    // returns true if we have copied a nullBit with value 1 (indicates a null value) to
+    // dstNullEntries.
     static bool copyNullMask(const uint64_t* srcNullEntries, uint64_t srcOffset,
-        uint64_t* dstNullEntries, uint64_t dstOffset, uint64_t numBitsToCopy);
+        uint64_t* dstNullEntries, uint64_t dstOffset, uint64_t numBitsToCopy, bool invert = false);
+
+    bool copyFromNullBits(const uint64_t* srcNullEntries, uint64_t srcOffset, uint64_t dstOffset,
+        uint64_t numBitsToCopy);
+
+    // Sets the given number of bits to null (if isNull is true) or non-null (if isNull is false),
+    // starting at the offset
+    static void setNullRange(
+        uint64_t* nullEntries, uint64_t offset, uint64_t numBitsToSet, bool isNull);
 
     void resize(uint64_t capacity);
 

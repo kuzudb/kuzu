@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 
+#include "common/constants.h"
 #include "common/exception.h"
 #include "common/null_buffer.h"
 #include "common/ser_deser.h"
@@ -38,7 +39,7 @@ std::string PhysicalTypeUtils::physicalTypeToString(PhysicalTypeID physicalType)
     case PhysicalTypeID::VAR_LIST:
         return "VAR_LIST";
     default:
-        throw common::NotImplementedException{"Unrecognized physicalType."};
+        throw NotImplementedException{"Unrecognized physicalType."};
     }
 }
 
@@ -65,7 +66,7 @@ uint32_t PhysicalTypeUtils::getFixedTypeSize(PhysicalTypeID physicalType) {
     }
 }
 
-bool VarListTypeInfo::operator==(const kuzu::common::VarListTypeInfo& other) const {
+bool VarListTypeInfo::operator==(const VarListTypeInfo& other) const {
     return *childType == *other.childType;
 }
 
@@ -73,16 +74,49 @@ std::unique_ptr<ExtraTypeInfo> VarListTypeInfo::copy() const {
     return std::make_unique<VarListTypeInfo>(childType->copy());
 }
 
-bool FixedListTypeInfo::operator==(const kuzu::common::FixedListTypeInfo& other) const {
+std::unique_ptr<ExtraTypeInfo> VarListTypeInfo::deserialize(FileInfo* fileInfo, uint64_t& offset) {
+    return std::make_unique<VarListTypeInfo>(LogicalType::deserialize(fileInfo, offset));
+}
+
+void VarListTypeInfo::serializeInternal(FileInfo* fileInfo, uint64_t& offset) const {
+    childType->serialize(fileInfo, offset);
+}
+
+bool FixedListTypeInfo::operator==(const FixedListTypeInfo& other) const {
     return *childType == *other.childType && fixedNumElementsInList == other.fixedNumElementsInList;
+}
+
+std::unique_ptr<ExtraTypeInfo> FixedListTypeInfo::deserialize(
+    FileInfo* fileInfo, uint64_t& offset) {
+    auto childType = LogicalType::deserialize(fileInfo, offset);
+    uint64_t fixedNumElementsInList;
+    SerDeser::deserializeValue(fixedNumElementsInList, fileInfo, offset);
+    return std::make_unique<FixedListTypeInfo>(std::move(childType), fixedNumElementsInList);
 }
 
 std::unique_ptr<ExtraTypeInfo> FixedListTypeInfo::copy() const {
     return std::make_unique<FixedListTypeInfo>(childType->copy(), fixedNumElementsInList);
 }
 
-bool StructField::operator==(const kuzu::common::StructField& other) const {
+void FixedListTypeInfo::serializeInternal(FileInfo* fileInfo, uint64_t& offset) const {
+    VarListTypeInfo::serializeInternal(fileInfo, offset);
+    SerDeser::serializeValue(fixedNumElementsInList, fileInfo, offset);
+}
+
+bool StructField::operator==(const StructField& other) const {
     return *type == *other.type;
+}
+
+void StructField::serialize(FileInfo* fileInfo, uint64_t& offset) const {
+    SerDeser::serializeValue(name, fileInfo, offset);
+    type->serialize(fileInfo, offset);
+}
+
+std::unique_ptr<StructField> StructField::deserialize(FileInfo* fileInfo, uint64_t& offset) {
+    std::string name;
+    SerDeser::deserializeValue(name, fileInfo, offset);
+    auto type = LogicalType::deserialize(fileInfo, offset);
+    return std::make_unique<StructField>(std::move(name), std::move(type));
 }
 
 std::unique_ptr<StructField> StructField::copy() const {
@@ -110,7 +144,7 @@ struct_field_idx_t StructTypeInfo::getStructFieldIdx(std::string fieldName) cons
     return INVALID_STRUCT_FIELD_IDX;
 }
 
-StructField* StructTypeInfo::getStructField(kuzu::common::struct_field_idx_t idx) const {
+StructField* StructTypeInfo::getStructField(struct_field_idx_t idx) const {
     return fields[idx].get();
 }
 
@@ -146,7 +180,7 @@ std::vector<StructField*> StructTypeInfo::getStructFields() const {
     return structFields;
 }
 
-bool StructTypeInfo::operator==(const kuzu::common::StructTypeInfo& other) const {
+bool StructTypeInfo::operator==(const StructTypeInfo& other) const {
     if (fields.size() != other.fields.size()) {
         return false;
     }
@@ -158,12 +192,22 @@ bool StructTypeInfo::operator==(const kuzu::common::StructTypeInfo& other) const
     return true;
 }
 
+std::unique_ptr<ExtraTypeInfo> StructTypeInfo::deserialize(FileInfo* fileInfo, uint64_t& offset) {
+    std::vector<std::unique_ptr<StructField>> fields;
+    SerDeser::deserializeVectorOfPtrs(fields, fileInfo, offset);
+    return std::make_unique<StructTypeInfo>(std::move(fields));
+}
+
 std::unique_ptr<ExtraTypeInfo> StructTypeInfo::copy() const {
     std::vector<std::unique_ptr<StructField>> structFields{fields.size()};
     for (auto i = 0u; i < fields.size(); i++) {
         structFields[i] = fields[i]->copy();
     }
     return std::make_unique<StructTypeInfo>(std::move(structFields));
+}
+
+void StructTypeInfo::serializeInternal(FileInfo* fileInfo, uint64_t& offset) const {
+    SerDeser::serializeVectorOfPtrs(fields, fileInfo, offset);
 }
 
 LogicalType::LogicalType(const LogicalType& other) {
@@ -215,6 +259,41 @@ LogicalType& LogicalType::operator=(LogicalType&& other) noexcept {
     physicalType = other.physicalType;
     extraTypeInfo = std::move(other.extraTypeInfo);
     return *this;
+}
+
+void LogicalType::serialize(FileInfo* fileInfo, uint64_t& offset) const {
+    SerDeser::serializeValue(typeID, fileInfo, offset);
+    SerDeser::serializeValue(physicalType, fileInfo, offset);
+    switch (physicalType) {
+    case PhysicalTypeID::VAR_LIST:
+    case PhysicalTypeID::FIXED_LIST:
+    case PhysicalTypeID::STRUCT:
+        extraTypeInfo->serialize(fileInfo, offset);
+    default:
+        break;
+    }
+}
+
+std::unique_ptr<LogicalType> LogicalType::deserialize(FileInfo* fileInfo, uint64_t& offset) {
+    LogicalTypeID typeID;
+    SerDeser::deserializeValue(typeID, fileInfo, offset);
+    PhysicalTypeID physicalType;
+    SerDeser::deserializeValue(physicalType, fileInfo, offset);
+    std::unique_ptr<ExtraTypeInfo> extraTypeInfo;
+    switch (physicalType) {
+    case PhysicalTypeID::VAR_LIST: {
+        extraTypeInfo = VarListTypeInfo::deserialize(fileInfo, offset);
+    } break;
+    case PhysicalTypeID::FIXED_LIST: {
+        extraTypeInfo = FixedListTypeInfo::deserialize(fileInfo, offset);
+    } break;
+    case PhysicalTypeID::STRUCT: {
+        extraTypeInfo = StructTypeInfo::deserialize(fileInfo, offset);
+    } break;
+    default:
+        extraTypeInfo = nullptr;
+    }
+    return std::make_unique<LogicalType>(typeID, physicalType, std::move(extraTypeInfo));
 }
 
 std::unique_ptr<LogicalType> LogicalType::copy() const {
@@ -285,44 +364,20 @@ void LogicalType::setPhysicalType() {
 
 LogicalType LogicalTypeUtils::dataTypeFromString(const std::string& dataTypeString) {
     LogicalType dataType;
-    auto upperDataTypeString = StringUtils::getUpper(dataTypeString);
+    auto trimmedStr = StringUtils::ltrim(StringUtils::rtrim(dataTypeString));
+    auto upperDataTypeString = StringUtils::getUpper(trimmedStr);
     if (upperDataTypeString.ends_with("[]")) {
-        dataType.typeID = LogicalTypeID::VAR_LIST;
-        dataType.extraTypeInfo = std::make_unique<VarListTypeInfo>(std::make_unique<LogicalType>(
-            dataTypeFromString(dataTypeString.substr(0, dataTypeString.size() - 2))));
+        dataType = *parseVarListType(trimmedStr);
     } else if (upperDataTypeString.ends_with("]")) {
-        dataType.typeID = LogicalTypeID::FIXED_LIST;
-        auto leftBracketPos = dataTypeString.find('[');
-        auto rightBracketPos = dataTypeString.find(']');
-        auto childType = std::make_unique<LogicalType>(
-            dataTypeFromString(dataTypeString.substr(0, leftBracketPos)));
-        auto fixedNumElementsInList = std::strtoll(
-            dataTypeString.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1).c_str(),
-            nullptr, 0 /* base */);
-        dataType.extraTypeInfo =
-            std::make_unique<FixedListTypeInfo>(std::move(childType), fixedNumElementsInList);
+        dataType = *parseFixedListType(trimmedStr);
     } else if (upperDataTypeString.starts_with("STRUCT")) {
-        dataType.typeID = LogicalTypeID::STRUCT;
-        auto leftBracketPos = dataTypeString.find('(');
-        auto rightBracketPos = dataTypeString.find_last_of(')');
-        if (leftBracketPos == std::string::npos || rightBracketPos == std::string::npos) {
-            throw Exception("Cannot parse struct type: " + dataTypeString);
-        }
-        // Remove the leading and trailing brackets.
-        auto structTypeStr =
-            dataTypeString.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1);
-        auto structFieldsStr = parseStructFields(structTypeStr);
-        std::vector<std::unique_ptr<StructField>> structFields;
-        for (auto& structFieldStr : structFieldsStr) {
-            auto pos = structFieldStr.find(' ');
-            auto fieldName = structFieldStr.substr(0, pos);
-            auto fieldTypeString = structFieldStr.substr(pos + 1);
-            structFields.emplace_back(std::make_unique<StructField>(
-                fieldName, std::make_unique<LogicalType>(dataTypeFromString(fieldTypeString))));
-        }
-        dataType.extraTypeInfo = std::make_unique<StructTypeInfo>(std::move(structFields));
+        dataType = *parseStructType(trimmedStr);
+    } else if (upperDataTypeString.starts_with("MAP")) {
+        dataType = *parseMapType(trimmedStr);
+    } else if (upperDataTypeString.starts_with("UNION")) {
+        dataType = *parseUnionType(trimmedStr);
     } else {
-        dataType.typeID = dataTypeIDFromString(dataTypeString);
+        dataType.typeID = dataTypeIDFromString(upperDataTypeString);
     }
     dataType.setPhysicalType();
     return dataType;
@@ -366,8 +421,8 @@ LogicalTypeID LogicalTypeUtils::dataTypeIDFromString(const std::string& dataType
 std::string LogicalTypeUtils::dataTypeToString(const LogicalType& dataType) {
     switch (dataType.typeID) {
     case LogicalTypeID::MAP: {
-        auto structType = common::VarListType::getChildType(&dataType);
-        auto fieldTypes = common::StructType::getFieldTypes(structType);
+        auto structType = VarListType::getChildType(&dataType);
+        auto fieldTypes = StructType::getFieldTypes(structType);
         return "MAP(" + dataTypeToString(*fieldTypes[0]) + ": " + dataTypeToString(*fieldTypes[1]) +
                ")";
     }
@@ -526,7 +581,7 @@ uint32_t LogicalTypeUtils::getRowLayoutSize(const LogicalType& type) {
     }
 }
 
-bool LogicalTypeUtils::isNumerical(const kuzu::common::LogicalType& dataType) {
+bool LogicalTypeUtils::isNumerical(const LogicalType& dataType) {
     switch (dataType.typeID) {
     case LogicalTypeID::INT64:
     case LogicalTypeID::INT32:
@@ -597,102 +652,77 @@ std::vector<std::string> LogicalTypeUtils::parseStructFields(const std::string& 
     return structFieldsStr;
 }
 
-// Specialized Ser/Deser functions for logical dataTypes.
-template<>
-void SerDeser::serializeValue(const VarListTypeInfo& value, FileInfo* fileInfo, uint64_t& offset) {
-    SerDeser::serializeValue(*value.getChildType(), fileInfo, offset);
+std::unique_ptr<LogicalType> LogicalTypeUtils::parseVarListType(const std::string& trimmedStr) {
+    return std::make_unique<LogicalType>(LogicalTypeID::VAR_LIST,
+        std::make_unique<VarListTypeInfo>(std::make_unique<LogicalType>(
+            dataTypeFromString(trimmedStr.substr(0, trimmedStr.size() - 2)))));
 }
 
-template<>
-void SerDeser::deserializeValue(VarListTypeInfo& value, FileInfo* fileInfo, uint64_t& offset) {
-    value.childType = std::make_unique<LogicalType>();
-    deserializeValue(*value.getChildType(), fileInfo, offset);
+std::unique_ptr<LogicalType> LogicalTypeUtils::parseFixedListType(const std::string& trimmedStr) {
+    auto leftBracketPos = trimmedStr.find('[');
+    auto rightBracketPos = trimmedStr.find(']');
+    auto childType =
+        std::make_unique<LogicalType>(dataTypeFromString(trimmedStr.substr(0, leftBracketPos)));
+    auto fixedNumElementsInList = std::strtoll(
+        trimmedStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1).c_str(),
+        nullptr, 0 /* base */);
+    return std::make_unique<LogicalType>(LogicalTypeID::FIXED_LIST,
+        std::make_unique<FixedListTypeInfo>(std::move(childType), fixedNumElementsInList));
 }
 
-template<>
-void SerDeser::serializeValue(
-    const FixedListTypeInfo& value, FileInfo* fileInfo, uint64_t& offset) {
-    SerDeser::serializeValue(*value.getChildType(), fileInfo, offset);
-    SerDeser::serializeValue(value.getNumElementsInList(), fileInfo, offset);
-}
-
-template<>
-void SerDeser::deserializeValue(FixedListTypeInfo& value, FileInfo* fileInfo, uint64_t& offset) {
-    value.childType = std::make_unique<LogicalType>();
-    deserializeValue(*value.getChildType(), fileInfo, offset);
-    deserializeValue(value.fixedNumElementsInList, fileInfo, offset);
-}
-
-template<>
-void SerDeser::serializeValue(const StructTypeInfo& value, FileInfo* fileInfo, uint64_t& offset) {
-    serializeVector(value.fields, fileInfo, offset);
-}
-
-template<>
-void SerDeser::deserializeValue(StructTypeInfo& value, FileInfo* fileInfo, uint64_t& offset) {
-    deserializeVector(value.fields, fileInfo, offset);
-}
-
-template<>
-void SerDeser::serializeValue(
-    const std::unique_ptr<StructField>& value, FileInfo* fileInfo, uint64_t& offset) {
-    serializeValue(value->name, fileInfo, offset);
-    serializeValue(*value->getType(), fileInfo, offset);
-}
-
-template<>
-void SerDeser::deserializeValue(
-    std::unique_ptr<StructField>& value, FileInfo* fileInfo, uint64_t& offset) {
-    value = std::make_unique<StructField>();
-    deserializeValue<std::string>(value->name, fileInfo, offset);
-    deserializeValue(*value->type, fileInfo, offset);
-}
-
-template<>
-void SerDeser::serializeValue(const LogicalType& value, FileInfo* fileInfo, uint64_t& offset) {
-    SerDeser::serializeValue(value.getLogicalTypeID(), fileInfo, offset);
-    switch (value.getPhysicalType()) {
-    case PhysicalTypeID::VAR_LIST: {
-        auto varListTypeInfo = reinterpret_cast<VarListTypeInfo*>(value.extraTypeInfo.get());
-        serializeValue(*varListTypeInfo, fileInfo, offset);
-    } break;
-    case PhysicalTypeID::FIXED_LIST: {
-        auto fixedListTypeInfo = reinterpret_cast<FixedListTypeInfo*>(value.extraTypeInfo.get());
-        serializeValue(*fixedListTypeInfo, fileInfo, offset);
-    } break;
-    case PhysicalTypeID::STRUCT: {
-        auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(value.extraTypeInfo.get());
-        serializeValue(*structTypeInfo, fileInfo, offset);
-    } break;
-    default:
-        break;
+std::vector<std::unique_ptr<StructField>> LogicalTypeUtils::parseStructTypeInfo(
+    const std::string& structTypeStr) {
+    auto leftBracketPos = structTypeStr.find('(');
+    auto rightBracketPos = structTypeStr.find_last_of(')');
+    if (leftBracketPos == std::string::npos || rightBracketPos == std::string::npos) {
+        throw Exception("Cannot parse struct type: " + structTypeStr);
     }
+    // Remove the leading and trailing brackets.
+    auto structFieldsStr =
+        structTypeStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1);
+    std::vector<std::unique_ptr<StructField>> structFields;
+    auto structFieldStrs = parseStructFields(structFieldsStr);
+    for (auto& structFieldStr : structFieldStrs) {
+        auto pos = structFieldStr.find(' ');
+        auto fieldName = structFieldStr.substr(0, pos);
+        auto fieldTypeString = structFieldStr.substr(pos + 1);
+        structFields.emplace_back(std::make_unique<StructField>(
+            fieldName, std::make_unique<LogicalType>(dataTypeFromString(fieldTypeString))));
+    }
+    return structFields;
 }
 
-template<>
-void SerDeser::deserializeValue(LogicalType& value, FileInfo* fileInfo, uint64_t& offset) {
-    SerDeser::deserializeValue(value.typeID, fileInfo, offset);
-    value.setPhysicalType();
-    switch (value.getPhysicalType()) {
-    case PhysicalTypeID::VAR_LIST: {
-        value.extraTypeInfo = std::make_unique<VarListTypeInfo>();
-        deserializeValue(
-            *reinterpret_cast<VarListTypeInfo*>(value.extraTypeInfo.get()), fileInfo, offset);
+std::unique_ptr<LogicalType> LogicalTypeUtils::parseStructType(const std::string& trimmedStr) {
+    return std::make_unique<LogicalType>(
+        LogicalTypeID::STRUCT, std::make_unique<StructTypeInfo>(parseStructTypeInfo(trimmedStr)));
+}
 
-    } break;
-    case PhysicalTypeID::FIXED_LIST: {
-        value.extraTypeInfo = std::make_unique<FixedListTypeInfo>();
-        deserializeValue(
-            *reinterpret_cast<FixedListTypeInfo*>(value.extraTypeInfo.get()), fileInfo, offset);
-    } break;
-    case PhysicalTypeID::STRUCT: {
-        value.extraTypeInfo = std::make_unique<StructTypeInfo>();
-        deserializeValue(
-            *reinterpret_cast<StructTypeInfo*>(value.extraTypeInfo.get()), fileInfo, offset);
-    } break;
-    default:
-        break;
+std::unique_ptr<LogicalType> LogicalTypeUtils::parseMapType(const std::string& trimmedStr) {
+    auto leftBracketPos = trimmedStr.find('(');
+    auto rightBracketPos = trimmedStr.find_last_of(')');
+    if (leftBracketPos == std::string::npos || rightBracketPos == std::string::npos) {
+        throw Exception("Cannot parse struct type: " + trimmedStr);
     }
+    auto mapTypeStr = trimmedStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1);
+    auto keyValueTypes = StringUtils::split(mapTypeStr, ",");
+    std::vector<std::unique_ptr<StructField>> structFields;
+    structFields.emplace_back(std::make_unique<StructField>(InternalKeyword::MAP_KEY,
+        std::make_unique<LogicalType>(dataTypeFromString(keyValueTypes[0]))));
+    structFields.emplace_back(std::make_unique<StructField>(InternalKeyword::MAP_VALUE,
+        std::make_unique<LogicalType>(dataTypeFromString(keyValueTypes[1]))));
+    auto childType = std::make_unique<LogicalType>(
+        LogicalTypeID::STRUCT, std::make_unique<StructTypeInfo>(std::move(structFields)));
+    return std::make_unique<LogicalType>(
+        LogicalTypeID::MAP, std::make_unique<VarListTypeInfo>(std::move(childType)));
+}
+
+std::unique_ptr<LogicalType> LogicalTypeUtils::parseUnionType(const std::string& trimmedStr) {
+    auto unionFields = parseStructTypeInfo(trimmedStr);
+    auto unionTagField = std::make_unique<StructField>(
+        UnionType::TAG_FIELD_NAME, std::make_unique<LogicalType>(UnionType::TAG_FIELD_TYPE));
+    unionFields.insert(unionFields.begin(), std::move(unionTagField));
+    return std::make_unique<LogicalType>(
+        LogicalTypeID::UNION, std::make_unique<StructTypeInfo>(std::move(unionFields)));
 }
 
 } // namespace common

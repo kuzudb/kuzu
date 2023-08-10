@@ -5,19 +5,18 @@
 namespace kuzu {
 namespace common {
 
-void NullMask::setNull(uint32_t pos, bool isNull) {
+void NullMask::setNull(uint64_t* nullEntries, uint32_t pos, bool isNull) {
     auto entryPos = pos >> NUM_BITS_PER_NULL_ENTRY_LOG2;
     auto bitPosInEntry = pos - (entryPos << NUM_BITS_PER_NULL_ENTRY_LOG2);
     if (isNull) {
-        data[entryPos] |= NULL_BITMASKS_WITH_SINGLE_ONE[bitPosInEntry];
-        mayContainNulls = true;
+        nullEntries[entryPos] |= NULL_BITMASKS_WITH_SINGLE_ONE[bitPosInEntry];
     } else {
-        data[entryPos] &= NULL_BITMASKS_WITH_SINGLE_ZERO[bitPosInEntry];
+        nullEntries[entryPos] &= NULL_BITMASKS_WITH_SINGLE_ZERO[bitPosInEntry];
     }
 }
 
 bool NullMask::copyNullMask(const uint64_t* srcNullEntries, uint64_t srcOffset,
-    uint64_t* dstNullEntries, uint64_t dstOffset, uint64_t numBitsToCopy) {
+    uint64_t* dstNullEntries, uint64_t dstOffset, uint64_t numBitsToCopy, bool invert) {
     auto [srcNullEntryPos, srcNullBitPos] = getNullEntryAndBitPos(srcOffset);
     auto [dstNullEntryPos, dstNullBitPos] = getNullEntryAndBitPos(dstOffset);
     uint64_t bitPos = 0;
@@ -26,7 +25,8 @@ bool NullMask::copyNullMask(const uint64_t* srcNullEntries, uint64_t srcOffset,
         auto curDstNullEntryPos = dstNullEntryPos;
         auto curDstNullBitPos = dstNullBitPos;
         uint64_t numBitsToReadInCurrentEntry;
-        uint64_t srcNullMaskEntry = srcNullEntries[srcNullEntryPos];
+        uint64_t srcNullMaskEntry =
+            invert ? ~srcNullEntries[srcNullEntryPos] : srcNullEntries[srcNullEntryPos];
         if (dstNullBitPos < srcNullBitPos) {
             numBitsToReadInCurrentEntry =
                 std::min(NullMask::NUM_BITS_PER_NULL_ENTRY - srcNullBitPos, numBitsToCopy - bitPos);
@@ -85,6 +85,57 @@ void NullMask::resize(uint64_t capacity) {
     buffer = std::move(resizedBuffer);
     data = buffer.get();
     numNullEntries = capacity;
+}
+
+bool NullMask::copyFromNullBits(const uint64_t* srcNullEntries, uint64_t srcOffset,
+    uint64_t dstOffset, uint64_t numBitsToCopy) {
+    if (copyNullMask(srcNullEntries, srcOffset, this->data, dstOffset, numBitsToCopy)) {
+        this->mayContainNulls = true;
+        return true;
+    }
+    return false;
+}
+
+void NullMask::setNullRange(
+    uint64_t* nullEntries, uint64_t offset, uint64_t numBitsToSet, bool isNull) {
+    auto [firstEntryPos, firstBitPos] = getNullEntryAndBitPos(offset);
+    auto [lastEntryPos, lastBitPos] = getNullEntryAndBitPos(offset + numBitsToSet);
+
+    // If the range spans multiple entries, set the entries in the middle to the appropriate value
+    // with std::fill
+    if (lastEntryPos > firstEntryPos + 1) {
+        std::fill(nullEntries + firstEntryPos + 1, nullEntries + lastEntryPos,
+            isNull ? ALL_NULL_ENTRY : NO_NULL_ENTRY);
+    }
+
+    if (firstEntryPos == lastEntryPos) {
+        if (isNull) {
+            // Set bits between the first and the last bit pos to true
+            nullEntries[firstEntryPos] |= (~NULL_LOWER_MASKS[firstBitPos] &
+                                           ~NULL_HIGH_MASKS[NUM_BITS_PER_NULL_ENTRY - lastBitPos]);
+        } else {
+            // Set bits between the first and the last bit pos to false
+            nullEntries[firstEntryPos] &= (NULL_LOWER_MASKS[firstBitPos] |
+                                           NULL_HIGH_MASKS[NUM_BITS_PER_NULL_ENTRY - lastBitPos]);
+        }
+    } else {
+        if (isNull) {
+            // Set bits including and after the first bit pos to true
+            nullEntries[firstEntryPos] |= ~NULL_HIGH_MASKS[firstBitPos];
+            if (lastBitPos > 0) {
+                // Set bits before the last bit pos to true
+                nullEntries[lastEntryPos] |=
+                    ~NULL_LOWER_MASKS[NUM_BITS_PER_NULL_ENTRY - lastBitPos];
+            }
+        } else {
+            // Set bits including and after the first bit pos to false
+            nullEntries[firstEntryPos] &= NULL_LOWER_MASKS[firstBitPos];
+            if (lastBitPos > 0) {
+                // Set bits before the last bit pos to false
+                nullEntries[lastEntryPos] &= NULL_HIGH_MASKS[NUM_BITS_PER_NULL_ENTRY - lastBitPos];
+            }
+        }
+    }
 }
 
 } // namespace common

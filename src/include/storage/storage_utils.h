@@ -28,6 +28,11 @@ struct PageByteCursor {
         : pageIdx{pageIdx}, offsetInPage{offsetInPage} {};
     PageByteCursor() : PageByteCursor{UINT32_MAX, UINT16_MAX} {};
 
+    inline void resetValue() {
+        pageIdx = UINT32_MAX;
+        offsetInPage = UINT16_MAX;
+    }
+
     common::page_idx_t pageIdx;
     uint16_t offsetInPage;
 };
@@ -47,7 +52,20 @@ struct PageElementCursor {
 };
 
 struct PageUtils {
-    static uint32_t getNumElementsInAPage(uint32_t elementSize, bool hasNull);
+    static constexpr uint32_t getNumElementsInAPage(uint32_t elementSize, bool hasNull) {
+        assert(elementSize > 0);
+        auto numBytesPerNullEntry = common::NullMask::NUM_BITS_PER_NULL_ENTRY >> 3;
+        auto numNullEntries =
+            hasNull ?
+                (uint32_t)ceil((double)common::BufferPoolConstants::PAGE_4KB_SIZE /
+                               (double)(((uint64_t)elementSize
+                                            << common::NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2) +
+                                        numBytesPerNullEntry)) :
+                0;
+        return (common::BufferPoolConstants::PAGE_4KB_SIZE -
+                   (numNullEntries * numBytesPerNullEntry)) /
+               elementSize;
+    }
 
     // This function returns the page pageIdx of the page where element will be found and the pos of
     // the element in the page as the offset.
@@ -68,23 +86,29 @@ struct PageUtils {
 
 class StorageUtils {
 public:
+    static inline common::offset_t getStartOffsetForNodeGroup(
+        common::node_group_idx_t nodeGroupIdx) {
+        return nodeGroupIdx << common::StorageConstants::NODE_GROUP_SIZE_LOG2;
+    }
+
     static std::string getNodeIndexFName(const std::string& directory,
         const common::table_id_t& tableID, common::DBFileType dbFileType);
 
+    static inline std::string getDataFName(const std::string& directory) {
+        return common::FileUtils::joinPath(directory, common::StorageConstants::DATA_FILE_NAME);
+    }
+
+    static inline std::string getMetadataFName(const std::string& directory) {
+        return common::FileUtils::joinPath(directory, common::StorageConstants::METADATA_FILE_NAME);
+    }
+
+    // TODO: This function should be removed after the refactoring of rel tables into node groups.
     static std::string getNodePropertyColumnFName(const std::string& directory,
         const common::table_id_t& tableID, uint32_t propertyID, common::DBFileType dbFileType);
 
     static std::string appendStructFieldName(
         std::string filePath, common::struct_field_idx_t structFieldIdx);
     static std::string getPropertyNullFName(const std::string& filePath);
-
-    static inline StorageStructureIDAndFName getNodePropertyColumnStructureIDAndFName(
-        const std::string& directory, const catalog::Property& property) {
-        auto fName = getNodePropertyColumnFName(
-            directory, property.tableID, property.propertyID, common::DBFileType::ORIGINAL);
-        return {StorageStructureID::newNodePropertyColumnID(property.tableID, property.propertyID),
-            fName};
-    }
 
     static inline StorageStructureIDAndFName getNodeNullColumnStructureIDAndFName(
         StorageStructureIDAndFName propertyColumnIDAndFName) {
@@ -116,9 +140,9 @@ public:
         const std::string& directory, common::table_id_t relTableID, common::RelDataDirection dir,
         const catalog::Property& property) {
         auto fName = getRelPropertyListsFName(
-            directory, relTableID, dir, property.propertyID, common::DBFileType::ORIGINAL);
+            directory, relTableID, dir, property.getPropertyID(), common::DBFileType::ORIGINAL);
         return {StorageStructureID::newRelPropertyListsID(
-                    relTableID, dir, property.propertyID, ListFileType::BASE_LISTS),
+                    relTableID, dir, property.getPropertyID(), ListFileType::BASE_LISTS),
             fName};
     }
 
@@ -265,17 +289,12 @@ public:
     static std::string getListFName(
         const std::string& directory, StorageStructureID storageStructureID);
 
-    static void createFileForNodePropertyWithDefaultVal(common::table_id_t tableID,
-        const std::string& directory, const catalog::Property& property, uint8_t* defaultVal,
-        bool isDefaultValNull, uint64_t numNodes);
-
     static void createFileForRelPropertyWithDefaultVal(catalog::RelTableSchema* tableSchema,
         const catalog::Property& property, uint8_t* defaultVal, bool isDefaultValNull,
         StorageManager& storageManager);
 
-    static void initializeListsHeaders(const catalog::RelTableSchema* relTableSchema,
-        uint64_t numNodesInTable, const std::string& directory,
-        common::RelDataDirection relDirection);
+    static void initializeListsHeaders(common::table_id_t relTableID, uint64_t numNodesInTable,
+        const std::string& directory, common::RelDataDirection relDirection);
 
     static uint32_t getDataTypeSize(const common::LogicalType& type);
 

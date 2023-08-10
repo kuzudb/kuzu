@@ -20,7 +20,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindLiteralExpression(
 }
 
 std::shared_ptr<Expression> ExpressionBinder::createLiteralExpression(
-    std::unique_ptr<common::Value> value) {
+    std::unique_ptr<Value> value) {
     auto uniqueName = binder->getUniqueExpressionName(value->toString());
     return std::make_unique<LiteralExpression>(std::move(value), uniqueName);
 }
@@ -33,8 +33,7 @@ std::shared_ptr<Expression> ExpressionBinder::createStringLiteralExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::createNullLiteralExpression() {
     return make_shared<LiteralExpression>(
-        std::make_unique<common::Value>(common::Value::createNullValue()),
-        binder->getUniqueExpressionName("NULL"));
+        std::make_unique<Value>(Value::createNullValue()), binder->getUniqueExpressionName("NULL"));
 }
 
 } // namespace binder

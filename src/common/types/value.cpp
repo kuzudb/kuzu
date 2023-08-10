@@ -90,7 +90,7 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
     case LogicalTypeID::NODE:
     case LogicalTypeID::REL: {
         std::vector<std::unique_ptr<Value>> children;
-        for (auto& field : common::StructType::getFields(&dataType)) {
+        for (auto& field : StructType::getFields(&dataType)) {
             children.push_back(std::make_unique<Value>(createDefaultValue(*field->getType())));
         }
         return Value(dataType, std::move(children));
@@ -320,8 +320,9 @@ std::string Value::toString() const {
             result += structVal->children[0]->toString();
             result += "=";
             result += structVal->children[1]->toString();
-            result += (i == childrenSize - 1 ? "}" : ", ");
+            result += (i == childrenSize - 1 ? "" : ", ");
         }
+        result += "}";
         return result;
     }
     case LogicalTypeID::VAR_LIST:
@@ -411,7 +412,7 @@ void Value::copyFromFixedList(const uint8_t* fixedList) {
     }
 }
 
-void Value::copyFromVarList(kuzu::common::ku_list_t& list, const LogicalType& childType) {
+void Value::copyFromVarList(ku_list_t& list, const LogicalType& childType) {
     if (list.size > children.size()) {
         children.reserve(list.size);
         for (auto i = children.size(); i < list.size; ++i) {
@@ -457,16 +458,16 @@ void Value::copyFromUnion(const uint8_t* kuUnion) {
     auto unionValues = unionNullValues + NullBuffer::getNumBytesForNullValues(childrenTypes.size());
     // For union dataType, only one member can be active at a time. So we don't need to copy all
     // union fields into value.
-    auto activeMemberIdx = UnionType::getInternalFieldIdx(*(union_field_idx_t*)unionValues);
+    auto activeFieldIdx = UnionType::getInternalFieldIdx(*(union_field_idx_t*)unionValues);
     auto childValue = children[0].get();
-    childValue->dataType = childrenTypes[activeMemberIdx]->copy();
+    childValue->dataType = childrenTypes[activeFieldIdx]->copy();
     auto curMemberIdx = 0u;
     // Seek to the current active member value.
-    while (curMemberIdx < activeMemberIdx) {
+    while (curMemberIdx < activeFieldIdx) {
         unionValues += storage::StorageUtils::getDataTypeSize(*childrenTypes[curMemberIdx]);
         curMemberIdx++;
     }
-    if (NullBuffer::isNull(unionNullValues, activeMemberIdx)) {
+    if (NullBuffer::isNull(unionNullValues, activeFieldIdx)) {
         childValue->setNull(true);
     } else {
         childValue->setNull(false);
@@ -480,13 +481,13 @@ uint32_t NestedVal::getChildrenSize(const Value* val) {
 
 Value* NestedVal::getChildVal(const Value* val, uint32_t idx) {
     if (idx > val->childrenSize) {
-        throw common::RuntimeException("NestedVal::getChildPointer index out of bound.");
+        throw RuntimeException("NestedVal::getChildPointer index out of bound.");
     }
     return val->children[idx].get();
 }
 
 void Value::serialize(FileInfo* fileInfo, uint64_t& offset) const {
-    SerDeser::serializeValue(*dataType, fileInfo, offset);
+    dataType->serialize(fileInfo, offset);
     SerDeser::serializeValue(isNull_, fileInfo, offset);
     switch (dataType->getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
@@ -530,9 +531,8 @@ void Value::serialize(FileInfo* fileInfo, uint64_t& offset) const {
     SerDeser::serializeValue(childrenSize, fileInfo, offset);
 }
 
-std::unique_ptr<Value> Value::deserialize(kuzu::common::FileInfo* fileInfo, uint64_t& offset) {
-    LogicalType dataType;
-    SerDeser::deserializeValue(dataType, fileInfo, offset);
+std::unique_ptr<Value> Value::deserialize(FileInfo* fileInfo, uint64_t& offset) {
+    LogicalType dataType = *LogicalType::deserialize(fileInfo, offset);
     bool isNull;
     SerDeser::deserializeValue(isNull, fileInfo, offset);
     std::unique_ptr<Value> val = std::make_unique<Value>(createDefaultValue(dataType));

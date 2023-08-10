@@ -19,7 +19,6 @@ class ValueVector {
     friend class StructVector;
     friend class StringVector;
     friend class ArrowColumnVector;
-    friend class ValueVectorUtils;
 
 public:
     explicit ValueVector(LogicalType dataType, storage::MemoryManager* memoryManager = nullptr);
@@ -34,7 +33,6 @@ public:
 
     inline void setAllNull() { nullMask->setAllNull(); }
     inline void setAllNonNull() { nullMask->setAllNonNull(); }
-    inline void setMayContainNulls() { nullMask->setMayContainNulls(); }
     // On return true, there are no null. On return false, there may or may not be nulls.
     inline bool hasNoNullsGuarantee() const { return nullMask->hasNoNullsGuarantee(); }
     inline void setRangeNonNull(uint32_t startPos, uint32_t len) {
@@ -42,13 +40,16 @@ public:
             setNull(startPos + i, false);
         }
     }
-    inline uint64_t* getNullMaskData() { return nullMask->getData(); }
+    inline const uint64_t* getNullMaskData() { return nullMask->getData(); }
     inline void setNull(uint32_t pos, bool isNull) { nullMask->setNull(pos, isNull); }
     inline uint8_t isNull(uint32_t pos) const { return nullMask->isNull(pos); }
     inline void setAsSingleNullEntry() {
         state->selVector->selectedSize = 1;
         setNull(state->selVector->selectedPositions[0], true);
     }
+
+    bool setNullFromBits(const uint64_t* srcNullEntries, uint64_t srcOffset, uint64_t dstOffset,
+        uint64_t numBitsToCopy);
 
     inline uint32_t getNumBytesPerValue() const { return numBytesPerValue; }
 
@@ -148,6 +149,9 @@ public:
         return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->addList(listSize);
     }
+    static inline void resizeDataVector(ValueVector* vector, uint64_t numValues) {
+        reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())->resize(numValues);
+    }
 
     static void copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_t* rowData);
     static void copyToRowData(const ValueVector* vector, uint32_t pos, uint8_t* rowData,
@@ -194,7 +198,7 @@ class UnionVector {
 public:
     static inline ValueVector* getTagVector(const ValueVector* vector) {
         assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::UNION);
-        return StructVector::getFieldVector(vector, 0).get();
+        return StructVector::getFieldVector(vector, UnionType::TAG_FIELD_IDX).get();
     }
 
     static inline void referenceVector(ValueVector* vector, union_field_idx_t fieldIdx,
@@ -219,6 +223,9 @@ public:
     }
 
     static void setArrowColumn(ValueVector* vector, std::shared_ptr<arrow::Array> column);
+
+    // Slice the arrow column vector from the given offset to the end.
+    static void slice(ValueVector* vector, offset_t offset);
 };
 
 class NodeIDVector {

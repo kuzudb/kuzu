@@ -34,7 +34,7 @@ void Lists::readValues(Transaction* transaction, ValueVector* valueVector, ListH
     }
 }
 
-void Lists::readFromList(common::ValueVector* valueVector, ListHandle& listHandle) {
+void Lists::readFromList(ValueVector* valueVector, ListHandle& listHandle) {
     auto pageCursor = PageUtils::getPageElementCursorForPos(
         headers->getCSROffset(listHandle.getBoundNodeOffset()) + listHandle.getStartElemOffset(),
         numElementsPerPage);
@@ -140,7 +140,7 @@ void Lists::fillInMemListsFromFrame(InMemList& inMemList, const uint8_t* frame,
     if (deletedRelOffsetsInList.empty()) {
         memcpy(listData, frameData, numElementsToReadInCurPage * elementSize);
         if (inMemList.hasNullBuffer()) {
-            NullMask::copyNullMask(nullBufferInPage, elemPosInPage, inMemList.getNullMask(),
+            inMemList.getNullMask()->copyFromNullBits(nullBufferInPage, elemPosInPage,
                 nextPosToWriteToInMemList, numElementsToReadInCurPage);
         }
         readPropertyUpdatesToInMemListIfExists(inMemList, updatedPersistentListOffsets,
@@ -164,9 +164,8 @@ void Lists::fillInMemListsFromFrame(InMemList& inMemList, const uint8_t* frame,
                     // Otherwise, we can directly read from persistentStore.
                     memcpy(listData, frameData, elementSize);
                     if (inMemList.hasNullBuffer()) {
-                        NullMask::copyNullMask(nullBufferInPage, elemPosInPage,
-                            inMemList.getNullMask(), nextPosToWriteToInMemList,
-                            1 /* numBitsToCopy */);
+                        inMemList.getNullMask()->copyFromNullBits(nullBufferInPage, elemPosInPage,
+                            nextPosToWriteToInMemList, 1 /* numBitsToCopy */);
                     }
                 }
                 listData += elementSize;
@@ -208,17 +207,17 @@ void ListPropertyLists::readListFromPages(
                 *fileHandle, physicalPageIdx, *wal, TransactionType::READ_ONLY);
         auto frameBytesOffset = getElemByteOffset(pageCursor.elemPosInPage);
         bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) {
-            auto kuListsToRead = reinterpret_cast<common::ku_list_t*>(frame + frameBytesOffset);
+            auto kuListsToRead = reinterpret_cast<ku_list_t*>(frame + frameBytesOffset);
             readNullBitsFromAPage(
                 valueVector, frame, pageCursor.elemPosInPage, vectorPos, numValuesToReadInPage);
             for (auto i = 0u; i < numValuesToReadInPage; i++) {
-                if (!valueVector->isNull(vectorPos)) {
+                if (!valueVector->isNull(vectorPos + i)) {
                     diskOverflowFile.readListToVector(
-                        TransactionType::READ_ONLY, kuListsToRead[i], valueVector, vectorPos);
+                        TransactionType::READ_ONLY, kuListsToRead[i], valueVector, vectorPos + i);
                 }
-                vectorPos++;
             }
         });
+        vectorPos += numValuesToReadInPage;
         pageCursor.nextPage();
     }
 }
@@ -293,8 +292,8 @@ std::unique_ptr<std::vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
 // read a list of nodes and edges.
 void AdjLists::readFromList(ValueVector* valueVector, ListHandle& listHandle) {
     auto startOffsetToRead = listHandle.hasValidRangeToRead() ? listHandle.getEndElemOffset() : 0;
-    auto numValuesToRead = std::min(common::DEFAULT_VECTOR_CAPACITY,
-        (uint64_t)listHandle.getNumValuesInList() - startOffsetToRead);
+    auto numValuesToRead = std::min(
+        DEFAULT_VECTOR_CAPACITY, (uint64_t)listHandle.getNumValuesInList() - startOffsetToRead);
     valueVector->state->initOriginalAndSelectedSize(numValuesToRead);
     // We store the updates for adjLists in listsUpdatesStore, however we store the
     // updates for adjColumn in the WAL version of the page. The adjColumn needs to pass a
@@ -387,12 +386,12 @@ std::unordered_set<uint64_t> RelIDList::getDeletedRelOffsetsInListForNodeOffset(
                 if (listsUpdatesStore->isRelDeletedInPersistentStore(
                         storageStructureIDAndFName.storageStructureID.listFileID, nodeOffset,
                         relID)) {
-                    deletedRelOffsetsInList.emplace(numElementsRead);
+                    deletedRelOffsetsInList.emplace(numElementsRead + i);
                 }
-                numElementsRead++;
                 buffer += elementSize;
             }
         });
+        numElementsRead += numElementsToReadInCurPage;
         pageCursor.nextPage();
     }
     return deletedRelOffsetsInList;
@@ -414,13 +413,13 @@ list_offset_t RelIDList::getListOffset(offset_t nodeOffset, offset_t relOffset) 
             for (auto i = 0u; i < numElementsToReadInCurPage; i++) {
                 auto relIDInList = *(int64_t*)buffer;
                 if (relIDInList == relOffset) {
-                    retVal = numElementsRead;
+                    retVal = numElementsRead + i;
                     return;
                 }
-                numElementsRead++;
                 buffer += elementSize;
             }
         });
+        numElementsRead += numElementsToReadInCurPage;
         pageCursor.nextPage();
     }
     // If we don't find the associated listOffset for the given relID in persistent store list,

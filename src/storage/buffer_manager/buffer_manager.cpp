@@ -57,8 +57,8 @@ void EvictionQueue::removeCandidatesForFile(kuzu::storage::BMFileHandle& fileHan
 }
 
 BufferManager::BufferManager(uint64_t bufferPoolSize)
-    : logger{LoggerUtils::getLogger(common::LoggerConstants::LoggerEnum::BUFFER_MANAGER)},
-      usedMemory{0}, bufferPoolSize{bufferPoolSize}, numEvictionQueueInsertions{0} {
+    : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER)}, usedMemory{0},
+      bufferPoolSize{bufferPoolSize}, numEvictionQueueInsertions{0} {
     logger->info("Done initializing buffer manager.");
     if (bufferPoolSize < BufferPoolConstants::PAGE_4KB_SIZE) {
         throw BufferManagerException("The given buffer pool size should be at least 4KB.");
@@ -81,7 +81,7 @@ BufferManager::BufferManager(uint64_t bufferPoolSize)
 // (3) If multiple threads are writing to the page, they should coordinate separately because they
 // both get access to the same piece of memory.
 uint8_t* BufferManager::pin(
-    BMFileHandle& fileHandle, common::page_idx_t pageIdx, PageReadPolicy pageReadPolicy) {
+    BMFileHandle& fileHandle, page_idx_t pageIdx, PageReadPolicy pageReadPolicy) {
     auto pageState = fileHandle.getPageState(pageIdx);
     while (true) {
         auto currStateAndVersion = pageState->getStateAndVersion();
@@ -108,8 +108,8 @@ uint8_t* BufferManager::pin(
     }
 }
 
-void BufferManager::optimisticRead(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
-    const std::function<void(uint8_t*)>& func) {
+void BufferManager::optimisticRead(
+    BMFileHandle& fileHandle, page_idx_t pageIdx, const std::function<void(uint8_t*)>& func) {
     auto pageState = fileHandle.getPageState(pageIdx);
     while (true) {
         auto currStateAndVersion = pageState->getStateAndVersion();
@@ -154,7 +154,7 @@ void BufferManager::unpin(BMFileHandle& fileHandle, page_idx_t pageIdx) {
 // Lastly, we double check if the needed memory is available. If not, we free the memory we reserved
 // and return false, otherwise, we load the page to its corresponding frame and return true.
 bool BufferManager::claimAFrame(
-    BMFileHandle& fileHandle, common::page_idx_t pageIdx, PageReadPolicy pageReadPolicy) {
+    BMFileHandle& fileHandle, page_idx_t pageIdx, PageReadPolicy pageReadPolicy) {
     page_offset_t pageSizeToClaim = fileHandle.getPageSize();
     // Reserve the memory for the page.
     auto currentUsedMem = reserveUsedMemory(pageSizeToClaim);
@@ -193,7 +193,7 @@ bool BufferManager::claimAFrame(
 }
 
 void BufferManager::addToEvictionQueue(
-    BMFileHandle* fileHandle, common::page_idx_t pageIdx, PageState* pageState) {
+    BMFileHandle* fileHandle, page_idx_t pageIdx, PageState* pageState) {
     auto currStateAndVersion = pageState->getStateAndVersion();
     if (++numEvictionQueueInsertions == BufferPoolConstants::EVICTION_QUEUE_PURGING_INTERVAL) {
         evictionQueue->removeNonEvictableCandidates();
@@ -222,7 +222,7 @@ uint64_t BufferManager::tryEvictPage(EvictionCandidate& candidate) {
 }
 
 void BufferManager::cachePageIntoFrame(
-    BMFileHandle& fileHandle, common::page_idx_t pageIdx, PageReadPolicy pageReadPolicy) {
+    BMFileHandle& fileHandle, page_idx_t pageIdx, PageReadPolicy pageReadPolicy) {
     auto pageState = fileHandle.getPageState(pageIdx);
     pageState->clearDirty();
     if (pageReadPolicy == PageReadPolicy::READ_PAGE) {
@@ -231,7 +231,7 @@ void BufferManager::cachePageIntoFrame(
     }
 }
 
-void BufferManager::flushIfDirtyWithoutLock(BMFileHandle& fileHandle, common::page_idx_t pageIdx) {
+void BufferManager::flushIfDirtyWithoutLock(BMFileHandle& fileHandle, page_idx_t pageIdx) {
     auto pageState = fileHandle.getPageState(pageIdx);
     if (pageState->isDirty()) {
         FileUtils::writeToFile(fileHandle.getFileInfo(), getFrame(fileHandle, pageIdx),
@@ -269,7 +269,7 @@ void BufferManager::removePageFromFrameIfNecessary(BMFileHandle& fileHandle, pag
 
 // NOTE: We assume the page is not pinned (locked) here.
 void BufferManager::removePageFromFrame(
-    BMFileHandle& fileHandle, common::page_idx_t pageIdx, bool shouldFlush) {
+    BMFileHandle& fileHandle, page_idx_t pageIdx, bool shouldFlush) {
     auto pageState = fileHandle.getPageState(pageIdx);
     pageState->spinLock(pageState->getStateAndVersion());
     if (shouldFlush) {

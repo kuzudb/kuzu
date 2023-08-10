@@ -20,7 +20,7 @@ struct InMemList {
 
     inline uint8_t* getListData() const { return listData.get(); }
     inline bool hasNullBuffer() const { return nullMask != nullptr; }
-    inline uint64_t* getNullMask() const { return nullMask->getData(); }
+    inline common::NullMask* getNullMask() const { return nullMask.get(); }
 
     uint64_t numElements;
     std::unique_ptr<uint8_t[]> listData;

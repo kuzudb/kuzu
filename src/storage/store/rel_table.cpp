@@ -53,10 +53,10 @@ void DirectedRelTableData::initializeColumns(RelTableSchema* tableSchema, WAL* w
                                              wal->getDirectory(), tableSchema->tableID, direction),
         LogicalType(LogicalTypeID::INTERNAL_ID), &bufferManager, wal);
     for (auto& property : tableSchema->properties) {
-        propertyColumns[property.propertyID] = ColumnFactory::getColumn(
+        propertyColumns[property->getPropertyID()] = ColumnFactory::getColumn(
             StorageUtils::getRelPropertyColumnStructureIDAndFName(
-                wal->getDirectory(), tableSchema->tableID, direction, property.propertyID),
-            property.dataType, &bufferManager, wal);
+                wal->getDirectory(), tableSchema->tableID, direction, property->getPropertyID()),
+            *property->getDataType(), &bufferManager, wal);
     }
 }
 
@@ -65,10 +65,11 @@ void DirectedRelTableData::initializeLists(RelTableSchema* tableSchema, WAL* wal
                                               wal->getDirectory(), tableSchema->tableID, direction),
         tableSchema->getNbrTableID(direction), &bufferManager, wal, listsUpdatesStore);
     for (auto& property : tableSchema->properties) {
-        propertyLists[property.propertyID] = ListsFactory::getLists(
+        propertyLists[property->getPropertyID()] = ListsFactory::getLists(
             StorageUtils::getRelPropertyListsStructureIDAndFName(
-                wal->getDirectory(), tableSchema->tableID, direction, property),
-            property.dataType, adjLists->getHeaders(), &bufferManager, wal, listsUpdatesStore);
+                wal->getDirectory(), tableSchema->tableID, direction, *property),
+            *property->getDataType(), adjLists->getHeaders(), &bufferManager, wal,
+            listsUpdatesStore);
     }
 }
 
@@ -77,19 +78,19 @@ void DirectedRelTableData::resetColumnsAndLists(
     if (isSingleMultiplicity()) {
         adjColumn.reset();
         for (auto& property : tableSchema->properties) {
-            propertyColumns[property.propertyID].reset();
+            propertyColumns[property->getPropertyID()].reset();
         }
     } else {
         adjLists.reset();
         for (auto& property : tableSchema->properties) {
-            propertyLists[property.propertyID].reset();
+            propertyLists[property->getPropertyID()].reset();
         }
     }
 }
 
 void DirectedRelTableData::scanColumns(transaction::Transaction* transaction,
-    RelTableScanState& scanState, common::ValueVector* inNodeIDVector,
-    const std::vector<common::ValueVector*>& outputVectors) {
+    RelTableScanState& scanState, ValueVector* inNodeIDVector,
+    const std::vector<ValueVector*>& outputVectors) {
     // Note: The scan operator should guarantee that the first property in the output is adj column.
     adjColumn->read(transaction, inNodeIDVector, outputVectors[0]);
     if (!NodeIDVector::discardNull(*outputVectors[0])) {
@@ -113,7 +114,7 @@ void DirectedRelTableData::scanColumns(transaction::Transaction* transaction,
 
 void DirectedRelTableData::scanLists(transaction::Transaction* transaction,
     RelTableScanState& scanState, ValueVector* inNodeIDVector,
-    const std::vector<common::ValueVector*>& outputVectors) {
+    const std::vector<ValueVector*>& outputVectors) {
     if (scanState.syncState->isBoundNodeOffsetInValid()) {
         auto currentIdx = inNodeIDVector->state->selVector->selectedPositions[0];
         if (inNodeIDVector->isNull(currentIdx)) {
@@ -141,7 +142,7 @@ void DirectedRelTableData::scanLists(transaction::Transaction* transaction,
 }
 
 // Fill nbr table IDs for the vector scanned from an adj column.
-void DirectedRelTableData::fillNbrTableIDs(common::ValueVector* vector) const {
+void DirectedRelTableData::fillNbrTableIDs(ValueVector* vector) const {
     assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID);
     auto nodeIDs = (internalID_t*)vector->getData();
     for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
@@ -151,7 +152,7 @@ void DirectedRelTableData::fillNbrTableIDs(common::ValueVector* vector) const {
 }
 
 // Fill rel table IDs for the vector scanned from a RelID column.
-void DirectedRelTableData::fillRelTableIDs(common::ValueVector* vector) const {
+void DirectedRelTableData::fillRelTableIDs(ValueVector* vector) const {
     auto internalRelIDs = (internalID_t*)vector->getData();
     for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
         auto pos = vector->state->selVector->selectedPositions[i];
@@ -159,8 +160,8 @@ void DirectedRelTableData::fillRelTableIDs(common::ValueVector* vector) const {
     }
 }
 
-void DirectedRelTableData::insertRel(common::ValueVector* boundVector,
-    common::ValueVector* nbrVector, const std::vector<common::ValueVector*>& relPropertyVectors) {
+void DirectedRelTableData::insertRel(ValueVector* boundVector, ValueVector* nbrVector,
+    const std::vector<ValueVector*>& relPropertyVectors) {
     if (!isSingleMultiplicity()) {
         return;
     }
@@ -315,8 +316,8 @@ void RelTable::deleteRel(
     listsUpdatesStore->deleteRelIfNecessary(srcNodeIDVector, dstNodeIDVector, relIDVector);
 }
 
-void RelTable::updateRel(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
-    common::ValueVector* relIDVector, common::ValueVector* propertyVector, uint32_t propertyID) {
+void RelTable::updateRel(ValueVector* srcNodeIDVector, ValueVector* dstNodeIDVector,
+    ValueVector* relIDVector, ValueVector* propertyVector, uint32_t propertyID) {
     assert(srcNodeIDVector->state->isFlat() && dstNodeIDVector->state->isFlat() &&
            relIDVector->state->isFlat() && propertyVector->state->isFlat());
     auto srcNode = srcNodeIDVector->getValue<nodeID_t>(
@@ -343,15 +344,14 @@ void RelTable::initEmptyRelsForNewNode(nodeID_t& nodeID) {
     listsUpdatesStore->initNewlyAddedNodes(nodeID);
 }
 
-void RelTable::batchInitEmptyRelsForNewNodes(
-    const RelTableSchema* relTableSchema, uint64_t numNodesInTable) {
+void RelTable::batchInitEmptyRelsForNewNodes(table_id_t relTableID, uint64_t numNodesInTable) {
     fwdRelTableData->batchInitEmptyRelsForNewNodes(
-        relTableSchema, numNodesInTable, wal->getDirectory());
+        relTableID, numNodesInTable, wal->getDirectory());
     bwdRelTableData->batchInitEmptyRelsForNewNodes(
-        relTableSchema, numNodesInTable, wal->getDirectory());
+        relTableID, numNodesInTable, wal->getDirectory());
 }
 
-void RelTable::addProperty(Property property, RelTableSchema& relTableSchema) {
+void RelTable::addProperty(const Property& property, RelTableSchema& relTableSchema) {
     fwdRelTableData->addProperty(property, wal);
     bwdRelTableData->addProperty(property, wal);
     listsUpdatesStore->updateSchema(relTableSchema);
@@ -393,25 +393,26 @@ void DirectedRelTableData::removeProperty(property_id_t propertyID) {
     }
 }
 
-void DirectedRelTableData::addProperty(Property& property, WAL* wal) {
+void DirectedRelTableData::addProperty(const Property& property, WAL* wal) {
     if (isSingleMultiplicity()) {
-        propertyColumns.emplace(property.propertyID,
+        propertyColumns.emplace(property.getPropertyID(),
             ColumnFactory::getColumn(
                 StorageUtils::getRelPropertyColumnStructureIDAndFName(
-                    wal->getDirectory(), tableID, direction, property.propertyID),
-                property.dataType, &bufferManager, wal));
+                    wal->getDirectory(), tableID, direction, property.getPropertyID()),
+                *property.getDataType(), &bufferManager, wal));
     } else {
-        propertyLists.emplace(property.propertyID,
+        propertyLists.emplace(property.getPropertyID(),
             ListsFactory::getLists(StorageUtils::getRelPropertyListsStructureIDAndFName(
                                        wal->getDirectory(), tableID, direction, property),
-                property.dataType, adjLists->getHeaders(), &bufferManager, wal, listsUpdatesStore));
+                *property.getDataType(), adjLists->getHeaders(), &bufferManager, wal,
+                listsUpdatesStore));
     }
 }
 
 void DirectedRelTableData::batchInitEmptyRelsForNewNodes(
-    const RelTableSchema* relTableSchema, uint64_t numNodesInTable, const std::string& directory) {
+    table_id_t relTableID, uint64_t numNodesInTable, const std::string& directory) {
     if (!isSingleMultiplicity()) {
-        StorageUtils::initializeListsHeaders(relTableSchema, numNodesInTable, directory, direction);
+        StorageUtils::initializeListsHeaders(relTableID, numNodesInTable, directory, direction);
     }
 }
 

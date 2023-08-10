@@ -6,7 +6,7 @@
 #include "bfs_state.h"
 #include "common/query_rel_type.h"
 #include "frontier_scanner.h"
-#include "planner/logical_plan/logical_operator/recursive_join_type.h"
+#include "planner/logical_plan/extend/recursive_join_type.h"
 #include "processor/operator/physical_operator.h"
 #include "processor/operator/result_collector.h"
 #include "processor/operator/table_scan/factorized_table_scan.h"

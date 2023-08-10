@@ -1,18 +1,20 @@
-#include "planner/logical_plan/logical_operator/logical_explain.h"
+#include "planner/logical_plan/logical_explain.h"
+
+using namespace kuzu::common;
 
 namespace kuzu {
 namespace planner {
 
 void LogicalExplain::computeSchema() {
     switch (explainType) {
-    case common::ExplainType::PROFILE:
+    case ExplainType::PROFILE:
         copyChildSchema(0);
         break;
-    case common::ExplainType::PHYSICAL_PLAN:
+    case ExplainType::PHYSICAL_PLAN:
         createEmptySchema();
         break;
     default:
-        throw common::NotImplementedException{"LogicalExplain::computeFlatSchema"};
+        throw NotImplementedException{"LogicalExplain::computeFlatSchema"};
     }
 }
 

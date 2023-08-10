@@ -1,4 +1,4 @@
-add_subdirectory(mapper)
+add_subdirectory(map)
 add_subdirectory(operator)
 add_subdirectory(result)
 

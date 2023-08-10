@@ -1,24 +1,27 @@
 #include "optimizer/factorization_rewriter.h"
 
-#include "planner/logical_plan/logical_operator/flatten_resolver.h"
-#include "planner/logical_plan/logical_operator/logical_aggregate.h"
-#include "planner/logical_plan/logical_operator/logical_create.h"
-#include "planner/logical_plan/logical_operator/logical_delete.h"
-#include "planner/logical_plan/logical_operator/logical_distinct.h"
-#include "planner/logical_plan/logical_operator/logical_extend.h"
-#include "planner/logical_plan/logical_operator/logical_filter.h"
-#include "planner/logical_plan/logical_operator/logical_flatten.h"
-#include "planner/logical_plan/logical_operator/logical_hash_join.h"
-#include "planner/logical_plan/logical_operator/logical_intersect.h"
-#include "planner/logical_plan/logical_operator/logical_limit.h"
-#include "planner/logical_plan/logical_operator/logical_order_by.h"
-#include "planner/logical_plan/logical_operator/logical_projection.h"
-#include "planner/logical_plan/logical_operator/logical_recursive_extend.h"
-#include "planner/logical_plan/logical_operator/logical_set.h"
-#include "planner/logical_plan/logical_operator/logical_skip.h"
-#include "planner/logical_plan/logical_operator/logical_union.h"
-#include "planner/logical_plan/logical_operator/logical_unwind.h"
+#include "planner/logical_plan/copy/logical_copy_to.h"
+#include "planner/logical_plan/extend/logical_extend.h"
+#include "planner/logical_plan/extend/logical_recursive_extend.h"
+#include "planner/logical_plan/factorization/flatten_resolver.h"
+#include "planner/logical_plan/logical_aggregate.h"
+#include "planner/logical_plan/logical_distinct.h"
+#include "planner/logical_plan/logical_filter.h"
+#include "planner/logical_plan/logical_flatten.h"
+#include "planner/logical_plan/logical_hash_join.h"
+#include "planner/logical_plan/logical_intersect.h"
+#include "planner/logical_plan/logical_limit.h"
+#include "planner/logical_plan/logical_order_by.h"
+#include "planner/logical_plan/logical_projection.h"
+#include "planner/logical_plan/logical_skip.h"
+#include "planner/logical_plan/logical_union.h"
+#include "planner/logical_plan/logical_unwind.h"
+#include "planner/logical_plan/persistent/logical_create.h"
+#include "planner/logical_plan/persistent/logical_delete.h"
+#include "planner/logical_plan/persistent/logical_merge.h"
+#include "planner/logical_plan/persistent/logical_set.h"
 
+using namespace kuzu::binder;
 using namespace kuzu::planner;
 
 namespace kuzu {
@@ -133,9 +136,10 @@ void FactorizationRewriter::visitFilter(planner::LogicalOperator* op) {
 
 void FactorizationRewriter::visitSetNodeProperty(planner::LogicalOperator* op) {
     auto setNodeProperty = (LogicalSetNodeProperty*)op;
-    for (auto i = 0u; i < setNodeProperty->getNumNodes(); ++i) {
-        auto lhsNodeID = setNodeProperty->getNode(i)->getInternalIDProperty();
-        auto rhs = setNodeProperty->getSetItem(i).second;
+    for (auto& info : setNodeProperty->getInfosRef()) {
+        auto node = reinterpret_cast<NodeExpression*>(info->nodeOrRel.get());
+        auto lhsNodeID = node->getInternalIDProperty();
+        auto rhs = info->setItem.second;
         // flatten rhs
         auto rhsDependentGroupsPos = op->getChild(0)->getSchema()->getDependentGroupsPos(rhs);
         auto rhsGroupsPosToFlatten = factorization::FlattenAllButOne::getGroupsPosToFlatten(
@@ -155,11 +159,17 @@ void FactorizationRewriter::visitSetNodeProperty(planner::LogicalOperator* op) {
 
 void FactorizationRewriter::visitSetRelProperty(planner::LogicalOperator* op) {
     auto setRelProperty = (LogicalSetRelProperty*)op;
-    for (auto i = 0u; i < setRelProperty->getNumRels(); ++i) {
+    for (auto i = 0u; i < setRelProperty->getInfosRef().size(); ++i) {
         auto groupsPosToFlatten = setRelProperty->getGroupsPosToFlatten(i);
         setRelProperty->setChild(
             0, appendFlattens(setRelProperty->getChild(0), groupsPosToFlatten));
     }
+}
+
+void FactorizationRewriter::visitDeleteNode(planner::LogicalOperator* op) {
+    auto deleteNode = (LogicalDeleteNode*)op;
+    auto groupsPosToFlatten = deleteNode->getGroupsPosToFlatten();
+    deleteNode->setChild(0, appendFlattens(deleteNode->getChild(0), groupsPosToFlatten));
 }
 
 void FactorizationRewriter::visitDeleteRel(planner::LogicalOperator* op) {
@@ -180,6 +190,18 @@ void FactorizationRewriter::visitCreateRel(planner::LogicalOperator* op) {
     auto createRel = (LogicalCreateRel*)op;
     auto groupsPosToFlatten = createRel->getGroupsPosToFlatten();
     createRel->setChild(0, appendFlattens(createRel->getChild(0), groupsPosToFlatten));
+}
+
+void FactorizationRewriter::visitMerge(planner::LogicalOperator* op) {
+    auto merge = (LogicalMerge*)op;
+    auto groupsPosToFlatten = merge->getGroupsPosToFlatten();
+    merge->setChild(0, appendFlattens(merge->getChild(0), groupsPosToFlatten));
+}
+
+void FactorizationRewriter::visitCopyTo(planner::LogicalOperator* op) {
+    auto copyTo = (LogicalCopyTo*)op;
+    auto groupsPosToFlatten = copyTo->getGroupsPosToFlatten();
+    copyTo->setChild(0, appendFlattens(copyTo->getChild(0), groupsPosToFlatten));
 }
 
 std::shared_ptr<planner::LogicalOperator> FactorizationRewriter::appendFlattens(

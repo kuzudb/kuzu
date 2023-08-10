@@ -1,10 +1,12 @@
 #include "binder/query/updating_clause/bound_create_clause.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace binder {
 
 BoundCreateClause::BoundCreateClause(const BoundCreateClause& other)
-    : BoundUpdatingClause{common::ClauseType::CREATE} {
+    : BoundUpdatingClause{ClauseType::CREATE} {
     for (auto& info : other.infos) {
         infos.push_back(info->copy());
     }

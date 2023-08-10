@@ -65,8 +65,7 @@ bool PathPropertyProbe::getNextTuplesInternal(ExecutionContext* context) {
 }
 
 void PathPropertyProbe::probe(kuzu::processor::JoinHashTable* hashTable, uint64_t sizeProbed,
-    uint64_t sizeToProbe, common::ValueVector* idVector,
-    const std::vector<common::ValueVector*>& propertyVectors,
+    uint64_t sizeToProbe, ValueVector* idVector, const std::vector<ValueVector*>& propertyVectors,
     const std::vector<ft_col_idx_t>& colIndicesToScan) {
     // Hash
     for (auto i = 0u; i < sizeToProbe; ++i) {

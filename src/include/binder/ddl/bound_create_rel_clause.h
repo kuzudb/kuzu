@@ -7,7 +7,8 @@ namespace binder {
 
 class BoundCreateRelClause : public BoundCreateTable {
 public:
-    BoundCreateRelClause(std::string tableName, std::vector<catalog::Property> properties,
+    BoundCreateRelClause(std::string tableName,
+        std::vector<std::unique_ptr<catalog::Property>> properties,
         catalog::RelMultiplicity relMultiplicity, common::table_id_t srcTableID,
         common::table_id_t dstTableID)
         : BoundCreateTable{common::StatementType::CREATE_REL_TABLE, std::move(tableName),

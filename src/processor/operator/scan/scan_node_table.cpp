@@ -9,7 +9,7 @@ bool ScanSingleNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     if (!children[0]->getNextTuple(context)) {
         return false;
     }
-    table->scan(transaction, inputNodeIDVector, propertyColumnIds, outPropertyVectors);
+    table->read(transaction, inputNodeIDVector, propertyColumnIds, outPropertyVectors);
     return true;
 }
 
@@ -21,7 +21,7 @@ bool ScanMultiNodeTables::getNextTuplesInternal(ExecutionContext* context) {
         inputNodeIDVector
             ->getValue<nodeID_t>(inputNodeIDVector->state->selVector->selectedPositions[0])
             .tableID;
-    tables.at(tableID)->scan(
+    tables.at(tableID)->read(
         transaction, inputNodeIDVector, tableIDToScanColumnIds.at(tableID), outPropertyVectors);
     return true;
 }

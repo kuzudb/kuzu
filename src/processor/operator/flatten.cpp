@@ -12,7 +12,7 @@ void Flatten::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* con
 
 bool Flatten::getNextTuplesInternal(ExecutionContext* context) {
     if (isCurrIdxInitialOrLast()) {
-        dataChunkToFlatten->state->currIdx = -1;
+        dataChunkToFlatten->state->setToUnflat();
         restoreSelVector(dataChunkToFlatten->state->selVector);
         if (!children[0]->getNextTuple(context)) {
             return false;

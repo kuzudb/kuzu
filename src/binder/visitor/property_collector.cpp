@@ -1,11 +1,14 @@
 #include "binder/visitor/property_collector.h"
 
-#include "binder/expression/expression_visitor.h"
+#include "binder/expression_visitor.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
 #include "binder/query/reading_clause/bound_unwind_clause.h"
 #include "binder/query/updating_clause/bound_create_clause.h"
 #include "binder/query/updating_clause/bound_delete_clause.h"
+#include "binder/query/updating_clause/bound_merge_clause.h"
 #include "binder/query/updating_clause/bound_set_clause.h"
+
+using namespace kuzu::common;
 
 namespace kuzu {
 namespace binder {
@@ -21,7 +24,7 @@ expression_vector PropertyCollector::getProperties() {
 void PropertyCollector::visitMatch(const BoundReadingClause& readingClause) {
     auto& matchClause = (BoundMatchClause&)readingClause;
     for (auto& rel : matchClause.getQueryGraphCollection()->getQueryRels()) {
-        if (rel->getRelType() == common::QueryRelType::NON_RECURSIVE) {
+        if (rel->getRelType() == QueryRelType::NON_RECURSIVE) {
             properties.insert(rel->getInternalIDProperty());
         }
     }
@@ -44,10 +47,6 @@ void PropertyCollector::visitSet(const BoundUpdatingClause& updatingClause) {
 
 void PropertyCollector::visitDelete(const BoundUpdatingClause& updatingClause) {
     auto& boundDeleteClause = (BoundDeleteClause&)updatingClause;
-    for (auto& info : boundDeleteClause.getNodeInfos()) {
-        auto extraInfo = (ExtraDeleteNodeInfo*)info->extraInfo.get();
-        properties.insert(extraInfo->primaryKey);
-    }
     for (auto& info : boundDeleteClause.getRelInfos()) {
         auto rel = (RelExpression*)info->nodeOrRel.get();
         properties.insert(rel->getInternalIDProperty());
@@ -60,6 +59,29 @@ void PropertyCollector::visitCreate(const BoundUpdatingClause& updatingClause) {
         for (auto& setItem : info->setItems) {
             collectPropertyExpressions(setItem.second);
         }
+    }
+}
+
+void PropertyCollector::visitMerge(const BoundUpdatingClause& updatingClause) {
+    auto& boundMergeClause = (BoundMergeClause&)updatingClause;
+    for (auto& rel : boundMergeClause.getQueryGraphCollection()->getQueryRels()) {
+        if (rel->getRelType() == QueryRelType::NON_RECURSIVE) {
+            properties.insert(rel->getInternalIDProperty());
+        }
+    }
+    if (boundMergeClause.hasPredicate()) {
+        collectPropertyExpressions(boundMergeClause.getPredicate());
+    }
+    for (auto& info : boundMergeClause.getCreateInfosRef()) {
+        for (auto& setItem : info->setItems) {
+            collectPropertyExpressions(setItem.second);
+        }
+    }
+    for (auto& info : boundMergeClause.getOnMatchSetInfosRef()) {
+        collectPropertyExpressions(info->setItem.second);
+    }
+    for (auto& info : boundMergeClause.getOnCreateSetInfosRef()) {
+        collectPropertyExpressions(info->setItem.second);
     }
 }
 

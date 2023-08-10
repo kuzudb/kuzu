@@ -111,8 +111,8 @@ void ReadNPYSharedState::countNumRows() {
         if (idx == 0) {
             firstFileRows = numRows;
         }
-        auto tableType = tableSchema->getProperty(idx).dataType;
-        reader->validate(tableType, firstFileRows, tableSchema->tableName);
+        auto tableType = tableSchema->getProperty(idx)->getDataType();
+        reader->validate(*tableType, firstFileRows, tableSchema->tableName);
         auto numBlocks = (uint64_t)((numRows + CopyConstants::NUM_ROWS_PER_BLOCK_FOR_NPY) /
                                     CopyConstants::NUM_ROWS_PER_BLOCK_FOR_NPY);
         std::vector<uint64_t> numRowsPerBlock(numBlocks, CopyConstants::NUM_ROWS_PER_BLOCK_FOR_NPY);

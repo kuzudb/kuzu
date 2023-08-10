@@ -281,10 +281,10 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColDateUnflatTest) {
     std::shared_ptr<ValueVector> dateValueVector =
         std::make_shared<ValueVector>(LogicalTypeID::DATE, memoryManager.get());
     dateValueVector->setValue(
-        0, Date::FromCString("2035-07-04", strlen("2035-07-04"))); // date after 1970-01-01
+        0, Date::fromCString("2035-07-04", strlen("2035-07-04"))); // date after 1970-01-01
     dateValueVector->setNull(1, true);
     dateValueVector->setValue(
-        2, Date::FromCString("1949-10-01", strlen("1949-10-01"))); // date before 1970-01-01
+        2, Date::fromCString("1949-10-01", strlen("1949-10-01"))); // date before 1970-01-01
     dataChunk->insert(0, dateValueVector);
     std::vector<ValueVector*> valueVectors;
     valueVectors.emplace_back(dateValueVector.get());
@@ -321,11 +321,11 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColTimestampUnflatTest) {
         std::make_shared<ValueVector>(LogicalTypeID::TIMESTAMP, memoryManager.get());
     // timestamp before 1970-01-01
     timestampValueVector->setValue(
-        0, Timestamp::FromCString("1962-04-07 11:12:35.123", strlen("1962-04-07 11:12:35.123")));
+        0, Timestamp::fromCString("1962-04-07 11:12:35.123", strlen("1962-04-07 11:12:35.123")));
     timestampValueVector->setNull(1, true);
     // timestamp after 1970-01-01
     timestampValueVector->setValue(
-        2, Timestamp::FromCString("2035-07-01 11:14:33", strlen("2035-07-01 11:14:33")));
+        2, Timestamp::fromCString("2035-07-01 11:14:33", strlen("2035-07-01 11:14:33")));
     dataChunk->insert(0, timestampValueVector);
     std::vector<ValueVector*> valueVectors;
     valueVectors.emplace_back(timestampValueVector.get());
@@ -371,7 +371,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColIntervalUnflatTest) {
     std::shared_ptr<ValueVector> intervalValueVector =
         std::make_shared<ValueVector>(LogicalTypeID::INTERVAL, memoryManager.get());
     intervalValueVector->setValue(
-        0, Interval::FromCString("18 hours 55 days 13 years 8 milliseconds 3 months",
+        0, Interval::fromCString("18 hours 55 days 13 years 8 milliseconds 3 months",
                strlen("18 hours 55 days 13 years 8 milliseconds 3 months")));
     intervalValueVector->setNull(1, true);
     dataChunk->insert(0, intervalValueVector);
@@ -667,12 +667,12 @@ TEST_F(OrderByKeyEncoderTest, multipleOrderByColSingleBlockTest) {
     stringFlatValueVector->setValue<std::string>(1, "this is a test string!!");
     stringFlatValueVector->setValue<std::string>(2, "short str");
     timestampFlatValueVector->setValue(
-        0, Timestamp::FromCString("2008-08-08 20:20:20", strlen("2008-08-08 20:20:20")));
+        0, Timestamp::fromCString("2008-08-08 20:20:20", strlen("2008-08-08 20:20:20")));
     timestampFlatValueVector->setValue(
-        1, Timestamp::FromCString("1962-04-07 11:12:35.123", strlen("1962-04-07 11:12:35.123")));
+        1, Timestamp::fromCString("1962-04-07 11:12:35.123", strlen("1962-04-07 11:12:35.123")));
     timestampFlatValueVector->setNull(2, true);
-    dateFlatValueVector->setValue(0, Date::FromCString("1978-09-12", strlen("1978-09-12")));
-    dateFlatValueVector->setValue(1, Date::FromCString("2035-07-04", strlen("2035-07-04")));
+    dateFlatValueVector->setValue(0, Date::fromCString("1978-09-12", strlen("1978-09-12")));
+    dateFlatValueVector->setValue(1, Date::fromCString("2035-07-04", strlen("2035-07-04")));
     dateFlatValueVector->setNull(2, true);
     mockDataChunk->state->selVector->resetSelectorToValuePosBuffer();
     mockDataChunk->state->selVector->selectedSize = 1;

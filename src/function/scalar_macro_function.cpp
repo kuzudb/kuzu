@@ -43,7 +43,7 @@ std::unique_ptr<ScalarMacroFunction> ScalarMacroFunction::deserialize(
     SerDeser::deserializeVector(positionalArgs, fileInfo, offset);
     default_macro_args defaultArgs;
     uint64_t vectorSize;
-    SerDeser::deserializeValue<uint64_t>(vectorSize, fileInfo, offset);
+    SerDeser::deserializeValue(vectorSize, fileInfo, offset);
     defaultArgs.reserve(vectorSize);
     for (auto i = 0u; i < vectorSize; i++) {
         std::string key;

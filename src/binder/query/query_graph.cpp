@@ -1,6 +1,6 @@
-#include "binder/query/reading_clause/query_graph.h"
+#include "binder/query/query_graph.h"
 
-#include "binder/expression/expression_visitor.h"
+#include "binder/expression_visitor.h"
 
 namespace kuzu {
 namespace binder {

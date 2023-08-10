@@ -233,7 +233,7 @@ void OrderByKeyEncoder::getEncodingFunction(PhysicalTypeID physicalType, encode_
     }
     default: {
         throw RuntimeException("Cannot encode data with physical type: " +
-                               common::PhysicalTypeUtils::physicalTypeToString(physicalType));
+                               PhysicalTypeUtils::physicalTypeToString(physicalType));
     }
     }
 }
@@ -298,7 +298,7 @@ void OrderByKeyEncoder::encodeData(timestamp_t data, uint8_t* resultPtr, bool sw
 template<>
 void OrderByKeyEncoder::encodeData(interval_t data, uint8_t* resultPtr, bool swapBytes) {
     int64_t months, days, micros;
-    Interval::NormalizeIntervalEntries(data, months, days, micros);
+    Interval::normalizeIntervalEntries(data, months, days, micros);
     encodeData((int32_t)months, resultPtr, swapBytes);
     resultPtr += sizeof(data.months);
     encodeData((int32_t)days, resultPtr, swapBytes);

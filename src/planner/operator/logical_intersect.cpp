@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_operator/logical_intersect.h"
+#include "planner/logical_plan/logical_intersect.h"
 
 namespace kuzu {
 namespace planner {

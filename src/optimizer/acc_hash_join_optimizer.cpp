@@ -1,13 +1,14 @@
 #include "optimizer/acc_hash_join_optimizer.h"
 
 #include "optimizer/logical_operator_collector.h"
-#include "planner/logical_plan/logical_operator/logical_accumulate.h"
-#include "planner/logical_plan/logical_operator/logical_hash_join.h"
-#include "planner/logical_plan/logical_operator/logical_intersect.h"
-#include "planner/logical_plan/logical_operator/logical_recursive_extend.h"
-#include "planner/logical_plan/logical_operator/logical_scan_node.h"
-#include "planner/logical_plan/logical_operator/logical_semi_masker.h"
+#include "planner/logical_plan/extend/logical_recursive_extend.h"
+#include "planner/logical_plan/logical_accumulate.h"
+#include "planner/logical_plan/logical_hash_join.h"
+#include "planner/logical_plan/logical_intersect.h"
+#include "planner/logical_plan/scan/logical_scan_node.h"
+#include "planner/logical_plan/sip/logical_semi_masker.h"
 
+using namespace kuzu::common;
 using namespace kuzu::planner;
 
 namespace kuzu {
@@ -74,7 +75,7 @@ bool HashJoinSIPOptimizer::tryBuildToProbeHJSIP(planner::LogicalOperator* op) {
     if (hashJoin->getSIP() == planner::SidewaysInfoPassing::PROHIBIT_BUILD_TO_PROBE) {
         return false;
     }
-    if (hashJoin->getJoinType() != common::JoinType::INNER) {
+    if (hashJoin->getJoinType() != JoinType::INNER) {
         return false;
     }
     if (!subPlanContainsFilter(hashJoin->getChild(1).get())) {
@@ -219,7 +220,7 @@ std::shared_ptr<planner::LogicalOperator> HashJoinSIPOptimizer::appendNodeSemiMa
         node = recursiveExtend->getNbrNode();
     } break;
     default:
-        throw common::NotImplementedException("HashJoinSIPOptimizer::appendSemiMask");
+        throw NotImplementedException("HashJoinSIPOptimizer::appendSemiMask");
     }
     auto semiMasker = std::make_shared<LogicalSemiMasker>(
         SemiMaskType::NODE, node->getInternalIDProperty(), node, opsToApplySemiMask, child);
@@ -245,7 +246,7 @@ std::shared_ptr<planner::LogicalOperator> HashJoinSIPOptimizer::appendPathSemiMa
 std::shared_ptr<planner::LogicalOperator> HashJoinSIPOptimizer::appendAccumulate(
     std::shared_ptr<planner::LogicalOperator> child) {
     auto accumulate =
-        std::make_shared<LogicalAccumulate>(common::AccumulateType::REGULAR, std::move(child));
+        std::make_shared<LogicalAccumulate>(AccumulateType::REGULAR, std::move(child));
     accumulate->computeFlatSchema();
     return accumulate;
 }

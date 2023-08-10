@@ -1,6 +1,6 @@
 #include "binder/binder.h"
-#include "binder/expression/expression_visitor.h"
 #include "binder/expression/literal_expression.h"
+#include "binder/expression_visitor.h"
 #include "parser/expression/parsed_property_expression.h"
 
 using namespace kuzu::common;
@@ -64,7 +64,7 @@ static bool isAggregateExpression(
     if (expression->hasAlias() && scope->contains(expression->getAlias())) {
         return false;
     }
-    if (expression->expressionType == common::AGGREGATE_FUNCTION) {
+    if (expression->expressionType == AGGREGATE_FUNCTION) {
         return true;
     }
     for (auto& child : ExpressionChildrenCollector::collectChildren(*expression)) {
@@ -81,7 +81,7 @@ static expression_vector getAggregateExpressions(
     if (expression->hasAlias() && scope->contains(expression->getAlias())) {
         return result;
     }
-    if (expression->expressionType == common::AGGREGATE_FUNCTION) {
+    if (expression->expressionType == AGGREGATE_FUNCTION) {
         result.push_back(expression);
         return result;
     }
@@ -165,7 +165,7 @@ expression_vector Binder::bindProjectionExpressions(
     const parsed_expression_vector& projectionExpressions) {
     expression_vector result;
     for (auto& expression : projectionExpressions) {
-        if (expression->getExpressionType() == common::ExpressionType::STAR) {
+        if (expression->getExpressionType() == ExpressionType::STAR) {
             // Rewrite star expression as all expression in scope.
             if (scope->empty()) {
                 throw BinderException(
@@ -174,7 +174,7 @@ expression_vector Binder::bindProjectionExpressions(
             for (auto& expr : scope->getExpressions()) {
                 result.push_back(expr);
             }
-        } else if (expression->getExpressionType() == common::ExpressionType::PROPERTY) {
+        } else if (expression->getExpressionType() == ExpressionType::PROPERTY) {
             auto propertyExpression = (ParsedPropertyExpression*)expression.get();
             if (propertyExpression->isStar()) {
                 // Rewrite property star expression

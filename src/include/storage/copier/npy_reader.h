@@ -24,8 +24,6 @@ public:
 
     uint8_t* getPointerToRow(size_t row) const;
 
-    inline std::string getFilePath() const { return filePath; }
-
     inline size_t getNumRows() const { return shape[0]; }
 
     std::shared_ptr<arrow::DataType> getArrowType() const;
@@ -37,7 +35,7 @@ public:
     inline size_t getNumDimensions() const { return shape.size(); }
 
     void validate(
-        common::LogicalType& type_, common::offset_t numRows, const std::string& tableName);
+        const common::LogicalType& type_, common::offset_t numRows, const std::string& tableName);
 
 private:
     void parseHeader();

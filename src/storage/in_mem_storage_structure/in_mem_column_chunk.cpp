@@ -9,7 +9,7 @@ namespace kuzu {
 namespace storage {
 
 InMemColumnChunk::InMemColumnChunk(LogicalType dataType, offset_t startNodeOffset,
-    offset_t endNodeOffset, const common::CopyDescription* copyDescription, bool requireNullBits)
+    offset_t endNodeOffset, const CopyDescription* copyDescription, bool requireNullBits)
     : dataType{std::move(dataType)}, startNodeOffset{startNodeOffset}, copyDescription{
                                                                            copyDescription} {
     numBytesPerValue = getDataTypeSizeInColumn(this->dataType);
@@ -22,7 +22,7 @@ InMemColumnChunk::InMemColumnChunk(LogicalType dataType, offset_t startNodeOffse
     }
 }
 
-void InMemColumnChunk::setValueAtPos(const uint8_t* val, common::offset_t pos) {
+void InMemColumnChunk::setValueAtPos(const uint8_t* val, offset_t pos) {
     memcpy(buffer.get() + getOffsetInBuffer(pos), val, numBytesPerValue);
     nullChunk->setValue(false, pos);
 }
@@ -34,7 +34,7 @@ void InMemColumnChunk::flush(FileInfo* walFileInfo) {
     }
 }
 
-uint32_t InMemColumnChunk::getDataTypeSizeInColumn(common::LogicalType& dataType) {
+uint32_t InMemColumnChunk::getDataTypeSizeInColumn(LogicalType& dataType) {
     switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::STRUCT: {
         return 0;
@@ -75,10 +75,10 @@ void InMemColumnChunk::copyArrowArray(
         templateCopyValuesToPage<float_t>(arrowArray, nodeOffsets);
     } break;
     case arrow::Type::DATE32: {
-        templateCopyValuesToPage<common::date_t>(arrowArray, nodeOffsets);
+        templateCopyValuesToPage<date_t>(arrowArray, nodeOffsets);
     } break;
     case arrow::Type::TIMESTAMP: {
-        templateCopyValuesToPage<common::timestamp_t>(arrowArray, nodeOffsets);
+        templateCopyValuesToPage<timestamp_t>(arrowArray, nodeOffsets);
     } break;
     case arrow::Type::FIXED_SIZE_LIST: {
         templateCopyValuesToPage<uint8_t*>(arrowArray, nodeOffsets);
@@ -99,14 +99,14 @@ void InMemColumnChunk::copyArrowArray(
             templateCopyValuesAsStringToPage<uint8_t*>(arrowArray, nodeOffsets);
         } break;
         default: {
-            throw common::CopyException(StringUtils::string_format(
+            throw CopyException(StringUtils::string_format(
                 "Unsupported data type {} for templateCopyValuesAsStringToPage",
                 LogicalTypeUtils::dataTypeToString(dataType)));
         }
         }
     } break;
     default: {
-        throw common::CopyException(
+        throw CopyException(
             StringUtils::string_format("Unsupported data type {}.", arrowArray.type()->ToString()));
     }
     }
@@ -227,14 +227,14 @@ void InMemColumnChunkWithOverflow::copyArrowArray(
     switch (array.type_id()) {
     case arrow::Type::STRING: {
         switch (dataType.getLogicalTypeID()) {
-        case common::LogicalTypeID::STRING: {
+        case LogicalTypeID::STRING: {
             templateCopyValuesAsStringToPageWithOverflow<ku_string_t>(
                 array, copyState, nodeOffsets);
         } break;
-        case common::LogicalTypeID::BLOB: {
+        case LogicalTypeID::BLOB: {
             templateCopyValuesAsStringToPageWithOverflow<blob_t>(array, copyState, nodeOffsets);
         } break;
-        case common::LogicalTypeID::VAR_LIST: {
+        case LogicalTypeID::VAR_LIST: {
             templateCopyValuesAsStringToPageWithOverflow<ku_list_t>(array, copyState, nodeOffsets);
         } break;
         default: {
@@ -335,14 +335,13 @@ template<>
 void InMemColumnChunkWithOverflow::setValWithOverflow<ku_list_t>(
     PageByteCursor& overflowCursor, const char* value, uint64_t length, uint64_t pos) {
     auto varListVal =
-        TableCopyUtils::getArrowVarList(value, 1, length - 2, dataType, *copyDescription);
+        TableCopyUtils::getVarListValue(value, 1, length - 2, dataType, *copyDescription);
     auto val = inMemOverflowFile->copyList(*varListVal, overflowCursor);
     setValue(val, pos);
 }
 
-InMemStructColumnChunk::InMemStructColumnChunk(common::LogicalType dataType,
-    common::offset_t startNodeOffset, common::offset_t endNodeOffset,
-    const common::CopyDescription* copyDescription)
+InMemStructColumnChunk::InMemStructColumnChunk(LogicalType dataType, offset_t startNodeOffset,
+    offset_t endNodeOffset, const CopyDescription* copyDescription)
     : InMemColumnChunk{std::move(dataType), startNodeOffset, endNodeOffset, copyDescription} {}
 
 void InMemStructColumnChunk::copyArrowArray(
@@ -376,12 +375,12 @@ void InMemStructColumnChunk::copyArrowArray(
     case arrow::Type::STRUCT: {
         auto& structArray = (arrow::StructArray&)array;
         auto arrayData = structArray.data();
-        if (common::StructType::getNumFields(&dataType) != structArray.type()->fields().size()) {
+        if (StructType::getNumFields(&dataType) != structArray.type()->fields().size()) {
             throw CopyException{"Unmatched number of struct fields."};
         }
         for (auto i = 0u; i < structArray.num_fields(); i++) {
             auto fieldName = structArray.type()->fields()[i]->name();
-            auto fieldIdx = common::StructType::getFieldIdx(&dataType, fieldName);
+            auto fieldIdx = StructType::getFieldIdx(&dataType, fieldName);
             if (fieldIdx == INVALID_STRUCT_FIELD_IDX) {
                 throw CopyException{"Unmatched struct field name: " + fieldName + "."};
             }
@@ -397,7 +396,7 @@ void InMemStructColumnChunk::copyArrowArray(
         }
     } break;
     default: {
-        throw common::NotImplementedException{"InMemStructColumnChunk::copyArrowArray"};
+        throw NotImplementedException{"InMemStructColumnChunk::copyArrowArray"};
     }
     }
 }
@@ -476,12 +475,12 @@ void InMemStructColumnChunk::setValueToStructField(PropertyCopyState* copyState,
 }
 
 std::vector<StructFieldIdxAndValue> InMemStructColumnChunk::parseStructFieldNameAndValues(
-    common::LogicalType& type, const std::string& structString) {
+    LogicalType& type, const std::string& structString) {
     std::vector<StructFieldIdxAndValue> structFieldIdxAndValueParis;
     uint64_t curPos = 0u;
     while (curPos < structString.length()) {
         auto fieldName = parseStructFieldName(structString, curPos);
-        auto fieldIdx = common::StructType::getFieldIdx(&type, fieldName);
+        auto fieldIdx = StructType::getFieldIdx(&type, fieldName);
         if (fieldIdx == INVALID_STRUCT_FIELD_IDX) {
             throw ParserException{"Invalid struct field name: " + fieldName};
         }
@@ -544,13 +543,12 @@ std::string InMemStructColumnChunk::parseStructFieldValue(
         numSingleQuotes == 0) {
         return structString.substr(startPos, curPos - startPos);
     } else {
-        throw common::ParserException{"Invalid struct string: " + structString};
+        throw ParserException{"Invalid struct string: " + structString};
     }
 }
 
-InMemFixedListColumnChunk::InMemFixedListColumnChunk(common::LogicalType dataType,
-    common::offset_t startNodeOffset, common::offset_t endNodeOffset,
-    const common::CopyDescription* copyDescription)
+InMemFixedListColumnChunk::InMemFixedListColumnChunk(LogicalType dataType, offset_t startNodeOffset,
+    offset_t endNodeOffset, const CopyDescription* copyDescription)
     : InMemColumnChunk{std::move(dataType), startNodeOffset, endNodeOffset, copyDescription} {
     numElementsInAPage = PageUtils::getNumElementsInAPage(numBytesPerValue, false /* hasNull */);
     auto startNodeOffsetCursor =
@@ -558,29 +556,29 @@ InMemFixedListColumnChunk::InMemFixedListColumnChunk(common::LogicalType dataTyp
     auto endNodeOffsetCursor =
         PageUtils::getPageByteCursorForPos(endNodeOffset, numElementsInAPage, numBytesPerValue);
     numBytes = (endNodeOffsetCursor.pageIdx - startNodeOffsetCursor.pageIdx) *
-                   common::BufferPoolConstants::PAGE_4KB_SIZE +
+                   BufferPoolConstants::PAGE_4KB_SIZE +
                endNodeOffsetCursor.offsetInPage - startNodeOffsetCursor.offsetInPage +
                numBytesPerValue;
     buffer = std::make_unique<uint8_t[]>(numBytes);
 }
 
-void InMemFixedListColumnChunk::flush(common::FileInfo* walFileInfo) {
+void InMemFixedListColumnChunk::flush(FileInfo* walFileInfo) {
     if (numBytes > 0) {
         auto pageByteCursor = PageUtils::getPageByteCursorForPos(
             startNodeOffset, numElementsInAPage, numBytesPerValue);
-        auto startFileOffset = pageByteCursor.pageIdx * common::BufferPoolConstants::PAGE_4KB_SIZE +
+        auto startFileOffset = pageByteCursor.pageIdx * BufferPoolConstants::PAGE_4KB_SIZE +
                                pageByteCursor.offsetInPage;
-        common::FileUtils::writeToFile(walFileInfo, buffer.get(), numBytes, startFileOffset);
+        FileUtils::writeToFile(walFileInfo, buffer.get(), numBytes, startFileOffset);
     }
 }
 
-common::offset_t InMemFixedListColumnChunk::getOffsetInBuffer(common::offset_t pos) {
+offset_t InMemFixedListColumnChunk::getOffsetInBuffer(offset_t pos) {
     auto posCursor = PageUtils::getPageByteCursorForPos(
         pos + startNodeOffset, numElementsInAPage, numBytesPerValue);
     auto startNodeCursor =
         PageUtils::getPageByteCursorForPos(startNodeOffset, numElementsInAPage, numBytesPerValue);
     auto offsetInBuffer =
-        (posCursor.pageIdx - startNodeCursor.pageIdx) * common::BufferPoolConstants::PAGE_4KB_SIZE +
+        (posCursor.pageIdx - startNodeCursor.pageIdx) * BufferPoolConstants::PAGE_4KB_SIZE +
         posCursor.offsetInPage - startNodeCursor.offsetInPage;
     assert(offsetInBuffer + numBytesPerValue <= numBytes);
     return offsetInBuffer;
@@ -610,7 +608,7 @@ void InMemColumnChunk::setValueFromString<uint8_t*>(
 template<>
 void InMemColumnChunk::setValueFromString<interval_t>(
     const char* value, uint64_t length, uint64_t pos) {
-    auto val = Interval::FromCString(value, length);
+    auto val = Interval::fromCString(value, length);
     setValue(val, pos);
 }
 
@@ -618,7 +616,7 @@ void InMemColumnChunk::setValueFromString<interval_t>(
 template<>
 void InMemColumnChunk::setValueFromString<date_t>(
     const char* value, uint64_t length, uint64_t pos) {
-    auto val = Date::FromCString(value, length);
+    auto val = Date::fromCString(value, length);
     setValue(val, pos);
 }
 
@@ -626,7 +624,7 @@ void InMemColumnChunk::setValueFromString<date_t>(
 template<>
 void InMemColumnChunk::setValueFromString<timestamp_t>(
     const char* value, uint64_t length, uint64_t pos) {
-    auto val = Timestamp::FromCString(value, length);
+    auto val = Timestamp::fromCString(value, length);
     setValue(val, pos);
 }
 

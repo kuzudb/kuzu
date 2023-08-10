@@ -3,6 +3,7 @@
 #include "binder/query/bound_regular_query.h"
 #include "common/copier_config/copier_config.h"
 #include "expression_binder.h"
+#include "parser/copy.h"
 #include "parser/query/regular_query.h"
 #include "query_normalizer.h"
 
@@ -84,16 +85,17 @@ private:
     std::unique_ptr<BoundStatement> bindDropPropertyClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindRenamePropertyClause(const parser::Statement& statement);
 
-    std::vector<catalog::Property> bindProperties(
+    std::vector<std::unique_ptr<catalog::Property>> bindProperties(
         std::vector<std::pair<std::string, std::string>> propertyNameDataTypes);
     uint32_t bindPrimaryKey(const std::string& pkColName,
         std::vector<std::pair<std::string, std::string>> propertyNameDataTypes);
     common::property_id_t bindPropertyName(
         catalog::NodeTableSchema::TableSchema* tableSchema, const std::string& propertyName);
-    common::LogicalType bindDataType(const std::string& dataType);
+    std::unique_ptr<common::LogicalType> bindDataType(const std::string& dataType);
 
-    /*** bind copy csv ***/
-    std::unique_ptr<BoundStatement> bindCopyClause(const parser::Statement& statement);
+    /*** bind copy from/to ***/
+    std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
 
     std::vector<std::string> bindFilePaths(const std::vector<std::string>& filePaths);
 
@@ -103,7 +105,8 @@ private:
     void bindStringParsingOptions(common::CSVReaderConfig& csvReaderConfig,
         const std::string& optionName, std::string& optionValue);
     char bindParsingOptionValue(std::string value);
-    common::CopyDescription::FileType bindFileType(std::vector<std::string> filePaths);
+    common::CopyDescription::FileType bindFileType(const std::vector<std::string>& filePaths);
+    common::CopyDescription::FileType bindFileType(const std::string& filePath);
 
     /*** bind query ***/
     std::unique_ptr<BoundRegularQuery> bindQuery(const parser::RegularQuery& regularQuery);
@@ -128,6 +131,7 @@ private:
     std::unique_ptr<BoundReadingClause> bindInQueryCall(const parser::ReadingClause& readingClause);
 
     /*** bind updating clause ***/
+    // TODO(Guodong/Xiyang): Is update clause an accurate name? How about (data)modificationClause?
     std::unique_ptr<BoundUpdatingClause> bindUpdatingClause(
         const parser::UpdatingClause& updatingClause);
     std::unique_ptr<BoundUpdatingClause> bindCreateClause(
@@ -150,8 +154,6 @@ private:
         std::pair<parser::ParsedExpression*, parser::ParsedExpression*> setItem);
     expression_pair bindSetItem(
         std::pair<parser::ParsedExpression*, parser::ParsedExpression*> setItem);
-    std::unique_ptr<BoundDeleteInfo> bindDeleteNodeInfo(std::shared_ptr<NodeExpression> node);
-    std::unique_ptr<BoundDeleteInfo> bindDeleteRelInfo(std::shared_ptr<RelExpression> rel);
 
     /*** bind projection clause ***/
     std::unique_ptr<BoundWithClause> bindWithClause(const parser::WithClause& withClause);
@@ -218,11 +220,8 @@ private:
 
     static void validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQuery);
 
-    // We don't support read (reading and projection clause) after write since this requires reading
-    // updated value and multiple property scan is needed which complicates our planning.
-    // e.g. MATCH (a:person) WHERE a.fName='A' SET a.fName='B' RETURN a.fName
-    // In the example above, we need to read fName both before and after SET.
-    static void validateReturnNotFollowUpdate(const NormalizedSingleQuery& singleQuery);
+    // We don't support read after write for simplicity. User should instead querying through
+    // multiple statement.
     static void validateReadNotFollowUpdate(const NormalizedSingleQuery& singleQuery);
 
     static void validateTableExist(const catalog::Catalog& _catalog, std::string& tableName);

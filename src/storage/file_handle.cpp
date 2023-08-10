@@ -38,8 +38,16 @@ void FileHandle::constructNewFileHandle(const std::string& path) {
 }
 
 page_idx_t FileHandle::addNewPage() {
+    return addNewPages(1 /* numNewPages */);
+}
+
+page_idx_t FileHandle::addNewPages(page_idx_t numNewPages) {
     std::unique_lock xlock(fhSharedMutex);
-    return addNewPageWithoutLock();
+    auto numPagesBeforeChange = numPages;
+    for (auto i = 0u; i < numNewPages; i++) {
+        addNewPageWithoutLock();
+    }
+    return numPagesBeforeChange;
 }
 
 page_idx_t FileHandle::addNewPageWithoutLock() {

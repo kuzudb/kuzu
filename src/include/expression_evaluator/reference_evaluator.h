@@ -5,16 +5,16 @@
 namespace kuzu {
 namespace evaluator {
 
-class ReferenceExpressionEvaluator : public BaseExpressionEvaluator {
+class ReferenceExpressionEvaluator : public ExpressionEvaluator {
 public:
     explicit ReferenceExpressionEvaluator(const processor::DataPos& vectorPos, bool isResultFlat)
-        : BaseExpressionEvaluator{isResultFlat}, vectorPos{vectorPos} {}
+        : ExpressionEvaluator{isResultFlat}, vectorPos{vectorPos} {}
 
     inline void evaluate() override {}
 
     bool select(common::SelectionVector& selVector) override;
 
-    inline std::unique_ptr<BaseExpressionEvaluator> clone() override {
+    inline std::unique_ptr<ExpressionEvaluator> clone() override {
         return std::make_unique<ReferenceExpressionEvaluator>(vectorPos, isResultFlat_);
     }
 

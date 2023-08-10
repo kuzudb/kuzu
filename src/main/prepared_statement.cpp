@@ -4,11 +4,13 @@
 #include "common/statement_type.h"
 #include "planner/logical_plan/logical_plan.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace main {
 
 bool PreparedStatement::allowActiveTransaction() const {
-    return !common::StatementTypeUtils::allowActiveTransaction(preparedSummary.statementType);
+    return !StatementTypeUtils::allowActiveTransaction(preparedSummary.statementType);
 }
 
 bool PreparedStatement::isSuccess() const {

@@ -10,7 +10,7 @@ namespace storage {
 storage_version_t StorageVersionInfo::getStorageVersion() {
     auto storageVersionInfo = getStorageVersionInfo();
     if (!storageVersionInfo.contains(KUZU_STORAGE_VERSION)) {
-        throw common::RuntimeException(
+        throw RuntimeException(
             StringUtils::string_format("Invalid storage version name: {}", KUZU_STORAGE_VERSION));
     }
     return storageVersionInfo.at(KUZU_STORAGE_VERSION);

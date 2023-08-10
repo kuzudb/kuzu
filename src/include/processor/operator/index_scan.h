@@ -12,28 +12,29 @@ namespace processor {
 class IndexScan : public PhysicalOperator, public SelVectorOverWriter {
 public:
     IndexScan(common::table_id_t tableID, storage::PrimaryKeyIndex* pkIndex,
-        const DataPos& indexDataPos, const DataPos& outDataPos,
+        std::unique_ptr<evaluator::ExpressionEvaluator> indexEvaluator, const DataPos& outDataPos,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::INDEX_SCAN, std::move(child), id, paramsString},
-          tableID{tableID}, pkIndex{pkIndex}, indexDataPos{indexDataPos}, outDataPos{outDataPos} {}
+          tableID{tableID}, pkIndex{pkIndex}, indexEvaluator{std::move(indexEvaluator)},
+          outDataPos{outDataPos} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<IndexScan>(
-            tableID, pkIndex, indexDataPos, outDataPos, children[0]->clone(), id, paramsString);
+        return make_unique<IndexScan>(tableID, pkIndex, indexEvaluator->clone(), outDataPos,
+            children[0]->clone(), id, paramsString);
     }
 
 private:
     common::table_id_t tableID;
     storage::PrimaryKeyIndex* pkIndex;
-    DataPos indexDataPos;
+    std::unique_ptr<evaluator::ExpressionEvaluator> indexEvaluator;
     DataPos outDataPos;
 
-    std::shared_ptr<common::ValueVector> indexVector;
-    std::shared_ptr<common::ValueVector> outVector;
+    common::ValueVector* indexVector;
+    common::ValueVector* outVector;
 };
 
 } // namespace processor

@@ -25,49 +25,48 @@ void LiteralExpressionEvaluator::resolveResultVector(
 }
 
 void LiteralExpressionEvaluator::copyValueToVector(
-    uint8_t* dstValue, common::ValueVector* dstVector, const Value* srcValue) {
+    uint8_t* dstValue, ValueVector* dstVector, const Value* srcValue) {
     auto numBytesPerValue = dstVector->getNumBytesPerValue();
     switch (srcValue->getDataType()->getPhysicalType()) {
-    case common::PhysicalTypeID::INT64: {
+    case PhysicalTypeID::INT64: {
         memcpy(dstValue, &srcValue->val.int64Val, numBytesPerValue);
     } break;
-    case common::PhysicalTypeID::INT32: {
+    case PhysicalTypeID::INT32: {
         memcpy(dstValue, &srcValue->val.int32Val, numBytesPerValue);
     } break;
-    case common::PhysicalTypeID::INT16: {
+    case PhysicalTypeID::INT16: {
         memcpy(dstValue, &srcValue->val.int16Val, numBytesPerValue);
     } break;
-    case common::PhysicalTypeID::DOUBLE: {
+    case PhysicalTypeID::DOUBLE: {
         memcpy(dstValue, &srcValue->val.doubleVal, numBytesPerValue);
     } break;
-    case common::PhysicalTypeID::FLOAT: {
+    case PhysicalTypeID::FLOAT: {
         memcpy(dstValue, &srcValue->val.floatVal, numBytesPerValue);
     } break;
-    case common::PhysicalTypeID::BOOL: {
+    case PhysicalTypeID::BOOL: {
         memcpy(dstValue, &srcValue->val.booleanVal, numBytesPerValue);
     } break;
-    case common::PhysicalTypeID::INTERVAL: {
+    case PhysicalTypeID::INTERVAL: {
         memcpy(dstValue, &srcValue->val.intervalVal, numBytesPerValue);
     } break;
-    case common::PhysicalTypeID::STRING: {
-        StringVector::addString(dstVector, *(common::ku_string_t*)dstValue, srcValue->strVal.data(),
-            srcValue->strVal.length());
+    case PhysicalTypeID::STRING: {
+        StringVector::addString(
+            dstVector, *(ku_string_t*)dstValue, srcValue->strVal.data(), srcValue->strVal.length());
     } break;
-    case common::PhysicalTypeID::VAR_LIST: {
-        auto listListEntry = reinterpret_cast<common::list_entry_t*>(dstValue);
+    case PhysicalTypeID::VAR_LIST: {
+        auto listListEntry = reinterpret_cast<list_entry_t*>(dstValue);
         auto numValues = NestedVal::getChildrenSize(srcValue);
-        *listListEntry = common::ListVector::addList(dstVector, numValues);
-        auto dstDataVector = common::ListVector::getDataVector(dstVector);
-        auto dstElements = common::ListVector::getListValues(dstVector, *listListEntry);
+        *listListEntry = ListVector::addList(dstVector, numValues);
+        auto dstDataVector = ListVector::getDataVector(dstVector);
+        auto dstElements = ListVector::getListValues(dstVector, *listListEntry);
         for (auto i = 0u; i < numValues; ++i) {
             copyValueToVector(dstElements + i * dstDataVector->getNumBytesPerValue(), dstDataVector,
                 NestedVal::getChildVal(srcValue, i));
         }
     } break;
     default:
-        throw common::NotImplementedException(
-            "Unimplemented setLiteral() for type " +
-            common::LogicalTypeUtils::dataTypeToString(dstVector->dataType));
+        throw NotImplementedException("Unimplemented setLiteral() for type " +
+                                      LogicalTypeUtils::dataTypeToString(dstVector->dataType));
     }
 }
 

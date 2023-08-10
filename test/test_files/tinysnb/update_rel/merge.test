@@ -1,0 +1,31 @@
+-GROUP TinySnbUpdateRelTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE Merge1
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 5 MATCH (a)-[r:knows]->(b) RETURN id(r), r.date
+---- 1
+3:2|2021-06-30
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 5 MERGE (a)-[r:knows]->(b) RETURN id(r), r.date
+---- 1
+3:2|2021-06-30
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 5 MERGE (a)-[r:knows {date: date('2022-02-02')}]->(b)
+---- ok
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 5 MATCH (a)-[r:knows]->(b) RETURN id(r), r.date
+---- 2
+3:14|2022-02-02
+3:2|2021-06-30
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 5 MERGE (a)-[r:knows {date: date('2022-02-02')}]->(b) ON MATCH SET r.date = date('2011-11-11')
+---- ok
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 5 MATCH (a)-[r:knows]->(b) RETURN id(r), r.date
+---- 2
+3:14|2011-11-11
+3:2|2021-06-30
+
+# TODO(Xiyang): ON CREATE SET is not working as expected.
+-CASE Merge2
+-SKIP
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 7 MERGE (a)-[r:knows]->(b) ON CREATE SET a.age = 0, r.date = date('2011-12-12')
+---- ok
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 7 MATCH (a)-[r:knows]->(b) RETURN id(r), r.date, a.age

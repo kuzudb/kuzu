@@ -33,7 +33,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateNodeTableClause(
     auto primaryKeyIdx = bindPrimaryKey(
         createNodeTableClause.getPKColName(), createNodeTableClause.getPropertyNameDataTypes());
     for (auto i = 0u; i < boundProperties.size(); ++i) {
-        if (boundProperties[i].dataType.getLogicalTypeID() == LogicalTypeID::SERIAL &&
+        if (boundProperties[i]->getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL &&
             primaryKeyIdx != i) {
             throw BinderException("Serial property in node table must be the primary key.");
         }
@@ -50,7 +50,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateRelTableClause(
     }
     auto boundProperties = bindProperties(createRelClause.getPropertyNameDataTypes());
     for (auto& boundProperty : boundProperties) {
-        if (boundProperty.dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
+        if (boundProperty->getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL) {
             throw BinderException("Serial property is not supported in rel table.");
         }
     }
@@ -94,13 +94,13 @@ std::unique_ptr<BoundStatement> Binder::bindAddPropertyClause(const parser::Stat
     if (catalogContent->getTableSchema(tableID)->containProperty(addProperty.getPropertyName())) {
         throw BinderException("Property: " + addProperty.getPropertyName() + " already exists.");
     }
-    if (dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
+    if (dataType->getLogicalTypeID() == LogicalTypeID::SERIAL) {
         throw BinderException("Serial property in node table must be the primary key.");
     }
     auto defaultVal = ExpressionBinder::implicitCastIfNecessary(
-        expressionBinder.bindExpression(*addProperty.getDefaultValue()), dataType);
+        expressionBinder.bindExpression(*addProperty.getDefaultValue()), *dataType);
     return make_unique<BoundAddProperty>(
-        tableID, addProperty.getPropertyName(), dataType, defaultVal, tableName);
+        tableID, addProperty.getPropertyName(), std::move(dataType), defaultVal, tableName);
 }
 
 std::unique_ptr<BoundStatement> Binder::bindDropPropertyClause(const parser::Statement& statement) {
@@ -108,13 +108,11 @@ std::unique_ptr<BoundStatement> Binder::bindDropPropertyClause(const parser::Sta
     auto tableName = dropProperty.getTableName();
     validateTableExist(catalog, tableName);
     auto catalogContent = catalog.getReadOnlyVersion();
-    auto isNodeTable = catalogContent->containNodeTable(tableName);
     auto tableID = catalogContent->getTableID(tableName);
-    auto propertyID =
-        bindPropertyName(catalogContent->getTableSchema(tableID), dropProperty.getPropertyName());
-    if (isNodeTable &&
-        ((NodeTableSchema*)catalogContent->getTableSchema(tableID))->primaryKeyPropertyID ==
-            propertyID) {
+    auto tableSchema = catalogContent->getTableSchema(tableID);
+    auto propertyID = bindPropertyName(tableSchema, dropProperty.getPropertyName());
+    if (tableSchema->getTableType() == catalog::TableType::NODE &&
+        reinterpret_cast<NodeTableSchema*>(tableSchema)->getPrimaryKeyPropertyID() == propertyID) {
         throw BinderException("Cannot drop primary key of a node table.");
     }
     return make_unique<BoundDropProperty>(tableID, propertyID, tableName);
@@ -137,10 +135,11 @@ std::unique_ptr<BoundStatement> Binder::bindRenamePropertyClause(
         tableID, tableName, propertyID, renameProperty.getNewName());
 }
 
-std::vector<Property> Binder::bindProperties(
+std::vector<std::unique_ptr<Property>> Binder::bindProperties(
     std::vector<std::pair<std::string, std::string>> propertyNameDataTypes) {
-    std::vector<Property> boundPropertyNameDataTypes;
+    std::vector<std::unique_ptr<Property>> boundPropertyNameDataTypes;
     std::unordered_set<std::string> boundPropertyNames;
+    boundPropertyNameDataTypes.reserve(propertyNameDataTypes.size());
     for (auto& propertyNameDataType : propertyNameDataTypes) {
         if (boundPropertyNames.contains(propertyNameDataType.first)) {
             throw BinderException(StringUtils::string_format(
@@ -151,8 +150,8 @@ std::vector<Property> Binder::bindProperties(
                 StringUtils::string_format("PropertyName: {} is an internal reserved propertyName.",
                     propertyNameDataType.first));
         }
-        auto dataType = bindDataType(propertyNameDataType.second);
-        boundPropertyNameDataTypes.emplace_back(propertyNameDataType.first, dataType);
+        boundPropertyNameDataTypes.push_back(std::make_unique<Property>(
+            propertyNameDataType.first, bindDataType(propertyNameDataType.second)));
         boundPropertyNames.emplace(propertyNameDataType.first);
     }
     return boundPropertyNameDataTypes;
@@ -174,9 +173,9 @@ uint32_t Binder::bindPrimaryKey(const std::string& pkColName,
     StringUtils::toUpper(primaryKey.second);
     // We only support INT64, STRING and SERIAL column as the primary key.
     switch (LogicalTypeUtils::dataTypeFromString(primaryKey.second).getLogicalTypeID()) {
-    case common::LogicalTypeID::INT64:
-    case common::LogicalTypeID::STRING:
-    case common::LogicalTypeID::SERIAL:
+    case LogicalTypeID::INT64:
+    case LogicalTypeID::STRING:
+    case LogicalTypeID::SERIAL:
         break;
     default:
         throw BinderException(
@@ -187,42 +186,41 @@ uint32_t Binder::bindPrimaryKey(const std::string& pkColName,
 
 property_id_t Binder::bindPropertyName(TableSchema* tableSchema, const std::string& propertyName) {
     for (auto& property : tableSchema->properties) {
-        if (property.name == propertyName) {
-            return property.propertyID;
+        if (property->getName() == propertyName) {
+            return property->getPropertyID();
         }
     }
     throw BinderException(
         tableSchema->tableName + " table doesn't have property: " + propertyName + ".");
 }
 
-LogicalType Binder::bindDataType(const std::string& dataType) {
+std::unique_ptr<LogicalType> Binder::bindDataType(const std::string& dataType) {
     auto boundType = LogicalTypeUtils::dataTypeFromString(dataType);
-    if (boundType.getLogicalTypeID() == common::LogicalTypeID::FIXED_LIST) {
-        auto validNumericTypes = common::LogicalTypeUtils::getNumericalLogicalTypeIDs();
-        auto childType = common::FixedListType::getChildType(&boundType);
-        auto numElementsInList = common::FixedListType::getNumElementsInList(&boundType);
+    if (boundType.getLogicalTypeID() == LogicalTypeID::FIXED_LIST) {
+        auto validNumericTypes = LogicalTypeUtils::getNumericalLogicalTypeIDs();
+        auto childType = FixedListType::getChildType(&boundType);
+        auto numElementsInList = FixedListType::getNumElementsInList(&boundType);
         if (find(validNumericTypes.begin(), validNumericTypes.end(),
                 childType->getLogicalTypeID()) == validNumericTypes.end()) {
-            throw common::BinderException(
-                "The child type of a fixed list must be a numeric type. Given: " +
-                common::LogicalTypeUtils::dataTypeToString(*childType) + ".");
+            throw BinderException("The child type of a fixed list must be a numeric type. Given: " +
+                                  LogicalTypeUtils::dataTypeToString(*childType) + ".");
         }
         if (numElementsInList == 0) {
             // Note: the parser already guarantees that the number of elements is a non-negative
             // number. However, we still need to check whether the number of elements is 0.
-            throw common::BinderException(
+            throw BinderException(
                 "The number of elements in a fixed list must be greater than 0. Given: " +
                 std::to_string(numElementsInList) + ".");
         }
         auto numElementsPerPage = storage::PageUtils::getNumElementsInAPage(
             storage::StorageUtils::getDataTypeSize(boundType), true /* hasNull */);
         if (numElementsPerPage == 0) {
-            throw common::BinderException(
+            throw BinderException(
                 StringUtils::string_format("Cannot store a fixed list of size {} in a page.",
                     storage::StorageUtils::getDataTypeSize(boundType)));
         }
     }
-    return boundType;
+    return std::make_unique<LogicalType>(boundType);
 }
 
 } // namespace binder

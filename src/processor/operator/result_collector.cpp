@@ -30,7 +30,7 @@ void ResultCollector::executeInternal(ExecutionContext* context) {
 
 void ResultCollector::finalize(ExecutionContext* context) {
     switch (info->accumulateType) {
-    case common::AccumulateType::OPTIONAL_: {
+    case AccumulateType::OPTIONAL_: {
         auto table = sharedState->getTable();
         if (table->isEmpty()) {
             for (auto& vector : payloadVectors) {

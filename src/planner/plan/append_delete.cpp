@@ -1,5 +1,5 @@
 #include "binder/query/updating_clause/bound_delete_clause.h"
-#include "planner/logical_plan/logical_operator/logical_delete.h"
+#include "planner/logical_plan/persistent/logical_delete.h"
 #include "planner/query_planner.h"
 
 namespace kuzu {
@@ -7,15 +7,11 @@ namespace planner {
 
 void QueryPlanner::appendDeleteNode(
     const std::vector<binder::BoundDeleteInfo*>& boundInfos, LogicalPlan& plan) {
-    std::vector<std::unique_ptr<LogicalDeleteNodeInfo>> logicalInfos;
+    std::vector<std::shared_ptr<binder::NodeExpression>> nodes;
     for (auto& boundInfo : boundInfos) {
-        auto node = std::static_pointer_cast<NodeExpression>(boundInfo->nodeOrRel);
-        auto extraInfo = (ExtraDeleteNodeInfo*)boundInfo->extraInfo.get();
-        logicalInfos.push_back(
-            std::make_unique<LogicalDeleteNodeInfo>(node, extraInfo->primaryKey));
+        nodes.push_back(std::static_pointer_cast<NodeExpression>(boundInfo->nodeOrRel));
     }
-    auto deleteNode =
-        std::make_shared<LogicalDeleteNode>(std::move(logicalInfos), plan.getLastOperator());
+    auto deleteNode = std::make_shared<LogicalDeleteNode>(std::move(nodes), plan.getLastOperator());
     deleteNode->computeFactorizedSchema();
     plan.setLastOperator(std::move(deleteNode));
 }

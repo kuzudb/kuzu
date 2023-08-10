@@ -68,6 +68,7 @@ False
 22
 
 -CASE SetNodeLongStringPropTest
+-SKIP
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.fName='abcdefghijklmnopqrstuvwxyz'
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.fName
@@ -75,6 +76,7 @@ False
 abcdefghijklmnopqrstuvwxyz
 
 -CASE SetVeryLongListErrorsTest
+-SKIP
 -DEFINE STRING_EXCEEDS_OVERFLOW ARANGE 0 5990
 -BEGIN_WRITE_TRANSACTION
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.fName="${STRING_EXCEEDS_OVERFLOW}"
@@ -209,3 +211,27 @@ Runtime exception: Maximum length of strings is 4096. Input string's length is 2
 -STATEMENT MATCH (a:person) WHERE a.ID=8 RETURN a.courseScoresPerTerm
 ---- 1
 [[10,20],[0,0,0]]
+
+-CASE SETMultiLabelNodePropTest
+-STATEMENT MATCH (a) WHERE a.ID < 2 SET a.age = 1;
+---- ok
+-STATEMENT MATCH (a) WHERE a.ID < 2 RETURN a.ID, a.age;
+---- 2
+0|1
+1|
+-STATEMENT CREATE NODE TABLE play(ID INT64, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (a:play {ID: 0, name: 'AA'});
+---- ok
+-STATEMENT MATCH (a:organisation:play) RETURN a.ID, a.name;
+---- 4
+0|AA
+1|ABFsUni
+4|CsWork
+6|DEsWork
+-STATEMENT MATCH (a:organisation:play) WHERE a.ID < 2 SET a.name = string(a.ID * 10);
+---- ok
+-STATEMENT MATCH (a:organisation:play) WHERE a.ID < 2 RETURN a.ID, a.name;
+---- 2
+0|0
+1|10

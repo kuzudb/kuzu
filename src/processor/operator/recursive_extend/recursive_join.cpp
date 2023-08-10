@@ -24,7 +24,7 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionConte
     vectors->pathLengthVector = resultSet->getValueVector(dataInfo->pathLengthPos).get();
     std::vector<std::unique_ptr<BaseFrontierScanner>> scanners;
     switch (queryRelType) {
-    case common::QueryRelType::VARIABLE_LENGTH: {
+    case QueryRelType::VARIABLE_LENGTH: {
         switch (joinType) {
         case planner::RecursiveJoinType::TRACK_PATH: {
             vectors->pathVector = resultSet->getValueVector(dataInfo->pathPos).get();
@@ -43,10 +43,10 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionConte
             }
         } break;
         default:
-            throw common::NotImplementedException("BaseRecursiveJoin::initLocalStateInternal");
+            throw NotImplementedException("BaseRecursiveJoin::initLocalStateInternal");
         }
     } break;
-    case common::QueryRelType::SHORTEST: {
+    case QueryRelType::SHORTEST: {
         switch (joinType) {
         case planner::RecursiveJoinType::TRACK_PATH: {
             vectors->pathVector = resultSet->getValueVector(dataInfo->pathPos).get();
@@ -64,10 +64,10 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionConte
             }
         } break;
         default:
-            throw common::NotImplementedException("BaseRecursiveJoin::initLocalStateInternal");
+            throw NotImplementedException("BaseRecursiveJoin::initLocalStateInternal");
         }
     } break;
-    case common::QueryRelType::ALL_SHORTEST: {
+    case QueryRelType::ALL_SHORTEST: {
         switch (joinType) {
         case planner::RecursiveJoinType::TRACK_PATH: {
             vectors->pathVector = resultSet->getValueVector(dataInfo->pathPos).get();
@@ -86,15 +86,15 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionConte
             }
         } break;
         default:
-            throw common::NotImplementedException("BaseRecursiveJoin::initLocalStateInternal");
+            throw NotImplementedException("BaseRecursiveJoin::initLocalStateInternal");
         }
     } break;
     default:
-        throw common::NotImplementedException("BaseRecursiveJoin::initLocalStateInternal");
+        throw NotImplementedException("BaseRecursiveJoin::initLocalStateInternal");
     }
     if (vectors->pathVector != nullptr) {
-        auto pathNodesFieldIdx = common::StructType::getFieldIdx(
-            &vectors->pathVector->dataType, common::InternalKeyword::NODES);
+        auto pathNodesFieldIdx =
+            StructType::getFieldIdx(&vectors->pathVector->dataType, InternalKeyword::NODES);
         vectors->pathNodesVector =
             StructVector::getFieldVector(vectors->pathVector, pathNodesFieldIdx).get();
         auto pathNodesDataVector = ListVector::getDataVector(vectors->pathNodesVector);
@@ -102,8 +102,8 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionConte
             StructType::getFieldIdx(&pathNodesDataVector->dataType, InternalKeyword::ID);
         vectors->pathNodesIDDataVector =
             StructVector::getFieldVector(pathNodesDataVector, pathNodesIDFieldIdx).get();
-        auto pathRelsFieldIdx = common::StructType::getFieldIdx(
-            &vectors->pathVector->dataType, common::InternalKeyword::RELS);
+        auto pathRelsFieldIdx =
+            StructType::getFieldIdx(&vectors->pathVector->dataType, InternalKeyword::RELS);
         vectors->pathRelsVector =
             StructVector::getFieldVector(vectors->pathVector, pathRelsFieldIdx).get();
         auto pathRelsDataVector = ListVector::getDataVector(vectors->pathRelsVector);
@@ -323,7 +323,7 @@ void RecursiveJoin::populateTargetDstNodes() {
         if (semiMask->isEnabled()) {
             for (auto offset = 0u; offset < numNodes; ++offset) {
                 if (semiMask->isNodeMasked(offset)) {
-                    targetNodeIDs.insert(common::nodeID_t{offset, nodeTable->getTableID()});
+                    targetNodeIDs.insert(nodeID_t{offset, nodeTable->getTableID()});
                     numTargetNodes++;
                 }
             }

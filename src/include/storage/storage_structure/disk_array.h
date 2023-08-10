@@ -116,6 +116,9 @@ public:
     // The return value is the idx of val in array.
     uint64_t pushBack(U val);
 
+    // Note: Currently, this function doesn't support shrinking the size of the array.
+    uint64_t resize(uint64_t newNumElements);
+
     virtual inline void checkpointInMemoryIfNecessary() {
         std::unique_lock xlock{this->diskArraySharedMtx};
         checkpointOrRollbackInMemoryIfNecessaryNoLock(true /* is checkpoint */);
@@ -126,6 +129,8 @@ public:
     }
 
 protected:
+    uint64_t pushBackNoLock(U val);
+
     uint64_t getNumElementsNoLock(transaction::TransactionType trxType);
 
     uint64_t getNumAPsNoLock(transaction::TransactionType trxType);
@@ -226,16 +231,22 @@ public:
     InMemDiskArray(FileHandle& fileHandle, StorageStructureID storageStructureID,
         common::page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal);
 
+    static inline common::page_idx_t addDAHPageToFile(BMFileHandle& fileHandle,
+        StorageStructureID storageStructureID, BufferManager* bufferManager, WAL* wal) {
+        DiskArrayHeader daHeader(sizeof(T));
+        return StorageStructureUtils::insertNewPage(fileHandle,
+            StorageStructureID{StorageStructureType::METADATA}, *bufferManager, *wal,
+            [&](uint8_t* frame) -> void { memcpy(frame, &daHeader, sizeof(DiskArrayHeader)); });
+    }
+
     inline void checkpointInMemoryIfNecessary() override {
         std::unique_lock xlock{this->diskArraySharedMtx};
         checkpointOrRollbackInMemoryIfNecessaryNoLock(true /* is checkpoint */);
     }
     inline void rollbackInMemoryIfNecessary() override {
         std::unique_lock xlock{this->diskArraySharedMtx};
-        InMemDiskArray<T>::checkpointOrRollbackInMemoryIfNecessaryNoLock(false /* is rollback */);
+        checkpointOrRollbackInMemoryIfNecessaryNoLock(false /* is rollback */);
     }
-
-    inline FileHandle* getFileHandle() { return (FileHandle*)&this->fileHandle; }
 
 private:
     void checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isCheckpoint) override;

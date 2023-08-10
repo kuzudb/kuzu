@@ -214,9 +214,9 @@ public:
         std::vector<int64_t> int64Values1 = {INT64_MIN, -78, 23};
         std::vector<double> doubleValues1 = {3.28, -0.0001, 4.621};
         std::vector<timestamp_t> timestampValues1 = {
-            Timestamp::FromCString("2035-07-01 11:14:33", strlen("2035-07-01 11:14:33")),
-            Timestamp::FromCString("1962-04-07 11:12:35.123", strlen("1962-04-07 11:12:35.123")),
-            Timestamp::FromCString("1962-04-07 11:12:35.123", strlen("1962-04-07 11:12:35.123"))};
+            Timestamp::fromCString("2035-07-01 11:14:33", strlen("2035-07-01 11:14:33")),
+            Timestamp::fromCString("1962-04-07 11:12:35.123", strlen("1962-04-07 11:12:35.123")),
+            Timestamp::fromCString("1962-04-07 11:12:35.123", strlen("1962-04-07 11:12:35.123"))};
         auto dataChunk1 = std::make_shared<DataChunk>(3 + (hasStrCol ? 1 : 0));
         prepareMultipleOrderByColsValueVector(
             int64Values1, doubleValues1, timestampValues1, dataChunk1);
@@ -224,10 +224,10 @@ public:
         std::vector<int64_t> int64Values2 = {INT64_MIN, -78, 23, INT64_MAX};
         std::vector<double> doubleValues2 = {0.58, -0.0001, 4.621, 4.621};
         std::vector<timestamp_t> timestampValues2 = {
-            Timestamp::FromCString("2036-07-01 11:14:33", strlen("2036-07-01 11:14:33")),
-            Timestamp::FromCString("1962-04-07 11:12:35.123", strlen("1962-04-07 11:12:35.123")),
-            Timestamp::FromCString("1962-04-07 11:12:35.123", strlen("1962-04-07 11:12:35.123")),
-            Timestamp::FromCString("2035-07-01 11:14:33", strlen("2035-07-01 11:14:33"))};
+            Timestamp::fromCString("2036-07-01 11:14:33", strlen("2036-07-01 11:14:33")),
+            Timestamp::fromCString("1962-04-07 11:12:35.123", strlen("1962-04-07 11:12:35.123")),
+            Timestamp::fromCString("1962-04-07 11:12:35.123", strlen("1962-04-07 11:12:35.123")),
+            Timestamp::fromCString("2035-07-01 11:14:33", strlen("2035-07-01 11:14:33"))};
         auto dataChunk2 = std::make_shared<DataChunk>(3 + (hasStrCol ? 1 : 0));
         prepareMultipleOrderByColsValueVector(
             int64Values2, doubleValues2, timestampValues2, dataChunk2);

@@ -17,6 +17,21 @@ std::pair<BMFileHandle*, page_idx_t> StorageStructureUtils::getFileHandleAndPhys
     }
 }
 
+common::page_idx_t StorageStructureUtils::insertNewPage(BMFileHandle& fileHandle,
+    StorageStructureID storageStructureID, BufferManager& bufferManager, WAL& wal,
+    std::function<void(uint8_t*)> insertOp) {
+    auto newOriginalPage = fileHandle.addNewPage();
+    auto newWALPage = wal.logPageInsertRecord(storageStructureID, newOriginalPage);
+    auto walFrame = bufferManager.pin(
+        *wal.fileHandle, newWALPage, BufferManager::PageReadPolicy::DONT_READ_PAGE);
+    fileHandle.addWALPageIdxGroupIfNecessary(newOriginalPage);
+    fileHandle.setWALPageIdx(newOriginalPage, newWALPage);
+    insertOp(walFrame);
+    wal.fileHandle->setLockedPageDirty(newWALPage);
+    bufferManager.unpin(*wal.fileHandle, newWALPage);
+    return newOriginalPage;
+}
+
 void StorageStructureUtils::updatePage(BMFileHandle& fileHandle,
     StorageStructureID storageStructureID, page_idx_t originalPageIdx, bool isInsertingNewPage,
     BufferManager& bufferManager, WAL& wal, const std::function<void(uint8_t*)>& updateOp) {

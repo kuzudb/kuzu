@@ -2,6 +2,7 @@
 #include "binder/expression/function_expression.h"
 #include "binder/expression_binder.h"
 
+using namespace kuzu::common;
 using namespace kuzu::parser;
 
 namespace kuzu {
@@ -18,10 +19,10 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
 }
 
 std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
-    common::ExpressionType expressionType, const expression_vector& children) {
+    ExpressionType expressionType, const expression_vector& children) {
     auto builtInFunctions = binder->catalog.getBuiltInVectorFunctions();
     auto functionName = expressionTypeToString(expressionType);
-    std::vector<common::LogicalType> childrenTypes;
+    std::vector<LogicalType> childrenTypes;
     for (auto& child : children) {
         childrenTypes.push_back(child->dataType);
     }
@@ -32,7 +33,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
             implicitCastIfNecessary(children[i], function->parameterTypeIDs[i]));
     }
     auto bindData =
-        std::make_unique<function::FunctionBindData>(common::LogicalType(function->returnTypeID));
+        std::make_unique<function::FunctionBindData>(LogicalType(function->returnTypeID));
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(function->name, childrenAfterCast);
     return make_shared<ScalarFunctionExpression>(functionName, expressionType, std::move(bindData),
@@ -42,8 +43,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::createEqualityComparisonExpression(
     std::shared_ptr<Expression> left, std::shared_ptr<Expression> right) {
-    return bindComparisonExpression(
-        common::EQUALS, expression_vector{std::move(left), std::move(right)});
+    return bindComparisonExpression(EQUALS, expression_vector{std::move(left), std::move(right)});
 }
 
 } // namespace binder

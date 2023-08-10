@@ -1,6 +1,6 @@
 #pragma once
 
-#include "planner/logical_plan/logical_operator/base_logical_operator.h"
+#include "planner/logical_plan/logical_operator.h"
 
 namespace kuzu {
 namespace optimizer {
@@ -155,6 +155,18 @@ protected:
 
     virtual void visitCreateRel(planner::LogicalOperator* op) {}
     virtual std::shared_ptr<planner::LogicalOperator> visitCreateRelReplace(
+        std::shared_ptr<planner::LogicalOperator> op) {
+        return op;
+    }
+
+    virtual void visitMerge(planner::LogicalOperator* op) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitMergeReplace(
+        std::shared_ptr<planner::LogicalOperator> op) {
+        return op;
+    }
+
+    virtual void visitCopyTo(planner::LogicalOperator* op) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitCopyToReplace(
         std::shared_ptr<planner::LogicalOperator> op) {
         return op;
     }

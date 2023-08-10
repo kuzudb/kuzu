@@ -24,12 +24,12 @@ std::shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
     }
     auto functionType = binder->catalog.getFunctionType(functionName);
     switch (functionType) {
-    case common::FUNCTION:
+    case FUNCTION:
         return bindScalarFunctionExpression(parsedExpression, functionName);
-    case common::AGGREGATE_FUNCTION:
+    case AGGREGATE_FUNCTION:
         return bindAggregateFunctionExpression(
             parsedExpression, functionName, parsedFunctionExpression.getIsDistinct());
-    case common::MACRO:
+    case MACRO:
         return bindMacroExpression(parsedExpression, functionName);
     default:
         throw NotImplementedException{"ExpressionBinder::bindFunctionExpression"};
@@ -136,16 +136,16 @@ std::shared_ptr<Expression> ExpressionBinder::bindMacroExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::staticEvaluate(
     const std::string& functionName, const expression_vector& children) {
-    assert(children[0]->expressionType == common::LITERAL);
+    assert(children[0]->expressionType == LITERAL);
     auto strVal = ((LiteralExpression*)children[0].get())->getValue()->getValue<std::string>();
     std::unique_ptr<Value> value;
     if (functionName == CAST_TO_DATE_FUNC_NAME) {
-        value = std::make_unique<Value>(Date::FromCString(strVal.c_str(), strVal.length()));
+        value = std::make_unique<Value>(Date::fromCString(strVal.c_str(), strVal.length()));
     } else if (functionName == CAST_TO_TIMESTAMP_FUNC_NAME) {
-        value = std::make_unique<Value>(Timestamp::FromCString(strVal.c_str(), strVal.length()));
+        value = std::make_unique<Value>(Timestamp::fromCString(strVal.c_str(), strVal.length()));
     } else {
         assert(functionName == CAST_TO_INTERVAL_FUNC_NAME);
-        value = std::make_unique<Value>(Interval::FromCString(strVal.c_str(), strVal.length()));
+        value = std::make_unique<Value>(Interval::fromCString(strVal.c_str(), strVal.length()));
     }
     return createLiteralExpression(std::move(value));
 }
@@ -195,7 +195,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(
     if (ExpressionUtil::isRelVariable(*expression)) {
         return bindRelPropertyExpression(*expression, InternalKeyword::ID);
     }
-    assert(expression->dataType.getPhysicalType() == common::PhysicalTypeID::STRUCT);
+    assert(expression->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
     auto stringValue =
         std::make_unique<Value>(LogicalType{LogicalTypeID::STRING}, InternalKeyword::ID);
     return bindScalarFunctionExpression(
@@ -230,7 +230,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
         std::make_unique<LogicalType>(LogicalTypeID::VAR_LIST, std::move(varListTypeInfo));
     expression_vector children;
     switch (expression.getDataType().getLogicalTypeID()) {
-    case common::LogicalTypeID::NODE: {
+    case LogicalTypeID::NODE: {
         auto& node = (NodeExpression&)expression;
         if (!node.isMultiLabeled()) {
             auto labelName = catalogContent->getTableName(node.getSingleTableID());
@@ -243,7 +243,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
             std::make_unique<Value>(*listType, populateLabelValues(nodeTableIDs, *catalogContent));
         children.push_back(createLiteralExpression(std::move(labelsValue)));
     } break;
-    case common::LogicalTypeID::REL: {
+    case LogicalTypeID::REL: {
         auto& rel = (RelExpression&)expression;
         if (!rel.isMultiLabeled()) {
             auto labelName = catalogContent->getTableName(rel.getSingleTableID());
@@ -274,13 +274,13 @@ std::unique_ptr<Expression> ExpressionBinder::createInternalLengthExpression(
     for (auto tableID : rel.getTableIDs()) {
         propertyIDPerTable.insert({tableID, INVALID_PROPERTY_ID});
     }
-    return std::make_unique<PropertyExpression>(LogicalType(common::LogicalTypeID::INT64),
+    return std::make_unique<PropertyExpression>(LogicalType(LogicalTypeID::INT64),
         InternalKeyword::LENGTH, rel, std::move(propertyIDPerTable), false /* isPrimaryKey */);
 }
 
 std::shared_ptr<Expression> ExpressionBinder::bindRecursiveJoinLengthFunction(
     const Expression& expression) {
-    if (expression.getDataType().getLogicalTypeID() != common::LogicalTypeID::RECURSIVE_REL) {
+    if (expression.getDataType().getLogicalTypeID() != LogicalTypeID::RECURSIVE_REL) {
         return nullptr;
     }
     return ((RelExpression&)expression).getLengthExpression();

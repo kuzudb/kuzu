@@ -23,11 +23,13 @@ public:
                                                                           std::move(pkIndexes)} {
         fwdCopyStates.resize(schema->getNumProperties());
         for (auto i = 0u; i < schema->getNumProperties(); i++) {
-            fwdCopyStates[i] = std::make_unique<PropertyCopyState>(schema->properties[i].dataType);
+            fwdCopyStates[i] =
+                std::make_unique<PropertyCopyState>(*schema->properties[i]->getDataType());
         }
         bwdCopyStates.resize(schema->getNumProperties());
         for (auto i = 0u; i < schema->getNumProperties(); i++) {
-            bwdCopyStates[i] = std::make_unique<PropertyCopyState>(schema->properties[i].dataType);
+            bwdCopyStates[i] =
+                std::make_unique<PropertyCopyState>(*schema->properties[i]->getDataType());
         }
     }
 

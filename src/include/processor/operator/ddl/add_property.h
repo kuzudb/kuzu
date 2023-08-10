@@ -10,26 +10,26 @@ namespace processor {
 class AddProperty : public DDL {
 public:
     AddProperty(catalog::Catalog* catalog, common::table_id_t tableID, std::string propertyName,
-        common::LogicalType dataType,
-        std::unique_ptr<evaluator::BaseExpressionEvaluator> expressionEvaluator,
+        std::unique_ptr<common::LogicalType> dataType,
+        std::unique_ptr<evaluator::ExpressionEvaluator> defaultValueEvaluator,
         storage::StorageManager& storageManager, const DataPos& outputPos, uint32_t id,
         const std::string& paramsString)
         : DDL{PhysicalOperatorType::ADD_PROPERTY, catalog, outputPos, id, paramsString},
           tableID{tableID}, propertyName{std::move(propertyName)}, dataType{std::move(dataType)},
-          expressionEvaluator{std::move(expressionEvaluator)}, storageManager{storageManager} {}
+          defaultValueEvaluator{std::move(defaultValueEvaluator)}, storageManager{storageManager} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override {
         DDL::initLocalStateInternal(resultSet, context);
-        expressionEvaluator->init(*resultSet, context->memoryManager);
+        defaultValueEvaluator->init(*resultSet, context->memoryManager);
     }
 
-    void executeDDLInternal() override;
+    void executeDDLInternal() override = 0;
 
     std::string getOutputMsg() override { return {"Add Succeed."}; }
 
 protected:
     inline bool isDefaultValueNull() const {
-        auto expressionVector = expressionEvaluator->resultVector;
+        auto expressionVector = defaultValueEvaluator->resultVector;
         return expressionVector->isNull(expressionVector->state->selVector->selectedPositions[0]);
     }
 
@@ -38,8 +38,8 @@ protected:
 protected:
     common::table_id_t tableID;
     std::string propertyName;
-    common::LogicalType dataType;
-    std::unique_ptr<evaluator::BaseExpressionEvaluator> expressionEvaluator;
+    std::unique_ptr<common::LogicalType> dataType;
+    std::unique_ptr<evaluator::ExpressionEvaluator> defaultValueEvaluator;
     storage::StorageManager& storageManager;
 };
 

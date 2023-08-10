@@ -1,6 +1,8 @@
 #include "binder/query/updating_clause/bound_create_clause.h"
 #include "binder/query/updating_clause/bound_delete_clause.h"
+#include "binder/query/updating_clause/bound_merge_clause.h"
 #include "binder/query/updating_clause/bound_set_clause.h"
+#include "planner/logical_plan/persistent/logical_merge.h"
 #include "planner/query_planner.h"
 
 using namespace kuzu::common;
@@ -22,7 +24,8 @@ void QueryPlanner::planUpdatingClause(BoundUpdatingClause& updatingClause, Logic
         return;
     }
     case ClauseType::MERGE: {
-        throw NotImplementedException("MERGE");
+        planMergeClause(updatingClause, plan);
+        return;
     }
     case ClauseType::SET: {
         planSetClause(updatingClause, plan);
@@ -41,13 +44,9 @@ void QueryPlanner::planCreateClause(
     binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan) {
     auto& createClause = (BoundCreateClause&)updatingClause;
     if (plan.isEmpty()) { // E.g. CREATE (a:Person {age:20})
-        expression_vector expressions;
-        for (auto& setItem : createClause.getAllSetItems()) {
-            expressions.push_back(setItem.second);
-        }
-        appendExpressionsScan(expressions, plan);
+        appendDummyScan(plan);
     } else {
-        appendAccumulate(common::AccumulateType::REGULAR, plan);
+        appendAccumulate(AccumulateType::REGULAR, plan);
     }
     if (createClause.hasNodeInfo()) {
         appendCreateNode(createClause.getNodeInfos(), plan);
@@ -57,8 +56,83 @@ void QueryPlanner::planCreateClause(
     }
 }
 
+void QueryPlanner::planMergeClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan) {
+    auto& mergeClause = (BoundMergeClause&)updatingClause;
+    binder::expression_vector predicates;
+    if (mergeClause.hasPredicate()) {
+        predicates = mergeClause.getPredicate()->splitOnAND();
+    }
+    planOptionalMatch(*mergeClause.getQueryGraphCollection(), predicates, plan);
+    std::shared_ptr<Expression> mark;
+    auto& createInfos = mergeClause.getCreateInfosRef();
+    assert(!createInfos.empty());
+    auto createInfo = createInfos[0].get();
+    switch (createInfo->updateTableType) {
+    case binder::UpdateTableType::NODE: {
+        auto node = (NodeExpression*)createInfo->nodeOrRel.get();
+        mark = node->getInternalIDProperty();
+    } break;
+    case binder::UpdateTableType::REL: {
+        auto rel = (RelExpression*)createInfo->nodeOrRel.get();
+        mark = rel->getInternalIDProperty();
+    } break;
+    default:
+        throw common::NotImplementedException("QueryPlanner::planMergeClause");
+    }
+    std::vector<std::unique_ptr<LogicalCreateNodeInfo>> logicalCreateNodeInfos;
+    std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalCreateNodeSetInfos;
+    if (mergeClause.hasCreateNodeInfo()) {
+        auto boundCreateNodeInfos = mergeClause.getCreateNodeInfos();
+        for (auto& info : boundCreateNodeInfos) {
+            logicalCreateNodeInfos.push_back(createLogicalCreateNodeInfo(info));
+        }
+        for (auto& info : createLogicalSetPropertyInfo(boundCreateNodeInfos)) {
+            logicalCreateNodeSetInfos.push_back(createLogicalSetPropertyInfo(info.get()));
+        }
+    }
+    std::vector<std::unique_ptr<LogicalCreateRelInfo>> logicalCreateRelInfos;
+    if (mergeClause.hasCreateRelInfo()) {
+        for (auto& info : mergeClause.getCreateRelInfos()) {
+            logicalCreateRelInfos.push_back(createLogicalCreateRelInfo(info));
+        }
+    }
+    std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalOnCreateSetNodeInfos;
+    if (mergeClause.hasOnCreateSetNodeInfo()) {
+        for (auto& info : mergeClause.getOnCreateSetNodeInfos()) {
+            logicalOnCreateSetNodeInfos.push_back(createLogicalSetPropertyInfo(info));
+        }
+    }
+    std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalOnCreateSetRelInfos;
+    if (mergeClause.hasOnCreateSetRelInfo()) {
+        for (auto& info : mergeClause.getOnCreateSetRelInfos()) {
+            logicalOnCreateSetRelInfos.push_back(createLogicalSetPropertyInfo(info));
+        }
+    }
+    std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalOnMatchSetNodeInfos;
+    if (mergeClause.hasOnMatchSetNodeInfo()) {
+        for (auto& info : mergeClause.getOnMatchSetNodeInfos()) {
+            logicalOnMatchSetNodeInfos.push_back(createLogicalSetPropertyInfo(info));
+        }
+    }
+    std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalOnMatchSetRelInfos;
+    if (mergeClause.hasOnMatchSetRelInfo()) {
+        for (auto& info : mergeClause.getOnMatchSetRelInfos()) {
+            logicalOnMatchSetRelInfos.push_back(createLogicalSetPropertyInfo(info));
+        }
+    }
+    auto merge = std::make_shared<LogicalMerge>(mark, std::move(logicalCreateNodeInfos),
+        std::move(logicalCreateNodeSetInfos), std::move(logicalCreateRelInfos),
+        std::move(logicalOnCreateSetNodeInfos), std::move(logicalOnCreateSetRelInfos),
+        std::move(logicalOnMatchSetNodeInfos), std::move(logicalOnMatchSetRelInfos),
+        plan.getLastOperator());
+    appendFlattens(merge->getGroupsPosToFlatten(), plan);
+    merge->setChild(0, plan.getLastOperator());
+    merge->computeFactorizedSchema();
+    plan.setLastOperator(merge);
+}
+
 void QueryPlanner::planSetClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan) {
-    appendAccumulate(common::AccumulateType::REGULAR, plan);
+    appendAccumulate(AccumulateType::REGULAR, plan);
     auto& setClause = (BoundSetClause&)updatingClause;
     if (setClause.hasNodeInfo()) {
         appendSetNodeProperty(setClause.getNodeInfos(), plan);
@@ -70,7 +144,7 @@ void QueryPlanner::planSetClause(binder::BoundUpdatingClause& updatingClause, Lo
 
 void QueryPlanner::planDeleteClause(
     binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan) {
-    appendAccumulate(common::AccumulateType::REGULAR, plan);
+    appendAccumulate(AccumulateType::REGULAR, plan);
     auto& deleteClause = (BoundDeleteClause&)updatingClause;
     if (deleteClause.hasRelInfo()) {
         appendDeleteRel(deleteClause.getRelInfos(), plan);

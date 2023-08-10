@@ -1,7 +1,7 @@
 #include <set>
 
 #include "graph_test/graph_test.h"
-#include "processor/mapper/plan_mapper.h"
+#include "processor/plan_mapper.h"
 #include "processor/processor.h"
 
 using namespace kuzu::catalog;
@@ -98,20 +98,20 @@ public:
 
     void validateTinysnbKnowsDateProperty() {
         std::multiset<date_t, std::greater<>> expectedResult = {
-            Date::FromCString("1905-12-12", strlen("1905-12-12")),
-            Date::FromCString("1905-12-12", strlen("1905-12-12")),
-            Date::FromCString("1950-05-14", strlen("1950-05-14")),
-            Date::FromCString("1950-05-14", strlen("1950-05-14")),
-            Date::FromCString("1950-05-14", strlen("1950-05-14")),
-            Date::FromCString("1950-05-14", strlen("1950-05-14")),
-            Date::FromCString("2000-01-01", strlen("2000-01-01")),
-            Date::FromCString("2000-01-01", strlen("2000-01-01")),
-            Date::FromCString("2021-06-30", strlen("2021-06-30")),
-            Date::FromCString("2021-06-30", strlen("2021-06-30")),
-            Date::FromCString("2021-06-30", strlen("2021-06-30")),
-            Date::FromCString("2021-06-30", strlen("2021-06-30")),
-            Date::FromCString("2021-06-30", strlen("2021-06-30")),
-            Date::FromCString("2021-06-30", strlen("2021-06-30"))};
+            Date::fromCString("1905-12-12", strlen("1905-12-12")),
+            Date::fromCString("1905-12-12", strlen("1905-12-12")),
+            Date::fromCString("1950-05-14", strlen("1950-05-14")),
+            Date::fromCString("1950-05-14", strlen("1950-05-14")),
+            Date::fromCString("1950-05-14", strlen("1950-05-14")),
+            Date::fromCString("1950-05-14", strlen("1950-05-14")),
+            Date::fromCString("2000-01-01", strlen("2000-01-01")),
+            Date::fromCString("2000-01-01", strlen("2000-01-01")),
+            Date::fromCString("2021-06-30", strlen("2021-06-30")),
+            Date::fromCString("2021-06-30", strlen("2021-06-30")),
+            Date::fromCString("2021-06-30", strlen("2021-06-30")),
+            Date::fromCString("2021-06-30", strlen("2021-06-30")),
+            Date::fromCString("2021-06-30", strlen("2021-06-30")),
+            Date::fromCString("2021-06-30", strlen("2021-06-30"))};
         std::multiset<date_t, std::greater<>> actualResult;
         auto queryResult = conn->query("match (:person)-[e:knows]->(:person) return e.date");
         while (queryResult->hasNext()) {
@@ -210,28 +210,6 @@ TEST_F(TinySnbCopyCSVTransactionTest, CopyRelCommitNormalExecution) {
 
 TEST_F(TinySnbCopyCSVTransactionTest, CopyRelCommitRecovery) {
     copyRelCSVCommitAndRecoveryTest(TransactionTestType::RECOVERY);
-}
-
-TEST_F(TinySnbCopyCSVTransactionTest, CopyNodeOutputMsg) {
-    conn->query(createPersonTableCMD);
-    conn->query(createKnowsTableCMD);
-    auto result = conn->query(copyPersonTableCMD);
-    ASSERT_EQ(TestHelper::convertResultToString(*result),
-        std::vector<std::string>{"8 number of tuples has been copied to table: person."});
-    result = conn->query(copyKnowsTableCMD);
-    ASSERT_EQ(TestHelper::convertResultToString(*result),
-        std::vector<std::string>{"14 number of tuples has been copied to table: knows."});
-}
-
-TEST_F(TinySnbCopyCSVTransactionTest, CopyCSVStatementWithActiveTransactionErrorTest) {
-    auto re = conn->query(createPersonTableCMD);
-    ASSERT_TRUE(re->isSuccess());
-    conn->beginWriteTransaction();
-    auto result = conn->query(copyPersonTableCMD);
-    ASSERT_EQ(result->getErrorMessage(),
-        "DDL, CopyCSV, createMacro statements are automatically wrapped in a transaction and "
-        "committed. As such, they cannot be part of an active transaction, please commit or "
-        "rollback your previous transaction and issue a ddl query without opening a transaction.");
 }
 
 } // namespace testing

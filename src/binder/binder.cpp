@@ -18,8 +18,11 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::CREATE_REL_TABLE: {
         return bindCreateRelTableClause(statement);
     }
-    case StatementType::COPY: {
-        return bindCopyClause(statement);
+    case StatementType::COPY_FROM: {
+        return bindCopyFromClause(statement);
+    }
+    case StatementType::COPY_TO: {
+        return bindCopyToClause(statement);
     }
     case StatementType::DROP_TABLE: {
         return bindDropTableClause(statement);
@@ -49,7 +52,7 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
         return bindCreateMacro(statement);
     }
     default:
-        assert(false);
+        throw NotImplementedException("Binder::bind");
     }
 }
 
@@ -144,21 +147,13 @@ void Binder::validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQuery)
     }
 }
 
-void Binder::validateReturnNotFollowUpdate(const NormalizedSingleQuery& singleQuery) {
-    for (auto i = 0u; i < singleQuery.getNumQueryParts(); ++i) {
-        auto normalizedQueryPart = singleQuery.getQueryPart(i);
-        if (normalizedQueryPart->hasUpdatingClause() && normalizedQueryPart->hasProjectionBody()) {
-            throw BinderException("Return/With after update is not supported.");
-        }
-    }
-}
-
 void Binder::validateReadNotFollowUpdate(const NormalizedSingleQuery& singleQuery) {
     bool hasSeenUpdateClause = false;
     for (auto i = 0u; i < singleQuery.getNumQueryParts(); ++i) {
         auto normalizedQueryPart = singleQuery.getQueryPart(i);
         if (hasSeenUpdateClause && normalizedQueryPart->hasReadingClause()) {
-            throw BinderException("Read after update is not supported.");
+            throw BinderException(
+                "Read after update is not supported. Try query with multiple statements.");
         }
         hasSeenUpdateClause |= normalizedQueryPart->hasUpdatingClause();
     }
@@ -181,11 +176,11 @@ bool Binder::validateStringParsingOptionName(std::string& parsingOptionName) {
 }
 
 void Binder::validateNodeTableHasNoEdge(const Catalog& _catalog, table_id_t tableID) {
-    for (auto& tableIDSchema : _catalog.getReadOnlyVersion()->getRelTableSchemas()) {
-        if (tableIDSchema.second->isSrcOrDstTable(tableID)) {
+    for (auto& relTableSchema : _catalog.getReadOnlyVersion()->getRelTableSchemas()) {
+        if (relTableSchema->isSrcOrDstTable(tableID)) {
             throw BinderException(StringUtils::string_format(
                 "Cannot delete a node table with edges. It is on the edges of rel: {}.",
-                tableIDSchema.second->tableName));
+                relTableSchema->tableName));
         }
     }
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "binder/query/reading_clause/query_graph.h"
+#include "binder/query/query_graph.h"
 #include "planner/logical_plan/logical_plan.h"
 #include "storage/store/nodes_statistics_and_deleted_ids.h"
 #include "storage/store/rels_statistics.h"

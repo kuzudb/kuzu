@@ -23,6 +23,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::STANDALONE_CALL: {
         return "STANDALONE_CALL";
     }
+    case PhysicalOperatorType::COPY_TO: {
+        return "COPY_TO";
+    }
     case PhysicalOperatorType::COPY_NODE: {
         return "COPY_NODE";
     }
@@ -41,14 +44,14 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::READ_PARQUET: {
         return "READ_PARQUET";
     }
-    case PhysicalOperatorType::CREATE_NODE: {
-        return "CREATE_NODE";
+    case PhysicalOperatorType::INSERT_NODE: {
+        return "INSERT_NODE";
     }
     case PhysicalOperatorType::CREATE_NODE_TABLE: {
         return "CREATE_NODE_TABLE";
     }
-    case PhysicalOperatorType::CREATE_REL: {
-        return "CREATE_REL";
+    case PhysicalOperatorType::INSERT_REL: {
+        return "INSERT_REL";
     }
     case PhysicalOperatorType::CREATE_REL_TABLE: {
         return "CREATE_REL_TABLE";
@@ -97,6 +100,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     }
     case PhysicalOperatorType::LIMIT: {
         return "LIMIT";
+    }
+    case PhysicalOperatorType::MERGE: {
+        return "MERGE";
     }
     case PhysicalOperatorType::MULTIPLICITY_REDUCER: {
         return "MULTIPLICITY_REDUCER";
@@ -180,7 +186,7 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "PROFILE";
     }
     default:
-        throw common::NotImplementedException("physicalOperatorTypeToString()");
+        throw NotImplementedException("physicalOperatorTypeToString()");
     }
 }
 

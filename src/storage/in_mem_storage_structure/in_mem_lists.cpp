@@ -21,7 +21,7 @@ PageElementCursor InMemLists::calcPageElementCursor(
 }
 
 InMemLists::InMemLists(std::string fName, LogicalType dataType, uint64_t numBytesForElement,
-    uint64_t numNodes, const common::CopyDescription* copyDescription, bool hasNullBytes)
+    uint64_t numNodes, const CopyDescription* copyDescription, bool hasNullBytes)
     : fName{std::move(fName)}, dataType{std::move(dataType)},
       numBytesForElement{numBytesForElement}, copyDescription{copyDescription} {
     listsMetadataBuilder = make_unique<ListsMetadataBuilder>(this->fName);
@@ -56,10 +56,10 @@ void InMemLists::copyArrowArray(arrow::Array* boundNodeOffsets, arrow::Array* po
         templateCopyArrayToRelLists<float_t>(boundNodeOffsets, posInRelLists, array);
     } break;
     case arrow::Type::DATE32: {
-        templateCopyArrayToRelLists<common::date_t>(boundNodeOffsets, posInRelLists, array);
+        templateCopyArrayToRelLists<date_t>(boundNodeOffsets, posInRelLists, array);
     } break;
     case arrow::Type::TIMESTAMP: {
-        templateCopyArrayToRelLists<common::timestamp_t>(boundNodeOffsets, posInRelLists, array);
+        templateCopyArrayToRelLists<timestamp_t>(boundNodeOffsets, posInRelLists, array);
     } break;
     case arrow::Type::STRING: {
         switch (dataType.getLogicalTypeID()) {
@@ -80,13 +80,13 @@ void InMemLists::copyArrowArray(arrow::Array* boundNodeOffsets, arrow::Array* po
         } break;
             // TODO(Ziyi): Add support of VAR_LIST/STRUCT.
         default: {
-            throw common::CopyException("Unsupported data type ");
+            throw CopyException("Unsupported data type ");
         }
         }
     } break;
         // TODO(Ziyi): Add support of VAR_LIST and more native parquet data types.
     default: {
-        throw common::CopyException("Unsupported data type ");
+        throw CopyException("Unsupported data type ");
     }
     }
 }
@@ -114,7 +114,7 @@ void InMemLists::templateCopyArrayToRelLists(
 template<>
 void InMemLists::templateCopyArrayToRelLists<bool>(
     arrow::Array* boundNodeOffsets, arrow::Array* posInRelList, arrow::Array* array) {
-    auto& boolArray = (arrow::BooleanArray&)array;
+    auto boolArray = (arrow::BooleanArray*)array;
     auto offsets = boundNodeOffsets->data()->GetValues<offset_t>(1);
     auto positions = posInRelList->data()->GetValues<int64_t>(1);
     if (array->data()->MayHaveNulls()) {
@@ -122,12 +122,12 @@ void InMemLists::templateCopyArrayToRelLists<bool>(
             if (array->IsNull(i)) {
                 continue;
             }
-            bool val = boolArray.Value(i);
+            bool val = boolArray->Value(i);
             setValue(offsets[i], positions[i], (uint8_t*)&val);
         }
     } else {
         for (auto i = 0u; i < array->length(); i++) {
-            bool val = boolArray.Value(i);
+            bool val = boolArray->Value(i);
             setValue(offsets[i], positions[i], (uint8_t*)&val);
         }
     }
@@ -173,7 +173,7 @@ void InMemLists::saveToFile() {
     inMemFile->flush();
 }
 
-void InMemLists::setValue(common::offset_t nodeOffset, uint64_t pos, uint8_t* val) {
+void InMemLists::setValue(offset_t nodeOffset, uint64_t pos, uint8_t* val) {
     auto cursor = calcPageElementCursor(pos, numBytesForElement, nodeOffset);
     inMemFile->getPage(cursor.pageIdx)
         ->write(cursor.elemPosInPage * numBytesForElement, cursor.elemPosInPage, val,
@@ -182,14 +182,14 @@ void InMemLists::setValue(common::offset_t nodeOffset, uint64_t pos, uint8_t* va
 
 template<typename T>
 void InMemLists::setValueFromString(
-    common::offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
-    auto numericVal = common::TypeUtils::convertStringToNumber<T>(val);
+    offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
+    auto numericVal = StringCastUtils::castToNum<T>(val);
     setValue(nodeOffset, pos, (uint8_t*)&numericVal);
 }
 
 template<>
 void InMemLists::setValueFromString<bool>(
-    common::offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
+    offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
     std::istringstream boolStream{std::string(val)};
     bool booleanVal;
     boolStream >> std::boolalpha >> booleanVal;
@@ -199,7 +199,7 @@ void InMemLists::setValueFromString<bool>(
 // Fixed list
 template<>
 void InMemLists::setValueFromString<uint8_t*>(
-    common::offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
+    offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
     auto fixedListVal =
         TableCopyUtils::getArrowFixedList(val, 1, length - 2, dataType, *copyDescription);
     setValue(nodeOffset, pos, fixedListVal.get());
@@ -208,24 +208,24 @@ void InMemLists::setValueFromString<uint8_t*>(
 // Interval
 template<>
 void InMemLists::setValueFromString<interval_t>(
-    common::offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
-    auto intervalVal = Interval::FromCString(val, length);
+    offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
+    auto intervalVal = Interval::fromCString(val, length);
     setValue(nodeOffset, pos, (uint8_t*)&intervalVal);
 }
 
 // Date
 template<>
 void InMemLists::setValueFromString<date_t>(
-    common::offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
-    auto dateVal = Date::FromCString(val, length);
+    offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
+    auto dateVal = Date::fromCString(val, length);
     setValue(nodeOffset, pos, (uint8_t*)&dateVal);
 }
 
 // Timestamp
 template<>
 void InMemLists::setValueFromString<timestamp_t>(
-    common::offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
-    auto timestampVal = Timestamp::FromCString(val, length);
+    offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
+    auto timestampVal = Timestamp::fromCString(val, length);
     setValue(nodeOffset, pos, (uint8_t*)&timestampVal);
 }
 
@@ -299,7 +299,7 @@ fill_in_mem_lists_function_t InMemLists::getFillInMemListsFunc(const LogicalType
         return fillInMemListsWithListValFunc;
     }
     default: {
-        assert(false);
+        throw NotImplementedException("InMemLists::getFillInMemListsFunc");
     }
     }
 }
@@ -311,7 +311,7 @@ void InMemAdjLists::saveToFile() {
 
 InMemListsWithOverflow::InMemListsWithOverflow(std::string fName, LogicalType dataType,
     uint64_t numNodes, std::shared_ptr<ListHeadersBuilder> listHeadersBuilder,
-    const common::CopyDescription* copyDescription)
+    const CopyDescription* copyDescription)
     : InMemLists{std::move(fName), std::move(dataType),
           storage::StorageUtils::getDataTypeSize(dataType), numNodes, copyDescription, true},
       blobBuffer{std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_4KB_SIZE)} {
@@ -326,15 +326,15 @@ void InMemListsWithOverflow::copyArrowArray(arrow::Array* boundNodeOffsets,
     arrow::Array* posInRelLists, arrow::Array* array, PropertyCopyState* copyState) {
     assert(array->type_id() == arrow::Type::STRING);
     switch (dataType.getLogicalTypeID()) {
-    case common::LogicalTypeID::BLOB: {
+    case LogicalTypeID::BLOB: {
         templateCopyArrayAsStringToRelListsWithOverflow<blob_t>(
             boundNodeOffsets, posInRelLists, array, copyState->overflowCursor);
     } break;
-    case common::LogicalTypeID::STRING: {
+    case LogicalTypeID::STRING: {
         templateCopyArrayAsStringToRelListsWithOverflow<ku_string_t>(
             boundNodeOffsets, posInRelLists, array, copyState->overflowCursor);
     } break;
-    case common::LogicalTypeID::VAR_LIST: {
+    case LogicalTypeID::VAR_LIST: {
         templateCopyArrayAsStringToRelListsWithOverflow<ku_list_t>(
             boundNodeOffsets, posInRelLists, array, copyState->overflowCursor);
     } break;
@@ -383,7 +383,7 @@ template<>
 void InMemListsWithOverflow::setValueFromStringWithOverflow<ku_list_t>(
     PageByteCursor& overflowCursor, offset_t nodeOffset, uint64_t pos, const char* val,
     uint64_t length) {
-    auto varList = TableCopyUtils::getArrowVarList(val, 1, length - 2, dataType, *copyDescription);
+    auto varList = TableCopyUtils::getVarListValue(val, 1, length - 2, dataType, *copyDescription);
     auto listVal = overflowInMemFile->copyList(*varList, overflowCursor);
     setValue(nodeOffset, pos, (uint8_t*)&listVal);
 }
@@ -394,7 +394,7 @@ void InMemListsWithOverflow::saveToFile() {
 }
 
 std::unique_ptr<InMemLists> InMemListsFactory::getInMemPropertyLists(const std::string& fName,
-    const LogicalType& dataType, uint64_t numNodes, const common::CopyDescription* copyDescription,
+    const LogicalType& dataType, uint64_t numNodes, const CopyDescription* copyDescription,
     std::shared_ptr<ListHeadersBuilder> listHeadersBuilder) {
     switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::INT64:

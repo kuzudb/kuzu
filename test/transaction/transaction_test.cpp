@@ -1,6 +1,5 @@
 #include "common/constants.h"
 #include "graph_test/graph_test.h"
-#include "json.hpp"
 #include "storage/storage_manager.h"
 #include "transaction/transaction_manager.h"
 
@@ -33,11 +32,11 @@ public:
         uint32_t agePropertyID = getCatalog(*database)
                                      ->getReadOnlyVersion()
                                      ->getNodeProperty(personTableID, "age")
-                                     .propertyID;
+                                     ->getPropertyID();
         uint32_t eyeSightPropertyID = getCatalog(*database)
                                           ->getReadOnlyVersion()
                                           ->getNodeProperty(personTableID, "eyeSight")
-                                          .propertyID;
+                                          ->getPropertyID();
 
         dataChunk = std::make_shared<DataChunk>(3);
         nodeVector =
@@ -65,7 +64,8 @@ public:
         dataChunk->state->currIdx = nodeOffset;
         dataChunk->state->selVector->resetSelectorToValuePosBuffer();
         dataChunk->state->selVector->selectedPositions[0] = nodeOffset;
-        personAgeColumn->read(trx, nodeVector.get(), agePropertyVectorToReadDataInto.get());
+        dataChunk->state->selVector->selectedSize = 1;
+        personAgeColumn->lookup(trx, nodeVector.get(), agePropertyVectorToReadDataInto.get());
         if (isNull) {
             ASSERT_TRUE(agePropertyVectorToReadDataInto->isNull(dataChunk->state->currIdx));
         } else {
@@ -80,7 +80,8 @@ public:
         dataChunk->state->currIdx = nodeOffset;
         dataChunk->state->selVector->resetSelectorToValuePosBuffer();
         dataChunk->state->selVector->selectedPositions[0] = nodeOffset;
-        personEyeSightColumn->read(trx, nodeVector.get(), eyeSightVectorToReadDataInto.get());
+        dataChunk->state->selVector->selectedSize = 1;
+        personEyeSightColumn->lookup(trx, nodeVector.get(), eyeSightVectorToReadDataInto.get());
         if (isNull) {
             ASSERT_TRUE(eyeSightVectorToReadDataInto->isNull(dataChunk->state->currIdx));
         } else {
@@ -94,6 +95,7 @@ public:
         dataChunk->state->currIdx = nodeOffset;
         dataChunk->state->selVector->resetSelectorToValuePosBuffer();
         dataChunk->state->selVector->selectedPositions[0] = nodeOffset;
+        dataChunk->state->selVector->selectedSize = 1;
         auto propertyVectorToWriteDataTo =
             std::make_shared<ValueVector>(LogicalTypeID::INT64, getMemoryManager(*database));
         propertyVectorToWriteDataTo->state = dataChunk->state;
@@ -112,6 +114,7 @@ public:
         dataChunk->state->currIdx = nodeOffset;
         dataChunk->state->selVector->resetSelectorToValuePosBuffer();
         dataChunk->state->selVector->selectedPositions[0] = nodeOffset;
+        dataChunk->state->selVector->selectedSize = 1;
         auto propertyVectorToWriteDataTo =
             std::make_shared<ValueVector>(LogicalTypeID::DOUBLE, getMemoryManager(*database));
         propertyVectorToWriteDataTo->state = dataChunk->state;
@@ -192,8 +195,8 @@ public:
     std::shared_ptr<ValueVector> nodeVector;
     std::shared_ptr<ValueVector> agePropertyVectorToReadDataInto;
     std::shared_ptr<ValueVector> eyeSightVectorToReadDataInto;
-    Column* personAgeColumn;
-    Column* personEyeSightColumn;
+    NodeColumn* personAgeColumn;
+    NodeColumn* personEyeSightColumn;
 };
 
 TEST_F(TransactionTests, SingleTransactionReadWriteToStructuredNodePropertyNonNullTest) {

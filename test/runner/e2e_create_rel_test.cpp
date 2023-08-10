@@ -1,6 +1,7 @@
 #include "common/string_utils.h"
 #include "graph_test/graph_test.h"
 
+using namespace kuzu::common;
 using namespace kuzu::testing;
 
 class CreateRelTest : public DBTest {
@@ -60,7 +61,7 @@ public:
         // in the original list.
         for (auto i = 1; i < 2301; i++) {
             expectedResult.push_back(
-                kuzu::common::StringUtils::string_format("{}|{}|[{}]", i, 3000 - i, 3000 - i));
+                StringUtils::string_format("{}|{}|[{}]", i, 3000 - i, 3000 - i));
         }
         if (isCommit) {
             // We can only see newly inserted rels only if we commit the transaction.
@@ -83,8 +84,8 @@ public:
         for (auto i = 51; i < 1500; i++) {
             insertRel("person" /* srcNode */, 1 /* srcPK */, "person" /* dstNode */, i /* dstPK */,
                 "knows" /* relation */,
-                kuzu::common::StringUtils::string_format("{{length: {}, place: '{}', tag: ['{}']}}",
-                    i, 1000 - i, 1000 - i) /* propertyValues */);
+                StringUtils::string_format("{{length: {}, place: '{}', tag: ['{}']}}", i, 1000 - i,
+                    1000 - i) /* propertyValues */);
         }
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
         auto result = conn->query("MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID = 1 RETURN "
@@ -95,13 +96,13 @@ public:
         // in the original list.
         for (auto i = 0; i <= 50; i++) {
             expectedResult.push_back(
-                kuzu::common::StringUtils::string_format("{}|{}|[{}]", i, 1000 - i, 1000 - i));
+                StringUtils::string_format("{}|{}|[{}]", i, 1000 - i, 1000 - i));
         }
         if (isCommit) {
             // We can only see newly inserted rels only if we commit the transaction.
             for (auto i = 51; i < 1500; i++) {
                 expectedResult.push_back(
-                    kuzu::common::StringUtils::string_format("{}|{}|[{}]", i, 1000 - i, 1000 - i));
+                    StringUtils::string_format("{}|{}|[{}]", i, 1000 - i, 1000 - i));
             }
         }
         sortAndCheckTestResults(actualResult, expectedResult);

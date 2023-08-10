@@ -15,8 +15,7 @@ bool Unwind::hasMoreToRead() const {
 }
 
 void Unwind::copyTuplesToOutVector(uint64_t startPos, uint64_t endPos) const {
-    auto listDataVector =
-        common::ListVector::getDataVector(expressionEvaluator->resultVector.get());
+    auto listDataVector = ListVector::getDataVector(expressionEvaluator->resultVector.get());
     auto listPos = listEntry.offset + startPos;
     for (auto i = 0u; i < endPos - startPos; i++) {
         outValueVector->copyFromVectorData(i, listDataVector, listPos++);
@@ -41,7 +40,7 @@ bool Unwind::getNextTuplesInternal(ExecutionContext* context) {
             outValueVector->state->selVector->selectedSize = 0;
             continue;
         }
-        listEntry = expressionEvaluator->resultVector->getValue<common::list_entry_t>(pos);
+        listEntry = expressionEvaluator->resultVector->getValue<list_entry_t>(pos);
         startIndex = 0;
         auto totalElementsCopy = std::min(DEFAULT_VECTOR_CAPACITY, listEntry.size);
         copyTuplesToOutVector(0, totalElementsCopy);

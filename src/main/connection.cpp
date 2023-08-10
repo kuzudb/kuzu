@@ -9,7 +9,7 @@
 #include "parser/parser.h"
 #include "planner/logical_plan/logical_plan_util.h"
 #include "planner/planner.h"
-#include "processor/mapper/plan_mapper.h"
+#include "processor/plan_mapper.h"
 #include "processor/processor.h"
 #include "transaction/transaction.h"
 #include "transaction/transaction_manager.h"
@@ -101,7 +101,7 @@ Connection::ConnectionTransactionMode Connection::getTransactionMode() {
 void Connection::setTransactionModeNoLock(ConnectionTransactionMode newTransactionMode) {
     if (activeTransaction && transactionMode == ConnectionTransactionMode::MANUAL &&
         newTransactionMode == ConnectionTransactionMode::AUTO_COMMIT) {
-        throw common::ConnectionException(
+        throw ConnectionException(
             "Cannot change transaction mode from MANUAL to AUTO_COMMIT when there is an "
             "active transaction. Need to first commit or rollback the active transaction.");
     }
@@ -211,8 +211,8 @@ std::string Connection::getNodeTableNames() {
     lock_t lck{mtx};
     std::string result = "Node tables: \n";
     std::vector<std::string> nodeTableNames;
-    for (auto& tableIDSchema : database->catalog->getReadOnlyVersion()->getNodeTableSchemas()) {
-        nodeTableNames.push_back(tableIDSchema.second->tableName);
+    for (auto& nodeTableSchema : database->catalog->getReadOnlyVersion()->getNodeTableSchemas()) {
+        nodeTableNames.push_back(nodeTableSchema->tableName);
     }
     std::sort(nodeTableNames.begin(), nodeTableNames.end());
     for (auto& nodeTableName : nodeTableNames) {
@@ -225,8 +225,8 @@ std::string Connection::getRelTableNames() {
     lock_t lck{mtx};
     std::string result = "Rel tables: \n";
     std::vector<std::string> relTableNames;
-    for (auto& tableIDSchema : database->catalog->getReadOnlyVersion()->getRelTableSchemas()) {
-        relTableNames.push_back(tableIDSchema.second->tableName);
+    for (auto relTableSchema : database->catalog->getReadOnlyVersion()->getRelTableSchemas()) {
+        relTableNames.push_back(relTableSchema->tableName);
     }
     std::sort(relTableNames.begin(), relTableNames.end());
     for (auto& relTableName : relTableNames) {
@@ -243,12 +243,14 @@ std::string Connection::getNodePropertyNames(const std::string& tableName) {
     }
     std::string result = tableName + " properties: \n";
     auto tableID = catalog->getReadOnlyVersion()->getTableID(tableName);
-    auto primaryKeyPropertyID =
-        catalog->getReadOnlyVersion()->getNodeTableSchema(tableID)->getPrimaryKey().propertyID;
-    for (auto& property : catalog->getReadOnlyVersion()->getNodeProperties(tableID)) {
-        result +=
-            "\t" + property.name + " " + LogicalTypeUtils::dataTypeToString(property.dataType);
-        result += property.propertyID == primaryKeyPropertyID ? "(PRIMARY KEY)\n" : "\n";
+    auto primaryKeyPropertyID = catalog->getReadOnlyVersion()
+                                    ->getNodeTableSchema(tableID)
+                                    ->getPrimaryKey()
+                                    ->getPropertyID();
+    for (auto property : catalog->getReadOnlyVersion()->getProperties(tableID)) {
+        result += "\t" + property->getName() + " " +
+                  LogicalTypeUtils::dataTypeToString(*property->getDataType());
+        result += property->getPropertyID() == primaryKeyPropertyID ? "(PRIMARY KEY)\n" : "\n";
     }
     return result;
 }
@@ -269,12 +271,12 @@ std::string Connection::getRelPropertyNames(const std::string& relTableName) {
     std::string result = relTableName + " src node: " + srcTableSchema->tableName + "\n";
     result += relTableName + " dst node: " + dstTableSchema->tableName + "\n";
     result += relTableName + " properties: \n";
-    for (auto& property : catalog->getReadOnlyVersion()->getRelProperties(relTableID)) {
-        if (catalog::TableSchema::isReservedPropertyName(property.name)) {
+    for (auto property : catalog->getReadOnlyVersion()->getProperties(relTableID)) {
+        if (catalog::TableSchema::isReservedPropertyName(property->getName())) {
             continue;
         }
-        result += "\t" + property.name + " " +
-                  LogicalTypeUtils::dataTypeToString(property.dataType) + "\n";
+        result += "\t" + property->getName() + " " +
+                  LogicalTypeUtils::dataTypeToString(*property->getDataType()) + "\n";
     }
     return result;
 }
@@ -404,10 +406,9 @@ void Connection::beginTransactionIfAutoCommit(PreparedStatement* preparedStateme
     }
     if (!preparedStatement->allowActiveTransaction() && activeTransaction) {
         throw ConnectionException(
-            "DDL, CopyCSV, createMacro statements are automatically wrapped in a "
-            "transaction and committed. As such, they cannot be part of an "
-            "active transaction, please commit or rollback your previous transaction and "
-            "issue a ddl query without opening a transaction.");
+            "DDL, Copy, createMacro statements can only run in the AUTO_COMMIT mode. Please commit "
+            "or rollback your previous transaction if there is any and issue the query without "
+            "beginning a transaction");
     }
     if (ConnectionTransactionMode::AUTO_COMMIT == transactionMode) {
         assert(!activeTransaction);

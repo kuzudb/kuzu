@@ -1,11 +1,13 @@
 #include "processor/operator/call/in_query_call.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace processor {
 
-std::pair<common::offset_t, common::offset_t> InQueryCallSharedState::getNextBatch() {
+std::pair<offset_t, offset_t> InQueryCallSharedState::getNextBatch() {
     std::lock_guard guard{mtx};
-    auto numTuplesInBatch = std::min(common::DEFAULT_VECTOR_CAPACITY, maxOffset - offset);
+    auto numTuplesInBatch = std::min(DEFAULT_VECTOR_CAPACITY, maxOffset - offset);
     offset += numTuplesInBatch;
     return std::make_pair(offset - numTuplesInBatch, offset);
 }

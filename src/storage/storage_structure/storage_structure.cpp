@@ -8,17 +8,6 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-void StorageStructure::addNewPageToFileHandle() {
-    auto pageIdxInOriginalFile = fileHandle->addNewPage();
-    auto pageIdxInWAL = wal->logPageInsertRecord(storageStructureID, pageIdxInOriginalFile);
-    bufferManager->pin(
-        *wal->fileHandle, pageIdxInWAL, BufferManager::PageReadPolicy::DONT_READ_PAGE);
-    fileHandle->addWALPageIdxGroupIfNecessary(pageIdxInOriginalFile);
-    fileHandle->setWALPageIdx(pageIdxInOriginalFile, pageIdxInWAL);
-    wal->fileHandle->setLockedPageDirty(pageIdxInWAL);
-    bufferManager->unpin(*wal->fileHandle, pageIdxInWAL);
-}
-
 WALPageIdxPosInPageAndFrame StorageStructure::createWALVersionOfPageIfNecessaryForElement(
     uint64_t elementOffset, uint64_t numElementsPerPage) {
     auto originalPageCursor =
@@ -26,7 +15,7 @@ WALPageIdxPosInPageAndFrame StorageStructure::createWALVersionOfPageIfNecessaryF
     bool insertingNewPage = false;
     if (originalPageCursor.pageIdx >= fileHandle->getNumPages()) {
         assert(originalPageCursor.pageIdx == fileHandle->getNumPages());
-        addNewPageToFileHandle();
+        StorageStructureUtils::insertNewPage(*fileHandle, storageStructureID, *bufferManager, *wal);
         insertingNewPage = true;
     }
     auto walPageIdxAndFrame =
@@ -43,7 +32,7 @@ BaseColumnOrList::BaseColumnOrList(const StorageStructureIDAndFName& storageStru
     numElementsPerPage = PageUtils::getNumElementsInAPage(elementSize, hasInlineNullBytes);
 }
 
-void BaseColumnOrList::readBySequentialCopy(Transaction* transaction, common::ValueVector* vector,
+void BaseColumnOrList::readBySequentialCopy(Transaction* transaction, ValueVector* vector,
     PageElementCursor& cursor,
     const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper) {
     uint64_t numValuesToRead = vector->state->originalSize;
@@ -102,11 +91,8 @@ void BaseColumnOrList::readInternalIDsFromAPageBySequentialCopy(Transaction* tra
 
 void BaseColumnOrList::readNullBitsFromAPage(ValueVector* valueVector, const uint8_t* frame,
     uint64_t posInPage, uint64_t posInVector, uint64_t numBitsToRead) const {
-    auto hasNullInSrcNullMask = NullMask::copyNullMask((uint64_t*)getNullBufferInPage(frame),
-        posInPage, valueVector->getNullMaskData(), posInVector, numBitsToRead);
-    if (hasNullInSrcNullMask) {
-        valueVector->setMayContainNulls();
-    }
+    valueVector->setNullFromBits(
+        (uint64_t*)getNullBufferInPage(frame), posInPage, posInVector, numBitsToRead);
 }
 
 void BaseColumnOrList::readAPageBySequentialCopy(Transaction* transaction, ValueVector* vector,

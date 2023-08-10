@@ -173,7 +173,7 @@ public:
     }
 
     inline void runTest(const std::vector<std::unique_ptr<TestStatement>>& statements) {
-        TestRunner::runTest(statements, *conn);
+        TestRunner::runTest(statements, *conn, databasePath);
     }
 };
 

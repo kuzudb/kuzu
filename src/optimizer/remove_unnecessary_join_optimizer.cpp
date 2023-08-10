@@ -1,7 +1,8 @@
 #include "optimizer/remove_unnecessary_join_optimizer.h"
 
-#include "planner/logical_plan/logical_operator/logical_hash_join.h"
+#include "planner/logical_plan/logical_hash_join.h"
 
+using namespace kuzu::common;
 using namespace kuzu::planner;
 
 namespace kuzu {
@@ -26,8 +27,8 @@ std::shared_ptr<planner::LogicalOperator> RemoveUnnecessaryJoinOptimizer::visitH
     std::shared_ptr<planner::LogicalOperator> op) {
     auto hashJoin = (LogicalHashJoin*)op.get();
     switch (hashJoin->getJoinType()) {
-    case common::JoinType::MARK:
-    case common::JoinType::LEFT: {
+    case JoinType::MARK:
+    case JoinType::LEFT: {
         // Do not prune no-trivial join type
         return op;
     }

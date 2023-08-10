@@ -30,8 +30,10 @@ struct InternalKeyword {
     static constexpr char LENGTH[] = "_LENGTH";
     static constexpr char NODES[] = "_NODES";
     static constexpr char RELS[] = "_RELS";
-    static constexpr char TAG[] = "_TAG";
     static constexpr char STAR[] = "*";
+    static constexpr char PLACE_HOLDER[] = "_PLACE_HOLDER";
+    static constexpr char MAP_KEY[] = "KEY";
+    static constexpr char MAP_VALUE[] = "VALUE";
 };
 
 enum PageSizeClass : uint8_t {
@@ -79,13 +81,18 @@ struct StorageConstants {
         "nodes.statistics_and_deleted.ids.wal";
     static constexpr char RELS_METADATA_FILE_NAME[] = "rels.statistics";
     static constexpr char RELS_METADATA_FILE_NAME_FOR_WAL[] = "rels.statistics.wal";
-    static constexpr char CATALOG_FILE_NAME[] = "catalog.bin";
-    static constexpr char CATALOG_FILE_NAME_FOR_WAL[] = "catalog.bin.wal";
+    static constexpr char CATALOG_FILE_NAME[] = "catalog.kz";
+    static constexpr char CATALOG_FILE_NAME_FOR_WAL[] = "catalog.kz.wal";
+    static constexpr char DATA_FILE_NAME[] = "data.kz";
+    static constexpr char METADATA_FILE_NAME[] = "metadata.kz";
 
     // The number of pages that we add at one time when we need to grow a file.
     static constexpr uint64_t PAGE_GROUP_SIZE_LOG2 = 10;
     static constexpr uint64_t PAGE_GROUP_SIZE = (uint64_t)1 << PAGE_GROUP_SIZE_LOG2;
     static constexpr uint64_t PAGE_IDX_IN_GROUP_MASK = ((uint64_t)1 << PAGE_GROUP_SIZE_LOG2) - 1;
+
+    static constexpr uint64_t NODE_GROUP_SIZE_LOG2 = 17; // 64 * 2048 nodes per group
+    static constexpr uint64_t NODE_GROUP_SIZE = (uint64_t)1 << NODE_GROUP_SIZE_LOG2;
 };
 
 struct ListsMetadataConstants {
@@ -109,12 +116,6 @@ struct CopyConstants {
     // Size (in bytes) of the chunks to be read in Node/Rel Copier
     static constexpr uint64_t CSV_READING_BLOCK_SIZE = 1 << 23;
 
-    // Number of tasks to be assigned in a batch when reading files.
-    static constexpr uint64_t NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH = 200;
-
-    // Lower bound for number of incomplete tasks in copier to trigger scheduling a new batch.
-    static constexpr uint64_t MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE = 50;
-
     // Number of rows per block for npy files
     static constexpr uint64_t NUM_ROWS_PER_BLOCK_FOR_NPY = 2048;
 
@@ -127,6 +128,7 @@ struct CopyConstants {
     static constexpr char DEFAULT_CSV_LIST_BEGIN_CHAR = '[';
     static constexpr char DEFAULT_CSV_LIST_END_CHAR = ']';
     static constexpr bool DEFAULT_CSV_HAS_HEADER = false;
+    static constexpr char DEFAULT_CSV_LINE_BREAK = '\n';
 };
 
 struct LoggerConstants {

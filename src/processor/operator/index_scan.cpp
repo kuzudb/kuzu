@@ -1,16 +1,14 @@
 #include "processor/operator/index_scan.h"
 
-#include "common/exception.h"
-
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace processor {
 
 void IndexScan::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    assert(indexDataPos.dataChunkPos == outDataPos.dataChunkPos);
-    indexVector = resultSet->getValueVector(indexDataPos);
-    outVector = resultSet->getValueVector(outDataPos);
+    indexEvaluator->init(*resultSet, context->memoryManager);
+    indexVector = indexEvaluator->resultVector.get();
+    outVector = resultSet->getValueVector(outDataPos).get();
 }
 
 bool IndexScan::getNextTuplesInternal(ExecutionContext* context) {
@@ -26,7 +24,7 @@ bool IndexScan::getNextTuplesInternal(ExecutionContext* context) {
             auto pos = indexVector->state->selVector->selectedPositions[i];
             outVector->state->selVector->getSelectedPositionsBuffer()[numSelectedValues] = pos;
             offset_t nodeOffset = INVALID_OFFSET;
-            numSelectedValues += pkIndex->lookup(transaction, indexVector.get(), pos, nodeOffset);
+            numSelectedValues += pkIndex->lookup(transaction, indexVector, pos, nodeOffset);
             nodeID_t nodeID{nodeOffset, tableID};
             outVector->setValue<nodeID_t>(pos, nodeID);
         }

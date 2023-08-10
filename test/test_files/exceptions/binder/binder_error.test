@@ -5,6 +5,16 @@
 
 -CASE BinderError
 
+-LOG EmptyCreateClause
+-STATEMENT MATCH (a:person) CREATE (a);
+---- error
+Binder exception: Cannot resolve any node or relationship to create.
+
+-LOG EmptyMergeClause
+-STATEMENT MATCH (a:person) MERGE (a);
+---- error
+Binder exception: Cannot resolve any node or relationship to create.
+
 -LOG NodeTableNotExist
 -STATEMENT MATCH (a:PERSON) RETURN COUNT(*)
 ---- error
@@ -204,6 +214,14 @@ Binder exception: Union and union all can't be used together.
 ---- error
 Binder exception: Lower and upper bound of a rel must be greater than 0.
 
+-LOG ReadAfterUpdate
+-STATEMENT MATCH (a:person) SET a.age = 35 WITH a MATCH (a)-[:knows]->(b:person) RETURN a.age
+---- error
+Binder exception: Read after update is not supported. Try query with multiple statements.
+-STATEMENT MATCH (a:person) WHERE a.age = 35 DELETE a WITH a MATCH (a)-[:knows]->(b:person) RETURN a.age
+---- error
+Binder exception: Read after update is not supported. Try query with multiple statements.
+
 -LOG SetDataTypeMisMatch
 -STATEMENT MATCH (a:person) SET a.age = 'hh'
 ---- error
@@ -218,16 +236,6 @@ Binder exception: Expression hh has data type STRING but expect INT64. Implicit 
 -STATEMENT CREATE (a:person)-[:knows {date:12}]->(b:person)
 ---- error
 Binder exception: Expression 12 has data type INT64 but expect DATE. Implicit cast is not supported.
-
--LOG ReadAfterUpdate1
--STATEMENT MATCH (a:person) SET a.age = 35 WITH a MATCH (a)-[:knows]->(b:person) RETURN a.age
----- error
-Binder exception: Read after update is not supported.
-
--LOG ReadAfterUpdate3
--STATEMENT MATCH (a:person) SET a.age=3 RETURN a.fName
----- error
-Binder exception: Return/With after update is not supported.
 
 -LOG DeleteNodeProperty
 -STATEMENT MATCH (a:person) DELETE a.age
@@ -470,3 +478,8 @@ Binder exception: Invalid number of arguments for macro ADD5.
 -STATEMENT MATCH (a:person) RETURN add4(a.age, 1, 2,3)
 ---- error
 Binder exception: Invalid number of arguments for macro ADD4.
+
+-CASE CopyToNPYFormat
+-STATEMENT COPY (MATCH (a:person) RETURN a) TO 'person.npy';
+---- error
+Binder exception: COPY TO currently only supports csv files.

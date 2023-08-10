@@ -247,7 +247,7 @@ void ListsUpdateIterator::writeAtOffset(InMemList& inMemList, page_idx_t pageLis
                 memcpy(frame + lists->getElemByteOffset(elementOffsetInListPage), dataToFill,
                     numElementsToWriteToCurrentPage * elementSize);
                 if (inMemList.hasNullBuffer()) {
-                    NullMask::copyNullMask(inMemList.getNullMask(), numUpdatedElements,
+                    NullMask::copyNullMask(inMemList.getNullMask()->getData(), numUpdatedElements,
                         (uint64_t*)lists->getNullBufferInPage(frame), elementOffsetInListPage,
                         numElementsToWriteToCurrentPage);
                 }

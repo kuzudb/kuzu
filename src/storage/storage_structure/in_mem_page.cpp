@@ -8,6 +8,10 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
+InMemPage::InMemPage()
+    : InMemPage{BufferPoolConstants::PAGE_4KB_SIZE, 1 /* numBytesForElement */,
+          false /* hasNullEntries */} {}
+
 InMemPage::InMemPage(uint32_t maxNumElements, uint16_t numBytesForElement, bool hasNullEntries)
     : nullEntriesInPage{nullptr}, maxNumElements{maxNumElements} {
     buffer = std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_4KB_SIZE);
@@ -31,15 +35,6 @@ void InMemPage::setElementAtPosToNonNull(uint32_t pos) {
     auto entryPos = pos >> NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2;
     auto bitPosInEntry = pos - (entryPos << NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2);
     nullEntriesInPage[entryPos] &= NULL_BITMASKS_WITH_SINGLE_ZERO[bitPosInEntry];
-}
-
-uint8_t* InMemPage::writeNodeID(
-    nodeID_t* nodeID, uint32_t byteOffsetInPage, uint32_t elemPosInPage) {
-    *(offset_t*)(data + byteOffsetInPage) = nodeID->offset;
-    if (nullMask) {
-        nullMask[elemPosInPage] = false;
-    }
-    return data + byteOffsetInPage;
 }
 
 uint8_t* InMemPage::write(uint32_t byteOffsetInPage, uint32_t elemPosInPage, const uint8_t* elem,

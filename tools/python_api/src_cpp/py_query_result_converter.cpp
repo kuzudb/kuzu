@@ -61,7 +61,7 @@ void NPArrayWrapper::appendElement(Value* value) {
             break;
         }
         default: {
-            assert(false);
+            throw NotImplementedException("NPArrayWrapper::appendElement");
         }
         }
     }
@@ -100,7 +100,7 @@ py::dtype NPArrayWrapper::convertToArrayType(const LogicalType& type) {
         break;
     }
     default: {
-        assert(false);
+        throw NotImplementedException("NPArrayWrapper::convertToArrayType");
     }
     }
     return py::dtype(dtype);

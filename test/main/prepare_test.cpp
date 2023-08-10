@@ -59,7 +59,7 @@ TEST_F(ApiTest, PrepareDate) {
     auto preparedStatement =
         conn->prepare("MATCH (a:person) WHERE a.birthdate = $n RETURN COUNT(*)");
     auto result = conn->execute(
-        preparedStatement.get(), std::make_pair(std::string("n"), Date::FromDate(1900, 1, 1)));
+        preparedStatement.get(), std::make_pair(std::string("n"), Date::fromDate(1900, 1, 1)));
     ASSERT_TRUE(result->hasNext());
     auto tuple = result->getNext();
     ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 2);
@@ -69,10 +69,10 @@ TEST_F(ApiTest, PrepareDate) {
 TEST_F(ApiTest, PrepareTimestamp) {
     auto preparedStatement =
         conn->prepare("MATCH (a:person) WHERE a.registerTime = $n RETURN COUNT(*)");
-    auto date = Date::FromDate(2011, 8, 20);
+    auto date = Date::fromDate(2011, 8, 20);
     auto time = Time::FromTime(11, 25, 30);
     auto result = conn->execute(preparedStatement.get(),
-        std::make_pair(std::string("n"), Timestamp::FromDatetime(date, time)));
+        std::make_pair(std::string("n"), Timestamp::fromDateTime(date, time)));
     ASSERT_TRUE(result->hasNext());
     auto tuple = result->getNext();
     ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 1);
@@ -85,7 +85,7 @@ TEST_F(ApiTest, PrepareInterval) {
     std::string intervalStr = "3 years 2 days 13 hours 2 minutes";
     auto result = conn->execute(preparedStatement.get(),
         std::make_pair(
-            std::string("n"), Interval::FromCString(intervalStr.c_str(), intervalStr.length())));
+            std::string("n"), Interval::fromCString(intervalStr.c_str(), intervalStr.length())));
     ASSERT_TRUE(result->hasNext());
     auto tuple = result->getNext();
     ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 2);

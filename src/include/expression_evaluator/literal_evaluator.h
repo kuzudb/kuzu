@@ -5,10 +5,10 @@
 namespace kuzu {
 namespace evaluator {
 
-class LiteralExpressionEvaluator : public BaseExpressionEvaluator {
+class LiteralExpressionEvaluator : public ExpressionEvaluator {
 public:
     LiteralExpressionEvaluator(std::shared_ptr<common::Value> value)
-        : BaseExpressionEvaluator{true /* isResultFlat */}, value{std::move(value)} {}
+        : ExpressionEvaluator{true /* isResultFlat */}, value{std::move(value)} {}
 
     ~LiteralExpressionEvaluator() = default;
 
@@ -16,7 +16,7 @@ public:
 
     bool select(common::SelectionVector& selVector) override;
 
-    inline std::unique_ptr<BaseExpressionEvaluator> clone() override {
+    inline std::unique_ptr<ExpressionEvaluator> clone() override {
         return make_unique<LiteralExpressionEvaluator>(value);
     }
 

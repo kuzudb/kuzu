@@ -25,11 +25,9 @@ void HashJoinProbe::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     columnIdxsToReadFrom.resize(probeDataInfo.getNumPayloads());
     iota(
         columnIdxsToReadFrom.begin(), columnIdxsToReadFrom.end(), probeDataInfo.keysDataPos.size());
-    hashVector =
-        std::make_unique<common::ValueVector>(common::LogicalTypeID::INT64, context->memoryManager);
+    hashVector = std::make_unique<ValueVector>(LogicalTypeID::INT64, context->memoryManager);
     if (keyVectors.size() > 1) {
-        tmpHashVector = std::make_unique<common::ValueVector>(
-            common::LogicalTypeID::INT64, context->memoryManager);
+        tmpHashVector = std::make_unique<ValueVector>(LogicalTypeID::INT64, context->memoryManager);
     }
 }
 
@@ -175,8 +173,7 @@ uint64_t HashJoinProbe::getJoinResult() {
         return getInnerJoinResult();
     }
     default:
-        throw common::InternalException(
-            "Unimplemented join type for HashJoinProbe::getJoinResult()");
+        throw InternalException("Unimplemented join type for HashJoinProbe::getJoinResult()");
     }
 }
 

@@ -1,13 +1,24 @@
 #pragma once
 
 #include "cypher_parser.h"
-#include "parser/macro/create_macro.h"
-#include "parser/query/graph_pattern/pattern_element.h"
-#include "parser/query/regular_query.h"
+#include "expression/parsed_expression.h"
+#include "statement.h"
 
 namespace kuzu {
 namespace parser {
 
+class RegularQuery;
+class SingleQuery;
+class QueryPart;
+class UpdatingClause;
+class ReadingClause;
+class WithClause;
+class ReturnClause;
+class ProjectionBody;
+class PatternElement;
+class NodePattern;
+class PatternElementChain;
+class RelPattern;
 struct ParsedCaseAlternative;
 
 class Transformer {
@@ -247,9 +258,11 @@ private:
     std::vector<std::pair<std::string, std::string>> transformPropertyDefinitions(
         CypherParser::KU_PropertyDefinitionsContext& ctx);
 
-    std::unique_ptr<Statement> transformCopyCSV(CypherParser::KU_CopyCSVContext& ctx);
+    std::unique_ptr<Statement> transformCopyTo(CypherParser::KU_CopyTOContext& ctx);
 
-    std::unique_ptr<Statement> transformCopyNPY(CypherParser::KU_CopyNPYContext& ctx);
+    std::unique_ptr<Statement> transformCopyFromCSV(CypherParser::KU_CopyFromCSVContext& ctx);
+
+    std::unique_ptr<Statement> transformCopyFromNPY(CypherParser::KU_CopyFromNPYContext& ctx);
 
     std::unique_ptr<Statement> transformStandaloneCall(CypherParser::KU_StandaloneCallContext& ctx);
 

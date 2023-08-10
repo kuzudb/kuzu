@@ -1,10 +1,10 @@
 #include "planner/logical_plan/logical_plan_util.h"
 
-#include "planner/logical_plan/logical_operator/logical_extend.h"
-#include "planner/logical_plan/logical_operator/logical_hash_join.h"
-#include "planner/logical_plan/logical_operator/logical_intersect.h"
-#include "planner/logical_plan/logical_operator/logical_recursive_extend.h"
-#include "planner/logical_plan/logical_operator/logical_scan_node.h"
+#include "planner/logical_plan/extend/logical_extend.h"
+#include "planner/logical_plan/extend/logical_recursive_extend.h"
+#include "planner/logical_plan/logical_hash_join.h"
+#include "planner/logical_plan/logical_intersect.h"
+#include "planner/logical_plan/scan/logical_scan_node.h"
 
 using namespace kuzu::binder;
 

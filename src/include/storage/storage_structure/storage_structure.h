@@ -18,6 +18,8 @@ typedef uint64_t chunk_idx_t;
 
 class ListsUpdateIterator;
 
+// TODO(Guodong): Clean up this class and also StorageStructureID once we finish node group-based
+// rel tables. See here also https://github.com/kuzudb/kuzu/pull/1802#discussion_r1275569590.
 class StorageStructure {
     friend class ListsUpdateIterator;
 
@@ -45,8 +47,6 @@ public:
     }
 
 protected:
-    void addNewPageToFileHandle();
-
     // If necessary creates a second version (backed by the WAL) of a page that contains the value
     // that will be written to. The position of the value, which determines the original page to
     // update, is computed from the given elementOffset and numElementsPerPage argument. Obtains

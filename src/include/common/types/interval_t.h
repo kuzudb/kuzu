@@ -83,13 +83,12 @@ public:
     KUZU_API static void addition(interval_t& result, uint64_t number, std::string specifierStr);
     KUZU_API static void parseIntervalField(
         std::string buf, uint64_t& pos, uint64_t len, interval_t& result);
-    KUZU_API static interval_t FromCString(const char* str, uint64_t len);
+    KUZU_API static interval_t fromCString(const char* str, uint64_t len);
     KUZU_API static std::string toString(interval_t interval);
-    KUZU_API static bool GreaterThan(const interval_t& left, const interval_t& right);
-    KUZU_API static void NormalizeIntervalEntries(
+    KUZU_API static bool greaterThan(const interval_t& left, const interval_t& right);
+    KUZU_API static void normalizeIntervalEntries(
         interval_t input, int64_t& months, int64_t& days, int64_t& micros);
-    KUZU_API static void TryGetDatePartSpecifier(
-        std::string specifier_p, DatePartSpecifier& result);
+    KUZU_API static void tryGetDatePartSpecifier(std::string specifier, DatePartSpecifier& result);
     KUZU_API static int32_t getIntervalPart(DatePartSpecifier specifier, interval_t& timestamp);
     KUZU_API static int64_t getMicro(const interval_t& val);
     KUZU_API static int64_t getNanoseconds(const interval_t& val);

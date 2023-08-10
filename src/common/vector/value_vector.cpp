@@ -2,6 +2,7 @@
 
 #include "common/null_buffer.h"
 #include "common/vector/auxiliary_buffer.h"
+#include <arrow/array.h>
 
 namespace kuzu {
 namespace common {
@@ -45,6 +46,11 @@ bool NodeIDVector::discardNull(ValueVector& vector) {
         vector.state->selVector->selectedSize = selectedPos;
         return selectedPos > 0;
     }
+}
+
+bool ValueVector::setNullFromBits(const uint64_t* srcNullEntries, uint64_t srcOffset,
+    uint64_t dstOffset, uint64_t numBitsToCopy) {
+    return nullMask->copyFromNullBits(srcNullEntries, srcOffset, dstOffset, numBitsToCopy);
 }
 
 template<typename T>
@@ -181,6 +187,14 @@ void ArrowColumnVector::setArrowColumn(ValueVector* vector, std::shared_ptr<arro
     arrowColumnBuffer->column = std::move(column);
 }
 
+void ArrowColumnVector::slice(ValueVector* vector, offset_t offset) {
+    auto arrowColumnBuffer =
+        reinterpret_cast<ArrowColumnAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
+    auto arrowColumn = arrowColumnBuffer->column;
+    auto slicedColumn = arrowColumn->Slice((int64_t)offset);
+    setArrowColumn(vector, slicedColumn);
+}
+
 template void ValueVector::setValue<nodeID_t>(uint32_t pos, nodeID_t val);
 template void ValueVector::setValue<bool>(uint32_t pos, bool val);
 template void ValueVector::setValue<int64_t>(uint32_t pos, int64_t val);
@@ -289,7 +303,7 @@ void ListVector::copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_
 void ListVector::copyToRowData(const ValueVector* vector, uint32_t pos, uint8_t* rowData,
     InMemOverflowBuffer* rowOverflowBuffer) {
     auto& srcListEntry = vector->getValue<list_entry_t>(pos);
-    auto srcListDataVector = common::ListVector::getDataVector(vector);
+    auto srcListDataVector = ListVector::getDataVector(vector);
     auto& dstListEntry = *(ku_list_t*)rowData;
     dstListEntry.size = srcListEntry.size;
     auto nullBytesSize = NullBuffer::getNumBytesForNullValues(dstListEntry.size);
@@ -312,8 +326,8 @@ void ListVector::copyToRowData(const ValueVector* vector, uint32_t pos, uint8_t*
 
 void ListVector::copyFromVectorData(ValueVector* dstVector, uint8_t* dstData,
     const ValueVector* srcVector, const uint8_t* srcData) {
-    auto& srcListEntry = *(common::list_entry_t*)(srcData);
-    auto& dstListEntry = *(common::list_entry_t*)(dstData);
+    auto& srcListEntry = *(list_entry_t*)(srcData);
+    auto& dstListEntry = *(list_entry_t*)(dstData);
     dstListEntry = addList(dstVector, srcListEntry.size);
     auto srcDataVector = getDataVector(srcVector);
     auto srcPos = srcListEntry.offset;

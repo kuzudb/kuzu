@@ -1,9 +1,10 @@
-#include "planner/logical_plan/logical_operator/schema.h"
+#include "planner/logical_plan/schema.h"
 
-#include "binder/expression/expression_visitor.h"
+#include "binder/expression_visitor.h"
 #include "common/exception.h"
 
 using namespace kuzu::binder;
+using namespace kuzu::common;
 
 namespace kuzu {
 namespace planner {
@@ -155,8 +156,7 @@ void SchemaUtils::validateAtMostOneUnFlatGroup(
     for (auto groupPos : groupPositions) {
         if (!schema.getGroup(groupPos)->isFlat()) {
             if (hasUnFlatGroup) {
-                throw common::InternalException(
-                    "Unexpected multiple unFlat factorization groups found.");
+                throw InternalException("Unexpected multiple unFlat factorization groups found.");
             }
             hasUnFlatGroup = true;
         }
@@ -167,7 +167,7 @@ void SchemaUtils::validateNoUnFlatGroup(
     const std::unordered_set<f_group_pos>& groupPositions, const Schema& schema) {
     for (auto groupPos : groupPositions) {
         if (!schema.getGroup(groupPos)->isFlat()) {
-            throw common::InternalException("Unexpected unFlat factorization group found.");
+            throw InternalException("Unexpected unFlat factorization group found.");
         }
     }
 }

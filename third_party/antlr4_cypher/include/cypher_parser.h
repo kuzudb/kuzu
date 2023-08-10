@@ -38,48 +38,48 @@ public:
   };
 
   enum {
-    RuleOC_Cypher = 0, RuleKU_CopyCSV = 1, RuleKU_CopyNPY = 2, RuleKU_StandaloneCall = 3, 
-    RuleKU_CreateMacro = 4, RuleKU_PositionalArgs = 5, RuleKU_DefaultArg = 6, 
-    RuleKU_FilePaths = 7, RuleKU_ParsingOptions = 8, RuleKU_ParsingOption = 9, 
-    RuleKU_DDL = 10, RuleKU_CreateNode = 11, RuleKU_CreateRel = 12, RuleKU_DropTable = 13, 
-    RuleKU_AlterTable = 14, RuleKU_AlterOptions = 15, RuleKU_AddProperty = 16, 
-    RuleKU_DropProperty = 17, RuleKU_RenameTable = 18, RuleKU_RenameProperty = 19, 
-    RuleKU_PropertyDefinitions = 20, RuleKU_PropertyDefinition = 21, RuleKU_CreateNodeConstraint = 22, 
-    RuleKU_DataType = 23, RuleKU_ListIdentifiers = 24, RuleKU_ListIdentifier = 25, 
-    RuleOC_AnyCypherOption = 26, RuleOC_Explain = 27, RuleOC_Profile = 28, 
-    RuleOC_Statement = 29, RuleOC_Query = 30, RuleOC_RegularQuery = 31, 
-    RuleOC_Union = 32, RuleOC_SingleQuery = 33, RuleOC_SinglePartQuery = 34, 
-    RuleOC_MultiPartQuery = 35, RuleKU_QueryPart = 36, RuleOC_UpdatingClause = 37, 
-    RuleOC_ReadingClause = 38, RuleKU_InQueryCall = 39, RuleOC_Match = 40, 
-    RuleOC_Unwind = 41, RuleOC_Create = 42, RuleOC_Merge = 43, RuleOC_MergeAction = 44, 
-    RuleOC_Set = 45, RuleOC_SetItem = 46, RuleOC_Delete = 47, RuleOC_With = 48, 
-    RuleOC_Return = 49, RuleOC_ProjectionBody = 50, RuleOC_ProjectionItems = 51, 
-    RuleOC_ProjectionItem = 52, RuleOC_Order = 53, RuleOC_Skip = 54, RuleOC_Limit = 55, 
-    RuleOC_SortItem = 56, RuleOC_Where = 57, RuleOC_Pattern = 58, RuleOC_PatternPart = 59, 
-    RuleOC_AnonymousPatternPart = 60, RuleOC_PatternElement = 61, RuleOC_NodePattern = 62, 
-    RuleOC_PatternElementChain = 63, RuleOC_RelationshipPattern = 64, RuleOC_RelationshipDetail = 65, 
-    RuleKU_Properties = 66, RuleOC_RelationshipTypes = 67, RuleOC_NodeLabels = 68, 
-    RuleOC_NodeLabel = 69, RuleOC_RangeLiteral = 70, RuleOC_LabelName = 71, 
-    RuleOC_RelTypeName = 72, RuleOC_Expression = 73, RuleOC_OrExpression = 74, 
-    RuleOC_XorExpression = 75, RuleOC_AndExpression = 76, RuleOC_NotExpression = 77, 
-    RuleOC_ComparisonExpression = 78, RuleKU_ComparisonOperator = 79, RuleKU_BitwiseOrOperatorExpression = 80, 
-    RuleKU_BitwiseAndOperatorExpression = 81, RuleKU_BitShiftOperatorExpression = 82, 
-    RuleKU_BitShiftOperator = 83, RuleOC_AddOrSubtractExpression = 84, RuleKU_AddOrSubtractOperator = 85, 
-    RuleOC_MultiplyDivideModuloExpression = 86, RuleKU_MultiplyDivideModuloOperator = 87, 
-    RuleOC_PowerOfExpression = 88, RuleOC_UnaryAddSubtractOrFactorialExpression = 89, 
-    RuleOC_StringListNullOperatorExpression = 90, RuleOC_ListOperatorExpression = 91, 
-    RuleKU_ListExtractOperatorExpression = 92, RuleKU_ListSliceOperatorExpression = 93, 
-    RuleOC_StringOperatorExpression = 94, RuleOC_RegularExpression = 95, 
-    RuleOC_NullOperatorExpression = 96, RuleOC_PropertyOrLabelsExpression = 97, 
-    RuleOC_Atom = 98, RuleOC_Literal = 99, RuleOC_BooleanLiteral = 100, 
-    RuleOC_ListLiteral = 101, RuleKU_StructLiteral = 102, RuleKU_StructField = 103, 
-    RuleOC_ParenthesizedExpression = 104, RuleOC_FunctionInvocation = 105, 
-    RuleOC_FunctionName = 106, RuleKU_FunctionParameter = 107, RuleOC_ExistentialSubquery = 108, 
-    RuleOC_PropertyLookup = 109, RuleOC_CaseExpression = 110, RuleOC_CaseAlternative = 111, 
-    RuleOC_Variable = 112, RuleOC_NumberLiteral = 113, RuleOC_Parameter = 114, 
-    RuleOC_PropertyExpression = 115, RuleOC_PropertyKeyName = 116, RuleOC_IntegerLiteral = 117, 
-    RuleOC_DoubleLiteral = 118, RuleOC_SchemaName = 119, RuleOC_SymbolicName = 120, 
-    RuleOC_LeftArrowHead = 121, RuleOC_RightArrowHead = 122, RuleOC_Dash = 123
+    RuleOC_Cypher = 0, RuleKU_CopyFromCSV = 1, RuleKU_CopyFromNPY = 2, RuleKU_CopyTO = 3, 
+    RuleKU_StandaloneCall = 4, RuleKU_CreateMacro = 5, RuleKU_PositionalArgs = 6, 
+    RuleKU_DefaultArg = 7, RuleKU_FilePaths = 8, RuleKU_ParsingOptions = 9, 
+    RuleKU_ParsingOption = 10, RuleKU_DDL = 11, RuleKU_CreateNode = 12, 
+    RuleKU_CreateRel = 13, RuleKU_DropTable = 14, RuleKU_AlterTable = 15, 
+    RuleKU_AlterOptions = 16, RuleKU_AddProperty = 17, RuleKU_DropProperty = 18, 
+    RuleKU_RenameTable = 19, RuleKU_RenameProperty = 20, RuleKU_PropertyDefinitions = 21, 
+    RuleKU_PropertyDefinition = 22, RuleKU_CreateNodeConstraint = 23, RuleKU_DataType = 24, 
+    RuleKU_ListIdentifiers = 25, RuleKU_ListIdentifier = 26, RuleOC_AnyCypherOption = 27, 
+    RuleOC_Explain = 28, RuleOC_Profile = 29, RuleOC_Statement = 30, RuleOC_Query = 31, 
+    RuleOC_RegularQuery = 32, RuleOC_Union = 33, RuleOC_SingleQuery = 34, 
+    RuleOC_SinglePartQuery = 35, RuleOC_MultiPartQuery = 36, RuleKU_QueryPart = 37, 
+    RuleOC_UpdatingClause = 38, RuleOC_ReadingClause = 39, RuleKU_InQueryCall = 40, 
+    RuleOC_Match = 41, RuleOC_Unwind = 42, RuleOC_Create = 43, RuleOC_Merge = 44, 
+    RuleOC_MergeAction = 45, RuleOC_Set = 46, RuleOC_SetItem = 47, RuleOC_Delete = 48, 
+    RuleOC_With = 49, RuleOC_Return = 50, RuleOC_ProjectionBody = 51, RuleOC_ProjectionItems = 52, 
+    RuleOC_ProjectionItem = 53, RuleOC_Order = 54, RuleOC_Skip = 55, RuleOC_Limit = 56, 
+    RuleOC_SortItem = 57, RuleOC_Where = 58, RuleOC_Pattern = 59, RuleOC_PatternPart = 60, 
+    RuleOC_AnonymousPatternPart = 61, RuleOC_PatternElement = 62, RuleOC_NodePattern = 63, 
+    RuleOC_PatternElementChain = 64, RuleOC_RelationshipPattern = 65, RuleOC_RelationshipDetail = 66, 
+    RuleKU_Properties = 67, RuleOC_RelationshipTypes = 68, RuleOC_NodeLabels = 69, 
+    RuleOC_NodeLabel = 70, RuleOC_RangeLiteral = 71, RuleOC_LabelName = 72, 
+    RuleOC_RelTypeName = 73, RuleOC_Expression = 74, RuleOC_OrExpression = 75, 
+    RuleOC_XorExpression = 76, RuleOC_AndExpression = 77, RuleOC_NotExpression = 78, 
+    RuleOC_ComparisonExpression = 79, RuleKU_ComparisonOperator = 80, RuleKU_BitwiseOrOperatorExpression = 81, 
+    RuleKU_BitwiseAndOperatorExpression = 82, RuleKU_BitShiftOperatorExpression = 83, 
+    RuleKU_BitShiftOperator = 84, RuleOC_AddOrSubtractExpression = 85, RuleKU_AddOrSubtractOperator = 86, 
+    RuleOC_MultiplyDivideModuloExpression = 87, RuleKU_MultiplyDivideModuloOperator = 88, 
+    RuleOC_PowerOfExpression = 89, RuleOC_UnaryAddSubtractOrFactorialExpression = 90, 
+    RuleOC_StringListNullOperatorExpression = 91, RuleOC_ListOperatorExpression = 92, 
+    RuleKU_ListExtractOperatorExpression = 93, RuleKU_ListSliceOperatorExpression = 94, 
+    RuleOC_StringOperatorExpression = 95, RuleOC_RegularExpression = 96, 
+    RuleOC_NullOperatorExpression = 97, RuleOC_PropertyOrLabelsExpression = 98, 
+    RuleOC_Atom = 99, RuleOC_Literal = 100, RuleOC_BooleanLiteral = 101, 
+    RuleOC_ListLiteral = 102, RuleKU_StructLiteral = 103, RuleKU_StructField = 104, 
+    RuleOC_ParenthesizedExpression = 105, RuleOC_FunctionInvocation = 106, 
+    RuleOC_FunctionName = 107, RuleKU_FunctionParameter = 108, RuleOC_ExistentialSubquery = 109, 
+    RuleOC_PropertyLookup = 110, RuleOC_CaseExpression = 111, RuleOC_CaseAlternative = 112, 
+    RuleOC_Variable = 113, RuleOC_NumberLiteral = 114, RuleOC_Parameter = 115, 
+    RuleOC_PropertyExpression = 116, RuleOC_PropertyKeyName = 117, RuleOC_IntegerLiteral = 118, 
+    RuleOC_DoubleLiteral = 119, RuleOC_SchemaName = 120, RuleOC_SymbolicName = 121, 
+    RuleOC_LeftArrowHead = 122, RuleOC_RightArrowHead = 123, RuleOC_Dash = 124
   };
 
   explicit CypherParser(antlr4::TokenStream *input);
@@ -93,8 +93,9 @@ public:
 
 
   class OC_CypherContext;
-  class KU_CopyCSVContext;
-  class KU_CopyNPYContext;
+  class KU_CopyFromCSVContext;
+  class KU_CopyFromNPYContext;
+  class KU_CopyTOContext;
   class KU_StandaloneCallContext;
   class KU_CreateMacroContext;
   class KU_PositionalArgsContext;
@@ -232,9 +233,9 @@ public:
 
   OC_CypherContext* oC_Cypher();
 
-  class  KU_CopyCSVContext : public antlr4::ParserRuleContext {
+  class  KU_CopyFromCSVContext : public antlr4::ParserRuleContext {
   public:
-    KU_CopyCSVContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    KU_CopyFromCSVContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *COPY();
     std::vector<antlr4::tree::TerminalNode *> SP();
@@ -247,11 +248,11 @@ public:
    
   };
 
-  KU_CopyCSVContext* kU_CopyCSV();
+  KU_CopyFromCSVContext* kU_CopyFromCSV();
 
-  class  KU_CopyNPYContext : public antlr4::ParserRuleContext {
+  class  KU_CopyFromNPYContext : public antlr4::ParserRuleContext {
   public:
-    KU_CopyNPYContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    KU_CopyFromNPYContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *COPY();
     std::vector<antlr4::tree::TerminalNode *> SP();
@@ -266,7 +267,23 @@ public:
    
   };
 
-  KU_CopyNPYContext* kU_CopyNPY();
+  KU_CopyFromNPYContext* kU_CopyFromNPY();
+
+  class  KU_CopyTOContext : public antlr4::ParserRuleContext {
+  public:
+    KU_CopyTOContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *COPY();
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
+    OC_QueryContext *oC_Query();
+    antlr4::tree::TerminalNode *TO();
+    antlr4::tree::TerminalNode *StringLiteral();
+
+   
+  };
+
+  KU_CopyTOContext* kU_CopyTO();
 
   class  KU_StandaloneCallContext : public antlr4::ParserRuleContext {
   public:
@@ -581,9 +598,12 @@ public:
     virtual size_t getRuleIndex() const override;
     OC_SymbolicNameContext *oC_SymbolicName();
     KU_ListIdentifiersContext *kU_ListIdentifiers();
+    antlr4::tree::TerminalNode *UNION();
     KU_PropertyDefinitionsContext *kU_PropertyDefinitions();
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
+    std::vector<KU_DataTypeContext *> kU_DataType();
+    KU_DataTypeContext* kU_DataType(size_t i);
 
    
   };
@@ -653,8 +673,9 @@ public:
     virtual size_t getRuleIndex() const override;
     OC_QueryContext *oC_Query();
     KU_DDLContext *kU_DDL();
-    KU_CopyNPYContext *kU_CopyNPY();
-    KU_CopyCSVContext *kU_CopyCSV();
+    KU_CopyFromNPYContext *kU_CopyFromNPY();
+    KU_CopyFromCSVContext *kU_CopyFromCSV();
+    KU_CopyTOContext *kU_CopyTO();
     KU_StandaloneCallContext *kU_StandaloneCall();
     KU_CreateMacroContext *kU_CreateMacro();
 

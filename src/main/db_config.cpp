@@ -3,6 +3,8 @@
 #include "common/string_utils.h"
 #include "main/settings.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace main {
 
@@ -14,7 +16,7 @@ static ConfigurationOption options[] = {
 
 ConfigurationOption* DBConfig::getOptionByName(const std::string& optionName) {
     auto lOptionName = optionName;
-    common::StringUtils::toLower(lOptionName);
+    StringUtils::toLower(lOptionName);
     for (auto& internalOption : options) {
         if (internalOption.name == lOptionName) {
             return &internalOption;

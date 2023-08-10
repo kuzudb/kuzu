@@ -1,4 +1,3 @@
-#include "binder/expression/literal_expression.h"
 #include "binder/expression/rel_expression.h"
 #include "binder/expression_binder.h"
 #include "common/string_utils.h"
@@ -49,7 +48,7 @@ expression_vector ExpressionBinder::bindRelPropertyStarExpression(const Expressi
 
 expression_vector ExpressionBinder::bindStructPropertyStarExpression(
     std::shared_ptr<Expression> child) {
-    assert(child->getDataType().getLogicalTypeID() == common::LogicalTypeID::STRUCT);
+    assert(child->getDataType().getLogicalTypeID() == LogicalTypeID::STRUCT);
     expression_vector result;
     auto childType = child->getDataType();
     for (auto field : StructType::getFields(&childType)) {
@@ -80,7 +79,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     } else if (ExpressionUtil::isRelVariable(*child)) {
         return bindRelPropertyExpression(*child, propertyName);
     } else {
-        assert(child->expressionType == common::FUNCTION);
+        assert(child->expressionType == FUNCTION);
         return bindStructPropertyExpression(child, propertyName);
     }
 }
@@ -112,36 +111,36 @@ std::shared_ptr<Expression> ExpressionBinder::bindStructPropertyExpression(
     return bindScalarFunctionExpression(children, STRUCT_EXTRACT_FUNC_NAME);
 }
 
-static void validatePropertiesWithSameDataType(const std::vector<Property>& properties,
+static void validatePropertiesWithSameDataType(const std::vector<Property*>& properties,
     const LogicalType& dataType, const std::string& propertyName, const std::string& variableName) {
     auto propertyLookup = variableName + "." + propertyName;
     for (auto& property : properties) {
-        if (property.dataType != dataType) {
+        if (*property->getDataType() != dataType) {
             throw BinderException(
                 StringUtils::string_format("Expect one data type for {} but find {} and {}",
-                    propertyLookup, LogicalTypeUtils::dataTypeToString(property.dataType),
+                    propertyLookup, LogicalTypeUtils::dataTypeToString(*property->getDataType()),
                     LogicalTypeUtils::dataTypeToString(dataType)));
         }
     }
 }
 
 static std::unordered_map<table_id_t, property_id_t> populatePropertyIDPerTable(
-    const std::vector<Property>& properties) {
+    const std::vector<Property*>& properties) {
     std::unordered_map<table_id_t, property_id_t> propertyIDPerTable;
     for (auto& property : properties) {
-        propertyIDPerTable.insert({property.tableID, property.propertyID});
+        propertyIDPerTable.insert({property->getTableID(), property->getPropertyID()});
     }
     return propertyIDPerTable;
 }
 
 std::unique_ptr<Expression> ExpressionBinder::createPropertyExpression(
-    const Expression& nodeOrRel, const std::vector<Property>& properties, bool isPrimaryKey) {
+    const Expression& nodeOrRel, const std::vector<Property*>& properties, bool isPrimaryKey) {
     assert(!properties.empty());
     auto anchorProperty = properties[0];
-    validatePropertiesWithSameDataType(
-        properties, anchorProperty.dataType, anchorProperty.name, nodeOrRel.toString());
-    return make_unique<PropertyExpression>(anchorProperty.dataType, anchorProperty.name, nodeOrRel,
-        populatePropertyIDPerTable(properties), isPrimaryKey);
+    validatePropertiesWithSameDataType(properties, *anchorProperty->getDataType(),
+        anchorProperty->getName(), nodeOrRel.toString());
+    return make_unique<PropertyExpression>(*anchorProperty->getDataType(),
+        anchorProperty->getName(), nodeOrRel, populatePropertyIDPerTable(properties), isPrimaryKey);
 }
 
 } // namespace binder

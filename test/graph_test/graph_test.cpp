@@ -2,7 +2,6 @@
 
 #include "binder/binder.h"
 #include "common/string_utils.h"
-#include "json.hpp"
 #include "parser/parser.h"
 #include "storage/storage_manager.h"
 
@@ -41,22 +40,17 @@ void BaseGraphTest::validateListFilesExistence(
 
 void BaseGraphTest::validateNodeColumnFilesExistence(
     NodeTableSchema* nodeTableSchema, DBFileType dbFileType, bool existence) {
-    for (auto& property : nodeTableSchema->properties) {
-        validateColumnFilesExistence(StorageUtils::getNodePropertyColumnFName(databasePath,
-                                         nodeTableSchema->tableID, property.propertyID, dbFileType),
-            existence, containsOverflowFile(property.dataType.getLogicalTypeID()));
-    }
     validateColumnFilesExistence(
         StorageUtils::getNodeIndexFName(databasePath, nodeTableSchema->tableID, dbFileType),
         existence,
-        containsOverflowFile(nodeTableSchema->getPrimaryKey().dataType.getLogicalTypeID()));
+        containsOverflowFile(nodeTableSchema->getPrimaryKey()->getDataType()->getLogicalTypeID()));
 }
 
 void BaseGraphTest::validateRelColumnAndListFilesExistence(
     RelTableSchema* relTableSchema, DBFileType dbFileType, bool existence) {
     for (auto relDirection : RelDataDirectionUtils::getRelDataDirections()) {
-        if (relTableSchema->relMultiplicity == RelMultiplicity::MANY_ONE ||
-            relTableSchema->relMultiplicity == RelMultiplicity::ONE_ONE) {
+        if (relTableSchema->getRelMultiplicity() == RelMultiplicity::MANY_ONE ||
+            relTableSchema->getRelMultiplicity() == RelMultiplicity::ONE_ONE) {
             validateColumnFilesExistence(StorageUtils::getAdjColumnFName(databasePath,
                                              relTableSchema->tableID, relDirection, dbFileType),
                 existence, false /* hasOverflow */);
@@ -98,16 +92,16 @@ void BaseGraphTest::commitOrRollbackConnectionAndInitDBIfNecessary(
 void BaseGraphTest::validateRelPropertyFiles(catalog::RelTableSchema* relTableSchema,
     RelDataDirection relDirection, bool isColumnProperty, DBFileType dbFileType, bool existence) {
     for (auto& property : relTableSchema->properties) {
-        auto hasOverflow = containsOverflowFile(property.dataType.getLogicalTypeID());
+        auto hasOverflow = containsOverflowFile(property->getDataType()->getLogicalTypeID());
         if (isColumnProperty) {
             validateColumnFilesExistence(
                 StorageUtils::getRelPropertyColumnFName(databasePath, relTableSchema->tableID,
-                    relDirection, property.propertyID, dbFileType),
+                    relDirection, property->getPropertyID(), dbFileType),
                 existence, hasOverflow);
         } else {
             validateListFilesExistence(
                 StorageUtils::getRelPropertyListsFName(databasePath, relTableSchema->tableID,
-                    relDirection, property.propertyID, dbFileType),
+                    relDirection, property->getPropertyID(), dbFileType),
                 existence, hasOverflow, false /* hasHeader */);
         }
     }

@@ -16,11 +16,14 @@ grammar Cypher;
 oC_Cypher
     : SP ? oC_AnyCypherOption? SP? ( oC_Statement ) ( SP? ';' )? SP? EOF ;
 
-kU_CopyCSV
+kU_CopyFromCSV
     : COPY SP oC_SchemaName SP FROM SP kU_FilePaths ( SP? '(' SP? kU_ParsingOptions SP? ')' )? ;
 
-kU_CopyNPY
+kU_CopyFromNPY
     : COPY SP oC_SchemaName SP FROM SP '(' SP? StringLiteral ( SP? ',' SP? StringLiteral )* ')' SP BY SP COLUMN ;
+
+kU_CopyTO
+    : COPY SP '(' oC_Query ')' SP TO SP StringLiteral ;
 
 kU_StandaloneCall
     : CALL SP oC_SymbolicName SP? '=' SP? oC_Literal ;
@@ -53,7 +56,7 @@ kU_ParsingOption
 
 COPY : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'P' | 'p') ( 'Y' | 'y' ) ;
 
-FROM : ( 'F' | 'f' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'M' | 'm' );
+FROM : ( 'F' | 'f' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'M' | 'm' ) ;
 
 NPY : ( 'N' | 'n' ) ( 'P' | 'p' ) ( 'Y' | 'y' ) ;
 
@@ -126,7 +129,9 @@ TO: ( 'T' | 't' ) ( 'O' | 'o' ) ;
 kU_DataType
     : oC_SymbolicName
         | ( oC_SymbolicName kU_ListIdentifiers )
-        | oC_SymbolicName SP? '(' SP? kU_PropertyDefinitions SP? ')' ;
+        | UNION SP? '(' SP? kU_PropertyDefinitions SP? ')'
+        | oC_SymbolicName SP? '(' SP? kU_PropertyDefinitions SP? ')'
+        | oC_SymbolicName SP? '(' SP? kU_DataType SP? ',' SP? kU_DataType SP? ')' ;
 
 kU_ListIdentifiers : kU_ListIdentifier ( kU_ListIdentifier )* ;
 
@@ -149,8 +154,9 @@ PROFILE : ( 'P' | 'p' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'F' | 'f' ) ( 'I' | 'i' ) 
 oC_Statement
     : oC_Query
         | kU_DDL
-        | kU_CopyNPY
-        | kU_CopyCSV
+        | kU_CopyFromNPY
+        | kU_CopyFromCSV
+        | kU_CopyTO
         | kU_StandaloneCall
         | kU_CreateMacro ;
 

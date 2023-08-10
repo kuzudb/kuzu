@@ -12,11 +12,10 @@ namespace storage {
 WAL::WAL(const std::string& directory, BufferManager& bufferManager)
     : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::WAL)}, directory{directory},
       bufferManager{bufferManager}, isLastLoggedRecordCommit_{false} {
-    fileHandle =
-        bufferManager.getBMFileHandle(common::FileUtils::joinPath(directory,
-                                          std::string(common::StorageConstants::WAL_FILE_SUFFIX)),
-            FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
-            BMFileHandle::FileVersionedType::NON_VERSIONED_FILE);
+    fileHandle = bufferManager.getBMFileHandle(
+        FileUtils::joinPath(directory, std::string(StorageConstants::WAL_FILE_SUFFIX)),
+        FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
+        BMFileHandle::FileVersionedType::NON_VERSIONED_FILE);
     initCurrentPage();
 }
 
@@ -78,9 +77,10 @@ void WAL::logOverflowFileNextBytePosRecord(
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logCopyNodeRecord(table_id_t tableID) {
+void WAL::logCopyNodeRecord(table_id_t tableID, page_idx_t startPageIdx) {
     lock_t lck{mtx};
-    WALRecord walRecord = WALRecord::newCopyNodeRecord(tableID);
+    WALRecord walRecord = WALRecord::newCopyNodeRecord(tableID, startPageIdx);
+    updatedNodeTables.insert(tableID);
     addNewWALRecordNoLock(walRecord);
 }
 

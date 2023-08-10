@@ -3,14 +3,10 @@
 namespace kuzu {
 namespace processor {
 
-void AddProperty::executeDDLInternal() {
-    expressionEvaluator->evaluate();
-    catalog->addProperty(tableID, propertyName, dataType);
-}
-
 uint8_t* AddProperty::getDefaultVal() {
-    auto expressionVector = expressionEvaluator->resultVector;
-    assert(expressionEvaluator->resultVector->dataType == dataType);
+    defaultValueEvaluator->evaluate();
+    auto expressionVector = defaultValueEvaluator->resultVector;
+    assert(defaultValueEvaluator->resultVector->dataType == *dataType);
     auto posInExpressionVector = expressionVector->state->selVector->selectedPositions[0];
     return expressionVector->getData() +
            expressionVector->getNumBytesPerValue() * posInExpressionVector;

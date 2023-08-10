@@ -1,22 +1,25 @@
 #include "binder/query/updating_clause/bound_set_clause.h"
-#include "planner/logical_plan/logical_operator/logical_set.h"
+#include "planner/logical_plan/factorization/flatten_resolver.h"
+#include "planner/logical_plan/persistent/logical_set.h"
 #include "planner/query_planner.h"
+
+using namespace kuzu::binder;
 
 namespace kuzu {
 namespace planner {
 
+std::unique_ptr<LogicalSetPropertyInfo> QueryPlanner::createLogicalSetPropertyInfo(
+    BoundSetPropertyInfo* boundSetPropertyInfo) {
+    return std::make_unique<LogicalSetPropertyInfo>(
+        boundSetPropertyInfo->nodeOrRel, boundSetPropertyInfo->setItem);
+}
+
 void QueryPlanner::appendSetNodeProperty(
-    const std::vector<binder::BoundSetPropertyInfo*>& infos, LogicalPlan& plan) {
-    std::vector<std::shared_ptr<NodeExpression>> nodes;
-    std::vector<expression_pair> setItems;
-    for (auto& info : infos) {
-        auto node = std::static_pointer_cast<NodeExpression>(info->nodeOrRel);
-        nodes.push_back(node);
-        setItems.push_back(info->setItem);
-    }
-    for (auto i = 0u; i < setItems.size(); ++i) {
-        auto lhsNodeID = nodes[i]->getInternalIDProperty();
-        auto rhs = setItems[i].second;
+    const std::vector<binder::BoundSetPropertyInfo*>& boundInfos, LogicalPlan& plan) {
+    for (auto& boundInfo : boundInfos) {
+        auto node = (NodeExpression*)boundInfo->nodeOrRel.get();
+        auto lhsNodeID = node->getInternalIDProperty();
+        auto rhs = boundInfo->setItem.second;
         // flatten rhs
         auto rhsDependentGroupsPos = plan.getSchema()->getDependentGroupsPos(rhs);
         auto rhsGroupsPosToFlatten = factorization::FlattenAllButOne::getGroupsPosToFlatten(
@@ -30,24 +33,27 @@ void QueryPlanner::appendSetNodeProperty(
             appendFlattenIfNecessary(lhsGroupPos, plan);
         }
     }
-    auto setNodeProperty = std::make_shared<LogicalSetNodeProperty>(
-        std::move(nodes), std::move(setItems), plan.getLastOperator());
+    std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalInfos;
+    logicalInfos.reserve(boundInfos.size());
+    for (auto& boundInfo : boundInfos) {
+        logicalInfos.push_back(createLogicalSetPropertyInfo(boundInfo));
+    }
+    auto setNodeProperty =
+        std::make_shared<LogicalSetNodeProperty>(std::move(logicalInfos), plan.getLastOperator());
     setNodeProperty->computeFactorizedSchema();
     plan.setLastOperator(setNodeProperty);
 }
 
 void QueryPlanner::appendSetRelProperty(
-    const std::vector<binder::BoundSetPropertyInfo*>& infos, LogicalPlan& plan) {
-    std::vector<std::shared_ptr<RelExpression>> rels;
-    std::vector<expression_pair> setItems;
-    for (auto& info : infos) {
-        auto rel = std::static_pointer_cast<RelExpression>(info->nodeOrRel);
-        rels.push_back(rel);
-        setItems.push_back(info->setItem);
+    const std::vector<binder::BoundSetPropertyInfo*>& boundInfos, LogicalPlan& plan) {
+    std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalInfos;
+    logicalInfos.reserve(boundInfos.size());
+    for (auto& boundInfo : boundInfos) {
+        logicalInfos.push_back(createLogicalSetPropertyInfo(boundInfo));
     }
-    auto setRelProperty = std::make_shared<LogicalSetRelProperty>(
-        std::move(rels), std::move(setItems), plan.getLastOperator());
-    for (auto i = 0u; i < setRelProperty->getNumRels(); ++i) {
+    auto setRelProperty =
+        std::make_shared<LogicalSetRelProperty>(std::move(logicalInfos), plan.getLastOperator());
+    for (auto i = 0u; i < boundInfos.size(); ++i) {
         appendFlattens(setRelProperty->getGroupsPosToFlatten(i), plan);
         setRelProperty->setChild(0, plan.getLastOperator());
     }
