@@ -27,6 +27,10 @@ void HashJoinSIPOptimizer::visitOperator(planner::LogicalOperator* op) {
 }
 
 void HashJoinSIPOptimizer::visitHashJoin(planner::LogicalOperator* op) {
+    auto hashJoin = (LogicalHashJoin*)op;
+    if (hashJoin->getSIP() == planner::SidewaysInfoPassing::PROHIBIT) {
+        return;
+    }
     if (tryBuildToProbeHJSIP(op)) { // Try build to probe SIP first.
         return;
     }

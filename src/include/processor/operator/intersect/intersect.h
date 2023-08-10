@@ -15,7 +15,7 @@ struct IntersectDataInfo {
 class Intersect : public PhysicalOperator {
 public:
     Intersect(const DataPos& outputDataPos, std::vector<IntersectDataInfo> intersectDataInfos,
-        std::vector<std::shared_ptr<IntersectSharedState>> sharedHTs,
+        std::vector<std::shared_ptr<HashJoinSharedState>> sharedHTs,
         std::vector<std::unique_ptr<PhysicalOperator>> children, uint32_t id,
         const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::INTERSECT, std::move(children), id, paramsString},
@@ -59,7 +59,7 @@ private:
     std::shared_ptr<common::ValueVector> outKeyVector;
     std::vector<std::shared_ptr<common::ValueVector>> probeKeyVectors;
     std::vector<std::unique_ptr<common::SelectionVector>> intersectSelVectors;
-    std::vector<std::shared_ptr<IntersectSharedState>> sharedHTs;
+    std::vector<std::shared_ptr<HashJoinSharedState>> sharedHTs;
     std::vector<bool> isIntersectListAFlatValue;
     std::vector<std::vector<uint8_t*>> probedFlatTuples;
     // Keep track of the tuple to intersect for each build side.

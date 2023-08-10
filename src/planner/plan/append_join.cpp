@@ -10,8 +10,12 @@ namespace planner {
 
 void QueryPlanner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType joinType,
     LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+    std::vector<join_condition_t> joinConditions;
+    for (auto& joinNodeID : joinNodeIDs) {
+        joinConditions.emplace_back(joinNodeID, joinNodeID);
+    }
     auto hashJoin = make_shared<LogicalHashJoin>(
-        joinNodeIDs, joinType, probePlan.getLastOperator(), buildPlan.getLastOperator());
+        joinConditions, joinType, probePlan.getLastOperator(), buildPlan.getLastOperator());
     // Apply flattening to probe side
     auto groupsPosToFlattenOnProbeSide = hashJoin->getGroupsPosToFlattenOnProbeSide();
     appendFlattens(groupsPosToFlattenOnProbeSide, probePlan);
@@ -37,8 +41,12 @@ void QueryPlanner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType
 
 void QueryPlanner::appendMarkJoin(const expression_vector& joinNodeIDs,
     const std::shared_ptr<Expression>& mark, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+    std::vector<join_condition_t> joinConditions;
+    for (auto& joinNodeID : joinNodeIDs) {
+        joinConditions.emplace_back(joinNodeID, joinNodeID);
+    }
     auto hashJoin = make_shared<LogicalHashJoin>(
-        joinNodeIDs, mark, probePlan.getLastOperator(), buildPlan.getLastOperator());
+        joinConditions, mark, probePlan.getLastOperator(), buildPlan.getLastOperator());
     // Apply flattening to probe side
     appendFlattens(hashJoin->getGroupsPosToFlattenOnProbeSide(), probePlan);
     hashJoin->setChild(0, probePlan.getLastOperator());

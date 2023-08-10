@@ -48,24 +48,8 @@ bool HashJoinProbe::getMatchedTuplesForFlatKey(ExecutionContext* context) {
         sharedState->getHashTable()->probe(
             keyVectors, hashVector.get(), tmpHashVector.get(), probeState->probedTuples.get());
     }
-    auto numMatchedTuples = 0;
-    while (probeState->probedTuples[0]) {
-        if (numMatchedTuples == DEFAULT_VECTOR_CAPACITY) {
-            break;
-        }
-        auto currentTuple = probeState->probedTuples[0];
-        probeState->matchedTuples[numMatchedTuples] = currentTuple;
-        bool isKeysEqual = true;
-        for (auto i = 0u; i < keyVectors.size(); i++) {
-            auto pos = keyVectors[i]->state->selVector->selectedPositions[0];
-            if (((nodeID_t*)currentTuple)[i] != keyVectors[i]->getValue<nodeID_t>(pos)) {
-                isKeysEqual = false;
-                break;
-            }
-        }
-        numMatchedTuples += isKeysEqual;
-        probeState->probedTuples[0] = *sharedState->getHashTable()->getPrevTuple(currentTuple);
-    }
+    auto numMatchedTuples = sharedState->getHashTable()->matchFlatKeys(
+        keyVectors, probeState->probedTuples.get(), probeState->matchedTuples.get());
     probeState->matchedSelVector->selectedSize = numMatchedTuples;
     probeState->nextMatchedTupleIdx = 0;
     return true;
@@ -81,23 +65,9 @@ bool HashJoinProbe::getMatchedTuplesForUnFlatKey(ExecutionContext* context) {
     saveSelVector(keyVector->state->selVector);
     sharedState->getHashTable()->probe(
         keyVectors, hashVector.get(), tmpHashVector.get(), probeState->probedTuples.get());
-    auto numMatchedTuples = 0;
-    auto keySelVector = keyVector->state->selVector.get();
-    for (auto i = 0u; i < keySelVector->selectedSize; i++) {
-        auto pos = keySelVector->selectedPositions[i];
-        while (probeState->probedTuples[i]) {
-            assert(numMatchedTuples <= DEFAULT_VECTOR_CAPACITY);
-            auto currentTuple = probeState->probedTuples[i];
-            if (*(nodeID_t*)currentTuple == keyVectors[0]->getValue<nodeID_t>(pos)) {
-                // Break if a match has been found.
-                probeState->matchedTuples[numMatchedTuples] = currentTuple;
-                probeState->matchedSelVector->selectedPositions[numMatchedTuples] = pos;
-                numMatchedTuples++;
-                break;
-            }
-            probeState->probedTuples[i] = *sharedState->getHashTable()->getPrevTuple(currentTuple);
-        }
-    }
+    auto numMatchedTuples =
+        sharedState->getHashTable()->matchUnFlatKey(keyVector, probeState->probedTuples.get(),
+            probeState->matchedTuples.get(), probeState->matchedSelVector.get());
     probeState->matchedSelVector->selectedSize = numMatchedTuples;
     probeState->nextMatchedTupleIdx = 0;
     return true;

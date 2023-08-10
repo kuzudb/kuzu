@@ -119,7 +119,12 @@ struct ExpressionUtil {
 
     static uint32_t find(Expression* target, expression_vector expressions);
 
+    // Print as a1,a2,a3,...
     static std::string toString(const expression_vector& expressions);
+    // Print as a1=a2, a3=a4,...
+    static std::string toString(const std::vector<expression_pair>& expressionPairs);
+    // Print as a1=a2
+    static std::string toString(const expression_pair& expressionPair);
 
     static expression_vector excludeExpressions(
         const expression_vector& expressions, const expression_vector& expressionsToExclude);
@@ -136,6 +141,9 @@ struct ExpressionUtil {
         return expression.expressionType == common::ExpressionType::VARIABLE &&
                expression.dataType.getLogicalTypeID() == common::LogicalTypeID::RECURSIVE_REL;
     }
+
+    static std::vector<std::unique_ptr<common::LogicalType>> getDataTypes(
+        const expression_vector& expressions);
 };
 
 } // namespace binder

@@ -127,17 +127,6 @@ size_t Schema::getNumGroups(bool isFlat) const {
     return result;
 }
 
-std::vector<binder::expression_vector> SchemaUtils::getExpressionsPerGroup(
-    const binder::expression_vector& expressions, const Schema& schema) {
-    std::vector<binder::expression_vector> result;
-    result.resize(schema.getNumGroups());
-    for (auto& expression : expressions) {
-        auto groupPos = schema.getGroupPos(*expression);
-        result[groupPos].push_back(expression);
-    }
-    return result;
-}
-
 f_group_pos SchemaUtils::getLeadingGroupPos(
     const std::unordered_set<f_group_pos>& groupPositions, const Schema& schema) {
     auto leadingGroupPos = INVALID_F_GROUP_POS;

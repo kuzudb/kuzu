@@ -81,6 +81,10 @@ public:
 
     void resetAuxiliaryBuffer();
 
+    // If there is still non-null values after discarding, return true. Otherwise, return false.
+    // For an unflat vector, its selection vector is also updated to the resultSelVector.
+    static bool discardNull(ValueVector& vector);
+
 private:
     uint32_t getDataTypeSize(const LogicalType& type);
     void initializeValueBuffer();
@@ -226,13 +230,6 @@ public:
 
     // Slice the arrow column vector from the given offset to the end.
     static void slice(ValueVector* vector, offset_t offset);
-};
-
-class NodeIDVector {
-public:
-    // If there is still non-null values after discarding, return true. Otherwise, return false.
-    // For an unflat vector, its selection vector is also updated to the resultSelVector.
-    static bool discardNull(ValueVector& vector);
 };
 
 class MapVector {

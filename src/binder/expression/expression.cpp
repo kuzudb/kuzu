@@ -49,6 +49,21 @@ std::string ExpressionUtil::toString(const expression_vector& expressions) {
     return result;
 }
 
+std::string ExpressionUtil::toString(const std::vector<expression_pair>& expressionPairs) {
+    if (expressionPairs.empty()) {
+        return std::string{};
+    }
+    auto result = toString(expressionPairs[0]);
+    for (auto i = 1u; i < expressionPairs.size(); ++i) {
+        result += "," + toString(expressionPairs[i]);
+    }
+    return result;
+}
+
+std::string ExpressionUtil::toString(const expression_pair& expressionPair) {
+    return expressionPair.first->toString() + "=" + expressionPair.second->toString();
+}
+
 expression_vector ExpressionUtil::excludeExpressions(
     const expression_vector& expressions, const expression_vector& expressionsToExclude) {
     expression_set excludeSet;
@@ -60,6 +75,16 @@ expression_vector ExpressionUtil::excludeExpressions(
         if (!excludeSet.contains(expression)) {
             result.push_back(expression);
         }
+    }
+    return result;
+}
+
+std::vector<std::unique_ptr<common::LogicalType>> ExpressionUtil::getDataTypes(
+    const kuzu::binder::expression_vector& expressions) {
+    std::vector<std::unique_ptr<common::LogicalType>> result;
+    result.reserve(expressions.size());
+    for (auto& expression : expressions) {
+        result.push_back(expression->getDataType().copy());
     }
     return result;
 }

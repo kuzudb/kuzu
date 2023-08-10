@@ -93,7 +93,7 @@ void DirectedRelTableData::scanColumns(transaction::Transaction* transaction,
     const std::vector<ValueVector*>& outputVectors) {
     // Note: The scan operator should guarantee that the first property in the output is adj column.
     adjColumn->read(transaction, inNodeIDVector, outputVectors[0]);
-    if (!NodeIDVector::discardNull(*outputVectors[0])) {
+    if (!ValueVector::discardNull(*outputVectors[0])) {
         return;
     }
     fillNbrTableIDs(outputVectors[0]);
