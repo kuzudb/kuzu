@@ -242,11 +242,13 @@ uint8_t* FactorizedTable::getTuple(ft_tuple_idx_t tupleIdx) const {
 
 void FactorizedTable::updateFlatCell(
     uint8_t* tuplePtr, ft_col_idx_t colIdx, ValueVector* valueVector, uint32_t pos) {
+    auto nullBuffer = tuplePtr + tableSchema->getNullMapOffset();
     if (valueVector->isNull(pos)) {
-        setNonOverflowColNull(tuplePtr + tableSchema->getNullMapOffset(), colIdx);
+        setNonOverflowColNull(nullBuffer, colIdx);
     } else {
         valueVector->copyToRowData(
             pos, tuplePtr + tableSchema->getColOffset(colIdx), inMemOverflowBuffer.get());
+        NullBuffer::setNoNull(nullBuffer, colIdx);
     }
 }
 
