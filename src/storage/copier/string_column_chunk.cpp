@@ -51,7 +51,7 @@ void StringColumnChunk::resetToEmpty() {
 
 void StringColumnChunk::append(
     arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    assert(array->type_id() == arrow::Type::STRING || array->type_id() == arrow::Type::LIST);
+    assert(array->type_id() == arrow::Type::STRING);
     switch (array->type_id()) {
     case arrow::Type::STRING: {
         switch (dataType.getLogicalTypeID()) {
@@ -76,7 +76,7 @@ void StringColumnChunk::append(
 
 void StringColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
     offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    auto otherChunk = dynamic_cast<StringColumnChunk*>(other);
+    auto otherChunk = reinterpret_cast<StringColumnChunk*>(other);
     nullChunk->append(
         otherChunk->getNullChunk(), startPosInOtherChunk, startPosInChunk, numValuesToAppend);
     switch (dataType.getLogicalTypeID()) {
@@ -91,21 +91,19 @@ void StringColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk
     }
 }
 
-page_idx_t StringColumnChunk::flushBuffer(BMFileHandle* dataFH, page_idx_t startPageIdx) {
-    ColumnChunk::flushBuffer(dataFH, startPageIdx);
-    startPageIdx += ColumnChunk::getNumPagesForBuffer();
+page_idx_t StringColumnChunk::flushOverflowBuffer(BMFileHandle* dataFH, page_idx_t startPageIdx) {
     for (auto i = 0u; i < overflowFile->getNumPages(); i++) {
         FileUtils::writeToFile(dataFH->getFileInfo(), overflowFile->getPage(i)->data,
             BufferPoolConstants::PAGE_4KB_SIZE, startPageIdx * BufferPoolConstants::PAGE_4KB_SIZE);
         startPageIdx++;
     }
-    return getNumPagesForBuffer();
+    return overflowFile->getNumPages();
 }
 
 void StringColumnChunk::appendStringColumnChunk(StringColumnChunk* other,
     offset_t startPosInOtherChunk, offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    auto otherKuVals = (ku_string_t*)(other->buffer.get());
-    auto kuVals = (ku_string_t*)(buffer.get());
+    auto otherKuVals = reinterpret_cast<ku_string_t*>(other->buffer.get());
+    auto kuVals = reinterpret_cast<ku_string_t*>(buffer.get());
     for (auto i = 0u; i < numValuesToAppend; i++) {
         auto posInChunk = i + startPosInChunk;
         auto posInOtherChunk = i + startPosInOtherChunk;
