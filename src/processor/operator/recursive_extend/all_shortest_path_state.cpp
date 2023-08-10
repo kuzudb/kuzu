@@ -50,7 +50,9 @@ int64_t AllShortestPathMorsel<false>::writeToVector(
     auto size = 0u;
     auto endIdx = startScanIdxAndSize.first + startScanIdxAndSize.second;
     while (startScanIdxAndSize.first < endIdx && size < common::DEFAULT_VECTOR_CAPACITY) {
-        if (bfsSharedState->pathLength[startScanIdxAndSize.first] >= bfsSharedState->lowerBound) {
+        if ((bfsSharedState->visitedNodes[startScanIdxAndSize.first] == VISITED_DST ||
+             bfsSharedState->visitedNodes[startScanIdxAndSize.first] == VISITED_DST_NEW) &&
+            bfsSharedState->pathLength[startScanIdxAndSize.first] >= bfsSharedState->lowerBound) {
             auto multiplicity = bfsSharedState->nodeIDToMultiplicity[startScanIdxAndSize.first];
             do {
                 dstNodeIDVector->setValue<common::nodeID_t>(
@@ -61,13 +63,13 @@ int64_t AllShortestPathMorsel<false>::writeToVector(
             } while (--multiplicity && size < common::DEFAULT_VECTOR_CAPACITY);
             /// ValueVector capacity was reached, keep the morsel state saved and exit from loop.
             if (multiplicity > 0) {
-                prevDistMorselStartEndIdx = {startScanIdxAndSize.first, endIdx};
                 bfsSharedState->nodeIDToMultiplicity[startScanIdxAndSize.first] = multiplicity;
                 break;
             }
         }
         startScanIdxAndSize.first++;
     }
+    prevDistMorselStartEndIdx = {startScanIdxAndSize.first, endIdx};
     if (size > 0) {
         dstNodeIDVector->state->initOriginalAndSelectedSize(size);
         // We need to rescan the FTable to get the source for which the pathLengths were computed.

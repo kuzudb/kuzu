@@ -10,16 +10,6 @@
 namespace kuzu {
 namespace processor {
 
-// 3 conditions to check to decide if an existing BFSSharedState object is
-// reusable or not (to ensure thread safety):
-// 1) the local state has been marked as MORSEL_COMPLETE
-// 2) no. of threads active (tracks threads doing bfs extension) is 0
-// 3) set containing thread_id of threads doing path length writing is empty
-bool BFSSharedState::isComplete() const {
-    return ssspLocalState == MORSEL_COMPLETE && numThreadsActiveOnMorsel == 0u &&
-           pathLengthThreadWriters.empty();
-}
-
 void BFSSharedState::reset(TargetDstNodes* targetDstNodes, common::QueryRelType queryRelType) {
     ssspLocalState = EXTEND_IN_PROGRESS;
     currentLevel = 0u;
@@ -38,7 +28,7 @@ void BFSSharedState::reset(TargetDstNodes* targetDstNodes, common::QueryRelType 
     std::fill(pathLength.begin(), pathLength.end(), 0u);
     bfsLevelNodeOffsets.clear();
     srcOffset = 0u;
-    numThreadsActiveOnMorsel = 0u;
+    numThreadsBFSActive = 0u;
     nextDstScanStartIdx = 0u;
     inputFTableTupleIdx = 0u;
     pathLengthThreadWriters = std::unordered_set<std::thread::id>();
@@ -51,6 +41,14 @@ void BFSSharedState::reset(TargetDstNodes* targetDstNodes, common::QueryRelType 
             nodeIDToMultiplicity = std::vector<uint64_t>(visitedNodes.size(), 0u);
         } else {
             std::fill(nodeIDToMultiplicity.begin(), nodeIDToMultiplicity.end(), 0u);
+        }
+    }
+    if(queryRelType == common::QueryRelType::VARIABLE_LENGTH) {
+        if(nodeIDMultiplicityToLevel.empty()) {
+            nodeIDMultiplicityToLevel =
+                std::vector<std::shared_ptr<multiplicityAndLevel>>(visitedNodes.size(), nullptr);
+        } else {
+            std::fill(nodeIDMultiplicityToLevel.begin(), nodeIDMultiplicityToLevel.end(), nullptr);
         }
     }
 }
@@ -72,7 +70,7 @@ SSSPLocalState BFSSharedState::getBFSMorsel(BaseBFSMorsel* bfsMorsel) {
     }
     case EXTEND_IN_PROGRESS: {
         if (nextScanStartIdx < bfsLevelNodeOffsets.size()) {
-            numThreadsActiveOnMorsel++;
+            numThreadsBFSActive++;
             auto bfsMorselSize = std::min(
                 common::DEFAULT_VECTOR_CAPACITY, bfsLevelNodeOffsets.size() - nextScanStartIdx);
             auto morselScanEndIdx = nextScanStartIdx + bfsMorselSize;
@@ -102,7 +100,7 @@ bool BFSSharedState::hasWork() const {
 
 bool BFSSharedState::finishBFSMorsel(BaseBFSMorsel* bfsMorsel, common::QueryRelType queryRelType) {
     std::unique_lock lck{mutex};
-    numThreadsActiveOnMorsel--;
+    numThreadsBFSActive--;
     if (ssspLocalState != EXTEND_IN_PROGRESS) {
         return true;
     }
@@ -115,7 +113,7 @@ bool BFSSharedState::finishBFSMorsel(BaseBFSMorsel* bfsMorsel, common::QueryRelT
         auto allShortestPathMorsel = (reinterpret_cast<AllShortestPathMorsel<false>*>(bfsMorsel));
         numVisitedNodes += allShortestPathMorsel->getNumVisitedDstNodes();
     }
-    if (numThreadsActiveOnMorsel == 0 && nextScanStartIdx == bfsLevelNodeOffsets.size()) {
+    if (numThreadsBFSActive == 0 && nextScanStartIdx == bfsLevelNodeOffsets.size()) {
         moveNextLevelAsCurrentLevel();
         if (isBFSComplete(bfsMorsel->targetDstNodes->getNumNodes(), queryRelType)) {
             ssspLocalState = PATH_LENGTH_WRITE_IN_PROGRESS;
@@ -155,6 +153,12 @@ void BFSSharedState::markSrc(bool isSrcDestination, common::QueryRelType queryRe
     bfsLevelNodeOffsets.push_back(srcOffset);
     if (queryRelType == common::QueryRelType::ALL_SHORTEST) {
         nodeIDToMultiplicity[srcOffset] = 1;
+        return;
+    }
+    if(queryRelType == common::QueryRelType::VARIABLE_LENGTH) {
+        auto entry = std::make_shared<multiplicityAndLevel>(1 /* multiplicity */, 0 /* bfs level */,
+            nullptr /* next multiplicityAndLevel ptr */);
+        nodeIDMultiplicityToLevel[srcOffset] = entry;
     }
 }
 
@@ -178,18 +182,26 @@ void BFSSharedState::moveNextLevelAsCurrentLevel() {
 std::pair<uint64_t, int64_t> BFSSharedState::getDstPathLengthMorsel() {
     std::unique_lock lck{mutex};
     if (ssspLocalState != PATH_LENGTH_WRITE_IN_PROGRESS) {
-        pathLengthThreadWriters.erase(std::this_thread::get_id());
         return {UINT64_MAX, INT64_MAX};
-    } else if (nextDstScanStartIdx == visitedNodes.size()) {
-        ssspLocalState = MORSEL_COMPLETE;
-        pathLengthThreadWriters.erase(std::this_thread::get_id());
-        return {0, -1};
+    }
+    auto threadID = std::this_thread::get_id();
+    if (nextDstScanStartIdx == visitedNodes.size()) {
+        if (!canThreadCompleteSharedState(threadID)) {
+            return {UINT64_MAX, INT64_MAX};
+        }
+        pathLengthThreadWriters.erase(threadID);
+        /// Last Thread to exit will be responsible for doing state change to MORSEL_COMPLETE
+        /// Along with state change it will also decrement numActiveBFSSharedState by 1
+        if (pathLengthThreadWriters.empty()) {
+            return {0, -1};
+        }
+        return {UINT64_MAX, INT64_MAX};
     }
     auto sizeToScan =
         std::min(common::DEFAULT_VECTOR_CAPACITY, visitedNodes.size() - nextDstScanStartIdx);
     std::pair<uint64_t, uint32_t> startScanIdxAndSize = {nextDstScanStartIdx, sizeToScan};
     nextDstScanStartIdx += sizeToScan;
-    pathLengthThreadWriters.insert(std::this_thread::get_id());
+    pathLengthThreadWriters.insert(threadID);
     return startScanIdxAndSize;
 }
 
@@ -241,7 +253,9 @@ int64_t ShortestPathMorsel<false>::writeToVector(
     auto size = 0u;
     auto endIdx = startScanIdxAndSize.first + startScanIdxAndSize.second;
     while (startScanIdxAndSize.first < endIdx) {
-        if (bfsSharedState->pathLength[startScanIdxAndSize.first] >= bfsSharedState->lowerBound) {
+        if ((bfsSharedState->visitedNodes[startScanIdxAndSize.first] == VISITED_DST ||
+             bfsSharedState->visitedNodes[startScanIdxAndSize.first] == VISITED_DST_NEW) &&
+            bfsSharedState->pathLength[startScanIdxAndSize.first] >= bfsSharedState->lowerBound) {
             dstNodeIDVector->setValue<common::nodeID_t>(
                 size, common::nodeID_t{startScanIdxAndSize.first, tableID});
             pathLengthVector->setValue<int64_t>(

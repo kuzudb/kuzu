@@ -1,6 +1,7 @@
 #include "processor/operator/recursive_extend/bfs_scheduler.h"
 
 #include "chrono"
+#include <iostream>
 #include <utility>
 
 namespace kuzu {
@@ -42,13 +43,14 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
             return findAvailableSSSP(bfsMorsel);
         }
         case IN_PROGRESS: {
-            if (numActiveSSSP < activeBFSSharedState.size()) {
+            if (numActiveBFSSharedState < activeBFSSharedState.size()) {
                 auto inputFTableMorsel = inputFTableSharedState->getMorsel();
                 if (inputFTableMorsel->numTuples == 0) {
-                    globalState = (numActiveSSSP == 0) ? COMPLETE : IN_PROGRESS_ALL_SRC_SCANNED;
+                    globalState =
+                        (numActiveBFSSharedState == 0) ? COMPLETE : IN_PROGRESS_ALL_SRC_SCANNED;
                     return {globalState, NO_WORK_TO_SHARE};
                 }
-                numActiveSSSP++;
+                numActiveBFSSharedState++;
                 inputFTableSharedState->getTable()->scan(vectorsToScan,
                     inputFTableMorsel->startTupleIdx, inputFTableMorsel->numTuples,
                     colIndicesToScan);
@@ -80,8 +82,12 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
                         activeBFSSharedState[newSharedStateIdx] = newBFSSharedState;
                     }
                 } else {
+                    /// HOLD LOCK here for BFSSharedState being reused. While resetting an existing
+                    /// BFSSharedState, only this current Thread should have exclusive access to it.
+                    activeBFSSharedState[newSharedStateIdx]->mutex.lock();
                     setUpNewBFSSharedState(activeBFSSharedState[newSharedStateIdx], bfsMorsel,
                         inputFTableMorsel.get(), nodeID, queryRelType);
+                    activeBFSSharedState[newSharedStateIdx]->mutex.unlock();
                 }
                 return {IN_PROGRESS, EXTEND_IN_PROGRESS};
             } else {
@@ -100,7 +106,13 @@ void MorselDispatcher::setUpNewBFSSharedState(std::shared_ptr<BFSSharedState>& n
     newBFSSharedState->inputFTableTupleIdx = inputFTableMorsel->startTupleIdx;
     newBFSSharedState->srcOffset = nodeID.offset;
     newBFSSharedState->markSrc(bfsMorsel->targetDstNodes->contains(nodeID), queryRelType);
-    newBFSSharedState->getBFSMorsel(bfsMorsel);
+    newBFSSharedState->numThreadsBFSActive++;
+    auto bfsMorselSize = std::min(common::DEFAULT_VECTOR_CAPACITY,
+        newBFSSharedState->bfsLevelNodeOffsets.size() - newBFSSharedState->nextScanStartIdx);
+    auto morselScanEndIdx = newBFSSharedState->nextScanStartIdx + bfsMorselSize;
+    bfsMorsel->reset(
+        newBFSSharedState->nextScanStartIdx, morselScanEndIdx, newBFSSharedState.get());
+    newBFSSharedState->nextScanStartIdx += bfsMorselSize;
 }
 
 uint32_t MorselDispatcher::getNextAvailableSSSPWork() {
@@ -119,10 +131,7 @@ uint32_t MorselDispatcher::getNextAvailableSSSPWork() {
 
 /**
  * Try to find an available BFSSharedState for work and then try to get a morsel. If the work is
- * writing path lengths then the tempState value will be PATH_LENGTH_WRITE_IN_PROGRESS.
- *
- * @return - TRUE if no work was found OR work is writing pathLength values to vector.
- * FALSE if bfsExtension work was found i.e a range from current frontier to extend.
+ * writing path lengths then the localState value will be PATH_LENGTH_WRITE_IN_PROGRESS.
  */
 std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::findAvailableSSSP(
     BaseBFSMorsel* bfsMorsel) {
@@ -146,9 +155,6 @@ int64_t MorselDispatcher::writeDstNodeIDAndPathLength(
     std::vector<common::ValueVector*> vectorsToScan, std::vector<ft_col_idx_t> colIndicesToScan,
     common::ValueVector* dstNodeIDVector, common::ValueVector* pathLengthVector,
     common::table_id_t tableID, std::unique_ptr<BaseBFSMorsel>& baseBfsMorsel) {
-    if (!baseBfsMorsel->hasBFSSharedState()) {
-        return -1;
-    }
     if (baseBfsMorsel->hasMoreToWrite()) {
         auto startScanIdxAndSize = baseBfsMorsel->getPrevDistStartScanIdxAndSize();
         return baseBfsMorsel->writeToVector(inputFTableSharedState, std::move(vectorsToScan),
@@ -162,17 +168,24 @@ int64_t MorselDispatcher::writeDstNodeIDAndPathLength(
      * [startScanIdx, Size] = [0, -1] = BFSSharedState was just completed (marked MORSEL_COMPLETE)
      * Else a pathLengthMorsel has been allotted to the thread and it can proceed to write the
      * path lengths to the pathLengthVector.
+     * For the [0, -1] case, the thread will mark the BFSSharedState as MORSEL_COMPLETE.
      */
     if (startScanIdxAndSize.first == UINT64_MAX && startScanIdxAndSize.second == INT64_MAX) {
         return -1;
     }
     if (startScanIdxAndSize.second == -1) {
+        /// HOLD LOCKS in this relative order ALWAYS. First the global mutex of morsel dispatcher
+        /// and then the local BFSSharedState being marked as MORSEL_COMPLETE. There will be a
+        /// deadlock situation if it is not followed since some thread might be trying find work.
         mutex.lock();
-        numActiveSSSP--;
-        // If all SSSP have been completed indicated by count (numActiveSSSP == 0) and no more
-        // SSSP are available indicated by state IN_PROGRESS_ALL_SRC_SCANNED then global state can
-        // be successfully changed to COMPLETE to indicate completion of SSSP Computation.
-        if (numActiveSSSP == 0 && globalState == IN_PROGRESS_ALL_SRC_SCANNED) {
+        bfsSharedState->mutex.lock();
+        numActiveBFSSharedState--;
+        bfsSharedState->ssspLocalState = MORSEL_COMPLETE;
+        bfsSharedState->mutex.unlock();
+        // If all SSSP have been completed indicated by count (numActiveBFSSharedState == 0) and no
+        // more SSSP are available indicated by state IN_PROGRESS_ALL_SRC_SCANNED then global state
+        // can be successfully changed to COMPLETE to indicate completion of SSSP Computation.
+        if (numActiveBFSSharedState == 0 && globalState == IN_PROGRESS_ALL_SRC_SCANNED) {
             globalState = COMPLETE;
         }
         mutex.unlock();

@@ -69,6 +69,11 @@ public:
         numVisitedDstNodes = 0u;
     }
 
+    // For Shortest Path, multiplicity is always 0
+    inline uint64_t getBoundNodeMultiplicity(common::offset_t offset) override {
+        return bfsSharedState->nodeIDToMultiplicity[offset];
+    }
+
     inline common::offset_t getNextNodeOffset() override {
         if (startScanIdx == endScanIdx) {
             return common::INVALID_OFFSET;

@@ -27,8 +27,7 @@ static std::shared_ptr<RecursiveJoinSharedState> createSharedState(
     bool checkSingleLabel = boundNode.getTableIDs().size() == 1 &&
                             nbrNode.getTableIDs().size() == 1 &&
                             dataInfo->recursiveDstNodeTableIDs.size() == 1;
-    if (rel.getRelType() != common::QueryRelType::VARIABLE_LENGTH &&
-        joinType == planner::RecursiveJoinType::TRACK_NONE && checkSingleLabel) {
+    if (joinType == planner::RecursiveJoinType::TRACK_NONE && checkSingleLabel) {
         auto maxNodeOffsetsPerTable = storageManager.getNodesStore()
                                           .getNodesStatisticsAndDeletedIDs()
                                           .getMaxNodeOffsetPerTable();
