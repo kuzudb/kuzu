@@ -37,7 +37,11 @@ public:
     void read(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         const std::vector<common::column_id_t>& columnIds,
         const std::vector<common::ValueVector*>& outputVectors);
-    common::offset_t insert(transaction::Transaction* transaction, common::ValueVector* primaryKey);
+    void insert(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
+        const std::vector<common::ValueVector*>& propertyVectors,
+        const std::unordered_map<common::property_id_t, common::vector_idx_t>&
+            propertyIDToVectorIdx);
+
     void update(common::property_id_t propertyID, common::ValueVector* nodeIDVector,
         common::ValueVector* vectorToWriteFrom);
     void delete_(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
@@ -82,14 +86,14 @@ private:
         const std::vector<common::column_id_t>& columnIds,
         const std::vector<common::ValueVector*>& outputVectors);
 
-    void setPropertiesToNull(common::offset_t offset);
-    void insertPK(common::offset_t offset, common::ValueVector* primaryKeyVector);
+    void insertPK(common::ValueVector* nodeIDVector, common::ValueVector* primaryKeyVector);
     inline uint64_t getNumNodeGroups(transaction::Transaction* transaction) const {
         return propertyColumns.begin()->second->getNumNodeGroups(transaction);
     }
 
 private:
     NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs;
+    // TODO(Guodong): use vector here
     std::map<common::property_id_t, std::unique_ptr<NodeColumn>> propertyColumns;
     BMFileHandle* dataFH;
     BMFileHandle* metadataFH;

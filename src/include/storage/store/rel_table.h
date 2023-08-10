@@ -222,7 +222,7 @@ public:
         common::ValueVector* relIDVector);
     void updateRel(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
         common::ValueVector* relIDVector, common::ValueVector* propertyVector, uint32_t propertyID);
-    void initEmptyRelsForNewNode(common::nodeID_t& nodeID);
+    void initEmptyRelsForNewNode(common::ValueVector* nodeIDVector);
     void batchInitEmptyRelsForNewNodes(common::table_id_t relTableID, uint64_t numNodesInTable);
     void addProperty(const catalog::Property& property, catalog::RelTableSchema& relTableSchema);
 

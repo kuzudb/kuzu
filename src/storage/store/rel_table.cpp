@@ -334,14 +334,20 @@ void RelTable::updateRel(ValueVector* srcNodeIDVector, ValueVector* dstNodeIDVec
     listsUpdatesStore->updateRelIfNecessary(srcNodeIDVector, dstNodeIDVector, listsUpdateInfo);
 }
 
-void RelTable::initEmptyRelsForNewNode(nodeID_t& nodeID) {
-    if (fwdRelTableData->isSingleMultiplicity() && fwdRelTableData->isBoundTable(nodeID.tableID)) {
-        fwdRelTableData->getAdjColumn()->setNull(nodeID.offset);
+void RelTable::initEmptyRelsForNewNode(ValueVector* nodeIDVector) {
+    for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
+        auto pos = nodeIDVector->state->selVector->selectedPositions[i];
+        auto nodeID = nodeIDVector->getValue<nodeID_t>(pos);
+        if (fwdRelTableData->isSingleMultiplicity() &&
+            fwdRelTableData->isBoundTable(nodeID.tableID)) {
+            fwdRelTableData->getAdjColumn()->setNull(nodeID.offset);
+        }
+        if (bwdRelTableData->isSingleMultiplicity() &&
+            bwdRelTableData->isBoundTable(nodeID.tableID)) {
+            bwdRelTableData->getAdjColumn()->setNull(nodeID.offset);
+        }
+        listsUpdatesStore->initNewlyAddedNodes(nodeID);
     }
-    if (bwdRelTableData->isSingleMultiplicity() && bwdRelTableData->isBoundTable(nodeID.tableID)) {
-        bwdRelTableData->getAdjColumn()->setNull(nodeID.offset);
-    }
-    listsUpdatesStore->initNewlyAddedNodes(nodeID);
 }
 
 void RelTable::batchInitEmptyRelsForNewNodes(table_id_t relTableID, uint64_t numNodesInTable) {

@@ -150,9 +150,8 @@ std::unique_ptr<BoundCreateInfo> Binder::bindCreateNodeInfo(
         throw BinderException("Create node " + node->toString() + " expects primary key " +
                               primaryKey->getName() + " as input.");
     }
-    auto extraInfo = std::make_unique<ExtraCreateNodeInfo>(std::move(primaryKeyExpression));
     return std::make_unique<BoundCreateInfo>(
-        UpdateTableType::NODE, std::move(node), std::move(setItems), std::move(extraInfo));
+        UpdateTableType::NODE, std::move(node), std::move(setItems));
 }
 
 std::unique_ptr<BoundCreateInfo> Binder::bindCreateRelInfo(
@@ -180,7 +179,7 @@ std::unique_ptr<BoundCreateInfo> Binder::bindCreateRelInfo(
         }
     }
     return std::make_unique<BoundCreateInfo>(
-        UpdateTableType::REL, std::move(rel), std::move(setItems), nullptr /* extraInfo */);
+        UpdateTableType::REL, std::move(rel), std::move(setItems));
 }
 
 std::unique_ptr<BoundUpdatingClause> Binder::bindSetClause(const UpdatingClause& updatingClause) {
