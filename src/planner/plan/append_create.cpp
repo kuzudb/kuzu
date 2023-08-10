@@ -12,9 +12,8 @@ std::unique_ptr<LogicalCreateNodeInfo> QueryPlanner::createLogicalCreateNodeInfo
     BoundCreateInfo* boundCreateInfo) {
     auto node = std::static_pointer_cast<NodeExpression>(boundCreateInfo->nodeOrRel);
     auto propertiesToReturn = getProperties(*node);
-    auto extraInfo = (ExtraCreateNodeInfo*)boundCreateInfo->extraInfo.get();
     return std::make_unique<LogicalCreateNodeInfo>(
-        node, extraInfo->primaryKey, std::move(propertiesToReturn));
+        node, boundCreateInfo->setItems, std::move(propertiesToReturn));
 }
 
 std::unique_ptr<LogicalCreateRelInfo> QueryPlanner::createLogicalCreateRelInfo(
@@ -51,13 +50,6 @@ void QueryPlanner::appendCreateNode(
     createNode->setChild(0, plan.getLastOperator());
     createNode->computeFactorizedSchema();
     plan.setLastOperator(createNode);
-    // Apply SET after CREATE
-    auto boundSetNodePropertyInfos = createLogicalSetPropertyInfo(boundCreateInfos);
-    std::vector<BoundSetPropertyInfo*> setInfoPtrs;
-    for (auto& setInfo : boundSetNodePropertyInfos) {
-        setInfoPtrs.push_back(setInfo.get());
-    }
-    appendSetNodeProperty(setInfoPtrs, plan);
 }
 
 void QueryPlanner::appendCreateRel(
