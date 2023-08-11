@@ -17,8 +17,9 @@ class Connection {
    * function on the returned object.
    *
    * @param {kuzu.Database} database the database object to connect to.
+   * @param {Number} numThreads the maximum number of threads to use for query execution.
    */
-  constructor(database) {
+  constructor(database, numThreads = null) {
     if (
       typeof database !== "object" ||
       database.constructor.name !== "Database"
@@ -29,6 +30,10 @@ class Connection {
     this._connection = null;
     this._isInitialized = false;
     this._initPromise = null;
+    numThreads = parseInt(numThreads);
+    if (numThreads && numThreads > 0) {
+      this._numThreads = numThreads;
+    }
   }
 
   /**
@@ -50,7 +55,6 @@ class Connection {
               this._isInitialized = true;
               if (this._numThreads) {
                 this._connection.setMaxNumThreadForExec(this._numThreads);
-                delete this._numThreads;
               }
               resolve();
             }
