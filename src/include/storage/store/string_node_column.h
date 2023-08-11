@@ -33,7 +33,7 @@ protected:
 
 private:
     void readStringValueFromOvf(transaction::Transaction* transaction, common::ku_string_t& kuStr,
-        common::ValueVector* resultVector, common::node_group_idx_t nodeGroupIdx);
+        common::ValueVector* resultVector, common::page_idx_t overflowPageIdx);
 
 private:
     std::unique_ptr<InMemDiskArray<ColumnChunkMetadata>> overflowMetadataDA;
