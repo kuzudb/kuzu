@@ -21,15 +21,16 @@ void StringNodeColumnFunc::writeStringValuesToPage(
 }
 
 StringNodeColumn::StringNodeColumn(LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
-    BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal)
-    : NodeColumn{
-          std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal, true} {
+    BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
+    transaction::Transaction* transaction)
+    : NodeColumn{std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
+          transaction, true} {
     if (this->dataType.getLogicalTypeID() == LogicalTypeID::STRING) {
         writeNodeColumnFunc = StringNodeColumnFunc::writeStringValuesToPage;
     }
     overflowMetadataDA = std::make_unique<InMemDiskArray<ColumnChunkMetadata>>(*metadataFH,
         StorageStructureID::newMetadataID(), metaDAHeaderInfo.childrenInfos[0]->dataDAHPageIdx,
-        bufferManager, wal);
+        bufferManager, wal, transaction);
 }
 
 void StringNodeColumn::scan(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,

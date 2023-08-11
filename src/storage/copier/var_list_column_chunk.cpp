@@ -117,5 +117,32 @@ void VarListColumnChunk::resetToEmpty() {
     varListDataColumnChunk.reset();
 }
 
+void VarListColumnChunk::append(common::ValueVector* vector, common::offset_t startPosInChunk) {
+    auto nextListOffsetInChunk = getListOffset(startPosInChunk);
+    auto offsetBufferToWrite = (common::offset_t*)(buffer.get());
+    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
+        auto pos = vector->state->selVector->selectedPositions[i];
+        uint64_t listLen = vector->isNull(pos) ? 0 : vector->getValue<list_entry_t>(pos).size;
+        nullChunk->setNull(startPosInChunk + i, vector->isNull(pos));
+        nextListOffsetInChunk += listLen;
+        offsetBufferToWrite[startPosInChunk + i] = nextListOffsetInChunk;
+    }
+    varListDataColumnChunk.resize(nextListOffsetInChunk);
+    auto dataVector = ListVector::getDataVector(vector);
+    dataVector->state = std::make_unique<DataChunkState>();
+    dataVector->state->selVector->resetSelectorToValuePosBuffer();
+    auto offsetInDataChunkToWrite = getListOffset(startPosInChunk);
+    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
+        auto listEntry =
+            vector->getValue<list_entry_t>(vector->state->selVector->selectedPositions[i]);
+        dataVector->state->selVector->selectedSize = listEntry.size;
+        for (auto j = 0u; j < listEntry.size; j++) {
+            dataVector->state->selVector->selectedPositions[j] = listEntry.offset + j;
+        }
+        varListDataColumnChunk.dataChunk->append(dataVector, offsetInDataChunkToWrite);
+        offsetInDataChunkToWrite += listEntry.size;
+    }
+}
+
 } // namespace storage
 } // namespace kuzu

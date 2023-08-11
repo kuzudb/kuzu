@@ -7,6 +7,9 @@ void AddNodeProperty::executeDDLInternal() {
     auto metadataDAHInfo = storageManager.createMetadataDAHInfo(*dataType);
     catalog->addNodeProperty(
         tableID, propertyName, std::move(dataType), std::move(metadataDAHInfo));
+    auto addedProp = catalog->getWriteVersion()->getNodeProperty(tableID, propertyName);
+    storageManager.getNodesStore().getNodeTable(tableID)->addColumn(
+        *addedProp, getDefaultValVector(), transaction);
 }
 
 } // namespace processor

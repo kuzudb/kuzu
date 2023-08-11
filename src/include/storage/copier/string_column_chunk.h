@@ -11,6 +11,7 @@ public:
     StringColumnChunk(common::LogicalType dataType, common::CopyDescription* copyDescription);
 
     void resetToEmpty() final;
+    void append(common::ValueVector* vector, common::offset_t startPosInChunk) final;
     void append(
         arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,

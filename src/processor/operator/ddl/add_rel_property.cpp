@@ -9,8 +9,12 @@ void AddRelProperty::executeDDLInternal() {
     catalog->addRelProperty(tableID, propertyName, dataType->copy());
     auto tableSchema = catalog->getWriteVersion()->getRelTableSchema(tableID);
     auto property = tableSchema->getProperty(tableSchema->getPropertyID(propertyName));
-    StorageUtils::createFileForRelPropertyWithDefaultVal(
-        tableSchema, *property, getDefaultVal(), isDefaultValueNull(), storageManager);
+    auto defaultValVector = getDefaultValVector();
+    auto posInDefaultValVector = defaultValVector->state->selVector->selectedPositions[0];
+    auto defaultVal = defaultValVector->getData() +
+                      defaultValVector->getNumBytesPerValue() * posInDefaultValVector;
+    StorageUtils::createFileForRelPropertyWithDefaultVal(tableSchema, *property, defaultVal,
+        defaultValVector->isNull(posInDefaultValVector), storageManager);
 }
 
 } // namespace processor

@@ -28,12 +28,7 @@ public:
     std::string getOutputMsg() override { return {"Add Succeed."}; }
 
 protected:
-    inline bool isDefaultValueNull() const {
-        auto expressionVector = defaultValueEvaluator->resultVector;
-        return expressionVector->isNull(expressionVector->state->selVector->selectedPositions[0]);
-    }
-
-    uint8_t* getDefaultVal();
+    common::ValueVector* getDefaultValVector();
 
 protected:
     common::table_id_t tableID;

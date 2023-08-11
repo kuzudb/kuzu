@@ -61,14 +61,9 @@ public:
     inline common::property_id_t getPKPropertyID() const { return pkPropertyID; }
     inline common::table_id_t getTableID() const { return tableID; }
 
-    inline void dropProperty(common::property_id_t propertyID) {
-        propertyColumns.erase(propertyID);
-    }
-    inline void addProperty(const catalog::Property& property) {
-        assert(!propertyColumns.contains(property.getPropertyID()));
-        propertyColumns.emplace(property.getPropertyID(),
-            NodeColumnFactory::createNodeColumn(property, dataFH, dataFH, &bufferManager, wal));
-    }
+    inline void dropColumn(common::property_id_t propertyID) { propertyColumns.erase(propertyID); }
+    void addColumn(const catalog::Property& property, common::ValueVector* defaultValueVector,
+        transaction::Transaction* transaction);
 
     void prepareCommit();
     void prepareRollback();

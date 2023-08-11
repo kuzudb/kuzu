@@ -100,7 +100,8 @@ public:
     BaseDiskArray(FileHandle& fileHandle, common::page_idx_t headerPageIdx, uint64_t elementSize);
     // Used when loading from file
     BaseDiskArray(FileHandle& fileHandle, StorageStructureID storageStructureID,
-        common::page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal);
+        common::page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal,
+        transaction::Transaction* transaction);
 
     virtual ~BaseDiskArray() = default;
 
@@ -193,7 +194,8 @@ protected:
     BaseInMemDiskArray(
         FileHandle& fileHandle, common::page_idx_t headerPageIdx, uint64_t elementSize);
     BaseInMemDiskArray(FileHandle& fileHandle, StorageStructureID storageStructureID,
-        common::page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal);
+        common::page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal,
+        transaction::Transaction* transaction);
 
 public:
     // [] operator can be used to update elements, e.g., diskArray[5] = 4, when building an
@@ -229,7 +231,8 @@ template<typename T>
 class InMemDiskArray : public BaseInMemDiskArray<T> {
 public:
     InMemDiskArray(FileHandle& fileHandle, StorageStructureID storageStructureID,
-        common::page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal);
+        common::page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal,
+        transaction::Transaction* transaction);
 
     static inline common::page_idx_t addDAHPageToFile(BMFileHandle& fileHandle,
         StorageStructureID storageStructureID, BufferManager* bufferManager, WAL* wal) {

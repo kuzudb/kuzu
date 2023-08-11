@@ -35,6 +35,23 @@ void ColumnChunk::resetToEmpty() {
     }
 }
 
+void ColumnChunk::append(common::ValueVector* vector, common::offset_t startPosInChunk) {
+    switch (vector->dataType.getPhysicalType()) {
+    case PhysicalTypeID::INT64:
+    case PhysicalTypeID::INT32:
+    case PhysicalTypeID::INT16:
+    case PhysicalTypeID::DOUBLE:
+    case PhysicalTypeID::FLOAT:
+    case PhysicalTypeID::INTERVAL:
+    case PhysicalTypeID::FIXED_LIST: {
+        copyVectorToBuffer(vector, startPosInChunk);
+    } break;
+    default: {
+        throw NotImplementedException{"ColumnChunk::append"};
+    }
+    }
+}
+
 void ColumnChunk::append(
     ValueVector* vector, offset_t startPosInChunk, uint32_t numValuesToAppend) {
     assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::ARROW_COLUMN);
@@ -65,9 +82,6 @@ void ColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
 void ColumnChunk::append(
     arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
     switch (array->type_id()) {
-    case arrow::Type::BOOL: {
-        templateCopyArrowArray<bool>(array, startPosInChunk, numValuesToAppend);
-    } break;
     case arrow::Type::INT16: {
         templateCopyArrowArray<int16_t>(array, startPosInChunk, numValuesToAppend);
     } break;
@@ -165,6 +179,24 @@ void ColumnChunk::resize(uint64_t numValues) {
     }
     for (auto& child : childrenChunks) {
         child->resize(numValues);
+    }
+}
+
+void ColumnChunk::populateWithDefaultVal(common::ValueVector* defaultValueVector) {
+    defaultValueVector->setState(std::make_shared<common::DataChunkState>());
+    auto valPos = defaultValueVector->state->selVector->selectedPositions[0];
+    defaultValueVector->state->selVector->resetSelectorToValuePosBufferWithSize(
+        common::DEFAULT_VECTOR_CAPACITY);
+    for (auto i = 0u; i < defaultValueVector->state->selVector->selectedSize; i++) {
+        defaultValueVector->state->selVector->selectedPositions[i] = valPos;
+    }
+    auto numValuesAppended = 0u;
+    while (numValuesAppended < common::StorageConstants::NODE_GROUP_SIZE) {
+        auto numValuesToAppend = std::min(common::DEFAULT_VECTOR_CAPACITY,
+            common::StorageConstants::NODE_GROUP_SIZE - numValuesAppended);
+        defaultValueVector->state->selVector->selectedSize = numValuesToAppend;
+        append(defaultValueVector, numValuesAppended);
+        numValuesAppended += numValuesToAppend;
     }
 }
 
@@ -308,6 +340,22 @@ uint32_t ColumnChunk::getDataTypeSizeInChunk(LogicalType& dataType) {
         return StorageUtils::getDataTypeSize(dataType);
     }
     }
+}
+
+void BoolColumnChunk::append(common::ValueVector* vector, common::offset_t startPosInChunk) {
+    assert(vector->dataType.getPhysicalType() == PhysicalTypeID::BOOL);
+    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
+        auto pos = vector->state->selVector->selectedPositions[i];
+        nullChunk->setNull(startPosInChunk + i, vector->isNull(pos));
+        common::NullMask::setNull(
+            (uint64_t*)buffer.get(), startPosInChunk + i, vector->getValue<bool>(pos));
+    }
+}
+
+void BoolColumnChunk::append(
+    arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
+    assert(array->type_id() == arrow::Type::BOOL);
+    templateCopyArrowArray<bool>(array, startPosInChunk, numValuesToAppend);
 }
 
 void BoolColumnChunk::append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
@@ -458,6 +506,18 @@ offset_t ColumnChunk::getOffsetInBuffer(offset_t pos) const {
     return offsetInBuffer;
 }
 
+void ColumnChunk::copyVectorToBuffer(
+    common::ValueVector* vector, common::offset_t startPosInChunk) {
+    auto bufferToWrite = buffer.get() + startPosInChunk * numBytesPerValue;
+    auto vectorDataToWriteFrom = vector->getData();
+    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
+        auto pos = vector->state->selVector->selectedPositions[i];
+        nullChunk->setNull(startPosInChunk + i, vector->isNull(pos));
+        memcpy(bufferToWrite, vectorDataToWriteFrom + pos * numBytesPerValue, numBytesPerValue);
+        bufferToWrite += numBytesPerValue;
+    }
+}
+
 void NullColumnChunk::resize(uint64_t numValues) {
     auto numBytesAfterResize = numBytesForValues(numValues);
     assert(numBytesAfterResize > numBytes);
@@ -466,10 +526,6 @@ void NullColumnChunk::resize(uint64_t numValues) {
     memcpy(reservedBuffer.get(), buffer.get(), numBytes);
     buffer = std::move(reservedBuffer);
     numBytes = numBytesAfterResize;
-}
-
-void NullColumnChunk::setRangeNoNull(offset_t startPosInChunk, uint32_t numValuesToSet) {
-    NullMask::setNullRange((uint64_t*)buffer.get(), startPosInChunk, numValuesToSet, false);
 }
 
 } // namespace storage

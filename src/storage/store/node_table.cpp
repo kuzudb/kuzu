@@ -23,8 +23,8 @@ void NodeTable::initializeData(NodeTableSchema* nodeTableSchema) {
 
 void NodeTable::initializeColumns(NodeTableSchema* nodeTableSchema) {
     for (auto& property : nodeTableSchema->getProperties()) {
-        propertyColumns[property->getPropertyID()] =
-            NodeColumnFactory::createNodeColumn(*property, dataFH, metadataFH, &bufferManager, wal);
+        propertyColumns[property->getPropertyID()] = NodeColumnFactory::createNodeColumn(*property,
+            dataFH, metadataFH, &bufferManager, wal, Transaction::getDummyReadOnlyTrx().get());
     }
 }
 
@@ -134,6 +134,17 @@ std::unordered_set<property_id_t> NodeTable::getPropertyIDs() const {
         propertyIDs.insert(propertyID);
     }
     return propertyIDs;
+}
+
+void NodeTable::addColumn(const catalog::Property& property,
+    common::ValueVector* defaultValueVector, transaction::Transaction* transaction) {
+    assert(!propertyColumns.contains(property.getPropertyID()));
+    auto nodeColumn = NodeColumnFactory::createNodeColumn(
+        property, dataFH, metadataFH, &bufferManager, wal, transaction);
+    nodeColumn->populateWithDefaultVal(
+        property, nodeColumn.get(), defaultValueVector, getNumNodeGroups(transaction));
+    propertyColumns.emplace(property.getPropertyID(), std::move(nodeColumn));
+    wal->addToUpdatedNodeTables(tableID);
 }
 
 void NodeTable::prepareCommit() {

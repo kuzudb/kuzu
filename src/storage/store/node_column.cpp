@@ -82,17 +82,18 @@ void BoolNodeColumnFunc::writeValueToPage(
 }
 
 NodeColumn::NodeColumn(const Property& property, BMFileHandle* dataFH, BMFileHandle* metadataFH,
-    BufferManager* bufferManager, WAL* wal, bool requireNullColumn)
+    BufferManager* bufferManager, WAL* wal, Transaction* transaction, bool requireNullColumn)
     : NodeColumn{*property.getDataType(), *property.getMetadataDAHInfo(), dataFH, metadataFH,
-          bufferManager, wal, requireNullColumn} {}
+          bufferManager, wal, transaction, requireNullColumn} {}
 
 NodeColumn::NodeColumn(LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
     BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-    bool requireNullColumn)
+    transaction::Transaction* transaction, bool requireNullColumn)
     : storageStructureID{StorageStructureID::newDataID()}, dataType{std::move(dataType)},
       dataFH{dataFH}, metadataFH{metadataFH}, bufferManager{bufferManager}, wal{wal} {
     metadataDA = std::make_unique<InMemDiskArray<ColumnChunkMetadata>>(*metadataFH,
-        StorageStructureID::newMetadataID(), metaDAHeaderInfo.dataDAHPageIdx, bufferManager, wal);
+        StorageStructureID::newMetadataID(), metaDAHeaderInfo.dataDAHPageIdx, bufferManager, wal,
+        transaction);
     numBytesPerFixedSizedValue = ColumnChunk::getDataTypeSizeInChunk(this->dataType);
     assert(numBytesPerFixedSizedValue <= BufferPoolConstants::PAGE_4KB_SIZE);
     numValuesPerPage =
@@ -107,7 +108,7 @@ NodeColumn::NodeColumn(LogicalType dataType, const MetadataDAHInfo& metaDAHeader
                               FixedSizedNodeColumnFunc::writeValueToPage;
     if (requireNullColumn) {
         nullColumn = std::make_unique<NullNodeColumn>(
-            metaDAHeaderInfo.nullDAHPageIdx, dataFH, metadataFH, bufferManager, wal);
+            metaDAHeaderInfo.nullDAHPageIdx, dataFH, metadataFH, bufferManager, wal, transaction);
     }
 }
 
@@ -364,6 +365,19 @@ void NodeColumn::rollbackInMemory() {
     }
 }
 
+void NodeColumn::populateWithDefaultVal(const catalog::Property& property,
+    kuzu::storage::NodeColumn* nodeColumn, common::ValueVector* defaultValueVector,
+    uint64_t numNodeGroups) {
+    auto columnChunk = ColumnChunkFactory::createColumnChunk(
+        *property.getDataType(), nullptr /* copyDescription */);
+    columnChunk->populateWithDefaultVal(defaultValueVector);
+    for (auto i = 0u; i < numNodeGroups; i++) {
+        auto numPages = columnChunk->getNumPages();
+        auto startPageIdx = dataFH->addNewPages(numPages);
+        nodeColumn->append(columnChunk.get(), startPageIdx, i);
+    }
+}
+
 void NodeColumn::scan(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
     offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
     uint64_t offsetInVector) {
@@ -384,9 +398,9 @@ static_assert(PageUtils::getNumElementsInAPage(1, false /*requireNullColumn*/) %
 
 BoolNodeColumn::BoolNodeColumn(const catalog::MetadataDAHInfo& metaDAHeaderInfo,
     BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-    bool requireNullColumn)
+    Transaction* transaction, bool requireNullColumn)
     : NodeColumn{LogicalType(LogicalTypeID::BOOL), metaDAHeaderInfo, dataFH, metadataFH,
-          bufferManager, wal, requireNullColumn} {
+          bufferManager, wal, transaction, requireNullColumn} {
     readNodeColumnFunc = BoolNodeColumnFunc::readValuesFromPage;
     writeNodeColumnFunc = BoolNodeColumnFunc::writeValueToPage;
     // 8 values per byte (on-disk)
@@ -394,9 +408,9 @@ BoolNodeColumn::BoolNodeColumn(const catalog::MetadataDAHInfo& metaDAHeaderInfo,
 }
 
 NullNodeColumn::NullNodeColumn(page_idx_t metaDAHPageIdx, BMFileHandle* dataFH,
-    BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal)
+    BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal, Transaction* transaction)
     : NodeColumn{LogicalType(LogicalTypeID::BOOL), MetadataDAHInfo{metaDAHPageIdx}, dataFH,
-          metadataFH, bufferManager, wal, false /*requireNullColumn*/} {
+          metadataFH, bufferManager, wal, transaction, false /*requireNullColumn*/} {
     readNodeColumnFunc = NullNodeColumnFunc::readValuesFromPage;
     writeNodeColumnFunc = NullNodeColumnFunc::writeValueToPage;
 
@@ -441,9 +455,10 @@ void NullNodeColumn::writeInternal(
 }
 
 SerialNodeColumn::SerialNodeColumn(const catalog::MetadataDAHInfo& metaDAHeaderInfo,
-    BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal)
+    BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
+    Transaction* transaction)
     : NodeColumn{LogicalType(LogicalTypeID::SERIAL), metaDAHeaderInfo, dataFH, metadataFH,
-          bufferManager, wal, false} {}
+          bufferManager, wal, transaction, false} {}
 
 void SerialNodeColumn::scan(
     Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
@@ -473,11 +488,11 @@ page_idx_t SerialNodeColumn::append(
 
 std::unique_ptr<NodeColumn> NodeColumnFactory::createNodeColumn(const LogicalType& dataType,
     const catalog::MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
-    BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal) {
+    BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal, Transaction* transaction) {
     switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::BOOL: {
         return std::make_unique<BoolNodeColumn>(
-            metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal, true);
+            metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal, transaction, true);
     }
     case LogicalTypeID::INT64:
     case LogicalTypeID::INT32:
@@ -490,26 +505,26 @@ std::unique_ptr<NodeColumn> NodeColumnFactory::createNodeColumn(const LogicalTyp
     case LogicalTypeID::INTERNAL_ID:
     case LogicalTypeID::FIXED_LIST: {
         return std::make_unique<NodeColumn>(
-            dataType, metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal, true);
+            dataType, metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal, transaction, true);
     }
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING: {
         return std::make_unique<StringNodeColumn>(
-            dataType, metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal);
+            dataType, metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal, transaction);
     }
     case LogicalTypeID::MAP:
     case LogicalTypeID::VAR_LIST: {
         return std::make_unique<VarListNodeColumn>(
-            dataType, metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal);
+            dataType, metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal, transaction);
     }
     case LogicalTypeID::UNION:
     case LogicalTypeID::STRUCT: {
         return std::make_unique<StructNodeColumn>(
-            dataType, metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal);
+            dataType, metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal, transaction);
     }
     case LogicalTypeID::SERIAL: {
         return std::make_unique<SerialNodeColumn>(
-            metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal);
+            metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal, transaction);
     }
     default: {
         throw NotImplementedException("NodeColumnFactory::createNodeColumn");

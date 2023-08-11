@@ -21,10 +21,11 @@ ListsMetadata::ListsMetadata(
         FileHandle::O_PERSISTENT_FILE_NO_CREATE, BMFileHandle::FileVersionedType::VERSIONED_FILE);
     chunkToPageListHeadIdxMap = std::make_unique<InMemDiskArray<uint32_t>>(
         *metadataVersionedFileHandle, storageStructureIDAndFName.storageStructureID,
-        CHUNK_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX, bufferManager, wal);
+        CHUNK_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX, bufferManager, wal,
+        transaction::Transaction::getDummyReadOnlyTrx().get());
     pageLists = std::make_unique<InMemDiskArray<page_idx_t>>(*metadataVersionedFileHandle,
         storageStructureIDAndFName.storageStructureID, CHUNK_PAGE_LIST_HEADER_PAGE_IDX,
-        bufferManager, wal);
+        bufferManager, wal, transaction::Transaction::getDummyReadOnlyTrx().get());
 }
 
 uint64_t BaseListsMetadata::getPageIdxFromAPageList(
