@@ -25,7 +25,7 @@ void ValueVector::setState(std::shared_ptr<DataChunkState> state) {
     }
 }
 
-bool NodeIDVector::discardNull(ValueVector& vector) {
+bool ValueVector::discardNull(ValueVector& vector) {
     if (vector.hasNoNullsGuarantee()) {
         return true;
     } else {

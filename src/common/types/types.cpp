@@ -304,6 +304,16 @@ std::unique_ptr<LogicalType> LogicalType::copy() const {
     return dataType;
 }
 
+std::vector<std::unique_ptr<LogicalType>> LogicalType::copy(
+    const std::vector<std::unique_ptr<LogicalType>>& types) {
+    std::vector<std::unique_ptr<LogicalType>> typesCopy;
+    typesCopy.reserve(types.size());
+    for (auto& type : types) {
+        typesCopy.push_back(type->copy());
+    }
+    return typesCopy;
+}
+
 void LogicalType::setPhysicalType() {
     switch (typeID) {
     case LogicalTypeID::ANY: {

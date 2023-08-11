@@ -8,8 +8,12 @@
 namespace kuzu {
 namespace common {
 
-class DataChunkState {
+enum class FactorizationStateType : uint8_t {
+    FLAT = 0,
+    UNFLAT = 1,
+};
 
+class DataChunkState {
 public:
     DataChunkState() : DataChunkState(DEFAULT_VECTOR_CAPACITY) {}
     explicit DataChunkState(uint64_t capacity) : currIdx{-1}, originalSize{0} {

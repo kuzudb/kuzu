@@ -49,11 +49,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
     auto nodeBuildPrevOperator = mapOperator(logicalProbe->getChild(1).get());
     auto nodeBuildSchema = logicalProbe->getChild(1)->getSchema();
     auto nodeKeys = expression_vector{recursiveInfo->node->getInternalIDProperty()};
+    auto nodeKeyTypes = ExpressionUtil::getDataTypes(nodeKeys);
     auto nodePayloads =
         ExpressionUtil::excludeExpressions(nodeBuildSchema->getExpressionsInScope(), nodeKeys);
     auto nodeBuildInfo = createHashBuildInfo(*nodeBuildSchema, nodeKeys, nodePayloads);
     auto nodeHashTable = std::make_unique<JoinHashTable>(
-        *memoryManager, nodeBuildInfo->getNumKeys(), nodeBuildInfo->getTableSchema()->copy());
+        *memoryManager, std::move(nodeKeyTypes), nodeBuildInfo->getTableSchema()->copy());
     auto nodeBuildSharedState = std::make_shared<HashJoinSharedState>(std::move(nodeHashTable));
     auto nodeBuild = make_unique<HashJoinBuild>(
         std::make_unique<ResultSetDescriptor>(nodeBuildSchema), nodeBuildSharedState,
@@ -62,11 +63,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
     auto relBuildPrvOperator = mapOperator(logicalProbe->getChild(2).get());
     auto relBuildSchema = logicalProbe->getChild(2)->getSchema();
     auto relKeys = expression_vector{recursiveInfo->rel->getInternalIDProperty()};
+    auto relKeyTypes = ExpressionUtil::getDataTypes(relKeys);
     auto relPayloads =
         ExpressionUtil::excludeExpressions(relBuildSchema->getExpressionsInScope(), relKeys);
     auto relBuildInfo = createHashBuildInfo(*relBuildSchema, relKeys, relPayloads);
     auto relHashTable = std::make_unique<JoinHashTable>(
-        *memoryManager, relBuildInfo->getNumKeys(), relBuildInfo->getTableSchema()->copy());
+        *memoryManager, std::move(relKeyTypes), relBuildInfo->getTableSchema()->copy());
     auto relBuildSharedState = std::make_shared<HashJoinSharedState>(std::move(relHashTable));
     auto relBuild = std::make_unique<HashJoinBuild>(
         std::make_unique<ResultSetDescriptor>(relBuildSchema), relBuildSharedState,
