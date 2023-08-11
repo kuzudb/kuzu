@@ -39,7 +39,7 @@ void VarListNodeColumn::scanInternal(
     Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
     resultVector->resetAuxiliaryBuffer();
     auto startNodeOffset = nodeIDVector->readNodeOffset(0);
-    auto nodeGroupIdx = getNodeGroupIdxFromNodeOffset(startNodeOffset);
+    auto nodeGroupIdx = StorageUtils::getNodeGroupIdxFromNodeOffset(startNodeOffset);
     auto startNodeOffsetInGroup =
         startNodeOffset - StorageUtils::getStartOffsetForNodeGroup(nodeGroupIdx);
     auto listOffsetInfoInStorage =
@@ -54,7 +54,7 @@ void VarListNodeColumn::scanInternal(
 
 void VarListNodeColumn::lookupValue(Transaction* transaction, offset_t nodeOffset,
     ValueVector* resultVector, uint32_t posInVector) {
-    auto nodeGroupIdx = getNodeGroupIdxFromNodeOffset(nodeOffset);
+    auto nodeGroupIdx = StorageUtils::getNodeGroupIdxFromNodeOffset(nodeOffset);
     auto nodeOffsetInGroup = nodeOffset - StorageUtils::getStartOffsetForNodeGroup(nodeGroupIdx);
     auto listOffset = readListOffsetInStorage(transaction, nodeGroupIdx, nodeOffsetInGroup);
     auto length = readListOffsetInStorage(transaction, nodeGroupIdx, nodeOffsetInGroup + 1) -
@@ -62,8 +62,8 @@ void VarListNodeColumn::lookupValue(Transaction* transaction, offset_t nodeOffse
     auto offsetInVector = posInVector == 0 ? 0 : resultVector->getValue<offset_t>(posInVector - 1);
     resultVector->setValue(posInVector, list_entry_t{offsetInVector, length});
     ListVector::resizeDataVector(resultVector, offsetInVector + length);
-    dataNodeColumn->scan(transaction, getNodeGroupIdxFromNodeOffset(nodeOffset), listOffset,
-        listOffset + length, ListVector::getDataVector(resultVector), offsetInVector);
+    dataNodeColumn->scan(transaction, StorageUtils::getNodeGroupIdxFromNodeOffset(nodeOffset),
+        listOffset, listOffset + length, ListVector::getDataVector(resultVector), offsetInVector);
 }
 
 page_idx_t VarListNodeColumn::append(

@@ -4,7 +4,6 @@
 --
 
 -CASE SerialComparison
--SKIP
 
 -LOG SerialGreaterThan
 -STATEMENT MATCH (a:person) WHERE a.ID > 4 RETURN a

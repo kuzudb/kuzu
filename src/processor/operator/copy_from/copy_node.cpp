@@ -85,33 +85,29 @@ void CopyNode::executeInternal(ExecutionContext* context) {
         auto numTuplesToAppend = ArrowColumnVector::getArrowColumn(
             resultSet->getValueVector(copyNodeInfo.dataColumnPoses[0]).get())
                                      ->length();
+        auto nodeOffset = nodeOffsetVector->getValue<int64_t>(
+                              nodeOffsetVector->state->selVector->selectedPositions[0]) -
+                          1;
         uint64_t numAppendedTuples = 0;
         while (numAppendedTuples < numTuplesToAppend) {
             auto numAppendedTuplesInNodeGroup = localNodeGroup->append(
                 resultSet, copyNodeInfo.dataColumnPoses, numTuplesToAppend - numAppendedTuples);
             numAppendedTuples += numAppendedTuplesInNodeGroup;
             if (localNodeGroup->isFull()) {
-                auto nodeGroupIdx = sharedState->getNextNodeGroupIdx();
+                node_group_idx_t nodeGroupIdx;
+                if (copyNodeInfo.preservingOrder) {
+                    nodeGroupIdx = StorageUtils::getNodeGroupIdxFromNodeOffset(nodeOffset) - 1;
+                    sharedState->currentNodeGroupIdx++;
+                } else {
+                    nodeGroupIdx = sharedState->getNextNodeGroupIdx();
+                }
                 writeAndResetNodeGroup(nodeGroupIdx, sharedState->pkIndex.get(),
                     sharedState->pkColumnID, sharedState->table, localNodeGroup.get());
-            }
-            if (numAppendedTuples < numTuplesToAppend) {
-                sliceDataChunk(*resultSet->getDataChunk(0), copyNodeInfo.dataColumnPoses,
-                    (int64_t)numAppendedTuplesInNodeGroup);
             }
         }
     }
     if (localNodeGroup->getNumNodes() > 0) {
         sharedState->appendLocalNodeGroup(std::move(localNodeGroup));
-    }
-}
-
-void CopyNode::sliceDataChunk(
-    const DataChunk& dataChunk, const std::vector<DataPos>& dataColumnPoses, offset_t offset) {
-    for (auto& dataColumnPos : dataColumnPoses) {
-        assert(dataColumnPos.dataChunkPos == 0);
-        ArrowColumnVector::slice(
-            dataChunk.valueVectors[dataColumnPos.valueVectorPos].get(), offset);
     }
 }
 

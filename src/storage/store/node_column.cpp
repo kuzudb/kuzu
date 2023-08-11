@@ -115,7 +115,7 @@ void NodeColumn::batchLookup(const offset_t* nodeOffsets, size_t size, uint8_t* 
     auto dummyReadOnlyTransaction = Transaction::getDummyReadOnlyTrx();
     for (auto i = 0u; i < size; ++i) {
         auto nodeOffset = nodeOffsets[i];
-        auto nodeGroupIdx = getNodeGroupIdxFromNodeOffset(nodeOffset);
+        auto nodeGroupIdx = StorageUtils::getNodeGroupIdxFromNodeOffset(nodeOffset);
         auto cursor = PageUtils::getPageElementCursorForPos(nodeOffset, numValuesPerPage);
         cursor.pageIdx +=
             metadataDA->get(nodeGroupIdx, dummyReadOnlyTransaction->getType()).pageIdx;
@@ -130,7 +130,7 @@ void NodeColumn::batchLookup(const offset_t* nodeOffsets, size_t size, uint8_t* 
 void BoolNodeColumn::batchLookup(const offset_t* nodeOffsets, size_t size, uint8_t* result) {
     for (auto i = 0u; i < size; ++i) {
         auto nodeOffset = nodeOffsets[i];
-        auto nodeGroupIdx = getNodeGroupIdxFromNodeOffset(nodeOffset);
+        auto nodeGroupIdx = StorageUtils::getNodeGroupIdxFromNodeOffset(nodeOffset);
         auto cursor = PageUtils::getPageElementCursorForPos(nodeOffset, numValuesPerPage);
         auto dummyReadOnlyTransaction = Transaction::getDummyReadOnlyTrx();
         cursor.pageIdx +=
@@ -152,7 +152,7 @@ void NodeColumn::scanInternal(
     Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
     auto startNodeOffset = nodeIDVector->readNodeOffset(0);
     assert(startNodeOffset % DEFAULT_VECTOR_CAPACITY == 0);
-    auto nodeGroupIdx = getNodeGroupIdxFromNodeOffset(startNodeOffset);
+    auto nodeGroupIdx = StorageUtils::getNodeGroupIdxFromNodeOffset(startNodeOffset);
     auto offsetInNodeGroup =
         startNodeOffset - StorageUtils::getStartOffsetForNodeGroup(nodeGroupIdx);
     auto pageCursor = PageUtils::getPageElementCursorForPos(offsetInNodeGroup, numValuesPerPage);
@@ -229,7 +229,7 @@ void NodeColumn::lookupInternal(
 
 void NodeColumn::lookupValue(transaction::Transaction* transaction, offset_t nodeOffset,
     ValueVector* resultVector, uint32_t posInVector) {
-    auto nodeGroupIdx = getNodeGroupIdxFromNodeOffset(nodeOffset);
+    auto nodeGroupIdx = StorageUtils::getNodeGroupIdxFromNodeOffset(nodeOffset);
     auto pageCursor = PageUtils::getPageElementCursorForPos(nodeOffset, numValuesPerPage);
     pageCursor.pageIdx += metadataDA->get(nodeGroupIdx, transaction->getType()).pageIdx;
     readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
@@ -323,7 +323,7 @@ void NodeColumn::writeValue(
 }
 
 WALPageIdxPosInPageAndFrame NodeColumn::createWALVersionOfPageForValue(offset_t nodeOffset) {
-    auto nodeGroupIdx = getNodeGroupIdxFromNodeOffset(nodeOffset);
+    auto nodeGroupIdx = StorageUtils::getNodeGroupIdxFromNodeOffset(nodeOffset);
     auto originalPageCursor = PageUtils::getPageElementCursorForPos(nodeOffset, numValuesPerPage);
     originalPageCursor.pageIdx += metadataDA->get(nodeGroupIdx, TransactionType::WRITE).pageIdx;
     bool insertingNewPage = false;
