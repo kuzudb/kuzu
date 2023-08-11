@@ -5,7 +5,7 @@ on:
   workflow_call:
 
 jobs:
-  build-mac-nodejs:
+  build-mac-nodejs-arm64:
     runs-on: self-hosted-mac-arm
     steps:
       - uses: actions/checkout@v3
@@ -31,9 +31,25 @@ jobs:
         working-directory: tools/nodejs_api/
         run: mv package/kuzujs.node kuzujs-darwin-arm64.node
 
+      - uses: actions/upload-artifact@v3
+        with:
+          name: mac-nodejs-module-arm64
+          path: tools/nodejs_api/kuzujs-darwin-*.node
+
       - name: Clean up
         working-directory: tools/nodejs_api/
         run: rm -rf package
+
+  build-mac-nodejs-x86_64:
+    runs-on: self-hosted-mac-x64
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Create Node.js source distribution
+        working-directory: tools/nodejs_api
+        run: |
+          rm -rf kuzu-source.tar.gz package *.node
+          node package
 
       - name: Extract tarball
         working-directory: tools/nodejs_api
@@ -52,5 +68,9 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          name: mac-nodejs-module
+          name: mac-nodejs-module-x86_64
           path: tools/nodejs_api/kuzujs-darwin-*.node
+
+      - name: Clean up
+        working-directory: tools/nodejs_api/
+        run: rm -rf package

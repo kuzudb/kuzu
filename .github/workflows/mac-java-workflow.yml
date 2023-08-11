@@ -22,7 +22,7 @@ jobs:
           path: tools/java_api/build/libkuzu_java_native*
     
   build-mac-java-x86:
-    runs-on: macos-latest
+    runs-on: self-hosted-mac-x64
     steps:
       - uses: actions/checkout@v3
     
