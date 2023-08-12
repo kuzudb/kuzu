@@ -5,11 +5,11 @@ on:
   workflow_call:
 
 jobs:
-  build-wheels:
+  build-wheels-arm64:
     runs-on: self-hosted-mac-arm
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Create source distribution
         working-directory: ./scripts/pip-package/
         run: |
@@ -28,6 +28,23 @@ jobs:
           package-dir: ./scripts/pip-package/kuzu.tar.gz
           output-dir: ./scripts/pip-package/wheelhouse
 
+      - uses: actions/upload-artifact@v3
+        with:
+          name: macos-wheels-arm64
+          path: ./scripts/pip-package/wheelhouse/*.whl
+
+  build-wheels-x86_64:
+    runs-on: self-hosted-mac-x64
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Create source distribution
+        working-directory: ./scripts/pip-package/
+        run: |
+          rm -rf wheelhouse kuzu.tar.gz
+          mkdir wheelhouse
+          python3 package_tar.py kuzu.tar.gz
+
       - name: Build wheels for Intel
         uses: pypa/cibuildwheel@v2.12.0
         env:
@@ -41,5 +58,5 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          name: macos-wheels
+          name: macos-wheels-x86_64
           path: ./scripts/pip-package/wheelhouse/*.whl

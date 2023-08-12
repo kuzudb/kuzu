@@ -83,7 +83,12 @@ jobs:
 
       - uses: actions/download-artifact@v3
         with:
-          name: mac-nodejs-module
+          name: mac-nodejs-module-arm64
+          path: tools/nodejs_api/prebuilt
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: mac-nodejs-module-x86_64
           path: tools/nodejs_api/prebuilt
 
       - uses: actions/download-artifact@v3
@@ -164,7 +169,12 @@ jobs:
     steps:
       - uses: actions/download-artifact@v3
         with:
-          name: macos-wheels
+          name: macos-wheels-arm64
+          path: dist
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: macos-wheels-x86_64
           path: dist
 
       - uses: actions/download-artifact@v3
