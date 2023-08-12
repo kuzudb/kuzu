@@ -7,40 +7,11 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-// BLOB
-template<>
-void StringColumnChunk::setValueFromString<blob_t>(
-    const char* value, uint64_t length, uint64_t pos) {
-    if (length > BufferPoolConstants::PAGE_4KB_SIZE) {
-        length = BufferPoolConstants::PAGE_4KB_SIZE;
-    }
-    auto blobBuffer = std::make_unique<uint8_t[]>(length);
-    auto blobLen = Blob::fromString(value, length, blobBuffer.get());
-    auto val = overflowFile->copyString((char*)blobBuffer.get(), blobLen, overflowCursor);
-    setValue(val, pos);
-}
-
-// STRING
-template<>
-void StringColumnChunk::setValueFromString<ku_string_t>(
-    const char* value, uint64_t length, uint64_t pos) {
-    if (length > BufferPoolConstants::PAGE_4KB_SIZE) {
-        length = BufferPoolConstants::PAGE_4KB_SIZE;
-    }
-    auto val = overflowFile->copyString(value, length, overflowCursor);
-    setValue(val, pos);
-}
-
-// STRING
-template<>
-std::string StringColumnChunk::getValue<std::string>(offset_t pos) const {
-    auto kuStr = ((ku_string_t*)buffer.get())[pos];
-    return overflowFile->readString(&kuStr);
-}
-
 StringColumnChunk::StringColumnChunk(LogicalType dataType, CopyDescription* copyDescription)
     : ColumnChunk{std::move(dataType), copyDescription} {
     overflowFile = std::make_unique<InMemOverflowFile>();
+    overflowCursor.pageIdx = 0;
+    overflowCursor.offsetInPage = 0;
 }
 
 void StringColumnChunk::resetToEmpty() {
@@ -97,6 +68,18 @@ void StringColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk
     }
 }
 
+void StringColumnChunk::update(ValueVector* vector, vector_idx_t vectorIdx) {
+    auto startOffsetInChunk = vectorIdx << DEFAULT_VECTOR_CAPACITY_LOG_2;
+    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
+        auto pos = vector->state->selVector->selectedPositions[i];
+        auto offsetInChunk = startOffsetInChunk + pos;
+        nullChunk->setNull(offsetInChunk, vector->isNull(pos));
+        if (!vector->isNull(pos)) {
+            auto kuStr = vector->getValue<ku_string_t>(pos);
+            setValueFromString<ku_string_t>(kuStr.getAsString().c_str(), kuStr.len, offsetInChunk);
+        }
+    }
+}
 page_idx_t StringColumnChunk::flushOverflowBuffer(BMFileHandle* dataFH, page_idx_t startPageIdx) {
     for (auto i = 0u; i < overflowFile->getNumPages(); i++) {
         FileUtils::writeToFile(dataFH->getFileInfo(), overflowFile->getPage(i)->data,
@@ -126,6 +109,49 @@ void StringColumnChunk::appendStringColumnChunk(StringColumnChunk* other,
                 cursorToCopyFrom.offsetInPage,
             &kuVals[posInChunk]);
     }
+}
+
+void StringColumnChunk::write(const Value& val, uint64_t posToWrite) {
+    assert(val.getDataType()->getPhysicalType() == PhysicalTypeID::STRING);
+    nullChunk->setNull(posToWrite, val.isNull());
+    if (val.isNull()) {
+        return;
+    }
+    auto strVal = val.getValue<std::string>();
+    setValueFromString<ku_string_t>(strVal.c_str(), strVal.length(), posToWrite);
+}
+
+// BLOB
+template<>
+void StringColumnChunk::setValueFromString<blob_t>(
+    const char* value, uint64_t length, uint64_t pos) {
+    if (length > BufferPoolConstants::PAGE_4KB_SIZE) {
+        throw CopyException(
+            ExceptionMessage::overLargeStringValueException(std::to_string(length)));
+    }
+    auto blobBuffer = std::make_unique<uint8_t[]>(length);
+    auto blobLen = Blob::fromString(value, length, blobBuffer.get());
+    auto val = overflowFile->copyString((char*)blobBuffer.get(), blobLen, overflowCursor);
+    setValue(val, pos);
+}
+
+// STRING
+template<>
+void StringColumnChunk::setValueFromString<ku_string_t>(
+    const char* value, uint64_t length, uint64_t pos) {
+    if (length > BufferPoolConstants::PAGE_4KB_SIZE) {
+        throw CopyException(
+            ExceptionMessage::overLargeStringValueException(std::to_string(length)));
+    }
+    auto val = overflowFile->copyString(value, length, overflowCursor);
+    setValue(val, pos);
+}
+
+// STRING
+template<>
+std::string StringColumnChunk::getValue<std::string>(offset_t pos) const {
+    auto kuStr = ((ku_string_t*)buffer.get())[pos];
+    return overflowFile->readString(&kuStr);
 }
 
 template<typename T>
@@ -166,16 +192,6 @@ void StringColumnChunk::templateCopyStringValues(
             setValueFromString<KU_TYPE>(value.data(), value.length(), posInChunk);
         }
     }
-}
-
-void StringColumnChunk::write(const Value& val, uint64_t posToWrite) {
-    assert(val.getDataType()->getPhysicalType() == PhysicalTypeID::STRING);
-    nullChunk->setNull(posToWrite, val.isNull());
-    if (val.isNull()) {
-        return;
-    }
-    auto strVal = val.getValue<std::string>();
-    setValueFromString<ku_string_t>(strVal.c_str(), strVal.length(), posToWrite);
 }
 
 } // namespace storage

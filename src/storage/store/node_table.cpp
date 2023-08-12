@@ -1,5 +1,7 @@
 #include "storage/store/node_table.h"
 
+#include "transaction/transaction.h"
+
 using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -56,18 +58,25 @@ void NodeTable::scan(Transaction* transaction, ValueVector* nodeIDVector,
             propertyColumns.at(columnIds[i])->scan(transaction, nodeIDVector, outputVectors[i]);
         }
     }
+    if (transaction->isWriteTransaction()) {
+        auto localStorage = transaction->getLocalStorage();
+        localStorage->scan(tableID, nodeIDVector, columnIds, outputVectors);
+    }
 }
 
 void NodeTable::lookup(Transaction* transaction, ValueVector* nodeIDVector,
-    const std::vector<column_id_t>& columnIds, const std::vector<ValueVector*>& outputVectors) {
-    assert(columnIds.size() == outputVectors.size());
+    const std::vector<column_id_t>& columnIDs, const std::vector<ValueVector*>& outputVectors) {
     auto pos = nodeIDVector->state->selVector->selectedPositions[0];
-    for (auto i = 0u; i < columnIds.size(); i++) {
-        if (columnIds[i] == INVALID_COLUMN_ID) {
+    for (auto i = 0u; i < columnIDs.size(); i++) {
+        auto columnID = columnIDs[i];
+        if (columnID == INVALID_COLUMN_ID) {
             outputVectors[i]->setNull(pos, true);
         } else {
-            propertyColumns.at(columnIds[i])->lookup(transaction, nodeIDVector, outputVectors[i]);
+            propertyColumns.at(columnIDs[i])->lookup(transaction, nodeIDVector, outputVectors[i]);
         }
+    }
+    if (transaction->isWriteTransaction()) {
+        transaction->getLocalStorage()->lookup(tableID, nodeIDVector, columnIDs, outputVectors);
     }
 }
 
@@ -87,24 +96,33 @@ void NodeTable::insert(Transaction* transaction, ValueVector* nodeIDVector,
         insertPK(nodeIDVector, propertyVectors[propertyIDToVectorIdx.at(pkPropertyID)]);
     }
     auto currentNumNodeGroups = getNumNodeGroups(transaction);
-    if (lastOffset >= StorageUtils::getStartOffsetForNodeGroup(currentNumNodeGroups)) {
+    if (lastOffset >= StorageUtils::getStartOffsetOfNodeGroup(currentNumNodeGroups)) {
         auto newNodeGroup = std::make_unique<NodeGroup>(this);
         newNodeGroup->setNodeGroupIdx(currentNumNodeGroups);
         append(newNodeGroup.get());
     }
     for (auto& [propertyID, column] : propertyColumns) {
-        assert(propertyIDToVectorIdx.contains(propertyID));
-        if (column->getDataType().getLogicalTypeID() != LogicalTypeID::SERIAL) {
-            column->write(nodeIDVector, propertyVectors[propertyIDToVectorIdx.at(propertyID)]);
+        if (column->getDataType().getLogicalTypeID() == LogicalTypeID::SERIAL) {
+            continue;
         }
+        assert(propertyIDToVectorIdx.contains(propertyID));
+        transaction->getLocalStorage()->update(tableID, propertyID, nodeIDVector,
+            propertyVectors[propertyIDToVectorIdx.at(propertyID)]);
     }
     wal->addToUpdatedNodeTables(tableID);
 }
 
-void NodeTable::update(
-    property_id_t propertyID, ValueVector* nodeIDVector, ValueVector* vectorToWriteFrom) {
+void NodeTable::update(Transaction* transaction, property_id_t propertyID,
+    ValueVector* nodeIDVector, ValueVector* vectorToWriteFrom) {
     assert(propertyColumns.contains(propertyID));
-    propertyColumns.at(propertyID)->write(nodeIDVector, vectorToWriteFrom);
+    transaction->getLocalStorage()->update(tableID, propertyID, nodeIDVector, vectorToWriteFrom);
+}
+
+void NodeTable::update(Transaction* transaction, property_id_t propertyID, offset_t nodeOffset,
+    ValueVector* propertyVector, sel_t posInPropertyVector) {
+    assert(propertyColumns.contains(propertyID));
+    transaction->getLocalStorage()->update(
+        tableID, propertyID, nodeOffset, propertyVector, posInPropertyVector);
 }
 
 void NodeTable::delete_(

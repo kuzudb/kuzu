@@ -9,9 +9,9 @@ namespace common {
 
 struct ku_string_t {
 
-    static const uint64_t PREFIX_LENGTH = 4;
-    static const uint64_t INLINED_SUFFIX_LENGTH = 8;
-    static const uint64_t SHORT_STR_LENGTH = PREFIX_LENGTH + INLINED_SUFFIX_LENGTH;
+    static constexpr uint64_t PREFIX_LENGTH = 4;
+    static constexpr uint64_t INLINED_SUFFIX_LENGTH = 8;
+    static constexpr uint64_t SHORT_STR_LENGTH = PREFIX_LENGTH + INLINED_SUFFIX_LENGTH;
 
     uint32_t len;
     uint8_t prefix[PREFIX_LENGTH];

@@ -18,7 +18,7 @@ public:
 
     void init(ResultSet* resultSet, ExecutionContext* context);
 
-    virtual void set() = 0;
+    virtual void set(ExecutionContext* context) = 0;
 
     virtual std::unique_ptr<NodeSetExecutor> copy() const = 0;
 
@@ -37,46 +37,50 @@ protected:
     common::ValueVector* rhsVector = nullptr;
 };
 
+struct NodeSetInfo {
+    storage::NodeTable* table;
+    common::property_id_t propertyID;
+};
+
 class SingleLabelNodeSetExecutor : public NodeSetExecutor {
 public:
-    SingleLabelNodeSetExecutor(storage::NodeColumn* column, const DataPos& nodeIDPos,
+    SingleLabelNodeSetExecutor(NodeSetInfo setInfo, const DataPos& nodeIDPos,
         const DataPos& lhsVectorPos, std::unique_ptr<evaluator::ExpressionEvaluator> evaluator)
-        : NodeSetExecutor{nodeIDPos, lhsVectorPos, std::move(evaluator)}, column{column} {}
+        : NodeSetExecutor{nodeIDPos, lhsVectorPos, std::move(evaluator)}, setInfo{setInfo} {}
 
     SingleLabelNodeSetExecutor(const SingleLabelNodeSetExecutor& other)
         : NodeSetExecutor{other.nodeIDPos, other.lhsVectorPos, other.evaluator->clone()},
-          column{other.column} {}
+          setInfo(other.setInfo) {}
 
-    void set() final;
+    void set(ExecutionContext* context) final;
 
     inline std::unique_ptr<NodeSetExecutor> copy() const final {
         return std::make_unique<SingleLabelNodeSetExecutor>(*this);
     }
 
 private:
-    storage::NodeColumn* column;
+    NodeSetInfo setInfo;
 };
 
 class MultiLabelNodeSetExecutor : public NodeSetExecutor {
 public:
-    MultiLabelNodeSetExecutor(
-        std::unordered_map<common::table_id_t, storage::NodeColumn*> tableIDToColumn,
+    MultiLabelNodeSetExecutor(std::unordered_map<common::table_id_t, NodeSetInfo> tableIDToSetInfo,
         const DataPos& nodeIDPos, const DataPos& lhsVectorPos,
         std::unique_ptr<evaluator::ExpressionEvaluator> evaluator)
-        : NodeSetExecutor{nodeIDPos, lhsVectorPos, std::move(evaluator)}, tableIDToColumn{std::move(
-                                                                              tableIDToColumn)} {}
+        : NodeSetExecutor{nodeIDPos, lhsVectorPos, std::move(evaluator)},
+          tableIDToSetInfo{std::move(tableIDToSetInfo)} {}
     MultiLabelNodeSetExecutor(const MultiLabelNodeSetExecutor& other)
         : NodeSetExecutor{other.nodeIDPos, other.lhsVectorPos, other.evaluator->clone()},
-          tableIDToColumn{other.tableIDToColumn} {}
+          tableIDToSetInfo{other.tableIDToSetInfo} {}
 
-    void set() final;
+    void set(ExecutionContext* context) final;
 
     inline std::unique_ptr<NodeSetExecutor> copy() const final {
         return std::make_unique<MultiLabelNodeSetExecutor>(*this);
     }
 
 private:
-    std::unordered_map<common::table_id_t, storage::NodeColumn*> tableIDToColumn;
+    std::unordered_map<common::table_id_t, NodeSetInfo> tableIDToSetInfo;
 };
 
 class RelSetExecutor {

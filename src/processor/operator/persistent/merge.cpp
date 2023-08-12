@@ -36,7 +36,7 @@ bool Merge::getNextTuplesInternal(ExecutionContext* context) {
     auto pos = markVector->state->selVector->selectedPositions[0];
     if (!markVector->isNull(pos)) {
         for (auto& executor : onMatchNodeSetExecutors) {
-            executor->set();
+            executor->set(context);
         }
         for (auto& executor : onMatchRelSetExecutors) {
             executor->set();
@@ -46,13 +46,13 @@ bool Merge::getNextTuplesInternal(ExecutionContext* context) {
             executor->insert(transaction);
         }
         for (auto& executor : nodeSetExecutors) {
-            executor->set();
+            executor->set(context);
         }
         for (auto& executor : relInsertExecutors) {
             executor->insert(transaction);
         }
         for (auto& executor : onCreateNodeSetExecutors) {
-            executor->set();
+            executor->set(context);
         }
         for (auto& executor : onCreateRelSetExecutors) {
             executor->set();

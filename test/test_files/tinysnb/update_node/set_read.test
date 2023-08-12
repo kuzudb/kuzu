@@ -44,7 +44,6 @@
 6|X
 
 -CASE SetReadTest3
--SKIP
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID=5 RETURN a.fName, b.fName, e.date
 ---- 3
 Dan|Alice|2021-06-30

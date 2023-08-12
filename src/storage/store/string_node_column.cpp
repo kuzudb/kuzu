@@ -13,11 +13,10 @@ void StringNodeColumnFunc::writeStringValuesToPage(
     uint8_t* frame, uint16_t posInFrame, ValueVector* vector, uint32_t posInVector) {
     auto kuStrInFrame = (ku_string_t*)(frame + (posInFrame * sizeof(ku_string_t)));
     auto kuStrInVector = vector->getValue<ku_string_t>(posInVector);
-    if (kuStrInVector.len > ku_string_t::SHORT_STR_LENGTH) {
-        throw NotImplementedException("VarSizedNodeColumnFunc::writeStringValuesToPage");
-    }
-    memcpy(kuStrInFrame->prefix, kuStrInVector.prefix, kuStrInVector.len);
+    memcpy(kuStrInFrame->prefix, kuStrInVector.prefix,
+        std::min((uint64_t)kuStrInVector.len, ku_string_t::SHORT_STR_LENGTH));
     kuStrInFrame->len = kuStrInVector.len;
+    kuStrInFrame->overflowPtr = kuStrInVector.overflowPtr;
 }
 
 StringNodeColumn::StringNodeColumn(LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
@@ -28,12 +27,12 @@ StringNodeColumn::StringNodeColumn(LogicalType dataType, const MetadataDAHInfo& 
     if (this->dataType.getLogicalTypeID() == LogicalTypeID::STRING) {
         writeNodeColumnFunc = StringNodeColumnFunc::writeStringValuesToPage;
     }
-    overflowMetadataDA = std::make_unique<InMemDiskArray<ColumnChunkMetadata>>(*metadataFH,
+    overflowMetadataDA = std::make_unique<InMemDiskArray<OverflowColumnChunkMetadata>>(*metadataFH,
         StorageStructureID::newMetadataID(), metaDAHeaderInfo.childrenInfos[0]->dataDAHPageIdx,
         bufferManager, wal, transaction);
 }
 
-void StringNodeColumn::scan(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
+void StringNodeColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
     uint64_t offsetInVector) {
     nullColumn->scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup, resultVector,
@@ -52,16 +51,52 @@ void StringNodeColumn::scan(transaction::Transaction* transaction, node_group_id
     }
 }
 
+void StringNodeColumn::scan(node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) {
+    NodeColumn::scan(nodeGroupIdx, columnChunk);
+    auto stringColumnChunk = reinterpret_cast<StringColumnChunk*>(columnChunk);
+    auto overflowMetadata = overflowMetadataDA->get(nodeGroupIdx, TransactionType::WRITE);
+    auto inMemOverflowFile = stringColumnChunk->getOverflowFile();
+    inMemOverflowFile->addNewPages(overflowMetadata.numPages);
+    for (auto i = 0u; i < overflowMetadata.numPages; i++) {
+        auto pageIdx = overflowMetadata.pageIdx + i;
+        FileUtils::readFromFile(dataFH->getFileInfo(), inMemOverflowFile->getPage(i)->data,
+            BufferPoolConstants::PAGE_4KB_SIZE, pageIdx * BufferPoolConstants::PAGE_4KB_SIZE);
+    }
+}
+
 page_idx_t StringNodeColumn::append(
-    storage::ColumnChunk* columnChunk, page_idx_t startPageIdx, node_group_idx_t nodeGroupIdx) {
+    ColumnChunk* columnChunk, page_idx_t startPageIdx, node_group_idx_t nodeGroupIdx) {
     auto numPagesForMainChunk = NodeColumn::append(columnChunk, startPageIdx, nodeGroupIdx);
     auto stringColumnChunk = reinterpret_cast<StringColumnChunk*>(columnChunk);
     auto numPagesForOverflow =
         stringColumnChunk->flushOverflowBuffer(dataFH, startPageIdx + numPagesForMainChunk);
     overflowMetadataDA->resize(nodeGroupIdx + 1);
-    overflowMetadataDA->update(nodeGroupIdx,
-        ColumnChunkMetadata{startPageIdx + numPagesForMainChunk, numPagesForOverflow});
+    overflowMetadataDA->update(
+        nodeGroupIdx, OverflowColumnChunkMetadata{startPageIdx + numPagesForMainChunk,
+                          numPagesForOverflow, stringColumnChunk->getLastOffsetInPage()});
     return numPagesForMainChunk + numPagesForOverflow;
+}
+
+void StringNodeColumn::writeValue(
+    offset_t nodeOffset, ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
+    auto& kuStr = vectorToWriteFrom->getValue<ku_string_t>(posInVectorToWriteFrom);
+    if (!ku_string_t::isShortString(kuStr.len)) {
+        auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+        auto overflowMetadata = overflowMetadataDA->get(nodeGroupIdx, TransactionType::WRITE);
+        auto overflowPageIdxInChunk = overflowMetadata.numPages - 1;
+        auto walPageIdxAndFrame = StorageStructureUtils::createWALVersionIfNecessaryAndPinPage(
+            overflowMetadata.pageIdx + overflowPageIdxInChunk, false /* insertingNewPage */,
+            *dataFH, storageStructureID, *bufferManager, *wal);
+        memcpy(walPageIdxAndFrame.frame + overflowMetadata.lastOffsetInPage,
+            reinterpret_cast<uint8_t*>(kuStr.overflowPtr), kuStr.len);
+        bufferManager->unpin(*wal->fileHandle, walPageIdxAndFrame.pageIdxInWAL);
+        dataFH->releaseWALPageIdxLock(walPageIdxAndFrame.originalPageIdx);
+        TypeUtils::encodeOverflowPtr(
+            kuStr.overflowPtr, overflowPageIdxInChunk, overflowMetadata.lastOffsetInPage);
+        overflowMetadata.lastOffsetInPage += kuStr.len;
+        overflowMetadataDA->update(nodeGroupIdx, overflowMetadata);
+    }
+    NodeColumn::writeValue(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
 }
 
 void StringNodeColumn::checkpointInMemory() {
@@ -79,7 +114,7 @@ void StringNodeColumn::scanInternal(
     assert(resultVector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     auto startNodeOffset = nodeIDVector->readNodeOffset(0);
     assert(startNodeOffset % DEFAULT_VECTOR_CAPACITY == 0);
-    auto nodeGroupIdx = StorageUtils::getNodeGroupIdxFromNodeOffset(startNodeOffset);
+    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(startNodeOffset);
     NodeColumn::scanInternal(transaction, nodeIDVector, resultVector);
     auto overflowPageIdx = overflowMetadataDA->get(nodeGroupIdx, transaction->getType()).pageIdx;
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
@@ -96,10 +131,10 @@ void StringNodeColumn::lookupInternal(
     Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
     assert(dataType.getPhysicalType() == PhysicalTypeID::STRING);
     auto startNodeOffset = nodeIDVector->readNodeOffset(0);
-    auto overflowPageIdx = overflowMetadataDA
-                               ->get(StorageUtils::getNodeGroupIdxFromNodeOffset(startNodeOffset),
-                                   transaction->getType())
-                               .pageIdx;
+    auto overflowPageIdx =
+        overflowMetadataDA
+            ->get(StorageUtils::getNodeGroupIdx(startNodeOffset), transaction->getType())
+            .pageIdx;
     NodeColumn::lookupInternal(transaction, nodeIDVector, resultVector);
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = resultVector->state->selVector->selectedPositions[i];

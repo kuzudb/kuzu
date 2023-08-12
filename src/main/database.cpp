@@ -55,7 +55,8 @@ Database::Database(std::string databasePath, SystemConfig systemConfig)
     recoverIfNecessary();
     catalog = std::make_unique<catalog::Catalog>(wal.get());
     storageManager = std::make_unique<storage::StorageManager>(*catalog, *memoryManager, wal.get());
-    transactionManager = std::make_unique<transaction::TransactionManager>(*wal);
+    transactionManager = std::make_unique<transaction::TransactionManager>(
+        *wal, storageManager.get(), memoryManager.get());
 }
 
 Database::~Database() {
@@ -119,6 +120,7 @@ void Database::commit(Transaction* transaction, bool skipCheckpointForTestingRec
     }
     assert(transaction->isWriteTransaction());
     catalog->prepareCommitOrRollback(TransactionAction::COMMIT);
+    transaction->getLocalStorage()->prepareCommit();
     storageManager->prepareCommit();
     // Note: It is enough to stop and wait transactions to leave the system instead of
     // for example checking on the query processor's task scheduler. This is because the

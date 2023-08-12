@@ -22,22 +22,23 @@ std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(storage::NodesSt
     }
     auto evaluator = expressionMapper.mapExpression(info->setItem.second, inSchema);
     if (node->isMultiLabeled()) {
-        std::unordered_map<table_id_t, storage::NodeColumn*> tableIDToColumn;
+        std::unordered_map<table_id_t, NodeSetInfo> tableIDToSetInfo;
         for (auto tableID : node->getTableIDs()) {
             if (!property->hasPropertyID(tableID)) {
                 continue;
             }
             auto propertyID = property->getPropertyID(tableID);
-            auto column = store->getNodePropertyColumn(tableID, propertyID);
-            tableIDToColumn.insert({tableID, column});
+            auto table = store->getNodeTable(tableID);
+            tableIDToSetInfo.insert({tableID, NodeSetInfo{table, propertyID}});
         }
         return std::make_unique<MultiLabelNodeSetExecutor>(
-            std::move(tableIDToColumn), nodeIDPos, propertyPos, std::move(evaluator));
+            std::move(tableIDToSetInfo), nodeIDPos, propertyPos, std::move(evaluator));
     } else {
         auto tableID = node->getSingleTableID();
-        auto column = store->getNodePropertyColumn(tableID, property->getPropertyID(tableID));
+        auto table = store->getNodeTable(tableID);
         return std::make_unique<SingleLabelNodeSetExecutor>(
-            column, nodeIDPos, propertyPos, std::move(evaluator));
+            NodeSetInfo{table, property->getPropertyID(tableID)}, nodeIDPos, propertyPos,
+            std::move(evaluator));
     }
 }
 

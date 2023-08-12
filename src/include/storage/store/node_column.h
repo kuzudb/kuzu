@@ -6,17 +6,16 @@
 #include "storage/storage_structure/storage_structure.h"
 
 namespace kuzu {
+namespace transaction {
+class TransactionTests;
+}
+
 namespace storage {
 
 using read_node_column_func_t = std::function<void(uint8_t* frame, PageElementCursor& pageCursor,
     common::ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead)>;
 using write_node_column_func_t = std::function<void(
     uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector, uint32_t posInVector)>;
-
-struct ColumnChunkMetadata {
-    common::page_idx_t pageIdx = common::INVALID_PAGE_IDX;
-    common::page_idx_t numPages = 0;
-};
 
 struct FixedSizedNodeColumnFunc {
     static void readValuesFromPage(uint8_t* frame, PageElementCursor& pageCursor,
@@ -48,6 +47,10 @@ class NullNodeColumn;
 // TODO(Guodong): This is intentionally duplicated with `Column`, as for now, we don't change rel
 // tables. `Column` is used for rel tables only. Eventually, we should remove `Column`.
 class NodeColumn {
+    friend class LocalColumn;
+    friend class StringLocalColumn;
+    friend class transaction::TransactionTests;
+
 public:
     NodeColumn(const catalog::Property& property, BMFileHandle* dataFH, BMFileHandle* metadataFH,
         BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
@@ -58,25 +61,20 @@ public:
     virtual ~NodeColumn() = default;
 
     // Expose for feature store
-    virtual void batchLookup(const common::offset_t* nodeOffsets, size_t size, uint8_t* result);
+    virtual void batchLookup(transaction::Transaction* transaction,
+        const common::offset_t* nodeOffsets, size_t size, uint8_t* result);
 
     virtual void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector);
     virtual void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector = 0);
+    virtual void scan(common::node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk);
     virtual void lookup(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector);
 
     virtual common::page_idx_t append(
         ColumnChunk* columnChunk, common::page_idx_t startPageIdx, uint64_t nodeGroupIdx);
-
-    // TODO(Guodong): refactor these write interfaces.
-    void write(common::ValueVector* nodeIDVector, common::ValueVector* vectorToWriteFrom);
-    inline void write(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
-        uint32_t posInVectorToWriteFrom) {
-        writeInternal(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
-    }
 
     virtual void setNull(common::offset_t nodeOffset);
 
@@ -107,9 +105,14 @@ protected:
     void readFromPage(transaction::Transaction* transaction, common::page_idx_t pageIdx,
         const std::function<void(uint8_t*)>& func);
 
+    void write(common::ValueVector* nodeIDVector, common::ValueVector* vectorToWriteFrom);
+    inline void write(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
+        uint32_t posInVectorToWriteFrom) {
+        writeInternal(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
+    }
     virtual void writeInternal(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
         uint32_t posInVectorToWriteFrom);
-    void writeValue(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
+    virtual void writeValue(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
         uint32_t posInVectorToWriteFrom);
 
     // TODO(Guodong): This is mostly duplicated with
@@ -138,7 +141,8 @@ public:
         BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
         transaction::Transaction* transaction, bool requireNullColumn = true);
 
-    void batchLookup(const common::offset_t* nodeOffsets, size_t size, uint8_t* result) final;
+    void batchLookup(transaction::Transaction* transaction, const common::offset_t* nodeOffsets,
+        size_t size, uint8_t* result) final;
 };
 
 class NullNodeColumn : public NodeColumn {

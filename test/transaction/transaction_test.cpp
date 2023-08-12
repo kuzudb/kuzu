@@ -1,12 +1,15 @@
 #include "common/constants.h"
 #include "graph_test/graph_test.h"
 #include "storage/storage_manager.h"
+#include "storage/store/node_column.h"
 #include "transaction/transaction_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
-using namespace kuzu::transaction;
 using namespace kuzu::testing;
+
+namespace kuzu {
+namespace transaction {
 
 class TransactionTests : public DBTest {
 public:
@@ -100,7 +103,8 @@ public:
             std::make_shared<ValueVector>(LogicalTypeID::INT64, getMemoryManager(*database));
         propertyVectorToWriteDataTo->state = dataChunk->state;
         if (isNull) {
-            propertyVectorToWriteDataTo->setNull(dataChunk->state->currIdx, true /* is null */);
+            propertyVectorToWriteDataTo->setNull(dataChunk->state->currIdx, true /* is null
+                */);
         } else {
             propertyVectorToWriteDataTo->setNull(
                 dataChunk->state->currIdx, false /* is not null */);
@@ -119,7 +123,8 @@ public:
             std::make_shared<ValueVector>(LogicalTypeID::DOUBLE, getMemoryManager(*database));
         propertyVectorToWriteDataTo->state = dataChunk->state;
         if (isNull) {
-            propertyVectorToWriteDataTo->setNull(dataChunk->state->currIdx, true /* is null */);
+            propertyVectorToWriteDataTo->setNull(dataChunk->state->currIdx, true /* is null
+                */);
         } else {
             propertyVectorToWriteDataTo->setNull(
                 dataChunk->state->currIdx, false /* is not null */);
@@ -199,20 +204,6 @@ public:
     NodeColumn* personEyeSightColumn;
 };
 
-TEST_F(TransactionTests, SingleTransactionReadWriteToStructuredNodePropertyNonNullTest) {
-    readAndAssertAgePropertyNode(0 /* node offset */, writeTrx.get(), 35, false /* is not null */);
-    writeToAgePropertyNode(0 /* node offset */, 70, false /* is not null */);
-    readAndAssertAgePropertyNode(0 /* node offset */, writeTrx.get(), 70, false /* is not null */);
-}
-
-TEST_F(TransactionTests, SingleTransactionReadWriteToStructuredNodePropertyNullTest) {
-    readAndAssertAgePropertyNode(0 /* node offset */, writeTrx.get(), 35, false /* is not null */);
-    writeToAgePropertyNode(
-        0 /* node offset */, 12345 /* this argument is ignored */, true /* is null */);
-    readAndAssertAgePropertyNode(0 /* node offset */, writeTrx.get(),
-        888 /* this argument is ignored */, true /* is null */);
-}
-
 TEST_F(TransactionTests, Concurrent1Write1ReadTransactionInTheMiddleOfTransaction) {
     assertReadBehaviorForBeforeRollbackAndCommitForConcurrent1Write1ReadTransactionTest();
 }
@@ -282,3 +273,6 @@ TEST_F(TransactionTests, ExecuteWriteQueryInReadOnlyTrx) {
     ASSERT_EQ(
         result->getErrorMessage(), "Can't execute a write query inside a read-only transaction.");
 }
+
+} // namespace transaction
+} // namespace kuzu
