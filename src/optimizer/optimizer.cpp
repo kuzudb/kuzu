@@ -2,6 +2,7 @@
 
 #include "optimizer/acc_hash_join_optimizer.h"
 #include "optimizer/agg_key_dependency_optimizer.h"
+#include "optimizer/correlated_subquery_unnest_solver.h"
 #include "optimizer/factorization_rewriter.h"
 #include "optimizer/filter_push_down_optimizer.h"
 #include "optimizer/projection_push_down_optimizer.h"
@@ -12,10 +13,12 @@ namespace kuzu {
 namespace optimizer {
 
 void Optimizer::optimize(planner::LogicalPlan* plan) {
-
     // Factorization structure should be removed before further optimization can be applied.
     auto removeFactorizationRewriter = RemoveFactorizationRewriter();
     removeFactorizationRewriter.rewrite(plan);
+
+    auto correlatedSubqueryUnnestSolver = CorrelatedSubqueryUnnestSolver(nullptr);
+    correlatedSubqueryUnnestSolver.solve(plan->getLastOperator().get());
 
     auto removeUnnecessaryJoinOptimizer = RemoveUnnecessaryJoinOptimizer();
     removeUnnecessaryJoinOptimizer.rewrite(plan);

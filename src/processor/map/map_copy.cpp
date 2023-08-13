@@ -101,8 +101,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNode(
         std::make_unique<ResultSetDescriptor>(copy->getSchema()), std::move(readFile),
         getOperatorID(), copy->getExpressionsForPrinting());
     auto outputExpressions = binder::expression_vector{copy->getOutputExpression()};
-    return createFactorizedTableScan(
-        outputExpressions, outSchema, copyNodeSharedState->fTable, std::move(copyNode));
+    return createFactorizedTableScanAligned(outputExpressions, outSchema,
+        copyNodeSharedState->fTable, DEFAULT_VECTOR_CAPACITY /* maxMorselSize */,
+        std::move(copyNode));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRel(

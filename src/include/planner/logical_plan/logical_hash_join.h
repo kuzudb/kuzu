@@ -12,6 +12,12 @@ namespace planner {
 // We only support equality comparison as join condition
 using join_condition_t = binder::expression_pair;
 
+enum class JoinSubPlanSolveOrder : uint8_t {
+    ANY = 0,
+    PROBE_BUILD = 1,
+    BUILD_PROBE = 2,
+};
+
 // Probe side on left, i.e. children[0]. Build side on right, i.e. children[1].
 class LogicalHashJoin : public LogicalOperator {
 public:
@@ -35,7 +41,7 @@ public:
         : LogicalOperator{LogicalOperatorType::HASH_JOIN, std::move(probeSideChild),
               std::move(buildSideChild)},
           joinConditions(std::move(joinConditions)), joinType{joinType}, mark{std::move(mark)},
-          sip{SidewaysInfoPassing::NONE} {}
+          sip{SidewaysInfoPassing::NONE}, order{JoinSubPlanSolveOrder::ANY} {}
 
     f_group_pos_set getGroupsPosToFlattenOnProbeSide();
     f_group_pos_set getGroupsPosToFlattenOnBuildSide();
@@ -61,6 +67,9 @@ public:
     inline void setSIP(SidewaysInfoPassing sip_) { sip = sip_; }
     inline SidewaysInfoPassing getSIP() const { return sip; }
 
+    inline void setJoinSubPlanSolveOrder(JoinSubPlanSolveOrder order_) { order = order_; }
+    inline JoinSubPlanSolveOrder getJoinSubPlanSolveOrder() const { return order; }
+
     inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalHashJoin>(
             joinConditions, joinType, mark, children[0]->copy(), children[1]->copy());
@@ -84,6 +93,7 @@ private:
     common::JoinType joinType;
     std::shared_ptr<binder::Expression> mark; // when joinType is Mark
     SidewaysInfoPassing sip;
+    JoinSubPlanSolveOrder order; // sip introduce join dependency
 };
 
 } // namespace planner

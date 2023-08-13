@@ -27,15 +27,17 @@ uint64_t CardinalityEstimator::estimateScanNode(LogicalOperator* op) {
     return atLeastOne(getNodeIDDom(scanNode->getNode()->getInternalIDPropertyName()));
 }
 
-uint64_t CardinalityEstimator::estimateHashJoin(const expression_vector& joinNodeIDs,
-    const LogicalPlan& probePlan, const LogicalPlan& buildPlan) {
+uint64_t CardinalityEstimator::estimateHashJoin(
+    const expression_vector& joinKeys, const LogicalPlan& probePlan, const LogicalPlan& buildPlan) {
     auto denominator = 1u;
-    for (auto& joinNodeID : joinNodeIDs) {
-        denominator *= getNodeIDDom(joinNodeID->getUniqueName());
+    for (auto& joinKey : joinKeys) {
+        // TODO(Xiyang): we should be able to estimate non-ID-based joins as well.
+        if (nodeIDName2dom.contains(joinKey->getUniqueName())) {
+            denominator *= getNodeIDDom(joinKey->getUniqueName());
+        }
     }
     return atLeastOne(probePlan.estCardinality *
-                      JoinOrderUtil::getJoinKeysFlatCardinality(joinNodeIDs, buildPlan) /
-                      denominator);
+                      JoinOrderUtil::getJoinKeysFlatCardinality(joinKeys, buildPlan) / denominator);
 }
 
 uint64_t CardinalityEstimator::estimateCrossProduct(

@@ -62,12 +62,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapHashJoin(LogicalOperator* logic
     std::unique_ptr<PhysicalOperator> probeSidePrevOperator;
     std::unique_ptr<PhysicalOperator> buildSidePrevOperator;
     // Map the side into which semi mask is passed first.
-    if (hashJoin->getSIP() == planner::SidewaysInfoPassing::BUILD_TO_PROBE) {
-        probeSidePrevOperator = mapOperator(hashJoin->getChild(0).get());
+    if (hashJoin->getJoinSubPlanSolveOrder() == JoinSubPlanSolveOrder::BUILD_PROBE) {
         buildSidePrevOperator = mapOperator(hashJoin->getChild(1).get());
+        probeSidePrevOperator = mapOperator(hashJoin->getChild(0).get());
     } else {
-        buildSidePrevOperator = mapOperator(hashJoin->getChild(1).get());
         probeSidePrevOperator = mapOperator(hashJoin->getChild(0).get());
+        buildSidePrevOperator = mapOperator(hashJoin->getChild(1).get());
     }
     auto paramsString = hashJoin->getExpressionsForPrinting();
     expression_vector probeKeys;

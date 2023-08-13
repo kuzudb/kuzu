@@ -114,8 +114,10 @@ struct ExpressionEquality {
 };
 
 struct ExpressionUtil {
-    static bool allExpressionsHaveDataType(
-        expression_vector& expressions, common::LogicalTypeID dataTypeID);
+    static bool isExpressionsWithDataType(
+        const expression_vector& expressions, common::LogicalTypeID dataTypeID);
+    static expression_vector getExpressionsWithDataType(
+        const expression_vector& expressions, common::LogicalTypeID dataTypeID);
 
     static uint32_t find(Expression* target, expression_vector expressions);
 

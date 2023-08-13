@@ -19,14 +19,25 @@ expression_vector Expression::splitOnAND() {
     return result;
 }
 
-bool ExpressionUtil::allExpressionsHaveDataType(
-    expression_vector& expressions, LogicalTypeID dataTypeID) {
+bool ExpressionUtil::isExpressionsWithDataType(
+    const expression_vector& expressions, common::LogicalTypeID dataTypeID) {
     for (auto& expression : expressions) {
         if (expression->dataType.getLogicalTypeID() != dataTypeID) {
             return false;
         }
     }
     return true;
+}
+
+expression_vector ExpressionUtil::getExpressionsWithDataType(
+    const expression_vector& expressions, common::LogicalTypeID dataTypeID) {
+    expression_vector result;
+    for (auto& expression : expressions) {
+        if (expression->dataType.getLogicalTypeID() == dataTypeID) {
+            result.push_back(expression);
+        }
+    }
+    return result;
 }
 
 uint32_t ExpressionUtil::find(Expression* target, expression_vector expressions) {

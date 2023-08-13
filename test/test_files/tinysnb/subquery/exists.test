@@ -3,7 +3,7 @@
 
 --
 
--CASE SubqueryExists
+-CASE ExistsSubquery
 
 -LOG ExistSubqueryTest
 -STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) } RETURN COUNT(*)
@@ -22,12 +22,6 @@
 -ENUMERATE
 ---- 1
 7
-
-#-LOG ExistSubqueryTest4
-#-STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WHERE a.fName='Alice' } RETURN COUNT(*)
-#-ENUMERATE
-#---- 1
-#1
 
 -LOG ExistSubqueryTest5
 -STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person)-[:knows]->(c:person), (a)-[:knows]->(d:person) } RETURN COUNT(*)
@@ -65,11 +59,6 @@
 ---- 1
 4
 
-#-LOG ExistSubqueryAliasTest1
-#-STATEMENT MATCH (a:person) WITH a, a.fName AS newName WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WHERE newName='Alice' } RETURN COUNT(*)
-#-ENUMERATE
-#---- 1
-#1
 
 -LOG ExistSubqueryAliasTest2
 -STATEMENT MATCH (a:person) WITH a AS k MATCH (k)-[:knows]->(b:person) WHERE EXISTS { MATCH (k)-[:studyAt]->(c:organisation) } OR b.fName='Greg'  RETURN COUNT(*)
