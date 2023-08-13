@@ -62,27 +62,11 @@ void InMemLists::copyArrowArray(arrow::Array* boundNodeOffsets, arrow::Array* po
         templateCopyArrayToRelLists<timestamp_t>(boundNodeOffsets, posInRelLists, array);
     } break;
     case arrow::Type::STRING: {
-        switch (dataType.getLogicalTypeID()) {
-        case LogicalTypeID::DATE: {
-            templateCopyArrayAsStringToRelLists<date_t>(boundNodeOffsets, posInRelLists, array);
-        } break;
-            // TODO(Ziyi): Handle timestamp with time zone and units.
-        case LogicalTypeID::TIMESTAMP: {
-            templateCopyArrayAsStringToRelLists<timestamp_t>(
-                boundNodeOffsets, posInRelLists, array);
-        } break;
-        case LogicalTypeID::INTERVAL: {
-            templateCopyArrayAsStringToRelLists<interval_t>(boundNodeOffsets, posInRelLists, array);
-        } break;
-        case LogicalTypeID::FIXED_LIST: {
-            // Fixed list is a fixed-sized blob.
-            templateCopyArrayAsStringToRelLists<uint8_t*>(boundNodeOffsets, posInRelLists, array);
-        } break;
-            // TODO(Ziyi): Add support of VAR_LIST/STRUCT.
-        default: {
-            throw CopyException("Unsupported data type ");
-        }
-        }
+        templateCopyArrowStringArray<arrow::StringArray>(boundNodeOffsets, posInRelLists, array);
+    } break;
+    case arrow::Type::LARGE_STRING: {
+        templateCopyArrowStringArray<arrow::LargeStringArray>(
+            boundNodeOffsets, posInRelLists, array);
     } break;
         // TODO(Ziyi): Add support of VAR_LIST and more native parquet data types.
     default: {
@@ -129,28 +113,6 @@ void InMemLists::templateCopyArrayToRelLists<bool>(
         for (auto i = 0u; i < array->length(); i++) {
             bool val = boolArray->Value(i);
             setValue(offsets[i], positions[i], (uint8_t*)&val);
-        }
-    }
-}
-
-template<typename T>
-void InMemLists::templateCopyArrayAsStringToRelLists(
-    arrow::Array* boundNodeOffsets, arrow::Array* posInRelList, arrow::Array* array) {
-    auto stringArray = (arrow::StringArray*)array;
-    auto offsets = boundNodeOffsets->data()->GetValues<offset_t>(1);
-    auto positions = posInRelList->data()->GetValues<int64_t>(1);
-    if (array->data()->MayHaveNulls()) {
-        for (auto i = 0u; i < array->length(); i++) {
-            if (array->IsNull(i)) {
-                continue;
-            }
-            auto value = stringArray->GetView(i);
-            setValueFromString<T>(offsets[i], positions[i], value.data(), value.length());
-        }
-    } else {
-        for (auto i = 0u; i < array->length(); i++) {
-            auto value = stringArray->GetView(i);
-            setValueFromString<T>(offsets[i], positions[i], value.data(), value.length());
         }
     }
 }
@@ -304,6 +266,57 @@ fill_in_mem_lists_function_t InMemLists::getFillInMemListsFunc(const LogicalType
     }
 }
 
+template<typename ARROW_TYPE>
+void InMemLists::templateCopyArrowStringArray(
+    arrow::Array* boundNodeOffsets, arrow::Array* posInRelList, arrow::Array* array) {
+    switch (dataType.getLogicalTypeID()) {
+    case LogicalTypeID::DATE: {
+        templateCopyArrayAsStringToRelLists<date_t, ARROW_TYPE>(
+            boundNodeOffsets, posInRelList, array);
+    } break;
+        // TODO(Ziyi): Handle timestamp with time zone and units.
+    case LogicalTypeID::TIMESTAMP: {
+        templateCopyArrayAsStringToRelLists<timestamp_t, ARROW_TYPE>(
+            boundNodeOffsets, posInRelList, array);
+    } break;
+    case LogicalTypeID::INTERVAL: {
+        templateCopyArrayAsStringToRelLists<interval_t, ARROW_TYPE>(
+            boundNodeOffsets, posInRelList, array);
+    } break;
+    case LogicalTypeID::FIXED_LIST: {
+        // Fixed list is a fixed-sized blob.
+        templateCopyArrayAsStringToRelLists<uint8_t*, ARROW_TYPE>(
+            boundNodeOffsets, posInRelList, array);
+    } break;
+        // TODO(Ziyi): Add support of VAR_LIST/STRUCT.
+    default: {
+        throw CopyException("Unsupported data type ");
+    }
+    }
+}
+
+template<typename KU_TYPE, typename ARROW_TYPE>
+void InMemLists::templateCopyArrayAsStringToRelLists(
+    arrow::Array* boundNodeOffsets, arrow::Array* posInRelList, arrow::Array* array) {
+    auto stringArray = (ARROW_TYPE*)array;
+    auto offsets = boundNodeOffsets->data()->GetValues<offset_t>(1);
+    auto positions = posInRelList->data()->GetValues<int64_t>(1);
+    if (array->data()->MayHaveNulls()) {
+        for (auto i = 0u; i < array->length(); i++) {
+            if (array->IsNull(i)) {
+                continue;
+            }
+            auto value = stringArray->GetView(i);
+            setValueFromString<KU_TYPE>(offsets[i], positions[i], value.data(), value.length());
+        }
+    } else {
+        for (auto i = 0u; i < array->length(); i++) {
+            auto value = stringArray->GetView(i);
+            setValueFromString<KU_TYPE>(offsets[i], positions[i], value.data(), value.length());
+        }
+    }
+}
+
 void InMemAdjLists::saveToFile() {
     listHeadersBuilder->saveToDisk();
     InMemLists::saveToFile();
@@ -324,18 +337,15 @@ InMemListsWithOverflow::InMemListsWithOverflow(std::string fName, LogicalType da
 
 void InMemListsWithOverflow::copyArrowArray(arrow::Array* boundNodeOffsets,
     arrow::Array* posInRelLists, arrow::Array* array, PropertyCopyState* copyState) {
-    assert(array->type_id() == arrow::Type::STRING);
-    switch (dataType.getLogicalTypeID()) {
-    case LogicalTypeID::BLOB: {
-        templateCopyArrayAsStringToRelListsWithOverflow<blob_t>(
+    assert(
+        array->type_id() == arrow::Type::STRING || array->type_id() == arrow::Type::LARGE_STRING);
+    switch (array->type_id()) {
+    case arrow::Type::STRING: {
+        templateCopyFromArrowString<arrow::StringArray>(
             boundNodeOffsets, posInRelLists, array, copyState->overflowCursor);
     } break;
-    case LogicalTypeID::STRING: {
-        templateCopyArrayAsStringToRelListsWithOverflow<ku_string_t>(
-            boundNodeOffsets, posInRelLists, array, copyState->overflowCursor);
-    } break;
-    case LogicalTypeID::VAR_LIST: {
-        templateCopyArrayAsStringToRelListsWithOverflow<ku_list_t>(
+    case arrow::Type::LARGE_STRING: {
+        templateCopyFromArrowString<arrow::LargeStringArray>(
             boundNodeOffsets, posInRelLists, array, copyState->overflowCursor);
     } break;
     default: {
@@ -345,15 +355,37 @@ void InMemListsWithOverflow::copyArrowArray(arrow::Array* boundNodeOffsets,
 }
 
 template<typename T>
+void InMemListsWithOverflow::templateCopyFromArrowString(arrow::Array* boundNodeOffsets,
+    arrow::Array* posInRelList, arrow::Array* array, PageByteCursor& overflowCursor) {
+    switch (dataType.getLogicalTypeID()) {
+    case LogicalTypeID::BLOB: {
+        templateCopyArrayAsStringToRelListsWithOverflow<blob_t, T>(
+            boundNodeOffsets, posInRelList, array, overflowCursor);
+    } break;
+    case LogicalTypeID::STRING: {
+        templateCopyArrayAsStringToRelListsWithOverflow<ku_string_t, T>(
+            boundNodeOffsets, posInRelList, array, overflowCursor);
+    } break;
+    case LogicalTypeID::VAR_LIST: {
+        templateCopyArrayAsStringToRelListsWithOverflow<ku_list_t, T>(
+            boundNodeOffsets, posInRelList, array, overflowCursor);
+    } break;
+    default: {
+        throw NotImplementedException{"InMemListsWithOverflow::templateCopyFromArrowString"};
+    }
+    }
+}
+
+template<typename KU_TYPE, typename ARROW_TYPE>
 void InMemListsWithOverflow::templateCopyArrayAsStringToRelListsWithOverflow(
     arrow::Array* boundNodeOffsets, arrow::Array* posInRelList, arrow::Array* array,
     PageByteCursor& overflowCursor) {
-    auto stringArray = (arrow::StringArray*)array;
+    auto stringArray = (ARROW_TYPE*)array;
     auto offsets = boundNodeOffsets->data()->GetValues<offset_t>(1);
     auto positions = posInRelList->data()->GetValues<int64_t>(1);
     for (auto i = 0u; i < stringArray->length(); i++) {
         auto value = stringArray->GetView(i);
-        setValueFromStringWithOverflow<T>(
+        setValueFromStringWithOverflow<KU_TYPE>(
             overflowCursor, offsets[i], positions[i], value.data(), value.length());
     }
 }

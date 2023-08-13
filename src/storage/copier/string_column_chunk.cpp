@@ -64,25 +64,18 @@ void StringColumnChunk::append(common::ValueVector* vector, common::offset_t sta
 
 void StringColumnChunk::append(
     arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    assert(array->type_id() == arrow::Type::STRING);
+    assert(
+        array->type_id() == arrow::Type::STRING || array->type_id() == arrow::Type::LARGE_STRING);
     switch (array->type_id()) {
     case arrow::Type::STRING: {
-        switch (dataType.getLogicalTypeID()) {
-        case LogicalTypeID::BLOB: {
-            templateCopyVarSizedValuesFromString<blob_t>(array, startPosInChunk, numValuesToAppend);
-        } break;
-        case LogicalTypeID::STRING: {
-            templateCopyVarSizedValuesFromString<ku_string_t>(
-                array, startPosInChunk, numValuesToAppend);
-        } break;
-        default: {
-            throw NotImplementedException(
-                "Unsupported VarSizedColumnChunk::append for string array");
-        }
-        }
+        templateCopyStringArrowArray<arrow::StringArray>(array, startPosInChunk, numValuesToAppend);
+    } break;
+    case arrow::Type::LARGE_STRING: {
+        templateCopyStringArrowArray<arrow::LargeStringArray>(
+            array, startPosInChunk, numValuesToAppend);
     } break;
     default: {
-        throw NotImplementedException("VarSizedColumnChunk::append");
+        throw NotImplementedException("StringColumnChunk::append");
     }
     }
 }
@@ -136,9 +129,25 @@ void StringColumnChunk::appendStringColumnChunk(StringColumnChunk* other,
 }
 
 template<typename T>
-void StringColumnChunk::templateCopyVarSizedValuesFromString(
-    arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    auto stringArray = (arrow::StringArray*)array;
+void StringColumnChunk::templateCopyStringArrowArray(
+    arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
+    switch (dataType.getLogicalTypeID()) {
+    case LogicalTypeID::BLOB: {
+        templateCopyStringValues<blob_t, T>(array, startPosInChunk, numValuesToAppend);
+    } break;
+    case LogicalTypeID::STRING: {
+        templateCopyStringValues<ku_string_t, T>(array, startPosInChunk, numValuesToAppend);
+    } break;
+    default: {
+        throw NotImplementedException("StringColumnChunk::templateCopyStringArrowArray");
+    }
+    }
+}
+
+template<typename KU_TYPE, typename ARROW_TYPE>
+void StringColumnChunk::templateCopyStringValues(
+    arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
+    auto stringArray = (ARROW_TYPE*)array;
     auto arrayData = stringArray->data();
     if (arrayData->MayHaveNulls()) {
         for (auto i = 0u; i < numValuesToAppend; i++) {
@@ -148,13 +157,13 @@ void StringColumnChunk::templateCopyVarSizedValuesFromString(
                 continue;
             }
             auto value = stringArray->GetView(i);
-            setValueFromString<T>(value.data(), value.length(), posInChunk);
+            setValueFromString<KU_TYPE>(value.data(), value.length(), posInChunk);
         }
     } else {
         for (auto i = 0u; i < numValuesToAppend; i++) {
             auto posInChunk = startPosInChunk + i;
             auto value = stringArray->GetView(i);
-            setValueFromString<T>(value.data(), value.length(), posInChunk);
+            setValueFromString<KU_TYPE>(value.data(), value.length(), posInChunk);
         }
     }
 }

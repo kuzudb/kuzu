@@ -107,24 +107,11 @@ void ColumnChunk::append(
         templateCopyArrowArray<uint8_t*>(array, startPosInChunk, numValuesToAppend);
     } break;
     case arrow::Type::STRING: {
-        switch (dataType.getLogicalTypeID()) {
-        case LogicalTypeID::DATE: {
-            templateCopyValuesAsString<date_t>(array, startPosInChunk, numValuesToAppend);
-        } break;
-        case LogicalTypeID::TIMESTAMP: {
-            templateCopyValuesAsString<timestamp_t>(array, startPosInChunk, numValuesToAppend);
-        } break;
-        case LogicalTypeID::INTERVAL: {
-            templateCopyValuesAsString<interval_t>(array, startPosInChunk, numValuesToAppend);
-        } break;
-        case LogicalTypeID::FIXED_LIST: {
-            // Fixed list is a fixed-sized blob.
-            templateCopyValuesAsString<uint8_t*>(array, startPosInChunk, numValuesToAppend);
-        } break;
-        default: {
-            throw NotImplementedException("Unsupported ColumnChunk::append from arrow STRING");
-        }
-        }
+        templateCopyStringArrowArray<arrow::StringArray>(array, startPosInChunk, numValuesToAppend);
+    } break;
+    case arrow::Type::LARGE_STRING: {
+        templateCopyStringArrowArray<arrow::LargeStringArray>(
+            array, startPosInChunk, numValuesToAppend);
     } break;
     default: {
         throw NotImplementedException("ColumnChunk::append");
@@ -223,6 +210,31 @@ void ColumnChunk::templateCopyArrowArray(
     }
 }
 
+template<typename ARROW_TYPE>
+void ColumnChunk::templateCopyStringArrowArray(
+    arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
+    switch (dataType.getLogicalTypeID()) {
+    case LogicalTypeID::DATE: {
+        templateCopyValuesAsString<date_t, ARROW_TYPE>(array, startPosInChunk, numValuesToAppend);
+    } break;
+    case LogicalTypeID::TIMESTAMP: {
+        templateCopyValuesAsString<timestamp_t, ARROW_TYPE>(
+            array, startPosInChunk, numValuesToAppend);
+    } break;
+    case LogicalTypeID::INTERVAL: {
+        templateCopyValuesAsString<interval_t, ARROW_TYPE>(
+            array, startPosInChunk, numValuesToAppend);
+    } break;
+    case LogicalTypeID::FIXED_LIST: {
+        // Fixed list is a fixed-sized blob.
+        templateCopyValuesAsString<uint8_t*, ARROW_TYPE>(array, startPosInChunk, numValuesToAppend);
+    } break;
+    default: {
+        throw NotImplementedException("ColumnChunk::templateCopyStringArrowArray");
+    }
+    }
+}
+
 template<>
 void ColumnChunk::templateCopyArrowArray<bool>(
     arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
@@ -273,10 +285,10 @@ void ColumnChunk::templateCopyArrowArray<uint8_t*>(
     }
 }
 
-template<typename T>
+template<typename KU_TYPE, typename ARROW_TYPE>
 void ColumnChunk::templateCopyValuesAsString(
     arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    auto stringArray = (arrow::StringArray*)array;
+    auto stringArray = (ARROW_TYPE*)array;
     auto arrayData = stringArray->data();
     if (arrayData->MayHaveNulls()) {
         for (auto i = 0u; i < numValuesToAppend; i++) {
@@ -286,13 +298,13 @@ void ColumnChunk::templateCopyValuesAsString(
                 continue;
             }
             auto value = stringArray->GetView(i);
-            setValueFromString<T>(value.data(), value.length(), posInChunk);
+            setValueFromString<KU_TYPE>(value.data(), value.length(), posInChunk);
         }
     } else {
         for (auto i = 0u; i < numValuesToAppend; i++) {
             auto posInChunk = startPosInChunk + i;
             auto value = stringArray->GetView(i);
-            setValueFromString<T>(value.data(), value.length(), posInChunk);
+            setValueFromString<KU_TYPE>(value.data(), value.length(), posInChunk);
         }
     }
 }

@@ -97,9 +97,12 @@ protected:
     template<typename T>
     void templateCopyArrowArray(
         arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
-
+    template<typename ARROW_TYPE>
+    void templateCopyStringArrowArray(
+        arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
     // TODO(Guodong/Ziyi): The conversion from string to values should be handled inside ReadFile.
-    template<typename T>
+    // ARROW_TYPE can be either arrow::StringArray or arrow::LargeStringArray.
+    template<typename KU_TYPE, typename ARROW_TYPE>
     void templateCopyValuesAsString(
         arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
 
