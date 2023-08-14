@@ -40,13 +40,15 @@ void StringNodeColumn::scan(transaction::Transaction* transaction, node_group_id
     NodeColumn::scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup, resultVector,
         offsetInVector);
     auto numValuesToRead = endOffsetInGroup - startOffsetInGroup;
+    auto overflowPageIdx =
+        overflowMetadataDA->get(nodeGroupIdx, TransactionType::READ_ONLY).pageIdx;
     for (auto i = 0u; i < numValuesToRead; i++) {
         auto pos = offsetInVector + i;
         if (resultVector->isNull(pos)) {
             continue;
         }
         readStringValueFromOvf(
-            transaction, resultVector->getValue<ku_string_t>(pos), resultVector, nodeGroupIdx);
+            transaction, resultVector->getValue<ku_string_t>(pos), resultVector, overflowPageIdx);
     }
 }
 
@@ -79,13 +81,15 @@ void StringNodeColumn::scanInternal(
     assert(startNodeOffset % DEFAULT_VECTOR_CAPACITY == 0);
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdxFromNodeOffset(startNodeOffset);
     NodeColumn::scanInternal(transaction, nodeIDVector, resultVector);
+    auto overflowPageIdx =
+        overflowMetadataDA->get(nodeGroupIdx, TransactionType::READ_ONLY).pageIdx;
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[i];
         if (resultVector->isNull(pos)) {
             continue;
         }
         readStringValueFromOvf(
-            transaction, resultVector->getValue<ku_string_t>(pos), resultVector, nodeGroupIdx);
+            transaction, resultVector->getValue<ku_string_t>(pos), resultVector, overflowPageIdx);
     }
 }
 
@@ -93,25 +97,28 @@ void StringNodeColumn::lookupInternal(
     Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
     assert(dataType.getPhysicalType() == PhysicalTypeID::STRING);
     auto startNodeOffset = nodeIDVector->readNodeOffset(0);
-    auto nodeGroupIdx = StorageUtils::getNodeGroupIdxFromNodeOffset(startNodeOffset);
+    auto overflowPageIdx = overflowMetadataDA
+                               ->get(StorageUtils::getNodeGroupIdxFromNodeOffset(startNodeOffset),
+                                   TransactionType::READ_ONLY)
+                               .pageIdx;
     NodeColumn::lookupInternal(transaction, nodeIDVector, resultVector);
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = resultVector->state->selVector->selectedPositions[i];
         if (!resultVector->isNull(pos)) {
-            readStringValueFromOvf(
-                transaction, resultVector->getValue<ku_string_t>(pos), resultVector, nodeGroupIdx);
+            readStringValueFromOvf(transaction, resultVector->getValue<ku_string_t>(pos),
+                resultVector, overflowPageIdx);
         }
     }
 }
 
 void StringNodeColumn::readStringValueFromOvf(Transaction* transaction, ku_string_t& kuStr,
-    ValueVector* resultVector, node_group_idx_t nodeGroupIdx) {
+    ValueVector* resultVector, page_idx_t overflowPageIdx) {
     if (ku_string_t::isShortString(kuStr.len)) {
         return;
     }
     PageByteCursor cursor;
     TypeUtils::decodeOverflowPtr(kuStr.overflowPtr, cursor.pageIdx, cursor.offsetInPage);
-    cursor.pageIdx += overflowMetadataDA->get(nodeGroupIdx, TransactionType::READ_ONLY).pageIdx;
+    cursor.pageIdx += overflowPageIdx;
     auto [fileHandleToPin, pageIdxToPin] =
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
             *dataFH, cursor.pageIdx, *wal, transaction->getType());
