@@ -163,11 +163,11 @@ public:
     inline void resetNullBuffer() { memset(buffer.get(), 0 /* non null */, numBytes); }
 
 protected:
-    uint64_t numBytesForValues(common::offset_t numValues) const {
+    inline uint64_t numBytesForValues(common::offset_t numValues) const {
         // 8 values per byte, and we need a buffer size which is a multiple of 8 bytes
         return ceil(numValues / 8.0 / 8.0) * 8;
     }
-    void initialize(common::offset_t numValues) final {
+    inline void initialize(common::offset_t numValues) final {
         numBytesPerValue = 0;
         numBytes = numBytesForValues(numValues);
         // Each byte defaults to 0, indicating everything is non-null
@@ -184,6 +184,20 @@ public:
         common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
 
     void write(const common::Value& fixedListVal, uint64_t posToWrite) final;
+};
+
+class SerialColumnChunk : public ColumnChunk {
+public:
+    SerialColumnChunk()
+        : ColumnChunk{common::LogicalType(common::LogicalTypeID::SERIAL),
+              nullptr /* copyDescription */, false /* hasNullChunk */} {}
+
+    inline void initialize(common::offset_t numValues) final {
+        numBytesPerValue = 0;
+        numBytes = 0;
+        // Each byte defaults to 0, indicating everything is non-null
+        buffer = std::make_unique<uint8_t[]>(numBytes);
+    }
 };
 
 struct ColumnChunkFactory {
