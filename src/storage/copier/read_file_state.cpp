@@ -42,10 +42,11 @@ std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getMorselSerial() {
         }
         auto filePath = filePaths[currFileIdx];
         if (!reader) {
-            reader = TableCopyUtils::createCSVReader(filePath, &csvReaderConfig, tableSchema);
+            reader = make_shared<BufferedCSVReader>(filePath, csvReaderConfig, tableSchema);
         }
         std::shared_ptr<arrow::RecordBatch> recordBatch;
-        TableCopyUtils::throwCopyExceptionIfNotOK(reader->ReadNext(&recordBatch));
+        DataChunk output;
+        reader->ParseCSV(output);
         if (recordBatch == nullptr) {
             // No more blocks to read in this file.
             currFileIdx++;

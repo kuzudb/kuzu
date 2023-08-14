@@ -1,7 +1,9 @@
 #pragma once
 
 #include "storage/copier/npy_reader.h"
+#include "storage/copier/csv_reader.h"
 #include "storage/copier/table_copy_utils.h"
+#include "common/data_chunk/data_chunk.h"
 
 namespace kuzu {
 namespace storage {
@@ -78,7 +80,7 @@ public:
     std::unique_ptr<ReadFileMorsel> getMorselSerial() final;
 
 private:
-    std::shared_ptr<arrow::csv::StreamingReader> reader;
+    std::shared_ptr<BufferedCSVReader> reader;
 };
 
 class ReadParquetSharedState : public ReadFileSharedState {

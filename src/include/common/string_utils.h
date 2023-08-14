@@ -42,6 +42,10 @@ public:
         return c == ' ' || c == '\t' || c == '\n' || c == '\v' || c == '\f' || c == '\r';
     }
 
+    static bool CharacterIsNewline(char c) {
+        return c == '\n' || c == '\r';
+    }
+
     static bool CharacterIsDigit(char c) { return c >= '0' && c <= '9'; }
 
     static std::string getLongStringErrorMessage(

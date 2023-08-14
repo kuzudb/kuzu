@@ -1,6 +1,7 @@
 add_library(kuzu_storage_in_mem_csv_copier
         OBJECT
         column_chunk.cpp
+        csv_reader.cpp
         node_group.cpp
         npy_reader.cpp
         read_file_state.cpp
