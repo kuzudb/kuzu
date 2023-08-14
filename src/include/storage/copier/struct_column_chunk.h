@@ -37,6 +37,7 @@ private:
     void write(const common::Value& val, uint64_t posToWrite) final;
     void copyStructFromArrowStruct(
         arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
+    template<typename ARROW_TYPE>
     void copyStructFromArrowString(
         arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
 };

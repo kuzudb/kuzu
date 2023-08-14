@@ -26,7 +26,12 @@ void StructColumnChunk::append(
         copyStructFromArrowStruct(array, startPosInChunk, numValuesToAppend);
     } break;
     case arrow::Type::STRING: {
-        copyStructFromArrowString(array, startPosInChunk, numValuesToAppend);
+        copyStructFromArrowString<arrow::StringArray>(array, startPosInChunk, numValuesToAppend);
+
+    } break;
+    case arrow::Type::LARGE_STRING: {
+        copyStructFromArrowString<arrow::LargeStringArray>(
+            array, startPosInChunk, numValuesToAppend);
     } break;
     default: {
         throw NotImplementedException("StructColumnChunk::append");
@@ -261,9 +266,10 @@ void StructColumnChunk::copyStructFromArrowStruct(
     }
 }
 
+template<typename ARROW_TYPE>
 void StructColumnChunk::copyStructFromArrowString(
     arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    auto* stringArray = (arrow::StringArray*)array;
+    auto* stringArray = (ARROW_TYPE*)array;
     auto arrayData = stringArray->data();
     if (arrayData->MayHaveNulls()) {
         for (auto i = 0u; i < numValuesToAppend; i++) {

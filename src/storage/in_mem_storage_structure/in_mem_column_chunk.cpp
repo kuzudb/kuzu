@@ -34,6 +34,56 @@ void InMemColumnChunk::flush(FileInfo* walFileInfo) {
     }
 }
 
+template<typename ARROW_TYPE>
+void InMemColumnChunk::templateCopyArrowStringArray(
+    arrow::Array& array, arrow::Array* nodeOffsets) {
+    switch (dataType.getLogicalTypeID()) {
+    case LogicalTypeID::DATE: {
+        templateCopyValuesAsStringToPage<date_t, ARROW_TYPE>(array, nodeOffsets);
+    } break;
+    case LogicalTypeID::TIMESTAMP: {
+        templateCopyValuesAsStringToPage<timestamp_t, ARROW_TYPE>(array, nodeOffsets);
+    } break;
+    case LogicalTypeID::INTERVAL: {
+        templateCopyValuesAsStringToPage<interval_t, ARROW_TYPE>(array, nodeOffsets);
+    } break;
+    case LogicalTypeID::FIXED_LIST: {
+        templateCopyValuesAsStringToPage<uint8_t*, ARROW_TYPE>(array, nodeOffsets);
+    } break;
+    default: {
+        throw NotImplementedException{"InMemColumnChunk::templateCopyArrowStringArray"};
+    }
+    }
+}
+
+template<typename KU_TYPE, typename ARROW_TYPE>
+void InMemColumnChunk::templateCopyValuesAsStringToPage(
+    arrow::Array& array, arrow::Array* nodeOffsets) {
+    auto& stringArray = (ARROW_TYPE&)array;
+    auto arrayData = stringArray.data();
+    const offset_t* offsetsInArray =
+        nodeOffsets == nullptr ? nullptr :
+                                 nodeOffsets->data()->GetValues<offset_t>(1 /* value buffer */);
+    if (arrayData->MayHaveNulls()) {
+        for (auto i = 0u; i < stringArray.length(); i++) {
+            if (arrayData->IsNull(i)) {
+                continue;
+            }
+            auto value = stringArray.GetView(i);
+            auto offset = offsetsInArray ? offsetsInArray[i] : i;
+            setValueFromString<KU_TYPE>(value.data(), value.length(), offset);
+            nullChunk->setValue<bool>(false, offset);
+        }
+    } else {
+        for (auto i = 0u; i < stringArray.length(); i++) {
+            auto value = stringArray.GetView(i);
+            auto offset = offsetsInArray ? offsetsInArray[i] : i;
+            setValueFromString<KU_TYPE>(value.data(), value.length(), offset);
+            nullChunk->setValue<bool>(false, offset);
+        }
+    }
+}
+
 uint32_t InMemColumnChunk::getDataTypeSizeInColumn(LogicalType& dataType) {
     switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::STRUCT: {
@@ -84,26 +134,10 @@ void InMemColumnChunk::copyArrowArray(
         templateCopyValuesToPage<uint8_t*>(arrowArray, nodeOffsets);
     } break;
     case arrow::Type::STRING: {
-        switch (dataType.getLogicalTypeID()) {
-        case LogicalTypeID::DATE: {
-            templateCopyValuesAsStringToPage<date_t>(arrowArray, nodeOffsets);
-        } break;
-        case LogicalTypeID::TIMESTAMP: {
-            templateCopyValuesAsStringToPage<timestamp_t>(arrowArray, nodeOffsets);
-        } break;
-        case LogicalTypeID::INTERVAL: {
-            templateCopyValuesAsStringToPage<interval_t>(arrowArray, nodeOffsets);
-        } break;
-        case LogicalTypeID::FIXED_LIST: {
-            // Fixed list is a fixed-sized blob.
-            templateCopyValuesAsStringToPage<uint8_t*>(arrowArray, nodeOffsets);
-        } break;
-        default: {
-            throw CopyException(StringUtils::string_format(
-                "Unsupported data type {} for templateCopyValuesAsStringToPage",
-                LogicalTypeUtils::dataTypeToString(dataType)));
-        }
-        }
+        templateCopyArrowStringArray<arrow::StringArray>(arrowArray, nodeOffsets);
+    } break;
+    case arrow::Type::LARGE_STRING: {
+        templateCopyArrowStringArray<arrow::LargeStringArray>(arrowArray, nodeOffsets);
     } break;
     default: {
         throw CopyException(
@@ -192,50 +226,22 @@ void InMemColumnChunk::templateCopyValuesToPage<uint8_t*>(
     }
 }
 
-template<typename T>
-void InMemColumnChunk::templateCopyValuesAsStringToPage(
-    arrow::Array& array, arrow::Array* nodeOffsets) {
-    auto& stringArray = (arrow::StringArray&)array;
-    auto arrayData = stringArray.data();
-    const offset_t* offsetsInArray =
-        nodeOffsets == nullptr ? nullptr :
-                                 nodeOffsets->data()->GetValues<offset_t>(1 /* value buffer */);
-    if (arrayData->MayHaveNulls()) {
-        for (auto i = 0u; i < stringArray.length(); i++) {
-            if (arrayData->IsNull(i)) {
-                continue;
-            }
-            auto value = stringArray.GetView(i);
-            auto offset = offsetsInArray ? offsetsInArray[i] : i;
-            setValueFromString<T>(value.data(), value.length(), offset);
-            nullChunk->setValue<bool>(false, offset);
-        }
-    } else {
-        for (auto i = 0u; i < stringArray.length(); i++) {
-            auto value = stringArray.GetView(i);
-            auto offset = offsetsInArray ? offsetsInArray[i] : i;
-            setValueFromString<T>(value.data(), value.length(), offset);
-            nullChunk->setValue<bool>(false, offset);
-        }
-    }
-}
-
 void InMemColumnChunkWithOverflow::copyArrowArray(
     arrow::Array& array, PropertyCopyState* copyState, arrow::Array* nodeOffsets) {
     assert(array.type_id() == arrow::Type::STRING || array.type_id() == arrow::Type::LIST);
     // VAR_LIST is stored as strings in csv file whereas PARQUET natively supports LIST dataType.
     switch (array.type_id()) {
-    case arrow::Type::STRING: {
+    case arrow::Type::STRING:
+    case arrow::Type::LARGE_STRING: {
         switch (dataType.getLogicalTypeID()) {
         case LogicalTypeID::STRING: {
-            templateCopyValuesAsStringToPageWithOverflow<ku_string_t>(
-                array, copyState, nodeOffsets);
+            templateCopyArrowStringArray<ku_string_t>(array, copyState, nodeOffsets);
         } break;
         case LogicalTypeID::BLOB: {
-            templateCopyValuesAsStringToPageWithOverflow<blob_t>(array, copyState, nodeOffsets);
+            templateCopyArrowStringArray<blob_t>(array, copyState, nodeOffsets);
         } break;
         case LogicalTypeID::VAR_LIST: {
-            templateCopyValuesAsStringToPageWithOverflow<ku_list_t>(array, copyState, nodeOffsets);
+            templateCopyArrowStringArray<ku_list_t>(array, copyState, nodeOffsets);
         } break;
         default: {
             throw NotImplementedException{"InMemColumnChunkWithOverflow::copyArrowArray"};
@@ -247,34 +253,6 @@ void InMemColumnChunkWithOverflow::copyArrowArray(
     } break;
     default:
         throw NotImplementedException{"InMemColumnChunkWithOverflow::copyArrowArray"};
-    }
-}
-
-template<typename T>
-void InMemColumnChunkWithOverflow::templateCopyValuesAsStringToPageWithOverflow(
-    arrow::Array& array, PropertyCopyState* copyState, arrow::Array* nodeOffsets) {
-    auto& stringArray = (arrow::StringArray&)array;
-    auto arrayData = stringArray.data();
-    const offset_t* offsetsInArray =
-        nodeOffsets == nullptr ? nullptr :
-                                 nodeOffsets->data()->GetValues<offset_t>(1 /* value buffer */);
-    if (arrayData->MayHaveNulls()) {
-        for (auto i = 0u; i < array.length(); i++) {
-            if (arrayData->IsNull(i)) {
-                continue;
-            }
-            auto value = stringArray.GetView(i);
-            auto offset = offsetsInArray ? offsetsInArray[i] : i;
-            setValWithOverflow<T>(copyState->overflowCursor, value.data(), value.length(), offset);
-            nullChunk->setValue<bool>(false, offset);
-        }
-    } else {
-        for (auto i = 0u; i < array.length(); i++) {
-            auto value = stringArray.GetView(i);
-            auto offset = offsetsInArray ? offsetsInArray[i] : i;
-            setValWithOverflow<T>(copyState->overflowCursor, value.data(), value.length(), offset);
-            nullChunk->setValue<bool>(false, offset);
-        }
     }
 }
 
@@ -303,6 +281,54 @@ void InMemColumnChunkWithOverflow::copyValuesToPageWithOverflow(
                 inMemOverflowFile->appendList(dataType, listArray, i, copyState->overflowCursor);
             auto offset = offsetsInArray ? offsetsInArray[i] : i;
             setValue(kuList, offset);
+            nullChunk->setValue<bool>(false, offset);
+        }
+    }
+}
+
+template<typename KU_TYPE>
+void InMemColumnChunkWithOverflow::templateCopyArrowStringArray(
+    arrow::Array& array, kuzu::storage::PropertyCopyState* copyState, arrow::Array* nodeOffsets) {
+    switch (array.type_id()) {
+    case arrow::Type::STRING: {
+        templateCopyValuesAsStringToPageWithOverflow<KU_TYPE, arrow::StringArray>(
+            array, copyState, nodeOffsets);
+    } break;
+    case arrow::Type::LARGE_STRING: {
+        templateCopyValuesAsStringToPageWithOverflow<KU_TYPE, arrow::LargeStringArray>(
+            array, copyState, nodeOffsets);
+    } break;
+    default: {
+        throw NotImplementedException{"InMemColumnChunkWithOverflow::templateCopyArrowStringArray"};
+    }
+    }
+}
+
+template<typename KU_TYPE, typename ARROW_TYPE>
+void InMemColumnChunkWithOverflow::templateCopyValuesAsStringToPageWithOverflow(
+    arrow::Array& array, PropertyCopyState* copyState, arrow::Array* nodeOffsets) {
+    auto& stringArray = (ARROW_TYPE&)array;
+    auto arrayData = stringArray.data();
+    const offset_t* offsetsInArray =
+        nodeOffsets == nullptr ? nullptr :
+                                 nodeOffsets->data()->GetValues<offset_t>(1 /* value buffer */);
+    if (arrayData->MayHaveNulls()) {
+        for (auto i = 0u; i < array.length(); i++) {
+            if (arrayData->IsNull(i)) {
+                continue;
+            }
+            auto value = stringArray.GetView(i);
+            auto offset = offsetsInArray ? offsetsInArray[i] : i;
+            setValWithOverflow<KU_TYPE>(
+                copyState->overflowCursor, value.data(), value.length(), offset);
+            nullChunk->setValue<bool>(false, offset);
+        }
+    } else {
+        for (auto i = 0u; i < array.length(); i++) {
+            auto value = stringArray.GetView(i);
+            auto offset = offsetsInArray ? offsetsInArray[i] : i;
+            setValWithOverflow<KU_TYPE>(
+                copyState->overflowCursor, value.data(), value.length(), offset);
             nullChunk->setValue<bool>(false, offset);
         }
     }
@@ -351,49 +377,15 @@ void InMemStructColumnChunk::copyArrowArray(
                               nodeOffsets->data()->GetValues<offset_t>(1 /* value buffer */);
     switch (array.type_id()) {
     case arrow::Type::STRING: {
-        auto& stringArray = (arrow::StringArray&)array;
-        auto arrayData = stringArray.data();
-        if (arrayData->MayHaveNulls()) {
-            for (auto i = 0u; i < stringArray.length(); i++) {
-                if (arrayData->IsNull(i)) {
-                    continue;
-                }
-                auto value = stringArray.GetView(i);
-                auto offset = offsetsInArray ? offsetsInArray[i] : i;
-                setStructFields(copyState, value.data(), value.length(), offset);
-                nullChunk->setValue<bool>(false, offset);
-            }
-        } else {
-            for (auto i = 0u; i < stringArray.length(); i++) {
-                auto value = stringArray.GetView(i);
-                auto offset = offsetsInArray ? offsetsInArray[i] : i;
-                setStructFields(copyState, value.data(), value.length(), offset);
-                nullChunk->setValue<bool>(false, offset);
-            }
-        }
+        templateCopyArrowStringArray<arrow::StringArray>(
+            array, offsetsInArray, copyState, nodeOffsets);
+    } break;
+    case arrow::Type::LARGE_STRING: {
+        templateCopyArrowStringArray<arrow::LargeStringArray>(
+            array, offsetsInArray, copyState, nodeOffsets);
     } break;
     case arrow::Type::STRUCT: {
-        auto& structArray = (arrow::StructArray&)array;
-        auto arrayData = structArray.data();
-        if (StructType::getNumFields(&dataType) != structArray.type()->fields().size()) {
-            throw CopyException{"Unmatched number of struct fields."};
-        }
-        for (auto i = 0u; i < structArray.num_fields(); i++) {
-            auto fieldName = structArray.type()->fields()[i]->name();
-            auto fieldIdx = StructType::getFieldIdx(&dataType, fieldName);
-            if (fieldIdx == INVALID_STRUCT_FIELD_IDX) {
-                throw CopyException{"Unmatched struct field name: " + fieldName + "."};
-            }
-            fieldChunks[fieldIdx]->copyArrowArray(
-                *structArray.field(i), copyState->childStates[i].get(), nodeOffsets);
-        }
-        for (auto i = 0u; i < structArray.length(); i++) {
-            if (arrayData->IsNull(i)) {
-                continue;
-            }
-            auto offset = offsetsInArray ? offsetsInArray[i] : i;
-            nullChunk->setValue<bool>(false, offset);
-        }
+        copyFromStructArrowArray(array, offsetsInArray, copyState, nodeOffsets);
     } break;
     default: {
         throw NotImplementedException{"InMemStructColumnChunk::copyArrowArray"};
@@ -544,6 +536,58 @@ std::string InMemStructColumnChunk::parseStructFieldValue(
         return structString.substr(startPos, curPos - startPos);
     } else {
         throw ParserException{"Invalid struct string: " + structString};
+    }
+}
+
+template<typename ARROW_TYPE>
+void InMemStructColumnChunk::templateCopyArrowStringArray(arrow::Array& array,
+    const common::offset_t* offsetsInArray, PropertyCopyState* copyState,
+    arrow::Array* nodeOffsets) {
+    auto& stringArray = (ARROW_TYPE&)array;
+    auto arrayData = stringArray.data();
+    if (arrayData->MayHaveNulls()) {
+        for (auto i = 0u; i < stringArray.length(); i++) {
+            if (arrayData->IsNull(i)) {
+                continue;
+            }
+            auto value = stringArray.GetView(i);
+            auto offset = offsetsInArray ? offsetsInArray[i] : i;
+            setStructFields(copyState, value.data(), value.length(), offset);
+            nullChunk->setValue<bool>(false, offset);
+        }
+    } else {
+        for (auto i = 0u; i < stringArray.length(); i++) {
+            auto value = stringArray.GetView(i);
+            auto offset = offsetsInArray ? offsetsInArray[i] : i;
+            setStructFields(copyState, value.data(), value.length(), offset);
+            nullChunk->setValue<bool>(false, offset);
+        }
+    }
+}
+
+void InMemStructColumnChunk::copyFromStructArrowArray(arrow::Array& array,
+    const common::offset_t* offsetsInArray, PropertyCopyState* copyState,
+    arrow::Array* nodeOffsets) {
+    auto& structArray = (arrow::StructArray&)array;
+    auto arrayData = structArray.data();
+    if (StructType::getNumFields(&dataType) != structArray.type()->fields().size()) {
+        throw CopyException{"Unmatched number of struct fields."};
+    }
+    for (auto i = 0u; i < structArray.num_fields(); i++) {
+        auto fieldName = structArray.type()->fields()[i]->name();
+        auto fieldIdx = StructType::getFieldIdx(&dataType, fieldName);
+        if (fieldIdx == INVALID_STRUCT_FIELD_IDX) {
+            throw CopyException{"Unmatched struct field name: " + fieldName + "."};
+        }
+        fieldChunks[fieldIdx]->copyArrowArray(
+            *structArray.field(i), copyState->childStates[i].get(), nodeOffsets);
+    }
+    for (auto i = 0u; i < structArray.length(); i++) {
+        if (arrayData->IsNull(i)) {
+            continue;
+        }
+        auto offset = offsetsInArray ? offsetsInArray[i] : i;
+        nullChunk->setValue<bool>(false, offset);
     }
 }
 

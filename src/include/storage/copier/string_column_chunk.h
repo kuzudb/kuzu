@@ -34,7 +34,10 @@ private:
     }
 
     template<typename T>
-    void templateCopyVarSizedValuesFromString(
+    void templateCopyStringArrowArray(
+        arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
+    template<typename KU_TYPE, typename ARROW_TYPE>
+    void templateCopyStringValues(
         arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
 
     void appendStringColumnChunk(StringColumnChunk* other, common::offset_t startPosInOtherChunk,
