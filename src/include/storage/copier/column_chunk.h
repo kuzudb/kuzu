@@ -48,6 +48,8 @@ public:
     // Include pages for null and children segments.
     virtual common::page_idx_t getNumPages() const;
 
+    virtual void append(common::ValueVector* vector, common::offset_t startPosInChunk);
+
     void append(
         common::ValueVector* vector, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
 
@@ -86,6 +88,8 @@ public:
         ((T*)buffer.get())[pos] = val;
     }
 
+    void populateWithDefaultVal(common::ValueVector* defaultValueVector);
+
 protected:
     // Initializes the data buffer. Is (and should be) only called in constructor.
     virtual void initialize(common::offset_t numValues);
@@ -93,6 +97,7 @@ protected:
     template<typename T>
     void templateCopyArrowArray(
         arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
+
     // TODO(Guodong/Ziyi): The conversion from string to values should be handled inside ReadFile.
     template<typename T>
     void templateCopyValuesAsString(
@@ -103,6 +108,8 @@ protected:
     }
 
     common::offset_t getOffsetInBuffer(common::offset_t pos) const;
+
+    void copyVectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk);
 
 protected:
     common::LogicalType dataType;
@@ -132,6 +139,11 @@ public:
         : ColumnChunk(
               common::LogicalType(common::LogicalTypeID::BOOL), copyDescription, hasNullChunk) {}
 
+    void append(common::ValueVector* vector, common::offset_t startPosInChunk) final;
+
+    void append(
+        arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
+
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
 };
@@ -144,8 +156,6 @@ public:
     inline void setNull(common::offset_t pos, bool isNull) { setValue(isNull, pos); }
 
     void resize(uint64_t numValues) final;
-
-    void setRangeNoNull(common::offset_t startPosInChunk, uint32_t numValuesToSet);
 
     inline void resetNullBuffer() { memset(buffer.get(), 0 /* non null */, numBytes); }
 
@@ -202,5 +212,6 @@ void ColumnChunk::setValueFromString<common::date_t>(
 template<>
 void ColumnChunk::setValueFromString<common::timestamp_t>(
     const char* value, uint64_t length, uint64_t pos);
+
 } // namespace storage
 } // namespace kuzu

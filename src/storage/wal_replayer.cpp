@@ -394,7 +394,7 @@ void WALReplayer::replayDropPropertyRecord(const kuzu::storage::WALRecord& walRe
             auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(tableID);
             switch (tableSchema->getTableType()) {
             case catalog::TableType::NODE: {
-                storageManager->getNodesStore().getNodeTable(tableID)->dropProperty(propertyID);
+                storageManager->getNodesStore().getNodeTable(tableID)->dropColumn(propertyID);
                 // TODO(Guodong): Do nothing for now. Should remove meta disk array and node groups.
             } break;
             case catalog::TableType::REL: {
@@ -434,15 +434,15 @@ void WALReplayer::replayDropPropertyRecord(const kuzu::storage::WALRecord& walRe
 }
 
 void WALReplayer::replayAddPropertyRecord(const kuzu::storage::WALRecord& walRecord) {
+    auto tableID = walRecord.addPropertyRecord.tableID;
+    auto propertyID = walRecord.addPropertyRecord.propertyID;
     if (isCheckpoint) {
-        auto tableID = walRecord.addPropertyRecord.tableID;
-        auto propertyID = walRecord.addPropertyRecord.propertyID;
         if (!isRecovering) {
             auto tableSchema = catalog->getWriteVersion()->getNodeTableSchema(tableID);
             auto property = tableSchema->getProperty(propertyID);
             switch (tableSchema->getTableType()) {
             case catalog::TableType::NODE: {
-                storageManager->getNodesStore().getNodeTable(tableID)->addProperty(*property);
+                // Nothing to undo.
             } break;
             case catalog::TableType::REL: {
                 WALReplayerUtils::renameDBFilesForRelProperty(wal->getDirectory(),
@@ -476,7 +476,18 @@ void WALReplayer::replayAddPropertyRecord(const kuzu::storage::WALRecord& walRec
             }
         }
     } else {
-        // See comments for COPY_NODE_RECORD.
+        auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(tableID);
+        switch (tableSchema->getTableType()) {
+        case catalog::TableType::NODE: {
+            storageManager->getNodesStore().getNodeTable(tableID)->dropColumn(propertyID);
+        } break;
+        case catalog::TableType::REL: {
+            // Nothing to undo.
+        } break;
+        default: {
+            throw NotImplementedException{"WALReplayer::replayDropPropertyRecord"};
+        }
+        }
     }
 }
 

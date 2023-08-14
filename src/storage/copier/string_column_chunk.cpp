@@ -49,6 +49,19 @@ void StringColumnChunk::resetToEmpty() {
     overflowCursor.resetValue();
 }
 
+void StringColumnChunk::append(common::ValueVector* vector, common::offset_t startPosInChunk) {
+    assert(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
+    ColumnChunk::copyVectorToBuffer(vector, startPosInChunk);
+    auto stringsToSetOverflow = (ku_string_t*)(buffer.get() + startPosInChunk * numBytesPerValue);
+    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
+        auto& stringToSet = stringsToSetOverflow[i];
+        if (!ku_string_t::isShortString(stringToSet.len)) {
+            overflowFile->copyStringOverflow(
+                overflowCursor, reinterpret_cast<uint8_t*>(stringToSet.overflowPtr), &stringToSet);
+        }
+    }
+}
+
 void StringColumnChunk::append(
     arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
     assert(array->type_id() == arrow::Type::STRING);

@@ -30,7 +30,7 @@ ListHeaders::ListHeaders(const StorageStructureIDAndFName& storageStructureIDAnd
     storageStructureIDAndFName.fName = fileHandle->getFileInfo()->path;
     headersDiskArray = std::make_unique<InMemDiskArray<csr_offset_t>>(*fileHandle,
         storageStructureIDAndFName.storageStructureID, LIST_HEADERS_HEADER_PAGE_IDX, bufferManager,
-        wal);
+        wal, transaction::Transaction::getDummyReadOnlyTrx().get());
 }
 
 } // namespace storage

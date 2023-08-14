@@ -34,6 +34,8 @@ public:
 
     void resetToEmpty() final;
 
+    void append(common::ValueVector* vector, common::offset_t startPosInChunk) final;
+
 private:
     inline common::page_idx_t getNumPages() const final {
         return varListDataColumnChunk.dataChunk->getNumPages() + ColumnChunk::getNumPages();

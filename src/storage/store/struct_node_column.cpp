@@ -8,15 +8,17 @@ namespace kuzu {
 namespace storage {
 
 StructNodeColumn::StructNodeColumn(LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
-    BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal)
-    : NodeColumn{
-          std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal, true} {
+    BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
+    Transaction* transaction)
+    : NodeColumn{std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
+          transaction, true} {
     auto fieldTypes = StructType::getFieldTypes(&this->dataType);
     assert(metaDAHeaderInfo.childrenInfos.size() == fieldTypes.size());
     childrenColumns.resize(fieldTypes.size());
     for (auto i = 0u; i < fieldTypes.size(); i++) {
-        childrenColumns[i] = NodeColumnFactory::createNodeColumn(*fieldTypes[i],
-            *metaDAHeaderInfo.childrenInfos[i], dataFH, metadataFH, bufferManager, wal);
+        childrenColumns[i] =
+            NodeColumnFactory::createNodeColumn(*fieldTypes[i], *metaDAHeaderInfo.childrenInfos[i],
+                dataFH, metadataFH, bufferManager, wal, transaction);
     }
 }
 

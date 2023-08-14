@@ -3,13 +3,9 @@
 namespace kuzu {
 namespace processor {
 
-uint8_t* AddProperty::getDefaultVal() {
+common::ValueVector* AddProperty::getDefaultValVector() {
     defaultValueEvaluator->evaluate();
-    auto expressionVector = defaultValueEvaluator->resultVector;
-    assert(defaultValueEvaluator->resultVector->dataType == *dataType);
-    auto posInExpressionVector = expressionVector->state->selVector->selectedPositions[0];
-    return expressionVector->getData() +
-           expressionVector->getNumBytesPerValue() * posInExpressionVector;
+    return defaultValueEvaluator->resultVector.get();
 }
 
 } // namespace processor

@@ -46,6 +46,17 @@ void StructColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk
     }
 }
 
+void StructColumnChunk::append(common::ValueVector* vector, common::offset_t startPosInChunk) {
+    auto numFields = StructType::getNumFields(&dataType);
+    for (auto i = 0u; i < numFields; i++) {
+        childrenChunks[i]->append(StructVector::getFieldVector(vector, i).get(), startPosInChunk);
+    }
+    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
+        nullChunk->setNull(
+            startPosInChunk + i, vector->isNull(vector->state->selVector->selectedPositions[i]));
+    }
+}
+
 void StructColumnChunk::setStructFields(const char* value, uint64_t length, uint64_t pos) {
     // Removes the leading and the trailing brackets.
     switch (dataType.getLogicalTypeID()) {

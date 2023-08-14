@@ -40,10 +40,16 @@ BaseDiskArray<U>::BaseDiskArray(
 
 template<typename U>
 BaseDiskArray<U>::BaseDiskArray(FileHandle& fileHandle, StorageStructureID storageStructureID,
-    page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal)
+    page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal,
+    transaction::Transaction* transaction)
     : fileHandle{fileHandle}, storageStructureID{storageStructureID}, headerPageIdx{headerPageIdx},
       hasTransactionalUpdates{false}, bufferManager{bufferManager}, wal{wal} {
-    header.readFromFile(this->fileHandle, headerPageIdx);
+    auto [fileHandleToPin, pageIdxToPin] =
+        StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
+            reinterpret_cast<BMFileHandle&>(fileHandle), headerPageIdx, *wal,
+            transaction->getType());
+    bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin,
+        [&](uint8_t* frame) -> void { memcpy(&header, frame, sizeof(DiskArrayHeader)); });
     if (this->header.firstPIPPageIdx != StorageStructureUtils::NULL_PAGE_IDX) {
         pips.emplace_back(fileHandle, header.firstPIPPageIdx);
         while (pips[pips.size() - 1].pipContents.nextPipPageIdx !=
@@ -351,8 +357,9 @@ std::pair<page_idx_t, bool> BaseDiskArray<U>::getAPPageIdxAndAddAPToPIPIfNecessa
 template<typename U>
 BaseInMemDiskArray<U>::BaseInMemDiskArray(FileHandle& fileHandle,
     StorageStructureID storageStructureID, page_idx_t headerPageIdx, BufferManager* bufferManager,
-    WAL* wal)
-    : BaseDiskArray<U>(fileHandle, storageStructureID, headerPageIdx, bufferManager, wal) {
+    WAL* wal, transaction::Transaction* transaction)
+    : BaseDiskArray<U>(
+          fileHandle, storageStructureID, headerPageIdx, bufferManager, wal, transaction) {
     for (page_idx_t apIdx = 0; apIdx < this->header.numAPs; ++apIdx) {
         addInMemoryArrayPageAndReadFromFile(this->getAPPageIdxNoLock(apIdx));
     }
@@ -386,8 +393,10 @@ void BaseInMemDiskArray<U>::readArrayPageFromFile(uint64_t apIdx, page_idx_t apP
 
 template<typename T>
 InMemDiskArray<T>::InMemDiskArray(FileHandle& fileHandle, StorageStructureID storageStructureID,
-    page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal)
-    : BaseInMemDiskArray<T>(fileHandle, storageStructureID, headerPageIdx, bufferManager, wal) {}
+    page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal,
+    transaction::Transaction* transaction)
+    : BaseInMemDiskArray<T>(
+          fileHandle, storageStructureID, headerPageIdx, bufferManager, wal, transaction) {}
 
 template<typename T>
 void InMemDiskArray<T>::checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isCheckpoint) {
