@@ -77,9 +77,17 @@ public:
      * @return the maximum number of threads to use for execution in the current connection.
      */
     KUZU_API uint64_t getMaxNumThreadForExec();
-
+    /**
+     * @brief Sets the BFS Policy for Recursive Join (Shortest Path, All Shortest Path,
+     * Variable Length) queries in the current connection.
+     * @param schedulerType The scheduling policy to be used for recursive join queries.
+     */
     KUZU_API void setRecursiveJoinBFSPolicy(common::SchedulerType schedulerType);
-
+    /**
+     * Returns the scheduling policy to be used for recursive join queries (Shortest Path,
+     * All Shortest Path, Variable Length).
+     * @return The scheduling policy to be used for recursive join queries.
+     */
     KUZU_API common::SchedulerType getRecursiveJoinBFSPolicy();
 
     /**

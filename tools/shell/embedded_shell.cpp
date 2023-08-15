@@ -305,7 +305,6 @@ void EmbeddedShell::setRecursiveJoinBFSPolicy(const std::string& bfsPolicy) {
             printf("Unknown recursive join BFS policy provided, supported types: 1T1S & nTkS.\n");
         }
     } catch (Exception& e) { printf("%s", e.what()); }
-    printf("Successfully executed this function, with this string input: %s\n", bfsPolicy.c_str());
 }
 
 void EmbeddedShell::printNodeSchema(const std::string& tableName) {
