@@ -387,8 +387,10 @@ public:
         return bfsSharedState->bfsLevelNodeOffsets[startScanIdx++];
     }
 
+#if defined(__GNUC__) || defined(__GNUG__)
     void addToLocalNextBFSLevel(
         common::ValueVector* tmpDstNodeIDVector, uint64_t boundNodeMultiplicity) override;
+#endif
 
     // For Shortest Path, this function will always return false, because there is no nodeID
     // multiplicity. Each distance morsel will exactly fit into ValueVector size perfectly.
