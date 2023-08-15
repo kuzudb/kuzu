@@ -159,5 +159,27 @@ struct ClientContextConstants {
     static constexpr uint64_t TIMEOUT_IN_MS = 0;
 };
 
+/**
+ * Describing the scheduling policies currently being supported -
+ *
+ * 1) OneThreadOneMorsel (1T1S): This policy will be used for all multi label and path tracking
+ *    queries. Each thread asking for work gets allotted its private morsel on which only that
+ *    thread will work. Once that work is finished, we look for another morsel and if there are
+ *    none the thread will exit.
+ *    Here 1 'morsel' refers to 1 source for which BFS is being performed.
+ *
+ * 2) nThreadkMorsel (nTkS): This policy will be used *ONLY* for single label - no path tracking
+ *    queries. Currently 'k' is the same as no. of threads active (or 'n').
+ *    This policy aims to support at any given point at most 'k' total active BFSSharedStates. Any
+ *    thread can be assigned to work any of the active BFSSharedState. A different BFSSharedState is
+ *    assigned only if the already assigned BFSSharedState does not have work or is completed. The
+ *    work can be either be scan extend or writing path length to vector.
+ *    Here 1 'BFSSharedState' refers to the data structure holding the state for the BFS of a single
+ *    source. 1 'morsel' refers to either a group of offsets for which BFS extension needs to be
+ *    performed OR a group of offsets for which path length needs to be written to the ValueVector.
+ *
+ */
+enum SchedulerType { OneThreadOneMorsel, nThreadkMorsel };
+
 } // namespace common
 } // namespace kuzu

@@ -28,7 +28,7 @@ struct RecursiveJoinSharedState {
           inputFTableSharedState{std::move(inputFTableSharedState)}, semiMasks{
                                                                          std::move(semiMasks)} {}
 
-    inline SchedulerType getSchedulerType() { return morselDispatcher->getSchedulerType(); }
+    inline common::SchedulerType getSchedulerType() { return morselDispatcher->getSchedulerType(); }
 
     inline std::pair<GlobalSSSPState, SSSPLocalState> getBFSMorsel(
         const std::vector<common::ValueVector*>& vectorsToScan,

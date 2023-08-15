@@ -78,9 +78,9 @@ public:
      */
     KUZU_API uint64_t getMaxNumThreadForExec();
 
-    KUZU_API void setRecursiveJoinBFSPolicy(SchedulerType schedulerType);
+    KUZU_API void setRecursiveJoinBFSPolicy(common::SchedulerType schedulerType);
 
-    KUZU_API SchedulerType getRecursiveJoinBFSPolicy();
+    KUZU_API common::SchedulerType getRecursiveJoinBFSPolicy();
 
     /**
      * @brief Executes the given query and returns the result.

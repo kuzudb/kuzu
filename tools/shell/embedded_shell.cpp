@@ -298,9 +298,9 @@ void EmbeddedShell::setRecursiveJoinBFSPolicy(const std::string& bfsPolicy) {
     auto policy = StringUtils::ltrim(bfsPolicy);
     try {
         if(policy.find("1T1S") != std::string::npos) {
-            conn->setRecursiveJoinBFSPolicy(kuzu::main::SchedulerType::OneThreadOneMorsel);
+            conn->setRecursiveJoinBFSPolicy(SchedulerType::OneThreadOneMorsel);
         } else if(policy.find("nTkS") != std::string::npos) {
-            conn->setRecursiveJoinBFSPolicy(kuzu::main::SchedulerType::nThreadkMorsel);
+            conn->setRecursiveJoinBFSPolicy(SchedulerType::nThreadkMorsel);
         } else {
             printf("Unknown recursive join BFS policy provided, supported types: 1T1S & nTkS.\n");
         }

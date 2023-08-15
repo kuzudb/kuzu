@@ -30,15 +30,16 @@ static std::shared_ptr<RecursiveJoinSharedState> createSharedState(
         storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs().getMaxNodeOffsetPerTable();
     auto maxNodeOffset = maxNodeOffsetsPerTable.at(nbrNode.getSingleTableID());
 #if defined(_MSC_VER)
-    morselDispatcher = std::make_shared<MorselDispatcher>(SchedulerType::OneThreadOneMorsel,
-        rel.getLowerBound(), rel.getUpperBound(), UINT64_MAX /* maxNodeOffset */);
+    morselDispatcher = std::make_shared<MorselDispatcher>(common::SchedulerType::OneThreadOneMorsel,
+        rel.getLowerBound(), rel.getUpperBound(), maxNodeOffset);
 #else
     if (joinType == planner::RecursiveJoinType::TRACK_NONE && isSingleLabel) {
-        morselDispatcher = std::make_shared<MorselDispatcher>(
-            SchedulerType::nThreadkMorsel, rel.getLowerBound(), rel.getUpperBound(), maxNodeOffset);
-    } else {
-        morselDispatcher = std::make_shared<MorselDispatcher>(SchedulerType::OneThreadOneMorsel,
+        morselDispatcher = std::make_shared<MorselDispatcher>(common::SchedulerType::nThreadkMorsel,
             rel.getLowerBound(), rel.getUpperBound(), maxNodeOffset);
+    } else {
+        morselDispatcher =
+            std::make_shared<MorselDispatcher>(common::SchedulerType::OneThreadOneMorsel,
+                rel.getLowerBound(), rel.getUpperBound(), maxNodeOffset);
     }
 #endif
     return std::make_shared<RecursiveJoinSharedState>(

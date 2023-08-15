@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "common/api.h"
+#include "common/constants.h"
 #include "common/timer.h"
 #include "main/kuzu_fwd.h"
 
@@ -18,8 +19,6 @@ struct ActiveQuery {
 
     void reset();
 };
-
-enum SchedulerType { OneThreadOneMorsel, nThreadkMorsel };
 
 /**
  * @brief Contain client side configuration. We make profiler associated per query, so profiler is
@@ -36,6 +35,8 @@ public:
     explicit ClientContext();
 
     ~ClientContext() = default;
+
+    inline common::SchedulerType getBFSSchedulerType() { return bfsSchedulerType; }
 
     inline void interrupt() { activeQuery.interrupted = true; }
 
@@ -55,7 +56,7 @@ private:
     inline void resetActiveQuery() { activeQuery.reset(); }
 
     uint64_t numThreadsForExecution;
-    SchedulerType bfsSchedulerType;
+    common::SchedulerType bfsSchedulerType;
     ActiveQuery activeQuery;
     uint64_t timeoutInMS;
 };
