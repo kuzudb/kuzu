@@ -29,7 +29,6 @@ public:
     }
 
     static void executeLongRunningQuery(Connection* conn) {
-        conn->setRecursiveJoinBFSPolicy(common::SchedulerType::OneThreadOneMorsel);
         auto result = conn->query("MATCH (a:person)-[:knows*1..28]->(b:person) RETURN COUNT(*)");
         ASSERT_FALSE(result->isSuccess());
         ASSERT_EQ(result->getErrorMessage(), "Interrupted.");
