@@ -31,6 +31,7 @@ public:
     bool end_of_file_reached = false;
 
     ParserMode mode;
+    common::DataChunk parse_chunk;
 
 protected:
     void AddValue(std::string str_val, common::column_id_t &column, std::vector<uint64_t> &escape_positions, bool has_quotes,
@@ -40,7 +41,7 @@ protected:
     //! Finalizes a chunk, parsing all values that have been added so far and adding them to the insert_chunk
     bool Flush(common::DataChunk &insert_chunk, uint64_t buffer_idx = 0, bool try_add_line = false);
 
-// void InitParseChunk(common::column_id_t num_cols);
+    void InitParseChunk(common::column_id_t num_cols);
 };
 
 //! Buffered CSV reader is a class that reads values from a stream and parses them as a CSV file
