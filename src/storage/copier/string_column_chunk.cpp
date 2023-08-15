@@ -31,6 +31,7 @@ void StringColumnChunk::append(common::ValueVector* vector, common::offset_t sta
                 overflowCursor, reinterpret_cast<uint8_t*>(stringToSet.overflowPtr), &stringToSet);
         }
     }
+    numValues += vector->state->selVector->selectedSize;
 }
 
 void StringColumnChunk::append(
@@ -49,6 +50,7 @@ void StringColumnChunk::append(
         throw NotImplementedException("StringColumnChunk::append");
     }
     }
+    numValues += numValuesToAppend;
 }
 
 void StringColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
@@ -66,6 +68,7 @@ void StringColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk
         throw NotImplementedException("VarSizedColumnChunk::append");
     }
     }
+    numValues += numValuesToAppend;
 }
 
 void StringColumnChunk::update(ValueVector* vector, vector_idx_t vectorIdx) {

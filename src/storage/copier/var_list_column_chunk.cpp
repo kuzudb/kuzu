@@ -7,18 +7,17 @@ namespace kuzu {
 namespace storage {
 
 void VarListDataColumnChunk::reset() {
-    dataChunk->resetToEmpty();
-    numValuesInDataChunk = 0;
+    dataColumnChunk->resetToEmpty();
 }
 
-void VarListDataColumnChunk::resize(uint64_t numValues) {
-    if (numValues <= capacityInDataChunk) {
+void VarListDataColumnChunk::resizeBuffer(uint64_t numValues) {
+    if (numValues <= capacity) {
         return;
     }
-    while (capacityInDataChunk < numValues) {
-        capacityInDataChunk *= VAR_LIST_RESIZE_RATIO;
+    while (capacity < numValues) {
+        capacity *= VAR_LIST_RESIZE_RATIO;
     }
-    dataChunk->resize(capacityInDataChunk);
+    dataColumnChunk->resize(capacity);
 }
 
 VarListColumnChunk::VarListColumnChunk(LogicalType dataType, CopyDescription* copyDescription)
@@ -46,6 +45,7 @@ void VarListColumnChunk::append(
         throw NotImplementedException("ListColumnChunk::appendArray");
     }
     }
+    numValues += numValuesToAppend;
 }
 
 void VarListColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
@@ -53,17 +53,18 @@ void VarListColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChun
     nullChunk->append(
         other->getNullChunk(), startPosInOtherChunk, startPosInChunk, numValuesToAppend);
     auto otherListChunk = reinterpret_cast<VarListColumnChunk*>(other);
-    auto offsetInDataChunkToAppend = varListDataColumnChunk.numValuesInDataChunk;
+    auto offsetInDataChunkToAppend = varListDataColumnChunk.getNumValues();
     for (auto i = 0u; i < numValuesToAppend; i++) {
-        varListDataColumnChunk.numValuesInDataChunk +=
-            otherListChunk->getListLen(startPosInOtherChunk + i);
-        setValue(varListDataColumnChunk.numValuesInDataChunk, startPosInChunk + i);
+        offsetInDataChunkToAppend += otherListChunk->getListLen(startPosInOtherChunk + i);
+        setValue(offsetInDataChunkToAppend, startPosInChunk + i);
     }
     auto startOffset = otherListChunk->getListOffset(startPosInOtherChunk);
     auto endOffset = otherListChunk->getListOffset(startPosInOtherChunk + numValuesToAppend);
-    varListDataColumnChunk.resize(varListDataColumnChunk.numValuesInDataChunk);
-    varListDataColumnChunk.dataChunk->append(otherListChunk->varListDataColumnChunk.dataChunk.get(),
-        startOffset, offsetInDataChunkToAppend, endOffset - startOffset);
+    varListDataColumnChunk.resizeBuffer(offsetInDataChunkToAppend);
+    varListDataColumnChunk.dataColumnChunk->append(
+        otherListChunk->varListDataColumnChunk.dataColumnChunk.get(), startOffset,
+        varListDataColumnChunk.getNumValues(), endOffset - startOffset);
+    numValues += numValuesToAppend;
 }
 
 void VarListColumnChunk::copyVarListFromArrowString(
@@ -75,7 +76,7 @@ void VarListColumnChunk::copyVarListFromArrowString(
             auto posInChunk = startPosInChunk + i;
             if (arrayData->IsNull(i)) {
                 nullChunk->setNull(posInChunk, true);
-                setValue(varListDataColumnChunk.numValuesInDataChunk, posInChunk);
+                setValue(varListDataColumnChunk.getNumValues(), posInChunk);
                 continue;
             }
             auto value = stringArray->GetView(i);
@@ -97,13 +98,13 @@ void VarListColumnChunk::copyVarListFromArrowString(
 void VarListColumnChunk::write(const Value& listVal, uint64_t posToWrite) {
     assert(listVal.getDataType()->getPhysicalType() == PhysicalTypeID::VAR_LIST);
     auto numValuesInList = NestedVal::getChildrenSize(&listVal);
-    varListDataColumnChunk.resize(varListDataColumnChunk.numValuesInDataChunk + numValuesInList);
+    varListDataColumnChunk.resizeBuffer(varListDataColumnChunk.getNumValues() + numValuesInList);
     for (auto i = 0u; i < numValuesInList; i++) {
-        varListDataColumnChunk.dataChunk->write(
-            *NestedVal::getChildVal(&listVal, i), varListDataColumnChunk.numValuesInDataChunk);
-        varListDataColumnChunk.numValuesInDataChunk++;
+        varListDataColumnChunk.dataColumnChunk->write(
+            *NestedVal::getChildVal(&listVal, i), varListDataColumnChunk.getNumValues());
+        varListDataColumnChunk.increaseNumValues(1);
     }
-    setValue(varListDataColumnChunk.numValuesInDataChunk, posToWrite);
+    setValue(varListDataColumnChunk.getNumValues(), posToWrite);
 }
 
 void VarListColumnChunk::setValueFromString(const char* value, uint64_t length, uint64_t pos) {
@@ -127,11 +128,10 @@ void VarListColumnChunk::append(common::ValueVector* vector, common::offset_t st
         nextListOffsetInChunk += listLen;
         offsetBufferToWrite[startPosInChunk + i] = nextListOffsetInChunk;
     }
-    varListDataColumnChunk.resize(nextListOffsetInChunk);
+    varListDataColumnChunk.resizeBuffer(nextListOffsetInChunk);
     auto dataVector = ListVector::getDataVector(vector);
     dataVector->state = std::make_unique<DataChunkState>();
     dataVector->state->selVector->resetSelectorToValuePosBuffer();
-    auto offsetInDataChunkToWrite = getListOffset(startPosInChunk);
     for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
         auto listEntry =
             vector->getValue<list_entry_t>(vector->state->selVector->selectedPositions[i]);
@@ -139,9 +139,9 @@ void VarListColumnChunk::append(common::ValueVector* vector, common::offset_t st
         for (auto j = 0u; j < listEntry.size; j++) {
             dataVector->state->selVector->selectedPositions[j] = listEntry.offset + j;
         }
-        varListDataColumnChunk.dataChunk->append(dataVector, offsetInDataChunkToWrite);
-        offsetInDataChunkToWrite += listEntry.size;
+        varListDataColumnChunk.append(dataVector);
     }
+    numValues += vector->state->selVector->selectedSize;
 }
 
 } // namespace storage

@@ -9,17 +9,25 @@ namespace kuzu {
 namespace storage {
 
 struct VarListDataColumnChunk {
-    std::unique_ptr<ColumnChunk> dataChunk;
-    uint64_t numValuesInDataChunk;
-    uint64_t capacityInDataChunk;
+    std::unique_ptr<ColumnChunk> dataColumnChunk;
+    uint64_t capacity;
 
     explicit VarListDataColumnChunk(std::unique_ptr<ColumnChunk> dataChunk)
-        : dataChunk{std::move(dataChunk)}, numValuesInDataChunk{0},
-          capacityInDataChunk{StorageConstants::NODE_GROUP_SIZE} {}
+        : dataColumnChunk{std::move(dataChunk)}, capacity{StorageConstants::NODE_GROUP_SIZE} {}
 
     void reset();
 
-    void resize(uint64_t numValues);
+    void resizeBuffer(uint64_t numValues);
+
+    inline void append(ValueVector* dataVector) const {
+        dataColumnChunk->append(dataVector, dataColumnChunk->getNumValues());
+    }
+
+    inline uint64_t getNumValues() const { return dataColumnChunk->getNumValues(); }
+
+    inline void increaseNumValues(uint64_t numValues) const {
+        dataColumnChunk->numValues += numValues;
+    }
 };
 
 class VarListColumnChunk : public ColumnChunk {
@@ -27,7 +35,7 @@ public:
     VarListColumnChunk(LogicalType dataType, CopyDescription* copyDescription);
 
     inline ColumnChunk* getDataColumnChunk() const {
-        return varListDataColumnChunk.dataChunk.get();
+        return varListDataColumnChunk.dataColumnChunk.get();
     }
 
     void setValueFromString(const char* value, uint64_t length, uint64_t pos);
@@ -36,9 +44,14 @@ public:
 
     void append(common::ValueVector* vector, common::offset_t startPosInChunk) final;
 
+    inline void resizeDataColumnChunk(uint64_t numBytesForBuffer) {
+        varListDataColumnChunk.resizeBuffer(
+            numBytesForBuffer / varListDataColumnChunk.dataColumnChunk->getNumBytesPerValue());
+    }
+
 private:
     inline common::page_idx_t getNumPages() const final {
-        return varListDataColumnChunk.dataChunk->getNumPages() + ColumnChunk::getNumPages();
+        return varListDataColumnChunk.dataColumnChunk->getNumPages() + ColumnChunk::getNumPages();
     }
 
     void append(arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) override;
@@ -53,18 +66,20 @@ private:
     void copyVarListFromArrowList(
         arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
         auto listArray = (T*)array;
-        auto dataChunkOffsetToAppend = varListDataColumnChunk.numValuesInDataChunk;
+        auto dataChunkOffsetToAppend = varListDataColumnChunk.getNumValues();
+        auto curListOffset = varListDataColumnChunk.getNumValues();
         for (auto i = 0u; i < numValuesToAppend; i++) {
             nullChunk->setNull(i + startPosInChunk, listArray->IsNull(i));
             auto length = listArray->value_length(i);
-            varListDataColumnChunk.numValuesInDataChunk += length;
-            setValue(varListDataColumnChunk.numValuesInDataChunk, i + startPosInChunk);
+            curListOffset += length;
+            setValue(curListOffset, i + startPosInChunk);
         }
         auto startOffset = listArray->value_offset(startPosInChunk);
         auto endOffset = listArray->value_offset(startPosInChunk + numValuesToAppend);
-        varListDataColumnChunk.resize(varListDataColumnChunk.numValuesInDataChunk);
-        varListDataColumnChunk.dataChunk->append(
+        varListDataColumnChunk.resizeBuffer(curListOffset);
+        varListDataColumnChunk.dataColumnChunk->append(
             listArray->values().get(), dataChunkOffsetToAppend, endOffset - startOffset);
+        numValues += numValuesToAppend;
     }
 
     void write(const common::Value& listVal, uint64_t posToWrite) override;

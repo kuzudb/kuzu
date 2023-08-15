@@ -37,6 +37,7 @@ void StructColumnChunk::append(
         throw NotImplementedException("StructColumnChunk::append");
     }
     }
+    numValues += numValuesToAppend;
 }
 
 void StructColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
@@ -49,6 +50,7 @@ void StructColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk
         childrenChunks[i]->append(otherStructChunk->childrenChunks[i].get(), startPosInOtherChunk,
             startPosInChunk, numValuesToAppend);
     }
+    numValues += numValuesToAppend;
 }
 
 void StructColumnChunk::append(common::ValueVector* vector, common::offset_t startPosInChunk) {
@@ -60,6 +62,7 @@ void StructColumnChunk::append(common::ValueVector* vector, common::offset_t sta
         nullChunk->setNull(
             startPosInChunk + i, vector->isNull(vector->state->selVector->selectedPositions[i]));
     }
+    numValues += vector->state->selVector->selectedSize;
 }
 
 void StructColumnChunk::setStructFields(const char* value, uint64_t length, uint64_t pos) {

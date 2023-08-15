@@ -91,7 +91,7 @@ NodeColumn::NodeColumn(LogicalType dataType, const MetadataDAHInfo& metaDAHeader
     transaction::Transaction* transaction, bool requireNullColumn)
     : storageStructureID{StorageStructureID::newDataID()}, dataType{std::move(dataType)},
       dataFH{dataFH}, metadataFH{metadataFH}, bufferManager{bufferManager}, wal{wal} {
-    metadataDA = std::make_unique<InMemDiskArray<ColumnChunkMetadata>>(*metadataFH,
+    metadataDA = std::make_unique<InMemDiskArray<MainColumnChunkMetadata>>(*metadataFH,
         StorageStructureID::newMetadataID(), metaDAHeaderInfo.dataDAHPageIdx, bufferManager, wal,
         transaction);
     numBytesPerFixedSizedValue = ColumnChunk::getDataTypeSizeInChunk(this->dataType);
@@ -168,6 +168,8 @@ void NodeColumn::scan(node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) {
     auto chunkMetadata = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
     FileUtils::readFromFile(dataFH->getFileInfo(), columnChunk->getData(),
         columnChunk->getNumBytes(), chunkMetadata.pageIdx * BufferPoolConstants::PAGE_4KB_SIZE);
+    columnChunk->setNumValues(
+        metadataDA->get(nodeGroupIdx, transaction::TransactionType::READ_ONLY).numValues);
 }
 
 void NodeColumn::scanInternal(
@@ -273,7 +275,8 @@ page_idx_t NodeColumn::append(
     page_idx_t numPagesFlushed = 0;
     auto numPagesForChunk = columnChunk->flushBuffer(dataFH, startPageIdx);
     metadataDA->resize(nodeGroupIdx + 1);
-    metadataDA->update(nodeGroupIdx, ColumnChunkMetadata{startPageIdx, numPagesForChunk});
+    metadataDA->update(nodeGroupIdx,
+        MainColumnChunkMetadata{startPageIdx, numPagesForChunk, columnChunk->getNumValues()});
     numPagesFlushed += numPagesForChunk;
     startPageIdx += numPagesForChunk;
     // Null column chunk.
@@ -440,7 +443,8 @@ page_idx_t NullNodeColumn::append(
     ColumnChunk* columnChunk, page_idx_t startPageIdx, uint64_t nodeGroupIdx) {
     auto numPagesFlushed = columnChunk->flushBuffer(dataFH, startPageIdx);
     metadataDA->resize(nodeGroupIdx + 1);
-    metadataDA->update(nodeGroupIdx, ColumnChunkMetadata{startPageIdx, numPagesFlushed});
+    metadataDA->update(nodeGroupIdx,
+        MainColumnChunkMetadata{startPageIdx, numPagesFlushed, columnChunk->getNumValues()});
     return numPagesFlushed;
 }
 
