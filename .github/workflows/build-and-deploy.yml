@@ -219,7 +219,6 @@ jobs:
     runs-on: kuzu-self-hosted-testing
     env:
       CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-      MSRV: 1.67
     steps:
       - uses: actions/checkout@v3
 
@@ -227,20 +226,13 @@ jobs:
         run: python3 update_version.py
         working-directory: tools/rust_api
 
-      - name: Update rust version
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-update-default-toolchain
-          ~/.cargo/bin/rustup install ${MSRV} --profile minimal
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-        working-directory: tools/rust_api
-
       - name: Deploy crate to Crates.io
-        run: rustup run ${MSRV} cargo publish --allow-dirty
+        run: cargo publish --allow-dirty
         if: ${{ github.event.inputs.isDeploy == 'true' }}
         working-directory: tools/rust_api
 
       - name: Test publishing crate
-        run: rustup run ${MSRV} cargo publish --dry-run --allow-dirty
+        run: cargo publish --dry-run --allow-dirty
         if: ${{ github.event.inputs.isDeploy != 'true' }}
         working-directory: tools/rust_api
 
