@@ -19,6 +19,7 @@ void ActiveQuery::reset() {
 
 ClientContext::ClientContext()
     : numThreadsForExecution{std::thread::hardware_concurrency()},
+      bfsSchedulerType{nThreadkMorsel},
       timeoutInMS{ClientContextConstants::TIMEOUT_IN_MS} {}
 
 void ClientContext::startTimingIfEnabled() {

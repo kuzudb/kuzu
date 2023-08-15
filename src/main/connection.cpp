@@ -68,6 +68,15 @@ uint64_t Connection::getMaxNumThreadForExec() {
     return clientContext->numThreadsForExecution;
 }
 
+void Connection::setRecursiveJoinBFSPolicy(SchedulerType schedulerType) {
+    clientContext->bfsSchedulerType = schedulerType;
+}
+
+SchedulerType Connection::getRecursiveJoinBFSPolicy() {
+    std::unique_lock<std::mutex> lck{mtx};
+    return clientContext->bfsSchedulerType;
+}
+
 std::unique_ptr<PreparedStatement> Connection::prepare(const std::string& query) {
     std::unique_lock<std::mutex> lck{mtx};
     return prepareNoLock(query);

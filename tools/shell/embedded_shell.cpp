@@ -295,6 +295,16 @@ void EmbeddedShell::setNumThreads(const std::string& numThreadsString) {
 }
 
 void EmbeddedShell::setRecursiveJoinBFSPolicy(const std::string& bfsPolicy) {
+    auto policy = StringUtils::ltrim(bfsPolicy);
+    try {
+        if(policy.find("1T1S") != std::string::npos) {
+            conn->setRecursiveJoinBFSPolicy(kuzu::main::SchedulerType::OneThreadOneMorsel);
+        } else if(policy.find("nTkS") != std::string::npos) {
+            conn->setRecursiveJoinBFSPolicy(kuzu::main::SchedulerType::nThreadkMorsel);
+        } else {
+            printf("Unknown recursive join BFS policy provided, supported types: 1T1S & nTkS.\n");
+        }
+    } catch (Exception& e) { printf("%s", e.what()); }
     printf("Successfully executed this function, with this string input: %s\n", bfsPolicy.c_str());
 }
 

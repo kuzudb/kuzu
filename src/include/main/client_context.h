@@ -19,6 +19,8 @@ struct ActiveQuery {
     void reset();
 };
 
+enum SchedulerType { OneThreadOneMorsel, nThreadkMorsel };
+
 /**
  * @brief Contain client side configuration. We make profiler associated per query, so profiler is
  * not maintained in client context.
@@ -53,6 +55,7 @@ private:
     inline void resetActiveQuery() { activeQuery.reset(); }
 
     uint64_t numThreadsForExecution;
+    SchedulerType bfsSchedulerType;
     ActiveQuery activeQuery;
     uint64_t timeoutInMS;
 };
