@@ -18,13 +18,13 @@ struct TestStatement {
     bool enumerate = false;
     bool checkOutputOrder = false;
     std::string expectedTuplesCSVFile;
-    enum class TransactionType {
+    enum class TransactionCmdType {
         NONE,
         WRITE,
         READ_ONLY,
         COMMIT,
         ROLLBACK
-    } transactionType = TransactionType::NONE;
+    } transactionCmdType = TransactionCmdType::NONE;
 };
 
 // Test group is a collection of test cases in a single file.

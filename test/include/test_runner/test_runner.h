@@ -17,7 +17,6 @@ public:
         const std::string& query, main::Connection& conn);
 
 private:
-    static void initializeConnection(TestStatement* statement, main::Connection& conn);
     static bool testStatement(
         TestStatement* statement, main::Connection& conn, std::string& databasePath);
     static bool checkLogicalPlans(std::unique_ptr<main::PreparedStatement>& preparedStatement,

@@ -172,19 +172,19 @@ TestStatement* TestParser::extractStatement(TestStatement* statement) {
         break;
     }
     case TokenType::BEGIN_WRITE_TRANSACTION: {
-        statement->transactionType = TestStatement::TransactionType::WRITE;
+        statement->transactionCmdType = TestStatement::TransactionCmdType::WRITE;
         return statement;
     }
     case TokenType::BEGIN_READ_ONLY_TRANSACTION: {
-        statement->transactionType = TestStatement::TransactionType::READ_ONLY;
+        statement->transactionCmdType = TestStatement::TransactionCmdType::READ_ONLY;
         return statement;
     }
     case TokenType::COMMIT: {
-        statement->transactionType = TestStatement::TransactionType::COMMIT;
+        statement->transactionCmdType = TestStatement::TransactionCmdType::COMMIT;
         return statement;
     }
     case TokenType::ROLLBACK: {
-        statement->transactionType = TestStatement::TransactionType::ROLLBACK;
+        statement->transactionCmdType = TestStatement::TransactionCmdType::ROLLBACK;
         return statement;
     }
     case TokenType::EMPTY: {

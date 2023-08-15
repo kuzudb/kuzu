@@ -14,32 +14,27 @@ namespace testing {
 void TestRunner::runTest(const std::vector<std::unique_ptr<TestStatement>>& statements,
     Connection& conn, std::string& databasePath) {
     for (auto& statement : statements) {
-        initializeConnection(statement.get(), conn);
-        switch (statement->transactionType) {
-        case TestStatement::TransactionType::WRITE:
+        spdlog::info("DEBUG LOG: {}", statement->logMessage);
+        spdlog::info("QUERY: {}", statement->query);
+        conn.setMaxNumThreadForExec(statement->numThreads);
+        switch (statement->transactionCmdType) {
+        case TestStatement::TransactionCmdType::WRITE:
             conn.beginWriteTransaction();
             break;
-        case TestStatement::TransactionType::READ_ONLY:
+        case TestStatement::TransactionCmdType::READ_ONLY:
             conn.beginReadOnlyTransaction();
             break;
-        case TestStatement::TransactionType::COMMIT:
+        case TestStatement::TransactionCmdType::COMMIT:
             conn.commit();
             break;
-        case TestStatement::TransactionType::ROLLBACK:
+        case TestStatement::TransactionCmdType::ROLLBACK:
             conn.rollback();
             break;
-        case TestStatement::TransactionType::NONE:
         default:
             ASSERT_TRUE(testStatement(statement.get(), conn, databasePath));
             break;
         }
     }
-}
-
-void TestRunner::initializeConnection(TestStatement* statement, Connection& conn) {
-    spdlog::info("DEBUG LOG: {}", statement->logMessage);
-    spdlog::info("QUERY: {}", statement->query);
-    conn.setMaxNumThreadForExec(statement->numThreads);
 }
 
 bool TestRunner::testStatement(
