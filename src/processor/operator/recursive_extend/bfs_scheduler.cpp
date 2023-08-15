@@ -21,7 +21,7 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
     common::QueryRelType queryRelType) {
     std::unique_lock lck{mutex};
     switch (schedulerType) {
-    case SchedulerType::OneThreadOneMorsel: {
+    case common::SchedulerType::OneThreadOneMorsel: {
         auto inputFTableMorsel = inputFTableSharedState->getMorsel();
         if (inputFTableMorsel->numTuples == 0) {
             return {COMPLETE, NO_WORK_TO_SHARE};
@@ -35,7 +35,7 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
         bfsMorsel->markSrc(nodeID);
         return {IN_PROGRESS, EXTEND_IN_PROGRESS};
     }
-    case SchedulerType::nThreadkMorsel: {
+    case common::SchedulerType::nThreadkMorsel: {
         switch (globalState) {
         case COMPLETE: {
             return {COMPLETE, NO_WORK_TO_SHARE};
