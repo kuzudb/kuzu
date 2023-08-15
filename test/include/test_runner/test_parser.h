@@ -9,15 +9,17 @@ namespace kuzu {
 namespace testing {
 
 enum class TokenType {
-    /* header */
-    BEGIN_WRITE_TRANSACTION,
+    // header
     DATASET,
     GROUP,
     SKIP,
-    /* body */
+    // body
+    BEGIN_READ_ONLY_TRANSACTION,
+    BEGIN_WRITE_TRANSACTION,
     BUFFER_POOL_SIZE,
     CASE,
     CHECK_ORDER,
+    COMMIT,
     DEFINE,
     DEFINE_STATEMENT_BLOCK,
     EMPTY,
@@ -28,22 +30,25 @@ enum class TokenType {
     LOG,
     PARALLELISM,
     RESULT,
+    ROLLBACK,
     SEPARATOR,
     STATEMENT,
     _SKIP_LINE
 };
 
 const std::unordered_map<std::string, TokenType> tokenMap = {{"-GROUP", TokenType::GROUP},
-    {"-DATASET", TokenType::DATASET}, {"-CASE", TokenType::CASE},
+    {"-DATASET", TokenType::DATASET}, {"-CASE", TokenType::CASE}, {"-COMMIT", TokenType::COMMIT},
     {"-CHECK_ORDER", TokenType::CHECK_ORDER}, {"-ENCODED_JOIN", TokenType::ENCODED_JOIN},
     {"-LOG", TokenType::LOG}, {"-DEFINE_STATEMENT_BLOCK", TokenType::DEFINE_STATEMENT_BLOCK},
     {"-ENUMERATE", TokenType::ENUMERATE},
     {"-BEGIN_WRITE_TRANSACTION", TokenType::BEGIN_WRITE_TRANSACTION},
+    {"-BEGIN_READ_ONLY_TRANSACTION", TokenType::BEGIN_READ_ONLY_TRANSACTION},
     {"-PARALLELISM", TokenType::PARALLELISM}, {"-SKIP", TokenType::SKIP},
     {"-DEFINE", TokenType::DEFINE}, {"-STATEMENT", TokenType::STATEMENT},
     {"-INSERT_STATEMENT_BLOCK", TokenType::INSERT_STATEMENT_BLOCK},
-    {"-BUFFER_POOL_SIZE", TokenType::BUFFER_POOL_SIZE}, {"]", TokenType::END_OF_STATEMENT_BLOCK},
-    {"----", TokenType::RESULT}, {"--", TokenType::SEPARATOR}, {"#", TokenType::EMPTY}};
+    {"-ROLLBACK", TokenType::ROLLBACK}, {"-BUFFER_POOL_SIZE", TokenType::BUFFER_POOL_SIZE},
+    {"]", TokenType::END_OF_STATEMENT_BLOCK}, {"----", TokenType::RESULT},
+    {"--", TokenType::SEPARATOR}, {"#", TokenType::EMPTY}};
 
 class LogicToken {
 public:

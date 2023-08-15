@@ -15,11 +15,24 @@ void TestRunner::runTest(const std::vector<std::unique_ptr<TestStatement>>& stat
     Connection& conn, std::string& databasePath) {
     for (auto& statement : statements) {
         initializeConnection(statement.get(), conn);
-        if (statement->isBeginWriteTransaction) {
+        switch (statement->transactionType) {
+        case TestStatement::TransactionType::WRITE:
             conn.beginWriteTransaction();
-            continue;
+            break;
+        case TestStatement::TransactionType::READ_ONLY:
+            conn.beginReadOnlyTransaction();
+            break;
+        case TestStatement::TransactionType::COMMIT:
+            conn.commit();
+            break;
+        case TestStatement::TransactionType::ROLLBACK:
+            conn.rollback();
+            break;
+        case TestStatement::TransactionType::NONE:
+        default:
+            ASSERT_TRUE(testStatement(statement.get(), conn, databasePath));
+            break;
         }
-        ASSERT_TRUE(testStatement(statement.get(), conn, databasePath));
     }
 }
 

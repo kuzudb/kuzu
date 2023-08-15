@@ -10,15 +10,21 @@ struct TestStatement {
     std::string query;
     uint64_t numThreads = 4;
     std::string encodedJoin;
-    uint64_t expectedNumTuples = 0;
     bool expectedError = false;
-    bool expectedOk = false;
-    std::vector<std::string> expectedTuples;
     std::string errorMessage;
+    bool expectedOk = false;
+    uint64_t expectedNumTuples = 0;
+    std::vector<std::string> expectedTuples;
     bool enumerate = false;
     bool checkOutputOrder = false;
-    bool isBeginWriteTransaction = false;
     std::string expectedTuplesCSVFile;
+    enum class TransactionType {
+        NONE,
+        WRITE,
+        READ_ONLY,
+        COMMIT,
+        ROLLBACK
+    } transactionType = TransactionType::NONE;
 };
 
 // Test group is a collection of test cases in a single file.
