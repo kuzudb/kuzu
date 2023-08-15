@@ -18,10 +18,10 @@ void TestRunner::runTest(const std::vector<std::unique_ptr<TestStatement>>& stat
         spdlog::info("QUERY: {}", statement->query);
         conn.setMaxNumThreadForExec(statement->numThreads);
         switch (statement->transactionCmdType) {
-        case TestStatement::TransactionCmdType::WRITE:
+        case TestStatement::TransactionCmdType::BEGIN_WRITE_TRX:
             conn.beginWriteTransaction();
             break;
-        case TestStatement::TransactionCmdType::READ_ONLY:
+        case TestStatement::TransactionCmdType::BEGIN_READ_TRX:
             conn.beginReadOnlyTransaction();
             break;
         case TestStatement::TransactionCmdType::COMMIT:

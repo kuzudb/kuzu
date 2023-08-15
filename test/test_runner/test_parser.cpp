@@ -172,11 +172,11 @@ TestStatement* TestParser::extractStatement(TestStatement* statement) {
         break;
     }
     case TokenType::BEGIN_WRITE_TRANSACTION: {
-        statement->transactionCmdType = TestStatement::TransactionCmdType::WRITE;
+        statement->transactionCmdType = TestStatement::TransactionCmdType::BEGIN_WRITE_TRX;
         return statement;
     }
     case TokenType::BEGIN_READ_ONLY_TRANSACTION: {
-        statement->transactionCmdType = TestStatement::TransactionCmdType::READ_ONLY;
+        statement->transactionCmdType = TestStatement::TransactionCmdType::BEGIN_READ_TRX;
         return statement;
     }
     case TokenType::COMMIT: {
