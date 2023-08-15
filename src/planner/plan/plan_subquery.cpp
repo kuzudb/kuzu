@@ -23,16 +23,6 @@ static expression_vector getCorrelatedExpressions(const QueryGraphCollection& co
     return result;
 }
 
-static expression_vector getJoinNodeIDs(expression_vector& expressions) {
-    expression_vector joinNodeIDs;
-    for (auto& expression : expressions) {
-        if (expression->dataType.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID) {
-            joinNodeIDs.push_back(expression);
-        }
-    }
-    return joinNodeIDs;
-}
-
 void QueryPlanner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
     const expression_vector& predicates, LogicalPlan& leftPlan) {
     if (leftPlan.isEmpty()) {
@@ -50,25 +40,28 @@ void QueryPlanner::planOptionalMatch(const QueryGraphCollection& queryGraphColle
         appendCrossProduct(AccumulateType::OPTIONAL_, leftPlan, *rightPlan);
         return;
     }
-    if (ExpressionUtil::allExpressionsHaveDataType(
-            correlatedExpressions, LogicalTypeID::INTERNAL_ID)) {
-        // All join conditions are internal IDs, unnest as left hash join.
-        auto joinNodeIDs = getJoinNodeIDs(correlatedExpressions);
-        // Join nodes are scanned twice in both outer and inner. However, we make sure inner table
-        // scan only scans node ID and does not scan from storage (i.e. no property scan).
-        auto rightPlan =
-            planQueryGraphCollectionInNewContext(joinNodeIDs, queryGraphCollection, predicates);
-        appendHashJoin(joinNodeIDs, JoinType::LEFT, leftPlan, *rightPlan);
+    bool isInternalIDCorrelated = ExpressionUtil::isExpressionsWithDataType(
+        correlatedExpressions, LogicalTypeID::INTERNAL_ID);
+    std::unique_ptr<LogicalPlan> rightPlan;
+    if (isInternalIDCorrelated) {
+        // If all correlated expressions are node IDs. We can trivially unnest by scanning internal
+        // ID in both outer and inner plan as these are fast in-memory operations. For node
+        // properties, we only scan in the outer query.
+        rightPlan = planQueryGraphCollectionInNewContext(SubqueryType::INTERNAL_ID_CORRELATED,
+            correlatedExpressions, leftPlan.getCardinality(), queryGraphCollection, predicates);
     } else {
-        throw NotImplementedException("Correlated optional match is not supported.");
+        // Unnest using ExpressionsScan which scans the accumulated table on probe side.
+        rightPlan = planQueryGraphCollectionInNewContext(SubqueryType::CORRELATED,
+            correlatedExpressions, leftPlan.getCardinality(), queryGraphCollection, predicates);
+        appendAccumulate(AccumulateType::REGULAR, correlatedExpressions, leftPlan);
     }
+    appendHashJoin(correlatedExpressions, JoinType::LEFT, leftPlan, *rightPlan);
 }
 
 void QueryPlanner::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
     const expression_vector& predicates, LogicalPlan& leftPlan) {
     auto correlatedExpressions =
         getCorrelatedExpressions(queryGraphCollection, predicates, leftPlan.getSchema());
-    auto joinNodeIDs = getJoinNodeIDs(correlatedExpressions);
     expression_vector predicatesToPushDown, predicatesToPullUp;
     // E.g. MATCH (a) WITH COUNT(*) AS s MATCH (b) WHERE b.age > s
     // "b.age > s" should be pulled up after both MATCH clauses are joined.
@@ -79,14 +72,19 @@ void QueryPlanner::planRegularMatch(const QueryGraphCollection& queryGraphCollec
             predicatesToPullUp.push_back(predicate);
         }
     }
-    // Multi-part query is actually CTE and CTE can be considered as a subquery but does not scan
-    // from outer (i.e. can always be un-nest). So we plan multi-part query in the same way as
-    // planning an un-nest subquery.
-    auto rightPlan = planQueryGraphCollectionInNewContext(
-        joinNodeIDs, queryGraphCollection, predicatesToPushDown);
+    auto joinNodeIDs = ExpressionUtil::getExpressionsWithDataType(
+        correlatedExpressions, LogicalTypeID::INTERNAL_ID);
+    std::unique_ptr<LogicalPlan> rightPlan;
     if (joinNodeIDs.empty()) {
+        rightPlan = planQueryGraphCollectionInNewContext(SubqueryType::NONE, correlatedExpressions,
+            leftPlan.getCardinality(), queryGraphCollection, predicatesToPushDown);
         appendCrossProduct(AccumulateType::REGULAR, leftPlan, *rightPlan);
     } else {
+        // TODO(Xiyang): there is a question regarding if we want to plan as a correlated subquery
+        // Multi-part query is actually CTE and CTE can be considered as a subquery but does not
+        // scan from outer.
+        rightPlan = planQueryGraphCollectionInNewContext(SubqueryType::INTERNAL_ID_CORRELATED,
+            joinNodeIDs, leftPlan.getCardinality(), queryGraphCollection, predicatesToPushDown);
         appendHashJoin(joinNodeIDs, JoinType::INNER, leftPlan, *rightPlan);
     }
     for (auto& predicate : predicatesToPullUp) {
@@ -101,18 +99,24 @@ void QueryPlanner::planExistsSubquery(
     auto predicates = subquery->getPredicatesSplitOnAnd();
     auto correlatedExpressions = outerPlan.getSchema()->getSubExpressionsInScope(subquery);
     if (correlatedExpressions.empty()) {
-        throw NotImplementedException("Subquery is disconnected with outer query.");
+        throw common::NotImplementedException(
+            "Exists subquery with no correlated join conditions is not yet supported.");
     }
-    if (ExpressionUtil::allExpressionsHaveDataType(
-            correlatedExpressions, LogicalTypeID::INTERNAL_ID)) {
-        auto joinNodeIDs = getJoinNodeIDs(correlatedExpressions);
-        // Unnest as mark join. See planOptionalMatch for unnesting logic.
-        auto innerPlan = planQueryGraphCollectionInNewContext(
-            joinNodeIDs, *subquery->getQueryGraphCollection(), predicates);
-        appendMarkJoin(joinNodeIDs, expression, outerPlan, *innerPlan);
+    // See planOptionalMatch for un-nesting logic.
+    bool isInternalIDCorrelated = ExpressionUtil::isExpressionsWithDataType(
+        correlatedExpressions, LogicalTypeID::INTERNAL_ID);
+    std::unique_ptr<LogicalPlan> innerPlan;
+    if (isInternalIDCorrelated) {
+        innerPlan = planQueryGraphCollectionInNewContext(SubqueryType::INTERNAL_ID_CORRELATED,
+            correlatedExpressions, outerPlan.getCardinality(), *subquery->getQueryGraphCollection(),
+            predicates);
     } else {
-        throw NotImplementedException("Correlated exists subquery is not supported.");
+        appendAccumulate(AccumulateType::REGULAR, correlatedExpressions, outerPlan);
+        innerPlan =
+            planQueryGraphCollectionInNewContext(SubqueryType::CORRELATED, correlatedExpressions,
+                outerPlan.getCardinality(), *subquery->getQueryGraphCollection(), predicates);
     }
+    appendMarkJoin(correlatedExpressions, expression, outerPlan, *innerPlan);
 }
 
 void QueryPlanner::planSubqueryIfNecessary(

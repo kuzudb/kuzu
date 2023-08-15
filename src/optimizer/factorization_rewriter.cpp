@@ -4,6 +4,7 @@
 #include "planner/logical_plan/extend/logical_extend.h"
 #include "planner/logical_plan/extend/logical_recursive_extend.h"
 #include "planner/logical_plan/factorization/flatten_resolver.h"
+#include "planner/logical_plan/logical_accumulate.h"
 #include "planner/logical_plan/logical_aggregate.h"
 #include "planner/logical_plan/logical_distinct.h"
 #include "planner/logical_plan/logical_filter.h"
@@ -80,6 +81,12 @@ void FactorizationRewriter::visitProjection(planner::LogicalOperator* op) {
             dependentGroupsPos, op->getChild(0)->getSchema());
         projection->setChild(0, appendFlattens(projection->getChild(0), groupsPosToFlatten));
     }
+}
+
+void FactorizationRewriter::visitAccumulate(planner::LogicalOperator* op) {
+    auto accumulate = (LogicalAccumulate*)op;
+    auto groupsPosToFlatten = accumulate->getGroupPositionsToFlatten();
+    accumulate->setChild(0, appendFlattens(accumulate->getChild(0), groupsPosToFlatten));
 }
 
 void FactorizationRewriter::visitAggregate(planner::LogicalOperator* op) {

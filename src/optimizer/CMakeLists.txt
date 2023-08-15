@@ -2,6 +2,7 @@ add_library(kuzu_optimizer
         OBJECT
         acc_hash_join_optimizer.cpp
         agg_key_dependency_optimizer.cpp
+        correlated_subquery_unnest_solver.cpp
         factorization_rewriter.cpp
         filter_push_down_optimizer.cpp
         logical_operator_collector.cpp

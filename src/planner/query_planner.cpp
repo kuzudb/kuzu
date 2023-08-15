@@ -109,11 +109,13 @@ expression_vector QueryPlanner::getProperties(const binder::Expression& nodeOrRe
     return result;
 }
 
-std::unique_ptr<JoinOrderEnumeratorContext> QueryPlanner::enterContext(
-    expression_vector nodeIDsToScanFromInnerAndOuter) {
+std::unique_ptr<JoinOrderEnumeratorContext> QueryPlanner::enterContext(SubqueryType subqueryType,
+    const expression_vector& correlatedExpressions, uint64_t cardinality) {
     auto prevContext = std::move(context);
     context = std::make_unique<JoinOrderEnumeratorContext>();
-    context->nodeIDsToScanFromInnerAndOuter = std::move(nodeIDsToScanFromInnerAndOuter);
+    context->subqueryType = subqueryType;
+    context->correlatedExpressions = correlatedExpressions;
+    context->correlatedExpressionsCardinality = cardinality;
     return prevContext;
 }
 

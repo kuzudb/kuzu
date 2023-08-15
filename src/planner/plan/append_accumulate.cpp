@@ -6,10 +6,13 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace planner {
 
-void QueryPlanner::appendAccumulate(AccumulateType accumulateType, LogicalPlan& plan) {
-    auto op = make_shared<LogicalAccumulate>(accumulateType, plan.getLastOperator());
+void QueryPlanner::appendAccumulate(AccumulateType accumulateType,
+    const expression_vector& expressionsToFlatten, LogicalPlan& plan) {
+    auto op = make_shared<LogicalAccumulate>(
+        accumulateType, expressionsToFlatten, plan.getLastOperator());
+    appendFlattens(op->getGroupPositionsToFlatten(), plan);
     op->computeFactorizedSchema();
-    plan.setLastOperator(op);
+    plan.setLastOperator(std::move(op));
 }
 
 } // namespace planner

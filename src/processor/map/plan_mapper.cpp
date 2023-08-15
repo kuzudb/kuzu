@@ -164,6 +164,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     case LogicalOperatorType::EXPLAIN: {
         physicalOperator = mapExplain(logicalOperator);
     } break;
+    case LogicalOperatorType::EXPRESSIONS_SCAN: {
+        physicalOperator = mapExpressionsScan(logicalOperator);
+    } break;
     case LogicalOperatorType::CREATE_MACRO: {
         physicalOperator = mapCreateMacro(logicalOperator);
     } break;

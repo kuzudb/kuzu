@@ -17,7 +17,7 @@ public:
     void initNodeIDDom(binder::QueryGraph* queryGraph);
 
     uint64_t estimateScanNode(LogicalOperator* op);
-    uint64_t estimateHashJoin(const binder::expression_vector& joinNodeIDs,
+    uint64_t estimateHashJoin(const binder::expression_vector& joinKeys,
         const LogicalPlan& probePlan, const LogicalPlan& buildPlan);
     uint64_t estimateCrossProduct(const LogicalPlan& probePlan, const LogicalPlan& buildPlan);
     uint64_t estimateIntersect(const binder::expression_vector& joinNodeIDs,

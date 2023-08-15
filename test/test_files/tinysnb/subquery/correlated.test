@@ -1,0 +1,38 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE CorrelatedSubquery
+
+-LOG CorrelatedSubqueryTest1
+-STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WHERE a.fName='Alice' } RETURN a.*;
+---- 1
+0|Alice|1|True|False|35|5.000000|1900-01-01|2011-08-20 11:25:30|3 years 2 days 13:02:00|[10,5]|[Aida]|[[10,8],[6,7,8]]|[96,54,86,92]|1.731000
+
+-LOG CorrelatedSubqueryTest2
+-STATEMENT MATCH (a:person) WITH a, a.fName AS newName WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WHERE newName='Alice' } RETURN a.*
+---- 1
+0|Alice|1|True|False|35|5.000000|1900-01-01|2011-08-20 11:25:30|3 years 2 days 13:02:00|[10,5]|[Aida]|[[10,8],[6,7,8]]|[96,54,86,92]|1.731000
+
+-LOG CorrelatedSubqueryTest3
+-STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WHERE b.ID > a.ID } RETURN a.ID;
+---- 4
+0
+2
+3
+7
+
+-LOG CorrelatedSubqueryTest3
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE EXISTS { MATCH (a)-[:knows]->(c:person) WHERE b.ID = c.ID + 2 } RETURN a.ID, b.ID;
+---- 4
+0|5
+2|5
+3|2
+5|2
+
+-LOG CorrelatedSubqueryTest4
+-STATEMENT MATCH (a:person)-[:studyAt]->(b) WHERE EXISTS { MATCH (a)-[:knows]->(c:person) WHERE b.orgCode > c.age } RETURN a.ID, b.ID;
+---- 2
+0|1
+2|1

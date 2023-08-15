@@ -9,6 +9,7 @@
 #include "planner/logical_plan/sip/logical_semi_masker.h"
 
 using namespace kuzu::common;
+using namespace kuzu::binder;
 using namespace kuzu::planner;
 
 namespace kuzu {
@@ -59,6 +60,7 @@ bool HashJoinSIPOptimizer::tryProbeToBuildHJSIP(planner::LogicalOperator* op) {
         return false;
     }
     hashJoin->setSIP(SidewaysInfoPassing::PROBE_TO_BUILD);
+    hashJoin->setJoinSubPlanSolveOrder(JoinSubPlanSolveOrder::BUILD_PROBE);
     hashJoin->setChild(0, appendAccumulate(probeRoot));
     return true;
 }
@@ -94,6 +96,7 @@ bool HashJoinSIPOptimizer::tryBuildToProbeHJSIP(planner::LogicalOperator* op) {
         }
     }
     hashJoin->setSIP(planner::SidewaysInfoPassing::BUILD_TO_PROBE);
+    hashJoin->setJoinSubPlanSolveOrder(JoinSubPlanSolveOrder::PROBE_BUILD);
     hashJoin->setChild(1, buildRoot);
     return true;
 }
@@ -249,8 +252,8 @@ std::shared_ptr<planner::LogicalOperator> HashJoinSIPOptimizer::appendPathSemiMa
 
 std::shared_ptr<planner::LogicalOperator> HashJoinSIPOptimizer::appendAccumulate(
     std::shared_ptr<planner::LogicalOperator> child) {
-    auto accumulate =
-        std::make_shared<LogicalAccumulate>(AccumulateType::REGULAR, std::move(child));
+    auto accumulate = std::make_shared<LogicalAccumulate>(
+        AccumulateType::REGULAR, expression_vector{}, std::move(child));
     accumulate->computeFlatSchema();
     return accumulate;
 }

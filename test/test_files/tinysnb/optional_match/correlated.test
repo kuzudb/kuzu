@@ -1,0 +1,45 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE CorrelatedOptionalMatch
+
+-LOG CorrelatedOptionalMatchTest1
+-STATEMENT MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person) WHERE b.age > a.age RETURN COUNT(*)
+---- 1
+12
+
+-LOG CorrelatedOptionalMatchTest2
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) OPTIONAL MATCH (b)-[:knows]->(c:person) WHERE c.age > b.age RETURN COUNT(*)
+-ENUMERATE
+---- 1
+23
+
+-LOG CorrelatedOptionalMatchTest3
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) OPTIONAL MATCH (a)-[:knows]->(c:person), (b)-[:knows]->(c) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+26
+
+-LOG CorrelatedOptionalMatchTest4
+-STATEMENT MATCH (a)-[]->(b) WHERE a.ID = 0 OPTIONAL MATCH (c:person) WHERE c.ID = b.ID + 3 RETURN a.ID, b.ID, c.ID
+-ENUMERATE
+---- 6
+0|1|
+0|2|5
+0|2|5
+0|2|5
+0|3|
+0|5|8
+
+-LOG CorrelatedOptionalMatchTest5
+-STATEMENT MATCH (a:person) WHERE a.ID < 6
+           OPTIONAL MATCH (b:person) WHERE b.ID = a.ID + 2
+           OPTIONAL MATCH (c:person) WHERE c.ID = b.ID + a.ID RETURN a.ID, b.ID, c.ID
+-ENUMERATE
+---- 4
+0|2|2
+2||
+3|5|8
+5|7|
