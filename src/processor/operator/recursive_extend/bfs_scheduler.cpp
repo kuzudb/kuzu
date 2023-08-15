@@ -28,6 +28,7 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
         }
         inputFTableSharedState->getTable()->scan(vectorsToScan, inputFTableMorsel->startTupleIdx,
             inputFTableMorsel->numTuples, colIndicesToScan);
+        srcNodeIDVector->state->currIdx++;
         bfsMorsel->resetState();
         auto nodeID = srcNodeIDVector->getValue<common::nodeID_t>(
             srcNodeIDVector->state->selVector->selectedPositions[0]);
@@ -54,6 +55,7 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
                 inputFTableSharedState->getTable()->scan(vectorsToScan,
                     inputFTableMorsel->startTupleIdx, inputFTableMorsel->numTuples,
                     colIndicesToScan);
+                srcNodeIDVector->state->currIdx++;
                 auto nodeID = srcNodeIDVector->getValue<common::nodeID_t>(
                     srcNodeIDVector->state->selVector->selectedPositions[0]);
                 uint32_t newSharedStateIdx = UINT32_MAX;

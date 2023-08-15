@@ -3,6 +3,7 @@
 namespace kuzu {
 namespace processor {
 
+#if defined(__GNUC__) || defined(__GNUG__)
 template<>
 void VariableLengthMorsel<false>::addToLocalNextBFSLevel(
     common::ValueVector* tmpDstNodeIDVector, uint64_t boundNodeMultiplicity) {
@@ -10,17 +11,17 @@ void VariableLengthMorsel<false>::addToLocalNextBFSLevel(
         auto pos = tmpDstNodeIDVector->state->selVector->selectedPositions[i];
         auto nodeID = tmpDstNodeIDVector->getValue<common::nodeID_t>(pos);
         auto state = bfsSharedState->visitedNodes[nodeID.offset];
-        if(state == NOT_VISITED_DST || state == VISITED_DST) {
+        if (state == NOT_VISITED_DST || state == VISITED_DST) {
             __sync_bool_compare_and_swap(
                 &bfsSharedState->visitedNodes[nodeID.offset], state, VISITED_DST_NEW);
-        } else if(state == NOT_VISITED || state == VISITED) {
-            __sync_bool_compare_and_swap(&bfsSharedState->visitedNodes[nodeID.offset], state,
-                VISITED_NEW);
+        } else if (state == NOT_VISITED || state == VISITED) {
+            __sync_bool_compare_and_swap(
+                &bfsSharedState->visitedNodes[nodeID.offset], state, VISITED_NEW);
         }
         auto member = bfsSharedState->nodeIDMultiplicityToLevel[nodeID.offset];
         if (!member) {
-            auto entry = std::make_shared<multiplicityAndLevel>(boundNodeMultiplicity,
-                bfsSharedState->currentLevel + 1, nullptr);
+            auto entry = std::make_shared<multiplicityAndLevel>(
+                boundNodeMultiplicity, bfsSharedState->currentLevel + 1, nullptr);
             if (atomic_compare_exchange_strong(
                     &bfsSharedState->nodeIDMultiplicityToLevel[nodeID.offset], &member, entry)) {
                 // no need to do anything, current thread was successful
@@ -30,8 +31,8 @@ void VariableLengthMorsel<false>::addToLocalNextBFSLevel(
             }
         } else {
             if (member->bfsLevel != bfsSharedState->currentLevel + 1) {
-                auto entry = std::make_shared<multiplicityAndLevel>(boundNodeMultiplicity,
-                    bfsSharedState->currentLevel + 1, member);
+                auto entry = std::make_shared<multiplicityAndLevel>(
+                    boundNodeMultiplicity, bfsSharedState->currentLevel + 1, member);
                 if (atomic_compare_exchange_strong(
                         &bfsSharedState->nodeIDMultiplicityToLevel[nodeID.offset], &member,
                         entry)) {
@@ -46,12 +47,15 @@ void VariableLengthMorsel<false>::addToLocalNextBFSLevel(
         }
     }
 }
+#endif
 
+#if defined(__GNUC__) || defined(__GNUG__)
 template<>
 void VariableLengthMorsel<true>::addToLocalNextBFSLevel(
     common::ValueVector* tmpDstNodeIDVector, uint64_t boundNodeMultiplicity) {
     throw common::NotImplementedException("Not implemented for TRACK_PATH and nTkS scheduler. ");
 }
+#endif
 
 template<>
 int64_t VariableLengthMorsel<false>::writeToVector(
@@ -69,8 +73,8 @@ int64_t VariableLengthMorsel<false>::writeToVector(
             while (entry && entry->bfsLevel >= lowerBound) {
                 auto multiplicity = entry->multiplicity.load(std::memory_order_relaxed);
                 do {
-                    dstNodeIDVector->setValue<common::nodeID_t>(size,
-                        common::nodeID_t{startScanIdxAndSize.first, tableID});
+                    dstNodeIDVector->setValue<common::nodeID_t>(
+                        size, common::nodeID_t{startScanIdxAndSize.first, tableID});
                     pathLengthVector->setValue<int64_t>(size, entry->bfsLevel);
                     size++;
                 } while (--multiplicity && size < common::DEFAULT_VECTOR_CAPACITY);
@@ -81,15 +85,16 @@ int64_t VariableLengthMorsel<false>::writeToVector(
                     exitOuterLoop = true;
                     break;
                 }
-                if(size == common::DEFAULT_VECTOR_CAPACITY) {
+                if (size == common::DEFAULT_VECTOR_CAPACITY) {
                     bfsSharedState->nodeIDMultiplicityToLevel[startScanIdxAndSize.first] =
                         entry->next;
+                    exitOuterLoop = true;
                     break;
                 }
                 entry = entry->next;
             }
         }
-        if(!exitOuterLoop) {
+        if (!exitOuterLoop) {
             startScanIdxAndSize.first++;
         }
     }
