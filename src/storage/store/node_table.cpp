@@ -23,8 +23,8 @@ void NodeTable::initializeData(NodeTableSchema* nodeTableSchema) {
 
 void NodeTable::initializeColumns(NodeTableSchema* nodeTableSchema) {
     for (auto& property : nodeTableSchema->getProperties()) {
-        propertyColumns[property->getPropertyID()] =
-            NodeColumnFactory::createNodeColumn(*property, dataFH, metadataFH, &bufferManager, wal);
+        propertyColumns[property->getPropertyID()] = NodeColumnFactory::createNodeColumn(*property,
+            dataFH, metadataFH, &bufferManager, wal, Transaction::getDummyReadOnlyTrx().get());
     }
 }
 
@@ -94,8 +94,11 @@ void NodeTable::insert(Transaction* transaction, ValueVector* nodeIDVector,
     }
     for (auto& [propertyID, column] : propertyColumns) {
         assert(propertyIDToVectorIdx.contains(propertyID));
-        column->write(nodeIDVector, propertyVectors[propertyIDToVectorIdx.at(propertyID)]);
+        if (column->getDataType().getLogicalTypeID() != LogicalTypeID::SERIAL) {
+            column->write(nodeIDVector, propertyVectors[propertyIDToVectorIdx.at(propertyID)]);
+        }
     }
+    wal->addToUpdatedNodeTables(tableID);
 }
 
 void NodeTable::update(
@@ -134,6 +137,17 @@ std::unordered_set<property_id_t> NodeTable::getPropertyIDs() const {
     return propertyIDs;
 }
 
+void NodeTable::addColumn(const catalog::Property& property,
+    common::ValueVector* defaultValueVector, transaction::Transaction* transaction) {
+    assert(!propertyColumns.contains(property.getPropertyID()));
+    auto nodeColumn = NodeColumnFactory::createNodeColumn(
+        property, dataFH, metadataFH, &bufferManager, wal, transaction);
+    nodeColumn->populateWithDefaultVal(
+        property, nodeColumn.get(), defaultValueVector, getNumNodeGroups(transaction));
+    propertyColumns.emplace(property.getPropertyID(), std::move(nodeColumn));
+    wal->addToUpdatedNodeTables(tableID);
+}
+
 void NodeTable::prepareCommit() {
     if (pkIndex) {
         pkIndex->prepareCommit();
@@ -150,14 +164,18 @@ void NodeTable::checkpointInMemory() {
     for (auto& [_, column] : propertyColumns) {
         column->checkpointInMemory();
     }
-    pkIndex->checkpointInMemory();
+    if (pkIndex) {
+        pkIndex->checkpointInMemory();
+    }
 }
 
 void NodeTable::rollbackInMemory() {
     for (auto& [_, column] : propertyColumns) {
         column->rollbackInMemory();
     }
-    pkIndex->rollbackInMemory();
+    if (pkIndex) {
+        pkIndex->rollbackInMemory();
+    }
 }
 
 void NodeTable::insertPK(ValueVector* nodeIDVector, ValueVector* primaryKeyVector) {

@@ -87,14 +87,21 @@ private:
     std::unique_ptr<PhysicalOperator> mapStandaloneCall(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapInQueryCall(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapExplain(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapExpressionsScan(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCreateMacro(planner::LogicalOperator* logicalOperator);
 
     std::unique_ptr<ResultCollector> createResultCollector(common::AccumulateType accumulateType,
         const binder::expression_vector& expressions, planner::Schema* schema,
         std::unique_ptr<PhysicalOperator> prevOperator);
     std::unique_ptr<PhysicalOperator> createFactorizedTableScan(
+        const binder::expression_vector& expressions, std::vector<ft_col_idx_t> colIndices,
+        planner::Schema* schema, std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize,
+        std::unique_ptr<PhysicalOperator> prevOperator);
+    // Assume scans all columns of table in the same order as given expressions.
+    std::unique_ptr<PhysicalOperator> createFactorizedTableScanAligned(
         const binder::expression_vector& expressions, planner::Schema* schema,
-        std::shared_ptr<FactorizedTable> table, std::unique_ptr<PhysicalOperator> prevOperator);
+        std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize,
+        std::unique_ptr<PhysicalOperator> prevOperator);
     std::unique_ptr<HashJoinBuildInfo> createHashBuildInfo(const planner::Schema& buildSideSchema,
         const binder::expression_vector& keys, const binder::expression_vector& payloads);
     std::unique_ptr<PhysicalOperator> createHashAggregate(

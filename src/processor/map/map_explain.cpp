@@ -33,8 +33,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExplain(
         auto explainStr = planPrinter->printPlanToOstream().str();
         auto factorizedTable =
             FactorizedTableUtils::getFactorizedTableForOutputMsg(explainStr, memoryManager);
-        return createFactorizedTableScan(
-            binder::expression_vector{outputExpression}, outSchema, factorizedTable, nullptr);
+        return createFactorizedTableScanAligned(binder::expression_vector{outputExpression},
+            outSchema, factorizedTable, DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, nullptr);
     }
 }
 

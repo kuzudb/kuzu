@@ -172,13 +172,10 @@ void AggregateHashTable::initializeFT(
 }
 
 void AggregateHashTable::initializeHashTable(uint64_t numEntriesToAllocate) {
-    maxNumHashSlots = nextPowerOfTwo(
-        std::max(BufferPoolConstants::PAGE_256KB_SIZE / sizeof(HashSlot), numEntriesToAllocate));
-    bitmask = maxNumHashSlots - 1;
+    setMaxNumHashSlots(nextPowerOfTwo(
+        std::max(BufferPoolConstants::PAGE_256KB_SIZE / sizeof(HashSlot), numEntriesToAllocate)));
     auto numHashSlotsPerBlock = BufferPoolConstants::PAGE_256KB_SIZE / sizeof(HashSlot);
-    assert(numHashSlotsPerBlock == nextPowerOfTwo(numHashSlotsPerBlock));
-    numSlotsPerBlockLog2 = log2(numHashSlotsPerBlock);
-    slotIdxInBlockMask = BitmaskUtils::all1sMaskForLeastSignificantBits(numSlotsPerBlockLog2);
+    initSlotConstant(numHashSlotsPerBlock);
     auto numDataBlocks =
         maxNumHashSlots / numHashSlotsPerBlock + (maxNumHashSlots % numHashSlotsPerBlock != 0);
     for (auto i = 0u; i < numDataBlocks; i++) {
@@ -214,8 +211,7 @@ uint8_t* AggregateHashTable::findEntryInDistinctHT(
 }
 
 void AggregateHashTable::resize(uint64_t newSize) {
-    maxNumHashSlots = newSize;
-    bitmask = maxNumHashSlots - 1;
+    setMaxNumHashSlots(newSize);
     addDataBlocksIfNecessary(maxNumHashSlots);
     for (auto& block : hashSlotsBlocks) {
         block->resetToZero();

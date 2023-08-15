@@ -1,7 +1,6 @@
 #include "storage/copier/read_file_state.h"
 
 #include "storage/copier/npy_reader.h"
-
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -29,8 +28,13 @@ void ReadCSVSharedState::countNumRows() {
 }
 
 // TODO(Guodong): Refactor duplicated between the three getMorsel() functions.
-std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getMorsel() {
+std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getMorselSerial() {
     std::unique_lock lck{mtx};
+    std::shared_ptr<arrow::Table> resultTable;
+    if (leftOverData) {
+        resultTable = std::move(leftOverData);
+        leftOverData = nullptr;
+    }
     while (true) {
         if (currFileIdx >= filePaths.size()) {
             // No more files to read.
@@ -48,16 +52,43 @@ std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getMorsel() {
             currBlockIdx = 0;
             currRowIdxInCurrFile = 1;
             reader.reset();
+            if (currFileIdx >= filePaths.size()) {
+                break;
+            }
             continue;
         }
         auto numRowsInBatch = recordBatch->num_rows();
-        auto result = std::make_unique<ReadCSVMorsel>(
-            currRowIdx, filePath, currRowIdxInCurrFile, std::move(recordBatch));
-        currRowIdx += numRowsInBatch;
+        rowsRead += numRowsInBatch;
         currRowIdxInCurrFile += numRowsInBatch;
         currBlockIdx++;
-        return result;
+        if (resultTable == nullptr) {
+            TableCopyUtils::throwCopyExceptionIfNotOK(
+                arrow::Table::FromRecordBatches({recordBatch}).Value(&resultTable));
+        } else {
+            std::shared_ptr<arrow::Table> interimTable;
+            TableCopyUtils::throwCopyExceptionIfNotOK(
+                arrow::Table::FromRecordBatches({recordBatch}).Value(&interimTable));
+            TableCopyUtils::throwCopyExceptionIfNotOK(
+                arrow::ConcatenateTables({resultTable, interimTable}).Value(&resultTable));
+        }
+        if (resultTable->column(0)->length() >= common::StorageConstants::NODE_GROUP_SIZE) {
+            leftOverData = resultTable->Slice(common::StorageConstants::NODE_GROUP_SIZE);
+            resultTable = resultTable->Slice(0, common::StorageConstants::NODE_GROUP_SIZE);
+            break;
+        }
+        if (currFileIdx >= filePaths.size()) {
+            break;
+        }
     }
+    auto rows = resultTable->num_rows();
+    auto result = std::make_unique<ReadSerialMorsel>(
+        currRowIdx, filePaths[0], currRowIdxInCurrFile, rowsRead, std::move(resultTable));
+    currRowIdx += rows;
+    return result;
+}
+
+std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getMorsel() {
+    return std::move(getMorselSerial());
 }
 
 void ReadParquetSharedState::countNumRows() {
@@ -73,6 +104,60 @@ void ReadParquetSharedState::countNumRows() {
         fileBlockInfos.emplace(filePath, FileBlockInfo{numBlocks, numLinesPerBlock});
         numRows += metadata->num_rows();
     }
+}
+
+std::unique_ptr<ReadFileMorsel> ReadParquetSharedState::getMorselSerial() {
+    std::unique_lock lck{mtx};
+    std::shared_ptr<arrow::Table> resultTable;
+    if (leftOverData) {
+        resultTable = std::move(leftOverData);
+        leftOverData = nullptr;
+    }
+    while (true) {
+        if (currFileIdx >= filePaths.size()) {
+            // No more files to read.
+            return nullptr;
+        }
+        auto filePath = filePaths[currFileIdx];
+        if (!reader) {
+            reader = TableCopyUtils::createParquetReader(filePath, tableSchema);
+        }
+        std::shared_ptr<arrow::Table> table;
+        TableCopyUtils::throwCopyExceptionIfNotOK(reader->ReadTable(&table));
+        if (table == nullptr) {
+            // No more blocks to read in this file.
+            currFileIdx++;
+            currBlockIdx = 0;
+            reader.reset();
+            if (currFileIdx >= filePaths.size()) {
+                break;
+            }
+            continue;
+        }
+        auto numRowsInBatch = table->num_rows();
+        rowsRead += numRowsInBatch;
+        currRowIdxInCurrFile += numRowsInBatch;
+        currBlockIdx++;
+        if (resultTable == nullptr) {
+            resultTable = table;
+        } else {
+            TableCopyUtils::throwCopyExceptionIfNotOK(
+                arrow::ConcatenateTables({resultTable, table}).Value(&resultTable));
+        }
+        if (resultTable->column(0)->length() < common::StorageConstants::NODE_GROUP_SIZE) {
+            leftOverData = resultTable->Slice(common::StorageConstants::NODE_GROUP_SIZE);
+            resultTable = resultTable->Slice(0, common::StorageConstants::NODE_GROUP_SIZE);
+            break;
+        }
+        if (currFileIdx >= filePaths.size()) {
+            break;
+        }
+    }
+    auto rows = resultTable->num_rows();
+    auto result = std::make_unique<ReadSerialMorsel>(
+        currRowIdx, filePaths[0], currRowIdxInCurrFile, rowsRead, std::move(resultTable));
+    currRowIdx += rows;
+    return result;
 }
 
 // TODO(Guodong): Refactor duplicated between the three getMorsel() functions.
@@ -119,6 +204,46 @@ void ReadNPYSharedState::countNumRows() {
         fileBlockInfos.emplace(filePath, FileBlockInfo{numBlocks, numRowsPerBlock});
         idx++;
     }
+}
+
+std::unique_ptr<ReadFileMorsel> ReadNPYSharedState::getMorselSerial() {
+    std::unique_lock lck{mtx};
+    std::shared_ptr<arrow::Table> resultTable;
+    if (leftOverData) {
+        resultTable = std::move(leftOverData);
+        leftOverData = nullptr;
+    }
+    while (true) {
+        std::shared_ptr<arrow::RecordBatch> recordBatch = reader->readBlock(currBlockIdx);
+        if (recordBatch == nullptr) {
+            // No more blocks to read
+            break;
+        }
+        auto numRowsInBatch = recordBatch->num_rows();
+        rowsRead += numRowsInBatch;
+        currRowIdxInCurrFile += numRowsInBatch;
+        currBlockIdx++;
+        if (resultTable == nullptr) {
+            TableCopyUtils::throwCopyExceptionIfNotOK(
+                arrow::Table::FromRecordBatches({recordBatch}).Value(&resultTable));
+        } else {
+            std::shared_ptr<arrow::Table> interimTable;
+            TableCopyUtils::throwCopyExceptionIfNotOK(
+                arrow::Table::FromRecordBatches({recordBatch}).Value(&interimTable));
+            TableCopyUtils::throwCopyExceptionIfNotOK(
+                arrow::ConcatenateTables({resultTable, interimTable}).Value(&resultTable));
+        }
+        if (resultTable->column(0)->length() >= common::StorageConstants::NODE_GROUP_SIZE) {
+            leftOverData = resultTable->Slice(common::StorageConstants::NODE_GROUP_SIZE);
+            resultTable = resultTable->Slice(0, common::StorageConstants::NODE_GROUP_SIZE);
+        }
+        break;
+    }
+    auto rows = resultTable->num_rows();
+    auto result = std::make_unique<ReadSerialMorsel>(
+        currRowIdx, "", currRowIdxInCurrFile, rowsRead, std::move(resultTable));
+    currRowIdx += rows;
+    return result;
 }
 
 // TODO(Guodong): Refactor duplicated between the three getMorsel() functions.

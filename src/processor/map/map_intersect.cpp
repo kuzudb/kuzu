@@ -3,7 +3,9 @@
 #include "processor/operator/intersect/intersect_build.h"
 #include "processor/plan_mapper.h"
 
+using namespace kuzu::binder;
 using namespace kuzu::planner;
+using namespace kuzu::common;
 
 namespace kuzu {
 namespace processor {
@@ -14,19 +16,21 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapIntersect(LogicalOperator* logi
     auto outSchema = logicalIntersect->getSchema();
     std::vector<std::unique_ptr<PhysicalOperator>> children;
     children.resize(logicalOperator->getNumChildren());
-    std::vector<std::shared_ptr<IntersectSharedState>> sharedStates;
+    std::vector<std::shared_ptr<HashJoinSharedState>> sharedStates;
     std::vector<IntersectDataInfo> intersectDataInfos;
     // Map build side children.
     for (auto i = 1u; i < logicalIntersect->getNumChildren(); i++) {
         auto keyNodeID = logicalIntersect->getKeyNodeID(i - 1);
+        auto keys = expression_vector{keyNodeID};
+        auto keyTypes = ExpressionUtil::getDataTypes(keys);
         auto buildSchema = logicalIntersect->getChild(i)->getSchema();
         auto buildPrevOperator = mapOperator(logicalIntersect->getChild(i).get());
-        auto payloadExpressions = binder::ExpressionUtil::excludeExpressions(
-            buildSchema->getExpressionsInScope(), {keyNodeID});
-        auto buildInfo = createHashBuildInfo(*buildSchema, {keyNodeID}, payloadExpressions);
-        auto globalHashTable = std::make_unique<IntersectHashTable>(
-            *memoryManager, buildInfo->getTableSchema()->copy());
-        auto sharedState = std::make_shared<IntersectSharedState>(std::move(globalHashTable));
+        auto payloadExpressions =
+            binder::ExpressionUtil::excludeExpressions(buildSchema->getExpressionsInScope(), keys);
+        auto buildInfo = createHashBuildInfo(*buildSchema, keys, payloadExpressions);
+        auto globalHashTable = std::make_unique<JoinHashTable>(
+            *memoryManager, LogicalType::copy(keyTypes), buildInfo->getTableSchema()->copy());
+        auto sharedState = std::make_shared<HashJoinSharedState>(std::move(globalHashTable));
         sharedStates.push_back(sharedState);
         children[i] = make_unique<IntersectBuild>(
             std::make_unique<ResultSetDescriptor>(buildSchema), sharedState, std::move(buildInfo),

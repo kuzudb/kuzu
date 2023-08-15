@@ -331,8 +331,8 @@ void ParquetRelListsCounterAndColumnsCopier::executeInternal(
 
 void CSVRelListsCounterAndColumnsCopier::executeInternal(std::unique_ptr<ReadFileMorsel> morsel) {
     assert(!morsel->filePath.empty());
-    auto csvRelCopyMorsel = reinterpret_cast<ReadCSVMorsel*>(morsel.get());
-    auto recordBatch = csvRelCopyMorsel->recordBatch;
+    auto csvRelCopyMorsel = reinterpret_cast<ReadSerialMorsel*>(morsel.get());
+    auto recordBatch = csvRelCopyMorsel->recordTable->CombineChunksToBatch().ValueOrDie();
     auto numRowsInBatch = recordBatch->num_rows();
     std::vector<offset_t> boundPKOffsets, adjPKOffsets;
     boundPKOffsets.resize(numRowsInBatch);
@@ -402,8 +402,8 @@ void ParquetRelListsCopier::executeInternal(std::unique_ptr<ReadFileMorsel> mors
 
 void CSVRelListsCopier::executeInternal(std::unique_ptr<ReadFileMorsel> morsel) {
     assert(!morsel->filePath.empty());
-    auto csvRelCopyMorsel = reinterpret_cast<ReadCSVMorsel*>(morsel.get());
-    auto recordBatch = csvRelCopyMorsel->recordBatch;
+    auto csvRelCopyMorsel = reinterpret_cast<ReadSerialMorsel*>(morsel.get());
+    auto recordBatch = csvRelCopyMorsel->recordTable->CombineChunksToBatch().ValueOrDie();
     auto numRowsInBatch = recordBatch->num_rows();
     std::vector<offset_t> boundPKOffsets, adjPKOffsets;
     boundPKOffsets.resize(numRowsInBatch);

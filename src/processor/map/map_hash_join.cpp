@@ -14,6 +14,7 @@ std::unique_ptr<HashJoinBuildInfo> PlanMapper::createHashBuildInfo(
     const Schema& buildSchema, const expression_vector& keys, const expression_vector& payloads) {
     planner::f_group_pos_set keyGroupPosSet;
     std::vector<DataPos> keysPos;
+    std::vector<FactorizationStateType> factorizationStateTypes;
     std::vector<DataPos> payloadsPos;
     auto tableSchema = std::make_unique<FactorizedTableSchema>();
     for (auto& key : keys) {
@@ -24,6 +25,9 @@ std::unique_ptr<HashJoinBuildInfo> PlanMapper::createHashBuildInfo(
             LogicalTypeUtils::getRowLayoutSize(key->dataType));
         tableSchema->appendColumn(std::move(columnSchema));
         keysPos.push_back(pos);
+        factorizationStateTypes.push_back(buildSchema.getGroup(pos.dataChunkPos)->isFlat() ?
+                                              FactorizationStateType::FLAT :
+                                              FactorizationStateType::UNFLAT);
     }
     for (auto& payload : payloads) {
         auto pos = DataPos(buildSchema.getExpressionPos(*payload));
@@ -47,8 +51,8 @@ std::unique_ptr<HashJoinBuildInfo> PlanMapper::createHashBuildInfo(
     auto pointerColumn = std::make_unique<ColumnSchema>(false /* isUnFlat */,
         INVALID_DATA_CHUNK_POS, LogicalTypeUtils::getRowLayoutSize(pointerType));
     tableSchema->appendColumn(std::move(pointerColumn));
-    return std::make_unique<HashJoinBuildInfo>(
-        std::move(keysPos), std::move(payloadsPos), std::move(tableSchema));
+    return std::make_unique<HashJoinBuildInfo>(std::move(keysPos),
+        std::move(factorizationStateTypes), std::move(payloadsPos), std::move(tableSchema));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapHashJoin(LogicalOperator* logicalOperator) {
@@ -58,28 +62,35 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapHashJoin(LogicalOperator* logic
     std::unique_ptr<PhysicalOperator> probeSidePrevOperator;
     std::unique_ptr<PhysicalOperator> buildSidePrevOperator;
     // Map the side into which semi mask is passed first.
-    if (hashJoin->getSIP() == planner::SidewaysInfoPassing::BUILD_TO_PROBE) {
-        probeSidePrevOperator = mapOperator(hashJoin->getChild(0).get());
+    if (hashJoin->getJoinSubPlanSolveOrder() == JoinSubPlanSolveOrder::BUILD_PROBE) {
         buildSidePrevOperator = mapOperator(hashJoin->getChild(1).get());
+        probeSidePrevOperator = mapOperator(hashJoin->getChild(0).get());
     } else {
-        buildSidePrevOperator = mapOperator(hashJoin->getChild(1).get());
         probeSidePrevOperator = mapOperator(hashJoin->getChild(0).get());
+        buildSidePrevOperator = mapOperator(hashJoin->getChild(1).get());
     }
     auto paramsString = hashJoin->getExpressionsForPrinting();
-    auto payloads = ExpressionUtil::excludeExpressions(
-        hashJoin->getExpressionsToMaterialize(), hashJoin->getJoinNodeIDs());
+    expression_vector probeKeys;
+    expression_vector buildKeys;
+    for (auto& [probeKey, buildKey] : hashJoin->getJoinConditions()) {
+        probeKeys.push_back(probeKey);
+        buildKeys.push_back(buildKey);
+    }
+    auto buildKeyTypes = ExpressionUtil::getDataTypes(buildKeys);
+    auto payloads =
+        ExpressionUtil::excludeExpressions(hashJoin->getExpressionsToMaterialize(), probeKeys);
     // Create build
-    auto buildInfo = createHashBuildInfo(*buildSchema, hashJoin->getJoinNodeIDs(), payloads);
+    auto buildInfo = createHashBuildInfo(*buildSchema, buildKeys, payloads);
     auto globalHashTable = std::make_unique<JoinHashTable>(
-        *memoryManager, buildInfo->getNumKeys(), buildInfo->getTableSchema()->copy());
+        *memoryManager, LogicalType::copy(buildKeyTypes), buildInfo->getTableSchema()->copy());
     auto sharedState = std::make_shared<HashJoinSharedState>(std::move(globalHashTable));
     auto hashJoinBuild =
         make_unique<HashJoinBuild>(std::make_unique<ResultSetDescriptor>(buildSchema), sharedState,
             std::move(buildInfo), std::move(buildSidePrevOperator), getOperatorID(), paramsString);
     // Create probe
     std::vector<DataPos> probeKeysDataPos;
-    for (auto& joinNodeID : hashJoin->getJoinNodeIDs()) {
-        probeKeysDataPos.emplace_back(outSchema->getExpressionPos(*joinNodeID));
+    for (auto& probeKey : probeKeys) {
+        probeKeysDataPos.emplace_back(outSchema->getExpressionPos(*probeKey));
     }
     std::vector<DataPos> probePayloadsOutPos;
     for (auto& payload : payloads) {

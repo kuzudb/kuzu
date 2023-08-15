@@ -15,7 +15,7 @@ public:
         : AddProperty{catalog, tableID, std::move(propertyName), std::move(dataType),
               std::move(defaultValueEvaluator), storageManager, outputPos, id, paramsString} {}
 
-    void executeDDLInternal() override;
+    void executeDDLInternal() final;
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<AddNodeProperty>(catalog, tableID, propertyName, dataType->copy(),

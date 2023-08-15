@@ -7,6 +7,10 @@
 #include "storage/wal/wal.h"
 #include "transaction/transaction.h"
 
+namespace arrow {
+class Array;
+}
+
 namespace kuzu {
 namespace storage {
 
@@ -43,6 +47,8 @@ public:
 
     // Include pages for null and children segments.
     virtual common::page_idx_t getNumPages() const;
+
+    virtual void append(common::ValueVector* vector, common::offset_t startPosInChunk);
 
     void append(
         common::ValueVector* vector, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
@@ -82,6 +88,8 @@ public:
         ((T*)buffer.get())[pos] = val;
     }
 
+    void populateWithDefaultVal(common::ValueVector* defaultValueVector);
+
 protected:
     // Initializes the data buffer. Is (and should be) only called in constructor.
     virtual void initialize(common::offset_t numValues);
@@ -89,8 +97,12 @@ protected:
     template<typename T>
     void templateCopyArrowArray(
         arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
+    template<typename ARROW_TYPE>
+    void templateCopyStringArrowArray(
+        arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
     // TODO(Guodong/Ziyi): The conversion from string to values should be handled inside ReadFile.
-    template<typename T>
+    // ARROW_TYPE can be either arrow::StringArray or arrow::LargeStringArray.
+    template<typename KU_TYPE, typename ARROW_TYPE>
     void templateCopyValuesAsString(
         arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
 
@@ -99,6 +111,8 @@ protected:
     }
 
     common::offset_t getOffsetInBuffer(common::offset_t pos) const;
+
+    void copyVectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk);
 
 protected:
     common::LogicalType dataType;
@@ -128,6 +142,11 @@ public:
         : ColumnChunk(
               common::LogicalType(common::LogicalTypeID::BOOL), copyDescription, hasNullChunk) {}
 
+    void append(common::ValueVector* vector, common::offset_t startPosInChunk) final;
+
+    void append(
+        arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
+
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
 };
@@ -141,16 +160,14 @@ public:
 
     void resize(uint64_t numValues) final;
 
-    void setRangeNoNull(common::offset_t startPosInChunk, uint32_t numValuesToSet);
-
     inline void resetNullBuffer() { memset(buffer.get(), 0 /* non null */, numBytes); }
 
 protected:
-    uint64_t numBytesForValues(common::offset_t numValues) const {
+    inline uint64_t numBytesForValues(common::offset_t numValues) const {
         // 8 values per byte, and we need a buffer size which is a multiple of 8 bytes
         return ceil(numValues / 8.0 / 8.0) * 8;
     }
-    void initialize(common::offset_t numValues) final {
+    inline void initialize(common::offset_t numValues) final {
         numBytesPerValue = 0;
         numBytes = numBytesForValues(numValues);
         // Each byte defaults to 0, indicating everything is non-null
@@ -167,6 +184,20 @@ public:
         common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
 
     void write(const common::Value& fixedListVal, uint64_t posToWrite) final;
+};
+
+class SerialColumnChunk : public ColumnChunk {
+public:
+    SerialColumnChunk()
+        : ColumnChunk{common::LogicalType(common::LogicalTypeID::SERIAL),
+              nullptr /* copyDescription */, false /* hasNullChunk */} {}
+
+    inline void initialize(common::offset_t numValues) final {
+        numBytesPerValue = 0;
+        numBytes = 0;
+        // Each byte defaults to 0, indicating everything is non-null
+        buffer = std::make_unique<uint8_t[]>(numBytes);
+    }
 };
 
 struct ColumnChunkFactory {
@@ -198,5 +229,6 @@ void ColumnChunk::setValueFromString<common::date_t>(
 template<>
 void ColumnChunk::setValueFromString<common::timestamp_t>(
     const char* value, uint64_t length, uint64_t pos);
+
 } // namespace storage
 } // namespace kuzu

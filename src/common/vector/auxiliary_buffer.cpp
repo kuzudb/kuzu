@@ -1,6 +1,7 @@
 #include "common/vector/auxiliary_buffer.h"
 
 #include "arrow/array.h"
+#include "arrow/chunked_array.h"
 #include "common/vector/value_vector.h"
 
 namespace kuzu {
@@ -24,7 +25,7 @@ list_entry_t ListAuxiliaryBuffer::addList(uint64_t listSize) {
     auto listEntry = list_entry_t{size, listSize};
     bool needResizeDataVector = size + listSize > capacity;
     while (size + listSize > capacity) {
-        capacity *= 2;
+        capacity *= VAR_LIST_RESIZE_RATIO;
     }
     if (needResizeDataVector) {
         resizeDataVector(dataVector.get());

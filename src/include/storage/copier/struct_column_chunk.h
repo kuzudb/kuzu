@@ -22,6 +22,7 @@ protected:
         arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
+    void append(common::ValueVector* vector, common::offset_t startPosInChunk) final;
 
 private:
     // TODO(Guodong): These methods are duplicated from `InMemStructColumnChunk`, which will be
@@ -36,6 +37,7 @@ private:
     void write(const common::Value& val, uint64_t posToWrite) final;
     void copyStructFromArrowStruct(
         arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
+    template<typename ARROW_TYPE>
     void copyStructFromArrowString(
         arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
 };

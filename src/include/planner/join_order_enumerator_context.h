@@ -7,13 +7,20 @@
 namespace kuzu {
 namespace planner {
 
+enum class SubqueryType : uint8_t {
+    NONE = 0,
+    INTERNAL_ID_CORRELATED = 1,
+    CORRELATED = 2,
+};
+
 class JoinOrderEnumeratorContext {
     friend class QueryPlanner;
 
 public:
     JoinOrderEnumeratorContext()
         : currentLevel{0}, maxLevel{0}, subPlansTable{std::make_unique<SubPlansTable>()},
-          queryGraph{nullptr} {}
+          queryGraph{nullptr}, subqueryType{SubqueryType::NONE}, correlatedExpressionsCardinality{
+                                                                     1} {}
 
     void init(QueryGraph* queryGraph, const expression_vector& predicates);
 
@@ -35,15 +42,12 @@ public:
 
     inline QueryGraph* getQueryGraph() { return queryGraph; }
 
-    inline bool nodeToScanFromInnerAndOuter(NodeExpression* node) {
-        for (auto& nodeID : nodeIDsToScanFromInnerAndOuter) {
-            if (nodeID->getUniqueName() == node->getInternalIDPropertyName()) {
-                return true;
-            }
-        }
-        return false;
+    inline binder::expression_vector getCorrelatedExpressions() const {
+        return correlatedExpressions;
     }
-
+    inline binder::expression_set getCorrelatedExpressionsSet() const {
+        return binder::expression_set{correlatedExpressions.begin(), correlatedExpressions.end()};
+    }
     void resetState();
 
 private:
@@ -55,7 +59,9 @@ private:
     std::unique_ptr<SubPlansTable> subPlansTable;
     QueryGraph* queryGraph;
 
-    expression_vector nodeIDsToScanFromInnerAndOuter;
+    SubqueryType subqueryType;
+    expression_vector correlatedExpressions;
+    uint64_t correlatedExpressionsCardinality;
 };
 
 } // namespace planner

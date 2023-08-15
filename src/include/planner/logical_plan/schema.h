@@ -141,8 +141,6 @@ private:
 
 class SchemaUtils {
 public:
-    static std::vector<binder::expression_vector> getExpressionsPerGroup(
-        const binder::expression_vector& expressions, const Schema& schema);
     // Given a set of factorization group, a leading group is selected as the unFlat group (caller
     // should ensure at most one unFlat group which is our general assumption of factorization). If
     // all groups are flat, we select any (the first) group as leading group.

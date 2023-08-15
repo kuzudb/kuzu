@@ -128,16 +128,18 @@ HashIndex<T>::HashIndex(const StorageStructureIDAndFName& storageStructureIDAndF
     fileHandle = bufferManager.getBMFileHandle(storageStructureIDAndFName.fName,
         FileHandle::O_PERSISTENT_FILE_NO_CREATE, BMFileHandle::FileVersionedType::VERSIONED_FILE);
     headerArray = std::make_unique<BaseDiskArray<HashIndexHeader>>(*fileHandle,
-        storageStructureIDAndFName.storageStructureID, INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, &bm,
-        wal);
+        storageStructureIDAndFName.storageStructureID, INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, &bm, wal,
+        Transaction::getDummyReadOnlyTrx().get());
     // Read indexHeader from the headerArray, which contains only one element.
     indexHeader = std::make_unique<HashIndexHeader>(
         headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::READ_ONLY));
     assert(indexHeader->keyDataTypeID == keyDataType.getLogicalTypeID());
     pSlots = std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle,
-        storageStructureIDAndFName.storageStructureID, P_SLOTS_HEADER_PAGE_IDX, &bm, wal);
+        storageStructureIDAndFName.storageStructureID, P_SLOTS_HEADER_PAGE_IDX, &bm, wal,
+        Transaction::getDummyReadOnlyTrx().get());
     oSlots = std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle,
-        storageStructureIDAndFName.storageStructureID, O_SLOTS_HEADER_PAGE_IDX, &bm, wal);
+        storageStructureIDAndFName.storageStructureID, O_SLOTS_HEADER_PAGE_IDX, &bm, wal,
+        Transaction::getDummyReadOnlyTrx().get());
     // Initialize functions.
     keyHashFunc = HashIndexUtils::initializeHashFunc(indexHeader->keyDataTypeID);
     keyInsertFunc = HashIndexUtils::initializeInsertFunc(indexHeader->keyDataTypeID);

@@ -46,11 +46,13 @@ public:
 
 struct CopyNodeInfo {
     std::vector<DataPos> dataColumnPoses;
+    DataPos nodeOffsetPos;
     common::CopyDescription copyDesc;
     storage::NodeTable* table;
     storage::RelsStore* relsStore;
     catalog::Catalog* catalog;
     storage::WAL* wal;
+    bool preservingOrder;
 };
 
 class CopyNode : public Sink {
@@ -63,6 +65,7 @@ public:
         for (auto& arrowColumnPos : copyNodeInfo.dataColumnPoses) {
             dataColumnVectors.push_back(resultSet->getValueVector(arrowColumnPos).get());
         }
+        nodeOffsetVector = resultSet->getValueVector(copyNodeInfo.nodeOffsetPos).get();
         localNodeGroup =
             std::make_unique<storage::NodeGroup>(sharedState->tableSchema, &sharedState->copyDesc);
     }
@@ -89,9 +92,6 @@ private:
                    ->getNumTuples() == 0;
     }
 
-    static void sliceDataChunk(const common::DataChunk& dataChunk,
-        const std::vector<DataPos>& dataColumnPoses, common::offset_t offset);
-
     static void populatePKIndex(storage::PrimaryKeyIndexBuilder* pkIndex,
         storage::ColumnChunk* chunk, common::offset_t startNodeOffset, common::offset_t numNodes);
     static void checkNonNullConstraint(
@@ -102,6 +102,7 @@ private:
         storage::ColumnChunk* chunk, common::offset_t startOffset, common::offset_t numNodes);
 
 private:
+    common::ValueVector* nodeOffsetVector;
     std::shared_ptr<CopyNodeSharedState> sharedState;
     CopyNodeInfo copyNodeInfo;
     std::vector<common::ValueVector*> dataColumnVectors;

@@ -38,13 +38,14 @@ class HashJoinBuildInfo {
     friend class HashJoinBuild;
 
 public:
-    HashJoinBuildInfo(std::vector<DataPos> keysPos, std::vector<DataPos> payloadsPos,
-        std::unique_ptr<FactorizedTableSchema> tableSchema)
-        : keysPos{std::move(keysPos)}, payloadsPos{std::move(payloadsPos)}, tableSchema{std::move(
-                                                                                tableSchema)} {}
+    HashJoinBuildInfo(std::vector<DataPos> keysPos,
+        std::vector<common::FactorizationStateType> factorizationStateTypes,
+        std::vector<DataPos> payloadsPos, std::unique_ptr<FactorizedTableSchema> tableSchema)
+        : keysPos{std::move(keysPos)}, factorizationStateTypes{std::move(factorizationStateTypes)},
+          payloadsPos{std::move(payloadsPos)}, tableSchema{std::move(tableSchema)} {}
     HashJoinBuildInfo(const HashJoinBuildInfo& other)
-        : keysPos{other.keysPos}, payloadsPos{other.payloadsPos}, tableSchema{
-                                                                      other.tableSchema->copy()} {}
+        : keysPos{other.keysPos}, factorizationStateTypes{other.factorizationStateTypes},
+          payloadsPos{other.payloadsPos}, tableSchema{other.tableSchema->copy()} {}
 
     inline uint32_t getNumKeys() const { return keysPos.size(); }
 
@@ -56,6 +57,7 @@ public:
 
 private:
     std::vector<DataPos> keysPos;
+    std::vector<common::FactorizationStateType> factorizationStateTypes;
     std::vector<DataPos> payloadsPos;
     std::unique_ptr<FactorizedTableSchema> tableSchema;
 };
@@ -73,7 +75,6 @@ public:
         uint32_t id, const std::string& paramsString)
         : Sink{std::move(resultSetDescriptor), operatorType, std::move(child), id, paramsString},
           sharedState{std::move(sharedState)}, info{std::move(info)} {}
-    ~HashJoinBuild() override = default;
 
     inline std::shared_ptr<HashJoinSharedState> getSharedState() const { return sharedState; }
 
@@ -88,15 +89,22 @@ public:
     }
 
 protected:
-    virtual void initLocalHashTable(storage::MemoryManager& memoryManager) {
-        hashTable = std::make_unique<JoinHashTable>(
-            memoryManager, info->getNumKeys(), info->tableSchema->copy());
+    virtual inline void appendVectors() {
+        hashTable->appendVectors(keyVectors, payloadVectors, keyState);
     }
+
+private:
+    void setKeyState(common::DataChunkState* state);
 
 protected:
     std::shared_ptr<HashJoinSharedState> sharedState;
     std::unique_ptr<HashJoinBuildInfo> info;
-    std::vector<common::ValueVector*> vectorsToAppend;
+
+    std::vector<common::ValueVector*> keyVectors;
+    // State of unFlat key(s). If all keys are flat, it points to any flat key state.
+    common::DataChunkState* keyState = nullptr;
+    std::vector<common::ValueVector*> payloadVectors;
+
     std::unique_ptr<JoinHashTable> hashTable; // local state
 };
 

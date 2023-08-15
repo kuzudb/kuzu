@@ -16,6 +16,7 @@ private:
     void visitHashJoin(planner::LogicalOperator* op) override;
     void visitIntersect(planner::LogicalOperator* op) override;
     void visitProjection(planner::LogicalOperator* op) override;
+    void visitAccumulate(planner::LogicalOperator* op) override;
     void visitAggregate(planner::LogicalOperator* op) override;
     void visitOrderBy(planner::LogicalOperator* op) override;
     void visitSkip(planner::LogicalOperator* op) override;

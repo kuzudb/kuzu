@@ -21,6 +21,7 @@ class Connection {
     friend class kuzu::testing::TestHelper;
     friend class kuzu::testing::TestRunner;
     friend class kuzu::benchmark::Benchmark;
+    friend class kuzu::testing::TinySnbDDLTest;
 
 public:
     /**

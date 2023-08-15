@@ -5,25 +5,6 @@
 
 -CASE OptionalMatch
 
-# Note: Correlated optional match test should be enabled once hash join supports generic join key data type.
-#-LOG CorrelatedOptionalMatchTest1
-#-STATEMENT MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person) WHERE b.age > a.age RETURN COUNT(*)
-#-ENUMERATE
-#---- 1
-#12
-
-#-LOG CorrelatedOptionalMatchTest2
-#-STATEMENT MATCH (a:person)-[:knows]->(b:person) OPTIONAL MATCH (b)-[:knows]->(c:person) WHERE c.age > b.age RETURN COUNT(*)
-#-ENUMERATE
-#---- 1
-#23
-
-#-LOG CorrelatedOptionalMatchTest3
-#-STATEMENT MATCH (a:person)-[:knows]->(b:person) OPTIONAL MATCH (a)-[:knows]->(c:person), (b)-[:knows]->(c) RETURN COUNT(*)
-#-ENUMERATE
-#---- 1
-#26
-
 -LOG CrossProductOptionalMatch1
 -STATEMENT MATCH (a:person) WHERE a.fName = 'Alice' OPTIONAL MATCH (b:person) WHERE b.fName = 'A' RETURN a.ID, b.ID
 ---- 1

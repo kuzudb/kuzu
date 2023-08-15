@@ -21,7 +21,7 @@ void LiteralExpressionEvaluator::resolveResultVector(
     } else {
         copyValueToVector(resultVector->getData(), resultVector.get(), value.get());
     }
-    resultVector->state = DataChunkState::getSingleValueDataChunkState();
+    resultVector->setState(DataChunkState::getSingleValueDataChunkState());
 }
 
 void LiteralExpressionEvaluator::copyValueToVector(

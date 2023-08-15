@@ -49,34 +49,40 @@ void StringColumnChunk::resetToEmpty() {
     overflowCursor.resetValue();
 }
 
+void StringColumnChunk::append(common::ValueVector* vector, common::offset_t startPosInChunk) {
+    assert(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
+    ColumnChunk::copyVectorToBuffer(vector, startPosInChunk);
+    auto stringsToSetOverflow = (ku_string_t*)(buffer.get() + startPosInChunk * numBytesPerValue);
+    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
+        auto& stringToSet = stringsToSetOverflow[i];
+        if (!ku_string_t::isShortString(stringToSet.len)) {
+            overflowFile->copyStringOverflow(
+                overflowCursor, reinterpret_cast<uint8_t*>(stringToSet.overflowPtr), &stringToSet);
+        }
+    }
+}
+
 void StringColumnChunk::append(
     arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    assert(array->type_id() == arrow::Type::STRING || array->type_id() == arrow::Type::LIST);
+    assert(
+        array->type_id() == arrow::Type::STRING || array->type_id() == arrow::Type::LARGE_STRING);
     switch (array->type_id()) {
     case arrow::Type::STRING: {
-        switch (dataType.getLogicalTypeID()) {
-        case LogicalTypeID::BLOB: {
-            templateCopyVarSizedValuesFromString<blob_t>(array, startPosInChunk, numValuesToAppend);
-        } break;
-        case LogicalTypeID::STRING: {
-            templateCopyVarSizedValuesFromString<ku_string_t>(
-                array, startPosInChunk, numValuesToAppend);
-        } break;
-        default: {
-            throw NotImplementedException(
-                "Unsupported VarSizedColumnChunk::append for string array");
-        }
-        }
+        templateCopyStringArrowArray<arrow::StringArray>(array, startPosInChunk, numValuesToAppend);
+    } break;
+    case arrow::Type::LARGE_STRING: {
+        templateCopyStringArrowArray<arrow::LargeStringArray>(
+            array, startPosInChunk, numValuesToAppend);
     } break;
     default: {
-        throw NotImplementedException("VarSizedColumnChunk::append");
+        throw NotImplementedException("StringColumnChunk::append");
     }
     }
 }
 
 void StringColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
     offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    auto otherChunk = dynamic_cast<StringColumnChunk*>(other);
+    auto otherChunk = reinterpret_cast<StringColumnChunk*>(other);
     nullChunk->append(
         otherChunk->getNullChunk(), startPosInOtherChunk, startPosInChunk, numValuesToAppend);
     switch (dataType.getLogicalTypeID()) {
@@ -91,21 +97,19 @@ void StringColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk
     }
 }
 
-page_idx_t StringColumnChunk::flushBuffer(BMFileHandle* dataFH, page_idx_t startPageIdx) {
-    ColumnChunk::flushBuffer(dataFH, startPageIdx);
-    startPageIdx += ColumnChunk::getNumPagesForBuffer();
+page_idx_t StringColumnChunk::flushOverflowBuffer(BMFileHandle* dataFH, page_idx_t startPageIdx) {
     for (auto i = 0u; i < overflowFile->getNumPages(); i++) {
         FileUtils::writeToFile(dataFH->getFileInfo(), overflowFile->getPage(i)->data,
             BufferPoolConstants::PAGE_4KB_SIZE, startPageIdx * BufferPoolConstants::PAGE_4KB_SIZE);
         startPageIdx++;
     }
-    return getNumPagesForBuffer();
+    return overflowFile->getNumPages();
 }
 
 void StringColumnChunk::appendStringColumnChunk(StringColumnChunk* other,
     offset_t startPosInOtherChunk, offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    auto otherKuVals = (ku_string_t*)(other->buffer.get());
-    auto kuVals = (ku_string_t*)(buffer.get());
+    auto otherKuVals = reinterpret_cast<ku_string_t*>(other->buffer.get());
+    auto kuVals = reinterpret_cast<ku_string_t*>(buffer.get());
     for (auto i = 0u; i < numValuesToAppend; i++) {
         auto posInChunk = i + startPosInChunk;
         auto posInOtherChunk = i + startPosInOtherChunk;
@@ -125,9 +129,25 @@ void StringColumnChunk::appendStringColumnChunk(StringColumnChunk* other,
 }
 
 template<typename T>
-void StringColumnChunk::templateCopyVarSizedValuesFromString(
-    arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    auto stringArray = (arrow::StringArray*)array;
+void StringColumnChunk::templateCopyStringArrowArray(
+    arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
+    switch (dataType.getLogicalTypeID()) {
+    case LogicalTypeID::BLOB: {
+        templateCopyStringValues<blob_t, T>(array, startPosInChunk, numValuesToAppend);
+    } break;
+    case LogicalTypeID::STRING: {
+        templateCopyStringValues<ku_string_t, T>(array, startPosInChunk, numValuesToAppend);
+    } break;
+    default: {
+        throw NotImplementedException("StringColumnChunk::templateCopyStringArrowArray");
+    }
+    }
+}
+
+template<typename KU_TYPE, typename ARROW_TYPE>
+void StringColumnChunk::templateCopyStringValues(
+    arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
+    auto stringArray = (ARROW_TYPE*)array;
     auto arrayData = stringArray->data();
     if (arrayData->MayHaveNulls()) {
         for (auto i = 0u; i < numValuesToAppend; i++) {
@@ -137,13 +157,13 @@ void StringColumnChunk::templateCopyVarSizedValuesFromString(
                 continue;
             }
             auto value = stringArray->GetView(i);
-            setValueFromString<T>(value.data(), value.length(), posInChunk);
+            setValueFromString<KU_TYPE>(value.data(), value.length(), posInChunk);
         }
     } else {
         for (auto i = 0u; i < numValuesToAppend; i++) {
             auto posInChunk = startPosInChunk + i;
             auto value = stringArray->GetView(i);
-            setValueFromString<T>(value.data(), value.length(), posInChunk);
+            setValueFromString<KU_TYPE>(value.data(), value.length(), posInChunk);
         }
     }
 }

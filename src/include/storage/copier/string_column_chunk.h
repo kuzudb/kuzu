@@ -11,11 +11,11 @@ public:
     StringColumnChunk(common::LogicalType dataType, common::CopyDescription* copyDescription);
 
     void resetToEmpty() final;
+    void append(common::ValueVector* vector, common::offset_t startPosInChunk) final;
     void append(
         arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
-    common::page_idx_t flushBuffer(BMFileHandle* dataFH, common::page_idx_t startPageIdx) final;
 
     template<typename T>
     void setValueFromString(const char* value, uint64_t length, uint64_t pos) {
@@ -26,15 +26,18 @@ public:
         throw common::NotImplementedException("VarSizedColumnChunk::getValue");
     }
 
-protected:
-    inline common::page_idx_t getNumPagesForBuffer() const final {
-        auto numPagesForOffsets = ColumnChunk::getNumPagesForBuffer();
-        return numPagesForOffsets + overflowFile->getNumPages();
-    }
+    common::page_idx_t flushOverflowBuffer(BMFileHandle* dataFH, common::page_idx_t startPageIdx);
 
 private:
+    inline common::page_idx_t getNumPages() const final {
+        return ColumnChunk::getNumPages() + overflowFile->getNumPages();
+    }
+
     template<typename T>
-    void templateCopyVarSizedValuesFromString(
+    void templateCopyStringArrowArray(
+        arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
+    template<typename KU_TYPE, typename ARROW_TYPE>
+    void templateCopyStringValues(
         arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
 
     void appendStringColumnChunk(StringColumnChunk* other, common::offset_t startPosInOtherChunk,

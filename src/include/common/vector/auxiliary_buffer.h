@@ -3,8 +3,8 @@
 #include "common/in_mem_overflow_buffer.h"
 
 namespace arrow {
-class Array;
-}
+class ChunkedArray;
+} // namespace arrow
 
 namespace kuzu {
 namespace common {
@@ -53,7 +53,7 @@ class ArrowColumnAuxiliaryBuffer : public AuxiliaryBuffer {
     friend class ArrowColumnVector;
 
 private:
-    std::shared_ptr<arrow::Array> column;
+    std::shared_ptr<arrow::ChunkedArray> column;
 };
 
 // ListVector layout:

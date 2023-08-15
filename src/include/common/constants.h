@@ -21,6 +21,8 @@ constexpr uint64_t THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS = 500;
 
 constexpr uint64_t DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEAVE_IN_MICROS = 5000000;
 
+constexpr uint64_t VAR_LIST_RESIZE_RATIO = 2;
+
 struct InternalKeyword {
     static constexpr char ANONYMOUS[] = "";
     static constexpr char ID[] = "_ID";

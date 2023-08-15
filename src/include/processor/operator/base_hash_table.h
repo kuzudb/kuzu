@@ -16,14 +16,29 @@ public:
 
     virtual ~BaseHashTable() = default;
 
+protected:
+    inline void setMaxNumHashSlots(uint64_t newSize) {
+        maxNumHashSlots = newSize;
+        bitmask = maxNumHashSlots - 1;
+    }
+
+    inline void initSlotConstant(uint64_t numSlotsPerBlock_) {
+        assert(numSlotsPerBlock_ == common::nextPowerOfTwo(numSlotsPerBlock_));
+        numSlotsPerBlock = numSlotsPerBlock_;
+        numSlotsPerBlockLog2 = std::log2(numSlotsPerBlock);
+        slotIdxInBlockMask =
+            common::BitmaskUtils::all1sMaskForLeastSignificantBits(numSlotsPerBlockLog2);
+    }
+
     inline uint64_t getSlotIdxForHash(common::hash_t hash) const { return hash & bitmask; }
 
 protected:
     uint64_t maxNumHashSlots;
     uint64_t bitmask;
-    std::vector<std::unique_ptr<DataBlock>> hashSlotsBlocks;
+    uint64_t numSlotsPerBlock;
     uint64_t numSlotsPerBlockLog2;
     uint64_t slotIdxInBlockMask;
+    std::vector<std::unique_ptr<DataBlock>> hashSlotsBlocks;
     storage::MemoryManager& memoryManager;
     std::unique_ptr<FactorizedTable> factorizedTable;
 };

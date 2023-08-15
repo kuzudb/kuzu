@@ -17,6 +17,7 @@ add_library(kuzu_processor_mapper
         map_delete.cpp
         map_distinct.cpp
         map_explain.cpp
+        map_expressions_scan.cpp
         map_dummy_scan.cpp
         map_extend.cpp
         map_filter.cpp

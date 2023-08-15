@@ -73,7 +73,7 @@ class Connection:
             A prepared statement or a query string.
             If a query string is given, a prepared statement will be created
             automatically.
-        parameters : list
+        parameters : list[tuple(str, any)]
             Parameters for the query.
 
         Returns

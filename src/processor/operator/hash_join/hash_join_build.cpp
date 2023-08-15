@@ -12,13 +12,31 @@ void HashJoinSharedState::mergeLocalHashTable(JoinHashTable& localHashTable) {
 }
 
 void HashJoinBuild::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    for (auto& pos : info->keysPos) {
-        vectorsToAppend.push_back(resultSet->getValueVector(pos).get());
+    std::vector<std::unique_ptr<LogicalType>> keyTypes;
+    for (auto i = 0u; i < info->keysPos.size(); ++i) {
+        auto vector = resultSet->getValueVector(info->keysPos[i]).get();
+        keyTypes.push_back(vector->dataType.copy());
+        if (info->factorizationStateTypes[i] == common::FactorizationStateType::UNFLAT) {
+            setKeyState(vector->state.get());
+        }
+        keyVectors.push_back(vector);
+    }
+    if (keyState == nullptr) {
+        setKeyState(keyVectors[0]->state.get());
     }
     for (auto& pos : info->payloadsPos) {
-        vectorsToAppend.push_back(resultSet->getValueVector(pos).get());
+        payloadVectors.push_back(resultSet->getValueVector(pos).get());
     }
-    initLocalHashTable(*context->memoryManager);
+    hashTable = std::make_unique<JoinHashTable>(
+        *context->memoryManager, std::move(keyTypes), info->tableSchema->copy());
+}
+
+void HashJoinBuild::setKeyState(common::DataChunkState* state) {
+    if (keyState == nullptr) {
+        keyState = state;
+    } else {
+        assert(keyState == state); // two pointers should be pointing to the same state
+    }
 }
 
 void HashJoinBuild::finalize(ExecutionContext* context) {
@@ -31,7 +49,7 @@ void HashJoinBuild::executeInternal(ExecutionContext* context) {
     // Append thread-local tuples
     while (children[0]->getNextTuple(context)) {
         for (auto i = 0u; i < resultSet->multiplicity; ++i) {
-            hashTable->append(vectorsToAppend);
+            appendVectors();
         }
     }
     // Merge with global hash table once local tuples are all appended.

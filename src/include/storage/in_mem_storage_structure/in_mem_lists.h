@@ -63,9 +63,6 @@ public:
     template<typename T>
     void templateCopyArrayToRelLists(
         arrow::Array* boundNodeOffsets, arrow::Array* posInRelList, arrow::Array* array);
-    template<typename T>
-    void templateCopyArrayAsStringToRelLists(
-        arrow::Array* boundNodeOffsets, arrow::Array* posInRelList, arrow::Array* array);
 
     void fillWithDefaultVal(uint8_t* defaultVal, uint64_t numNodes, ListHeaders* listHeaders);
     void initListsMetadataAndAllocatePages(
@@ -96,6 +93,12 @@ private:
         PageByteCursor& pageByteCursor, common::offset_t nodeOffset, uint64_t posInList,
         const common::LogicalType& dataType);
     static fill_in_mem_lists_function_t getFillInMemListsFunc(const common::LogicalType& dataType);
+    template<typename ARROW_TYPE>
+    void templateCopyArrowStringArray(
+        arrow::Array* boundNodeOffsets, arrow::Array* posInRelList, arrow::Array* array);
+    template<typename KU_TYPE, typename ARROW_TYPE>
+    void templateCopyArrayAsStringToRelLists(
+        arrow::Array* boundNodeOffsets, arrow::Array* posInRelList, arrow::Array* array);
 
 public:
     std::unique_ptr<InMemFile> inMemFile;
@@ -128,6 +131,9 @@ protected:
     void copyArrowArray(arrow::Array* boundNodeOffsets, arrow::Array* posInRelLists,
         arrow::Array* array, PropertyCopyState* copyState) final;
     template<typename T>
+    void templateCopyFromArrowString(arrow::Array* boundNodeOffsets, arrow::Array* posInRelList,
+        arrow::Array* array, PageByteCursor& overflowCursor);
+    template<typename KU_TYPE, typename ARROW_TYPE>
     void templateCopyArrayAsStringToRelListsWithOverflow(arrow::Array* boundNodeOffsets,
         arrow::Array* posInRelList, arrow::Array* array, PageByteCursor& overflowCursor);
     template<typename T>

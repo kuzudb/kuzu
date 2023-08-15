@@ -90,19 +90,25 @@ private:
     std::unique_ptr<LogicalPlan> planQueryGraphCollection(
         const binder::QueryGraphCollection& queryGraphCollection,
         const binder::expression_vector& predicates);
-    std::unique_ptr<LogicalPlan> planQueryGraphCollectionInNewContext(
-        const binder::expression_vector& expressionsToExcludeScan,
+    std::unique_ptr<LogicalPlan> planQueryGraphCollectionInNewContext(SubqueryType subqueryType,
+        const binder::expression_vector& correlatedExpressions, uint64_t cardinality,
         const binder::QueryGraphCollection& queryGraphCollection,
         const binder::expression_vector& predicates);
     std::vector<std::unique_ptr<LogicalPlan>> enumerateQueryGraphCollection(
         const binder::QueryGraphCollection& queryGraphCollection,
         const binder::expression_vector& predicates);
-    std::vector<std::unique_ptr<LogicalPlan>> enumerateQueryGraph(
-        binder::QueryGraph* queryGraph, binder::expression_vector& predicates);
+    std::vector<std::unique_ptr<LogicalPlan>> enumerateQueryGraph(SubqueryType subqueryType,
+        const expression_vector& correlatedExpressions, binder::QueryGraph* queryGraph,
+        binder::expression_vector& predicates);
 
     // Plan node/rel table scan
-    void planBaseTableScan();
+    void planBaseTableScans(
+        SubqueryType subqueryType, const expression_vector& correlatedExpressions);
+    void planCorrelatedExpressionsScan(const binder::expression_vector& correlatedExpressions);
+    std::unique_ptr<LogicalPlan> getCorrelatedExpressionScanPlan(
+        const binder::expression_vector& correlatedExpressions);
     void planNodeScan(uint32_t nodePos);
+    void planNodeIDScan(uint32_t nodePos);
     void planRelScan(uint32_t relPos);
     void appendExtendAndFilter(std::shared_ptr<binder::NodeExpression> boundNode,
         std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,
@@ -164,6 +170,7 @@ private:
     void appendSkip(uint64_t skipNumber, LogicalPlan& plan);
 
     // Append scan operators
+    void appendExpressionsScan(const expression_vector& expressions, LogicalPlan& plan);
     void appendScanNodeID(std::shared_ptr<NodeExpression>& node, LogicalPlan& plan);
     void appendScanNodeProperties(const expression_vector& propertyExpressions,
         std::shared_ptr<NodeExpression> node, LogicalPlan& plan);
@@ -198,7 +205,11 @@ private:
     void appendCrossProduct(
         common::AccumulateType accumulateType, LogicalPlan& probePlan, LogicalPlan& buildPlan);
 
-    void appendAccumulate(common::AccumulateType accumulateType, LogicalPlan& plan);
+    inline void appendAccumulate(common::AccumulateType accumulateType, LogicalPlan& plan) {
+        appendAccumulate(accumulateType, expression_vector{}, plan);
+    }
+    void appendAccumulate(common::AccumulateType accumulateType,
+        const binder::expression_vector& expressionsToFlatten, LogicalPlan& plan);
 
     void appendDummyScan(LogicalPlan& plan);
 
@@ -221,8 +232,8 @@ private:
 
     expression_vector getProperties(const binder::Expression& nodeOrRel);
 
-    std::unique_ptr<JoinOrderEnumeratorContext> enterContext(
-        binder::expression_vector nodeIDsToScanFromInnerAndOuter);
+    std::unique_ptr<JoinOrderEnumeratorContext> enterContext(SubqueryType subqueryType,
+        const expression_vector& correlatedExpressions, uint64_t cardinality);
     void exitContext(std::unique_ptr<JoinOrderEnumeratorContext> prevContext);
 
 private:

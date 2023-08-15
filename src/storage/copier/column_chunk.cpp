@@ -1,5 +1,6 @@
 #include "storage/copier/column_chunk.h"
 
+#include "arrow/array.h"
 #include "storage/copier/string_column_chunk.h"
 #include "storage/copier/struct_column_chunk.h"
 #include "storage/copier/table_copy_utils.h"
@@ -34,11 +35,37 @@ void ColumnChunk::resetToEmpty() {
     }
 }
 
+void ColumnChunk::append(common::ValueVector* vector, common::offset_t startPosInChunk) {
+    switch (vector->dataType.getPhysicalType()) {
+    case PhysicalTypeID::INT64:
+    case PhysicalTypeID::INT32:
+    case PhysicalTypeID::INT16:
+    case PhysicalTypeID::DOUBLE:
+    case PhysicalTypeID::FLOAT:
+    case PhysicalTypeID::INTERVAL:
+    case PhysicalTypeID::FIXED_LIST: {
+        copyVectorToBuffer(vector, startPosInChunk);
+    } break;
+    default: {
+        throw NotImplementedException{"ColumnChunk::append"};
+    }
+    }
+}
+
 void ColumnChunk::append(
     ValueVector* vector, offset_t startPosInChunk, uint32_t numValuesToAppend) {
     assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::ARROW_COLUMN);
-    auto array = ArrowColumnVector::getArrowColumn(vector).get();
-    append(array, startPosInChunk, numValuesToAppend);
+    auto chunkedArray = ArrowColumnVector::getArrowColumn(vector).get();
+    for (auto array : chunkedArray->chunks()) {
+        auto numValuesInArrayToAppend =
+            std::min((uint64_t)array->length(), (uint64_t)numValuesToAppend);
+        if (numValuesInArrayToAppend <= 0) {
+            break;
+        }
+        append(array.get(), startPosInChunk, numValuesInArrayToAppend);
+        numValuesToAppend -= numValuesInArrayToAppend;
+        startPosInChunk += numValuesInArrayToAppend;
+    }
 }
 
 void ColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
@@ -55,9 +82,6 @@ void ColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
 void ColumnChunk::append(
     arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
     switch (array->type_id()) {
-    case arrow::Type::BOOL: {
-        templateCopyArrowArray<bool>(array, startPosInChunk, numValuesToAppend);
-    } break;
     case arrow::Type::INT16: {
         templateCopyArrowArray<int16_t>(array, startPosInChunk, numValuesToAppend);
     } break;
@@ -83,24 +107,11 @@ void ColumnChunk::append(
         templateCopyArrowArray<uint8_t*>(array, startPosInChunk, numValuesToAppend);
     } break;
     case arrow::Type::STRING: {
-        switch (dataType.getLogicalTypeID()) {
-        case LogicalTypeID::DATE: {
-            templateCopyValuesAsString<date_t>(array, startPosInChunk, numValuesToAppend);
-        } break;
-        case LogicalTypeID::TIMESTAMP: {
-            templateCopyValuesAsString<timestamp_t>(array, startPosInChunk, numValuesToAppend);
-        } break;
-        case LogicalTypeID::INTERVAL: {
-            templateCopyValuesAsString<interval_t>(array, startPosInChunk, numValuesToAppend);
-        } break;
-        case LogicalTypeID::FIXED_LIST: {
-            // Fixed list is a fixed-sized blob.
-            templateCopyValuesAsString<uint8_t*>(array, startPosInChunk, numValuesToAppend);
-        } break;
-        default: {
-            throw NotImplementedException("Unsupported ColumnChunk::append from arrow STRING");
-        }
-        }
+        templateCopyStringArrowArray<arrow::StringArray>(array, startPosInChunk, numValuesToAppend);
+    } break;
+    case arrow::Type::LARGE_STRING: {
+        templateCopyStringArrowArray<arrow::LargeStringArray>(
+            array, startPosInChunk, numValuesToAppend);
     } break;
     default: {
         throw NotImplementedException("ColumnChunk::append");
@@ -158,6 +169,24 @@ void ColumnChunk::resize(uint64_t numValues) {
     }
 }
 
+void ColumnChunk::populateWithDefaultVal(common::ValueVector* defaultValueVector) {
+    defaultValueVector->setState(std::make_shared<common::DataChunkState>());
+    auto valPos = defaultValueVector->state->selVector->selectedPositions[0];
+    defaultValueVector->state->selVector->resetSelectorToValuePosBufferWithSize(
+        common::DEFAULT_VECTOR_CAPACITY);
+    for (auto i = 0u; i < defaultValueVector->state->selVector->selectedSize; i++) {
+        defaultValueVector->state->selVector->selectedPositions[i] = valPos;
+    }
+    auto numValuesAppended = 0u;
+    while (numValuesAppended < common::StorageConstants::NODE_GROUP_SIZE) {
+        auto numValuesToAppend = std::min(common::DEFAULT_VECTOR_CAPACITY,
+            common::StorageConstants::NODE_GROUP_SIZE - numValuesAppended);
+        defaultValueVector->state->selVector->selectedSize = numValuesToAppend;
+        append(defaultValueVector, numValuesAppended);
+        numValuesAppended += numValuesToAppend;
+    }
+}
+
 template<typename T>
 void ColumnChunk::templateCopyArrowArray(
     arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
@@ -178,6 +207,31 @@ void ColumnChunk::templateCopyArrowArray(
             auto posInChunk = startPosInChunk + i;
             valuesInChunk[posInChunk] = valuesInArray[i];
         }
+    }
+}
+
+template<typename ARROW_TYPE>
+void ColumnChunk::templateCopyStringArrowArray(
+    arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
+    switch (dataType.getLogicalTypeID()) {
+    case LogicalTypeID::DATE: {
+        templateCopyValuesAsString<date_t, ARROW_TYPE>(array, startPosInChunk, numValuesToAppend);
+    } break;
+    case LogicalTypeID::TIMESTAMP: {
+        templateCopyValuesAsString<timestamp_t, ARROW_TYPE>(
+            array, startPosInChunk, numValuesToAppend);
+    } break;
+    case LogicalTypeID::INTERVAL: {
+        templateCopyValuesAsString<interval_t, ARROW_TYPE>(
+            array, startPosInChunk, numValuesToAppend);
+    } break;
+    case LogicalTypeID::FIXED_LIST: {
+        // Fixed list is a fixed-sized blob.
+        templateCopyValuesAsString<uint8_t*, ARROW_TYPE>(array, startPosInChunk, numValuesToAppend);
+    } break;
+    default: {
+        throw NotImplementedException("ColumnChunk::templateCopyStringArrowArray");
+    }
     }
 }
 
@@ -231,10 +285,10 @@ void ColumnChunk::templateCopyArrowArray<uint8_t*>(
     }
 }
 
-template<typename T>
+template<typename KU_TYPE, typename ARROW_TYPE>
 void ColumnChunk::templateCopyValuesAsString(
     arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    auto stringArray = (arrow::StringArray*)array;
+    auto stringArray = (ARROW_TYPE*)array;
     auto arrayData = stringArray->data();
     if (arrayData->MayHaveNulls()) {
         for (auto i = 0u; i < numValuesToAppend; i++) {
@@ -244,13 +298,13 @@ void ColumnChunk::templateCopyValuesAsString(
                 continue;
             }
             auto value = stringArray->GetView(i);
-            setValueFromString<T>(value.data(), value.length(), posInChunk);
+            setValueFromString<KU_TYPE>(value.data(), value.length(), posInChunk);
         }
     } else {
         for (auto i = 0u; i < numValuesToAppend; i++) {
             auto posInChunk = startPosInChunk + i;
             auto value = stringArray->GetView(i);
-            setValueFromString<T>(value.data(), value.length(), posInChunk);
+            setValueFromString<KU_TYPE>(value.data(), value.length(), posInChunk);
         }
     }
 }
@@ -286,6 +340,9 @@ uint32_t ColumnChunk::getDataTypeSizeInChunk(LogicalType& dataType) {
     case LogicalTypeID::INTERNAL_ID: {
         return sizeof(offset_t);
     }
+    case LogicalTypeID::SERIAL: {
+        return sizeof(int64_t);
+    }
     // Used by NodeColumnn to represent the de-compressed size of booleans in-memory
     // Does not reflect the size of booleans on-disk in BoolColumnChunk
     case LogicalTypeID::BOOL: {
@@ -295,6 +352,22 @@ uint32_t ColumnChunk::getDataTypeSizeInChunk(LogicalType& dataType) {
         return StorageUtils::getDataTypeSize(dataType);
     }
     }
+}
+
+void BoolColumnChunk::append(common::ValueVector* vector, common::offset_t startPosInChunk) {
+    assert(vector->dataType.getPhysicalType() == PhysicalTypeID::BOOL);
+    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
+        auto pos = vector->state->selVector->selectedPositions[i];
+        nullChunk->setNull(startPosInChunk + i, vector->isNull(pos));
+        common::NullMask::setNull(
+            (uint64_t*)buffer.get(), startPosInChunk + i, vector->getValue<bool>(pos));
+    }
+}
+
+void BoolColumnChunk::append(
+    arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
+    assert(array->type_id() == arrow::Type::BOOL);
+    templateCopyArrowArray<bool>(array, startPosInChunk, numValuesToAppend);
 }
 
 void BoolColumnChunk::append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
@@ -363,29 +436,33 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     const LogicalType& dataType, CopyDescription* copyDescription) {
     std::unique_ptr<ColumnChunk> chunk;
     switch (dataType.getPhysicalType()) {
-    case PhysicalTypeID::BOOL:
+    case PhysicalTypeID::BOOL: {
         chunk = std::make_unique<BoolColumnChunk>(copyDescription);
-        break;
+    } break;
     case PhysicalTypeID::INT64:
     case PhysicalTypeID::INT32:
     case PhysicalTypeID::INT16:
     case PhysicalTypeID::DOUBLE:
     case PhysicalTypeID::FLOAT:
-    case PhysicalTypeID::INTERVAL:
-        chunk = std::make_unique<ColumnChunk>(dataType, copyDescription);
-        break;
-    case PhysicalTypeID::FIXED_LIST:
+    case PhysicalTypeID::INTERVAL: {
+        if (dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
+            chunk = std::make_unique<SerialColumnChunk>();
+        } else {
+            chunk = std::make_unique<ColumnChunk>(dataType, copyDescription);
+        }
+    } break;
+    case PhysicalTypeID::FIXED_LIST: {
         chunk = std::make_unique<FixedListColumnChunk>(dataType, copyDescription);
-        break;
-    case PhysicalTypeID::STRING:
+    } break;
+    case PhysicalTypeID::STRING: {
         chunk = std::make_unique<StringColumnChunk>(dataType, copyDescription);
-        break;
-    case PhysicalTypeID::VAR_LIST:
+    } break;
+    case PhysicalTypeID::VAR_LIST: {
         chunk = std::make_unique<VarListColumnChunk>(dataType, copyDescription);
-        break;
-    case PhysicalTypeID::STRUCT:
+    } break;
+    case PhysicalTypeID::STRUCT: {
         chunk = std::make_unique<StructColumnChunk>(dataType, copyDescription);
-        break;
+    } break;
     default: {
         throw NotImplementedException("ColumnChunkFactory::createColumnChunk for data type " +
                                       LogicalTypeUtils::dataTypeToString(dataType) +
@@ -445,6 +522,18 @@ offset_t ColumnChunk::getOffsetInBuffer(offset_t pos) const {
     return offsetInBuffer;
 }
 
+void ColumnChunk::copyVectorToBuffer(
+    common::ValueVector* vector, common::offset_t startPosInChunk) {
+    auto bufferToWrite = buffer.get() + startPosInChunk * numBytesPerValue;
+    auto vectorDataToWriteFrom = vector->getData();
+    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
+        auto pos = vector->state->selVector->selectedPositions[i];
+        nullChunk->setNull(startPosInChunk + i, vector->isNull(pos));
+        memcpy(bufferToWrite, vectorDataToWriteFrom + pos * numBytesPerValue, numBytesPerValue);
+        bufferToWrite += numBytesPerValue;
+    }
+}
+
 void NullColumnChunk::resize(uint64_t numValues) {
     auto numBytesAfterResize = numBytesForValues(numValues);
     assert(numBytesAfterResize > numBytes);
@@ -453,10 +542,6 @@ void NullColumnChunk::resize(uint64_t numValues) {
     memcpy(reservedBuffer.get(), buffer.get(), numBytes);
     buffer = std::move(reservedBuffer);
     numBytes = numBytesAfterResize;
-}
-
-void NullColumnChunk::setRangeNoNull(offset_t startPosInChunk, uint32_t numValuesToSet) {
-    NullMask::setNullRange((uint64_t*)buffer.get(), startPosInChunk, numValuesToSet, false);
 }
 
 } // namespace storage

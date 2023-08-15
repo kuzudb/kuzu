@@ -50,10 +50,11 @@ class NullNodeColumn;
 class NodeColumn {
 public:
     NodeColumn(const catalog::Property& property, BMFileHandle* dataFH, BMFileHandle* metadataFH,
-        BufferManager* bufferManager, WAL* wal, bool requireNullColumn = true);
+        BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
+        bool requireNullColumn = true);
     NodeColumn(common::LogicalType dataType, const catalog::MetadataDAHInfo& metaDAHeaderInfo,
         BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-        bool requireNullColumn);
+        transaction::Transaction* transaction, bool requireNullColumn);
     virtual ~NodeColumn() = default;
 
     // Expose for feature store
@@ -88,6 +89,9 @@ public:
     virtual void checkpointInMemory();
     virtual void rollbackInMemory();
 
+    void populateWithDefaultVal(const catalog::Property& property, NodeColumn* nodeColumn,
+        common::ValueVector* defaultValueVector, uint64_t numNodeGroups);
+
 protected:
     virtual void scanInternal(transaction::Transaction* transaction,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
@@ -112,11 +116,6 @@ protected:
     // StorageStructure::createWALVersionOfPageIfNecessaryForElement(). Should be cleared later.
     WALPageIdxPosInPageAndFrame createWALVersionOfPageForValue(common::offset_t nodeOffset);
 
-    static inline common::node_group_idx_t getNodeGroupIdxFromNodeOffset(
-        common::offset_t nodeOffset) {
-        return nodeOffset >> common::StorageConstants::NODE_GROUP_SIZE_LOG2;
-    }
-
 protected:
     StorageStructureID storageStructureID;
     common::LogicalType dataType;
@@ -137,7 +136,7 @@ class BoolNodeColumn : public NodeColumn {
 public:
     BoolNodeColumn(const catalog::MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
         BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-        bool requireNullColumn = true);
+        transaction::Transaction* transaction, bool requireNullColumn = true);
 
     void batchLookup(const common::offset_t* nodeOffsets, size_t size, uint8_t* result) final;
 };
@@ -145,7 +144,8 @@ public:
 class NullNodeColumn : public NodeColumn {
 public:
     NullNodeColumn(common::page_idx_t metaDAHPageIdx, BMFileHandle* dataFH,
-        BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal);
+        BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
+        transaction::Transaction* transaction);
 
     void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector) final;
@@ -163,7 +163,8 @@ protected:
 class SerialNodeColumn : public NodeColumn {
 public:
     SerialNodeColumn(const catalog::MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
-        BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal);
+        BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
+        transaction::Transaction* transaction);
 
     void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector) final;
@@ -175,13 +176,15 @@ public:
 
 struct NodeColumnFactory {
     static inline std::unique_ptr<NodeColumn> createNodeColumn(const catalog::Property& property,
-        BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal) {
+        BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
+        transaction::Transaction* transaction) {
         return createNodeColumn(*property.getDataType(), *property.getMetadataDAHInfo(), dataFH,
-            metadataFH, bufferManager, wal);
+            metadataFH, bufferManager, wal, transaction);
     }
     static std::unique_ptr<NodeColumn> createNodeColumn(const common::LogicalType& dataType,
         const catalog::MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
-        BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal);
+        BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
+        transaction::Transaction* transaction);
 };
 
 } // namespace storage

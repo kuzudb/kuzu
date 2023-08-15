@@ -81,6 +81,10 @@ public:
 
     void resetAuxiliaryBuffer();
 
+    // If there is still non-null values after discarding, return true. Otherwise, return false.
+    // For an unflat vector, its selection vector is also updated to the resultSelVector.
+    static bool discardNull(ValueVector& vector);
+
 private:
     uint32_t getDataTypeSize(const LogicalType& type);
     void initializeValueBuffer();
@@ -218,21 +222,11 @@ public:
 
 class ArrowColumnVector {
 public:
-    static inline std::shared_ptr<arrow::Array> getArrowColumn(ValueVector* vector) {
+    static inline std::shared_ptr<arrow::ChunkedArray> getArrowColumn(ValueVector* vector) {
         return reinterpret_cast<ArrowColumnAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())->column;
     }
 
-    static void setArrowColumn(ValueVector* vector, std::shared_ptr<arrow::Array> column);
-
-    // Slice the arrow column vector from the given offset to the end.
-    static void slice(ValueVector* vector, offset_t offset);
-};
-
-class NodeIDVector {
-public:
-    // If there is still non-null values after discarding, return true. Otherwise, return false.
-    // For an unflat vector, its selection vector is also updated to the resultSelVector.
-    static bool discardNull(ValueVector& vector);
+    static void setArrowColumn(ValueVector* vector, std::shared_ptr<arrow::ChunkedArray> column);
 };
 
 class MapVector {

@@ -13,11 +13,18 @@ struct StringNodeColumnFunc {
 class StringNodeColumn : public NodeColumn {
 public:
     StringNodeColumn(common::LogicalType dataType, const catalog::MetadataDAHInfo& metaDAHeaderInfo,
-        BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal);
+        BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
+        transaction::Transaction* transaction);
 
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector = 0) final;
+
+    common::page_idx_t append(ColumnChunk* columnChunk, common::page_idx_t startPageIdx,
+        common::node_group_idx_t nodeGroupIdx) final;
+
+    void checkpointInMemory() final;
+    void rollbackInMemory() final;
 
 protected:
     void scanInternal(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
@@ -27,10 +34,10 @@ protected:
 
 private:
     void readStringValueFromOvf(transaction::Transaction* transaction, common::ku_string_t& kuStr,
-        common::ValueVector* resultVector, common::page_idx_t chunkStartPageIdx);
+        common::ValueVector* resultVector, common::page_idx_t overflowPageIdx);
 
 private:
-    common::page_idx_t ovfPageIdxInChunk;
+    std::unique_ptr<InMemDiskArray<ColumnChunkMetadata>> overflowMetadataDA;
 };
 
 } // namespace storage

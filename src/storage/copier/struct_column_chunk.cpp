@@ -26,7 +26,12 @@ void StructColumnChunk::append(
         copyStructFromArrowStruct(array, startPosInChunk, numValuesToAppend);
     } break;
     case arrow::Type::STRING: {
-        copyStructFromArrowString(array, startPosInChunk, numValuesToAppend);
+        copyStructFromArrowString<arrow::StringArray>(array, startPosInChunk, numValuesToAppend);
+
+    } break;
+    case arrow::Type::LARGE_STRING: {
+        copyStructFromArrowString<arrow::LargeStringArray>(
+            array, startPosInChunk, numValuesToAppend);
     } break;
     default: {
         throw NotImplementedException("StructColumnChunk::append");
@@ -43,6 +48,17 @@ void StructColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk
     for (auto i = 0u; i < getNumChildren(); i++) {
         childrenChunks[i]->append(otherStructChunk->childrenChunks[i].get(), startPosInOtherChunk,
             startPosInChunk, numValuesToAppend);
+    }
+}
+
+void StructColumnChunk::append(common::ValueVector* vector, common::offset_t startPosInChunk) {
+    auto numFields = StructType::getNumFields(&dataType);
+    for (auto i = 0u; i < numFields; i++) {
+        childrenChunks[i]->append(StructVector::getFieldVector(vector, i).get(), startPosInChunk);
+    }
+    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
+        nullChunk->setNull(
+            startPosInChunk + i, vector->isNull(vector->state->selVector->selectedPositions[i]));
     }
 }
 
@@ -250,9 +266,10 @@ void StructColumnChunk::copyStructFromArrowStruct(
     }
 }
 
+template<typename ARROW_TYPE>
 void StructColumnChunk::copyStructFromArrowString(
     arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    auto* stringArray = (arrow::StringArray*)array;
+    auto* stringArray = (ARROW_TYPE*)array;
     auto arrayData = stringArray->data();
     if (arrayData->MayHaveNulls()) {
         for (auto i = 0u; i < numValuesToAppend; i++) {

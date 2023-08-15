@@ -67,7 +67,7 @@ void ProjectionPushDownOptimizer::visitAccumulate(planner::LogicalOperator* op) 
     if (accumulate->getAccumulateType() != AccumulateType::REGULAR) {
         return;
     }
-    auto expressionsBeforePruning = accumulate->getExpressions();
+    auto expressionsBeforePruning = accumulate->getExpressionsToAccumulate();
     auto expressionsAfterPruning = pruneExpressions(expressionsBeforePruning);
     if (expressionsBeforePruning.size() == expressionsAfterPruning.size()) {
         return;
@@ -82,8 +82,9 @@ void ProjectionPushDownOptimizer::visitFilter(planner::LogicalOperator* op) {
 
 void ProjectionPushDownOptimizer::visitHashJoin(planner::LogicalOperator* op) {
     auto hashJoin = (LogicalHashJoin*)op;
-    for (auto& joinNodeID : hashJoin->getJoinNodeIDs()) {
-        collectExpressionsInUse(joinNodeID);
+    for (auto& [probeJoinKey, buildJoinKey] : hashJoin->getJoinConditions()) {
+        collectExpressionsInUse(probeJoinKey);
+        collectExpressionsInUse(buildJoinKey);
     }
     if (hashJoin->getJoinType() == JoinType::MARK) { // no need to perform push down for mark join.
         return;

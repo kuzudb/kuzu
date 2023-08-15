@@ -25,7 +25,7 @@ void ValueVector::setState(std::shared_ptr<DataChunkState> state) {
     }
 }
 
-bool NodeIDVector::discardNull(ValueVector& vector) {
+bool ValueVector::discardNull(ValueVector& vector) {
     if (vector.hasNoNullsGuarantee()) {
         return true;
     } else {
@@ -181,18 +181,11 @@ void ValueVector::initializeValueBuffer() {
     }
 }
 
-void ArrowColumnVector::setArrowColumn(ValueVector* vector, std::shared_ptr<arrow::Array> column) {
+void ArrowColumnVector::setArrowColumn(
+    ValueVector* vector, std::shared_ptr<arrow::ChunkedArray> column) {
     auto arrowColumnBuffer =
         reinterpret_cast<ArrowColumnAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
     arrowColumnBuffer->column = std::move(column);
-}
-
-void ArrowColumnVector::slice(ValueVector* vector, offset_t offset) {
-    auto arrowColumnBuffer =
-        reinterpret_cast<ArrowColumnAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
-    auto arrowColumn = arrowColumnBuffer->column;
-    auto slicedColumn = arrowColumn->Slice((int64_t)offset);
-    setArrowColumn(vector, slicedColumn);
 }
 
 template void ValueVector::setValue<nodeID_t>(uint32_t pos, nodeID_t val);

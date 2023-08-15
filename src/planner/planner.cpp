@@ -177,17 +177,23 @@ std::unique_ptr<LogicalPlan> Planner::planCopyFrom(
     auto& copyClause = reinterpret_cast<const BoundCopyFrom&>(statement);
     auto plan = std::make_unique<LogicalPlan>();
     expression_vector arrowColumnExpressions;
+    bool hasSerial = false;
     for (auto& property :
         catalog.getReadOnlyVersion()->getTableSchema(copyClause.getTableID())->properties) {
-        if (property->getDataType()->getLogicalTypeID() != LogicalTypeID::SERIAL) {
-            arrowColumnExpressions.push_back(
-                std::make_shared<VariableExpression>(LogicalType{LogicalTypeID::ARROW_COLUMN},
-                    property->getName(), property->getName()));
+        if (property->getDataType()->getLogicalTypeID() != common::LogicalTypeID::SERIAL) {
+            arrowColumnExpressions.push_back(std::make_shared<VariableExpression>(
+                common::LogicalType{common::LogicalTypeID::ARROW_COLUMN}, property->getName(),
+                property->getName()));
+        } else {
+            hasSerial = true;
         }
     }
-    auto copy = make_shared<LogicalCopyFrom>(copyClause.getCopyDescription(),
-        copyClause.getTableID(), copyClause.getTableName(), std::move(arrowColumnExpressions),
-        copyClause.getStatementResult()->getSingleExpressionToCollect());
+    auto copy =
+        make_shared<LogicalCopyFrom>(copyClause.getCopyDescription(), copyClause.getTableID(),
+            copyClause.getTableName(), hasSerial, std::move(arrowColumnExpressions),
+            std::make_shared<VariableExpression>(
+                common::LogicalType{common::LogicalTypeID::INT64}, "nodeOffset", "nodeOffset"),
+            copyClause.getStatementResult()->getSingleExpressionToCollect());
     plan->setLastOperator(std::move(copy));
     return plan;
 }

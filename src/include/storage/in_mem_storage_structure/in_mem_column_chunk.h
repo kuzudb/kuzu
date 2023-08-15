@@ -59,8 +59,6 @@ public:
 
     template<typename T>
     void templateCopyValuesToPage(arrow::Array& array, arrow::Array* nodeOffsets);
-    template<typename T>
-    void templateCopyValuesAsStringToPage(arrow::Array& array, arrow::Array* nodeOffsets);
 
     template<typename T, typename... Args>
     void setValueFromString(
@@ -75,6 +73,12 @@ public:
     }
 
 private:
+    template<typename ARROW_TYPE>
+    void templateCopyArrowStringArray(arrow::Array& array, arrow::Array* nodeOffsets);
+
+    template<typename KU_TYPE, typename ARROW_TYPE>
+    void templateCopyValuesAsStringToPage(arrow::Array& array, arrow::Array* nodeOffsets);
+
     inline virtual common::offset_t getOffsetInBuffer(common::offset_t pos) {
         return pos * numBytesPerValue;
     }
@@ -103,10 +107,6 @@ public:
     void copyArrowArray(arrow::Array& array, PropertyCopyState* copyState,
         arrow::Array* nodeOffsets = nullptr) final;
 
-    template<typename T>
-    void templateCopyValuesAsStringToPageWithOverflow(
-        arrow::Array& array, PropertyCopyState* copyState, arrow::Array* nodeOffsets);
-
     void copyValuesToPageWithOverflow(
         arrow::Array& array, PropertyCopyState* copyState, arrow::Array* nodeOffsets);
 
@@ -115,6 +115,15 @@ public:
         PageByteCursor& overflowCursor, const char* value, uint64_t length, uint64_t pos) {
         assert(false);
     }
+
+private:
+    template<typename KU_TYPE>
+    void templateCopyArrowStringArray(
+        arrow::Array& array, PropertyCopyState* copyState, arrow::Array* nodeOffsets);
+
+    template<typename KU_TYPE, typename ARROW_TYPE>
+    void templateCopyValuesAsStringToPageWithOverflow(
+        arrow::Array& array, PropertyCopyState* copyState, arrow::Array* nodeOffsets);
 
 private:
     storage::InMemOverflowFile* inMemOverflowFile;
@@ -150,6 +159,13 @@ private:
     std::string parseStructFieldName(const std::string& structString, uint64_t& curPos);
 
     std::string parseStructFieldValue(const std::string& structString, uint64_t& curPos);
+
+    template<typename ARROW_TYPE>
+    void templateCopyArrowStringArray(arrow::Array& array, const common::offset_t* offsetsInArray,
+        PropertyCopyState* copyState = nullptr, arrow::Array* nodeOffsets = nullptr);
+
+    void copyFromStructArrowArray(arrow::Array& array, const common::offset_t* offsetsInArray,
+        PropertyCopyState* copyState = nullptr, arrow::Array* nodeOffsets = nullptr);
 
 private:
     std::vector<std::unique_ptr<InMemColumnChunk>> fieldChunks;
