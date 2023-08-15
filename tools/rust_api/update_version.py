@@ -13,7 +13,12 @@ def get_kuzu_version():
     with open(cmake_file) as f:
         for line in f:
             if line.startswith("project(Kuzu VERSION"):
-                return line.split(" ")[2].strip()
+                version = line.split(" ")[2].strip()
+                # Make version semver-compatible
+                components = version.split(".")
+                if len(components) >= 4:
+                    version = ".".join(components[0:3]) + "-" + ".".join(components[3:])
+                return version
 
 
 if __name__ == "__main__":
@@ -38,5 +43,5 @@ if __name__ == "__main__":
                     break
 
     if version_changed:
-        with open("Cargo.toml", "w", encoding="utf-8") as file:
+        with open(KUZU_RS_ROOT / "Cargo.toml", "w", encoding="utf-8") as file:
             file.writelines(data)
