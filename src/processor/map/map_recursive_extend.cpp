@@ -24,20 +24,23 @@ static std::shared_ptr<RecursiveJoinSharedState> createSharedState(
         semiMasks.push_back(std::make_unique<NodeOffsetSemiMask>(nodeTable));
     }
     std::shared_ptr<MorselDispatcher> morselDispatcher;
-    bool checkSingleLabel = boundNode.getTableIDs().size() == 1 &&
-                            nbrNode.getTableIDs().size() == 1 &&
-                            dataInfo->recursiveDstNodeTableIDs.size() == 1;
-    if (joinType == planner::RecursiveJoinType::TRACK_NONE && checkSingleLabel) {
-        auto maxNodeOffsetsPerTable = storageManager.getNodesStore()
-                                          .getNodesStatisticsAndDeletedIDs()
-                                          .getMaxNodeOffsetPerTable();
-        auto maxNodeOffset = maxNodeOffsetsPerTable.at(nbrNode.getSingleTableID());
+    bool isSingleLabel = boundNode.getTableIDs().size() == 1 && nbrNode.getTableIDs().size() == 1 &&
+                         dataInfo->recursiveDstNodeTableIDs.size() == 1;
+    auto maxNodeOffsetsPerTable =
+        storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs().getMaxNodeOffsetPerTable();
+    auto maxNodeOffset = maxNodeOffsetsPerTable.at(nbrNode.getSingleTableID());
+#if defined(_MSC_VER)
+    morselDispatcher = std::make_shared<MorselDispatcher>(SchedulerType::OneThreadOneMorsel,
+        rel.getLowerBound(), rel.getUpperBound(), UINT64_MAX /* maxNodeOffset */);
+#else
+    if (joinType == planner::RecursiveJoinType::TRACK_NONE && isSingleLabel) {
         morselDispatcher = std::make_shared<MorselDispatcher>(
             SchedulerType::nThreadkMorsel, rel.getLowerBound(), rel.getUpperBound(), maxNodeOffset);
     } else {
         morselDispatcher = std::make_shared<MorselDispatcher>(SchedulerType::OneThreadOneMorsel,
-            rel.getLowerBound(), rel.getUpperBound(), UINT64_MAX /* maxNodeOffset */);
+            rel.getLowerBound(), rel.getUpperBound(), maxNodeOffset);
     }
+#endif
     return std::make_shared<RecursiveJoinSharedState>(
         morselDispatcher, fTableSharedState, std::move(semiMasks));
 }

@@ -213,37 +213,45 @@ bool RecursiveJoin::computeBFS(kuzu::processor::ExecutionContext* context) {
         computeBFSOneThreadOneMorsel(context);
         return true;
     } else {
-        while (true) {
-            if (bfsMorsel->hasBFSSharedState()) {
-                auto state = bfsMorsel->getBFSMorsel();
-                if (state == EXTEND_IN_PROGRESS) {
-                    computeBFSnThreadkMorsel(context);
-                    if (bfsMorsel->finishBFSMorsel(queryRelType)) {
-                        return true;
-                    }
-                    continue;
-                }
-                if (state == PATH_LENGTH_WRITE_IN_PROGRESS) {
-                    return true;
-                }
-            }
-            auto state = sharedState->getBFSMorsel(vectorsToScan, colIndicesToScan,
-                vectors->srcNodeIDVector, bfsMorsel.get(), queryRelType);
-            if (state.first == COMPLETE) {
-                return false;
-            }
-            if (state.second == PATH_LENGTH_WRITE_IN_PROGRESS) {
-                return true;
-            }
-            if (state.second == EXTEND_IN_PROGRESS) {
+        return doBFSnThreadkMorsel(context);
+    }
+}
+
+bool RecursiveJoin::doBFSnThreadkMorsel(kuzu::processor::ExecutionContext* context) {
+    while (true) {
+        if (bfsMorsel->hasBFSSharedState()) {
+            auto state = bfsMorsel->getBFSMorsel();
+            if (state == EXTEND_IN_PROGRESS) {
+#if defined(__GNUC__) || defined(__GNUG__)
                 computeBFSnThreadkMorsel(context);
+#endif
                 if (bfsMorsel->finishBFSMorsel(queryRelType)) {
                     return true;
                 }
-            } else {
-                std::this_thread::sleep_for(
-                    std::chrono::microseconds(common::THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
+                continue;
             }
+            if (state == PATH_LENGTH_WRITE_IN_PROGRESS) {
+                return true;
+            }
+        }
+        auto state = sharedState->getBFSMorsel(vectorsToScan, colIndicesToScan,
+            vectors->srcNodeIDVector, bfsMorsel.get(), queryRelType);
+        if (state.first == COMPLETE) {
+            return false;
+        }
+        if (state.second == PATH_LENGTH_WRITE_IN_PROGRESS) {
+            return true;
+        }
+        if (state.second == EXTEND_IN_PROGRESS) {
+#if defined(__GNUC__) || defined(__GNUG__)
+            computeBFSnThreadkMorsel(context);
+#endif
+            if (bfsMorsel->finishBFSMorsel(queryRelType)) {
+                return true;
+            }
+        } else {
+            std::this_thread::sleep_for(
+                std::chrono::microseconds(common::THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
         }
     }
 }
@@ -252,6 +260,7 @@ bool RecursiveJoin::computeBFS(kuzu::processor::ExecutionContext* context) {
 // is operating on its morsel. Lock-free CAS operation occurs here, visited nodes are marked with
 // the function call addToLocalNextBFSLevel on the visited vector. The path lengths are written to
 // the pathLength vector.
+#if defined(__GNUC__) || defined(__GNUG__)
 void RecursiveJoin::computeBFSnThreadkMorsel(ExecutionContext* context) {
     // Cast the BaseBFSMorsel to ShortestPathMorsel, the TRACK_NONE RecursiveJoin is the case it is
     // applicable for. If true, indicates TRACK_PATH is true else TRACK_PATH is false.
@@ -262,12 +271,13 @@ void RecursiveJoin::computeBFSnThreadkMorsel(ExecutionContext* context) {
         boundNodeMultiplicity = bfsMorsel->getBoundNodeMultiplicity(nodeOffset);
         scanFrontier->setNodeID(common::nodeID_t{nodeOffset, *begin(dataInfo->dstNodeTableIDs)});
         while (recursiveRoot->getNextTuple(context)) { // Exhaust recursive plan.
-                bfsMorsel->addToLocalNextBFSLevel(vectors->recursiveDstNodeIDVector,
-                    boundNodeMultiplicity);
+            bfsMorsel->addToLocalNextBFSLevel(
+                vectors->recursiveDstNodeIDVector, boundNodeMultiplicity);
         }
         nodeOffset = bfsMorsel->getNextNodeOffset();
     }
 }
+#endif
 
 // Used for 1T1S scheduling policy, an offset at a time BFS extension is done, and then we check
 // if the BFS is complete or not. No lock-free CAS operation occurring on the visited vector here.

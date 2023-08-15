@@ -43,8 +43,8 @@ void BFSSharedState::reset(TargetDstNodes* targetDstNodes, common::QueryRelType 
             std::fill(nodeIDToMultiplicity.begin(), nodeIDToMultiplicity.end(), 0u);
         }
     }
-    if(queryRelType == common::QueryRelType::VARIABLE_LENGTH) {
-        if(nodeIDMultiplicityToLevel.empty()) {
+    if (queryRelType == common::QueryRelType::VARIABLE_LENGTH) {
+        if (nodeIDMultiplicityToLevel.empty()) {
             nodeIDMultiplicityToLevel =
                 std::vector<std::shared_ptr<multiplicityAndLevel>>(visitedNodes.size(), nullptr);
         } else {
@@ -155,9 +155,9 @@ void BFSSharedState::markSrc(bool isSrcDestination, common::QueryRelType queryRe
         nodeIDToMultiplicity[srcOffset] = 1;
         return;
     }
-    if(queryRelType == common::QueryRelType::VARIABLE_LENGTH) {
-        auto entry = std::make_shared<multiplicityAndLevel>(1 /* multiplicity */, 0 /* bfs level */,
-            nullptr /* next multiplicityAndLevel ptr */);
+    if (queryRelType == common::QueryRelType::VARIABLE_LENGTH) {
+        auto entry = std::make_shared<multiplicityAndLevel>(
+            1 /* multiplicity */, 0 /* bfs level */, nullptr /* next multiplicityAndLevel ptr */);
         nodeIDMultiplicityToLevel[srcOffset] = entry;
     }
 }
@@ -205,6 +205,7 @@ std::pair<uint64_t, int64_t> BFSSharedState::getDstPathLengthMorsel() {
     return startScanIdxAndSize;
 }
 
+#if defined(__GNUC__) || defined(__GNUG__)
 template<>
 void ShortestPathMorsel<false>::addToLocalNextBFSLevel(
     common::ValueVector* tmpDstNodeIDVector, uint64_t boundNodeMultiplicity) {
@@ -213,36 +214,25 @@ void ShortestPathMorsel<false>::addToLocalNextBFSLevel(
         auto nodeID = tmpDstNodeIDVector->getValue<common::nodeID_t>(pos);
         auto state = bfsSharedState->visitedNodes[nodeID.offset];
         if (state == NOT_VISITED_DST) {
-#if defined(_MSC_VER)
-            bool casResult =
-                _InterlockedCompareExchange64(reinterpret_cast<volatile __int64*>(
-                                                  &bfsSharedState->visitedNodes[nodeID.offset]),
-                    VISITED_DST_NEW, state) == state;
-#else
-            bool casResult = __sync_bool_compare_and_swap(
-                &bfsSharedState->visitedNodes[nodeID.offset], state, VISITED_DST_NEW);
-#endif
-            if (casResult) {
+            if (__sync_bool_compare_and_swap(
+                    &bfsSharedState->visitedNodes[nodeID.offset], state, VISITED_DST_NEW)) {
                 __sync_bool_compare_and_swap(&bfsSharedState->pathLength[nodeID.offset], 0u,
                     bfsSharedState->currentLevel + 1);
                 numVisitedDstNodes++;
             }
         } else if (state == NOT_VISITED) {
-#if defined(_MSC_VER)
-            _InterlockedCompareExchange64(
-                reinterpret_cast<volatile __int64*>(&bfsSharedState->visitedNodes[nodeID.offset]),
-                VISITED_NEW, state);
-#else
             __sync_bool_compare_and_swap(
                 &bfsSharedState->visitedNodes[nodeID.offset], state, VISITED_NEW);
-#endif
         }
     }
 }
+#endif
 
+#if defined(__GNUC__) || defined(__GNUG__)
 template<>
 void ShortestPathMorsel<true>::addToLocalNextBFSLevel(
     common::ValueVector* tmpDstNodeIDVector, uint64_t boundNodeMultiplicity) {}
+#endif
 
 template<>
 int64_t ShortestPathMorsel<false>::writeToVector(
@@ -254,7 +244,7 @@ int64_t ShortestPathMorsel<false>::writeToVector(
     auto endIdx = startScanIdxAndSize.first + startScanIdxAndSize.second;
     while (startScanIdxAndSize.first < endIdx) {
         if ((bfsSharedState->visitedNodes[startScanIdxAndSize.first] == VISITED_DST ||
-             bfsSharedState->visitedNodes[startScanIdxAndSize.first] == VISITED_DST_NEW) &&
+                bfsSharedState->visitedNodes[startScanIdxAndSize.first] == VISITED_DST_NEW) &&
             bfsSharedState->pathLength[startScanIdxAndSize.first] >= bfsSharedState->lowerBound) {
             dstNodeIDVector->setValue<common::nodeID_t>(
                 size, common::nodeID_t{startScanIdxAndSize.first, tableID});

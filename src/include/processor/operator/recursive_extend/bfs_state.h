@@ -1,6 +1,7 @@
 #pragma once
 
 #include <utility>
+
 #include "common/query_rel_type.h"
 #include "frontier.h"
 #include "processor/operator/mask.h"
@@ -102,8 +103,8 @@ struct multiplicityAndLevel {
     uint8_t bfsLevel;
     std::shared_ptr<multiplicityAndLevel> next;
 
-    multiplicityAndLevel(uint64_t multiplicity_, uint8_t bfsLevel_,
-        std::shared_ptr<multiplicityAndLevel> next_) {
+    multiplicityAndLevel(
+        uint64_t multiplicity_, uint8_t bfsLevel_, std::shared_ptr<multiplicityAndLevel> next_) {
         multiplicity.store(multiplicity_, std::memory_order_relaxed);
         bfsLevel = bfsLevel_;
         next = std::move(next_);
@@ -264,8 +265,10 @@ public:
 
     virtual uint64_t getBoundNodeMultiplicity(common::offset_t nodeOffset) = 0;
 
+#if defined(__GNUC__) || defined(__GNUG__)
     virtual void addToLocalNextBFSLevel(
         common::ValueVector* tmpDstNodeIDVector, uint64_t boundNodeMultiplicity) = 0;
+#endif
 
     virtual common::offset_t getNextNodeOffset() = 0;
 
@@ -375,9 +378,7 @@ public:
     }
 
     // For Shortest Path, multiplicity is always 0
-    inline uint64_t getBoundNodeMultiplicity(common::offset_t offset) override {
-        return 0u;
-    }
+    inline uint64_t getBoundNodeMultiplicity(common::offset_t offset) override { return 0u; }
 
     inline common::offset_t getNextNodeOffset() override {
         if (startScanIdx == endScanIdx) {

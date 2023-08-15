@@ -3,6 +3,7 @@
 namespace kuzu {
 namespace processor {
 
+#if defined(__GNUC__) || defined(__GNUG__)
 template<>
 void AllShortestPathMorsel<false>::addToLocalNextBFSLevel(
     common::ValueVector* tmpDstNodeIDVector, uint64_t boundNodeMultiplicity) {
@@ -36,10 +37,13 @@ void AllShortestPathMorsel<false>::addToLocalNextBFSLevel(
         }
     }
 }
+#endif
 
+#if defined(__GNUC__) || defined(__GNUG__)
 template<>
 void AllShortestPathMorsel<true>::addToLocalNextBFSLevel(
     common::ValueVector* tmpDstNodeIDVector, uint64_t boundNodeMultiplicity) {}
+#endif
 
 template<>
 int64_t AllShortestPathMorsel<false>::writeToVector(
@@ -51,7 +55,7 @@ int64_t AllShortestPathMorsel<false>::writeToVector(
     auto endIdx = startScanIdxAndSize.first + startScanIdxAndSize.second;
     while (startScanIdxAndSize.first < endIdx && size < common::DEFAULT_VECTOR_CAPACITY) {
         if ((bfsSharedState->visitedNodes[startScanIdxAndSize.first] == VISITED_DST ||
-             bfsSharedState->visitedNodes[startScanIdxAndSize.first] == VISITED_DST_NEW) &&
+                bfsSharedState->visitedNodes[startScanIdxAndSize.first] == VISITED_DST_NEW) &&
             bfsSharedState->pathLength[startScanIdxAndSize.first] >= bfsSharedState->lowerBound) {
             auto multiplicity = bfsSharedState->nodeIDToMultiplicity[startScanIdxAndSize.first];
             do {
