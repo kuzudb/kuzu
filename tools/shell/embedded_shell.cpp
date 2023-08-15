@@ -32,13 +32,14 @@ struct ShellCommand {
     const std::string CLEAR = ":clear";
     const std::string QUIT = ":quit";
     const std::string THREAD = ":thread";
+    const std::string BFS_POLICY = ":bfs_policy";
     const std::string LIST_NODES = ":list_nodes";
     const std::string LIST_RELS = ":list_rels";
     const std::string SHOW_NODE = ":show_node";
     const std::string SHOW_REL = ":show_rel";
     const std::string LOGGING_LEVEL = ":logging_level";
     const std::string QUERY_TIMEOUT = ":timeout";
-    const std::vector<std::string> commandList = {HELP, CLEAR, QUIT, THREAD, LIST_NODES, LIST_RELS,
+    const std::vector<std::string> commandList = {HELP, CLEAR, QUIT, THREAD, BFS_POLICY, LIST_NODES, LIST_RELS,
         SHOW_NODE, SHOW_REL, LOGGING_LEVEL, QUERY_TIMEOUT};
 } shellCommand;
 
@@ -234,7 +235,10 @@ void EmbeddedShell::run() {
             break;
         } else if (lineStr.rfind(shellCommand.THREAD) == 0) {
             setNumThreads(lineStr.substr(shellCommand.THREAD.length()));
-        } else if (lineStr.rfind(shellCommand.LIST_NODES) == 0) {
+        } else if(lineStr.rfind(shellCommand.BFS_POLICY) == 0) {
+            setRecursiveJoinBFSPolicy(lineStr.substr(shellCommand.BFS_POLICY.length()));
+        }
+        else if (lineStr.rfind(shellCommand.LIST_NODES) == 0) {
             printf("%s", conn->getNodeTableNames().c_str());
         } else if (lineStr.rfind(shellCommand.LIST_RELS) == 0) {
             printf("%s", conn->getRelTableNames().c_str());
@@ -290,6 +294,10 @@ void EmbeddedShell::setNumThreads(const std::string& numThreadsString) {
     } catch (Exception& e) { printf("%s", e.what()); }
 }
 
+void EmbeddedShell::setRecursiveJoinBFSPolicy(const std::string& bfsPolicy) {
+    printf("Successfully executed this function, with this string input: %s\n", bfsPolicy.c_str());
+}
+
 void EmbeddedShell::printNodeSchema(const std::string& tableName) {
     auto name = StringUtils::ltrim(tableName);
     try {
@@ -310,6 +318,8 @@ void EmbeddedShell::printHelp() {
     printf("%s%s %sexit from shell\n", TAB, shellCommand.QUIT.c_str(), TAB);
     printf("%s%s [num_threads] %sset number of threads for query execution\n", TAB,
         shellCommand.THREAD.c_str(), TAB);
+    printf("%s%s [bfs_policy] %sset BFS policy for recursive join, available options: 1T1S, nTkS\n",
+        TAB, shellCommand.BFS_POLICY.c_str(), TAB);
     printf("%s%s [logging_level] %sset logging level of database, available options: debug, info, "
            "err\n",
         TAB, shellCommand.LOGGING_LEVEL.c_str(), TAB);
