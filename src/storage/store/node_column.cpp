@@ -482,7 +482,7 @@ void SerialNodeColumn::lookup(
 
 page_idx_t SerialNodeColumn::append(
     ColumnChunk* columnChunk, page_idx_t startPageIdx, uint64_t nodeGroupIdx) {
-    // DO NOTHING.
+    metadataDA->resize(nodeGroupIdx + 1);
     return 0;
 }
 

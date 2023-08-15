@@ -98,6 +98,7 @@ void NodeTable::insert(Transaction* transaction, ValueVector* nodeIDVector,
             column->write(nodeIDVector, propertyVectors[propertyIDToVectorIdx.at(propertyID)]);
         }
     }
+    wal->addToUpdatedNodeTables(tableID);
 }
 
 void NodeTable::update(

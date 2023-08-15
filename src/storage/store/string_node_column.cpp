@@ -41,8 +41,7 @@ void StringNodeColumn::scan(transaction::Transaction* transaction, node_group_id
     NodeColumn::scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup, resultVector,
         offsetInVector);
     auto numValuesToRead = endOffsetInGroup - startOffsetInGroup;
-    auto overflowPageIdx =
-        overflowMetadataDA->get(nodeGroupIdx, TransactionType::READ_ONLY).pageIdx;
+    auto overflowPageIdx = overflowMetadataDA->get(nodeGroupIdx, transaction->getType()).pageIdx;
     for (auto i = 0u; i < numValuesToRead; i++) {
         auto pos = offsetInVector + i;
         if (resultVector->isNull(pos)) {
@@ -82,8 +81,7 @@ void StringNodeColumn::scanInternal(
     assert(startNodeOffset % DEFAULT_VECTOR_CAPACITY == 0);
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdxFromNodeOffset(startNodeOffset);
     NodeColumn::scanInternal(transaction, nodeIDVector, resultVector);
-    auto overflowPageIdx =
-        overflowMetadataDA->get(nodeGroupIdx, TransactionType::READ_ONLY).pageIdx;
+    auto overflowPageIdx = overflowMetadataDA->get(nodeGroupIdx, transaction->getType()).pageIdx;
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[i];
         if (resultVector->isNull(pos)) {
@@ -100,7 +98,7 @@ void StringNodeColumn::lookupInternal(
     auto startNodeOffset = nodeIDVector->readNodeOffset(0);
     auto overflowPageIdx = overflowMetadataDA
                                ->get(StorageUtils::getNodeGroupIdxFromNodeOffset(startNodeOffset),
-                                   TransactionType::READ_ONLY)
+                                   transaction->getType())
                                .pageIdx;
     NodeColumn::lookupInternal(transaction, nodeIDVector, resultVector);
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {

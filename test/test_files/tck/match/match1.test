@@ -10,17 +10,17 @@
 Binder exception: No node table exists in database.
 
 # Matching all nodes
-#-CASE Scenario2
-#-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
-#---- ok
-#-STATEMENT CREATE NODE TABLE B(ID SERIAL, name STRING, PRIMARY KEY(ID));
-#---- ok
-#-STATEMENT CREATE (:A), (:B {name: 'b'});
-#---- ok
-#-STATEMENT MATCH (n) RETURN n;
-#---- 2
-#{_ID: 0:0, _LABEL: A, ID: 0}
-#{_ID: 1:0, _LABEL: B, ID: 0, name: b}
+-CASE Scenario2
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A), (:B {name: 'b'});
+---- ok
+-STATEMENT MATCH (n) RETURN n;
+---- 2
+{_ID: 0:0, _LABEL: A, ID: 0}
+{_ID: 1:0, _LABEL: B, ID: 0, name: b}
 
 # Matching nodes using multiple labels
 -CASE Scenario3
@@ -38,14 +38,14 @@ Binder exception: No node table exists in database.
 {_ID: 1:0, _LABEL: B, ID: 0}
 
 # Simple node inlnie property predicate
-#-CASE Scenario4
-#-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, firstName STRING, PRIMARY KEY(ID));
-#---- ok
-#-STATEMENT CREATE (:A {name: 'bar'}), (:A {name: 'monkey'}), (:A {firstName: 'bar'});
-#---- ok
-#-STATEMENT MATCH (n {name: 'bar'}) RETURN n;
-#---- 1
-#{_ID: 0:0, _LABEL: A, ID: 0, name: bar}
+-CASE Scenario4
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, firstName STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {name: 'bar'}), (:A {name: 'monkey'}), (:A {firstName: 'bar'});
+---- ok
+-STATEMENT MATCH (n {name: 'bar'}) RETURN n;
+---- 1
+{_ID: 0:0, _LABEL: A, ID: 0, name: bar}
 
 
 # Use multiple MATCH clauses to do a Cartesian product

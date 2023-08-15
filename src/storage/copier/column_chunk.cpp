@@ -436,29 +436,33 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     const LogicalType& dataType, CopyDescription* copyDescription) {
     std::unique_ptr<ColumnChunk> chunk;
     switch (dataType.getPhysicalType()) {
-    case PhysicalTypeID::BOOL:
+    case PhysicalTypeID::BOOL: {
         chunk = std::make_unique<BoolColumnChunk>(copyDescription);
-        break;
+    } break;
     case PhysicalTypeID::INT64:
     case PhysicalTypeID::INT32:
     case PhysicalTypeID::INT16:
     case PhysicalTypeID::DOUBLE:
     case PhysicalTypeID::FLOAT:
-    case PhysicalTypeID::INTERVAL:
-        chunk = std::make_unique<ColumnChunk>(dataType, copyDescription);
-        break;
-    case PhysicalTypeID::FIXED_LIST:
+    case PhysicalTypeID::INTERVAL: {
+        if (dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
+            chunk = std::make_unique<SerialColumnChunk>();
+        } else {
+            chunk = std::make_unique<ColumnChunk>(dataType, copyDescription);
+        }
+    } break;
+    case PhysicalTypeID::FIXED_LIST: {
         chunk = std::make_unique<FixedListColumnChunk>(dataType, copyDescription);
-        break;
-    case PhysicalTypeID::STRING:
+    } break;
+    case PhysicalTypeID::STRING: {
         chunk = std::make_unique<StringColumnChunk>(dataType, copyDescription);
-        break;
-    case PhysicalTypeID::VAR_LIST:
+    } break;
+    case PhysicalTypeID::VAR_LIST: {
         chunk = std::make_unique<VarListColumnChunk>(dataType, copyDescription);
-        break;
-    case PhysicalTypeID::STRUCT:
+    } break;
+    case PhysicalTypeID::STRUCT: {
         chunk = std::make_unique<StructColumnChunk>(dataType, copyDescription);
-        break;
+    } break;
     default: {
         throw NotImplementedException("ColumnChunkFactory::createColumnChunk for data type " +
                                       LogicalTypeUtils::dataTypeToString(dataType) +
