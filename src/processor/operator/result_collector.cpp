@@ -31,7 +31,17 @@ void ResultCollector::executeInternal(ExecutionContext* context) {
 void ResultCollector::finalize(ExecutionContext* context) {
     switch (info->accumulateType) {
     case AccumulateType::OPTIONAL_: {
+        // We should remove currIdx completely as some of the code still relies on currIdx = -1 to
+        // check if the state if unFlat or not. This should no longer be necessary.
+        // TODO(Ziyi): add an interface in factorized table
         auto table = sharedState->getTable();
+        auto tableSchema = table->getTableSchema();
+        for (auto i = 0u; i < tableSchema->getNumColumns(); ++i) {
+            auto columnSchema = tableSchema->getColumn(i);
+            if (columnSchema->isFlat()) {
+                payloadVectors[i]->state->currIdx = 0;
+            }
+        }
         if (table->isEmpty()) {
             for (auto& vector : payloadVectors) {
                 vector->setAsSingleNullEntry();
