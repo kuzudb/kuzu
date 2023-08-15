@@ -9,8 +9,16 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
+// User's setting of scheduler policy is given preference. If user changes policy to 1T1S then
+// before operator begins execution we change the policy globally here.
 void RecursiveJoin::initGlobalStateInternal(kuzu::processor::ExecutionContext* context) {
-    sharedState->morselDispatcher->initActiveBFSSharedState(context->numThreads);
+    if (context->clientContext->getBFSSchedulerType() == SchedulerType::OneThreadOneMorsel) {
+        sharedState->morselDispatcher->setSchedulerType(SchedulerType::OneThreadOneMorsel);
+        return;
+    }
+    if (sharedState->morselDispatcher->getSchedulerType() == SchedulerType::nThreadkMorsel) {
+        sharedState->morselDispatcher->initActiveBFSSharedState(context->numThreads);
+    }
 }
 
 void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) {
