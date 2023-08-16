@@ -98,14 +98,17 @@ public:
     processor::FactorizedTable* getTable() { return factorizedTable.get(); }
 
     /**
+     * @brief Returns the arrow schema of the query result.
      * @return datatypes of the columns as an arrow schema
      *
      * It is the caller's responsibility to call the release function to release the underlying data
      * If converting to another arrow type, this this is usually handled automatically.
      */
-    std::unique_ptr<ArrowSchema> getArrowSchema() const;
+    KUZU_API std::unique_ptr<ArrowSchema> getArrowSchema() const;
 
     /**
+     * @brief Returns the next chunk of the query result as an arrow array.
+     * @param chunkSize number of tuples to return in the chunk.
      * @return An arrow array representation of the next chunkSize tuples of the query result.
      *
      * The ArrowArray internally stores an arrow struct with fields for each of the columns.
@@ -114,7 +117,7 @@ public:
      * It is the caller's responsibility to call the release function to release the underlying data
      * If converting to another arrow type, this this is usually handled automatically.
      */
-    std::unique_ptr<ArrowArray> getNextArrowChunk(int64_t chunkSize);
+    KUZU_API std::unique_ptr<ArrowArray> getNextArrowChunk(int64_t chunkSize);
 
 private:
     void initResultTableAndIterator(std::shared_ptr<processor::FactorizedTable> factorizedTable_,

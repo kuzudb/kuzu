@@ -495,18 +495,24 @@ KUZU_C_API void kuzu_query_result_write_to_csv(kuzu_query_result* query_result,
 KUZU_C_API void kuzu_query_result_reset_iterator(kuzu_query_result* query_result);
 
 /**
+ * @brief Returns the query result's schema as ArrowSchema.
+ * @praam query_result The query result instance to return.
  * @return datatypes of the columns as an arrow schema
  *
  * It is the caller's responsibility to call the release function to release the underlying data
  */
-struct ArrowSchema kuzu_query_result_get_arrow_schema(kuzu_query_result* query_result);
+KUZU_C_API struct ArrowSchema kuzu_query_result_get_arrow_schema(kuzu_query_result* query_result);
 
 /**
- * @return An arrow array representation of the query result
+ * @brief Returns the next chunk of the query result as ArrowArray.
+ * @param query_result The query result instance to return.
+ * @param chunk_size The number of tuples to return in the chunk.
+ * @return An arrow array representation of the query result. The arrow array internally stores an
+ * arrow struct with fields for each of the columns.
  *
  * It is the caller's responsibility to call the release function to release the underlying data
  */
-struct ArrowArray kuzu_query_result_get_next_arrow_chunk(
+KUZU_C_API struct ArrowArray kuzu_query_result_get_next_arrow_chunk(
     kuzu_query_result* query_result, int64_t chunk_size);
 
 // FlatTuple
