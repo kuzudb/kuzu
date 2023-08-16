@@ -54,16 +54,14 @@ class BufferedCSVReader : public BaseCSVReader {
 public:
     BufferedCSVReader(const std::string& filePath, common::CSVReaderConfig* csvReaderConfig,
                           catalog::TableSchema* tableSchema);
-    virtual ~BufferedCSVReader() {
-    }
+    ~BufferedCSVReader() override = default;
+
     std::unique_ptr<char[]> buffer;
     uint64_t bufferSize;
     uint64_t position;
     uint64_t start = 0;
 
     std::vector<std::unique_ptr<char[]>> cachedBuffers;
-
-    std::string filePath;
 
 public:
     //! Extract a single DataChunk from the CSV file and stores it in insert_chunk

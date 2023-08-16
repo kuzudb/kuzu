@@ -1,6 +1,7 @@
 #include "storage/copier/read_file_state.h"
-
+#include <iostream>
 #include "storage/copier/npy_reader.h"
+#include "storage/copier/csv_reader.h"
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -41,12 +42,26 @@ std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getMorselSerial() {
             return nullptr;
         }
         auto filePath = filePaths[currFileIdx];
-        if (!reader) {
-            reader = make_shared<BufferedCSVReader>(filePath, csvReaderConfig, tableSchema);
-        }
+        reader = make_shared<BufferedCSVReader>(filePath, &csvReaderConfig, tableSchema);
         std::shared_ptr<arrow::RecordBatch> recordBatch;
-        DataChunk output;
+        DataChunk output(tableSchema->getNumProperties());
+        for (int i = 0; i < tableSchema->getNumProperties(); i++ ) {
+            auto v = std::make_shared<ValueVector>(LogicalTypeID::STRING);
+            output.insert(i, v);
+        }
+        std::cout << "started ParseCSV" << std::endl;
         reader->ParseCSV(output);
+        // Print DataChunk for testing:
+        std::cout << "finished ParseCSV" << std::endl;
+        std::cout << "Printing output DataChunk" << std::endl;
+        for (int i = 0; i < output.getNumValueVectors(); i++) {
+            std::cout << "i:" << i << std::endl;
+            for (int j = 0; j < 15; j++) {
+                std::cout << output.getValueVector(i)->getValue<char>(j) << " ";
+            }
+            std::cout << "endi" << std::endl;
+            std::cout << std::endl;
+        }
         if (recordBatch == nullptr) {
             // No more blocks to read in this file.
             currFileIdx++;
