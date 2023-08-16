@@ -3,6 +3,7 @@
 #include "storage/storage_manager.h"
 
 using namespace kuzu::common;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace main {
@@ -24,10 +25,11 @@ void StorageDriver::scan(const std::string& nodeName, const std::string& propert
     std::vector<std::thread> threads;
     auto numElementsPerThread = size / numThreads + 1;
     auto sizeLeft = size;
+    auto dummyReadOnlyTransaction = Transaction::getDummyReadOnlyTrx();
     while (sizeLeft > 0) {
         uint64_t sizeToRead = std::min(numElementsPerThread, sizeLeft);
-        threads.emplace_back(
-            &StorageDriver::scanColumn, this, column, offsets, sizeToRead, current_buffer);
+        threads.emplace_back(&StorageDriver::scanColumn, this, dummyReadOnlyTransaction.get(),
+            column, offsets, sizeToRead, current_buffer);
         offsets += sizeToRead;
         current_buffer += sizeToRead * column->getNumBytesPerValue();
         sizeLeft -= sizeToRead;
@@ -54,9 +56,9 @@ uint64_t StorageDriver::getNumRels(const std::string& relName) {
     return relStatistics->getNumTuples();
 }
 
-void StorageDriver::scanColumn(
-    storage::NodeColumn* column, offset_t* offsets, size_t size, uint8_t* result) {
-    column->batchLookup(offsets, size, result);
+void StorageDriver::scanColumn(Transaction* transaction, storage::NodeColumn* column,
+    offset_t* offsets, size_t size, uint8_t* result) {
+    column->batchLookup(transaction, offsets, size, result);
 }
 
 } // namespace main

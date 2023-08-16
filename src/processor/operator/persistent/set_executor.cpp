@@ -34,39 +34,39 @@ static void writeToPropertyVector(ValueVector* propertyVector, uint32_t property
     }
 }
 
-void SingleLabelNodeSetExecutor::set() {
+void SingleLabelNodeSetExecutor::set(ExecutionContext* context) {
     evaluator->evaluate();
+    setInfo.table->update(context->transaction, setInfo.propertyID, nodeIDVector, rhsVector);
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
         auto lhsPos = nodeIDVector->state->selVector->selectedPositions[i];
-        auto& nodeID = nodeIDVector->getValue<internalID_t>(lhsPos);
         auto rhsPos = lhsPos;
         if (rhsVector->state->selVector->selectedSize == 1) {
             rhsPos = rhsVector->state->selVector->selectedPositions[0];
         }
-        column->write(nodeID.offset, rhsVector, rhsPos);
         if (lhsVector != nullptr) {
             writeToPropertyVector(lhsVector, lhsPos, rhsVector, rhsPos);
         }
     }
 }
 
-void MultiLabelNodeSetExecutor::set() {
+void MultiLabelNodeSetExecutor::set(ExecutionContext* context) {
     evaluator->evaluate();
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
         auto lhsPos = nodeIDVector->state->selVector->selectedPositions[i];
         auto& nodeID = nodeIDVector->getValue<internalID_t>(lhsPos);
-        if (!tableIDToColumn.contains(nodeID.tableID)) {
+        if (!tableIDToSetInfo.contains(nodeID.tableID)) {
             if (lhsVector != nullptr) {
                 lhsVector->setNull(lhsPos, true);
             }
             continue;
         }
-        auto column = tableIDToColumn.at(nodeID.tableID);
         auto rhsPos = lhsPos;
         if (rhsVector->state->selVector->selectedSize == 1) {
             rhsPos = rhsVector->state->selVector->selectedPositions[0];
         }
-        column->write(nodeID.offset, rhsVector, rhsPos);
+        auto& setInfo = tableIDToSetInfo.at(nodeID.tableID);
+        setInfo.table->update(
+            context->transaction, setInfo.propertyID, nodeID.offset, rhsVector, rhsPos);
         if (lhsVector != nullptr) {
             writeToPropertyVector(lhsVector, lhsPos, rhsVector, rhsPos);
         }

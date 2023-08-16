@@ -15,6 +15,7 @@ struct ExceptionMessage {
     static inline std::string notAllowCopyOnNonEmptyTableException() {
         return "COPY commands can only be executed once on a table.";
     }
+    static std::string overLargeStringValueException(const std::string& length);
 };
 
 class Exception : public std::exception {

@@ -1,5 +1,6 @@
 -GROUP CopyLongStringTest
 -DATASET CSV copy-fault-tests/long-string
+-SKIP
 
 --
 

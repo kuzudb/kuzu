@@ -16,6 +16,15 @@ namespace storage {
 
 class NullColumnChunk;
 
+struct ColumnChunkMetadata {
+    common::page_idx_t pageIdx = common::INVALID_PAGE_IDX;
+    common::page_idx_t numPages = 0;
+};
+
+struct OverflowColumnChunkMetadata : public ColumnChunkMetadata {
+    common::offset_t lastOffsetInPage;
+};
+
 // Base data segment covers all fixed-sized data types.
 // Some template functions are almost duplicated from `InMemColumnChunk`, which is intended.
 // Currently, `InMemColumnChunk` is used to populate rel columns. Eventually, we will merge them.
@@ -76,6 +85,8 @@ public:
     }
 
     inline uint64_t getNumBytesPerValue() const { return numBytesPerValue; }
+    inline uint64_t getNumBytes() const { return numBytes; }
+    inline uint8_t* getData() { return buffer.get(); }
 
     virtual void write(const common::Value& val, uint64_t posToWrite);
 

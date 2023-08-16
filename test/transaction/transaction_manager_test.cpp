@@ -14,23 +14,15 @@ protected:
     void SetUp() override {
         EmptyDBTest::SetUp();
         FileUtils::createDir(databasePath);
-        LoggerUtils::createLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);
-        LoggerUtils::createLogger(LoggerConstants::LoggerEnum::WAL);
-        LoggerUtils::createLogger(LoggerConstants::LoggerEnum::TRANSACTION_MANAGER);
-        LoggerUtils::createLogger(LoggerConstants::LoggerEnum::STORAGE);
-        bufferManager = std::make_unique<BufferManager>(
-            BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
+        createDBAndConn();
+        bufferManager = getBufferManager(*database);
+        std::make_unique<BufferManager>(BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
         wal = std::make_unique<WAL>(databasePath, *bufferManager);
-        transactionManager = std::make_unique<TransactionManager>(*wal);
+        transactionManager = std::make_unique<TransactionManager>(
+            *wal, getStorageManager(*database), getMemoryManager(*database));
     }
 
-    void TearDown() override {
-        EmptyDBTest::TearDown();
-        LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);
-        LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::WAL);
-        LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::TRANSACTION_MANAGER);
-        LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::STORAGE);
-    }
+    void TearDown() override { EmptyDBTest::TearDown(); }
 
 public:
     void runTwoCommitRollback(TransactionType type, bool firstIsCommit, bool secondIsCommit) {
@@ -53,7 +45,7 @@ public:
     std::unique_ptr<TransactionManager> transactionManager;
 
 private:
-    std::unique_ptr<BufferManager> bufferManager;
+    BufferManager* bufferManager;
     std::unique_ptr<WAL> wal;
 };
 

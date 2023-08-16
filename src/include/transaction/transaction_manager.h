@@ -16,10 +16,12 @@ namespace transaction {
 class TransactionManager {
 
 public:
-    explicit TransactionManager(storage::WAL& wal)
+    explicit TransactionManager(
+        storage::WAL& wal, storage::StorageManager* storageManager, storage::MemoryManager* mm)
         : logger{common::LoggerUtils::getLogger(
               common::LoggerConstants::LoggerEnum::TRANSACTION_MANAGER)},
-          wal{wal}, activeWriteTransactionID{INT64_MAX}, lastTransactionID{0}, lastCommitID{0} {};
+          wal{wal}, storageManager{storageManager}, mm{mm}, activeWriteTransactionID{INT64_MAX},
+          lastTransactionID{0}, lastCommitID{0} {};
     std::unique_ptr<Transaction> beginWriteTransaction();
     std::unique_ptr<Transaction> beginReadOnlyTransaction();
     void commit(Transaction* transaction);
@@ -63,6 +65,8 @@ private:
     std::shared_ptr<spdlog::logger> logger;
 
     storage::WAL& wal;
+    storage::StorageManager* storageManager;
+    storage::MemoryManager* mm;
 
     uint64_t activeWriteTransactionID;
 

@@ -41,9 +41,11 @@ public:
         const std::vector<common::ValueVector*>& propertyVectors,
         const std::unordered_map<common::property_id_t, common::vector_idx_t>&
             propertyIDToVectorIdx);
-
-    void update(common::property_id_t propertyID, common::ValueVector* nodeIDVector,
-        common::ValueVector* vectorToWriteFrom);
+    void update(transaction::Transaction* transaction, common::property_id_t propertyID,
+        common::ValueVector* nodeIDVector, common::ValueVector* propertyVector);
+    void update(transaction::Transaction* transaction, common::property_id_t propertyID,
+        common::offset_t nodeOffset, common::ValueVector* propertyVector,
+        common::sel_t posInPropertyVector);
     void delete_(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         DeleteState* deleteState);
     void append(NodeGroup* nodeGroup);

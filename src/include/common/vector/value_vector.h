@@ -53,6 +53,7 @@ public:
 
     inline uint32_t getNumBytesPerValue() const { return numBytesPerValue; }
 
+    // TODO(Guodong): Rename this to getValueRef
     template<typename T>
     inline T& getValue(uint32_t pos) const {
         return ((T*)valueBuffer.get())[pos];

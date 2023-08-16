@@ -96,7 +96,7 @@ void CopyNode::executeInternal(ExecutionContext* context) {
             if (localNodeGroup->isFull()) {
                 node_group_idx_t nodeGroupIdx;
                 if (copyNodeInfo.preservingOrder) {
-                    nodeGroupIdx = StorageUtils::getNodeGroupIdxFromNodeOffset(nodeOffset) - 1;
+                    nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset) - 1;
                     sharedState->currentNodeGroupIdx++;
                 } else {
                     nodeGroupIdx = sharedState->getNextNodeGroupIdx();
@@ -115,7 +115,7 @@ void CopyNode::writeAndResetNodeGroup(node_group_idx_t nodeGroupIdx,
     PrimaryKeyIndexBuilder* pkIndex, column_id_t pkColumnID, NodeTable* table,
     NodeGroup* nodeGroup) {
     nodeGroup->setNodeGroupIdx(nodeGroupIdx);
-    auto startOffset = StorageUtils::getStartOffsetForNodeGroup(nodeGroupIdx);
+    auto startOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     if (pkIndex) {
         populatePKIndex(pkIndex, nodeGroup->getColumnChunk(pkColumnID), startOffset,
             nodeGroup->getNumNodes() /* startPageIdx */);

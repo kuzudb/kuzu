@@ -395,7 +395,8 @@ void InMemListsWithOverflow::setValueFromStringWithOverflow<ku_string_t>(
     PageByteCursor& overflowCursor, offset_t nodeOffset, uint64_t pos, const char* val,
     uint64_t length) {
     if (length > BufferPoolConstants::PAGE_4KB_SIZE) {
-        length = BufferPoolConstants::PAGE_4KB_SIZE;
+        throw CopyException(
+            ExceptionMessage::overLargeStringValueException(std::to_string(length)));
     }
     auto stringVal = overflowInMemFile->copyString(val, length, overflowCursor);
     setValue(nodeOffset, pos, (uint8_t*)&stringVal);

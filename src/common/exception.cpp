@@ -18,5 +18,10 @@ std::string ExceptionMessage::invalidPKType(const std::string& type) {
         type);
 }
 
+std::string ExceptionMessage::overLargeStringValueException(const std::string& length) {
+    return StringUtils::string_format(
+        "Maximum length of strings is 4096. Input string's length is {}.", length);
+}
+
 } // namespace common
 } // namespace kuzu

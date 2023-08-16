@@ -25,8 +25,8 @@ public:
     uint64_t getNumRels(const std::string& relName);
 
 private:
-    void scanColumn(
-        storage::NodeColumn* column, common::offset_t* offsets, size_t size, uint8_t* result);
+    void scanColumn(transaction::Transaction* transaction, storage::NodeColumn* column,
+        common::offset_t* offsets, size_t size, uint8_t* result);
 
 private:
     catalog::Catalog* catalog;
