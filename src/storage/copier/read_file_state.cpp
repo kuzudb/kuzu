@@ -31,11 +31,7 @@ void ReadCSVSharedState::countNumRows() {
 // TODO(Guodong): Refactor duplicated between the three getMorsel() functions.
 std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getMorselSerial() {
     std::unique_lock lck{mtx};
-    std::shared_ptr<arrow::Table> resultTable;
-    if (leftOverData) {
-        resultTable = std::move(leftOverData);
-        leftOverData = nullptr;
-    }
+    auto rows = 0;
     while (true) {
         if (currFileIdx >= filePaths.size()) {
             // No more files to read.
@@ -43,26 +39,15 @@ std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getMorselSerial() {
         }
         auto filePath = filePaths[currFileIdx];
         reader = make_shared<BufferedCSVReader>(filePath, &csvReaderConfig, tableSchema);
-        std::shared_ptr<arrow::RecordBatch> recordBatch;
-        DataChunk output(tableSchema->getNumProperties());
+        auto output = std::make_shared<DataChunk>(tableSchema->getNumProperties());
         for (int i = 0; i < tableSchema->getNumProperties(); i++ ) {
             auto v = std::make_shared<ValueVector>(LogicalTypeID::STRING);
-            output.insert(i, v);
+            output->insert(i, v);
         }
-        std::cout << "started ParseCSV" << std::endl;
-        reader->ParseCSV(output);
-        // Print DataChunk for testing:
-        std::cout << "finished ParseCSV" << std::endl;
-        std::cout << "Printing output DataChunk" << std::endl;
-        for (int i = 0; i < output.getNumValueVectors(); i++) {
-            std::cout << "i:" << i << std::endl;
-            for (int j = 0; j < 45; j++) {
-                std::cout << output.getValueVector(i)->getValue<char>(j) << " ";
-            }
-            std::cout << "endi" << std::endl;
-            std::cout << std::endl;
-        }
-        if (recordBatch == nullptr) {
+        auto numRowsInBatch = reader->ParseCSV(*output);
+        std::cout << "numRowsInBatch: " << numRowsInBatch << std::endl;
+        rows += numRowsInBatch;
+        if (numRowsInBatch <= 0) {
             // No more blocks to read in this file.
             currFileIdx++;
             currBlockIdx = 0;
@@ -73,32 +58,22 @@ std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getMorselSerial() {
             }
             continue;
         }
-        auto numRowsInBatch = recordBatch->num_rows();
         rowsRead += numRowsInBatch;
         currRowIdxInCurrFile += numRowsInBatch;
         currBlockIdx++;
-        if (resultTable == nullptr) {
-            TableCopyUtils::throwCopyExceptionIfNotOK(
-                arrow::Table::FromRecordBatches({recordBatch}).Value(&resultTable));
+        if (resultOutput == nullptr) {
+            resultOutput = std::move(output);
         } else {
-            std::shared_ptr<arrow::Table> interimTable;
-            TableCopyUtils::throwCopyExceptionIfNotOK(
-                arrow::Table::FromRecordBatches({recordBatch}).Value(&interimTable));
-            TableCopyUtils::throwCopyExceptionIfNotOK(
-                arrow::ConcatenateTables({resultTable, interimTable}).Value(&resultTable));
-        }
-        if (resultTable->column(0)->length() >= common::StorageConstants::NODE_GROUP_SIZE) {
-            leftOverData = resultTable->Slice(common::StorageConstants::NODE_GROUP_SIZE);
-            resultTable = resultTable->Slice(0, common::StorageConstants::NODE_GROUP_SIZE);
-            break;
+            // Concatenate DataChunks
+            std::cout << "Deal with this case later" << std::endl;
         }
         if (currFileIdx >= filePaths.size()) {
             break;
         }
+        break;
     }
-    auto rows = resultTable->num_rows();
-    auto result = std::make_unique<ReadSerialMorsel>(
-        currRowIdx, filePaths[0], currRowIdxInCurrFile, rowsRead, std::move(resultTable));
+    auto result = std::make_unique<ReadCSVMorsel>(
+        currRowIdx, filePaths[0], currRowIdxInCurrFile, rowsRead, std::move(resultOutput));
     currRowIdx += rows;
     return result;
 }

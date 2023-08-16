@@ -39,6 +39,17 @@ public:
     std::shared_ptr<arrow::Table> recordTable;
 };
 
+class ReadCSVMorsel : public ReadFileMorsel {
+public:
+    ReadCSVMorsel(common::offset_t startRowIdx, std::string filePath,
+                  common::row_idx_t rowIdxInFile, common::row_idx_t rowsRead,
+                  std::shared_ptr<common::DataChunk> recordOutput)
+                  : ReadFileMorsel{startRowIdx, common::INVALID_BLOCK_IDX, rowsRead, std::move(filePath), rowIdxInFile},
+                  recordOutput{std::move(recordOutput)} {}
+
+                  std::shared_ptr<common::DataChunk> recordOutput;
+};
+
 class ReadFileSharedState {
 public:
     ReadFileSharedState(std::vector<std::string> filePaths, common::CSVReaderConfig csvReaderConfig,
@@ -81,6 +92,7 @@ public:
 
 private:
     std::shared_ptr<BufferedCSVReader> reader;
+    std::shared_ptr<common::DataChunk> resultOutput;
 };
 
 class ReadParquetSharedState : public ReadFileSharedState {

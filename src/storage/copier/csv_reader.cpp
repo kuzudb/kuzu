@@ -83,8 +83,8 @@ bool BaseCSVReader::AddRow(DataChunk &insert_chunk, column_id_t &column, std::st
     if (mode == ParserMode::PARSING_HEADER) {
         return true;
     }
-    // TODO: Change this to some other value (node group size? or reading size?) instead of 1000
-    if (mode == ParserMode::PARSING && columnSizes[0] >= 1000) {
+    // TODO: Change this to some other value (node group size? or reading size?) instead of 1000. Also figure out how to make the csv reader stop naturally
+    if (mode == ParserMode::PARSING && columnSizes[0] >= 4) {
         Flush(insert_chunk, buffer_idx);
         return true;
     }
@@ -100,7 +100,7 @@ bool BaseCSVReader::Flush(DataChunk &insert_chunk, uint64_t buffer_idx, bool try
     std::cout << "Printing parse_chunk in Flush" << std::endl;
     for (int i = 0; i < parse_chunk.getNumValueVectors(); i++) {
         std::cout << "i:" << i << std::endl;
-        for (int j = 0; j < 15; j++) {
+        for (int j = 0; j < 45; j++) {
             std::cout << parse_chunk.getValueVector(i)->getValue<char>(j) << " ";
         }
         std::cout << "endi" << std::endl;
@@ -249,7 +249,7 @@ void BufferedCSVReader::SkipEmptyLines() {
 }
 
 
-bool BufferedCSVReader::TryParseSimpleCSV(DataChunk &insertChunk, std::string &errorMessage) {
+uint64_t BufferedCSVReader::TryParseSimpleCSV(DataChunk &insertChunk, std::string &errorMessage) {
     // used for parsing algorithm
     bool finished_chunk = false;
     column_id_t column = 0;
@@ -261,7 +261,7 @@ bool BufferedCSVReader::TryParseSimpleCSV(DataChunk &insertChunk, std::string &e
     // read values into the buffer (if any)
     if (position >= bufferSize) {
         if (!ReadBuffer(start, line_start)) {
-            return true;
+            return 0;
         }
     }
 
@@ -314,11 +314,11 @@ bool BufferedCSVReader::TryParseSimpleCSV(DataChunk &insertChunk, std::string &e
         bool carriage_return = buffer[position] == '\r';
         AddValue(std::string(buffer.get() + start, position - start - offset), column, escape_positions, has_quotes);
         if (!errorMessage.empty()) {
-            return false;
+            return -1;
         }
         finished_chunk = AddRow(insertChunk, column, errorMessage);
         if (!errorMessage.empty()) {
-            return false;
+            return -1;
         }
         // increase position by 1 and move start to the new position
         offset = 0;
@@ -343,7 +343,7 @@ bool BufferedCSVReader::TryParseSimpleCSV(DataChunk &insertChunk, std::string &e
             }
             // \n newline, move to value start
             if (finished_chunk) {
-                return true;
+                return columnSizes[0];
             }
             goto value_start;
         }
@@ -394,7 +394,7 @@ bool BufferedCSVReader::TryParseSimpleCSV(DataChunk &insertChunk, std::string &e
                 "Error in file {} on line {}: quote should be followed by end of value, end of "
                 "row or another quote.",
                 filePath, linenr);
-        return false;
+        return -1;
     }
     handle_escape:
     /* state: handle_escape */
@@ -404,13 +404,13 @@ bool BufferedCSVReader::TryParseSimpleCSV(DataChunk &insertChunk, std::string &e
         errorMessage = StringUtils::string_format(
                 "Error in file {} on line {}: neither QUOTE nor ESCAPE is proceeded by ESCAPE.",
                 filePath, linenr);
-        return false;
+        return -1;
     }
     if (buffer[position] != csvReaderConfig->quoteChar && buffer[position] != csvReaderConfig->escapeChar) {
         errorMessage = StringUtils::string_format(
                 "Error in file {} on line {}}: neither QUOTE nor ESCAPE is proceeded by ESCAPE.",
                 filePath, linenr);
-        return false;
+        return -1;
     }
     // escape was followed by quote or escape, go back to quoted state
     goto in_quotes;
@@ -427,7 +427,7 @@ bool BufferedCSVReader::TryParseSimpleCSV(DataChunk &insertChunk, std::string &e
         }
     }
     if (finished_chunk) {
-        return true;
+        return columnSizes[0];
     }
     SkipEmptyLines();
     start = position;
@@ -440,7 +440,7 @@ bool BufferedCSVReader::TryParseSimpleCSV(DataChunk &insertChunk, std::string &e
     goto value_start;
     final_state:
     if (finished_chunk) {
-        return true;
+        return columnSizes[0];
     }
 
     if (column > 0 || position > start) {
@@ -449,7 +449,7 @@ bool BufferedCSVReader::TryParseSimpleCSV(DataChunk &insertChunk, std::string &e
         finished_chunk = AddRow(insertChunk, column, errorMessage);
         SkipEmptyLines();
         if (!errorMessage.empty()) {
-            return false;
+            return -1;
         }
     }
 
@@ -460,17 +460,19 @@ bool BufferedCSVReader::TryParseSimpleCSV(DataChunk &insertChunk, std::string &e
     }
 
     end_of_file_reached = true;
-    return true;
+    return columnSizes[0];
 }
 
-void BufferedCSVReader::ParseCSV(common::DataChunk &insertChunk) {
+uint64_t BufferedCSVReader::ParseCSV(common::DataChunk &insertChunk) {
     std::string errorMessage;
-    if (!TryParseCSV(ParserMode::PARSING, insertChunk, errorMessage)) {
+    auto numRowsRead = TryParseCSV(ParserMode::PARSING, insertChunk, errorMessage);
+    if (numRowsRead == -1) {
         throw CopyException(errorMessage);
     }
+    return numRowsRead;
 }
 
-bool BufferedCSVReader::TryParseCSV(ParserMode parserMode, DataChunk &insertChunk, std::string &errorMessage) {
+uint64_t BufferedCSVReader::TryParseCSV(ParserMode parserMode, DataChunk &insertChunk, std::string &errorMessage) {
     mode = parserMode;
     return TryParseSimpleCSV(insertChunk, errorMessage);
 }

@@ -4,6 +4,7 @@ add_library(kuzu_processor_operator_copy
         copy_rel.cpp
         copy_node.cpp
         read_file.cpp
+        read_csv.cpp
         read_parquet.cpp
         read_npy.cpp)
 

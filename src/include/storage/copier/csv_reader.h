@@ -43,7 +43,7 @@ protected:
 
     void InitParseChunk(common::column_id_t num_cols);
 
-private:
+protected:
     std::vector<uint64_t> columnSizes;
 };
 
@@ -68,7 +68,7 @@ public:
 
 public:
     //! Extract a single DataChunk from the CSV file and stores it in insert_chunk
-    void ParseCSV(common::DataChunk &insertChunk);
+    uint64_t ParseCSV(common::DataChunk &insertChunk);
 
 private:
     //! Initialize Parser
@@ -78,9 +78,9 @@ private:
     //! Resets the buffer
     void ResetBuffer();
     //! Extract a single DataChunk from the CSV file and stores it in insert_chunk
-    bool TryParseCSV(ParserMode mode, common::DataChunk &insertChunk, std::string &errorMessage);
+    uint64_t TryParseCSV(ParserMode mode, common::DataChunk &insertChunk, std::string &errorMessage);
     //! Parses a CSV file with a one-byte delimiter, escape and quote character
-    bool TryParseSimpleCSV(common::DataChunk &insertChunk, std::string &errorMessage);
+    uint64_t TryParseSimpleCSV(common::DataChunk &insertChunk, std::string &errorMessage);
     //! Reads a new buffer from the CSV file if the current one has been exhausted
     bool ReadBuffer(uint64_t &start, uint64_t &line_start);
     //! Skip Empty lines for tables with over one column
