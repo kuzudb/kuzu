@@ -4,6 +4,7 @@
 #include "storage/copier/var_list_column_chunk.h"
 #include "storage/store/node_table.h"
 #include "storage/store/string_node_column.h"
+#include "storage/store/struct_node_column.h"
 #include "storage/store/var_list_node_column.h"
 
 using namespace kuzu::common;
@@ -39,7 +40,7 @@ void LocalVector::update(
 }
 
 void StringLocalVector::update(
-    sel_t offsetInLocalVector, common::ValueVector* updateVector, sel_t offsetInUpdateVector) {
+    sel_t offsetInLocalVector, ValueVector* updateVector, sel_t offsetInUpdateVector) {
     auto kuStr = updateVector->getValue<ku_string_t>(offsetInUpdateVector);
     if (kuStr.len > BufferPoolConstants::PAGE_4KB_SIZE) {
         throw RuntimeException(
@@ -50,11 +51,40 @@ void StringLocalVector::update(
     LocalVector::update(offsetInLocalVector, updateVector, offsetInUpdateVector);
 }
 
+void StructLocalVector::scan(ValueVector* resultVector) const {
+    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
+        auto posInLocalVector = vector->state->selVector->selectedPositions[i];
+        auto posInResultVector = resultVector->state->selVector->selectedPositions[i];
+        resultVector->setNull(posInResultVector, vector->isNull(posInLocalVector));
+    }
+}
+
+void StructLocalVector::lookup(
+    sel_t offsetInLocalVector, ValueVector* resultVector, sel_t offsetInResultVector) {
+    if (!validityMask[offsetInLocalVector]) {
+        return;
+    }
+    resultVector->setNull(offsetInResultVector, vector->isNull(offsetInLocalVector));
+}
+
+void StructLocalVector::update(
+    sel_t offsetInLocalVector, ValueVector* updateVector, sel_t offsetInUpdateVector) {
+    vector->setNull(offsetInLocalVector, updateVector->isNull(offsetInUpdateVector));
+    if (!validityMask[offsetInLocalVector]) {
+        vector->state->selVector->selectedPositions[vector->state->selVector->selectedSize++] =
+            offsetInLocalVector;
+        validityMask[offsetInLocalVector] = true;
+    }
+}
+
 std::unique_ptr<LocalVector> LocalVectorFactory::createLocalVectorData(
     const LogicalType& logicalType, MemoryManager* mm) {
     switch (logicalType.getPhysicalType()) {
     case PhysicalTypeID::STRING: {
         return std::make_unique<StringLocalVector>(mm);
+    }
+    case PhysicalTypeID::STRUCT: {
+        return std::make_unique<StructLocalVector>(mm);
     }
     default: {
         return std::make_unique<LocalVector>(logicalType, mm);
@@ -80,8 +110,7 @@ void LocalColumnChunk::lookup(vector_idx_t vectorIdx, sel_t offsetInLocalVector,
 void LocalColumnChunk::update(vector_idx_t vectorIdx, sel_t offsetInLocalVector,
     ValueVector* updateVector, sel_t offsetInUpdateVector) {
     if (!vectors.contains(vectorIdx)) {
-        vectors.emplace(
-            vectorIdx, LocalVectorFactory::createLocalVectorData(updateVector->dataType, mm));
+        vectors.emplace(vectorIdx, LocalVectorFactory::createLocalVectorData(dataType, mm));
     }
     vectors.at(vectorIdx)->update(offsetInLocalVector, updateVector, offsetInUpdateVector);
 }
@@ -128,7 +157,7 @@ void LocalColumn::update(offset_t nodeOffset, ValueVector* propertyVector,
     sel_t posInPropertyVector, MemoryManager* mm) {
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     if (!chunks.contains(nodeGroupIdx)) {
-        chunks.emplace(nodeGroupIdx, std::make_unique<LocalColumnChunk>(mm));
+        chunks.emplace(nodeGroupIdx, std::make_unique<LocalColumnChunk>(column->dataType, mm));
     }
     auto chunk = chunks.at(nodeGroupIdx).get();
     auto [vectorIdxInChunk, offsetInVector] =
@@ -144,6 +173,7 @@ void LocalColumn::prepareCommit() {
 
 void LocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
     auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+    assert(chunks.contains(nodeGroupIdx));
     auto chunk = chunks.at(nodeGroupIdx).get();
     for (auto& [vectorIdx, vector] : chunk->vectors) {
         auto vectorStartOffset =
@@ -157,6 +187,7 @@ void LocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
 }
 
 void StringLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
+    assert(chunks.contains(nodeGroupIdx));
     auto localChunk = chunks.at(nodeGroupIdx).get();
     auto stringColumn = reinterpret_cast<StringNodeColumn*>(column);
     auto overflowMetadata =
@@ -193,12 +224,13 @@ void StringLocalColumn::commitLocalChunkOutOfPlace(
 }
 
 void VarListLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
+    assert(chunks.contains(nodeGroupIdx));
     auto chunk = chunks.at(nodeGroupIdx).get();
     auto varListColumn = reinterpret_cast<VarListNodeColumn*>(column);
     auto listColumnChunkInStorage = ColumnChunkFactory::createColumnChunk(column->getDataType());
     auto columnChunkToUpdate = ColumnChunkFactory::createColumnChunk(column->getDataType());
     varListColumn->scan(nodeGroupIdx, listColumnChunkInStorage.get());
-    common::offset_t nextOffsetToWrite = 0;
+    offset_t nextOffsetToWrite = 0;
     auto numNodesInGroup =
         column->metadataDA->get(nodeGroupIdx, TransactionType::READ_ONLY).numValues;
     for (auto& [vectorIdx, localVector] : chunk->vectors) {
@@ -236,10 +268,68 @@ void VarListLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
         dataColumnChunk, startPageIdx, nodeGroupIdx);
 }
 
+StructLocalColumn::StructLocalColumn(NodeColumn* column) : LocalColumn{column} {
+    assert(column->getDataType().getLogicalTypeID() == LogicalTypeID::STRUCT);
+    auto dataType = column->getDataType();
+    auto structFields = StructType::getFields(&dataType);
+    fields.resize(structFields.size());
+    for (auto i = 0u; i < structFields.size(); i++) {
+        fields[i] = LocalColumnFactory::createLocalColumn(column->getChildColumn(i));
+    }
+}
+
+void StructLocalColumn::scan(ValueVector* nodeIDVector, ValueVector* resultVector) {
+    LocalColumn::scan(nodeIDVector, resultVector);
+    auto fieldVectors = StructVector::getFieldVectors(resultVector);
+    assert(fieldVectors.size() == fields.size());
+    for (auto i = 0u; i < fields.size(); i++) {
+        fields[i]->scan(nodeIDVector, fieldVectors[i].get());
+    }
+}
+
+void StructLocalColumn::lookup(ValueVector* nodeIDVector, ValueVector* resultVector) {
+    LocalColumn::lookup(nodeIDVector, resultVector);
+    auto fieldVectors = StructVector::getFieldVectors(resultVector);
+    assert(fieldVectors.size() == fields.size());
+    for (auto i = 0u; i < fields.size(); i++) {
+        fields[i]->lookup(nodeIDVector, fieldVectors[i].get());
+    }
+}
+
+void StructLocalColumn::update(
+    ValueVector* nodeIDVector, ValueVector* propertyVector, MemoryManager* mm) {
+    LocalColumn::update(nodeIDVector, propertyVector, mm);
+    auto propertyFieldVectors = StructVector::getFieldVectors(propertyVector);
+    assert(propertyFieldVectors.size() == fields.size());
+    for (auto i = 0u; i < fields.size(); i++) {
+        fields[i]->update(nodeIDVector, propertyFieldVectors[i].get(), mm);
+    }
+}
+
+void StructLocalColumn::update(offset_t nodeOffset, ValueVector* propertyVector,
+    sel_t posInPropertyVector, MemoryManager* mm) {
+    LocalColumn::update(nodeOffset, propertyVector, posInPropertyVector, mm);
+    auto propertyFieldVectors = StructVector::getFieldVectors(propertyVector);
+    assert(propertyFieldVectors.size() == fields.size());
+    for (auto i = 0u; i < fields.size(); i++) {
+        fields[i]->update(nodeOffset, propertyFieldVectors[i].get(), posInPropertyVector, mm);
+    }
+}
+
+void StructLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
+    LocalColumn::prepareCommitForChunk(nodeGroupIdx);
+    for (auto& field : fields) {
+        field->prepareCommitForChunk(nodeGroupIdx);
+    }
+}
+
 std::unique_ptr<LocalColumn> LocalColumnFactory::createLocalColumn(NodeColumn* column) {
     switch (column->getDataType().getPhysicalType()) {
     case PhysicalTypeID::STRING: {
         return std::make_unique<StringLocalColumn>(column);
+    }
+    case PhysicalTypeID::STRUCT: {
+        return std::make_unique<StructLocalColumn>(column);
     }
     case PhysicalTypeID::VAR_LIST: {
         return std::make_unique<VarListLocalColumn>(column);

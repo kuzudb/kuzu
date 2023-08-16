@@ -137,3 +137,23 @@
 10|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]
 11|[1,2,3]|[A,this is a long name]
 9|[1]|[Grad]
+
+-CASE CreateStruct
+-STATEMENT CREATE NODE TABLE test(id INT64, prop STRUCT(age INT64, name STRING), PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (a:test {id:1, prop:{age:10, name:'A'}})
+---- ok
+-STATEMENT MATCH (a:test) RETURN a.prop
+---- 1
+{age: 10, name: A}
+
+-CASE CreateStructWithWriteTransaction
+-STATEMENT CREATE NODE TABLE test(id INT64, prop STRUCT(age INT64, name STRING), PRIMARY KEY(id));
+---- ok
+-BEGIN_WRITE_TRANSACTION
+-STATEMENT CREATE (a:test {id:1, prop:{age:10, name:'A'}})
+---- ok
+-STATEMENT MATCH (a:test) RETURN a.prop
+---- 1
+{age: 10, name: A}
+-COMMIT
