@@ -207,6 +207,10 @@ private:
     std::vector<common::table_id_t> bindNodeTableIDs(const std::vector<std::string>& tableNames);
     std::vector<common::table_id_t> bindRelTableIDs(const std::vector<std::string>& tableNames);
 
+    /*** RDF helpers ***/
+    std::vector<std::string> replaceRDFGraphNamesIfNecessary(
+        const std::vector<std::string>& tableNames, const std::string& tableSuffix);
+
     /*** validations ***/
     // E.g. ... RETURN a, b AS a
     static void validateProjectionColumnNamesAreUnique(const expression_vector& expressions);

@@ -10,8 +10,8 @@ namespace processor {
 
 void CreateRDFGraph::executeDDLInternal() {
     auto stringType = std::make_unique<common::LogicalType>(common::LogicalTypeID::STRING);
-    auto rdfResourceIRIProperty = std::make_unique<Property>(
-        RDFConstants::RDF_GRAPH_IRI_PROPERTY_NAME, std::move(stringType));
+    auto rdfResourceIRIProperty =
+        std::make_unique<Property>(InternalKeyword::RDF_IRI_PROPERTY_NAME, std::move(stringType));
     rdfResourceIRIProperty->setMetadataDAHInfo(
         storageManager.createMetadataDAHInfo(*rdfResourceIRIProperty->getDataType()));
     auto newRDFGraphID =

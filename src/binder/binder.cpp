@@ -179,8 +179,8 @@ void Binder::validateTableNotReservedForRDFGraph(
         throw BinderException(
             StringUtils::string_format("You cannot use the table name: {} because it ends with {} "
                                        "or {} which are reserved for RDFGraphs.",
-                tableName, common::RDFConstants::RDF_GRAPH_NODE_TABLE_SUFFIX,
-                common::RDFConstants::RDF_GRAPH_REL_TABLE_SUFFIX));
+                tableName, common::InternalKeyword::RDF_NODE_TABLE_SUFFIX,
+                common::InternalKeyword::RDF_REL_TABLE_SUFFIX));
     }
 }
 

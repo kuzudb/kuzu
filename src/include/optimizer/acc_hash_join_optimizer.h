@@ -19,6 +19,7 @@ private:
 
     bool tryProbeToBuildHJSIP(planner::LogicalOperator* op);
     bool tryBuildToProbeHJSIP(planner::LogicalOperator* op);
+    bool tryBuildToProbeRDFPredicateHJSIP(planner::LogicalOperator* op);
 
     void visitIntersect(planner::LogicalOperator* op) override;
 

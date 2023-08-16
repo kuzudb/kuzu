@@ -47,6 +47,7 @@ enum class LogicalOperatorType : uint8_t {
     SCAN_FRONTIER,
     SCAN_NODE,
     SCAN_NODE_PROPERTY,
+    SCHEMA_MAPPING,
     SEMI_MASKER,
     SET_NODE_PROPERTY,
     SET_REL_PROPERTY,

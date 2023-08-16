@@ -10,10 +10,11 @@ public:
     LogicalExtend(std::shared_ptr<binder::NodeExpression> boundNode,
         std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,
         ExtendDirection direction, binder::expression_vector properties, bool hasAtMostOneNbr,
-        std::shared_ptr<LogicalOperator> child)
+        bool rdfRelTableScan, std::shared_ptr<LogicalOperator> child)
         : BaseLogicalExtend{LogicalOperatorType::EXTEND, std::move(boundNode), std::move(nbrNode),
               std::move(rel), direction, std::move(child)},
-          properties{std::move(properties)}, hasAtMostOneNbr{hasAtMostOneNbr} {}
+          properties{std::move(properties)}, hasAtMostOneNbr{hasAtMostOneNbr},
+          rdfRelTableScan{rdfRelTableScan} {}
 
     f_group_pos_set getGroupsPosToFlatten() override;
 
@@ -22,14 +23,17 @@ public:
 
     inline binder::expression_vector getProperties() const { return properties; }
 
+    inline bool isRDFRelTableScan() const { return rdfRelTableScan; }
+
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalExtend>(
-            boundNode, nbrNode, rel, direction, properties, hasAtMostOneNbr, children[0]->copy());
+        return make_unique<LogicalExtend>(boundNode, nbrNode, rel, direction, properties,
+            hasAtMostOneNbr, rdfRelTableScan, children[0]->copy());
     }
 
 private:
     binder::expression_vector properties;
     bool hasAtMostOneNbr;
+    bool rdfRelTableScan;
 };
 
 } // namespace planner

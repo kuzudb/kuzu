@@ -1,11 +1,13 @@
 #pragma once
 
 #include "common/constants.h"
+#include "common/string_utils.h"
 #include "common/types/types_include.h"
 #include "property.h"
 
 namespace kuzu {
 namespace catalog {
+
 struct RDFGraphSchema {
 public:
     RDFGraphSchema()
@@ -24,6 +26,10 @@ public:
 
     inline common::table_id_t getTriplesRelTableID() const { return triplesRelTableID; }
 
+    static bool isReservedPropertyName(const std::string& propertyName) {
+        return propertyName == common::InternalKeyword::RDF_PREDICATE_IRI_OFFSET_PROPERTY_NAME;
+    }
+
     void serialize(common::FileInfo* fileInfo, uint64_t& offset);
     static std::unique_ptr<RDFGraphSchema> deserialize(
         common::FileInfo* fileInfo, uint64_t& offset);
@@ -39,5 +45,6 @@ private:
     common::table_id_t resourcesNodeTableID;
     common::table_id_t triplesRelTableID;
 };
+
 } // namespace catalog
 } // namespace kuzu

@@ -88,20 +88,22 @@ void CopyRDF::copyRelLists(const common::offset_t& startOffset, const common::of
     const std::vector<offset_t>& boundOffsets, const std::vector<offset_t>& adjOffsets,
     const std::vector<offset_t>& propertyValues) {
     std::vector<offset_t> posInRelLists(length), relIDs(length);
-
+    std::vector<nodeID_t> predicateOffsets(length);
     for (int i = 0; i < length; i++) {
         posInRelLists[i] = InMemListsUtils::decrementListSize(
             *directedInMemRelLists->relListsSizes, boundOffsets[i], 1);
         directedInMemRelLists->adjList->setValue(
             boundOffsets[i], posInRelLists[i], (uint8_t*)&adjOffsets[i]);
         relIDs[i] = startOffset + i;
+        predicateOffsets[i] =
+            nodeID_t(propertyValues[i], sharedState->resourcesNodeTable->getTableID());
     }
 
     for (int i = 0; i < length; i++) {
         directedInMemRelLists->propertyLists.at(0)->setValue(
             boundOffsets[i], posInRelLists[i], (uint8_t*)&relIDs[i]);
         directedInMemRelLists->propertyLists.at(1)->setValue(
-            boundOffsets[i], posInRelLists[i], (uint8_t*)&propertyValues[i]);
+            boundOffsets[i], posInRelLists[i], (uint8_t*)&predicateOffsets[i]);
     }
 }
 

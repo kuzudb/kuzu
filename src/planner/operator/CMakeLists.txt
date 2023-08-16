@@ -25,6 +25,7 @@ add_library(kuzu_planner_operator
         logical_plan.cpp
         logical_plan_util.cpp
         logical_projection.cpp
+        logical_schema_mapping.cpp
         logical_union.cpp
         logical_unwind.cpp
         schema.cpp)

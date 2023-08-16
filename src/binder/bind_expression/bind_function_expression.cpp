@@ -183,7 +183,8 @@ std::unique_ptr<Expression> ExpressionBinder::createInternalNodeIDExpression(
         propertyIDPerTable.insert({tableID, INVALID_PROPERTY_ID});
     }
     return std::make_unique<PropertyExpression>(LogicalType(LogicalTypeID::INTERNAL_ID),
-        InternalKeyword::ID, node, std::move(propertyIDPerTable), false /* isPrimaryKey */);
+        InternalKeyword::ID, node, std::move(propertyIDPerTable), false /* isPrimaryKey */,
+        false /* isRDFPredicateIRIProperty */);
 }
 
 std::shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(
@@ -275,7 +276,8 @@ std::unique_ptr<Expression> ExpressionBinder::createInternalLengthExpression(
         propertyIDPerTable.insert({tableID, INVALID_PROPERTY_ID});
     }
     return std::make_unique<PropertyExpression>(LogicalType(LogicalTypeID::INT64),
-        InternalKeyword::LENGTH, rel, std::move(propertyIDPerTable), false /* isPrimaryKey */);
+        InternalKeyword::LENGTH, rel, std::move(propertyIDPerTable), false /* isPrimaryKey */,
+        false /* isRDFPredicateIRIProperty */);
 }
 
 std::shared_ptr<Expression> ExpressionBinder::bindRecursiveJoinLengthFunction(

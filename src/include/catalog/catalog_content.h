@@ -71,9 +71,9 @@ public:
     inline bool containRDFGraph(const std::string& rdfGraphName) const {
         return rdfGraphNameToIDMap.contains(rdfGraphName) &&
                containNodeTable(
-                   rdfGraphName + std::string(common::RDFConstants::RDF_GRAPH_NODE_TABLE_SUFFIX)) &&
+                   rdfGraphName + std::string(common::InternalKeyword::RDF_NODE_TABLE_SUFFIX)) &&
                containRelTable(
-                   rdfGraphName + std::string(common::RDFConstants::RDF_GRAPH_REL_TABLE_SUFFIX));
+                   rdfGraphName + std::string(common::InternalKeyword::RDF_REL_TABLE_SUFFIX));
     }
     inline bool containRDFGraph(common::rdf_graph_id_t rdfGraphID) const {
         return rdfGraphSchemas.contains(rdfGraphID);
@@ -90,13 +90,31 @@ public:
         assert(containRDFGraph(rdfGraphID));
         return getRelTableSchema(getRDFGraphSchema(rdfGraphID)->getTriplesRelTableID());
     }
+    inline bool isRDFRelTableID(common::table_id_t relTableID) const {
+        for (auto& schema : rdfGraphSchemas) {
+            if (schema.second->getTriplesRelTableID() == relTableID) {
+                return true;
+            }
+        }
+        return false;
+    }
     inline bool isReservedRDFGraphTable(const std::string& tableName) const {
-        return tableName.ends_with(common::RDFConstants::RDF_GRAPH_NODE_TABLE_SUFFIX) ||
-               tableName.ends_with(common::RDFConstants::RDF_GRAPH_REL_TABLE_SUFFIX);
+        return tableName.ends_with(common::InternalKeyword::RDF_NODE_TABLE_SUFFIX) ||
+               tableName.ends_with(common::InternalKeyword::RDF_REL_TABLE_SUFFIX);
     }
 
     common::rdf_graph_id_t addRDFGraphSchema(
         std::string rdfGraphName, std::unique_ptr<Property> rdfResourceIRIProperty);
+
+    static inline Property* createRDFPredicateIRIProperty(common::table_id_t tableId) {
+        auto stringType = std::make_unique<common::LogicalType>(common::LogicalTypeID::STRING);
+        // Since the predicateIRI is a user-facing/artificial property of the RDF graph, we set the
+        // property ID to INVALID_PROPERTY_ID. Currently, property object accepts
+        // INVALID_PROPERTY_ID, and it's okay to set it to this value because propertyID is unique
+        // to table and we also don't use it anywhere.
+        return new Property(common::InternalKeyword::RDF_IRI_PROPERTY_NAME, stringType->copy(),
+            common::INVALID_PROPERTY_ID, tableId);
+    }
 
     /**
      * Node and Rel table functions.

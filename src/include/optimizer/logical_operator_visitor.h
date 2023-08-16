@@ -170,6 +170,12 @@ protected:
         std::shared_ptr<planner::LogicalOperator> op) {
         return op;
     }
+
+    virtual void visitSchemaMapping(planner::LogicalOperator* op) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitSchemaMapping(
+        std::shared_ptr<planner::LogicalOperator> op) {
+        return op;
+    }
 };
 
 } // namespace optimizer

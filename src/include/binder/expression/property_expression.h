@@ -11,18 +11,20 @@ public:
     PropertyExpression(common::LogicalType dataType, const std::string& propertyName,
         const Expression& nodeOrRel,
         std::unordered_map<common::table_id_t, common::property_id_t> propertyIDPerTable,
-        bool isPrimaryKey_)
+        bool isPrimaryKey_, bool isRDFPredicateIRIProperty_)
         : Expression{common::PROPERTY, std::move(dataType),
               nodeOrRel.getUniqueName() + "." + propertyName},
           isPrimaryKey_{isPrimaryKey_}, propertyName{propertyName},
           uniqueVariableName{nodeOrRel.getUniqueName()}, rawVariableName{nodeOrRel.toString()},
-          propertyIDPerTable{std::move(propertyIDPerTable)} {}
+          propertyIDPerTable{std::move(propertyIDPerTable)}, isRDFPredicateIRIProperty_{
+                                                                 isRDFPredicateIRIProperty_} {}
 
     PropertyExpression(const PropertyExpression& other)
         : Expression{common::PROPERTY, other.dataType, other.uniqueName},
           isPrimaryKey_{other.isPrimaryKey_}, propertyName{other.propertyName},
           uniqueVariableName{other.uniqueVariableName}, rawVariableName{other.rawVariableName},
-          propertyIDPerTable{other.propertyIDPerTable} {}
+          propertyIDPerTable{other.propertyIDPerTable}, isRDFPredicateIRIProperty_{
+                                                            other.isRDFPredicateIRIProperty_} {}
 
     inline bool isPrimaryKey() const { return isPrimaryKey_; }
 
@@ -40,6 +42,12 @@ public:
 
     inline bool isInternalID() const { return getPropertyName() == common::InternalKeyword::ID; }
 
+    inline bool isRDFPredicateIRIOffsetProperty() const {
+        return getPropertyName() == common::InternalKeyword::RDF_PREDICATE_IRI_OFFSET_PROPERTY_NAME;
+    }
+
+    inline bool isRDFPredicateIRIProperty() const { return isRDFPredicateIRIProperty_; }
+
     inline std::unique_ptr<Expression> copy() const override {
         return make_unique<PropertyExpression>(*this);
     }
@@ -48,6 +56,7 @@ public:
 
 private:
     bool isPrimaryKey_ = false;
+    bool isRDFPredicateIRIProperty_ = false;
     std::string propertyName;
     // unique identifier references to a node/rel table.
     std::string uniqueVariableName;

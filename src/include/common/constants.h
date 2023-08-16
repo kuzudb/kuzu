@@ -36,6 +36,10 @@ struct InternalKeyword {
     static constexpr char PLACE_HOLDER[] = "_PLACE_HOLDER";
     static constexpr char MAP_KEY[] = "KEY";
     static constexpr char MAP_VALUE[] = "VALUE";
+    static constexpr char RDF_NODE_TABLE_SUFFIX[] = ".Resources";
+    static constexpr char RDF_REL_TABLE_SUFFIX[] = ".Triples";
+    static constexpr char RDF_IRI_PROPERTY_NAME[] = "iri";
+    static constexpr char RDF_PREDICATE_IRI_OFFSET_PROPERTY_NAME[] = "_predicateIRIOffset";
 };
 
 enum PageSizeClass : uint8_t {
@@ -161,13 +165,6 @@ struct PlannerKnobs {
 struct ClientContextConstants {
     // We disable query timeout by default.
     static constexpr uint64_t TIMEOUT_IN_MS = 0;
-};
-
-struct RDFConstants {
-    static constexpr char RDF_GRAPH_NODE_TABLE_SUFFIX[] = ".Resources";
-    static constexpr char RDF_GRAPH_REL_TABLE_SUFFIX[] = ".Triples";
-    static constexpr char RDF_GRAPH_IRI_PROPERTY_NAME[] = "iri";
-    static constexpr char RDF_GRAPH_PREDICATE_ID_PROPERTY_NAME[] = "predicateID";
 };
 
 } // namespace common

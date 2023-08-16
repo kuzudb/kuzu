@@ -61,16 +61,16 @@ rdf_graph_id_t CatalogContent::addRDFGraphSchema(
     std::vector<std::unique_ptr<Property>> resourceTableProperties;
     resourceTableProperties.emplace_back(std::move(rdfResourceIRIProperty));
     table_id_t resourcesNodeTableID =
-        addNodeTableSchema(rdfGraphName + RDFConstants::RDF_GRAPH_NODE_TABLE_SUFFIX, 0,
+        addNodeTableSchema(rdfGraphName + InternalKeyword::RDF_NODE_TABLE_SUFFIX, 0,
             std::move(resourceTableProperties));
     auto stringType = std::make_unique<common::LogicalType>(common::LogicalTypeID::STRING);
-    auto intType = std::make_unique<common::LogicalType>(common::LogicalTypeID::INT64);
+    auto internalIDType = std::make_unique<common::LogicalType>(common::LogicalTypeID::INTERNAL_ID);
     auto rdfResourceIDProperty = std::make_unique<Property>(
-        RDFConstants::RDF_GRAPH_PREDICATE_ID_PROPERTY_NAME, std::move(intType));
+        InternalKeyword::RDF_PREDICATE_IRI_OFFSET_PROPERTY_NAME, std::move(internalIDType));
     std::vector<std::unique_ptr<Property>> triplesTableProperties;
     triplesTableProperties.emplace_back(std::move(rdfResourceIDProperty));
     table_id_t triplesRelTableID =
-        addRelTableSchema(rdfGraphName + RDFConstants::RDF_GRAPH_REL_TABLE_SUFFIX,
+        addRelTableSchema(rdfGraphName + InternalKeyword::RDF_REL_TABLE_SUFFIX,
             RelMultiplicity::MANY_MANY, std::move(triplesTableProperties), resourcesNodeTableID,
             resourcesNodeTableID, stringType->copy(), stringType->copy());
     auto rdfGraphSchema = std::make_unique<RDFGraphSchema>(

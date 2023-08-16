@@ -77,6 +77,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     case LogicalOperatorType::SCAN_NODE_PROPERTY: {
         physicalOperator = mapScanNodeProperty(logicalOperator);
     } break;
+    case LogicalOperatorType::SCHEMA_MAPPING: {
+        physicalOperator = mapSchemaMapping(logicalOperator);
+    } break;
     case LogicalOperatorType::MULTIPLICITY_REDUCER: {
         physicalOperator = mapMultiplicityReducer(logicalOperator);
     } break;

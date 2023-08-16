@@ -11,22 +11,16 @@
 Binder exception: RDF Graph Test already exists.
 -STATEMENT MATCH (s:`Test.Resources`) RETURN s
 ---- 0
-# TODO(gaurav): We shouldn't allow users to create node using this statement. Instead, they should use the RDF triple format.
 -STATEMENT CREATE (s:`Test.Resources` {iri: 'Alice'})
 ---- ok
 -STATEMENT MATCH (s:`Test.Resources`) RETURN s.iri
 ---- 1
 Alice
-# TODO(gaurav): Instead of predicateID, we should return the predicate iri.
 -STATEMENT MATCH (s:`Test.Resources`)-[p:`Test.Triples`]->(o:`Test.Resources`) RETURN p
 ---- 0
--STATEMENT MATCH (s:`Test.Resources`), (o:`Test.Resources`) CREATE (s)-[:`Test.Triples` {predicateID: 2}]->(o)
----- ok
-# TODO(gaurav): Instead of predicateID, we should return the predicate iri.
--STATEMENT MATCH (s:`Test.Resources`)-[p:`Test.Triples`]->(o:`Test.Resources`) RETURN s.iri, p, o.iri
----- 1
-Alice|(8:0)-{_LABEL: Test.Triples, _ID: 9:0, predicateID: 2}->(8:0)|Alice
-
+-STATEMENT MATCH (s:`Test.Resources`)-[p:`Test.Triples`]->(o:`Test.Resources`) RETURN s.iri, p._predicateIRIOffset, o.iri
+---- error
+Binder exception: _predicateIRIOffset is reserved for system usage. External access is not allowed.
 
 -CASE CreateOrAlterRDFGraphTableNotAllowed
 -STATEMENT CREATE NODE TABLE `Test.Resources` (name STRING, PRIMARY KEY (name))

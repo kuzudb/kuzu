@@ -152,6 +152,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::SCAN_REL_TABLE_LISTS: {
         return "SCAN_REL_TABLE_LISTS";
     }
+    case PhysicalOperatorType::SCHEMA_MAPPING: {
+        return "SCHEMA_MAPPING";
+    }
     case PhysicalOperatorType::SEMI_MASKER: {
         return "SEMI_MASKER";
     }
