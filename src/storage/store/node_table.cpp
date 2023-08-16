@@ -89,6 +89,7 @@ void NodeTable::insert(Transaction* transaction, ValueVector* nodeIDVector,
         auto pos = nodeIDVector->state->selVector->selectedPositions[i];
         auto offset = nodesStatisticsAndDeletedIDs->addNode(tableID);
         nodeIDVector->setValue(pos, nodeID_t{offset, tableID});
+        nodeIDVector->setNull(pos, false);
         lastOffset = offset;
     }
     if (pkIndex) {
