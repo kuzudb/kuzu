@@ -177,9 +177,7 @@ Runtime exception: Maximum length of strings is 4096. Input string's length is 2
 55
 99
 
-# TBD
 -CASE SetNodeListOfIntPropTest
--SKIP
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.workedHours=[10,20]
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.workedHours
@@ -187,7 +185,6 @@ Runtime exception: Maximum length of strings is 4096. Input string's length is 2
 [10,20]
 
 -CASE SetNodeListOfShortStringPropTest
--SKIP
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.usedNames=['intel','microsoft']
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.usedNames
@@ -195,7 +192,6 @@ Runtime exception: Maximum length of strings is 4096. Input string's length is 2
 [intel,microsoft]
 
 -CASE SetNodeListOfLongStringPropTest
--SKIP
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.usedNames=['abcndwjbwesdsd','microsofthbbjuwgedsd']
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.usedNames
@@ -203,7 +199,6 @@ Runtime exception: Maximum length of strings is 4096. Input string's length is 2
 [abcndwjbwesdsd,microsofthbbjuwgedsd]
 
 -CASE SetNodeListofListPropTest
--SKIP
 -STATEMENT MATCH (a:person) WHERE a.ID=8 SET a.courseScoresPerTerm=[[10,20],[0,0,0]]
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=8 RETURN a.courseScoresPerTerm
@@ -255,3 +250,20 @@ Runtime exception: Maximum length of strings is 4096. Input string's length is 2
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age
 ---- 1
 
+-CASE MultipleSetListValue
+-BEGIN_WRITE_TRANSACTION
+-STATEMENT MATCH (a:person) WHERE a.ID=10 SET a.usedNames=['abcndwjbwesdsd','microsofthbbjuwgedsd']
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=5 SET a.usedNames=['abcndwjbwesdsd','microsofthbbjuwgedsd']
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=2 SET a.usedNames=['abcndwjbwesdsd','microsofthbbjuwgedsd']
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=3 SET a.usedNames=['abcndwjbwesdsd','microsofthbbjuwgedsd']
+---- ok
+-COMMIT
+-STATEMENT MATCH (a:person) WHERE a.ID=10 RETURN a.usedNames
+---- 1
+[abcndwjbwesdsd,microsofthbbjuwgedsd]
+-STATEMENT MATCH (a:person) WHERE a.ID=5 RETURN a.usedNames
+---- 1
+[abcndwjbwesdsd,microsofthbbjuwgedsd]

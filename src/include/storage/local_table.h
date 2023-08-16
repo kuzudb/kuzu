@@ -94,6 +94,14 @@ private:
         common::node_group_idx_t nodeGroupIdx, LocalColumnChunk* localChunk);
 };
 
+class VarListLocalColumn : public LocalColumn {
+public:
+    explicit VarListLocalColumn(storage::NodeColumn* column) : LocalColumn{column} {};
+
+private:
+    void prepareCommitForChunk(common::node_group_idx_t nodeGroupIdx) final;
+};
+
 struct LocalColumnFactory {
     static std::unique_ptr<LocalColumn> createLocalColumn(storage::NodeColumn* column);
 };

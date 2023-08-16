@@ -1,8 +1,10 @@
 #include "storage/local_table.h"
 
 #include "storage/copier/string_column_chunk.h"
+#include "storage/copier/var_list_column_chunk.h"
 #include "storage/store/node_table.h"
 #include "storage/store/string_node_column.h"
+#include "storage/store/var_list_node_column.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -145,7 +147,7 @@ void LocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
     auto chunk = chunks.at(nodeGroupIdx).get();
     for (auto& [vectorIdx, vector] : chunk->vectors) {
         auto vectorStartOffset =
-            nodeGroupStartOffset + StorageUtils::getStartOffsetOfVector(vectorIdx);
+            nodeGroupStartOffset + StorageUtils::getStartOffsetOfVectorInChunk(vectorIdx);
         for (auto i = 0u; i < vector->vector->state->selVector->selectedSize; i++) {
             auto pos = vector->vector->state->selVector->selectedPositions[i];
             assert(vector->validityMask[pos]);
@@ -190,10 +192,57 @@ void StringLocalColumn::commitLocalChunkOutOfPlace(
     column->append(stringColumnChunk, startPageIdx, nodeGroupIdx);
 }
 
+void VarListLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
+    auto chunk = chunks.at(nodeGroupIdx).get();
+    auto varListColumn = reinterpret_cast<VarListNodeColumn*>(column);
+    auto listColumnChunkInStorage = ColumnChunkFactory::createColumnChunk(column->getDataType());
+    auto columnChunkToUpdate = ColumnChunkFactory::createColumnChunk(column->getDataType());
+    varListColumn->scan(nodeGroupIdx, listColumnChunkInStorage.get());
+    common::offset_t nextOffsetToWrite = 0;
+    auto numNodesInGroup =
+        column->metadataDA->get(nodeGroupIdx, TransactionType::READ_ONLY).numValues;
+    for (auto& [vectorIdx, localVector] : chunk->vectors) {
+        auto startOffsetInChunk = StorageUtils::getStartOffsetOfVectorInChunk(vectorIdx);
+        auto listVector = localVector->vector.get();
+        listVector->state->selVector->selectedSize = 1;
+        for (auto i = 0u; i < DEFAULT_VECTOR_CAPACITY; i++) {
+            if (!localVector->validityMask[i]) {
+                continue;
+            }
+            auto offsetInChunk = startOffsetInChunk + i;
+            if (offsetInChunk > nextOffsetToWrite) {
+                // Fill non-updated data from listColumnChunkInStorage.
+                columnChunkToUpdate->append(listColumnChunkInStorage.get(), nextOffsetToWrite,
+                    nextOffsetToWrite, offsetInChunk - nextOffsetToWrite);
+            }
+            listVector->state->selVector->selectedPositions[0] = i;
+            columnChunkToUpdate->append(listVector, offsetInChunk);
+            nextOffsetToWrite = offsetInChunk + 1;
+        }
+    }
+
+    if (nextOffsetToWrite < numNodesInGroup) {
+        columnChunkToUpdate->append(listColumnChunkInStorage.get(), nextOffsetToWrite,
+            nextOffsetToWrite, numNodesInGroup - nextOffsetToWrite);
+    }
+
+    auto numPages = columnChunkToUpdate->getNumPages();
+    auto startPageIdx = column->dataFH->addNewPages(numPages);
+    column->append(columnChunkToUpdate.get(), startPageIdx, nodeGroupIdx);
+    auto dataColumnChunk =
+        reinterpret_cast<VarListColumnChunk*>(columnChunkToUpdate.get())->getDataColumnChunk();
+    startPageIdx = column->dataFH->addNewPages(dataColumnChunk->getNumPages());
+    reinterpret_cast<VarListNodeColumn*>(column)->dataNodeColumn->append(
+        dataColumnChunk, startPageIdx, nodeGroupIdx);
+}
+
 std::unique_ptr<LocalColumn> LocalColumnFactory::createLocalColumn(NodeColumn* column) {
     switch (column->getDataType().getPhysicalType()) {
     case PhysicalTypeID::STRING: {
         return std::make_unique<StringLocalColumn>(column);
+    }
+    case PhysicalTypeID::VAR_LIST: {
+        return std::make_unique<VarListLocalColumn>(column);
     }
     default: {
         return std::make_unique<LocalColumn>(column);

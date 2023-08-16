@@ -19,10 +19,28 @@ class NullColumnChunk;
 struct ColumnChunkMetadata {
     common::page_idx_t pageIdx = common::INVALID_PAGE_IDX;
     common::page_idx_t numPages = 0;
+
+    ColumnChunkMetadata() = default;
+    ColumnChunkMetadata(common::page_idx_t pageIdx, common::page_idx_t numPages)
+        : pageIdx(pageIdx), numPages(numPages) {}
+};
+
+struct MainColumnChunkMetadata : public ColumnChunkMetadata {
+    uint64_t numValues;
+
+    MainColumnChunkMetadata() = default;
+    MainColumnChunkMetadata(
+        common::page_idx_t pageIdx, common::page_idx_t numPages, uint64_t numNodesInChunk)
+        : ColumnChunkMetadata{pageIdx, numPages}, numValues(numNodesInChunk) {}
 };
 
 struct OverflowColumnChunkMetadata : public ColumnChunkMetadata {
     common::offset_t lastOffsetInPage;
+
+    OverflowColumnChunkMetadata() = default;
+    OverflowColumnChunkMetadata(
+        common::page_idx_t pageIdx, common::page_idx_t numPages, common::offset_t lastOffsetInPage)
+        : ColumnChunkMetadata{pageIdx, numPages}, lastOffsetInPage(lastOffsetInPage) {}
 };
 
 // Base data segment covers all fixed-sized data types.
@@ -31,6 +49,7 @@ struct OverflowColumnChunkMetadata : public ColumnChunkMetadata {
 class ColumnChunk {
 public:
     friend class ColumnChunkFactory;
+    friend class VarListDataColumnChunk;
 
     // ColumnChunks must be initialized after construction, so this constructor should only be used
     // through the ColumnChunkFactory
@@ -85,7 +104,7 @@ public:
     }
 
     inline uint64_t getNumBytesPerValue() const { return numBytesPerValue; }
-    inline uint64_t getNumBytes() const { return numBytes; }
+    inline uint64_t getNumBytes() const { return bufferSize; }
     inline uint8_t* getData() { return buffer.get(); }
 
     virtual void write(const common::Value& val, uint64_t posToWrite);
@@ -101,9 +120,13 @@ public:
 
     void populateWithDefaultVal(common::ValueVector* defaultValueVector);
 
+    inline uint64_t getNumValues() const { return numValues; }
+
+    inline void setNumValues(uint64_t numValues_) { this->numValues = numValues_; }
+
 protected:
     // Initializes the data buffer. Is (and should be) only called in constructor.
-    virtual void initialize(common::offset_t numValues);
+    virtual void initialize(common::offset_t capacity);
 
     template<typename T>
     void templateCopyArrowArray(
@@ -118,7 +141,7 @@ protected:
         arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
 
     virtual inline common::page_idx_t getNumPagesForBuffer() const {
-        return getNumPagesForBytes(numBytes);
+        return getNumPagesForBytes(bufferSize);
     }
 
     common::offset_t getOffsetInBuffer(common::offset_t pos) const;
@@ -128,11 +151,12 @@ protected:
 protected:
     common::LogicalType dataType;
     uint32_t numBytesPerValue;
-    uint64_t numBytes;
+    uint64_t bufferSize;
     std::unique_ptr<uint8_t[]> buffer;
     std::unique_ptr<NullColumnChunk> nullChunk;
     std::vector<std::unique_ptr<ColumnChunk>> childrenChunks;
     const common::CopyDescription* copyDescription;
+    uint64_t numValues;
 };
 
 template<>
@@ -171,7 +195,7 @@ public:
 
     void resize(uint64_t numValues) final;
 
-    inline void resetNullBuffer() { memset(buffer.get(), 0 /* non null */, numBytes); }
+    inline void resetNullBuffer() { memset(buffer.get(), 0 /* non null */, bufferSize); }
 
 protected:
     inline uint64_t numBytesForValues(common::offset_t numValues) const {
@@ -180,9 +204,9 @@ protected:
     }
     inline void initialize(common::offset_t numValues) final {
         numBytesPerValue = 0;
-        numBytes = numBytesForValues(numValues);
+        bufferSize = numBytesForValues(numValues);
         // Each byte defaults to 0, indicating everything is non-null
-        buffer = std::make_unique<uint8_t[]>(numBytes);
+        buffer = std::make_unique<uint8_t[]>(bufferSize);
     }
 };
 
@@ -205,9 +229,9 @@ public:
 
     inline void initialize(common::offset_t numValues) final {
         numBytesPerValue = 0;
-        numBytes = 0;
+        bufferSize = 0;
         // Each byte defaults to 0, indicating everything is non-null
-        buffer = std::make_unique<uint8_t[]>(numBytes);
+        buffer = std::make_unique<uint8_t[]>(bufferSize);
     }
 };
 
