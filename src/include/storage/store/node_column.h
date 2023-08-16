@@ -44,6 +44,7 @@ struct BoolNodeColumnFunc {
 };
 
 class NullNodeColumn;
+class StructNodeColumn;
 // TODO(Guodong): This is intentionally duplicated with `Column`, as for now, we don't change rel
 // tables. `Column` is used for rel tables only. Eventually, we should remove `Column`.
 class NodeColumn {
@@ -51,6 +52,7 @@ class NodeColumn {
     friend class StringLocalColumn;
     friend class VarListLocalColumn;
     friend class transaction::TransactionTests;
+    friend class StructNodeColumn;
 
 public:
     NodeColumn(const catalog::Property& property, BMFileHandle* dataFH, BMFileHandle* metadataFH,
@@ -83,6 +85,10 @@ public:
     inline uint32_t getNumBytesPerValue() const { return numBytesPerFixedSizedValue; }
     inline uint64_t getNumNodeGroups(transaction::Transaction* transaction) const {
         return metadataDA->getNumElements(transaction->getType());
+    }
+    inline NodeColumn* getChildColumn(common::vector_idx_t childIdx) {
+        assert(childIdx < childrenColumns.size());
+        return childrenColumns[childIdx].get();
     }
 
     virtual void checkpointInMemory();
@@ -147,6 +153,8 @@ public:
 };
 
 class NullNodeColumn : public NodeColumn {
+    friend StructNodeColumn;
+
 public:
     NullNodeColumn(common::page_idx_t metaDAHPageIdx, BMFileHandle* dataFH,
         BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,

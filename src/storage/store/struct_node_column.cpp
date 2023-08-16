@@ -43,11 +43,16 @@ void StructNodeColumn::scanInternal(
 }
 
 void StructNodeColumn::lookupInternal(
-    transaction::Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
+    Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
     for (auto i = 0u; i < childrenColumns.size(); i++) {
         auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
         childrenColumns[i]->lookup(transaction, nodeIDVector, fieldVector);
     }
+}
+
+void StructNodeColumn::writeInternal(
+    offset_t nodeOffset, ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
+    nullColumn->writeInternal(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
 }
 
 } // namespace storage
