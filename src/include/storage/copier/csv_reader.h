@@ -42,6 +42,9 @@ protected:
     bool Flush(common::DataChunk &insert_chunk, uint64_t buffer_idx = 0, bool try_add_line = false);
 
     void InitParseChunk(common::column_id_t num_cols);
+
+private:
+    std::vector<uint64_t> columnSizes;
 };
 
 //! Buffered CSV reader is a class that reads values from a stream and parses them as a CSV file

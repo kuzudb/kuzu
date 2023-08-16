@@ -56,7 +56,7 @@ std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getMorselSerial() {
         std::cout << "Printing output DataChunk" << std::endl;
         for (int i = 0; i < output.getNumValueVectors(); i++) {
             std::cout << "i:" << i << std::endl;
-            for (int j = 0; j < 15; j++) {
+            for (int j = 0; j < 45; j++) {
                 std::cout << output.getValueVector(i)->getValue<char>(j) << " ";
             }
             std::cout << "endi" << std::endl;

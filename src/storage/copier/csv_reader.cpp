@@ -10,7 +10,8 @@ namespace storage {
 
 BaseCSVReader::BaseCSVReader(const std::string& filePath, common::CSVReaderConfig* csvReaderConfig,
                              catalog::TableSchema* tableSchema)
-        : csvReaderConfig(csvReaderConfig), filePath(filePath), tableSchema(tableSchema), parse_chunk(DataChunk{tableSchema->getNumProperties()}){
+        : csvReaderConfig(csvReaderConfig), filePath(filePath), tableSchema(tableSchema), parse_chunk(DataChunk{tableSchema->getNumProperties()}),
+        columnSizes(tableSchema->getNumProperties()){
 }
 
 BaseCSVReader::~BaseCSVReader() {
@@ -33,7 +34,6 @@ void BaseCSVReader::AddValue(std::string str_val, column_id_t &column, std::vect
     }
 
     // insert the line number into the chunk
-    uint64_t row_entry = 0; // TODO: CHANGE THIS
     if (!escape_positions.empty()) {
         // remove escape characters (if any)
         std::string old_val = str_val;
@@ -46,15 +46,15 @@ void BaseCSVReader::AddValue(std::string str_val, column_id_t &column, std::vect
         }
         new_val += old_val.substr(prev_pos, old_val.size() - prev_pos);
         escape_positions.clear();
-        parse_chunk.getValueVector(column)->setValue(row_entry, new_val);
+        parse_chunk.getValueVector(column)->setValue(columnSizes[column]++, new_val);
     } else {
-        parse_chunk.getValueVector(column)->setValue(row_entry, str_val);
+        parse_chunk.getValueVector(column)->setValue(columnSizes[column]++, str_val);
     }
     // Print DataChunk for Testing
     std::cout << "Printing parse_chunk" << std::endl;
     for (int i = 0; i < parse_chunk.getNumValueVectors(); i++) {
         std::cout << "i:" << i << std::endl;
-        for (int j = 0; j < 15; j++) {
+        for (int j = 0; j < 45; j++) {
             std::cout << parse_chunk.getValueVector(i)->getValue<char>(j) << " ";
         }
         std::cout << "endi" << std::endl;
@@ -83,7 +83,8 @@ bool BaseCSVReader::AddRow(DataChunk &insert_chunk, column_id_t &column, std::st
     if (mode == ParserMode::PARSING_HEADER) {
         return true;
     }
-    if (mode == ParserMode::PARSING) {
+    // TODO: Change this to some other value (node group size? or reading size?) instead of 1000
+    if (mode == ParserMode::PARSING && columnSizes[0] >= 1000) {
         Flush(insert_chunk, buffer_idx);
         return true;
     }
@@ -334,7 +335,6 @@ bool BufferedCSVReader::TryParseSimpleCSV(DataChunk &insertChunk, std::string &e
             goto carriage_return;
         } else {
             SkipEmptyLines();
-
             start = position;
             line_start = position;
             if (position >= bufferSize && !ReadBuffer(start, line_start)) {
