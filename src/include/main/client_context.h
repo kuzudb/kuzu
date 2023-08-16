@@ -9,6 +9,11 @@
 #include "main/kuzu_fwd.h"
 
 namespace kuzu {
+
+namespace binder {
+class Binder;
+}
+
 namespace main {
 
 struct ActiveQuery {
@@ -25,10 +30,12 @@ struct ActiveQuery {
  */
 class ClientContext {
     friend class Connection;
+    friend class binder::Binder;
     friend class testing::TinySnbDDLTest;
     friend class testing::TinySnbCopyCSVTransactionTest;
     friend class ThreadsSetting;
     friend class TimeoutSetting;
+    friend class VarLengthExtendMaxDepthSetting;
 
 public:
     explicit ClientContext();
@@ -55,6 +62,7 @@ private:
     uint64_t numThreadsForExecution;
     ActiveQuery activeQuery;
     uint64_t timeoutInMS;
+    uint32_t varLengthExtendMaxDepth;
 };
 
 } // namespace main

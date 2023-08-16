@@ -31,5 +31,17 @@ struct TimeoutSetting {
     }
 };
 
+struct VarLengthExtendMaxDepthSetting {
+    static constexpr const char* name = "var_length_extend_max_depth";
+    static constexpr const common::LogicalTypeID inputType = common::LogicalTypeID::INT64;
+    static void setContext(ClientContext* context, const common::Value& parameter) {
+        assert(parameter.getDataType()->getLogicalTypeID() == common::LogicalTypeID::INT64);
+        context->varLengthExtendMaxDepth = parameter.getValue<int64_t>();
+    }
+    static std::string getSetting(ClientContext* context) {
+        return std::to_string(context->varLengthExtendMaxDepth);
+    }
+};
+
 } // namespace main
 } // namespace kuzu
