@@ -17,7 +17,7 @@ ValueVector::ValueVector(LogicalType dataType, storage::MemoryManager* memoryMan
 
 void ValueVector::setState(std::shared_ptr<DataChunkState> state) {
     this->state = state;
-    if (dataType.getLogicalTypeID() == LogicalTypeID::STRUCT) {
+    if (dataType.getPhysicalType() == PhysicalTypeID::STRUCT) {
         auto childrenVectors = StructVector::getFieldVectors(this);
         for (auto& childVector : childrenVectors) {
             childVector->setState(state);

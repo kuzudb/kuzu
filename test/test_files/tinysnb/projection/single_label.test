@@ -663,6 +663,13 @@ NO hex code
 ---- 1
 hEl '"\
 
+-LOG ReturnUnionTag
+-STATEMENT MATCH (m:movies) RETURN union_tag(m.grade)
+---- 3
+credit
+grade1
+grade1
+
 -CASE LargeListOfStruct
 -DEFINE STRUCT_VAL REPEAT 2400 "{a: ${count}},"
 -STATEMENT RETURN list_append([${STRUCT_VAL}{a: 99}], {a: 200})
