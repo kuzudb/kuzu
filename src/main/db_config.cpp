@@ -11,8 +11,8 @@ namespace main {
 #define GET_CONFIGURATION(_PARAM)                                                                  \
     { _PARAM::name, _PARAM::inputType, _PARAM::setContext, _PARAM::getSetting }
 
-static ConfigurationOption options[] = {
-    GET_CONFIGURATION(ThreadsSetting), GET_CONFIGURATION(TimeoutSetting)};
+static ConfigurationOption options[] = {GET_CONFIGURATION(ThreadsSetting),
+    GET_CONFIGURATION(TimeoutSetting), GET_CONFIGURATION(VarLengthExtendMaxDepthSetting)};
 
 ConfigurationOption* DBConfig::getOptionByName(const std::string& optionName) {
     auto lOptionName = optionName;

@@ -322,10 +322,10 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
 std::pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
     const kuzu::parser::RelPattern& relPattern) {
     auto recursiveInfo = relPattern.getRecursiveInfo();
-    auto lowerBound = std::min(
-        TypeUtils::convertToUint32(recursiveInfo->lowerBound.c_str()), VAR_LENGTH_EXTEND_MAX_DEPTH);
-    auto upperBound = std::min(
-        TypeUtils::convertToUint32(recursiveInfo->upperBound.c_str()), VAR_LENGTH_EXTEND_MAX_DEPTH);
+    auto lowerBound = std::min(TypeUtils::convertToUint32(recursiveInfo->lowerBound.c_str()),
+        clientContext->varLengthExtendMaxDepth);
+    auto upperBound = std::min(TypeUtils::convertToUint32(recursiveInfo->upperBound.c_str()),
+        clientContext->varLengthExtendMaxDepth);
     if (lowerBound == 0 || upperBound == 0) {
         throw BinderException("Lower and upper bound of a rel must be greater than 0.");
     }

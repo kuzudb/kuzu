@@ -19,7 +19,8 @@ void ActiveQuery::reset() {
 
 ClientContext::ClientContext()
     : numThreadsForExecution{std::thread::hardware_concurrency()},
-      timeoutInMS{ClientContextConstants::TIMEOUT_IN_MS} {}
+      timeoutInMS{ClientContextConstants::TIMEOUT_IN_MS}, varLengthExtendMaxDepth{
+                                                              VAR_LENGTH_EXTEND_MAX_DEPTH} {}
 
 void ClientContext::startTimingIfEnabled() {
     if (isTimeOutEnabled()) {
