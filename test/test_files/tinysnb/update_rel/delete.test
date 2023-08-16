@@ -31,19 +31,7 @@
 0|3|3:1
 0|5|3:2
 
-# TODO: fix this case, it fails ASAN
-#-CASE DeleteRelMultiLabel3
-#-STATEMENT MATCH (a)-[e]-(b) WHERE a.ID = 0 RETURN a.ID, b.ID, id(e)
-#---- 9
-#0|1|4:0
-#0|2|3:0
-#0|2|3:3
-#0|2|6:0
-#0|2|7:0
-#0|3|3:1
-#0|3|3:6
-#0|5|3:2
-#0|5|3:9
-#-STATEMENT MATCH (a)-[e]-(b) WHERE a.ID = 0 AND b.ID = 2 DELETE e
-#-PARALLELISM 1
-#---- ok
+
+-STATEMENT MATCH (a)-[e]-(b) WHERE a.ID = 0 AND b.ID = 2 DELETE e
+---- error
+Binder exception: Delete undirected rel is not supported.

@@ -229,6 +229,10 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(
             boundDeleteClause->addInfo(std::move(deleteNodeInfo));
         } break;
         case LogicalTypeID::REL: {
+            auto rel = (RelExpression*)nodeOrRel.get();
+            if (rel->getDirectionType() == RelDirectionType::BOTH) {
+                throw BinderException("Delete undirected rel is not supported.");
+            }
             auto deleteRel = std::make_unique<BoundDeleteInfo>(UpdateTableType::REL, nodeOrRel);
             boundDeleteClause->addInfo(std::move(deleteRel));
         } break;
