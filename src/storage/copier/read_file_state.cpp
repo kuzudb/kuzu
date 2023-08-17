@@ -43,7 +43,7 @@ std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getMorselSerial() {
         }
         auto output = std::make_shared<DataChunk>(tableSchema->getNumProperties());
         for (int i = 0; i < tableSchema->getNumProperties(); i++ ) {
-            auto v = std::make_shared<ValueVector>(LogicalTypeID::STRING);
+            auto v = std::make_shared<ValueVector>(tableSchema->getProperty(i)->getDataType()->getLogicalTypeID());
             output->insert(i, v);
         }
         auto numRowsInBatch = reader->ParseCSV(*output);

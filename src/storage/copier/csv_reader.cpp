@@ -46,9 +46,49 @@ void BaseCSVReader::AddValue(std::string str_val, column_id_t &column, std::vect
         }
         new_val += old_val.substr(prev_pos, old_val.size() - prev_pos);
         escape_positions.clear();
-        parse_chunk.getValueVector(column)->setValue(columnSizes[column]++, new_val);
-    } else {
-        parse_chunk.getValueVector(column)->setValue(columnSizes[column]++, str_val);
+        str_val = new_val;
+    }
+    auto type = tableSchema->getProperty(column)->getDataType()->getLogicalTypeID();
+    switch (type) {
+        case LogicalTypeID::INT64: {
+            parse_chunk.getValueVector(column)->setValue(columnSizes[column]++,
+                    StringCastUtils::castToNum<int64_t>(str_val.c_str(), str_val.length()));
+        } break;
+        case LogicalTypeID::INT32: {
+            parse_chunk.getValueVector(column)->setValue(columnSizes[column]++,
+                    StringCastUtils::castToNum<int32_t>(str_val.c_str(), str_val.length()));
+        } break;
+        case LogicalTypeID::INT16: {
+            parse_chunk.getValueVector(column)->setValue(columnSizes[column]++,
+                    StringCastUtils::castToNum<int16_t>(str_val.c_str(), str_val.length()));
+        } break;
+        case LogicalTypeID::FLOAT: {
+            parse_chunk.getValueVector(column)->setValue(columnSizes[column]++,
+                    StringCastUtils::castToNum<float_t>(str_val.c_str(), str_val.length()));
+        } break;
+        case LogicalTypeID::DOUBLE: {
+            parse_chunk.getValueVector(column)->setValue(columnSizes[column]++,
+                    StringCastUtils::castToNum<double_t>(str_val.c_str(), str_val.length()));
+        } break;
+        case LogicalTypeID::BOOL: {
+            parse_chunk.getValueVector(column)->setValue(columnSizes[column]++,
+                                                         StringCastUtils::castToBool(str_val.c_str(), str_val.length()));
+        } break;
+        case LogicalTypeID::STRING: {
+            parse_chunk.getValueVector(column)->setValue(columnSizes[column]++, str_val);
+        } break;
+        case LogicalTypeID::DATE: {
+            parse_chunk.getValueVector(column)->setValue(columnSizes[column]++, Date::fromCString(str_val.c_str(), str_val.length()));
+        } break;
+        case LogicalTypeID::TIMESTAMP: {
+            parse_chunk.getValueVector(column)->setValue(columnSizes[column]++, Timestamp::fromCString(str_val.c_str(), str_val.length()));
+        } break;
+        case LogicalTypeID::INTERVAL: {
+            parse_chunk.getValueVector(column)->setValue(columnSizes[column]++, Interval::fromCString(str_val.c_str(), str_val.length()));
+        } break;
+        default:
+            throw CopyException(
+                    "Unsupported data type " + LogicalTypeUtils::dataTypeToString(type) + " inside LIST");
     }
     parse_chunk.getValueVector(column)->state->selVector->selectedSize++;
     // move to the next column
@@ -92,41 +132,8 @@ bool BaseCSVReader::Flush(DataChunk &insert_chunk, uint64_t buffer_idx, bool try
     for (uint64_t c = 0; c < insert_chunk.getNumValueVectors(); c++) {
         auto parse_vector = parse_chunk.getValueVector(c);
         auto result_vector = insert_chunk.getValueVector(c);
-        auto type = result_vector->dataType.getLogicalTypeID();
-        // Going to try to just copy over value vectors from parse_chunk to insert_chunk
         insert_chunk.getValueVector(c)->state->selVector->selectedSize = parse_chunk.getValueVector(c)->state->selVector->selectedSize;
         insert_chunk.insert(c, parse_chunk.getValueVector(c));
-//        if (type != LogicalTypeID::STRING) {
-//            std::string error_message;
-//            bool success;
-//            uint64_t line_error = 0;
-//            bool target_type_not_varchar = false;
-//            if (type == LogicalTypeID::DATE) {
-//                // use the date format to cast the chunk
-//                success = TryCastDateVector(options, parse_vector, result_vector, parse_chunk.size(), error_message,
-//                                            line_error);
-//            } else if (type == LogicalTypeID::TIMESTAMP) {
-//                // use the date format to cast the chunk
-//                success =
-//                        TryCastTimestampVector(options, parse_vector, result_vector, parse_chunk.size(), error_message);
-//                if (success) {
-//                    continue;
-//                }
-//                if (try_add_line) {
-//                    return false;
-//                }
-//
-//                // The line_error must be summed with linenr (All lines emmited from this batch)
-//                // But subtracted from the parse_chunk
-//                assert(line_error + linenr >= parse_chunk.getNumValueVectors());
-//                line_error += linenr;
-//                line_error -= parse_chunk.getNumValueVectors();
-//
-//                auto error_line = line_error + 1;
-//                throw CopyException(StringUtils::string_format("{} at line {} in column {}", error_message,
-//                                                               error_line, c));
-//            }
-//        }
     }
     InitParseChunk(parse_chunk.getNumValueVectors());
     return true;
@@ -153,7 +160,7 @@ void BufferedCSVReader::Initialize(std::vector<kuzu::catalog::Property*> propert
     ReadHeader(csvReaderConfig->hasHeader);
     // Initializing parse_chunk DataChunk
     for (int i = 0; i < properties.size(); i++ ) {
-        auto v = std::make_shared<ValueVector>(LogicalTypeID::STRING);
+        auto v = std::make_shared<ValueVector>(properties[i]->getDataType()->getLogicalTypeID());
         parse_chunk.insert(i, v);
     }
 }
