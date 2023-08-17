@@ -74,8 +74,7 @@ bool BaseCSVReader::AddRow(DataChunk &insert_chunk, column_id_t &column, std::st
     if (mode == ParserMode::PARSING_HEADER) {
         return true;
     }
-    // TODO: Change this to some other value (node group size? or reading size?) instead of 1000. Also figure out how to make the csv reader stop naturally
-    if (mode == ParserMode::PARSING && columnSizes[0] >= 3) {
+    if (mode == ParserMode::PARSING && columnSizes[0] >= common::StorageConstants::NODE_GROUP_SIZE) {
         Flush(insert_chunk, buffer_idx);
         return true;
     }
@@ -130,7 +129,6 @@ bool BaseCSVReader::Flush(DataChunk &insert_chunk, uint64_t buffer_idx, bool try
 //        }
     }
     InitParseChunk(parse_chunk.getNumValueVectors());
-    insert_chunk.state = parse_chunk.state;
     return true;
 }
 
