@@ -1,6 +1,6 @@
 #include "storage/copier/csv_reader.h"
 #include "common/string_utils.h"
-#include <iostream>
+
 #include <vector>
 
 using namespace kuzu::common;
@@ -50,16 +50,7 @@ void BaseCSVReader::AddValue(std::string str_val, column_id_t &column, std::vect
     } else {
         parse_chunk.getValueVector(column)->setValue(columnSizes[column]++, str_val);
     }
-    // Print DataChunk for Testing
-    std::cout << "Printing parse_chunk" << std::endl;
-    for (int i = 0; i < parse_chunk.getNumValueVectors(); i++) {
-        std::cout << "i:" << i << std::endl;
-        for (int j = 0; j < 45; j++) {
-            std::cout << parse_chunk.getValueVector(i)->getValue<char>(j) << " ";
-        }
-        std::cout << "endi" << std::endl;
-        std::cout << std::endl;
-    }
+    parse_chunk.getValueVector(column)->state->selVector->selectedSize++;
     // move to the next column
     column++;
 }
@@ -84,7 +75,7 @@ bool BaseCSVReader::AddRow(DataChunk &insert_chunk, column_id_t &column, std::st
         return true;
     }
     // TODO: Change this to some other value (node group size? or reading size?) instead of 1000. Also figure out how to make the csv reader stop naturally
-    if (mode == ParserMode::PARSING && columnSizes[0] >= 4) {
+    if (mode == ParserMode::PARSING && columnSizes[0] >= 3) {
         Flush(insert_chunk, buffer_idx);
         return true;
     }
@@ -97,15 +88,6 @@ bool BaseCSVReader::Flush(DataChunk &insert_chunk, uint64_t buffer_idx, bool try
     if (parse_chunk.getNumValueVectors() == 0) {
         return true;
     }
-    std::cout << "Printing parse_chunk in Flush" << std::endl;
-    for (int i = 0; i < parse_chunk.getNumValueVectors(); i++) {
-        std::cout << "i:" << i << std::endl;
-        for (int j = 0; j < 45; j++) {
-            std::cout << parse_chunk.getValueVector(i)->getValue<char>(j) << " ";
-        }
-        std::cout << "endi" << std::endl;
-        std::cout << std::endl;
-    }
     // convert the columns in the parsed chunk to the types of the table
     assert(parse_chunk.getNumValueVectors() == insert_chunk.getNumValueVectors());
     for (uint64_t c = 0; c < insert_chunk.getNumValueVectors(); c++) {
@@ -113,6 +95,7 @@ bool BaseCSVReader::Flush(DataChunk &insert_chunk, uint64_t buffer_idx, bool try
         auto result_vector = insert_chunk.getValueVector(c);
         auto type = result_vector->dataType.getLogicalTypeID();
         // Going to try to just copy over value vectors from parse_chunk to insert_chunk
+        insert_chunk.getValueVector(c)->state->selVector->selectedSize = parse_chunk.getValueVector(c)->state->selVector->selectedSize;
         insert_chunk.insert(c, parse_chunk.getValueVector(c));
 //        if (type != LogicalTypeID::STRING) {
 //            std::string error_message;
@@ -147,6 +130,7 @@ bool BaseCSVReader::Flush(DataChunk &insert_chunk, uint64_t buffer_idx, bool try
 //        }
     }
     InitParseChunk(parse_chunk.getNumValueVectors());
+    insert_chunk.state = parse_chunk.state;
     return true;
 }
 
@@ -166,6 +150,7 @@ void BufferedCSVReader::Initialize(std::vector<kuzu::catalog::Property*> propert
     for (auto property : properties) {
         return_types.push_back(*property->getDataType());
     }
+    fd = open(filePath.c_str(), O_RDONLY);
     ResetBuffer();
     ReadHeader(csvReaderConfig->hasHeader);
     // Initializing parse_chunk DataChunk
@@ -214,7 +199,7 @@ bool BufferedCSVReader::ReadBuffer(uint64_t &start, uint64_t &line_start) {
         memcpy(buffer.get(), old_buffer.get() + start, remaining);
     }
 
-    int fd = open(filePath.c_str(), O_RDONLY);
+
     uint64_t read_count = read(fd, buffer.get() + remaining, buffer_read_size);
     if (read_count == -1) {
         throw CopyException(StringUtils::string_format("Could not read from file {}: {}", filePath, strerror(errno)));

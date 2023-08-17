@@ -63,6 +63,7 @@ public:
     uint64_t bufferSize;
     uint64_t position;
     uint64_t start = 0;
+    int fd;
 
     std::vector<std::unique_ptr<char[]>> cachedBuffers;
 

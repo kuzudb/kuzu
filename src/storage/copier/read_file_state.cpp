@@ -38,23 +38,24 @@ std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getMorselSerial() {
             return nullptr;
         }
         auto filePath = filePaths[currFileIdx];
-        reader = make_shared<BufferedCSVReader>(filePath, &csvReaderConfig, tableSchema);
+        if (!reader) {
+            reader = make_shared<BufferedCSVReader>(filePath, &csvReaderConfig, tableSchema);
+        }
         auto output = std::make_shared<DataChunk>(tableSchema->getNumProperties());
         for (int i = 0; i < tableSchema->getNumProperties(); i++ ) {
             auto v = std::make_shared<ValueVector>(LogicalTypeID::STRING);
             output->insert(i, v);
         }
         auto numRowsInBatch = reader->ParseCSV(*output);
-        std::cout << "numRowsInBatch: " << numRowsInBatch << std::endl;
         rows += numRowsInBatch;
         if (numRowsInBatch <= 0) {
             // No more blocks to read in this file.
             currFileIdx++;
             currBlockIdx = 0;
             currRowIdxInCurrFile = 1;
-            reader.reset();
+            reader = nullptr;
             if (currFileIdx >= filePaths.size()) {
-                break;
+                return nullptr;
             }
             continue;
         }
@@ -63,9 +64,6 @@ std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getMorselSerial() {
         currBlockIdx++;
         if (resultOutput == nullptr) {
             resultOutput = std::move(output);
-        } else {
-            // Concatenate DataChunks
-            std::cout << "Deal with this case later" << std::endl;
         }
         if (currFileIdx >= filePaths.size()) {
             break;
