@@ -1,26 +1,27 @@
 #pragma once
 
 #include "logical_operator.h"
-#include "planner/logical_plan/factorization/flatten_resolver.h"
 
 namespace kuzu {
 namespace planner {
 
 class LogicalLimit : public LogicalOperator {
 public:
-    LogicalLimit(uint64_t limitNumber, std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::LIMIT, std::move(child)}, limitNumber{limitNumber} {}
+    LogicalLimit(uint64_t skipNum, uint64_t limitNum, std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{LogicalOperatorType::LIMIT, std::move(child)}, skipNum{skipNum},
+          limitNum{limitNum} {}
 
     f_group_pos_set getGroupsPosToFlatten();
 
-    inline void computeFactorizedSchema() override { copyChildSchema(0); }
-    inline void computeFlatSchema() override { copyChildSchema(0); }
+    inline void computeFactorizedSchema() final { copyChildSchema(0); }
+    inline void computeFlatSchema() final { copyChildSchema(0); }
 
-    inline std::string getExpressionsForPrinting() const override {
-        return std::to_string(limitNumber);
-    }
+    std::string getExpressionsForPrinting() const final;
 
-    inline uint64_t getLimitNumber() const { return limitNumber; }
+    inline bool hasSkipNum() const { return skipNum != UINT64_MAX; }
+    inline uint64_t getSkipNum() const { return skipNum; }
+    inline bool hasLimitNum() const { return limitNum != UINT64_MAX; }
+    inline uint64_t getLimitNum() const { return limitNum; }
 
     f_group_pos getGroupPosToSelect() const;
 
@@ -28,12 +29,13 @@ public:
         return schema->getGroupsPosInScope();
     }
 
-    inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalLimit>(limitNumber, children[0]->copy());
+    inline std::unique_ptr<LogicalOperator> copy() final {
+        return make_unique<LogicalLimit>(skipNum, limitNum, children[0]->copy());
     }
 
 private:
-    uint64_t limitNumber;
+    uint64_t skipNum;
+    uint64_t limitNum;
 };
 
 } // namespace planner

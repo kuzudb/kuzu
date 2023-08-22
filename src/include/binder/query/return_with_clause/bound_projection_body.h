@@ -22,9 +22,6 @@ public:
 
     inline bool getIsDistinct() const { return isDistinct; }
 
-    inline void setProjectionExpressions(expression_vector expressions) {
-        projectionExpressions = std::move(expressions);
-    }
     inline expression_vector getProjectionExpressions() const { return projectionExpressions; }
 
     inline void setGroupByExpressions(expression_vector expressions) {

@@ -166,8 +166,7 @@ private:
     void appendOrderBy(const binder::expression_vector& expressions,
         const std::vector<bool>& isAscOrders, LogicalPlan& plan);
     void appendMultiplicityReducer(LogicalPlan& plan);
-    void appendLimit(uint64_t limitNumber, LogicalPlan& plan);
-    void appendSkip(uint64_t skipNumber, LogicalPlan& plan);
+    void appendLimit(uint64_t skipNum, uint64_t limitNum, LogicalPlan& plan);
 
     // Append scan operators
     void appendExpressionsScan(const expression_vector& expressions, LogicalPlan& plan);

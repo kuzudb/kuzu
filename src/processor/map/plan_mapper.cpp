@@ -83,9 +83,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     case LogicalOperatorType::NODE_LABEL_FILTER: {
         physicalOperator = mapNodeLabelFilter(logicalOperator);
     } break;
-    case LogicalOperatorType::SKIP: {
-        physicalOperator = mapSkip(logicalOperator);
-    } break;
     case LogicalOperatorType::LIMIT: {
         physicalOperator = mapLimit(logicalOperator);
     } break;
