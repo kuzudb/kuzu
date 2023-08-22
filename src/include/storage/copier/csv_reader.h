@@ -56,7 +56,7 @@ class BufferedCSVReader : public BaseCSVReader {
 
 public:
     BufferedCSVReader(const std::string& filePath, common::CSVReaderConfig* csvReaderConfig,
-                          catalog::TableSchema* tableSchema);
+                          catalog::TableSchema* tableSchema, storage::MemoryManager* memoryManager);
     ~BufferedCSVReader() override = default;
 
     std::unique_ptr<char[]> buffer;
@@ -73,7 +73,7 @@ public:
 
 private:
     //! Initialize Parser
-    void Initialize(const std::vector<catalog::Property*> properties);
+    void Initialize(const std::vector<catalog::Property*> properties, storage::MemoryManager* memoryManager);
     //! Skips skip_rows, reads header row from input stream
     void ReadHeader(bool hasHeader);
     //! Resets the buffer

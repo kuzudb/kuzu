@@ -97,13 +97,12 @@ std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getMorselSerial() {
         }
         auto filePath = filePaths[currFileIdx];
         if (!reader) {
-            reader = make_shared<BufferedCSVReader>(filePath, &csvReaderConfig, tableSchema);
+            reader = make_shared<BufferedCSVReader>(filePath, &csvReaderConfig, tableSchema, memoryManager);
         }
         auto output = std::make_shared<DataChunk>(tableSchema->getNumProperties());
         for (int i = 0; i < tableSchema->getNumProperties(); i++ ) {
             auto type = tableSchema->getProperty(i)->getDataType();
-            auto typeID = type->getLogicalTypeID();
-            auto v = std::make_shared<ValueVector>(*type);
+            auto v = std::make_shared<ValueVector>(*type, memoryManager);
             output->insert(i, v);
         }
         auto numRowsInBatch = reader->ParseCSV(*output);

@@ -52,7 +52,6 @@ void BaseCSVReader::AddValue(std::string str_val, column_id_t &column, std::vect
         escape_positions.clear();
         str_val = new_val;
     }
-    auto copyDescription = CopyDescription({filePath}, common::CopyDescription::FileType::CSV, *csvReaderConfig);
     auto type = parse_chunk.getValueVector(column)->dataType;
     switch (type.getLogicalTypeID()) {
         case LogicalTypeID::INT64: {
@@ -92,11 +91,13 @@ void BaseCSVReader::AddValue(std::string str_val, column_id_t &column, std::vect
             parse_chunk.getValueVector(column)->setValue(columnSizes[column]++, Interval::fromCString(str_val.c_str(), str_val.length()));
         } break;
         case LogicalTypeID::VAR_LIST: {
+            auto copyDescription = CopyDescription({filePath}, common::CopyDescription::FileType::CSV, *csvReaderConfig);
             auto value = TableCopyUtils::getVarListValue(str_val, 1, str_val.length() - 2, type, copyDescription);
             ValueVector::copyValueToVector(parse_chunk.getValueVector(column)->getData(), parse_chunk.getValueVector(column).get(), value.get());
             columnSizes[column]++;
         } break;
         case LogicalTypeID::FIXED_LIST: {
+            auto copyDescription = CopyDescription({filePath}, common::CopyDescription::FileType::CSV, *csvReaderConfig);
             auto value = TableCopyUtils::getArrowFixedListVal(str_val, 1, str_val.length() - 2, type, copyDescription);
             ValueVector::copyValueToVector(parse_chunk.getValueVector(column)->getData(), parse_chunk.getValueVector(column).get() + columnSizes[column], value.get());
             columnSizes[column]++;
@@ -158,12 +159,12 @@ void BaseCSVReader::InitParseChunk(column_id_t numCols) {
 }
 
 BufferedCSVReader::BufferedCSVReader(const std::string& filePath, common::CSVReaderConfig* csvReaderConfig,
-                                     catalog::TableSchema* tableSchema)
+                                     catalog::TableSchema* tableSchema, storage::MemoryManager* memoryManager = nullptr)
             : BaseCSVReader(filePath, csvReaderConfig, tableSchema), bufferSize(0), position(0), start(0) {
-        Initialize(tableSchema->getProperties());
+        Initialize(tableSchema->getProperties(), memoryManager);
 }
 
-void BufferedCSVReader::Initialize(std::vector<kuzu::catalog::Property*> properties) {
+void BufferedCSVReader::Initialize(std::vector<kuzu::catalog::Property*> properties, storage::MemoryManager* memoryManager) {
     //PrepareComplexParser();
     for (auto property : properties) {
         return_types.push_back(*property->getDataType());
@@ -176,7 +177,7 @@ void BufferedCSVReader::Initialize(std::vector<kuzu::catalog::Property*> propert
     for (int i = 0; i < properties.size(); i++ ) {
         auto type = properties[i]->getDataType();
         auto typeID = type->getLogicalTypeID();
-        auto v = std::make_shared<ValueVector>(*type);
+        auto v = std::make_shared<ValueVector>(*type, memoryManager);
         parse_chunk.insert(i, v);
     }
     mode = ParserMode::PARSING;

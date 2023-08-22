@@ -67,7 +67,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNode(
     case (CopyDescription::FileType::CSV): {
         readFileSharedState =
             std::make_shared<ReadCSVSharedState>(copy->getCopyDescription().filePaths,
-                *copy->getCopyDescription().csvReaderConfig, nodeTableSchema);
+                *copy->getCopyDescription().csvReaderConfig, nodeTableSchema, memoryManager);
         readFile = std::make_unique<ReadCSV>(nodeOffsetPos, dataColumnPoses, readFileSharedState,
             getOperatorID(), copy->getExpressionsForPrinting());
     } break;

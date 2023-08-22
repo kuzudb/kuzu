@@ -84,8 +84,8 @@ public:
 class ReadCSVSharedState : public ReadFileSharedState {
 public:
     ReadCSVSharedState(std::vector<std::string> filePaths, common::CSVReaderConfig csvReaderConfig,
-        catalog::TableSchema* tableSchema)
-        : ReadFileSharedState{std::move(filePaths), csvReaderConfig, tableSchema} {};
+        catalog::TableSchema* tableSchema, storage::MemoryManager* memoryManager = nullptr)
+        : ReadFileSharedState{std::move(filePaths), csvReaderConfig, tableSchema}, memoryManager{memoryManager} {};
 
     void countNumRows() final;
     std::unique_ptr<ReadFileMorsel> getMorsel() final;
@@ -96,6 +96,7 @@ private:
     std::shared_ptr<BufferedCSVReader> reader;
     std::shared_ptr<arrow::csv::StreamingReader> arrowReader;
     std::shared_ptr<common::DataChunk> resultOutput;
+    storage::MemoryManager* memoryManager;
 };
 
 class ReadParquetSharedState : public ReadFileSharedState {
