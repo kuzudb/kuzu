@@ -8,6 +8,7 @@
 #include "optimizer/projection_push_down_optimizer.h"
 #include "optimizer/remove_factorization_rewriter.h"
 #include "optimizer/remove_unnecessary_join_optimizer.h"
+#include "optimizer/top_k_optimizer.h"
 
 namespace kuzu {
 namespace optimizer {
@@ -32,6 +33,9 @@ void Optimizer::optimize(planner::LogicalPlan* plan) {
     // HashJoinSIPOptimizer should be applied after optimizers that manipulate hash join.
     auto hashJoinSIPOptimizer = HashJoinSIPOptimizer();
     hashJoinSIPOptimizer.rewrite(plan);
+
+    //    auto topKOptimizer = TopKOptimizer();
+    //    topKOptimizer.rewrite(plan);
 
     auto factorizationRewriter = FactorizationRewriter();
     factorizationRewriter.rewrite(plan);

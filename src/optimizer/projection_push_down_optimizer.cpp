@@ -147,7 +147,7 @@ void ProjectionPushDownOptimizer::visitOrderBy(planner::LogicalOperator* op) {
     for (auto& expression : orderBy->getExpressionsToOrderBy()) {
         collectExpressionsInUse(expression);
     }
-    auto expressionsBeforePruning = orderBy->getExpressionsToMaterialize();
+    auto expressionsBeforePruning = orderBy->getChild(0)->getSchema()->getExpressionsInScope();
     auto expressionsAfterPruning = pruneExpressions(expressionsBeforePruning);
     if (expressionsBeforePruning.size() == expressionsAfterPruning.size()) {
         return;

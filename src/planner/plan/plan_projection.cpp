@@ -16,10 +16,6 @@ void QueryPlanner::planProjectionBody(
     if (plan.isEmpty()) { // e.g. RETURN 1, COUNT(2)
         appendDummyScan(plan);
     }
-    // NOTE: As a temporary solution, we rewrite variables in WITH clause as all properties in scope
-    // during planning stage. The purpose is to avoid reading unnecessary properties for WITH.
-    // E.g. MATCH (a) WITH a RETURN a.age -> MATCH (a) WITH a.age RETURN a.age
-    // This rewrite should be removed once we add an optimizer that can remove unnecessary columns.
     auto expressionsToProject = projectionBody.getProjectionExpressions();
     auto expressionsToAggregate = projectionBody.getAggregateExpressions();
     auto expressionsToGroupBy = projectionBody.getGroupByExpressions();
