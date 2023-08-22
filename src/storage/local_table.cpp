@@ -269,7 +269,7 @@ void VarListLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
 }
 
 StructLocalColumn::StructLocalColumn(NodeColumn* column) : LocalColumn{column} {
-    assert(column->getDataType().getLogicalTypeID() == LogicalTypeID::STRUCT);
+    assert(column->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
     auto dataType = column->getDataType();
     auto structFields = StructType::getFields(&dataType);
     fields.resize(structFields.size());

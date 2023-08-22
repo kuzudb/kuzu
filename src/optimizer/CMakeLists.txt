@@ -10,7 +10,8 @@ add_library(kuzu_optimizer
         optimizer.cpp
         projection_push_down_optimizer.cpp
         remove_factorization_rewriter.cpp
-        remove_unnecessary_join_optimizer.cpp)
+        remove_unnecessary_join_optimizer.cpp
+        top_k_optimizer.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_optimizer>

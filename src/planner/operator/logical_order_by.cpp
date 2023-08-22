@@ -35,8 +35,8 @@ f_group_pos_set LogicalOrderBy::getGroupsPosToFlatten() {
 
 void LogicalOrderBy::computeFactorizedSchema() {
     createEmptySchema();
-    SinkOperatorUtil::recomputeSchema(
-        *children[0]->getSchema(), getExpressionsToMaterialize(), *schema);
+    auto childSchema = children[0]->getSchema();
+    SinkOperatorUtil::recomputeSchema(*childSchema, childSchema->getExpressionsInScope(), *schema);
 }
 
 void LogicalOrderBy::computeFlatSchema() {
@@ -45,6 +45,15 @@ void LogicalOrderBy::computeFlatSchema() {
     for (auto& expression : children[0]->getSchema()->getExpressionsInScope()) {
         schema->insertToScope(expression, 0);
     }
+}
+
+std::string LogicalOrderBy::getExpressionsForPrinting() const {
+    auto result = binder::ExpressionUtil::toString(expressionsToOrderBy) + "\n";
+    if (hasLimitNum()) {
+        result += "SKIP " + std::to_string(skipNum) + "\n";
+        result += "LIMIT " + std::to_string(limitNum);
+    }
+    return result;
 }
 
 } // namespace planner

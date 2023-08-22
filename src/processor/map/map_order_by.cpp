@@ -11,19 +11,23 @@ namespace kuzu {
 namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(LogicalOperator* logicalOperator) {
-    auto& logicalOrderBy = (LogicalOrderBy&)*logicalOperator;
-    auto outSchema = logicalOrderBy.getSchema();
-    auto inSchema = logicalOrderBy.getChild(0)->getSchema();
-    auto prevOperator = mapOperator(logicalOrderBy.getChild(0).get());
-    auto paramsString = logicalOrderBy.getExpressionsForPrinting();
+    auto logicalOrderBy = (LogicalOrderBy*)logicalOperator;
+    if (logicalOrderBy->isTopK()) {
+        // TODO(Ziyi): fill
+        assert(false);
+    }
+    auto outSchema = logicalOrderBy->getSchema();
+    auto inSchema = logicalOrderBy->getChild(0)->getSchema();
+    auto prevOperator = mapOperator(logicalOrderBy->getChild(0).get());
+    auto paramsString = logicalOrderBy->getExpressionsForPrinting();
     std::vector<std::pair<DataPos, LogicalType>> keysPosAndType;
-    for (auto& expression : logicalOrderBy.getExpressionsToOrderBy()) {
+    for (auto& expression : logicalOrderBy->getExpressionsToOrderBy()) {
         keysPosAndType.emplace_back(inSchema->getExpressionPos(*expression), expression->dataType);
     }
     std::vector<std::pair<DataPos, LogicalType>> payloadsPosAndType;
     std::vector<bool> isPayloadFlat;
     std::vector<DataPos> outVectorPos;
-    for (auto& expression : logicalOrderBy.getExpressionsToMaterialize()) {
+    for (auto& expression : inSchema->getExpressionsInScope()) {
         auto expressionName = expression->getUniqueName();
         payloadsPosAndType.emplace_back(
             inSchema->getExpressionPos(*expression), expression->dataType);
@@ -33,7 +37,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(LogicalOperator* logica
     // See comment in planOrderBy in projectionPlanner.cpp
     auto mayContainUnflatKey = inSchema->getNumGroups() == 1;
     auto orderByDataInfo = OrderByDataInfo(keysPosAndType, payloadsPosAndType, isPayloadFlat,
-        logicalOrderBy.getIsAscOrders(), mayContainUnflatKey);
+        logicalOrderBy->getIsAscOrders(), mayContainUnflatKey);
     auto orderBySharedState = std::make_shared<SharedFactorizedTablesAndSortedKeyBlocks>();
 
     auto orderBy =
