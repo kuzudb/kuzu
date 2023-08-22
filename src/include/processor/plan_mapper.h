@@ -58,7 +58,6 @@ private:
     std::unique_ptr<PhysicalOperator> mapMultiplicityReducer(
         planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapNodeLabelFilter(planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapSkip(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapLimit(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapMerge(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapAggregate(planner::LogicalOperator* logicalOperator);

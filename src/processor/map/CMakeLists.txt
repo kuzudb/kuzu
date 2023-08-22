@@ -37,7 +37,6 @@ add_library(kuzu_processor_mapper
         map_scan_node_property.cpp
         map_semi_masker.cpp
         map_set.cpp
-        map_skip.cpp
         map_union.cpp
         map_unwind.cpp
         plan_mapper.cpp)

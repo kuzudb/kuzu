@@ -36,12 +36,7 @@ void QueryPlanner::planProjectionBody(
     }
     if (projectionBody.hasSkipOrLimit()) {
         appendMultiplicityReducer(plan);
-        if (projectionBody.hasSkip()) {
-            appendSkip(projectionBody.getSkipNumber(), plan);
-        }
-        if (projectionBody.hasLimit()) {
-            appendLimit(projectionBody.getLimitNumber(), plan);
-        }
+        appendLimit(projectionBody.getSkipNumber(), projectionBody.getLimitNumber(), plan);
     }
 }
 

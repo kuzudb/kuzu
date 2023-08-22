@@ -43,9 +43,6 @@ void LogicalOperatorVisitor::visitOperatorSwitch(planner::LogicalOperator* op) {
     case LogicalOperatorType::ORDER_BY: {
         visitOrderBy(op);
     } break;
-    case LogicalOperatorType::SKIP: {
-        visitSkip(op);
-    } break;
     case LogicalOperatorType::LIMIT: {
         visitLimit(op);
     } break;
@@ -131,9 +128,6 @@ std::shared_ptr<planner::LogicalOperator> LogicalOperatorVisitor::visitOperatorR
     }
     case LogicalOperatorType::ORDER_BY: {
         return visitOrderByReplace(op);
-    }
-    case LogicalOperatorType::SKIP: {
-        return visitSkipReplace(op);
     }
     case LogicalOperatorType::LIMIT: {
         return visitLimitReplace(op);

@@ -19,7 +19,6 @@ private:
     void visitAccumulate(planner::LogicalOperator* op) override;
     void visitAggregate(planner::LogicalOperator* op) override;
     void visitOrderBy(planner::LogicalOperator* op) override;
-    void visitSkip(planner::LogicalOperator* op) override;
     void visitLimit(planner::LogicalOperator* op) override;
     void visitDistinct(planner::LogicalOperator* op) override;
     void visitUnwind(planner::LogicalOperator* op) override;

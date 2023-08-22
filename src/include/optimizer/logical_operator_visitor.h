@@ -87,12 +87,6 @@ protected:
         return op;
     }
 
-    virtual void visitSkip(planner::LogicalOperator* op) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitSkipReplace(
-        std::shared_ptr<planner::LogicalOperator> op) {
-        return op;
-    }
-
     virtual void visitLimit(planner::LogicalOperator* op) {}
     virtual std::shared_ptr<planner::LogicalOperator> visitLimitReplace(
         std::shared_ptr<planner::LogicalOperator> op) {

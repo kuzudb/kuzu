@@ -14,7 +14,6 @@
 #include "planner/logical_plan/logical_limit.h"
 #include "planner/logical_plan/logical_order_by.h"
 #include "planner/logical_plan/logical_projection.h"
-#include "planner/logical_plan/logical_skip.h"
 #include "planner/logical_plan/logical_union.h"
 #include "planner/logical_plan/logical_unwind.h"
 #include "planner/logical_plan/persistent/logical_create.h"
@@ -101,12 +100,6 @@ void FactorizationRewriter::visitOrderBy(planner::LogicalOperator* op) {
     auto orderBy = (LogicalOrderBy*)op;
     auto groupsPosToFlatten = orderBy->getGroupsPosToFlatten();
     orderBy->setChild(0, appendFlattens(orderBy->getChild(0), groupsPosToFlatten));
-}
-
-void FactorizationRewriter::visitSkip(planner::LogicalOperator* op) {
-    auto skip = (LogicalSkip*)op;
-    auto groupsPosToFlatten = skip->getGroupsPosToFlatten();
-    skip->setChild(0, appendFlattens(skip->getChild(0), groupsPosToFlatten));
 }
 
 void FactorizationRewriter::visitLimit(planner::LogicalOperator* op) {
