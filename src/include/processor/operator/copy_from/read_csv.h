@@ -13,7 +13,10 @@ public:
         : ReadFile{nodeOffsetPos, std::move(dataColumnPoses), std::move(sharedState),
               PhysicalOperatorType::READ_CSV, id, paramsString, true} {}
 
-    inline std::shared_ptr<arrow::Table> readTuples(std::unique_ptr<storage::ReadFileMorsel> morsel) override{ return nullptr;}
+    inline std::shared_ptr<arrow::Table> readTuples(
+        std::unique_ptr<storage::ReadFileMorsel> morsel) override {
+        return nullptr;
+    }
 
     inline std::shared_ptr<common::DataChunk> readDataChunk(
         std::unique_ptr<storage::ReadFileMorsel> morsel) {
@@ -27,7 +30,6 @@ public:
     }
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
-
 };
 
 } // namespace processor

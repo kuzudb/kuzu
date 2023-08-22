@@ -81,8 +81,7 @@ public:
 
     void resetAuxiliaryBuffer();
 
-    static void copyValueToVector(
-            uint8_t* dstValue, ValueVector* dstVector, const Value* srcValue);
+    static void copyValueToVector(uint8_t* dstValue, ValueVector* dstVector, const Value* srcValue);
 
     // If there is still non-null values after discarding, return true. Otherwise, return false.
     // For an unflat vector, its selection vector is also updated to the resultSelVector.

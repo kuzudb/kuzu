@@ -149,55 +149,55 @@ void ValueVector::resetAuxiliaryBuffer() {
 }
 
 void ValueVector::copyValueToVector(
-        uint8_t* dstValue, ValueVector* dstVector, const Value* srcValue) {
+    uint8_t* dstValue, ValueVector* dstVector, const Value* srcValue) {
     auto numBytesPerValue = dstVector->getNumBytesPerValue();
     switch (srcValue->getDataType()->getPhysicalType()) {
-        case PhysicalTypeID::INT64: {
-            memcpy(dstValue, &srcValue->val.int64Val, numBytesPerValue);
-        } break;
-        case PhysicalTypeID::INT32: {
-            memcpy(dstValue, &srcValue->val.int32Val, numBytesPerValue);
-        } break;
-        case PhysicalTypeID::INT16: {
-            memcpy(dstValue, &srcValue->val.int16Val, numBytesPerValue);
-        } break;
-        case PhysicalTypeID::DOUBLE: {
-            memcpy(dstValue, &srcValue->val.doubleVal, numBytesPerValue);
-        } break;
-        case PhysicalTypeID::FLOAT: {
-            memcpy(dstValue, &srcValue->val.floatVal, numBytesPerValue);
-        } break;
-        case PhysicalTypeID::BOOL: {
-            memcpy(dstValue, &srcValue->val.booleanVal, numBytesPerValue);
-        } break;
-        case PhysicalTypeID::INTERVAL: {
-            memcpy(dstValue, &srcValue->val.intervalVal, numBytesPerValue);
-        } break;
-        case PhysicalTypeID::STRING: {
-            StringVector::addString(
-                    dstVector, *(ku_string_t*)dstValue, srcValue->strVal.data(), srcValue->strVal.length());
-        } break;
-        case PhysicalTypeID::FIXED_LIST: {
-            auto numValues = FixedListType::getNumElementsInList(srcValue->getDataType());
-            for (auto i = 0u; i < numValues; i++) {
-                copyValueToVector(dstValue + i * dstVector->getNumBytesPerValue(), dstVector,
-                                  NestedVal::getChildVal(srcValue, i));
-            }
-        } break;
-        case PhysicalTypeID::VAR_LIST: {
-            auto listListEntry = reinterpret_cast<list_entry_t*>(dstValue);
-            auto numValues = NestedVal::getChildrenSize(srcValue);
-            *listListEntry = ListVector::addList(dstVector, numValues);
-            auto dstDataVector = ListVector::getDataVector(dstVector);
-            auto dstElements = ListVector::getListValues(dstVector, *listListEntry);
-            for (auto i = 0u; i < numValues; ++i) {
-                copyValueToVector(dstElements + i * dstDataVector->getNumBytesPerValue(), dstDataVector,
-                                  NestedVal::getChildVal(srcValue, i));
-            }
-        } break;
-        default:
-            throw NotImplementedException("Unimplemented setLiteral() for type " +
-            LogicalTypeUtils::dataTypeToString(dstVector->dataType));
+    case PhysicalTypeID::INT64: {
+        memcpy(dstValue, &srcValue->val.int64Val, numBytesPerValue);
+    } break;
+    case PhysicalTypeID::INT32: {
+        memcpy(dstValue, &srcValue->val.int32Val, numBytesPerValue);
+    } break;
+    case PhysicalTypeID::INT16: {
+        memcpy(dstValue, &srcValue->val.int16Val, numBytesPerValue);
+    } break;
+    case PhysicalTypeID::DOUBLE: {
+        memcpy(dstValue, &srcValue->val.doubleVal, numBytesPerValue);
+    } break;
+    case PhysicalTypeID::FLOAT: {
+        memcpy(dstValue, &srcValue->val.floatVal, numBytesPerValue);
+    } break;
+    case PhysicalTypeID::BOOL: {
+        memcpy(dstValue, &srcValue->val.booleanVal, numBytesPerValue);
+    } break;
+    case PhysicalTypeID::INTERVAL: {
+        memcpy(dstValue, &srcValue->val.intervalVal, numBytesPerValue);
+    } break;
+    case PhysicalTypeID::STRING: {
+        StringVector::addString(
+            dstVector, *(ku_string_t*)dstValue, srcValue->strVal.data(), srcValue->strVal.length());
+    } break;
+    case PhysicalTypeID::FIXED_LIST: {
+        auto numValues = FixedListType::getNumElementsInList(srcValue->getDataType());
+        for (auto i = 0u; i < numValues; i++) {
+            copyValueToVector(dstValue + i * dstVector->getNumBytesPerValue(), dstVector,
+                NestedVal::getChildVal(srcValue, i));
+        }
+    } break;
+    case PhysicalTypeID::VAR_LIST: {
+        auto listListEntry = reinterpret_cast<list_entry_t*>(dstValue);
+        auto numValues = NestedVal::getChildrenSize(srcValue);
+        *listListEntry = ListVector::addList(dstVector, numValues);
+        auto dstDataVector = ListVector::getDataVector(dstVector);
+        auto dstElements = ListVector::getListValues(dstVector, *listListEntry);
+        for (auto i = 0u; i < numValues; ++i) {
+            copyValueToVector(dstElements + i * dstDataVector->getNumBytesPerValue(), dstDataVector,
+                NestedVal::getChildVal(srcValue, i));
+        }
+    } break;
+    default:
+        throw NotImplementedException("Unimplemented setLiteral() for type " +
+                                      LogicalTypeUtils::dataTypeToString(dstVector->dataType));
     }
 }
 

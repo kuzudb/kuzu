@@ -11,7 +11,7 @@ bool ReadCSV::getNextTuplesInternal(ExecutionContext* context) {
     }
     auto nodeOffsetVector = resultSet->getValueVector(nodeOffsetPos).get();
     nodeOffsetVector->setValue(
-            nodeOffsetVector->state->selVector->selectedPositions[0], morsel->rowsRead);
+        nodeOffsetVector->state->selVector->selectedPositions[0], morsel->rowsRead);
     auto output = readDataChunk(std::move(morsel));
     resultSet->insert(dataColumnPoses[0].dataChunkPos, output);
     resultSet->dataChunks[0]->state->setToUnflat();

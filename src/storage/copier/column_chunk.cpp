@@ -57,9 +57,9 @@ void ColumnChunk::append(
     if (vector->dataType.getLogicalTypeID() == LogicalTypeID::ARROW_COLUMN) {
         assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::ARROW_COLUMN);
         auto chunkedArray = ArrowColumnVector::getArrowColumn(vector).get();
-        for (auto array: chunkedArray->chunks()) {
+        for (auto array : chunkedArray->chunks()) {
             auto numValuesInArrayToAppend =
-                    std::min((uint64_t) array->length(), (uint64_t) numValuesToAppend);
+                std::min((uint64_t)array->length(), (uint64_t)numValuesToAppend);
             if (numValuesInArrayToAppend <= 0) {
                 break;
             }

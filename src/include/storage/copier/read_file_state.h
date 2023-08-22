@@ -1,9 +1,9 @@
 #pragma once
 
-#include "storage/copier/npy_reader.h"
-#include "storage/copier/csv_reader.h"
-#include "storage/copier/table_copy_utils.h"
 #include "common/data_chunk/data_chunk.h"
+#include "storage/copier/csv_reader.h"
+#include "storage/copier/npy_reader.h"
+#include "storage/copier/table_copy_utils.h"
 
 namespace kuzu {
 namespace storage {
@@ -42,12 +42,13 @@ public:
 class ReadCSVMorsel : public ReadFileMorsel {
 public:
     ReadCSVMorsel(common::offset_t startRowIdx, std::string filePath,
-                  common::row_idx_t rowIdxInFile, common::row_idx_t rowsRead,
-                  std::shared_ptr<common::DataChunk> recordOutput)
-                  : ReadFileMorsel{startRowIdx, common::INVALID_BLOCK_IDX, rowsRead, std::move(filePath), rowIdxInFile},
-                  recordOutput{std::move(recordOutput)} {}
+        common::row_idx_t rowIdxInFile, common::row_idx_t rowsRead,
+        std::shared_ptr<common::DataChunk> recordOutput)
+        : ReadFileMorsel{startRowIdx, common::INVALID_BLOCK_IDX, rowsRead, std::move(filePath),
+              rowIdxInFile},
+          recordOutput{std::move(recordOutput)} {}
 
-                  std::shared_ptr<common::DataChunk> recordOutput;
+    std::shared_ptr<common::DataChunk> recordOutput;
 };
 
 class ReadFileSharedState {
@@ -85,7 +86,8 @@ class ReadCSVSharedState : public ReadFileSharedState {
 public:
     ReadCSVSharedState(std::vector<std::string> filePaths, common::CSVReaderConfig csvReaderConfig,
         catalog::TableSchema* tableSchema, storage::MemoryManager* memoryManager = nullptr)
-        : ReadFileSharedState{std::move(filePaths), csvReaderConfig, tableSchema}, memoryManager{memoryManager} {};
+        : ReadFileSharedState{std::move(filePaths), csvReaderConfig, tableSchema},
+          memoryManager{memoryManager} {};
 
     void countNumRows() final;
     std::unique_ptr<ReadFileMorsel> getMorsel() final;

@@ -16,7 +16,7 @@ enum class ParserMode : uint8_t { PARSING = 0, PARSING_HEADER = 1 };
 class BaseCSVReader {
 public:
     BaseCSVReader(const std::string& filePath, common::CSVReaderConfig* csvReaderConfig,
-                  catalog::TableSchema* tableSchema);
+        catalog::TableSchema* tableSchema);
     virtual ~BaseCSVReader();
 
     common::CSVReaderConfig* csvReaderConfig;
@@ -34,12 +34,15 @@ public:
     common::DataChunk parse_chunk;
 
 protected:
-    void AddValue(std::string str_val, common::column_id_t &column, std::vector<uint64_t> &escape_positions, bool has_quotes,
-            uint64_t buffer_idx = 0);
-    //! Adds a row to the insert_chunk, returns true if the chunk is filled as a result of this row being added
-    bool AddRow(common::DataChunk &insert_chunk, common::column_id_t &column, std::string &error_message, uint64_t buffer_idx = 0);
-    //! Finalizes a chunk, parsing all values that have been added so far and adding them to the insert_chunk
-    bool Flush(common::DataChunk &insert_chunk, uint64_t buffer_idx = 0, bool try_add_line = false);
+    void AddValue(std::string str_val, common::column_id_t& column,
+        std::vector<uint64_t>& escape_positions, bool has_quotes, uint64_t buffer_idx = 0);
+    //! Adds a row to the insert_chunk, returns true if the chunk is filled as a result of this row
+    //! being added
+    bool AddRow(common::DataChunk& insert_chunk, common::column_id_t& column,
+        std::string& error_message, uint64_t buffer_idx = 0);
+    //! Finalizes a chunk, parsing all values that have been added so far and adding them to the
+    //! insert_chunk
+    bool Flush(common::DataChunk& insert_chunk, uint64_t buffer_idx = 0, bool try_add_line = false);
 
     void InitParseChunk(common::column_id_t num_cols);
 
@@ -56,7 +59,7 @@ class BufferedCSVReader : public BaseCSVReader {
 
 public:
     BufferedCSVReader(const std::string& filePath, common::CSVReaderConfig* csvReaderConfig,
-                          catalog::TableSchema* tableSchema, storage::MemoryManager* memoryManager);
+        catalog::TableSchema* tableSchema, storage::MemoryManager* memoryManager);
     ~BufferedCSVReader() override = default;
 
     std::unique_ptr<char[]> buffer;
@@ -69,21 +72,23 @@ public:
 
 public:
     //! Extract a single DataChunk from the CSV file and stores it in insert_chunk
-    uint64_t ParseCSV(common::DataChunk &insertChunk);
+    uint64_t ParseCSV(common::DataChunk& insertChunk);
 
 private:
     //! Initialize Parser
-    void Initialize(const std::vector<catalog::Property*> properties, storage::MemoryManager* memoryManager);
+    void Initialize(
+        const std::vector<catalog::Property*> properties, storage::MemoryManager* memoryManager);
     //! Skips skip_rows, reads header row from input stream
     void ReadHeader(bool hasHeader);
     //! Resets the buffer
     void ResetBuffer();
     //! Extract a single DataChunk from the CSV file and stores it in insert_chunk
-    uint64_t TryParseCSV(ParserMode mode, common::DataChunk &insertChunk, std::string &errorMessage);
+    uint64_t TryParseCSV(
+        ParserMode mode, common::DataChunk& insertChunk, std::string& errorMessage);
     //! Parses a CSV file with a one-byte delimiter, escape and quote character
-    uint64_t TryParseSimpleCSV(common::DataChunk &insertChunk, std::string &errorMessage);
+    uint64_t TryParseSimpleCSV(common::DataChunk& insertChunk, std::string& errorMessage);
     //! Reads a new buffer from the CSV file if the current one has been exhausted
-    bool ReadBuffer(uint64_t &start, uint64_t &line_start);
+    bool ReadBuffer(uint64_t& start, uint64_t& line_start);
     //! Skip Empty lines for tables with over one column
     void SkipEmptyLines();
 };

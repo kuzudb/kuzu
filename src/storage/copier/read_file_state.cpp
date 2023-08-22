@@ -1,6 +1,7 @@
 #include "storage/copier/read_file_state.h"
-#include "storage/copier/npy_reader.h"
+
 #include "storage/copier/csv_reader.h"
+#include "storage/copier/npy_reader.h"
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -62,13 +63,13 @@ std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getArrowMorsel() {
         currBlockIdx++;
         if (resultTable == nullptr) {
             TableCopyUtils::throwCopyExceptionIfNotOK(
-                    arrow::Table::FromRecordBatches({recordBatch}).Value(&resultTable));
+                arrow::Table::FromRecordBatches({recordBatch}).Value(&resultTable));
         } else {
             std::shared_ptr<arrow::Table> interimTable;
             TableCopyUtils::throwCopyExceptionIfNotOK(
-                    arrow::Table::FromRecordBatches({recordBatch}).Value(&interimTable));
+                arrow::Table::FromRecordBatches({recordBatch}).Value(&interimTable));
             TableCopyUtils::throwCopyExceptionIfNotOK(
-                    arrow::ConcatenateTables({resultTable, interimTable}).Value(&resultTable));
+                arrow::ConcatenateTables({resultTable, interimTable}).Value(&resultTable));
         }
         if (resultTable->column(0)->length() >= common::StorageConstants::NODE_GROUP_SIZE) {
             leftOverData = resultTable->Slice(common::StorageConstants::NODE_GROUP_SIZE);
@@ -81,7 +82,7 @@ std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getArrowMorsel() {
     }
     auto rows = resultTable->num_rows();
     auto result = std::make_unique<ReadSerialMorsel>(
-            currRowIdx, filePaths[0], currRowIdxInCurrFile, rowsRead, std::move(resultTable));
+        currRowIdx, filePaths[0], currRowIdxInCurrFile, rowsRead, std::move(resultTable));
     currRowIdx += rows;
     return result;
 }
@@ -97,10 +98,11 @@ std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getMorselSerial() {
         }
         auto filePath = filePaths[currFileIdx];
         if (!reader) {
-            reader = make_shared<BufferedCSVReader>(filePath, &csvReaderConfig, tableSchema, memoryManager);
+            reader = make_shared<BufferedCSVReader>(
+                filePath, &csvReaderConfig, tableSchema, memoryManager);
         }
         auto output = std::make_shared<DataChunk>(tableSchema->getNumProperties());
-        for (int i = 0; i < tableSchema->getNumProperties(); i++ ) {
+        for (int i = 0; i < tableSchema->getNumProperties(); i++) {
             auto type = tableSchema->getProperty(i)->getDataType();
             auto v = std::make_shared<ValueVector>(*type, memoryManager);
             output->insert(i, v);
