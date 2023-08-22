@@ -1,5 +1,4 @@
 #include "storage/copier/read_file_state.h"
-#include <iostream>
 #include "storage/copier/npy_reader.h"
 #include "storage/copier/csv_reader.h"
 using namespace kuzu::common;
@@ -28,6 +27,65 @@ void ReadCSVSharedState::countNumRows() {
     }
 }
 
+std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getArrowMorsel() {
+    std::unique_lock lck{mtx};
+    std::shared_ptr<arrow::Table> resultTable;
+    if (leftOverData) {
+        resultTable = std::move(leftOverData);
+        leftOverData = nullptr;
+    }
+    while (true) {
+        if (currFileIdx >= filePaths.size()) {
+            // No more files to read.
+            return nullptr;
+        }
+        auto filePath = filePaths[currFileIdx];
+        if (!arrowReader) {
+            arrowReader = TableCopyUtils::createCSVReader(filePath, &csvReaderConfig, tableSchema);
+        }
+        std::shared_ptr<arrow::RecordBatch> recordBatch;
+        TableCopyUtils::throwCopyExceptionIfNotOK(arrowReader->ReadNext(&recordBatch));
+        if (recordBatch == nullptr) {
+            // No more blocks to read in this file.
+            currFileIdx++;
+            currBlockIdx = 0;
+            currRowIdxInCurrFile = 1;
+            reader.reset();
+            if (currFileIdx >= filePaths.size()) {
+                break;
+            }
+            continue;
+        }
+        auto numRowsInBatch = recordBatch->num_rows();
+        rowsRead += numRowsInBatch;
+        currRowIdxInCurrFile += numRowsInBatch;
+        currBlockIdx++;
+        if (resultTable == nullptr) {
+            TableCopyUtils::throwCopyExceptionIfNotOK(
+                    arrow::Table::FromRecordBatches({recordBatch}).Value(&resultTable));
+        } else {
+            std::shared_ptr<arrow::Table> interimTable;
+            TableCopyUtils::throwCopyExceptionIfNotOK(
+                    arrow::Table::FromRecordBatches({recordBatch}).Value(&interimTable));
+            TableCopyUtils::throwCopyExceptionIfNotOK(
+                    arrow::ConcatenateTables({resultTable, interimTable}).Value(&resultTable));
+        }
+        if (resultTable->column(0)->length() >= common::StorageConstants::NODE_GROUP_SIZE) {
+            leftOverData = resultTable->Slice(common::StorageConstants::NODE_GROUP_SIZE);
+            resultTable = resultTable->Slice(0, common::StorageConstants::NODE_GROUP_SIZE);
+            break;
+        }
+        if (currFileIdx >= filePaths.size()) {
+            break;
+        }
+    }
+    auto rows = resultTable->num_rows();
+    auto result = std::make_unique<ReadSerialMorsel>(
+            currRowIdx, filePaths[0], currRowIdxInCurrFile, rowsRead, std::move(resultTable));
+    currRowIdx += rows;
+    return result;
+}
+
 // TODO(Guodong): Refactor duplicated between the three getMorsel() functions.
 std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getMorselSerial() {
     std::unique_lock lck{mtx};
@@ -43,7 +101,9 @@ std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getMorselSerial() {
         }
         auto output = std::make_shared<DataChunk>(tableSchema->getNumProperties());
         for (int i = 0; i < tableSchema->getNumProperties(); i++ ) {
-            auto v = std::make_shared<ValueVector>(tableSchema->getProperty(i)->getDataType()->getLogicalTypeID());
+            auto type = tableSchema->getProperty(i)->getDataType();
+            auto typeID = type->getLogicalTypeID();
+            auto v = std::make_shared<ValueVector>(*type);
             output->insert(i, v);
         }
         auto numRowsInBatch = reader->ParseCSV(*output);

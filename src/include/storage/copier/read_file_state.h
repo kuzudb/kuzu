@@ -62,6 +62,7 @@ public:
     virtual void countNumRows() = 0;
     virtual std::unique_ptr<ReadFileMorsel> getMorsel() = 0;
     virtual std::unique_ptr<ReadFileMorsel> getMorselSerial() = 0;
+    virtual std::unique_ptr<ReadFileMorsel> getArrowMorsel() = 0;
 
 public:
     std::mutex mtx;
@@ -89,9 +90,11 @@ public:
     void countNumRows() final;
     std::unique_ptr<ReadFileMorsel> getMorsel() final;
     std::unique_ptr<ReadFileMorsel> getMorselSerial() final;
+    std::unique_ptr<ReadFileMorsel> getArrowMorsel() final;
 
 private:
     std::shared_ptr<BufferedCSVReader> reader;
+    std::shared_ptr<arrow::csv::StreamingReader> arrowReader;
     std::shared_ptr<common::DataChunk> resultOutput;
 };
 
@@ -106,6 +109,7 @@ private:
 
     std::unique_ptr<storage::ReadFileMorsel> getMorsel() final;
     std::unique_ptr<storage::ReadFileMorsel> getMorselSerial() final;
+    std::unique_ptr<storage::ReadFileMorsel> getArrowMorsel() final { return getMorsel(); };
 
     std::shared_ptr<parquet::arrow::FileReader> reader;
 };
@@ -119,6 +123,7 @@ public:
 private:
     std::unique_ptr<storage::ReadFileMorsel> getMorsel() final;
     std::unique_ptr<storage::ReadFileMorsel> getMorselSerial() final;
+    std::unique_ptr<storage::ReadFileMorsel> getArrowMorsel() final { return getMorsel(); };
     void countNumRows() final;
 
     std::shared_ptr<storage::NpyMultiFileReader> reader;

@@ -1,4 +1,5 @@
 #include "storage/copier/csv_reader.h"
+#include "storage/copier/table_copy_utils.h"
 #include "common/string_utils.h"
 
 #include <vector>
@@ -19,6 +20,9 @@ BaseCSVReader::~BaseCSVReader() {
 
 void BaseCSVReader::AddValue(std::string str_val, column_id_t &column, std::vector<uint64_t> &escape_positions, bool has_quotes,
                              uint64_t buffer_idx) {
+    if (mode == ParserMode::PARSING_HEADER) {
+        return;
+    }
     auto length = str_val.length();
     if (length == 0 && column == 0) {
         row_empty = true;
@@ -48,8 +52,9 @@ void BaseCSVReader::AddValue(std::string str_val, column_id_t &column, std::vect
         escape_positions.clear();
         str_val = new_val;
     }
-    auto type = tableSchema->getProperty(column)->getDataType()->getLogicalTypeID();
-    switch (type) {
+    auto copyDescription = CopyDescription({filePath}, common::CopyDescription::FileType::CSV, *csvReaderConfig);
+    auto type = parse_chunk.getValueVector(column)->dataType;
+    switch (type.getLogicalTypeID()) {
         case LogicalTypeID::INT64: {
             parse_chunk.getValueVector(column)->setValue(columnSizes[column]++,
                     StringCastUtils::castToNum<int64_t>(str_val.c_str(), str_val.length()));
@@ -86,9 +91,19 @@ void BaseCSVReader::AddValue(std::string str_val, column_id_t &column, std::vect
         case LogicalTypeID::INTERVAL: {
             parse_chunk.getValueVector(column)->setValue(columnSizes[column]++, Interval::fromCString(str_val.c_str(), str_val.length()));
         } break;
+        case LogicalTypeID::VAR_LIST: {
+            auto value = TableCopyUtils::getVarListValue(str_val, 1, str_val.length() - 2, type, copyDescription);
+            ValueVector::copyValueToVector(parse_chunk.getValueVector(column)->getData(), parse_chunk.getValueVector(column).get(), value.get());
+            columnSizes[column]++;
+        } break;
+        case LogicalTypeID::FIXED_LIST: {
+            auto value = TableCopyUtils::getArrowFixedListVal(str_val, 1, str_val.length() - 2, type, copyDescription);
+            ValueVector::copyValueToVector(parse_chunk.getValueVector(column)->getData(), parse_chunk.getValueVector(column).get() + columnSizes[column], value.get());
+            columnSizes[column]++;
+        } break;
         default:
             throw CopyException(
-                    "Unsupported data type " + LogicalTypeUtils::dataTypeToString(type) + " inside LIST");
+                    "Unsupported data type " + LogicalTypeUtils::dataTypeToString(type.getLogicalTypeID()) + " inside LIST");
     }
     parse_chunk.getValueVector(column)->state->selVector->selectedSize++;
     // move to the next column
@@ -96,6 +111,9 @@ void BaseCSVReader::AddValue(std::string str_val, column_id_t &column, std::vect
 }
 
 bool BaseCSVReader::AddRow(DataChunk &insert_chunk, column_id_t &column, std::string &error_message, uint64_t buffer_idx) {
+    if (mode == ParserMode::PARSING_HEADER) {
+        return true;
+    }
     linenr++;
     if (row_empty) {
         row_empty = false;
@@ -111,9 +129,6 @@ bool BaseCSVReader::AddRow(DataChunk &insert_chunk, column_id_t &column, std::st
     if (column < return_types.size()) {
         throw CopyException(StringUtils::string_format("Error in file {} on line {}: expected {} values per row, but got {}", filePath, linenr, return_types.size(), column));
     }
-    if (mode == ParserMode::PARSING_HEADER) {
-        return true;
-    }
     if (mode == ParserMode::PARSING && columnSizes[0] >= common::StorageConstants::NODE_GROUP_SIZE) {
         Flush(insert_chunk, buffer_idx);
         return true;
@@ -127,9 +142,7 @@ bool BaseCSVReader::Flush(DataChunk &insert_chunk, uint64_t buffer_idx, bool try
     if (parse_chunk.getNumValueVectors() == 0) {
         return true;
     }
-    // convert the columns in the parsed chunk to the types of the table
-    assert(parse_chunk.getNumValueVectors() == insert_chunk.getNumValueVectors());
-    for (uint64_t c = 0; c < insert_chunk.getNumValueVectors(); c++) {
+    for (uint64_t c = 0; c < parse_chunk.getNumValueVectors(); c++) {
         auto parse_vector = parse_chunk.getValueVector(c);
         auto result_vector = insert_chunk.getValueVector(c);
         insert_chunk.getValueVector(c)->state->selVector->selectedSize = parse_chunk.getValueVector(c)->state->selVector->selectedSize;
@@ -159,10 +172,14 @@ void BufferedCSVReader::Initialize(std::vector<kuzu::catalog::Property*> propert
     ResetBuffer();
     ReadHeader(csvReaderConfig->hasHeader);
     // Initializing parse_chunk DataChunk
+    parse_chunk = DataChunk(properties.size());
     for (int i = 0; i < properties.size(); i++ ) {
-        auto v = std::make_shared<ValueVector>(properties[i]->getDataType()->getLogicalTypeID());
+        auto type = properties[i]->getDataType();
+        auto typeID = type->getLogicalTypeID();
+        auto v = std::make_shared<ValueVector>(*type);
         parse_chunk.insert(i, v);
     }
+    mode = ParserMode::PARSING;
 }
 
 void BufferedCSVReader::ResetBuffer() {
@@ -176,10 +193,11 @@ void BufferedCSVReader::ResetBuffer() {
 void BufferedCSVReader::ReadHeader(bool hasHeader) {
     if (hasHeader) {
         // ignore the first line as a header line
-        //InitParseChunk(return_types.size());
-        // ParseCSV(ParserMode::PARSING_HEADER);
-        ;
+        mode = ParserMode::PARSING_HEADER;
+        DataChunk dummy_chunk(0);
+        ParseCSV(dummy_chunk);
     }
+    mode = ParserMode::PARSING;
 }
 
 bool BufferedCSVReader::ReadBuffer(uint64_t &start, uint64_t &line_start) {
@@ -455,7 +473,7 @@ uint64_t BufferedCSVReader::TryParseSimpleCSV(DataChunk &insertChunk, std::strin
 
 uint64_t BufferedCSVReader::ParseCSV(common::DataChunk &insertChunk) {
     std::string errorMessage;
-    auto numRowsRead = TryParseCSV(ParserMode::PARSING, insertChunk, errorMessage);
+    auto numRowsRead = TryParseCSV(mode, insertChunk, errorMessage);
     if (numRowsRead == -1) {
         throw CopyException(errorMessage);
     }

@@ -25,7 +25,7 @@ void RelCopier::execute(ExecutionContext* executionContext) {
         if (executionContext->clientContext->isInterrupted()) {
             throw InterruptException();
         }
-        auto morsel = sharedState->getMorsel();
+        auto morsel = sharedState->getArrowMorsel();
         if (morsel == nullptr) {
             // No more morsels.
             break;

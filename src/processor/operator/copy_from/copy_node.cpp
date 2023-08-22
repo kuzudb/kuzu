@@ -82,9 +82,14 @@ void CopyNode::executeInternal(ExecutionContext* context) {
     sharedState->logCopyNodeWALRecord(copyNodeInfo.wal);
     while (children[0]->getNextTuple(context)) {
         // All tuples in the resultSet are in the same data chunk.
-        auto numTuplesToAppend = ArrowColumnVector::getArrowColumn(
-            resultSet->getValueVector(copyNodeInfo.dataColumnPoses[0]).get())
-                                     ->length();
+        int64_t numTuplesToAppend;
+        if (children[0]->getOperatorType() == PhysicalOperatorType::READ_CSV) {
+            numTuplesToAppend = resultSet->getValueVector(copyNodeInfo.dataColumnPoses[0])->state->selVector->selectedSize;
+        } else {
+            numTuplesToAppend = ArrowColumnVector::getArrowColumn(
+                    resultSet->getValueVector(copyNodeInfo.dataColumnPoses[0]).get())
+                    ->length();
+        }
         auto nodeOffset = nodeOffsetVector->getValue<int64_t>(
                               nodeOffsetVector->state->selVector->selectedPositions[0]) -
                           1;
