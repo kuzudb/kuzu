@@ -48,3 +48,6 @@ time = {version="0.3", features=["macros"]}
 [features]
 default = []
 arrow = ["dep:arrow"]
+
+[package.metadata.docs.rs]
+all-features = true
