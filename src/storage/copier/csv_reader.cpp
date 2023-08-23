@@ -11,9 +11,9 @@ namespace kuzu {
 namespace storage {
 
 BaseCSVReader::BaseCSVReader(const std::string& filePath, common::CSVReaderConfig* csvReaderConfig,
-    catalog::TableSchema* tableSchema)
-    : csvReaderConfig(csvReaderConfig), filePath(filePath), tableSchema(tableSchema),
-      parse_chunk(DataChunk{tableSchema->getNumProperties()}), rowToAdd(0) {}
+    catalog::TableSchema* tableSchema, storage::MemoryManager* memoryManager)
+    : csvReaderConfig{csvReaderConfig}, filePath{filePath}, tableSchema{tableSchema},
+      memoryManager{memoryManager}, parse_chunk{(0)}, rowToAdd{0} {}
 
 BaseCSVReader::~BaseCSVReader() {}
 
@@ -162,25 +162,31 @@ bool BaseCSVReader::Flush(DataChunk& insert_chunk, uint64_t buffer_idx, bool try
             parse_chunk.getValueVector(c)->state->selVector->selectedSize;
         insert_chunk.insert(c, parse_chunk.getValueVector(c));
     }
-    InitParseChunk(parse_chunk.getNumValueVectors());
+    InitParseChunk();
     return true;
 }
 
-void BaseCSVReader::InitParseChunk(column_id_t numCols) {
-    parse_chunk = DataChunk(numCols);
+void BaseCSVReader::InitParseChunk() {
+    auto properties = tableSchema->getProperties();
+    parse_chunk = DataChunk(properties.size());
+    for (int i = 0; i < properties.size(); i++) {
+        auto type = properties[i]->getDataType();
+        auto v = std::make_shared<ValueVector>(*type, memoryManager);
+        parse_chunk.insert(i, v);
+    }
 }
 
 BufferedCSVReader::BufferedCSVReader(const std::string& filePath,
     common::CSVReaderConfig* csvReaderConfig, catalog::TableSchema* tableSchema,
     storage::MemoryManager* memoryManager = nullptr)
-    : BaseCSVReader(filePath, csvReaderConfig, tableSchema), bufferSize(0), position(0), start(0) {
-    Initialize(tableSchema->getProperties(), memoryManager);
+    : BaseCSVReader{filePath, csvReaderConfig, tableSchema, memoryManager},
+      bufferSize{0}, position{0}, start{0} {
+    Initialize();
 }
 
-void BufferedCSVReader::Initialize(
-    std::vector<kuzu::catalog::Property*> properties, storage::MemoryManager* memoryManager) {
+void BufferedCSVReader::Initialize() {
     // PrepareComplexParser();
-    for (auto property : properties) {
+    for (auto property : tableSchema->getProperties()) {
         return_types.push_back(*property->getDataType());
     }
     fd = open(filePath.c_str(), O_RDONLY);
@@ -190,13 +196,7 @@ void BufferedCSVReader::Initialize(
     }
     mode = ParserMode::PARSING;
     // Initializing parse_chunk DataChunk
-    parse_chunk = DataChunk(properties.size());
-    for (int i = 0; i < properties.size(); i++) {
-        auto type = properties[i]->getDataType();
-        auto typeID = type->getLogicalTypeID();
-        auto v = std::make_shared<ValueVector>(*type, memoryManager);
-        parse_chunk.insert(i, v);
-    }
+    InitParseChunk();
 }
 
 void BufferedCSVReader::ResetBuffer() {
@@ -487,7 +487,6 @@ final_state:
         Flush(insertChunk);
     }
 
-    end_of_file_reached = true;
     return rowToAdd;
 }
 

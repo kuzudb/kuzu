@@ -16,19 +16,19 @@ enum class ParserMode : uint8_t { PARSING = 0, PARSING_HEADER = 1 };
 class BaseCSVReader {
 public:
     BaseCSVReader(const std::string& filePath, common::CSVReaderConfig* csvReaderConfig,
-        catalog::TableSchema* tableSchema);
+        catalog::TableSchema* tableSchema, storage::MemoryManager* memoryManager);
     virtual ~BaseCSVReader();
 
     common::CSVReaderConfig* csvReaderConfig;
     std::string filePath;
     catalog::TableSchema* tableSchema;
+    storage::MemoryManager* memoryManager;
     std::vector<common::LogicalType> return_types;
 
     uint64_t linenr = 0;
     uint64_t bytes_in_chunk = 0;
     bool bom_checked = false;
     bool row_empty = false;
-    bool end_of_file_reached = false;
 
     ParserMode mode;
     common::DataChunk parse_chunk;
@@ -44,7 +44,7 @@ protected:
     //! insert_chunk
     bool Flush(common::DataChunk& insert_chunk, uint64_t buffer_idx = 0, bool try_add_line = false);
 
-    void InitParseChunk(common::column_id_t num_cols);
+    void InitParseChunk();
 
 protected:
     uint64_t rowToAdd;
@@ -76,8 +76,7 @@ public:
 
 private:
     //! Initialize Parser
-    void Initialize(
-        const std::vector<catalog::Property*> properties, storage::MemoryManager* memoryManager);
+    void Initialize();
     //! Skips skip_rows, reads header row from input stream
     void ReadHeader();
     //! Resets the buffer
