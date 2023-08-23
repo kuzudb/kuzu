@@ -21,22 +21,16 @@ std::unique_ptr<PropertyStatistics> PropertyStatistics::deserialize(
     return std::make_unique<PropertyStatistics>(hasNull);
 }
 
-// In a read-only context, readStatistics should always be non-null
 // Read/write statistics cannot be cached since functions like checkpointInMemoryIfNecessary may
 // overwrite them and invalidate the reference
-bool RWPropertyStats::mayHaveNull() {
-    auto readStatistics = tablesStatistics->getReadPropertyStatisticsForTable(tableID, propertyID);
-    if (readStatistics) {
-        return readStatistics->mayHaveNull();
-    }
-
-    auto writeStatistics =
-        tablesStatistics->getWritePropertyStatisticsForTable(tableID, propertyID);
-    return writeStatistics.mayHaveNull();
+bool RWPropertyStats::mayHaveNull(const transaction::Transaction& transaction) {
+    auto statistics =
+        tablesStatistics->getPropertyStatisticsForTable(transaction, tableID, propertyID);
+    return statistics.mayHaveNull();
 }
 
-void RWPropertyStats::setHasNull() {
-    tablesStatistics->getWritePropertyStatisticsForTable(tableID, propertyID).setHasNull();
+void RWPropertyStats::setHasNull(const transaction::Transaction& transaction) {
+    tablesStatistics->getPropertyStatisticsForTable(transaction, tableID, propertyID).setHasNull();
 }
 
 } // namespace storage

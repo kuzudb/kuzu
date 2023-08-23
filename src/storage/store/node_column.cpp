@@ -6,6 +6,7 @@
 #include "storage/store/struct_node_column.h"
 #include "storage/store/table_statistics.h"
 #include "storage/store/var_list_node_column.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -438,7 +439,7 @@ NullNodeColumn::NullNodeColumn(page_idx_t metaDAHPageIdx, BMFileHandle* dataFH,
 
 void NullNodeColumn::scan(
     Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
-    if (propertyStatistics.mayHaveNull()) {
+    if (propertyStatistics.mayHaveNull(*transaction)) {
         scanInternal(transaction, nodeIDVector, resultVector);
     } else {
         resultVector->setAllNonNull();
@@ -448,7 +449,7 @@ void NullNodeColumn::scan(
 void NullNodeColumn::scan(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
     offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
     uint64_t offsetInVector) {
-    if (propertyStatistics.mayHaveNull()) {
+    if (propertyStatistics.mayHaveNull(*transaction)) {
         NodeColumn::scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup,
             resultVector, offsetInVector);
     } else {
@@ -457,7 +458,7 @@ void NullNodeColumn::scan(transaction::Transaction* transaction, node_group_idx_
 }
 
 void NullNodeColumn::scan(node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) {
-    if (propertyStatistics.mayHaveNull()) {
+    if (propertyStatistics.mayHaveNull(DUMMY_WRITE_TRANSACTION)) {
         NodeColumn::scan(nodeGroupIdx, columnChunk);
     } else {
         static_cast<NullColumnChunk*>(columnChunk)->resetNullBuffer();
@@ -466,7 +467,7 @@ void NullNodeColumn::scan(node_group_idx_t nodeGroupIdx, ColumnChunk* columnChun
 
 void NullNodeColumn::lookup(
     Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
-    if (propertyStatistics.mayHaveNull()) {
+    if (propertyStatistics.mayHaveNull(*transaction)) {
         lookupInternal(transaction, nodeIDVector, resultVector);
     } else {
         for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
@@ -483,7 +484,7 @@ page_idx_t NullNodeColumn::append(
     metadataDA->update(nodeGroupIdx,
         ColumnChunkMetadata{startPageIdx, numPagesFlushed, columnChunk->getNumValues()});
     if (static_cast<NullColumnChunk*>(columnChunk)->mayHaveNull()) {
-        propertyStatistics.setHasNull();
+        propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
     }
     return numPagesFlushed;
 }
@@ -491,7 +492,7 @@ page_idx_t NullNodeColumn::append(
 void NullNodeColumn::setNull(offset_t nodeOffset) {
     auto walPageInfo = createWALVersionOfPageForValue(nodeOffset);
     try {
-        propertyStatistics.setHasNull();
+        propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
         NullMask::setNull((uint64_t*)walPageInfo.frame, walPageInfo.posInPage, true);
     } catch (Exception& e) {
         bufferManager->unpin(*wal->fileHandle, walPageInfo.pageIdxInWAL);
@@ -506,7 +507,7 @@ void NullNodeColumn::writeInternal(
     offset_t nodeOffset, ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
     writeValue(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
     if (vectorToWriteFrom->isNull(posInVectorToWriteFrom)) {
-        propertyStatistics.setHasNull();
+        propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
     }
 }
 

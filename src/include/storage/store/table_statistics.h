@@ -111,27 +111,27 @@ public:
             ->getNumTuples();
     }
 
-    PropertyStatistics& getWritePropertyStatisticsForTable(
-        common::table_id_t tableID, common::property_id_t propertyID) {
-        initTableStatisticPerTableForWriteTrxIfNecessary();
-        auto tableStatistics =
-            tablesStatisticsContentForWriteTrx->tableStatisticPerTable.at(tableID).get();
-        return tableStatistics->getPropertyStatistics(propertyID);
-    }
-
-    inline PropertyStatistics* getReadPropertyStatisticsForTable(
-        common::table_id_t tableID, common::property_id_t propertyID) {
-        auto readResult =
-            tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable.find(tableID);
-        if (readResult != tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable.end()) {
-            return &(readResult->second->getPropertyStatistics(propertyID));
+    inline PropertyStatistics& getPropertyStatisticsForTable(
+        const transaction::Transaction& transaction, common::table_id_t tableID,
+        common::property_id_t propertyID) {
+        if (transaction.isReadOnly()) {
+            assert(tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable.contains(tableID));
+            auto tableStatistics =
+                tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable.at(tableID).get();
+            return tableStatistics->getPropertyStatistics(propertyID);
+        } else {
+            initTableStatisticPerTableForWriteTrxIfNecessary();
+            assert(tablesStatisticsContentForWriteTrx->tableStatisticPerTable.contains(tableID));
+            auto tableStatistics =
+                tablesStatisticsContentForWriteTrx->tableStatisticPerTable.at(tableID).get();
+            return tableStatistics->getPropertyStatistics(propertyID);
         }
-        return nullptr;
     }
 
     void setPropertyStatisticsForTable(
         common::table_id_t tableID, common::property_id_t propertyID, PropertyStatistics stats) {
         initTableStatisticPerTableForWriteTrxIfNecessary();
+        assert(tablesStatisticsContentForWriteTrx->tableStatisticPerTable.contains(tableID));
         auto tableStatistics =
             tablesStatisticsContentForWriteTrx->tableStatisticPerTable.at(tableID).get();
         tableStatistics->setPropertyStatistics(propertyID, stats);

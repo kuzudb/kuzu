@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/types/types.h"
+#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace storage {
@@ -35,8 +36,8 @@ public:
 
     static RWPropertyStats empty() { return RWPropertyStats(nullptr, 0, 0); }
 
-    bool mayHaveNull();
-    void setHasNull();
+    bool mayHaveNull(const transaction::Transaction& transaction);
+    void setHasNull(const transaction::Transaction& transaction);
 
 private:
     TablesStatistics* tablesStatistics;

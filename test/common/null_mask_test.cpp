@@ -79,3 +79,16 @@ TEST(NullMaskTests, CopyNullMaskOffsetInvert) {
     // word 4 should be all set, as the inverted source
     ASSERT_EQ(dest[4], ~0);
 }
+
+TEST(NullMaskTests, CopyNullMaskReturnValue) {
+    std::vector<uint64_t> emptySource(10, 0);
+    std::vector<uint64_t> source(10, ~0ull);
+    std::vector<uint64_t> dest(10);
+    ASSERT_EQ(NullMask::copyNullMask(source.data(), 0, dest.data(), 0, 64, false /*invert*/), true);
+    ASSERT_EQ(
+        NullMask::copyNullMask(emptySource.data(), 0, dest.data(), 0, 64, false /*invert*/), false);
+
+    ASSERT_EQ(NullMask::copyNullMask(source.data(), 0, dest.data(), 0, 64, true /*invert*/), false);
+    ASSERT_EQ(
+        NullMask::copyNullMask(emptySource.data(), 0, dest.data(), 0, 64, true /*invert*/), true);
+}
