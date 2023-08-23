@@ -79,12 +79,11 @@ private:
     void Initialize(
         const std::vector<catalog::Property*> properties, storage::MemoryManager* memoryManager);
     //! Skips skip_rows, reads header row from input stream
-    void ReadHeader(bool hasHeader);
+    void ReadHeader();
     //! Resets the buffer
     void ResetBuffer();
     //! Extract a single DataChunk from the CSV file and stores it in insert_chunk
-    uint64_t TryParseCSV(
-        ParserMode mode, common::DataChunk& insertChunk, std::string& errorMessage);
+    uint64_t TryParseCSV(common::DataChunk& insertChunk, std::string& errorMessage);
     //! Parses a CSV file with a one-byte delimiter, escape and quote character
     uint64_t TryParseSimpleCSV(common::DataChunk& insertChunk, std::string& errorMessage);
     //! Reads a new buffer from the CSV file if the current one has been exhausted

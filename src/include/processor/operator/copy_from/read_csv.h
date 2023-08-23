@@ -14,22 +14,23 @@ public:
               PhysicalOperatorType::READ_CSV, id, paramsString, true} {}
 
     inline std::shared_ptr<arrow::Table> readTuples(
-        std::unique_ptr<storage::ReadFileMorsel> morsel) override {
-        return nullptr;
-    }
-
-    inline std::shared_ptr<common::DataChunk> readDataChunk(
         std::unique_ptr<storage::ReadFileMorsel> morsel) {
-        auto csvMorsel = reinterpret_cast<storage::ReadCSVMorsel*>(morsel.get());
-        return csvMorsel->recordOutput;
-    }
+        return nullptr;
+    };
+
+    bool getNextTuplesInternal(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<ReadCSV>(
             nodeOffsetPos, dataColumnPoses, sharedState, id, paramsString);
     }
 
-    bool getNextTuplesInternal(ExecutionContext* context) override;
+private:
+    inline std::shared_ptr<common::DataChunk> readDataChunk(
+        std::unique_ptr<storage::ReadFileMorsel> morsel) {
+        auto csvMorsel = reinterpret_cast<storage::ReadCSVMorsel*>(morsel.get());
+        return csvMorsel->recordOutput;
+    }
 };
 
 } // namespace processor

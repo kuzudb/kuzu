@@ -137,10 +137,6 @@ std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getMorselSerial() {
     return result;
 }
 
-std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getMorsel() {
-    return std::move(getMorselSerial());
-}
-
 void ReadParquetSharedState::countNumRows() {
     for (auto& filePath : filePaths) {
         std::unique_ptr<parquet::arrow::FileReader> reader =

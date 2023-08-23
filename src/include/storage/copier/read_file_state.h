@@ -90,7 +90,7 @@ public:
           memoryManager{memoryManager} {};
 
     void countNumRows() final;
-    std::unique_ptr<ReadFileMorsel> getMorsel() final;
+    std::unique_ptr<ReadFileMorsel> getMorsel() final { return nullptr; };
     std::unique_ptr<ReadFileMorsel> getMorselSerial() final;
     std::unique_ptr<ReadFileMorsel> getArrowMorsel() final;
 

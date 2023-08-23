@@ -4,6 +4,7 @@ using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
+
 bool ReadCSV::getNextTuplesInternal(ExecutionContext* context) {
     auto morsel = sharedState->getMorselSerial();
     if (morsel == nullptr) {

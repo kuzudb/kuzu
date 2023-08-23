@@ -114,9 +114,8 @@ void BaseCSVReader::AddValue(std::string str_val, column_id_t& column,
         columnSizes[column]++;
     } break;
     default:
-        throw CopyException("Unsupported data type " +
-                            LogicalTypeUtils::dataTypeToString(type.getLogicalTypeID()) +
-                            " inside LIST");
+        throw NotImplementedException(
+            "Unsupported data type " + LogicalTypeUtils::dataTypeToString(type.getLogicalTypeID()));
     }
     parse_chunk.getValueVector(column)->state->selVector->selectedSize++;
     // move to the next column
@@ -189,7 +188,10 @@ void BufferedCSVReader::Initialize(
     }
     fd = open(filePath.c_str(), O_RDONLY);
     ResetBuffer();
-    ReadHeader(csvReaderConfig->hasHeader);
+    if (csvReaderConfig->hasHeader) {
+        ReadHeader();
+    }
+    mode = ParserMode::PARSING;
     // Initializing parse_chunk DataChunk
     parse_chunk = DataChunk(properties.size());
     for (int i = 0; i < properties.size(); i++) {
@@ -198,7 +200,6 @@ void BufferedCSVReader::Initialize(
         auto v = std::make_shared<ValueVector>(*type, memoryManager);
         parse_chunk.insert(i, v);
     }
-    mode = ParserMode::PARSING;
 }
 
 void BufferedCSVReader::ResetBuffer() {
@@ -209,14 +210,11 @@ void BufferedCSVReader::ResetBuffer() {
     cachedBuffers.clear();
 }
 
-void BufferedCSVReader::ReadHeader(bool hasHeader) {
-    if (hasHeader) {
-        // ignore the first line as a header line
-        mode = ParserMode::PARSING_HEADER;
-        DataChunk dummy_chunk(0);
-        ParseCSV(dummy_chunk);
-    }
-    mode = ParserMode::PARSING;
+void BufferedCSVReader::ReadHeader() {
+    // ignore the first line as a header line
+    mode = ParserMode::PARSING_HEADER;
+    DataChunk dummy_chunk(0);
+    ParseCSV(dummy_chunk);
 }
 
 bool BufferedCSVReader::ReadBuffer(uint64_t& start, uint64_t& line_start) {
@@ -498,16 +496,14 @@ final_state:
 
 uint64_t BufferedCSVReader::ParseCSV(common::DataChunk& insertChunk) {
     std::string errorMessage;
-    auto numRowsRead = TryParseCSV(mode, insertChunk, errorMessage);
+    auto numRowsRead = TryParseCSV(insertChunk, errorMessage);
     if (numRowsRead == -1) {
         throw CopyException(errorMessage);
     }
     return numRowsRead;
 }
 
-uint64_t BufferedCSVReader::TryParseCSV(
-    ParserMode parserMode, DataChunk& insertChunk, std::string& errorMessage) {
-    mode = parserMode;
+uint64_t BufferedCSVReader::TryParseCSV(DataChunk& insertChunk, std::string& errorMessage) {
     return TryParseSimpleCSV(insertChunk, errorMessage);
 }
 

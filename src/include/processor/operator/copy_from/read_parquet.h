@@ -13,8 +13,7 @@ public:
         : ReadFile{nodeOffsetPos, std::move(dataColumnPoses), std::move(sharedState),
               PhysicalOperatorType::READ_PARQUET, id, paramsString, preservingOrder} {}
 
-    std::shared_ptr<arrow::Table> readTuples(
-        std::unique_ptr<storage::ReadFileMorsel> morsel) override;
+    std::shared_ptr<arrow::Table> readTuples(std::unique_ptr<storage::ReadFileMorsel> morsel) final;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<ReadParquet>(
