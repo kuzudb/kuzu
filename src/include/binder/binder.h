@@ -5,7 +5,6 @@
 #include "expression_binder.h"
 #include "parser/copy.h"
 #include "parser/query/regular_query.h"
-#include "query_normalizer.h"
 
 namespace kuzu {
 namespace main {
@@ -17,6 +16,8 @@ namespace binder {
 class BoundCreateInfo;
 class BoundSetPropertyInfo;
 class BoundDeleteInfo;
+class BoundWithClause;
+class BoundReturnClause;
 
 // BinderScope keeps track of expressions in scope and their aliases. We maintain the order of
 // expressions in
@@ -110,8 +111,8 @@ private:
 
     /*** bind query ***/
     std::unique_ptr<BoundRegularQuery> bindQuery(const parser::RegularQuery& regularQuery);
-    std::unique_ptr<BoundSingleQuery> bindSingleQuery(const parser::SingleQuery& singleQuery);
-    std::unique_ptr<BoundQueryPart> bindQueryPart(const parser::QueryPart& queryPart);
+    std::unique_ptr<NormalizedSingleQuery> bindSingleQuery(const parser::SingleQuery& singleQuery);
+    std::unique_ptr<NormalizedQueryPart> bindQueryPart(const parser::QueryPart& queryPart);
 
     /*** bind call ***/
     std::unique_ptr<BoundStatement> bindStandaloneCall(const parser::Statement& statement);
@@ -216,7 +217,7 @@ private:
         const BoundProjectionBody& boundProjectionBody);
 
     static void validateUnionColumnsOfTheSameType(
-        const std::vector<std::unique_ptr<BoundSingleQuery>>& boundSingleQueries);
+        const std::vector<std::unique_ptr<NormalizedSingleQuery>>& normalizedSingleQueries);
 
     static void validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQuery);
 
