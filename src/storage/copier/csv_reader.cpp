@@ -80,7 +80,7 @@ void BaseCSVReader::AddValue(std::string str_val, column_id_t& column,
             rowToAdd, StringCastUtils::castToBool(str_val.c_str(), str_val.length()));
     } break;
     case LogicalTypeID::STRING: {
-        parse_chunk.getValueVector(column)->setValue(rowToAdd, str_val);
+        StringVector::addString(parse_chunk.getValueVector(column).get(), rowToAdd, str_val.c_str(), str_val.length());
     } break;
     case LogicalTypeID::DATE: {
         parse_chunk.getValueVector(column)->setValue(
@@ -142,7 +142,7 @@ bool BaseCSVReader::AddRow(
             "Error in file {} on line {}: expected {} values per row, but got {}", filePath, linenr,
             return_types.size(), column));
     }
-    if (mode == ParserMode::PARSING && rowToAdd >= common::StorageConstants::NODE_GROUP_SIZE) {
+    if (mode == ParserMode::PARSING && rowToAdd >= DEFAULT_VECTOR_CAPACITY) {
         Flush(insert_chunk, buffer_idx);
         return true;
     }
@@ -272,6 +272,7 @@ void BufferedCSVReader::SkipEmptyLines() {
 
 uint64_t BufferedCSVReader::TryParseSimpleCSV(DataChunk& insertChunk, std::string& errorMessage) {
     // used for parsing algorithm
+    rowToAdd = 0;
     bool finished_chunk = false;
     column_id_t column = 0;
     uint64_t offset = 0;
