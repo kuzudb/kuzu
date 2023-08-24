@@ -9,7 +9,7 @@ namespace kuzu {
 namespace optimizer {
 
 void TopKOptimizer::rewrite(planner::LogicalPlan* plan) {
-    visitOperator(plan->getLastOperator());
+    plan->setLastOperator(visitOperator(plan->getLastOperator()));
 }
 
 std::shared_ptr<LogicalOperator> TopKOptimizer::visitOperator(std::shared_ptr<LogicalOperator> op) {

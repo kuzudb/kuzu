@@ -63,22 +63,7 @@ private:
 };
 
 struct BlockPtrInfo {
-    inline BlockPtrInfo(
-        uint64_t startTupleIdx, uint64_t endTupleIdx, std::shared_ptr<MergedKeyBlocks>& keyBlocks)
-        : keyBlocks{keyBlocks}, curBlockIdx{startTupleIdx / keyBlocks->getNumTuplesPerBlock()},
-          endBlockIdx{endTupleIdx == 0 ? 0 : (endTupleIdx - 1) / keyBlocks->getNumTuplesPerBlock()},
-          endTupleIdx{endTupleIdx} {
-        if (startTupleIdx == endTupleIdx) {
-            curTuplePtr = nullptr;
-            endTuplePtr = nullptr;
-            curBlockEndTuplePtr = nullptr;
-        } else {
-            curTuplePtr = keyBlocks->getTuple(startTupleIdx);
-            endTuplePtr = keyBlocks->getBlockEndTuplePtr(endBlockIdx, endTupleIdx, endBlockIdx);
-            curBlockEndTuplePtr =
-                keyBlocks->getBlockEndTuplePtr(curBlockIdx, endTupleIdx, endBlockIdx);
-        }
-    }
+    BlockPtrInfo(uint64_t startTupleIdx, uint64_t endTupleIdx, MergedKeyBlocks* keyBlocks);
 
     inline bool hasMoreTuplesToRead() const { return curTuplePtr != endTuplePtr; }
 
@@ -90,7 +75,7 @@ struct BlockPtrInfo {
 
     void updateTuplePtrIfNecessary();
 
-    std::shared_ptr<MergedKeyBlocks>& keyBlocks;
+    MergedKeyBlocks* keyBlocks;
     uint8_t* curTuplePtr;
     uint64_t curBlockIdx;
     uint64_t endBlockIdx;
@@ -101,9 +86,9 @@ struct BlockPtrInfo {
 
 class KeyBlockMerger {
 public:
-    explicit KeyBlockMerger(std::vector<std::shared_ptr<FactorizedTable>>& factorizedTables,
+    explicit KeyBlockMerger(std::vector<FactorizedTable*> factorizedTables,
         std::vector<StrKeyColInfo>& strKeyColsInfo, uint32_t numBytesPerTuple)
-        : factorizedTables{factorizedTables}, strKeyColsInfo{strKeyColsInfo},
+        : factorizedTables{std::move(factorizedTables)}, strKeyColsInfo{strKeyColsInfo},
           numBytesPerTuple{numBytesPerTuple}, numBytesToCompare{numBytesPerTuple - 8},
           hasStringCol{!strKeyColsInfo.empty()} {}
 
@@ -123,7 +108,7 @@ private:
     // FactorizedTables[i] stores all order_by columns encoded and sorted by the ith thread.
     // MergeSort uses factorizedTable to access the full contents of the string key columns
     // when resolving ties.
-    std::vector<std::shared_ptr<FactorizedTable>>& factorizedTables;
+    std::vector<FactorizedTable*> factorizedTables;
     // We also store the colIdxInFactorizedTable, colOffsetInEncodedKeyBlock, isAscOrder, isStrCol
     // for each string column. So, we don't need to compute them again during merge sort.
     std::vector<StrKeyColInfo>& strKeyColsInfo;
@@ -200,15 +185,15 @@ public:
     // This function is used to initialize the columns of keyBlockMergeTaskDispatcher based on
     // sharedFactorizedTablesAndSortedKeyBlocks.
     void init(storage::MemoryManager* memoryManager,
-        std::shared_ptr<std::queue<std::shared_ptr<MergedKeyBlocks>>> sortedKeyBlocks,
-        std::vector<std::shared_ptr<FactorizedTable>>& factorizedTables,
-        std::vector<StrKeyColInfo>& strKeyColsInfo, uint64_t numBytesPerTuple);
+        std::queue<std::shared_ptr<MergedKeyBlocks>>* sortedKeyBlocks,
+        std::vector<FactorizedTable*> factorizedTables, std::vector<StrKeyColInfo>& strKeyColsInfo,
+        uint64_t numBytesPerTuple);
 
 private:
     std::mutex mtx;
 
     storage::MemoryManager* memoryManager;
-    std::shared_ptr<std::queue<std::shared_ptr<MergedKeyBlocks>>> sortedKeyBlocks;
+    std::queue<std::shared_ptr<MergedKeyBlocks>>* sortedKeyBlocks;
     std::vector<std::shared_ptr<KeyBlockMergeTask>> activeKeyBlockMergeTasks;
     std::unique_ptr<KeyBlockMerger> keyBlockMerger;
 };

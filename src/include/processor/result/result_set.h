@@ -22,7 +22,7 @@ public:
     inline std::shared_ptr<common::DataChunk> getDataChunk(data_chunk_pos_t dataChunkPos) {
         return dataChunks[dataChunkPos];
     }
-    inline std::shared_ptr<common::ValueVector> getValueVector(const DataPos& dataPos) {
+    inline std::shared_ptr<common::ValueVector> getValueVector(const DataPos& dataPos) const {
         return dataChunks[dataPos.dataChunkPos]->valueVectors[dataPos.valueVectorPos];
     }
 

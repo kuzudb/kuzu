@@ -28,6 +28,29 @@ namespace processor {
 
 #define BSWAP16(x) ((uint16_t)((((uint16_t)(x)&0xff00) >> 8) | (((uint16_t)(x)&0x00ff) << 8)))
 
+struct OrderByDataInfo {
+public:
+    OrderByDataInfo(std::vector<std::pair<DataPos, common::LogicalType>> keysPosAndType,
+        std::vector<std::pair<DataPos, common::LogicalType>> payloadsPosAndType,
+        std::vector<bool> isPayloadFlat, std::vector<bool> isAscOrder, bool mayContainUnflatKey)
+        : keysPosAndType{std::move(keysPosAndType)}, payloadsPosAndType{std::move(
+                                                         payloadsPosAndType)},
+          isPayloadFlat{std::move(isPayloadFlat)}, isAscOrder{std::move(isAscOrder)},
+          mayContainUnflatKey{mayContainUnflatKey} {}
+
+    OrderByDataInfo(const OrderByDataInfo& other)
+        : OrderByDataInfo{other.keysPosAndType, other.payloadsPosAndType, other.isPayloadFlat,
+              other.isAscOrder, other.mayContainUnflatKey} {}
+
+public:
+    std::vector<std::pair<DataPos, common::LogicalType>> keysPosAndType;
+    std::vector<std::pair<DataPos, common::LogicalType>> payloadsPosAndType;
+    std::vector<bool> isPayloadFlat;
+    std::vector<bool> isAscOrder;
+    // TODO(Ziyi): We should figure out unflat keys in a more general way.
+    bool mayContainUnflatKey;
+};
+
 // The OrderByKeyEncoder encodes all columns in the ORDER BY clause into a single binary sequence
 // that, when compared using memcmp will yield the correct overall sorting order. On little-endian
 // hardware, the least-significant byte is stored at the smallest address. To encode the sorting
@@ -45,9 +68,8 @@ using encode_function_t = std::function<void(const uint8_t*, uint8_t*, bool)>;
 class OrderByKeyEncoder {
 
 public:
-    OrderByKeyEncoder(std::vector<common::ValueVector*>& orderByVectors,
-        std::vector<bool>& isAscOrder, storage::MemoryManager* memoryManager, uint8_t ftIdx,
-        uint32_t numTuplesPerBlockInFT, uint32_t numBytesPerTuple);
+    OrderByKeyEncoder(const OrderByDataInfo& orderByDataInfo, storage::MemoryManager* memoryManager,
+        uint8_t ftIdx, uint32_t numTuplesPerBlockInFT, uint32_t numBytesPerTuple);
 
     inline std::vector<std::shared_ptr<DataBlock>>& getKeyBlocks() { return keyBlocks; }
 
@@ -86,7 +108,9 @@ public:
 
     static uint32_t getEncodingSize(const common::LogicalType& dataType);
 
-    void encodeKeys();
+    void encodeKeys(std::vector<common::ValueVector*> orderByKeys);
+
+    inline void clear() { keyBlocks.clear(); }
 
 private:
     template<typename type>
@@ -121,7 +145,6 @@ private:
 private:
     storage::MemoryManager* memoryManager;
     std::vector<std::shared_ptr<DataBlock>> keyBlocks;
-    std::vector<common::ValueVector*>& orderByVectors;
     std::vector<bool> isAscOrder;
     uint32_t numBytesPerTuple;
     uint32_t maxNumTuplesPerBlock;

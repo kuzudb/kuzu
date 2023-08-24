@@ -63,6 +63,7 @@ void QueryProcessor::decomposePlanIntoTasks(
     switch (op->getOperatorType()) {
         // Ordered table should be scanned in single-thread mode.
     case PhysicalOperatorType::ORDER_BY_MERGE:
+    case PhysicalOperatorType::TOP_K:
         // DDL should be executed exactly once.
     case PhysicalOperatorType::CREATE_NODE_TABLE:
     case PhysicalOperatorType::CREATE_REL_TABLE:

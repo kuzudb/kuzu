@@ -58,6 +58,8 @@ enum class PhysicalOperatorType : uint8_t {
     SET_REL_PROPERTY,
     SIMPLE_RECURSIVE_JOIN,
     SKIP,
+    TOP_K,
+    TOP_K_SCAN,
     ORDER_BY,
     ORDER_BY_MERGE,
     ORDER_BY_SCAN,

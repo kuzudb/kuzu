@@ -38,6 +38,21 @@ uint8_t* MergedKeyBlocks::getBlockEndTuplePtr(
                                           getKeyBlockBuffer(blockIdx) + endTupleOffset;
 }
 
+BlockPtrInfo::BlockPtrInfo(uint64_t startTupleIdx, uint64_t endTupleIdx, MergedKeyBlocks* keyBlocks)
+    : keyBlocks{keyBlocks}, curBlockIdx{startTupleIdx / keyBlocks->getNumTuplesPerBlock()},
+      endBlockIdx{endTupleIdx == 0 ? 0 : (endTupleIdx - 1) / keyBlocks->getNumTuplesPerBlock()},
+      endTupleIdx{endTupleIdx} {
+    if (startTupleIdx == endTupleIdx) {
+        curTuplePtr = nullptr;
+        endTuplePtr = nullptr;
+        curBlockEndTuplePtr = nullptr;
+    } else {
+        curTuplePtr = keyBlocks->getTuple(startTupleIdx);
+        endTuplePtr = keyBlocks->getBlockEndTuplePtr(endBlockIdx, endTupleIdx, endBlockIdx);
+        curBlockEndTuplePtr = keyBlocks->getBlockEndTuplePtr(curBlockIdx, endTupleIdx, endBlockIdx);
+    }
+}
+
 void BlockPtrInfo::updateTuplePtrIfNecessary() {
     if (curTuplePtr == curBlockEndTuplePtr) {
         curBlockIdx++;
@@ -126,16 +141,16 @@ void KeyBlockMerger::mergeKeyBlocks(KeyBlockMergeMorsel& keyBlockMergeMorsel) co
 
     auto leftBlockPtrInfo = BlockPtrInfo(keyBlockMergeMorsel.leftKeyBlockStartIdx,
         keyBlockMergeMorsel.leftKeyBlockEndIdx,
-        keyBlockMergeMorsel.keyBlockMergeTask->leftKeyBlock);
+        keyBlockMergeMorsel.keyBlockMergeTask->leftKeyBlock.get());
 
     auto rightBlockPtrInfo = BlockPtrInfo(keyBlockMergeMorsel.rightKeyBlockStartIdx,
         keyBlockMergeMorsel.rightKeyBlockEndIdx,
-        keyBlockMergeMorsel.keyBlockMergeTask->rightKeyBlock);
+        keyBlockMergeMorsel.keyBlockMergeTask->rightKeyBlock.get());
 
     auto resultBlockPtrInfo = BlockPtrInfo(
         keyBlockMergeMorsel.leftKeyBlockStartIdx + keyBlockMergeMorsel.rightKeyBlockStartIdx,
         keyBlockMergeMorsel.leftKeyBlockEndIdx + keyBlockMergeMorsel.rightKeyBlockEndIdx,
-        keyBlockMergeMorsel.keyBlockMergeTask->resultKeyBlock);
+        keyBlockMergeMorsel.keyBlockMergeTask->resultKeyBlock.get());
 
     while (leftBlockPtrInfo.hasMoreTuplesToRead() && rightBlockPtrInfo.hasMoreTuplesToRead()) {
         uint64_t nextNumBytesToMerge =
@@ -296,9 +311,9 @@ void KeyBlockMergeTaskDispatcher::doneMorsel(std::unique_ptr<KeyBlockMergeMorsel
 }
 
 void KeyBlockMergeTaskDispatcher::init(MemoryManager* memoryManager,
-    std::shared_ptr<std::queue<std::shared_ptr<MergedKeyBlocks>>> sortedKeyBlocks,
-    std::vector<std::shared_ptr<FactorizedTable>>& factorizedTables,
-    std::vector<StrKeyColInfo>& strKeyColsInfo, uint64_t numBytesPerTuple) {
+    std::queue<std::shared_ptr<MergedKeyBlocks>>* sortedKeyBlocks,
+    std::vector<FactorizedTable*> factorizedTables, std::vector<StrKeyColInfo>& strKeyColsInfo,
+    uint64_t numBytesPerTuple) {
     assert(this->keyBlockMerger == nullptr);
     this->memoryManager = memoryManager;
     this->sortedKeyBlocks = sortedKeyBlocks;

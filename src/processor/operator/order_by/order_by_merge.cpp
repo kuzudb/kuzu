@@ -10,8 +10,8 @@ namespace processor {
 void OrderByMerge::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     // OrderByMerge is the only sink operator in a pipeline and only modifies the
     // sharedState by merging sortedKeyBlocks, So we don't need to initialize the resultSet.
-    localMerger = make_unique<KeyBlockMerger>(
-        sharedState->factorizedTables, sharedState->strKeyColsInfo, sharedState->numBytesPerTuple);
+    localMerger = make_unique<KeyBlockMerger>(sharedState->getPayloadTables(),
+        sharedState->getStrKeyColInfo(), sharedState->getNumBytesPerTuple());
 }
 
 void OrderByMerge::executeInternal(ExecutionContext* context) {
@@ -29,8 +29,9 @@ void OrderByMerge::executeInternal(ExecutionContext* context) {
 
 void OrderByMerge::initGlobalStateInternal(ExecutionContext* context) {
     // TODO(Ziyi): directly feed sharedState to merger and dispatcher.
-    sharedDispatcher->init(context->memoryManager, sharedState->sortedKeyBlocks,
-        sharedState->factorizedTables, sharedState->strKeyColsInfo, sharedState->numBytesPerTuple);
+    sharedDispatcher->init(context->memoryManager, sharedState->getSortedKeyBlocks(),
+        sharedState->getPayloadTables(), sharedState->getStrKeyColInfo(),
+        sharedState->getNumBytesPerTuple());
 }
 
 } // namespace processor
