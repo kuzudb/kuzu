@@ -1,6 +1,7 @@
 #include "binder/binder.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/query/reading_clause/bound_in_query_call.h"
+#include "binder/query/reading_clause/bound_match_clause.h"
 #include "binder/query/reading_clause/bound_unwind_clause.h"
 #include "parser/query/reading_clause/in_query_call_clause.h"
 #include "parser/query/reading_clause/unwind_clause.h"

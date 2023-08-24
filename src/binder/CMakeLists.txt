@@ -10,8 +10,7 @@ add_library(kuzu_binder
         bound_statement_result.cpp
         bound_statement_visitor.cpp
         expression_binder.cpp
-        expression_visitor.cpp
-        query_normalizer.cpp)
+        expression_visitor.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_binder>
