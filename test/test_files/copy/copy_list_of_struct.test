@@ -1,0 +1,9 @@
+-GROUP TinySnbListTest
+-DATASET CSV copy-test/list-of-struct
+
+--
+
+-CASE ListOfStruct
+-STATEMENT MATCH (p:T) RETURN p.*
+---- 1
+

@@ -109,6 +109,7 @@ void WAL::logAddPropertyRecord(table_id_t tableID, property_id_t propertyID) {
 }
 
 void WAL::clearWAL() {
+    bufferManager.clearEvictionQueue();
     bufferManager.removeFilePagesFromFrames(*fileHandle);
     fileHandle->resetToZeroPagesAndPageCapacity();
     initCurrentPage();
