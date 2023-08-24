@@ -5,6 +5,7 @@
 #include "storage/index/hash_index_utils.h"
 #include "storage/storage_structure/disk_array.h"
 #include "storage/storage_structure/in_mem_file.h"
+#include "storage/copier/string_column_chunk.h"
 
 namespace kuzu {
 namespace storage {
@@ -88,6 +89,9 @@ public:
     inline bool append(const char* key, common::offset_t value) {
         return appendInternal(reinterpret_cast<const uint8_t*>(key), value);
     }
+    inline bool append(StringColumnChunk* chunk, common::offset_t startOffset, uint64_t numValues) {
+        return appendColumnChunk(chunk, startOffset, numValues);
+    }
     inline bool lookup(int64_t key, common::offset_t& result) {
         return lookupInternalWithoutLock(reinterpret_cast<const uint8_t*>(&key), result);
     }
@@ -97,6 +101,9 @@ public:
 
 private:
     bool appendInternal(const uint8_t* key, common::offset_t value);
+    bool appendColumnChunk(const StringColumnChunk* chunk,  common::offset_t startOffset, uint64_t numValues);
+    bool appendKuStr(const uint8_t* key, common::offset_t value);
+
     bool lookupInternalWithoutLock(const uint8_t* key, common::offset_t& result);
 
     template<bool IS_LOOKUP>
@@ -117,6 +124,7 @@ private:
     in_mem_insert_function_t keyInsertFunc;
     in_mem_equals_function_t keyEqualsFunc;
     std::unique_ptr<InMemOverflowFile> inMemOverflowFile;
+    std::shared_mutex ovfFileLock;
     std::atomic<uint64_t> numEntries;
 };
 
@@ -160,6 +168,10 @@ public:
         return keyDataTypeID == common::LogicalTypeID::INT64 ?
                    hashIndexBuilderForInt64->append(key, value) :
                    hashIndexBuilderForString->append(key, value);
+    }
+    inline bool append
+        (StringColumnChunk* chunk, common::offset_t startOffset, uint64_t numValues) {
+        return hashIndexBuilderForString->append(chunk, startOffset, numValues);
     }
     inline bool lookup(int64_t key, common::offset_t& result) {
         return keyDataTypeID == common::LogicalTypeID::INT64 ?

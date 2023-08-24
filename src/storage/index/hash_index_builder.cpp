@@ -81,6 +81,38 @@ bool HashIndexBuilder<T>::appendInternal(const uint8_t* key, offset_t value) {
 }
 
 template<typename T>
+bool HashIndexBuilder<T>::appendColumnChunk
+    (const StringColumnChunk* chunk, common::offset_t startOffset, uint64_t numValues) {
+    
+    ovfFileLock.lock();
+    uint64_t startPageIdx = inMemOverflowFile->getNumPages();
+    uint64_t numPagesInChunk = chunk->overflowFile->getNumPages();
+    inMemOverflowFile->addNewPages(numPagesInChunk, false);
+
+    for (uint64_t i = 0u; i < numPagesInChunk; i++) {
+        uint64_t pageOffset = startPageIdx + i;
+        inMemOverflowFile->getPage(pageOffset)->write(0, 0, chunk->overflowFile->getPage(i)->data, BufferPoolConstants::PAGE_4KB_SIZE);
+        //memcpy(inMemOverflowFile->getPage(pageOffset), chunk->overflowFile->getPage(i), );
+    }
+
+    ovfFileLock.unlock();
+
+    for (auto i = 0u; i < numValues; i++) {
+        auto offset = i + startOffset;
+        common::ku_string_t* kuStr = chunk->getValue<common::ku_string_t*>(i);
+        common::page_idx_t pageIdx = 0;
+        uint16_t pageOffset = 0;
+        TypeUtils::decodeOverflowPtr(kuStr->overflowPtr, pageIdx, pageOffset);
+        TypeUtils::encodeOverflowPtr(kuStr->overflowPtr, pageIdx + startPageIdx, pageOffset);
+
+        const uint8_t* key = (uint8_t*)kuStr;
+        if(!appendInternal(key, offset)) return false;
+    }
+
+    return true;
+}
+
+template<typename T>
 bool HashIndexBuilder<T>::lookupInternalWithoutLock(const uint8_t* key, offset_t& result) {
     SlotInfo pSlotInfo{getPrimarySlotIdForKey(*indexHeader, key), SlotType::PRIMARY};
     SlotInfo currentSlotInfo = pSlotInfo;

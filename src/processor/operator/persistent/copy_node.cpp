@@ -210,13 +210,7 @@ template<>
 uint64_t CopyNode::appendToPKIndex<ku_string_t>(
     PrimaryKeyIndexBuilder* pkIndex, ColumnChunk* chunk, offset_t startOffset, uint64_t numValues) {
     auto stringColumnChunk = (StringColumnChunk*)chunk;
-    for (auto i = 0u; i < numValues; i++) {
-        auto offset = i + startOffset;
-        auto value = stringColumnChunk->getValue<std::string>(i);
-        if (!pkIndex->append(value.c_str(), offset)) {
-            return i;
-        }
-    }
+    pkIndex->append(stringColumnChunk, startOffset, numValues);
     return numValues;
 }
 
