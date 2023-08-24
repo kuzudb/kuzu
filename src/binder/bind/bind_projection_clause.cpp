@@ -11,33 +11,44 @@ using namespace kuzu::parser;
 namespace kuzu {
 namespace binder {
 
+// WITH clause is like SQL CTE. So the projection list of WITH clause should be explicitly
+// evaluated. This, however, creates problem in the following case
+// MATCH (a) WITH a RETURN a.age;
+// Although only a.age is needed for further processing. The CTE "MATCH (a) WITH a" require us to
+// fully materialize all columns of "a". Note that we cannot rely on projection push down to
+// optimize this because projection pushdown assumes all columns in WITH/RETURN are needed.
+// Our solution is:
+// First rewrite node and rel as their INTERNAL ID property in WITH clause. So
+// MATCH (a) WITH a._id RETURN a.age;
+// And then apply WithClauseProjectionRewriter after binding to rewrite as
+// MATCH (a) WITH a._id, a.age RETURN a.age
+static expression_vector rewriteProjectionInWithClause(const expression_vector& expressions) {
+    expression_vector result;
+    for (auto& expression : expressions) {
+        if (ExpressionUtil::isNodeVariable(*expression)) {
+            auto node = (NodeExpression*)expression.get();
+            result.push_back(node->getInternalIDProperty());
+        } else if (ExpressionUtil::isRelVariable(*expression)) {
+            auto rel = (RelExpression*)expression.get();
+            result.push_back(rel->getInternalIDProperty());
+        } else if (ExpressionUtil::isRecursiveRelVariable(*expression)) {
+            auto rel = (RelExpression*)expression.get();
+            result.push_back(expression);
+            result.push_back(rel->getLengthExpression());
+        } else {
+            result.push_back(expression);
+        }
+    }
+    return result;
+}
+
 std::unique_ptr<BoundWithClause> Binder::bindWithClause(const WithClause& withClause) {
     auto projectionBody = withClause.getProjectionBody();
     auto projectionExpressions =
         bindProjectionExpressions(projectionBody->getProjectionExpressions());
     validateProjectionColumnsInWithClauseAreAliased(projectionExpressions);
-    expression_vector newProjectionExpressions;
-    for (auto& expression : projectionExpressions) {
-        if (ExpressionUtil::isNodeVariable(*expression)) {
-            auto node = (NodeExpression*)expression.get();
-            newProjectionExpressions.push_back(node->getInternalIDProperty());
-            for (auto& property : node->getPropertyExpressions()) {
-                newProjectionExpressions.push_back(property->copy());
-            }
-        } else if (ExpressionUtil::isRelVariable(*expression)) {
-            auto rel = (RelExpression*)expression.get();
-            for (auto& property : rel->getPropertyExpressions()) {
-                newProjectionExpressions.push_back(property->copy());
-            }
-        } else if (ExpressionUtil::isRecursiveRelVariable(*expression)) {
-            auto rel = (RelExpression*)expression.get();
-            newProjectionExpressions.push_back(expression);
-            newProjectionExpressions.push_back(rel->getLengthExpression());
-        } else {
-            newProjectionExpressions.push_back(expression);
-        }
-    }
-    auto boundProjectionBody = bindProjectionBody(*projectionBody, newProjectionExpressions);
+    auto boundProjectionBody =
+        bindProjectionBody(*projectionBody, rewriteProjectionInWithClause(projectionExpressions));
     validateOrderByFollowedBySkipOrLimitInWithClause(*boundProjectionBody);
     scope->clear();
     addExpressionsToScope(projectionExpressions);
