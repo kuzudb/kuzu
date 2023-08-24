@@ -61,7 +61,7 @@ public:
     virtual ~ReadFileSharedState() = default;
 
     virtual void countNumRows() = 0;
-    virtual std::unique_ptr<ReadFileMorsel> getMorsel() = 0;
+    virtual std::unique_ptr<ReadFileMorsel> getMorsel() { return nullptr; };
     virtual std::unique_ptr<ReadFileMorsel> getMorselSerial() = 0;
     virtual std::unique_ptr<ReadFileMorsel> getArrowMorsel() = 0;
 
@@ -90,7 +90,6 @@ public:
           memoryManager{memoryManager} {};
 
     void countNumRows() final;
-    std::unique_ptr<ReadFileMorsel> getMorsel() final { return nullptr; };
     std::unique_ptr<ReadFileMorsel> getMorselSerial() final;
     std::unique_ptr<ReadFileMorsel> getArrowMorsel() final;
 

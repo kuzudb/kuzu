@@ -13,11 +13,6 @@ public:
         : ReadFile{nodeOffsetPos, std::move(dataColumnPoses), std::move(sharedState),
               PhysicalOperatorType::READ_CSV, id, paramsString, true} {}
 
-    inline std::shared_ptr<arrow::Table> readTuples(
-        std::unique_ptr<storage::ReadFileMorsel> morsel) {
-        return nullptr;
-    };
-
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {

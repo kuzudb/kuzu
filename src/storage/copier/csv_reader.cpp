@@ -80,7 +80,8 @@ void BaseCSVReader::AddValue(std::string str_val, column_id_t& column,
             rowToAdd, StringCastUtils::castToBool(str_val.c_str(), str_val.length()));
     } break;
     case LogicalTypeID::STRING: {
-        StringVector::addString(parse_chunk.getValueVector(column).get(), rowToAdd, str_val.c_str(), str_val.length());
+        StringVector::addString(
+            parse_chunk.getValueVector(column).get(), rowToAdd, str_val.c_str(), str_val.length());
     } break;
     case LogicalTypeID::DATE: {
         parse_chunk.getValueVector(column)->setValue(

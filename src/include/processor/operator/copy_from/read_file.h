@@ -24,7 +24,9 @@ public:
 
 protected:
     virtual std::shared_ptr<arrow::Table> readTuples(
-        std::unique_ptr<storage::ReadFileMorsel> morsel) = 0;
+        std::unique_ptr<storage::ReadFileMorsel> morsel) {
+        return nullptr;
+    };
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
