@@ -1,6 +1,7 @@
 #include "graph_test/graph_test.h"
 #include "planner/logical_plan/extend/logical_recursive_extend.h"
 #include "planner/logical_plan/logical_plan_util.h"
+#include "planner/logical_plan/scan/logical_scan_node_property.h"
 
 namespace kuzu {
 namespace testing {
@@ -19,6 +20,17 @@ public:
         return TestHelper::getLogicalPlan(query, *conn)->getLastOperator();
     }
 };
+
+TEST_F(OptimizerTest, WithClauseProjectionListRewriterTest) {
+    auto op = getRoot("MATCH (a:person) WITH a RETURN a.gender;");
+    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::PROJECTION);
+    op = op->getChild(0);
+    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::PROJECTION);
+    op = op->getChild(0);
+    ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::SCAN_NODE_PROPERTY);
+    auto scanNodeProperty = (planner::LogicalScanNodeProperty*)op.get();
+    ASSERT_EQ(scanNodeProperty->getProperties().size(), 1);
+}
 
 TEST_F(OptimizerTest, FilterPushDownTest) {
     auto op = getRoot("MATCH (a:person) WHERE a.ID < 0 AND a.fName='Alice' RETURN a.gender;");

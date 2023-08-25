@@ -1,5 +1,6 @@
 #include "binder/binder.h"
 
+#include "binder/bound_statement_rewriter.h"
 #include "binder/expression/variable_expression.h"
 #include "common/string_utils.h"
 
@@ -11,49 +12,52 @@ namespace kuzu {
 namespace binder {
 
 std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
+    std::unique_ptr<BoundStatement> boundStatement;
     switch (statement.getStatementType()) {
     case StatementType::CREATE_NODE_TABLE: {
-        return bindCreateNodeTableClause(statement);
-    }
+        boundStatement = bindCreateNodeTableClause(statement);
+    } break;
     case StatementType::CREATE_REL_TABLE: {
-        return bindCreateRelTableClause(statement);
-    }
+        boundStatement = bindCreateRelTableClause(statement);
+    } break;
     case StatementType::COPY_FROM: {
-        return bindCopyFromClause(statement);
-    }
+        boundStatement = bindCopyFromClause(statement);
+    } break;
     case StatementType::COPY_TO: {
-        return bindCopyToClause(statement);
-    }
+        boundStatement = bindCopyToClause(statement);
+    } break;
     case StatementType::DROP_TABLE: {
-        return bindDropTableClause(statement);
-    }
+        boundStatement = bindDropTableClause(statement);
+    } break;
     case StatementType::RENAME_TABLE: {
-        return bindRenameTableClause(statement);
-    }
+        boundStatement = bindRenameTableClause(statement);
+    } break;
     case StatementType::ADD_PROPERTY: {
-        return bindAddPropertyClause(statement);
-    }
+        boundStatement = bindAddPropertyClause(statement);
+    } break;
     case StatementType::DROP_PROPERTY: {
-        return bindDropPropertyClause(statement);
-    }
+        boundStatement = bindDropPropertyClause(statement);
+    } break;
     case StatementType::RENAME_PROPERTY: {
-        return bindRenamePropertyClause(statement);
-    }
+        boundStatement = bindRenamePropertyClause(statement);
+    } break;
     case StatementType::QUERY: {
-        return bindQuery((const RegularQuery&)statement);
-    }
+        boundStatement = bindQuery((const RegularQuery&)statement);
+    } break;
     case StatementType::STANDALONE_CALL: {
-        return bindStandaloneCall(statement);
-    }
+        boundStatement = bindStandaloneCall(statement);
+    } break;
     case StatementType::EXPLAIN: {
-        return bindExplain(statement);
-    }
+        boundStatement = bindExplain(statement);
+    } break;
     case StatementType::CREATE_MACRO: {
-        return bindCreateMacro(statement);
-    }
+        boundStatement = bindCreateMacro(statement);
+    } break;
     default:
         throw NotImplementedException("Binder::bind");
     }
+    BoundStatementRewriter::rewrite(*boundStatement);
+    return boundStatement;
 }
 
 std::shared_ptr<Expression> Binder::bindWhereExpression(const ParsedExpression& parsedExpression) {
