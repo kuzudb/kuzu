@@ -66,6 +66,8 @@ void HashAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
         dependentKeyVectors.push_back(vector);
         payloadDataTypes.push_back(vector->dataType);
     }
+    leadingState = unFlatKeyVectors.empty() ? flatKeyVectors[0]->state.get() :
+                                              unFlatKeyVectors[0]->state.get();
     localAggregateHashTable = make_unique<AggregateHashTable>(
         *context->memoryManager, keyDataTypes, payloadDataTypes, aggregateFunctions, 0);
 }
@@ -73,7 +75,7 @@ void HashAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
 void HashAggregate::executeInternal(ExecutionContext* context) {
     while (children[0]->getNextTuple(context)) {
         localAggregateHashTable->append(flatKeyVectors, unFlatKeyVectors, dependentKeyVectors,
-            aggregateInputs, resultSet->multiplicity);
+            leadingState, aggregateInputs, resultSet->multiplicity);
     }
     sharedState->appendAggregateHashTable(std::move(localAggregateHashTable));
 }

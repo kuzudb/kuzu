@@ -63,6 +63,7 @@ private:
     std::vector<common::ValueVector*> flatKeyVectors;
     std::vector<common::ValueVector*> unFlatKeyVectors;
     std::vector<common::ValueVector*> dependentKeyVectors;
+    common::DataChunkState* leadingState;
 
     std::shared_ptr<HashAggregateSharedState> sharedState;
     std::unique_ptr<AggregateHashTable> localAggregateHashTable;

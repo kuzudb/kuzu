@@ -60,18 +60,20 @@ public:
 
     inline uint64_t getNumEntries() const { return factorizedTable->getNumTuples(); }
 
-    inline void append(const std::vector<common::ValueVector*>& groupByFlatKeyVectors,
-        const std::vector<common::ValueVector*>& groupByUnFlatKeyVectors,
+    inline void append(const std::vector<common::ValueVector*>& flatKeyVectors,
+        const std::vector<common::ValueVector*>& unFlatKeyVectors,
+        common::DataChunkState* leadingState,
         const std::vector<std::unique_ptr<AggregateInput>>& aggregateInputs,
         uint64_t resultSetMultiplicity) {
-        append(groupByFlatKeyVectors, groupByUnFlatKeyVectors, std::vector<common::ValueVector*>(),
+        append(flatKeyVectors, unFlatKeyVectors, std::vector<common::ValueVector*>(), leadingState,
             aggregateInputs, resultSetMultiplicity);
     }
 
     //! update aggregate states for an input
-    void append(const std::vector<common::ValueVector*>& groupByFlatKeyVectors,
-        const std::vector<common::ValueVector*>& groupByUnFlatKeyVectors,
-        const std::vector<common::ValueVector*>& groupByDependentKeyVectors,
+    void append(const std::vector<common::ValueVector*>& flatKeyVectors,
+        const std::vector<common::ValueVector*>& unFlatKeyVectors,
+        const std::vector<common::ValueVector*>& dependentKeyVectors,
+        common::DataChunkState* leadingState,
         const std::vector<std::unique_ptr<AggregateInput>>& aggregateInputs,
         uint64_t resultSetMultiplicity);
 
@@ -100,14 +102,14 @@ private:
         const std::vector<common::ValueVector*>& groupByKeyVectors, common::hash_t hash);
 
     void initializeFTEntryWithFlatVec(
-        common::ValueVector* groupByFlatVector, uint64_t numEntriesToInitialize, uint32_t colIdx);
+        common::ValueVector* flatVector, uint64_t numEntriesToInitialize, uint32_t colIdx);
 
-    void initializeFTEntryWithUnflatVec(
-        common::ValueVector* groupByUnflatVector, uint64_t numEntriesToInitialize, uint32_t colIdx);
+    void initializeFTEntryWithUnFlatVec(
+        common::ValueVector* unFlatVector, uint64_t numEntriesToInitialize, uint32_t colIdx);
 
-    void initializeFTEntries(const std::vector<common::ValueVector*>& groupByFlatHashKeyVectors,
-        const std::vector<common::ValueVector*>& groupByUnflatHashKeyVectors,
-        const std::vector<common::ValueVector*>& groupByDependentKeyVectors,
+    void initializeFTEntries(const std::vector<common::ValueVector*>& flatKeyVectors,
+        const std::vector<common::ValueVector*>& unFlatKeyVectors,
+        const std::vector<common::ValueVector*>& dependentKeyVectors,
         uint64_t numFTEntriesToInitialize);
 
     uint8_t* createEntryInDistinctHT(
@@ -119,29 +121,30 @@ private:
 
     void increaseHashSlotIdxes(uint64_t numNoMatches);
 
-    void findHashSlots(const std::vector<common::ValueVector*>& groupByFlatHashKeyVectors,
-        const std::vector<common::ValueVector*>& groupByUnflatHashKeyVectors,
-        const std::vector<common::ValueVector*>& groupByDependentKeyVectors);
+    void findHashSlots(const std::vector<common::ValueVector*>& flatKeyVectors,
+        const std::vector<common::ValueVector*>& unFlatKeyVectors,
+        const std::vector<common::ValueVector*>& dependentKeyVectors,
+        common::DataChunkState* leadingState);
 
     void computeAndCombineVecHash(
-        const std::vector<common::ValueVector*>& groupByUnflatHashKeyVectors, uint32_t startVecIdx);
-    void computeVectorHashes(const std::vector<common::ValueVector*>& groupByFlatHashKeyVectors,
-        const std::vector<common::ValueVector*>& groupByUnflatHashKeyVectors);
+        const std::vector<common::ValueVector*>& unFlatKeyVectors, uint32_t startVecIdx);
+    void computeVectorHashes(const std::vector<common::ValueVector*>& flatKeyVectors,
+        const std::vector<common::ValueVector*>& unFlatKeyVectors);
 
-    void updateDistinctAggState(const std::vector<common::ValueVector*>& groupByFlatHashKeyVectors,
-        const std::vector<common::ValueVector*>& groupByUnFlatHashKeyVectors,
+    void updateDistinctAggState(const std::vector<common::ValueVector*>& flatKeyVectors,
+        const std::vector<common::ValueVector*>& unFlatKeyVectors,
         std::unique_ptr<function::AggregateFunction>& aggregateFunction,
         common::ValueVector* aggregateVector, uint64_t multiplicity, uint32_t colIdx,
         uint32_t aggStateOffset);
 
-    void updateAggState(const std::vector<common::ValueVector*>& groupByFlatHashKeyVectors,
-        const std::vector<common::ValueVector*>& groupByUnFlatHashKeyVectors,
+    void updateAggState(const std::vector<common::ValueVector*>& flatKeyVectors,
+        const std::vector<common::ValueVector*>& unFlatKeyVectors,
         std::unique_ptr<function::AggregateFunction>& aggregateFunction,
         common::ValueVector* aggVector, uint64_t multiplicity, uint32_t colIdx,
         uint32_t aggStateOffset);
 
-    void updateAggStates(const std::vector<common::ValueVector*>& groupByFlatHashKeyVectors,
-        const std::vector<common::ValueVector*>& groupByUnFlatHashKeyVectors,
+    void updateAggStates(const std::vector<common::ValueVector*>& flatKeyVectors,
+        const std::vector<common::ValueVector*>& unFlatKeyVectors,
         const std::vector<std::unique_ptr<AggregateInput>>& aggregateInputs,
         uint64_t resultSetMultiplicity);
 
@@ -149,15 +152,15 @@ private:
     // are flat.
     bool matchFlatGroupByKeys(const std::vector<common::ValueVector*>& keyVectors, uint8_t* entry);
 
-    uint64_t matchUnflatVecWithFTColumn(common::ValueVector* vector, uint64_t numMayMatches,
+    uint64_t matchUnFlatVecWithFTColumn(common::ValueVector* vector, uint64_t numMayMatches,
         uint64_t& numNoMatches, uint32_t colIdx);
 
     uint64_t matchFlatVecWithFTColumn(common::ValueVector* vector, uint64_t numMayMatches,
         uint64_t& numNoMatches, uint32_t colIdx);
 
-    uint64_t matchFTEntries(const std::vector<common::ValueVector*>& groupByFlatHashKeyVectors,
-        const std::vector<common::ValueVector*>& groupByUnflatHashKeyVectors,
-        uint64_t numMayMatches, uint64_t numNoMatches);
+    uint64_t matchFTEntries(const std::vector<common::ValueVector*>& flatKeyVectors,
+        const std::vector<common::ValueVector*>& unFlatKeyVectors, uint64_t numMayMatches,
+        uint64_t numNoMatches);
 
     void fillEntryWithInitialNullAggregateState(uint8_t* entry);
 
@@ -189,37 +192,34 @@ private:
     static void getCompareEntryWithKeysFunc(
         common::PhysicalTypeID physicalType, compare_function_t& func);
 
-    void updateNullAggVectorState(
-        const std::vector<common::ValueVector*>& groupByFlatHashKeyVectors,
-        const std::vector<common::ValueVector*>& groupByUnflatHashKeyVectors,
+    void updateNullAggVectorState(const std::vector<common::ValueVector*>& flatKeyVectors,
+        const std::vector<common::ValueVector*>& unFlatKeyVectors,
         std::unique_ptr<function::AggregateFunction>& aggregateFunction, uint64_t multiplicity,
         uint32_t aggStateOffset);
 
-    void updateBothFlatAggVectorState(
-        const std::vector<common::ValueVector*>& groupByFlatHashKeyVectors,
+    void updateBothFlatAggVectorState(const std::vector<common::ValueVector*>& flatKeyVectors,
         std::unique_ptr<function::AggregateFunction>& aggregateFunction,
         common::ValueVector* aggVector, uint64_t multiplicity, uint32_t aggStateOffset);
 
-    void updateFlatUnflatKeyFlatAggVectorState(
-        const std::vector<common::ValueVector*>& groupByFlatHashKeyVectors,
-        const std::vector<common::ValueVector*>& groupByUnflatHashKeyVectors,
+    void updateFlatUnFlatKeyFlatAggVectorState(
+        const std::vector<common::ValueVector*>& flatKeyVectors,
+        const std::vector<common::ValueVector*>& unFlatKeyVectors,
         std::unique_ptr<function::AggregateFunction>& aggregateFunction,
         common::ValueVector* aggVector, uint64_t multiplicity, uint32_t aggStateOffset);
 
-    void updateFlatKeyUnflatAggVectorState(
-        const std::vector<common::ValueVector*>& groupByFlatHashKeyVectors,
+    void updateFlatKeyUnFlatAggVectorState(const std::vector<common::ValueVector*>& flatKeyVectors,
         std::unique_ptr<function::AggregateFunction>& aggregateFunction,
         common::ValueVector* aggVector, uint64_t multiplicity, uint32_t aggStateOffset);
 
-    void updateBothUnflatSameDCAggVectorState(
-        const std::vector<common::ValueVector*>& groupByFlatHashKeyVectors,
-        const std::vector<common::ValueVector*>& groupByUnflatHashKeyVectors,
+    void updateBothUnFlatSameDCAggVectorState(
+        const std::vector<common::ValueVector*>& flatKeyVectors,
+        const std::vector<common::ValueVector*>& unFlatKeyVectors,
         std::unique_ptr<function::AggregateFunction>& aggregateFunction,
         common::ValueVector* aggVector, uint64_t multiplicity, uint32_t aggStateOffset);
 
-    void updateBothUnflatDifferentDCAggVectorState(
-        const std::vector<common::ValueVector*>& groupByFlatHashKeyVectors,
-        const std::vector<common::ValueVector*>& groupByUnflatHashKeyVectors,
+    void updateBothUnFlatDifferentDCAggVectorState(
+        const std::vector<common::ValueVector*>& flatKeyVectors,
+        const std::vector<common::ValueVector*>& unFlatKeyVectors,
         std::unique_ptr<function::AggregateFunction>& aggregateFunction,
         common::ValueVector* aggVector, uint64_t multiplicity, uint32_t aggStateOffset);
 
