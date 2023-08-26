@@ -41,7 +41,6 @@ protected:
         common::ValueVector* resultVector) final;
 
 private:
-    void writeOverflow();
     void readStringValueFromOvf(transaction::Transaction* transaction, common::ku_string_t& kuStr,
         common::ValueVector* resultVector, common::page_idx_t overflowPageIdx);
 

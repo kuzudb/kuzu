@@ -20,4 +20,4 @@
 ---- ok
 -STATEMENT COPY watch FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eWatches.csv"
 ---- error
-Copy exception: Primary key column contains value 5 around L2 in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eWatches.csv that does not exist in the table.
+Copy exception: Found non-existed primary key value 5.

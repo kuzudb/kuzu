@@ -16,31 +16,33 @@ namespace storage {
 
 class NullColumnChunk;
 
-struct ColumnChunkMetadata {
-    common::page_idx_t pageIdx = common::INVALID_PAGE_IDX;
-    common::page_idx_t numPages = 0;
+struct BaseColumnChunkMetadata {
+    common::page_idx_t pageIdx;
+    common::page_idx_t numPages;
 
-    ColumnChunkMetadata() = default;
-    ColumnChunkMetadata(common::page_idx_t pageIdx, common::page_idx_t numPages)
+    BaseColumnChunkMetadata() : pageIdx{common::INVALID_PAGE_IDX}, numPages{0} {}
+    BaseColumnChunkMetadata(common::page_idx_t pageIdx, common::page_idx_t numPages)
         : pageIdx(pageIdx), numPages(numPages) {}
+    virtual ~BaseColumnChunkMetadata() = default;
 };
 
-struct MainColumnChunkMetadata : public ColumnChunkMetadata {
+struct ColumnChunkMetadata : public BaseColumnChunkMetadata {
     uint64_t numValues;
 
-    MainColumnChunkMetadata() = default;
-    MainColumnChunkMetadata(
+    ColumnChunkMetadata() : BaseColumnChunkMetadata(), numValues{UINT64_MAX} {}
+    ColumnChunkMetadata(
         common::page_idx_t pageIdx, common::page_idx_t numPages, uint64_t numNodesInChunk)
-        : ColumnChunkMetadata{pageIdx, numPages}, numValues(numNodesInChunk) {}
+        : BaseColumnChunkMetadata{pageIdx, numPages}, numValues(numNodesInChunk) {}
 };
 
-struct OverflowColumnChunkMetadata : public ColumnChunkMetadata {
+struct OverflowColumnChunkMetadata : public BaseColumnChunkMetadata {
     common::offset_t lastOffsetInPage;
 
-    OverflowColumnChunkMetadata() = default;
+    OverflowColumnChunkMetadata()
+        : BaseColumnChunkMetadata(), lastOffsetInPage{common::INVALID_OFFSET} {}
     OverflowColumnChunkMetadata(
         common::page_idx_t pageIdx, common::page_idx_t numPages, common::offset_t lastOffsetInPage)
-        : ColumnChunkMetadata{pageIdx, numPages}, lastOffsetInPage(lastOffsetInPage) {}
+        : BaseColumnChunkMetadata{pageIdx, numPages}, lastOffsetInPage(lastOffsetInPage) {}
 };
 
 // Base data segment covers all fixed-sized data types.

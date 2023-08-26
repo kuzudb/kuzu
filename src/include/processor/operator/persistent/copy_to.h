@@ -2,7 +2,7 @@
 
 #include "common/copier_config/copier_config.h"
 #include "common/task_system/task_scheduler.h"
-#include "processor/operator/copy_to/csv_file_writer.h"
+#include "processor/operator/persistent/csv_file_writer.h"
 #include "processor/operator/physical_operator.h"
 #include "processor/result/result_set.h"
 

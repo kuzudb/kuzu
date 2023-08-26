@@ -74,8 +74,8 @@ private:
             curListOffset += length;
             setValue(curListOffset, i + startPosInChunk);
         }
-        auto startOffset = listArray->value_offset(startPosInChunk);
-        auto endOffset = listArray->value_offset(startPosInChunk + numValuesToAppend);
+        auto startOffset = listArray->value_offset(0);
+        auto endOffset = listArray->value_offset(numValuesToAppend);
         varListDataColumnChunk.resizeBuffer(curListOffset);
         varListDataColumnChunk.dataColumnChunk->append(
             listArray->values().get(), dataChunkOffsetToAppend, endOffset - startOffset);

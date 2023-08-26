@@ -188,8 +188,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::appendResultCollectorIfNotCopy(
     Schema* schema) {
     // We have a special code path for executing copy rel and copy npy, so we don't need to append
     // the resultCollector.
-    if (lastOperator->getOperatorType() != PhysicalOperatorType::COPY_REL &&
-        lastOperator->getOperatorType() != PhysicalOperatorType::COPY_NPY) {
+    if (lastOperator->getOperatorType() != PhysicalOperatorType::COPY_REL) {
         lastOperator = createResultCollector(
             AccumulateType::REGULAR, expressionsToCollect, schema, std::move(lastOperator));
     }

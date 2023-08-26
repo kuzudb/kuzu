@@ -3,7 +3,7 @@ add_library(kuzu_storage_in_mem_csv_copier
         column_chunk.cpp
         node_group.cpp
         npy_reader.cpp
-        read_file_state.cpp
+        reader_state.cpp
         rel_copier.cpp
         rel_copy_executor.cpp
         struct_column_chunk.cpp

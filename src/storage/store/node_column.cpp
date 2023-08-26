@@ -46,7 +46,7 @@ void NullNodeColumnFunc::readValuesFromPage(uint8_t* frame, PageElementCursor& p
     ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead) {
     // Read bit-packed null flags from the frame into the result vector
     // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
-    // Otherwise it could read off the end of the page.
+    // Otherwise, it could read off the end of the page.
     resultVector->setNullFromBits(
         (uint64_t*)frame, pageCursor.elemPosInPage, posInVector, numValuesToRead);
 }
@@ -54,7 +54,7 @@ void NullNodeColumnFunc::readValuesFromPage(uint8_t* frame, PageElementCursor& p
 void NullNodeColumnFunc::writeValueToPage(
     uint8_t* frame, uint16_t posInFrame, ValueVector* vector, uint32_t posInVector) {
     // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
-    // Otherwise it could read off the end of the page.
+    // Otherwise, it could read off the end of the page.
     NullMask::setNull(
         (uint64_t*)frame, posInFrame, NullMask::isNull(vector->getNullMaskData(), posInVector));
 }
@@ -63,7 +63,7 @@ void BoolNodeColumnFunc::readValuesFromPage(uint8_t* frame, PageElementCursor& p
     ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead) {
     // Read bit-packed null flags from the frame into the result vector
     // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
-    // Otherwise it could read off the end of the page.
+    // Otherwise, it could read off the end of the page.
     //
     // Currently, the frame stores bitpacked bools, but the value_vector does not
     for (auto i = 0; i < numValuesToRead; i++) {
@@ -75,7 +75,7 @@ void BoolNodeColumnFunc::readValuesFromPage(uint8_t* frame, PageElementCursor& p
 void BoolNodeColumnFunc::writeValueToPage(
     uint8_t* frame, uint16_t posInFrame, ValueVector* vector, uint32_t posInVector) {
     // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
-    // Otherwise it could read/write off the end of the page.
+    // Otherwise, it could read/write off the end of the page.
     NullMask::copyNullMask(
         vector->getValue<bool>(posInVector) ? &NullMask::ALL_NULL_ENTRY : &NullMask::NO_NULL_ENTRY,
         posInVector, (uint64_t*)frame, posInFrame, 1);
@@ -91,7 +91,7 @@ NodeColumn::NodeColumn(LogicalType dataType, const MetadataDAHInfo& metaDAHeader
     transaction::Transaction* transaction, bool requireNullColumn)
     : storageStructureID{StorageStructureID::newDataID()}, dataType{std::move(dataType)},
       dataFH{dataFH}, metadataFH{metadataFH}, bufferManager{bufferManager}, wal{wal} {
-    metadataDA = std::make_unique<InMemDiskArray<MainColumnChunkMetadata>>(*metadataFH,
+    metadataDA = std::make_unique<InMemDiskArray<ColumnChunkMetadata>>(*metadataFH,
         StorageStructureID::newMetadataID(), metaDAHeaderInfo.dataDAHPageIdx, bufferManager, wal,
         transaction);
     numBytesPerFixedSizedValue = ColumnChunk::getDataTypeSizeInChunk(this->dataType);
@@ -274,9 +274,9 @@ page_idx_t NodeColumn::append(
     // Main column chunk.
     page_idx_t numPagesFlushed = 0;
     auto numPagesForChunk = columnChunk->flushBuffer(dataFH, startPageIdx);
+    ColumnChunkMetadata metadata{startPageIdx, numPagesForChunk, columnChunk->getNumValues()};
     metadataDA->resize(nodeGroupIdx + 1);
-    metadataDA->update(nodeGroupIdx,
-        MainColumnChunkMetadata{startPageIdx, numPagesForChunk, columnChunk->getNumValues()});
+    metadataDA->update(nodeGroupIdx, metadata);
     numPagesFlushed += numPagesForChunk;
     startPageIdx += numPagesForChunk;
     // Null column chunk.
@@ -444,7 +444,7 @@ page_idx_t NullNodeColumn::append(
     auto numPagesFlushed = columnChunk->flushBuffer(dataFH, startPageIdx);
     metadataDA->resize(nodeGroupIdx + 1);
     metadataDA->update(nodeGroupIdx,
-        MainColumnChunkMetadata{startPageIdx, numPagesFlushed, columnChunk->getNumValues()});
+        ColumnChunkMetadata{startPageIdx, numPagesFlushed, columnChunk->getNumValues()});
     return numPagesFlushed;
 }
 
@@ -477,6 +477,7 @@ void SerialNodeColumn::scan(
     for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[i];
         auto offset = nodeIDVector->readNodeOffset(pos);
+        assert(!resultVector->isNull(pos));
         resultVector->setValue<offset_t>(pos, offset);
     }
 }
@@ -502,8 +503,8 @@ std::unique_ptr<NodeColumn> NodeColumnFactory::createNodeColumn(const LogicalTyp
     BufferManager* bufferManager, WAL* wal, Transaction* transaction) {
     switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::BOOL: {
-        return std::make_unique<BoolNodeColumn>(
-            metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal, transaction, true);
+        return std::make_unique<BoolNodeColumn>(metaDAHeaderInfo, dataFH, metadataFH, bufferManager,
+            wal, transaction, true /* requireNullColumn */);
     }
     case LogicalTypeID::INT64:
     case LogicalTypeID::INT32:
@@ -515,8 +516,8 @@ std::unique_ptr<NodeColumn> NodeColumnFactory::createNodeColumn(const LogicalTyp
     case LogicalTypeID::INTERVAL:
     case LogicalTypeID::INTERNAL_ID:
     case LogicalTypeID::FIXED_LIST: {
-        return std::make_unique<NodeColumn>(
-            dataType, metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal, transaction, true);
+        return std::make_unique<NodeColumn>(dataType, metaDAHeaderInfo, dataFH, metadataFH,
+            bufferManager, wal, transaction, true /* requireNullColumn */);
     }
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING: {

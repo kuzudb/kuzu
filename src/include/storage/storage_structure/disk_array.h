@@ -234,8 +234,8 @@ public:
         common::page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal,
         transaction::Transaction* transaction);
 
-    static inline common::page_idx_t addDAHPageToFile(BMFileHandle& fileHandle,
-        StorageStructureID storageStructureID, BufferManager* bufferManager, WAL* wal) {
+    static inline common::page_idx_t addDAHPageToFile(
+        BMFileHandle& fileHandle, BufferManager* bufferManager, WAL* wal) {
         DiskArrayHeader daHeader(sizeof(T));
         return StorageStructureUtils::insertNewPage(fileHandle,
             StorageStructureID{StorageStructureType::METADATA}, *bufferManager, *wal,

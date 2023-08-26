@@ -1,4 +1,4 @@
-#include "processor/operator/copy_from/copy_rel.h"
+#include "processor/operator/persistent/copy_rel.h"
 
 #include "storage/copier/rel_copy_executor.h"
 

@@ -20,6 +20,12 @@ public:
         std::unique_lock<std::mutex> lck{mtx};
         return getNextNodeGroupIdxWithoutLock();
     }
+    inline void setNextNodeGroupIdx(common::node_group_idx_t nextNodeGroupIdx) {
+        std::unique_lock<std::mutex> lck{mtx};
+        if (nextNodeGroupIdx > currentNodeGroupIdx) {
+            currentNodeGroupIdx = nextNodeGroupIdx;
+        }
+    }
 
     void logCopyNodeWALRecord(storage::WAL* wal);
 

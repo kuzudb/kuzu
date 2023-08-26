@@ -1,4 +1,4 @@
-#include "processor/operator/copy_to/csv_file_writer.h"
+#include "processor/operator/persistent/csv_file_writer.h"
 
 #include <fstream>
 
@@ -70,6 +70,7 @@ void CSVFileWriter::writeValue(ValueVector* vector) {
     switch (vector->dataType.getLogicalTypeID()) {
     case LogicalTypeID::BOOL:
         return writeToBuffer<int8_t>(vector, selPos);
+    case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64:
         return writeToBuffer<int64_t>(vector, selPos);
     case LogicalTypeID::INT32:
@@ -96,7 +97,7 @@ void CSVFileWriter::writeValue(ValueVector* vector) {
     case LogicalTypeID::STRUCT:
         return writeListToBuffer<struct_entry_t>(vector, selPos);
     default: {
-        NotImplementedException("CSVFileWriter::writeValue");
+        throw NotImplementedException("CSVFileWriter::writeValue");
     }
     }
 }

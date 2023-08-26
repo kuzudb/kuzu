@@ -135,7 +135,7 @@ protected:
     BMFileHandle* metadataFH;
     BufferManager* bufferManager;
     WAL* wal;
-    std::unique_ptr<InMemDiskArray<MainColumnChunkMetadata>> metadataDA;
+    std::unique_ptr<InMemDiskArray<ColumnChunkMetadata>> metadataDA;
     std::unique_ptr<NodeColumn> nullColumn;
     std::vector<std::unique_ptr<NodeColumn>> childrenColumns;
     read_node_column_func_t readNodeColumnFunc;
