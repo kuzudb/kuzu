@@ -4,9 +4,11 @@
 #include "binder/bound_explain.h"
 #include "binder/bound_standalone_call.h"
 #include "binder/copy/bound_copy_from.h"
+#include "binder/copy/bound_copy_rdf.h"
 #include "binder/copy/bound_copy_to.h"
 #include "binder/ddl/bound_add_property.h"
 #include "binder/ddl/bound_create_node_clause.h"
+#include "binder/ddl/bound_create_rdf_graph.h"
 #include "binder/ddl/bound_create_rel_clause.h"
 #include "binder/ddl/bound_drop_property.h"
 #include "binder/ddl/bound_drop_table.h"
@@ -14,9 +16,11 @@
 #include "binder/ddl/bound_rename_table.h"
 #include "binder/expression/variable_expression.h"
 #include "planner/logical_plan/copy/logical_copy_from.h"
+#include "planner/logical_plan/copy/logical_copy_rdf.h"
 #include "planner/logical_plan/copy/logical_copy_to.h"
 #include "planner/logical_plan/ddl/logical_add_property.h"
 #include "planner/logical_plan/ddl/logical_create_node_table.h"
+#include "planner/logical_plan/ddl/logical_create_rdf_graph.h"
 #include "planner/logical_plan/ddl/logical_create_rel_table.h"
 #include "planner/logical_plan/ddl/logical_drop_property.h"
 #include "planner/logical_plan/ddl/logical_drop_table.h"
@@ -47,11 +51,17 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
     case StatementType::CREATE_REL_TABLE: {
         plan = planCreateRelTable(statement);
     } break;
+    case StatementType::CREATE_RDF_GRAPH: {
+        plan = planCreateRDFGraph(statement);
+    } break;
     case StatementType::COPY_FROM: {
         return planCopyFrom(catalog, statement);
     } break;
     case StatementType::COPY_TO: {
         plan = planCopyTo(catalog, nodesStatistics, relsStatistics, statement);
+    } break;
+    case StatementType::COPY_RDF: {
+        plan = planCopyRDF(catalog, statement);
     } break;
     case StatementType::DROP_TABLE: {
         plan = planDropTable(statement);
@@ -97,6 +107,16 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllPlans(const Catalog& ca
     default:
         throw NotImplementedException("Planner::getAllPlans");
     }
+}
+
+std::unique_ptr<LogicalPlan> Planner::planCreateRDFGraph(
+    const kuzu::binder::BoundStatement& statement) {
+    auto& createRdfGraph = (BoundCreateRDFGraph&)statement;
+    auto plan = std::make_unique<LogicalPlan>();
+    auto logicalCreateRdfGraph = make_shared<LogicalCreateRDFGraph>(createRdfGraph.getTableName(),
+        statement.getStatementResult()->getSingleExpressionToCollect());
+    plan->setLastOperator(std::move(logicalCreateRdfGraph));
+    return plan;
 }
 
 std::unique_ptr<LogicalPlan> Planner::planCreateNodeTable(const BoundStatement& statement) {
@@ -269,6 +289,26 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllExplainPlans(
         plan->setLastOperator(std::move(logicalExplain));
     }
     return plans;
+}
+
+std::unique_ptr<LogicalPlan> Planner::planCopyRDF(
+    const catalog::Catalog& catalog, const kuzu::binder::BoundStatement& statement) {
+    auto& copyRDFClause = (BoundCopyRDF&)statement;
+    auto plan = std::make_unique<LogicalPlan>();
+    expression_vector arrowColumnExpressions;
+    auto copyRDF = make_shared<LogicalCopyRDF>(copyRDFClause.getCopyDescription(),
+        copyRDFClause.getRDFGraphID(), copyRDFClause.getRDFGraphName(),
+        std::make_shared<VariableExpression>(
+            common::LogicalType{common::LogicalTypeID::STRING}, "subject", "subject"),
+        std::make_shared<VariableExpression>(
+            common::LogicalType{common::LogicalTypeID::STRING}, "predicate", "predicate"),
+        std::make_shared<VariableExpression>(
+            common::LogicalType{common::LogicalTypeID::STRING}, "object", "object"),
+        std::make_shared<VariableExpression>(
+            common::LogicalType{common::LogicalTypeID::INT64}, "offset", "offset"),
+        copyRDFClause.getStatementResult()->getSingleExpressionToCollect());
+    plan->setLastOperator(std::move(copyRDF));
+    return plan;
 }
 
 } // namespace planner

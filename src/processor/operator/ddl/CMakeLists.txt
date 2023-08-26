@@ -6,7 +6,8 @@ add_library(kuzu_processor_operator_ddl
         create_node_table.cpp
         create_rel_table.cpp
         ddl.cpp
-        drop_table.cpp)
+        drop_table.cpp
+        create_rdf_graph.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_processor_operator_ddl>

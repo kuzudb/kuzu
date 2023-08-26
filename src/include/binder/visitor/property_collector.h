@@ -12,6 +12,8 @@ public:
     expression_vector getProperties();
 
 private:
+    void addRDFPredicateIRIOffsetProperty(
+        kuzu::binder::PropertyExpression* rdfPredicateIRIProperty, expression_vector& result);
     void visitMatch(const BoundReadingClause& readingClause) final;
     void visitUnwind(const BoundReadingClause& readingClause) final;
 
@@ -27,6 +29,7 @@ private:
 
 private:
     expression_set properties;
+    std::vector<std::shared_ptr<RelExpression>> relExpressions;
 };
 
 } // namespace binder

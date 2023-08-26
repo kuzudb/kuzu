@@ -11,8 +11,10 @@ struct internalID_t;
 using nodeID_t = internalID_t;
 using relID_t = internalID_t;
 
+using rdf_graph_id_t = uint64_t;
 using table_id_t = uint64_t;
 using offset_t = uint64_t;
+constexpr rdf_graph_id_t INVALID_RDF_GRAPH_ID = UINT64_MAX;
 constexpr table_id_t INVALID_TABLE_ID = UINT64_MAX;
 constexpr offset_t INVALID_OFFSET = UINT64_MAX;
 

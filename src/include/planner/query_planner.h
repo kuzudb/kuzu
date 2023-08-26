@@ -6,6 +6,7 @@
 #include "join_order_enumerator_context.h"
 #include "planner/join_order/cardinality_estimator.h"
 #include "planner/logical_plan/extend/extend_direction.h"
+#include "planner/logical_plan/extend/logical_extend.h"
 
 namespace kuzu {
 namespace binder {
@@ -201,6 +202,10 @@ private:
         binder::expression_vector& boundNodeIDs, LogicalPlan& probePlan,
         std::vector<std::unique_ptr<LogicalPlan>>& buildPlans);
 
+    // Append RDF Predicate iri hash join operators
+    void appendRDFPredicateIRIOffsetHashJoin(
+        std::shared_ptr<LogicalExtend> rdfExtend, kuzu::planner::LogicalPlan& plan);
+
     void appendCrossProduct(
         common::AccumulateType accumulateType, LogicalPlan& probePlan, LogicalPlan& buildPlan);
 
@@ -228,6 +233,9 @@ private:
         std::vector<std::unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll);
 
     static std::vector<std::unique_ptr<LogicalPlan>> getInitialEmptyPlans();
+
+    static bool removeRDFPredicateIRIProperty(
+        const expression_vector& properties, expression_vector& newProperties);
 
     expression_vector getProperties(const binder::Expression& nodeOrRel);
 

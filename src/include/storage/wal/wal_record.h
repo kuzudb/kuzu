@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/rel_direction.h"
+#include "common/types/internal_id_t.h"
 #include "common/types/types_include.h"
 #include "common/utils.h"
 
@@ -271,6 +272,8 @@ enum class WALRecordType : uint8_t {
     DROP_TABLE_RECORD = 9,
     DROP_PROPERTY_RECORD = 10,
     ADD_PROPERTY_RECORD = 11,
+    RDF_GRAPH_RECORD = 12,
+    COPY_RDF_GRAPH_RECORD = 13,
 };
 
 std::string walRecordTypeToString(WALRecordType walRecordType);
@@ -328,6 +331,27 @@ struct RelTableRecord {
     inline bool operator==(const RelTableRecord& rhs) const { return tableID == rhs.tableID; }
 };
 
+struct RDFGraphRecord {
+    // We don't have to log rdfGraphID because currently we do not need it during wal replaying.
+    // The rdfGraphID in his RDFGraphRecord is 1 minus the nextRDFGraphID field in the catalog,
+    // which will be checkpoint as part of the changes to the catalog. Therefore, there is nothing
+    // additional to do with the rdfGraphID field when replaying RDFGraphRecord.
+    NodeTableRecord resourcesNodeTableRecord;
+    RelTableRecord triplesRelTableRecord;
+
+    RDFGraphRecord() = default;
+
+    explicit RDFGraphRecord(
+        NodeTableRecord resourcesNodeTableRecord, RelTableRecord triplesRelTableRecord)
+        : resourcesNodeTableRecord{resourcesNodeTableRecord}, triplesRelTableRecord{
+                                                                  triplesRelTableRecord} {}
+
+    inline bool operator==(const RDFGraphRecord& rhs) const {
+        return resourcesNodeTableRecord == rhs.resourcesNodeTableRecord &&
+               triplesRelTableRecord == rhs.triplesRelTableRecord;
+    }
+};
+
 struct DiskOverflowFileNextBytePosRecord {
     StorageStructureID storageStructureID;
     uint64_t prevNextBytePosToWriteTo;
@@ -366,6 +390,23 @@ struct CopyRelRecord {
     explicit CopyRelRecord(common::table_id_t tableID) : tableID{tableID} {}
 
     inline bool operator==(const CopyRelRecord& rhs) const { return tableID == rhs.tableID; }
+};
+
+struct CopyRDFGraphRecord {
+    CopyNodeRecord copyResourcesNodeTableRecord;
+    CopyRelRecord copyTriplesRelTableRecord;
+
+    CopyRDFGraphRecord() = default;
+
+    explicit CopyRDFGraphRecord(
+        CopyNodeRecord copyResourcesNodeTableRecord, CopyRelRecord copyTriplesRelTableRecord)
+        : copyResourcesNodeTableRecord{copyResourcesNodeTableRecord},
+          copyTriplesRelTableRecord{copyTriplesRelTableRecord} {}
+
+    inline bool operator==(const CopyRDFGraphRecord& rhs) const {
+        return copyResourcesNodeTableRecord == rhs.copyResourcesNodeTableRecord &&
+               copyTriplesRelTableRecord == rhs.copyTriplesRelTableRecord;
+    }
 };
 
 struct TableStatisticsRecord {
@@ -424,9 +465,11 @@ struct WALRecord {
     union {
         PageUpdateOrInsertRecord pageInsertOrUpdateRecord;
         CommitRecord commitRecord;
+        RDFGraphRecord rdfGraphRecord;
         NodeTableRecord nodeTableRecord;
         RelTableRecord relTableRecord;
         DiskOverflowFileNextBytePosRecord diskOverflowFileNextBytePosRecord;
+        CopyRDFGraphRecord copyRDFGraphRecord;
         CopyNodeRecord copyNodeRecord;
         CopyRelRecord copyRelRecord;
         TableStatisticsRecord tableStatisticsRecord;
@@ -453,6 +496,9 @@ struct WALRecord {
             // CatalogRecords are empty so are always equal
             return true;
         }
+        case WALRecordType::RDF_GRAPH_RECORD: {
+            return rdfGraphRecord == rhs.rdfGraphRecord;
+        }
         case WALRecordType::NODE_TABLE_RECORD: {
             return nodeTableRecord == rhs.nodeTableRecord;
         }
@@ -461,6 +507,9 @@ struct WALRecord {
         }
         case WALRecordType::OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
             return diskOverflowFileNextBytePosRecord == rhs.diskOverflowFileNextBytePosRecord;
+        }
+        case WALRecordType::COPY_RDF_GRAPH_RECORD: {
+            return copyRDFGraphRecord == rhs.copyRDFGraphRecord;
         }
         case WALRecordType::COPY_NODE_RECORD: {
             return copyNodeRecord == rhs.copyNodeRecord;
@@ -491,12 +540,16 @@ struct WALRecord {
     static WALRecord newCommitRecord(uint64_t transactionID);
     static WALRecord newTableStatisticsRecord(bool isNodeTable);
     static WALRecord newCatalogRecord();
+    static WALRecord newRDFGraphRecord(
+        common::table_id_t resourcesNodeTableID, common::table_id_t triplesRelTableID);
     static WALRecord newNodeTableRecord(common::table_id_t tableID);
     static WALRecord newRelTableRecord(common::table_id_t tableID);
     static WALRecord newOverflowFileNextBytePosRecord(
         StorageStructureID storageStructureID_, uint64_t prevNextByteToWriteTo_);
     static WALRecord newCopyNodeRecord(common::table_id_t tableID, common::page_idx_t startPageIdx);
     static WALRecord newCopyRelRecord(common::table_id_t tableID);
+    static WALRecord newCopyRDFGraphRecord(common::table_id_t resourcesNodeTableID,
+        common::page_idx_t nodeTableStartPageIdx, common::table_id_t triplesRelTableID);
     static WALRecord newDropTableRecord(common::table_id_t tableID);
     static WALRecord newDropPropertyRecord(
         common::table_id_t tableID, common::property_id_t propertyID);

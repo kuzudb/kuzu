@@ -138,6 +138,9 @@ void DirectedRelTableData::scanLists(transaction::Transaction* transaction,
             transaction, outputVectors[outputVectorId], *scanState.listHandles[outputVectorId]);
         propertyList->setDeletedRelsIfNecessary(
             transaction, *scanState.listHandles[outputVectorId], outputVectors[outputVectorId]);
+        if (propertyId == scanState.rdfPredicateIRIOffsetProperty) {
+            fillNbrTableIDs(outputVectors[outputVectorId]);
+        }
     }
 }
 

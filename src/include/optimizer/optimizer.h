@@ -1,6 +1,7 @@
 #pragma once
 
 #include "planner/logical_plan/logical_plan.h"
+#include "storage/store/nodes_store.h"
 
 namespace kuzu {
 namespace optimizer {

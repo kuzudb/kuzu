@@ -91,6 +91,7 @@ void Database::initLoggers() {
     // database instance. All system components should get logger instead of creating.
     LoggerUtils::createLogger(LoggerConstants::LoggerEnum::DATABASE);
     LoggerUtils::createLogger(LoggerConstants::LoggerEnum::CSV_READER);
+    LoggerUtils::createLogger(LoggerConstants::LoggerEnum::RDF_READER);
     LoggerUtils::createLogger(LoggerConstants::LoggerEnum::LOADER);
     LoggerUtils::createLogger(LoggerConstants::LoggerEnum::PROCESSOR);
     LoggerUtils::createLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);

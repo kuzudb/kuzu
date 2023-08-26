@@ -9,6 +9,7 @@ enum class StatementType : uint8_t {
     QUERY = 0,
     CREATE_NODE_TABLE = 1,
     CREATE_REL_TABLE = 2,
+    CREATE_RDF_GRAPH = 3,
     DROP_TABLE = 4,
     RENAME_TABLE = 5,
     ADD_PROPERTY = 6,
@@ -19,6 +20,7 @@ enum class StatementType : uint8_t {
     STANDALONE_CALL = 21,
     EXPLAIN = 22,
     CREATE_MACRO = 23,
+    COPY_RDF = 24,
 };
 
 class StatementTypeUtils {
@@ -26,12 +28,14 @@ public:
     static bool isDDL(StatementType statementType) {
         return statementType == StatementType::CREATE_NODE_TABLE ||
                statementType == StatementType::CREATE_REL_TABLE ||
+               statementType == StatementType::CREATE_RDF_GRAPH ||
                statementType == StatementType::DROP_TABLE ||
                statementType == StatementType::DROP_PROPERTY;
     }
 
-    static bool isCopyCSV(StatementType statementType) {
-        return statementType == StatementType::COPY_FROM;
+    static bool isCopyFrom(StatementType statementType) {
+        return statementType == StatementType::COPY_FROM ||
+               statementType == StatementType::COPY_RDF;
     }
 
     static bool isCreateMacro(StatementType statementType) {
@@ -39,7 +43,7 @@ public:
     }
 
     static bool allowActiveTransaction(StatementType statementType) {
-        return isDDL(statementType) || isCopyCSV(statementType) || isCreateMacro(statementType);
+        return isDDL(statementType) || isCopyFrom(statementType) || isCreateMacro(statementType);
     }
 };
 

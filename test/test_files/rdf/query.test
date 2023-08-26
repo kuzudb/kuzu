@@ -1,0 +1,48 @@
+-GROUP QueryRDFGraphTest
+-DATASET CSV copy-test/node/rdf
+
+--
+
+-CASE QueryRDFGraphTest
+
+-LOG ReservedPropertyPredicateIRIOffsetNotAllowed
+-STATEMENT MATCH (s:`taxonomy`)-[p:`taxonomy`]->(o:`taxonomy`) RETURN p._predicateIRIOffset LIMIT 10
+---- error
+Binder exception: _predicateIRIOffset is reserved for system usage. External access is not allowed.
+
+-LOG ProjectPredicateIRI
+-STATEMENT MATCH (s:`taxonomy`)-[p:`taxonomy`]->(o:`taxonomy`) RETURN s.iri, p.iri, o.iri ORDER BY s.iri LIMIT 2
+---- 2
+http://dbpedia.org/class/yago/'hood108641944|http://www.w3.org/2000/01/rdf-schema#subClassOf0|http://dbpedia.org/class/yago/Vicinity108641113
+http://dbpedia.org/class/yago/14July115200493|http://www.w3.org/2000/01/rdf-schema#subClassOf1|http://dbpedia.org/class/yago/LegalHoliday115199592
+
+-LOG ProjectPredicate
+-STATEMENT MATCH (s:`taxonomy`)-[p:`taxonomy`]->(o:`taxonomy`) RETURN s.iri, p, o.iri ORDER BY s.iri LIMIT 2
+---- 2
+http://dbpedia.org/class/yago/'hood108641944|(0:0)-{_LABEL: taxonomy.Triples, _ID: 1:0, _predicateIRIOffset: 0:2001, iri: http://www.w3.org/2000/01/rdf-schema#subClassOf0}->(0:4049)|http://dbpedia.org/class/yago/Vicinity108641113
+http://dbpedia.org/class/yago/14July115200493|(0:1)-{_LABEL: taxonomy.Triples, _ID: 1:1, _predicateIRIOffset: 0:2002, iri: http://www.w3.org/2000/01/rdf-schema#subClassOf1}->(0:4050)|http://dbpedia.org/class/yago/LegalHoliday115199592
+
+-LOG FilterPredicateIRIWithoutAnyProjection
+-STATEMENT MATCH (s:`taxonomy`)-[p:`taxonomy`]->(o:`taxonomy`) WHERE p.iri = 'http://www.w3.org/2000/01/rdf-schema#subClassOf1' RETURN s.iri, o.iri
+---- 1
+http://dbpedia.org/class/yago/14July115200493|http://dbpedia.org/class/yago/LegalHoliday115199592
+
+-LOG ProjectPredicateIRIWithFilter
+-STATEMENT MATCH (s:`taxonomy`)-[p:`taxonomy`]->(o:`taxonomy`) WHERE p.iri = 'http://www.w3.org/2000/01/rdf-schema#subClassOf1' RETURN s.iri, p.iri, o.iri
+---- 1
+http://dbpedia.org/class/yago/14July115200493|http://www.w3.org/2000/01/rdf-schema#subClassOf1|http://dbpedia.org/class/yago/LegalHoliday115199592
+
+-LOG ProjectPredicateIRIWithFilter2
+-STATEMENT MATCH (s:`taxonomy`)-[p:`taxonomy`]->(o:`taxonomy`) WHERE p.iri = 'http://www.w3.org/2000/01/rdf-schema#subClassOf10' RETURN s.iri, p, o.iri LIMIT 2
+---- 1
+http://dbpedia.org/class/yago/1820s115148958|(0:10)-{_LABEL: taxonomy.Triples, _ID: 1:10, _predicateIRIOffset: 0:2011, iri: http://www.w3.org/2000/01/rdf-schema#subClassOf10}->(0:4051)|http://dbpedia.org/class/yago/Decade115204983
+
+-LOG TwoHopQuery1
+-STATEMENT MATCH (s:taxonomy)-[p1:taxonomy]->(o:taxonomy)-[p2:taxonomy]->(s2:taxonomy) RETURN count(p2.iri), count(p1.iri);
+---- 1
+701862|701862
+
+-LOG TwoHopQuery2
+-STATEMENT MATCH (s:taxonomy)-[p1:taxonomy]->(o:taxonomy)-[p2:taxonomy]->(s2:taxonomy) RETURN count(p1.iri);
+---- 1
+701862

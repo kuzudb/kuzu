@@ -18,6 +18,7 @@ public:
     virtual void visitQueryPart(const NormalizedQueryPart& queryPart);
 
 protected:
+    virtual void visitCreateRDFGraph(const BoundStatement& statement) {}
     virtual void visitCreateNodeTable(const BoundStatement& statement) {}
     virtual void visitCreateRelTable(const BoundStatement& statement) {}
     virtual void visitDropTable(const BoundStatement& statement) {}
@@ -29,6 +30,7 @@ protected:
     virtual void visitStandaloneCall(const BoundStatement& statement) {}
     virtual void visitExplain(const BoundStatement& statement);
     virtual void visitCreateMacro(const BoundStatement& statement) {}
+    virtual void visitCopyRDF(const BoundStatement& statement) {}
 
     void visitReadingClause(const BoundReadingClause& readingClause);
     virtual void visitMatch(const BoundReadingClause& readingClause) {}

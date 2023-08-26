@@ -2,6 +2,7 @@
 
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
+#include "storage/wal/wal_record.h"
 #include "storage/wal_replayer_utils.h"
 
 using namespace kuzu::catalog;
@@ -60,6 +61,9 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
     case WALRecordType::TABLE_STATISTICS_RECORD: {
         replayTableStatisticsRecord(walRecord);
     } break;
+    case WALRecordType::RDF_GRAPH_RECORD: {
+        replayRDFGraphRecord(walRecord);
+    } break;
     case WALRecordType::COMMIT_RECORD: {
     } break;
     case WALRecordType::CATALOG_RECORD: {
@@ -69,7 +73,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
         replayNodeTableRecord(walRecord);
     } break;
     case WALRecordType::REL_TABLE_RECORD: {
-        replayRelTableRecord(walRecord);
+        replayRelTableRecord(walRecord, false /* isRDFGraphRelTable */);
     } break;
     case WALRecordType::OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
         replayOverflowFileNextBytePosRecord(walRecord);
@@ -79,6 +83,9 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
     } break;
     case WALRecordType::COPY_REL_RECORD: {
         replayCopyRelRecord(walRecord);
+    } break;
+    case WALRecordType::COPY_RDF_GRAPH_RECORD: {
+        replayCopyRDFGraphRecord(walRecord);
     } break;
     case WALRecordType::DROP_TABLE_RECORD: {
         replayDropTableRecord(walRecord);
@@ -180,11 +187,19 @@ void WALReplayer::replayNodeTableRecord(const kuzu::storage::WALRecord& walRecor
     }
 }
 
-void WALReplayer::replayRelTableRecord(const kuzu::storage::WALRecord& walRecord) {
+void WALReplayer::replayRelTableRecord(
+    const kuzu::storage::WALRecord& walRecord, bool isRDFGraphRelTable) {
     if (isCheckpoint) {
         // See comments for NODE_TABLE_RECORD.
-        auto nodesStatisticsAndDeletedIDsForCheckPointing =
-            std::make_unique<NodesStatisticsAndDeletedIDs>(wal->getDirectory());
+        std::unique_ptr<NodesStatisticsAndDeletedIDs> nodesStatisticsAndDeletedIDsForCheckPointing;
+        if (isRDFGraphRelTable) {
+            nodesStatisticsAndDeletedIDsForCheckPointing =
+                std::make_unique<NodesStatisticsAndDeletedIDs>(
+                    wal->getDirectory(), DBFileType::WAL_VERSION);
+        } else {
+            nodesStatisticsAndDeletedIDsForCheckPointing =
+                std::make_unique<NodesStatisticsAndDeletedIDs>(wal->getDirectory());
+        }
         auto maxNodeOffsetPerTable =
             nodesStatisticsAndDeletedIDsForCheckPointing->getMaxNodeOffsetPerTable();
         auto catalogForCheckpointing = getCatalogForRecovery(DBFileType::WAL_VERSION);
@@ -199,6 +214,20 @@ void WALReplayer::replayRelTableRecord(const kuzu::storage::WALRecord& walRecord
             storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs().setAdjListsAndColumns(
                 &storageManager->getRelsStore());
         }
+    } else {
+        // See comments for NODE_TABLE_RECORD.
+    }
+}
+
+void WALReplayer::replayRDFGraphRecord(const kuzu::storage::WALRecord& walRecord) {
+    if (isCheckpoint) {
+        WALRecord resourcesNodeTableWALRecord = {.recordType = WALRecordType::NODE_TABLE_RECORD,
+            .nodeTableRecord = walRecord.rdfGraphRecord.resourcesNodeTableRecord};
+        replayNodeTableRecord(resourcesNodeTableWALRecord);
+
+        WALRecord triplesRelTableWALRecord = {.recordType = WALRecordType::REL_TABLE_RECORD,
+            .relTableRecord = walRecord.rdfGraphRecord.triplesRelTableRecord};
+        replayRelTableRecord(triplesRelTableWALRecord, true /* isRDFGraphRelTable */);
     } else {
         // See comments for NODE_TABLE_RECORD.
     }
@@ -333,6 +362,16 @@ void WALReplayer::replayCopyRelRecord(const kuzu::storage::WALRecord& walRecord)
                 .getNodesStatisticsAndDeletedIDs()
                 .getMaxNodeOffsetPerTable());
     }
+}
+
+void WALReplayer::replayCopyRDFGraphRecord(const kuzu::storage::WALRecord& walRecord) {
+    WALRecord copyNodeTableWALRecord = {.recordType = WALRecordType::COPY_NODE_RECORD,
+        .copyNodeRecord = walRecord.copyRDFGraphRecord.copyResourcesNodeTableRecord};
+    replayCopyNodeRecord(copyNodeTableWALRecord);
+
+    WALRecord copyRelTableWALRecord = {.recordType = WALRecordType::COPY_REL_RECORD,
+        .copyRelRecord = walRecord.copyRDFGraphRecord.copyTriplesRelTableRecord};
+    replayCopyRelRecord(copyRelTableWALRecord);
 }
 
 void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecord) {

@@ -31,10 +31,12 @@ private:
     void replayTableStatisticsRecord(const WALRecord& walRecord);
     void replayCatalogRecord();
     void replayNodeTableRecord(const WALRecord& walRecord);
-    void replayRelTableRecord(const WALRecord& walRecord);
+    void replayRelTableRecord(const WALRecord& walRecord, bool isRDFGraphRelTable);
+    void replayRDFGraphRecord(const WALRecord& walRecord);
     void replayOverflowFileNextBytePosRecord(const WALRecord& walRecord);
     void replayCopyNodeRecord(const WALRecord& walRecord);
     void replayCopyRelRecord(const WALRecord& walRecord);
+    void replayCopyRDFGraphRecord(const WALRecord& walRecord);
     void replayDropTableRecord(const WALRecord& walRecord);
     void replayDropPropertyRecord(const WALRecord& walRecord);
     void replayAddPropertyRecord(const WALRecord& walRecord);

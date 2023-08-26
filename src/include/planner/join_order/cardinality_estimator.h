@@ -25,6 +25,12 @@ public:
     uint64_t estimateFlatten(const LogicalPlan& childPlan, f_group_pos groupPosToFlatten);
     uint64_t estimateFilter(const LogicalPlan& childPlan, const binder::Expression& predicate);
 
+    inline void addID(const std::string& propertyName, const binder::NodeExpression& node) {
+        if (!nodeIDName2dom.contains(propertyName)) {
+            nodeIDName2dom.insert({propertyName, getNumNodes(node)});
+        }
+    }
+
     double getExtensionRate(
         const binder::RelExpression& rel, const binder::NodeExpression& boundNode);
 

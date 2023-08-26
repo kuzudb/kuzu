@@ -209,7 +209,7 @@ void NodesStatisticsAndDeletedIDs::addNodeStatisticsAndDeletedIDs(
     // We use UINT64_MAX to represent an empty nodeTable which doesn't contain any nodes.
     tablesStatisticsContentForWriteTrx->tableStatisticPerTable[tableSchema->tableID] =
         std::make_unique<NodeStatisticsAndDeletedIDs>(
-            tableSchema->tableID, UINT64_MAX /* maxNodeOffset */);
+            tableSchema->tableID, INVALID_OFFSET /* maxNodeOffset */);
 }
 
 std::unique_ptr<TableStatistics> NodesStatisticsAndDeletedIDs::deserializeTableStatistics(

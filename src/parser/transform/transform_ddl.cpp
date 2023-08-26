@@ -1,5 +1,6 @@
 #include "parser/ddl/add_property.h"
 #include "parser/ddl/create_node_clause.h"
+#include "parser/ddl/create_rdf_graph_clause.h"
 #include "parser/ddl/create_rel_clause.h"
 #include "parser/ddl/drop_property.h"
 #include "parser/ddl/drop_table.h"
@@ -20,6 +21,8 @@ std::unique_ptr<Statement> Transformer::transformDDL(CypherParser::KU_DDLContext
         return transformCreateRelClause(*root.oC_Statement()->kU_DDL()->kU_CreateRel());
     } else if (root.oC_Statement()->kU_DDL()->kU_DropTable()) {
         return transformDropTable(*root.oC_Statement()->kU_DDL()->kU_DropTable());
+    } else if (root.oC_Statement()->kU_DDL()->kU_CreateRdfGraph()) {
+        return transformCreateRdfGraphClause(*root.oC_Statement()->kU_DDL()->kU_CreateRdfGraph());
     } else {
         return transformAlterTable(*root.oC_Statement()->kU_DDL()->kU_AlterTable());
     }
@@ -36,6 +39,12 @@ std::unique_ptr<Statement> Transformer::transformAlterTable(
     } else {
         return transformRenameProperty(ctx);
     }
+}
+
+std::unique_ptr<Statement> Transformer::transformCreateRdfGraphClause(
+    CypherParser::KU_CreateRdfGraphContext& ctx) {
+    auto rdfGraphName = transformSchemaName(*ctx.oC_SchemaName());
+    return std::make_unique<CreateRDFGraphClause>(std::move(rdfGraphName));
 }
 
 std::unique_ptr<Statement> Transformer::transformCreateNodeClause(

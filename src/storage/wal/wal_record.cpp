@@ -112,6 +112,9 @@ std::string walRecordTypeToString(WALRecordType walRecordType) {
     case WALRecordType::CATALOG_RECORD: {
         return "CATALOG_RECORD";
     }
+    case WALRecordType::RDF_GRAPH_RECORD: {
+        return "RDF_GRAPH_RECORD";
+    }
     case WALRecordType::NODE_TABLE_RECORD: {
         return "NODE_TABLE_RECORD";
     }
@@ -126,6 +129,9 @@ std::string walRecordTypeToString(WALRecordType walRecordType) {
     }
     case WALRecordType::COPY_REL_RECORD: {
         return "COPY_REL_RECORD";
+    }
+    case WALRecordType::COPY_RDF_GRAPH_RECORD: {
+        return "COPY_RDF_GRAPH_RECORD";
     }
     case WALRecordType::DROP_TABLE_RECORD: {
         return "DROP_TABLE_RECORD";
@@ -180,6 +186,15 @@ WALRecord WALRecord::newCatalogRecord() {
     return retVal;
 }
 
+WALRecord WALRecord::newRDFGraphRecord(
+    table_id_t resourcesNodeTableID, table_id_t triplesRelTableID) {
+    WALRecord retVal;
+    retVal.recordType = WALRecordType::RDF_GRAPH_RECORD;
+    retVal.rdfGraphRecord =
+        RDFGraphRecord(NodeTableRecord(resourcesNodeTableID), RelTableRecord(triplesRelTableID));
+    return retVal;
+}
+
 WALRecord WALRecord::newNodeTableRecord(table_id_t tableID) {
     WALRecord retVal;
     retVal.recordType = WALRecordType::NODE_TABLE_RECORD;
@@ -214,6 +229,16 @@ WALRecord WALRecord::newCopyRelRecord(table_id_t tableID) {
     WALRecord retVal;
     retVal.recordType = WALRecordType::COPY_REL_RECORD;
     retVal.copyRelRecord = CopyRelRecord(tableID);
+    return retVal;
+}
+
+WALRecord WALRecord::newCopyRDFGraphRecord(table_id_t resourcesNodeTableID,
+    common::page_idx_t nodeTableStartPageIdx, table_id_t triplesRelTableID) {
+    WALRecord retVal;
+    retVal.recordType = WALRecordType::COPY_RDF_GRAPH_RECORD;
+    retVal.copyRDFGraphRecord =
+        CopyRDFGraphRecord(CopyNodeRecord(resourcesNodeTableID, nodeTableStartPageIdx),
+            CopyRelRecord(triplesRelTableID));
     return retVal;
 }
 

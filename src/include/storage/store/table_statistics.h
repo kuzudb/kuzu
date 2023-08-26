@@ -99,7 +99,8 @@ protected:
     virtual void serializeTableStatistics(
         TableStatistics* tableStatistics, uint64_t& offset, common::FileInfo* fileInfo) = 0;
 
-    void readFromFile(const std::string& directory);
+    void readFromFile(const std::string& directory,
+        const common::DBFileType dbFileType = common::DBFileType::ORIGINAL);
 
     void saveToFile(const std::string& directory, common::DBFileType dbFileType,
         transaction::TransactionType transactionType);

@@ -3,6 +3,7 @@
 #include "planner/logical_plan/extend/logical_extend.h"
 #include "planner/logical_plan/extend/logical_recursive_extend.h"
 #include "planner/logical_plan/logical_node_label_filter.h"
+#include "planner/logical_plan/logical_schema_mapping.h"
 #include "planner/query_planner.h"
 
 using namespace kuzu::common;
@@ -75,13 +76,19 @@ static std::unordered_set<table_id_t> getNbrNodeTableIDSet(
 void QueryPlanner::appendNonRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,
     std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
     ExtendDirection direction, const expression_vector& properties, LogicalPlan& plan) {
+    // We don't want to scan RDF predicateIRI property since it is a user-facing/artificial
+    // property which we don't store in triples rel table, instead it is stored
+    // inside resource node table.
+    expression_vector newProperties;
+    bool isRDFPredicateIRIPropertyPresent =
+        removeRDFPredicateIRIProperty(properties, newProperties);
     auto boundNodeTableIDSet = getBoundNodeTableIDSet(*rel, direction, catalog);
     if (boundNode->getNumTableIDs() > boundNodeTableIDSet.size()) {
         appendNodeLabelFilter(boundNode->getInternalIDProperty(), boundNodeTableIDSet, plan);
     }
     auto hasAtMostOneNbr = extendHasAtMostOneNbrGuarantee(*rel, *boundNode, direction, catalog);
-    auto extend = make_shared<LogicalExtend>(
-        boundNode, nbrNode, rel, direction, properties, hasAtMostOneNbr, plan.getLastOperator());
+    auto extend = make_shared<LogicalExtend>(boundNode, nbrNode, rel, direction, newProperties,
+        hasAtMostOneNbr, isRDFPredicateIRIPropertyPresent, plan.getLastOperator());
     appendFlattens(extend->getGroupsPosToFlatten(), plan);
     extend->setChild(0, plan.getLastOperator());
     extend->computeFactorizedSchema();
@@ -93,11 +100,80 @@ void QueryPlanner::appendNonRecursiveExtend(std::shared_ptr<NodeExpression> boun
         auto group = extend->getSchema()->getGroup(nbrNode->getInternalIDProperty());
         group->setMultiplier(extensionRate);
     }
-    plan.setLastOperator(std::move(extend));
+
+    if (isRDFPredicateIRIPropertyPresent) {
+        appendRDFPredicateIRIOffsetHashJoin(std::move(extend), plan);
+    } else {
+        plan.setLastOperator(std::move(extend));
+    }
     auto nbrNodeTableIDSet = getNbrNodeTableIDSet(*rel, direction, catalog);
     if (nbrNodeTableIDSet.size() > nbrNode->getNumTableIDs()) {
         appendNodeLabelFilter(nbrNode->getInternalIDProperty(), nbrNode->getTableIDsSet(), plan);
     }
+}
+
+void QueryPlanner::appendRDFPredicateIRIOffsetHashJoin(
+    std::shared_ptr<kuzu::planner::LogicalExtend> rdfExtend, kuzu::planner::LogicalPlan& plan) {
+    auto relExpression = rdfExtend->getRel();
+    auto nodeExpression = rdfExtend->getNbrNode();
+
+    // We need to add the following properties to the hash join
+    auto rdfNodeIRIProperty =
+        nodeExpression->getPropertyExpression(common::InternalKeyword::RDF_IRI_PROPERTY_NAME);
+    auto rdfRelIRIProperty =
+        relExpression->getPropertyExpression(common::InternalKeyword::RDF_IRI_PROPERTY_NAME);
+    auto rdfNodeInternalIDProperty = nodeExpression->getInternalIDProperty();
+    auto rdfPredicateIRIOffsetProperty = relExpression->getPropertyExpression(
+        common::InternalKeyword::RDF_PREDICATE_IRI_OFFSET_PROPERTY_NAME);
+
+    expression_map<std::shared_ptr<binder::Expression>> expressionMapping;
+    expressionMapping[rdfNodeIRIProperty] = rdfRelIRIProperty;
+    expressionMapping[rdfNodeInternalIDProperty] = rdfPredicateIRIOffsetProperty;
+
+    // Add predicateIRIOffset cardinality using rdfResourceNodeTable
+    cardinalityEstimator->addID(rdfPredicateIRIOffsetProperty->getUniqueName(), *nodeExpression);
+
+    // Prepare a plan for scanning the RDF resource table with updated schema mapping which include
+    // predicateIRI and predicateIRIOffset
+    auto rdfResourceTableScan = std::make_unique<LogicalPlan>();
+    appendScanNodeID(nodeExpression, *rdfResourceTableScan);
+    appendScanNodeProperties({rdfNodeIRIProperty}, nodeExpression, *rdfResourceTableScan);
+    auto schemaMapping = std::make_shared<LogicalSchemaMapping>(
+        expressionMapping, rdfResourceTableScan->getLastOperator());
+    schemaMapping->computeFactorizedSchema();
+    rdfResourceTableScan->setLastOperator(schemaMapping);
+
+    auto rdfRelScan = std::make_unique<LogicalPlan>();
+    rdfRelScan->setLastOperator(std::move(rdfExtend));
+    rdfRelScan->setCost(plan.getCost());
+    rdfRelScan->setCardinality(plan.getCardinality());
+
+    // Add plan for hash join with correct join order
+    auto joinNodeIDs = {rdfPredicateIRIOffsetProperty};
+    auto nodeTableBuildSideCost =
+        CostModel::computeHashJoinCost(joinNodeIDs, *rdfRelScan, *rdfResourceTableScan);
+    auto relTableBuildSideCost =
+        CostModel::computeHashJoinCost(joinNodeIDs, *rdfResourceTableScan, *rdfRelScan);
+    if (relTableBuildSideCost > nodeTableBuildSideCost) {
+        appendHashJoin(joinNodeIDs, JoinType::INNER, *rdfRelScan, *rdfResourceTableScan);
+        plan.setLastOperator(rdfRelScan->getLastOperator());
+    } else {
+        appendHashJoin(joinNodeIDs, JoinType::INNER, *rdfResourceTableScan, *rdfRelScan);
+        plan.setLastOperator(rdfResourceTableScan->getLastOperator());
+    }
+}
+
+bool QueryPlanner::removeRDFPredicateIRIProperty(const kuzu::binder::expression_vector& properties,
+    kuzu::binder::expression_vector& newProperties) {
+    bool isRDFPredicateIRIPropertyPresent = false;
+    for (const auto& property : properties) {
+        if (((PropertyExpression*)property.get())->isRDFPredicateIRIProperty()) {
+            isRDFPredicateIRIPropertyPresent = true;
+            continue;
+        }
+        newProperties.push_back(property);
+    }
+    return isRDFPredicateIRIPropertyPresent;
 }
 
 void QueryPlanner::appendRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,

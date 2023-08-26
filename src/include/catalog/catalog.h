@@ -54,6 +54,9 @@ public:
 
     common::ExpressionType getFunctionType(const std::string& name) const;
 
+    common::rdf_graph_id_t addRDFGraphSchema(
+        std::string rdfGraphName, std::unique_ptr<Property> rdfResourceIRIProperty);
+
     common::table_id_t addNodeTableSchema(std::string tableName, common::property_id_t primaryKeyId,
         std::vector<std::unique_ptr<Property>> propertyDefinitions);
 

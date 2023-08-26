@@ -42,9 +42,11 @@ private:
 struct RelTableScanState {
 public:
     RelTableScanState(storage::RelStatistics* relStats,
-        std::vector<common::property_id_t> propertyIds, RelTableDataType relTableDataType)
-        : relStats{relStats}, relTableDataType{relTableDataType}, propertyIds{
-                                                                      std::move(propertyIds)} {
+        std::vector<common::property_id_t> propertyIds,
+        common::property_id_t rdfPredicateIRIOffsetProperty, RelTableDataType relTableDataType)
+        : relStats{relStats}, relTableDataType{relTableDataType},
+          propertyIds{std::move(propertyIds)}, rdfPredicateIRIOffsetProperty{
+                                                   rdfPredicateIRIOffsetProperty} {
         if (relTableDataType == RelTableDataType::LISTS) {
             syncState = std::make_unique<ListSyncState>();
             // The first listHandle is for adj lists.
@@ -63,6 +65,7 @@ public:
     RelStatistics* relStats;
     RelTableDataType relTableDataType;
     std::vector<common::property_id_t> propertyIds;
+    common::property_id_t rdfPredicateIRIOffsetProperty;
     // sync state between adj and property lists
     std::unique_ptr<ListSyncState> syncState;
     std::vector<std::unique_ptr<ListHandle>> listHandles;

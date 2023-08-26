@@ -9,8 +9,9 @@ namespace processor {
 
 void RelTableCollectionScanner::init() {
     for (auto& scanInfo : scanInfos) {
-        scanStates.push_back(std::make_unique<RelTableScanState>(
-            scanInfo->relStats, scanInfo->propertyIds, scanInfo->relTableDataType));
+        scanStates.push_back(
+            std::make_unique<RelTableScanState>(scanInfo->relStats, scanInfo->propertyIds,
+                scanInfo->rdfPredicateIRIOffsetProperty, scanInfo->relTableDataType));
     }
 }
 

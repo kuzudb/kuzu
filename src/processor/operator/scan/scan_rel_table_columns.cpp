@@ -5,8 +5,9 @@ namespace processor {
 
 void ScanRelTableColumns::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     ScanRelTable::initLocalStateInternal(resultSet, context);
-    scanState = std::make_unique<storage::RelTableScanState>(
-        scanInfo->relStats, scanInfo->propertyIds, storage::RelTableDataType::COLUMNS);
+    scanState =
+        std::make_unique<storage::RelTableScanState>(scanInfo->relStats, scanInfo->propertyIds,
+            scanInfo->rdfPredicateIRIOffsetProperty, storage::RelTableDataType::COLUMNS);
 }
 
 bool ScanRelTableColumns::getNextTuplesInternal(ExecutionContext* context) {

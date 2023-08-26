@@ -1,7 +1,9 @@
 #include "binder/binder.h"
 #include "binder/copy/bound_copy_from.h"
+#include "binder/copy/bound_copy_rdf.h"
 #include "binder/copy/bound_copy_to.h"
 #include "binder/expression/literal_expression.h"
+#include "common/copier_config/copier_config.h"
 #include "common/string_utils.h"
 #include "parser/copy.h"
 
@@ -34,6 +36,10 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     auto& copyStatement = (CopyFrom&)statement;
     auto catalogContent = catalog.getReadOnlyVersion();
     auto tableName = copyStatement.getTableName();
+    validateTableNotReservedForRDFGraph(catalog, tableName);
+    if (catalogContent->containRDFGraph(tableName)) {
+        return bindCopyRDFClause(copyStatement);
+    }
     validateTableExist(catalog, tableName);
     auto tableID = catalogContent->getTableID(tableName);
     auto csvReaderConfig = bindParsingOptions(copyStatement.getParsingOptions());
@@ -57,6 +63,19 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     }
     return std::make_unique<BoundCopyFrom>(
         CopyDescription(boundFilePaths, actualFileType, csvReaderConfig), tableID, tableName);
+}
+
+std::unique_ptr<BoundStatement> Binder::bindCopyRDFClause(const parser::CopyFrom& copy) {
+    if (copy.getFilePaths().size() != 1) {
+        throw CopyException("Only one file is allowed for RDF copy.");
+    }
+    auto rdfGraphName = copy.getTableName();
+    auto rdfGraphId = catalog.getReadOnlyVersion()->getRDFGraphID(rdfGraphName);
+    auto boundFilePaths = bindFilePaths(copy.getFilePaths());
+    auto actualFileType = bindFileType(boundFilePaths);
+    return std::make_unique<BoundCopyRDF>(
+        CopyDescription(boundFilePaths, actualFileType, CSVReaderConfig()), rdfGraphId,
+        rdfGraphName);
 }
 
 std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& filePaths) {

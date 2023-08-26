@@ -11,6 +11,10 @@ public:
 
     inline bool hasOperators() const { return !ops.empty(); }
     inline std::vector<planner::LogicalOperator*> getOperators() const { return ops; }
+    inline planner::LogicalOperator* getFirstOperator() const {
+        assert(!ops.empty());
+        return ops[0];
+    }
 
 protected:
     std::vector<planner::LogicalOperator*> ops;
@@ -29,6 +33,11 @@ protected:
 class LogicalScanNodeCollector : public LogicalOperatorCollector {
 protected:
     void visitScanNode(planner::LogicalOperator* op) override { ops.push_back(op); }
+};
+
+class LogicalExtendCollector : public LogicalOperatorCollector {
+protected:
+    void visitExtend(planner::LogicalOperator* op) override { ops.push_back(op); }
 };
 
 class LogicalIndexScanNodeCollector : public LogicalOperatorCollector {

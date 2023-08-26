@@ -78,6 +78,7 @@ private:
         const std::string& name, const common::LogicalType& dataType);
 
     /*** bind DDL ***/
+    std::unique_ptr<BoundStatement> bindCreateRDFGraphClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCreateNodeTableClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCreateRelTableClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindDropTableClause(const parser::Statement& statement);
@@ -97,6 +98,7 @@ private:
     /*** bind copy from/to ***/
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindCopyRDFClause(const parser::CopyFrom& copy);
 
     std::vector<std::string> bindFilePaths(const std::vector<std::string>& filePaths);
 
@@ -205,6 +207,10 @@ private:
     std::vector<common::table_id_t> bindNodeTableIDs(const std::vector<std::string>& tableNames);
     std::vector<common::table_id_t> bindRelTableIDs(const std::vector<std::string>& tableNames);
 
+    /*** RDF helpers ***/
+    std::vector<std::string> replaceRDFGraphNamesIfNecessary(
+        const std::vector<std::string>& tableNames, const std::string& tableSuffix);
+
     /*** validations ***/
     // E.g. ... RETURN a, b AS a
     static void validateProjectionColumnNamesAreUnique(const expression_vector& expressions);
@@ -226,6 +232,8 @@ private:
     static void validateReadNotFollowUpdate(const NormalizedSingleQuery& singleQuery);
 
     static void validateTableExist(const catalog::Catalog& _catalog, std::string& tableName);
+    static void validateTableNotReservedForRDFGraph(
+        const catalog::Catalog& _catalog, std::string& tableName);
 
     static bool validateStringParsingOptionName(std::string& parsingOptionName);
 

@@ -237,6 +237,9 @@ private:
 
     std::unique_ptr<Statement> transformAlterTable(CypherParser::KU_AlterTableContext& ctx);
 
+    std::unique_ptr<Statement> transformCreateRdfGraphClause(
+        CypherParser::KU_CreateRdfGraphContext& ctx);
+
     std::unique_ptr<Statement> transformCreateNodeClause(CypherParser::KU_CreateNodeContext& ctx);
 
     std::unique_ptr<Statement> transformCreateRelClause(CypherParser::KU_CreateRelContext& ctx);

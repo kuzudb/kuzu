@@ -11,7 +11,7 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace catalog {
 
-CatalogContent::CatalogContent() : nextTableID{0} {
+CatalogContent::CatalogContent() : nextTableID{0}, nextRDFGraphID{0} {
     registerBuiltInFunctions();
 }
 
@@ -53,6 +53,31 @@ table_id_t CatalogContent::addRelTableSchema(std::string tableName, RelMultiplic
     tableNameToIDMap.emplace(relTableSchema->tableName, tableID);
     tableSchemas.emplace(tableID, std::move(relTableSchema));
     return tableID;
+}
+
+rdf_graph_id_t CatalogContent::addRDFGraphSchema(
+    std::string rdfGraphName, std::unique_ptr<Property> rdfResourceIRIProperty) {
+    rdf_graph_id_t rdfGraphID = assignNextRDFGraphID();
+    std::vector<std::unique_ptr<Property>> resourceTableProperties;
+    resourceTableProperties.emplace_back(std::move(rdfResourceIRIProperty));
+    table_id_t resourcesNodeTableID =
+        addNodeTableSchema(rdfGraphName + InternalKeyword::RDF_NODE_TABLE_SUFFIX, 0,
+            std::move(resourceTableProperties));
+    auto stringType = std::make_unique<common::LogicalType>(common::LogicalTypeID::STRING);
+    auto internalIDType = std::make_unique<common::LogicalType>(common::LogicalTypeID::INTERNAL_ID);
+    auto rdfResourceIDProperty = std::make_unique<Property>(
+        InternalKeyword::RDF_PREDICATE_IRI_OFFSET_PROPERTY_NAME, std::move(internalIDType));
+    std::vector<std::unique_ptr<Property>> triplesTableProperties;
+    triplesTableProperties.emplace_back(std::move(rdfResourceIDProperty));
+    table_id_t triplesRelTableID =
+        addRelTableSchema(rdfGraphName + InternalKeyword::RDF_REL_TABLE_SUFFIX,
+            RelMultiplicity::MANY_MANY, std::move(triplesTableProperties), resourcesNodeTableID,
+            resourcesNodeTableID, stringType->copy(), stringType->copy());
+    auto rdfGraphSchema = std::make_unique<RDFGraphSchema>(
+        std::move(rdfGraphName), rdfGraphID, resourcesNodeTableID, triplesRelTableID);
+    rdfGraphNameToIDMap.emplace(rdfGraphSchema->getRDFGraphName(), rdfGraphID);
+    rdfGraphSchemas.emplace(rdfGraphID, std::move(rdfGraphSchema));
+    return rdfGraphID;
 }
 
 bool CatalogContent::containNodeTable(const std::string& tableName) const {
@@ -131,11 +156,17 @@ void CatalogContent::saveToFile(const std::string& directory, DBFileType dbFileT
     uint64_t offset = 0;
     writeMagicBytes(fileInfo.get(), offset);
     SerDeser::serializeValue(StorageVersionInfo::getStorageVersion(), fileInfo.get(), offset);
+    SerDeser::serializeValue(rdfGraphSchemas.size(), fileInfo.get(), offset);
     SerDeser::serializeValue(tableSchemas.size(), fileInfo.get(), offset);
+    for (auto& [rdfGraphID, rdfGraphSchema] : rdfGraphSchemas) {
+        SerDeser::serializeValue(rdfGraphID, fileInfo.get(), offset);
+        rdfGraphSchema->serialize(fileInfo.get(), offset);
+    }
     for (auto& [tableID, tableSchema] : tableSchemas) {
         SerDeser::serializeValue(tableID, fileInfo.get(), offset);
         tableSchema->serialize(fileInfo.get(), offset);
     }
+    SerDeser::serializeValue(nextRDFGraphID, fileInfo.get(), offset);
     SerDeser::serializeValue(nextTableID, fileInfo.get(), offset);
     SerDeser::serializeUnorderedMap(macros, fileInfo.get(), offset);
 }
@@ -148,8 +179,17 @@ void CatalogContent::readFromFile(const std::string& directory, DBFileType dbFil
     storage_version_t savedStorageVersion;
     SerDeser::deserializeValue(savedStorageVersion, fileInfo.get(), offset);
     validateStorageVersion(savedStorageVersion);
-    uint64_t numTables;
+    uint64_t numRdfGraphSchemas, numTables;
+    SerDeser::deserializeValue(numRdfGraphSchemas, fileInfo.get(), offset);
     SerDeser::deserializeValue(numTables, fileInfo.get(), offset);
+    rdf_graph_id_t rdfGraphID;
+    for (auto i = 0u; i < numRdfGraphSchemas; i++) {
+        SerDeser::deserializeValue(rdfGraphID, fileInfo.get(), offset);
+        rdfGraphSchemas[rdfGraphID] = RDFGraphSchema::deserialize(fileInfo.get(), offset);
+    }
+    for (auto& [rdfGraphID_, rdfGraphSchema] : rdfGraphSchemas) {
+        rdfGraphNameToIDMap[rdfGraphSchema->getRDFGraphName()] = rdfGraphID_;
+    }
     table_id_t tableID;
     for (auto i = 0u; i < numTables; i++) {
         SerDeser::deserializeValue(tableID, fileInfo.get(), offset);
@@ -158,6 +198,7 @@ void CatalogContent::readFromFile(const std::string& directory, DBFileType dbFil
     for (auto& [tableID_, tableSchema] : tableSchemas) {
         tableNameToIDMap[tableSchema->tableName] = tableID_;
     }
+    SerDeser::deserializeValue(nextRDFGraphID, fileInfo.get(), offset);
     SerDeser::deserializeValue(nextTableID, fileInfo.get(), offset);
     SerDeser::deserializeUnorderedMap(macros, fileInfo.get(), offset);
 }
@@ -189,6 +230,10 @@ void CatalogContent::addScalarMacroFunction(
 
 std::unique_ptr<CatalogContent> CatalogContent::copy() const {
     std::unordered_map<table_id_t, std::unique_ptr<TableSchema>> tableSchemasToCopy;
+    std::unordered_map<rdf_graph_id_t, std::unique_ptr<RDFGraphSchema>> rdfGraphSchemasToCopy;
+    for (auto& [rdfGraphID, rdfGraphSchema] : rdfGraphSchemas) {
+        rdfGraphSchemasToCopy.emplace(rdfGraphID, rdfGraphSchema->copy());
+    }
     for (auto& [tableID, tableSchema] : tableSchemas) {
         tableSchemasToCopy.emplace(tableID, tableSchema->copy());
     }
@@ -196,8 +241,9 @@ std::unique_ptr<CatalogContent> CatalogContent::copy() const {
     for (auto& macro : macros) {
         macrosToCopy.emplace(macro.first, macro.second->copy());
     }
-    return std::make_unique<CatalogContent>(
-        std::move(tableSchemasToCopy), tableNameToIDMap, nextTableID, std::move(macrosToCopy));
+    return std::make_unique<CatalogContent>(std::move(rdfGraphSchemasToCopy),
+        std::move(tableSchemasToCopy), rdfGraphNameToIDMap, tableNameToIDMap, nextRDFGraphID,
+        nextTableID, std::move(macrosToCopy));
 }
 
 void CatalogContent::validateStorageVersion(storage_version_t savedStorageVersion) {

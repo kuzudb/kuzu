@@ -76,8 +76,10 @@ private:
     std::unique_ptr<PhysicalOperator> mapCreateRelTable(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCopyFrom(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCopyTo(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapCreateRDFGraph(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCopyNode(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCopyRel(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapCopyRDF(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDropTable(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapRenameTable(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapAddProperty(planner::LogicalOperator* logicalOperator);
@@ -88,6 +90,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapExplain(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapExpressionsScan(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCreateMacro(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapSchemaMapping(planner::LogicalOperator* logicalOperator);
 
     std::unique_ptr<ResultCollector> createResultCollector(common::AccumulateType accumulateType,
         const binder::expression_vector& expressions, planner::Schema* schema,

@@ -65,7 +65,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
             "Cannot bind {} as a single property expression.", parsedExpression.toString()));
     }
     auto propertyName = propertyExpression.getPropertyName();
-    if (TableSchema::isReservedPropertyName(propertyName)) {
+    if (TableSchema::isReservedPropertyName(propertyName) ||
+        RDFGraphSchema::isReservedPropertyName(propertyName)) {
         // Note we don't expose direct access to internal properties in case user tries to modify
         // them. However, we can expose indirect read-only access through function e.g. ID().
         throw BinderException(
@@ -133,14 +134,15 @@ static std::unordered_map<table_id_t, property_id_t> populatePropertyIDPerTable(
     return propertyIDPerTable;
 }
 
-std::unique_ptr<Expression> ExpressionBinder::createPropertyExpression(
-    const Expression& nodeOrRel, const std::vector<Property*>& properties, bool isPrimaryKey) {
+std::unique_ptr<Expression> ExpressionBinder::createPropertyExpression(const Expression& nodeOrRel,
+    const std::vector<Property*>& properties, bool isPrimaryKey, bool isRDFPredicateIRIProperty) {
     assert(!properties.empty());
     auto anchorProperty = properties[0];
     validatePropertiesWithSameDataType(properties, *anchorProperty->getDataType(),
         anchorProperty->getName(), nodeOrRel.toString());
     return make_unique<PropertyExpression>(*anchorProperty->getDataType(),
-        anchorProperty->getName(), nodeOrRel, populatePropertyIDPerTable(properties), isPrimaryKey);
+        anchorProperty->getName(), nodeOrRel, populatePropertyIDPerTable(properties), isPrimaryKey,
+        isRDFPredicateIRIProperty);
 }
 
 } // namespace binder

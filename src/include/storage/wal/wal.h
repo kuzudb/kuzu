@@ -2,6 +2,7 @@
 
 #include <unordered_set>
 
+#include "common/types/internal_id_t.h"
 #include "common/types/types_include.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/wal/wal_record.h"
@@ -102,6 +103,9 @@ public:
 
     void logCatalogRecord();
 
+    void logRDFGraphRecord(
+        common::table_id_t resourcesNodeTableID, common::table_id_t triplesRelTableID);
+
     void logNodeTableRecord(common::table_id_t tableID);
 
     void logRelTableRecord(common::table_id_t tableID);
@@ -112,6 +116,9 @@ public:
     void logCopyNodeRecord(common::table_id_t tableID, common::page_idx_t startPageIdx);
 
     void logCopyRelRecord(common::table_id_t tableID);
+
+    void logCopyRDFGraphRecord(common::table_id_t resourcesNodeTableID,
+        common::page_idx_t nodeTableStartPageIdx, common::table_id_t triplesRelTableID);
 
     void logDropTableRecord(common::table_id_t tableID);
 

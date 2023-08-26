@@ -16,9 +16,29 @@ namespace binder {
 expression_vector PropertyCollector::getProperties() {
     expression_vector result;
     for (auto& property : properties) {
+        auto propertyExpression = (PropertyExpression*)property.get();
+        if (propertyExpression->isRDFPredicateIRIProperty()) {
+            // if predicateIRI property is present then it is necessary to scan predicateIRIOffset
+            // property otherwise we won't be able to find a predicate iri for a triple.
+            addRDFPredicateIRIOffsetProperty(propertyExpression, result);
+        }
         result.push_back(property);
     }
     return result;
+}
+
+void PropertyCollector::addRDFPredicateIRIOffsetProperty(
+    kuzu::binder::PropertyExpression* rdfPredicateIRIProperty, expression_vector& result) {
+    for (const auto& rel : relExpressions) {
+        if (rel->hashPropertyWithUniqueName(rdfPredicateIRIProperty->getUniqueName())) {
+            auto rdfPredicateIRIOffsetProperty = rel->getPropertyExpression(
+                common::InternalKeyword::RDF_PREDICATE_IRI_OFFSET_PROPERTY_NAME);
+            if (!properties.contains(rdfPredicateIRIOffsetProperty)) {
+                result.push_back(rdfPredicateIRIOffsetProperty);
+            }
+            return;
+        }
+    }
 }
 
 void PropertyCollector::visitMatch(const BoundReadingClause& readingClause) {
@@ -27,6 +47,7 @@ void PropertyCollector::visitMatch(const BoundReadingClause& readingClause) {
         if (rel->getRelType() == QueryRelType::NON_RECURSIVE) {
             properties.insert(rel->getInternalIDProperty());
         }
+        relExpressions.push_back(rel);
     }
     if (matchClause.hasWhereExpression()) {
         collectPropertyExpressions(matchClause.getWhereExpression());

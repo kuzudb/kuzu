@@ -24,6 +24,9 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::COPY_TO: {
         return "COPY_TO";
     }
+    case LogicalOperatorType::COPY_RDF: {
+        return "COPY_RDF";
+    }
     case LogicalOperatorType::CREATE_NODE: {
         return "CREATE_NODE";
     }
@@ -125,6 +128,9 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     }
     case LogicalOperatorType::SCAN_NODE_PROPERTY: {
         return "SCAN_NODE_PROPERTY";
+    }
+    case LogicalOperatorType::SCHEMA_MAPPING: {
+        return "SCHEMA_MAPPING";
     }
     case LogicalOperatorType::SEMI_MASKER: {
         return "SEMI_MASKER";

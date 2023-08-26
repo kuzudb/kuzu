@@ -12,8 +12,9 @@ TablesStatistics::TablesStatistics() {
     tablesStatisticsContentForReadOnlyTrx = std::make_unique<TablesStatisticsContent>();
 }
 
-void TablesStatistics::readFromFile(const std::string& directory) {
-    auto filePath = getTableStatisticsFilePath(directory, DBFileType::ORIGINAL);
+void TablesStatistics::readFromFile(
+    const std::string& directory, const common::DBFileType dbFileType) {
+    auto filePath = getTableStatisticsFilePath(directory, dbFileType);
     auto fileInfo = FileUtils::openFile(filePath, O_RDONLY);
     logger->info("Reading {} from {}.", getTableTypeForPrinting(), filePath);
     uint64_t offset = 0;

@@ -1,6 +1,7 @@
 #include "binder/bound_statement_visitor.h"
 
 #include "binder/bound_explain.h"
+#include "common/statement_type.h"
 
 using namespace kuzu::common;
 
@@ -11,6 +12,9 @@ void BoundStatementVisitor::visit(const kuzu::binder::BoundStatement& statement)
     switch (statement.getStatementType()) {
     case StatementType::QUERY: {
         visitRegularQuery((BoundRegularQuery&)statement);
+    } break;
+    case StatementType::CREATE_RDF_GRAPH: {
+        visitCreateRDFGraph(statement);
     } break;
     case StatementType::CREATE_NODE_TABLE: {
         visitCreateNodeTable(statement);
@@ -45,6 +49,9 @@ void BoundStatementVisitor::visit(const kuzu::binder::BoundStatement& statement)
     } break;
     case StatementType::CREATE_MACRO: {
         visitCreateMacro(statement);
+    } break;
+    case StatementType::COPY_RDF: {
+        visitCopyRDF(statement);
     } break;
     default:
         throw NotImplementedException("BoundStatementVisitor::visit");

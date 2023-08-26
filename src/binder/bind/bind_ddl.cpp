@@ -1,6 +1,7 @@
 #include "binder/binder.h"
 #include "binder/ddl/bound_add_property.h"
 #include "binder/ddl/bound_create_node_clause.h"
+#include "binder/ddl/bound_create_rdf_graph.h"
 #include "binder/ddl/bound_create_rel_clause.h"
 #include "binder/ddl/bound_drop_property.h"
 #include "binder/ddl/bound_drop_table.h"
@@ -9,6 +10,7 @@
 #include "common/string_utils.h"
 #include "parser/ddl/add_property.h"
 #include "parser/ddl/create_node_clause.h"
+#include "parser/ddl/create_rdf_graph_clause.h"
 #include "parser/ddl/create_rel_clause.h"
 #include "parser/ddl/drop_property.h"
 #include "parser/ddl/drop_table.h"
@@ -22,10 +24,21 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace binder {
 
+std::unique_ptr<BoundStatement> Binder::bindCreateRDFGraphClause(
+    const parser::Statement& statement) {
+    auto& createRDFGraph = (parser::CreateRDFGraphClause&)statement;
+    auto rdfGraphName = createRDFGraph.getTableName();
+    if (catalog.getReadOnlyVersion()->containRDFGraph(rdfGraphName)) {
+        throw BinderException("RDF Graph " + rdfGraphName + " already exists.");
+    }
+    return make_unique<BoundCreateRDFGraph>(rdfGraphName);
+}
+
 std::unique_ptr<BoundStatement> Binder::bindCreateNodeTableClause(
     const parser::Statement& statement) {
     auto& createNodeTableClause = (parser::CreateNodeTableClause&)statement;
     auto tableName = createNodeTableClause.getTableName();
+    validateTableNotReservedForRDFGraph(catalog, tableName);
     if (catalog.getReadOnlyVersion()->containTable(tableName)) {
         throw BinderException("Node " + tableName + " already exists.");
     }
@@ -45,6 +58,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateRelTableClause(
     const parser::Statement& statement) {
     auto& createRelClause = (CreateRelClause&)statement;
     auto tableName = createRelClause.getTableName();
+    validateTableNotReservedForRDFGraph(catalog, tableName);
     if (catalog.getReadOnlyVersion()->containTable(tableName)) {
         throw BinderException("Rel " + tableName + " already exists.");
     }
@@ -63,6 +77,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateRelTableClause(
 std::unique_ptr<BoundStatement> Binder::bindDropTableClause(const parser::Statement& statement) {
     auto& dropTable = (DropTable&)statement;
     auto tableName = dropTable.getTableName();
+    validateTableNotReservedForRDFGraph(catalog, tableName);
     validateTableExist(catalog, tableName);
     auto catalogContent = catalog.getReadOnlyVersion();
     auto tableID = catalogContent->getTableID(tableName);
@@ -75,18 +90,22 @@ std::unique_ptr<BoundStatement> Binder::bindDropTableClause(const parser::Statem
 std::unique_ptr<BoundStatement> Binder::bindRenameTableClause(const parser::Statement& statement) {
     auto renameTable = (RenameTable&)statement;
     auto tableName = renameTable.getTableName();
+    auto newTableName = renameTable.getNewName();
     auto catalogContent = catalog.getReadOnlyVersion();
+    validateTableNotReservedForRDFGraph(catalog, tableName);
+    validateTableNotReservedForRDFGraph(catalog, newTableName);
     validateTableExist(catalog, tableName);
-    if (catalogContent->containTable(renameTable.getNewName())) {
-        throw BinderException("Table: " + renameTable.getNewName() + " already exists.");
+    if (catalogContent->containTable(newTableName)) {
+        throw BinderException("Table: " + newTableName + " already exists.");
     }
     return make_unique<BoundRenameTable>(
-        catalogContent->getTableID(tableName), tableName, renameTable.getNewName());
+        catalogContent->getTableID(tableName), tableName, newTableName);
 }
 
 std::unique_ptr<BoundStatement> Binder::bindAddPropertyClause(const parser::Statement& statement) {
     auto& addProperty = (AddProperty&)statement;
     auto tableName = addProperty.getTableName();
+    validateTableNotReservedForRDFGraph(catalog, tableName);
     validateTableExist(catalog, tableName);
     auto catalogContent = catalog.getReadOnlyVersion();
     auto tableID = catalogContent->getTableID(tableName);
@@ -106,6 +125,7 @@ std::unique_ptr<BoundStatement> Binder::bindAddPropertyClause(const parser::Stat
 std::unique_ptr<BoundStatement> Binder::bindDropPropertyClause(const parser::Statement& statement) {
     auto& dropProperty = (DropProperty&)statement;
     auto tableName = dropProperty.getTableName();
+    validateTableNotReservedForRDFGraph(catalog, tableName);
     validateTableExist(catalog, tableName);
     auto catalogContent = catalog.getReadOnlyVersion();
     auto tableID = catalogContent->getTableID(tableName);
@@ -122,6 +142,7 @@ std::unique_ptr<BoundStatement> Binder::bindRenamePropertyClause(
     const parser::Statement& statement) {
     auto& renameProperty = (RenameProperty&)statement;
     auto tableName = renameProperty.getTableName();
+    validateTableNotReservedForRDFGraph(catalog, tableName);
     validateTableExist(catalog, tableName);
     auto catalogContent = catalog.getReadOnlyVersion();
     auto tableID = catalogContent->getTableID(tableName);

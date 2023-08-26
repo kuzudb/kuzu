@@ -190,7 +190,9 @@ std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern
         throw BinderException("Bind relationship " + parsedName +
                               " to relationship with same name is not supported.");
     }
-    auto tableIDs = bindRelTableIDs(relPattern.getTableNames());
+    auto tableNames = replaceRDFGraphNamesIfNecessary(
+        relPattern.getTableNames(), common::InternalKeyword::RDF_REL_TABLE_SUFFIX);
+    auto tableIDs = bindRelTableIDs(tableNames);
     // bind src & dst node
     RelDirectionType directionType;
     std::shared_ptr<NodeExpression> srcNode;
@@ -352,6 +354,21 @@ void Binder::bindQueryRelProperties(RelExpression& rel) {
             rel, propertySchemas, false /* isPrimaryKey */);
         rel.addPropertyExpression(propertyName, std::move(propertyExpression));
     }
+
+    // Add user-facing/artificial RDF predicateIRI property
+    std::vector<Property*> rdfPredicateIRIProperties;
+    for (table_id_t relTableID : rel.getTableIDs()) {
+        if (catalog.getReadOnlyVersion()->isRDFRelTableID(relTableID)) {
+            auto property = catalog::CatalogContent::createRDFPredicateIRIProperty(relTableID);
+            rdfPredicateIRIProperties.push_back(property);
+        }
+    }
+
+    if (!rdfPredicateIRIProperties.empty()) {
+        auto expression = expressionBinder.createPropertyExpression(rel, rdfPredicateIRIProperties,
+            false /* isPrimaryKey */, true /* isRDFPredicateIRIProperty */);
+        rel.addPropertyExpression(InternalKeyword::RDF_IRI_PROPERTY_NAME, std::move(expression));
+    }
 }
 
 std::shared_ptr<NodeExpression> Binder::bindQueryNode(
@@ -386,7 +403,9 @@ std::shared_ptr<NodeExpression> Binder::bindQueryNode(
 
 std::shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePattern) {
     auto parsedName = nodePattern.getVariableName();
-    auto tableIDs = bindNodeTableIDs(nodePattern.getTableNames());
+    auto tableNames = replaceRDFGraphNamesIfNecessary(
+        nodePattern.getTableNames(), common::InternalKeyword::RDF_NODE_TABLE_SUFFIX);
+    auto tableIDs = bindNodeTableIDs(tableNames);
     return createQueryNode(parsedName, tableIDs);
 }
 
@@ -466,6 +485,19 @@ std::vector<table_id_t> Binder::bindRelTableIDs(const std::vector<std::string>& 
     auto result = std::vector<table_id_t>{tableIDs.begin(), tableIDs.end()};
     std::sort(result.begin(), result.end());
     return result;
+}
+
+std::vector<std::string> Binder::replaceRDFGraphNamesIfNecessary(
+    const std::vector<std::string>& tableNames, const std::string& tableSuffix) {
+    std::vector<std::string> newTableNames;
+    for (const auto& tableName : tableNames) {
+        if (catalog.getReadOnlyVersion()->containRDFGraph(tableName)) {
+            newTableNames.emplace_back(tableName + tableSuffix);
+        } else {
+            newTableNames.emplace_back(tableName);
+        }
+    }
+    return newTableNames;
 }
 
 } // namespace binder

@@ -16,6 +16,8 @@ public:
         const storage::RelsStatistics& relsStatistics, const BoundStatement& statement);
 
 private:
+    static std::unique_ptr<LogicalPlan> planCreateRDFGraph(const BoundStatement& statement);
+
     static std::unique_ptr<LogicalPlan> planCreateNodeTable(const BoundStatement& statement);
 
     static std::unique_ptr<LogicalPlan> planCreateRelTable(const BoundStatement& statement);
@@ -53,6 +55,9 @@ private:
         const storage::RelsStatistics& relsStatistics, const BoundStatement& statement);
 
     static std::unique_ptr<LogicalPlan> planCopyFrom(
+        const catalog::Catalog& catalog, const BoundStatement& statement);
+
+    static std::unique_ptr<LogicalPlan> planCopyRDF(
         const catalog::Catalog& catalog, const BoundStatement& statement);
 };
 

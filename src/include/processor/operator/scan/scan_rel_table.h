@@ -29,15 +29,19 @@ struct RelTableScanInfo {
     storage::DirectedRelTableData* tableData;
     storage::RelStatistics* relStats;
     std::vector<common::property_id_t> propertyIds;
+    common::property_id_t rdfPredicateIRIOffsetProperty;
 
     RelTableScanInfo(storage::RelTableDataType relTableDataType,
         storage::DirectedRelTableData* tableData, storage::RelStatistics* relStats,
-        std::vector<common::property_id_t> propertyIds)
+        std::vector<common::property_id_t> propertyIds,
+        common::property_id_t rdfPredicateIRIOffsetProperty)
         : relTableDataType{relTableDataType}, tableData{tableData}, relStats{relStats},
-          propertyIds{std::move(propertyIds)} {}
+          propertyIds{std::move(propertyIds)}, rdfPredicateIRIOffsetProperty{
+                                                   rdfPredicateIRIOffsetProperty} {}
     RelTableScanInfo(const RelTableScanInfo& other)
         : relTableDataType{other.relTableDataType}, tableData{other.tableData},
-          relStats{other.relStats}, propertyIds{other.propertyIds} {}
+          relStats{other.relStats}, propertyIds{other.propertyIds},
+          rdfPredicateIRIOffsetProperty{other.rdfPredicateIRIOffsetProperty} {}
 
     inline std::unique_ptr<RelTableScanInfo> copy() const {
         return std::make_unique<RelTableScanInfo>(*this);

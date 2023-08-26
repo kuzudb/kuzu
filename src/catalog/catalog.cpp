@@ -47,6 +47,17 @@ table_id_t Catalog::addNodeTableSchema(std::string tableName, property_id_t prim
     return tableID;
 }
 
+rdf_graph_id_t Catalog::addRDFGraphSchema(
+    std::string rdfGraphName, std::unique_ptr<Property> rdfResourceIRIProperty) {
+    initCatalogContentForWriteTrxIfNecessary();
+    auto rdfGraphID = catalogContentForWriteTrx->addRDFGraphSchema(
+        std::move(rdfGraphName), std::move(rdfResourceIRIProperty));
+    auto graphSchema = catalogContentForWriteTrx->getRDFGraphSchema(rdfGraphID);
+    wal->logRDFGraphRecord(
+        graphSchema->getResourcesNodeTableID(), graphSchema->getTriplesRelTableID());
+    return rdfGraphID;
+}
+
 table_id_t Catalog::addRelTableSchema(std::string tableName, RelMultiplicity relMultiplicity,
     std::vector<std::unique_ptr<Property>> propertyDefinitions, table_id_t srcTableID,
     table_id_t dstTableID, std::unique_ptr<LogicalType> srcPKDataType,

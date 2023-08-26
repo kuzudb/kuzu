@@ -23,6 +23,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::STANDALONE_CALL: {
         return "STANDALONE_CALL";
     }
+    case PhysicalOperatorType::COPY_RDF: {
+        return "COPY_RDF";
+    }
     case PhysicalOperatorType::COPY_TO: {
         return "COPY_TO";
     }
@@ -44,11 +47,17 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::READ_PARQUET: {
         return "READ_PARQUET";
     }
+    case PhysicalOperatorType::READ_RDF: {
+        return "READ_RDF";
+    }
     case PhysicalOperatorType::INSERT_NODE: {
         return "INSERT_NODE";
     }
     case PhysicalOperatorType::CREATE_NODE_TABLE: {
         return "CREATE_NODE_TABLE";
+    }
+    case PhysicalOperatorType::CREATE_RDF_GRAPH: {
+        return "CREATE_RDF_GRAPH";
     }
     case PhysicalOperatorType::INSERT_REL: {
         return "INSERT_REL";
@@ -142,6 +151,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     }
     case PhysicalOperatorType::SCAN_REL_TABLE_LISTS: {
         return "SCAN_REL_TABLE_LISTS";
+    }
+    case PhysicalOperatorType::SCHEMA_MAPPING: {
+        return "SCHEMA_MAPPING";
     }
     case PhysicalOperatorType::SEMI_MASKER: {
         return "SEMI_MASKER";
