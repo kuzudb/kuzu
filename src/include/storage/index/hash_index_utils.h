@@ -39,8 +39,9 @@ private:
     }
     inline static void insertFuncForString(const uint8_t* key, common::offset_t offset,
         uint8_t* entry, InMemOverflowFile* inMemOverflowFile) {
+        auto kuStr = (common::ku_string_t*) key;
         //auto kuString = inMemOverflowFile->appendString(reinterpret_cast<const char*>(key));
-        memcpy(entry, key, NUM_BYTES_FOR_STRING_KEY);
+        memcpy(entry, kuStr, NUM_BYTES_FOR_STRING_KEY);
         memcpy(entry + NUM_BYTES_FOR_STRING_KEY, &offset, sizeof(common::offset_t));
     }
     inline static bool equalsFuncForInt64(const uint8_t* keyToLookup, const uint8_t* keyInEntry,

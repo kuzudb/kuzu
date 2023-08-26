@@ -140,8 +140,8 @@ void CopyNode::populatePKIndex(
             auto numAppendedNodes =
                 appendToPKIndex<ku_string_t>(pkIndex, chunk, startOffset, numNodes);
             if (numAppendedNodes < numNodes) {
-                errorPKValueStr =
-                    chunk->getValue<ku_string_t>(startOffset + numAppendedNodes).getAsString();
+                errorPKValueStr = "fail to append";
+                    //chunk->getValue<ku_string_t>(startOffset + numAppendedNodes).getAsString();
             }
         } break;
         default: {
@@ -210,7 +210,9 @@ template<>
 uint64_t CopyNode::appendToPKIndex<ku_string_t>(
     PrimaryKeyIndexBuilder* pkIndex, ColumnChunk* chunk, offset_t startOffset, uint64_t numValues) {
     auto stringColumnChunk = (StringColumnChunk*)chunk;
-    pkIndex->append(stringColumnChunk, startOffset, numValues);
+    if(!pkIndex->append(stringColumnChunk, startOffset, numValues)){
+        return 0;
+    }
     return numValues;
 }
 

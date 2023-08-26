@@ -1,5 +1,7 @@
 #include "storage/index/hash_index_builder.h"
 
+#include <iostream>
+
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -87,12 +89,12 @@ bool HashIndexBuilder<T>::appendColumnChunk
     ovfFileLock.lock();
     uint64_t startPageIdx = inMemOverflowFile->getNumPages();
     uint64_t numPagesInChunk = chunk->overflowFile->getNumPages();
-    inMemOverflowFile->addNewPages(numPagesInChunk, false);
+    inMemOverflowFile->addNewPages(numPagesInChunk, true);
 
     for (uint64_t i = 0u; i < numPagesInChunk; i++) {
         uint64_t pageOffset = startPageIdx + i;
-        inMemOverflowFile->getPage(pageOffset)->write(0, 0, chunk->overflowFile->getPage(i)->data, BufferPoolConstants::PAGE_4KB_SIZE);
-        //memcpy(inMemOverflowFile->getPage(pageOffset), chunk->overflowFile->getPage(i), );
+        //inMemOverflowFile->getPage(pageOffset)->write(0, 0, chunk->overflowFile->getPage(i)->data, BufferPoolConstants::PAGE_4KB_SIZE);
+        memcpy(inMemOverflowFile->getPage(pageOffset)->data, chunk->overflowFile->getPage(i)->data, BufferPoolConstants::PAGE_4KB_SIZE);
     }
 
     ovfFileLock.unlock();
@@ -103,12 +105,39 @@ bool HashIndexBuilder<T>::appendColumnChunk
         common::page_idx_t pageIdx = 0;
         uint16_t pageOffset = 0;
         TypeUtils::decodeOverflowPtr(kuStr->overflowPtr, pageIdx, pageOffset);
-        TypeUtils::encodeOverflowPtr(kuStr->overflowPtr, pageIdx + startPageIdx, pageOffset);
-
-        const uint8_t* key = (uint8_t*)kuStr;
-        if(!appendInternal(key, offset)) return false;
+        TypeUtils::encodeOverflowPtr(kuStr->overflowPtr, startPageIdx + pageIdx, pageOffset);
+        
+        if(!appendInternalKuStr((uint8_t*)kuStr, offset)) return false;
     }
 
+    return true;
+}
+
+template<typename T>
+bool HashIndexBuilder<T>::appendInternalKuStr(const uint8_t* kuStrP, common::offset_t value) {
+    auto kuStr = (common::ku_string_t*)kuStrP;
+    std::string str = inMemOverflowFile->readString(kuStr);
+    const char* charA = str.c_str();
+    const uint8_t* key = (uint8_t*)charA;
+
+    SlotInfo pSlotInfo{getPrimarySlotIdForKey(*indexHeader, key), SlotType::PRIMARY};
+    auto currentSlotInfo = pSlotInfo;
+    Slot<T>* currentSlot = nullptr;
+    while (currentSlotInfo.slotType == SlotType::PRIMARY || currentSlotInfo.slotId != 0) {
+        currentSlot = getSlot(currentSlotInfo);
+        if (lookupOrExistsInSlotWithoutLock<false /* exists */>(currentSlot, key)) {
+            // Key already exists. No append is allowed.
+            return false;
+        }
+        if (currentSlot->header.numEntries < HashIndexConstants::SLOT_CAPACITY) {
+            break;
+        }
+        currentSlotInfo.slotId = currentSlot->header.nextOvfSlotId;
+        currentSlotInfo.slotType = SlotType::OVF;
+    }
+    assert(currentSlot);
+    insertToSlotWithoutLock(currentSlot, (const uint8_t*)kuStr, value);
+    numEntries.fetch_add(1);
     return true;
 }
 
