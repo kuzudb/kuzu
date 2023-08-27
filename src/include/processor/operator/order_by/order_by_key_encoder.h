@@ -7,6 +7,7 @@
 #include "common/exception.h"
 #include "common/utils.h"
 #include "common/vector/value_vector.h"
+#include "order_by_data_info.h"
 #include "processor/result/factorized_table.h"
 
 namespace kuzu {
@@ -27,29 +28,6 @@ namespace processor {
                 (((uint32_t)(x)&0x0000ff00) << 8) | (((uint32_t)(x)&0x000000ff) << 24)))
 
 #define BSWAP16(x) ((uint16_t)((((uint16_t)(x)&0xff00) >> 8) | (((uint16_t)(x)&0x00ff) << 8)))
-
-struct OrderByDataInfo {
-public:
-    OrderByDataInfo(std::vector<std::pair<DataPos, common::LogicalType>> keysPosAndType,
-        std::vector<std::pair<DataPos, common::LogicalType>> payloadsPosAndType,
-        std::vector<bool> isPayloadFlat, std::vector<bool> isAscOrder, bool mayContainUnflatKey)
-        : keysPosAndType{std::move(keysPosAndType)}, payloadsPosAndType{std::move(
-                                                         payloadsPosAndType)},
-          isPayloadFlat{std::move(isPayloadFlat)}, isAscOrder{std::move(isAscOrder)},
-          mayContainUnflatKey{mayContainUnflatKey} {}
-
-    OrderByDataInfo(const OrderByDataInfo& other)
-        : OrderByDataInfo{other.keysPosAndType, other.payloadsPosAndType, other.isPayloadFlat,
-              other.isAscOrder, other.mayContainUnflatKey} {}
-
-public:
-    std::vector<std::pair<DataPos, common::LogicalType>> keysPosAndType;
-    std::vector<std::pair<DataPos, common::LogicalType>> payloadsPosAndType;
-    std::vector<bool> isPayloadFlat;
-    std::vector<bool> isAscOrder;
-    // TODO(Ziyi): We should figure out unflat keys in a more general way.
-    bool mayContainUnflatKey;
-};
 
 // The OrderByKeyEncoder encodes all columns in the ORDER BY clause into a single binary sequence
 // that, when compared using memcmp will yield the correct overall sorting order. On little-endian
@@ -108,7 +86,7 @@ public:
 
     static uint32_t getEncodingSize(const common::LogicalType& dataType);
 
-    void encodeKeys(std::vector<common::ValueVector*> orderByKeys);
+    void encodeKeys(const std::vector<common::ValueVector*>& orderByKeys);
 
     inline void clear() { keyBlocks.clear(); }
 

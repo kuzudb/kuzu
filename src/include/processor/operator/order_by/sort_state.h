@@ -8,16 +8,11 @@
 namespace kuzu {
 namespace processor {
 
-struct LocalPayloadTableInfo {
-    uint64_t globalIdx;
-    FactorizedTable* payloadTable;
-};
-
 class SortSharedState {
 public:
-    SortSharedState()
-        : nextFactorizedTableIdx{0},
-          sortedKeyBlocks{std::make_shared<std::queue<std::shared_ptr<MergedKeyBlocks>>>()} {};
+    SortSharedState() : nextTableIdx{0}, numBytesPerTuple{0} {
+        sortedKeyBlocks = std::make_unique<std::queue<std::shared_ptr<MergedKeyBlocks>>>();
+    }
 
     inline uint64_t getNumBytesPerTuple() const { return numBytesPerTuple; }
 
@@ -29,7 +24,8 @@ public:
 
     void init(const OrderByDataInfo& orderByDataInfo);
 
-    LocalPayloadTableInfo getLocalPayloadTable(storage::MemoryManager& memoryManager);
+    std::pair<uint64_t, FactorizedTable*> getLocalPayloadTable(
+        storage::MemoryManager& memoryManager, const FactorizedTableSchema& payloadTableSchema);
 
     void appendLocalSortedKeyBlock(std::shared_ptr<MergedKeyBlocks> mergedDataBlocks);
 
@@ -42,18 +38,12 @@ public:
     }
 
 private:
-    void calculatePayloadSchema(const kuzu::processor::OrderByDataInfo& orderByDataInfo);
-
-private:
     std::mutex mtx;
     std::vector<std::unique_ptr<FactorizedTable>> payloadTables;
-    uint8_t nextFactorizedTableIdx;
-    std::shared_ptr<std::queue<std::shared_ptr<MergedKeyBlocks>>> sortedKeyBlocks;
+    uint8_t nextTableIdx;
+    std::unique_ptr<std::queue<std::shared_ptr<MergedKeyBlocks>>> sortedKeyBlocks;
     uint32_t numBytesPerTuple;
     std::vector<StrKeyColInfo> strKeyColsInfo;
-
-private:
-    std::unique_ptr<FactorizedTableSchema> payloadSchema;
 };
 
 class SortLocalState {
@@ -61,15 +51,16 @@ public:
     void init(const OrderByDataInfo& orderByDataInfo, SortSharedState& sharedState,
         storage::MemoryManager* memoryManager);
 
-    void append(std::vector<common::ValueVector*> keyVectors,
-        std::vector<common::ValueVector*> payloadVectors);
+    void append(const std::vector<common::ValueVector*>& keyVectors,
+        const std::vector<common::ValueVector*>& payloadVectors);
 
     void finalize(SortSharedState& sharedState);
 
 private:
     std::unique_ptr<OrderByKeyEncoder> orderByKeyEncoder;
     std::unique_ptr<RadixSort> radixSorter;
-    LocalPayloadTableInfo localPayloadTableInfo;
+    uint64_t globalIdx;
+    FactorizedTable* payloadTable;
 };
 
 class PayloadScanner {
