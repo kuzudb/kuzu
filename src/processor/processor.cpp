@@ -1,8 +1,8 @@
 #include "processor/processor.h"
 
 #include "processor/operator/aggregate/base_aggregate.h"
-#include "processor/operator/copy_from/copy.h"
-#include "processor/operator/copy_from/copy_node.h"
+#include "processor/operator/persistent/copy.h"
+#include "processor/operator/persistent/copy_node.h"
 #include "processor/operator/result_collector.h"
 #include "processor/operator/sink.h"
 #include "processor/processor_task.h"

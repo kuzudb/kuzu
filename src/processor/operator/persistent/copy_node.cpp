@@ -1,4 +1,4 @@
-#include "processor/operator/copy_from/copy_node.h"
+#include "processor/operator/persistent/copy_node.h"
 
 #include "common/string_utils.h"
 #include "storage/copier/string_column_chunk.h"
@@ -50,7 +50,8 @@ CopyNode::CopyNode(std::shared_ptr<CopyNodeSharedState> sharedState, CopyNodeInf
     std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
     : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::COPY_NODE, std::move(child), id,
           paramsString},
-      sharedState{std::move(sharedState)}, copyNodeInfo{std::move(copyNodeInfo)} {}
+      nodeOffsetVector{nullptr}, sharedState{std::move(sharedState)}, copyNodeInfo{std::move(
+                                                                          copyNodeInfo)} {}
 
 void CopyNodeSharedState::appendLocalNodeGroup(std::unique_ptr<NodeGroup> localNodeGroup) {
     std::unique_lock xLck{mtx};
@@ -85,25 +86,22 @@ void CopyNode::executeInternal(ExecutionContext* context) {
         auto numTuplesToAppend = ArrowColumnVector::getArrowColumn(
             resultSet->getValueVector(copyNodeInfo.dataColumnPoses[0]).get())
                                      ->length();
-        auto nodeOffset = nodeOffsetVector->getValue<int64_t>(
-                              nodeOffsetVector->state->selVector->selectedPositions[0]) -
-                          1;
-        uint64_t numAppendedTuples = 0;
-        while (numAppendedTuples < numTuplesToAppend) {
-            auto numAppendedTuplesInNodeGroup = localNodeGroup->append(
-                resultSet, copyNodeInfo.dataColumnPoses, numTuplesToAppend - numAppendedTuples);
-            numAppendedTuples += numAppendedTuplesInNodeGroup;
-            if (localNodeGroup->isFull()) {
-                node_group_idx_t nodeGroupIdx;
-                if (copyNodeInfo.preservingOrder) {
-                    nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset) - 1;
-                    sharedState->currentNodeGroupIdx++;
-                } else {
-                    nodeGroupIdx = sharedState->getNextNodeGroupIdx();
-                }
-                writeAndResetNodeGroup(nodeGroupIdx, sharedState->pkIndex.get(),
-                    sharedState->pkColumnID, sharedState->table, localNodeGroup.get());
+        assert(numTuplesToAppend <= StorageConstants::NODE_GROUP_SIZE);
+        auto nodeOffset = nodeOffsetVector->getValue<offset_t>(
+            nodeOffsetVector->state->selVector->selectedPositions[0]);
+        auto numAppendedTuplesInNodeGroup =
+            localNodeGroup->append(resultSet, copyNodeInfo.dataColumnPoses, numTuplesToAppend);
+        assert(numAppendedTuplesInNodeGroup == numTuplesToAppend);
+        if (localNodeGroup->isFull()) {
+            node_group_idx_t nodeGroupIdx;
+            if (copyNodeInfo.preservingOrder) {
+                nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+                sharedState->setNextNodeGroupIdx(nodeGroupIdx + 1);
+            } else {
+                nodeGroupIdx = sharedState->getNextNodeGroupIdx();
             }
+            writeAndResetNodeGroup(nodeGroupIdx, sharedState->pkIndex.get(),
+                sharedState->pkColumnID, sharedState->table, localNodeGroup.get());
         }
     }
     if (localNodeGroup->getNumNodes() > 0) {

@@ -20,4 +20,4 @@ Copy exception: Found NULL, which violates the non-null constraint of the primar
 ---- ok
 -STATEMENT COPY like FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/eLikes.csv"
 ---- error
-Copy exception: NULL found around L3 in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/eLikes.csv violates the non-null constraint of the primary key column.
+Copy exception: Found NULL, which violates the non-null constraint of the primary key column.

@@ -12,6 +12,10 @@ std::string ExceptionMessage::existedPKException(const std::string& pkString) {
         pkString);
 }
 
+std::string ExceptionMessage::nonExistPKException(const std::string& pkString) {
+    return StringUtils::string_format("Found non-existed primary key value {}.", pkString);
+}
+
 std::string ExceptionMessage::invalidPKType(const std::string& type) {
     return StringUtils::string_format(
         "Invalid primary key column type {}. Primary key must be either INT64, STRING or SERIAL.",

@@ -1,6 +1,4 @@
 add_subdirectory(aggregate)
-add_subdirectory(copy_from)
-add_subdirectory(copy_to)
 add_subdirectory(ddl)
 add_subdirectory(hash_join)
 add_subdirectory(intersect)

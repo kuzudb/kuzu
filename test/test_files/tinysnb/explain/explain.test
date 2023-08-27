@@ -1,5 +1,5 @@
 -GROUP TinySnbReadTest
--DATASET CSV tinysnb
+-DATASET CSV empty
 
 --
 

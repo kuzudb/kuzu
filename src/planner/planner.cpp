@@ -177,7 +177,9 @@ std::unique_ptr<LogicalPlan> Planner::planCopyFrom(
     auto& copyClause = reinterpret_cast<const BoundCopyFrom&>(statement);
     auto plan = std::make_unique<LogicalPlan>();
     expression_vector arrowColumnExpressions;
-    bool hasSerial = false;
+    // For CSV file, and table with SERIAL columns, we need to read in serial from files.
+    bool readInSerialMode =
+        copyClause.getCopyDescription().fileType == CopyDescription::FileType::CSV;
     for (auto& property :
         catalog.getReadOnlyVersion()->getTableSchema(copyClause.getTableID())->properties) {
         if (property->getDataType()->getLogicalTypeID() != common::LogicalTypeID::SERIAL) {
@@ -185,12 +187,12 @@ std::unique_ptr<LogicalPlan> Planner::planCopyFrom(
                 common::LogicalType{common::LogicalTypeID::ARROW_COLUMN}, property->getName(),
                 property->getName()));
         } else {
-            hasSerial = true;
+            readInSerialMode = true;
         }
     }
     auto copy =
         make_shared<LogicalCopyFrom>(copyClause.getCopyDescription(), copyClause.getTableID(),
-            copyClause.getTableName(), hasSerial, std::move(arrowColumnExpressions),
+            copyClause.getTableName(), readInSerialMode, std::move(arrowColumnExpressions),
             std::make_shared<VariableExpression>(
                 common::LogicalType{common::LogicalTypeID::INT64}, "nodeOffset", "nodeOffset"),
             copyClause.getStatementResult()->getSingleExpressionToCollect());

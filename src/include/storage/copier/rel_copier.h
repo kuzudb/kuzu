@@ -1,6 +1,6 @@
 #pragma once
 
-#include "storage/copier/read_file_state.h"
+#include "storage/copier/reader_state.h"
 #include "storage/in_mem_storage_structure/in_mem_column.h"
 #include "storage/in_mem_storage_structure/in_mem_lists.h"
 #include "storage/index/hash_index.h"
@@ -14,13 +14,15 @@ class DirectedInMemRelData;
 
 class RelCopier {
 public:
-    RelCopier(std::shared_ptr<ReadFileSharedState> sharedState,
+    RelCopier(std::shared_ptr<ReaderSharedState> sharedState,
         const common::CopyDescription& copyDesc, catalog::RelTableSchema* schema,
         DirectedInMemRelData* fwdRelData, DirectedInMemRelData* bwdRelData,
-        std::vector<PrimaryKeyIndex*> pkIndexes)
+        std::vector<PrimaryKeyIndex*> pkIndexes, read_rows_func_t readFunc,
+        init_reader_data_func_t initFunc)
         : sharedState{std::move(sharedState)}, copyDesc{copyDesc}, schema{schema},
-          fwdRelData{fwdRelData}, bwdRelData{bwdRelData}, numRows{0}, pkIndexes{
-                                                                          std::move(pkIndexes)} {
+          fwdRelData{fwdRelData}, bwdRelData{bwdRelData}, numRows{0}, pkIndexes{std::move(
+                                                                          pkIndexes)},
+          readFuncData{nullptr}, readFunc{std::move(readFunc)}, initFunc{std::move(initFunc)} {
         fwdCopyStates.resize(schema->getNumProperties());
         for (auto i = 0u; i < schema->getNumProperties(); i++) {
             fwdCopyStates[i] =
@@ -40,16 +42,15 @@ public:
     virtual std::unique_ptr<RelCopier> clone() const = 0;
     virtual void finalize() = 0;
 
-    inline std::shared_ptr<ReadFileSharedState> getSharedState() const { return sharedState; }
+    inline std::shared_ptr<ReaderSharedState> getSharedState() const { return sharedState; }
 
 protected:
-    virtual void executeInternal(std::unique_ptr<ReadFileMorsel> morsel) {
-        throw common::CopyException("RelCopier::executeInternal not implemented");
+    virtual bool executeInternal() {
+        throw common::NotImplementedException("RelCopier::executeInternal not implemented");
     }
 
     static void indexLookup(arrow::Array* pkArray, const common::LogicalType& pkColumnType,
-        PrimaryKeyIndex* pkIndex, common::offset_t* offsets, const std::string& filePath,
-        common::row_idx_t startRowIdxInFile);
+        PrimaryKeyIndex* pkIndex, common::offset_t* offsets);
 
     void copyRelColumnsOrCountRelListsSize(common::row_idx_t rowIdx,
         arrow::RecordBatch* recordBatch, common::RelDataDirection direction,
@@ -70,7 +71,7 @@ protected:
         const std::shared_ptr<arrow::DataType>& type, const uint8_t* data, uint64_t length);
 
 protected:
-    std::shared_ptr<ReadFileSharedState> sharedState;
+    std::shared_ptr<ReaderSharedState> sharedState;
     common::CopyDescription copyDesc;
     catalog::RelTableSchema* schema;
     DirectedInMemRelData* fwdRelData;
@@ -79,16 +80,21 @@ protected:
     std::vector<PrimaryKeyIndex*> pkIndexes;
     std::vector<std::unique_ptr<PropertyCopyState>> fwdCopyStates;
     std::vector<std::unique_ptr<PropertyCopyState>> bwdCopyStates;
+
+    std::unique_ptr<storage::ReaderFunctionData> readFuncData;
+    storage::read_rows_func_t readFunc;
+    storage::init_reader_data_func_t initFunc;
 };
 
 class RelListsCounterAndColumnCopier : public RelCopier {
 protected:
-    RelListsCounterAndColumnCopier(std::shared_ptr<ReadFileSharedState> sharedState,
+    RelListsCounterAndColumnCopier(std::shared_ptr<ReaderSharedState> sharedState,
         const common::CopyDescription& copyDesc, catalog::RelTableSchema* schema,
         DirectedInMemRelData* fwdRelData, DirectedInMemRelData* bwdRelData,
-        std::vector<PrimaryKeyIndex*> pkIndexes)
+        std::vector<PrimaryKeyIndex*> pkIndexes, read_rows_func_t readFunc,
+        init_reader_data_func_t initFunc)
         : RelCopier{std::move(sharedState), copyDesc, schema, fwdRelData, bwdRelData,
-              std::move(pkIndexes)} {}
+              std::move(pkIndexes), std::move(readFunc), std::move(initFunc)} {}
 
     void finalize() override;
 
@@ -101,52 +107,51 @@ protected:
 
 class ParquetRelListsCounterAndColumnsCopier : public RelListsCounterAndColumnCopier {
 public:
-    ParquetRelListsCounterAndColumnsCopier(std::shared_ptr<ReadFileSharedState> sharedState,
+    ParquetRelListsCounterAndColumnsCopier(std::shared_ptr<ReaderSharedState> sharedState,
         const common::CopyDescription& copyDesc, catalog::RelTableSchema* schema,
         DirectedInMemRelData* fwdRelData, DirectedInMemRelData* bwdRelData,
-        std::vector<PrimaryKeyIndex*> pkIndexes)
+        std::vector<PrimaryKeyIndex*> pkIndexes, read_rows_func_t readFunc,
+        init_reader_data_func_t initFunc)
         : RelListsCounterAndColumnCopier{std::move(sharedState), copyDesc, schema, fwdRelData,
-              bwdRelData, std::move(pkIndexes)} {}
+              bwdRelData, std::move(pkIndexes), std::move(readFunc), std::move(initFunc)} {}
 
     std::unique_ptr<RelCopier> clone() const final {
         return std::make_unique<ParquetRelListsCounterAndColumnsCopier>(
-            sharedState, copyDesc, schema, fwdRelData, bwdRelData, pkIndexes);
+            sharedState, copyDesc, schema, fwdRelData, bwdRelData, pkIndexes, readFunc, initFunc);
     }
 
 private:
-    void executeInternal(std::unique_ptr<ReadFileMorsel> morsel) final;
-
-private:
-    std::unique_ptr<parquet::arrow::FileReader> reader;
-    std::string filePath;
+    bool executeInternal() final;
 };
 
 class CSVRelListsCounterAndColumnsCopier : public RelListsCounterAndColumnCopier {
 public:
-    CSVRelListsCounterAndColumnsCopier(std::shared_ptr<ReadFileSharedState> sharedState,
+    CSVRelListsCounterAndColumnsCopier(std::shared_ptr<ReaderSharedState> sharedState,
         const common::CopyDescription& copyDesc, catalog::RelTableSchema* schema,
         DirectedInMemRelData* fwdRelData, DirectedInMemRelData* bwdRelData,
-        std::vector<PrimaryKeyIndex*> pkIndexes)
+        std::vector<PrimaryKeyIndex*> pkIndexes, read_rows_func_t readFunc,
+        init_reader_data_func_t initFunc)
         : RelListsCounterAndColumnCopier{std::move(sharedState), copyDesc, schema, fwdRelData,
-              bwdRelData, std::move(pkIndexes)} {}
+              bwdRelData, std::move(pkIndexes), std::move(readFunc), std::move(initFunc)} {}
 
     std::unique_ptr<RelCopier> clone() const final {
         return std::make_unique<CSVRelListsCounterAndColumnsCopier>(
-            sharedState, copyDesc, schema, fwdRelData, bwdRelData, pkIndexes);
+            sharedState, copyDesc, schema, fwdRelData, bwdRelData, pkIndexes, readFunc, initFunc);
     }
 
 private:
-    void executeInternal(std::unique_ptr<ReadFileMorsel> morsel) final;
+    bool executeInternal() final;
 };
 
 class RelListsCopier : public RelCopier {
 protected:
-    RelListsCopier(std::shared_ptr<ReadFileSharedState> sharedState,
+    RelListsCopier(std::shared_ptr<ReaderSharedState> sharedState,
         const common::CopyDescription& copyDesc, catalog::RelTableSchema* schema,
         DirectedInMemRelData* fwdRelData, DirectedInMemRelData* bwdRelData,
-        std::vector<PrimaryKeyIndex*> pkIndexes)
+        std::vector<PrimaryKeyIndex*> pkIndexes, read_rows_func_t readFunc,
+        init_reader_data_func_t initFunc)
         : RelCopier{std::move(sharedState), copyDesc, schema, fwdRelData, bwdRelData,
-              std::move(pkIndexes)} {}
+              std::move(pkIndexes), std::move(readFunc), std::move(initFunc)} {}
 
 private:
     void finalize() final;
@@ -154,42 +159,40 @@ private:
 
 class ParquetRelListsCopier : public RelListsCopier {
 public:
-    ParquetRelListsCopier(std::shared_ptr<ReadFileSharedState> sharedState,
+    ParquetRelListsCopier(std::shared_ptr<ReaderSharedState> sharedState,
         const common::CopyDescription& copyDesc, catalog::RelTableSchema* schema,
         DirectedInMemRelData* fwdRelData, DirectedInMemRelData* bwdRelData,
-        std::vector<PrimaryKeyIndex*> pkIndexes)
+        std::vector<PrimaryKeyIndex*> pkIndexes, read_rows_func_t readFunc,
+        init_reader_data_func_t initFunc)
         : RelListsCopier{std::move(sharedState), copyDesc, schema, fwdRelData, bwdRelData,
-              std::move(pkIndexes)} {}
+              std::move(pkIndexes), std::move(readFunc), std::move(initFunc)} {}
 
     std::unique_ptr<RelCopier> clone() const final {
         return std::make_unique<ParquetRelListsCopier>(
-            sharedState, copyDesc, schema, fwdRelData, bwdRelData, pkIndexes);
+            sharedState, copyDesc, schema, fwdRelData, bwdRelData, pkIndexes, readFunc, initFunc);
     }
 
 private:
-    void executeInternal(std::unique_ptr<ReadFileMorsel> morsel) final;
-
-private:
-    std::unique_ptr<parquet::arrow::FileReader> reader;
-    std::string filePath;
+    bool executeInternal() final;
 };
 
 class CSVRelListsCopier : public RelListsCopier {
 public:
-    CSVRelListsCopier(std::shared_ptr<ReadFileSharedState> sharedState,
+    CSVRelListsCopier(std::shared_ptr<ReaderSharedState> sharedState,
         const common::CopyDescription& copyDesc, catalog::RelTableSchema* schema,
         DirectedInMemRelData* fwdRelData, DirectedInMemRelData* bwdRelData,
-        std::vector<PrimaryKeyIndex*> pkIndexes)
+        std::vector<PrimaryKeyIndex*> pkIndexes, read_rows_func_t readFunc,
+        init_reader_data_func_t initFunc)
         : RelListsCopier{std::move(sharedState), copyDesc, schema, fwdRelData, bwdRelData,
-              std::move(pkIndexes)} {}
+              std::move(pkIndexes), std::move(readFunc), std::move(initFunc)} {}
 
     std::unique_ptr<RelCopier> clone() const final {
         return std::make_unique<CSVRelListsCopier>(
-            sharedState, copyDesc, schema, fwdRelData, bwdRelData, pkIndexes);
+            sharedState, copyDesc, schema, fwdRelData, bwdRelData, pkIndexes, readFunc, initFunc);
     }
 
 private:
-    void executeInternal(std::unique_ptr<ReadFileMorsel> morsel) final;
+    bool executeInternal() final;
 };
 
 class RelCopyTask : public common::Task {

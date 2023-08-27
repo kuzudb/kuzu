@@ -25,16 +25,9 @@ void RelCopier::execute(ExecutionContext* executionContext) {
         if (executionContext->clientContext->isInterrupted()) {
             throw InterruptException();
         }
-        auto morsel = sharedState->getMorsel();
-        if (morsel == nullptr) {
-            // No more morsels.
+        if (!executeInternal()) {
             break;
         }
-        executeInternal(std::move(morsel));
-    }
-    {
-        std::unique_lock xLck{sharedState->mtx};
-        sharedState->numRows += numRows;
     }
 }
 
@@ -48,21 +41,16 @@ void RelCopier::copyRelColumnsOrCountRelListsSize(row_idx_t rowIdx, arrow::Recor
 }
 
 void RelCopier::indexLookup(arrow::Array* pkArray, const LogicalType& pkColumnType,
-    PrimaryKeyIndex* pkIndex, offset_t* offsets, const std::string& filePath,
-    row_idx_t startRowIdxInFile) {
+    PrimaryKeyIndex* pkIndex, offset_t* offsets) {
     auto length = pkArray->length();
     if (pkArray->null_count() != 0) {
         for (auto i = 0u; i < length; i++) {
             if (pkArray->IsNull(i)) {
-                throw CopyException(StringUtils::string_format(
-                    "NULL found around L{} in file {} violates the non-null "
-                    "constraint of the primary key column.",
-                    (startRowIdxInFile + i), filePath));
+                throw CopyException(ExceptionMessage::nullPKException());
             }
         }
     }
     std::string errorPKValueStr;
-    row_idx_t errorPKRowIdx = INVALID_ROW_IDX;
     switch (pkColumnType.getLogicalTypeID()) {
     case LogicalTypeID::SERIAL: {
         for (auto i = 0u; i < length; i++) {
@@ -80,7 +68,6 @@ void RelCopier::indexLookup(arrow::Array* pkArray, const LogicalType& pkColumnTy
                 auto val = dynamic_cast<arrow::Int64Array*>(pkArray)->Value(i);
                 if (!pkIndex->lookup(&transaction::DUMMY_READ_TRANSACTION, val, offsets[i])) {
                     errorPKValueStr = std::to_string(val);
-                    errorPKRowIdx = startRowIdxInFile + i;
                 }
             }
         }
@@ -98,23 +85,17 @@ void RelCopier::indexLookup(arrow::Array* pkArray, const LogicalType& pkColumnTy
                 if (!pkIndex->lookup(
                         &transaction::DUMMY_READ_TRANSACTION, val.c_str(), offsets[i])) {
                     errorPKValueStr = val;
-                    errorPKRowIdx = startRowIdxInFile + i;
                 }
             }
         }
     } break;
     default: {
         throw NotImplementedException(
-            StringUtils::string_format("Invalid primary key column type {}.",
-                LogicalTypeUtils::dataTypeToString(pkColumnType)));
+            ExceptionMessage::invalidPKType(LogicalTypeUtils::dataTypeToString(pkColumnType)));
     }
     }
     if (!errorPKValueStr.empty()) {
-        assert(errorPKRowIdx != INVALID_ROW_IDX);
-        throw CopyException(
-            StringUtils::string_format("Primary key column contains value {} around "
-                                       "L{} in file {} that does not exist in the table.",
-                errorPKValueStr, errorPKRowIdx, filePath));
+        throw CopyException(ExceptionMessage::nonExistPKException(errorPKValueStr));
     }
 }
 
@@ -298,57 +279,70 @@ void RelListsCounterAndColumnCopier::buildRelListsHeaders(
     }
 }
 
-void ParquetRelListsCounterAndColumnsCopier::executeInternal(
-    std::unique_ptr<ReadFileMorsel> morsel) {
-    assert(!morsel->filePath.empty());
-    if (!reader || filePath != morsel->filePath) {
-        reader = TableCopyUtils::createParquetReader(morsel->filePath, schema);
-        filePath = morsel->filePath;
+bool ParquetRelListsCounterAndColumnsCopier::executeInternal() {
+    auto morsel = sharedState->getParallelMorsel();
+    if (morsel->fileIdx == INVALID_VECTOR_IDX) {
+        // No more morsels.
+        return false;
     }
-    std::shared_ptr<arrow::Table> table;
-    TableCopyUtils::throwCopyExceptionIfNotOK(
-        reader->RowGroup(static_cast<int>(morsel->blockIdx))->ReadTable(&table));
-    arrow::TableBatchReader batchReader(*table);
-    std::shared_ptr<arrow::RecordBatch> recordBatch;
-    TableCopyUtils::throwCopyExceptionIfNotOK(batchReader.ReadNext(&recordBatch));
-    auto numRowsInBatch = recordBatch->num_rows();
-    std::vector<offset_t> boundPKOffsets, adjPKOffsets;
-    boundPKOffsets.resize(numRowsInBatch);
-    adjPKOffsets.resize(numRowsInBatch);
-    indexLookup(recordBatch->column(0).get(), *schema->getSrcPKDataType(), pkIndexes[0],
-        (offset_t*)boundPKOffsets.data(), morsel->filePath, morsel->rowIdxInFile);
-    indexLookup(recordBatch->column(1).get(), *schema->getDstPKDataType(), pkIndexes[1],
-        (offset_t*)adjPKOffsets.data(), morsel->filePath, morsel->rowIdxInFile);
-    std::vector<std::unique_ptr<arrow::Array>> pkOffsetsArrays(2);
-    pkOffsetsArrays[0] = createArrowPrimitiveArray(
-        std::make_shared<arrow::Int64Type>(), (uint8_t*)boundPKOffsets.data(), numRowsInBatch);
-    pkOffsetsArrays[1] = createArrowPrimitiveArray(
-        std::make_shared<arrow::Int64Type>(), (uint8_t*)adjPKOffsets.data(), numRowsInBatch);
-    copyRelColumnsOrCountRelListsSize(morsel->rowIdx, recordBatch.get(), FWD, pkOffsetsArrays);
-    copyRelColumnsOrCountRelListsSize(morsel->rowIdx, recordBatch.get(), BWD, pkOffsetsArrays);
-    numRows += numRowsInBatch;
+    if (!readFuncData || morsel->fileIdx != readFuncData->fileIdx) {
+        readFuncData = initFunc(sharedState->filePaths, morsel->fileIdx,
+            sharedState->csvReaderConfig, sharedState->tableSchema);
+    }
+    auto batchVector = readFunc(*readFuncData, morsel->blockIdx);
+    auto startRowIdx = morsel->rowIdx;
+    for (auto& recordBatch : batchVector) {
+        auto numRowsInBatch = recordBatch->num_rows();
+        std::vector<offset_t> boundPKOffsets, adjPKOffsets;
+        boundPKOffsets.resize(numRowsInBatch);
+        adjPKOffsets.resize(numRowsInBatch);
+        indexLookup(recordBatch->column(0).get(), *schema->getSrcPKDataType(), pkIndexes[0],
+            (offset_t*)boundPKOffsets.data());
+        indexLookup(recordBatch->column(1).get(), *schema->getDstPKDataType(), pkIndexes[1],
+            (offset_t*)adjPKOffsets.data());
+        std::vector<std::unique_ptr<arrow::Array>> pkOffsetsArrays(2);
+        pkOffsetsArrays[0] = createArrowPrimitiveArray(
+            std::make_shared<arrow::Int64Type>(), (uint8_t*)boundPKOffsets.data(), numRowsInBatch);
+        pkOffsetsArrays[1] = createArrowPrimitiveArray(
+            std::make_shared<arrow::Int64Type>(), (uint8_t*)adjPKOffsets.data(), numRowsInBatch);
+        copyRelColumnsOrCountRelListsSize(startRowIdx, recordBatch.get(), FWD, pkOffsetsArrays);
+        copyRelColumnsOrCountRelListsSize(startRowIdx, recordBatch.get(), BWD, pkOffsetsArrays);
+        numRows += numRowsInBatch;
+        startRowIdx += numRowsInBatch;
+    }
+    return true;
 }
 
-void CSVRelListsCounterAndColumnsCopier::executeInternal(std::unique_ptr<ReadFileMorsel> morsel) {
-    assert(!morsel->filePath.empty());
-    auto csvRelCopyMorsel = reinterpret_cast<ReadSerialMorsel*>(morsel.get());
-    auto recordBatch = csvRelCopyMorsel->recordTable->CombineChunksToBatch().ValueOrDie();
-    auto numRowsInBatch = recordBatch->num_rows();
-    std::vector<offset_t> boundPKOffsets, adjPKOffsets;
-    boundPKOffsets.resize(numRowsInBatch);
-    adjPKOffsets.resize(numRowsInBatch);
-    indexLookup(recordBatch->column(0).get(), *schema->getSrcPKDataType(), pkIndexes[0],
-        boundPKOffsets.data(), morsel->filePath, morsel->rowIdxInFile);
-    indexLookup(recordBatch->column(1).get(), *schema->getDstPKDataType(), pkIndexes[1],
-        adjPKOffsets.data(), morsel->filePath, morsel->rowIdxInFile);
-    std::vector<std::unique_ptr<arrow::Array>> pkOffsets(2);
-    pkOffsets[0] = createArrowPrimitiveArray(
-        std::make_shared<arrow::Int64Type>(), (uint8_t*)boundPKOffsets.data(), numRowsInBatch);
-    pkOffsets[1] = createArrowPrimitiveArray(
-        std::make_shared<arrow::Int64Type>(), (uint8_t*)adjPKOffsets.data(), numRowsInBatch);
-    copyRelColumnsOrCountRelListsSize(morsel->rowIdx, recordBatch.get(), FWD, pkOffsets);
-    copyRelColumnsOrCountRelListsSize(morsel->rowIdx, recordBatch.get(), BWD, pkOffsets);
-    numRows += numRowsInBatch;
+bool CSVRelListsCounterAndColumnsCopier::executeInternal() {
+    auto morsel = sharedState->getSerialMorsel();
+    if (morsel->fileIdx == INVALID_VECTOR_IDX) {
+        return false;
+    }
+    auto serialMorsel = reinterpret_cast<SerialReaderMorsel*>(morsel.get());
+    arrow::TableBatchReader batchReader(*serialMorsel->table);
+    arrow::RecordBatchVector batchVector;
+    TableCopyUtils::throwCopyExceptionIfNotOK(batchReader.ToRecordBatches().Value(&batchVector));
+    auto startRowIdx = morsel->rowIdx;
+    for (auto& recordBatch : batchVector) {
+        auto numRowsInBatch = recordBatch->num_rows();
+        std::vector<offset_t> boundPKOffsets, adjPKOffsets;
+        boundPKOffsets.resize(numRowsInBatch);
+        adjPKOffsets.resize(numRowsInBatch);
+        indexLookup(recordBatch->column(0).get(), *schema->getSrcPKDataType(), pkIndexes[0],
+            boundPKOffsets.data());
+        indexLookup(recordBatch->column(1).get(), *schema->getDstPKDataType(), pkIndexes[1],
+            adjPKOffsets.data());
+        std::vector<std::unique_ptr<arrow::Array>> pkOffsets(2);
+        pkOffsets[0] = createArrowPrimitiveArray(
+            std::make_shared<arrow::Int64Type>(), (uint8_t*)boundPKOffsets.data(), numRowsInBatch);
+        pkOffsets[1] = createArrowPrimitiveArray(
+            std::make_shared<arrow::Int64Type>(), (uint8_t*)adjPKOffsets.data(), numRowsInBatch);
+        copyRelColumnsOrCountRelListsSize(startRowIdx, recordBatch.get(), FWD, pkOffsets);
+        copyRelColumnsOrCountRelListsSize(startRowIdx, recordBatch.get(), BWD, pkOffsets);
+        numRows += numRowsInBatch;
+        startRowIdx += numRowsInBatch;
+    }
+    return true;
 }
 
 void RelListsCopier::finalize() {
@@ -366,64 +360,79 @@ void RelListsCopier::finalize() {
     }
 }
 
-void ParquetRelListsCopier::executeInternal(std::unique_ptr<ReadFileMorsel> morsel) {
-    assert(!morsel->filePath.empty());
-    if (!reader || filePath != morsel->filePath) {
-        reader = TableCopyUtils::createParquetReader(morsel->filePath, schema);
-        filePath = morsel->filePath;
+bool ParquetRelListsCopier::executeInternal() {
+    auto morsel = sharedState->getParallelMorsel();
+    if (morsel->fileIdx == INVALID_VECTOR_IDX) {
+        // No more morsels.
+        return false;
     }
-    std::shared_ptr<arrow::Table> table;
-    TableCopyUtils::throwCopyExceptionIfNotOK(
-        reader->RowGroup(static_cast<int>(morsel->blockIdx))->ReadTable(&table));
-    arrow::TableBatchReader batchReader(*table);
-    std::shared_ptr<arrow::RecordBatch> recordBatch;
-    TableCopyUtils::throwCopyExceptionIfNotOK(batchReader.ReadNext(&recordBatch));
-    auto numRowsInBatch = recordBatch->num_rows();
-    std::vector<offset_t> boundPKOffsets, adjPKOffsets;
-    boundPKOffsets.resize(numRowsInBatch);
-    adjPKOffsets.resize(numRowsInBatch);
-    indexLookup(recordBatch->column(0).get(), *schema->getSrcPKDataType(), pkIndexes[0],
-        boundPKOffsets.data(), morsel->filePath, morsel->rowIdxInFile);
-    indexLookup(recordBatch->column(1).get(), *schema->getDstPKDataType(), pkIndexes[1],
-        adjPKOffsets.data(), morsel->filePath, morsel->rowIdxInFile);
-    std::vector<std::unique_ptr<arrow::Array>> pkOffsets(2);
-    pkOffsets[0] = createArrowPrimitiveArray(
-        std::make_shared<arrow::Int64Type>(), (uint8_t*)boundPKOffsets.data(), numRowsInBatch);
-    pkOffsets[1] = createArrowPrimitiveArray(
-        std::make_shared<arrow::Int64Type>(), (uint8_t*)adjPKOffsets.data(), numRowsInBatch);
-    if (!fwdRelData->isColumns) {
-        copyRelLists(morsel->rowIdx, recordBatch.get(), FWD, pkOffsets);
+    if (!readFuncData || morsel->fileIdx != readFuncData->fileIdx) {
+        readFuncData = initFunc(sharedState->filePaths, morsel->fileIdx,
+            sharedState->csvReaderConfig, sharedState->tableSchema);
     }
-    if (!bwdRelData->isColumns) {
-        copyRelLists(morsel->rowIdx, recordBatch.get(), BWD, pkOffsets);
+    auto batchVector = readFunc(*readFuncData, morsel->blockIdx);
+    auto startRowIdx = morsel->rowIdx;
+    for (auto& recordBatch : batchVector) {
+        auto numRowsInBatch = recordBatch->num_rows();
+        std::vector<offset_t> boundPKOffsets, adjPKOffsets;
+        boundPKOffsets.resize(numRowsInBatch);
+        adjPKOffsets.resize(numRowsInBatch);
+        indexLookup(recordBatch->column(0).get(), *schema->getSrcPKDataType(), pkIndexes[0],
+            boundPKOffsets.data());
+        indexLookup(recordBatch->column(1).get(), *schema->getDstPKDataType(), pkIndexes[1],
+            adjPKOffsets.data());
+        std::vector<std::unique_ptr<arrow::Array>> pkOffsets(2);
+        pkOffsets[0] = createArrowPrimitiveArray(
+            std::make_shared<arrow::Int64Type>(), (uint8_t*)boundPKOffsets.data(), numRowsInBatch);
+        pkOffsets[1] = createArrowPrimitiveArray(
+            std::make_shared<arrow::Int64Type>(), (uint8_t*)adjPKOffsets.data(), numRowsInBatch);
+        if (!fwdRelData->isColumns) {
+            copyRelLists(startRowIdx, recordBatch.get(), FWD, pkOffsets);
+        }
+        if (!bwdRelData->isColumns) {
+            copyRelLists(startRowIdx, recordBatch.get(), BWD, pkOffsets);
+        }
+        numRows += numRowsInBatch;
+        startRowIdx += numRowsInBatch;
     }
-    numRows += numRowsInBatch;
+    return true;
 }
 
-void CSVRelListsCopier::executeInternal(std::unique_ptr<ReadFileMorsel> morsel) {
-    assert(!morsel->filePath.empty());
-    auto csvRelCopyMorsel = reinterpret_cast<ReadSerialMorsel*>(morsel.get());
-    auto recordBatch = csvRelCopyMorsel->recordTable->CombineChunksToBatch().ValueOrDie();
-    auto numRowsInBatch = recordBatch->num_rows();
-    std::vector<offset_t> boundPKOffsets, adjPKOffsets;
-    boundPKOffsets.resize(numRowsInBatch);
-    adjPKOffsets.resize(numRowsInBatch);
-    indexLookup(recordBatch->column(0).get(), *schema->getSrcPKDataType(), pkIndexes[0],
-        boundPKOffsets.data(), morsel->filePath, morsel->rowIdxInFile);
-    indexLookup(recordBatch->column(1).get(), *schema->getDstPKDataType(), pkIndexes[1],
-        adjPKOffsets.data(), morsel->filePath, morsel->rowIdxInFile);
-    std::vector<std::unique_ptr<arrow::Array>> pkOffsets(2);
-    pkOffsets[0] = createArrowPrimitiveArray(
-        std::make_shared<arrow::Int64Type>(), (uint8_t*)boundPKOffsets.data(), numRowsInBatch);
-    pkOffsets[1] = createArrowPrimitiveArray(
-        std::make_shared<arrow::Int64Type>(), (uint8_t*)adjPKOffsets.data(), numRowsInBatch);
-    if (!fwdRelData->isColumns) {
-        copyRelLists(morsel->rowIdx, recordBatch.get(), FWD, pkOffsets);
+bool CSVRelListsCopier::executeInternal() {
+    auto morsel = sharedState->getSerialMorsel();
+    if (morsel->fileIdx == INVALID_VECTOR_IDX) {
+        // No more morsels.
+        return false;
     }
-    if (!bwdRelData->isColumns) {
-        copyRelLists(morsel->rowIdx, recordBatch.get(), BWD, pkOffsets);
+    auto serialMorsel = reinterpret_cast<SerialReaderMorsel*>(morsel.get());
+    arrow::TableBatchReader batchReader(*serialMorsel->table);
+    arrow::RecordBatchVector batchVector;
+    TableCopyUtils::throwCopyExceptionIfNotOK(batchReader.ToRecordBatches().Value(&batchVector));
+    auto startRowIdx = morsel->rowIdx;
+    for (auto& recordBatch : batchVector) {
+        auto numRowsInBatch = recordBatch->num_rows();
+        std::vector<offset_t> boundPKOffsets, adjPKOffsets;
+        boundPKOffsets.resize(numRowsInBatch);
+        adjPKOffsets.resize(numRowsInBatch);
+        indexLookup(recordBatch->column(0).get(), *schema->getSrcPKDataType(), pkIndexes[0],
+            boundPKOffsets.data());
+        indexLookup(recordBatch->column(1).get(), *schema->getDstPKDataType(), pkIndexes[1],
+            adjPKOffsets.data());
+        std::vector<std::unique_ptr<arrow::Array>> pkOffsets(2);
+        pkOffsets[0] = createArrowPrimitiveArray(
+            std::make_shared<arrow::Int64Type>(), (uint8_t*)boundPKOffsets.data(), numRowsInBatch);
+        pkOffsets[1] = createArrowPrimitiveArray(
+            std::make_shared<arrow::Int64Type>(), (uint8_t*)adjPKOffsets.data(), numRowsInBatch);
+        if (!fwdRelData->isColumns) {
+            copyRelLists(startRowIdx, recordBatch.get(), FWD, pkOffsets);
+        }
+        if (!bwdRelData->isColumns) {
+            copyRelLists(startRowIdx, recordBatch.get(), BWD, pkOffsets);
+        }
+        numRows += numRowsInBatch;
+        startRowIdx += numRowsInBatch;
     }
-    numRows += numRowsInBatch;
+    return true;
 }
 
 void RelCopyTask::run() {

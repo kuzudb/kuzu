@@ -1,6 +1,7 @@
 #include "storage/copier/rel_copy_executor.h"
 
 #include "common/string_utils.h"
+#include "storage/copier/reader_state.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -104,37 +105,39 @@ row_idx_t RelCopyExecutor::populateRelLists(processor::ExecutionContext* executi
 }
 
 std::unique_ptr<RelCopier> RelCopyExecutor::createRelCopier(RelCopierType relCopierType) {
-    std::shared_ptr<ReadFileSharedState> sharedState;
+    auto readerSharedState = std::make_shared<ReaderSharedState>(copyDescription.fileType,
+        copyDescription.filePaths, *copyDescription.csvReaderConfig, tableSchema);
+    readerSharedState->validate();
+    readerSharedState->countBlocks();
+    auto initFunc = ReaderFunctions::getInitDataFunc(copyDescription.fileType);
+    auto readFunc = ReaderFunctions::getReadRowsFunc(copyDescription.fileType);
     std::unique_ptr<RelCopier> relCopier;
     switch (copyDescription.fileType) {
     case CopyDescription::FileType::CSV: {
-        sharedState = std::make_shared<ReadCSVSharedState>(
-            copyDescription.filePaths, *copyDescription.csvReaderConfig, tableSchema);
         switch (relCopierType) {
         case RelCopierType::REL_COLUMN_COPIER_AND_LIST_COUNTER: {
-            relCopier = std::make_unique<CSVRelListsCounterAndColumnsCopier>(sharedState,
-                copyDescription, tableSchema, fwdRelData.get(), bwdRelData.get(), pkIndexes);
+            relCopier = std::make_unique<CSVRelListsCounterAndColumnsCopier>(readerSharedState,
+                copyDescription, tableSchema, fwdRelData.get(), bwdRelData.get(), pkIndexes,
+                readFunc, initFunc);
         } break;
         case RelCopierType::REL_LIST_COPIER: {
-            relCopier = std::make_unique<CSVRelListsCopier>(std::move(sharedState), copyDescription,
-                tableSchema, fwdRelData.get(), bwdRelData.get(), pkIndexes);
+            relCopier =
+                std::make_unique<CSVRelListsCopier>(std::move(readerSharedState), copyDescription,
+                    tableSchema, fwdRelData.get(), bwdRelData.get(), pkIndexes, readFunc, initFunc);
         } break;
         }
     } break;
     case CopyDescription::FileType::PARQUET: {
-        std::unordered_map<std::string, FileBlockInfo> fileBlockInfos;
-        TableCopyUtils::countNumLines(copyDescription, tableSchema, fileBlockInfos);
-        sharedState = std::make_shared<ReadParquetSharedState>(
-            copyDescription.filePaths, *copyDescription.csvReaderConfig, tableSchema);
-        sharedState->fileBlockInfos = std::move(fileBlockInfos);
         switch (relCopierType) {
         case RelCopierType::REL_COLUMN_COPIER_AND_LIST_COUNTER: {
-            relCopier = std::make_unique<ParquetRelListsCounterAndColumnsCopier>(sharedState,
-                copyDescription, tableSchema, fwdRelData.get(), bwdRelData.get(), pkIndexes);
+            relCopier = std::make_unique<ParquetRelListsCounterAndColumnsCopier>(readerSharedState,
+                copyDescription, tableSchema, fwdRelData.get(), bwdRelData.get(), pkIndexes,
+                readFunc, initFunc);
         } break;
         case RelCopierType::REL_LIST_COPIER: {
-            relCopier = std::make_unique<ParquetRelListsCopier>(std::move(sharedState),
-                copyDescription, tableSchema, fwdRelData.get(), bwdRelData.get(), pkIndexes);
+            relCopier = std::make_unique<ParquetRelListsCopier>(std::move(readerSharedState),
+                copyDescription, tableSchema, fwdRelData.get(), bwdRelData.get(), pkIndexes,
+                readFunc, initFunc);
         } break;
         }
     } break;

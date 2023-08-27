@@ -152,7 +152,7 @@ ListOffsetInfoInStorage VarListNodeColumn::getListOffsetInfoInStorage(Transactio
     node_group_idx_t nodeGroupIdx, offset_t startOffsetInNodeGroup, offset_t endOffsetInNodeGroup,
     std::shared_ptr<DataChunkState> state) {
     auto offsetVector = std::make_unique<ValueVector>(LogicalTypeID::INT64);
-    offsetVector->setState(state);
+    offsetVector->setState(std::move(state));
     NodeColumn::scan(transaction, nodeGroupIdx, startOffsetInNodeGroup, endOffsetInNodeGroup,
         offsetVector.get());
     auto prevNodeListOffsetInStorage =

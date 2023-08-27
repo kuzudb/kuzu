@@ -35,14 +35,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::CREATE_MACRO: {
         return "CREATE_MACRO";
     }
-    case PhysicalOperatorType::READ_CSV: {
-        return "READ_CSV";
-    }
-    case PhysicalOperatorType::READ_NPY: {
-        return "READ_NPY";
-    }
-    case PhysicalOperatorType::READ_PARQUET: {
-        return "READ_PARQUET";
+    case PhysicalOperatorType::READER: {
+        return "READER";
     }
     case PhysicalOperatorType::INSERT_NODE: {
         return "INSERT_NODE";

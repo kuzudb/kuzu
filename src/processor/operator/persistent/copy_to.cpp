@@ -1,4 +1,4 @@
-#include "processor/operator/copy_to/copy_to.h"
+#include "processor/operator/persistent/copy_to.h"
 
 #include "common/string_utils.h"
 #include "common/types/value.h"

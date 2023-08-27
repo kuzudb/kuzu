@@ -29,11 +29,9 @@ std::unique_ptr<MetadataDAHInfo> StorageManager::createMetadataDAHInfo(
     const common::LogicalType& dataType) {
     auto metadataDAHInfo = std::make_unique<MetadataDAHInfo>();
     metadataDAHInfo->dataDAHPageIdx = InMemDiskArray<ColumnChunkMetadata>::addDAHPageToFile(
-        *metadataFH, StorageStructureID{StorageStructureType::METADATA},
-        memoryManager.getBufferManager(), wal);
+        *metadataFH, memoryManager.getBufferManager(), wal);
     metadataDAHInfo->nullDAHPageIdx = InMemDiskArray<ColumnChunkMetadata>::addDAHPageToFile(
-        *metadataFH, StorageStructureID{StorageStructureType::METADATA},
-        memoryManager.getBufferManager(), wal);
+        *metadataFH, memoryManager.getBufferManager(), wal);
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::STRUCT: {
         auto fields = StructType::getFields(&dataType);
@@ -47,8 +45,11 @@ std::unique_ptr<MetadataDAHInfo> StorageManager::createMetadataDAHInfo(
             createMetadataDAHInfo(*VarListType::getChildType(&dataType)));
     } break;
     case PhysicalTypeID::STRING: {
-        auto dummyChildType = LogicalType{LogicalTypeID::ANY};
-        metadataDAHInfo->childrenInfos.push_back(createMetadataDAHInfo(dummyChildType));
+        auto childMetadataDAHInfo = std::make_unique<MetadataDAHInfo>();
+        childMetadataDAHInfo->dataDAHPageIdx =
+            InMemDiskArray<OverflowColumnChunkMetadata>::addDAHPageToFile(
+                *metadataFH, memoryManager.getBufferManager(), wal);
+        metadataDAHInfo->childrenInfos.push_back(std::move(childMetadataDAHInfo));
     } break;
     default: {
         // DO NOTHING.
