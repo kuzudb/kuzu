@@ -6,51 +6,49 @@
 namespace kuzu {
 namespace processor {
 
-struct MergedKeyBlockScanState {
-    bool scanSingleTuple;
-    uint32_t nextTupleIdxToReadInMergedKeyBlock;
-    std::shared_ptr<MergedKeyBlocks> mergedKeyBlock;
-    uint32_t tupleIdxAndFactorizedTableIdxOffset;
-    std::vector<uint32_t> colsToScan;
-    std::unique_ptr<uint8_t*[]> tuplesToRead;
-    std::unique_ptr<BlockPtrInfo> blockPtrInfo;
+struct OrderByScanLocalState {
+    std::vector<common::ValueVector*> vectorsToRead;
+    std::unique_ptr<PayloadScanner> payloadScanner;
+
+    void init(
+        std::vector<DataPos>& outVectorPos, SortSharedState& sharedState, ResultSet& resultSet);
+
+    inline uint64_t scan() { return payloadScanner->scan(vectorsToRead); }
 };
 
 // To preserve the ordering of tuples, the orderByScan operator will only
 // be executed in single-thread mode.
 class OrderByScan : public PhysicalOperator {
 public:
-    OrderByScan(std::vector<DataPos> outVectorPos,
-        std::shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState,
+    OrderByScan(std::vector<DataPos> outVectorPos, std::shared_ptr<SortSharedState> sharedState,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::ORDER_BY_SCAN, std::move(child), id, paramsString},
-          outVectorPos{std::move(outVectorPos)}, sharedState{std::move(sharedState)} {}
+          outVectorPos{std::move(outVectorPos)},
+          localState{std::make_unique<OrderByScanLocalState>()}, sharedState{
+                                                                     std::move(sharedState)} {}
 
     // This constructor is used for cloning only.
-    OrderByScan(std::vector<DataPos> outVectorPos,
-        std::shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState, uint32_t id,
-        const std::string& paramsString)
+    OrderByScan(std::vector<DataPos> outVectorPos, std::shared_ptr<SortSharedState> sharedState,
+        uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::ORDER_BY_SCAN, id, paramsString},
-          outVectorPos{std::move(outVectorPos)}, sharedState{std::move(sharedState)} {}
+          outVectorPos{std::move(outVectorPos)},
+          localState{std::make_unique<OrderByScanLocalState>()}, sharedState{
+                                                                     std::move(sharedState)} {}
 
-    inline bool isSource() const override { return true; }
+    inline bool isSource() const final { return true; }
 
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
+    bool getNextTuplesInternal(ExecutionContext* context) final;
 
-    bool getNextTuplesInternal(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<OrderByScan>(outVectorPos, sharedState, id, paramsString);
     }
 
 private:
-    void initMergedKeyBlockScanState();
-
-private:
     std::vector<DataPos> outVectorPos;
-    std::shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState;
-    std::vector<common::ValueVector*> vectorsToRead;
-    std::unique_ptr<MergedKeyBlockScanState> mergedKeyBlockScanState;
+    std::unique_ptr<OrderByScanLocalState> localState;
+    std::shared_ptr<SortSharedState> sharedState;
 };
 
 } // namespace processor

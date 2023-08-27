@@ -1,8 +1,7 @@
 #include "processor/operator/order_by/order_by_key_encoder.h"
 
-#include <string.h>
-
 #include <cstdint>
+#include <cstring>
 
 #include "common/string_utils.h"
 
@@ -12,10 +11,10 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-OrderByKeyEncoder::OrderByKeyEncoder(std::vector<ValueVector*>& orderByVectors,
-    std::vector<bool>& isAscOrder, MemoryManager* memoryManager, uint8_t ftIdx,
-    uint32_t numTuplesPerBlockInFT, uint32_t numBytesPerTuple)
-    : memoryManager{memoryManager}, orderByVectors{orderByVectors}, isAscOrder{isAscOrder},
+OrderByKeyEncoder::OrderByKeyEncoder(const OrderByDataInfo& orderByDataInfo,
+    MemoryManager* memoryManager, uint8_t ftIdx, uint32_t numTuplesPerBlockInFT,
+    uint32_t numBytesPerTuple)
+    : memoryManager{memoryManager}, isAscOrder{orderByDataInfo.isAscOrder},
       numBytesPerTuple{numBytesPerTuple}, ftIdx{ftIdx},
       numTuplesPerBlockInFT{numTuplesPerBlockInFT}, swapBytes{isLittleEndian()} {
     if (numTuplesPerBlockInFT > MAX_FT_BLOCK_OFFSET) {
@@ -30,14 +29,16 @@ OrderByKeyEncoder::OrderByKeyEncoder(std::vector<ValueVector*>& orderByVectors,
             "TupleSize({} bytes) is larger than the LARGE_PAGE_SIZE({} bytes)", numBytesPerTuple,
             BufferPoolConstants::PAGE_256KB_SIZE));
     }
-    encodeFunctions.resize(orderByVectors.size());
-    for (auto i = 0u; i < orderByVectors.size(); i++) {
-        getEncodingFunction(orderByVectors[i]->dataType.getPhysicalType(), encodeFunctions[i]);
+    encodeFunctions.reserve(orderByDataInfo.keysPosAndType.size());
+    for (auto& [_, type] : orderByDataInfo.keysPosAndType) {
+        encode_function_t encodeFunction;
+        getEncodingFunction(type.getPhysicalType(), encodeFunction);
+        encodeFunctions.push_back(std::move(encodeFunction));
     }
 }
 
-void OrderByKeyEncoder::encodeKeys() {
-    uint32_t numEntries = orderByVectors[0]->state->selVector->selectedSize;
+void OrderByKeyEncoder::encodeKeys(std::vector<common::ValueVector*> orderByKeys) {
+    uint32_t numEntries = orderByKeys[0]->state->selVector->selectedSize;
     uint32_t encodedTuples = 0;
     while (numEntries > 0) {
         allocateMemoryIfFull();
@@ -46,10 +47,10 @@ void OrderByKeyEncoder::encodeKeys() {
         auto tuplePtr =
             keyBlocks.back()->getData() + keyBlocks.back()->numTuples * numBytesPerTuple;
         uint32_t tuplePtrOffset = 0;
-        for (auto keyColIdx = 0u; keyColIdx < orderByVectors.size(); keyColIdx++) {
-            encodeVector(orderByVectors[keyColIdx], tuplePtr + tuplePtrOffset, encodedTuples,
+        for (auto keyColIdx = 0u; keyColIdx < orderByKeys.size(); keyColIdx++) {
+            encodeVector(orderByKeys[keyColIdx], tuplePtr + tuplePtrOffset, encodedTuples,
                 numEntriesToEncode, keyColIdx);
-            tuplePtrOffset += getEncodingSize(orderByVectors[keyColIdx]->dataType);
+            tuplePtrOffset += getEncodingSize(orderByKeys[keyColIdx]->dataType);
         }
         encodeFTIdx(numEntriesToEncode, tuplePtr + tuplePtrOffset);
         encodedTuples += numEntriesToEncode;
@@ -231,10 +232,8 @@ void OrderByKeyEncoder::getEncodingFunction(PhysicalTypeID physicalType, encode_
         func = encodeTemplate<interval_t>;
         return;
     }
-    default: {
-        throw RuntimeException("Cannot encode data with physical type: " +
-                               PhysicalTypeUtils::physicalTypeToString(physicalType));
-    }
+    default:
+        throw NotImplementedException{"OrderByKeyEncoder::getEncodingFunction"};
     }
 }
 

@@ -34,8 +34,8 @@ void Optimizer::optimize(planner::LogicalPlan* plan) {
     auto hashJoinSIPOptimizer = HashJoinSIPOptimizer();
     hashJoinSIPOptimizer.rewrite(plan);
 
-    //    auto topKOptimizer = TopKOptimizer();
-    //    topKOptimizer.rewrite(plan);
+    auto topKOptimizer = TopKOptimizer();
+    topKOptimizer.rewrite(plan);
 
     auto factorizationRewriter = FactorizationRewriter();
     factorizationRewriter.rewrite(plan);

@@ -53,3 +53,35 @@
 -STATEMENT MATCH (row:tableOfTypes) WHERE 0 <= row.doubleColumn AND row.doubleColumn <= 10 AND 0 <= row.int64Column AND row.int64Column <= 10 RETURN count(*);
 ---- 1
 546
+
+-LOG OrderByTest
+-STATEMENT MATCH (row:tableOfTypes) RETURN row.id ORDER BY row.id DESC LIMIT 10;
+-PARALLELISM 1
+-CHECK_ORDER
+---- 10
+49998
+49997
+49996
+49995
+49994
+49993
+49992
+49991
+49990
+49989
+
+-LOG OrderByMultiColTest
+-STATEMENT MATCH (row:tableOfTypes) RETURN row.id ORDER BY row.id DESC, row.booleanColumn, row.doubleColumn LIMIT 10;
+-PARALLELISM 1
+-CHECK_ORDER
+---- 10
+49998
+49997
+49996
+49995
+49994
+49993
+49992
+49991
+49990
+49989

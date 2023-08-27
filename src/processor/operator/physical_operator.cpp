@@ -152,6 +152,12 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::SKIP: {
         return "SKIP";
     }
+    case PhysicalOperatorType::TOP_K: {
+        return "TOP_K";
+    }
+    case PhysicalOperatorType::TOP_K_SCAN: {
+        return "TOP_K_SCAN";
+    }
     case PhysicalOperatorType::ORDER_BY: {
         return "ORDER_BY";
     }

@@ -2,6 +2,8 @@
 #include "processor/operator/order_by/order_by.h"
 #include "processor/operator/order_by/order_by_merge.h"
 #include "processor/operator/order_by/order_by_scan.h"
+#include "processor/operator/order_by/top_k.h"
+#include "processor/operator/order_by/top_k_scanner.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::common;
@@ -12,10 +14,6 @@ namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(LogicalOperator* logicalOperator) {
     auto logicalOrderBy = (LogicalOrderBy*)logicalOperator;
-    if (logicalOrderBy->isTopK()) {
-        // TODO(Ziyi): fill
-        assert(false);
-    }
     auto outSchema = logicalOrderBy->getSchema();
     auto inSchema = logicalOrderBy->getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOrderBy->getChild(0).get());
@@ -38,17 +36,28 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(LogicalOperator* logica
     auto mayContainUnflatKey = inSchema->getNumGroups() == 1;
     auto orderByDataInfo = OrderByDataInfo(keysPosAndType, payloadsPosAndType, isPayloadFlat,
         logicalOrderBy->getIsAscOrders(), mayContainUnflatKey);
-    auto orderBySharedState = std::make_shared<SharedFactorizedTablesAndSortedKeyBlocks>();
 
-    auto orderBy =
-        make_unique<OrderBy>(std::make_unique<ResultSetDescriptor>(inSchema), orderByDataInfo,
-            orderBySharedState, std::move(prevOperator), getOperatorID(), paramsString);
-    auto dispatcher = std::make_shared<KeyBlockMergeTaskDispatcher>();
-    auto orderByMerge = make_unique<OrderByMerge>(orderBySharedState, std::move(dispatcher),
-        std::move(orderBy), getOperatorID(), paramsString);
-    auto orderByScan = make_unique<OrderByScan>(
-        outVectorPos, orderBySharedState, std::move(orderByMerge), getOperatorID(), paramsString);
-    return orderByScan;
+    if (logicalOrderBy->isTopK()) {
+        auto topKSharedState = std::make_shared<TopKSharedState>();
+        auto topK = make_unique<TopK>(std::make_unique<ResultSetDescriptor>(inSchema),
+            std::make_unique<TopKLocalState>(), topKSharedState, orderByDataInfo,
+            logicalOrderBy->getSkipNum(), logicalOrderBy->getLimitNum(), std::move(prevOperator),
+            getOperatorID(), paramsString);
+        auto topKScan = make_unique<TopKScan>(
+            outVectorPos, topKSharedState, std::move(topK), getOperatorID(), paramsString);
+        return topKScan;
+    } else {
+        auto orderBySharedState = std::make_shared<SortSharedState>();
+        auto orderBy = make_unique<OrderBy>(std::make_unique<ResultSetDescriptor>(inSchema),
+            orderByDataInfo, std::make_unique<SortLocalState>(), orderBySharedState,
+            std::move(prevOperator), getOperatorID(), paramsString);
+        auto dispatcher = std::make_shared<KeyBlockMergeTaskDispatcher>();
+        auto orderByMerge = make_unique<OrderByMerge>(orderBySharedState, std::move(dispatcher),
+            std::move(orderBy), getOperatorID(), paramsString);
+        auto orderByScan = make_unique<OrderByScan>(outVectorPos, orderBySharedState,
+            std::move(orderByMerge), getOperatorID(), paramsString);
+        return orderByScan;
+    }
 }
 
 } // namespace processor
