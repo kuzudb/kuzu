@@ -39,7 +39,7 @@ void ResultCollector::finalize(ExecutionContext* context) {
         for (auto i = 0u; i < tableSchema->getNumColumns(); ++i) {
             auto columnSchema = tableSchema->getColumn(i);
             if (columnSchema->isFlat()) {
-                payloadVectors[i]->state->currIdx = 0;
+                payloadVectors[i]->state->setToFlat();
             }
         }
         if (table->isEmpty()) {

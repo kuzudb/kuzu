@@ -8,7 +8,8 @@
 namespace kuzu {
 namespace common {
 
-enum class FactorizationStateType : uint8_t {
+// F stands for Factorization
+enum class FStateType : uint8_t {
     FLAT = 0,
     UNFLAT = 1,
 };
@@ -16,7 +17,7 @@ enum class FactorizationStateType : uint8_t {
 class DataChunkState {
 public:
     DataChunkState() : DataChunkState(DEFAULT_VECTOR_CAPACITY) {}
-    explicit DataChunkState(uint64_t capacity) : currIdx{-1}, originalSize{0} {
+    explicit DataChunkState(uint64_t capacity) : fStateType{FStateType::UNFLAT}, originalSize{0} {
         selVector = std::make_shared<SelectionVector>(capacity);
     }
 
@@ -27,13 +28,19 @@ public:
         originalSize = size;
         selVector->selectedSize = size;
     }
-    inline bool isFlat() const { return currIdx != -1; }
-    inline void setToUnflat() { currIdx = -1; }
-    inline uint64_t getNumSelectedValues() const { return isFlat() ? 1 : selVector->selectedSize; }
+    inline void setOriginalSize(uint64_t size) { originalSize = size; }
+    inline uint64_t getOriginalSize() { return originalSize; }
+    inline bool isFlat() const { return fStateType == FStateType::FLAT; }
+    inline void setToFlat() { fStateType = FStateType::FLAT; }
+    inline void setToUnflat() { fStateType = FStateType::UNFLAT; }
+
+    inline uint64_t getNumSelectedValues() const { return selVector->selectedSize; }
 
 public:
-    // The currIdx is >= 0 when vectors are flattened and -1 if the vectors are unflat.
-    int64_t currIdx;
+    std::shared_ptr<SelectionVector> selVector;
+
+private:
+    FStateType fStateType;
     // We need to keep track of originalSize of DataChunks to perform consistent scans of vectors
     // or lists. This is because all the vectors in a data chunk has to be the same length as they
     // share the same selectedPositions array.Therefore, if there is a scan after a filter on the
@@ -41,7 +48,6 @@ public:
     // has to scan to generate a vector that is consistent with the rest of the vectors in the
     // data chunk.
     uint64_t originalSize;
-    std::shared_ptr<SelectionVector> selVector;
 };
 
 } // namespace common

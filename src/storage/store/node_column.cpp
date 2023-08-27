@@ -208,7 +208,7 @@ void NodeColumn::scanUnfiltered(Transaction* transaction, PageElementCursor& pag
 
 void NodeColumn::scanFiltered(Transaction* transaction, PageElementCursor& pageCursor,
     ValueVector* nodeIDVector, ValueVector* resultVector) {
-    auto numValuesToScan = nodeIDVector->state->originalSize;
+    auto numValuesToScan = nodeIDVector->state->getOriginalSize();
     auto numValuesScanned = 0u;
     auto posInSelVector = 0u;
     while (numValuesScanned < numValuesToScan) {

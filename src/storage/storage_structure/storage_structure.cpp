@@ -35,7 +35,7 @@ BaseColumnOrList::BaseColumnOrList(const StorageStructureIDAndFName& storageStru
 void BaseColumnOrList::readBySequentialCopy(Transaction* transaction, ValueVector* vector,
     PageElementCursor& cursor,
     const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper) {
-    uint64_t numValuesToRead = vector->state->originalSize;
+    uint64_t numValuesToRead = vector->state->getOriginalSize();
     uint64_t vectorPos = 0;
     while (vectorPos != numValuesToRead) {
         uint64_t numValuesInPage = numElementsPerPage - cursor.elemPosInPage;
@@ -52,7 +52,7 @@ void BaseColumnOrList::readInternalIDsBySequentialCopy(Transaction* transaction,
     ValueVector* vector, PageElementCursor& cursor,
     const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
     table_id_t commonTableID, bool hasNoNullGuarantee) {
-    uint64_t numValuesToRead = vector->state->originalSize;
+    uint64_t numValuesToRead = vector->state->getOriginalSize();
     uint64_t vectorPos = 0;
     while (vectorPos != numValuesToRead) {
         uint64_t numValuesInPage = numElementsPerPage - cursor.elemPosInPage;

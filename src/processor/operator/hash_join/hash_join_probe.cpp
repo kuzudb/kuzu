@@ -110,6 +110,13 @@ uint64_t HashJoinProbe::getLeftJoinResult() {
         for (auto& vector : vectorsToReadInto) {
             vector->setAsSingleNullEntry();
         }
+        // TODO(Xiyang): We have a bug in LEFT JOIN which should not discard NULL keys. To be more
+        // clear, NULL keys should only be discarded for probe but should not reflect on the vector.
+        // The following for loop is a temporary hack.
+        for (auto& vector : keyVectors) {
+            assert(vector->state->isFlat());
+            vector->state->selVector->selectedSize = 1;
+        }
         probeState->probedTuples[0] = nullptr;
     }
     return 1;

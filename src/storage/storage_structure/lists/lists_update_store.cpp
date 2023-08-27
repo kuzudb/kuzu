@@ -176,7 +176,7 @@ void ListsUpdatesStore::readValues(
                             .at(nodeOffset);
     ftOfInsertedRels->lookup(vectorsToRead, columnsToRead, listUpdates->insertedRelsTupleIdxInFT,
         listHandle.getStartElemOffset(), numTuplesToRead);
-    valueVector->state->originalSize = numTuplesToRead;
+    valueVector->state->setOriginalSize(numTuplesToRead);
 }
 
 bool ListsUpdatesStore::hasAnyDeletedRelsInPersistentStore(
@@ -246,7 +246,7 @@ void ListsUpdatesStore::readUpdatesToPropertyVectorIfExists(ListFileID& listFile
     for (auto& [listOffset, ftTupleIdx] : updatedPersistentListOffsets.listOffsetFTIdxMap) {
         if (startListOffset > listOffset) {
             continue;
-        } else if (startListOffset + propertyVector->state->originalSize <= listOffset) {
+        } else if (startListOffset + propertyVector->state->getOriginalSize() <= listOffset) {
             return;
         }
         auto elemPosInVector = listOffset - startListOffset;

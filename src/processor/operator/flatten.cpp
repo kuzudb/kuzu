@@ -6,22 +6,25 @@ namespace kuzu {
 namespace processor {
 
 void Flatten::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    dataChunkToFlatten = resultSet->dataChunks[dataChunkToFlattenPos];
+    dataChunkState = resultSet->dataChunks[dataChunkToFlattenPos]->state.get();
     currentSelVector->resetSelectorToValuePosBufferWithSize(1 /* size */);
+    localState = std::make_unique<FlattenLocalState>();
 }
 
 bool Flatten::getNextTuplesInternal(ExecutionContext* context) {
-    if (isCurrIdxInitialOrLast()) {
-        dataChunkToFlatten->state->setToUnflat();
-        restoreSelVector(dataChunkToFlatten->state->selVector);
+    if (localState->currentIdx == localState->sizeToFlatten) {
+        dataChunkState->setToUnflat(); // TODO(Xiyang): this should be part of restore/save
+        restoreSelVector(dataChunkState->selVector);
         if (!children[0]->getNextTuple(context)) {
             return false;
         }
-        saveSelVector(dataChunkToFlatten->state->selVector);
+        localState->currentIdx = 0;
+        localState->sizeToFlatten = dataChunkState->selVector->selectedSize;
+        saveSelVector(dataChunkState->selVector);
+        dataChunkState->setToFlat();
     }
-    dataChunkToFlatten->state->currIdx++;
     currentSelVector->selectedPositions[0] =
-        prevSelVector->selectedPositions[dataChunkToFlatten->state->currIdx];
+        prevSelVector->selectedPositions[localState->currentIdx++];
     metrics->numOutputTuple.incrementByOne();
     return true;
 }

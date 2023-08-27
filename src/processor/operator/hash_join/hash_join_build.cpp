@@ -16,7 +16,7 @@ void HashJoinBuild::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     for (auto i = 0u; i < info->keysPos.size(); ++i) {
         auto vector = resultSet->getValueVector(info->keysPos[i]).get();
         keyTypes.push_back(vector->dataType.copy());
-        if (info->factorizationStateTypes[i] == common::FactorizationStateType::UNFLAT) {
+        if (info->fStateTypes[i] == common::FStateType::UNFLAT) {
             setKeyState(vector->state.get());
         }
         keyVectors.push_back(vector);
