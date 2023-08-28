@@ -85,7 +85,7 @@ CSVReaderConfig Binder::bindParsingOptions(
         bool isValidStringParsingOption = validateStringParsingOptionName(copyOptionName);
         auto copyOptionExpression = parsingOption.second.get();
         auto boundCopyOptionExpression = expressionBinder.bindExpression(*copyOptionExpression);
-        assert(boundCopyOptionExpression->expressionType = LITERAL);
+        assert(boundCopyOptionExpression->expressionType == LITERAL);
         if (copyOptionName == "HEADER") {
             if (boundCopyOptionExpression->dataType.getLogicalTypeID() != LogicalTypeID::BOOL) {
                 throw BinderException(
@@ -127,6 +127,9 @@ void Binder::bindStringParsingOptions(
 }
 
 char Binder::bindParsingOptionValue(std::string value) {
+    if (value == "\\t") {
+        return '\t';
+    }
     if (value.length() > 2 || (value.length() == 2 && value[0] != '\\')) {
         throw BinderException("Copy csv option value can only be a single character with an "
                               "optional escape character.");

@@ -19,7 +19,7 @@ Parser exception: Query must conclude with RETURN clause (line: 1, offset: 6)
 
 # Message varies from OS, skip for now
 -CASE WrongFile
--SKIP 
+-SKIP
 -STATEMENT COPY (MATCH (p:person) return p.fName) TO 'a/b/c/d.csv';
 ---- error
 Cannot open file: a/b/c/d.csv
