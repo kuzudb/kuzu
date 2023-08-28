@@ -542,14 +542,26 @@ void ColumnChunk::copyVectorToBuffer(
     }
 }
 
-void NullColumnChunk::resize(uint64_t numValues) {
-    auto numBytesAfterResize = numBytesForValues(numValues);
+inline void BoolColumnChunk::initialize(common::offset_t capacity) {
+    numBytesPerValue = 0;
+    bufferSize = numBytesForValues(capacity);
+    buffer = std::make_unique<uint8_t[]>(bufferSize);
+    if (nullChunk) {
+        static_cast<BoolColumnChunk*>(nullChunk.get())->initialize(capacity);
+    }
+}
+
+void BoolColumnChunk::resize(uint64_t capacity) {
+    auto numBytesAfterResize = numBytesForValues(capacity);
     assert(numBytesAfterResize > bufferSize);
     auto reservedBuffer = std::make_unique<uint8_t[]>(numBytesAfterResize);
     memset(reservedBuffer.get(), 0 /* non null */, numBytesAfterResize);
     memcpy(reservedBuffer.get(), buffer.get(), bufferSize);
     buffer = std::move(reservedBuffer);
     bufferSize = numBytesAfterResize;
+    if (nullChunk) {
+        nullChunk->resize(capacity);
+    }
 }
 
 } // namespace storage

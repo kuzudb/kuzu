@@ -186,6 +186,16 @@ public:
 
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
+
+    void resize(uint64_t capacity) final;
+
+protected:
+    inline uint64_t numBytesForValues(common::offset_t numValues) const {
+        // 8 values per byte, and we need a buffer size which is a multiple of 8 bytes
+        return ceil(numValues / 8.0 / 8.0) * 8;
+    }
+
+    void initialize(common::offset_t capacity) final;
 };
 
 class NullColumnChunk : public BoolColumnChunk {
@@ -195,21 +205,7 @@ public:
     inline bool isNull(common::offset_t pos) const { return getValue<bool>(pos); }
     inline void setNull(common::offset_t pos, bool isNull) { setValue(isNull, pos); }
 
-    void resize(uint64_t numValues) final;
-
     inline void resetNullBuffer() { memset(buffer.get(), 0 /* non null */, bufferSize); }
-
-protected:
-    inline uint64_t numBytesForValues(common::offset_t numValues) const {
-        // 8 values per byte, and we need a buffer size which is a multiple of 8 bytes
-        return ceil(numValues / 8.0 / 8.0) * 8;
-    }
-    inline void initialize(common::offset_t numValues) final {
-        numBytesPerValue = 0;
-        bufferSize = numBytesForValues(numValues);
-        // Each byte defaults to 0, indicating everything is non-null
-        buffer = std::make_unique<uint8_t[]>(bufferSize);
-    }
 };
 
 class FixedListColumnChunk : public ColumnChunk {
