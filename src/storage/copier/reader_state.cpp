@@ -237,14 +237,13 @@ std::unique_ptr<ReaderMorsel> ReaderSharedState::getParallelMorsel() {
 }
 
 std::unique_ptr<ReaderMorsel> ReaderSharedState::getMorselOfNextBlock() {
+    if (currFileIdx >= blockInfos.size()) {
+        return std::make_unique<ReaderMorsel>(currFileIdx, INVALID_BLOCK_IDX, INVALID_ROW_IDX);
+    }
     auto numBlocksInFile = blockInfos[currFileIdx].numRowsPerBlock.size();
     if (currBlockIdx >= numBlocksInFile) {
         currFileIdx += fileType == CopyDescription::FileType::NPY ? filePaths.size() : 1;
         currBlockIdx = 0;
-        if (currFileIdx >= filePaths.size()) {
-            // End of all files.
-            return std::make_unique<ReaderMorsel>();
-        }
     }
     return std::make_unique<ReaderMorsel>(currFileIdx, currBlockIdx++, currRowIdx);
 }
