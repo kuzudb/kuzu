@@ -37,13 +37,14 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace planner {
 
-std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
+std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog, Binder& binder,
     const NodesStatisticsAndDeletedIDs& nodesStatistics, const RelsStatistics& relsStatistics,
     const BoundStatement& statement) {
     std::unique_ptr<LogicalPlan> plan;
     switch (statement.getStatementType()) {
     case StatementType::QUERY: {
-        plan = QueryPlanner(catalog, nodesStatistics, relsStatistics).getBestPlan(statement);
+        plan =
+            QueryPlanner(catalog, binder, nodesStatistics, relsStatistics).getBestPlan(statement);
     } break;
     case StatementType::CREATE_NODE_TABLE: {
         plan = planCreateNodeTable(statement);
@@ -58,7 +59,7 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
         return planCopyFrom(catalog, statement);
     } break;
     case StatementType::COPY_TO: {
-        plan = planCopyTo(catalog, nodesStatistics, relsStatistics, statement);
+        plan = planCopyTo(catalog, binder, nodesStatistics, relsStatistics, statement);
     } break;
     case StatementType::COPY_RDF: {
         plan = planCopyRDF(catalog, statement);
@@ -82,7 +83,7 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
         plan = planStandaloneCall(statement);
     } break;
     case StatementType::EXPLAIN: {
-        plan = planExplain(catalog, nodesStatistics, relsStatistics, statement);
+        plan = planExplain(catalog, binder, nodesStatistics, relsStatistics, statement);
     } break;
     case StatementType::CREATE_MACRO: {
         plan = planCreateMacro(statement);
@@ -95,15 +96,15 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
 }
 
 std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllPlans(const Catalog& catalog,
-    const NodesStatisticsAndDeletedIDs& nodesStatistics, const RelsStatistics& relsStatistics,
-    const BoundStatement& statement) {
+    Binder& binder, const NodesStatisticsAndDeletedIDs& nodesStatistics,
+    const RelsStatistics& relsStatistics, const BoundStatement& statement) {
     // We enumerate all plans for our testing framework. This API should only be used for QUERY,
     // EXPLAIN, but not DDL or COPY.
     switch (statement.getStatementType()) {
     case StatementType::QUERY:
-        return getAllQueryPlans(catalog, nodesStatistics, relsStatistics, statement);
+        return getAllQueryPlans(catalog, binder, nodesStatistics, relsStatistics, statement);
     case StatementType::EXPLAIN:
-        return getAllExplainPlans(catalog, nodesStatistics, relsStatistics, statement);
+        return getAllExplainPlans(catalog, binder, nodesStatistics, relsStatistics, statement);
     default:
         throw NotImplementedException("Planner::getAllPlans");
     }
@@ -218,13 +219,14 @@ std::unique_ptr<LogicalPlan> Planner::planCopyFrom(
     return plan;
 }
 
-std::unique_ptr<LogicalPlan> Planner::planCopyTo(const Catalog& catalog,
+std::unique_ptr<LogicalPlan> Planner::planCopyTo(const Catalog& catalog, Binder& binder,
     const NodesStatisticsAndDeletedIDs& nodesStatistics, const RelsStatistics& relsStatistics,
     const BoundStatement& statement) {
     auto& copyClause = reinterpret_cast<const BoundCopyTo&>(statement);
     auto regularQuery = copyClause.getRegularQuery();
     assert(regularQuery->getStatementType() == StatementType::QUERY);
-    auto plan = QueryPlanner(catalog, nodesStatistics, relsStatistics).getBestPlan(*regularQuery);
+    auto plan =
+        QueryPlanner(catalog, binder, nodesStatistics, relsStatistics).getBestPlan(*regularQuery);
     auto logicalCopyTo =
         make_shared<LogicalCopyTo>(plan->getLastOperator(), copyClause.getCopyDescription());
     plan->setLastOperator(std::move(logicalCopyTo));
@@ -240,12 +242,12 @@ std::unique_ptr<LogicalPlan> Planner::planStandaloneCall(const BoundStatement& s
     return plan;
 }
 
-std::unique_ptr<LogicalPlan> Planner::planExplain(const Catalog& catalog,
+std::unique_ptr<LogicalPlan> Planner::planExplain(const Catalog& catalog, Binder& binder,
     const NodesStatisticsAndDeletedIDs& nodesStatistics, const RelsStatistics& relsStatistics,
     const BoundStatement& statement) {
     auto& explain = reinterpret_cast<const BoundExplain&>(statement);
     auto statementToExplain = explain.getStatementToExplain();
-    auto plan = getBestPlan(catalog, nodesStatistics, relsStatistics, *statementToExplain);
+    auto plan = getBestPlan(catalog, binder, nodesStatistics, relsStatistics, *statementToExplain);
     auto logicalExplain = make_shared<LogicalExplain>(plan->getLastOperator(),
         statement.getStatementResult()->getSingleExpressionToCollect(), explain.getExplainType(),
         explain.getStatementToExplain()->getStatementResult()->getColumns());
@@ -264,9 +266,9 @@ std::unique_ptr<LogicalPlan> Planner::planCreateMacro(const BoundStatement& stat
 }
 
 std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllQueryPlans(const catalog::Catalog& catalog,
-    const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
+    Binder& binder, const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
     const storage::RelsStatistics& relsStatistics, const BoundStatement& statement) {
-    auto planner = QueryPlanner(catalog, nodesStatistics, relsStatistics);
+    auto planner = QueryPlanner(catalog, binder, nodesStatistics, relsStatistics);
     std::vector<std::unique_ptr<LogicalPlan>> plans;
     for (auto& plan : planner.getAllPlans(statement)) {
         // Avoid sharing operator across plans.
@@ -276,11 +278,12 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllQueryPlans(const catalo
 }
 
 std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllExplainPlans(
-    const catalog::Catalog& catalog, const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
+    const catalog::Catalog& catalog, Binder& binder,
+    const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
     const storage::RelsStatistics& relsStatistics, const BoundStatement& statement) {
     auto& explainStatement = reinterpret_cast<const BoundExplain&>(statement);
     auto statementToExplain = explainStatement.getStatementToExplain();
-    auto plans = getAllPlans(catalog, nodesStatistics, relsStatistics, *statementToExplain);
+    auto plans = getAllPlans(catalog, binder, nodesStatistics, relsStatistics, *statementToExplain);
     for (auto& plan : plans) {
         auto logicalExplain = make_shared<LogicalExplain>(plan->getLastOperator(),
             statement.getStatementResult()->getSingleExpressionToCollect(),

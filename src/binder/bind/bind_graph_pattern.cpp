@@ -411,15 +411,23 @@ std::shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodeP
 
 std::shared_ptr<NodeExpression> Binder::createQueryNode(
     const std::string& parsedName, const std::vector<table_id_t>& tableIDs) {
-    auto queryNode = make_shared<NodeExpression>(LogicalType(LogicalTypeID::NODE),
-        getUniqueExpressionName(parsedName), parsedName, tableIDs);
-    queryNode->setAlias(parsedName);
+    return createQueryNode(
+        getUniqueExpressionName(parsedName), parsedName, tableIDs, InternalKeyword::ID);
+}
+
+std::shared_ptr<NodeExpression> Binder::createQueryNode(const std::string& uniqueName,
+    const std::string& variableName, const std::vector<table_id_t>& tableIDs,
+    const std::string& internalIDPropertyName) {
+    auto queryNode = make_shared<NodeExpression>(
+        LogicalType(LogicalTypeID::NODE), uniqueName, variableName, tableIDs);
+    queryNode->setAlias(variableName);
     bindQueryNodeProperties(*queryNode);
-    queryNode->setInternalIDProperty(expressionBinder.createInternalNodeIDExpression(*queryNode));
+    queryNode->setInternalIDProperty(
+        expressionBinder.createInternalNodeIDExpression(*queryNode, internalIDPropertyName));
     queryNode->setLabelExpression(expressionBinder.bindLabelFunction(*queryNode));
     std::vector<std::unique_ptr<StructField>> nodeFields;
     nodeFields.push_back(std::make_unique<StructField>(
-        InternalKeyword::ID, std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID)));
+        internalIDPropertyName, std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID)));
     nodeFields.push_back(std::make_unique<StructField>(
         InternalKeyword::LABEL, std::make_unique<LogicalType>(LogicalTypeID::STRING)));
     for (auto& expression : queryNode->getPropertyExpressions()) {

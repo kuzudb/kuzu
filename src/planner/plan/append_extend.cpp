@@ -1,9 +1,9 @@
+#include "binder/binder.h"
 #include "binder/expression_visitor.h"
 #include "planner/join_order/cost_model.h"
 #include "planner/logical_plan/extend/logical_extend.h"
 #include "planner/logical_plan/extend/logical_recursive_extend.h"
 #include "planner/logical_plan/logical_node_label_filter.h"
-#include "planner/logical_plan/logical_schema_mapping.h"
 #include "planner/query_planner.h"
 
 using namespace kuzu::common;
@@ -115,33 +115,20 @@ void QueryPlanner::appendNonRecursiveExtend(std::shared_ptr<NodeExpression> boun
 void QueryPlanner::appendRDFPredicateIRIOffsetHashJoin(
     std::shared_ptr<kuzu::planner::LogicalExtend> rdfExtend, kuzu::planner::LogicalPlan& plan) {
     auto relExpression = rdfExtend->getRel();
-    auto nodeExpression = rdfExtend->getNbrNode();
-
-    // We need to add the following properties to the hash join
-    auto rdfNodeIRIProperty =
-        nodeExpression->getPropertyExpression(common::InternalKeyword::RDF_IRI_PROPERTY_NAME);
-    auto rdfRelIRIProperty =
-        relExpression->getPropertyExpression(common::InternalKeyword::RDF_IRI_PROPERTY_NAME);
-    auto rdfNodeInternalIDProperty = nodeExpression->getInternalIDProperty();
-    auto rdfPredicateIRIOffsetProperty = relExpression->getPropertyExpression(
+    auto nodeExpression = binder.createQueryNode(relExpression->getUniqueName(),
+        relExpression->getVariableName(), rdfExtend->getNbrNode()->getTableIDs(),
         common::InternalKeyword::RDF_PREDICATE_IRI_OFFSET_PROPERTY_NAME);
-
-    expression_map<std::shared_ptr<binder::Expression>> expressionMapping;
-    expressionMapping[rdfNodeIRIProperty] = rdfRelIRIProperty;
-    expressionMapping[rdfNodeInternalIDProperty] = rdfPredicateIRIOffsetProperty;
+    auto rdfIRIProperty =
+        nodeExpression->getPropertyExpression(common::InternalKeyword::RDF_IRI_PROPERTY_NAME);
 
     // Add predicateIRIOffset cardinality using rdfResourceNodeTable
-    cardinalityEstimator->addID(rdfPredicateIRIOffsetProperty->getUniqueName(), *nodeExpression);
+    cardinalityEstimator->addNodeIDDom(*nodeExpression);
 
     // Prepare a plan for scanning the RDF resource table with updated schema mapping which include
     // predicateIRI and predicateIRIOffset
     auto rdfResourceTableScan = std::make_unique<LogicalPlan>();
     appendScanNodeID(nodeExpression, *rdfResourceTableScan);
-    appendScanNodeProperties({rdfNodeIRIProperty}, nodeExpression, *rdfResourceTableScan);
-    auto schemaMapping = std::make_shared<LogicalSchemaMapping>(
-        expressionMapping, rdfResourceTableScan->getLastOperator());
-    schemaMapping->computeFactorizedSchema();
-    rdfResourceTableScan->setLastOperator(schemaMapping);
+    appendScanNodeProperties({rdfIRIProperty}, nodeExpression, *rdfResourceTableScan);
 
     auto rdfRelScan = std::make_unique<LogicalPlan>();
     rdfRelScan->setLastOperator(std::move(rdfExtend));
@@ -149,7 +136,7 @@ void QueryPlanner::appendRDFPredicateIRIOffsetHashJoin(
     rdfRelScan->setCardinality(plan.getCardinality());
 
     // Add plan for hash join with correct join order
-    auto joinNodeIDs = {rdfPredicateIRIOffsetProperty};
+    auto joinNodeIDs = {nodeExpression->getInternalIDProperty()};
     auto nodeTableBuildSideCost =
         CostModel::computeHashJoinCost(joinNodeIDs, *rdfRelScan, *rdfResourceTableScan);
     auto relTableBuildSideCost =

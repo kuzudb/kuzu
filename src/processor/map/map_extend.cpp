@@ -1,10 +1,8 @@
 #include "planner/logical_plan/extend/logical_extend.h"
-#include "planner/logical_plan/logical_schema_mapping.h"
 #include "processor/operator/filter.h"
 #include "processor/operator/scan/generic_scan_rel_tables.h"
 #include "processor/operator/scan/scan_rel_table_columns.h"
 #include "processor/operator/scan/scan_rel_table_lists.h"
-#include "processor/operator/schema_mapping.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::binder;
@@ -136,14 +134,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logical
         return std::make_unique<ScanMultiRelTable>(std::move(posInfo), std::move(scanners),
             std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting());
     }
-}
-
-std::unique_ptr<PhysicalOperator> PlanMapper::mapSchemaMapping(
-    planner::LogicalOperator* logicalOperator) {
-    auto logical = (LogicalSchemaMapping*)logicalOperator;
-    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
-    return std::make_unique<SchemaMapping>(
-        std::move(prevOperator), getOperatorID(), logical->getExpressionsForPrinting());
 }
 
 } // namespace processor
