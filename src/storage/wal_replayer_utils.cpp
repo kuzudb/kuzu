@@ -61,7 +61,7 @@ void WALReplayerUtils::createEmptyHashIndexFiles(
     } break;
     default: { // LCOV_EXCL_START
         throw NotImplementedException("Only INT64, STRING and SERIAL primary keys are supported");
-    } // LCOV_EXCL_END
+    } // LCOV_EXCL_STOP
     }
 }
 

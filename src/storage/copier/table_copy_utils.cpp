@@ -218,7 +218,7 @@ std::unique_ptr<Value> TableCopyUtils::getVarListValue(const std::string& l, int
         return parseMap(l, from, to, dataType, copyDescription);
     default: { // LCOV_EXCL_START
         throw NotImplementedException{"TableCopyUtils::getVarListValue"};
-    } // LCOV_EXCL_END
+    } // LCOV_EXCL_STOP
     }
 }
 
