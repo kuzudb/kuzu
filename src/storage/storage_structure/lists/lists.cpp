@@ -196,7 +196,7 @@ void Lists::readPropertyUpdatesToInMemListIfExists(InMemList& inMemList,
 
 void ListPropertyLists::readListFromPages(
     ValueVector* valueVector, ListHandle& listHandle, PageElementCursor& pageCursor) {
-    uint64_t numValuesToRead = valueVector->state->originalSize;
+    uint64_t numValuesToRead = valueVector->state->getOriginalSize();
     uint64_t vectorPos = 0;
     while (vectorPos != numValuesToRead) {
         uint64_t numValuesInPage = numElementsPerPage - pageCursor.elemPosInPage;
@@ -355,7 +355,7 @@ void RelIDList::setDeletedRelsIfNecessary(
         relIDVector->state->selVector->resetSelectorToValuePosBuffer();
         auto& selVector = relIDVector->state->selVector;
         auto nextSelectedPos = 0u;
-        for (auto pos = 0; pos < relIDVector->state->originalSize; ++pos) {
+        for (auto pos = 0; pos < relIDVector->state->getOriginalSize(); ++pos) {
             auto relID = relIDVector->getValue<relID_t>(pos);
             if (!listsUpdatesStore->isRelDeletedInPersistentStore(
                     storageStructureIDAndFName.storageStructureID.listFileID,

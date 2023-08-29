@@ -182,7 +182,7 @@ void AggregateHashTable::initializeHashTable(uint64_t numEntriesToAllocate) {
 
 void AggregateHashTable::initializeTmpVectors() {
     hashState = std::make_shared<DataChunkState>();
-    hashState->currIdx = 0;
+    hashState->setToFlat();
     hashVector = std::make_unique<ValueVector>(LogicalTypeID::INT64, &memoryManager);
     hashVector->state = hashState;
     hashSlotsToUpdateAggState = std::make_unique<HashSlot*[]>(DEFAULT_VECTOR_CAPACITY);

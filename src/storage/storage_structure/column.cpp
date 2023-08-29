@@ -123,7 +123,7 @@ void Column::scan(
     transaction::Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
     // In sequential read, we fetch start offset regardless of selected position.
     auto startOffset = nodeIDVector->readNodeOffset(0);
-    uint64_t numValuesToRead = nodeIDVector->state->originalSize;
+    uint64_t numValuesToRead = nodeIDVector->state->getOriginalSize();
     auto pageCursor = PageUtils::getPageElementCursorForPos(startOffset, numElementsPerPage);
     auto numValuesRead = 0u;
     auto posInSelVector = 0u;

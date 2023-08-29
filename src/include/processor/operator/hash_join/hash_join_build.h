@@ -38,14 +38,13 @@ class HashJoinBuildInfo {
     friend class HashJoinBuild;
 
 public:
-    HashJoinBuildInfo(std::vector<DataPos> keysPos,
-        std::vector<common::FactorizationStateType> factorizationStateTypes,
+    HashJoinBuildInfo(std::vector<DataPos> keysPos, std::vector<common::FStateType> fStateTypes,
         std::vector<DataPos> payloadsPos, std::unique_ptr<FactorizedTableSchema> tableSchema)
-        : keysPos{std::move(keysPos)}, factorizationStateTypes{std::move(factorizationStateTypes)},
+        : keysPos{std::move(keysPos)}, fStateTypes{std::move(fStateTypes)},
           payloadsPos{std::move(payloadsPos)}, tableSchema{std::move(tableSchema)} {}
     HashJoinBuildInfo(const HashJoinBuildInfo& other)
-        : keysPos{other.keysPos}, factorizationStateTypes{other.factorizationStateTypes},
-          payloadsPos{other.payloadsPos}, tableSchema{other.tableSchema->copy()} {}
+        : keysPos{other.keysPos}, fStateTypes{other.fStateTypes}, payloadsPos{other.payloadsPos},
+          tableSchema{other.tableSchema->copy()} {}
 
     inline uint32_t getNumKeys() const { return keysPos.size(); }
 
@@ -57,7 +56,7 @@ public:
 
 private:
     std::vector<DataPos> keysPos;
-    std::vector<common::FactorizationStateType> factorizationStateTypes;
+    std::vector<common::FStateType> fStateTypes;
     std::vector<DataPos> payloadsPos;
     std::unique_ptr<FactorizedTableSchema> tableSchema;
 };

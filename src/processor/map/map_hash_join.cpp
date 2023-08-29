@@ -14,7 +14,7 @@ std::unique_ptr<HashJoinBuildInfo> PlanMapper::createHashBuildInfo(
     const Schema& buildSchema, const expression_vector& keys, const expression_vector& payloads) {
     planner::f_group_pos_set keyGroupPosSet;
     std::vector<DataPos> keysPos;
-    std::vector<FactorizationStateType> factorizationStateTypes;
+    std::vector<FStateType> fStateTypes;
     std::vector<DataPos> payloadsPos;
     auto tableSchema = std::make_unique<FactorizedTableSchema>();
     for (auto& key : keys) {
@@ -25,9 +25,9 @@ std::unique_ptr<HashJoinBuildInfo> PlanMapper::createHashBuildInfo(
             LogicalTypeUtils::getRowLayoutSize(key->dataType));
         tableSchema->appendColumn(std::move(columnSchema));
         keysPos.push_back(pos);
-        factorizationStateTypes.push_back(buildSchema.getGroup(pos.dataChunkPos)->isFlat() ?
-                                              FactorizationStateType::FLAT :
-                                              FactorizationStateType::UNFLAT);
+        fStateTypes.push_back(buildSchema.getGroup(pos.dataChunkPos)->isFlat() ?
+                                  FStateType::FLAT :
+                                  FStateType::UNFLAT);
     }
     for (auto& payload : payloads) {
         auto pos = DataPos(buildSchema.getExpressionPos(*payload));
@@ -51,8 +51,8 @@ std::unique_ptr<HashJoinBuildInfo> PlanMapper::createHashBuildInfo(
     auto pointerColumn = std::make_unique<ColumnSchema>(false /* isUnFlat */,
         INVALID_DATA_CHUNK_POS, LogicalTypeUtils::getRowLayoutSize(pointerType));
     tableSchema->appendColumn(std::move(pointerColumn));
-    return std::make_unique<HashJoinBuildInfo>(std::move(keysPos),
-        std::move(factorizationStateTypes), std::move(payloadsPos), std::move(tableSchema));
+    return std::make_unique<HashJoinBuildInfo>(
+        std::move(keysPos), std::move(fStateTypes), std::move(payloadsPos), std::move(tableSchema));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapHashJoin(LogicalOperator* logicalOperator) {

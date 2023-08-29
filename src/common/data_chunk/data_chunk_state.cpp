@@ -6,7 +6,7 @@ namespace common {
 std::shared_ptr<DataChunkState> DataChunkState::getSingleValueDataChunkState() {
     auto state = std::make_shared<DataChunkState>(1);
     state->initOriginalAndSelectedSize(1);
-    state->currIdx = 0;
+    state->setToFlat();
     return state;
 }
 

@@ -57,7 +57,7 @@ void VarListNodeColumn::scanInternal(
         startNodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     auto listOffsetInfoInStorage =
         getListOffsetInfoInStorage(transaction, nodeGroupIdx, startNodeOffsetInGroup,
-            startNodeOffsetInGroup + nodeIDVector->state->originalSize, resultVector->state);
+            startNodeOffsetInGroup + nodeIDVector->state->getOriginalSize(), resultVector->state);
     if (resultVector->state->selVector->isUnfiltered()) {
         scanUnfiltered(transaction, nodeGroupIdx, resultVector, listOffsetInfoInStorage);
     } else {
