@@ -216,9 +216,9 @@ std::unique_ptr<Value> TableCopyUtils::getVarListValue(const std::string& l, int
         return parseVarList(l, from, to, dataType, copyDescription);
     case LogicalTypeID::MAP:
         return parseMap(l, from, to, dataType, copyDescription);
-    default: {
+    default: { // LCOV_EXCL_START
         throw NotImplementedException{"TableCopyUtils::getVarListValue"};
-    }
+    } // LCOV_EXCL_END
     }
 }
 
