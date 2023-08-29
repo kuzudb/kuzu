@@ -70,6 +70,8 @@ public:
         uint8_t* dstData, const ValueVector* srcVector, const uint8_t* srcVectorData);
     void copyFromVectorData(uint64_t dstPos, const ValueVector* srcVector, uint64_t srcPos);
 
+    void copyFromValue(uint64_t pos, const Value& value);
+
     inline uint8_t* getData() const { return valueBuffer.get(); }
 
     inline offset_t readNodeOffset(uint32_t pos) const {

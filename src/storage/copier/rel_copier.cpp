@@ -21,6 +21,12 @@ PropertyCopyState::PropertyCopyState(const LogicalType& dataType) {
 }
 
 void RelCopier::execute(ExecutionContext* executionContext) {
+    dataChunkToRead = std::make_unique<DataChunk>(schema->getNumProperties() + 1);
+    for (auto i = 0u; i < dataChunkToRead->getNumValueVectors(); i++) {
+        auto vector = std::make_unique<ValueVector>(
+            LogicalType{common::LogicalTypeID::ARROW_COLUMN}, executionContext->memoryManager);
+        dataChunkToRead->insert(i, std::move(vector));
+    }
     while (true) {
         if (executionContext->clientContext->isInterrupted()) {
             throw InterruptException();
@@ -31,10 +37,10 @@ void RelCopier::execute(ExecutionContext* executionContext) {
     }
 }
 
-void RelCopier::copyRelColumnsOrCountRelListsSize(row_idx_t rowIdx, arrow::RecordBatch* recordBatch,
+void RelCopier::copyRelColumnsOrCountRelListsSize(row_idx_t rowIdx, arrow::ArrayVector& arrays,
     RelDataDirection direction, const std::vector<std::unique_ptr<arrow::Array>>& pkOffsets) {
     if (schema->isSingleMultiplicityInDirection(direction)) {
-        copyRelColumns(rowIdx, recordBatch, direction, pkOffsets);
+        copyRelColumns(rowIdx, arrays, direction, pkOffsets);
     } else {
         countRelListsSize(direction, pkOffsets);
     }
@@ -99,7 +105,7 @@ void RelCopier::indexLookup(arrow::Array* pkArray, const LogicalType& pkColumnTy
     }
 }
 
-void RelCopier::copyRelColumns(offset_t rowIdx, arrow::RecordBatch* recordBatch,
+void RelCopier::copyRelColumns(offset_t rowIdx, arrow::ArrayVector& arrays,
     RelDataDirection direction, const std::vector<std::unique_ptr<arrow::Array>>& pkOffsets) {
     auto boundPKOffsets = pkOffsets[direction == FWD ? 0 : 1].get();
     auto adjPKOffsets = pkOffsets[direction == FWD ? 1 : 0].get();
@@ -108,7 +114,7 @@ void RelCopier::copyRelColumns(offset_t rowIdx, arrow::RecordBatch* recordBatch,
     auto adjColumnChunk = relData->columns->adjColumnChunk.get();
     checkViolationOfRelColumn(direction, boundPKOffsets);
     adjColumnChunk->copyArrowArray(*adjPKOffsets, nullptr, boundPKOffsets);
-    auto numRowsInBatch = recordBatch->num_rows();
+    auto numRowsInBatch = arrays[0]->length();
     std::vector<offset_t> relIDs;
     relIDs.resize(numRowsInBatch);
     for (auto i = 0u; i < numRowsInBatch; i++) {
@@ -119,10 +125,10 @@ void RelCopier::copyRelColumns(offset_t rowIdx, arrow::RecordBatch* recordBatch,
     relData->columns->propertyColumnChunks[0]->copyArrowArray(
         *relIDArray, copyStates[0].get(), boundPKOffsets);
     // Skip the two pk columns in arrow record batch.
-    for (auto i = 2; i < recordBatch->num_columns(); i++) {
+    for (auto i = 2; i < arrays.size(); i++) {
         // Skip RelID property, which is auto-generated and always the first property in table.
         relData->columns->propertyColumnChunks[i - 1]->copyArrowArray(
-            *recordBatch->column(i), copyStates[i - 1].get(), boundPKOffsets);
+            *arrays[i], copyStates[i - 1].get(), boundPKOffsets);
     }
 }
 
@@ -136,7 +142,7 @@ void RelCopier::countRelListsSize(
     }
 }
 
-void RelCopier::copyRelLists(offset_t rowIdx, arrow::RecordBatch* recordBatch,
+void RelCopier::copyRelLists(offset_t rowIdx, arrow::ArrayVector& arrays,
     RelDataDirection direction, const std::vector<std::unique_ptr<arrow::Array>>& pkOffsets) {
     auto boundPKOffsets = pkOffsets[direction == FWD ? 0 : 1].get();
     auto adjPKOffsets = pkOffsets[direction == FWD ? 1 : 0].get();
@@ -144,11 +150,11 @@ void RelCopier::copyRelLists(offset_t rowIdx, arrow::RecordBatch* recordBatch,
     auto& copyStates = direction == FWD ? fwdCopyStates : bwdCopyStates;
     auto offsets = boundPKOffsets->data()->GetValues<offset_t>(1 /* value buffer */);
     auto adjOffsets = adjPKOffsets->data()->GetValues<offset_t>(1 /* value buffer */);
-    auto numTuples = recordBatch->num_rows();
+    auto numTuples = arrays[0]->length();
     std::vector<offset_t> posInRelLists, relIDs;
     posInRelLists.resize(numTuples);
     relIDs.resize(numTuples);
-    for (auto i = 0u; i < recordBatch->num_rows(); i++) {
+    for (auto i = 0u; i < arrays[0]->length(); i++) {
         posInRelLists[i] = InMemListsUtils::decrementListSize(
             *relData->lists->relListsSizes, offsets[i], 1); // Decrement the list size.
         relData->lists->adjList->setValue(offsets[i], posInRelLists[i], (uint8_t*)&adjOffsets[i]);
@@ -161,11 +167,11 @@ void RelCopier::copyRelLists(offset_t rowIdx, arrow::RecordBatch* recordBatch,
     relData->lists->propertyLists.at(0)->copyArrowArray(
         boundPKOffsets, posInRelListsArray.get(), relIDArray.get(), nullptr);
     // Skip the two pk columns in arrow record batch.
-    for (auto columnIdx = 2; columnIdx < recordBatch->num_columns(); columnIdx++) {
+    for (auto columnIdx = 2; columnIdx < arrays.size(); columnIdx++) {
         // Skip RelID property, which is auto-generated and always the first property in table.
         relData->lists->propertyLists.at(columnIdx - 1)
-            ->copyArrowArray(boundPKOffsets, posInRelListsArray.get(),
-                recordBatch->column(columnIdx).get(), copyStates[columnIdx - 1].get());
+            ->copyArrowArray(boundPKOffsets, posInRelListsArray.get(), arrays[columnIdx].get(),
+                copyStates[columnIdx - 1].get());
     }
 }
 
@@ -289,24 +295,34 @@ bool ParquetRelListsCounterAndColumnsCopier::executeInternal() {
         readFuncData = initFunc(sharedState->filePaths, morsel->fileIdx,
             sharedState->csvReaderConfig, sharedState->tableSchema);
     }
-    auto batchVector = readFunc(*readFuncData, morsel->blockIdx);
+    readFunc(*readFuncData, morsel->blockIdx, dataChunkToRead.get());
     auto startRowIdx = morsel->rowIdx;
-    for (auto& recordBatch : batchVector) {
-        auto numRowsInBatch = recordBatch->num_rows();
+    auto srcIDVector = dataChunkToRead->getValueVector(0).get();
+    auto dstIDVector = dataChunkToRead->getValueVector(1).get();
+    for (auto i = 0u; i < ArrowColumnVector::getArrowColumn(srcIDVector)->num_chunks(); i++) {
+        auto numRowsInBatch =
+            ArrowColumnVector::getArrowColumn(srcIDVector)->chunk((int)i)->length();
         std::vector<offset_t> boundPKOffsets, adjPKOffsets;
         boundPKOffsets.resize(numRowsInBatch);
         adjPKOffsets.resize(numRowsInBatch);
-        indexLookup(recordBatch->column(0).get(), *schema->getSrcPKDataType(), pkIndexes[0],
-            (offset_t*)boundPKOffsets.data());
-        indexLookup(recordBatch->column(1).get(), *schema->getDstPKDataType(), pkIndexes[1],
-            (offset_t*)adjPKOffsets.data());
+        indexLookup(ArrowColumnVector::getArrowColumn(srcIDVector)->chunk((int)i).get(),
+            *schema->getSrcPKDataType(), pkIndexes[0], (offset_t*)boundPKOffsets.data());
+        indexLookup(ArrowColumnVector::getArrowColumn(dstIDVector)->chunk((int)i).get(),
+            *schema->getDstPKDataType(), pkIndexes[1], (offset_t*)adjPKOffsets.data());
         std::vector<std::unique_ptr<arrow::Array>> pkOffsetsArrays(2);
         pkOffsetsArrays[0] = createArrowPrimitiveArray(
             std::make_shared<arrow::Int64Type>(), (uint8_t*)boundPKOffsets.data(), numRowsInBatch);
         pkOffsetsArrays[1] = createArrowPrimitiveArray(
             std::make_shared<arrow::Int64Type>(), (uint8_t*)adjPKOffsets.data(), numRowsInBatch);
-        copyRelColumnsOrCountRelListsSize(startRowIdx, recordBatch.get(), FWD, pkOffsetsArrays);
-        copyRelColumnsOrCountRelListsSize(startRowIdx, recordBatch.get(), BWD, pkOffsetsArrays);
+        arrow::ArrayVector arrays;
+        arrays.reserve(dataChunkToRead->getNumValueVectors());
+        for (auto j = 0u; j < dataChunkToRead->getNumValueVectors(); j++) {
+            arrays.push_back(
+                ArrowColumnVector::getArrowColumn(dataChunkToRead->getValueVector(j).get())
+                    ->chunk((int)i));
+        }
+        copyRelColumnsOrCountRelListsSize(startRowIdx, arrays, FWD, pkOffsetsArrays);
+        copyRelColumnsOrCountRelListsSize(startRowIdx, arrays, BWD, pkOffsetsArrays);
         numRows += numRowsInBatch;
         startRowIdx += numRowsInBatch;
     }
@@ -314,31 +330,37 @@ bool ParquetRelListsCounterAndColumnsCopier::executeInternal() {
 }
 
 bool CSVRelListsCounterAndColumnsCopier::executeInternal() {
-    auto morsel = sharedState->getSerialMorsel();
+    auto morsel = sharedState->getSerialMorsel(dataChunkToRead.get());
     if (morsel->fileIdx == INVALID_VECTOR_IDX) {
         return false;
     }
-    auto serialMorsel = reinterpret_cast<SerialReaderMorsel*>(morsel.get());
-    arrow::TableBatchReader batchReader(*serialMorsel->table);
-    arrow::RecordBatchVector batchVector;
-    TableCopyUtils::throwCopyExceptionIfNotOK(batchReader.ToRecordBatches().Value(&batchVector));
     auto startRowIdx = morsel->rowIdx;
-    for (auto& recordBatch : batchVector) {
-        auto numRowsInBatch = recordBatch->num_rows();
+    auto srcIDVector = dataChunkToRead->getValueVector(0).get();
+    auto dstIDVector = dataChunkToRead->getValueVector(1).get();
+    for (auto i = 0u; i < ArrowColumnVector::getArrowColumn(srcIDVector)->num_chunks(); i++) {
+        auto numRowsInBatch =
+            ArrowColumnVector::getArrowColumn(srcIDVector)->chunk((int)i)->length();
         std::vector<offset_t> boundPKOffsets, adjPKOffsets;
         boundPKOffsets.resize(numRowsInBatch);
         adjPKOffsets.resize(numRowsInBatch);
-        indexLookup(recordBatch->column(0).get(), *schema->getSrcPKDataType(), pkIndexes[0],
-            boundPKOffsets.data());
-        indexLookup(recordBatch->column(1).get(), *schema->getDstPKDataType(), pkIndexes[1],
-            adjPKOffsets.data());
+        indexLookup(ArrowColumnVector::getArrowColumn(srcIDVector)->chunk((int)i).get(),
+            *schema->getSrcPKDataType(), pkIndexes[0], boundPKOffsets.data());
+        indexLookup(ArrowColumnVector::getArrowColumn(dstIDVector)->chunk((int)i).get(),
+            *schema->getDstPKDataType(), pkIndexes[1], adjPKOffsets.data());
         std::vector<std::unique_ptr<arrow::Array>> pkOffsets(2);
         pkOffsets[0] = createArrowPrimitiveArray(
             std::make_shared<arrow::Int64Type>(), (uint8_t*)boundPKOffsets.data(), numRowsInBatch);
         pkOffsets[1] = createArrowPrimitiveArray(
             std::make_shared<arrow::Int64Type>(), (uint8_t*)adjPKOffsets.data(), numRowsInBatch);
-        copyRelColumnsOrCountRelListsSize(startRowIdx, recordBatch.get(), FWD, pkOffsets);
-        copyRelColumnsOrCountRelListsSize(startRowIdx, recordBatch.get(), BWD, pkOffsets);
+        arrow::ArrayVector arrays;
+        arrays.reserve(dataChunkToRead->getNumValueVectors());
+        for (auto j = 0u; j < dataChunkToRead->getNumValueVectors(); j++) {
+            arrays.push_back(
+                ArrowColumnVector::getArrowColumn(dataChunkToRead->getValueVector(j).get())
+                    ->chunk((int)i));
+        }
+        copyRelColumnsOrCountRelListsSize(startRowIdx, arrays, FWD, pkOffsets);
+        copyRelColumnsOrCountRelListsSize(startRowIdx, arrays, BWD, pkOffsets);
         numRows += numRowsInBatch;
         startRowIdx += numRowsInBatch;
     }
@@ -370,27 +392,39 @@ bool ParquetRelListsCopier::executeInternal() {
         readFuncData = initFunc(sharedState->filePaths, morsel->fileIdx,
             sharedState->csvReaderConfig, sharedState->tableSchema);
     }
-    auto batchVector = readFunc(*readFuncData, morsel->blockIdx);
+    readFunc(*readFuncData, morsel->blockIdx, dataChunkToRead.get());
     auto startRowIdx = morsel->rowIdx;
-    for (auto& recordBatch : batchVector) {
-        auto numRowsInBatch = recordBatch->num_rows();
+    auto srcIDVector = dataChunkToRead->getValueVector(0).get();
+    auto dstIDVector = dataChunkToRead->getValueVector(1).get();
+    for (auto i = 0u; i < ArrowColumnVector::getArrowColumn(srcIDVector)->num_chunks(); i++) {
+        auto numRowsInBatch =
+            ArrowColumnVector::getArrowColumn(srcIDVector)->chunk((int)i)->length();
         std::vector<offset_t> boundPKOffsets, adjPKOffsets;
         boundPKOffsets.resize(numRowsInBatch);
         adjPKOffsets.resize(numRowsInBatch);
-        indexLookup(recordBatch->column(0).get(), *schema->getSrcPKDataType(), pkIndexes[0],
-            boundPKOffsets.data());
-        indexLookup(recordBatch->column(1).get(), *schema->getDstPKDataType(), pkIndexes[1],
-            adjPKOffsets.data());
+        indexLookup(ArrowColumnVector::getArrowColumn(srcIDVector)->chunk((int)i).get(),
+            *schema->getSrcPKDataType(), pkIndexes[0], boundPKOffsets.data());
+        indexLookup(ArrowColumnVector::getArrowColumn(dstIDVector)->chunk((int)i).get(),
+            *schema->getDstPKDataType(), pkIndexes[1], adjPKOffsets.data());
         std::vector<std::unique_ptr<arrow::Array>> pkOffsets(2);
         pkOffsets[0] = createArrowPrimitiveArray(
             std::make_shared<arrow::Int64Type>(), (uint8_t*)boundPKOffsets.data(), numRowsInBatch);
         pkOffsets[1] = createArrowPrimitiveArray(
             std::make_shared<arrow::Int64Type>(), (uint8_t*)adjPKOffsets.data(), numRowsInBatch);
+
+        arrow::ArrayVector arrays;
+        arrays.reserve(dataChunkToRead->getNumValueVectors());
+        for (auto j = 0u; j < dataChunkToRead->getNumValueVectors(); j++) {
+            arrays.push_back(
+                ArrowColumnVector::getArrowColumn(dataChunkToRead->getValueVector(j).get())
+                    ->chunk((int)i));
+        }
+
         if (!fwdRelData->isColumns) {
-            copyRelLists(startRowIdx, recordBatch.get(), FWD, pkOffsets);
+            copyRelLists(startRowIdx, arrays, FWD, pkOffsets);
         }
         if (!bwdRelData->isColumns) {
-            copyRelLists(startRowIdx, recordBatch.get(), BWD, pkOffsets);
+            copyRelLists(startRowIdx, arrays, BWD, pkOffsets);
         }
         numRows += numRowsInBatch;
         startRowIdx += numRowsInBatch;
@@ -399,35 +433,41 @@ bool ParquetRelListsCopier::executeInternal() {
 }
 
 bool CSVRelListsCopier::executeInternal() {
-    auto morsel = sharedState->getSerialMorsel();
+    auto morsel = sharedState->getSerialMorsel(dataChunkToRead.get());
     if (morsel->fileIdx == INVALID_VECTOR_IDX) {
         // No more morsels.
         return false;
     }
-    auto serialMorsel = reinterpret_cast<SerialReaderMorsel*>(morsel.get());
-    arrow::TableBatchReader batchReader(*serialMorsel->table);
-    arrow::RecordBatchVector batchVector;
-    TableCopyUtils::throwCopyExceptionIfNotOK(batchReader.ToRecordBatches().Value(&batchVector));
     auto startRowIdx = morsel->rowIdx;
-    for (auto& recordBatch : batchVector) {
-        auto numRowsInBatch = recordBatch->num_rows();
+    auto srcIDVector = dataChunkToRead->getValueVector(0).get();
+    auto dstIDVector = dataChunkToRead->getValueVector(1).get();
+    for (auto i = 0u; i < ArrowColumnVector::getArrowColumn(srcIDVector)->num_chunks(); i++) {
+        auto numRowsInBatch =
+            ArrowColumnVector::getArrowColumn(srcIDVector)->chunk((int)i)->length();
         std::vector<offset_t> boundPKOffsets, adjPKOffsets;
         boundPKOffsets.resize(numRowsInBatch);
         adjPKOffsets.resize(numRowsInBatch);
-        indexLookup(recordBatch->column(0).get(), *schema->getSrcPKDataType(), pkIndexes[0],
-            boundPKOffsets.data());
-        indexLookup(recordBatch->column(1).get(), *schema->getDstPKDataType(), pkIndexes[1],
-            adjPKOffsets.data());
+        indexLookup(ArrowColumnVector::getArrowColumn(srcIDVector)->chunk((int)i).get(),
+            *schema->getSrcPKDataType(), pkIndexes[0], boundPKOffsets.data());
+        indexLookup(ArrowColumnVector::getArrowColumn(dstIDVector)->chunk((int)i).get(),
+            *schema->getDstPKDataType(), pkIndexes[1], adjPKOffsets.data());
         std::vector<std::unique_ptr<arrow::Array>> pkOffsets(2);
         pkOffsets[0] = createArrowPrimitiveArray(
             std::make_shared<arrow::Int64Type>(), (uint8_t*)boundPKOffsets.data(), numRowsInBatch);
         pkOffsets[1] = createArrowPrimitiveArray(
             std::make_shared<arrow::Int64Type>(), (uint8_t*)adjPKOffsets.data(), numRowsInBatch);
+        arrow::ArrayVector arrays;
+        arrays.reserve(dataChunkToRead->getNumValueVectors());
+        for (auto j = 0u; j < dataChunkToRead->getNumValueVectors(); j++) {
+            arrays.push_back(
+                ArrowColumnVector::getArrowColumn(dataChunkToRead->getValueVector(j).get())
+                    ->chunk((int)i));
+        }
         if (!fwdRelData->isColumns) {
-            copyRelLists(startRowIdx, recordBatch.get(), FWD, pkOffsets);
+            copyRelLists(startRowIdx, arrays, FWD, pkOffsets);
         }
         if (!bwdRelData->isColumns) {
-            copyRelLists(startRowIdx, recordBatch.get(), BWD, pkOffsets);
+            copyRelLists(startRowIdx, arrays, BWD, pkOffsets);
         }
         numRows += numRowsInBatch;
         startRowIdx += numRowsInBatch;

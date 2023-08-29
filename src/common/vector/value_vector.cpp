@@ -123,6 +123,54 @@ void ValueVector::copyFromVectorData(
     }
 }
 
+void ValueVector::copyFromValue(uint64_t pos, const Value& value) {
+    auto dstValue = valueBuffer.get() + pos * numBytesPerValue;
+    switch (dataType.getPhysicalType()) {
+    case PhysicalTypeID::INT64: {
+        memcpy(dstValue, &value.val.int64Val, numBytesPerValue);
+    } break;
+    case PhysicalTypeID::INT32: {
+        memcpy(dstValue, &value.val.int32Val, numBytesPerValue);
+    } break;
+    case PhysicalTypeID::INT16: {
+        memcpy(dstValue, &value.val.int16Val, numBytesPerValue);
+    } break;
+    case PhysicalTypeID::DOUBLE: {
+        memcpy(dstValue, &value.val.doubleVal, numBytesPerValue);
+    } break;
+    case PhysicalTypeID::FLOAT: {
+        memcpy(dstValue, &value.val.floatVal, numBytesPerValue);
+    } break;
+    case PhysicalTypeID::BOOL: {
+        memcpy(dstValue, &value.val.booleanVal, numBytesPerValue);
+    } break;
+    case PhysicalTypeID::INTERVAL: {
+        memcpy(dstValue, &value.val.intervalVal, numBytesPerValue);
+    } break;
+    case PhysicalTypeID::STRING: {
+        StringVector::addString(
+            this, *(ku_string_t*)dstValue, value.strVal.data(), value.strVal.length());
+    } break;
+    case PhysicalTypeID::VAR_LIST: {
+        auto listEntry = reinterpret_cast<list_entry_t*>(dstValue);
+        auto numValues = NestedVal::getChildrenSize(&value);
+        *listEntry = ListVector::addList(this, numValues);
+        auto dstDataVector = ListVector::getDataVector(this);
+        for (auto i = 0u; i < numValues; ++i) {
+            dstDataVector->copyFromValue(listEntry->offset + i, *NestedVal::getChildVal(&value, i));
+        }
+    } break;
+    case PhysicalTypeID::STRUCT: {
+        auto structFields = StructVector::getFieldVectors(this);
+        for (auto i = 0u; i < structFields.size(); ++i) {
+            structFields[i]->copyFromValue(pos, *NestedVal::getChildVal(&value, i));
+        }
+    } break;
+    default:
+        throw NotImplementedException("ValueVector::copyFromValue");
+    }
+}
+
 void ValueVector::resetAuxiliaryBuffer() {
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::STRING: {

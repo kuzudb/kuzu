@@ -18,14 +18,14 @@ class Reader : public PhysicalOperator {
 public:
     Reader(ReaderInfo readerInfo, std::shared_ptr<storage::ReaderSharedState> sharedState,
         uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::READER, id, paramsString}, readerInfo{std::move(
-                                                                                readerInfo)},
-          sharedState{std::move(sharedState)}, leftNumRows{0}, readFuncData{nullptr} {}
+        : PhysicalOperator{PhysicalOperatorType::READER, id, paramsString},
+          readerInfo{std::move(readerInfo)}, sharedState{std::move(sharedState)}, readFuncData{
+                                                                                      nullptr} {}
 
-    inline void initGlobalStateInternal(ExecutionContext* context) final {
-        sharedState->validate();
-        sharedState->countBlocks();
-    }
+    void initGlobalStateInternal(ExecutionContext* context) final;
+
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
+
     inline bool isSource() const final { return true; }
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
@@ -36,14 +36,14 @@ protected:
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
 private:
-    void getNextNodeGroupInSerial(std::shared_ptr<arrow::Table>& table);
-    void getNextNodeGroupInParallel(std::shared_ptr<arrow::Table>& table);
+    void getNextNodeGroupInSerial();
+    void getNextNodeGroupInParallel();
 
 private:
     ReaderInfo readerInfo;
     std::shared_ptr<storage::ReaderSharedState> sharedState;
-    std::vector<std::shared_ptr<arrow::RecordBatch>> leftRecordBatches;
-    common::row_idx_t leftNumRows;
+    std::unique_ptr<common::DataChunk> dataChunkToRead;
+    storage::LeftArrowArrays leftArrowArrays;
 
     // For parallel reading.
     std::unique_ptr<storage::ReaderFunctionData> readFuncData;
