@@ -101,24 +101,31 @@ bool HashIndexBuilder<T>::appendColumnChunk
 
     for (auto i = 0u; i < numValues; i++) {
         auto offset = i + startOffset;
-        common::ku_string_t* kuStr = chunk->getValue<common::ku_string_t*>(i);
-        common::page_idx_t pageIdx = 0;
-        uint16_t pageOffset = 0;
-        TypeUtils::decodeOverflowPtr(kuStr->overflowPtr, pageIdx, pageOffset);
-        TypeUtils::encodeOverflowPtr(kuStr->overflowPtr, startPageIdx + pageIdx, pageOffset);
+        common::ku_string_t* kuStrInChunk = chunk->getValue<common::ku_string_t*>(i);
+        std::string str = chunk->overflowFile->readString(kuStrInChunk);
+        const char* charA = str.c_str();
+        common::ku_string_t newKuStr = common::ku_string_t();
+
+        uint64_t length = str.length();
+        newKuStr.len = length;
+        memcpy(newKuStr.prefix, charA,
+            length <= ku_string_t::SHORT_STR_LENGTH ? length : ku_string_t::PREFIX_LENGTH);
         
-        if(!appendInternalKuStr((uint8_t*)kuStr, offset)) return false;
+        if (length > ku_string_t::SHORT_STR_LENGTH) {
+            common::page_idx_t pageIdx = 0;
+            uint16_t pageOffset = 0;
+            TypeUtils::decodeOverflowPtr(kuStrInChunk->overflowPtr, pageIdx, pageOffset);
+            TypeUtils::encodeOverflowPtr(newKuStr.overflowPtr, startPageIdx + pageIdx, pageOffset);
+        }
+
+        if(!appendInternalKuStr((uint8_t*)charA, (uint8_t*)&newKuStr, offset)) return false;
     }
 
     return true;
 }
 
 template<typename T>
-bool HashIndexBuilder<T>::appendInternalKuStr(const uint8_t* kuStrP, common::offset_t value) {
-    auto kuStr = (common::ku_string_t*)kuStrP;
-    std::string str = inMemOverflowFile->readString(kuStr);
-    const char* charA = str.c_str();
-    const uint8_t* key = (uint8_t*)charA;
+bool HashIndexBuilder<T>::appendInternalKuStr(const uint8_t* key, const uint8_t* kuStrP, common::offset_t value) {
 
     SlotInfo pSlotInfo{getPrimarySlotIdForKey(*indexHeader, key), SlotType::PRIMARY};
     auto currentSlotInfo = pSlotInfo;
@@ -136,7 +143,7 @@ bool HashIndexBuilder<T>::appendInternalKuStr(const uint8_t* kuStrP, common::off
         currentSlotInfo.slotType = SlotType::OVF;
     }
     assert(currentSlot);
-    insertToSlotWithoutLock(currentSlot, (const uint8_t*)kuStr, value);
+    insertToSlotWithoutLock(currentSlot, kuStrP, value);
     numEntries.fetch_add(1);
     return true;
 }
