@@ -63,7 +63,7 @@ class Connection:
         self.init_connection()
         self._connection.set_max_threads_for_exec(num_threads)
 
-    def execute(self, query, parameters=[]):
+    def execute(self, query, parameters={}):
         """
         Execute a query.
 
@@ -73,7 +73,7 @@ class Connection:
             A prepared statement or a query string.
             If a query string is given, a prepared statement will be created
             automatically.
-        parameters : list[tuple(str, any)]
+        parameters : dict[str, Any]
             Parameters for the query.
 
         Returns
@@ -82,6 +82,8 @@ class Connection:
             Query result.
         """
         self.init_connection()
+        if type(parameters) != dict:
+            raise RuntimeError("Parameters must be a dict")
         prepared_statement = self.prepare(
             query) if type(query) == str else query
         return QueryResult(self,

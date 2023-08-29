@@ -14,7 +14,7 @@ void PyConnection::initialize(py::handle& m) {
     py::class_<PyConnection>(m, "Connection")
         .def(py::init<PyDatabase*, uint64_t>(), py::arg("database"), py::arg("num_threads") = 0)
         .def("execute", &PyConnection::execute, py::arg("prepared_statement"),
-            py::arg("parameters") = py::list())
+            py::arg("parameters") = py::dict())
         .def("set_max_threads_for_exec", &PyConnection::setMaxNumThreadForExec,
             py::arg("num_threads"))
         .def("get_node_property_names", &PyConnection::getNodePropertyNames, py::arg("table_name"))
@@ -44,7 +44,7 @@ void PyConnection::setQueryTimeout(uint64_t timeoutInMS) {
 }
 
 std::unique_ptr<PyQueryResult> PyConnection::execute(
-    PyPreparedStatement* preparedStatement, py::list params) {
+    PyPreparedStatement* preparedStatement, py::dict params) {
     auto parameters = transformPythonParameters(params);
     py::gil_scoped_release release;
     auto queryResult =
@@ -133,8 +133,7 @@ void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
         if (tableSchema->getColumn(0)->isFlat() && !tableSchema->getColumn(1)->isFlat()) {
             for (auto i = 0u; i < table->getNumTuples(); ++i) {
                 auto tuple = table->getTuple(i);
-                auto overflowValue =
-                    (overflow_value_t*)(tuple + tableSchema->getColOffset(1));
+                auto overflowValue = (overflow_value_t*)(tuple + tableSchema->getColOffset(1));
                 for (auto j = 0u; j < overflowValue->numElements; ++j) {
                     srcBuffer[j] = *(int64_t*)(tuple + tableSchema->getColOffset(0));
                 }
@@ -147,8 +146,7 @@ void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
         } else if (tableSchema->getColumn(1)->isFlat() && !tableSchema->getColumn(0)->isFlat()) {
             for (auto i = 0u; i < table->getNumTuples(); ++i) {
                 auto tuple = table->getTuple(i);
-                auto overflowValue =
-                    (overflow_value_t*)(tuple + tableSchema->getColOffset(0));
+                auto overflowValue = (overflow_value_t*)(tuple + tableSchema->getColOffset(0));
                 for (auto j = 0u; j < overflowValue->numElements; ++j) {
                     srcBuffer[j] = ((int64_t*)overflowValue->value)[j];
                 }
@@ -166,29 +164,18 @@ void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
 }
 
 std::unordered_map<std::string, std::shared_ptr<Value>> PyConnection::transformPythonParameters(
-    py::list params) {
+    py::dict params) {
     std::unordered_map<std::string, std::shared_ptr<Value>> result;
-    for (auto param : params) {
-        if (!py::isinstance<py::tuple>(param)) {
-            throw std::runtime_error("Each parameter must be in the form of <name, val>");
+    for (auto& [key, value] : params) {
+        if (!py::isinstance<py::str>(key)) {
+            throw std::runtime_error("Parameter name must be of type string but get " +
+                                     py::str(key.get_type()).cast<std::string>());
         }
-        auto [name, val] = transformPythonParameter(param.cast<py::tuple>());
+        auto name = key.cast<std::string>();
+        auto val = std::make_shared<Value>(transformPythonValue(value));
         result.insert({name, val});
     }
     return result;
-}
-
-std::pair<std::string, std::shared_ptr<Value>> PyConnection::transformPythonParameter(
-    py::tuple param) {
-    if (py::len(param) != 2) {
-        throw std::runtime_error("Each parameter must be in the form of <name, val>");
-    }
-    if (!py::isinstance<py::str>(param[0])) {
-        throw std::runtime_error("Parameter name must be of type string but get " +
-                                 py::str(param[0].get_type()).cast<std::string>());
-    }
-    auto val = transformPythonValue(param[1]);
-    return make_pair(param[0].cast<std::string>(), std::make_shared<Value>(val));
 }
 
 Value PyConnection::transformPythonValue(py::handle val) {

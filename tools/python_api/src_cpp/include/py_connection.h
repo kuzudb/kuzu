@@ -1,9 +1,9 @@
 #pragma once
 
+#include "main/storage_driver.h"
 #include "py_database.h"
 #include "py_prepared_statement.h"
 #include "py_query_result.h"
-#include "main/storage_driver.h"
 
 class PyConnection {
 
@@ -16,7 +16,7 @@ public:
 
     void setQueryTimeout(uint64_t timeoutInMS);
 
-    std::unique_ptr<PyQueryResult> execute(PyPreparedStatement* preparedStatement, py::list params);
+    std::unique_ptr<PyQueryResult> execute(PyPreparedStatement* preparedStatement, py::dict params);
 
     void setMaxNumThreadForExec(uint64_t numThreads);
 
@@ -40,10 +40,7 @@ public:
 
 private:
     std::unordered_map<std::string, std::shared_ptr<kuzu::common::Value>> transformPythonParameters(
-        py::list params);
-
-    std::pair<std::string, std::shared_ptr<kuzu::common::Value>> transformPythonParameter(
-        py::tuple param);
+        py::dict params);
 
     kuzu::common::Value transformPythonValue(py::handle val);
 
