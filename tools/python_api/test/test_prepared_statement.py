@@ -9,29 +9,25 @@ def test_read(establish_connection):
     assert prepared_statement.is_success()
     assert prepared_statement.get_error_message() == ""
 
-    result = conn.execute(prepared_statement,
-                          [("1", False), ("k", False)])
+    result = conn.execute(prepared_statement, {"1": False, "k": False})
     assert result.is_success()
     assert result.has_next()
     assert result.get_next() == [1]
     assert not result.has_next()
 
-    result = conn.execute(prepared_statement,
-                          [("1", True), ("k", False)])
+    result = conn.execute(prepared_statement, {"1": True, "k": False})
     assert result.is_success()
     assert result.has_next()
     assert result.get_next() == [3]
     assert not result.has_next()
 
-    result = conn.execute(prepared_statement,
-                          [("1", False), ("k", True)])
+    result = conn.execute(prepared_statement, {"1": False, "k": True})
     assert result.is_success()
     assert result.has_next()
     assert result.get_next() == [4]
     assert not result.has_next()
 
-    result = conn.execute(prepared_statement,
-                          [("1", True), ("k", True)])
+    result = conn.execute(prepared_statement, {"1": True, "k": True})
     assert result.is_success()
     assert result.has_next()
     assert result.get_next() == [0]
@@ -77,8 +73,8 @@ def test_write(establish_connection):
         "CREATE (n:organisation {ID: $ID, name: $name, orgCode: $orgCode, mark: $mark, score: $score, history: $history, licenseValidInterval: $licenseValidInterval, rating: $rating})")
     assert prepared_statement.is_success()
     for org in orgs:
-        org_tuples = [(k, v) for k, v in org.items()]
-        conn.execute(prepared_statement, org_tuples)
+        org_dict = {str(k): v for k, v in org.items()}
+        conn.execute(prepared_statement, org_dict)
 
     all_orgs_res = conn.execute("MATCH (n:organisation) RETURN n")
     while all_orgs_res.has_next():
