@@ -69,6 +69,12 @@ void WAL::logRelTableRecord(table_id_t tableID) {
     addNewWALRecordNoLock(walRecord);
 }
 
+void WAL::logRdfGraphRecord(table_id_t rdfGraphID, table_id_t nodeTableID, table_id_t relTableID) {
+    lock_t lck{mtx};
+    WALRecord walRecord = WALRecord::newRdfGraphRecord(rdfGraphID, nodeTableID, relTableID);
+    addNewWALRecordNoLock(walRecord);
+}
+
 void WAL::logOverflowFileNextBytePosRecord(
     StorageStructureID storageStructureID, uint64_t prevNextByteToWriteTo) {
     lock_t lck{mtx};

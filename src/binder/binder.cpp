@@ -20,6 +20,9 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::CREATE_REL_TABLE: {
         boundStatement = bindCreateRelTableClause(statement);
     } break;
+    case StatementType::CREATE_RDF_GRAPH: {
+        boundStatement = bindCreateRdfGraphClause(statement);
+    } break;
     case StatementType::COPY_FROM: {
         boundStatement = bindCopyFromClause(statement);
     } break;

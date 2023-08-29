@@ -241,6 +241,9 @@ private:
 
     std::unique_ptr<Statement> transformCreateRelClause(CypherParser::KU_CreateRelContext& ctx);
 
+    std::unique_ptr<Statement> transformCreateRdfGraphClause(
+        CypherParser::KU_CreateRdfGraphContext& ctx);
+
     std::unique_ptr<Statement> transformDropTable(CypherParser::KU_DropTableContext& ctx);
 
     std::unique_ptr<Statement> transformRenameTable(CypherParser::KU_AlterTableContext& ctx);

@@ -17,8 +17,8 @@ public:
 
 private:
     static std::unique_ptr<LogicalPlan> planCreateNodeTable(const BoundStatement& statement);
-
     static std::unique_ptr<LogicalPlan> planCreateRelTable(const BoundStatement& statement);
+    static std::unique_ptr<LogicalPlan> planCreateRdfGraph(const BoundStatement& statement);
 
     static std::unique_ptr<LogicalPlan> planDropTable(const BoundStatement& statement);
 

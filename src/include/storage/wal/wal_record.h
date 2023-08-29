@@ -263,14 +263,15 @@ enum class WALRecordType : uint8_t {
     CATALOG_RECORD = 3,
     NODE_TABLE_RECORD = 4,
     REL_TABLE_RECORD = 5,
+    RDF_GRAPH_RECORD = 6,
     // Records the nextBytePosToWriteTo field's last value before the write trx started. This is
     // used when rolling back to restore this value.
-    OVERFLOW_FILE_NEXT_BYTE_POS_RECORD = 6,
-    COPY_NODE_RECORD = 7,
-    COPY_REL_RECORD = 8,
-    DROP_TABLE_RECORD = 9,
-    DROP_PROPERTY_RECORD = 10,
-    ADD_PROPERTY_RECORD = 11,
+    OVERFLOW_FILE_NEXT_BYTE_POS_RECORD = 7,
+    COPY_NODE_RECORD = 8,
+    COPY_REL_RECORD = 9,
+    DROP_TABLE_RECORD = 10,
+    DROP_PROPERTY_RECORD = 11,
+    ADD_PROPERTY_RECORD = 12,
 };
 
 std::string walRecordTypeToString(WALRecordType walRecordType);
@@ -326,6 +327,23 @@ struct RelTableRecord {
     explicit RelTableRecord(common::table_id_t tableID) : tableID{tableID} {}
 
     inline bool operator==(const RelTableRecord& rhs) const { return tableID == rhs.tableID; }
+};
+
+struct RdfGraphRecord {
+    common::table_id_t tableID;
+    NodeTableRecord nodeTableRecord;
+    RelTableRecord relTableRecord;
+
+    RdfGraphRecord() = default;
+
+    explicit RdfGraphRecord(
+        common::table_id_t tableID, NodeTableRecord nodeTableRecord, RelTableRecord relTableRecord)
+        : tableID{tableID}, nodeTableRecord{nodeTableRecord}, relTableRecord{relTableRecord} {}
+
+    inline bool operator==(const RdfGraphRecord& rhs) const {
+        return tableID == rhs.tableID && nodeTableRecord == rhs.nodeTableRecord &&
+               relTableRecord == rhs.relTableRecord;
+    }
 };
 
 struct DiskOverflowFileNextBytePosRecord {
@@ -426,6 +444,7 @@ struct WALRecord {
         CommitRecord commitRecord;
         NodeTableRecord nodeTableRecord;
         RelTableRecord relTableRecord;
+        RdfGraphRecord rdfGraphRecord;
         DiskOverflowFileNextBytePosRecord diskOverflowFileNextBytePosRecord;
         CopyNodeRecord copyNodeRecord;
         CopyRelRecord copyRelRecord;
@@ -458,6 +477,9 @@ struct WALRecord {
         }
         case WALRecordType::REL_TABLE_RECORD: {
             return relTableRecord == rhs.relTableRecord;
+        }
+        case WALRecordType::RDF_GRAPH_RECORD: {
+            return rdfGraphRecord == rhs.rdfGraphRecord;
         }
         case WALRecordType::OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
             return diskOverflowFileNextBytePosRecord == rhs.diskOverflowFileNextBytePosRecord;
@@ -493,6 +515,8 @@ struct WALRecord {
     static WALRecord newCatalogRecord();
     static WALRecord newNodeTableRecord(common::table_id_t tableID);
     static WALRecord newRelTableRecord(common::table_id_t tableID);
+    static WALRecord newRdfGraphRecord(common::table_id_t rdfGraphID,
+        common::table_id_t nodeTableID, common::table_id_t relTableID);
     static WALRecord newOverflowFileNextBytePosRecord(
         StorageStructureID storageStructureID_, uint64_t prevNextByteToWriteTo_);
     static WALRecord newCopyNodeRecord(common::table_id_t tableID, common::page_idx_t startPageIdx);

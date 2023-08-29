@@ -1,0 +1,18 @@
+-GROUP Rdf
+-DATASET CSV tinysnb
+
+--
+
+# TODO: add following tests
+# Execute create rdf inside an active manual transaction.
+# Test whether the table exists after the transaction is aborted.
+
+-CASE CreateRdfGraph
+-STATEMENT CREATE RDF GRAPH test
+---- ok
+-STATEMENT Call table_info('test_RESOURCE') RETURN *;
+---- 1
+0|_IRI|STRING|True
+-STATEMENT Call table_info('test_TRIPLES') RETURN *;
+---- 1
+1|_PREDICT_ID|INTERNAL_ID

@@ -194,6 +194,15 @@ WALRecord WALRecord::newRelTableRecord(table_id_t tableID) {
     return retVal;
 }
 
+WALRecord WALRecord::newRdfGraphRecord(
+    common::table_id_t rdfGraphID, common::table_id_t nodeTableID, common::table_id_t relTableID) {
+    WALRecord retVal;
+    retVal.recordType = WALRecordType::RDF_GRAPH_RECORD;
+    retVal.rdfGraphRecord =
+        RdfGraphRecord(rdfGraphID, NodeTableRecord(nodeTableID), RelTableRecord(relTableID));
+    return retVal;
+}
+
 WALRecord WALRecord::newOverflowFileNextBytePosRecord(
     StorageStructureID storageStructureID_, uint64_t prevNextByteToWriteTo_) {
     WALRecord retVal;

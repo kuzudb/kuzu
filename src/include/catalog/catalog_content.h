@@ -1,11 +1,12 @@
 #pragma once
 
-#include "catalog/table_schema.h"
+#include "binder/ddl/bound_create_table_info.h"
 #include "function/aggregate/built_in_aggregate_functions.h"
 #include "function/built_in_table_functions.h"
 #include "function/built_in_vector_functions.h"
 #include "function/scalar_macro_function.h"
 #include "storage/storage_info.h"
+#include "table_schema.h"
 
 namespace kuzu {
 namespace catalog {
@@ -58,13 +59,9 @@ public:
     /**
      * Node and Rel table functions.
      */
-    common::table_id_t addNodeTableSchema(std::string tableName, common::property_id_t primaryKeyId,
-        std::vector<std::unique_ptr<Property>> properties);
-
-    common::table_id_t addRelTableSchema(std::string tableName, RelMultiplicity relMultiplicity,
-        std::vector<std::unique_ptr<Property>> properties, common::table_id_t srcTableID,
-        common::table_id_t dstTableID, std::unique_ptr<common::LogicalType> srcPKDataType,
-        std::unique_ptr<common::LogicalType> dstPKDataType);
+    common::table_id_t addNodeTableSchema(const binder::BoundCreateTableInfo& info);
+    common::table_id_t addRelTableSchema(const binder::BoundCreateTableInfo& info);
+    common::table_id_t addRdfGraphSchema(const binder::BoundCreateTableInfo& info);
 
     bool containNodeTable(const std::string& tableName) const;
 

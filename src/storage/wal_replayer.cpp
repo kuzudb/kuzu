@@ -71,6 +71,9 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
     case WALRecordType::REL_TABLE_RECORD: {
         replayRelTableRecord(walRecord);
     } break;
+    case WALRecordType::RDF_GRAPH_RECORD: {
+        replayRdfGraphRecord(walRecord);
+    } break;
     case WALRecordType::OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
         replayOverflowFileNextBytePosRecord(walRecord);
     } break;
@@ -180,13 +183,12 @@ void WALReplayer::replayNodeTableRecord(const kuzu::storage::WALRecord& walRecor
     }
 }
 
-void WALReplayer::replayRelTableRecord(const kuzu::storage::WALRecord& walRecord) {
+void WALReplayer::replayRelTableRecord(const kuzu::storage::WALRecord& walRecord, bool isRdf) {
     if (isCheckpoint) {
         // See comments for NODE_TABLE_RECORD.
-        auto nodesStatisticsAndDeletedIDsForCheckPointing =
-            std::make_unique<NodesStatisticsAndDeletedIDs>(wal->getDirectory());
-        auto maxNodeOffsetPerTable =
-            nodesStatisticsAndDeletedIDsForCheckPointing->getMaxNodeOffsetPerTable();
+        auto nodesStatistics = std::make_unique<NodesStatisticsAndDeletedIDs>(
+            wal->getDirectory(), isRdf ? DBFileType::WAL_VERSION : DBFileType::ORIGINAL);
+        auto maxNodeOffsetPerTable = nodesStatistics->getMaxNodeOffsetPerTable();
         auto catalogForCheckpointing = getCatalogForRecovery(DBFileType::WAL_VERSION);
         WALReplayerUtils::createEmptyDBFilesForNewRelTable(
             catalogForCheckpointing->getReadOnlyVersion()->getRelTableSchema(
@@ -199,6 +201,20 @@ void WALReplayer::replayRelTableRecord(const kuzu::storage::WALRecord& walRecord
             storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs().setAdjListsAndColumns(
                 &storageManager->getRelsStore());
         }
+    } else {
+        // See comments for NODE_TABLE_RECORD.
+    }
+}
+
+void WALReplayer::replayRdfGraphRecord(const kuzu::storage::WALRecord& walRecord) {
+    if (isCheckpoint) {
+        WALRecord nodeTableWALRecord = {.recordType = WALRecordType::NODE_TABLE_RECORD,
+            .nodeTableRecord = walRecord.rdfGraphRecord.nodeTableRecord};
+        replayNodeTableRecord(nodeTableWALRecord);
+
+        WALRecord triplesRelTableWALRecord = {.recordType = WALRecordType::REL_TABLE_RECORD,
+            .relTableRecord = walRecord.rdfGraphRecord.relTableRecord};
+        replayRelTableRecord(triplesRelTableWALRecord, true /* isRdf */);
     } else {
         // See comments for NODE_TABLE_RECORD.
     }

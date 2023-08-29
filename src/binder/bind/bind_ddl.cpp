@@ -1,15 +1,13 @@
 #include "binder/binder.h"
 #include "binder/ddl/bound_add_property.h"
-#include "binder/ddl/bound_create_node_clause.h"
-#include "binder/ddl/bound_create_rel_clause.h"
+#include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_drop_property.h"
 #include "binder/ddl/bound_drop_table.h"
 #include "binder/ddl/bound_rename_property.h"
 #include "binder/ddl/bound_rename_table.h"
 #include "common/string_utils.h"
 #include "parser/ddl/add_property.h"
-#include "parser/ddl/create_node_clause.h"
-#include "parser/ddl/create_rel_clause.h"
+#include "parser/ddl/create_table_clause.h"
 #include "parser/ddl/drop_property.h"
 #include "parser/ddl/drop_table.h"
 #include "parser/ddl/rename_property.h"
@@ -24,40 +22,102 @@ namespace binder {
 
 std::unique_ptr<BoundStatement> Binder::bindCreateNodeTableClause(
     const parser::Statement& statement) {
-    auto& createNodeTableClause = (parser::CreateNodeTableClause&)statement;
-    auto tableName = createNodeTableClause.getTableName();
+    auto& createTableClause = reinterpret_cast<const CreateTableClause&>(statement);
+    auto tableName = createTableClause.getTableName();
     if (catalog.getReadOnlyVersion()->containTable(tableName)) {
         throw BinderException("Node " + tableName + " already exists.");
     }
-    auto boundProperties = bindProperties(createNodeTableClause.getPropertyNameDataTypes());
-    auto primaryKeyIdx = bindPrimaryKey(
-        createNodeTableClause.getPKColName(), createNodeTableClause.getPropertyNameDataTypes());
+    auto createInfo = createTableClause.getInfo();
+    auto boundProperties = bindProperties(createInfo->propertyNameDataTypes);
+    auto extraInfo = (NodeExtraCreateTableInfo*)createInfo->extraInfo.get();
+    auto primaryKeyIdx = bindPrimaryKey(extraInfo->pKName, createInfo->propertyNameDataTypes);
     for (auto i = 0u; i < boundProperties.size(); ++i) {
         if (boundProperties[i]->getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL &&
             primaryKeyIdx != i) {
             throw BinderException("Serial property in node table must be the primary key.");
         }
     }
-    return make_unique<BoundCreateNodeClause>(tableName, std::move(boundProperties), primaryKeyIdx);
+    auto boundExtraInfo = std::make_unique<BoundNodeExtraCreateTableInfo>(primaryKeyIdx);
+    auto boundCreateInfo = std::make_unique<BoundCreateTableInfo>(
+        tableName, std::move(boundProperties), std::move(boundExtraInfo));
+    return make_unique<BoundCreateTable>(
+        StatementType::CREATE_NODE_TABLE, tableName, std::move(boundCreateInfo));
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCreateRelTableClause(
     const parser::Statement& statement) {
-    auto& createRelClause = (CreateRelClause&)statement;
-    auto tableName = createRelClause.getTableName();
+    auto& createTableClause = reinterpret_cast<const CreateTableClause&>(statement);
+    auto tableName = createTableClause.getTableName();
     if (catalog.getReadOnlyVersion()->containTable(tableName)) {
         throw BinderException("Rel " + tableName + " already exists.");
     }
-    auto boundProperties = bindProperties(createRelClause.getPropertyNameDataTypes());
+    auto createInfo = createTableClause.getInfo();
+    auto boundProperties = bindProperties(createInfo->propertyNameDataTypes);
     for (auto& boundProperty : boundProperties) {
         if (boundProperty->getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL) {
             throw BinderException("Serial property is not supported in rel table.");
         }
     }
-    auto relMultiplicity = getRelMultiplicityFromString(createRelClause.getRelMultiplicity());
-    return make_unique<BoundCreateRelClause>(tableName, std::move(boundProperties), relMultiplicity,
-        bindNodeTableID(createRelClause.getSrcTableName()),
-        bindNodeTableID(createRelClause.getDstTableName()));
+    auto extraInfo = (RelExtraCreateTableInfo*)createInfo->extraInfo.get();
+    auto srcTableID = bindNodeTableID(extraInfo->srcTableName);
+    auto srcTableSchema =
+        (NodeTableSchema*)catalog.getReadOnlyVersion()->getTableSchema(srcTableID);
+    auto srcPkDataType = srcTableSchema->getPrimaryKey()->getDataType();
+    auto dstTableID = bindNodeTableID(extraInfo->dstTableName);
+    auto dstTableSchema =
+        (NodeTableSchema*)catalog.getReadOnlyVersion()->getTableSchema(dstTableID);
+    auto dstPkDataType = dstTableSchema->getPrimaryKey()->getDataType();
+    auto relMultiplicity = getRelMultiplicityFromString(extraInfo->relMultiplicity);
+    auto boundExtraInfo = std::make_unique<BoundRelExtraCreateTableInfo>(
+        relMultiplicity, srcTableID, dstTableID, srcPkDataType->copy(), dstPkDataType->copy());
+    auto boundCreateInfo = std::make_unique<BoundCreateTableInfo>(
+        tableName, std::move(boundProperties), std::move(boundExtraInfo));
+    return make_unique<BoundCreateTable>(
+        StatementType::CREATE_REL_TABLE, tableName, std::move(boundCreateInfo));
+}
+
+static constexpr char RDF_IRI[] = "_IRI";
+static constexpr char RDF_PREDICT_ID[] = "_PREDICT_ID";
+static constexpr char RDF_NODE_TABLE_SUFFIX[] = "_RESOURCE";
+static constexpr char RDF_REL_TABLE_SUFFIX[] = "_TRIPLES";
+
+static inline std::string getRdfNodeTableName(const std::string& rdfName) {
+    return rdfName + RDF_NODE_TABLE_SUFFIX;
+}
+
+static inline std::string getRdfRelTableName(const std::string& rdfName) {
+    return rdfName + RDF_REL_TABLE_SUFFIX;
+}
+
+std::unique_ptr<BoundStatement> Binder::bindCreateRdfGraphClause(
+    const parser::Statement& statement) {
+    auto& createTableClause = reinterpret_cast<const CreateTableClause&>(statement);
+    auto rdfGraphName = createTableClause.getTableName();
+    auto stringType = std::make_unique<LogicalType>(LogicalTypeID::STRING);
+    // RDF node (resource) table
+    auto nodeTableName = getRdfNodeTableName(rdfGraphName);
+    std::vector<std::unique_ptr<Property>> nodeProperties;
+    nodeProperties.push_back(std::make_unique<Property>(RDF_IRI, stringType->copy()));
+    auto boundNodeExtraInfo =
+        std::make_unique<BoundNodeExtraCreateTableInfo>(0 /* primaryKeyIdx */);
+    auto boundNodeCreateInfo = std::make_unique<BoundCreateTableInfo>(
+        nodeTableName, std::move(nodeProperties), std::move(boundNodeExtraInfo));
+    // RDF rel (triples) table
+    auto relTableName = getRdfRelTableName(rdfGraphName);
+    std::vector<std::unique_ptr<Property>> relProperties;
+    relProperties.push_back(std::make_unique<Property>(
+        RDF_PREDICT_ID, std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID)));
+    auto boundRelExtraInfo =
+        std::make_unique<BoundRelExtraCreateTableInfo>(RelMultiplicity::MANY_MANY, INVALID_TABLE_ID,
+            INVALID_TABLE_ID, stringType->copy(), stringType->copy());
+    auto boundRelCreateInfo = std::make_unique<BoundCreateTableInfo>(
+        relTableName, std::move(relProperties), std::move(boundRelExtraInfo));
+    auto boundExtraInfo = std::make_unique<BoundRdfExtraCreateTableInfo>(
+        std::move(boundNodeCreateInfo), std::move(boundRelCreateInfo));
+    auto boundCreateInfo =
+        std::make_unique<BoundCreateTableInfo>(rdfGraphName, std::move(boundExtraInfo));
+    return std::make_unique<BoundCreateTable>(
+        StatementType::CREATE_RDF_GRAPH, rdfGraphName, std::move(boundCreateInfo));
 }
 
 std::unique_ptr<BoundStatement> Binder::bindDropTableClause(const parser::Statement& statement) {

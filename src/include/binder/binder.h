@@ -80,6 +80,7 @@ private:
     /*** bind DDL ***/
     std::unique_ptr<BoundStatement> bindCreateNodeTableClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCreateRelTableClause(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindCreateRdfGraphClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindDropTableClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindRenameTableClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindAddPropertyClause(const parser::Statement& statement);

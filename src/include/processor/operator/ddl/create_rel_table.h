@@ -1,38 +1,31 @@
 #pragma once
 
-#include "processor/operator/ddl/create_table.h"
+#include "processor/operator/ddl/ddl.h"
 #include "storage/store/rels_statistics.h"
 
 namespace kuzu {
 namespace processor {
 
-class CreateRelTable : public CreateTable {
+class CreateRelTable : public DDL {
 public:
-    CreateRelTable(catalog::Catalog* catalog, std::string tableName,
-        std::vector<std::unique_ptr<catalog::Property>> properties,
-        catalog::RelMultiplicity relMultiplicity, common::table_id_t srcTableID,
-        common::table_id_t dstTableID, const DataPos& outputPos, uint32_t id,
-        const std::string& paramsString, storage::RelsStatistics* relsStatistics)
-        : CreateTable{PhysicalOperatorType::CREATE_REL_TABLE, catalog, std::move(tableName),
-              std::move(properties), outputPos, id, paramsString},
-          relMultiplicity{relMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID},
-          relsStatistics{relsStatistics} {}
+    CreateRelTable(catalog::Catalog* catalog, storage::RelsStatistics* relsStatistics,
+        std::unique_ptr<binder::BoundCreateTableInfo> info, const DataPos& outputPos, uint32_t id,
+        const std::string& paramsString)
+        : DDL{PhysicalOperatorType::CREATE_REL_TABLE, catalog, outputPos, id, paramsString},
+          relsStatistics{relsStatistics}, info{std::move(info)} {}
 
     void executeDDLInternal() override;
 
     std::string getOutputMsg() override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<CreateRelTable>(catalog, tableName,
-            catalog::Property::copyProperties(properties), relMultiplicity, srcTableID, dstTableID,
-            outputPos, id, paramsString, relsStatistics);
+        return make_unique<CreateRelTable>(
+            catalog, relsStatistics, info->copy(), outputPos, id, paramsString);
     }
 
 private:
-    catalog::RelMultiplicity relMultiplicity;
-    common::table_id_t srcTableID;
-    common::table_id_t dstTableID;
     storage::RelsStatistics* relsStatistics;
+    std::unique_ptr<binder::BoundCreateTableInfo> info;
 };
 
 } // namespace processor

@@ -1,37 +1,34 @@
 #pragma once
 
-#include "processor/operator/ddl/create_table.h"
+#include "processor/operator/ddl/ddl.h"
 #include "storage/store/nodes_statistics_and_deleted_ids.h"
 #include "storage/store/nodes_store.h"
 
 namespace kuzu {
 namespace processor {
 
-class CreateNodeTable : public CreateTable {
+class CreateNodeTable : public DDL {
 public:
-    CreateNodeTable(catalog::Catalog* catalog, std::string tableName,
-        std::vector<std::unique_ptr<catalog::Property>> properties, uint32_t primaryKeyIdx,
-        storage::StorageManager& storageManager, const DataPos& outputPos, uint32_t id,
-        const std::string& paramsString, storage::NodesStatisticsAndDeletedIDs* nodesStatistics)
-        : CreateTable{PhysicalOperatorType::CREATE_NODE_TABLE, catalog, std::move(tableName),
-              std::move(properties), outputPos, id, paramsString},
-          primaryKeyIdx{primaryKeyIdx}, storageManager{storageManager}, nodesStatistics{
-                                                                            nodesStatistics} {}
+    CreateNodeTable(catalog::Catalog* catalog, storage::StorageManager* storageManager,
+        storage::NodesStatisticsAndDeletedIDs* nodesStatistics,
+        std::unique_ptr<binder::BoundCreateTableInfo> info, const DataPos& outputPos, uint32_t id,
+        const std::string& paramsString)
+        : DDL{PhysicalOperatorType::CREATE_NODE_TABLE, catalog, outputPos, id, paramsString},
+          storageManager{storageManager}, nodesStatistics{nodesStatistics}, info{std::move(info)} {}
 
-    void executeDDLInternal() override;
+    void executeDDLInternal() final;
 
-    std::string getOutputMsg() override;
+    std::string getOutputMsg() final;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<CreateNodeTable>(catalog, tableName,
-            catalog::Property::copyProperties(properties), primaryKeyIdx, storageManager, outputPos,
-            id, paramsString, nodesStatistics);
+    std::unique_ptr<PhysicalOperator> clone() final {
+        return std::make_unique<CreateNodeTable>(
+            catalog, storageManager, nodesStatistics, info->copy(), outputPos, id, paramsString);
     }
 
 private:
-    uint32_t primaryKeyIdx;
-    storage::StorageManager& storageManager;
+    storage::StorageManager* storageManager;
     storage::NodesStatisticsAndDeletedIDs* nodesStatistics;
+    std::unique_ptr<binder::BoundCreateTableInfo> info;
 };
 
 } // namespace processor

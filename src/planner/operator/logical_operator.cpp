@@ -30,6 +30,9 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::CREATE_REL: {
         return "CREATE_REL";
     }
+    case LogicalOperatorType::CREATE_RDF_GRAPH: {
+        return "CREATE_RDF_GRAPH";
+    }
     case LogicalOperatorType::CREATE_MACRO: {
         return "CREATE_MACRO";
     }
