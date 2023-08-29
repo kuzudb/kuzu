@@ -7,12 +7,12 @@ namespace processor {
 
 struct TopKLocalScanState {
     std::vector<common::ValueVector*> vectorsToScan;
-    std::unique_ptr<TopKScanState> scanState;
+    std::unique_ptr<PayloadScanner> payloadScanner;
 
     void init(
         std::vector<DataPos>& outVectorPos, TopKSharedState& sharedState, ResultSet& resultSet);
 
-    inline uint64_t scan() { return scanState->payloadScanner->scan(vectorsToScan); }
+    inline uint64_t scan() { return payloadScanner->scan(vectorsToScan); }
 };
 
 class TopKScan : public PhysicalOperator {

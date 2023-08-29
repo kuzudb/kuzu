@@ -6,34 +6,29 @@ namespace kuzu {
 namespace processor {
 
 void SortSharedState::init(const OrderByDataInfo& orderByDataInfo) {
-    calculatePayloadSchema(orderByDataInfo);
     auto encodedKeyBlockColOffset = 0ul;
-    for (auto i = 0u; i < orderByDataInfo.keysPosAndType.size(); ++i) {
-        auto& [dataPos, dataType] = orderByDataInfo.keysPosAndType[i];
-        if (PhysicalTypeID::STRING == dataType.getPhysicalType()) {
+    for (auto i = 0u; i < orderByDataInfo.keysPos.size(); ++i) {
+        auto dataType = orderByDataInfo.keyTypes[i].get();
+        if (PhysicalTypeID::STRING == dataType->getPhysicalType()) {
             // If this is a string column, we need to find the factorizedTable offset for this
             // column.
-            auto ftColIdx = 0ul;
-            for (auto j = 0u; j < orderByDataInfo.payloadsPosAndType.size(); j++) {
-                auto [payloadDataPos, _] = orderByDataInfo.payloadsPosAndType[j];
-                if (payloadDataPos == dataPos) {
-                    ftColIdx = j;
-                }
-            }
-            strKeyColsInfo.emplace_back(payloadSchema->getColOffset(ftColIdx),
+            auto ftColIdx = orderByDataInfo.keyInPayloadPos[i];
+            strKeyColsInfo.emplace_back(orderByDataInfo.payloadTableSchema->getColOffset(ftColIdx),
                 encodedKeyBlockColOffset, orderByDataInfo.isAscOrder[i]);
         }
-        encodedKeyBlockColOffset += OrderByKeyEncoder::getEncodingSize(dataType);
+        encodedKeyBlockColOffset += OrderByKeyEncoder::getEncodingSize(*dataType);
     }
     numBytesPerTuple = encodedKeyBlockColOffset + OrderByConstants::NUM_BYTES_FOR_PAYLOAD_IDX;
 }
 
-LocalPayloadTableInfo SortSharedState::getLocalPayloadTable(storage::MemoryManager& memoryManager) {
+std::pair<uint64_t, FactorizedTable*> SortSharedState::getLocalPayloadTable(
+    storage::MemoryManager& memoryManager, const FactorizedTableSchema& payloadTableSchema) {
     std::unique_lock lck{mtx};
-    auto payloadTable = std::make_unique<FactorizedTable>(&memoryManager, payloadSchema->copy());
-    auto payloadTableInfo = LocalPayloadTableInfo{nextFactorizedTableIdx++, payloadTable.get()};
+    auto payloadTable =
+        std::make_unique<FactorizedTable>(&memoryManager, payloadTableSchema.copy());
+    auto result = std::make_pair(nextTableIdx++, payloadTable.get());
     payloadTables.push_back(std::move(payloadTable));
-    return payloadTableInfo;
+    return result;
 }
 
 void SortSharedState::appendLocalSortedKeyBlock(std::shared_ptr<MergedKeyBlocks> mergedDataBlocks) {
@@ -56,36 +51,22 @@ std::vector<FactorizedTable*> SortSharedState::getPayloadTables() const {
     return payloadTablesToReturn;
 }
 
-void SortSharedState::calculatePayloadSchema(
-    const kuzu::processor::OrderByDataInfo& orderByDataInfo) {
-    // The orderByKeyEncoder requires that the orderByKey columns are flat in the
-    // factorizedTable. If there is only one unflat dataChunk, we need to flatten the payload
-    // columns in factorizedTable because the payload and key columns are in the same
-    // dataChunk.
-    payloadSchema = std::make_unique<FactorizedTableSchema>();
-    for (auto i = 0u; i < orderByDataInfo.payloadsPosAndType.size(); ++i) {
-        auto [dataPos, dataType] = orderByDataInfo.payloadsPosAndType[i];
-        bool isUnflat = !orderByDataInfo.isPayloadFlat[i] && !orderByDataInfo.mayContainUnflatKey;
-        payloadSchema->appendColumn(std::make_unique<ColumnSchema>(isUnflat, dataPos.dataChunkPos,
-            isUnflat ? (uint32_t)sizeof(overflow_value_t) :
-                       LogicalTypeUtils::getRowLayoutSize(dataType)));
-    }
-}
-
 void SortLocalState::init(const OrderByDataInfo& orderByDataInfo, SortSharedState& sharedState,
     storage::MemoryManager* memoryManager) {
-    localPayloadTableInfo = sharedState.getLocalPayloadTable(*memoryManager);
+    auto [idx, table] =
+        sharedState.getLocalPayloadTable(*memoryManager, *orderByDataInfo.payloadTableSchema);
+    globalIdx = idx;
+    payloadTable = table;
     orderByKeyEncoder = std::make_unique<OrderByKeyEncoder>(orderByDataInfo, memoryManager,
-        localPayloadTableInfo.globalIdx, localPayloadTableInfo.payloadTable->getNumTuplesPerBlock(),
-        sharedState.getNumBytesPerTuple());
-    radixSorter = std::make_unique<RadixSort>(memoryManager, *localPayloadTableInfo.payloadTable,
-        *orderByKeyEncoder, sharedState.getStrKeyColInfo());
+        globalIdx, payloadTable->getNumTuplesPerBlock(), sharedState.getNumBytesPerTuple());
+    radixSorter = std::make_unique<RadixSort>(
+        memoryManager, *payloadTable, *orderByKeyEncoder, sharedState.getStrKeyColInfo());
 }
 
-void SortLocalState::append(std::vector<common::ValueVector*> keyVectors,
-    std::vector<common::ValueVector*> payloadVectors) {
-    orderByKeyEncoder->encodeKeys(std::move(keyVectors));
-    localPayloadTableInfo.payloadTable->append(std::move(payloadVectors));
+void SortLocalState::append(const std::vector<common::ValueVector*>& keyVectors,
+    const std::vector<common::ValueVector*>& payloadVectors) {
+    orderByKeyEncoder->encodeKeys(keyVectors);
+    payloadTable->append(payloadVectors);
 }
 
 void SortLocalState::finalize(kuzu::processor::SortSharedState& sharedState) {

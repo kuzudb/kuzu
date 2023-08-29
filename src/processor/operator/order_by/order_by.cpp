@@ -6,17 +6,18 @@ namespace kuzu {
 namespace processor {
 
 void OrderBy::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    localState->init(orderByDataInfo, *sharedState, context->memoryManager);
-    for (auto [dataPos, _] : orderByDataInfo.payloadsPosAndType) {
+    localState = std::make_unique<SortLocalState>();
+    localState->init(*info, *sharedState, context->memoryManager);
+    for (auto& dataPos : info->payloadsPos) {
         payloadVectors.push_back(resultSet->getValueVector(dataPos).get());
     }
-    for (auto [dataPos, _] : orderByDataInfo.keysPosAndType) {
+    for (auto& dataPos : info->keysPos) {
         orderByVectors.push_back(resultSet->getValueVector(dataPos).get());
     }
 }
 
 void OrderBy::initGlobalStateInternal(ExecutionContext* context) {
-    sharedState->init(orderByDataInfo);
+    sharedState->init(*info);
 }
 
 void OrderBy::executeInternal(ExecutionContext* context) {

@@ -5,11 +5,10 @@ namespace processor {
 
 void TopKLocalScanState::init(
     std::vector<DataPos>& outVectorPos, TopKSharedState& sharedState, ResultSet& resultSet) {
-    scanState = std::make_unique<TopKScanState>();
-    sharedState.buffer->initScan(*scanState);
     for (auto& pos : outVectorPos) {
         vectorsToScan.push_back(resultSet.getValueVector(pos).get());
     }
+    payloadScanner = sharedState.buffer->getScanner();
 }
 
 void TopKScan::initLocalStateInternal(

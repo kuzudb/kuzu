@@ -5,7 +5,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-TopKSortState::TopKSortState() {
+TopKSortState::TopKSortState() : numTuples{0}, memoryManager{nullptr} {
     orderByLocalState = std::make_unique<SortLocalState>();
     orderBySharedState = std::make_unique<SortSharedState>();
 }
@@ -18,10 +18,10 @@ void TopKSortState::init(
     numTuples = 0;
 }
 
-void TopKSortState::append(std::vector<common::ValueVector*> keyVectors,
-    std::vector<common::ValueVector*> payloadVectors) {
+void TopKSortState::append(const std::vector<common::ValueVector*>& keyVectors,
+    const std::vector<common::ValueVector*>& payloadVectors) {
     numTuples += keyVectors[0]->state->selVector->selectedSize;
-    orderByLocalState->append(std::move(keyVectors), std::move(payloadVectors));
+    orderByLocalState->append(keyVectors, payloadVectors);
 }
 
 void TopKSortState::finalize() {
@@ -39,19 +39,18 @@ void TopKSortState::finalize() {
     }
 }
 
-void TopKBuffer::init(const kuzu::processor::OrderByDataInfo& orderByDataInfo,
+void TopKBuffer::init(
     storage::MemoryManager* memoryManager, uint64_t skipNumber, uint64_t limitNumber) {
-    this->orderByDataInfo = &orderByDataInfo;
     this->memoryManager = memoryManager;
-    sortState->init(orderByDataInfo, memoryManager);
+    sortState->init(*orderByDataInfo, memoryManager);
     this->skip = skipNumber;
     this->limit = limitNumber;
     initVectors();
     initCompareFuncs();
 }
 
-void TopKBuffer::append(std::vector<common::ValueVector*> keyVectors,
-    std::vector<common::ValueVector*> payloadVectors) {
+void TopKBuffer::append(const std::vector<common::ValueVector*>& keyVectors,
+    const std::vector<common::ValueVector*>& payloadVectors) {
     auto originalSelState = keyVectors[0]->state->selVector;
     if (hasBoundaryValue && !compareBoundaryValue(keyVectors)) {
         keyVectors[0]->state->selVector = std::move(originalSelState);
@@ -70,10 +69,9 @@ void TopKBuffer::reduce() {
     sortState->finalize();
     auto newSortState = std::make_unique<TopKSortState>();
     newSortState->init(*orderByDataInfo, memoryManager);
-    TopKScanState scanState;
-    sortState->initScan(scanState, 0, skip + limit);
+    auto scanner = sortState->getScanner(0, skip + limit);
     while (true) {
-        auto numTuplesScanned = scanState.payloadScanner->scan(payloadVecsToScan);
+        auto numTuplesScanned = scanner->scan(payloadVecsToScan);
         if (numTuplesScanned == 0) {
             setBoundaryValue();
             break;
@@ -90,9 +88,8 @@ void TopKBuffer::merge(TopKBuffer* other) {
     if (other->sortState->getSharedState()->getSortedKeyBlocks()->empty()) {
         return;
     }
-    TopKScanState scanState;
-    other->sortState->initScan(scanState, 0, skip + limit);
-    while (scanState.payloadScanner->scan(payloadVecsToScan) > 0) {
+    auto scanner = other->sortState->getScanner(0, skip + limit);
+    while (scanner->scan(payloadVecsToScan) > 0) {
         sortState->append(keyVecsToScan, payloadVecsToScan);
     }
     reduce();
@@ -101,9 +98,9 @@ void TopKBuffer::merge(TopKBuffer* other) {
 void TopKBuffer::initVectors() {
     auto payloadState = std::make_shared<common::DataChunkState>();
     auto lastPayloadState = std::make_shared<common::DataChunkState>();
-    for (auto& [pos, type] : orderByDataInfo->payloadsPosAndType) {
-        auto payloadVec = std::make_unique<common::ValueVector>(type, memoryManager);
-        auto lastPayloadVec = std::make_unique<common::ValueVector>(type, memoryManager);
+    for (auto& type : orderByDataInfo->payloadTypes) {
+        auto payloadVec = std::make_unique<common::ValueVector>(*type, memoryManager);
+        auto lastPayloadVec = std::make_unique<common::ValueVector>(*type, memoryManager);
         payloadVec->setState(payloadState);
         lastPayloadVec->setState(lastPayloadState);
         payloadVecsToScan.push_back(payloadVec.get());
@@ -112,36 +109,15 @@ void TopKBuffer::initVectors() {
         tmpVectors.push_back(std::move(lastPayloadVec));
     }
     auto boundaryState = common::DataChunkState::getSingleValueDataChunkState();
-    for (auto& [pos, type] : orderByDataInfo->keysPosAndType) {
-        auto boundaryVec = std::make_unique<common::ValueVector>(type, memoryManager);
+    for (auto i = 0u; i < orderByDataInfo->keyTypes.size(); ++i) {
+        auto type = orderByDataInfo->keyTypes[i].get();
+        auto boundaryVec = std::make_unique<common::ValueVector>(*type, memoryManager);
         boundaryVec->setState(boundaryState);
         boundaryVecs.push_back(std::move(boundaryVec));
-        auto posInPayload = findKeyVectorPosInPayload(pos);
-        if (posInPayload == UINT64_MAX) {
-            // If the key is not present in the payload, create a new vector.
-            auto keyVec = std::make_unique<common::ValueVector>(type, memoryManager);
-            auto lastKeyVec = std::make_unique<common::ValueVector>(type, memoryManager);
-            keyVecsToScan.push_back(keyVec.get());
-            lastKeyVecsToScan.push_back(lastKeyVec.get());
-            tmpVectors.push_back(std::move(keyVec));
-            tmpVectors.push_back(std::move(lastKeyVec));
-        } else {
-            // Otherwise grab the vector from the payload.
-            keyVecsToScan.push_back(payloadVecsToScan[posInPayload]);
-            lastKeyVecsToScan.push_back(lastPayloadVecsToScan[posInPayload]);
-        }
+        auto posInPayload = orderByDataInfo->keyInPayloadPos[i];
+        keyVecsToScan.push_back(payloadVecsToScan[posInPayload]);
+        lastKeyVecsToScan.push_back(lastPayloadVecsToScan[posInPayload]);
     }
-}
-
-uint64_t TopKBuffer::findKeyVectorPosInPayload(const DataPos& keyPos) {
-    // TODO(Xiyang): this information should be passed by front end. (e.g. The key vector pos in the
-    // payload vector)
-    for (auto i = 0u; i < orderByDataInfo->payloadsPosAndType.size(); i++) {
-        if (keyPos == orderByDataInfo->payloadsPosAndType[i].first) {
-            return i;
-        }
-    }
-    return UINT64_MAX;
 }
 
 template<typename FUNC>
@@ -185,7 +161,7 @@ void TopKBuffer::initCompareFuncs() {
     vector_select_comparison_func compareFunc;
     vector_select_comparison_func equalsFunc;
     for (auto i = 0u; i < orderByDataInfo->isAscOrder.size(); i++) {
-        auto physicalType = orderByDataInfo->keysPosAndType[i].second.getPhysicalType();
+        auto physicalType = orderByDataInfo->keyTypes[i]->getPhysicalType();
         if (orderByDataInfo->isAscOrder[i]) {
             getSelectComparisonFunction<function::LessThan>(physicalType, compareFunc);
         } else {
@@ -213,7 +189,7 @@ void TopKBuffer::setBoundaryValue() {
     }
 }
 
-bool TopKBuffer::compareBoundaryValue(std::vector<common::ValueVector*>& keyVectors) {
+bool TopKBuffer::compareBoundaryValue(const std::vector<common::ValueVector*>& keyVectors) {
     if (keyVectors[0]->state->isFlat()) {
         return compareFlatKeys(0 /* startKeyVectorIdxToCompare */, keyVectors);
     } else {
@@ -223,7 +199,7 @@ bool TopKBuffer::compareBoundaryValue(std::vector<common::ValueVector*>& keyVect
 }
 
 bool TopKBuffer::compareFlatKeys(
-    vector_idx_t vectorIdxToCompare, std::vector<ValueVector*> keyVectors) {
+    vector_idx_t vectorIdxToCompare, const std::vector<ValueVector*> keyVectors) {
     std::shared_ptr<common::SelectionVector> selVector =
         std::make_shared<common::SelectionVector>(common::DEFAULT_VECTOR_CAPACITY);
     selVector->resetSelectorToValuePosBuffer();
@@ -240,7 +216,7 @@ bool TopKBuffer::compareFlatKeys(
 }
 
 void TopKBuffer::compareUnflatKeys(
-    vector_idx_t vectorIdxToCompare, std::vector<ValueVector*> keyVectors) {
+    vector_idx_t vectorIdxToCompare, const std::vector<ValueVector*> keyVectors) {
     auto compareSelVector =
         std::make_shared<common::SelectionVector>(common::DEFAULT_VECTOR_CAPACITY);
     compareSelVector->resetSelectorToValuePosBuffer();
@@ -272,25 +248,31 @@ void TopKBuffer::appendSelState(
 void TopKLocalState::init(const OrderByDataInfo& orderByDataInfo,
     storage::MemoryManager* memoryManager, ResultSet& resultSet, uint64_t skipNumber,
     uint64_t limitNumber) {
-    buffer->init(orderByDataInfo, memoryManager, skipNumber, limitNumber);
-    for (auto [dataPos, _] : orderByDataInfo.payloadsPosAndType) {
-        payloadVectors.push_back(resultSet.getValueVector(dataPos).get());
-    }
-    for (auto [dataPos, _] : orderByDataInfo.keysPosAndType) {
-        orderByVectors.push_back(resultSet.getValueVector(dataPos).get());
-    }
+    buffer = std::make_unique<TopKBuffer>(orderByDataInfo);
+    buffer->init(memoryManager, skipNumber, limitNumber);
 }
 
-void TopKLocalState::append() {
-    buffer->append(orderByVectors, payloadVectors);
+void TopKLocalState::append(const std::vector<common::ValueVector*>& keyVectors,
+    const std::vector<common::ValueVector*>& payloadVectors) {
+    buffer->append(keyVectors, payloadVectors);
     buffer->reduce();
 }
 
+void TopK::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    localState = std::make_unique<TopKLocalState>();
+    localState->init(*info, context->memoryManager, *resultSet, skipNumber, limitNumber);
+    for (auto& dataPos : info->payloadsPos) {
+        payloadVectors.push_back(resultSet->getValueVector(dataPos).get());
+    }
+    for (auto& dataPos : info->keysPos) {
+        orderByVectors.push_back(resultSet->getValueVector(dataPos).get());
+    }
+}
+
 void TopK::executeInternal(ExecutionContext* context) {
-    // Append thread-local tuples.
     while (children[0]->getNextTuple(context)) {
         for (auto i = 0u; i < resultSet->multiplicity; i++) {
-            localState->append();
+            localState->append(orderByVectors, payloadVectors);
         }
     }
     localState->finalize();

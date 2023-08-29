@@ -29,15 +29,15 @@ OrderByKeyEncoder::OrderByKeyEncoder(const OrderByDataInfo& orderByDataInfo,
             "TupleSize({} bytes) is larger than the LARGE_PAGE_SIZE({} bytes)", numBytesPerTuple,
             BufferPoolConstants::PAGE_256KB_SIZE));
     }
-    encodeFunctions.reserve(orderByDataInfo.keysPosAndType.size());
-    for (auto& [_, type] : orderByDataInfo.keysPosAndType) {
+    encodeFunctions.reserve(orderByDataInfo.keysPos.size());
+    for (auto& type : orderByDataInfo.keyTypes) {
         encode_function_t encodeFunction;
-        getEncodingFunction(type.getPhysicalType(), encodeFunction);
+        getEncodingFunction(type->getPhysicalType(), encodeFunction);
         encodeFunctions.push_back(std::move(encodeFunction));
     }
 }
 
-void OrderByKeyEncoder::encodeKeys(std::vector<common::ValueVector*> orderByKeys) {
+void OrderByKeyEncoder::encodeKeys(const std::vector<common::ValueVector*>& orderByKeys) {
     uint32_t numEntries = orderByKeys[0]->state->selVector->selectedSize;
     uint32_t encodedTuples = 0;
     while (numEntries > 0) {
