@@ -71,7 +71,12 @@ void TablesStatistics::saveToFile(const std::string& directory, DBFileType dbFil
     logger->info("Wrote {} to {}.", getTableTypeForPrinting(), filePath);
 }
 
-void TablesStatistics::initTableStatisticPerTableForWriteTrxIfNecessary() {
+void TablesStatistics::initTableStatisticsForWriteTrx() {
+    std::unique_lock xLck{mtx};
+    initTableStatisticsForWriteTrxNoLock();
+}
+
+void TablesStatistics::initTableStatisticsForWriteTrxNoLock() {
     if (tablesStatisticsContentForWriteTrx == nullptr) {
         tablesStatisticsContentForWriteTrx = std::make_unique<TablesStatisticsContent>();
         for (auto& tableStatistic : tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable) {

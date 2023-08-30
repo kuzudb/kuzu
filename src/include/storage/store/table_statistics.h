@@ -98,7 +98,7 @@ public:
     }
 
     inline void addTableStatistic(catalog::TableSchema* tableSchema) {
-        initTableStatisticPerTableForWriteTrxIfNecessary();
+        initTableStatisticsForWriteTrx();
         tablesStatisticsContentForWriteTrx->tableStatisticPerTable[tableSchema->tableID] =
             constructTableStatistic(tableSchema);
     }
@@ -120,7 +120,7 @@ public:
                 tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable.at(tableID).get();
             return tableStatistics->getPropertyStatistics(propertyID);
         } else {
-            initTableStatisticPerTableForWriteTrxIfNecessary();
+            initTableStatisticsForWriteTrx();
             assert(tablesStatisticsContentForWriteTrx->tableStatisticPerTable.contains(tableID));
             auto tableStatistics =
                 tablesStatisticsContentForWriteTrx->tableStatisticPerTable.at(tableID).get();
@@ -130,7 +130,7 @@ public:
 
     void setPropertyStatisticsForTable(
         common::table_id_t tableID, common::property_id_t propertyID, PropertyStatistics stats) {
-        initTableStatisticPerTableForWriteTrxIfNecessary();
+        initTableStatisticsForWriteTrx();
         assert(tablesStatisticsContentForWriteTrx->tableStatisticPerTable.contains(tableID));
         auto tableStatistics =
             tablesStatisticsContentForWriteTrx->tableStatisticPerTable.at(tableID).get();
@@ -162,7 +162,8 @@ protected:
     void saveToFile(const std::string& directory, common::DBFileType dbFileType,
         transaction::TransactionType transactionType);
 
-    void initTableStatisticPerTableForWriteTrxIfNecessary();
+    void initTableStatisticsForWriteTrx();
+    void initTableStatisticsForWriteTrxNoLock();
 
 protected:
     std::shared_ptr<spdlog::logger> logger;

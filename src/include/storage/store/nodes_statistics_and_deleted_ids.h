@@ -112,7 +112,7 @@ public:
     }
 
     inline void setNumTuplesForTable(common::table_id_t tableID, uint64_t numTuples) override {
-        initTableStatisticPerTableForWriteTrxIfNecessary();
+        initTableStatisticsForWriteTrx();
         ((NodeStatisticsAndDeletedIDs*)tablesStatisticsContentForWriteTrx
                 ->tableStatisticPerTable[tableID]
                 .get())
@@ -121,21 +121,18 @@ public:
 
     inline common::offset_t getMaxNodeOffset(
         transaction::Transaction* transaction, common::table_id_t tableID) {
-        return getMaxNodeOffset(transaction == nullptr || transaction->isReadOnly() ?
-                                    transaction::TransactionType::READ_ONLY :
-                                    transaction::TransactionType::WRITE,
-            tableID);
-    }
-
-    inline common::offset_t getMaxNodeOffset(
-        transaction::TransactionType transactionType, common::table_id_t tableID) {
-        return (transactionType == transaction::TransactionType::READ_ONLY ||
-                   tablesStatisticsContentForWriteTrx == nullptr) ?
-                   getNodeStatisticsAndDeletedIDs(tableID)->getMaxNodeOffset() :
-                   ((NodeStatisticsAndDeletedIDs*)tablesStatisticsContentForWriteTrx
-                           ->tableStatisticPerTable[tableID]
-                           .get())
-                       ->getMaxNodeOffset();
+        assert(transaction);
+        if (transaction->getType() == transaction::TransactionType::READ_ONLY) {
+            return getNodeStatisticsAndDeletedIDs(tableID)->getMaxNodeOffset();
+        } else {
+            std::unique_lock xLck{mtx};
+            return tablesStatisticsContentForWriteTrx == nullptr ?
+                       getNodeStatisticsAndDeletedIDs(tableID)->getMaxNodeOffset() :
+                       ((NodeStatisticsAndDeletedIDs*)tablesStatisticsContentForWriteTrx
+                               ->tableStatisticPerTable[tableID]
+                               .get())
+                           ->getMaxNodeOffset();
+        }
     }
 
     // This function is only used for testing purpose.
@@ -149,7 +146,7 @@ public:
     // keep the interface simple and no transaction is passed.
     common::offset_t addNode(common::table_id_t tableID) {
         lock_t lck{mtx};
-        initTableStatisticPerTableForWriteTrxIfNecessary();
+        initTableStatisticsForWriteTrxNoLock();
         return ((NodeStatisticsAndDeletedIDs*)tablesStatisticsContentForWriteTrx
                     ->tableStatisticPerTable[tableID]
                     .get())
@@ -159,7 +156,7 @@ public:
     // Refer to the comments for addNode.
     void deleteNode(common::table_id_t tableID, common::offset_t nodeOffset) {
         lock_t lck{mtx};
-        initTableStatisticPerTableForWriteTrxIfNecessary();
+        initTableStatisticsForWriteTrxNoLock();
         ((NodeStatisticsAndDeletedIDs*)tablesStatisticsContentForWriteTrx
                 ->tableStatisticPerTable[tableID]
                 .get())

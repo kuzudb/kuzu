@@ -8,7 +8,7 @@ namespace storage {
 // We should only call this function after we call setNumRelsPerDirectionBoundTableID.
 void RelsStatistics::setNumTuplesForTable(table_id_t relTableID, uint64_t numRels) {
     lock_t lck{mtx};
-    initTableStatisticPerTableForWriteTrxIfNecessary();
+    initTableStatisticsForWriteTrxNoLock();
     assert(tablesStatisticsContentForWriteTrx->tableStatisticPerTable.contains(relTableID));
     auto relStatistics =
         (RelStatistics*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable[relTableID]
@@ -19,7 +19,7 @@ void RelsStatistics::setNumTuplesForTable(table_id_t relTableID, uint64_t numRel
 
 void RelsStatistics::updateNumRelsByValue(table_id_t relTableID, int64_t value) {
     lock_t lck{mtx};
-    initTableStatisticPerTableForWriteTrxIfNecessary();
+    initTableStatisticsForWriteTrxNoLock();
     auto relStatistics =
         (RelStatistics*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable[relTableID]
             .get();

@@ -157,7 +157,7 @@ NodesStatisticsAndDeletedIDs::NodesStatisticsAndDeletedIDs(
     std::unordered_map<table_id_t, std::unique_ptr<NodeStatisticsAndDeletedIDs>>&
         nodesStatisticsAndDeletedIDs)
     : TablesStatistics{} {
-    initTableStatisticPerTableForWriteTrxIfNecessary();
+    initTableStatisticsForWriteTrx();
     for (auto& nodeStatistics : nodesStatisticsAndDeletedIDs) {
         tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable[nodeStatistics.first] =
             std::make_unique<NodeStatisticsAndDeletedIDs>(
@@ -206,7 +206,7 @@ void NodesStatisticsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(
 
 void NodesStatisticsAndDeletedIDs::addNodeStatisticsAndDeletedIDs(
     catalog::NodeTableSchema* tableSchema) {
-    initTableStatisticPerTableForWriteTrxIfNecessary();
+    initTableStatisticsForWriteTrx();
     tablesStatisticsContentForWriteTrx->tableStatisticPerTable[tableSchema->tableID] =
         constructTableStatistic(tableSchema);
 }

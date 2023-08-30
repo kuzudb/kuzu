@@ -10,6 +10,9 @@ class PropertyStatistics {
 public:
     PropertyStatistics() = default;
     explicit PropertyStatistics(bool mayHaveNullValue) : mayHaveNullValue{mayHaveNullValue} {}
+    PropertyStatistics(const PropertyStatistics& other) {
+        this->mayHaveNullValue = other.mayHaveNullValue;
+    }
 
     inline bool mayHaveNull() const { return mayHaveNullValue; }
     PropertyStatistics(PropertyStatistics& other) = default;

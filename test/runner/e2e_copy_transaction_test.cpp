@@ -54,7 +54,7 @@ public:
         ASSERT_EQ(getStorageManager(*database)
                       ->getNodesStore()
                       .getNodesStatisticsAndDeletedIDs()
-                      .getMaxNodeOffset(transaction::TransactionType::READ_ONLY, tableID),
+                      .getMaxNodeOffset(&transaction::DUMMY_READ_TRANSACTION, tableID),
             UINT64_MAX);
     }
 
@@ -67,7 +67,7 @@ public:
         ASSERT_EQ(getStorageManager(*database)
                       ->getNodesStore()
                       .getNodesStatisticsAndDeletedIDs()
-                      .getMaxNodeOffset(transaction::TransactionType::READ_ONLY, tableID),
+                      .getMaxNodeOffset(&transaction::DUMMY_READ_TRANSACTION, tableID),
             7);
     }
 
