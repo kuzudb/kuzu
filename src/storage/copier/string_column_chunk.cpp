@@ -157,6 +157,11 @@ std::string StringColumnChunk::getValue<std::string>(offset_t pos) const {
     return overflowFile->readString(&kuStr);
 }
 
+template<>
+common::ku_string_t* StringColumnChunk::getValue<common::ku_string_t*>(offset_t pos) const {
+    return &((ku_string_t*)buffer.get())[pos];
+}
+
 template<typename T>
 void StringColumnChunk::templateCopyStringArrowArray(
     arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) {

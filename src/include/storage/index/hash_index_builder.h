@@ -102,7 +102,7 @@ public:
 private:
     bool appendInternal(const uint8_t* key, common::offset_t value);
     bool appendInternalKuStr(const uint8_t* key, const uint8_t* kuStrP, common::offset_t value);
-    bool appendColumnChunk(const StringColumnChunk* chunk,  common::offset_t startOffset, uint64_t numValues);
+    bool appendColumnChunk(StringColumnChunk* chunk,  common::offset_t startOffset, uint64_t numValues);
     bool appendKuStr(const uint8_t* key, common::offset_t value);
 
     bool lookupInternalWithoutLock(const uint8_t* key, common::offset_t& result);

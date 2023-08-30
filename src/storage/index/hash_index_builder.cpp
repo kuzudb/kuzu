@@ -84,17 +84,16 @@ bool HashIndexBuilder<T>::appendInternal(const uint8_t* key, offset_t value) {
 
 template<typename T>
 bool HashIndexBuilder<T>::appendColumnChunk
-    (const StringColumnChunk* chunk, common::offset_t startOffset, uint64_t numValues) {
+    (StringColumnChunk* chunk, common::offset_t startOffset, uint64_t numValues) {
     
     ovfFileLock.lock();
     uint64_t startPageIdx = inMemOverflowFile->getNumPages();
-    uint64_t numPagesInChunk = chunk->overflowFile->getNumPages();
+    uint64_t numPagesInChunk = chunk->getOverflowFile()->getNumPages();
     inMemOverflowFile->addNewPages(numPagesInChunk, true);
 
     for (uint64_t i = 0u; i < numPagesInChunk; i++) {
         uint64_t pageOffset = startPageIdx + i;
-        //inMemOverflowFile->getPage(pageOffset)->write(0, 0, chunk->overflowFile->getPage(i)->data, BufferPoolConstants::PAGE_4KB_SIZE);
-        memcpy(inMemOverflowFile->getPage(pageOffset)->data, chunk->overflowFile->getPage(i)->data, BufferPoolConstants::PAGE_4KB_SIZE);
+        memcpy(inMemOverflowFile->getPage(pageOffset)->data, chunk->getOverflowFile()->getPage(i)->data, BufferPoolConstants::PAGE_4KB_SIZE);
     }
 
     ovfFileLock.unlock();
@@ -102,7 +101,7 @@ bool HashIndexBuilder<T>::appendColumnChunk
     for (auto i = 0u; i < numValues; i++) {
         auto offset = i + startOffset;
         common::ku_string_t* kuStrInChunk = chunk->getValue<common::ku_string_t*>(i);
-        std::string str = chunk->overflowFile->readString(kuStrInChunk);
+        std::string str = chunk->getOverflowFile()->readString(kuStrInChunk);
         const char* charA = str.c_str();
         common::ku_string_t newKuStr = common::ku_string_t();
 
