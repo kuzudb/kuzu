@@ -4,6 +4,7 @@
 #include "storage/copier/column_chunk.h"
 #include "storage/storage_structure/disk_array.h"
 #include "storage/storage_structure/storage_structure.h"
+#include "storage/store/property_statistics.h"
 
 namespace kuzu {
 namespace transaction {
@@ -57,10 +58,11 @@ class NodeColumn {
 public:
     NodeColumn(const catalog::Property& property, BMFileHandle* dataFH, BMFileHandle* metadataFH,
         BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
-        bool requireNullColumn = true);
+        RWPropertyStats propertyStatistics, bool requireNullColumn = true);
     NodeColumn(common::LogicalType dataType, const catalog::MetadataDAHInfo& metaDAHeaderInfo,
         BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction, bool requireNullColumn);
+        transaction::Transaction* transaction, RWPropertyStats PropertyStatistics,
+        bool requireNullColumn);
     virtual ~NodeColumn() = default;
 
     // Expose for feature store
@@ -140,13 +142,15 @@ protected:
     std::vector<std::unique_ptr<NodeColumn>> childrenColumns;
     read_node_column_func_t readNodeColumnFunc;
     write_node_column_func_t writeNodeColumnFunc;
+    RWPropertyStats propertyStatistics;
 };
 
 class BoolNodeColumn : public NodeColumn {
 public:
     BoolNodeColumn(const catalog::MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
         BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction, bool requireNullColumn = true);
+        transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
+        bool requireNullColumn = true);
 
     void batchLookup(transaction::Transaction* transaction, const common::offset_t* nodeOffsets,
         size_t size, uint8_t* result) final;
@@ -158,10 +162,15 @@ class NullNodeColumn : public NodeColumn {
 public:
     NullNodeColumn(common::page_idx_t metaDAHPageIdx, BMFileHandle* dataFH,
         BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction);
+        transaction::Transaction* transaction, RWPropertyStats propertyStatistics);
 
     void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector) final;
+    void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
+        common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
+        common::ValueVector* resultVector, uint64_t offsetInVector = 0) final;
+    void scan(common::node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) final;
+
     void lookup(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector) final;
     common::page_idx_t append(
@@ -190,14 +199,14 @@ public:
 struct NodeColumnFactory {
     static inline std::unique_ptr<NodeColumn> createNodeColumn(const catalog::Property& property,
         BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction) {
+        transaction::Transaction* transaction, RWPropertyStats propertyStatistics) {
         return createNodeColumn(*property.getDataType(), *property.getMetadataDAHInfo(), dataFH,
-            metadataFH, bufferManager, wal, transaction);
+            metadataFH, bufferManager, wal, transaction, propertyStatistics);
     }
     static std::unique_ptr<NodeColumn> createNodeColumn(const common::LogicalType& dataType,
         const catalog::MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
         BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction);
+        transaction::Transaction* transaction, RWPropertyStats propertyStatistics);
 };
 
 } // namespace storage

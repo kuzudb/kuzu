@@ -139,6 +139,8 @@ public:
     static void setNullRange(
         uint64_t* nullEntries, uint64_t offset, uint64_t numBitsToSet, bool isNull);
 
+    void setNullFromRange(uint64_t offset, uint64_t numBitsToSet, bool isNull);
+
     void resize(uint64_t capacity);
 
 private:

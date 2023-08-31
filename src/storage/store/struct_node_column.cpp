@@ -1,5 +1,7 @@
 #include "storage/store/struct_node_column.h"
 
+#include "storage/store/table_statistics.h"
+
 using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -9,16 +11,16 @@ namespace storage {
 
 StructNodeColumn::StructNodeColumn(LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
     BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-    Transaction* transaction)
+    Transaction* transaction, RWPropertyStats propertyStatistics)
     : NodeColumn{std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
-          transaction, true} {
+          transaction, propertyStatistics, true} {
     auto fieldTypes = StructType::getFieldTypes(&this->dataType);
     assert(metaDAHeaderInfo.childrenInfos.size() == fieldTypes.size());
     childrenColumns.resize(fieldTypes.size());
     for (auto i = 0u; i < fieldTypes.size(); i++) {
         childrenColumns[i] =
             NodeColumnFactory::createNodeColumn(*fieldTypes[i], *metaDAHeaderInfo.childrenInfos[i],
-                dataFH, metadataFH, bufferManager, wal, transaction);
+                dataFH, metadataFH, bufferManager, wal, transaction, propertyStatistics);
     }
 }
 

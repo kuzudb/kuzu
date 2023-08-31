@@ -185,7 +185,7 @@ public:
         arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
 
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
-        common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
+        common::offset_t startPosInChunk, uint32_t numValuesToAppend) override;
 
     void resize(uint64_t capacity) final;
 
@@ -200,12 +200,38 @@ protected:
 
 class NullColumnChunk : public BoolColumnChunk {
 public:
-    NullColumnChunk() : BoolColumnChunk(nullptr /*copyDescription*/, false /*hasNullChunk*/) {}
+    NullColumnChunk()
+        : BoolColumnChunk(nullptr /*copyDescription*/, false /*hasNullChunk*/), mayHaveNullValue{
+                                                                                    false} {}
     // Maybe this should be combined with BoolColumnChunk if the only difference is these functions?
     inline bool isNull(common::offset_t pos) const { return getValue<bool>(pos); }
-    inline void setNull(common::offset_t pos, bool isNull) { setValue(isNull, pos); }
+    inline void setNull(common::offset_t pos, bool isNull) {
+        setValue(isNull, pos);
+        if (isNull) {
+            mayHaveNullValue = true;
+        }
+    }
 
-    inline void resetNullBuffer() { memset(buffer.get(), 0 /* non null */, bufferSize); }
+    inline bool mayHaveNull() const { return mayHaveNullValue; }
+
+    inline void resetNullBuffer() {
+        memset(buffer.get(), 0 /* non null */, bufferSize);
+        mayHaveNullValue = false;
+    }
+
+    inline void copyFromBuffer(uint64_t* srcBuffer, uint64_t srcOffset, uint64_t dstOffset,
+        uint64_t numBits, bool invert = false) {
+        if (common::NullMask::copyNullMask(
+                srcBuffer, srcOffset, (uint64_t*)buffer.get(), dstOffset, numBits, invert)) {
+            mayHaveNullValue = true;
+        }
+    }
+
+    void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
+        common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
+
+protected:
+    bool mayHaveNullValue;
 };
 
 class FixedListColumnChunk : public ColumnChunk {

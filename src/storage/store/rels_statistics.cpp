@@ -8,7 +8,7 @@ namespace storage {
 // We should only call this function after we call setNumRelsPerDirectionBoundTableID.
 void RelsStatistics::setNumTuplesForTable(table_id_t relTableID, uint64_t numRels) {
     lock_t lck{mtx};
-    initTableStatisticPerTableForWriteTrxIfNecessary();
+    initTableStatisticsForWriteTrxNoLock();
     assert(tablesStatisticsContentForWriteTrx->tableStatisticPerTable.contains(relTableID));
     auto relStatistics =
         (RelStatistics*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable[relTableID]
@@ -19,7 +19,7 @@ void RelsStatistics::setNumTuplesForTable(table_id_t relTableID, uint64_t numRel
 
 void RelsStatistics::updateNumRelsByValue(table_id_t relTableID, int64_t value) {
     lock_t lck{mtx};
-    initTableStatisticPerTableForWriteTrxIfNecessary();
+    initTableStatisticsForWriteTrxNoLock();
     auto relStatistics =
         (RelStatistics*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable[relTableID]
             .get();
@@ -42,12 +42,13 @@ offset_t RelsStatistics::getNextRelOffset(
         ->getNextRelOffset();
 }
 
-std::unique_ptr<TableStatistics> RelsStatistics::deserializeTableStatistics(
-    uint64_t numTuples, uint64_t& offset, FileInfo* fileInfo, uint64_t tableID) {
+std::unique_ptr<TableStatistics> RelsStatistics::deserializeTableStatistics(uint64_t numTuples,
+    std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&& propertyStats,
+    uint64_t& offset, FileInfo* fileInfo, uint64_t tableID) {
     std::vector<std::unordered_map<table_id_t, uint64_t>> numRelsPerDirectionBoundTable{2};
     offset_t nextRelOffset;
     SerDeser::deserializeValue(nextRelOffset, fileInfo, offset);
-    return std::make_unique<RelStatistics>(numTuples, nextRelOffset);
+    return std::make_unique<RelStatistics>(numTuples, std::move(propertyStats), nextRelOffset);
 }
 
 void RelsStatistics::serializeTableStatistics(

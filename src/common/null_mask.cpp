@@ -96,6 +96,13 @@ bool NullMask::copyFromNullBits(const uint64_t* srcNullEntries, uint64_t srcOffs
     return false;
 }
 
+void NullMask::setNullFromRange(uint64_t offset, uint64_t numBitsToSet, bool isNull) {
+    if (isNull) {
+        this->mayContainNulls = true;
+    }
+    setNullRange(data, offset, numBitsToSet, isNull);
+}
+
 void NullMask::setNullRange(
     uint64_t* nullEntries, uint64_t offset, uint64_t numBitsToSet, bool isNull) {
     auto [firstEntryPos, firstBitPos] = getNullEntryAndBitPos(offset);

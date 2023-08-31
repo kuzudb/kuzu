@@ -47,6 +47,7 @@ private:
 };
 
 static Transaction DUMMY_READ_TRANSACTION = Transaction(TransactionType::READ_ONLY);
+static Transaction DUMMY_WRITE_TRANSACTION = Transaction(TransactionType::WRITE);
 
 } // namespace transaction
 } // namespace kuzu
