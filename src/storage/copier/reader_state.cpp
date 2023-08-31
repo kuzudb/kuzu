@@ -6,6 +6,55 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
+void LeftArrowArrays::appendFromDataChunk(common::DataChunk* dataChunk) {
+    leftNumRows += ArrowColumnVector::getArrowColumn(dataChunk->getValueVector(0).get())->length();
+    leftArrays.resize(dataChunk->getNumValueVectors());
+    for (auto i = 0u; i < dataChunk->getNumValueVectors(); i++) {
+        for (auto& array :
+            ArrowColumnVector::getArrowColumn(dataChunk->getValueVector(i).get())->chunks()) {
+            leftArrays[i].push_back(array);
+        }
+    }
+}
+
+void LeftArrowArrays::appendToDataChunk(common::DataChunk* dataChunk, uint64_t numRowsToAppend) {
+    int64_t numRowsAppended = 0;
+    auto& arrayVectorToComputeSlice = leftArrays[0];
+    std::vector<arrow::ArrayVector> arrayVectors;
+    arrayVectors.resize(leftArrays.size());
+    for (auto i = 0u; i < arrayVectorToComputeSlice.size(); i++) {
+        if (numRowsAppended >= numRowsToAppend) {
+            for (auto& arrayVector : leftArrays) {
+                arrayVector.erase(arrayVector.begin(), arrayVector.begin() + i);
+            }
+            break;
+        } else {
+            auto arrayToComputeSlice = arrayVectorToComputeSlice[i];
+            int64_t numRowsToAppendInCurArray = arrayToComputeSlice->length();
+            if (numRowsToAppend - numRowsAppended < arrayToComputeSlice->length()) {
+                numRowsToAppendInCurArray = (int64_t)numRowsToAppend - numRowsAppended;
+                for (auto j = 0u; j < leftArrays.size(); j++) {
+                    auto vectorToSlice = leftArrays[j][i];
+                    leftArrays[j].push_back(vectorToSlice->Slice(numRowsToAppendInCurArray));
+                    arrayVectors[j].push_back(vectorToSlice->Slice(0, numRowsToAppendInCurArray));
+                }
+            } else {
+                for (auto j = 0u; j < leftArrays.size(); j++) {
+                    arrayVectors[j].push_back(leftArrays[j][i]);
+                }
+            }
+            numRowsAppended += numRowsToAppendInCurArray;
+        }
+    }
+    for (auto i = 0u; i < dataChunk->getNumValueVectors(); i++) {
+        auto chunkArray = std::make_shared<arrow::ChunkedArray>(std::move(arrayVectors[i]));
+        ArrowColumnVector::setArrowColumn(
+            dataChunk->getValueVector(i).get(), std::move(chunkArray));
+    }
+    dataChunk->state->selVector->selectedSize = numRowsToAppend;
+    leftNumRows -= numRowsToAppend;
+}
+
 validate_func_t ReaderFunctions::getValidateFunc(CopyDescription::FileType fileType) {
     switch (fileType) {
     case CopyDescription::FileType::CSV:
@@ -149,35 +198,39 @@ std::unique_ptr<ReaderFunctionData> ReaderFunctions::initNPYReadData(
         csvReaderConfig, tableSchema, fileIdx, std::move(reader));
 }
 
-arrow::RecordBatchVector ReaderFunctions::readRowsFromCSVFile(
-    const ReaderFunctionData& functionData, common::block_idx_t blockIdx) {
+void ReaderFunctions::readRowsFromCSVFile(
+    const ReaderFunctionData& functionData, block_idx_t blockIdx, DataChunk* dataChunkToRead) {
     auto& readerData = (CSVReaderFunctionData&)(functionData);
     std::shared_ptr<arrow::RecordBatch> recordBatch;
     TableCopyUtils::throwCopyExceptionIfNotOK(readerData.reader->ReadNext(&recordBatch));
     assert(recordBatch);
-    arrow::RecordBatchVector result{recordBatch};
-    return result;
+    for (auto i = 0u; i < dataChunkToRead->getNumValueVectors(); i++) {
+        ArrowColumnVector::setArrowColumn(dataChunkToRead->getValueVector(i).get(),
+            std::make_shared<arrow::ChunkedArray>(recordBatch->column((int)i)));
+    }
 }
 
-arrow::RecordBatchVector ReaderFunctions::readRowsFromParquetFile(
-    const ReaderFunctionData& functionData, common::block_idx_t blockIdx) {
+void ReaderFunctions::readRowsFromParquetFile(const ReaderFunctionData& functionData,
+    block_idx_t blockIdx, common::DataChunk* dataChunkToRead) {
     auto& readerData = (ParquetReaderFunctionData&)(functionData);
     std::shared_ptr<arrow::Table> table;
     TableCopyUtils::throwCopyExceptionIfNotOK(
         readerData.reader->RowGroup(static_cast<int>(blockIdx))->ReadTable(&table));
     assert(table);
-    arrow::TableBatchReader batchReader(*table);
-    arrow::RecordBatchVector result;
-    TableCopyUtils::throwCopyExceptionIfNotOK(batchReader.ToRecordBatches().Value(&result));
-    return result;
+    for (auto i = 0u; i < dataChunkToRead->getNumValueVectors(); i++) {
+        ArrowColumnVector::setArrowColumn(
+            dataChunkToRead->getValueVector(i).get(), table->column((int)i));
+    }
 }
 
-arrow::RecordBatchVector ReaderFunctions::readRowsFromNPYFile(
-    const ReaderFunctionData& functionData, common::block_idx_t blockIdx) {
+void ReaderFunctions::readRowsFromNPYFile(const ReaderFunctionData& functionData,
+    common::block_idx_t blockIdx, common::DataChunk* dataChunkToRead) {
     auto& readerData = (NPYReaderFunctionData&)(functionData);
     auto recordBatch = readerData.reader->readBlock(blockIdx);
-    arrow::RecordBatchVector result{recordBatch};
-    return result;
+    for (auto i = 0u; i < dataChunkToRead->getNumValueVectors(); i++) {
+        ArrowColumnVector::setArrowColumn(dataChunkToRead->getValueVector(i).get(),
+            std::make_shared<arrow::ChunkedArray>(recordBatch->column((int)i)));
+    }
 }
 
 void ReaderSharedState::validate() {
@@ -192,9 +245,9 @@ void ReaderSharedState::countBlocks() {
     }
 }
 
-std::unique_ptr<ReaderMorsel> ReaderSharedState::getSerialMorsel() {
+std::unique_ptr<ReaderMorsel> ReaderSharedState::getSerialMorsel(DataChunk* dataChunk) {
     std::unique_lock xLck{mtx};
-    while (leftNumRows < StorageConstants::NODE_GROUP_SIZE) {
+    while (leftArrowArrays.getLeftNumRows() < StorageConstants::NODE_GROUP_SIZE) {
         auto morsel = getMorselOfNextBlock();
         if (morsel->fileIdx >= filePaths.size()) {
             // No more blocks.
@@ -203,21 +256,20 @@ std::unique_ptr<ReaderMorsel> ReaderSharedState::getSerialMorsel() {
         if (morsel->fileIdx != readFuncData->fileIdx) {
             readFuncData = initFunc(filePaths, morsel->fileIdx, csvReaderConfig, tableSchema);
         }
-        auto batchVector = readFunc(*readFuncData, morsel->blockIdx);
-        for (auto& batch : batchVector) {
-            leftNumRows += batch->num_rows();
-            leftRecordBatches.push_back(std::move(batch));
-        }
+        readFunc(*readFuncData, morsel->blockIdx, dataChunk);
+        leftArrowArrays.appendFromDataChunk(dataChunk);
     }
-    if (leftNumRows == 0) {
+    if (leftArrowArrays.getLeftNumRows() == 0) {
+        dataChunk->state->selVector->selectedSize = 0;
         return std::make_unique<ReaderMorsel>();
+    } else {
+        auto numRowsToReturn =
+            std::min(leftArrowArrays.getLeftNumRows(), StorageConstants::NODE_GROUP_SIZE);
+        leftArrowArrays.appendToDataChunk(dataChunk, numRowsToReturn);
+        auto result = std::make_unique<ReaderMorsel>(currFileIdx, currBlockIdx, currRowIdx);
+        currRowIdx += numRowsToReturn;
+        return result;
     }
-    auto table = constructTableFromBatches(leftRecordBatches);
-    leftNumRows -= table->num_rows();
-    auto result =
-        std::make_unique<SerialReaderMorsel>(currFileIdx, currBlockIdx, currRowIdx, table);
-    currRowIdx += table->num_rows();
-    return result;
 }
 
 std::unique_ptr<ReaderMorsel> ReaderSharedState::getParallelMorsel() {
@@ -246,30 +298,6 @@ std::unique_ptr<ReaderMorsel> ReaderSharedState::getMorselOfNextBlock() {
         currBlockIdx = 0;
     }
     return std::make_unique<ReaderMorsel>(currFileIdx, currBlockIdx++, currRowIdx);
-}
-
-std::shared_ptr<arrow::Table> ReaderSharedState::constructTableFromBatches(
-    std::vector<std::shared_ptr<arrow::RecordBatch>>& recordBatches) {
-    std::shared_ptr<arrow::Table> table;
-    std::vector<std::shared_ptr<arrow::RecordBatch>> recordBatchesForTable;
-    row_idx_t numRowsInTable = 0;
-    while (numRowsInTable < StorageConstants::NODE_GROUP_SIZE && !recordBatches.empty()) {
-        auto& currBatch = recordBatches.front();
-        auto numRowsInBatch = currBatch->num_rows();
-        if (numRowsInTable + numRowsInBatch > StorageConstants::NODE_GROUP_SIZE) {
-            auto numRowsToAppend = StorageConstants::NODE_GROUP_SIZE - numRowsInTable;
-            auto slicedBatch = currBatch->Slice(0, (int64_t)numRowsToAppend);
-            recordBatchesForTable.push_back(slicedBatch);
-            recordBatches.front() = currBatch->Slice((int64_t)numRowsToAppend);
-            break;
-        }
-        recordBatchesForTable.push_back(std::move(recordBatches[0]));
-        numRowsInTable += numRowsInBatch;
-        recordBatches.erase(recordBatches.begin());
-    }
-    TableCopyUtils::throwCopyExceptionIfNotOK(
-        arrow::Table::FromRecordBatches(recordBatchesForTable).Value(&table));
-    return table;
 }
 
 } // namespace storage

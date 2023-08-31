@@ -17,7 +17,7 @@ namespace common {
 
 class FileInfo;
 
-using sel_t = uint16_t;
+using sel_t = uint32_t;
 using hash_t = uint64_t;
 using page_idx_t = uint32_t;
 using frame_idx_t = page_idx_t;

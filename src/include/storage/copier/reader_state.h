@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/data_chunk/data_chunk.h"
 #include "storage/copier/npy_reader.h"
 #include "storage/copier/table_copy_utils.h"
 
@@ -68,12 +69,19 @@ struct ReaderMorsel {
     common::row_idx_t rowIdx;
 };
 
-struct SerialReaderMorsel : public ReaderMorsel {
-    SerialReaderMorsel(common::vector_idx_t fileIdx, common::block_idx_t blockIdx,
-        common::row_idx_t rowIdx, std::shared_ptr<arrow::Table> table)
-        : ReaderMorsel{fileIdx, blockIdx, rowIdx}, table{std::move(table)} {}
+class LeftArrowArrays {
+public:
+    explicit LeftArrowArrays() : leftNumRows{0} {}
 
-    std::shared_ptr<arrow::Table> table;
+    inline uint64_t getLeftNumRows() const { return leftNumRows; }
+
+    void appendFromDataChunk(common::DataChunk* dataChunk);
+
+    void appendToDataChunk(common::DataChunk* dataChunk, uint64_t numRowsToAppend);
+
+private:
+    common::row_idx_t leftNumRows;
+    std::vector<arrow::ArrayVector> leftArrays;
 };
 
 using validate_func_t =
@@ -84,8 +92,8 @@ using init_reader_data_func_t = std::function<std::unique_ptr<ReaderFunctionData
 using count_blocks_func_t =
     std::function<std::vector<FileBlocksInfo>(std::vector<std::string>& paths,
         common::CSVReaderConfig csvReaderConfig, catalog::TableSchema* tableSchema)>;
-using read_rows_func_t = std::function<arrow::RecordBatchVector(
-    const ReaderFunctionData& functionData, common::block_idx_t blockIdx)>;
+using read_rows_func_t = std::function<void(
+    const ReaderFunctionData& functionData, common::block_idx_t blockIdx, common::DataChunk*)>;
 
 struct ReaderFunctions {
     static validate_func_t getValidateFunc(common::CopyDescription::FileType fileType);
@@ -121,12 +129,12 @@ struct ReaderFunctions {
         common::vector_idx_t fileIdx, common::CSVReaderConfig csvReaderConfig,
         catalog::TableSchema* tableSchema);
 
-    static arrow::RecordBatchVector readRowsFromCSVFile(
-        const ReaderFunctionData& functionData, common::block_idx_t blockIdx);
-    static arrow::RecordBatchVector readRowsFromParquetFile(
-        const ReaderFunctionData& functionData, common::block_idx_t blockIdx);
-    static arrow::RecordBatchVector readRowsFromNPYFile(
-        const ReaderFunctionData& functionData, common::block_idx_t blockIdx);
+    static void readRowsFromCSVFile(const ReaderFunctionData& functionData,
+        common::block_idx_t blockIdx, common::DataChunk* vectorsToRead);
+    static void readRowsFromParquetFile(const ReaderFunctionData& functionData,
+        common::block_idx_t blockIdx, common::DataChunk* vectorsToRead);
+    static void readRowsFromNPYFile(const ReaderFunctionData& functionData,
+        common::block_idx_t blockIdx, common::DataChunk* vectorsToRead);
 };
 
 class ReaderSharedState {
@@ -137,8 +145,7 @@ public:
         std::vector<std::string> filePaths, common::CSVReaderConfig csvReaderConfig,
         catalog::TableSchema* tableSchema)
         : fileType{fileType}, filePaths{std::move(filePaths)}, csvReaderConfig{csvReaderConfig},
-          tableSchema{tableSchema}, numRows{0}, currFileIdx{0}, currBlockIdx{0}, currRowIdx{0},
-          leftRecordBatches{}, leftNumRows{0} {
+          tableSchema{tableSchema}, numRows{0}, currFileIdx{0}, currBlockIdx{0}, currRowIdx{0} {
         validateFunc = ReaderFunctions::getValidateFunc(fileType);
         initFunc = ReaderFunctions::getInitDataFunc(fileType);
         countBlocksFunc = ReaderFunctions::getCountBlocksFunc(fileType);
@@ -148,7 +155,7 @@ public:
     void validate();
     void countBlocks();
 
-    std::unique_ptr<ReaderMorsel> getSerialMorsel();
+    std::unique_ptr<ReaderMorsel> getSerialMorsel(common::DataChunk* vectorsToRead);
     std::unique_ptr<ReaderMorsel> getParallelMorsel();
 
     inline void lock() { mtx.lock(); }
@@ -157,9 +164,6 @@ public:
 
 private:
     std::unique_ptr<ReaderMorsel> getMorselOfNextBlock();
-
-    static std::shared_ptr<arrow::Table> constructTableFromBatches(
-        std::vector<std::shared_ptr<arrow::RecordBatch>>& recordBatches);
 
 public:
     std::mutex mtx;
@@ -182,8 +186,8 @@ public:
     common::block_idx_t currBlockIdx;
     common::row_idx_t currRowIdx;
 
-    std::vector<std::shared_ptr<arrow::RecordBatch>> leftRecordBatches;
-    common::row_idx_t leftNumRows;
+private:
+    LeftArrowArrays leftArrowArrays;
 };
 
 } // namespace storage

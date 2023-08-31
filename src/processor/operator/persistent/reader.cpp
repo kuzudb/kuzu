@@ -9,34 +9,36 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-bool Reader::getNextTuplesInternal(ExecutionContext* context) {
-    std::shared_ptr<arrow::Table> table = nullptr;
-    readerInfo.isOrderPreserving ? getNextNodeGroupInSerial(table) :
-                                   getNextNodeGroupInParallel(table);
-    if (table == nullptr) {
-        return false;
-    }
-    for (auto i = 0u; i < readerInfo.dataColumnPoses.size(); i++) {
-        ArrowColumnVector::setArrowColumn(
-            resultSet->getValueVector(readerInfo.dataColumnPoses[i]).get(), table->column((int)i));
-    }
-    return true;
+void Reader::initGlobalStateInternal(ExecutionContext* context) {
+    sharedState->validate();
+    sharedState->countBlocks();
 }
 
-void Reader::getNextNodeGroupInSerial(std::shared_ptr<arrow::Table>& table) {
-    auto morsel = sharedState->getSerialMorsel();
+void Reader::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    dataChunkToRead = std::make_unique<DataChunk>(readerInfo.dataColumnPoses.size(),
+        resultSet->getDataChunk(readerInfo.dataColumnPoses[0].dataChunkPos)->state);
+    for (auto i = 0u; i < readerInfo.dataColumnPoses.size(); i++) {
+        dataChunkToRead->insert(i, resultSet->getValueVector(readerInfo.dataColumnPoses[i]));
+    }
+}
+
+bool Reader::getNextTuplesInternal(ExecutionContext* context) {
+    readerInfo.isOrderPreserving ? getNextNodeGroupInSerial() : getNextNodeGroupInParallel();
+    return dataChunkToRead->state->selVector->selectedSize != 0;
+}
+
+void Reader::getNextNodeGroupInSerial() {
+    auto morsel = sharedState->getSerialMorsel(dataChunkToRead.get());
     if (morsel->fileIdx == INVALID_VECTOR_IDX) {
         return;
     }
-    auto serialMorsel = reinterpret_cast<SerialReaderMorsel*>(morsel.get());
-    table = serialMorsel->table;
     auto nodeOffsetVector = resultSet->getValueVector(readerInfo.nodeOffsetPos).get();
     nodeOffsetVector->setValue(
         nodeOffsetVector->state->selVector->selectedPositions[0], morsel->rowIdx);
 }
 
-void Reader::getNextNodeGroupInParallel(std::shared_ptr<arrow::Table>& table) {
-    while (leftNumRows < StorageConstants::NODE_GROUP_SIZE) {
+void Reader::getNextNodeGroupInParallel() {
+    while (leftArrowArrays.getLeftNumRows() < StorageConstants::NODE_GROUP_SIZE) {
         auto morsel = sharedState->getParallelMorsel();
         if (morsel->fileIdx == INVALID_VECTOR_IDX) {
             break;
@@ -45,17 +47,16 @@ void Reader::getNextNodeGroupInParallel(std::shared_ptr<arrow::Table>& table) {
             readFuncData = readerInfo.initFunc(sharedState->filePaths, morsel->fileIdx,
                 sharedState->csvReaderConfig, sharedState->tableSchema);
         }
-        auto batchVector = readerInfo.readFunc(*readFuncData, morsel->blockIdx);
-        for (auto& batch : batchVector) {
-            leftNumRows += batch->num_rows();
-            leftRecordBatches.push_back(std::move(batch));
-        }
+        readerInfo.readFunc(*readFuncData, morsel->blockIdx, dataChunkToRead.get());
+        leftArrowArrays.appendFromDataChunk(dataChunkToRead.get());
     }
-    if (leftNumRows == 0) {
-        return;
+    if (leftArrowArrays.getLeftNumRows() == 0) {
+        dataChunkToRead->state->selVector->selectedSize = 0;
+    } else {
+        int64_t numRowsToReturn =
+            std::min(leftArrowArrays.getLeftNumRows(), StorageConstants::NODE_GROUP_SIZE);
+        leftArrowArrays.appendToDataChunk(dataChunkToRead.get(), numRowsToReturn);
     }
-    table = ReaderSharedState::constructTableFromBatches(leftRecordBatches);
-    leftNumRows -= table->num_rows();
 }
 
 } // namespace processor

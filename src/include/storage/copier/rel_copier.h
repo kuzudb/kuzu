@@ -52,16 +52,16 @@ protected:
     static void indexLookup(arrow::Array* pkArray, const common::LogicalType& pkColumnType,
         PrimaryKeyIndex* pkIndex, common::offset_t* offsets);
 
-    void copyRelColumnsOrCountRelListsSize(common::row_idx_t rowIdx,
-        arrow::RecordBatch* recordBatch, common::RelDataDirection direction,
+    void copyRelColumnsOrCountRelListsSize(common::row_idx_t rowIdx, arrow::ArrayVector& arrays,
+        common::RelDataDirection direction,
         const std::vector<std::unique_ptr<arrow::Array>>& pkOffsets);
 
-    void copyRelColumns(common::row_idx_t rowIdx, arrow::RecordBatch* recordBatch,
+    void copyRelColumns(common::row_idx_t rowIdx, arrow::ArrayVector& arrays,
         common::RelDataDirection direction,
         const std::vector<std::unique_ptr<arrow::Array>>& pkOffsets);
     void countRelListsSize(common::RelDataDirection direction,
         const std::vector<std::unique_ptr<arrow::Array>>& pkOffsets);
-    void copyRelLists(common::row_idx_t rowIdx, arrow::RecordBatch* recordBatch,
+    void copyRelLists(common::row_idx_t rowIdx, arrow::ArrayVector& arrays,
         common::RelDataDirection direction,
         const std::vector<std::unique_ptr<arrow::Array>>& pkOffsets);
     void checkViolationOfRelColumn(
@@ -84,6 +84,9 @@ protected:
     std::unique_ptr<storage::ReaderFunctionData> readFuncData;
     storage::read_rows_func_t readFunc;
     storage::init_reader_data_func_t initFunc;
+
+protected:
+    std::unique_ptr<common::DataChunk> dataChunkToRead;
 };
 
 class RelListsCounterAndColumnCopier : public RelCopier {
