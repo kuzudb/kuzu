@@ -105,10 +105,8 @@ void TableData::update(transaction::Transaction* transaction, column_id_t column
 void TableData::append(kuzu::storage::NodeGroup* nodeGroup) {
     for (auto columnID = 0u; columnID < columns.size(); columnID++) {
         auto columnChunk = nodeGroup->getColumnChunk(columnID);
-        auto numPages = columnChunk->getNumPages();
-        auto startPageIdx = dataFH->addNewPages(numPages);
         assert(columnID < columns.size());
-        columns[columnID]->append(columnChunk, startPageIdx, nodeGroup->getNodeGroupIdx());
+        columns[columnID]->append(columnChunk, nodeGroup->getNodeGroupIdx());
     }
 }
 

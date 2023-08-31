@@ -45,15 +45,13 @@ public:
     void append(common::ValueVector* vector, common::offset_t startPosInChunk) final;
 
     inline void resizeDataColumnChunk(uint64_t numBytesForBuffer) {
+        // TODO(bmwinger): This won't work properly for booleans (will be one eighth as many values
+        // as could fit)
         varListDataColumnChunk.resizeBuffer(
             numBytesForBuffer / varListDataColumnChunk.dataColumnChunk->getNumBytesPerValue());
     }
 
 private:
-    inline common::page_idx_t getNumPages() const final {
-        return varListDataColumnChunk.dataColumnChunk->getNumPages() + ColumnChunk::getNumPages();
-    }
-
     void append(
         arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) override;
 

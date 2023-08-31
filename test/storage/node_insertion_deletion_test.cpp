@@ -28,12 +28,12 @@ public:
 
     void deleteNode(offset_t id) {
         auto res = conn->query("MATCH (a:person) WHERE a.ID = " + std::to_string(id) + " DELETE a");
-        ASSERT_TRUE(res->isSuccess());
+        ASSERT_TRUE(res->isSuccess()) << res->toString();
     }
 
     void addNode(offset_t id) {
         auto res = conn->query("CREATE (a:person {ID: " + std::to_string(id) + "})");
-        ASSERT_TRUE(res->isSuccess());
+        ASSERT_TRUE(res->isSuccess()) << res->toString();
     }
 
 public:
@@ -81,4 +81,18 @@ TEST_F(NodeInsertionDeletionTests, DeleteAddMixedTest) {
     conn->query("BEGIN WRITE TRANSACTION");
     ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10005);
     ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10005);
+}
+
+TEST_F(NodeInsertionDeletionTests, InsertManyNodesTest) {
+    auto preparedStatement = conn->prepare("CREATE (:person {ID:$id});");
+    for (int64_t i = 0; i < BufferPoolConstants::PAGE_4KB_SIZE; i++) {
+        auto result =
+            conn->execute(preparedStatement.get(), std::make_pair(std::string("id"), 10001 + i));
+        ASSERT_TRUE(result->isSuccess()) << result->toString();
+    }
+    auto result = conn->query("MATCH (a:person) WHERE a.ID >= 10001 RETURN COUNT(*);");
+    ASSERT_TRUE(result->hasNext());
+    auto tuple = result->getNext();
+    ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), BufferPoolConstants::PAGE_4KB_SIZE);
+    ASSERT_FALSE(result->hasNext());
 }

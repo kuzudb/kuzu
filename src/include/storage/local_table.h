@@ -93,6 +93,10 @@ public:
     virtual void prepareCommit();
 
     virtual void prepareCommitForChunk(common::node_group_idx_t nodeGroupIdx);
+    void commitLocalChunkOutOfPlace(
+        common::node_group_idx_t nodeGroupIdx, LocalColumnChunk* localChunk);
+    void commitLocalChunkInPlace(
+        common::node_group_idx_t nodeGroupIdx, LocalColumnChunk* localChunk);
 
 protected:
     std::map<common::node_group_idx_t, std::unique_ptr<LocalColumnChunk>> chunks;
@@ -104,8 +108,6 @@ public:
     explicit StringLocalColumn(NodeColumn* column) : LocalColumn{column} {};
 
     void prepareCommitForChunk(common::node_group_idx_t nodeGroupIdx) final;
-    void commitLocalChunkOutOfPlace(
-        common::node_group_idx_t nodeGroupIdx, LocalColumnChunk* localChunk);
 };
 
 class VarListLocalColumn : public LocalColumn {
