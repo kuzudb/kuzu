@@ -1,0 +1,12 @@
+-GROUP COPY_SNAP
+-DATASET CSV snap/amazon0601/csv
+
+--
+
+-CASE CopySNAPAmazon0601CSV
+-STATEMENT MATCH (a:account) RETURN COUNT(*)
+---- 1
+403394
+-STATEMENT MATCH (a:account)-[:follows]->(b:account) RETURN COUNT(*)
+---- 1
+3387388

@@ -1,0 +1,12 @@
+-GROUP COPY_SNAP
+-DATASET CSV snap/twitter/csv
+
+--
+
+-CASE CopySNAPTwitterCSV
+-STATEMENT MATCH (a:account) RETURN COUNT(*)
+---- 1
+81306
+-STATEMENT MATCH (a:account)-[:follows]->(b:account) RETURN COUNT(*)
+---- 1
+2420766
