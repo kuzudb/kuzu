@@ -175,10 +175,10 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
         std::vector<std::unique_ptr<LogicalPlan>> plans;
         if (enumerateAllPlans) {
             plans = Planner::getAllPlans(
-                *database->catalog, nodeStatistics, relStatistics, *boundStatement);
+                *database->catalog, binder, nodeStatistics, relStatistics, *boundStatement);
         } else {
             plans.push_back(Planner::getBestPlan(
-                *database->catalog, nodeStatistics, relStatistics, *boundStatement));
+                *database->catalog, binder, nodeStatistics, relStatistics, *boundStatement));
         }
         // optimizing
         for (auto& plan : plans) {

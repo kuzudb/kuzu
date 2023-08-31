@@ -85,9 +85,6 @@ void LogicalOperatorVisitor::visitOperatorSwitch(planner::LogicalOperator* op) {
     case LogicalOperatorType::COPY_TO: {
         visitCopyTo(op);
     }
-    case LogicalOperatorType::SCHEMA_MAPPING: {
-        visitSchemaMapping(op);
-    } break;
     default:
         return;
     }
@@ -173,9 +170,6 @@ std::shared_ptr<planner::LogicalOperator> LogicalOperatorVisitor::visitOperatorR
     }
     case LogicalOperatorType::COPY_TO: {
         return visitCopyToReplace(op);
-    }
-    case LogicalOperatorType::SCHEMA_MAPPING: {
-        return visitSchemaMapping(op);
     }
     default:
         return op;

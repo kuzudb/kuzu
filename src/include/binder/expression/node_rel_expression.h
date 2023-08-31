@@ -40,14 +40,18 @@ public:
         const std::string& propertyName, std::unique_ptr<Expression> property) {
         assert(!propertyNameToIdx.contains(propertyName));
         propertyNameToIdx.insert({propertyName, properties.size()});
-        propertyUniqueNames.insert(property->getUniqueName());
         properties.push_back(std::move(property));
     }
     inline bool hasPropertyExpression(const std::string& propertyName) const {
         return propertyNameToIdx.contains(propertyName);
     }
-    inline bool hashPropertyWithUniqueName(const std::string& uniqueName) const {
-        return propertyUniqueNames.contains(uniqueName);
+    inline bool hasPropertyExpression(const Expression& expression) const {
+        for (auto& property : properties) {
+            if (*property == expression) {
+                return true;
+            }
+        }
+        return false;
     }
     inline std::shared_ptr<Expression> getPropertyExpression(
         const std::string& propertyName) const {
@@ -69,7 +73,6 @@ protected:
     std::string variableName;
     std::vector<common::table_id_t> tableIDs;
     std::unordered_map<std::string, common::vector_idx_t> propertyNameToIdx;
-    std::unordered_set<std::string> propertyUniqueNames;
     std::vector<std::unique_ptr<Expression>> properties;
     std::shared_ptr<Expression> labelExpression;
 };

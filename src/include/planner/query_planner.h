@@ -1,5 +1,6 @@
 #pragma once
 
+#include "binder/binder.h"
 #include "binder/bound_statement.h"
 #include "binder/query/normalized_single_query.h"
 #include "common/join_type.h"
@@ -23,10 +24,10 @@ class LogicalSetPropertyInfo;
 
 class QueryPlanner {
 public:
-    QueryPlanner(const catalog::Catalog& catalog,
+    QueryPlanner(const catalog::Catalog& catalog, binder::Binder& binder,
         const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
         const storage::RelsStatistics& relsStatistics)
-        : catalog{catalog} {
+        : catalog{catalog}, binder{binder} {
         cardinalityEstimator =
             std::make_unique<CardinalityEstimator>(nodesStatistics, relsStatistics);
         context = std::make_unique<JoinOrderEnumeratorContext>();
@@ -248,6 +249,7 @@ private:
     expression_vector propertiesToScan;
     std::unique_ptr<CardinalityEstimator> cardinalityEstimator;
     std::unique_ptr<JoinOrderEnumeratorContext> context;
+    binder::Binder& binder;
 };
 
 } // namespace planner

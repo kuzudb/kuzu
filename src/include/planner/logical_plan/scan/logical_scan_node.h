@@ -3,6 +3,8 @@
 #include "binder/expression/node_expression.h"
 #include "planner/logical_plan/logical_operator.h"
 
+using namespace kuzu::binder;
+
 namespace kuzu {
 namespace planner {
 

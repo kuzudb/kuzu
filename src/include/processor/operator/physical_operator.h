@@ -59,7 +59,6 @@ enum class PhysicalOperatorType : uint8_t {
     SCAN_REL_PROPERTY,
     SCAN_REL_TABLE_COLUMNS,
     SCAN_REL_TABLE_LISTS,
-    SCHEMA_MAPPING,
     SEMI_MASKER,
     SET_NODE_PROPERTY,
     SET_REL_PROPERTY,

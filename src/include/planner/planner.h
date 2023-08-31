@@ -8,11 +8,11 @@ namespace planner {
 class Planner {
 public:
     static std::unique_ptr<LogicalPlan> getBestPlan(const catalog::Catalog& catalog,
-        const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
+        binder::Binder& binder, const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
         const storage::RelsStatistics& relsStatistics, const BoundStatement& statement);
 
     static std::vector<std::unique_ptr<LogicalPlan>> getAllPlans(const catalog::Catalog& catalog,
-        const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
+        binder::Binder& binder, const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
         const storage::RelsStatistics& relsStatistics, const BoundStatement& statement);
 
 private:
@@ -35,23 +35,23 @@ private:
     static std::unique_ptr<LogicalPlan> planStandaloneCall(const BoundStatement& statement);
 
     static std::unique_ptr<LogicalPlan> planExplain(const catalog::Catalog& catalog,
-        const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
+        binder::Binder& binder, const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
         const storage::RelsStatistics& relsStatistics, const BoundStatement& statement);
 
     static std::unique_ptr<LogicalPlan> planCreateMacro(const BoundStatement& statement);
 
     static std::vector<std::unique_ptr<LogicalPlan>> getAllQueryPlans(
-        const catalog::Catalog& catalog,
+        const catalog::Catalog& catalog, binder::Binder& binder,
         const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
         const storage::RelsStatistics& relsStatistics, const BoundStatement& statement);
 
     static std::vector<std::unique_ptr<LogicalPlan>> getAllExplainPlans(
-        const catalog::Catalog& catalog,
+        const catalog::Catalog& catalog, binder::Binder& binder,
         const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
         const storage::RelsStatistics& relsStatistics, const BoundStatement& statement);
 
     static std::unique_ptr<LogicalPlan> planCopyTo(const catalog::Catalog& catalog,
-        const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
+        binder::Binder& binder, const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
         const storage::RelsStatistics& relsStatistics, const BoundStatement& statement);
 
     static std::unique_ptr<LogicalPlan> planCopyFrom(

@@ -73,7 +73,8 @@ private:
 
     std::shared_ptr<Expression> rewriteFunctionExpression(
         const parser::ParsedExpression& parsedExpression, const std::string& functionName);
-    std::unique_ptr<Expression> createInternalNodeIDExpression(const Expression& node);
+    std::unique_ptr<Expression> createInternalNodeIDExpression(
+        const Expression& node, const std::string& propertyName);
     std::shared_ptr<Expression> bindInternalIDExpression(std::shared_ptr<Expression> expression);
     std::shared_ptr<Expression> bindLabelFunction(const Expression& expression);
     std::unique_ptr<Expression> createInternalLengthExpression(const Expression& expression);

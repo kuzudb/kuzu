@@ -176,14 +176,14 @@ std::shared_ptr<Expression> ExpressionBinder::rewriteFunctionExpression(
 }
 
 std::unique_ptr<Expression> ExpressionBinder::createInternalNodeIDExpression(
-    const Expression& expression) {
+    const Expression& expression, const std::string& propertyName) {
     auto& node = (NodeExpression&)expression;
     std::unordered_map<table_id_t, property_id_t> propertyIDPerTable;
     for (auto tableID : node.getTableIDs()) {
         propertyIDPerTable.insert({tableID, INVALID_PROPERTY_ID});
     }
     return std::make_unique<PropertyExpression>(LogicalType(LogicalTypeID::INTERNAL_ID),
-        InternalKeyword::ID, node, std::move(propertyIDPerTable), false /* isPrimaryKey */,
+        propertyName, node, std::move(propertyIDPerTable), false /* isPrimaryKey */,
         false /* isRDFPredicateIRIProperty */);
 }
 

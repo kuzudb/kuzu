@@ -129,9 +129,6 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::SCAN_NODE_PROPERTY: {
         return "SCAN_NODE_PROPERTY";
     }
-    case LogicalOperatorType::SCHEMA_MAPPING: {
-        return "SCHEMA_MAPPING";
-    }
     case LogicalOperatorType::SEMI_MASKER: {
         return "SEMI_MASKER";
     }

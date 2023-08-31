@@ -34,7 +34,6 @@ void HashJoinSIPOptimizer::visitHashJoin(planner::LogicalOperator* op) {
     if (hashJoin->getSIP() == planner::SidewaysInfoPassing::PROHIBIT) {
         return;
     }
-    tryBuildToProbeRDFPredicateHJSIP(op);
     if (tryBuildToProbeHJSIP(op)) { // Try build to probe SIP first.
         return;
     }
@@ -102,51 +101,6 @@ bool HashJoinSIPOptimizer::tryBuildToProbeHJSIP(planner::LogicalOperator* op) {
     hashJoin->setJoinSubPlanSolveOrder(JoinSubPlanSolveOrder::PROBE_BUILD);
     hashJoin->setChild(1, buildRoot);
     return true;
-}
-
-bool HashJoinSIPOptimizer::tryBuildToProbeRDFPredicateHJSIP(planner::LogicalOperator* op) {
-    auto hashJoin = (LogicalHashJoin*)op;
-    if (hashJoin->getSIP() == planner::SidewaysInfoPassing::PROHIBIT_BUILD_TO_PROBE ||
-        hashJoin->getJoinType() != common::JoinType::INNER ||
-        hashJoin->getJoinNodeIDs().size() != 1) {
-        return false;
-    }
-
-    if (!subPlanContainsFilter(hashJoin->getChild(1).get())) {
-        return false;
-    }
-
-    auto rdfPredicateIRIOffset = hashJoin->getJoinNodeIDs().at(0);
-    if (!((binder::PropertyExpression*)rdfPredicateIRIOffset.get())
-             ->isRDFPredicateIRIOffsetProperty()) {
-        return false;
-    }
-
-    auto probeRoot = hashJoin->getChild(0);
-    auto buildRoot = hashJoin->getChild(1);
-
-    auto extendCollector = LogicalExtendCollector();
-    extendCollector.collect(buildRoot.get());
-    if (!extendCollector.hasOperators()) {
-        return false;
-    }
-
-    for (auto extend : extendCollector.getOperators()) {
-        auto rdfExtend = (LogicalExtend*)extend;
-        auto nbrNodeID = rdfExtend->getNbrNode()->getInternalIDProperty();
-        auto ops = resolveOperatorsToApplySemiMask(*nbrNodeID, probeRoot.get());
-        if (!ops.empty()) {
-            auto node = ((LogicalScanNode*)ops[0])->getNode();
-            auto semiMasker = std::make_shared<LogicalSemiMasker>(
-                SemiMaskType::NODE, rdfPredicateIRIOffset, node, ops, buildRoot);
-            semiMasker->computeFlatSchema();
-            hashJoin->setSIP(planner::SidewaysInfoPassing::BUILD_TO_PROBE);
-            hashJoin->setChild(1, semiMasker);
-            return true;
-        }
-    }
-
-    return false;
 }
 
 void HashJoinSIPOptimizer::visitIntersect(planner::LogicalOperator* op) {

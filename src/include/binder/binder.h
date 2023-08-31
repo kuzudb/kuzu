@@ -67,6 +67,10 @@ public:
         return expressionBinder.parameterMap;
     }
 
+    std::shared_ptr<NodeExpression> createQueryNode(const std::string& uniqueName,
+        const std::string& variableName, const std::vector<common::table_id_t>& tableIDs,
+        const std::string& internalIDPropertyName);
+
 private:
     std::shared_ptr<Expression> bindWhereExpression(
         const parser::ParsedExpression& parsedExpression);

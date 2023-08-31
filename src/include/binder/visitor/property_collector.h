@@ -13,7 +13,7 @@ public:
 
 private:
     void addRDFPredicateIRIOffsetProperty(
-        kuzu::binder::PropertyExpression* rdfPredicateIRIProperty, expression_vector& result);
+        Expression* rdfPredicateIRIProperty, expression_vector& result);
     void visitMatch(const BoundReadingClause& readingClause) final;
     void visitUnwind(const BoundReadingClause& readingClause) final;
 

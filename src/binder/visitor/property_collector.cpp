@@ -20,7 +20,7 @@ expression_vector PropertyCollector::getProperties() {
         if (propertyExpression->isRDFPredicateIRIProperty()) {
             // if predicateIRI property is present then it is necessary to scan predicateIRIOffset
             // property otherwise we won't be able to find a predicate iri for a triple.
-            addRDFPredicateIRIOffsetProperty(propertyExpression, result);
+            addRDFPredicateIRIOffsetProperty(property.get(), result);
         }
         result.push_back(property);
     }
@@ -28,9 +28,9 @@ expression_vector PropertyCollector::getProperties() {
 }
 
 void PropertyCollector::addRDFPredicateIRIOffsetProperty(
-    kuzu::binder::PropertyExpression* rdfPredicateIRIProperty, expression_vector& result) {
+    Expression* rdfPredicateIRIProperty, expression_vector& result) {
     for (const auto& rel : relExpressions) {
-        if (rel->hashPropertyWithUniqueName(rdfPredicateIRIProperty->getUniqueName())) {
+        if (rel->hasPropertyExpression(*rdfPredicateIRIProperty)) {
             auto rdfPredicateIRIOffsetProperty = rel->getPropertyExpression(
                 common::InternalKeyword::RDF_PREDICATE_IRI_OFFSET_PROPERTY_NAME);
             if (!properties.contains(rdfPredicateIRIOffsetProperty)) {
