@@ -4,7 +4,6 @@ add_subdirectory(result)
 
 add_library(kuzu_processor
         OBJECT
-        physical_plan.cpp
         processor.cpp
         processor_task.cpp)
 

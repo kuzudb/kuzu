@@ -94,7 +94,7 @@ void CopyNode::executeInternal(ExecutionContext* context) {
         assert(numAppendedTuplesInNodeGroup == numTuplesToAppend);
         if (localNodeGroup->isFull()) {
             node_group_idx_t nodeGroupIdx;
-            if (copyNodeInfo.preservingOrder) {
+            if (copyNodeInfo.orderPreserving) {
                 nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
                 sharedState->setNextNodeGroupIdx(nodeGroupIdx + 1);
             } else {

@@ -3,8 +3,6 @@
 #include "binder/bound_create_macro.h"
 #include "binder/bound_explain.h"
 #include "binder/bound_standalone_call.h"
-#include "binder/copy/bound_copy_from.h"
-#include "binder/copy/bound_copy_to.h"
 #include "binder/ddl/bound_add_property.h"
 #include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_drop_property.h"
@@ -12,8 +10,6 @@
 #include "binder/ddl/bound_rename_property.h"
 #include "binder/ddl/bound_rename_table.h"
 #include "binder/expression/variable_expression.h"
-#include "planner/logical_plan/copy/logical_copy_from.h"
-#include "planner/logical_plan/copy/logical_copy_to.h"
 #include "planner/logical_plan/ddl/logical_add_property.h"
 #include "planner/logical_plan/ddl/logical_create_table.h"
 #include "planner/logical_plan/ddl/logical_drop_property.h"
@@ -49,7 +45,7 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
         plan = planCreateRdfGraph(statement);
     } break;
     case StatementType::COPY_FROM: {
-        plan = planCopyFrom(catalog, statement);
+        plan = planCopyFrom(statement);
     } break;
     case StatementType::COPY_TO: {
         plan = planCopyTo(catalog, nodesStatistics, relsStatistics, statement);
@@ -180,47 +176,6 @@ std::unique_ptr<LogicalPlan> Planner::planRenameProperty(const BoundStatement& s
         renamePropertyClause.getNewName(),
         statement.getStatementResult()->getSingleExpressionToCollect());
     plan->setLastOperator(std::move(renameProperty));
-    return plan;
-}
-
-std::unique_ptr<LogicalPlan> Planner::planCopyFrom(
-    const catalog::Catalog& catalog, const BoundStatement& statement) {
-    auto& copyClause = reinterpret_cast<const BoundCopyFrom&>(statement);
-    auto plan = std::make_unique<LogicalPlan>();
-    expression_vector arrowColumnExpressions;
-    // For CSV file, and table with SERIAL columns, we need to read in serial from files.
-    bool readInSerialMode =
-        copyClause.getCopyDescription().fileType == CopyDescription::FileType::CSV;
-    for (auto& property :
-        catalog.getReadOnlyVersion()->getTableSchema(copyClause.getTableID())->properties) {
-        if (property->getDataType()->getLogicalTypeID() != common::LogicalTypeID::SERIAL) {
-            arrowColumnExpressions.push_back(std::make_shared<VariableExpression>(
-                common::LogicalType{common::LogicalTypeID::ARROW_COLUMN}, property->getName(),
-                property->getName()));
-        } else {
-            readInSerialMode = true;
-        }
-    }
-    auto copy =
-        make_shared<LogicalCopyFrom>(copyClause.getCopyDescription(), copyClause.getTableID(),
-            copyClause.getTableName(), readInSerialMode, std::move(arrowColumnExpressions),
-            std::make_shared<VariableExpression>(
-                common::LogicalType{common::LogicalTypeID::INT64}, "nodeOffset", "nodeOffset"),
-            copyClause.getStatementResult()->getSingleExpressionToCollect());
-    plan->setLastOperator(std::move(copy));
-    return plan;
-}
-
-std::unique_ptr<LogicalPlan> Planner::planCopyTo(const Catalog& catalog,
-    const NodesStatisticsAndDeletedIDs& nodesStatistics, const RelsStatistics& relsStatistics,
-    const BoundStatement& statement) {
-    auto& copyClause = reinterpret_cast<const BoundCopyTo&>(statement);
-    auto regularQuery = copyClause.getRegularQuery();
-    assert(regularQuery->getStatementType() == StatementType::QUERY);
-    auto plan = QueryPlanner(catalog, nodesStatistics, relsStatistics).getBestPlan(*regularQuery);
-    auto logicalCopyTo =
-        make_shared<LogicalCopyTo>(plan->getLastOperator(), copyClause.getCopyDescription());
-    plan->setLastOperator(std::move(logicalCopyTo));
     return plan;
 }
 

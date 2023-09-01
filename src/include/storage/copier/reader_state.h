@@ -141,15 +141,14 @@ class ReaderSharedState {
     friend class processor::Reader;
 
 public:
-    ReaderSharedState(common::CopyDescription::FileType fileType,
-        std::vector<std::string> filePaths, common::CSVReaderConfig csvReaderConfig,
-        catalog::TableSchema* tableSchema)
-        : fileType{fileType}, filePaths{std::move(filePaths)}, csvReaderConfig{csvReaderConfig},
-          tableSchema{tableSchema}, numRows{0}, currFileIdx{0}, currBlockIdx{0}, currRowIdx{0} {
-        validateFunc = ReaderFunctions::getValidateFunc(fileType);
-        initFunc = ReaderFunctions::getInitDataFunc(fileType);
-        countBlocksFunc = ReaderFunctions::getCountBlocksFunc(fileType);
-        readFunc = ReaderFunctions::getReadRowsFunc(fileType);
+    ReaderSharedState(
+        std::unique_ptr<common::CopyDescription> copyDescription, catalog::TableSchema* tableSchema)
+        : copyDescription{std::move(copyDescription)}, tableSchema{tableSchema}, numRows{0},
+          currFileIdx{0}, currBlockIdx{0}, currRowIdx{0} {
+        validateFunc = ReaderFunctions::getValidateFunc(this->copyDescription->fileType);
+        initFunc = ReaderFunctions::getInitDataFunc(this->copyDescription->fileType);
+        countBlocksFunc = ReaderFunctions::getCountBlocksFunc(this->copyDescription->fileType);
+        readFunc = ReaderFunctions::getReadRowsFunc(this->copyDescription->fileType);
     }
 
     void validate();
@@ -168,9 +167,7 @@ private:
 public:
     std::mutex mtx;
 
-    common::CopyDescription::FileType fileType;
-    std::vector<std::string> filePaths;
-    common::CSVReaderConfig csvReaderConfig;
+    std::unique_ptr<common::CopyDescription> copyDescription;
     catalog::TableSchema* tableSchema;
 
     validate_func_t validateFunc;

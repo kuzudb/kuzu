@@ -29,7 +29,7 @@ std::unique_ptr<Statement> Transformer::transformOcStatement(
     } else if (ctx.kU_CopyFromNPY()) {
         return transformCopyFromNPY(*ctx.kU_CopyFromNPY());
     } else if (ctx.kU_CopyFromCSV()) {
-        return transformCopyFromCSV(*ctx.kU_CopyFromCSV());
+        return transformCopyFrom(*ctx.kU_CopyFromCSV());
     } else if (ctx.kU_CopyTO()) {
         return transformCopyTo(*ctx.kU_CopyTO());
     } else if (ctx.kU_StandaloneCall()) {

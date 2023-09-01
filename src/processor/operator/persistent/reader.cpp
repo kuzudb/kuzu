@@ -15,24 +15,26 @@ void Reader::initGlobalStateInternal(ExecutionContext* context) {
 }
 
 void Reader::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    dataChunkToRead = std::make_unique<DataChunk>(readerInfo.dataColumnPoses.size(),
-        resultSet->getDataChunk(readerInfo.dataColumnPoses[0].dataChunkPos)->state);
-    for (auto i = 0u; i < readerInfo.dataColumnPoses.size(); i++) {
-        dataChunkToRead->insert(i, resultSet->getValueVector(readerInfo.dataColumnPoses[i]));
+    dataChunk = std::make_unique<DataChunk>(info->getNumColumns(),
+        resultSet->getDataChunk(info->dataColumnsPos[0].dataChunkPos)->state);
+    for (auto i = 0u; i < info->getNumColumns(); i++) {
+        dataChunk->insert(i, resultSet->getValueVector(info->dataColumnsPos[i]));
     }
+    initFunc = storage::ReaderFunctions::getInitDataFunc(sharedState->copyDescription->fileType);
+    readFunc = storage::ReaderFunctions::getReadRowsFunc(sharedState->copyDescription->fileType);
+    nodeOffsetVector = resultSet->getValueVector(info->nodeOffsetPos).get();
 }
 
 bool Reader::getNextTuplesInternal(ExecutionContext* context) {
-    readerInfo.isOrderPreserving ? getNextNodeGroupInSerial() : getNextNodeGroupInParallel();
-    return dataChunkToRead->state->selVector->selectedSize != 0;
+    info->orderPreserving ? getNextNodeGroupInSerial() : getNextNodeGroupInParallel();
+    return dataChunk->state->selVector->selectedSize != 0;
 }
 
 void Reader::getNextNodeGroupInSerial() {
-    auto morsel = sharedState->getSerialMorsel(dataChunkToRead.get());
+    auto morsel = sharedState->getSerialMorsel(dataChunk.get());
     if (morsel->fileIdx == INVALID_VECTOR_IDX) {
         return;
     }
-    auto nodeOffsetVector = resultSet->getValueVector(readerInfo.nodeOffsetPos).get();
     nodeOffsetVector->setValue(
         nodeOffsetVector->state->selVector->selectedPositions[0], morsel->rowIdx);
 }
@@ -44,18 +46,18 @@ void Reader::getNextNodeGroupInParallel() {
             break;
         }
         if (!readFuncData || morsel->fileIdx != readFuncData->fileIdx) {
-            readFuncData = readerInfo.initFunc(sharedState->filePaths, morsel->fileIdx,
-                sharedState->csvReaderConfig, sharedState->tableSchema);
+            readFuncData = initFunc(sharedState->copyDescription->filePaths, morsel->fileIdx,
+                *sharedState->copyDescription->csvReaderConfig, sharedState->tableSchema);
         }
-        readerInfo.readFunc(*readFuncData, morsel->blockIdx, dataChunkToRead.get());
-        leftArrowArrays.appendFromDataChunk(dataChunkToRead.get());
+        readFunc(*readFuncData, morsel->blockIdx, dataChunk.get());
+        leftArrowArrays.appendFromDataChunk(dataChunk.get());
     }
     if (leftArrowArrays.getLeftNumRows() == 0) {
-        dataChunkToRead->state->selVector->selectedSize = 0;
+        dataChunk->state->selVector->selectedSize = 0;
     } else {
         int64_t numRowsToReturn =
             std::min(leftArrowArrays.getLeftNumRows(), StorageConstants::NODE_GROUP_SIZE);
-        leftArrowArrays.appendToDataChunk(dataChunkToRead.get(), numRowsToReturn);
+        leftArrowArrays.appendToDataChunk(dataChunk.get(), numRowsToReturn);
     }
 }
 

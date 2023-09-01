@@ -9,27 +9,28 @@ namespace planner {
 
 class LogicalCopyTo : public LogicalOperator {
 public:
-    LogicalCopyTo(
-        std::shared_ptr<LogicalOperator> child, const common::CopyDescription& copyDescription)
-        : LogicalOperator{LogicalOperatorType::COPY_TO, child}, copyDescription{copyDescription} {}
+    LogicalCopyTo(std::shared_ptr<LogicalOperator> child,
+        std::unique_ptr<common::CopyDescription> copyDescription)
+        : LogicalOperator{LogicalOperatorType::COPY_TO, std::move(child)},
+          copyDescription{std::move(copyDescription)} {}
 
     f_group_pos_set getGroupsPosToFlatten();
 
     inline std::string getExpressionsForPrinting() const override { return std::string{}; }
 
-    inline common::CopyDescription getCopyDescription() const { return copyDescription; }
+    inline common::CopyDescription* getCopyDescription() const { return copyDescription.get(); }
 
     void computeFactorizedSchema() override;
 
     void computeFlatSchema() override;
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCopyTo>(children[0]->copy(), copyDescription);
+        return make_unique<LogicalCopyTo>(children[0]->copy(), copyDescription->copy());
     }
 
 private:
     std::shared_ptr<binder::Expression> outputExpression;
-    common::CopyDescription copyDescription;
+    std::unique_ptr<common::CopyDescription> copyDescription;
 };
 
 } // namespace planner

@@ -12,17 +12,17 @@ namespace binder {
 
 class BoundCopyTo : public BoundStatement {
 public:
-    BoundCopyTo(
-        common::CopyDescription copyDescription, std::unique_ptr<BoundRegularQuery> regularQuery)
+    BoundCopyTo(std::unique_ptr<common::CopyDescription> copyDescription,
+        std::unique_ptr<BoundRegularQuery> regularQuery)
         : BoundStatement{common::StatementType::COPY_TO, BoundStatementResult::createEmptyResult()},
-          regularQuery{std::move(regularQuery)}, copyDescription{std::move(copyDescription)} {}
+          copyDescription{std::move(copyDescription)}, regularQuery{std::move(regularQuery)} {}
 
-    inline common::CopyDescription getCopyDescription() const { return copyDescription; }
+    inline common::CopyDescription* getCopyDescription() const { return copyDescription.get(); }
 
     inline BoundRegularQuery* getRegularQuery() const { return regularQuery.get(); }
 
 private:
-    common::CopyDescription copyDescription;
+    std::unique_ptr<common::CopyDescription> copyDescription;
     std::unique_ptr<BoundRegularQuery> regularQuery;
 };
 

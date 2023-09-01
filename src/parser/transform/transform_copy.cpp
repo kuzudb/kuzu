@@ -12,7 +12,7 @@ std::unique_ptr<Statement> Transformer::transformCopyTo(CypherParser::KU_CopyTOC
     return std::make_unique<CopyTo>(std::move(filePath), std::move(regularQuery));
 }
 
-std::unique_ptr<Statement> Transformer::transformCopyFromCSV(
+std::unique_ptr<Statement> Transformer::transformCopyFrom(
     CypherParser::KU_CopyFromCSVContext& ctx) {
     auto filePaths = transformFilePaths(ctx.kU_FilePaths()->StringLiteral());
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
