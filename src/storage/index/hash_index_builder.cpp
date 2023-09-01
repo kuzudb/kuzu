@@ -1,13 +1,15 @@
 #include "storage/index/hash_index_builder.h"
 
+#include <xxhash.h>
+
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
 
 slot_id_t BaseHashIndex::getPrimarySlotIdForKey(
-    const HashIndexHeader& indexHeader_, const uint8_t* key) {
-    auto hash = keyHashFunc(key);
+    const HashIndexHeader& indexHeader_, const uint8_t* key, size_t len) {
+    auto hash = XXH64(key, len, 0);
     auto slotId = hash & indexHeader_.levelHashMask;
     if (slotId < indexHeader_.nextSplitSlotId) {
         slotId = hash & indexHeader_.higherLevelHashMask;
@@ -73,8 +75,8 @@ void HashIndexBuilder<T>::bulkReserve(uint32_t numEntries_) {
 }
 
 template<typename T>
-bool HashIndexBuilder<T>::appendInternal(const uint8_t* key, offset_t value) {
-    SlotInfo pSlotInfo{getPrimarySlotIdForKey(*indexHeader, key), SlotType::PRIMARY};
+bool HashIndexBuilder<T>::appendInternal(const uint8_t* key, size_t len, offset_t value) {
+    SlotInfo pSlotInfo{getPrimarySlotIdForKey(*indexHeader, key, len), SlotType::PRIMARY};
     auto currentSlotInfo = pSlotInfo;
     Slot<T>* currentSlot = nullptr;
     while (currentSlotInfo.slotType == SlotType::PRIMARY || currentSlotInfo.slotId != 0) {
@@ -105,8 +107,8 @@ void HashIndexBuilder<T>::bulkReserveIfRequired(uint32_t numEntries_) {
 }
 
 template<typename T>
-bool HashIndexBuilder<T>::lookupInternalWithoutLock(const uint8_t* key, offset_t& result) {
-    SlotInfo pSlotInfo{getPrimarySlotIdForKey(*indexHeader, key), SlotType::PRIMARY};
+bool HashIndexBuilder<T>::lookupInternalWithoutLock(const uint8_t* key, size_t len, offset_t& result) {
+    SlotInfo pSlotInfo{getPrimarySlotIdForKey(*indexHeader, key, len), SlotType::PRIMARY};
     SlotInfo currentSlotInfo = pSlotInfo;
     Slot<T>* currentSlot;
     while (currentSlotInfo.slotType == SlotType::PRIMARY || currentSlotInfo.slotId != 0) {
@@ -142,9 +144,9 @@ void HashIndexBuilder<T>::rehashSlots(slot_id_t primarySlotId) {
             slot_id_t newSlotId;
             if (indexHeader->keyDataTypeID == LogicalTypeID::STRING) {
                 auto str = inMemOverflowFile->readString((ku_string_t*)key);
-                newSlotId = getPrimarySlotIdForKey(*indexHeader, (const uint8_t*)str.c_str());
+                newSlotId = getPrimarySlotIdForKey(*indexHeader, (const uint8_t*)str.c_str(), str.length());
             } else {
-                newSlotId = getPrimarySlotIdForKey(*indexHeader, key);
+                newSlotId = getPrimarySlotIdForKey(*indexHeader, key, indexHeader->numBytesPerKey);
             }
             // copy key to newSlotId
             copyEntryToSlot(newSlotId, key);
@@ -216,7 +218,7 @@ bool HashIndexBuilder<T>::lookupOrExistsInSlotWithoutLock(
             continue;
         }
         auto& entry = slot->entries[entryPos];
-        if (keyEqualsFunc(key, entry.data, inMemOverflowFile.get())) {
+        if (equalFunc(key, entry.data, inMemOverflowFile.get())) {
             if constexpr (IS_LOOKUP) {
                 memcpy(result, entry.data + indexHeader->numBytesPerKey, sizeof(offset_t));
             }

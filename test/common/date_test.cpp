@@ -2,6 +2,7 @@
 
 #include "common/types/types_include.h"
 #include "gtest/gtest.h"
+#include "xxhash.h"
 
 using namespace kuzu::common;
 
@@ -16,4 +17,10 @@ TEST(DateTests, FromDateConvertGivesSame) {
     EXPECT_EQ(1909, year);
     EXPECT_EQ(8, month);
     EXPECT_EQ(28, day);
+}
+
+TEST(DateTests, SomeTest) {
+    std::string data = "sss";
+    XXH64_hash_t hash = XXH64(data.c_str(), data.length(), 12);
+    printf("%llu", hash);
 }

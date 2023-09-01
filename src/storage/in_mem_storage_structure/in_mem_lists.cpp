@@ -16,7 +16,7 @@ PageElementCursor InMemLists::calcPageElementCursor(
     auto pos = listSize - reversePos;
     cursor = PageUtils::getPageElementCursorForPos(csrOffset + pos, numElementsInAPage);
     cursor.pageIdx = listsMetadataBuilder->getPageMapperForChunkIdx(
-        StorageUtils::getListChunkIdx(nodeOffset))((csrOffset + pos) / numElementsInAPage);
+        StorageUtils::getListChunkIdx(nodeOffset), ((csrOffset + pos) / numElementsInAPage));
     return cursor;
 }
 

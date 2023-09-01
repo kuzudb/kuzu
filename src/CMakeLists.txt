@@ -14,7 +14,7 @@ add_subdirectory(transaction)
 
 add_library(kuzu STATIC ${ALL_OBJECT_FILES} include/catalog/rdf_graph_schema.h)
 target_link_libraries(kuzu
-        PUBLIC antlr4_cypher antlr4_runtime utf8proc re2 serd ${PARQUET_LIB} ${ARROW_LIB} Threads::Threads)
+        PUBLIC antlr4_cypher antlr4_runtime utf8proc re2 serd xxhash ${PARQUET_LIB} ${ARROW_LIB} Threads::Threads)
 target_include_directories(kuzu
         PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 add_library(kuzu_shared SHARED ${ALL_OBJECT_FILES})

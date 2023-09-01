@@ -90,13 +90,13 @@ void RelCopier::indexLookup(arrow::Array* pkArray, const LogicalType& pkColumnTy
         for (auto i = 0u; i < length; i++) {
             auto val = std::string(dynamic_cast<arrow::StringArray*>(pkArray)->GetView(i));
             numKeysFound +=
-                pkIndex->lookup(&transaction::DUMMY_READ_TRANSACTION, val.c_str(), offsets[i]);
+                pkIndex->lookup(&transaction::DUMMY_READ_TRANSACTION, val.c_str(), val.length(), offsets[i]);
         }
         if (numKeysFound != length) {
             for (auto i = 0u; i < length; i++) {
                 auto val = std::string(dynamic_cast<arrow::StringArray*>(pkArray)->GetView(i));
                 if (!pkIndex->lookup(
-                        &transaction::DUMMY_READ_TRANSACTION, val.c_str(), offsets[i])) {
+                        &transaction::DUMMY_READ_TRANSACTION, val.c_str(), val.length(), offsets[i])) {
                     errorPKValueStr = val;
                     errorPKRowIdx = startRowIdxInFile + i;
                 }

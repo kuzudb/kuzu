@@ -215,7 +215,7 @@ uint64_t CopyNode::appendToPKIndex<ku_string_t>(
     for (auto i = 0u; i < numValues; i++) {
         auto offset = i + startOffset;
         auto value = stringColumnChunk->getValue<std::string>(i);
-        if (!pkIndex->append(value.c_str(), offset)) {
+        if (!pkIndex->append(value.c_str(), value.length(), offset)) {
             return i;
         }
     }

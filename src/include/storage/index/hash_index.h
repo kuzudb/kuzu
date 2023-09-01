@@ -44,8 +44,8 @@ public:
     HashIndexLocalLookupState lookup(const uint8_t* key, common::offset_t& result);
     void deleteKey(const uint8_t* key);
     bool insert(const uint8_t* key, common::offset_t value);
-    void applyLocalChanges(const std::function<void(const uint8_t*)>& deleteOp,
-        const std::function<void(const uint8_t*, common::offset_t)>& insertOp);
+    void applyLocalChanges(const std::function<void(const uint8_t*, size_t)>& deleteOp,
+        const std::function<void(const uint8_t*, size_t, common::offset_t)>& insertOp);
 
     bool hasUpdates() const;
     void clear();
@@ -86,9 +86,9 @@ public:
 
 public:
     bool lookupInternal(
-        transaction::Transaction* transaction, const uint8_t* key, common::offset_t& result);
+        transaction::Transaction* transaction, const uint8_t* key, size_t len, common::offset_t& result);
     void deleteInternal(const uint8_t* key) const;
-    bool insertInternal(const uint8_t* key, common::offset_t value);
+    bool insertInternal(const uint8_t* key, size_t len, common::offset_t value);
 
     void prepareCommit();
     void prepareRollback();
@@ -101,10 +101,10 @@ private:
     bool performActionInChainedSlots(transaction::TransactionType trxType, HashIndexHeader& header,
         SlotInfo& slotInfo, const uint8_t* key, common::offset_t& result);
     bool lookupInPersistentIndex(
-        transaction::TransactionType trxType, const uint8_t* key, common::offset_t& result);
+        transaction::TransactionType trxType, const uint8_t* key, size_t len, common::offset_t& result);
     // The following two functions are only used in prepareCommit, and are not thread-safe.
-    void insertIntoPersistentIndex(const uint8_t* key, common::offset_t value);
-    void deleteFromPersistentIndex(const uint8_t* key);
+    void insertIntoPersistentIndex(const uint8_t* key, size_t len, common::offset_t value);
+    void deleteFromPersistentIndex(const uint8_t* key, size_t len);
 
     void copyAndUpdateSlotHeader(bool isCopyEntry, Slot<T>& slot, entry_pos_t entryPos,
         const uint8_t* key, common::offset_t value);
@@ -156,6 +156,7 @@ public:
             hashIndexForString = std::make_unique<HashIndex<common::ku_string_t>>(
                 storageStructureIDAndFName, keyDataType, bufferManager, wal);
         }
+        numBytesForKey = storage::StorageUtils::getDataTypeSize(keyDataType);
     }
 
     bool lookup(transaction::Transaction* trx, common::ValueVector* keyVector, uint64_t vectorPos,
@@ -170,13 +171,13 @@ public:
         transaction::Transaction* transaction, int64_t key, common::offset_t& result) {
         assert(keyDataTypeID == common::LogicalTypeID::INT64);
         return hashIndexForInt64->lookupInternal(
-            transaction, reinterpret_cast<const uint8_t*>(&key), result);
+            transaction, reinterpret_cast<const uint8_t*>(&key), numBytesForKey, result);
     }
     inline bool lookup(
-        transaction::Transaction* transaction, const char* key, common::offset_t& result) {
+        transaction::Transaction* transaction, const char* key, size_t len, common::offset_t& result) {
         assert(keyDataTypeID == common::LogicalTypeID::STRING);
         return hashIndexForString->lookupInternal(
-            transaction, reinterpret_cast<const uint8_t*>(key), result);
+            transaction, reinterpret_cast<const uint8_t*>(key), len, result);
     }
 
     inline void checkpointInMemory() {
@@ -216,15 +217,16 @@ private:
     }
     inline bool insert(int64_t key, common::offset_t value) {
         assert(keyDataTypeID == common::LogicalTypeID::INT64);
-        return hashIndexForInt64->insertInternal(reinterpret_cast<const uint8_t*>(&key), value);
+        return hashIndexForInt64->insertInternal(reinterpret_cast<const uint8_t*>(&key), numBytesForKey, value);
     }
-    inline bool insert(const char* key, common::offset_t value) {
+    inline bool insert(const char* key, size_t len, common::offset_t value) {
         assert(keyDataTypeID == common::LogicalTypeID::STRING);
-        return hashIndexForString->insertInternal(reinterpret_cast<const uint8_t*>(key), value);
+        return hashIndexForString->insertInternal(reinterpret_cast<const uint8_t*>(key), len, value);
     }
 
 private:
     common::LogicalTypeID keyDataTypeID;
+    uint32_t numBytesForKey;
     std::unique_ptr<HashIndex<int64_t>> hashIndexForInt64;
     std::unique_ptr<HashIndex<common::ku_string_t>> hashIndexForString;
 };

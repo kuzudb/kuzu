@@ -118,7 +118,7 @@ inline void CopyRDF::lookupAndBuildOffset(const common::offset_t& length) {
 inline void CopyRDF::lookupHashIndex(
     const std::shared_ptr<common::ValueVector>& vector, int pos, common::offset_t& offset) {
     auto uriString = vector->getValue<common::ku_string_t>(pos).getAsString();
-    if (!sharedState->pkHashIndex->lookup(uriString.c_str(), offset)) {
+    if (!sharedState->pkHashIndex->lookup(uriString.c_str(), uriString.length(), offset)) {
         throw common::CopyException("Unable to find iri " + uriString +
                                     " in the hash index while creating its relationship.");
     }
@@ -262,11 +262,11 @@ inline void CopyRDF::appendToHashIndex(common::ValueVector* vector, const common
     uint16_t pos = 0;
     for (int i = 0; i < length; i++) {
         auto uriString = vector->getValue<common::ku_string_t>(i).getAsString();
-        if (sharedState->pkHashIndex->lookup(uriString.c_str(), offsets[i])) {
+        if (sharedState->pkHashIndex->lookup(uriString.c_str(), uriString.length(), offsets[i])) {
             continue;
         }
         offsets[i] = sharedState->currentOffset++;
-        sharedState->pkHashIndex->append(uriString.c_str(), offsets[i]);
+        sharedState->pkHashIndex->append(uriString.c_str(), uriString.length(), offsets[i]);
         selectionBuffer[pos++] = i;
     }
     selectionVector->selectedSize = pos;

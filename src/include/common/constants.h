@@ -115,7 +115,7 @@ struct ListsMetadataConstants {
 
 // Hash Index Configurations
 struct HashIndexConstants {
-    static constexpr uint8_t SLOT_CAPACITY = 3;
+    static constexpr uint8_t SLOT_CAPACITY = 20;
     static constexpr double_t MAX_LOAD_FACTOR = 0.8;
 };
 

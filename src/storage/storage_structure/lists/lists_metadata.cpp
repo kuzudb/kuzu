@@ -28,17 +28,6 @@ ListsMetadata::ListsMetadata(
         bufferManager, wal, transaction::Transaction::getDummyReadOnlyTrx().get());
 }
 
-uint64_t BaseListsMetadata::getPageIdxFromAPageList(
-    BaseInMemDiskArray<page_idx_t>* pageLists, uint32_t pageListHead, uint32_t idxInPageList) {
-    auto pageListGroupHeadIdx = pageListHead;
-    while (ListsMetadataConstants::PAGE_LIST_GROUP_SIZE <= idxInPageList) {
-        pageListGroupHeadIdx =
-            (*pageLists)[pageListGroupHeadIdx + ListsMetadataConstants::PAGE_LIST_GROUP_SIZE];
-        idxInPageList -= ListsMetadataConstants::PAGE_LIST_GROUP_SIZE;
-    }
-    return (*pageLists)[pageListGroupHeadIdx + idxInPageList];
-}
-
 ListsMetadataBuilder::ListsMetadataBuilder(const std::string& listBaseFName) : BaseListsMetadata() {
     metadataFileHandleForBuilding =
         std::make_unique<FileHandle>(StorageUtils::getListMetadataFName(listBaseFName),

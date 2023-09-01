@@ -93,8 +93,8 @@ hash_function_t HashIndexUtils::initializeHashFunc(LogicalTypeID dataTypeID) {
 
 bool HashIndexUtils::isStringPrefixAndLenEquals(
     const uint8_t* keyToLookup, const ku_string_t* keyInEntry) {
-    auto prefixLen =
-        std::min((uint64_t)keyInEntry->len, static_cast<uint64_t>(ku_string_t::PREFIX_LENGTH));
+    // Better performance than std::min since it's inline.
+    auto prefixLen = keyInEntry->len < ku_string_t::PREFIX_LENGTH ? keyInEntry->len : ku_string_t::PREFIX_LENGTH;
     return strlen(reinterpret_cast<const char*>(keyToLookup)) == keyInEntry->len &&
            memcmp(keyToLookup, keyInEntry->prefix, prefixLen) == 0;
 }

@@ -25,8 +25,16 @@ public:
         return std::bind(getPageIdxFromAPageList, pageLists, pageListsHead, std::placeholders::_1);
     }
 
-    static uint64_t getPageIdxFromAPageList(BaseInMemDiskArray<common::page_idx_t>* pageLists,
-        uint32_t pageListHead, uint32_t idxInPageList);
+    inline static uint64_t getPageIdxFromAPageList(BaseInMemDiskArray<common::page_idx_t>* pageLists,
+        uint32_t pageListHead, uint32_t idxInPageList) {
+        auto pageListGroupHeadIdx = pageListHead;
+        while (common::ListsMetadataConstants::PAGE_LIST_GROUP_SIZE <= idxInPageList) {
+            pageListGroupHeadIdx =
+                (*pageLists)[pageListGroupHeadIdx + common::ListsMetadataConstants::PAGE_LIST_GROUP_SIZE];
+            idxInPageList -= common::ListsMetadataConstants::PAGE_LIST_GROUP_SIZE;
+        }
+        return (*pageLists)[pageListGroupHeadIdx + idxInPageList];
+    }
 
 protected:
     std::shared_ptr<spdlog::logger> logger;
@@ -88,9 +96,9 @@ public:
 
     // Returns a function that can map the logical pageIdx of a chunk ito its corresponding physical
     // pageIdx in a disk file.
-    inline std::function<uint32_t(uint32_t)> getPageMapperForChunkIdx(uint32_t chunkIdx) {
-        return getIdxInPageListToListPageIdxMapper(
-            pageListsBuilder.get(), (*chunkToPageListHeadIdxMapBuilder)[chunkIdx]);
+    inline uint32_t getPageMapperForChunkIdx(uint32_t chunkIdx, uint32_t idxInPageList) {
+        return getPageIdxFromAPageList(
+            pageListsBuilder.get(), (*chunkToPageListHeadIdxMapBuilder)[chunkIdx], idxInPageList);
     }
     void initChunkPageLists(uint32_t numChunks);
 

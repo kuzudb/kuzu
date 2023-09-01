@@ -59,7 +59,7 @@ public:
     virtual ~BaseHashIndex() = default;
 
 protected:
-    slot_id_t getPrimarySlotIdForKey(const HashIndexHeader& indexHeader, const uint8_t* key);
+    slot_id_t getPrimarySlotIdForKey(const HashIndexHeader& indexHeader, const uint8_t* key, size_t len);
 
     static inline uint64_t getNumRequiredEntries(
         uint64_t numExistingEntries, uint64_t numNewEntries) {
@@ -70,6 +70,48 @@ protected:
     std::unique_ptr<HashIndexHeader> indexHeader;
     std::shared_mutex pSlotSharedMutex;
     hash_function_t keyHashFunc;
+};
+
+template <typename T> struct EqualFunc {
+    inline static bool equal(const uint8_t* keyToLookup, const uint8_t* keyInEntry,
+        const InMemOverflowFile* inMemOverflowFile = nullptr) {
+        throw common::StorageException(
+            "Hash index equals is not supported for dataType other than INT64 and STRING.");
+    }
+};
+
+template<> struct EqualFunc<common::ku_string_t> {
+    inline static bool equal(const uint8_t* keyToLookup, const uint8_t* keyInEntry,
+        const InMemOverflowFile* inMemOverflowFile = nullptr) {
+        auto kuStringInEntry = (common::ku_string_t*)keyInEntry;
+        // Checks if prefix and len matches first.
+        if (!HashIndexUtils::isStringPrefixAndLenEquals(keyToLookup, kuStringInEntry)) {
+            return false;
+        }
+        if (kuStringInEntry->len <= common::ku_string_t::PREFIX_LENGTH) {
+            // For strings shorter than PREFIX_LENGTH, the result must be true.
+            return true;
+        } else if (kuStringInEntry->len <= common::ku_string_t::SHORT_STR_LENGTH) {
+            // For short strings, whose lengths are larger than PREFIX_LENGTH, check if their actual
+            // values are equal.
+            return memcmp(keyToLookup, kuStringInEntry->prefix, kuStringInEntry->len) == 0;
+        } else {
+            // For long strings, read overflow values and check if they are true.
+            PageByteCursor cursor;
+            common::TypeUtils::decodeOverflowPtr(
+                kuStringInEntry->overflowPtr, cursor.pageIdx, cursor.offsetInPage);
+            return memcmp(keyToLookup,
+                       inMemOverflowFile->getPage(cursor.pageIdx)->data + cursor.offsetInPage,
+                       kuStringInEntry->len) == 0;
+        }
+    }
+};
+
+template<> struct EqualFunc<int64_t> {
+    inline static bool equal(const uint8_t* keyToLookup, const uint8_t* keyInEntry,
+        const InMemOverflowFile* inMemOverflowFile = nullptr) {
+        return memcmp(keyToLookup, keyInEntry, sizeof(int64_t)) == 0;
+    }
 };
 
 template<typename T>
@@ -86,16 +128,16 @@ public:
     // Note: append assumes that bulkRserve has been called before it and the index has reserved
     // enough space already.
     inline bool append(int64_t key, common::offset_t value) {
-        return appendInternal(reinterpret_cast<const uint8_t*>(&key), value);
+        return appendInternal(reinterpret_cast<const uint8_t*>(&key), indexHeader->numBytesPerKey, value);
     }
-    inline bool append(const char* key, common::offset_t value) {
-        return appendInternal(reinterpret_cast<const uint8_t*>(key), value);
+    inline bool append(const char* key, size_t len, common::offset_t value) {
+        return appendInternal(reinterpret_cast<const uint8_t*>(key), len, value);
     }
     inline bool lookup(int64_t key, common::offset_t& result) {
-        return lookupInternalWithoutLock(reinterpret_cast<const uint8_t*>(&key), result);
+        return lookupInternalWithoutLock(reinterpret_cast<const uint8_t*>(&key), indexHeader->numBytesPerKey, result);
     }
-    inline bool lookup(const char* key, common::offset_t& result) {
-        return lookupInternalWithoutLock(reinterpret_cast<const uint8_t*>(key), result);
+    inline bool lookup(const char* key, size_t len, common::offset_t& result) {
+        return lookupInternalWithoutLock(reinterpret_cast<const uint8_t*>(key), len, result);
     }
     inline std::uint64_t getNumEntries() { return numEntries.load(); }
 
@@ -103,8 +145,8 @@ public:
     void flush();
 
 private:
-    bool appendInternal(const uint8_t* key, common::offset_t value);
-    bool lookupInternalWithoutLock(const uint8_t* key, common::offset_t& result);
+    bool appendInternal(const uint8_t* key, size_t len, common::offset_t value);
+    bool lookupInternalWithoutLock(const uint8_t* key, size_t len, common::offset_t& result);
 
     template<bool IS_LOOKUP>
     bool lookupOrExistsInSlotWithoutLock(
@@ -115,6 +157,11 @@ private:
     void copyEntryToSlot(slot_id_t slotId, uint8_t* entry);
     uint32_t allocatePSlots(uint32_t numSlotsToAllocate);
     uint32_t allocateAOSlot();
+
+    inline static bool equalFunc(const uint8_t* keyToLookup, const uint8_t* keyInEntry,
+        const InMemOverflowFile* inMemOverflowFile = nullptr) {
+        return EqualFunc<T>::equal(keyToLookup, keyInEntry, inMemOverflowFile);
+    }
 
 private:
     std::unique_ptr<FileHandle> fileHandle;
@@ -165,10 +212,10 @@ public:
                    hashIndexBuilderForInt64->append(key, value) :
                    hashIndexBuilderForString->append(key, value);
     }
-    inline bool append(const char* key, common::offset_t value) {
+    inline bool append(const char* key, size_t len, common::offset_t value) {
         return keyDataTypeID == common::LogicalTypeID::INT64 ?
-                   hashIndexBuilderForInt64->append(key, value) :
-                   hashIndexBuilderForString->append(key, value);
+                   hashIndexBuilderForInt64->append(key, len, value) :
+                   hashIndexBuilderForString->append(key, len, value);
     }
     inline bool lookup(int64_t key, common::offset_t& result) {
         return keyDataTypeID == common::LogicalTypeID::INT64 ?

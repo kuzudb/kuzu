@@ -5,6 +5,7 @@
 
 #include "common/type_utils.h"
 #include "common/utils.h"
+#include "xxhash.h"
 
 namespace kuzu {
 namespace function {
@@ -90,7 +91,7 @@ inline void Hash::operation(const float_t& key, common::hash_t& result) {
 
 template<>
 inline void Hash::operation(const std::string& key, common::hash_t& result) {
-    result = std::hash<std::string>()(key);
+    result = XXH64(key.c_str(), key.length(), 0);
 }
 
 template<>

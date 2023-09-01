@@ -82,22 +82,22 @@ bool HashIndexLocalStorage::insert(const uint8_t* key, offset_t value) {
     }
 }
 
-void HashIndexLocalStorage::applyLocalChanges(const std::function<void(const uint8_t*)>& deleteOp,
-    const std::function<void(const uint8_t*, offset_t)>& insertOp) {
+void HashIndexLocalStorage::applyLocalChanges(const std::function<void(const uint8_t*, size_t)>& deleteOp,
+    const std::function<void(const uint8_t*, size_t, offset_t)>& insertOp) {
     if (keyDataType.getLogicalTypeID() == LogicalTypeID::INT64) {
         for (auto& key : templatedLocalStorageForInt.localDeletions) {
-            deleteOp((uint8_t*)&key);
+            deleteOp((uint8_t*)&key, sizeof(int64_t));
         }
         for (auto& [key, val] : templatedLocalStorageForInt.localInsertions) {
-            insertOp((uint8_t*)&key, val);
+            insertOp((uint8_t*)&key, sizeof(int64_t), val);
         }
     } else {
         assert(keyDataType.getLogicalTypeID() == LogicalTypeID::STRING);
         for (auto& key : templatedLocalStorageForString.localDeletions) {
-            deleteOp((uint8_t*)key.c_str());
+            deleteOp((uint8_t*)key.c_str(), key.length());
         }
         for (auto& [key, val] : templatedLocalStorageForString.localInsertions) {
-            insertOp((uint8_t*)key.c_str(), val);
+            insertOp((uint8_t*)key.c_str(), key.length(), val);
         }
     }
 }
@@ -159,9 +159,9 @@ HashIndex<T>::HashIndex(const StorageStructureIDAndFName& storageStructureIDAndF
 // - the key is neither deleted nor found in the local storage, lookup in the persistent
 // storage.
 template<typename T>
-bool HashIndex<T>::lookupInternal(Transaction* transaction, const uint8_t* key, offset_t& result) {
+bool HashIndex<T>::lookupInternal(Transaction* transaction, const uint8_t* key, size_t len, offset_t& result) {
     if (transaction->isReadOnly()) {
-        return lookupInPersistentIndex(transaction->getType(), key, result);
+        return lookupInPersistentIndex(transaction->getType(), key, len, result);
     } else {
         assert(transaction->isWriteTransaction());
         auto localLookupState = localStorage->lookup(key, result);
@@ -171,7 +171,7 @@ bool HashIndex<T>::lookupInternal(Transaction* transaction, const uint8_t* key, 
             return false;
         } else {
             assert(localLookupState == HashIndexLocalLookupState::KEY_NOT_EXIST);
-            return lookupInPersistentIndex(transaction->getType(), key, result);
+            return lookupInPersistentIndex(transaction->getType(), key, len, result);
         }
     }
 }
@@ -190,13 +190,13 @@ void HashIndex<T>::deleteInternal(const uint8_t* key) const {
 // index, if
 //   so, return false, else insert the key to the local storage.
 template<typename T>
-bool HashIndex<T>::insertInternal(const uint8_t* key, offset_t value) {
+bool HashIndex<T>::insertInternal(const uint8_t* key, size_t len, offset_t value) {
     offset_t tmpResult;
     auto localLookupState = localStorage->lookup(key, tmpResult);
     if (localLookupState == HashIndexLocalLookupState::KEY_FOUND) {
         return false;
     } else if (localLookupState == HashIndexLocalLookupState::KEY_NOT_EXIST) {
-        if (lookupInPersistentIndex(TransactionType::WRITE, key, tmpResult)) {
+        if (lookupInPersistentIndex(TransactionType::WRITE, key, len, tmpResult)) {
             return false;
         }
     }
@@ -238,24 +238,24 @@ bool HashIndex<T>::performActionInChainedSlots(TransactionType trxType, HashInde
 
 template<typename T>
 bool HashIndex<T>::lookupInPersistentIndex(
-    TransactionType trxType, const uint8_t* key, offset_t& result) {
+    TransactionType trxType, const uint8_t* key, size_t len, offset_t& result) {
     auto header = trxType == TransactionType::READ_ONLY ?
                       *indexHeader :
                       headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::WRITE);
-    SlotInfo slotInfo{getPrimarySlotIdForKey(header, key), SlotType::PRIMARY};
+    SlotInfo slotInfo{getPrimarySlotIdForKey(header, key, len), SlotType::PRIMARY};
     return performActionInChainedSlots<ChainedSlotsAction::LOOKUP_IN_SLOTS>(
         trxType, header, slotInfo, key, result);
 }
 
 template<typename T>
-void HashIndex<T>::insertIntoPersistentIndex(const uint8_t* key, offset_t value) {
+void HashIndex<T>::insertIntoPersistentIndex(const uint8_t* key, size_t len, offset_t value) {
     auto header = headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::WRITE);
     slot_id_t numRequiredEntries = getNumRequiredEntries(header.numEntries, 1);
     while (numRequiredEntries >
            pSlots->getNumElements(TransactionType::WRITE) * HashIndexConstants::SLOT_CAPACITY) {
         splitSlot(header);
     }
-    auto pSlotId = getPrimarySlotIdForKey(header, key);
+    auto pSlotId = getPrimarySlotIdForKey(header, key, len);
     SlotInfo slotInfo{pSlotId, SlotType::PRIMARY};
     offset_t result;
     performActionInChainedSlots<ChainedSlotsAction::FIND_FREE_SLOT>(
@@ -267,9 +267,9 @@ void HashIndex<T>::insertIntoPersistentIndex(const uint8_t* key, offset_t value)
 }
 
 template<typename T>
-void HashIndex<T>::deleteFromPersistentIndex(const uint8_t* key) {
+void HashIndex<T>::deleteFromPersistentIndex(const uint8_t* key, size_t len) {
     auto header = headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::WRITE);
-    SlotInfo slotInfo{getPrimarySlotIdForKey(header, key), SlotType::PRIMARY};
+    SlotInfo slotInfo{getPrimarySlotIdForKey(header, key, len), SlotType::PRIMARY};
     offset_t result;
     performActionInChainedSlots<ChainedSlotsAction::DELETE_IN_SLOTS>(
         TransactionType::WRITE, header, slotInfo, key, result);
@@ -398,9 +398,9 @@ void HashIndex<T>::prepareCommit() {
         wal->addToUpdatedNodeTables(
             storageStructureIDAndFName.storageStructureID.nodeIndexID.tableID);
         localStorage->applyLocalChanges(
-            [this](const uint8_t* key) -> void { this->deleteFromPersistentIndex(key); },
-            [this](const uint8_t* key, offset_t value) -> void {
-                this->insertIntoPersistentIndex(key, value);
+            [this](const uint8_t* key, size_t len) -> void { this->deleteFromPersistentIndex(key, len); },
+            [this](const uint8_t* key, size_t len, offset_t value) -> void {
+                this->insertIntoPersistentIndex(key, len, value);
             });
     }
 }
@@ -447,11 +447,11 @@ bool PrimaryKeyIndex::lookup(
     if (keyDataTypeID == LogicalTypeID::INT64) {
         auto key = keyVector->getValue<int64_t>(vectorPos);
         return hashIndexForInt64->lookupInternal(
-            trx, reinterpret_cast<const uint8_t*>(&key), result);
+            trx, reinterpret_cast<const uint8_t*>(&key), sizeof(int64_t), result);
     } else {
         auto key = keyVector->getValue<ku_string_t>(vectorPos).getAsString();
         return hashIndexForString->lookupInternal(
-            trx, reinterpret_cast<const uint8_t*>(key.c_str()), result);
+            trx, reinterpret_cast<const uint8_t*>(key.c_str()), key.length(), result);
     }
 }
 
@@ -475,11 +475,11 @@ bool PrimaryKeyIndex::insert(ValueVector* keyVector, uint64_t vectorPos, offset_
     assert(!keyVector->isNull(vectorPos));
     if (keyDataTypeID == LogicalTypeID::INT64) {
         auto key = keyVector->getValue<int64_t>(vectorPos);
-        return hashIndexForInt64->insertInternal(reinterpret_cast<const uint8_t*>(&key), value);
+        return hashIndexForInt64->insertInternal(reinterpret_cast<const uint8_t*>(&key), sizeof(int64_t), value);
     } else {
         auto key = keyVector->getValue<ku_string_t>(vectorPos).getAsString();
         return hashIndexForString->insertInternal(
-            reinterpret_cast<const uint8_t*>(key.c_str()), value);
+            reinterpret_cast<const uint8_t*>(key.c_str()), key.length(), value);
     }
 }
 
