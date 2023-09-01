@@ -31,7 +31,9 @@ private:
     void replayTableStatisticsRecord(const WALRecord& walRecord);
     void replayCatalogRecord();
     void replayNodeTableRecord(const WALRecord& walRecord);
-    void replayRelTableRecord(const WALRecord& walRecord);
+    // TODO(Guodong/Ziyi) : fix this
+    void replayRelTableRecord(const WALRecord& walRecord, bool isRdf = false);
+    void replayRdfGraphRecord(const WALRecord& walRecord);
     void replayOverflowFileNextBytePosRecord(const WALRecord& walRecord);
     void replayCopyNodeRecord(const WALRecord& walRecord);
     void replayCopyRelRecord(const WALRecord& walRecord);

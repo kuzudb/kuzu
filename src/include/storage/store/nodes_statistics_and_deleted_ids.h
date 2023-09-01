@@ -83,10 +83,10 @@ public:
     // from an empty directory.
     NodesStatisticsAndDeletedIDs() : TablesStatistics{} {};
     // Should be used when an already loaded database is started from a directory.
-    explicit NodesStatisticsAndDeletedIDs(const std::string& directory) : TablesStatistics{} {
-        logger->info("Initializing {}.", "NodesStatisticsAndDeletedIDs");
-        readFromFile(directory);
-        logger->info("Initialized {}.", "NodesStatisticsAndDeletedIDs");
+    explicit NodesStatisticsAndDeletedIDs(
+        const std::string& directory, common::DBFileType dbFileType = common::DBFileType::ORIGINAL)
+        : TablesStatistics{} {
+        readFromFile(directory, dbFileType);
     }
 
     // Should be used only by tests;

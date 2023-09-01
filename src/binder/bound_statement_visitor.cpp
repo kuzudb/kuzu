@@ -18,6 +18,9 @@ void BoundStatementVisitor::visit(const kuzu::binder::BoundStatement& statement)
     case StatementType::CREATE_REL_TABLE: {
         visitCreateRelTable(statement);
     } break;
+    case StatementType::CREATE_RDF_GRAPH: {
+        visitCreateRdfGraph(statement);
+    } break;
     case StatementType::DROP_TABLE: {
         visitDropTable(statement);
     } break;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "binder/ddl/bound_create_table_info.h"
 #include "catalog/table_schema.h"
 #include "planner/logical_plan/ddl/logical_ddl.h"
 
@@ -9,17 +10,20 @@ namespace planner {
 class LogicalCreateTable : public LogicalDDL {
 public:
     LogicalCreateTable(LogicalOperatorType operatorType, std::string tableName,
-        std::vector<std::unique_ptr<catalog::Property>> properties,
+        std::unique_ptr<binder::BoundCreateTableInfo> info,
         std::shared_ptr<binder::Expression> outputExpression)
         : LogicalDDL{operatorType, std::move(tableName), std::move(outputExpression)},
-          properties{std::move(properties)} {}
+          info{std::move(info)} {}
 
-    inline std::vector<std::unique_ptr<catalog::Property>> getProperties() const {
-        return catalog::Property::copyProperties(properties);
+    inline binder::BoundCreateTableInfo* getInfo() const { return info.get(); }
+
+    inline std::unique_ptr<LogicalOperator> copy() final {
+        return std::make_unique<LogicalCreateTable>(
+            operatorType, tableName, info->copy(), outputExpression);
     }
 
-protected:
-    std::vector<std::unique_ptr<catalog::Property>> properties;
+private:
+    std::unique_ptr<binder::BoundCreateTableInfo> info;
 };
 
 } // namespace planner

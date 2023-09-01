@@ -20,6 +20,7 @@ enum class PhysicalOperatorType : uint8_t {
     COPY_TO,
     CREATE_NODE_TABLE,
     CREATE_REL_TABLE,
+    CREATE_RDF_GRAPH,
     CROSS_PRODUCT,
     DELETE_NODE,
     DELETE_REL,

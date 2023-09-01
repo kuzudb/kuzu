@@ -43,14 +43,13 @@ std::unique_ptr<Property> Property::deserialize(FileInfo* fileInfo, uint64_t& of
         name, std::move(dataType), propertyID, tableID, std::move(metadataDAHInfo));
 }
 
-std::vector<std::unique_ptr<catalog::Property>> Property::copyProperties(
-    const std::vector<std::unique_ptr<catalog::Property>>& propertiesToCopy) {
-    std::vector<std::unique_ptr<catalog::Property>> propertiesToReturn;
-    propertiesToReturn.reserve(propertiesToCopy.size());
-    for (const auto& property : propertiesToCopy) {
-        propertiesToReturn.push_back(property->copy());
+std::vector<std::unique_ptr<Property>> Property::copy(
+    const std::vector<std::unique_ptr<Property>>& properties) {
+    std::vector<std::unique_ptr<Property>> result;
+    for (auto& property : properties) {
+        result.push_back(property->copy());
     }
-    return propertiesToReturn;
+    return result;
 }
 
 } // namespace catalog

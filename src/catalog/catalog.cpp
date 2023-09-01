@@ -38,24 +38,26 @@ ExpressionType Catalog::getFunctionType(const std::string& name) const {
     return catalogContentForReadOnlyTrx->getFunctionType(name);
 }
 
-table_id_t Catalog::addNodeTableSchema(std::string tableName, property_id_t primaryKeyId,
-    std::vector<std::unique_ptr<Property>> propertyDefinitions) {
+table_id_t Catalog::addNodeTableSchema(const binder::BoundCreateTableInfo& info) {
     initCatalogContentForWriteTrxIfNecessary();
-    auto tableID = catalogContentForWriteTrx->addNodeTableSchema(
-        std::move(tableName), primaryKeyId, std::move(propertyDefinitions));
+    auto tableID = catalogContentForWriteTrx->addNodeTableSchema(info);
     wal->logNodeTableRecord(tableID);
     return tableID;
 }
 
-table_id_t Catalog::addRelTableSchema(std::string tableName, RelMultiplicity relMultiplicity,
-    std::vector<std::unique_ptr<Property>> propertyDefinitions, table_id_t srcTableID,
-    table_id_t dstTableID, std::unique_ptr<LogicalType> srcPKDataType,
-    std::unique_ptr<LogicalType> dstPKDataType) {
+table_id_t Catalog::addRelTableSchema(const binder::BoundCreateTableInfo& info) {
     initCatalogContentForWriteTrxIfNecessary();
-    auto tableID = catalogContentForWriteTrx->addRelTableSchema(std::move(tableName),
-        relMultiplicity, std::move(propertyDefinitions), srcTableID, dstTableID,
-        std::move(srcPKDataType), std::move(dstPKDataType));
+    auto tableID = catalogContentForWriteTrx->addRelTableSchema(info);
     wal->logRelTableRecord(tableID);
+    return tableID;
+}
+
+common::table_id_t Catalog::addRdfGraphSchema(const binder::BoundCreateTableInfo& info) {
+    initCatalogContentForWriteTrxIfNecessary();
+    auto tableID = catalogContentForWriteTrx->addRdfGraphSchema(info);
+    auto rdfGraphSchema = (RdfGraphSchema*)catalogContentForWriteTrx->getTableSchema(tableID);
+    wal->logRdfGraphRecord(
+        tableID, rdfGraphSchema->getNodeTableID(), rdfGraphSchema->getRelTableID());
     return tableID;
 }
 

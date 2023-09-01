@@ -1,6 +1,5 @@
 #include "parser/ddl/add_property.h"
-#include "parser/ddl/create_node_clause.h"
-#include "parser/ddl/create_rel_clause.h"
+#include "parser/ddl/create_table_clause.h"
 #include "parser/ddl/drop_property.h"
 #include "parser/ddl/drop_table.h"
 #include "parser/ddl/rename_property.h"
@@ -16,12 +15,14 @@ namespace parser {
 std::unique_ptr<Statement> Transformer::transformDDL(CypherParser::KU_DDLContext& ctx) {
     if (ctx.kU_CreateNode()) {
         return transformCreateNodeClause(*ctx.kU_CreateNode());
-    } else if (root.oC_Statement()->kU_DDL()->kU_CreateRel()) {
-        return transformCreateRelClause(*root.oC_Statement()->kU_DDL()->kU_CreateRel());
-    } else if (root.oC_Statement()->kU_DDL()->kU_DropTable()) {
-        return transformDropTable(*root.oC_Statement()->kU_DDL()->kU_DropTable());
+    } else if (ctx.kU_CreateRel()) {
+        return transformCreateRelClause(*ctx.kU_CreateRel());
+    } else if (ctx.kU_CreateRdfGraph()) {
+        return transformCreateRdfGraphClause(*ctx.kU_CreateRdfGraph());
+    } else if (ctx.kU_DropTable()) {
+        return transformDropTable(*ctx.kU_DropTable());
     } else {
-        return transformAlterTable(*root.oC_Statement()->kU_DDL()->kU_AlterTable());
+        return transformAlterTable(*ctx.kU_AlterTable());
     }
 }
 
@@ -40,25 +41,44 @@ std::unique_ptr<Statement> Transformer::transformAlterTable(
 
 std::unique_ptr<Statement> Transformer::transformCreateNodeClause(
     CypherParser::KU_CreateNodeContext& ctx) {
-    auto schemaName = transformSchemaName(*ctx.oC_SchemaName());
+    auto tableName = transformSchemaName(*ctx.oC_SchemaName());
     auto propertyDefinitions = transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
-    auto pkColName =
-        ctx.kU_CreateNodeConstraint() ? transformPrimaryKey(*ctx.kU_CreateNodeConstraint()) : "";
-    return std::make_unique<CreateNodeTableClause>(
-        std::move(schemaName), std::move(propertyDefinitions), pkColName);
+    std::string pkName;
+    if (ctx.kU_CreateNodeConstraint()) {
+        pkName = transformPrimaryKey(*ctx.kU_CreateNodeConstraint());
+    }
+    auto extraInfo = std::make_unique<NodeExtraCreateTableInfo>(pkName);
+    auto createTableInfo =
+        std::make_unique<CreateTableInfo>(tableName, propertyDefinitions, std::move(extraInfo));
+    return std::make_unique<CreateTableClause>(
+        StatementType::CREATE_NODE_TABLE, tableName, std::move(createTableInfo));
 }
 
 std::unique_ptr<Statement> Transformer::transformCreateRelClause(
     CypherParser::KU_CreateRelContext& ctx) {
-    auto schemaName = transformSchemaName(*ctx.oC_SchemaName(0));
-    auto propertyDefinitions = ctx.kU_PropertyDefinitions() ?
-                                   transformPropertyDefinitions(*ctx.kU_PropertyDefinitions()) :
-                                   std::vector<std::pair<std::string, std::string>>();
+    auto tableName = transformSchemaName(*ctx.oC_SchemaName(0));
+    std::vector<std::pair<std::string, std::string>> propertyDefinitions;
+    if (ctx.kU_PropertyDefinitions()) {
+        propertyDefinitions = transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
+    }
     auto relMultiplicity =
         ctx.oC_SymbolicName() ? transformSymbolicName(*ctx.oC_SymbolicName()) : "MANY_MANY";
-    return make_unique<CreateRelClause>(std::move(schemaName), std::move(propertyDefinitions),
-        relMultiplicity, transformSchemaName(*ctx.oC_SchemaName(1)),
-        transformSchemaName(*ctx.oC_SchemaName(2)));
+    auto srcTableName = transformSchemaName(*ctx.oC_SchemaName(1));
+    auto dstTableName = transformSchemaName(*ctx.oC_SchemaName(2));
+    auto extraInfo =
+        std::make_unique<RelExtraCreateTableInfo>(relMultiplicity, srcTableName, dstTableName);
+    auto createTableInfo =
+        std::make_unique<CreateTableInfo>(tableName, propertyDefinitions, std::move(extraInfo));
+    return std::make_unique<CreateTableClause>(
+        StatementType::CREATE_REL_TABLE, tableName, std::move(createTableInfo));
+}
+
+std::unique_ptr<Statement> Transformer::transformCreateRdfGraphClause(
+    CypherParser::KU_CreateRdfGraphContext& ctx) {
+    auto rdfGraphName = transformSchemaName(*ctx.oC_SchemaName());
+    auto createTableInfo = std::make_unique<CreateTableInfo>(rdfGraphName);
+    return std::make_unique<CreateTableClause>(
+        StatementType::CREATE_RDF_GRAPH, rdfGraphName, std::move(createTableInfo));
 }
 
 std::unique_ptr<Statement> Transformer::transformDropTable(CypherParser::KU_DropTableContext& ctx) {

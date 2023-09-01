@@ -106,6 +106,9 @@ public:
 
     void logRelTableRecord(common::table_id_t tableID);
 
+    void logRdfGraphRecord(common::table_id_t rdfGraphID, common::table_id_t nodeTableID,
+        common::table_id_t relTableID);
+
     void logOverflowFileNextBytePosRecord(
         StorageStructureID storageStructureID, uint64_t prevNextByteToWriteTo);
 

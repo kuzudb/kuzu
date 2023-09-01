@@ -54,13 +54,9 @@ public:
 
     common::ExpressionType getFunctionType(const std::string& name) const;
 
-    common::table_id_t addNodeTableSchema(std::string tableName, common::property_id_t primaryKeyId,
-        std::vector<std::unique_ptr<Property>> propertyDefinitions);
-
-    common::table_id_t addRelTableSchema(std::string tableName, RelMultiplicity relMultiplicity,
-        std::vector<std::unique_ptr<Property>> propertyDefinitions, common::table_id_t srcTableID,
-        common::table_id_t dstTableID, std::unique_ptr<common::LogicalType> srcPKDataType,
-        std::unique_ptr<common::LogicalType> dstPKDataType);
+    common::table_id_t addNodeTableSchema(const binder::BoundCreateTableInfo& info);
+    common::table_id_t addRelTableSchema(const binder::BoundCreateTableInfo& info);
+    common::table_id_t addRdfGraphSchema(const binder::BoundCreateTableInfo& info);
 
     void dropTableSchema(common::table_id_t tableID);
 

@@ -75,13 +75,13 @@ public:
     void serialize(common::FileInfo* fileInfo, uint64_t& offset) const;
     static std::unique_ptr<Property> deserialize(common::FileInfo* fileInfo, uint64_t& offset);
 
-    static std::vector<std::unique_ptr<catalog::Property>> copyProperties(
-        const std::vector<std::unique_ptr<catalog::Property>>& propertiesToCopy);
-
     inline std::unique_ptr<Property> copy() const {
         return std::make_unique<Property>(
             name, dataType->copy(), propertyID, tableID, metadataDAHInfo->copy());
     }
+
+    static std::vector<std::unique_ptr<Property>> copy(
+        const std::vector<std::unique_ptr<Property>>& properties);
 
 private:
     std::string name;

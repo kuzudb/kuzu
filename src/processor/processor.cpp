@@ -67,6 +67,7 @@ void QueryProcessor::decomposePlanIntoTasks(
         // DDL should be executed exactly once.
     case PhysicalOperatorType::CREATE_NODE_TABLE:
     case PhysicalOperatorType::CREATE_REL_TABLE:
+    case PhysicalOperatorType::CREATE_RDF_GRAPH:
     case PhysicalOperatorType::DROP_TABLE:
     case PhysicalOperatorType::DROP_PROPERTY:
     case PhysicalOperatorType::ADD_PROPERTY:

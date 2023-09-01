@@ -6,8 +6,7 @@
 #include "binder/copy/bound_copy_from.h"
 #include "binder/copy/bound_copy_to.h"
 #include "binder/ddl/bound_add_property.h"
-#include "binder/ddl/bound_create_node_clause.h"
-#include "binder/ddl/bound_create_rel_clause.h"
+#include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_drop_property.h"
 #include "binder/ddl/bound_drop_table.h"
 #include "binder/ddl/bound_rename_property.h"
@@ -16,8 +15,7 @@
 #include "planner/logical_plan/copy/logical_copy_from.h"
 #include "planner/logical_plan/copy/logical_copy_to.h"
 #include "planner/logical_plan/ddl/logical_add_property.h"
-#include "planner/logical_plan/ddl/logical_create_node_table.h"
-#include "planner/logical_plan/ddl/logical_create_rel_table.h"
+#include "planner/logical_plan/ddl/logical_create_table.h"
 #include "planner/logical_plan/ddl/logical_drop_property.h"
 #include "planner/logical_plan/ddl/logical_drop_table.h"
 #include "planner/logical_plan/ddl/logical_rename_property.h"
@@ -47,8 +45,11 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
     case StatementType::CREATE_REL_TABLE: {
         plan = planCreateRelTable(statement);
     } break;
+    case StatementType::CREATE_RDF_GRAPH: {
+        plan = planCreateRdfGraph(statement);
+    } break;
     case StatementType::COPY_FROM: {
-        return planCopyFrom(catalog, statement);
+        plan = planCopyFrom(catalog, statement);
     } break;
     case StatementType::COPY_TO: {
         plan = planCopyTo(catalog, nodesStatistics, relsStatistics, statement);
@@ -100,23 +101,33 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllPlans(const Catalog& ca
 }
 
 std::unique_ptr<LogicalPlan> Planner::planCreateNodeTable(const BoundStatement& statement) {
-    auto& createNodeClause = reinterpret_cast<const BoundCreateNodeClause&>(statement);
+    auto& creatTable = (const BoundCreateTable&)(statement);
     auto plan = std::make_unique<LogicalPlan>();
-    auto createNodeTable = make_shared<LogicalCreateNodeTable>(createNodeClause.getTableName(),
-        createNodeClause.getProperties(), createNodeClause.getPrimaryKeyIdx(),
+    auto createNodeTable = make_shared<LogicalCreateTable>(LogicalOperatorType::CREATE_NODE_TABLE,
+        creatTable.getTableName(), creatTable.getBoundCreateTableInfo()->copy(),
         statement.getStatementResult()->getSingleExpressionToCollect());
     plan->setLastOperator(std::move(createNodeTable));
     return plan;
 }
 
 std::unique_ptr<LogicalPlan> Planner::planCreateRelTable(const BoundStatement& statement) {
-    auto& createRelClause = reinterpret_cast<const BoundCreateRelClause&>(statement);
+    auto& createTable = (const BoundCreateTable&)(statement);
     auto plan = std::make_unique<LogicalPlan>();
-    auto createRelTable = make_shared<LogicalCreateRelTable>(createRelClause.getTableName(),
-        createRelClause.getProperties(), createRelClause.getRelMultiplicity(),
-        createRelClause.getSrcTableID(), createRelClause.getDstTableID(),
+    auto createRelTable = make_shared<LogicalCreateTable>(LogicalOperatorType::CREATE_REL_TABLE,
+        createTable.getTableName(), createTable.getBoundCreateTableInfo()->copy(),
         statement.getStatementResult()->getSingleExpressionToCollect());
     plan->setLastOperator(std::move(createRelTable));
+    return plan;
+}
+
+std::unique_ptr<LogicalPlan> Planner::planCreateRdfGraph(const BoundStatement& statement) {
+    auto& createTable = (const BoundCreateTable&)(statement);
+    auto plan = std::make_unique<LogicalPlan>();
+    auto createRdfGraph =
+        std::make_shared<LogicalCreateTable>(LogicalOperatorType::CREATE_RDF_GRAPH,
+            createTable.getTableName(), createTable.getBoundCreateTableInfo()->copy(),
+            statement.getStatementResult()->getSingleExpressionToCollect());
+    plan->setLastOperator(std::move(createRdfGraph));
     return plan;
 }
 

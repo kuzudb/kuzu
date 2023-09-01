@@ -65,6 +65,7 @@ COLUMN : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'L' | 'l' ) ( 'U' | 'u' ) ( 'M' | 'm' ) (
 kU_DDL
     : kU_CreateNode
         | kU_CreateRel
+        | kU_CreateRdfGraph
         | kU_DropTable
         | kU_AlterTable;
 
@@ -77,6 +78,13 @@ TABLE: ( 'T' | 't' ) ( 'A' | 'a' ) ( 'B' | 'b' ) ( 'L' | 'l' ) ( 'E' | 'e' ) ;
 
 kU_CreateRel
     : CREATE SP REL SP TABLE SP oC_SchemaName SP? '(' SP? FROM SP oC_SchemaName SP TO SP oC_SchemaName SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
+
+kU_CreateRdfGraph
+    : CREATE SP RDF SP GRAPH SP oC_SchemaName ;
+
+RDF : ('R' | 'r') ('D' | 'd') ('F' | 'f') ;
+
+GRAPH : ('G' | 'g') ('R' | 'r') ('A' | 'a') ('P' | 'p') ('H' | 'h') ;
 
 kU_DropTable
     : DROP SP TABLE SP oC_SchemaName ;
