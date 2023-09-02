@@ -105,8 +105,8 @@ row_idx_t RelCopyExecutor::populateRelLists(processor::ExecutionContext* executi
 }
 
 std::unique_ptr<RelCopier> RelCopyExecutor::createRelCopier(RelCopierType relCopierType) {
-    auto readerSharedState = std::make_shared<ReaderSharedState>(copyDescription.fileType,
-        copyDescription.filePaths, *copyDescription.csvReaderConfig, tableSchema);
+    auto readerSharedState =
+        std::make_shared<ReaderSharedState>(copyDescription.copy(), tableSchema);
     readerSharedState->validate();
     readerSharedState->countBlocks();
     auto initFunc = ReaderFunctions::getInitDataFunc(copyDescription.fileType);

@@ -263,7 +263,7 @@ private:
 
     std::unique_ptr<Statement> transformCopyTo(CypherParser::KU_CopyTOContext& ctx);
 
-    std::unique_ptr<Statement> transformCopyFromCSV(CypherParser::KU_CopyFromCSVContext& ctx);
+    std::unique_ptr<Statement> transformCopyFrom(CypherParser::KU_CopyFromCSVContext& ctx);
 
     std::unique_ptr<Statement> transformCopyFromNPY(CypherParser::KU_CopyFromNPYContext& ctx);
 

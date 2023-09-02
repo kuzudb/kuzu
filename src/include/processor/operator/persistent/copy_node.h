@@ -58,7 +58,7 @@ struct CopyNodeInfo {
     storage::RelsStore* relsStore;
     catalog::Catalog* catalog;
     storage::WAL* wal;
-    bool preservingOrder;
+    bool orderPreserving;
 };
 
 class CopyNode : public Sink {

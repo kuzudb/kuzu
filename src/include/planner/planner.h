@@ -52,8 +52,7 @@ private:
         const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
         const storage::RelsStatistics& relsStatistics, const BoundStatement& statement);
 
-    static std::unique_ptr<LogicalPlan> planCopyFrom(
-        const catalog::Catalog& catalog, const BoundStatement& statement);
+    static std::unique_ptr<LogicalPlan> planCopyFrom(const BoundStatement& statement);
 };
 
 } // namespace planner

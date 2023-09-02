@@ -101,7 +101,7 @@ private:
 
     std::vector<std::string> bindFilePaths(const std::vector<std::string>& filePaths);
 
-    common::CSVReaderConfig bindParsingOptions(
+    std::unique_ptr<common::CSVReaderConfig> bindParsingOptions(
         const std::unordered_map<std::string, std::unique_ptr<parser::ParsedExpression>>*
             parsingOptions);
     void bindStringParsingOptions(common::CSVReaderConfig& csvReaderConfig,

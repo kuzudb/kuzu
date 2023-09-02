@@ -234,12 +234,14 @@ void ReaderFunctions::readRowsFromNPYFile(const ReaderFunctionData& functionData
 }
 
 void ReaderSharedState::validate() {
-    validateFunc(filePaths, tableSchema);
+    validateFunc(copyDescription->filePaths, tableSchema);
 }
 
 void ReaderSharedState::countBlocks() {
-    readFuncData = initFunc(filePaths, 0 /* fileIdx */, csvReaderConfig, tableSchema);
-    blockInfos = countBlocksFunc(filePaths, csvReaderConfig, tableSchema);
+    readFuncData = initFunc(copyDescription->filePaths, 0 /* fileIdx */,
+        *copyDescription->csvReaderConfig, tableSchema);
+    blockInfos =
+        countBlocksFunc(copyDescription->filePaths, *copyDescription->csvReaderConfig, tableSchema);
     for (auto& blockInfo : blockInfos) {
         numRows += blockInfo.numRows;
     }
@@ -249,12 +251,13 @@ std::unique_ptr<ReaderMorsel> ReaderSharedState::getSerialMorsel(DataChunk* data
     std::unique_lock xLck{mtx};
     while (leftArrowArrays.getLeftNumRows() < StorageConstants::NODE_GROUP_SIZE) {
         auto morsel = getMorselOfNextBlock();
-        if (morsel->fileIdx >= filePaths.size()) {
+        if (morsel->fileIdx >= copyDescription->filePaths.size()) {
             // No more blocks.
             break;
         }
         if (morsel->fileIdx != readFuncData->fileIdx) {
-            readFuncData = initFunc(filePaths, morsel->fileIdx, csvReaderConfig, tableSchema);
+            readFuncData = initFunc(copyDescription->filePaths, morsel->fileIdx,
+                *copyDescription->csvReaderConfig, tableSchema);
         }
         readFunc(*readFuncData, morsel->blockIdx, dataChunk);
         leftArrowArrays.appendFromDataChunk(dataChunk);
@@ -276,7 +279,7 @@ std::unique_ptr<ReaderMorsel> ReaderSharedState::getParallelMorsel() {
     std::unique_lock xLck{mtx};
     while (true) {
         auto morsel = getMorselOfNextBlock();
-        if (morsel->fileIdx >= filePaths.size()) {
+        if (morsel->fileIdx >= copyDescription->filePaths.size()) {
             // No more blocks.
             break;
         }
@@ -294,7 +297,9 @@ std::unique_ptr<ReaderMorsel> ReaderSharedState::getMorselOfNextBlock() {
     }
     auto numBlocksInFile = blockInfos[currFileIdx].numRowsPerBlock.size();
     if (currBlockIdx >= numBlocksInFile) {
-        currFileIdx += fileType == CopyDescription::FileType::NPY ? filePaths.size() : 1;
+        currFileIdx += copyDescription->fileType == CopyDescription::FileType::NPY ?
+                           copyDescription->filePaths.size() :
+                           1;
         currBlockIdx = 0;
     }
     return std::make_unique<ReaderMorsel>(currFileIdx, currBlockIdx++, currRowIdx);

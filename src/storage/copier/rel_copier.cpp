@@ -292,8 +292,8 @@ bool ParquetRelListsCounterAndColumnsCopier::executeInternal() {
         return false;
     }
     if (!readFuncData || morsel->fileIdx != readFuncData->fileIdx) {
-        readFuncData = initFunc(sharedState->filePaths, morsel->fileIdx,
-            sharedState->csvReaderConfig, sharedState->tableSchema);
+        readFuncData = initFunc(sharedState->copyDescription->filePaths, morsel->fileIdx,
+            *sharedState->copyDescription->csvReaderConfig, sharedState->tableSchema);
     }
     readFunc(*readFuncData, morsel->blockIdx, dataChunkToRead.get());
     auto startRowIdx = morsel->rowIdx;
@@ -389,8 +389,8 @@ bool ParquetRelListsCopier::executeInternal() {
         return false;
     }
     if (!readFuncData || morsel->fileIdx != readFuncData->fileIdx) {
-        readFuncData = initFunc(sharedState->filePaths, morsel->fileIdx,
-            sharedState->csvReaderConfig, sharedState->tableSchema);
+        readFuncData = initFunc(sharedState->copyDescription->filePaths, morsel->fileIdx,
+            *sharedState->copyDescription->csvReaderConfig, sharedState->tableSchema);
     }
     readFunc(*readFuncData, morsel->blockIdx, dataChunkToRead.get());
     auto startRowIdx = morsel->rowIdx;

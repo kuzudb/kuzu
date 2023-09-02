@@ -6,10 +6,6 @@
 #include "common/types/types_include.h"
 #include "common/types/value.h"
 
-namespace spdlog {
-class logger;
-}
-
 namespace kuzu {
 namespace common {
 
@@ -33,15 +29,32 @@ struct CSVReaderConfig {
 struct CopyDescription {
     enum class FileType : uint8_t { UNKNOWN = 0, CSV = 1, PARQUET = 2, NPY = 3 };
 
+    FileType fileType;
+    std::vector<std::string> filePaths;
+    std::vector<std::string> columnNames;
+    std::unique_ptr<CSVReaderConfig> csvReaderConfig;
+
     // Copy From
-    CopyDescription(const std::vector<std::string>& filePaths, FileType fileType,
-        CSVReaderConfig csvReaderConfig);
+    CopyDescription(FileType fileType, const std::vector<std::string>& filePaths,
+        std::unique_ptr<CSVReaderConfig> csvReaderConfig)
+        : fileType{fileType}, filePaths{filePaths}, csvReaderConfig{std::move(csvReaderConfig)} {}
 
     // Copy To
-    CopyDescription(const std::vector<std::string>& filePaths, FileType fileType,
-        const std::vector<std::string>& columnNames);
+    CopyDescription(FileType fileType, const std::vector<std::string>& filePaths,
+        const std::vector<std::string>& columnNames)
+        : fileType{fileType}, filePaths{filePaths}, columnNames{columnNames}, csvReaderConfig{
+                                                                                  nullptr} {}
 
-    CopyDescription(const CopyDescription& copyDescription);
+    CopyDescription(const CopyDescription& other)
+        : fileType{other.fileType}, filePaths{other.filePaths}, columnNames{other.columnNames} {
+        if (other.csvReaderConfig != nullptr) {
+            this->csvReaderConfig = std::make_unique<CSVReaderConfig>(*other.csvReaderConfig);
+        }
+    }
+
+    inline std::unique_ptr<CopyDescription> copy() const {
+        return std::make_unique<CopyDescription>(*this);
+    }
 
     inline static std::unordered_map<std::string, FileType> fileTypeMap{
         {"unknown", FileType::UNKNOWN}, {".csv", FileType::CSV}, {".parquet", FileType::PARQUET},
@@ -50,11 +63,6 @@ struct CopyDescription {
     static FileType getFileTypeFromExtension(const std::string& extension);
 
     static std::string getFileTypeName(FileType fileType);
-
-    const std::vector<std::string> filePaths;
-    const std::vector<std::string> columnNames;
-    std::unique_ptr<CSVReaderConfig> csvReaderConfig;
-    FileType fileType;
 };
 
 } // namespace common

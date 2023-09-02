@@ -13,22 +13,30 @@ namespace binder {
 
 class BoundCopyFrom : public BoundStatement {
 public:
-    BoundCopyFrom(
-        common::CopyDescription copyDescription, common::table_id_t tableID, std::string tableName)
+    BoundCopyFrom(std::unique_ptr<common::CopyDescription> copyDescription,
+        catalog::TableSchema* tableSchema, expression_vector columnExpressions,
+        std::shared_ptr<Expression> nodeOffsetExpression, bool preservingOrder_)
         : BoundStatement{common::StatementType::COPY_FROM,
               BoundStatementResult::createSingleStringColumnResult()},
-          copyDescription{copyDescription}, tableID{tableID}, tableName{std::move(tableName)} {}
+          copyDescription{std::move(copyDescription)}, tableSchema{tableSchema},
+          columnExpressions{std::move(columnExpressions)},
+          nodeOffsetExpression{std::move(nodeOffsetExpression)}, preservingOrder_{
+                                                                     preservingOrder_} {}
 
-    inline common::CopyDescription getCopyDescription() const { return copyDescription; }
-
-    inline common::table_id_t getTableID() const { return tableID; }
-
-    inline std::string getTableName() const { return tableName; }
+    inline common::CopyDescription* getCopyDescription() const { return copyDescription.get(); }
+    inline catalog::TableSchema* getTableSchema() const { return tableSchema; }
+    inline expression_vector getColumnExpressions() const { return columnExpressions; }
+    inline std::shared_ptr<Expression> getNodeOffsetExpression() const {
+        return nodeOffsetExpression;
+    }
+    inline bool preservingOrder() const { return preservingOrder_; }
 
 private:
-    common::CopyDescription copyDescription;
-    common::table_id_t tableID;
-    std::string tableName;
+    std::unique_ptr<common::CopyDescription> copyDescription;
+    catalog::TableSchema* tableSchema;
+    expression_vector columnExpressions;
+    std::shared_ptr<Expression> nodeOffsetExpression;
+    bool preservingOrder_;
 };
 
 } // namespace binder

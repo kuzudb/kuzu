@@ -8,19 +8,30 @@ namespace processor {
 
 struct ReaderInfo {
     DataPos nodeOffsetPos;
-    std::vector<DataPos> dataColumnPoses;
-    bool isOrderPreserving;
-    storage::read_rows_func_t readFunc;
-    storage::init_reader_data_func_t initFunc;
+    std::vector<DataPos> dataColumnsPos;
+    bool orderPreserving;
+
+    ReaderInfo(
+        const DataPos& nodeOffsetPos, std::vector<DataPos> dataColumnsPos, bool orderPreserving)
+        : nodeOffsetPos{nodeOffsetPos}, dataColumnsPos{std::move(dataColumnsPos)},
+          orderPreserving{orderPreserving} {}
+    ReaderInfo(const ReaderInfo& other)
+        : nodeOffsetPos{other.nodeOffsetPos}, dataColumnsPos{other.dataColumnsPos},
+          orderPreserving{other.orderPreserving} {}
+
+    inline uint32_t getNumColumns() const { return dataColumnsPos.size(); }
+
+    inline std::unique_ptr<ReaderInfo> copy() const { return std::make_unique<ReaderInfo>(*this); }
 };
 
 class Reader : public PhysicalOperator {
 public:
-    Reader(ReaderInfo readerInfo, std::shared_ptr<storage::ReaderSharedState> sharedState,
-        uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::READER, id, paramsString},
-          readerInfo{std::move(readerInfo)}, sharedState{std::move(sharedState)}, readFuncData{
-                                                                                      nullptr} {}
+    Reader(std::unique_ptr<ReaderInfo> info,
+        std::shared_ptr<storage::ReaderSharedState> sharedState, uint32_t id,
+        const std::string& paramsString)
+        : PhysicalOperator{PhysicalOperatorType::READER, id, paramsString}, info{std::move(info)},
+          sharedState{std::move(sharedState)}, dataChunk{nullptr},
+          nodeOffsetVector{nullptr}, readFunc{nullptr}, initFunc{nullptr}, readFuncData{nullptr} {}
 
     void initGlobalStateInternal(ExecutionContext* context) final;
 
@@ -29,7 +40,7 @@ public:
     inline bool isSource() const final { return true; }
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
-        return make_unique<Reader>(readerInfo, sharedState, getOperatorID(), paramsString);
+        return make_unique<Reader>(info->copy(), sharedState, getOperatorID(), paramsString);
     }
 
 protected:
@@ -40,13 +51,18 @@ private:
     void getNextNodeGroupInParallel();
 
 private:
-    ReaderInfo readerInfo;
+    std::unique_ptr<ReaderInfo> info;
     std::shared_ptr<storage::ReaderSharedState> sharedState;
-    std::unique_ptr<common::DataChunk> dataChunkToRead;
+
     storage::LeftArrowArrays leftArrowArrays;
 
+    std::unique_ptr<common::DataChunk> dataChunk = nullptr;
+    common::ValueVector* nodeOffsetVector = nullptr;
+
+    storage::read_rows_func_t readFunc = nullptr;
+    storage::init_reader_data_func_t initFunc = nullptr;
     // For parallel reading.
-    std::unique_ptr<storage::ReaderFunctionData> readFuncData;
+    std::unique_ptr<storage::ReaderFunctionData> readFuncData = nullptr;
 };
 
 } // namespace processor

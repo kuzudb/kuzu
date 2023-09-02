@@ -20,15 +20,5 @@ public:
     std::unique_ptr<PhysicalOperator> lastOperator;
 };
 
-class PhysicalPlanUtil {
-public:
-    static std::vector<PhysicalOperator*> collectOperators(
-        PhysicalOperator* root, PhysicalOperatorType operatorType);
-
-private:
-    static void collectOperatorsRecursive(PhysicalOperator* op, PhysicalOperatorType operatorType,
-        std::vector<PhysicalOperator*>& result);
-};
-
 } // namespace processor
 } // namespace kuzu

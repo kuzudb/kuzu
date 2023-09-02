@@ -25,38 +25,68 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     if (fileType != CopyDescription::FileType::CSV) {
         throw BinderException("COPY TO currently only supports csv files.");
     }
-    return std::make_unique<BoundCopyTo>(
-        CopyDescription(std::vector<std::string>{boundFilePath}, fileType, columnNames),
-        std::move(query));
+    auto copyDescription = std::make_unique<CopyDescription>(
+        fileType, std::vector<std::string>{boundFilePath}, columnNames);
+    return std::make_unique<BoundCopyTo>(std::move(copyDescription), std::move(query));
+}
+
+// As a temporary constraint, we require npy files loaded with COPY FROM BY COLUMN keyword.
+// And csv and parquet files loaded with COPY FROM keyword.
+static void validateCopyNpyKeyword(
+    CopyDescription::FileType expectedType, CopyDescription::FileType actualType) {
+    if (expectedType == CopyDescription::FileType::UNKNOWN &&
+        actualType == CopyDescription::FileType::NPY) {
+        throw BinderException("Please use COPY FROM BY COLUMN statement for copying npy files.");
+    }
+    if (expectedType == CopyDescription::FileType::NPY && actualType != expectedType) {
+        throw BinderException("Please use COPY FROM statement for copying csv and parquet files.");
+    }
+}
+
+static void validateCopyNpyFilesMatchSchema(uint32_t numFiles, catalog::TableSchema* schema) {
+    if (schema->properties.size() != numFiles) {
+        throw BinderException(StringUtils::string_format(
+            "Number of npy files is not equal to number of properties in table {}.",
+            schema->tableName));
+    }
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& statement) {
     auto& copyStatement = (CopyFrom&)statement;
     auto catalogContent = catalog.getReadOnlyVersion();
     auto tableName = copyStatement.getTableName();
+    // Bind to table schema.
     validateTableExist(catalog, tableName);
     auto tableID = catalogContent->getTableID(tableName);
+    auto tableSchema = catalogContent->getTableSchema(tableID);
+    // Bind csv reader configuration
     auto csvReaderConfig = bindParsingOptions(copyStatement.getParsingOptions());
     auto boundFilePaths = bindFilePaths(copyStatement.getFilePaths());
+    // Bind file type.
     auto actualFileType = bindFileType(boundFilePaths);
     auto expectedFileType = copyStatement.getFileType();
-    if (expectedFileType == CopyDescription::FileType::UNKNOWN &&
-        actualFileType == CopyDescription::FileType::NPY) {
-        throw BinderException("Please use COPY FROM BY COLUMN statement for copying npy files.");
-    }
-    if (expectedFileType == CopyDescription::FileType::NPY && actualFileType != expectedFileType) {
-        throw BinderException("Please use COPY FROM statement for copying csv and parquet files.");
-    }
+    validateCopyNpyKeyword(expectedFileType, actualFileType);
     if (actualFileType == CopyDescription::FileType::NPY) {
-        auto tableSchema = catalogContent->getTableSchema(tableID);
-        if (tableSchema->properties.size() != boundFilePaths.size()) {
-            throw BinderException(StringUtils::string_format(
-                "Number of npy files is not equal to number of properties in table {}.",
-                tableSchema->tableName));
+        validateCopyNpyFilesMatchSchema(boundFilePaths.size(), tableSchema);
+    }
+    // Bind execution mode.
+    // For CSV file, and table with SERIAL columns, we need to read in serial from files.
+    bool preservingOrder = actualFileType == CopyDescription::FileType::CSV;
+    expression_vector columnExpressions;
+    for (auto& property : tableSchema->getProperties()) {
+        if (property->getDataType()->getLogicalTypeID() != common::LogicalTypeID::SERIAL) {
+            columnExpressions.push_back(createVariable(
+                property->getName(), common::LogicalType{common::LogicalTypeID::ARROW_COLUMN}));
+        } else {
+            preservingOrder = true;
         }
     }
-    return std::make_unique<BoundCopyFrom>(
-        CopyDescription(boundFilePaths, actualFileType, csvReaderConfig), tableID, tableName);
+    auto copyDescription = std::make_unique<CopyDescription>(
+        actualFileType, boundFilePaths, std::move(csvReaderConfig));
+    auto nodeOffsetExpression =
+        createVariable("nodeOffset", common::LogicalType{common::LogicalTypeID::INT64});
+    return std::make_unique<BoundCopyFrom>(std::move(copyDescription), tableSchema,
+        std::move(columnExpressions), std::move(nodeOffsetExpression), preservingOrder);
 }
 
 std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& filePaths) {
@@ -76,9 +106,9 @@ std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& f
     return boundFilePaths;
 }
 
-CSVReaderConfig Binder::bindParsingOptions(
+std::unique_ptr<CSVReaderConfig> Binder::bindParsingOptions(
     const std::unordered_map<std::string, std::unique_ptr<ParsedExpression>>* parsingOptions) {
-    CSVReaderConfig csvReaderConfig;
+    auto csvReaderConfig = std::make_unique<CSVReaderConfig>();
     for (auto& parsingOption : *parsingOptions) {
         auto copyOptionName = parsingOption.first;
         StringUtils::toUpper(copyOptionName);
@@ -91,7 +121,7 @@ CSVReaderConfig Binder::bindParsingOptions(
                 throw BinderException(
                     "The value type of parsing csv option " + copyOptionName + " must be boolean.");
             }
-            csvReaderConfig.hasHeader =
+            csvReaderConfig->hasHeader =
                 ((LiteralExpression&)(*boundCopyOptionExpression)).value->getValue<bool>();
         } else if (boundCopyOptionExpression->dataType.getLogicalTypeID() ==
                        LogicalTypeID::STRING &&
@@ -102,7 +132,7 @@ CSVReaderConfig Binder::bindParsingOptions(
             }
             auto copyOptionValue =
                 ((LiteralExpression&)(*boundCopyOptionExpression)).value->getValue<std::string>();
-            bindStringParsingOptions(csvReaderConfig, copyOptionName, copyOptionValue);
+            bindStringParsingOptions(*csvReaderConfig, copyOptionName, copyOptionValue);
         } else {
             throw BinderException("Unrecognized parsing csv option: " + copyOptionName + ".");
         }
