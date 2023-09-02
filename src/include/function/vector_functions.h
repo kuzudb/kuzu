@@ -36,14 +36,14 @@ struct VectorFunctionDefinition : public FunctionDefinition {
 
     VectorFunctionDefinition(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
         common::LogicalTypeID returnTypeID, scalar_exec_func execFunc,
-        scalar_select_func selectFunc, scalar_bind_func bindFunc, bool isVarLength = false)
+        scalar_select_func selectFunc, bind_func bindFunc, bool isVarLength = false)
         : VectorFunctionDefinition{std::move(name), std::move(parameterTypeIDs), returnTypeID,
               std::move(execFunc), std::move(selectFunc), nullptr, std::move(bindFunc),
               isVarLength} {}
 
     VectorFunctionDefinition(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
         common::LogicalTypeID returnTypeID, scalar_exec_func execFunc,
-        scalar_select_func selectFunc, scalar_compile_func compileFunc, scalar_bind_func bindFunc,
+        scalar_select_func selectFunc, scalar_compile_func compileFunc, bind_func bindFunc,
         bool isVarLength = false)
         : FunctionDefinition{std::move(name), std::move(parameterTypeIDs), returnTypeID,
               std::move(bindFunc)},

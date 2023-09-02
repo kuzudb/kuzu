@@ -1,3 +1,4 @@
+#include "binder/expression/expression_util.h"
 #include "binder/expression/rel_expression.h"
 #include "binder/expression_binder.h"
 #include "common/string_utils.h"

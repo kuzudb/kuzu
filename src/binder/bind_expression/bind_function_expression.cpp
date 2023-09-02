@@ -1,4 +1,5 @@
 #include "binder/binder.h"
+#include "binder/expression/expression_util.h"
 #include "binder/expression/function_expression.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/expression_binder.h"
@@ -93,6 +94,9 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
         children.push_back(std::move(child));
     }
     auto function = builtInFunctions->matchFunction(functionName, childrenTypes, isDistinct);
+    if (function->paramRewriteFunc) {
+        function->paramRewriteFunc(children);
+    }
     auto uniqueExpressionName =
         AggregateFunctionExpression::getUniqueName(function->name, children, function->isDistinct);
     if (children.empty()) {

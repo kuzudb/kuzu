@@ -58,3 +58,43 @@ True
 2021-06-30|2|1
 2021-06-30|2|1
 2021-06-30|2|1
+
+-LOG GroupByMultiQueryTest5
+-STATEMENT  MATCH (a:person)-[r1:knows]->(b:person)-[r2:knows]->(c:person)
+            WITH count(r1) AS numFollowers, b, r2
+            WHERE b.ID <= 10 AND numFollowers > 2
+            RETURN b.ID, b.fName, count(r2) AS numFollows
+            ORDER BY numFollows DESC, b.fName LIMIT 5;
+-CHECK_ORDER
+---- 4
+0|Alice|3
+2|Bob|3
+3|Carol|3
+5|Dan|3
+
+
+-LOG GroupByMultiQueryTest6
+-STATEMENT   MATCH (a:person)-[r1:knows]->(b:person)-[r2:knows]->(c:person)
+             WITH count(r1) AS numFollowers, c, b, r2
+             WHERE b.age >= 0 AND b.age <= 30 AND numFollowers > 0
+             RETURN c.ID AS id, c.fName AS name, count(r2) AS numFollowers2
+             ORDER BY numFollowers2 DESC, name LIMIT 5;
+-CHECK_ORDER
+---- 4
+0|Alice|2
+3|Carol|2
+2|Bob|1
+5|Dan|1
+
+-LOG GroupByMultiQueryTest7
+-STATEMENT   MATCH (a:person)-[r1:knows]->(b:person)-[r2:knows]->(c:person)
+             WITH count(r1) AS numFollowers, c, b, r2
+             WHERE b.age >= 0 AND b.age <= 30 AND numFollowers > 0
+             RETURN b.fName, c.fName, numFollowers
+---- 6
+Bob|Alice|3
+Bob|Carol|3
+Bob|Dan|3
+Dan|Alice|3
+Dan|Bob|3
+Dan|Carol|3

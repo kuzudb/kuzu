@@ -15,7 +15,7 @@ struct FunctionBindData {
 };
 
 struct FunctionDefinition;
-using scalar_bind_func = std::function<std::unique_ptr<FunctionBindData>(
+using bind_func = std::function<std::unique_ptr<FunctionBindData>(
     const binder::expression_vector&, FunctionDefinition* definition)>;
 
 struct FunctionDefinition {
@@ -24,7 +24,7 @@ struct FunctionDefinition {
         : name{std::move(name)}, parameterTypeIDs{std::move(parameterTypeIDs)}, returnTypeID{
                                                                                     returnTypeID} {}
     FunctionDefinition(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
-        common::LogicalTypeID returnTypeID, scalar_bind_func bindFunc)
+        common::LogicalTypeID returnTypeID, bind_func bindFunc)
         : name{std::move(name)}, parameterTypeIDs{std::move(parameterTypeIDs)},
           returnTypeID{returnTypeID}, bindFunc{std::move(bindFunc)} {}
 
@@ -38,7 +38,7 @@ struct FunctionDefinition {
     std::vector<common::LogicalTypeID> parameterTypeIDs;
     common::LogicalTypeID returnTypeID;
     // This function is used to bind parameter/return types for functions with nested dataType.
-    scalar_bind_func bindFunc;
+    bind_func bindFunc;
 };
 
 } // namespace function

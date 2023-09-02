@@ -1,8 +1,7 @@
 #include "optimizer/agg_key_dependency_optimizer.h"
 
-#include "binder/expression/node_expression.h"
+#include "binder/expression/expression_util.h"
 #include "binder/expression/property_expression.h"
-#include "binder/expression/rel_expression.h"
 #include "planner/logical_plan/logical_aggregate.h"
 #include "planner/logical_plan/logical_distinct.h"
 

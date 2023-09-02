@@ -3,6 +3,7 @@ add_library(
         OBJECT
         case_expression.cpp
         expression.cpp
+        expression_util.cpp
         function_expression.cpp)
 
 set(ALL_OBJECT_FILES
