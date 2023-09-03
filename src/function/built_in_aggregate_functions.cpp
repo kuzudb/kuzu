@@ -1,6 +1,7 @@
 #include "function/aggregate/built_in_aggregate_functions.h"
 
 #include "function/aggregate/collect.h"
+#include "function/aggregate/count.h"
 
 using namespace kuzu::common;
 
@@ -21,14 +22,6 @@ AggregateFunctionDefinition* BuiltInAggregateFunctions::matchFunction(
     validateNonEmptyCandidateFunctions(candidateFunctions, name, inputTypes, isDistinct);
     assert(candidateFunctions.size() == 1);
     return candidateFunctions[0];
-}
-
-std::vector<std::string> BuiltInAggregateFunctions::getFunctionNames() {
-    std::vector<std::string> result;
-    for (auto& [functionName, definitions] : aggregateFunctions) {
-        result.push_back(functionName);
-    }
-    return result;
 }
 
 uint32_t BuiltInAggregateFunctions::getFunctionCost(const std::vector<LogicalType>& inputTypes,
@@ -89,7 +82,8 @@ void BuiltInAggregateFunctions::registerCount() {
         for (auto isDistinct : std::vector<bool>{true, false}) {
             definitions.push_back(std::make_unique<AggregateFunctionDefinition>(COUNT_FUNC_NAME,
                 std::vector<LogicalTypeID>{type.getLogicalTypeID()}, LogicalTypeID::INT64,
-                AggregateFunctionUtil::getCountFunction(type, isDistinct), isDistinct));
+                AggregateFunctionUtil::getCountFunction(type, isDistinct), isDistinct,
+                nullptr /* bindFunc */, CountFunction::paramRewriteFunc));
         }
     }
     aggregateFunctions.insert({COUNT_FUNC_NAME, std::move(definitions)});

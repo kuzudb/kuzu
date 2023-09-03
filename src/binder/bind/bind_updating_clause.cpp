@@ -1,4 +1,5 @@
 #include "binder/binder.h"
+#include "binder/expression/expression_util.h"
 #include "binder/query/updating_clause/bound_create_clause.h"
 #include "binder/query/updating_clause/bound_delete_clause.h"
 #include "binder/query/updating_clause/bound_merge_clause.h"

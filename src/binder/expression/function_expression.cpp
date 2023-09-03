@@ -1,5 +1,7 @@
 #include "binder/expression/function_expression.h"
 
+#include "binder/expression/expression_util.h"
+
 namespace kuzu {
 namespace binder {
 

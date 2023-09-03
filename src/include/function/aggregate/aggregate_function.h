@@ -12,24 +12,34 @@ namespace function {
 
 class AggregateFunction;
 
-struct AggregateFunctionDefinition : public FunctionDefinition {
+using param_rewrite_function_t = std::function<void(binder::expression_vector&)>;
 
+struct AggregateFunctionDefinition : public FunctionDefinition {
     AggregateFunctionDefinition(std::string name,
         std::vector<common::LogicalTypeID> parameterTypeIDs, common::LogicalTypeID returnTypeID,
         std::unique_ptr<AggregateFunction> aggregateFunction, bool isDistinct)
-        : FunctionDefinition{std::move(name), std::move(parameterTypeIDs), returnTypeID},
-          aggregateFunction{std::move(aggregateFunction)}, isDistinct{isDistinct} {}
+        : AggregateFunctionDefinition{std::move(name), std::move(parameterTypeIDs), returnTypeID,
+              std::move(aggregateFunction), isDistinct, nullptr, nullptr} {}
 
     AggregateFunctionDefinition(std::string name,
         std::vector<common::LogicalTypeID> parameterTypeIDs, common::LogicalTypeID returnTypeID,
-        std::unique_ptr<AggregateFunction> aggregateFunction, bool isDistinct,
-        scalar_bind_func bindFunc)
+        std::unique_ptr<AggregateFunction> aggregateFunction, bool isDistinct, bind_func bindFunc)
+        : AggregateFunctionDefinition{std::move(name), std::move(parameterTypeIDs), returnTypeID,
+              std::move(aggregateFunction), isDistinct, std::move(bindFunc), nullptr} {}
+
+    AggregateFunctionDefinition(std::string name,
+        std::vector<common::LogicalTypeID> parameterTypeIDs, common::LogicalTypeID returnTypeID,
+        std::unique_ptr<AggregateFunction> aggregateFunction, bool isDistinct, bind_func bindFunc,
+        param_rewrite_function_t paramRewriteFunc)
         : FunctionDefinition{std::move(name), std::move(parameterTypeIDs), returnTypeID,
               std::move(bindFunc)},
-          aggregateFunction{std::move(aggregateFunction)}, isDistinct{isDistinct} {}
+          aggregateFunction{std::move(aggregateFunction)}, isDistinct{isDistinct},
+          paramRewriteFunc{std::move(paramRewriteFunc)} {}
 
     std::unique_ptr<AggregateFunction> aggregateFunction;
     bool isDistinct;
+    // Rewrite aggregate on NODE/REL, e.g. COUNT(a) -> COUNT(a._id)
+    param_rewrite_function_t paramRewriteFunc;
 };
 
 struct AggregateState {

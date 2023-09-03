@@ -1,3 +1,5 @@
+add_subdirectory(aggregate)
+
 add_library(kuzu_function
         OBJECT
         aggregate_function.cpp

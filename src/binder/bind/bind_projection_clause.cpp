@@ -1,4 +1,5 @@
 #include "binder/binder.h"
+#include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/expression_visitor.h"
 #include "binder/query/return_with_clause/bound_return_clause.h"
@@ -30,6 +31,8 @@ static expression_vector rewriteProjectionInWithClause(const expression_vector& 
             result.push_back(node->getInternalIDProperty());
         } else if (ExpressionUtil::isRelVariable(*expression)) {
             auto rel = (RelExpression*)expression.get();
+            result.push_back(rel->getSrcNode()->getInternalIDProperty());
+            result.push_back(rel->getDstNode()->getInternalIDProperty());
             result.push_back(rel->getInternalIDProperty());
         } else if (ExpressionUtil::isRecursiveRelVariable(*expression)) {
             auto rel = (RelExpression*)expression.get();
@@ -39,7 +42,7 @@ static expression_vector rewriteProjectionInWithClause(const expression_vector& 
             result.push_back(expression);
         }
     }
-    return result;
+    return ExpressionUtil::removeDuplication(result);
 }
 
 std::unique_ptr<BoundWithClause> Binder::bindWithClause(const WithClause& withClause) {
