@@ -22,6 +22,7 @@ class BoundSetPropertyInfo;
 class BoundDeleteInfo;
 class BoundWithClause;
 class BoundReturnClause;
+class BoundFileScanInfo;
 
 // BinderScope keeps track of expressions in scope and their aliases. We maintain the order of
 // expressions in
@@ -80,6 +81,8 @@ private:
     common::table_id_t bindNodeTableID(const std::string& tableName) const;
 
     std::shared_ptr<Expression> createVariable(
+        const std::string& name, common::LogicalTypeID logicalTypeID);
+    std::shared_ptr<Expression> createVariable(
         const std::string& name, const common::LogicalType& dataType);
 
     /*** bind DDL ***/
@@ -106,19 +109,28 @@ private:
     /*** bind copy ***/
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCopyNodeFrom(
-        std::unique_ptr<common::CopyDescription> copyDescription,
-        catalog::TableSchema* tableSchema);
+        std::unique_ptr<common::CopyDescription> copyDesc, catalog::TableSchema* tableSchema);
     std::unique_ptr<BoundStatement> bindCopyRelFrom(
-        std::unique_ptr<common::CopyDescription> copyDescription,
-        catalog::TableSchema* tableSchema);
-    expression_vector bindCopyNodeColumns(
+        std::unique_ptr<common::CopyDescription> copyDesc, catalog::TableSchema* tableSchema);
+    std::unique_ptr<BoundStatement> bindCopyRdfRelFrom(
+        std::unique_ptr<common::CopyDescription> copyDesc, catalog::TableSchema* tableSchema);
+    expression_vector bindExpectedNodeFileColumns(
         catalog::TableSchema* tableSchema, common::CopyDescription::FileType fileType);
-    expression_vector bindCopyRelColumns(
+    //    expression_vector bindCopyRelColumns(
+    //        catalog::TableSchema* tableSchema, common::CopyDescription::FileType fileType);
+
+    expression_vector bindExpectedRelFileColumns(
         catalog::TableSchema* tableSchema, common::CopyDescription::FileType fileType);
     std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
+
+    /*** bind file scan ***/
+    std::unique_ptr<common::CopyDescription> bindCopyDesc(
+        const std::vector<std::string>& filePaths, const parser::parsing_option_t& parsingOptions);
     std::unique_ptr<common::CSVReaderConfig> bindParsingOptions(
-        const std::unordered_map<std::string, std::unique_ptr<parser::ParsedExpression>>&
-            parsingOptions);
+        const parser::parsing_option_t& parsingOptions);
+    static common::CopyDescription::FileType bindFileType(
+        const std::vector<std::string>& filePaths);
+    static common::CopyDescription::FileType bindFileType(const std::string& filePath);
 
     /*** bind query ***/
     std::unique_ptr<BoundRegularQuery> bindQuery(const parser::RegularQuery& regularQuery);

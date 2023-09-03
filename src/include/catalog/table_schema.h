@@ -30,6 +30,8 @@ public:
 
     static bool isReservedPropertyName(const std::string& propertyName);
 
+    inline common::table_id_t getTableID() const { return tableID; }
+
     inline uint32_t getNumProperties() const { return properties.size(); }
 
     inline void dropProperty(common::property_id_t propertyID) {

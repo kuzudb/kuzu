@@ -16,11 +16,13 @@ void QueryPlanner::planReadingClause(
     case ClauseType::UNWIND: {
         planUnwindClause(boundReadingClause, prevPlans);
     } break;
-    case ClauseType::InQueryCall: {
+    case ClauseType::IN_QUERY_CALL: {
         planInQueryCall(boundReadingClause, prevPlans);
     } break;
     default:
+        // LCOV_EXCL_START
         throw NotImplementedException("QueryPlanner::planReadingClause");
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -63,9 +65,9 @@ void QueryPlanner::planInQueryCall(
     BoundReadingClause* boundReadingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
     for (auto& plan : plans) {
         if (!plan->isEmpty()) {
-            auto inQueryCallPlan = std::make_shared<LogicalPlan>();
-            appendInQueryCall(*boundReadingClause, *inQueryCallPlan);
-            appendCrossProduct(AccumulateType::REGULAR, *plan, *inQueryCallPlan);
+            auto tmpPlan = std::make_unique<LogicalPlan>();
+            appendInQueryCall(*boundReadingClause, *tmpPlan);
+            appendCrossProduct(AccumulateType::REGULAR, *plan, *tmpPlan);
         } else {
             appendInQueryCall(*boundReadingClause, *plan);
         }

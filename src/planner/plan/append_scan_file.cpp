@@ -1,0 +1,15 @@
+#include "planner/logical_plan/scan/logical_scan_file.h"
+#include "planner/query_planner.h"
+
+namespace kuzu {
+namespace planner {
+
+void QueryPlanner::appendScanFile(binder::BoundFileScanInfo* fileScanInfo, LogicalPlan& plan) {
+    assert(plan.isEmpty());
+    auto scanFile = std::make_shared<LogicalScanFile>(fileScanInfo->copy());
+    scanFile->computeFactorizedSchema();
+    plan.setLastOperator(std::move(scanFile));
+}
+
+} // namespace planner
+} // namespace kuzu

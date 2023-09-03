@@ -1,6 +1,5 @@
 #pragma once
 
-#include <string>
 #include <unordered_map>
 
 #include "common/copier_config/copier_config.h"
@@ -14,7 +13,7 @@ namespace parser {
 class CopyFrom : public Statement {
 public:
     explicit CopyFrom(bool byColumn_, std::vector<std::string> filePaths, std::string tableName,
-        std::unordered_map<std::string, std::unique_ptr<ParsedExpression>> parsingOptions)
+        parsing_option_t parsingOptions)
         : Statement{common::StatementType::COPY_FROM}, byColumn_{byColumn_}, filePaths{std::move(
                                                                                  filePaths)},
           tableName{std::move(tableName)}, parsingOptions{std::move(parsingOptions)} {}
@@ -22,16 +21,13 @@ public:
     inline bool byColumn() const { return byColumn_; }
     inline std::vector<std::string> getFilePaths() const { return filePaths; }
     inline std::string getTableName() const { return tableName; }
-    inline const std::unordered_map<std::string, std::unique_ptr<ParsedExpression>>&
-    getParsingOptionsRef() const {
-        return parsingOptions;
-    }
+    inline const parsing_option_t& getParsingOptionsRef() const { return parsingOptions; }
 
 private:
     bool byColumn_;
     std::vector<std::string> filePaths;
     std::string tableName;
-    std::unordered_map<std::string, std::unique_ptr<ParsedExpression>> parsingOptions;
+    parsing_option_t parsingOptions;
 };
 
 class CopyTo : public Statement {

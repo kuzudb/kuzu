@@ -81,6 +81,11 @@ table_id_t Binder::bindNodeTableID(const std::string& tableName) const {
 }
 
 std::shared_ptr<Expression> Binder::createVariable(
+    const std::string& name, LogicalTypeID logicalTypeID) {
+    return createVariable(name, LogicalType{logicalTypeID});
+}
+
+std::shared_ptr<Expression> Binder::createVariable(
     const std::string& name, const LogicalType& dataType) {
     if (scope->contains(name)) {
         throw BinderException("Variable " + name + " already exists.");

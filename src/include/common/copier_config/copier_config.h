@@ -34,16 +34,9 @@ struct CopyDescription {
     std::vector<std::string> columnNames;
     std::unique_ptr<CSVReaderConfig> csvReaderConfig;
 
-    // Copy From
     CopyDescription(FileType fileType, const std::vector<std::string>& filePaths,
         std::unique_ptr<CSVReaderConfig> csvReaderConfig)
         : fileType{fileType}, filePaths{filePaths}, csvReaderConfig{std::move(csvReaderConfig)} {}
-
-    // Copy To
-    CopyDescription(FileType fileType, const std::vector<std::string>& filePaths,
-        const std::vector<std::string>& columnNames)
-        : fileType{fileType}, filePaths{filePaths}, columnNames{columnNames}, csvReaderConfig{
-                                                                                  nullptr} {}
 
     CopyDescription(const CopyDescription& other)
         : fileType{other.fileType}, filePaths{other.filePaths}, columnNames{other.columnNames} {
@@ -55,9 +48,9 @@ struct CopyDescription {
     inline bool parallelRead() const {
         return fileType != FileType::CSV && fileType != FileType::TURTLE;
     }
+    inline uint32_t getNumFiles() const { return filePaths.size(); }
 
     inline std::unique_ptr<CopyDescription> copy() const {
-        assert(this);
         return std::make_unique<CopyDescription>(*this);
     }
 

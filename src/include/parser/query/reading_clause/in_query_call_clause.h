@@ -10,7 +10,7 @@ class InQueryCallClause : public ReadingClause {
 public:
     InQueryCallClause(
         std::string optionName, std::vector<std::unique_ptr<ParsedExpression>> parameters)
-        : ReadingClause{common::ClauseType::InQueryCall}, funcName{std::move(optionName)},
+        : ReadingClause{common::ClauseType::IN_QUERY_CALL}, funcName{std::move(optionName)},
           parameters{std::move(parameters)} {}
 
     inline std::string getFuncName() const { return funcName; }

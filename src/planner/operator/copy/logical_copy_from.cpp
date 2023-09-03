@@ -6,30 +6,14 @@ namespace kuzu {
 namespace planner {
 
 void LogicalCopyFrom::computeFactorizedSchema() {
-    createEmptySchema();
+    copyChildSchema(0);
     auto flatGroup = schema->createGroup();
-    auto unflatGroup = schema->createGroup();
-    schema->insertToGroupAndScope(info->columnExpressions, unflatGroup);
-    if (info->tableSchema->tableType == TableType::REL) {
-        schema->insertToGroupAndScope(info->boundOffsetExpression, unflatGroup);
-        schema->insertToGroupAndScope(info->nbrOffsetExpression, unflatGroup);
-        schema->insertToGroupAndScope(info->predicateOffsetExpression, unflatGroup);
-    }
-    schema->insertToGroupAndScope(info->offsetExpression, flatGroup);
     schema->insertToGroupAndScope(outputExpression, flatGroup);
-    schema->setGroupAsSingleState(flatGroup);
 }
 
 void LogicalCopyFrom::computeFlatSchema() {
-    createEmptySchema();
+    copyChildSchema(0);
     schema->createGroup();
-    schema->insertToGroupAndScope(info->columnExpressions, 0);
-    if (info->tableSchema->tableType == TableType::REL) {
-        schema->insertToGroupAndScope(info->boundOffsetExpression, 0);
-        schema->insertToGroupAndScope(info->nbrOffsetExpression, 0);
-        schema->insertToGroupAndScope(info->predicateOffsetExpression, 0);
-    }
-    schema->insertToGroupAndScope(info->offsetExpression, 0);
     schema->insertToGroupAndScope(outputExpression, 0);
 }
 

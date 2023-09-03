@@ -42,6 +42,7 @@ enum class LogicalOperatorType : uint8_t {
     RECURSIVE_EXTEND,
     RENAME_TABLE,
     RENAME_PROPERTY,
+    SCAN_FILE,
     SCAN_FRONTIER,
     SCAN_NODE,
     SCAN_NODE_PROPERTY,

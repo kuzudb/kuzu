@@ -60,7 +60,6 @@ struct CopyNodeInfo {
     storage::RelsStore* relsStore;
     catalog::Catalog* catalog;
     storage::WAL* wal;
-    bool containsSerial;
 };
 
 class CopyNode : public Sink {

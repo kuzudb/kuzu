@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "common/expression_type.h"
@@ -78,6 +79,8 @@ protected:
     std::string rawName;
     parsed_expression_vector children;
 };
+
+using parsing_option_t = std::unordered_map<std::string, std::unique_ptr<parser::ParsedExpression>>;
 
 } // namespace parser
 } // namespace kuzu

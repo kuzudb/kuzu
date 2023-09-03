@@ -11,7 +11,7 @@ class BoundInQueryCall : public BoundReadingClause {
 public:
     BoundInQueryCall(function::table_func_t tableFunc,
         std::unique_ptr<function::TableFuncBindData> bindData, expression_vector outputExpressions)
-        : BoundReadingClause{common::ClauseType::InQueryCall}, tableFunc{std::move(tableFunc)},
+        : BoundReadingClause{common::ClauseType::IN_QUERY_CALL}, tableFunc{std::move(tableFunc)},
           bindData{std::move(bindData)}, outputExpressions{std::move(outputExpressions)} {}
 
     inline function::table_func_t getTableFunc() const { return tableFunc; }

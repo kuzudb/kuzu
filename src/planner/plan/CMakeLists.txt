@@ -17,6 +17,7 @@ add_library(kuzu_planner_plan_operator
         append_multiplicity_reducer.cpp
         append_order_by.cpp
         append_projection.cpp
+        append_scan_file.cpp
         append_scan_node.cpp
         append_set.cpp
         append_unwind.cpp
