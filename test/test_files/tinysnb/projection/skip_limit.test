@@ -34,6 +34,13 @@ Farooq
 Greg
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 
+-LOG BasicLimitTest3
+-STATEMENT MATCH (a:person) RETURN a.fName ORDER BY a.fName LIMIT 1 + 1
+-CHECK_ORDER
+---- 2
+Alice
+Bob
+
 -LOG BasicSkipLimitTest
 -STATEMENT MATCH (a:person) RETURN a.fName SKIP 1 LIMIT 2
 ---- 2

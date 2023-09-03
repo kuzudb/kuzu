@@ -80,7 +80,6 @@ std::shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     } else if (ExpressionUtil::isRelVariable(*child)) {
         return bindRelPropertyExpression(*child, propertyName);
     } else {
-        assert(child->expressionType == FUNCTION);
         return bindStructPropertyExpression(child, propertyName);
     }
 }

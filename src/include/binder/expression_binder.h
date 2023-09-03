@@ -22,6 +22,9 @@ public:
     static void resolveAnyDataType(Expression& expression, const common::LogicalType& targetType);
 
 private:
+    // TODO(Xiyang): move to an expression rewriter
+    std::shared_ptr<Expression> foldExpression(std::shared_ptr<Expression> expression);
+
     // Boolean expressions.
     std::shared_ptr<Expression> bindBooleanExpression(
         const parser::ParsedExpression& parsedExpression);
@@ -67,8 +70,6 @@ private:
         bool isDistinct);
     std::shared_ptr<Expression> bindMacroExpression(
         const parser::ParsedExpression& parsedExpression, const std::string& macroName);
-    std::shared_ptr<Expression> staticEvaluate(
-        const std::string& functionName, const expression_vector& children);
 
     std::shared_ptr<Expression> rewriteFunctionExpression(
         const parser::ParsedExpression& parsedExpression, const std::string& functionName);

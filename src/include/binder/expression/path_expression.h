@@ -18,7 +18,7 @@ public:
     inline std::shared_ptr<NodeExpression> getNode() const { return node; }
     inline std::shared_ptr<RelExpression> getRel() const { return rel; }
 
-    inline std::string toString() const override { return variableName; }
+    inline std::string toStringInternal() const final { return variableName; }
 
 private:
     std::string variableName;

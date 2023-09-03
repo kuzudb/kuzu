@@ -17,6 +17,7 @@ class FileInfo;
 class NestedVal;
 class RecursiveRelVal;
 class ArrowRowBatch;
+class ValueVector;
 
 class Value {
     friend class NodeVal;
@@ -24,6 +25,7 @@ class Value {
     friend class NestedVal;
     friend class RecursiveRelVal;
     friend class ArrowRowBatch;
+    friend class ValueVector;
 
 public:
     /**

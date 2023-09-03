@@ -2,8 +2,8 @@
 
 #include <bitset>
 
-#include "base_evaluator.h"
 #include "common/exception.h"
+#include "expression_evaluator.h"
 
 namespace kuzu {
 namespace evaluator {

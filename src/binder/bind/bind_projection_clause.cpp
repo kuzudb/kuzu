@@ -227,14 +227,30 @@ expression_vector Binder::bindOrderByExpressions(
 
 uint64_t Binder::bindSkipLimitExpression(const ParsedExpression& expression) {
     auto boundExpression = expressionBinder.bindExpression(expression);
-    // We currently do not support the number of rows to skip/limit written as an expression (eg.
-    // SKIP 3 + 2 is not supported).
-    if (expression.getExpressionType() != LITERAL ||
-        ((LiteralExpression&)(*boundExpression)).getDataType().getLogicalTypeID() !=
-            LogicalTypeID::INT64) {
-        throw BinderException("The number of rows to skip/limit must be a non-negative integer.");
+    auto errorMsg = "The number of rows to skip/limit must be a non-negative integer.";
+    if (!ExpressionVisitor::isConstant(*boundExpression)) {
+        throw BinderException(errorMsg);
     }
-    return ((LiteralExpression&)(*boundExpression)).value->getValue<int64_t>();
+    auto value = ((LiteralExpression&)(*boundExpression)).value.get();
+    int64_t num = 0;
+    // TODO: replace the following switch with value.cast()
+    switch (value->getDataType()->getLogicalTypeID()) {
+    case LogicalTypeID::INT64: {
+        num = value->getValue<int64_t>();
+    } break;
+    case LogicalTypeID::INT32: {
+        num = value->getValue<int32_t>();
+    } break;
+    case LogicalTypeID::INT16: {
+        num = value->getValue<int16_t>();
+    } break;
+    default:
+        throw BinderException(errorMsg);
+    }
+    if (num < 0) {
+        throw BinderException(errorMsg);
+    }
+    return num;
 }
 
 void Binder::addExpressionsToScope(const expression_vector& projectionExpressions) {

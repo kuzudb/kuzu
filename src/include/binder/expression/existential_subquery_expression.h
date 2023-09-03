@@ -27,7 +27,7 @@ public:
         return hasWhereExpression() ? whereExpression->splitOnAND() : expression_vector{};
     }
 
-    std::string toString() const override { return rawName; }
+    std::string toStringInternal() const final { return rawName; }
 
 private:
     std::unique_ptr<QueryGraphCollection> queryGraphCollection;

@@ -15,7 +15,7 @@ std::string ScalarFunctionExpression::getUniqueName(
     return result;
 }
 
-std::string ScalarFunctionExpression::toString() const {
+std::string ScalarFunctionExpression::toStringInternal() const {
     auto result = functionName + "(";
     result += ExpressionUtil::toString(children);
     result += ")";
@@ -35,7 +35,7 @@ std::string AggregateFunctionExpression::getUniqueName(
     return result;
 }
 
-std::string AggregateFunctionExpression::toString() const {
+std::string AggregateFunctionExpression::toStringInternal() const {
     auto result = functionName + "(";
     if (isDistinct()) {
         result += "DISTINCT ";

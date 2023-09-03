@@ -31,7 +31,7 @@ public:
     inline std::string getFunctionName() const { return functionName; }
     inline function::FunctionBindData* getBindData() const { return bindData.get(); }
 
-    std::string toString() const override = 0;
+    std::string toStringInternal() const override = 0;
 
 protected:
     std::string functionName;
@@ -59,7 +59,7 @@ public:
 
     static std::string getUniqueName(const std::string& functionName, expression_vector& children);
 
-    std::string toString() const override;
+    std::string toStringInternal() const final;
 
 public:
     function::scalar_exec_func execFunc;
@@ -89,7 +89,7 @@ public:
 
     inline bool isDistinct() const { return aggregateFunction->isFunctionDistinct(); }
 
-    std::string toString() const override;
+    std::string toStringInternal() const final;
 
 public:
     std::unique_ptr<function::AggregateFunction> aggregateFunction;

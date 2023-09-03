@@ -40,8 +40,9 @@ void PathExpressionEvaluator::init(
     for (auto& fieldVector : StructVector::getFieldVectors(resultRelsDataVector)) {
         resultRelsFieldVectors.push_back(fieldVector.get());
     }
-    for (auto i = 0u; i < pathExpression->getNumChildren(); ++i) {
-        auto child = pathExpression->getChild(i).get();
+    auto pathExpression = (PathExpression*)expression.get();
+    for (auto i = 0u; i < expression->getNumChildren(); ++i) {
+        auto child = expression->getChild(i).get();
         auto vectors = std::make_unique<InputVectors>();
         vectors->input = children[i]->resultVector.get();
         switch (child->dataType.getLogicalTypeID()) {
@@ -99,8 +100,8 @@ static inline uint32_t getCurrentPos(ValueVector* vector, uint32_t pos) {
 void PathExpressionEvaluator::copyNodes(sel_t resultPos) {
     auto listSize = 0u;
     // Calculate list size.
-    for (auto i = 0; i < pathExpression->getNumChildren(); ++i) {
-        auto child = pathExpression->getChild(i).get();
+    for (auto i = 0; i < expression->getNumChildren(); ++i) {
+        auto child = expression->getChild(i).get();
         switch (child->dataType.getLogicalTypeID()) {
         case LogicalTypeID::NODE: {
             listSize++;
@@ -119,8 +120,8 @@ void PathExpressionEvaluator::copyNodes(sel_t resultPos) {
     resultNodesVector->setValue(resultPos, entry);
     // Copy field vectors
     offset_t resultDataPos = entry.offset;
-    for (auto i = 0; i < pathExpression->getNumChildren(); ++i) {
-        auto child = pathExpression->getChild(i).get();
+    for (auto i = 0; i < expression->getNumChildren(); ++i) {
+        auto child = expression->getChild(i).get();
         auto vectors = inputVectorsPerChild[i].get();
         auto inputPos = getCurrentPos(vectors->input, resultPos);
         switch (child->dataType.getLogicalTypeID()) {
@@ -144,8 +145,8 @@ void PathExpressionEvaluator::copyNodes(sel_t resultPos) {
 void PathExpressionEvaluator::copyRels(sel_t resultPos) {
     auto listSize = 0u;
     // Calculate list size.
-    for (auto i = 0; i < pathExpression->getNumChildren(); ++i) {
-        auto child = pathExpression->getChild(i).get();
+    for (auto i = 0; i < expression->getNumChildren(); ++i) {
+        auto child = expression->getChild(i).get();
         switch (child->dataType.getLogicalTypeID()) {
         case LogicalTypeID::REL: {
             listSize++;
@@ -164,8 +165,8 @@ void PathExpressionEvaluator::copyRels(sel_t resultPos) {
     resultRelsVector->setValue(resultPos, entry);
     // Copy field vectors
     offset_t resultDataPos = entry.offset;
-    for (auto i = 0; i < pathExpression->getNumChildren(); ++i) {
-        auto child = pathExpression->getChild(i).get();
+    for (auto i = 0; i < expression->getNumChildren(); ++i) {
+        auto child = expression->getChild(i).get();
         auto vectors = inputVectorsPerChild[i].get();
         auto inputPos = getCurrentPos(vectors->input, resultPos);
         switch (child->dataType.getLogicalTypeID()) {
@@ -206,7 +207,7 @@ void PathExpressionEvaluator::copyFieldVectors(offset_t inputVectorPos,
 
 void PathExpressionEvaluator::resolveResultVector(
     const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) {
-    resultVector = std::make_shared<ValueVector>(pathExpression->getDataType(), memoryManager);
+    resultVector = std::make_shared<ValueVector>(expression->getDataType(), memoryManager);
     std::vector<ExpressionEvaluator*> inputEvaluators;
     inputEvaluators.reserve(children.size());
     for (auto& child : children) {

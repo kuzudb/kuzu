@@ -1,16 +1,15 @@
 #pragma once
 
-#include "base_evaluator.h"
-#include "binder/expression/path_expression.h"
+#include "expression_evaluator.h"
 
 namespace kuzu {
 namespace evaluator {
 
 class PathExpressionEvaluator : public ExpressionEvaluator {
 public:
-    PathExpressionEvaluator(std::shared_ptr<binder::PathExpression> pathExpression,
+    PathExpressionEvaluator(std::shared_ptr<binder::Expression> expression,
         std::vector<std::unique_ptr<ExpressionEvaluator>> children)
-        : ExpressionEvaluator{std::move(children)}, pathExpression{std::move(pathExpression)} {}
+        : ExpressionEvaluator{std::move(children)}, expression{std::move(expression)} {}
 
     void init(const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) final;
 
@@ -25,7 +24,7 @@ public:
         for (auto& child : children) {
             clonedChildren.push_back(child->clone());
         }
-        return make_unique<PathExpressionEvaluator>(pathExpression, std::move(clonedChildren));
+        return make_unique<PathExpressionEvaluator>(expression, std::move(clonedChildren));
     }
 
 private:
@@ -57,7 +56,7 @@ private:
         const std::vector<common::ValueVector*>& resultFieldVectors);
 
 private:
-    std::shared_ptr<binder::PathExpression> pathExpression;
+    std::shared_ptr<binder::Expression> expression;
     std::vector<std::unique_ptr<InputVectors>> inputVectorsPerChild;
     common::ValueVector* resultNodesVector; // LIST[NODE]
     common::ValueVector* resultRelsVector;  // LIST[REL]

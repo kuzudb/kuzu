@@ -1,4 +1,4 @@
-#include "expression_evaluator/base_evaluator.h"
+#include "expression_evaluator/expression_evaluator.h"
 
 using namespace kuzu::common;
 

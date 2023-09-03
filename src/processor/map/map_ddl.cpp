@@ -67,7 +67,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapRenameTable(LogicalOperator* lo
 std::unique_ptr<PhysicalOperator> PlanMapper::mapAddProperty(LogicalOperator* logicalOperator) {
     auto addProperty = (LogicalAddProperty*)logicalOperator;
     auto expressionEvaluator =
-        expressionMapper.mapExpression(addProperty->getDefaultValue(), *addProperty->getSchema());
+        ExpressionMapper::getEvaluator(addProperty->getDefaultValue(), addProperty->getSchema());
     auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(addProperty->getTableID());
     switch (tableSchema->getTableType()) {
     case catalog::TableType::NODE:

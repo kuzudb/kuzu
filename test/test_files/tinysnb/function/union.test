@@ -11,7 +11,7 @@
 36
 
 -LOG UnionValueOnExpr
--STATEMENT MATCH (p:person)-[:knows]->(p1:person) return union_value(age := p.age), union_value(age := p1.age)
+-STATEMENT MATCH (p:person)-[:knows]->(p1:person) return union_value(age := p.age) AS u1, union_value(age := p1.age) AS u2
 ---- 14
 35|30
 35|45
@@ -74,7 +74,7 @@ age|PERSON_id
 100
 
 -LOG UnionExtractOnFlatUnflatExpr
--STATEMENT MATCH (p:person)-[:knows]->(p1:person) return union_extract(union_value(age := p.age), 'age'), union_extract(union_value(age := p1.age), 'age')
+-STATEMENT MATCH (p:person)-[:knows]->(p1:person) return union_extract(union_value(age := p.age), 'age') AS a, union_extract(union_value(age := p1.age), 'age') AS b
 ---- 14
 35|30
 35|45

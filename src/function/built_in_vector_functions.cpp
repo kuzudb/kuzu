@@ -38,17 +38,6 @@ void BuiltInVectorFunctions::registerVectorFunctions() {
     registerBlobFunctions();
 }
 
-bool BuiltInVectorFunctions::canApplyStaticEvaluation(
-    const std::string& functionName, const binder::expression_vector& children) {
-    if ((functionName == CAST_TO_DATE_FUNC_NAME || functionName == CAST_TO_TIMESTAMP_FUNC_NAME ||
-            functionName == CAST_TO_INTERVAL_FUNC_NAME) &&
-        children[0]->expressionType == LITERAL &&
-        children[0]->dataType.getLogicalTypeID() == LogicalTypeID::STRING) {
-        return true; // bind as literal
-    }
-    return false;
-}
-
 VectorFunctionDefinition* BuiltInVectorFunctions::matchVectorFunction(
     const std::string& name, const std::vector<LogicalType>& inputTypes) {
     auto& functionDefinitions = vectorFunctions.at(name);

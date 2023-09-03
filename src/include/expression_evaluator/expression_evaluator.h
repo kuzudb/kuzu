@@ -13,10 +13,8 @@ public:
     ExpressionEvaluator() = default;
     // Leaf evaluators (reference or literal)
     explicit ExpressionEvaluator(bool isResultFlat) : isResultFlat_{isResultFlat} {}
-
     explicit ExpressionEvaluator(std::vector<std::unique_ptr<ExpressionEvaluator>> children)
         : children{std::move(children)} {}
-
     virtual ~ExpressionEvaluator() = default;
 
     inline bool isResultFlat() const { return isResultFlat_; }
