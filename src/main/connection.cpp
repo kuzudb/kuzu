@@ -161,7 +161,8 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
         // parsing
         auto statement = Parser::parseQuery(query);
         // binding
-        auto binder = Binder(*database->catalog, clientContext.get());
+        auto binder =
+            Binder(*database->catalog, database->memoryManager.get(), clientContext.get());
         auto boundStatement = binder.bind(*statement);
         preparedStatement->preparedSummary.statementType = boundStatement->getStatementType();
         preparedStatement->readOnly =

@@ -5,6 +5,7 @@
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/parameter_expression.h"
 #include "binder/expression_visitor.h"
+#include "expression_evaluator/expression_evaluator_utils.h"
 #include "function/cast/vector_cast_functions.h"
 
 using namespace kuzu::common;
@@ -47,7 +48,27 @@ std::shared_ptr<Expression> ExpressionBinder::bindExpression(
     if (isExpressionAggregate(expression->expressionType)) {
         validateAggregationExpressionIsNotNested(*expression);
     }
+    if (ExpressionVisitor::needFold(*expression)) {
+        return foldExpression(expression);
+    }
     return expression;
+}
+
+std::shared_ptr<Expression> ExpressionBinder::foldExpression(
+    std::shared_ptr<Expression> expression) {
+    auto value = evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(
+        expression, binder->memoryManager);
+    auto result = createLiteralExpression(std::move(value));
+    // Fold result should preserve the alias original expression. E.g.
+    // RETURN 2, 1 + 1 AS x
+    // Once folded, 1 + 1 will become 2 and have the same identifier as the first RETURN element.
+    // We preserve alias (x) to avoid such conflict.
+    if (expression->hasAlias()) {
+        result->setAlias(expression->getAlias());
+    } else {
+        result->setAlias(expression->toString());
+    }
+    return result;
 }
 
 std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
@@ -127,7 +148,7 @@ void ExpressionBinder::validateAggregationExpressionIsNotNested(const Expression
     if (expression.getNumChildren() == 0) {
         return;
     }
-    if (ExpressionVisitor::hasAggregateExpression(*expression.getChild(0))) {
+    if (ExpressionVisitor::hasAggregate(*expression.getChild(0))) {
         throw BinderException(
             "Expression " + expression.toString() + " contains nested aggregation.");
     }

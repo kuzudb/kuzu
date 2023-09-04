@@ -327,22 +327,22 @@ Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
 ---- ok
 -STATEMENT WITH true AS n MATCH (n) RETURN n;
 ---- error
-Binder exception: True has data type BOOL. (NODE) was expected.
+Binder exception: n has data type BOOL. (NODE) was expected.
 -STATEMENT WITH 123 AS n MATCH (n) RETURN n;
 ---- error
-Binder exception: 123 has data type INT64. (NODE) was expected.
+Binder exception: n has data type INT64. (NODE) was expected.
 -STATEMENT WITH 123.4 AS n MATCH (n) RETURN n;
 ---- error
-Binder exception: 123.400000 has data type DOUBLE. (NODE) was expected.
+Binder exception: n has data type DOUBLE. (NODE) was expected.
 -STATEMENT WITH 'foo' AS n MATCH (n) RETURN n;
 ---- error
-Binder exception: foo has data type STRING. (NODE) was expected.
+Binder exception: n has data type STRING. (NODE) was expected.
 -STATEMENT WITH [10] AS n MATCH (n) RETURN n;
 ---- error
-Binder exception: LIST_CREATION(10) has data type VAR_LIST. (NODE) was expected.
+Binder exception: n has data type VAR_LIST. (NODE) was expected.
 -STATEMENT WITH {x: 1} AS n MATCH (n) RETURN n;
 ---- error
-Binder exception: STRUCT_PACK(1) has data type STRUCT. (NODE) was expected.
+Binder exception: n has data type STRUCT. (NODE) was expected.
 -STATEMENT WITH {x: [1]} AS n MATCH (n) RETURN n;
 ---- error
-Binder exception: STRUCT_PACK(LIST_CREATION(1)) has data type STRUCT. (NODE) was expected.
+Binder exception: n has data type STRUCT. (NODE) was expected.

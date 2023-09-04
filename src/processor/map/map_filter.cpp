@@ -11,7 +11,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapFilter(LogicalOperator* logical
     auto& logicalFilter = (const LogicalFilter&)*logicalOperator;
     auto inSchema = logicalFilter.getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
-    auto physicalRootExpr = expressionMapper.mapExpression(logicalFilter.getPredicate(), *inSchema);
+    auto physicalRootExpr = ExpressionMapper::getEvaluator(logicalFilter.getPredicate(), inSchema);
     return make_unique<Filter>(std::move(physicalRootExpr), logicalFilter.getGroupPosToSelect(),
         std::move(prevOperator), getOperatorID(), logicalFilter.getExpressionsForPrinting());
 }

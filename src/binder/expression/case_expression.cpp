@@ -3,7 +3,7 @@
 namespace kuzu {
 namespace binder {
 
-std::string CaseExpression::toString() const {
+std::string CaseExpression::toStringInternal() const {
     std::string result = "CASE ";
     for (auto& caseAlternative : caseAlternatives) {
         result += "WHEN " + caseAlternative->whenExpression->toString() + " THEN " +

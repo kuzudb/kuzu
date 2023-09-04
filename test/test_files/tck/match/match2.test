@@ -369,22 +369,22 @@ Binder exception: Bind relationship r to relationship with same name is not supp
 ---- ok
 -STATEMENT WITH true AS r MATCH ()-[r]-() RETURN r;
 ---- error
-Binder exception: True has data type BOOL. (REL) was expected.
+Binder exception: r has data type BOOL. (REL) was expected.
 -STATEMENT WITH 123 AS r MATCH ()-[r]-() RETURN r;
 ---- error
-Binder exception: 123 has data type INT64. (REL) was expected.
+Binder exception: r has data type INT64. (REL) was expected.
 -STATEMENT WITH 123.4 AS r MATCH ()-[r]-() RETURN r;
 ---- error
-Binder exception: 123.400000 has data type DOUBLE. (REL) was expected.
+Binder exception: r has data type DOUBLE. (REL) was expected.
 -STATEMENT WITH 'foo' AS r MATCH ()-[r]-() RETURN r;
 ---- error
-Binder exception: foo has data type STRING. (REL) was expected.
+Binder exception: r has data type STRING. (REL) was expected.
 -STATEMENT WITH [10] AS r MATCH ()-[r]-() RETURN r;
 ---- error
-Binder exception: LIST_CREATION(10) has data type VAR_LIST. (REL) was expected.
+Binder exception: r has data type VAR_LIST. (REL) was expected.
 -STATEMENT WITH {x: 1} AS r MATCH ()-[r]-() RETURN r;
 ---- error
-Binder exception: STRUCT_PACK(1) has data type STRUCT. (REL) was expected.
+Binder exception: r has data type STRUCT. (REL) was expected.
 -STATEMENT WITH {x: [1]} AS r MATCH ()-[r]-() RETURN r;
 ---- error
-Binder exception: STRUCT_PACK(LIST_CREATION(1)) has data type STRUCT. (REL) was expected.
+Binder exception: r has data type STRUCT. (REL) was expected.

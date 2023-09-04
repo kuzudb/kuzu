@@ -121,7 +121,7 @@ void QueryPlanner::planExistsSubquery(
 
 void QueryPlanner::planSubqueryIfNecessary(
     const std::shared_ptr<Expression>& expression, LogicalPlan& plan) {
-    if (ExpressionVisitor::hasSubqueryExpression(*expression)) {
+    if (ExpressionVisitor::hasSubquery(*expression)) {
         auto expressionCollector = std::make_unique<ExpressionCollector>();
         for (auto& expr : expressionCollector->collectTopLevelSubqueryExpressions(expression)) {
             planExistsSubquery(expr, plan);

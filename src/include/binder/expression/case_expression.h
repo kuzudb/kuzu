@@ -32,7 +32,7 @@ public:
 
     inline std::shared_ptr<Expression> getElseExpression() const { return elseExpression; }
 
-    std::string toString() const override;
+    std::string toStringInternal() const final;
 
 private:
     std::vector<std::unique_ptr<CaseAlternative>> caseAlternatives;

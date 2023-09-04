@@ -21,7 +21,7 @@ public:
 
     inline common::Value* getValue() const { return value.get(); }
 
-    std::string toString() const override { return value->toString(); }
+    std::string toStringInternal() const final { return value->toString(); }
 
 public:
     std::unique_ptr<common::Value> value;

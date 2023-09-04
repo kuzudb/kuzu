@@ -72,7 +72,8 @@ void BaseGraphTest::validateQueryBestPlanJoinOrder(
     auto catalog = getCatalog(*database);
     auto statement = parser::Parser::parseQuery(query);
     auto parsedQuery = (parser::RegularQuery*)statement.get();
-    auto boundQuery = Binder(*catalog, conn->clientContext.get()).bind(*parsedQuery);
+    auto boundQuery = Binder(*catalog, database->memoryManager.get(), conn->clientContext.get())
+                          .bind(*parsedQuery);
     auto plan = Planner::getBestPlan(*catalog,
         getStorageManager(*database)->getNodesStore().getNodesStatisticsAndDeletedIDs(),
         getStorageManager(*database)->getRelsStore().getRelsStatistics(), *boundQuery);

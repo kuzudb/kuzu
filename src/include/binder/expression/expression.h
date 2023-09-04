@@ -33,29 +33,24 @@ public:
         expression_vector children, std::string uniqueName)
         : expressionType{expressionType}, dataType{std::move(dataType)},
           uniqueName{std::move(uniqueName)}, children{std::move(children)} {}
-
     // Create binary expression.
     Expression(common::ExpressionType expressionType, common::LogicalType dataType,
         const std::shared_ptr<Expression>& left, const std::shared_ptr<Expression>& right,
         std::string uniqueName)
         : Expression{expressionType, std::move(dataType), expression_vector{left, right},
               std::move(uniqueName)} {}
-
     // Create unary expression.
     Expression(common::ExpressionType expressionType, common::LogicalType dataType,
         const std::shared_ptr<Expression>& child, std::string uniqueName)
         : Expression{expressionType, std::move(dataType), expression_vector{child},
               std::move(uniqueName)} {}
-
     // Create leaf expression
     Expression(
         common::ExpressionType expressionType, common::LogicalType dataType, std::string uniqueName)
         : Expression{
               expressionType, std::move(dataType), expression_vector{}, std::move(uniqueName)} {}
-
     virtual ~Expression() = default;
 
-public:
     inline void setAlias(const std::string& name) { alias = name; }
 
     inline std::string getUniqueName() const {
@@ -67,14 +62,13 @@ public:
     inline common::LogicalType& getDataTypeReference() { return dataType; }
 
     inline bool hasAlias() const { return !alias.empty(); }
-
     inline std::string getAlias() const { return alias; }
 
     inline uint32_t getNumChildren() const { return children.size(); }
-
     inline std::shared_ptr<Expression> getChild(common::vector_idx_t idx) const {
         return children[idx];
     }
+    inline expression_vector getChildren() const { return children; }
     inline void setChild(common::vector_idx_t idx, std::shared_ptr<Expression> child) {
         children[idx] = std::move(child);
     }
@@ -83,11 +77,14 @@ public:
 
     inline bool operator==(const Expression& rhs) const { return uniqueName == rhs.uniqueName; }
 
-    virtual std::string toString() const = 0;
+    std::string toString() const { return hasAlias() ? alias : toStringInternal(); }
 
     virtual std::unique_ptr<Expression> copy() const {
         throw common::InternalException("Unimplemented expression copy().");
     }
+
+protected:
+    virtual std::string toStringInternal() const = 0;
 
 public:
     common::ExpressionType expressionType;

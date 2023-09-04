@@ -22,7 +22,7 @@ public:
 
     inline std::shared_ptr<common::Value> getLiteral() const { return value; }
 
-    std::string toString() const override { return "$" + parameterName; }
+    inline std::string toStringInternal() const final { return "$" + parameterName; }
 
 private:
     inline static std::string createUniqueName(const std::string& input) { return "$" + input; }

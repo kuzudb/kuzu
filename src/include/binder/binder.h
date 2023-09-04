@@ -57,9 +57,11 @@ class Binder {
     friend class ExpressionBinder;
 
 public:
-    explicit Binder(const catalog::Catalog& catalog, main::ClientContext* clientContext)
-        : catalog{catalog}, lastExpressionId{0}, scope{std::make_unique<BinderScope>()},
-          expressionBinder{this}, clientContext{clientContext} {}
+    explicit Binder(const catalog::Catalog& catalog, storage::MemoryManager* memoryManager,
+        main::ClientContext* clientContext)
+        : catalog{catalog}, memoryManager{memoryManager}, lastExpressionId{0},
+          scope{std::make_unique<BinderScope>()}, expressionBinder{this}, clientContext{
+                                                                              clientContext} {}
 
     std::unique_ptr<BoundStatement> bind(const parser::Statement& statement);
 
@@ -241,6 +243,7 @@ private:
 
 private:
     const catalog::Catalog& catalog;
+    storage::MemoryManager* memoryManager;
     uint32_t lastExpressionId;
     std::unique_ptr<BinderScope> scope;
     ExpressionBinder expressionBinder;

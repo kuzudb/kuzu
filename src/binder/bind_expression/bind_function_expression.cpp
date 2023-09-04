@@ -55,9 +55,6 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
         childrenTypes.push_back(child->dataType);
     }
     auto function = builtInFunctions->matchVectorFunction(functionName, childrenTypes);
-    if (builtInFunctions->canApplyStaticEvaluation(functionName, children)) {
-        return staticEvaluate(functionName, children);
-    }
     expression_vector childrenAfterCast;
     for (auto i = 0u; i < children.size(); ++i) {
         auto targetType =
@@ -136,22 +133,6 @@ std::shared_ptr<Expression> ExpressionBinder::bindMacroExpression(
     }
     auto macroParameterReplacer = std::make_unique<MacroParameterReplacer>(parameterVals);
     return bindExpression(*macroParameterReplacer->visit(std::move(macroExpr)));
-}
-
-std::shared_ptr<Expression> ExpressionBinder::staticEvaluate(
-    const std::string& functionName, const expression_vector& children) {
-    assert(children[0]->expressionType == LITERAL);
-    auto strVal = ((LiteralExpression*)children[0].get())->getValue()->getValue<std::string>();
-    std::unique_ptr<Value> value;
-    if (functionName == CAST_TO_DATE_FUNC_NAME) {
-        value = std::make_unique<Value>(Date::fromCString(strVal.c_str(), strVal.length()));
-    } else if (functionName == CAST_TO_TIMESTAMP_FUNC_NAME) {
-        value = std::make_unique<Value>(Timestamp::fromCString(strVal.c_str(), strVal.length()));
-    } else {
-        assert(functionName == CAST_TO_INTERVAL_FUNC_NAME);
-        value = std::make_unique<Value>(Interval::fromCString(strVal.c_str(), strVal.length()));
-    }
-    return createLiteralExpression(std::move(value));
 }
 
 // Function rewriting happens when we need to expose internal property access through function so

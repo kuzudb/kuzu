@@ -1,6 +1,6 @@
 #pragma once
 
-#include "base_evaluator.h"
+#include "expression_evaluator.h"
 #include "function/vector_functions.h"
 
 namespace kuzu {

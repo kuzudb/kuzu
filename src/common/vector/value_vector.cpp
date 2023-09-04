@@ -124,6 +124,11 @@ void ValueVector::copyFromVectorData(
 }
 
 void ValueVector::copyFromValue(uint64_t pos, const Value& value) {
+    if (value.isNull()) {
+        setNull(pos, true);
+        return;
+    }
+    setNull(pos, false);
     auto dstValue = valueBuffer.get() + pos * numBytesPerValue;
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::INT64: {
@@ -169,6 +174,63 @@ void ValueVector::copyFromValue(uint64_t pos, const Value& value) {
     default:
         throw NotImplementedException("ValueVector::copyFromValue");
     }
+}
+
+std::unique_ptr<Value> ValueVector::getAsValue(uint64_t pos) {
+    if (isNull(pos)) {
+        return Value::createNullValue(dataType).copy();
+    }
+    auto value = Value::createDefaultValue(dataType).copy();
+    switch (dataType.getPhysicalType()) {
+    case PhysicalTypeID::INT64: {
+        value->val.int64Val = getValue<int64_t>(pos);
+    } break;
+    case PhysicalTypeID::INT32: {
+        value->val.int32Val = getValue<int32_t>(pos);
+    } break;
+    case PhysicalTypeID::INT16: {
+        value->val.int16Val = getValue<int16_t>(pos);
+    } break;
+    case PhysicalTypeID::DOUBLE: {
+        value->val.doubleVal = getValue<double_t>(pos);
+    } break;
+    case PhysicalTypeID::FLOAT: {
+        value->val.floatVal = getValue<float_t>(pos);
+    } break;
+    case PhysicalTypeID::BOOL: {
+        value->val.booleanVal = getValue<bool>(pos);
+    } break;
+    case PhysicalTypeID::INTERVAL: {
+        value->val.intervalVal = getValue<interval_t>(pos);
+    } break;
+    case PhysicalTypeID::STRING: {
+        value->strVal = getValue<ku_string_t>(pos).getAsString();
+    } break;
+    case PhysicalTypeID::VAR_LIST: {
+        auto dataVector = ListVector::getDataVector(this);
+        auto listEntry = getValue<list_entry_t>(pos);
+        std::vector<std::unique_ptr<Value>> children;
+        children.reserve(listEntry.size);
+        for (auto i = 0u; i < listEntry.size; ++i) {
+            children.push_back(dataVector->getAsValue(listEntry.offset + i));
+        }
+        value->childrenSize = children.size();
+        value->children = std::move(children);
+    } break;
+    case PhysicalTypeID::STRUCT: {
+        auto& fieldVectors = StructVector::getFieldVectors(this);
+        std::vector<std::unique_ptr<Value>> children;
+        children.reserve(fieldVectors.size());
+        for (auto& fieldVector : fieldVectors) {
+            children.push_back(fieldVector->getAsValue(pos));
+        }
+        value->childrenSize = children.size();
+        value->children = std::move(children);
+    } break;
+    default:
+        throw NotImplementedException("ValueVector::getAsValue");
+    }
+    return value;
 }
 
 void ValueVector::resetAuxiliaryBuffer() {

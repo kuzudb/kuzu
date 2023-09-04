@@ -44,7 +44,9 @@ public:
         return make_unique<PropertyExpression>(*this);
     }
 
-    inline std::string toString() const override { return rawVariableName + "." + propertyName; }
+    inline std::string toStringInternal() const final {
+        return rawVariableName + "." + propertyName;
+    }
 
 private:
     bool isPrimaryKey_ = false;

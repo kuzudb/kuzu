@@ -84,13 +84,29 @@ expression_vector ExpressionChildrenCollector::collectRelChildren(const Expressi
     return result;
 }
 
-bool ExpressionVisitor::hasExpression(
+// isConstant requires all children to be constant.
+bool ExpressionVisitor::isConstant(const Expression& expression) {
+    if (expression.expressionType == ExpressionType::AGGREGATE_FUNCTION) {
+        return false; // We don't have a framework to fold aggregated constant.
+    }
+    if (expression.getNumChildren() == 0) {
+        return expression.expressionType == ExpressionType::LITERAL;
+    }
+    for (auto& child : ExpressionChildrenCollector::collectChildren(expression)) {
+        if (!isConstant(*child)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool ExpressionVisitor::satisfyAny(
     const Expression& expression, const std::function<bool(const Expression&)>& condition) {
     if (condition(expression)) {
         return true;
     }
     for (auto& child : ExpressionChildrenCollector::collectChildren(expression)) {
-        if (hasExpression(*child, condition)) {
+        if (satisfyAny(*child, condition)) {
             return true;
         }
     }

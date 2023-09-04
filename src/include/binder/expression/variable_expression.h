@@ -12,7 +12,7 @@ public:
         : Expression{common::VARIABLE, dataType, std::move(uniqueName)}, variableName{std::move(
                                                                              variableName)} {}
 
-    std::string toString() const override { return variableName; }
+    inline std::string toStringInternal() const final { return variableName; }
 
 private:
     std::string variableName;

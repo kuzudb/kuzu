@@ -21,20 +21,28 @@ private:
 
 class ExpressionVisitor {
 public:
-    static bool hasAggregateExpression(const Expression& expression) {
-        return hasExpression(expression, [&](const Expression& expression) {
+    static inline bool hasAggregate(const Expression& expression) {
+        return satisfyAny(expression, [&](const Expression& expression) {
             return common::isExpressionAggregate(expression.expressionType);
         });
     }
 
-    static bool hasSubqueryExpression(const Expression& expression) {
-        return hasExpression(expression, [&](const Expression& expression) {
+    static inline bool hasSubquery(const Expression& expression) {
+        return satisfyAny(expression, [&](const Expression& expression) {
             return common::isExpressionSubquery(expression.expressionType);
         });
     }
 
+    static inline bool needFold(const Expression& expression) {
+        return expression.expressionType == common::ExpressionType::LITERAL ?
+                   false :
+                   isConstant(expression);
+    }
+
+    static bool isConstant(const Expression& expression);
+
 private:
-    static bool hasExpression(
+    static bool satisfyAny(
         const Expression& expression, const std::function<bool(const Expression&)>& condition);
 };
 

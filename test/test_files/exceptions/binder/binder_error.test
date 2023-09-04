@@ -38,12 +38,12 @@ Binder exception: Expression in WITH must be aliased (use AS).
 -LOG BindToDifferentVariableType1
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WITH e1 AS a MATCH (a) RETURN *
 ---- error
-Binder exception: e1 has data type REL. (NODE) was expected.
+Binder exception: a has data type REL. (NODE) was expected.
 
 -LOG BindToDifferentVariableType2
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WITH a.age + 1 AS a MATCH (a) RETURN *
 ---- error
-Binder exception: +(a.age,1) has data type INT64. (NODE) was expected.
+Binder exception: a has data type INT64. (NODE) was expected.
 
 -LOG BindEmptyStar
 -STATEMENT RETURN *

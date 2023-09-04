@@ -14,13 +14,6 @@ public:
         return vectorFunctions.contains(functionName);
     }
 
-    /**
-     * Certain function can be evaluated statically and thus avoid runtime execution.
-     * E.g. date("2021-01-01") can be evaluated as date literal statically.
-     */
-    bool canApplyStaticEvaluation(
-        const std::string& functionName, const binder::expression_vector& children);
-
     VectorFunctionDefinition* matchVectorFunction(
         const std::string& name, const std::vector<common::LogicalType>& inputTypes);
 

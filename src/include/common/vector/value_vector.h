@@ -69,6 +69,7 @@ public:
     void copyFromVectorData(uint64_t dstPos, const ValueVector* srcVector, uint64_t srcPos);
 
     void copyFromValue(uint64_t pos, const Value& value);
+    std::unique_ptr<Value> getAsValue(uint64_t pos);
 
     inline uint8_t* getData() const { return valueBuffer.get(); }
 

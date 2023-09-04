@@ -59,7 +59,7 @@ public:
     }
     inline std::shared_ptr<Expression> getLabelExpression() const { return labelExpression; }
 
-    std::string toString() const override { return variableName; }
+    inline std::string toStringInternal() const final { return variableName; }
 
 protected:
     std::string variableName;

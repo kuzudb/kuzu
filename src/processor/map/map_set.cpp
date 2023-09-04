@@ -20,7 +20,7 @@ std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(storage::NodesSt
     if (inSchema.isExpressionInScope(*property)) {
         propertyPos = DataPos(inSchema.getExpressionPos(*property));
     }
-    auto evaluator = expressionMapper.mapExpression(info->setItem.second, inSchema);
+    auto evaluator = ExpressionMapper::getEvaluator(info->setItem.second, &inSchema);
     if (node->isMultiLabeled()) {
         std::unordered_map<table_id_t, NodeSetInfo> tableIDToSetInfo;
         for (auto tableID : node->getTableIDs()) {
@@ -68,7 +68,7 @@ std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(storage::RelsStore
     if (inSchema.isExpressionInScope(*property)) {
         propertyPos = DataPos(inSchema.getExpressionPos(*property));
     }
-    auto evaluator = expressionMapper.mapExpression(info->setItem.second, inSchema);
+    auto evaluator = ExpressionMapper::getEvaluator(info->setItem.second, &inSchema);
     if (rel->isMultiLabeled()) {
         std::unordered_map<table_id_t, std::pair<storage::RelTable*, property_id_t>>
             tableIDToTableAndPropertyID;
