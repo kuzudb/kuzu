@@ -27,5 +27,18 @@ std::string ExceptionMessage::overLargeStringValueException(const std::string& l
         "Maximum length of strings is 4096. Input string's length is {}.", length);
 }
 
+std::string ExceptionMessage::violateUniquenessOfRelAdjColumn(const std::string& tableName,
+    const std::string& offset, const std::string& multiplicity, const std::string& direction) {
+    return StringUtils::string_format("RelTable {} is a {} table, but node(nodeOffset: {}) "
+                                      "has more than one neighbour in the {} direction.",
+        tableName, offset, multiplicity, direction);
+}
+
+std::string ExceptionMessage::validateCopyNpyNotForRelTablesException(
+    const std::string& tableName) {
+    return StringUtils::string_format(
+        "Copy from npy files to rel table {} is not supported yet.", tableName);
+}
+
 } // namespace common
 } // namespace kuzu

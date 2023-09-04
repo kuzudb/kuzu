@@ -99,8 +99,9 @@ void CSVToParquetConverter::convertCSVFilesToParquet(
         if (!FileUtils::fileOrPathExists(copyCommand.parquetFilePath)) {
             spdlog::info(
                 "CONVERTING: {} to {}", copyCommand.csvFilePath, copyCommand.parquetFilePath);
-            runCSVToParquetConversion(copyCommand.csvFilePath, copyCommand.parquetFilePath,
-                copyCommand.delimiter, copyCommand.csvHasHeader);
+            auto status = runCSVToParquetConversion(copyCommand.csvFilePath,
+                copyCommand.parquetFilePath, copyCommand.delimiter, copyCommand.csvHasHeader);
+            assert(status.ok());
         }
     }
 }

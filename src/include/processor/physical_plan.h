@@ -12,10 +12,6 @@ public:
     explicit PhysicalPlan(std::unique_ptr<PhysicalOperator> lastOperator)
         : lastOperator{std::move(lastOperator)} {}
 
-    inline bool isCopyRel() const {
-        return lastOperator->getOperatorType() == PhysicalOperatorType::COPY_REL;
-    }
-
 public:
     std::unique_ptr<PhysicalOperator> lastOperator;
 };

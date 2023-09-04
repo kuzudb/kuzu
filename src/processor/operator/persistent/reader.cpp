@@ -20,8 +20,8 @@ void Reader::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* cont
     for (auto i = 0u; i < info->getNumColumns(); i++) {
         dataChunk->insert(i, resultSet->getValueVector(info->dataColumnsPos[i]));
     }
-    initFunc = storage::ReaderFunctions::getInitDataFunc(sharedState->copyDescription->fileType);
-    readFunc = storage::ReaderFunctions::getReadRowsFunc(sharedState->copyDescription->fileType);
+    initFunc = ReaderFunctions::getInitDataFunc(sharedState->copyDescription->fileType);
+    readFunc = ReaderFunctions::getReadRowsFunc(sharedState->copyDescription->fileType);
     nodeOffsetVector = resultSet->getValueVector(info->nodeOffsetPos).get();
 }
 

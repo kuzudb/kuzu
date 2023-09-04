@@ -1,10 +1,11 @@
-#include "storage/copier/reader_state.h"
+#include "processor/operator/persistent/reader_state.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
+using namespace kuzu::storage;
 
 namespace kuzu {
-namespace storage {
+namespace processor {
 
 void LeftArrowArrays::appendFromDataChunk(common::DataChunk* dataChunk) {
     leftNumRows += ArrowColumnVector::getArrowColumn(dataChunk->getValueVector(0).get())->length();
@@ -107,7 +108,8 @@ read_rows_func_t ReaderFunctions::getReadRowsFunc(CopyDescription::FileType file
     }
 }
 
-void ReaderFunctions::validateNPYFiles(std::vector<std::string>& paths, TableSchema* tableSchema) {
+void ReaderFunctions::validateNPYFiles(
+    const std::vector<std::string>& paths, TableSchema* tableSchema) {
     assert(!paths.empty() && paths.size() == tableSchema->getNumProperties());
     row_idx_t numRows;
     for (auto i = 0u; i < paths.size(); i++) {
@@ -121,7 +123,8 @@ void ReaderFunctions::validateNPYFiles(std::vector<std::string>& paths, TableSch
 }
 
 std::vector<FileBlocksInfo> ReaderFunctions::countRowsInCSVFile(
-    std::vector<std::string>& paths, CSVReaderConfig csvReaderConfig, TableSchema* tableSchema) {
+    const std::vector<std::string>& paths, CSVReaderConfig csvReaderConfig,
+    TableSchema* tableSchema) {
     std::vector<FileBlocksInfo> result(paths.size());
     for (auto i = 0u; i < paths.size(); i++) {
         auto csvStreamingReader =
@@ -144,7 +147,8 @@ std::vector<FileBlocksInfo> ReaderFunctions::countRowsInCSVFile(
 }
 
 std::vector<FileBlocksInfo> ReaderFunctions::countRowsInParquetFile(
-    std::vector<std::string>& paths, CSVReaderConfig csvReaderConfig, TableSchema* tableSchema) {
+    const std::vector<std::string>& paths, CSVReaderConfig csvReaderConfig,
+    TableSchema* tableSchema) {
     std::vector<FileBlocksInfo> result(paths.size());
     for (auto i = 0u; i < paths.size(); i++) {
         std::unique_ptr<parquet::arrow::FileReader> reader =
@@ -162,7 +166,8 @@ std::vector<FileBlocksInfo> ReaderFunctions::countRowsInParquetFile(
 }
 
 std::vector<FileBlocksInfo> ReaderFunctions::countRowsInNPYFile(
-    std::vector<std::string>& paths, CSVReaderConfig csvReaderConfig, TableSchema* tableSchema) {
+    const std::vector<std::string>& paths, CSVReaderConfig csvReaderConfig,
+    TableSchema* tableSchema) {
     assert(!paths.empty());
     auto reader = make_unique<NpyReader>(paths[0]);
     auto numRows = reader->getNumRows();
@@ -173,7 +178,7 @@ std::vector<FileBlocksInfo> ReaderFunctions::countRowsInNPYFile(
 }
 
 std::unique_ptr<ReaderFunctionData> ReaderFunctions::initCSVReadData(
-    std::vector<std::string>& paths, vector_idx_t fileIdx, CSVReaderConfig csvReaderConfig,
+    const std::vector<std::string>& paths, vector_idx_t fileIdx, CSVReaderConfig csvReaderConfig,
     TableSchema* tableSchema) {
     assert(fileIdx < paths.size());
     auto reader = TableCopyUtils::createCSVReader(paths[fileIdx], &csvReaderConfig, tableSchema);
@@ -182,7 +187,7 @@ std::unique_ptr<ReaderFunctionData> ReaderFunctions::initCSVReadData(
 }
 
 std::unique_ptr<ReaderFunctionData> ReaderFunctions::initParquetReadData(
-    std::vector<std::string>& paths, vector_idx_t fileIdx, CSVReaderConfig csvReaderConfig,
+    const std::vector<std::string>& paths, vector_idx_t fileIdx, CSVReaderConfig csvReaderConfig,
     TableSchema* tableSchema) {
     assert(fileIdx < paths.size());
     auto reader = TableCopyUtils::createParquetReader(paths[fileIdx], tableSchema);
@@ -191,7 +196,7 @@ std::unique_ptr<ReaderFunctionData> ReaderFunctions::initParquetReadData(
 }
 
 std::unique_ptr<ReaderFunctionData> ReaderFunctions::initNPYReadData(
-    std::vector<std::string>& paths, vector_idx_t fileIdx, CSVReaderConfig csvReaderConfig,
+    const std::vector<std::string>& paths, vector_idx_t fileIdx, CSVReaderConfig csvReaderConfig,
     TableSchema* tableSchema) {
     auto reader = make_unique<NpyMultiFileReader>(paths);
     return std::make_unique<NPYReaderFunctionData>(
@@ -305,5 +310,5 @@ std::unique_ptr<ReaderMorsel> ReaderSharedState::getMorselOfNextBlock() {
     return std::make_unique<ReaderMorsel>(currFileIdx, currBlockIdx++, currRowIdx);
 }
 
-} // namespace storage
+} // namespace processor
 } // namespace kuzu

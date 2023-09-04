@@ -67,7 +67,7 @@ public:
         std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString);
 
-    inline void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override {
+    inline void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final {
         for (auto& arrowColumnPos : copyNodeInfo.dataColumnPoses) {
             dataColumnVectors.push_back(resultSet->getValueVector(arrowColumnPos).get());
         }
@@ -76,13 +76,13 @@ public:
             std::make_unique<storage::NodeGroup>(sharedState->tableSchema, &sharedState->copyDesc);
     }
 
-    inline void initGlobalStateInternal(ExecutionContext* context) override;
+    void initGlobalStateInternal(ExecutionContext* context) final;
 
-    void executeInternal(ExecutionContext* context) override;
+    void executeInternal(ExecutionContext* context) final;
 
-    void finalize(ExecutionContext* context) override;
+    void finalize(ExecutionContext* context) final;
 
-    inline std::unique_ptr<PhysicalOperator> clone() override {
+    inline std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<CopyNode>(sharedState, copyNodeInfo, resultSetDescriptor->copy(),
             children[0]->clone(), id, paramsString);
     }

@@ -162,7 +162,6 @@ void BaseGraphTest::createDBAndConn() {
     }
     database = std::make_unique<main::Database>(databasePath, *systemConfig);
     conn = std::make_unique<main::Connection>(database.get());
-    spdlog::set_level(spdlog::level::info);
 }
 
 void BaseGraphTest::initGraph() {

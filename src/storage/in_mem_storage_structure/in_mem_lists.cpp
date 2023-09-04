@@ -1,7 +1,7 @@
 #include "storage/in_mem_storage_structure/in_mem_lists.h"
 
-#include "storage/copier/rel_copier.h"
 #include "storage/copier/table_copy_utils.h"
+#include "storage/in_mem_storage_structure/in_mem_column_chunk.h"
 
 using namespace kuzu::common;
 
@@ -20,10 +20,10 @@ PageElementCursor InMemLists::calcPageElementCursor(
     return cursor;
 }
 
-InMemLists::InMemLists(std::string fName, LogicalType dataType, uint64_t numBytesForElement,
-    uint64_t numNodes, const CopyDescription* copyDescription, bool hasNullBytes)
+InMemLists::InMemLists(std::string fName, uint64_t numBytesForElement, LogicalType dataType,
+    uint64_t numNodes, std::unique_ptr<CopyDescription> copyDescription, bool hasNullBytes)
     : fName{std::move(fName)}, dataType{std::move(dataType)},
-      numBytesForElement{numBytesForElement}, copyDescription{copyDescription} {
+      numBytesForElement{numBytesForElement}, copyDescription{std::move(copyDescription)} {
     listsMetadataBuilder = make_unique<ListsMetadataBuilder>(this->fName);
     auto numChunks = StorageUtils::getListChunkIdx(numNodes);
     if (0 != (numNodes & (ListsMetadataConstants::LISTS_CHUNK_SIZE - 1))) {
@@ -324,9 +324,9 @@ void InMemAdjLists::saveToFile() {
 
 InMemListsWithOverflow::InMemListsWithOverflow(std::string fName, LogicalType dataType,
     uint64_t numNodes, std::shared_ptr<ListHeadersBuilder> listHeadersBuilder,
-    const CopyDescription* copyDescription)
-    : InMemLists{std::move(fName), std::move(dataType),
-          storage::StorageUtils::getDataTypeSize(dataType), numNodes, copyDescription, true},
+    std::unique_ptr<CopyDescription> copyDescription)
+    : InMemLists{std::move(fName), StorageUtils::getDataTypeSize(dataType), std::move(dataType),
+          numNodes, std::move(copyDescription), true},
       blobBuffer{std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_4KB_SIZE)} {
     assert(this->dataType.getLogicalTypeID() == LogicalTypeID::STRING ||
            this->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST);
@@ -427,7 +427,8 @@ void InMemListsWithOverflow::saveToFile() {
 }
 
 std::unique_ptr<InMemLists> InMemListsFactory::getInMemPropertyLists(const std::string& fName,
-    const LogicalType& dataType, uint64_t numNodes, const CopyDescription* copyDescription,
+    const LogicalType& dataType, uint64_t numNodes,
+    std::unique_ptr<CopyDescription> copyDescription,
     std::shared_ptr<ListHeadersBuilder> listHeadersBuilder) {
     switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::INT64:
@@ -442,13 +443,13 @@ std::unique_ptr<InMemLists> InMemListsFactory::getInMemPropertyLists(const std::
     case LogicalTypeID::FIXED_LIST:
         return make_unique<InMemLists>(fName, dataType,
             storage::StorageUtils::getDataTypeSize(dataType), numNodes,
-            std::move(listHeadersBuilder), copyDescription, true /* hasNULLBytes */);
+            std::move(listHeadersBuilder), std::move(copyDescription), true /* hasNULLBytes */);
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING:
         return make_unique<InMemStringLists>(fName, numNodes, std::move(listHeadersBuilder));
     case LogicalTypeID::VAR_LIST:
         return make_unique<InMemListLists>(
-            fName, dataType, numNodes, std::move(listHeadersBuilder), copyDescription);
+            fName, dataType, numNodes, std::move(listHeadersBuilder), std::move(copyDescription));
     case LogicalTypeID::INTERNAL_ID:
         return make_unique<InMemRelIDLists>(fName, numNodes, std::move(listHeadersBuilder));
     default:

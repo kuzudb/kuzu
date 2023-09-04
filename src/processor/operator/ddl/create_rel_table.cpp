@@ -2,6 +2,7 @@
 
 #include "common/string_utils.h"
 
+using namespace kuzu::catalog;
 using namespace kuzu::common;
 
 namespace kuzu {

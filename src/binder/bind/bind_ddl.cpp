@@ -120,7 +120,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateRdfGraphClause(
         StatementType::CREATE_RDF_GRAPH, rdfGraphName, std::move(boundCreateInfo));
 }
 
-std::unique_ptr<BoundStatement> Binder::bindDropTableClause(const parser::Statement& statement) {
+std::unique_ptr<BoundStatement> Binder::bindDropTableClause(const Statement& statement) {
     auto& dropTable = (DropTable&)statement;
     auto tableName = dropTable.getTableName();
     validateTableExist(catalog, tableName);
@@ -132,7 +132,7 @@ std::unique_ptr<BoundStatement> Binder::bindDropTableClause(const parser::Statem
     return make_unique<BoundDropTable>(tableID, tableName);
 }
 
-std::unique_ptr<BoundStatement> Binder::bindRenameTableClause(const parser::Statement& statement) {
+std::unique_ptr<BoundStatement> Binder::bindRenameTableClause(const Statement& statement) {
     auto renameTable = (RenameTable&)statement;
     auto tableName = renameTable.getTableName();
     auto catalogContent = catalog.getReadOnlyVersion();
@@ -144,7 +144,7 @@ std::unique_ptr<BoundStatement> Binder::bindRenameTableClause(const parser::Stat
         catalogContent->getTableID(tableName), tableName, renameTable.getNewName());
 }
 
-std::unique_ptr<BoundStatement> Binder::bindAddPropertyClause(const parser::Statement& statement) {
+std::unique_ptr<BoundStatement> Binder::bindAddPropertyClause(const Statement& statement) {
     auto& addProperty = (AddProperty&)statement;
     auto tableName = addProperty.getTableName();
     validateTableExist(catalog, tableName);
@@ -163,7 +163,7 @@ std::unique_ptr<BoundStatement> Binder::bindAddPropertyClause(const parser::Stat
         tableID, addProperty.getPropertyName(), std::move(dataType), defaultVal, tableName);
 }
 
-std::unique_ptr<BoundStatement> Binder::bindDropPropertyClause(const parser::Statement& statement) {
+std::unique_ptr<BoundStatement> Binder::bindDropPropertyClause(const Statement& statement) {
     auto& dropProperty = (DropProperty&)statement;
     auto tableName = dropProperty.getTableName();
     validateTableExist(catalog, tableName);
@@ -171,15 +171,14 @@ std::unique_ptr<BoundStatement> Binder::bindDropPropertyClause(const parser::Sta
     auto tableID = catalogContent->getTableID(tableName);
     auto tableSchema = catalogContent->getTableSchema(tableID);
     auto propertyID = bindPropertyName(tableSchema, dropProperty.getPropertyName());
-    if (tableSchema->getTableType() == catalog::TableType::NODE &&
+    if (tableSchema->getTableType() == TableType::NODE &&
         reinterpret_cast<NodeTableSchema*>(tableSchema)->getPrimaryKeyPropertyID() == propertyID) {
         throw BinderException("Cannot drop primary key of a node table.");
     }
     return make_unique<BoundDropProperty>(tableID, propertyID, tableName);
 }
 
-std::unique_ptr<BoundStatement> Binder::bindRenamePropertyClause(
-    const parser::Statement& statement) {
+std::unique_ptr<BoundStatement> Binder::bindRenamePropertyClause(const Statement& statement) {
     auto& renameProperty = (RenameProperty&)statement;
     auto tableName = renameProperty.getTableName();
     validateTableExist(catalog, tableName);

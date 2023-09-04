@@ -293,6 +293,7 @@ void ValueVector::initializeValueBuffer() {
 
 void ArrowColumnVector::setArrowColumn(
     ValueVector* vector, std::shared_ptr<arrow::ChunkedArray> column) {
+    assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::ARROW_COLUMN);
     auto arrowColumnBuffer =
         reinterpret_cast<ArrowColumnAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
     arrowColumnBuffer->column = std::move(column);

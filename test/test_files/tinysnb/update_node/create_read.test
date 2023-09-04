@@ -1,4 +1,4 @@
--GROUP TinySnbUpdateTest
+-GROUP TinySnbUpdateNodeTest
 -DATASET CSV tinysnb
 
 --

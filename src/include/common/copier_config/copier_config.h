@@ -53,6 +53,7 @@ struct CopyDescription {
     }
 
     inline std::unique_ptr<CopyDescription> copy() const {
+        assert(this);
         return std::make_unique<CopyDescription>(*this);
     }
 

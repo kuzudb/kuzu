@@ -3,6 +3,8 @@ add_library(kuzu_processor_operator_persistent
         copy.cpp
         copy_node.cpp
         copy_rel.cpp
+        copy_rel_columns.cpp
+        copy_rel_lists.cpp
         copy_to.cpp
         csv_file_writer.cpp
         delete.cpp
@@ -11,6 +13,7 @@ add_library(kuzu_processor_operator_persistent
         insert_executor.cpp
         merge.cpp
         reader.cpp
+        reader_state.cpp
         set.cpp
         set_executor.cpp)
 

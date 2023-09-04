@@ -36,9 +36,7 @@ public:
     RelsStatistics() : TablesStatistics{} {};
     // Should be used when an already loaded database is started from a directory.
     explicit RelsStatistics(const std::string& directory) : TablesStatistics{} {
-        logger->info("Initializing {}.", "RelsStatistics");
         readFromFile(directory);
-        logger->info("Initialized {}.", "RelsStatistics");
     }
 
     // Should only be used by tests.

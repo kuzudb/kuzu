@@ -2,7 +2,6 @@
 
 #include "common/constants.h"
 #include "common/string_utils.h"
-#include "spdlog/spdlog.h"
 
 using namespace kuzu::common;
 

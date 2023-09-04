@@ -11,32 +11,42 @@
 namespace kuzu {
 namespace binder {
 
-class BoundCopyFrom : public BoundStatement {
-public:
-    BoundCopyFrom(std::unique_ptr<common::CopyDescription> copyDescription,
-        catalog::TableSchema* tableSchema, expression_vector columnExpressions,
-        std::shared_ptr<Expression> nodeOffsetExpression, bool preservingOrder_)
-        : BoundStatement{common::StatementType::COPY_FROM,
-              BoundStatementResult::createSingleStringColumnResult()},
-          copyDescription{std::move(copyDescription)}, tableSchema{tableSchema},
-          columnExpressions{std::move(columnExpressions)},
-          nodeOffsetExpression{std::move(nodeOffsetExpression)}, preservingOrder_{
-                                                                     preservingOrder_} {}
-
-    inline common::CopyDescription* getCopyDescription() const { return copyDescription.get(); }
-    inline catalog::TableSchema* getTableSchema() const { return tableSchema; }
-    inline expression_vector getColumnExpressions() const { return columnExpressions; }
-    inline std::shared_ptr<Expression> getNodeOffsetExpression() const {
-        return nodeOffsetExpression;
-    }
-    inline bool preservingOrder() const { return preservingOrder_; }
-
-private:
-    std::unique_ptr<common::CopyDescription> copyDescription;
+struct BoundCopyFromInfo {
+    std::unique_ptr<common::CopyDescription> copyDesc;
     catalog::TableSchema* tableSchema;
     expression_vector columnExpressions;
-    std::shared_ptr<Expression> nodeOffsetExpression;
-    bool preservingOrder_;
+    std::shared_ptr<Expression> offsetExpression;
+    // `boundOffsetExpression` and `nbrOffsetExpression` are for rel tables only.
+    std::shared_ptr<Expression> boundOffsetExpression;
+    std::shared_ptr<Expression> nbrOffsetExpression;
+
+    bool preservingOrder;
+
+    BoundCopyFromInfo(std::unique_ptr<common::CopyDescription> copyDesc,
+        catalog::TableSchema* tableSchema, expression_vector columnExpressions,
+        std::shared_ptr<Expression> offsetExpression,
+        std::shared_ptr<Expression> boundOffsetExpression,
+        std::shared_ptr<Expression> nbrOffsetExpression, bool preservingOrder)
+        : copyDesc{std::move(copyDesc)}, tableSchema{tableSchema}, columnExpressions{std::move(
+                                                                       columnExpressions)},
+          offsetExpression{std::move(offsetExpression)}, boundOffsetExpression{std::move(
+                                                             boundOffsetExpression)},
+          nbrOffsetExpression{std::move(nbrOffsetExpression)}, preservingOrder{preservingOrder} {}
+
+    std::unique_ptr<BoundCopyFromInfo> copy();
+};
+
+class BoundCopyFrom : public BoundStatement {
+public:
+    explicit BoundCopyFrom(std::unique_ptr<BoundCopyFromInfo> info)
+        : BoundStatement{common::StatementType::COPY_FROM,
+              BoundStatementResult::createSingleStringColumnResult()},
+          info{std::move(info)} {}
+
+    inline BoundCopyFromInfo* getInfo() const { return info.get(); }
+
+private:
+    std::unique_ptr<BoundCopyFromInfo> info;
 };
 
 } // namespace binder
