@@ -15,9 +15,9 @@ namespace processor {
 //   - calculate the max definition levels and number of primitive nodes
 //   - initialize parquetColumnWriter
 // writeValues : take a vector of ValueVector and pass to parquetColumnWriter
-class ParquetWriter : public CSVParquetWriter {
+class ParquetFileWriter : public CSVParquetWriter {
 public:
-    ParquetWriter(){};
+    ParquetFileWriter(){};
     void openFile(const std::string& filePath) override;
     void init() override;
     void closeFile() override;

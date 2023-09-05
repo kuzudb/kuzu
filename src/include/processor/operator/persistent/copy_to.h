@@ -4,7 +4,7 @@
 #include "common/task_system/task_scheduler.h"
 #include "processor/operator/persistent/csv_file_writer.h"
 #include "processor/operator/persistent/csv_parquet_writer.h"
-#include "processor/operator/persistent/parquet_writer.h"
+#include "processor/operator/persistent/parquet_file_writer.h"
 #include "processor/operator/physical_operator.h"
 #include "processor/operator/sink.h"
 #include "processor/result/result_set.h"
@@ -16,11 +16,11 @@ class CSVParquetWriterSharedState {
 public:
     CSVParquetWriterSharedState(common::CopyDescription::FileType fileType) {
         if (fileType == common::CopyDescription::FileType::CSV) {
-            fileWriter = std::make_unique<kuzu::processor::CSVWriter>();
+            fileWriter = std::make_unique<kuzu::processor::CSVFileWriter>();
         } else if (fileType == common::CopyDescription::FileType::PARQUET) {
-            fileWriter = std::make_unique<kuzu::processor::ParquetWriter>();
+            fileWriter = std::make_unique<kuzu::processor::ParquetFileWriter>();
         } else {
-            common::NotImplementedException(
+            throw common::NotImplementedException(
                 "CSVParquetWriterSharedState::CSVParquetWriterSharedState");
         }
     }

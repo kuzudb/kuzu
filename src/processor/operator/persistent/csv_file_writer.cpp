@@ -17,15 +17,15 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void CSVWriter::openFile(const std::string& filePath) {
+void CSVFileWriter::openFile(const std::string& filePath) {
     fileInfo = FileUtils::openFile(filePath, O_WRONLY | O_CREAT | O_TRUNC);
 }
 
-void CSVWriter::init() {
+void CSVFileWriter::init() {
     writeHeader(getColumnNames());
 }
 
-void CSVWriter::writeHeader(const std::vector<std::string>& columnNames) {
+void CSVFileWriter::writeHeader(const std::vector<std::string>& columnNames) {
     if (columnNames.size() == 0) {
         return;
     }
@@ -38,7 +38,7 @@ void CSVWriter::writeHeader(const std::vector<std::string>& columnNames) {
     flush();
 }
 
-void CSVWriter::writeValues(std::vector<common::ValueVector*>& outputVectors) {
+void CSVFileWriter::writeValues(std::vector<common::ValueVector*>& outputVectors) {
     if (outputVectors.size() == 0) {
         return;
     }
@@ -54,7 +54,7 @@ void CSVWriter::writeValues(std::vector<common::ValueVector*>& outputVectors) {
 }
 
 template<typename T>
-void CSVWriter::writeToBuffer(common::ValueVector* vector, bool escapeStringValue) {
+void CSVFileWriter::writeToBuffer(common::ValueVector* vector, bool escapeStringValue) {
     auto selPos = vector->state->selVector->selectedPositions[0];
     auto value = TypeUtils::toString(vector->getValue<T>(selPos));
     if (escapeStringValue) {
@@ -64,7 +64,7 @@ void CSVWriter::writeToBuffer(common::ValueVector* vector, bool escapeStringValu
 }
 
 template<typename T>
-void CSVWriter::writeListToBuffer(common::ValueVector* vector) {
+void CSVFileWriter::writeListToBuffer(common::ValueVector* vector) {
     // vectors are always flat
     auto selPos = vector->state->selVector->selectedPositions[0];
     auto value = TypeUtils::toString(vector->getValue<T>(selPos), vector);
@@ -72,12 +72,12 @@ void CSVWriter::writeListToBuffer(common::ValueVector* vector) {
     writeToBuffer(value);
 }
 
-void CSVWriter::escapeString(std::string& value) {
+void CSVFileWriter::escapeString(std::string& value) {
     StringUtils::replaceAll(value, "\"", "\"\"");
     value = "\"" + value + "\"";
 }
 
-void CSVWriter::writeValue(common::ValueVector* vector) {
+void CSVFileWriter::writeValue(common::ValueVector* vector) {
     switch (vector->dataType.getLogicalTypeID()) {
     case LogicalTypeID::BOOL:
         return writeToBuffer<int8_t>(vector);
@@ -113,7 +113,7 @@ void CSVWriter::writeValue(common::ValueVector* vector) {
     }
 }
 
-void CSVWriter::flush() {
+void CSVFileWriter::flush() {
     const std::string str = buffer.str();
     FileUtils::writeToFile(fileInfo.get(), (uint8_t*)str.data(), str.size(), fileOffset);
     fileOffset += str.size();

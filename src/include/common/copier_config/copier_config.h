@@ -37,6 +37,11 @@ struct CSVReaderConfig {
 
 struct CopyDescription {
     enum class FileType : uint8_t { UNKNOWN = 0, CSV = 1, PARQUET = 2, NPY = 3, TURTLE = 4 };
+    FileType fileType;
+    std::vector<std::string> filePaths;
+    std::vector<std::string> columnNames;
+    std::vector<common::LogicalType> columnTypes;
+    std::unique_ptr<CSVReaderConfig> csvReaderConfig;
 
     CopyDescription(FileType fileType, const std::vector<std::string>& filePaths,
         std::unique_ptr<CSVReaderConfig> csvReaderConfig)
@@ -65,12 +70,6 @@ struct CopyDescription {
     static FileType getFileTypeFromExtension(const std::string& extension);
 
     static std::string getFileTypeName(FileType fileType);
-
-    const std::vector<std::string> filePaths;
-    const std::vector<std::string> columnNames;
-    const std::vector<common::LogicalType> columnTypes;
-    std::unique_ptr<CSVReaderConfig> csvReaderConfig;
-    FileType fileType;
 };
 
 } // namespace common

@@ -1,11 +1,11 @@
-#include "processor/operator/copy_to/parquet_writer.h"
+#include "processor/operator/persistent/parquet_file_writer.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace processor {
 
-void ParquetWriter::openFile(const std::string& filePath) {
+void ParquetFileWriter::openFile(const std::string& filePath) {
     auto result = arrow::io::FileOutputStream::Open(filePath);
     if (!result.ok()) {
         throw std::runtime_error(result.status().ToString());
@@ -13,7 +13,7 @@ void ParquetWriter::openFile(const std::string& filePath) {
     outFile = *result;
 }
 
-void ParquetWriter::init() {
+void ParquetFileWriter::init() {
     std::shared_ptr<parquet::schema::GroupNode> schema;
     std::unordered_map<int, ParquetColumnDescriptor> columnDescriptors;
     generateSchema(schema, columnDescriptors);
@@ -32,7 +32,7 @@ void ParquetWriter::init() {
     parquetColumnWriter = std::make_shared<ParquetColumnWriter>(columnDescriptors);
 }
 
-void ParquetWriter::generateSchema(std::shared_ptr<parquet::schema::GroupNode>& schema,
+void ParquetFileWriter::generateSchema(std::shared_ptr<parquet::schema::GroupNode>& schema,
     std::unordered_map<int, ParquetColumnDescriptor>& columnDescriptors) {
     parquet::schema::NodeVector fields;
     for (auto i = 0u; i < getColumnNames().size(); ++i) {
@@ -61,7 +61,7 @@ void ParquetWriter::generateSchema(std::shared_ptr<parquet::schema::GroupNode>& 
 // DOUBLE: IEEE 64-bit floating point values
 // BYTE_ARRAY: arbitrarily long byte arrays.
 // https://github.com/apache/parquet-cpp/blob/master/src/parquet/column_writer.h
-std::shared_ptr<parquet::schema::Node> ParquetWriter::kuzuTypeToParquetType(
+std::shared_ptr<parquet::schema::Node> ParquetFileWriter::kuzuTypeToParquetType(
     ParquetColumnDescriptor& columnDescriptor, std::string& columnName,
     const LogicalType& logicalType, parquet::Repetition::type repetition, int length) {
     parquet::Type::type parquetType;
@@ -152,13 +152,13 @@ std::shared_ptr<parquet::schema::Node> ParquetWriter::kuzuTypeToParquetType(
         return optional;
     } break;
     default:
-        throw NotImplementedException("ParquetWriter::kuzuTypeToParquetType");
+        throw NotImplementedException("ParquetFileWriter::kuzuTypeToParquetType");
     }
     return parquet::schema::PrimitiveNode::Make(
         columnName, repetition, parquetType, convertedType, length);
 }
 
-void ParquetWriter::writeValues(std::vector<ValueVector*>& outputVectors) {
+void ParquetFileWriter::writeValues(std::vector<ValueVector*>& outputVectors) {
     if (outputVectors.size() == 0) {
         return;
     }
@@ -169,7 +169,7 @@ void ParquetWriter::writeValues(std::vector<ValueVector*>& outputVectors) {
     }
 }
 
-void ParquetWriter::closeFile() {
+void ParquetFileWriter::closeFile() {
     rowWriter->Close();
     fileWriter->Close();
     auto status = outFile->Close();

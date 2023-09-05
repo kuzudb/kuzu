@@ -6,9 +6,9 @@
 namespace kuzu {
 namespace processor {
 
-class CSVWriter : public CSVParquetWriter {
+class CSVFileWriter : public CSVParquetWriter {
 public:
-    CSVWriter(){};
+    CSVFileWriter(){};
     void openFile(const std::string& filePath) override;
     void init() override;
     inline void closeFile() override { flush(); }

@@ -1,6 +1,6 @@
-#include "processor/operator/copy_to/parquet_column_writer.h"
+#include "processor/operator/persistent/parquet_column_writer.h"
 
-#include "processor/operator/copy_to/csv_parquet_writer.h"
+#include "processor/operator/persistent/csv_parquet_writer.h"
 
 using namespace kuzu::common;
 
@@ -37,7 +37,7 @@ void ParquetColumnWriter::nextParquetColumn(LogicalTypeID logicalTypeID) {
         byteArrayWriter = static_cast<parquet::ByteArrayWriter*>(rowWriter->NextColumn());
         break;
     default:
-        NotImplementedException("ParquetWriter::nextParquetColumn");
+        throw NotImplementedException("ParquetWriter::nextParquetColumn");
     }
 }
 
@@ -103,7 +103,7 @@ void ParquetColumnWriter::writePrimitiveValue(
         byteArrayWriter->WriteBatch(1, &definitionLevel, &repetitionLevel, &valueToWrite);
     } break;
     default:
-        NotImplementedException("ParquetWriter::writePrimitiveValue");
+        throw NotImplementedException("ParquetWriter::writePrimitiveValue");
     }
 }
 
