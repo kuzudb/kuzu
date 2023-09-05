@@ -3,7 +3,7 @@
 
 --
 
--CASE List>List
+-CASE ListList
 
 -STATEMENT CREATE NODE TABLE Nested(id int64,
                                     list int64[],
@@ -18,7 +18,7 @@
 ---- 1
 [1,2,3,4]|[[1.000000,2.000000],[3.000000,4.080000],[8891.999900],[5.100000,6.884000,7.120000,8.000000]]
 
--CASE Struct>Struct>Struct>List
+-CASE StructStructStructList
 
 -STATEMENT CREATE NODE TABLE Nested(id int64, field struct (a struct(b struct(c boolean[])), d struct(e struct(f int64[]))), primary key(id));
 ---- ok
@@ -30,7 +30,7 @@
 ---- 1
 {a: {b: {c: [True,False,False]}}, d: {e: {f: [3,4]}}}
 
--CASE Struct>List
+-CASE StructList
 
 -STATEMENT CREATE NODE TABLE Nested(id int64, field struct(first date[], second string[]), primary key(id));
 ---- ok
@@ -42,7 +42,7 @@
 ---- 1
 {first: [1985-08-19,2023-05-01,2023-08-31,2087-09-04], second: [list,of,strings]}
 
--CASE Struct>Struct
+-CASE StructStruct
 
 -STATEMENT CREATE NODE TABLE Nested(id int64, field struct(   a struct( b int64, c int64  ), d struct(b int64, c int64)     ), primary key(id));
 ---- ok
@@ -54,7 +54,7 @@
 ---- 1
 {a: {b: 1, c: 2}, d: {b: 3, c: 4}}
 
--CASE List>FiveLists>List
+-CASE ListFiveListsList
 
 -STATEMENT CREATE NODE TABLE Nested(id int64, field int64[][][][][][], field2 int64[][][], primary key(id));
 ---- ok
@@ -66,7 +66,7 @@
 ---- 1
 [[[[[[0,1]],[[2,3]]]]]]|[[[1]],[[2],[6]],[[3,4,8],[9]],[[5]]]
 
--CASE List>Struct>List
+-CASE ListStructList
 -STATEMENT CREATE NODE TABLE Nested(id string,
                                     field struct(a double[])[],
                                     field2 struct(s string)[],
