@@ -1,0 +1,72 @@
+name: CI-Ubuntu-20.04-LTS
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  gcc-rust-build-test:
+    name: gcc & rust build & test
+    runs-on: ubuntu-20.04
+    env:
+      # Share build cache when building rust API and the example project
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
+      CARGO_BUILD_JOBS: 32
+      CC: gcc
+      CXX: g++
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Ensure Python dependencies
+        run: |
+          pip install torch~=1.13 --extra-index-url https://download.pytorch.org/whl/cpu &&\
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-1.13.0+cpu.html
+      
+      - name: Ensure Node.js dependencies
+        run: npm install --include=dev
+        working-directory: tools/nodejs_api
+
+      - name: Test with coverage
+        run: CC=gcc CXX=g++ make lcov NUM_THREADS=32
+
+      - name: Python test
+        run: CC=gcc CXX=g++ make pytest NUM_THREADS=32
+      
+      - name: Node.js test
+        run: CC=gcc CXX=g++ make nodejstest NUM_THREADS=32
+
+      - name: Java test
+        run: CC=gcc CXX=g++ make javatest NUM_THREADS=32
+
+      - name: Generate coverage report
+        run: |
+          lcov -c -d ./ --no-external -o cover.info &&\
+          lcov --remove cover.info $(< .github/workflows/lcov_exclude) -o cover.info
+
+      - name: C Example
+        working-directory: examples/c
+        run: |
+          mkdir build -p
+          cd build
+          CC=gcc CXX=g++ cmake ..
+          cmake --build .
+
+      - name: C++ Example
+        working-directory: examples/cpp
+        run: |
+          mkdir build -p
+          cd build
+          CC=gcc CXX=g++ cmake ..
+          cmake --build .
+
+      - name: Rust test
+        working-directory: tools/rust_api
+        run: |
+          cargo update -p half@2.3.1 --precise '2.2.1'
+          cargo update -p time --precise '0.3.23'
+          cargo test --features arrow -- --test-threads=1
+
+      - name: Rust example
+        working-directory: examples/rust
+        run: cargo build
