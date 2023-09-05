@@ -14,13 +14,7 @@ public:
     LogicalCopyFrom(std::unique_ptr<binder::BoundCopyFromInfo> info,
         std::shared_ptr<binder::Expression> outputExpression)
         : LogicalOperator{LogicalOperatorType::COPY_FROM}, info{std::move(info)},
-          outputExpression{std::move(outputExpression)} {
-        assert((this->info->tableSchema->tableType == common::TableType::REL &&
-                   this->info->boundOffsetExpression && this->info->nbrOffsetExpression) ||
-               (this->info->tableSchema->tableType == common::TableType::NODE &&
-                   (this->info->boundOffsetExpression == nullptr) &&
-                   (this->info->nbrOffsetExpression == nullptr)));
-    }
+          outputExpression{std::move(outputExpression)} {}
 
     inline std::string getExpressionsForPrinting() const override {
         return info->tableSchema->tableName;

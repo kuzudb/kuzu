@@ -20,18 +20,18 @@ struct BoundCopyFromInfo {
     std::shared_ptr<Expression> boundOffsetExpression;
     std::shared_ptr<Expression> nbrOffsetExpression;
 
-    bool preservingOrder;
+    bool containsSerial;
 
     BoundCopyFromInfo(std::unique_ptr<common::CopyDescription> copyDesc,
         catalog::TableSchema* tableSchema, expression_vector columnExpressions,
         std::shared_ptr<Expression> offsetExpression,
         std::shared_ptr<Expression> boundOffsetExpression,
-        std::shared_ptr<Expression> nbrOffsetExpression, bool preservingOrder)
+        std::shared_ptr<Expression> nbrOffsetExpression, bool containsSerial)
         : copyDesc{std::move(copyDesc)}, tableSchema{tableSchema}, columnExpressions{std::move(
                                                                        columnExpressions)},
           offsetExpression{std::move(offsetExpression)}, boundOffsetExpression{std::move(
                                                              boundOffsetExpression)},
-          nbrOffsetExpression{std::move(nbrOffsetExpression)}, preservingOrder{preservingOrder} {}
+          nbrOffsetExpression{std::move(nbrOffsetExpression)}, containsSerial{containsSerial} {}
 
     std::unique_ptr<BoundCopyFromInfo> copy();
 };

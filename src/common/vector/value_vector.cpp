@@ -299,6 +299,12 @@ void ArrowColumnVector::setArrowColumn(
     arrowColumnBuffer->column = std::move(column);
 }
 
+void ArrowColumnVector::slice(ValueVector* vector, offset_t offset) {
+    auto arrowColumnBuffer =
+        reinterpret_cast<ArrowColumnAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
+    setArrowColumn(vector, arrowColumnBuffer->column->Slice((int64_t)offset));
+}
+
 template void ValueVector::setValue<nodeID_t>(uint32_t pos, nodeID_t val);
 template void ValueVector::setValue<bool>(uint32_t pos, bool val);
 template void ValueVector::setValue<int64_t>(uint32_t pos, int64_t val);

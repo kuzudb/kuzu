@@ -6,13 +6,13 @@
 -CASE CopyNodeTest
 
 -LOG SubsetTest
--STATEMENT MATCH (row:tableOfTypes) WHERE row.id >= 20 AND row.id <= 24 RETURN *;
+-STATEMENT MATCH (row:tableOfTypes) WHERE row.id >= 20 AND row.id <= 24 RETURN row.*;
 ---- 5
-{_ID: 0:20, _LABEL: tableOfTypes, id: 20, int64Column: 0, doubleColumn: 57.579280, booleanColumn: True, dateColumn: 1731-09-26, timestampColumn: 1731-09-26 03:30:08, stringColumn: OdM, listOfInt: [93,,86,37]}
-{_ID: 0:21, _LABEL: tableOfTypes, id: 21, int64Column: 7, doubleColumn: 64.630960, booleanColumn: False, dateColumn: 1307-01-26, timestampColumn: 1307-01-26 03:31:08, stringColumn: AjbxHQThEtDDlOjbzMjCQSXlvGQEjcFLykESrnFHwPKX, listOfInt: []}
-{_ID: 0:22, _LABEL: tableOfTypes, id: 22, int64Column: 71, doubleColumn: 37.963386, booleanColumn: True, dateColumn: 1455-07-26, timestampColumn: 1455-07-26 03:07:03, stringColumn: dRvHHdyNXYfSUcicaxBoQEKQUfgex, listOfInt: [72,,45,,81]}
-{_ID: 0:23, _LABEL: tableOfTypes, id: 23, int64Column: 58, doubleColumn: 42.774957, booleanColumn: False, dateColumn: 1181-10-16, timestampColumn: 1181-10-16 18:19:43, stringColumn: ISImRVpUjynGMFRQyYmeIUVjM}
-{_ID: 0:24, _LABEL: tableOfTypes, id: 24, int64Column: 75, doubleColumn: 53.813224, booleanColumn: False, dateColumn: 1942-10-24, timestampColumn: 1942-10-24 09:30:16, stringColumn: naDlQ, listOfInt: [97,91,28,26,]}
+20|0|57.579280|True|1731-09-26|1731-09-26 03:30:08|OdM|[93,,86,37]
+21|7|64.630960|False|1307-01-26|1307-01-26 03:31:08|AjbxHQThEtDDlOjbzMjCQSXlvGQEjcFLykESrnFHwPKX|[]
+22|71|37.963386|True|1455-07-26|1455-07-26 03:07:03|dRvHHdyNXYfSUcicaxBoQEKQUfgex|[72,,45,,81]
+23|58|42.774957|False|1181-10-16|1181-10-16 18:19:43|ISImRVpUjynGMFRQyYmeIUVjM|
+24|75|53.813224|False|1942-10-24|1942-10-24 09:30:16|naDlQ|[97,91,28,26,]
 
 -LOG CheckNumLinesTest
 -STATEMENT MATCH (row:tableOfTypes) RETURN count(*)
@@ -35,9 +35,9 @@
 1249925001|2500180|2504542.349696
 
 -LOG EmptyStringTest
--STATEMENT MATCH (row:tableOfTypes) WHERE row.id = 49992 RETURN *;
+-STATEMENT MATCH (row:tableOfTypes) WHERE row.id = 49992 RETURN row.*;
 ---- 1
-{_ID: 0:49992, _LABEL: tableOfTypes, id: 49992, int64Column: 50, doubleColumn: 31.582059, booleanColumn: False, dateColumn: 1551-07-19, timestampColumn: 1551-07-19 16:28:31, listOfInt: [5,67,66]}
+49992|50|31.582059|False|1551-07-19|1551-07-19 16:28:31||[5,67,66]
 
 -LOG FloatTest
 -STATEMENT MATCH (row:tableOfTypes) WHERE row.doubleColumn = 68.73718401556897 RETURN row.dateColumn;
@@ -45,9 +45,9 @@
 1042-06-05
 
 -LOG DateTest
--STATEMENT MATCH (row:tableOfTypes) WHERE row.id = 25531 RETURN *;
+-STATEMENT MATCH (row:tableOfTypes) WHERE row.id = 25531 RETURN row.*;
 ---- 1
-{_ID: 0:25531, _LABEL: tableOfTypes, id: 25531, int64Column: 77, doubleColumn: 28.417543, booleanColumn: False, dateColumn: 1895-03-13, timestampColumn: 1895-03-13 04:31:22, stringColumn: XB, listOfInt: [9,66,0,15]}
+25531|77|28.417543|False|1895-03-13|1895-03-13 04:31:22|XB|[9,66,0,15]
 
 -LOG IntervalTest
 -STATEMENT MATCH (row:tableOfTypes) WHERE 0 <= row.doubleColumn AND row.doubleColumn <= 10 AND 0 <= row.int64Column AND row.int64Column <= 10 RETURN count(*);

@@ -58,7 +58,7 @@ struct CopyNodeInfo {
     storage::RelsStore* relsStore;
     catalog::Catalog* catalog;
     storage::WAL* wal;
-    bool orderPreserving;
+    bool containsSerial;
 };
 
 class CopyNode : public Sink {
@@ -80,7 +80,10 @@ public:
 
     void executeInternal(ExecutionContext* context) final;
 
-    void finalize(ExecutionContext* context) final;
+    static void sliceDataChunk(const common::DataChunk& dataChunk,
+        const std::vector<DataPos>& dataColumnPoses, common::offset_t offset);
+
+    void finalize(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<CopyNode>(sharedState, copyNodeInfo, resultSetDescriptor->copy(),

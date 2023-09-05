@@ -54,7 +54,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
     // Map reader.
     auto reader = createReader(copyFromInfo->copyDesc.get(), copyFromInfo->tableSchema,
         copyFrom->getSchema(), copyFromInfo->columnExpressions, copyFromInfo->offsetExpression,
-        copyFromInfo->preservingOrder);
+        copyFromInfo->containsSerial);
     auto readerOp = reinterpret_cast<Reader*>(reader.get());
     auto readerInfo = readerOp->getReaderInfo();
     auto nodeTable = storageManager.getNodesStore().getNodeTable(tableSchema->tableID);
@@ -64,7 +64,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
             tableSchema, nodeTable, *copyFromInfo->copyDesc, memoryManager);
     CopyNodeInfo copyNodeDataInfo{readerInfo->dataColumnsPos, readerInfo->nodeOffsetPos,
         *copyFromInfo->copyDesc, nodeTable, &storageManager.getRelsStore(), catalog,
-        storageManager.getWAL(), copyFromInfo->preservingOrder};
+        storageManager.getWAL(), copyFromInfo->containsSerial};
     auto copyNode = std::make_unique<CopyNode>(copyNodeSharedState, copyNodeDataInfo,
         std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), std::move(reader),
         getOperatorID(), copyFrom->getExpressionsForPrinting());
@@ -102,7 +102,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRelColumnsOrLists(
     auto tableSchema = reinterpret_cast<RelTableSchema*>(copyFromInfo->tableSchema);
     auto reader = createReader(copyFromInfo->copyDesc.get(), copyFromInfo->tableSchema, outFSchema,
         copyFromInfo->columnExpressions, copyFromInfo->offsetExpression,
-        copyFromInfo->preservingOrder);
+        copyFromInfo->containsSerial);
     auto readerOp = reinterpret_cast<Reader*>(reader.get());
     auto readerInfo = readerOp->getReaderInfo();
     auto offsetDataPos = DataPos{outFSchema->getExpressionPos(*copyFromInfo->offsetExpression)};

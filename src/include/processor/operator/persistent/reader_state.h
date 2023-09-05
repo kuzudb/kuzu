@@ -160,6 +160,7 @@ public:
 
 private:
     std::unique_ptr<ReaderMorsel> getMorselOfNextBlock();
+    void readNextBlock(common::DataChunk* dataChunk);
 
 public:
     std::mutex mtx;

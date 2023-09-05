@@ -317,7 +317,7 @@ TEST_F(CreateRelTest, ViolateManyOneMultiplicityError) {
     validateExceptionMessage(
         "MATCH (p1:person), (p2:person) WHERE p1.ID = 11 AND p2.ID = 10 CREATE "
         "(p1)-[:teaches]->(p2);",
-        "Runtime exception: Node(nodeOffset: 11, tableID: 1) in RelTable 4 cannot have more than "
+        "Runtime exception: Node in RelTable 4 cannot have more than "
         "one neighbour in the forward direction.");
 }
 
@@ -325,6 +325,6 @@ TEST_F(CreateRelTest, ViolateOneOneMultiplicityError) {
     conn->beginWriteTransaction();
     validateExceptionMessage("MATCH (a:animal), (p:person) WHERE a.ID = 2 AND p.ID = 10 CREATE "
                              "(a)-[:hasOwner]->(p);",
-        "Runtime exception: Node(nodeOffset: 2, tableID: 0) in RelTable 3 cannot have more than "
+        "Runtime exception: Node in RelTable 3 cannot have more than "
         "one neighbour in the forward direction.");
 }
