@@ -22,12 +22,12 @@ pub(crate) mod ffi {
         INT64 = 23,
         INT32 = 24,
         INT16 = 25,
-        DOUBLE = 26,
-        FLOAT = 27,
-        DATE = 28,
-        TIMESTAMP = 29,
-        INTERVAL = 30,
-        FIXED_LIST = 31,
+        DOUBLE = 27,
+        FLOAT = 28,
+        DATE = 29,
+        TIMESTAMP = 30,
+        INTERVAL = 31,
+        FIXED_LIST = 32,
 
         INTERNAL_ID = 40,
 

@@ -148,6 +148,10 @@ class Database:
             result = np.empty(len(indices) * dim, dtype=np.int16)
             self._database.scan_node_table_as_int16(
                 table_name, prop_name, indices_cast, result, num_threads)
+        if prop_type == Type.INT8.value:
+            result = np.empty(len(indices) * dim, dtype=np.int8)
+            self._database.scan_node_table_as_int8(
+                table_name, prop_name, indices_cast, result, num_threads)
         if prop_type == Type.DOUBLE.value:
             result = np.empty(len(indices) * dim, dtype=np.float64)
             self._database.scan_node_table_as_double(

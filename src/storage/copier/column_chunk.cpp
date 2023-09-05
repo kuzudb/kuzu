@@ -41,6 +41,7 @@ void ColumnChunk::append(common::ValueVector* vector, common::offset_t startPosI
     case PhysicalTypeID::INT64:
     case PhysicalTypeID::INT32:
     case PhysicalTypeID::INT16:
+    case PhysicalTypeID::INT8:
     case PhysicalTypeID::DOUBLE:
     case PhysicalTypeID::FLOAT:
     case PhysicalTypeID::INTERVAL:
@@ -88,6 +89,9 @@ void ColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
 void ColumnChunk::append(
     arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
     switch (array->type_id()) {
+    case arrow::Type::INT8: {
+        templateCopyArrowArray<int8_t>(array, startPosInChunk, numValuesToAppend);
+    } break;
     case arrow::Type::INT16: {
         templateCopyArrowArray<int16_t>(array, startPosInChunk, numValuesToAppend);
     } break;
@@ -143,6 +147,9 @@ void ColumnChunk::write(const Value& val, uint64_t posToWrite) {
     } break;
     case PhysicalTypeID::INT16: {
         setValue(val.getValue<int16_t>(), posToWrite);
+    } break;
+    case PhysicalTypeID::INT8: {
+        setValue(val.getValue<int8_t>(), posToWrite);
     } break;
     case PhysicalTypeID::DOUBLE: {
         setValue(val.getValue<double_t>(), posToWrite);
@@ -458,6 +465,7 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     case PhysicalTypeID::INT64:
     case PhysicalTypeID::INT32:
     case PhysicalTypeID::INT16:
+    case PhysicalTypeID::INT8:
     case PhysicalTypeID::DOUBLE:
     case PhysicalTypeID::FLOAT:
     case PhysicalTypeID::INTERVAL: {

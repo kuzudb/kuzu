@@ -118,6 +118,10 @@ void StructColumnChunk::setValueToStructField(
         fieldChunk->setValueFromString<int16_t>(
             structFieldValue.c_str(), structFieldValue.length(), pos);
     } break;
+    case LogicalTypeID::INT8: {
+        fieldChunk->setValueFromString<int8_t>(
+            structFieldValue.c_str(), structFieldValue.length(), pos);
+    } break;
     case LogicalTypeID::DOUBLE: {
         fieldChunk->setValueFromString<double_t>(
             structFieldValue.c_str(), structFieldValue.length(), pos);

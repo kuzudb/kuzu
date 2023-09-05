@@ -271,7 +271,7 @@ TEST_F(CApiValueTest, GetStructNumFields) {
     ASSERT_TRUE(kuzu_query_result_has_next(result));
     auto flatTuple = kuzu_query_result_get_next(result);
     auto value = kuzu_flat_tuple_get_value(flatTuple, 0);
-    ASSERT_EQ(kuzu_value_get_struct_num_fields(value), 4);
+    ASSERT_EQ(kuzu_value_get_struct_num_fields(value), 5);
 
     kuzu_value_destroy(value);
     kuzu_flat_tuple_destroy(flatTuple);
@@ -291,14 +291,18 @@ TEST_F(CApiValueTest, GetStructFieldName) {
     free(fieldName);
 
     fieldName = kuzu_value_get_struct_field_name(value, 1);
-    ASSERT_STREQ(fieldName, "views");
+    ASSERT_STREQ(fieldName, "stars");
     free(fieldName);
 
     fieldName = kuzu_value_get_struct_field_name(value, 2);
-    ASSERT_STREQ(fieldName, "release");
+    ASSERT_STREQ(fieldName, "views");
     free(fieldName);
 
     fieldName = kuzu_value_get_struct_field_name(value, 3);
+    ASSERT_STREQ(fieldName, "release");
+    free(fieldName);
+
+    fieldName = kuzu_value_get_struct_field_name(value, 4);
     ASSERT_STREQ(fieldName, "film");
     free(fieldName);
 
@@ -325,12 +329,17 @@ TEST_F(CApiValueTest, GetStructFieldValue) {
 
     fieldValue = kuzu_value_get_struct_field_value(value, 1);
     fieldType = kuzu_value_get_data_type(fieldValue);
+    kuzu_data_type_destroy(fieldType);
+    kuzu_value_destroy(fieldValue);
+
+    fieldValue = kuzu_value_get_struct_field_value(value, 2);
+    fieldType = kuzu_value_get_data_type(fieldValue);
     ASSERT_EQ(kuzu_data_type_get_id(fieldType), KUZU_INT64);
     ASSERT_EQ(kuzu_value_get_int64(fieldValue), 10003);
     kuzu_data_type_destroy(fieldType);
     kuzu_value_destroy(fieldValue);
 
-    fieldValue = kuzu_value_get_struct_field_value(value, 2);
+    fieldValue = kuzu_value_get_struct_field_value(value, 3);
     fieldType = kuzu_value_get_data_type(fieldValue);
     ASSERT_EQ(kuzu_data_type_get_id(fieldType), KUZU_TIMESTAMP);
     auto timestamp = kuzu_value_get_timestamp(fieldValue);
@@ -338,7 +347,7 @@ TEST_F(CApiValueTest, GetStructFieldValue) {
     kuzu_data_type_destroy(fieldType);
     kuzu_value_destroy(fieldValue);
 
-    fieldValue = kuzu_value_get_struct_field_value(value, 3);
+    fieldValue = kuzu_value_get_struct_field_value(value, 4);
     fieldType = kuzu_value_get_data_type(fieldValue);
     ASSERT_EQ(kuzu_data_type_get_id(fieldType), KUZU_DATE);
     auto date = kuzu_value_get_date(fieldValue);

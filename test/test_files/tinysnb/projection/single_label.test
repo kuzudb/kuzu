@@ -340,12 +340,12 @@ Dan|Carol
 95
 
 -LOG StudyAtPropertyProjectionTest
--STATEMENT MATCH (a:person)-[e:studyAt]->(b:organisation) RETURN e.year
+-STATEMENT MATCH (a:person)-[e:studyAt]->(b:organisation) RETURN e.year, e.level
 -ENUMERATE
 ---- 3
-2021
-2020
-2020
+2021|5
+2020|120
+2020|2
 
 -LOG RelID1
 -STATEMENT MATCH (a:person)-[r:knows]->(b:person) RETURN id(r)
@@ -493,9 +493,9 @@ Dan|Carol
 -LOG ReturnStruct
 -STATEMENT MATCH (m:movies) RETURN m.description
 ---- 3
-{rating: 1223.000000, views: 10003, release: 2011-02-11 16:44:22, film: 2013-02-22}
-{rating: 5.300000, views: 152, release: 2011-08-20 11:25:30, film: 2012-05-11}
-{rating: 7.000000, views: 982, release: 2018-11-13 13:33:11, film: 2014-09-12}
+{rating: 1223.000000, stars: 100, views: 10003, release: 2011-02-11 16:44:22, film: 2013-02-22}
+{rating: 5.300000, stars: 2, views: 152, release: 2011-08-20 11:25:30, film: 2012-05-11}
+{rating: 7.000000, stars: 10, views: 982, release: 2018-11-13 13:33:11, film: 2014-09-12}
 
 -LOG ReturnStructLiteralWithUnflatFlatChildren
 -STATEMENT MATCH (p:person)-[e:knows]->(p1:person) return {name: p.fName, id: p1.ID, date: e.date}

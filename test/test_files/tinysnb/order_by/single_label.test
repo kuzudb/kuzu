@@ -35,6 +35,14 @@
 22
 55
 
+-LOG OrderByInt8Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.level ORDER BY e.level
+-CHECK_ORDER
+---- 3
+2
+5
+120
+
 -LOG OrderByBooleanTest
 -STATEMENT MATCH (p:person) RETURN p.isStudent ORDER BY p.isStudent desc
 -CHECK_ORDER

@@ -12,6 +12,7 @@ class Type(Enum):
     INT64 = "INT64"
     INT32 = "INT32"
     INT16 = "INT16"
+    INT8 = "INT8"
     DOUBLE = "DOUBLE"
     FLOAT = "FLOAT"
     DATE = "DATE"

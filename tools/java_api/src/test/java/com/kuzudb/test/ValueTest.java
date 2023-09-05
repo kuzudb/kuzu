@@ -748,7 +748,7 @@ public class ValueTest extends TestBase {
         KuzuFlatTuple flatTuple = result.getNext();
         KuzuValue value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
-        assertEquals(KuzuValueStructUtil.getNumFields(value), 4);
+        assertEquals(KuzuValueStructUtil.getNumFields(value), 5);
         value.destroy();
         flatTuple.destroy();
         result.destroy();
@@ -765,9 +765,9 @@ public class ValueTest extends TestBase {
         assertEquals(KuzuValueStructUtil.getIndexByFieldName(value, "NOT_EXIST"), -1);
 
         assertEquals(KuzuValueStructUtil.getIndexByFieldName(value, "rating"), 0);
-        assertEquals(KuzuValueStructUtil.getIndexByFieldName(value, "views"), 1);
-        assertEquals(KuzuValueStructUtil.getIndexByFieldName(value, "release"), 2);
-        assertEquals(KuzuValueStructUtil.getIndexByFieldName(value, "film"), 3);
+        assertEquals(KuzuValueStructUtil.getIndexByFieldName(value, "views"), 2);
+        assertEquals(KuzuValueStructUtil.getIndexByFieldName(value, "release"), 3);
+        assertEquals(KuzuValueStructUtil.getIndexByFieldName(value, "film"), 4);
         value.destroy();
         flatTuple.destroy();
         result.destroy();
@@ -784,9 +784,9 @@ public class ValueTest extends TestBase {
         assertNull(KuzuValueStructUtil.getFieldNameByIndex(value, 1024));
         assertNull(KuzuValueStructUtil.getFieldNameByIndex(value, -1));
         assertEquals(KuzuValueStructUtil.getFieldNameByIndex(value, 0), "rating");
-        assertEquals(KuzuValueStructUtil.getFieldNameByIndex(value, 1), "views");
-        assertEquals(KuzuValueStructUtil.getFieldNameByIndex(value, 2), "release");
-        assertEquals(KuzuValueStructUtil.getFieldNameByIndex(value, 3), "film");
+        assertEquals(KuzuValueStructUtil.getFieldNameByIndex(value, 2), "views");
+        assertEquals(KuzuValueStructUtil.getFieldNameByIndex(value, 3), "release");
+        assertEquals(KuzuValueStructUtil.getFieldNameByIndex(value, 4), "film");
         value.destroy();
         flatTuple.destroy();
         result.destroy();

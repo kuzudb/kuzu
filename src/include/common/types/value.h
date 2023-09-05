@@ -51,6 +51,8 @@ public:
      * @param val_ the int16_t value to set.
      * @return a Value with INT16 type and val_ value.
      */
+    KUZU_API explicit Value(int8_t val_);
+
     KUZU_API explicit Value(int16_t val_);
     /**
      * @param val_ the int32_t value to set.
@@ -200,6 +202,7 @@ public:
         int64_t int64Val;
         int32_t int32Val;
         int16_t int16Val;
+        int8_t int8Val;
         double doubleVal;
         float floatVal;
         interval_t intervalVal;
@@ -364,6 +367,15 @@ inline bool Value::getValue() const {
 }
 
 /**
+ * @return int8 value.
+ */
+KUZU_API template<>
+inline int8_t Value::getValue() const {
+    assert(dataType->getLogicalTypeID() == LogicalTypeID::INT8);
+    return val.int8Val;
+}
+
+/**
  * @return int16 value.
  */
 KUZU_API template<>
@@ -464,6 +476,15 @@ inline bool& Value::getValueReference() {
 }
 
 /**
+ * @return the reference to the int8 value.
+ */
+KUZU_API template<>
+inline int8_t& Value::getValueReference() {
+    assert(dataType->getLogicalTypeID() == LogicalTypeID::INT8);
+    return val.int8Val;
+}
+
+/**
  * @return the reference to the int16 value.
  */
 KUZU_API template<>
@@ -559,6 +580,11 @@ inline std::string& Value::getValueReference() {
  */
 KUZU_API template<>
 inline Value Value::createValue(bool val) {
+    return Value(val);
+}
+
+KUZU_API template<>
+inline Value Value::createValue(int8_t val) {
     return Value(val);
 }
 
