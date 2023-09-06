@@ -82,7 +82,7 @@ bool ListsUpdatesStore::hasUpdates() const {
 void ListsUpdatesStore::readInsertedRelsToList(ListFileID& listFileID,
     std::vector<ft_tuple_idx_t> tupleIdxes, InMemList& inMemList,
     uint64_t numElementsInPersistentStore, DiskOverflowFile* diskOverflowFile,
-    LogicalType dataType) {
+    const LogicalType& dataType) {
     ftOfInsertedRels->copyToInMemList(getColIdxInFT(listFileID), tupleIdxes,
         inMemList.getListData(), inMemList.nullMask.get(), numElementsInPersistentStore,
         diskOverflowFile, dataType);

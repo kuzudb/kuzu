@@ -4,6 +4,7 @@
 #include "common/string_utils.h"
 #include "storage/storage_utils.h"
 
+using namespace kuzu::binder;
 using namespace kuzu::common;
 using namespace kuzu::storage;
 using namespace kuzu::transaction;
@@ -28,11 +29,11 @@ static void assignPropertyIDAndTableID(
     }
 }
 
-table_id_t CatalogContent::addNodeTableSchema(const binder::BoundCreateTableInfo& info) {
+table_id_t CatalogContent::addNodeTableSchema(const BoundCreateTableInfo& info) {
     table_id_t tableID = assignNextTableID();
     auto properties = Property::copy(info.properties);
     assignPropertyIDAndTableID(properties, tableID);
-    auto extraInfo = (binder::BoundNodeExtraCreateTableInfo*)info.extraInfo.get();
+    auto extraInfo = (BoundNodeExtraCreateTableInfo*)info.extraInfo.get();
     auto nodeTableSchema = std::make_unique<NodeTableSchema>(
         info.tableName, tableID, extraInfo->primaryKeyIdx, std::move(properties));
     tableNameToIDMap.emplace(nodeTableSchema->tableName, tableID);
@@ -47,12 +48,12 @@ static void addRelInternalIDProperty(std::vector<std::unique_ptr<Property>>& pro
     properties.insert(properties.begin(), std::move(relInternalIDProperty));
 }
 
-table_id_t CatalogContent::addRelTableSchema(const binder::BoundCreateTableInfo& info) {
+table_id_t CatalogContent::addRelTableSchema(const BoundCreateTableInfo& info) {
     table_id_t tableID = assignNextTableID();
     auto properties = Property::copy(info.properties);
     addRelInternalIDProperty(properties);
     assignPropertyIDAndTableID(properties, tableID);
-    auto extraInfo = (binder::BoundRelExtraCreateTableInfo*)info.extraInfo.get();
+    auto extraInfo = (BoundRelExtraCreateTableInfo*)info.extraInfo.get();
     getNodeTableSchema(extraInfo->srcTableID)->addFwdRelTableID(tableID);
     getNodeTableSchema(extraInfo->dstTableID)->addBwdRelTableID(tableID);
     auto relTableSchema = std::make_unique<RelTableSchema>(info.tableName, tableID,
@@ -63,13 +64,13 @@ table_id_t CatalogContent::addRelTableSchema(const binder::BoundCreateTableInfo&
     return tableID;
 }
 
-common::table_id_t CatalogContent::addRdfGraphSchema(const binder::BoundCreateTableInfo& info) {
+common::table_id_t CatalogContent::addRdfGraphSchema(const BoundCreateTableInfo& info) {
     table_id_t rdfGraphID = assignNextTableID();
-    auto extraInfo = (binder::BoundRdfExtraCreateTableInfo*)info.extraInfo.get();
+    auto extraInfo = (BoundRdfExtraCreateTableInfo*)info.extraInfo.get();
     auto nodeInfo = extraInfo->nodeInfo.get();
     auto relInfo = extraInfo->relInfo.get();
-    auto nodeExtraInfo = (binder::BoundNodeExtraCreateTableInfo*)nodeInfo->extraInfo.get();
-    auto relExtraInfo = (binder::BoundRelExtraCreateTableInfo*)relInfo->extraInfo.get();
+    auto nodeExtraInfo = (BoundNodeExtraCreateTableInfo*)nodeInfo->extraInfo.get();
+    auto relExtraInfo = (BoundRelExtraCreateTableInfo*)relInfo->extraInfo.get();
     // Node table schema
     auto nodeTableID = addNodeTableSchema(*nodeInfo);
     // Rel table schema

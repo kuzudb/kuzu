@@ -100,7 +100,7 @@ public:
     void readInsertedRelsToList(ListFileID& listFileID,
         std::vector<processor::ft_tuple_idx_t> tupleIdxes, InMemList& inMemList,
         uint64_t numElementsInPersistentStore, DiskOverflowFile* diskOverflowFile,
-        common::LogicalType dataType);
+        const common::LogicalType& dataType);
 
     // If this is a one-to-one relTable, all properties are stored in columns.
     // In this case, the listsUpdatesStore should not store the insert rels in FT.

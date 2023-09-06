@@ -246,48 +246,6 @@ void AdjLists::readValues(
     }
 }
 
-std::unique_ptr<std::vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
-    // We read the adjacency list of a node in 2 steps: i) we read all the bytes from the pages
-    // that hold the list into a buffer; and (ii) we interpret the bytes in the buffer based on
-    // the nodeIDCompressionScheme into a std::vector of nodeID_t.
-    offset_t nodeOffset) {
-    auto pageMapper = ListHandle::getPageMapper(metadata, nodeOffset);
-    auto pageCursor = PageUtils::getPageElementCursorForPos(
-        headers->getCSROffset(nodeOffset), numElementsPerPage);
-    // Step 1
-    auto numElementsInList = getNumElementsFromListHeader(nodeOffset);
-    auto listLenInBytes = numElementsInList * elementSize;
-    auto buffer = std::make_unique<uint8_t[]>(listLenInBytes);
-    auto sizeLeftToCopy = listLenInBytes;
-    auto bufferPtr = buffer.get();
-    while (sizeLeftToCopy) {
-        auto physicalPageIdx = pageMapper(pageCursor.pageIdx);
-        auto sizeToCopyInPage =
-            std::min(((uint64_t)(numElementsPerPage - pageCursor.elemPosInPage) * elementSize),
-                sizeLeftToCopy);
-        bufferManager->optimisticRead(*fileHandle, physicalPageIdx, [&](uint8_t* frame) {
-            memcpy(bufferPtr, frame + mapElementPosToByteOffset(pageCursor.elemPosInPage),
-                sizeToCopyInPage);
-        });
-        bufferPtr += sizeToCopyInPage;
-        sizeLeftToCopy -= sizeToCopyInPage;
-        pageCursor.nextPage();
-    }
-
-    // Step 2
-    std::unique_ptr<std::vector<nodeID_t>> retVal = std::make_unique<std::vector<nodeID_t>>();
-    auto sizeLeftToDecompress = listLenInBytes;
-    bufferPtr = buffer.get();
-    while (sizeLeftToDecompress) {
-        nodeID_t nodeID(0, nbrTableID);
-        nodeID.offset = *(offset_t*)bufferPtr;
-        bufferPtr += sizeof(offset_t);
-        retVal->emplace_back(nodeID);
-        sizeLeftToDecompress -= sizeof(offset_t);
-    }
-    return retVal;
-}
-
 // Note: This function sets the original and selected size of the DataChunk into which it will
 // read a list of nodes and edges.
 void AdjLists::readFromList(ValueVector* valueVector, ListHandle& listHandle) {

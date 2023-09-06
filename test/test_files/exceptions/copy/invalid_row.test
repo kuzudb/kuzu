@@ -20,4 +20,4 @@
 ---- ok
 -STATEMENT COPY watch FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/eWatches.csv"
 ---- error
-Copy exception: Found non-existed primary key value 5.
+Runtime exception: Found non-existed primary key value 5.

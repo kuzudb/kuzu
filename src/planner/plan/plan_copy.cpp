@@ -1,9 +1,11 @@
 #include "binder/copy/bound_copy_from.h"
 #include "binder/copy/bound_copy_to.h"
+#include "binder/expression/variable_expression.h"
 #include "planner/logical_plan/copy/logical_copy_from.h"
 #include "planner/logical_plan/copy/logical_copy_to.h"
 #include "planner/planner.h"
 
+using namespace kuzu::binder;
 using namespace kuzu::storage;
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -14,11 +16,8 @@ namespace planner {
 std::unique_ptr<LogicalPlan> Planner::planCopyFrom(const BoundStatement& statement) {
     auto& copyClause = reinterpret_cast<const BoundCopyFrom&>(statement);
     auto plan = std::make_unique<LogicalPlan>();
-    auto copy = make_shared<LogicalCopyFrom>(copyClause.getCopyDescription()->copy(),
-        copyClause.getTableSchema(), copyClause.getColumnExpressions(),
-        copyClause.getNodeOffsetExpression(),
-        copyClause.getStatementResult()->getSingleExpressionToCollect(),
-        copyClause.preservingOrder());
+    auto copy = make_shared<LogicalCopyFrom>(copyClause.getInfo()->copy(),
+        copyClause.getStatementResult()->getSingleExpressionToCollect());
     plan->setLastOperator(std::move(copy));
     return plan;
 }

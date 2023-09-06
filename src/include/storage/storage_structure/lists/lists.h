@@ -191,10 +191,6 @@ public:
     void readValues(transaction::Transaction* transaction, common::ValueVector* valueVector,
         ListHandle& listHandle) final;
 
-    // Currently, used only in copyCSV tests.
-    std::unique_ptr<std::vector<common::nodeID_t>> readAdjacencyListOfNode(
-        common::offset_t nodeOffset);
-
     inline void checkpointInMemoryIfNecessary() final {
         headers->checkpointInMemoryIfNecessary();
         Lists::checkpointInMemoryIfNecessary();

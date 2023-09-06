@@ -8,7 +8,6 @@ namespace kuzu {
 namespace storage {
 
 TablesStatistics::TablesStatistics() {
-    logger = LoggerUtils::getLogger(LoggerConstants::LoggerEnum::STORAGE);
     tablesStatisticsContentForReadOnlyTrx = std::make_unique<TablesStatisticsContent>();
 }
 
@@ -19,7 +18,6 @@ void TablesStatistics::readFromFile(const std::string& directory) {
 void TablesStatistics::readFromFile(const std::string& directory, common::DBFileType dbFileType) {
     auto filePath = getTableStatisticsFilePath(directory, dbFileType);
     auto fileInfo = FileUtils::openFile(filePath, O_RDONLY);
-    logger->info("Reading {} from {}.", getTableTypeForPrinting(), filePath);
     uint64_t offset = 0;
     uint64_t numTables;
     SerDeser::deserializeValue<uint64_t>(numTables, fileInfo.get(), offset);
@@ -47,7 +45,6 @@ void TablesStatistics::readFromFile(const std::string& directory, common::DBFile
 void TablesStatistics::saveToFile(const std::string& directory, DBFileType dbFileType,
     transaction::TransactionType transactionType) {
     auto filePath = getTableStatisticsFilePath(directory, dbFileType);
-    logger->info("Writing {} to {}.", getTableTypeForPrinting(), filePath);
     auto fileInfo = FileUtils::openFile(filePath, O_WRONLY | O_CREAT);
     uint64_t offset = 0;
     auto& tablesStatisticsContent = (transactionType == transaction::TransactionType::READ_ONLY ||
@@ -72,7 +69,6 @@ void TablesStatistics::saveToFile(const std::string& directory, DBFileType dbFil
 
         serializeTableStatistics(tableStatistics, offset, fileInfo.get());
     }
-    logger->info("Wrote {} to {}.", getTableTypeForPrinting(), filePath);
 }
 
 void TablesStatistics::initTableStatisticsForWriteTrx() {

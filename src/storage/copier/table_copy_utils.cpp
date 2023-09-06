@@ -553,5 +553,17 @@ std::pair<std::string, std::string> TableCopyUtils::parseMapFields(
         StringUtils::string_format("Invalid map field string {}.", l.substr(from, length))};
 }
 
+std::unique_ptr<arrow::PrimitiveArray> TableCopyUtils::createArrowPrimitiveArray(
+    const std::shared_ptr<arrow::DataType>& type, const uint8_t* data, uint64_t length) {
+    auto buffer = std::make_shared<arrow::Buffer>(data, length);
+    return std::make_unique<arrow::PrimitiveArray>(type, length, buffer);
+}
+
+std::unique_ptr<arrow::PrimitiveArray> TableCopyUtils::createArrowPrimitiveArray(
+    const std::shared_ptr<arrow::DataType>& type, std::shared_ptr<arrow::Buffer> buffer,
+    uint64_t length) {
+    return std::make_unique<arrow::PrimitiveArray>(type, length, buffer);
+}
+
 } // namespace storage
 } // namespace kuzu

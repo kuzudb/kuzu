@@ -23,6 +23,10 @@ public:
 
     std::string toStringInternal() const final { return value->toString(); }
 
+    inline std::unique_ptr<Expression> copy() const final {
+        return std::make_unique<LiteralExpression>(value->copy(), uniqueName);
+    }
+
 public:
     std::unique_ptr<common::Value> value;
 };

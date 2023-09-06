@@ -5,7 +5,6 @@
 
 #include "catalog/table_schema.h"
 #include "common/ser_deser.h"
-#include "spdlog/spdlog.h"
 #include "storage/store/property_statistics.h"
 #include "transaction/transaction.h"
 
@@ -167,7 +166,6 @@ protected:
     void initTableStatisticsForWriteTrxNoLock();
 
 protected:
-    std::shared_ptr<spdlog::logger> logger;
     std::unique_ptr<TablesStatisticsContent> tablesStatisticsContentForReadOnlyTrx;
     std::unique_ptr<TablesStatisticsContent> tablesStatisticsContentForWriteTrx;
     std::mutex mtx;

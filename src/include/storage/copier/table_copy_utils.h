@@ -55,6 +55,12 @@ public:
 
     static bool tryCast(const common::LogicalType& targetType, const char* value, uint64_t length);
 
+    static std::unique_ptr<arrow::PrimitiveArray> createArrowPrimitiveArray(
+        const std::shared_ptr<arrow::DataType>& type, const uint8_t* data, uint64_t length);
+    static std::unique_ptr<arrow::PrimitiveArray> createArrowPrimitiveArray(
+        const std::shared_ptr<arrow::DataType>& type, std::shared_ptr<arrow::Buffer> buffer,
+        uint64_t length);
+
 private:
     static common::row_idx_t countNumLinesCSV(common::CopyDescription& copyDescription,
         catalog::TableSchema* tableSchema,

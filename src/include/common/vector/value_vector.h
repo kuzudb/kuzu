@@ -225,6 +225,7 @@ public:
 class ArrowColumnVector {
 public:
     static inline std::shared_ptr<arrow::ChunkedArray> getArrowColumn(ValueVector* vector) {
+        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::ARROW_COLUMN);
         return reinterpret_cast<ArrowColumnAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())->column;
     }
 

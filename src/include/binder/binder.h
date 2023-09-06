@@ -98,10 +98,13 @@ private:
     std::unique_ptr<common::LogicalType> bindDataType(const std::string& dataType);
 
     /*** bind copy from/to ***/
+    static bool bindPreservingOrder(
+        catalog::TableSchema* tableSchema, common::CopyDescription::FileType fileType);
+    expression_vector bindColumnExpressions(catalog::TableSchema* tableSchema);
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
 
-    std::vector<std::string> bindFilePaths(const std::vector<std::string>& filePaths);
+    static std::vector<std::string> bindFilePaths(const std::vector<std::string>& filePaths);
 
     std::unique_ptr<common::CSVReaderConfig> bindParsingOptions(
         const std::unordered_map<std::string, std::unique_ptr<parser::ParsedExpression>>*
@@ -109,8 +112,9 @@ private:
     void bindStringParsingOptions(common::CSVReaderConfig& csvReaderConfig,
         const std::string& optionName, std::string& optionValue);
     char bindParsingOptionValue(std::string value);
-    common::CopyDescription::FileType bindFileType(const std::vector<std::string>& filePaths);
-    common::CopyDescription::FileType bindFileType(const std::string& filePath);
+    static common::CopyDescription::FileType bindFileType(
+        const std::vector<std::string>& filePaths);
+    static common::CopyDescription::FileType bindFileType(const std::string& filePath);
 
     /*** bind query ***/
     std::unique_ptr<BoundRegularQuery> bindQuery(const parser::RegularQuery& regularQuery);

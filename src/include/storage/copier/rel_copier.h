@@ -1,6 +1,5 @@
 #pragma once
 
-#include "storage/copier/reader_state.h"
 #include "storage/in_mem_storage_structure/in_mem_column.h"
 #include "storage/in_mem_storage_structure/in_mem_lists.h"
 #include "storage/index/hash_index.h"

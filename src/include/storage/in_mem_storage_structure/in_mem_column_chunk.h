@@ -13,10 +13,7 @@ namespace kuzu {
 namespace storage {
 
 struct PropertyCopyState {
-    explicit PropertyCopyState(const common::LogicalType& dataType);
-
     PageByteCursor overflowCursor;
-    std::vector<std::unique_ptr<PropertyCopyState>> childStates;
 };
 
 struct StructFieldIdxAndValue {
@@ -30,7 +27,7 @@ struct StructFieldIdxAndValue {
 class InMemColumnChunk {
 public:
     InMemColumnChunk(common::LogicalType dataType, common::offset_t startNodeOffset,
-        common::offset_t endNodeOffset, const common::CopyDescription* copyDescription,
+        common::offset_t endNodeOffset, std::unique_ptr<common::CopyDescription> copyDescription,
         bool requireNullBits = true);
 
     virtual ~InMemColumnChunk() = default;
@@ -92,15 +89,16 @@ protected:
     std::uint64_t numBytes;
     std::unique_ptr<uint8_t[]> buffer;
     std::unique_ptr<InMemColumnChunk> nullChunk;
-    const common::CopyDescription* copyDescription;
+    std::unique_ptr<common::CopyDescription> copyDescription;
 };
 
 class InMemColumnChunkWithOverflow : public InMemColumnChunk {
 public:
     InMemColumnChunkWithOverflow(common::LogicalType dataType, common::offset_t startNodeOffset,
-        common::offset_t endNodeOffset, const common::CopyDescription* copyDescription,
+        common::offset_t endNodeOffset, std::unique_ptr<common::CopyDescription> copyDescription,
         InMemOverflowFile* inMemOverflowFile)
-        : InMemColumnChunk{std::move(dataType), startNodeOffset, endNodeOffset, copyDescription},
+        : InMemColumnChunk{std::move(dataType), startNodeOffset, endNodeOffset,
+              std::move(copyDescription)},
           inMemOverflowFile{inMemOverflowFile}, blobBuffer{std::make_unique<uint8_t[]>(
                                                     common::BufferPoolConstants::PAGE_4KB_SIZE)} {}
 
@@ -130,51 +128,10 @@ private:
     std::unique_ptr<uint8_t[]> blobBuffer;
 };
 
-class InMemStructColumnChunk : public InMemColumnChunk {
-public:
-    InMemStructColumnChunk(common::LogicalType dataType, common::offset_t startNodeOffset,
-        common::offset_t endNodeOffset, const common::CopyDescription* copyDescription);
-
-    inline InMemColumnChunk* getFieldChunk(common::struct_field_idx_t fieldIdx) {
-        return fieldChunks[fieldIdx].get();
-    }
-
-    inline void addFieldChunk(std::unique_ptr<InMemColumnChunk> fieldChunk) {
-        fieldChunks.push_back(std::move(fieldChunk));
-    }
-
-    void copyArrowArray(arrow::Array& array, PropertyCopyState* copyState = nullptr,
-        arrow::Array* nodeOffsets = nullptr) final;
-
-private:
-    void setStructFields(
-        PropertyCopyState* copyState, const char* value, uint64_t length, uint64_t pos);
-
-    void setValueToStructField(PropertyCopyState* copyState, common::offset_t pos,
-        const std::string& structFieldValue, common::struct_field_idx_t structFiledIdx);
-
-    std::vector<StructFieldIdxAndValue> parseStructFieldNameAndValues(
-        common::LogicalType& type, const std::string& structString);
-
-    std::string parseStructFieldName(const std::string& structString, uint64_t& curPos);
-
-    std::string parseStructFieldValue(const std::string& structString, uint64_t& curPos);
-
-    template<typename ARROW_TYPE>
-    void templateCopyArrowStringArray(arrow::Array& array, const common::offset_t* offsetsInArray,
-        PropertyCopyState* copyState = nullptr, arrow::Array* nodeOffsets = nullptr);
-
-    void copyFromStructArrowArray(arrow::Array& array, const common::offset_t* offsetsInArray,
-        PropertyCopyState* copyState = nullptr, arrow::Array* nodeOffsets = nullptr);
-
-private:
-    std::vector<std::unique_ptr<InMemColumnChunk>> fieldChunks;
-};
-
 class InMemFixedListColumnChunk : public InMemColumnChunk {
 public:
     InMemFixedListColumnChunk(common::LogicalType dataType, common::offset_t startNodeOffset,
-        common::offset_t endNodeOffset, const common::CopyDescription* copyDescription);
+        common::offset_t endNodeOffset, std::unique_ptr<common::CopyDescription> copyDescription);
 
     void flush(common::FileInfo* walFileInfo) override;
 

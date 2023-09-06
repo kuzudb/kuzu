@@ -1,7 +1,7 @@
 #pragma once
 
+#include "processor/operator/persistent/reader_state.h"
 #include "processor/operator/physical_operator.h"
-#include "storage/copier/reader_state.h"
 
 namespace kuzu {
 namespace processor {
@@ -26,9 +26,8 @@ struct ReaderInfo {
 
 class Reader : public PhysicalOperator {
 public:
-    Reader(std::unique_ptr<ReaderInfo> info,
-        std::shared_ptr<storage::ReaderSharedState> sharedState, uint32_t id,
-        const std::string& paramsString)
+    Reader(std::unique_ptr<ReaderInfo> info, std::shared_ptr<ReaderSharedState> sharedState,
+        uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::READER, id, paramsString}, info{std::move(info)},
           sharedState{std::move(sharedState)}, dataChunk{nullptr},
           nodeOffsetVector{nullptr}, readFunc{nullptr}, initFunc{nullptr}, readFuncData{nullptr} {}
@@ -38,6 +37,9 @@ public:
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
 
     inline bool isSource() const final { return true; }
+
+    inline ReaderInfo* getReaderInfo() const { return info.get(); }
+    inline ReaderSharedState* getSharedState() const { return sharedState.get(); }
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
         return make_unique<Reader>(info->copy(), sharedState, getOperatorID(), paramsString);
@@ -52,17 +54,17 @@ private:
 
 private:
     std::unique_ptr<ReaderInfo> info;
-    std::shared_ptr<storage::ReaderSharedState> sharedState;
+    std::shared_ptr<ReaderSharedState> sharedState;
 
-    storage::LeftArrowArrays leftArrowArrays;
+    LeftArrowArrays leftArrowArrays;
 
-    std::unique_ptr<common::DataChunk> dataChunk = nullptr;
-    common::ValueVector* nodeOffsetVector = nullptr;
+    std::unique_ptr<common::DataChunk> dataChunk;
+    common::ValueVector* nodeOffsetVector;
 
-    storage::read_rows_func_t readFunc = nullptr;
-    storage::init_reader_data_func_t initFunc = nullptr;
+    read_rows_func_t readFunc;
+    init_reader_data_func_t initFunc;
     // For parallel reading.
-    std::unique_ptr<storage::ReaderFunctionData> readFuncData = nullptr;
+    std::unique_ptr<ReaderFunctionData> readFuncData;
 };
 
 } // namespace processor

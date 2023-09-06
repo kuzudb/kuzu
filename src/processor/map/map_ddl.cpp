@@ -70,12 +70,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAddProperty(LogicalOperator* lo
         ExpressionMapper::getEvaluator(addProperty->getDefaultValue(), addProperty->getSchema());
     auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(addProperty->getTableID());
     switch (tableSchema->getTableType()) {
-    case catalog::TableType::NODE:
+    case TableType::NODE:
         return std::make_unique<AddNodeProperty>(catalog, addProperty->getTableID(),
             addProperty->getPropertyName(), addProperty->getDataType()->copy(),
             std::move(expressionEvaluator), storageManager, getOutputPos(addProperty),
             getOperatorID(), addProperty->getExpressionsForPrinting());
-    case catalog::TableType::REL:
+    case TableType::REL:
         return std::make_unique<AddRelProperty>(catalog, addProperty->getTableID(),
             addProperty->getPropertyName(), addProperty->getDataType()->copy(),
             std::move(expressionEvaluator), storageManager, getOutputPos(addProperty),

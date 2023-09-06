@@ -3,8 +3,11 @@
 #include "binder/copy/bound_copy_to.h"
 #include "binder/expression/literal_expression.h"
 #include "common/string_utils.h"
+#include "common/table_type.h"
 #include "parser/copy.h"
 
+using namespace kuzu::binder;
+using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::parser;
 
@@ -36,19 +39,58 @@ static void validateCopyNpyKeyword(
     CopyDescription::FileType expectedType, CopyDescription::FileType actualType) {
     if (expectedType == CopyDescription::FileType::UNKNOWN &&
         actualType == CopyDescription::FileType::NPY) {
-        throw BinderException("Please use COPY FROM BY COLUMN statement for copying npy files.");
+        throw BinderException(ExceptionMessage::validateCopyNPYByColumnException());
     }
     if (expectedType == CopyDescription::FileType::NPY && actualType != expectedType) {
-        throw BinderException("Please use COPY FROM statement for copying csv and parquet files.");
+        throw BinderException(ExceptionMessage::validateCopyCSVParquetByColumnException());
     }
 }
 
-static void validateCopyNpyFilesMatchSchema(uint32_t numFiles, catalog::TableSchema* schema) {
+static void validateCopyNpyFilesMatchSchema(uint32_t numFiles, TableSchema* schema) {
     if (schema->properties.size() != numFiles) {
         throw BinderException(StringUtils::string_format(
             "Number of npy files is not equal to number of properties in table {}.",
             schema->tableName));
     }
+}
+
+static void validateCopyNpyNotForRelTables(TableSchema* schema) {
+    if (schema->tableType == TableType::REL) {
+        throw BinderException(
+            ExceptionMessage::validateCopyNpyNotForRelTablesException(schema->tableName));
+    }
+}
+
+expression_vector Binder::bindColumnExpressions(TableSchema* tableSchema) {
+    expression_vector columnExpressions;
+    if (tableSchema->tableType == TableType::REL) {
+        // For rel table, add FROM and TO columns as data columns to be read from file.
+        columnExpressions.push_back(createVariable(std::string(Property::REL_FROM_PROPERTY_NAME),
+            LogicalType{LogicalTypeID::ARROW_COLUMN}));
+        columnExpressions.push_back(createVariable(
+            std::string(Property::REL_TO_PROPERTY_NAME), LogicalType{LogicalTypeID::ARROW_COLUMN}));
+    }
+    for (auto& property : tableSchema->properties) {
+        if (property->getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL ||
+            TableSchema::isReservedPropertyName(property->getName())) {
+            continue;
+        } else {
+            columnExpressions.push_back(
+                createVariable(property->getName(), LogicalType{LogicalTypeID::ARROW_COLUMN}));
+        }
+    }
+    return columnExpressions;
+}
+
+bool Binder::bindPreservingOrder(TableSchema* tableSchema, CopyDescription::FileType fileType) {
+    bool preservingOrder = fileType == CopyDescription::FileType::CSV;
+    for (auto& property : tableSchema->properties) {
+        if (property->getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL) {
+            preservingOrder = true;
+            break;
+        }
+    }
+    return preservingOrder;
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& statement) {
@@ -68,25 +110,29 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     validateCopyNpyKeyword(expectedFileType, actualFileType);
     if (actualFileType == CopyDescription::FileType::NPY) {
         validateCopyNpyFilesMatchSchema(boundFilePaths.size(), tableSchema);
+        validateCopyNpyNotForRelTables(tableSchema);
     }
     // Bind execution mode.
     // For CSV file, and table with SERIAL columns, we need to read in serial from files.
-    bool preservingOrder = actualFileType == CopyDescription::FileType::CSV;
-    expression_vector columnExpressions;
-    for (auto& property : tableSchema->getProperties()) {
-        if (property->getDataType()->getLogicalTypeID() != common::LogicalTypeID::SERIAL) {
-            columnExpressions.push_back(createVariable(
-                property->getName(), common::LogicalType{common::LogicalTypeID::ARROW_COLUMN}));
-        } else {
-            preservingOrder = true;
-        }
-    }
+    auto preservingOrder = bindPreservingOrder(tableSchema, actualFileType);
+    // Bind expressions.
+    auto columnExpressions = bindColumnExpressions(tableSchema);
     auto copyDescription = std::make_unique<CopyDescription>(
         actualFileType, boundFilePaths, std::move(csvReaderConfig));
     auto nodeOffsetExpression =
-        createVariable("nodeOffset", common::LogicalType{common::LogicalTypeID::INT64});
-    return std::make_unique<BoundCopyFrom>(std::move(copyDescription), tableSchema,
-        std::move(columnExpressions), std::move(nodeOffsetExpression), preservingOrder);
+        createVariable(std::string(Property::OFFSET_NAME), LogicalType{LogicalTypeID::INT64});
+    auto boundOffsetExpression = tableSchema->tableType == TableType::REL ?
+                                     createVariable(std::string(Property::REL_BOUND_OFFSET_NAME),
+                                         LogicalType{LogicalTypeID::ARROW_COLUMN}) :
+                                     nullptr;
+    auto nbrOffsetExpression = tableSchema->tableType == TableType::REL ?
+                                   createVariable(std::string(Property::REL_NBR_OFFSET_NAME),
+                                       LogicalType{LogicalTypeID::ARROW_COLUMN}) :
+                                   nullptr;
+    auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(std::move(copyDescription),
+        tableSchema, std::move(columnExpressions), std::move(nodeOffsetExpression),
+        std::move(boundOffsetExpression), std::move(nbrOffsetExpression), preservingOrder);
+    return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
 std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& filePaths) {

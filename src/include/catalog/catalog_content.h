@@ -80,10 +80,10 @@ public:
         return tableSchemas.at(tableID)->getProperties();
     }
     inline std::vector<common::table_id_t> getNodeTableIDs() const {
-        return getTableIDsByType(TableType::NODE);
+        return getTableIDsByType(common::TableType::NODE);
     }
     inline std::vector<common::table_id_t> getRelTableIDs() const {
-        return getTableIDsByType(TableType::REL);
+        return getTableIDsByType(common::TableType::REL);
     }
     std::vector<NodeTableSchema*> getNodeTableSchemas() const;
     std::vector<RelTableSchema*> getRelTableSchemas() const;
@@ -119,7 +119,7 @@ private:
 
     void registerBuiltInFunctions();
 
-    std::vector<common::table_id_t> getTableIDsByType(TableType tableType) const;
+    std::vector<common::table_id_t> getTableIDsByType(common::TableType tableType) const;
 
 private:
     // TODO(Guodong): I don't think it's necessary to keep separate maps for node and rel tables.

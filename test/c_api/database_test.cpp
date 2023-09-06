@@ -20,12 +20,3 @@ TEST_F(CApiDatabaseTest, CreationInvalidPath) {
     auto database = kuzu_database_init(databasePathCStr, 0);
     ASSERT_EQ(database, nullptr);
 }
-
-TEST_F(CApiDatabaseTest, SetLoggingLevel) {
-    kuzu_database_set_logging_level("debug");
-    ASSERT_EQ(spdlog::get_level(), spdlog::level::debug);
-    kuzu_database_set_logging_level("info");
-    ASSERT_EQ(spdlog::get_level(), spdlog::level::info);
-    kuzu_database_set_logging_level("err");
-    ASSERT_EQ(spdlog::get_level(), spdlog::level::err);
-}

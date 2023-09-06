@@ -37,9 +37,9 @@ class InMemLists {
 public:
     InMemLists(std::string fName, common::LogicalType dataType, uint64_t numBytesForElement,
         uint64_t numNodes, std::shared_ptr<ListHeadersBuilder> listHeadersBuilder,
-        const common::CopyDescription* copyDescription, bool hasNullBytes)
-        : InMemLists{std::move(fName), std::move(dataType), numBytesForElement, numNodes,
-              copyDescription, hasNullBytes} {
+        std::unique_ptr<common::CopyDescription> copyDescription, bool hasNullBytes)
+        : InMemLists{std::move(fName), numBytesForElement, std::move(dataType), numNodes,
+              std::move(copyDescription), hasNullBytes} {
         this->listHeadersBuilder = std::move(listHeadersBuilder);
     }
     virtual ~InMemLists() = default;
@@ -74,8 +74,9 @@ public:
         uint64_t reversePos, uint8_t numBytesPerElement, common::offset_t nodeOffset);
 
 protected:
-    InMemLists(std::string fName, common::LogicalType dataType, uint64_t numBytesForElement,
-        uint64_t numNodes, const common::CopyDescription* copyDescription, bool hasNullBytes);
+    InMemLists(std::string fName, uint64_t numBytesForElement, common::LogicalType dataType,
+        uint64_t numNodes, std::unique_ptr<common::CopyDescription> copyDescription,
+        bool hasNullBytes);
 
 private:
     static void calculatePagesForList(uint64_t& numPages, uint64_t& offsetInPage,
@@ -110,7 +111,7 @@ protected:
     uint64_t numElementsInAPage;
     std::unique_ptr<ListsMetadataBuilder> listsMetadataBuilder;
     std::shared_ptr<ListHeadersBuilder> listHeadersBuilder;
-    const common::CopyDescription* copyDescription;
+    std::unique_ptr<common::CopyDescription> copyDescription;
 };
 
 class InMemRelIDLists : public InMemLists {
@@ -126,7 +127,7 @@ class InMemListsWithOverflow : public InMemLists {
 protected:
     InMemListsWithOverflow(std::string fName, common::LogicalType dataType, uint64_t numNodes,
         std::shared_ptr<ListHeadersBuilder> listHeadersBuilder,
-        const common::CopyDescription* copyDescription);
+        std::unique_ptr<common::CopyDescription> copyDescription);
 
     void copyArrowArray(arrow::Array* boundNodeOffsets, arrow::Array* posInRelLists,
         arrow::Array* array, PropertyCopyState* copyState) final;
@@ -153,8 +154,8 @@ protected:
 class InMemAdjLists : public InMemLists {
 public:
     InMemAdjLists(std::string fName, uint64_t numNodes)
-        : InMemLists{std::move(fName), common::LogicalType(common::LogicalTypeID::INTERNAL_ID),
-              sizeof(common::offset_t), numNodes, nullptr, false} {
+        : InMemLists{std::move(fName), sizeof(common::offset_t),
+              common::LogicalType(common::LogicalTypeID::INTERNAL_ID), numNodes, nullptr, false} {
         listHeadersBuilder = make_shared<ListHeadersBuilder>(this->fName, numNodes);
     };
 
@@ -181,16 +182,16 @@ class InMemListLists : public InMemListsWithOverflow {
 public:
     InMemListLists(std::string fName, common::LogicalType dataType, uint64_t numNodes,
         std::shared_ptr<ListHeadersBuilder> listHeadersBuilder,
-        const common::CopyDescription* copyDescription)
+        std::unique_ptr<common::CopyDescription> copyDescription)
         : InMemListsWithOverflow{std::move(fName), std::move(dataType), numNodes,
-              std::move(listHeadersBuilder), copyDescription} {};
+              std::move(listHeadersBuilder), std::move(copyDescription)} {};
 };
 
 class InMemListsFactory {
 public:
     static std::unique_ptr<InMemLists> getInMemPropertyLists(const std::string& fName,
         const common::LogicalType& dataType, uint64_t numNodes,
-        const common::CopyDescription* copyDescription,
+        std::unique_ptr<common::CopyDescription> copyDescription,
         std::shared_ptr<ListHeadersBuilder> listHeadersBuilder = nullptr);
 };
 

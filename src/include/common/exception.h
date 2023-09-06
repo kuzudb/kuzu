@@ -17,6 +17,16 @@ struct ExceptionMessage {
         return "COPY commands can only be executed once on a table.";
     }
     static std::string overLargeStringValueException(const std::string& length);
+    static std::string violateUniquenessOfRelAdjColumn(const std::string& tableName,
+        const std::string& offset, const std::string& multiplicity, const std::string& direction);
+
+    static inline std::string validateCopyNPYByColumnException() {
+        return "Please use COPY FROM BY COLUMN statement for copying npy files.";
+    }
+    static inline std::string validateCopyCSVParquetByColumnException() {
+        return "Please use COPY FROM statement for copying csv and parquet files.";
+    }
+    static std::string validateCopyNpyNotForRelTablesException(const std::string& tableName);
 };
 
 class Exception : public std::exception {
