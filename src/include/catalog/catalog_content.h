@@ -61,6 +61,7 @@ public:
      */
     common::table_id_t addNodeTableSchema(const binder::BoundCreateTableInfo& info);
     common::table_id_t addRelTableSchema(const binder::BoundCreateTableInfo& info);
+    common::table_id_t addRelTableGroupSchema(const binder::BoundCreateTableInfo& info);
     common::table_id_t addRdfGraphSchema(const binder::BoundCreateTableInfo& info);
 
     bool containNodeTable(const std::string& tableName) const;

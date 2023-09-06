@@ -14,7 +14,7 @@ void DropTable::executeDDLInternal() {
 
 std::string DropTable::getOutputMsg() {
     auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(tableID);
-    return StringUtils::string_format("{}Table: {} has been dropped.",
+    return StringUtils::string_format("{} table: {} has been dropped.",
         tableSchema->tableType == TableType::NODE ? "Node" : "Rel", tableSchema->tableName);
 }
 

@@ -18,9 +18,7 @@ public:
     virtual void visitQueryPart(const NormalizedQueryPart& queryPart);
 
 protected:
-    virtual void visitCreateNodeTable(const BoundStatement& statement) {}
-    virtual void visitCreateRelTable(const BoundStatement& statement) {}
-    virtual void visitCreateRdfGraph(const BoundStatement& statement) {}
+    virtual void visitCreateTable(const BoundStatement& statement) {}
     virtual void visitDropTable(const BoundStatement& statement) {}
     virtual void visitRenameTable(const BoundStatement& statement) {}
     virtual void visitAddProperty(const BoundStatement& statement) {}

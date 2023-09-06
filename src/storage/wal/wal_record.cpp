@@ -9,13 +9,13 @@ std::string storageStructureTypeToString(StorageStructureType storageStructureTy
     switch (storageStructureType) {
     case StorageStructureType::COLUMN: {
         return "COLUMN";
-    } break;
+    }
     case StorageStructureType::LISTS: {
         return "LISTS";
-    } break;
+    }
     case StorageStructureType::NODE_INDEX: {
         return "NODE_INDEX";
-    } break;
+    }
     default: {
         throw NotImplementedException("storageStructureTypeToString");
     }
@@ -118,6 +118,9 @@ std::string walRecordTypeToString(WALRecordType walRecordType) {
     case WALRecordType::REL_TABLE_RECORD: {
         return "REL_TABLE_RECORD";
     }
+    case WALRecordType::REL_TABLE_GROUP_RECORD: {
+        return "REL_TABLE_GROUP_RECORD";
+    }
     case WALRecordType::OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
         return "OVERFLOW_FILE_NEXT_BYTE_POS_RECORD";
     }
@@ -137,6 +140,10 @@ std::string walRecordTypeToString(WALRecordType walRecordType) {
         throw NotImplementedException("walRecordTypeToString");
     }
     }
+}
+
+bool RelTableGroupRecord::operator==(const RelTableGroupRecord& other) const {
+    return tableID == other.tableID;
 }
 
 WALRecord WALRecord::newPageInsertOrUpdateRecord(StorageStructureID storageStructureID_,
@@ -194,8 +201,16 @@ WALRecord WALRecord::newRelTableRecord(table_id_t tableID) {
     return retVal;
 }
 
+WALRecord WALRecord::newRelTableGroupRecord(
+    table_id_t tableID, std::vector<table_id_t> relTableIDs) {
+    WALRecord retVal;
+    retVal.recordType = WALRecordType::REL_TABLE_GROUP_RECORD;
+    retVal.relTableGroupRecord = RelTableGroupRecord(tableID);
+    return retVal;
+}
+
 WALRecord WALRecord::newRdfGraphRecord(
-    common::table_id_t rdfGraphID, common::table_id_t nodeTableID, common::table_id_t relTableID) {
+    table_id_t rdfGraphID, table_id_t nodeTableID, table_id_t relTableID) {
     WALRecord retVal;
     retVal.recordType = WALRecordType::RDF_GRAPH_RECORD;
     retVal.rdfGraphRecord =

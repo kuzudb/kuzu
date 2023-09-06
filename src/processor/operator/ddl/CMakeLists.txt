@@ -5,6 +5,7 @@ add_library(kuzu_processor_operator_ddl
         add_rel_property.cpp
         create_node_table.cpp
         create_rdf_graph.cpp
+        create_rel_table_group.cpp
         create_rel_table.cpp
         ddl.cpp
         drop_table.cpp)

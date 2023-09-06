@@ -257,21 +257,22 @@ struct StorageStructureID {
 };
 
 enum class WALRecordType : uint8_t {
-    PAGE_UPDATE_OR_INSERT_RECORD = 0,
-    TABLE_STATISTICS_RECORD = 1,
-    COMMIT_RECORD = 2,
-    CATALOG_RECORD = 3,
-    NODE_TABLE_RECORD = 4,
-    REL_TABLE_RECORD = 5,
-    RDF_GRAPH_RECORD = 6,
+    PAGE_UPDATE_OR_INSERT_RECORD = 1,
+    TABLE_STATISTICS_RECORD = 2,
+    COMMIT_RECORD = 3,
+    CATALOG_RECORD = 4,
+    NODE_TABLE_RECORD = 5,
+    REL_TABLE_RECORD = 6,
+    REL_TABLE_GROUP_RECORD = 7,
+    RDF_GRAPH_RECORD = 8,
     // Records the nextBytePosToWriteTo field's last value before the write trx started. This is
     // used when rolling back to restore this value.
-    OVERFLOW_FILE_NEXT_BYTE_POS_RECORD = 7,
-    COPY_NODE_RECORD = 8,
-    COPY_REL_RECORD = 9,
-    DROP_TABLE_RECORD = 10,
-    DROP_PROPERTY_RECORD = 11,
-    ADD_PROPERTY_RECORD = 12,
+    OVERFLOW_FILE_NEXT_BYTE_POS_RECORD = 17,
+    COPY_NODE_RECORD = 18,
+    COPY_REL_RECORD = 19,
+    DROP_TABLE_RECORD = 20,
+    DROP_PROPERTY_RECORD = 21,
+    ADD_PROPERTY_RECORD = 22,
 };
 
 std::string walRecordTypeToString(WALRecordType walRecordType);
@@ -313,7 +314,6 @@ struct NodeTableRecord {
     common::table_id_t tableID;
 
     NodeTableRecord() = default;
-
     explicit NodeTableRecord(common::table_id_t tableID) : tableID{tableID} {}
 
     inline bool operator==(const NodeTableRecord& rhs) const { return tableID == rhs.tableID; }
@@ -323,10 +323,20 @@ struct RelTableRecord {
     common::table_id_t tableID;
 
     RelTableRecord() = default;
-
     explicit RelTableRecord(common::table_id_t tableID) : tableID{tableID} {}
 
     inline bool operator==(const RelTableRecord& rhs) const { return tableID == rhs.tableID; }
+};
+
+struct RelTableGroupRecord {
+    common::table_id_t tableID;
+    // TODO(Ziyi): add this back when we can serialize variable size record.
+    //    std::vector<RelTableRecord> relTableRecords;
+
+    RelTableGroupRecord() = default;
+    RelTableGroupRecord(common::table_id_t tableID) : tableID{tableID} {}
+
+    bool operator==(const RelTableGroupRecord& other) const;
 };
 
 struct RdfGraphRecord {
@@ -335,8 +345,7 @@ struct RdfGraphRecord {
     RelTableRecord relTableRecord;
 
     RdfGraphRecord() = default;
-
-    explicit RdfGraphRecord(
+    RdfGraphRecord(
         common::table_id_t tableID, NodeTableRecord nodeTableRecord, RelTableRecord relTableRecord)
         : tableID{tableID}, nodeTableRecord{nodeTableRecord}, relTableRecord{relTableRecord} {}
 
@@ -444,6 +453,7 @@ struct WALRecord {
         CommitRecord commitRecord;
         NodeTableRecord nodeTableRecord;
         RelTableRecord relTableRecord;
+        RelTableGroupRecord relTableGroupRecord;
         RdfGraphRecord rdfGraphRecord;
         DiskOverflowFileNextBytePosRecord diskOverflowFileNextBytePosRecord;
         CopyNodeRecord copyNodeRecord;
@@ -477,6 +487,9 @@ struct WALRecord {
         }
         case WALRecordType::REL_TABLE_RECORD: {
             return relTableRecord == rhs.relTableRecord;
+        }
+        case WALRecordType::REL_TABLE_GROUP_RECORD: {
+            return relTableGroupRecord == rhs.relTableGroupRecord;
         }
         case WALRecordType::RDF_GRAPH_RECORD: {
             return rdfGraphRecord == rhs.rdfGraphRecord;
@@ -515,6 +528,8 @@ struct WALRecord {
     static WALRecord newCatalogRecord();
     static WALRecord newNodeTableRecord(common::table_id_t tableID);
     static WALRecord newRelTableRecord(common::table_id_t tableID);
+    static WALRecord newRelTableGroupRecord(
+        common::table_id_t tableID, std::vector<common::table_id_t> relTableIDs);
     static WALRecord newRdfGraphRecord(common::table_id_t rdfGraphID,
         common::table_id_t nodeTableID, common::table_id_t relTableID);
     static WALRecord newOverflowFileNextBytePosRecord(

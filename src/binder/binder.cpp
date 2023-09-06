@@ -14,14 +14,8 @@ namespace binder {
 std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     std::unique_ptr<BoundStatement> boundStatement;
     switch (statement.getStatementType()) {
-    case StatementType::CREATE_NODE_TABLE: {
-        boundStatement = bindCreateNodeTableClause(statement);
-    } break;
-    case StatementType::CREATE_REL_TABLE: {
-        boundStatement = bindCreateRelTableClause(statement);
-    } break;
-    case StatementType::CREATE_RDF_GRAPH: {
-        boundStatement = bindCreateRdfGraphClause(statement);
+    case StatementType::CREATE_TABLE: {
+        boundStatement = bindCreateTable(statement);
     } break;
     case StatementType::COPY_FROM: {
         boundStatement = bindCopyFromClause(statement);
@@ -30,19 +24,19 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
         boundStatement = bindCopyToClause(statement);
     } break;
     case StatementType::DROP_TABLE: {
-        boundStatement = bindDropTableClause(statement);
+        boundStatement = bindDropTable(statement);
     } break;
     case StatementType::RENAME_TABLE: {
-        boundStatement = bindRenameTableClause(statement);
+        boundStatement = bindRenameTable(statement);
     } break;
     case StatementType::ADD_PROPERTY: {
-        boundStatement = bindAddPropertyClause(statement);
+        boundStatement = bindAddProperty(statement);
     } break;
     case StatementType::DROP_PROPERTY: {
-        boundStatement = bindDropPropertyClause(statement);
+        boundStatement = bindDropProperty(statement);
     } break;
     case StatementType::RENAME_PROPERTY: {
-        boundStatement = bindRenamePropertyClause(statement);
+        boundStatement = bindRenameProperty(statement);
     } break;
     case StatementType::QUERY: {
         boundStatement = bindQuery((const RegularQuery&)statement);

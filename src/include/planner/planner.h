@@ -16,9 +16,7 @@ public:
         const storage::RelsStatistics& relsStatistics, const BoundStatement& statement);
 
 private:
-    static std::unique_ptr<LogicalPlan> planCreateNodeTable(const BoundStatement& statement);
-    static std::unique_ptr<LogicalPlan> planCreateRelTable(const BoundStatement& statement);
-    static std::unique_ptr<LogicalPlan> planCreateRdfGraph(const BoundStatement& statement);
+    static std::unique_ptr<LogicalPlan> planCreateTable(const BoundStatement& statement);
 
     static std::unique_ptr<LogicalPlan> planDropTable(const BoundStatement& statement);
 

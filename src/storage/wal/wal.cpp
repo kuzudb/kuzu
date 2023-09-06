@@ -69,6 +69,13 @@ void WAL::logRelTableRecord(table_id_t tableID) {
     addNewWALRecordNoLock(walRecord);
 }
 
+void WAL::logRelTableGroupRecord(
+    common::table_id_t tableID, std::vector<common::table_id_t> relTableIDs) {
+    lock_t lck{mtx};
+    WALRecord walRecord = WALRecord::newRelTableGroupRecord(tableID, std::move(relTableIDs));
+    addNewWALRecordNoLock(walRecord);
+}
+
 void WAL::logRdfGraphRecord(table_id_t rdfGraphID, table_id_t nodeTableID, table_id_t relTableID) {
     lock_t lck{mtx};
     WALRecord walRecord = WALRecord::newRdfGraphRecord(rdfGraphID, nodeTableID, relTableID);

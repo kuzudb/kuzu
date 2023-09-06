@@ -36,19 +36,30 @@ Binder exception: Node table movies does not exist.
 -CASE DDLOutputMessages
 -STATEMENT CREATE NODE TABLE university(ID INT64, PRIMARY KEY(ID))
 ---- 1
-NodeTable: university has been created.
+Node table: university has been created.
 -STATEMENT CREATE REL TABLE nearTo(FROM university TO university, MANY_MANY)
 ---- 1
-RelTable: nearTo has been created.
+Rel table: nearTo has been created.
 -STATEMENT DROP TABLE nearTo;
 ---- 1
-RelTable: nearTo has been dropped.
+Rel table: nearTo has been dropped.
 -STATEMENT DROP TABLE university
 ---- 1
-NodeTable: university has been dropped.
+Node table: university has been dropped.
 -STATEMENT ALTER TABLE person DROP fName
 ---- 1
 Drop succeed.
 -STATEMENT ALTER TABLE knows DROP date
 ---- 1
 Drop succeed.
+
+-CASE CreateRelGroup
+-STATEMENT CREATE REL TABLE GROUP likes (FROM person TO person, FROM person TO organisation, since INT64);
+---- 1
+Rel table group: likes has been created.
+-STATEMENT Call table_info('likes_person_person') RETURN *;
+---- 1
+1|since|INT64
+-STATEMENT Call table_info('likes_person_organisation') RETURN *;
+---- 1
+1|since|INT64

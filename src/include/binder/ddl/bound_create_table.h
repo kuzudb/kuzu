@@ -8,9 +8,9 @@ namespace binder {
 
 class BoundCreateTable : public BoundDDL {
 public:
-    explicit BoundCreateTable(common::StatementType statementType, std::string tableName,
-        std::unique_ptr<BoundCreateTableInfo> info)
-        : BoundDDL{statementType, std::move(tableName)}, info{std::move(info)} {}
+    explicit BoundCreateTable(std::string tableName, std::unique_ptr<BoundCreateTableInfo> info)
+        : BoundDDL{common::StatementType::CREATE_TABLE, std::move(tableName)}, info{std::move(
+                                                                                   info)} {}
 
     inline BoundCreateTableInfo* getBoundCreateTableInfo() const { return info.get(); }
 

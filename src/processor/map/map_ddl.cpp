@@ -9,6 +9,7 @@
 #include "processor/operator/ddl/create_node_table.h"
 #include "processor/operator/ddl/create_rdf_graph.h"
 #include "processor/operator/ddl/create_rel_table.h"
+#include "processor/operator/ddl/create_rel_table_group.h"
 #include "processor/operator/ddl/drop_property.h"
 #include "processor/operator/ddl/drop_table.h"
 #include "processor/operator/ddl/rename_property.h"
@@ -28,6 +29,26 @@ static DataPos getOutputPos(LogicalDDL* logicalDDL) {
     return DataPos(outSchema->getExpressionPos(*outputExpression));
 }
 
+std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateTable(LogicalOperator* logicalOperator) {
+    auto createTable = (LogicalCreateTable*)logicalOperator;
+    switch (createTable->getInfo()->type) {
+    case TableType::NODE: {
+        return mapCreateNodeTable(logicalOperator);
+    }
+    case TableType::REL: {
+        return mapCreateRelTable(logicalOperator);
+    }
+    case TableType::REL_GROUP: {
+        return mapCreateRelTableGroup(logicalOperator);
+    }
+    case TableType::RDF: {
+        return mapCreateRdfGraph(logicalOperator);
+    }
+    default:                                                         // LCOV_EXCL_START
+        throw NotImplementedException("PlanMapper::mapCreateTable"); // LCOV_EXCL_STOP
+    }
+}
+
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateNodeTable(LogicalOperator* logicalOperator) {
     auto createTable = (LogicalCreateTable*)logicalOperator;
     return std::make_unique<CreateNodeTable>(catalog, &storageManager,
@@ -39,6 +60,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateNodeTable(LogicalOperator
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateRelTable(LogicalOperator* logicalOperator) {
     auto createTable = (LogicalCreateTable*)logicalOperator;
     return std::make_unique<CreateRelTable>(catalog,
+        &storageManager.getRelsStore().getRelsStatistics(), createTable->getInfo()->copy(),
+        getOutputPos(createTable), getOperatorID(), createTable->getExpressionsForPrinting());
+}
+
+std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateRelTableGroup(
+    LogicalOperator* logicalOperator) {
+    auto createTable = (LogicalCreateTable*)logicalOperator;
+    return std::make_unique<CreateRelTableGroup>(catalog,
         &storageManager.getRelsStore().getRelsStatistics(), createTable->getInfo()->copy(),
         getOutputPos(createTable), getOperatorID(), createTable->getExpressionsForPrinting());
 }

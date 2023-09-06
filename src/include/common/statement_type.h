@@ -7,9 +7,7 @@ namespace common {
 
 enum class StatementType : uint8_t {
     QUERY = 0,
-    CREATE_NODE_TABLE = 1,
-    CREATE_REL_TABLE = 2,
-    CREATE_RDF_GRAPH = 3,
+    CREATE_TABLE = 1,
     DROP_TABLE = 4,
     RENAME_TABLE = 5,
     ADD_PROPERTY = 6,
@@ -22,26 +20,21 @@ enum class StatementType : uint8_t {
     CREATE_MACRO = 23,
 };
 
-class StatementTypeUtils {
-public:
-    static bool isDDL(StatementType statementType) {
-        return statementType == StatementType::CREATE_NODE_TABLE ||
-               statementType == StatementType::CREATE_REL_TABLE ||
-               statementType == StatementType::CREATE_RDF_GRAPH ||
-               statementType == StatementType::DROP_TABLE ||
-               statementType == StatementType::DROP_PROPERTY;
-    }
-
-    static bool isCopyCSV(StatementType statementType) {
-        return statementType == StatementType::COPY_FROM;
-    }
-
-    static bool isCreateMacro(StatementType statementType) {
-        return statementType == StatementType::CREATE_MACRO;
-    }
-
+struct StatementTypeUtils {
     static bool allowActiveTransaction(StatementType statementType) {
-        return isDDL(statementType) || isCopyCSV(statementType) || isCreateMacro(statementType);
+        switch (statementType) {
+        case StatementType::CREATE_TABLE:
+        case StatementType::DROP_TABLE:
+        case StatementType::RENAME_TABLE:
+        case StatementType::ADD_PROPERTY:
+        case StatementType::DROP_PROPERTY:
+        case StatementType::RENAME_PROPERTY:
+        case StatementType::CREATE_MACRO:
+        case StatementType::COPY_FROM:
+            return true;
+        default:
+            return false;
+        }
     }
 };
 
