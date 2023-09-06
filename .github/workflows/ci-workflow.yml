@@ -69,13 +69,15 @@ jobs:
     needs: [rustfmt-check]
     runs-on: kuzu-self-hosted-testing
     env:
-      # Share build cache when building rust API and the example project
-      CARGO_TARGET_DIR: ${{ github.workspace }}/target
       CARGO_BUILD_JOBS: 32
       CC: gcc
       CXX: g++
     steps:
       - uses: actions/checkout@v3
+
+      - name: Rust share build
+        # Share build cache when building rust API and the example project
+        run: echo $'[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
 
       - name: Rust test
         working-directory: tools/rust_api
