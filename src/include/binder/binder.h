@@ -100,7 +100,8 @@ private:
     /*** bind copy from/to ***/
     static bool bindContainsSerial(
         catalog::TableSchema* tableSchema, common::CopyDescription::FileType fileType);
-    expression_vector bindColumnExpressions(catalog::TableSchema* tableSchema);
+    expression_vector bindColumnExpressions(
+        catalog::TableSchema* tableSchema, common::CopyDescription::FileType fileType);
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
 

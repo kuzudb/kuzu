@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/data_chunk/data_chunk.h"
+#include "csv_reader.h"
 #include "storage/copier/npy_reader.h"
 #include "storage/copier/table_copy_utils.h"
 
@@ -18,13 +19,23 @@ struct ReaderFunctionData {
     common::vector_idx_t fileIdx;
 };
 
-struct CSVReaderFunctionData : public ReaderFunctionData {
-    CSVReaderFunctionData(common::CSVReaderConfig csvReaderConfig,
+struct RelCSVReaderFunctionData : public ReaderFunctionData {
+    RelCSVReaderFunctionData(common::CSVReaderConfig csvReaderConfig,
         catalog::TableSchema* tableSchema, common::vector_idx_t fileIdx,
         std::shared_ptr<arrow::csv::StreamingReader> reader)
         : ReaderFunctionData{csvReaderConfig, tableSchema, fileIdx}, reader{std::move(reader)} {}
 
     std::shared_ptr<arrow::csv::StreamingReader> reader;
+};
+
+struct NodeCSVReaderFunctionData : public ReaderFunctionData {
+    NodeCSVReaderFunctionData(common::CSVReaderConfig csvReaderConfig,
+        catalog::TableSchema* tableSchema, common::vector_idx_t fileIdx,
+        std::unique_ptr<BufferedCSVReader> csvReader)
+        : ReaderFunctionData{csvReaderConfig, tableSchema, fileIdx}, csvReader{
+                                                                         std::move(csvReader)} {}
+
+    std::unique_ptr<BufferedCSVReader> csvReader;
 };
 
 struct ParquetReaderFunctionData : public ReaderFunctionData {
@@ -86,17 +97,20 @@ using validate_func_t =
 using init_reader_data_func_t = std::function<std::unique_ptr<ReaderFunctionData>(
     const std::vector<std::string>& paths, common::vector_idx_t fileIdx,
     common::CSVReaderConfig csvReaderConfig, catalog::TableSchema* tableSchema)>;
-using count_blocks_func_t =
-    std::function<std::vector<FileBlocksInfo>(const std::vector<std::string>& paths,
-        common::CSVReaderConfig csvReaderConfig, catalog::TableSchema* tableSchema)>;
+using count_blocks_func_t = std::function<std::vector<FileBlocksInfo>(
+    const std::vector<std::string>& paths, common::CSVReaderConfig csvReaderConfig,
+    catalog::TableSchema* tableSchema, storage::MemoryManager*)>;
 using read_rows_func_t = std::function<void(
     const ReaderFunctionData& functionData, common::block_idx_t blockIdx, common::DataChunk*)>;
 
 struct ReaderFunctions {
     static validate_func_t getValidateFunc(common::CopyDescription::FileType fileType);
-    static count_blocks_func_t getCountBlocksFunc(common::CopyDescription::FileType fileType);
-    static init_reader_data_func_t getInitDataFunc(common::CopyDescription::FileType fileType);
-    static read_rows_func_t getReadRowsFunc(common::CopyDescription::FileType fileType);
+    static count_blocks_func_t getCountBlocksFunc(
+        common::CopyDescription::FileType fileType, common::TableType tableType);
+    static init_reader_data_func_t getInitDataFunc(
+        common::CopyDescription::FileType fileType, common::TableType tableType);
+    static read_rows_func_t getReadRowsFunc(
+        common::CopyDescription::FileType fileType, common::TableType tableType);
 
     static inline void validateCSVFiles(
         const std::vector<std::string>& paths, catalog::TableSchema* tableSchema) {
@@ -109,14 +123,23 @@ struct ReaderFunctions {
     static void validateNPYFiles(
         const std::vector<std::string>& paths, catalog::TableSchema* tableSchema);
 
-    static std::vector<FileBlocksInfo> countRowsInCSVFile(const std::vector<std::string>& paths,
-        common::CSVReaderConfig csvReaderConfig, catalog::TableSchema* tableSchema);
+    static std::vector<FileBlocksInfo> countRowsInRelCSVFile(const std::vector<std::string>& paths,
+        common::CSVReaderConfig csvReaderConfig, catalog::TableSchema* tableSchema,
+        storage::MemoryManager* memoryManager);
+    static std::vector<FileBlocksInfo> countRowsInNodeCSVFile(const std::vector<std::string>& paths,
+        common::CSVReaderConfig csvReaderConfig, catalog::TableSchema* tableSchema,
+        storage::MemoryManager* memoryManager);
     static std::vector<FileBlocksInfo> countRowsInParquetFile(const std::vector<std::string>& paths,
-        common::CSVReaderConfig csvReaderConfig, catalog::TableSchema* tableSchema);
+        common::CSVReaderConfig csvReaderConfig, catalog::TableSchema* tableSchema,
+        storage::MemoryManager* memoryManager);
     static std::vector<FileBlocksInfo> countRowsInNPYFile(const std::vector<std::string>& paths,
-        common::CSVReaderConfig csvReaderConfig, catalog::TableSchema* tableSchema);
+        common::CSVReaderConfig csvReaderConfig, catalog::TableSchema* tableSchema,
+        storage::MemoryManager* memoryManager);
 
-    static std::unique_ptr<ReaderFunctionData> initCSVReadData(
+    static std::unique_ptr<ReaderFunctionData> initRelCSVReadData(
+        const std::vector<std::string>& paths, common::vector_idx_t fileIdx,
+        common::CSVReaderConfig csvReaderConfig, catalog::TableSchema* tableSchema);
+    static std::unique_ptr<ReaderFunctionData> initNodeCSVReadData(
         const std::vector<std::string>& paths, common::vector_idx_t fileIdx,
         common::CSVReaderConfig csvReaderConfig, catalog::TableSchema* tableSchema);
     static std::unique_ptr<ReaderFunctionData> initParquetReadData(
@@ -126,12 +149,17 @@ struct ReaderFunctions {
         const std::vector<std::string>& paths, common::vector_idx_t fileIdx,
         common::CSVReaderConfig csvReaderConfig, catalog::TableSchema* tableSchema);
 
-    static void readRowsFromCSVFile(const ReaderFunctionData& functionData,
-        common::block_idx_t blockIdx, common::DataChunk* vectorsToRead);
+    static void readRowsFromRelCSVFile(const ReaderFunctionData& functionData,
+        common::block_idx_t blockIdx, common::DataChunk* dataChunkToRead);
+    static void readRowsFromNodeCSVFile(const ReaderFunctionData& functionData,
+        common::block_idx_t blockIdx, common::DataChunk* dataChunkToRead);
     static void readRowsFromParquetFile(const ReaderFunctionData& functionData,
         common::block_idx_t blockIdx, common::DataChunk* vectorsToRead);
     static void readRowsFromNPYFile(const ReaderFunctionData& functionData,
         common::block_idx_t blockIdx, common::DataChunk* vectorsToRead);
+
+    static std::unique_ptr<common::DataChunk> getDataChunkToRead(
+        catalog::TableSchema* tableSchema, storage::MemoryManager* memoryManager);
 };
 
 class ReaderSharedState {
@@ -143,13 +171,16 @@ public:
         : copyDescription{std::move(copyDescription)}, tableSchema{tableSchema}, numRows{0},
           currFileIdx{0}, currBlockIdx{0}, currRowIdx{0} {
         validateFunc = ReaderFunctions::getValidateFunc(this->copyDescription->fileType);
-        initFunc = ReaderFunctions::getInitDataFunc(this->copyDescription->fileType);
-        countBlocksFunc = ReaderFunctions::getCountBlocksFunc(this->copyDescription->fileType);
-        readFunc = ReaderFunctions::getReadRowsFunc(this->copyDescription->fileType);
+        initFunc = ReaderFunctions::getInitDataFunc(
+            this->copyDescription->fileType, tableSchema->tableType);
+        countBlocksFunc = ReaderFunctions::getCountBlocksFunc(
+            this->copyDescription->fileType, tableSchema->tableType);
+        readFunc = ReaderFunctions::getReadRowsFunc(
+            this->copyDescription->fileType, tableSchema->tableType);
     }
 
     void validate();
-    void countBlocks();
+    void countBlocks(storage::MemoryManager* memoryManager);
 
     std::unique_ptr<ReaderMorsel> getSerialMorsel(common::DataChunk* vectorsToRead);
     std::unique_ptr<ReaderMorsel> getParallelMorsel();

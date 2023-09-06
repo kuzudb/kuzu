@@ -16,14 +16,6 @@ struct PropertyCopyState {
     PageByteCursor overflowCursor;
 };
 
-struct StructFieldIdxAndValue {
-    StructFieldIdxAndValue(common::struct_field_idx_t fieldIdx, std::string fieldValue)
-        : fieldIdx{fieldIdx}, fieldValue{std::move(fieldValue)} {}
-
-    common::struct_field_idx_t fieldIdx;
-    std::string fieldValue;
-};
-
 class InMemColumnChunk {
 public:
     InMemColumnChunk(common::LogicalType dataType, common::offset_t startNodeOffset,

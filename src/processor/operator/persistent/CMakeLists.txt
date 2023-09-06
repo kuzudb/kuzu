@@ -7,6 +7,7 @@ add_library(kuzu_processor_operator_persistent
         copy_rel_lists.cpp
         copy_to.cpp
         csv_file_writer.cpp
+        csv_reader.cpp
         delete.cpp
         delete_executor.cpp
         insert.cpp

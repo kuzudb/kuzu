@@ -162,8 +162,8 @@ void InMemLists::setValueFromString<bool>(
 template<>
 void InMemLists::setValueFromString<uint8_t*>(
     offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
-    auto fixedListVal =
-        TableCopyUtils::getArrowFixedList(val, 1, length - 2, dataType, *copyDescription);
+    auto fixedListVal = TableCopyUtils::getArrowFixedList(
+        val, 1, length - 2, dataType, *copyDescription->csvReaderConfig);
     setValue(nodeOffset, pos, fixedListVal.get());
 }
 
@@ -416,7 +416,8 @@ template<>
 void InMemListsWithOverflow::setValueFromStringWithOverflow<ku_list_t>(
     PageByteCursor& overflowCursor, offset_t nodeOffset, uint64_t pos, const char* val,
     uint64_t length) {
-    auto varList = TableCopyUtils::getVarListValue(val, 1, length - 2, dataType, *copyDescription);
+    auto varList = TableCopyUtils::getVarListValue(
+        val, 1, length - 2, dataType, *copyDescription->csvReaderConfig);
     auto listVal = overflowInMemFile->copyList(*varList, overflowCursor);
     setValue(nodeOffset, pos, (uint8_t*)&listVal);
 }

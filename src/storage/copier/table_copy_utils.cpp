@@ -179,7 +179,7 @@ std::unique_ptr<parquet::arrow::FileReader> TableCopyUtils::createParquetReader(
 }
 
 std::vector<std::pair<int64_t, int64_t>> TableCopyUtils::splitByDelimiter(
-    const std::string& l, int64_t from, int64_t to, const CopyDescription& copyDescription) {
+    const std::string& l, int64_t from, int64_t to, const CSVReaderConfig& csvReaderConfig) {
     std::vector<std::pair<int64_t, int64_t>> split;
     auto numListBeginChars = 0u;
     auto numStructBeginChars = 0u;
@@ -187,9 +187,9 @@ std::vector<std::pair<int64_t, int64_t>> TableCopyUtils::splitByDelimiter(
     auto numSingleQuotes = 0u;
     int64_t last = from;
     for (int64_t i = from; i <= to; i++) {
-        if (l[i] == copyDescription.csvReaderConfig->listBeginChar) {
+        if (l[i] == csvReaderConfig.listBeginChar) {
             numListBeginChars++;
-        } else if (l[i] == copyDescription.csvReaderConfig->listEndChar) {
+        } else if (l[i] == csvReaderConfig.listEndChar) {
             numListBeginChars--;
         } else if (l[i] == '{') {
             numStructBeginChars++;
@@ -200,7 +200,7 @@ std::vector<std::pair<int64_t, int64_t>> TableCopyUtils::splitByDelimiter(
         } else if (l[i] == '"') {
             numDoubleQuotes ^= 1;
         } else if (numListBeginChars == 0 && numStructBeginChars == 0 && numDoubleQuotes == 0 &&
-                   numSingleQuotes == 0 && l[i] == copyDescription.csvReaderConfig->delimiter) {
+                   numSingleQuotes == 0 && l[i] == csvReaderConfig.delimiter) {
             split.emplace_back(last, i - last);
             last = i + 1;
         }
@@ -210,12 +210,12 @@ std::vector<std::pair<int64_t, int64_t>> TableCopyUtils::splitByDelimiter(
 }
 
 std::unique_ptr<Value> TableCopyUtils::getVarListValue(const std::string& l, int64_t from,
-    int64_t to, const LogicalType& dataType, const CopyDescription& copyDescription) {
+    int64_t to, const LogicalType& dataType, const CSVReaderConfig& csvReaderConfig) {
     switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::VAR_LIST:
-        return parseVarList(l, from, to, dataType, copyDescription);
+        return parseVarList(l, from, to, dataType, csvReaderConfig);
     case LogicalTypeID::MAP:
-        return parseMap(l, from, to, dataType, copyDescription);
+        return parseMap(l, from, to, dataType, csvReaderConfig);
     default: {
         throw NotImplementedException{"TableCopyUtils::getVarListValue"};
     }
@@ -223,9 +223,9 @@ std::unique_ptr<Value> TableCopyUtils::getVarListValue(const std::string& l, int
 }
 
 std::unique_ptr<Value> TableCopyUtils::getArrowFixedListVal(const std::string& l, int64_t from,
-    int64_t to, const LogicalType& dataType, const CopyDescription& copyDescription) {
+    int64_t to, const LogicalType& dataType, const CSVReaderConfig& csvReaderConfig) {
     assert(dataType.getLogicalTypeID() == LogicalTypeID::FIXED_LIST);
-    auto split = splitByDelimiter(l, from, to, copyDescription);
+    auto split = splitByDelimiter(l, from, to, csvReaderConfig);
     std::vector<std::unique_ptr<Value>> listValues;
     auto childDataType = FixedListType::getChildType(&dataType);
     uint64_t numElementsRead = 0;
@@ -240,7 +240,7 @@ std::unique_ptr<Value> TableCopyUtils::getArrowFixedListVal(const std::string& l
         case LogicalTypeID::INT16:
         case LogicalTypeID::DOUBLE:
         case LogicalTypeID::FLOAT: {
-            listValues.push_back(convertStringToValue(element, *childDataType, copyDescription));
+            listValues.push_back(convertStringToValue(element, *childDataType, csvReaderConfig));
             numElementsRead++;
         } break;
         default: {
@@ -256,9 +256,9 @@ std::unique_ptr<Value> TableCopyUtils::getArrowFixedListVal(const std::string& l
 }
 
 std::unique_ptr<uint8_t[]> TableCopyUtils::getArrowFixedList(const std::string& l, int64_t from,
-    int64_t to, const LogicalType& dataType, const CopyDescription& copyDescription) {
+    int64_t to, const LogicalType& dataType, const CSVReaderConfig& csvReaderConfig) {
     assert(dataType.getLogicalTypeID() == LogicalTypeID::FIXED_LIST);
-    auto split = splitByDelimiter(l, from, to, copyDescription);
+    auto split = splitByDelimiter(l, from, to, csvReaderConfig);
     auto listVal = std::make_unique<uint8_t[]>(StorageUtils::getDataTypeSize(dataType));
     auto childDataType = FixedListType::getChildType(&dataType);
     uint64_t numElementsRead = 0;
@@ -396,8 +396,24 @@ bool TableCopyUtils::tryCast(
     }
 }
 
+std::vector<StructFieldIdxAndValue> TableCopyUtils::parseStructFieldNameAndValues(
+    LogicalType& type, const std::string& structString, const CSVReaderConfig& csvReaderConfig) {
+    std::vector<StructFieldIdxAndValue> structFieldIdxAndValueParis;
+    uint64_t curPos = 0u;
+    while (curPos < structString.length()) {
+        auto fieldName = parseStructFieldName(structString, curPos);
+        auto fieldIdx = StructType::getFieldIdx(&type, fieldName);
+        if (fieldIdx == INVALID_STRUCT_FIELD_IDX) {
+            throw ParserException{"Invalid struct field name: " + fieldName};
+        }
+        auto structFieldValue = parseStructFieldValue(structString, curPos, csvReaderConfig);
+        structFieldIdxAndValueParis.emplace_back(fieldIdx, structFieldValue);
+    }
+    return structFieldIdxAndValueParis;
+}
+
 std::unique_ptr<Value> TableCopyUtils::convertStringToValue(
-    std::string element, const LogicalType& type, const CopyDescription& copyDescription) {
+    std::string element, const LogicalType& type, const CSVReaderConfig& csvReaderConfig) {
     std::unique_ptr<Value> value;
     switch (type.getLogicalTypeID()) {
     case LogicalTypeID::INT64: {
@@ -437,10 +453,10 @@ std::unique_ptr<Value> TableCopyUtils::convertStringToValue(
         value = std::make_unique<Value>(Interval::fromCString(element.c_str(), element.length()));
     } break;
     case LogicalTypeID::VAR_LIST: {
-        value = getVarListValue(element, 1, element.length() - 2, type, copyDescription);
+        value = getVarListValue(element, 1, element.length() - 2, type, csvReaderConfig);
     } break;
     case LogicalTypeID::FIXED_LIST: {
-        value = getArrowFixedListVal(element, 1, element.length() - 2, type, copyDescription);
+        value = getArrowFixedListVal(element, 1, element.length() - 2, type, csvReaderConfig);
     } break;
     default:
         throw CopyException(
@@ -474,8 +490,8 @@ void TableCopyUtils::validateNumElementsInList(uint64_t numElementsRead, const L
 }
 
 std::unique_ptr<Value> TableCopyUtils::parseVarList(const std::string& l, int64_t from, int64_t to,
-    const LogicalType& dataType, const CopyDescription& copyDescription) {
-    auto split = splitByDelimiter(l, from, to, copyDescription);
+    const LogicalType& dataType, const CSVReaderConfig& csvReaderConfig) {
+    auto split = splitByDelimiter(l, from, to, csvReaderConfig);
     std::vector<std::unique_ptr<Value>> values;
     auto childDataType = VarListType::getChildType(&dataType);
     // If the list is empty (e.g. []) where from is 1 and to is 0, skip parsing this empty list.
@@ -486,7 +502,7 @@ std::unique_ptr<Value> TableCopyUtils::parseVarList(const std::string& l, int64_
             if (element.empty()) {
                 value = std::make_unique<Value>(Value::createNullValue(*childDataType));
             } else {
-                value = convertStringToValue(element, *childDataType, copyDescription);
+                value = convertStringToValue(element, *childDataType, csvReaderConfig);
             }
             values.push_back(std::move(value));
         }
@@ -498,8 +514,8 @@ std::unique_ptr<Value> TableCopyUtils::parseVarList(const std::string& l, int64_
 }
 
 std::unique_ptr<Value> TableCopyUtils::parseMap(const std::string& l, int64_t from, int64_t to,
-    const LogicalType& dataType, const CopyDescription& copyDescription) {
-    auto split = splitByDelimiter(l, from, to, copyDescription);
+    const LogicalType& dataType, const CSVReaderConfig& csvReaderConfig) {
+    auto split = splitByDelimiter(l, from, to, csvReaderConfig);
     std::vector<std::unique_ptr<Value>> values;
     auto childDataType = VarListType::getChildType(&dataType);
     auto structFieldTypes = StructType::getFieldTypes(childDataType);
@@ -507,11 +523,11 @@ std::unique_ptr<Value> TableCopyUtils::parseMap(const std::string& l, int64_t fr
     if (to >= from) {
         for (auto [fromPos, len] : split) {
             std::vector<std::unique_ptr<Value>> structFields{2};
-            auto [key, value] = parseMapFields(l, fromPos, len, copyDescription);
+            auto [key, value] = parseMapFields(l, fromPos, len, csvReaderConfig);
             // TODO(Ziyi): refactor the convertStringToValue API so we can reuse the value during
             // parsing.
-            structFields[0] = convertStringToValue(key, *structFieldTypes[0], copyDescription);
-            structFields[1] = convertStringToValue(value, *structFieldTypes[1], copyDescription);
+            structFields[0] = convertStringToValue(key, *structFieldTypes[0], csvReaderConfig);
+            structFields[1] = convertStringToValue(value, *structFieldTypes[1], csvReaderConfig);
             values.push_back(std::make_unique<Value>(
                 *VarListType::getChildType(&dataType), std::move(structFields)));
         }
@@ -520,7 +536,7 @@ std::unique_ptr<Value> TableCopyUtils::parseMap(const std::string& l, int64_t fr
 }
 
 std::pair<std::string, std::string> TableCopyUtils::parseMapFields(
-    const std::string& l, int64_t from, int64_t length, const CopyDescription& copyDescription) {
+    const std::string& l, int64_t from, int64_t length, const CSVReaderConfig& csvReaderConfig) {
     std::string key;
     std::string value;
     auto numListBeginChars = 0u;
@@ -534,9 +550,9 @@ std::pair<std::string, std::string> TableCopyUtils::parseMapFields(
             numStructBeginChars++;
         } else if (curChar == '}') {
             numStructBeginChars--;
-        } else if (curChar == copyDescription.csvReaderConfig->listBeginChar) {
+        } else if (curChar == csvReaderConfig.listBeginChar) {
             numListBeginChars++;
-        } else if (curChar == copyDescription.csvReaderConfig->listEndChar) {
+        } else if (curChar == csvReaderConfig.listEndChar) {
             numListBeginChars--;
         } else if (curChar == '"') {
             numDoubleQuotes ^= 1;
@@ -563,6 +579,63 @@ std::unique_ptr<arrow::PrimitiveArray> TableCopyUtils::createArrowPrimitiveArray
     const std::shared_ptr<arrow::DataType>& type, std::shared_ptr<arrow::Buffer> buffer,
     uint64_t length) {
     return std::make_unique<arrow::PrimitiveArray>(type, length, buffer);
+}
+
+std::string TableCopyUtils::parseStructFieldName(
+    const std::string& structString, uint64_t& curPos) {
+    auto startPos = curPos;
+    while (curPos < structString.length()) {
+        if (structString[curPos] == ':') {
+            auto structFieldName = structString.substr(startPos, curPos - startPos);
+            StringUtils::removeWhiteSpaces(structFieldName);
+            curPos++;
+            return structFieldName;
+        }
+        curPos++;
+    }
+    throw ParserException{"Invalid struct string: " + structString};
+}
+
+std::string TableCopyUtils::parseStructFieldValue(
+    const std::string& structString, uint64_t& curPos, const CSVReaderConfig& csvReaderConfig) {
+    auto numListBeginChars = 0u;
+    auto numStructBeginChars = 0u;
+    auto numDoubleQuotes = 0u;
+    auto numSingleQuotes = 0u;
+    // Skip leading white spaces.
+    while (structString[curPos] == ' ') {
+        curPos++;
+    }
+    auto startPos = curPos;
+    while (curPos < structString.length()) {
+        auto curChar = structString[curPos];
+        if (curChar == '{') {
+            numStructBeginChars++;
+        } else if (curChar == '}') {
+            numStructBeginChars--;
+        } else if (curChar == csvReaderConfig.listBeginChar) {
+            numListBeginChars++;
+        } else if (curChar == csvReaderConfig.listEndChar) {
+            numListBeginChars--;
+        } else if (curChar == '"') {
+            numDoubleQuotes ^= 1;
+        } else if (curChar == '\'') {
+            numSingleQuotes ^= 1;
+        } else if (curChar == ',') {
+            if (numListBeginChars == 0 && numStructBeginChars == 0 && numDoubleQuotes == 0 &&
+                numSingleQuotes == 0) {
+                curPos++;
+                return structString.substr(startPos, curPos - startPos - 1);
+            }
+        }
+        curPos++;
+    }
+    if (numListBeginChars == 0 && numStructBeginChars == 0 && numDoubleQuotes == 0 &&
+        numSingleQuotes == 0) {
+        return structString.substr(startPos, curPos - startPos);
+    } else {
+        throw ParserException{"Invalid struct string: " + structString};
+    }
 }
 
 } // namespace storage

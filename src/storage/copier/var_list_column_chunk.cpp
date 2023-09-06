@@ -81,7 +81,7 @@ void VarListColumnChunk::copyVarListFromArrowString(
             }
             auto value = stringArray->GetView(i);
             auto listVal = TableCopyUtils::getVarListValue(
-                value.data(), 1, value.size() - 2, dataType, *copyDescription);
+                value.data(), 1, value.size() - 2, dataType, *copyDescription->csvReaderConfig);
             write(*listVal, posInChunk);
         }
     } else {
@@ -89,7 +89,7 @@ void VarListColumnChunk::copyVarListFromArrowString(
             auto value = stringArray->GetView(i);
             auto posInChunk = startPosInChunk + i;
             auto listVal = TableCopyUtils::getVarListValue(
-                value.data(), 1, value.size() - 2, dataType, *copyDescription);
+                value.data(), 1, value.size() - 2, dataType, *copyDescription->csvReaderConfig);
             write(*listVal, posInChunk);
         }
     }
@@ -108,8 +108,8 @@ void VarListColumnChunk::write(const Value& listVal, uint64_t posToWrite) {
 }
 
 void VarListColumnChunk::setValueFromString(const char* value, uint64_t length, uint64_t pos) {
-    auto listVal =
-        TableCopyUtils::getVarListValue(value, 1, length - 2, dataType, *copyDescription);
+    auto listVal = TableCopyUtils::getVarListValue(
+        value, 1, length - 2, dataType, *copyDescription->csvReaderConfig);
     write(*listVal, pos);
 }
 
@@ -130,7 +130,7 @@ void VarListColumnChunk::append(common::ValueVector* vector, common::offset_t st
     }
     varListDataColumnChunk.resizeBuffer(nextListOffsetInChunk);
     auto dataVector = ListVector::getDataVector(vector);
-    dataVector->state = std::make_unique<DataChunkState>();
+    dataVector->setState(std::make_unique<DataChunkState>());
     dataVector->state->selVector->resetSelectorToValuePosBuffer();
     for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
         auto listEntry =

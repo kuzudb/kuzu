@@ -8,24 +8,24 @@
 -LOG MissingTheSpecifierString
 -STATEMENT MATCH (a:person) return interval("3 years 2 months 45")
 ---- error
-Error occurred during parsing interval. Field name is missing.
+Conversion exception: Error occurred during parsing interval. Field name is missing.
 
 -LOG MissingTheNumberBeforeTheSpecifierString
 -STATEMENT MATCH (a:person) return interval("20 years 30 months 20 days minutes")
 ---- error
-Error occurred during parsing interval. Given: "20 years 30 months 20 days minutes".
+Conversion exception: Error occurred during parsing interval. Given: "20 years 30 months 20 days minutes".
 
 -LOG NumbersAndSpecifierStringAreNotSeparatedBySpaces
 -STATEMENT MATCH (a:person) return interval("2 years 30 minutes20 seconds")
 ---- error
-Unrecognized interval specifier string: minutes20.
+Conversion exception: Unrecognized interval specifier string: minutes20.
 
 -LOG UnrecognizedSpecifierStringMillseconds)
 -STATEMENT MATCH (a:person) return interval("10 years 2 days 48 hours 28 seconds 12 millseconds")
 ---- error
-Unrecognized interval specifier string: millseconds.
+Conversion exception: Unrecognized interval specifier string: millseconds.
 
 -LOG MultipleSpecifierStrings
 -STATEMENT MATCH (a:person) return interval("10 years 2 days 48 hours 28 seconds microseconds")
 ---- error
-Error occurred during parsing interval. Given: "10 years 2 days 48 hours 28 seconds microseconds".
+Conversion exception: Error occurred during parsing interval. Given: "10 years 2 days 48 hours 28 seconds microseconds".

@@ -7,15 +7,16 @@ namespace planner {
 
 void LogicalCopyFrom::computeFactorizedSchema() {
     createEmptySchema();
-    auto groupPos = schema->createGroup();
-    schema->insertToGroupAndScope(info->columnExpressions, groupPos);
+    auto flatGroup = schema->createGroup();
+    auto unflatGroup = schema->createGroup();
+    schema->insertToGroupAndScope(info->columnExpressions, unflatGroup);
     if (info->tableSchema->tableType == TableType::REL) {
-        schema->insertToGroupAndScope(info->boundOffsetExpression, groupPos);
-        schema->insertToGroupAndScope(info->nbrOffsetExpression, groupPos);
+        schema->insertToGroupAndScope(info->boundOffsetExpression, unflatGroup);
+        schema->insertToGroupAndScope(info->nbrOffsetExpression, unflatGroup);
     }
-    schema->insertToGroupAndScope(info->offsetExpression, groupPos);
-    schema->insertToGroupAndScope(outputExpression, groupPos);
-    schema->setGroupAsSingleState(groupPos);
+    schema->insertToGroupAndScope(info->offsetExpression, flatGroup);
+    schema->insertToGroupAndScope(outputExpression, flatGroup);
+    schema->setGroupAsSingleState(flatGroup);
 }
 
 void LogicalCopyFrom::computeFlatSchema() {

@@ -82,10 +82,10 @@ void CopyNode::executeInternal(ExecutionContext* context) {
     // CopyNode goes through UNDO log, should be logged and flushed to WAL before making changes.
     sharedState->logCopyNodeWALRecord(copyNodeInfo.wal);
     while (children[0]->getNextTuple(context)) {
+        auto originalSelVector =
+            resultSet->getDataChunk(copyNodeInfo.dataColumnPoses[0].dataChunkPos)->state->selVector;
         // All tuples in the resultSet are in the same data chunk.
-        auto numTuplesToAppend = ArrowColumnVector::getArrowColumn(
-            resultSet->getValueVector(copyNodeInfo.dataColumnPoses[0]).get())
-                                     ->length();
+        auto numTuplesToAppend = originalSelVector->selectedSize;
         auto numAppendedTuples = 0ul;
         while (numAppendedTuples < numTuplesToAppend) {
             auto numAppendedTuplesInNodeGroup = localNodeGroup->append(
@@ -103,6 +103,8 @@ void CopyNode::executeInternal(ExecutionContext* context) {
                     copyNodeInfo.dataColumnPoses, (offset_t)numAppendedTuplesInNodeGroup);
             }
         }
+        resultSet->getDataChunk(copyNodeInfo.dataColumnPoses[0].dataChunkPos)->state->selVector =
+            std::move(originalSelVector);
     }
     if (localNodeGroup->getNumNodes() > 0) {
         sharedState->appendLocalNodeGroup(std::move(localNodeGroup));
@@ -111,9 +113,20 @@ void CopyNode::executeInternal(ExecutionContext* context) {
 
 void CopyNode::sliceDataChunk(
     const DataChunk& dataChunk, const std::vector<DataPos>& dataColumnPoses, offset_t offset) {
-    for (auto& dataColumnPos : dataColumnPoses) {
-        ArrowColumnVector::slice(
-            dataChunk.valueVectors[dataColumnPos.valueVectorPos].get(), offset);
+    if (dataChunk.valueVectors[0]->dataType.getPhysicalType() == PhysicalTypeID::ARROW_COLUMN) {
+        for (auto& dataColumnPos : dataColumnPoses) {
+            ArrowColumnVector::slice(
+                dataChunk.valueVectors[dataColumnPos.valueVectorPos].get(), offset);
+        }
+    } else {
+        auto slicedSelVector = std::make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
+        slicedSelVector->resetSelectorToValuePosBufferWithSize(
+            dataChunk.state->selVector->selectedSize - offset);
+        for (auto i = 0u; i < slicedSelVector->selectedSize; i++) {
+            slicedSelVector->selectedPositions[i] =
+                dataChunk.state->selVector->selectedPositions[i + offset];
+        }
+        dataChunk.state->selVector = std::move(slicedSelVector);
     }
 }
 

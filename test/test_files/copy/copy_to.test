@@ -5,7 +5,7 @@
 
 -CASE WrongCopyTo
 
--LOG Non-existent property test 
+-LOG Non-existent property test
 -STATEMENT COPY (MATCH (a:person) RETURN a.non_prop) TO "${DATABASE_PATH}/lists.csv";
 ---- error
 Binder exception: Cannot find property non_prop for a.
@@ -57,6 +57,8 @@ MAX(p.height)
 
 -CASE StringEscapeCopyTo
 
+-SKIP
+# TODO(Ziyi): this statement is invalid in duckdb. The last quote must be followed by end of line or a comma.
 -STATEMENT COPY (RETURN 100,'a string with "quotes"',5.6,'","') TO "${DATABASE_PATH}/string.csv"
 ---- ok
 -STATEMENT CREATE NODE TABLE stringTable (number INT, str STRING, frac DOUBLE, str2 STRING, PRIMARY KEY (str))

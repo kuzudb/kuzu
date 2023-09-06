@@ -11,7 +11,7 @@ namespace processor {
 
 void Reader::initGlobalStateInternal(ExecutionContext* context) {
     sharedState->validate();
-    sharedState->countBlocks();
+    sharedState->countBlocks(context->memoryManager);
 }
 
 void Reader::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
@@ -20,8 +20,10 @@ void Reader::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* cont
     for (auto i = 0u; i < info->getNumColumns(); i++) {
         dataChunk->insert(i, resultSet->getValueVector(info->dataColumnsPos[i]));
     }
-    initFunc = ReaderFunctions::getInitDataFunc(sharedState->copyDescription->fileType);
-    readFunc = ReaderFunctions::getReadRowsFunc(sharedState->copyDescription->fileType);
+    initFunc = ReaderFunctions::getInitDataFunc(
+        sharedState->copyDescription->fileType, sharedState->tableSchema->getTableType());
+    readFunc = ReaderFunctions::getReadRowsFunc(
+        sharedState->copyDescription->fileType, sharedState->tableSchema->getTableType());
     nodeOffsetVector = resultSet->getValueVector(info->nodeOffsetPos).get();
 }
 

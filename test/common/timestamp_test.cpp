@@ -12,7 +12,7 @@ TEST(TimestampTests, FromDatetime) {
         Timestamp::fromDateTime(Date::fromDate(1968, 12, 42), Time::FromTime(21, 32, 51));
         FAIL();
     } catch (ConversionException& e) {
-        ASSERT_STREQ(e.what(), "Date out of range: 1968-12-42.");
+        ASSERT_STREQ(e.what(), "Conversion exception: Date out of range: 1968-12-42.");
     } catch (std::exception& e) { FAIL(); }
 
     // 2021 is not a leap year, February only has 28 days.
@@ -20,7 +20,7 @@ TEST(TimestampTests, FromDatetime) {
         Timestamp::fromDateTime(Date::fromDate(2021, 2, 29), Time::FromTime(21, 32, 51));
         FAIL();
     } catch (ConversionException& e) {
-        ASSERT_STREQ(e.what(), "Date out of range: 2021-2-29.");
+        ASSERT_STREQ(e.what(), "Conversion exception: Date out of range: 2021-2-29.");
     } catch (std::exception& e) { FAIL(); }
 
     // hour is out of range
@@ -28,7 +28,8 @@ TEST(TimestampTests, FromDatetime) {
         Timestamp::fromDateTime(Date::fromDate(1968, 12, 22), Time::FromTime(25, 32, 51));
         FAIL();
     } catch (ConversionException& e) {
-        ASSERT_STREQ(e.what(), "Time field value out of range: 25:32:51[.0].");
+        ASSERT_STREQ(
+            e.what(), "Conversion exception: Time field value out of range: 25:32:51[.0].");
     } catch (std::exception& e) { FAIL(); }
 
     // second is out of range
@@ -36,7 +37,7 @@ TEST(TimestampTests, FromDatetime) {
         Timestamp::fromDateTime(Date::fromDate(2021, 2, 28), Time::FromTime(5, 52, 70));
         FAIL();
     } catch (ConversionException& e) {
-        ASSERT_STREQ(e.what(), "Time field value out of range: 5:52:70[.0].");
+        ASSERT_STREQ(e.what(), "Conversion exception: Time field value out of range: 5:52:70[.0].");
     } catch (std::exception& e) { FAIL(); }
 
     // microsecond is out of rarnge
@@ -44,7 +45,8 @@ TEST(TimestampTests, FromDatetime) {
         Timestamp::fromDateTime(Date::fromDate(2021, 2, 28), Time::FromTime(5, 52, 42, 1000002));
         FAIL();
     } catch (ConversionException& e) {
-        ASSERT_STREQ(e.what(), "Time field value out of range: 5:52:42[.1000002].");
+        ASSERT_STREQ(
+            e.what(), "Conversion exception: Time field value out of range: 5:52:42[.1000002].");
     } catch (std::exception& e) { FAIL(); }
 
     EXPECT_EQ(

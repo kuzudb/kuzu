@@ -61,7 +61,8 @@ static void validateCopyNpyNotForRelTables(TableSchema* schema) {
     }
 }
 
-expression_vector Binder::bindColumnExpressions(TableSchema* tableSchema) {
+expression_vector Binder::bindColumnExpressions(
+    TableSchema* tableSchema, CopyDescription::FileType fileType) {
     expression_vector columnExpressions;
     if (tableSchema->tableType == TableType::REL) {
         // For rel table, add FROM and TO columns as data columns to be read from file.
@@ -70,10 +71,15 @@ expression_vector Binder::bindColumnExpressions(TableSchema* tableSchema) {
         columnExpressions.push_back(createVariable(
             std::string(Property::REL_TO_PROPERTY_NAME), LogicalType{LogicalTypeID::ARROW_COLUMN}));
     }
+    auto isCopyNodeCSV =
+        tableSchema->tableType == TableType::NODE && fileType == CopyDescription::FileType::CSV;
     for (auto& property : tableSchema->properties) {
         if (property->getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL ||
             TableSchema::isReservedPropertyName(property->getName())) {
             continue;
+        } else if (isCopyNodeCSV) {
+            columnExpressions.push_back(
+                createVariable(property->getName(), *property->getDataType()));
         } else {
             columnExpressions.push_back(
                 createVariable(property->getName(), LogicalType{LogicalTypeID::ARROW_COLUMN}));
@@ -116,7 +122,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     // For CSV file, and table with SERIAL columns, we need to read in serial from files.
     auto containsSerial = bindContainsSerial(tableSchema, actualFileType);
     // Bind expressions.
-    auto columnExpressions = bindColumnExpressions(tableSchema);
+    auto columnExpressions = bindColumnExpressions(tableSchema, actualFileType);
     auto copyDescription = std::make_unique<CopyDescription>(
         actualFileType, boundFilePaths, std::move(csvReaderConfig));
     auto nodeOffsetExpression =

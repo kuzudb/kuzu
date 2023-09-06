@@ -70,7 +70,8 @@ void StructColumnChunk::setStructFields(const char* value, uint64_t length, uint
     switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::STRUCT: {
         auto structString = std::string(value, length).substr(1, length - 2);
-        auto structFieldIdxAndValuePairs = parseStructFieldNameAndValues(dataType, structString);
+        auto structFieldIdxAndValuePairs = TableCopyUtils::parseStructFieldNameAndValues(
+            dataType, structString, *copyDescription->csvReaderConfig);
         for (auto& fieldIdxAndValue : structFieldIdxAndValuePairs) {
             setValueToStructField(pos, fieldIdxAndValue.fieldValue, fieldIdxAndValue.fieldIdx);
         }
@@ -158,79 +159,6 @@ void StructColumnChunk::setValueToStructField(
         throw NotImplementedException{StringUtils::string_format(
             "Unsupported data type: {}.", LogicalTypeUtils::dataTypeToString(dataType))};
     }
-    }
-}
-
-std::vector<StructFieldIdxAndValue> StructColumnChunk::parseStructFieldNameAndValues(
-    LogicalType& type, const std::string& structString) {
-    std::vector<StructFieldIdxAndValue> structFieldIdxAndValueParis;
-    uint64_t curPos = 0u;
-    while (curPos < structString.length()) {
-        auto fieldName = parseStructFieldName(structString, curPos);
-        auto fieldIdx = StructType::getFieldIdx(&type, fieldName);
-        if (fieldIdx == INVALID_STRUCT_FIELD_IDX) {
-            throw ParserException{"Invalid struct field name: " + fieldName};
-        }
-        auto structFieldValue = parseStructFieldValue(structString, curPos);
-        structFieldIdxAndValueParis.emplace_back(fieldIdx, structFieldValue);
-    }
-    return structFieldIdxAndValueParis;
-}
-
-std::string StructColumnChunk::parseStructFieldName(
-    const std::string& structString, uint64_t& curPos) {
-    auto startPos = curPos;
-    while (curPos < structString.length()) {
-        if (structString[curPos] == ':') {
-            auto structFieldName = structString.substr(startPos, curPos - startPos);
-            StringUtils::removeWhiteSpaces(structFieldName);
-            curPos++;
-            return structFieldName;
-        }
-        curPos++;
-    }
-    throw ParserException{"Invalid struct string: " + structString};
-}
-
-std::string StructColumnChunk::parseStructFieldValue(
-    const std::string& structString, uint64_t& curPos) {
-    auto numListBeginChars = 0u;
-    auto numStructBeginChars = 0u;
-    auto numDoubleQuotes = 0u;
-    auto numSingleQuotes = 0u;
-    // Skip leading white spaces.
-    while (structString[curPos] == ' ') {
-        curPos++;
-    }
-    auto startPos = curPos;
-    while (curPos < structString.length()) {
-        auto curChar = structString[curPos];
-        if (curChar == '{') {
-            numStructBeginChars++;
-        } else if (curChar == '}') {
-            numStructBeginChars--;
-        } else if (curChar == copyDescription->csvReaderConfig->listBeginChar) {
-            numListBeginChars++;
-        } else if (curChar == copyDescription->csvReaderConfig->listEndChar) {
-            numListBeginChars--;
-        } else if (curChar == '"') {
-            numDoubleQuotes ^= 1;
-        } else if (curChar == '\'') {
-            numSingleQuotes ^= 1;
-        } else if (curChar == ',') {
-            if (numListBeginChars == 0 && numStructBeginChars == 0 && numDoubleQuotes == 0 &&
-                numSingleQuotes == 0) {
-                curPos++;
-                return structString.substr(startPos, curPos - startPos - 1);
-            }
-        }
-        curPos++;
-    }
-    if (numListBeginChars == 0 && numStructBeginChars == 0 && numDoubleQuotes == 0 &&
-        numSingleQuotes == 0) {
-        return structString.substr(startPos, curPos - startPos);
-    } else {
-        throw ParserException{"Invalid struct string: " + structString};
     }
 }
 
