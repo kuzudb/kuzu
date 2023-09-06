@@ -96,7 +96,6 @@ void Database::initLoggers() {
     LoggerUtils::createLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);
     LoggerUtils::createLogger(LoggerConstants::LoggerEnum::CATALOG);
     LoggerUtils::createLogger(LoggerConstants::LoggerEnum::STORAGE);
-    LoggerUtils::createLogger(LoggerConstants::LoggerEnum::TRANSACTION_MANAGER);
     LoggerUtils::createLogger(LoggerConstants::LoggerEnum::WAL);
     spdlog::set_level(spdlog::level::err);
 }
@@ -109,7 +108,6 @@ void Database::dropLoggers() {
     LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);
     LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::CATALOG);
     LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::STORAGE);
-    LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::TRANSACTION_MANAGER);
     LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::WAL);
 }
 

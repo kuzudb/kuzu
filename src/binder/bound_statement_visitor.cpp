@@ -43,6 +43,9 @@ void BoundStatementVisitor::visit(const kuzu::binder::BoundStatement& statement)
     case StatementType::CREATE_MACRO: {
         visitCreateMacro(statement);
     } break;
+    case StatementType::TRANSACTION: {
+        visitTransaction(statement);
+    } break;
     default:
         throw NotImplementedException("BoundStatementVisitor::visit");
     }

@@ -27,6 +27,7 @@ add_library(kuzu_planner_plan_operator
         plan_read.cpp
         plan_single_query.cpp
         plan_subquery.cpp
+        plan_transaction.cpp
         plan_update.cpp)
 
 set(ALL_OBJECT_FILES

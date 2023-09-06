@@ -123,7 +123,8 @@
 100|50|4:3|5:3
 
 -CASE InsertNodeWithListTest
--BEGIN_WRITE_TRANSACTION
+-STATEMENT BEGIN WRITE TRANSACTION
+---- ok
 -STATEMENT CREATE (:person {ID:11, workedHours:[1,2,3], usedNames:['A', 'this is a long name']})
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID > 8 RETURN a.ID, a.workedHours,a.usedNames
@@ -150,10 +151,12 @@
 -CASE CreateStructWithWriteTransaction
 -STATEMENT CREATE NODE TABLE test(id INT64, prop STRUCT(age INT64, name STRING), PRIMARY KEY(id));
 ---- ok
--BEGIN_WRITE_TRANSACTION
+-STATEMENT BEGIN WRITE TRANSACTION
+---- ok
 -STATEMENT CREATE (a:test {id:1, prop:{age:10, name:'A'}})
 ---- ok
 -STATEMENT MATCH (a:test) RETURN a.prop
 ---- 1
 {age: 10, name: A}
--COMMIT
+-STATEMENT COMMIT
+---- ok

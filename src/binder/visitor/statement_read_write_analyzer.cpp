@@ -9,7 +9,9 @@ bool StatementReadWriteAnalyzer::isReadOnly(const kuzu::binder::BoundStatement& 
 }
 
 void StatementReadWriteAnalyzer::visitQueryPart(const NormalizedQueryPart& queryPart) {
-    readOnly = !queryPart.hasUpdatingClause();
+    if (queryPart.hasUpdatingClause()) {
+        readOnly = false;
+    }
 }
 
 } // namespace binder

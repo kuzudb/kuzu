@@ -9,6 +9,7 @@ add_library(kuzu_parser_transform
         transform_query.cpp
         transform_reading_clause.cpp
         transform_standalone_call.cpp
+        transform_transaction.cpp
         transform_updating_clause.cpp)
 
 set(ALL_OBJECT_FILES

@@ -55,7 +55,7 @@ public:
 
 TEST_F(SetNodeStructuredPropTransactionTest,
     SingleTransactionReadWriteToFixedLengthStructuredNodePropertyNonNullTest) {
-    conn->beginWriteTransaction();
+    conn->query("BEGIN WRITE TRANSACTION");
     readAndAssertNodeProperty(
         conn.get(), 0 /* node offset */, "age", std::vector<std::string>{"35"});
     conn->query("MATCH (a:person) WHERE a.ID = 0 SET a.age = 70;");
@@ -76,7 +76,7 @@ TEST_F(SetNodeStructuredPropTransactionTest,
 
 TEST_F(SetNodeStructuredPropTransactionTest,
     SingleTransactionReadWriteToFixedLengthStructuredNodePropertyNullTest) {
-    conn->beginWriteTransaction();
+    conn->query("BEGIN WRITE TRANSACTION");
     readAndAssertNodeProperty(
         conn.get(), 0 /* node offset */, "age", std::vector<std::string>{"35"});
     conn->query("MATCH (a:person) WHERE a.ID = 0 SET a.age = null;");
@@ -161,28 +161,24 @@ TEST_F(SetNodeStructuredPropTransactionTest,
     OpenReadOnlyTransactionTriggersTimeoutErrorForWriteTransaction) {
     getTransactionManager(*database)->setCheckPointWaitTimeoutForTransactionsToLeaveInMicros(
         10000 /* 10ms */);
-    readConn->beginReadOnlyTransaction();
-    conn->beginWriteTransaction();
+    readConn->query("BEGIN READ TRANSACTION");
+    conn->query("BEGIN WRITE TRANSACTION");
     conn->query("MATCH (a:person) WHERE a.ID = 0 SET a.age = 70;");
-    try {
-        conn->commit();
-        FAIL();
-    } catch (TransactionManagerException& e) {
-    } catch (Exception& e) { FAIL(); }
+    ASSERT_FALSE(conn->query("COMMIT")->isSuccess());
     readAndAssertNodeProperty(
         readConn.get(), 0 /* node offset */, "age", std::vector<std::string>{"35"});
 }
 
 TEST_F(SetNodeStructuredPropTransactionTest, SetNodeLongStringPropRollbackTest) {
-    conn->beginWriteTransaction();
+    conn->query("BEGIN WRITE TRANSACTION");
     conn->query("MATCH (a:person) WHERE a.ID=0 SET a.fName='abcdefghijklmnopqrstuvwxyz'");
-    conn->rollback();
+    conn->query("ROLLBACK");
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.fName");
     ASSERT_EQ(result->getNext()->getValue(0)->getValue<std::string>(), "Alice");
 }
 
 TEST_F(SetNodeStructuredPropTransactionTest, SetVeryLongStringErrorsTest) {
-    conn->beginWriteTransaction();
+    conn->query("BEGIN WRITE TRANSACTION");
     std::string veryLongStr = "";
     for (auto i = 0u; i < BufferPoolConstants::PAGE_4KB_SIZE + 1; ++i) {
         veryLongStr += "a";

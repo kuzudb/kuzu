@@ -18,6 +18,7 @@ enum class StatementType : uint8_t {
     STANDALONE_CALL = 21,
     EXPLAIN = 22,
     CREATE_MACRO = 23,
+    TRANSACTION = 30,
 };
 
 struct StatementTypeUtils {

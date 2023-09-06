@@ -56,6 +56,9 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
     case StatementType::CREATE_MACRO: {
         plan = planCreateMacro(statement);
     } break;
+    case StatementType::TRANSACTION: {
+        plan = planTransaction(statement);
+    } break;
     default:
         throw NotImplementedException("getBestPlan()");
     }

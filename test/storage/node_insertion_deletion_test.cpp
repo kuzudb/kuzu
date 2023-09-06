@@ -23,7 +23,7 @@ public:
     void initDBAndConnection() {
         createDBAndConn();
         readConn = std::make_unique<Connection>(database.get());
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
     }
 
     void deleteNode(offset_t id) {
@@ -55,8 +55,8 @@ TEST_F(NodeInsertionDeletionTests, DeleteAddMixedTest) {
     std::string query = "MATCH (a:person) RETURN count(*)";
     ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10010);
     ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10000);
-    conn->commit();
-    conn->beginWriteTransaction();
+    conn->query("COMMIT");
+    conn->query("BEGIN WRITE TRANSACTION");
     ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10010);
     ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10010);
 
@@ -66,8 +66,8 @@ TEST_F(NodeInsertionDeletionTests, DeleteAddMixedTest) {
 
     ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10000);
     ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10010);
-    conn->commit();
-    conn->beginWriteTransaction();
+    conn->query("COMMIT");
+    conn->query("BEGIN WRITE TRANSACTION");
     ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10000);
     ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10000);
 
@@ -77,8 +77,8 @@ TEST_F(NodeInsertionDeletionTests, DeleteAddMixedTest) {
 
     ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10005);
     ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10000);
-    conn->commit();
-    conn->beginWriteTransaction();
+    conn->query("COMMIT");
+    conn->query("BEGIN WRITE TRANSACTION");
     ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10005);
     ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10005);
 }

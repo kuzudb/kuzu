@@ -15,6 +15,7 @@ class Binder;
 }
 
 namespace main {
+class Database;
 
 struct ActiveQuery {
     explicit ActiveQuery();
@@ -38,9 +39,9 @@ class ClientContext {
     friend class VarLengthExtendMaxDepthSetting;
 
 public:
-    explicit ClientContext();
+    explicit ClientContext(Database* database);
 
-    ~ClientContext() = default;
+    ~ClientContext();
 
     inline void interrupt() { activeQuery.interrupted = true; }
 
@@ -56,6 +57,9 @@ public:
 
     std::string getCurrentSetting(std::string optionName);
 
+    transaction::Transaction* getActiveTransaction() const;
+    transaction::TransactionContext* getTransactionContext() const;
+
 private:
     inline void resetActiveQuery() { activeQuery.reset(); }
 
@@ -63,6 +67,7 @@ private:
     ActiveQuery activeQuery;
     uint64_t timeoutInMS;
     uint32_t varLengthExtendMaxDepth;
+    std::unique_ptr<transaction::TransactionContext> transactionContext;
 };
 
 } // namespace main

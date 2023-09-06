@@ -95,7 +95,7 @@ TEST_F(CreateMacroTestTrxTest, createVariableMacro) {
 }
 
 TEST_F(CreateMacroTestTrxTest, createMacroReadTrxError) {
-    conn->beginReadOnlyTransaction();
+    ASSERT_TRUE(conn->query("BEGIN READ TRANSACTION")->isSuccess());
     ASSERT_EQ(conn->query("CREATE MACRO var_macro(x) AS x")->getErrorMessage(),
         "Can't execute a write query inside a read-only transaction.");
 }

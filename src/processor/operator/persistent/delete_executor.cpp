@@ -19,7 +19,7 @@ void SingleLabelNodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext*
 }
 
 void SingleLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
-    table->delete_(context->transaction, nodeIDVector, deleteState.get());
+    table->delete_(context->clientContext->getActiveTransaction(), nodeIDVector, deleteState.get());
 }
 
 void MultiLabelNodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
@@ -39,7 +39,8 @@ void MultiLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
     auto nodeID = nodeIDVector->getValue<internalID_t>(pos);
     assert(tableIDToTableMap.contains(nodeID.tableID) && deleteStates.contains(nodeID.tableID));
     auto table = tableIDToTableMap.at(nodeID.tableID);
-    table->delete_(context->transaction, nodeIDVector, deleteStates.at(nodeID.tableID).get());
+    table->delete_(context->clientContext->getActiveTransaction(), nodeIDVector,
+        deleteStates.at(nodeID.tableID).get());
 }
 
 void RelDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* context) {

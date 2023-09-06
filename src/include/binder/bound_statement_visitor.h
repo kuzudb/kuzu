@@ -28,6 +28,7 @@ protected:
     virtual void visitStandaloneCall(const BoundStatement& statement) {}
     virtual void visitExplain(const BoundStatement& statement);
     virtual void visitCreateMacro(const BoundStatement& statement) {}
+    virtual void visitTransaction(const BoundStatement& statement) {}
 
     void visitReadingClause(const BoundReadingClause& readingClause);
     virtual void visitMatch(const BoundReadingClause& readingClause) {}

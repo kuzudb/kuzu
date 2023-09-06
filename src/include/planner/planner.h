@@ -36,6 +36,8 @@ private:
 
     static std::unique_ptr<LogicalPlan> planCreateMacro(const BoundStatement& statement);
 
+    static std::unique_ptr<LogicalPlan> planTransaction(const BoundStatement& statement);
+
     static std::vector<std::unique_ptr<LogicalPlan>> getAllQueryPlans(
         const catalog::Catalog& catalog,
         const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
@@ -51,6 +53,8 @@ private:
         const storage::RelsStatistics& relsStatistics, const BoundStatement& statement);
 
     static std::unique_ptr<LogicalPlan> planCopyFrom(const BoundStatement& statement);
+
+    static std::unique_ptr<LogicalPlan> getSimplePlan(std::shared_ptr<LogicalOperator> op);
 };
 
 } // namespace planner

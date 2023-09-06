@@ -5,6 +5,7 @@
 #include "parser/parser.h"
 #include "spdlog/spdlog.h"
 #include "storage/storage_manager.h"
+#include "transaction/transaction_context.h"
 
 using ::testing::Test;
 using namespace kuzu::catalog;
@@ -87,7 +88,7 @@ void BaseGraphTest::commitOrRollbackConnectionAndInitDBIfNecessary(
     if (transactionTestType == TransactionTestType::RECOVERY) {
         // This creates a new database/conn/readConn and should run the recovery algorithm.
         createDBAndConn();
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
     }
 }
 
@@ -175,16 +176,16 @@ void BaseGraphTest::commitOrRollbackConnection(
     bool isCommit, TransactionTestType transactionTestType) const {
     if (transactionTestType == TransactionTestType::NORMAL_EXECUTION) {
         if (isCommit) {
-            conn->commit();
+            conn->query("COMMIT");
         } else {
-            conn->rollback();
+            conn->query("ROLLBACK");
         }
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
     } else {
         if (isCommit) {
-            conn->commitButSkipCheckpointingForTestingRecovery();
+            conn->query("COMMIT_SKIP_CHECKPOINT");
         } else {
-            conn->rollbackButSkipCheckpointingForTestingRecovery();
+            conn->query("ROLLBACK_SKIP_CHECKPOINT");
         }
     }
 }

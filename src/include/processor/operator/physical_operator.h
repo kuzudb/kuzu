@@ -63,6 +63,7 @@ enum class PhysicalOperatorType : uint8_t {
     SKIP,
     TOP_K,
     TOP_K_SCAN,
+    TRANSACTION,
     ORDER_BY,
     ORDER_BY_MERGE,
     ORDER_BY_SCAN,

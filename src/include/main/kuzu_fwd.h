@@ -52,9 +52,8 @@ class PhysicalPlan;
 
 namespace transaction {
 class Transaction;
-enum class TransactionType : uint8_t;
-enum class TransactionAction : uint8_t;
 class TransactionManager;
+class TransactionContext;
 } // namespace transaction
 
 } // namespace kuzu

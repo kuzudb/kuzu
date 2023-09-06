@@ -3,9 +3,12 @@
 #include <thread>
 
 #include "common/constants.h"
+#include "main/database.h"
 #include "main/db_config.h"
+#include "transaction/transaction_context.h"
 
 using namespace kuzu::common;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace main {
@@ -17,10 +20,14 @@ void ActiveQuery::reset() {
     timer = Timer();
 }
 
-ClientContext::ClientContext()
+ClientContext::ClientContext(Database* database)
     : numThreadsForExecution{std::thread::hardware_concurrency()},
       timeoutInMS{ClientContextConstants::TIMEOUT_IN_MS}, varLengthExtendMaxDepth{
-                                                              VAR_LENGTH_EXTEND_MAX_DEPTH} {}
+                                                              VAR_LENGTH_EXTEND_MAX_DEPTH} {
+    transactionContext = std::make_unique<TransactionContext>(database);
+}
+
+ClientContext::~ClientContext() {}
 
 void ClientContext::startTimingIfEnabled() {
     if (isTimeOutEnabled()) {
@@ -34,6 +41,14 @@ std::string ClientContext::getCurrentSetting(std::string optionName) {
         throw RuntimeException{"Invalid option name: " + optionName + "."};
     }
     return option->getSetting(this);
+}
+
+Transaction* ClientContext::getActiveTransaction() const {
+    return transactionContext->getActiveTransaction();
+}
+
+TransactionContext* ClientContext::getTransactionContext() const {
+    return transactionContext.get();
 }
 
 } // namespace main

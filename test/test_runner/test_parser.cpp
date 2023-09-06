@@ -171,22 +171,6 @@ TestStatement* TestParser::extractStatement(TestStatement* statement) {
         statement->encodedJoin = paramsToString(1);
         break;
     }
-    case TokenType::BEGIN_WRITE_TRANSACTION: {
-        statement->transactionCmdType = TestStatement::TransactionCmdType::BEGIN_WRITE_TRX;
-        return statement;
-    }
-    case TokenType::BEGIN_READ_ONLY_TRANSACTION: {
-        statement->transactionCmdType = TestStatement::TransactionCmdType::BEGIN_READ_TRX;
-        return statement;
-    }
-    case TokenType::COMMIT: {
-        statement->transactionCmdType = TestStatement::TransactionCmdType::COMMIT;
-        return statement;
-    }
-    case TokenType::ROLLBACK: {
-        statement->transactionCmdType = TestStatement::TransactionCmdType::ROLLBACK;
-        return statement;
-    }
     case TokenType::EMPTY: {
         break;
     }

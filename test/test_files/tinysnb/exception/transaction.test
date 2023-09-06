@@ -5,7 +5,8 @@
 
 -CASE ParsingErrorRollbackTest
 
--BEGIN_WRITE_TRANSACTION
+-STATEMENT BEGIN WRITE TRANSACTION
+---- ok
 -STATEMENT CREATE (p:person {ID: 100})
 ---- ok
 -STATEMENT MATCH (:person) RETURN count(*)

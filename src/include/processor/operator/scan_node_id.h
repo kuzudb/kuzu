@@ -80,7 +80,7 @@ public:
 
 private:
     inline void initGlobalStateInternal(ExecutionContext* context) override {
-        sharedState->initialize(context->transaction);
+        sharedState->initialize(context->clientContext->getActiveTransaction());
     }
 
     void setSelVector(

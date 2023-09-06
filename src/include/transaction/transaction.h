@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "storage/local_storage.h"
+#include "transaction_action.h"
 
 namespace kuzu {
 namespace transaction {
@@ -10,7 +11,7 @@ namespace transaction {
 class TransactionManager;
 
 enum class TransactionType : uint8_t { READ_ONLY, WRITE };
-enum class TransactionAction : uint8_t { COMMIT, ROLLBACK };
+constexpr uint64_t INVALID_TRANSACTION_ID = UINT64_MAX;
 
 class Transaction {
     friend class TransactionManager;
@@ -23,7 +24,7 @@ public:
     }
 
     constexpr explicit Transaction(TransactionType transactionType)
-        : type{transactionType}, ID{UINT64_MAX} {}
+        : type{transactionType}, ID{INVALID_TRANSACTION_ID} {}
 
 public:
     inline TransactionType getType() const { return type; }

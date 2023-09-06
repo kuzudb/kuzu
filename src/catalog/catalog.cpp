@@ -3,7 +3,6 @@
 #include "catalog/rel_table_group_schema.h"
 #include "common/ser_deser.h"
 #include "common/string_utils.h"
-#include "storage/storage_utils.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
