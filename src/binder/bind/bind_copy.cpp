@@ -82,15 +82,15 @@ expression_vector Binder::bindColumnExpressions(TableSchema* tableSchema) {
     return columnExpressions;
 }
 
-bool Binder::bindPreservingOrder(TableSchema* tableSchema, CopyDescription::FileType fileType) {
-    bool preservingOrder = fileType == CopyDescription::FileType::CSV;
+bool Binder::bindContainsSerial(TableSchema* tableSchema, CopyDescription::FileType fileType) {
+    bool containsSerial = false;
     for (auto& property : tableSchema->properties) {
         if (property->getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL) {
-            preservingOrder = true;
+            containsSerial = true;
             break;
         }
     }
-    return preservingOrder;
+    return containsSerial;
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& statement) {
@@ -114,7 +114,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     }
     // Bind execution mode.
     // For CSV file, and table with SERIAL columns, we need to read in serial from files.
-    auto preservingOrder = bindPreservingOrder(tableSchema, actualFileType);
+    auto containsSerial = bindContainsSerial(tableSchema, actualFileType);
     // Bind expressions.
     auto columnExpressions = bindColumnExpressions(tableSchema);
     auto copyDescription = std::make_unique<CopyDescription>(
@@ -131,7 +131,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
                                    nullptr;
     auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(std::move(copyDescription),
         tableSchema, std::move(columnExpressions), std::move(nodeOffsetExpression),
-        std::move(boundOffsetExpression), std::move(nbrOffsetExpression), preservingOrder);
+        std::move(boundOffsetExpression), std::move(nbrOffsetExpression), containsSerial);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 

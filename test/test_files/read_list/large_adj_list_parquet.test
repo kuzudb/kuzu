@@ -23,10 +23,10 @@
 ---- 0
 
 -LOG EdgeID
--STATEMENT MATCH (a:person)-[r:knows]->(b:person) WHERE a.ID = 5000 RETURN ID(r)
+-STATEMENT MATCH (a:person)-[r:knows]->(b:person) WHERE a.ID = 5000 RETURN b.ID, r.int64Prop
 -ENUMERATE
 ---- 1
-1:10000
+5000|
 
 -LOG CrossProduct1
 -STATEMENT MATCH (a:person), (b:person) RETURN COUNT(*)

@@ -23,29 +23,30 @@ void LeftArrowArrays::appendToDataChunk(common::DataChunk* dataChunk, uint64_t n
     auto& arrayVectorToComputeSlice = leftArrays[0];
     std::vector<arrow::ArrayVector> arrayVectors;
     arrayVectors.resize(leftArrays.size());
-    for (auto i = 0u; i < arrayVectorToComputeSlice.size(); i++) {
+    uint64_t arrayVectorIdx;
+    for (arrayVectorIdx = 0u; arrayVectorIdx < arrayVectorToComputeSlice.size(); arrayVectorIdx++) {
         if (numRowsAppended >= numRowsToAppend) {
-            for (auto& arrayVector : leftArrays) {
-                arrayVector.erase(arrayVector.begin(), arrayVector.begin() + i);
-            }
             break;
         } else {
-            auto arrayToComputeSlice = arrayVectorToComputeSlice[i];
+            auto arrayToComputeSlice = arrayVectorToComputeSlice[arrayVectorIdx];
             int64_t numRowsToAppendInCurArray = arrayToComputeSlice->length();
             if (numRowsToAppend - numRowsAppended < arrayToComputeSlice->length()) {
                 numRowsToAppendInCurArray = (int64_t)numRowsToAppend - numRowsAppended;
                 for (auto j = 0u; j < leftArrays.size(); j++) {
-                    auto vectorToSlice = leftArrays[j][i];
+                    auto vectorToSlice = leftArrays[j][arrayVectorIdx];
                     leftArrays[j].push_back(vectorToSlice->Slice(numRowsToAppendInCurArray));
                     arrayVectors[j].push_back(vectorToSlice->Slice(0, numRowsToAppendInCurArray));
                 }
             } else {
                 for (auto j = 0u; j < leftArrays.size(); j++) {
-                    arrayVectors[j].push_back(leftArrays[j][i]);
+                    arrayVectors[j].push_back(leftArrays[j][arrayVectorIdx]);
                 }
             }
             numRowsAppended += numRowsToAppendInCurArray;
         }
+    }
+    for (auto& arrayVector : leftArrays) {
+        arrayVector.erase(arrayVector.begin(), arrayVector.begin() + arrayVectorIdx);
     }
     for (auto i = 0u; i < dataChunk->getNumValueVectors(); i++) {
         auto chunkArray = std::make_shared<arrow::ChunkedArray>(std::move(arrayVectors[i]));
@@ -254,11 +255,25 @@ void ReaderSharedState::countBlocks() {
 
 std::unique_ptr<ReaderMorsel> ReaderSharedState::getSerialMorsel(DataChunk* dataChunk) {
     std::unique_lock xLck{mtx};
-    while (leftArrowArrays.getLeftNumRows() < StorageConstants::NODE_GROUP_SIZE) {
+    readNextBlock(dataChunk);
+    if (leftArrowArrays.getLeftNumRows() == 0) {
+        dataChunk->state->selVector->selectedSize = 0;
+        return std::make_unique<ReaderMorsel>();
+    } else {
+        auto numRowsToReturn = std::min(leftArrowArrays.getLeftNumRows(), DEFAULT_VECTOR_CAPACITY);
+        leftArrowArrays.appendToDataChunk(dataChunk, numRowsToReturn);
+        auto result = std::make_unique<ReaderMorsel>(currFileIdx, currBlockIdx, currRowIdx);
+        currRowIdx += numRowsToReturn;
+        return result;
+    }
+}
+
+void ReaderSharedState::readNextBlock(common::DataChunk* dataChunk) {
+    if (leftArrowArrays.getLeftNumRows() == 0) {
         auto morsel = getMorselOfNextBlock();
         if (morsel->fileIdx >= copyDescription->filePaths.size()) {
             // No more blocks.
-            break;
+            return;
         }
         if (morsel->fileIdx != readFuncData->fileIdx) {
             readFuncData = initFunc(copyDescription->filePaths, morsel->fileIdx,
@@ -266,17 +281,6 @@ std::unique_ptr<ReaderMorsel> ReaderSharedState::getSerialMorsel(DataChunk* data
         }
         readFunc(*readFuncData, morsel->blockIdx, dataChunk);
         leftArrowArrays.appendFromDataChunk(dataChunk);
-    }
-    if (leftArrowArrays.getLeftNumRows() == 0) {
-        dataChunk->state->selVector->selectedSize = 0;
-        return std::make_unique<ReaderMorsel>();
-    } else {
-        auto numRowsToReturn =
-            std::min(leftArrowArrays.getLeftNumRows(), StorageConstants::NODE_GROUP_SIZE);
-        leftArrowArrays.appendToDataChunk(dataChunk, numRowsToReturn);
-        auto result = std::make_unique<ReaderMorsel>(currFileIdx, currBlockIdx, currRowIdx);
-        currRowIdx += numRowsToReturn;
-        return result;
     }
 }
 

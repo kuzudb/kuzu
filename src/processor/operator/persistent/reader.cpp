@@ -26,7 +26,9 @@ void Reader::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* cont
 }
 
 bool Reader::getNextTuplesInternal(ExecutionContext* context) {
-    info->orderPreserving ? getNextNodeGroupInSerial() : getNextNodeGroupInParallel();
+    sharedState->copyDescription->fileType == common::CopyDescription::FileType::CSV ?
+        getNextNodeGroupInSerial() :
+        getNextNodeGroupInParallel();
     return dataChunk->state->selVector->selectedSize != 0;
 }
 
@@ -40,10 +42,21 @@ void Reader::getNextNodeGroupInSerial() {
 }
 
 void Reader::getNextNodeGroupInParallel() {
-    while (leftArrowArrays.getLeftNumRows() < StorageConstants::NODE_GROUP_SIZE) {
+    readNextNodeGroupInParallel();
+    if (leftArrowArrays.getLeftNumRows() == 0) {
+        dataChunk->state->selVector->selectedSize = 0;
+    } else {
+        int64_t numRowsToReturn =
+            std::min(leftArrowArrays.getLeftNumRows(), DEFAULT_VECTOR_CAPACITY);
+        leftArrowArrays.appendToDataChunk(dataChunk.get(), numRowsToReturn);
+    }
+}
+
+void Reader::readNextNodeGroupInParallel() {
+    if (leftArrowArrays.getLeftNumRows() == 0) {
         auto morsel = sharedState->getParallelMorsel();
         if (morsel->fileIdx == INVALID_VECTOR_IDX) {
-            break;
+            return;
         }
         if (!readFuncData || morsel->fileIdx != readFuncData->fileIdx) {
             readFuncData = initFunc(sharedState->copyDescription->filePaths, morsel->fileIdx,
@@ -51,13 +64,6 @@ void Reader::getNextNodeGroupInParallel() {
         }
         readFunc(*readFuncData, morsel->blockIdx, dataChunk.get());
         leftArrowArrays.appendFromDataChunk(dataChunk.get());
-    }
-    if (leftArrowArrays.getLeftNumRows() == 0) {
-        dataChunk->state->selVector->selectedSize = 0;
-    } else {
-        int64_t numRowsToReturn =
-            std::min(leftArrowArrays.getLeftNumRows(), StorageConstants::NODE_GROUP_SIZE);
-        leftArrowArrays.appendToDataChunk(dataChunk.get(), numRowsToReturn);
     }
 }
 

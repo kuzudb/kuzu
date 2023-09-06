@@ -230,6 +230,8 @@ public:
     }
 
     static void setArrowColumn(ValueVector* vector, std::shared_ptr<arrow::ChunkedArray> column);
+
+    static void slice(ValueVector* vector, offset_t offset);
 };
 
 class MapVector {

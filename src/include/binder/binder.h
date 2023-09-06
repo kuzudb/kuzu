@@ -98,7 +98,7 @@ private:
     std::unique_ptr<common::LogicalType> bindDataType(const std::string& dataType);
 
     /*** bind copy from/to ***/
-    static bool bindPreservingOrder(
+    static bool bindContainsSerial(
         catalog::TableSchema* tableSchema, common::CopyDescription::FileType fileType);
     expression_vector bindColumnExpressions(catalog::TableSchema* tableSchema);
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);

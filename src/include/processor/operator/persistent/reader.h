@@ -9,15 +9,15 @@ namespace processor {
 struct ReaderInfo {
     DataPos nodeOffsetPos;
     std::vector<DataPos> dataColumnsPos;
-    bool orderPreserving;
+    bool containsSerial;
 
     ReaderInfo(
-        const DataPos& nodeOffsetPos, std::vector<DataPos> dataColumnsPos, bool orderPreserving)
+        const DataPos& nodeOffsetPos, std::vector<DataPos> dataColumnsPos, bool containsSerial)
         : nodeOffsetPos{nodeOffsetPos}, dataColumnsPos{std::move(dataColumnsPos)},
-          orderPreserving{orderPreserving} {}
+          containsSerial{containsSerial} {}
     ReaderInfo(const ReaderInfo& other)
         : nodeOffsetPos{other.nodeOffsetPos}, dataColumnsPos{other.dataColumnsPos},
-          orderPreserving{other.orderPreserving} {}
+          containsSerial{other.containsSerial} {}
 
     inline uint32_t getNumColumns() const { return dataColumnsPos.size(); }
 
@@ -45,12 +45,15 @@ public:
         return make_unique<Reader>(info->copy(), sharedState, getOperatorID(), paramsString);
     }
 
+    inline bool getContainsSerial() const { return info->containsSerial; }
+
 protected:
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
 private:
     void getNextNodeGroupInSerial();
     void getNextNodeGroupInParallel();
+    void readNextNodeGroupInParallel();
 
 private:
     std::unique_ptr<ReaderInfo> info;

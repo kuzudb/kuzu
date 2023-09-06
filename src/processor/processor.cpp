@@ -3,6 +3,7 @@
 #include "processor/operator/aggregate/base_aggregate.h"
 #include "processor/operator/persistent/copy.h"
 #include "processor/operator/persistent/copy_node.h"
+#include "processor/operator/persistent/reader.h"
 #include "processor/operator/result_collector.h"
 #include "processor/operator/sink.h"
 #include "processor/processor_task.h"
@@ -81,6 +82,12 @@ void QueryProcessor::decomposePlanIntoTasks(
     case PhysicalOperatorType::PROFILE:
     case PhysicalOperatorType::CREATE_MACRO: {
         parentTask->setSingleThreadedTask();
+    } break;
+    case PhysicalOperatorType::READER: {
+        auto reader = (Reader*)op;
+        if (reader->getContainsSerial()) {
+            parentTask->setSingleThreadedTask();
+        }
     } break;
     default:
         break;

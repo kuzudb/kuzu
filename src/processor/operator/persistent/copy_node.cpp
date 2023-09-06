@@ -86,26 +86,34 @@ void CopyNode::executeInternal(ExecutionContext* context) {
         auto numTuplesToAppend = ArrowColumnVector::getArrowColumn(
             resultSet->getValueVector(copyNodeInfo.dataColumnPoses[0]).get())
                                      ->length();
-        assert(numTuplesToAppend <= StorageConstants::NODE_GROUP_SIZE);
-        auto nodeOffset = nodeOffsetVector->getValue<offset_t>(
-            nodeOffsetVector->state->selVector->selectedPositions[0]);
-        auto numAppendedTuplesInNodeGroup =
-            localNodeGroup->append(resultSet, copyNodeInfo.dataColumnPoses, numTuplesToAppend);
-        assert(numAppendedTuplesInNodeGroup == numTuplesToAppend);
-        if (localNodeGroup->isFull()) {
-            node_group_idx_t nodeGroupIdx;
-            if (copyNodeInfo.orderPreserving) {
-                nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-                sharedState->setNextNodeGroupIdx(nodeGroupIdx + 1);
-            } else {
+        auto numAppendedTuples = 0ul;
+        while (numAppendedTuples < numTuplesToAppend) {
+            auto numAppendedTuplesInNodeGroup = localNodeGroup->append(
+                resultSet, copyNodeInfo.dataColumnPoses, numTuplesToAppend - numAppendedTuples);
+            numAppendedTuples += numAppendedTuplesInNodeGroup;
+            if (localNodeGroup->isFull()) {
+                node_group_idx_t nodeGroupIdx;
                 nodeGroupIdx = sharedState->getNextNodeGroupIdx();
+                writeAndResetNodeGroup(nodeGroupIdx, sharedState->pkIndex.get(),
+                    sharedState->pkColumnID, sharedState->table, localNodeGroup.get());
             }
-            writeAndResetNodeGroup(nodeGroupIdx, sharedState->pkIndex.get(),
-                sharedState->pkColumnID, sharedState->table, localNodeGroup.get());
+            if (numAppendedTuples < numTuplesToAppend) {
+                sliceDataChunk(
+                    *resultSet->getDataChunk(copyNodeInfo.dataColumnPoses[0].dataChunkPos),
+                    copyNodeInfo.dataColumnPoses, (offset_t)numAppendedTuplesInNodeGroup);
+            }
         }
     }
     if (localNodeGroup->getNumNodes() > 0) {
         sharedState->appendLocalNodeGroup(std::move(localNodeGroup));
+    }
+}
+
+void CopyNode::sliceDataChunk(
+    const DataChunk& dataChunk, const std::vector<DataPos>& dataColumnPoses, offset_t offset) {
+    for (auto& dataColumnPos : dataColumnPoses) {
+        ArrowColumnVector::slice(
+            dataChunk.valueVectors[dataColumnPos.valueVectorPos].get(), offset);
     }
 }
 
