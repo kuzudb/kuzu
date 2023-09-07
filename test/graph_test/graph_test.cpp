@@ -3,6 +3,7 @@
 #include "binder/binder.h"
 #include "common/string_utils.h"
 #include "parser/parser.h"
+#include "spdlog/spdlog.h"
 #include "storage/storage_manager.h"
 
 using ::testing::Test;
@@ -162,6 +163,7 @@ void BaseGraphTest::createDBAndConn() {
     }
     database = std::make_unique<main::Database>(databasePath, *systemConfig);
     conn = std::make_unique<main::Connection>(database.get());
+    spdlog::set_level(spdlog::level::info);
 }
 
 void BaseGraphTest::initGraph() {
