@@ -3,6 +3,7 @@
 #include <thread>
 
 #include "common/constants.h"
+#include "common/exception/runtime.h"
 #include "main/database.h"
 #include "main/db_config.h"
 #include "transaction/transaction_context.h"

@@ -1,5 +1,7 @@
 #include "common/copier_config/copier_config.h"
 
+#include "common/exception/copy.h"
+#include "common/exception/internal.h"
 #include "common/type_utils.h"
 #include "utf8proc_wrapper.h"
 

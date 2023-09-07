@@ -1,4 +1,4 @@
-#include "common/exception.h"
+#include "common/exception/exception.h"
 #include "graph_test/graph_test.h"
 #include "storage/copier/npy_reader.h"
 

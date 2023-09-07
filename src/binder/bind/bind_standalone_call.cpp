@@ -1,5 +1,6 @@
 #include "binder/binder.h"
 #include "binder/bound_standalone_call.h"
+#include "common/exception/binder.h"
 #include "parser/standalone_call.h"
 
 using namespace kuzu::common;

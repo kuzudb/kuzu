@@ -1,5 +1,7 @@
 #include "function/built_in_vector_functions.h"
 
+#include "common/exception/binder.h"
+#include "common/exception/catalog.h"
 #include "common/string_utils.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/blob/vector_blob_functions.h"

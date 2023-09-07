@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/exception.h"
+#include "common/exception/not_implemented.h"
 #include "parsed_expression.h"
 #include "parser/query/reading_clause/match_clause.h"
 

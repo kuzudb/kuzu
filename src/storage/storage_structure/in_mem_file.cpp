@@ -2,6 +2,8 @@
 
 #include <mutex>
 
+#include "common/exception/copy.h"
+#include "common/exception/storage.h"
 #include "common/type_utils.h"
 
 using namespace kuzu::common;

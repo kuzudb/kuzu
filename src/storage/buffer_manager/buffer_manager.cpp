@@ -1,7 +1,7 @@
 #include "storage/buffer_manager/buffer_manager.h"
 
 #include "common/constants.h"
-#include "common/exception.h"
+#include "common/exception/buffer_manager.h"
 #include "spdlog/spdlog.h"
 
 using namespace kuzu::common;

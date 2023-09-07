@@ -1,7 +1,6 @@
 #include "processor/result/factorized_table.h"
 
 #include "common/data_chunk/data_chunk_state.h"
-#include "common/exception.h"
 #include "common/null_buffer.h"
 #include "common/vector/value_vector.h"
 

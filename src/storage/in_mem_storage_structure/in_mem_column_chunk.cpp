@@ -1,5 +1,8 @@
 #include "storage/in_mem_storage_structure/in_mem_column_chunk.h"
 
+#include "common/exception/copy.h"
+#include "common/exception/message.h"
+#include "common/exception/not_implemented.h"
 #include "common/string_utils.h"
 #include "common/types/types.h"
 

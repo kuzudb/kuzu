@@ -1,6 +1,6 @@
 #include "parser/antlr_parser/parser_error_listener.h"
 
-#include "common/exception.h"
+#include "common/exception/parser.h"
 #include "common/string_utils.h"
 
 using namespace antlr4;

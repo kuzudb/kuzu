@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/exception/copy.h"
 #include "hash_index_header.h"
 #include "hash_index_slot.h"
 #include "storage/index/hash_index_utils.h"

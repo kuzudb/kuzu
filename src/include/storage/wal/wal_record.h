@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/exception/not_implemented.h"
+#include "common/exception/runtime.h"
 #include "common/rel_direction.h"
 #include "common/types/types_include.h"
 #include "common/utils.h"

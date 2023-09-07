@@ -2,6 +2,7 @@
 
 #include <fstream>
 
+#include "common/exception/test.h"
 #include "common/string_utils.h"
 #include "spdlog/spdlog.h"
 

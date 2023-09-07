@@ -6,6 +6,7 @@
 #include "catalog/node_table_schema.h"
 #include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
+#include "common/exception/binder.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;

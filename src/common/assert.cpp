@@ -1,6 +1,6 @@
 #include "common/assert.h"
 
-#include "common/exception.h"
+#include "common/exception/internal.h"
 #include "common/string_utils.h"
 #include "common/utils.h"
 

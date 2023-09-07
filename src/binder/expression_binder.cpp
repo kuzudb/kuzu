@@ -5,6 +5,8 @@
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/parameter_expression.h"
 #include "binder/expression_visitor.h"
+#include "common/exception/binder.h"
+#include "common/exception/not_implemented.h"
 #include "expression_evaluator/expression_evaluator_utils.h"
 #include "function/cast/vector_cast_functions.h"
 

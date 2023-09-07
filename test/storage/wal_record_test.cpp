@@ -1,4 +1,3 @@
-#include "common/exception.h"
 #include "gtest/gtest.h"
 #include "storage/wal/wal_record.h"
 

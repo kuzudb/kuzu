@@ -2,6 +2,7 @@
 
 #include "binder/expression/literal_expression.h"
 #include "binder/expression_binder.h"
+#include "common/exception/binder.h"
 #include "common/string_utils.h"
 #include "function/function_definition.h"
 

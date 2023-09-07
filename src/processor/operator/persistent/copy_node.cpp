@@ -1,5 +1,7 @@
 #include "processor/operator/persistent/copy_node.h"
 
+#include "common/exception/copy.h"
+#include "common/exception/message.h"
 #include "common/string_utils.h"
 #include "storage/copier/string_column_chunk.h"
 

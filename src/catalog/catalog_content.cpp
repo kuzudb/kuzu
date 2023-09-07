@@ -4,6 +4,8 @@
 #include "catalog/rdf_graph_schema.h"
 #include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
+#include "common/exception/catalog.h"
+#include "common/exception/runtime.h"
 #include "common/ser_deser.h"
 #include "common/string_utils.h"
 #include "storage/storage_utils.h"

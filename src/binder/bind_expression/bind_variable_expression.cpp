@@ -1,6 +1,7 @@
 #include "binder/binder.h"
 #include "binder/expression/variable_expression.h"
 #include "binder/expression_binder.h"
+#include "common/exception/binder.h"
 #include "parser/expression/parsed_variable_expression.h"
 
 using namespace kuzu::common;

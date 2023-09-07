@@ -1,3 +1,4 @@
+#include "common/exception/transaction_manager.h"
 #include "graph_test/graph_test.h"
 #include "transaction/transaction_manager.h"
 

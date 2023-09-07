@@ -1,6 +1,8 @@
 #include "storage/copier/table_copy_utils.h"
 
 #include "common/constants.h"
+#include "common/exception/copy.h"
+#include "common/exception/parser.h"
 #include "common/string_utils.h"
 #include "storage/copier/npy_reader.h"
 #include "storage/storage_structure/lists/lists.h"

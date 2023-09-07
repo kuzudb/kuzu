@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "common/exception.h"
+#include "common/exception/internal.h"
 #include "common/expression_type.h"
 #include "common/types/types_include.h"
 

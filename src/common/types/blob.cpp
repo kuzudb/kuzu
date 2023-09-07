@@ -1,6 +1,6 @@
 #include "common/types/blob.h"
 
-#include "common/exception.h"
+#include "common/exception/conversion.h"
 #include "common/string_utils.h"
 
 namespace kuzu {

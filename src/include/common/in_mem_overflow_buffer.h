@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "common/exception/runtime.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/file_handle.h"
 

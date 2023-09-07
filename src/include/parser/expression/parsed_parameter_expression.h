@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/exception/not_implemented.h"
 #include "parsed_expression.h"
 
 namespace kuzu {

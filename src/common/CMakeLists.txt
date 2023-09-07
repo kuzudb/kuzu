@@ -1,6 +1,7 @@
 add_subdirectory(arrow)
 add_subdirectory(copier_config)
 add_subdirectory(data_chunk)
+add_subdirectory(exception)
 add_subdirectory(task_system)
 add_subdirectory(types)
 add_subdirectory(vector)
@@ -8,7 +9,6 @@ add_subdirectory(vector)
 add_library(kuzu_common
         OBJECT
         assert.cpp
-        exception.cpp
         rel_direction.cpp
         expression_type.cpp
         file_utils.cpp

@@ -1,6 +1,6 @@
 #include "include/node_util.h"
 
-#include "common/exception.h"
+#include "common/exception/exception.h"
 
 Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
     if (value.isNull()) {

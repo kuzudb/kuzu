@@ -4,7 +4,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "common/exception.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include <arrow/array.h>

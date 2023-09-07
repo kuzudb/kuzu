@@ -1,5 +1,5 @@
 #include "c_api/kuzu.h"
-#include "common/exception.h"
+#include "common/exception/exception.h"
 #include "main/kuzu.h"
 
 using namespace kuzu::main;

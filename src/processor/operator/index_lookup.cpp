@@ -1,5 +1,8 @@
 #include "processor/operator/index_lookup.h"
 
+#include "common/exception/message.h"
+#include "common/exception/not_implemented.h"
+#include "common/exception/runtime.h"
 #include "storage/copier/table_copy_utils.h"
 #include "storage/index/hash_index.h"
 #include <arrow/array/array_base.h>

@@ -1,6 +1,6 @@
 #include "parser/expression/parsed_expression.h"
 
-#include "common/exception.h"
+#include "common/exception/not_implemented.h"
 #include "common/ser_deser.h"
 #include "parser/expression/parsed_case_expression.h"
 #include "parser/expression/parsed_function_expression.h"

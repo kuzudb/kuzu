@@ -3,7 +3,8 @@
 #include <stdexcept>
 
 #include "common/constants.h"
-#include "common/exception.h"
+#include "common/exception/binder.h"
+#include "common/exception/not_implemented.h"
 #include "common/null_buffer.h"
 #include "common/ser_deser.h"
 #include "common/string_utils.h"

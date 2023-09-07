@@ -10,7 +10,7 @@
 #include <sys/mman.h>
 #endif
 
-#include "common/exception.h"
+#include "common/exception/buffer_manager.h"
 
 using namespace kuzu::common;
 

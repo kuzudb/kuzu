@@ -1,6 +1,7 @@
 #include "binder/bound_statement_visitor.h"
 
 #include "binder/bound_explain.h"
+#include "common/exception/not_implemented.h"
 
 using namespace kuzu::common;
 

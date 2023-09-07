@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "common/constants.h"
-#include "exception.h"
 
 namespace spdlog {
 class logger;

@@ -1,6 +1,6 @@
 #include "binder/bound_statement_result.h"
 #include "c_api/kuzu.h"
-#include "common/exception.h"
+#include "common/exception/exception.h"
 #include "common/types/value.h"
 #include "main/kuzu.h"
 #include "planner/logical_plan/logical_plan.h"

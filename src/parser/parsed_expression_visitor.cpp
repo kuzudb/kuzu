@@ -1,6 +1,6 @@
 #include "parser/parsed_expression_visitor.h"
 
-#include "common/exception.h"
+#include "common/exception/not_implemented.h"
 #include "parser/expression/parsed_case_expression.h"
 
 using namespace kuzu::common;

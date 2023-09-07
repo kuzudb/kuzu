@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "exception.h"
+#include "exception/exception.h"
 
 namespace kuzu {
 namespace common {
