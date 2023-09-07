@@ -1,6 +1,7 @@
 #include "function/path/vector_path_functions.h"
 
 #include "binder/expression/literal_expression.h"
+#include "common/exception/binder.h"
 #include "common/string_utils.h"
 #include "function/path/path_function_executor.h"
 #include "function/struct/vector_struct_functions.h"

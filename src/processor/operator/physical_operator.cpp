@@ -2,7 +2,7 @@
 
 #include <regex>
 
-#include "common/exception.h"
+#include "common/exception/not_implemented.h"
 
 using namespace kuzu::common;
 

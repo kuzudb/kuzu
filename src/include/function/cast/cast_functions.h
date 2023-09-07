@@ -2,7 +2,7 @@
 
 #include <cassert>
 
-#include "common/exception.h"
+#include "common/exception/runtime.h"
 #include "common/type_utils.h"
 #include "common/vector/value_vector.h"
 

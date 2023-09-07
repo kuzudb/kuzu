@@ -1,6 +1,6 @@
 #include "catalog/rel_table_schema.h"
 
-#include "common/exception.h"
+#include "common/exception/catalog.h"
 #include "common/ser_deser.h"
 
 using namespace kuzu::common;

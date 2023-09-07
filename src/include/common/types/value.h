@@ -4,7 +4,6 @@
 #include <utility>
 
 #include "common/api.h"
-#include "common/exception.h"
 #include "common/type_utils.h"
 #include "common/utils.h"
 

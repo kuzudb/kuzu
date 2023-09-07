@@ -1,6 +1,8 @@
 #include "transaction/transaction_context.h"
 
-#include "common/exception.h"
+#include "common/exception/connection.h"
+#include "common/exception/not_implemented.h"
+#include "common/exception/transaction_manager.h"
 #include "main/database.h"
 
 using namespace kuzu::common;

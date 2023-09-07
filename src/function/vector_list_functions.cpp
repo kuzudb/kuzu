@@ -2,6 +2,9 @@
 
 #include "binder/expression/literal_expression.h"
 #include "binder/expression_binder.h"
+#include "common/exception/binder.h"
+#include "common/exception/not_implemented.h"
+#include "common/exception/runtime.h"
 #include "common/types/ku_list.h"
 #include "function/list/functions/list_any_value_function.h"
 #include "function/list/functions/list_append_function.h"

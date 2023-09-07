@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/exception/internal.h"
 #include "processor/operator/physical_operator.h"
 #include "processor/result/result_set_descriptor.h"
 

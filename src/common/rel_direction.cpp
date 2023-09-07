@@ -1,6 +1,6 @@
 #include "common/rel_direction.h"
 
-#include "common/exception.h"
+#include "common/exception/not_implemented.h"
 
 namespace kuzu {
 namespace common {

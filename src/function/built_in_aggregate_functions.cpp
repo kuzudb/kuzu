@@ -1,5 +1,6 @@
 #include "function/aggregate/built_in_aggregate_functions.h"
 
+#include "common/exception/binder.h"
 #include "function/aggregate/collect.h"
 #include "function/aggregate/count.h"
 

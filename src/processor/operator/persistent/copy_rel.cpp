@@ -1,5 +1,7 @@
 #include "processor/operator/persistent/copy_rel.h"
 
+#include "common/exception/copy.h"
+#include "common/exception/message.h"
 #include "processor/result/factorized_table.h"
 
 using namespace kuzu::common;

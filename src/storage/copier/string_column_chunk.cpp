@@ -1,5 +1,8 @@
 #include "storage/copier/string_column_chunk.h"
 
+#include "common/exception/copy.h"
+#include "common/exception/message.h"
+#include "common/exception/not_implemented.h"
 #include "storage/copier/table_copy_utils.h"
 
 using namespace kuzu::common;

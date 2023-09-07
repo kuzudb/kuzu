@@ -1,5 +1,8 @@
 #pragma once
 
+#include "common/exception/binder.h"
+#include "common/exception/catalog.h"
+#include "common/exception/not_implemented.h"
 #include "function/vector_functions.h"
 
 namespace kuzu {

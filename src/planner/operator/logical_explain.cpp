@@ -1,5 +1,7 @@
 #include "planner/logical_plan/logical_explain.h"
 
+#include "common/exception/not_implemented.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

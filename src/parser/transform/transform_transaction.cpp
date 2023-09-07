@@ -1,4 +1,4 @@
-#include "common/exception.h"
+#include "common/exception/not_implemented.h"
 #include "parser/transaction_statement.h"
 #include "parser/transformer.h"
 

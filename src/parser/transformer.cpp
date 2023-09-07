@@ -1,6 +1,6 @@
 #include "parser/transformer.h"
 
-#include "common/exception.h"
+#include "common/exception/not_implemented.h"
 #include "common/string_utils.h"
 #include "parser/explain_statement.h"
 #include "parser/query/regular_query.h"

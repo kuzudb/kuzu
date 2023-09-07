@@ -1,5 +1,6 @@
 #include "function/built_in_table_functions.h"
 
+#include "common/exception/binder.h"
 #include "common/expression_type.h"
 #include "common/string_utils.h"
 

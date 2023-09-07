@@ -1,7 +1,7 @@
 #include "planner/logical_plan/schema.h"
 
 #include "binder/expression_visitor.h"
-#include "common/exception.h"
+#include "common/exception/internal.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

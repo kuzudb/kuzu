@@ -1,4 +1,4 @@
-#include "common/exception.h"
+#include "common/exception/message.h"
 
 #include "common/string_utils.h"
 

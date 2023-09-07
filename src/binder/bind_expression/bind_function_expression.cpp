@@ -3,6 +3,8 @@
 #include "binder/expression/function_expression.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/expression_binder.h"
+#include "common/exception/binder.h"
+#include "common/exception/not_implemented.h"
 #include "common/string_utils.h"
 #include "function/schema/vector_label_functions.h"
 #include "parser/expression/parsed_function_expression.h"

@@ -1,5 +1,8 @@
 #include "storage/index/hash_index_utils.h"
 
+#include "common/exception/copy.h"
+#include "common/exception/storage.h"
+
 using namespace kuzu::common;
 using namespace kuzu::transaction;
 

@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "common/constants.h"
-#include "common/exception.h"
 #include "common/utils.h"
 #include "common/vector/value_vector.h"
 #include "order_by_data_info.h"

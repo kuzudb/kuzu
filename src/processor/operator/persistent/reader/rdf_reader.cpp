@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "common/constants.h"
+#include "common/exception/copy.h"
 #include "common/vector/value_vector.h"
 #include "serd.h"
 

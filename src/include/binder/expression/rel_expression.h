@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/exception.h"
 #include "common/query_rel_type.h"
 #include "node_expression.h"
 

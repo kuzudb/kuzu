@@ -3,6 +3,8 @@
 #include "binder/binder.h"
 #include "binder/visitor/statement_read_write_analyzer.h"
 #include "catalog/node_table_schema.h"
+#include "common/exception/connection.h"
+#include "common/exception/runtime.h"
 #include "main/database.h"
 #include "main/plan_printer.h"
 #include "optimizer/optimizer.h"

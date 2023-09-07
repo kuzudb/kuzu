@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <unordered_set>
 
+#include "common/exception/runtime.h"
 #include "common/type_utils.h"
 #include "common/utils.h"
 

@@ -1,6 +1,5 @@
 #include "storage/index/hash_index.h"
 
-#include "common/exception.h"
 #include "storage/index/hash_index_utils.h"
 
 using namespace kuzu::common;

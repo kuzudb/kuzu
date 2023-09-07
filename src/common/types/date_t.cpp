@@ -1,7 +1,7 @@
 #include "common/types/date_t.h"
 
 #include "common/assert.h"
-#include "common/exception.h"
+#include "common/exception/conversion.h"
 #include "common/string_utils.h"
 #include "common/types/cast_helpers.h"
 #include "common/types/timestamp_t.h"

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "catalog/catalog.h"
+#include "common/exception/storage.h"
 #include "common/types/value.h"
 #include "storage/storage_structure/disk_overflow_file.h"
 #include "storage/storage_structure/storage_structure.h"

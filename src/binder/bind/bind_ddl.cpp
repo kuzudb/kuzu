@@ -7,6 +7,7 @@
 #include "binder/ddl/bound_rename_table.h"
 #include "catalog/node_table_schema.h"
 #include "catalog/rel_table_schema.h"
+#include "common/exception/binder.h"
 #include "common/string_utils.h"
 #include "parser/ddl/add_property.h"
 #include "parser/ddl/create_table.h"

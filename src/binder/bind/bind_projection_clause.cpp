@@ -4,6 +4,7 @@
 #include "binder/expression_visitor.h"
 #include "binder/query/return_with_clause/bound_return_clause.h"
 #include "binder/query/return_with_clause/bound_with_clause.h"
+#include "common/exception/binder.h"
 #include "parser/expression/parsed_property_expression.h"
 
 using namespace kuzu::common;

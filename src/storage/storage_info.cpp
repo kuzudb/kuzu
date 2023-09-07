@@ -1,5 +1,6 @@
 #include "storage/storage_info.h"
 
+#include "common/exception/runtime.h"
 #include "common/string_utils.h"
 
 using namespace kuzu::common;

@@ -1,6 +1,8 @@
 #include "storage/store/node_table.h"
 
 #include "catalog/node_table_schema.h"
+#include "common/exception/message.h"
+#include "common/exception/runtime.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::catalog;

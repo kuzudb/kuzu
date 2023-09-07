@@ -1,6 +1,6 @@
 #include "optimizer/remove_factorization_rewriter.h"
 
-#include "common/exception.h"
+#include "common/exception/internal.h"
 #include "optimizer/logical_operator_collector.h"
 
 using namespace kuzu::common;

@@ -4,6 +4,7 @@
 #include <windows.h>
 #endif
 
+#include "common/exception/connection.h"
 #include "main_test_helper/main_test_helper.h"
 #include "transaction/transaction_context.h"
 

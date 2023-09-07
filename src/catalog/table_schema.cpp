@@ -5,7 +5,10 @@
 #include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
 #include "common/constants.h"
-#include "common/exception.h"
+#include "common/exception/catalog.h"
+#include "common/exception/internal.h"
+#include "common/exception/not_implemented.h"
+#include "common/exception/runtime.h"
 #include "common/ser_deser.h"
 #include "common/string_utils.h"
 

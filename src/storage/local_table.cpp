@@ -1,5 +1,7 @@
 #include "storage/local_table.h"
 
+#include "common/exception/message.h"
+#include "common/exception/runtime.h"
 #include "storage/copier/string_column_chunk.h"
 #include "storage/copier/var_list_column_chunk.h"
 #include "storage/store/node_table.h"

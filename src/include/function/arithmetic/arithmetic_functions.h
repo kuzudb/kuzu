@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstdlib>
 
+#include "common/exception/runtime.h"
 #include "common/type_utils.h"
 
 namespace kuzu {

@@ -1,5 +1,8 @@
 #include "processor/operator/persistent/copy_rel_columns.h"
 
+#include "common/exception/copy.h"
+#include "common/exception/message.h"
+
 using namespace kuzu::common;
 using namespace kuzu::storage;
 

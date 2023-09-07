@@ -1,6 +1,7 @@
 #pragma once
 
 #include "binder/expression/node_expression.h"
+#include "common/exception/runtime.h"
 #include "planner/logical_plan/logical_operator.h"
 
 namespace kuzu {

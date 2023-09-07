@@ -1,5 +1,6 @@
 #include "processor/operator/persistent/copy.h"
 
+#include "common/exception/copy.h"
 #include "common/string_utils.h"
 
 using namespace kuzu::common;

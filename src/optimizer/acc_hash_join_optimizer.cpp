@@ -1,5 +1,6 @@
 #include "optimizer/acc_hash_join_optimizer.h"
 
+#include "common/exception/not_implemented.h"
 #include "optimizer/logical_operator_collector.h"
 #include "planner/logical_plan/extend/logical_recursive_extend.h"
 #include "planner/logical_plan/logical_accumulate.h"

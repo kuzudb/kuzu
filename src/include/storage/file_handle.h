@@ -7,7 +7,6 @@
 #include <vector>
 
 #include "common/constants.h"
-#include "common/exception.h"
 #include "common/file_utils.h"
 #include "common/types/types.h"
 #include "storage/storage_utils.h"

@@ -1,5 +1,6 @@
 #include "common/logging_level_utils.h"
 
+#include "common/exception/conversion.h"
 #include "common/string_utils.h"
 #include "common/utils.h"
 

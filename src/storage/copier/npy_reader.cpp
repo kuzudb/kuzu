@@ -12,7 +12,8 @@
 #include <unistd.h>
 #endif
 
-#include "common/exception.h"
+#include "common/exception/buffer_manager.h"
+#include "common/exception/copy.h"
 #include "common/string_utils.h"
 #include "common/utils.h"
 #include "pyparse.h"

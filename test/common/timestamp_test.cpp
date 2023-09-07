@@ -1,6 +1,6 @@
 #include <string>
 
-#include "common/exception.h"
+#include "common/exception/conversion.h"
 #include "common/types/types_include.h"
 #include "gtest/gtest.h"
 
