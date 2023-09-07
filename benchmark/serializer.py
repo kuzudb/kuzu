@@ -70,6 +70,7 @@ if __name__ == '__main__':
         serialize(dataset_name, dataset_path, serialized_graph_path)
     except Exception as e:
         logging.error('Error serializing dataset %s', dataset_name)
+        logging.error(e)
         sys.exit(1)
     finally:
         shutil.rmtree(os.path.join(base_dir, 'history.txt'),
