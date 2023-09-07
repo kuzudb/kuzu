@@ -116,5 +116,32 @@ struct CurrentSettingFunction {
         main::ClientContext* context, TableFuncBindInput input, catalog::CatalogContent* catalog);
 };
 
+struct ShowTablesBindData : public TableFuncBindData {
+    std::vector<catalog::TableSchema*> tables;
+
+    ShowTablesBindData(std::vector<catalog::TableSchema*> tables,
+        std::vector<common::LogicalType> returnTypes, std::vector<std::string> returnColumnNames,
+        common::offset_t maxOffset)
+        : tables{std::move(tables)}, TableFuncBindData{std::move(returnTypes),
+                                         std::move(returnColumnNames), maxOffset} {}
+
+    inline std::unique_ptr<TableFuncBindData> copy() override {
+        return std::make_unique<ShowTablesBindData>(
+            tables, returnTypes, returnColumnNames, maxOffset);
+    }
+};
+
+struct ShowTablesFunction {
+    inline static std::unique_ptr<TableFunctionDefinition> getDefinitions() {
+        return std::make_unique<TableFunctionDefinition>("show_tables", tableFunc, bindFunc);
+    }
+
+    static void tableFunc(std::pair<common::offset_t, common::offset_t> morsel,
+        function::TableFuncBindData* bindData, std::vector<common::ValueVector*> outputVectors);
+
+    static std::unique_ptr<TableFuncBindData> bindFunc(
+        main::ClientContext* context, TableFuncBindInput input, catalog::CatalogContent* catalog);
+};
+
 } // namespace function
 } // namespace kuzu

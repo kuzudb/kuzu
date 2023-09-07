@@ -1,9 +1,11 @@
 #include "planner/planner.h"
 
+#include "binder/bound_comment_on.h"
 #include "binder/bound_create_macro.h"
 #include "binder/bound_explain.h"
 #include "binder/bound_standalone_call.h"
 #include "binder/expression/variable_expression.h"
+#include "planner/logical_plan/logical_comment_on.h"
 #include "planner/logical_plan/logical_create_macro.h"
 #include "planner/logical_plan/logical_explain.h"
 #include "planner/logical_plan/logical_standalone_call.h"
@@ -50,6 +52,9 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
     case StatementType::STANDALONE_CALL: {
         plan = planStandaloneCall(statement);
     } break;
+    case StatementType::COMMENT_ON: {
+        plan = planCommentOn(statement);
+    } break;
     case StatementType::EXPLAIN: {
         plan = planExplain(catalog, nodesStatistics, relsStatistics, statement);
     } break;
@@ -87,6 +92,16 @@ std::unique_ptr<LogicalPlan> Planner::planStandaloneCall(const BoundStatement& s
     auto logicalStandaloneCall = make_shared<LogicalStandaloneCall>(
         standaloneCallClause.getOption(), standaloneCallClause.getOptionValue());
     plan->setLastOperator(std::move(logicalStandaloneCall));
+    return plan;
+}
+
+std::unique_ptr<LogicalPlan> Planner::planCommentOn(const BoundStatement& statement) {
+    auto& commentOnClause = reinterpret_cast<const BoundCommentOn&>(statement);
+    auto plan = std::make_unique<LogicalPlan>();
+    auto logicalCommentOn = make_shared<LogicalCommentOn>(
+        statement.getStatementResult()->getSingleExpressionToCollect(),
+        commentOnClause.getTableID(), commentOnClause.getTableName(), commentOnClause.getComment());
+    plan->setLastOperator(std::move(logicalCommentOn));
     return plan;
 }
 

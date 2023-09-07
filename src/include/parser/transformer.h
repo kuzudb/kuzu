@@ -283,6 +283,8 @@ private:
 
     std::unique_ptr<Statement> transformTransaction(CypherParser::KU_TransactionContext& ctx);
 
+    std::unique_ptr<Statement> transformCommentOn(CypherParser::KU_CommentOnContext& ctx);
+
     std::string transformStringLiteral(antlr4::tree::TerminalNode& stringLiteral);
 
 private:

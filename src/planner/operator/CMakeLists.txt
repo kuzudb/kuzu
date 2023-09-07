@@ -7,20 +7,21 @@ add_subdirectory(scan)
 
 add_library(kuzu_planner_operator
         OBJECT
-        logical_operator.cpp
         logical_accumulate.cpp
         logical_aggregate.cpp
-        logical_in_query_call.cpp
+        logical_comment_on.cpp
         logical_create_macro.cpp
         logical_cross_product.cpp
         logical_distinct.cpp
-        logical_explain.cpp
         logical_dummy_scan.cpp
+        logical_explain.cpp
         logical_filter.cpp
         logical_flatten.cpp
         logical_hash_join.cpp
+        logical_in_query_call.cpp
         logical_intersect.cpp
         logical_limit.cpp
+        logical_operator.cpp
         logical_order_by.cpp
         logical_plan.cpp
         logical_plan_util.cpp

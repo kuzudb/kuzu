@@ -30,12 +30,13 @@ public:
           relMultiplicity{relMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID},
           srcPKDataType{std::move(srcPKDataType)}, dstPKDataType{std::move(dstPKDataType)} {}
     RelTableSchema(std::string tableName, common::table_id_t tableID,
-        std::vector<std::unique_ptr<Property>> properties, common::property_id_t nextPropertyID,
-        RelMultiplicity relMultiplicity, common::table_id_t srcTableID,
-        common::table_id_t dstTableID, std::unique_ptr<common::LogicalType> srcPKDataType,
+        std::vector<std::unique_ptr<Property>> properties, std::string comment,
+        common::property_id_t nextPropertyID, RelMultiplicity relMultiplicity,
+        common::table_id_t srcTableID, common::table_id_t dstTableID,
+        std::unique_ptr<common::LogicalType> srcPKDataType,
         std::unique_ptr<common::LogicalType> dstPKDataType)
         : TableSchema{common::TableType::REL, std::move(tableName), tableID, std::move(properties),
-              nextPropertyID},
+              std::move(comment), nextPropertyID},
           relMultiplicity{relMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID},
           srcPKDataType{std::move(srcPKDataType)}, dstPKDataType{std::move(dstPKDataType)} {}
 
@@ -73,7 +74,7 @@ public:
 
     inline std::unique_ptr<TableSchema> copy() const override {
         return std::make_unique<RelTableSchema>(tableName, tableID, Property::copy(properties),
-            nextPropertyID, relMultiplicity, srcTableID, dstTableID, srcPKDataType->copy(),
+            comment, nextPropertyID, relMultiplicity, srcTableID, dstTableID, srcPKDataType->copy(),
             dstPKDataType->copy());
     }
 

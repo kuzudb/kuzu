@@ -20,12 +20,12 @@ public:
               std::move(properties)},
           primaryKeyPropertyID{primaryPropertyId} {}
     NodeTableSchema(std::string tableName, common::table_id_t tableID,
-        std::vector<std::unique_ptr<Property>> properties, common::property_id_t nextPropertyID,
-        common::property_id_t primaryKeyPropertyID,
+        std::vector<std::unique_ptr<Property>> properties, std::string comment,
+        common::property_id_t nextPropertyID, common::property_id_t primaryKeyPropertyID,
         std::unordered_set<common::table_id_t> fwdRelTableIDSet,
         std::unordered_set<common::table_id_t> bwdRelTableIDSet)
         : TableSchema{common::TableType::NODE, std::move(tableName), tableID, std::move(properties),
-              nextPropertyID},
+              std::move(comment), nextPropertyID},
           primaryKeyPropertyID{primaryKeyPropertyID}, fwdRelTableIDSet{std::move(fwdRelTableIDSet)},
           bwdRelTableIDSet{std::move(bwdRelTableIDSet)} {}
 
@@ -42,13 +42,14 @@ public:
     inline const std::unordered_set<common::table_id_t>& getFwdRelTableIDSet() const {
         return fwdRelTableIDSet;
     }
+
     inline const std::unordered_set<common::table_id_t>& getBwdRelTableIDSet() const {
         return bwdRelTableIDSet;
     }
 
     inline std::unique_ptr<TableSchema> copy() const override {
         return std::make_unique<NodeTableSchema>(tableName, tableID, Property::copy(properties),
-            nextPropertyID, primaryKeyPropertyID, fwdRelTableIDSet, bwdRelTableIDSet);
+            comment, nextPropertyID, primaryKeyPropertyID, fwdRelTableIDSet, bwdRelTableIDSet);
     }
 
 private:

@@ -9,6 +9,7 @@ enum class LogicalOperatorType : uint8_t {
     ACCUMULATE,
     ADD_PROPERTY,
     AGGREGATE,
+    COMMENT_ON,
     COPY_FROM,
     COPY_TO,
     CREATE_NODE,

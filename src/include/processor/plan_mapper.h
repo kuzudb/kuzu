@@ -90,6 +90,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapDropProperty(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapRenameProperty(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapStandaloneCall(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapCommentOn(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapInQueryCall(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapExplain(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapExpressionsScan(planner::LogicalOperator* logicalOperator);

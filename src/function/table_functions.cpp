@@ -97,5 +97,46 @@ std::unique_ptr<TableFuncBindData> CurrentSettingFunction::bindFunc(main::Client
         std::move(returnTypes), std::move(returnColumnNames), 1 /* one row result */);
 }
 
+void ShowTablesFunction::tableFunc(std::pair<offset_t, offset_t> morsel,
+    function::TableFuncBindData* bindData, std::vector<ValueVector*> outputVectors) {
+    auto tables = reinterpret_cast<function::ShowTablesBindData*>(bindData)->tables;
+    auto numTablesToOutput = morsel.second - morsel.first;
+    for (auto i = 0u; i < numTablesToOutput; i++) {
+        auto tableSchema = tables[morsel.first + i];
+        outputVectors[0]->setValue(i, tableSchema->tableName);
+
+        std::string typeString;
+        switch (tableSchema->tableType) {
+        case TableType::NODE: {
+            typeString = "NODE";
+        } break;
+        case TableType::REL: {
+            typeString = "REL";
+        } break;
+        case TableType::RDF: {
+            typeString = "RDF";
+        } break;
+        };
+        outputVectors[1]->setValue(i, typeString);
+        outputVectors[2]->setValue(i, tableSchema->comment);
+    }
+    outputVectors[0]->state->selVector->selectedSize = numTablesToOutput;
+}
+
+std::unique_ptr<TableFuncBindData> ShowTablesFunction::bindFunc(main::ClientContext* context,
+    kuzu::function::TableFuncBindInput input, catalog::CatalogContent* catalog) {
+    std::vector<std::string> returnColumnNames;
+    std::vector<LogicalType> returnTypes;
+    returnColumnNames.emplace_back("TableName");
+    returnTypes.emplace_back(LogicalTypeID::STRING);
+    returnColumnNames.emplace_back("TableType");
+    returnTypes.emplace_back(LogicalTypeID::STRING);
+    returnColumnNames.emplace_back("TableComment");
+    returnTypes.emplace_back(LogicalTypeID::STRING);
+
+    return std::make_unique<ShowTablesBindData>(catalog->getTableSchemas(), std::move(returnTypes),
+        std::move(returnColumnNames), catalog->getTableCount());
+}
+
 } // namespace function
 } // namespace kuzu

@@ -129,6 +129,14 @@ Property* CatalogContent::getRelProperty(
     throw CatalogException("Cannot find rel property " + propertyName + ".");
 }
 
+std::vector<TableSchema*> CatalogContent::getTableSchemas() const {
+    std::vector<TableSchema*> allTableSchemas;
+    for (auto&& [_, schema] : tableSchemas) {
+        allTableSchemas.push_back(schema.get());
+    }
+    return allTableSchemas;
+}
+
 void CatalogContent::dropTableSchema(table_id_t tableID) {
     auto tableName = getTableName(tableID);
     tableNameToIDMap.erase(tableName);
