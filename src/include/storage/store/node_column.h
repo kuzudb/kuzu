@@ -124,6 +124,8 @@ protected:
     virtual void writeValue(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
         uint32_t posInVectorToWriteFrom);
 
+    PageElementCursor getPageCursorForOffset(
+        transaction::TransactionType transactionType, common::offset_t nodeOffset);
     // TODO(Guodong): This is mostly duplicated with
     // StorageStructure::createWALVersionOfPageIfNecessaryForElement(). Should be cleared later.
     WALPageIdxPosInPageAndFrame createWALVersionOfPageForValue(common::offset_t nodeOffset);
