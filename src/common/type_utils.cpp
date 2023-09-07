@@ -10,12 +10,16 @@ namespace common {
 bool StringCastUtils::tryCastToBoolean(const char* data, uint64_t length, bool& result) {
     auto booleanStr = std::string{data, length};
     booleanStr = StringUtils::rtrim(StringUtils::ltrim(booleanStr));
-    std::istringstream iss{booleanStr};
-    iss >> std::boolalpha >> result;
-    if (iss.fail()) {
-        return false;
+    // Try cast boolAlpha format data(TRUE, FALSE) to boolean.
+    std::istringstream boolAlpha{booleanStr};
+    boolAlpha >> std::boolalpha >> result;
+    if (!boolAlpha.fail()) {
+        return true;
     }
-    return true;
+    // Try cast numeric format data(1, 0) to boolean.
+    std::istringstream boolNonAlpha{booleanStr};
+    boolNonAlpha >> std::noboolalpha >> result;
+    return !boolNonAlpha.fail();
 }
 
 bool StringCastUtils::castToBool(const char* data, uint64_t length) {

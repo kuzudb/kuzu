@@ -362,8 +362,8 @@ void InMemColumnChunkWithOverflow::setValWithOverflow<blob_t>(
 template<>
 void InMemColumnChunkWithOverflow::setValWithOverflow<ku_list_t>(
     PageByteCursor& overflowCursor, const char* value, uint64_t length, uint64_t pos) {
-    auto varListVal =
-        TableCopyUtils::getVarListValue(value, 1, length - 2, dataType, *copyDescription);
+    auto varListVal = TableCopyUtils::getVarListValue(
+        value, 1, length - 2, dataType, *copyDescription->csvReaderConfig);
     auto val = inMemOverflowFile->copyList(*varListVal, overflowCursor);
     setValue(val, pos);
 }
@@ -419,8 +419,8 @@ void InMemColumnChunk::setValueFromString<bool>(const char* value, uint64_t leng
 template<>
 void InMemColumnChunk::setValueFromString<uint8_t*>(
     const char* value, uint64_t length, uint64_t pos) {
-    auto fixedListVal =
-        TableCopyUtils::getArrowFixedList(value, 1, length - 2, dataType, *copyDescription);
+    auto fixedListVal = TableCopyUtils::getArrowFixedList(
+        value, 1, length - 2, dataType, *copyDescription->csvReaderConfig);
     // TODO(Guodong): Keep value size as a class field.
     memcpy(buffer.get() + pos * storage::StorageUtils::getDataTypeSize(dataType),
         fixedListVal.get(), storage::StorageUtils::getDataTypeSize(dataType));

@@ -8,53 +8,62 @@ namespace kuzu {
 namespace processor {
 
 void LeftArrowArrays::appendFromDataChunk(common::DataChunk* dataChunk) {
-    leftNumRows += ArrowColumnVector::getArrowColumn(dataChunk->getValueVector(0).get())->length();
-    leftArrays.resize(dataChunk->getNumValueVectors());
-    for (auto i = 0u; i < dataChunk->getNumValueVectors(); i++) {
-        for (auto& array :
-            ArrowColumnVector::getArrowColumn(dataChunk->getValueVector(i).get())->chunks()) {
-            leftArrays[i].push_back(array);
+    if (dataChunk->getValueVector(0)->dataType.getPhysicalType() == PhysicalTypeID::ARROW_COLUMN) {
+        leftNumRows +=
+            ArrowColumnVector::getArrowColumn(dataChunk->getValueVector(0).get())->length();
+        leftArrays.resize(dataChunk->getNumValueVectors());
+        for (auto i = 0u; i < dataChunk->getNumValueVectors(); i++) {
+            for (auto& array :
+                ArrowColumnVector::getArrowColumn(dataChunk->getValueVector(i).get())->chunks()) {
+                leftArrays[i].push_back(array);
+            }
         }
+    } else {
+        leftNumRows += dataChunk->state->selVector->selectedSize;
     }
 }
 
 void LeftArrowArrays::appendToDataChunk(common::DataChunk* dataChunk, uint64_t numRowsToAppend) {
-    int64_t numRowsAppended = 0;
-    auto& arrayVectorToComputeSlice = leftArrays[0];
-    std::vector<arrow::ArrayVector> arrayVectors;
-    arrayVectors.resize(leftArrays.size());
-    uint64_t arrayVectorIdx;
-    for (arrayVectorIdx = 0u; arrayVectorIdx < arrayVectorToComputeSlice.size(); arrayVectorIdx++) {
-        if (numRowsAppended >= numRowsToAppend) {
-            break;
-        } else {
-            auto arrayToComputeSlice = arrayVectorToComputeSlice[arrayVectorIdx];
-            int64_t numRowsToAppendInCurArray = arrayToComputeSlice->length();
-            if (numRowsToAppend - numRowsAppended < arrayToComputeSlice->length()) {
-                numRowsToAppendInCurArray = (int64_t)numRowsToAppend - numRowsAppended;
-                for (auto j = 0u; j < leftArrays.size(); j++) {
-                    auto vectorToSlice = leftArrays[j][arrayVectorIdx];
-                    leftArrays[j].push_back(vectorToSlice->Slice(numRowsToAppendInCurArray));
-                    arrayVectors[j].push_back(vectorToSlice->Slice(0, numRowsToAppendInCurArray));
-                }
-            } else {
-                for (auto j = 0u; j < leftArrays.size(); j++) {
-                    arrayVectors[j].push_back(leftArrays[j][arrayVectorIdx]);
-                }
-            }
-            numRowsAppended += numRowsToAppendInCurArray;
-        }
-    }
-    for (auto& arrayVector : leftArrays) {
-        arrayVector.erase(arrayVector.begin(), arrayVector.begin() + arrayVectorIdx);
-    }
-    for (auto i = 0u; i < dataChunk->getNumValueVectors(); i++) {
-        auto chunkArray = std::make_shared<arrow::ChunkedArray>(std::move(arrayVectors[i]));
-        ArrowColumnVector::setArrowColumn(
-            dataChunk->getValueVector(i).get(), std::move(chunkArray));
-    }
-    dataChunk->state->selVector->selectedSize = numRowsToAppend;
     leftNumRows -= numRowsToAppend;
+    if (dataChunk->getValueVector(0)->dataType.getPhysicalType() == PhysicalTypeID::ARROW_COLUMN) {
+        int64_t numRowsAppended = 0;
+        auto& arrayVectorToComputeSlice = leftArrays[0];
+        std::vector<arrow::ArrayVector> arrayVectors;
+        arrayVectors.resize(leftArrays.size());
+        uint64_t arrayVectorIdx;
+        for (arrayVectorIdx = 0u; arrayVectorIdx < arrayVectorToComputeSlice.size();
+             arrayVectorIdx++) {
+            if (numRowsAppended >= numRowsToAppend) {
+                break;
+            } else {
+                auto arrayToComputeSlice = arrayVectorToComputeSlice[arrayVectorIdx];
+                int64_t numRowsToAppendInCurArray = arrayToComputeSlice->length();
+                if (numRowsToAppend - numRowsAppended < arrayToComputeSlice->length()) {
+                    numRowsToAppendInCurArray = (int64_t)numRowsToAppend - numRowsAppended;
+                    for (auto j = 0u; j < leftArrays.size(); j++) {
+                        auto vectorToSlice = leftArrays[j][arrayVectorIdx];
+                        leftArrays[j].push_back(vectorToSlice->Slice(numRowsToAppendInCurArray));
+                        arrayVectors[j].push_back(
+                            vectorToSlice->Slice(0, numRowsToAppendInCurArray));
+                    }
+                } else {
+                    for (auto j = 0u; j < leftArrays.size(); j++) {
+                        arrayVectors[j].push_back(leftArrays[j][arrayVectorIdx]);
+                    }
+                }
+                numRowsAppended += numRowsToAppendInCurArray;
+            }
+        }
+        for (auto& arrayVector : leftArrays) {
+            arrayVector.erase(arrayVector.begin(), arrayVector.begin() + arrayVectorIdx);
+        }
+        for (auto i = 0u; i < dataChunk->getNumValueVectors(); i++) {
+            auto chunkArray = std::make_shared<arrow::ChunkedArray>(std::move(arrayVectors[i]));
+            ArrowColumnVector::setArrowColumn(
+                dataChunk->getValueVector(i).get(), std::move(chunkArray));
+        }
+        dataChunk->state->selVector->selectedSize = numRowsToAppend;
+    }
 }
 
 validate_func_t ReaderFunctions::getValidateFunc(CopyDescription::FileType fileType) {
@@ -70,42 +79,78 @@ validate_func_t ReaderFunctions::getValidateFunc(CopyDescription::FileType fileT
     }
 }
 
-count_blocks_func_t ReaderFunctions::getCountBlocksFunc(CopyDescription::FileType fileType) {
+count_blocks_func_t ReaderFunctions::getCountBlocksFunc(
+    CopyDescription::FileType fileType, TableType tableType) {
     switch (fileType) {
-    case CopyDescription::FileType::CSV:
-        return countRowsInCSVFile;
-    case CopyDescription::FileType::PARQUET:
+    case CopyDescription::FileType::CSV: {
+        switch (tableType) {
+        case TableType::NODE:
+            return countRowsInNodeCSVFile;
+        case TableType::REL:
+            return countRowsInRelCSVFile;
+        default:
+            throw NotImplementedException{"ReaderFunctions::getCountBlocksFunc"};
+        }
+    }
+    case CopyDescription::FileType::PARQUET: {
         return countRowsInParquetFile;
-    case CopyDescription::FileType::NPY:
+    }
+    case CopyDescription::FileType::NPY: {
         return countRowsInNPYFile;
-    default:
+    }
+    default: {
         throw NotImplementedException{"ReaderFunctions::getRowsCounterFunc"};
     }
-}
-
-init_reader_data_func_t ReaderFunctions::getInitDataFunc(CopyDescription::FileType fileType) {
-    switch (fileType) {
-    case CopyDescription::FileType::CSV:
-        return initCSVReadData;
-    case CopyDescription::FileType::PARQUET:
-        return initParquetReadData;
-    case CopyDescription::FileType::NPY:
-        return initNPYReadData;
-    default:
-        throw NotImplementedException{"ReaderFunctions::getInitDataFunc"};
     }
 }
 
-read_rows_func_t ReaderFunctions::getReadRowsFunc(CopyDescription::FileType fileType) {
+init_reader_data_func_t ReaderFunctions::getInitDataFunc(
+    CopyDescription::FileType fileType, TableType tableType) {
     switch (fileType) {
-    case CopyDescription::FileType::CSV:
-        return readRowsFromCSVFile;
-    case CopyDescription::FileType::PARQUET:
+    case CopyDescription::FileType::CSV: {
+        switch (tableType) {
+        case TableType::NODE:
+            return initNodeCSVReadData;
+        case TableType::REL:
+            return initRelCSVReadData;
+        default:
+            throw NotImplementedException{"ReaderFunctions::getInitDataFunc"};
+        }
+    }
+    case CopyDescription::FileType::PARQUET: {
+        return initParquetReadData;
+    }
+    case CopyDescription::FileType::NPY: {
+        return initNPYReadData;
+    }
+    default: {
+        throw NotImplementedException{"ReaderFunctions::getInitDataFunc"};
+    }
+    }
+}
+
+read_rows_func_t ReaderFunctions::getReadRowsFunc(
+    CopyDescription::FileType fileType, common::TableType tableType) {
+    switch (fileType) {
+    case CopyDescription::FileType::CSV: {
+        switch (tableType) {
+        case TableType::NODE:
+            return readRowsFromNodeCSVFile;
+        case TableType::REL:
+            return readRowsFromRelCSVFile;
+        default:
+            throw NotImplementedException{"ReaderFunctions::getReadRowsFunc"};
+        }
+    }
+    case CopyDescription::FileType::PARQUET: {
         return readRowsFromParquetFile;
-    case CopyDescription::FileType::NPY:
+    }
+    case CopyDescription::FileType::NPY: {
         return readRowsFromNPYFile;
-    default:
+    }
+    default: {
         throw NotImplementedException{"ReaderFunctions::getReadRowsFunc"};
+    }
     }
 }
 
@@ -123,9 +168,9 @@ void ReaderFunctions::validateNPYFiles(
     }
 }
 
-std::vector<FileBlocksInfo> ReaderFunctions::countRowsInCSVFile(
-    const std::vector<std::string>& paths, CSVReaderConfig csvReaderConfig,
-    TableSchema* tableSchema) {
+std::vector<FileBlocksInfo> ReaderFunctions::countRowsInRelCSVFile(
+    const std::vector<std::string>& paths, common::CSVReaderConfig csvReaderConfig,
+    catalog::TableSchema* tableSchema, MemoryManager* memoryManager) {
     std::vector<FileBlocksInfo> result(paths.size());
     for (auto i = 0u; i < paths.size(); i++) {
         auto csvStreamingReader =
@@ -147,9 +192,34 @@ std::vector<FileBlocksInfo> ReaderFunctions::countRowsInCSVFile(
     return result;
 }
 
+std::vector<FileBlocksInfo> ReaderFunctions::countRowsInNodeCSVFile(
+    const std::vector<std::string>& paths, common::CSVReaderConfig csvReaderConfig,
+    catalog::TableSchema* tableSchema, storage::MemoryManager* memoryManager) {
+    std::vector<FileBlocksInfo> result(paths.size());
+    auto dataChunk = getDataChunkToRead(tableSchema, memoryManager);
+    // We should add a countNumRows() API to csvReader, so that it doesn't need to read data to
+    // valueVector when counting the csv file.
+    for (auto i = 0u; i < paths.size(); i++) {
+        auto reader = std::make_unique<BufferedCSVReader>(paths[i], csvReaderConfig, tableSchema);
+        row_idx_t numRows = 0;
+        std::vector<row_idx_t> blocks;
+        while (true) {
+            dataChunk->state->selVector->selectedSize = 0;
+            auto numRowsRead = reader->ParseCSV(*dataChunk);
+            if (numRowsRead == 0) {
+                break;
+            }
+            numRows += numRowsRead;
+            blocks.push_back(numRowsRead);
+        }
+        result[i] = {numRows, blocks};
+    }
+    return result;
+}
+
 std::vector<FileBlocksInfo> ReaderFunctions::countRowsInParquetFile(
     const std::vector<std::string>& paths, CSVReaderConfig csvReaderConfig,
-    TableSchema* tableSchema) {
+    TableSchema* tableSchema, MemoryManager* memoryManager) {
     std::vector<FileBlocksInfo> result(paths.size());
     for (auto i = 0u; i < paths.size(); i++) {
         std::unique_ptr<parquet::arrow::FileReader> reader =
@@ -168,7 +238,7 @@ std::vector<FileBlocksInfo> ReaderFunctions::countRowsInParquetFile(
 
 std::vector<FileBlocksInfo> ReaderFunctions::countRowsInNPYFile(
     const std::vector<std::string>& paths, CSVReaderConfig csvReaderConfig,
-    TableSchema* tableSchema) {
+    TableSchema* tableSchema, MemoryManager* memoryManager) {
     assert(!paths.empty());
     auto reader = make_unique<NpyReader>(paths[0]);
     auto numRows = reader->getNumRows();
@@ -178,12 +248,21 @@ std::vector<FileBlocksInfo> ReaderFunctions::countRowsInNPYFile(
     return {FileBlocksInfo{numRows, blocks}};
 }
 
-std::unique_ptr<ReaderFunctionData> ReaderFunctions::initCSVReadData(
+std::unique_ptr<ReaderFunctionData> ReaderFunctions::initRelCSVReadData(
     const std::vector<std::string>& paths, vector_idx_t fileIdx, CSVReaderConfig csvReaderConfig,
     TableSchema* tableSchema) {
     assert(fileIdx < paths.size());
     auto reader = TableCopyUtils::createCSVReader(paths[fileIdx], &csvReaderConfig, tableSchema);
-    return std::make_unique<CSVReaderFunctionData>(
+    return std::make_unique<RelCSVReaderFunctionData>(
+        csvReaderConfig, tableSchema, fileIdx, std::move(reader));
+}
+
+std::unique_ptr<ReaderFunctionData> ReaderFunctions::initNodeCSVReadData(
+    const std::vector<std::string>& paths, vector_idx_t fileIdx, CSVReaderConfig csvReaderConfig,
+    TableSchema* tableSchema) {
+    assert(fileIdx < paths.size());
+    auto reader = std::make_unique<BufferedCSVReader>(paths[fileIdx], csvReaderConfig, tableSchema);
+    return std::make_unique<NodeCSVReaderFunctionData>(
         csvReaderConfig, tableSchema, fileIdx, std::move(reader));
 }
 
@@ -204,9 +283,9 @@ std::unique_ptr<ReaderFunctionData> ReaderFunctions::initNPYReadData(
         csvReaderConfig, tableSchema, fileIdx, std::move(reader));
 }
 
-void ReaderFunctions::readRowsFromCSVFile(
+void ReaderFunctions::readRowsFromRelCSVFile(
     const ReaderFunctionData& functionData, block_idx_t blockIdx, DataChunk* dataChunkToRead) {
-    auto& readerData = (CSVReaderFunctionData&)(functionData);
+    auto& readerData = (RelCSVReaderFunctionData&)(functionData);
     std::shared_ptr<arrow::RecordBatch> recordBatch;
     TableCopyUtils::throwCopyExceptionIfNotOK(readerData.reader->ReadNext(&recordBatch));
     assert(recordBatch);
@@ -214,6 +293,12 @@ void ReaderFunctions::readRowsFromCSVFile(
         ArrowColumnVector::setArrowColumn(dataChunkToRead->getValueVector(i).get(),
             std::make_shared<arrow::ChunkedArray>(recordBatch->column((int)i)));
     }
+}
+
+void ReaderFunctions::readRowsFromNodeCSVFile(
+    const ReaderFunctionData& functionData, block_idx_t blockIdx, DataChunk* dataChunkToRead) {
+    auto& readerData = reinterpret_cast<const NodeCSVReaderFunctionData&>(functionData);
+    readerData.csvReader->ParseCSV(*dataChunkToRead);
 }
 
 void ReaderFunctions::readRowsFromParquetFile(const ReaderFunctionData& functionData,
@@ -239,15 +324,32 @@ void ReaderFunctions::readRowsFromNPYFile(const ReaderFunctionData& functionData
     }
 }
 
+std::unique_ptr<common::DataChunk> ReaderFunctions::getDataChunkToRead(
+    catalog::TableSchema* tableSchema, MemoryManager* memoryManager) {
+    std::vector<std::unique_ptr<ValueVector>> valueVectorsToRead;
+    for (auto i = 0u; i < tableSchema->getNumProperties(); i++) {
+        auto property = tableSchema->getProperty(i);
+        if (property->getDataType()->getLogicalTypeID() != LogicalTypeID::SERIAL) {
+            valueVectorsToRead.emplace_back(std::make_unique<ValueVector>(
+                *tableSchema->getProperty(i)->getDataType(), memoryManager));
+        }
+    }
+    auto dataChunk = std::make_unique<DataChunk>(valueVectorsToRead.size());
+    for (auto i = 0u; i < valueVectorsToRead.size(); i++) {
+        dataChunk->insert(i, std::move(valueVectorsToRead[i]));
+    }
+    return dataChunk;
+}
+
 void ReaderSharedState::validate() {
     validateFunc(copyDescription->filePaths, tableSchema);
 }
 
-void ReaderSharedState::countBlocks() {
+void ReaderSharedState::countBlocks(MemoryManager* memoryManager) {
     readFuncData = initFunc(copyDescription->filePaths, 0 /* fileIdx */,
         *copyDescription->csvReaderConfig, tableSchema);
-    blockInfos =
-        countBlocksFunc(copyDescription->filePaths, *copyDescription->csvReaderConfig, tableSchema);
+    blockInfos = countBlocksFunc(
+        copyDescription->filePaths, *copyDescription->csvReaderConfig, tableSchema, memoryManager);
     for (auto& blockInfo : blockInfos) {
         numRows += blockInfo.numRows;
     }

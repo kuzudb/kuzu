@@ -162,7 +162,42 @@ void ValueVector::copyFromValue(uint64_t pos, const Value& value) {
         *listEntry = ListVector::addList(this, numValues);
         auto dstDataVector = ListVector::getDataVector(this);
         for (auto i = 0u; i < numValues; ++i) {
-            dstDataVector->copyFromValue(listEntry->offset + i, *NestedVal::getChildVal(&value, i));
+            auto childVal = NestedVal::getChildVal(&value, i);
+            dstDataVector->setNull(listEntry->offset + i, childVal->isNull());
+            if (!childVal->isNull()) {
+                dstDataVector->copyFromValue(
+                    listEntry->offset + i, *NestedVal::getChildVal(&value, i));
+            }
+        }
+    } break;
+    case PhysicalTypeID::FIXED_LIST: {
+        auto numValues = NestedVal::getChildrenSize(&value);
+        auto childType = FixedListType::getChildType(value.getDataType());
+        auto numBytesPerChildValue = getDataTypeSize(*childType);
+        auto bufferToWrite = valueBuffer.get() + pos * numBytesPerValue;
+        for (auto i = 0u; i < numValues; i++) {
+            auto val = NestedVal::getChildVal(&value, i);
+            switch (childType->getPhysicalType()) {
+            case PhysicalTypeID::INT64: {
+                memcpy(bufferToWrite, &val->getValueReference<int64_t>(), numBytesPerChildValue);
+            } break;
+            case PhysicalTypeID::INT32: {
+                memcpy(bufferToWrite, &val->getValueReference<int32_t>(), numBytesPerChildValue);
+            } break;
+            case PhysicalTypeID::INT16: {
+                memcpy(bufferToWrite, &val->getValueReference<int16_t>(), numBytesPerChildValue);
+            } break;
+            case PhysicalTypeID::DOUBLE: {
+                memcpy(bufferToWrite, &val->getValueReference<double_t>(), numBytesPerChildValue);
+            } break;
+            case PhysicalTypeID::FLOAT: {
+                memcpy(bufferToWrite, &val->getValueReference<float_t>(), numBytesPerChildValue);
+            } break;
+            default: {
+                throw NotImplementedException{"FixedListColumnChunk::write"};
+            }
+            }
+            bufferToWrite += numBytesPerChildValue;
         }
     } break;
     case PhysicalTypeID::STRUCT: {
