@@ -122,9 +122,7 @@ void NodeColumn::batchLookup(
     Transaction* transaction, const offset_t* nodeOffsets, size_t size, uint8_t* result) {
     for (auto i = 0u; i < size; ++i) {
         auto nodeOffset = nodeOffsets[i];
-        auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-        auto cursor = PageUtils::getPageElementCursorForPos(nodeOffset, numValuesPerPage);
-        cursor.pageIdx += metadataDA->get(nodeGroupIdx, transaction->getType()).pageIdx;
+        auto cursor = getPageCursorForOffset(transaction->getType(), nodeOffset);
         readFromPage(transaction, cursor.pageIdx, [&](uint8_t* frame) -> void {
             memcpy(result + i * numBytesPerFixedSizedValue,
                 frame + (cursor.elemPosInPage * numBytesPerFixedSizedValue),
@@ -137,9 +135,7 @@ void BoolNodeColumn::batchLookup(
     Transaction* transaction, const offset_t* nodeOffsets, size_t size, uint8_t* result) {
     for (auto i = 0u; i < size; ++i) {
         auto nodeOffset = nodeOffsets[i];
-        auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-        auto cursor = PageUtils::getPageElementCursorForPos(nodeOffset, numValuesPerPage);
-        cursor.pageIdx += metadataDA->get(nodeGroupIdx, transaction->getType()).pageIdx;
+        auto cursor = getPageCursorForOffset(transaction->getType(), nodeOffset);
         readFromPage(transaction, cursor.pageIdx, [&](uint8_t* frame) -> void {
             // De-compress bitpacked bools
             result[i] = NullMask::isNull((uint64_t*)frame, cursor.elemPosInPage);
@@ -182,17 +178,12 @@ void NodeColumn::scanInternal(
     Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
     auto startNodeOffset = nodeIDVector->readNodeOffset(0);
     assert(startNodeOffset % DEFAULT_VECTOR_CAPACITY == 0);
-    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(startNodeOffset);
-    auto offsetInNodeGroup =
-        startNodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    auto pageCursor = PageUtils::getPageElementCursorForPos(offsetInNodeGroup, numValuesPerPage);
-    auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
-    pageCursor.pageIdx += chunkMeta.pageIdx;
+    auto cursor = getPageCursorForOffset(transaction->getType(), startNodeOffset);
     if (nodeIDVector->state->selVector->isUnfiltered()) {
         scanUnfiltered(
-            transaction, pageCursor, nodeIDVector->state->selVector->selectedSize, resultVector);
+            transaction, cursor, nodeIDVector->state->selVector->selectedSize, resultVector);
     } else {
-        scanFiltered(transaction, pageCursor, nodeIDVector, resultVector);
+        scanFiltered(transaction, cursor, nodeIDVector, resultVector);
     }
 }
 
@@ -259,11 +250,9 @@ void NodeColumn::lookupInternal(
 
 void NodeColumn::lookupValue(transaction::Transaction* transaction, offset_t nodeOffset,
     ValueVector* resultVector, uint32_t posInVector) {
-    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-    auto pageCursor = PageUtils::getPageElementCursorForPos(nodeOffset, numValuesPerPage);
-    pageCursor.pageIdx += metadataDA->get(nodeGroupIdx, transaction->getType()).pageIdx;
-    readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
-        readNodeColumnFunc(frame, pageCursor, resultVector, posInVector, 1 /* numValuesToRead */);
+    auto cursor = getPageCursorForOffset(transaction->getType(), nodeOffset);
+    readFromPage(transaction, cursor.pageIdx, [&](uint8_t* frame) -> void {
+        readNodeColumnFunc(frame, cursor, resultVector, posInVector, 1 /* numValuesToRead */);
     });
 }
 
@@ -354,10 +343,7 @@ void NodeColumn::writeValue(
 }
 
 WALPageIdxPosInPageAndFrame NodeColumn::createWALVersionOfPageForValue(offset_t nodeOffset) {
-    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-    auto originalPageCursor = PageUtils::getPageElementCursorForPos(
-        nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx), numValuesPerPage);
-    originalPageCursor.pageIdx += metadataDA->get(nodeGroupIdx, TransactionType::WRITE).pageIdx;
+    auto originalPageCursor = getPageCursorForOffset(TransactionType::WRITE, nodeOffset);
     bool insertingNewPage = false;
     if (originalPageCursor.pageIdx >= dataFH->getNumPages()) {
         assert(originalPageCursor.pageIdx == dataFH->getNumPages());
@@ -396,9 +382,8 @@ void NodeColumn::rollbackInMemory() {
     }
 }
 
-void NodeColumn::populateWithDefaultVal(const catalog::Property& property,
-    kuzu::storage::NodeColumn* nodeColumn, common::ValueVector* defaultValueVector,
-    uint64_t numNodeGroups) {
+void NodeColumn::populateWithDefaultVal(const Property& property, NodeColumn* nodeColumn,
+    ValueVector* defaultValueVector, uint64_t numNodeGroups) {
     auto columnChunk = ColumnChunkFactory::createColumnChunk(
         *property.getDataType(), nullptr /* copyDescription */);
     columnChunk->populateWithDefaultVal(defaultValueVector);
@@ -407,6 +392,15 @@ void NodeColumn::populateWithDefaultVal(const catalog::Property& property,
         auto startPageIdx = dataFH->addNewPages(numPages);
         nodeColumn->append(columnChunk.get(), startPageIdx, i);
     }
+}
+
+PageElementCursor NodeColumn::getPageCursorForOffset(
+    TransactionType transactionType, offset_t nodeOffset) {
+    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+    auto offsetInNodeGroup = nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+    auto pageCursor = PageUtils::getPageElementCursorForPos(offsetInNodeGroup, numValuesPerPage);
+    pageCursor.pageIdx += metadataDA->get(nodeGroupIdx, transactionType).pageIdx;
+    return pageCursor;
 }
 
 // Page size must be aligned to 8 byte chunks for the 64-bit NullMask algorithms to work
