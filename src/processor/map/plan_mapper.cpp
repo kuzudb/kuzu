@@ -152,6 +152,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     case LogicalOperatorType::STANDALONE_CALL: {
         physicalOperator = mapStandaloneCall(logicalOperator);
     } break;
+    case LogicalOperatorType::COMMENT_ON: {
+        physicalOperator = mapCommentOn(logicalOperator);
+    } break;
     case LogicalOperatorType::IN_QUERY_CALL: {
         physicalOperator = mapInQueryCall(logicalOperator);
     } break;

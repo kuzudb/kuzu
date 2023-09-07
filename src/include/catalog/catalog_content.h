@@ -74,6 +74,7 @@ public:
         assert(tableSchemas.contains(tableID));
         return tableSchemas.at(tableID)->getProperties();
     }
+    inline uint64_t getTableCount() const { return tableSchemas.size(); }
     inline std::vector<common::table_id_t> getNodeTableIDs() const {
         return getTableIDs(common::TableType::NODE);
     }
@@ -86,6 +87,8 @@ public:
     inline std::vector<TableSchema*> getRelTableSchemas() const {
         return getTableSchemas(common::TableType::REL);
     }
+
+    std::vector<TableSchema*> getTableSchemas() const;
 
     inline bool containMacro(const std::string& macroName) const {
         return macros.contains(macroName);

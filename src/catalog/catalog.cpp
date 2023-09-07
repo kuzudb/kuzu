@@ -147,5 +147,10 @@ void Catalog::addScalarMacroFunction(
     catalogContentForWriteTrx->addScalarMacroFunction(std::move(name), std::move(macro));
 }
 
+void Catalog::setTableComment(table_id_t tableID, const std::string& comment) {
+    initCatalogContentForWriteTrxIfNecessary();
+    catalogContentForWriteTrx->getTableSchema(tableID)->setComment(comment);
+}
+
 } // namespace catalog
 } // namespace kuzu

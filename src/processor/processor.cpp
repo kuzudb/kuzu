@@ -81,6 +81,7 @@ void QueryProcessor::decomposePlanIntoTasks(
     case PhysicalOperatorType::STANDALONE_CALL:
     case PhysicalOperatorType::PROFILE:
     case PhysicalOperatorType::CREATE_MACRO:
+    case PhysicalOperatorType::COMMENT_ON:
     case PhysicalOperatorType::TRANSACTION: {
         parentTask->setSingleThreadedTask();
     } break;

@@ -12,6 +12,7 @@ void BuiltInTableFunctions::registerTableFunctions() {
     tableFunctions.insert({TABLE_INFO_FUNC_NAME, TableInfoFunction::getDefinitions()});
     tableFunctions.insert({DB_VERSION_FUNC_NAME, DBVersionFunction::getDefinitions()});
     tableFunctions.insert({CURRENT_SETTING_FUNC_NAME, CurrentSettingFunction::getDefinitions()});
+    tableFunctions.insert({SHOW_TABLES_FUNC_NAME, ShowTablesFunction::getDefinitions()});
 }
 
 TableFunctionDefinition* BuiltInTableFunctions::mathTableFunction(const std::string& name) {

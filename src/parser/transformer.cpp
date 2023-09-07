@@ -36,6 +36,8 @@ std::unique_ptr<Statement> Transformer::transformStatement(CypherParser::OC_Stat
         return transformStandaloneCall(*ctx.kU_StandaloneCall());
     } else if (ctx.kU_CreateMacro()) {
         return transformCreateMacro(*ctx.kU_CreateMacro());
+    } else if (ctx.kU_CommentOn()) {
+        return transformCommentOn(*ctx.kU_CommentOn());
     } else if (ctx.kU_Transaction()) {
         return transformTransaction(*ctx.kU_Transaction());
     } else {                                                                // LCOV_EXCL_START
@@ -56,16 +58,14 @@ std::string Transformer::transformSchemaName(CypherParser::OC_SchemaNameContext&
 }
 
 std::string Transformer::transformSymbolicName(CypherParser::OC_SymbolicNameContext& ctx) {
-    if (ctx.UnescapedSymbolicName()) {
-        return ctx.UnescapedSymbolicName()->getText();
-    } else if (ctx.EscapedSymbolicName()) {
+    if (ctx.EscapedSymbolicName()) {
         std::string escapedSymbolName = ctx.EscapedSymbolicName()->getText();
         // escapedSymbolName symbol will be of form "`Some.Value`". Therefore, we need to sanitize
         // it such that we don't store the symbol with escape character.
         return escapedSymbolName.substr(1, escapedSymbolName.size() - 2);
     } else {
-        assert(ctx.HexLetter());
-        return ctx.HexLetter()->getText();
+        assert(ctx.HexLetter() || ctx.UnescapedSymbolicName() || ctx.kU_NonReservedKeywords());
+        return ctx.getText();
     }
 }
 

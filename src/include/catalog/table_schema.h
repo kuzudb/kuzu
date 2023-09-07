@@ -16,12 +16,15 @@ public:
     TableSchema(std::string tableName, common::table_id_t tableID, common::TableType tableType,
         std::vector<std::unique_ptr<Property>> properties)
         : tableName{std::move(tableName)}, tableID{tableID}, tableType{tableType},
-          properties{std::move(properties)}, nextPropertyID{
-                                                 (common::property_id_t)this->properties.size()} {}
+          properties{std::move(properties)},
+          nextPropertyID{(common::property_id_t)this->properties.size()}, comment{
+                                                                              std::move(comment)} {}
     TableSchema(common::TableType tableType, std::string tableName, common::table_id_t tableID,
-        std::vector<std::unique_ptr<Property>> properties, common::property_id_t nextPropertyID)
+        std::vector<std::unique_ptr<Property>> properties, std::string comment,
+        common::property_id_t nextPropertyID)
         : tableType{tableType}, tableName{std::move(tableName)}, tableID{tableID},
-          properties{std::move(properties)}, nextPropertyID{nextPropertyID} {}
+          properties{std::move(properties)}, comment{std::move(comment)}, nextPropertyID{
+                                                                              nextPropertyID} {}
 
     virtual ~TableSchema() = default;
 
@@ -73,6 +76,8 @@ public:
 
     inline void updateTableName(std::string newTableName) { tableName = std::move(newTableName); }
 
+    inline void setComment(std::string newComment) { comment = std::move(newComment); }
+
     virtual std::unique_ptr<TableSchema> copy() const = 0;
 
 private:
@@ -85,6 +90,7 @@ public:
     std::string tableName;
     common::table_id_t tableID;
     std::vector<std::unique_ptr<Property>> properties;
+    std::string comment;
     common::property_id_t nextPropertyID;
 };
 

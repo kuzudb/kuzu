@@ -211,6 +211,7 @@ const std::string DECODE_FUNC_NAME = "DECODE";
 const std::string TABLE_INFO_FUNC_NAME = "TABLE_INFO";
 const std::string DB_VERSION_FUNC_NAME = "DB_VERSION";
 const std::string CURRENT_SETTING_FUNC_NAME = "CURRENT_SETTING";
+const std::string SHOW_TABLES_FUNC_NAME = "SHOW_TABLES";
 
 enum ExpressionType : uint8_t {
 

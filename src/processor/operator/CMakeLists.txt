@@ -12,6 +12,7 @@ add_subdirectory(macro)
 
 add_library(kuzu_processor_operator
         OBJECT
+        comment_on.cpp
         cross_product.cpp
         filter.cpp
         filtering_operator.cpp

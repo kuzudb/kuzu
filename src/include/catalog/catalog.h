@@ -74,6 +74,8 @@ public:
     void addScalarMacroFunction(
         std::string name, std::unique_ptr<function::ScalarMacroFunction> macro);
 
+    void setTableComment(common::table_id_t tableID, const std::string& comment);
+
     // TODO(Ziyi): pass transaction pointer here.
     inline function::ScalarMacroFunction* getScalarMacroFunction(const std::string& name) const {
         return catalogContentForReadOnlyTrx->macros.at(name).get();

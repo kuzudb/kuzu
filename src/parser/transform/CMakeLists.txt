@@ -1,5 +1,6 @@
 add_library(kuzu_parser_transform
         OBJECT
+        transform_comment_on.cpp
         transform_copy.cpp
         transform_ddl.cpp
         transform_expression.cpp

@@ -26,6 +26,7 @@ protected:
     virtual void visitRenameProperty(const BoundStatement& statement) {}
     virtual void visitCopy(const BoundStatement& statement) {}
     virtual void visitStandaloneCall(const BoundStatement& statement) {}
+    virtual void visitCommentOn(const BoundStatement& statement) {}
     virtual void visitExplain(const BoundStatement& statement);
     virtual void visitCreateMacro(const BoundStatement& statement) {}
     virtual void visitTransaction(const BoundStatement& statement) {}

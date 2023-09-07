@@ -9,6 +9,7 @@ add_library(kuzu_processor_mapper
         map_acc_hash_join.cpp
         map_standalone_call.cpp
         map_in_query_call.cpp
+        map_comment_on.cpp
         map_copy_to.cpp
         map_copy_from.cpp
         map_create.cpp
