@@ -88,7 +88,7 @@ jobs:
 
       - name: Rust example
         working-directory: examples/rust
-        run: cargo build
+        run: cargo build --features arrow
 
   gcc-build-test-with-asan:
     name: gcc build & test with asan
