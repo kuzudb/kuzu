@@ -24,17 +24,16 @@ public:
     void writeValues(std::vector<common::ValueVector*>& outputVectors) override;
 
 private:
-    static std::shared_ptr<parquet::schema::Node> kuzuTypeToParquetType(
-        ParquetColumnDescriptor& columnDescriptor, std::string& columnName,
-        const common::LogicalType& logicalType,
+    static std::shared_ptr<parquet::schema::Node> kuzuTypeToParquetType(int& parquetColumnsCount,
+        std::string& columnName, const common::LogicalType& logicalType,
         parquet::Repetition::type repetition = parquet::Repetition::REQUIRED, int length = -1);
 
     void writeValue(common::LogicalTypeID type, void* value);
 
     void flush();
 
-    void generateSchema(std::shared_ptr<parquet::schema::GroupNode>& schema,
-        std::unordered_map<int, ParquetColumnDescriptor>& columnDescriptors);
+    void generateSchema(
+        std::shared_ptr<parquet::schema::GroupNode>& schema, int& parquetColumnsCount);
 
     std::shared_ptr<ParquetColumnWriter> parquetColumnWriter;
 

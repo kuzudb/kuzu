@@ -6,23 +6,17 @@
 namespace kuzu {
 namespace processor {
 
-// Additional computed information for each column
-// that will be used to write values
-// Each element in the vector is related to a column
-// TODO (Rui): as other information is no longer needed, we can remove this struct
-struct ParquetColumnDescriptor {
-    int maxDefinitionLevel = 1;
-};
-
 // Kuzu column represents a single column in Kuzu, which may contains multiple Parquet columns
 // writeColumn will be called for each Kuzu column.
 class ParquetColumnWriter {
 public:
-    ParquetColumnWriter(std::unordered_map<int, ParquetColumnDescriptor> columnDescriptors)
-        : columnDescriptors(columnDescriptors){};
+    ParquetColumnWriter(int totalColumns, std::vector<int> maxDefinitionLevels)
+        : maxDefinitionLevels(maxDefinitionLevels), totalColumns(totalColumns){};
 
     void writeColumn(
         int kuzuColumn, common::ValueVector* vector, parquet::RowGroupWriter* rowWriter);
+
+    int64_t estimatedRowBytes;
 
 private:
     void nextParquetColumn(common::LogicalTypeID logicalTypeID);
@@ -62,12 +56,14 @@ private:
     // Extract dremel encoding levels
     int getRepetitionLevel(int currentElementIdx, int parentElementIdx, int depth);
 
-    std::unordered_map<int, ParquetColumnDescriptor> columnDescriptors;
+    std::vector<int> maxDefinitionLevels;
 
     // Properties for nested lists and structs
     bool isListStarting;
 
     int currentKuzuColumn;
+    int currentParquetColumn;
+    int totalColumns;
 
     // define the writers
     parquet::Int64Writer* int64Writer;

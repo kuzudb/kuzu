@@ -10,34 +10,46 @@ namespace processor {
 void ParquetColumnWriter::nextParquetColumn(LogicalTypeID logicalTypeID) {
     switch (logicalTypeID) {
     case LogicalTypeID::BOOL:
-        boolWriter = static_cast<parquet::BoolWriter*>(rowWriter->NextColumn());
+        boolWriter = static_cast<parquet::BoolWriter*>(rowWriter->column(currentParquetColumn));
+        estimatedRowBytes += boolWriter->EstimatedBufferedValueBytes();
         break;
     // parquet physical type doesn't have int16, so we use int32
     case LogicalTypeID::INT16:
     case LogicalTypeID::INT32:
     case LogicalTypeID::DATE:
-        int32Writer = static_cast<parquet::Int32Writer*>(rowWriter->NextColumn());
+        int32Writer = static_cast<parquet::Int32Writer*>(rowWriter->column(currentParquetColumn));
+        estimatedRowBytes += int32Writer->EstimatedBufferedValueBytes();
         break;
     case LogicalTypeID::INT64:
     case LogicalTypeID::TIMESTAMP:
-        int64Writer = static_cast<parquet::Int64Writer*>(rowWriter->NextColumn());
+        int64Writer = static_cast<parquet::Int64Writer*>(rowWriter->column(currentParquetColumn));
+        estimatedRowBytes += int64Writer->EstimatedBufferedValueBytes();
         break;
     case LogicalTypeID::INTERVAL:
         fixedLenByteArrayWriter =
-            static_cast<parquet::FixedLenByteArrayWriter*>(rowWriter->NextColumn());
+            static_cast<parquet::FixedLenByteArrayWriter*>(rowWriter->column(currentParquetColumn));
+        estimatedRowBytes += fixedLenByteArrayWriter->EstimatedBufferedValueBytes();
         break;
     case LogicalTypeID::DOUBLE:
-        doubleWriter = static_cast<parquet::DoubleWriter*>(rowWriter->NextColumn());
+        doubleWriter = static_cast<parquet::DoubleWriter*>(rowWriter->column(currentParquetColumn));
+        estimatedRowBytes += doubleWriter->EstimatedBufferedValueBytes();
         break;
     case LogicalTypeID::FLOAT:
-        floatWriter = static_cast<parquet::FloatWriter*>(rowWriter->NextColumn());
+        floatWriter = static_cast<parquet::FloatWriter*>(rowWriter->column(currentParquetColumn));
+        estimatedRowBytes += floatWriter->EstimatedBufferedValueBytes();
         break;
     case LogicalTypeID::INTERNAL_ID:
     case LogicalTypeID::STRING:
-        byteArrayWriter = static_cast<parquet::ByteArrayWriter*>(rowWriter->NextColumn());
+        byteArrayWriter =
+            static_cast<parquet::ByteArrayWriter*>(rowWriter->column(currentParquetColumn));
+        estimatedRowBytes += byteArrayWriter->EstimatedBufferedValueBytes();
         break;
     default:
         throw NotImplementedException("ParquetWriter::nextParquetColumn");
+    }
+    currentParquetColumn++;
+    if (currentParquetColumn == totalColumns) {
+        currentParquetColumn = 0;
     }
 }
 
@@ -169,13 +181,13 @@ void ParquetColumnWriter::addToParquetColumns(uint8_t* value, ValueVector* vecto
     std::map<std::string, ParquetColumn>& parquetColumns, int currentElementIdx,
     int parentElementIdx, int depth, std::string parentStructFieldName) {
     int repetitionLevel = getRepetitionLevel(currentElementIdx, parentElementIdx, depth);
-    int definitionLevel = columnDescriptors[currentKuzuColumn].maxDefinitionLevel;
     if (vector->isPrimitiveDataType()) {
         // We define parquetBatch[column] to store the necessary information to
         // write in each parquet column using writeBatch. One Kuzu column can
         // have multiple parquet columns.
         parquetColumns[parentStructFieldName].repetitionLevels.push_back(repetitionLevel);
-        parquetColumns[parentStructFieldName].definitionLevels.push_back(definitionLevel);
+        parquetColumns[parentStructFieldName].definitionLevels.push_back(
+            maxDefinitionLevels[currentKuzuColumn]);
         parquetColumns[parentStructFieldName].values.push_back(value);
         parquetColumns[parentStructFieldName].logicalTypeID = vector->dataType.getLogicalTypeID();
     } else {

@@ -28,11 +28,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyTo(LogicalOperator* logical
     fTable = std::make_shared<FactorizedTable>(memoryManager, std::move(ftTableSchema));
     return createFactorizedTableScan(binder::expression_vector{}, std::vector<ft_col_idx_t>{},
         childSchema, fTable, 0, std::move(copyTo));
-
-    //    return std::make_unique<CopyTo>(std::make_unique<ResultSetDescriptor>(childSchema),
-    //    sharedState, std::move(vectorsToCopyPos),
-    //            *copy->getCopyDescription(), getOperatorID(), copy->getExpressionsForPrinting(),
-    //            std::move(prevOperator));
 }
 
 } // namespace processor

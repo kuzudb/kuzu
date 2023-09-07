@@ -15,29 +15,33 @@ void ParquetFileWriter::openFile(const std::string& filePath) {
 
 void ParquetFileWriter::init() {
     std::shared_ptr<parquet::schema::GroupNode> schema;
-    std::unordered_map<int, ParquetColumnDescriptor> columnDescriptors;
-    generateSchema(schema, columnDescriptors);
+    std::vector<int> maxDefinitionLevels;
+    // A nested Kuzu column may be represented by multiple parquet columns
+    // so we need this information for writing, that is generated inside kuzuTypeToParquetType
+    int parquetColumnsCount = 0;
+    generateSchema(schema, parquetColumnsCount);
     // this is an useful helper to print the generated schema
     // parquet::schema::PrintSchema(schema.get(), std::cout);
     parquet::WriterProperties::Builder builder;
     builder.compression(parquet::Compression::SNAPPY);
     std::shared_ptr<parquet::WriterProperties> props = builder.build();
     fileWriter = parquet::ParquetFileWriter::Open(outFile, schema, props);
-    // Read the max definition level from fileWriter and append to columnDescriptors
     const parquet::SchemaDescriptor* schemaDescriptor = fileWriter->schema();
     for (auto i = 0u; i < getColumnNames().size(); ++i) {
         const parquet::ColumnDescriptor* colDesc = schemaDescriptor->Column(i);
-        columnDescriptors[i].maxDefinitionLevel = colDesc->max_definition_level();
+        maxDefinitionLevels.push_back(colDesc->max_definition_level());
     }
-    parquetColumnWriter = std::make_shared<ParquetColumnWriter>(columnDescriptors);
+    parquetColumnWriter =
+        std::make_shared<ParquetColumnWriter>(parquetColumnsCount, maxDefinitionLevels);
+    rowWriter = fileWriter->AppendBufferedRowGroup();
 }
 
-void ParquetFileWriter::generateSchema(std::shared_ptr<parquet::schema::GroupNode>& schema,
-    std::unordered_map<int, ParquetColumnDescriptor>& columnDescriptors) {
+void ParquetFileWriter::generateSchema(
+    std::shared_ptr<parquet::schema::GroupNode>& schema, int& parquetColumnsCount) {
     parquet::schema::NodeVector fields;
     for (auto i = 0u; i < getColumnNames().size(); ++i) {
         fields.push_back(
-            kuzuTypeToParquetType(columnDescriptors[i], getColumnNames()[i], getColumnTypes()[i]));
+            kuzuTypeToParquetType(parquetColumnsCount, getColumnNames()[i], getColumnTypes()[i]));
     }
     schema = std::static_pointer_cast<parquet::schema::GroupNode>(
         parquet::schema::GroupNode::Make("schema", parquet::Repetition::REQUIRED, fields));
@@ -62,11 +66,14 @@ void ParquetFileWriter::generateSchema(std::shared_ptr<parquet::schema::GroupNod
 // BYTE_ARRAY: arbitrarily long byte arrays.
 // https://github.com/apache/parquet-cpp/blob/master/src/parquet/column_writer.h
 std::shared_ptr<parquet::schema::Node> ParquetFileWriter::kuzuTypeToParquetType(
-    ParquetColumnDescriptor& columnDescriptor, std::string& columnName,
-    const LogicalType& logicalType, parquet::Repetition::type repetition, int length) {
+    int& parquetColumnsCount, std::string& columnName, const LogicalType& logicalType,
+    parquet::Repetition::type repetition, int length) {
     parquet::Type::type parquetType;
     parquet::ConvertedType::type convertedType;
     convertedType = parquet::ConvertedType::NONE;
+    if (LogicalTypeUtils::isPrimitive(logicalType)) {
+        parquetColumnsCount++;
+    }
     switch (logicalType.getLogicalTypeID()) {
     case LogicalTypeID::BOOL:
         parquetType = parquet::Type::BOOLEAN;
@@ -112,8 +119,8 @@ std::shared_ptr<parquet::schema::Node> ParquetFileWriter::kuzuTypeToParquetType(
         auto structNames = StructType::getFieldNames(&logicalType);
         std::vector<std::shared_ptr<parquet::schema::Node>> nodes;
         for (auto i = 0u; i < structType.size(); ++i) {
-            nodes.push_back(kuzuTypeToParquetType(columnDescriptor, structNames[i], *structType[i],
-                parquet::Repetition::OPTIONAL, length));
+            nodes.push_back(kuzuTypeToParquetType(parquetColumnsCount, structNames[i],
+                *structType[i], parquet::Repetition::OPTIONAL, length));
         }
         auto groupNode = std::static_pointer_cast<parquet::schema::GroupNode>(
             parquet::schema::GroupNode::Make(columnName, parquet::Repetition::OPTIONAL, nodes));
@@ -143,8 +150,8 @@ std::shared_ptr<parquet::schema::Node> ParquetFileWriter::kuzuTypeToParquetType(
     case LogicalTypeID::FIXED_LIST:
     case LogicalTypeID::VAR_LIST: {
         auto childLogicalType = VarListType::getChildType(&logicalType);
-        auto childNode = kuzuTypeToParquetType(
-            columnDescriptor, columnName, *childLogicalType, parquet::Repetition::OPTIONAL, length);
+        auto childNode = kuzuTypeToParquetType(parquetColumnsCount, columnName, *childLogicalType,
+            parquet::Repetition::OPTIONAL, length);
         auto repeatedGroup =
             parquet::schema::GroupNode::Make("", parquet::Repetition::REPEATED, {childNode});
         auto optional = parquet::schema::GroupNode::Make(columnName, parquet::Repetition::OPTIONAL,
@@ -162,10 +169,15 @@ void ParquetFileWriter::writeValues(std::vector<ValueVector*>& outputVectors) {
     if (outputVectors.size() == 0) {
         return;
     }
-    rowWriter = fileWriter->AppendRowGroup();
+    parquetColumnWriter->estimatedRowBytes = 0;
     for (auto i = 0u; i < outputVectors.size(); i++) {
         assert(outputVectors[i]->state->isFlat());
         parquetColumnWriter->writeColumn(i, outputVectors[i], rowWriter);
+    }
+    if ((rowWriter->total_bytes_written() + rowWriter->total_compressed_bytes() +
+            parquetColumnWriter->estimatedRowBytes) > StorageConstants::NODE_GROUP_SIZE) {
+        rowWriter->Close();
+        rowWriter = fileWriter->AppendBufferedRowGroup();
     }
 }
 
