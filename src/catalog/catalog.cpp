@@ -1,5 +1,6 @@
 #include "catalog/catalog.h"
 
+#include "catalog/rel_table_group_schema.h"
 #include "common/ser_deser.h"
 #include "common/string_utils.h"
 #include "storage/storage_utils.h"
@@ -49,6 +50,19 @@ table_id_t Catalog::addRelTableSchema(const binder::BoundCreateTableInfo& info) 
     initCatalogContentForWriteTrxIfNecessary();
     auto tableID = catalogContentForWriteTrx->addRelTableSchema(info);
     wal->logRelTableRecord(tableID);
+    return tableID;
+}
+
+common::table_id_t Catalog::addRelTableGroupSchema(const binder::BoundCreateTableInfo& info) {
+    initCatalogContentForWriteTrxIfNecessary();
+    auto tableID = catalogContentForWriteTrx->addRelTableGroupSchema(info);
+    auto relTableGroupSchema =
+        (RelTableGroupSchema*)catalogContentForWriteTrx->getTableSchema(tableID);
+    // TODO(Ziyi): remove this when we can log variable size record. See also wal_record.h
+    for (auto relTableID : relTableGroupSchema->getRelTableIDs()) {
+        wal->logRelTableRecord(relTableID);
+    }
+    wal->logRelTableGroupRecord(tableID, relTableGroupSchema->getRelTableIDs());
     return tableID;
 }
 

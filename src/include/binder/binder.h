@@ -7,6 +7,10 @@
 #include "parser/query/regular_query.h"
 
 namespace kuzu {
+namespace parser {
+struct CreateTableInfo;
+}
+
 namespace main {
 class ClientContext;
 }
@@ -80,22 +84,25 @@ private:
         const std::string& name, const common::LogicalType& dataType);
 
     /*** bind DDL ***/
-    std::unique_ptr<BoundStatement> bindCreateNodeTableClause(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindCreateRelTableClause(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindCreateRdfGraphClause(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindDropTableClause(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindRenameTableClause(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindAddPropertyClause(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindDropPropertyClause(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindRenamePropertyClause(const parser::Statement& statement);
+    std::unique_ptr<BoundCreateTableInfo> bindCreateTableInfo(const parser::CreateTableInfo* info);
+    std::unique_ptr<BoundCreateTableInfo> bindCreateNodeTableInfo(
+        const parser::CreateTableInfo* info);
+    std::unique_ptr<BoundCreateTableInfo> bindCreateRelTableInfo(
+        const parser::CreateTableInfo* info);
+    std::unique_ptr<BoundCreateTableInfo> bindCreateRelTableGroupInfo(
+        const parser::CreateTableInfo* info);
+    std::unique_ptr<BoundCreateTableInfo> bindCreateRdfGraphInfo(
+        const parser::CreateTableInfo* info);
+    std::unique_ptr<BoundStatement> bindCreateTable(const parser::Statement& statement);
 
-    std::vector<std::unique_ptr<catalog::Property>> bindProperties(
-        std::vector<std::pair<std::string, std::string>> propertyNameDataTypes);
-    uint32_t bindPrimaryKey(const std::string& pkColName,
-        std::vector<std::pair<std::string, std::string>> propertyNameDataTypes);
+    std::unique_ptr<BoundStatement> bindDropTable(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindRenameTable(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindAddProperty(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindDropProperty(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindRenameProperty(const parser::Statement& statement);
+
     common::property_id_t bindPropertyName(
         catalog::NodeTableSchema::TableSchema* tableSchema, const std::string& propertyName);
-    std::unique_ptr<common::LogicalType> bindDataType(const std::string& dataType);
 
     /*** bind copy from/to ***/
     static bool bindContainsSerial(

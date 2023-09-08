@@ -6,11 +6,10 @@
 namespace kuzu {
 namespace parser {
 
-class CreateTableClause : public DDL {
+class CreateTable : public DDL {
 public:
-    CreateTableClause(common::StatementType statementType, std::string tableName,
-        std::unique_ptr<CreateTableInfo> info)
-        : DDL{statementType, std::move(tableName)}, info{std::move(info)} {}
+    CreateTable(std::string tableName, std::unique_ptr<CreateTableInfo> info)
+        : DDL{common::StatementType::CREATE_TABLE, std::move(tableName)}, info{std::move(info)} {}
 
     inline CreateTableInfo* getInfo() const { return info.get(); }
 

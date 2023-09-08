@@ -12,14 +12,8 @@ void BoundStatementVisitor::visit(const kuzu::binder::BoundStatement& statement)
     case StatementType::QUERY: {
         visitRegularQuery((BoundRegularQuery&)statement);
     } break;
-    case StatementType::CREATE_NODE_TABLE: {
-        visitCreateNodeTable(statement);
-    } break;
-    case StatementType::CREATE_REL_TABLE: {
-        visitCreateRelTable(statement);
-    } break;
-    case StatementType::CREATE_RDF_GRAPH: {
-        visitCreateRdfGraph(statement);
+    case StatementType::CREATE_TABLE: {
+        visitCreateTable(statement);
     } break;
     case StatementType::DROP_TABLE: {
         visitDropTable(statement);

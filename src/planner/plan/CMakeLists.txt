@@ -21,6 +21,7 @@ add_library(kuzu_planner_plan_operator
         append_set.cpp
         append_unwind.cpp
         plan_copy.cpp
+        plan_ddl.cpp
         plan_join_order.cpp
         plan_projection.cpp
         plan_read.cpp

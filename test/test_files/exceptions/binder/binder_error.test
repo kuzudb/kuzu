@@ -245,7 +245,7 @@ Binder exception: Delete PROPERTY is not supported.
 -LOG CreateNodeTableUsedName
 -STATEMENT CREATE NODE TABLE person(NAME STRING, ID INT64, PRIMARY KEY(NAME))
 ---- error
-Binder exception: Node person already exists.
+Binder exception: person already exists in catalog.
 
 -LOG CreateNodeTablePKColNameNotExists
 -STATEMENT CREATE NODE TABLE PERSON(NAME STRING, ID INT64, birthdate date, primary key (dummyColName))
@@ -285,7 +285,7 @@ Binder exception: Copy csv option value can only be a single character with an o
 -LOG CreateRelTableUsedName
 -STATEMENT CREATE REL TABLE knows ( FROM person TO person)
 ---- error
-Binder exception: Rel knows already exists.
+Binder exception: knows already exists in catalog.
 
 -LOG CreateRelTableInvalidNodeTableName
 -STATEMENT CREATE REL TABLE knows_post ( FROM person TO post)

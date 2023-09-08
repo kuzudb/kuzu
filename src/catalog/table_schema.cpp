@@ -1,5 +1,6 @@
 #include "catalog/table_schema.h"
 
+#include "catalog/rel_table_group_schema.h"
 #include "common/exception.h"
 #include "common/ser_deser.h"
 #include "common/string_utils.h"
@@ -123,6 +124,9 @@ std::unique_ptr<TableSchema> TableSchema::deserialize(FileInfo* fileInfo, uint64
     } break;
     case TableType::REL: {
         result = RelTableSchema::deserialize(fileInfo, offset);
+    } break;
+    case TableType::REL_GROUP: {
+        result = RelTableGroupSchema::deserialize(fileInfo, offset);
     } break;
     case TableType::RDF: {
         result = RdfGraphSchema::deserialize(fileInfo, offset);

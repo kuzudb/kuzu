@@ -103,9 +103,9 @@ public:
     void logCatalogRecord();
 
     void logNodeTableRecord(common::table_id_t tableID);
-
     void logRelTableRecord(common::table_id_t tableID);
-
+    void logRelTableGroupRecord(
+        common::table_id_t tableID, std::vector<common::table_id_t> relTableIDs);
     void logRdfGraphRecord(common::table_id_t rdfGraphID, common::table_id_t nodeTableID,
         common::table_id_t relTableID);
 

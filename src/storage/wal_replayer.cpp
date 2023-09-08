@@ -6,6 +6,7 @@
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
+using namespace kuzu::storage;
 
 namespace kuzu {
 namespace storage {
@@ -70,6 +71,9 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
     } break;
     case WALRecordType::REL_TABLE_RECORD: {
         replayRelTableRecord(walRecord);
+    } break;
+    case WALRecordType::REL_TABLE_GROUP_RECORD: {
+        replayRelTableGroupRecord(walRecord);
     } break;
     case WALRecordType::RDF_GRAPH_RECORD: {
         replayRdfGraphRecord(walRecord);
@@ -160,7 +164,7 @@ void WALReplayer::replayCatalogRecord() {
     }
 }
 
-void WALReplayer::replayNodeTableRecord(const kuzu::storage::WALRecord& walRecord) {
+void WALReplayer::replayNodeTableRecord(const WALRecord& walRecord) {
     if (isCheckpoint) {
         // Since we log the NODE_TABLE_RECORD prior to logging CATALOG_RECORD, the catalog
         // file has not recovered yet. Thus, the catalog needs to read the catalog file for WAL
@@ -183,7 +187,7 @@ void WALReplayer::replayNodeTableRecord(const kuzu::storage::WALRecord& walRecor
     }
 }
 
-void WALReplayer::replayRelTableRecord(const kuzu::storage::WALRecord& walRecord, bool isRdf) {
+void WALReplayer::replayRelTableRecord(const WALRecord& walRecord, bool isRdf) {
     if (isCheckpoint) {
         // See comments for NODE_TABLE_RECORD.
         auto nodesStatistics = std::make_unique<NodesStatisticsAndDeletedIDs>(
@@ -206,7 +210,11 @@ void WALReplayer::replayRelTableRecord(const kuzu::storage::WALRecord& walRecord
     }
 }
 
-void WALReplayer::replayRdfGraphRecord(const kuzu::storage::WALRecord& walRecord) {
+void WALReplayer::replayRelTableGroupRecord(const WALRecord& walRecord) {
+    // DO NOTHING
+}
+
+void WALReplayer::replayRdfGraphRecord(const WALRecord& walRecord) {
     if (isCheckpoint) {
         WALRecord nodeTableWALRecord = {.recordType = WALRecordType::NODE_TABLE_RECORD,
             .nodeTableRecord = walRecord.rdfGraphRecord.nodeTableRecord};
@@ -220,7 +228,7 @@ void WALReplayer::replayRdfGraphRecord(const kuzu::storage::WALRecord& walRecord
     }
 }
 
-void WALReplayer::replayOverflowFileNextBytePosRecord(const kuzu::storage::WALRecord& walRecord) {
+void WALReplayer::replayOverflowFileNextBytePosRecord(const WALRecord& walRecord) {
     // If we are recovering we do not replay OVERFLOW_FILE_NEXT_BYTE_POS_RECORD because
     // this record is intended for rolling back a transaction to ensure that we can
     // recover the overflow space allocated for the write transaction by calling

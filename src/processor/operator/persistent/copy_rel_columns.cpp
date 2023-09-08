@@ -9,7 +9,6 @@ namespace processor {
 void CopyRelColumns::executeInternal(ExecutionContext* context) {
     common::row_idx_t numRows = 0;
     while (children[0]->getNextTuple(context)) {
-        assert(resultSet->dataChunks.size() == 1);
         row_idx_t numFwdRows, numBwdRows;
         if (info.schema->isSingleMultiplicityInDirection(RelDataDirection::FWD)) {
             numFwdRows = copyRelColumns(RelDataDirection::FWD, sharedState->fwdRelData.get(), info,

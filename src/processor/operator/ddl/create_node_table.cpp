@@ -10,7 +10,8 @@ namespace kuzu {
 namespace processor {
 
 void CreateNodeTable::executeDDLInternal() {
-    for (auto& property : info->properties) {
+    auto extraInfo = (binder::BoundExtraCreateNodeTableInfo*)info->extraInfo.get();
+    for (auto& property : extraInfo->properties) {
         property->setMetadataDAHInfo(
             storageManager->createMetadataDAHInfo(*property->getDataType()));
     }
@@ -21,7 +22,7 @@ void CreateNodeTable::executeDDLInternal() {
 }
 
 std::string CreateNodeTable::getOutputMsg() {
-    return StringUtils::string_format("NodeTable: {} has been created.", info->tableName);
+    return StringUtils::string_format("Node table: {} has been created.", info->tableName);
 }
 
 } // namespace processor
