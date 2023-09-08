@@ -3,6 +3,8 @@
 #include "common/exception/binder.h"
 #include "common/exception/catalog.h"
 #include "common/exception/not_implemented.h"
+#include "common/types/blob.h"
+#include "common/types/ku_string.h"
 #include "function/vector_functions.h"
 
 namespace kuzu {

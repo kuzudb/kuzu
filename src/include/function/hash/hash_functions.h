@@ -5,6 +5,7 @@
 
 #include "common/exception/runtime.h"
 #include "common/type_utils.h"
+#include "common/types/ku_list.h"
 #include "common/utils.h"
 
 namespace kuzu {

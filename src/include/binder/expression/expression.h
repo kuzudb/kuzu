@@ -8,7 +8,7 @@
 
 #include "common/exception/internal.h"
 #include "common/expression_type.h"
-#include "common/types/types_include.h"
+#include "common/types/types.h"
 
 namespace kuzu {
 namespace binder {

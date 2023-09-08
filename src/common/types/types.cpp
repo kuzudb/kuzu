@@ -8,7 +8,9 @@
 #include "common/null_buffer.h"
 #include "common/ser_deser.h"
 #include "common/string_utils.h"
-#include "common/types/types_include.h"
+#include "common/types/interval_t.h"
+#include "common/types/ku_list.h"
+#include "common/types/ku_string.h"
 
 namespace kuzu {
 namespace common {

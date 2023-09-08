@@ -2,7 +2,6 @@
 
 #include <memory>
 
-#include "common/types/types_include.h"
 #include "storage/storage_structure/disk_array.h"
 
 namespace kuzu {

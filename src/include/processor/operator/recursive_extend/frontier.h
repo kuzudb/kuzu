@@ -2,7 +2,6 @@
 
 #include <unordered_map>
 
-#include "common/types/types_include.h"
 #include "function/hash/hash_functions.h"
 
 namespace kuzu {

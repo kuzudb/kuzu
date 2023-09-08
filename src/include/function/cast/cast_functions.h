@@ -4,6 +4,8 @@
 
 #include "common/exception/runtime.h"
 #include "common/type_utils.h"
+#include "common/types/blob.h"
+#include "common/types/ku_string.h"
 #include "common/vector/value_vector.h"
 
 namespace kuzu {

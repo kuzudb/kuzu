@@ -1,7 +1,8 @@
 #include <string>
 
 #include "common/exception/conversion.h"
-#include "common/types/types_include.h"
+#include "common/types/date_t.h"
+#include "common/types/timestamp_t.h"
 #include "gtest/gtest.h"
 
 using namespace kuzu::common;

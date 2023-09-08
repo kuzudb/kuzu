@@ -1,7 +1,6 @@
 #include <string>
 
 #include "common/string_utils.h"
-#include "common/types/types_include.h"
 #include "gtest/gtest.h"
 
 using namespace kuzu::common;

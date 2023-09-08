@@ -2,7 +2,7 @@
 
 #include <queue>
 
-#include "common/types/types_include.h"
+#include "common/types/internal_id_t.h"
 #include "database.h"
 
 namespace kuzu {

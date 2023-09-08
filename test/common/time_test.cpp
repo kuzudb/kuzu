@@ -2,7 +2,7 @@
 
 #include "common/exception/conversion.h"
 #include "common/exception/test.h"
-#include "common/types/types_include.h"
+#include "common/types/timestamp_t.h"
 #include "gtest/gtest.h"
 
 using namespace kuzu::common;
