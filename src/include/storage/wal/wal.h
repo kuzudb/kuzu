@@ -2,7 +2,6 @@
 
 #include <unordered_set>
 
-#include "common/types/types_include.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/wal/wal_record.h"
 

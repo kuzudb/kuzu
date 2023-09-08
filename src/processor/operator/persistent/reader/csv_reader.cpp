@@ -7,6 +7,7 @@
 #include "common/exception/not_implemented.h"
 #include "common/exception/parser.h"
 #include "common/string_utils.h"
+#include "common/types/blob.h"
 #include "storage/copier/table_copy_utils.h"
 
 using namespace kuzu::common;

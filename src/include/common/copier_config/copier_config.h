@@ -3,7 +3,6 @@
 #include <fstream>
 
 #include "common/constants.h"
-#include "common/types/types_include.h"
 #include "common/types/value.h"
 
 namespace kuzu {

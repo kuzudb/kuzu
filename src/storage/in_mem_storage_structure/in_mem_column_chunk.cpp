@@ -4,6 +4,7 @@
 #include "common/exception/message.h"
 #include "common/exception/not_implemented.h"
 #include "common/string_utils.h"
+#include "common/types/blob.h"
 #include "common/types/types.h"
 
 using namespace kuzu::common;

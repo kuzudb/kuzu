@@ -1,6 +1,6 @@
 #include <string>
 
-#include "common/types/types_include.h"
+#include "common/types/interval_t.h"
 #include "gtest/gtest.h"
 
 using namespace kuzu::common;

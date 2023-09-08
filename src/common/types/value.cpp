@@ -3,6 +3,7 @@
 #include "common/null_buffer.h"
 #include "common/ser_deser.h"
 #include "common/string_utils.h"
+#include "common/types/blob.h"
 #include "storage/storage_utils.h"
 
 namespace kuzu {

@@ -7,7 +7,6 @@
 #include "common/constants.h"
 #include "common/file_utils.h"
 #include "common/null_mask.h"
-#include "common/types/types_include.h"
 #include "common/utils.h"
 #include "storage/wal/wal_record.h"
 
