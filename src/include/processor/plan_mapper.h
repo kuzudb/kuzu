@@ -98,7 +98,7 @@ private:
     std::unique_ptr<PhysicalOperator> createReader(common::CopyDescription* copyDesc,
         catalog::TableSchema* tableSchema, planner::Schema* outSchema,
         const std::vector<std::shared_ptr<binder::Expression>>& dataColumnExpressions,
-        const std::shared_ptr<binder::Expression>& offsetExpression, bool preserveOrder);
+        const std::shared_ptr<binder::Expression>& offsetExpression, bool readingInSerial);
     std::unique_ptr<PhysicalOperator> createIndexLookup(catalog::RelTableSchema* tableSchema,
         const std::vector<DataPos>& dataPoses, const DataPos& boundOffsetDataPos,
         const DataPos& nbrOffsetDataPos, std::unique_ptr<PhysicalOperator> readerOp);

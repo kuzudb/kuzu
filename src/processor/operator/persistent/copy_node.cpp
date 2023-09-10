@@ -50,8 +50,7 @@ CopyNode::CopyNode(std::shared_ptr<CopyNodeSharedState> sharedState, CopyNodeInf
     std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
     : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::COPY_NODE, std::move(child), id,
           paramsString},
-      nodeOffsetVector{nullptr}, sharedState{std::move(sharedState)}, copyNodeInfo{std::move(
-                                                                          copyNodeInfo)} {}
+      sharedState{std::move(sharedState)}, copyNodeInfo{std::move(copyNodeInfo)} {}
 
 void CopyNodeSharedState::appendLocalNodeGroup(std::unique_ptr<NodeGroup> localNodeGroup) {
     std::unique_lock xLck{mtx};

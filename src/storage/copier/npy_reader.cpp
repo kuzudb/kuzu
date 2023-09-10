@@ -224,11 +224,10 @@ std::shared_ptr<arrow::DataType> NpyReader::getArrowType() const {
 }
 
 std::shared_ptr<arrow::RecordBatch> NpyReader::readBlock(block_idx_t blockIdx) const {
-    uint64_t rowNumber = CopyConstants::NUM_ROWS_PER_BLOCK_FOR_NPY * blockIdx;
+    uint64_t rowNumber = DEFAULT_VECTOR_CAPACITY * blockIdx;
     auto rowPointer = getPointerToRow(rowNumber);
     auto arrowType = getArrowType();
-    auto numRowsToRead =
-        std::min(CopyConstants::NUM_ROWS_PER_BLOCK_FOR_NPY, getNumRows() - rowNumber);
+    auto numRowsToRead = std::min(DEFAULT_VECTOR_CAPACITY, getNumRows() - rowNumber);
     auto buffer = std::make_shared<arrow::Buffer>(
         rowPointer, numRowsToRead * arrowType->byte_width() * getNumElementsPerRow());
     std::shared_ptr<arrow::Field> field;

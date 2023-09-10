@@ -33,7 +33,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logic
 std::unique_ptr<PhysicalOperator> PlanMapper::createReader(CopyDescription* copyDesc,
     TableSchema* tableSchema, Schema* outSchema,
     const std::vector<std::shared_ptr<Expression>>& dataColumnExpressions,
-    const std::shared_ptr<Expression>& offsetExpression, bool preserveOrder) {
+    const std::shared_ptr<Expression>& offsetExpression, bool containsSerial) {
     auto readerSharedState = std::make_shared<ReaderSharedState>(copyDesc->copy(), tableSchema);
     std::vector<DataPos> dataColumnsPos;
     dataColumnsPos.reserve(dataColumnExpressions.size());
@@ -41,7 +41,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createReader(CopyDescription* copy
         dataColumnsPos.emplace_back(outSchema->getExpressionPos(*expression));
     }
     auto nodeOffsetPos = DataPos(outSchema->getExpressionPos(*offsetExpression));
-    auto readInfo = std::make_unique<ReaderInfo>(nodeOffsetPos, dataColumnsPos, preserveOrder);
+    auto readInfo = std::make_unique<ReaderInfo>(nodeOffsetPos, dataColumnsPos, containsSerial);
     return std::make_unique<Reader>(
         std::move(readInfo), readerSharedState, getOperatorID(), tableSchema->tableName);
 }
@@ -62,9 +62,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
     auto copyNodeSharedState =
         std::make_shared<CopyNodeSharedState>(readerOp->getSharedState()->getNumRowsRef(),
             tableSchema, nodeTable, *copyFromInfo->copyDesc, memoryManager);
-    CopyNodeInfo copyNodeDataInfo{readerInfo->dataColumnsPos, readerInfo->nodeOffsetPos,
-        *copyFromInfo->copyDesc, nodeTable, &storageManager.getRelsStore(), catalog,
-        storageManager.getWAL(), copyFromInfo->containsSerial};
+    CopyNodeInfo copyNodeDataInfo{readerInfo->dataColumnsPos, *copyFromInfo->copyDesc, nodeTable,
+        &storageManager.getRelsStore(), catalog, storageManager.getWAL(),
+        copyFromInfo->containsSerial};
     auto copyNode = std::make_unique<CopyNode>(copyNodeSharedState, copyNodeDataInfo,
         std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), std::move(reader),
         getOperatorID(), copyFrom->getExpressionsForPrinting());
