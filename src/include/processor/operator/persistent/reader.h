@@ -51,9 +51,21 @@ protected:
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
 private:
-    void getNextNodeGroupInSerial();
-    void getNextNodeGroupInParallel();
-    void readNextNodeGroupInParallel();
+    template<ReaderSharedState::ReadMode READ_MODE>
+    void readNextDataChunk();
+
+    template<ReaderSharedState::ReadMode READ_MODE>
+    inline void lockForSerial() {
+        if constexpr (READ_MODE == ReaderSharedState::ReadMode::SERIAL) {
+            sharedState->mtx.lock();
+        }
+    }
+    template<ReaderSharedState::ReadMode READ_MODE>
+    inline void unlockForSerial() {
+        if constexpr (READ_MODE == ReaderSharedState::ReadMode::SERIAL) {
+            sharedState->mtx.unlock();
+        }
+    }
 
 private:
     std::unique_ptr<ReaderInfo> info;
@@ -66,8 +78,7 @@ private:
 
     read_rows_func_t readFunc;
     init_reader_data_func_t initFunc;
-    // For parallel reading.
-    std::unique_ptr<ReaderFunctionData> readFuncData;
+    std::shared_ptr<ReaderFunctionData> readFuncData;
 };
 
 } // namespace processor

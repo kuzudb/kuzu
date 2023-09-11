@@ -20,13 +20,6 @@
 namespace kuzu {
 namespace storage {
 
-struct FileBlockInfo {
-    FileBlockInfo(uint64_t numBlocks, std::vector<uint64_t> numRowsPerBlock)
-        : numBlocks{numBlocks}, numRowsPerBlock{std::move(numRowsPerBlock)} {}
-    uint64_t numBlocks;
-    std::vector<common::row_idx_t> numRowsPerBlock;
-};
-
 struct StructFieldIdxAndValue {
     StructFieldIdxAndValue(common::struct_field_idx_t fieldIdx, std::string fieldValue)
         : fieldIdx{fieldIdx}, fieldValue{std::move(fieldValue)} {}
@@ -52,10 +45,6 @@ public:
     static std::unique_ptr<parquet::arrow::FileReader> createParquetReader(
         const std::string& filePath, catalog::TableSchema* tableSchema);
 
-    static common::row_idx_t countNumLines(common::CopyDescription& copyDescription,
-        catalog::TableSchema* tableSchema,
-        std::unordered_map<std::string, FileBlockInfo>& fileBlockInfos);
-
     static std::vector<std::pair<int64_t, int64_t>> splitByDelimiter(const std::string& l,
         int64_t from, int64_t to, const common::CSVReaderConfig& csvReaderConfig);
 
@@ -74,15 +63,6 @@ public:
         uint64_t length);
 
 private:
-    static common::row_idx_t countNumLinesCSV(common::CopyDescription& copyDescription,
-        catalog::TableSchema* tableSchema,
-        std::unordered_map<std::string, FileBlockInfo>& fileBlockInfos);
-    static common::row_idx_t countNumLinesParquet(common::CopyDescription& copyDescription,
-        catalog::TableSchema* tableSchema,
-        std::unordered_map<std::string, FileBlockInfo>& fileBlockInfos);
-    static common::row_idx_t countNumLinesNpy(common::CopyDescription& copyDescription,
-        catalog::TableSchema* tableSchema,
-        std::unordered_map<std::string, FileBlockInfo>& fileBlockInfos);
     static std::unique_ptr<common::Value> convertStringToValue(std::string element,
         const common::LogicalType& type, const common::CSVReaderConfig& csvReaderConfig);
     static std::vector<std::string> getColumnNamesToRead(catalog::TableSchema* tableSchema);

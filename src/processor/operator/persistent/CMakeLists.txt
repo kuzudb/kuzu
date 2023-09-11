@@ -14,6 +14,7 @@ add_library(kuzu_processor_operator_persistent
         insert_executor.cpp
         merge.cpp
         reader.cpp
+        reader_functions.cpp
         reader_state.cpp
         set.cpp
         set_executor.cpp)

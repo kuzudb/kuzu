@@ -79,4 +79,4 @@ height
 -LOG ReturnDBVersion
 -STATEMENT CALL db_version() RETURN version
 ---- 1
-v0.4.0
+v0.0.8.5

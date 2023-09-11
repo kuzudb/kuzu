@@ -10,6 +10,7 @@ namespace kuzu {
 namespace processor {
 
 void Reader::initGlobalStateInternal(ExecutionContext* context) {
+    sharedState->initialize();
     sharedState->validate();
     sharedState->countBlocks(context->memoryManager);
 }
@@ -25,49 +26,62 @@ void Reader::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* cont
     readFunc = ReaderFunctions::getReadRowsFunc(
         sharedState->copyDescription->fileType, sharedState->tableSchema->getTableType());
     nodeOffsetVector = resultSet->getValueVector(info->nodeOffsetPos).get();
+    assert(!sharedState->copyDescription->filePaths.empty());
+    switch (sharedState->copyDescription->fileType) {
+    case CopyDescription::FileType::CSV: {
+        readFuncData = sharedState->readFuncData;
+    } break;
+    default: {
+        readFuncData = ReaderFunctions::getReadFuncData(
+            sharedState->copyDescription->fileType, sharedState->tableSchema->getTableType());
+        initFunc(*readFuncData, sharedState->copyDescription->filePaths, 0,
+            *sharedState->copyDescription->csvReaderConfig, sharedState->tableSchema);
+    }
+    }
 }
 
 bool Reader::getNextTuplesInternal(ExecutionContext* context) {
     sharedState->copyDescription->fileType == common::CopyDescription::FileType::CSV ?
-        getNextNodeGroupInSerial() :
-        getNextNodeGroupInParallel();
+        readNextDataChunk<ReaderSharedState::ReadMode::SERIAL>() :
+        readNextDataChunk<ReaderSharedState::ReadMode::PARALLEL>();
     return dataChunk->state->selVector->selectedSize != 0;
 }
 
-void Reader::getNextNodeGroupInSerial() {
-    auto morsel = sharedState->getSerialMorsel(dataChunk.get());
-    if (morsel->fileIdx == INVALID_VECTOR_IDX) {
-        return;
-    }
-    nodeOffsetVector->setValue(
-        nodeOffsetVector->state->selVector->selectedPositions[0], morsel->rowIdx);
-}
-
-void Reader::getNextNodeGroupInParallel() {
-    readNextNodeGroupInParallel();
-    if (leftArrowArrays.getLeftNumRows() == 0) {
-        dataChunk->state->selVector->selectedSize = 0;
-    } else {
-        int64_t numRowsToReturn =
-            std::min(leftArrowArrays.getLeftNumRows(), DEFAULT_VECTOR_CAPACITY);
-        leftArrowArrays.appendToDataChunk(dataChunk.get(), numRowsToReturn);
-    }
-}
-
-void Reader::readNextNodeGroupInParallel() {
-    if (leftArrowArrays.getLeftNumRows() == 0) {
-        auto morsel = sharedState->getParallelMorsel();
-        if (morsel->fileIdx == INVALID_VECTOR_IDX) {
-            return;
+template<ReaderSharedState::ReadMode READ_MODE>
+void Reader::readNextDataChunk() {
+    lockForSerial<READ_MODE>();
+    while (true) {
+        if (leftArrowArrays.getLeftNumRows() > 0) {
+            auto numLeftToAppend =
+                std::min(leftArrowArrays.getLeftNumRows(), DEFAULT_VECTOR_CAPACITY);
+            leftArrowArrays.appendToDataChunk(dataChunk.get(), numLeftToAppend);
+            auto currRowIdx = sharedState->currRowIdx.fetch_add(numLeftToAppend);
+            nodeOffsetVector->setValue(
+                nodeOffsetVector->state->selVector->selectedPositions[0], currRowIdx);
+            break;
         }
-        if (!readFuncData || morsel->fileIdx != readFuncData->fileIdx) {
-            readFuncData = initFunc(sharedState->copyDescription->filePaths, morsel->fileIdx,
+        dataChunk->state->selVector->selectedSize = 0;
+        auto morsel = sharedState->getMorsel<READ_MODE>();
+        if (morsel->fileIdx == INVALID_VECTOR_IDX) {
+            // No more files to read.
+            break;
+        }
+        if (morsel->fileIdx != readFuncData->fileIdx) {
+            initFunc(*readFuncData, sharedState->copyDescription->filePaths, morsel->fileIdx,
                 *sharedState->copyDescription->csvReaderConfig, sharedState->tableSchema);
         }
         readFunc(*readFuncData, morsel->blockIdx, dataChunk.get());
-        leftArrowArrays.appendFromDataChunk(dataChunk.get());
+        if (dataChunk->state->selVector->selectedSize > 0) {
+            leftArrowArrays.appendFromDataChunk(dataChunk.get());
+        } else {
+            sharedState->moveToNextFile();
+        }
     }
+    unlockForSerial<READ_MODE>();
 }
+
+template void Reader::readNextDataChunk<ReaderSharedState::ReadMode::SERIAL>();
+template void Reader::readNextDataChunk<ReaderSharedState::ReadMode::PARALLEL>();
 
 } // namespace processor
 } // namespace kuzu

@@ -37,7 +37,10 @@ public:
 
 public:
     sel_t* selectedPositions;
-    sel_t selectedSize;
+    // TODO: type of `selectedSize` was changed from `sel_t` to `uint64_t`, which should be reverted
+    // when we removed arrow array in ValueVector. Currently, we need to keep size of arrow array,
+    // which could be larger than MAX of `sel_t`.
+    uint64_t selectedSize;
 
 private:
     std::unique_ptr<sel_t[]> selectedPositionsBuffer;

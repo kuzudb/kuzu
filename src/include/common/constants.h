@@ -7,7 +7,7 @@
 namespace kuzu {
 namespace common {
 
-constexpr char KUZU_VERSION[] = "v0.4.0";
+constexpr char KUZU_VERSION[] = "v0.0.8.5";
 
 constexpr uint64_t DEFAULT_VECTOR_CAPACITY_LOG_2 = 11;
 constexpr uint64_t DEFAULT_VECTOR_CAPACITY = (uint64_t)1 << DEFAULT_VECTOR_CAPACITY_LOG_2;
@@ -117,9 +117,6 @@ struct HashIndexConstants {
 struct CopyConstants {
     // Size (in bytes) of the chunks to be read in Node/Rel Copier
     static constexpr uint64_t CSV_READING_BLOCK_SIZE = 1 << 23;
-
-    // Number of rows per block for npy files
-    static constexpr uint64_t NUM_ROWS_PER_BLOCK_FOR_NPY = 2048;
 
     // Default configuration for csv file parsing
     static constexpr const char* STRING_CSV_PARSING_OPTIONS[5] = {

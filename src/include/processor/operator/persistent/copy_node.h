@@ -52,7 +52,6 @@ public:
 
 struct CopyNodeInfo {
     std::vector<DataPos> dataColumnPoses;
-    DataPos nodeOffsetPos;
     common::CopyDescription copyDesc;
     storage::NodeTable* table;
     storage::RelsStore* relsStore;
@@ -71,7 +70,6 @@ public:
         for (auto& arrowColumnPos : copyNodeInfo.dataColumnPoses) {
             dataColumnVectors.push_back(resultSet->getValueVector(arrowColumnPos).get());
         }
-        nodeOffsetVector = resultSet->getValueVector(copyNodeInfo.nodeOffsetPos).get();
         localNodeGroup =
             std::make_unique<storage::NodeGroup>(sharedState->tableSchema, &sharedState->copyDesc);
     }
@@ -111,7 +109,6 @@ private:
         storage::ColumnChunk* chunk, common::offset_t startOffset, common::offset_t numNodes);
 
 private:
-    common::ValueVector* nodeOffsetVector;
     std::shared_ptr<CopyNodeSharedState> sharedState;
     CopyNodeInfo copyNodeInfo;
     std::vector<common::ValueVector*> dataColumnVectors;
