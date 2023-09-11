@@ -214,8 +214,15 @@ kuzu::pyarrow::Table PyQueryResult::getAsArrow(std::int64_t chunkSize) {
 
     auto typesInfo = queryResult->getColumnTypesInfo();
     auto schema = ArrowConverter::toArrowSchema(typesInfo);
-    auto schemaObj = schemaImportFunc((std::uint64_t)schema.get());
+    // Prevent arrow from releasing the schema until it gets passed to the table
+    // It seems like you are expected to pass a new schema for each RecordBatch
+    auto release = schema->release;
+    schema->release = [](ArrowSchema*) {};
+
     py::list batches = getArrowChunks(*schema, chunkSize);
+    auto schemaObj = schemaImportFunc((std::uint64_t)schema.get());
+
+    schema->release = release;
     return py::cast<kuzu::pyarrow::Table>(fromBatchesFunc(batches, schemaObj));
 }
 

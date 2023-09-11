@@ -6,7 +6,7 @@ namespace kuzu {
 namespace common {
 
 static void releaseArrowSchema(ArrowSchema* schema) {
-    if (!schema || schema->release) {
+    if (!schema || !schema->release) {
         return;
     }
     schema->release = nullptr;
