@@ -32,6 +32,15 @@ public:
     inline bool containTable(const std::string& name) const {
         return tableNameToIDMap.contains(name);
     }
+    inline bool containNodeTable(const std::string& tableName) const {
+        return containTable(tableName, common::TableType::NODE);
+    }
+    inline bool containRelTable(const std::string& tableName) const {
+        return containTable(tableName, common::TableType::REL);
+    }
+    inline bool containRelGroup(const std::string& tableName) const {
+        return containTable(tableName, common::TableType::REL_GROUP);
+    }
     inline std::string getTableName(common::table_id_t tableID) const {
         assert(tableSchemas.contains(tableID));
         return getTableSchema(tableID)->tableName;
@@ -52,10 +61,6 @@ public:
     common::table_id_t addRelTableSchema(const binder::BoundCreateTableInfo& info);
     common::table_id_t addRelTableGroupSchema(const binder::BoundCreateTableInfo& info);
     common::table_id_t addRdfGraphSchema(const binder::BoundCreateTableInfo& info);
-
-    bool containNodeTable(const std::string& tableName) const;
-
-    bool containRelTable(const std::string& tableName) const;
 
     /**
      * Node and Rel property functions.
@@ -113,6 +118,7 @@ private:
 
     void registerBuiltInFunctions();
 
+    bool containTable(const std::string& tableName, common::TableType tableType) const;
     std::vector<TableSchema*> getTableSchemas(common::TableType tableType) const;
     std::vector<common::table_id_t> getTableIDs(common::TableType tableType) const;
 

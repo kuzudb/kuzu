@@ -234,7 +234,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTable(const parser::Statement&
 std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement) {
     auto& dropTable = (DropTable&)statement;
     auto tableName = dropTable.getTableName();
-    validateTableExist(catalog, tableName);
+    validateNodeRelTableExist(tableName);
     auto catalogContent = catalog.getReadOnlyVersion();
     auto tableID = catalogContent->getTableID(tableName);
     if (catalogContent->containNodeTable(tableName)) {
@@ -247,7 +247,7 @@ std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& stateme
     auto renameTable = (RenameTable&)statement;
     auto tableName = renameTable.getTableName();
     auto catalogContent = catalog.getReadOnlyVersion();
-    validateTableExist(catalog, tableName);
+    validateNodeRelTableExist(tableName);
     if (catalogContent->containTable(renameTable.getNewName())) {
         throw BinderException("Table: " + renameTable.getNewName() + " already exists.");
     }
@@ -258,7 +258,7 @@ std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& stateme
 std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& statement) {
     auto& addProperty = (AddProperty&)statement;
     auto tableName = addProperty.getTableName();
-    validateTableExist(catalog, tableName);
+    validateNodeRelTableExist(tableName);
     auto catalogContent = catalog.getReadOnlyVersion();
     auto tableID = catalogContent->getTableID(tableName);
     auto dataType = bindDataType(addProperty.getDataType());
@@ -277,7 +277,7 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
 std::unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statement) {
     auto& dropProperty = (DropProperty&)statement;
     auto tableName = dropProperty.getTableName();
-    validateTableExist(catalog, tableName);
+    validateNodeRelTableExist(tableName);
     auto catalogContent = catalog.getReadOnlyVersion();
     auto tableID = catalogContent->getTableID(tableName);
     auto tableSchema = catalogContent->getTableSchema(tableID);
@@ -292,7 +292,7 @@ std::unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statem
 std::unique_ptr<BoundStatement> Binder::bindRenameProperty(const Statement& statement) {
     auto& renameProperty = (RenameProperty&)statement;
     auto tableName = renameProperty.getTableName();
-    validateTableExist(catalog, tableName);
+    validateNodeRelTableExist(tableName);
     auto catalogContent = catalog.getReadOnlyVersion();
     auto tableID = catalogContent->getTableID(tableName);
     auto tableSchema = catalogContent->getTableSchema(tableID);

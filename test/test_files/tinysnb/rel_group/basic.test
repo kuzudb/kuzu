@@ -1,0 +1,39 @@
+-GROUP RelGroupTest
+-DATASET CSV rel-group
+
+--
+
+-CASE RelGroupTest1
+-STATEMENT MATCH (a)-[e:knows]->(b) WHERE a.ID = 0 AND b.ID = 2 RETURN label(e), label(b), b.*
+---- 3
+knows_personA_personB|personB|2|Bob
+knows_personA_personC|personC|2|Bob
+knows_personB_personC|personC|2|Bob
+-STATEMENT MATCH (a:personA)-[e:knows]->(b) WHERE a.ID = 0 AND b.ID = 2 RETURN label(e), label(b), b.*
+---- 2
+knows_personA_personB|personB|2|Bob
+knows_personA_personC|personC|2|Bob
+-STATEMENT MATCH (a:personA)-[e:knows]->(b:personB) WHERE a.ID = 0 AND b.ID = 2 RETURN label(e), label(b), b.*
+---- 1
+knows_personA_personB|personB|2|Bob
+-STATEMENT MATCH (a:personA)-[e:likes]->(b:personB) WHERE a.ID = 0 RETURN label(e), label(b), b.*
+---- 3
+likes_personA_personB|personB|2|Bob
+likes_personA_personB|personB|3|Carol
+likes_personA_personB|personB|5|Dan
+-STATEMENT MATCH (a)-[e:likes]-(b) WHERE a.ID = 0 RETURN COUNT(*)
+---- 1
+12
+-STATEMENT MATCH (a)-[e]->(b) WHERE a.ID = 0 AND b.ID = 2 RETURN label(e), label(b), b.*
+---- 5
+knows_personA_personB|personB|2|Bob
+knows_personA_personC|personC|2|Bob
+knows_personB_personC|personC|2|Bob
+likes_personA_personB|personB|2|Bob
+likes_personB_personA|personA|2|Bob
+-STATEMENT COPY knows FROM "a.csv";
+---- error
+Binder exception: Table knows does not exist.
+-STATEMENT DROP TABLE knows;
+---- error
+Binder exception: Table knows does not exist.

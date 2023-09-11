@@ -8,12 +8,12 @@
 ---- ok
 -STATEMENT MATCH ()-[e:studyAt]->() RETURN count(*)
 ---- error
-Binder exception: Rel table studyAt does not exist.
+Binder exception: Table studyAt does not exist.
 -STATEMENT DROP TABLE workAt
 ---- ok
 -STATEMENT MATCH ()-[e:workAt]->() RETURN count(*)
 ---- error
-Binder exception: Rel table workAt does not exist.
+Binder exception: Table workAt does not exist.
 -STATEMENT DROP TABLE organisation
 ---- ok
 -STATEMENT MATCH (n:organisation) RETURN count(*)
