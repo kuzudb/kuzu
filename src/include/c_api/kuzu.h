@@ -218,26 +218,6 @@ KUZU_C_API kuzu_connection* kuzu_connection_init(kuzu_database* database);
  */
 KUZU_C_API void kuzu_connection_destroy(kuzu_connection* connection);
 /**
- * @brief Begins a read-only transaction in the given connection.
- * @param connection The connection instance to begin read-only transaction.
- */
-KUZU_C_API void kuzu_connection_begin_read_only_transaction(kuzu_connection* connection);
-/**
- * @brief Begins a write transaction in the given connection.
- * @param connection The connection instance to begin write transaction.
- */
-KUZU_C_API void kuzu_connection_begin_write_transaction(kuzu_connection* connection);
-/**
- * @brief Commits the current transaction.
- * @param connection The connection instance to commit transaction.
- */
-KUZU_C_API void kuzu_connection_commit(kuzu_connection* connection);
-/**
- * @brief Rollbacks the current transaction.
- * @param connection The connection instance to rollback transaction.
- */
-KUZU_C_API void kuzu_connection_rollback(kuzu_connection* connection);
-/**
  * @brief Sets the maximum number of threads to use for executing queries.
  * @param connection The connection instance to set max number of threads for execution.
  * @param num_threads The maximum number of threads to use for executing queries.

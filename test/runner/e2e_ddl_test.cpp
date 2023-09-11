@@ -8,6 +8,7 @@ using namespace kuzu::common;
 using namespace kuzu::processor;
 using namespace kuzu::storage;
 using namespace kuzu::testing;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace testing {
@@ -22,9 +23,8 @@ public:
         bufferManager = std::make_unique<BufferManager>(
             BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
         memoryManager = std::make_unique<MemoryManager>(bufferManager.get());
-        clientContext = std::make_unique<ClientContext>();
         executionContext = std::make_unique<ExecutionContext>(1 /* numThreads */, profiler.get(),
-            memoryManager.get(), bufferManager.get(), clientContext.get());
+            memoryManager.get(), bufferManager.get(), conn->clientContext.get());
         personTableID = catalog->getReadOnlyVersion()->getTableID("person");
         studyAtTableID = catalog->getReadOnlyVersion()->getTableID("studyAt");
     }
@@ -54,7 +54,7 @@ public:
             "CREATE NODE TABLE EXAM_PAPER(STUDENT_ID INT64, MARK DOUBLE, PRIMARY KEY(STUDENT_ID))");
         ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
-            commitButSkipCheckpointingForTestingRecovery(*conn);
+            conn->query("COMMIT_SKIP_CHECKPOINT");
             ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"));
             ASSERT_EQ(getStorageManager(*database)
                           ->getNodesStore()
@@ -63,7 +63,7 @@ public:
                 3);
             initWithoutLoadingGraph();
         } else {
-            conn->commit();
+            conn->query("COMMIT");
         }
         validateDatabaseStateAfterCommitCreateNodeTable();
     }
@@ -78,12 +78,12 @@ public:
             "CREATE REL TABLE likes(FROM person TO organisation, RATING INT64, MANY_ONE)");
         ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("likes"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
-            commitButSkipCheckpointingForTestingRecovery(*conn);
+            conn->query("COMMIT_SKIP_CHECKPOINT");
             ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("likes"));
             ASSERT_EQ(getStorageManager(*database)->getRelsStore().getNumRelTables(), 5);
             initWithoutLoadingGraph();
         } else {
-            conn->commit();
+            conn->query("COMMIT");
         }
         validateDatabaseStateAfterCommitCreateRelTable();
     }
@@ -121,11 +121,11 @@ public:
             "CREATE REL TABLE belongs(FROM person TO organisation, FROM organisation TO country);");
         ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("belongs"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
-            commitButSkipCheckpointingForTestingRecovery(*conn);
+            conn->query("COMMIT_SKIP_CHECKPOINT");
             initWithoutLoadingGraph();
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("belongs"));
         } else {
-            conn->commit();
+            conn->query("COMMIT");
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("belongs"));
         }
         auto relTableSchema = (RelTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(
@@ -135,10 +135,10 @@ public:
         executeQueryWithoutCommit("COPY belongs FROM \"" +
                                   TestHelper::appendKuzuRootPath("dataset/tinysnb/eBelongs.csv\""));
         if (transactionTestType == TransactionTestType::RECOVERY) {
-            commitButSkipCheckpointingForTestingRecovery(*conn);
+            conn->query("COMMIT_SKIP_CHECKPOINT");
             initWithoutLoadingGraph();
         } else {
-            conn->commit();
+            conn->query("COMMIT");
         }
         validateBelongsRelTable();
     }
@@ -154,12 +154,12 @@ public:
         validateNodeColumnFilesExistence(nodeTableSchema, DBFileType::ORIGINAL, true);
         ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("university"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
-            commitButSkipCheckpointingForTestingRecovery(*conn);
+            conn->query("COMMIT_SKIP_CHECKPOINT");
             validateNodeColumnFilesExistence(nodeTableSchema, DBFileType::ORIGINAL, true);
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("university"));
             initWithoutLoadingGraph();
         } else {
-            conn->commit();
+            conn->query("COMMIT");
         }
         validateNodeColumnFilesExistence(nodeTableSchema, DBFileType::ORIGINAL, false);
         ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("university"));
@@ -174,12 +174,12 @@ public:
         validateRelColumnAndListFilesExistence(relTableSchema, DBFileType::ORIGINAL, true);
         ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("knows"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
-            commitButSkipCheckpointingForTestingRecovery(*conn);
+            conn->query("COMMIT_SKIP_CHECKPOINT");
             validateRelColumnAndListFilesExistence(relTableSchema, DBFileType::ORIGINAL, true);
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("knows"));
             initWithoutLoadingGraph();
         } else {
-            conn->commit();
+            conn->query("COMMIT");
         }
         validateRelColumnAndListFilesExistence(relTableSchema, DBFileType::ORIGINAL, false);
         ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("knows"));
@@ -197,11 +197,11 @@ public:
                         ->getTableSchema(personTableID)
                         ->containProperty("gender"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
-            commitButSkipCheckpointingForTestingRecovery(*conn);
+            conn->query("COMMIT_SKIP_CHECKPOINT");
             // The file for property gender should still exist until we do checkpoint.
             initWithoutLoadingGraph();
         } else {
-            conn->commit();
+            conn->query("COMMIT");
         }
         ASSERT_FALSE(catalog->getReadOnlyVersion()
                          ->getTableSchema(personTableID)
@@ -238,7 +238,7 @@ public:
                         ->getTableSchema(studyAtTableID)
                         ->containProperty("places"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
-            commitButSkipCheckpointingForTestingRecovery(*conn);
+            conn->query("COMMIT_SKIP_CHECKPOINT");
             // The file for property places should still exist until we do checkpoint.
             validateColumnFilesExistence(
                 propertyFWDColumnFileName, true /* existence */, hasOverflowFile);
@@ -246,7 +246,7 @@ public:
                 hasOverflowFile, false /* hasHeader */);
             initWithoutLoadingGraph();
         } else {
-            conn->commit();
+            conn->query("COMMIT");
         }
         validateColumnFilesExistence(
             propertyFWDColumnFileName, false /* existence */, hasOverflowFile);
@@ -264,14 +264,13 @@ public:
 
     void executeQueryWithoutCommit(std::string query) {
         auto preparedStatement = conn->prepare(query);
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         auto mapper = PlanMapper(
             *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
         auto physicalPlan =
             mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
                 preparedStatement->statementResult->getColumns());
         executionContext->clientContext->resetActiveQuery();
-        executionContext->transaction = conn->activeTransaction.get();
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
     }
 
@@ -292,10 +291,10 @@ public:
         executeQueryWithoutCommit(
             StringUtils::string_format("ALTER TABLE person ADD random {}", propertyType));
         if (transactionTestType == TransactionTestType::RECOVERY) {
-            commitButSkipCheckpointingForTestingRecovery(*conn);
+            conn->query("COMMIT_SKIP_CHECKPOINT");
             initWithoutLoadingGraph();
         } else {
-            conn->commit();
+            conn->query("COMMIT");
         }
         // The default value of the property is NULL if not specified by the user.
         auto result = conn->query("MATCH (p:person) return p.random");
@@ -313,10 +312,10 @@ public:
         defaultVal.erase(remove(defaultVal.begin(), defaultVal.end(), '\''), defaultVal.end());
         std::vector<std::string> expectedResult(8 /* numOfNodesInPesron */, defaultVal);
         if (transactionTestType == TransactionTestType::RECOVERY) {
-            commitButSkipCheckpointingForTestingRecovery(*conn);
+            conn->query("COMMIT_SKIP_CHECKPOINT");
             initWithoutLoadingGraph();
         } else {
-            conn->commit();
+            conn->query("COMMIT");
         }
         ASSERT_EQ(
             TestHelper::convertResultToString(*conn->query("MATCH (p:person) return p.random")),
@@ -344,14 +343,14 @@ public:
         validateDatabaseFileBeforeCheckpointAddProperty(
             bwdListOriginalVersionFileName, bwdListWALVersionFileName, hasOverflow);
         if (transactionTestType == TransactionTestType::RECOVERY) {
-            commitButSkipCheckpointingForTestingRecovery(*conn);
+            conn->query("COMMIT_SKIP_CHECKPOINT");
             validateDatabaseFileBeforeCheckpointAddProperty(
                 fwdColumnOriginalVersionFileName, fwdColumnWALVersionFileName, hasOverflow);
             validateDatabaseFileBeforeCheckpointAddProperty(
                 bwdListOriginalVersionFileName, bwdListWALVersionFileName, hasOverflow);
             initWithoutLoadingGraph();
         } else {
-            conn->commit();
+            conn->query("COMMIT");
         }
         validateDatabaseFileAfterCheckpointAddProperty(
             fwdColumnOriginalVersionFileName, fwdColumnWALVersionFileName, hasOverflow);
@@ -387,14 +386,14 @@ public:
         defaultVal.erase(remove(defaultVal.begin(), defaultVal.end(), '\''), defaultVal.end());
         std::vector<std::string> expectedResult(3 /* numOfRelsInStudyAt */, defaultVal);
         if (transactionTestType == TransactionTestType::RECOVERY) {
-            commitButSkipCheckpointingForTestingRecovery(*conn);
+            conn->query("COMMIT_SKIP_CHECKPOINT");
             validateDatabaseFileBeforeCheckpointAddProperty(
                 fwdColumnOriginalVersionFileName, fwdColumnWALVersionFileName, hasOverflow);
             validateDatabaseFileBeforeCheckpointAddProperty(
                 bwdListOriginalVersionFileName, bwdListWALVersionFileName, hasOverflow);
             initWithoutLoadingGraph();
         } else {
-            conn->commit();
+            conn->query("COMMIT");
         }
         validateDatabaseFileAfterCheckpointAddProperty(
             fwdColumnOriginalVersionFileName, fwdColumnWALVersionFileName, hasOverflow);
@@ -411,14 +410,14 @@ public:
         ASSERT_EQ(
             catalog->getReadOnlyVersion()->getTableSchema(personTableID)->tableName, "person");
         if (transactionTestType == TransactionTestType::RECOVERY) {
-            commitButSkipCheckpointingForTestingRecovery(*conn);
+            conn->query("COMMIT_SKIP_CHECKPOINT");
             ASSERT_EQ(
                 catalog->getWriteVersion()->getTableSchema(personTableID)->tableName, "student");
             ASSERT_EQ(
                 catalog->getReadOnlyVersion()->getTableSchema(personTableID)->tableName, "person");
             initWithoutLoadingGraph();
         } else {
-            conn->commit();
+            conn->query("COMMIT");
         }
         ASSERT_EQ(
             catalog->getReadOnlyVersion()->getTableSchema(personTableID)->tableName, "student");
@@ -434,7 +433,7 @@ public:
         ASSERT_TRUE(
             catalog->getReadOnlyVersion()->getTableSchema(personTableID)->containProperty("fName"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
-            commitButSkipCheckpointingForTestingRecovery(*conn);
+            conn->query("COMMIT_SKIP_CHECKPOINT");
             ASSERT_TRUE(
                 catalog->getWriteVersion()->getTableSchema(personTableID)->containProperty("name"));
             ASSERT_TRUE(catalog->getReadOnlyVersion()
@@ -442,7 +441,7 @@ public:
                             ->containProperty("fName"));
             initWithoutLoadingGraph();
         } else {
-            conn->commit();
+            conn->query("COMMIT");
         }
         ASSERT_TRUE(
             catalog->getReadOnlyVersion()->getTableSchema(personTableID)->containProperty("name"));
@@ -456,7 +455,6 @@ public:
     std::unique_ptr<BufferManager> bufferManager;
     std::unique_ptr<MemoryManager> memoryManager;
     std::unique_ptr<ExecutionContext> executionContext;
-    std::unique_ptr<ClientContext> clientContext;
     std::unique_ptr<Profiler> profiler;
     table_id_t personTableID;
     table_id_t studyAtTableID;

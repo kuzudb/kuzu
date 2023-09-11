@@ -55,48 +55,6 @@ TEST_F(CApiConnectionTest, SetGetMaxNumThreadForExec) {
     ASSERT_EQ(maxNumThreadForExec, 8);
 }
 
-TEST_F(CApiConnectionTest, TransactionModes) {
-    auto connection = getConnection();
-
-    // Test initially connections are in AUTO_COMMIT mode.
-    ASSERT_EQ(Connection::ConnectionTransactionMode::AUTO_COMMIT,
-        getTransactionMode(*(Connection*)connection->_connection));
-    // Test beginning a transaction (first in read only mode) sets mode to MANUAL automatically.
-    kuzu_connection_begin_read_only_transaction(connection);
-    ASSERT_EQ(Connection::ConnectionTransactionMode::MANUAL,
-        getTransactionMode(*(Connection*)connection->_connection));
-    // Test commit automatically switches the mode to AUTO_COMMIT read transaction
-    kuzu_connection_commit(connection);
-    ASSERT_EQ(Connection::ConnectionTransactionMode::AUTO_COMMIT,
-        getTransactionMode(*(Connection*)connection->_connection));
-
-    kuzu_connection_begin_read_only_transaction(connection);
-    ASSERT_EQ(Connection::ConnectionTransactionMode::MANUAL,
-        getTransactionMode(*(Connection*)connection->_connection));
-    // Test rollback automatically switches the mode to AUTO_COMMIT for read transaction
-    kuzu_connection_rollback(connection);
-    ASSERT_EQ(Connection::ConnectionTransactionMode::AUTO_COMMIT,
-        getTransactionMode(*(Connection*)connection->_connection));
-
-    // Test beginning a transaction (now in write mode) sets mode to MANUAL automatically.
-    kuzu_connection_begin_write_transaction(connection);
-    ASSERT_EQ(Connection::ConnectionTransactionMode::MANUAL,
-        getTransactionMode(*(Connection*)connection->_connection));
-    // Test commit automatically switches the mode to AUTO_COMMIT for write transaction
-    kuzu_connection_commit(connection);
-    ASSERT_EQ(Connection::ConnectionTransactionMode::AUTO_COMMIT,
-        getTransactionMode(*(Connection*)connection->_connection));
-
-    // Test beginning a transaction (now in write mode) sets mode to MANUAL automatically.
-    kuzu_connection_begin_write_transaction(connection);
-    ASSERT_EQ(Connection::ConnectionTransactionMode::MANUAL,
-        getTransactionMode(*(Connection*)connection->_connection));
-    // Test rollback automatically switches the mode to AUTO_COMMIT write transaction
-    kuzu_connection_rollback(connection);
-    ASSERT_EQ(Connection::ConnectionTransactionMode::AUTO_COMMIT,
-        getTransactionMode(*(Connection*)connection->_connection));
-}
-
 TEST_F(CApiConnectionTest, Prepare) {
     auto connection = getConnection();
     auto query = "MATCH (a:person) WHERE a.isStudent = $1 RETURN COUNT(*)";

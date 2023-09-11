@@ -20,7 +20,7 @@ public:
     }
 
     void insertRelsToSmallList(bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         insertRel("person" /* srcNode */, 1 /* srcPK */, "person" /* dstNode */, 300 /* dstPK */,
             "knows" /* relation */, "{length: 300, place: 'this is a long str', tag: ['123', 'good']}" /* propertyValues */);
         insertRel("person" /* srcNode */, 1 /* srcPK */, "person" /* dstNode */, 700 /* dstPK */,
@@ -42,7 +42,7 @@ public:
     }
 
     void insertRelsToLargeList(bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         insertRel("person" /* srcNode */, 0 /* srcPK */, "person" /* dstNode */, 2301 /* dstPK */,
             "knows" /* relation */,
             "{length: 543, place: 'waterloo', tag: ['good']}" /* propertyValues */);
@@ -80,7 +80,7 @@ public:
     // after insertion.
     void smallListBecomesLargeListAfterInsertion(
         bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         for (auto i = 51; i < 1500; i++) {
             insertRel("person" /* srcNode */, 1 /* srcPK */, "person" /* dstNode */, i /* dstPK */,
                 "knows" /* relation */,
@@ -109,7 +109,7 @@ public:
     }
 
     void insertRelsToDifferentNodes(bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         insertRel("person" /* srcNode */, 500 /* srcPK */, "person" /* dstNode */, 2200 /* dstPK */,
             "knows" /* relation */, "{}" /* propertyValues */);
         insertRel("person" /* srcNode */, 243 /* srcPK */, "person" /* dstNode */, 744 /* dstPK */,
@@ -136,7 +136,7 @@ public:
     }
 
     void insertRelsToManyToOneRelTable(bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         insertRel("person" /* srcNode */, 704 /* srcPK */, "person" /* dstNode */, 2103 /* dstPK */,
             "teaches" /* relation */, "{length: 50}" /* propertyValues */);
         insertRel("person" /* srcNode */, 970 /* srcPK */, "person" /* dstNode */, 1765 /* dstPK */,
@@ -153,7 +153,7 @@ public:
     }
 
     void insertRelsToOneToOneRelTable(bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         insertRel("animal" /* srcNode */, 64 /* srcPK */, "person" /* dstNode */, 2100 /* dstPK */,
             "hasOwner" /* relation */,
             "{length: 50, place: 'long long string test'}" /* propertyValues */);
@@ -172,7 +172,7 @@ public:
     }
 
     void insertRelsToNewlyAddedNode(bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         ASSERT_TRUE(conn->query("CREATE (a:person {ID: 3000})")->isSuccess());
         insertRel("person" /* srcNode */, 3000 /* srcPK */, "person" /* dstNode */,
             2100 /* dstPK */, "knows" /* relation */,
@@ -313,7 +313,7 @@ TEST_F(CreateRelTest, InsertRelsToNewlyAddedNodeRollbackRecovery) {
 }
 
 TEST_F(CreateRelTest, ViolateManyOneMultiplicityError) {
-    conn->beginWriteTransaction();
+    conn->query("BEGIN WRITE TRANSACTION");
     validateExceptionMessage(
         "MATCH (p1:person), (p2:person) WHERE p1.ID = 11 AND p2.ID = 10 CREATE "
         "(p1)-[:teaches]->(p2);",
@@ -322,7 +322,7 @@ TEST_F(CreateRelTest, ViolateManyOneMultiplicityError) {
 }
 
 TEST_F(CreateRelTest, ViolateOneOneMultiplicityError) {
-    conn->beginWriteTransaction();
+    conn->query("BEGIN WRITE TRANSACTION");
     validateExceptionMessage("MATCH (a:animal), (p:person) WHERE a.ID = 2 AND p.ID = 10 CREATE "
                              "(a)-[:hasOwner]->(p);",
         "Runtime exception: Node in RelTable 3 cannot have more than "

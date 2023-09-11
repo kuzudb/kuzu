@@ -21,9 +21,8 @@ public:
         createDBAndConn();
         catalog = getCatalog(*database);
         profiler = std::make_unique<Profiler>();
-        clientContext = std::make_unique<ClientContext>();
         executionContext = std::make_unique<ExecutionContext>(1 /* numThreads */, profiler.get(),
-            getMemoryManager(*database), getBufferManager(*database), clientContext.get());
+            getMemoryManager(*database), getBufferManager(*database), getClientContext(*conn));
     }
 
     void initWithoutLoadingGraph() {
@@ -74,24 +73,24 @@ public:
     void copyNodeCSVCommitAndRecoveryTest(TransactionTestType transactionTestType) {
         conn->query(createPersonTableCMD);
         auto preparedStatement = conn->prepare(copyPersonTableCMD);
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         auto mapper = PlanMapper(
             *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
         auto physicalPlan =
             mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
                 preparedStatement->statementResult->getColumns());
-        clientContext->resetActiveQuery();
+        executionContext->clientContext->resetActiveQuery();
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
         auto tableID = catalog->getReadOnlyVersion()->getTableID("person");
         validateDatabaseStateBeforeCheckPointCopyNode(tableID);
         if (transactionTestType == TransactionTestType::RECOVERY) {
-            commitButSkipCheckpointingForTestingRecovery(*conn);
+            conn->query("COMMIT_SKIP_CHECKPOINT");
             validateDatabaseStateBeforeCheckPointCopyNode(tableID);
             physicalPlan.reset();
             initWithoutLoadingGraph();
             validateDatabaseStateAfterCheckPointCopyNode(tableID);
         } else {
-            conn->commit();
+            conn->query("COMMIT");
             validateDatabaseStateAfterCheckPointCopyNode(tableID);
         }
     }
@@ -153,24 +152,24 @@ public:
         conn->query(copyPersonTableCMD);
         conn->query(createKnowsTableCMD);
         auto preparedStatement = conn->prepare(copyKnowsTableCMD);
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         auto mapper = PlanMapper(
             *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
         auto physicalPlan =
             mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
                 preparedStatement->statementResult->getColumns());
-        clientContext->resetActiveQuery();
+        executionContext->clientContext->resetActiveQuery();
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
         auto tableID = catalog->getReadOnlyVersion()->getTableID("knows");
         validateDatabaseStateBeforeCheckPointCopyRel(tableID);
         if (transactionTestType == TransactionTestType::RECOVERY) {
-            commitButSkipCheckpointingForTestingRecovery(*conn);
+            conn->query("COMMIT_SKIP_CHECKPOINT");
             validateDatabaseStateBeforeCheckPointCopyRel(tableID);
             physicalPlan.reset();
             initWithoutLoadingGraph();
             validateDatabaseStateAfterCheckPointCopyRel(tableID);
         } else {
-            conn->commit();
+            conn->query("COMMIT");
             validateDatabaseStateAfterCheckPointCopyRel(tableID);
         }
     }
@@ -193,7 +192,6 @@ public:
         "COPY knows FROM \"" + TestHelper::appendKuzuRootPath("dataset/tinysnb/eKnows.csv\"");
     std::unique_ptr<Profiler> profiler;
     std::unique_ptr<ExecutionContext> executionContext;
-    std::unique_ptr<ClientContext> clientContext;
 };
 
 TEST_F(TinySnbCopyCSVTransactionTest, CopyNodeCommitNormalExecution) {

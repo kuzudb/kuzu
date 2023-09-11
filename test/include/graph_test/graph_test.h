@@ -10,6 +10,7 @@
 #include "planner/planner.h"
 #include "test_helper/test_helper.h"
 #include "test_runner/test_runner.h"
+#include "transaction/transaction_context.h"
 
 using ::testing::Test;
 
@@ -77,36 +78,20 @@ protected:
     }
 
     // Static functions to access Connection's non-public properties/interfaces.
-    static inline main::Connection::ConnectionTransactionMode getTransactionMode(
-        main::Connection& connection) {
-        return connection.getTransactionMode();
+    static inline main::ClientContext* getClientContext(main::Connection& connection) {
+        return connection.clientContext.get();
     }
-    static inline void setTransactionModeNoLock(main::Connection& connection,
-        main::Connection::ConnectionTransactionMode newTransactionMode) {
-        connection.setTransactionModeNoLock(newTransactionMode);
-    }
-    static inline void commitButSkipCheckpointingForTestingRecovery(main::Connection& connection) {
-        connection.commitButSkipCheckpointingForTestingRecovery();
-    }
-    static inline void rollbackButSkipCheckpointingForTestingRecovery(
-        main::Connection& connection) {
-        connection.rollbackButSkipCheckpointingForTestingRecovery();
+    static inline transaction::TransactionMode getTransactionMode(main::Connection& connection) {
+        return connection.clientContext->getTransactionContext()->getTransactionMode();
     }
     static inline transaction::Transaction* getActiveTransaction(main::Connection& connection) {
-        return connection.getActiveTransaction();
-    }
-    static inline uint64_t getMaxNumThreadForExec(main::Connection& connection) {
-        return connection.getMaxNumThreadForExec();
+        return connection.clientContext->getTransactionContext()->getActiveTransaction();
     }
     static inline uint64_t getActiveTransactionID(main::Connection& connection) {
-        return connection.getActiveTransactionID();
+        return connection.clientContext->getTransactionContext()->getActiveTransaction()->getID();
     }
     static inline bool hasActiveTransaction(main::Connection& connection) {
-        return connection.hasActiveTransaction();
-    }
-    static inline void commitNoLock(main::Connection& connection) { connection.commitNoLock(); }
-    static inline void rollbackIfNecessaryNoLock(main::Connection& connection) {
-        connection.rollbackIfNecessaryNoLock();
+        return connection.clientContext->getTransactionContext()->hasActiveTransaction();
     }
     static inline void sortAndCheckTestResults(
         std::vector<std::string>& actualResult, std::vector<std::string>& expectedResult) {

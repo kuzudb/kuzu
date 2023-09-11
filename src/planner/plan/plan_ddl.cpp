@@ -15,10 +15,10 @@
 namespace kuzu {
 namespace planner {
 
-static std::unique_ptr<LogicalPlan> getSimplePlan(std::shared_ptr<LogicalOperator> op) {
+std::unique_ptr<LogicalPlan> Planner::getSimplePlan(std::shared_ptr<LogicalOperator> op) {
     auto plan = std::make_unique<LogicalPlan>();
     op->computeFactorizedSchema();
-    plan->setLastOperator(op);
+    plan->setLastOperator(std::move(op));
     return plan;
 }
 

@@ -1,5 +1,6 @@
 #include "parser/transformer.h"
 
+#include "common/exception.h"
 #include "common/string_utils.h"
 #include "parser/explain_statement.h"
 #include "parser/query/regular_query.h"
@@ -34,8 +35,12 @@ std::unique_ptr<Statement> Transformer::transformOcStatement(
         return transformCopyTo(*ctx.kU_CopyTO());
     } else if (ctx.kU_StandaloneCall()) {
         return transformStandaloneCall(*ctx.kU_StandaloneCall());
-    } else {
+    } else if (ctx.kU_CreateMacro()) {
         return transformCreateMacro(*ctx.kU_CreateMacro());
+    } else if (ctx.kU_Transaction()) {
+        return transformTransaction(*ctx.kU_Transaction());
+    } else {                                                                // LCOV_EXCL_START
+        throw NotImplementedException("Transformer::transformOcStatement"); // LCOV_EXCL_STOP
     }
 }
 

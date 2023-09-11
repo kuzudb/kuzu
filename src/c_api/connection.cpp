@@ -33,22 +33,6 @@ void kuzu_connection_destroy(kuzu_connection* connection) {
     free(connection);
 }
 
-void kuzu_connection_begin_read_only_transaction(kuzu_connection* connection) {
-    static_cast<Connection*>(connection->_connection)->beginReadOnlyTransaction();
-}
-
-void kuzu_connection_begin_write_transaction(kuzu_connection* connection) {
-    static_cast<Connection*>(connection->_connection)->beginWriteTransaction();
-}
-
-void kuzu_connection_commit(kuzu_connection* connection) {
-    static_cast<Connection*>(connection->_connection)->commit();
-}
-
-void kuzu_connection_rollback(kuzu_connection* connection) {
-    static_cast<Connection*>(connection->_connection)->rollback();
-}
-
 void kuzu_connection_set_max_num_thread_for_exec(
     kuzu_connection* connection, uint64_t num_threads) {
     static_cast<Connection*>(connection->_connection)->setMaxNumThreadForExec(num_threads);

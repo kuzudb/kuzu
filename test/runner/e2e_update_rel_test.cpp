@@ -31,7 +31,7 @@ public:
     }
 
     void updateIntProp(bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         ASSERT_TRUE(conn->query(getUpdateRelQuery("person" /* srcTable */, "person" /* dstTable */,
                                     "knows" /* relation */, 0 /* srcID */, 20 /* dstID */,
                                     "set e.length = null"))
@@ -58,7 +58,7 @@ public:
     }
 
     void updateStrProp(bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         ASSERT_TRUE(conn->query(getUpdateRelQuery("person" /* srcTable */, "person" /* dstTable */,
                                     "knows" /* relation */, 0 /* srcID */, 15 /* dstID */,
                                     "set e.place = 'waterloo'"))
@@ -84,7 +84,7 @@ public:
     }
 
     void updateListProp(bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         ASSERT_TRUE(conn->query(getUpdateRelQuery("person" /* srcTable */, "person" /* dstTable */,
                                     "knows" /* relation */, 0 /* srcID */, 43 /* dstID */,
                                     "set e.tag = [\"updated property1\", \"50\"]"))
@@ -111,7 +111,7 @@ public:
     }
 
     void updateEachElementOfSmallList(bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         std::vector<std::string> expectedResult;
         for (auto i = 0u; i <= 50; i++) {
             ASSERT_TRUE(
@@ -129,7 +129,7 @@ public:
     }
 
     void updateEachElementOfLargeList(bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         std::vector<std::string> expectedResult;
         for (auto i = 1u; i <= NUM_RELS_FOR_PERSON_0; i++) {
             ASSERT_TRUE(
@@ -147,7 +147,7 @@ public:
     }
 
     void updateNewlyInsertedRels(bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         ASSERT_TRUE(conn->query(getInsertKnowsRelQuery("person" /* srcTable */,
             "person" /* dstTable */, 5 /*  srcID */, 8 /* dstID */, 10 /* lengthProp */)));
         ASSERT_TRUE(conn->query(getInsertKnowsRelQuery("person" /* srcTable */,
@@ -170,7 +170,7 @@ public:
     }
 
     void updateRelsTwoHop(bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         ASSERT_TRUE(
             conn->query("MATCH (p0:person)-[e1:knows]->(p1:person)-[e2:knows]->(p2:person) WHERE "
                         "p0.ID = 1 AND p2.ID = 1145 SET e1.length = 300, e2.length = null"));
@@ -186,7 +186,7 @@ public:
 
     void insertDeleteAndUpdateRelsInSameList(
         bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         // Firstly, we delete the following knows rels: person0->person50, person0->person612,
         // person0->person1300.
         ASSERT_TRUE(conn->query(getDeleteKnowsRelQuery(
@@ -236,7 +236,7 @@ public:
 
     void insertAndUpdateRelsForNewlyAddedNode(
         bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         ASSERT_TRUE(conn->query("CREATE (p:person {ID: 2501})"));
         ASSERT_TRUE(conn->query(getInsertKnowsRelQuery("person" /* srcTable */,
             "person" /* dstTable */, 2501 /* srcID */, 5 /* dstID */, 100 /* lengthProp */)));
@@ -256,7 +256,7 @@ public:
     }
 
     void updateManyToOneRelTable(bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         ASSERT_TRUE(conn->query(getUpdateRelQuery("person" /* srcTable */, "person" /* dstTable */,
             "teaches" /* relation */, 21 /* srcID */, 2 /* dstID */, "SET e.length=null")));
         ASSERT_TRUE(conn->query(getUpdateRelQuery("person" /* srcTable */, "person" /* dstTable */,
@@ -273,7 +273,7 @@ public:
     }
 
     void updateOneToOneRelTable(bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         ASSERT_TRUE(conn->query(getUpdateRelQuery("animal" /* srcTable */, "person" /* dstTable */,
             "hasOwner" /* relation */, 2 /* srcID */, 52 /* dstID */, "SET e.place='kuzu'")));
         ASSERT_TRUE(conn->query(getUpdateRelQuery("animal" /* srcTable */, "person" /* dstTable */,

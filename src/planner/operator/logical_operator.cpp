@@ -135,6 +135,9 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::STANDALONE_CALL: {
         return "STANDALONE_CALL";
     }
+    case LogicalOperatorType::TRANSACTION: {
+        return "TRANSACTION";
+    }
     case LogicalOperatorType::UNION_ALL: {
         return "UNION_ALL";
     }

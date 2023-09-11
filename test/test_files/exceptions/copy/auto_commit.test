@@ -6,7 +6,8 @@
 -CASE CopyCSVStatementWithActiveTransactionError
 -STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, PRIMARY KEY (ID))
 ---- ok
--BEGIN_WRITE_TRANSACTION
+-STATEMENT BEGIN WRITE TRANSACTION
+---- ok
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=TRUE, DELIM=',')
 ---- error
 DDL, Copy, createMacro statements can only run in the AUTO_COMMIT mode. Please commit or rollback your previous transaction if there is any and issue the query without beginning a transaction

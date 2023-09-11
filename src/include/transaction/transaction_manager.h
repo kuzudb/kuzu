@@ -18,9 +18,7 @@ class TransactionManager {
 public:
     explicit TransactionManager(
         storage::WAL& wal, storage::StorageManager* storageManager, storage::MemoryManager* mm)
-        : logger{common::LoggerUtils::getLogger(
-              common::LoggerConstants::LoggerEnum::TRANSACTION_MANAGER)},
-          wal{wal}, storageManager{storageManager}, mm{mm}, activeWriteTransactionID{INT64_MAX},
+        : wal{wal}, storageManager{storageManager}, mm{mm}, activeWriteTransactionID{INT64_MAX},
           lastTransactionID{0}, lastCommitID{0} {};
     std::unique_ptr<Transaction> beginWriteTransaction();
     std::unique_ptr<Transaction> beginReadOnlyTransaction();
@@ -62,8 +60,6 @@ private:
     void assertActiveWriteTransactionIsCorrectNoLock(Transaction* transaction) const;
 
 private:
-    std::shared_ptr<spdlog::logger> logger;
-
     storage::WAL& wal;
     storage::StorageManager* storageManager;
     storage::MemoryManager* mm;

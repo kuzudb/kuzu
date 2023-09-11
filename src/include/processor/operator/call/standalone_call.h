@@ -35,7 +35,7 @@ public:
             standaloneCallInfo->copy(), operatorType, id, paramsString);
     }
 
-protected:
+private:
     std::unique_ptr<StandaloneCallInfo> standaloneCallInfo;
 };
 

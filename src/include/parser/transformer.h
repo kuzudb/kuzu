@@ -277,6 +277,8 @@ private:
 
     std::unique_ptr<Statement> transformCreateMacro(CypherParser::KU_CreateMacroContext& ctx);
 
+    std::unique_ptr<Statement> transformTransaction(CypherParser::KU_TransactionContext& ctx);
+
     std::vector<std::string> transformFilePaths(
         std::vector<antlr4::tree::TerminalNode*> stringLiteral);
 

@@ -2,6 +2,7 @@ add_library(
         kuzu_binder_bind
         OBJECT
         bind_standalone_call.cpp
+        bind_transaction.cpp
         bind_create_macro.cpp
         bind_copy.cpp
         bind_ddl.cpp

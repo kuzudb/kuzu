@@ -48,6 +48,7 @@ enum class LogicalOperatorType : uint8_t {
     SET_NODE_PROPERTY,
     SET_REL_PROPERTY,
     STANDALONE_CALL,
+    TRANSACTION,
     UNION_ALL,
     UNWIND,
 };

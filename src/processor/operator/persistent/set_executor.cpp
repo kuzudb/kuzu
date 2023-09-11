@@ -36,7 +36,8 @@ static void writeToPropertyVector(ValueVector* propertyVector, uint32_t property
 
 void SingleLabelNodeSetExecutor::set(ExecutionContext* context) {
     evaluator->evaluate();
-    setInfo.table->update(context->transaction, setInfo.propertyID, nodeIDVector, rhsVector);
+    setInfo.table->update(context->clientContext->getActiveTransaction(), setInfo.propertyID,
+        nodeIDVector, rhsVector);
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
         auto lhsPos = nodeIDVector->state->selVector->selectedPositions[i];
         auto rhsPos = lhsPos;
@@ -65,8 +66,8 @@ void MultiLabelNodeSetExecutor::set(ExecutionContext* context) {
             rhsPos = rhsVector->state->selVector->selectedPositions[0];
         }
         auto& setInfo = tableIDToSetInfo.at(nodeID.tableID);
-        setInfo.table->update(
-            context->transaction, setInfo.propertyID, nodeID.offset, rhsVector, rhsPos);
+        setInfo.table->update(context->clientContext->getActiveTransaction(), setInfo.propertyID,
+            nodeID.offset, rhsVector, rhsPos);
         if (lhsVector != nullptr) {
             writeToPropertyVector(lhsVector, lhsPos, rhsVector, rhsPos);
         }

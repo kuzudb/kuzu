@@ -50,6 +50,9 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::CREATE_MACRO: {
         boundStatement = bindCreateMacro(statement);
     } break;
+    case StatementType::TRANSACTION: {
+        boundStatement = bindTransaction(statement);
+    } break;
     default:
         throw NotImplementedException("Binder::bind");
     }

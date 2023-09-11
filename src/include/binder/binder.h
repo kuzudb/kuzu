@@ -135,6 +135,9 @@ private:
     /*** bind create macro ***/
     std::unique_ptr<BoundStatement> bindCreateMacro(const parser::Statement& statement);
 
+    /*** bind transaction ***/
+    std::unique_ptr<BoundStatement> bindTransaction(const parser::Statement& statement);
+
     /*** bind explain ***/
     std::unique_ptr<BoundStatement> bindExplain(const parser::Statement& statement);
 

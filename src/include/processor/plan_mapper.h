@@ -94,6 +94,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapExplain(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapExpressionsScan(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCreateMacro(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapTransaction(planner::LogicalOperator* logicalOperator);
 
     std::unique_ptr<PhysicalOperator> createReader(common::CopyDescription* copyDesc,
         catalog::TableSchema* tableSchema, planner::Schema* outSchema,

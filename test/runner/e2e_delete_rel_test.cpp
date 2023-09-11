@@ -41,7 +41,7 @@ public:
     }
 
     void deleteRelsFromSmallList(bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         // We delete all person->person rels whose dst nodeID offset is between 10-20 (inclusive);
         for (auto i = 10; i <= 20; i++) {
             ASSERT_TRUE(conn->query(getDeleteKnowsRelQuery(
@@ -64,7 +64,7 @@ public:
     }
 
     void deleteAllRelsFromSmallList(bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         ASSERT_TRUE(conn->query("MATCH (:person)-[e:knows]->(:person) DELETE e")->isSuccess());
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
         std::vector<std::string> expectedResult;
@@ -79,7 +79,7 @@ public:
     }
 
     void deleteRelsFromLargeList(bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         // We delete all person->person rels whose dst nodeID offset is between 100-200 (inclusive);
         for (auto i = 100; i <= 200; i++) {
             ASSERT_TRUE(conn->query(getDeleteKnowsRelQuery("person", "person", 0 /* srcID */, i))
@@ -102,7 +102,7 @@ public:
     }
 
     void deleteAllRelsFromLargeList(bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         ASSERT_TRUE(conn->query("MATCH (:person)-[e:knows]->(:person) DELETE e")->isSuccess());
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
         std::vector<std::string> expectedResult;
@@ -117,7 +117,7 @@ public:
     }
 
     void deleteRelsFromUpdateStore(bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         // We insert 3 rels: person51->person0, person52->person0, person100->person10, and then
         // delete person51->person0, person100->person10.
         ASSERT_TRUE(
@@ -149,7 +149,7 @@ public:
     }
 
     void deleteMultipleRels(bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         // Delete all rels from person1->person[0-40].
         ASSERT_TRUE(conn->query("MATCH (p:person)-[e:knows]->(p1:person) WHERE p.ID = 1 AND p1.ID "
                                 "< 45 DELETE e;")
@@ -169,7 +169,7 @@ public:
     }
 
     void deleteAllInsertedRels(bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         // Insert rels for person1->person[51-60].
         for (auto i = 51; i < 60; i++) {
             ASSERT_TRUE(conn->query(getInsertKnowsRelQuery("person", "person", 1, i))->isSuccess());
@@ -188,7 +188,7 @@ public:
     }
 
     void deleteLargeNumRelsFromLargeList(bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         conn->query(
             "MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID >= 10 delete e;");
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
@@ -208,7 +208,7 @@ public:
     }
 
     void deleteRelsFromManyToOneTable(bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         conn->query(getDeleteTeachesRelQuery(11, 1));
         conn->query(getDeleteTeachesRelQuery(31, 3));
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
@@ -221,7 +221,7 @@ public:
     }
 
     void deleteRelsFromOneToOneTable(bool isCommit, TransactionTestType transactionTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         conn->query(getDeleteHasOwnerRelQuery(1, 51));
         conn->query(getDeleteHasOwnerRelQuery(3, 53));
         conn->query(getDeleteHasOwnerRelQuery(5, 55));
@@ -370,7 +370,7 @@ TEST_F(DeleteRelTest, DeleteLargeNumRelsFromLargeListRollbackRecovery) {
 }
 
 TEST_F(DeleteRelTest, DeleteRelsTwoHop) {
-    conn->beginWriteTransaction();
+    conn->query("BEGIN WRITE TRANSACTION");
     // This query will delete rels: person1->person0->person5 and person1->person1->person5
     ASSERT_TRUE(conn->query("MATCH (p:person)-[e:knows]->(p1:person)-[:knows]->(p2:person) WHERE "
                             "p.ID = 1 AND p2.ID = 5 DELETE e;")
@@ -384,7 +384,7 @@ TEST_F(DeleteRelTest, DeleteRelsTwoHop) {
 }
 
 TEST_F(DeleteRelTest, MixedDeleteAndCreateRels) {
-    conn->beginWriteTransaction();
+    conn->query("BEGIN WRITE TRANSACTION");
     // We firstly delete rel person0 -> person7|8. Then insert person0->person7 and delete it again.
     auto knowsRelQuery =
         "MATCH (p0:person)-[e:knows]->(p1:person) where p0.ID = 0 AND p1.ID <= 10 return e.length";

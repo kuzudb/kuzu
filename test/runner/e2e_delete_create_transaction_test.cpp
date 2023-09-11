@@ -20,7 +20,7 @@ public:
         if (transactionTestType == TransactionTestType::RECOVERY) {
             // This creates a new database/conn/readConn and should run the recovery algorithm
             initDBAndConnection();
-            conn->beginWriteTransaction();
+            conn->query("BEGIN WRITE TRANSACTION");
         }
     }
 
@@ -92,7 +92,7 @@ public:
 
     void testIndexScanAfterInsertion(bool isCommit, TransactionTestType trxTestType) {
         auto nodeIDsToInsert = std::vector<std::string>{"10003", "10005"};
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         createNodes(nodeIDsToInsert);
         validateNodesExistOrNot(conn.get(), nodeIDsToInsert, true /* exist */);
         validateNodesExistOrNot(readConn.get(), nodeIDsToInsert, false /* exist */);
@@ -106,7 +106,7 @@ public:
 
     void testIndexScanAfterDeletion(bool isCommit, TransactionTestType trxTestType) {
         auto nodeIDsToDelete = std::vector<std::string>{"10", "1400", "6000"};
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         deleteNodes(nodeIDsToDelete);
         validateNodesExistOrNot(conn.get(), nodeIDsToDelete, false /* exist */);
         validateNodesExistOrNot(readConn.get(), nodeIDsToDelete, true /* exist */);
@@ -119,7 +119,7 @@ public:
     }
 
     void testDeleteAllNodes(bool isCommit, TransactionTestType trxTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         conn->query("MATCH (a:person) DELETE a");
         ASSERT_EQ(getNumNodes(conn.get()), 0);
         ASSERT_EQ(getNumNodes(readConn.get()), 10000);
@@ -132,7 +132,7 @@ public:
     }
 
     void testSimpleInsertions(bool isCommit, TransactionTestType trxTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         createNodes(1000, false /* int pk */);
         ASSERT_EQ(getNumNodes(conn.get()), 11000);
         ASSERT_EQ(getNumNodes(readConn.get()), 10000);
@@ -145,7 +145,7 @@ public:
     }
 
     void testMixedDeleteAndInsert(bool isCommit, TransactionTestType trxTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         deleteNodes(std::vector<std::string>{"8000", "9000"});
         createNodes(std::vector<std::string>{"8000", "9000", "10001", "10002"});
         ASSERT_EQ(getNumNodes(readConn.get()), 10000);
@@ -189,7 +189,7 @@ public:
 
     void testIndexScanAfterInsertion(bool isCommit, TransactionTestType trxTestType) {
         auto nodeIDsToInsert = std::vector<std::string>{"'abcdefg'", "'huy23b287sfw33232'"};
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         createNodes(nodeIDsToInsert);
         validateNodesExistOrNot(conn.get(), nodeIDsToInsert, true /* exist */);
         validateNodesExistOrNot(readConn.get(), nodeIDsToInsert, false /* not exist */);
@@ -204,7 +204,7 @@ public:
     void testIndexScanAfterDeletion(bool isCommit, TransactionTestType trxTestType) {
         auto nodeIDsToDelete =
             std::vector<std::string>{"'999999999999'", "'1000000000000'", "'1000000000001'"};
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         deleteNodes(nodeIDsToDelete);
         validateNodesExistOrNot(conn.get(), nodeIDsToDelete, false /* not exist */);
         validateNodesExistOrNot(readConn.get(), nodeIDsToDelete, true /* exist */);
@@ -217,7 +217,7 @@ public:
     }
 
     void testDeleteAllNodes(bool isCommit, TransactionTestType trxTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         conn->query("MATCH (a:person) DELETE a");
         ASSERT_EQ(getNumNodes(conn.get()), 0);
         ASSERT_EQ(getNumNodes(readConn.get()), 10000);
@@ -230,7 +230,7 @@ public:
     }
 
     void testSimpleInsertions(bool isCommit, TransactionTestType trxTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         createNodes(1000, true /* string pk */);
         ASSERT_EQ(getNumNodes(conn.get()), 11000);
         ASSERT_EQ(getNumNodes(readConn.get()), 10000);
@@ -243,7 +243,7 @@ public:
     }
 
     void testMixedDeleteAndInsert(bool isCommit, TransactionTestType trxTestType) {
-        conn->beginWriteTransaction();
+        conn->query("BEGIN WRITE TRANSACTION");
         deleteNodes(std::vector<std::string>{"'999999995061'", "'1000000004126'"});
         createNodes(std::vector<std::string>{
             "'kmjiowe89njsn'", "'jdsknewkew'", "'jsnjwe893n2juihi3232'", "'jsnjwe893n2juihi3ew'"});

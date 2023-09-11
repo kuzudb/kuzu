@@ -30,6 +30,7 @@ public:
      * @return the prepared statement is allowed to be part of an active transaction.
      */
     KUZU_API bool allowActiveTransaction() const;
+    bool isTransactionStatement() const;
     /**
      * @return the query is prepared successfully or not.
      */

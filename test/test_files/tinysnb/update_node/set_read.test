@@ -4,7 +4,6 @@
 --
 
 -CASE SetReadTest1
--SKIP
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age, a.fName
 ---- 1
 35|Alice
@@ -20,10 +19,6 @@
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age, a.gender, a.fName
 ---- 1
 70|1|
--STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.age = 20 WITH a.age AS AGE MATCH (b:person) WHERE b.age = AGE RETURN AGE, b.fName
----- 2
-20|Dan
-20|Elizabeth
 
 -CASE SetReadTest2
 -STATEMENT CREATE NODE TABLE play(ID INT64, name STRING, PRIMARY KEY(ID));

@@ -17,23 +17,7 @@ void TestRunner::runTest(const std::vector<std::unique_ptr<TestStatement>>& stat
         spdlog::info("DEBUG LOG: {}", statement->logMessage);
         spdlog::info("QUERY: {}", statement->query);
         conn.setMaxNumThreadForExec(statement->numThreads);
-        switch (statement->transactionCmdType) {
-        case TestStatement::TransactionCmdType::BEGIN_WRITE_TRX:
-            conn.beginWriteTransaction();
-            break;
-        case TestStatement::TransactionCmdType::BEGIN_READ_TRX:
-            conn.beginReadOnlyTransaction();
-            break;
-        case TestStatement::TransactionCmdType::COMMIT:
-            conn.commit();
-            break;
-        case TestStatement::TransactionCmdType::ROLLBACK:
-            conn.rollback();
-            break;
-        default:
-            ASSERT_TRUE(testStatement(statement.get(), conn, databasePath));
-            break;
-        }
+        ASSERT_TRUE(testStatement(statement.get(), conn, databasePath));
     }
 }
 

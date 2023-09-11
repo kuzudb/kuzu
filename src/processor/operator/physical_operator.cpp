@@ -167,6 +167,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::TOP_K_SCAN: {
         return "TOP_K_SCAN";
     }
+    case PhysicalOperatorType::TRANSACTION: {
+        return "TRANSACTION";
+    }
     case PhysicalOperatorType::ORDER_BY: {
         return "ORDER_BY";
     }
@@ -243,7 +246,7 @@ void PhysicalOperator::initLocalState(ResultSet* resultSet_, ExecutionContext* c
     if (!isSource()) {
         children[0]->initLocalState(resultSet_, context);
     }
-    transaction = context->transaction;
+    transaction = context->clientContext->getActiveTransaction();
     resultSet = resultSet_;
     registerProfilingMetrics(context->profiler);
     initLocalStateInternal(resultSet_, context);
