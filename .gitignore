@@ -23,6 +23,8 @@ tools/python_api/test/test_PYTHON_CSV.csv
 
 # antlr4 jar
 scripts/antlr4/antlr4.jar
+# .antlr
+src/antlr4/.antlr/
 
 # macOS
 .DS_Store
