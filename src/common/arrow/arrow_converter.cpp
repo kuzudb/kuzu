@@ -14,6 +14,17 @@ static void releaseArrowSchema(ArrowSchema* schema) {
     delete holder;
 }
 
+// Copies the given string into the arrow holder's owned names and returns a pointer to the owned
+// version
+static const char* copyName(ArrowSchemaHolder& rootHolder, const std::string& name) {
+    auto length = name.length();
+    std::unique_ptr<char[]> namePtr = std::make_unique<char[]>(length + 1);
+    std::memcpy(namePtr.get(), name.c_str(), length);
+    namePtr[length] = '\0';
+    rootHolder.ownedTypeNames.push_back(std::move(namePtr));
+    return rootHolder.ownedTypeNames.back().get();
+}
+
 void ArrowConverter::initializeChild(ArrowSchema& child, const std::string& name) {
     //! Child is cleaned up by parent
     child.private_data = nullptr;
@@ -44,13 +55,7 @@ void ArrowConverter::setArrowFormatForStruct(
     child.children = &rootHolder.nestedChildrenPtr.back()[0];
     for (auto i = 0u; i < child.n_children; i++) {
         initializeChild(*child.children[i]);
-        auto structFieldName = childrenTypesInfo[i]->name;
-        auto structFieldNameLength = structFieldName.length();
-        std::unique_ptr<char[]> namePtr = std::make_unique<char[]>(structFieldNameLength + 1);
-        std::memcpy(namePtr.get(), structFieldName.c_str(), structFieldNameLength);
-        namePtr[structFieldNameLength] = '\0';
-        rootHolder.ownedTypeNames.push_back(std::move(namePtr));
-        child.children[i]->name = rootHolder.ownedTypeNames.back().get();
+        child.children[i]->name = copyName(rootHolder, childrenTypesInfo[i]->name);
         setArrowFormat(rootHolder, *child.children[i], *childrenTypesInfo[i]);
     }
 }
@@ -130,7 +135,8 @@ std::unique_ptr<ArrowSchema> ArrowConverter::toArrowSchema(
 
     for (auto i = 0u; i < columnCount; i++) {
         auto& child = rootHolder->children[i];
-        initializeChild(child, typesInfo[i]->name);
+        initializeChild(child);
+        child.name = copyName(*rootHolder, typesInfo[i]->name);
         setArrowFormat(*rootHolder, child, *typesInfo[i]);
     }
 
