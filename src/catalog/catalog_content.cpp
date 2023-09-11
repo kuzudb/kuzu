@@ -1,6 +1,9 @@
 #include "catalog/catalog_content.h"
 
+#include "catalog/node_table_schema.h"
+#include "catalog/rdf_graph_schema.h"
 #include "catalog/rel_table_group_schema.h"
+#include "catalog/rel_table_schema.h"
 #include "common/ser_deser.h"
 #include "common/string_utils.h"
 #include "storage/storage_utils.h"
@@ -55,8 +58,12 @@ table_id_t CatalogContent::addRelTableSchema(const BoundCreateTableInfo& info) {
     auto properties = Property::copy(extraInfo->properties);
     addRelInternalIDProperty(properties);
     assignPropertyIDAndTableID(properties, tableID);
-    getNodeTableSchema(extraInfo->srcTableID)->addFwdRelTableID(tableID);
-    getNodeTableSchema(extraInfo->dstTableID)->addBwdRelTableID(tableID);
+    auto srcNodeTableSchema =
+        reinterpret_cast<NodeTableSchema*>(getTableSchema(extraInfo->srcTableID));
+    auto dstNodeTableSchema =
+        reinterpret_cast<NodeTableSchema*>(getTableSchema(extraInfo->dstTableID));
+    srcNodeTableSchema->addFwdRelTableID(tableID);
+    dstNodeTableSchema->addBwdRelTableID(tableID);
     auto relTableSchema = std::make_unique<RelTableSchema>(info.tableName, tableID,
         extraInfo->relMultiplicity, std::move(properties), extraInfo->srcTableID,
         extraInfo->dstTableID, extraInfo->srcPkDataType->copy(), extraInfo->dstPkDataType->copy());
@@ -136,27 +143,6 @@ Property* CatalogContent::getRelProperty(
         }
     }
     throw CatalogException("Cannot find rel property " + propertyName + ".");
-}
-
-std::vector<NodeTableSchema*> CatalogContent::getNodeTableSchemas() const {
-    std::vector<NodeTableSchema*> nodeTableSchemas;
-    for (auto& tableSchema : tableSchemas) {
-        if (tableSchema.second->getTableType() == TableType::NODE) {
-            nodeTableSchemas.push_back(
-                reinterpret_cast<NodeTableSchema*>(tableSchema.second.get()));
-        }
-    }
-    return nodeTableSchemas;
-}
-
-std::vector<RelTableSchema*> CatalogContent::getRelTableSchemas() const {
-    std::vector<RelTableSchema*> relTableSchemas;
-    for (auto& tableSchema : tableSchemas) {
-        if (tableSchema.second->getTableType() == TableType::REL) {
-            relTableSchemas.push_back(reinterpret_cast<RelTableSchema*>(tableSchema.second.get()));
-        }
-    }
-    return relTableSchemas;
 }
 
 void CatalogContent::dropTableSchema(table_id_t tableID) {
@@ -282,11 +268,21 @@ void CatalogContent::registerBuiltInFunctions() {
     builtInTableFunctions = std::make_unique<function::BuiltInTableFunctions>();
 }
 
-std::vector<table_id_t> CatalogContent::getTableIDsByType(TableType tableType) const {
+std::vector<TableSchema*> CatalogContent::getTableSchemas(common::TableType tableType) const {
+    std::vector<TableSchema*> result;
+    for (auto& [id, schema] : tableSchemas) {
+        if (schema->getTableType() == tableType) {
+            result.push_back(schema.get());
+        }
+    }
+    return result;
+}
+
+std::vector<table_id_t> CatalogContent::getTableIDs(TableType tableType) const {
     std::vector<table_id_t> tableIDs;
-    for (auto& tableSchema : tableSchemas) {
-        if (tableSchema.second->getTableType() == tableType) {
-            tableIDs.push_back(tableSchema.first);
+    for (auto& [id, schema] : tableSchemas) {
+        if (schema->getTableType() == tableType) {
+            tableIDs.push_back(id);
         }
     }
     return tableIDs;

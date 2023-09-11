@@ -32,9 +32,10 @@ public:
     // nodeStore when checkpointing and not in recovery mode.
     inline void createNodeTable(
         common::table_id_t tableID, BufferManager* bufferManager, catalog::Catalog* catalog) {
-        nodeTables[tableID] =
-            std::make_unique<NodeTable>(dataFH, metadataFH, &nodesStatisticsAndDeletedIDs,
-                *bufferManager, wal, catalog->getReadOnlyVersion()->getNodeTableSchema(tableID));
+        nodeTables[tableID] = std::make_unique<NodeTable>(dataFH, metadataFH,
+            &nodesStatisticsAndDeletedIDs, *bufferManager, wal,
+            reinterpret_cast<catalog::NodeTableSchema*>(
+                catalog->getReadOnlyVersion()->getTableSchema(tableID)));
     }
     inline void removeNodeTable(common::table_id_t tableID) {
         nodeTables.erase(tableID);

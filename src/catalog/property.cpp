@@ -46,6 +46,7 @@ std::unique_ptr<Property> Property::deserialize(FileInfo* fileInfo, uint64_t& of
 std::vector<std::unique_ptr<Property>> Property::copy(
     const std::vector<std::unique_ptr<Property>>& properties) {
     std::vector<std::unique_ptr<Property>> result;
+    result.reserve(properties.size());
     for (auto& property : properties) {
         result.push_back(property->copy());
     }

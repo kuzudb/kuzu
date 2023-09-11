@@ -3,6 +3,9 @@
 #include "catalog/table_schema.h"
 
 namespace kuzu {
+namespace catalog {
+enum class RelMultiplicity : uint8_t;
+}
 namespace binder {
 
 struct BoundExtraCreateTableInfo {

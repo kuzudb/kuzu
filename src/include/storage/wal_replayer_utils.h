@@ -9,6 +9,11 @@
 #include "storage/store/node_column.h"
 
 namespace kuzu {
+namespace catalog {
+class NodeTableSchema;
+class RelTableSchema;
+} // namespace catalog
+
 namespace storage {
 
 class WALReplayerUtils {

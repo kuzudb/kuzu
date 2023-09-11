@@ -2,6 +2,7 @@
 
 #include "binder/bound_statement_rewriter.h"
 #include "binder/expression/variable_expression.h"
+#include "catalog/rel_table_schema.h"
 #include "common/string_utils.h"
 
 using namespace kuzu::common;
@@ -180,7 +181,8 @@ bool Binder::validateStringParsingOptionName(std::string& parsingOptionName) {
 }
 
 void Binder::validateNodeTableHasNoEdge(const Catalog& _catalog, table_id_t tableID) {
-    for (auto& relTableSchema : _catalog.getReadOnlyVersion()->getRelTableSchemas()) {
+    for (auto& tableSchema : _catalog.getReadOnlyVersion()->getRelTableSchemas()) {
+        auto relTableSchema = reinterpret_cast<RelTableSchema*>(tableSchema);
         if (relTableSchema->isSrcOrDstTable(tableID)) {
             throw BinderException(StringUtils::string_format(
                 "Cannot delete a node table with edges. It is on the edges of rel: {}.",

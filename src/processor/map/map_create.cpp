@@ -33,7 +33,8 @@ std::unique_ptr<NodeInsertExecutor> PlanMapper::getNodeInsertExecutor(
     auto table = nodesStore->getNodeTable(nodeTableID);
     std::vector<RelTable*> relTablesToInit;
     for (auto& schema : catalog->getReadOnlyVersion()->getRelTableSchemas()) {
-        if (schema->isSrcOrDstTable(nodeTableID)) {
+        auto relTableSchema = reinterpret_cast<RelTableSchema*>(schema);
+        if (relTableSchema->isSrcOrDstTable(nodeTableID)) {
             relTablesToInit.push_back(relsStore->getRelTable(schema->tableID));
         }
     }

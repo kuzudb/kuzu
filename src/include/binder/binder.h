@@ -102,7 +102,7 @@ private:
     std::unique_ptr<BoundStatement> bindRenameProperty(const parser::Statement& statement);
 
     common::property_id_t bindPropertyName(
-        catalog::NodeTableSchema::TableSchema* tableSchema, const std::string& propertyName);
+        catalog::TableSchema* tableSchema, const std::string& propertyName);
 
     /*** bind copy from/to ***/
     static bool bindContainsSerial(

@@ -3,6 +3,7 @@
 #include <map>
 #include <set>
 
+#include "catalog/node_table_schema.h"
 #include "storage/store/rels_store.h"
 
 namespace kuzu {
