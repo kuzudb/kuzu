@@ -1,6 +1,7 @@
 #include "processor/operator/ddl/create_rel_table_group.h"
 
 #include "catalog/rel_table_group_schema.h"
+#include "catalog/rel_table_schema.h"
 #include "common/string_utils.h"
 
 using namespace kuzu::common;

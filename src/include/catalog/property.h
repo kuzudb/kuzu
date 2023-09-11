@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/file_utils.h"
 #include "common/types/types.h"
 
 namespace kuzu {

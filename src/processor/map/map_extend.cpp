@@ -9,6 +9,7 @@ using namespace kuzu::binder;
 using namespace kuzu::common;
 using namespace kuzu::planner;
 using namespace kuzu::storage;
+using namespace kuzu::catalog;
 
 namespace kuzu {
 namespace processor {
@@ -36,7 +37,8 @@ static std::unique_ptr<RelTableCollectionScanner> populateRelTableCollectionScan
     const expression_vector& properties, RelsStore& relsStore, const catalog::Catalog& catalog) {
     std::vector<std::unique_ptr<RelTableScanInfo>> scanInfos;
     for (auto relTableID : rel.getTableIDs()) {
-        auto relTableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(relTableID);
+        auto relTableSchema = reinterpret_cast<RelTableSchema*>(
+            catalog.getReadOnlyVersion()->getTableSchema(relTableID));
         switch (extendDirection) {
         case ExtendDirection::FWD: {
             if (relTableSchema->getBoundTableID(RelDataDirection::FWD) == boundNodeTableID) {

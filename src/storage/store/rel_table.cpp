@@ -228,7 +228,8 @@ DirectedRelTableData::getListsUpdateIteratorsForDirection() {
 RelTable::RelTable(
     const Catalog& catalog, table_id_t tableID, MemoryManager& memoryManager, WAL* wal)
     : tableID{tableID}, wal{wal} {
-    auto tableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(tableID);
+    auto tableSchema =
+        reinterpret_cast<RelTableSchema*>(catalog.getReadOnlyVersion()->getTableSchema(tableID));
     listsUpdatesStore = std::make_unique<ListsUpdatesStore>(memoryManager, *tableSchema);
     fwdRelTableData =
         std::make_unique<DirectedRelTableData>(tableID, tableSchema->getBoundTableID(FWD),

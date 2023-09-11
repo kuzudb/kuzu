@@ -1,4 +1,5 @@
 #include "binder/expression_visitor.h"
+#include "catalog/rel_table_schema.h"
 #include "planner/join_order/cost_model.h"
 #include "planner/logical_plan/extend/logical_extend.h"
 #include "planner/logical_plan/extend/logical_recursive_extend.h"
@@ -6,6 +7,7 @@
 #include "planner/query_planner.h"
 
 using namespace kuzu::common;
+using namespace kuzu::catalog;
 
 namespace kuzu {
 namespace planner {
@@ -22,15 +24,17 @@ static bool extendHasAtMostOneNbrGuarantee(RelExpression& rel, NodeExpression& b
         return false;
     }
     auto relDirection = ExtendDirectionUtils::getRelDataDirection(direction);
-    return catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
-        rel.getSingleTableID(), relDirection);
+    auto relTableSchema = reinterpret_cast<RelTableSchema*>(
+        catalog.getReadOnlyVersion()->getTableSchema(rel.getSingleTableID()));
+    return relTableSchema->isSingleMultiplicityInDirection(relDirection);
 }
 
 static std::unordered_set<table_id_t> getBoundNodeTableIDSet(
     const RelExpression& rel, ExtendDirection extendDirection, const catalog::Catalog& catalog) {
     std::unordered_set<table_id_t> result;
     for (auto tableID : rel.getTableIDs()) {
-        auto tableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(tableID);
+        auto tableSchema = reinterpret_cast<RelTableSchema*>(
+            catalog.getReadOnlyVersion()->getTableSchema(tableID));
         switch (extendDirection) {
         case ExtendDirection::FWD: {
             result.insert(tableSchema->getBoundTableID(RelDataDirection::FWD));
@@ -53,7 +57,8 @@ static std::unordered_set<table_id_t> getNbrNodeTableIDSet(
     const RelExpression& rel, ExtendDirection extendDirection, const catalog::Catalog& catalog) {
     std::unordered_set<table_id_t> result;
     for (auto tableID : rel.getTableIDs()) {
-        auto tableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(tableID);
+        auto tableSchema = reinterpret_cast<RelTableSchema*>(
+            catalog.getReadOnlyVersion()->getTableSchema(tableID));
         switch (extendDirection) {
         case ExtendDirection::FWD: {
             result.insert(tableSchema->getNbrTableID(RelDataDirection::FWD));

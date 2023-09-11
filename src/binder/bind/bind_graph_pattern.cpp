@@ -3,6 +3,8 @@
 #include "binder/binder.h"
 #include "binder/expression/path_expression.h"
 #include "binder/expression/property_expression.h"
+#include "catalog/node_table_schema.h"
+#include "catalog/rel_table_schema.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -121,7 +123,8 @@ static std::vector<table_id_t> pruneRelTableIDs(const Catalog& catalog_,
     auto dstNodeTableIDs = dstNode.getTableIDsSet();
     std::vector<table_id_t> result;
     for (auto& relTableID : relTableIDs) {
-        auto relTableSchema = catalog_.getReadOnlyVersion()->getRelTableSchema(relTableID);
+        auto relTableSchema = reinterpret_cast<RelTableSchema*>(
+            catalog_.getReadOnlyVersion()->getTableSchema(relTableID));
         if (!srcNodeTableIDs.contains(relTableSchema->getSrcTableID()) ||
             !dstNodeTableIDs.contains(relTableSchema->getDstTableID())) {
             continue;
@@ -278,7 +281,8 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType) {
     std::unordered_set<table_id_t> recursiveNodeTableIDs;
     for (auto relTableID : tableIDs) {
-        auto relTableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(relTableID);
+        auto relTableSchema = reinterpret_cast<RelTableSchema*>(
+            catalog.getReadOnlyVersion()->getTableSchema(relTableID));
         recursiveNodeTableIDs.insert(relTableSchema->getSrcTableID());
         recursiveNodeTableIDs.insert(relTableSchema->getDstTableID());
     }
@@ -344,7 +348,8 @@ std::pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
 void Binder::bindQueryRelProperties(RelExpression& rel) {
     std::vector<RelTableSchema*> tableSchemas;
     for (auto tableID : rel.getTableIDs()) {
-        tableSchemas.push_back(catalog.getReadOnlyVersion()->getRelTableSchema(tableID));
+        tableSchemas.push_back(reinterpret_cast<RelTableSchema*>(
+            catalog.getReadOnlyVersion()->getTableSchema(tableID)));
     }
     for (auto& [propertyName, propertySchemas] :
         getRelPropertyNameAndPropertiesPairs(tableSchemas)) {
@@ -416,7 +421,8 @@ std::shared_ptr<NodeExpression> Binder::createQueryNode(
 void Binder::bindQueryNodeProperties(NodeExpression& node) {
     std::vector<NodeTableSchema*> tableSchemas;
     for (auto tableID : node.getTableIDs()) {
-        tableSchemas.push_back(catalog.getReadOnlyVersion()->getNodeTableSchema(tableID));
+        tableSchemas.push_back(reinterpret_cast<NodeTableSchema*>(
+            catalog.getReadOnlyVersion()->getTableSchema(tableID)));
     }
     for (auto& [propertyName, propertySchemas] :
         getNodePropertyNameAndPropertiesPairs(tableSchemas)) {

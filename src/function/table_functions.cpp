@@ -1,6 +1,7 @@
 #include "function/table_functions.h"
 
 #include "catalog/catalog.h"
+#include "catalog/node_table_schema.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

@@ -147,7 +147,7 @@ public:
         conn->query("CREATE NODE TABLE university(address STRING, PRIMARY KEY(address));");
         auto tableSchema =
             catalog->getReadOnlyVersion()
-                ->getNodeTableSchema(catalog->getReadOnlyVersion()->getTableID("university"))
+                ->getTableSchema(catalog->getReadOnlyVersion()->getTableID("university"))
                 ->copy();
         auto nodeTableSchema = reinterpret_cast<NodeTableSchema*>(tableSchema.get());
         executeQueryWithoutCommit("DROP TABLE university");

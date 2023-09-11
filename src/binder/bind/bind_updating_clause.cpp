@@ -4,6 +4,7 @@
 #include "binder/query/updating_clause/bound_delete_clause.h"
 #include "binder/query/updating_clause/bound_merge_clause.h"
 #include "binder/query/updating_clause/bound_set_clause.h"
+#include "catalog/node_table_schema.h"
 #include "parser/query/updating_clause/create_clause.h"
 #include "parser/query/updating_clause/delete_clause.h"
 #include "parser/query/updating_clause/merge_clause.h"
@@ -11,6 +12,7 @@
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
+using namespace kuzu::catalog;
 
 namespace kuzu {
 namespace binder {
@@ -124,7 +126,8 @@ std::unique_ptr<BoundCreateInfo> Binder::bindCreateNodeInfo(
             "Create node " + node->toString() + " with multiple node labels is not supported.");
     }
     auto nodeTableID = node->getSingleTableID();
-    auto nodeTableSchema = catalog.getReadOnlyVersion()->getNodeTableSchema(nodeTableID);
+    auto nodeTableSchema = reinterpret_cast<NodeTableSchema*>(
+        catalog.getReadOnlyVersion()->getTableSchema(nodeTableID));
     auto primaryKey = nodeTableSchema->getPrimaryKey();
     std::shared_ptr<Expression> primaryKeyExpression;
     std::vector<expression_pair> setItems;

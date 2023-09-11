@@ -1,5 +1,6 @@
 #include "processor/operator/ddl/create_rdf_graph.h"
 
+#include "catalog/rdf_graph_schema.h"
 #include "common/string_utils.h"
 #include "storage/storage_manager.h"
 

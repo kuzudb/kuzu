@@ -1,5 +1,6 @@
 #include "processor/operator/ddl/create_node_table.h"
 
+#include "catalog/node_table_schema.h"
 #include "common/string_utils.h"
 #include "storage/storage_manager.h"
 
@@ -17,7 +18,7 @@ void CreateNodeTable::executeDDLInternal() {
     }
     auto newTableID = catalog->addNodeTableSchema(*info);
     auto newNodeTableSchema =
-        (catalog::NodeTableSchema*)catalog->getWriteVersion()->getNodeTableSchema(newTableID);
+        reinterpret_cast<NodeTableSchema*>(catalog->getWriteVersion()->getTableSchema(newTableID));
     nodesStatistics->addNodeStatisticsAndDeletedIDs(newNodeTableSchema);
 }
 

@@ -1,47 +1,18 @@
 #include "catalog/table_schema.h"
 
+#include "catalog/node_table_schema.h"
+#include "catalog/rdf_graph_schema.h"
 #include "catalog/rel_table_group_schema.h"
+#include "catalog/rel_table_schema.h"
+#include "common/constants.h"
 #include "common/exception.h"
 #include "common/ser_deser.h"
 #include "common/string_utils.h"
 
 using namespace kuzu::common;
-using namespace kuzu::storage;
 
 namespace kuzu {
 namespace catalog {
-
-RelMultiplicity getRelMultiplicityFromString(const std::string& relMultiplicityString) {
-    if ("ONE_ONE" == relMultiplicityString) {
-        return RelMultiplicity::ONE_ONE;
-    } else if ("MANY_ONE" == relMultiplicityString) {
-        return RelMultiplicity::MANY_ONE;
-    } else if ("ONE_MANY" == relMultiplicityString) {
-        return RelMultiplicity::ONE_MANY;
-    } else if ("MANY_MANY" == relMultiplicityString) {
-        return RelMultiplicity::MANY_MANY;
-    }
-    throw CatalogException("Invalid relMultiplicity string '" + relMultiplicityString + "'.");
-}
-
-std::string getRelMultiplicityAsString(RelMultiplicity relMultiplicity) {
-    switch (relMultiplicity) {
-    case RelMultiplicity::MANY_MANY: {
-        return "MANY_MANY";
-    }
-    case RelMultiplicity::MANY_ONE: {
-        return "MANY_ONE";
-    }
-    case RelMultiplicity::ONE_ONE: {
-        return "ONE_ONE";
-    }
-    case RelMultiplicity::ONE_MANY: {
-        return "ONE_MANY";
-    }
-    default:
-        throw CatalogException("Cannot convert rel multiplicity to std::string.");
-    }
-}
 
 bool TableSchema::isReservedPropertyName(const std::string& propertyName) {
     return StringUtils::getUpper(propertyName) == InternalKeyword::ID;
@@ -141,58 +112,6 @@ std::unique_ptr<TableSchema> TableSchema::deserialize(FileInfo* fileInfo, uint64
     result->properties = std::move(properties);
     result->nextPropertyID = nextPropertyID;
     return result;
-}
-
-void NodeTableSchema::serializeInternal(FileInfo* fileInfo, uint64_t& offset) {
-    SerDeser::serializeValue(primaryKeyPropertyID, fileInfo, offset);
-    SerDeser::serializeUnorderedSet(fwdRelTableIDSet, fileInfo, offset);
-    SerDeser::serializeUnorderedSet(bwdRelTableIDSet, fileInfo, offset);
-}
-
-std::unique_ptr<NodeTableSchema> NodeTableSchema::deserialize(
-    FileInfo* fileInfo, uint64_t& offset) {
-    property_id_t primaryKeyPropertyID;
-    std::unordered_set<table_id_t> fwdRelTableIDSet;
-    std::unordered_set<table_id_t> bwdRelTableIDSet;
-    SerDeser::deserializeValue(primaryKeyPropertyID, fileInfo, offset);
-    SerDeser::deserializeUnorderedSet(fwdRelTableIDSet, fileInfo, offset);
-    SerDeser::deserializeUnorderedSet(bwdRelTableIDSet, fileInfo, offset);
-    return std::make_unique<NodeTableSchema>(
-        primaryKeyPropertyID, fwdRelTableIDSet, bwdRelTableIDSet);
-}
-
-void RelTableSchema::serializeInternal(FileInfo* fileInfo, uint64_t& offset) {
-    SerDeser::serializeValue(relMultiplicity, fileInfo, offset);
-    SerDeser::serializeValue(srcTableID, fileInfo, offset);
-    SerDeser::serializeValue(dstTableID, fileInfo, offset);
-    srcPKDataType->serialize(fileInfo, offset);
-    dstPKDataType->serialize(fileInfo, offset);
-}
-
-std::unique_ptr<RelTableSchema> RelTableSchema::deserialize(FileInfo* fileInfo, uint64_t& offset) {
-    RelMultiplicity relMultiplicity;
-    table_id_t srcTableID;
-    table_id_t dstTableID;
-    SerDeser::deserializeValue(relMultiplicity, fileInfo, offset);
-    SerDeser::deserializeValue(srcTableID, fileInfo, offset);
-    SerDeser::deserializeValue(dstTableID, fileInfo, offset);
-    auto srcPKDataType = LogicalType::deserialize(fileInfo, offset);
-    auto dstPKDataType = LogicalType::deserialize(fileInfo, offset);
-    return std::make_unique<RelTableSchema>(relMultiplicity, srcTableID, dstTableID,
-        std::move(srcPKDataType), std::move(dstPKDataType));
-}
-
-void RdfGraphSchema::serializeInternal(FileInfo* fileInfo, uint64_t& offset) {
-    SerDeser::serializeValue(nodeTableID, fileInfo, offset);
-    SerDeser::serializeValue(relTableID, fileInfo, offset);
-}
-
-std::unique_ptr<RdfGraphSchema> RdfGraphSchema::deserialize(FileInfo* fileInfo, uint64_t& offset) {
-    table_id_t nodeTableID;
-    table_id_t relTableID;
-    SerDeser::deserializeValue(nodeTableID, fileInfo, offset);
-    SerDeser::deserializeValue(relTableID, fileInfo, offset);
-    return std::make_unique<RdfGraphSchema>(nodeTableID, relTableID);
 }
 
 } // namespace catalog

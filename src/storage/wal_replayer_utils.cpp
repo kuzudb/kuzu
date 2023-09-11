@@ -1,5 +1,7 @@
 #include "storage/wal_replayer_utils.h"
 
+#include "catalog/node_table_schema.h"
+#include "catalog/rel_table_schema.h"
 #include "storage/in_mem_storage_structure/in_mem_column.h"
 #include "storage/index/hash_index_builder.h"
 

@@ -2,20 +2,12 @@
 
 #include <memory>
 
-#include "catalog/catalog_content.h"
-#include "common/assert.h"
-#include "common/exception.h"
-#include "common/file_utils.h"
-#include "common/utils.h"
-#include "function/aggregate/built_in_aggregate_functions.h"
-#include "function/built_in_table_functions.h"
-#include "function/built_in_vector_functions.h"
-#include "function/scalar_macro_function.h"
-#include "storage/storage_info.h"
-#include "storage/wal/wal.h"
-#include "transaction/transaction.h"
+#include "catalog_content.h"
 
 namespace kuzu {
+namespace transaction {
+enum class TransactionAction : uint8_t;
+}
 namespace catalog {
 
 class Catalog {
@@ -74,7 +66,7 @@ public:
     void renameProperty(
         common::table_id_t tableID, common::property_id_t propertyID, const std::string& newName);
 
-    std::unordered_set<RelTableSchema*> getAllRelTableSchemasContainBoundTable(
+    std::unordered_set<TableSchema*> getAllRelTableSchemasContainBoundTable(
         common::table_id_t boundTableID) const;
 
     void addVectorFunction(std::string name, function::vector_function_definitions definitions);

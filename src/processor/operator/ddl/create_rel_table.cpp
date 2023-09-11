@@ -1,5 +1,6 @@
 #include "processor/operator/ddl/create_rel_table.h"
 
+#include "catalog/rel_table_schema.h"
 #include "common/string_utils.h"
 
 using namespace kuzu::catalog;
@@ -11,8 +12,8 @@ namespace processor {
 
 void CreateRelTable::executeDDLInternal() {
     auto newRelTableID = catalog->addRelTableSchema(*info);
-    auto newRelTableSchema =
-        (RelTableSchema*)catalog->getWriteVersion()->getTableSchema(newRelTableID);
+    auto newRelTableSchema = reinterpret_cast<RelTableSchema*>(
+        catalog->getWriteVersion()->getTableSchema(newRelTableID));
     relsStatistics->addTableStatistic(newRelTableSchema);
 }
 

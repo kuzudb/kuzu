@@ -1,5 +1,6 @@
 #pragma once
 
+#include "catalog/rel_table_schema.h"
 #include "processor/data_pos.h"
 #include "processor/operator/sink.h"
 #include "storage/in_mem_storage_structure/in_mem_column.h"

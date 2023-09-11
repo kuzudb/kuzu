@@ -2,7 +2,7 @@
 
 #include <map>
 
-#include "catalog/table_schema.h"
+#include "catalog/rel_table_schema.h"
 #include "common/data_chunk/data_chunk.h"
 #include "common/rel_direction.h"
 #include "common/types/types.h"

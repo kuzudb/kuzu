@@ -9,6 +9,10 @@
 #include "storage/wal/wal.h"
 
 namespace kuzu {
+namespace catalog {
+class NodeTableSchema;
+}
+
 namespace storage {
 
 class NodeTable {

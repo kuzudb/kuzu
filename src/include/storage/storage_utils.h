@@ -312,10 +312,6 @@ public:
     static std::string getListFName(
         const std::string& directory, StorageStructureID storageStructureID);
 
-    static void createFileForRelPropertyWithDefaultVal(catalog::RelTableSchema* tableSchema,
-        const catalog::Property& property, uint8_t* defaultVal, bool isDefaultValNull,
-        StorageManager& storageManager);
-
     static void initializeListsHeaders(common::table_id_t relTableID, uint64_t numNodesInTable,
         const std::string& directory, common::RelDataDirection relDirection);
 
@@ -324,16 +320,6 @@ public:
 private:
     static std::string appendSuffixOrInsertBeforeWALSuffix(
         std::string fileName, std::string suffix);
-
-    static void createFileForRelColumnPropertyWithDefaultVal(common::table_id_t relTableID,
-        common::table_id_t boundTableID, common::RelDataDirection direction,
-        const catalog::Property& property, uint8_t* defaultVal, bool isDefaultValNull,
-        StorageManager& storageManager);
-
-    static void createFileForRelListsPropertyWithDefaultVal(common::table_id_t relTableID,
-        common::table_id_t boundTableID, common::RelDataDirection direction,
-        const catalog::Property& property, uint8_t* defaultVal, bool isDefaultValNull,
-        StorageManager& storageManager);
 };
 
 } // namespace storage

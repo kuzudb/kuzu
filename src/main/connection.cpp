@@ -2,6 +2,7 @@
 
 #include "binder/binder.h"
 #include "binder/visitor/statement_read_write_analyzer.h"
+#include "catalog/node_table_schema.h"
 #include "main/database.h"
 #include "main/plan_printer.h"
 #include "optimizer/optimizer.h"
@@ -15,6 +16,7 @@
 using namespace kuzu::parser;
 using namespace kuzu::binder;
 using namespace kuzu::common;
+using namespace kuzu::catalog;
 using namespace kuzu::planner;
 using namespace kuzu::processor;
 using namespace kuzu::transaction;
@@ -173,17 +175,16 @@ std::string Connection::getRelTableNames() {
 
 std::string Connection::getNodePropertyNames(const std::string& tableName) {
     lock_t lck{mtx};
-    auto catalog = database->catalog.get();
-    if (!catalog->getReadOnlyVersion()->containNodeTable(tableName)) {
+    auto catalogContent = database->catalog->getReadOnlyVersion();
+    if (!catalogContent->containNodeTable(tableName)) {
         throw RuntimeException("Cannot find node table " + tableName);
     }
     std::string result = tableName + " properties: \n";
-    auto tableID = catalog->getReadOnlyVersion()->getTableID(tableName);
-    auto primaryKeyPropertyID = catalog->getReadOnlyVersion()
-                                    ->getNodeTableSchema(tableID)
-                                    ->getPrimaryKey()
-                                    ->getPropertyID();
-    for (auto property : catalog->getReadOnlyVersion()->getProperties(tableID)) {
+    auto tableID = catalogContent->getTableID(tableName);
+    auto nodeTableSchema =
+        reinterpret_cast<catalog::NodeTableSchema*>(catalogContent->getTableSchema(tableID));
+    auto primaryKeyPropertyID = nodeTableSchema->getPrimaryKey()->getPropertyID();
+    for (auto property : catalogContent->getProperties(tableID)) {
         result += "\t" + property->getName() + " " +
                   LogicalTypeUtils::dataTypeToString(*property->getDataType());
         result += property->getPropertyID() == primaryKeyPropertyID ? "(PRIMARY KEY)\n" : "\n";
@@ -193,21 +194,21 @@ std::string Connection::getNodePropertyNames(const std::string& tableName) {
 
 std::string Connection::getRelPropertyNames(const std::string& relTableName) {
     lock_t lck{mtx};
-    auto catalog = database->catalog.get();
-    if (!catalog->getReadOnlyVersion()->containRelTable(relTableName)) {
+    auto catalogContent = database->catalog->getReadOnlyVersion();
+    if (!catalogContent->containRelTable(relTableName)) {
         throw RuntimeException("Cannot find rel table " + relTableName);
     }
-    auto relTableID = catalog->getReadOnlyVersion()->getTableID(relTableName);
-    auto srcTableID =
-        catalog->getReadOnlyVersion()->getRelTableSchema(relTableID)->getBoundTableID(FWD);
-    auto srcTableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(srcTableID);
-    auto dstTableID =
-        catalog->getReadOnlyVersion()->getRelTableSchema(relTableID)->getBoundTableID(BWD);
-    auto dstTableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(dstTableID);
+    auto relTableID = catalogContent->getTableID(relTableName);
+    auto relTableSchema =
+        reinterpret_cast<RelTableSchema*>(catalogContent->getTableSchema(relTableID));
+    auto srcTableID = relTableSchema->getBoundTableID(FWD);
+    auto srcTableSchema = catalogContent->getTableSchema(srcTableID);
+    auto dstTableID = relTableSchema->getBoundTableID(BWD);
+    auto dstTableSchema = catalogContent->getTableSchema(dstTableID);
     std::string result = relTableName + " src node: " + srcTableSchema->tableName + "\n";
     result += relTableName + " dst node: " + dstTableSchema->tableName + "\n";
     result += relTableName + " properties: \n";
-    for (auto property : catalog->getReadOnlyVersion()->getProperties(relTableID)) {
+    for (auto property : catalogContent->getProperties(relTableID)) {
         if (catalog::TableSchema::isReservedPropertyName(property->getName())) {
             continue;
         }
