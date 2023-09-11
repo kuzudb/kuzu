@@ -225,7 +225,7 @@ oC_SingleQuery
 oC_SinglePartQuery
     : ( oC_ReadingClause SP? )* oC_Return
         | ( ( oC_ReadingClause SP? )* oC_UpdatingClause ( SP? oC_UpdatingClause )* ( SP? oC_Return )? )
-        | ( oC_ReadingClause SP? )* { notifyQueryNotConcludeWithReturn($ctx->start); }
+        | ( oC_ReadingClause SP? )+ { notifyQueryNotConcludeWithReturn($ctx->start); }
         ;
 
 oC_MultiPartQuery
@@ -722,9 +722,7 @@ WHITESPACE
         ;
 
 Comment
-    : ( '/*' ( Comment_1 | ( '*' Comment_2 ) )* '*/' )
-        | ( '--' ( Comment_3 )* CR? ( LF | EOF ) )
-        ;
+    : ( '/*' ( Comment_1 | ( '*' Comment_2 ) )* '*/' ) ;
 
 oC_LeftArrowHead
     : '<'

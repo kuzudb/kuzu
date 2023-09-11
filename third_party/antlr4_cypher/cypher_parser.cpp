@@ -102,15 +102,10 @@ CypherParser::OC_CypherContext* CypherParser::oC_Cypher() {
     setState(265);
     _errHandler->sync(this);
 
-    switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 2, _ctx)) {
-    case 1: {
+    _la = _input->LA(1);
+    if (_la == CypherParser::SP) {
       setState(264);
       match(CypherParser::SP);
-      break;
-    }
-
-    default:
-      break;
     }
 
     setState(267);
@@ -3662,15 +3657,10 @@ CypherParser::OC_RegularQueryContext* CypherParser::oC_RegularQuery() {
                 setState(827);
                 _errHandler->sync(this);
 
-                switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 97, _ctx)) {
-                case 1: {
+                _la = _input->LA(1);
+                if (_la == CypherParser::SP) {
                   setState(826);
                   match(CypherParser::SP);
-                  break;
-                }
-
-                default:
-                  break;
                 }
                 break;
               }
@@ -3737,6 +3727,7 @@ size_t CypherParser::OC_UnionContext::getRuleIndex() const {
 CypherParser::OC_UnionContext* CypherParser::oC_Union() {
   OC_UnionContext *_localctx = _tracker.createInstance<OC_UnionContext>(_ctx, getState());
   enterRule(_localctx, 74, CypherParser::RuleOC_Union);
+  size_t _la = 0;
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -3760,15 +3751,10 @@ CypherParser::OC_UnionContext* CypherParser::oC_Union() {
       setState(842);
       _errHandler->sync(this);
 
-      switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 100, _ctx)) {
-      case 1: {
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
         setState(841);
         match(CypherParser::SP);
-        break;
-      }
-
-      default:
-        break;
       }
       setState(844);
       oC_SingleQuery();
@@ -3782,15 +3768,10 @@ CypherParser::OC_UnionContext* CypherParser::oC_Union() {
       setState(847);
       _errHandler->sync(this);
 
-      switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 101, _ctx)) {
-      case 1: {
+      _la = _input->LA(1);
+      if (_la == CypherParser::SP) {
         setState(846);
         match(CypherParser::SP);
-        break;
-      }
-
-      default:
-        break;
       }
       setState(849);
       oC_SingleQuery();
@@ -4032,14 +4013,10 @@ CypherParser::OC_SinglePartQueryContext* CypherParser::oC_SinglePartQuery() {
 
     case 3: {
       enterOuterAlt(_localctx, 3);
-      setState(897);
+      setState(895); 
       _errHandler->sync(this);
       _la = _input->LA(1);
-      while (((((_la - 48) & ~ 0x3fULL) == 0) &&
-        ((1ULL << (_la - 48)) & ((1ULL << (CypherParser::CALL - 48))
-        | (1ULL << (CypherParser::OPTIONAL - 48))
-        | (1ULL << (CypherParser::MATCH - 48))
-        | (1ULL << (CypherParser::UNWIND - 48)))) != 0)) {
+      do {
         setState(891);
         oC_ReadingClause();
         setState(893);
@@ -4055,10 +4032,14 @@ CypherParser::OC_SinglePartQueryContext* CypherParser::oC_SinglePartQuery() {
         default:
           break;
         }
-        setState(899);
+        setState(897); 
         _errHandler->sync(this);
         _la = _input->LA(1);
-      }
+      } while (((((_la - 48) & ~ 0x3fULL) == 0) &&
+        ((1ULL << (_la - 48)) & ((1ULL << (CypherParser::CALL - 48))
+        | (1ULL << (CypherParser::OPTIONAL - 48))
+        | (1ULL << (CypherParser::MATCH - 48))
+        | (1ULL << (CypherParser::UNWIND - 48)))) != 0));
        notifyQueryNotConcludeWithReturn(_localctx->start); 
       break;
     }
@@ -4112,6 +4093,7 @@ size_t CypherParser::OC_MultiPartQueryContext::getRuleIndex() const {
 CypherParser::OC_MultiPartQueryContext* CypherParser::oC_MultiPartQuery() {
   OC_MultiPartQueryContext *_localctx = _tracker.createInstance<OC_MultiPartQueryContext>(_ctx, getState());
   enterRule(_localctx, 80, CypherParser::RuleOC_MultiPartQuery);
+  size_t _la = 0;
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -4134,15 +4116,10 @@ CypherParser::OC_MultiPartQueryContext* CypherParser::oC_MultiPartQuery() {
               setState(905);
               _errHandler->sync(this);
 
-              switch (getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 115, _ctx)) {
-              case 1: {
+              _la = _input->LA(1);
+              if (_la == CypherParser::SP) {
                 setState(904);
                 match(CypherParser::SP);
-                break;
-              }
-
-              default:
-                break;
               }
               break;
             }
@@ -12075,8 +12052,8 @@ CypherParser::Initializer::Initializer() {
     0x5, 0x29, 0x370, 0xa, 0x29, 0x3, 0x29, 0x7, 0x29, 0x373, 0xa, 0x29, 
     0xc, 0x29, 0xe, 0x29, 0x376, 0xb, 0x29, 0x3, 0x29, 0x5, 0x29, 0x379, 
     0xa, 0x29, 0x3, 0x29, 0x5, 0x29, 0x37c, 0xa, 0x29, 0x3, 0x29, 0x3, 0x29, 
-    0x5, 0x29, 0x380, 0xa, 0x29, 0x7, 0x29, 0x382, 0xa, 0x29, 0xc, 0x29, 
-    0xe, 0x29, 0x385, 0xb, 0x29, 0x3, 0x29, 0x5, 0x29, 0x388, 0xa, 0x29, 
+    0x5, 0x29, 0x380, 0xa, 0x29, 0x6, 0x29, 0x382, 0xa, 0x29, 0xd, 0x29, 
+    0xe, 0x29, 0x383, 0x3, 0x29, 0x3, 0x29, 0x5, 0x29, 0x388, 0xa, 0x29, 
     0x3, 0x2a, 0x3, 0x2a, 0x5, 0x2a, 0x38c, 0xa, 0x2a, 0x6, 0x2a, 0x38e, 
     0xa, 0x2a, 0xd, 0x2a, 0xe, 0x2a, 0x38f, 0x3, 0x2a, 0x3, 0x2a, 0x3, 0x2b, 
     0x3, 0x2b, 0x5, 0x2b, 0x396, 0xa, 0x2b, 0x7, 0x2b, 0x398, 0xa, 0x2b, 
@@ -12730,11 +12707,11 @@ CypherParser::Initializer::Initializer() {
     0x2, 0x2, 0x37d, 0x37f, 0x5, 0x58, 0x2d, 0x2, 0x37e, 0x380, 0x7, 0x8b, 
     0x2, 0x2, 0x37f, 0x37e, 0x3, 0x2, 0x2, 0x2, 0x37f, 0x380, 0x3, 0x2, 
     0x2, 0x2, 0x380, 0x382, 0x3, 0x2, 0x2, 0x2, 0x381, 0x37d, 0x3, 0x2, 
-    0x2, 0x2, 0x382, 0x385, 0x3, 0x2, 0x2, 0x2, 0x383, 0x381, 0x3, 0x2, 
-    0x2, 0x2, 0x383, 0x384, 0x3, 0x2, 0x2, 0x2, 0x384, 0x386, 0x3, 0x2, 
-    0x2, 0x2, 0x385, 0x383, 0x3, 0x2, 0x2, 0x2, 0x386, 0x388, 0x8, 0x29, 
-    0x1, 0x2, 0x387, 0x360, 0x3, 0x2, 0x2, 0x2, 0x387, 0x36a, 0x3, 0x2, 
-    0x2, 0x2, 0x387, 0x383, 0x3, 0x2, 0x2, 0x2, 0x388, 0x51, 0x3, 0x2, 0x2, 
+    0x2, 0x2, 0x382, 0x383, 0x3, 0x2, 0x2, 0x2, 0x383, 0x381, 0x3, 0x2, 
+    0x2, 0x2, 0x383, 0x384, 0x3, 0x2, 0x2, 0x2, 0x384, 0x385, 0x3, 0x2, 
+    0x2, 0x2, 0x385, 0x386, 0x8, 0x29, 0x1, 0x2, 0x386, 0x388, 0x3, 0x2, 
+    0x2, 0x2, 0x387, 0x360, 0x3, 0x2, 0x2, 0x2, 0x387, 0x36a, 0x3, 0x2, 
+    0x2, 0x2, 0x387, 0x381, 0x3, 0x2, 0x2, 0x2, 0x388, 0x51, 0x3, 0x2, 0x2, 
     0x2, 0x389, 0x38b, 0x5, 0x54, 0x2b, 0x2, 0x38a, 0x38c, 0x7, 0x8b, 0x2, 
     0x2, 0x38b, 0x38a, 0x3, 0x2, 0x2, 0x2, 0x38b, 0x38c, 0x3, 0x2, 0x2, 
     0x2, 0x38c, 0x38e, 0x3, 0x2, 0x2, 0x2, 0x38d, 0x389, 0x3, 0x2, 0x2, 

@@ -75,17 +75,21 @@ std::unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
     CypherParser::OC_RelationshipPatternContext& ctx) {
     auto relDetail = ctx.oC_RelationshipDetail();
     auto variable = std::string();
-    if (relDetail->oC_Variable()) {
-        variable = transformVariable(*relDetail->oC_Variable());
-    }
     auto relTypes = std::vector<std::string>{};
-    if (relDetail->oC_RelationshipTypes()) {
-        relTypes = transformRelTypes(*relDetail->oC_RelationshipTypes());
-    }
     auto properties = std::vector<std::pair<std::string, std::unique_ptr<ParsedExpression>>>{};
-    if (relDetail->kU_Properties()) {
-        properties = transformProperties(*relDetail->kU_Properties());
+
+    if (relDetail) {
+        if (relDetail->oC_Variable()) {
+            variable = transformVariable(*relDetail->oC_Variable());
+        }
+        if (relDetail->oC_RelationshipTypes()) {
+            relTypes = transformRelTypes(*relDetail->oC_RelationshipTypes());
+        }
+        if (relDetail->kU_Properties()) {
+            properties = transformProperties(*relDetail->kU_Properties());
+        }
     }
+
     ArrowDirection arrowDirection;
     if (ctx.oC_LeftArrowHead()) {
         arrowDirection = ArrowDirection::LEFT;
@@ -94,9 +98,10 @@ std::unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
     } else {
         arrowDirection = ArrowDirection::BOTH;
     }
+
     auto relType = QueryRelType::NON_RECURSIVE;
     std::unique_ptr<RecursiveRelPatternInfo> recursiveInfo;
-    if (relDetail->oC_RangeLiteral()) {
+    if (relDetail && relDetail->oC_RangeLiteral()) {
         if (relDetail->oC_RangeLiteral()->ALL()) {
             relType = QueryRelType::ALL_SHORTEST;
         } else if (relDetail->oC_RangeLiteral()->SHORTEST()) {

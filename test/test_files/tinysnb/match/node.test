@@ -11,6 +11,6 @@
 8
 
 -LOG node2
--STATEMENT MATCH (a:organisation) RETURN COUNT(*) --Returns the total number of nodes in organisation
+-STATEMENT MATCH (a:organisation) RETURN COUNT(*) /*Returns the total number of nodes in organisation*/
 ---- 1
 3
