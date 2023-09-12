@@ -1,6 +1,7 @@
 #include "processor/result/flat_tuple.h"
 
 #include "c_api/kuzu.h"
+#include "common/exception/exception.h"
 
 using namespace kuzu::common;
 using namespace kuzu::processor;

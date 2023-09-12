@@ -3,6 +3,11 @@
 
 #include "rust/cxx.h"
 #ifdef KUZU_BUNDLED
+#include "common/types/value/nested.h"
+#include "common/types/value/node.h"
+#include "common/types/value/recursive_rel.h"
+#include "common/types/value/rel.h"
+#include "common/types/value/value.h"
 #include "main/kuzu.h"
 #else
 #include <kuzu.hpp>

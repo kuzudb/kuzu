@@ -3,6 +3,9 @@
 #include <string>
 
 #include "common/arrow/arrow_converter.h"
+#include "common/types/value/nested.h"
+#include "common/types/value/node.h"
+#include "common/types/value/rel.h"
 #include "datetime.h" // python lib
 #include "include/py_query_result_converter.h"
 #include "json.hpp"

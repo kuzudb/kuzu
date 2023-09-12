@@ -2,10 +2,13 @@
 
 #include "binder/expression/expression.h"
 #include "catalog/catalog.h"
-#include "common/types/value.h"
 #include "parser/expression/parsed_expression.h"
 
 namespace kuzu {
+namespace common {
+class Value;
+}
+
 namespace binder {
 
 class Binder;

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/ser_deser.h"
-#include "common/types/value.h"
+#include "common/types/value/value.h"
 #include "parsed_expression.h"
 
 namespace kuzu {

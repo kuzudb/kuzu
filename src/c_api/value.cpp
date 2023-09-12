@@ -1,8 +1,12 @@
-#include "common/types/value.h"
+#include "common/types/value/value.h"
 
 #include "c_api/kuzu.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
+#include "common/types/value/nested.h"
+#include "common/types/value/node.h"
+#include "common/types/value/recursive_rel.h"
+#include "common/types/value/rel.h"
 #include "main/kuzu.h"
 
 using namespace kuzu::common;

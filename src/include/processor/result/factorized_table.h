@@ -4,6 +4,7 @@
 #include <unordered_map>
 
 #include "common/in_mem_overflow_buffer.h"
+#include "common/types/value/value.h"
 #include "common/vector/value_vector.h"
 #include "processor/data_pos.h"
 #include "processor/result/flat_tuple.h"

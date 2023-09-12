@@ -1,6 +1,11 @@
 #include "include/node_util.h"
 
 #include "common/exception/exception.h"
+#include "common/types/value/value.h"
+#include "common/types/value/nested.h"
+#include "common/types/value/node.h"
+#include "common/types/value/recursive_rel.h"
+#include "common/types/value/rel.h"
 
 Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
     if (value.isNull()) {

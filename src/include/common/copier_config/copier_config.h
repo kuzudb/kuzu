@@ -1,9 +1,11 @@
 #pragma once
 
+#include <cassert>
 #include <fstream>
+#include <memory>
+#include <vector>
 
 #include "common/constants.h"
-#include "common/types/value.h"
 
 namespace kuzu {
 namespace common {

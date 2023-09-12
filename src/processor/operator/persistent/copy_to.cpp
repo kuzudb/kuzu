@@ -1,8 +1,5 @@
 #include "processor/operator/persistent/copy_to.h"
 
-#include "common/string_utils.h"
-#include "common/types/value.h"
-
 using namespace kuzu::common;
 
 namespace kuzu {

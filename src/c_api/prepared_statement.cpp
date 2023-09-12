@@ -1,6 +1,6 @@
 #include "binder/bound_statement.h"
 #include "c_api/kuzu.h"
-#include "common/types/value.h"
+#include "common/types/value/value.h"
 #include "main/kuzu.h"
 #include "planner/logical_plan/logical_plan.h"
 

@@ -1,6 +1,6 @@
 #include "include/py_query_result_converter.h"
 
-#include "common/types/value.h"
+#include "common/types/value/value.h"
 #include "include/py_query_result.h"
 
 using namespace kuzu::common;

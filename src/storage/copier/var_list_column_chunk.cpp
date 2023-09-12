@@ -1,6 +1,7 @@
 #include "storage/copier/var_list_column_chunk.h"
 
 #include "arrow/array.h"
+#include "common/types/value/nested.h"
 #include "storage/copier/table_copy_utils.h"
 
 namespace kuzu {
