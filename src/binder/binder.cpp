@@ -67,18 +67,12 @@ std::shared_ptr<Expression> Binder::bindWhereExpression(const ParsedExpression& 
     return whereExpression;
 }
 
-table_id_t Binder::bindRelTableID(const std::string& tableName) const {
-    if (!catalog.getReadOnlyVersion()->containRelTable(tableName)) {
-        throw BinderException("Rel table " + tableName + " does not exist.");
-    }
-    return catalog.getReadOnlyVersion()->getTableID(tableName);
-}
-
 table_id_t Binder::bindNodeTableID(const std::string& tableName) const {
-    if (!catalog.getReadOnlyVersion()->containNodeTable(tableName)) {
+    auto catalogContent = catalog.getReadOnlyVersion();
+    if (!catalogContent->containNodeTable(tableName)) {
         throw BinderException("Node table " + tableName + " does not exist.");
     }
-    return catalog.getReadOnlyVersion()->getTableID(tableName);
+    return catalogContent->getTableID(tableName);
 }
 
 std::shared_ptr<Expression> Binder::createVariable(
@@ -164,10 +158,16 @@ void Binder::validateReadNotFollowUpdate(const NormalizedSingleQuery& singleQuer
     }
 }
 
-void Binder::validateTableExist(const Catalog& _catalog, std::string& tableName) {
-    if (!_catalog.getReadOnlyVersion()->containNodeTable(tableName) &&
-        !_catalog.getReadOnlyVersion()->containRelTable(tableName)) {
-        throw BinderException("Node/Rel " + tableName + " does not exist.");
+void Binder::validateTableExist(const std::string& tableName) {
+    if (!catalog.getReadOnlyVersion()->containTable(tableName)) {
+        throw BinderException("Table " + tableName + " does not exist.");
+    }
+}
+
+void Binder::validateNodeRelTableExist(const std::string& tableName) {
+    if (!catalog.getReadOnlyVersion()->containNodeTable(tableName) &&
+        !catalog.getReadOnlyVersion()->containRelTable(tableName)) {
+        throw BinderException("Table " + tableName + " does not exist.");
     }
 }
 

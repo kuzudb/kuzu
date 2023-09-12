@@ -275,7 +275,7 @@ Binder exception: Unrecognized parsing csv option: PK.
 -LOG CopyCSVInvalidSchemaName
 -STATEMENT COPY university FROM "person_0_0.csv" (pk=",")
 ---- error
-Binder exception: Node/Rel university does not exist.
+Binder exception: Table university does not exist.
 
 -LOG CopyCSVInvalidEscapeChar
 -STATEMENT COPY person FROM "person_0_0.csv" (ESCAPE="..")
@@ -305,7 +305,7 @@ Binder exception: PropertyName: _id is an internal reserved propertyName.
 -LOG DropNotExistsTable
 -STATEMENT DROP TABLE person1;
 ---- error
-Binder exception: Node/Rel person1 does not exist.
+Binder exception: Table person1 does not exist.
 
 -LOG InvalidLimitNumberType
 -STATEMENT MATCH (a:person) RETURN a.age LIMIT "abc"
@@ -360,7 +360,7 @@ DISTINCT (SERIAL) -> SERIAL
 -LOG DropColumnFromNonExistedTable
 -STATEMENT alter table person1 drop k
 ---- error
-Binder exception: Node/Rel person1 does not exist.
+Binder exception: Table person1 does not exist.
 
 -LOG DropNonExistedColumn
 -STATEMENT alter table person drop random
@@ -385,7 +385,7 @@ Binder exception: Expression 3.2 has data type STRING but expect INT64. Implicit
 -LOG RenameNonExistedTable
 -STATEMENT alter table person1 rename to person2
 ---- error
-Binder exception: Node/Rel person1 does not exist.
+Binder exception: Table person1 does not exist.
 
 -LOG RenameTableDuplicateName
 -STATEMENT alter table person rename to organisation
@@ -395,7 +395,7 @@ Binder exception: Table: organisation already exists.
 -LOG RenamePropertyOfNonExistedTable
 -STATEMENT alter table person1 rename col1 to col2
 ---- error
-Binder exception: Node/Rel person1 does not exist.
+Binder exception: Table person1 does not exist.
 
 -LOG RenamePropertyDuplicateName
 -STATEMENT alter table person rename fName to gender

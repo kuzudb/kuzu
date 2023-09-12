@@ -77,7 +77,6 @@ private:
     std::shared_ptr<Expression> bindWhereExpression(
         const parser::ParsedExpression& parsedExpression);
 
-    common::table_id_t bindRelTableID(const std::string& tableName) const;
     common::table_id_t bindNodeTableID(const std::string& tableName) const;
 
     std::shared_ptr<Expression> createVariable(
@@ -105,8 +104,6 @@ private:
         catalog::TableSchema* tableSchema, const std::string& propertyName);
 
     /*** bind copy from/to ***/
-    static bool bindContainsSerial(
-        catalog::TableSchema* tableSchema, common::CopyDescription::FileType fileType);
     expression_vector bindColumnExpressions(
         catalog::TableSchema* tableSchema, common::CopyDescription::FileType fileType);
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
@@ -243,7 +240,9 @@ private:
     // multiple statement.
     static void validateReadNotFollowUpdate(const NormalizedSingleQuery& singleQuery);
 
-    static void validateTableExist(const catalog::Catalog& _catalog, std::string& tableName);
+    void validateTableExist(const std::string& tableName);
+    // TODO(Xiyang): remove this validation once we refactor DDL.
+    void validateNodeRelTableExist(const std::string& tableName);
 
     static bool validateStringParsingOptionName(std::string& parsingOptionName);
 

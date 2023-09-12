@@ -88,7 +88,7 @@ expression_vector Binder::bindColumnExpressions(
     return columnExpressions;
 }
 
-bool Binder::bindContainsSerial(TableSchema* tableSchema, CopyDescription::FileType fileType) {
+static bool bindContainsSerial(TableSchema* tableSchema, CopyDescription::FileType fileType) {
     bool containsSerial = false;
     for (auto& property : tableSchema->properties) {
         if (property->getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL) {
@@ -104,7 +104,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     auto catalogContent = catalog.getReadOnlyVersion();
     auto tableName = copyStatement.getTableName();
     // Bind to table schema.
-    validateTableExist(catalog, tableName);
+    validateNodeRelTableExist(tableName);
     auto tableID = catalogContent->getTableID(tableName);
     auto tableSchema = catalogContent->getTableSchema(tableID);
     // Bind csv reader configuration
@@ -127,17 +127,17 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
         actualFileType, boundFilePaths, std::move(csvReaderConfig));
     auto nodeOffsetExpression =
         createVariable(std::string(Property::OFFSET_NAME), LogicalType{LogicalTypeID::INT64});
-    auto boundOffsetExpression = tableSchema->tableType == TableType::REL ?
-                                     createVariable(std::string(Property::REL_BOUND_OFFSET_NAME),
-                                         LogicalType{LogicalTypeID::ARROW_COLUMN}) :
-                                     nullptr;
-    auto nbrOffsetExpression = tableSchema->tableType == TableType::REL ?
-                                   createVariable(std::string(Property::REL_NBR_OFFSET_NAME),
-                                       LogicalType{LogicalTypeID::ARROW_COLUMN}) :
-                                   nullptr;
+    std::shared_ptr<Expression> boundOffset = nullptr;
+    std::shared_ptr<Expression> nbrOffset = nullptr;
+    if (tableSchema->tableType == TableType::REL) {
+        boundOffset = createVariable(
+            std::string(Property::REL_BOUND_OFFSET_NAME), LogicalType{LogicalTypeID::ARROW_COLUMN});
+        nbrOffset = createVariable(
+            std::string(Property::REL_NBR_OFFSET_NAME), LogicalType{LogicalTypeID::ARROW_COLUMN});
+    }
     auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(std::move(copyDescription),
         tableSchema, std::move(columnExpressions), std::move(nodeOffsetExpression),
-        std::move(boundOffsetExpression), std::move(nbrOffsetExpression), containsSerial);
+        std::move(boundOffset), std::move(nbrOffset), containsSerial);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 

@@ -4,6 +4,7 @@
 #include "binder/expression/path_expression.h"
 #include "binder/expression/property_expression.h"
 #include "catalog/node_table_schema.h"
+#include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
 
 using namespace kuzu::common;
@@ -457,17 +458,34 @@ std::vector<table_id_t> Binder::bindNodeTableIDs(const std::vector<std::string>&
 }
 
 std::vector<table_id_t> Binder::bindRelTableIDs(const std::vector<std::string>& tableNames) {
-    if (catalog.getReadOnlyVersion()->getRelTableIDs().empty()) {
+    auto catalogContent = catalog.getReadOnlyVersion();
+    if (catalogContent->getRelTableIDs().empty()) {
         throw BinderException("No rel table exists in database.");
     }
+    // Rewrite empty rel pattern "-[]-" as all rel tables
     std::unordered_set<table_id_t> tableIDs;
     if (tableNames.empty()) {
-        for (auto tableID : catalog.getReadOnlyVersion()->getRelTableIDs()) {
+        for (auto tableID : catalogContent->getRelTableIDs()) {
             tableIDs.insert(tableID);
         }
     }
     for (auto& tableName : tableNames) {
-        tableIDs.insert(bindRelTableID(tableName));
+        validateTableExist(tableName);
+        auto tableID = catalogContent->getTableID(tableName);
+        auto tableSchema = catalogContent->getTableSchema(tableID);
+        switch (tableSchema->getTableType()) {
+        case TableType::REL: {
+            tableIDs.insert(tableID);
+        } break;
+        case TableType::REL_GROUP: {
+            auto relGroupSchema = reinterpret_cast<RelTableGroupSchema*>(tableSchema);
+            for (auto& relTableID : relGroupSchema->getRelTableIDs()) {
+                tableIDs.insert(relTableID);
+            }
+        } break;
+        default:
+            throw BinderException("Rel table " + tableName + " does not exist.");
+        }
     }
     auto result = std::vector<table_id_t>{tableIDs.begin(), tableIDs.end()};
     std::sort(result.begin(), result.end());
