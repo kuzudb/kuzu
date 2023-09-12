@@ -5,11 +5,13 @@
 
 #include "common/data_chunk/data_chunk_state.h"
 #include "common/null_mask.h"
-#include "common/types/value.h"
+#include "common/types/ku_string.h"
 #include "common/vector/auxiliary_buffer.h"
 
 namespace kuzu {
 namespace common {
+
+class Value;
 
 //! A Vector represents values of the same data type.
 //! The capacity of a ValueVector is either 1 (sequence) or DEFAULT_VECTOR_CAPACITY.

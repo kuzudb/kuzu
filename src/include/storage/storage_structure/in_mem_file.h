@@ -4,7 +4,7 @@
 
 #include "arrow/array.h"
 #include "common/constants.h"
-#include "common/types/value.h"
+#include "common/types/value/value.h"
 #include "storage/storage_structure/in_mem_page.h"
 #include "storage/storage_utils.h"
 

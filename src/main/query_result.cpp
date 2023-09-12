@@ -5,6 +5,8 @@
 #include "binder/expression/node_rel_expression.h"
 #include "binder/expression/property_expression.h"
 #include "common/arrow/arrow_converter.h"
+#include "common/types/value/node.h"
+#include "common/types/value/rel.h"
 #include "json.hpp"
 #include "processor/result/factorized_table.h"
 #include "processor/result/flat_tuple.h"

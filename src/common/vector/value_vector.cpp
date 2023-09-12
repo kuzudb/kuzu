@@ -1,6 +1,8 @@
 #include "common/vector/value_vector.h"
 
 #include "common/null_buffer.h"
+#include "common/types/value/nested.h"
+#include "common/types/value/value.h"
 #include "common/vector/auxiliary_buffer.h"
 #include <arrow/array.h>
 

@@ -1,5 +1,6 @@
 #include "expression_evaluator/expression_evaluator_utils.h"
 
+#include "common/types/value/value.h"
 #include "processor/expression_mapper.h"
 
 using namespace kuzu::common;

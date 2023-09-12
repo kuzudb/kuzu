@@ -4,6 +4,13 @@
 
 #include "common/constants.h"
 #include "common/string_utils.h"
+#include "common/type_utils.h"
+#include "common/types/date_t.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/interval_t.h"
+#include "common/types/ku_string.h"
+#include "common/types/timestamp_t.h"
+#include "common/types/types.h"
 
 using namespace kuzu::common;
 

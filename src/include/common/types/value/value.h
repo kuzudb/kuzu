@@ -1,6 +1,5 @@
 #pragma once
 
-#include <stack>
 #include <utility>
 
 #include "common/api.h"
@@ -10,7 +9,6 @@
 #include "common/types/interval_t.h"
 #include "common/types/ku_list.h"
 #include "common/types/timestamp_t.h"
-#include "common/utils.h"
 
 namespace kuzu {
 namespace common {
@@ -222,143 +220,6 @@ private:
     // with nested value. So children.size() reflects the capacity() rather the actual size.
     std::vector<std::unique_ptr<Value>> children;
     uint32_t childrenSize;
-};
-
-class NestedVal {
-public:
-    KUZU_API static uint32_t getChildrenSize(const Value* val);
-
-    KUZU_API static Value* getChildVal(const Value* val, uint32_t idx);
-};
-
-/**
- * @brief NodeVal represents a node in the graph and stores the nodeID, label and properties of that
- * node.
- */
-class NodeVal {
-public:
-    /**
-     * @return all properties of the NodeVal.
-     * @note this function copies all the properties into a vector, which is not efficient. use
-     * `getPropertyName` and `getPropertyVal` instead if possible.
-     */
-    KUZU_API static std::vector<std::pair<std::string, std::unique_ptr<Value>>> getProperties(
-        const Value* val);
-    /**
-     * @return number of properties of the RelVal.
-     */
-    KUZU_API static uint64_t getNumProperties(const Value* val);
-
-    /**
-     * @return the name of the property at the given index.
-     */
-    KUZU_API static std::string getPropertyName(const Value* val, uint64_t index);
-
-    /**
-     * @return the value of the property at the given index.
-     */
-    KUZU_API static Value* getPropertyVal(const Value* val, uint64_t index);
-    /**
-     * @return the nodeID as a Value.
-     */
-    KUZU_API static Value* getNodeIDVal(const Value* val);
-    /**
-     * @return the name of the node as a Value.
-     */
-    KUZU_API static Value* getLabelVal(const Value* val);
-    /**
-     * @return the nodeID of the node as a nodeID struct.
-     */
-    KUZU_API static nodeID_t getNodeID(const Value* val);
-    /**
-     * @return the name of the node in string format.
-     */
-    KUZU_API static std::string getLabelName(const Value* val);
-    /**
-     * @return the current node values in string format.
-     */
-    KUZU_API static std::string toString(const Value* val);
-
-private:
-    static void throwIfNotNode(const Value* val);
-    // 2 offsets for id and label.
-    static constexpr uint64_t OFFSET = 2;
-};
-
-/**
- * @brief RelVal represents a rel in the graph and stores the relID, src/dst nodes and properties of
- * that rel.
- */
-class RelVal {
-public:
-    /**
-     * @return all properties of the RelVal.
-     * @note this function copies all the properties into a vector, which is not efficient. use
-     * `getPropertyName` and `getPropertyVal` instead if possible.
-     */
-    KUZU_API static std::vector<std::pair<std::string, std::unique_ptr<Value>>> getProperties(
-        const Value* val);
-    /**
-     * @return number of properties of the RelVal.
-     */
-    KUZU_API static uint64_t getNumProperties(const Value* val);
-    /**
-     * @return the name of the property at the given index.
-     */
-    KUZU_API static std::string getPropertyName(const Value* val, uint64_t index);
-    /**
-     * @return the value of the property at the given index.
-     */
-    KUZU_API static Value* getPropertyVal(const Value* val, uint64_t index);
-    /**
-     * @return the src nodeID value of the RelVal in Value.
-     */
-    KUZU_API static Value* getSrcNodeIDVal(const Value* val);
-    /**
-     * @return the dst nodeID value of the RelVal in Value.
-     */
-    KUZU_API static Value* getDstNodeIDVal(const Value* val);
-    /**
-     * @return the src nodeID value of the RelVal as nodeID struct.
-     */
-    KUZU_API static nodeID_t getSrcNodeID(const Value* val);
-    /**
-     * @return the dst nodeID value of the RelVal as nodeID struct.
-     */
-    KUZU_API static nodeID_t getDstNodeID(const Value* val);
-    /**
-     * @return the name of the RelVal.
-     */
-    KUZU_API static std::string getLabelName(const Value* val);
-    /**
-     * @return the value of the RelVal in string format.
-     */
-    KUZU_API static std::string toString(const Value* val);
-
-private:
-    static void throwIfNotRel(const Value* val);
-    // 4 offset for id, label, src, dst.
-    static constexpr uint64_t OFFSET = 4;
-};
-
-/**
- * @brief RecursiveRelVal represents a path in the graph and stores the corresponding rels and nodes
- * of that path.
- */
-class RecursiveRelVal {
-public:
-    /**
-     * @return the list of nodes in the recursive rel as a Value.
-     */
-    KUZU_API static Value* getNodes(const Value* val);
-
-    /**
-     * @return the list of rels in the recursive rel as a Value.
-     */
-    KUZU_API static Value* getRels(const Value* val);
-
-private:
-    static void throwIfNotRecursiveRel(const Value* val);
 };
 
 /**

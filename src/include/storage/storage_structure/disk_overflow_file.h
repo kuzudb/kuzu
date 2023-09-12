@@ -2,6 +2,7 @@
 
 #include <fcntl.h>
 
+#include "common/types/ku_list.h"
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/storage_structure/storage_structure.h"

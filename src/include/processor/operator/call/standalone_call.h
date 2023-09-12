@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/types/value/value.h"
 #include "main/db_config.h"
 #include "processor/operator/physical_operator.h"
 

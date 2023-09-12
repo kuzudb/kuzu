@@ -1,6 +1,8 @@
 #include "common/arrow/arrow_row_batch.h"
 
-#include "common/types/value.h"
+#include "common/types/value/node.h"
+#include "common/types/value/rel.h"
+#include "common/types/value/value.h"
 #include "storage/storage_utils.h"
 
 namespace kuzu {

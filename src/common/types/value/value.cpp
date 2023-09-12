@@ -1,8 +1,7 @@
-#include "common/types/value.h"
+#include "common/types/value/value.h"
 
 #include "common/null_buffer.h"
 #include "common/ser_deser.h"
-#include "common/string_utils.h"
 #include "common/types/blob.h"
 #include "storage/storage_utils.h"
 
@@ -491,17 +490,6 @@ void Value::copyFromUnion(const uint8_t* kuUnion) {
     }
 }
 
-uint32_t NestedVal::getChildrenSize(const Value* val) {
-    return val->childrenSize;
-}
-
-Value* NestedVal::getChildVal(const Value* val, uint32_t idx) {
-    if (idx > val->childrenSize) {
-        throw RuntimeException("NestedVal::getChildPointer index out of bound.");
-    }
-    return val->children[idx].get();
-}
-
 void Value::serialize(FileInfo* fileInfo, uint64_t& offset) const {
     dataType->serialize(fileInfo, offset);
     SerDeser::serializeValue(isNull_, fileInfo, offset);
@@ -598,178 +586,6 @@ std::unique_ptr<Value> Value::deserialize(FileInfo* fileInfo, uint64_t& offset) 
     SerDeser::deserializeValue(val->childrenSize, fileInfo, offset);
     val->setNull(isNull);
     return val;
-}
-
-std::vector<std::pair<std::string, std::unique_ptr<Value>>> NodeVal::getProperties(
-    const Value* val) {
-    throwIfNotNode(val);
-    std::vector<std::pair<std::string, std::unique_ptr<Value>>> properties;
-    auto fieldNames = StructType::getFieldNames(val->dataType.get());
-    for (auto i = 0u; i < val->childrenSize; ++i) {
-        auto currKey = fieldNames[i];
-        if (currKey == InternalKeyword::ID || currKey == InternalKeyword::LABEL) {
-            continue;
-        }
-        properties.emplace_back(currKey, val->children[i]->copy());
-    }
-    return properties;
-}
-
-uint64_t NodeVal::getNumProperties(const Value* val) {
-    throwIfNotNode(val);
-    auto fieldNames = StructType::getFieldNames(val->dataType.get());
-    return fieldNames.size() - OFFSET;
-}
-
-std::string NodeVal::getPropertyName(const Value* val, uint64_t index) {
-    throwIfNotNode(val);
-    auto fieldNames = StructType::getFieldNames(val->dataType.get());
-    if (index >= fieldNames.size() - OFFSET) {
-        return "";
-    }
-    return fieldNames[index + OFFSET];
-}
-
-Value* NodeVal::getPropertyVal(const Value* val, uint64_t index) {
-    throwIfNotNode(val);
-    auto fieldNames = StructType::getFieldNames(val->dataType.get());
-    if (index >= fieldNames.size() - OFFSET) {
-        return nullptr;
-    }
-    return val->children[index + OFFSET].get();
-}
-
-Value* NodeVal::getNodeIDVal(const Value* val) {
-    throwIfNotNode(val);
-    auto fieldIdx = StructType::getFieldIdx(val->dataType.get(), InternalKeyword::ID);
-    return val->children[fieldIdx].get();
-}
-
-Value* NodeVal::getLabelVal(const Value* val) {
-    throwIfNotNode(val);
-    auto fieldIdx = StructType::getFieldIdx(val->dataType.get(), InternalKeyword::LABEL);
-    return val->children[fieldIdx].get();
-}
-
-nodeID_t NodeVal::getNodeID(const Value* val) {
-    throwIfNotNode(val);
-    auto nodeIDVal = getNodeIDVal(val);
-    return nodeIDVal->getValue<nodeID_t>();
-}
-
-std::string NodeVal::getLabelName(const Value* val) {
-    throwIfNotNode(val);
-    auto labelVal = getLabelVal(val);
-    return labelVal->getValue<std::string>();
-}
-
-std::string NodeVal::toString(const Value* val) {
-    throwIfNotNode(val);
-    return val->toString();
-}
-
-void NodeVal::throwIfNotNode(const Value* val) {
-    if (val->dataType->getLogicalTypeID() != LogicalTypeID::NODE) {
-        auto actualType = LogicalTypeUtils::dataTypeToString(val->dataType->getLogicalTypeID());
-        throw Exception(fmt::format("Expected NODE type, but got {} type", actualType));
-    }
-}
-
-std::vector<std::pair<std::string, std::unique_ptr<Value>>> RelVal::getProperties(
-    const Value* val) {
-    throwIfNotRel(val);
-    std::vector<std::pair<std::string, std::unique_ptr<Value>>> properties;
-    auto fieldNames = StructType::getFieldNames(val->dataType.get());
-    for (auto i = 0u; i < val->childrenSize; ++i) {
-        auto currKey = fieldNames[i];
-        if (currKey == InternalKeyword::ID || currKey == InternalKeyword::LABEL ||
-            currKey == InternalKeyword::SRC || currKey == InternalKeyword::DST) {
-            continue;
-        }
-        auto currVal = val->children[i]->copy();
-        properties.emplace_back(currKey, std::move(currVal));
-    }
-    return properties;
-}
-
-uint64_t RelVal::getNumProperties(const Value* val) {
-    throwIfNotRel(val);
-    auto fieldNames = StructType::getFieldNames(val->dataType.get());
-    return fieldNames.size() - OFFSET;
-}
-
-std::string RelVal::getPropertyName(const Value* val, uint64_t index) {
-    throwIfNotRel(val);
-    auto fieldNames = StructType::getFieldNames(val->dataType.get());
-    if (index >= fieldNames.size() - OFFSET) {
-        return "";
-    }
-    return fieldNames[index + OFFSET];
-}
-
-Value* RelVal::getPropertyVal(const Value* val, uint64_t index) {
-    throwIfNotRel(val);
-    auto fieldNames = StructType::getFieldNames(val->dataType.get());
-    if (index >= fieldNames.size() - OFFSET) {
-        return nullptr;
-    }
-    return val->children[index + OFFSET].get();
-}
-
-Value* RelVal::getSrcNodeIDVal(const Value* val) {
-    auto fieldIdx = StructType::getFieldIdx(val->dataType.get(), InternalKeyword::SRC);
-    return val->children[fieldIdx].get();
-}
-
-Value* RelVal::getDstNodeIDVal(const Value* val) {
-    auto fieldIdx = StructType::getFieldIdx(val->dataType.get(), InternalKeyword::DST);
-    return val->children[fieldIdx].get();
-}
-
-nodeID_t RelVal::getSrcNodeID(const Value* val) {
-    throwIfNotRel(val);
-    auto srcNodeIDVal = getSrcNodeIDVal(val);
-    return srcNodeIDVal->getValue<nodeID_t>();
-}
-
-nodeID_t RelVal::getDstNodeID(const Value* val) {
-    throwIfNotRel(val);
-    auto dstNodeIDVal = getDstNodeIDVal(val);
-    return dstNodeIDVal->getValue<nodeID_t>();
-}
-
-std::string RelVal::getLabelName(const Value* val) {
-    auto fieldIdx = StructType::getFieldIdx(val->dataType.get(), InternalKeyword::LABEL);
-    return val->children[fieldIdx]->getValue<std::string>();
-}
-
-std::string RelVal::toString(const Value* val) {
-    throwIfNotRel(val);
-    return val->toString();
-}
-
-void RelVal::throwIfNotRel(const Value* val) {
-    if (val->dataType->getLogicalTypeID() != LogicalTypeID::REL) {
-        auto actualType = LogicalTypeUtils::dataTypeToString(val->dataType->getLogicalTypeID());
-        throw Exception(fmt::format("Expected REL type, but got {} type", actualType));
-    }
-}
-
-Value* RecursiveRelVal::getNodes(const Value* val) {
-    throwIfNotRecursiveRel(val);
-    return val->children[0].get();
-}
-
-Value* RecursiveRelVal::getRels(const Value* val) {
-    throwIfNotRecursiveRel(val);
-    return val->children[1].get();
-}
-
-void RecursiveRelVal::throwIfNotRecursiveRel(const Value* val) {
-    if (val->dataType->getLogicalTypeID() != LogicalTypeID::RECURSIVE_REL) {
-        auto actualType = LogicalTypeUtils::dataTypeToString(val->dataType->getLogicalTypeID());
-        throw Exception(fmt::format("Expected RECURSIVE_REL type, but got {} type", actualType));
-    }
 }
 
 } // namespace common

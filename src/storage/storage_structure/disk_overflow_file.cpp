@@ -3,6 +3,7 @@
 #include "common/null_buffer.h"
 #include "common/string_utils.h"
 #include "common/type_utils.h"
+#include "common/types/value/value.h"
 
 using lock_t = std::unique_lock<std::mutex>;
 

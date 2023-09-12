@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/copier_config/copier_config.h"
+#include "common/type_utils.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/bm_file_handle.h"

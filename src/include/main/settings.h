@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/types/value.h"
+#include "common/types/value/value.h"
 #include "main/client_context.h"
 
 namespace kuzu {

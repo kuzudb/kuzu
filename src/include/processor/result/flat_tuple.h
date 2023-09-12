@@ -1,9 +1,16 @@
 #pragma once
 
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <vector>
+
 #include "common/api.h"
-#include "common/types/value.h"
 
 namespace kuzu {
+namespace common {
+class Value;
+}
 namespace processor {
 
 /**

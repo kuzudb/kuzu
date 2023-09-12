@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/types/value/value.h"
 #include "common/vector/value_vector.h"
 #include "function/function_definition.h"
 #include "main/client_context.h"
