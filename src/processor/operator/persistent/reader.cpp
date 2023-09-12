@@ -41,9 +41,9 @@ void Reader::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* cont
 }
 
 bool Reader::getNextTuplesInternal(ExecutionContext* context) {
-    sharedState->copyDescription->fileType == common::CopyDescription::FileType::CSV ?
-        readNextDataChunk<ReaderSharedState::ReadMode::SERIAL>() :
-        readNextDataChunk<ReaderSharedState::ReadMode::PARALLEL>();
+    sharedState->copyDescription->parallelRead() ?
+        readNextDataChunk<ReaderSharedState::ReadMode::PARALLEL>() :
+        readNextDataChunk<ReaderSharedState::ReadMode::SERIAL>();
     return dataChunk->state->selVector->selectedSize != 0;
 }
 

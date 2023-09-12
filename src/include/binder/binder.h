@@ -103,23 +103,21 @@ private:
     common::property_id_t bindPropertyName(
         catalog::TableSchema* tableSchema, const std::string& propertyName);
 
-    /*** bind copy from/to ***/
-    expression_vector bindColumnExpressions(
-        catalog::TableSchema* tableSchema, common::CopyDescription::FileType fileType);
+    /*** bind copy ***/
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindCopyNodeFrom(
+        std::unique_ptr<common::CopyDescription> copyDescription,
+        catalog::TableSchema* tableSchema);
+    std::unique_ptr<BoundStatement> bindCopyRelFrom(
+        std::unique_ptr<common::CopyDescription> copyDescription,
+        catalog::TableSchema* tableSchema);
+    expression_vector bindCopyNodeColumns(
+        catalog::TableSchema* tableSchema, common::CopyDescription::FileType fileType);
+    expression_vector bindCopyRelColumns(catalog::TableSchema* tableSchema);
     std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
-
-    static std::vector<std::string> bindFilePaths(const std::vector<std::string>& filePaths);
-
     std::unique_ptr<common::CSVReaderConfig> bindParsingOptions(
-        const std::unordered_map<std::string, std::unique_ptr<parser::ParsedExpression>>*
+        const std::unordered_map<std::string, std::unique_ptr<parser::ParsedExpression>>&
             parsingOptions);
-    void bindStringParsingOptions(common::CSVReaderConfig& csvReaderConfig,
-        const std::string& optionName, std::string& optionValue);
-    char bindParsingOptionValue(std::string value);
-    static common::CopyDescription::FileType bindFileType(
-        const std::vector<std::string>& filePaths);
-    static common::CopyDescription::FileType bindFileType(const std::string& filePath);
 
     /*** bind query ***/
     std::unique_ptr<BoundRegularQuery> bindQuery(const parser::RegularQuery& regularQuery);
@@ -243,8 +241,6 @@ private:
     void validateTableExist(const std::string& tableName);
     // TODO(Xiyang): remove this validation once we refactor DDL.
     void validateNodeRelTableExist(const std::string& tableName);
-
-    static bool validateStringParsingOptionName(std::string& parsingOptionName);
 
     static void validateNodeTableHasNoEdge(
         const catalog::Catalog& _catalog, common::table_id_t tableID);

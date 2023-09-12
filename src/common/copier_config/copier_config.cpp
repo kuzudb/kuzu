@@ -16,14 +16,5 @@ CopyDescription::FileType CopyDescription::getFileTypeFromExtension(const std::s
     return fileType;
 }
 
-std::string CopyDescription::getFileTypeName(FileType fileType) {
-    for (const auto& fileTypeItem : fileTypeMap) {
-        if (fileTypeItem.second == fileType) {
-            return fileTypeItem.first;
-        }
-    }
-    throw InternalException("Unimplemented getFileTypeName().");
-}
-
 } // namespace common
 } // namespace kuzu

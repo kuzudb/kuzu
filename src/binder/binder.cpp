@@ -171,15 +171,6 @@ void Binder::validateNodeRelTableExist(const std::string& tableName) {
     }
 }
 
-bool Binder::validateStringParsingOptionName(std::string& parsingOptionName) {
-    for (auto i = 0; i < std::size(CopyConstants::STRING_CSV_PARSING_OPTIONS); i++) {
-        if (parsingOptionName == CopyConstants::STRING_CSV_PARSING_OPTIONS[i]) {
-            return true;
-        }
-    }
-    return false;
-}
-
 void Binder::validateNodeTableHasNoEdge(const Catalog& _catalog, table_id_t tableID) {
     for (auto& tableSchema : _catalog.getReadOnlyVersion()->getRelTableSchemas()) {
         auto relTableSchema = reinterpret_cast<RelTableSchema*>(tableSchema);

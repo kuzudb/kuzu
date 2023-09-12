@@ -27,7 +27,7 @@ struct CSVReaderConfig {
 };
 
 struct CopyDescription {
-    enum class FileType : uint8_t { UNKNOWN = 0, CSV = 1, PARQUET = 2, NPY = 3 };
+    enum class FileType : uint8_t { UNKNOWN = 0, CSV = 1, PARQUET = 2, NPY = 3, TURTLE = 4 };
 
     FileType fileType;
     std::vector<std::string> filePaths;
@@ -52,6 +52,10 @@ struct CopyDescription {
         }
     }
 
+    inline bool parallelRead() const {
+        return fileType != FileType::CSV && fileType != FileType::TURTLE;
+    }
+
     inline std::unique_ptr<CopyDescription> copy() const {
         assert(this);
         return std::make_unique<CopyDescription>(*this);
@@ -59,11 +63,9 @@ struct CopyDescription {
 
     inline static std::unordered_map<std::string, FileType> fileTypeMap{
         {"unknown", FileType::UNKNOWN}, {".csv", FileType::CSV}, {".parquet", FileType::PARQUET},
-        {".npy", FileType::NPY}};
+        {".npy", FileType::NPY}, {".ttl", FileType::TURTLE}};
 
     static FileType getFileTypeFromExtension(const std::string& extension);
-
-    static std::string getFileTypeName(FileType fileType);
 };
 
 } // namespace common

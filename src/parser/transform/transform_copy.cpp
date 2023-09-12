@@ -12,24 +12,24 @@ std::unique_ptr<Statement> Transformer::transformCopyTo(CypherParser::KU_CopyTOC
     return std::make_unique<CopyTo>(std::move(filePath), std::move(regularQuery));
 }
 
-std::unique_ptr<Statement> Transformer::transformCopyFrom(
-    CypherParser::KU_CopyFromCSVContext& ctx) {
+std::unique_ptr<Statement> Transformer::transformCopyFrom(CypherParser::KU_CopyFromContext& ctx) {
     auto filePaths = transformFilePaths(ctx.kU_FilePaths()->StringLiteral());
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
-    auto parsingOptions = ctx.kU_ParsingOptions() ?
-                              transformParsingOptions(*ctx.kU_ParsingOptions()) :
-                              std::unordered_map<std::string, std::unique_ptr<ParsedExpression>>();
-    return std::make_unique<CopyFrom>(std::move(filePaths), std::move(tableName),
-        std::move(parsingOptions), CopyDescription::FileType::UNKNOWN);
+    std::unordered_map<std::string, std::unique_ptr<ParsedExpression>> parsingOptions;
+    if (ctx.kU_ParsingOptions()) {
+        parsingOptions = transformParsingOptions(*ctx.kU_ParsingOptions());
+    }
+    return std::make_unique<CopyFrom>(false /* byColumn */, std::move(filePaths),
+        std::move(tableName), std::move(parsingOptions));
 }
 
-std::unique_ptr<Statement> Transformer::transformCopyFromNPY(
-    CypherParser::KU_CopyFromNPYContext& ctx) {
+std::unique_ptr<Statement> Transformer::transformCopyFromByColumn(
+    CypherParser::KU_CopyFromByColumnContext& ctx) {
     auto filePaths = transformFilePaths(ctx.StringLiteral());
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
     auto parsingOptions = std::unordered_map<std::string, std::unique_ptr<ParsedExpression>>();
-    return std::make_unique<CopyFrom>(std::move(filePaths), std::move(tableName),
-        std::move(parsingOptions), CopyDescription::FileType::NPY);
+    return std::make_unique<CopyFrom>(
+        true /* byColumn */, std::move(filePaths), std::move(tableName), std::move(parsingOptions));
 }
 
 std::vector<std::string> Transformer::transformFilePaths(
