@@ -11,7 +11,7 @@ namespace kuzu {
 namespace parser {
 
 std::unique_ptr<Statement> Transformer::transform() {
-    auto statement = transformOcStatement(*root.oC_Statement());
+    auto statement = transformStatement(*root.oC_Statement());
     if (root.oC_AnyCypherOption()) {
         auto cypherOption = root.oC_AnyCypherOption();
         auto explainType =
@@ -21,16 +21,15 @@ std::unique_ptr<Statement> Transformer::transform() {
     return statement;
 }
 
-std::unique_ptr<Statement> Transformer::transformOcStatement(
-    CypherParser::OC_StatementContext& ctx) {
+std::unique_ptr<Statement> Transformer::transformStatement(CypherParser::OC_StatementContext& ctx) {
     if (ctx.oC_Query()) {
         return transformQuery(*ctx.oC_Query());
     } else if (ctx.kU_DDL()) {
         return transformDDL(*ctx.kU_DDL());
-    } else if (ctx.kU_CopyFromNPY()) {
-        return transformCopyFromNPY(*ctx.kU_CopyFromNPY());
-    } else if (ctx.kU_CopyFromCSV()) {
-        return transformCopyFrom(*ctx.kU_CopyFromCSV());
+    } else if (ctx.kU_CopyFromByColumn()) {
+        return transformCopyFromByColumn(*ctx.kU_CopyFromByColumn());
+    } else if (ctx.kU_CopyFrom()) {
+        return transformCopyFrom(*ctx.kU_CopyFrom());
     } else if (ctx.kU_CopyTO()) {
         return transformCopyTo(*ctx.kU_CopyTO());
     } else if (ctx.kU_StandaloneCall()) {

@@ -14,6 +14,86 @@ using namespace kuzu::parser;
 namespace kuzu {
 namespace binder {
 
+// Start file binding
+static CopyDescription::FileType bindFileType(const std::string& filePath) {
+    std::filesystem::path fileName(filePath);
+    auto extension = FileUtils::getFileExtension(fileName);
+    auto fileType = CopyDescription::getFileTypeFromExtension(extension);
+    if (fileType == CopyDescription::FileType::UNKNOWN) {
+        throw CopyException("Unsupported file type: " + filePath);
+    }
+    return fileType;
+}
+
+static CopyDescription::FileType bindFileType(const std::vector<std::string>& filePaths) {
+    auto expectedFileType = CopyDescription::FileType::UNKNOWN;
+    for (auto& filePath : filePaths) {
+        auto fileType = bindFileType(filePath);
+        expectedFileType =
+            (expectedFileType == CopyDescription::FileType::UNKNOWN) ? fileType : expectedFileType;
+        if (fileType != expectedFileType) {
+            throw CopyException("Loading files with different types is not currently supported.");
+        }
+    }
+    return expectedFileType;
+}
+
+static std::vector<std::string> bindFilePaths(const std::vector<std::string>& filePaths) {
+    std::vector<std::string> boundFilePaths;
+    for (auto& filePath : filePaths) {
+        auto globbedFilePaths = FileUtils::globFilePath(filePath);
+        if (globbedFilePaths.empty()) {
+            throw BinderException{StringUtils::string_format(
+                "No file found that matches the pattern: {}.", filePath)};
+        }
+        boundFilePaths.insert(
+            boundFilePaths.end(), globbedFilePaths.begin(), globbedFilePaths.end());
+    }
+    if (boundFilePaths.empty()) {
+        throw BinderException{StringUtils::string_format("Invalid file path: {}.", filePaths[0])};
+    }
+    return boundFilePaths;
+}
+// End file binding
+
+// Start parsing option binding
+static char bindParsingOptionValue(std::string value) {
+    if (value == "\\t") {
+        return '\t';
+    }
+    if (value.length() > 2 || (value.length() == 2 && value[0] != '\\')) {
+        throw BinderException("Copy csv option value can only be a single character with an "
+                              "optional escape character.");
+    }
+    return value[value.length() - 1];
+}
+
+static void bindStringParsingOptions(
+    CSVReaderConfig& csvReaderConfig, const std::string& optionName, std::string& optionValue) {
+    auto parsingOptionValue = bindParsingOptionValue(optionValue);
+    if (optionName == "ESCAPE") {
+        csvReaderConfig.escapeChar = parsingOptionValue;
+    } else if (optionName == "DELIM") {
+        csvReaderConfig.delimiter = parsingOptionValue;
+    } else if (optionName == "QUOTE") {
+        csvReaderConfig.quoteChar = parsingOptionValue;
+    } else if (optionName == "LIST_BEGIN") {
+        csvReaderConfig.listBeginChar = parsingOptionValue;
+    } else if (optionName == "LIST_END") {
+        csvReaderConfig.listEndChar = parsingOptionValue;
+    }
+}
+
+static bool validateStringParsingOptionName(std::string& parsingOptionName) {
+    for (auto i = 0; i < std::size(CopyConstants::STRING_CSV_PARSING_OPTIONS); i++) {
+        if (parsingOptionName == CopyConstants::STRING_CSV_PARSING_OPTIONS[i]) {
+            return true;
+        }
+    }
+    return false;
+}
+// End parsing option binding
+
 std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statement) {
     auto& copyToStatement = (CopyTo&)statement;
     auto boundFilePath = copyToStatement.getFilePath();
@@ -35,13 +115,11 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
 
 // As a temporary constraint, we require npy files loaded with COPY FROM BY COLUMN keyword.
 // And csv and parquet files loaded with COPY FROM keyword.
-static void validateCopyNpyKeyword(
-    CopyDescription::FileType expectedType, CopyDescription::FileType actualType) {
-    if (expectedType == CopyDescription::FileType::UNKNOWN &&
-        actualType == CopyDescription::FileType::NPY) {
+static void validateByColumnKeyword(CopyDescription::FileType fileType, bool byColumn) {
+    if (fileType == CopyDescription::FileType::NPY && !byColumn) {
         throw BinderException(ExceptionMessage::validateCopyNPYByColumnException());
     }
-    if (expectedType == CopyDescription::FileType::NPY && actualType != expectedType) {
+    if (fileType != CopyDescription::FileType::NPY && byColumn) {
         throw BinderException(ExceptionMessage::validateCopyCSVParquetByColumnException());
     }
 }
@@ -61,34 +139,7 @@ static void validateCopyNpyNotForRelTables(TableSchema* schema) {
     }
 }
 
-expression_vector Binder::bindColumnExpressions(
-    TableSchema* tableSchema, CopyDescription::FileType fileType) {
-    expression_vector columnExpressions;
-    if (tableSchema->tableType == TableType::REL) {
-        // For rel table, add FROM and TO columns as data columns to be read from file.
-        columnExpressions.push_back(createVariable(std::string(Property::REL_FROM_PROPERTY_NAME),
-            LogicalType{LogicalTypeID::ARROW_COLUMN}));
-        columnExpressions.push_back(createVariable(
-            std::string(Property::REL_TO_PROPERTY_NAME), LogicalType{LogicalTypeID::ARROW_COLUMN}));
-    }
-    auto isCopyNodeCSV =
-        tableSchema->tableType == TableType::NODE && fileType == CopyDescription::FileType::CSV;
-    for (auto& property : tableSchema->properties) {
-        if (property->getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL ||
-            TableSchema::isReservedPropertyName(property->getName())) {
-            continue;
-        } else if (isCopyNodeCSV) {
-            columnExpressions.push_back(
-                createVariable(property->getName(), *property->getDataType()));
-        } else {
-            columnExpressions.push_back(
-                createVariable(property->getName(), LogicalType{LogicalTypeID::ARROW_COLUMN}));
-        }
-    }
-    return columnExpressions;
-}
-
-static bool bindContainsSerial(TableSchema* tableSchema, CopyDescription::FileType fileType) {
+static bool bindContainsSerial(TableSchema* tableSchema) {
     bool containsSerial = false;
     for (auto& property : tableSchema->properties) {
         if (property->getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL) {
@@ -103,65 +154,101 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     auto& copyStatement = (CopyFrom&)statement;
     auto catalogContent = catalog.getReadOnlyVersion();
     auto tableName = copyStatement.getTableName();
-    // Bind to table schema.
     validateNodeRelTableExist(tableName);
+    // Bind to table schema.
     auto tableID = catalogContent->getTableID(tableName);
     auto tableSchema = catalogContent->getTableSchema(tableID);
     // Bind csv reader configuration
-    auto csvReaderConfig = bindParsingOptions(copyStatement.getParsingOptions());
+    auto csvReaderConfig = bindParsingOptions(copyStatement.getParsingOptionsRef());
     auto boundFilePaths = bindFilePaths(copyStatement.getFilePaths());
     // Bind file type.
-    auto actualFileType = bindFileType(boundFilePaths);
-    auto expectedFileType = copyStatement.getFileType();
-    validateCopyNpyKeyword(expectedFileType, actualFileType);
-    if (actualFileType == CopyDescription::FileType::NPY) {
+    auto fileType = bindFileType(boundFilePaths);
+    validateByColumnKeyword(fileType, copyStatement.byColumn());
+    if (fileType == CopyDescription::FileType::NPY) {
         validateCopyNpyFilesMatchSchema(boundFilePaths.size(), tableSchema);
         validateCopyNpyNotForRelTables(tableSchema);
     }
-    // Bind execution mode.
-    // For CSV file, and table with SERIAL columns, we need to read in serial from files.
-    auto containsSerial = bindContainsSerial(tableSchema, actualFileType);
-    // Bind expressions.
-    auto columnExpressions = bindColumnExpressions(tableSchema, actualFileType);
-    auto copyDescription = std::make_unique<CopyDescription>(
-        actualFileType, boundFilePaths, std::move(csvReaderConfig));
-    auto nodeOffsetExpression =
-        createVariable(std::string(Property::OFFSET_NAME), LogicalType{LogicalTypeID::INT64});
-    std::shared_ptr<Expression> boundOffset = nullptr;
-    std::shared_ptr<Expression> nbrOffset = nullptr;
-    if (tableSchema->tableType == TableType::REL) {
-        boundOffset = createVariable(
-            std::string(Property::REL_BOUND_OFFSET_NAME), LogicalType{LogicalTypeID::ARROW_COLUMN});
-        nbrOffset = createVariable(
-            std::string(Property::REL_NBR_OFFSET_NAME), LogicalType{LogicalTypeID::ARROW_COLUMN});
+    auto copyDescription =
+        std::make_unique<CopyDescription>(fileType, boundFilePaths, std::move(csvReaderConfig));
+    switch (tableSchema->tableType) {
+    case TableType::NODE:
+        return bindCopyNodeFrom(std::move(copyDescription), tableSchema);
+    case TableType::REL:
+        return bindCopyRelFrom(std::move(copyDescription), tableSchema);
+    default:
+        throw NotImplementedException("bindCopyFromClause");
     }
+}
+
+std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(
+    std::unique_ptr<CopyDescription> copyDescription, TableSchema* tableSchema) {
+    // For table with SERIAL columns, we need to read in serial from files.
+    auto containsSerial = bindContainsSerial(tableSchema);
+    auto columns = bindCopyNodeColumns(tableSchema, copyDescription->fileType);
+    auto nodeOffset =
+        createVariable(std::string(Property::OFFSET_NAME), LogicalType{LogicalTypeID::INT64});
     auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(std::move(copyDescription),
-        tableSchema, std::move(columnExpressions), std::move(nodeOffsetExpression),
-        std::move(boundOffset), std::move(nbrOffset), containsSerial);
+        tableSchema, std::move(columns), std::move(nodeOffset), nullptr, nullptr, containsSerial);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
-std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& filePaths) {
-    std::vector<std::string> boundFilePaths;
-    for (auto& filePath : filePaths) {
-        auto globbedFilePaths = FileUtils::globFilePath(filePath);
-        if (globbedFilePaths.empty()) {
-            throw BinderException{StringUtils::string_format(
-                "No file found that matches the pattern: {}.", filePath)};
+std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(
+    std::unique_ptr<CopyDescription> copyDescription, TableSchema* tableSchema) {
+    // For table with SERIAL columns, we need to read in serial from files.
+    auto containsSerial = bindContainsSerial(tableSchema);
+    auto columns = bindCopyRelColumns(tableSchema);
+    auto nodeOffset =
+        createVariable(std::string(Property::OFFSET_NAME), LogicalType{LogicalTypeID::INT64});
+    auto boundOffset = createVariable(
+        std::string(Property::REL_BOUND_OFFSET_NAME), LogicalType{LogicalTypeID::ARROW_COLUMN});
+    auto nbrOffset = createVariable(
+        std::string(Property::REL_NBR_OFFSET_NAME), LogicalType{LogicalTypeID::ARROW_COLUMN});
+    auto boundCopyFromInfo =
+        std::make_unique<BoundCopyFromInfo>(std::move(copyDescription), tableSchema,
+            std::move(columns), std::move(nodeOffset), boundOffset, nbrOffset, containsSerial);
+    return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
+}
+
+static bool skipPropertyInFile(const Property& property) {
+    return property.getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL ||
+           TableSchema::isReservedPropertyName(property.getName());
+}
+
+expression_vector Binder::bindCopyNodeColumns(
+    TableSchema* tableSchema, CopyDescription::FileType fileType) {
+    expression_vector columnExpressions;
+    auto isCopyCSV = fileType == CopyDescription::FileType::CSV;
+    for (auto& property : tableSchema->properties) {
+        if (skipPropertyInFile(*property)) {
+            continue;
         }
-        boundFilePaths.insert(
-            boundFilePaths.end(), globbedFilePaths.begin(), globbedFilePaths.end());
+        auto dataType =
+            isCopyCSV ? *property->getDataType() : LogicalType{LogicalTypeID::ARROW_COLUMN};
+        columnExpressions.push_back(createVariable(property->getName(), dataType));
     }
-    if (boundFilePaths.empty()) {
-        throw BinderException{StringUtils::string_format("Invalid file path: {}.", filePaths[0])};
+    return columnExpressions;
+}
+
+expression_vector Binder::bindCopyRelColumns(TableSchema* tableSchema) {
+    expression_vector columnExpressions;
+    columnExpressions.push_back(createVariable(
+        std::string(Property::REL_FROM_PROPERTY_NAME), LogicalType{LogicalTypeID::ARROW_COLUMN}));
+    columnExpressions.push_back(createVariable(
+        std::string(Property::REL_TO_PROPERTY_NAME), LogicalType{LogicalTypeID::ARROW_COLUMN}));
+    for (auto& property : tableSchema->properties) {
+        if (skipPropertyInFile(*property)) {
+            continue;
+        }
+        columnExpressions.push_back(
+            createVariable(property->getName(), LogicalType{LogicalTypeID::ARROW_COLUMN}));
     }
-    return boundFilePaths;
+    return columnExpressions;
 }
 
 std::unique_ptr<CSVReaderConfig> Binder::bindParsingOptions(
-    const std::unordered_map<std::string, std::unique_ptr<ParsedExpression>>* parsingOptions) {
+    const std::unordered_map<std::string, std::unique_ptr<ParsedExpression>>& parsingOptions) {
     auto csvReaderConfig = std::make_unique<CSVReaderConfig>();
-    for (auto& parsingOption : *parsingOptions) {
+    for (auto& parsingOption : parsingOptions) {
         auto copyOptionName = parsingOption.first;
         StringUtils::toUpper(copyOptionName);
         bool isValidStringParsingOption = validateStringParsingOptionName(copyOptionName);
@@ -190,56 +277,6 @@ std::unique_ptr<CSVReaderConfig> Binder::bindParsingOptions(
         }
     }
     return csvReaderConfig;
-}
-
-void Binder::bindStringParsingOptions(
-    CSVReaderConfig& csvReaderConfig, const std::string& optionName, std::string& optionValue) {
-    auto parsingOptionValue = bindParsingOptionValue(optionValue);
-    if (optionName == "ESCAPE") {
-        csvReaderConfig.escapeChar = parsingOptionValue;
-    } else if (optionName == "DELIM") {
-        csvReaderConfig.delimiter = parsingOptionValue;
-    } else if (optionName == "QUOTE") {
-        csvReaderConfig.quoteChar = parsingOptionValue;
-    } else if (optionName == "LIST_BEGIN") {
-        csvReaderConfig.listBeginChar = parsingOptionValue;
-    } else if (optionName == "LIST_END") {
-        csvReaderConfig.listEndChar = parsingOptionValue;
-    }
-}
-
-char Binder::bindParsingOptionValue(std::string value) {
-    if (value == "\\t") {
-        return '\t';
-    }
-    if (value.length() > 2 || (value.length() == 2 && value[0] != '\\')) {
-        throw BinderException("Copy csv option value can only be a single character with an "
-                              "optional escape character.");
-    }
-    return value[value.length() - 1];
-}
-
-CopyDescription::FileType Binder::bindFileType(const std::string& filePath) {
-    std::filesystem::path fileName(filePath);
-    auto extension = FileUtils::getFileExtension(fileName);
-    auto fileType = CopyDescription::getFileTypeFromExtension(extension);
-    if (fileType == CopyDescription::FileType::UNKNOWN) {
-        throw CopyException("Unsupported file type: " + filePath);
-    }
-    return fileType;
-}
-
-CopyDescription::FileType Binder::bindFileType(const std::vector<std::string>& filePaths) {
-    auto expectedFileType = CopyDescription::FileType::UNKNOWN;
-    for (auto& filePath : filePaths) {
-        auto fileType = bindFileType(filePath);
-        expectedFileType =
-            (expectedFileType == CopyDescription::FileType::UNKNOWN) ? fileType : expectedFileType;
-        if (fileType != expectedFileType) {
-            throw CopyException("Loading files with different types is not currently supported.");
-        }
-    }
-    return expectedFileType;
 }
 
 } // namespace binder

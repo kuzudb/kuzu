@@ -41,23 +41,24 @@ public:
   };
 
   enum {
-    RuleOC_Cypher = 0, RuleKU_CopyFromCSV = 1, RuleKU_CopyFromNPY = 2, RuleKU_CopyTO = 3, 
-    RuleKU_StandaloneCall = 4, RuleKU_CreateMacro = 5, RuleKU_PositionalArgs = 6, 
-    RuleKU_DefaultArg = 7, RuleKU_FilePaths = 8, RuleKU_ParsingOptions = 9, 
-    RuleKU_ParsingOption = 10, RuleKU_DDL = 11, RuleKU_CreateNodeTable = 12, 
-    RuleKU_CreateRelTable = 13, RuleKU_CreateRelTableGroup = 14, RuleKU_RelTableConnection = 15, 
-    RuleKU_CreateRdfGraph = 16, RuleKU_DropTable = 17, RuleKU_AlterTable = 18, 
-    RuleKU_AlterOptions = 19, RuleKU_AddProperty = 20, RuleKU_DropProperty = 21, 
-    RuleKU_RenameTable = 22, RuleKU_RenameProperty = 23, RuleKU_PropertyDefinitions = 24, 
-    RuleKU_PropertyDefinition = 25, RuleKU_CreateNodeConstraint = 26, RuleKU_DataType = 27, 
-    RuleKU_ListIdentifiers = 28, RuleKU_ListIdentifier = 29, RuleOC_AnyCypherOption = 30, 
-    RuleOC_Explain = 31, RuleOC_Profile = 32, RuleOC_Statement = 33, RuleKU_Transaction = 34, 
-    RuleOC_Query = 35, RuleOC_RegularQuery = 36, RuleOC_Union = 37, RuleOC_SingleQuery = 38, 
-    RuleOC_SinglePartQuery = 39, RuleOC_MultiPartQuery = 40, RuleKU_QueryPart = 41, 
-    RuleOC_UpdatingClause = 42, RuleOC_ReadingClause = 43, RuleKU_InQueryCall = 44, 
-    RuleOC_Match = 45, RuleOC_Unwind = 46, RuleOC_Create = 47, RuleOC_Merge = 48, 
-    RuleOC_MergeAction = 49, RuleOC_Set = 50, RuleOC_SetItem = 51, RuleOC_Delete = 52, 
-    RuleOC_With = 53, RuleOC_Return = 54, RuleOC_ProjectionBody = 55, RuleOC_ProjectionItems = 56, 
+    RuleOC_Cypher = 0, RuleOC_Statement = 1, RuleKU_CopyFrom = 2, RuleKU_CopyFromByColumn = 3, 
+    RuleKU_CopyTO = 4, RuleKU_StandaloneCall = 5, RuleKU_CreateMacro = 6, 
+    RuleKU_PositionalArgs = 7, RuleKU_DefaultArg = 8, RuleKU_FilePaths = 9, 
+    RuleKU_ParsingOptions = 10, RuleKU_ParsingOption = 11, RuleKU_DDL = 12, 
+    RuleKU_CreateNodeTable = 13, RuleKU_CreateRelTable = 14, RuleKU_CreateRelTableGroup = 15, 
+    RuleKU_RelTableConnection = 16, RuleKU_CreateRdfGraph = 17, RuleKU_DropTable = 18, 
+    RuleKU_AlterTable = 19, RuleKU_AlterOptions = 20, RuleKU_AddProperty = 21, 
+    RuleKU_DropProperty = 22, RuleKU_RenameTable = 23, RuleKU_RenameProperty = 24, 
+    RuleKU_PropertyDefinitions = 25, RuleKU_PropertyDefinition = 26, RuleKU_CreateNodeConstraint = 27, 
+    RuleKU_DataType = 28, RuleKU_ListIdentifiers = 29, RuleKU_ListIdentifier = 30, 
+    RuleOC_AnyCypherOption = 31, RuleOC_Explain = 32, RuleOC_Profile = 33, 
+    RuleKU_Transaction = 34, RuleOC_Query = 35, RuleOC_RegularQuery = 36, 
+    RuleOC_Union = 37, RuleOC_SingleQuery = 38, RuleOC_SinglePartQuery = 39, 
+    RuleOC_MultiPartQuery = 40, RuleKU_QueryPart = 41, RuleOC_UpdatingClause = 42, 
+    RuleOC_ReadingClause = 43, RuleKU_InQueryCall = 44, RuleOC_Match = 45, 
+    RuleOC_Unwind = 46, RuleOC_Create = 47, RuleOC_Merge = 48, RuleOC_MergeAction = 49, 
+    RuleOC_Set = 50, RuleOC_SetItem = 51, RuleOC_Delete = 52, RuleOC_With = 53, 
+    RuleOC_Return = 54, RuleOC_ProjectionBody = 55, RuleOC_ProjectionItems = 56, 
     RuleOC_ProjectionItem = 57, RuleOC_Order = 58, RuleOC_Skip = 59, RuleOC_Limit = 60, 
     RuleOC_SortItem = 61, RuleOC_Where = 62, RuleOC_Pattern = 63, RuleOC_PatternPart = 64, 
     RuleOC_AnonymousPatternPart = 65, RuleOC_PatternElement = 66, RuleOC_NodePattern = 67, 
@@ -97,8 +98,9 @@ public:
 
 
   class OC_CypherContext;
-  class KU_CopyFromCSVContext;
-  class KU_CopyFromNPYContext;
+  class OC_StatementContext;
+  class KU_CopyFromContext;
+  class KU_CopyFromByColumnContext;
   class KU_CopyTOContext;
   class KU_StandaloneCallContext;
   class KU_CreateMacroContext;
@@ -129,7 +131,6 @@ public:
   class OC_AnyCypherOptionContext;
   class OC_ExplainContext;
   class OC_ProfileContext;
-  class OC_StatementContext;
   class KU_TransactionContext;
   class OC_QueryContext;
   class OC_RegularQueryContext;
@@ -241,9 +242,27 @@ public:
 
   OC_CypherContext* oC_Cypher();
 
-  class  KU_CopyFromCSVContext : public antlr4::ParserRuleContext {
+  class  OC_StatementContext : public antlr4::ParserRuleContext {
   public:
-    KU_CopyFromCSVContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    OC_StatementContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    OC_QueryContext *oC_Query();
+    KU_DDLContext *kU_DDL();
+    KU_CopyFromContext *kU_CopyFrom();
+    KU_CopyFromByColumnContext *kU_CopyFromByColumn();
+    KU_CopyTOContext *kU_CopyTO();
+    KU_StandaloneCallContext *kU_StandaloneCall();
+    KU_CreateMacroContext *kU_CreateMacro();
+    KU_TransactionContext *kU_Transaction();
+
+   
+  };
+
+  OC_StatementContext* oC_Statement();
+
+  class  KU_CopyFromContext : public antlr4::ParserRuleContext {
+  public:
+    KU_CopyFromContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *COPY();
     std::vector<antlr4::tree::TerminalNode *> SP();
@@ -256,11 +275,11 @@ public:
    
   };
 
-  KU_CopyFromCSVContext* kU_CopyFromCSV();
+  KU_CopyFromContext* kU_CopyFrom();
 
-  class  KU_CopyFromNPYContext : public antlr4::ParserRuleContext {
+  class  KU_CopyFromByColumnContext : public antlr4::ParserRuleContext {
   public:
-    KU_CopyFromNPYContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    KU_CopyFromByColumnContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *COPY();
     std::vector<antlr4::tree::TerminalNode *> SP();
@@ -275,7 +294,7 @@ public:
    
   };
 
-  KU_CopyFromNPYContext* kU_CopyFromNPY();
+  KU_CopyFromByColumnContext* kU_CopyFromByColumn();
 
   class  KU_CopyTOContext : public antlr4::ParserRuleContext {
   public:
@@ -727,24 +746,6 @@ public:
   };
 
   OC_ProfileContext* oC_Profile();
-
-  class  OC_StatementContext : public antlr4::ParserRuleContext {
-  public:
-    OC_StatementContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    OC_QueryContext *oC_Query();
-    KU_DDLContext *kU_DDL();
-    KU_CopyFromNPYContext *kU_CopyFromNPY();
-    KU_CopyFromCSVContext *kU_CopyFromCSV();
-    KU_CopyTOContext *kU_CopyTO();
-    KU_StandaloneCallContext *kU_StandaloneCall();
-    KU_CreateMacroContext *kU_CreateMacro();
-    KU_TransactionContext *kU_Transaction();
-
-   
-  };
-
-  OC_StatementContext* oC_Statement();
 
   class  KU_TransactionContext : public antlr4::ParserRuleContext {
   public:

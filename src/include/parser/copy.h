@@ -13,24 +13,23 @@ namespace parser {
 
 class CopyFrom : public Statement {
 public:
-    explicit CopyFrom(std::vector<std::string> filePaths, std::string tableName,
-        std::unordered_map<std::string, std::unique_ptr<ParsedExpression>> parsingOptions,
-        common::CopyDescription::FileType fileType)
-        : Statement{common::StatementType::COPY_FROM}, filePaths{std::move(filePaths)},
-          tableName{std::move(tableName)},
-          parsingOptions{std::move(parsingOptions)}, fileType{fileType} {}
+    explicit CopyFrom(bool byColumn_, std::vector<std::string> filePaths, std::string tableName,
+        std::unordered_map<std::string, std::unique_ptr<ParsedExpression>> parsingOptions)
+        : Statement{common::StatementType::COPY_FROM}, byColumn_{byColumn_}, filePaths{std::move(
+                                                                                 filePaths)},
+          tableName{std::move(tableName)}, parsingOptions{std::move(parsingOptions)} {}
 
+    inline bool byColumn() const { return byColumn_; }
     inline std::vector<std::string> getFilePaths() const { return filePaths; }
     inline std::string getTableName() const { return tableName; }
-    inline std::unordered_map<std::string, std::unique_ptr<ParsedExpression>> const*
-    getParsingOptions() const {
-        return &parsingOptions;
+    inline const std::unordered_map<std::string, std::unique_ptr<ParsedExpression>>&
+    getParsingOptionsRef() const {
+        return parsingOptions;
     }
-    inline common::CopyDescription::FileType getFileType() const { return fileType; }
 
 private:
+    bool byColumn_;
     std::vector<std::string> filePaths;
-    common::CopyDescription::FileType fileType;
     std::string tableName;
     std::unordered_map<std::string, std::unique_ptr<ParsedExpression>> parsingOptions;
 };

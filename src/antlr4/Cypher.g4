@@ -16,10 +16,20 @@ grammar Cypher;
 oC_Cypher
     : SP ? oC_AnyCypherOption? SP? ( oC_Statement ) ( SP? ';' )? SP? EOF ;
 
-kU_CopyFromCSV
+oC_Statement
+    : oC_Query
+        | kU_DDL
+        | kU_CopyFrom
+        | kU_CopyFromByColumn
+        | kU_CopyTO
+        | kU_StandaloneCall
+        | kU_CreateMacro
+        | kU_Transaction ;
+
+kU_CopyFrom
     : COPY SP oC_SchemaName SP FROM SP kU_FilePaths ( SP? '(' SP? kU_ParsingOptions SP? ')' )? ;
 
-kU_CopyFromNPY
+kU_CopyFromByColumn
     : COPY SP oC_SchemaName SP FROM SP '(' SP? StringLiteral ( SP? ',' SP? StringLiteral )* ')' SP BY SP COLUMN ;
 
 kU_CopyTO
@@ -166,16 +176,6 @@ oC_Profile
     : PROFILE ;
 
 PROFILE : ( 'P' | 'p' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'F' | 'f' ) ( 'I' | 'i' ) ( 'L' | 'l' ) ( 'E' | 'e' ) ;
-
-oC_Statement
-    : oC_Query
-        | kU_DDL
-        | kU_CopyFromNPY
-        | kU_CopyFromCSV
-        | kU_CopyTO
-        | kU_StandaloneCall
-        | kU_CreateMacro
-        | kU_Transaction ;
 
 kU_Transaction
     : BEGIN SP READ SP TRANSACTION
