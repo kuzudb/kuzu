@@ -20,7 +20,7 @@
 </p>
 
 # Kùzu
-Kùzu is an in-process property graph database management system (GDBMS) built for query speed and scalability. Kùzu is optimized for handling complex join-heavy analytical workloads on very large graph databases, with the following core feature set:
+Kùzu is an embedded graph database built for query speed and scalability. Kùzu is optimized for handling complex join-heavy analytical workloads on very large databases, with the following core feature set:
 
 - Flexible Property Graph Data Model and Cypher query language
 - Embeddable, serverless integration into applications 
@@ -31,7 +31,7 @@ Kùzu is an in-process property graph database management system (GDBMS) built f
 - Multi-core query parallelism
 - Serializable ACID transactions
 
-Kùzu is being actively developed at University of Waterloo as a feature-rich and usable GDBMS. Kùzu is available under a permissible license. So try it out and help us make it better! We welcome your feedback and feature requests.
+Kùzu is being actively developed at University of Waterloo as a feature-rich and usable graph database management system (GDBMS). Kùzu is available under a permissible license. So try it out and help us make it better! We welcome your feedback and feature requests.
 
 ## Installation
 
