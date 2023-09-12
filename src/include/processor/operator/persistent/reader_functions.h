@@ -1,6 +1,7 @@
 #pragma once
 
-#include "processor/operator/persistent/csv_reader.h"
+#include "processor/operator/persistent/reader/csv_reader.h"
+#include "processor/operator/persistent/reader/rdf_reader.h"
 #include "storage/copier/npy_reader.h"
 #include "storage/copier/table_copy_utils.h"
 
@@ -30,6 +31,10 @@ struct ParquetReaderFunctionData : public ReaderFunctionData {
 
 struct NPYReaderFunctionData : public ReaderFunctionData {
     std::unique_ptr<storage::NpyMultiFileReader> reader = nullptr;
+};
+
+struct RDFReaderFunctionData : public ReaderFunctionData {
+    std::unique_ptr<storage::RDFReader> reader = nullptr;
 };
 
 struct FileBlocksInfo {
@@ -69,6 +74,10 @@ struct ReaderFunctions {
     }
     static void validateNPYFiles(
         const std::vector<std::string>& paths, catalog::TableSchema* tableSchema);
+    static inline void validateRDFFiles(
+        const std::vector<std::string>& paths, catalog::TableSchema* tableSchema) {
+        // DO NOTHING.
+    }
 
     static std::vector<FileBlocksInfo> countRowsInRelCSVFile(const std::vector<std::string>& paths,
         common::CSVReaderConfig csvReaderConfig, catalog::TableSchema* tableSchema,
@@ -80,6 +89,9 @@ struct ReaderFunctions {
         common::CSVReaderConfig csvReaderConfig, catalog::TableSchema* tableSchema,
         storage::MemoryManager* memoryManager);
     static std::vector<FileBlocksInfo> countRowsInNPYFile(const std::vector<std::string>& paths,
+        common::CSVReaderConfig csvReaderConfig, catalog::TableSchema* tableSchema,
+        storage::MemoryManager* memoryManager);
+    static std::vector<FileBlocksInfo> countRowsInRDFFile(const std::vector<std::string>& paths,
         common::CSVReaderConfig csvReaderConfig, catalog::TableSchema* tableSchema,
         storage::MemoryManager* memoryManager);
 
@@ -95,6 +107,9 @@ struct ReaderFunctions {
     static void initNPYReadData(ReaderFunctionData& funcData, const std::vector<std::string>& paths,
         common::vector_idx_t fileIdx, common::CSVReaderConfig csvReaderConfig,
         catalog::TableSchema* tableSchema);
+    static void initRDFReadData(ReaderFunctionData& funcData, const std::vector<std::string>& paths,
+        common::vector_idx_t fileIdx, common::CSVReaderConfig csvReaderConfig,
+        catalog::TableSchema* tableSchema);
 
     static void readRowsFromRelCSVFile(const ReaderFunctionData& funcData,
         common::block_idx_t blockIdx, common::DataChunk* dataChunkToRead);
@@ -103,6 +118,8 @@ struct ReaderFunctions {
     static void readRowsFromParquetFile(const ReaderFunctionData& funcData,
         common::block_idx_t blockIdx, common::DataChunk* vectorsToRead);
     static void readRowsFromNPYFile(const ReaderFunctionData& funcData,
+        common::block_idx_t blockIdx, common::DataChunk* vectorsToRead);
+    static void readRowsFromRDFFile(const ReaderFunctionData& funcData,
         common::block_idx_t blockIdx, common::DataChunk* vectorsToRead);
 
     static std::unique_ptr<common::DataChunk> getDataChunkToRead(

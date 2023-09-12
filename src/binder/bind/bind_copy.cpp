@@ -217,14 +217,35 @@ static bool skipPropertyInFile(const Property& property) {
 expression_vector Binder::bindCopyNodeColumns(
     TableSchema* tableSchema, CopyDescription::FileType fileType) {
     expression_vector columnExpressions;
-    auto isCopyCSV = fileType == CopyDescription::FileType::CSV;
-    for (auto& property : tableSchema->properties) {
-        if (skipPropertyInFile(*property)) {
-            continue;
+    switch (fileType) {
+    case common::CopyDescription::FileType::TURTLE: {
+        columnExpressions.push_back(createVariable("SUBJECT", LogicalType{LogicalTypeID::STRING}));
+        columnExpressions.push_back(
+            createVariable("PREDICATE", LogicalType{LogicalTypeID::STRING}));
+        columnExpressions.push_back(createVariable("OBJECT", LogicalType{LogicalTypeID::STRING}));
+    } break;
+    case common::CopyDescription::FileType::CSV: {
+        for (auto& property : tableSchema->properties) {
+            if (skipPropertyInFile(*property)) {
+                continue;
+            }
+            columnExpressions.push_back(
+                createVariable(property->getName(), *property->getDataType()));
         }
-        auto dataType =
-            isCopyCSV ? *property->getDataType() : LogicalType{LogicalTypeID::ARROW_COLUMN};
-        columnExpressions.push_back(createVariable(property->getName(), dataType));
+    } break;
+    case common::CopyDescription::FileType::NPY:
+    case common::CopyDescription::FileType::PARQUET: {
+        for (auto& property : tableSchema->properties) {
+            if (skipPropertyInFile(*property)) {
+                continue;
+            }
+            columnExpressions.push_back(
+                createVariable(property->getName(), LogicalType{LogicalTypeID::ARROW_COLUMN}));
+        }
+    } break;
+    default: {
+        throw NotImplementedException{"Binder::bindCopyNodeColumns"};
+    }
     }
     return columnExpressions;
 }

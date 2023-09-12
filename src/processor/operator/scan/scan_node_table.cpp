@@ -9,6 +9,9 @@ bool ScanSingleNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     if (!children[0]->getNextTuple(context)) {
         return false;
     }
+    for (auto& outputVector : outPropertyVectors) {
+        outputVector->resetAuxiliaryBuffer();
+    }
     table->read(transaction, inputNodeIDVector, propertyColumnIds, outPropertyVectors);
     return true;
 }

@@ -15,6 +15,8 @@ validate_func_t ReaderFunctions::getValidateFunc(CopyDescription::FileType fileT
         return validateParquetFiles;
     case CopyDescription::FileType::NPY:
         return validateNPYFiles;
+    case CopyDescription::FileType::TURTLE:
+        return validateRDFFiles;
     default:
         throw NotImplementedException{"ReaderFunctions::getValidateFunc"};
     }
@@ -38,6 +40,9 @@ count_blocks_func_t ReaderFunctions::getCountBlocksFunc(
     }
     case CopyDescription::FileType::NPY: {
         return countRowsInNPYFile;
+    }
+    case CopyDescription::FileType::TURTLE: {
+        return countRowsInRDFFile;
     }
     default: {
         throw NotImplementedException{"ReaderFunctions::getRowsCounterFunc"};
@@ -64,6 +69,9 @@ init_reader_data_func_t ReaderFunctions::getInitDataFunc(
     case CopyDescription::FileType::NPY: {
         return initNPYReadData;
     }
+    case CopyDescription::FileType::TURTLE: {
+        return initRDFReadData;
+    }
     default: {
         throw NotImplementedException{"ReaderFunctions::getInitDataFunc"};
     }
@@ -89,6 +97,9 @@ read_rows_func_t ReaderFunctions::getReadRowsFunc(
     case CopyDescription::FileType::NPY: {
         return readRowsFromNPYFile;
     }
+    case CopyDescription::FileType::TURTLE: {
+        return readRowsFromRDFFile;
+    }
     default: {
         throw NotImplementedException{"ReaderFunctions::getReadRowsFunc"};
     }
@@ -113,6 +124,9 @@ std::shared_ptr<ReaderFunctionData> ReaderFunctions::getReadFuncData(
     }
     case CopyDescription::FileType::NPY: {
         return std::make_shared<NPYReaderFunctionData>();
+    }
+    case CopyDescription::FileType::TURTLE: {
+        return std::make_shared<RDFReaderFunctionData>();
     }
     default: {
         throw NotImplementedException{"ReaderFunctions::getReadFuncData"};
@@ -195,6 +209,29 @@ std::vector<FileBlocksInfo> ReaderFunctions::countRowsInNPYFile(
     return {{numRows, numBlocks}};
 }
 
+std::vector<FileBlocksInfo> ReaderFunctions::countRowsInRDFFile(
+    const std::vector<std::string>& paths, CSVReaderConfig csvReaderConfig,
+    TableSchema* tableSchema, MemoryManager* memoryManager) {
+    assert(paths.size() == 1);
+    auto reader = make_unique<RDFReader>(paths[0]);
+    auto dataChunk = std::make_unique<DataChunk>(3);
+    dataChunk->insert(0, std::make_unique<ValueVector>(LogicalTypeID::STRING, memoryManager));
+    dataChunk->insert(1, std::make_unique<ValueVector>(LogicalTypeID::STRING, memoryManager));
+    dataChunk->insert(2, std::make_unique<ValueVector>(LogicalTypeID::STRING, memoryManager));
+    row_idx_t numRowsInFile = 0;
+    block_idx_t numBlocks = 0;
+    while (true) {
+        auto numRowsRead = reader->read(dataChunk.get());
+        if (numRowsRead == 0) {
+            break;
+        }
+        numRowsInFile += numRowsRead;
+        numBlocks++;
+    }
+    FileBlocksInfo fileBlocksInfo{numRowsInFile, numBlocks};
+    return {fileBlocksInfo};
+}
+
 void ReaderFunctions::initRelCSVReadData(ReaderFunctionData& funcData,
     const std::vector<std::string>& paths, vector_idx_t fileIdx, CSVReaderConfig csvReaderConfig,
     TableSchema* tableSchema) {
@@ -234,9 +271,17 @@ void ReaderFunctions::initNPYReadData(ReaderFunctionData& funcData,
         make_unique<NpyMultiFileReader>(paths);
 }
 
+void ReaderFunctions::initRDFReadData(ReaderFunctionData& funcData,
+    const std::vector<std::string>& paths, vector_idx_t fileIdx, CSVReaderConfig csvReaderConfig,
+    TableSchema* tableSchema) {
+    funcData.fileIdx = fileIdx;
+    funcData.tableSchema = tableSchema;
+    reinterpret_cast<RDFReaderFunctionData&>(funcData).reader = make_unique<RDFReader>(paths[0]);
+}
+
 void ReaderFunctions::readRowsFromRelCSVFile(
     const ReaderFunctionData& functionData, block_idx_t blockIdx, DataChunk* dataChunkToRead) {
-    auto& readerData = (RelCSVReaderFunctionData&)(functionData);
+    auto& readerData = reinterpret_cast<const RelCSVReaderFunctionData&>(functionData);
     std::shared_ptr<arrow::RecordBatch> recordBatch;
     TableCopyUtils::throwCopyExceptionIfNotOK(readerData.reader->ReadNext(&recordBatch));
     if (recordBatch == nullptr) {
@@ -258,7 +303,7 @@ void ReaderFunctions::readRowsFromNodeCSVFile(
 
 void ReaderFunctions::readRowsFromParquetFile(const ReaderFunctionData& functionData,
     block_idx_t blockIdx, common::DataChunk* dataChunkToRead) {
-    auto& readerData = (ParquetReaderFunctionData&)(functionData);
+    auto& readerData = reinterpret_cast<const ParquetReaderFunctionData&>(functionData);
     std::shared_ptr<arrow::Table> table;
     TableCopyUtils::throwCopyExceptionIfNotOK(
         readerData.reader->RowGroup(static_cast<int>(blockIdx))->ReadTable(&table));
@@ -272,13 +317,19 @@ void ReaderFunctions::readRowsFromParquetFile(const ReaderFunctionData& function
 
 void ReaderFunctions::readRowsFromNPYFile(const ReaderFunctionData& functionData,
     common::block_idx_t blockIdx, common::DataChunk* dataChunkToRead) {
-    auto& readerData = (NPYReaderFunctionData&)(functionData);
+    auto& readerData = reinterpret_cast<const NPYReaderFunctionData&>(functionData);
     auto recordBatch = readerData.reader->readBlock(blockIdx);
     for (auto i = 0u; i < dataChunkToRead->getNumValueVectors(); i++) {
         ArrowColumnVector::setArrowColumn(dataChunkToRead->getValueVector(i).get(),
             std::make_shared<arrow::ChunkedArray>(recordBatch->column((int)i)));
     }
     dataChunkToRead->state->selVector->selectedSize = recordBatch->num_rows();
+}
+
+void ReaderFunctions::readRowsFromRDFFile(const ReaderFunctionData& functionData,
+    common::block_idx_t blockIdx, common::DataChunk* dataChunkToRead) {
+    auto& readerData = reinterpret_cast<const RDFReaderFunctionData&>(functionData);
+    readerData.reader->read(dataChunkToRead);
 }
 
 std::unique_ptr<common::DataChunk> ReaderFunctions::getDataChunkToRead(

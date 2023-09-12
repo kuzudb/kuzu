@@ -84,6 +84,7 @@ fn link_libraries() {
         println!("cargo:rustc-link-lib=static=antlr4_cypher");
         println!("cargo:rustc-link-lib=static=antlr4_runtime");
         println!("cargo:rustc-link-lib=static=re2");
+        println!("cargo:rustc-link-lib=static=serd");
     }
 }
 
@@ -135,7 +136,7 @@ fn build_bundled_cmake() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
     let kuzu_lib_path = build_dir.join("build").join("src");
     println!("cargo:rustc-link-search=native={}", kuzu_lib_path.display());
 
-    for dir in ["utf8proc", "antlr4_cypher", "antlr4_runtime", "re2"] {
+    for dir in ["utf8proc", "antlr4_cypher", "antlr4_runtime", "re2", "serd"] {
         let lib_path = build_dir
             .join("build")
             .join("third_party")

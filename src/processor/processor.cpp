@@ -86,7 +86,7 @@ void QueryProcessor::decomposePlanIntoTasks(
     } break;
     case PhysicalOperatorType::READER: {
         auto reader = (Reader*)op;
-        if (reader->getContainsSerial()) {
+        if (reader->getContainsSerial() || reader->isCopyTurtleFile()) {
             parentTask->setSingleThreadedTask();
         }
     } break;
