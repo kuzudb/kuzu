@@ -126,15 +126,15 @@ TEST_F(CApiConnectionTest, GetNodePropertyNames) {
     auto result = kuzu_connection_get_node_property_names(connection, "movies");
     ASSERT_NE(result, nullptr);
     auto resultString = std::string(result);
-    ASSERT_EQ(resultString,
-        "movies properties: \n"
-        "\tname STRING(PRIMARY KEY)\n"
-        "\tlength INT32\n"
-        "\tnote STRING\n"
-        "\tdescription STRUCT(rating:DOUBLE, views:INT64, release:TIMESTAMP, film:DATE)\n"
-        "\tcontent BLOB\n"
-        "\taudience MAP(STRING: INT64)\n"
-        "\tgrade UNION(credit:BOOL, grade1:DOUBLE, grade2:INT64)\n");
+    ASSERT_EQ(resultString, "movies properties: \n"
+                            "\tname STRING(PRIMARY KEY)\n"
+                            "\tlength INT32\n"
+                            "\tnote STRING\n"
+                            "\tdescription STRUCT(rating:DOUBLE, stars:INT8, views:INT64, "
+                            "release:TIMESTAMP, film:DATE)\n"
+                            "\tcontent BLOB\n"
+                            "\taudience MAP(STRING: INT64)\n"
+                            "\tgrade UNION(credit:BOOL, grade1:DOUBLE, grade2:INT64)\n");
     free(result);
 }
 

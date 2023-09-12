@@ -23,7 +23,14 @@ public:
         if (iss.str().empty()) {
             throw ConversionException{"Empty string."};
         }
-        iss >> result;
+
+        if constexpr (std::is_same_v<int8_t, T>) {
+            int val;
+            iss >> val; // C++ will recognize int8 as char if we don't separate this case.
+            result = val;
+        } else
+            iss >> result;
+
         if (iss.fail() || !iss.eof()) {
             return false;
         }
@@ -51,6 +58,7 @@ public:
     static inline std::string toString(int64_t val) { return std::to_string(val); }
     static inline std::string toString(int32_t val) { return std::to_string(val); }
     static inline std::string toString(int16_t val) { return std::to_string(val); }
+    static inline std::string toString(int8_t val) { return std::to_string(val); }
     static inline std::string toString(double_t val) { return std::to_string(val); }
     static inline std::string toString(float_t val) { return std::to_string(val); }
     static inline std::string toString(const internalID_t& val) {

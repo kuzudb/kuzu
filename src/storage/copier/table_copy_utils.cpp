@@ -147,6 +147,7 @@ std::unique_ptr<Value> TableCopyUtils::getArrowFixedListVal(const std::string& l
         case LogicalTypeID::INT64:
         case LogicalTypeID::INT32:
         case LogicalTypeID::INT16:
+        case LogicalTypeID::INT8:
         case LogicalTypeID::DOUBLE:
         case LogicalTypeID::FLOAT: {
             listValues.push_back(convertStringToValue(element, *childDataType, csvReaderConfig));
@@ -235,6 +236,9 @@ std::shared_ptr<arrow::DataType> TableCopyUtils::toArrowDataType(const LogicalTy
     case LogicalTypeID::INT16: {
         return arrow::int16();
     }
+    case LogicalTypeID::INT8: {
+        return arrow::int8();
+    }
     case LogicalTypeID::DOUBLE: {
         return arrow::float64();
     }
@@ -277,6 +281,10 @@ bool TableCopyUtils::tryCast(
     }
     case LogicalTypeID::INT16: {
         int16_t result;
+        return StringCastUtils::tryCastToNum(value, length, result);
+    }
+    case LogicalTypeID::INT8: {
+        int8_t result;
         return StringCastUtils::tryCastToNum(value, length, result);
     }
     case LogicalTypeID::DOUBLE: {
@@ -336,6 +344,10 @@ std::unique_ptr<Value> TableCopyUtils::convertStringToValue(
     case LogicalTypeID::INT16: {
         value = std::make_unique<Value>(
             StringCastUtils::castToNum<int16_t>(element.c_str(), element.length()));
+    } break;
+    case LogicalTypeID::INT8: {
+        value = std::make_unique<Value>(
+            StringCastUtils::castToNum<int8_t>(element.c_str(), element.length()));
     } break;
     case LogicalTypeID::FLOAT: {
         value = std::make_unique<Value>(

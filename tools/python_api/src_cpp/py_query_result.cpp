@@ -74,6 +74,9 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     case LogicalTypeID::BOOL: {
         return py::cast(value.getValue<bool>());
     }
+    case LogicalTypeID::INT8: {
+        return py::cast(value.getValue<int8_t>());
+    }
     case LogicalTypeID::INT16: {
         return py::cast(value.getValue<int16_t>());
     }

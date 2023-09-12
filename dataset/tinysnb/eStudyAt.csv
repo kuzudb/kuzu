@@ -1,4 +1,4 @@
-from,to,YEAR,Places,length
-0,1,2021,"[wwAewsdndweusd,wek]",5
-2,1,2020,"[anew,jsdnwusklklklwewsd]",55
-8,1,2020,"[awndsnjwejwen,isuhuwennjnuhuhuwewe]",22
+from,to,YEAR,Places,length,level
+0,1,2021,"[wwAewsdndweusd,wek]",5,5
+2,1,2020,"[anew,jsdnwusklklklwewsd]",55,120
+8,1,2020,"[awndsnjwejwen,isuhuwennjnuhuhuwewe]",22,2

@@ -22,6 +22,8 @@ std::string PhysicalTypeUtils::physicalTypeToString(PhysicalTypeID physicalType)
         return "INT32";
     case PhysicalTypeID::INT16:
         return "INT16";
+    case PhysicalTypeID::INT8:
+        return "INT8";
     case PhysicalTypeID::DOUBLE:
         return "DOUBLE";
     case PhysicalTypeID::FLOAT:
@@ -53,6 +55,8 @@ uint32_t PhysicalTypeUtils::getFixedTypeSize(PhysicalTypeID physicalType) {
         return sizeof(int32_t);
     case PhysicalTypeID::INT16:
         return sizeof(int16_t);
+    case PhysicalTypeID::INT8:
+        return sizeof(int8_t);
     case PhysicalTypeID::DOUBLE:
         return sizeof(double_t);
     case PhysicalTypeID::FLOAT:
@@ -334,6 +338,9 @@ void LogicalType::setPhysicalType() {
     case LogicalTypeID::INT16: {
         physicalType = PhysicalTypeID::INT16;
     } break;
+    case LogicalTypeID::INT8: {
+        physicalType = PhysicalTypeID::INT8;
+    } break;
     case LogicalTypeID::DOUBLE: {
         physicalType = PhysicalTypeID::DOUBLE;
     } break;
@@ -405,6 +412,8 @@ LogicalTypeID LogicalTypeUtils::dataTypeIDFromString(const std::string& dataType
         return LogicalTypeID::INT16;
     } else if ("INT" == upperDataTypeIDString) {
         return LogicalTypeID::INT32;
+    } else if ("INT8" == upperDataTypeIDString) {
+        return LogicalTypeID::INT8;
     } else if ("DOUBLE" == upperDataTypeIDString) {
         return LogicalTypeID::DOUBLE;
     } else if ("FLOAT" == upperDataTypeIDString) {
@@ -480,6 +489,7 @@ std::string LogicalTypeUtils::dataTypeToString(const LogicalType& dataType) {
     case LogicalTypeID::INT64:
     case LogicalTypeID::INT32:
     case LogicalTypeID::INT16:
+    case LogicalTypeID::INT8:
     case LogicalTypeID::DOUBLE:
     case LogicalTypeID::FLOAT:
     case LogicalTypeID::DATE:
@@ -514,6 +524,8 @@ std::string LogicalTypeUtils::dataTypeToString(LogicalTypeID dataTypeID) {
         return "INT32";
     case LogicalTypeID::INT16:
         return "INT16";
+    case LogicalTypeID::INT8:
+        return "INT8";
     case LogicalTypeID::DOUBLE:
         return "DOUBLE";
     case LogicalTypeID::FLOAT:

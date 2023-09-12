@@ -140,6 +140,9 @@ void ValueVector::copyFromValue(uint64_t pos, const Value& value) {
     case PhysicalTypeID::INT16: {
         memcpy(dstValue, &value.val.int16Val, numBytesPerValue);
     } break;
+    case PhysicalTypeID::INT8: {
+        memcpy(dstValue, &value.val.int8Val, numBytesPerValue);
+    } break;
     case PhysicalTypeID::DOUBLE: {
         memcpy(dstValue, &value.val.doubleVal, numBytesPerValue);
     } break;
@@ -225,6 +228,9 @@ std::unique_ptr<Value> ValueVector::getAsValue(uint64_t pos) {
     } break;
     case PhysicalTypeID::INT16: {
         value->val.int16Val = getValue<int16_t>(pos);
+    } break;
+    case PhysicalTypeID::INT8: {
+        value->val.int8Val = getValue<int8_t>(pos);
     } break;
     case PhysicalTypeID::DOUBLE: {
         value->val.doubleVal = getValue<double_t>(pos);
@@ -345,6 +351,7 @@ template void ValueVector::setValue<bool>(uint32_t pos, bool val);
 template void ValueVector::setValue<int64_t>(uint32_t pos, int64_t val);
 template void ValueVector::setValue<int32_t>(uint32_t pos, int32_t val);
 template void ValueVector::setValue<int16_t>(uint32_t pos, int16_t val);
+template void ValueVector::setValue<int8_t>(uint32_t pos, int8_t val);
 template void ValueVector::setValue<double_t>(uint32_t pos, double_t val);
 template void ValueVector::setValue<float_t>(uint32_t pos, float_t val);
 template void ValueVector::setValue<hash_t>(uint32_t pos, hash_t val);

@@ -318,6 +318,7 @@ describe("RECURSIVE_REL", function () {
           year: 2021,
           places: ["wwAewsdndweusd", "wek"],
           length: 5,
+          level: 5,
           grading: null,
           rating: null,
           location: null,

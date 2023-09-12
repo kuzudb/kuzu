@@ -216,6 +216,10 @@ void OrderByKeyEncoder::getEncodingFunction(PhysicalTypeID physicalType, encode_
         func = encodeTemplate<int16_t>;
         return;
     }
+    case PhysicalTypeID::INT8: {
+        func = encodeTemplate<int8_t>;
+        return;
+    }
     case PhysicalTypeID::DOUBLE: {
         func = encodeTemplate<double_t>;
         return;
@@ -235,6 +239,15 @@ void OrderByKeyEncoder::getEncodingFunction(PhysicalTypeID physicalType, encode_
     default:
         throw NotImplementedException{"OrderByKeyEncoder::getEncodingFunction"};
     }
+}
+
+template<>
+void OrderByKeyEncoder::encodeData(int8_t data, uint8_t* resultPtr, bool swapBytes) {
+    if (swapBytes) {
+        data = BSWAP8(data);
+    }
+    memcpy(resultPtr, (void*)&data, sizeof(data));
+    resultPtr[0] = flipSign(resultPtr[0]);
 }
 
 template<>
