@@ -10,15 +10,19 @@ using namespace kuzu::common;
 class EndToEndTest : public DBTest {
 public:
     explicit EndToEndTest(TestGroup::DatasetType datasetType, std::string dataset,
-        uint64_t bufferPoolSize, std::vector<std::unique_ptr<TestStatement>> testStatements)
+        uint64_t bufferPoolSize, uint64_t checkpointWaitTimeout,
+        const std::set<std::string>& connNames,
+        std::vector<std::unique_ptr<TestStatement>> testStatements)
         : datasetType{datasetType}, dataset{std::move(dataset)}, bufferPoolSize{bufferPoolSize},
+          checkpointWaitTimeout{checkpointWaitTimeout}, connNames{connNames},
           testStatements{std::move(testStatements)} {}
 
     void SetUp() override {
         setUpDataset();
         BaseGraphTest::SetUp();
         systemConfig->bufferPoolSize = bufferPoolSize;
-        createDBAndConn();
+        createDB(checkpointWaitTimeout);
+        createConns(connNames);
         if (dataset != "empty") {
             initGraph();
         }
@@ -38,7 +42,7 @@ public:
         FileUtils::removeDir(parquetTempDatasetPath);
     }
 
-    void TestBody() override { runTest(testStatements); }
+    void TestBody() override { runTest(testStatements, checkpointWaitTimeout, connNames); }
     std::string getInputDir() override { return dataset + "/"; }
 
 private:
@@ -46,7 +50,9 @@ private:
     std::string dataset;
     std::string parquetTempDatasetPath;
     uint64_t bufferPoolSize;
+    uint64_t checkpointWaitTimeout;
     std::vector<std::unique_ptr<TestStatement>> testStatements;
+    std::set<std::string> connNames;
 
     std::string generateParquetTempDatasetPath() {
         return TestHelper::appendKuzuRootPath(
@@ -64,6 +70,7 @@ void parseAndRegisterTestGroup(const std::string& path, bool generateTestList = 
         auto dataset = testGroup->dataset;
         auto testCases = std::move(testGroup->testCases);
         auto bufferPoolSize = testGroup->bufferPoolSize;
+        auto checkpointWaitTimeout = testGroup->checkpointWaitTimeout;
         for (auto& [testCaseName, testStatements] : testCases) {
             if (generateTestList) {
                 std::ofstream testList(TestHelper::getTestListFile(), std::ios_base::app);
@@ -72,12 +79,13 @@ void parseAndRegisterTestGroup(const std::string& path, bool generateTestList = 
             if (empty(testCaseName)) {
                 throw TestException("Missing test case name (-CASE) [" + path + "].");
             }
+            auto connNames = testGroup->testCasesConnNames[testCaseName];
             testing::RegisterTest(testGroup->group.c_str(), testCaseName.c_str(), nullptr, nullptr,
                 __FILE__, __LINE__,
-                [datasetType, dataset, bufferPoolSize,
+                [datasetType, dataset, bufferPoolSize, checkpointWaitTimeout, connNames,
                     testStatements = std::move(testStatements)]() mutable -> DBTest* {
-                    return new EndToEndTest(
-                        datasetType, dataset, bufferPoolSize, std::move(testStatements));
+                    return new EndToEndTest(datasetType, dataset, bufferPoolSize,
+                        checkpointWaitTimeout, connNames, std::move(testStatements));
                 });
         }
     } else {

@@ -132,7 +132,8 @@ std::string TestParser::extractTextBeforeNextStatement(bool ignoreLineBreak) {
     return extractedText;
 }
 
-TestStatement* TestParser::extractStatement(TestStatement* statement) {
+TestStatement* TestParser::extractStatement(
+    TestStatement* statement, const std::string& testCaseName) {
     if (endOfFile()) {
         return statement;
     }
@@ -143,8 +144,28 @@ TestStatement* TestParser::extractStatement(TestStatement* statement) {
         statement->logMessage = paramsToString(1);
         break;
     }
+    case TokenType::CHECKPOINT_WAIT_TIMEOUT: {
+        checkMinimumParams(1);
+        testGroup->checkpointWaitTimeout = stoi(currentToken.params[1]);
+        break;
+    }
+    case TokenType::CREATE_CONNECTION: {
+        checkMinimumParams(1);
+        testGroup->testCasesConnNames[testCaseName].insert(currentToken.params[1]);
+        break;
+    }
+    case TokenType::RELOADDB: {
+        statement->reLoadDBFlag = true;
+        return statement;
+    }
     case TokenType::STATEMENT: {
         std::string query = paramsToString(1);
+        bool statement_status = extractConnName(query, statement);
+        auto& caseStatus = testGroup->multipleConns;
+        caseStatus = caseStatus ? caseStatus : statement_status;
+        if (caseStatus) {
+            statement->conn_name = statement_status ? statement->conn_name : "default";
+        }
         query += extractTextBeforeNextStatement(true);
         replaceVariables(query);
         statement->query = query;
@@ -179,7 +200,7 @@ TestStatement* TestParser::extractStatement(TestStatement* statement) {
     }
     }
     nextLine();
-    return extractStatement(statement);
+    return extractStatement(statement, testCaseName);
 }
 
 void TestParser::extractStatementBlock() {
@@ -190,7 +211,7 @@ void TestParser::extractStatementBlock() {
             break;
         } else {
             auto statement = std::make_unique<TestStatement>();
-            extractStatement(statement.get());
+            extractStatement(statement.get(), blockName);
             testGroup->testCasesStatementBlocks[blockName].push_back(std::move(statement));
         }
     }
@@ -277,7 +298,7 @@ void TestParser::parseBody() {
         default: {
             // if its not a special case, then it has to be a statement
             TestStatement* statement = addNewStatement(testCaseName);
-            extractStatement(statement);
+            extractStatement(statement, testCaseName);
         }
         }
     }
@@ -289,6 +310,8 @@ void TestParser::addStatementBlock(const std::string& blockName, const std::stri
         for (const auto& statementPtr : testGroup->testCasesStatementBlocks[blockName]) {
             testGroup->testCases[testCaseName].push_back(
                 std::make_unique<TestStatement>(*statementPtr));
+            testGroup->testCasesConnNames[testCaseName] =
+                std::move(testGroup->testCasesConnNames[blockName]);
         }
     } else {
         throw TestException("Statement block not found [" + path + ":" + blockName + "].");
@@ -299,6 +322,7 @@ TestStatement* TestParser::addNewStatement(std::string& testGroupName) {
     auto statement = std::make_unique<TestStatement>();
     TestStatement* currentStatement = statement.get();
     testGroup->testCases[testGroupName].push_back(std::move(statement));
+    // testCaseConnNames=testGroup->testCasesConnNames[testGroupName];
     return currentStatement;
 }
 
@@ -325,6 +349,20 @@ void TestParser::tokenize() {
     } else {
         currentToken.type = getTokenType(currentToken.params[0]);
     }
+}
+
+bool TestParser::extractConnName(std::string& query, TestStatement* statement) {
+    std::regex pattern(R"(\[(conn.*?)\]\s*(.*))");
+    std::smatch matches;
+    bool statement_status = false;
+    if (std::regex_search(query, matches, pattern)) {
+        if (matches.size() == 3) {
+            statement_status = true;
+            statement->conn_name = matches[1];
+            query = matches[2];
+        }
+    }
+    return statement_status;
 }
 
 } // namespace testing

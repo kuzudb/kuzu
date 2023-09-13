@@ -1,4 +1,6 @@
 #pragma once
+#include <optional>
+#include <set>
 
 #include "main/kuzu.h"
 
@@ -18,6 +20,9 @@ struct TestStatement {
     bool enumerate = false;
     bool checkOutputOrder = false;
     std::string expectedTuplesCSVFile;
+    // for multiple conns
+    std::optional<std::string> conn_name; // default conntion name conn0
+    bool reLoadDBFlag = false;
 };
 
 // Test group is a collection of test cases in a single file.
@@ -31,6 +36,12 @@ struct TestGroup {
     std::unordered_map<std::string, std::vector<std::unique_ptr<TestStatement>>>
         testCasesStatementBlocks;
     uint64_t bufferPoolSize = common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING;
+    // for multiple connections
+    uint64_t checkpointWaitTimeout =
+        common::DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEAVE_IN_MICROS;
+    ;
+    bool multipleConns = false;
+    std::unordered_map<std::string, std::set<std::string>> testCasesConnNames;
 
     enum class DatasetType { CSV, PARQUET, NPY, CSV_TO_PARQUET };
     DatasetType datasetType;

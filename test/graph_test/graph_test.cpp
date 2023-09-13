@@ -158,6 +158,28 @@ void TestHelper::executeScript(const std::string& cypherScript, Connection& conn
         }
     }
 }
+void BaseGraphTest::createDB(uint64_t checkpointWaitTimeout) {
+    if (database != nullptr) {
+        database.reset();
+    }
+    database = std::make_unique<main::Database>(databasePath, *systemConfig);
+    getTransactionManager(*database)->setCheckPointWaitTimeoutForTransactionsToLeaveInMicros(
+        checkpointWaitTimeout /* 10ms */);
+    spdlog::set_level(spdlog::level::info);
+}
+
+void BaseGraphTest::createConns(const std::set<std::string>& connNames) {
+    if (connNames.size() == 0) { // impart a default connName
+        conn = std::make_unique<main::Connection>(database.get());
+    } else {
+        for (auto connName : connNames) {
+            if (connMap[connName] != nullptr) {
+                connMap[connName].reset();
+            }
+            connMap[connName] = std::make_unique<main::Connection>(database.get());
+        }
+    }
+}
 
 void BaseGraphTest::createDBAndConn() {
     if (database != nullptr) {
@@ -169,8 +191,16 @@ void BaseGraphTest::createDBAndConn() {
 }
 
 void BaseGraphTest::initGraph() {
-    TestHelper::executeScript(getInputDir() + TestHelper::SCHEMA_FILE_NAME, *conn);
-    TestHelper::executeScript(getInputDir() + TestHelper::COPY_FILE_NAME, *conn);
+    if (conn) { // normal conn
+        TestHelper::executeScript(getInputDir() + TestHelper::SCHEMA_FILE_NAME, *conn);
+        TestHelper::executeScript(getInputDir() + TestHelper::COPY_FILE_NAME, *conn);
+    } else {
+        // choose a conn from connMap
+        TestHelper::executeScript(
+            getInputDir() + TestHelper::SCHEMA_FILE_NAME, *(connMap.begin()->second));
+        TestHelper::executeScript(
+            getInputDir() + TestHelper::COPY_FILE_NAME, *(connMap.begin()->second));
+    }
 }
 
 void BaseGraphTest::commitOrRollbackConnection(
