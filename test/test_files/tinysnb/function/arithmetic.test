@@ -31,6 +31,13 @@
 40
 18
 
+-LOG moduloFunctionOnINT64INT8Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.year % e.level
+---- 3
+1
+100
+0
+
 -LOG moduloFunctionOnINT32INT32Test
 -STATEMENT MATCH (m:movies) RETURN m.length % m.length
 ---- 3
@@ -482,3 +489,10 @@
 0
 640
 512
+
+-LOG INT8OperatorTest
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.level + 1 + to_int8(3)
+---- 3
+9
+124
+6

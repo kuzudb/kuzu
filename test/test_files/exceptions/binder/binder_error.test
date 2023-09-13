@@ -102,6 +102,7 @@ Binder exception: Cannot match a built-in function for given function +(INTERNAL
 (INT64,INT64) -> INT64
 (INT32,INT32) -> INT32
 (INT16,INT16) -> INT16
+(INT8,INT8) -> INT8
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
 (SERIAL,SERIAL) -> SERIAL
@@ -120,6 +121,7 @@ Binder exception: Cannot match a built-in function for given function +(DATE,DAT
 (INT64,INT64) -> INT64
 (INT32,INT32) -> INT32
 (INT16,INT16) -> INT16
+(INT8,INT8) -> INT8
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
 (SERIAL,SERIAL) -> SERIAL
@@ -138,6 +140,7 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (INT64,INT64) -> INT64
 (INT32,INT32) -> INT32
 (INT16,INT16) -> INT16
+(INT8,INT8) -> INT8
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
 (SERIAL,SERIAL) -> SERIAL
@@ -156,6 +159,7 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (INT64,INT64) -> INT64
 (INT32,INT32) -> INT32
 (INT16,INT16) -> INT16
+(INT8,INT8) -> INT8
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
 (SERIAL,SERIAL) -> SERIAL
@@ -334,6 +338,8 @@ DISTINCT (INT32) -> INT32
 (INT32) -> INT32
 DISTINCT (INT16) -> INT16
 (INT16) -> INT16
+DISTINCT (INT8) -> INT8
+(INT8) -> INT8
 DISTINCT (DOUBLE) -> DOUBLE
 (DOUBLE) -> DOUBLE
 DISTINCT (FLOAT) -> FLOAT
@@ -439,6 +445,7 @@ Binder exception: Cannot match a built-in function for given function +(INT64,ST
 (INT64,INT64) -> INT64
 (INT32,INT32) -> INT32
 (INT16,INT16) -> INT16
+(INT8,INT8) -> INT8
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
 (SERIAL,SERIAL) -> SERIAL

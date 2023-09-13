@@ -26,6 +26,10 @@ struct VectorListFunction : public VectorFunction {
             execFunc =
                 BinaryExecListStructFunction<common::list_entry_t, int16_t, RESULT_TYPE, OPERATION>;
         } break;
+        case common::PhysicalTypeID::INT8: {
+            execFunc =
+                BinaryExecListStructFunction<common::list_entry_t, int8_t, RESULT_TYPE, OPERATION>;
+        } break;
         case common::PhysicalTypeID::DOUBLE: {
             execFunc = BinaryExecListStructFunction<common::list_entry_t, double_t, RESULT_TYPE,
                 OPERATION>;

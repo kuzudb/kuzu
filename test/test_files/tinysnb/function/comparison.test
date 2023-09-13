@@ -5,6 +5,17 @@
 
 -CASE FunctionComparison
 
+-LOG INT8Equal
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.level = 5 RETURN s.length;
+---- 1
+5
+
+-LOG INT8NotEqual
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.level <> 5 RETURN s.length;
+---- 2
+55
+22
+
 -LOG INT64Equal
 -STATEMENT MATCH (p:person) WHERE p.ID = 5 RETURN p.fName;
 ---- 1
@@ -211,44 +222,38 @@ True
 ---- 1
 True
 
--SKIP
 -LOG StructEqual
--STATEMENT MATCH (m:movies) WHERE m.description = {a: 7.0, b: 10, c: 982, d: timestamp('2018-11-13 13:33:11'), e: date('2014-09-12')} RETURN m.name;
+-STATEMENT MATCH (m:movies) WHERE m.description = {a: 7.0, b: to_int8(10), c: 982, d: timestamp('2018-11-13 13:33:11'), e: date('2014-09-12')} RETURN m.name;
 ---- 1
 The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 
--SKIP
 -LOG StructNotEqual
--STATEMENT MATCH (m:movies) WHERE m.description <> {rating: 1223.0, stars: 100, views: 10003, release: timestamp('2011-02-11 16:44:22'), film: date('2013-02-22')} RETURN m.name;
+-STATEMENT MATCH (m:movies) WHERE m.description <> {rating: 1223.0, stars: to_int8(100), views: 10003, release: timestamp('2011-02-11 16:44:22'), film: date('2013-02-22')} RETURN m.name;
 ---- 2
 Sóló cón tu párejâ
 The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 
--SKIP
 -LOG StructGreater
--STATEMENT MATCH (m:movies) WHERE m.description > {rating: 5.3, views: 152, stars: 2, release: timestamp('2011-08-20 11:25:30'), film: date('2012-05-11')} RETURN m.name;
+-STATEMENT MATCH (m:movies) WHERE m.description > {rating: 5.3, stars: to_int8(2), views: 152, release: timestamp('2011-08-20 11:25:30'), film: date('2012-05-11')} RETURN m.name;
 ---- 2
 The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 Roma
 
--SKIP
 -LOG StructGreaterEqual
--STATEMENT MATCH (m:movies) WHERE m.description >= {rating: 5.3, views: 152, stars: 2, release: timestamp('2011-08-20 11:25:30'), film: date('2012-05-11')} RETURN m.name;
+-STATEMENT MATCH (m:movies) WHERE m.description >= {rating: 5.3, stars: to_int8(2), views: 152, release: timestamp('2011-08-20 11:25:30'), film: date('2012-05-11')} RETURN m.name;
 ---- 3
 Sóló cón tu párejâ
 The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 Roma
 
--SKIP
 -LOG StructLess
--STATEMENT MATCH (m:movies) WHERE m.description < {rating: 7.0, views: 1000, stars: 10, release: timestamp('2018-11-13 13:33:11'), film: date('2014-09-12')} RETURN m.name;
+-STATEMENT MATCH (m:movies) WHERE m.description < {rating: 7.0, stars: to_int8(10), views: 1000, release: timestamp('2018-11-13 13:33:11'), film: date('2014-09-12')} RETURN m.name;
 ---- 2
 Sóló cón tu párejâ
 The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 
--SKIP
 -LOG StructLessEqual
--STATEMENT MATCH (m:movies) WHERE m.description <= {rating: 1223.0, starts: 100, views: 10004, release: timestamp('2011-02-11 16:44:22'), film: date('2013-02-22')} RETURN m.name;
+-STATEMENT MATCH (m:movies) WHERE m.description <= {rating: 1223.0, stars: to_int8(100), views: 10004, release: timestamp('2011-02-11 16:44:22'), film: date('2013-02-22')} RETURN m.name;
 ---- 3
 Sóló cón tu párejâ
 The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
