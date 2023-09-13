@@ -172,9 +172,15 @@ else()
             -DENABLE_UBSAN=${ENABLE_UBSAN}
             -DFORCE_COLORED_OUTPUT=${FORCE_COLORED_OUTPUT}
             WORKING_DIRECTORY ${ARROW_BUILD_DIR}
-            COMMAND_ERROR_IS_FATAL ANY)
+            RESULT_VARIABLE ARROW_CONFIGURE_RESULT)
+        if (ARROW_CONFIGURE_RESULT)
+            message(FATAL_ERROR "Failed to configure arrow")
+        endif()
         execute_process(COMMAND ${CMAKE_COMMAND} --build ${ARROW_BUILD_DIR} --config ${CMAKE_BUILD_TYPE}
-            COMMAND_ERROR_IS_FATAL ANY)
+            RESULT_VARIABLE ARROW_BUILD_RESULT)
+        if (ARROW_BUILD_RESULT)
+            message(FATAL_ERROR "Failed to build arrow")
+        endif()
     else()
         message(STATUS "Using arrow at path ${ARROW_INSTALL}")
     endif()

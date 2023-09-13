@@ -4,11 +4,14 @@
 bazel-*
 .clwb
 .cache
+.ccls-cache
 .bazelrc
 test/test_files/test_list
 
 test_temp/
 build/
+
+compile_commands.json
 
 ### Python
 # Byte-compiled / optimized / DLL files
