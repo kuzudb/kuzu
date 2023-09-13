@@ -18,7 +18,6 @@
 
 # Simple variable length pattern
 -CASE Scenario2
--SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE CONTAIN(FROM A TO A);
@@ -66,20 +65,20 @@
 -STATEMENT CREATE REL TABLE T(FROM A TO A);
 ---- ok
 # indexing on varlist causes segmentaion fault
-#-STATEMENT CREATE (a {var: 'start'}), (b {var: 'end'})
-#           WITH *
-#           UNWIND ['0', '1', '2'] AS i
-#           CREATE (n {var: i})
-#           WITH a, b, collect(n) AS nodeList
-#           UNWIND [0, 1] AS i
-#           WITH nodeList[i] AS n1, nodeList[i+1] AS n2
-#           CREATE (n1)-[:T]->(n2);
-#---- ok
-#-STATEMENT WITH collect(n) AS nodeList
-#           UNWIND [0, 1] AS i
-#           WITH nodeList[i] AS n1, nodeList[i+1] AS n2
-#           CREATE (n1)-[:T]->(n2);
-#---- ok
+-STATEMENT CREATE (a {var: 'start'}), (b {var: 'end'})
+           WITH *
+           UNWIND ['0', '1', '2'] AS i
+           CREATE (n {var: i})
+           WITH a, b, collect(n) AS nodeList
+           UNWIND [0, 1] AS i
+           WITH nodeList[i] AS n1, nodeList[i+1] AS n2
+           CREATE (n1)-[:T]->(n2);
+---- ok
+-STATEMENT WITH collect(n) AS nodeList
+           UNWIND [0, 1] AS i
+           WITH nodeList[i] AS n1, nodeList[i+1] AS n2
+           CREATE (n1)-[:T]->(n2);
+---- ok
 -STATEMENT CREATE (a {var: 'start'}), (b {var: 'end'})
            WITH *
            UNWIND range(1, 20) AS i
@@ -96,7 +95,6 @@
 
 # Matching variable length pattern with property predicate
 -CASE Scenario5
--SKIP
 -STATEMENT CREATE NODE TABLE Artist(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE WORKED_WITH(FROM Artist TO Artist, year INT64);
@@ -116,7 +114,6 @@
 
 # Matching variable length patterns from a bound node
 -CASE Scenario6
--SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE X(FROM A To A);
@@ -163,13 +160,11 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
----- ok
--STATEMENT CREATE REL TABLE Y2(FROM B TO C);
+-STATEMENT CREATE REL TABLE GROUP Y(FROM A TO B, FROM B TO C);
 ---- ok
 -STATEMENT CREATE (a:A), (b:B), (c:C)
-           CREATE (a)-[:Y1]->(b),
-                  (b)-[:Y2]->(c)
+           CREATE (a)-[:Y]->(b),
+                  (b)-[:Y]->(c)
 ---- ok
 -STATEMENT  MATCH ()-[r1]->()-[r2]->()
             WITH [r1, r2] AS rs
@@ -184,23 +179,29 @@
 -CASE Scenario9&10
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE LIKES(FROM A TO A);
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, name STRING, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE (n0 {name: 'n0'}),
-                  (n00 {name: 'n00'}),
-                  (n01 {name: 'n01'}),
-                  (n000 {name: 'n000'}),
-                  (n001 {name: 'n001'}),
-                  (n010 {name: 'n010'}),
-                  (n011 {name: 'n011'}),
-                  (n0000 {name: 'n0000'}),
-                  (n0001 {name: 'n0001'}),
-                  (n0010 {name: 'n0010'}),
-                  (n0011 {name: 'n0011'}),
-                  (n0100 {name: 'n0100'}),
-                  (n0101 {name: 'n0101'}),
-                  (n0110 {name: 'n0110'}),
-                  (n0111 {name: 'n0111'})
+-STATEMENT CREATE NODE TABLE C(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE D(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP LIKES(FROM A TO B, FROM B TO C, FROM C TO D);
+---- ok
+-STATEMENT CREATE (n0:A {name: 'n0'}),
+                  (n00:B {name: 'n00'}),
+                  (n01:B {name: 'n01'}),
+                  (n000:C {name: 'n000'}),
+                  (n001:C {name: 'n001'}),
+                  (n010:C {name: 'n010'}),
+                  (n011:C {name: 'n011'}),
+                  (n0000:D {name: 'n0000'}),
+                  (n0001:D {name: 'n0001'}),
+                  (n0010:D {name: 'n0010'}),
+                  (n0011:D {name: 'n0011'}),
+                  (n0100:D {name: 'n0100'}),
+                  (n0101:D {name: 'n0101'}),
+                  (n0110:D {name: 'n0110'}),
+                  (n0111:D {name: 'n0111'})
            CREATE (n0)-[:LIKES]->(n00),
                   (n0)-[:LIKES]->(n01),
                   (n00)-[:LIKES]->(n000),

@@ -327,16 +327,21 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
 std::pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
     const kuzu::parser::RelPattern& relPattern) {
     auto recursiveInfo = relPattern.getRecursiveInfo();
-    auto lowerBound = std::min(TypeUtils::convertToUint32(recursiveInfo->lowerBound.c_str()),
-        clientContext->varLengthExtendMaxDepth);
-    auto upperBound = std::min(TypeUtils::convertToUint32(recursiveInfo->upperBound.c_str()),
-        clientContext->varLengthExtendMaxDepth);
-    if (lowerBound == 0 || upperBound == 0) {
-        throw BinderException("Lower and upper bound of a rel must be greater than 0.");
+    auto lowerBound = TypeUtils::convertToUint32(recursiveInfo->lowerBound.c_str());
+    auto upperBound = clientContext->varLengthExtendMaxDepth;
+    if (!recursiveInfo->upperBound.empty()) {
+        upperBound = TypeUtils::convertToUint32(recursiveInfo->upperBound.c_str());
     }
     if (lowerBound > upperBound) {
         throw BinderException(
             "Lower bound of rel " + relPattern.getVariableName() + " is greater than upperBound.");
+    }
+    if (upperBound > clientContext->varLengthExtendMaxDepth) {
+        throw BinderException("Upper bound of rel exceeds maximum: " +
+                              std::to_string(clientContext->varLengthExtendMaxDepth) + ".");
+    }
+    if (lowerBound == 0 || upperBound == 0) {
+        throw BinderException("Lower and upper bound of a rel must be greater than 0.");
     }
     if ((relPattern.getRelType() == QueryRelType::ALL_SHORTEST ||
             relPattern.getRelType() == QueryRelType::SHORTEST) &&
