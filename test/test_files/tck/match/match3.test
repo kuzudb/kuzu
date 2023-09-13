@@ -304,13 +304,11 @@ a
 ---- ok
 -STATEMENT CREATE NODE TABLE C(ID SERIAL,PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE T1(FROM A TO B);
----- ok
--STATEMENT CREATE REL TABLE T2(FROM A TO C);
+-STATEMENT CREATE REL TABLE GROUP T(FROM A TO B, FROM A TO C);
 ---- ok
 -STATEMENT CREATE (a:A), (b:B), (c:C)
-           CREATE (a)-[:T1]->(b),
-                  (a)-[:T2]->(c);
+           CREATE (a)-[:T]->(b),
+                  (a)-[:T]->(c);
 ---- ok
 -STATEMENT MATCH (a)-->(b)
            MATCH (c)-->(d)

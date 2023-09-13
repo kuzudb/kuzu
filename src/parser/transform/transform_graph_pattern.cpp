@@ -110,8 +110,20 @@ std::unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
             relType = QueryRelType::VARIABLE_LENGTH;
         }
         auto range = relDetail->oC_RangeLiteral();
-        auto lowerBound = range->oC_IntegerLiteral()[0]->getText();
-        auto upperBound = range->oC_IntegerLiteral()[1]->getText();
+        auto lowerBound = std::string("1");
+        auto upperBound = std::string("");
+
+        if (range->oC_IntegerLiteral()) {
+            lowerBound = range->oC_IntegerLiteral()->getText();
+            upperBound = lowerBound;
+        }
+        if (range->oC_LowerBound()) {
+            lowerBound = range->oC_LowerBound()->getText();
+        }
+        if (range->oC_UpperBound()) {
+            upperBound = range->oC_UpperBound()->getText();
+        }
+
         auto recursiveRelName = std::string();
         std::unique_ptr<ParsedExpression> whereExpression = nullptr;
         if (range->oC_Where()) {
