@@ -75,6 +75,7 @@ if(MSVC)
     add_compile_definitions(_USE_MATH_DEFINES)
     add_compile_definitions(NOMINMAX)
     add_compile_definitions(ARROW_STATIC PARQUET_STATIC)
+    add_compile_definitions(SERD_STATIC)
     # TODO (bmwinger): Figure out if this can be set automatically by cmake,
     # or at least better integrated with user-specified options
     # For now, hardcode _AMD64_
@@ -215,6 +216,7 @@ include_directories(third_party/utf8proc/include)
 include_directories(third_party/pybind11/include)
 include_directories(third_party/re2/include)
 include_directories(third_party/concurrentqueue)
+include_directories(third_party/serd/include)
 
 add_subdirectory(third_party)
 add_subdirectory(src)

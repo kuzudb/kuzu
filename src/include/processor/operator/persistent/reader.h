@@ -45,6 +45,10 @@ public:
         return make_unique<Reader>(info->copy(), sharedState, getOperatorID(), paramsString);
     }
 
+    inline bool isCopyTurtleFile() const {
+        return sharedState->copyDescription->fileType == common::CopyDescription::FileType::TURTLE;
+    }
+
     inline bool getContainsSerial() const { return info->containsSerial; }
 
 protected:

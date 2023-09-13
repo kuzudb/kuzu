@@ -1,0 +1,20 @@
+-GROUP CopyRDFTest
+-DATASET CSV copy-test/node/turtle
+
+--
+
+-CASE CopyRDFTest
+
+-LOG CountRDFNodeTable
+-STATEMENT MATCH (s:taxonomy_RESOURCE) RETURN COUNT(s._IRI)
+---- 1
+570211
+
+-LOG QueryRDFNodeTable
+-STATEMENT MATCH (s:taxonomy_RESOURCE) RETURN s._IRI ORDER BY s._IRI LIMIT 5
+---- 5
+http://dbpedia.org/class/yago/'hood108641944
+http://dbpedia.org/class/yago/14July115200493
+http://dbpedia.org/class/yago/1530s115148787
+http://dbpedia.org/class/yago/16PF106475933
+http://dbpedia.org/class/yago/1750s115149933

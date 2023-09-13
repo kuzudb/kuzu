@@ -28,7 +28,6 @@ struct CSVReaderConfig {
 
 struct CopyDescription {
     enum class FileType : uint8_t { UNKNOWN = 0, CSV = 1, PARQUET = 2, NPY = 3, TURTLE = 4 };
-
     FileType fileType;
     std::vector<std::string> filePaths;
     std::vector<std::string> columnNames;
