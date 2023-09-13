@@ -621,16 +621,16 @@ bool LogicalTypeUtils::isNumerical(const LogicalType& dataType) {
     }
 }
 
-bool LogicalTypeUtils::isPrimitive(const LogicalType& dataType) {
+bool LogicalTypeUtils::isNested(const LogicalType& dataType) {
     switch (dataType.typeID) {
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::VAR_LIST:
     case LogicalTypeID::FIXED_LIST:
     case LogicalTypeID::UNION:
     case LogicalTypeID::MAP:
-        return false;
-    default:
         return true;
+    default:
+        return false;
     }
 }
 

@@ -3,7 +3,7 @@
 #include "common/copier_config/copier_config.h"
 #include "common/task_system/task_scheduler.h"
 #include "processor/operator/persistent/csv_file_writer.h"
-#include "processor/operator/persistent/csv_parquet_writer.h"
+#include "processor/operator/persistent/file_writer.h"
 #include "processor/operator/persistent/parquet_file_writer.h"
 #include "processor/operator/physical_operator.h"
 #include "processor/operator/sink.h"
@@ -12,30 +12,32 @@
 namespace kuzu {
 namespace processor {
 
-class CSVParquetWriterSharedState {
+class CopyToSharedState {
 public:
-    CSVParquetWriterSharedState(common::CopyDescription::FileType fileType) {
+    CopyToSharedState(common::CopyDescription::FileType fileType, std::string& filePath,
+        std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes) {
         if (fileType == common::CopyDescription::FileType::CSV) {
-            fileWriter = std::make_unique<kuzu::processor::CSVFileWriter>();
+            fileWriter = std::make_unique<kuzu::processor::CSVFileWriter>(
+                filePath, columnNames, columnTypes);
         } else if (fileType == common::CopyDescription::FileType::PARQUET) {
-            fileWriter = std::make_unique<kuzu::processor::ParquetFileWriter>();
+            fileWriter = std::make_unique<kuzu::processor::ParquetFileWriter>(
+                filePath, columnNames, columnTypes);
         } else {
-            throw common::NotImplementedException(
-                "CSVParquetWriterSharedState::CSVParquetWriterSharedState");
+            throw common::NotImplementedException("CopyToSharedState::CopyToSharedState");
         }
     }
-    std::unique_ptr<CSVParquetWriter>& getWriter() { return fileWriter; }
+    inline std::unique_ptr<FileWriter>& getWriter() { return fileWriter; }
 
 private:
-    std::unique_ptr<CSVParquetWriter> fileWriter;
+    std::unique_ptr<FileWriter> fileWriter;
 };
 
 class CopyTo : public Sink {
 public:
     CopyTo(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        std::shared_ptr<CSVParquetWriterSharedState> sharedState,
-        std::vector<DataPos> vectorsToCopyPos, const common::CopyDescription& copyDescription,
-        uint32_t id, const std::string& paramsString, std::unique_ptr<PhysicalOperator> child)
+        std::shared_ptr<CopyToSharedState> sharedState, std::vector<DataPos> vectorsToCopyPos,
+        const common::CopyDescription& copyDescription, uint32_t id,
+        const std::string& paramsString, std::unique_ptr<PhysicalOperator> child)
         : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::COPY_TO, std::move(child), id,
               paramsString},
           sharedState{std::move(sharedState)}, vectorsToCopyPos{std::move(vectorsToCopyPos)},
@@ -63,7 +65,7 @@ private:
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
     common::CopyDescription copyDescription;
     std::vector<common::ValueVector*> outputVectors;
-    std::shared_ptr<CSVParquetWriterSharedState> sharedState;
+    std::shared_ptr<CopyToSharedState> sharedState;
 };
 
 } // namespace processor

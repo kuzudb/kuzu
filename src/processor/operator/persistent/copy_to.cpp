@@ -6,9 +6,6 @@ namespace kuzu {
 namespace processor {
 
 void CopyTo::initGlobalStateInternal(ExecutionContext* context) {
-    sharedState->getWriter()->openFile(getCopyDescription().filePaths[0]);
-    sharedState->getWriter()->setColumns(
-        getCopyDescription().columnNames, getCopyDescription().columnTypes);
     sharedState->getWriter()->init();
 }
 

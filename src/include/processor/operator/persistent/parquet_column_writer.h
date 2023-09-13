@@ -1,6 +1,6 @@
 #pragma once
 
-#include "processor/operator/persistent/csv_parquet_writer.h"
+#include "processor/operator/persistent/file_writer.h"
 #include <parquet/api/writer.h>
 
 namespace kuzu {
@@ -14,7 +14,7 @@ public:
         : maxDefinitionLevels(maxDefinitionLevels), totalColumns(totalColumns){};
 
     void writeColumn(
-        int kuzuColumn, common::ValueVector* vector, parquet::RowGroupWriter* rowWriter);
+        int column, common::ValueVector* vector, parquet::RowGroupWriter* rowGroupWriter);
 
     int64_t estimatedRowBytes;
 
@@ -61,19 +61,13 @@ private:
     // Properties for nested lists and structs
     bool isListStarting;
 
-    int currentKuzuColumn;
+    int currentColumn;
     int currentParquetColumn;
     int totalColumns;
 
     // define the writers
-    parquet::Int64Writer* int64Writer;
-    parquet::ByteArrayWriter* byteArrayWriter;
-    parquet::FixedLenByteArrayWriter* fixedLenByteArrayWriter;
-    parquet::BoolWriter* boolWriter;
-    parquet::RowGroupWriter* rowWriter;
-    parquet::Int32Writer* int32Writer;
-    parquet::DoubleWriter* doubleWriter;
-    parquet::FloatWriter* floatWriter;
+    parquet::RowGroupWriter* rowGroupWriter;
+    parquet::ColumnWriter* columnWriter;
 };
 
 } // namespace processor

@@ -31,7 +31,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     }
     if (fileType != CopyDescription::FileType::CSV &&
         fileType != CopyDescription::FileType::PARQUET) {
-        throw BinderException("COPY TO currently only supports csv and parquet files.");
+        throw BinderException(ExceptionMessage::validateCopyToCSVParquetExtensionsException());
     }
     auto copyDescription = std::make_unique<CopyDescription>(
         fileType, std::vector<std::string>{boundFilePath}, nullptr /* parsing option */);

@@ -24,6 +24,9 @@ struct ExceptionMessage {
     static inline std::string validateCopyCSVParquetByColumnException() {
         return "Please use COPY FROM statement for copying csv and parquet files.";
     }
+    static inline std::string validateCopyToCSVParquetExtensionsException() {
+        return "COPY TO currently only supports csv and parquet files.";
+    }
     static std::string validateCopyNpyNotForRelTablesException(const std::string& tableName);
 };
 

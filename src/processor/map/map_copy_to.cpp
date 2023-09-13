@@ -17,9 +17,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyTo(LogicalOperator* logical
     for (auto& expression : childSchema->getExpressionsInScope()) {
         vectorsToCopyPos.emplace_back(childSchema->getExpressionPos(*expression));
     }
-    auto sharedState =
-        std::make_shared<CSVParquetWriterSharedState>(copy->getCopyDescription()->fileType);
-
+    auto sharedState = std::make_shared<CopyToSharedState>(copy->getCopyDescription()->fileType,
+        copy->getCopyDescription()->filePaths[0], copy->getCopyDescription()->columnNames,
+        copy->getCopyDescription()->columnTypes);
     auto copyTo = std::make_unique<CopyTo>(std::make_unique<ResultSetDescriptor>(childSchema),
         sharedState, std::move(vectorsToCopyPos), *copy->getCopyDescription(), getOperatorID(),
         copy->getExpressionsForPrinting(), std::move(prevOperator));

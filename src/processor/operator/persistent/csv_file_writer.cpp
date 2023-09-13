@@ -17,15 +17,16 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void CSVFileWriter::openFile(const std::string& filePath) {
+void CSVFileWriter::openFile() {
     fileInfo = FileUtils::openFile(filePath, O_WRONLY | O_CREAT | O_TRUNC);
 }
 
 void CSVFileWriter::init() {
-    writeHeader(getColumnNames());
+    openFile();
+    writeHeader();
 }
 
-void CSVFileWriter::writeHeader(const std::vector<std::string>& columnNames) {
+void CSVFileWriter::writeHeader() {
     if (columnNames.size() == 0) {
         return;
     }

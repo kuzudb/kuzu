@@ -1,32 +1,42 @@
 #pragma once
 
 #include "arrow/io/file.h"
-#include "processor/operator/persistent/csv_parquet_writer.h"
+#include "processor/operator/persistent/file_writer.h"
 #include "processor/operator/persistent/parquet_column_writer.h"
 #include <parquet/api/writer.h>
 
 namespace kuzu {
 namespace processor {
 
-// ParquetWriter performs the following:
-// openFile: opens the file and create a arrow::io::FileOutputStream object
+// ParquetFileWriter performs the following:
+// openFile: opens the file and create an arrow::io::FileOutputStream object
 // init:
 //   - generate the schema
-//   - calculate the max definition levels and number of primitive nodes
+//   - calculate the max definition levels and number of primitive nodes. The
+//     definition levels are used for nested types.
 //   - initialize parquetColumnWriter
 // writeValues : take a vector of ValueVector and pass to parquetColumnWriter
-class ParquetFileWriter : public CSVParquetWriter {
+// More information about the encoding:
+// https://parquet.apache.org/docs/file-format/data-pages/encodings
+class ParquetFileWriter : public FileWriter {
 public:
-    ParquetFileWriter(){};
-    void openFile(const std::string& filePath) override;
-    void init() override;
-    void closeFile() override;
-    void writeValues(std::vector<common::ValueVector*>& outputVectors) override;
+    using FileWriter::FileWriter;
+    void openFile() final;
+    void init() final;
+    void closeFile() final;
+    void writeValues(std::vector<common::ValueVector*>& outputVectors) final;
 
 private:
-    static std::shared_ptr<parquet::schema::Node> kuzuTypeToParquetType(int& parquetColumnsCount,
+    static std::shared_ptr<parquet::schema::Node> createParquetSchemaNode(int& parquetColumnsCount,
         std::string& columnName, const common::LogicalType& logicalType,
         parquet::Repetition::type repetition = parquet::Repetition::REQUIRED, int length = -1);
+
+    static std::shared_ptr<parquet::schema::Node> createNestedNode(
+        int& parquetColumnsCount, std::string& columnName, const common::LogicalType& logicalType);
+
+    static std::shared_ptr<parquet::schema::Node> createPrimitiveNode(int& parquetColumnsCount,
+        std::string& columnName, const common::LogicalType& logicalType,
+        parquet::Repetition::type repetition, int length);
 
     void writeValue(common::LogicalTypeID type, void* value);
 
@@ -37,7 +47,7 @@ private:
 
     std::shared_ptr<ParquetColumnWriter> parquetColumnWriter;
 
-    parquet::RowGroupWriter* rowWriter;
+    parquet::RowGroupWriter* rowGroupWriter;
 
     std::shared_ptr<parquet::ParquetFileWriter> fileWriter;
 

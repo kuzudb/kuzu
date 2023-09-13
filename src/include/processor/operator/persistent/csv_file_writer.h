@@ -1,21 +1,21 @@
 #pragma once
 
-#include "processor/operator/persistent/csv_parquet_writer.h"
+#include "processor/operator/persistent/file_writer.h"
 #include "processor/result/result_set.h"
 
 namespace kuzu {
 namespace processor {
 
-class CSVFileWriter : public CSVParquetWriter {
+class CSVFileWriter : public FileWriter {
 public:
-    CSVFileWriter(){};
-    void openFile(const std::string& filePath) override;
-    void init() override;
-    inline void closeFile() override { flush(); }
-    void writeValues(std::vector<common::ValueVector*>& outputVectors) override;
+    using FileWriter::FileWriter;
+    void openFile() final;
+    void init() final;
+    inline void closeFile() final { flush(); }
+    void writeValues(std::vector<common::ValueVector*>& outputVectors) final;
 
 private:
-    void writeHeader(const std::vector<std::string>& columnNames);
+    void writeHeader();
     void escapeString(std::string& value);
     void writeValue(common::ValueVector* vector);
     void flush();

@@ -423,7 +423,7 @@ public:
     KUZU_API static LogicalType dataTypeFromString(const std::string& dataTypeString);
     static uint32_t getRowLayoutSize(const LogicalType& logicalType);
     static bool isNumerical(const LogicalType& dataType);
-    static bool isPrimitive(const LogicalType& dataType);
+    static bool isNested(const LogicalType& dataType);
     static std::vector<LogicalType> getAllValidComparableLogicalTypes();
     static std::vector<LogicalTypeID> getNumericalLogicalTypeIDs();
     static std::vector<LogicalType> getAllValidLogicTypes();
