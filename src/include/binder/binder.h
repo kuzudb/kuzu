@@ -113,7 +113,8 @@ private:
         catalog::TableSchema* tableSchema);
     expression_vector bindCopyNodeColumns(
         catalog::TableSchema* tableSchema, common::CopyDescription::FileType fileType);
-    expression_vector bindCopyRelColumns(catalog::TableSchema* tableSchema);
+    expression_vector bindCopyRelColumns(
+        catalog::TableSchema* tableSchema, common::CopyDescription::FileType fileType);
     std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
     std::unique_ptr<common::CSVReaderConfig> bindParsingOptions(
         const std::unordered_map<std::string, std::unique_ptr<parser::ParsedExpression>>&

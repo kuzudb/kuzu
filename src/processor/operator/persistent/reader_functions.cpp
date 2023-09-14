@@ -169,6 +169,7 @@ std::vector<FileBlocksInfo> ReaderFunctions::countRowsInNodeCSVFile(
         block_idx_t numBlocks = 0;
         while (true) {
             dataChunk->state->selVector->selectedSize = 0;
+            dataChunk->resetAuxiliaryBuffer();
             auto numRowsRead = reader->ParseCSV(*dataChunk);
             if (numRowsRead == 0) {
                 break;
@@ -221,6 +222,7 @@ std::vector<FileBlocksInfo> ReaderFunctions::countRowsInRDFFile(
     row_idx_t numRowsInFile = 0;
     block_idx_t numBlocks = 0;
     while (true) {
+        dataChunk->resetAuxiliaryBuffer();
         auto numRowsRead = reader->read(dataChunk.get());
         if (numRowsRead == 0) {
             break;

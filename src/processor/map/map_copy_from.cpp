@@ -75,8 +75,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::createIndexLookup(RelTableSchema* tableSchema,
-    const std::vector<DataPos>& dataPoses, const DataPos& boundOffsetDataPos,
-    const DataPos& nbrOffsetDataPos, std::unique_ptr<PhysicalOperator> readerOp) {
+    std::vector<DataPos>& dataPoses, const DataPos& boundOffsetDataPos,
+    const DataPos& nbrOffsetDataPos, const DataPos& predicateOffsetDataPos,
+    std::unique_ptr<PhysicalOperator> readerOp, CopyDescription::FileType fileType) {
     auto boundNodeTableID = tableSchema->getBoundTableID(RelDataDirection::FWD);
     auto boundNodePKIndex =
         storageManager.getNodesStore().getNodeTable(boundNodeTableID)->getPKIndex();
@@ -88,8 +89,18 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createIndexLookup(RelTableSchema* 
     indexLookupInfos.push_back(
         std::make_unique<IndexLookupInfo>(tableSchema->getSrcPKDataType()->copy(), boundNodePKIndex,
             dataPoses[0], boundOffsetDataPos));
-    indexLookupInfos.push_back(std::make_unique<IndexLookupInfo>(
-        tableSchema->getDstPKDataType()->copy(), nbrNodePKIndex, dataPoses[1], nbrOffsetDataPos));
+    if (fileType == CopyDescription::FileType::TURTLE) {
+        indexLookupInfos.push_back(
+            std::make_unique<IndexLookupInfo>(std::make_unique<LogicalType>(LogicalTypeID::STRING),
+                boundNodePKIndex, dataPoses[1], predicateOffsetDataPos));
+        indexLookupInfos.push_back(
+            std::make_unique<IndexLookupInfo>(tableSchema->getDstPKDataType()->copy(),
+                nbrNodePKIndex, dataPoses[2], nbrOffsetDataPos));
+    } else {
+        indexLookupInfos.push_back(
+            std::make_unique<IndexLookupInfo>(tableSchema->getDstPKDataType()->copy(),
+                nbrNodePKIndex, dataPoses[1], nbrOffsetDataPos));
+    }
     return std::make_unique<IndexLookup>(
         std::move(indexLookupInfos), std::move(readerOp), getOperatorID(), tableSchema->tableName);
 }
@@ -110,9 +121,17 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRelColumnsOrLists(
         DataPos{outFSchema->getExpressionPos(*copyFromInfo->boundOffsetExpression)};
     auto nbrOffsetDataPos =
         DataPos{outFSchema->getExpressionPos(*copyFromInfo->nbrOffsetExpression)};
+    auto predicateOffsetDataPos =
+        DataPos{outFSchema->getExpressionPos(*copyFromInfo->predicateOffsetExpression)};
     auto indexLookup = createIndexLookup(tableSchema, readerInfo->dataColumnsPos,
-        boundOffsetDataPos, nbrOffsetDataPos, std::move(reader));
-    CopyRelInfo copyRelInfo{tableSchema, readerInfo->dataColumnsPos, offsetDataPos,
+        boundOffsetDataPos, nbrOffsetDataPos, predicateOffsetDataPos, std::move(reader),
+        copyFromInfo->copyDesc->fileType);
+    auto dataColumnPosCopy = readerInfo->dataColumnsPos;
+    if (copyFromInfo->copyDesc->fileType == CopyDescription::FileType::TURTLE) {
+        dataColumnPosCopy[1] = dataColumnPosCopy[2];
+        dataColumnPosCopy[2] = predicateOffsetDataPos;
+    }
+    CopyRelInfo copyRelInfo{tableSchema, std::move(dataColumnPosCopy), offsetDataPos,
         boundOffsetDataPos, nbrOffsetDataPos, storageManager.getWAL()};
     if (isColumns) {
         return std::make_unique<CopyRelColumns>(copyRelInfo, std::move(sharedState),

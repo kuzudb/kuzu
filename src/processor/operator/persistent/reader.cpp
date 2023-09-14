@@ -70,6 +70,7 @@ void Reader::readNextDataChunk() {
             initFunc(*readFuncData, sharedState->copyDescription->filePaths, morsel->fileIdx,
                 *sharedState->copyDescription->csvReaderConfig, sharedState->tableSchema);
         }
+        dataChunk->resetAuxiliaryBuffer();
         readFunc(*readFuncData, morsel->blockIdx, dataChunk.get());
         if (dataChunk->state->selVector->selectedSize > 0) {
             leftArrowArrays.appendFromDataChunk(dataChunk.get());
