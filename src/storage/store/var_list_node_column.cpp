@@ -37,15 +37,16 @@ void VarListNodeColumn::scan(Transaction* transaction, node_group_idx_t nodeGrou
 
 void VarListNodeColumn::scan(
     node_group_idx_t nodeGroupIdx, kuzu::storage::ColumnChunk* columnChunk) {
-    NodeColumn::scan(nodeGroupIdx, columnChunk);
     auto varListColumnChunk = reinterpret_cast<VarListColumnChunk*>(columnChunk);
-    auto numValuesInChunk =
-        metadataDA->get(nodeGroupIdx, transaction::TransactionType::READ_ONLY).numValues;
-    varListColumnChunk->setNumValues(numValuesInChunk);
-    varListColumnChunk->resizeDataColumnChunk(
-        metadataDA->get(nodeGroupIdx, transaction::TransactionType::READ_ONLY).numPages *
-        PageSizeClass::PAGE_4KB);
-    dataNodeColumn->scan(nodeGroupIdx, varListColumnChunk->getDataColumnChunk());
+    if (nodeGroupIdx >= metadataDA->getNumElements()) {
+        varListColumnChunk->setNumValues(0);
+    } else {
+        NodeColumn::scan(nodeGroupIdx, columnChunk);
+        auto metadata = metadataDA->get(nodeGroupIdx, transaction::TransactionType::READ_ONLY);
+        varListColumnChunk->setNumValues(metadata.numValues);
+        varListColumnChunk->resizeDataColumnChunk(metadata.numPages * PageSizeClass::PAGE_4KB);
+        dataNodeColumn->scan(nodeGroupIdx, varListColumnChunk->getDataColumnChunk());
+    }
 }
 
 void VarListNodeColumn::scanInternal(

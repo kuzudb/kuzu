@@ -167,11 +167,14 @@ void NodeColumn::scan(node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) {
     if (nullColumn) {
         nullColumn->scan(nodeGroupIdx, columnChunk->getNullChunk());
     }
-    auto chunkMetadata = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
-    FileUtils::readFromFile(dataFH->getFileInfo(), columnChunk->getData(),
-        columnChunk->getNumBytes(), chunkMetadata.pageIdx * BufferPoolConstants::PAGE_4KB_SIZE);
-    columnChunk->setNumValues(
-        metadataDA->get(nodeGroupIdx, transaction::TransactionType::READ_ONLY).numValues);
+    if (nodeGroupIdx >= metadataDA->getNumElements()) {
+        columnChunk->setNumValues(0);
+    } else {
+        auto chunkMetadata = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
+        FileUtils::readFromFile(dataFH->getFileInfo(), columnChunk->getData(),
+            columnChunk->getNumBytes(), chunkMetadata.pageIdx * BufferPoolConstants::PAGE_4KB_SIZE);
+        columnChunk->setNumValues(chunkMetadata.numValues);
+    }
 }
 
 void NodeColumn::scanInternal(
