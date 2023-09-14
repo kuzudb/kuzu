@@ -4,6 +4,12 @@
 #include "common/exception/buffer_manager.h"
 #include "spdlog/spdlog.h"
 
+#if defined(_WIN32)
+#include <exception>
+
+#include <eh.h>
+#endif
+
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -108,14 +114,74 @@ uint8_t* BufferManager::pin(
     }
 }
 
+#if defined(WIN32)
+class AccessViolation : public std::exception {
+public:
+    AccessViolation(const uint8_t* location) : location{location} {}
+
+    const uint8_t* location;
+};
+
+class ScopedTranslator {
+    const _se_translator_function old;
+
+public:
+    ScopedTranslator(_se_translator_function newTranslator)
+        : old{_set_se_translator(newTranslator)} {}
+    ~ScopedTranslator() { _set_se_translator(old); }
+};
+
+void handleAccessViolation(unsigned int exceptionCode, PEXCEPTION_POINTERS exceptionRecord) {
+    if (exceptionCode == EXCEPTION_ACCESS_VIOLATION
+        // exception was from a read
+        && exceptionRecord->ExceptionRecord->ExceptionInformation[0] == 0) [[likely]] {
+        throw AccessViolation(
+            (const uint8_t*)exceptionRecord->ExceptionRecord->ExceptionInformation[1]);
+    }
+    // Needs to not be an Exception so that it can't be caught by regular exception handling
+    // And is seems like throwing integer error codes is treated similarly to hardware
+    // exceptions with /EHa
+    throw exceptionCode;
+}
+#endif
+
+// Returns true if the function completes successfully
+inline bool try_func(const std::function<void(uint8_t*)>& func, uint8_t* frame,
+    const std::vector<std::unique_ptr<VMRegion>>& vmRegions, common::PageSizeClass pageSizeClass) {
+#if defined(_WIN32)
+    try {
+#endif
+        func(frame);
+#if defined(_WIN32)
+    } catch (AccessViolation& exc) {
+        // If we encounter an acess violation within the VM region,
+        // the page was decomitted by another thread
+        // and is no longer valid memory
+        if (vmRegions[pageSizeClass]->contains(exc.location)) {
+            return false;
+        } else {
+            throw EXCEPTION_ACCESS_VIOLATION;
+        }
+    }
+#endif
+    return true;
+}
+
 void BufferManager::optimisticRead(
     BMFileHandle& fileHandle, page_idx_t pageIdx, const std::function<void(uint8_t*)>& func) {
     auto pageState = fileHandle.getPageState(pageIdx);
+#if defined(_WIN32)
+    // Change the Structured Exception handling just for the scope of this function
+    auto translator = ScopedTranslator(handleAccessViolation);
+#endif
     while (true) {
         auto currStateAndVersion = pageState->getStateAndVersion();
         switch (PageState::getState(currStateAndVersion)) {
         case PageState::UNLOCKED: {
-            func(getFrame(fileHandle, pageIdx));
+            if (!try_func(func, getFrame(fileHandle, pageIdx), vmRegions,
+                    fileHandle.getPageSizeClass())) {
+                continue;
+            }
             if (pageState->getStateAndVersion() == currStateAndVersion) {
                 return;
             }
@@ -123,8 +189,10 @@ void BufferManager::optimisticRead(
         case PageState::MARKED: {
             // If the page is marked, we try to switch to unlocked. If we succeed, we read the page.
             if (pageState->tryClearMark(currStateAndVersion)) {
-                func(getFrame(fileHandle, pageIdx));
-                return;
+                if (try_func(func, getFrame(fileHandle, pageIdx), vmRegions,
+                        fileHandle.getPageSizeClass())) {
+                    return;
+                }
             }
         } break;
         case PageState::EVICTED: {
