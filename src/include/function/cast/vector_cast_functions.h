@@ -43,6 +43,10 @@ protected:
     static void bindImplicitNumericalCastFunc(
         common::LogicalTypeID srcTypeID, scalar_exec_func& func) {
         switch (srcTypeID) {
+        case common::LogicalTypeID::INT8: {
+            func = UnaryExecFunction<int8_t, DST_TYPE, OP>;
+            return;
+        }
         case common::LogicalTypeID::INT16: {
             func = UnaryExecFunction<int16_t, DST_TYPE, OP>;
             return;
@@ -113,6 +117,10 @@ struct CastToInt32VectorFunction : public VectorCastFunction {
 };
 
 struct CastToInt16VectorFunction : public VectorCastFunction {
+    static vector_function_definitions getDefinitions();
+};
+
+struct CastToInt8VectorFunction : public VectorCastFunction {
     static vector_function_definitions getDefinitions();
 };
 

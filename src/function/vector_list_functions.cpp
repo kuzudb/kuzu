@@ -124,6 +124,10 @@ std::unique_ptr<FunctionBindData> ListExtractVectorFunction::bindFunc(
         vectorFunctionDefinition->execFunc =
             BinaryExecListStructFunction<list_entry_t, int64_t, int16_t, ListExtract>;
     } break;
+    case PhysicalTypeID::INT8: {
+        vectorFunctionDefinition->execFunc =
+            BinaryExecListStructFunction<list_entry_t, int64_t, int8_t, ListExtract>;
+    } break;
     case PhysicalTypeID::DOUBLE: {
         vectorFunctionDefinition->execFunc =
             BinaryExecListStructFunction<list_entry_t, int64_t, double_t, ListExtract>;
@@ -232,6 +236,10 @@ std::unique_ptr<FunctionBindData> ListPrependVectorFunction::bindFunc(
     case PhysicalTypeID::INT16: {
         vectorFunctionDefinition->execFunc =
             BinaryExecListStructFunction<int16_t, list_entry_t, list_entry_t, ListPrepend>;
+    } break;
+    case PhysicalTypeID::INT8: {
+        vectorFunctionDefinition->execFunc =
+            BinaryExecListStructFunction<int8_t, list_entry_t, list_entry_t, ListPrepend>;
     } break;
     case PhysicalTypeID::DOUBLE: {
         vectorFunctionDefinition->execFunc =
@@ -359,6 +367,9 @@ std::unique_ptr<FunctionBindData> ListSortVectorFunction::bindFunc(
     case LogicalTypeID::INT16: {
         getExecFunction<int16_t>(arguments, vectorFunctionDefinition->execFunc);
     } break;
+    case LogicalTypeID::INT8: {
+        getExecFunction<int8_t>(arguments, vectorFunctionDefinition->execFunc);
+    } break;
     case LogicalTypeID::DOUBLE: {
         getExecFunction<double_t>(arguments, vectorFunctionDefinition->execFunc);
     } break;
@@ -430,6 +441,9 @@ std::unique_ptr<FunctionBindData> ListReverseSortVectorFunction::bindFunc(
     case LogicalTypeID::INT16: {
         getExecFunction<int16_t>(arguments, vectorFunctionDefinition->execFunc);
     } break;
+    case LogicalTypeID::INT8: {
+        getExecFunction<int8_t>(arguments, vectorFunctionDefinition->execFunc);
+    } break;
     case LogicalTypeID::DOUBLE: {
         getExecFunction<double_t>(arguments, vectorFunctionDefinition->execFunc);
     } break;
@@ -499,6 +513,10 @@ std::unique_ptr<FunctionBindData> ListSumVectorFunction::bindFunc(
         vectorFunctionDefinition->execFunc =
             UnaryExecListStructFunction<list_entry_t, int16_t, ListSum>;
     } break;
+    case LogicalTypeID::INT8: {
+        vectorFunctionDefinition->execFunc =
+            UnaryExecListStructFunction<list_entry_t, int8_t, ListSum>;
+    } break;
     case LogicalTypeID::DOUBLE: {
         vectorFunctionDefinition->execFunc =
             UnaryExecListStructFunction<list_entry_t, double_t, ListSum>;
@@ -538,6 +556,10 @@ std::unique_ptr<FunctionBindData> ListDistinctVectorFunction::bindFunc(
     case LogicalTypeID::INT16: {
         vectorFunctionDefinition->execFunc =
             UnaryExecListStructFunction<list_entry_t, list_entry_t, ListDistinct<int16_t>>;
+    } break;
+    case LogicalTypeID::INT8: {
+        vectorFunctionDefinition->execFunc =
+            UnaryExecListStructFunction<list_entry_t, list_entry_t, ListDistinct<int8_t>>;
     } break;
     case LogicalTypeID::DOUBLE: {
         vectorFunctionDefinition->execFunc =
@@ -603,6 +625,10 @@ std::unique_ptr<FunctionBindData> ListUniqueVectorFunction::bindFunc(
         vectorFunctionDefinition->execFunc =
             UnaryExecListStructFunction<list_entry_t, int64_t, ListUnique<int16_t>>;
     } break;
+    case LogicalTypeID::INT8: {
+        vectorFunctionDefinition->execFunc =
+            UnaryExecListStructFunction<list_entry_t, int64_t, ListUnique<int8_t>>;
+    } break;
     case LogicalTypeID::DOUBLE: {
         vectorFunctionDefinition->execFunc =
             UnaryExecListStructFunction<list_entry_t, int64_t, ListUnique<double_t>>;
@@ -667,6 +693,10 @@ std::unique_ptr<FunctionBindData> ListAnyValueVectorFunction::bindFunc(
     case LogicalTypeID::INT16: {
         vectorFunctionDefinition->execFunc =
             UnaryExecListStructFunction<list_entry_t, int16_t, ListAnyValue>;
+    } break;
+    case LogicalTypeID::INT8: {
+        vectorFunctionDefinition->execFunc =
+            UnaryExecListStructFunction<list_entry_t, int8_t, ListAnyValue>;
     } break;
     case LogicalTypeID::DOUBLE: {
         vectorFunctionDefinition->execFunc =

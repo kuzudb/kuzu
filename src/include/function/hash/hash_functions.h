@@ -79,6 +79,11 @@ inline void Hash::operation(const int16_t& key, common::hash_t& result) {
 }
 
 template<>
+inline void Hash::operation(const int8_t& key, common::hash_t& result) {
+    result = murmurhash64(key);
+}
+
+template<>
 inline void Hash::operation(const double_t& key, common::hash_t& result) {
     result = murmurhash64(key);
 }

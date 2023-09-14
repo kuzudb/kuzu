@@ -193,6 +193,11 @@ std::unique_ptr<uint8_t[]> TableCopyUtils::getArrowFixedList(const std::string& 
             memcpy(listVal.get() + numElementsRead * sizeof(int16_t), &val, sizeof(int16_t));
             numElementsRead++;
         } break;
+        case LogicalTypeID::INT8: {
+            auto val = StringCastUtils::castToNum<int8_t>(element.c_str(), element.length());
+            memcpy(listVal.get() + numElementsRead * sizeof(int8_t), &val, sizeof(int8_t));
+            numElementsRead++;
+        } break;
         case LogicalTypeID::DOUBLE: {
             auto val = StringCastUtils::castToNum<double_t>(element.c_str(), element.length());
             memcpy(listVal.get() + numElementsRead * sizeof(double_t), &val, sizeof(double_t));

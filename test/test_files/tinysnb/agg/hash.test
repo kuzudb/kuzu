@@ -213,6 +213,12 @@ Elizabeth|[25,40]
 2020|[55,22]
 2021|[5]
 
+-LOG HashCollectOnInt8Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.year, collect(s.level)
+---- 2
+2020|[120,2]
+2021|[5]
+
 -LOG HashCollectOnNodeTest
 -STATEMENT MATCH (p:person) WHERE p.ID = 3 or p.ID = 5 RETURN p.gender, collect(p)
 ---- 2
@@ -232,6 +238,19 @@ Elizabeth|[25,40]
 ---- 2
 False|2
 True|1
+
+-LOG HashAggCountINT8
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.year, COUNT(s.level)
+---- 2
+2020|2
+2021|1
+
+-LOG HashAggINT8Key
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.level, COUNT(s.year)
+---- 3
+2|1
+5|1
+120|1
 
 -LOG HashAggMinBlob
 -STATEMENT MATCH (m:movies) RETURN m.length <> 298, MIN(m.content)

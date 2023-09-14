@@ -60,6 +60,10 @@ private:
             func = UnaryExecFunction<int16_t, int16_t, FUNC>;
             return;
         }
+        case common::LogicalTypeID::INT8: {
+            func = UnaryExecFunction<int8_t, int8_t, FUNC>;
+            return;
+        }
         case common::LogicalTypeID::DOUBLE: {
             func = UnaryExecFunction<double_t, double_t, FUNC>;
             return;
@@ -90,6 +94,10 @@ private:
         }
         case common::LogicalTypeID::INT16: {
             func = BinaryExecFunction<int16_t, int16_t, int16_t, FUNC>;
+            return;
+        }
+        case common::LogicalTypeID::INT8: {
+            func = BinaryExecFunction<int8_t, int8_t, int8_t, FUNC>;
             return;
         }
         case common::LogicalTypeID::DOUBLE: {

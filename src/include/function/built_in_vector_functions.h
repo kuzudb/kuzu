@@ -31,6 +31,8 @@ private:
 
     static uint32_t castInt16(common::LogicalTypeID targetTypeID);
 
+    static uint32_t castInt8(common::LogicalTypeID targetTypeID);
+
     static uint32_t castDouble(common::LogicalTypeID targetTypeID);
 
     static uint32_t castFloat(common::LogicalTypeID targetTypeID);

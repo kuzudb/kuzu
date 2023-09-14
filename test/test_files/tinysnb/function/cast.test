@@ -5,10 +5,16 @@
 
 -CASE FunctionCast
 
--LOG CastFromINT16
--STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN to_int32(e.length), to_int64(e.length), to_float(e.length), to_double(e.length)
+-LOG CastFromINT8
+-STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN to_int16(e.level), to_int32(e.level), to_int64(e.level), to_float(e.level), to_double(e.level)
 ---- 1
-5|5|5.000000|5.000000
+5|5|5|5.000000|5.000000
+
+
+-LOG CastFromINT16
+-STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN to_int8(e.length), to_int32(e.length), to_int64(e.length), to_float(e.length), to_double(e.length)
+---- 1
+5|5|5|5.000000|5.000000
 
 -LOG CastFromINT32
 -STATEMENT MATCH (m:movies) WHERE m.name='Roma' RETURN to_int16(m.length), to_int64(m.length), to_float(m.length), to_double(m.length)
@@ -16,9 +22,9 @@
 298|298|298.000000|298.000000
 
 -LOG CastFromINT64
--STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN to_int16(p.gender), to_int32(p.gender), to_float(p.gender), to_double(p.gender)
+-STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN to_int8(p.gender), to_int16(p.gender), to_int32(p.gender), to_float(p.gender), to_double(p.gender)
 ---- 1
-1|1|1.000000|1.000000
+1|1|1|1.000000|1.000000
 
 -LOG CastFromFLOAT
 -STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN to_int16(p.height), to_int32(p.height), to_int64(p.height), to_double(p.height)
@@ -67,6 +73,13 @@ False
 5
 55
 22
+
+-LOG CastInt8ToString
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) RETURN string(s.level)
+---- 3
+5
+120
+2
 
 -LOG CastDoubleToString
 -STATEMENT MATCH (p:person) RETURN string(p.eyeSight)
@@ -183,6 +196,27 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 {152,["vanco,uver north area"],{[15,78,671],432}}
 {558,['very long city name', 'new york'],{[22],99}}
 
+-LOG CastInt8ToDouble
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_double(e.level)
+---- 3
+5.000000
+120.000000
+2.000000
+
+-LOG CastInt8ToFloat
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_float(e.level)
+---- 3
+5.000000
+120.000000
+2.000000
+
+-LOG CastInt8ToInt64
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_int64(e.level)
+---- 3
+5
+120
+2
+
 -LOG CastInt16ToDouble
 -STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_double(e.length)
 ---- 3
@@ -211,6 +245,13 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 55
 22
 
+-LOG CastInt16ToInt8
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_int8(e.length)
+---- 3
+5
+55
+22
+
 -LOG CastInt32ToDouble
 -STATEMENT MATCH (m:movies) RETURN to_double(m.length)
 ---- 3
@@ -231,6 +272,28 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 126
 2544
 298
+
+-LOG CastInt64ToInt8
+-STATEMENT MATCH (p:person) RETURN to_int8(p.age)
+---- 8
+35
+30
+45
+20
+20
+25
+40
+83
+
+-LOG CastFloatDoubleToInt8
+-STATEMENT Return to_int8(1.1), to_int8(to_float(3.2))
+---- 1
+1|3
+
+-LOG CastNumericalToInt8
+-STATEMENT Return to_int8(to_int64(1)), to_int8(to_int32(2)), to_int8(to_int16(3)), to_int8(to_int8(4))
+---- 1
+1|2|3|4
 
 -LOG CastInt64ToDouble
 -STATEMENT MATCH (p:person) RETURN to_double(p.age)
