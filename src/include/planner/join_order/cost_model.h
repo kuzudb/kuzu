@@ -1,3 +1,5 @@
+#pragma once
+
 #include "planner/logical_plan/logical_plan.h"
 
 namespace kuzu {

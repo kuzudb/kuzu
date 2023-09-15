@@ -1,3 +1,5 @@
+#pragma once
+
 #include "node_column.h"
 #include "storage/store/table_statistics.h"
 

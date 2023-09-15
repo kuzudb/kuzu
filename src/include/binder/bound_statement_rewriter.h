@@ -1,3 +1,5 @@
+#pragma once
+
 #include "bound_statement.h"
 
 namespace kuzu {

@@ -1,3 +1,5 @@
+#pragma once
+
 #include "binder/expression/expression.h"
 #include "expression_evaluator.h"
 

@@ -1,3 +1,5 @@
+#pragma once
+
 #include "logical_operator_visitor.h"
 #include "planner/logical_plan/logical_plan.h"
 

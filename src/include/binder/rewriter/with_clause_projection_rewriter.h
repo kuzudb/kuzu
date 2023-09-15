@@ -1,3 +1,5 @@
+#pragma once
+
 #include "binder/bound_statement_visitor.h"
 
 namespace kuzu {
