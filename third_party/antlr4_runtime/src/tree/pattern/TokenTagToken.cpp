@@ -7,28 +7,30 @@
 
 using namespace antlr4::tree::pattern;
 
-TokenTagToken::TokenTagToken(const std::string& /*tokenName*/, int type)
-    : CommonToken(type), tokenName(""), label("") {}
+TokenTagToken::TokenTagToken(const std::string &/*tokenName*/, int type)
+  : CommonToken(type), tokenName(""), label("") {
+}
 
-TokenTagToken::TokenTagToken(const std::string& tokenName, int type, const std::string& label)
-    : CommonToken(type), tokenName(tokenName), label(label) {}
+TokenTagToken::TokenTagToken(const std::string &tokenName, int type, const std::string &label)
+  : CommonToken(type), tokenName(tokenName), label(label) {
+}
 
 std::string TokenTagToken::getTokenName() const {
-    return tokenName;
+  return tokenName;
 }
 
 std::string TokenTagToken::getLabel() const {
-    return label;
+  return label;
 }
 
 std::string TokenTagToken::getText() const {
-    if (!label.empty()) {
-        return "<" + label + ":" + tokenName + ">";
-    }
+  if (!label.empty()) {
+    return "<" + label + ":" + tokenName + ">";
+  }
 
-    return "<" + tokenName + ">";
+  return "<" + tokenName + ">";
 }
 
 std::string TokenTagToken::toString() const {
-    return tokenName + ":" + std::to_string(_type);
+  return tokenName + ":" + std::to_string(_type);
 }

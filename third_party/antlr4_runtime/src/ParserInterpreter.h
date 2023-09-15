@@ -6,43 +6,37 @@
 #pragma once
 
 #include "Parser.h"
-#include "Vocabulary.h"
 #include "atn/ATN.h"
-#include "atn/PredictionContext.h"
 #include "support/BitSet.h"
+#include "atn/PredictionContext.h"
+#include "atn/PredictionContextCache.h"
+#include "Vocabulary.h"
 
 namespace antlr4 {
 
-/// <summary>
-/// A parser simulator that mimics what ANTLR's generated
-///  parser code does. A ParserATNSimulator is used to make
-///  predictions via adaptivePredict but this class moves a pointer through the
-///  ATN to simulate parsing. ParserATNSimulator just
-///  makes us efficient rather than having to backtrack, for example.
-///
-///  This properly creates parse trees even for left recursive rules.
-///
-///  We rely on the left recursive rule invocation and special predicate
-///  transitions to make left recursive rules work.
-///
-///  See TestParserInterpreter for examples.
-/// </summary>
-class ANTLR4CPP_PUBLIC ParserInterpreter : public Parser {
-public:
-    // @deprecated
-    ParserInterpreter(const std::string& grammarFileName,
-        const std::vector<std::string>& tokenNames, const std::vector<std::string>& ruleNames,
-        const atn::ATN& atn, TokenStream* input);
-    ParserInterpreter(const std::string& grammarFileName, const dfa::Vocabulary& vocabulary,
-        const std::vector<std::string>& ruleNames, const atn::ATN& atn, TokenStream* input);
+  /// <summary>
+  /// A parser simulator that mimics what ANTLR's generated
+  ///  parser code does. A ParserATNSimulator is used to make
+  ///  predictions via adaptivePredict but this class moves a pointer through the
+  ///  ATN to simulate parsing. ParserATNSimulator just
+  ///  makes us efficient rather than having to backtrack, for example.
+  ///
+  ///  This properly creates parse trees even for left recursive rules.
+  ///
+  ///  We rely on the left recursive rule invocation and special predicate
+  ///  transitions to make left recursive rules work.
+  ///
+  ///  See TestParserInterpreter for examples.
+  /// </summary>
+  class ANTLR4CPP_PUBLIC ParserInterpreter : public Parser {
+  public:
+    ParserInterpreter(const std::string &grammarFileName, const dfa::Vocabulary &vocabulary,
+                      const std::vector<std::string> &ruleNames, const atn::ATN &atn, TokenStream *input);
     ~ParserInterpreter();
 
     virtual void reset() override;
 
     virtual const atn::ATN& getATN() const override;
-
-    // @deprecated
-    virtual const std::vector<std::string>& getTokenNames() const override;
 
     virtual const dfa::Vocabulary& getVocabulary() const override;
 
@@ -52,8 +46,8 @@ public:
     /// Begin parsing at startRuleIndex
     virtual ParserRuleContext* parse(size_t startRuleIndex);
 
-    virtual void enterRecursionRule(
-        ParserRuleContext* localctx, size_t state, size_t ruleIndex, int precedence) override;
+    virtual void enterRecursionRule(ParserRuleContext *localctx, size_t state, size_t ruleIndex, int precedence) override;
+
 
     /** Override this parser interpreters normal decision-making process
      *  at a particular decision and input token index. Instead of
@@ -109,10 +103,9 @@ public:
      */
     InterpreterRuleContext* getRootContext();
 
-protected:
+  protected:
     const std::string _grammarFileName;
-    std::vector<std::string> _tokenNames;
-    const atn::ATN& _atn;
+    const atn::ATN &_atn;
 
     std::vector<std::string> _ruleNames;
 
@@ -132,7 +125,7 @@ protected:
      *  Those values are used to create new recursive rule invocation contexts
      *  associated with left operand of an alt like "expr '*' expr".
      */
-    std::stack<std::pair<ParserRuleContext*, size_t>> _parentContextStack;
+    std::stack<std::pair<ParserRuleContext *, size_t>> _parentContextStack;
 
     /** We need a map from (decision,inputIndex)->forced alt for computing ambiguous
      *  parse trees. For now, we allow exactly one override.
@@ -140,8 +133,7 @@ protected:
     int _overrideDecision = -1;
     size_t _overrideDecisionInputIndex = INVALID_INDEX;
     size_t _overrideDecisionAlt = INVALID_INDEX;
-    bool _overrideDecisionReached =
-        false; // latch and only override once; error might trigger infinite loop
+    bool _overrideDecisionReached = false; // latch and only override once; error might trigger infinite loop
 
     /** What is the current context when we override a decision? This tells
      *  us what the root of the parse tree is when using override
@@ -150,33 +142,32 @@ protected:
     Ref<InterpreterRuleContext> _overrideDecisionRoot;
     InterpreterRuleContext* _rootContext;
 
-    virtual atn::ATNState* getATNState();
-    virtual void visitState(atn::ATNState* p);
+    virtual atn::ATNState *getATNState();
+    virtual void visitState(atn::ATNState *p);
 
     /** Method visitDecisionState() is called when the interpreter reaches
      *  a decision state (instance of DecisionState). It gives an opportunity
      *  for subclasses to track interesting things.
      */
-    size_t visitDecisionState(atn::DecisionState* p);
+    size_t visitDecisionState(atn::DecisionState *p);
 
     /** Provide simple "factory" for InterpreterRuleContext's.
      *  @since 4.5.1
      */
-    InterpreterRuleContext* createInterpreterRuleContext(
-        ParserRuleContext* parent, size_t invokingStateNumber, size_t ruleIndex);
+    InterpreterRuleContext* createInterpreterRuleContext(ParserRuleContext *parent, size_t invokingStateNumber, size_t ruleIndex);
 
-    virtual void visitRuleStopState(atn::ATNState* p);
+    virtual void visitRuleStopState(atn::ATNState *p);
 
     /** Rely on the error handler for this parser but, if no tokens are consumed
      *  to recover, add an error node. Otherwise, nothing is seen in the parse
      *  tree.
      */
-    void recover(RecognitionException& e);
+    void recover(RecognitionException &e);
     Token* recoverInline();
 
-private:
-    const dfa::Vocabulary& _vocabulary;
+  private:
+    const dfa::Vocabulary &_vocabulary;
     std::unique_ptr<Token> _errorToken;
-};
+  };
 
 } // namespace antlr4

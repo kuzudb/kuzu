@@ -10,40 +10,38 @@
 namespace antlr4 {
 namespace atn {
 
-class ANTLR4CPP_PUBLIC ATNDeserializationOptions {
-private:
-    static ATNDeserializationOptions defaultOptions;
-
-    bool readOnly;
-    bool verifyATN;
-    bool generateRuleBypassTransitions;
-
+class ANTLR4CPP_PUBLIC ATNDeserializationOptions final {
 public:
-    ATNDeserializationOptions();
-    ATNDeserializationOptions(ATNDeserializationOptions* options);
-    ATNDeserializationOptions(ATNDeserializationOptions const&) = default;
-    virtual ~ATNDeserializationOptions();
-    ATNDeserializationOptions& operator=(ATNDeserializationOptions const&) = default;
+  ATNDeserializationOptions()
+    : _readOnly(false), _verifyATN(true), _generateRuleBypassTransitions(false) {}
 
-    static const ATNDeserializationOptions& getDefaultOptions();
+  // TODO: Is this useful? If so we should mark it as explicit, otherwise remove it.
+  ATNDeserializationOptions(ATNDeserializationOptions *options);
 
-    bool isReadOnly();
+  ATNDeserializationOptions(const ATNDeserializationOptions&) = default;
 
-    void makeReadOnly();
+  ATNDeserializationOptions& operator=(const ATNDeserializationOptions&) = default;
 
-    bool isVerifyATN();
+  static const ATNDeserializationOptions& getDefaultOptions();
 
-    void setVerifyATN(bool verify);
+  bool isReadOnly() const { return _readOnly; }
 
-    bool isGenerateRuleBypassTransitions();
+  void makeReadOnly();
 
-    void setGenerateRuleBypassTransitions(bool generate);
+  bool isVerifyATN() const { return _verifyATN; }
 
-protected:
-    virtual void throwIfReadOnly();
+  void setVerifyATN(bool verify);
+
+  bool isGenerateRuleBypassTransitions() const { return _generateRuleBypassTransitions; }
+
+  void setGenerateRuleBypassTransitions(bool generate);
 
 private:
-    void InitializeInstanceFields();
+  void throwIfReadOnly() const;
+
+  bool _readOnly;
+  bool _verifyATN;
+  bool _generateRuleBypassTransitions;
 };
 
 } // namespace atn

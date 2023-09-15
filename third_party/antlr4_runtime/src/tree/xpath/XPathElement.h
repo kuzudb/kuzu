@@ -9,15 +9,15 @@
 
 namespace antlr4 {
 namespace tree {
-class ParseTree;
+  class ParseTree;
 
 namespace xpath {
 
-class ANTLR4CPP_PUBLIC XPathElement {
-public:
+  class ANTLR4CPP_PUBLIC XPathElement {
+  public:
     /// Construct element like {@code /ID} or {@code ID} or {@code /*} etc...
     ///  op is null if just node
-    XPathElement(const std::string& nodeName);
+    XPathElement(const std::string &nodeName);
     XPathElement(XPathElement const&) = default;
     virtual ~XPathElement();
 
@@ -25,15 +25,15 @@ public:
 
     /// Given tree rooted at {@code t} return all nodes matched by this path
     /// element.
-    virtual std::vector<ParseTree*> evaluate(ParseTree* t);
+    virtual std::vector<ParseTree *> evaluate(ParseTree *t);
     virtual std::string toString() const;
 
     void setInvert(bool value);
 
-protected:
+  protected:
     std::string _nodeName;
     bool _invert = false;
-};
+  };
 
 } // namespace xpath
 } // namespace tree

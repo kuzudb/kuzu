@@ -3,28 +3,29 @@
  * can be found in the LICENSE.txt file in the project root.
  */
 
-#include "XPathElement.h"
-
 #include "support/CPPUtils.h"
+
+#include "XPathElement.h"
 
 using namespace antlr4::tree;
 using namespace antlr4::tree::xpath;
 
-XPathElement::XPathElement(const std::string& nodeName) {
-    _nodeName = nodeName;
+XPathElement::XPathElement(const std::string &nodeName) {
+  _nodeName = nodeName;
 }
 
-XPathElement::~XPathElement() {}
+XPathElement::~XPathElement() {
+}
 
-std::vector<ParseTree*> XPathElement::evaluate(ParseTree* /*t*/) {
-    return {};
+std::vector<ParseTree *> XPathElement::evaluate(ParseTree * /*t*/) {
+  return {};
 }
 
 std::string XPathElement::toString() const {
-    std::string inv = _invert ? "!" : "";
-    return antlrcpp::toString(*this) + "[" + inv + _nodeName + "]";
+  std::string inv = _invert ? "!" : "";
+  return antlrcpp::toString(*this) + "[" + inv + _nodeName + "]";
 }
 
 void XPathElement::setInvert(bool value) {
-    _invert = value;
+  _invert = value;
 }

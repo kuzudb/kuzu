@@ -3,41 +3,41 @@
  * can be found in the LICENSE.txt file in the project root.
  */
 
-#include "support/Arrays.h"
-
-#include "Exceptions.h"
 #include "tree/ParseTree.h"
+#include "Exceptions.h"
+
+#include "support/Arrays.h"
 
 using namespace antlrcpp;
 
-std::string Arrays::listToString(
-    const std::vector<std::string>& list, const std::string& separator) {
-    std::stringstream ss;
-    bool firstEntry = true;
+std::string Arrays::listToString(const std::vector<std::string> &list, const std::string &separator)
+{
+  std::stringstream ss;
+  bool firstEntry = true;
 
-    ss << '[';
-    for (const auto& entry : list) {
-        ss << entry;
-        if (firstEntry) {
-            ss << separator;
-            firstEntry = false;
-        }
+  ss << '[';
+  for (const auto &entry : list) {
+    ss << entry;
+    if (firstEntry) {
+      ss << separator;
+      firstEntry = false;
     }
+  }
 
-    ss << ']';
-    return ss.str();
+  ss << ']';
+  return ss.str();
 }
 
-template<>
-std::string Arrays::toString(const std::vector<antlr4::tree::ParseTree*>& source) {
-    std::string result = "[";
-    bool firstEntry = true;
-    for (auto* value : source) {
-        result += value->toStringTree();
-        if (firstEntry) {
-            result += ", ";
-            firstEntry = false;
-        }
+template <>
+std::string Arrays::toString(const std::vector<antlr4::tree::ParseTree*> &source) {
+  std::string result = "[";
+  bool firstEntry = true;
+  for (auto *value : source) {
+    result += value->toStringTree();
+    if (firstEntry) {
+      result += ", ";
+      firstEntry = false;
     }
-    return result + "]";
+  }
+  return result + "]";
 }

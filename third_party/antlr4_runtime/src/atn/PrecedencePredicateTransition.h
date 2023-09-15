@@ -5,25 +5,31 @@
 
 #pragma once
 
-#include "SemanticContext.h"
-#include "atn/AbstractPredicateTransition.h"
+#include "atn/Transition.h"
+#include "atn/SemanticContext.h"
 
 namespace antlr4 {
 namespace atn {
 
-class ANTLR4CPP_PUBLIC PrecedencePredicateTransition final : public AbstractPredicateTransition {
-public:
-    const int precedence;
+  class ANTLR4CPP_PUBLIC PrecedencePredicateTransition final : public Transition {
+  public:
+    static bool is(const Transition &transition) { return transition.getTransitionType() == TransitionType::PRECEDENCE; }
 
-    PrecedencePredicateTransition(ATNState* target, int precedence);
+    static bool is(const Transition *transition) { return transition != nullptr && is(*transition); }
 
-    virtual SerializationType getSerializationType() const override;
-    virtual bool isEpsilon() const override;
-    virtual bool matches(
-        size_t symbol, size_t minVocabSymbol, size_t maxVocabSymbol) const override;
-    Ref<SemanticContext::PrecedencePredicate> getPredicate() const;
-    virtual std::string toString() const override;
-};
+    PrecedencePredicateTransition(ATNState *target, int precedence);
+
+    int getPrecedence() const { return _predicate->precedence; }
+
+    bool isEpsilon() const override;
+    bool matches(size_t symbol, size_t minVocabSymbol, size_t maxVocabSymbol) const override;
+    std::string toString() const override;
+
+    const Ref<const SemanticContext::PrecedencePredicate>& getPredicate() const { return _predicate; }
+
+  private:
+    const std::shared_ptr<const SemanticContext::PrecedencePredicate> _predicate;
+  };
 
 } // namespace atn
 } // namespace antlr4

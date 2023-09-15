@@ -3,53 +3,41 @@
  * can be found in the LICENSE.txt file in the project root.
  */
 
-#include "atn/LexerTypeAction.h"
-
-#include "Lexer.h"
 #include "misc/MurmurHash.h"
+#include "Lexer.h"
+#include "support/Casts.h"
+
+#include "atn/LexerTypeAction.h"
 
 using namespace antlr4;
 using namespace antlr4::atn;
 using namespace antlr4::misc;
+using namespace antlrcpp;
 
-LexerTypeAction::LexerTypeAction(int type) : _type(type) {}
+LexerTypeAction::LexerTypeAction(int type) : LexerAction(LexerActionType::TYPE, false), _type(type) {}
 
-int LexerTypeAction::getType() const {
-    return _type;
+void LexerTypeAction::execute(Lexer *lexer) const {
+  lexer->setType(getType());
 }
 
-LexerActionType LexerTypeAction::getActionType() const {
-    return LexerActionType::TYPE;
+size_t LexerTypeAction::hashCodeImpl() const {
+  size_t hash = MurmurHash::initialize();
+  hash = MurmurHash::update(hash, static_cast<size_t>(getActionType()));
+  hash = MurmurHash::update(hash, getType());
+  return MurmurHash::finish(hash, 2);
 }
 
-bool LexerTypeAction::isPositionDependent() const {
+bool LexerTypeAction::equals(const LexerAction &other) const {
+  if (this == std::addressof(other)) {
+    return true;
+  }
+  if (getActionType() != other.getActionType()) {
     return false;
-}
-
-void LexerTypeAction::execute(Lexer* lexer) {
-    lexer->setType(_type);
-}
-
-size_t LexerTypeAction::hashCode() const {
-    size_t hash = MurmurHash::initialize();
-    hash = MurmurHash::update(hash, static_cast<size_t>(getActionType()));
-    hash = MurmurHash::update(hash, _type);
-    return MurmurHash::finish(hash, 2);
-}
-
-bool LexerTypeAction::operator==(const LexerAction& obj) const {
-    if (&obj == this) {
-        return true;
-    }
-
-    const LexerTypeAction* action = dynamic_cast<const LexerTypeAction*>(&obj);
-    if (action == nullptr) {
-        return false;
-    }
-
-    return _type == action->_type;
+  }
+  const auto &lexerAction = downCast<const LexerTypeAction&>(other);
+  return getType() == lexerAction.getType();
 }
 
 std::string LexerTypeAction::toString() const {
-    return "type(" + std::to_string(_type) + ")";
+  return "type(" + std::to_string(getType()) + ")";
 }

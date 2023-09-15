@@ -9,13 +9,13 @@
 
 namespace antlr4 {
 
-class ANTLR4CPP_PUBLIC CommonToken : public WritableToken {
-protected:
+  class ANTLR4CPP_PUBLIC CommonToken : public WritableToken {
+  protected:
     /**
      * An empty {@link Pair} which is used as the default value of
      * {@link #source} for tokens that do not have a source.
      */
-    static const std::pair<TokenSource*, CharStream*> EMPTY_SOURCE;
+    static const std::pair<TokenSource *, CharStream *> EMPTY_SOURCE;
 
     /**
      * This is the backing field for {@link #getType} and {@link #setType}.
@@ -50,8 +50,7 @@ protected:
      * {@link Pair} containing these values.</p>
      */
 
-    std::pair<TokenSource*, CharStream*>
-        _source; // ml: pure references, usually from statically allocated classes.
+    std::pair<TokenSource *, CharStream *> _source; // ml: pure references, usually from statically allocated classes.
 
     /**
      * This is the backing field for {@link #getText} when the token text is
@@ -79,15 +78,14 @@ protected:
      */
     size_t _stop;
 
-public:
+  public:
     /**
      * Constructs a new {@link CommonToken} with the specified token type.
      *
      * @param type The token type.
      */
     CommonToken(size_t type);
-    CommonToken(std::pair<TokenSource*, CharStream*> source, size_t type, size_t channel,
-        size_t start, size_t stop);
+    CommonToken(std::pair<TokenSource*, CharStream*> source, size_t type, size_t channel, size_t start, size_t stop);
 
     /**
      * Constructs a new {@link CommonToken} with the specified token type and
@@ -96,7 +94,7 @@ public:
      * @param type The token type.
      * @param text The text of the token.
      */
-    CommonToken(size_t type, const std::string& text);
+    CommonToken(size_t type, const std::string &text);
 
     /**
      * Constructs a new {@link CommonToken} as a copy of another {@link Token}.
@@ -111,7 +109,7 @@ public:
      *
      * @param oldToken The token to copy.
      */
-    CommonToken(Token* oldToken);
+    CommonToken(Token *oldToken);
 
     virtual size_t getType() const override;
 
@@ -124,7 +122,7 @@ public:
      * should be obtained from the input along with the start and stop indexes
      * of the token.
      */
-    virtual void setText(const std::string& text) override;
+    virtual void setText(const std::string &text) override;
     virtual std::string getText() const override;
 
     virtual void setLine(size_t line) override;
@@ -147,15 +145,14 @@ public:
     virtual size_t getTokenIndex() const override;
     virtual void setTokenIndex(size_t index) override;
 
-    virtual TokenSource* getTokenSource() const override;
-    virtual CharStream* getInputStream() const override;
+    virtual TokenSource *getTokenSource() const override;
+    virtual CharStream *getInputStream() const override;
 
     virtual std::string toString() const override;
 
-    virtual std::string toString(Recognizer* r) const;
-
-private:
+    virtual std::string toString(Recognizer *r) const;
+  private:
     void InitializeInstanceFields();
-};
+  };
 
 } // namespace antlr4

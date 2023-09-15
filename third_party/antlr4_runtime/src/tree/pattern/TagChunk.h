@@ -11,22 +11,22 @@ namespace antlr4 {
 namespace tree {
 namespace pattern {
 
-/// <summary>
-/// Represents a placeholder tag in a tree pattern. A tag can have any of the
-/// following forms.
-///
-/// <ul>
-/// <li>{@code expr}: An unlabeled placeholder for a parser rule {@code expr}.</li>
-/// <li>{@code ID}: An unlabeled placeholder for a token of type {@code ID}.</li>
-/// <li>{@code e:expr}: A labeled placeholder for a parser rule {@code expr}.</li>
-/// <li>{@code id:ID}: A labeled placeholder for a token of type {@code ID}.</li>
-/// </ul>
-///
-/// This class does not perform any validation on the tag or label names aside
-/// from ensuring that the tag is a non-null, non-empty string.
-/// </summary>
-class ANTLR4CPP_PUBLIC TagChunk : public Chunk {
-public:
+  /// <summary>
+  /// Represents a placeholder tag in a tree pattern. A tag can have any of the
+  /// following forms.
+  ///
+  /// <ul>
+  /// <li>{@code expr}: An unlabeled placeholder for a parser rule {@code expr}.</li>
+  /// <li>{@code ID}: An unlabeled placeholder for a token of type {@code ID}.</li>
+  /// <li>{@code e:expr}: A labeled placeholder for a parser rule {@code expr}.</li>
+  /// <li>{@code id:ID}: A labeled placeholder for a token of type {@code ID}.</li>
+  /// </ul>
+  ///
+  /// This class does not perform any validation on the tag or label names aside
+  /// from ensuring that the tag is a non-null, non-empty string.
+  /// </summary>
+  class ANTLR4CPP_PUBLIC TagChunk : public Chunk {
+  public:
     /// <summary>
     /// Construct a new instance of <seealso cref="TagChunk"/> using the specified tag and
     /// no label.
@@ -36,7 +36,7 @@ public:
     /// </param>
     /// <exception cref="IllegalArgumentException"> if {@code tag} is {@code null} or
     /// empty. </exception>
-    TagChunk(const std::string& tag);
+    TagChunk(const std::string &tag);
     virtual ~TagChunk();
 
     /// <summary>
@@ -50,7 +50,7 @@ public:
     /// </param>
     /// <exception cref="IllegalArgumentException"> if {@code tag} is {@code null} or
     /// empty. </exception>
-    TagChunk(const std::string& label, const std::string& tag);
+    TagChunk(const std::string &label, const std::string &tag);
 
     /// <summary>
     /// Get the tag for this chunk.
@@ -72,14 +72,14 @@ public:
     /// </summary>
     virtual std::string toString() override;
 
-private:
+  private:
     /// This is the backing field for <seealso cref="#getTag"/>.
     const std::string _tag;
     /// <summary>
     /// This is the backing field for <seealso cref="#getLabe"/>.
     /// </summary>
     const std::string _label;
-};
+  };
 
 } // namespace pattern
 } // namespace tree

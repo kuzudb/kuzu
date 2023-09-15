@@ -3,53 +3,41 @@
  * can be found in the LICENSE.txt file in the project root.
  */
 
-#include "atn/LexerPushModeAction.h"
-
-#include "Lexer.h"
 #include "misc/MurmurHash.h"
+#include "Lexer.h"
+#include "support/Casts.h"
+
+#include "atn/LexerPushModeAction.h"
 
 using namespace antlr4;
 using namespace antlr4::atn;
 using namespace antlr4::misc;
+using namespace antlrcpp;
 
-LexerPushModeAction::LexerPushModeAction(int mode) : _mode(mode) {}
+LexerPushModeAction::LexerPushModeAction(int mode) : LexerAction(LexerActionType::PUSH_MODE, false), _mode(mode) {}
 
-int LexerPushModeAction::getMode() const {
-    return _mode;
+void LexerPushModeAction::execute(Lexer *lexer) const {
+  lexer->pushMode(getMode());
 }
 
-LexerActionType LexerPushModeAction::getActionType() const {
-    return LexerActionType::PUSH_MODE;
+size_t LexerPushModeAction::hashCodeImpl() const {
+  size_t hash = MurmurHash::initialize();
+  hash = MurmurHash::update(hash, static_cast<size_t>(getActionType()));
+  hash = MurmurHash::update(hash, getMode());
+  return MurmurHash::finish(hash, 2);
 }
 
-bool LexerPushModeAction::isPositionDependent() const {
+bool LexerPushModeAction::equals(const LexerAction &other) const {
+  if (this == std::addressof(other)) {
+    return true;
+  }
+  if (getActionType() != other.getActionType()) {
     return false;
-}
-
-void LexerPushModeAction::execute(Lexer* lexer) {
-    lexer->pushMode(_mode);
-}
-
-size_t LexerPushModeAction::hashCode() const {
-    size_t hash = MurmurHash::initialize();
-    hash = MurmurHash::update(hash, static_cast<size_t>(getActionType()));
-    hash = MurmurHash::update(hash, _mode);
-    return MurmurHash::finish(hash, 2);
-}
-
-bool LexerPushModeAction::operator==(const LexerAction& obj) const {
-    if (&obj == this) {
-        return true;
-    }
-
-    const LexerPushModeAction* action = dynamic_cast<const LexerPushModeAction*>(&obj);
-    if (action == nullptr) {
-        return false;
-    }
-
-    return _mode == action->_mode;
+  }
+  const auto &lexerAction = downCast<const LexerPushModeAction&>(other);
+  return getMode() == lexerAction.getMode();
 }
 
 std::string LexerPushModeAction::toString() const {
-    return "pushMode(" + std::to_string(_mode) + ")";
+  return "pushMode(" + std::to_string(getMode()) + ")";
 }

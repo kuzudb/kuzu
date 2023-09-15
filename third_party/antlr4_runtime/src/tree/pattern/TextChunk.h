@@ -11,12 +11,12 @@ namespace antlr4 {
 namespace tree {
 namespace pattern {
 
-/// <summary>
-/// Represents a span of raw text (concrete syntax) between tags in a tree
-/// pattern string.
-/// </summary>
-class ANTLR4CPP_PUBLIC TextChunk : public Chunk {
-private:
+  /// <summary>
+  /// Represents a span of raw text (concrete syntax) between tags in a tree
+  /// pattern string.
+  /// </summary>
+  class ANTLR4CPP_PUBLIC TextChunk : public Chunk {
+  private:
     /// <summary>
     /// This is the backing field for <seealso cref="#getText"/>.
     /// </summary>
@@ -27,8 +27,8 @@ private:
     /// </summary>
     /// <param name="text"> The text of this chunk. </param>
     /// <exception cref="IllegalArgumentException"> if {@code text} is {@code null}. </exception>
-public:
-    TextChunk(const std::string& text);
+  public:
+    TextChunk(const std::string &text);
     virtual ~TextChunk();
 
     /// <summary>
@@ -44,7 +44,7 @@ public:
     /// <seealso cref="#getText()"/> in single quotes.
     /// </summary>
     virtual std::string toString() override;
-};
+  };
 
 } // namespace pattern
 } // namespace tree

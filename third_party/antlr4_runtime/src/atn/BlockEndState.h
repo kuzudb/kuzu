@@ -10,15 +10,17 @@
 namespace antlr4 {
 namespace atn {
 
-/// Terminal node of a simple {@code (a|b|c)} block.
-class ANTLR4CPP_PUBLIC BlockEndState final : public ATNState {
-public:
-    BlockStartState* startState = nullptr;
+  /// Terminal node of a simple {@code (a|b|c)} block.
+  class ANTLR4CPP_PUBLIC BlockEndState final : public ATNState {
+  public:
+    static bool is(const ATNState &atnState) { return atnState.getStateType() == ATNStateType::BLOCK_END; }
 
-    BlockEndState();
+    static bool is(const ATNState *atnState) { return atnState != nullptr && is(*atnState); }
 
-    virtual size_t getStateType() override;
-};
+    BlockStartState *startState = nullptr;
+
+    BlockEndState() : ATNState(ATNStateType::BLOCK_END) {}
+  };
 
 } // namespace atn
 } // namespace antlr4

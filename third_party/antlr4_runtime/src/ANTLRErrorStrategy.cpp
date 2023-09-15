@@ -5,4 +5,6 @@
 
 #include "ANTLRErrorStrategy.h"
 
-antlr4::ANTLRErrorStrategy::~ANTLRErrorStrategy() {}
+antlr4::ANTLRErrorStrategy::~ANTLRErrorStrategy()
+{
+}

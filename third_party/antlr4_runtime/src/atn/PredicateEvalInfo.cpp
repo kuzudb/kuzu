@@ -3,15 +3,15 @@
  * can be found in the LICENSE.txt file in the project root.
  */
 
-#include "atn/PredicateEvalInfo.h"
-
 #include "SemanticContext.h"
+
+#include "atn/PredicateEvalInfo.h"
 
 using namespace antlr4;
 using namespace antlr4::atn;
 
-PredicateEvalInfo::PredicateEvalInfo(size_t decision, TokenStream* input, size_t startIndex,
-    size_t stopIndex, Ref<SemanticContext> const& semctx, bool evalResult, size_t predictedAlt,
-    bool fullCtx)
-    : DecisionEventInfo(decision, nullptr, input, startIndex, stopIndex, fullCtx), semctx(semctx),
-      predictedAlt(predictedAlt), evalResult(evalResult) {}
+PredicateEvalInfo::PredicateEvalInfo(size_t decision, TokenStream *input, size_t startIndex, size_t stopIndex,
+  Ref<const SemanticContext> semctx, bool evalResult, size_t predictedAlt, bool fullCtx)
+  : DecisionEventInfo(decision, nullptr, input, startIndex, stopIndex, fullCtx),
+    semctx(std::move(semctx)), predictedAlt(predictedAlt), evalResult(evalResult) {
+}

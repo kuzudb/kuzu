@@ -9,56 +9,29 @@
 
 namespace antlr4 {
 
-/// A token has properties: text, type, line, character position in the line
-/// (so we can ignore tabs), token channel, index, and source from which
-/// we obtained this token.
-class ANTLR4CPP_PUBLIC Token {
-public:
-#if __cplusplus >= 201703L
+  /// A token has properties: text, type, line, character position in the line
+  /// (so we can ignore tabs), token channel, index, and source from which
+  /// we obtained this token.
+  class ANTLR4CPP_PUBLIC Token {
+  public:
     static constexpr size_t INVALID_TYPE = 0;
-#else
-    enum : size_t {
-        INVALID_TYPE = 0,
-    };
-#endif
 
     /// During lookahead operations, this "token" signifies we hit rule end ATN state
     /// and did not follow it despite needing to.
-#if __cplusplus >= 201703L
     static constexpr size_t EPSILON = std::numeric_limits<size_t>::max() - 1;
     static constexpr size_t MIN_USER_TOKEN_TYPE = 1;
     static constexpr size_t EOF = IntStream::EOF;
-#else
-    enum : size_t {
-        EPSILON = static_cast<size_t>(
-            -2), // std::numeric_limits<size_t>::max() - 1; doesn't work in VS 2013
-        MIN_USER_TOKEN_TYPE = 1,
-        EOF = IntStream::EOF,
-    };
-#endif
 
     virtual ~Token();
 
     /// All tokens go to the parser (unless skip() is called in that rule)
     /// on a particular "channel".  The parser tunes to a particular channel
     /// so that whitespace etc... can go to the parser on a "hidden" channel.
-#if __cplusplus >= 201703L
     static constexpr size_t DEFAULT_CHANNEL = 0;
-#else
-    enum : size_t {
-        DEFAULT_CHANNEL = 0,
-    };
-#endif
 
     /// Anything on different channel than DEFAULT_CHANNEL is not parsed
     /// by parser.
-#if __cplusplus >= 201703L
     static constexpr size_t HIDDEN_CHANNEL = 1;
-#else
-    enum : size_t {
-        HIDDEN_CHANNEL = 1,
-    };
-#endif
 
     /**
      * This is the minimum constant value which can be assigned to a
@@ -71,13 +44,7 @@ public:
      *
      * @see Token#getChannel()
      */
-#if __cplusplus >= 201703L
     static constexpr size_t MIN_USER_CHANNEL_VALUE = 2;
-#else
-    enum : size_t {
-        MIN_USER_CHANNEL_VALUE = 2,
-    };
-#endif
 
     /// Get the text of the token.
     virtual std::string getText() const = 0;
@@ -114,12 +81,12 @@ public:
     virtual size_t getStopIndex() const = 0;
 
     /// Gets the <seealso cref="TokenSource"/> which created this token.
-    virtual TokenSource* getTokenSource() const = 0;
+    virtual TokenSource *getTokenSource() const = 0;
 
     /// Gets the <seealso cref="CharStream"/> from which this token was derived.
-    virtual CharStream* getInputStream() const = 0;
+    virtual CharStream *getInputStream() const = 0;
 
     virtual std::string toString() const = 0;
-};
+  };
 
 } // namespace antlr4

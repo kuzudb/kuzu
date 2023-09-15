@@ -10,18 +10,18 @@
 namespace antlr4 {
 namespace atn {
 
-/// <summary>
-/// This class represents profiling event information for a syntax error
-/// identified during prediction. Syntax errors occur when the prediction
-/// algorithm is unable to identify an alternative which would lead to a
-/// successful parse.
-/// </summary>
-/// <seealso cref= Parser#notifyErrorListeners(Token, String, RecognitionException) </seealso>
-/// <seealso cref= ANTLRErrorListener#syntaxError
-///
-/// @since 4.3 </seealso>
-class ANTLR4CPP_PUBLIC ErrorInfo : public DecisionEventInfo {
-public:
+  /// <summary>
+  /// This class represents profiling event information for a syntax error
+  /// identified during prediction. Syntax errors occur when the prediction
+  /// algorithm is unable to identify an alternative which would lead to a
+  /// successful parse.
+  /// </summary>
+  /// <seealso cref= Parser#notifyErrorListeners(Token, String, RecognitionException) </seealso>
+  /// <seealso cref= ANTLRErrorListener#syntaxError
+  ///
+  /// @since 4.3 </seealso>
+  class ANTLR4CPP_PUBLIC ErrorInfo : public DecisionEventInfo {
+  public:
     /// <summary>
     /// Constructs a new instance of the <seealso cref="ErrorInfo"/> class with the
     /// specified detailed syntax error information.
@@ -35,9 +35,9 @@ public:
     /// <param name="fullCtx"> {@code true} if the syntax error was identified during LL
     /// prediction; otherwise, {@code false} if the syntax error was identified
     /// during SLL prediction </param>
-    ErrorInfo(size_t decision, ATNConfigSet* configs, TokenStream* input, size_t startIndex,
-        size_t stopIndex, bool fullCtx);
-};
+    ErrorInfo(size_t decision, ATNConfigSet *configs, TokenStream *input, size_t startIndex, size_t stopIndex,
+              bool fullCtx);
+  };
 
 } // namespace atn
 } // namespace antlr4

@@ -9,12 +9,12 @@
 
 namespace antlr4 {
 
-/**
- * This default implementation of {@link TokenFactory} creates
- * {@link CommonToken} objects.
- */
-class ANTLR4CPP_PUBLIC CommonTokenFactory : public TokenFactory<CommonToken> {
-public:
+  /**
+   * This default implementation of {@link TokenFactory} creates
+   * {@link CommonToken} objects.
+   */
+  class ANTLR4CPP_PUBLIC CommonTokenFactory : public TokenFactory<CommonToken> {
+  public:
     /**
      * The default {@link CommonTokenFactory} instance.
      *
@@ -24,7 +24,7 @@ public:
      */
     static const std::unique_ptr<TokenFactory<CommonToken>> DEFAULT;
 
-protected:
+  protected:
     /**
      * Indicates whether {@link CommonToken#setText} should be called after
      * constructing tokens to explicitly set the text. This is useful for cases
@@ -42,7 +42,7 @@ protected:
      */
     const bool copyText;
 
-public:
+  public:
     /**
      * Constructs a {@link CommonTokenFactory} with the specified value for
      * {@link #copyText}.
@@ -65,11 +65,10 @@ public:
      */
     CommonTokenFactory();
 
-    virtual std::unique_ptr<CommonToken> create(std::pair<TokenSource*, CharStream*> source,
-        size_t type, const std::string& text, size_t channel, size_t start, size_t stop,
-        size_t line, size_t charPositionInLine) override;
+    virtual std::unique_ptr<CommonToken> create(std::pair<TokenSource*, CharStream*> source, size_t type,
+      const std::string &text, size_t channel, size_t start, size_t stop, size_t line, size_t charPositionInLine) override;
 
-    virtual std::unique_ptr<CommonToken> create(size_t type, const std::string& text) override;
-};
+    virtual std::unique_ptr<CommonToken> create(size_t type, const std::string &text) override;
+  };
 
 } // namespace antlr4

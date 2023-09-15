@@ -8,14 +8,14 @@
 #include "RecognitionException.h"
 
 namespace antlrcpp {
-class BitSet;
+  class BitSet;
 }
 
 namespace antlr4 {
 
-/// How to emit recognition errors (an interface in Java).
-class ANTLR4CPP_PUBLIC ANTLRErrorListener {
-public:
+  /// How to emit recognition errors (an interface in Java).
+  class ANTLR4CPP_PUBLIC ANTLRErrorListener {
+  public:
     virtual ~ANTLRErrorListener();
 
     /// <summary>
@@ -50,8 +50,8 @@ public:
     ///        the reporting of an error. It is null in the case where
     ///        the parser was able to recover in line without exiting the
     ///        surrounding rule. </param>
-    virtual void syntaxError(Recognizer* recognizer, Token* offendingSymbol, size_t line,
-        size_t charPositionInLine, const std::string& msg, std::exception_ptr e) = 0;
+    virtual void syntaxError(Recognizer *recognizer, Token *offendingSymbol, size_t line,
+                             size_t charPositionInLine, const std::string &msg, std::exception_ptr e) = 0;
 
     /**
      * This method is called by the parser when a full-context prediction
@@ -93,9 +93,8 @@ public:
      * @param configs the ATN configuration set where the ambiguity was
      * identified
      */
-    virtual void reportAmbiguity(Parser* recognizer, const dfa::DFA& dfa, size_t startIndex,
-        size_t stopIndex, bool exact, const antlrcpp::BitSet& ambigAlts,
-        atn::ATNConfigSet* configs) = 0;
+    virtual void reportAmbiguity(Parser *recognizer, const dfa::DFA &dfa, size_t startIndex, size_t stopIndex, bool exact,
+      const antlrcpp::BitSet &ambigAlts, atn::ATNConfigSet *configs) = 0;
 
     /**
      * This method is called when an SLL conflict occurs and the parser is about
@@ -120,9 +119,8 @@ public:
      * @param configs the ATN configuration set where the SLL conflict was
      * detected
      */
-    virtual void reportAttemptingFullContext(Parser* recognizer, const dfa::DFA& dfa,
-        size_t startIndex, size_t stopIndex, const antlrcpp::BitSet& conflictingAlts,
-        atn::ATNConfigSet* configs) = 0;
+    virtual void reportAttemptingFullContext(Parser *recognizer, const dfa::DFA &dfa, size_t startIndex, size_t stopIndex,
+      const antlrcpp::BitSet &conflictingAlts, atn::ATNConfigSet *configs) = 0;
 
     /**
      * This method is called by the parser when a full-context prediction has a
@@ -162,8 +160,8 @@ public:
      * @param configs the ATN configuration set where the unambiguous prediction
      * was determined
      */
-    virtual void reportContextSensitivity(Parser* recognizer, const dfa::DFA& dfa,
-        size_t startIndex, size_t stopIndex, size_t prediction, atn::ATNConfigSet* configs) = 0;
-};
+    virtual void reportContextSensitivity(Parser *recognizer, const dfa::DFA &dfa, size_t startIndex, size_t stopIndex,
+      size_t prediction, atn::ATNConfigSet *configs) = 0;
+  };
 
 } // namespace antlr4

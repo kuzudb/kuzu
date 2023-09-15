@@ -7,7 +7,7 @@ ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/../../" >/dev/null 2>&1 && pwd
 if [ ! -e antlr4.jar ]
 then
     echo "Downloading antlr4.jar"
-    curl --url 'https://www.antlr.org/download/antlr-4.9-complete.jar'\
+    curl --url 'https://www.antlr.org/download/antlr-4.13.1-complete.jar'\
          --output './antlr4.jar'
 fi
 

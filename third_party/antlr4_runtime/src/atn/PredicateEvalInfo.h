@@ -10,17 +10,17 @@
 namespace antlr4 {
 namespace atn {
 
-/// <summary>
-/// This class represents profiling event information for semantic predicate
-/// evaluations which occur during prediction.
-/// </summary>
-/// <seealso cref= ParserATNSimulator#evalSemanticContext
-///
-/// @since 4.3 </seealso>
-class ANTLR4CPP_PUBLIC PredicateEvalInfo : public DecisionEventInfo {
-public:
+  /// <summary>
+  /// This class represents profiling event information for semantic predicate
+  /// evaluations which occur during prediction.
+  /// </summary>
+  /// <seealso cref= ParserATNSimulator#evalSemanticContext
+  ///
+  /// @since 4.3 </seealso>
+  class ANTLR4CPP_PUBLIC PredicateEvalInfo : public DecisionEventInfo {
+  public:
     /// The semantic context which was evaluated.
-    const Ref<SemanticContext> semctx;
+    const Ref<const SemanticContext> semctx;
 
     /// <summary>
     /// The alternative number for the decision which is guarded by the semantic
@@ -52,12 +52,11 @@ public:
     /// evaluated during LL prediction; otherwise, {@code false} if the semantic
     /// context was evaluated during SLL prediction
     /// </param>
-    /// <seealso cref= ParserATNSimulator#evalSemanticContext(SemanticContext, ParserRuleContext,
-    /// int, boolean) </seealso> <seealso cref= SemanticContext#eval(Recognizer, RuleContext)
-    /// </seealso>
-    PredicateEvalInfo(size_t decision, TokenStream* input, size_t startIndex, size_t stopIndex,
-        Ref<SemanticContext> const& semctx, bool evalResult, size_t predictedAlt, bool fullCtx);
-};
+    /// <seealso cref= ParserATNSimulator#evalSemanticContext(SemanticContext, ParserRuleContext, int, boolean) </seealso>
+    /// <seealso cref= SemanticContext#eval(Recognizer, RuleContext) </seealso>
+    PredicateEvalInfo(size_t decision, TokenStream *input, size_t startIndex, size_t stopIndex,
+                      Ref<const SemanticContext> semctx, bool evalResult, size_t predictedAlt, bool fullCtx);
+  };
 
 } // namespace atn
 } // namespace antlr4

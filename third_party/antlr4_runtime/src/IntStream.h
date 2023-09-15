@@ -9,37 +9,30 @@
 
 namespace antlr4 {
 
-/// <summary>
-/// A simple stream of symbols whose values are represented as integers. This
-/// interface provides <em>marked ranges</em> with support for a minimum level
-/// of buffering necessary to implement arbitrary lookahead during prediction.
-/// For more information on marked ranges, see <seealso cref="#mark"/>.
-/// <p/>
-/// <strong>Initializing Methods:</strong> Some methods in this interface have
-/// unspecified behavior if no call to an initializing method has occurred after
-/// the stream was constructed. The following is a list of initializing methods:
-///
-/// <ul>
-///   <li><seealso cref="#LA"/></li>
-///   <li><seealso cref="#consume"/></li>
-///   <li><seealso cref="#size"/></li>
-/// </ul>
-/// </summary>
-class ANTLR4CPP_PUBLIC IntStream {
-public:
-#if __cplusplus >= 201703L
+  /// <summary>
+  /// A simple stream of symbols whose values are represented as integers. This
+  /// interface provides <em>marked ranges</em> with support for a minimum level
+  /// of buffering necessary to implement arbitrary lookahead during prediction.
+  /// For more information on marked ranges, see <seealso cref="#mark"/>.
+  /// <p/>
+  /// <strong>Initializing Methods:</strong> Some methods in this interface have
+  /// unspecified behavior if no call to an initializing method has occurred after
+  /// the stream was constructed. The following is a list of initializing methods:
+  ///
+  /// <ul>
+  ///   <li><seealso cref="#LA"/></li>
+  ///   <li><seealso cref="#consume"/></li>
+  ///   <li><seealso cref="#size"/></li>
+  /// </ul>
+  /// </summary>
+  class ANTLR4CPP_PUBLIC IntStream {
+  public:
     static constexpr size_t EOF = std::numeric_limits<size_t>::max();
-#else
-    enum : size_t {
-        EOF =
-            static_cast<size_t>(-1), // std::numeric_limits<size_t>::max(); doesn't work in VS 2013
-    };
-#endif
 
     /// The value returned by <seealso cref="#LA LA()"/> when the end of the stream is
     /// reached.
     /// No explicit EOF definition. We got EOF on all platforms.
-    // static const size_t _EOF = std::ios::eofbit;
+    //static const size_t _EOF = std::ios::eofbit;
 
     /// <summary>
     /// The value returned by <seealso cref="#getSourceName"/> when the actual name of the
@@ -220,6 +213,6 @@ public:
     /// returns <seealso cref="#UNKNOWN_SOURCE_NAME"/>.
     /// </summary>
     virtual std::string getSourceName() const = 0;
-};
+  };
 
 } // namespace antlr4

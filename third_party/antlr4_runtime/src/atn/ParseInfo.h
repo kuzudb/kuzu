@@ -10,13 +10,13 @@
 namespace antlr4 {
 namespace atn {
 
-class ProfilingATNSimulator;
+  class ProfilingATNSimulator;
 
-/// This class provides access to specific and aggregate statistics gathered
-/// during profiling of a parser.
-class ANTLR4CPP_PUBLIC ParseInfo {
-public:
-    ParseInfo(ProfilingATNSimulator* atnSimulator);
+  /// This class provides access to specific and aggregate statistics gathered
+  /// during profiling of a parser.
+  class ANTLR4CPP_PUBLIC ParseInfo {
+  public:
+    ParseInfo(ProfilingATNSimulator *atnSimulator);
     ParseInfo(ParseInfo const&) = default;
     virtual ~ParseInfo();
 
@@ -94,9 +94,9 @@ public:
     /// </summary>
     virtual size_t getDFASize(size_t decision);
 
-protected:
-    const ProfilingATNSimulator* _atnSimulator; // non-owning, we are created by this simulator.
-};
+  protected:
+    const ProfilingATNSimulator *_atnSimulator; // non-owning, we are created by this simulator.
+  };
 
 } // namespace atn
 } // namespace antlr4

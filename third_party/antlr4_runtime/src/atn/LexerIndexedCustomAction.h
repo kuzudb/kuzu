@@ -11,21 +11,25 @@
 namespace antlr4 {
 namespace atn {
 
-/// <summary>
-/// This implementation of <seealso cref="LexerAction"/> is used for tracking input offsets
-/// for position-dependent actions within a <seealso cref="LexerActionExecutor"/>.
-///
-/// <para>This action is not serialized as part of the ATN, and is only required for
-/// position-dependent lexer actions which appear at a location other than the
-/// end of a rule. For more information about DFA optimizations employed for
-/// lexer actions, see <seealso cref="LexerActionExecutor#append"/> and
-/// <seealso cref="LexerActionExecutor#fixOffsetBeforeMatch"/>.</para>
-///
-/// @author Sam Harwell
-/// @since 4.2
-/// </summary>
-class ANTLR4CPP_PUBLIC LexerIndexedCustomAction final : public LexerAction {
-public:
+  /// <summary>
+  /// This implementation of <seealso cref="LexerAction"/> is used for tracking input offsets
+  /// for position-dependent actions within a <seealso cref="LexerActionExecutor"/>.
+  ///
+  /// <para>This action is not serialized as part of the ATN, and is only required for
+  /// position-dependent lexer actions which appear at a location other than the
+  /// end of a rule. For more information about DFA optimizations employed for
+  /// lexer actions, see <seealso cref="LexerActionExecutor#append"/> and
+  /// <seealso cref="LexerActionExecutor#fixOffsetBeforeMatch"/>.</para>
+  ///
+  /// @author Sam Harwell
+  /// @since 4.2
+  /// </summary>
+  class ANTLR4CPP_PUBLIC LexerIndexedCustomAction final : public LexerAction {
+  public:
+    static bool is(const LexerAction &lexerAction) { return lexerAction.getActionType() == LexerActionType::INDEXED_CUSTOM; }
+
+    static bool is(const LexerAction *lexerAction) { return lexerAction != nullptr && is(*lexerAction); }
+
     /// <summary>
     /// Constructs a new indexed custom action by associating a character offset
     /// with a <seealso cref="LexerAction"/>.
@@ -38,7 +42,7 @@ public:
     /// executed. </param>
     /// <param name="action"> The lexer action to execute at a particular offset in the
     /// input <seealso cref="CharStream"/>. </param>
-    LexerIndexedCustomAction(int offset, Ref<LexerAction> const& action);
+    LexerIndexedCustomAction(int offset, Ref<const LexerAction> action);
 
     /// <summary>
     /// Gets the location in the input <seealso cref="CharStream"/> at which the lexer
@@ -47,35 +51,26 @@ public:
     /// </summary>
     /// <returns> The location in the input <seealso cref="CharStream"/> at which the lexer
     /// action should be executed. </returns>
-    int getOffset() const;
+    int getOffset() const { return _offset; }
 
     /// <summary>
     /// Gets the lexer action to execute.
     /// </summary>
     /// <returns> A <seealso cref="LexerAction"/> object which executes the lexer action. </returns>
-    Ref<LexerAction> getAction() const;
+    const Ref<const LexerAction>& getAction() const { return _action; }
 
-    /// <summary>
-    /// {@inheritDoc}
-    /// </summary>
-    /// <returns> This method returns the result of calling <seealso cref="#getActionType"/>
-    /// on the <seealso cref="LexerAction"/> returned by <seealso cref="#getAction"/>. </returns>
-    virtual LexerActionType getActionType() const override;
+    void execute(Lexer *lexer) const override;
+    bool equals(const LexerAction &other) const override;
+    std::string toString() const override;
 
-    /// <summary>
-    /// {@inheritDoc} </summary>
-    /// <returns> This method returns {@code true}. </returns>
-    virtual bool isPositionDependent() const override;
+  protected:
+    size_t hashCodeImpl() const override;
 
-    virtual void execute(Lexer* lexer) override;
-    virtual size_t hashCode() const override;
-    virtual bool operator==(const LexerAction& obj) const override;
-    virtual std::string toString() const override;
-
-private:
+  private:
+    const Ref<const LexerAction> _action;
     const int _offset;
-    const Ref<LexerAction> _action;
-};
+  };
 
 } // namespace atn
 } // namespace antlr4
+

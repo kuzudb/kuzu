@@ -6,19 +6,15 @@
 #pragma once
 
 #include "ProxyErrorListener.h"
+#include "support/Casts.h"
+#include "atn/SerializedATNView.h"
+#include "internal/Synchronization.h"
 
 namespace antlr4 {
 
-class ANTLR4CPP_PUBLIC Recognizer {
-public:
-#if __cplusplus >= 201703L
+  class ANTLR4CPP_PUBLIC Recognizer {
+  public:
     static constexpr size_t EOF = std::numeric_limits<size_t>::max();
-#else
-    enum : size_t {
-        EOF =
-            static_cast<size_t>(-1), // std::numeric_limits<size_t>::max(); doesn't work in VS 2013.
-    };
-#endif
 
     Recognizer();
     Recognizer(Recognizer const&) = delete;
@@ -26,13 +22,6 @@ public:
 
     Recognizer& operator=(Recognizer const&) = delete;
 
-    /** Used to print out token names like ID during debugging and
-     *  error reporting.  The generated parsers implement a method
-     *  that overrides this to point to their String[] tokenNames.
-     *
-     * @deprecated Use {@link #getVocabulary()} instead.
-     */
-    virtual std::vector<std::string> const& getTokenNames() const = 0;
     virtual std::vector<std::string> const& getRuleNames() const = 0;
 
     /**
@@ -41,14 +30,14 @@ public:
      * @return A {@link Vocabulary} instance providing information about the
      * vocabulary used by the grammar.
      */
-    virtual dfa::Vocabulary const& getVocabulary() const;
+    virtual dfa::Vocabulary const& getVocabulary() const = 0;
 
     /// <summary>
     /// Get a map from token names to token types.
     /// <p/>
     /// Used for XPath and tree pattern compilation.
     /// </summary>
-    virtual std::map<std::string, size_t> getTokenTypeMap();
+    virtual std::map<std::string_view, size_t> getTokenTypeMap();
 
     /// <summary>
     /// Get a map from rule names to rule indexes.
@@ -57,7 +46,7 @@ public:
     /// </summary>
     virtual std::map<std::string, size_t> getRuleIndexMap();
 
-    virtual size_t getTokenType(const std::string& tokenName);
+    virtual size_t getTokenType(std::string_view tokenName);
 
     /// <summary>
     /// If this recognizer was generated, it will have a serialized ATN
@@ -66,8 +55,8 @@ public:
     /// For interpreters, we don't know their serialized ATN despite having
     /// created the interpreter from it.
     /// </summary>
-    virtual const std::vector<uint16_t> getSerializedATN() const {
-        throw "there is no serialized ATN";
+    virtual atn::SerializedATNView getSerializedATN() const {
+      throw "there is no serialized ATN";
     }
 
     /// <summary>
@@ -76,12 +65,11 @@ public:
     /// </summary>
     virtual std::string getGrammarFileName() const = 0;
 
-    /// Get the ATN interpreter (in fact one of it's descendants) used by the recognizer for
-    /// prediction.
+    /// Get the ATN interpreter (in fact one of it's descendants) used by the recognizer for prediction.
     /// @returns The ATN interpreter used by the recognizer for prediction.
-    template<class T>
+    template <class T>
     T* getInterpreter() const {
-        return dynamic_cast<T*>(_interpreter);
+      return antlrcpp::downCast<T *>(_interpreter);
     }
 
     /**
@@ -90,10 +78,10 @@ public:
      * @param interpreter The ATN interpreter used by the recognizer for
      * prediction.
      */
-    void setInterpreter(atn::ATNSimulator* interpreter);
+    void setInterpreter(atn::ATNSimulator *interpreter);
 
     /// What is the error header, normally line/character position information?
-    virtual std::string getErrorHeader(RecognitionException* e);
+    virtual std::string getErrorHeader(RecognitionException *e);
 
     /** How should a token be displayed in an error message? The default
      *  is to display just the text, but during development you might
@@ -108,12 +96,12 @@ public:
      * feature when necessary. For example, see
      * {@link DefaultErrorStrategy#getTokenErrorDisplay}.
      */
-    virtual std::string getTokenErrorDisplay(Token* t);
+    virtual std::string getTokenErrorDisplay(Token *t);
 
     /// <exception cref="NullPointerException"> if {@code listener} is {@code null}. </exception>
-    virtual void addErrorListener(ANTLRErrorListener* listener);
+    virtual void addErrorListener(ANTLRErrorListener *listener);
 
-    virtual void removeErrorListener(ANTLRErrorListener* listener);
+    virtual void removeErrorListener(ANTLRErrorListener *listener);
 
     virtual void removeErrorListeners();
 
@@ -121,13 +109,13 @@ public:
 
     // subclass needs to override these if there are sempreds or actions
     // that the ATN interp needs to execute
-    virtual bool sempred(RuleContext* localctx, size_t ruleIndex, size_t actionIndex);
+    virtual bool sempred(RuleContext *localctx, size_t ruleIndex, size_t actionIndex);
 
-    virtual bool precpred(RuleContext* localctx, int precedence);
+    virtual bool precpred(RuleContext *localctx, int precedence);
 
-    virtual void action(RuleContext* localctx, size_t ruleIndex, size_t actionIndex);
+    virtual void action(RuleContext *localctx, size_t ruleIndex, size_t actionIndex);
 
-    virtual size_t getState() const;
+    size_t getState() const { return _stateNumber; }
 
     // Get the ATN used by the recognizer for prediction.
     virtual const atn::ATN& getATN() const = 0;
@@ -140,25 +128,25 @@ public:
     ///  invoking rules. Combine this and we have complete ATN
     ///  configuration information.
     /// </summary>
-    void setState(size_t atnState);
+    void setState(size_t atnState) { _stateNumber = atnState; }
 
     virtual IntStream* getInputStream() = 0;
 
-    virtual void setInputStream(IntStream* input) = 0;
+    virtual void setInputStream(IntStream *input) = 0;
 
     virtual TokenFactory<CommonToken>* getTokenFactory() = 0;
 
     template<typename T1>
-    void setTokenFactory(TokenFactory<T1>* input);
+    void setTokenFactory(TokenFactory<T1> *input);
 
-protected:
-    atn::ATNSimulator* _interpreter; // Set and deleted in descendants (or the profiler).
+  protected:
+    atn::ATNSimulator *_interpreter; // Set and deleted in descendants (or the profiler).
 
     // Mutex to manage synchronized access for multithreading.
-    std::mutex _mutex;
+    internal::Mutex _mutex;
 
-private:
-    static std::map<const dfa::Vocabulary*, std::map<std::string, size_t>> _tokenTypeMapCache;
+  private:
+    static std::map<const dfa::Vocabulary*, std::map<std::string_view, size_t>> _tokenTypeMapCache;
     static std::map<std::vector<std::string>, std::map<std::string, size_t>> _ruleIndexMapCache;
 
     ProxyErrorListener _proxListener; // Manages a collection of listeners.
@@ -166,6 +154,7 @@ private:
     size_t _stateNumber;
 
     void InitializeInstanceFields();
-};
+
+  };
 
 } // namespace antlr4

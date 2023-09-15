@@ -9,23 +9,23 @@
 
 namespace antlr4 {
 
-/// <summary>
-/// A source of tokens must provide a sequence of tokens via <seealso cref="#nextToken()"/>
-/// and also must reveal it's source of characters; <seealso cref="CommonToken"/>'s text is
-/// computed from a <seealso cref="CharStream"/>; it only store indices into the char
-/// stream.
-/// <p/>
-/// Errors from the lexer are never passed to the parser. Either you want to keep
-/// going or you do not upon token recognition error. If you do not want to
-/// continue lexing then you do not want to continue parsing. Just throw an
-/// exception not under <seealso cref="RecognitionException"/> and Java will naturally toss
-/// you all the way out of the recognizers. If you want to continue lexing then
-/// you should not throw an exception to the parser--it has already requested a
-/// token. Keep lexing until you get a valid one. Just report errors and keep
-/// going, looking for a valid token.
-/// </summary>
-class ANTLR4CPP_PUBLIC TokenSource {
-public:
+  /// <summary>
+  /// A source of tokens must provide a sequence of tokens via <seealso cref="#nextToken()"/>
+  /// and also must reveal it's source of characters; <seealso cref="CommonToken"/>'s text is
+  /// computed from a <seealso cref="CharStream"/>; it only store indices into the char
+  /// stream.
+  /// <p/>
+  /// Errors from the lexer are never passed to the parser. Either you want to keep
+  /// going or you do not upon token recognition error. If you do not want to
+  /// continue lexing then you do not want to continue parsing. Just throw an
+  /// exception not under <seealso cref="RecognitionException"/> and Java will naturally toss
+  /// you all the way out of the recognizers. If you want to continue lexing then
+  /// you should not throw an exception to the parser--it has already requested a
+  /// token. Keep lexing until you get a valid one. Just report errors and keep
+  /// going, looking for a valid token.
+  /// </summary>
+  class ANTLR4CPP_PUBLIC TokenSource {
+  public:
     virtual ~TokenSource();
 
     /// Return a <seealso cref="Token"/> object from your input stream (usually a
@@ -70,10 +70,9 @@ public:
     /// Set the <seealso cref="TokenFactory"/> this token source should use for creating
     /// <seealso cref="Token"/> objects from the input.
     /// </summary>
-    /// <param name="factory"> The <seealso cref="TokenFactory"/> to use for creating tokens.
-    /// </param>
+    /// <param name="factory"> The <seealso cref="TokenFactory"/> to use for creating tokens. </param>
     template<typename T1>
-    void setTokenFactory(TokenFactory<T1>* /*factory*/) {}
+    void setTokenFactory(TokenFactory<T1> * /*factory*/) {}
 
     /// <summary>
     /// Gets the <seealso cref="TokenFactory"/> this token source is currently using for
@@ -81,6 +80,6 @@ public:
     /// </summary>
     /// <returns> The <seealso cref="TokenFactory"/> currently used by this token source. </returns>
     virtual TokenFactory<CommonToken>* getTokenFactory() = 0;
-};
+  };
 
 } // namespace antlr4

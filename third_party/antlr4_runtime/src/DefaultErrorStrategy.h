@@ -10,19 +10,19 @@
 
 namespace antlr4 {
 
-/**
- * This is the default implementation of {@link ANTLRErrorStrategy} used for
- * error reporting and recovery in ANTLR parsers.
- */
-class ANTLR4CPP_PUBLIC DefaultErrorStrategy : public ANTLRErrorStrategy {
-public:
+  /**
+   * This is the default implementation of {@link ANTLRErrorStrategy} used for
+   * error reporting and recovery in ANTLR parsers.
+   */
+  class ANTLR4CPP_PUBLIC DefaultErrorStrategy : public ANTLRErrorStrategy {
+  public:
     DefaultErrorStrategy();
     DefaultErrorStrategy(DefaultErrorStrategy const& other) = delete;
     virtual ~DefaultErrorStrategy();
 
-    DefaultErrorStrategy& operator=(DefaultErrorStrategy const& other) = delete;
+    DefaultErrorStrategy& operator = (DefaultErrorStrategy const& other) = delete;
 
-protected:
+  protected:
     /**
      * Indicates whether the error strategy is currently "recovering from an
      * error". This is used to suppress reporting multiple error messages while
@@ -48,38 +48,38 @@ protected:
     /// The default implementation simply calls <seealso cref="#endErrorCondition"/> to
     /// ensure that the handler is not in error recovery mode.
     /// </summary>
-public:
-    virtual void reset(Parser* recognizer) override;
+  public:
+    virtual void reset(Parser *recognizer) override;
 
     /// <summary>
     /// This method is called to enter error recovery mode when a recognition
     /// exception is reported.
     /// </summary>
     /// <param name="recognizer"> the parser instance </param>
-protected:
-    virtual void beginErrorCondition(Parser* recognizer);
+  protected:
+    virtual void beginErrorCondition(Parser *recognizer);
 
     /// <summary>
     /// {@inheritDoc}
     /// </summary>
-public:
-    virtual bool inErrorRecoveryMode(Parser* recognizer) override;
+  public:
+    virtual bool inErrorRecoveryMode(Parser *recognizer) override;
 
     /// <summary>
     /// This method is called to leave error recovery mode after recovering from
     /// a recognition exception.
     /// </summary>
     /// <param name="recognizer"> </param>
-protected:
-    virtual void endErrorCondition(Parser* recognizer);
+  protected:
+    virtual void endErrorCondition(Parser *recognizer);
 
     /// <summary>
     /// {@inheritDoc}
     /// <p/>
     /// The default implementation simply calls <seealso cref="#endErrorCondition"/>.
     /// </summary>
-public:
-    virtual void reportMatch(Parser* recognizer) override;
+  public:
+    virtual void reportMatch(Parser *recognizer) override;
 
     /// {@inheritDoc}
     /// <p/>
@@ -98,7 +98,7 @@ public:
     /// <li>All other types: calls <seealso cref="Parser#notifyErrorListeners"/> to report
     /// the exception</li>
     /// </ul>
-    virtual void reportError(Parser* recognizer, const RecognitionException& e) override;
+    virtual void reportError(Parser *recognizer, const RecognitionException &e) override;
 
     /// <summary>
     /// {@inheritDoc}
@@ -107,7 +107,7 @@ public:
     /// until we find one in the resynchronization set--loosely the set of tokens
     /// that can follow the current rule.
     /// </summary>
-    virtual void recover(Parser* recognizer, std::exception_ptr e) override;
+    virtual void recover(Parser *recognizer, std::exception_ptr e) override;
 
     /**
      * The default implementation of {@link ANTLRErrorStrategy#sync} makes sure
@@ -155,7 +155,7 @@ public:
      * some reason speed is suffering for you, you can turn off this
      * functionality by simply overriding this method as a blank { }.</p>
      */
-    virtual void sync(Parser* recognizer) override;
+    virtual void sync(Parser *recognizer) override;
 
     /// <summary>
     /// This is called by <seealso cref="#reportError"/> when the exception is a
@@ -165,8 +165,8 @@ public:
     /// </seealso>
     /// <param name="recognizer"> the parser instance </param>
     /// <param name="e"> the recognition exception </param>
-protected:
-    virtual void reportNoViableAlternative(Parser* recognizer, const NoViableAltException& e);
+  protected:
+    virtual void reportNoViableAlternative(Parser *recognizer, const NoViableAltException &e);
 
     /// <summary>
     /// This is called by <seealso cref="#reportError"/> when the exception is an
@@ -176,7 +176,7 @@ protected:
     /// </seealso>
     /// <param name="recognizer"> the parser instance </param>
     /// <param name="e"> the recognition exception </param>
-    virtual void reportInputMismatch(Parser* recognizer, const InputMismatchException& e);
+    virtual void reportInputMismatch(Parser *recognizer, const InputMismatchException &e);
 
     /// <summary>
     /// This is called by <seealso cref="#reportError"/> when the exception is a
@@ -186,7 +186,7 @@ protected:
     /// </seealso>
     /// <param name="recognizer"> the parser instance </param>
     /// <param name="e"> the recognition exception </param>
-    virtual void reportFailedPredicate(Parser* recognizer, const FailedPredicateException& e);
+    virtual void reportFailedPredicate(Parser *recognizer, const FailedPredicateException &e);
 
     /**
      * This method is called to report a syntax error which requires the removal
@@ -206,7 +206,7 @@ protected:
      *
      * @param recognizer the parser instance
      */
-    virtual void reportUnwantedToken(Parser* recognizer);
+    virtual void reportUnwantedToken(Parser *recognizer);
 
     /**
      * This method is called to report a syntax error which requires the
@@ -225,9 +225,9 @@ protected:
      *
      * @param recognizer the parser instance
      */
-    virtual void reportMissingToken(Parser* recognizer);
+    virtual void reportMissingToken(Parser *recognizer);
 
-public:
+  public:
     /**
      * {@inheritDoc}
      *
@@ -278,7 +278,7 @@ public:
      * is in the set of tokens that can follow the {@code ')'} token reference
      * in rule {@code atom}. It can assume that you forgot the {@code ')'}.
      */
-    virtual Token* recoverInline(Parser* recognizer) override;
+    virtual Token* recoverInline(Parser *recognizer) override;
 
     /// <summary>
     /// This method implements the single-token insertion inline error recovery
@@ -296,8 +296,8 @@ public:
     /// <param name="recognizer"> the parser instance </param>
     /// <returns> {@code true} if single-token insertion is a viable recovery
     /// strategy for the current mismatched input, otherwise {@code false} </returns>
-protected:
-    virtual bool singleTokenInsertion(Parser* recognizer);
+  protected:
+    virtual bool singleTokenInsertion(Parser *recognizer);
 
     /// <summary>
     /// This method implements the single-token deletion inline error recovery
@@ -317,7 +317,7 @@ protected:
     /// <returns> the successfully matched <seealso cref="Token"/> instance if single-token
     /// deletion successfully recovers from the mismatched input, otherwise
     /// {@code null} </returns>
-    virtual Token* singleTokenDeletion(Parser* recognizer);
+    virtual Token* singleTokenDeletion(Parser *recognizer);
 
     /// <summary>
     /// Conjure up a missing token during error recovery.
@@ -339,9 +339,9 @@ protected:
     ///  If you change what tokens must be created by the lexer,
     ///  override this method to create the appropriate tokens.
     /// </summary>
-    virtual Token* getMissingSymbol(Parser* recognizer);
+    virtual Token* getMissingSymbol(Parser *recognizer);
 
-    virtual misc::IntervalSet getExpectedTokens(Parser* recognizer);
+    virtual misc::IntervalSet getExpectedTokens(Parser *recognizer);
 
     /// <summary>
     /// How should a token be displayed in an error message? The default
@@ -352,13 +352,13 @@ protected:
     ///  your token objects because you don't have to go modify your lexer
     ///  so that it creates a new class.
     /// </summary>
-    virtual std::string getTokenErrorDisplay(Token* t);
+    virtual std::string getTokenErrorDisplay(Token *t);
 
-    virtual std::string getSymbolText(Token* symbol);
+    virtual std::string getSymbolText(Token *symbol);
 
-    virtual size_t getSymbolType(Token* symbol);
+    virtual size_t getSymbolType(Token *symbol);
 
-    virtual std::string escapeWSAndQuote(const std::string& s) const;
+    virtual std::string escapeWSAndQuote(const std::string &s) const;
 
     /*  Compute the error recovery set for the current rule.  During
      *  rule invocation, the parser pushes the set of tokens that can
@@ -452,15 +452,15 @@ protected:
      *  Like Grosch I implement context-sensitive FOLLOW sets that are combined
      *  at run-time upon error to avoid overhead during parsing.
      */
-    virtual misc::IntervalSet getErrorRecoverySet(Parser* recognizer);
+    virtual misc::IntervalSet getErrorRecoverySet(Parser *recognizer);
 
     /// <summary>
     /// Consume tokens until one matches the given token set. </summary>
-    virtual void consumeUntil(Parser* recognizer, const misc::IntervalSet& set);
+    virtual void consumeUntil(Parser *recognizer, const misc::IntervalSet &set);
 
-private:
+  private:
     std::vector<std::unique_ptr<Token>> _errorSymbols; // Temporarily created token.
     void InitializeInstanceFields();
-};
+  };
 
 } // namespace antlr4

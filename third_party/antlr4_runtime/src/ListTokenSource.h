@@ -5,24 +5,24 @@
 
 #pragma once
 
-#include "CommonTokenFactory.h"
 #include "TokenSource.h"
+#include "CommonTokenFactory.h"
 
 namespace antlr4 {
 
-/// Provides an implementation of <seealso cref="TokenSource"/> as a wrapper around a list
-/// of <seealso cref="Token"/> objects.
-///
-/// If the final token in the list is an <seealso cref="Token#EOF"/> token, it will be used
-/// as the EOF token for every call to <seealso cref="#nextToken"/> after the end of the
-/// list is reached. Otherwise, an EOF token will be created.
-class ANTLR4CPP_PUBLIC ListTokenSource : public TokenSource {
-protected:
+  /// Provides an implementation of <seealso cref="TokenSource"/> as a wrapper around a list
+  /// of <seealso cref="Token"/> objects.
+  ///
+  /// If the final token in the list is an <seealso cref="Token#EOF"/> token, it will be used
+  /// as the EOF token for every call to <seealso cref="#nextToken"/> after the end of the
+  /// list is reached. Otherwise, an EOF token will be created.
+  class ANTLR4CPP_PUBLIC ListTokenSource : public TokenSource {
+  protected:
     // This list will be emptied token by token as we call nextToken().
     // Token streams can be used to buffer tokens for a while.
     std::vector<std::unique_ptr<Token>> tokens;
 
-private:
+  private:
     /// <summary>
     /// The name of the input source. If this value is {@code null}, a call to
     /// <seealso cref="#getSourceName"/> should return the source name used to create the
@@ -31,18 +31,18 @@ private:
     /// </summary>
     const std::string sourceName;
 
-protected:
+  protected:
     /// The index into <seealso cref="#tokens"/> of token to return by the next call to
     /// <seealso cref="#nextToken"/>. The end of the input is indicated by this value
     /// being greater than or equal to the number of items in <seealso cref="#tokens"/>.
     size_t i;
 
-private:
+  private:
     /// This is the backing field for <seealso cref="#getTokenFactory"/> and
     /// <seealso cref="setTokenFactory"/>.
-    TokenFactory<CommonToken>* _factory = CommonTokenFactory::DEFAULT.get();
+    TokenFactory<CommonToken> *_factory = CommonTokenFactory::DEFAULT.get();
 
-public:
+  public:
     /// Constructs a new <seealso cref="ListTokenSource"/> instance from the specified
     /// collection of <seealso cref="Token"/> objects.
     ///
@@ -52,7 +52,7 @@ public:
     ListTokenSource(std::vector<std::unique_ptr<Token>> tokens);
     ListTokenSource(const ListTokenSource& other) = delete;
 
-    ListTokenSource& operator=(const ListTokenSource& other) = delete;
+    ListTokenSource& operator = (const ListTokenSource& other) = delete;
 
     /// <summary>
     /// Constructs a new <seealso cref="ListTokenSource"/> instance from the specified
@@ -66,7 +66,7 @@ public:
     /// been reached).
     /// </param>
     /// <exception cref="NullPointerException"> if {@code tokens} is {@code null} </exception>
-    ListTokenSource(std::vector<std::unique_ptr<Token>> tokens_, const std::string& sourceName_);
+    ListTokenSource(std::vector<std::unique_ptr<Token>> tokens_, const std::string &sourceName_);
 
     virtual size_t getCharPositionInLine() override;
     virtual std::unique_ptr<Token> nextToken() override;
@@ -75,14 +75,14 @@ public:
     virtual std::string getSourceName() override;
 
     template<typename T1>
-    void setTokenFactory(TokenFactory<T1>* factory) {
-        this->_factory = factory;
+    void setTokenFactory(TokenFactory<T1> *factory) {
+      this->_factory = factory;
     }
 
     virtual TokenFactory<CommonToken>* getTokenFactory() override;
 
-private:
+  private:
     void InitializeInstanceFields();
-};
+  };
 
 } // namespace antlr4

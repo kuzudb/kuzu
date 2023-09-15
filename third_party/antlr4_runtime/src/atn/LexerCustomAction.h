@@ -11,21 +11,25 @@
 namespace antlr4 {
 namespace atn {
 
-/// <summary>
-/// Executes a custom lexer action by calling <seealso cref="Recognizer#action"/> with the
-/// rule and action indexes assigned to the custom action. The implementation of
-/// a custom action is added to the generated code for the lexer in an override
-/// of <seealso cref="Recognizer#action"/> when the grammar is compiled.
-///
-/// <para>This class may represent embedded actions created with the <code>{...}</code>
-/// syntax in ANTLR 4, as well as actions created for lexer commands where the
-/// command argument could not be evaluated when the grammar was compiled.</para>
-///
-/// @author Sam Harwell
-/// @since 4.2
-/// </summary>
-class ANTLR4CPP_PUBLIC LexerCustomAction final : public LexerAction {
-public:
+  /// <summary>
+  /// Executes a custom lexer action by calling <seealso cref="Recognizer#action"/> with the
+  /// rule and action indexes assigned to the custom action. The implementation of
+  /// a custom action is added to the generated code for the lexer in an override
+  /// of <seealso cref="Recognizer#action"/> when the grammar is compiled.
+  ///
+  /// <para>This class may represent embedded actions created with the <code>{...}</code>
+  /// syntax in ANTLR 4, as well as actions created for lexer commands where the
+  /// command argument could not be evaluated when the grammar was compiled.</para>
+  ///
+  /// @author Sam Harwell
+  /// @since 4.2
+  /// </summary>
+  class ANTLR4CPP_PUBLIC LexerCustomAction final : public LexerAction {
+  public:
+    static bool is(const LexerAction &lexerAction) { return lexerAction.getActionType() == LexerActionType::CUSTOM; }
+
+    static bool is(const LexerAction *lexerAction) { return lexerAction != nullptr && is(*lexerAction); }
+
     /// <summary>
     /// Constructs a custom lexer action with the specified rule and action
     /// indexes.
@@ -40,31 +44,13 @@ public:
     /// Gets the rule index to use for calls to <seealso cref="Recognizer#action"/>.
     /// </summary>
     /// <returns> The rule index for the custom action. </returns>
-    size_t getRuleIndex() const;
+    size_t getRuleIndex() const { return _ruleIndex; }
 
     /// <summary>
     /// Gets the action index to use for calls to <seealso cref="Recognizer#action"/>.
     /// </summary>
     /// <returns> The action index for the custom action. </returns>
-    size_t getActionIndex() const;
-
-    /// <summary>
-    /// {@inheritDoc}
-    /// </summary>
-    /// <returns> This method returns <seealso cref="LexerActionType#CUSTOM"/>. </returns>
-    virtual LexerActionType getActionType() const override;
-
-    /// <summary>
-    /// Gets whether the lexer action is position-dependent. Position-dependent
-    /// actions may have different semantics depending on the <seealso cref="CharStream"/>
-    /// index at the time the action is executed.
-    ///
-    /// <para>Custom actions are position-dependent since they may represent a
-    /// user-defined embedded action which makes calls to methods like
-    /// <seealso cref="Lexer#getText"/>.</para>
-    /// </summary>
-    /// <returns> This method returns {@code true}. </returns>
-    virtual bool isPositionDependent() const override;
+    size_t getActionIndex() const { return _actionIndex; }
 
     /// <summary>
     /// {@inheritDoc}
@@ -72,16 +58,18 @@ public:
     /// <para>Custom actions are implemented by calling <seealso cref="Lexer#action"/> with the
     /// appropriate rule and action indexes.</para>
     /// </summary>
-    virtual void execute(Lexer* lexer) override;
+    void execute(Lexer *lexer) const override;
 
-    virtual size_t hashCode() const override;
-    virtual bool operator==(const LexerAction& obj) const override;
-    virtual std::string toString() const override;
+    bool equals(const LexerAction &other) const override;
+    std::string toString() const override;
 
-private:
+  protected:
+    size_t hashCodeImpl() const override;
+
+  private:
     const size_t _ruleIndex;
     const size_t _actionIndex;
-};
+  };
 
 } // namespace atn
 } // namespace antlr4

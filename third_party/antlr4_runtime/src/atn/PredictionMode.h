@@ -10,12 +10,12 @@
 namespace antlr4 {
 namespace atn {
 
-/**
- * This enumeration defines the prediction modes available in ANTLR 4 along with
- * utility methods for analyzing configuration sets for conflicts and/or
- * ambiguities.
- */
-enum class PredictionMode {
+  /**
+   * This enumeration defines the prediction modes available in ANTLR 4 along with
+   * utility methods for analyzing configuration sets for conflicts and/or
+   * ambiguities.
+   */
+  enum class PredictionMode {
     /**
      * The SLL(*) prediction mode. This prediction mode ignores the current
      * parser context when making predictions. This is the fastest prediction
@@ -77,10 +77,10 @@ enum class PredictionMode {
      * behavior for syntactically-incorrect inputs.</p>
      */
     LL_EXACT_AMBIG_DETECTION
-};
+  };
 
-class ANTLR4CPP_PUBLIC PredictionModeClass {
-public:
+  class ANTLR4CPP_PUBLIC PredictionModeClass {
+  public:
     /**
      * Computes the SLL prediction termination condition.
      *
@@ -173,7 +173,7 @@ public:
      * the configurations to strip out all of the predicates so that a standard
      * {@link ATNConfigSet} will merge everything ignoring predicates.</p>
      */
-    static bool hasSLLConflictTerminatingPrediction(PredictionMode mode, ATNConfigSet* configs);
+    static bool hasSLLConflictTerminatingPrediction(PredictionMode mode, ATNConfigSet *configs);
 
     /// <summary>
     /// Checks if any configuration in {@code configs} is in a
@@ -185,7 +185,7 @@ public:
     /// <param name="configs"> the configuration set to test </param>
     /// <returns> {@code true} if any configuration in {@code configs} is in a
     /// <seealso cref="RuleStopState"/>, otherwise {@code false} </returns>
-    static bool hasConfigInRuleStopState(ATNConfigSet* configs);
+    static bool hasConfigInRuleStopState(ATNConfigSet *configs);
 
     /// <summary>
     /// Checks if all configurations in {@code configs} are in a
@@ -197,7 +197,7 @@ public:
     /// <param name="configs"> the configuration set to test </param>
     /// <returns> {@code true} if all configurations in {@code configs} are in a
     /// <seealso cref="RuleStopState"/>, otherwise {@code false} </returns>
-    static bool allConfigsInRuleStopStates(ATNConfigSet* configs);
+    static bool allConfigsInRuleStopStates(ATNConfigSet *configs);
 
     /**
      * Full LL prediction termination.
@@ -340,7 +340,7 @@ public:
      * we need exact ambiguity detection when the sets look like
      * {@code A={{1,2}}} or {@code {{1,2},{1,2}}}, etc...</p>
      */
-    static size_t resolvesToJustOneViableAlt(const std::vector<antlrcpp::BitSet>& altsets);
+    static size_t resolvesToJustOneViableAlt(const std::vector<antlrcpp::BitSet> &altsets);
 
     /// <summary>
     /// Determines if every alternative subset in {@code altsets} contains more
@@ -351,7 +351,7 @@ public:
     /// has
     /// <seealso cref="BitSet#cardinality cardinality"/> &gt; 1, otherwise {@code
     /// false} </returns>
-    static bool allSubsetsConflict(const std::vector<antlrcpp::BitSet>& altsets);
+    static bool allSubsetsConflict(const std::vector<antlrcpp::BitSet> &altsets);
 
     /// <summary>
     /// Determines if any single alternative subset in {@code altsets} contains
@@ -362,7 +362,7 @@ public:
     /// cref="BitSet"/> with
     /// <seealso cref="BitSet#cardinality cardinality"/> 1, otherwise {@code false}
     /// </returns>
-    static bool hasNonConflictingAltSet(const std::vector<antlrcpp::BitSet>& altsets);
+    static bool hasNonConflictingAltSet(const std::vector<antlrcpp::BitSet> &altsets);
 
     /// <summary>
     /// Determines if any single alternative subset in {@code altsets} contains
@@ -373,7 +373,7 @@ public:
     /// cref="BitSet"/> with
     /// <seealso cref="BitSet#cardinality cardinality"/> &gt; 1, otherwise {@code
     /// false} </returns>
-    static bool hasConflictingAltSet(const std::vector<antlrcpp::BitSet>& altsets);
+    static bool hasConflictingAltSet(const std::vector<antlrcpp::BitSet> &altsets);
 
     /// <summary>
     /// Determines if every alternative subset in {@code altsets} is equivalent.
@@ -381,7 +381,7 @@ public:
     /// <param name="altsets"> a collection of alternative subsets </param>
     /// <returns> {@code true} if every member of {@code altsets} is equal to the
     /// others, otherwise {@code false} </returns>
-    static bool allSubsetsEqual(const std::vector<antlrcpp::BitSet>& altsets);
+    static bool allSubsetsEqual(const std::vector<antlrcpp::BitSet> &altsets);
 
     /// <summary>
     /// Returns the unique alternative predicted by all alternative subsets in
@@ -389,7 +389,7 @@ public:
     /// <seealso cref="ATN#INVALID_ALT_NUMBER"/>.
     /// </summary>
     /// <param name="altsets"> a collection of alternative subsets </param>
-    static size_t getUniqueAlt(const std::vector<antlrcpp::BitSet>& altsets);
+    static size_t getUniqueAlt(const std::vector<antlrcpp::BitSet> &altsets);
 
     /// <summary>
     /// Gets the complete set of represented alternatives for a collection of
@@ -399,10 +399,10 @@ public:
     /// </summary>
     /// <param name="altsets"> a collection of alternative subsets </param>
     /// <returns> the set of represented alternatives in {@code altsets} </returns>
-    static antlrcpp::BitSet getAlts(const std::vector<antlrcpp::BitSet>& altsets);
+    static antlrcpp::BitSet getAlts(const std::vector<antlrcpp::BitSet> &altsets);
 
     /** Get union of all alts from configs. @since 4.5.1 */
-    static antlrcpp::BitSet getAlts(ATNConfigSet* configs);
+    static antlrcpp::BitSet getAlts(ATNConfigSet *configs);
 
     /// <summary>
     /// This function gets the conflicting alt subsets from a configuration set.
@@ -414,7 +414,7 @@ public:
     /// alt and not pred
     /// </pre>
     /// </summary>
-    static std::vector<antlrcpp::BitSet> getConflictingAltSubsets(ATNConfigSet* configs);
+    static std::vector<antlrcpp::BitSet> getConflictingAltSubsets(ATNConfigSet *configs);
 
     /// <summary>
     /// Get a map from state to alt subset from a configuration set. For each
@@ -425,12 +425,12 @@ public:
     /// cref="ATNConfig#alt alt"/>
     /// </pre>
     /// </summary>
-    static std::map<ATNState*, antlrcpp::BitSet> getStateToAltMap(ATNConfigSet* configs);
+    static std::unordered_map<ATNState*, antlrcpp::BitSet> getStateToAltMap(ATNConfigSet *configs);
 
-    static bool hasStateAssociatedWithOneAlt(ATNConfigSet* configs);
+    static bool hasStateAssociatedWithOneAlt(ATNConfigSet *configs);
 
-    static size_t getSingleViableAlt(const std::vector<antlrcpp::BitSet>& altsets);
-};
+    static size_t getSingleViableAlt(const std::vector<antlrcpp::BitSet> &altsets);
+  };
 
 } // namespace atn
 } // namespace antlr4

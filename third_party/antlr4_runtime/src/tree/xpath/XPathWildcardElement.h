@@ -11,12 +11,12 @@ namespace antlr4 {
 namespace tree {
 namespace xpath {
 
-class ANTLR4CPP_PUBLIC XPathWildcardElement : public XPathElement {
-public:
+  class ANTLR4CPP_PUBLIC XPathWildcardElement : public XPathElement {
+  public:
     XPathWildcardElement();
 
-    virtual std::vector<ParseTree*> evaluate(ParseTree* t) override;
-};
+    virtual std::vector<ParseTree *> evaluate(ParseTree *t) override;
+  };
 
 } // namespace xpath
 } // namespace tree

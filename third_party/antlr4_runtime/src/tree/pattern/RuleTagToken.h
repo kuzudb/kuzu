@@ -11,16 +11,16 @@ namespace antlr4 {
 namespace tree {
 namespace pattern {
 
-/// <summary>
-/// A <seealso cref="Token"/> object representing an entire subtree matched by a parser
-/// rule; e.g., {@code <expr>}. These tokens are created for <seealso cref="TagChunk"/>
-/// chunks where the tag corresponds to a parser rule.
-/// </summary>
-class ANTLR4CPP_PUBLIC RuleTagToken : public Token {
+  /// <summary>
+  /// A <seealso cref="Token"/> object representing an entire subtree matched by a parser
+  /// rule; e.g., {@code <expr>}. These tokens are created for <seealso cref="TagChunk"/>
+  /// chunks where the tag corresponds to a parser rule.
+  /// </summary>
+  class ANTLR4CPP_PUBLIC RuleTagToken : public Token {
     /// <summary>
     /// This is the backing field for <seealso cref="#getRuleName"/>.
     /// </summary>
-private:
+  private:
     const std::string ruleName;
 
     /// The token type for the current token. This is the token type assigned to
@@ -30,7 +30,7 @@ private:
     /// This is the backing field for <seealso cref="#getLabe"/>.
     const std::string label;
 
-public:
+  public:
     /// <summary>
     /// Constructs a new instance of <seealso cref="RuleTagToken"/> with the specified rule
     /// name and bypass token type and no label.
@@ -40,8 +40,7 @@ public:
     /// </param>
     /// <exception cref="IllegalArgumentException"> if {@code ruleName} is {@code null}
     /// or empty. </exception>
-    RuleTagToken(const std::string& ruleName,
-        int bypassTokenType); // this(ruleName, bypassTokenType, nullptr);
+    RuleTagToken(const std::string &ruleName, int bypassTokenType); //this(ruleName, bypassTokenType, nullptr);
 
     /// <summary>
     /// Constructs a new instance of <seealso cref="RuleTagToken"/> with the specified rule
@@ -54,7 +53,7 @@ public:
     /// </param>
     /// <exception cref="IllegalArgumentException"> if {@code ruleName} is {@code null}
     /// or empty. </exception>
-    RuleTagToken(const std::string& ruleName, size_t bypassTokenType, const std::string& label);
+    RuleTagToken(const std::string &ruleName, size_t bypassTokenType, const std::string &label);
 
     /// <summary>
     /// Gets the name of the rule associated with this rule tag.
@@ -104,15 +103,14 @@ public:
     virtual size_t getStopIndex() const override;
 
     /// The implementation for <seealso cref="RuleTagToken"/> always returns {@code null}.
-    virtual TokenSource* getTokenSource() const override;
+    virtual TokenSource *getTokenSource() const override;
 
     /// The implementation for <seealso cref="RuleTagToken"/> always returns {@code null}.
-    virtual CharStream* getInputStream() const override;
+    virtual CharStream *getInputStream() const override;
 
-    /// The implementation for <seealso cref="RuleTagToken"/> returns a string of the form {@code
-    /// ruleName:bypassTokenType}.
+    /// The implementation for <seealso cref="RuleTagToken"/> returns a string of the form {@code ruleName:bypassTokenType}.
     virtual std::string toString() const override;
-};
+  };
 
 } // namespace pattern
 } // namespace tree

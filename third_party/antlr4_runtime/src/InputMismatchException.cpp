@@ -3,14 +3,16 @@
  * can be found in the LICENSE.txt file in the project root.
  */
 
-#include "InputMismatchException.h"
-
 #include "Parser.h"
+
+#include "InputMismatchException.h"
 
 using namespace antlr4;
 
-InputMismatchException::InputMismatchException(Parser* recognizer)
-    : RecognitionException(recognizer, recognizer->getInputStream(), recognizer->getContext(),
-          recognizer->getCurrentToken()) {}
+InputMismatchException::InputMismatchException(Parser *recognizer)
+  : RecognitionException(recognizer, recognizer->getInputStream(), recognizer->getContext(),
+                         recognizer->getCurrentToken()) {
+}
 
-InputMismatchException::~InputMismatchException() {}
+InputMismatchException::~InputMismatchException() {
+}
