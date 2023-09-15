@@ -10,15 +10,18 @@
 namespace antlr4 {
 namespace atn {
 
-/// The last node in the ATN for a rule, unless that rule is the start symbol.
-/// In that case, there is one transition to EOF. Later, we might encode
-/// references to all calls to this rule to compute FOLLOW sets for
-/// error handling.
-class ANTLR4CPP_PUBLIC RuleStopState final : public ATNState {
+  /// The last node in the ATN for a rule, unless that rule is the start symbol.
+  /// In that case, there is one transition to EOF. Later, we might encode
+  /// references to all calls to this rule to compute FOLLOW sets for
+  /// error handling.
+  class ANTLR4CPP_PUBLIC RuleStopState final : public ATNState {
+  public:
+    static bool is(const ATNState &atnState) { return atnState.getStateType() == ATNStateType::RULE_STOP; }
 
-public:
-    virtual size_t getStateType() override;
-};
+    static bool is(const ATNState *atnState) { return atnState != nullptr && is(*atnState); }
+
+    RuleStopState() : ATNState(ATNStateType::RULE_STOP) {}
+  };
 
 } // namespace atn
 } // namespace antlr4

@@ -5,31 +5,31 @@
 
 #pragma once
 
-#include "atn/AmbiguityInfo.h"
 #include "atn/ContextSensitivityInfo.h"
-#include "atn/ErrorInfo.h"
+#include "atn/AmbiguityInfo.h"
 #include "atn/PredicateEvalInfo.h"
+#include "atn/ErrorInfo.h"
 
 namespace antlr4 {
 namespace atn {
 
-class LookaheadEventInfo;
+  class LookaheadEventInfo;
 
-/// <summary>
-/// This class contains profiling gathered for a particular decision.
-///
-/// <para>
-/// Parsing performance in ANTLR 4 is heavily influenced by both static factors
-/// (e.g. the form of the rules in the grammar) and dynamic factors (e.g. the
-/// choice of input and the state of the DFA cache at the time profiling
-/// operations are started). For best results, gather and use aggregate
-/// statistics from a large sample of inputs representing the inputs expected in
-/// production before using the results to make changes in the grammar.</para>
-///
-/// @since 4.3
-/// </summary>
-class ANTLR4CPP_PUBLIC DecisionInfo {
-public:
+  /// <summary>
+  /// This class contains profiling gathered for a particular decision.
+  ///
+  /// <para>
+  /// Parsing performance in ANTLR 4 is heavily influenced by both static factors
+  /// (e.g. the form of the rules in the grammar) and dynamic factors (e.g. the
+  /// choice of input and the state of the DFA cache at the time profiling
+  /// operations are started). For best results, gather and use aggregate
+  /// statistics from a large sample of inputs representing the inputs expected in
+  /// production before using the results to make changes in the grammar.</para>
+  ///
+  /// @since 4.3
+  /// </summary>
+  class ANTLR4CPP_PUBLIC DecisionInfo {
+  public:
     /// <summary>
     /// The decision number, which is an index into <seealso cref="ATN#decisionToState"/>.
     /// </summary>
@@ -218,10 +218,10 @@ public:
     /// statistics for a particular decision.
     /// </summary>
     /// <param name="decision"> The decision number </param>
-    DecisionInfo(size_t decision);
+    explicit DecisionInfo(size_t decision);
 
     std::string toString() const;
-};
+  };
 
 } // namespace atn
 } // namespace antlr4

@@ -10,13 +10,17 @@
 namespace antlr4 {
 namespace atn {
 
-/// Mark the end of a * or + loop.
-class ANTLR4CPP_PUBLIC LoopEndState final : public ATNState {
-public:
-    ATNState* loopBackState = nullptr;
+  /// Mark the end of a * or + loop.
+  class ANTLR4CPP_PUBLIC LoopEndState final : public ATNState {
+  public:
+    static bool is(const ATNState &atnState) { return atnState.getStateType() == ATNStateType::LOOP_END; }
 
-    virtual size_t getStateType() override;
-};
+    static bool is(const ATNState *atnState) { return atnState != nullptr && is(*atnState); }
+
+    ATNState *loopBackState = nullptr;
+
+    LoopEndState() : ATNState(ATNStateType::LOOP_END) {}
+  };
 
 } // namespace atn
 } // namespace antlr4

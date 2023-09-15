@@ -10,17 +10,18 @@
 namespace antlr4 {
 namespace atn {
 
-class ANTLR4CPP_PUBLIC NotSetTransition final : public SetTransition {
-public:
-    NotSetTransition(ATNState* target, const misc::IntervalSet& set);
+  class ANTLR4CPP_PUBLIC NotSetTransition final : public SetTransition {
+  public:
+    static bool is(const Transition &transition) { return transition.getTransitionType() == TransitionType::NOT_SET; }
 
-    virtual SerializationType getSerializationType() const override;
+    static bool is(const Transition *transition) { return transition != nullptr && is(*transition); }
 
-    virtual bool matches(
-        size_t symbol, size_t minVocabSymbol, size_t maxVocabSymbol) const override;
+    NotSetTransition(ATNState *target, misc::IntervalSet set);
+
+    virtual bool matches(size_t symbol, size_t minVocabSymbol, size_t maxVocabSymbol) const override;
 
     virtual std::string toString() const override;
-};
+  };
 
 } // namespace atn
 } // namespace antlr4

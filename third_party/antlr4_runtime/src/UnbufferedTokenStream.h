@@ -9,14 +9,14 @@
 
 namespace antlr4 {
 
-class ANTLR4CPP_PUBLIC UnbufferedTokenStream : public TokenStream {
-public:
-    UnbufferedTokenStream(TokenSource* tokenSource);
-    UnbufferedTokenStream(TokenSource* tokenSource, int bufferSize);
+  class ANTLR4CPP_PUBLIC UnbufferedTokenStream : public TokenStream {
+  public:
+    UnbufferedTokenStream(TokenSource *tokenSource);
+    UnbufferedTokenStream(TokenSource *tokenSource, int bufferSize);
     UnbufferedTokenStream(const UnbufferedTokenStream& other) = delete;
     virtual ~UnbufferedTokenStream();
 
-    UnbufferedTokenStream& operator=(const UnbufferedTokenStream& other) = delete;
+    UnbufferedTokenStream& operator = (const UnbufferedTokenStream& other) = delete;
 
     virtual Token* get(size_t i) const override;
     virtual Token* LT(ssize_t i) override;
@@ -24,10 +24,10 @@ public:
 
     virtual TokenSource* getTokenSource() const override;
 
-    virtual std::string getText(const misc::Interval& interval) override;
+    virtual std::string getText(const misc::Interval &interval) override;
     virtual std::string getText() override;
-    virtual std::string getText(RuleContext* ctx) override;
-    virtual std::string getText(Token* start, Token* stop) override;
+    virtual std::string getText(RuleContext *ctx) override;
+    virtual std::string getText(Token *start, Token *stop) override;
 
     virtual void consume() override;
 
@@ -45,11 +45,11 @@ public:
     virtual size_t size() override;
     virtual std::string getSourceName() const override;
 
-protected:
+  protected:
     /// Make sure we have 'need' elements from current position p. Last valid
     /// p index is tokens.length - 1.  p + need - 1 is the tokens index 'need' elements
     /// ahead.  If we need 1 element, (p+1-1)==p must be less than tokens.length.
-    TokenSource* _tokenSource;
+    TokenSource *_tokenSource;
 
     /// <summary>
     /// A moving window buffer of the data being scanned. While there's a marker,
@@ -78,13 +78,13 @@ protected:
     /// <summary>
     /// This is the {@code LT(-1)} token for the current position.
     /// </summary>
-    Token* _lastToken;
+    Token *_lastToken;
 
     /// <summary>
     /// When {@code numMarkers > 0}, this is the {@code LT(-1)} token for the
     /// first token in <seealso cref="#tokens"/>. Otherwise, this is {@code null}.
     /// </summary>
-    Token* _lastTokenBufferStart;
+    Token *_lastTokenBufferStart;
 
     /// <summary>
     /// Absolute token index. It's the index of the token about to be read via
@@ -108,8 +108,8 @@ protected:
 
     size_t getBufferStartIndex() const;
 
-private:
+  private:
     void InitializeInstanceFields();
-};
+  };
 
 } // namespace antlr4

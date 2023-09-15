@@ -10,11 +10,11 @@
 namespace antlr4 {
 namespace atn {
 
-/// Represents the type of recognizer an ATN applies to.
-enum class ATNType {
+  /// Represents the type of recognizer an ATN applies to.
+  enum class ATNType {
     LEXER = 0,
     PARSER = 1,
-};
+  };
 
 } // namespace atn
 } // namespace antlr4

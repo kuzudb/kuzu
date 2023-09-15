@@ -3,17 +3,15 @@
  * can be found in the LICENSE.txt file in the project root.
  */
 
-#include "dfa/LexerDFASerializer.h"
-
 #include "Vocabulary.h"
+
+#include "dfa/LexerDFASerializer.h"
 
 using namespace antlr4::dfa;
 
-LexerDFASerializer::LexerDFASerializer(DFA* dfa)
-    : DFASerializer(dfa, Vocabulary::EMPTY_VOCABULARY) {}
-
-LexerDFASerializer::~LexerDFASerializer() {}
+LexerDFASerializer::LexerDFASerializer(const DFA *dfa) : DFASerializer(dfa, Vocabulary()) {
+}
 
 std::string LexerDFASerializer::getEdgeLabel(size_t i) const {
-    return std::string("'") + static_cast<char>(i) + "'";
+  return std::string("'") + static_cast<char>(i) + "'";
 }

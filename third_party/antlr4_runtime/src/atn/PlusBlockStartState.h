@@ -10,16 +10,20 @@
 namespace antlr4 {
 namespace atn {
 
-/// Start of {@code (A|B|...)+} loop. Technically a decision state, but
-/// we don't use for code generation; somebody might need it, so I'm defining
-/// it for completeness. In reality, the <seealso cref="PlusLoopbackState"/> node is the
-/// real decision-making note for {@code A+}.
-class ANTLR4CPP_PUBLIC PlusBlockStartState final : public BlockStartState {
-public:
-    PlusLoopbackState* loopBackState = nullptr;
+  /// Start of {@code (A|B|...)+} loop. Technically a decision state, but
+  /// we don't use for code generation; somebody might need it, so I'm defining
+  /// it for completeness. In reality, the <seealso cref="PlusLoopbackState"/> node is the
+  /// real decision-making note for {@code A+}.
+  class ANTLR4CPP_PUBLIC PlusBlockStartState final : public BlockStartState {
+  public:
+    static bool is(const ATNState &atnState) { return atnState.getStateType() == ATNStateType::PLUS_BLOCK_START; }
 
-    virtual size_t getStateType() override;
-};
+    static bool is(const ATNState *atnState) { return atnState != nullptr && is(*atnState); }
+
+    PlusLoopbackState *loopBackState = nullptr;
+
+    PlusBlockStartState() : BlockStartState(ATNStateType::PLUS_BLOCK_START) {}
+  };
 
 } // namespace atn
 } // namespace antlr4

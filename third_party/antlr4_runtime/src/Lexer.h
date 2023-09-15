@@ -5,20 +5,19 @@
 
 #pragma once
 
-#include "CharStream.h"
 #include "Recognizer.h"
-#include "Token.h"
 #include "TokenSource.h"
+#include "CharStream.h"
+#include "Token.h"
 
 namespace antlr4 {
 
-/// A lexer is recognizer that draws input symbols from a character stream.
-/// lexer grammars result in a subclass of this object. A Lexer object
-/// uses simplified match() and error recovery mechanisms in the interest
-/// of speed.
-class ANTLR4CPP_PUBLIC Lexer : public Recognizer, public TokenSource {
-public:
-#if __cplusplus >= 201703L
+  /// A lexer is recognizer that draws input symbols from a character stream.
+  /// lexer grammars result in a subclass of this object. A Lexer object
+  /// uses simplified match() and error recovery mechanisms in the interest
+  /// of speed.
+  class ANTLR4CPP_PUBLIC Lexer : public Recognizer, public TokenSource {
+  public:
     static constexpr size_t DEFAULT_MODE = 0;
     static constexpr size_t MORE = std::numeric_limits<size_t>::max() - 1;
     static constexpr size_t SKIP = std::numeric_limits<size_t>::max() - 2;
@@ -27,28 +26,14 @@ public:
     static constexpr size_t HIDDEN = Token::HIDDEN_CHANNEL;
     static constexpr size_t MIN_CHAR_VALUE = 0;
     static constexpr size_t MAX_CHAR_VALUE = 0x10FFFF;
-#else
-    enum : size_t {
-        DEFAULT_MODE = 0,
-        MORE = static_cast<size_t>(
-            -2), // std::numeric_limits<size_t>::max() - 1; doesn't work in VS 2013
-        SKIP = static_cast<size_t>(
-            -3), // std::numeric_limits<size_t>::max() - 2; doesn't work in VS 2013
 
-        DEFAULT_TOKEN_CHANNEL = Token::DEFAULT_CHANNEL,
-        HIDDEN = Token::HIDDEN_CHANNEL,
-        MIN_CHAR_VALUE = 0,
-        MAX_CHAR_VALUE = 0x10FFFF,
-    };
-#endif
+    CharStream *_input; // Pure reference, usually from statically allocated instance.
 
-    CharStream* _input; // Pure reference, usually from statically allocated instance.
-
-protected:
+  protected:
     /// How to create token objects.
-    TokenFactory<CommonToken>* _factory;
+    TokenFactory<CommonToken> *_factory;
 
-public:
+  public:
     /// The goal of all lexer rules/methods is to create a token object.
     ///  This is an instance variable as multiple rules may collaborate to
     ///  create a single token.  nextToken will return this object after
@@ -91,7 +76,7 @@ public:
     size_t mode;
 
     Lexer();
-    Lexer(CharStream* input);
+    Lexer(CharStream *input);
     virtual ~Lexer() {}
 
     virtual void reset();
@@ -111,14 +96,14 @@ public:
     virtual size_t popMode();
 
     template<typename T1>
-    void setTokenFactory(TokenFactory<T1>* factory) {
-        this->_factory = factory;
+    void setTokenFactory(TokenFactory<T1> *factory)  {
+      this->_factory = factory;
     }
 
     virtual TokenFactory<CommonToken>* getTokenFactory() override;
 
     /// Set the char stream and reset the lexer
-    virtual void setInputStream(IntStream* input) override;
+    virtual void setInputStream(IntStream *input) override;
 
     virtual std::string getSourceName() override;
 
@@ -156,7 +141,7 @@ public:
 
     /// Set the complete text of this token; it wipes any previous
     /// changes to the text.
-    virtual void setText(const std::string& text);
+    virtual void setText(const std::string &text);
 
     /// Override if emitting multiple tokens.
     virtual std::unique_ptr<Token> getToken();
@@ -179,17 +164,17 @@ public:
     /// Forces load of all tokens. Does not include EOF token.
     virtual std::vector<std::unique_ptr<Token>> getAllTokens();
 
-    virtual void recover(const LexerNoViableAltException& e);
+    virtual void recover(const LexerNoViableAltException &e);
 
-    virtual void notifyListeners(const LexerNoViableAltException& e);
+    virtual void notifyListeners(const LexerNoViableAltException &e);
 
-    virtual std::string getErrorDisplay(const std::string& s);
+    virtual std::string getErrorDisplay(const std::string &s);
 
     /// Lexers can normally match any char in it's vocabulary after matching
     /// a token, so do the easy thing and just kill a character and hope
     /// it all works out.  You can instead use the rule invocation stack
     /// to do sophisticated error recovery if you are in a fragment rule.
-    virtual void recover(RecognitionException* re);
+    virtual void recover(RecognitionException *re);
 
     /// <summary>
     /// Gets the number of syntax errors reported during parsing. This value is
@@ -198,14 +183,14 @@ public:
     /// <seealso cref= #notifyListeners </seealso>
     virtual size_t getNumberOfSyntaxErrors();
 
-protected:
+  protected:
     /// You can set the text for the current token to override what is in
     /// the input char buffer (via setText()).
     std::string _text;
 
-private:
+  private:
     size_t _syntaxErrors;
     void InitializeInstanceFields();
-};
+  };
 
 } // namespace antlr4

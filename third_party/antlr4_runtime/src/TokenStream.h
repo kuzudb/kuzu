@@ -9,10 +9,10 @@
 
 namespace antlr4 {
 
-/// <summary>
-/// An <seealso cref="IntStream"/> whose symbols are <seealso cref="Token"/> instances.
-/// </summary>
-class ANTLR4CPP_PUBLIC TokenStream : public IntStream {
+  /// <summary>
+  /// An <seealso cref="IntStream"/> whose symbols are <seealso cref="Token"/> instances.
+  /// </summary>
+  class ANTLR4CPP_PUBLIC TokenStream : public IntStream {
     /// <summary>
     /// Get the <seealso cref="Token"/> instance associated with the value returned by
     /// <seealso cref="#LA LA(k)"/>. This method has the same pre- and post-conditions as
@@ -21,7 +21,7 @@ class ANTLR4CPP_PUBLIC TokenStream : public IntStream {
     /// {@code LT(k).getType()==LA(k)}.
     /// </summary>
     /// <seealso cref= IntStream#LA </seealso>
-public:
+  public:
     virtual ~TokenStream();
 
     virtual Token* LT(ssize_t k) = 0;
@@ -68,7 +68,7 @@ public:
     /// stream.
     /// </returns>
     /// <exception cref="NullPointerException"> if {@code interval} is {@code null} </exception>
-    virtual std::string getText(const misc::Interval& interval) = 0;
+    virtual std::string getText(const misc::Interval &interval) = 0;
 
     /// <summary>
     /// Return the text of all tokens in the stream. This method behaves like the
@@ -101,7 +101,7 @@ public:
     /// <param name="ctx"> The context providing the source interval of tokens to get
     /// text for. </param>
     /// <returns> The text of all tokens within the source interval of {@code ctx}. </returns>
-    virtual std::string getText(RuleContext* ctx) = 0;
+    virtual std::string getText(RuleContext *ctx) = 0;
 
     /// <summary>
     /// Return the text of all tokens in this stream between {@code start} and
@@ -131,7 +131,7 @@ public:
     /// </returns>
     /// <exception cref="UnsupportedOperationException"> if this stream does not support
     /// this method for the specified tokens </exception>
-    virtual std::string getText(Token* start, Token* stop) = 0;
-};
+    virtual std::string getText(Token *start, Token *stop) = 0;
+  };
 
 } // namespace antlr4

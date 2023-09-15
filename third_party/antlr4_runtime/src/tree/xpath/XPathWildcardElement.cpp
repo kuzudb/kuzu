@@ -3,21 +3,22 @@
  * can be found in the LICENSE.txt file in the project root.
  */
 
-#include "XPathWildcardElement.h"
-
 #include "XPath.h"
 #include "tree/ParseTree.h"
 #include "tree/Trees.h"
 
+#include "XPathWildcardElement.h"
+
 using namespace antlr4::tree;
 using namespace antlr4::tree::xpath;
 
-XPathWildcardElement::XPathWildcardElement() : XPathElement(XPath::WILDCARD) {}
+XPathWildcardElement::XPathWildcardElement() : XPathElement(XPath::WILDCARD) {
+}
 
-std::vector<ParseTree*> XPathWildcardElement::evaluate(ParseTree* t) {
-    if (_invert) {
-        return {}; // !* is weird but valid (empty)
-    }
+std::vector<ParseTree *> XPathWildcardElement::evaluate(ParseTree *t) {
+  if (_invert) {
+    return {}; // !* is weird but valid (empty)
+  }
 
-    return t->children;
+  return t->children;
 }

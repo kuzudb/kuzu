@@ -10,9 +10,9 @@
 
 namespace antlr4 {
 
-/// A source of characters for an ANTLR lexer.
-class ANTLR4CPP_PUBLIC CharStream : public IntStream {
-public:
+  /// A source of characters for an ANTLR lexer.
+  class ANTLR4CPP_PUBLIC CharStream : public IntStream {
+  public:
     virtual ~CharStream();
 
     /// This method returns the text for a range of characters within this input
@@ -29,9 +29,9 @@ public:
     /// past the end of the stream </exception>
     /// <exception cref="UnsupportedOperationException"> if the stream does not support
     /// getting the text of the specified interval </exception>
-    virtual std::string getText(const misc::Interval& interval) = 0;
+    virtual std::string getText(const misc::Interval &interval) = 0;
 
     virtual std::string toString() const = 0;
-};
+  };
 
 } // namespace antlr4

@@ -5,16 +5,19 @@
 
 #pragma once
 
+#include "tree/ParseTree.h"
 #include "tree/ParseTreeVisitor.h"
 
 namespace antlr4 {
 namespace tree {
 
-class ANTLR4CPP_PUBLIC AbstractParseTreeVisitor : public ParseTreeVisitor {
-public:
+  class ANTLR4CPP_PUBLIC AbstractParseTreeVisitor : public ParseTreeVisitor {
+  public:
     /// The default implementation calls <seealso cref="ParseTree#accept"/> on the
     /// specified tree.
-    virtual antlrcpp::Any visit(ParseTree* tree) override { return tree->accept(this); }
+    virtual std::any visit(ParseTree *tree) override {
+      return tree->accept(this);
+    }
 
     /**
      * <p>The default implementation initializes the aggregate result to
@@ -29,41 +32,46 @@ public:
      * the tree structure. Visitors that modify the tree should override this
      * method to behave properly in respect to the specific algorithm in use.</p>
      */
-    virtual antlrcpp::Any visitChildren(ParseTree* node) override {
-        antlrcpp::Any result = defaultResult();
-        size_t n = node->children.size();
-        for (size_t i = 0; i < n; i++) {
-            if (!shouldVisitNextChild(node, result)) {
-                break;
-            }
-
-            antlrcpp::Any childResult = node->children[i]->accept(this);
-            result = aggregateResult(result, childResult);
+    virtual std::any visitChildren(ParseTree *node) override {
+      std::any result = defaultResult();
+      size_t n = node->children.size();
+      for (size_t i = 0; i < n; i++) {
+        if (!shouldVisitNextChild(node, result)) {
+          break;
         }
 
-        return result;
+        std::any childResult = node->children[i]->accept(this);
+        result = aggregateResult(std::move(result), std::move(childResult));
+      }
+
+      return result;
     }
 
     /// The default implementation returns the result of
     /// <seealso cref="#defaultResult defaultResult"/>.
-    virtual antlrcpp::Any visitTerminal(TerminalNode* /*node*/) override { return defaultResult(); }
+    virtual std::any visitTerminal(TerminalNode * /*node*/) override {
+      return defaultResult();
+    }
 
     /// The default implementation returns the result of
     /// <seealso cref="#defaultResult defaultResult"/>.
-    virtual antlrcpp::Any visitErrorNode(ErrorNode* /*node*/) override { return defaultResult(); }
+    virtual std::any visitErrorNode(ErrorNode * /*node*/) override {
+      return defaultResult();
+    }
 
-protected:
+  protected:
     /// <summary>
     /// Gets the default value returned by visitor methods. This value is
     /// returned by the default implementations of
-    /// <seealso cref="#visitTerminal visitTerminal"/>, <seealso cref="#visitErrorNode
-    /// visitErrorNode"/>. The default implementation of <seealso cref="#visitChildren
-    /// visitChildren"/> initializes its aggregate result to this value. <p/> The base
-    /// implementation returns {@code null}.
+    /// <seealso cref="#visitTerminal visitTerminal"/>, <seealso cref="#visitErrorNode visitErrorNode"/>.
+    /// The default implementation of <seealso cref="#visitChildren visitChildren"/>
+    /// initializes its aggregate result to this value.
+    /// <p/>
+    /// The base implementation returns {@code std::any()}.
     /// </summary>
     /// <returns> The default value returned by visitor methods. </returns>
-    virtual antlrcpp::Any defaultResult() {
-        return nullptr; // support isNotNull
+    virtual std::any defaultResult() {
+      return std::any();
     }
 
     /// <summary>
@@ -84,9 +92,8 @@ protected:
     /// a child node.
     /// </param>
     /// <returns> The updated aggregate result. </returns>
-    virtual antlrcpp::Any aggregateResult(
-        antlrcpp::Any /*aggregate*/, const antlrcpp::Any& nextResult) {
-        return nextResult;
+    virtual std::any aggregateResult(std::any /*aggregate*/, std::any nextResult) {
+      return nextResult;
     }
 
     /// <summary>
@@ -112,10 +119,11 @@ protected:
     /// <returns> {@code true} to continue visiting children. Otherwise return
     /// {@code false} to stop visiting children and immediately return the
     /// current aggregate result from <seealso cref="#visitChildren"/>. </returns>
-    virtual bool shouldVisitNextChild(ParseTree* /*node*/, const antlrcpp::Any& /*currentResult*/) {
-        return true;
+    virtual bool shouldVisitNextChild(ParseTree * /*node*/, const std::any &/*currentResult*/) {
+      return true;
     }
-};
+
+  };
 
 } // namespace tree
 } // namespace antlr4

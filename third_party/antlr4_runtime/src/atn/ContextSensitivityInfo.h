@@ -10,25 +10,25 @@
 namespace antlr4 {
 namespace atn {
 
-/// <summary>
-/// This class represents profiling event information for a context sensitivity.
-/// Context sensitivities are decisions where a particular input resulted in an
-/// SLL conflict, but LL prediction produced a single unique alternative.
-///
-/// <para>
-/// In some cases, the unique alternative identified by LL prediction is not
-/// equal to the minimum represented alternative in the conflicting SLL
-/// configuration set. Grammars and inputs which result in this scenario are
-/// unable to use <seealso cref="PredictionMode#SLL"/>, which in turn means they cannot use
-/// the two-stage parsing strategy to improve parsing performance for that
-/// input.</para>
-/// </summary>
-/// <seealso cref= ParserATNSimulator#reportContextSensitivity </seealso>
-/// <seealso cref= ANTLRErrorListener#reportContextSensitivity
-///
-/// @since 4.3 </seealso>
-class ANTLR4CPP_PUBLIC ContextSensitivityInfo : public DecisionEventInfo {
-public:
+  /// <summary>
+  /// This class represents profiling event information for a context sensitivity.
+  /// Context sensitivities are decisions where a particular input resulted in an
+  /// SLL conflict, but LL prediction produced a single unique alternative.
+  ///
+  /// <para>
+  /// In some cases, the unique alternative identified by LL prediction is not
+  /// equal to the minimum represented alternative in the conflicting SLL
+  /// configuration set. Grammars and inputs which result in this scenario are
+  /// unable to use <seealso cref="PredictionMode#SLL"/>, which in turn means they cannot use
+  /// the two-stage parsing strategy to improve parsing performance for that
+  /// input.</para>
+  /// </summary>
+  /// <seealso cref= ParserATNSimulator#reportContextSensitivity </seealso>
+  /// <seealso cref= ANTLRErrorListener#reportContextSensitivity
+  ///
+  /// @since 4.3 </seealso>
+  class ANTLR4CPP_PUBLIC ContextSensitivityInfo : public DecisionEventInfo {
+  public:
     /// <summary>
     /// Constructs a new instance of the <seealso cref="ContextSensitivityInfo"/> class
     /// with the specified detailed context sensitivity information.
@@ -40,9 +40,8 @@ public:
     /// <param name="startIndex"> The start index for the current prediction </param>
     /// <param name="stopIndex"> The index at which the context sensitivity was
     /// identified during full-context prediction </param>
-    ContextSensitivityInfo(size_t decision, ATNConfigSet* configs, TokenStream* input,
-        size_t startIndex, size_t stopIndex);
-};
+    ContextSensitivityInfo(size_t decision, ATNConfigSet *configs, TokenStream *input, size_t startIndex, size_t stopIndex);
+  };
 
 } // namespace atn
 } // namespace antlr4

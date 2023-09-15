@@ -7,57 +7,58 @@
 
 using namespace antlr4;
 
-RuntimeException::RuntimeException(const std::string& msg) : std::exception(), _message(msg) {}
-
-const char* RuntimeException::what() const NOEXCEPT {
-    return _message.c_str();
+RuntimeException::RuntimeException(const std::string &msg) : std::exception(), _message(msg) {
 }
 
-//------------------ IOException
-//---------------------------------------------------------------------------------------
-
-IOException::IOException(const std::string& msg) : std::exception(), _message(msg) {}
-
-const char* IOException::what() const NOEXCEPT {
-    return _message.c_str();
+const char* RuntimeException::what() const noexcept {
+  return _message.c_str();
 }
 
-//------------------ IllegalStateException
-//-----------------------------------------------------------------------------
+//------------------ IOException ---------------------------------------------------------------------------------------
 
-IllegalStateException::~IllegalStateException() {}
+IOException::IOException(const std::string &msg) : std::exception(), _message(msg) {
+}
 
-//------------------ IllegalArgumentException
-//--------------------------------------------------------------------------
+const char* IOException::what() const noexcept {
+  return _message.c_str();
+}
 
-IllegalArgumentException::~IllegalArgumentException() {}
+//------------------ IllegalStateException -----------------------------------------------------------------------------
 
-//------------------ NullPointerException
-//------------------------------------------------------------------------------
+IllegalStateException::~IllegalStateException() {
+}
 
-NullPointerException::~NullPointerException() {}
+//------------------ IllegalArgumentException --------------------------------------------------------------------------
 
-//------------------ IndexOutOfBoundsException
-//-------------------------------------------------------------------------
+IllegalArgumentException::~IllegalArgumentException() {
+}
 
-IndexOutOfBoundsException::~IndexOutOfBoundsException() {}
+//------------------ NullPointerException ------------------------------------------------------------------------------
 
-//------------------ UnsupportedOperationException
-//---------------------------------------------------------------------
+NullPointerException::~NullPointerException() {
+}
 
-UnsupportedOperationException::~UnsupportedOperationException() {}
+//------------------ IndexOutOfBoundsException -------------------------------------------------------------------------
 
-//------------------ EmptyStackException
-//-------------------------------------------------------------------------------
+IndexOutOfBoundsException::~IndexOutOfBoundsException() {
+}
 
-EmptyStackException::~EmptyStackException() {}
+//------------------ UnsupportedOperationException ---------------------------------------------------------------------
 
-//------------------ CancellationException
-//-----------------------------------------------------------------------------
+UnsupportedOperationException::~UnsupportedOperationException() {
+}
 
-CancellationException::~CancellationException() {}
+//------------------ EmptyStackException -------------------------------------------------------------------------------
 
-//------------------ ParseCancellationException
-//------------------------------------------------------------------------
+EmptyStackException::~EmptyStackException() {
+}
 
-ParseCancellationException::~ParseCancellationException() {}
+//------------------ CancellationException -----------------------------------------------------------------------------
+
+CancellationException::~CancellationException() {
+}
+
+//------------------ ParseCancellationException ------------------------------------------------------------------------
+
+ParseCancellationException::~ParseCancellationException() {
+}

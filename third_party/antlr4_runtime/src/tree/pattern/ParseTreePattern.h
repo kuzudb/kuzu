@@ -11,12 +11,12 @@ namespace antlr4 {
 namespace tree {
 namespace pattern {
 
-/// <summary>
-/// A pattern like {@code <ID> = <expr>;} converted to a <seealso cref="ParseTree"/> by
-/// <seealso cref="ParseTreePatternMatcher#compile(String, int)"/>.
-/// </summary>
-class ANTLR4CPP_PUBLIC ParseTreePattern {
-public:
+  /// <summary>
+  /// A pattern like {@code <ID> = <expr>;} converted to a <seealso cref="ParseTree"/> by
+  /// <seealso cref="ParseTreePatternMatcher#compile(String, int)"/>.
+  /// </summary>
+  class ANTLR4CPP_PUBLIC ParseTreePattern {
+  public:
     /// <summary>
     /// Construct a new instance of the <seealso cref="ParseTreePattern"/> class.
     /// </summary>
@@ -26,8 +26,8 @@ public:
     /// <param name="patternRuleIndex"> The parser rule which serves as the root of the
     /// tree pattern. </param>
     /// <param name="patternTree"> The tree pattern in <seealso cref="ParseTree"/> form. </param>
-    ParseTreePattern(ParseTreePatternMatcher* matcher, const std::string& pattern,
-        int patternRuleIndex, ParseTree* patternTree);
+    ParseTreePattern(ParseTreePatternMatcher *matcher, const std::string &pattern, int patternRuleIndex,
+                     ParseTree *patternTree);
     ParseTreePattern(ParseTreePattern const&) = default;
     virtual ~ParseTreePattern();
 
@@ -38,7 +38,7 @@ public:
     /// <returns> A <seealso cref="ParseTreeMatch"/> object describing the result of the
     /// match operation. The <seealso cref="ParseTreeMatch#succeeded()"/> method can be
     /// used to determine whether or not the match was successful. </returns>
-    virtual ParseTreeMatch match(ParseTree* tree);
+    virtual ParseTreeMatch match(ParseTree *tree);
 
     /// <summary>
     /// Determine whether or not a parse tree matches this tree pattern.
@@ -46,7 +46,7 @@ public:
     /// <param name="tree"> The parse tree to match against this tree pattern. </param>
     /// <returns> {@code true} if {@code tree} is a match for the current tree
     /// pattern; otherwise, {@code false}. </returns>
-    virtual bool matches(ParseTree* tree);
+    virtual bool matches(ParseTree *tree);
 
     /// Find all nodes using XPath and then try to match those subtrees against
     /// this tree pattern.
@@ -56,14 +56,14 @@ public:
     /// @returns A collection of ParseTreeMatch objects describing the
     /// successful matches. Unsuccessful matches are omitted from the result,
     /// regardless of the reason for the failure.
-    virtual std::vector<ParseTreeMatch> findAll(ParseTree* tree, const std::string& xpath);
+    virtual std::vector<ParseTreeMatch> findAll(ParseTree *tree, const std::string &xpath);
 
     /// <summary>
     /// Get the <seealso cref="ParseTreePatternMatcher"/> which created this tree pattern.
     /// </summary>
     /// <returns> The <seealso cref="ParseTreePatternMatcher"/> which created this tree
     /// pattern. </returns>
-    virtual ParseTreePatternMatcher* getMatcher() const;
+    virtual ParseTreePatternMatcher *getMatcher() const;
 
     /// <summary>
     /// Get the tree pattern in concrete syntax form.
@@ -87,18 +87,18 @@ public:
     /// <returns> The tree pattern as a <seealso cref="ParseTree"/>. </returns>
     virtual ParseTree* getPatternTree() const;
 
-private:
+  private:
     const int patternRuleIndex;
 
     /// This is the backing field for <seealso cref="#getPattern()"/>.
     const std::string _pattern;
 
     /// This is the backing field for <seealso cref="#getPatternTree()"/>.
-    ParseTree* _patternTree;
+    ParseTree *_patternTree;
 
     /// This is the backing field for <seealso cref="#getMatcher()"/>.
-    ParseTreePatternMatcher* const _matcher;
-};
+    ParseTreePatternMatcher *const _matcher;
+  };
 
 } // namespace pattern
 } // namespace tree

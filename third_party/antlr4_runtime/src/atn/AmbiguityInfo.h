@@ -11,36 +11,36 @@
 namespace antlr4 {
 namespace atn {
 
-/// <summary>
-/// This class represents profiling event information for an ambiguity.
-/// Ambiguities are decisions where a particular input resulted in an SLL
-/// conflict, followed by LL prediction also reaching a conflict state
-/// (indicating a true ambiguity in the grammar).
-///
-/// <para>
-/// This event may be reported during SLL prediction in cases where the
-/// conflicting SLL configuration set provides sufficient information to
-/// determine that the SLL conflict is truly an ambiguity. For example, if none
-/// of the ATN configurations in the conflicting SLL configuration set have
-/// traversed a global follow transition (i.e.
-/// <seealso cref="ATNConfig#reachesIntoOuterContext"/> is 0 for all configurations), then
-/// the result of SLL prediction for that input is known to be equivalent to the
-/// result of LL prediction for that input.</para>
-///
-/// <para>
-/// In some cases, the minimum represented alternative in the conflicting LL
-/// configuration set is not equal to the minimum represented alternative in the
-/// conflicting SLL configuration set. Grammars and inputs which result in this
-/// scenario are unable to use <seealso cref="PredictionMode#SLL"/>, which in turn means
-/// they cannot use the two-stage parsing strategy to improve parsing performance
-/// for that input.</para>
-/// </summary>
-/// <seealso cref= ParserATNSimulator#reportAmbiguity </seealso>
-/// <seealso cref= ANTLRErrorListener#reportAmbiguity
-///
-/// @since 4.3 </seealso>
-class ANTLR4CPP_PUBLIC AmbiguityInfo : public DecisionEventInfo {
-public:
+  /// <summary>
+  /// This class represents profiling event information for an ambiguity.
+  /// Ambiguities are decisions where a particular input resulted in an SLL
+  /// conflict, followed by LL prediction also reaching a conflict state
+  /// (indicating a true ambiguity in the grammar).
+  ///
+  /// <para>
+  /// This event may be reported during SLL prediction in cases where the
+  /// conflicting SLL configuration set provides sufficient information to
+  /// determine that the SLL conflict is truly an ambiguity. For example, if none
+  /// of the ATN configurations in the conflicting SLL configuration set have
+  /// traversed a global follow transition (i.e.
+  /// <seealso cref="ATNConfig#reachesIntoOuterContext"/> is 0 for all configurations), then
+  /// the result of SLL prediction for that input is known to be equivalent to the
+  /// result of LL prediction for that input.</para>
+  ///
+  /// <para>
+  /// In some cases, the minimum represented alternative in the conflicting LL
+  /// configuration set is not equal to the minimum represented alternative in the
+  /// conflicting SLL configuration set. Grammars and inputs which result in this
+  /// scenario are unable to use <seealso cref="PredictionMode#SLL"/>, which in turn means
+  /// they cannot use the two-stage parsing strategy to improve parsing performance
+  /// for that input.</para>
+  /// </summary>
+  /// <seealso cref= ParserATNSimulator#reportAmbiguity </seealso>
+  /// <seealso cref= ANTLRErrorListener#reportAmbiguity
+  ///
+  /// @since 4.3 </seealso>
+  class ANTLR4CPP_PUBLIC AmbiguityInfo : public DecisionEventInfo {
+  public:
     /// The set of alternative numbers for this decision event that lead to a valid parse.
     antlrcpp::BitSet ambigAlts;
 
@@ -60,9 +60,9 @@ public:
     /// <param name="fullCtx"> {@code true} if the ambiguity was identified during LL
     /// prediction; otherwise, {@code false} if the ambiguity was identified
     /// during SLL prediction </param>
-    AmbiguityInfo(size_t decision, ATNConfigSet* configs, const antlrcpp::BitSet& ambigAlts,
-        TokenStream* input, size_t startIndex, size_t stopIndex, bool fullCtx);
-};
+    AmbiguityInfo(size_t decision, ATNConfigSet *configs, const antlrcpp::BitSet &ambigAlts, TokenStream *input,
+                  size_t startIndex, size_t stopIndex, bool fullCtx);
+  };
 
 } // namespace atn
 } // namespace antlr4

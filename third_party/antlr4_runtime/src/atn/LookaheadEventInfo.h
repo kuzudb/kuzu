@@ -10,10 +10,10 @@
 namespace antlr4 {
 namespace atn {
 
-/// This class represents profiling event information for tracking the lookahead
-/// depth required in order to make a prediction.
-class ANTLR4CPP_PUBLIC LookaheadEventInfo : public DecisionEventInfo {
-public:
+  /// This class represents profiling event information for tracking the lookahead
+  /// depth required in order to make a prediction.
+  class ANTLR4CPP_PUBLIC LookaheadEventInfo : public DecisionEventInfo {
+  public:
     /// The alternative chosen by adaptivePredict(), not necessarily
     ///  the outermost alt shown for a rule; left-recursive rules have
     ///  user-level alts that differ from the rewritten rule with a (...) block
@@ -34,9 +34,9 @@ public:
     /// <param name="fullCtx"> {@code true} if the current lookahead is part of an LL
     /// prediction; otherwise, {@code false} if the current lookahead is part of
     /// an SLL prediction </param>
-    LookaheadEventInfo(size_t decision, ATNConfigSet* configs, size_t predictedAlt,
-        TokenStream* input, size_t startIndex, size_t stopIndex, bool fullCtx);
-};
+    LookaheadEventInfo(size_t decision, ATNConfigSet *configs, size_t predictedAlt, TokenStream *input, size_t startIndex,
+                       size_t stopIndex, bool fullCtx);
+  };
 
 } // namespace atn
 } // namespace antlr4

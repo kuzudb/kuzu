@@ -5,139 +5,97 @@
 
 #pragma once
 
-#include <assert.h>
-#include <limits.h>
-#include <stdarg.h>
-#include <stdint.h>
-#include <stdlib.h>
-
 #include <algorithm>
+#include <any>
 #include <atomic>
 #include <bitset>
-#include <chrono>
-#include <condition_variable>
+#include <cassert>
+#include <climits>
+#include <cstddef>
+#include <cstdint>
+#include <cstdlib>
 #include <exception>
 #include <fstream>
-#include <functional>
 #include <iostream>
 #include <iterator>
 #include <limits>
-#include <list>
 #include <map>
 #include <memory>
-#include <mutex>
 #include <set>
 #include <sstream>
 #include <stack>
 #include <string>
-#include <type_traits>
+#include <string_view>
 #include <typeinfo>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
 
-#ifndef USE_UTF8_INSTEAD_OF_CODECVT
-#include <codecvt>
-#endif
-
 // Defines for the Guid class and other platform dependent stuff.
 #ifdef _WIN32
-#ifdef _MSC_VER
-#pragma warning(disable : 4250) // Class inherits by dominance.
-#pragma warning(disable : 4512) // assignment operator could not be generated
+  #ifdef _MSC_VER
+    #pragma warning (disable: 4250) // Class inherits by dominance.
+    #pragma warning (disable: 4512) // assignment operator could not be generated
 
-#if _MSC_VER < 1900
-// Before VS 2015 code like "while (true)" will create a (useless) warning in level 4.
-#pragma warning(disable : 4127) // conditional expression is constant
-#endif
-#endif
+    #if _MSC_VER < 1900
+      // Before VS 2015 code like "while (true)" will create a (useless) warning in level 4.
+      #pragma warning (disable: 4127) // conditional expression is constant
+    #endif
+  #endif
 
-#define GUID_WINDOWS
+  #ifdef _WIN64
+    typedef __int64 ssize_t;
+  #else
+    typedef __int32 ssize_t;
+  #endif
 
-#ifdef _WIN64
-typedef __int64 ssize_t;
-#else
-typedef __int32 ssize_t;
-#endif
-
-#if _MSC_VER >= 1900 && _MSC_VER < 2000
-// VS 2015 has a known bug when using std::codecvt_utf8<char32_t>
-// so we have to temporarily use __int32 instead.
-// https://connect.microsoft.com/VisualStudio/feedback/details/1403302/unresolved-external-when-using-codecvt-utf8
-typedef std::basic_string<__int32> i32string;
-
-typedef i32string UTF32String;
-#else
-typedef std::u32string UTF32String;
-#endif
-
-#ifdef ANTLR4CPP_EXPORTS
-#define ANTLR4CPP_PUBLIC __declspec(dllexport)
-#else
-#ifdef ANTLR4CPP_STATIC
-#define ANTLR4CPP_PUBLIC
-#else
-#define ANTLR4CPP_PUBLIC __declspec(dllimport)
-#endif
-#endif
-
-#if defined(_MSC_VER) && !defined(__clang__)
-// clang-cl should escape this to prevent [ignored-attributes].
-namespace std {
-class ANTLR4CPP_PUBLIC exception; // Prevents warning C4275 from MSVC.
-} // namespace std
-#endif
+  #ifdef ANTLR4CPP_EXPORTS
+    #define ANTLR4CPP_PUBLIC __declspec(dllexport)
+  #else
+    #ifdef ANTLR4CPP_STATIC
+      #define ANTLR4CPP_PUBLIC
+    #else
+      #define ANTLR4CPP_PUBLIC __declspec(dllimport)
+    #endif
+  #endif
 
 #elif defined(__APPLE__)
-typedef std::u32string UTF32String;
-
-#define GUID_CFUUID
-#if __GNUC__ >= 4
-#define ANTLR4CPP_PUBLIC __attribute__((visibility("default")))
+  #if __GNUC__ >= 4
+    #define ANTLR4CPP_PUBLIC __attribute__ ((visibility ("default")))
+  #else
+    #define ANTLR4CPP_PUBLIC
+  #endif
 #else
-#define ANTLR4CPP_PUBLIC
+  #if __GNUC__ >= 6
+    #define ANTLR4CPP_PUBLIC __attribute__ ((visibility ("default")))
+  #else
+    #define ANTLR4CPP_PUBLIC
+  #endif
 #endif
-#else
-typedef std::u32string UTF32String;
 
-#define GUID_LIBUUID
-#if __GNUC__ >= 6
-#define ANTLR4CPP_PUBLIC __attribute__((visibility("default")))
+#ifdef __has_builtin
+#define ANTLR4CPP_HAVE_BUILTIN(x) __has_builtin(x)
 #else
-#define ANTLR4CPP_PUBLIC
+#define ANTLR4CPP_HAVE_BUILTIN(x) 0
 #endif
+
+#define ANTLR4CPP_INTERNAL_STRINGIFY(x) #x
+#define ANTLR4CPP_STRINGIFY(x) ANTLR4CPP_INTERNAL_STRINGIFY(x)
+
+// We use everything from the C++ standard library by default.
+#ifndef ANTLR4CPP_USING_ABSEIL
+#define ANTLR4CPP_USING_ABSEIL 0
 #endif
 
 #include "support/Declarations.h"
-#include "support/guid.h"
-
-#if !defined(HAS_NOEXCEPT)
-#if defined(__clang__)
-#if __has_feature(cxx_noexcept)
-#define HAS_NOEXCEPT
-#endif
-#else
-#if defined(__GXX_EXPERIMENTAL_CXX0X__) && __GNUC__ * 10 + __GNUC_MINOR__ >= 46 ||                 \
-    defined(_MSC_FULL_VER) && _MSC_FULL_VER >= 190023026
-#define HAS_NOEXCEPT
-#endif
-#endif
-
-#ifdef HAS_NOEXCEPT
-#define NOEXCEPT noexcept
-#else
-#define NOEXCEPT
-#endif
-#endif
 
 // We have to undefine this symbol as ANTLR will use this name for own members and even
-// generated functions. Because EOF is a global macro we cannot use e.g. a namespace scope to
-// disambiguate.
+// generated functions. Because EOF is a global macro we cannot use e.g. a namespace scope to disambiguate.
 #ifdef EOF
 #undef EOF
 #endif
 
 #define INVALID_INDEX std::numeric_limits<size_t>::max()
-template<class T>
-using Ref = std::shared_ptr<T>;
+template<class T> using Ref = std::shared_ptr<T>;

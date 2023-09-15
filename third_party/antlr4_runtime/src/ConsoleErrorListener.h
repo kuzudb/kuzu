@@ -9,8 +9,8 @@
 
 namespace antlr4 {
 
-class ANTLR4CPP_PUBLIC ConsoleErrorListener : public BaseErrorListener {
-public:
+  class ANTLR4CPP_PUBLIC ConsoleErrorListener : public BaseErrorListener {
+  public:
     /**
      * Provides a default instance of {@link ConsoleErrorListener}.
      */
@@ -28,8 +28,8 @@ public:
      * line <em>line</em>:<em>charPositionInLine</em> <em>msg</em>
      * </pre>
      */
-    virtual void syntaxError(Recognizer* recognizer, Token* offendingSymbol, size_t line,
-        size_t charPositionInLine, const std::string& msg, std::exception_ptr e) override;
-};
+    virtual void syntaxError(Recognizer *recognizer, Token * offendingSymbol, size_t line, size_t charPositionInLine,
+                             const std::string &msg, std::exception_ptr e) override;
+  };
 
 } // namespace antlr4

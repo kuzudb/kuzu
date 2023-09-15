@@ -3,65 +3,67 @@
  * can be found in the LICENSE.txt file in the project root.
  */
 
-#include "tree/pattern/ParseTreeMatch.h"
-
 #include "Exceptions.h"
+
+#include "tree/pattern/ParseTreeMatch.h"
 
 using namespace antlr4::tree;
 using namespace antlr4::tree::pattern;
 
-ParseTreeMatch::ParseTreeMatch(ParseTree* tree, const ParseTreePattern& pattern,
-    const std::map<std::string, std::vector<ParseTree*>>& labels, ParseTree* mismatchedNode)
-    : _tree(tree), _pattern(pattern), _labels(labels), _mismatchedNode(mismatchedNode) {
-    if (tree == nullptr) {
-        throw IllegalArgumentException("tree cannot be nul");
-    }
+ParseTreeMatch::ParseTreeMatch(ParseTree *tree, const ParseTreePattern &pattern,
+                               const std::map<std::string, std::vector<ParseTree *>> &labels,
+                               ParseTree *mismatchedNode)
+  : _tree(tree), _pattern(pattern), _labels(labels), _mismatchedNode(mismatchedNode) {
+  if (tree == nullptr) {
+    throw IllegalArgumentException("tree cannot be nul");
+  }
 }
 
-ParseTreeMatch::~ParseTreeMatch() {}
-
-ParseTree* ParseTreeMatch::get(const std::string& label) {
-    auto iterator = _labels.find(label);
-    if (iterator == _labels.end() || iterator->second.empty()) {
-        return nullptr;
-    }
-
-    return iterator->second.back(); // return last if multiple
+ParseTreeMatch::~ParseTreeMatch() {
 }
 
-std::vector<ParseTree*> ParseTreeMatch::getAll(const std::string& label) {
-    auto iterator = _labels.find(label);
-    if (iterator == _labels.end()) {
-        return {};
-    }
+ParseTree* ParseTreeMatch::get(const std::string &label) {
+  auto iterator = _labels.find(label);
+  if (iterator == _labels.end() || iterator->second.empty()) {
+    return nullptr;
+  }
 
-    return iterator->second;
+  return iterator->second.back(); // return last if multiple
 }
 
-std::map<std::string, std::vector<ParseTree*>>& ParseTreeMatch::getLabels() {
-    return _labels;
+std::vector<ParseTree *> ParseTreeMatch::getAll(const std::string &label) {
+  auto iterator = _labels.find(label);
+  if (iterator == _labels.end()) {
+    return {};
+  }
+
+  return iterator->second;
 }
 
-ParseTree* ParseTreeMatch::getMismatchedNode() {
-    return _mismatchedNode;
+std::map<std::string, std::vector<ParseTree *>>& ParseTreeMatch::getLabels() {
+  return _labels;
+}
+
+ParseTree *ParseTreeMatch::getMismatchedNode() {
+  return _mismatchedNode;
 }
 
 bool ParseTreeMatch::succeeded() {
-    return _mismatchedNode == nullptr;
+  return _mismatchedNode == nullptr;
 }
 
 const ParseTreePattern& ParseTreeMatch::getPattern() {
-    return _pattern;
+  return _pattern;
 }
 
-ParseTree* ParseTreeMatch::getTree() {
-    return _tree;
+ParseTree * ParseTreeMatch::getTree() {
+  return _tree;
 }
 
 std::string ParseTreeMatch::toString() {
-    if (succeeded()) {
-        return "Match succeeded; found " + std::to_string(_labels.size()) + " labels";
-    } else {
-        return "Match failed; found " + std::to_string(_labels.size()) + " labels";
-    }
+  if (succeeded()) {
+    return "Match succeeded; found " + std::to_string(_labels.size()) + " labels";
+  } else {
+    return "Match failed; found " + std::to_string(_labels.size()) + " labels";
+  }
 }

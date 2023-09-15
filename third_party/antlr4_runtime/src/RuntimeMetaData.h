@@ -9,37 +9,37 @@
 
 namespace antlr4 {
 
-/// <summary>
-/// This class provides access to the current version of the ANTLR 4 runtime
-/// library as compile-time and runtime constants, along with methods for
-/// checking for matching version numbers and notifying listeners in the case
-/// where a version mismatch is detected.
-///
-/// <para>
-/// The runtime version information is provided by <seealso cref="#VERSION"/> and
-/// <seealso cref="#getRuntimeVersion()"/>. Detailed information about these values is
-/// provided in the documentation for each member.</para>
-///
-/// <para>
-/// The runtime version check is implemented by <seealso cref="#checkVersion"/>. Detailed
-/// information about incorporating this call into user code, as well as its use
-/// in generated code, is provided in the documentation for the method.</para>
-///
-/// <para>
-/// Version strings x.y and x.y.z are considered "compatible" and no error
-/// would be generated. Likewise, version strings x.y-SNAPSHOT and x.y.z are
-/// considered "compatible" because the major and minor components x.y
-/// are the same in each.</para>
-///
-/// <para>
-/// To trap any error messages issued by this code, use System.setErr()
-/// in your main() startup code.
-/// </para>
-///
-/// @since 4.3
-/// </summary>
-class ANTLR4CPP_PUBLIC RuntimeMetaData {
-public:
+  /// <summary>
+  /// This class provides access to the current version of the ANTLR 4 runtime
+  /// library as compile-time and runtime constants, along with methods for
+  /// checking for matching version numbers and notifying listeners in the case
+  /// where a version mismatch is detected.
+  ///
+  /// <para>
+  /// The runtime version information is provided by <seealso cref="#VERSION"/> and
+  /// <seealso cref="#getRuntimeVersion()"/>. Detailed information about these values is
+  /// provided in the documentation for each member.</para>
+  ///
+  /// <para>
+  /// The runtime version check is implemented by <seealso cref="#checkVersion"/>. Detailed
+  /// information about incorporating this call into user code, as well as its use
+  /// in generated code, is provided in the documentation for the method.</para>
+  ///
+  /// <para>
+  /// Version strings x.y and x.y.z are considered "compatible" and no error
+  /// would be generated. Likewise, version strings x.y-SNAPSHOT and x.y.z are
+  /// considered "compatible" because the major and minor components x.y
+  /// are the same in each.</para>
+  ///
+  /// <para>
+  /// To trap any error messages issued by this code, use System.setErr()
+  /// in your main() startup code.
+  /// </para>
+  ///
+  /// @since 4.3
+  /// </summary>
+  class ANTLR4CPP_PUBLIC RuntimeMetaData {
+  public:
     /// A compile-time constant containing the current version of the ANTLR 4
     /// runtime library.
     ///
@@ -139,8 +139,7 @@ public:
     /// <param name="compileTimeVersion"> The version of the runtime the parser was
     /// compiled against. This should always be passed using a direct reference
     /// to <seealso cref="#VERSION"/>. </param>
-    static void checkVersion(
-        const std::string& generatingToolVersion, const std::string& compileTimeVersion);
+    static void checkVersion(const std::string &generatingToolVersion, const std::string &compileTimeVersion);
 
     /// <summary>
     /// Gets the major and minor version numbers from a version string. For
@@ -150,7 +149,7 @@ public:
     /// <param name="version"> The complete version string. </param>
     /// <returns> A string of the form <em>major</em>.<em>minor</em> containing
     /// only the major and minor components of the version string. </returns>
-    static std::string getMajorMinorVersion(const std::string& version);
-};
+    static std::string getMajorMinorVersion(const std::string &version);
+  };
 
 } // namespace antlr4

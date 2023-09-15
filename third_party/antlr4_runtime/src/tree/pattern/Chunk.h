@@ -11,19 +11,19 @@ namespace antlr4 {
 namespace tree {
 namespace pattern {
 
-/// <summary>
-/// A chunk is either a token tag, a rule tag, or a span of literal text within a
-/// tree pattern.
-/// <p/>
-/// The method <seealso cref="ParseTreePatternMatcher#split(String)"/> returns a list of
-/// chunks in preparation for creating a token stream by
-/// <seealso cref="ParseTreePatternMatcher#tokenize(String)"/>. From there, we get a parse
-/// tree from with <seealso cref="ParseTreePatternMatcher#compile(String, int)"/>. These
-/// chunks are converted to <seealso cref="RuleTagToken"/>, <seealso cref="TokenTagToken"/>, or the
-/// regular tokens of the text surrounding the tags.
-/// </summary>
-class ANTLR4CPP_PUBLIC Chunk {
-public:
+  /// <summary>
+  /// A chunk is either a token tag, a rule tag, or a span of literal text within a
+  /// tree pattern.
+  /// <p/>
+  /// The method <seealso cref="ParseTreePatternMatcher#split(String)"/> returns a list of
+  /// chunks in preparation for creating a token stream by
+  /// <seealso cref="ParseTreePatternMatcher#tokenize(String)"/>. From there, we get a parse
+  /// tree from with <seealso cref="ParseTreePatternMatcher#compile(String, int)"/>. These
+  /// chunks are converted to <seealso cref="RuleTagToken"/>, <seealso cref="TokenTagToken"/>, or the
+  /// regular tokens of the text surrounding the tags.
+  /// </summary>
+  class ANTLR4CPP_PUBLIC Chunk {
+  public:
     Chunk() = default;
     Chunk(Chunk const&) = default;
     virtual ~Chunk();
@@ -34,10 +34,10 @@ public:
     /// are returned in the form {@code label:tag}, and unlabeled tags are
     /// returned as just the tag name.
     virtual std::string toString() {
-        std::string str;
-        return str;
+      std::string str;
+      return str;
     }
-};
+  };
 
 } // namespace pattern
 } // namespace tree

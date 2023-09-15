@@ -11,11 +11,11 @@ namespace antlr4 {
 namespace tree {
 namespace xpath {
 
-class ANTLR4CPP_PUBLIC XPathLexerErrorListener : public BaseErrorListener {
-public:
-    virtual void syntaxError(Recognizer* recognizer, Token* offendingSymbol, size_t line,
-        size_t charPositionInLine, const std::string& msg, std::exception_ptr e) override;
-};
+  class ANTLR4CPP_PUBLIC XPathLexerErrorListener : public BaseErrorListener {
+  public:
+    virtual void syntaxError(Recognizer *recognizer, Token *offendingSymbol, size_t line,
+      size_t charPositionInLine, const std::string &msg, std::exception_ptr e) override;
+  };
 
 } // namespace xpath
 } // namespace tree

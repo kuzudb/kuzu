@@ -31,22 +31,23 @@
 #pragma once
 
 #include "antlr4-common.h"
+
 #include "tree/ParseTreeWalker.h"
 
 namespace antlr4 {
 namespace tree {
 
-class ParseTreeListener;
-
-/**
- * An iterative (read: non-recursive) pre-order and post-order tree walker that
- * doesn't use the thread stack but heap-based stacks. Makes it possible to
- * process deeply nested parse trees.
- */
-class ANTLR4CPP_PUBLIC IterativeParseTreeWalker : public ParseTreeWalker {
-public:
-    virtual void walk(ParseTreeListener* listener, ParseTree* t) const override;
-};
+  class ParseTreeListener;
+  
+  /**
+   * An iterative (read: non-recursive) pre-order and post-order tree walker that
+   * doesn't use the thread stack but heap-based stacks. Makes it possible to
+   * process deeply nested parse trees.
+   */
+  class ANTLR4CPP_PUBLIC IterativeParseTreeWalker : public ParseTreeWalker {
+  public:
+    virtual void walk(ParseTreeListener *listener, ParseTree *t) const override;
+  };
 
 } // namespace tree
 } // namespace antlr4

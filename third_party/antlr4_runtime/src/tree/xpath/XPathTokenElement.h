@@ -11,15 +11,15 @@ namespace antlr4 {
 namespace tree {
 namespace xpath {
 
-class ANTLR4CPP_PUBLIC XPathTokenElement : public XPathElement {
-public:
-    XPathTokenElement(const std::string& tokenName, size_t tokenType);
+  class ANTLR4CPP_PUBLIC XPathTokenElement : public XPathElement {
+  public:
+    XPathTokenElement(const std::string &tokenName, size_t tokenType);
 
-    virtual std::vector<ParseTree*> evaluate(ParseTree* t) override;
+    virtual std::vector<ParseTree *> evaluate(ParseTree *t) override;
 
-protected:
+  protected:
     size_t _tokenType = 0;
-};
+  };
 
 } // namespace xpath
 } // namespace tree

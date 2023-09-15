@@ -3,24 +3,26 @@
  * can be found in the LICENSE.txt file in the project root.
  */
 
-#include "tree/pattern/TextChunk.h"
-
 #include "Exceptions.h"
+
+#include "tree/pattern/TextChunk.h"
 
 using namespace antlr4::tree::pattern;
 
-TextChunk::TextChunk(const std::string& text) : text(text) {
-    if (text == "") {
-        throw IllegalArgumentException("text cannot be nul");
-    }
+TextChunk::TextChunk(const std::string &text) : text(text) {
+  if (text == "") {
+    throw IllegalArgumentException("text cannot be nul");
+  }
+
 }
 
-TextChunk::~TextChunk() {}
+TextChunk::~TextChunk() {
+}
 
 std::string TextChunk::getText() {
-    return text;
+  return text;
 }
 
 std::string TextChunk::toString() {
-    return std::string("'") + text + std::string("'");
+  return std::string("'") + text + std::string("'");
 }

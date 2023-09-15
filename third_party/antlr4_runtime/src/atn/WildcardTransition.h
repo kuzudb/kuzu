@@ -10,17 +10,18 @@
 namespace antlr4 {
 namespace atn {
 
-class ANTLR4CPP_PUBLIC WildcardTransition final : public Transition {
-public:
-    WildcardTransition(ATNState* target);
+  class ANTLR4CPP_PUBLIC WildcardTransition final : public Transition {
+  public:
+    static bool is(const Transition &transition) { return transition.getTransitionType() == TransitionType::WILDCARD; }
 
-    virtual SerializationType getSerializationType() const override;
+    static bool is(const Transition *transition) { return transition != nullptr && is(*transition); }
 
-    virtual bool matches(
-        size_t symbol, size_t minVocabSymbol, size_t maxVocabSymbol) const override;
+    explicit WildcardTransition(ATNState *target);
+
+    virtual bool matches(size_t symbol, size_t minVocabSymbol, size_t maxVocabSymbol) const override;
 
     virtual std::string toString() const override;
-};
+  };
 
 } // namespace atn
 } // namespace antlr4

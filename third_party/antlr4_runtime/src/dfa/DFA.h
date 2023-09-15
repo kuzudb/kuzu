@@ -7,30 +7,38 @@
 
 #include "dfa/DFAState.h"
 
-namespace antlrcpp {
-class SingleWriteMultipleReadLock;
-}
-
 namespace antlr4 {
 namespace dfa {
 
-class ANTLR4CPP_PUBLIC DFA {
-public:
+  class ANTLR4CPP_PUBLIC DFA final {
+  private:
+    struct DFAStateHasher final {
+      size_t operator()(const DFAState *dfaState) const {
+        return dfaState->hashCode();
+      }
+    };
+
+    struct DFAStateComparer final {
+      bool operator()(const DFAState *lhs, const DFAState *rhs) const {
+        return lhs == rhs || *lhs == *rhs;
+      }
+    };
+
+  public:
     /// A set of all DFA states. Use a map so we can get old state back.
     /// Set only allows you to see if it's there.
 
     /// From which ATN state did we create this DFA?
-    atn::DecisionState* atnStartState;
-    std::unordered_set<DFAState*, DFAState::Hasher, DFAState::Comparer>
-        states; // States are owned by this class.
-    DFAState* s0;
+    atn::DecisionState *atnStartState;
+    std::unordered_set<DFAState*, DFAStateHasher, DFAStateComparer> states; // States are owned by this class.
+    DFAState *s0;
     size_t decision;
 
-    DFA(atn::DecisionState* atnStartState);
-    DFA(atn::DecisionState* atnStartState, size_t decision);
-    DFA(const DFA& other) = delete;
-    DFA(DFA&& other);
-    virtual ~DFA();
+    explicit DFA(atn::DecisionState *atnStartState);
+    DFA(atn::DecisionState *atnStartState, size_t decision);
+    DFA(const DFA &other) = delete;
+    DFA(DFA &&other);
+    ~DFA();
 
     /**
      * Gets whether this DFA is a precedence DFA. Precedence DFAs use a special
@@ -67,27 +75,22 @@ public:
      * @throws IllegalStateException if this is not a precedence DFA.
      * @see #isPrecedenceDfa()
      */
-    void setPrecedenceStartState(
-        int precedence, DFAState* startState, antlrcpp::SingleWriteMultipleReadLock& lock);
+    void setPrecedenceStartState(int precedence, DFAState *startState);
 
     /// Return a list of all states in this DFA, ordered by state number.
-    virtual std::vector<DFAState*> getStates() const;
+    std::vector<DFAState *> getStates() const;
 
-    /**
-     * @deprecated Use {@link #toString(Vocabulary)} instead.
-     */
-    virtual std::string toString(const std::vector<std::string>& tokenNames);
-    std::string toString(const Vocabulary& vocabulary) const;
+    std::string toString(const Vocabulary &vocabulary) const;
 
-    virtual std::string toLexerString();
+    std::string toLexerString() const;
 
-private:
+  private:
     /**
      * {@code true} if this DFA is for a precedence decision; otherwise,
      * {@code false}. This is the backing field for {@link #isPrecedenceDfa}.
      */
     bool _precedenceDfa;
-};
+  };
 
-} // namespace dfa
+} // namespace atn
 } // namespace antlr4

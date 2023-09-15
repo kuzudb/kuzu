@@ -9,24 +9,24 @@
 
 namespace antlr4 {
 
-/**
- * This implementation of {@link TokenStream} loads tokens from a
- * {@link TokenSource} on-demand, and places the tokens in a buffer to provide
- * access to any previous token by index.
- *
- * <p>
- * This token stream ignores the value of {@link Token#getChannel}. If your
- * parser requires the token stream filter tokens to only those on a particular
- * channel, such as {@link Token#DEFAULT_CHANNEL} or
- * {@link Token#HIDDEN_CHANNEL}, use a filtering token stream such a
- * {@link CommonTokenStream}.</p>
- */
-class ANTLR4CPP_PUBLIC BufferedTokenStream : public TokenStream {
-public:
-    BufferedTokenStream(TokenSource* tokenSource);
+  /**
+   * This implementation of {@link TokenStream} loads tokens from a
+   * {@link TokenSource} on-demand, and places the tokens in a buffer to provide
+   * access to any previous token by index.
+   *
+   * <p>
+   * This token stream ignores the value of {@link Token#getChannel}. If your
+   * parser requires the token stream filter tokens to only those on a particular
+   * channel, such as {@link Token#DEFAULT_CHANNEL} or
+   * {@link Token#HIDDEN_CHANNEL}, use a filtering token stream such a
+   * {@link CommonTokenStream}.</p>
+   */
+  class ANTLR4CPP_PUBLIC BufferedTokenStream : public TokenStream {
+  public:
+    BufferedTokenStream(TokenSource *tokenSource);
     BufferedTokenStream(const BufferedTokenStream& other) = delete;
 
-    BufferedTokenStream& operator=(const BufferedTokenStream& other) = delete;
+    BufferedTokenStream& operator = (const BufferedTokenStream& other) = delete;
 
     virtual TokenSource* getTokenSource() const override;
     virtual size_t index() override;
@@ -42,64 +42,63 @@ public:
     virtual Token* get(size_t i) const override;
 
     /// Get all tokens from start..stop inclusively.
-    virtual std::vector<Token*> get(size_t start, size_t stop);
+    virtual std::vector<Token *> get(size_t start, size_t stop);
 
     virtual size_t LA(ssize_t i) override;
     virtual Token* LT(ssize_t k) override;
 
     /// Reset this token stream by setting its token source.
-    virtual void setTokenSource(TokenSource* tokenSource);
-    virtual std::vector<Token*> getTokens();
-    virtual std::vector<Token*> getTokens(size_t start, size_t stop);
+    virtual void setTokenSource(TokenSource *tokenSource);
+    virtual std::vector<Token *> getTokens();
+    virtual std::vector<Token *> getTokens(size_t start, size_t stop);
 
     /// <summary>
     /// Given a start and stop index, return a List of all tokens in
     ///  the token type BitSet.  Return null if no tokens were found.  This
     ///  method looks at both on and off channel tokens.
     /// </summary>
-    virtual std::vector<Token*> getTokens(
-        size_t start, size_t stop, const std::vector<size_t>& types);
-    virtual std::vector<Token*> getTokens(size_t start, size_t stop, size_t ttype);
+    virtual std::vector<Token *> getTokens(size_t start, size_t stop, const std::vector<size_t> &types);
+    virtual std::vector<Token *> getTokens(size_t start, size_t stop, size_t ttype);
 
     /// Collect all tokens on specified channel to the right of
     ///  the current token up until we see a token on DEFAULT_TOKEN_CHANNEL or
     ///  EOF. If channel is -1, find any non default channel token.
-    virtual std::vector<Token*> getHiddenTokensToRight(size_t tokenIndex, ssize_t channel);
+    virtual std::vector<Token *> getHiddenTokensToRight(size_t tokenIndex, ssize_t channel);
 
     /// <summary>
     /// Collect all hidden tokens (any off-default channel) to the right of
     ///  the current token up until we see a token on DEFAULT_TOKEN_CHANNEL
     ///  or EOF.
     /// </summary>
-    virtual std::vector<Token*> getHiddenTokensToRight(size_t tokenIndex);
+    virtual std::vector<Token *> getHiddenTokensToRight(size_t tokenIndex);
 
     /// <summary>
     /// Collect all tokens on specified channel to the left of
     ///  the current token up until we see a token on DEFAULT_TOKEN_CHANNEL.
     ///  If channel is -1, find any non default channel token.
     /// </summary>
-    virtual std::vector<Token*> getHiddenTokensToLeft(size_t tokenIndex, ssize_t channel);
+    virtual std::vector<Token *> getHiddenTokensToLeft(size_t tokenIndex, ssize_t channel);
 
     /// <summary>
     /// Collect all hidden tokens (any off-default channel) to the left of
     ///  the current token up until we see a token on DEFAULT_TOKEN_CHANNEL.
     /// </summary>
-    virtual std::vector<Token*> getHiddenTokensToLeft(size_t tokenIndex);
+    virtual std::vector<Token *> getHiddenTokensToLeft(size_t tokenIndex);
 
     virtual std::string getSourceName() const override;
     virtual std::string getText() override;
-    virtual std::string getText(const misc::Interval& interval) override;
-    virtual std::string getText(RuleContext* ctx) override;
-    virtual std::string getText(Token* start, Token* stop) override;
+    virtual std::string getText(const misc::Interval &interval) override;
+    virtual std::string getText(RuleContext *ctx) override;
+    virtual std::string getText(Token *start, Token *stop) override;
 
     /// Get all tokens from lexer until EOF.
     virtual void fill();
 
-protected:
+  protected:
     /**
      * The {@link TokenSource} from which tokens for this stream are fetched.
      */
-    TokenSource* _tokenSource;
+    TokenSource *_tokenSource;
 
     /**
      * A collection of all tokens fetched from the token source. The list is
@@ -119,8 +118,7 @@ protected:
      * see the documentation of {@link IntStream} for a description of
      * Initializing Methods.</p>
      */
-    // ml: since -1 requires to make this member signed for just this single aspect we use a member
-    // _needSetup instead.
+    // ml: since -1 requires to make this member signed for just this single aspect we use a member _needSetup instead.
     //     Use bool isInitialized() to find out if this stream has started reading.
     size_t _p;
 
@@ -190,13 +188,13 @@ protected:
      */
     virtual ssize_t previousTokenOnChannel(size_t i, size_t channel);
 
-    virtual std::vector<Token*> filterForChannel(size_t from, size_t to, ssize_t channel);
+    virtual std::vector<Token *> filterForChannel(size_t from, size_t to, ssize_t channel);
 
     bool isInitialized() const;
 
-private:
+  private:
     bool _needSetup;
     void InitializeInstanceFields();
-};
+  };
 
 } // namespace antlr4

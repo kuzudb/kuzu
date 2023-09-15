@@ -10,23 +10,23 @@
 namespace antlr4 {
 namespace dfa {
 
-/// A DFA walker that knows how to dump them to serialized strings.
-class ANTLR4CPP_PUBLIC DFASerializer {
-public:
-    DFASerializer(const DFA* dfa, const std::vector<std::string>& tnames);
-    DFASerializer(const DFA* dfa, const Vocabulary& vocabulary);
-    virtual ~DFASerializer();
+  /// A DFA walker that knows how to dump them to serialized strings.
+  class ANTLR4CPP_PUBLIC DFASerializer {
+  public:
+    DFASerializer(const DFA *dfa, const Vocabulary &vocabulary);
 
-    virtual std::string toString() const;
+    virtual ~DFASerializer() = default;
 
-protected:
+    std::string toString() const;
+
+  protected:
     virtual std::string getEdgeLabel(size_t i) const;
-    virtual std::string getStateString(DFAState* s) const;
+    std::string getStateString(DFAState *s) const;
 
-private:
-    const DFA* _dfa;
-    const Vocabulary& _vocabulary;
-};
+  private:
+    const DFA *_dfa;
+    const Vocabulary &_vocabulary;
+  };
 
-} // namespace dfa
+} // namespace atn
 } // namespace antlr4

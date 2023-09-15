@@ -6,28 +6,29 @@
 #pragma once
 
 #include "support/Any.h"
+#include "tree/ParseTreeType.h"
 
 namespace antlr4 {
 namespace tree {
 
-/// An interface to access the tree of <seealso cref="RuleContext"/> objects created
-/// during a parse that makes the data structure look like a simple parse tree.
-/// This node represents both internal nodes, rule invocations,
-/// and leaf nodes, token matches.
-///
-/// The payload is either a <seealso cref="Token"/> or a <seealso cref="RuleContext"/> object.
-// ml: This class unites 4 Java classes: RuleNode, ParseTree, SyntaxTree and Tree.
-class ANTLR4CPP_PUBLIC ParseTree {
-public:
-    ParseTree();
+  /// An interface to access the tree of <seealso cref="RuleContext"/> objects created
+  /// during a parse that makes the data structure look like a simple parse tree.
+  /// This node represents both internal nodes, rule invocations,
+  /// and leaf nodes, token matches.
+  ///
+  /// The payload is either a <seealso cref="Token"/> or a <seealso cref="RuleContext"/> object.
+  // ml: This class unites 4 Java classes: RuleNode, ParseTree, SyntaxTree and Tree.
+  class ANTLR4CPP_PUBLIC ParseTree {
+  public:
     ParseTree(ParseTree const&) = delete;
-    virtual ~ParseTree() {}
+
+    virtual ~ParseTree() = default;
 
     ParseTree& operator=(ParseTree const&) = delete;
 
     /// The parent of this node. If the return value is null, then this
     /// node is the root of the tree.
-    ParseTree* parent;
+    ParseTree *parent = nullptr;
 
     /// If we are debugging or building a parse tree for a visitor,
     /// we need to track all of the tokens and rule invocations associated
@@ -35,7 +36,7 @@ public:
     /// operation because we don't the need to track the details about
     /// how we parse this rule.
     // ml: memory is not managed here, but by the owning class. This is just for the structure.
-    std::vector<ParseTree*> children;
+    std::vector<ParseTree *> children;
 
     /// Print out a whole tree, not just a node, in LISP format
     /// {@code (root child1 .. childN)}. Print just a node if this is a leaf.
@@ -44,14 +45,13 @@ public:
 
     /// Specialize toStringTree so that it can print out more information
     /// based upon the parser.
-    virtual std::string toStringTree(Parser* parser, bool pretty = false) = 0;
+    virtual std::string toStringTree(Parser *parser, bool pretty = false) = 0;
 
-    virtual bool operator==(const ParseTree& other) const;
+    virtual bool operator == (const ParseTree &other) const;
 
     /// The <seealso cref="ParseTreeVisitor"/> needs a double dispatch method.
-    // ml: This has been changed to use Any instead of a template parameter, to avoid the need of a
-    // virtual template function.
-    virtual antlrcpp::Any accept(ParseTreeVisitor* visitor) = 0;
+    // ml: This has been changed to use Any instead of a template parameter, to avoid the need of a virtual template function.
+    virtual std::any accept(ParseTreeVisitor *visitor) = 0;
 
     /// Return the combined text of all leaf nodes. Does not get any
     /// off-channel tokens (if any) so won't return whitespace and
@@ -75,28 +75,37 @@ public:
      * EOF is unspecified.</p>
      */
     virtual misc::Interval getSourceInterval() = 0;
-};
 
-// A class to help managing ParseTree instances without the need of a shared_ptr.
-class ANTLR4CPP_PUBLIC ParseTreeTracker {
-public:
-    template<typename T, typename... Args>
-    T* createInstance(Args&&... args) {
-        static_assert(std::is_base_of<ParseTree, T>::value, "Argument must be a parse tree type");
-        T* result = new T(args...);
-        _allocated.push_back(result);
-        return result;
+    ParseTreeType getTreeType() const { return _treeType; }
+
+  protected:
+    explicit ParseTree(ParseTreeType treeType) : _treeType(treeType) {}
+
+  private:
+    const ParseTreeType _treeType;
+  };
+
+  // A class to help managing ParseTree instances without the need of a shared_ptr.
+  class ANTLR4CPP_PUBLIC ParseTreeTracker {
+  public:
+    template<typename T, typename ... Args>
+    T* createInstance(Args&& ... args) {
+      static_assert(std::is_base_of<ParseTree, T>::value, "Argument must be a parse tree type");
+      T* result = new T(args...);
+      _allocated.push_back(result);
+      return result;
     }
 
     void reset() {
-        for (auto* entry : _allocated)
-            delete entry;
-        _allocated.clear();
+      for (auto * entry : _allocated)
+        delete entry;
+      _allocated.clear();
     }
 
-private:
-    std::vector<ParseTree*> _allocated;
-};
+  private:
+    std::vector<ParseTree *> _allocated;
+  };
+
 
 } // namespace tree
 } // namespace antlr4

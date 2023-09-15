@@ -11,16 +11,16 @@ namespace antlr4 {
 namespace tree {
 namespace pattern {
 
-/// <summary>
-/// A <seealso cref="Token"/> object representing a token of a particular type; e.g.,
-/// {@code <ID>}. These tokens are created for <seealso cref="TagChunk"/> chunks where the
-/// tag corresponds to a lexer rule or token type.
-/// </summary>
-class ANTLR4CPP_PUBLIC TokenTagToken : public CommonToken {
+  /// <summary>
+  /// A <seealso cref="Token"/> object representing a token of a particular type; e.g.,
+  /// {@code <ID>}. These tokens are created for <seealso cref="TagChunk"/> chunks where the
+  /// tag corresponds to a lexer rule or token type.
+  /// </summary>
+  class ANTLR4CPP_PUBLIC TokenTagToken : public CommonToken {
     /// <summary>
     /// This is the backing field for <seealso cref="#getTokenName"/>.
     /// </summary>
-private:
+  private:
     const std::string tokenName;
     /// <summary>
     /// This is the backing field for <seealso cref="#getLabe"/>.
@@ -33,8 +33,8 @@ private:
     /// </summary>
     /// <param name="tokenName"> The token name. </param>
     /// <param name="type"> The token type. </param>
-public:
-    TokenTagToken(const std::string& tokenName, int type); // this(tokenName, type, nullptr);
+  public:
+    TokenTagToken(const std::string &tokenName, int type); //this(tokenName, type, nullptr);
 
     /// <summary>
     /// Constructs a new instance of <seealso cref="TokenTagToken"/> with the specified
@@ -44,7 +44,7 @@ public:
     /// <param name="type"> The token type. </param>
     /// <param name="label"> The label associated with the token tag, or {@code null} if
     /// the token tag is unlabeled. </param>
-    TokenTagToken(const std::string& tokenName, int type, const std::string& label);
+    TokenTagToken(const std::string &tokenName, int type, const std::string &label);
 
     /// <summary>
     /// Gets the token name. </summary>
@@ -73,7 +73,7 @@ public:
     /// {@code tokenName:type}.
     /// </summary>
     virtual std::string toString() const override;
-};
+  };
 
 } // namespace pattern
 } // namespace tree
