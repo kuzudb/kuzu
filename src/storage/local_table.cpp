@@ -234,7 +234,9 @@ void VarListLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
     varListColumn->scan(nodeGroupIdx, listColumnChunkInStorage.get());
     offset_t nextOffsetToWrite = 0;
     auto numNodesInGroup =
-        column->metadataDA->get(nodeGroupIdx, TransactionType::READ_ONLY).numValues;
+        nodeGroupIdx >= column->metadataDA->getNumElements() ?
+            0 :
+            column->metadataDA->get(nodeGroupIdx, TransactionType::READ_ONLY).numValues;
     for (auto& [vectorIdx, localVector] : chunk->vectors) {
         auto startOffsetInChunk = StorageUtils::getStartOffsetOfVectorInChunk(vectorIdx);
         auto listVector = localVector->vector.get();

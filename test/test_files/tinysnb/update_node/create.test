@@ -160,3 +160,19 @@
 {age: 10, name: A}
 -STATEMENT COMMIT
 ---- ok
+
+-CASE CreateDeleteNodeOnEmptyTable
+-STATEMENT CREATE NODE TABLE emptyTable(id INT64, prop INT64[], PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (e:emptyTable {id: 0, prop: [3,2]})
+---- ok
+-STATEMENT MATCH (a:emptyTable) RETURN a.*
+---- 1
+0|[3,2]
+-STATEMENT MATCH (a:emptyTable) DELETE a
+---- ok
+-STATEMENT CREATE (e:emptyTable {id: 2, prop: [1,5,6]})
+---- ok
+-STATEMENT MATCH (a:emptyTable) RETURN a.*
+---- 1
+2|[1,5,6]
