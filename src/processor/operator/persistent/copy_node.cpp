@@ -179,9 +179,10 @@ void CopyNode::checkNonNullConstraint(NullColumnChunk* nullChunk, offset_t numNo
 }
 
 void CopyNode::finalize(ExecutionContext* context) {
-    auto numNodes = StorageUtils::getStartOffsetOfNodeGroup(sharedState->getCurNodeGroupIdx()) +
-                    sharedState->sharedNodeGroup->getNumNodes();
+    uint64_t numNodes = 0;
     if (sharedState->sharedNodeGroup) {
+        numNodes = StorageUtils::getStartOffsetOfNodeGroup(sharedState->getCurNodeGroupIdx()) +
+                   sharedState->sharedNodeGroup->getNumNodes();
         auto nodeGroupIdx = sharedState->getNextNodeGroupIdx();
         writeAndResetNodeGroup(nodeGroupIdx, sharedState->pkIndex.get(), sharedState->pkColumnID,
             sharedState->table, sharedState->sharedNodeGroup.get(), sharedState->isCopyRdf);

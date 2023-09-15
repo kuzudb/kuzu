@@ -1,0 +1,93 @@
+-GROUP CSV
+-DATASET CSV csv-edge-case-tests
+
+--
+
+-CASE EdgeCases
+-STATEMENT MATCH (b:`bom-and-data`) RETURN b.*
+---- 2
+data|moredata
+abc|﻿﻿bomdata﻿
+
+-STATEMENT MATCH (b:`bom-and-header`) RETURN b.*
+---- 0
+
+-STATEMENT MATCH (b:`bom`) RETURN b.*
+---- 0
+
+-STATEMENT MATCH (c:`carriage-return-then-eof`) RETURN c.*
+---- 2
+abc|def
+ghi|jkl
+
+-STATEMENT MATCH (d:`delimiter-then-eof`) RETURN d.*
+---- 1
+abc
+
+-STATEMENT MATCH (e:`empty-first-line`) RETURN e.*
+---- 2
+abc|def
+ghi|jkl
+
+-STATEMENT MATCH (e:`empty-lines-multiple-columns`) RETURN e.*
+---- 2
+abc|def
+ghi|jkl
+
+-STATEMENT MATCH (e:`empty-lines-single-column`) RETURN e.B
+---- 3
+abc
+
+def
+
+-STATEMENT MATCH (e:`empty`) RETURN e.*
+---- 0
+
+-STATEMENT MATCH (e:`empty-with-header`) RETURN e.*
+---- 0
+
+-STATEMENT MATCH (e:`eof-after-unquote`) RETURN e.*
+---- 1
+abc|def
+
+-STATEMENT MATCH (e:`escapes-in-quote`) RETURN e.*
+---- 1
+abc\"
+
+-STATEMENT MATCH (e:`escapes-out-of-quote`) RETURN e.*
+---- 2
+a|b
+\|\
+
+-STATEMENT MATCH (m:`mixed-empty-lines-multiple-columns`) RETURN m.*
+---- 2
+abc|def
+ghi|jkl
+
+-STATEMENT MATCH (m:`mixed-empty-lines-single-column`) RETURN m.B
+---- 6
+abc
+
+def
+
+
+ghi
+
+-STATEMENT MATCH (m:`mixed-newlines`) RETURN m.*
+---- 3
+abc
+def
+ghi
+
+-STATEMENT MATCH (q:`quoted-values`) RETURN q.*
+---- 1
+abc|bcd
+
+-STATEMENT MATCH (t:`tab-as-delim`) RETURN t.*
+---- 2
+abc|def
+ghi|jkl
+
+-STATEMENT MATCH (u:`unquote-escape`) RETURN u.*
+---- 1
+abc"def

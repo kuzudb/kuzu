@@ -76,7 +76,6 @@ public:
     validate_func_t validateFunc;
     init_reader_data_func_t initFunc;
     count_blocks_func_t countBlocksFunc;
-    read_rows_func_t readFunc;
     std::shared_ptr<ReaderFunctionData> readFuncData;
 
     common::row_idx_t numRows;

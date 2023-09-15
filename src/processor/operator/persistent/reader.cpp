@@ -22,28 +22,24 @@ void Reader::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* cont
     for (auto i = 0u; i < info->getNumColumns(); i++) {
         dataChunk->insert(i, resultSet->getValueVector(info->dataColumnsPos[i]));
     }
-    initFunc =
-        ReaderFunctions::getInitDataFunc(sharedState->readerConfig->fileType, info->tableType);
-    readFunc =
-        ReaderFunctions::getReadRowsFunc(sharedState->readerConfig->fileType, info->tableType);
+    initFunc = ReaderFunctions::getInitDataFunc(*sharedState->readerConfig, info->tableType);
+    readFunc = ReaderFunctions::getReadRowsFunc(*sharedState->readerConfig, info->tableType);
     if (info->nodeOffsetPos.dataChunkPos != INVALID_DATA_CHUNK_POS) {
         offsetVector = resultSet->getValueVector(info->nodeOffsetPos).get();
     }
     assert(!sharedState->readerConfig->filePaths.empty());
-    switch (sharedState->readerConfig->fileType) {
-    case FileType::CSV: {
+    if (sharedState->readerConfig->fileType == FileType::CSV &&
+        !sharedState->readerConfig->csvParallelRead(info->tableType)) {
         readFuncData = sharedState->readFuncData;
-    } break;
-    default: {
+    } else {
         readFuncData =
-            ReaderFunctions::getReadFuncData(sharedState->readerConfig->fileType, info->tableType);
-        initFunc(*readFuncData, 0, *sharedState->readerConfig, context->memoryManager);
-    }
+            ReaderFunctions::getReadFuncData(*sharedState->readerConfig, info->tableType);
+        initFunc(*readFuncData, 0, *sharedState->readerConfig, memoryManager);
     }
 }
 
 bool Reader::getNextTuplesInternal(ExecutionContext* context) {
-    sharedState->readerConfig->parallelRead() ?
+    sharedState->readerConfig->parallelRead(info->tableType) ?
         readNextDataChunk<ReaderSharedState::ReadMode::PARALLEL>() :
         readNextDataChunk<ReaderSharedState::ReadMode::SERIAL>();
     return dataChunk->state->selVector->selectedSize != 0;
@@ -84,7 +80,7 @@ void Reader::readNextDataChunk() {
         readFunc(*readFuncData, morsel->blockIdx, dataChunk.get());
         if (dataChunk->state->selVector->selectedSize > 0) {
             leftArrowArrays.appendFromDataChunk(dataChunk.get());
-        } else {
+        } else if (readFuncData->emptyBlockImpliesDone()) {
             sharedState->moveToNextFile();
         }
     }

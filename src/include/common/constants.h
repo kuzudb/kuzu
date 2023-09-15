@@ -126,15 +126,25 @@ struct CopyConstants {
     // Size (in bytes) of the chunks to be read in Node/Rel Copier
     static constexpr uint64_t CSV_READING_BLOCK_SIZE = 1 << 23;
 
+    // Initial size of buffer for CSV Reader.
+    static constexpr uint64_t INITIAL_BUFFER_SIZE = 16384;
+    // This means that we will usually read the entirety of the contents of the file we need for a
+    // block in one read request. It is also very small, which means we can parallelize small files
+    // efficiently.
+    static const uint64_t PARALLEL_BLOCK_SIZE = INITIAL_BUFFER_SIZE / 2;
+
+    static constexpr const char* BOOL_CSV_PARSING_OPTIONS[] = {"HEADER", "PARALLEL"};
+    static constexpr bool DEFAULT_CSV_HAS_HEADER = false;
+    static constexpr bool DEFAULT_CSV_PARALLEL = true;
+
     // Default configuration for csv file parsing
-    static constexpr const char* STRING_CSV_PARSING_OPTIONS[5] = {
+    static constexpr const char* STRING_CSV_PARSING_OPTIONS[] = {
         "ESCAPE", "DELIM", "QUOTE", "LIST_BEGIN", "LIST_END"};
     static constexpr char DEFAULT_CSV_ESCAPE_CHAR = '\\';
     static constexpr char DEFAULT_CSV_DELIMITER = ',';
     static constexpr char DEFAULT_CSV_QUOTE_CHAR = '"';
     static constexpr char DEFAULT_CSV_LIST_BEGIN_CHAR = '[';
     static constexpr char DEFAULT_CSV_LIST_END_CHAR = ']';
-    static constexpr bool DEFAULT_CSV_HAS_HEADER = false;
     static constexpr char DEFAULT_CSV_LINE_BREAK = '\n';
 };
 
