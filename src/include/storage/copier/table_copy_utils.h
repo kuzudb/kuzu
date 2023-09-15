@@ -40,10 +40,10 @@ public:
     static std::unique_ptr<uint8_t[]> getArrowFixedList(const std::string& l, int64_t from,
         int64_t to, const common::LogicalType& dataType,
         const common::CSVReaderConfig& csvReaderConfig);
-    static std::shared_ptr<arrow::csv::StreamingReader> createCSVReader(const std::string& filePath,
-        common::CSVReaderConfig* csvReaderConfig, catalog::TableSchema* tableSchema);
+    static std::shared_ptr<arrow::csv::StreamingReader> createRelTableCSVReader(
+        const std::string& filePath, const common::ReaderConfig& config);
     static std::unique_ptr<parquet::arrow::FileReader> createParquetReader(
-        const std::string& filePath, catalog::TableSchema* tableSchema);
+        const std::string& filePath, const common::ReaderConfig& config);
 
     static std::vector<std::pair<int64_t, int64_t>> splitByDelimiter(const std::string& l,
         int64_t from, int64_t to, const common::CSVReaderConfig& csvReaderConfig);
@@ -65,7 +65,7 @@ public:
 private:
     static std::unique_ptr<common::Value> convertStringToValue(std::string element,
         const common::LogicalType& type, const common::CSVReaderConfig& csvReaderConfig);
-    static std::vector<std::string> getColumnNamesToRead(catalog::TableSchema* tableSchema);
+
     static void validateNumElementsInList(
         uint64_t numElementsRead, const common::LogicalType& type);
     static std::unique_ptr<common::Value> parseVarList(const std::string& l, int64_t from,

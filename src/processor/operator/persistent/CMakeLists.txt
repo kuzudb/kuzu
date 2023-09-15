@@ -2,7 +2,6 @@ add_subdirectory(reader)
 
 add_library(kuzu_processor_operator_persistent
         OBJECT
-        copy.cpp
         copy_node.cpp
         copy_rel.cpp
         copy_rel_columns.cpp

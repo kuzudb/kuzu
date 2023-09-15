@@ -11,17 +11,21 @@ namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyTo(LogicalOperator* logicalOperator) {
     auto copy = (LogicalCopyTo*)logicalOperator;
+    auto config = copy->getConfig();
+    std::vector<LogicalType> columnsTypes;
+    for (auto& type : config->columnTypes) {
+        columnsTypes.push_back(*type);
+    }
     auto childSchema = logicalOperator->getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     std::vector<DataPos> vectorsToCopyPos;
     for (auto& expression : childSchema->getExpressionsInScope()) {
         vectorsToCopyPos.emplace_back(childSchema->getExpressionPos(*expression));
     }
-    auto sharedState = std::make_shared<CopyToSharedState>(copy->getCopyDescription()->fileType,
-        copy->getCopyDescription()->filePaths[0], copy->getCopyDescription()->columnNames,
-        copy->getCopyDescription()->columnTypes);
+    auto sharedState = std::make_shared<CopyToSharedState>(
+        config->fileType, config->filePaths[0], config->columnNames, columnsTypes);
     auto copyTo = std::make_unique<CopyTo>(std::make_unique<ResultSetDescriptor>(childSchema),
-        sharedState, std::move(vectorsToCopyPos), *copy->getCopyDescription(), getOperatorID(),
+        sharedState, std::move(vectorsToCopyPos), getOperatorID(),
         copy->getExpressionsForPrinting(), std::move(prevOperator));
     std::shared_ptr<FactorizedTable> fTable;
     auto ftTableSchema = std::make_unique<FactorizedTableSchema>();

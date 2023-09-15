@@ -15,7 +15,7 @@ enum class ParserMode : uint8_t { PARSING = 0, PARSING_HEADER = 1, SNIFFING_DIAL
 class BaseCSVReader {
 public:
     BaseCSVReader(const std::string& filePath, common::CSVReaderConfig csvReaderConfig,
-        catalog::TableSchema* tableSchema);
+        uint64_t expectedNumColumns);
 
     virtual ~BaseCSVReader() = default;
 
@@ -25,8 +25,7 @@ public:
 
     common::CSVReaderConfig csvReaderConfig;
     std::string filePath;
-    catalog::TableSchema* tableSchema;
-    uint64_t expectedNumColumns;
+    const uint64_t expectedNumColumns;
 
     uint64_t linenr = 0;
     uint64_t bytesInChunk = 0;
@@ -59,7 +58,7 @@ class BufferedCSVReader : public BaseCSVReader {
 
 public:
     BufferedCSVReader(const std::string& filePath, common::CSVReaderConfig csvReaderConfig,
-        catalog::TableSchema* tableSchema);
+        uint64_t expectedNumColumns);
 
     ~BufferedCSVReader() override;
 

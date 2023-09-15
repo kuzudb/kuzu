@@ -10,7 +10,7 @@ namespace kuzu {
 namespace processor {
 
 void Reader::initGlobalStateInternal(ExecutionContext* context) {
-    sharedState->initialize();
+    sharedState->initialize(info->tableType);
     sharedState->validate();
     sharedState->countBlocks(context->memoryManager);
 }
@@ -21,27 +21,26 @@ void Reader::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* cont
     for (auto i = 0u; i < info->getNumColumns(); i++) {
         dataChunk->insert(i, resultSet->getValueVector(info->dataColumnsPos[i]));
     }
-    initFunc = ReaderFunctions::getInitDataFunc(
-        sharedState->copyDescription->fileType, sharedState->tableSchema->getTableType());
-    readFunc = ReaderFunctions::getReadRowsFunc(
-        sharedState->copyDescription->fileType, sharedState->tableSchema->getTableType());
-    nodeOffsetVector = resultSet->getValueVector(info->nodeOffsetPos).get();
-    assert(!sharedState->copyDescription->filePaths.empty());
-    switch (sharedState->copyDescription->fileType) {
-    case CopyDescription::FileType::CSV: {
+    initFunc =
+        ReaderFunctions::getInitDataFunc(sharedState->readerConfig->fileType, info->tableType);
+    readFunc =
+        ReaderFunctions::getReadRowsFunc(sharedState->readerConfig->fileType, info->tableType);
+    offsetVector = resultSet->getValueVector(info->nodeOffsetPos).get();
+    assert(!sharedState->readerConfig->filePaths.empty());
+    switch (sharedState->readerConfig->fileType) {
+    case FileType::CSV: {
         readFuncData = sharedState->readFuncData;
     } break;
     default: {
-        readFuncData = ReaderFunctions::getReadFuncData(
-            sharedState->copyDescription->fileType, sharedState->tableSchema->getTableType());
-        initFunc(*readFuncData, sharedState->copyDescription->filePaths, 0,
-            *sharedState->copyDescription->csvReaderConfig, sharedState->tableSchema);
+        readFuncData =
+            ReaderFunctions::getReadFuncData(sharedState->readerConfig->fileType, info->tableType);
+        initFunc(*readFuncData, 0, *sharedState->readerConfig);
     }
     }
 }
 
 bool Reader::getNextTuplesInternal(ExecutionContext* context) {
-    sharedState->copyDescription->parallelRead() ?
+    sharedState->readerConfig->parallelRead() ?
         readNextDataChunk<ReaderSharedState::ReadMode::PARALLEL>() :
         readNextDataChunk<ReaderSharedState::ReadMode::SERIAL>();
     return dataChunk->state->selVector->selectedSize != 0;
@@ -56,8 +55,8 @@ void Reader::readNextDataChunk() {
                 std::min(leftArrowArrays.getLeftNumRows(), DEFAULT_VECTOR_CAPACITY);
             leftArrowArrays.appendToDataChunk(dataChunk.get(), numLeftToAppend);
             auto currRowIdx = sharedState->currRowIdx.fetch_add(numLeftToAppend);
-            nodeOffsetVector->setValue(
-                nodeOffsetVector->state->selVector->selectedPositions[0], currRowIdx);
+            offsetVector->setValue(
+                offsetVector->state->selVector->selectedPositions[0], currRowIdx);
             break;
         }
         dataChunk->state->selVector->selectedSize = 0;
@@ -67,8 +66,7 @@ void Reader::readNextDataChunk() {
             break;
         }
         if (morsel->fileIdx != readFuncData->fileIdx) {
-            initFunc(*readFuncData, sharedState->copyDescription->filePaths, morsel->fileIdx,
-                *sharedState->copyDescription->csvReaderConfig, sharedState->tableSchema);
+            initFunc(*readFuncData, morsel->fileIdx, *sharedState->readerConfig);
         }
         dataChunk->resetAuxiliaryBuffer();
         readFunc(*readFuncData, morsel->blockIdx, dataChunk.get());

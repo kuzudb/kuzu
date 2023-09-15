@@ -13,10 +13,10 @@ namespace kuzu {
 namespace processor {
 
 CopyNodeSharedState::CopyNodeSharedState(uint64_t& numRows, NodeTableSchema* tableSchema,
-    NodeTable* table, const CopyDescription& copyDesc, MemoryManager* memoryManager)
-    : numRows{numRows}, copyDesc{copyDesc}, tableSchema{tableSchema}, table{table}, pkColumnID{0},
-      hasLoggedWAL{false}, currentNodeGroupIdx{0}, isCopyTurtle{copyDesc.fileType ==
-                                                                CopyDescription::FileType::TURTLE} {
+    NodeTable* table, MemoryManager* memoryManager, bool isCopyRdf,
+    std::unique_ptr<common::CSVReaderConfig> csvReaderConfig)
+    : numRows{numRows}, tableSchema{tableSchema}, table{table}, pkColumnID{0}, hasLoggedWAL{false},
+      currentNodeGroupIdx{0}, isCopyRdf{isCopyRdf}, csvReaderConfig{std::move(csvReaderConfig)} {
     auto ftTableSchema = std::make_unique<FactorizedTableSchema>();
     ftTableSchema->appendColumn(
         std::make_unique<ColumnSchema>(false /* flat */, 0 /* dataChunkPos */,
@@ -31,8 +31,7 @@ void CopyNodeSharedState::initializePrimaryKey(const std::string& directory) {
             *tableSchema->getPrimaryKey()->getDataType());
         // Since hashIndexBuilder doesn't support dynamic rehash, we need to reserve enough number
         // of slots when copying turtle files.
-        pkIndex->bulkReserve(
-            copyDesc.fileType == common::CopyDescription::FileType::TURTLE ? numRows * 3 : numRows);
+        pkIndex->bulkReserve(isCopyRdf ? numRows * 3 : numRows);
     }
     for (auto& property : tableSchema->properties) {
         if (property->getPropertyID() == tableSchema->getPrimaryKey()->getPropertyID()) {
@@ -69,7 +68,7 @@ void CopyNodeSharedState::appendLocalNodeGroup(std::unique_ptr<NodeGroup> localN
     if (sharedNodeGroup->isFull()) {
         auto nodeGroupIdx = getNextNodeGroupIdxWithoutLock();
         CopyNode::writeAndResetNodeGroup(
-            nodeGroupIdx, pkIndex.get(), pkColumnID, table, sharedNodeGroup.get(), isCopyTurtle);
+            nodeGroupIdx, pkIndex.get(), pkColumnID, table, sharedNodeGroup.get(), isCopyRdf);
     }
     if (numNodesAppended < localNodeGroup->getNumNodes()) {
         sharedNodeGroup->append(localNodeGroup.get(), numNodesAppended);
@@ -89,8 +88,7 @@ void CopyNode::executeInternal(ExecutionContext* context) {
     while (children[0]->getNextTuple(context)) {
         auto originalSelVector =
             resultSet->getDataChunk(copyNodeInfo.dataColumnPoses[0].dataChunkPos)->state->selVector;
-        switch (sharedState->copyDesc.fileType) {
-        case CopyDescription::FileType::TURTLE: {
+        if (sharedState->isCopyRdf) {
             for (auto& dataPos : copyNodeInfo.dataColumnPoses) {
                 // All tuples in the resultSet are in the same data chunk.
                 auto vectorToAppend = resultSet->getValueVector(dataPos).get();
@@ -98,15 +96,8 @@ void CopyNode::executeInternal(ExecutionContext* context) {
                 appendUniqueValueToPKIndex(sharedState->pkIndex.get(), vectorToAppend);
                 copyToNodeGroup({dataPos});
             }
-        } break;
-        case CopyDescription::FileType::CSV:
-        case CopyDescription::FileType::PARQUET:
-        case CopyDescription::FileType::NPY: {
+        } else {
             copyToNodeGroup(copyNodeInfo.dataColumnPoses);
-        } break;
-        default: {
-            throw NotImplementedException{"CopyNode::executeInternal"};
-        }
         }
         resultSet->getDataChunk(copyNodeInfo.dataColumnPoses[0].dataChunkPos)->state->selVector =
             std::move(originalSelVector);
@@ -199,7 +190,7 @@ void CopyNode::finalize(ExecutionContext* context) {
     if (sharedState->sharedNodeGroup) {
         auto nodeGroupIdx = sharedState->getNextNodeGroupIdx();
         writeAndResetNodeGroup(nodeGroupIdx, sharedState->pkIndex.get(), sharedState->pkColumnID,
-            sharedState->table, sharedState->sharedNodeGroup.get(), sharedState->isCopyTurtle);
+            sharedState->table, sharedState->sharedNodeGroup.get(), sharedState->isCopyRdf);
     }
     if (sharedState->pkIndex) {
         sharedState->pkIndex->flush();
@@ -280,7 +271,7 @@ void CopyNode::copyToNodeGroup(std::vector<DataPos> dataPoses) {
             nodeGroupIdx = sharedState->getNextNodeGroupIdx();
             writeAndResetNodeGroup(nodeGroupIdx, sharedState->pkIndex.get(),
                 sharedState->pkColumnID, sharedState->table, localNodeGroup.get(),
-                sharedState->isCopyTurtle);
+                sharedState->isCopyRdf);
         }
         if (numAppendedTuples < numTuplesToAppend) {
             sliceDataChunk(*resultSet->getDataChunk(copyNodeInfo.dataColumnPoses[0].dataChunkPos),

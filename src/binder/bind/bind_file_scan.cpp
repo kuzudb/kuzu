@@ -15,22 +15,21 @@ namespace binder {
 /*
  * Bind file.
  */
-CopyDescription::FileType Binder::bindFileType(const std::string& filePath) {
+FileType Binder::bindFileType(const std::string& filePath) {
     std::filesystem::path fileName(filePath);
     auto extension = FileUtils::getFileExtension(fileName);
-    auto fileType = CopyDescription::getFileTypeFromExtension(extension);
-    if (fileType == CopyDescription::FileType::UNKNOWN) {
+    auto fileType = FileTypeUtils::getFileTypeFromExtension(extension);
+    if (fileType == FileType::UNKNOWN) {
         throw CopyException("Unsupported file type: " + filePath);
     }
     return fileType;
 }
 
-CopyDescription::FileType Binder::bindFileType(const std::vector<std::string>& filePaths) {
-    auto expectedFileType = CopyDescription::FileType::UNKNOWN;
+FileType Binder::bindFileType(const std::vector<std::string>& filePaths) {
+    auto expectedFileType = FileType::UNKNOWN;
     for (auto& filePath : filePaths) {
         auto fileType = bindFileType(filePath);
-        expectedFileType =
-            (expectedFileType == CopyDescription::FileType::UNKNOWN) ? fileType : expectedFileType;
+        expectedFileType = (expectedFileType == FileType::UNKNOWN) ? fileType : expectedFileType;
         if (fileType != expectedFileType) {
             throw CopyException("Loading files with different types is not currently supported.");
         }
@@ -38,7 +37,7 @@ CopyDescription::FileType Binder::bindFileType(const std::vector<std::string>& f
     return expectedFileType;
 }
 
-static std::vector<std::string> bindFilePaths(const std::vector<std::string>& filePaths) {
+std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& filePaths) {
     std::vector<std::string> boundFilePaths;
     for (auto& filePath : filePaths) {
         auto globbedFilePaths = FileUtils::globFilePath(filePath);
@@ -92,14 +91,6 @@ static bool validateStringParsingOptionName(std::string& parsingOptionName) {
         }
     }
     return false;
-}
-
-std::unique_ptr<common::CopyDescription> Binder::bindCopyDesc(
-    const std::vector<std::string>& filePaths, const parsing_option_t& parsingOptions) {
-    auto csvReaderConfig = bindParsingOptions(parsingOptions);
-    auto boundFilePaths = bindFilePaths(filePaths);
-    auto fileType = bindFileType(boundFilePaths);
-    return std::make_unique<CopyDescription>(fileType, boundFilePaths, std::move(csvReaderConfig));
 }
 
 std::unique_ptr<CSVReaderConfig> Binder::bindParsingOptions(
