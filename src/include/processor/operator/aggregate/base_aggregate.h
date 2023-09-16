@@ -23,9 +23,6 @@ protected:
 };
 
 class BaseAggregate : public Sink {
-public:
-    bool containDistinctAggregate() const;
-
 protected:
     BaseAggregate(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions,
@@ -38,11 +35,16 @@ protected:
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
+    inline bool canParallel() const final { return !containDistinctAggregate(); }
+
     void finalize(ExecutionContext* context) override = 0;
 
     std::vector<std::unique_ptr<function::AggregateFunction>> cloneAggFunctions();
     std::vector<std::unique_ptr<AggregateInputInfo>> cloneAggInputInfos();
     std::unique_ptr<PhysicalOperator> clone() override = 0;
+
+private:
+    bool containDistinctAggregate() const;
 
 protected:
     std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions;

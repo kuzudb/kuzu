@@ -7,6 +7,8 @@ namespace kuzu {
 namespace processor {
 
 class ProcessorTask : public common::Task {
+    friend class QueryProcessor;
+
 public:
     ProcessorTask(Sink* sink, ExecutionContext* executionContext)
         : Task{executionContext->numThreads}, sink{sink}, executionContext{executionContext} {}

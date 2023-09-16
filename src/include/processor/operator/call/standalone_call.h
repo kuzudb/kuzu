@@ -28,6 +28,7 @@ public:
                                                          operatorType, id, paramsString} {}
 
     inline bool isSource() const override { return true; }
+    inline bool canParallel() const final { return false; }
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 

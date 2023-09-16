@@ -14,6 +14,8 @@ public:
               paramsString},
           executors{std::move(executors)} {}
 
+    inline bool canParallel() const final { return false; }
+
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
@@ -34,6 +36,8 @@ public:
         : PhysicalOperator{PhysicalOperatorType::SET_NODE_PROPERTY, std::move(child), id,
               paramsString},
           executors{std::move(executors)} {}
+
+    inline bool canParallel() const final { return false; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
 

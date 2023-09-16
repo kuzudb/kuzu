@@ -21,6 +21,7 @@ public:
           outputPos{outputPos}, info{std::move(info)}, localState{std::move(localState)} {}
 
     inline bool isSource() const override { return true; }
+    inline bool canParallel() const final { return false; }
 
     inline void setPhysicalPlan(PhysicalPlan* physicalPlan) { info.physicalPlan = physicalPlan; }
 

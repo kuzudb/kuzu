@@ -116,6 +116,7 @@ public:
 
     inline virtual bool isSource() const { return false; }
     inline virtual bool isSink() const { return false; }
+    inline virtual bool canParallel() const { return true; }
 
     inline void addChild(std::unique_ptr<PhysicalOperator> op) {
         children.push_back(std::move(op));

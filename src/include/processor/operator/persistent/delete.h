@@ -13,6 +13,8 @@ public:
         : PhysicalOperator{PhysicalOperatorType::DELETE_NODE, std::move(child), id, paramsString},
           executors{std::move(executors)} {}
 
+    inline bool canParallel() const final { return false; }
+
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
@@ -29,6 +31,8 @@ public:
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::DELETE_REL, std::move(child), id, paramsString},
           executors{std::move(executors)} {}
+
+    inline bool canParallel() const final { return false; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
 

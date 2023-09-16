@@ -26,6 +26,8 @@ public:
           sharedState{std::move(sharedState)}, vectorsToCopyPos{std::move(vectorsToCopyPos)},
           copyDescription{copyDescription} {}
 
+    inline bool canParallel() const final { return false; }
+
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     common::CopyDescription& getCopyDescription() { return copyDescription; }

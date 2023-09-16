@@ -27,6 +27,8 @@ public:
           onMatchNodeSetExecutors{std::move(onMatchNodeSetExecutors)},
           onMatchRelSetExecutors{std::move(onMatchRelSetExecutors)} {}
 
+    inline bool canParallel() const final { return false; }
+
     void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) final;
 
     bool getNextTuplesInternal(ExecutionContext* context) final;

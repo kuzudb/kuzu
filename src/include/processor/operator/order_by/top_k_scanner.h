@@ -24,6 +24,8 @@ public:
           sharedState{std::move(sharedState)} {}
 
     inline bool isSource() const final { return true; }
+    // Ordered table should be scanned in single-thread mode.
+    inline bool canParallel() const override { return false; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
 

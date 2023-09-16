@@ -32,11 +32,15 @@ public:
           sharedState{std::move(sharedState)}, dataChunk{nullptr},
           nodeOffsetVector{nullptr}, readFunc{nullptr}, initFunc{nullptr}, readFuncData{nullptr} {}
 
+    inline bool isSource() const final { return true; }
+    inline bool canParallel() const final {
+        return !info->containsSerial &&
+               sharedState->copyDescription->fileType != common::CopyDescription::FileType::TURTLE;
+    }
+
     void initGlobalStateInternal(ExecutionContext* context) final;
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
-
-    inline bool isSource() const final { return true; }
 
     inline ReaderInfo* getReaderInfo() const { return info.get(); }
     inline ReaderSharedState* getSharedState() const { return sharedState.get(); }
@@ -44,12 +48,6 @@ public:
     inline std::unique_ptr<PhysicalOperator> clone() final {
         return make_unique<Reader>(info->copy(), sharedState, getOperatorID(), paramsString);
     }
-
-    inline bool isCopyTurtleFile() const {
-        return sharedState->copyDescription->fileType == common::CopyDescription::FileType::TURTLE;
-    }
-
-    inline bool getContainsSerial() const { return info->containsSerial; }
 
 protected:
     bool getNextTuplesInternal(ExecutionContext* context) final;

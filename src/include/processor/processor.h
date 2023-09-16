@@ -18,8 +18,9 @@ public:
     std::shared_ptr<FactorizedTable> execute(PhysicalPlan* physicalPlan, ExecutionContext* context);
 
 private:
-    void decomposePlanIntoTasks(PhysicalOperator* op, PhysicalOperator* parent,
-        common::Task* parentTask, ExecutionContext* context);
+    void decomposePlanIntoTask(PhysicalOperator* op, common::Task* task, ExecutionContext* context);
+
+    void initTask(common::Task* task);
 
 private:
     std::unique_ptr<common::TaskScheduler> taskScheduler;
