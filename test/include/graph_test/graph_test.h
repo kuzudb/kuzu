@@ -39,6 +39,10 @@ public:
 
     void createDBAndConn();
 
+    // multiple conns test
+    void createDB(uint64_t checkpointWaitTimeout);
+    void createConns(const std::set<std::string>& connNames);
+
     void initGraph();
 
     void commitOrRollbackConnection(bool isCommit, TransactionTestType transactionTestType) const;
@@ -140,7 +144,10 @@ public:
     std::string databasePath;
     std::unique_ptr<main::SystemConfig> systemConfig;
     std::unique_ptr<main::Database> database;
+    // for normal conn; if it is null, respresents multiple conns, need to use connMap
     std::unique_ptr<main::Connection> conn;
+    // for multiple conns
+    std::unordered_map<std::string, std::unique_ptr<main::Connection>> connMap;
 };
 
 // This class starts database without initializing graph.
@@ -157,10 +164,24 @@ public:
         initGraph();
     }
 
-    inline void runTest(const std::vector<std::unique_ptr<TestStatement>>& statements) {
-        TestRunner::runTest(statements, *conn, databasePath);
+    inline void runTest(const std::vector<std::unique_ptr<TestStatement>>& statements,
+        uint64_t checkpointWaitTimeout =
+            common::DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEAVE_IN_MICROS,
+        std::set<std::string> connNames = std::set<std::string>()) {
+        for (auto& statement : statements) {
+            if (statement->reLoadDBFlag) {
+                createDB(checkpointWaitTimeout);
+                createConns(connNames);
+                continue;
+            }
+            if (conn) {
+                TestRunner::runTest(statement.get(), *conn, databasePath);
+            } else {
+                auto conn_name = *statement->conn_name;
+                TestRunner::runTest(statement.get(), *connMap[conn_name], databasePath);
+            }
+        }
     }
 };
-
 } // namespace testing
 } // namespace kuzu

@@ -10,8 +10,8 @@ namespace testing {
 
 class TestRunner {
 public:
-    static void runTest(const std::vector<std::unique_ptr<TestStatement>>& statements,
-        main::Connection& conn, std::string& databasePath);
+    static void runTest(
+        TestStatement* statement, main::Connection& conn, std::string& databasePath);
 
     static std::unique_ptr<planner::LogicalPlan> getLogicalPlan(
         const std::string& query, main::Connection& conn);

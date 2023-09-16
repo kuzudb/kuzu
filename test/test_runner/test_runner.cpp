@@ -12,14 +12,11 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace testing {
 
-void TestRunner::runTest(const std::vector<std::unique_ptr<TestStatement>>& statements,
-    Connection& conn, std::string& databasePath) {
-    for (auto& statement : statements) {
-        spdlog::info("DEBUG LOG: {}", statement->logMessage);
-        spdlog::info("QUERY: {}", statement->query);
-        conn.setMaxNumThreadForExec(statement->numThreads);
-        ASSERT_TRUE(testStatement(statement.get(), conn, databasePath));
-    }
+void TestRunner::runTest(TestStatement* statement, Connection& conn, std::string& databasePath) {
+    spdlog::info("DEBUG LOG: {}", statement->logMessage);
+    spdlog::info("QUERY: {}", statement->query);
+    conn.setMaxNumThreadForExec(statement->numThreads);
+    ASSERT_TRUE(testStatement(statement, conn, databasePath));
 }
 
 bool TestRunner::testStatement(
