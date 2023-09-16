@@ -13,7 +13,8 @@ public:
         : PhysicalOperator{operatorType, id, paramsString}, catalog{catalog}, outputPos{outputPos},
           outputVector{nullptr}, hasExecuted{false} {}
 
-    inline bool isSource() const override { return true; }
+    inline bool isSource() const final { return true; }
+    inline bool canParallel() const final { return false; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

@@ -1,9 +1,5 @@
 #include "processor/processor.h"
 
-#include "processor/operator/aggregate/base_aggregate.h"
-#include "processor/operator/persistent/copy.h"
-#include "processor/operator/persistent/copy_node.h"
-#include "processor/operator/persistent/reader.h"
 #include "processor/operator/result_collector.h"
 #include "processor/operator/sink.h"
 #include "processor/processor_task.h"
@@ -30,69 +26,42 @@ std::shared_ptr<FactorizedTable> QueryProcessor::execute(
     // prevOperator in the same pipeline, and decompose build and its prevOperator into another
     // one.
     auto task = std::make_shared<ProcessorTask>(resultCollector, context);
-    decomposePlanIntoTasks(lastOperator, nullptr, task.get(), context);
+    decomposePlanIntoTask(lastOperator->getChild(0), task.get(), context);
+    initTask(task.get());
     taskScheduler->scheduleTaskAndWaitOrError(task, context);
     return resultCollector->getResultFactorizedTable();
 }
 
-void QueryProcessor::decomposePlanIntoTasks(
-    PhysicalOperator* op, PhysicalOperator* parent, Task* parentTask, ExecutionContext* context) {
-    if (op->isSink() && parent != nullptr) {
+void QueryProcessor::decomposePlanIntoTask(
+    PhysicalOperator* op, Task* task, ExecutionContext* context) {
+    if (op->isSink()) {
         auto childTask = std::make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), context);
-        if (op->getOperatorType() == PhysicalOperatorType::AGGREGATE) {
-            auto aggregate = (BaseAggregate*)op;
-            if (aggregate->containDistinctAggregate()) {
-                // Distinct aggregate should be executed in single-thread mode.
-                childTask->setSingleThreadedTask();
-            }
-        }
         for (auto i = (int64_t)op->getNumChildren() - 1; i >= 0; --i) {
-            decomposePlanIntoTasks(op->getChild(i), op, childTask.get(), context);
+            decomposePlanIntoTask(op->getChild(i), childTask.get(), context);
         }
-        parentTask->addChildTask(std::move(childTask));
+        task->addChildTask(std::move(childTask));
     } else {
         // Schedule the right most side (e.g., build side of the hash join) first.
         for (auto i = (int64_t)op->getNumChildren() - 1; i >= 0; --i) {
-            decomposePlanIntoTasks(op->getChild(i), op, parentTask, context);
+            decomposePlanIntoTask(op->getChild(i), task, context);
         }
     }
-    switch (op->getOperatorType()) {
-        // Ordered table should be scanned in single-thread mode.
-    case PhysicalOperatorType::ORDER_BY_MERGE:
-    case PhysicalOperatorType::TOP_K:
-        // DDL should be executed exactly once.
-    case PhysicalOperatorType::CREATE_NODE_TABLE:
-    case PhysicalOperatorType::CREATE_REL_TABLE:
-    case PhysicalOperatorType::CREATE_RDF_GRAPH:
-    case PhysicalOperatorType::DROP_TABLE:
-    case PhysicalOperatorType::DROP_PROPERTY:
-    case PhysicalOperatorType::ADD_PROPERTY:
-    case PhysicalOperatorType::RENAME_PROPERTY:
-    case PhysicalOperatorType::RENAME_TABLE:
-        // As a temporary solution, update is executed in single thread mode.
-    case PhysicalOperatorType::SET_NODE_PROPERTY:
-    case PhysicalOperatorType::SET_REL_PROPERTY:
-    case PhysicalOperatorType::INSERT_NODE:
-    case PhysicalOperatorType::INSERT_REL:
-    case PhysicalOperatorType::DELETE_NODE:
-    case PhysicalOperatorType::DELETE_REL:
-    case PhysicalOperatorType::MERGE:
-    case PhysicalOperatorType::COPY_TO:
-    case PhysicalOperatorType::STANDALONE_CALL:
-    case PhysicalOperatorType::PROFILE:
-    case PhysicalOperatorType::CREATE_MACRO:
-    case PhysicalOperatorType::COMMENT_ON:
-    case PhysicalOperatorType::TRANSACTION: {
-        parentTask->setSingleThreadedTask();
-    } break;
-    case PhysicalOperatorType::READER: {
-        auto reader = (Reader*)op;
-        if (reader->getContainsSerial() || reader->isCopyTurtleFile()) {
-            parentTask->setSingleThreadedTask();
+}
+
+void QueryProcessor::initTask(Task* task) {
+    auto processorTask = reinterpret_cast<ProcessorTask*>(task);
+    PhysicalOperator* op = processorTask->sink;
+    while (!op->isSource()) {
+        if (!op->canParallel()) {
+            task->setSingleThreadedTask();
         }
-    } break;
-    default:
-        break;
+        op = op->getChild(0);
+    }
+    if (!op->canParallel()) {
+        task->setSingleThreadedTask();
+    }
+    for (auto& child : task->children) {
+        initTask(child.get());
     }
 }
 

@@ -36,6 +36,8 @@ public:
                                                                      std::move(sharedState)} {}
 
     inline bool isSource() const final { return true; }
+    // Ordered table should be scanned in single-thread mode.
+    inline bool canParallel() const final { return false; }
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
