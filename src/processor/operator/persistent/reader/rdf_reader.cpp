@@ -68,9 +68,6 @@ bool RDFReader::isSerdTypeSupported(SerdType serdType) {
 }
 
 offset_t RDFReader::read(DataChunk* dataChunk) {
-    for (auto& vector : dataChunk->valueVectors) {
-        vector->resetAuxiliaryBuffer();
-    }
     if (status) {
         return 0;
     }

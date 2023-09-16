@@ -13,6 +13,8 @@ std::unique_ptr<BoundCopyFromInfo> BoundCopyFromInfo::copy() {
         std::move(copiedColumnExpressions), offsetExpression->copy(),
         tableSchema->tableType == common::TableType::REL ? boundOffsetExpression->copy() : nullptr,
         tableSchema->tableType == common::TableType::REL ? nbrOffsetExpression->copy() : nullptr,
+        tableSchema->tableType == common::TableType::REL ? predicateOffsetExpression->copy() :
+                                                           nullptr,
         containsSerial);
 }
 

@@ -92,6 +92,9 @@ public:
     inline bool lookup(int64_t key, common::offset_t& result) {
         return lookupInternalWithoutLock(reinterpret_cast<const uint8_t*>(&key), result);
     }
+    inline bool lookup(const char* key, common::offset_t& result) {
+        return lookupInternalWithoutLock(reinterpret_cast<const uint8_t*>(key), result);
+    }
 
     // Non-thread safe. This should only be called in the copyCSV and never be called in parallel.
     void flush();
@@ -166,6 +169,9 @@ public:
         return keyDataTypeID == common::LogicalTypeID::INT64 ?
                    hashIndexBuilderForInt64->lookup(key, result) :
                    hashIndexBuilderForString->lookup(key, result);
+    }
+    inline bool lookup(const char* key, common::offset_t& result) {
+        return hashIndexBuilderForString->lookup(key, result);
     }
 
     // Non-thread safe. This should only be called in the copyCSV and never be called in parallel.

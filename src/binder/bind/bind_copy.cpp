@@ -191,7 +191,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(
     auto nodeOffset =
         createVariable(std::string(Property::OFFSET_NAME), LogicalType{LogicalTypeID::INT64});
     auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(std::move(copyDescription),
-        tableSchema, std::move(columns), std::move(nodeOffset), nullptr, nullptr, containsSerial);
+        tableSchema, std::move(columns), std::move(nodeOffset), nullptr /* boundOffsetExpression */,
+        nullptr /* nbrOffsetExpression */, nullptr /* predicateOffsetExpression */, containsSerial);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
@@ -199,16 +200,18 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(
     std::unique_ptr<CopyDescription> copyDescription, TableSchema* tableSchema) {
     // For table with SERIAL columns, we need to read in serial from files.
     auto containsSerial = bindContainsSerial(tableSchema);
-    auto columns = bindCopyRelColumns(tableSchema);
+    auto columns = bindCopyRelColumns(tableSchema, copyDescription->fileType);
     auto nodeOffset =
         createVariable(std::string(Property::OFFSET_NAME), LogicalType{LogicalTypeID::INT64});
     auto boundOffset = createVariable(
         std::string(Property::REL_BOUND_OFFSET_NAME), LogicalType{LogicalTypeID::ARROW_COLUMN});
     auto nbrOffset = createVariable(
         std::string(Property::REL_NBR_OFFSET_NAME), LogicalType{LogicalTypeID::ARROW_COLUMN});
-    auto boundCopyFromInfo =
-        std::make_unique<BoundCopyFromInfo>(std::move(copyDescription), tableSchema,
-            std::move(columns), std::move(nodeOffset), boundOffset, nbrOffset, containsSerial);
+    auto predicateOffset = createVariable(
+        std::string(Property::REL_PREDICATE_OFFSET_NAME), LogicalType{LogicalTypeID::ARROW_COLUMN});
+    auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(std::move(copyDescription),
+        tableSchema, std::move(columns), std::move(nodeOffset), std::move(boundOffset),
+        std::move(nbrOffset), std::move(predicateOffset), containsSerial);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
@@ -253,18 +256,34 @@ expression_vector Binder::bindCopyNodeColumns(
     return columnExpressions;
 }
 
-expression_vector Binder::bindCopyRelColumns(TableSchema* tableSchema) {
+expression_vector Binder::bindCopyRelColumns(
+    TableSchema* tableSchema, CopyDescription::FileType fileType) {
     expression_vector columnExpressions;
-    columnExpressions.push_back(createVariable(
-        std::string(Property::REL_FROM_PROPERTY_NAME), LogicalType{LogicalTypeID::ARROW_COLUMN}));
-    columnExpressions.push_back(createVariable(
-        std::string(Property::REL_TO_PROPERTY_NAME), LogicalType{LogicalTypeID::ARROW_COLUMN}));
-    for (auto& property : tableSchema->properties) {
-        if (skipPropertyInFile(*property)) {
-            continue;
-        }
+    switch (fileType) {
+    case common::CopyDescription::FileType::TURTLE: {
+        columnExpressions.push_back(createVariable("SUBJECT", LogicalType{LogicalTypeID::STRING}));
         columnExpressions.push_back(
-            createVariable(property->getName(), LogicalType{LogicalTypeID::ARROW_COLUMN}));
+            createVariable("PREDICATE", LogicalType{LogicalTypeID::STRING}));
+        columnExpressions.push_back(createVariable("OBJECT", LogicalType{LogicalTypeID::STRING}));
+    } break;
+    case common::CopyDescription::FileType::CSV:
+    case common::CopyDescription::FileType::PARQUET:
+    case common::CopyDescription::FileType::NPY: {
+        columnExpressions.push_back(createVariable(std::string(Property::REL_FROM_PROPERTY_NAME),
+            LogicalType{LogicalTypeID::ARROW_COLUMN}));
+        columnExpressions.push_back(createVariable(
+            std::string(Property::REL_TO_PROPERTY_NAME), LogicalType{LogicalTypeID::ARROW_COLUMN}));
+        for (auto& property : tableSchema->properties) {
+            if (skipPropertyInFile(*property)) {
+                continue;
+            }
+            columnExpressions.push_back(
+                createVariable(property->getName(), LogicalType{LogicalTypeID::ARROW_COLUMN}));
+        }
+    } break;
+    default: {
+        throw NotImplementedException{"Binder::bindCopyRelColumns"};
+    }
     }
     return columnExpressions;
 }

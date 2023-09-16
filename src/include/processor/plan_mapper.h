@@ -102,8 +102,9 @@ private:
         const std::vector<std::shared_ptr<binder::Expression>>& dataColumnExpressions,
         const std::shared_ptr<binder::Expression>& offsetExpression, bool readingInSerial);
     std::unique_ptr<PhysicalOperator> createIndexLookup(catalog::RelTableSchema* tableSchema,
-        const std::vector<DataPos>& dataPoses, const DataPos& boundOffsetDataPos,
-        const DataPos& nbrOffsetDataPos, std::unique_ptr<PhysicalOperator> readerOp);
+        std::vector<DataPos>& dataPoses, const DataPos& boundOffsetDataPos,
+        const DataPos& nbrOffsetDataPos, const DataPos& predicateOffsetDataPos,
+        std::unique_ptr<PhysicalOperator> readerOp, common::CopyDescription::FileType fileType);
     std::unique_ptr<PhysicalOperator> createCopyRelColumnsOrLists(
         std::shared_ptr<CopyRelSharedState> sharedState, planner::LogicalCopyFrom* copyFrom,
         bool isColumns, std::unique_ptr<PhysicalOperator> copyRelColumns);

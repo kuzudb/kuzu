@@ -29,7 +29,10 @@ void CopyNodeSharedState::initializePrimaryKey(const std::string& directory) {
         pkIndex = std::make_unique<PrimaryKeyIndexBuilder>(
             StorageUtils::getNodeIndexFName(directory, tableSchema->tableID, DBFileType::ORIGINAL),
             *tableSchema->getPrimaryKey()->getDataType());
-        pkIndex->bulkReserve(numRows);
+        // Since hashIndexBuilder doesn't support dynamic rehash, we need to reserve enough number
+        // of slots when copying turtle files.
+        pkIndex->bulkReserve(
+            copyDesc.fileType == common::CopyDescription::FileType::TURTLE ? numRows * 3 : numRows);
     }
     for (auto& property : tableSchema->properties) {
         if (property->getPropertyID() == tableSchema->getPrimaryKey()->getPropertyID()) {
@@ -91,6 +94,7 @@ void CopyNode::executeInternal(ExecutionContext* context) {
             for (auto& dataPos : copyNodeInfo.dataColumnPoses) {
                 // All tuples in the resultSet are in the same data chunk.
                 auto vectorToAppend = resultSet->getValueVector(dataPos).get();
+                vectorToAppend->state->selVector = originalSelVector;
                 appendUniqueValueToPKIndex(sharedState->pkIndex.get(), vectorToAppend);
                 copyToNodeGroup({dataPos});
             }
@@ -190,6 +194,8 @@ void CopyNode::checkNonNullConstraint(NullColumnChunk* nullChunk, offset_t numNo
 }
 
 void CopyNode::finalize(ExecutionContext* context) {
+    auto numNodes = StorageUtils::getStartOffsetOfNodeGroup(sharedState->getCurNodeGroupIdx()) +
+                    sharedState->sharedNodeGroup->getNumNodes();
     if (sharedState->sharedNodeGroup) {
         auto nodeGroupIdx = sharedState->getNextNodeGroupIdx();
         writeAndResetNodeGroup(nodeGroupIdx, sharedState->pkIndex.get(), sharedState->pkColumnID,
@@ -205,12 +211,12 @@ void CopyNode::finalize(ExecutionContext* context) {
         sharedState->tableSchema->getBwdRelTableIDSet().end());
     for (auto relTableID : connectedRelTableIDs) {
         copyNodeInfo.relsStore->getRelTable(relTableID)
-            ->batchInitEmptyRelsForNewNodes(relTableID, sharedState->numRows);
+            ->batchInitEmptyRelsForNewNodes(relTableID, numNodes);
     }
     sharedState->table->getNodeStatisticsAndDeletedIDs()->setNumTuplesForTable(
-        sharedState->table->getTableID(), sharedState->numRows);
+        sharedState->table->getTableID(), numNodes);
     auto outputMsg = StringUtils::string_format("{} number of tuples has been copied to table: {}.",
-        sharedState->numRows, sharedState->tableSchema->tableName.c_str());
+        numNodes, sharedState->tableSchema->tableName.c_str());
     FactorizedTableUtils::appendStringToTable(
         sharedState->fTable.get(), outputMsg, context->memoryManager);
 }
@@ -252,7 +258,7 @@ void CopyNode::appendUniqueValueToPKIndex(
                   localNodeGroup->getNumNodes();
     for (auto i = 0u; i < vectorToAppend->state->getNumSelectedValues(); i++) {
         auto uriStr = vectorToAppend->getValue<common::ku_string_t>(i).getAsString();
-        if (!pkIndex->lookup((int64_t)uriStr.c_str(), result)) {
+        if (!pkIndex->lookup(uriStr.c_str(), result)) {
             pkIndex->append(uriStr.c_str(), offset++);
             selVector->selectedPositions[nextPos++] = i;
         }

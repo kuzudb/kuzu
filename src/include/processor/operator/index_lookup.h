@@ -47,6 +47,11 @@ private:
     void indexLookup(const IndexLookupInfo& info);
     static void lookupOnArray(
         const IndexLookupInfo& info, arrow::Array* array, common::offset_t* offsets);
+    void fillOffsetArraysFromArrowVector(const IndexLookupInfo& info,
+        common::ValueVector* keyVector,
+        std::vector<std::shared_ptr<arrow::Array>>& offsetArraysVector);
+    void fillOffsetArraysFromVector(const IndexLookupInfo& info, common::ValueVector* keyVector,
+        std::vector<std::shared_ptr<arrow::Array>>& offsetArraysVector);
 
 private:
     std::vector<std::unique_ptr<IndexLookupInfo>> infos;

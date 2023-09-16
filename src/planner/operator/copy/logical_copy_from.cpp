@@ -13,6 +13,7 @@ void LogicalCopyFrom::computeFactorizedSchema() {
     if (info->tableSchema->tableType == TableType::REL) {
         schema->insertToGroupAndScope(info->boundOffsetExpression, unflatGroup);
         schema->insertToGroupAndScope(info->nbrOffsetExpression, unflatGroup);
+        schema->insertToGroupAndScope(info->predicateOffsetExpression, unflatGroup);
     }
     schema->insertToGroupAndScope(info->offsetExpression, flatGroup);
     schema->insertToGroupAndScope(outputExpression, flatGroup);
@@ -26,6 +27,7 @@ void LogicalCopyFrom::computeFlatSchema() {
     if (info->tableSchema->tableType == TableType::REL) {
         schema->insertToGroupAndScope(info->boundOffsetExpression, 0);
         schema->insertToGroupAndScope(info->nbrOffsetExpression, 0);
+        schema->insertToGroupAndScope(info->predicateOffsetExpression, 0);
     }
     schema->insertToGroupAndScope(info->offsetExpression, 0);
     schema->insertToGroupAndScope(outputExpression, 0);

@@ -9,5 +9,11 @@ void DataChunk::insert(uint32_t pos, std::shared_ptr<ValueVector> valueVector) {
     valueVectors[pos] = std::move(valueVector);
 }
 
+void DataChunk::resetAuxiliaryBuffer() {
+    for (auto& valueVector : valueVectors) {
+        valueVector->resetAuxiliaryBuffer();
+    }
+}
+
 } // namespace common
 } // namespace kuzu

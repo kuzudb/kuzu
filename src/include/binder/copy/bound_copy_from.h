@@ -19,6 +19,7 @@ struct BoundCopyFromInfo {
     // `boundOffsetExpression` and `nbrOffsetExpression` are for rel tables only.
     std::shared_ptr<Expression> boundOffsetExpression;
     std::shared_ptr<Expression> nbrOffsetExpression;
+    std::shared_ptr<Expression> predicateOffsetExpression;
 
     bool containsSerial;
 
@@ -26,12 +27,15 @@ struct BoundCopyFromInfo {
         catalog::TableSchema* tableSchema, expression_vector columnExpressions,
         std::shared_ptr<Expression> offsetExpression,
         std::shared_ptr<Expression> boundOffsetExpression,
-        std::shared_ptr<Expression> nbrOffsetExpression, bool containsSerial)
-        : copyDesc{std::move(copyDesc)}, tableSchema{tableSchema}, columnExpressions{std::move(
-                                                                       columnExpressions)},
-          offsetExpression{std::move(offsetExpression)}, boundOffsetExpression{std::move(
-                                                             boundOffsetExpression)},
-          nbrOffsetExpression{std::move(nbrOffsetExpression)}, containsSerial{containsSerial} {}
+        std::shared_ptr<Expression> nbrOffsetExpression,
+        std::shared_ptr<Expression> predicateOffsetExpression, bool containsSerial)
+        : copyDesc{std::move(copyDesc)}, tableSchema{tableSchema},
+          columnExpressions{std::move(columnExpressions)}, offsetExpression{std::move(
+                                                               offsetExpression)},
+          boundOffsetExpression{std::move(boundOffsetExpression)}, nbrOffsetExpression{std::move(
+                                                                       nbrOffsetExpression)},
+          predicateOffsetExpression{std::move(predicateOffsetExpression)}, containsSerial{
+                                                                               containsSerial} {}
 
     std::unique_ptr<BoundCopyFromInfo> copy();
 };

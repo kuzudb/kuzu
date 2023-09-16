@@ -25,25 +25,23 @@ bool IndexLookup::getNextTuplesInternal(ExecutionContext* context) {
     return true;
 }
 
+std::unique_ptr<PhysicalOperator> IndexLookup::clone() {
+    std::vector<std::unique_ptr<IndexLookupInfo>> copiedInfos;
+    copiedInfos.reserve(infos.size());
+    for (const auto& info : infos) {
+        copiedInfos.push_back(info->copy());
+    }
+    return make_unique<IndexLookup>(
+        std::move(copiedInfos), children[0]->clone(), getOperatorID(), paramsString);
+}
+
 void IndexLookup::indexLookup(const IndexLookupInfo& info) {
     auto keyVector = resultSet->getValueVector(info.keyVectorPos).get();
-    // This should be changed to handle non-arrow Vectors once the new csv reader is in.
-    assert(keyVector->dataType.getLogicalTypeID() == LogicalTypeID::ARROW_COLUMN);
-    auto keyChunkedArray = ArrowColumnVector::getArrowColumn(keyVector);
     arrow::ArrayVector offsetArraysVector;
-    offsetArraysVector.reserve(keyChunkedArray->num_chunks());
-    for (auto& keyArray : keyChunkedArray->chunks()) {
-        auto numKeys = keyArray->length();
-        std::shared_ptr<arrow::Buffer> arrowBuffer;
-        TableCopyUtils::throwCopyExceptionIfNotOK(
-            arrow::AllocateBuffer((int64_t)(numKeys * sizeof(offset_t))).Value(&arrowBuffer));
-        auto offsets = (offset_t*)arrowBuffer->data();
-        if (keyArray->null_count() != 0) {
-            throw RuntimeException(ExceptionMessage::nullPKException());
-        }
-        lookupOnArray(info, keyArray.get(), offsets);
-        offsetArraysVector.push_back(TableCopyUtils::createArrowPrimitiveArray(
-            std::make_shared<arrow::Int64Type>(), arrowBuffer, numKeys));
+    if (keyVector->dataType.getPhysicalType() == PhysicalTypeID::ARROW_COLUMN) {
+        fillOffsetArraysFromArrowVector(info, keyVector, offsetArraysVector);
+    } else {
+        fillOffsetArraysFromVector(info, keyVector, offsetArraysVector);
     }
     auto offsetChunkedArray = std::make_shared<arrow::ChunkedArray>(offsetArraysVector);
     ArrowColumnVector::setArrowColumn(
@@ -107,14 +105,43 @@ void IndexLookup::lookupOnArray(
     }
 }
 
-std::unique_ptr<PhysicalOperator> IndexLookup::clone() {
-    std::vector<std::unique_ptr<IndexLookupInfo>> copiedInfos;
-    copiedInfos.reserve(infos.size());
-    for (const auto& info : infos) {
-        copiedInfos.push_back(info->copy());
+void IndexLookup::fillOffsetArraysFromArrowVector(const IndexLookupInfo& info,
+    common::ValueVector* keyVector, arrow::ArrayVector& offsetArraysVector) {
+    // This should be changed to handle non-arrow Vectors once the new csv reader is in.
+    auto keyChunkedArray = ArrowColumnVector::getArrowColumn(keyVector);
+    offsetArraysVector.reserve(keyChunkedArray->num_chunks());
+    for (auto& keyArray : keyChunkedArray->chunks()) {
+        auto numKeys = keyArray->length();
+        std::shared_ptr<arrow::Buffer> arrowBuffer;
+        TableCopyUtils::throwCopyExceptionIfNotOK(
+            arrow::AllocateBuffer((int64_t)(numKeys * sizeof(offset_t))).Value(&arrowBuffer));
+        auto offsets = (offset_t*)arrowBuffer->data();
+        if (keyArray->null_count() != 0) {
+            throw RuntimeException(ExceptionMessage::nullPKException());
+        }
+        lookupOnArray(info, keyArray.get(), offsets);
+        offsetArraysVector.push_back(TableCopyUtils::createArrowPrimitiveArray(
+            std::make_shared<arrow::Int64Type>(), arrowBuffer, numKeys));
     }
-    return make_unique<IndexLookup>(
-        std::move(copiedInfos), children[0]->clone(), getOperatorID(), paramsString);
+}
+
+void IndexLookup::fillOffsetArraysFromVector(const kuzu::processor::IndexLookupInfo& info,
+    common::ValueVector* keyVector,
+    std::vector<std::shared_ptr<arrow::Array>>& offsetArraysVector) {
+    auto numKeys = keyVector->state->selVector->selectedSize;
+    std::shared_ptr<arrow::Buffer> arrowBuffer;
+    TableCopyUtils::throwCopyExceptionIfNotOK(
+        arrow::AllocateBuffer((int64_t)(numKeys * sizeof(offset_t))).Value(&arrowBuffer));
+    auto offsets = (offset_t*)arrowBuffer->data();
+    for (auto i = 0u; i < keyVector->state->selVector->selectedSize; i++) {
+        info.pkIndex->lookup(&transaction::DUMMY_READ_TRANSACTION,
+            keyVector->getValue<ku_string_t>(keyVector->state->selVector->selectedPositions[i])
+                .getAsString()
+                .c_str(),
+            offsets[i]);
+    }
+    offsetArraysVector.push_back(TableCopyUtils::createArrowPrimitiveArray(
+        std::make_shared<arrow::Int64Type>(), arrowBuffer, numKeys));
 }
 
 } // namespace processor

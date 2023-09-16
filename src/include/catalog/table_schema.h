@@ -16,8 +16,9 @@ public:
     TableSchema(std::string tableName, common::table_id_t tableID, common::TableType tableType,
         std::vector<std::unique_ptr<Property>> properties)
         : tableName{std::move(tableName)}, tableID{tableID}, tableType{tableType},
-          properties{std::move(properties)},
-          nextPropertyID{(common::property_id_t)this->properties.size()}, comment{} {}
+          properties{std::move(properties)}, nextPropertyID{(
+                                                 common::property_id_t)this->properties.size()},
+          comment{"" /* empty comment */} {}
     TableSchema(common::TableType tableType, std::string tableName, common::table_id_t tableID,
         std::vector<std::unique_ptr<Property>> properties, std::string comment,
         common::property_id_t nextPropertyID)
