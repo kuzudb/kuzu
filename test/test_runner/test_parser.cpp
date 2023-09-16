@@ -213,6 +213,7 @@ void TestParser::extractStatementBlock() {
             auto statement = std::make_unique<TestStatement>();
             extractStatement(statement.get(), blockName);
             testGroup->testCasesStatementBlocks[blockName].push_back(std::move(statement));
+            testGroup->testCasesConnNames[blockName] = std::set<std::string>();
         }
     }
 }
@@ -310,8 +311,7 @@ void TestParser::addStatementBlock(const std::string& blockName, const std::stri
         for (const auto& statementPtr : testGroup->testCasesStatementBlocks[blockName]) {
             testGroup->testCases[testCaseName].push_back(
                 std::make_unique<TestStatement>(*statementPtr));
-            testGroup->testCasesConnNames[testCaseName] =
-                std::move(testGroup->testCasesConnNames[blockName]);
+            testGroup->testCasesConnNames[testCaseName] = testGroup->testCasesConnNames[blockName];
         }
     } else {
         throw TestException("Statement block not found [" + path + ":" + blockName + "].");
@@ -322,7 +322,7 @@ TestStatement* TestParser::addNewStatement(std::string& testGroupName) {
     auto statement = std::make_unique<TestStatement>();
     TestStatement* currentStatement = statement.get();
     testGroup->testCases[testGroupName].push_back(std::move(statement));
-    // testCaseConnNames=testGroup->testCasesConnNames[testGroupName];
+    // testGroup->testCasesConnNames[testGroupName]=std::set<std::string>();
     return currentStatement;
 }
 
