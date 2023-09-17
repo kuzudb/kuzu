@@ -10,7 +10,7 @@
 namespace kuzu {
 namespace processor {
 
-enum class ParserMode : uint8_t { PARSING = 0, PARSING_HEADER = 1 };
+enum class ParserMode : uint8_t { PARSING = 0, PARSING_HEADER = 1, SNIFFING_DIALECT = 2 };
 
 class BaseCSVReader {
 public:
@@ -21,10 +21,12 @@ public:
 
     inline bool isNewLine(char c) { return c == '\n' || c == '\r'; }
 
+    inline uint64_t getNumColumnsDetected() const { return numColumnsDetected; }
+
     common::CSVReaderConfig csvReaderConfig;
     std::string filePath;
     catalog::TableSchema* tableSchema;
-    uint64_t numPropertiesToCopy;
+    uint64_t expectedNumColumns;
 
     uint64_t linenr = 0;
     uint64_t bytesInChunk = 0;
@@ -45,6 +47,7 @@ private:
 
 protected:
     uint64_t rowToAdd;
+    uint64_t numColumnsDetected;
 };
 
 //! Buffered CSV reader is a class that reads values from a stream and parses them as a CSV file
@@ -71,10 +74,14 @@ public:
 public:
     //! Extract a single DataChunk from the CSV file and stores it in insert_chunk
     uint64_t ParseCSV(common::DataChunk& resultChunk);
+    //! Sniffs CSV dialect and determines skip rows, header row, column types and column names
+    void SniffCSV();
 
 private:
     //! Initialize Parser
     void Initialize();
+    //! Jumps back to the beginning of input stream and resets necessary internal states
+    void JumpToBeginning(bool skipHeader);
     //! Skips skip_rows, reads header row from input stream
     void ReadHeader();
     //! Resets the buffer

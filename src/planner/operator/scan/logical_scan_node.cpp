@@ -15,19 +15,5 @@ void LogicalScanNode::computeFlatSchema() {
     schema->insertToGroupAndScope(node->getInternalIDProperty(), 0);
 }
 
-void LogicalIndexScanNode::computeFactorizedSchema() {
-    copyChildSchema(0);
-    auto groupPos = 0u;
-    if (schema->isExpressionInScope(*indexExpression)) {
-        groupPos = schema->getGroupPos(*indexExpression);
-    }
-    schema->insertToGroupAndScope(node->getInternalIDProperty(), groupPos);
-}
-
-void LogicalIndexScanNode::computeFlatSchema() {
-    copyChildSchema(0);
-    schema->insertToGroupAndScope(node->getInternalIDProperty(), 0);
-}
-
 } // namespace planner
 } // namespace kuzu

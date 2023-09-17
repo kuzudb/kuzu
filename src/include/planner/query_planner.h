@@ -8,10 +8,15 @@
 #include "planner/logical_plan/extend/extend_direction.h"
 
 namespace kuzu {
+namespace common {
+struct CopyDescription;
+}
+
 namespace binder {
 class BoundCreateInfo;
 class BoundSetPropertyInfo;
 class BoundDeleteInfo;
+struct BoundFileScanInfo;
 } // namespace binder
 
 namespace planner {
@@ -21,6 +26,8 @@ class LogicalCreateRelInfo;
 class LogicalSetPropertyInfo;
 
 class QueryPlanner {
+    friend class Planner;
+
 public:
     QueryPlanner(const catalog::Catalog& catalog,
         const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
@@ -223,6 +230,8 @@ private:
 
     void appendFilters(const binder::expression_vector& predicates, LogicalPlan& plan);
     void appendFilter(const std::shared_ptr<Expression>& predicate, LogicalPlan& plan);
+
+    static void appendScanFile(binder::BoundFileScanInfo* fileScanInfo, LogicalPlan& plan);
 
     std::unique_ptr<LogicalPlan> createUnionPlan(
         std::vector<std::unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll);

@@ -12,8 +12,9 @@ namespace planner {
 class LogicalCopyFrom : public LogicalOperator {
 public:
     LogicalCopyFrom(std::unique_ptr<binder::BoundCopyFromInfo> info,
-        std::shared_ptr<binder::Expression> outputExpression)
-        : LogicalOperator{LogicalOperatorType::COPY_FROM}, info{std::move(info)},
+        std::shared_ptr<binder::Expression> outputExpression,
+        std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{LogicalOperatorType::COPY_FROM, std::move(child)}, info{std::move(info)},
           outputExpression{std::move(outputExpression)} {}
 
     inline std::string getExpressionsForPrinting() const override {
@@ -27,7 +28,8 @@ public:
     inline binder::Expression* getOutputExpression() const { return outputExpression.get(); }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCopyFrom>(info->copy(), outputExpression->copy());
+        return make_unique<LogicalCopyFrom>(
+            info->copy(), outputExpression->copy(), children[0]->copy());
     }
 
 private:

@@ -1,3 +1,4 @@
+#include "binder/copy/bound_copy_from.h"
 #include "planner/logical_plan/copy/logical_copy_from.h"
 #include "processor/operator/index_lookup.h"
 #include "processor/operator/persistent/copy_node.h"
@@ -30,43 +31,24 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logic
     // LCOV_EXCL_STOP
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::createReader(CopyDescription* copyDesc,
-    TableSchema* tableSchema, Schema* outSchema,
-    const std::vector<std::shared_ptr<Expression>>& dataColumnExpressions,
-    const std::shared_ptr<Expression>& offsetExpression, bool containsSerial) {
-    auto readerSharedState = std::make_shared<ReaderSharedState>(copyDesc->copy(), tableSchema);
-    std::vector<DataPos> dataColumnsPos;
-    dataColumnsPos.reserve(dataColumnExpressions.size());
-    for (auto& expression : dataColumnExpressions) {
-        dataColumnsPos.emplace_back(outSchema->getExpressionPos(*expression));
-    }
-    auto nodeOffsetPos = DataPos(outSchema->getExpressionPos(*offsetExpression));
-    auto readInfo = std::make_unique<ReaderInfo>(nodeOffsetPos, dataColumnsPos, containsSerial);
-    return std::make_unique<Reader>(
-        std::move(readInfo), readerSharedState, getOperatorID(), tableSchema->tableName);
-}
-
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
     planner::LogicalOperator* logicalOperator) {
     auto copyFrom = (LogicalCopyFrom*)logicalOperator;
     auto copyFromInfo = copyFrom->getInfo();
     auto tableSchema = (catalog::NodeTableSchema*)copyFromInfo->tableSchema;
     // Map reader.
-    auto reader = createReader(copyFromInfo->copyDesc.get(), copyFromInfo->tableSchema,
-        copyFrom->getSchema(), copyFromInfo->columnExpressions, copyFromInfo->offsetExpression,
-        copyFromInfo->containsSerial);
-    auto readerOp = reinterpret_cast<Reader*>(reader.get());
-    auto readerInfo = readerOp->getReaderInfo();
-    auto nodeTable = storageManager.getNodesStore().getNodeTable(tableSchema->tableID);
+    auto prevOperator = mapOperator(copyFrom->getChild(0).get());
+    auto reader = reinterpret_cast<Reader*>(prevOperator.get());
+    auto readerInfo = reader->getReaderInfo();
     // Map copy node.
+    auto nodeTable = storageManager.getNodesStore().getNodeTable(tableSchema->tableID);
     auto copyNodeSharedState =
-        std::make_shared<CopyNodeSharedState>(readerOp->getSharedState()->getNumRowsRef(),
-            tableSchema, nodeTable, *copyFromInfo->copyDesc, memoryManager);
-    CopyNodeInfo copyNodeDataInfo{readerInfo->dataColumnsPos, *copyFromInfo->copyDesc, nodeTable,
-        &storageManager.getRelsStore(), catalog, storageManager.getWAL(),
-        copyFromInfo->containsSerial};
+        std::make_shared<CopyNodeSharedState>(reader->getSharedState()->getNumRowsRef(),
+            tableSchema, nodeTable, *copyFromInfo->fileScanInfo->copyDesc, memoryManager);
+    CopyNodeInfo copyNodeDataInfo{readerInfo->dataColumnsPos, *copyFromInfo->fileScanInfo->copyDesc,
+        nodeTable, &storageManager.getRelsStore(), catalog, storageManager.getWAL()};
     auto copyNode = std::make_unique<CopyNode>(copyNodeSharedState, copyNodeDataInfo,
-        std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), std::move(reader),
+        std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), std::move(prevOperator),
         getOperatorID(), copyFrom->getExpressionsForPrinting());
     auto outputExpressions = binder::expression_vector{copyFrom->getOutputExpression()->copy()};
     return createFactorizedTableScanAligned(outputExpressions, copyFrom->getSchema(),
@@ -74,72 +56,39 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
         std::move(copyNode));
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::createIndexLookup(RelTableSchema* tableSchema,
-    std::vector<DataPos>& dataPoses, const DataPos& boundOffsetDataPos,
-    const DataPos& nbrOffsetDataPos, const DataPos& predicateOffsetDataPos,
-    std::unique_ptr<PhysicalOperator> readerOp, CopyDescription::FileType fileType) {
-    auto boundNodeTableID = tableSchema->getBoundTableID(RelDataDirection::FWD);
-    auto boundNodePKIndex =
-        storageManager.getNodesStore().getNodeTable(boundNodeTableID)->getPKIndex();
-    auto nbrNodeTableID = tableSchema->getNbrTableID(RelDataDirection::FWD);
-    auto nbrNodePKIndex = storageManager.getNodesStore().getNodeTable(nbrNodeTableID)->getPKIndex();
-    std::vector<std::unique_ptr<IndexLookupInfo>> indexLookupInfos;
-    // We assume that dataPoses[0] and dataPoses[1] are REL_FROM and REL_TO columns.
-    // TODO: Should be refactored to remove the implicit assumption.
-    indexLookupInfos.push_back(
-        std::make_unique<IndexLookupInfo>(tableSchema->getSrcPKDataType()->copy(), boundNodePKIndex,
-            dataPoses[0], boundOffsetDataPos));
-    if (fileType == CopyDescription::FileType::TURTLE) {
-        indexLookupInfos.push_back(
-            std::make_unique<IndexLookupInfo>(std::make_unique<LogicalType>(LogicalTypeID::STRING),
-                boundNodePKIndex, dataPoses[1], predicateOffsetDataPos));
-        indexLookupInfos.push_back(
-            std::make_unique<IndexLookupInfo>(tableSchema->getDstPKDataType()->copy(),
-                nbrNodePKIndex, dataPoses[2], nbrOffsetDataPos));
-    } else {
-        indexLookupInfos.push_back(
-            std::make_unique<IndexLookupInfo>(tableSchema->getDstPKDataType()->copy(),
-                nbrNodePKIndex, dataPoses[1], nbrOffsetDataPos));
-    }
-    return std::make_unique<IndexLookup>(
-        std::move(indexLookupInfos), std::move(readerOp), getOperatorID(), tableSchema->tableName);
-}
-
 std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRelColumnsOrLists(
     std::shared_ptr<CopyRelSharedState> sharedState, LogicalCopyFrom* copyFrom, bool isColumns,
     std::unique_ptr<PhysicalOperator> copyRelColumns) {
     auto copyFromInfo = copyFrom->getInfo();
     auto outFSchema = copyFrom->getSchema();
+    auto prevOperator = mapOperator(copyFrom->getChild(0).get());
+    assert(prevOperator->getChild(0)->getOperatorType() == PhysicalOperatorType::READER);
+    auto reader = (Reader*)prevOperator->getChild(0);
     auto tableSchema = reinterpret_cast<RelTableSchema*>(copyFromInfo->tableSchema);
-    auto reader = createReader(copyFromInfo->copyDesc.get(), copyFromInfo->tableSchema, outFSchema,
-        copyFromInfo->columnExpressions, copyFromInfo->offsetExpression,
-        copyFromInfo->containsSerial);
-    auto readerOp = reinterpret_cast<Reader*>(reader.get());
-    auto readerInfo = readerOp->getReaderInfo();
-    auto offsetDataPos = DataPos{outFSchema->getExpressionPos(*copyFromInfo->offsetExpression)};
-    auto boundOffsetDataPos =
-        DataPos{outFSchema->getExpressionPos(*copyFromInfo->boundOffsetExpression)};
-    auto nbrOffsetDataPos =
-        DataPos{outFSchema->getExpressionPos(*copyFromInfo->nbrOffsetExpression)};
-    auto predicateOffsetDataPos =
-        DataPos{outFSchema->getExpressionPos(*copyFromInfo->predicateOffsetExpression)};
-    auto indexLookup = createIndexLookup(tableSchema, readerInfo->dataColumnsPos,
-        boundOffsetDataPos, nbrOffsetDataPos, predicateOffsetDataPos, std::move(reader),
-        copyFromInfo->copyDesc->fileType);
-    auto dataColumnPosCopy = readerInfo->dataColumnsPos;
-    if (copyFromInfo->copyDesc->fileType == CopyDescription::FileType::TURTLE) {
-        dataColumnPosCopy[1] = dataColumnPosCopy[2];
-        dataColumnPosCopy[2] = predicateOffsetDataPos;
+    auto offsetDataPos = DataPos{outFSchema->getExpressionPos(*copyFromInfo->fileScanInfo->offset)};
+    DataPos srcOffsetPos;
+    DataPos dstOffsetPos;
+    std::vector<DataPos> dataColumnPositions;
+    if (copyFromInfo->fileScanInfo->copyDesc->fileType == CopyDescription::FileType::TURTLE) {
+        auto extraInfo = reinterpret_cast<ExtraBoundCopyRdfRelInfo*>(copyFromInfo->extraInfo.get());
+        srcOffsetPos = DataPos{outFSchema->getExpressionPos(*extraInfo->subjectOffset)};
+        dstOffsetPos = DataPos{outFSchema->getExpressionPos(*extraInfo->objectOffset)};
+        dataColumnPositions.emplace_back(outFSchema->getExpressionPos(*extraInfo->predicateOffset));
+    } else {
+        auto extraInfo = reinterpret_cast<ExtraBoundCopyRelInfo*>(copyFromInfo->extraInfo.get());
+        srcOffsetPos = DataPos{outFSchema->getExpressionPos(*extraInfo->srcOffset)};
+        dstOffsetPos = DataPos{outFSchema->getExpressionPos(*extraInfo->dstOffset)};
+        dataColumnPositions = reader->getReaderInfo()->dataColumnsPos;
     }
-    CopyRelInfo copyRelInfo{tableSchema, std::move(dataColumnPosCopy), offsetDataPos,
-        boundOffsetDataPos, nbrOffsetDataPos, storageManager.getWAL()};
+    CopyRelInfo copyRelInfo{tableSchema, dataColumnPositions, offsetDataPos, srcOffsetPos,
+        dstOffsetPos, storageManager.getWAL()};
     if (isColumns) {
         return std::make_unique<CopyRelColumns>(copyRelInfo, std::move(sharedState),
-            std::make_unique<ResultSetDescriptor>(outFSchema), std::move(indexLookup),
+            std::make_unique<ResultSetDescriptor>(outFSchema), std::move(prevOperator),
             getOperatorID(), copyFrom->getExpressionsForPrinting());
     } else {
         return std::make_unique<CopyRelLists>(copyRelInfo, std::move(sharedState),
-            std::make_unique<ResultSetDescriptor>(outFSchema), std::move(indexLookup),
+            std::make_unique<ResultSetDescriptor>(outFSchema), std::move(prevOperator),
             std::move(copyRelColumns), getOperatorID(), copyFrom->getExpressionsForPrinting());
     }
 }
@@ -202,10 +151,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRelFrom(
     auto tableSchema = reinterpret_cast<RelTableSchema*>(copyFromInfo->tableSchema);
     auto fwdRelData = initializeDirectedInMemRelData(RelDataDirection::FWD, tableSchema,
         storageManager.getNodesStore(), storageManager.getDirectory(),
-        copyFromInfo->copyDesc.get());
+        copyFromInfo->fileScanInfo->copyDesc.get());
     auto bwdRelData = initializeDirectedInMemRelData(RelDataDirection::BWD, tableSchema,
         storageManager.getNodesStore(), storageManager.getDirectory(),
-        copyFromInfo->copyDesc.get());
+        copyFromInfo->fileScanInfo->copyDesc.get());
     auto copyRelSharedState = std::make_shared<CopyRelSharedState>(tableSchema->tableID,
         &storageManager.getRelsStore().getRelsStatistics(), std::move(fwdRelData),
         std::move(bwdRelData), memoryManager);

@@ -40,7 +40,6 @@ public:
     static constexpr std::string_view OFFSET_NAME = "_OFFSET_";
     static constexpr std::string_view REL_BOUND_OFFSET_NAME = "_BOUND_OFFSET_";
     static constexpr std::string_view REL_NBR_OFFSET_NAME = "_NBR_OFFSET_";
-    static constexpr std::string_view REL_PREDICATE_OFFSET_NAME = "_PREDICATE_OFFSET_";
 
     Property(std::string name, std::unique_ptr<common::LogicalType> dataType)
         : Property{std::move(name), std::move(dataType), common::INVALID_PROPERTY_ID,

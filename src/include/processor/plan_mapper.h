@@ -40,6 +40,7 @@ public:
 
 private:
     std::unique_ptr<PhysicalOperator> mapOperator(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapScanFile(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapScanFrontier(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapScanNode(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapIndexScanNode(planner::LogicalOperator* logicalOperator);
@@ -97,14 +98,6 @@ private:
     std::unique_ptr<PhysicalOperator> mapCreateMacro(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapTransaction(planner::LogicalOperator* logicalOperator);
 
-    std::unique_ptr<PhysicalOperator> createReader(common::CopyDescription* copyDesc,
-        catalog::TableSchema* tableSchema, planner::Schema* outSchema,
-        const std::vector<std::shared_ptr<binder::Expression>>& dataColumnExpressions,
-        const std::shared_ptr<binder::Expression>& offsetExpression, bool readingInSerial);
-    std::unique_ptr<PhysicalOperator> createIndexLookup(catalog::RelTableSchema* tableSchema,
-        std::vector<DataPos>& dataPoses, const DataPos& boundOffsetDataPos,
-        const DataPos& nbrOffsetDataPos, const DataPos& predicateOffsetDataPos,
-        std::unique_ptr<PhysicalOperator> readerOp, common::CopyDescription::FileType fileType);
     std::unique_ptr<PhysicalOperator> createCopyRelColumnsOrLists(
         std::shared_ptr<CopyRelSharedState> sharedState, planner::LogicalCopyFrom* copyFrom,
         bool isColumns, std::unique_ptr<PhysicalOperator> copyRelColumns);

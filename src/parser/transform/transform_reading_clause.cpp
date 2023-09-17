@@ -1,3 +1,4 @@
+#include "common/exception/not_implemented.h"
 #include "parser/query/reading_clause/in_query_call_clause.h"
 #include "parser/query/reading_clause/match_clause.h"
 #include "parser/query/reading_clause/unwind_clause.h"
@@ -14,10 +15,12 @@ std::unique_ptr<ReadingClause> Transformer::transformReadingClause(
         return transformMatch(*ctx.oC_Match());
     } else if (ctx.oC_Unwind()) {
         return transformUnwind(*ctx.oC_Unwind());
-    } else {
-        assert(ctx.kU_InQueryCall());
+    } else if (ctx.kU_InQueryCall()) {
         return transformInQueryCall(*ctx.kU_InQueryCall());
     }
+    // LCOV_EXCL_START
+    throw common::NotImplementedException("Transformer::transformReadingClause");
+    // LCOV_EXCL_STOP
 }
 
 std::unique_ptr<ReadingClause> Transformer::transformMatch(CypherParser::OC_MatchContext& ctx) {

@@ -9,7 +9,7 @@ namespace parser {
 
 class MatchClause : public ReadingClause {
 public:
-    explicit MatchClause(std::vector<std::unique_ptr<PatternElement>> patternElements,
+    MatchClause(std::vector<std::unique_ptr<PatternElement>> patternElements,
         common::MatchClauseType matchClauseType)
         : ReadingClause{common::ClauseType::MATCH}, patternElements{std::move(patternElements)},
           matchClauseType{matchClauseType} {}

@@ -9,17 +9,14 @@ namespace binder {
 
 class BoundMatchClause : public BoundReadingClause {
 public:
-    explicit BoundMatchClause(std::unique_ptr<QueryGraphCollection> queryGraphCollection,
+    BoundMatchClause(std::unique_ptr<QueryGraphCollection> queryGraphCollection,
         common::MatchClauseType matchClauseType)
         : BoundReadingClause{common::ClauseType::MATCH},
           queryGraphCollection{std::move(queryGraphCollection)}, matchClauseType{matchClauseType} {}
-
     BoundMatchClause(const BoundMatchClause& other)
         : BoundReadingClause(common::ClauseType::MATCH),
           queryGraphCollection{other.queryGraphCollection->copy()},
           whereExpression(other.whereExpression), matchClauseType{other.matchClauseType} {}
-
-    ~BoundMatchClause() override = default;
 
     inline QueryGraphCollection* getQueryGraphCollection() const {
         return queryGraphCollection.get();

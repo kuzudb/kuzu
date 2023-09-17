@@ -25,6 +25,7 @@ add_library(kuzu_processor_mapper
         map_filter.cpp
         map_flatten.cpp
         map_hash_join.cpp
+        map_index_scan_node.cpp
         map_intersect.cpp
         map_label_filter.cpp
         map_limit.cpp
@@ -34,6 +35,7 @@ add_library(kuzu_processor_mapper
         map_path_property_probe.cpp
         map_projection.cpp
         map_recursive_extend.cpp
+        map_scan_file.cpp
         map_scan_frontier.cpp
         map_scan_node.cpp
         map_scan_node_property.cpp

@@ -31,14 +31,19 @@ void BaseCSVReader::AddValue(DataChunk& resultChunk, std::string strVal, column_
     } else {
         rowEmpty = false;
     }
-    if (numPropertiesToCopy != 0 && columnIdx == numPropertiesToCopy && length == 0) {
+    if (expectedNumColumns != 0 && columnIdx == expectedNumColumns && length == 0) {
         // skip a single trailing delimiter in last columnIdx
         return;
     }
-    if (columnIdx >= numPropertiesToCopy) {
+    if (mode == ParserMode::SNIFFING_DIALECT) {
+        // Do not copy data while sniffing csv.
+        columnIdx++;
+        return;
+    }
+    if (columnIdx >= expectedNumColumns) {
         throw CopyException(StringUtils::string_format(
             "Error in file {}, on line {}: expected {} values per row, but got more. ", filePath,
-            linenr, numPropertiesToCopy));
+            linenr, expectedNumColumns));
     }
 
     // insert the line number into the chunk
@@ -69,7 +74,7 @@ bool BaseCSVReader::AddRow(DataChunk& resultChunk, column_id_t& column) {
     linenr++;
     if (rowEmpty) {
         rowEmpty = false;
-        if (numPropertiesToCopy != 1) {
+        if (expectedNumColumns != 1) {
             if (mode == ParserMode::PARSING) {
                 // Set This position to be null
                 ;
@@ -78,15 +83,20 @@ bool BaseCSVReader::AddRow(DataChunk& resultChunk, column_id_t& column) {
             return false;
         }
     }
-    if (column < numPropertiesToCopy) {
+    if (column < expectedNumColumns && mode != ParserMode::SNIFFING_DIALECT) {
+        // Number of column mismatch. We don't error while sniffing dialect because number of
+        // columns is only known after reading the first row.
         throw CopyException(StringUtils::string_format(
             "Error in file {} on line {}: expected {} values per row, but got {}", filePath, linenr,
-            numPropertiesToCopy, column));
+            expectedNumColumns, column));
     }
     if (mode == ParserMode::PARSING && rowToAdd >= DEFAULT_VECTOR_CAPACITY) {
         return true;
     }
-
+    if (mode == ParserMode::SNIFFING_DIALECT) {
+        numColumnsDetected = column; // Only read one row while sniffing csv.
+        return true;
+    }
     column = 0;
     return false;
 }
@@ -215,19 +225,23 @@ BufferedCSVReader::~BufferedCSVReader() {
 }
 
 void BufferedCSVReader::Initialize() {
-    numPropertiesToCopy = 0;
+    expectedNumColumns = 0;
     for (auto& property : tableSchema->properties) {
         if (property->getDataType()->getLogicalTypeID() != common::LogicalTypeID::SERIAL) {
-            numPropertiesToCopy++;
+            expectedNumColumns++;
         }
     }
     // TODO(Ziyi): should we wrap this fd using kuzu file handler?
     fd = open(filePath.c_str(), O_RDONLY);
+    JumpToBeginning(csvReaderConfig.hasHeader);
+    mode = ParserMode::PARSING;
+}
+
+void BufferedCSVReader::JumpToBeginning(bool skipHeader) {
     ResetBuffer();
-    if (csvReaderConfig.hasHeader) {
+    if (skipHeader) {
         ReadHeader();
     }
-    mode = ParserMode::PARSING;
 }
 
 void BufferedCSVReader::ResetBuffer() {
@@ -241,8 +255,15 @@ void BufferedCSVReader::ResetBuffer() {
 void BufferedCSVReader::ReadHeader() {
     // ignore the first line as a header line
     mode = ParserMode::PARSING_HEADER;
-    DataChunk dummy_chunk(0);
-    ParseCSV(dummy_chunk);
+    DataChunk dummyChunk(0);
+    ParseCSV(dummyChunk);
+}
+
+void BufferedCSVReader::SniffCSV() {
+    mode = ParserMode::SNIFFING_DIALECT;
+    DataChunk dummyChunk(0);
+    ParseCSV(dummyChunk);
+    JumpToBeginning(csvReaderConfig.hasHeader);
 }
 
 bool BufferedCSVReader::ReadBuffer(uint64_t& start, uint64_t& lineStart) {
@@ -294,7 +315,7 @@ bool BufferedCSVReader::ReadBuffer(uint64_t& start, uint64_t& lineStart) {
 }
 
 void BufferedCSVReader::SkipEmptyLines() {
-    if (numPropertiesToCopy == 1) {
+    if (expectedNumColumns == 1) {
         // Empty lines are null data.
         return;
     }

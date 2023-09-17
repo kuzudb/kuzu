@@ -1,6 +1,5 @@
 add_subdirectory(bind)
 add_subdirectory(bind_expression)
-add_subdirectory(copy)
 add_subdirectory(ddl)
 add_subdirectory(expression)
 add_subdirectory(query)
