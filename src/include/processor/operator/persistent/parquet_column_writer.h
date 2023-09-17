@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/types/date_t.h"
+#include "common/types/timestamp_t.h"
 #include "processor/operator/persistent/file_writer.h"
 #include <parquet/api/writer.h>
 
