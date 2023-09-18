@@ -109,28 +109,23 @@ private:
     /*** bind copy ***/
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCopyNodeFrom(
-        std::unique_ptr<common::CopyDescription> copyDesc, catalog::TableSchema* tableSchema);
+        std::unique_ptr<common::ReaderConfig> readerConfig, catalog::TableSchema* tableSchema);
     std::unique_ptr<BoundStatement> bindCopyRelFrom(
-        std::unique_ptr<common::CopyDescription> copyDesc, catalog::TableSchema* tableSchema);
+        std::unique_ptr<common::ReaderConfig> readerConfig, catalog::TableSchema* tableSchema);
     std::unique_ptr<BoundStatement> bindCopyRdfRelFrom(
-        std::unique_ptr<common::CopyDescription> copyDesc, catalog::TableSchema* tableSchema);
+        std::unique_ptr<common::ReaderConfig> readerConfig, catalog::TableSchema* tableSchema);
     expression_vector bindExpectedNodeFileColumns(
-        catalog::TableSchema* tableSchema, common::CopyDescription::FileType fileType);
-    //    expression_vector bindCopyRelColumns(
-    //        catalog::TableSchema* tableSchema, common::CopyDescription::FileType fileType);
-
+        catalog::TableSchema* tableSchema, common::ReaderConfig& readerConfig);
     expression_vector bindExpectedRelFileColumns(
-        catalog::TableSchema* tableSchema, common::CopyDescription::FileType fileType);
+        catalog::TableSchema* tableSchema, common::ReaderConfig& readerConfig);
     std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
 
     /*** bind file scan ***/
-    std::unique_ptr<common::CopyDescription> bindCopyDesc(
-        const std::vector<std::string>& filePaths, const parser::parsing_option_t& parsingOptions);
     std::unique_ptr<common::CSVReaderConfig> bindParsingOptions(
         const parser::parsing_option_t& parsingOptions);
-    static common::CopyDescription::FileType bindFileType(
-        const std::vector<std::string>& filePaths);
-    static common::CopyDescription::FileType bindFileType(const std::string& filePath);
+    static common::FileType bindFileType(const std::vector<std::string>& filePaths);
+    static common::FileType bindFileType(const std::string& filePath);
+    static std::vector<std::string> bindFilePaths(const std::vector<std::string>& filePaths);
 
     /*** bind query ***/
     std::unique_ptr<BoundRegularQuery> bindQuery(const parser::RegularQuery& regularQuery);

@@ -168,7 +168,7 @@ void NpyReader::parseType(std::string descr) {
     }
 }
 
-void NpyReader::validate(const LogicalType& type_, offset_t numRows, const std::string& tableName) {
+void NpyReader::validate(const LogicalType& type_, offset_t numRows) {
     auto numNodesInFile = getNumRows();
     if (numNodesInFile == 0) {
         throw CopyException(
@@ -182,28 +182,27 @@ void NpyReader::validate(const LogicalType& type_, offset_t numRows, const std::
         if (getNumElementsPerRow() != 1) {
             throw CopyException(
                 StringUtils::string_format("Cannot copy a vector property in npy file {} to a "
-                                           "scalar property in table {}.",
-                    filePath, tableName));
+                                           "scalar property.",
+                    filePath));
         }
         return;
     } else if (type_.getLogicalTypeID() == LogicalTypeID::FIXED_LIST) {
         if (this->type != FixedListType::getChildType(&type_)->getLogicalTypeID()) {
             throw CopyException(StringUtils::string_format("The type of npy file {} does not "
-                                                           "match the type defined in table {}.",
-                filePath, tableName));
+                                                           "match the expected type.",
+                filePath));
         }
         if (getNumElementsPerRow() != FixedListType::getNumElementsInList(&type_)) {
             throw CopyException(
                 StringUtils::string_format("The shape of {} does not match the length of the "
-                                           "fixed list property in table "
-                                           "{}.",
-                    filePath, tableName));
+                                           "fixed list property.",
+                    filePath));
         }
         return;
     } else {
         throw CopyException(StringUtils::string_format("The type of npy file {} does not "
-                                                       "match the type defined in table {}.",
-            filePath, tableName));
+                                                       "match the expected type.",
+            filePath));
     }
 }
 

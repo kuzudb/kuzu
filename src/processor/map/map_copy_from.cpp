@@ -35,6 +35,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
     planner::LogicalOperator* logicalOperator) {
     auto copyFrom = (LogicalCopyFrom*)logicalOperator;
     auto copyFromInfo = copyFrom->getInfo();
+    auto readerConfig = copyFromInfo->fileScanInfo->readerConfig.get();
     auto tableSchema = (catalog::NodeTableSchema*)copyFromInfo->tableSchema;
     // Map reader.
     auto prevOperator = mapOperator(copyFrom->getChild(0).get());
@@ -42,11 +43,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
     auto readerInfo = reader->getReaderInfo();
     // Map copy node.
     auto nodeTable = storageManager.getNodesStore().getNodeTable(tableSchema->tableID);
-    auto copyNodeSharedState =
-        std::make_shared<CopyNodeSharedState>(reader->getSharedState()->getNumRowsRef(),
-            tableSchema, nodeTable, *copyFromInfo->fileScanInfo->copyDesc, memoryManager);
-    CopyNodeInfo copyNodeDataInfo{readerInfo->dataColumnsPos, *copyFromInfo->fileScanInfo->copyDesc,
-        nodeTable, &storageManager.getRelsStore(), catalog, storageManager.getWAL()};
+    bool isCopyRdf = readerConfig->fileType == FileType::TURTLE;
+    auto copyNodeSharedState = std::make_shared<CopyNodeSharedState>(
+        reader->getSharedState()->getNumRowsRef(), tableSchema, nodeTable, memoryManager, isCopyRdf,
+        readerConfig->csvReaderConfig->copy());
+    CopyNodeInfo copyNodeDataInfo{readerInfo->dataColumnsPos, nodeTable,
+        &storageManager.getRelsStore(), catalog, storageManager.getWAL()};
     auto copyNode = std::make_unique<CopyNode>(copyNodeSharedState, copyNodeDataInfo,
         std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), std::move(prevOperator),
         getOperatorID(), copyFrom->getExpressionsForPrinting());
@@ -69,7 +71,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRelColumnsOrLists(
     DataPos srcOffsetPos;
     DataPos dstOffsetPos;
     std::vector<DataPos> dataColumnPositions;
-    if (copyFromInfo->fileScanInfo->copyDesc->fileType == CopyDescription::FileType::TURTLE) {
+    if (copyFromInfo->fileScanInfo->readerConfig->fileType == FileType::TURTLE) {
         auto extraInfo = reinterpret_cast<ExtraBoundCopyRdfRelInfo*>(copyFromInfo->extraInfo.get());
         srcOffsetPos = DataPos{outFSchema->getExpressionPos(*extraInfo->subjectOffset)};
         dstOffsetPos = DataPos{outFSchema->getExpressionPos(*extraInfo->objectOffset)};
@@ -151,10 +153,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRelFrom(
     auto tableSchema = reinterpret_cast<RelTableSchema*>(copyFromInfo->tableSchema);
     auto fwdRelData = initializeDirectedInMemRelData(RelDataDirection::FWD, tableSchema,
         storageManager.getNodesStore(), storageManager.getDirectory(),
-        copyFromInfo->fileScanInfo->copyDesc->csvReaderConfig.get());
+        copyFromInfo->fileScanInfo->readerConfig->csvReaderConfig.get());
     auto bwdRelData = initializeDirectedInMemRelData(RelDataDirection::BWD, tableSchema,
         storageManager.getNodesStore(), storageManager.getDirectory(),
-        copyFromInfo->fileScanInfo->copyDesc->csvReaderConfig.get());
+        copyFromInfo->fileScanInfo->readerConfig->csvReaderConfig.get());
     auto copyRelSharedState = std::make_shared<CopyRelSharedState>(tableSchema->tableID,
         &storageManager.getRelsStore().getRelsStatistics(), std::move(fwdRelData),
         std::move(bwdRelData), memoryManager);

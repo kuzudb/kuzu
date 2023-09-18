@@ -13,28 +13,22 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-static bool skipCopyForProperty(const Property& property) {
-    return TableSchema::isReservedPropertyName(property.getName()) ||
-           property.getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL;
-}
-
-std::shared_ptr<arrow::csv::StreamingReader> TableCopyUtils::createCSVReader(
-    const std::string& filePath, CSVReaderConfig* csvReaderConfig,
-    catalog::TableSchema* tableSchema) {
+std::shared_ptr<arrow::csv::StreamingReader> TableCopyUtils::createRelTableCSVReader(
+    const std::string& filePath, const common::ReaderConfig& config) {
     std::shared_ptr<arrow::io::InputStream> inputStream;
     throwCopyExceptionIfNotOK(arrow::io::ReadableFile::Open(filePath).Value(&inputStream));
     auto csvReadOptions = arrow::csv::ReadOptions::Defaults();
     csvReadOptions.block_size = CopyConstants::CSV_READING_BLOCK_SIZE;
-    for (auto& columnName : getColumnNamesToRead(tableSchema)) {
+    for (auto& columnName : config.columnNames) {
         csvReadOptions.column_names.push_back(columnName);
     }
-    if (csvReaderConfig->hasHeader) {
+    if (config.csvReaderConfig->hasHeader) {
         csvReadOptions.skip_rows = 1;
     }
     auto csvParseOptions = arrow::csv::ParseOptions::Defaults();
-    csvParseOptions.delimiter = csvReaderConfig->delimiter;
-    csvParseOptions.escape_char = csvReaderConfig->escapeChar;
-    csvParseOptions.quote_char = csvReaderConfig->quoteChar;
+    csvParseOptions.delimiter = config.csvReaderConfig->delimiter;
+    csvParseOptions.escape_char = config.csvReaderConfig->escapeChar;
+    csvParseOptions.quote_char = config.csvReaderConfig->quoteChar;
     csvParseOptions.ignore_empty_lines = false;
     csvParseOptions.escaping = true;
 
@@ -43,26 +37,10 @@ std::shared_ptr<arrow::csv::StreamingReader> TableCopyUtils::createCSVReader(
     // Only the empty string is treated as NULL.
     csvConvertOptions.null_values = {""};
     csvConvertOptions.quoted_strings_can_be_null = false;
-    if (tableSchema->tableType == TableType::REL) {
-        auto relTableSchema = (RelTableSchema*)tableSchema;
-        csvConvertOptions.column_types[std::string(Property::REL_FROM_PROPERTY_NAME)] =
-            toArrowDataType(*relTableSchema->getSrcPKDataType());
-        csvConvertOptions.column_types[std::string(Property::REL_TO_PROPERTY_NAME)] =
-            toArrowDataType(*relTableSchema->getDstPKDataType());
+    for (auto i = 0u; i < config.getNumColumns(); ++i) {
+        csvConvertOptions.column_types[config.columnNames[i]] =
+            toArrowDataType(*config.columnTypes[i]);
     }
-    for (auto& property : tableSchema->properties) {
-        if (property->getName() == Property::REL_FROM_PROPERTY_NAME ||
-            property->getName() == Property::REL_TO_PROPERTY_NAME) {
-            csvConvertOptions.column_types[property->getName()] = arrow::int64();
-            continue;
-        }
-        if (skipCopyForProperty(*property)) {
-            continue;
-        }
-        csvConvertOptions.column_types[property->getName()] =
-            toArrowDataType(*property->getDataType());
-    }
-
     std::shared_ptr<arrow::csv::StreamingReader> csvStreamingReader;
     throwCopyExceptionIfNotOK(arrow::csv::StreamingReader::Make(arrow::io::default_io_context(),
         inputStream, csvReadOptions, csvParseOptions, csvConvertOptions)
@@ -71,20 +49,19 @@ std::shared_ptr<arrow::csv::StreamingReader> TableCopyUtils::createCSVReader(
 }
 
 std::unique_ptr<parquet::arrow::FileReader> TableCopyUtils::createParquetReader(
-    const std::string& filePath, TableSchema* tableSchema) {
+    const std::string& filePath, const common::ReaderConfig& config) {
     std::shared_ptr<arrow::io::ReadableFile> infile;
     throwCopyExceptionIfNotOK(arrow::io::ReadableFile::Open(filePath).Value(&infile));
     std::unique_ptr<parquet::arrow::FileReader> reader;
     throwCopyExceptionIfNotOK(
         parquet::arrow::OpenFile(infile, arrow::default_memory_pool(), &reader));
-    auto expectedNumColumns = getColumnNamesToRead(tableSchema).size();
     auto actualNumColumns =
         reader->parquet_reader()->metadata()->schema()->group_node()->field_count();
-    if (expectedNumColumns != actualNumColumns) {
+    if (config.getNumColumns() != actualNumColumns) {
         // Note: Some parquet files may contain an index column.
         throw CopyException(StringUtils::string_format(
-            "Unmatched number of columns in parquet file. Expect: {}, got: {}.", expectedNumColumns,
-            actualNumColumns));
+            "Unmatched number of columns in parquet file. Expect: {}, got: {}.",
+            config.getNumColumns(), actualNumColumns));
     }
     return reader;
 }
@@ -391,21 +368,6 @@ std::unique_ptr<Value> TableCopyUtils::convertStringToValue(
             "Unsupported data type " + LogicalTypeUtils::dataTypeToString(type) + " inside LIST");
     }
     return value;
-}
-
-std::vector<std::string> TableCopyUtils::getColumnNamesToRead(catalog::TableSchema* tableSchema) {
-    std::vector<std::string> columnNamesToRead;
-    if (tableSchema->tableType == TableType::REL) {
-        columnNamesToRead.emplace_back(Property::REL_FROM_PROPERTY_NAME);
-        columnNamesToRead.emplace_back(Property::REL_TO_PROPERTY_NAME);
-    }
-    for (auto& property : tableSchema->properties) {
-        if (skipCopyForProperty(*property)) {
-            continue;
-        }
-        columnNamesToRead.push_back(property->getName());
-    }
-    return columnNamesToRead;
 }
 
 void TableCopyUtils::validateNumElementsInList(uint64_t numElementsRead, const LogicalType& type) {

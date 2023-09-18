@@ -33,8 +33,7 @@ public:
     inline std::vector<size_t> const& getShape() const { return shape; }
     inline size_t getNumDimensions() const { return shape.size(); }
 
-    void validate(
-        const common::LogicalType& type_, common::offset_t numRows, const std::string& tableName);
+    void validate(const common::LogicalType& type_, common::offset_t numRows);
 
 private:
     void parseHeader();

@@ -58,6 +58,7 @@ public:
     // through the ColumnChunkFactory
     explicit ColumnChunk(common::LogicalType dataType,
         std::unique_ptr<common::CSVReaderConfig> csvReaderConfig, bool hasNullChunk = true);
+
     virtual ~ColumnChunk() = default;
 
     template<typename T>

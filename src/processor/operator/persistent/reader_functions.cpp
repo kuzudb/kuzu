@@ -3,29 +3,29 @@
 using namespace kuzu::common;
 using namespace kuzu::catalog;
 using namespace kuzu::storage;
+using namespace kuzu::binder;
 
 namespace kuzu {
 namespace processor {
 
-validate_func_t ReaderFunctions::getValidateFunc(CopyDescription::FileType fileType) {
+validate_func_t ReaderFunctions::getValidateFunc(FileType fileType) {
     switch (fileType) {
-    case CopyDescription::FileType::CSV:
+    case FileType::CSV:
         return validateCSVFiles;
-    case CopyDescription::FileType::PARQUET:
+    case FileType::PARQUET:
         return validateParquetFiles;
-    case CopyDescription::FileType::NPY:
+    case FileType::NPY:
         return validateNPYFiles;
-    case CopyDescription::FileType::TURTLE:
+    case FileType::TURTLE:
         return validateRDFFiles;
     default:
         throw NotImplementedException{"ReaderFunctions::getValidateFunc"};
     }
 }
 
-count_blocks_func_t ReaderFunctions::getCountBlocksFunc(
-    CopyDescription::FileType fileType, TableType tableType) {
+count_blocks_func_t ReaderFunctions::getCountBlocksFunc(FileType fileType, TableType tableType) {
     switch (fileType) {
-    case CopyDescription::FileType::CSV: {
+    case FileType::CSV: {
         switch (tableType) {
         case TableType::NODE:
             return countRowsInNodeCSVFile;
@@ -35,13 +35,13 @@ count_blocks_func_t ReaderFunctions::getCountBlocksFunc(
             throw NotImplementedException{"ReaderFunctions::getCountBlocksFunc"};
         }
     }
-    case CopyDescription::FileType::PARQUET: {
+    case FileType::PARQUET: {
         return countRowsInParquetFile;
     }
-    case CopyDescription::FileType::NPY: {
+    case FileType::NPY: {
         return countRowsInNPYFile;
     }
-    case CopyDescription::FileType::TURTLE: {
+    case FileType::TURTLE: {
         return countRowsInRDFFile;
     }
     default: {
@@ -50,10 +50,9 @@ count_blocks_func_t ReaderFunctions::getCountBlocksFunc(
     }
 }
 
-init_reader_data_func_t ReaderFunctions::getInitDataFunc(
-    CopyDescription::FileType fileType, TableType tableType) {
+init_reader_data_func_t ReaderFunctions::getInitDataFunc(FileType fileType, TableType tableType) {
     switch (fileType) {
-    case CopyDescription::FileType::CSV: {
+    case FileType::CSV: {
         switch (tableType) {
         case TableType::NODE:
             return initNodeCSVReadData;
@@ -63,13 +62,13 @@ init_reader_data_func_t ReaderFunctions::getInitDataFunc(
             throw NotImplementedException{"ReaderFunctions::getInitDataFunc"};
         }
     }
-    case CopyDescription::FileType::PARQUET: {
+    case FileType::PARQUET: {
         return initParquetReadData;
     }
-    case CopyDescription::FileType::NPY: {
+    case FileType::NPY: {
         return initNPYReadData;
     }
-    case CopyDescription::FileType::TURTLE: {
+    case FileType::TURTLE: {
         return initRDFReadData;
     }
     default: {
@@ -78,10 +77,9 @@ init_reader_data_func_t ReaderFunctions::getInitDataFunc(
     }
 }
 
-read_rows_func_t ReaderFunctions::getReadRowsFunc(
-    CopyDescription::FileType fileType, common::TableType tableType) {
+read_rows_func_t ReaderFunctions::getReadRowsFunc(FileType fileType, common::TableType tableType) {
     switch (fileType) {
-    case CopyDescription::FileType::CSV: {
+    case FileType::CSV: {
         switch (tableType) {
         case TableType::NODE:
             return readRowsFromNodeCSVFile;
@@ -91,13 +89,13 @@ read_rows_func_t ReaderFunctions::getReadRowsFunc(
             throw NotImplementedException{"ReaderFunctions::getReadRowsFunc"};
         }
     }
-    case CopyDescription::FileType::PARQUET: {
+    case FileType::PARQUET: {
         return readRowsFromParquetFile;
     }
-    case CopyDescription::FileType::NPY: {
+    case FileType::NPY: {
         return readRowsFromNPYFile;
     }
-    case CopyDescription::FileType::TURTLE: {
+    case FileType::TURTLE: {
         return readRowsFromRDFFile;
     }
     default: {
@@ -107,9 +105,9 @@ read_rows_func_t ReaderFunctions::getReadRowsFunc(
 }
 
 std::shared_ptr<ReaderFunctionData> ReaderFunctions::getReadFuncData(
-    CopyDescription::FileType fileType, TableType tableType) {
+    FileType fileType, TableType tableType) {
     switch (fileType) {
-    case CopyDescription::FileType::CSV: {
+    case FileType::CSV: {
         switch (tableType) {
         case TableType::NODE:
             return std::make_shared<NodeCSVReaderFunctionData>();
@@ -119,13 +117,13 @@ std::shared_ptr<ReaderFunctionData> ReaderFunctions::getReadFuncData(
             throw NotImplementedException{"ReaderFunctions::getReadFuncData"};
         }
     }
-    case CopyDescription::FileType::PARQUET: {
+    case FileType::PARQUET: {
         return std::make_shared<ParquetReaderFunctionData>();
     }
-    case CopyDescription::FileType::NPY: {
+    case FileType::NPY: {
         return std::make_shared<NPYReaderFunctionData>();
     }
-    case CopyDescription::FileType::TURTLE: {
+    case FileType::TURTLE: {
         return std::make_shared<RDFReaderFunctionData>();
     }
     default: {
@@ -134,37 +132,42 @@ std::shared_ptr<ReaderFunctionData> ReaderFunctions::getReadFuncData(
     }
 }
 
-void ReaderFunctions::validateNPYFiles(
-    const std::vector<std::string>& paths, TableSchema* tableSchema) {
-    assert(!paths.empty() && paths.size() == tableSchema->getNumProperties());
+void ReaderFunctions::validateNPYFiles(const common::ReaderConfig& config) {
+    // Validate one file for one column.
+    assert(!config.filePaths.empty() && config.getNumFiles() == config.getNumColumns());
     row_idx_t numRows;
-    for (auto i = 0u; i < paths.size(); i++) {
-        auto reader = make_unique<NpyReader>(paths[i]);
+    for (auto i = 0u; i < config.getNumFiles(); i++) {
+        auto reader = make_unique<NpyReader>(config.filePaths[i]);
         if (i == 0) {
             numRows = reader->getNumRows();
         }
-        auto tableType = tableSchema->getProperty(i)->getDataType();
-        reader->validate(*tableType, numRows, tableSchema->tableName);
+        reader->validate(*config.columnTypes[i], numRows);
     }
 }
 
 std::vector<FileBlocksInfo> ReaderFunctions::countRowsInRelCSVFile(
-    const std::vector<std::string>& paths, CSVReaderConfig csvReaderConfig,
-    TableSchema* tableSchema, MemoryManager* memoryManager) {
-    std::vector<FileBlocksInfo> fileInfos(paths.size(), {INVALID_ROW_IDX, INVALID_BLOCK_IDX});
+    const common::ReaderConfig& config, MemoryManager* memoryManager) {
+    std::vector<FileBlocksInfo> fileInfos(
+        config.getNumFiles(), {INVALID_ROW_IDX, INVALID_BLOCK_IDX});
     return fileInfos;
 }
 
+static std::unique_ptr<BufferedCSVReader> createBufferedCSVReader(
+    const std::string& path, const ReaderConfig& config) {
+    return std::make_unique<BufferedCSVReader>(
+        path, *config.csvReaderConfig, config.getNumColumns());
+    ;
+}
+
 std::vector<FileBlocksInfo> ReaderFunctions::countRowsInNodeCSVFile(
-    const std::vector<std::string>& paths, common::CSVReaderConfig csvReaderConfig,
-    catalog::TableSchema* tableSchema, storage::MemoryManager* memoryManager) {
+    const common::ReaderConfig& config, MemoryManager* memoryManager) {
     std::vector<FileBlocksInfo> fileInfos;
-    fileInfos.reserve(paths.size());
-    auto dataChunk = getDataChunkToRead(tableSchema, memoryManager);
+    fileInfos.reserve(config.getNumFiles());
+    auto dataChunk = getDataChunkToRead(config, memoryManager);
     // We should add a countNumRows() API to csvReader, so that it doesn't need to read data to
     // valueVector when counting the csv file.
-    for (const auto& path : paths) {
-        auto reader = std::make_unique<BufferedCSVReader>(path, csvReaderConfig, tableSchema);
+    for (const auto& path : config.filePaths) {
+        auto reader = createBufferedCSVReader(path, config);
         row_idx_t numRowsInFile = 0;
         block_idx_t numBlocks = 0;
         while (true) {
@@ -184,13 +187,12 @@ std::vector<FileBlocksInfo> ReaderFunctions::countRowsInNodeCSVFile(
 }
 
 std::vector<FileBlocksInfo> ReaderFunctions::countRowsInParquetFile(
-    const std::vector<std::string>& paths, CSVReaderConfig csvReaderConfig,
-    TableSchema* tableSchema, MemoryManager* memoryManager) {
+    const common::ReaderConfig& config, MemoryManager* memoryManager) {
     std::vector<FileBlocksInfo> fileInfos;
-    fileInfos.reserve(paths.size());
-    for (const auto& path : paths) {
+    fileInfos.reserve(config.getNumFiles());
+    for (const auto& path : config.filePaths) {
         std::unique_ptr<parquet::arrow::FileReader> reader =
-            TableCopyUtils::createParquetReader(path, tableSchema);
+            TableCopyUtils::createParquetReader(path, config);
         auto metadata = reader->parquet_reader()->metadata();
         FileBlocksInfo fileBlocksInfo{
             (row_idx_t)metadata->num_rows(), (block_idx_t)metadata->num_row_groups()};
@@ -200,10 +202,9 @@ std::vector<FileBlocksInfo> ReaderFunctions::countRowsInParquetFile(
 }
 
 std::vector<FileBlocksInfo> ReaderFunctions::countRowsInNPYFile(
-    const std::vector<std::string>& paths, CSVReaderConfig csvReaderConfig,
-    TableSchema* tableSchema, MemoryManager* memoryManager) {
-    assert(!paths.empty());
-    auto reader = make_unique<NpyReader>(paths[0]);
+    const common::ReaderConfig& config, MemoryManager* memoryManager) {
+    assert(config.getNumFiles() != 0);
+    auto reader = make_unique<NpyReader>(config.filePaths[0]);
     auto numRows = reader->getNumRows();
     auto numBlocks =
         (block_idx_t)((numRows + DEFAULT_VECTOR_CAPACITY - 1) / DEFAULT_VECTOR_CAPACITY);
@@ -211,10 +212,9 @@ std::vector<FileBlocksInfo> ReaderFunctions::countRowsInNPYFile(
 }
 
 std::vector<FileBlocksInfo> ReaderFunctions::countRowsInRDFFile(
-    const std::vector<std::string>& paths, CSVReaderConfig csvReaderConfig,
-    TableSchema* tableSchema, MemoryManager* memoryManager) {
-    assert(paths.size() == 1);
-    auto reader = make_unique<RDFReader>(paths[0]);
+    const common::ReaderConfig& config, MemoryManager* memoryManager) {
+    assert(config.getNumFiles() == 1);
+    auto reader = make_unique<RDFReader>(config.filePaths[0]);
     auto dataChunk = std::make_unique<DataChunk>(3);
     dataChunk->insert(0, std::make_unique<ValueVector>(LogicalTypeID::STRING, memoryManager));
     dataChunk->insert(1, std::make_unique<ValueVector>(LogicalTypeID::STRING, memoryManager));
@@ -234,51 +234,42 @@ std::vector<FileBlocksInfo> ReaderFunctions::countRowsInRDFFile(
     return {fileBlocksInfo};
 }
 
-void ReaderFunctions::initRelCSVReadData(ReaderFunctionData& funcData,
-    const std::vector<std::string>& paths, vector_idx_t fileIdx, CSVReaderConfig csvReaderConfig,
-    TableSchema* tableSchema) {
-    assert(fileIdx < paths.size());
+void ReaderFunctions::initRelCSVReadData(
+    ReaderFunctionData& funcData, vector_idx_t fileIdx, const common::ReaderConfig& config) {
+    assert(fileIdx < config.getNumFiles());
     funcData.fileIdx = fileIdx;
-    funcData.tableSchema = tableSchema;
     reinterpret_cast<RelCSVReaderFunctionData&>(funcData).reader =
-        TableCopyUtils::createCSVReader(paths[fileIdx], &csvReaderConfig, tableSchema);
+        TableCopyUtils::createRelTableCSVReader(config.filePaths[fileIdx], config);
 }
 
-void ReaderFunctions::initNodeCSVReadData(ReaderFunctionData& funcData,
-    const std::vector<std::string>& paths, vector_idx_t fileIdx, CSVReaderConfig csvReaderConfig,
-    TableSchema* tableSchema) {
-    assert(fileIdx < paths.size());
+void ReaderFunctions::initNodeCSVReadData(
+    ReaderFunctionData& funcData, vector_idx_t fileIdx, const common::ReaderConfig& config) {
+    assert(fileIdx < config.getNumFiles());
     funcData.fileIdx = fileIdx;
-    funcData.tableSchema = tableSchema;
     reinterpret_cast<NodeCSVReaderFunctionData&>(funcData).reader =
-        std::make_unique<BufferedCSVReader>(paths[fileIdx], csvReaderConfig, tableSchema);
+        createBufferedCSVReader(config.filePaths[fileIdx], config);
 }
 
-void ReaderFunctions::initParquetReadData(ReaderFunctionData& funcData,
-    const std::vector<std::string>& paths, vector_idx_t fileIdx, CSVReaderConfig csvReaderConfig,
-    TableSchema* tableSchema) {
-    assert(fileIdx < paths.size());
+void ReaderFunctions::initParquetReadData(
+    ReaderFunctionData& funcData, vector_idx_t fileIdx, const common::ReaderConfig& config) {
+    assert(fileIdx < config.getNumFiles());
     funcData.fileIdx = fileIdx;
-    funcData.tableSchema = tableSchema;
     reinterpret_cast<ParquetReaderFunctionData&>(funcData).reader =
-        TableCopyUtils::createParquetReader(paths[fileIdx], tableSchema);
+        TableCopyUtils::createParquetReader(config.filePaths[fileIdx], config);
 }
 
-void ReaderFunctions::initNPYReadData(ReaderFunctionData& funcData,
-    const std::vector<std::string>& paths, vector_idx_t fileIdx, CSVReaderConfig csvReaderConfig,
-    TableSchema* tableSchema) {
+void ReaderFunctions::initNPYReadData(
+    ReaderFunctionData& funcData, vector_idx_t fileIdx, const common::ReaderConfig& config) {
     funcData.fileIdx = fileIdx;
-    funcData.tableSchema = tableSchema;
     reinterpret_cast<NPYReaderFunctionData&>(funcData).reader =
-        make_unique<NpyMultiFileReader>(paths);
+        make_unique<NpyMultiFileReader>(config.filePaths);
 }
 
-void ReaderFunctions::initRDFReadData(ReaderFunctionData& funcData,
-    const std::vector<std::string>& paths, vector_idx_t fileIdx, CSVReaderConfig csvReaderConfig,
-    TableSchema* tableSchema) {
+void ReaderFunctions::initRDFReadData(
+    ReaderFunctionData& funcData, vector_idx_t fileIdx, const common::ReaderConfig& config) {
     funcData.fileIdx = fileIdx;
-    funcData.tableSchema = tableSchema;
-    reinterpret_cast<RDFReaderFunctionData&>(funcData).reader = make_unique<RDFReader>(paths[0]);
+    reinterpret_cast<RDFReaderFunctionData&>(funcData).reader =
+        make_unique<RDFReader>(config.filePaths[0]);
 }
 
 void ReaderFunctions::readRowsFromRelCSVFile(
@@ -335,13 +326,12 @@ void ReaderFunctions::readRowsFromRDFFile(const ReaderFunctionData& functionData
 }
 
 std::unique_ptr<common::DataChunk> ReaderFunctions::getDataChunkToRead(
-    catalog::TableSchema* tableSchema, MemoryManager* memoryManager) {
+    const common::ReaderConfig& config, MemoryManager* memoryManager) {
     std::vector<std::unique_ptr<ValueVector>> valueVectorsToRead;
-    for (auto i = 0u; i < tableSchema->getNumProperties(); i++) {
-        auto property = tableSchema->getProperty(i);
-        if (property->getDataType()->getLogicalTypeID() != LogicalTypeID::SERIAL) {
-            valueVectorsToRead.emplace_back(std::make_unique<ValueVector>(
-                *tableSchema->getProperty(i)->getDataType(), memoryManager));
+    for (auto& dataType : config.columnTypes) {
+        if (dataType->getLogicalTypeID() != LogicalTypeID::SERIAL) {
+            valueVectorsToRead.emplace_back(
+                std::make_unique<ValueVector>(*dataType, memoryManager));
         }
     }
     auto dataChunk = std::make_unique<DataChunk>(valueVectorsToRead.size());

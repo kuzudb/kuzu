@@ -16,9 +16,9 @@ namespace kuzu {
 namespace processor {
 
 BaseCSVReader::BaseCSVReader(const std::string& filePath, common::CSVReaderConfig csvReaderConfig,
-    catalog::TableSchema* tableSchema)
+    uint64_t expectedNumColumns)
     : csvReaderConfig{std::move(csvReaderConfig)}, filePath{filePath},
-      tableSchema{tableSchema}, rowToAdd{0} {}
+      expectedNumColumns{expectedNumColumns}, rowToAdd{0} {}
 
 void BaseCSVReader::AddValue(DataChunk& resultChunk, std::string strVal, column_id_t& columnIdx,
     std::vector<uint64_t>& escapePositions) {
@@ -213,8 +213,9 @@ void BaseCSVReader::copyStringToVector(common::ValueVector* vector, std::string&
 }
 
 BufferedCSVReader::BufferedCSVReader(const std::string& filePath,
-    common::CSVReaderConfig csvReaderConfig, catalog::TableSchema* tableSchema)
-    : BaseCSVReader{filePath, csvReaderConfig, tableSchema}, bufferSize{0}, position{0}, start{0} {
+    common::CSVReaderConfig csvReaderConfig, uint64_t expectedNumColumns)
+    : BaseCSVReader{filePath, csvReaderConfig, expectedNumColumns},
+      bufferSize{0}, position{0}, start{0} {
     Initialize();
 }
 
@@ -225,12 +226,6 @@ BufferedCSVReader::~BufferedCSVReader() {
 }
 
 void BufferedCSVReader::Initialize() {
-    expectedNumColumns = 0;
-    for (auto& property : tableSchema->properties) {
-        if (property->getDataType()->getLogicalTypeID() != common::LogicalTypeID::SERIAL) {
-            expectedNumColumns++;
-        }
-    }
     // TODO(Ziyi): should we wrap this fd using kuzu file handler?
     fd = open(filePath.c_str(), O_RDONLY);
     JumpToBeginning(csvReaderConfig.hasHeader);

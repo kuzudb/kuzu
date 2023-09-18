@@ -62,27 +62,21 @@ void LeftArrowArrays::appendToDataChunk(common::DataChunk* dataChunk, uint64_t n
     dataChunk->state->selVector->selectedSize = numRowsToAppend;
 }
 
-void ReaderSharedState::initialize() {
-    validateFunc = ReaderFunctions::getValidateFunc(this->copyDescription->fileType);
-    initFunc =
-        ReaderFunctions::getInitDataFunc(this->copyDescription->fileType, tableSchema->tableType);
-    countBlocksFunc = ReaderFunctions::getCountBlocksFunc(
-        this->copyDescription->fileType, tableSchema->tableType);
-    readFunc =
-        ReaderFunctions::getReadRowsFunc(this->copyDescription->fileType, tableSchema->tableType);
-    readFuncData =
-        ReaderFunctions::getReadFuncData(this->copyDescription->fileType, tableSchema->tableType);
+void ReaderSharedState::initialize(TableType tableType) {
+    validateFunc = ReaderFunctions::getValidateFunc(readerConfig->fileType);
+    initFunc = ReaderFunctions::getInitDataFunc(readerConfig->fileType, tableType);
+    countBlocksFunc = ReaderFunctions::getCountBlocksFunc(readerConfig->fileType, tableType);
+    readFunc = ReaderFunctions::getReadRowsFunc(readerConfig->fileType, tableType);
+    readFuncData = ReaderFunctions::getReadFuncData(readerConfig->fileType, tableType);
 }
 
 void ReaderSharedState::validate() const {
-    validateFunc(copyDescription->filePaths, tableSchema);
+    validateFunc(*readerConfig);
 }
 
 void ReaderSharedState::countBlocks(MemoryManager* memoryManager) {
-    initFunc(*readFuncData, copyDescription->filePaths, 0 /* fileIdx */,
-        *copyDescription->csvReaderConfig, tableSchema);
-    fileInfos = countBlocksFunc(
-        copyDescription->filePaths, *copyDescription->csvReaderConfig, tableSchema, memoryManager);
+    initFunc(*readFuncData, 0 /* fileIdx */, *readerConfig);
+    fileInfos = countBlocksFunc(*readerConfig, memoryManager);
     for (auto& fileInfo : fileInfos) {
         numRows += fileInfo.numRows;
     }
@@ -93,7 +87,7 @@ std::unique_ptr<ReaderMorsel> ReaderSharedState::getMorsel() {
     std::unique_ptr<ReaderMorsel> morsel;
     lockForParallel<READ_MODE>();
     while (true) {
-        if (currFileIdx >= copyDescription->filePaths.size()) {
+        if (currFileIdx >= readerConfig->getNumFiles()) {
             // No more blocks.
             morsel = std::make_unique<ReaderMorsel>();
             break;

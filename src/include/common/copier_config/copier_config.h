@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "common/constants.h"
+#include "common/table_type.h"
 #include "common/types/types.h"
 
 namespace kuzu {
@@ -36,21 +37,36 @@ struct CSVReaderConfig {
     }
 };
 
-struct CopyDescription {
-    enum class FileType : uint8_t { UNKNOWN = 0, CSV = 1, PARQUET = 2, NPY = 3, TURTLE = 4 };
-    FileType fileType;
+enum class FileType : uint8_t { UNKNOWN = 0, CSV = 1, PARQUET = 2, NPY = 3, TURTLE = 4 };
+
+struct FileTypeUtils {
+    inline static std::unordered_map<std::string, FileType> fileTypeMap{
+        {"unknown", FileType::UNKNOWN}, {".csv", FileType::CSV}, {".parquet", FileType::PARQUET},
+        {".npy", FileType::NPY}, {".ttl", FileType::TURTLE}};
+
+    static FileType getFileTypeFromExtension(const std::string& extension);
+};
+
+struct ReaderConfig {
+    FileType fileType = FileType::UNKNOWN;
     std::vector<std::string> filePaths;
     std::vector<std::string> columnNames;
-    std::vector<LogicalType> columnTypes;
-    std::unique_ptr<CSVReaderConfig> csvReaderConfig;
+    std::vector<std::unique_ptr<common::LogicalType>> columnTypes;
+    std::unique_ptr<CSVReaderConfig> csvReaderConfig = nullptr;
 
-    CopyDescription(FileType fileType, const std::vector<std::string>& filePaths,
+    ReaderConfig(FileType fileType, std::vector<std::string> filePaths,
         std::unique_ptr<CSVReaderConfig> csvReaderConfig)
-        : fileType{fileType}, filePaths{filePaths}, csvReaderConfig{std::move(csvReaderConfig)} {}
+        : fileType{fileType}, filePaths{std::move(filePaths)}, csvReaderConfig{
+                                                                   std::move(csvReaderConfig)} {}
+    ReaderConfig(FileType fileType, std::vector<std::string> filePaths,
+        std::vector<std::string> columnNames,
+        std::vector<std::unique_ptr<common::LogicalType>> columnTypes)
+        : fileType{fileType}, filePaths{std::move(filePaths)}, columnNames{std::move(columnNames)},
+          columnTypes{std::move(columnTypes)} {}
 
-    CopyDescription(const CopyDescription& other)
+    ReaderConfig(const ReaderConfig& other)
         : fileType{other.fileType}, filePaths{other.filePaths}, columnNames{other.columnNames},
-          columnTypes{other.columnTypes} {
+          columnTypes{LogicalType::copy(other.columnTypes)} {
         if (other.csvReaderConfig != nullptr) {
             this->csvReaderConfig = std::make_unique<CSVReaderConfig>(*other.csvReaderConfig);
         }
@@ -60,18 +76,11 @@ struct CopyDescription {
         return fileType != FileType::CSV && fileType != FileType::TURTLE;
     }
     inline uint32_t getNumFiles() const { return filePaths.size(); }
+    inline uint32_t getNumColumns() const { return columnNames.size(); }
 
-    inline std::unique_ptr<CopyDescription> copy() const {
-        return std::make_unique<CopyDescription>(*this);
+    inline std::unique_ptr<ReaderConfig> copy() const {
+        return std::make_unique<ReaderConfig>(*this);
     }
-
-    inline static std::unordered_map<std::string, FileType> fileTypeMap{
-        {"unknown", FileType::UNKNOWN}, {".csv", FileType::CSV}, {".parquet", FileType::PARQUET},
-        {".npy", FileType::NPY}, {".ttl", FileType::TURTLE}};
-
-    static FileType getFileTypeFromExtension(const std::string& extension);
-
-    static std::string getFileTypeName(FileType fileType);
 };
 
 } // namespace common

@@ -12,15 +12,15 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanFile(LogicalOperator* logic
     auto outSchema = logicalOperator->getSchema();
     auto scanFile = reinterpret_cast<LogicalScanFile*>(logicalOperator);
     auto info = scanFile->getInfo();
-    auto readerSharedState =
-        std::make_shared<ReaderSharedState>(info->copyDesc->copy(), info->tableSchema);
+    auto readerSharedState = std::make_shared<ReaderSharedState>(info->readerConfig->copy());
     std::vector<DataPos> dataColumnsPos;
     dataColumnsPos.reserve(info->columns.size());
     for (auto& expression : info->columns) {
         dataColumnsPos.emplace_back(outSchema->getExpressionPos(*expression));
     }
     auto offsetPos = DataPos(outSchema->getExpressionPos(*info->offset));
-    auto readInfo = std::make_unique<ReaderInfo>(offsetPos, dataColumnsPos, info->containsSerial);
+    auto readInfo = std::make_unique<ReaderInfo>(
+        offsetPos, dataColumnsPos, info->containsSerial, info->tableType);
     return std::make_unique<Reader>(std::move(readInfo), readerSharedState, getOperatorID(),
         logicalOperator->getExpressionsForPrinting());
 }

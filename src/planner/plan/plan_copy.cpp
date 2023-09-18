@@ -26,12 +26,12 @@ static void appendIndexScan(
 std::unique_ptr<LogicalPlan> Planner::planCopyFrom(const BoundStatement& statement) {
     auto& copyFrom = reinterpret_cast<const BoundCopyFrom&>(statement);
     auto copyFromInfo = copyFrom.getInfo();
-    auto fileType = copyFromInfo->fileScanInfo->copyDesc->fileType;
+    auto fileType = copyFromInfo->fileScanInfo->readerConfig->fileType;
     auto plan = std::make_unique<LogicalPlan>();
     QueryPlanner::appendScanFile(copyFromInfo->fileScanInfo.get(), *plan);
     auto tableType = copyFromInfo->tableSchema->tableType;
     if (tableType == TableType::REL) {
-        if (fileType == CopyDescription::FileType::TURTLE) {
+        if (fileType == FileType::TURTLE) {
             auto extraInfo =
                 reinterpret_cast<ExtraBoundCopyRdfRelInfo*>(copyFromInfo->extraInfo.get());
             std::vector<std::unique_ptr<LogicalIndexScanNodeInfo>> infos;
@@ -74,8 +74,8 @@ std::unique_ptr<LogicalPlan> Planner::planCopyTo(const Catalog& catalog,
     auto regularQuery = copyClause.getRegularQuery();
     assert(regularQuery->getStatementType() == StatementType::QUERY);
     auto plan = QueryPlanner(catalog, nodesStatistics, relsStatistics).getBestPlan(*regularQuery);
-    auto logicalCopyTo = make_shared<LogicalCopyTo>(
-        plan->getLastOperator(), copyClause.getCopyDescription()->copy());
+    auto logicalCopyTo =
+        make_shared<LogicalCopyTo>(plan->getLastOperator(), copyClause.getConfig()->copy());
     plan->setLastOperator(std::move(logicalCopyTo));
     return plan;
 }
