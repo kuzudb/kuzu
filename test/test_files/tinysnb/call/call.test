@@ -37,7 +37,7 @@
 10
 -STATEMENT MATCH (a:person)-[:knows*1..28]->(b:person) RETURN COUNT(*);
 ---- error
-Binder exception: Upper bound of rel exceeds maximum: 10.
+Binder exception: Upper bound of rel  exceeds maximum: 10.
 -STATEMENT MATCH (a:person)-[:knows*1..10]->(b:person) RETURN COUNT(*);
 ---- 1
 354290

@@ -213,11 +213,6 @@ Binder exception: p1.age has data type INT64. (STRING) was expected.
 ---- error
 Binder exception: Union and union all can't be used together.
 
--LOG VarLenExtendZeroLowerBound
--STATEMENT MATCH (a:person)-[:knows*0..5]->(b:person) return count(*)
----- error
-Binder exception: Lower and upper bound of a rel must be greater than 0.
-
 -LOG ReadAfterUpdate
 -STATEMENT MATCH (a:person) SET a.age = 35 WITH a MATCH (a)-[:knows]->(b:person) RETURN a.age
 ---- error
