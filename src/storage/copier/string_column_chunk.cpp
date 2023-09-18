@@ -10,8 +10,9 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-StringColumnChunk::StringColumnChunk(LogicalType dataType, CopyDescription* copyDescription)
-    : ColumnChunk{std::move(dataType), copyDescription} {
+StringColumnChunk::StringColumnChunk(
+    LogicalType dataType, std::unique_ptr<CSVReaderConfig> csvReaderConfig)
+    : ColumnChunk{std::move(dataType), std::move(csvReaderConfig)} {
     overflowFile = std::make_unique<InMemOverflowFile>();
     overflowCursor.pageIdx = 0;
     overflowCursor.offsetInPage = 0;

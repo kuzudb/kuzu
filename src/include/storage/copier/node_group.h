@@ -12,8 +12,7 @@ class NodeTable;
 
 class NodeGroup {
 public:
-    explicit NodeGroup(
-        catalog::TableSchema* schema, common::CopyDescription* copyDescription = nullptr);
+    explicit NodeGroup(catalog::TableSchema* schema, common::CSVReaderConfig* csvReaderConfig);
     explicit NodeGroup(NodeTable* table);
 
     inline void setNodeGroupIdx(uint64_t nodeGroupIdx_) { this->nodeGroupIdx = nodeGroupIdx_; }

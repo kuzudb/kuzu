@@ -7,7 +7,8 @@ namespace storage {
 
 class StructColumnChunk : public ColumnChunk {
 public:
-    StructColumnChunk(common::LogicalType dataType, common::CopyDescription* copyDescription);
+    StructColumnChunk(
+        common::LogicalType dataType, std::unique_ptr<common::CSVReaderConfig> csvReaderConfig);
 
 protected:
     void append(

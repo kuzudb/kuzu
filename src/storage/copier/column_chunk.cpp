@@ -14,9 +14,10 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-ColumnChunk::ColumnChunk(LogicalType dataType, CopyDescription* copyDescription, bool hasNullChunk)
+ColumnChunk::ColumnChunk(
+    LogicalType dataType, std::unique_ptr<CSVReaderConfig> csvReaderConfig, bool hasNullChunk)
     : dataType{std::move(dataType)}, numBytesPerValue{getDataTypeSizeInChunk(this->dataType)},
-      copyDescription{copyDescription}, numValues{0} {
+      csvReaderConfig{std::move(csvReaderConfig)}, numValues{0} {
     if (hasNullChunk) {
         nullChunk = std::make_unique<NullColumnChunk>();
     }
@@ -457,11 +458,12 @@ void FixedListColumnChunk::write(const Value& fixedListVal, uint64_t posToWrite)
 }
 
 std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
-    const LogicalType& dataType, CopyDescription* copyDescription) {
+    const LogicalType& dataType, CSVReaderConfig* csvReaderConfig) {
+    auto csvReaderConfigCopy = csvReaderConfig ? csvReaderConfig->copy() : nullptr;
     std::unique_ptr<ColumnChunk> chunk;
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
-        chunk = std::make_unique<BoolColumnChunk>(copyDescription);
+        chunk = std::make_unique<BoolColumnChunk>(std::move(csvReaderConfigCopy));
     } break;
     case PhysicalTypeID::INT64:
     case PhysicalTypeID::INT32:
@@ -473,20 +475,20 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
         if (dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
             chunk = std::make_unique<SerialColumnChunk>();
         } else {
-            chunk = std::make_unique<ColumnChunk>(dataType, copyDescription);
+            chunk = std::make_unique<ColumnChunk>(dataType, std::move(csvReaderConfigCopy));
         }
     } break;
     case PhysicalTypeID::FIXED_LIST: {
-        chunk = std::make_unique<FixedListColumnChunk>(dataType, copyDescription);
+        chunk = std::make_unique<FixedListColumnChunk>(dataType, std::move(csvReaderConfigCopy));
     } break;
     case PhysicalTypeID::STRING: {
-        chunk = std::make_unique<StringColumnChunk>(dataType, copyDescription);
+        chunk = std::make_unique<StringColumnChunk>(dataType, std::move(csvReaderConfigCopy));
     } break;
     case PhysicalTypeID::VAR_LIST: {
-        chunk = std::make_unique<VarListColumnChunk>(dataType, copyDescription);
+        chunk = std::make_unique<VarListColumnChunk>(dataType, std::move(csvReaderConfigCopy));
     } break;
     case PhysicalTypeID::STRUCT: {
-        chunk = std::make_unique<StructColumnChunk>(dataType, copyDescription);
+        chunk = std::make_unique<StructColumnChunk>(dataType, std::move(csvReaderConfigCopy));
     } break;
     default: {
         throw NotImplementedException("ColumnChunkFactory::createColumnChunk for data type " +
@@ -510,8 +512,8 @@ void ColumnChunk::setValueFromString<bool>(const char* value, uint64_t length, u
 // Fixed list
 template<>
 void ColumnChunk::setValueFromString<uint8_t*>(const char* value, uint64_t length, uint64_t pos) {
-    auto fixedListVal = TableCopyUtils::getArrowFixedList(
-        value, 1, length - 2, dataType, *copyDescription->csvReaderConfig);
+    auto fixedListVal =
+        TableCopyUtils::getArrowFixedList(value, 1, length - 2, dataType, *csvReaderConfig);
     memcpy(buffer.get() + pos * numBytesPerValue, fixedListVal.get(), numBytesPerValue);
 }
 

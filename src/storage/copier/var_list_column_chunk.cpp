@@ -4,6 +4,8 @@
 #include "common/types/value/nested.h"
 #include "storage/copier/table_copy_utils.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace storage {
 
@@ -21,10 +23,11 @@ void VarListDataColumnChunk::resizeBuffer(uint64_t numValues) {
     dataColumnChunk->resize(capacity);
 }
 
-VarListColumnChunk::VarListColumnChunk(LogicalType dataType, CopyDescription* copyDescription)
-    : ColumnChunk{std::move(dataType), copyDescription, true /* hasNullChunk */},
+VarListColumnChunk::VarListColumnChunk(
+    LogicalType dataType, std::unique_ptr<common::CSVReaderConfig> csvReaderConfig)
+    : ColumnChunk{std::move(dataType), std::move(csvReaderConfig), true /* hasNullChunk */},
       varListDataColumnChunk{ColumnChunkFactory::createColumnChunk(
-          *VarListType::getChildType(&this->dataType), copyDescription)} {
+          *VarListType::getChildType(&this->dataType), this->csvReaderConfig.get())} {
     assert(this->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
 }
 
@@ -82,7 +85,7 @@ void VarListColumnChunk::copyVarListFromArrowString(
             }
             auto value = stringArray->GetView(i);
             auto listVal = TableCopyUtils::getVarListValue(
-                value.data(), 1, value.size() - 2, dataType, *copyDescription->csvReaderConfig);
+                value.data(), 1, value.size() - 2, dataType, *csvReaderConfig);
             write(*listVal, posInChunk);
         }
     } else {
@@ -90,7 +93,7 @@ void VarListColumnChunk::copyVarListFromArrowString(
             auto value = stringArray->GetView(i);
             auto posInChunk = startPosInChunk + i;
             auto listVal = TableCopyUtils::getVarListValue(
-                value.data(), 1, value.size() - 2, dataType, *copyDescription->csvReaderConfig);
+                value.data(), 1, value.size() - 2, dataType, *csvReaderConfig);
             write(*listVal, posInChunk);
         }
     }
@@ -109,8 +112,8 @@ void VarListColumnChunk::write(const Value& listVal, uint64_t posToWrite) {
 }
 
 void VarListColumnChunk::setValueFromString(const char* value, uint64_t length, uint64_t pos) {
-    auto listVal = TableCopyUtils::getVarListValue(
-        value, 1, length - 2, dataType, *copyDescription->csvReaderConfig);
+    auto listVal =
+        TableCopyUtils::getVarListValue(value, 1, length - 2, dataType, *csvReaderConfig);
     write(*listVal, pos);
 }
 

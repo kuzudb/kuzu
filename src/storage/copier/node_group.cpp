@@ -11,11 +11,11 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-NodeGroup::NodeGroup(TableSchema* schema, CopyDescription* copyDescription)
+NodeGroup::NodeGroup(TableSchema* schema, CSVReaderConfig* csvReaderConfig)
     : nodeGroupIdx{UINT64_MAX}, numNodes{0} {
     for (auto& property : schema->properties) {
         chunks[property->getPropertyID()] =
-            ColumnChunkFactory::createColumnChunk(*property->getDataType(), copyDescription);
+            ColumnChunkFactory::createColumnChunk(*property->getDataType(), csvReaderConfig);
     }
 }
 

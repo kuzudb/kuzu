@@ -3,8 +3,6 @@
 #include "arrow/array/array_nested.h"
 #include "storage/copier/column_chunk.h"
 
-using namespace kuzu::common;
-
 namespace kuzu {
 namespace storage {
 
@@ -13,13 +11,14 @@ struct VarListDataColumnChunk {
     uint64_t capacity;
 
     explicit VarListDataColumnChunk(std::unique_ptr<ColumnChunk> dataChunk)
-        : dataColumnChunk{std::move(dataChunk)}, capacity{StorageConstants::NODE_GROUP_SIZE} {}
+        : dataColumnChunk{std::move(dataChunk)}, capacity{
+                                                     common::StorageConstants::NODE_GROUP_SIZE} {}
 
     void reset();
 
     void resizeBuffer(uint64_t numValues);
 
-    inline void append(ValueVector* dataVector) const {
+    inline void append(common::ValueVector* dataVector) const {
         dataColumnChunk->append(dataVector, dataColumnChunk->getNumValues());
     }
 
@@ -32,7 +31,8 @@ struct VarListDataColumnChunk {
 
 class VarListColumnChunk : public ColumnChunk {
 public:
-    VarListColumnChunk(LogicalType dataType, CopyDescription* copyDescription);
+    VarListColumnChunk(
+        common::LogicalType dataType, std::unique_ptr<common::CSVReaderConfig> csvReaderConfig);
 
     inline ColumnChunk* getDataColumnChunk() const {
         return varListDataColumnChunk.dataColumnChunk.get();
@@ -54,17 +54,18 @@ private:
         return varListDataColumnChunk.dataColumnChunk->getNumPages() + ColumnChunk::getNumPages();
     }
 
-    void append(arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) override;
+    void append(
+        arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) override;
 
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
 
     void copyVarListFromArrowString(
-        arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend);
+        arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
 
     template<typename T>
     void copyVarListFromArrowList(
-        arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
+        arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
         auto listArray = (T*)array;
         auto dataChunkOffsetToAppend = varListDataColumnChunk.getNumValues();
         auto curListOffset = varListDataColumnChunk.getNumValues();
@@ -91,7 +92,7 @@ private:
         return getListOffset(offset + 1) - getListOffset(offset);
     }
 
-    inline offset_t getListOffset(common::offset_t offset) const {
+    inline common::offset_t getListOffset(common::offset_t offset) const {
         return offset == 0 ? 0 : getValue<uint64_t>(offset - 1);
     }
 };

@@ -14,12 +14,14 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-StructColumnChunk::StructColumnChunk(LogicalType dataType, CopyDescription* copyDescription)
-    : ColumnChunk{std::move(dataType), copyDescription} {
+StructColumnChunk::StructColumnChunk(
+    LogicalType dataType, std::unique_ptr<common::CSVReaderConfig> csvReaderConfig)
+    : ColumnChunk{std::move(dataType), std::move(csvReaderConfig)} {
     auto fieldTypes = StructType::getFieldTypes(&this->dataType);
     childrenChunks.resize(fieldTypes.size());
     for (auto i = 0u; i < fieldTypes.size(); i++) {
-        childrenChunks[i] = ColumnChunkFactory::createColumnChunk(*fieldTypes[i], copyDescription);
+        childrenChunks[i] =
+            ColumnChunkFactory::createColumnChunk(*fieldTypes[i], this->csvReaderConfig.get());
     }
 }
 
@@ -74,8 +76,8 @@ void StructColumnChunk::setStructFields(const char* value, uint64_t length, uint
     switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::STRUCT: {
         auto structString = std::string(value, length).substr(1, length - 2);
-        auto structFieldIdxAndValuePairs = TableCopyUtils::parseStructFieldNameAndValues(
-            dataType, structString, *copyDescription->csvReaderConfig);
+        auto structFieldIdxAndValuePairs =
+            TableCopyUtils::parseStructFieldNameAndValues(dataType, structString, *csvReaderConfig);
         for (auto& fieldIdxAndValue : structFieldIdxAndValuePairs) {
             setValueToStructField(pos, fieldIdxAndValue.fieldValue, fieldIdxAndValue.fieldIdx);
         }
