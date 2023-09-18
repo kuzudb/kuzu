@@ -37,7 +37,6 @@
 
 # Zero-length variable length pattern in the middle of the pattern
 -CASE Scenario3
--SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE CONTAIN(FROM A TO A);
@@ -146,7 +145,7 @@
                   (n2)-[:EDGE]->(n3);
 ---- ok
 -STATEMENT MATCH ()-[r:EDGE]-()
-           MATCH p = (n)-[*0..1]-()-[p:EDGE]-()-[*0..1]-(m)
+           MATCH p = (n)-[*0..1]-()-[r:EDGE]-()-[*0..1]-(m)
            RETURN count(p) AS c
 ---- 1
 32

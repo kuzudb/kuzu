@@ -56,6 +56,12 @@ void DstNodeScanner::scanFromDstOffset(RecursiveJoinVectors* vectors, sel_t& vec
 
 void PathScanner::scanFromDstOffset(RecursiveJoinVectors* vectors, sel_t& vectorPos,
     sel_t& nodeIDDataVectorPos, sel_t& relIDDataVectorPos) {
+    // when bound node is 0
+    if (k == 0) {
+        writePathToVector(vectors, vectorPos, nodeIDDataVectorPos, relIDDataVectorPos);
+        return;
+    }
+
     auto level = 0;
     while (!nbrsStack.empty()) {
         auto& cursor = cursorStack.top();
@@ -87,7 +93,9 @@ void PathScanner::initDfs(const frontier::node_rel_id_t& nodeAndRelID, size_t cu
     nodeIDs[currentDepth] = nodeAndRelID.first;
     relIDs[currentDepth] = nodeAndRelID.second;
     if (currentDepth == 0) {
-        cursorStack.top() = -1;
+        if (k != 0) {
+            cursorStack.top() = -1;
+        }
         return;
     }
     auto nbrs = &frontiers[currentDepth]->bwdEdges.at(nodeAndRelID.first);
@@ -99,7 +107,7 @@ void PathScanner::initDfs(const frontier::node_rel_id_t& nodeAndRelID, size_t cu
 void PathScanner::writePathToVector(RecursiveJoinVectors* vectors, sel_t& vectorPos,
     sel_t& nodeIDDataVectorPos, sel_t& relIDDataVectorPos) {
     assert(vectorPos < DEFAULT_VECTOR_CAPACITY);
-    auto nodeEntry = ListVector::addList(vectors->pathNodesVector, k - 1);
+    auto nodeEntry = ListVector::addList(vectors->pathNodesVector, k > 0 ? k - 1 : 0);
     auto relEntry = ListVector::addList(vectors->pathRelsVector, k);
     vectors->pathNodesVector->setValue(vectorPos, nodeEntry);
     vectors->pathRelsVector->setValue(vectorPos, relEntry);
