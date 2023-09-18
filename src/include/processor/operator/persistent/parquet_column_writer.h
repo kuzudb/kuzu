@@ -63,9 +63,9 @@ private:
     // Properties for nested lists and structs
     bool isListStarting;
 
-    int currentColumn;
-    int currentParquetColumn;
-    int totalColumns;
+    int currentColumn = 0;
+    int currentParquetColumn = 0;
+    int totalColumns = 0;
 
     // define the writers
     parquet::RowGroupWriter* rowGroupWriter;
