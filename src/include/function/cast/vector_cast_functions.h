@@ -60,6 +60,22 @@ protected:
             func = UnaryExecFunction<int64_t, DST_TYPE, OP>;
             return;
         }
+        case common::LogicalTypeID::UINT8: {
+            func = UnaryExecFunction<uint8_t, DST_TYPE, OP>;
+            return;
+        }
+        case common::LogicalTypeID::UINT16: {
+            func = UnaryExecFunction<uint16_t, DST_TYPE, OP>;
+            return;
+        }
+        case common::LogicalTypeID::UINT32: {
+            func = UnaryExecFunction<uint32_t, DST_TYPE, OP>;
+            return;
+        }
+        case common::LogicalTypeID::UINT64: {
+            func = UnaryExecFunction<uint64_t, DST_TYPE, OP>;
+            return;
+        }
         case common::LogicalTypeID::FLOAT: {
             func = UnaryExecFunction<float_t, DST_TYPE, OP>;
             return;
@@ -121,6 +137,22 @@ struct CastToInt16VectorFunction : public VectorCastFunction {
 };
 
 struct CastToInt8VectorFunction : public VectorCastFunction {
+    static vector_function_definitions getDefinitions();
+};
+
+struct CastToUInt64VectorFunction : public VectorCastFunction {
+    static vector_function_definitions getDefinitions();
+};
+
+struct CastToUInt32VectorFunction : public VectorCastFunction {
+    static vector_function_definitions getDefinitions();
+};
+
+struct CastToUInt16VectorFunction : public VectorCastFunction {
+    static vector_function_definitions getDefinitions();
+};
+
+struct CastToUInt8VectorFunction : public VectorCastFunction {
     static vector_function_definitions getDefinitions();
 };
 

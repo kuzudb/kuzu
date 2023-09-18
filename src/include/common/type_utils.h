@@ -32,6 +32,10 @@ public:
             int val;
             iss >> val; // C++ will recognize int8 as char if we don't separate this case.
             result = val;
+        } else if constexpr (std::is_same_v<uint8_t, T>) {
+            int val;
+            iss >> val; // C++ will recognize int8 as char if we don't separate this case.
+            result = val;
         } else
             iss >> result;
 
@@ -63,6 +67,10 @@ public:
     static inline std::string toString(int32_t val) { return std::to_string(val); }
     static inline std::string toString(int16_t val) { return std::to_string(val); }
     static inline std::string toString(int8_t val) { return std::to_string(val); }
+    static inline std::string toString(uint64_t val) { return std::to_string(val); }
+    static inline std::string toString(uint32_t val) { return std::to_string(val); }
+    static inline std::string toString(uint16_t val) { return std::to_string(val); }
+    static inline std::string toString(uint8_t val) { return std::to_string(val); }
     static inline std::string toString(double_t val) { return std::to_string(val); }
     static inline std::string toString(float_t val) { return std::to_string(val); }
     static inline std::string toString(const internalID_t& val) {

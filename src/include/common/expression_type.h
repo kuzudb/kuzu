@@ -31,6 +31,10 @@ const std::string CAST_TO_INT64_FUNC_NAME = "TO_INT64";
 const std::string CAST_TO_INT32_FUNC_NAME = "TO_INT32";
 const std::string CAST_TO_INT16_FUNC_NAME = "TO_INT16";
 const std::string CAST_TO_INT8_FUNC_NAME = "TO_INT8";
+const std::string CAST_TO_UINT64_FUNC_NAME = "TO_UINT64";
+const std::string CAST_TO_UINT32_FUNC_NAME = "TO_UINT32";
+const std::string CAST_TO_UINT16_FUNC_NAME = "TO_UINT16";
+const std::string CAST_TO_UINT8_FUNC_NAME = "TO_UINT8";
 const std::string CAST_TO_BLOB_FUNC_NAME = "BLOB";
 
 // list

@@ -145,6 +145,18 @@ void ValueVector::copyFromValue(uint64_t pos, const Value& value) {
     case PhysicalTypeID::INT8: {
         memcpy(dstValue, &value.val.int8Val, numBytesPerValue);
     } break;
+    case PhysicalTypeID::UINT64: {
+        memcpy(dstValue, &value.val.uint64Val, numBytesPerValue);
+    } break;
+    case PhysicalTypeID::UINT32: {
+        memcpy(dstValue, &value.val.uint32Val, numBytesPerValue);
+    } break;
+    case PhysicalTypeID::UINT16: {
+        memcpy(dstValue, &value.val.uint16Val, numBytesPerValue);
+    } break;
+    case PhysicalTypeID::UINT8: {
+        memcpy(dstValue, &value.val.uint8Val, numBytesPerValue);
+    } break;
     case PhysicalTypeID::DOUBLE: {
         memcpy(dstValue, &value.val.doubleVal, numBytesPerValue);
     } break;
@@ -233,6 +245,18 @@ std::unique_ptr<Value> ValueVector::getAsValue(uint64_t pos) {
     } break;
     case PhysicalTypeID::INT8: {
         value->val.int8Val = getValue<int8_t>(pos);
+    } break;
+    case PhysicalTypeID::UINT64: {
+        value->val.uint64Val = getValue<uint64_t>(pos);
+    } break;
+    case PhysicalTypeID::UINT32: {
+        value->val.uint32Val = getValue<uint32_t>(pos);
+    } break;
+    case PhysicalTypeID::UINT16: {
+        value->val.uint16Val = getValue<uint16_t>(pos);
+    } break;
+    case PhysicalTypeID::UINT8: {
+        value->val.uint8Val = getValue<uint8_t>(pos);
     } break;
     case PhysicalTypeID::DOUBLE: {
         value->val.doubleVal = getValue<double_t>(pos);
@@ -354,14 +378,16 @@ template void ValueVector::setValue<int64_t>(uint32_t pos, int64_t val);
 template void ValueVector::setValue<int32_t>(uint32_t pos, int32_t val);
 template void ValueVector::setValue<int16_t>(uint32_t pos, int16_t val);
 template void ValueVector::setValue<int8_t>(uint32_t pos, int8_t val);
+template void ValueVector::setValue<uint64_t>(uint32_t pos, uint64_t val);
+template void ValueVector::setValue<uint32_t>(uint32_t pos, uint32_t val);
+template void ValueVector::setValue<uint16_t>(uint32_t pos, uint16_t val);
+template void ValueVector::setValue<uint8_t>(uint32_t pos, uint8_t val);
 template void ValueVector::setValue<double_t>(uint32_t pos, double_t val);
 template void ValueVector::setValue<float_t>(uint32_t pos, float_t val);
-template void ValueVector::setValue<hash_t>(uint32_t pos, hash_t val);
 template void ValueVector::setValue<date_t>(uint32_t pos, date_t val);
 template void ValueVector::setValue<timestamp_t>(uint32_t pos, timestamp_t val);
 template void ValueVector::setValue<interval_t>(uint32_t pos, interval_t val);
 template void ValueVector::setValue<list_entry_t>(uint32_t pos, list_entry_t val);
-template void ValueVector::setValue<vector_idx_t>(uint32_t pos, vector_idx_t val);
 
 template<>
 void ValueVector::setValue(uint32_t pos, ku_string_t val) {

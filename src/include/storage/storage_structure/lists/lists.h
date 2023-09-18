@@ -251,6 +251,10 @@ public:
         case common::LogicalTypeID::INT32:
         case common::LogicalTypeID::INT16:
         case common::LogicalTypeID::INT8:
+        case common::LogicalTypeID::UINT64:
+        case common::LogicalTypeID::UINT32:
+        case common::LogicalTypeID::UINT16:
+        case common::LogicalTypeID::UINT8:
         case common::LogicalTypeID::DOUBLE:
         case common::LogicalTypeID::FLOAT:
         case common::LogicalTypeID::BOOL:

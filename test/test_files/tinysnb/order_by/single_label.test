@@ -43,6 +43,38 @@
 5
 120
 
+-LOG OrderByUInt64Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.code ORDER BY e.code
+-CHECK_ORDER
+---- 3
+23
+6556
+6689
+
+-LOG OrderByUInt32Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.temprature ORDER BY e.temprature
+-CHECK_ORDER
+---- 3
+1
+20
+35
+
+-LOG OrderByUInt16Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.ulength ORDER BY e.ulength
+-CHECK_ORDER
+---- 3
+90
+120
+180
+
+-LOG OrderByUInt8Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.ulevel ORDER BY e.ulevel
+-CHECK_ORDER
+---- 3
+12
+15
+220
+
 -LOG OrderByBooleanTest
 -STATEMENT MATCH (p:person) RETURN p.isStudent ORDER BY p.isStudent desc
 -CHECK_ORDER

@@ -128,6 +128,22 @@ void StructColumnChunk::setValueToStructField(
         fieldChunk->setValueFromString<int8_t>(
             structFieldValue.c_str(), structFieldValue.length(), pos);
     } break;
+    case LogicalTypeID::UINT64: {
+        fieldChunk->setValueFromString<uint64_t>(
+            structFieldValue.c_str(), structFieldValue.length(), pos);
+    } break;
+    case LogicalTypeID::UINT32: {
+        fieldChunk->setValueFromString<uint32_t>(
+            structFieldValue.c_str(), structFieldValue.length(), pos);
+    } break;
+    case LogicalTypeID::UINT16: {
+        fieldChunk->setValueFromString<uint16_t>(
+            structFieldValue.c_str(), structFieldValue.length(), pos);
+    } break;
+    case LogicalTypeID::UINT8: {
+        fieldChunk->setValueFromString<uint8_t>(
+            structFieldValue.c_str(), structFieldValue.length(), pos);
+    } break;
     case LogicalTypeID::DOUBLE: {
         fieldChunk->setValueFromString<double_t>(
             structFieldValue.c_str(), structFieldValue.length(), pos);

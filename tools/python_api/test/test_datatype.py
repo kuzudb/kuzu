@@ -184,8 +184,8 @@ def test_recursive_rel(establish_connection):
                     'date': None, 'meetTime': None, 'validInterval': None,
                     'comments': None, 'year': 2021,
                     'places': ['wwAewsdndweusd', 'wek'],
-                    'length': 5, 'level': 5, 'grading': None, 'rating': None,
-                    'location': None, 'times': None, 'data': None,
+                    'length': 5, 'level': 5, 'code': 6556, 'temprature':35, 'ulength':120, 'ulevel': 15, 'grading': None,
+                    'rating': None, 'location': None, 'times': None, 'data': None,
                     'usedAddress': None, 'address': None, 'note': None}
     assert (rel == excepted_rel)
     assert not result.has_next()

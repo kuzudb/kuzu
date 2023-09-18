@@ -220,6 +220,22 @@ void OrderByKeyEncoder::getEncodingFunction(PhysicalTypeID physicalType, encode_
         func = encodeTemplate<int8_t>;
         return;
     }
+    case PhysicalTypeID::UINT64: {
+        func = encodeTemplate<uint64_t>;
+        return;
+    }
+    case PhysicalTypeID::UINT32: {
+        func = encodeTemplate<uint32_t>;
+        return;
+    }
+    case PhysicalTypeID::UINT16: {
+        func = encodeTemplate<uint16_t>;
+        return;
+    }
+    case PhysicalTypeID::UINT8: {
+        func = encodeTemplate<uint8_t>;
+        return;
+    }
     case PhysicalTypeID::DOUBLE: {
         func = encodeTemplate<double_t>;
         return;
@@ -243,9 +259,6 @@ void OrderByKeyEncoder::getEncodingFunction(PhysicalTypeID physicalType, encode_
 
 template<>
 void OrderByKeyEncoder::encodeData(int8_t data, uint8_t* resultPtr, bool swapBytes) {
-    if (swapBytes) {
-        data = BSWAP8(data);
-    }
     memcpy(resultPtr, (void*)&data, sizeof(data));
     resultPtr[0] = flipSign(resultPtr[0]);
 }
@@ -275,6 +288,35 @@ void OrderByKeyEncoder::encodeData(int64_t data, uint8_t* resultPtr, bool swapBy
     }
     memcpy(resultPtr, (void*)&data, sizeof(data));
     resultPtr[0] = flipSign(resultPtr[0]);
+}
+
+template<>
+void OrderByKeyEncoder::encodeData(uint8_t data, uint8_t* resultPtr, bool swapBytes) {
+    memcpy(resultPtr, (void*)&data, sizeof(data));
+}
+
+template<>
+void OrderByKeyEncoder::encodeData(uint16_t data, uint8_t* resultPtr, bool swapBytes) {
+    if (swapBytes) {
+        data = BSWAP16(data);
+    }
+    memcpy(resultPtr, (void*)&data, sizeof(data));
+}
+
+template<>
+void OrderByKeyEncoder::encodeData(uint32_t data, uint8_t* resultPtr, bool swapBytes) {
+    if (swapBytes) {
+        data = BSWAP32(data);
+    }
+    memcpy(resultPtr, (void*)&data, sizeof(data));
+}
+
+template<>
+void OrderByKeyEncoder::encodeData(uint64_t data, uint8_t* resultPtr, bool swapBytes) {
+    if (swapBytes) {
+        data = BSWAP64(data);
+    }
+    memcpy(resultPtr, (void*)&data, sizeof(data));
 }
 
 template<>

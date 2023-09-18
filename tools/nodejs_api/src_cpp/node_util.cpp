@@ -17,6 +17,18 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
     case LogicalTypeID::BOOL: {
         return Napi::Boolean::New(env, value.getValue<bool>());
     }
+    case LogicalTypeID::UINT8: {
+        return Napi::Number::New(env, value.getValue<uint8_t>());
+    }
+    case LogicalTypeID::UINT16: {
+        return Napi::Number::New(env, value.getValue<uint16_t>());
+    }
+    case LogicalTypeID::UINT32: {
+        return Napi::Number::New(env, value.getValue<uint32_t>());
+    }
+    case LogicalTypeID::UINT64: {
+        return Napi::Number::New(env, value.getValue<uint64_t>());
+    }
     case LogicalTypeID::INT8: {
         return Napi::Number::New(env, value.getValue<int8_t>());
     }

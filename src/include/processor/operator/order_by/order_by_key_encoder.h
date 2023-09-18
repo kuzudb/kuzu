@@ -28,8 +28,6 @@ namespace processor {
 
 #define BSWAP16(x) ((uint16_t)((((uint16_t)(x)&0xff00) >> 8) | (((uint16_t)(x)&0x00ff) << 8)))
 
-#define BSWAP8(x) ((uint8_t)(x))
-
 // The OrderByKeyEncoder encodes all columns in the ORDER BY clause into a single binary sequence
 // that, when compared using memcmp will yield the correct overall sorting order. On little-endian
 // hardware, the least-significant byte is stored at the smallest address. To encode the sorting

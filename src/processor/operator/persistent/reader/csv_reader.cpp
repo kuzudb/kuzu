@@ -128,6 +128,22 @@ void BaseCSVReader::copyStringToVector(ValueVector* vector, std::string& strVal)
         vector->setValue(
             rowToAdd, StringCastUtils::castToNum<int8_t>(strVal.c_str(), strVal.length()));
     } break;
+    case LogicalTypeID::UINT64: {
+        vector->setValue(
+            rowToAdd, StringCastUtils::castToNum<uint64_t>(strVal.c_str(), strVal.length()));
+    } break;
+    case LogicalTypeID::UINT32: {
+        vector->setValue(
+            rowToAdd, StringCastUtils::castToNum<uint32_t>(strVal.c_str(), strVal.length()));
+    } break;
+    case LogicalTypeID::UINT16: {
+        vector->setValue(
+            rowToAdd, StringCastUtils::castToNum<uint16_t>(strVal.c_str(), strVal.length()));
+    } break;
+    case LogicalTypeID::UINT8: {
+        vector->setValue(
+            rowToAdd, StringCastUtils::castToNum<uint8_t>(strVal.c_str(), strVal.length()));
+    } break;
     case LogicalTypeID::FLOAT: {
         vector->setValue(
             rowToAdd, StringCastUtils::castToNum<float_t>(strVal.c_str(), strVal.length()));

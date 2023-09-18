@@ -46,6 +46,22 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getAvgFunction(
         return std::make_unique<AggregateFunction>(AvgFunction<int8_t>::initialize,
             AvgFunction<int8_t>::updateAll, AvgFunction<int8_t>::updatePos,
             AvgFunction<int8_t>::combine, AvgFunction<int8_t>::finalize, inputType, isDistinct);
+    case LogicalTypeID::UINT64:
+        return std::make_unique<AggregateFunction>(AvgFunction<uint64_t>::initialize,
+            AvgFunction<uint64_t>::updateAll, AvgFunction<uint64_t>::updatePos,
+            AvgFunction<uint64_t>::combine, AvgFunction<uint64_t>::finalize, inputType, isDistinct);
+    case LogicalTypeID::UINT32:
+        return std::make_unique<AggregateFunction>(AvgFunction<uint32_t>::initialize,
+            AvgFunction<uint32_t>::updateAll, AvgFunction<uint32_t>::updatePos,
+            AvgFunction<uint32_t>::combine, AvgFunction<uint32_t>::finalize, inputType, isDistinct);
+    case LogicalTypeID::UINT16:
+        return std::make_unique<AggregateFunction>(AvgFunction<uint16_t>::initialize,
+            AvgFunction<uint16_t>::updateAll, AvgFunction<uint16_t>::updatePos,
+            AvgFunction<uint16_t>::combine, AvgFunction<uint16_t>::finalize, inputType, isDistinct);
+    case LogicalTypeID::UINT8:
+        return std::make_unique<AggregateFunction>(AvgFunction<uint8_t>::initialize,
+            AvgFunction<uint8_t>::updateAll, AvgFunction<uint8_t>::updatePos,
+            AvgFunction<uint8_t>::combine, AvgFunction<uint8_t>::finalize, inputType, isDistinct);
     case LogicalTypeID::DOUBLE:
         return std::make_unique<AggregateFunction>(AvgFunction<double_t>::initialize,
             AvgFunction<double_t>::updateAll, AvgFunction<double_t>::updatePos,
@@ -81,6 +97,22 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getSumFunction(
         return std::make_unique<AggregateFunction>(SumFunction<int8_t>::initialize,
             SumFunction<int8_t>::updateAll, SumFunction<int8_t>::updatePos,
             SumFunction<int8_t>::combine, SumFunction<int8_t>::finalize, inputType, isDistinct);
+    case LogicalTypeID::UINT64:
+        return std::make_unique<AggregateFunction>(SumFunction<uint64_t>::initialize,
+            SumFunction<uint64_t>::updateAll, SumFunction<uint64_t>::updatePos,
+            SumFunction<uint64_t>::combine, SumFunction<uint64_t>::finalize, inputType, isDistinct);
+    case LogicalTypeID::UINT32:
+        return std::make_unique<AggregateFunction>(SumFunction<uint32_t>::initialize,
+            SumFunction<uint32_t>::updateAll, SumFunction<uint32_t>::updatePos,
+            SumFunction<uint32_t>::combine, SumFunction<uint32_t>::finalize, inputType, isDistinct);
+    case LogicalTypeID::UINT16:
+        return std::make_unique<AggregateFunction>(SumFunction<uint16_t>::initialize,
+            SumFunction<uint16_t>::updateAll, SumFunction<uint16_t>::updatePos,
+            SumFunction<uint16_t>::combine, SumFunction<uint16_t>::finalize, inputType, isDistinct);
+    case LogicalTypeID::UINT8:
+        return std::make_unique<AggregateFunction>(SumFunction<uint8_t>::initialize,
+            SumFunction<uint8_t>::updateAll, SumFunction<uint8_t>::updatePos,
+            SumFunction<uint8_t>::combine, SumFunction<uint8_t>::finalize, inputType, isDistinct);
     case LogicalTypeID::DOUBLE:
         return std::make_unique<AggregateFunction>(SumFunction<double_t>::initialize,
             SumFunction<double_t>::updateAll, SumFunction<double_t>::updatePos,
@@ -146,6 +178,26 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinMaxFunction(
         return std::make_unique<AggregateFunction>(MinMaxFunction<double_t>::initialize,
             MinMaxFunction<double_t>::updateAll<FUNC>, MinMaxFunction<double_t>::updatePos<FUNC>,
             MinMaxFunction<double_t>::combine<FUNC>, MinMaxFunction<double_t>::finalize, inputType,
+            isDistinct);
+    case PhysicalTypeID::UINT64:
+        return std::make_unique<AggregateFunction>(MinMaxFunction<uint64_t>::initialize,
+            MinMaxFunction<uint64_t>::updateAll<FUNC>, MinMaxFunction<uint64_t>::updatePos<FUNC>,
+            MinMaxFunction<uint64_t>::combine<FUNC>, MinMaxFunction<uint64_t>::finalize, inputType,
+            isDistinct);
+    case PhysicalTypeID::UINT32:
+        return std::make_unique<AggregateFunction>(MinMaxFunction<uint32_t>::initialize,
+            MinMaxFunction<uint32_t>::updateAll<FUNC>, MinMaxFunction<uint32_t>::updatePos<FUNC>,
+            MinMaxFunction<uint32_t>::combine<FUNC>, MinMaxFunction<uint32_t>::finalize, inputType,
+            isDistinct);
+    case PhysicalTypeID::UINT16:
+        return std::make_unique<AggregateFunction>(MinMaxFunction<uint16_t>::initialize,
+            MinMaxFunction<uint16_t>::updateAll<FUNC>, MinMaxFunction<uint16_t>::updatePos<FUNC>,
+            MinMaxFunction<uint16_t>::combine<FUNC>, MinMaxFunction<uint16_t>::finalize, inputType,
+            isDistinct);
+    case PhysicalTypeID::UINT8:
+        return std::make_unique<AggregateFunction>(MinMaxFunction<uint8_t>::initialize,
+            MinMaxFunction<uint8_t>::updateAll<FUNC>, MinMaxFunction<uint8_t>::updatePos<FUNC>,
+            MinMaxFunction<uint8_t>::combine<FUNC>, MinMaxFunction<uint8_t>::finalize, inputType,
             isDistinct);
     case PhysicalTypeID::FLOAT:
         return std::make_unique<AggregateFunction>(MinMaxFunction<float_t>::initialize,
