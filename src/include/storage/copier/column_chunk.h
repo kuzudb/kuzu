@@ -56,8 +56,8 @@ public:
 
     // ColumnChunks must be initialized after construction, so this constructor should only be used
     // through the ColumnChunkFactory
-    explicit ColumnChunk(common::LogicalType dataType, common::CopyDescription* copyDescription,
-        bool hasNullChunk = true);
+    explicit ColumnChunk(common::LogicalType dataType,
+        std::unique_ptr<common::CSVReaderConfig> csvReaderConfig, bool hasNullChunk = true);
     virtual ~ColumnChunk() = default;
 
     template<typename T>
@@ -158,7 +158,7 @@ protected:
     std::unique_ptr<uint8_t[]> buffer;
     std::unique_ptr<NullColumnChunk> nullChunk;
     std::vector<std::unique_ptr<ColumnChunk>> childrenChunks;
-    const common::CopyDescription* copyDescription;
+    std::unique_ptr<common::CSVReaderConfig> csvReaderConfig;
     uint64_t numValues;
 };
 
@@ -176,9 +176,10 @@ inline bool ColumnChunk::getValue(common::offset_t pos) const {
 
 class BoolColumnChunk : public ColumnChunk {
 public:
-    BoolColumnChunk(common::CopyDescription* copyDescription, bool hasNullChunk = true)
-        : ColumnChunk(
-              common::LogicalType(common::LogicalTypeID::BOOL), copyDescription, hasNullChunk) {}
+    BoolColumnChunk(
+        std::unique_ptr<common::CSVReaderConfig> csvReaderConfig, bool hasNullChunk = true)
+        : ColumnChunk(common::LogicalType(common::LogicalTypeID::BOOL), std::move(csvReaderConfig),
+              hasNullChunk) {}
 
     void append(common::ValueVector* vector, common::offset_t startPosInChunk) final;
 
@@ -237,8 +238,9 @@ protected:
 
 class FixedListColumnChunk : public ColumnChunk {
 public:
-    FixedListColumnChunk(common::LogicalType dataType, common::CopyDescription* copyDescription)
-        : ColumnChunk(std::move(dataType), copyDescription, true /* hasNullChunk */) {}
+    FixedListColumnChunk(
+        common::LogicalType dataType, std::unique_ptr<common::CSVReaderConfig> csvReaderConfig)
+        : ColumnChunk(std::move(dataType), std::move(csvReaderConfig), true /* hasNullChunk */) {}
 
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
@@ -262,7 +264,7 @@ public:
 
 struct ColumnChunkFactory {
     static std::unique_ptr<ColumnChunk> createColumnChunk(
-        const common::LogicalType& dataType, common::CopyDescription* copyDescription = nullptr);
+        const common::LogicalType& dataType, common::CSVReaderConfig* csvReaderConfig = nullptr);
 };
 
 template<>

@@ -11,6 +11,13 @@ namespace kuzu {
 namespace common {
 
 struct CSVReaderConfig {
+    char escapeChar;
+    char delimiter;
+    char quoteChar;
+    char listBeginChar;
+    char listEndChar;
+    bool hasHeader;
+
     CSVReaderConfig()
         : escapeChar{CopyConstants::DEFAULT_CSV_ESCAPE_CHAR},
           delimiter{CopyConstants::DEFAULT_CSV_DELIMITER},
@@ -18,13 +25,14 @@ struct CSVReaderConfig {
           listBeginChar{CopyConstants::DEFAULT_CSV_LIST_BEGIN_CHAR},
           listEndChar{CopyConstants::DEFAULT_CSV_LIST_END_CHAR},
           hasHeader{CopyConstants::DEFAULT_CSV_HAS_HEADER} {}
+    CSVReaderConfig(const CSVReaderConfig& other)
+        : escapeChar{other.escapeChar}, delimiter{other.delimiter}, quoteChar{other.quoteChar},
+          listBeginChar{other.listBeginChar},
+          listEndChar{other.listEndChar}, hasHeader{other.hasHeader} {}
 
-    char escapeChar;
-    char delimiter;
-    char quoteChar;
-    char listBeginChar;
-    char listEndChar;
-    bool hasHeader;
+    inline std::unique_ptr<CSVReaderConfig> copy() const {
+        return std::make_unique<CSVReaderConfig>(*this);
+    }
 };
 
 struct CopyDescription {

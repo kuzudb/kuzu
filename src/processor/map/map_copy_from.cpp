@@ -95,7 +95,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRelColumnsOrLists(
 
 static std::unique_ptr<DirectedInMemRelData> initializeDirectedInMemRelData(
     common::RelDataDirection direction, RelTableSchema* schema, NodesStore& nodesStore,
-    const std::string& outputDirectory, const CopyDescription* copyDescription) {
+    const std::string& outputDirectory, CSVReaderConfig* csvReaderConfig) {
     auto directedInMemRelData = std::make_unique<DirectedInMemRelData>();
     auto boundTableID = schema->getBoundTableID(direction);
     auto numNodes =
@@ -109,7 +109,7 @@ static std::unique_ptr<DirectedInMemRelData> initializeDirectedInMemRelData(
                                               schema->tableID, direction, DBFileType::ORIGINAL),
                 LogicalType(LogicalTypeID::INTERNAL_ID));
         relColumns->adjColumnChunk =
-            relColumns->adjColumn->createInMemColumnChunk(0, numNodes - 1, copyDescription->copy());
+            relColumns->adjColumn->createInMemColumnChunk(0, numNodes - 1, csvReaderConfig);
         for (auto i = 0u; i < schema->getNumProperties(); ++i) {
             auto propertyID = schema->properties[i]->getPropertyID();
             auto propertyDataType = schema->properties[i]->getDataType();
@@ -119,7 +119,7 @@ static std::unique_ptr<DirectedInMemRelData> initializeDirectedInMemRelData(
                 propertyID, std::make_unique<InMemColumn>(fName, *propertyDataType));
             relColumns->propertyColumnChunks.emplace(
                 propertyID, relColumns->propertyColumns.at(propertyID)
-                                ->createInMemColumnChunk(0, numNodes - 1, copyDescription->copy()));
+                                ->createInMemColumnChunk(0, numNodes - 1, csvReaderConfig));
         }
         directedInMemRelData->setColumns(std::move(relColumns));
     } else {
@@ -136,7 +136,7 @@ static std::unique_ptr<DirectedInMemRelData> initializeDirectedInMemRelData(
                 direction, property->getPropertyID(), DBFileType::ORIGINAL);
             relLists->propertyLists.emplace(property->getPropertyID(),
                 InMemListsFactory::getInMemPropertyLists(fName, *property->getDataType(), numNodes,
-                    copyDescription->copy(), relLists->adjList->getListHeadersBuilder()));
+                    csvReaderConfig, relLists->adjList->getListHeadersBuilder()));
         }
         directedInMemRelData->setRelLists(std::move(relLists));
     }
@@ -151,10 +151,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRelFrom(
     auto tableSchema = reinterpret_cast<RelTableSchema*>(copyFromInfo->tableSchema);
     auto fwdRelData = initializeDirectedInMemRelData(RelDataDirection::FWD, tableSchema,
         storageManager.getNodesStore(), storageManager.getDirectory(),
-        copyFromInfo->fileScanInfo->copyDesc.get());
+        copyFromInfo->fileScanInfo->copyDesc->csvReaderConfig.get());
     auto bwdRelData = initializeDirectedInMemRelData(RelDataDirection::BWD, tableSchema,
         storageManager.getNodesStore(), storageManager.getDirectory(),
-        copyFromInfo->fileScanInfo->copyDesc.get());
+        copyFromInfo->fileScanInfo->copyDesc->csvReaderConfig.get());
     auto copyRelSharedState = std::make_shared<CopyRelSharedState>(tableSchema->tableID,
         &storageManager.getRelsStore().getRelsStatistics(), std::move(fwdRelData),
         std::move(bwdRelData), memoryManager);

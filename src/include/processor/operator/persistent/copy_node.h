@@ -72,8 +72,8 @@ public:
         for (auto& arrowColumnPos : copyNodeInfo.dataColumnPoses) {
             dataColumnVectors.push_back(resultSet->getValueVector(arrowColumnPos).get());
         }
-        localNodeGroup =
-            std::make_unique<storage::NodeGroup>(sharedState->tableSchema, &sharedState->copyDesc);
+        localNodeGroup = std::make_unique<storage::NodeGroup>(
+            sharedState->tableSchema, sharedState->copyDesc.csvReaderConfig.get());
     }
 
     void initGlobalStateInternal(ExecutionContext* context) final;

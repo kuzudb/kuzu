@@ -37,9 +37,9 @@ class InMemLists {
 public:
     InMemLists(std::string fName, common::LogicalType dataType, uint64_t numBytesForElement,
         uint64_t numNodes, std::shared_ptr<ListHeadersBuilder> listHeadersBuilder,
-        std::unique_ptr<common::CopyDescription> copyDescription, bool hasNullBytes)
+        std::unique_ptr<common::CSVReaderConfig> csvReaderConfig, bool hasNullBytes)
         : InMemLists{std::move(fName), numBytesForElement, std::move(dataType), numNodes,
-              std::move(copyDescription), hasNullBytes} {
+              std::move(csvReaderConfig), hasNullBytes} {
         this->listHeadersBuilder = std::move(listHeadersBuilder);
     }
     virtual ~InMemLists() = default;
@@ -75,7 +75,7 @@ public:
 
 protected:
     InMemLists(std::string fName, uint64_t numBytesForElement, common::LogicalType dataType,
-        uint64_t numNodes, std::unique_ptr<common::CopyDescription> copyDescription,
+        uint64_t numNodes, std::unique_ptr<common::CSVReaderConfig> csvReaderConfig,
         bool hasNullBytes);
 
 private:
@@ -111,7 +111,7 @@ protected:
     uint64_t numElementsInAPage;
     std::unique_ptr<ListsMetadataBuilder> listsMetadataBuilder;
     std::shared_ptr<ListHeadersBuilder> listHeadersBuilder;
-    std::unique_ptr<common::CopyDescription> copyDescription;
+    std::unique_ptr<common::CSVReaderConfig> csvReaderConfig;
 };
 
 class InMemRelIDLists : public InMemLists {
@@ -127,7 +127,7 @@ class InMemListsWithOverflow : public InMemLists {
 protected:
     InMemListsWithOverflow(std::string fName, common::LogicalType dataType, uint64_t numNodes,
         std::shared_ptr<ListHeadersBuilder> listHeadersBuilder,
-        std::unique_ptr<common::CopyDescription> copyDescription);
+        std::unique_ptr<common::CSVReaderConfig> csvReaderConfig);
 
     void copyArrowArray(arrow::Array* boundNodeOffsets, arrow::Array* posInRelLists,
         arrow::Array* array, PropertyCopyState* copyState) final;
@@ -182,16 +182,16 @@ class InMemListLists : public InMemListsWithOverflow {
 public:
     InMemListLists(std::string fName, common::LogicalType dataType, uint64_t numNodes,
         std::shared_ptr<ListHeadersBuilder> listHeadersBuilder,
-        std::unique_ptr<common::CopyDescription> copyDescription)
+        std::unique_ptr<common::CSVReaderConfig> csvReaderConfig)
         : InMemListsWithOverflow{std::move(fName), std::move(dataType), numNodes,
-              std::move(listHeadersBuilder), std::move(copyDescription)} {};
+              std::move(listHeadersBuilder), std::move(csvReaderConfig)} {};
 };
 
 class InMemListsFactory {
 public:
     static std::unique_ptr<InMemLists> getInMemPropertyLists(const std::string& fName,
         const common::LogicalType& dataType, uint64_t numNodes,
-        std::unique_ptr<common::CopyDescription> copyDescription,
+        common::CSVReaderConfig* csvReaderConfig,
         std::shared_ptr<ListHeadersBuilder> listHeadersBuilder = nullptr);
 };
 
