@@ -17,10 +17,17 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyTo(LogicalOperator* logical
     for (auto& expression : childSchema->getExpressionsInScope()) {
         vectorsToCopyPos.emplace_back(childSchema->getExpressionPos(*expression));
     }
-    auto sharedState = std::make_shared<WriteCSVFileSharedState>();
-    return std::make_unique<CopyTo>(sharedState, std::move(vectorsToCopyPos),
-        *copy->getCopyDescription(), getOperatorID(), copy->getExpressionsForPrinting(),
-        std::move(prevOperator));
+    auto sharedState = std::make_shared<CopyToSharedState>(copy->getCopyDescription()->fileType,
+        copy->getCopyDescription()->filePaths[0], copy->getCopyDescription()->columnNames,
+        copy->getCopyDescription()->columnTypes);
+    auto copyTo = std::make_unique<CopyTo>(std::make_unique<ResultSetDescriptor>(childSchema),
+        sharedState, std::move(vectorsToCopyPos), *copy->getCopyDescription(), getOperatorID(),
+        copy->getExpressionsForPrinting(), std::move(prevOperator));
+    std::shared_ptr<FactorizedTable> fTable;
+    auto ftTableSchema = std::make_unique<FactorizedTableSchema>();
+    fTable = std::make_shared<FactorizedTable>(memoryManager, std::move(ftTableSchema));
+    return createFactorizedTableScan(binder::expression_vector{}, std::vector<ft_col_idx_t>{},
+        childSchema, fTable, 0, std::move(copyTo));
 }
 
 } // namespace processor

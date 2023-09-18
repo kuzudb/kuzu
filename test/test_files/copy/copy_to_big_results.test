@@ -1,0 +1,63 @@
+-GROUP CopyToBigResults
+-DATASET CSV copy-test/node/csv
+
+--
+
+-CASE CopyBigResults
+
+-DEFINE_STATEMENT_BLOCK VALIDATE_RESULT [
+-STATEMENT MATCH (t:tableOfTypesCopyCSV) RETURN COUNT(*);
+---- 1
+49999
+
+-STATEMENT MATCH (t:tableOfTypesCopyCSV) RETURN t.* ORDER BY t.id LIMIT 1000;
+---- 1000
+<FILE>:copy_to_types.txt
+]
+
+
+-LOG TestCSV
+
+-STATEMENT COPY (MATCH (r:tableOfTypes) RETURN r.id,
+                                               r.doubleColumn,
+                                               r.booleanColumn,
+                                               r.dateColumn,
+                                               r.stringColumn,
+                                               r.listOfInt ORDER BY r.id) TO '${DATABASE_PATH}/out.csv';
+---- ok
+
+-STATEMENT CREATE NODE TABLE tableOfTypesCopyCSV (id int64,
+                                                  db double,
+                                                  b boolean,
+                                                  dt date,
+                                                  s string,
+                                                  l int64[], primary key (id))
+---- ok
+
+-STATEMENT COPY tableOfTypesCopyCSV FROM '${DATABASE_PATH}/out.csv' (HEADER=TRUE);
+---- ok
+
+-INSERT_STATEMENT_BLOCK VALIDATE_RESULT
+
+
+-LOG TestParquet
+-STATEMENT COPY (MATCH (r:tableOfTypes) RETURN r.id,
+                                               r.doubleColumn,
+                                               r.booleanColumn,
+                                               r.dateColumn,
+                                               r.stringColumn,
+                                               r.listOfInt ORDER BY r.id) TO '${DATABASE_PATH}/out.parquet';
+---- ok
+
+-STATEMENT CREATE NODE TABLE tableOfTypesCopyParquet (id int64,
+                                                      db double,
+                                                      b boolean,
+                                                      dt date,
+                                                      s string,
+                                                      l int64[], primary key (id))
+---- ok
+
+-STATEMENT COPY tableOfTypesCopyParquet FROM '${DATABASE_PATH}/out.parquet'
+---- ok
+
+-INSERT_STATEMENT_BLOCK VALIDATE_RESULT

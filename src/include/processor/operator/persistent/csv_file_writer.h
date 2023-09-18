@@ -1,29 +1,30 @@
 #pragma once
 
-#include "common/copier_config/copier_config.h"
-#include "common/file_utils.h"
+#include "processor/operator/persistent/file_writer.h"
 #include "processor/result/result_set.h"
 
 namespace kuzu {
 namespace processor {
 
-class CSVFileWriter {
+class CSVFileWriter : public FileWriter {
 public:
-    CSVFileWriter(){};
-    void open(const std::string& filePath);
-    void writeHeader(const std::vector<std::string>& columnNames);
-    void writeValues(std::vector<common::ValueVector*>& outputVectors);
+    using FileWriter::FileWriter;
+    void openFile() final;
+    void init() final;
+    inline void closeFile() final { flush(); }
+    void writeValues(std::vector<common::ValueVector*>& outputVectors) final;
 
 private:
+    void writeHeader();
     void escapeString(std::string& value);
     void writeValue(common::ValueVector* vector);
     void flush();
 
     template<typename T>
-    void writeToBuffer(common::ValueVector* vector, int64_t pos, bool escapeStringValue = false);
+    void writeToBuffer(common::ValueVector* vector, bool escapeStringValue = false);
 
     template<typename T>
-    void writeListToBuffer(common::ValueVector* vector, int64_t pos);
+    void writeListToBuffer(common::ValueVector* vector);
 
     inline void writeToBuffer(const std::string& value) { buffer << value; }
     inline void writeToBuffer(const char value) { buffer << value; }

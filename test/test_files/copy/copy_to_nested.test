@@ -1,0 +1,83 @@
+-GROUP CopyToNested
+-DATASET CSV tinysnb
+
+--
+
+-CASE ListList
+
+-STATEMENT CREATE NODE TABLE Nested(id int64,
+                                    list int64[],
+                                    doubleList double[][],
+                                    primary key(id));
+---- ok
+-STATEMENT COPY (RETURN 1,[1,2,3,4],[[1.0,2.0],[3.0,4.08],[8891.9999],[5.1,6.884,7.12,8.0]]) TO "${DATABASE_PATH}/nested.parquet"
+---- ok
+-STATEMENT COPY Nested FROM "${DATABASE_PATH}/nested.parquet"
+---- ok
+-STATEMENT MATCH (n:Nested) return n.list, n.doubleList
+---- 1
+[1,2,3,4]|[[1.000000,2.000000],[3.000000,4.080000],[8891.999900],[5.100000,6.884000,7.120000,8.000000]]
+
+-CASE StructStructStructList
+
+-STATEMENT CREATE NODE TABLE Nested(id int64, field struct (a struct(b struct(c boolean[])), d struct(e struct(f int64[]))), primary key(id));
+---- ok
+-STATEMENT COPY (RETURN 1, {a: {b: {c: [true,false,false]}} , d: {e: {f: [3,4]}}}) TO "${DATABASE_PATH}/nested.parquet"
+---- ok
+-STATEMENT COPY Nested FROM "${DATABASE_PATH}/nested.parquet"
+---- ok
+-STATEMENT MATCH (n:Nested) return n.field
+---- 1
+{a: {b: {c: [True,False,False]}}, d: {e: {f: [3,4]}}}
+
+-CASE StructList
+
+-STATEMENT CREATE NODE TABLE Nested(id int64, field struct(first date[], second string[]), primary key(id));
+---- ok
+-STATEMENT COPY (RETURN 1,{first:['1985-08-19','2023-05-01','2023-08-31','2087-09-04'], second:['list','of','strings']}) TO "${DATABASE_PATH}/nested.parquet"
+---- ok
+-STATEMENT COPY Nested FROM "${DATABASE_PATH}/nested.parquet"
+---- ok
+-STATEMENT MATCH (n:Nested) return n.field
+---- 1
+{first: [1985-08-19,2023-05-01,2023-08-31,2087-09-04], second: [list,of,strings]}
+
+-CASE StructStruct
+
+-STATEMENT CREATE NODE TABLE Nested(id int64, field struct(   a struct( b int64, c int64  ), d struct(b int64, c int64)     ), primary key(id));
+---- ok
+-STATEMENT COPY (RETURN 1,{a: {b: 1, c: 2}, d: {b: 3, c: 4}}) TO "${DATABASE_PATH}/nested.parquet"
+---- ok
+-STATEMENT COPY Nested FROM "${DATABASE_PATH}/nested.parquet"
+---- ok
+-STATEMENT MATCH (n:Nested) return n.field
+---- 1
+{a: {b: 1, c: 2}, d: {b: 3, c: 4}}
+
+-CASE ListFiveListsList
+
+-STATEMENT CREATE NODE TABLE Nested(id int64, field int64[][][][][][], field2 int64[][][], primary key(id));
+---- ok
+-STATEMENT COPY (RETURN 1,[[[[[[0,1]],[[2,3]]]]]],[[[1]],[[2],[6]],[[3,4,8],[9]],[[5]]]) TO "${DATABASE_PATH}/nested.parquet"
+---- ok
+-STATEMENT COPY Nested FROM "${DATABASE_PATH}/nested.parquet"
+---- ok
+-STATEMENT MATCH (n:Nested) return n.field, n.field2
+---- 1
+[[[[[[0,1]],[[2,3]]]]]]|[[[1]],[[2],[6]],[[3,4,8],[9]],[[5]]]
+
+# Depending on PR #1955
+-CASE ListStructList
+-SKIP
+-STATEMENT CREATE NODE TABLE Nested(id string,
+                                    field struct(a double[])[],
+                                    field2 struct(s string)[],
+                                    primary key(id));
+---- ok
+-STATEMENT COPY (RETURN 'anyString',[{a:[1.899941]}],[{s: 'is not second'}, {s: 'is not first'}]) TO "${DATABASE_PATH}/nested.parquet"
+---- ok
+-STATEMENT COPY Nested FROM "${DATABASE_PATH}/nested.parquet"
+---- ok
+-STATEMENT MATCH (n:Nested) return n.id, n.field, n.field2
+---- 1
+anyString|[{a: [1.899941]}]|[{s: is not second},{s: is not first}]

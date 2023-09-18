@@ -621,6 +621,19 @@ bool LogicalTypeUtils::isNumerical(const LogicalType& dataType) {
     }
 }
 
+bool LogicalTypeUtils::isNested(const LogicalType& dataType) {
+    switch (dataType.typeID) {
+    case LogicalTypeID::STRUCT:
+    case LogicalTypeID::VAR_LIST:
+    case LogicalTypeID::FIXED_LIST:
+    case LogicalTypeID::UNION:
+    case LogicalTypeID::MAP:
+        return true;
+    default:
+        return false;
+    }
+}
+
 std::vector<LogicalType> LogicalTypeUtils::getAllValidComparableLogicalTypes() {
     return std::vector<LogicalType>{LogicalType{LogicalTypeID::BOOL},
         LogicalType{LogicalTypeID::INT64}, LogicalType{LogicalTypeID::INT32},

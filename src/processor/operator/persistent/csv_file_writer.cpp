@@ -17,11 +17,16 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void CSVFileWriter::open(const std::string& filePath) {
+void CSVFileWriter::openFile() {
     fileInfo = FileUtils::openFile(filePath, O_WRONLY | O_CREAT | O_TRUNC);
 }
 
-void CSVFileWriter::writeHeader(const std::vector<std::string>& columnNames) {
+void CSVFileWriter::init() {
+    openFile();
+    writeHeader();
+}
+
+void CSVFileWriter::writeHeader() {
     if (columnNames.size() == 0) {
         return;
     }
@@ -34,8 +39,7 @@ void CSVFileWriter::writeHeader(const std::vector<std::string>& columnNames) {
     flush();
 }
 
-void CSVFileWriter::writeValues(std::vector<ValueVector*>& outputVectors) {
-    bool hasData = true;
+void CSVFileWriter::writeValues(std::vector<common::ValueVector*>& outputVectors) {
     if (outputVectors.size() == 0) {
         return;
     }
@@ -51,8 +55,9 @@ void CSVFileWriter::writeValues(std::vector<ValueVector*>& outputVectors) {
 }
 
 template<typename T>
-void CSVFileWriter::writeToBuffer(ValueVector* vector, int64_t pos, bool escapeStringValue) {
-    auto value = TypeUtils::toString(vector->getValue<T>(pos));
+void CSVFileWriter::writeToBuffer(common::ValueVector* vector, bool escapeStringValue) {
+    auto selPos = vector->state->selVector->selectedPositions[0];
+    auto value = TypeUtils::toString(vector->getValue<T>(selPos));
     if (escapeStringValue) {
         escapeString(value);
     }
@@ -60,8 +65,10 @@ void CSVFileWriter::writeToBuffer(ValueVector* vector, int64_t pos, bool escapeS
 }
 
 template<typename T>
-void CSVFileWriter::writeListToBuffer(ValueVector* vector, int64_t pos) {
-    auto value = TypeUtils::toString(vector->getValue<T>(pos), vector);
+void CSVFileWriter::writeListToBuffer(common::ValueVector* vector) {
+    // vectors are always flat
+    auto selPos = vector->state->selVector->selectedPositions[0];
+    auto value = TypeUtils::toString(vector->getValue<T>(selPos), vector);
     escapeString(value);
     writeToBuffer(value);
 }
@@ -71,38 +78,36 @@ void CSVFileWriter::escapeString(std::string& value) {
     value = "\"" + value + "\"";
 }
 
-void CSVFileWriter::writeValue(ValueVector* vector) {
-    // vectors are always flat
-    auto selPos = vector->state->selVector->selectedPositions[0];
+void CSVFileWriter::writeValue(common::ValueVector* vector) {
     switch (vector->dataType.getLogicalTypeID()) {
     case LogicalTypeID::BOOL:
-        return writeToBuffer<int8_t>(vector, selPos);
+        return writeToBuffer<int8_t>(vector);
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64:
-        return writeToBuffer<int64_t>(vector, selPos);
+        return writeToBuffer<int64_t>(vector);
     case LogicalTypeID::INT32:
-        return writeToBuffer<int32_t>(vector, selPos);
+        return writeToBuffer<int32_t>(vector);
     case LogicalTypeID::INT16:
-        return writeToBuffer<int16_t>(vector, selPos);
+        return writeToBuffer<int16_t>(vector);
     case LogicalTypeID::DOUBLE:
-        return writeToBuffer<double>(vector, selPos);
+        return writeToBuffer<double>(vector);
     case LogicalTypeID::FLOAT:
-        return writeToBuffer<float>(vector, selPos);
+        return writeToBuffer<float>(vector);
     case LogicalTypeID::DATE:
-        return writeToBuffer<date_t>(vector, selPos, true);
+        return writeToBuffer<date_t>(vector, true);
     case LogicalTypeID::TIMESTAMP:
-        return writeToBuffer<timestamp_t>(vector, selPos, true);
+        return writeToBuffer<timestamp_t>(vector, true);
     case LogicalTypeID::INTERVAL:
-        return writeToBuffer<interval_t>(vector, selPos, true);
+        return writeToBuffer<interval_t>(vector, true);
     case LogicalTypeID::STRING:
-        return writeToBuffer<ku_string_t>(vector, selPos, true);
+        return writeToBuffer<ku_string_t>(vector, true);
     case LogicalTypeID::INTERNAL_ID:
-        return writeToBuffer<internalID_t>(vector, selPos, true);
+        return writeToBuffer<internalID_t>(vector, true);
     case LogicalTypeID::VAR_LIST:
     case LogicalTypeID::FIXED_LIST:
-        return writeListToBuffer<list_entry_t>(vector, selPos);
+        return writeListToBuffer<list_entry_t>(vector);
     case LogicalTypeID::STRUCT:
-        return writeListToBuffer<struct_entry_t>(vector, selPos);
+        return writeListToBuffer<struct_entry_t>(vector);
     default: {
         throw NotImplementedException("CSVFileWriter::writeValue");
     }

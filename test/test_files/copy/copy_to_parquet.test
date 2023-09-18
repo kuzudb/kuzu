@@ -1,0 +1,43 @@
+-GROUP CopyToParquet
+-DATASET CSV tinysnb
+
+--
+
+-CASE CommonDataTypesCopyToParquet
+
+-STATEMENT COPY (MATCH (p:person) RETURN p.ID, id(p), p.fName, p.gender, p.isStudent, p.age, p.eyeSight, p.height) TO "${DATABASE_PATH}/common.parquet"
+---- ok
+-STATEMENT create node table personCopy (ID iNt64, internalID string, fName STRiNG, gender INT64, isStudent BoOLEAN, age INT64, eyeSight DOUBLE, height float, PRIMARY KEY (ID))
+---- ok
+-STATEMENT COPY personCopy FROM "${DATABASE_PATH}/common.parquet" (header= TRUE)
+---- ok
+-STATEMENT MATCH (p:personCopy) RETURN p.ID, p.internalID, p.fName, p.gender, p.isStudent, p.age, p.eyeSight, p.height
+---- 8
+0|0:0|Alice|1|True|35|5.000000|1.731000
+10|0:7|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|False|83|4.900000|1.323000
+2|0:1|Bob|2|True|30|5.100000|0.990000
+3|0:2|Carol|1|False|45|5.000000|1.000000
+5|0:3|Dan|2|False|20|4.800000|1.300000
+7|0:4|Elizabeth|1|False|20|4.700000|1.463000
+8|0:5|Farooq|2|True|25|4.500000|1.510000
+9|0:6|Greg|2|False|40|4.900000|1.600000
+
+
+-CASE DatesCopyToParquet
+
+-STATEMENT COPY (MATCH (p:person) RETURN p.ID, p.birthdate, p.registerTime) TO "${DATABASE_PATH}/dates.parquet";
+---- ok
+-STATEMENT CREATE NODE TABLE personCopy(ID INT64, birthdate DATE, registerTime TIMESTAMP, PRIMARY KEY(ID))
+---- ok
+-STATEMENT COPY personCopy FROM "${DATABASE_PATH}/dates.parquet"
+---- ok
+-STATEMENT MATCH (p:personCopy) RETURN p.birthdate, p.registerTime
+---- 8
+1900-01-01|2008-11-03 15:25:30.000526
+1900-01-01|2011-08-20 11:25:30
+1940-06-22|1911-08-20 02:32:21
+1950-07-23|2031-11-30 12:25:30
+1980-10-26|1972-07-31 13:22:30.678559
+1980-10-26|1976-12-23 04:41:42
+1980-10-26|1976-12-23 11:21:42
+1990-11-27|2023-02-21 13:25:30

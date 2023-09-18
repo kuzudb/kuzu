@@ -6,8 +6,7 @@ namespace kuzu {
 namespace processor {
 
 void CopyTo::initGlobalStateInternal(ExecutionContext* context) {
-    sharedState->csvFileWriter->open(getCopyDescription().filePaths[0]);
-    sharedState->csvFileWriter->writeHeader(getCopyDescription().columnNames);
+    sharedState->getWriter()->init();
 }
 
 void CopyTo::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
@@ -17,12 +16,14 @@ void CopyTo::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* cont
     }
 }
 
-bool CopyTo::getNextTuplesInternal(ExecutionContext* context) {
-    if (!children[0]->getNextTuple(context)) {
-        return false;
+void CopyTo::executeInternal(ExecutionContext* context) {
+    while (children[0]->getNextTuple(context)) {
+        sharedState->getWriter()->writeValues(outputVectors);
     }
-    sharedState->csvFileWriter->writeValues(outputVectors);
-    return true;
+}
+
+void CopyTo::finalize(ExecutionContext* context) {
+    sharedState->getWriter()->closeFile();
 }
 
 } // namespace processor

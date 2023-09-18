@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "common/constants.h"
+#include "common/types/types.h"
 
 namespace kuzu {
 namespace common {
@@ -40,6 +41,7 @@ struct CopyDescription {
     FileType fileType;
     std::vector<std::string> filePaths;
     std::vector<std::string> columnNames;
+    std::vector<LogicalType> columnTypes;
     std::unique_ptr<CSVReaderConfig> csvReaderConfig;
 
     CopyDescription(FileType fileType, const std::vector<std::string>& filePaths,
@@ -47,7 +49,8 @@ struct CopyDescription {
         : fileType{fileType}, filePaths{filePaths}, csvReaderConfig{std::move(csvReaderConfig)} {}
 
     CopyDescription(const CopyDescription& other)
-        : fileType{other.fileType}, filePaths{other.filePaths}, columnNames{other.columnNames} {
+        : fileType{other.fileType}, filePaths{other.filePaths}, columnNames{other.columnNames},
+          columnTypes{other.columnTypes} {
         if (other.csvReaderConfig != nullptr) {
             this->csvReaderConfig = std::make_unique<CSVReaderConfig>(*other.csvReaderConfig);
         }
@@ -67,6 +70,8 @@ struct CopyDescription {
         {".npy", FileType::NPY}, {".ttl", FileType::TURTLE}};
 
     static FileType getFileTypeFromExtension(const std::string& extension);
+
+    static std::string getFileTypeName(FileType fileType);
 };
 
 } // namespace common
