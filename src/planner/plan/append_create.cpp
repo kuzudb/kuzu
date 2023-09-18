@@ -1,6 +1,6 @@
 #include "binder/query/updating_clause/bound_create_clause.h"
 #include "binder/query/updating_clause/bound_set_clause.h"
-#include "planner/logical_plan/persistent/logical_create.h"
+#include "planner/operator/persistent/logical_create.h"
 #include "planner/query_planner.h"
 
 using namespace kuzu::binder;

@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_explain.h"
+#include "planner/operator/logical_explain.h"
 
 #include "common/exception/not_implemented.h"
 

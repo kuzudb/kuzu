@@ -6,7 +6,7 @@
 #include <unordered_set>
 
 #include "binder/query/query_graph.h"
-#include "planner/logical_plan/logical_plan.h"
+#include "planner/operator/logical_plan.h"
 
 using namespace kuzu::binder;
 

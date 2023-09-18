@@ -1,7 +1,7 @@
 #include "common/file_utils.h"
 #include "gtest/gtest.h"
 #include "parser/parser.h"
-#include "planner/logical_plan/logical_plan_util.h"
+#include "planner/operator/logical_plan_util.h"
 #include "planner/planner.h"
 #include "test_runner/test_group.h"
 

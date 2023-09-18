@@ -1,4 +1,4 @@
-#include "planner/logical_plan/scan/logical_scan_file.h"
+#include "planner/operator/scan/logical_scan_file.h"
 #include "processor/operator/persistent/reader.h"
 #include "processor/plan_mapper.h"
 

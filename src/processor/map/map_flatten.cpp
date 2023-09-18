@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_flatten.h"
+#include "planner/operator/logical_flatten.h"
 #include "processor/operator/flatten.h"
 #include "processor/plan_mapper.h"
 

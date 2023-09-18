@@ -1,4 +1,4 @@
-#include "planner/logical_plan/extend/logical_recursive_extend.h"
+#include "planner/operator/extend/logical_recursive_extend.h"
 #include "processor/operator/recursive_extend/scan_frontier.h"
 #include "processor/plan_mapper.h"
 

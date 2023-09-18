@@ -4,12 +4,12 @@
 #include "binder/ddl/bound_drop_table.h"
 #include "binder/ddl/bound_rename_property.h"
 #include "binder/ddl/bound_rename_table.h"
-#include "planner/logical_plan/ddl/logical_add_property.h"
-#include "planner/logical_plan/ddl/logical_create_table.h"
-#include "planner/logical_plan/ddl/logical_drop_property.h"
-#include "planner/logical_plan/ddl/logical_drop_table.h"
-#include "planner/logical_plan/ddl/logical_rename_property.h"
-#include "planner/logical_plan/ddl/logical_rename_table.h"
+#include "planner/operator/ddl/logical_add_property.h"
+#include "planner/operator/ddl/logical_create_table.h"
+#include "planner/operator/ddl/logical_drop_property.h"
+#include "planner/operator/ddl/logical_drop_table.h"
+#include "planner/operator/ddl/logical_rename_property.h"
+#include "planner/operator/ddl/logical_rename_table.h"
 #include "planner/planner.h"
 
 namespace kuzu {

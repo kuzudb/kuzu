@@ -1,4 +1,4 @@
-#include "planner/logical_plan/ddl/logical_ddl.h"
+#include "planner/operator/ddl/logical_ddl.h"
 
 namespace kuzu {
 namespace planner {

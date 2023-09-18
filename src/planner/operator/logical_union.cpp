@@ -1,7 +1,7 @@
-#include "planner/logical_plan/logical_union.h"
+#include "planner/operator/logical_union.h"
 
-#include "planner/logical_plan/factorization/flatten_resolver.h"
-#include "planner/logical_plan/factorization/sink_util.h"
+#include "planner/operator/factorization/flatten_resolver.h"
+#include "planner/operator/factorization/sink_util.h"
 
 namespace kuzu {
 namespace planner {

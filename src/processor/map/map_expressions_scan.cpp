@@ -1,5 +1,5 @@
-#include "planner/logical_plan/logical_accumulate.h"
-#include "planner/logical_plan/scan/logical_expressions_scan.h"
+#include "planner/operator/logical_accumulate.h"
+#include "planner/operator/scan/logical_expressions_scan.h"
 #include "processor/operator/result_collector.h"
 #include "processor/plan_mapper.h"
 

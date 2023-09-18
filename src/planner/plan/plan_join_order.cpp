@@ -1,6 +1,6 @@
 #include "binder/expression_visitor.h"
 #include "planner/join_order/cost_model.h"
-#include "planner/logical_plan/scan/logical_scan_node.h"
+#include "planner/operator/scan/logical_scan_node.h"
 #include "planner/query_planner.h"
 
 using namespace kuzu::common;

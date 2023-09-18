@@ -1,7 +1,7 @@
 #pragma once
 
 #include "binder/query/normalized_single_query.h"
-#include "planner/logical_plan/logical_plan.h"
+#include "planner/operator/logical_plan.h"
 #include "planner/subplans_table.h"
 
 namespace kuzu {

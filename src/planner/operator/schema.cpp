@@ -1,4 +1,4 @@
-#include "planner/logical_plan/schema.h"
+#include "planner/operator/schema.h"
 
 #include "binder/expression_visitor.h"
 #include "common/exception/internal.h"

@@ -1,4 +1,4 @@
-#include "planner/logical_plan/scan/logical_scan_node_property.h"
+#include "planner/operator/scan/logical_scan_node_property.h"
 
 namespace kuzu {
 namespace planner {

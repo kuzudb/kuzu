@@ -1,5 +1,5 @@
-#include "planner/logical_plan/scan/logical_scan_node.h"
-#include "planner/logical_plan/scan/logical_scan_node_property.h"
+#include "planner/operator/scan/logical_scan_node.h"
+#include "planner/operator/scan/logical_scan_node_property.h"
 #include "planner/query_planner.h"
 
 namespace kuzu {

@@ -1,5 +1,5 @@
 #include "binder/expression/literal_expression.h"
-#include "planner/logical_plan/logical_standalone_call.h"
+#include "planner/operator/logical_standalone_call.h"
 #include "processor/operator/call/standalone_call.h"
 #include "processor/plan_mapper.h"
 

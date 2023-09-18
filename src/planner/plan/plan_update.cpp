@@ -2,7 +2,7 @@
 #include "binder/query/updating_clause/bound_delete_clause.h"
 #include "binder/query/updating_clause/bound_merge_clause.h"
 #include "binder/query/updating_clause/bound_set_clause.h"
-#include "planner/logical_plan/persistent/logical_merge.h"
+#include "planner/operator/persistent/logical_merge.h"
 #include "planner/query_planner.h"
 
 using namespace kuzu::common;

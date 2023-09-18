@@ -3,12 +3,12 @@
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/property_expression.h"
 #include "binder/expression_visitor.h"
-#include "planner/logical_plan/logical_filter.h"
-#include "planner/logical_plan/logical_hash_join.h"
-#include "planner/logical_plan/scan/logical_dummy_scan.h"
-#include "planner/logical_plan/scan/logical_index_scan.h"
-#include "planner/logical_plan/scan/logical_scan_node.h"
-#include "planner/logical_plan/scan/logical_scan_node_property.h"
+#include "planner/operator/logical_filter.h"
+#include "planner/operator/logical_hash_join.h"
+#include "planner/operator/scan/logical_dummy_scan.h"
+#include "planner/operator/scan/logical_index_scan.h"
+#include "planner/operator/scan/logical_scan_node.h"
+#include "planner/operator/scan/logical_scan_node_property.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

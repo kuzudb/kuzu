@@ -1,5 +1,5 @@
 #include "binder/query/reading_clause/bound_unwind_clause.h"
-#include "planner/logical_plan/logical_unwind.h"
+#include "planner/operator/logical_unwind.h"
 #include "planner/query_planner.h"
 
 namespace kuzu {

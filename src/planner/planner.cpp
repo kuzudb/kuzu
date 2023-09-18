@@ -5,10 +5,10 @@
 #include "binder/bound_explain.h"
 #include "binder/bound_standalone_call.h"
 #include "binder/expression/variable_expression.h"
-#include "planner/logical_plan/logical_comment_on.h"
-#include "planner/logical_plan/logical_create_macro.h"
-#include "planner/logical_plan/logical_explain.h"
-#include "planner/logical_plan/logical_standalone_call.h"
+#include "planner/operator/logical_comment_on.h"
+#include "planner/operator/logical_create_macro.h"
+#include "planner/operator/logical_explain.h"
+#include "planner/operator/logical_standalone_call.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

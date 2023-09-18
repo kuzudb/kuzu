@@ -1,4 +1,4 @@
-#include "planner/logical_plan/scan/logical_dummy_scan.h"
+#include "planner/operator/scan/logical_dummy_scan.h"
 
 #include "common/constants.h"
 

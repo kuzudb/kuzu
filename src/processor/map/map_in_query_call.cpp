@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_in_query_call.h"
+#include "planner/operator/logical_in_query_call.h"
 #include "processor/operator/call/in_query_call.h"
 #include "processor/plan_mapper.h"
 

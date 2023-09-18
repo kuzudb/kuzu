@@ -1,6 +1,6 @@
 #include "optimizer/remove_unnecessary_join_optimizer.h"
 
-#include "planner/logical_plan/logical_hash_join.h"
+#include "planner/operator/logical_hash_join.h"
 
 using namespace kuzu::common;
 using namespace kuzu::planner;

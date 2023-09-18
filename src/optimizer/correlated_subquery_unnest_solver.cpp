@@ -1,7 +1,7 @@
 #include "optimizer/correlated_subquery_unnest_solver.h"
 
-#include "planner/logical_plan/logical_hash_join.h"
-#include "planner/logical_plan/scan/logical_expressions_scan.h"
+#include "planner/operator/logical_hash_join.h"
+#include "planner/operator/scan/logical_expressions_scan.h"
 using namespace kuzu::planner;
 
 namespace kuzu {

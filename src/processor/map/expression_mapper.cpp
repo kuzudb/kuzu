@@ -14,7 +14,7 @@
 #include "expression_evaluator/node_rel_evaluator.h"
 #include "expression_evaluator/path_evaluator.h"
 #include "expression_evaluator/reference_evaluator.h"
-#include "planner/logical_plan/schema.h"
+#include "planner/operator/schema.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
