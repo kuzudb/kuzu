@@ -1,7 +1,6 @@
 #pragma once
 
 #include "binder/query/bound_regular_query.h"
-#include "common/copier_config/copier_config.h"
 #include "expression_binder.h"
 #include "parser/copy.h"
 #include "parser/query/regular_query.h"
@@ -154,6 +153,7 @@ private:
     std::unique_ptr<BoundReadingClause> bindUnwindClause(
         const parser::ReadingClause& readingClause);
     std::unique_ptr<BoundReadingClause> bindInQueryCall(const parser::ReadingClause& readingClause);
+    std::unique_ptr<BoundReadingClause> bindLoadFrom(const parser::ReadingClause& readingClause);
 
     /*** bind updating clause ***/
     // TODO(Guodong/Xiyang): Is update clause an accurate name? How about (data)modificationClause?

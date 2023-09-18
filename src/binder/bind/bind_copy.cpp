@@ -114,8 +114,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(
     auto containsSerial = bindContainsSerial(tableSchema);
     auto columns = bindExpectedNodeFileColumns(tableSchema, *readerConfig);
     auto offset = createVariable(std::string(Property::OFFSET_NAME), LogicalTypeID::INT64);
-    auto boundFileScanInfo = std::make_unique<BoundFileScanInfo>(std::move(readerConfig),
-        std::move(columns), std::move(offset), TableType::NODE, containsSerial);
+    auto boundFileScanInfo = std::make_unique<BoundFileScanInfo>(
+        std::move(readerConfig), std::move(columns), std::move(offset), TableType::NODE);
     auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(
         tableSchema, std::move(boundFileScanInfo), containsSerial, nullptr);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
@@ -125,12 +125,13 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(
     std::unique_ptr<ReaderConfig> readerConfig, TableSchema* tableSchema) {
     // For table with SERIAL columns, we need to read in serial from files.
     auto containsSerial = bindContainsSerial(tableSchema);
+    assert(containsSerial == false);
     auto columns = bindExpectedRelFileColumns(tableSchema, *readerConfig);
     auto srcKey = columns[0];
     auto dstKey = columns[1];
     auto offset = createVariable(std::string(Property::OFFSET_NAME), LogicalTypeID::INT64);
-    auto boundFileScanInfo = std::make_unique<BoundFileScanInfo>(std::move(readerConfig),
-        std::move(columns), std::move(offset), TableType::REL, containsSerial);
+    auto boundFileScanInfo = std::make_unique<BoundFileScanInfo>(
+        std::move(readerConfig), std::move(columns), std::move(offset), TableType::REL);
     auto relTableSchema = reinterpret_cast<RelTableSchema*>(tableSchema);
     auto srcTableSchema =
         catalog.getReadOnlyVersion()->getTableSchema(relTableSchema->getSrcTableID());
@@ -161,8 +162,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfRelFrom(
     auto objectKey = columns[2];
     auto offset = createVariable(std::string(Property::OFFSET_NAME), LogicalTypeID::INT64);
     auto containsSerial = false;
-    auto boundFileScanInfo = std::make_unique<BoundFileScanInfo>(std::move(readerConfig),
-        std::move(columns), std::move(offset), TableType::REL, containsSerial);
+    auto boundFileScanInfo = std::make_unique<BoundFileScanInfo>(
+        std::move(readerConfig), std::move(columns), std::move(offset), TableType::REL);
     auto relTableSchema = reinterpret_cast<RelTableSchema*>(tableSchema);
     assert(relTableSchema->getSrcTableID() == relTableSchema->getDstTableID());
     auto nodeTableID = relTableSchema->getSrcTableID();

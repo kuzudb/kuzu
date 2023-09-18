@@ -18,9 +18,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanFile(LogicalOperator* logic
     for (auto& expression : info->columns) {
         dataColumnsPos.emplace_back(outSchema->getExpressionPos(*expression));
     }
-    auto offsetPos = DataPos(outSchema->getExpressionPos(*info->offset));
-    auto readInfo = std::make_unique<ReaderInfo>(
-        offsetPos, dataColumnsPos, info->containsSerial, info->tableType);
+    auto offsetPos = DataPos{};
+    if (info->offset != nullptr) {
+        offsetPos = DataPos(outSchema->getExpressionPos(*info->offset));
+    }
+    auto readInfo = std::make_unique<ReaderInfo>(offsetPos, dataColumnsPos, info->tableType);
     return std::make_unique<Reader>(std::move(readInfo), readerSharedState, getOperatorID(),
         logicalOperator->getExpressionsForPrinting());
 }
