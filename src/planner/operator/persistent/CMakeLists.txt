@@ -1,5 +1,7 @@
 add_library(kuzu_planner_persistent
         OBJECT
+        logical_copy_from.cpp
+        logical_copy_to.cpp
         logical_create.cpp
         logical_delete.cpp
         logical_merge.cpp

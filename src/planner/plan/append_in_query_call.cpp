@@ -1,5 +1,5 @@
 #include "binder/query/reading_clause/bound_in_query_call.h"
-#include "planner/logical_plan/logical_in_query_call.h"
+#include "planner/operator/logical_in_query_call.h"
 #include "planner/query_planner.h"
 
 namespace kuzu {

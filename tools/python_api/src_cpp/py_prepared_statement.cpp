@@ -1,7 +1,7 @@
 #include "include/py_prepared_statement.h"
 
 #include "binder/binder.h"
-#include "planner/logical_plan/logical_plan.h"
+#include "planner/operator/logical_plan.h"
 
 void PyPreparedStatement::initialize(py::handle& m) {
     py::class_<PyPreparedStatement>(m, "PreparedStatement")

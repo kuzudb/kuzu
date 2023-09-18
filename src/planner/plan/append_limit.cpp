@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_limit.h"
+#include "planner/operator/logical_limit.h"
 #include "planner/query_planner.h"
 
 namespace kuzu {

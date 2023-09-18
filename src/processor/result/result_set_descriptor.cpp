@@ -1,6 +1,6 @@
 #include "processor/result/result_set_descriptor.h"
 
-#include "planner/logical_plan/schema.h"
+#include "planner/operator/schema.h"
 
 namespace kuzu {
 namespace processor {

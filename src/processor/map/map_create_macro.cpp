@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_create_macro.h"
+#include "planner/operator/logical_create_macro.h"
 #include "processor/operator/macro/create_macro.h"
 #include "processor/plan_mapper.h"
 

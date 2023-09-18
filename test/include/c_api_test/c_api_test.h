@@ -8,7 +8,7 @@
 #include "gtest/gtest.h"
 #include "main/kuzu.h"
 #include "parser/parser.h"
-#include "planner/logical_plan/logical_plan_util.h"
+#include "planner/operator/logical_plan_util.h"
 #include "planner/planner.h"
 #include "test_helper/test_helper.h"
 

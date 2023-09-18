@@ -1,7 +1,7 @@
 #include "planner/query_planner.h"
 
 #include "binder/query/bound_regular_query.h"
-#include "planner/logical_plan/logical_union.h"
+#include "planner/operator/logical_union.h"
 
 using namespace kuzu::common;
 

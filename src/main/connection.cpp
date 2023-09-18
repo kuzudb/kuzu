@@ -9,7 +9,7 @@
 #include "main/plan_printer.h"
 #include "optimizer/optimizer.h"
 #include "parser/parser.h"
-#include "planner/logical_plan/logical_plan_util.h"
+#include "planner/operator/logical_plan_util.h"
 #include "planner/planner.h"
 #include "processor/plan_mapper.h"
 #include "processor/processor.h"

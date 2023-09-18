@@ -1,8 +1,8 @@
-#include "planner/logical_plan/extend/logical_recursive_extend.h"
+#include "planner/operator/extend/logical_recursive_extend.h"
 
 #include "optimizer/factorization_rewriter.h"
 #include "optimizer/remove_factorization_rewriter.h"
-#include "planner/logical_plan/factorization/sink_util.h"
+#include "planner/operator/factorization/sink_util.h"
 
 namespace kuzu {
 namespace planner {

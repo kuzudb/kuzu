@@ -2,12 +2,12 @@
 
 #include "common/exception/not_implemented.h"
 #include "optimizer/logical_operator_collector.h"
-#include "planner/logical_plan/extend/logical_recursive_extend.h"
-#include "planner/logical_plan/logical_accumulate.h"
-#include "planner/logical_plan/logical_hash_join.h"
-#include "planner/logical_plan/logical_intersect.h"
-#include "planner/logical_plan/scan/logical_scan_node.h"
-#include "planner/logical_plan/sip/logical_semi_masker.h"
+#include "planner/operator/extend/logical_recursive_extend.h"
+#include "planner/operator/logical_accumulate.h"
+#include "planner/operator/logical_hash_join.h"
+#include "planner/operator/logical_intersect.h"
+#include "planner/operator/scan/logical_scan_node.h"
+#include "planner/operator/sip/logical_semi_masker.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;

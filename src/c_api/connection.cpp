@@ -2,7 +2,7 @@
 #include "c_api/kuzu.h"
 #include "common/exception/exception.h"
 #include "main/kuzu.h"
-#include "planner/logical_plan/logical_plan.h"
+#include "planner/operator/logical_plan.h"
 
 namespace kuzu {
 namespace common {

@@ -1,6 +1,6 @@
-#include "planner/logical_plan/logical_cross_product.h"
+#include "planner/operator/logical_cross_product.h"
 
-#include "planner/logical_plan/factorization/sink_util.h"
+#include "planner/operator/factorization/sink_util.h"
 
 namespace kuzu {
 namespace planner {

@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_cross_product.h"
+#include "planner/operator/logical_cross_product.h"
 #include "planner/query_planner.h"
 
 using namespace kuzu::common;

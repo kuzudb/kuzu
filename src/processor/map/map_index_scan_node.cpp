@@ -1,4 +1,4 @@
-#include "planner/logical_plan/scan/logical_index_scan.h"
+#include "planner/operator/scan/logical_index_scan.h"
 #include "processor/operator/index_lookup.h"
 #include "processor/operator/index_scan.h"
 #include "processor/plan_mapper.h"

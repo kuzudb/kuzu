@@ -5,7 +5,7 @@
 #include "common/join_type.h"
 #include "join_order_enumerator_context.h"
 #include "planner/join_order/cardinality_estimator.h"
-#include "planner/logical_plan/extend/extend_direction.h"
+#include "planner/operator/extend/extend_direction.h"
 
 namespace kuzu {
 namespace common {

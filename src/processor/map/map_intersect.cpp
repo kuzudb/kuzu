@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_intersect.h"
+#include "planner/operator/logical_intersect.h"
 #include "processor/operator/intersect/intersect.h"
 #include "processor/operator/intersect/intersect_build.h"
 #include "processor/plan_mapper.h"

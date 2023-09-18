@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_transaction.h"
+#include "planner/operator/logical_transaction.h"
 #include "processor/operator/transaction.h"
 #include "processor/plan_mapper.h"
 

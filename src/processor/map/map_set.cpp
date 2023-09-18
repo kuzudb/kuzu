@@ -1,5 +1,5 @@
 #include "binder/expression/rel_expression.h"
-#include "planner/logical_plan/persistent/logical_set.h"
+#include "planner/operator/persistent/logical_set.h"
 #include "processor/operator/persistent/set.h"
 #include "processor/plan_mapper.h"
 

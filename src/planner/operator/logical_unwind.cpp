@@ -1,6 +1,6 @@
-#include "planner/logical_plan/logical_unwind.h"
+#include "planner/operator/logical_unwind.h"
 
-#include "planner/logical_plan/factorization/flatten_resolver.h"
+#include "planner/operator/factorization/flatten_resolver.h"
 
 namespace kuzu {
 namespace planner {

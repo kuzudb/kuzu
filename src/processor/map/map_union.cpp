@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_union.h"
+#include "planner/operator/logical_union.h"
 #include "processor/operator/table_scan/union_all_scan.h"
 #include "processor/plan_mapper.h"
 

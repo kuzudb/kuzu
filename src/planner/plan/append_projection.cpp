@@ -1,5 +1,5 @@
-#include "planner/logical_plan/factorization/flatten_resolver.h"
-#include "planner/logical_plan/logical_projection.h"
+#include "planner/operator/factorization/flatten_resolver.h"
+#include "planner/operator/logical_projection.h"
 #include "planner/query_planner.h"
 
 namespace kuzu {

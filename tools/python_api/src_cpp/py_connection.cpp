@@ -4,7 +4,7 @@
 #include "common/string_utils.h"
 #include "datetime.h" // from Python
 #include "main/connection.h"
-#include "planner/logical_plan/logical_plan.h"
+#include "planner/operator/logical_plan.h"
 #include "processor/result/factorized_table.h"
 
 using namespace kuzu::common;

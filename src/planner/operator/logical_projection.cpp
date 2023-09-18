@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_projection.h"
+#include "planner/operator/logical_projection.h"
 
 namespace kuzu {
 namespace planner {

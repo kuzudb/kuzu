@@ -1,9 +1,9 @@
-#include "planner/logical_plan/logical_hash_join.h"
+#include "planner/operator/logical_hash_join.h"
 
 #include "common/exception/not_implemented.h"
-#include "planner/logical_plan/factorization/flatten_resolver.h"
-#include "planner/logical_plan/factorization/sink_util.h"
-#include "planner/logical_plan/scan/logical_scan_node.h"
+#include "planner/operator/factorization/flatten_resolver.h"
+#include "planner/operator/factorization/sink_util.h"
+#include "planner/operator/scan/logical_scan_node.h"
 
 using namespace kuzu::common;
 

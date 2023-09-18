@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_comment_on.h"
+#include "planner/operator/logical_comment_on.h"
 
 namespace kuzu {
 namespace planner {

@@ -13,7 +13,7 @@
 #include "json.hpp"
 #include "main/kuzu.h"
 #include "main/query_summary.h"
-#include "planner/logical_plan/logical_plan.h"
+#include "planner/operator/logical_plan.h"
 #include <jni.h>
 
 using namespace kuzu::main;

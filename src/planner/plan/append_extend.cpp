@@ -1,9 +1,9 @@
 #include "binder/expression_visitor.h"
 #include "catalog/rel_table_schema.h"
 #include "planner/join_order/cost_model.h"
-#include "planner/logical_plan/extend/logical_extend.h"
-#include "planner/logical_plan/extend/logical_recursive_extend.h"
-#include "planner/logical_plan/logical_node_label_filter.h"
+#include "planner/operator/extend/logical_extend.h"
+#include "planner/operator/extend/logical_recursive_extend.h"
+#include "planner/operator/logical_node_label_filter.h"
 #include "planner/query_planner.h"
 
 using namespace kuzu::common;

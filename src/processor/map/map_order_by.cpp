@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_order_by.h"
+#include "planner/operator/logical_order_by.h"
 #include "processor/operator/order_by/order_by.h"
 #include "processor/operator/order_by/order_by_merge.h"
 #include "processor/operator/order_by/order_by_scan.h"

@@ -1,6 +1,6 @@
 #include "binder/query/updating_clause/bound_set_clause.h"
-#include "planner/logical_plan/factorization/flatten_resolver.h"
-#include "planner/logical_plan/persistent/logical_set.h"
+#include "planner/operator/factorization/flatten_resolver.h"
+#include "planner/operator/persistent/logical_set.h"
 #include "planner/query_planner.h"
 
 using namespace kuzu::binder;

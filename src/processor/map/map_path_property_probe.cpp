@@ -1,5 +1,5 @@
 #include "common/string_utils.h"
-#include "planner/logical_plan/extend/logical_recursive_extend.h"
+#include "planner/operator/extend/logical_recursive_extend.h"
 #include "processor/operator/hash_join/hash_join_build.h"
 #include "processor/operator/recursive_extend/path_property_probe.h"
 #include "processor/plan_mapper.h"

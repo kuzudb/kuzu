@@ -1,4 +1,4 @@
-#include "planner/logical_plan/scan/logical_expressions_scan.h"
+#include "planner/operator/scan/logical_expressions_scan.h"
 #include "planner/query_planner.h"
 
 using namespace kuzu::binder;

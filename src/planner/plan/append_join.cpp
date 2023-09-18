@@ -1,6 +1,6 @@
 #include "planner/join_order/cost_model.h"
-#include "planner/logical_plan/logical_hash_join.h"
-#include "planner/logical_plan/logical_intersect.h"
+#include "planner/operator/logical_hash_join.h"
+#include "planner/operator/logical_intersect.h"
 #include "planner/query_planner.h"
 
 using namespace kuzu::common;

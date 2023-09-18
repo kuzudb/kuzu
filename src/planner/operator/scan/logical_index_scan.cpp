@@ -1,4 +1,4 @@
-#include "planner/logical_plan/scan/logical_index_scan.h"
+#include "planner/operator/scan/logical_index_scan.h"
 
 namespace kuzu {
 namespace planner {

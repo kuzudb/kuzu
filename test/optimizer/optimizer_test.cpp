@@ -1,7 +1,7 @@
 #include "graph_test/graph_test.h"
-#include "planner/logical_plan/extend/logical_recursive_extend.h"
-#include "planner/logical_plan/logical_plan_util.h"
-#include "planner/logical_plan/scan/logical_scan_node_property.h"
+#include "planner/operator/extend/logical_recursive_extend.h"
+#include "planner/operator/logical_plan_util.h"
+#include "planner/operator/scan/logical_scan_node_property.h"
 
 namespace kuzu {
 namespace testing {

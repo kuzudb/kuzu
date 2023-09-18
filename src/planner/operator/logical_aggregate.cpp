@@ -1,7 +1,7 @@
-#include "planner/logical_plan/logical_aggregate.h"
+#include "planner/operator/logical_aggregate.h"
 
 #include "binder/expression/function_expression.h"
-#include "planner/logical_plan/factorization/flatten_resolver.h"
+#include "planner/operator/factorization/flatten_resolver.h"
 
 namespace kuzu {
 namespace planner {

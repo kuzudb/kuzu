@@ -1,4 +1,3 @@
-add_subdirectory(copy)
 add_subdirectory(ddl)
 add_subdirectory(extend)
 add_subdirectory(factorization)

@@ -1,4 +1,4 @@
-#include "planner/logical_plan/sip/logical_semi_masker.h"
+#include "planner/operator/sip/logical_semi_masker.h"
 #include "processor/operator/recursive_extend/recursive_join.h"
 #include "processor/operator/scan_node_id.h"
 #include "processor/operator/semi_masker.h"

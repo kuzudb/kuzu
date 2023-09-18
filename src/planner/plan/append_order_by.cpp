@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_order_by.h"
+#include "planner/operator/logical_order_by.h"
 #include "planner/query_planner.h"
 
 namespace kuzu {

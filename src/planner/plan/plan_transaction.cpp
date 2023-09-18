@@ -1,5 +1,5 @@
 #include "binder/bound_transaction_statement.h"
-#include "planner/logical_plan/logical_transaction.h"
+#include "planner/operator/logical_transaction.h"
 #include "planner/planner.h"
 
 using namespace kuzu::binder;
