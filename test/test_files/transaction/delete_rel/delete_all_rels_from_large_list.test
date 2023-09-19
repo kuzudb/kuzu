@@ -1,0 +1,56 @@
+-GROUP DeleteRelTest
+-DATASET CSV rel-update-tests
+--
+
+-CASE deleteAllRelsFromLargeListCommitNormalExecution
+-STATEMENT BEGIN WRITE TRANSACTION
+---- ok
+-STATEMENT MATCH (:person)-[e:knows]->(:person) DELETE e
+---- ok
+-STATEMENT COMMIT
+---- ok 
+-STATEMENT BEGIN WRITE TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID = 0 RETURN e.length
+---- 0
+
+
+-CASE deleteAllRelsFromLargeListCommitRecovery
+-STATEMENT BEGIN WRITE TRANSACTION
+---- ok
+-STATEMENT MATCH (:person)-[e:knows]->(:person) DELETE e
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN WRITE TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID = 0 RETURN e.length
+---- 0
+
+-CASE deleteAllRelsFromLargeListRollbackNormalExecution
+-STATEMENT BEGIN WRITE TRANSACTION
+---- ok
+-STATEMENT MATCH (:person)-[e:knows]->(:person) DELETE e
+---- ok
+-STATEMENT Rollback
+---- ok 
+-STATEMENT BEGIN WRITE TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID = 0 RETURN e.length
+---- 2300
+<FILE>:delete_rels.txt
+
+-CASE deleteAllRelsFromLargeListRollbackRecovery
+-STATEMENT BEGIN WRITE TRANSACTION
+---- ok
+-STATEMENT MATCH (:person)-[e:knows]->(:person) DELETE e
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN WRITE TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID = 0 RETURN e.length
+---- 2300
+<FILE>:delete_rels.txt

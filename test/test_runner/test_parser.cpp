@@ -155,20 +155,22 @@ TestStatement* TestParser::extractStatement(
         break;
     }
     case TokenType::RELOADDB: {
-        statement->reLoadDBFlag = true;
+        statement->reloadDBFlag = true;
         return statement;
     }
     case TokenType::STATEMENT: {
         std::string query = paramsToString(1);
-        bool statement_status = extractConnName(query, statement);
-        auto& caseStatus = testGroup->multipleConns;
-        caseStatus = caseStatus ? caseStatus : statement_status;
-        if (caseStatus) {
-            statement->conn_name = statement_status ? statement->conn_name : "default";
-        }
+        extractConnName(query, statement);
         query += extractTextBeforeNextStatement(true);
         replaceVariables(query);
         statement->query = query;
+        break;
+    }
+    case TokenType::BATCH_STATEMENTS: {
+        std::string query = paramsToString(1);
+        extractConnName(query, statement);
+        statement->batchStatmentsCSVFile = TestHelper::appendKuzuRootPath(
+            FileUtils::joinPath(TestHelper::TEST_STATEMENTS_PATH, query.substr(7)));
         break;
     }
     case TokenType::RESULT: {
@@ -351,18 +353,20 @@ void TestParser::tokenize() {
     }
 }
 
-bool TestParser::extractConnName(std::string& query, TestStatement* statement) {
+void TestParser::extractConnName(std::string& query, TestStatement* statement) {
     std::regex pattern(R"(\[(conn.*?)\]\s*(.*))");
     std::smatch matches;
     bool statement_status = false;
     if (std::regex_search(query, matches, pattern)) {
         if (matches.size() == 3) {
             statement_status = true;
-            statement->conn_name = matches[1];
+            statement->connName = matches[1];
             query = matches[2];
         }
     }
-    return statement_status;
+    if (!statement_status) {
+        statement->connName = TestHelper::DEFAULT_CONN_NAME;
+    }
 }
 
 } // namespace testing

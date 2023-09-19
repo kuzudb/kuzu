@@ -38,7 +38,8 @@ enum class TokenType {
 
     CHECKPOINT_WAIT_TIMEOUT,
     CREATE_CONNECTION,
-    RELOADDB
+    RELOADDB,
+    BATCH_STATEMENTS
 };
 
 const std::unordered_map<std::string, TokenType> tokenMap = {{"-GROUP", TokenType::GROUP},
@@ -53,9 +54,9 @@ const std::unordered_map<std::string, TokenType> tokenMap = {{"-GROUP", TokenTyp
     {"-INSERT_STATEMENT_BLOCK", TokenType::INSERT_STATEMENT_BLOCK},
     {"-ROLLBACK", TokenType::ROLLBACK}, {"-BUFFER_POOL_SIZE", TokenType::BUFFER_POOL_SIZE},
     {"-CHECKPOINT_WAIT_TIMEOUT", TokenType::CHECKPOINT_WAIT_TIMEOUT},
-    {"-RELOADDB", TokenType::RELOADDB}, {"-CREATE_CONNECTION", TokenType::CREATE_CONNECTION},
-    {"]", TokenType::END_OF_STATEMENT_BLOCK}, {"----", TokenType::RESULT},
-    {"--", TokenType::SEPARATOR}, {"#", TokenType::EMPTY}};
+    {"-BATCH_STATEMENTS", TokenType::BATCH_STATEMENTS}, {"-RELOADDB", TokenType::RELOADDB},
+    {"-CREATE_CONNECTION", TokenType::CREATE_CONNECTION}, {"]", TokenType::END_OF_STATEMENT_BLOCK},
+    {"----", TokenType::RESULT}, {"--", TokenType::SEPARATOR}, {"#", TokenType::EMPTY}};
 
 class LogicToken {
 public:
@@ -91,7 +92,7 @@ private:
     void extractDataset();
     void addStatementBlock(const std::string& blockName, const std::string& testGroupName);
     void replaceVariables(std::string& str);
-    bool extractConnName(std::string& query, TestStatement* statement);
+    void extractConnName(std::string& query, TestStatement* statement);
 
     inline bool endOfFile() { return fileStream.eof(); }
     inline void setCursorToPreviousLine() { fileStream.seekg(previousFilePosition); }
