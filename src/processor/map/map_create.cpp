@@ -27,7 +27,7 @@ static std::vector<DataPos> populateLhsVectorPositions(
 std::unique_ptr<NodeInsertExecutor> PlanMapper::getNodeInsertExecutor(
     storage::NodesStore* nodesStore, storage::RelsStore* relsStore,
     planner::LogicalCreateNodeInfo* info, const planner::Schema& inSchema,
-    const planner::Schema& outSchema) {
+    const planner::Schema& outSchema) const {
     auto node = info->node;
     auto nodeTableID = node->getSingleTableID();
     auto table = nodesStore->getNodeTable(nodeTableID);
@@ -41,15 +41,11 @@ std::unique_ptr<NodeInsertExecutor> PlanMapper::getNodeInsertExecutor(
     auto nodeIDPos = DataPos(outSchema.getExpressionPos(*node->getInternalIDProperty()));
     std::vector<DataPos> lhsVectorPositions = populateLhsVectorPositions(info->setItems, outSchema);
     std::vector<std::unique_ptr<ExpressionEvaluator>> evaluators;
-    std::unordered_map<common::property_id_t, common::vector_idx_t> propertyIDToVectorIdx;
-    for (auto i = 0u; i < info->setItems.size(); ++i) {
-        auto& [lhs, rhs] = info->setItems[i];
-        auto propertyExpression = (binder::PropertyExpression*)lhs.get();
+    for (auto& [_, rhs] : info->setItems) {
         evaluators.push_back(ExpressionMapper::getEvaluator(rhs, &inSchema));
-        propertyIDToVectorIdx.insert({propertyExpression->getPropertyID(nodeTableID), i});
     }
     return std::make_unique<NodeInsertExecutor>(table, std::move(relTablesToInit), nodeIDPos,
-        std::move(lhsVectorPositions), std::move(evaluators), std::move(propertyIDToVectorIdx));
+        std::move(lhsVectorPositions), std::move(evaluators));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateNode(LogicalOperator* logicalOperator) {

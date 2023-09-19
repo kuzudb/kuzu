@@ -66,6 +66,7 @@ public:
     std::string getPropertyName(common::property_id_t propertyID) const;
 
     common::property_id_t getPropertyID(const std::string& propertyName) const;
+    common::column_id_t getColumnID(common::property_id_t propertyID) const;
 
     Property* getProperty(common::property_id_t propertyID) const;
 

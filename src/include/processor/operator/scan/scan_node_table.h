@@ -9,30 +9,31 @@ namespace processor {
 class ScanSingleNodeTable : public ScanColumns {
 public:
     ScanSingleNodeTable(const DataPos& inVectorPos, std::vector<DataPos> outVectorsPos,
-        storage::NodeTable* table, std::vector<uint32_t> propertyColumnIds,
+        storage::NodeTable* table, std::vector<common::column_id_t> columnIDs,
         std::unique_ptr<PhysicalOperator> prevOperator, uint32_t id,
         const std::string& paramsString)
         : ScanColumns{inVectorPos, std::move(outVectorsPos), std::move(prevOperator), id,
               paramsString},
-          table{table}, propertyColumnIds{std::move(propertyColumnIds)} {}
+          table{table}, columnIDs{std::move(columnIDs)} {}
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<ScanSingleNodeTable>(inputNodeIDVectorPos, outPropertyVectorsPos, table,
-            propertyColumnIds, children[0]->clone(), id, paramsString);
+            columnIDs, children[0]->clone(), id, paramsString);
     }
 
 private:
     storage::NodeTable* table;
-    std::vector<uint32_t> propertyColumnIds;
+    std::vector<common::column_id_t> columnIDs;
 };
 
 class ScanMultiNodeTables : public ScanColumns {
 public:
     ScanMultiNodeTables(const DataPos& inVectorPos, std::vector<DataPos> outVectorsPos,
         std::unordered_map<common::table_id_t, storage::NodeTable*> tables,
-        std::unordered_map<common::table_id_t, std::vector<uint32_t>> tableIDToScanColumnIds,
+        std::unordered_map<common::table_id_t, std::vector<common::column_id_t>>
+            tableIDToScanColumnIds,
         std::unique_ptr<PhysicalOperator> prevOperator, uint32_t id,
         const std::string& paramsString)
         : ScanColumns{inVectorPos, std::move(outVectorsPos), std::move(prevOperator), id,
@@ -48,7 +49,7 @@ public:
 
 private:
     std::unordered_map<common::table_id_t, storage::NodeTable*> tables;
-    std::unordered_map<common::table_id_t, std::vector<uint32_t>> tableIDToScanColumnIds;
+    std::unordered_map<common::table_id_t, std::vector<common::column_id_t>> tableIDToScanColumnIds;
 };
 
 } // namespace processor

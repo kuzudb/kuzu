@@ -39,35 +39,34 @@ public:
     inline BMFileHandle* getDataFH() const { return dataFH; }
 
     void read(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        const std::vector<common::column_id_t>& columnIds,
+        const std::vector<common::column_id_t>& columnIDs,
         const std::vector<common::ValueVector*>& outputVectors);
     void insert(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        const std::vector<common::ValueVector*>& propertyVectors,
-        const std::unordered_map<common::property_id_t, common::vector_idx_t>&
-            propertyIDToVectorIdx);
-    void update(transaction::Transaction* transaction, common::property_id_t propertyID,
+        const std::vector<common::ValueVector*>& propertyVectors);
+    void update(transaction::Transaction* transaction, common::column_id_t columnID,
         common::ValueVector* nodeIDVector, common::ValueVector* propertyVector);
-    void update(transaction::Transaction* transaction, common::property_id_t propertyID,
+    void update(transaction::Transaction* transaction, common::column_id_t columnID,
         common::offset_t nodeOffset, common::ValueVector* propertyVector,
-        common::sel_t posInPropertyVector);
+        common::sel_t posInPropertyVector) const;
     void delete_(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         DeleteState* deleteState);
     void append(NodeGroup* nodeGroup);
 
-    std::unordered_set<common::property_id_t> getPropertyIDs() const;
-
-    inline NodeColumn* getPropertyColumn(common::property_id_t propertyIdx) {
-        assert(propertyColumns.contains(propertyIdx));
-        return propertyColumns.at(propertyIdx).get();
+    inline common::column_id_t getNumColumns() const { return columns.size(); }
+    inline NodeColumn* getColumn(common::column_id_t columnID) {
+        assert(columnID < columns.size());
+        return columns[columnID].get();
     }
+    inline common::column_id_t getPKColumnID() const { return pkColumnID; }
     inline PrimaryKeyIndex* getPKIndex() const { return pkIndex.get(); }
     inline NodesStatisticsAndDeletedIDs* getNodeStatisticsAndDeletedIDs() const {
         return nodesStatisticsAndDeletedIDs;
     }
-    inline common::property_id_t getPKPropertyID() const { return pkPropertyID; }
     inline common::table_id_t getTableID() const { return tableID; }
 
-    inline void dropColumn(common::property_id_t propertyID) { propertyColumns.erase(propertyID); }
+    inline void dropColumn(common::column_id_t columnID) {
+        columns.erase(columns.begin() + columnID);
+    }
     void addColumn(const catalog::Property& property, common::ValueVector* defaultValueVector,
         transaction::Transaction* transaction);
 
@@ -89,16 +88,16 @@ private:
 
     void insertPK(common::ValueVector* nodeIDVector, common::ValueVector* primaryKeyVector);
     inline uint64_t getNumNodeGroups(transaction::Transaction* transaction) const {
-        return propertyColumns.begin()->second->getNumNodeGroups(transaction);
+        assert(!columns.empty());
+        return columns[0]->getNumNodeGroups(transaction);
     }
 
 private:
     NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs;
-    // TODO(Guodong): use vector here
-    std::map<common::property_id_t, std::unique_ptr<NodeColumn>> propertyColumns;
+    std::vector<std::unique_ptr<NodeColumn>> columns;
     BMFileHandle* dataFH;
     BMFileHandle* metadataFH;
-    common::property_id_t pkPropertyID;
+    common::column_id_t pkColumnID;
     std::unique_ptr<PrimaryKeyIndex> pkIndex;
     common::table_id_t tableID;
     BufferManager& bufferManager;

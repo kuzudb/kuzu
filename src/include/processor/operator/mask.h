@@ -23,8 +23,10 @@ struct MaskData {
         std::fill(data, data + size, 0);
     }
 
-    inline void setMask(uint64_t pos, uint8_t maskValue) { data[pos] = maskValue; }
-    inline bool isMasked(uint64_t pos, uint8_t trueMaskVal) { return data[pos] == trueMaskVal; }
+    inline void setMask(uint64_t pos, uint8_t maskValue) const { data[pos] = maskValue; }
+    inline bool isMasked(uint64_t pos, uint8_t trueMaskVal) const {
+        return data[pos] == trueMaskVal;
+    }
 
 private:
     std::unique_ptr<uint8_t[]> dataBuffer;
@@ -63,7 +65,7 @@ private:
 
 class NodeSemiMask {
 public:
-    NodeSemiMask(storage::NodeTable* nodeTable) : nodeTable{nodeTable} {}
+    explicit NodeSemiMask(storage::NodeTable* nodeTable) : nodeTable{nodeTable} {}
 
     virtual void init(transaction::Transaction* trx) = 0;
 
@@ -72,7 +74,7 @@ public:
     virtual uint8_t getNumMasks() const = 0;
     virtual void incrementNumMasks() = 0;
 
-    inline bool isEnabled() { return getNumMasks() > 0; }
+    inline bool isEnabled() const { return getNumMasks() > 0; }
     inline storage::NodeTable* getNodeTable() const { return nodeTable; }
 
 protected:
@@ -81,7 +83,7 @@ protected:
 
 class NodeOffsetSemiMask : public NodeSemiMask {
 public:
-    NodeOffsetSemiMask(storage::NodeTable* nodeTable) : NodeSemiMask{nodeTable} {
+    explicit NodeOffsetSemiMask(storage::NodeTable* nodeTable) : NodeSemiMask{nodeTable} {
         offsetMask = std::make_unique<MaskCollection>();
     }
 
@@ -110,7 +112,7 @@ private:
 
 class NodeOffsetAndMorselSemiMask : public NodeSemiMask {
 public:
-    NodeOffsetAndMorselSemiMask(storage::NodeTable* nodeTable) : NodeSemiMask{nodeTable} {
+    explicit NodeOffsetAndMorselSemiMask(storage::NodeTable* nodeTable) : NodeSemiMask{nodeTable} {
         offsetMask = std::make_unique<MaskCollection>();
         morselMask = std::make_unique<MaskCollection>();
     }

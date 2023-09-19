@@ -12,12 +12,10 @@ class NodeInsertExecutor {
 public:
     NodeInsertExecutor(storage::NodeTable* table, std::vector<storage::RelTable*> relTablesToInit,
         const DataPos& nodeIDVectorPos, std::vector<DataPos> propertyLhsPositions,
-        std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> propertyRhsEvaluators,
-        std::unordered_map<common::property_id_t, common::vector_idx_t> propertyIDToVectorIdx)
+        std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> propertyRhsEvaluators)
         : table{table}, relTablesToInit{std::move(relTablesToInit)},
           nodeIDVectorPos{nodeIDVectorPos}, propertyLhsPositions{std::move(propertyLhsPositions)},
-          propertyRhsEvaluators{std::move(propertyRhsEvaluators)}, propertyIDToVectorIdx{std::move(
-                                                                       propertyIDToVectorIdx)} {}
+          propertyRhsEvaluators{std::move(propertyRhsEvaluators)}, nodeIDVector{nullptr} {}
     NodeInsertExecutor(const NodeInsertExecutor& other);
 
     void init(ResultSet* resultSet, ExecutionContext* context);
@@ -37,8 +35,6 @@ private:
     DataPos nodeIDVectorPos;
     std::vector<DataPos> propertyLhsPositions;
     std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> propertyRhsEvaluators;
-    // TODO(Guodong): remove this.
-    std::unordered_map<common::property_id_t, common::vector_idx_t> propertyIDToVectorIdx;
 
     common::ValueVector* nodeIDVector;
     std::vector<common::ValueVector*> propertyLhsVectors;
@@ -53,7 +49,8 @@ public:
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> propertyRhsEvaluators)
         : relsStatistics{relsStatistics}, table{table}, srcNodePos{srcNodePos},
           dstNodePos{dstNodePos}, propertyLhsPositions{std::move(propertyLhsPositions)},
-          propertyRhsEvaluators{std::move(propertyRhsEvaluators)} {}
+          propertyRhsEvaluators{std::move(propertyRhsEvaluators)}, srcNodeIDVector{nullptr},
+          dstNodeIDVector{nullptr} {}
     RelInsertExecutor(const RelInsertExecutor& other);
 
     void init(ResultSet* resultSet, ExecutionContext* context);
@@ -75,8 +72,8 @@ private:
     std::vector<DataPos> propertyLhsPositions;
     std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> propertyRhsEvaluators;
 
-    common::ValueVector* srcNodeIDVector = nullptr;
-    common::ValueVector* dstNodeIDVector = nullptr;
+    common::ValueVector* srcNodeIDVector;
+    common::ValueVector* dstNodeIDVector;
     std::vector<common::ValueVector*> propertyLhsVectors;
     std::vector<common::ValueVector*> propertyRhsVectors;
 };

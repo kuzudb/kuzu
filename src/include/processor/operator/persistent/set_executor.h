@@ -39,7 +39,7 @@ protected:
 
 struct NodeSetInfo {
     storage::NodeTable* table;
-    common::property_id_t propertyID;
+    common::column_id_t columnID;
 };
 
 class SingleLabelNodeSetExecutor : public NodeSetExecutor {

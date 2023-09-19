@@ -12,7 +12,7 @@ bool ScanSingleNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     for (auto& outputVector : outPropertyVectors) {
         outputVector->resetAuxiliaryBuffer();
     }
-    table->read(transaction, inputNodeIDVector, propertyColumnIds, outPropertyVectors);
+    table->read(transaction, inputNodeIDVector, columnIDs, outPropertyVectors);
     return true;
 }
 
