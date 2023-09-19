@@ -1,5 +1,8 @@
 #pragma once
 
+#include <vector>
+#include <memory>
+
 #include "arrow_array.h"
 #include "common/arrow/arrow.h"
 #include "common/types/internal_id_t.h"
@@ -49,8 +52,9 @@ public:
 private:
     static py::dict convertNodeIdToPyDict(const kuzu::common::nodeID_t& nodeId);
 
-    bool getNextArrowChunk(const ArrowSchema& schema, py::list& batches, std::int64_t chunk_size);
-    py::object getArrowChunks(const ArrowSchema& schema, std::int64_t chunkSize);
+    bool getNextArrowChunk(const std::vector<std::unique_ptr<DataTypeInfo>>& typesInfo, py::list& batches, std::int64_t chunk_size);
+    py::object getArrowChunks(
+        const std::vector<std::unique_ptr<DataTypeInfo>>& typesInfo, std::int64_t chunkSize);
 
 private:
     std::unique_ptr<QueryResult> queryResult;

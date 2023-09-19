@@ -191,7 +191,7 @@ py::object PyQueryResult::getAsDF() {
 }
 
 bool PyQueryResult::getNextArrowChunk(
-    const ArrowSchema& schema, py::list& batches, std::int64_t chunkSize) {
+    const std::vector<std::unique_ptr<DataTypeInfo>>& typesInfo, py::list& batches, std::int64_t chunkSize) {
     if (!queryResult->hasNext()) {
         return false;
     }
@@ -200,14 +200,16 @@ bool PyQueryResult::getNextArrowChunk(
 
     auto pyarrowLibModule = py::module::import("pyarrow").attr("lib");
     auto batchImportFunc = pyarrowLibModule.attr("RecordBatch").attr("_import_from_c");
-    batches.append(batchImportFunc((std::uint64_t)&data, (std::uint64_t)&schema));
+    auto schema = ArrowConverter::toArrowSchema(typesInfo);
+    batches.append(batchImportFunc((std::uint64_t)&data, (std::uint64_t)schema.get()));
     return true;
 }
 
-py::object PyQueryResult::getArrowChunks(const ArrowSchema& schema, std::int64_t chunkSize) {
+py::object PyQueryResult::getArrowChunks(
+    const std::vector<std::unique_ptr<DataTypeInfo>>& typesInfo, std::int64_t chunkSize) {
     auto pyarrowLibModule = py::module::import("pyarrow").attr("lib");
     py::list batches;
-    while (getNextArrowChunk(schema, batches, chunkSize)) {}
+    while (getNextArrowChunk(typesInfo, batches, chunkSize)) {}
     return std::move(batches);
 }
 
@@ -219,16 +221,9 @@ kuzu::pyarrow::Table PyQueryResult::getAsArrow(std::int64_t chunkSize) {
     auto schemaImportFunc = pyarrowLibModule.attr("Schema").attr("_import_from_c");
 
     auto typesInfo = queryResult->getColumnTypesInfo();
+    py::list batches = getArrowChunks(typesInfo, chunkSize);
     auto schema = ArrowConverter::toArrowSchema(typesInfo);
-    // Prevent arrow from releasing the schema until it gets passed to the table
-    // It seems like you are expected to pass a new schema for each RecordBatch
-    auto release = schema->release;
-    schema->release = [](ArrowSchema*) {};
-
-    py::list batches = getArrowChunks(*schema, chunkSize);
     auto schemaObj = schemaImportFunc((std::uint64_t)schema.get());
-
-    schema->release = release;
     return py::cast<kuzu::pyarrow::Table>(fromBatchesFunc(batches, schemaObj));
 }
 
