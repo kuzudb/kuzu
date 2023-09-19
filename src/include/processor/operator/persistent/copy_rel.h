@@ -6,7 +6,7 @@
 #include "storage/in_mem_storage_structure/in_mem_column.h"
 #include "storage/in_mem_storage_structure/in_mem_column_chunk.h"
 #include "storage/in_mem_storage_structure/in_mem_lists.h"
-#include "storage/store/rels_statistics.h"
+#include "storage/stats/rels_statistics.h"
 
 namespace kuzu {
 namespace processor {

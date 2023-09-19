@@ -1,7 +1,7 @@
 #pragma once
 
 #include "arrow/array/array_nested.h"
-#include "storage/copier/column_chunk.h"
+#include "storage/store/column_chunk.h"
 
 namespace kuzu {
 namespace storage {

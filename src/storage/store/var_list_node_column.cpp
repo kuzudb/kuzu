@@ -1,7 +1,7 @@
 #include "storage/store/var_list_node_column.h"
 
-#include "storage/copier/var_list_column_chunk.h"
 #include "storage/store/node_column.h"
+#include "storage/store/var_list_column_chunk.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;

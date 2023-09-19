@@ -1,11 +1,18 @@
-#include "storage/copier/table_copy_utils.h"
+#include "storage/store/table_copy_utils.h"
 
 #include "common/constants.h"
 #include "common/exception/copy.h"
 #include "common/exception/parser.h"
 #include "common/string_utils.h"
-#include "storage/copier/npy_reader.h"
 #include "storage/storage_structure/lists/lists.h"
+#include <arrow/api.h>
+#include <arrow/csv/api.h>
+#include <arrow/io/api.h>
+#include <arrow/result.h>
+#include <arrow/scalar.h>
+#include <arrow/table.h>
+#include <parquet/arrow/reader.h>
+#include <parquet/exception.h>
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

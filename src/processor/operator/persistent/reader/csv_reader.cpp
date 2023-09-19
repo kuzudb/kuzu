@@ -7,16 +7,18 @@
 #include "common/exception/not_implemented.h"
 #include "common/exception/parser.h"
 #include "common/string_utils.h"
+#include "common/type_utils.h"
 #include "common/types/blob.h"
-#include "storage/copier/table_copy_utils.h"
+#include "common/types/value/value.h"
+#include "storage/store/table_copy_utils.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace processor {
 
-BaseCSVReader::BaseCSVReader(const std::string& filePath, common::CSVReaderConfig csvReaderConfig,
-    uint64_t expectedNumColumns)
+BaseCSVReader::BaseCSVReader(
+    const std::string& filePath, CSVReaderConfig csvReaderConfig, uint64_t expectedNumColumns)
     : csvReaderConfig{std::move(csvReaderConfig)}, filePath{filePath},
       expectedNumColumns{expectedNumColumns}, rowToAdd{0} {}
 
@@ -101,7 +103,7 @@ bool BaseCSVReader::AddRow(DataChunk& resultChunk, column_id_t& column) {
     return false;
 }
 
-void BaseCSVReader::copyStringToVector(common::ValueVector* vector, std::string& strVal) {
+void BaseCSVReader::copyStringToVector(ValueVector* vector, std::string& strVal) {
     auto& type = vector->dataType;
     if (strVal.empty()) {
         vector->setNull(rowToAdd, true /* isNull */);
@@ -212,8 +214,8 @@ void BaseCSVReader::copyStringToVector(common::ValueVector* vector, std::string&
     }
 }
 
-BufferedCSVReader::BufferedCSVReader(const std::string& filePath,
-    common::CSVReaderConfig csvReaderConfig, uint64_t expectedNumColumns)
+BufferedCSVReader::BufferedCSVReader(
+    const std::string& filePath, CSVReaderConfig csvReaderConfig, uint64_t expectedNumColumns)
     : BaseCSVReader{filePath, csvReaderConfig, expectedNumColumns},
       bufferSize{0}, position{0}, start{0} {
     Initialize();
@@ -535,7 +537,7 @@ final_state:
     return rowToAdd;
 }
 
-uint64_t BufferedCSVReader::ParseCSV(common::DataChunk& resultChunk) {
+uint64_t BufferedCSVReader::ParseCSV(DataChunk& resultChunk) {
     std::string errorMessage;
     auto numRowsRead = TryParseCSV(resultChunk, errorMessage);
     if (numRowsRead == -1) {

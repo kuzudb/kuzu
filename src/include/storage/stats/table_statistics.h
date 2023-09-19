@@ -5,7 +5,7 @@
 
 #include "catalog/table_schema.h"
 #include "common/ser_deser.h"
-#include "storage/store/property_statistics.h"
+#include "storage/stats/property_statistics.h"
 #include "transaction/transaction.h"
 
 namespace kuzu {

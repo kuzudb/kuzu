@@ -11,7 +11,7 @@
 #include <arrow/record_batch.h>
 
 namespace kuzu {
-namespace storage {
+namespace processor {
 
 class NpyReader {
 public:
@@ -60,5 +60,5 @@ private:
     std::vector<std::unique_ptr<NpyReader>> fileReaders;
 };
 
-} // namespace storage
+} // namespace processor
 } // namespace kuzu

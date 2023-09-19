@@ -32,8 +32,7 @@ void NodeTable::initializeColumns(NodeTableSchema* nodeTableSchema) {
     for (auto& property : nodeTableSchema->getProperties()) {
         columns.push_back(NodeColumnFactory::createNodeColumn(*property, dataFH, metadataFH,
             &bufferManager, wal, Transaction::getDummyReadOnlyTrx().get(),
-            RWPropertyStats(getNodeStatisticsAndDeletedIDs(), property->getTableID(),
-                property->getPropertyID())));
+            RWPropertyStats(getNodeStatisticsAndDeletedIDs(), tableID, property->getPropertyID())));
     }
 }
 
@@ -156,12 +155,11 @@ void NodeTable::append(NodeGroup* nodeGroup) {
 
 void NodeTable::addColumn(const catalog::Property& property,
     common::ValueVector* defaultValueVector, transaction::Transaction* transaction) {
-    nodesStatisticsAndDeletedIDs->setPropertyStatisticsForTable(property.getTableID(),
-        property.getPropertyID(), PropertyStatistics(!defaultValueVector->hasNoNullsGuarantee()));
+    nodesStatisticsAndDeletedIDs->setPropertyStatisticsForTable(tableID, property.getPropertyID(),
+        PropertyStatistics(!defaultValueVector->hasNoNullsGuarantee()));
     auto nodeColumn = NodeColumnFactory::createNodeColumn(property, dataFH, metadataFH,
         &bufferManager, wal, transaction,
-        RWPropertyStats(
-            nodesStatisticsAndDeletedIDs, property.getTableID(), property.getPropertyID()));
+        RWPropertyStats(nodesStatisticsAndDeletedIDs, tableID, property.getPropertyID()));
     nodeColumn->populateWithDefaultVal(
         property, nodeColumn.get(), defaultValueVector, getNumNodeGroups(transaction));
     columns.push_back(std::move(nodeColumn));

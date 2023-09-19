@@ -1,4 +1,4 @@
-#include "storage/store/nodes_statistics_and_deleted_ids.h"
+#include "storage/stats/nodes_statistics_and_deleted_ids.h"
 
 #include "common/constants.h"
 #include "common/string_utils.h"

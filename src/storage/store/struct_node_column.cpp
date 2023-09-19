@@ -1,6 +1,6 @@
 #include "storage/store/struct_node_column.h"
 
-#include "storage/store/table_statistics.h"
+#include "storage/stats/table_statistics.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

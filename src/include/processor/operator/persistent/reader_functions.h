@@ -1,9 +1,11 @@
 #pragma once
 
 #include "processor/operator/persistent/reader/csv_reader.h"
+#include "processor/operator/persistent/reader/npy_reader.h"
 #include "processor/operator/persistent/reader/rdf_reader.h"
-#include "storage/copier/npy_reader.h"
-#include "storage/copier/table_copy_utils.h"
+#include "storage/store/table_copy_utils.h"
+#include <arrow/csv/reader.h>
+#include <parquet/arrow/reader.h>
 
 namespace kuzu {
 namespace processor {
@@ -28,11 +30,11 @@ struct ParquetReaderFunctionData : public ReaderFunctionData {
 };
 
 struct NPYReaderFunctionData : public ReaderFunctionData {
-    std::unique_ptr<storage::NpyMultiFileReader> reader = nullptr;
+    std::unique_ptr<NpyMultiFileReader> reader = nullptr;
 };
 
 struct RDFReaderFunctionData : public ReaderFunctionData {
-    std::unique_ptr<storage::RDFReader> reader = nullptr;
+    std::unique_ptr<RDFReader> reader = nullptr;
 };
 
 struct FileBlocksInfo {

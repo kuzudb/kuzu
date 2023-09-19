@@ -1,7 +1,7 @@
 #pragma once
 
 #include "processor/operator/ddl/ddl.h"
-#include "storage/store/rels_statistics.h"
+#include "storage/stats/rels_statistics.h"
 
 namespace kuzu {
 namespace processor {

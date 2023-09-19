@@ -1,7 +1,7 @@
 #include "storage/store/node_column.h"
 
+#include "storage/stats/property_statistics.h"
 #include "storage/storage_structure/storage_structure.h"
-#include "storage/store/property_statistics.h"
 #include "storage/store/string_node_column.h"
 #include "storage/store/struct_node_column.h"
 #include "storage/store/var_list_node_column.h"

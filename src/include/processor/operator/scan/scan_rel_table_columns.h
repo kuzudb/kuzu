@@ -2,7 +2,7 @@
 
 #include "processor/operator/filtering_operator.h"
 #include "processor/operator/scan/scan_rel_table.h"
-#include "storage/store/rels_statistics.h"
+#include "storage/stats/rels_statistics.h"
 
 namespace kuzu {
 namespace processor {

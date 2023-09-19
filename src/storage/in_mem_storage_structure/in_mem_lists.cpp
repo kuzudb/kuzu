@@ -3,8 +3,8 @@
 #include "common/exception/copy.h"
 #include "common/exception/message.h"
 #include "common/types/blob.h"
-#include "storage/copier/table_copy_utils.h"
 #include "storage/in_mem_storage_structure/in_mem_column_chunk.h"
+#include "storage/store/table_copy_utils.h"
 
 using namespace kuzu::common;
 

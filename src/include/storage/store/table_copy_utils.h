@@ -1,23 +1,27 @@
 #pragma once
 
-#include "catalog/catalog.h"
 #include "common/copier_config/copier_config.h"
-#include "common/logging_level_utils.h"
-#include "common/task_system/task_scheduler.h"
-#include "storage/store/table_statistics.h"
-#include <arrow/api.h>
-#include <arrow/csv/api.h>
-#include <arrow/io/api.h>
-#include <arrow/ipc/reader.h>
-#include <arrow/pretty_print.h>
-#include <arrow/result.h>
-#include <arrow/scalar.h>
-#include <arrow/table.h>
-#include <parquet/arrow/reader.h>
-#include <parquet/arrow/writer.h>
-#include <parquet/exception.h>
+
+namespace arrow {
+class Buffer;
+class DataType;
+class PrimitiveArray;
+class Status;
+namespace csv {
+class StreamingReader;
+}
+} // namespace arrow
+namespace parquet {
+namespace arrow {
+class FileReader;
+}
+} // namespace parquet
 
 namespace kuzu {
+namespace common {
+class Value;
+}
+
 namespace storage {
 
 struct StructFieldIdxAndValue {

@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 
-#include "nodes_statistics_and_deleted_ids.h"
+#include "storage/stats/nodes_statistics_and_deleted_ids.h"
 #include "storage/store/node_table.h"
 
 namespace kuzu {

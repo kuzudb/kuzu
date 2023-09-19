@@ -1,7 +1,7 @@
 #include "catalog/table_schema.h"
 #include "graph_test/graph_test.h"
-#include "storage/store/nodes_statistics_and_deleted_ids.h"
-#include "storage/store/table_statistics.h"
+#include "storage/stats/nodes_statistics_and_deleted_ids.h"
+#include "storage/stats/table_statistics.h"
 #include "storage/wal_replayer.h"
 
 using namespace kuzu::common;

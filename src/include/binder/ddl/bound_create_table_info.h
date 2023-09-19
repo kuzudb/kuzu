@@ -52,23 +52,16 @@ struct BoundExtraCreateRelTableInfo : public BoundExtraCreateTableInfo {
     catalog::RelMultiplicity relMultiplicity;
     common::table_id_t srcTableID;
     common::table_id_t dstTableID;
-    std::unique_ptr<common::LogicalType> srcPkDataType;
-    std::unique_ptr<common::LogicalType> dstPkDataType;
     std::vector<std::unique_ptr<catalog::Property>> properties;
 
     BoundExtraCreateRelTableInfo(catalog::RelMultiplicity relMultiplicity,
         common::table_id_t srcTableID, common::table_id_t dstTableID,
-        std::unique_ptr<common::LogicalType> srcPkDataType,
-        std::unique_ptr<common::LogicalType> dstPkDataType,
         std::vector<std::unique_ptr<catalog::Property>> properties)
         : relMultiplicity{relMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID},
-          srcPkDataType{std::move(srcPkDataType)}, dstPkDataType{std::move(dstPkDataType)},
           properties{std::move(properties)} {}
     BoundExtraCreateRelTableInfo(const BoundExtraCreateRelTableInfo& other)
         : relMultiplicity{other.relMultiplicity}, srcTableID{other.srcTableID},
-          dstTableID{other.dstTableID}, srcPkDataType{other.srcPkDataType->copy()},
-          dstPkDataType{other.dstPkDataType->copy()}, properties{catalog::Property::copy(
-                                                          other.properties)} {}
+          dstTableID{other.dstTableID}, properties{catalog::Property::copy(other.properties)} {}
 
     inline std::unique_ptr<BoundExtraCreateTableInfo> copy() const final {
         return std::make_unique<BoundExtraCreateRelTableInfo>(*this);

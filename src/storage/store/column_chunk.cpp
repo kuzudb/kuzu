@@ -1,12 +1,12 @@
-#include "storage/copier/column_chunk.h"
+#include "storage/store/column_chunk.h"
 
 #include "arrow/array.h"
 #include "common/types/value/nested.h"
-#include "storage/copier/string_column_chunk.h"
-#include "storage/copier/struct_column_chunk.h"
-#include "storage/copier/table_copy_utils.h"
-#include "storage/copier/var_list_column_chunk.h"
 #include "storage/storage_structure/storage_structure_utils.h"
+#include "storage/store/string_column_chunk.h"
+#include "storage/store/struct_column_chunk.h"
+#include "storage/store/table_copy_utils.h"
+#include "storage/store/var_list_column_chunk.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
