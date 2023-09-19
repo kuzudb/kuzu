@@ -20,7 +20,7 @@ void StorageDriver::scan(const std::string& nodeName, const std::string& propert
     auto nodeTableID = catalogContent->getTableID(nodeName);
     auto propertyID = catalogContent->getTableSchema(nodeTableID)->getPropertyID(propertyName);
     auto nodeTable = storageManager->getNodesStore().getNodeTable(nodeTableID);
-    auto column = nodeTable->getPropertyColumn(propertyID);
+    auto column = nodeTable->getColumn(propertyID);
     auto current_buffer = result;
     std::vector<std::thread> threads;
     auto numElementsPerThread = size / numThreads + 1;

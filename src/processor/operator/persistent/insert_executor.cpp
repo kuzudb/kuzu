@@ -8,7 +8,7 @@ namespace processor {
 NodeInsertExecutor::NodeInsertExecutor(const NodeInsertExecutor& other)
     : table{other.table}, relTablesToInit{other.relTablesToInit},
       nodeIDVectorPos{other.nodeIDVectorPos}, propertyLhsPositions{other.propertyLhsPositions},
-      propertyIDToVectorIdx{other.propertyIDToVectorIdx} {
+      nodeIDVector{nullptr} {
     for (auto& evaluator : other.propertyRhsEvaluators) {
         propertyRhsEvaluators.push_back(evaluator->clone());
     }
@@ -55,7 +55,7 @@ void NodeInsertExecutor::insert(transaction::Transaction* transaction) {
     for (auto& evaluator : propertyRhsEvaluators) {
         evaluator->evaluate();
     }
-    table->insert(transaction, nodeIDVector, propertyRhsVectors, propertyIDToVectorIdx);
+    table->insert(transaction, nodeIDVector, propertyRhsVectors);
     for (auto& relTable : relTablesToInit) {
         relTable->initEmptyRelsForNewNode(nodeIDVector);
     }
@@ -74,7 +74,8 @@ std::vector<std::unique_ptr<NodeInsertExecutor>> NodeInsertExecutor::copy(
 
 RelInsertExecutor::RelInsertExecutor(const RelInsertExecutor& other)
     : relsStatistics{other.relsStatistics}, table{other.table}, srcNodePos{other.srcNodePos},
-      dstNodePos{other.dstNodePos}, propertyLhsPositions{other.propertyLhsPositions} {
+      dstNodePos{other.dstNodePos}, propertyLhsPositions{other.propertyLhsPositions},
+      srcNodeIDVector{nullptr}, dstNodeIDVector{nullptr} {
     for (auto& evaluator : other.propertyRhsEvaluators) {
         propertyRhsEvaluators.push_back(evaluator->clone());
     }

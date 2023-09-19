@@ -18,8 +18,9 @@ public:
     inline void setNodeGroupIdx(uint64_t nodeGroupIdx_) { this->nodeGroupIdx = nodeGroupIdx_; }
     inline uint64_t getNodeGroupIdx() const { return nodeGroupIdx; }
     inline common::offset_t getNumNodes() const { return numNodes; }
-    inline ColumnChunk* getColumnChunk(common::property_id_t propertyID) {
-        return chunks.contains(propertyID) ? chunks.at(propertyID).get() : nullptr;
+    inline ColumnChunk* getColumnChunk(common::column_id_t columnID) {
+        assert(columnID < chunks.size());
+        return chunks[columnID].get();
     }
     inline bool isFull() const { return numNodes == common::StorageConstants::NODE_GROUP_SIZE; }
 
@@ -33,7 +34,7 @@ public:
 private:
     uint64_t nodeGroupIdx;
     common::offset_t numNodes;
-    std::unordered_map<common::property_id_t, std::unique_ptr<ColumnChunk>> chunks;
+    std::vector<std::unique_ptr<ColumnChunk>> chunks;
 };
 
 } // namespace storage

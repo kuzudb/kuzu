@@ -16,7 +16,8 @@ NodeTable::NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH,
     NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs, BufferManager& bufferManager,
     WAL* wal, NodeTableSchema* nodeTableSchema)
     : nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs}, dataFH{dataFH},
-      metadataFH{metadataFH}, pkPropertyID{nodeTableSchema->getPrimaryKey()->getPropertyID()},
+      metadataFH{metadataFH}, pkColumnID{nodeTableSchema->getColumnID(
+                                  nodeTableSchema->getPrimaryKeyPropertyID())},
       tableID{nodeTableSchema->tableID}, bufferManager{bufferManager}, wal{wal} {
     initializeData(nodeTableSchema);
 }
@@ -27,11 +28,12 @@ void NodeTable::initializeData(NodeTableSchema* nodeTableSchema) {
 }
 
 void NodeTable::initializeColumns(NodeTableSchema* nodeTableSchema) {
+    columns.reserve(nodeTableSchema->getNumProperties());
     for (auto& property : nodeTableSchema->getProperties()) {
-        propertyColumns[property->getPropertyID()] = NodeColumnFactory::createNodeColumn(*property,
-            dataFH, metadataFH, &bufferManager, wal, Transaction::getDummyReadOnlyTrx().get(),
+        columns.push_back(NodeColumnFactory::createNodeColumn(*property, dataFH, metadataFH,
+            &bufferManager, wal, Transaction::getDummyReadOnlyTrx().get(),
             RWPropertyStats(getNodeStatisticsAndDeletedIDs(), property->getTableID(),
-                property->getPropertyID()));
+                property->getPropertyID())));
     }
 }
 
@@ -54,18 +56,19 @@ void NodeTable::read(Transaction* transaction, ValueVector* nodeIDVector,
 }
 
 void NodeTable::scan(Transaction* transaction, ValueVector* nodeIDVector,
-    const std::vector<column_id_t>& columnIds, const std::vector<ValueVector*>& outputVectors) {
-    assert(columnIds.size() == outputVectors.size() && !nodeIDVector->state->isFlat());
-    for (auto i = 0u; i < columnIds.size(); i++) {
-        if (columnIds[i] == INVALID_COLUMN_ID) {
+    const std::vector<column_id_t>& columnIDs, const std::vector<ValueVector*>& outputVectors) {
+    assert(columnIDs.size() == outputVectors.size() && !nodeIDVector->state->isFlat());
+    for (auto i = 0u; i < columnIDs.size(); i++) {
+        if (columnIDs[i] == INVALID_COLUMN_ID) {
             outputVectors[i]->setAllNull();
         } else {
-            propertyColumns.at(columnIds[i])->scan(transaction, nodeIDVector, outputVectors[i]);
+            assert(columnIDs[i] < columns.size());
+            columns[columnIDs[i]]->scan(transaction, nodeIDVector, outputVectors[i]);
         }
     }
     if (transaction->isWriteTransaction()) {
         auto localStorage = transaction->getLocalStorage();
-        localStorage->scan(tableID, nodeIDVector, columnIds, outputVectors);
+        localStorage->scan(tableID, nodeIDVector, columnIDs, outputVectors);
     }
 }
 
@@ -77,7 +80,8 @@ void NodeTable::lookup(Transaction* transaction, ValueVector* nodeIDVector,
         if (columnID == INVALID_COLUMN_ID) {
             outputVectors[i]->setNull(pos, true);
         } else {
-            propertyColumns.at(columnIDs[i])->lookup(transaction, nodeIDVector, outputVectors[i]);
+            assert(columnIDs[i] < columns.size());
+            columns[columnIDs[i]]->lookup(transaction, nodeIDVector, outputVectors[i]);
         }
     }
     if (transaction->isWriteTransaction()) {
@@ -86,8 +90,7 @@ void NodeTable::lookup(Transaction* transaction, ValueVector* nodeIDVector,
 }
 
 void NodeTable::insert(Transaction* transaction, ValueVector* nodeIDVector,
-    const std::vector<common::ValueVector*>& propertyVectors,
-    const std::unordered_map<common::property_id_t, common::vector_idx_t>& propertyIDToVectorIdx) {
+    const std::vector<common::ValueVector*>& propertyVectors) {
     // We assume that offsets are given in the ascending order, thus lastOffset is the max one.
     offset_t lastOffset;
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
@@ -98,8 +101,7 @@ void NodeTable::insert(Transaction* transaction, ValueVector* nodeIDVector,
         lastOffset = offset;
     }
     if (pkIndex) {
-        assert(propertyIDToVectorIdx.contains(pkPropertyID));
-        insertPK(nodeIDVector, propertyVectors[propertyIDToVectorIdx.at(pkPropertyID)]);
+        insertPK(nodeIDVector, propertyVectors[pkColumnID]);
     }
     auto currentNumNodeGroups = getNumNodeGroups(transaction);
     if (lastOffset >= StorageUtils::getStartOffsetOfNodeGroup(currentNumNodeGroups)) {
@@ -107,33 +109,31 @@ void NodeTable::insert(Transaction* transaction, ValueVector* nodeIDVector,
         newNodeGroup->setNodeGroupIdx(currentNumNodeGroups);
         append(newNodeGroup.get());
     }
-    for (auto& [propertyID, column] : propertyColumns) {
-        if (column->getDataType().getLogicalTypeID() == LogicalTypeID::SERIAL) {
+    for (auto columnID = 0u; columnID < columns.size(); columnID++) {
+        if (columns[columnID]->getDataType().getLogicalTypeID() == LogicalTypeID::SERIAL) {
             continue;
         }
-        assert(propertyIDToVectorIdx.contains(propertyID));
-        transaction->getLocalStorage()->update(tableID, propertyID, nodeIDVector,
-            propertyVectors[propertyIDToVectorIdx.at(propertyID)]);
+        transaction->getLocalStorage()->update(
+            tableID, columnID, nodeIDVector, propertyVectors[columnID]);
     }
     wal->addToUpdatedNodeTables(tableID);
 }
 
-void NodeTable::update(Transaction* transaction, property_id_t propertyID,
-    ValueVector* nodeIDVector, ValueVector* vectorToWriteFrom) {
-    assert(propertyColumns.contains(propertyID));
-    transaction->getLocalStorage()->update(tableID, propertyID, nodeIDVector, vectorToWriteFrom);
+void NodeTable::update(Transaction* transaction, column_id_t columnID, ValueVector* nodeIDVector,
+    ValueVector* vectorToWriteFrom) {
+    assert(columnID < columns.size());
+    transaction->getLocalStorage()->update(tableID, columnID, nodeIDVector, vectorToWriteFrom);
 }
 
-void NodeTable::update(Transaction* transaction, property_id_t propertyID, offset_t nodeOffset,
-    ValueVector* propertyVector, sel_t posInPropertyVector) {
-    assert(propertyColumns.contains(propertyID));
+void NodeTable::update(Transaction* transaction, column_id_t columnID, offset_t nodeOffset,
+    ValueVector* propertyVector, sel_t posInPropertyVector) const {
     transaction->getLocalStorage()->update(
-        tableID, propertyID, nodeOffset, propertyVector, posInPropertyVector);
+        tableID, columnID, nodeOffset, propertyVector, posInPropertyVector);
 }
 
 void NodeTable::delete_(
     Transaction* transaction, ValueVector* nodeIDVector, DeleteState* deleteState) {
-    read(transaction, nodeIDVector, {pkPropertyID}, {deleteState->pkVector.get()});
+    read(transaction, nodeIDVector, {pkColumnID}, {deleteState->pkVector.get()});
     if (pkIndex) {
         pkIndex->delete_(deleteState->pkVector.get());
     }
@@ -145,25 +145,17 @@ void NodeTable::delete_(
 }
 
 void NodeTable::append(NodeGroup* nodeGroup) {
-    for (auto& [propertyID, column] : propertyColumns) {
-        auto columnChunk = nodeGroup->getColumnChunk(propertyID);
+    for (auto columnID = 0u; columnID < columns.size(); columnID++) {
+        auto columnChunk = nodeGroup->getColumnChunk(columnID);
         auto numPages = columnChunk->getNumPages();
         auto startPageIdx = dataFH->addNewPages(numPages);
-        column->append(columnChunk, startPageIdx, nodeGroup->getNodeGroupIdx());
+        assert(columnID < columns.size());
+        columns[columnID]->append(columnChunk, startPageIdx, nodeGroup->getNodeGroupIdx());
     }
-}
-
-std::unordered_set<property_id_t> NodeTable::getPropertyIDs() const {
-    std::unordered_set<property_id_t> propertyIDs;
-    for (auto& [propertyID, _] : propertyColumns) {
-        propertyIDs.insert(propertyID);
-    }
-    return propertyIDs;
 }
 
 void NodeTable::addColumn(const catalog::Property& property,
     common::ValueVector* defaultValueVector, transaction::Transaction* transaction) {
-    assert(!propertyColumns.contains(property.getPropertyID()));
     nodesStatisticsAndDeletedIDs->setPropertyStatisticsForTable(property.getTableID(),
         property.getPropertyID(), PropertyStatistics(!defaultValueVector->hasNoNullsGuarantee()));
     auto nodeColumn = NodeColumnFactory::createNodeColumn(property, dataFH, metadataFH,
@@ -172,7 +164,7 @@ void NodeTable::addColumn(const catalog::Property& property,
             nodesStatisticsAndDeletedIDs, property.getTableID(), property.getPropertyID()));
     nodeColumn->populateWithDefaultVal(
         property, nodeColumn.get(), defaultValueVector, getNumNodeGroups(transaction));
-    propertyColumns.emplace(property.getPropertyID(), std::move(nodeColumn));
+    columns.push_back(std::move(nodeColumn));
     wal->addToUpdatedNodeTables(tableID);
 }
 
@@ -189,7 +181,7 @@ void NodeTable::prepareRollback() {
 }
 
 void NodeTable::checkpointInMemory() {
-    for (auto& [_, column] : propertyColumns) {
+    for (auto& column : columns) {
         column->checkpointInMemory();
     }
     if (pkIndex) {
@@ -198,7 +190,7 @@ void NodeTable::checkpointInMemory() {
 }
 
 void NodeTable::rollbackInMemory() {
-    for (auto& [_, column] : propertyColumns) {
+    for (auto& column : columns) {
         column->rollbackInMemory();
     }
     if (pkIndex) {

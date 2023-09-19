@@ -28,20 +28,20 @@ void LocalStorage::lookup(table_id_t tableID, ValueVector* nodeIDVector,
     tables.at(tableID)->lookup(nodeIDVector, columnIDs, outputVectors);
 }
 
-void LocalStorage::update(table_id_t tableID, property_id_t propertyID, ValueVector* nodeIDVector,
+void LocalStorage::update(table_id_t tableID, column_id_t columnID, ValueVector* nodeIDVector,
     ValueVector* propertyVector) {
     if (!tables.contains(tableID)) {
         tables.emplace(tableID, std::make_unique<LocalTable>(nodesStore->getNodeTable(tableID)));
     }
-    tables.at(tableID)->update(propertyID, nodeIDVector, propertyVector, mm);
+    tables.at(tableID)->update(columnID, nodeIDVector, propertyVector, mm);
 }
 
-void LocalStorage::update(table_id_t tableID, property_id_t propertyID, offset_t nodeOffset,
+void LocalStorage::update(table_id_t tableID, column_id_t columnID, offset_t nodeOffset,
     ValueVector* propertyVector, sel_t posInPropertyVector) {
     if (!tables.contains(tableID)) {
         tables.emplace(tableID, std::make_unique<LocalTable>(nodesStore->getNodeTable(tableID)));
     }
-    tables.at(tableID)->update(propertyID, nodeOffset, propertyVector, posInPropertyVector, mm);
+    tables.at(tableID)->update(columnID, nodeOffset, propertyVector, posInPropertyVector, mm);
 }
 
 void LocalStorage::prepareCommit() {

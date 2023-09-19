@@ -13,24 +13,25 @@ namespace storage {
 
 NodeGroup::NodeGroup(TableSchema* schema, CSVReaderConfig* csvReaderConfig)
     : nodeGroupIdx{UINT64_MAX}, numNodes{0} {
+    chunks.reserve(schema->properties.size());
     for (auto& property : schema->properties) {
-        chunks[property->getPropertyID()] =
-            ColumnChunkFactory::createColumnChunk(*property->getDataType(), csvReaderConfig);
+        chunks.push_back(
+            ColumnChunkFactory::createColumnChunk(*property->getDataType(), csvReaderConfig));
     }
 }
 
-NodeGroup::NodeGroup(NodeTable* table) {
-    auto propertyIDs = table->getPropertyIDs();
-    for (auto propertyID : propertyIDs) {
-        chunks[propertyID] = ColumnChunkFactory::createColumnChunk(
-            table->getPropertyColumn(propertyID)->getDataType());
+NodeGroup::NodeGroup(NodeTable* table) : nodeGroupIdx{UINT64_MAX}, numNodes{0} {
+    chunks.reserve(table->getNumColumns());
+    for (auto columnID = 0u; columnID < table->getNumColumns(); columnID++) {
+        chunks.push_back(
+            ColumnChunkFactory::createColumnChunk(table->getColumn(columnID)->getDataType()));
     }
 }
 
 void NodeGroup::resetToEmpty() {
     numNodes = 0;
     nodeGroupIdx = UINT64_MAX;
-    for (auto& [_, chunk] : chunks) {
+    for (auto& chunk : chunks) {
         chunk->resetToEmpty();
     }
 }

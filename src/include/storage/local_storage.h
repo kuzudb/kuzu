@@ -20,9 +20,9 @@ public:
     void lookup(common::table_id_t tableID, common::ValueVector* nodeIDVector,
         const std::vector<common::column_id_t>& columnIDs,
         const std::vector<common::ValueVector*>& outputVectors);
-    void update(common::table_id_t tableID, common::property_id_t propertyID,
+    void update(common::table_id_t tableID, common::column_id_t columnID,
         common::ValueVector* nodeIDVector, common::ValueVector* propertyVector);
-    void update(common::table_id_t tableID, common::property_id_t propertyID,
+    void update(common::table_id_t tableID, common::column_id_t columnID,
         common::offset_t nodeOffset, common::ValueVector* propertyVector,
         common::sel_t posInPropertyVector);
 

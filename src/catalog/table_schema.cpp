@@ -5,7 +5,6 @@
 #include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
 #include "common/constants.h"
-#include "common/exception/catalog.h"
 #include "common/exception/internal.h"
 #include "common/exception/not_implemented.h"
 #include "common/exception/runtime.h"
@@ -48,6 +47,16 @@ property_id_t TableSchema::getPropertyID(const std::string& propertyName) const 
     }
     throw RuntimeException(StringUtils::string_format(
         "Table: {} doesn't have a property with propertyName={}.", tableName, propertyName));
+}
+
+// TODO(Guodong): Instead of looping over properties, cache a map between propertyID and columnID.
+column_id_t TableSchema::getColumnID(const property_id_t propertyID) const {
+    for (auto i = 0u; i < properties.size(); i++) {
+        if (properties[i]->getPropertyID() == propertyID) {
+            return i;
+        }
+    }
+    return INVALID_COLUMN_ID;
 }
 
 Property* TableSchema::getProperty(property_id_t propertyID) const {

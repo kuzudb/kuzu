@@ -130,7 +130,7 @@ private:
 
     std::unique_ptr<NodeInsertExecutor> getNodeInsertExecutor(storage::NodesStore* nodesStore,
         storage::RelsStore* relsStore, planner::LogicalCreateNodeInfo* info,
-        const planner::Schema& inSchema, const planner::Schema& outSchema);
+        const planner::Schema& inSchema, const planner::Schema& outSchema) const;
     std::unique_ptr<RelInsertExecutor> getRelInsertExecutor(storage::RelsStore* relsStore,
         planner::LogicalCreateRelInfo* info, const planner::Schema& inSchema,
         const planner::Schema& outSchema);

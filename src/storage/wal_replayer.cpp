@@ -422,7 +422,8 @@ void WALReplayer::replayDropPropertyRecord(const kuzu::storage::WALRecord& walRe
             auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(tableID);
             switch (tableSchema->getTableType()) {
             case TableType::NODE: {
-                storageManager->getNodesStore().getNodeTable(tableID)->dropColumn(propertyID);
+                storageManager->getNodesStore().getNodeTable(tableID)->dropColumn(
+                    tableSchema->getColumnID(propertyID));
                 // TODO(Guodong): Do nothing for now. Should remove meta disk array and node groups.
             } break;
             case TableType::REL: {
@@ -505,7 +506,8 @@ void WALReplayer::replayAddPropertyRecord(const kuzu::storage::WALRecord& walRec
         auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(tableID);
         switch (tableSchema->getTableType()) {
         case TableType::NODE: {
-            storageManager->getNodesStore().getNodeTable(tableID)->dropColumn(propertyID);
+            storageManager->getNodesStore().getNodeTable(tableID)->dropColumn(
+                tableSchema->getColumnID(propertyID));
         } break;
         case TableType::REL: {
             // Nothing to undo.

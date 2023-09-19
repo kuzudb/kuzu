@@ -23,7 +23,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeProperty(
         outVectorsPos.emplace_back(outSchema->getExpressionPos(*expression));
     }
     if (node->isMultiLabeled()) {
-        std::unordered_map<table_id_t, std::vector<uint32_t>> tableIDToColumns;
+        std::unordered_map<table_id_t, std::vector<column_id_t>> tableIDToColumns;
         std::unordered_map<table_id_t, storage::NodeTable*> tables;
         for (auto& tableID : node->getTableIDs()) {
             tables.insert({tableID, nodeStore.getNodeTable(tableID)});
@@ -33,7 +33,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeProperty(
                 if (!property->hasPropertyID(tableID)) {
                     columns.push_back(UINT32_MAX);
                 } else {
-                    columns.push_back(property->getPropertyID(tableID));
+                    columns.push_back(
+                        catalog->getReadOnlyVersion()->getTableSchema(tableID)->getColumnID(
+                            property->getPropertyID(tableID)));
                 }
             }
             tableIDToColumns.insert({tableID, std::move(columns)});
@@ -43,13 +45,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeProperty(
             getOperatorID(), scanProperty.getExpressionsForPrinting());
     } else {
         auto tableID = node->getSingleTableID();
-        std::vector<uint32_t> columnIds;
+        auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(tableID);
+        std::vector<column_id_t> columnIDs;
         for (auto& expression : scanProperty.getProperties()) {
             auto property = static_pointer_cast<PropertyExpression>(expression);
-            columnIds.push_back(property->getPropertyID(tableID));
+            columnIDs.push_back(tableSchema->getColumnID(property->getPropertyID(tableID)));
         }
         return std::make_unique<ScanSingleNodeTable>(inputNodeIDVectorPos, std::move(outVectorsPos),
-            nodeStore.getNodeTable(tableID), std::move(columnIds), std::move(prevOperator),
+            nodeStore.getNodeTable(tableID), std::move(columnIDs), std::move(prevOperator),
             getOperatorID(), scanProperty.getExpressionsForPrinting());
     }
 }
