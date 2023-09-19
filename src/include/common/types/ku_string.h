@@ -53,6 +53,16 @@ struct ku_string_t {
             value.len);
     }
 
+    void setFromRawStr(const char* value, uint64_t length) {
+        this->len = length;
+        if (isShortString(length)) {
+            setShortString(value, length);
+        } else {
+            memcpy(prefix, value, PREFIX_LENGTH);
+            overflowPtr = reinterpret_cast<uint64_t>(value);
+        }
+    }
+
     std::string getAsShortString() const;
     std::string getAsString() const;
 

@@ -75,7 +75,7 @@ void ReaderSharedState::validate() const {
 }
 
 void ReaderSharedState::countBlocks(MemoryManager* memoryManager) {
-    initFunc(*readFuncData, 0 /* fileIdx */, *readerConfig);
+    initFunc(*readFuncData, 0 /* fileIdx */, *readerConfig, memoryManager);
     fileInfos = countBlocksFunc(*readerConfig, memoryManager);
     for (auto& fileInfo : fileInfos) {
         numRows += fileInfo.numRows;

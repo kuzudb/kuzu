@@ -1,4 +1,4 @@
-#include "processor/operator/persistent/reader/csv_reader.h"
+#include "processor/operator/persistent/reader/csv/csv_reader.h"
 
 #include <vector>
 

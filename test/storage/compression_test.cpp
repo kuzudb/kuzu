@@ -164,7 +164,7 @@ void integerPackingMultiPage(const std::vector<T>& src) {
     for (int i = 0; i < src.size(); i += numValuesPerPage) {
         auto page = i / numValuesPerPage;
         alg.decompressFromPage(dest[page].data(), 0, (uint8_t*)decompressed.data(), i,
-            std::min(numValuesPerPage, src.size() - i), metadata);
+            std::min(numValuesPerPage, (uint64_t)src.size() - i), metadata);
     }
     ASSERT_EQ(decompressed, src);
 }

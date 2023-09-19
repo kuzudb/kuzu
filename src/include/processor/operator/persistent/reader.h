@@ -81,6 +81,7 @@ private:
     read_rows_func_t readFunc;
     init_reader_data_func_t initFunc;
     std::shared_ptr<ReaderFunctionData> readFuncData;
+    storage::MemoryManager* memoryManager;
 };
 
 } // namespace processor

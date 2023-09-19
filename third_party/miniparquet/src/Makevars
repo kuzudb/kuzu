@@ -1,0 +1,4 @@
+OBJECTS=parquet/parquet_constants.o parquet/parquet_types.o thrift/protocol/TProtocol.o thrift/transport/TTransportException.o thrift/transport/TBufferTransports.o snappy/snappy.o snappy/snappy-sinksource.o miniparquet.o rwrapper.o
+
+
+PKG_CPPFLAGS = -Ithrift -I.

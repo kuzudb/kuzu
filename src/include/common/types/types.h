@@ -151,6 +151,8 @@ public:
     VarListTypeInfo() = default;
     explicit VarListTypeInfo(std::unique_ptr<LogicalType> childType)
         : childType{std::move(childType)} {}
+    explicit VarListTypeInfo(LogicalTypeID childTypeID)
+        : childType{std::make_unique<LogicalType>(childTypeID)} {}
     inline LogicalType* getChildType() const { return childType.get(); }
     bool operator==(const VarListTypeInfo& other) const;
     std::unique_ptr<ExtraTypeInfo> copy() const override;
