@@ -1,0 +1,18 @@
+-GROUP CreateRelTest_ViolateError
+-DATASET CSV rel-update-tests
+--
+
+
+-CASE ViolateManyOneMultiplicityError
+-STATEMENT BEGIN WRITE TRANSACTION
+---- ok
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 11 AND p2.ID = 10 CREATE (p1)-[:teaches]->(p2);
+---- error
+Runtime exception: Node in RelTable 4 cannot have more than one neighbour in the forward direction.
+
+-CASE ViolateOneOneMultiplicityError
+-STATEMENT BEGIN WRITE TRANSACTION
+---- ok
+-STATEMENT MATCH (a:animal), (p:person) WHERE a.ID = 2 AND p.ID = 10 CREATE (a)-[:hasOwner]->(p);
+---- error
+Runtime exception: Node in RelTable 3 cannot have more than one neighbour in the forward direction.

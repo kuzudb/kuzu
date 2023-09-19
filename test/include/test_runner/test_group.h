@@ -21,8 +21,9 @@ struct TestStatement {
     bool checkOutputOrder = false;
     std::string expectedTuplesCSVFile;
     // for multiple conns
-    std::optional<std::string> conn_name; // default conntion name conn0
-    bool reLoadDBFlag = false;
+    std::string batchStatmentsCSVFile;
+    std::optional<std::string> connName;
+    bool reloadDBFlag = false;
 };
 
 // Test group is a collection of test cases in a single file.
@@ -39,8 +40,6 @@ struct TestGroup {
     // for multiple connections
     uint64_t checkpointWaitTimeout =
         common::DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEAVE_IN_MICROS;
-    ;
-    bool multipleConns = false;
     std::unordered_map<std::string, std::set<std::string>> testCasesConnNames;
 
     enum class DatasetType { CSV, PARQUET, NPY, CSV_TO_PARQUET };

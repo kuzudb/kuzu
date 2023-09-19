@@ -169,7 +169,7 @@ public:
             common::DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEAVE_IN_MICROS,
         std::set<std::string> connNames = std::set<std::string>()) {
         for (auto& statement : statements) {
-            if (statement->reLoadDBFlag) {
+            if (statement->reloadDBFlag) {
                 createDB(checkpointWaitTimeout);
                 createConns(connNames);
                 continue;
@@ -177,9 +177,16 @@ public:
             if (conn) {
                 TestRunner::runTest(statement.get(), *conn, databasePath);
             } else {
-                auto conn_name = *statement->conn_name;
-                TestRunner::runTest(statement.get(), *connMap[conn_name], databasePath);
+                auto connName = *statement->connName;
+                CheckConn(connName);
+                TestRunner::runTest(statement.get(), *connMap[connName], databasePath);
             }
+        }
+    }
+
+    inline void CheckConn(std::string connName) {
+        if (connMap[connName] == nullptr) {
+            connMap[connName] = std::make_unique<main::Connection>(database.get());
         }
     }
 };

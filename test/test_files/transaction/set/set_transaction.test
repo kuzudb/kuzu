@@ -3,41 +3,30 @@
 
 --
 
-
-#SingleTransactionReadWriteToFixedLengthStructuredNodePropertyNonNullTest
 -CASE NonNullTest
--LOG Single Transaction Read Write To Fixed Length Structured Node Property NonNull Test
 -STATEMENT BEGIN WRITE TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age;
 ---- 1
 35
-
 -STATEMENT MATCH (a:person) WHERE a.ID = 0 SET a.age = 70;
 ---- ok
-
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age;
 ---- 1
 70
 
-#NullTest
 -CASE NullTest
--LOG Single Transaction Read Write To Fixed Length Structured Node Property Null Test
 -STATEMENT BEGIN WRITE TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age;
 ---- 1
 35
-
 -STATEMENT MATCH (a:person) WHERE a.ID = 0 SET a.age = null;
 ---- ok
-
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age;
 ---- 1
 
-#Timeout
 -CASE TimeoutErrorTest
--LOG Open Read Only Transaction Triggers Timeout Error For Write Transaction
 -CHECKPOINT_WAIT_TIMEOUT 10000
 -CREATE_CONNECTION conn1
 -STATEMENT [conn1] BEGIN READ TRANSACTION;
@@ -50,15 +39,11 @@
 -STATEMENT [conn2] COMMIT
 ---- error
 Timeout waiting for read transactions to leave the system before committing and checkpointing a write transaction. If you have an open read transaction close and try again.
-
 -STATEMENT [conn1] MATCH (a:person) WHERE a.ID=0 RETURN a.age;
 ---- 1
 35
 
-
-#RollbackTest
 -CASE RollbackTest
--LOG Set Node Long String Prop Rollback Test
 -STATEMENT BEGIN WRITE TRANSACTION;
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.fName='abcdefghijklmnopqrstuvwxyz'
@@ -68,8 +53,6 @@ Timeout waiting for read transactions to leave the system before committing and 
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.fName;
 ---- 1
 Alice
-
-#VeryLongStringErrorsTest
 -CASE VeryLongStringErrorsTest
 -LOG Set Very Long String Errors Test
 -STATEMENT BEGIN WRITE TRANSACTION;
