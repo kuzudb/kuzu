@@ -169,6 +169,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         py::dict dict;
         dict["_src"] = convertNodeIdToPyDict(RelVal::getSrcNodeID(&value));
         dict["_dst"] = convertNodeIdToPyDict(RelVal::getDstNodeID(&value));
+        dict["_label"] = py::cast(RelVal::getLabelName(&value));
         auto numProperties = RelVal::getNumProperties(&value);
         for (auto i = 0u; i < numProperties; ++i) {
             auto key = py::str(RelVal::getPropertyName(&value, i));
