@@ -2,8 +2,8 @@
 
 #include <map>
 
+#include "storage/stats/table_statistics.h"
 #include "storage/storage_utils.h"
-#include "table_statistics.h"
 
 namespace kuzu {
 namespace storage {

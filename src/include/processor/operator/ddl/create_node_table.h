@@ -1,7 +1,7 @@
 #pragma once
 
 #include "processor/operator/ddl/ddl.h"
-#include "storage/store/nodes_statistics_and_deleted_ids.h"
+#include "storage/stats/nodes_statistics_and_deleted_ids.h"
 #include "storage/store/nodes_store.h"
 
 namespace kuzu {

@@ -2,7 +2,7 @@
 
 #include "common/string_utils.h"
 #include "processor/result/factorized_table.h"
-#include "storage/copier/table_copy_utils.h"
+#include "storage/store/table_copy_utils.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;

@@ -1,11 +1,11 @@
 #pragma once
 
 #include "catalog/catalog.h"
-#include "storage/copier/node_group.h"
 #include "storage/index/hash_index.h"
+#include "storage/stats/nodes_statistics_and_deleted_ids.h"
 #include "storage/storage_structure/lists/lists.h"
 #include "storage/store/node_column.h"
-#include "storage/store/nodes_statistics_and_deleted_ids.h"
+#include "storage/store/node_group.h"
 #include "storage/wal/wal.h"
 
 namespace kuzu {

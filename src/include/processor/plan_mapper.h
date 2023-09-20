@@ -6,8 +6,8 @@
 #include "planner/operator/logical_plan.h"
 #include "processor/operator/result_collector.h"
 #include "processor/physical_plan.h"
+#include "storage/stats/nodes_statistics_and_deleted_ids.h"
 #include "storage/storage_manager.h"
-#include "storage/store/nodes_statistics_and_deleted_ids.h"
 
 namespace kuzu {
 namespace planner {

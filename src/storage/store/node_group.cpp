@@ -1,4 +1,4 @@
-#include "storage/copier/node_group.h"
+#include "storage/store/node_group.h"
 
 #include "common/constants.h"
 #include "storage/store/node_table.h"

@@ -2,8 +2,8 @@
 
 #include "binder/query/query_graph.h"
 #include "planner/operator/logical_plan.h"
-#include "storage/store/nodes_statistics_and_deleted_ids.h"
-#include "storage/store/rels_statistics.h"
+#include "storage/stats/nodes_statistics_and_deleted_ids.h"
+#include "storage/stats/rels_statistics.h"
 
 namespace kuzu {
 namespace planner {

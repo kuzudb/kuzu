@@ -1,6 +1,7 @@
 #include "binder/binder.h"
 #include "binder/copy/bound_copy_from.h"
 #include "binder/copy/bound_copy_to.h"
+#include "catalog/node_table_schema.h"
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
 #include "common/exception/message.h"
@@ -182,10 +183,10 @@ static bool skipPropertyInFile(const Property& property) {
 }
 
 expression_vector Binder::bindExpectedNodeFileColumns(
-    TableSchema* tableSchema, common::ReaderConfig& readerConfig) {
+    TableSchema* tableSchema, ReaderConfig& readerConfig) {
     expression_vector columns;
     switch (readerConfig.fileType) {
-    case common::FileType::TURTLE: {
+    case FileType::TURTLE: {
         auto stringType = LogicalType{LogicalTypeID::STRING};
         auto columnNames = std::vector<std::string>{
             std::string(RDF_SUBJECT), std::string(RDF_PREDICATE), std::string(RDF_OBJECT)};
@@ -195,7 +196,7 @@ expression_vector Binder::bindExpectedNodeFileColumns(
             columns.push_back(createVariable(columnName, stringType));
         }
     } break;
-    case common::FileType::CSV: {
+    case FileType::CSV: {
         for (auto& property : tableSchema->properties) {
             if (skipPropertyInFile(*property)) {
                 continue;
@@ -205,8 +206,8 @@ expression_vector Binder::bindExpectedNodeFileColumns(
             columns.push_back(createVariable(property->getName(), *property->getDataType()));
         }
     } break;
-    case common::FileType::NPY:
-    case common::FileType::PARQUET: {
+    case FileType::NPY:
+    case FileType::PARQUET: {
         for (auto& property : tableSchema->properties) {
             if (skipPropertyInFile(*property)) {
                 continue;
@@ -225,11 +226,11 @@ expression_vector Binder::bindExpectedNodeFileColumns(
 }
 
 expression_vector Binder::bindExpectedRelFileColumns(
-    TableSchema* tableSchema, common::ReaderConfig& readerConfig) {
+    TableSchema* tableSchema, ReaderConfig& readerConfig) {
     auto relTableSchema = reinterpret_cast<RelTableSchema*>(tableSchema);
     expression_vector columns;
     switch (readerConfig.fileType) {
-    case common::FileType::TURTLE: {
+    case FileType::TURTLE: {
         auto stringType = LogicalType{LogicalTypeID::STRING};
         auto columnNames = std::vector<std::string>{
             std::string(RDF_SUBJECT), std::string(RDF_PREDICATE), std::string(RDF_OBJECT)};
@@ -239,16 +240,24 @@ expression_vector Binder::bindExpectedRelFileColumns(
             columns.push_back(createVariable(columnName, stringType));
         }
     } break;
-    case common::FileType::CSV:
-    case common::FileType::PARQUET:
-    case common::FileType::NPY: {
+    case FileType::CSV:
+    case FileType::PARQUET:
+    case FileType::NPY: {
         auto arrowColumnType = LogicalType{LogicalTypeID::ARROW_COLUMN};
         auto srcColumnName = std::string(Property::REL_FROM_PROPERTY_NAME);
         auto dstColumnName = std::string(Property::REL_TO_PROPERTY_NAME);
         readerConfig.columnNames.push_back(srcColumnName);
         readerConfig.columnNames.push_back(dstColumnName);
-        readerConfig.columnTypes.push_back(relTableSchema->getSrcPKDataType()->copy());
-        readerConfig.columnTypes.push_back(relTableSchema->getDstPKDataType()->copy());
+        auto srcTable =
+            catalog.getReadOnlyVersion()->getTableSchema(relTableSchema->getSrcTableID());
+        assert(srcTable->tableType == TableType::NODE);
+        auto dstTable =
+            catalog.getReadOnlyVersion()->getTableSchema(relTableSchema->getDstTableID());
+        assert(dstTable->tableType == TableType::NODE);
+        readerConfig.columnTypes.push_back(
+            reinterpret_cast<NodeTableSchema*>(srcTable)->getPrimaryKey()->getDataType()->copy());
+        readerConfig.columnTypes.push_back(
+            reinterpret_cast<NodeTableSchema*>(dstTable)->getPrimaryKey()->getDataType()->copy());
         columns.push_back(createVariable(srcColumnName, arrowColumnType));
         columns.push_back(createVariable(dstColumnName, arrowColumnType));
         for (auto& property : tableSchema->properties) {

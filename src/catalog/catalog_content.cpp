@@ -66,9 +66,9 @@ table_id_t CatalogContent::addRelTableSchema(const BoundCreateTableInfo& info) {
         reinterpret_cast<NodeTableSchema*>(getTableSchema(extraInfo->dstTableID));
     srcNodeTableSchema->addFwdRelTableID(tableID);
     dstNodeTableSchema->addBwdRelTableID(tableID);
-    auto relTableSchema = std::make_unique<RelTableSchema>(info.tableName, tableID,
-        extraInfo->relMultiplicity, std::move(properties), extraInfo->srcTableID,
-        extraInfo->dstTableID, extraInfo->srcPkDataType->copy(), extraInfo->dstPkDataType->copy());
+    auto relTableSchema =
+        std::make_unique<RelTableSchema>(info.tableName, tableID, extraInfo->relMultiplicity,
+            std::move(properties), extraInfo->srcTableID, extraInfo->dstTableID);
     tableNameToIDMap.emplace(relTableSchema->tableName, tableID);
     tableSchemas.emplace(tableID, std::move(relTableSchema));
     return tableID;

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "common/types/types.h"
-#include "storage/copier/table_copy_utils.h"
 #include "storage/storage_structure/in_mem_file.h"
+#include "storage/store/table_copy_utils.h"
 #include <arrow/array/array_base.h>
 #include <arrow/array/array_binary.h>
 #include <arrow/array/array_primitive.h>

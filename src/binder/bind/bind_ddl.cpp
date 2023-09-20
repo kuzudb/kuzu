@@ -148,16 +148,9 @@ std::unique_ptr<BoundCreateTableInfo> Binder::bindCreateRelTableInfo(const Creat
     auto extraInfo = (ExtraCreateRelTableInfo*)info->extraInfo.get();
     auto relMultiplicity = getRelMultiplicityFromString(extraInfo->relMultiplicity);
     auto srcTableID = bindNodeTableID(extraInfo->srcTableName);
-    auto srcTableSchema =
-        (NodeTableSchema*)catalog.getReadOnlyVersion()->getTableSchema(srcTableID);
-    auto srcPkDataType = srcTableSchema->getPrimaryKey()->getDataType();
     auto dstTableID = bindNodeTableID(extraInfo->dstTableName);
-    auto dstTableSchema =
-        (NodeTableSchema*)catalog.getReadOnlyVersion()->getTableSchema(dstTableID);
-    auto dstPkDataType = dstTableSchema->getPrimaryKey()->getDataType();
-    auto boundExtraInfo =
-        std::make_unique<BoundExtraCreateRelTableInfo>(relMultiplicity, srcTableID, dstTableID,
-            srcPkDataType->copy(), dstPkDataType->copy(), std::move(boundProperties));
+    auto boundExtraInfo = std::make_unique<BoundExtraCreateRelTableInfo>(
+        relMultiplicity, srcTableID, dstTableID, std::move(boundProperties));
     return std::make_unique<BoundCreateTableInfo>(
         TableType::REL, info->tableName, std::move(boundExtraInfo));
 }
@@ -211,9 +204,8 @@ std::unique_ptr<BoundCreateTableInfo> Binder::bindCreateRdfGraphInfo(const Creat
     std::vector<std::unique_ptr<Property>> relProperties;
     relProperties.push_back(std::make_unique<Property>(
         RDF_PREDICT_ID, std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID)));
-    auto boundRelExtraInfo =
-        std::make_unique<BoundExtraCreateRelTableInfo>(RelMultiplicity::MANY_MANY, INVALID_TABLE_ID,
-            INVALID_TABLE_ID, stringType->copy(), stringType->copy(), std::move(relProperties));
+    auto boundRelExtraInfo = std::make_unique<BoundExtraCreateRelTableInfo>(
+        RelMultiplicity::MANY_MANY, INVALID_TABLE_ID, INVALID_TABLE_ID, std::move(relProperties));
     auto boundRelCreateInfo = std::make_unique<BoundCreateTableInfo>(
         TableType::REL, relTableName, std::move(boundRelExtraInfo));
     auto boundExtraInfo = std::make_unique<BoundExtraCreateRdfGraphInfo>(

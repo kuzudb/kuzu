@@ -3,7 +3,7 @@
 #include "common/exception/copy.h"
 #include "common/exception/message.h"
 #include "common/string_utils.h"
-#include "storage/copier/string_column_chunk.h"
+#include "storage/store/string_column_chunk.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

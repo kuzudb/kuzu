@@ -44,8 +44,6 @@ void RelTableSchema::serializeInternal(FileInfo* fileInfo, uint64_t& offset) {
     SerDeser::serializeValue(relMultiplicity, fileInfo, offset);
     SerDeser::serializeValue(srcTableID, fileInfo, offset);
     SerDeser::serializeValue(dstTableID, fileInfo, offset);
-    srcPKDataType->serialize(fileInfo, offset);
-    dstPKDataType->serialize(fileInfo, offset);
 }
 
 std::unique_ptr<RelTableSchema> RelTableSchema::deserialize(FileInfo* fileInfo, uint64_t& offset) {
@@ -55,10 +53,7 @@ std::unique_ptr<RelTableSchema> RelTableSchema::deserialize(FileInfo* fileInfo, 
     SerDeser::deserializeValue(relMultiplicity, fileInfo, offset);
     SerDeser::deserializeValue(srcTableID, fileInfo, offset);
     SerDeser::deserializeValue(dstTableID, fileInfo, offset);
-    auto srcPKDataType = LogicalType::deserialize(fileInfo, offset);
-    auto dstPKDataType = LogicalType::deserialize(fileInfo, offset);
-    return std::make_unique<RelTableSchema>(relMultiplicity, srcTableID, dstTableID,
-        std::move(srcPKDataType), std::move(dstPKDataType));
+    return std::make_unique<RelTableSchema>(relMultiplicity, srcTableID, dstTableID);
 }
 
 } // namespace catalog

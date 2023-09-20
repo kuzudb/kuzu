@@ -1,5 +1,6 @@
 #pragma once
 
+#include "storage/file_handle.h"
 #include "storage/in_mem_storage_structure/in_mem_column_chunk.h"
 
 namespace kuzu {

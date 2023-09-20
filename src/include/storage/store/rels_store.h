@@ -2,7 +2,7 @@
 
 #include "catalog/catalog.h"
 #include "common/file_utils.h"
-#include "rels_statistics.h"
+#include "storage/stats/rels_statistics.h"
 #include "storage/store/rel_table.h"
 
 namespace kuzu {

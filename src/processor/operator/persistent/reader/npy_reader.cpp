@@ -1,4 +1,4 @@
-#include "storage/copier/npy_reader.h"
+#include "processor/operator/persistent/reader/npy_reader.h"
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -20,9 +20,10 @@
 #include "storage/storage_utils.h"
 
 using namespace kuzu::common;
+using namespace kuzu::storage;
 
 namespace kuzu {
-namespace storage {
+namespace processor {
 
 NpyReader::NpyReader(const std::string& filePath) : filePath{filePath} {
     fd = open(filePath.c_str(), O_RDONLY);
@@ -271,5 +272,5 @@ std::shared_ptr<arrow::RecordBatch> NpyMultiFileReader::readBlock(block_idx_t bl
     return resultArrowBatch;
 }
 
-} // namespace storage
+} // namespace processor
 } // namespace kuzu

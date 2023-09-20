@@ -15,30 +15,22 @@ public:
     static constexpr uint64_t INTERNAL_REL_ID_PROPERTY_ID = 0;
 
     RelTableSchema(RelMultiplicity relMultiplicity, common::table_id_t srcTableID,
-        common::table_id_t dstTableID, std::unique_ptr<common::LogicalType> srcPKDataType,
-        std::unique_ptr<common::LogicalType> dstPKDataType)
+        common::table_id_t dstTableID)
         : TableSchema{common::InternalKeyword::ANONYMOUS, common::INVALID_TABLE_ID,
               common::TableType::REL, {} /* properties */},
-          relMultiplicity{relMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID},
-          srcPKDataType{std::move(srcPKDataType)}, dstPKDataType{std::move(dstPKDataType)} {}
+          relMultiplicity{relMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID} {}
     RelTableSchema(std::string tableName, common::table_id_t tableID,
         RelMultiplicity relMultiplicity, std::vector<std::unique_ptr<Property>> properties,
-        common::table_id_t srcTableID, common::table_id_t dstTableID,
-        std::unique_ptr<common::LogicalType> srcPKDataType,
-        std::unique_ptr<common::LogicalType> dstPKDataType)
+        common::table_id_t srcTableID, common::table_id_t dstTableID)
         : TableSchema{std::move(tableName), tableID, common::TableType::REL, std::move(properties)},
-          relMultiplicity{relMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID},
-          srcPKDataType{std::move(srcPKDataType)}, dstPKDataType{std::move(dstPKDataType)} {}
+          relMultiplicity{relMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID} {}
     RelTableSchema(std::string tableName, common::table_id_t tableID,
         std::vector<std::unique_ptr<Property>> properties, std::string comment,
         common::property_id_t nextPropertyID, RelMultiplicity relMultiplicity,
-        common::table_id_t srcTableID, common::table_id_t dstTableID,
-        std::unique_ptr<common::LogicalType> srcPKDataType,
-        std::unique_ptr<common::LogicalType> dstPKDataType)
+        common::table_id_t srcTableID, common::table_id_t dstTableID)
         : TableSchema{common::TableType::REL, std::move(tableName), tableID, std::move(properties),
               std::move(comment), nextPropertyID},
-          relMultiplicity{relMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID},
-          srcPKDataType{std::move(srcPKDataType)}, dstPKDataType{std::move(dstPKDataType)} {}
+          relMultiplicity{relMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID} {}
 
     inline bool isSingleMultiplicityInDirection(common::RelDataDirection direction) const {
         return relMultiplicity == RelMultiplicity::ONE_ONE ||
@@ -65,17 +57,12 @@ public:
 
     inline common::table_id_t getDstTableID() const { return dstTableID; }
 
-    inline common::LogicalType* getSrcPKDataType() const { return srcPKDataType.get(); }
-
-    inline common::LogicalType* getDstPKDataType() const { return dstPKDataType.get(); }
-
     static std::unique_ptr<RelTableSchema> deserialize(
         common::FileInfo* fileInfo, uint64_t& offset);
 
     inline std::unique_ptr<TableSchema> copy() const override {
         return std::make_unique<RelTableSchema>(tableName, tableID, Property::copy(properties),
-            comment, nextPropertyID, relMultiplicity, srcTableID, dstTableID, srcPKDataType->copy(),
-            dstPKDataType->copy());
+            comment, nextPropertyID, relMultiplicity, srcTableID, dstTableID);
     }
 
 private:
@@ -85,8 +72,6 @@ private:
     RelMultiplicity relMultiplicity;
     common::table_id_t srcTableID;
     common::table_id_t dstTableID;
-    std::unique_ptr<common::LogicalType> srcPKDataType;
-    std::unique_ptr<common::LogicalType> dstPKDataType;
 };
 
 } // namespace catalog

@@ -1,9 +1,10 @@
 #include "processor/operator/persistent/reader_functions.h"
 
+#include <arrow/table.h>
+
 using namespace kuzu::common;
 using namespace kuzu::catalog;
 using namespace kuzu::storage;
-using namespace kuzu::binder;
 
 namespace kuzu {
 namespace processor {
@@ -156,7 +157,6 @@ static std::unique_ptr<BufferedCSVReader> createBufferedCSVReader(
     const std::string& path, const ReaderConfig& config) {
     return std::make_unique<BufferedCSVReader>(
         path, *config.csvReaderConfig, config.getNumColumns());
-    ;
 }
 
 std::vector<FileBlocksInfo> ReaderFunctions::countRowsInNodeCSVFile(

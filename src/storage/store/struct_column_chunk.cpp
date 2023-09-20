@@ -1,13 +1,13 @@
-#include "storage/copier/struct_column_chunk.h"
+#include "storage/store/struct_column_chunk.h"
 
 #include "common/exception/copy.h"
 #include "common/exception/not_implemented.h"
 #include "common/exception/parser.h"
 #include "common/string_utils.h"
 #include "common/types/value/nested.h"
-#include "storage/copier/string_column_chunk.h"
-#include "storage/copier/table_copy_utils.h"
-#include "storage/copier/var_list_column_chunk.h"
+#include "storage/store/string_column_chunk.h"
+#include "storage/store/table_copy_utils.h"
+#include "storage/store/var_list_column_chunk.h"
 
 using namespace kuzu::common;
 

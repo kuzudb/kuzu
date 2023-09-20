@@ -2,7 +2,7 @@
 
 #include "common/copier_config/copier_config.h"
 #include "processor/operator/sink.h"
-#include "storage/copier/node_group.h"
+#include "storage/store/node_group.h"
 #include "storage/store/node_table.h"
 
 namespace kuzu {

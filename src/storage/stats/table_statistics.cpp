@@ -1,4 +1,4 @@
-#include "storage/store/table_statistics.h"
+#include "storage/stats/table_statistics.h"
 
 #include "storage/storage_utils.h"
 

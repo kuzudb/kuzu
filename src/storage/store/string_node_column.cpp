@@ -1,6 +1,6 @@
 #include "storage/store/string_node_column.h"
 
-#include "storage/copier/string_column_chunk.h"
+#include "storage/store/string_column_chunk.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

@@ -3,7 +3,7 @@
 #include "processor/operator/persistent/copy_rel.h"
 #include "processor/operator/sink.h"
 #include "storage/index/hash_index.h"
-#include "storage/store/rels_statistics.h"
+#include "storage/stats/rels_statistics.h"
 
 namespace kuzu {
 namespace processor {

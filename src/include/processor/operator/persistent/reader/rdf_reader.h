@@ -5,7 +5,7 @@
 #include "serd.h"
 
 namespace kuzu {
-namespace storage {
+namespace processor {
 
 class RDFReader {
 public:
@@ -33,5 +33,5 @@ private:
     common::ValueVector* objectVector;
 };
 
-} // namespace storage
+} // namespace processor
 } // namespace kuzu

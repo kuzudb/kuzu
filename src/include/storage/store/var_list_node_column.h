@@ -1,7 +1,7 @@
 #pragma once
 
 #include "node_column.h"
-#include "storage/store/table_statistics.h"
+#include "storage/stats/table_statistics.h"
 
 // List is a nested data type which is stored as two columns:
 // 1. Offset column (type: INT64). Using offset to partition the data column into multiple lists.

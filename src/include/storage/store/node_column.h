@@ -1,16 +1,12 @@
 #pragma once
 
 #include "catalog/catalog.h"
-#include "storage/copier/column_chunk.h"
+#include "storage/stats/property_statistics.h"
 #include "storage/storage_structure/disk_array.h"
 #include "storage/storage_structure/storage_structure.h"
-#include "storage/store/property_statistics.h"
+#include "storage/store/column_chunk.h"
 
 namespace kuzu {
-namespace transaction {
-class TransactionTests;
-}
-
 namespace storage {
 
 using read_node_column_func_t = std::function<void(uint8_t* frame, PageElementCursor& pageCursor,
@@ -52,7 +48,6 @@ class NodeColumn {
     friend class LocalColumn;
     friend class StringLocalColumn;
     friend class VarListLocalColumn;
-    friend class transaction::TransactionTests;
     friend class StructNodeColumn;
 
 public:
