@@ -188,7 +188,7 @@ def test_to_torch_geometric_homogeneous_graph(establish_connection):
         assert src != dst
         assert pos_to_idx[dst] in ground_truth.TINY_SNB_KNOWS_GROUND_TRUTH[pos_to_idx[src]]
 
-    assert len(edge_properties) == 4
+    assert len(edge_properties) == 5
     assert 'date' in edge_properties
     assert 'meetTime' in edge_properties
     assert 'validInterval' in edge_properties
@@ -310,11 +310,12 @@ def test_to_torch_geometric_heterogeneous_graph(establish_connection):
         assert src != dst
         assert pos_to_idx['person'][dst] in ground_truth.TINY_SNB_KNOWS_GROUND_TRUTH[pos_to_idx['person'][src]]
 
-    assert len(edge_properties['person', 'person']) == 4
+    assert len(edge_properties['person', 'person']) == 5
     assert 'date' in edge_properties['person', 'person']
     assert 'meetTime' in edge_properties['person', 'person']
     assert 'validInterval' in edge_properties['person', 'person']
     assert 'comments' in edge_properties['person', 'person']
+    assert '_label' in edge_properties['person', 'person']
     for i in range(3):
         src, dst = torch_geometric_data['person', 'person'].edge_index[0][i].item(
         ), torch_geometric_data['person', 'person'].edge_index[1][i].item()
@@ -328,6 +329,7 @@ def test_to_torch_geometric_heterogeneous_graph(establish_connection):
             original_src, original_dst)]['validInterval'] == edge_properties['person', 'person']['validInterval'][i]
         assert ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(
             original_src, original_dst)]['comments'] == edge_properties['person', 'person']['comments'][i]
+        assert edge_properties['person', 'person']['_label'][i] == 'knows'
 
     assert torch_geometric_data['organisation'].ID.shape == torch.Size([2])
     assert torch_geometric_data['organisation'].ID.dtype == torch.int64
@@ -386,14 +388,16 @@ def test_to_torch_geometric_heterogeneous_graph(establish_connection):
         assert dst in pos_to_idx['organisation']
         assert src != dst
         assert pos_to_idx['organisation'][dst] in ground_truth.TINY_SNB_WORKS_AT_GROUND_TRUTH[pos_to_idx['person'][src]]
-    assert len(edge_properties['person', 'organisation']) == 3
+    assert len(edge_properties['person', 'organisation']) == 4
     assert 'year' in edge_properties['person', 'organisation']
+    assert '_label' in edge_properties['person', 'organisation']
     for i in range(2):
         src, dst = torch_geometric_data['person', 'organisation'].edge_index[0][i].item(
         ), torch_geometric_data['person', 'organisation'].edge_index[1][i].item()
         original_src, original_dst = pos_to_idx['person'][src], pos_to_idx['organisation'][dst]
         assert ground_truth.TINY_SNB_WORKS_AT_PROPERTIES_GROUND_TRUTH[(
             original_src, original_dst)]['year'] == edge_properties['person', 'organisation']['year'][i]
+        assert edge_properties['person', 'organisation']['_label'][i] == 'workAt'
 
 
 def test_to_torch_geometric_multi_dimensional_lists(establish_connection):

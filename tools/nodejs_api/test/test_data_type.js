@@ -294,6 +294,7 @@ describe("REL", function () {
     assert.equal(rel.grading.length, 2);
     assert.equal(rel.grading[0], 2.1);
     assert.equal(rel.grading[1], 4.4);
+    assert.equal(rel._label, "workAt");
     assert.approximately(rel.rating, 7.6, EPSILON);
   });
 });
@@ -327,6 +328,7 @@ describe("RECURSIVE_REL", function () {
           usedAddress: null,
           address: null,
           note: null,
+          _label: "studyAt",
           _src: {
             offset: 0,
             table: 0,
