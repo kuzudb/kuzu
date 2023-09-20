@@ -659,6 +659,22 @@ void AggregateHashTable::getCompareEntryWithKeysFunc(
         func = compareEntryWithKeys<int8_t>;
         return;
     }
+    case PhysicalTypeID::UINT64: {
+        func = compareEntryWithKeys<uint64_t>;
+        return;
+    }
+    case PhysicalTypeID::UINT32: {
+        func = compareEntryWithKeys<uint32_t>;
+        return;
+    }
+    case PhysicalTypeID::UINT16: {
+        func = compareEntryWithKeys<uint16_t>;
+        return;
+    }
+    case PhysicalTypeID::UINT8: {
+        func = compareEntryWithKeys<uint8_t>;
+        return;
+    }
     case PhysicalTypeID::DOUBLE: {
         func = compareEntryWithKeys<double_t>;
         return;

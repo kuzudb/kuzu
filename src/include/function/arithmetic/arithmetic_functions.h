@@ -81,7 +81,11 @@ struct Negate {
 struct Abs {
     template<class T>
     static inline void operation(T& input, T& result) {
-        result = abs(input);
+        if constexpr (std::is_unsigned_v<T>) {
+            result = input;
+        } else {
+            result = abs(input);
+        }
     }
 };
 

@@ -52,6 +52,14 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
         return Value((int16_t)0);
     case LogicalTypeID::INT8:
         return Value((int8_t)0);
+    case LogicalTypeID::UINT64:
+        return Value((uint64_t)0);
+    case LogicalTypeID::UINT32:
+        return Value((uint32_t)0);
+    case LogicalTypeID::UINT16:
+        return Value((uint16_t)0);
+    case LogicalTypeID::UINT8:
+        return Value((uint8_t)0);
     case LogicalTypeID::BOOL:
         return Value(true);
     case LogicalTypeID::DOUBLE:
@@ -128,6 +136,26 @@ Value::Value(int64_t val_) : isNull_{false} {
     val.int64Val = val_;
 }
 
+Value::Value(uint8_t val_) : isNull_{false} {
+    dataType = std::make_unique<LogicalType>(LogicalTypeID::UINT8);
+    val.uint8Val = val_;
+}
+
+Value::Value(uint16_t val_) : isNull_{false} {
+    dataType = std::make_unique<LogicalType>(LogicalTypeID::UINT16);
+    val.uint16Val = val_;
+}
+
+Value::Value(uint32_t val_) : isNull_{false} {
+    dataType = std::make_unique<LogicalType>(LogicalTypeID::UINT32);
+    val.uint32Val = val_;
+}
+
+Value::Value(uint64_t val_) : isNull_{false} {
+    dataType = std::make_unique<LogicalType>(LogicalTypeID::UINT64);
+    val.uint64Val = val_;
+}
+
 Value::Value(float_t val_) : isNull_{false} {
     dataType = std::make_unique<LogicalType>(LogicalTypeID::FLOAT);
     val.floatVal = val_;
@@ -202,6 +230,18 @@ void Value::copyValueFrom(const uint8_t* value) {
     case LogicalTypeID::INT8: {
         val.int8Val = *((int8_t*)value);
     } break;
+    case LogicalTypeID::UINT64: {
+        val.uint64Val = *((uint64_t*)value);
+    } break;
+    case LogicalTypeID::UINT32: {
+        val.uint32Val = *((uint32_t*)value);
+    } break;
+    case LogicalTypeID::UINT16: {
+        val.uint16Val = *((uint16_t*)value);
+    } break;
+    case LogicalTypeID::UINT8: {
+        val.uint8Val = *((uint8_t*)value);
+    } break;
     case LogicalTypeID::BOOL: {
         val.booleanVal = *((bool*)value);
     } break;
@@ -268,6 +308,18 @@ void Value::copyValueFrom(const Value& other) {
     case PhysicalTypeID::INT8: {
         val.int8Val = other.val.int8Val;
     } break;
+    case PhysicalTypeID::UINT64: {
+        val.uint64Val = other.val.uint64Val;
+    } break;
+    case PhysicalTypeID::UINT32: {
+        val.uint32Val = other.val.uint32Val;
+    } break;
+    case PhysicalTypeID::UINT16: {
+        val.uint16Val = other.val.uint16Val;
+    } break;
+    case PhysicalTypeID::UINT8: {
+        val.uint8Val = other.val.uint8Val;
+    } break;
     case PhysicalTypeID::DOUBLE: {
         val.doubleVal = other.val.doubleVal;
     } break;
@@ -312,6 +364,14 @@ std::string Value::toString() const {
         return TypeUtils::toString(val.int16Val);
     case LogicalTypeID::INT8:
         return TypeUtils::toString(val.int8Val);
+    case LogicalTypeID::UINT64:
+        return TypeUtils::toString(val.uint64Val);
+    case LogicalTypeID::UINT32:
+        return TypeUtils::toString(val.uint32Val);
+    case LogicalTypeID::UINT16:
+        return TypeUtils::toString(val.uint16Val);
+    case LogicalTypeID::UINT8:
+        return TypeUtils::toString(val.uint8Val);
     case LogicalTypeID::DOUBLE:
         return TypeUtils::toString(val.doubleVal);
     case LogicalTypeID::FLOAT:
@@ -509,6 +569,18 @@ void Value::serialize(FileInfo* fileInfo, uint64_t& offset) const {
     case PhysicalTypeID::INT8: {
         SerDeser::serializeValue(val.int8Val, fileInfo, offset);
     } break;
+    case PhysicalTypeID::UINT64: {
+        SerDeser::serializeValue(val.uint64Val, fileInfo, offset);
+    } break;
+    case PhysicalTypeID::UINT32: {
+        SerDeser::serializeValue(val.uint32Val, fileInfo, offset);
+    } break;
+    case PhysicalTypeID::UINT16: {
+        SerDeser::serializeValue(val.uint16Val, fileInfo, offset);
+    } break;
+    case PhysicalTypeID::UINT8: {
+        SerDeser::serializeValue(val.uint8Val, fileInfo, offset);
+    } break;
     case PhysicalTypeID::DOUBLE: {
         SerDeser::serializeValue(val.doubleVal, fileInfo, offset);
     } break;
@@ -558,6 +630,18 @@ std::unique_ptr<Value> Value::deserialize(FileInfo* fileInfo, uint64_t& offset) 
     } break;
     case PhysicalTypeID::INT8: {
         SerDeser::deserializeValue(val->val.int8Val, fileInfo, offset);
+    } break;
+    case PhysicalTypeID::UINT64: {
+        SerDeser::deserializeValue(val->val.uint64Val, fileInfo, offset);
+    } break;
+    case PhysicalTypeID::UINT32: {
+        SerDeser::deserializeValue(val->val.uint32Val, fileInfo, offset);
+    } break;
+    case PhysicalTypeID::UINT16: {
+        SerDeser::deserializeValue(val->val.uint16Val, fileInfo, offset);
+    } break;
+    case PhysicalTypeID::UINT8: {
+        SerDeser::deserializeValue(val->val.uint8Val, fileInfo, offset);
     } break;
     case PhysicalTypeID::DOUBLE: {
         SerDeser::deserializeValue(val->val.doubleVal, fileInfo, offset);

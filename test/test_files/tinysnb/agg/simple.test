@@ -78,11 +78,35 @@ False
 ---- 1
 455|0|4.935714
 
--LOG INT8KeyTest2
+-LOG INT8KeyTest
 -STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.level = 5 RETURN p.ID, o.ID
 -ENUMERATE
 ---- 1
 0|1
+
+-LOG UINT8KeyTest
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.ulevel = 220 RETURN p.ID, o.ID
+-ENUMERATE
+---- 1
+2|1
+
+-LOG UINT16KeyTest
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.ulength = 90 RETURN p.ID, o.ID
+-ENUMERATE
+---- 1
+2|1
+
+-LOG UINT32KeyTest
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.temprature = 1 RETURN p.ID, o.ID
+-ENUMERATE
+---- 1
+2|1
+
+-LOG UINT64KeyTest
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.code = 6689 RETURN p.ID, o.ID
+-ENUMERATE
+---- 1
+2|1
 
 -LOG SimpleCollectINT64Test
 -STATEMENT MATCH (p:person) RETURN collect(p.age)
@@ -103,6 +127,26 @@ False
 -STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN collect(e.level)
 ---- 1
 [5,120,2]
+
+-LOG SimpleCollectUINT64Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN collect(e.code)
+---- 1
+[6556,6689,23]
+
+-LOG SimpleCollectUINT32Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN collect(e.temprature)
+---- 1
+[35,1,20]
+
+-LOG SimpleCollectUINT16Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN collect(e.ulength)
+---- 1
+[120,90,180]
+
+-LOG SimpleCollectUINT8Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN collect(e.ulevel)
+---- 1
+[15,220,12]
 
 -LOG SimpleCollectBLOBTest
 -STATEMENT MATCH (m:movies) RETURN collect(m.content)
@@ -214,6 +258,62 @@ False
 -ENUMERATE
 ---- 1
 127
+
+-LOG SimpleAggMaxUInt64Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.code)
+-PARALLELISM 2
+-ENUMERATE
+---- 1
+6689
+
+-LOG SimpleAggSumUInt64Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.code)
+-PARALLELISM 2
+-ENUMERATE
+---- 1
+13268
+
+-LOG SimpleAggMaxUInt32Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.temprature)
+-PARALLELISM 2
+-ENUMERATE
+---- 1
+35
+
+-LOG SimpleAggSumUInt32Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.temprature)
+-PARALLELISM 2
+-ENUMERATE
+---- 1
+56
+
+-LOG SimpleAggMaxUInt16Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.ulength)
+-PARALLELISM 2
+-ENUMERATE
+---- 1
+180
+
+-LOG SimpleAggSumUInt16Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.ulength)
+-PARALLELISM 2
+-ENUMERATE
+---- 1
+390
+
+-LOG SimpleAggMaxUInt8Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.ulevel)
+-PARALLELISM 2
+-ENUMERATE
+---- 1
+220
+
+-LOG SimpleAggSumUInt8Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.ulevel)
+-PARALLELISM 2
+-ENUMERATE
+---- 1
+247
 
 -LOG SimpleAggCountBlob
 -STATEMENT MATCH (m:movies) RETURN COUNT(m.content)

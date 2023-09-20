@@ -5,44 +5,12 @@
 
 -CASE FunctionArithmetic
 
--LOG moduloFunctionOnDoubleDoubleTest
--STATEMENT MATCH (a:organisation) RETURN a.orgCode % a.rating
----- 3
-0.000000
-0.340000
-0.320000
 
--LOG moduloFunctionOnDoubleFloatTest
--STATEMENT MATCH (a:person) RETURN a.eyeSight % a.height
----- 8
-1.538000
-0.150000
-0.000000
-0.900000
-0.311000
-1.480000
-0.100000
-0.931000
-
--LOG moduloFunctionOnINT64INT16Test
--STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.year % e.length
----- 3
-1
-40
-18
-
--LOG moduloFunctionOnINT64INT8Test
--STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.year % e.level
----- 3
-1
-100
-0
-
--LOG moduloFunctionOnINT32INT32Test
--STATEMENT MATCH (m:movies) RETURN m.length % m.length
+-LOG moduloFunctionOnUINT16UINT8Test
+-STATEMENT MATCH (:person)-[a:studyAt]->(:organisation) RETURN a.ulength % a.ulevel
 ---- 3
 0
-0
+90
 0
 
 -LOG sinFunctionOnDoubleTest

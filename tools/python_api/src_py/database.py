@@ -152,6 +152,22 @@ class Database:
             result = np.empty(len(indices) * dim, dtype=np.int8)
             self._database.scan_node_table_as_int8(
                 table_name, prop_name, indices_cast, result, num_threads)
+        if prop_type == Type.UINT64.value:
+            result = np.empty(len(indices) * dim, dtype=np.uint64)
+            self._database.scan_node_table_as_uint64(
+                table_name, prop_name, indices_cast, result, num_threads)
+        if prop_type == Type.UINT32.value:
+            result = np.empty(len(indices) * dim, dtype=np.uint32)
+            self._database.scan_node_table_as_uint32(
+                table_name, prop_name, indices_cast, result, num_threads)
+        if prop_type == Type.UINT16.value:
+            result = np.empty(len(indices) * dim, dtype=np.uint16)
+            self._database.scan_node_table_as_uint16(
+                table_name, prop_name, indices_cast, result, num_threads)
+        if prop_type == Type.UINT8.value:
+            result = np.empty(len(indices) * dim, dtype=np.uint8)
+            self._database.scan_node_table_as_uint8(
+                table_name, prop_name, indices_cast, result, num_threads)
         if prop_type == Type.DOUBLE.value:
             result = np.empty(len(indices) * dim, dtype=np.float64)
             self._database.scan_node_table_as_double(

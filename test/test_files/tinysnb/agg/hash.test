@@ -219,6 +219,30 @@ Elizabeth|[25,40]
 2020|[120,2]
 2021|[5]
 
+-LOG HashCollectOnUInt64Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.year, collect(s.code)
+---- 2
+2020|[6689,23]
+2021|[6556]
+
+-LOG HashCollectOnUInt32Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.year, collect(s.temprature)
+---- 2
+2020|[1,20]
+2021|[35]
+
+-LOG HashCollectOnUInt16Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.year, collect(s.ulength)
+---- 2
+2020|[90,180]
+2021|[120]
+
+-LOG HashCollectOnUInt8Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.year, collect(s.ulevel)
+---- 2
+2020|[220,12]
+2021|[15]
+
 -LOG HashCollectOnNodeTest
 -STATEMENT MATCH (p:person) WHERE p.ID = 3 or p.ID = 5 RETURN p.gender, collect(p)
 ---- 2
@@ -251,6 +275,34 @@ True|1
 2|1
 5|1
 120|1
+
+-LOG HashAggUINT8Key
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.ulevel, COUNT(s.year)
+---- 3
+15|1
+220|1
+12|1
+
+-LOG HashAggUINT16Key
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.ulength, COUNT(s.year)
+---- 3
+120|1
+90|1
+180|1
+
+-LOG HashAggUINT32Key
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.temprature, COUNT(s.year)
+---- 3
+35|1
+1|1
+20|1
+
+-LOG HashAggUINT64Key
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.code, COUNT(s.year)
+---- 3
+23|1
+6556|1
+6689|1
 
 -LOG HashAggMinBlob
 -STATEMENT MATCH (m:movies) RETURN m.length <> 298, MIN(m.content)
