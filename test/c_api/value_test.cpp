@@ -160,6 +160,17 @@ TEST(CApiValueTestEmptyDB, CreateUInt64) {
     kuzu_value_destroy(value);
 }
 
+TEST(CApiValueTestEmptyDB, CreateINT128) {
+    kuzu_value* value = kuzu_value_create_int128(kuzu_int128_t{211111111, 100000000});
+    ASSERT_FALSE(value->_is_owned_by_cpp);
+    auto cppValue = static_cast<Value*>(value->_value);
+    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::INT128);
+    auto cppTimeStamp = cppValue->getValue<int128_t>();
+    ASSERT_EQ(cppTimeStamp.high, 100000000);
+    ASSERT_EQ(cppTimeStamp.low, 211111111);
+    kuzu_value_destroy(value);
+}
+
 TEST(CApiValueTestEmptyDB, CreateFloat) {
     kuzu_value* value = kuzu_value_create_float(123.456);
     ASSERT_FALSE(value->_is_owned_by_cpp);
@@ -316,7 +327,7 @@ TEST_F(CApiValueTest, GetStructNumFields) {
     ASSERT_TRUE(kuzu_query_result_has_next(result));
     auto flatTuple = kuzu_query_result_get_next(result);
     auto value = kuzu_flat_tuple_get_value(flatTuple, 0);
-    ASSERT_EQ(kuzu_value_get_struct_num_fields(value), 9);
+    ASSERT_EQ(kuzu_value_get_struct_num_fields(value), 10);
 
     kuzu_value_destroy(value);
     kuzu_flat_tuple_destroy(flatTuple);
@@ -577,6 +588,38 @@ TEST_F(CApiValueTest, GetUInt64) {
     kuzu_value_destroy(value);
     kuzu_flat_tuple_destroy(flatTuple);
     kuzu_query_result_destroy(result);
+}
+
+TEST_F(CApiValueTest, GetInt128) {
+    auto connection = getConnection();
+    auto result = kuzu_connection_query(connection,
+        (char*)"MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.hugedata ORDER BY a.ID");
+    ASSERT_TRUE(kuzu_query_result_is_success(result));
+    ASSERT_TRUE(kuzu_query_result_has_next(result));
+    auto flatTuple = kuzu_query_result_get_next(result);
+    auto value = kuzu_flat_tuple_get_value(flatTuple, 0);
+    ASSERT_TRUE(value->_is_owned_by_cpp);
+    ASSERT_FALSE(kuzu_value_is_null(value));
+    auto int128 = kuzu_value_get_int128(value);
+    ASSERT_EQ(int128.high, 100000000);
+    ASSERT_EQ(int128.low, 211111111);
+    kuzu_value_destroy(value);
+    kuzu_flat_tuple_destroy(flatTuple);
+    kuzu_query_result_destroy(result);
+}
+
+TEST_F(CApiValueTest, StringToInt128Test) {
+    char input[] = "1844674407370955161811111111";
+    auto int128_val = kuzu_int128_t_from_string(input);
+    ASSERT_EQ(int128_val.high, 100000000);
+    ASSERT_EQ(int128_val.low, 211111111);
+}
+
+TEST_F(CApiValueTest, Int128ToStringTest) {
+    auto int128_val = kuzu_int128_t{211111111, 100000000};
+    char* str = kuzu_int128_t_to_string(int128_val);
+    ASSERT_STREQ(str, "1844674407370955161811111111");
+    free(str);
 }
 
 TEST_F(CApiValueTest, GetFloat) {

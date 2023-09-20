@@ -8,6 +8,7 @@
 #include "common/types/value/node.h"
 #include "common/types/value/recursive_rel.h"
 #include "common/types/value/rel.h"
+#include "function/cast/cast_functions.h"
 #include "main/kuzu.h"
 
 using namespace kuzu::common;
@@ -92,6 +93,13 @@ kuzu_value* kuzu_value_create_uint32(uint32_t val_) {
 kuzu_value* kuzu_value_create_uint64(uint64_t val_) {
     auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
     c_value->_value = new Value(val_);
+    return c_value;
+}
+
+kuzu_value* kuzu_value_create_int128(kuzu_int128_t val_) {
+    auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
+    int128_t int128(val_.low, val_.high);
+    c_value->_value = new Value(int128);
     return c_value;
 }
 
@@ -248,6 +256,36 @@ uint32_t kuzu_value_get_uint32(kuzu_value* value) {
 uint64_t kuzu_value_get_uint64(kuzu_value* value) {
     return static_cast<Value*>(value->_value)->getValue<uint64_t>();
 }
+
+kuzu_int128_t kuzu_value_get_int128(kuzu_value* value) {
+    auto int128_val = static_cast<Value*>(value->_value)->getValue<int128_t>();
+    kuzu_int128_t c_int128;
+    c_int128.low = int128_val.low;
+    c_int128.high = int128_val.high;
+    return c_int128;
+}
+
+kuzu_int128_t kuzu_int128_t_from_string(const char* str) {
+    int128_t int128_val = 0;
+    kuzu_int128_t c_int128;
+    try {
+        kuzu::function::CastToInt128::operation(str, int128_val);
+        c_int128.low = int128_val.low;
+        c_int128.high = int128_val.high;
+    } catch (kuzu::common::ConversionException& e) {
+        c_int128.low = 0;
+        c_int128.high = 0;
+    }
+    return c_int128;
+}
+
+char* kuzu_int128_t_to_string(kuzu_int128_t int128_val) {
+    int128_t c_int128;
+    c_int128.low = int128_val.low;
+    c_int128.high = int128_val.high;
+    return convertToOwnedCString(kuzu::common::Int128_t::ToString(c_int128));
+}
+// TODO: bind all int128_t supported functions
 
 float kuzu_value_get_float(kuzu_value* value) {
     return static_cast<Value*>(value->_value)->getValue<float>();

@@ -157,6 +157,9 @@ void ValueVector::copyFromValue(uint64_t pos, const Value& value) {
     case PhysicalTypeID::UINT8: {
         memcpy(dstValue, &value.val.uint8Val, numBytesPerValue);
     } break;
+    case PhysicalTypeID::INT128: {
+        memcpy(dstValue, &value.val.int128Val, numBytesPerValue);
+    } break;
     case PhysicalTypeID::DOUBLE: {
         memcpy(dstValue, &value.val.doubleVal, numBytesPerValue);
     } break;
@@ -257,6 +260,9 @@ std::unique_ptr<Value> ValueVector::getAsValue(uint64_t pos) {
     } break;
     case PhysicalTypeID::UINT8: {
         value->val.uint8Val = getValue<uint8_t>(pos);
+    } break;
+    case PhysicalTypeID::INT128: {
+        value->val.int128Val = getValue<int128_t>(pos);
     } break;
     case PhysicalTypeID::DOUBLE: {
         value->val.doubleVal = getValue<double_t>(pos);
@@ -382,6 +388,7 @@ template KUZU_API void ValueVector::setValue<uint64_t>(uint32_t pos, uint64_t va
 template KUZU_API void ValueVector::setValue<uint32_t>(uint32_t pos, uint32_t val);
 template KUZU_API void ValueVector::setValue<uint16_t>(uint32_t pos, uint16_t val);
 template KUZU_API void ValueVector::setValue<uint8_t>(uint32_t pos, uint8_t val);
+template KUZU_API void ValueVector::setValue<int128_t>(uint32_t pos, int128_t val);
 template KUZU_API void ValueVector::setValue<double_t>(uint32_t pos, double_t val);
 template KUZU_API void ValueVector::setValue<float_t>(uint32_t pos, float_t val);
 template KUZU_API void ValueVector::setValue<date_t>(uint32_t pos, date_t val);

@@ -46,6 +46,10 @@ struct VectorListFunction : public VectorFunction {
             execFunc =
                 BinaryExecListStructFunction<common::list_entry_t, uint8_t, RESULT_TYPE, OPERATION>;
         } break;
+        case common::PhysicalTypeID::INT128: {
+            execFunc = BinaryExecListStructFunction<common::list_entry_t, common::int128_t,
+                RESULT_TYPE, OPERATION>;
+        } break;
         case common::PhysicalTypeID::DOUBLE: {
             execFunc = BinaryExecListStructFunction<common::list_entry_t, double_t, RESULT_TYPE,
                 OPERATION>;
@@ -172,6 +176,10 @@ struct VectorListFunction : public VectorFunction {
         case common::LogicalTypeID::UINT8: {
             vectorFunctionDefinition->execFunc =
                 UnaryExecListStructFunction<common::list_entry_t, uint8_t, OPERATION>;
+        } break;
+        case common::LogicalTypeID::INT128: {
+            vectorFunctionDefinition->execFunc =
+                UnaryExecListStructFunction<common::list_entry_t, common::int128_t, OPERATION>;
         } break;
         case common::LogicalTypeID::DOUBLE: {
             vectorFunctionDefinition->execFunc =

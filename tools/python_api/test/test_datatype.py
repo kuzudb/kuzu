@@ -214,6 +214,7 @@ def test_struct(establish_connection):
     assert (description['u16'] == 15)
     assert (description['u32'] == 200)
     assert (description['u64'] == 4)
+    assert (description['hugedata'] == -15)
     assert not result.has_next()
     result.close()
 
@@ -239,8 +240,8 @@ def test_recursive_rel(establish_connection):
                     'comments': None, 'year': 2021,
                     'places': ['wwAewsdndweusd', 'wek'],
                     'length': 5, 'level': 5, 'code': 9223372036854775808, 'temprature':32800,
-                    'ulength':33768, 'ulevel': 250, 'grading': None,
-                    'rating': None, 'location': None, 'times': None, 'data': None,
+                    'ulength':33768, 'ulevel': 250, 'hugedata': 1844674407370955161811111111,
+                    'grading': None, 'rating': None, 'location': None, 'times': None, 'data': None,
                     'usedAddress': None, 'address': None, 'note': None}
     assert (rel == excepted_rel)
     assert not result.has_next()

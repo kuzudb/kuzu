@@ -1,6 +1,7 @@
 #pragma once
 
 #include "aggregate_function.h"
+#include "common/types/int128_t.h"
 #include "function/arithmetic/arithmetic_functions.h"
 
 namespace kuzu {
@@ -84,6 +85,15 @@ struct AvgFunction {
         }
     }
 };
+
+template<>
+void AvgFunction<common::int128_t>::finalize(uint8_t* state_) {
+    auto state = reinterpret_cast<AvgState*>(state_);
+    if (!state->isNull) {
+        state->avg = common::Int128_t::Cast<long double>(state->sum) /
+                     common::Int128_t::Cast<long double>(state->count);
+    }
+}
 
 } // namespace function
 } // namespace kuzu

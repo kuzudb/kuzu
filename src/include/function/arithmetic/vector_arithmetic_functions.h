@@ -80,6 +80,10 @@ private:
             func = UnaryExecFunction<uint8_t, uint8_t, FUNC>;
             return;
         }
+        case common::LogicalTypeID::INT128: {
+            func = UnaryExecFunction<kuzu::common::int128_t, kuzu::common::int128_t, FUNC>;
+            return;
+        }
         case common::LogicalTypeID::DOUBLE: {
             func = UnaryExecFunction<double_t, double_t, FUNC>;
             return;
@@ -130,6 +134,11 @@ private:
         }
         case common::LogicalTypeID::UINT8: {
             func = BinaryExecFunction<uint8_t, uint8_t, uint8_t, FUNC>;
+            return;
+        }
+        case common::LogicalTypeID::INT128: {
+            func = BinaryExecFunction<kuzu::common::int128_t, kuzu::common::int128_t,
+                kuzu::common::int128_t, FUNC>;
             return;
         }
         case common::LogicalTypeID::DOUBLE: {

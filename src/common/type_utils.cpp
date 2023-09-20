@@ -30,6 +30,8 @@ std::string TypeUtils::castValueToString(
         return TypeUtils::toString(*reinterpret_cast<const uint16_t*>(value));
     case LogicalTypeID::UINT8:
         return TypeUtils::toString(*reinterpret_cast<const uint8_t*>(value));
+    case LogicalTypeID::INT128:
+        return TypeUtils::toString(*reinterpret_cast<const int128_t*>(value));
     case LogicalTypeID::DOUBLE:
         return TypeUtils::toString(*reinterpret_cast<const double_t*>(value));
     case LogicalTypeID::FLOAT:

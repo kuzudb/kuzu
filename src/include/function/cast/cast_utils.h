@@ -3,8 +3,10 @@
 #include <cassert>
 
 #include "common/exception/conversion.h"
+#include "common/exception/overflow.h"
 #include "common/string_utils.h"
 #include "common/type_utils.h"
+#include "common/types/int128_t.h"
 #include "common/types/ku_string.h"
 #include "common/vector/value_vector.h"
 #include "fast_float.h"
@@ -51,7 +53,7 @@ void castStringToBool(const char* input, uint64_t len, bool& result);
 
 // cast to numerical values
 // TODO: support exponent + decimal
-template<class T, bool NEGATIVE, bool ALLOW_EXPONENT = false, class OP = IntegerCastOperation>
+template<typename T, bool NEGATIVE, bool ALLOW_EXPONENT = false, class OP>
 static bool integerCastLoop(const char* input, uint64_t len, T& result) {
     int64_t start_pos = 0;
     if (NEGATIVE) {
@@ -74,7 +76,7 @@ static bool integerCastLoop(const char* input, uint64_t len, T& result) {
     return pos > start_pos; // false if no digits "" or "-"
 }
 
-template<typename T, bool IS_SIGNED = true>
+template<typename T, bool IS_SIGNED = true, class OP = IntegerCastOperation>
 static bool tryIntegerCast(const char* input, uint64_t& len, T& result) {
     common::StringUtils::removeCStringWhiteSpaces(input, len);
     if (len == 0) {
@@ -92,15 +94,89 @@ static bool tryIntegerCast(const char* input, uint64_t& len, T& result) {
             }
         }
         // decimal separator is default to "."
-        return integerCastLoop<T, true>(input, len, result);
+        return integerCastLoop<T, true, false, OP>(input, len, result);
     }
 
     // not allow leading 0
     if (len > 1 && *input == '0') {
         return false;
     }
+    return integerCastLoop<T, false, false, OP>(input, len, result);
+}
 
-    return integerCastLoop<T, false>(input, len, result);
+struct Int128CastData {
+    common::int128_t result;
+    int64_t intermediate;
+    uint8_t digits;
+    bool decimal;
+
+    bool flush() {
+        if (digits == 0 && intermediate == 0) {
+            return true;
+        }
+        if (result.low != 0 || result.high != 0) {
+            if (digits > 38) {
+                return false;
+            }
+            if (!common::Int128_t::tryMultiply(
+                    result, common::Int128_t::powerOf10[digits], result)) {
+                return false;
+            }
+        }
+        if (!common::Int128_t::addInPlace(result, common::int128_t(intermediate))) {
+            return false;
+        }
+        digits = 0;
+        intermediate = 0;
+        return true;
+    }
+};
+
+struct Int128CastOperation {
+    template<typename T, bool NEGATIVE>
+    static bool handleDigit(T& result, uint8_t digit) {
+        if (NEGATIVE) {
+            if (result.intermediate < (NumericLimits<int64_t>::minimum() + digit) / 10) {
+                if (!result.flush()) {
+                    return false;
+                }
+            }
+            result.intermediate *= 10;
+            result.intermediate -= digit;
+        } else {
+            if (result.intermediate > (std::numeric_limits<int64_t>::max() - digit) / 10) {
+                if (!result.flush()) {
+                    return false;
+                }
+            }
+            result.intermediate *= 10;
+            result.intermediate += digit;
+        }
+        result.digits++;
+        return true;
+    }
+
+    template<typename T, bool NEGATIVE>
+    static bool finalize(T& result) {
+        return result.flush();
+    }
+};
+
+static bool trySimpleInt128Cast(const char* input, uint64_t len, common::int128_t& result) {
+    Int128CastData data{};
+    data.result = 0;
+    if (tryIntegerCast<Int128CastData, true, Int128CastOperation>(input, len, data)) {
+        result = data.result;
+        return true;
+    }
+    return false;
+}
+
+static void simpleInt128Cast(const char* input, uint64_t len, common::int128_t& result) {
+    if (!trySimpleInt128Cast(input, len, result)) {
+        throw common::OverflowException(
+            "Cast failed. " + std::string{input, len} + " is not within INT128 range.");
+    }
 }
 
 template<typename T, bool IS_SIGNED = true>
@@ -159,6 +235,14 @@ static inline T castStringToNum(const char* input, uint64_t len,
     const common::LogicalType& type = common::LogicalType{common::LogicalTypeID::ANY}) {
     T result;
     simpleIntegerCast(input, len, result, type);
+    return result;
+}
+
+template<>
+inline common::int128_t castStringToNum(
+    const char* input, uint64_t len, const common::LogicalType& type) {
+    common::int128_t result{};
+    simpleInt128Cast(input, len, result);
     return result;
 }
 

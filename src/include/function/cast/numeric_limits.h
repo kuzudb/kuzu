@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <limits>
 
+#include "common/int128_t.h"
+
 namespace kuzu {
 namespace function {
 
@@ -12,6 +14,19 @@ struct NumericLimits {
     static constexpr T maximum() { return std::numeric_limits<T>::max(); }
     static constexpr bool isSigned() { return std::is_signed<T>::value; }
     static constexpr uint64_t digits();
+};
+
+template<>
+struct NumericLimits<common::int128_t> {
+    static constexpr common::int128_t minimum() {
+        return {static_cast<uint64_t>(std::numeric_limits<int64_t>::lowest()), 1};
+    }
+    static constexpr common::int128_t maximum() {
+        return {std::numeric_limits<int64_t>::max(),
+            static_cast<int64_t>(std::numeric_limits<uint64_t>::max())};
+    }
+    static constexpr bool isSigned() { return true; }
+    static constexpr uint64_t digits() { return 39; }
 };
 
 template<>

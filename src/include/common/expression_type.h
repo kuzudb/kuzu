@@ -41,6 +41,7 @@ const std::string CAST_TO_UINT8_FUNC_NAME = "TO_UINT8";
 const std::string CAST_BLOB_FUNC_NAME = "BLOB";
 const std::string CAST_TO_BLOB_FUNC_NAME = "TO_BLOB";
 const std::string CAST_TO_BOOL_FUNC_NAME = "TO_BOOL";
+const std::string CAST_TO_INT128_FUNC_NAME = "TO_INT128";
 
 // list
 const std::string LIST_CREATION_FUNC_NAME = "LIST_CREATION";

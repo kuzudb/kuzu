@@ -164,7 +164,8 @@ void ColumnChunk::initializeFunction(bool enableCompression) {
     case PhysicalTypeID::UINT64:
     case PhysicalTypeID::UINT32:
     case PhysicalTypeID::UINT16:
-    case PhysicalTypeID::UINT8: {
+    case PhysicalTypeID::UINT8:
+    case PhysicalTypeID::INT128: {
         auto compression = getCompression(this->dataType, enableCompression);
         flushBufferFunction = CompressedFlushBuffer(compression, this->dataType);
         getMetadataFunction = GetCompressionMetadata(compression, this->dataType);
@@ -233,6 +234,9 @@ void ColumnChunk::write(const Value& val, uint64_t posToWrite) {
     } break;
     case PhysicalTypeID::UINT8: {
         setValue(val.getValue<uint8_t>(), posToWrite);
+    } break;
+    case PhysicalTypeID::INT128: {
+        setValue(val.getValue<int128_t>(), posToWrite);
     } break;
     case PhysicalTypeID::DOUBLE: {
         setValue(val.getValue<double_t>(), posToWrite);
@@ -493,6 +497,7 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     case PhysicalTypeID::UINT32:
     case PhysicalTypeID::UINT16:
     case PhysicalTypeID::UINT8:
+    case PhysicalTypeID::INT128:
     case PhysicalTypeID::DOUBLE:
     case PhysicalTypeID::FLOAT:
     case PhysicalTypeID::INTERVAL: {

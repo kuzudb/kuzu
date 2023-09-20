@@ -91,6 +91,9 @@ private:
         case common::PhysicalTypeID::UINT8: {
             func = BinaryComparisonExecFunction<uint8_t, uint8_t, uint8_t, FUNC>;
         } break;
+        case common::PhysicalTypeID::INT128: {
+            func = BinaryComparisonExecFunction<common::int128_t, common::int128_t, uint8_t, FUNC>;
+        } break;
         case common::PhysicalTypeID::DOUBLE: {
             func = BinaryComparisonExecFunction<double, double, uint8_t, FUNC>;
         } break;
@@ -155,6 +158,9 @@ private:
         } break;
         case common::PhysicalTypeID::UINT8: {
             func = BinaryComparisonSelectFunction<uint8_t, uint8_t, FUNC>;
+        } break;
+        case common::PhysicalTypeID::INT128: {
+            func = BinaryComparisonSelectFunction<common::int128_t, common::int128_t, FUNC>;
         } break;
         case common::PhysicalTypeID::DOUBLE: {
             func = BinaryComparisonSelectFunction<double_t, double_t, FUNC>;

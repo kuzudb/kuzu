@@ -394,6 +394,7 @@ describe("RECURSIVE_REL", function () {
           temprature: 32800,
           ulength: 33768,
           ulevel: 250,
+          hugedata: BigInt("1844674407370955161811111111"),
           grading: null,
           rating: null,
           location: null,
