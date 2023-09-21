@@ -7,21 +7,50 @@ on:
         type: boolean
         required: true
         default: false
+      skipBinaries:
+        description: "Skip building precompiled binaries?"
+        type: boolean
+        required: true
+        default: false
+      skipJava:
+        description: "Skip building Java?"
+        type: boolean
+        required: true
+        default: false
+      skipNodejs:
+        description: "Skip building Node.js?"
+        type: boolean
+        required: true
+        default: false
+      skipPython:
+        description: "Skip building Python?"
+        type: boolean
+        required: true
+        default: false
+      skipRust:
+        description: "Skip building Rust?"
+        type: boolean
+        required: true
+        default: false
 
 jobs:
   build-java-mac:
+    if: ${{ github.event.inputs.skipJava != 'true' }}
     uses: ./.github/workflows/mac-java-workflow.yml
     secrets: inherit
 
   build-java-linux:
+    if: ${{ github.event.inputs.skipJava != 'true' }}
     uses: ./.github/workflows/linux-java-workflow.yml
     secrets: inherit
 
   build-java-windows:
+    if: ${{ github.event.inputs.skipJava != 'true' }}
     uses: ./.github/workflows/windows-java-workflow.yml
     secrets: inherit
 
   inject-java-bins:
+    if: ${{ github.event.inputs.skipJava != 'true' }}
     needs: [build-java-mac, build-java-linux, build-java-windows]
     runs-on: ubuntu-latest
     steps:
@@ -59,18 +88,22 @@ jobs:
           path: java-bins/kuzu_java.jar
 
   build-nodejs-mac:
+    if: ${{ github.event.inputs.skipNodejs != 'true' }}
     uses: ./.github/workflows/mac-nodejs-workflow.yml
     secrets: inherit
 
   build-nodejs-linux:
+    if: ${{ github.event.inputs.skipNodejs != 'true' }}
     uses: ./.github/workflows/linux-nodejs-workflow.yml
     secrets: inherit
 
   build-nodejs-windows:
+    if: ${{ github.event.inputs.skipNodejs != 'true' }}
     uses: ./.github/workflows/windows-nodejs-workflow.yml
     secrets: inherit
 
   deploy-nodejs:
+    if: ${{ github.event.inputs.skipNodejs != 'true' }}
     needs: [build-nodejs-mac, build-nodejs-linux, build-nodejs-windows]
     runs-on: ubuntu-latest
     env:
@@ -131,18 +164,22 @@ jobs:
         working-directory: tools/nodejs_api
 
   build-wheel-mac:
+    if: ${{ github.event.inputs.skipPython != 'true' }}
     uses: ./.github/workflows/mac-wheel-workflow.yml
     secrets: inherit
 
   build-wheel-linux:
+    if: ${{ github.event.inputs.skipPython != 'true' }}
     uses: ./.github/workflows/linux-wheel-workflow.yml
     secrets: inherit
 
   build-wheel-windows:
+    if: ${{ github.event.inputs.skipPython != 'true' }}
     uses: ./.github/workflows/windows-wheel-workflow.yml
     secrets: inherit
 
   package-python-sdist:
+    if: ${{ github.event.inputs.skipPython != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -158,6 +195,7 @@ jobs:
           path: scripts/pip-package/*.tar.gz
 
   deploy-python:
+    if: ${{ github.event.inputs.skipPython != 'true' }}
     needs:
       [
         build-wheel-mac,
@@ -216,6 +254,7 @@ jobs:
           password: ${{ secrets.PYPI_TOKEN }}
 
   deploy-rust:
+    if: ${{ github.event.inputs.skipRust != 'true' }}
     runs-on: kuzu-self-hosted-testing
     env:
       CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
@@ -243,13 +282,16 @@ jobs:
           path: tools/rust_api/target/package/*.crate
 
   build-precompiled-bin-mac:
+    if: ${{ github.event.inputs.skipBinaries != 'true' }}
     uses: ./.github/workflows/mac-precompiled-bin-workflow.yml
     secrets: inherit
 
   build-precompiled-bin-linux:
+    if: ${{ github.event.inputs.skipBinaries != 'true' }}
     uses: ./.github/workflows/linux-precompiled-bin-workflow.yml
     secrets: inherit
 
   build-precompiled-bin-windows:
+    if: ${{ github.event.inputs.skipBinaries != 'true' }}
     uses: ./.github/workflows/windows-precompiled-bin-workflow.yml
     secrets: inherit
