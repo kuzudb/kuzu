@@ -705,6 +705,11 @@ std::vector<LogicalTypeID> LogicalTypeUtils::getNumericalLogicalTypeIDs() {
         LogicalTypeID::SERIAL};
 }
 
+std::vector<LogicalTypeID> LogicalTypeUtils::getIntegerLogicalTypeIDs() {
+    return std::vector<LogicalTypeID>{LogicalTypeID::INT64, LogicalTypeID::INT32,
+        LogicalTypeID::INT16, LogicalTypeID::INT8, LogicalTypeID::SERIAL};
+}
+
 std::vector<LogicalType> LogicalTypeUtils::getAllValidLogicTypes() {
     // TODO(Ziyi): Add FIX_LIST,STRUCT,MAP type to allValidTypeID when we support functions on
     // FIXED_LIST,STRUCT,MAP.

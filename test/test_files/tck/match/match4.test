@@ -59,31 +59,17 @@
 # Matching longer variable length paths
 -CASE Scenario4
 -SKIP
--STATEMENT CREATE NODE TABLE A(ID SERIAL, var STRING, PRIMARY KEY(ID));
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, var INT64, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE T(FROM A TO A);
 ---- ok
 # indexing on varlist causes segmentaion fault
--STATEMENT CREATE (a {var: 'start'}), (b {var: 'end'})
-           WITH *
-           UNWIND ['0', '1', '2'] AS i
-           CREATE (n {var: i})
-           WITH a, b, collect(n) AS nodeList
-           UNWIND [0, 1] AS i
-           WITH nodeList[i] AS n1, nodeList[i+1] AS n2
-           CREATE (n1)-[:T]->(n2);
----- ok
--STATEMENT WITH collect(n) AS nodeList
-           UNWIND [0, 1] AS i
-           WITH nodeList[i] AS n1, nodeList[i+1] AS n2
-           CREATE (n1)-[:T]->(n2);
----- ok
--STATEMENT CREATE (a {var: 'start'}), (b {var: 'end'})
+-STATEMENT CREATE (a {var: -2}), (b {var: 0})
            WITH *
            UNWIND range(1, 20) AS i
            CREATE (n {var: i})
-           WITH a, b, [a] + collect(n) + [b] AS nodeList
-           UNWIND range(0, size(nodeList) - 2, 1) AS i
+           WITH a, b, list_cat(list_cat([a], collect(n)), [b]) AS nodeList
+           UNWIND range(0, len(nodeList) - 2, 1) AS i
            WITH nodeList[i] AS n1, nodeList[i+1] AS n2
            CREATE (n1)-[:T]->(n2);
 ---- ok

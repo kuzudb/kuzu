@@ -505,6 +505,7 @@ void BuiltInVectorFunctions::registerCastFunctions() {
 
 void BuiltInVectorFunctions::registerListFunctions() {
     vectorFunctions.insert({LIST_CREATION_FUNC_NAME, ListCreationVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LIST_RANGE_FUNC_NAME, ListRangeVectorFunction::getDefinitions()});
     vectorFunctions.insert({LIST_LEN_FUNC_NAME, ListLenVectorFunction::getDefinitions()});
     vectorFunctions.insert({LIST_EXTRACT_FUNC_NAME, ListExtractVectorFunction::getDefinitions()});
     vectorFunctions.insert({LIST_ELEMENT_FUNC_NAME, ListExtractVectorFunction::getDefinitions()});

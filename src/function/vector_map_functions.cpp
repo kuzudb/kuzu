@@ -58,7 +58,7 @@ std::unique_ptr<FunctionBindData> MapExtractVectorFunctions::bindFunc(
     validateKeyType(arguments[0], arguments[1]);
     auto vectorFunctionDefinition = reinterpret_cast<VectorFunctionDefinition*>(definition);
     vectorFunctionDefinition->execFunc =
-        VectorListFunction::getBinaryListExecFunc<MapExtract, list_entry_t>(
+        VectorListFunction::getBinaryListExecFuncSwitchRight<MapExtract, list_entry_t>(
             arguments[1]->getDataType());
     auto returnListInfo = std::make_unique<VarListTypeInfo>(
         std::make_unique<LogicalType>(*MapType::getValueType(&arguments[0]->dataType)));

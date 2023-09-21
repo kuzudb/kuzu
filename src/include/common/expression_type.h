@@ -39,6 +39,7 @@ const std::string CAST_TO_BLOB_FUNC_NAME = "BLOB";
 
 // list
 const std::string LIST_CREATION_FUNC_NAME = "LIST_CREATION";
+const std::string LIST_RANGE_FUNC_NAME = "RANGE";
 const std::string LIST_EXTRACT_FUNC_NAME = "LIST_EXTRACT";
 const std::string LIST_ELEMENT_FUNC_NAME = "LIST_ELEMENT";
 const std::string LIST_LEN_FUNC_NAME = "LEN";
