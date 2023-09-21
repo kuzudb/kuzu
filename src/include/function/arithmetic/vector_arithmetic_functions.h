@@ -112,7 +112,7 @@ private:
             throw common::RuntimeException(
                 "Invalid input data types(" +
                 common::LogicalTypeUtils::dataTypeToString(operandTypeID) +
-                ") for getUnaryExecFunc.");
+                ") for getBinaryExecFunc.");
         }
     }
 };

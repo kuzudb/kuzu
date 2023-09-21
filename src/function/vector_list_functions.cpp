@@ -15,6 +15,7 @@
 #include "function/list/functions/list_len_function.h"
 #include "function/list/functions/list_position_function.h"
 #include "function/list/functions/list_prepend_function.h"
+#include "function/list/functions/list_range_function.h"
 #include "function/list/functions/list_reverse_sort_function.h"
 #include "function/list/functions/list_slice_function.h"
 #include "function/list/functions/list_sort_function.h"
@@ -91,6 +92,32 @@ vector_function_definitions ListCreationVectorFunction::getDefinitions() {
     result.push_back(std::make_unique<VectorFunctionDefinition>(LIST_CREATION_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::VAR_LIST, execFunc, nullptr,
         bindFunc, true /*  isVarLength */));
+    return result;
+}
+
+std::unique_ptr<FunctionBindData> ListRangeVectorFunction::bindFunc(
+    const binder::expression_vector& arguments, kuzu::function::FunctionDefinition* definition) {
+    assert(arguments[0]->dataType == arguments[1]->dataType);
+    auto varListTypeInfo = std::make_unique<VarListTypeInfo>(
+        std::make_unique<LogicalType>(arguments[0]->dataType.getLogicalTypeID()));
+    auto resultType = LogicalType{LogicalTypeID::VAR_LIST, std::move(varListTypeInfo)};
+    return std::make_unique<FunctionBindData>(resultType);
+}
+
+vector_function_definitions ListRangeVectorFunction::getDefinitions() {
+    vector_function_definitions result;
+    for (auto typeID : LogicalTypeUtils::getIntegerLogicalTypeIDs()) {
+        // start, end
+        result.push_back(std::make_unique<VectorFunctionDefinition>(LIST_RANGE_FUNC_NAME,
+            std::vector<LogicalTypeID>{typeID, typeID}, LogicalTypeID::VAR_LIST,
+            getBinaryListExecFuncSwitchAll<Range, list_entry_t>(LogicalType{typeID}), nullptr,
+            bindFunc, false));
+        // start, end, step
+        result.push_back(std::make_unique<VectorFunctionDefinition>(LIST_RANGE_FUNC_NAME,
+            std::vector<LogicalTypeID>{typeID, typeID, typeID}, LogicalTypeID::VAR_LIST,
+            getTernaryListExecFuncSwitchAll<Range, list_entry_t>(LogicalType{typeID}), nullptr,
+            bindFunc, false));
+    }
     return result;
 }
 
@@ -206,7 +233,7 @@ std::unique_ptr<FunctionBindData> ListAppendVectorFunction::bindFunc(
     auto resultType = arguments[0]->getDataType();
     auto vectorFunctionDefinition = reinterpret_cast<VectorFunctionDefinition*>(definition);
     vectorFunctionDefinition->execFunc =
-        getBinaryListExecFunc<ListAppend, list_entry_t>(arguments[1]->getDataType());
+        getBinaryListExecFuncSwitchRight<ListAppend, list_entry_t>(arguments[1]->getDataType());
     return std::make_unique<FunctionBindData>(resultType);
 }
 
@@ -299,7 +326,7 @@ std::unique_ptr<FunctionBindData> ListPositionVectorFunction::bindFunc(
     const binder::expression_vector& arguments, FunctionDefinition* definition) {
     auto vectorFunctionDefinition = reinterpret_cast<VectorFunctionDefinition*>(definition);
     vectorFunctionDefinition->execFunc =
-        getBinaryListExecFunc<ListPosition, int64_t>(arguments[1]->getDataType());
+        getBinaryListExecFuncSwitchRight<ListPosition, int64_t>(arguments[1]->getDataType());
     return std::make_unique<FunctionBindData>(LogicalType{LogicalTypeID::INT64});
 }
 
@@ -315,7 +342,7 @@ std::unique_ptr<FunctionBindData> ListContainsVectorFunction::bindFunc(
     const binder::expression_vector& arguments, FunctionDefinition* definition) {
     auto vectorFunctionDefinition = reinterpret_cast<VectorFunctionDefinition*>(definition);
     vectorFunctionDefinition->execFunc =
-        getBinaryListExecFunc<ListContains, uint8_t>(arguments[1]->getDataType());
+        getBinaryListExecFuncSwitchRight<ListContains, uint8_t>(arguments[1]->getDataType());
     return std::make_unique<FunctionBindData>(LogicalType{LogicalTypeID::BOOL});
 }
 

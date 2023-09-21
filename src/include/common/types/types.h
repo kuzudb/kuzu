@@ -426,6 +426,7 @@ public:
     static bool isNested(const LogicalType& dataType);
     static std::vector<LogicalType> getAllValidComparableLogicalTypes();
     static std::vector<LogicalTypeID> getNumericalLogicalTypeIDs();
+    static std::vector<LogicalTypeID> getIntegerLogicalTypeIDs();
     static std::vector<LogicalType> getAllValidLogicTypes();
 
 private:
