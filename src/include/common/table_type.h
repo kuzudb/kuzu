@@ -6,10 +6,11 @@ namespace kuzu {
 namespace common {
 
 enum class TableType : uint8_t {
-    NODE = 0,
-    REL = 1,
-    RDF = 2,
-    REL_GROUP = 3,
+    UNKNOWN = 0,
+    NODE = 1,
+    REL = 2,
+    RDF = 3,
+    REL_GROUP = 4,
 };
 
 } // namespace common

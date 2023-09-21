@@ -48,7 +48,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
         reader->getSharedState()->getNumRowsRef(), tableSchema, nodeTable, memoryManager, isCopyRdf,
         readerConfig->csvReaderConfig->copy());
     CopyNodeInfo copyNodeDataInfo{readerInfo->dataColumnsPos, nodeTable,
-        &storageManager.getRelsStore(), catalog, storageManager.getWAL()};
+        &storageManager.getRelsStore(), catalog, storageManager.getWAL(),
+        copyFromInfo->containsSerial};
     auto copyNode = std::make_unique<CopyNode>(copyNodeSharedState, copyNodeDataInfo,
         std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), std::move(prevOperator),
         getOperatorID(), copyFrom->getExpressionsForPrinting());
@@ -83,7 +84,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRelColumnsOrLists(
         dataColumnPositions = reader->getReaderInfo()->dataColumnsPos;
     }
     CopyRelInfo copyRelInfo{tableSchema, dataColumnPositions, offsetDataPos, srcOffsetPos,
-        dstOffsetPos, storageManager.getWAL()};
+        dstOffsetPos, storageManager.getWAL(), copyFromInfo->containsSerial};
     if (isColumns) {
         return std::make_unique<CopyRelColumns>(copyRelInfo, std::move(sharedState),
             std::make_unique<ResultSetDescriptor>(outFSchema), std::move(prevOperator),

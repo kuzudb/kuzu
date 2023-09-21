@@ -134,6 +134,10 @@ std::unique_ptr<Value> TableCopyUtils::getArrowFixedListVal(const std::string& l
         case LogicalTypeID::INT32:
         case LogicalTypeID::INT16:
         case LogicalTypeID::INT8:
+        case LogicalTypeID::UINT64:
+        case LogicalTypeID::UINT32:
+        case LogicalTypeID::UINT16:
+        case LogicalTypeID::UINT8:
         case LogicalTypeID::DOUBLE:
         case LogicalTypeID::FLOAT: {
             listValues.push_back(convertStringToValue(element, *childDataType, csvReaderConfig));
@@ -184,6 +188,26 @@ std::unique_ptr<uint8_t[]> TableCopyUtils::getArrowFixedList(const std::string& 
             memcpy(listVal.get() + numElementsRead * sizeof(int8_t), &val, sizeof(int8_t));
             numElementsRead++;
         } break;
+        case LogicalTypeID::UINT64: {
+            auto val = StringCastUtils::castToNum<uint64_t>(element.c_str(), element.length());
+            memcpy(listVal.get() + numElementsRead * sizeof(uint64_t), &val, sizeof(uint64_t));
+            numElementsRead++;
+        }
+        case LogicalTypeID::UINT32: {
+            auto val = StringCastUtils::castToNum<uint32_t>(element.c_str(), element.length());
+            memcpy(listVal.get() + numElementsRead * sizeof(uint32_t), &val, sizeof(uint32_t));
+            numElementsRead++;
+        } break;
+        case LogicalTypeID::UINT16: {
+            auto val = StringCastUtils::castToNum<uint16_t>(element.c_str(), element.length());
+            memcpy(listVal.get() + numElementsRead * sizeof(uint16_t), &val, sizeof(uint16_t));
+            numElementsRead++;
+        } break;
+        case LogicalTypeID::UINT8: {
+            auto val = StringCastUtils::castToNum<uint8_t>(element.c_str(), element.length());
+            memcpy(listVal.get() + numElementsRead * sizeof(uint8_t), &val, sizeof(uint8_t));
+            numElementsRead++;
+        } break;
         case LogicalTypeID::DOUBLE: {
             auto val = StringCastUtils::castToNum<double_t>(element.c_str(), element.length());
             memcpy(listVal.get() + numElementsRead * sizeof(double_t), &val, sizeof(double_t));
@@ -229,6 +253,18 @@ std::shared_ptr<arrow::DataType> TableCopyUtils::toArrowDataType(const LogicalTy
     }
     case LogicalTypeID::INT8: {
         return arrow::int8();
+    }
+    case LogicalTypeID::UINT64: {
+        return arrow::uint64();
+    }
+    case LogicalTypeID::UINT32: {
+        return arrow::uint32();
+    }
+    case LogicalTypeID::UINT16: {
+        return arrow::uint16();
+    }
+    case LogicalTypeID::UINT8: {
+        return arrow::uint8();
     }
     case LogicalTypeID::DOUBLE: {
         return arrow::float64();
@@ -276,6 +312,22 @@ bool TableCopyUtils::tryCast(
     }
     case LogicalTypeID::INT8: {
         int8_t result;
+        return StringCastUtils::tryCastToNum(value, length, result);
+    }
+    case LogicalTypeID::UINT64: {
+        uint64_t result;
+        return StringCastUtils::tryCastToNum(value, length, result);
+    }
+    case LogicalTypeID::UINT32: {
+        uint32_t result;
+        return StringCastUtils::tryCastToNum(value, length, result);
+    }
+    case LogicalTypeID::UINT16: {
+        uint16_t result;
+        return StringCastUtils::tryCastToNum(value, length, result);
+    }
+    case LogicalTypeID::UINT8: {
+        uint8_t result;
         return StringCastUtils::tryCastToNum(value, length, result);
     }
     case LogicalTypeID::DOUBLE: {
@@ -339,6 +391,22 @@ std::unique_ptr<Value> TableCopyUtils::convertStringToValue(
     case LogicalTypeID::INT8: {
         value = std::make_unique<Value>(
             StringCastUtils::castToNum<int8_t>(element.c_str(), element.length()));
+    } break;
+    case LogicalTypeID::UINT64: {
+        value = std::make_unique<Value>(
+            StringCastUtils::castToNum<uint64_t>(element.c_str(), element.length()));
+    } break;
+    case LogicalTypeID::UINT32: {
+        value = std::make_unique<Value>(
+            StringCastUtils::castToNum<uint32_t>(element.c_str(), element.length()));
+    } break;
+    case LogicalTypeID::UINT16: {
+        value = std::make_unique<Value>(
+            StringCastUtils::castToNum<uint16_t>(element.c_str(), element.length()));
+    } break;
+    case LogicalTypeID::UINT8: {
+        value = std::make_unique<Value>(
+            StringCastUtils::castToNum<uint8_t>(element.c_str(), element.length()));
     } break;
     case LogicalTypeID::FLOAT: {
         value = std::make_unique<Value>(

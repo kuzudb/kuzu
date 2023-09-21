@@ -126,6 +126,18 @@ void InMemColumnChunk::copyArrowArray(
     case arrow::Type::INT64: {
         templateCopyValuesToPage<int64_t>(arrowArray, nodeOffsets);
     } break;
+    case arrow::Type::UINT8: {
+        templateCopyValuesToPage<uint8_t>(arrowArray, nodeOffsets);
+    } break;
+    case arrow::Type::UINT16: {
+        templateCopyValuesToPage<uint16_t>(arrowArray, nodeOffsets);
+    } break;
+    case arrow::Type::UINT32: {
+        templateCopyValuesToPage<uint32_t>(arrowArray, nodeOffsets);
+    } break;
+    case arrow::Type::UINT64: {
+        templateCopyValuesToPage<uint64_t>(arrowArray, nodeOffsets);
+    } break;
     case arrow::Type::DOUBLE: {
         templateCopyValuesToPage<double_t>(arrowArray, nodeOffsets);
     } break;

@@ -44,6 +44,10 @@ void ColumnChunk::append(common::ValueVector* vector, common::offset_t startPosI
     case PhysicalTypeID::INT32:
     case PhysicalTypeID::INT16:
     case PhysicalTypeID::INT8:
+    case PhysicalTypeID::UINT64:
+    case PhysicalTypeID::UINT32:
+    case PhysicalTypeID::UINT16:
+    case PhysicalTypeID::UINT8:
     case PhysicalTypeID::DOUBLE:
     case PhysicalTypeID::FLOAT:
     case PhysicalTypeID::INTERVAL:
@@ -103,6 +107,18 @@ void ColumnChunk::append(
     case arrow::Type::INT64: {
         templateCopyArrowArray<int64_t>(array, startPosInChunk, numValuesToAppend);
     } break;
+    case arrow::Type::UINT8: {
+        templateCopyArrowArray<uint8_t>(array, startPosInChunk, numValuesToAppend);
+    } break;
+    case arrow::Type::UINT16: {
+        templateCopyArrowArray<uint16_t>(array, startPosInChunk, numValuesToAppend);
+    } break;
+    case arrow::Type::UINT32: {
+        templateCopyArrowArray<uint32_t>(array, startPosInChunk, numValuesToAppend);
+    } break;
+    case arrow::Type::UINT64: {
+        templateCopyArrowArray<uint64_t>(array, startPosInChunk, numValuesToAppend);
+    } break;
     case arrow::Type::DOUBLE: {
         templateCopyArrowArray<double_t>(array, startPosInChunk, numValuesToAppend);
     } break;
@@ -152,6 +168,18 @@ void ColumnChunk::write(const Value& val, uint64_t posToWrite) {
     } break;
     case PhysicalTypeID::INT8: {
         setValue(val.getValue<int8_t>(), posToWrite);
+    } break;
+    case PhysicalTypeID::UINT64: {
+        setValue(val.getValue<uint64_t>(), posToWrite);
+    } break;
+    case PhysicalTypeID::UINT32: {
+        setValue(val.getValue<uint32_t>(), posToWrite);
+    } break;
+    case PhysicalTypeID::UINT16: {
+        setValue(val.getValue<uint16_t>(), posToWrite);
+    } break;
+    case PhysicalTypeID::UINT8: {
+        setValue(val.getValue<uint8_t>(), posToWrite);
     } break;
     case PhysicalTypeID::DOUBLE: {
         setValue(val.getValue<double_t>(), posToWrite);
@@ -469,6 +497,10 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     case PhysicalTypeID::INT32:
     case PhysicalTypeID::INT16:
     case PhysicalTypeID::INT8:
+    case PhysicalTypeID::UINT64:
+    case PhysicalTypeID::UINT32:
+    case PhysicalTypeID::UINT16:
+    case PhysicalTypeID::UINT8:
     case PhysicalTypeID::DOUBLE:
     case PhysicalTypeID::FLOAT:
     case PhysicalTypeID::INTERVAL: {

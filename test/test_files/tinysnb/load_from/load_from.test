@@ -1,0 +1,38 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE LoadFromTest1
+-STATEMENT LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eStudyAt.csv" (HEADER=True) RETURN column0, column1, column2, column3;
+---- 3
+0|1|2021|[wwAewsdndweusd,wek]
+2|1|2020|[anew,jsdnwusklklklwewsd]
+8|1|2020|[awndsnjwejwen,isuhuwennjnuhuhuwewe]
+-STATEMENT LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=True) WITH * WHERE column1 = 'Alice' RETURN concat(column0, 'aa'), column1;
+---- 1
+0aa|Alice
+-STATEMENT LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=True) WITH *
+            MATCH (a:person) WHERE a.ID <= 2
+            RETURN COUNT(*);
+---- 1
+16
+-STATEMENT MATCH (a:person) WHERE a.ID <= 2
+            LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=True) WITH *
+            RETURN COUNT(*);
+---- 1
+16
+-STATEMENT LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eWorkAt.csv" (HEADER=False) RETURN *
+---- 3
+3|4|2015|[3.8,2.5]|8.2
+5|6|2010|[2.1,4.4]|7.6
+7|6|2015|[9.2,3.1]|9.2
+-STATEMENT LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eWorkAt.csv" (HEADER=False)
+            WITH column0 AS a, column1 AS b
+            LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=True)
+            WITH * WHERE column0 = a
+            RETURN a, b, column1;
+---- 3
+3|4|Carol
+5|6|Dan
+7|6|Elizabeth

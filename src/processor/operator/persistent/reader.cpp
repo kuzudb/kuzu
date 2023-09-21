@@ -25,7 +25,9 @@ void Reader::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* cont
         ReaderFunctions::getInitDataFunc(sharedState->readerConfig->fileType, info->tableType);
     readFunc =
         ReaderFunctions::getReadRowsFunc(sharedState->readerConfig->fileType, info->tableType);
-    offsetVector = resultSet->getValueVector(info->nodeOffsetPos).get();
+    if (info->nodeOffsetPos.dataChunkPos != INVALID_DATA_CHUNK_POS) {
+        offsetVector = resultSet->getValueVector(info->nodeOffsetPos).get();
+    }
     assert(!sharedState->readerConfig->filePaths.empty());
     switch (sharedState->readerConfig->fileType) {
     case FileType::CSV: {
@@ -55,8 +57,10 @@ void Reader::readNextDataChunk() {
                 std::min(leftArrowArrays.getLeftNumRows(), DEFAULT_VECTOR_CAPACITY);
             leftArrowArrays.appendToDataChunk(dataChunk.get(), numLeftToAppend);
             auto currRowIdx = sharedState->currRowIdx.fetch_add(numLeftToAppend);
-            offsetVector->setValue(
-                offsetVector->state->selVector->selectedPositions[0], currRowIdx);
+            if (offsetVector != nullptr) {
+                offsetVector->setValue(
+                    offsetVector->state->selVector->selectedPositions[0], currRowIdx);
+            }
             break;
         }
         dataChunk->state->selVector->selectedSize = 0;

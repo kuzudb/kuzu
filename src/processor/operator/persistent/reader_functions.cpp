@@ -11,14 +11,12 @@ namespace processor {
 
 validate_func_t ReaderFunctions::getValidateFunc(FileType fileType) {
     switch (fileType) {
-    case FileType::CSV:
-        return validateCSVFiles;
-    case FileType::PARQUET:
-        return validateParquetFiles;
     case FileType::NPY:
         return validateNPYFiles;
+    case FileType::CSV:
+    case FileType::PARQUET:
     case FileType::TURTLE:
-        return validateRDFFiles;
+        return validateNoOp;
     default:
         throw NotImplementedException{"ReaderFunctions::getValidateFunc"};
     }
@@ -30,8 +28,9 @@ count_blocks_func_t ReaderFunctions::getCountBlocksFunc(FileType fileType, Table
         switch (tableType) {
         case TableType::NODE:
             return countRowsInNodeCSVFile;
+        case TableType::UNKNOWN:
         case TableType::REL:
-            return countRowsInRelCSVFile;
+            return countRowsNoOp;
         default:
             throw NotImplementedException{"ReaderFunctions::getCountBlocksFunc"};
         }
@@ -56,7 +55,8 @@ init_reader_data_func_t ReaderFunctions::getInitDataFunc(FileType fileType, Tabl
     case FileType::CSV: {
         switch (tableType) {
         case TableType::NODE:
-            return initNodeCSVReadData;
+        case TableType::UNKNOWN:
+            return initBufferedCSVReadData;
         case TableType::REL:
             return initRelCSVReadData;
         default:
@@ -83,7 +83,8 @@ read_rows_func_t ReaderFunctions::getReadRowsFunc(FileType fileType, common::Tab
     case FileType::CSV: {
         switch (tableType) {
         case TableType::NODE:
-            return readRowsFromNodeCSVFile;
+        case TableType::UNKNOWN:
+            return readRowsWithBufferedCSVReader;
         case TableType::REL:
             return readRowsFromRelCSVFile;
         default:
@@ -111,7 +112,8 @@ std::shared_ptr<ReaderFunctionData> ReaderFunctions::getReadFuncData(
     case FileType::CSV: {
         switch (tableType) {
         case TableType::NODE:
-            return std::make_shared<NodeCSVReaderFunctionData>();
+        case TableType::UNKNOWN:
+            return std::make_shared<BufferedCSVReaderFunctionData>();
         case TableType::REL:
             return std::make_shared<RelCSVReaderFunctionData>();
         default:
@@ -146,7 +148,7 @@ void ReaderFunctions::validateNPYFiles(const common::ReaderConfig& config) {
     }
 }
 
-std::vector<FileBlocksInfo> ReaderFunctions::countRowsInRelCSVFile(
+std::vector<FileBlocksInfo> ReaderFunctions::countRowsNoOp(
     const common::ReaderConfig& config, MemoryManager* memoryManager) {
     std::vector<FileBlocksInfo> fileInfos(
         config.getNumFiles(), {INVALID_ROW_IDX, INVALID_BLOCK_IDX});
@@ -242,11 +244,11 @@ void ReaderFunctions::initRelCSVReadData(
         TableCopyUtils::createRelTableCSVReader(config.filePaths[fileIdx], config);
 }
 
-void ReaderFunctions::initNodeCSVReadData(
+void ReaderFunctions::initBufferedCSVReadData(
     ReaderFunctionData& funcData, vector_idx_t fileIdx, const common::ReaderConfig& config) {
     assert(fileIdx < config.getNumFiles());
     funcData.fileIdx = fileIdx;
-    reinterpret_cast<NodeCSVReaderFunctionData&>(funcData).reader =
+    reinterpret_cast<BufferedCSVReaderFunctionData&>(funcData).reader =
         createBufferedCSVReader(config.filePaths[fileIdx], config);
 }
 
@@ -288,9 +290,9 @@ void ReaderFunctions::readRowsFromRelCSVFile(
     dataChunkToRead->state->selVector->selectedSize = recordBatch->num_rows();
 }
 
-void ReaderFunctions::readRowsFromNodeCSVFile(
+void ReaderFunctions::readRowsWithBufferedCSVReader(
     const ReaderFunctionData& functionData, block_idx_t blockIdx, DataChunk* dataChunkToRead) {
-    auto& readerData = reinterpret_cast<const NodeCSVReaderFunctionData&>(functionData);
+    auto& readerData = reinterpret_cast<const BufferedCSVReaderFunctionData&>(functionData);
     readerData.reader->ParseCSV(*dataChunkToRead);
 }
 

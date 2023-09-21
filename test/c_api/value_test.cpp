@@ -271,7 +271,7 @@ TEST_F(CApiValueTest, GetStructNumFields) {
     ASSERT_TRUE(kuzu_query_result_has_next(result));
     auto flatTuple = kuzu_query_result_get_next(result);
     auto value = kuzu_flat_tuple_get_value(flatTuple, 0);
-    ASSERT_EQ(kuzu_value_get_struct_num_fields(value), 5);
+    ASSERT_EQ(kuzu_value_get_struct_num_fields(value), 9);
 
     kuzu_value_destroy(value);
     kuzu_flat_tuple_destroy(flatTuple);

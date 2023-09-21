@@ -59,6 +59,13 @@ struct CopyNodeInfo {
     storage::RelsStore* relsStore;
     catalog::Catalog* catalog;
     storage::WAL* wal;
+    bool containsSerial;
+
+    CopyNodeInfo(std::vector<DataPos> dataColumnPoses, storage::NodeTable* table,
+        storage::RelsStore* relsStore, catalog::Catalog* catalog, storage::WAL* wal,
+        bool containsSerial)
+        : dataColumnPoses{std::move(dataColumnPoses)}, table{table}, relsStore{relsStore},
+          catalog{catalog}, wal{wal}, containsSerial{containsSerial} {}
 };
 
 class CopyNode : public Sink {
@@ -74,6 +81,8 @@ public:
         localNodeGroup = std::make_unique<storage::NodeGroup>(
             sharedState->tableSchema, sharedState->csvReaderConfig.get());
     }
+
+    inline bool canParallel() const final { return !copyNodeInfo.containsSerial; }
 
     void initGlobalStateInternal(ExecutionContext* context) final;
 

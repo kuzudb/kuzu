@@ -8,10 +8,6 @@
 #include "planner/operator/extend/extend_direction.h"
 
 namespace kuzu {
-namespace common {
-struct CopyDescription;
-}
-
 namespace binder {
 class BoundCreateInfo;
 class BoundSetPropertyInfo;
@@ -63,6 +59,8 @@ private:
     void planUnwindClause(binder::BoundReadingClause* readingClause,
         std::vector<std::unique_ptr<LogicalPlan>>& plans);
     void planInQueryCall(binder::BoundReadingClause* readingClause,
+        std::vector<std::unique_ptr<LogicalPlan>>& plans);
+    void planLoadFrom(binder::BoundReadingClause* readingClause,
         std::vector<std::unique_ptr<LogicalPlan>>& plans);
 
     // Plan updating

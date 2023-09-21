@@ -64,6 +64,22 @@ private:
             func = UnaryExecFunction<int8_t, int8_t, FUNC>;
             return;
         }
+        case common::LogicalTypeID::UINT64: {
+            func = UnaryExecFunction<uint64_t, uint64_t, FUNC>;
+            return;
+        }
+        case common::LogicalTypeID::UINT32: {
+            func = UnaryExecFunction<uint32_t, uint32_t, FUNC>;
+            return;
+        }
+        case common::LogicalTypeID::UINT16: {
+            func = UnaryExecFunction<uint16_t, uint16_t, FUNC>;
+            return;
+        }
+        case common::LogicalTypeID::UINT8: {
+            func = UnaryExecFunction<uint8_t, uint8_t, FUNC>;
+            return;
+        }
         case common::LogicalTypeID::DOUBLE: {
             func = UnaryExecFunction<double_t, double_t, FUNC>;
             return;
@@ -98,6 +114,22 @@ private:
         }
         case common::LogicalTypeID::INT8: {
             func = BinaryExecFunction<int8_t, int8_t, int8_t, FUNC>;
+            return;
+        }
+        case common::LogicalTypeID::UINT64: {
+            func = BinaryExecFunction<uint64_t, uint64_t, uint64_t, FUNC>;
+            return;
+        }
+        case common::LogicalTypeID::UINT32: {
+            func = BinaryExecFunction<uint32_t, uint32_t, uint32_t, FUNC>;
+            return;
+        }
+        case common::LogicalTypeID::UINT16: {
+            func = BinaryExecFunction<uint16_t, uint16_t, uint16_t, FUNC>;
+            return;
+        }
+        case common::LogicalTypeID::UINT8: {
+            func = BinaryExecFunction<uint8_t, uint8_t, uint8_t, FUNC>;
             return;
         }
         case common::LogicalTypeID::DOUBLE: {

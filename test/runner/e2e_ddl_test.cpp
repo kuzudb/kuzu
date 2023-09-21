@@ -259,7 +259,8 @@ public:
             "MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1");
         ASSERT_EQ(TestHelper::convertResultToString(*result),
             std::vector<std::string>{
-                "(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, length: 5, level: 5}->(1:0)"});
+                "(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, length: 5, level: 5, code: 6556,"
+                " temprature: 35, ulength: 120, ulevel: 15}->(1:0)"});
     }
 
     void executeQueryWithoutCommit(std::string query) {

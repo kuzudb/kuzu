@@ -50,11 +50,14 @@ public:
      */
     KUZU_API explicit Value(bool val_);
     /**
+     * @param val_ the int8_t value to set.
+     * @return a Value with INT8 type and val_ value.
+     */
+    KUZU_API explicit Value(int8_t val_);
+    /**
      * @param val_ the int16_t value to set.
      * @return a Value with INT16 type and val_ value.
      */
-    KUZU_API explicit Value(int8_t val_);
-
     KUZU_API explicit Value(int16_t val_);
     /**
      * @param val_ the int32_t value to set.
@@ -66,6 +69,26 @@ public:
      * @return a Value with INT64 type and val_ value.
      */
     KUZU_API explicit Value(int64_t val_);
+    /**
+     * @param val_ the uint8_t value to set.
+     * @return a Value with UINT8 type and val_ value.
+     */
+    KUZU_API explicit Value(uint8_t val_);
+    /**
+     * @param val_ the uint16_t value to set.
+     * @return a Value with UINT16 type and val_ value.
+     */
+    KUZU_API explicit Value(uint16_t val_);
+    /**
+     * @param val_ the uint32_t value to set.
+     * @return a Value with UINT32 type and val_ value.
+     */
+    KUZU_API explicit Value(uint32_t val_);
+    /**
+     * @param val_ the uint64_t value to set.
+     * @return a Value with UINT64 type and val_ value.
+     */
+    KUZU_API explicit Value(uint64_t val_);
     /**
      * @param val_ the double value to set.
      * @return a Value with DOUBLE type and val_ value.
@@ -205,6 +228,10 @@ public:
         int32_t int32Val;
         int16_t int16Val;
         int8_t int8Val;
+        uint64_t uint64Val;
+        uint32_t uint32Val;
+        uint16_t uint16Val;
+        uint8_t uint8Val;
         double doubleVal;
         float floatVal;
         interval_t intervalVal;
@@ -265,6 +292,42 @@ KUZU_API template<>
 inline int64_t Value::getValue() const {
     assert(dataType->getLogicalTypeID() == LogicalTypeID::INT64);
     return val.int64Val;
+}
+
+/**
+ * @return uint64 value.
+ */
+KUZU_API template<>
+inline uint64_t Value::getValue() const {
+    assert(dataType->getLogicalTypeID() == LogicalTypeID::UINT64);
+    return val.uint64Val;
+}
+
+/**
+ * @return uint32 value.
+ */
+KUZU_API template<>
+inline uint32_t Value::getValue() const {
+    assert(dataType->getLogicalTypeID() == LogicalTypeID::UINT32);
+    return val.uint32Val;
+}
+
+/**
+ * @return uint16 value.
+ */
+KUZU_API template<>
+inline uint16_t Value::getValue() const {
+    assert(dataType->getLogicalTypeID() == LogicalTypeID::UINT16);
+    return val.uint16Val;
+}
+
+/**
+ * @return uint8 value.
+ */
+KUZU_API template<>
+inline uint8_t Value::getValue() const {
+    assert(dataType->getLogicalTypeID() == LogicalTypeID::UINT8);
+    return val.uint8Val;
 }
 
 /**
@@ -377,6 +440,42 @@ inline int64_t& Value::getValueReference() {
 }
 
 /**
+ * @return the reference to the uint8 value.
+ */
+KUZU_API template<>
+inline uint8_t& Value::getValueReference() {
+    assert(dataType->getLogicalTypeID() == LogicalTypeID::UINT8);
+    return val.uint8Val;
+}
+
+/**
+ * @return the reference to the uint16 value.
+ */
+KUZU_API template<>
+inline uint16_t& Value::getValueReference() {
+    assert(dataType->getLogicalTypeID() == LogicalTypeID::UINT16);
+    return val.uint16Val;
+}
+
+/**
+ * @return the reference to the uint32 value.
+ */
+KUZU_API template<>
+inline uint32_t& Value::getValueReference() {
+    assert(dataType->getLogicalTypeID() == LogicalTypeID::UINT32);
+    return val.uint32Val;
+}
+
+/**
+ * @return the reference to the uint64 value.
+ */
+KUZU_API template<>
+inline uint64_t& Value::getValueReference() {
+    assert(dataType->getLogicalTypeID() == LogicalTypeID::UINT64);
+    return val.uint64Val;
+}
+
+/**
  * @return the reference to the float value.
  */
 KUZU_API template<>
@@ -477,6 +576,42 @@ inline Value Value::createValue(int32_t val) {
  */
 KUZU_API template<>
 inline Value Value::createValue(int64_t val) {
+    return Value(val);
+}
+
+/**
+ * @param val the uint8 value
+ * @return a Value with UINT8 type and val value.
+ */
+KUZU_API template<>
+inline Value Value::createValue(uint8_t val) {
+    return Value(val);
+}
+
+/**
+ * @param val the uint16 value
+ * @return a Value with UINT16 type and val value.
+ */
+KUZU_API template<>
+inline Value Value::createValue(uint16_t val) {
+    return Value(val);
+}
+
+/**
+ * @param val the uint32 value
+ * @return a Value with UINT32 type and val value.
+ */
+KUZU_API template<>
+inline Value Value::createValue(uint32_t val) {
+    return Value(val);
+}
+
+/**
+ * @param val the uint64 value
+ * @return a Value with UINT64 type and val value.
+ */
+KUZU_API template<>
+inline Value Value::createValue(uint64_t val) {
     return Value(val);
 }
 

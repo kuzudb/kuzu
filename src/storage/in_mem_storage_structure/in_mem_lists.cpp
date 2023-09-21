@@ -55,6 +55,18 @@ void InMemLists::copyArrowArray(arrow::Array* boundNodeOffsets, arrow::Array* po
     case arrow::Type::INT64: {
         templateCopyArrayToRelLists<int64_t>(boundNodeOffsets, posInRelLists, array);
     } break;
+    case arrow::Type::UINT8: {
+        templateCopyArrayToRelLists<uint8_t>(boundNodeOffsets, posInRelLists, array);
+    } break;
+    case arrow::Type::UINT16: {
+        templateCopyArrayToRelLists<uint16_t>(boundNodeOffsets, posInRelLists, array);
+    } break;
+    case arrow::Type::UINT32: {
+        templateCopyArrayToRelLists<uint32_t>(boundNodeOffsets, posInRelLists, array);
+    } break;
+    case arrow::Type::UINT64: {
+        templateCopyArrayToRelLists<uint64_t>(boundNodeOffsets, posInRelLists, array);
+    } break;
     case arrow::Type::DOUBLE: {
         templateCopyArrayToRelLists<double_t>(boundNodeOffsets, posInRelLists, array);
     } break;
@@ -441,6 +453,10 @@ std::unique_ptr<InMemLists> InMemListsFactory::getInMemPropertyLists(const std::
     case LogicalTypeID::INT32:
     case LogicalTypeID::INT16:
     case LogicalTypeID::INT8:
+    case LogicalTypeID::UINT64:
+    case LogicalTypeID::UINT32:
+    case LogicalTypeID::UINT16:
+    case LogicalTypeID::UINT8:
     case LogicalTypeID::DOUBLE:
     case LogicalTypeID::FLOAT:
     case LogicalTypeID::BOOL:

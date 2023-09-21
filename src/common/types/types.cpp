@@ -27,6 +27,14 @@ std::string PhysicalTypeUtils::physicalTypeToString(PhysicalTypeID physicalType)
         return "INT16";
     case PhysicalTypeID::INT8:
         return "INT8";
+    case PhysicalTypeID::UINT64:
+        return "UINT64";
+    case PhysicalTypeID::UINT32:
+        return "UINT32";
+    case PhysicalTypeID::UINT16:
+        return "UINT16";
+    case PhysicalTypeID::UINT8:
+        return "UINT8";
     case PhysicalTypeID::DOUBLE:
         return "DOUBLE";
     case PhysicalTypeID::FLOAT:
@@ -60,6 +68,14 @@ uint32_t PhysicalTypeUtils::getFixedTypeSize(PhysicalTypeID physicalType) {
         return sizeof(int16_t);
     case PhysicalTypeID::INT8:
         return sizeof(int8_t);
+    case PhysicalTypeID::UINT64:
+        return sizeof(uint64_t);
+    case PhysicalTypeID::UINT32:
+        return sizeof(uint32_t);
+    case PhysicalTypeID::UINT16:
+        return sizeof(uint16_t);
+    case PhysicalTypeID::UINT8:
+        return sizeof(uint8_t);
     case PhysicalTypeID::DOUBLE:
         return sizeof(double_t);
     case PhysicalTypeID::FLOAT:
@@ -344,6 +360,18 @@ void LogicalType::setPhysicalType() {
     case LogicalTypeID::INT8: {
         physicalType = PhysicalTypeID::INT8;
     } break;
+    case LogicalTypeID::UINT64: {
+        physicalType = PhysicalTypeID::UINT64;
+    } break;
+    case LogicalTypeID::UINT32: {
+        physicalType = PhysicalTypeID::UINT32;
+    } break;
+    case LogicalTypeID::UINT16: {
+        physicalType = PhysicalTypeID::UINT16;
+    } break;
+    case LogicalTypeID::UINT8: {
+        physicalType = PhysicalTypeID::UINT8;
+    } break;
     case LogicalTypeID::DOUBLE: {
         physicalType = PhysicalTypeID::DOUBLE;
     } break;
@@ -417,6 +445,14 @@ LogicalTypeID LogicalTypeUtils::dataTypeIDFromString(const std::string& dataType
         return LogicalTypeID::INT32;
     } else if ("INT8" == upperDataTypeIDString) {
         return LogicalTypeID::INT8;
+    } else if ("UINT64" == upperDataTypeIDString) {
+        return LogicalTypeID::UINT64;
+    } else if ("UINT32" == upperDataTypeIDString) {
+        return LogicalTypeID::UINT32;
+    } else if ("UINT16" == upperDataTypeIDString) {
+        return LogicalTypeID::UINT16;
+    } else if ("UINT8" == upperDataTypeIDString) {
+        return LogicalTypeID::UINT8;
     } else if ("DOUBLE" == upperDataTypeIDString) {
         return LogicalTypeID::DOUBLE;
     } else if ("FLOAT" == upperDataTypeIDString) {
@@ -493,6 +529,10 @@ std::string LogicalTypeUtils::dataTypeToString(const LogicalType& dataType) {
     case LogicalTypeID::INT32:
     case LogicalTypeID::INT16:
     case LogicalTypeID::INT8:
+    case LogicalTypeID::UINT64:
+    case LogicalTypeID::UINT32:
+    case LogicalTypeID::UINT16:
+    case LogicalTypeID::UINT8:
     case LogicalTypeID::DOUBLE:
     case LogicalTypeID::FLOAT:
     case LogicalTypeID::DATE:
@@ -529,6 +569,14 @@ std::string LogicalTypeUtils::dataTypeToString(LogicalTypeID dataTypeID) {
         return "INT16";
     case LogicalTypeID::INT8:
         return "INT8";
+    case LogicalTypeID::UINT64:
+        return "UINT64";
+    case LogicalTypeID::UINT32:
+        return "UINT32";
+    case LogicalTypeID::UINT16:
+        return "UINT16";
+    case LogicalTypeID::UINT8:
+        return "UINT8";
     case LogicalTypeID::DOUBLE:
         return "DOUBLE";
     case LogicalTypeID::FLOAT:
@@ -612,6 +660,10 @@ bool LogicalTypeUtils::isNumerical(const LogicalType& dataType) {
     case LogicalTypeID::INT32:
     case LogicalTypeID::INT16:
     case LogicalTypeID::INT8:
+    case LogicalTypeID::UINT64:
+    case LogicalTypeID::UINT32:
+    case LogicalTypeID::UINT16:
+    case LogicalTypeID::UINT8:
     case LogicalTypeID::DOUBLE:
     case LogicalTypeID::FLOAT:
     case LogicalTypeID::SERIAL:
@@ -638,6 +690,8 @@ std::vector<LogicalType> LogicalTypeUtils::getAllValidComparableLogicalTypes() {
     return std::vector<LogicalType>{LogicalType{LogicalTypeID::BOOL},
         LogicalType{LogicalTypeID::INT64}, LogicalType{LogicalTypeID::INT32},
         LogicalType{LogicalTypeID::INT16}, LogicalType{LogicalTypeID::INT8},
+        LogicalType{LogicalTypeID::UINT64}, LogicalType{LogicalTypeID::UINT32},
+        LogicalType{LogicalTypeID::UINT16}, LogicalType{LogicalTypeID::UINT8},
         LogicalType{LogicalTypeID::DOUBLE}, LogicalType{LogicalTypeID::FLOAT},
         LogicalType{LogicalTypeID::DATE}, LogicalType{LogicalTypeID::TIMESTAMP},
         LogicalType{LogicalTypeID::INTERVAL}, LogicalType{LogicalTypeID::BLOB},
@@ -646,7 +700,8 @@ std::vector<LogicalType> LogicalTypeUtils::getAllValidComparableLogicalTypes() {
 
 std::vector<LogicalTypeID> LogicalTypeUtils::getNumericalLogicalTypeIDs() {
     return std::vector<LogicalTypeID>{LogicalTypeID::INT64, LogicalTypeID::INT32,
-        LogicalTypeID::INT16, LogicalTypeID::INT8, LogicalTypeID::DOUBLE, LogicalTypeID::FLOAT,
+        LogicalTypeID::INT16, LogicalTypeID::INT8, LogicalTypeID::UINT64, LogicalTypeID::UINT32,
+        LogicalTypeID::UINT16, LogicalTypeID::UINT8, LogicalTypeID::DOUBLE, LogicalTypeID::FLOAT,
         LogicalTypeID::SERIAL};
 }
 
@@ -656,7 +711,9 @@ std::vector<LogicalType> LogicalTypeUtils::getAllValidLogicTypes() {
     return std::vector<LogicalType>{LogicalType{LogicalTypeID::INTERNAL_ID},
         LogicalType{LogicalTypeID::BOOL}, LogicalType{LogicalTypeID::INT64},
         LogicalType{LogicalTypeID::INT32}, LogicalType{LogicalTypeID::INT16},
-        LogicalType{LogicalTypeID::INT8}, LogicalType{LogicalTypeID::DOUBLE},
+        LogicalType{LogicalTypeID::INT8}, LogicalType{LogicalTypeID::UINT64},
+        LogicalType{LogicalTypeID::UINT32}, LogicalType{LogicalTypeID::UINT16},
+        LogicalType{LogicalTypeID::UINT8}, LogicalType{LogicalTypeID::DOUBLE},
         LogicalType{LogicalTypeID::STRING}, LogicalType{LogicalTypeID::BLOB},
         LogicalType{LogicalTypeID::DATE}, LogicalType{LogicalTypeID::TIMESTAMP},
         LogicalType{LogicalTypeID::INTERVAL}, LogicalType{LogicalTypeID::VAR_LIST},

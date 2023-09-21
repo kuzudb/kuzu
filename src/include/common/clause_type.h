@@ -16,6 +16,7 @@ enum class ClauseType : uint8_t {
     MATCH = 10,
     UNWIND = 11,
     IN_QUERY_CALL = 12,
+    LOAD_FROM = 13,
 };
 
 enum class MatchClauseType : uint8_t {

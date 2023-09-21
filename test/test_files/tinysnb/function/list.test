@@ -82,6 +82,34 @@
 120
 2
 
+-LOG ListExtractListOfUINT64
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN list_extract([e.code], 1)
+---- 3
+6556
+6689
+23
+
+-LOG ListExtractListOfUINT32
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN list_extract([e.temprature], 1)
+---- 3
+35
+1
+20
+
+-LOG ListExtractListOfUINT16
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN list_extract([e.ulength], 1)
+---- 3
+120
+90
+180
+
+-LOG ListExtractListOfUINT8
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN list_extract([e.ulevel], 1)
+---- 3
+15
+220
+12
+
 -LOG ListExtractListOfFloat
 -STATEMENT MATCH (p:person) RETURN list_extract([p.height], 1)
 ---- 8
@@ -355,6 +383,34 @@ ad
 [120,120]
 [2,2]
 
+-LOG ListAppendListOfUINT64
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_append([s.code], s.code)
+---- 3
+[6556,6556]
+[6689,6689]
+[23,23]
+
+-LOG ListAppendListOfUINT32
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_append([s.temprature], s.temprature)
+---- 3
+[35,35]
+[1,1]
+[20,20]
+
+-LOG ListAppendListOfUINT16
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_append([s.ulength], s.ulength)
+---- 3
+[120,120]
+[90,90]
+[180,180]
+
+-LOG ListAppendListOfUINT8
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_append([s.ulevel], s.ulevel)
+---- 3
+[15,15]
+[220,220]
+[12,12]
+
 -LOG ListAppendListOfFloat
 -STATEMENT MATCH (p:person) RETURN list_append([p.height], p.height)
 ---- 8
@@ -495,6 +551,35 @@ ad
 [5,5]
 [120,120]
 [2,2]
+
+-LOG ListPrependListOfUINT64
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_prepend(s.code, [s.code])
+---- 3
+[6556,6556]
+[6689,6689]
+[23,23]
+
+-LOG ListPrependListOfUINT32
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_prepend(s.temprature, [s.temprature])
+---- 3
+[35,35]
+[1,1]
+[20,20]
+
+-LOG ListPrependListOfUINT16
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_prepend(s.ulength, [s.ulength])
+---- 3
+[120,120]
+[90,90]
+[180,180]
+
+-LOG ListPrependListOfUINT8
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_prepend(s.ulevel, [s.ulevel])
+---- 3
+[15,15]
+[220,220]
+[12,12]
+
 
 -LOG ListPrependListOfFloat
 -STATEMENT MATCH (a:person) RETURN list_prepend(a.height, [a.height])
@@ -965,6 +1050,66 @@ True
 ---- 1
 [3,2,1,]
 
+-LOG ListSortUInt8Asc
+-STATEMENT Return list_sort([to_uint8(2), to_uint8(3), to_uint8(1), NULL, NULL]);
+---- 1
+[,,1,2,3]
+
+-LOG ListSortUInt8Desc
+-STATEMENT Return list_sort([to_uint8(2), to_uint8(3), to_uint8(1), to_uint8(5), NULL], 'DESC');
+---- 1
+[,5,3,2,1]
+
+-LOG ListSortUInt8DescWithNullsLast
+-STATEMENT Return list_sort([to_uint8(2), to_uint8(3), to_uint8(1), NULL], 'DESC', 'NULLS LAST');
+---- 1
+[3,2,1,]
+
+-LOG ListSortUInt16Asc
+-STATEMENT Return list_sort([to_uint16(2), to_uint16(3), to_uint16(1), NULL, NULL]);
+---- 1
+[,,1,2,3]
+
+-LOG ListSortUInt16Desc
+-STATEMENT Return list_sort([to_uint16(2), to_uint16(3), to_uint16(1), to_uint16(5), NULL], 'DESC');
+---- 1
+[,5,3,2,1]
+
+-LOG ListSortUInt16DescWithNullsLast
+-STATEMENT Return list_sort([to_uint16(2), to_uint16(3), to_uint16(1), NULL], 'DESC', 'NULLS LAST');
+---- 1
+[3,2,1,]
+
+-LOG ListSortUInt32Asc
+-STATEMENT Return list_sort([to_uint32(2), to_uint32(3), to_uint32(1), NULL, NULL]);
+---- 1
+[,,1,2,3]
+
+-LOG ListSortUInt32Desc
+-STATEMENT Return list_sort([to_uint32(2), to_uint32(3), to_uint32(1), to_uint32(5), NULL], 'DESC');
+---- 1
+[,5,3,2,1]
+
+-LOG ListSortUInt32DescWithNullsLast
+-STATEMENT Return list_sort([to_uint32(2), to_uint32(3), to_uint32(1), NULL], 'DESC', 'NULLS LAST');
+---- 1
+[3,2,1,]
+
+-LOG ListSortUInt64Asc
+-STATEMENT Return list_sort([to_uint64(2), to_uint64(3), to_uint64(1), NULL, NULL]);
+---- 1
+[,,1,2,3]
+
+-LOG ListSortUInt64Desc
+-STATEMENT Return list_sort([to_uint64(2), to_uint64(3), to_uint64(1), to_uint64(5), NULL], 'DESC');
+---- 1
+[,5,3,2,1]
+
+-LOG ListSortUInt64DescWithNullsLast
+-STATEMENT Return list_sort([to_uint64(2), to_uint64(3), to_uint64(1), NULL], 'DESC', 'NULLS LAST');
+---- 1
+[3,2,1,]
+
 -LOG ListSortFloatAsc
 -STATEMENT Return list_sort([to_float(1.1), to_float(2.3), to_float(4.5), NULL]);
 ---- 1
@@ -1105,6 +1250,46 @@ True
 ---- 1
 [5,3,2,1,]
 
+-LOG ListReverseSortUInt8
+-STATEMENT Return list_reverse_sort([to_uint8(2), NULL, to_uint8(3), to_uint8(1), to_uint8(5)]);
+---- 1
+[,5,3,2,1]
+
+-LOG ListReverseSortUInt8WithNullsLast
+-STATEMENT Return list_reverse_sort([to_uint8(2), NULL, to_uint8(3), to_uint8(1), to_uint8(5)], 'NULLS LAST');
+---- 1
+[5,3,2,1,]
+
+-LOG ListReverseSortUInt16
+-STATEMENT Return list_reverse_sort([to_uint16(2), NULL, to_uint16(3), to_uint16(1), to_uint16(5)]);
+---- 1
+[,5,3,2,1]
+
+-LOG ListReverseSortUInt16WithNullsLast
+-STATEMENT Return list_reverse_sort([to_uint16(2), NULL, to_uint16(3), to_uint16(1), to_uint16(5)], 'NULLS LAST');
+---- 1
+[5,3,2,1,]
+
+-LOG ListReverseSortUInt32
+-STATEMENT Return list_reverse_sort([to_uint32(2), NULL, to_uint32(3), to_uint32(1), to_uint32(5)]);
+---- 1
+[,5,3,2,1]
+
+-LOG ListReverseSortUInt32WithNullsLast
+-STATEMENT Return list_reverse_sort([to_uint32(2), NULL, to_uint32(3), to_uint32(1), to_uint32(5)], 'NULLS LAST');
+---- 1
+[5,3,2,1,]
+
+-LOG ListReverseSortUInt64
+-STATEMENT Return list_reverse_sort([to_uint64(2), NULL, to_uint64(3), to_uint64(1), to_uint64(5)]);
+---- 1
+[,5,3,2,1]
+
+-LOG ListReverseSortUInt64WithNullsLast
+-STATEMENT Return list_reverse_sort([to_uint64(2), NULL, to_uint64(3), to_uint64(1), to_uint64(5)], 'NULLS LAST');
+---- 1
+[5,3,2,1,]
+
 -LOG ListDistinctWithFloat
 -STATEMENT Return list_reverse_sort([to_float(1.1), to_float(1.1), NULL, to_float(3.4), to_float(1.2), to_float(5.1)]);
 ---- 1
@@ -1207,6 +1392,26 @@ True
 ---- 1
 [-3,1,5]
 
+-LOG ListDistinctWithUInt8
+-STATEMENT Return list_distinct([to_uint8(1), to_uint8(1), NULL, to_uint8(3), to_uint8(1), to_uint8(5)]);
+---- 1
+[1,3,5]
+
+-LOG ListDistinctWithUInt16
+-STATEMENT Return list_distinct([to_uint16(1), to_uint16(1), NULL, to_uint16(3), to_uint16(1), to_uint16(5)]);
+---- 1
+[1,3,5]
+
+-LOG ListDistinctWithUInt32
+-STATEMENT Return list_distinct([to_uint32(1), to_uint32(1), NULL, to_uint32(3), to_uint32(1), to_uint32(5)]);
+---- 1
+[1,3,5]
+
+-LOG ListDistinctWithUInt64
+-STATEMENT Return list_distinct([to_uint64(1), to_uint64(1), NULL, to_uint64(3), to_uint64(1), to_uint64(5)]);
+---- 1
+[1,3,5]
+
 -LOG ListDistinctWithFloat
 -STATEMENT Return list_distinct([to_float(1.1), to_float(1.1), NULL, to_float(3.4), to_float(1.2), to_float(5.1)]);
 ---- 1
@@ -1286,6 +1491,26 @@ True
 ---- 1
 3
 
+-LOG ListUniqueWithUInt8
+-STATEMENT Return list_unique([to_uint8(1), to_uint8(1), NULL, to_uint8(3), to_uint8(1), to_uint8(5)]);
+---- 1
+3
+
+-LOG ListUniqueWithUInt16
+-STATEMENT Return list_unique([to_uint16(1), to_uint16(1), NULL, to_uint16(3), to_uint16(1), to_uint16(5)]);
+---- 1
+3
+
+-LOG ListUniqueWithUInt32
+-STATEMENT Return list_unique([to_uint32(1), to_uint32(1), NULL, to_uint32(3), to_uint32(1), to_uint32(5)]);
+---- 1
+3
+
+-LOG ListUniqueWithUInt64
+-STATEMENT Return list_unique([to_uint64(1), to_uint64(1), NULL, to_uint64(3), to_uint64(1), to_uint64(5)]);
+---- 1
+3
+
 -LOG ListUniqueWithFloat
 -STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN list_unique([NULL, to_float(p.gender), to_float(p.gender), to_float(4.5)])
 ---- 1
@@ -1362,6 +1587,26 @@ True
 
 -LOG ListAnyValueWithInt64
 -STATEMENT Return list_any_value([NULL, 1, 1, NULL, -3, 1, 5]);
+---- 1
+1
+
+-LOG ListAnyValueWithUInt8
+-STATEMENT Return list_any_value([NULL, to_uint8(1), to_uint8(1), NULL, to_uint8(3), to_uint8(1), to_uint8(5)]);
+---- 1
+1
+
+-LOG ListAnyValueWithUInt16
+-STATEMENT Return list_any_value([NULL, to_uint16(1), to_uint16(1), NULL, to_uint16(3), to_uint16(1), to_uint16(5)]);
+---- 1
+1
+
+-LOG ListAnyValueWithUInt32
+-STATEMENT Return list_any_value([NULL, to_uint32(1), to_uint32(1), NULL, to_uint32(3), to_uint32(1), to_uint32(5)]);
+---- 1
+1
+
+-LOG ListAnyValueWithUInt64
+-STATEMENT Return list_any_value([NULL, to_uint64(1), to_uint64(1), NULL, to_uint64(3), to_uint64(1), to_uint64(5)]);
 ---- 1
 1
 

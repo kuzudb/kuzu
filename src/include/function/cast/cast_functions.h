@@ -218,5 +218,133 @@ inline void CastToInt8::operation(int16_t& input, int8_t& result) {
     numericDownCast<int16_t, int8_t>(input, result, "INT8");
 }
 
+struct CastToUInt64 {
+    template<typename T>
+    static inline void operation(T& input, uint64_t& result) {
+        result = static_cast<uint64_t>(input);
+    }
+};
+
+template<>
+inline void CastToUInt64::operation(double_t& input, uint64_t& result) {
+    numericDownCast<double_t, uint64_t>(input, result, "UINT64");
+}
+
+template<>
+inline void CastToUInt64::operation(float_t& input, uint64_t& result) {
+    numericDownCast<float_t, uint64_t>(input, result, "UINT64");
+}
+
+struct CastToUInt32 {
+    template<typename T>
+    static inline void operation(T& input, uint32_t& result) {
+        result = static_cast<uint32_t>(input);
+    }
+};
+
+template<>
+inline void CastToUInt32::operation(double_t& input, uint32_t& result) {
+    numericDownCast<double_t, uint32_t>(input, result, "UINT32");
+}
+
+template<>
+inline void CastToUInt32::operation(float_t& input, uint32_t& result) {
+    numericDownCast<float_t, uint32_t>(input, result, "UINT32");
+}
+
+template<>
+inline void CastToUInt32::operation(int64_t& input, uint32_t& result) {
+    numericDownCast<int64_t, uint32_t>(input, result, "UINT32");
+}
+
+template<>
+inline void CastToUInt32::operation(uint64_t& input, uint32_t& result) {
+    numericDownCast<uint64_t, uint32_t>(input, result, "UINT32");
+}
+
+struct CastToUInt16 {
+    template<typename T>
+    static inline void operation(T& input, uint16_t& result) {
+        result = static_cast<uint16_t>(input);
+    }
+};
+
+template<>
+inline void CastToUInt16::operation(double_t& input, uint16_t& result) {
+    numericDownCast<double_t, uint16_t>(input, result, "UINT16");
+}
+
+template<>
+inline void CastToUInt16::operation(float_t& input, uint16_t& result) {
+    numericDownCast<float_t, uint16_t>(input, result, "UINT16");
+}
+
+template<>
+inline void CastToUInt16::operation(int64_t& input, uint16_t& result) {
+    numericDownCast<int64_t, uint16_t>(input, result, "UINT16");
+}
+
+template<>
+inline void CastToUInt16::operation(uint64_t& input, uint16_t& result) {
+    numericDownCast<uint64_t, uint16_t>(input, result, "UINT16");
+}
+
+template<>
+inline void CastToUInt16::operation(int32_t& input, uint16_t& result) {
+    numericDownCast<int32_t, uint16_t>(input, result, "UINT16");
+}
+
+template<>
+inline void CastToUInt16::operation(uint32_t& input, uint16_t& result) {
+    numericDownCast<uint32_t, uint16_t>(input, result, "UINT16");
+}
+
+struct CastToUInt8 {
+    template<typename T>
+    static inline void operation(T& input, uint8_t& result) {
+        result = static_cast<uint8_t>(input);
+    }
+};
+
+template<>
+inline void CastToUInt8::operation(double_t& input, uint8_t& result) {
+    numericDownCast<double_t, uint8_t>(input, result, "UINT8");
+}
+
+template<>
+inline void CastToUInt8::operation(float_t& input, uint8_t& result) {
+    numericDownCast<float_t, uint8_t>(input, result, "UINT8");
+}
+
+template<>
+inline void CastToUInt8::operation(int64_t& input, uint8_t& result) {
+    numericDownCast<int64_t, uint8_t>(input, result, "UINT8");
+}
+
+template<>
+inline void CastToUInt8::operation(uint64_t& input, uint8_t& result) {
+    numericDownCast<uint64_t, uint8_t>(input, result, "UINT8");
+}
+
+template<>
+inline void CastToUInt8::operation(int32_t& input, uint8_t& result) {
+    numericDownCast<int32_t, uint8_t>(input, result, "UINT8");
+}
+
+template<>
+inline void CastToUInt8::operation(uint32_t& input, uint8_t& result) {
+    numericDownCast<uint32_t, uint8_t>(input, result, "UINT8");
+}
+
+template<>
+inline void CastToUInt8::operation(int16_t& input, uint8_t& result) {
+    numericDownCast<int16_t, uint8_t>(input, result, "UINT8");
+}
+
+template<>
+inline void CastToUInt8::operation(uint16_t& input, uint8_t& result) {
+    numericDownCast<uint16_t, uint8_t>(input, result, "UINT8");
+}
+
 } // namespace function
 } // namespace kuzu

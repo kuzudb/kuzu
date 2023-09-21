@@ -1,10 +1,12 @@
 #include "binder/binder.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/query/reading_clause/bound_in_query_call.h"
+#include "binder/query/reading_clause/bound_load_from.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
 #include "binder/query/reading_clause/bound_unwind_clause.h"
 #include "common/exception/binder.h"
 #include "parser/query/reading_clause/in_query_call_clause.h"
+#include "parser/query/reading_clause/load_from.h"
 #include "parser/query/reading_clause/unwind_clause.h"
 #include "processor/operator/persistent/reader/csv_reader.h"
 
@@ -26,6 +28,9 @@ std::unique_ptr<BoundReadingClause> Binder::bindReadingClause(const ReadingClaus
     }
     case ClauseType::IN_QUERY_CALL: {
         return bindInQueryCall(readingClause);
+    }
+    case ClauseType::LOAD_FROM: {
+        return bindLoadFrom(readingClause);
     }
     default:
         throw NotImplementedException("bindReadingClause().");
@@ -105,6 +110,37 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     }
     return std::make_unique<BoundInQueryCall>(
         tableFunctionDefinition->tableFunc, std::move(bindData), std::move(outputExpressions));
+}
+
+std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(
+    const parser::ReadingClause& readingClause) {
+    auto& loadFrom = reinterpret_cast<const LoadFrom&>(readingClause);
+    auto csvReaderConfig = bindParsingOptions(loadFrom.getParsingOptionsRef());
+    auto filePaths = bindFilePaths(loadFrom.getFilePaths());
+    auto fileType = bindFileType(filePaths);
+    auto readerConfig =
+        std::make_unique<ReaderConfig>(fileType, std::move(filePaths), std::move(csvReaderConfig));
+    if (readerConfig->fileType != FileType::CSV) {
+        throw BinderException("Load from non-csv file is not supported.");
+    }
+    if (readerConfig->getNumFiles() > 1) {
+        throw BinderException("Load from multiple files is not supported.");
+    }
+    auto csvReader = BufferedCSVReader(
+        readerConfig->filePaths[0], *readerConfig->csvReaderConfig, 0 /*expectedNumColumns*/);
+    csvReader.SniffCSV();
+    auto numColumns = csvReader.getNumColumnsDetected();
+    expression_vector columns;
+    auto stringType = LogicalType(LogicalTypeID::STRING);
+    for (auto i = 0; i < numColumns; ++i) {
+        auto columnName = "column" + std::to_string(i);
+        readerConfig->columnNames.push_back(columnName);
+        readerConfig->columnTypes.push_back(stringType.copy());
+        columns.push_back(createVariable(columnName, stringType));
+    }
+    auto info = std::make_unique<BoundFileScanInfo>(
+        std::move(readerConfig), std::move(columns), nullptr, TableType::UNKNOWN);
+    return std::make_unique<BoundLoadFrom>(std::move(info));
 }
 
 } // namespace binder

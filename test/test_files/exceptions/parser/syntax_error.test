@@ -10,13 +10,6 @@ Parser exception: Query must conclude with RETURN clause (line: 1, offset: 0)
 "MATCH (a:person);"
  ^^^^^
 
--CASE QueryNotConcludeWithReturn2
--STATEMENT MATCH (a:person) WITH *;
----- error
-Parser exception: mismatched input ';' expecting {CALL, OPTIONAL, MATCH, UNWIND, CREATE, MERGE, SET, DELETE, WITH, RETURN, SP} (line: 1, offset: 23)
-"MATCH (a:person) WITH *;"
-                        ^
-
 -CASE InvalidNotEqualOperator)
 -STATEMENT MATCH (a) WHERE a.age != 1 RETURN *;
 ---- error

@@ -79,7 +79,7 @@
 ---- ok
 -STATEMENT MATCH (a:person)-[e:studyAt]->(b:organisation) WHERE a.ID > 5 RETURN a.ID, b.orgCode, e, ID(e)
 ---- 2
-8|325|(0:5)-{_LABEL: studyAt, _ID: 4:2, year: 2020, places: [awndsnjwejwen,isuhuwennjnuhuhuwewe], length: 22, level: 2}->(1:0)|4:2
+8|325|(0:5)-{_LABEL: studyAt, _ID: 4:2, year: 2020, places: [awndsnjwejwen,isuhuwennjnuhuhuwewe], length: 22, level: 2, code: 23, temprature: 20, ulength: 180, ulevel: 12}->(1:0)|4:2
 9|934|(0:6)-{_LABEL: studyAt, _ID: 4:3, year: 2022}->(1:1)|4:3
 
 -CASE InsertRepeatedNToNRelTest

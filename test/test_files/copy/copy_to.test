@@ -13,7 +13,7 @@ Binder exception: Cannot find property non_prop for a.
 -LOG Non-Query command
 -STATEMENT COPY (EXPLAIN MATCH (p:person) RETURN p.ID) TO "test.csv"
 ---- error
-Parser exception: mismatched input 'EXPLAIN' expecting {CALL, OPTIONAL, MATCH, UNWIND, CREATE, MERGE, SET, DELETE, WITH, RETURN} (line: 1, offset: 6)
+Parser exception: mismatched input 'EXPLAIN' expecting {CALL, LOAD, OPTIONAL, MATCH, UNWIND, CREATE, MERGE, SET, DELETE, WITH, RETURN} (line: 1, offset: 6)
 "COPY (EXPLAIN MATCH (p:person) RETURN p.ID) TO "test.csv""
        ^^^^^^^
 

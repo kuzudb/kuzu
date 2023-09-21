@@ -748,7 +748,7 @@ public class ValueTest extends TestBase {
         KuzuFlatTuple flatTuple = result.getNext();
         KuzuValue value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
-        assertEquals(KuzuValueStructUtil.getNumFields(value), 5);
+        assertEquals(KuzuValueStructUtil.getNumFields(value), 9);
         value.destroy();
         flatTuple.destroy();
         result.destroy();
