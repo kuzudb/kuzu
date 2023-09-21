@@ -14,7 +14,15 @@ def _get_kuzu_version():
     with open(cmake_file) as f:
         for line in f:
             if line.startswith('project(Kuzu VERSION'):
-                return line.split(' ')[2].strip()
+                raw_version = line.split(' ')[2].strip()
+                version_nums = raw_version.split('.')
+                if len(version_nums) <= 3:
+                    return raw_version
+                else:
+                    dev_suffix = version_nums[3]
+                    version = '.'.join(version_nums[:3])
+                    version += ".dev%s" % dev_suffix
+                    return version
 
 if __name__ == "__main__":
     if len(sys.argv) == 2:
