@@ -6,7 +6,7 @@
 #include "planner/operator/logical_accumulate.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_intersect.h"
-#include "planner/operator/scan/logical_scan_node.h"
+#include "planner/operator/scan/logical_scan_internal_id.h"
 #include "planner/operator/sip/logical_semi_masker.h"
 
 using namespace kuzu::common;
@@ -141,7 +141,7 @@ void HashJoinSIPOptimizer::visitPathPropertyProbe(planner::LogicalOperator* op) 
         return;
     }
     auto recursiveRel = pathPropertyProbe->getRel();
-    auto nodeID = recursiveRel->getRecursiveInfo()->node->getInternalIDProperty();
+    auto nodeID = recursiveRel->getRecursiveInfo()->node->getInternalID();
     std::vector<LogicalOperator*> opsToApplySemiMask;
     for (auto op_ :
         resolveOperatorsToApplySemiMask(*nodeID, pathPropertyProbe->getChild(1).get())) {
@@ -171,7 +171,7 @@ bool HashJoinSIPOptimizer::isProbeSideQualified(planner::LogicalOperator* probeR
 std::vector<planner::LogicalOperator*> HashJoinSIPOptimizer::resolveOperatorsToApplySemiMask(
     const binder::Expression& nodeID, planner::LogicalOperator* root) {
     std::vector<planner::LogicalOperator*> result;
-    for (auto& op : resolveScanNodeIDsToApplySemiMask(nodeID, root)) {
+    for (auto& op : resolveScanInternalIDsToApplySemiMask(nodeID, root)) {
         result.push_back(op);
     }
     for (auto& op : resolveShortestPathExtendToApplySemiMask(nodeID, root)) {
@@ -180,15 +180,14 @@ std::vector<planner::LogicalOperator*> HashJoinSIPOptimizer::resolveOperatorsToA
     return result;
 }
 
-std::vector<planner::LogicalOperator*> HashJoinSIPOptimizer::resolveScanNodeIDsToApplySemiMask(
+std::vector<planner::LogicalOperator*> HashJoinSIPOptimizer::resolveScanInternalIDsToApplySemiMask(
     const binder::Expression& nodeID, planner::LogicalOperator* root) {
     std::vector<planner::LogicalOperator*> result;
-    auto scanNodesCollector = LogicalScanNodeCollector();
-    scanNodesCollector.collect(root);
-    for (auto& op : scanNodesCollector.getOperators()) {
-        auto scanNode = (LogicalScanNode*)op;
-        auto node = scanNode->getNode();
-        if (nodeID.getUniqueName() == node->getInternalIDProperty()->getUniqueName()) {
+    auto collector = LogicalScanInternalIDCollector();
+    collector.collect(root);
+    for (auto& op : collector.getOperators()) {
+        auto scan = reinterpret_cast<LogicalScanInternalID*>(op);
+        if (nodeID.getUniqueName() == scan->getInternalID()->getUniqueName()) {
             result.push_back(op);
         }
     }
@@ -204,7 +203,7 @@ HashJoinSIPOptimizer::resolveShortestPathExtendToApplySemiMask(
     for (auto& op : recursiveJoinCollector.getOperators()) {
         auto recursiveJoin = (LogicalRecursiveExtend*)op;
         auto node = recursiveJoin->getNbrNode();
-        if (nodeID.getUniqueName() == node->getInternalIDProperty()->getUniqueName()) {
+        if (nodeID.getUniqueName() == node->getInternalID()->getUniqueName()) {
             result.push_back(op);
             return result;
         }
@@ -217,21 +216,24 @@ std::shared_ptr<planner::LogicalOperator> HashJoinSIPOptimizer::appendNodeSemiMa
     std::shared_ptr<planner::LogicalOperator> child) {
     assert(!opsToApplySemiMask.empty());
     auto op = opsToApplySemiMask[0];
-    std::shared_ptr<binder::NodeExpression> node;
+    std::shared_ptr<Expression> key;
+    std::vector<table_id_t> nodeTableIDs;
     switch (op->getOperatorType()) {
-    case LogicalOperatorType::SCAN_NODE: {
-        auto scanNode = (LogicalScanNode*)op;
-        node = scanNode->getNode();
+    case LogicalOperatorType::SCAN_INTERNAL_ID: {
+        auto scan = reinterpret_cast<LogicalScanInternalID*>(op);
+        key = scan->getInternalID();
+        nodeTableIDs = scan->getTableIDs();
     } break;
     case LogicalOperatorType::RECURSIVE_EXTEND: {
-        auto recursiveExtend = (LogicalRecursiveExtend*)op;
-        node = recursiveExtend->getNbrNode();
+        auto extend = reinterpret_cast<LogicalRecursiveExtend*>(op);
+        key = extend->getNbrNode()->getInternalID();
+        nodeTableIDs = extend->getNbrNode()->getTableIDs();
     } break;
     default:
         throw NotImplementedException("HashJoinSIPOptimizer::appendSemiMask");
     }
-    auto semiMasker = std::make_shared<LogicalSemiMasker>(
-        SemiMaskType::NODE, node->getInternalIDProperty(), node, opsToApplySemiMask, child);
+    auto semiMasker = std::make_shared<LogicalSemiMasker>(SemiMaskType::NODE, std::move(key),
+        std::move(nodeTableIDs), opsToApplySemiMask, std::move(child));
     semiMasker->computeFlatSchema();
     return semiMasker;
 }
@@ -242,11 +244,10 @@ std::shared_ptr<planner::LogicalOperator> HashJoinSIPOptimizer::appendPathSemiMa
     std::shared_ptr<planner::LogicalOperator> child) {
     assert(!opsToApplySemiMask.empty());
     auto op = opsToApplySemiMask[0];
-    assert(op->getOperatorType() == planner::LogicalOperatorType::SCAN_NODE);
-    auto scanNode = (LogicalScanNode*)op;
-    auto node = scanNode->getNode();
+    assert(op->getOperatorType() == planner::LogicalOperatorType::SCAN_INTERNAL_ID);
+    auto scan = reinterpret_cast<LogicalScanInternalID*>(op);
     auto semiMasker = std::make_shared<LogicalSemiMasker>(
-        SemiMaskType::PATH, pathExpression, node, opsToApplySemiMask, child);
+        SemiMaskType::PATH, pathExpression, scan->getTableIDs(), opsToApplySemiMask, child);
     semiMasker->computeFlatSchema();
     return semiMasker;
 }

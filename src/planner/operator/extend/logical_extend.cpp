@@ -11,7 +11,7 @@ f_group_pos_set LogicalExtend::getGroupsPosToFlatten() {
         return result;
     }
     auto inSchema = children[0]->getSchema();
-    auto boundNodeGroupPos = inSchema->getGroupPos(*boundNode->getInternalIDProperty());
+    auto boundNodeGroupPos = inSchema->getGroupPos(*boundNode->getInternalID());
     if (!inSchema->getGroup(boundNodeGroupPos)->isFlat()) {
         result.insert(boundNodeGroupPos);
     }
@@ -20,7 +20,7 @@ f_group_pos_set LogicalExtend::getGroupsPosToFlatten() {
 
 void LogicalExtend::computeFactorizedSchema() {
     copyChildSchema(0);
-    auto boundGroupPos = schema->getGroupPos(boundNode->getInternalIDPropertyName());
+    auto boundGroupPos = schema->getGroupPos(*boundNode->getInternalID());
     uint32_t nbrGroupPos = 0u;
     if (hasAtMostOneNbr) {
         nbrGroupPos = boundGroupPos;
@@ -28,7 +28,7 @@ void LogicalExtend::computeFactorizedSchema() {
         assert(schema->getGroup(boundGroupPos)->isFlat());
         nbrGroupPos = schema->createGroup();
     }
-    schema->insertToGroupAndScope(nbrNode->getInternalIDProperty(), nbrGroupPos);
+    schema->insertToGroupAndScope(nbrNode->getInternalID(), nbrGroupPos);
     for (auto& property : properties) {
         schema->insertToGroupAndScope(property, nbrGroupPos);
     }
@@ -36,7 +36,7 @@ void LogicalExtend::computeFactorizedSchema() {
 
 void LogicalExtend::computeFlatSchema() {
     copyChildSchema(0);
-    schema->insertToGroupAndScope(nbrNode->getInternalIDProperty(), 0);
+    schema->insertToGroupAndScope(nbrNode->getInternalID(), 0);
     for (auto& property : properties) {
         schema->insertToGroupAndScope(property, 0);
     }

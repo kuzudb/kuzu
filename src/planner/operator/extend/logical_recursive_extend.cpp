@@ -10,7 +10,7 @@ namespace planner {
 f_group_pos_set LogicalRecursiveExtend::getGroupsPosToFlatten() {
     f_group_pos_set result;
     auto inSchema = children[0]->getSchema();
-    auto boundNodeGroupPos = inSchema->getGroupPos(*boundNode->getInternalIDProperty());
+    auto boundNodeGroupPos = inSchema->getGroupPos(*boundNode->getInternalID());
     if (!inSchema->getGroup(boundNodeGroupPos)->isFlat()) {
         result.insert(boundNodeGroupPos);
     }
@@ -19,7 +19,7 @@ f_group_pos_set LogicalRecursiveExtend::getGroupsPosToFlatten() {
 
 void LogicalRecursiveExtend::computeFlatSchema() {
     copyChildSchema(0);
-    schema->insertToGroupAndScope(nbrNode->getInternalIDProperty(), 0);
+    schema->insertToGroupAndScope(nbrNode->getInternalID(), 0);
     schema->insertToGroupAndScope(rel->getLengthExpression(), 0);
     switch (joinType) {
     case RecursiveJoinType::TRACK_PATH: {
@@ -35,7 +35,7 @@ void LogicalRecursiveExtend::computeFlatSchema() {
 void LogicalRecursiveExtend::computeFactorizedSchema() {
     copyChildSchema(0);
     auto nbrGroupPos = schema->createGroup();
-    schema->insertToGroupAndScope(nbrNode->getInternalIDProperty(), nbrGroupPos);
+    schema->insertToGroupAndScope(nbrNode->getInternalID(), nbrGroupPos);
     schema->insertToGroupAndScope(rel->getLengthExpression(), nbrGroupPos);
     switch (joinType) {
     case RecursiveJoinType::TRACK_PATH: {
@@ -52,14 +52,14 @@ void LogicalScanFrontier::computeFlatSchema() {
     createEmptySchema();
     schema->createGroup();
     schema->setGroupAsSingleState(0);
-    schema->insertToGroupAndScope(node->getInternalIDProperty(), 0);
+    schema->insertToGroupAndScope(node->getInternalID(), 0);
 }
 
 void LogicalScanFrontier::computeFactorizedSchema() {
     createEmptySchema();
     auto groupPos = schema->createGroup();
     schema->setGroupAsSingleState(groupPos);
-    schema->insertToGroupAndScope(node->getInternalIDProperty(), groupPos);
+    schema->insertToGroupAndScope(node->getInternalID(), groupPos);
 }
 
 } // namespace planner

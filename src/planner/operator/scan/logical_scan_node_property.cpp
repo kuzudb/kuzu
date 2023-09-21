@@ -5,7 +5,7 @@ namespace planner {
 
 void LogicalScanNodeProperty::computeFactorizedSchema() {
     copyChildSchema(0);
-    auto groupPos = schema->getGroupPos(node->getInternalIDPropertyName());
+    auto groupPos = schema->getGroupPos(*nodeID);
     for (auto& property : properties) {
         schema->insertToGroupAndScope(property, groupPos);
     }

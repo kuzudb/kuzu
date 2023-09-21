@@ -93,8 +93,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logical
     auto rel = extend->getRel();
     auto extendDirection = extend->getDirection();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
-    auto inNodeVectorPos = DataPos(inSchema->getExpressionPos(*boundNode->getInternalIDProperty()));
-    auto outNodeVectorPos = DataPos(outSchema->getExpressionPos(*nbrNode->getInternalIDProperty()));
+    auto inNodeVectorPos = DataPos(inSchema->getExpressionPos(*boundNode->getInternalID()));
+    auto outNodeVectorPos = DataPos(outSchema->getExpressionPos(*nbrNode->getInternalID()));
     std::vector<DataPos> outVectorsPos;
     outVectorsPos.push_back(outNodeVectorPos);
     for (auto& expression : extend->getProperties()) {

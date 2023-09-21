@@ -37,7 +37,8 @@ private:
     // SCAN_NODE_ID->(SCAN_NODE_PROPERTY->FILTER)*->SCAN_NODE_PROPERTY
     // so that filter with higher selectivity is applied before scanning.
     std::shared_ptr<planner::LogicalOperator> pushDownToScanNode(
-        std::shared_ptr<binder::NodeExpression> node, std::shared_ptr<binder::Expression> predicate,
+        std::shared_ptr<binder::Expression> nodeID, std::vector<common::table_id_t> tableIDs,
+        std::shared_ptr<binder::Expression> predicate,
         std::shared_ptr<planner::LogicalOperator> child);
 
     // Finish the current push down optimization by apply remaining predicates as a single filter.
@@ -46,8 +47,8 @@ private:
         std::shared_ptr<planner::LogicalOperator> op);
 
     std::shared_ptr<planner::LogicalOperator> appendScanNodeProperty(
-        std::shared_ptr<binder::NodeExpression> node, binder::expression_vector properties,
-        std::shared_ptr<planner::LogicalOperator> child);
+        std::shared_ptr<binder::Expression> nodeID, std::vector<common::table_id_t> nodeTableIDs,
+        binder::expression_vector properties, std::shared_ptr<planner::LogicalOperator> child);
     std::shared_ptr<planner::LogicalOperator> appendFilter(
         std::shared_ptr<binder::Expression> predicate,
         std::shared_ptr<planner::LogicalOperator> child);
@@ -66,7 +67,7 @@ private:
 
         void addPredicate(std::shared_ptr<binder::Expression> predicate);
         std::shared_ptr<binder::Expression> popNodePKEqualityComparison(
-            const binder::NodeExpression& node);
+            const binder::Expression& nodeID);
     };
 
 private:

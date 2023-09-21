@@ -29,11 +29,11 @@ static expression_vector rewriteProjectionInWithClause(const expression_vector& 
     for (auto& expression : expressions) {
         if (ExpressionUtil::isNodeVariable(*expression)) {
             auto node = (NodeExpression*)expression.get();
-            result.push_back(node->getInternalIDProperty());
+            result.push_back(node->getInternalID());
         } else if (ExpressionUtil::isRelVariable(*expression)) {
             auto rel = (RelExpression*)expression.get();
-            result.push_back(rel->getSrcNode()->getInternalIDProperty());
-            result.push_back(rel->getDstNode()->getInternalIDProperty());
+            result.push_back(rel->getSrcNode()->getInternalID());
+            result.push_back(rel->getDstNode()->getInternalID());
             result.push_back(rel->getInternalIDProperty());
         } else if (ExpressionUtil::isRecursiveRelVariable(*expression)) {
             auto rel = (RelExpression*)expression.get();
@@ -131,7 +131,7 @@ std::unique_ptr<BoundProjectionBody> Binder::bindProjectionBody(
         for (auto& expression : groupByExpressions) {
             if (ExpressionUtil::isNodeVariable(*expression)) {
                 auto node = (NodeExpression*)expression.get();
-                augmentedGroupByExpressions.push_back(node->getInternalIDProperty());
+                augmentedGroupByExpressions.push_back(node->getInternalID());
             } else if (ExpressionUtil::isRelVariable(*expression)) {
                 auto rel = (RelExpression*)expression.get();
                 augmentedGroupByExpressions.push_back(rel->getInternalIDProperty());

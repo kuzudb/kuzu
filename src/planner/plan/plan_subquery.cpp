@@ -16,8 +16,8 @@ static expression_vector getCorrelatedExpressions(const QueryGraphCollection& co
         }
     }
     for (auto& node : collection.getQueryNodes()) {
-        if (outerSchema->isExpressionInScope(*node->getInternalIDProperty())) {
-            result.push_back(node->getInternalIDProperty());
+        if (outerSchema->isExpressionInScope(*node->getInternalID())) {
+            result.push_back(node->getInternalID());
         }
     }
     return result;

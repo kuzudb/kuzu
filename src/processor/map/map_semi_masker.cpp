@@ -14,9 +14,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
     auto semiMasker = (LogicalSemiMasker*)logicalOperator;
     auto inSchema = semiMasker->getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
-    auto node = semiMasker->getNode();
+    auto tableIDs = semiMasker->getNodeTableIDs();
     std::unordered_map<table_id_t, std::vector<SemiMaskerInfo::mask_with_idx>> masksPerTable;
-    for (auto tableID : node->getTableIDs()) {
+    for (auto tableID : tableIDs) {
         masksPerTable.insert({tableID, std::vector<SemiMaskerInfo::mask_with_idx>{}});
     }
     for (auto& op : semiMasker->getOperators()) {
@@ -46,7 +46,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
     auto info = std::make_unique<SemiMaskerInfo>(keyPos, std::move(masksPerTable));
     switch (semiMasker->getType()) {
     case planner::SemiMaskType::NODE: {
-        if (node->isMultiLabeled()) {
+        if (tableIDs.size() > 1) {
             return std::make_unique<MultiTableSemiMasker>(std::move(info), std::move(prevOperator),
                 getOperatorID(), semiMasker->getExpressionsForPrinting());
         } else {
@@ -55,7 +55,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
         }
     }
     case planner::SemiMaskType::PATH: {
-        if (node->isMultiLabeled()) {
+        if (tableIDs.size() > 1) {
             return std::make_unique<PathMultipleTableSemiMasker>(std::move(info),
                 std::move(prevOperator), getOperatorID(), semiMasker->getExpressionsForPrinting());
         } else {

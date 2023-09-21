@@ -32,15 +32,15 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(
     auto recursivePlanSchema = logicalRecursiveRoot->getSchema();
     auto recursivePlanResultSetDescriptor =
         std::make_unique<ResultSetDescriptor>(recursivePlanSchema);
-    auto recursiveDstNodeIDPos = DataPos(
-        recursivePlanSchema->getExpressionPos(*recursiveInfo->nodeCopy->getInternalIDProperty()));
+    auto recursiveDstNodeIDPos =
+        DataPos(recursivePlanSchema->getExpressionPos(*recursiveInfo->nodeCopy->getInternalID()));
     auto recursiveEdgeIDPos = DataPos(
         recursivePlanSchema->getExpressionPos(*recursiveInfo->rel->getInternalIDProperty()));
     // Generate RecursiveJoin
     auto outSchema = extend->getSchema();
     auto inSchema = extend->getChild(0)->getSchema();
-    auto boundNodeIDPos = DataPos(inSchema->getExpressionPos(*boundNode->getInternalIDProperty()));
-    auto nbrNodeIDPos = DataPos(outSchema->getExpressionPos(*nbrNode->getInternalIDProperty()));
+    auto boundNodeIDPos = DataPos(inSchema->getExpressionPos(*boundNode->getInternalID()));
+    auto nbrNodeIDPos = DataPos(outSchema->getExpressionPos(*nbrNode->getInternalID()));
     auto lengthPos = DataPos(outSchema->getExpressionPos(*lengthExpression));
     auto sharedState = createSharedState(*nbrNode, storageManager);
     auto pathPos = DataPos();

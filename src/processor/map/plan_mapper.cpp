@@ -38,8 +38,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     case LogicalOperatorType::SCAN_FRONTIER: {
         physicalOperator = mapScanFrontier(logicalOperator);
     } break;
-    case LogicalOperatorType::SCAN_NODE: {
-        physicalOperator = mapScanNode(logicalOperator);
+    case LogicalOperatorType::SCAN_INTERNAL_ID: {
+        physicalOperator = mapScanInternalID(logicalOperator);
     } break;
     case LogicalOperatorType::INDEX_SCAN_NODE: {
         physicalOperator = mapIndexScanNode(logicalOperator);

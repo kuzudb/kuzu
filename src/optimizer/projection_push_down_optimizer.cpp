@@ -44,7 +44,7 @@ void ProjectionPushDownOptimizer::visitPathPropertyProbe(planner::LogicalOperato
     assert(
         pathPropertyProbe->getChild(0)->getOperatorType() == LogicalOperatorType::RECURSIVE_EXTEND);
     auto recursiveExtend = (LogicalRecursiveExtend*)pathPropertyProbe->getChild(0).get();
-    auto boundNodeID = recursiveExtend->getBoundNode()->getInternalIDProperty();
+    auto boundNodeID = recursiveExtend->getBoundNode()->getInternalID();
     collectExpressionsInUse(boundNodeID);
     auto rel = recursiveExtend->getRel();
     auto recursiveInfo = rel->getRecursiveInfo();
@@ -58,7 +58,7 @@ void ProjectionPushDownOptimizer::visitPathPropertyProbe(planner::LogicalOperato
 
 void ProjectionPushDownOptimizer::visitExtend(planner::LogicalOperator* op) {
     auto extend = (LogicalExtend*)op;
-    auto boundNodeID = extend->getBoundNode()->getInternalIDProperty();
+    auto boundNodeID = extend->getBoundNode()->getInternalID();
     collectExpressionsInUse(boundNodeID);
 }
 
@@ -173,8 +173,8 @@ void ProjectionPushDownOptimizer::visitCreateRel(planner::LogicalOperator* op) {
     auto createRel = (LogicalCreateRel*)op;
     for (auto& info : createRel->getInfosRef()) {
         auto rel = info->rel;
-        collectExpressionsInUse(rel->getSrcNode()->getInternalIDProperty());
-        collectExpressionsInUse(rel->getDstNode()->getInternalIDProperty());
+        collectExpressionsInUse(rel->getSrcNode()->getInternalID());
+        collectExpressionsInUse(rel->getDstNode()->getInternalID());
         collectExpressionsInUse(rel->getInternalIDProperty());
         for (auto& setItem : info->setItems) {
             collectExpressionsInUse(setItem.second);
@@ -185,15 +185,15 @@ void ProjectionPushDownOptimizer::visitCreateRel(planner::LogicalOperator* op) {
 void ProjectionPushDownOptimizer::visitDeleteNode(planner::LogicalOperator* op) {
     auto deleteNode = (LogicalDeleteNode*)op;
     for (auto& node : deleteNode->getNodesRef()) {
-        collectExpressionsInUse(node->getInternalIDProperty());
+        collectExpressionsInUse(node->getInternalID());
     }
 }
 
 void ProjectionPushDownOptimizer::visitDeleteRel(planner::LogicalOperator* op) {
     auto deleteRel = (LogicalDeleteRel*)op;
     for (auto& rel : deleteRel->getRelsRef()) {
-        collectExpressionsInUse(rel->getSrcNode()->getInternalIDProperty());
-        collectExpressionsInUse(rel->getDstNode()->getInternalIDProperty());
+        collectExpressionsInUse(rel->getSrcNode()->getInternalID());
+        collectExpressionsInUse(rel->getDstNode()->getInternalID());
         collectExpressionsInUse(rel->getInternalIDProperty());
     }
 }
@@ -209,8 +209,8 @@ void ProjectionPushDownOptimizer::visitMerge(planner::LogicalOperator* op) {
     }
     for (auto& info : merge->getCreateRelInfosRef()) {
         auto rel = info->rel;
-        collectExpressionsInUse(rel->getSrcNode()->getInternalIDProperty());
-        collectExpressionsInUse(rel->getDstNode()->getInternalIDProperty());
+        collectExpressionsInUse(rel->getSrcNode()->getInternalID());
+        collectExpressionsInUse(rel->getDstNode()->getInternalID());
         collectExpressionsInUse(rel->getInternalIDProperty());
         for (auto& setItem : info->setItems) {
             collectExpressionsInUse(setItem.second);
@@ -218,30 +218,30 @@ void ProjectionPushDownOptimizer::visitMerge(planner::LogicalOperator* op) {
     }
     for (auto& info : merge->getCreateNodeSetInfosRef()) {
         auto node = (NodeExpression*)info->nodeOrRel.get();
-        collectExpressionsInUse(node->getInternalIDProperty());
+        collectExpressionsInUse(node->getInternalID());
         collectExpressionsInUse(info->setItem.second);
     }
     for (auto& info : merge->getOnCreateSetNodeInfosRef()) {
         auto node = (NodeExpression*)info->nodeOrRel.get();
-        collectExpressionsInUse(node->getInternalIDProperty());
+        collectExpressionsInUse(node->getInternalID());
         collectExpressionsInUse(info->setItem.second);
     }
     for (auto& info : merge->getOnMatchSetNodeInfosRef()) {
         auto node = (NodeExpression*)info->nodeOrRel.get();
-        collectExpressionsInUse(node->getInternalIDProperty());
+        collectExpressionsInUse(node->getInternalID());
         collectExpressionsInUse(info->setItem.second);
     }
     for (auto& info : merge->getOnCreateSetRelInfosRef()) {
         auto rel = (RelExpression*)info->nodeOrRel.get();
-        collectExpressionsInUse(rel->getSrcNode()->getInternalIDProperty());
-        collectExpressionsInUse(rel->getDstNode()->getInternalIDProperty());
+        collectExpressionsInUse(rel->getSrcNode()->getInternalID());
+        collectExpressionsInUse(rel->getDstNode()->getInternalID());
         collectExpressionsInUse(rel->getInternalIDProperty());
         collectExpressionsInUse(info->setItem.second);
     }
     for (auto& info : merge->getOnMatchSetRelInfosRef()) {
         auto rel = (RelExpression*)info->nodeOrRel.get();
-        collectExpressionsInUse(rel->getSrcNode()->getInternalIDProperty());
-        collectExpressionsInUse(rel->getDstNode()->getInternalIDProperty());
+        collectExpressionsInUse(rel->getSrcNode()->getInternalID());
+        collectExpressionsInUse(rel->getDstNode()->getInternalID());
         collectExpressionsInUse(rel->getInternalIDProperty());
         collectExpressionsInUse(info->setItem.second);
     }
@@ -251,7 +251,7 @@ void ProjectionPushDownOptimizer::visitSetNodeProperty(planner::LogicalOperator*
     auto setNodeProperty = (LogicalSetNodeProperty*)op;
     for (auto& info : setNodeProperty->getInfosRef()) {
         auto node = (NodeExpression*)info->nodeOrRel.get();
-        collectExpressionsInUse(node->getInternalIDProperty());
+        collectExpressionsInUse(node->getInternalID());
         collectExpressionsInUse(info->setItem.second);
     }
 }
@@ -260,8 +260,8 @@ void ProjectionPushDownOptimizer::visitSetRelProperty(planner::LogicalOperator* 
     auto setRelProperty = (LogicalSetRelProperty*)op;
     for (auto& info : setRelProperty->getInfosRef()) {
         auto rel = (RelExpression*)info->nodeOrRel.get();
-        collectExpressionsInUse(rel->getSrcNode()->getInternalIDProperty());
-        collectExpressionsInUse(rel->getDstNode()->getInternalIDProperty());
+        collectExpressionsInUse(rel->getSrcNode()->getInternalID());
+        collectExpressionsInUse(rel->getDstNode()->getInternalID());
         collectExpressionsInUse(rel->getInternalIDProperty());
         collectExpressionsInUse(info->setItem.second);
     }

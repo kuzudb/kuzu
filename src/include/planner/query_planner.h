@@ -110,8 +110,6 @@ private:
     void planBaseTableScans(
         SubqueryType subqueryType, const expression_vector& correlatedExpressions);
     void planCorrelatedExpressionsScan(const binder::expression_vector& correlatedExpressions);
-    std::unique_ptr<LogicalPlan> getCorrelatedExpressionScanPlan(
-        const binder::expression_vector& correlatedExpressions);
     void planNodeScan(uint32_t nodePos);
     void planNodeIDScan(uint32_t nodePos);
     void planRelScan(uint32_t relPos);
@@ -175,9 +173,11 @@ private:
 
     // Append scan operators
     void appendExpressionsScan(const expression_vector& expressions, LogicalPlan& plan);
-    void appendScanNodeID(std::shared_ptr<NodeExpression>& node, LogicalPlan& plan);
-    void appendScanNodeProperties(const expression_vector& propertyExpressions,
-        std::shared_ptr<NodeExpression> node, LogicalPlan& plan);
+    void appendScanInternalID(std::shared_ptr<Expression> internalID,
+        std::vector<common::table_id_t> tableIDs, LogicalPlan& plan);
+    void appendScanNodeProperties(std::shared_ptr<Expression> nodeID,
+        std::vector<common::table_id_t> tableIDs, const expression_vector& properties,
+        LogicalPlan& plan);
 
     // Append extend operators
     void appendNonRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,

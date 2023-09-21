@@ -18,7 +18,7 @@ void QueryPlanner::appendSetNodeProperty(
     const std::vector<binder::BoundSetPropertyInfo*>& boundInfos, LogicalPlan& plan) {
     for (auto& boundInfo : boundInfos) {
         auto node = (NodeExpression*)boundInfo->nodeOrRel.get();
-        auto lhsNodeID = node->getInternalIDProperty();
+        auto lhsNodeID = node->getInternalID();
         auto rhs = boundInfo->setItem.second;
         // flatten rhs
         auto rhsDependentGroupsPos = plan.getSchema()->getDependentGroupsPos(rhs);

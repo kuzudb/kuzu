@@ -8,8 +8,7 @@ namespace planner {
 SubgraphPlans::SubgraphPlans(const kuzu::binder::SubqueryGraph& subqueryGraph) {
     for (auto i = 0u; i < subqueryGraph.queryGraph.getNumQueryNodes(); ++i) {
         if (subqueryGraph.queryNodesSelector[i]) {
-            nodeIDsToEncode.push_back(
-                subqueryGraph.queryGraph.getQueryNode(i)->getInternalIDProperty());
+            nodeIDsToEncode.push_back(subqueryGraph.queryGraph.getQueryNode(i)->getInternalID());
         }
     }
     maxCost = UINT64_MAX;

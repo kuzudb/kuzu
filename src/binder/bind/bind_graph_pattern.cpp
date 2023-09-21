@@ -406,7 +406,7 @@ std::shared_ptr<NodeExpression> Binder::createQueryNode(
         getUniqueExpressionName(parsedName), parsedName, tableIDs);
     queryNode->setAlias(parsedName);
     bindQueryNodeProperties(*queryNode);
-    queryNode->setInternalIDProperty(expressionBinder.createInternalNodeIDExpression(*queryNode));
+    queryNode->setInternalID(expressionBinder.createInternalNodeIDExpression(*queryNode));
     queryNode->setLabelExpression(expressionBinder.bindLabelFunction(*queryNode));
     std::vector<std::unique_ptr<StructField>> nodeFields;
     nodeFields.push_back(std::make_unique<StructField>(

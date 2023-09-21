@@ -44,7 +44,7 @@ enum class LogicalOperatorType : uint8_t {
     RENAME_PROPERTY,
     SCAN_FILE,
     SCAN_FRONTIER,
-    SCAN_NODE,
+    SCAN_INTERNAL_ID,
     SCAN_NODE_PROPERTY,
     SEMI_MASKER,
     SET_NODE_PROPERTY,

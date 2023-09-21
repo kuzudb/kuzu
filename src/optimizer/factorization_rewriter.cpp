@@ -138,7 +138,7 @@ void FactorizationRewriter::visitSetNodeProperty(planner::LogicalOperator* op) {
     auto setNodeProperty = (LogicalSetNodeProperty*)op;
     for (auto& info : setNodeProperty->getInfosRef()) {
         auto node = reinterpret_cast<NodeExpression*>(info->nodeOrRel.get());
-        auto lhsNodeID = node->getInternalIDProperty();
+        auto lhsNodeID = node->getInternalID();
         auto rhs = info->setItem.second;
         // flatten rhs
         auto rhsDependentGroupsPos = op->getChild(0)->getSchema()->getDependentGroupsPos(rhs);

@@ -20,27 +20,27 @@ protected:
 
 class LogicalFlattenCollector : public LogicalOperatorCollector {
 protected:
-    void visitFlatten(planner::LogicalOperator* op) override { ops.push_back(op); }
+    void visitFlatten(planner::LogicalOperator* op) final { ops.push_back(op); }
 };
 
 class LogicalFilterCollector : public LogicalOperatorCollector {
 protected:
-    void visitFilter(planner::LogicalOperator* op) override { ops.push_back(op); }
+    void visitFilter(planner::LogicalOperator* op) final { ops.push_back(op); }
 };
 
-class LogicalScanNodeCollector : public LogicalOperatorCollector {
+class LogicalScanInternalIDCollector : public LogicalOperatorCollector {
 protected:
-    void visitScanNode(planner::LogicalOperator* op) override { ops.push_back(op); }
+    void visitScanInternalID(planner::LogicalOperator* op) final { ops.push_back(op); }
 };
 
 class LogicalIndexScanNodeCollector : public LogicalOperatorCollector {
 protected:
-    void visitIndexScanNode(planner::LogicalOperator* op) override { ops.push_back(op); }
+    void visitIndexScanNode(planner::LogicalOperator* op) final { ops.push_back(op); }
 };
 
 class LogicalRecursiveExtendCollector : public LogicalOperatorCollector {
 protected:
-    void visitRecursiveExtend(planner::LogicalOperator* op) override { ops.push_back(op); }
+    void visitRecursiveExtend(planner::LogicalOperator* op) final { ops.push_back(op); }
 };
 
 } // namespace optimizer

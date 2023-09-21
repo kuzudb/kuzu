@@ -38,7 +38,7 @@ std::unique_ptr<NodeInsertExecutor> PlanMapper::getNodeInsertExecutor(
             relTablesToInit.push_back(relsStore->getRelTable(schema->tableID));
         }
     }
-    auto nodeIDPos = DataPos(outSchema.getExpressionPos(*node->getInternalIDProperty()));
+    auto nodeIDPos = DataPos(outSchema.getExpressionPos(*node->getInternalID()));
     std::vector<DataPos> lhsVectorPositions = populateLhsVectorPositions(info->setItems, outSchema);
     std::vector<std::unique_ptr<ExpressionEvaluator>> evaluators;
     for (auto& [_, rhs] : info->setItems) {
@@ -70,8 +70,8 @@ std::unique_ptr<RelInsertExecutor> PlanMapper::getRelInsertExecutor(storage::Rel
     auto table = relsStore->getRelTable(relTableID);
     auto srcNode = rel->getSrcNode();
     auto dstNode = rel->getDstNode();
-    auto srcNodePos = DataPos(inSchema.getExpressionPos(*srcNode->getInternalIDProperty()));
-    auto dstNodePos = DataPos(inSchema.getExpressionPos(*dstNode->getInternalIDProperty()));
+    auto srcNodePos = DataPos(inSchema.getExpressionPos(*srcNode->getInternalID()));
+    auto dstNodePos = DataPos(inSchema.getExpressionPos(*dstNode->getInternalID()));
     auto lhsVectorPositions = populateLhsVectorPositions(info->setItems, outSchema);
     std::vector<std::unique_ptr<ExpressionEvaluator>> evaluators;
     for (auto& [lhs, rhs] : info->setItems) {

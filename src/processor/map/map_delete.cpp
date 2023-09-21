@@ -13,7 +13,7 @@ namespace processor {
 
 static std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(
     NodesStore* store, const NodeExpression& node, const Schema& inSchema) {
-    auto nodeIDPos = DataPos(inSchema.getExpressionPos(*node.getInternalIDProperty()));
+    auto nodeIDPos = DataPos(inSchema.getExpressionPos(*node.getInternalID()));
     if (node.isMultiLabeled()) {
         std::unordered_map<table_id_t, NodeTable*> tableIDToTableMap;
         for (auto tableID : node.getTableIDs()) {
@@ -43,10 +43,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDeleteNode(LogicalOperator* log
 
 static std::unique_ptr<RelDeleteExecutor> getRelDeleteExecutor(
     storage::RelsStore* store, const binder::RelExpression& rel, const Schema& inSchema) {
-    auto srcNodePos =
-        DataPos(inSchema.getExpressionPos(*rel.getSrcNode()->getInternalIDProperty()));
-    auto dstNodePos =
-        DataPos(inSchema.getExpressionPos(*rel.getDstNode()->getInternalIDProperty()));
+    auto srcNodePos = DataPos(inSchema.getExpressionPos(*rel.getSrcNode()->getInternalID()));
+    auto dstNodePos = DataPos(inSchema.getExpressionPos(*rel.getDstNode()->getInternalID()));
     auto relIDPos = DataPos(inSchema.getExpressionPos(*rel.getInternalIDProperty()));
     auto statistics = &store->getRelsStatistics();
     if (rel.isMultiLabeled()) {

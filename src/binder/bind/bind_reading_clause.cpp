@@ -63,7 +63,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause&
             queryGraph->addQueryNode(newDst);
             queryRel->setDstNode(newDst);
             auto predicate = expressionBinder.createEqualityComparisonExpression(
-                src->getInternalIDProperty(), newDst->getInternalIDProperty());
+                src->getInternalID(), newDst->getInternalID());
             selfLoopEdgePredicates.push_back(std::move(predicate));
         }
     }

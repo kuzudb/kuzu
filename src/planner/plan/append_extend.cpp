@@ -82,7 +82,7 @@ void QueryPlanner::appendNonRecursiveExtend(std::shared_ptr<NodeExpression> boun
     ExtendDirection direction, const expression_vector& properties, LogicalPlan& plan) {
     auto boundNodeTableIDSet = getBoundNodeTableIDSet(*rel, direction, catalog);
     if (boundNode->getNumTableIDs() > boundNodeTableIDSet.size()) {
-        appendNodeLabelFilter(boundNode->getInternalIDProperty(), boundNodeTableIDSet, plan);
+        appendNodeLabelFilter(boundNode->getInternalID(), boundNodeTableIDSet, plan);
     }
     auto hasAtMostOneNbr = extendHasAtMostOneNbrGuarantee(*rel, *boundNode, direction, catalog);
     auto extend = make_shared<LogicalExtend>(
@@ -95,13 +95,13 @@ void QueryPlanner::appendNonRecursiveExtend(std::shared_ptr<NodeExpression> boun
     // update cardinality. Note that extend does not change cardinality.
     if (!hasAtMostOneNbr) {
         auto extensionRate = cardinalityEstimator->getExtensionRate(*rel, *boundNode);
-        auto group = extend->getSchema()->getGroup(nbrNode->getInternalIDProperty());
+        auto group = extend->getSchema()->getGroup(nbrNode->getInternalID());
         group->setMultiplier(extensionRate);
     }
     plan.setLastOperator(std::move(extend));
     auto nbrNodeTableIDSet = getNbrNodeTableIDSet(*rel, direction, catalog);
     if (nbrNodeTableIDSet.size() > nbrNode->getNumTableIDs()) {
-        appendNodeLabelFilter(nbrNode->getInternalIDProperty(), nbrNode->getTableIDsSet(), plan);
+        appendNodeLabelFilter(nbrNode->getInternalID(), nbrNode->getTableIDsSet(), plan);
     }
 }
 
@@ -117,7 +117,7 @@ void QueryPlanner::appendRecursiveExtend(std::shared_ptr<NodeExpression> boundNo
     // Create recursive extend
     if (boundNode->getNumTableIDs() > recursiveInfo->node->getNumTableIDs()) {
         appendNodeLabelFilter(
-            boundNode->getInternalIDProperty(), recursiveInfo->node->getTableIDsSet(), plan);
+            boundNode->getInternalID(), recursiveInfo->node->getTableIDsSet(), plan);
     }
     auto extend = std::make_shared<LogicalRecursiveExtend>(boundNode, nbrNode, rel, direction,
         RecursiveJoinType::TRACK_PATH, plan.getLastOperator(), recursivePlan->getLastOperator());
@@ -146,7 +146,7 @@ void QueryPlanner::appendRecursiveExtend(std::shared_ptr<NodeExpression> boundNo
     // Update cardinality
     auto hasAtMostOneNbr = extendHasAtMostOneNbrGuarantee(*rel, *boundNode, direction, catalog);
     if (!hasAtMostOneNbr) {
-        auto group = pathPropertyProbe->getSchema()->getGroup(nbrNode->getInternalIDProperty());
+        auto group = pathPropertyProbe->getSchema()->getGroup(nbrNode->getInternalID());
         group->setMultiplier(extensionRate);
     }
     plan.setLastOperator(std::move(pathPropertyProbe));
@@ -176,14 +176,15 @@ void QueryPlanner::createRecursivePlan(std::shared_ptr<NodeExpression> boundNode
 
 void QueryPlanner::createPathNodePropertyScanPlan(
     std::shared_ptr<NodeExpression> recursiveNode, LogicalPlan& plan) {
-    appendScanNodeID(recursiveNode, plan);
+    appendScanInternalID(recursiveNode->getInternalID(), recursiveNode->getTableIDs(), plan);
     expression_vector properties;
     for (auto& property : recursiveNode->getPropertyExpressions()) {
         properties.push_back(property->copy());
     }
-    appendScanNodeProperties(properties, recursiveNode, plan);
+    appendScanNodeProperties(
+        recursiveNode->getInternalID(), recursiveNode->getTableIDs(), properties, plan);
     auto expressionsToProject = properties;
-    expressionsToProject.push_back(recursiveNode->getInternalIDProperty());
+    expressionsToProject.push_back(recursiveNode->getInternalID());
     expressionsToProject.push_back(recursiveNode->getLabelExpression());
     appendProjection(expressionsToProject, plan);
 }
@@ -191,7 +192,7 @@ void QueryPlanner::createPathNodePropertyScanPlan(
 void QueryPlanner::createPathRelPropertyScanPlan(std::shared_ptr<NodeExpression> recursiveNode,
     std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> recursiveRel,
     ExtendDirection direction, LogicalPlan& plan) {
-    appendScanNodeID(recursiveNode, plan);
+    appendScanInternalID(recursiveNode->getInternalID(), recursiveNode->getTableIDs(), plan);
     expression_vector properties;
     for (auto& property : recursiveRel->getPropertyExpressions()) {
         properties.push_back(property->copy());

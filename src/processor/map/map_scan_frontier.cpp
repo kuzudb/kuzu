@@ -10,7 +10,7 @@ namespace processor {
 std::unique_ptr<PhysicalOperator> PlanMapper::mapScanFrontier(
     planner::LogicalOperator* logicalOperator) {
     auto scanFrontier = (LogicalScanFrontier*)logicalOperator;
-    auto nodeID = scanFrontier->getNode()->getInternalIDProperty();
+    auto nodeID = scanFrontier->getNode()->getInternalID();
     auto nodeIDPos = DataPos(scanFrontier->getSchema()->getExpressionPos(*nodeID));
     return std::make_unique<ScanFrontier>(nodeIDPos, getOperatorID(), std::string());
 }

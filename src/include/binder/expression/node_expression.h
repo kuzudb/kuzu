@@ -13,19 +13,16 @@ public:
         : NodeOrRelExpression{std::move(dataType), std::move(uniqueName), std::move(variableName),
               std::move(tableIDs)} {}
 
-    inline void setInternalIDProperty(std::unique_ptr<Expression> expression) {
-        internalIDExpression = std::move(expression);
+    inline void setInternalID(std::unique_ptr<Expression> expression) {
+        internalID = std::move(expression);
     }
-    inline std::shared_ptr<Expression> getInternalIDProperty() const {
-        assert(internalIDExpression != nullptr);
-        return internalIDExpression->copy();
-    }
-    inline std::string getInternalIDPropertyName() const {
-        return internalIDExpression->getUniqueName();
+    inline std::shared_ptr<Expression> getInternalID() const {
+        assert(internalID != nullptr);
+        return internalID->copy();
     }
 
 private:
-    std::unique_ptr<Expression> internalIDExpression;
+    std::unique_ptr<Expression> internalID;
 };
 
 } // namespace binder
