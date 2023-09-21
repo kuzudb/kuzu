@@ -26,7 +26,7 @@ private:
     static void encodeHashJoin(LogicalOperator* logicalOperator, std::string& encodeString);
     static void encodeExtend(LogicalOperator* logicalOperator, std::string& encodeString);
     static void encodeRecursiveExtend(LogicalOperator* logicalOperator, std::string& encodeString);
-    static void encodeScanNodeID(LogicalOperator* logicalOperator, std::string& encodeString);
+    static void encodeScanInternalID(LogicalOperator* logicalOperator, std::string& encodeString);
 };
 
 } // namespace planner

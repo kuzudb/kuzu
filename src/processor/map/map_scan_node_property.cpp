@@ -15,17 +15,17 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeProperty(
     auto outSchema = scanProperty.getSchema();
     auto inSchema = scanProperty.getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
-    auto node = scanProperty.getNode();
-    auto inputNodeIDVectorPos = DataPos(inSchema->getExpressionPos(*node->getInternalIDProperty()));
+    auto inputNodeIDVectorPos = DataPos(inSchema->getExpressionPos(*scanProperty.getNodeID()));
     auto& nodeStore = storageManager.getNodesStore();
     std::vector<DataPos> outVectorsPos;
     for (auto& expression : scanProperty.getProperties()) {
         outVectorsPos.emplace_back(outSchema->getExpressionPos(*expression));
     }
-    if (node->isMultiLabeled()) {
+    auto tableIDs = scanProperty.getTableIDs();
+    if (tableIDs.size() > 1) {
         std::unordered_map<table_id_t, std::vector<column_id_t>> tableIDToColumns;
         std::unordered_map<table_id_t, storage::NodeTable*> tables;
-        for (auto& tableID : node->getTableIDs()) {
+        for (auto& tableID : tableIDs) {
             tables.insert({tableID, nodeStore.getNodeTable(tableID)});
             std::vector<uint32_t> columns;
             for (auto& expression : scanProperty.getProperties()) {
@@ -44,7 +44,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeProperty(
             std::move(tables), std::move(tableIDToColumns), std::move(prevOperator),
             getOperatorID(), scanProperty.getExpressionsForPrinting());
     } else {
-        auto tableID = node->getSingleTableID();
+        auto tableID = tableIDs[0];
         auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(tableID);
         std::vector<column_id_t> columnIDs;
         for (auto& expression : scanProperty.getProperties()) {

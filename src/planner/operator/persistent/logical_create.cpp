@@ -33,7 +33,7 @@ void LogicalCreateNode::computeFactorizedSchema() {
         for (auto& property : info->propertiesToReturn) {
             schema->insertToGroupAndScope(property, groupPos);
         }
-        schema->insertToGroupAndScopeMayRepeat(info->node->getInternalIDProperty(), groupPos);
+        schema->insertToGroupAndScopeMayRepeat(info->node->getInternalID(), groupPos);
     }
 }
 
@@ -43,7 +43,7 @@ void LogicalCreateNode::computeFlatSchema() {
         for (auto& property : info->propertiesToReturn) {
             schema->insertToGroupAndScope(property, 0);
         }
-        schema->insertToGroupAndScopeMayRepeat(info->node->getInternalIDProperty(), 0);
+        schema->insertToGroupAndScopeMayRepeat(info->node->getInternalID(), 0);
     }
 }
 

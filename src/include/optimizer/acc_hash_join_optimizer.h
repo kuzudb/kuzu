@@ -30,7 +30,7 @@ private:
         const binder::Expression& nodeID, planner::LogicalOperator* root);
     // Find all ScanNodeIDs under root which scans parameter nodeID. Note that there might be
     // multiple ScanNodeIDs matches because both node and rel table scans will trigger scanNodeIDs.
-    std::vector<planner::LogicalOperator*> resolveScanNodeIDsToApplySemiMask(
+    std::vector<planner::LogicalOperator*> resolveScanInternalIDsToApplySemiMask(
         const binder::Expression& nodeID, planner::LogicalOperator* root);
     // Find all ShortestPathExtend under root which extend to parameter nodeID. There will be at
     // most one match because rel table is scanned exactly once.

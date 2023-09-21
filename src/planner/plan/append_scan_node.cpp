@@ -1,33 +1,39 @@
-#include "planner/operator/scan/logical_scan_node.h"
+#include "planner/operator/scan/logical_scan_internal_id.h"
 #include "planner/operator/scan/logical_scan_node_property.h"
 #include "planner/query_planner.h"
+
+using namespace kuzu::common;
+using namespace kuzu::binder;
 
 namespace kuzu {
 namespace planner {
 
-void QueryPlanner::appendScanNodeID(std::shared_ptr<NodeExpression>& node, LogicalPlan& plan) {
+void QueryPlanner::appendScanInternalID(
+    std::shared_ptr<Expression> internalID, std::vector<table_id_t> tableIDs, LogicalPlan& plan) {
     assert(plan.isEmpty());
-    auto scan = make_shared<LogicalScanNode>(node);
+    auto scan = make_shared<LogicalScanInternalID>(std::move(internalID), std::move(tableIDs));
     scan->computeFactorizedSchema();
     // update cardinality
     plan.setCardinality(cardinalityEstimator->estimateScanNode(scan.get()));
     plan.setLastOperator(std::move(scan));
 }
 
-void QueryPlanner::appendScanNodeProperties(const expression_vector& propertyExpressions,
-    std::shared_ptr<NodeExpression> node, LogicalPlan& plan) {
-    expression_vector propertyExpressionToScan;
-    for (auto& propertyExpression : propertyExpressions) {
-        if (plan.getSchema()->isExpressionInScope(*propertyExpression)) {
+void QueryPlanner::appendScanNodeProperties(std::shared_ptr<Expression> nodeID,
+    std::vector<common::table_id_t> tableIDs, const expression_vector& properties,
+    LogicalPlan& plan) {
+    expression_vector propertiesToScan_;
+    for (auto& property : properties) {
+        if (((PropertyExpression&)*property).isInternalID()) {
             continue;
         }
-        propertyExpressionToScan.push_back(propertyExpression);
+        assert(!plan.getSchema()->isExpressionInScope(*property));
+        propertiesToScan_.push_back(property);
     }
-    if (propertyExpressionToScan.empty()) { // all properties have been scanned before
+    if (propertiesToScan_.empty()) {
         return;
     }
     auto scanNodeProperty = make_shared<LogicalScanNodeProperty>(
-        std::move(node), std::move(propertyExpressionToScan), plan.getLastOperator());
+        std::move(nodeID), std::move(tableIDs), propertiesToScan_, plan.getLastOperator());
     scanNodeProperty->computeFactorizedSchema();
     plan.setLastOperator(std::move(scanNodeProperty));
 }

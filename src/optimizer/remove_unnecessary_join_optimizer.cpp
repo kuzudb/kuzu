@@ -35,11 +35,11 @@ std::shared_ptr<planner::LogicalOperator> RemoveUnnecessaryJoinOptimizer::visitH
     default:
         break;
     }
-    if (op->getChild(1)->getOperatorType() == LogicalOperatorType::SCAN_NODE) {
+    if (op->getChild(1)->getOperatorType() == LogicalOperatorType::SCAN_INTERNAL_ID) {
         // Build side is trivial. Prune build side.
         return op->getChild(0);
     }
-    if (op->getChild(0)->getOperatorType() == LogicalOperatorType::SCAN_NODE) {
+    if (op->getChild(0)->getOperatorType() == LogicalOperatorType::SCAN_INTERNAL_ID) {
         // Probe side is trivial. Prune probe side.
         return op->getChild(1);
     }

@@ -55,7 +55,7 @@ expression_vector ExpressionChildrenCollector::collectExistentialSubqueryChildre
     expression_vector result;
     auto& subqueryExpression = (ExistentialSubqueryExpression&)expression;
     for (auto& node : subqueryExpression.getQueryGraphCollection()->getQueryNodes()) {
-        result.push_back(node->getInternalIDProperty());
+        result.push_back(node->getInternalID());
     }
     if (subqueryExpression.hasWhereExpression()) {
         result.push_back(subqueryExpression.getWhereExpression());
@@ -69,15 +69,15 @@ expression_vector ExpressionChildrenCollector::collectNodeChildren(const Express
     for (auto& property : node.getPropertyExpressions()) {
         result.push_back(property->copy());
     }
-    result.push_back(node.getInternalIDProperty());
+    result.push_back(node.getInternalID());
     return result;
 }
 
 expression_vector ExpressionChildrenCollector::collectRelChildren(const Expression& expression) {
     expression_vector result;
     auto& rel = (RelExpression&)expression;
-    result.push_back(rel.getSrcNode()->getInternalIDProperty());
-    result.push_back(rel.getDstNode()->getInternalIDProperty());
+    result.push_back(rel.getSrcNode()->getInternalID());
+    result.push_back(rel.getDstNode()->getInternalID());
     for (auto& property : rel.getPropertyExpressions()) {
         result.push_back(property->copy());
     }

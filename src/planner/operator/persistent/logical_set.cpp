@@ -39,8 +39,8 @@ f_group_pos_set LogicalSetRelProperty::getGroupsPosToFlatten(uint32_t idx) {
     auto rel = reinterpret_cast<RelExpression*>(infos[idx]->nodeOrRel.get());
     auto rhs = infos[idx]->setItem.second;
     auto childSchema = children[0]->getSchema();
-    result.insert(childSchema->getGroupPos(*rel->getSrcNode()->getInternalIDProperty()));
-    result.insert(childSchema->getGroupPos(*rel->getDstNode()->getInternalIDProperty()));
+    result.insert(childSchema->getGroupPos(*rel->getSrcNode()->getInternalID()));
+    result.insert(childSchema->getGroupPos(*rel->getDstNode()->getInternalID()));
     for (auto groupPos : childSchema->getDependentGroupsPos(rhs)) {
         result.insert(groupPos);
     }

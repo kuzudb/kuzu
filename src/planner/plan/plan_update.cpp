@@ -70,7 +70,7 @@ void QueryPlanner::planMergeClause(binder::BoundUpdatingClause& updatingClause, 
     switch (createInfo->updateTableType) {
     case binder::UpdateTableType::NODE: {
         auto node = (NodeExpression*)createInfo->nodeOrRel.get();
-        mark = node->getInternalIDProperty();
+        mark = node->getInternalID();
     } break;
     case binder::UpdateTableType::REL: {
         auto rel = (RelExpression*)createInfo->nodeOrRel.get();

@@ -7,7 +7,7 @@
 
 -LOG AspBasic
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.age > 35 RETURN b.fName
--ENCODED_JOIN HJ(b._ID){E(b)S(a)}{S(b)}
+-ENCODED_JOIN HJ(b._ID){E(b)S(a._ID)}{S(b._ID)}
 ---- 3
 Alice
 Bob
@@ -15,7 +15,7 @@ Dan
 
 -LOG AspMultiLabel
 -STATEMENT MATCH (a:person)-[e1:knows|:studyAt|:workAt]->(b:person:organisation) WHERE a.age > 35 RETURN b.fName, b.name
--ENCODED_JOIN HJ(b._ID){E(b)S(a)}{S(b)}
+-ENCODED_JOIN HJ(b._ID){E(b)S(a._ID)}{S(b._ID)}
 ---- 4
 Alice|
 Bob|
@@ -24,7 +24,7 @@ Dan|
 
 -LOG AspMultiKey
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person), (a)-[e3:knows]->(c) WHERE a.fName='Alice' RETURN b.fName, c.fName
-#-ENCODED_JOIN HJ(c._id,b._id){E(b)E(c)S(a)}{HJ(b._id){S(b)}{E(b)S(c)}}
+#-ENCODED_JOIN HJ(c._ID,b._ID){E(b)E(c)S(a._ID)}{HJ(b._id){S(b._ID)}{E(b)S(c._ID)}}
 -ENUMERATE
 ---- 6
 Bob|Carol
@@ -36,7 +36,7 @@ Dan|Carol
 
 -LOG AspMultiMaskToOneScan
 -STATEMENT MATCH (a:person)<-[e1:knows]-(b:person)-[e2:knows]->(c:person) WHERE a.fName='Alice' AND c.fName='Bob' RETURN b.fName
-#-ENCODED_JOIN HJ(b._id){E(b)S(a)}{HJ(b._id){E(b)S(c)}{S(b)}}
+#-ENCODED_JOIN HJ(b._ID){E(b)S(a._ID)}{HJ(b._ID){E(b)S(c._ID)}{S(b._ID)}}
 -ENUMERATE
 ---- 2
 Carol

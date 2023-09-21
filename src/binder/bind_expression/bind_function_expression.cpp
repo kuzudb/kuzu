@@ -177,7 +177,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(
     std::shared_ptr<Expression> expression) {
     if (ExpressionUtil::isNodeVariable(*expression)) {
         auto& node = (NodeExpression&)*expression;
-        return node.getInternalIDProperty();
+        return node.getInternalID();
     }
     if (ExpressionUtil::isRelVariable(*expression)) {
         return bindRelPropertyExpression(*expression, InternalKeyword::ID);
@@ -225,7 +225,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
                 std::make_unique<Value>(LogicalType{LogicalTypeID::STRING}, labelName));
         }
         auto nodeTableIDs = catalogContent->getNodeTableIDs();
-        children.push_back(node.getInternalIDProperty());
+        children.push_back(node.getInternalID());
         auto labelsValue =
             std::make_unique<Value>(*listType, populateLabelValues(nodeTableIDs, *catalogContent));
         children.push_back(createLiteralExpression(std::move(labelsValue)));

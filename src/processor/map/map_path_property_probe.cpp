@@ -48,7 +48,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
     // Map build node property
     auto nodeBuildPrevOperator = mapOperator(logicalProbe->getChild(1).get());
     auto nodeBuildSchema = logicalProbe->getChild(1)->getSchema();
-    auto nodeKeys = expression_vector{recursiveInfo->node->getInternalIDProperty()};
+    auto nodeKeys = expression_vector{recursiveInfo->node->getInternalID()};
     auto nodeKeyTypes = ExpressionUtil::getDataTypes(nodeKeys);
     auto nodePayloads =
         ExpressionUtil::excludeExpressions(nodeBuildSchema->getExpressionsInScope(), nodeKeys);

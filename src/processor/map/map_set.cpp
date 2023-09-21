@@ -14,7 +14,7 @@ namespace processor {
 std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(storage::NodesStore* store,
     planner::LogicalSetPropertyInfo* info, const planner::Schema& inSchema) {
     auto node = (NodeExpression*)info->nodeOrRel.get();
-    auto nodeIDPos = DataPos(inSchema.getExpressionPos(*node->getInternalIDProperty()));
+    auto nodeIDPos = DataPos(inSchema.getExpressionPos(*node->getInternalID()));
     auto property = (PropertyExpression*)info->setItem.first.get();
     auto propertyPos = DataPos(INVALID_DATA_CHUNK_POS, INVALID_VALUE_VECTOR_POS);
     if (inSchema.isExpressionInScope(*property)) {
@@ -61,10 +61,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSetNodeProperty(LogicalOperator
 std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(storage::RelsStore* store,
     planner::LogicalSetPropertyInfo* info, const planner::Schema& inSchema) {
     auto rel = (RelExpression*)info->nodeOrRel.get();
-    auto srcNodePos =
-        DataPos(inSchema.getExpressionPos(*rel->getSrcNode()->getInternalIDProperty()));
-    auto dstNodePos =
-        DataPos(inSchema.getExpressionPos(*rel->getDstNode()->getInternalIDProperty()));
+    auto srcNodePos = DataPos(inSchema.getExpressionPos(*rel->getSrcNode()->getInternalID()));
+    auto dstNodePos = DataPos(inSchema.getExpressionPos(*rel->getDstNode()->getInternalID()));
     auto relIDPos = DataPos(inSchema.getExpressionPos(*rel->getInternalIDProperty()));
     auto property = (PropertyExpression*)info->setItem.first.get();
     auto propertyPos = DataPos(INVALID_DATA_CHUNK_POS, INVALID_VALUE_VECTOR_POS);

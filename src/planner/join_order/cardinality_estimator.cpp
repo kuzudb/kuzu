@@ -2,7 +2,7 @@
 
 #include "planner/join_order/join_order_util.h"
 #include "planner/operator/extend/logical_extend.h"
-#include "planner/operator/scan/logical_scan_node.h"
+#include "planner/operator/scan/logical_scan_internal_id.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -23,8 +23,8 @@ void CardinalityEstimator::initNodeIDDom(QueryGraph* queryGraph) {
 }
 
 uint64_t CardinalityEstimator::estimateScanNode(LogicalOperator* op) {
-    auto scanNode = (LogicalScanNode*)op;
-    return atLeastOne(getNodeIDDom(scanNode->getNode()->getInternalIDPropertyName()));
+    auto scan = reinterpret_cast<LogicalScanInternalID*>(op);
+    return atLeastOne(getNodeIDDom(scan->getInternalID()->getUniqueName()));
 }
 
 uint64_t CardinalityEstimator::estimateHashJoin(

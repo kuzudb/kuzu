@@ -7,7 +7,7 @@
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/scan/logical_dummy_scan.h"
 #include "planner/operator/scan/logical_index_scan.h"
-#include "planner/operator/scan/logical_scan_node.h"
+#include "planner/operator/scan/logical_scan_internal_id.h"
 #include "planner/operator/scan/logical_scan_node_property.h"
 
 using namespace kuzu::binder;
@@ -85,10 +85,13 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitCrossProductRepla
 
 std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::visitScanNodePropertyReplace(
     std::shared_ptr<planner::LogicalOperator> op) {
-    auto scanNodeProperty = (LogicalScanNodeProperty*)op.get();
-    assert(scanNodeProperty->getChild(0)->getOperatorType() == LogicalOperatorType::SCAN_NODE);
-    auto node = ((LogicalScanNode&)*scanNodeProperty->getChild(0)).getNode();
-    auto primaryKeyEqualityComparison = predicateSet->popNodePKEqualityComparison(*node);
+    auto scan = (LogicalScanNodeProperty*)op.get();
+    auto nodeID = scan->getNodeID();
+    auto tableIDs = scan->getTableIDs();
+    std::shared_ptr<Expression> primaryKeyEqualityComparison = nullptr;
+    if (tableIDs.size() == 1) {
+        primaryKeyEqualityComparison = predicateSet->popNodePKEqualityComparison(*nodeID);
+    }
     if (primaryKeyEqualityComparison != nullptr) { // Try rewrite index scan
         auto rhs = primaryKeyEqualityComparison->getChild(1);
         if (rhs->expressionType == ExpressionType::LITERAL) {
@@ -96,8 +99,9 @@ std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::visitScanNode
             auto expressionsScan = std::make_shared<LogicalDummyScan>();
             expressionsScan->computeFlatSchema();
             std::vector<std::unique_ptr<LogicalIndexScanNodeInfo>> infos;
-            infos.push_back(std::make_unique<LogicalIndexScanNodeInfo>(node->getSingleTableID(),
-                node->getInternalIDProperty(), rhs, rhs->getDataType().copy()));
+            assert(tableIDs.size() == 1);
+            infos.push_back(std::make_unique<LogicalIndexScanNodeInfo>(
+                tableIDs[0], nodeID, rhs, rhs->getDataType().copy()));
             auto indexScan = std::make_shared<LogicalIndexScanNode>(
                 std::move(infos), std::move(expressionsScan));
             indexScan->computeFlatSchema();
@@ -108,26 +112,27 @@ std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::visitScanNode
         }
     }
     // Perform filter push down.
-    auto currentRoot = scanNodeProperty->getChild(0);
+    auto currentRoot = scan->getChild(0);
     for (auto& predicate : predicateSet->equalityPredicates) {
-        currentRoot = pushDownToScanNode(node, predicate, currentRoot);
+        currentRoot = pushDownToScanNode(nodeID, tableIDs, predicate, currentRoot);
     }
     for (auto& predicate : predicateSet->nonEqualityPredicates) {
-        currentRoot = pushDownToScanNode(node, predicate, currentRoot);
+        currentRoot = pushDownToScanNode(nodeID, tableIDs, predicate, currentRoot);
     }
     // Scan remaining properties.
     expression_vector properties;
-    for (auto& property : scanNodeProperty->getProperties()) {
+    for (auto& property : scan->getProperties()) {
         if (currentRoot->getSchema()->isExpressionInScope(*property)) {
             continue;
         }
         properties.push_back(property);
     }
-    return appendScanNodeProperty(node, properties, currentRoot);
+    return appendScanNodeProperty(nodeID, tableIDs, properties, currentRoot);
 }
 
 std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::pushDownToScanNode(
-    std::shared_ptr<binder::NodeExpression> node, std::shared_ptr<binder::Expression> predicate,
+    std::shared_ptr<binder::Expression> nodeID, std::vector<common::table_id_t> tableIDs,
+    std::shared_ptr<binder::Expression> predicate,
     std::shared_ptr<planner::LogicalOperator> child) {
     binder::expression_set propertiesSet;
     auto expressionCollector = std::make_unique<ExpressionCollector>();
@@ -137,10 +142,11 @@ std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::pushDownToSca
             // Property already matched
             continue;
         }
-        assert(propertyExpression->getVariableName() == node->getUniqueName());
+        assert(propertyExpression->getVariableName() ==
+               ((PropertyExpression&)*nodeID).getVariableName());
         propertiesSet.insert(expression);
     }
-    auto scanNodeProperty = appendScanNodeProperty(std::move(node),
+    auto scanNodeProperty = appendScanNodeProperty(std::move(nodeID), std::move(tableIDs),
         expression_vector{propertiesSet.begin(), propertiesSet.end()}, std::move(child));
     return appendFilter(std::move(predicate), scanNodeProperty);
 }
@@ -162,13 +168,13 @@ std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::finishPushDow
 }
 
 std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::appendScanNodeProperty(
-    std::shared_ptr<binder::NodeExpression> node, binder::expression_vector properties,
-    std::shared_ptr<planner::LogicalOperator> child) {
+    std::shared_ptr<binder::Expression> nodeID, std::vector<common::table_id_t> nodeTableIDs,
+    binder::expression_vector properties, std::shared_ptr<planner::LogicalOperator> child) {
     if (properties.empty()) {
         return child;
     }
     auto scanNodeProperty = std::make_shared<LogicalScanNodeProperty>(
-        std::move(node), std::move(properties), std::move(child));
+        std::move(nodeID), std::move(nodeTableIDs), std::move(properties), std::move(child));
     scanNodeProperty->computeFlatSchema();
     return scanNodeProperty;
 }
@@ -190,13 +196,13 @@ void FilterPushDownOptimizer::PredicateSet::addPredicate(
     }
 }
 
-static bool isNodePrimaryKey(const Expression& expression, const NodeExpression& node) {
+static bool isNodePrimaryKey(const Expression& expression, const Expression& nodeID) {
     if (expression.expressionType != ExpressionType::PROPERTY) {
         // not property
         return false;
     }
     auto& propertyExpression = (PropertyExpression&)expression;
-    if (propertyExpression.getVariableName() != node.getUniqueName()) {
+    if (propertyExpression.getVariableName() != ((PropertyExpression&)nodeID).getVariableName()) {
         // not property for node
         return false;
     }
@@ -205,18 +211,15 @@ static bool isNodePrimaryKey(const Expression& expression, const NodeExpression&
 
 std::shared_ptr<binder::Expression>
 FilterPushDownOptimizer::PredicateSet::popNodePKEqualityComparison(
-    const binder::NodeExpression& node) {
-    if (node.isMultiLabeled()) { // Multi-labeled node scan can not be converted to index scan.
-        return nullptr;
-    }
+    const binder::Expression& nodeID) {
     // We pop when the first primary key equality comparison is found.
     auto resultPredicateIdx = INVALID_VECTOR_IDX;
     for (auto i = 0u; i < equalityPredicates.size(); ++i) {
         auto predicate = equalityPredicates[i];
-        if (isNodePrimaryKey(*predicate->getChild(0), node)) {
+        if (isNodePrimaryKey(*predicate->getChild(0), nodeID)) {
             resultPredicateIdx = i;
             break;
-        } else if (isNodePrimaryKey(*predicate->getChild(1), node)) {
+        } else if (isNodePrimaryKey(*predicate->getChild(1), nodeID)) {
             // Normalize primary key to LHS.
             auto leftChild = predicate->getChild(0);
             auto rightChild = predicate->getChild(1);
