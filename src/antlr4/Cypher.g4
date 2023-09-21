@@ -251,7 +251,13 @@ oC_ReadingClause
     : oC_Match
         | oC_Unwind
         | kU_InQueryCall
+        | kU_LoadFrom
         ;
+
+kU_LoadFrom
+    :  LOAD SP FROM SP kU_FilePaths ( SP? '(' SP? kU_ParsingOptions SP? ')' )? ;
+
+LOAD : ( 'L' | 'l' ) ( 'O' | 'o' ) ( 'A' | 'a' ) ( 'D' | 'd' )  ;
 
 kU_InQueryCall
     : CALL SP oC_FunctionName SP? '(' oC_Literal* ')' ;

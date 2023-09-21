@@ -58,10 +58,9 @@ private:
         CypherParser::OC_ReadingClauseContext& ctx);
 
     std::unique_ptr<ReadingClause> transformMatch(CypherParser::OC_MatchContext& ctx);
-
     std::unique_ptr<ReadingClause> transformUnwind(CypherParser::OC_UnwindContext& ctx);
-
     std::unique_ptr<ReadingClause> transformInQueryCall(CypherParser::KU_InQueryCallContext& ctx);
+    std::unique_ptr<ReadingClause> transformLoadFrom(CypherParser::KU_LoadFromContext& ctx);
 
     std::unique_ptr<UpdatingClause> transformCreate(CypherParser::OC_CreateContext& ctx);
 

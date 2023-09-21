@@ -9,17 +9,16 @@ namespace processor {
 struct ReaderInfo {
     DataPos nodeOffsetPos;
     std::vector<DataPos> dataColumnsPos;
-    bool containsSerial;
 
     common::TableType tableType;
 
     ReaderInfo(const DataPos& nodeOffsetPos, std::vector<DataPos> dataColumnsPos,
-        bool containsSerial, common::TableType tableType)
-        : nodeOffsetPos{nodeOffsetPos}, dataColumnsPos{std::move(dataColumnsPos)},
-          containsSerial{containsSerial}, tableType{tableType} {}
+        common::TableType tableType)
+        : nodeOffsetPos{nodeOffsetPos}, dataColumnsPos{std::move(dataColumnsPos)}, tableType{
+                                                                                       tableType} {}
     ReaderInfo(const ReaderInfo& other)
-        : nodeOffsetPos{other.nodeOffsetPos}, dataColumnsPos{other.dataColumnsPos},
-          containsSerial{other.containsSerial}, tableType{other.tableType} {}
+        : nodeOffsetPos{other.nodeOffsetPos},
+          dataColumnsPos{other.dataColumnsPos}, tableType{other.tableType} {}
 
     inline uint32_t getNumColumns() const { return dataColumnsPos.size(); }
 
@@ -36,8 +35,7 @@ public:
 
     inline bool isSource() const final { return true; }
     inline bool canParallel() const final {
-        return !info->containsSerial &&
-               sharedState->readerConfig->fileType != common::FileType::TURTLE;
+        return sharedState->readerConfig->fileType != common::FileType::TURTLE;
     }
 
     void initGlobalStateInternal(ExecutionContext* context) final;
