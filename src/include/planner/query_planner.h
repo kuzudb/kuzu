@@ -175,6 +175,8 @@ private:
     void appendExpressionsScan(const expression_vector& expressions, LogicalPlan& plan);
     void appendScanInternalID(std::shared_ptr<Expression> internalID,
         std::vector<common::table_id_t> tableIDs, LogicalPlan& plan);
+    void appendFillTableID(
+        std::shared_ptr<Expression> internalID, common::table_id_t tableID, LogicalPlan& plan);
     void appendScanNodeProperties(std::shared_ptr<Expression> nodeID,
         std::vector<common::table_id_t> tableIDs, const expression_vector& properties,
         LogicalPlan& plan);

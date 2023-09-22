@@ -74,6 +74,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::FACTORIZED_TABLE_SCAN: {
         return "FACTORIZED_TABLE_SCAN";
     }
+    case PhysicalOperatorType::FILL_TABLE_ID: {
+        return "FILL_TABLE_ID";
+    }
     case PhysicalOperatorType::FILTER: {
         return "FILTER";
     }

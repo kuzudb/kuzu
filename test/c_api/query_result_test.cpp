@@ -25,7 +25,7 @@ TEST_F(CApiQueryResultTest, GetErrorMessage) {
     ASSERT_FALSE(kuzu_query_result_is_success(result));
     errorMessage = kuzu_query_result_get_error_message(result);
     ASSERT_NE(errorMessage, nullptr);
-    ASSERT_EQ(std::string(errorMessage), "Binder exception: Node table personnnn does not exist.");
+    ASSERT_EQ(std::string(errorMessage), "Binder exception: Table personnnn does not exist.");
     kuzu_query_result_destroy(result);
     free(errorMessage);
 }

@@ -14,7 +14,10 @@ public:
         const storage::RelsStoreStats& relsStatistics)
         : nodesStatistics{nodesStatistics}, relsStatistics{relsStatistics} {}
 
+    // TODO(Xiyang): revisit this init at some point. Maybe we should init while enumerating.
     void initNodeIDDom(binder::QueryGraph* queryGraph);
+    void addNodeIDDom(
+        const binder::Expression& nodeID, const std::vector<common::table_id_t>& tableIDs);
 
     uint64_t estimateScanNode(LogicalOperator* op);
     uint64_t estimateHashJoin(const binder::expression_vector& joinKeys,
@@ -31,19 +34,13 @@ public:
 private:
     inline uint64_t atLeastOne(uint64_t x) { return x == 0 ? 1 : x; }
 
-    inline void addNodeIDDom(const binder::NodeExpression& node) {
-        auto key = node.getInternalID()->getUniqueName();
-        if (!nodeIDName2dom.contains(key)) {
-            nodeIDName2dom.insert({key, getNumNodes(node)});
-        }
-    }
     inline uint64_t getNodeIDDom(const std::string& nodeIDName) {
         assert(nodeIDName2dom.contains(nodeIDName));
         return nodeIDName2dom.at(nodeIDName);
     }
-    uint64_t getNumNodes(const binder::NodeExpression& node);
+    uint64_t getNumNodes(const std::vector<common::table_id_t>& tableIDs);
 
-    uint64_t getNumRels(const binder::RelExpression& rel);
+    uint64_t getNumRels(const std::vector<common::table_id_t>& tableIDs);
 
 private:
     const storage::NodesStoreStatsAndDeletedIDs& nodesStatistics;

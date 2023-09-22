@@ -42,7 +42,7 @@ struct TestGroup {
         common::DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEAVE_IN_MICROS;
     std::unordered_map<std::string, std::set<std::string>> testCasesConnNames;
 
-    enum class DatasetType { CSV, PARQUET, NPY, CSV_TO_PARQUET };
+    enum class DatasetType { CSV, PARQUET, NPY, CSV_TO_PARQUET, TURTLE };
     DatasetType datasetType;
 
     bool isValid() const { return !group.empty() && !dataset.empty(); }

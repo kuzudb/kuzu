@@ -35,7 +35,7 @@ public class PreparedStatementTest extends TestBase {
         KuzuPreparedStatement preparedStatement2 = conn.prepare(query);
         assertNotNull(preparedStatement2);
         message = preparedStatement2.getErrorMessage();
-        assertTrue(message.equals("Binder exception: Node table personnnn does not exist."));
+        assertTrue(message.equals("Binder exception: Table personnnn does not exist."));
         preparedStatement2.destroy();
     }
 

@@ -7,12 +7,12 @@
 -CASE CopyRDFTest
 
 -LOG CountRDFNodeTable
--STATEMENT MATCH (s:taxonomy_RESOURCE) RETURN COUNT(s._IRI)
+-STATEMENT MATCH (s:taxonomy) RETURN COUNT(s.IRI)
 ---- 1
 1138397
 
 -LOG QueryRDFNodeTable
--STATEMENT MATCH (s:taxonomy_RESOURCE) RETURN s._IRI ORDER BY s._IRI LIMIT 5
+-STATEMENT MATCH (s:taxonomy) RETURN s.IRI ORDER BY s.IRI LIMIT 5
 ---- 5
 http://dbpedia.org/class/yago/'hood108641944
 http://dbpedia.org/class/yago/14July115200493
@@ -21,7 +21,7 @@ http://dbpedia.org/class/yago/16PF106475933
 http://dbpedia.org/class/yago/1750s115149933
 
 -LOG QueryRDFRelTable
--STATEMENT MATCH (s:taxonomy_RESOURCE)-[p:taxonomy_TRIPLES]->(o:taxonomy_RESOURCE) RETURN s._IRI, o._IRI ORDER BY s._IRI LIMIT 2
+-STATEMENT MATCH (s:taxonomy)-[p:taxonomy]->(o:taxonomy) RETURN s.IRI, o.IRI ORDER BY s.IRI LIMIT 2
 ---- 2
 http://dbpedia.org/class/yago/'hood108641944|http://dbpedia.org/class/yago/Vicinity108641113
 http://dbpedia.org/class/yago/14July115200493|http://dbpedia.org/class/yago/LegalHoliday115199592

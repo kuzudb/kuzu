@@ -99,7 +99,7 @@ def test_error(establish_connection):
         "MATCH (d:dog) WHERE d.isServiceDog = $1 RETURN COUNT(*)")
     assert not prepared_statement.is_success()
     assert prepared_statement.get_error_message(
-    ) == "Binder exception: Node table dog does not exist."
+    ) == "Binder exception: Table dog does not exist."
 
     prepared_statement = establish_connection[0].prepare(
         "SELECT * FROM person")

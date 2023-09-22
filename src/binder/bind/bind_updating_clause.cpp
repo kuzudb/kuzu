@@ -132,7 +132,7 @@ std::unique_ptr<BoundCreateInfo> Binder::bindCreateNodeInfo(
     auto primaryKey = nodeTableSchema->getPrimaryKey();
     std::shared_ptr<Expression> primaryKeyExpression;
     std::vector<expression_pair> setItems;
-    for (auto& property : catalog.getReadOnlyVersion()->getProperties(nodeTableID)) {
+    for (auto& property : nodeTableSchema->getProperties()) {
         if (collection.hasKeyVal(node, property->getName())) {
             setItems.emplace_back(collection.getKeyVal(node, property->getName()));
         } else {
@@ -168,10 +168,11 @@ std::unique_ptr<BoundCreateInfo> Binder::bindCreateRelInfo(
     }
     auto relTableID = rel->getSingleTableID();
     auto catalogContent = catalog.getReadOnlyVersion();
+    auto tableSchema = catalogContent->getTableSchema(relTableID);
     // CreateRel requires all properties in schema as input. So we rewrite set property to
     // null if user does not specify a property in the query.
     std::vector<expression_pair> setItems;
-    for (auto& property : catalogContent->getProperties(relTableID)) {
+    for (auto& property : tableSchema->getProperties()) {
         if (collection.hasKeyVal(rel, property->getName())) {
             setItems.push_back(collection.getKeyVal(rel, property->getName()));
         } else {

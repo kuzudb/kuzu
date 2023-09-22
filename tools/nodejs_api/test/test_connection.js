@@ -39,7 +39,7 @@ describe("Prepare", function () {
     assert.isFalse(preparedStatement.isSuccess());
     assert.equal(
       preparedStatement.getErrorMessage(),
-      "Binder exception: Node table dog does not exist."
+      "Binder exception: Table dog does not exist."
     );
   });
 
@@ -91,7 +91,7 @@ describe("Execute", function () {
     } catch (e) {
       assert.equal(
         e.message,
-        "Binder exception: Node table dog does not exist."
+        "Binder exception: Table dog does not exist."
       );
     }
   });
@@ -187,7 +187,7 @@ describe("Query", function () {
     } catch (e) {
       assert.equal(
         e.message,
-        "Binder exception: Node table dog does not exist."
+        "Binder exception: Table dog does not exist."
       );
     }
   });

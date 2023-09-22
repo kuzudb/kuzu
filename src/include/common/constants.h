@@ -38,6 +38,13 @@ struct InternalKeyword {
     static constexpr char MAP_VALUE[] = "VALUE";
 };
 
+struct RDFKeyword {
+    static constexpr char IRI[] = "IRI";
+    static constexpr char PREDICT_ID[] = "PREDICT_ID";
+    static constexpr char NODE_TABLE_SUFFIX[] = "_RESOURCE";
+    static constexpr char REL_TABLE_SUFFIX[] = "_TRIPLES";
+};
+
 enum PageSizeClass : uint8_t {
     PAGE_4KB = 0,
     PAGE_256KB = 1,

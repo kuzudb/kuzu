@@ -22,6 +22,7 @@ add_library(kuzu_processor_mapper
         map_expressions_scan.cpp
         map_dummy_scan.cpp
         map_extend.cpp
+        map_fill_table_id.cpp
         map_filter.cpp
         map_flatten.cpp
         map_hash_join.cpp

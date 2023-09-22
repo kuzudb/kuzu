@@ -12,13 +12,23 @@ namespace planner {
 
 void CardinalityEstimator::initNodeIDDom(QueryGraph* queryGraph) {
     for (auto i = 0u; i < queryGraph->getNumQueryNodes(); ++i) {
-        addNodeIDDom(*queryGraph->getQueryNode(i));
+        auto node = queryGraph->getQueryNode(i).get();
+        addNodeIDDom(*node->getInternalID(), node->getTableIDs());
     }
     for (auto i = 0u; i < queryGraph->getNumQueryRels(); ++i) {
         auto rel = queryGraph->getQueryRel(i);
         if (QueryRelTypeUtils::isRecursive(rel->getRelType())) {
-            addNodeIDDom(*rel->getRecursiveInfo()->node);
+            auto node = rel->getRecursiveInfo()->node.get();
+            addNodeIDDom(*node->getInternalID(), node->getTableIDs());
         }
+    }
+}
+
+void CardinalityEstimator::addNodeIDDom(
+    const binder::Expression& nodeID, const std::vector<common::table_id_t>& tableIDs) {
+    auto key = nodeID.getUniqueName();
+    if (!nodeIDName2dom.contains(key)) {
+        nodeIDName2dom.insert({key, getNumNodes(tableIDs)});
     }
 }
 
@@ -92,17 +102,17 @@ uint64_t CardinalityEstimator::estimateFilter(
     }
 }
 
-uint64_t CardinalityEstimator::getNumNodes(const NodeExpression& node) {
+uint64_t CardinalityEstimator::getNumNodes(const std::vector<common::table_id_t>& tableIDs) {
     auto numNodes = 0u;
-    for (auto& tableID : node.getTableIDs()) {
+    for (auto& tableID : tableIDs) {
         numNodes += nodesStatistics.getNodeStatisticsAndDeletedIDs(tableID)->getNumTuples();
     }
     return atLeastOne(numNodes);
 }
 
-uint64_t CardinalityEstimator::getNumRels(const RelExpression& rel) {
+uint64_t CardinalityEstimator::getNumRels(const std::vector<common::table_id_t>& tableIDs) {
     auto numRels = 0u;
-    for (auto tableID : rel.getTableIDs()) {
+    for (auto tableID : tableIDs) {
         numRels += relsStatistics.getRelStatistics(tableID)->getNumTuples();
     }
     return atLeastOne(numRels);
@@ -110,8 +120,8 @@ uint64_t CardinalityEstimator::getNumRels(const RelExpression& rel) {
 
 double CardinalityEstimator::getExtensionRate(
     const RelExpression& rel, const NodeExpression& boundNode) {
-    auto numBoundNodes = (double)getNumNodes(boundNode);
-    auto numRels = (double)getNumRels(rel);
+    auto numBoundNodes = (double)getNumNodes(boundNode.getTableIDs());
+    auto numRels = (double)getNumRels(rel.getTableIDs());
     auto oneHopExtensionRate = numRels / numBoundNodes;
     switch (rel.getRelType()) {
     case QueryRelType::NON_RECURSIVE: {

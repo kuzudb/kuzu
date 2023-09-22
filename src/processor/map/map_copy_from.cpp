@@ -76,6 +76,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRelColumnsOrLists(
         auto extraInfo = reinterpret_cast<ExtraBoundCopyRdfRelInfo*>(copyFromInfo->extraInfo.get());
         srcOffsetPos = DataPos{outFSchema->getExpressionPos(*extraInfo->subjectOffset)};
         dstOffsetPos = DataPos{outFSchema->getExpressionPos(*extraInfo->objectOffset)};
+        dataColumnPositions.emplace_back(srcOffsetPos);
+        dataColumnPositions.emplace_back(dstOffsetPos);
         dataColumnPositions.emplace_back(outFSchema->getExpressionPos(*extraInfo->predicateOffset));
     } else {
         auto extraInfo = reinterpret_cast<ExtraBoundCopyRelInfo*>(copyFromInfo->extraInfo.get());

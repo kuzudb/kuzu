@@ -39,7 +39,7 @@ public:
     }
 
     void validateDatabaseStateAfterCommitCreateNodeTable() {
-        ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"));
+        ASSERT_TRUE(catalog->getReadOnlyVersion()->containsNodeTable("EXAM_PAPER"));
         ASSERT_EQ(getStorageManager(*database)
                       ->getNodesStore()
                       .getNodesStatisticsAndDeletedIDs()
@@ -52,10 +52,10 @@ public:
     void createNodeTable(TransactionTestType transactionTestType) {
         executeQueryWithoutCommit(
             "CREATE NODE TABLE EXAM_PAPER(STUDENT_ID INT64, MARK DOUBLE, PRIMARY KEY(STUDENT_ID))");
-        ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"));
+        ASSERT_FALSE(catalog->getReadOnlyVersion()->containsNodeTable("EXAM_PAPER"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->query("COMMIT_SKIP_CHECKPOINT");
-            ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"));
+            ASSERT_FALSE(catalog->getReadOnlyVersion()->containsNodeTable("EXAM_PAPER"));
             ASSERT_EQ(getStorageManager(*database)
                           ->getNodesStore()
                           .getNodesStatisticsAndDeletedIDs()
@@ -69,17 +69,17 @@ public:
     }
 
     void validateDatabaseStateAfterCommitCreateRelTable() {
-        ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("likes"));
+        ASSERT_TRUE(catalog->getReadOnlyVersion()->containsRelTable("likes"));
         ASSERT_EQ(getStorageManager(*database)->getRelsStore().getNumRelTables(), 6);
     }
 
     void createRelTable(TransactionTestType transactionTestType) {
         executeQueryWithoutCommit(
             "CREATE REL TABLE likes(FROM person TO organisation, RATING INT64, MANY_ONE)");
-        ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("likes"));
+        ASSERT_FALSE(catalog->getReadOnlyVersion()->containsRelTable("likes"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->query("COMMIT_SKIP_CHECKPOINT");
-            ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("likes"));
+            ASSERT_FALSE(catalog->getReadOnlyVersion()->containsRelTable("likes"));
             ASSERT_EQ(getStorageManager(*database)->getRelsStore().getNumRelTables(), 5);
             initWithoutLoadingGraph();
         } else {
@@ -119,14 +119,14 @@ public:
         conn->query("CREATE (c:country{id: 0});");
         executeQueryWithoutCommit(
             "CREATE REL TABLE belongs(FROM person TO organisation, FROM organisation TO country);");
-        ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("belongs"));
+        ASSERT_FALSE(catalog->getReadOnlyVersion()->containsRelTable("belongs"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->query("COMMIT_SKIP_CHECKPOINT");
             initWithoutLoadingGraph();
-            ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("belongs"));
+            ASSERT_TRUE(catalog->getReadOnlyVersion()->containsRelTable("belongs"));
         } else {
             conn->query("COMMIT");
-            ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("belongs"));
+            ASSERT_TRUE(catalog->getReadOnlyVersion()->containsRelTable("belongs"));
         }
         auto relTableSchema = (RelTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(
             catalog->getReadOnlyVersion()->getTableID("belongs"));
@@ -152,17 +152,17 @@ public:
         auto nodeTableSchema = reinterpret_cast<NodeTableSchema*>(tableSchema.get());
         executeQueryWithoutCommit("DROP TABLE university");
         validateNodeColumnFilesExistence(nodeTableSchema, DBFileType::ORIGINAL, true);
-        ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("university"));
+        ASSERT_TRUE(catalog->getReadOnlyVersion()->containsNodeTable("university"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->query("COMMIT_SKIP_CHECKPOINT");
             validateNodeColumnFilesExistence(nodeTableSchema, DBFileType::ORIGINAL, true);
-            ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("university"));
+            ASSERT_TRUE(catalog->getReadOnlyVersion()->containsNodeTable("university"));
             initWithoutLoadingGraph();
         } else {
             conn->query("COMMIT");
         }
         validateNodeColumnFilesExistence(nodeTableSchema, DBFileType::ORIGINAL, false);
-        ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("university"));
+        ASSERT_FALSE(catalog->getReadOnlyVersion()->containsNodeTable("university"));
     }
 
     void dropRelTableCommitAndRecoveryTest(TransactionTestType transactionTestType) {
@@ -172,22 +172,22 @@ public:
         auto relTableSchema = reinterpret_cast<RelTableSchema*>(tableSchema.get());
         executeQueryWithoutCommit("DROP TABLE knows");
         validateRelColumnAndListFilesExistence(relTableSchema, DBFileType::ORIGINAL, true);
-        ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("knows"));
+        ASSERT_TRUE(catalog->getReadOnlyVersion()->containsRelTable("knows"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->query("COMMIT_SKIP_CHECKPOINT");
             validateRelColumnAndListFilesExistence(relTableSchema, DBFileType::ORIGINAL, true);
-            ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("knows"));
+            ASSERT_TRUE(catalog->getReadOnlyVersion()->containsRelTable("knows"));
             initWithoutLoadingGraph();
         } else {
             conn->query("COMMIT");
         }
         validateRelColumnAndListFilesExistence(relTableSchema, DBFileType::ORIGINAL, false);
-        ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("knows"));
+        ASSERT_FALSE(catalog->getReadOnlyVersion()->containsRelTable("knows"));
     }
 
     void dropNodeTableProperty(TransactionTestType transactionTestType) {
-        auto propertyToDrop =
-            catalog->getReadOnlyVersion()->getNodeProperty(personTableID, "gender");
+        auto personSchema = catalog->getReadOnlyVersion()->getTableSchema(personTableID);
+        auto propertyToDrop = personSchema->getProperty(personSchema->getPropertyID("gender"));
         auto propertyFileName = StorageUtils::getNodePropertyColumnFName(
             databasePath, personTableID, propertyToDrop->getPropertyID(), DBFileType::ORIGINAL);
         bool hasOverflowFile =
@@ -217,8 +217,8 @@ public:
     }
 
     void dropRelTableProperty(TransactionTestType transactionTestType) {
-        auto propertyToDrop =
-            catalog->getReadOnlyVersion()->getRelProperty(studyAtTableID, "places");
+        auto studyAtSchema = catalog->getReadOnlyVersion()->getTableSchema(studyAtTableID);
+        auto propertyToDrop = studyAtSchema->getProperty(studyAtSchema->getPropertyID("places"));
         // Note: studyAt is a MANY-ONE rel table. Properties are stored as columns in the fwd
         // direction and stored as lists in the bwd direction.
         auto propertyFWDColumnFileName =

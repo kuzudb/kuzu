@@ -112,37 +112,5 @@ std::shared_ptr<Expression> ExpressionBinder::bindStructPropertyExpression(
     return bindScalarFunctionExpression(children, STRUCT_EXTRACT_FUNC_NAME);
 }
 
-static void validatePropertiesWithSameDataType(const std::vector<Property*>& properties,
-    const LogicalType& dataType, const std::string& propertyName, const std::string& variableName) {
-    auto propertyLookup = variableName + "." + propertyName;
-    for (auto& property : properties) {
-        if (*property->getDataType() != dataType) {
-            throw BinderException(
-                StringUtils::string_format("Expect one data type for {} but find {} and {}",
-                    propertyLookup, LogicalTypeUtils::dataTypeToString(*property->getDataType()),
-                    LogicalTypeUtils::dataTypeToString(dataType)));
-        }
-    }
-}
-
-static std::unordered_map<table_id_t, property_id_t> populatePropertyIDPerTable(
-    const std::vector<Property*>& properties) {
-    std::unordered_map<table_id_t, property_id_t> propertyIDPerTable;
-    for (auto& property : properties) {
-        propertyIDPerTable.insert({property->getTableID(), property->getPropertyID()});
-    }
-    return propertyIDPerTable;
-}
-
-std::unique_ptr<Expression> ExpressionBinder::createPropertyExpression(
-    const Expression& nodeOrRel, const std::vector<Property*>& properties, bool isPrimaryKey) {
-    assert(!properties.empty());
-    auto anchorProperty = properties[0];
-    validatePropertiesWithSameDataType(properties, *anchorProperty->getDataType(),
-        anchorProperty->getName(), nodeOrRel.toString());
-    return make_unique<PropertyExpression>(*anchorProperty->getDataType(),
-        anchorProperty->getName(), nodeOrRel, populatePropertyIDPerTable(properties), isPrimaryKey);
-}
-
 } // namespace binder
 } // namespace kuzu

@@ -9,13 +9,13 @@ namespace binder {
 class PropertyExpression : public Expression {
 public:
     PropertyExpression(common::LogicalType dataType, const std::string& propertyName,
-        const Expression& nodeOrRel,
+        const std::string& uniqueVariableName, const std::string& rawVariableName,
         std::unordered_map<common::table_id_t, common::property_id_t> propertyIDPerTable,
         bool isPrimaryKey_)
         : Expression{common::PROPERTY, std::move(dataType),
-              nodeOrRel.getUniqueName() + "." + propertyName},
+              uniqueVariableName + "." + propertyName},
           isPrimaryKey_{isPrimaryKey_}, propertyName{propertyName},
-          uniqueVariableName{nodeOrRel.getUniqueName()}, rawVariableName{nodeOrRel.toString()},
+          uniqueVariableName{uniqueVariableName}, rawVariableName{rawVariableName},
           propertyIDPerTable{std::move(propertyIDPerTable)} {}
 
     PropertyExpression(const PropertyExpression& other)
@@ -39,6 +39,7 @@ public:
     }
 
     inline bool isInternalID() const { return getPropertyName() == common::InternalKeyword::ID; }
+    inline bool isIRI() const { return getPropertyName() == common::RDFKeyword::IRI; }
 
     inline std::unique_ptr<Expression> copy() const override {
         return make_unique<PropertyExpression>(*this);
