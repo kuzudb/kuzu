@@ -12,6 +12,7 @@ add_library(kuzu_storage_store
         struct_column_chunk.cpp
         struct_node_column.cpp
         table_copy_utils.cpp
+        table_data.cpp
         var_list_column_chunk.cpp
         var_list_node_column.cpp)
 
