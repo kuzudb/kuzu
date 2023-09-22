@@ -27,11 +27,11 @@ struct ScanRelTalePosInfo {
 struct RelTableScanInfo {
     storage::RelTableDataType relTableDataType;
     storage::DirectedRelTableData* tableData;
-    storage::RelStatistics* relStats;
+    storage::RelTableStats* relStats;
     std::vector<common::property_id_t> propertyIds;
 
     RelTableScanInfo(storage::RelTableDataType relTableDataType,
-        storage::DirectedRelTableData* tableData, storage::RelStatistics* relStats,
+        storage::DirectedRelTableData* tableData, storage::RelTableStats* relStats,
         std::vector<common::property_id_t> propertyIds)
         : relTableDataType{relTableDataType}, tableData{tableData}, relStats{relStats},
           propertyIds{std::move(propertyIds)} {}

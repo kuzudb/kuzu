@@ -1,11 +1,54 @@
 #include "storage/stats/table_statistics.h"
 
+#include "storage/stats/nodes_statistics_and_deleted_ids.h"
+#include "storage/stats/rels_statistics.h"
 #include "storage/storage_utils.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
+
+void TableStatistics::serialize(common::FileInfo* fileInfo, uint64_t& offset) {
+    SerDeser::serializeValue(tableType, fileInfo, offset);
+    SerDeser::serializeValue(numTuples, fileInfo, offset);
+    SerDeser::serializeValue(tableID, fileInfo, offset);
+    SerDeser::serializeUnorderedMap(propertyStatistics, fileInfo, offset);
+    serializeInternal(fileInfo, offset);
+}
+
+std::unique_ptr<TableStatistics> TableStatistics::deserialize(
+    common::FileInfo* fileInfo, uint64_t& offset) {
+    TableType tableType;
+    uint64_t numTuples;
+    table_id_t tableID;
+    std::unordered_map<property_id_t, std::unique_ptr<PropertyStatistics>> propertyStatistics;
+    SerDeser::deserializeValue(tableType, fileInfo, offset);
+    SerDeser::deserializeValue(numTuples, fileInfo, offset);
+    SerDeser::deserializeValue(tableID, fileInfo, offset);
+    SerDeser::deserializeUnorderedMap(propertyStatistics, fileInfo, offset);
+    std::unique_ptr<TableStatistics> result;
+    switch (tableType) {
+    case TableType::NODE: {
+        result = NodeTableStatsAndDeletedIDs::deserialize(tableID,
+            NodeTableStatsAndDeletedIDs::getMaxNodeOffsetFromNumTuples(numTuples), fileInfo,
+            offset);
+    } break;
+    case TableType::REL: {
+        result = RelTableStats::deserialize(numTuples, tableID, fileInfo, offset);
+    } break;
+    // LCOV_EXCL_START
+    default: {
+        throw NotImplementedException("TableStatistics::deserialize");
+    }
+        // LCOV_EXCL_STOP
+    }
+    result->tableType = tableType;
+    result->numTuples = numTuples;
+    result->tableID = tableID;
+    result->propertyStatistics = std::move(propertyStatistics);
+    return result;
+}
 
 TablesStatistics::TablesStatistics() {
     tablesStatisticsContentForReadOnlyTrx = std::make_unique<TablesStatisticsContent>();
@@ -19,27 +62,8 @@ void TablesStatistics::readFromFile(const std::string& directory, common::DBFile
     auto filePath = getTableStatisticsFilePath(directory, dbFileType);
     auto fileInfo = FileUtils::openFile(filePath, O_RDONLY);
     uint64_t offset = 0;
-    uint64_t numTables;
-    SerDeser::deserializeValue<uint64_t>(numTables, fileInfo.get(), offset);
-    for (auto i = 0u; i < numTables; i++) {
-        uint64_t numTuples;
-        SerDeser::deserializeValue<uint64_t>(numTuples, fileInfo.get(), offset);
-        table_id_t tableID;
-        SerDeser::deserializeValue<uint64_t>(tableID, fileInfo.get(), offset);
-
-        uint64_t numProperties;
-        SerDeser::deserializeValue<uint64_t>(numProperties, fileInfo.get(), offset);
-        std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>
-            propertyStats;
-        for (auto j = 0u; j < numProperties; j++) {
-            property_id_t propertyId;
-            SerDeser::deserializeValue(propertyId, fileInfo.get(), offset);
-            propertyStats[propertyId] = PropertyStatistics::deserialize(fileInfo.get(), offset);
-        }
-        tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable[tableID] =
-            deserializeTableStatistics(
-                numTuples, std::move(propertyStats), offset, fileInfo.get(), tableID);
-    }
+    SerDeser::deserializeUnorderedMap(
+        tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable, fileInfo.get(), offset);
 }
 
 void TablesStatistics::saveToFile(const std::string& directory, DBFileType dbFileType,
@@ -51,24 +75,8 @@ void TablesStatistics::saveToFile(const std::string& directory, DBFileType dbFil
                                         tablesStatisticsContentForWriteTrx == nullptr) ?
                                         tablesStatisticsContentForReadOnlyTrx :
                                         tablesStatisticsContentForWriteTrx;
-    SerDeser::serializeValue(
-        tablesStatisticsContent->tableStatisticPerTable.size(), fileInfo.get(), offset);
-    for (auto& tableStatistic : tablesStatisticsContent->tableStatisticPerTable) {
-        auto tableStatistics = tableStatistic.second.get();
-        SerDeser::serializeValue(tableStatistics->getNumTuples(), fileInfo.get(), offset);
-        SerDeser::serializeValue(tableStatistic.first, fileInfo.get(), offset);
-
-        SerDeser::serializeValue(
-            tableStatistics->getPropertyStatistics().size(), fileInfo.get(), offset);
-        for (auto& propertyPair : tableStatistics->getPropertyStatistics()) {
-            auto propertyId = propertyPair.first;
-            auto propertyStatistics = propertyPair.second.get();
-            SerDeser::serializeValue(propertyId, fileInfo.get(), offset);
-            propertyStatistics->serialize(fileInfo.get(), offset);
-        }
-
-        serializeTableStatistics(tableStatistics, offset, fileInfo.get());
-    }
+    SerDeser::serializeUnorderedMap(
+        tablesStatisticsContent->tableStatisticPerTable, fileInfo.get(), offset);
 }
 
 void TablesStatistics::initTableStatisticsForWriteTrx() {
@@ -84,6 +92,32 @@ void TablesStatistics::initTableStatisticsForWriteTrxNoLock() {
                 constructTableStatistic(tableStatistic.second.get());
         }
     }
+}
+
+PropertyStatistics& TablesStatistics::getPropertyStatisticsForTable(
+    const transaction::Transaction& transaction, common::table_id_t tableID,
+    common::property_id_t propertyID) {
+    if (transaction.isReadOnly()) {
+        assert(tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable.contains(tableID));
+        auto tableStatistics =
+            tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable.at(tableID).get();
+        return tableStatistics->getPropertyStatistics(propertyID);
+    } else {
+        initTableStatisticsForWriteTrx();
+        assert(tablesStatisticsContentForWriteTrx->tableStatisticPerTable.contains(tableID));
+        auto tableStatistics =
+            tablesStatisticsContentForWriteTrx->tableStatisticPerTable.at(tableID).get();
+        return tableStatistics->getPropertyStatistics(propertyID);
+    }
+}
+
+void TablesStatistics::setPropertyStatisticsForTable(common::table_id_t tableID,
+    common::property_id_t propertyID, kuzu::storage::PropertyStatistics stats) {
+    initTableStatisticsForWriteTrx();
+    assert(tablesStatisticsContentForWriteTrx->tableStatisticPerTable.contains(tableID));
+    auto tableStatistics =
+        tablesStatisticsContentForWriteTrx->tableStatisticPerTable.at(tableID).get();
+    tableStatistics->setPropertyStatistics(propertyID, stats);
 }
 
 } // namespace storage

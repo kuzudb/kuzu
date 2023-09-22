@@ -5,23 +5,34 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
+void RelTableStats::serializeInternal(FileInfo* fileInfo, uint64_t& offset) {
+    SerDeser::serializeValue(nextRelOffset, fileInfo, offset);
+}
+
+std::unique_ptr<RelTableStats> RelTableStats::deserialize(
+    uint64_t numRels, common::table_id_t tableID, FileInfo* fileInfo, uint64_t& offset) {
+    common::offset_t nextRelOffset;
+    SerDeser::deserializeValue(nextRelOffset, fileInfo, offset);
+    return std::make_unique<RelTableStats>(numRels, tableID, nextRelOffset);
+}
+
 // We should only call this function after we call setNumRelsPerDirectionBoundTableID.
 void RelsStatistics::setNumTuplesForTable(table_id_t relTableID, uint64_t numRels) {
-    lock_t lck{mtx};
+    std::unique_lock lck{mtx};
     initTableStatisticsForWriteTrxNoLock();
     assert(tablesStatisticsContentForWriteTrx->tableStatisticPerTable.contains(relTableID));
     auto relStatistics =
-        (RelStatistics*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable[relTableID]
+        (RelTableStats*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable[relTableID]
             .get();
     increaseNextRelOffset(relTableID, numRels - relStatistics->getNumTuples());
     relStatistics->setNumTuples(numRels);
 }
 
 void RelsStatistics::updateNumRelsByValue(table_id_t relTableID, int64_t value) {
-    lock_t lck{mtx};
+    std::unique_lock lck{mtx};
     initTableStatisticsForWriteTrxNoLock();
     auto relStatistics =
-        (RelStatistics*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable[relTableID]
+        (RelTableStats*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable[relTableID]
             .get();
     auto numRelsAfterUpdate = relStatistics->getNumTuples() + value;
     relStatistics->setNumTuples(numRelsAfterUpdate);
@@ -33,28 +44,13 @@ void RelsStatistics::updateNumRelsByValue(table_id_t relTableID, int64_t value) 
 
 offset_t RelsStatistics::getNextRelOffset(
     transaction::Transaction* transaction, table_id_t tableID) {
-    lock_t lck{mtx};
+    std::unique_lock lck{mtx};
     auto& tableStatisticContent =
         (transaction->isReadOnly() || tablesStatisticsContentForWriteTrx == nullptr) ?
             tablesStatisticsContentForReadOnlyTrx :
             tablesStatisticsContentForWriteTrx;
-    return ((RelStatistics*)tableStatisticContent->tableStatisticPerTable.at(tableID).get())
+    return ((RelTableStats*)tableStatisticContent->tableStatisticPerTable.at(tableID).get())
         ->getNextRelOffset();
-}
-
-std::unique_ptr<TableStatistics> RelsStatistics::deserializeTableStatistics(uint64_t numTuples,
-    std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&& propertyStats,
-    uint64_t& offset, FileInfo* fileInfo, uint64_t tableID) {
-    std::vector<std::unordered_map<table_id_t, uint64_t>> numRelsPerDirectionBoundTable{2};
-    offset_t nextRelOffset;
-    SerDeser::deserializeValue(nextRelOffset, fileInfo, offset);
-    return std::make_unique<RelStatistics>(numTuples, std::move(propertyStats), nextRelOffset);
-}
-
-void RelsStatistics::serializeTableStatistics(
-    TableStatistics* tableStatistics, uint64_t& offset, FileInfo* fileInfo) {
-    auto relStatistic = (RelStatistics*)tableStatistics;
-    SerDeser::serializeValue(relStatistic->nextRelOffset, fileInfo, offset);
 }
 
 } // namespace storage

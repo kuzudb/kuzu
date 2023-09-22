@@ -141,7 +141,7 @@ public:
         auto dummyWriteTrx = transaction::Transaction::getDummyWriteTrx();
         ASSERT_EQ(relsStatistics.getNextRelOffset(dummyWriteTrx.get(), knowsTableID), 14);
         ASSERT_EQ(relsStatistics.getReadOnlyVersion()->tableStatisticPerTable.size(), 1);
-        auto knowsRelStatistics = (RelStatistics*)relsStatistics.getReadOnlyVersion()
+        auto knowsRelStatistics = (RelTableStats*)relsStatistics.getReadOnlyVersion()
                                       ->tableStatisticPerTable.at(knowsTableID)
                                       .get();
         ASSERT_EQ(knowsRelStatistics->getNumTuples(), 14);
