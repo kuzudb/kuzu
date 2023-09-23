@@ -65,6 +65,7 @@ void NodeTable::addColumn(const catalog::Property& property,
     common::ValueVector* defaultValueVector, transaction::Transaction* transaction) {
     nodesStatisticsAndDeletedIDs->setPropertyStatisticsForTable(tableID, property.getPropertyID(),
         PropertyStatistics(!defaultValueVector->hasNoNullsGuarantee()));
+    nodesStatisticsAndDeletedIDs->addMetadataDAHInfo(tableID, *property.getDataType());
     tableData->addColumn(transaction, property, defaultValueVector, nodesStatisticsAndDeletedIDs);
     wal->addToUpdatedNodeTables(tableID);
 }

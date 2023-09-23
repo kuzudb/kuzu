@@ -12,7 +12,8 @@ namespace storage {
 class RelsStore {
 
 public:
-    RelsStore(const catalog::Catalog& catalog, MemoryManager& memoryManager, WAL* wal);
+    RelsStore(BMFileHandle* metadataFH, const catalog::Catalog& catalog,
+        MemoryManager& memoryManager, WAL* wal);
 
     inline Column* getRelPropertyColumn(common::RelDataDirection relDirection,
         common::table_id_t relTableID, uint64_t propertyIdx) const {
@@ -48,24 +49,24 @@ public:
         return relTables.at(tableID).get();
     }
 
-    inline RelsStatistics& getRelsStatistics() { return relsStatistics; }
+    inline RelsStatistics* getRelsStatistics() { return relsStatistics.get(); }
 
     inline void removeRelTable(common::table_id_t tableID) {
         relTables.erase(tableID);
-        relsStatistics.removeTableStatistic(tableID);
+        relsStatistics->removeTableStatistic(tableID);
     }
 
     inline void prepareCommit() {
-        if (relsStatistics.hasUpdates()) {
+        if (relsStatistics->hasUpdates()) {
             wal->logTableStatisticsRecord(false /* isNodeTable */);
-            relsStatistics.writeTablesStatisticsFileForWALRecord(wal->getDirectory());
+            relsStatistics->writeTablesStatisticsFileForWALRecord(wal->getDirectory());
         }
         for (auto& [_, relTable] : relTables) {
             relTable->prepareCommit();
         }
     }
     inline void prepareRollback() {
-        if (relsStatistics.hasUpdates()) {
+        if (relsStatistics->hasUpdates()) {
             wal->logTableStatisticsRecord(false /* isNodeTable */);
         }
         for (auto& [_, relTable] : relTables) {
@@ -93,7 +94,7 @@ public:
 
 private:
     std::unordered_map<common::table_id_t, std::unique_ptr<RelTable>> relTables;
-    RelsStatistics relsStatistics;
+    std::unique_ptr<RelsStatistics> relsStatistics;
     WAL* wal;
 };
 

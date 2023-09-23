@@ -53,7 +53,7 @@ public:
         ASSERT_EQ(getStorageManager(*database)
                       ->getNodesStore()
                       .getNodesStatisticsAndDeletedIDs()
-                      .getMaxNodeOffset(&transaction::DUMMY_READ_TRANSACTION, tableID),
+                      ->getMaxNodeOffset(&transaction::DUMMY_READ_TRANSACTION, tableID),
             UINT64_MAX);
     }
 
@@ -66,7 +66,7 @@ public:
         ASSERT_EQ(getStorageManager(*database)
                       ->getNodesStore()
                       .getNodesStatisticsAndDeletedIDs()
-                      .getMaxNodeOffset(&transaction::DUMMY_READ_TRANSACTION, tableID),
+                      ->getMaxNodeOffset(&transaction::DUMMY_READ_TRANSACTION, tableID),
             7);
     }
 
@@ -126,8 +126,9 @@ public:
         validateRelColumnAndListFilesExistence(
             relTableSchema, DBFileType::ORIGINAL, true /* existence */);
         auto dummyWriteTrx = transaction::Transaction::getDummyWriteTrx();
-        ASSERT_EQ(getStorageManager(*database)->getRelsStore().getRelsStatistics().getNextRelOffset(
-                      dummyWriteTrx.get(), tableID),
+        ASSERT_EQ(
+            getStorageManager(*database)->getRelsStore().getRelsStatistics()->getNextRelOffset(
+                dummyWriteTrx.get(), tableID),
             14);
     }
 
@@ -137,11 +138,11 @@ public:
         validateRelColumnAndListFilesExistence(
             relTableSchema, DBFileType::ORIGINAL, true /* existence */);
         validateTinysnbKnowsDateProperty();
-        auto& relsStatistics = getStorageManager(*database)->getRelsStore().getRelsStatistics();
+        auto relsStatistics = getStorageManager(*database)->getRelsStore().getRelsStatistics();
         auto dummyWriteTrx = transaction::Transaction::getDummyWriteTrx();
-        ASSERT_EQ(relsStatistics.getNextRelOffset(dummyWriteTrx.get(), knowsTableID), 14);
-        ASSERT_EQ(relsStatistics.getReadOnlyVersion()->tableStatisticPerTable.size(), 1);
-        auto knowsRelStatistics = (RelTableStats*)relsStatistics.getReadOnlyVersion()
+        ASSERT_EQ(relsStatistics->getNextRelOffset(dummyWriteTrx.get(), knowsTableID), 14);
+        ASSERT_EQ(relsStatistics->getReadOnlyVersion()->tableStatisticPerTable.size(), 1);
+        auto knowsRelStatistics = (RelTableStats*)relsStatistics->getReadOnlyVersion()
                                       ->tableStatisticPerTable.at(knowsTableID)
                                       .get();
         ASSERT_EQ(knowsRelStatistics->getNumTuples(), 14);

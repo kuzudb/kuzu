@@ -11,6 +11,34 @@
 namespace kuzu {
 namespace storage {
 
+// DAH is the abbreviation for Disk Array Header.
+class MetadataDAHInfo {
+public:
+    MetadataDAHInfo() : MetadataDAHInfo{common::INVALID_PAGE_IDX, common::INVALID_PAGE_IDX} {}
+    MetadataDAHInfo(common::page_idx_t dataDAHPageIdx)
+        : MetadataDAHInfo{dataDAHPageIdx, common::INVALID_PAGE_IDX} {}
+    MetadataDAHInfo(common::page_idx_t dataDAHPageIdx, common::page_idx_t nullDAHPageIdx)
+        : dataDAHPageIdx{dataDAHPageIdx}, nullDAHPageIdx{nullDAHPageIdx} {}
+
+    inline std::unique_ptr<MetadataDAHInfo> copy() {
+        auto result = std::make_unique<MetadataDAHInfo>(dataDAHPageIdx, nullDAHPageIdx);
+        result->childrenInfos.resize(childrenInfos.size());
+        for (size_t i = 0; i < childrenInfos.size(); ++i) {
+            result->childrenInfos[i] = childrenInfos[i]->copy();
+        }
+        return result;
+    }
+
+    void serialize(common::FileInfo* fileInfo, uint64_t& offset) const;
+    static std::unique_ptr<MetadataDAHInfo> deserialize(
+        common::FileInfo* fileInfo, uint64_t& offset);
+
+    common::page_idx_t dataDAHPageIdx = common::INVALID_PAGE_IDX;
+    common::page_idx_t nullDAHPageIdx = common::INVALID_PAGE_IDX;
+    std::vector<std::unique_ptr<MetadataDAHInfo>> childrenInfos;
+};
+
+class WAL;
 class TableStatistics {
 public:
     explicit TableStatistics(const catalog::TableSchema& schema)
@@ -20,12 +48,11 @@ public:
         }
     }
 
-    explicit TableStatistics(common::TableType tableType, uint64_t numTuples,
-        common::table_id_t tableID,
+    TableStatistics(common::TableType tableType, uint64_t numTuples, common::table_id_t tableID,
         std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&&
             propertyStatistics)
-        : numTuples{numTuples}, tableID{tableID}, propertyStatistics{
-                                                      std::move(propertyStatistics)} {
+        : tableType{tableType}, numTuples{numTuples}, tableID{tableID},
+          propertyStatistics{std::move(propertyStatistics)} {
         assert(numTuples != UINT64_MAX);
     }
 
@@ -64,6 +91,8 @@ public:
         common::FileInfo* fileInfo, uint64_t& offset);
     virtual void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) = 0;
 
+    virtual std::unique_ptr<TableStatistics> copy() = 0;
+
 private:
     common::TableType tableType;
     uint64_t numTuples;
@@ -79,7 +108,7 @@ struct TablesStatisticsContent {
 
 class TablesStatistics {
 public:
-    TablesStatistics();
+    TablesStatistics(BMFileHandle* metadataFH);
 
     virtual ~TablesStatistics() = default;
 
@@ -120,6 +149,9 @@ public:
     void setPropertyStatisticsForTable(
         common::table_id_t tableID, common::property_id_t propertyID, PropertyStatistics stats);
 
+    static std::unique_ptr<MetadataDAHInfo> createMetadataDAHInfo(
+        const common::LogicalType& dataType, BMFileHandle& metadataFH, BufferManager* bm, WAL* wal);
+
 protected:
     virtual std::unique_ptr<TableStatistics> constructTableStatistic(
         catalog::TableSchema* tableSchema) = 0;
@@ -140,6 +172,7 @@ protected:
     void initTableStatisticsForWriteTrxNoLock();
 
 protected:
+    BMFileHandle* metadataFH;
     std::unique_ptr<TablesStatisticsContent> tablesStatisticsContentForReadOnlyTrx;
     std::unique_ptr<TablesStatisticsContent> tablesStatisticsContentForWriteTrx;
     std::mutex mtx;

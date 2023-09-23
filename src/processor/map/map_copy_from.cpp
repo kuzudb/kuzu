@@ -102,7 +102,7 @@ static std::unique_ptr<DirectedInMemRelData> initializeDirectedInMemRelData(
     auto directedInMemRelData = std::make_unique<DirectedInMemRelData>();
     auto boundTableID = schema->getBoundTableID(direction);
     auto numNodes =
-        nodesStore.getNodesStatisticsAndDeletedIDs().getMaxNodeOffsetPerTable().at(boundTableID) +
+        nodesStore.getNodesStatisticsAndDeletedIDs()->getMaxNodeOffsetPerTable().at(boundTableID) +
         1;
     if (schema->isSingleMultiplicityInDirection(direction)) {
         // columns.
@@ -159,7 +159,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRelFrom(
         storageManager.getNodesStore(), storageManager.getDirectory(),
         copyFromInfo->fileScanInfo->readerConfig->csvReaderConfig.get());
     auto copyRelSharedState = std::make_shared<CopyRelSharedState>(tableSchema->tableID,
-        &storageManager.getRelsStore().getRelsStatistics(), std::move(fwdRelData),
+        storageManager.getRelsStore().getRelsStatistics(), std::move(fwdRelData),
         std::move(bwdRelData), memoryManager);
 
     auto copyRelColumns = createCopyRelColumnsOrLists(

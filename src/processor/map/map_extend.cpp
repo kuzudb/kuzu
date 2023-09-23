@@ -27,7 +27,7 @@ static std::unique_ptr<RelTableScanInfo> getRelTableScanInfo(RelDataDirection di
                                   propertyExpression->getPropertyID(relTableID) :
                                   INVALID_PROPERTY_ID);
     }
-    auto relStats = relsStore.getRelsStatistics().getRelStatistics(relTableID);
+    auto relStats = relsStore.getRelsStatistics()->getRelStatistics(relTableID);
     return std::make_unique<RelTableScanInfo>(
         relTableDataType, relData, relStats, std::move(propertyIds));
 }

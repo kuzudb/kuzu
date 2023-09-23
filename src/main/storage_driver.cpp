@@ -44,7 +44,7 @@ uint64_t StorageDriver::getNumNodes(const std::string& nodeName) {
     auto nodeTableID = catalogContent->getTableID(nodeName);
     auto nodeStatistics = storageManager->getNodesStore()
                               .getNodesStatisticsAndDeletedIDs()
-                              .getNodeStatisticsAndDeletedIDs(nodeTableID);
+                              ->getNodeStatisticsAndDeletedIDs(nodeTableID);
     return nodeStatistics->getNumTuples();
 }
 
@@ -52,7 +52,7 @@ uint64_t StorageDriver::getNumRels(const std::string& relName) {
     auto catalogContent = catalog->getReadOnlyVersion();
     auto relTableID = catalogContent->getTableID(relName);
     auto relStatistics =
-        storageManager->getRelsStore().getRelsStatistics().getRelStatistics(relTableID);
+        storageManager->getRelsStore().getRelsStatistics()->getRelStatistics(relTableID);
     return relStatistics->getNumTuples();
 }
 

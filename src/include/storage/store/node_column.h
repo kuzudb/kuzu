@@ -2,6 +2,7 @@
 
 #include "catalog/catalog.h"
 #include "storage/stats/property_statistics.h"
+#include "storage/stats/table_statistics.h"
 #include "storage/storage_structure/disk_array.h"
 #include "storage/storage_structure/storage_structure.h"
 #include "storage/store/column_chunk.h"
@@ -51,10 +52,7 @@ class NodeColumn {
     friend class StructNodeColumn;
 
 public:
-    NodeColumn(const catalog::Property& property, BMFileHandle* dataFH, BMFileHandle* metadataFH,
-        BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
-        RWPropertyStats propertyStatistics, bool requireNullColumn = true);
-    NodeColumn(common::LogicalType dataType, const catalog::MetadataDAHInfo& metaDAHeaderInfo,
+    NodeColumn(common::LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
         BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
         transaction::Transaction* transaction, RWPropertyStats PropertyStatistics,
         bool requireNullColumn);
@@ -144,7 +142,7 @@ protected:
 
 class BoolNodeColumn : public NodeColumn {
 public:
-    BoolNodeColumn(const catalog::MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
+    BoolNodeColumn(const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
         BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
         transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
         bool requireNullColumn = true);
@@ -181,7 +179,7 @@ protected:
 
 class SerialNodeColumn : public NodeColumn {
 public:
-    SerialNodeColumn(const catalog::MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
+    SerialNodeColumn(const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
         BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
         transaction::Transaction* transaction);
 
@@ -194,16 +192,10 @@ public:
 };
 
 struct NodeColumnFactory {
-    static inline std::unique_ptr<NodeColumn> createNodeColumn(const catalog::Property& property,
-        BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction, RWPropertyStats propertyStatistics) {
-        return createNodeColumn(*property.getDataType(), *property.getMetadataDAHInfo(), dataFH,
-            metadataFH, bufferManager, wal, transaction, propertyStatistics);
-    }
     static std::unique_ptr<NodeColumn> createNodeColumn(const common::LogicalType& dataType,
-        const catalog::MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
-        BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction, RWPropertyStats propertyStatistics);
+        const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
+        BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
+        RWPropertyStats propertyStatistics);
 };
 
 } // namespace storage

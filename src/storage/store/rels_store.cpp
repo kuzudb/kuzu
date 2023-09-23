@@ -6,8 +6,10 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-RelsStore::RelsStore(const Catalog& catalog, MemoryManager& memoryManager, WAL* wal)
-    : relsStatistics{wal->getDirectory()}, wal{wal} {
+RelsStore::RelsStore(
+    BMFileHandle* metadataFH, const Catalog& catalog, MemoryManager& memoryManager, WAL* wal)
+    : wal{wal} {
+    relsStatistics = std::make_unique<RelsStatistics>(metadataFH, wal->getDirectory());
     for (auto& relTableSchema : catalog.getReadOnlyVersion()->getRelTableSchemas()) {
         relTables.emplace(relTableSchema->tableID,
             std::make_unique<RelTable>(catalog, relTableSchema->tableID, memoryManager, wal));
