@@ -14,10 +14,6 @@ public:
     NodesStore(BMFileHandle* dataFH, BMFileHandle* metadataFH, const catalog::Catalog& catalog,
         BufferManager& bufferManager, WAL* wal);
 
-    inline NodeColumn* getNodePropertyColumn(
-        common::table_id_t tableID, uint64_t propertyIdx) const {
-        return nodeTables.at(tableID)->getColumn(propertyIdx);
-    }
     inline PrimaryKeyIndex* getPKIndex(common::table_id_t tableID) {
         return nodeTables[tableID]->getPKIndex();
     }

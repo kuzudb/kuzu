@@ -20,7 +20,7 @@ NodeGroup::NodeGroup(TableSchema* schema, CSVReaderConfig* csvReaderConfig)
     }
 }
 
-NodeGroup::NodeGroup(NodeTable* table) : nodeGroupIdx{UINT64_MAX}, numNodes{0} {
+NodeGroup::NodeGroup(TableData* table) : nodeGroupIdx{UINT64_MAX}, numNodes{0} {
     chunks.reserve(table->getNumColumns());
     for (auto columnID = 0u; columnID < table->getNumColumns(); columnID++) {
         chunks.push_back(

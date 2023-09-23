@@ -39,7 +39,7 @@ public:
 
 private:
     storage::NodeTable* table;
-    std::unique_ptr<storage::NodeTable::DeleteState> deleteState;
+    std::unique_ptr<common::ValueVector> pkVector;
 };
 
 class MultiLabelNodeDeleteExecutor : public NodeDeleteExecutor {
@@ -60,8 +60,7 @@ public:
 
 private:
     std::unordered_map<common::table_id_t, storage::NodeTable*> tableIDToTableMap;
-    std::unordered_map<common::table_id_t, std::unique_ptr<storage::NodeTable::DeleteState>>
-        deleteStates;
+    std::unordered_map<common::table_id_t, std::unique_ptr<common::ValueVector>> pkVectors;
 };
 
 class RelDeleteExecutor {

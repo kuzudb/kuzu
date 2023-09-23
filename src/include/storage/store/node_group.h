@@ -9,11 +9,12 @@ namespace kuzu {
 namespace storage {
 
 class NodeTable;
+class TableData;
 
 class NodeGroup {
 public:
     explicit NodeGroup(catalog::TableSchema* schema, common::CSVReaderConfig* csvReaderConfig);
-    explicit NodeGroup(NodeTable* table);
+    explicit NodeGroup(TableData* table);
 
     inline void setNodeGroupIdx(uint64_t nodeGroupIdx_) { this->nodeGroupIdx = nodeGroupIdx_; }
     inline uint64_t getNodeGroupIdx() const { return nodeGroupIdx; }

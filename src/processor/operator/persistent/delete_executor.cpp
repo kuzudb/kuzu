@@ -12,24 +12,21 @@ void NodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
 
 void SingleLabelNodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
     NodeDeleteExecutor::init(resultSet, context);
-    deleteState = std::make_unique<NodeTable::DeleteState>();
     auto pkDataType = table->getColumn(table->getPKColumnID())->getDataType();
-    deleteState->pkVector = std::make_unique<ValueVector>(pkDataType, context->memoryManager);
-    deleteState->pkVector->state = nodeIDVector->state;
+    pkVector = std::make_unique<ValueVector>(pkDataType, context->memoryManager);
+    pkVector->state = nodeIDVector->state;
 }
 
 void SingleLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
-    table->delete_(context->clientContext->getActiveTransaction(), nodeIDVector, deleteState.get());
+    table->delete_(context->clientContext->getActiveTransaction(), nodeIDVector, pkVector.get());
 }
 
 void MultiLabelNodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
     NodeDeleteExecutor::init(resultSet, context);
     for (auto& [tableID, table] : tableIDToTableMap) {
-        deleteStates[tableID] = std::make_unique<NodeTable::DeleteState>();
         auto pkDataType = table->getColumn(table->getPKColumnID())->getDataType();
-        deleteStates[tableID]->pkVector =
-            std::make_unique<ValueVector>(pkDataType, context->memoryManager);
-        deleteStates[tableID]->pkVector->state = nodeIDVector->state;
+        pkVectors[tableID] = std::make_unique<ValueVector>(pkDataType, context->memoryManager);
+        pkVectors[tableID]->state = nodeIDVector->state;
     }
 }
 
@@ -37,10 +34,10 @@ void MultiLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
     assert(nodeIDVector->state->selVector->selectedSize == 1);
     auto pos = nodeIDVector->state->selVector->selectedPositions[0];
     auto nodeID = nodeIDVector->getValue<internalID_t>(pos);
-    assert(tableIDToTableMap.contains(nodeID.tableID) && deleteStates.contains(nodeID.tableID));
+    assert(tableIDToTableMap.contains(nodeID.tableID) && pkVectors.contains(nodeID.tableID));
     auto table = tableIDToTableMap.at(nodeID.tableID);
     table->delete_(context->clientContext->getActiveTransaction(), nodeIDVector,
-        deleteStates.at(nodeID.tableID).get());
+        pkVectors.at(nodeID.tableID).get());
 }
 
 void RelDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
