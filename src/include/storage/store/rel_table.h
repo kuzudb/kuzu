@@ -2,7 +2,7 @@
 
 #include "catalog/catalog.h"
 #include "common/utils.h"
-#include "storage/stats/rels_statistics.h"
+#include "storage/stats/rel_table_statistics.h"
 #include "storage/storage_structure/column.h"
 #include "storage/storage_structure/lists/lists.h"
 #include "storage/storage_utils.h"

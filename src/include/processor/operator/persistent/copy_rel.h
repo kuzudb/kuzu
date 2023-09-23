@@ -6,7 +6,7 @@
 #include "storage/in_mem_storage_structure/in_mem_column.h"
 #include "storage/in_mem_storage_structure/in_mem_column_chunk.h"
 #include "storage/in_mem_storage_structure/in_mem_lists.h"
-#include "storage/stats/rels_statistics.h"
+#include "storage/stats/rels_store_statistics.h"
 
 namespace kuzu {
 namespace processor {
@@ -70,7 +70,7 @@ class CopyRelSharedState {
     friend class CopyRelLists;
 
 public:
-    CopyRelSharedState(common::table_id_t tableID, storage::RelsStatistics* relsStatistics,
+    CopyRelSharedState(common::table_id_t tableID, storage::RelsStoreStats* relsStatistics,
         std::unique_ptr<DirectedInMemRelData> fwdRelData,
         std::unique_ptr<DirectedInMemRelData> bwdRelData, storage::MemoryManager* memoryManager);
 
@@ -85,7 +85,7 @@ public:
 private:
     std::mutex mtx;
     common::table_id_t tableID;
-    storage::RelsStatistics* relsStatistics;
+    storage::RelsStoreStats* relsStatistics;
     std::unique_ptr<DirectedInMemRelData> fwdRelData;
     std::unique_ptr<DirectedInMemRelData> bwdRelData;
     std::shared_ptr<FactorizedTable> fTable;

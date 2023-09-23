@@ -1,63 +1,29 @@
 #pragma once
 
-#include <map>
-
-#include "storage/stats/table_statistics.h"
-#include "storage/storage_utils.h"
+#include "storage/stats/rel_table_statistics.h"
+#include "storage/stats/table_statistics_collection.h"
 
 namespace kuzu {
 namespace storage {
-
-class RelsStatistics;
-class RelTableStats : public TableStatistics {
-    friend class RelsStatistics;
-
-public:
-    RelTableStats(const catalog::TableSchema& tableSchema)
-        : TableStatistics{tableSchema}, nextRelOffset{0} {}
-    RelTableStats(uint64_t numRels, common::table_id_t tableID, common::offset_t nextRelOffset)
-        : TableStatistics{common::TableType::REL, numRels, tableID, {}}, nextRelOffset{
-                                                                             nextRelOffset} {}
-    RelTableStats(uint64_t numRels, common::table_id_t tableID,
-        std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&&
-            propertyStats,
-        common::offset_t nextRelOffset)
-        : TableStatistics{common::TableType::REL, numRels, tableID, std::move(propertyStats)},
-          nextRelOffset{nextRelOffset} {}
-
-    inline common::offset_t getNextRelOffset() const { return nextRelOffset; }
-
-    void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) final;
-    static std::unique_ptr<RelTableStats> deserialize(
-        uint64_t numRels, common::table_id_t tableID, common::FileInfo* fileInfo, uint64_t& offset);
-
-    inline std::unique_ptr<TableStatistics> copy() final {
-        return std::make_unique<RelTableStats>(*this);
-    }
-
-private:
-    common::offset_t nextRelOffset;
-};
-
 // Manages the disk image of the numRels and numRelsPerDirectionBoundTable.
-class RelsStatistics : public TablesStatistics {
+class RelsStoreStats : public TablesStatistics {
 
 public:
     // Should only be used by saveInitialRelsStatisticsToFile to start a database from an empty
     // directory.
-    RelsStatistics() : TablesStatistics{nullptr} {};
+    RelsStoreStats() : TablesStatistics{nullptr} {};
     // Should be used when an already loaded database is started from a directory.
-    explicit RelsStatistics(BMFileHandle* metadataFH, const std::string& directory)
+    explicit RelsStoreStats(BMFileHandle* metadataFH, const std::string& directory)
         : TablesStatistics{metadataFH} {
         readFromFile(directory);
     }
 
     // Should only be used by tests.
-    explicit RelsStatistics(std::unordered_map<common::table_id_t, std::unique_ptr<RelTableStats>>
+    explicit RelsStoreStats(std::unordered_map<common::table_id_t, std::unique_ptr<RelTableStats>>
             relStatisticPerTable_);
 
     static inline void saveInitialRelsStatisticsToFile(const std::string& directory) {
-        std::make_unique<RelsStatistics>()->saveToFile(
+        std::make_unique<RelsStoreStats>()->saveToFile(
             directory, common::DBFileType::ORIGINAL, transaction::TransactionType::READ_ONLY);
     }
 
@@ -96,6 +62,5 @@ protected:
             ->nextRelOffset += numTuples;
     }
 };
-
 } // namespace storage
 } // namespace kuzu

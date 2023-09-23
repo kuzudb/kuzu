@@ -43,7 +43,7 @@ private:
 
 class RelInsertExecutor {
 public:
-    RelInsertExecutor(storage::RelsStatistics& relsStatistics, storage::RelTable* table,
+    RelInsertExecutor(storage::RelsStoreStats& relsStatistics, storage::RelTable* table,
         const DataPos& srcNodePos, const DataPos& dstNodePos,
         std::vector<DataPos> propertyLhsPositions,
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> propertyRhsEvaluators)
@@ -65,7 +65,7 @@ public:
         const std::vector<std::unique_ptr<RelInsertExecutor>>& executors);
 
 private:
-    storage::RelsStatistics& relsStatistics;
+    storage::RelsStoreStats& relsStatistics;
     storage::RelTable* table;
     DataPos srcNodePos;
     DataPos dstNodePos;

@@ -88,7 +88,7 @@ protected:
 
 class SingleLabelRelDeleteExecutor : public RelDeleteExecutor {
 public:
-    SingleLabelRelDeleteExecutor(storage::RelsStatistics* relsStatistic, storage::RelTable* table,
+    SingleLabelRelDeleteExecutor(storage::RelsStoreStats* relsStatistic, storage::RelTable* table,
         const DataPos& srcNodeIDPos, const DataPos& dstNodeIDPos, const DataPos& relIDPos)
         : RelDeleteExecutor(srcNodeIDPos, dstNodeIDPos, relIDPos),
           relsStatistic{relsStatistic}, table{table} {}
@@ -103,12 +103,12 @@ public:
     }
 
 private:
-    storage::RelsStatistics* relsStatistic;
+    storage::RelsStoreStats* relsStatistic;
     storage::RelTable* table;
 };
 
 class MultiLabelRelDeleteExecutor : public RelDeleteExecutor {
-    using rel_table_statistic_pair = std::pair<storage::RelTable*, storage::RelsStatistics*>;
+    using rel_table_statistic_pair = std::pair<storage::RelTable*, storage::RelsStoreStats*>;
 
 public:
     MultiLabelRelDeleteExecutor(

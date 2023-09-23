@@ -9,7 +9,7 @@ NodesStore::NodesStore(BMFileHandle* dataFH, BMFileHandle* metadataFH, const Cat
     BufferManager& bufferManager, WAL* wal)
     : wal{wal}, dataFH{dataFH}, metadataFH{metadataFH} {
     nodesStatisticsAndDeletedIDs =
-        std::make_unique<NodesStatisticsAndDeletedIDs>(metadataFH, &bufferManager, wal);
+        std::make_unique<NodesStoreStatsAndDeletedIDs>(metadataFH, &bufferManager, wal);
     for (auto& schema : catalog.getReadOnlyVersion()->getNodeTableSchemas()) {
         auto nodeTableSchema = reinterpret_cast<NodeTableSchema*>(schema);
         nodeTables[schema->tableID] = std::make_unique<NodeTable>(dataFH, metadataFH,

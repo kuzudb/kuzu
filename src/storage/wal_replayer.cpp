@@ -193,7 +193,7 @@ void WALReplayer::replayNodeTableRecord(const WALRecord& walRecord) {
 void WALReplayer::replayRelTableRecord(const WALRecord& walRecord, bool isRdf) {
     if (isCheckpoint) {
         // See comments for NODE_TABLE_RECORD.
-        auto nodesStatistics = std::make_unique<NodesStatisticsAndDeletedIDs>(
+        auto nodesStatistics = std::make_unique<NodesStoreStatsAndDeletedIDs>(
             nullptr /* metadataFH */, nullptr /* bufferManager */, wal,
             isRdf ? DBFileType::WAL_VERSION : DBFileType::ORIGINAL);
         auto maxNodeOffsetPerTable = nodesStatistics->getMaxNodeOffsetPerTable();
@@ -349,7 +349,7 @@ void WALReplayer::replayCopyRelRecord(const kuzu::storage::WALRecord& walRecord)
                 return;
             }
             auto nodesStatisticsAndDeletedIDsForCheckPointing =
-                std::make_unique<NodesStatisticsAndDeletedIDs>(
+                std::make_unique<NodesStoreStatsAndDeletedIDs>(
                     nullptr /* metadataFH */, nullptr /* bufferManager */, wal);
             auto maxNodeOffsetPerTable =
                 nodesStatisticsAndDeletedIDsForCheckPointing->getMaxNodeOffsetPerTable();

@@ -2,7 +2,7 @@
 
 #include "catalog/catalog.h"
 #include "common/file_utils.h"
-#include "storage/stats/rels_statistics.h"
+#include "storage/stats/rels_store_statistics.h"
 #include "storage/store/rel_table.h"
 
 namespace kuzu {
@@ -10,7 +10,6 @@ namespace storage {
 
 // RelsStore stores adjacent rels of a node as well as the properties of rels in the system.
 class RelsStore {
-
 public:
     RelsStore(BMFileHandle* metadataFH, const catalog::Catalog& catalog,
         MemoryManager& memoryManager, WAL* wal);
@@ -49,7 +48,7 @@ public:
         return relTables.at(tableID).get();
     }
 
-    inline RelsStatistics* getRelsStatistics() { return relsStatistics.get(); }
+    inline RelsStoreStats* getRelsStatistics() { return relsStatistics.get(); }
 
     inline void removeRelTable(common::table_id_t tableID) {
         relTables.erase(tableID);
@@ -94,7 +93,7 @@ public:
 
 private:
     std::unordered_map<common::table_id_t, std::unique_ptr<RelTable>> relTables;
-    std::unique_ptr<RelsStatistics> relsStatistics;
+    std::unique_ptr<RelsStoreStats> relsStatistics;
     WAL* wal;
 };
 

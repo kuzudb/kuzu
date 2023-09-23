@@ -26,8 +26,8 @@ class QueryPlanner {
 
 public:
     QueryPlanner(const catalog::Catalog& catalog,
-        const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
-        const storage::RelsStatistics& relsStatistics)
+        const storage::NodesStoreStatsAndDeletedIDs& nodesStatistics,
+        const storage::RelsStoreStats& relsStatistics)
         : catalog{catalog} {
         cardinalityEstimator =
             std::make_unique<CardinalityEstimator>(nodesStatistics, relsStatistics);

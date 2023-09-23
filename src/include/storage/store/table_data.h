@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace storage {
 
-class NodesStatisticsAndDeletedIDs;
+class NodesStoreStatsAndDeletedIDs;
 
 class TableData {
 public:

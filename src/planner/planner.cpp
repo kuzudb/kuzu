@@ -18,7 +18,7 @@ namespace kuzu {
 namespace planner {
 
 std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
-    const NodesStatisticsAndDeletedIDs& nodesStatistics, const RelsStatistics& relsStatistics,
+    const NodesStoreStatsAndDeletedIDs& nodesStatistics, const RelsStoreStats& relsStatistics,
     const BoundStatement& statement) {
     std::unique_ptr<LogicalPlan> plan;
     switch (statement.getStatementType()) {
@@ -72,7 +72,7 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
 }
 
 std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllPlans(const Catalog& catalog,
-    const NodesStatisticsAndDeletedIDs& nodesStatistics, const RelsStatistics& relsStatistics,
+    const NodesStoreStatsAndDeletedIDs& nodesStatistics, const RelsStoreStats& relsStatistics,
     const BoundStatement& statement) {
     // We enumerate all plans for our testing framework. This API should only be used for QUERY,
     // EXPLAIN, but not DDL or COPY.
@@ -106,7 +106,7 @@ std::unique_ptr<LogicalPlan> Planner::planCommentOn(const BoundStatement& statem
 }
 
 std::unique_ptr<LogicalPlan> Planner::planExplain(const Catalog& catalog,
-    const NodesStatisticsAndDeletedIDs& nodesStatistics, const RelsStatistics& relsStatistics,
+    const NodesStoreStatsAndDeletedIDs& nodesStatistics, const RelsStoreStats& relsStatistics,
     const BoundStatement& statement) {
     auto& explain = reinterpret_cast<const BoundExplain&>(statement);
     auto statementToExplain = explain.getStatementToExplain();
@@ -129,8 +129,8 @@ std::unique_ptr<LogicalPlan> Planner::planCreateMacro(const BoundStatement& stat
 }
 
 std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllQueryPlans(const catalog::Catalog& catalog,
-    const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
-    const storage::RelsStatistics& relsStatistics, const BoundStatement& statement) {
+    const storage::NodesStoreStatsAndDeletedIDs& nodesStatistics,
+    const storage::RelsStoreStats& relsStatistics, const BoundStatement& statement) {
     auto planner = QueryPlanner(catalog, nodesStatistics, relsStatistics);
     std::vector<std::unique_ptr<LogicalPlan>> plans;
     for (auto& plan : planner.getAllPlans(statement)) {
@@ -141,8 +141,8 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllQueryPlans(const catalo
 }
 
 std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllExplainPlans(
-    const catalog::Catalog& catalog, const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
-    const storage::RelsStatistics& relsStatistics, const BoundStatement& statement) {
+    const catalog::Catalog& catalog, const storage::NodesStoreStatsAndDeletedIDs& nodesStatistics,
+    const storage::RelsStoreStats& relsStatistics, const BoundStatement& statement) {
     auto& explainStatement = reinterpret_cast<const BoundExplain&>(statement);
     auto statementToExplain = explainStatement.getStatementToExplain();
     auto plans = getAllPlans(catalog, nodesStatistics, relsStatistics, *statementToExplain);

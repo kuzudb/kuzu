@@ -2,16 +2,16 @@
 
 #include "binder/query/query_graph.h"
 #include "planner/operator/logical_plan.h"
-#include "storage/stats/nodes_statistics_and_deleted_ids.h"
-#include "storage/stats/rels_statistics.h"
+#include "storage/stats/nodes_store_statistics.h"
+#include "storage/stats/rels_store_statistics.h"
 
 namespace kuzu {
 namespace planner {
 
 class CardinalityEstimator {
 public:
-    CardinalityEstimator(const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
-        const storage::RelsStatistics& relsStatistics)
+    CardinalityEstimator(const storage::NodesStoreStatsAndDeletedIDs& nodesStatistics,
+        const storage::RelsStoreStats& relsStatistics)
         : nodesStatistics{nodesStatistics}, relsStatistics{relsStatistics} {}
 
     void initNodeIDDom(binder::QueryGraph* queryGraph);
@@ -37,7 +37,7 @@ private:
             nodeIDName2dom.insert({key, getNumNodes(node)});
         }
     }
-    uint64_t getNodeIDDom(const std::string& nodeIDName) {
+    inline uint64_t getNodeIDDom(const std::string& nodeIDName) {
         assert(nodeIDName2dom.contains(nodeIDName));
         return nodeIDName2dom.at(nodeIDName);
     }
@@ -46,8 +46,8 @@ private:
     uint64_t getNumRels(const binder::RelExpression& rel);
 
 private:
-    const storage::NodesStatisticsAndDeletedIDs& nodesStatistics;
-    const storage::RelsStatistics& relsStatistics;
+    const storage::NodesStoreStatsAndDeletedIDs& nodesStatistics;
+    const storage::RelsStoreStats& relsStatistics;
     // The domain of nodeID is defined as the number of unique value of nodeID, i.e. num nodes.
     std::unordered_map<std::string, uint64_t> nodeIDName2dom;
 };

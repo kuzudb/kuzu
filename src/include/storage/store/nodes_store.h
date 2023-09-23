@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 
-#include "storage/stats/nodes_statistics_and_deleted_ids.h"
+#include "storage/stats/nodes_store_statistics.h"
 #include "storage/store/node_table.h"
 
 namespace kuzu {
@@ -17,7 +17,7 @@ public:
     inline PrimaryKeyIndex* getPKIndex(common::table_id_t tableID) {
         return nodeTables[tableID]->getPKIndex();
     }
-    inline NodesStatisticsAndDeletedIDs* getNodesStatisticsAndDeletedIDs() {
+    inline NodesStoreStatsAndDeletedIDs* getNodesStatisticsAndDeletedIDs() {
         return nodesStatisticsAndDeletedIDs.get();
     }
     inline NodeTable* getNodeTable(common::table_id_t tableID) const {
@@ -68,7 +68,7 @@ public:
 
 private:
     std::map<common::table_id_t, std::unique_ptr<NodeTable>> nodeTables;
-    std::unique_ptr<NodesStatisticsAndDeletedIDs> nodesStatisticsAndDeletedIDs;
+    std::unique_ptr<NodesStoreStatsAndDeletedIDs> nodesStatisticsAndDeletedIDs;
     WAL* wal;
     BMFileHandle* dataFH;
     BMFileHandle* metadataFH;

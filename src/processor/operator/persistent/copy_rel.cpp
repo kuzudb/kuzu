@@ -10,7 +10,7 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-CopyRelSharedState::CopyRelSharedState(table_id_t tableID, RelsStatistics* relsStatistics,
+CopyRelSharedState::CopyRelSharedState(table_id_t tableID, RelsStoreStats* relsStatistics,
     std::unique_ptr<DirectedInMemRelData> fwdRelData,
     std::unique_ptr<DirectedInMemRelData> bwdRelData, MemoryManager* memoryManager)
     : tableID{tableID}, relsStatistics{relsStatistics}, fwdRelData{std::move(fwdRelData)},
