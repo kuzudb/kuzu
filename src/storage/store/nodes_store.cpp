@@ -7,12 +7,13 @@ namespace storage {
 
 NodesStore::NodesStore(BMFileHandle* dataFH, BMFileHandle* metadataFH, const Catalog& catalog,
     BufferManager& bufferManager, WAL* wal)
-    : nodesStatisticsAndDeletedIDs{wal->getDirectory()}, wal{wal}, dataFH{dataFH}, metadataFH{
-                                                                                       metadataFH} {
+    : wal{wal}, dataFH{dataFH}, metadataFH{metadataFH} {
+    nodesStatisticsAndDeletedIDs =
+        std::make_unique<NodesStatisticsAndDeletedIDs>(metadataFH, &bufferManager, wal);
     for (auto& schema : catalog.getReadOnlyVersion()->getNodeTableSchemas()) {
         auto nodeTableSchema = reinterpret_cast<NodeTableSchema*>(schema);
-        nodeTables[schema->tableID] = std::make_unique<NodeTable>(
-            dataFH, metadataFH, &nodesStatisticsAndDeletedIDs, bufferManager, wal, nodeTableSchema);
+        nodeTables[schema->tableID] = std::make_unique<NodeTable>(dataFH, metadataFH,
+            nodesStatisticsAndDeletedIDs.get(), bufferManager, wal, nodeTableSchema);
     }
 }
 

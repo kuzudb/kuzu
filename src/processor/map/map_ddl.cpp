@@ -52,7 +52,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateTable(LogicalOperator* lo
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateNodeTable(LogicalOperator* logicalOperator) {
     auto createTable = (LogicalCreateTable*)logicalOperator;
     return std::make_unique<CreateNodeTable>(catalog, &storageManager,
-        &storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs(),
+        storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs(),
         createTable->getInfo()->copy(), getOutputPos(createTable), getOperatorID(),
         createTable->getExpressionsForPrinting());
 }
@@ -60,7 +60,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateNodeTable(LogicalOperator
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateRelTable(LogicalOperator* logicalOperator) {
     auto createTable = (LogicalCreateTable*)logicalOperator;
     return std::make_unique<CreateRelTable>(catalog,
-        &storageManager.getRelsStore().getRelsStatistics(), createTable->getInfo()->copy(),
+        storageManager.getRelsStore().getRelsStatistics(), createTable->getInfo()->copy(),
         getOutputPos(createTable), getOperatorID(), createTable->getExpressionsForPrinting());
 }
 
@@ -68,15 +68,15 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateRelTableGroup(
     LogicalOperator* logicalOperator) {
     auto createTable = (LogicalCreateTable*)logicalOperator;
     return std::make_unique<CreateRelTableGroup>(catalog,
-        &storageManager.getRelsStore().getRelsStatistics(), createTable->getInfo()->copy(),
+        storageManager.getRelsStore().getRelsStatistics(), createTable->getInfo()->copy(),
         getOutputPos(createTable), getOperatorID(), createTable->getExpressionsForPrinting());
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateRdfGraph(LogicalOperator* logicalOperator) {
     auto createTable = (LogicalCreateTable*)logicalOperator;
     return std::make_unique<CreateRdfGraph>(catalog, &storageManager,
-        &storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs(),
-        &storageManager.getRelsStore().getRelsStatistics(), createTable->getInfo()->copy(),
+        storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs(),
+        storageManager.getRelsStore().getRelsStatistics(), createTable->getInfo()->copy(),
         getOutputPos(createTable), getOperatorID(), createTable->getExpressionsForPrinting());
 }
 
@@ -117,7 +117,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAddProperty(LogicalOperator* lo
 std::unique_ptr<PhysicalOperator> PlanMapper::mapDropProperty(LogicalOperator* logicalOperator) {
     auto dropProperty = (LogicalDropProperty*)logicalOperator;
     return std::make_unique<DropProperty>(catalog, dropProperty->getTableID(),
-        dropProperty->getPropertyID(), getOutputPos(dropProperty), getOperatorID(),
+        dropProperty->getPropertyID(), getOutputPos(dropProperty), storageManager, getOperatorID(),
         dropProperty->getExpressionsForPrinting());
 }
 

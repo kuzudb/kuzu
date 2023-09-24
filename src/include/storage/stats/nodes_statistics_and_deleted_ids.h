@@ -10,10 +10,17 @@ namespace kuzu {
 namespace storage {
 
 class NodeTableStatsAndDeletedIDs : public TableStatistics {
-
 public:
-    explicit NodeTableStatsAndDeletedIDs(const catalog::TableSchema& schema)
-        : TableStatistics{schema}, tableID{schema.tableID} {}
+    NodeTableStatsAndDeletedIDs(BMFileHandle* metadataFH, const catalog::TableSchema& schema,
+        BufferManager* bufferManager, WAL* wal)
+        : TableStatistics{schema}, tableID{schema.tableID} {
+        metadataDAHInfos.clear();
+        metadataDAHInfos.reserve(schema.getNumProperties());
+        for (auto property : schema.getProperties()) {
+            metadataDAHInfos.push_back(TablesStatistics::createMetadataDAHInfo(
+                *property->getDataType(), *metadataFH, bufferManager, wal));
+        }
+    }
 
     NodeTableStatsAndDeletedIDs(common::table_id_t tableID, common::offset_t maxNodeOffset,
         const std::vector<common::offset_t>& deletedNodeOffsets)
@@ -30,7 +37,17 @@ public:
         std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&&
             propertyStatistics);
 
-    NodeTableStatsAndDeletedIDs(const NodeTableStatsAndDeletedIDs& other) = default;
+    NodeTableStatsAndDeletedIDs(const NodeTableStatsAndDeletedIDs& other)
+        : TableStatistics{other}, tableID{other.tableID},
+          adjListsAndColumns{other.adjListsAndColumns},
+          hasDeletedNodesPerMorsel{other.hasDeletedNodesPerMorsel},
+          deletedNodeOffsetsPerMorsel{other.deletedNodeOffsetsPerMorsel} {
+        metadataDAHInfos.clear();
+        metadataDAHInfos.reserve(other.metadataDAHInfos.size());
+        for (auto& metadataDAHInfo : other.metadataDAHInfos) {
+            metadataDAHInfos.push_back(metadataDAHInfo->copy());
+        }
+    }
 
     inline common::offset_t getMaxNodeOffset() {
         return getMaxNodeOffsetFromNumTuples(getNumTuples());
@@ -53,7 +70,7 @@ public:
 
     void setNumTuples(uint64_t numTuples) override;
 
-    std::vector<common::offset_t> getDeletedNodeOffsets();
+    std::vector<common::offset_t> getDeletedNodeOffsets() const;
 
     static inline uint64_t getNumTuplesFromMaxNodeOffset(common::offset_t maxNodeOffset) {
         return (maxNodeOffset == UINT64_MAX) ? 0ull : maxNodeOffset + 1ull;
@@ -63,9 +80,25 @@ public:
         return numTuples == 0 ? UINT64_MAX : numTuples - 1;
     }
 
+    inline void addMetadataDAHInfoForColumn(std::unique_ptr<MetadataDAHInfo> metadataDAHInfo) {
+        metadataDAHInfos.push_back(std::move(metadataDAHInfo));
+    }
+    inline void removeMetadataDAHInfoForColumn(common::column_id_t columnID) {
+        assert(columnID < metadataDAHInfos.size());
+        metadataDAHInfos.erase(metadataDAHInfos.begin() + columnID);
+    }
+    inline MetadataDAHInfo* getMetadataDAHInfo(common::column_id_t columnID) {
+        assert(columnID < metadataDAHInfos.size());
+        return metadataDAHInfos[columnID].get();
+    }
+
     void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) final;
     static std::unique_ptr<NodeTableStatsAndDeletedIDs> deserialize(common::table_id_t tableID,
         common::offset_t maxNodeOffset, common::FileInfo* fileInfo, uint64_t& offset);
+
+    std::unique_ptr<TableStatistics> copy() final {
+        return std::make_unique<NodeTableStatsAndDeletedIDs>(*this);
+    }
 
 private:
     void errorIfNodeHasEdges(common::offset_t nodeOffset);
@@ -75,6 +108,7 @@ private:
 
 private:
     common::table_id_t tableID;
+    std::vector<std::unique_ptr<MetadataDAHInfo>> metadataDAHInfos;
     // Note: This is initialized explicitly through a call to setAdjListsAndColumns after
     // construction.
     std::pair<std::vector<AdjLists*>, std::vector<Column*>> adjListsAndColumns;
@@ -85,16 +119,15 @@ private:
 // Manages the disk image of the maxNodeOffsets and deleted node IDs (per node table).
 // Note: This class is *not* thread-safe.
 class NodesStatisticsAndDeletedIDs : public TablesStatistics {
-
 public:
     // Should only be used by saveInitialNodesStatisticsAndDeletedIDsToFile to start a database
     // from an empty directory.
-    NodesStatisticsAndDeletedIDs() : TablesStatistics{} {};
+    NodesStatisticsAndDeletedIDs() : TablesStatistics{nullptr} {};
     // Should be used when an already loaded database is started from a directory.
-    explicit NodesStatisticsAndDeletedIDs(
-        const std::string& directory, common::DBFileType dbFileType = common::DBFileType::ORIGINAL)
-        : TablesStatistics{} {
-        readFromFile(directory, dbFileType);
+    explicit NodesStatisticsAndDeletedIDs(BMFileHandle* metadataFH, BufferManager* bufferManager,
+        WAL* wal, common::DBFileType dbFileType = common::DBFileType::ORIGINAL)
+        : TablesStatistics{metadataFH}, bufferManager{bufferManager}, wal{wal} {
+        readFromFile(wal->getDirectory(), dbFileType);
     }
 
     // Should be used only by tests;
@@ -180,10 +213,16 @@ public:
 
     void addNodeStatisticsAndDeletedIDs(catalog::NodeTableSchema* tableSchema);
 
+    void addMetadataDAHInfo(common::table_id_t tableID, const common::LogicalType& dataType);
+    void removeMetadataDAHInfo(common::table_id_t tableID, common::column_id_t columnID);
+    MetadataDAHInfo* getMetadataDAHInfo(transaction::Transaction* transaction,
+        common::table_id_t tableID, common::column_id_t columnID);
+
 protected:
     inline std::unique_ptr<TableStatistics> constructTableStatistic(
         catalog::TableSchema* tableSchema) override {
-        return std::make_unique<NodeTableStatsAndDeletedIDs>(*tableSchema);
+        return std::make_unique<NodeTableStatsAndDeletedIDs>(
+            metadataFH, *tableSchema, bufferManager, wal);
     }
 
     inline std::unique_ptr<TableStatistics> constructTableStatistic(
@@ -196,6 +235,10 @@ protected:
         const std::string& directory, common::DBFileType dbFileType) override {
         return StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(directory, dbFileType);
     }
+
+private:
+    BufferManager* bufferManager;
+    WAL* wal;
 };
 
 } // namespace storage

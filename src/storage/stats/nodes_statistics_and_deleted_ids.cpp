@@ -113,7 +113,7 @@ void NodeTableStatsAndDeletedIDs::setNumTuples(uint64_t numTuples) {
     }
 }
 
-std::vector<offset_t> NodeTableStatsAndDeletedIDs::getDeletedNodeOffsets() {
+std::vector<offset_t> NodeTableStatsAndDeletedIDs::getDeletedNodeOffsets() const {
     std::vector<offset_t> retVal;
     auto morselIter = deletedNodeOffsetsPerMorsel.begin();
     while (morselIter != deletedNodeOffsetsPerMorsel.end()) {
@@ -125,14 +125,19 @@ std::vector<offset_t> NodeTableStatsAndDeletedIDs::getDeletedNodeOffsets() {
 
 void NodeTableStatsAndDeletedIDs::serializeInternal(FileInfo* fileInfo, uint64_t& offset) {
     SerDeser::serializeVector(getDeletedNodeOffsets(), fileInfo, offset);
+    SerDeser::serializeVectorOfPtrs(metadataDAHInfos, fileInfo, offset);
 }
 
 std::unique_ptr<NodeTableStatsAndDeletedIDs> NodeTableStatsAndDeletedIDs::deserialize(
     table_id_t tableID, offset_t maxNodeOffset, FileInfo* fileInfo, uint64_t& offset) {
     std::vector<common::offset_t> deletedNodeOffsets;
+    std::vector<std::unique_ptr<MetadataDAHInfo>> metadataDAHInfos;
     SerDeser::deserializeVector(deletedNodeOffsets, fileInfo, offset);
-    return std::make_unique<NodeTableStatsAndDeletedIDs>(
-        tableID, maxNodeOffset, deletedNodeOffsets);
+    SerDeser::deserializeVectorOfPtrs(metadataDAHInfos, fileInfo, offset);
+    auto result =
+        std::make_unique<NodeTableStatsAndDeletedIDs>(tableID, maxNodeOffset, deletedNodeOffsets);
+    result->metadataDAHInfos = std::move(metadataDAHInfos);
+    return result;
 }
 
 void NodeTableStatsAndDeletedIDs::errorIfNodeHasEdges(offset_t nodeOffset) {
@@ -162,21 +167,6 @@ bool NodeTableStatsAndDeletedIDs::isDeleted(offset_t nodeOffset, uint64_t morsel
         return iter->second.contains(nodeOffset);
     }
     return false;
-}
-
-NodesStatisticsAndDeletedIDs::NodesStatisticsAndDeletedIDs(
-    std::unordered_map<table_id_t, std::unique_ptr<NodeTableStatsAndDeletedIDs>>&
-        nodesStatisticsAndDeletedIDs)
-    : TablesStatistics{} {
-    initTableStatisticsForWriteTrx();
-    for (auto& nodeStatistics : nodesStatisticsAndDeletedIDs) {
-        tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable[nodeStatistics.first] =
-            std::make_unique<NodeTableStatsAndDeletedIDs>(
-                *(NodeTableStatsAndDeletedIDs*)nodeStatistics.second.get());
-        tablesStatisticsContentForWriteTrx->tableStatisticPerTable[nodeStatistics.first] =
-            std::make_unique<NodeTableStatsAndDeletedIDs>(
-                *(NodeTableStatsAndDeletedIDs*)nodeStatistics.second.get());
-    }
 }
 
 void NodesStatisticsAndDeletedIDs::setAdjListsAndColumns(RelsStore* relsStore) {
@@ -220,6 +210,40 @@ void NodesStatisticsAndDeletedIDs::addNodeStatisticsAndDeletedIDs(
     initTableStatisticsForWriteTrx();
     tablesStatisticsContentForWriteTrx->tableStatisticPerTable[tableSchema->tableID] =
         constructTableStatistic(tableSchema);
+}
+
+void NodesStatisticsAndDeletedIDs::addMetadataDAHInfo(
+    table_id_t tableID, const LogicalType& dataType) {
+    initTableStatisticsForWriteTrx();
+    auto tableStats = dynamic_cast<NodeTableStatsAndDeletedIDs*>(
+        tablesStatisticsContentForWriteTrx->tableStatisticPerTable[tableID].get());
+    tableStats->addMetadataDAHInfoForColumn(
+        createMetadataDAHInfo(dataType, *metadataFH, bufferManager, wal));
+}
+
+void NodesStatisticsAndDeletedIDs::removeMetadataDAHInfo(
+    common::table_id_t tableID, common::column_id_t columnID) {
+    initTableStatisticsForWriteTrx();
+    auto tableStats = dynamic_cast<NodeTableStatsAndDeletedIDs*>(
+        tablesStatisticsContentForWriteTrx->tableStatisticPerTable[tableID].get());
+    tableStats->removeMetadataDAHInfoForColumn(columnID);
+}
+
+MetadataDAHInfo* NodesStatisticsAndDeletedIDs::getMetadataDAHInfo(
+    transaction::Transaction* transaction, common::table_id_t tableID,
+    common::column_id_t columnID) {
+    if (transaction->isWriteTransaction()) {
+        initTableStatisticsForWriteTrx();
+        assert(tablesStatisticsContentForWriteTrx->tableStatisticPerTable.contains(tableID));
+        auto nodeTableStats = dynamic_cast<NodeTableStatsAndDeletedIDs*>(
+            tablesStatisticsContentForWriteTrx->tableStatisticPerTable[tableID].get());
+        return nodeTableStats->getMetadataDAHInfo(columnID);
+    } else {
+        assert(tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable.contains(tableID));
+        auto nodeTableStats = dynamic_cast<NodeTableStatsAndDeletedIDs*>(
+            tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable[tableID].get());
+        return nodeTableStats->getMetadataDAHInfo(columnID);
+    }
 }
 
 } // namespace storage

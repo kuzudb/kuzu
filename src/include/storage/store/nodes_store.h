@@ -17,8 +17,8 @@ public:
     inline PrimaryKeyIndex* getPKIndex(common::table_id_t tableID) {
         return nodeTables[tableID]->getPKIndex();
     }
-    inline NodesStatisticsAndDeletedIDs& getNodesStatisticsAndDeletedIDs() {
-        return nodesStatisticsAndDeletedIDs;
+    inline NodesStatisticsAndDeletedIDs* getNodesStatisticsAndDeletedIDs() {
+        return nodesStatisticsAndDeletedIDs.get();
     }
     inline NodeTable* getNodeTable(common::table_id_t tableID) const {
         return nodeTables.at(tableID).get();
@@ -29,25 +29,26 @@ public:
     inline void createNodeTable(
         common::table_id_t tableID, BufferManager* bufferManager, catalog::Catalog* catalog) {
         nodeTables[tableID] = std::make_unique<NodeTable>(dataFH, metadataFH,
-            &nodesStatisticsAndDeletedIDs, *bufferManager, wal,
+            nodesStatisticsAndDeletedIDs.get(), *bufferManager, wal,
             reinterpret_cast<catalog::NodeTableSchema*>(
                 catalog->getReadOnlyVersion()->getTableSchema(tableID)));
     }
     inline void removeNodeTable(common::table_id_t tableID) {
         nodeTables.erase(tableID);
-        nodesStatisticsAndDeletedIDs.removeTableStatistic(tableID);
+        nodesStatisticsAndDeletedIDs->removeTableStatistic(tableID);
     }
     inline void prepareCommit() {
-        if (nodesStatisticsAndDeletedIDs.hasUpdates()) {
+        if (nodesStatisticsAndDeletedIDs->hasUpdates()) {
             wal->logTableStatisticsRecord(true /* isNodeTable */);
-            nodesStatisticsAndDeletedIDs.writeTablesStatisticsFileForWALRecord(wal->getDirectory());
+            nodesStatisticsAndDeletedIDs->writeTablesStatisticsFileForWALRecord(
+                wal->getDirectory());
         }
         for (auto& [_, nodeTable] : nodeTables) {
             nodeTable->prepareCommit();
         }
     }
     inline void prepareRollback() {
-        if (nodesStatisticsAndDeletedIDs.hasUpdates()) {
+        if (nodesStatisticsAndDeletedIDs->hasUpdates()) {
             wal->logTableStatisticsRecord(true /* isNodeTable */);
         }
         for (auto& [_, nodeTable] : nodeTables) {
@@ -67,7 +68,7 @@ public:
 
 private:
     std::map<common::table_id_t, std::unique_ptr<NodeTable>> nodeTables;
-    NodesStatisticsAndDeletedIDs nodesStatisticsAndDeletedIDs;
+    std::unique_ptr<NodesStatisticsAndDeletedIDs> nodesStatisticsAndDeletedIDs;
     WAL* wal;
     BMFileHandle* dataFH;
     BMFileHandle* metadataFH;

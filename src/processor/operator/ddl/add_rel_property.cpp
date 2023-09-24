@@ -19,7 +19,7 @@ static void createFileForRelColumnPropertyWithDefaultVal(table_id_t relTableID,
             direction, property.getPropertyID(), DBFileType::WAL_VERSION),
         *property.getDataType());
     auto numTuples =
-        storageManager.getRelsStore().getRelsStatistics().getNumTuplesForTable(relTableID);
+        storageManager.getRelsStore().getRelsStatistics()->getNumTuplesForTable(relTableID);
     auto inMemColumnChunk =
         inMemColumn->createInMemColumnChunk(0, numTuples - 1, nullptr /* copyDescription */);
     if (!isDefaultValNull) {
@@ -44,10 +44,10 @@ static void createFileForRelListsPropertyWithDefaultVal(table_id_t relTableID,
         StorageUtils::getRelPropertyListsFName(storageManager.getDirectory(), relTableID, direction,
             property.getPropertyID(), DBFileType::WAL_VERSION),
         *property.getDataType(),
-        storageManager.getRelsStore().getRelsStatistics().getNumTuplesForTable(relTableID),
+        storageManager.getRelsStore().getRelsStatistics()->getNumTuplesForTable(relTableID),
         nullptr /* copyDescription */);
     auto numNodesInBoundTable =
-        storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs().getNumTuplesForTable(
+        storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs()->getNumTuplesForTable(
             boundTableID);
     inMemList->initListsMetadataAndAllocatePages(
         numNodesInBoundTable, adjLists->getHeaders().get(), &adjLists->getListsMetadata());

@@ -4,12 +4,11 @@ namespace kuzu {
 namespace processor {
 
 void AddNodeProperty::executeDDLInternal() {
-    auto metadataDAHInfo = storageManager.createMetadataDAHInfo(*dataType);
-    catalog->addNodeProperty(
-        tableID, propertyName, std::move(dataType), std::move(metadataDAHInfo));
+    catalog->addNodeProperty(tableID, propertyName, std::move(dataType));
     auto addedProp = catalog->getWriteVersion()->getNodeProperty(tableID, propertyName);
     storageManager.getNodesStore().getNodeTable(tableID)->addColumn(
         *addedProp, getDefaultValVector(), transaction);
+    storageManager.getWAL()->logAddPropertyRecord(tableID, addedProp->getPropertyID());
 }
 
 } // namespace processor

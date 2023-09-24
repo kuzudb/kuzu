@@ -1,7 +1,6 @@
 #include "catalog/catalog.h"
 
 #include "catalog/node_table_schema.h"
-#include "catalog/rdf_graph_schema.h"
 #include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
 #include "common/ser_deser.h"
@@ -44,9 +43,7 @@ ExpressionType Catalog::getFunctionType(const std::string& name) const {
 
 table_id_t Catalog::addNodeTableSchema(const binder::BoundCreateTableInfo& info) {
     initCatalogContentForWriteTrxIfNecessary();
-    auto tableID = catalogContentForWriteTrx->addNodeTableSchema(info);
-    wal->logNodeTableRecord(tableID);
-    return tableID;
+    return catalogContentForWriteTrx->addNodeTableSchema(info);
 }
 
 table_id_t Catalog::addRelTableSchema(const binder::BoundCreateTableInfo& info) {
@@ -71,11 +68,7 @@ common::table_id_t Catalog::addRelTableGroupSchema(const binder::BoundCreateTabl
 
 common::table_id_t Catalog::addRdfGraphSchema(const binder::BoundCreateTableInfo& info) {
     initCatalogContentForWriteTrxIfNecessary();
-    auto tableID = catalogContentForWriteTrx->addRdfGraphSchema(info);
-    auto rdfGraphSchema = (RdfGraphSchema*)catalogContentForWriteTrx->getTableSchema(tableID);
-    wal->logRdfGraphRecord(
-        tableID, rdfGraphSchema->getNodeTableID(), rdfGraphSchema->getRelTableID());
-    return tableID;
+    return catalogContentForWriteTrx->addRdfGraphSchema(info);
 }
 
 void Catalog::dropTableSchema(table_id_t tableID) {
@@ -89,13 +82,11 @@ void Catalog::renameTable(table_id_t tableID, const std::string& newName) {
     catalogContentForWriteTrx->renameTable(tableID, newName);
 }
 
-void Catalog::addNodeProperty(table_id_t tableID, const std::string& propertyName,
-    std::unique_ptr<LogicalType> dataType, std::unique_ptr<MetadataDAHInfo> metadataDAHInfo) {
+void Catalog::addNodeProperty(
+    table_id_t tableID, const std::string& propertyName, std::unique_ptr<LogicalType> dataType) {
     initCatalogContentForWriteTrxIfNecessary();
     catalogContentForWriteTrx->getTableSchema(tableID)->addNodeProperty(
-        propertyName, std::move(dataType), std::move(metadataDAHInfo));
-    wal->logAddPropertyRecord(
-        tableID, catalogContentForWriteTrx->getTableSchema(tableID)->getPropertyID(propertyName));
+        propertyName, std::move(dataType));
 }
 
 void Catalog::addRelProperty(

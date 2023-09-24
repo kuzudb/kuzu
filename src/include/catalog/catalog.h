@@ -56,8 +56,7 @@ public:
     void renameTable(common::table_id_t tableID, const std::string& newName);
 
     void addNodeProperty(common::table_id_t tableID, const std::string& propertyName,
-        std::unique_ptr<common::LogicalType> dataType,
-        std::unique_ptr<MetadataDAHInfo> metadataDAHInfo);
+        std::unique_ptr<common::LogicalType> dataType);
     void addRelProperty(common::table_id_t tableID, const std::string& propertyName,
         std::unique_ptr<common::LogicalType> dataType);
 

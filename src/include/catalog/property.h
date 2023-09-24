@@ -5,33 +5,6 @@
 namespace kuzu {
 namespace catalog {
 
-// DAH is the abbreviation for Disk Array Header.
-class MetadataDAHInfo {
-public:
-    MetadataDAHInfo() : MetadataDAHInfo{common::INVALID_PAGE_IDX, common::INVALID_PAGE_IDX} {}
-    MetadataDAHInfo(common::page_idx_t dataDAHPageIdx)
-        : MetadataDAHInfo{dataDAHPageIdx, common::INVALID_PAGE_IDX} {}
-    MetadataDAHInfo(common::page_idx_t dataDAHPageIdx, common::page_idx_t nullDAHPageIdx)
-        : dataDAHPageIdx{dataDAHPageIdx}, nullDAHPageIdx{nullDAHPageIdx} {}
-
-    inline std::unique_ptr<MetadataDAHInfo> copy() {
-        auto result = std::make_unique<MetadataDAHInfo>(dataDAHPageIdx, nullDAHPageIdx);
-        result->childrenInfos.resize(childrenInfos.size());
-        for (size_t i = 0; i < childrenInfos.size(); ++i) {
-            result->childrenInfos[i] = childrenInfos[i]->copy();
-        }
-        return result;
-    }
-
-    void serialize(common::FileInfo* fileInfo, uint64_t& offset) const;
-    static std::unique_ptr<MetadataDAHInfo> deserialize(
-        common::FileInfo* fileInfo, uint64_t& offset);
-
-    common::page_idx_t dataDAHPageIdx = common::INVALID_PAGE_IDX;
-    common::page_idx_t nullDAHPageIdx = common::INVALID_PAGE_IDX;
-    std::vector<std::unique_ptr<MetadataDAHInfo>> childrenInfos;
-};
-
 class Property {
 public:
     // TODO: these should be guarded as reserved property names.
@@ -46,14 +19,9 @@ public:
               common::INVALID_TABLE_ID} {}
 
     Property(std::string name, std::unique_ptr<common::LogicalType> dataType,
-        common::property_id_t propertyID, common::table_id_t tableID,
-        std::unique_ptr<MetadataDAHInfo> metadataDAHInfo = nullptr)
+        common::property_id_t propertyID, common::table_id_t tableID)
         : name{std::move(name)}, dataType{std::move(dataType)},
-          propertyID{propertyID}, tableID{tableID}, metadataDAHInfo{std::move(metadataDAHInfo)} {
-        if (this->metadataDAHInfo == nullptr) {
-            this->metadataDAHInfo = std::make_unique<MetadataDAHInfo>();
-        }
-    }
+          propertyID{propertyID}, tableID{tableID} {}
 
     inline std::string getName() const { return name; }
 
@@ -63,15 +31,9 @@ public:
 
     inline common::table_id_t getTableID() const { return tableID; }
 
-    inline MetadataDAHInfo* getMetadataDAHInfo() const { return metadataDAHInfo.get(); }
-
     inline void setPropertyID(common::property_id_t propertyID_) { this->propertyID = propertyID_; }
 
     inline void setTableID(common::table_id_t tableID_) { this->tableID = tableID_; }
-
-    inline void setMetadataDAHInfo(std::unique_ptr<MetadataDAHInfo> metadataDAHInfo_) {
-        this->metadataDAHInfo = std::move(metadataDAHInfo_);
-    }
 
     inline void rename(std::string newName) { this->name = std::move(newName); }
 
@@ -79,8 +41,7 @@ public:
     static std::unique_ptr<Property> deserialize(common::FileInfo* fileInfo, uint64_t& offset);
 
     inline std::unique_ptr<Property> copy() const {
-        return std::make_unique<Property>(
-            name, dataType->copy(), propertyID, tableID, metadataDAHInfo->copy());
+        return std::make_unique<Property>(name, dataType->copy(), propertyID, tableID);
     }
 
     static std::vector<std::unique_ptr<Property>> copy(
@@ -91,7 +52,6 @@ private:
     std::unique_ptr<common::LogicalType> dataType;
     common::property_id_t propertyID;
     common::table_id_t tableID;
-    std::unique_ptr<MetadataDAHInfo> metadataDAHInfo;
 };
 
 } // namespace catalog

@@ -1,5 +1,7 @@
 #include "storage/store/table_data.h"
 
+#include "storage/stats/nodes_statistics_and_deleted_ids.h"
+
 using namespace kuzu::common;
 using namespace kuzu::transaction;
 
@@ -12,16 +14,20 @@ TableData::TableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, table_id_t 
     : dataFH{dataFH}, metadataFH{metadataFH}, tableID{tableID},
       bufferManager{bufferManager}, wal{wal} {
     columns.reserve(properties.size());
-    for (auto property : properties) {
-        columns.push_back(NodeColumnFactory::createNodeColumn(*property, dataFH, metadataFH,
-            bufferManager, wal, Transaction::getDummyReadOnlyTrx().get(),
-            RWPropertyStats(tablesStatistics, tableID, property->getPropertyID())));
+    for (auto i = 0u; i < properties.size(); i++) {
+        auto property = properties[i];
+        auto metadataDAHInfo =
+            dynamic_cast<NodesStatisticsAndDeletedIDs*>(tablesStatistics)
+                ->getMetadataDAHInfo(Transaction::getDummyWriteTrx().get(), tableID, i);
+        columns.push_back(
+            NodeColumnFactory::createNodeColumn(*property->getDataType(), *metadataDAHInfo, dataFH,
+                metadataFH, bufferManager, wal, Transaction::getDummyReadOnlyTrx().get(),
+                RWPropertyStats(tablesStatistics, tableID, property->getPropertyID())));
     }
 }
 
-void TableData::read(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-    const std::vector<common::column_id_t>& columnIDs,
-    const std::vector<common::ValueVector*>& outputVectors) {
+void TableData::read(transaction::Transaction* transaction, ValueVector* nodeIDVector,
+    const std::vector<column_id_t>& columnIDs, const std::vector<ValueVector*>& outputVectors) {
     if (nodeIDVector->isSequential()) {
         scan(transaction, nodeIDVector, columnIDs, outputVectors);
     } else {
@@ -29,9 +35,8 @@ void TableData::read(transaction::Transaction* transaction, common::ValueVector*
     }
 }
 
-void TableData::scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-    const std::vector<common::column_id_t>& columnIDs,
-    const std::vector<common::ValueVector*>& outputVectors) {
+void TableData::scan(transaction::Transaction* transaction, ValueVector* nodeIDVector,
+    const std::vector<column_id_t>& columnIDs, const std::vector<ValueVector*>& outputVectors) {
     assert(columnIDs.size() == outputVectors.size() && !nodeIDVector->state->isFlat());
     for (auto i = 0u; i < columnIDs.size(); i++) {
         if (columnIDs[i] == INVALID_COLUMN_ID) {
@@ -47,9 +52,8 @@ void TableData::scan(transaction::Transaction* transaction, common::ValueVector*
     }
 }
 
-void TableData::lookup(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-    const std::vector<common::column_id_t>& columnIDs,
-    const std::vector<common::ValueVector*>& outputVectors) {
+void TableData::lookup(transaction::Transaction* transaction, ValueVector* nodeIDVector,
+    const std::vector<column_id_t>& columnIDs, const std::vector<ValueVector*>& outputVectors) {
     auto pos = nodeIDVector->state->selVector->selectedPositions[0];
     for (auto i = 0u; i < columnIDs.size(); i++) {
         auto columnID = columnIDs[i];
@@ -65,8 +69,8 @@ void TableData::lookup(transaction::Transaction* transaction, common::ValueVecto
     }
 }
 
-void TableData::insert(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-    const std::vector<common::ValueVector*>& propertyVectors) {
+void TableData::insert(transaction::Transaction* transaction, ValueVector* nodeIDVector,
+    const std::vector<ValueVector*>& propertyVectors) {
     // We assume that offsets are given in the ascending order, thus lastOffset is the max one.
     offset_t lastOffset = nodeIDVector->readNodeOffset(
         nodeIDVector->state->selVector
@@ -86,15 +90,14 @@ void TableData::insert(transaction::Transaction* transaction, common::ValueVecto
     }
 }
 
-void TableData::update(transaction::Transaction* transaction, common::column_id_t columnID,
-    common::ValueVector* nodeIDVector, common::ValueVector* propertyVector) {
+void TableData::update(transaction::Transaction* transaction, column_id_t columnID,
+    ValueVector* nodeIDVector, ValueVector* propertyVector) {
     assert(columnID < columns.size());
     transaction->getLocalStorage()->update(tableID, columnID, nodeIDVector, propertyVector);
 }
 
-void TableData::update(transaction::Transaction* transaction, common::column_id_t columnID,
-    common::offset_t nodeOffset, common::ValueVector* propertyVector,
-    common::sel_t posInPropertyVector) const {
+void TableData::update(transaction::Transaction* transaction, column_id_t columnID,
+    offset_t nodeOffset, ValueVector* propertyVector, sel_t posInPropertyVector) const {
     transaction->getLocalStorage()->update(
         tableID, columnID, nodeOffset, propertyVector, posInPropertyVector);
 }
@@ -110,10 +113,12 @@ void TableData::append(kuzu::storage::NodeGroup* nodeGroup) {
 }
 
 void TableData::addColumn(transaction::Transaction* transaction, const catalog::Property& property,
-    common::ValueVector* defaultValueVector, TablesStatistics* tableStats) {
-    auto nodeColumn =
-        NodeColumnFactory::createNodeColumn(property, dataFH, metadataFH, bufferManager, wal,
-            transaction, RWPropertyStats(tableStats, tableID, property.getPropertyID()));
+    ValueVector* defaultValueVector, TablesStatistics* tablesStats) {
+    auto metadataDAHInfo = dynamic_cast<NodesStatisticsAndDeletedIDs*>(tablesStats)
+                               ->getMetadataDAHInfo(transaction, tableID, columns.size());
+    auto nodeColumn = NodeColumnFactory::createNodeColumn(*property.getDataType(), *metadataDAHInfo,
+        dataFH, metadataFH, bufferManager, wal, transaction,
+        RWPropertyStats(tablesStats, tableID, property.getPropertyID()));
     nodeColumn->populateWithDefaultVal(
         property, nodeColumn.get(), defaultValueVector, getNumNodeGroups(transaction));
     columns.push_back(std::move(nodeColumn));

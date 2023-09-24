@@ -7,27 +7,11 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace catalog {
 
-void MetadataDAHInfo::serialize(FileInfo* fileInfo, uint64_t& offset) const {
-    SerDeser::serializeValue(dataDAHPageIdx, fileInfo, offset);
-    SerDeser::serializeValue(nullDAHPageIdx, fileInfo, offset);
-    SerDeser::serializeVectorOfPtrs(childrenInfos, fileInfo, offset);
-}
-
-std::unique_ptr<MetadataDAHInfo> MetadataDAHInfo::deserialize(
-    FileInfo* fileInfo, uint64_t& offset) {
-    auto metadataDAHInfo = std::make_unique<MetadataDAHInfo>();
-    SerDeser::deserializeValue(metadataDAHInfo->dataDAHPageIdx, fileInfo, offset);
-    SerDeser::deserializeValue(metadataDAHInfo->nullDAHPageIdx, fileInfo, offset);
-    SerDeser::deserializeVectorOfPtrs(metadataDAHInfo->childrenInfos, fileInfo, offset);
-    return metadataDAHInfo;
-}
-
 void Property::serialize(FileInfo* fileInfo, uint64_t& offset) const {
     SerDeser::serializeValue(name, fileInfo, offset);
     dataType->serialize(fileInfo, offset);
     SerDeser::serializeValue(propertyID, fileInfo, offset);
     SerDeser::serializeValue(tableID, fileInfo, offset);
-    metadataDAHInfo->serialize(fileInfo, offset);
 }
 
 std::unique_ptr<Property> Property::deserialize(FileInfo* fileInfo, uint64_t& offset) {
@@ -38,9 +22,7 @@ std::unique_ptr<Property> Property::deserialize(FileInfo* fileInfo, uint64_t& of
     auto dataType = LogicalType::deserialize(fileInfo, offset);
     SerDeser::deserializeValue(propertyID, fileInfo, offset);
     SerDeser::deserializeValue(tableID, fileInfo, offset);
-    auto metadataDAHInfo = MetadataDAHInfo::deserialize(fileInfo, offset);
-    return std::make_unique<Property>(
-        name, std::move(dataType), propertyID, tableID, std::move(metadataDAHInfo));
+    return std::make_unique<Property>(name, std::move(dataType), propertyID, tableID);
 }
 
 std::vector<std::unique_ptr<Property>> Property::copy(

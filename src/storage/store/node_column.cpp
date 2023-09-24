@@ -83,12 +83,6 @@ void BoolNodeColumnFunc::writeValueToPage(
         posInVector, (uint64_t*)frame, posInFrame, 1);
 }
 
-NodeColumn::NodeColumn(const Property& property, BMFileHandle* dataFH, BMFileHandle* metadataFH,
-    BufferManager* bufferManager, WAL* wal, Transaction* transaction,
-    RWPropertyStats propertyStatistics, bool requireNullColumn)
-    : NodeColumn{*property.getDataType(), *property.getMetadataDAHInfo(), dataFH, metadataFH,
-          bufferManager, wal, transaction, propertyStatistics, requireNullColumn} {}
-
 NodeColumn::NodeColumn(LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
     BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
     transaction::Transaction* transaction, RWPropertyStats propertyStatistics,

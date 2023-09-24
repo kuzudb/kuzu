@@ -10,13 +10,6 @@ namespace kuzu {
 namespace processor {
 
 void CreateRdfGraph::executeDDLInternal() {
-    auto extraInfo = (binder::BoundExtraCreateRdfGraphInfo*)info->extraInfo.get();
-    auto nodeInfo = extraInfo->nodeInfo.get();
-    auto extraNodeInfo = (binder::BoundExtraCreateNodeTableInfo*)nodeInfo->extraInfo.get();
-    for (auto& property : extraNodeInfo->properties) {
-        property->setMetadataDAHInfo(
-            storageManager->createMetadataDAHInfo(*property->getDataType()));
-    }
     auto newRdfGraphID = catalog->addRdfGraphSchema(*info);
     auto writeCatalog = catalog->getWriteVersion();
     auto newRdfGraphSchema = (RdfGraphSchema*)writeCatalog->getTableSchema(newRdfGraphID);
@@ -26,6 +19,8 @@ void CreateRdfGraph::executeDDLInternal() {
     auto newRelTableSchema =
         (RelTableSchema*)writeCatalog->getTableSchema(newRdfGraphSchema->getRelTableID());
     relsStatistics->addTableStatistic(newRelTableSchema);
+    storageManager->getWAL()->logRdfGraphRecord(
+        newRdfGraphID, newRdfGraphSchema->getNodeTableID(), newRdfGraphSchema->getRelTableID());
 }
 
 std::string CreateRdfGraph::getOutputMsg() {

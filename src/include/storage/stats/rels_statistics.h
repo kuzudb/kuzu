@@ -31,6 +31,10 @@ public:
     static std::unique_ptr<RelTableStats> deserialize(
         uint64_t numRels, common::table_id_t tableID, common::FileInfo* fileInfo, uint64_t& offset);
 
+    inline std::unique_ptr<TableStatistics> copy() final {
+        return std::make_unique<RelTableStats>(*this);
+    }
+
 private:
     common::offset_t nextRelOffset;
 };
@@ -41,9 +45,10 @@ class RelsStatistics : public TablesStatistics {
 public:
     // Should only be used by saveInitialRelsStatisticsToFile to start a database from an empty
     // directory.
-    RelsStatistics() : TablesStatistics{} {};
+    RelsStatistics() : TablesStatistics{nullptr} {};
     // Should be used when an already loaded database is started from a directory.
-    explicit RelsStatistics(const std::string& directory) : TablesStatistics{} {
+    explicit RelsStatistics(BMFileHandle* metadataFH, const std::string& directory)
+        : TablesStatistics{metadataFH} {
         readFromFile(directory);
     }
 

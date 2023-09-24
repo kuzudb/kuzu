@@ -109,16 +109,16 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
         preparedStatement->parameterMap = binder.getParameterMap();
         preparedStatement->statementResult = boundStatement->getStatementResult()->copy();
         // planning
-        auto& nodeStatistics =
+        auto nodeStatistics =
             database->storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs();
-        auto& relStatistics = database->storageManager->getRelsStore().getRelsStatistics();
+        auto relStatistics = database->storageManager->getRelsStore().getRelsStatistics();
         std::vector<std::unique_ptr<LogicalPlan>> plans;
         if (enumerateAllPlans) {
             plans = Planner::getAllPlans(
-                *database->catalog, nodeStatistics, relStatistics, *boundStatement);
+                *database->catalog, *nodeStatistics, *relStatistics, *boundStatement);
         } else {
             plans.push_back(Planner::getBestPlan(
-                *database->catalog, nodeStatistics, relStatistics, *boundStatement));
+                *database->catalog, *nodeStatistics, *relStatistics, *boundStatement));
         }
         // optimizing
         for (auto& plan : plans) {

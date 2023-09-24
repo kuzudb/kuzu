@@ -47,9 +47,8 @@ class VarListNodeColumn : public NodeColumn {
     friend class VarListLocalColumn;
 
 public:
-    VarListNodeColumn(common::LogicalType dataType,
-        const catalog::MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
-        BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
+    VarListNodeColumn(common::LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
+        BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
         transaction::Transaction* transaction, RWPropertyStats propertyStatistics)
         : NodeColumn{std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
               transaction, propertyStatistics, true /* requireNullColumn */} {

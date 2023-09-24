@@ -139,18 +139,18 @@ void WALReplayer::replayTableStatisticsRecord(const kuzu::storage::WALRecord& wa
             if (!isRecovering) {
                 storageManager->getNodesStore()
                     .getNodesStatisticsAndDeletedIDs()
-                    .checkpointInMemoryIfNecessary();
+                    ->checkpointInMemoryIfNecessary();
             }
         } else {
             StorageUtils::overwriteRelsStatisticsFileWithVersionFromWAL(wal->getDirectory());
             if (!isRecovering) {
-                storageManager->getRelsStore().getRelsStatistics().checkpointInMemoryIfNecessary();
+                storageManager->getRelsStore().getRelsStatistics()->checkpointInMemoryIfNecessary();
             }
         }
     } else {
         storageManager->getNodesStore()
             .getNodesStatisticsAndDeletedIDs()
-            .rollbackInMemoryIfNecessary();
+            ->rollbackInMemoryIfNecessary();
     }
 }
 
@@ -194,7 +194,8 @@ void WALReplayer::replayRelTableRecord(const WALRecord& walRecord, bool isRdf) {
     if (isCheckpoint) {
         // See comments for NODE_TABLE_RECORD.
         auto nodesStatistics = std::make_unique<NodesStatisticsAndDeletedIDs>(
-            wal->getDirectory(), isRdf ? DBFileType::WAL_VERSION : DBFileType::ORIGINAL);
+            nullptr /* metadataFH */, nullptr /* bufferManager */, wal,
+            isRdf ? DBFileType::WAL_VERSION : DBFileType::ORIGINAL);
         auto maxNodeOffsetPerTable = nodesStatistics->getMaxNodeOffsetPerTable();
         auto catalogForCheckpointing = getCatalogForRecovery(DBFileType::WAL_VERSION);
         auto relTableSchema = reinterpret_cast<RelTableSchema*>(
@@ -206,8 +207,9 @@ void WALReplayer::replayRelTableRecord(const WALRecord& walRecord, bool isRdf) {
             // See comments for NODE_TABLE_RECORD.
             storageManager->getRelsStore().createRelTable(
                 walRecord.relTableRecord.tableID, catalogForCheckpointing.get(), memoryManager);
-            storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs().setAdjListsAndColumns(
-                &storageManager->getRelsStore());
+            storageManager->getNodesStore()
+                .getNodesStatisticsAndDeletedIDs()
+                ->setAdjListsAndColumns(&storageManager->getRelsStore());
         }
     } else {
         // See comments for NODE_TABLE_RECORD.
@@ -338,15 +340,17 @@ void WALReplayer::replayCopyRelRecord(const kuzu::storage::WALRecord& walRecord)
             relTable->resetColumnsAndLists(relTableSchema);
             // See comments for COPY_NODE_RECORD.
             relTable->initializeData(relTableSchema);
-            storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs().setAdjListsAndColumns(
-                &storageManager->getRelsStore());
+            storageManager->getNodesStore()
+                .getNodesStatisticsAndDeletedIDs()
+                ->setAdjListsAndColumns(&storageManager->getRelsStore());
         } else {
             // RECOVERY.
             if (wal->isLastLoggedRecordCommit()) {
                 return;
             }
             auto nodesStatisticsAndDeletedIDsForCheckPointing =
-                std::make_unique<NodesStatisticsAndDeletedIDs>(wal->getDirectory());
+                std::make_unique<NodesStatisticsAndDeletedIDs>(
+                    nullptr /* metadataFH */, nullptr /* bufferManager */, wal);
             auto maxNodeOffsetPerTable =
                 nodesStatisticsAndDeletedIDsForCheckPointing->getMaxNodeOffsetPerTable();
             auto catalogForRecovery = getCatalogForRecovery(DBFileType::ORIGINAL);
@@ -362,7 +366,7 @@ void WALReplayer::replayCopyRelRecord(const kuzu::storage::WALRecord& walRecord)
         WALReplayerUtils::createEmptyDBFilesForNewRelTable(relTableSchema, wal->getDirectory(),
             storageManager->getNodesStore()
                 .getNodesStatisticsAndDeletedIDs()
-                .getMaxNodeOffsetPerTable());
+                ->getMaxNodeOffsetPerTable());
     }
 }
 

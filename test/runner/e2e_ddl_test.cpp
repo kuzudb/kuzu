@@ -43,7 +43,7 @@ public:
         ASSERT_EQ(getStorageManager(*database)
                       ->getNodesStore()
                       .getNodesStatisticsAndDeletedIDs()
-                      .getNumNodeStatisticsAndDeleteIDsPerTable(),
+                      ->getNumNodeStatisticsAndDeleteIDsPerTable(),
             4);
     }
 
@@ -59,7 +59,7 @@ public:
             ASSERT_EQ(getStorageManager(*database)
                           ->getNodesStore()
                           .getNodesStatisticsAndDeletedIDs()
-                          .getNumNodeStatisticsAndDeleteIDsPerTable(),
+                          ->getNumNodeStatisticsAndDeleteIDsPerTable(),
                 3);
             initWithoutLoadingGraph();
         } else {
