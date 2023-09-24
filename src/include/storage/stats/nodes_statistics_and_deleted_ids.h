@@ -9,25 +9,28 @@
 namespace kuzu {
 namespace storage {
 
-class NodeStatisticsAndDeletedIDs : public TableStatistics {
+class NodeTableStatsAndDeletedIDs : public TableStatistics {
 
 public:
-    explicit NodeStatisticsAndDeletedIDs(const catalog::TableSchema& schema)
+    explicit NodeTableStatsAndDeletedIDs(const catalog::TableSchema& schema)
         : TableStatistics{schema}, tableID{schema.tableID} {}
 
-    NodeStatisticsAndDeletedIDs(common::table_id_t tableID, common::offset_t maxNodeOffset,
+    NodeTableStatsAndDeletedIDs(common::table_id_t tableID, common::offset_t maxNodeOffset,
+        const std::vector<common::offset_t>& deletedNodeOffsets)
+        : NodeTableStatsAndDeletedIDs{tableID, maxNodeOffset, deletedNodeOffsets, {}} {}
+    NodeTableStatsAndDeletedIDs(common::table_id_t tableID, common::offset_t maxNodeOffset,
         std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&&
             propertyStatistics)
-        : NodeStatisticsAndDeletedIDs(tableID, maxNodeOffset,
+        : NodeTableStatsAndDeletedIDs(tableID, maxNodeOffset,
               std::vector<common::offset_t>() /* no deleted node offsets during initial loading */,
               std::move(propertyStatistics)) {}
 
-    NodeStatisticsAndDeletedIDs(common::table_id_t tableID, common::offset_t maxNodeOffset,
+    NodeTableStatsAndDeletedIDs(common::table_id_t tableID, common::offset_t maxNodeOffset,
         const std::vector<common::offset_t>& deletedNodeOffsets,
         std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&&
             propertyStatistics);
 
-    NodeStatisticsAndDeletedIDs(const NodeStatisticsAndDeletedIDs& other) = default;
+    NodeTableStatsAndDeletedIDs(const NodeTableStatsAndDeletedIDs& other) = default;
 
     inline common::offset_t getMaxNodeOffset() {
         return getMaxNodeOffsetFromNumTuples(getNumTuples());
@@ -59,6 +62,10 @@ public:
     static inline uint64_t getMaxNodeOffsetFromNumTuples(uint64_t numTuples) {
         return numTuples == 0 ? UINT64_MAX : numTuples - 1;
     }
+
+    void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) final;
+    static std::unique_ptr<NodeTableStatsAndDeletedIDs> deserialize(common::table_id_t tableID,
+        common::offset_t maxNodeOffset, common::FileInfo* fileInfo, uint64_t& offset);
 
 private:
     void errorIfNodeHasEdges(common::offset_t nodeOffset);
@@ -92,12 +99,12 @@ public:
 
     // Should be used only by tests;
     explicit NodesStatisticsAndDeletedIDs(
-        std::unordered_map<common::table_id_t, std::unique_ptr<NodeStatisticsAndDeletedIDs>>&
+        std::unordered_map<common::table_id_t, std::unique_ptr<NodeTableStatsAndDeletedIDs>>&
             nodesStatisticsAndDeletedIDs);
 
-    inline NodeStatisticsAndDeletedIDs* getNodeStatisticsAndDeletedIDs(
+    inline NodeTableStatsAndDeletedIDs* getNodeStatisticsAndDeletedIDs(
         common::table_id_t tableID) const {
-        return (NodeStatisticsAndDeletedIDs*)tablesStatisticsContentForReadOnlyTrx
+        return (NodeTableStatsAndDeletedIDs*)tablesStatisticsContentForReadOnlyTrx
             ->tableStatisticPerTable[tableID]
             .get();
     }
@@ -114,7 +121,7 @@ public:
 
     inline void setNumTuplesForTable(common::table_id_t tableID, uint64_t numTuples) override {
         initTableStatisticsForWriteTrx();
-        ((NodeStatisticsAndDeletedIDs*)tablesStatisticsContentForWriteTrx
+        ((NodeTableStatsAndDeletedIDs*)tablesStatisticsContentForWriteTrx
                 ->tableStatisticPerTable[tableID]
                 .get())
             ->setNumTuples(numTuples);
@@ -129,7 +136,7 @@ public:
             std::unique_lock xLck{mtx};
             return tablesStatisticsContentForWriteTrx == nullptr ?
                        getNodeStatisticsAndDeletedIDs(tableID)->getMaxNodeOffset() :
-                       ((NodeStatisticsAndDeletedIDs*)tablesStatisticsContentForWriteTrx
+                       ((NodeTableStatsAndDeletedIDs*)tablesStatisticsContentForWriteTrx
                                ->tableStatisticPerTable[tableID]
                                .get())
                            ->getMaxNodeOffset();
@@ -148,7 +155,7 @@ public:
     common::offset_t addNode(common::table_id_t tableID) {
         lock_t lck{mtx};
         initTableStatisticsForWriteTrxNoLock();
-        return ((NodeStatisticsAndDeletedIDs*)tablesStatisticsContentForWriteTrx
+        return ((NodeTableStatsAndDeletedIDs*)tablesStatisticsContentForWriteTrx
                     ->tableStatisticPerTable[tableID]
                     .get())
             ->addNode();
@@ -158,7 +165,7 @@ public:
     void deleteNode(common::table_id_t tableID, common::offset_t nodeOffset) {
         lock_t lck{mtx};
         initTableStatisticsForWriteTrxNoLock();
-        ((NodeStatisticsAndDeletedIDs*)tablesStatisticsContentForWriteTrx
+        ((NodeTableStatsAndDeletedIDs*)tablesStatisticsContentForWriteTrx
                 ->tableStatisticPerTable[tableID]
                 .get())
             ->deleteNode(nodeOffset);
@@ -174,33 +181,21 @@ public:
     void addNodeStatisticsAndDeletedIDs(catalog::NodeTableSchema* tableSchema);
 
 protected:
-    inline std::string getTableTypeForPrinting() const override {
-        return "NodesStatisticsAndDeletedIDs";
-    }
-
     inline std::unique_ptr<TableStatistics> constructTableStatistic(
         catalog::TableSchema* tableSchema) override {
-        return std::make_unique<NodeStatisticsAndDeletedIDs>(*tableSchema);
+        return std::make_unique<NodeTableStatsAndDeletedIDs>(*tableSchema);
     }
 
     inline std::unique_ptr<TableStatistics> constructTableStatistic(
         TableStatistics* tableStatistics) override {
-        return std::make_unique<NodeStatisticsAndDeletedIDs>(
-            *(NodeStatisticsAndDeletedIDs*)tableStatistics);
+        return std::make_unique<NodeTableStatsAndDeletedIDs>(
+            *(NodeTableStatsAndDeletedIDs*)tableStatistics);
     }
 
     inline std::string getTableStatisticsFilePath(
         const std::string& directory, common::DBFileType dbFileType) override {
         return StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(directory, dbFileType);
     }
-
-    std::unique_ptr<TableStatistics> deserializeTableStatistics(uint64_t numTuples,
-        std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&&
-            propertyStats,
-        uint64_t& offset, common::FileInfo* fileInfo, uint64_t tableID) override;
-
-    void serializeTableStatistics(
-        TableStatistics* tableStatistics, uint64_t& offset, common::FileInfo* fileInfo) override;
 };
 
 } // namespace storage

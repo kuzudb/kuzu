@@ -15,8 +15,10 @@ TEST(TableStatisticsTest, CopyTableStatistics) {
     std::unordered_map<property_id_t, std::unique_ptr<PropertyStatistics>> propertyStatistics;
     propertyStatistics[0] = std::make_unique<PropertyStatistics>(true);
     propertyStatistics[1] = std::make_unique<PropertyStatistics>(false);
-    TableStatistics tableStats(numTuples, std::move(propertyStatistics));
-    TableStatistics copy(tableStats);
+    NodeTableStatsAndDeletedIDs tableStats(0,
+        NodeTableStatsAndDeletedIDs::getMaxNodeOffsetFromNumTuples(numTuples),
+        std::move(propertyStatistics));
+    NodeTableStatsAndDeletedIDs copy(tableStats);
 
     ASSERT_EQ(copy.getNumTuples(), numTuples);
     ASSERT_EQ(copy.getPropertyStatistics(0).mayHaveNull(), true);

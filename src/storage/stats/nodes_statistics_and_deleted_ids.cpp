@@ -8,11 +8,12 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-NodeStatisticsAndDeletedIDs::NodeStatisticsAndDeletedIDs(table_id_t tableID, offset_t maxNodeOffset,
+NodeTableStatsAndDeletedIDs::NodeTableStatsAndDeletedIDs(table_id_t tableID, offset_t maxNodeOffset,
     const std::vector<offset_t>& deletedNodeOffsets,
     std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&&
         propertyStatistics)
-    : tableID{tableID}, TableStatistics{getNumTuplesFromMaxNodeOffset(maxNodeOffset),
+    : tableID{tableID}, TableStatistics{TableType::NODE,
+                            getNumTuplesFromMaxNodeOffset(maxNodeOffset), tableID,
                             std::move(propertyStatistics)} {
     if (getNumTuples() > 0) {
         hasDeletedNodesPerMorsel.resize((getNumTuples() / DEFAULT_VECTOR_CAPACITY) + 1, false);
@@ -29,14 +30,13 @@ NodeStatisticsAndDeletedIDs::NodeStatisticsAndDeletedIDs(table_id_t tableID, off
     }
 }
 
-offset_t NodeStatisticsAndDeletedIDs::addNode() {
+offset_t NodeTableStatsAndDeletedIDs::addNode() {
     if (deletedNodeOffsetsPerMorsel.empty()) {
         setNumTuples(getNumTuples() + 1);
         return getMaxNodeOffset();
     }
     // We return the last element in the first non-empty morsel we find
     auto iter = deletedNodeOffsetsPerMorsel.begin();
-    std::set<offset_t> deletedNodeOffsets = iter->second;
     auto nodeOffsetIter = iter->second.end();
     nodeOffsetIter--;
     offset_t retVal = *nodeOffsetIter;
@@ -48,7 +48,7 @@ offset_t NodeStatisticsAndDeletedIDs::addNode() {
     return retVal;
 }
 
-void NodeStatisticsAndDeletedIDs::deleteNode(offset_t nodeOffset) {
+void NodeTableStatsAndDeletedIDs::deleteNode(offset_t nodeOffset) {
     // TODO(Semih/Guodong): This check can go into nodeOffsetsInfoForWriteTrx->deleteNode
     // once errorIfNodeHasEdges is removed. This function would then just be a wrapper to init
     // nodeOffsetsInfoForWriteTrx before calling delete on it.
@@ -76,7 +76,7 @@ void NodeStatisticsAndDeletedIDs::deleteNode(offset_t nodeOffset) {
 
 // Note: this function will always be called right after scanNodeID, so we have the guarantee
 // that the nodeOffsetVector is always unselected.
-void NodeStatisticsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(
+void NodeTableStatsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(
     const std::shared_ptr<ValueVector>& nodeOffsetVector) {
     auto morselIdxAndOffset = StorageUtils::getQuotientRemainder(
         nodeOffsetVector->readNodeOffset(0), DEFAULT_VECTOR_CAPACITY);
@@ -106,14 +106,14 @@ void NodeStatisticsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(
     }
 }
 
-void NodeStatisticsAndDeletedIDs::setNumTuples(uint64_t numTuples) {
+void NodeTableStatsAndDeletedIDs::setNumTuples(uint64_t numTuples) {
     TableStatistics::setNumTuples(numTuples);
     if (numTuples > 0) {
         hasDeletedNodesPerMorsel.resize((numTuples / DEFAULT_VECTOR_CAPACITY) + 1, false);
     }
 }
 
-std::vector<offset_t> NodeStatisticsAndDeletedIDs::getDeletedNodeOffsets() {
+std::vector<offset_t> NodeTableStatsAndDeletedIDs::getDeletedNodeOffsets() {
     std::vector<offset_t> retVal;
     auto morselIter = deletedNodeOffsetsPerMorsel.begin();
     while (morselIter != deletedNodeOffsetsPerMorsel.end()) {
@@ -123,7 +123,19 @@ std::vector<offset_t> NodeStatisticsAndDeletedIDs::getDeletedNodeOffsets() {
     return retVal;
 }
 
-void NodeStatisticsAndDeletedIDs::errorIfNodeHasEdges(offset_t nodeOffset) {
+void NodeTableStatsAndDeletedIDs::serializeInternal(FileInfo* fileInfo, uint64_t& offset) {
+    SerDeser::serializeVector(getDeletedNodeOffsets(), fileInfo, offset);
+}
+
+std::unique_ptr<NodeTableStatsAndDeletedIDs> NodeTableStatsAndDeletedIDs::deserialize(
+    table_id_t tableID, offset_t maxNodeOffset, FileInfo* fileInfo, uint64_t& offset) {
+    std::vector<common::offset_t> deletedNodeOffsets;
+    SerDeser::deserializeVector(deletedNodeOffsets, fileInfo, offset);
+    return std::make_unique<NodeTableStatsAndDeletedIDs>(
+        tableID, maxNodeOffset, deletedNodeOffsets);
+}
+
+void NodeTableStatsAndDeletedIDs::errorIfNodeHasEdges(offset_t nodeOffset) {
     for (AdjLists* adjList : adjListsAndColumns.first) {
         auto numElementsInList =
             adjList->getTotalNumElementsInList(transaction::TransactionType::WRITE, nodeOffset);
@@ -144,7 +156,7 @@ void NodeStatisticsAndDeletedIDs::errorIfNodeHasEdges(offset_t nodeOffset) {
     }
 }
 
-bool NodeStatisticsAndDeletedIDs::isDeleted(offset_t nodeOffset, uint64_t morselIdx) {
+bool NodeTableStatsAndDeletedIDs::isDeleted(offset_t nodeOffset, uint64_t morselIdx) {
     auto iter = deletedNodeOffsetsPerMorsel.find(morselIdx);
     if (iter != deletedNodeOffsetsPerMorsel.end()) {
         return iter->second.contains(nodeOffset);
@@ -153,17 +165,17 @@ bool NodeStatisticsAndDeletedIDs::isDeleted(offset_t nodeOffset, uint64_t morsel
 }
 
 NodesStatisticsAndDeletedIDs::NodesStatisticsAndDeletedIDs(
-    std::unordered_map<table_id_t, std::unique_ptr<NodeStatisticsAndDeletedIDs>>&
+    std::unordered_map<table_id_t, std::unique_ptr<NodeTableStatsAndDeletedIDs>>&
         nodesStatisticsAndDeletedIDs)
     : TablesStatistics{} {
     initTableStatisticsForWriteTrx();
     for (auto& nodeStatistics : nodesStatisticsAndDeletedIDs) {
         tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable[nodeStatistics.first] =
-            std::make_unique<NodeStatisticsAndDeletedIDs>(
-                *(NodeStatisticsAndDeletedIDs*)nodeStatistics.second.get());
+            std::make_unique<NodeTableStatsAndDeletedIDs>(
+                *(NodeTableStatsAndDeletedIDs*)nodeStatistics.second.get());
         tablesStatisticsContentForWriteTrx->tableStatisticPerTable[nodeStatistics.first] =
-            std::make_unique<NodeStatisticsAndDeletedIDs>(
-                *(NodeStatisticsAndDeletedIDs*)nodeStatistics.second.get());
+            std::make_unique<NodeTableStatsAndDeletedIDs>(
+                *(NodeTableStatsAndDeletedIDs*)nodeStatistics.second.get());
     }
 }
 
@@ -197,7 +209,7 @@ void NodesStatisticsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(
     lock_t lck{mtx};
     (transaction->isReadOnly() || tablesStatisticsContentForWriteTrx == nullptr) ?
         getNodeStatisticsAndDeletedIDs(tableID)->setDeletedNodeOffsetsForMorsel(nodeOffsetVector) :
-        ((NodeStatisticsAndDeletedIDs*)tablesStatisticsContentForWriteTrx
+        ((NodeTableStatsAndDeletedIDs*)tablesStatisticsContentForWriteTrx
                 ->tableStatisticPerTable[tableID]
                 .get())
             ->setDeletedNodeOffsetsForMorsel(nodeOffsetVector);
@@ -208,23 +220,6 @@ void NodesStatisticsAndDeletedIDs::addNodeStatisticsAndDeletedIDs(
     initTableStatisticsForWriteTrx();
     tablesStatisticsContentForWriteTrx->tableStatisticPerTable[tableSchema->tableID] =
         constructTableStatistic(tableSchema);
-}
-
-std::unique_ptr<TableStatistics> NodesStatisticsAndDeletedIDs::deserializeTableStatistics(
-    uint64_t numTuples,
-    std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&& propertyStats,
-    uint64_t& offset, FileInfo* fileInfo, uint64_t tableID) {
-    std::vector<offset_t> deletedNodeIDs;
-    SerDeser::deserializeVector(deletedNodeIDs, fileInfo, offset);
-    return make_unique<NodeStatisticsAndDeletedIDs>(tableID,
-        NodeStatisticsAndDeletedIDs::getMaxNodeOffsetFromNumTuples(numTuples), deletedNodeIDs,
-        std::move(propertyStats));
-}
-
-void NodesStatisticsAndDeletedIDs::serializeTableStatistics(
-    TableStatistics* tableStatistics, uint64_t& offset, FileInfo* fileInfo) {
-    auto nodeTableStatistic = (NodeStatisticsAndDeletedIDs*)tableStatistics;
-    SerDeser::serializeVector(nodeTableStatistic->getDeletedNodeOffsets(), fileInfo, offset);
 }
 
 } // namespace storage

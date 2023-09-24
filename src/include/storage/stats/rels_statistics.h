@@ -9,19 +9,27 @@ namespace kuzu {
 namespace storage {
 
 class RelsStatistics;
-class RelStatistics : public TableStatistics {
+class RelTableStats : public TableStatistics {
     friend class RelsStatistics;
 
 public:
-    RelStatistics(const catalog::TableSchema& tableSchema)
+    RelTableStats(const catalog::TableSchema& tableSchema)
         : TableStatistics{tableSchema}, nextRelOffset{0} {}
-    RelStatistics(uint64_t numRels,
+    RelTableStats(uint64_t numRels, common::table_id_t tableID, common::offset_t nextRelOffset)
+        : TableStatistics{common::TableType::REL, numRels, tableID, {}}, nextRelOffset{
+                                                                             nextRelOffset} {}
+    RelTableStats(uint64_t numRels, common::table_id_t tableID,
         std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&&
             propertyStats,
         common::offset_t nextRelOffset)
-        : TableStatistics{numRels, std::move(propertyStats)}, nextRelOffset{nextRelOffset} {}
+        : TableStatistics{common::TableType::REL, numRels, tableID, std::move(propertyStats)},
+          nextRelOffset{nextRelOffset} {}
 
     inline common::offset_t getNextRelOffset() const { return nextRelOffset; }
+
+    void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) final;
+    static std::unique_ptr<RelTableStats> deserialize(
+        uint64_t numRels, common::table_id_t tableID, common::FileInfo* fileInfo, uint64_t& offset);
 
 private:
     common::offset_t nextRelOffset;
@@ -40,7 +48,7 @@ public:
     }
 
     // Should only be used by tests.
-    explicit RelsStatistics(std::unordered_map<common::table_id_t, std::unique_ptr<RelStatistics>>
+    explicit RelsStatistics(std::unordered_map<common::table_id_t, std::unique_ptr<RelTableStats>>
             relStatisticPerTable_);
 
     static inline void saveInitialRelsStatisticsToFile(const std::string& directory) {
@@ -48,10 +56,10 @@ public:
             directory, common::DBFileType::ORIGINAL, transaction::TransactionType::READ_ONLY);
     }
 
-    inline RelStatistics* getRelStatistics(common::table_id_t tableID) const {
+    inline RelTableStats* getRelStatistics(common::table_id_t tableID) const {
         auto& tableStatisticPerTable =
             tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable;
-        return (RelStatistics*)tableStatisticPerTable[tableID].get();
+        return (RelTableStats*)tableStatisticPerTable[tableID].get();
     }
 
     void setNumTuplesForTable(common::table_id_t relTableID, uint64_t numRels) override;
@@ -62,16 +70,14 @@ public:
         transaction::Transaction* transaction, common::table_id_t tableID);
 
 protected:
-    inline std::string getTableTypeForPrinting() const override { return "RelsStatistics"; }
-
     inline std::unique_ptr<TableStatistics> constructTableStatistic(
         catalog::TableSchema* tableSchema) override {
-        return std::make_unique<RelStatistics>(*tableSchema);
+        return std::make_unique<RelTableStats>(*tableSchema);
     }
 
     inline std::unique_ptr<TableStatistics> constructTableStatistic(
         TableStatistics* tableStatistics) override {
-        return std::make_unique<RelStatistics>(*(RelStatistics*)tableStatistics);
+        return std::make_unique<RelTableStats>(*(RelTableStats*)tableStatistics);
     }
 
     inline std::string getTableStatisticsFilePath(
@@ -80,18 +86,10 @@ protected:
     }
 
     inline void increaseNextRelOffset(common::table_id_t relTableID, uint64_t numTuples) {
-        ((RelStatistics*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable.at(relTableID)
+        ((RelTableStats*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable.at(relTableID)
                 .get())
             ->nextRelOffset += numTuples;
     }
-
-    std::unique_ptr<TableStatistics> deserializeTableStatistics(uint64_t numTuples,
-        std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&&
-            propertyStats,
-        uint64_t& offset, common::FileInfo* fileInfo, uint64_t tableID) override;
-
-    void serializeTableStatistics(
-        TableStatistics* tableStatistics, uint64_t& offset, common::FileInfo* fileInfo) override;
 };
 
 } // namespace storage

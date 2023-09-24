@@ -41,7 +41,7 @@ private:
 
 struct RelTableScanState {
 public:
-    RelTableScanState(storage::RelStatistics* relStats,
+    RelTableScanState(storage::RelTableStats* relStats,
         std::vector<common::property_id_t> propertyIds, RelTableDataType relTableDataType)
         : relStats{relStats}, relTableDataType{relTableDataType}, propertyIds{
                                                                       std::move(propertyIds)} {
@@ -60,7 +60,7 @@ public:
                syncState->hasMoreAndSwitchSourceIfNecessary();
     }
 
-    RelStatistics* relStats;
+    RelTableStats* relStats;
     RelTableDataType relTableDataType;
     std::vector<common::property_id_t> propertyIds;
     // sync state between adj and property lists
