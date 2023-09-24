@@ -1,0 +1,92 @@
+#pragma once
+
+#include <map>
+#include <set>
+
+#include "catalog/node_table_schema.h"
+#include "storage/stats/table_statistics.h"
+#include "storage/store/rels_store.h"
+
+namespace kuzu {
+namespace storage {
+
+class NodeTableStatsAndDeletedIDs : public TableStatistics {
+public:
+    NodeTableStatsAndDeletedIDs(BMFileHandle* metadataFH, const catalog::TableSchema& schema,
+        BufferManager* bufferManager, WAL* wal);
+    NodeTableStatsAndDeletedIDs(common::table_id_t tableID, common::offset_t maxNodeOffset,
+        const std::vector<common::offset_t>& deletedNodeOffsets);
+    NodeTableStatsAndDeletedIDs(common::table_id_t tableID, common::offset_t maxNodeOffset,
+        const std::vector<common::offset_t>& deletedNodeOffsets,
+        std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&&
+            propertyStatistics);
+    NodeTableStatsAndDeletedIDs(const NodeTableStatsAndDeletedIDs& other);
+
+    inline common::offset_t getMaxNodeOffset() {
+        return getMaxNodeOffsetFromNumTuples(getNumTuples());
+    }
+
+    inline void setAdjListsAndColumns(
+        std::pair<std::vector<AdjLists*>, std::vector<Column*>> adjListsAndColumns_) {
+        adjListsAndColumns = std::move(adjListsAndColumns_);
+    }
+
+    common::offset_t addNode();
+
+    void deleteNode(common::offset_t nodeOffset);
+
+    // This function assumes that it is being called right after ScanNodeID has obtained a
+    // morsel and that the nodeID structs in nodeOffsetVector.values have consecutive node
+    // offsets and the same tableID.
+    void setDeletedNodeOffsetsForMorsel(
+        const std::shared_ptr<common::ValueVector>& nodeOffsetVector);
+
+    void setNumTuples(uint64_t numTuples) override;
+
+    std::vector<common::offset_t> getDeletedNodeOffsets() const;
+
+    static inline uint64_t getNumTuplesFromMaxNodeOffset(common::offset_t maxNodeOffset) {
+        return (maxNodeOffset == UINT64_MAX) ? 0ull : maxNodeOffset + 1ull;
+    }
+    static inline uint64_t getMaxNodeOffsetFromNumTuples(uint64_t numTuples) {
+        return numTuples == 0 ? UINT64_MAX : numTuples - 1;
+    }
+
+    inline void addMetadataDAHInfoForColumn(std::unique_ptr<MetadataDAHInfo> metadataDAHInfo) {
+        metadataDAHInfos.push_back(std::move(metadataDAHInfo));
+    }
+    inline void removeMetadataDAHInfoForColumn(common::column_id_t columnID) {
+        assert(columnID < metadataDAHInfos.size());
+        metadataDAHInfos.erase(metadataDAHInfos.begin() + columnID);
+    }
+    inline MetadataDAHInfo* getMetadataDAHInfo(common::column_id_t columnID) {
+        assert(columnID < metadataDAHInfos.size());
+        return metadataDAHInfos[columnID].get();
+    }
+
+    void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) final;
+    static std::unique_ptr<NodeTableStatsAndDeletedIDs> deserialize(common::table_id_t tableID,
+        common::offset_t maxNodeOffset, common::FileInfo* fileInfo, uint64_t& offset);
+
+    std::unique_ptr<TableStatistics> copy() final {
+        return std::make_unique<NodeTableStatsAndDeletedIDs>(*this);
+    }
+
+private:
+    void errorIfNodeHasEdges(common::offset_t nodeOffset);
+
+    // We pass the morselIdx to not do the division nodeOffset/DEFAULT_VECTOR_CAPACITY again
+    bool isDeleted(common::offset_t nodeOffset, uint64_t morselIdx);
+
+private:
+    common::table_id_t tableID;
+    std::vector<std::unique_ptr<MetadataDAHInfo>> metadataDAHInfos;
+    // Note: This is initialized explicitly through a call to setAdjListsAndColumns after
+    // construction.
+    std::pair<std::vector<AdjLists*>, std::vector<Column*>> adjListsAndColumns;
+    std::vector<bool> hasDeletedNodesPerMorsel;
+    std::map<uint64_t, std::set<common::offset_t>> deletedNodeOffsetsPerMorsel;
+};
+
+} // namespace storage
+} // namespace kuzu

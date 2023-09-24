@@ -48,7 +48,7 @@ static std::unique_ptr<RelDeleteExecutor> getRelDeleteExecutor(
     auto relIDPos = DataPos(inSchema.getExpressionPos(*rel.getInternalIDProperty()));
     auto statistics = store->getRelsStatistics();
     if (rel.isMultiLabeled()) {
-        std::unordered_map<table_id_t, std::pair<storage::RelTable*, storage::RelsStatistics*>>
+        std::unordered_map<table_id_t, std::pair<storage::RelTable*, storage::RelsStoreStats*>>
             tableIDToTableMap;
         for (auto tableID : rel.getTableIDs()) {
             auto table = store->getRelTable(tableID);

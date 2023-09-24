@@ -1,14 +1,14 @@
 #pragma once
 
 #include "processor/operator/ddl/ddl.h"
-#include "storage/stats/rels_statistics.h"
+#include "storage/stats/rels_store_statistics.h"
 
 namespace kuzu {
 namespace processor {
 
 class CreateRelTable : public DDL {
 public:
-    CreateRelTable(catalog::Catalog* catalog, storage::RelsStatistics* relsStatistics,
+    CreateRelTable(catalog::Catalog* catalog, storage::RelsStoreStats* relsStatistics,
         std::unique_ptr<binder::BoundCreateTableInfo> info, const DataPos& outputPos, uint32_t id,
         const std::string& paramsString)
         : DDL{PhysicalOperatorType::CREATE_REL_TABLE, catalog, outputPos, id, paramsString},
@@ -24,7 +24,7 @@ public:
     }
 
 private:
-    storage::RelsStatistics* relsStatistics;
+    storage::RelsStoreStats* relsStatistics;
     std::unique_ptr<binder::BoundCreateTableInfo> info;
 };
 

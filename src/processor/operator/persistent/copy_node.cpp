@@ -3,6 +3,7 @@
 #include "common/exception/copy.h"
 #include "common/exception/message.h"
 #include "common/string_utils.h"
+#include "storage/stats/nodes_store_statistics.h"
 #include "storage/store/string_column_chunk.h"
 
 using namespace kuzu::catalog;
@@ -210,6 +211,12 @@ void CopyNode::finalize(ExecutionContext* context) {
         numNodes, sharedState->tableSchema->tableName.c_str());
     FactorizedTableUtils::appendStringToTable(
         sharedState->fTable.get(), outputMsg, context->memoryManager);
+}
+
+bool CopyNode::isCopyAllowed() const {
+    auto nodesStatistics = copyNodeInfo.table->getNodeStatisticsAndDeletedIDs();
+    return nodesStatistics->getNodeStatisticsAndDeletedIDs(copyNodeInfo.table->getTableID())
+               ->getNumTuples() == 0;
 }
 
 template<>

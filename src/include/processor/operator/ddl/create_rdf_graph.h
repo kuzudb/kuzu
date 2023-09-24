@@ -9,8 +9,8 @@ namespace processor {
 class CreateRdfGraph : public DDL {
 public:
     CreateRdfGraph(catalog::Catalog* catalog, storage::StorageManager* storageManager,
-        storage::NodesStatisticsAndDeletedIDs* nodesStatistics,
-        storage::RelsStatistics* relsStatistics, std::unique_ptr<binder::BoundCreateTableInfo> info,
+        storage::NodesStoreStatsAndDeletedIDs* nodesStatistics,
+        storage::RelsStoreStats* relsStatistics, std::unique_ptr<binder::BoundCreateTableInfo> info,
         const DataPos& outputPos, uint32_t id, const std::string& paramsString)
         : DDL{PhysicalOperatorType::CREATE_RDF_GRAPH, catalog, outputPos, id, paramsString},
           storageManager{storageManager}, nodesStatistics{nodesStatistics},
@@ -27,8 +27,8 @@ public:
 
 private:
     storage::StorageManager* storageManager;
-    storage::NodesStatisticsAndDeletedIDs* nodesStatistics;
-    storage::RelsStatistics* relsStatistics;
+    storage::NodesStoreStatsAndDeletedIDs* nodesStatistics;
+    storage::RelsStoreStats* relsStatistics;
     std::unique_ptr<binder::BoundCreateTableInfo> info;
 };
 

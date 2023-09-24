@@ -68,7 +68,7 @@ std::unique_ptr<LogicalPlan> Planner::planCopyFrom(const BoundStatement& stateme
 }
 
 std::unique_ptr<LogicalPlan> Planner::planCopyTo(const Catalog& catalog,
-    const NodesStatisticsAndDeletedIDs& nodesStatistics, const RelsStatistics& relsStatistics,
+    const NodesStoreStatsAndDeletedIDs& nodesStatistics, const RelsStoreStats& relsStatistics,
     const BoundStatement& statement) {
     auto& copyClause = reinterpret_cast<const BoundCopyTo&>(statement);
     auto regularQuery = copyClause.getRegularQuery();

@@ -1,23 +1,14 @@
-#include "storage/stats/rels_statistics.h"
+#include "storage/stats/rels_store_statistics.h"
+
+#include "storage/stats/rel_table_statistics.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
 
-void RelTableStats::serializeInternal(FileInfo* fileInfo, uint64_t& offset) {
-    SerDeser::serializeValue(nextRelOffset, fileInfo, offset);
-}
-
-std::unique_ptr<RelTableStats> RelTableStats::deserialize(
-    uint64_t numRels, common::table_id_t tableID, FileInfo* fileInfo, uint64_t& offset) {
-    common::offset_t nextRelOffset;
-    SerDeser::deserializeValue(nextRelOffset, fileInfo, offset);
-    return std::make_unique<RelTableStats>(numRels, tableID, nextRelOffset);
-}
-
 // We should only call this function after we call setNumRelsPerDirectionBoundTableID.
-void RelsStatistics::setNumTuplesForTable(table_id_t relTableID, uint64_t numRels) {
+void RelsStoreStats::setNumTuplesForTable(table_id_t relTableID, uint64_t numRels) {
     std::unique_lock lck{mtx};
     initTableStatisticsForWriteTrxNoLock();
     assert(tablesStatisticsContentForWriteTrx->tableStatisticPerTable.contains(relTableID));
@@ -28,7 +19,7 @@ void RelsStatistics::setNumTuplesForTable(table_id_t relTableID, uint64_t numRel
     relStatistics->setNumTuples(numRels);
 }
 
-void RelsStatistics::updateNumRelsByValue(table_id_t relTableID, int64_t value) {
+void RelsStoreStats::updateNumRelsByValue(table_id_t relTableID, int64_t value) {
     std::unique_lock lck{mtx};
     initTableStatisticsForWriteTrxNoLock();
     auto relStatistics =
@@ -42,7 +33,7 @@ void RelsStatistics::updateNumRelsByValue(table_id_t relTableID, int64_t value) 
     }
 }
 
-offset_t RelsStatistics::getNextRelOffset(
+offset_t RelsStoreStats::getNextRelOffset(
     transaction::Transaction* transaction, table_id_t tableID) {
     std::unique_lock lck{mtx};
     auto& tableStatisticContent =

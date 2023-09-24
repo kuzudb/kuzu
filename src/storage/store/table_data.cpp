@@ -1,6 +1,6 @@
 #include "storage/store/table_data.h"
 
-#include "storage/stats/nodes_statistics_and_deleted_ids.h"
+#include "storage/stats/nodes_store_statistics.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -17,7 +17,7 @@ TableData::TableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, table_id_t 
     for (auto i = 0u; i < properties.size(); i++) {
         auto property = properties[i];
         auto metadataDAHInfo =
-            dynamic_cast<NodesStatisticsAndDeletedIDs*>(tablesStatistics)
+            dynamic_cast<NodesStoreStatsAndDeletedIDs*>(tablesStatistics)
                 ->getMetadataDAHInfo(Transaction::getDummyWriteTrx().get(), tableID, i);
         columns.push_back(
             NodeColumnFactory::createNodeColumn(*property->getDataType(), *metadataDAHInfo, dataFH,
@@ -114,7 +114,7 @@ void TableData::append(kuzu::storage::NodeGroup* nodeGroup) {
 
 void TableData::addColumn(transaction::Transaction* transaction, const catalog::Property& property,
     ValueVector* defaultValueVector, TablesStatistics* tablesStats) {
-    auto metadataDAHInfo = dynamic_cast<NodesStatisticsAndDeletedIDs*>(tablesStats)
+    auto metadataDAHInfo = dynamic_cast<NodesStoreStatsAndDeletedIDs*>(tablesStats)
                                ->getMetadataDAHInfo(transaction, tableID, columns.size());
     auto nodeColumn = NodeColumnFactory::createNodeColumn(*property.getDataType(), *metadataDAHInfo,
         dataFH, metadataFH, bufferManager, wal, transaction,

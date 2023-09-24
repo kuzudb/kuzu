@@ -2,7 +2,7 @@
 
 #include "catalog/catalog.h"
 #include "storage/index/hash_index.h"
-#include "storage/stats/nodes_statistics_and_deleted_ids.h"
+#include "storage/stats/nodes_store_statistics.h"
 #include "storage/store/node_group.h"
 #include "storage/store/table_data.h"
 #include "storage/wal/wal.h"
@@ -11,13 +11,12 @@ namespace kuzu {
 namespace catalog {
 class NodeTableSchema;
 }
-
 namespace storage {
 
 class NodeTable {
 public:
     NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH,
-        NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs, BufferManager& bufferManager,
+        NodesStoreStatsAndDeletedIDs* nodesStatisticsAndDeletedIDs, BufferManager& bufferManager,
         WAL* wal, catalog::NodeTableSchema* nodeTableSchema);
 
     void initializePKIndex(catalog::NodeTableSchema* nodeTableSchema);
@@ -59,7 +58,7 @@ public:
     }
     inline common::column_id_t getPKColumnID() const { return pkColumnID; }
     inline PrimaryKeyIndex* getPKIndex() const { return pkIndex.get(); }
-    inline NodesStatisticsAndDeletedIDs* getNodeStatisticsAndDeletedIDs() const {
+    inline NodesStoreStatsAndDeletedIDs* getNodeStatisticsAndDeletedIDs() const {
         return nodesStatisticsAndDeletedIDs;
     }
     inline common::table_id_t getTableID() const { return tableID; }
@@ -80,7 +79,7 @@ private:
     }
 
 private:
-    NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs;
+    NodesStoreStatsAndDeletedIDs* nodesStatisticsAndDeletedIDs;
     std::unique_ptr<TableData> tableData;
     common::column_id_t pkColumnID;
     std::unique_ptr<PrimaryKeyIndex> pkIndex;

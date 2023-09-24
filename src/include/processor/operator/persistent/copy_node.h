@@ -103,11 +103,7 @@ public:
         storage::NodeTable* table, storage::NodeGroup* nodeGroup, bool isCopyTurtle);
 
 private:
-    inline bool isCopyAllowed() const {
-        auto nodesStatistics = copyNodeInfo.table->getNodeStatisticsAndDeletedIDs();
-        return nodesStatistics->getNodeStatisticsAndDeletedIDs(copyNodeInfo.table->getTableID())
-                   ->getNumTuples() == 0;
-    }
+    bool isCopyAllowed() const;
 
     static void populatePKIndex(storage::PrimaryKeyIndexBuilder* pkIndex,
         storage::ColumnChunk* chunk, common::offset_t startNodeOffset, common::offset_t numNodes);

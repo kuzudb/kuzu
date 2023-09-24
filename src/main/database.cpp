@@ -74,11 +74,11 @@ void Database::initDBDirAndCoreFilesIfNecessary() const {
     }
     if (!FileUtils::fileOrPathExists(StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(
             databasePath, DBFileType::ORIGINAL))) {
-        NodesStatisticsAndDeletedIDs::saveInitialNodesStatisticsAndDeletedIDsToFile(databasePath);
+        NodesStoreStatsAndDeletedIDs::saveInitialNodesStatisticsAndDeletedIDsToFile(databasePath);
     }
     if (!FileUtils::fileOrPathExists(
             StorageUtils::getRelsStatisticsFilePath(databasePath, DBFileType::ORIGINAL))) {
-        RelsStatistics::saveInitialRelsStatisticsToFile(databasePath);
+        RelsStoreStats::saveInitialRelsStatisticsToFile(databasePath);
     }
     if (!FileUtils::fileOrPathExists(
             StorageUtils::getCatalogFilePath(databasePath, DBFileType::ORIGINAL))) {
