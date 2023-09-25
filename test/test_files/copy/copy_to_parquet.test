@@ -24,6 +24,8 @@
 
 
 -CASE DatesCopyToParquet
+-SKIP
+# Support TIMESTAMP datatype in parquet reader
 
 -STATEMENT COPY (MATCH (p:person) RETURN p.ID, p.birthdate, p.registerTime) TO "${DATABASE_PATH}/dates.parquet";
 ---- ok

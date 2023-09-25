@@ -1,4 +1,4 @@
-#include "processor/operator/persistent/reader/rdf_reader.h"
+#include "processor/operator/persistent/reader/rdf/rdf_reader.h"
 
 #include <cstdio>
 

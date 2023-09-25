@@ -518,6 +518,23 @@ void ListVector::copyFromVectorData(ValueVector* dstVector, uint8_t* dstData,
     }
 }
 
+void ListVector::appendDataVector(kuzu::common::ValueVector* dstVector,
+    kuzu::common::ValueVector* srcDataVector, uint64_t numValuesToAppend) {
+    auto offset = getDataVectorSize(dstVector);
+    resizeDataVector(dstVector, offset + numValuesToAppend);
+    auto dstDataVector = getDataVector(dstVector);
+    for (auto i = 0u; i < numValuesToAppend; i++) {
+        dstDataVector->copyFromVectorData(offset + i, srcDataVector, i);
+    }
+}
+
+void ListVector::sliceDataVector(
+    ValueVector* vectorToSlice, uint64_t childIdx, uint64_t numValues) {
+    for (auto i = 0u; i < numValues - childIdx; i++) {
+        vectorToSlice->copyFromVectorData(i, vectorToSlice, i + childIdx);
+    }
+}
+
 void StructVector::copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_t* rowData) {
     assert(vector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
     auto& structFields = getFieldVectors(vector);

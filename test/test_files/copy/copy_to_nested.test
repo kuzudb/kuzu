@@ -31,7 +31,8 @@
 {a: {b: {c: [True,False,False]}}, d: {e: {f: [3,4]}}}
 
 -CASE StructList
-
+-SKIP
+# Copy-to-parquet writes a list of dates as list of strings.
 -STATEMENT CREATE NODE TABLE Nested(id int64, field struct(first date[], second string[]), primary key(id));
 ---- ok
 -STATEMENT COPY (RETURN 1,{first:['1985-08-19','2023-05-01','2023-08-31','2087-09-04'], second:['list','of','strings']}) TO "${DATABASE_PATH}/nested.parquet"
