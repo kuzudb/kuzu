@@ -121,6 +121,7 @@ ColumnChunk::ColumnChunk(
             GetCompressionMetadata(std::make_unique<IntegerBitpacking<int32_t>>(), this->dataType);
         break;
     }
+    case PhysicalTypeID::VAR_LIST:
     case PhysicalTypeID::UINT64: {
         flushBufferFunction =
             CompressedFlushBuffer(std::make_unique<IntegerBitpacking<uint64_t>>(), this->dataType);
