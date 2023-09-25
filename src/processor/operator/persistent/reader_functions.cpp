@@ -375,12 +375,7 @@ void ReaderFunctions::readRowsFromNodeParquetFile(const ReaderFunctionData& func
 void ReaderFunctions::readRowsFromNPYFile(const ReaderFunctionData& functionData,
     common::block_idx_t blockIdx, common::DataChunk* dataChunkToRead) {
     auto& readerData = reinterpret_cast<const NPYReaderFunctionData&>(functionData);
-    auto recordBatch = readerData.reader->readBlock(blockIdx);
-    for (auto i = 0u; i < dataChunkToRead->getNumValueVectors(); i++) {
-        ArrowColumnVector::setArrowColumn(dataChunkToRead->getValueVector(i).get(),
-            std::make_shared<arrow::ChunkedArray>(recordBatch->column((int)i)));
-    }
-    dataChunkToRead->state->selVector->selectedSize = recordBatch->num_rows();
+    readerData.reader->readBlock(blockIdx, dataChunkToRead);
 }
 
 void ReaderFunctions::readRowsFromRDFFile(const ReaderFunctionData& functionData,

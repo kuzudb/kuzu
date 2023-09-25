@@ -143,8 +143,8 @@ ColumnChunk::ColumnChunk(
 }
 
 void ColumnChunk::initialize(offset_t capacity) {
-    bufferSize = numBytesPerValue * capacity;
     this->capacity = capacity;
+    bufferSize = getBufferSize();
     buffer = std::make_unique<uint8_t[]>(bufferSize);
     if (nullChunk) {
         static_cast<ColumnChunk*>(nullChunk.get())->initialize(capacity);
@@ -598,6 +598,25 @@ void FixedListColumnChunk::write(const Value& fixedListVal, uint64_t posToWrite)
     }
 }
 
+void FixedListColumnChunk::copyVectorToBuffer(
+    common::ValueVector* vector, common::offset_t startPosInChunk) {
+    auto vectorDataToWriteFrom = vector->getData();
+    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
+        auto pos = vector->state->selVector->selectedPositions[i];
+        nullChunk->setNull(startPosInChunk + i, vector->isNull(pos));
+        auto offset = getOffsetInBuffer(startPosInChunk + i);
+        memcpy(buffer.get() + getOffsetInBuffer(startPosInChunk + i),
+            vectorDataToWriteFrom + pos * numBytesPerValue, numBytesPerValue);
+    }
+}
+
+uint64_t FixedListColumnChunk::getBufferSize() const {
+    auto numElementsInAPage =
+        PageUtils::getNumElementsInAPage(numBytesPerValue, false /* hasNull */);
+    auto numPages = capacity / numElementsInAPage + (capacity % numElementsInAPage ? 1 : 0);
+    return common::BufferPoolConstants::PAGE_4KB_SIZE * numPages;
+}
+
 std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     const LogicalType& dataType, CSVReaderConfig* csvReaderConfig) {
     auto csvReaderConfigCopy = csvReaderConfig ? csvReaderConfig->copy() : nullptr;
@@ -698,11 +717,19 @@ void ColumnChunk::copyVectorToBuffer(
     common::ValueVector* vector, common::offset_t startPosInChunk) {
     auto bufferToWrite = buffer.get() + startPosInChunk * numBytesPerValue;
     auto vectorDataToWriteFrom = vector->getData();
-    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
-        auto pos = vector->state->selVector->selectedPositions[i];
-        nullChunk->setNull(startPosInChunk + i, vector->isNull(pos));
-        memcpy(bufferToWrite, vectorDataToWriteFrom + pos * numBytesPerValue, numBytesPerValue);
-        bufferToWrite += numBytesPerValue;
+    if (vector->state->selVector->isUnfiltered()) {
+        memcpy(bufferToWrite, vectorDataToWriteFrom,
+            vector->state->selVector->selectedSize * numBytesPerValue);
+        for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
+            nullChunk->setNull(startPosInChunk + i, vector->isNull(i));
+        }
+    } else {
+        for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
+            auto pos = vector->state->selVector->selectedPositions[i];
+            nullChunk->setNull(startPosInChunk + i, vector->isNull(pos));
+            memcpy(bufferToWrite, vectorDataToWriteFrom + pos * numBytesPerValue, numBytesPerValue);
+            bufferToWrite += numBytesPerValue;
+        }
     }
 }
 

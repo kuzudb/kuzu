@@ -78,6 +78,7 @@ public:
         assert(idx < childrenChunks.size());
         return childrenChunks[idx].get();
     }
+    virtual inline uint64_t getBufferSize() const { return numBytesPerValue * capacity; }
 
     virtual void resetToEmpty();
 
@@ -157,7 +158,7 @@ protected:
 
     common::offset_t getOffsetInBuffer(common::offset_t pos) const;
 
-    void copyVectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk);
+    virtual void copyVectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk);
 
 protected:
     common::LogicalType dataType;
@@ -261,6 +262,11 @@ public:
         common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
 
     void write(const common::Value& fixedListVal, uint64_t posToWrite) final;
+
+    void copyVectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk) final;
+
+private:
+    uint64_t getBufferSize() const final;
 };
 
 class SerialColumnChunk : public ColumnChunk {
