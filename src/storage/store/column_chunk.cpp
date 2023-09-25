@@ -3,6 +3,7 @@
 #include "arrow/array.h"
 #include "common/types/value/nested.h"
 #include "storage/storage_structure/storage_structure_utils.h"
+#include "storage/store/compression.h"
 #include "storage/store/string_column_chunk.h"
 #include "storage/store/struct_column_chunk.h"
 #include "storage/store/table_copy_utils.h"
@@ -14,6 +15,83 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
+ColumnChunkMetadata fixedSizedFlushBuffer(const uint8_t* buffer, uint64_t bufferSize,
+    BMFileHandle* dataFH, page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
+    FileUtils::writeToFile(dataFH->getFileInfo(), buffer, bufferSize,
+        startPageIdx * BufferPoolConstants::PAGE_4KB_SIZE);
+    return ColumnChunkMetadata(
+        startPageIdx, metadata.numPages, metadata.numValues, metadata.compMeta);
+}
+
+ColumnChunkMetadata fixedSizedGetMetadata(
+    const uint8_t* buffer, uint64_t bufferSize, uint64_t capacity, uint64_t numValues) {
+    return ColumnChunkMetadata(common::INVALID_PAGE_IDX,
+        ColumnChunk::getNumPagesForBytes(bufferSize), numValues, CompressionMetadata());
+}
+
+ColumnChunkMetadata booleanGetMetadata(
+    const uint8_t* buffer, uint64_t bufferSize, uint64_t capacity, uint64_t numValues) {
+    return ColumnChunkMetadata(common::INVALID_PAGE_IDX,
+        ColumnChunk::getNumPagesForBytes(bufferSize), numValues,
+        CompressionMetadata(CompressionType::BOOLEAN_BITPACKING));
+}
+
+class CompressedFlushBuffer {
+    std::shared_ptr<CompressionAlg> alg;
+    const LogicalType& dataType;
+
+public:
+    CompressedFlushBuffer(std::unique_ptr<CompressionAlg> alg, LogicalType& dataType)
+        : alg{std::move(alg)}, dataType{dataType} {}
+
+    CompressedFlushBuffer(const CompressedFlushBuffer& other) = default;
+
+    ColumnChunkMetadata operator()(const uint8_t* buffer, uint64_t bufferSize, BMFileHandle* dataFH,
+        page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
+        int64_t valuesRemaining = metadata.numValues;
+        const uint8_t* bufferStart = buffer;
+        auto compressedBuffer = std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_4KB_SIZE);
+        auto numPages = 0;
+        auto numValuesPerPage =
+            metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+        do {
+            auto compressedSize = alg->compressNextPage(bufferStart, valuesRemaining,
+                compressedBuffer.get(), BufferPoolConstants::PAGE_4KB_SIZE, metadata.compMeta);
+            // Avoid underflows (when data is compressed to nothing, numValuesPerPage may be
+            // UINT64_MAX)
+            if (numValuesPerPage > valuesRemaining) {
+                valuesRemaining = 0;
+            } else {
+                valuesRemaining -= numValuesPerPage;
+            }
+            FileUtils::writeToFile(dataFH->getFileInfo(), compressedBuffer.get(), compressedSize,
+                (startPageIdx + numPages) * BufferPoolConstants::PAGE_4KB_SIZE);
+            numPages++;
+        } while (valuesRemaining > 0);
+        return ColumnChunkMetadata(
+            startPageIdx, metadata.numPages, metadata.numValues, metadata.compMeta);
+    }
+};
+
+class GetCompressionMetadata {
+    std::shared_ptr<CompressionAlg> alg;
+    const LogicalType& dataType;
+
+public:
+    GetCompressionMetadata(std::unique_ptr<CompressionAlg> alg, LogicalType& dataType)
+        : alg{std::move(alg)}, dataType{dataType} {}
+
+    GetCompressionMetadata(const GetCompressionMetadata& other) = default;
+
+    ColumnChunkMetadata operator()(
+        const uint8_t* buffer, uint64_t bufferSize, uint64_t capacity, uint64_t numValues) {
+        auto metadata = alg->getCompressionMetadata(buffer, numValues);
+        auto numValuesPerPage = metadata.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+        auto numPages = capacity / numValuesPerPage + (capacity % numValuesPerPage == 0 ? 0 : 1);
+        return ColumnChunkMetadata(common::INVALID_PAGE_IDX, numPages, numValues, metadata);
+    }
+};
+
 ColumnChunk::ColumnChunk(
     LogicalType dataType, std::unique_ptr<CSVReaderConfig> csvReaderConfig, bool hasNullChunk)
     : dataType{std::move(dataType)}, numBytesPerValue{getDataTypeSizeInChunk(this->dataType)},
@@ -21,10 +99,52 @@ ColumnChunk::ColumnChunk(
     if (hasNullChunk) {
         nullChunk = std::make_unique<NullColumnChunk>();
     }
+    switch (this->dataType.getPhysicalType()) {
+    case PhysicalTypeID::BOOL: {
+        // Since we compress into memory, storage is the same as fixed-sized values,
+        // but we need to mark it as being boolean compressed.
+        flushBufferFunction = fixedSizedFlushBuffer;
+        getMetadataFunction = booleanGetMetadata;
+        break;
+    }
+    case PhysicalTypeID::INT64: {
+        flushBufferFunction =
+            CompressedFlushBuffer(std::make_unique<IntegerBitpacking<int64_t>>(), this->dataType);
+        getMetadataFunction =
+            GetCompressionMetadata(std::make_unique<IntegerBitpacking<int64_t>>(), this->dataType);
+        break;
+    }
+    case PhysicalTypeID::INT32: {
+        flushBufferFunction =
+            CompressedFlushBuffer(std::make_unique<IntegerBitpacking<int32_t>>(), this->dataType);
+        getMetadataFunction =
+            GetCompressionMetadata(std::make_unique<IntegerBitpacking<int32_t>>(), this->dataType);
+        break;
+    }
+    case PhysicalTypeID::UINT64: {
+        flushBufferFunction =
+            CompressedFlushBuffer(std::make_unique<IntegerBitpacking<uint64_t>>(), this->dataType);
+        getMetadataFunction =
+            GetCompressionMetadata(std::make_unique<IntegerBitpacking<uint64_t>>(), this->dataType);
+        break;
+    }
+    case PhysicalTypeID::UINT32: {
+        flushBufferFunction =
+            CompressedFlushBuffer(std::make_unique<IntegerBitpacking<uint32_t>>(), this->dataType);
+        getMetadataFunction =
+            GetCompressionMetadata(std::make_unique<IntegerBitpacking<uint32_t>>(), this->dataType);
+        break;
+    }
+    default: {
+        flushBufferFunction = fixedSizedFlushBuffer;
+        getMetadataFunction = fixedSizedGetMetadata;
+    }
+    }
 }
 
 void ColumnChunk::initialize(offset_t capacity) {
     bufferSize = numBytesPerValue * capacity;
+    this->capacity = capacity;
     buffer = std::make_unique<uint8_t[]>(bufferSize);
     if (nullChunk) {
         static_cast<ColumnChunk*>(nullChunk.get())->initialize(capacity);
@@ -205,6 +325,7 @@ void ColumnChunk::resize(uint64_t numValues) {
     memcpy(resizedBuffer.get(), buffer.get(), bufferSize);
     bufferSize = numBytesAfterResize;
     buffer = std::move(resizedBuffer);
+    this->capacity = numValues;
     if (nullChunk) {
         nullChunk->resize(numValues);
     }
@@ -352,21 +473,13 @@ void ColumnChunk::templateCopyValuesAsString(
     }
 }
 
-page_idx_t ColumnChunk::getNumPages() const {
-    auto numPagesToFlush = getNumPagesForBuffer();
-    if (nullChunk) {
-        numPagesToFlush += nullChunk->getNumPages();
-    }
-    for (auto& child : childrenChunks) {
-        numPagesToFlush += child->getNumPages();
-    }
-    return numPagesToFlush;
+ColumnChunkMetadata ColumnChunk::getMetadataToFlush() const {
+    return getMetadataFunction(buffer.get(), bufferSize, capacity, numValues);
 }
 
-page_idx_t ColumnChunk::flushBuffer(BMFileHandle* dataFH, page_idx_t startPageIdx) {
-    FileUtils::writeToFile(dataFH->getFileInfo(), buffer.get(), bufferSize,
-        startPageIdx * BufferPoolConstants::PAGE_4KB_SIZE);
-    return getNumPagesForBuffer();
+ColumnChunkMetadata ColumnChunk::flushBuffer(
+    BMFileHandle* dataFH, page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
+    return flushBufferFunction(buffer.get(), bufferSize, dataFH, startPageIdx, metadata);
 }
 
 uint32_t ColumnChunk::getDataTypeSizeInChunk(LogicalType& dataType) {
@@ -596,6 +709,7 @@ void ColumnChunk::copyVectorToBuffer(
 inline void BoolColumnChunk::initialize(common::offset_t capacity) {
     numBytesPerValue = 0;
     bufferSize = numBytesForValues(capacity);
+    this->capacity = capacity;
     buffer = std::make_unique<uint8_t[]>(bufferSize);
     if (nullChunk) {
         static_cast<BoolColumnChunk*>(nullChunk.get())->initialize(capacity);
@@ -610,8 +724,25 @@ void BoolColumnChunk::resize(uint64_t capacity) {
     memcpy(reservedBuffer.get(), buffer.get(), bufferSize);
     buffer = std::move(reservedBuffer);
     bufferSize = numBytesAfterResize;
+    this->capacity = numValues;
     if (nullChunk) {
         nullChunk->resize(capacity);
+    }
+}
+
+void ColumnChunk::update(ValueVector* vector, vector_idx_t vectorIdx) {
+    auto startOffsetInChunk = vectorIdx << DEFAULT_VECTOR_CAPACITY_LOG_2;
+    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
+        auto pos = vector->state->selVector->selectedPositions[i];
+        auto offsetInChunk = startOffsetInChunk + pos;
+        nullChunk->setNull(offsetInChunk, vector->isNull(pos));
+        if (!vector->isNull(pos)) {
+            memcpy(buffer.get() + offsetInChunk * numBytesPerValue,
+                vector->getData() + pos * numBytesPerValue, numBytesPerValue);
+        }
+        if (pos >= numValues) {
+            numValues = pos + 1;
+        }
     }
 }
 

@@ -80,13 +80,10 @@ void VarListNodeColumn::lookupValue(Transaction* transaction, offset_t nodeOffse
         listOffset + length, ListVector::getDataVector(resultVector), offsetInVector);
 }
 
-page_idx_t VarListNodeColumn::append(
-    ColumnChunk* columnChunk, page_idx_t startPageIdx, uint64_t nodeGroupIdx) {
-    auto numPagesFlushed = NodeColumn::append(columnChunk, startPageIdx, nodeGroupIdx);
+void VarListNodeColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
+    NodeColumn::append(columnChunk, nodeGroupIdx);
     auto dataColumnChunk = reinterpret_cast<VarListColumnChunk*>(columnChunk)->getDataColumnChunk();
-    auto numPagesForDataColumn =
-        dataNodeColumn->append(dataColumnChunk, startPageIdx + numPagesFlushed, nodeGroupIdx);
-    return numPagesFlushed + numPagesForDataColumn;
+    dataNodeColumn->append(dataColumnChunk, nodeGroupIdx);
 }
 
 void VarListNodeColumn::scanUnfiltered(Transaction* transaction, node_group_idx_t nodeGroupIdx,
@@ -140,11 +137,13 @@ offset_t VarListNodeColumn::readOffset(
     Transaction* transaction, node_group_idx_t nodeGroupIdx, offset_t offsetInNodeGroup) {
     auto offsetVector = std::make_unique<ValueVector>(LogicalTypeID::INT64);
     offsetVector->state = DataChunkState::getSingleValueDataChunkState();
-    auto pageCursor = PageUtils::getPageElementCursorForPos(offsetInNodeGroup, numValuesPerPage);
-    pageCursor.pageIdx += metadataDA->get(nodeGroupIdx, transaction->getType()).pageIdx;
+    auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
+    auto pageCursor = PageUtils::getPageElementCursorForPos(offsetInNodeGroup,
+        chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType));
+    pageCursor.pageIdx += chunkMeta.pageIdx;
     readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
-        readNodeColumnFunc(
-            frame, pageCursor, offsetVector.get(), 0 /* posInVector */, 1 /* numValuesToRead */);
+        readNodeColumnFunc(frame, pageCursor, offsetVector.get(), 0 /* posInVector */,
+            1 /* numValuesToRead */, chunkMeta.compMeta);
     });
     return offsetVector->getValue<offset_t>(0);
 }

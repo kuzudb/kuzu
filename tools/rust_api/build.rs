@@ -85,6 +85,7 @@ fn link_libraries() {
         println!("cargo:rustc-link-lib=static=antlr4_runtime");
         println!("cargo:rustc-link-lib=static=re2");
         println!("cargo:rustc-link-lib=static=serd");
+        println!("cargo:rustc-link-lib=static=fastpfor");
     }
 }
 
@@ -136,7 +137,14 @@ fn build_bundled_cmake() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
     let kuzu_lib_path = build_dir.join("build").join("src");
     println!("cargo:rustc-link-search=native={}", kuzu_lib_path.display());
 
-    for dir in ["utf8proc", "antlr4_cypher", "antlr4_runtime", "re2", "serd"] {
+    for dir in [
+        "utf8proc",
+        "antlr4_cypher",
+        "antlr4_runtime",
+        "re2",
+        "serd",
+        "fastpfor",
+    ] {
         let lib_path = build_dir
             .join("build")
             .join("third_party")
@@ -157,6 +165,7 @@ fn build_bundled_cmake() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
         kuzu_root.join("third_party/concurrentqueue"),
         kuzu_root.join("third_party/nlohmann_json"),
         kuzu_root.join("third_party/spdlog"),
+        kuzu_root.join("third_party/fastpfor"),
         arrow_install.join("include"),
     ])
 }

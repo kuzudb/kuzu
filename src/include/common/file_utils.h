@@ -41,7 +41,7 @@ public:
     static void readFromFile(
         FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position);
     static void writeToFile(
-        FileInfo* fileInfo, uint8_t* buffer, uint64_t numBytes, uint64_t offset);
+        FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes, uint64_t offset);
     // This function is a no-op if either file, from or to, does not exist.
     static void overwriteFile(const std::string& from, const std::string& to);
     static void copyFile(const std::string& from, const std::string& to,

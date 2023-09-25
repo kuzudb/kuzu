@@ -10,36 +10,17 @@
 namespace kuzu {
 namespace storage {
 
+struct CompressionMetadata;
+
 using read_node_column_func_t = std::function<void(uint8_t* frame, PageElementCursor& pageCursor,
-    common::ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead)>;
-using write_node_column_func_t = std::function<void(
-    uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector, uint32_t posInVector)>;
+    common::ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead,
+    const CompressionMetadata& metadata)>;
+using write_node_column_func_t = std::function<void(uint8_t* frame, uint16_t posInFrame,
+    common::ValueVector* vector, uint32_t posInVector, const CompressionMetadata& metadata)>;
 
-struct FixedSizedNodeColumnFunc {
-    static void readValuesFromPage(uint8_t* frame, PageElementCursor& pageCursor,
-        common::ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead);
-    static void writeValueToPage(
-        uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector, uint32_t posInVecto);
-
-    static void readInternalIDValuesFromPage(uint8_t* frame, PageElementCursor& pageCursor,
-        common::ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead);
-    static void writeInternalIDValueToPage(
-        uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector, uint32_t posInVecto);
-};
-
-struct NullNodeColumnFunc {
-    static void readValuesFromPage(uint8_t* frame, PageElementCursor& pageCursor,
-        common::ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead);
-    static void writeValueToPage(
-        uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector, uint32_t posInVector);
-};
-
-struct BoolNodeColumnFunc {
-    static void readValuesFromPage(uint8_t* frame, PageElementCursor& pageCursor,
-        common::ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead);
-    static void writeValueToPage(
-        uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector, uint32_t posInVector);
-};
+using lookup_node_column_func_t =
+    std::function<void(uint8_t* frame, PageElementCursor& pageCursor, uint8_t* result,
+        uint32_t posInResult, uint64_t numValues, const CompressionMetadata& metadata)>;
 
 class NullNodeColumn;
 class StructNodeColumn;
@@ -55,7 +36,7 @@ public:
     NodeColumn(common::LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
         BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
         transaction::Transaction* transaction, RWPropertyStats PropertyStatistics,
-        bool requireNullColumn);
+        bool requireNullColumn = true);
     virtual ~NodeColumn() = default;
 
     // Expose for feature store
@@ -71,8 +52,7 @@ public:
     virtual void lookup(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector);
 
-    virtual common::page_idx_t append(
-        ColumnChunk* columnChunk, common::page_idx_t startPageIdx, uint64_t nodeGroupIdx);
+    virtual void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx);
 
     virtual void setNull(common::offset_t nodeOffset);
 
@@ -92,13 +72,20 @@ public:
     void populateWithDefaultVal(const catalog::Property& property, NodeColumn* nodeColumn,
         common::ValueVector* defaultValueVector, uint64_t numNodeGroups);
 
+    inline CompressionMetadata getCompressionMetadata(
+        common::node_group_idx_t nodeGroupIdx, transaction::TransactionType transaction) const {
+        return metadataDA->get(nodeGroupIdx, transaction).compMeta;
+    }
+
 protected:
     virtual void scanInternal(transaction::Transaction* transaction,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
     void scanUnfiltered(transaction::Transaction* transaction, PageElementCursor& pageCursor,
-        uint64_t numValuesToScan, common::ValueVector* resultVector, uint64_t startPosInVector = 0);
+        uint64_t numValuesToScan, common::ValueVector* resultVector,
+        const CompressionMetadata& compMeta, uint64_t startPosInVector = 0);
     void scanFiltered(transaction::Transaction* transaction, PageElementCursor& pageCursor,
-        common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
+        common::ValueVector* nodeIDVector, common::ValueVector* resultVector,
+        const CompressionMetadata& compMeta);
     virtual void lookupInternal(transaction::Transaction* transaction,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
     virtual void lookupValue(transaction::Transaction* transaction, common::offset_t nodeOffset,
@@ -126,8 +113,9 @@ protected:
 protected:
     StorageStructureID storageStructureID;
     common::LogicalType dataType;
+    // TODO(bmwinger): Remove. Only used by var_list_column_chunk for something which should be
+    // rewritten
     uint32_t numBytesPerFixedSizedValue;
-    uint32_t numValuesPerPage;
     BMFileHandle* dataFH;
     BMFileHandle* metadataFH;
     BufferManager* bufferManager;
@@ -137,6 +125,7 @@ protected:
     std::vector<std::unique_ptr<NodeColumn>> childrenColumns;
     read_node_column_func_t readNodeColumnFunc;
     write_node_column_func_t writeNodeColumnFunc;
+    lookup_node_column_func_t lookupNodeColumnFunc;
     RWPropertyStats propertyStatistics;
 };
 
@@ -146,9 +135,6 @@ public:
         BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
         transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
         bool requireNullColumn = true);
-
-    void batchLookup(transaction::Transaction* transaction, const common::offset_t* nodeOffsets,
-        size_t size, uint8_t* result) final;
 };
 
 class NullNodeColumn : public NodeColumn {
@@ -168,8 +154,7 @@ public:
 
     void lookup(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector) final;
-    common::page_idx_t append(
-        ColumnChunk* columnChunk, common::page_idx_t startPageIdx, uint64_t nodeGroupIdx) final;
+    void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) final;
     void setNull(common::offset_t nodeOffset) final;
 
 protected:
@@ -187,8 +172,7 @@ public:
         common::ValueVector* resultVector) final;
     void lookup(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector) final;
-    common::page_idx_t append(
-        ColumnChunk* columnChunk, common::page_idx_t startPageIdx, uint64_t nodeGroupIdx) final;
+    void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) final;
 };
 
 struct NodeColumnFactory {

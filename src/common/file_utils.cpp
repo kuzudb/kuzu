@@ -73,7 +73,7 @@ std::unique_ptr<FileInfo> FileUtils::openFile(const std::string& path, int flags
 }
 
 void FileUtils::writeToFile(
-    FileInfo* fileInfo, uint8_t* buffer, uint64_t numBytes, uint64_t offset) {
+    FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes, uint64_t offset) {
     auto fileSize = fileInfo->getFileSize();
     if (fileSize == -1) {
         throw Exception(StringUtils::string_format("File {} not open.", fileInfo->path));

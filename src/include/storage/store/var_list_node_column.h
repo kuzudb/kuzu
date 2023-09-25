@@ -70,8 +70,7 @@ protected:
     void lookupValue(transaction::Transaction* transaction, common::offset_t nodeOffset,
         common::ValueVector* resultVector, uint32_t posInVector) final;
 
-    common::page_idx_t append(
-        ColumnChunk* columnChunk, common::page_idx_t startPageIdx, uint64_t nodeGroupIdx) override;
+    void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) override;
 
 private:
     inline common::offset_t readListOffsetInStorage(transaction::Transaction* transaction,

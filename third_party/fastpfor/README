@@ -1,0 +1,4 @@
+https://github.com/lemire/FastPFor
+
+Modified to remove 24 and 32-bit versions of the bitpackingaligned functions since we won't need them, and to remove unneeded includes in common.h.
+Modified to replace __restrict__ with __restrict for compatibility with MSVC.

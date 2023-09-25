@@ -19,7 +19,7 @@ public:
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
 
-    virtual void update(common::ValueVector* vector, common::vector_idx_t vectorIdx);
+    void update(common::ValueVector* vector, common::vector_idx_t vectorIdx) override;
 
     template<typename T>
     void setValueFromString(const char* value, uint64_t length, uint64_t pos) {
@@ -34,10 +34,6 @@ public:
 
     inline InMemOverflowFile* getOverflowFile() { return overflowFile.get(); }
     inline common::offset_t getLastOffsetInPage() { return overflowCursor.offsetInPage; }
-
-    inline common::page_idx_t getNumPages() const final {
-        return ColumnChunk::getNumPages() + overflowFile->getNumPages();
-    }
 
 private:
     template<typename T>
