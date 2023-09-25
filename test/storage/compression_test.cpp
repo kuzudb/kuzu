@@ -228,3 +228,43 @@ TEST(CompressionTests, IntegerPackingMultiPageUnsigned64) {
 
     integerPackingMultiPage(src);
 }
+
+TEST(CompressionTests, IntegerPackingMultiPageUnsigned16) {
+    int64_t numValues = 10000;
+    std::vector<uint16_t> src(numValues);
+    for (int i = 0; i < numValues; i++) {
+        src[i] = i;
+    }
+
+    integerPackingMultiPage(src);
+}
+
+TEST(CompressionTests, IntegerPackingMultiPage16) {
+    int64_t numValues = 10000;
+    std::vector<int16_t> src(numValues);
+    for (int i = 0; i < numValues; i++) {
+        src[i] = i;
+    }
+
+    integerPackingMultiPage(src);
+}
+
+TEST(CompressionTests, IntegerPackingMultiPage8) {
+    int64_t numValues = 10000;
+    std::vector<int8_t> src(numValues);
+    for (int i = 0; i < numValues; i++) {
+        src[i] = i % 30 - 15;
+    }
+
+    integerPackingMultiPage(src);
+}
+
+TEST(CompressionTests, IntegerPackingMultiPageUnsigned8) {
+    int64_t numValues = 10000;
+    std::vector<uint8_t> src(numValues);
+    for (int i = 0; i < numValues; i++) {
+        src[i] = i % 30;
+    }
+
+    integerPackingMultiPage(src);
+}
