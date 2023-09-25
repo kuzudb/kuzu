@@ -17,7 +17,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanInternalID(LogicalOperator*
         auto nodeTable = nodesStore.getNodeTable(tableID);
         sharedState->addTableState(nodeTable);
     }
-    return make_unique<ScanNodeID>(
+    return std::make_unique<ScanNodeID>(
         dataPos, sharedState, getOperatorID(), scan->getExpressionsForPrinting());
 }
 

@@ -30,6 +30,7 @@ enum class PhysicalOperatorType : uint8_t {
     DROP_PROPERTY,
     DROP_TABLE,
     FACTORIZED_TABLE_SCAN,
+    FILL_TABLE_ID,
     FILTER,
     FLATTEN,
     GENERIC_SCAN_REL_TABLES,

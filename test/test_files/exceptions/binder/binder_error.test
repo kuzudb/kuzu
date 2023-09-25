@@ -18,7 +18,7 @@ Binder exception: Cannot resolve any node or relationship to create.
 -LOG NodeTableNotExist
 -STATEMENT MATCH (a:PERSON) RETURN COUNT(*)
 ---- error
-Binder exception: Node table PERSON does not exist.
+Binder exception: Table PERSON does not exist.
 
 -LOG RepeatedRelName
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person)<-[e1:knows]-(:person) RETURN COUNT(*)
@@ -305,7 +305,7 @@ Binder exception: knows already exists in catalog.
 -LOG CreateRelTableInvalidNodeTableName
 -STATEMENT CREATE REL TABLE knows_post ( FROM person TO post)
 ---- error
-Binder exception: Node table post does not exist.
+Binder exception: Table post does not exist.
 
 -LOG CreateRelTableDuplicatedColumnName
 -STATEMENT CREATE REL TABLE teaches (FROM person TO person, date DATE, date TIMESTAMP)

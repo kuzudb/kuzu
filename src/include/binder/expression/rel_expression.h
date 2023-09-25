@@ -15,6 +15,15 @@ enum class RelDirectionType : uint8_t {
 class RelExpression;
 
 struct RecursiveInfo {
+    /*
+     * E.g. [e*1..2 (r, n) | WHERE n.age > 10 AND r.year = 2012 ]
+     * lowerBound = 1
+     * upperBound = 2
+     * node = n
+     * nodeCopy = n (see comment below)
+     * rel = r
+     * predicates = [n.age > 10, r.year = 2012]
+     * */
     uint64_t lowerBound;
     uint64_t upperBound;
     std::shared_ptr<NodeExpression> node;
@@ -31,6 +40,15 @@ struct RecursiveInfo {
         : lowerBound{lowerBound}, upperBound{upperBound}, node{std::move(node)},
           nodeCopy{std::move(nodeCopy)}, rel{std::move(rel)},
           lengthExpression{std::move(lengthExpression)}, predicates{std::move(predicates)} {}
+};
+
+struct RdfPredicateInfo {
+    std::vector<common::table_id_t> resourceTableIDs;
+    std::shared_ptr<Expression> predicateID;
+
+    RdfPredicateInfo(
+        std::vector<common::table_id_t> resourceTableIDs, std::shared_ptr<Expression> predicateID)
+        : resourceTableIDs{std::move(resourceTableIDs)}, predicateID{std::move(predicateID)} {}
 };
 
 class RelExpression : public NodeOrRelExpression {
@@ -72,6 +90,11 @@ public:
         return recursiveInfo->lengthExpression;
     }
 
+    inline void setRdfPredicateInfo(std::unique_ptr<RdfPredicateInfo> info) {
+        rdfPredicateInfo = std::move(info);
+    }
+    inline RdfPredicateInfo* getRdfPredicateInfo() const { return rdfPredicateInfo.get(); }
+
     inline bool isSelfLoop() const { return *srcNode == *dstNode; }
 
 private:
@@ -80,6 +103,7 @@ private:
     RelDirectionType directionType;
     common::QueryRelType relType;
     std::unique_ptr<RecursiveInfo> recursiveInfo;
+    std::unique_ptr<RdfPredicateInfo> rdfPredicateInfo;
 };
 
 } // namespace binder

@@ -58,8 +58,6 @@ private:
         const Expression& child, const std::string& propertyName);
     std::shared_ptr<Expression> bindStructPropertyExpression(
         std::shared_ptr<Expression> child, const std::string& propertyName);
-    std::unique_ptr<Expression> createPropertyExpression(const Expression& nodeOrRel,
-        const std::vector<catalog::Property*>& properties, bool isPrimaryKey);
     // Function expressions.
     std::shared_ptr<Expression> bindFunctionExpression(
         const parser::ParsedExpression& parsedExpression);

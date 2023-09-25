@@ -77,7 +77,7 @@ private:
     std::shared_ptr<Expression> bindWhereExpression(
         const parser::ParsedExpression& parsedExpression);
 
-    common::table_id_t bindNodeTableID(const std::string& tableName) const;
+    common::table_id_t bindTableID(const std::string& tableName) const;
 
     std::shared_ptr<Expression> createVariable(
         const std::string& name, common::LogicalTypeID logicalTypeID);
@@ -203,8 +203,8 @@ private:
 
     std::unique_ptr<QueryGraph> bindPatternElement(
         const parser::PatternElement& patternElement, PropertyKeyValCollection& collection);
-    std::shared_ptr<Expression> createPathExpression(
-        const std::string& pathName, const expression_vector& children);
+    std::shared_ptr<Expression> createPatternElement(const std::string& pathName,
+        const parser::PatternElement& patternElement, const expression_vector& children);
 
     std::shared_ptr<RelExpression> bindQueryRel(const parser::RelPattern& relPattern,
         const std::shared_ptr<NodeExpression>& leftNode,
@@ -226,8 +226,14 @@ private:
         const std::string& parsedName, const std::vector<common::table_id_t>& tableIDs);
     void bindQueryNodeProperties(NodeExpression& node);
 
-    std::vector<common::table_id_t> bindNodeTableIDs(const std::vector<std::string>& tableNames);
-    std::vector<common::table_id_t> bindRelTableIDs(const std::vector<std::string>& tableNames);
+    /*** bind table ID ***/
+    // Bind table names to catalog table schemas. The function does NOT validate if the table schema
+    // type matches node or rel pattern.
+    std::vector<common::table_id_t> bindTableIDs(
+        const std::vector<std::string>& tableNames, bool nodePattern);
+    std::vector<common::table_id_t> getNodeTableIDs(
+        const std::vector<common::table_id_t>& tableIDs);
+    std::vector<common::table_id_t> getRelTableIDs(const std::vector<common::table_id_t>& tableIDs);
 
     /*** validations ***/
     // E.g. ... RETURN a, b AS a
@@ -249,6 +255,7 @@ private:
     // multiple statement.
     static void validateReadNotFollowUpdate(const NormalizedSingleQuery& singleQuery);
 
+    void validateTableType(common::table_id_t tableID, common::TableType expectedTableType);
     void validateTableExist(const std::string& tableName);
     // TODO(Xiyang): remove this validation once we refactor DDL.
     void validateNodeRelTableExist(const std::string& tableName);

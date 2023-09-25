@@ -3,6 +3,7 @@
 #include "planner/join_order/cost_model.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
+#include "planner/operator/logical_fill_table_id.h"
 #include "planner/operator/logical_node_label_filter.h"
 #include "planner/query_planner.h"
 
@@ -80,19 +81,33 @@ static std::unordered_set<table_id_t> getNbrNodeTableIDSet(
 void QueryPlanner::appendNonRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,
     std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
     ExtendDirection direction, const expression_vector& properties, LogicalPlan& plan) {
+    // Filter bound node label if we know some incoming nodes won't have any outgoing rel. This
+    // cannot be done at binding time because the pruning is affected by extend direction.
     auto boundNodeTableIDSet = getBoundNodeTableIDSet(*rel, direction, catalog);
     if (boundNode->getNumTableIDs() > boundNodeTableIDSet.size()) {
         appendNodeLabelFilter(boundNode->getInternalID(), boundNodeTableIDSet, plan);
     }
+    // Check for each bound node, can we extend to more than 1 nbr node.
     auto hasAtMostOneNbr = extendHasAtMostOneNbrGuarantee(*rel, *boundNode, direction, catalog);
-    auto extend = make_shared<LogicalExtend>(
-        boundNode, nbrNode, rel, direction, properties, hasAtMostOneNbr, plan.getLastOperator());
+    // Split properties that cannot be scanned from rel table, specifically RDF predicate IRI.
+    expression_vector propertiesToScanFromRelTable;
+    std::shared_ptr<Expression> iri;
+    for (auto& property : properties) {
+        if (reinterpret_cast<PropertyExpression*>(property.get())->isIRI()) {
+            iri = property;
+            propertiesToScanFromRelTable.push_back(rel->getRdfPredicateInfo()->predicateID);
+        } else {
+            propertiesToScanFromRelTable.push_back(property);
+        }
+    }
+    // Append extend
+    auto extend = make_shared<LogicalExtend>(boundNode, nbrNode, rel, direction,
+        propertiesToScanFromRelTable, hasAtMostOneNbr, plan.getLastOperator());
     appendFlattens(extend->getGroupsPosToFlatten(), plan);
     extend->setChild(0, plan.getLastOperator());
     extend->computeFactorizedSchema();
-    // update cost
+    // Update cost & cardinality. Note that extend does not change cardinality.
     plan.setCost(CostModel::computeExtendCost(plan));
-    // update cardinality. Note that extend does not change cardinality.
     if (!hasAtMostOneNbr) {
         auto extensionRate = cardinalityEstimator->getExtensionRate(*rel, *boundNode);
         auto group = extend->getSchema()->getGroup(nbrNode->getInternalID());
@@ -102,6 +117,17 @@ void QueryPlanner::appendNonRecursiveExtend(std::shared_ptr<NodeExpression> boun
     auto nbrNodeTableIDSet = getNbrNodeTableIDSet(*rel, direction, catalog);
     if (nbrNodeTableIDSet.size() > nbrNode->getNumTableIDs()) {
         appendNodeLabelFilter(nbrNode->getInternalID(), nbrNode->getTableIDsSet(), plan);
+    }
+    if (iri) {
+        // Append hash join for remaining properties
+        auto tmpPlan = std::make_unique<LogicalPlan>();
+        auto rdfInfo = rel->getRdfPredicateInfo();
+        cardinalityEstimator->addNodeIDDom(*rdfInfo->predicateID, rdfInfo->resourceTableIDs);
+        appendScanInternalID(rdfInfo->predicateID, rdfInfo->resourceTableIDs, *tmpPlan);
+        appendFillTableID(rdfInfo->predicateID, rel->getSingleTableID(), *tmpPlan);
+        appendScanNodeProperties(
+            rdfInfo->predicateID, rdfInfo->resourceTableIDs, expression_vector{iri}, *tmpPlan);
+        appendHashJoin(expression_vector{rdfInfo->predicateID}, JoinType::INNER, plan, *tmpPlan);
     }
 }
 

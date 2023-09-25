@@ -28,7 +28,7 @@ public class QueryResultTest extends TestBase {
         result = conn.query("MATCH (a:personnnn) RETURN COUNT(*)");
         assertFalse(result.isSuccess());
         errorMessage = result.getErrorMessage();
-        assertTrue(errorMessage.equals("Binder exception: Node table personnnn does not exist."));
+        assertTrue(errorMessage.equals("Binder exception: Table personnnn does not exist."));
         result.destroy();
     }
 

@@ -12,10 +12,10 @@
 ---- ok
 -STATEMENT Call table_info('test_RESOURCE') RETURN *;
 ---- 1
-0|_IRI|STRING|True
+0|IRI|STRING|True
 -STATEMENT Call table_info('test_TRIPLES') RETURN *;
 ---- 1
-1|_PREDICT_ID|INTERNAL_ID
+1|PREDICT_ID|INTERNAL_ID
 #-STATEMENT COPY test_RESOURCE FROM '/Users/xiyangfeng/Desktop/ku_play/test.ttl';
 #---- error
 #PlanMapper::mapCopyFrom

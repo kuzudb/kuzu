@@ -40,7 +40,7 @@ TEST_F(CApiPreparedStatementTest, GetErrorMessage) {
     ASSERT_NE(preparedStatement->_prepared_statement, nullptr);
     message = kuzu_prepared_statement_get_error_message(preparedStatement);
     ASSERT_NE(message, nullptr);
-    ASSERT_EQ(std::string(message), "Binder exception: Node table personnnn does not exist.");
+    ASSERT_EQ(std::string(message), "Binder exception: Table personnnn does not exist.");
     kuzu_prepared_statement_destroy(preparedStatement);
     free(message);
 }

@@ -111,32 +111,22 @@ table_id_t CatalogContent::addRdfGraphSchema(const BoundCreateTableInfo& info) {
     return rdfGraphID;
 }
 
-Property* CatalogContent::getNodeProperty(
-    table_id_t tableID, const std::string& propertyName) const {
-    for (auto& property : tableSchemas.at(tableID)->properties) {
-        if (propertyName == property->getName()) {
-            return property.get();
-        }
-    }
-    throw CatalogException("Cannot find node property " + propertyName + ".");
-}
-
-Property* CatalogContent::getRelProperty(
-    table_id_t tableID, const std::string& propertyName) const {
-    for (auto& property : tableSchemas.at(tableID)->properties) {
-        if (propertyName == property->getName()) {
-            return property.get();
-        }
-    }
-    throw CatalogException("Cannot find rel property " + propertyName + ".");
-}
-
 std::vector<TableSchema*> CatalogContent::getTableSchemas() const {
-    std::vector<TableSchema*> allTableSchemas;
+    std::vector<TableSchema*> result;
     for (auto&& [_, schema] : tableSchemas) {
-        allTableSchemas.push_back(schema.get());
+        result.push_back(schema.get());
     }
-    return allTableSchemas;
+    return result;
+}
+
+std::vector<TableSchema*> CatalogContent::getTableSchemas(
+    const std::vector<table_id_t>& tableIDs) const {
+    std::vector<TableSchema*> result;
+    for (auto tableID : tableIDs) {
+        assert(tableSchemas.contains(tableID));
+        result.push_back(tableSchemas.at(tableID).get());
+    }
+    return result;
 }
 
 void CatalogContent::dropTableSchema(table_id_t tableID) {
@@ -262,12 +252,21 @@ void CatalogContent::registerBuiltInFunctions() {
     builtInTableFunctions = std::make_unique<function::BuiltInTableFunctions>();
 }
 
-bool CatalogContent::containTable(const std::string& tableName, TableType tableType) const {
+bool CatalogContent::containsTable(const std::string& tableName, TableType tableType) const {
     if (!tableNameToIDMap.contains(tableName)) {
         return false;
     }
     auto tableID = getTableID(tableName);
     return tableSchemas.at(tableID)->tableType == tableType;
+}
+
+bool CatalogContent::containsTable(common::TableType tableType) const {
+    for (auto& [_, schema] : tableSchemas) {
+        if (schema->tableType == tableType) {
+            return true;
+        }
+    }
+    return false;
 }
 
 std::vector<TableSchema*> CatalogContent::getTableSchemas(TableType tableType) const {
