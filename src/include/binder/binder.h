@@ -44,6 +44,11 @@ public:
         varNameToIdx.insert({varName, expressions.size()});
         expressions.push_back(std::move(expression));
     }
+    inline void removeExpression(const std::string& name) {
+        auto idx = varNameToIdx.at(name);
+        varNameToIdx.erase(name);
+        expressions[idx] = nullptr;
+    }
     inline void clear() {
         expressions.clear();
         varNameToIdx.clear();
@@ -201,8 +206,8 @@ private:
 
     std::unique_ptr<QueryGraph> bindPatternElement(
         const parser::PatternElement& patternElement, PropertyKeyValCollection& collection);
-    std::shared_ptr<Expression> createPatternElement(const std::string& pathName,
-        const parser::PatternElement& patternElement, const expression_vector& children);
+    std::shared_ptr<Expression> createPath(
+        const std::string& pathName, const expression_vector& children);
 
     std::shared_ptr<RelExpression> bindQueryRel(const parser::RelPattern& relPattern,
         const std::shared_ptr<NodeExpression>& leftNode,

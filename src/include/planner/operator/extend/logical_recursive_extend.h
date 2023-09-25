@@ -46,8 +46,8 @@ public:
                   std::move(probeChild), std::move(nodeChild), std::move(relChild)}},
           recursiveRel{std::move(recursiveRel)}, sip{SidewaysInfoPassing::NONE} {}
 
-    void computeFactorizedSchema() override { copyChildSchema(0); }
-    void computeFlatSchema() override { copyChildSchema(0); }
+    inline void computeFactorizedSchema() final { copyChildSchema(0); }
+    inline void computeFlatSchema() final { copyChildSchema(0); }
 
     std::string getExpressionsForPrinting() const override { return recursiveRel->toString(); }
 

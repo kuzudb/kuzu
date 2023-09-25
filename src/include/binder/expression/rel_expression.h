@@ -33,13 +33,18 @@ struct RecursiveInfo {
     std::shared_ptr<RelExpression> rel;
     std::shared_ptr<Expression> lengthExpression;
     expression_vector predicates;
+    expression_vector nodeProjectionList;
+    expression_vector relProjectionList;
 
     RecursiveInfo(uint64_t lowerBound, uint64_t upperBound, std::shared_ptr<NodeExpression> node,
         std::shared_ptr<NodeExpression> nodeCopy, std::shared_ptr<RelExpression> rel,
-        std::shared_ptr<Expression> lengthExpression, expression_vector predicates)
+        std::shared_ptr<Expression> lengthExpression, expression_vector predicates,
+        expression_vector nodeProjectionList, expression_vector relProjectionList)
         : lowerBound{lowerBound}, upperBound{upperBound}, node{std::move(node)},
           nodeCopy{std::move(nodeCopy)}, rel{std::move(rel)},
-          lengthExpression{std::move(lengthExpression)}, predicates{std::move(predicates)} {}
+          lengthExpression{std::move(lengthExpression)}, predicates{std::move(predicates)},
+          nodeProjectionList{std::move(nodeProjectionList)}, relProjectionList{
+                                                                 std::move(relProjectionList)} {}
 };
 
 struct RdfPredicateInfo {
