@@ -81,3 +81,54 @@
 -STATEMENT MATCH (n:Nested) return n.id, n.field, n.field2
 ---- 1
 anyString|[{a: [1.899941]}]|[{s: is not second},{s: is not first}]
+
+
+-CASE CopyMapCSV
+
+-STATEMENT COPY (MATCH (p:person)-[:knows]->(p1:person) RETURN map([p.fName, p1.fName], [p.age, p1.age])) TO 'out.csv';
+---- ok
+-STATEMENT CREATE NODE TABLE MapTest(id SERIAL, value STRING, PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY MapTest FROM 'out.csv' (header=true)
+---- ok
+-STATEMENT MATCH (m:MapTest) RETURN m.*;
+---- 14
+0|[{Alice,35},{Bob,30}]
+10|[{Dan,20},{Bob,30}]
+11|[{Dan,20},{Carol,45}]
+12|[{Elizabeth,20},{Farooq,25}]
+13|[{Elizabeth,20},{Greg,40}]
+1|[{Alice,35},{Carol,45}]
+2|[{Alice,35},{Dan,20}]
+3|[{Bob,30},{Alice,35}]
+4|[{Bob,30},{Carol,45}]
+5|[{Bob,30},{Dan,20}]
+6|[{Carol,45},{Alice,35}]
+7|[{Carol,45},{Bob,30}]
+8|[{Carol,45},{Dan,20}]
+9|[{Dan,20},{Alice,35}]
+
+-CASE CopyMapParquet
+
+-STATEMENT COPY (MATCH (p:person)-[:knows]->(p1:person) RETURN map([p.fName, p1.fName], [p.age, p1.age])) TO 'out.parquet';
+---- ok
+-STATEMENT CREATE NODE TABLE MapTest(id SERIAL, field map(string, int64), PRIMARY KEY (id));
+---- ok
+-STATEMENT COPY MapTest FROM 'out.parquet'
+---- ok
+-STATEMENT MATCH (m:MapTest) RETURN m.*;
+---- 14
+0|{Alice=35, Bob=30}
+10|{Dan=20, Bob=30}
+11|{Dan=20, Carol=45}
+12|{Elizabeth=20, Farooq=25}
+13|{Elizabeth=20, Greg=40}
+1|{Alice=35, Carol=45}
+2|{Alice=35, Dan=20}
+3|{Bob=30, Alice=35}
+4|{Bob=30, Carol=45}
+5|{Bob=30, Dan=20}
+6|{Carol=45, Alice=35}
+7|{Carol=45, Bob=30}
+8|{Carol=45, Dan=20}
+9|{Dan=20, Alice=35}

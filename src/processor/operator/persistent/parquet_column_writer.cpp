@@ -172,6 +172,7 @@ void ParquetColumnWriter::extractNested(uint8_t* value, const ValueVector* vecto
     std::map<std::string, ParquetColumn>& parquetColumns, int currentElementIdx,
     int parentElementIdx, int depth, std::string parentStructFieldName) {
     switch (vector->dataType.getLogicalTypeID()) {
+    case LogicalTypeID::MAP:
     case LogicalTypeID::VAR_LIST:
         return extractList(*reinterpret_cast<list_entry_t*>(value), vector, parquetColumns,
             currentElementIdx, parentElementIdx, depth, parentStructFieldName);

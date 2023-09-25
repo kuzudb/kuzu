@@ -154,7 +154,7 @@ std::shared_ptr<parquet::schema::Node> ParquetFileWriter::createNestedNode(
     //        }
     //      }
     //    }
-    case LogicalTypeID::FIXED_LIST:
+    case LogicalTypeID::MAP:
     case LogicalTypeID::VAR_LIST: {
         auto childLogicalType = VarListType::getChildType(&logicalType);
         auto childNode = createParquetSchemaNode(

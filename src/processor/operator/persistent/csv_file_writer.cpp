@@ -104,7 +104,7 @@ void CSVFileWriter::writeValue(common::ValueVector* vector) {
     case LogicalTypeID::INTERNAL_ID:
         return writeToBuffer<internalID_t>(vector, true);
     case LogicalTypeID::VAR_LIST:
-    case LogicalTypeID::FIXED_LIST:
+    case LogicalTypeID::MAP:
         return writeListToBuffer<list_entry_t>(vector);
     case LogicalTypeID::STRUCT:
         return writeListToBuffer<struct_entry_t>(vector);
