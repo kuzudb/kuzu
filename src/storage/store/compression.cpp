@@ -84,6 +84,7 @@ bool CompressionMetadata::canUpdateInPlace(
             return IntegerBitpacking<int32_t>::canUpdateInPlace(
                 value, BitpackHeader::readHeader(data));
         }
+        case PhysicalTypeID::VAR_LIST:
         case PhysicalTypeID::UINT64: {
             auto value = vector.getValue<uint64_t>(pos);
             return IntegerBitpacking<uint64_t>::canUpdateInPlace(
@@ -120,6 +121,7 @@ uint64_t CompressionMetadata::numValues(uint64_t pageSize, const LogicalType& da
             return IntegerBitpacking<int64_t>::numValues(pageSize, BitpackHeader::readHeader(data));
         case PhysicalTypeID::INT32:
             return IntegerBitpacking<int32_t>::numValues(pageSize, BitpackHeader::readHeader(data));
+        case PhysicalTypeID::VAR_LIST:
         case PhysicalTypeID::UINT64:
             return IntegerBitpacking<int64_t>::numValues(pageSize, BitpackHeader::readHeader(data));
         case PhysicalTypeID::UINT32:
@@ -382,6 +384,7 @@ void ReadCompressedValuesFromPageToVector::operator()(uint8_t* frame, PageElemen
             return IntegerBitpacking<int32_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
                 resultVector->getData(), posInVector, numValuesToRead, metadata);
         }
+        case PhysicalTypeID::VAR_LIST:
         case PhysicalTypeID::UINT64: {
             return IntegerBitpacking<uint64_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
                 resultVector->getData(), posInVector, numValuesToRead, metadata);
@@ -419,6 +422,7 @@ void ReadCompressedValuesFromPage::operator()(uint8_t* frame, PageElementCursor&
             return IntegerBitpacking<int32_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
                 result, startPosInResult, numValuesToRead, metadata);
         }
+        case PhysicalTypeID::VAR_LIST:
         case PhysicalTypeID::UINT64: {
             return IntegerBitpacking<uint64_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
                 result, startPosInResult, numValuesToRead, metadata);
@@ -455,6 +459,7 @@ void WriteCompressedValueToPage::operator()(uint8_t* frame, uint16_t posInFrame,
             return IntegerBitpacking<int32_t>().setValueFromUncompressed(
                 vector->getData(), posInVector, frame, posInFrame, metadata);
         }
+        case PhysicalTypeID::VAR_LIST:
         case PhysicalTypeID::UINT64: {
             return IntegerBitpacking<uint64_t>().setValueFromUncompressed(
                 vector->getData(), posInVector, frame, posInFrame, metadata);
