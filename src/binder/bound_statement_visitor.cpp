@@ -19,21 +19,14 @@ void BoundStatementVisitor::visit(const kuzu::binder::BoundStatement& statement)
     case StatementType::DROP_TABLE: {
         visitDropTable(statement);
     } break;
-    case StatementType::RENAME_TABLE: {
-        visitRenameTable(statement);
+    case StatementType::ALTER: {
+        visitAlter(statement);
     } break;
-    case StatementType::ADD_PROPERTY: {
-        visitAddProperty(statement);
+    case StatementType::COPY_FROM: {
+        visitCopyFrom(statement);
     } break;
-    case StatementType::DROP_PROPERTY: {
-        visitDropProperty(statement);
-    } break;
-    case StatementType::RENAME_PROPERTY: {
-        visitRenameProperty(statement);
-    } break;
-    case StatementType::COPY_FROM:
     case StatementType::COPY_TO: {
-        visitCopy(statement);
+        visitCopyTo(statement);
     } break;
     case StatementType::STANDALONE_CALL: {
         visitStandaloneCall(statement);

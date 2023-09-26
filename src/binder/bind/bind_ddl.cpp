@@ -1,20 +1,14 @@
 #include "binder/binder.h"
-#include "binder/ddl/bound_add_property.h"
+#include "binder/ddl/bound_alter.h"
 #include "binder/ddl/bound_create_table.h"
-#include "binder/ddl/bound_drop_property.h"
 #include "binder/ddl/bound_drop_table.h"
-#include "binder/ddl/bound_rename_property.h"
-#include "binder/ddl/bound_rename_table.h"
 #include "catalog/node_table_schema.h"
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
 #include "common/string_utils.h"
-#include "parser/ddl/add_property.h"
+#include "parser/ddl/alter.h"
 #include "parser/ddl/create_table.h"
-#include "parser/ddl/drop_property.h"
-#include "parser/ddl/drop_table.h"
-#include "parser/ddl/rename_property.h"
-#include "parser/ddl/rename_table.h"
+#include "parser/ddl/drop.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -219,11 +213,11 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTable(const parser::Statement&
         throw BinderException(tableName + " already exists in catalog.");
     }
     auto boundCreateInfo = bindCreateTableInfo(createTable.getInfo());
-    return std::make_unique<BoundCreateTable>(tableName, std::move(boundCreateInfo));
+    return std::make_unique<BoundCreateTable>(std::move(boundCreateInfo));
 }
 
 std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement) {
-    auto& dropTable = (DropTable&)statement;
+    auto& dropTable = reinterpret_cast<const Drop&>(statement);
     auto tableName = dropTable.getTableName();
     validateNodeRelTableExist(tableName);
     auto catalogContent = catalog.getReadOnlyVersion();
@@ -234,76 +228,122 @@ std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement
     return make_unique<BoundDropTable>(tableID, tableName);
 }
 
+std::unique_ptr<BoundStatement> Binder::bindAlter(const parser::Statement& statement) {
+    auto& alter = reinterpret_cast<const Alter&>(statement);
+    switch (alter.getInfo()->type) {
+    case AlterType::RENAME_TABLE: {
+        return bindRenameTable(statement);
+    }
+    case AlterType::ADD_PROPERTY: {
+        return bindAddProperty(statement);
+    }
+    case AlterType::DROP_PROPERTY: {
+        return bindDropProperty(statement);
+    }
+    case AlterType::RENAME_PROPERTY: {
+        return bindRenameProperty(statement);
+    }
+    default:
+        throw NotImplementedException("Binder::bindAlter");
+    }
+}
+
 std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& statement) {
-    auto renameTable = (RenameTable&)statement;
-    auto tableName = renameTable.getTableName();
+    auto& alter = reinterpret_cast<const Alter&>(statement);
+    auto info = alter.getInfo();
+    auto extraInfo = reinterpret_cast<ExtraRenameTableInfo*>(info->extraInfo.get());
+    auto tableName = info->tableName;
+    auto newName = extraInfo->newName;
     auto catalogContent = catalog.getReadOnlyVersion();
     validateNodeRelTableExist(tableName);
-    if (catalogContent->containsTable(renameTable.getNewName())) {
-        throw BinderException("Table: " + renameTable.getNewName() + " already exists.");
+    if (catalogContent->containsTable(newName)) {
+        throw BinderException("Table: " + newName + " already exists.");
     }
-    return make_unique<BoundRenameTable>(
-        catalogContent->getTableID(tableName), tableName, renameTable.getNewName());
+    auto tableID = catalogContent->getTableID(tableName);
+    auto boundExtraInfo = std::make_unique<BoundExtraRenameTableInfo>(newName);
+    auto boundInfo = std::make_unique<BoundAlterInfo>(
+        AlterType::RENAME_TABLE, tableName, tableID, std::move(boundExtraInfo));
+    return std::make_unique<BoundAlter>(std::move(boundInfo));
+}
+
+static void validatePropertyExist(TableSchema* tableSchema, const std::string& propertyName) {
+    if (!tableSchema->containProperty(propertyName)) {
+        throw BinderException(
+            tableSchema->tableName + " table doesn't have property " + propertyName + ".");
+    }
+}
+
+static void validatePropertyNotExist(TableSchema* tableSchema, const std::string& propertyName) {
+    if (tableSchema->containProperty(propertyName)) {
+        throw BinderException(
+            tableSchema->tableName + " table already has property " + propertyName + ".");
+    }
 }
 
 std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& statement) {
-    auto& addProperty = (AddProperty&)statement;
-    auto tableName = addProperty.getTableName();
+    auto& alter = reinterpret_cast<const Alter&>(statement);
+    auto info = alter.getInfo();
+    auto extraInfo = reinterpret_cast<ExtraAddPropertyInfo*>(info->extraInfo.get());
+    auto tableName = info->tableName;
+    auto dataType = bindDataType(extraInfo->dataType);
+    auto propertyName = extraInfo->propertyName;
     validateNodeRelTableExist(tableName);
     auto catalogContent = catalog.getReadOnlyVersion();
     auto tableID = catalogContent->getTableID(tableName);
-    auto dataType = bindDataType(addProperty.getDataType());
-    if (catalogContent->getTableSchema(tableID)->containProperty(addProperty.getPropertyName())) {
-        throw BinderException("Property: " + addProperty.getPropertyName() + " already exists.");
-    }
+    auto tableSchema = catalogContent->getTableSchema(tableID);
+    validatePropertyNotExist(tableSchema, propertyName);
     if (dataType->getLogicalTypeID() == LogicalTypeID::SERIAL) {
         throw BinderException("Serial property in node table must be the primary key.");
     }
     auto defaultVal = ExpressionBinder::implicitCastIfNecessary(
-        expressionBinder.bindExpression(*addProperty.getDefaultValue()), *dataType);
-    return make_unique<BoundAddProperty>(
-        tableID, addProperty.getPropertyName(), std::move(dataType), defaultVal, tableName);
+        expressionBinder.bindExpression(*extraInfo->defaultValue), *dataType);
+    auto boundExtraInfo = std::make_unique<BoundExtraAddPropertyInfo>(
+        propertyName, dataType->copy(), std::move(defaultVal));
+    auto boundInfo = std::make_unique<BoundAlterInfo>(
+        AlterType::ADD_PROPERTY, tableName, tableID, std::move(boundExtraInfo));
+    return std::make_unique<BoundAlter>(std::move(boundInfo));
 }
 
 std::unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statement) {
-    auto& dropProperty = (DropProperty&)statement;
-    auto tableName = dropProperty.getTableName();
+    auto& alter = reinterpret_cast<const Alter&>(statement);
+    auto info = alter.getInfo();
+    auto extraInfo = reinterpret_cast<ExtraDropPropertyInfo*>(info->extraInfo.get());
+    auto tableName = info->tableName;
+    auto propertyName = extraInfo->propertyName;
     validateNodeRelTableExist(tableName);
     auto catalogContent = catalog.getReadOnlyVersion();
     auto tableID = catalogContent->getTableID(tableName);
     auto tableSchema = catalogContent->getTableSchema(tableID);
-    auto propertyID = bindPropertyName(tableSchema, dropProperty.getPropertyName());
+    validatePropertyExist(tableSchema, propertyName);
+    auto propertyID = tableSchema->getPropertyID(propertyName);
     if (tableSchema->getTableType() == TableType::NODE &&
         reinterpret_cast<NodeTableSchema*>(tableSchema)->getPrimaryKeyPropertyID() == propertyID) {
         throw BinderException("Cannot drop primary key of a node table.");
     }
-    return make_unique<BoundDropProperty>(tableID, propertyID, tableName);
+    auto boundExtraInfo = std::make_unique<BoundExtraDropPropertyInfo>(propertyID);
+    auto boundInfo = std::make_unique<BoundAlterInfo>(
+        AlterType::DROP_PROPERTY, tableName, tableID, std::move(boundExtraInfo));
+    return make_unique<BoundAlter>(std::move(boundInfo));
 }
 
 std::unique_ptr<BoundStatement> Binder::bindRenameProperty(const Statement& statement) {
-    auto& renameProperty = (RenameProperty&)statement;
-    auto tableName = renameProperty.getTableName();
+    auto& alter = reinterpret_cast<const Alter&>(statement);
+    auto info = alter.getInfo();
+    auto extraInfo = reinterpret_cast<ExtraRenamePropertyInfo*>(info->extraInfo.get());
+    auto tableName = info->tableName;
+    auto propertyName = extraInfo->propertyName;
+    auto newName = extraInfo->newName;
     validateNodeRelTableExist(tableName);
     auto catalogContent = catalog.getReadOnlyVersion();
     auto tableID = catalogContent->getTableID(tableName);
     auto tableSchema = catalogContent->getTableSchema(tableID);
-    auto propertyID = bindPropertyName(tableSchema, renameProperty.getPropertyName());
-    if (tableSchema->containProperty(renameProperty.getNewName())) {
-        throw BinderException("Property " + renameProperty.getNewName() +
-                              " already exists in table: " + tableName + ".");
-    }
-    return make_unique<BoundRenameProperty>(
-        tableID, tableName, propertyID, renameProperty.getNewName());
-}
-
-property_id_t Binder::bindPropertyName(TableSchema* tableSchema, const std::string& propertyName) {
-    for (auto& property : tableSchema->properties) {
-        if (property->getName() == propertyName) {
-            return property->getPropertyID();
-        }
-    }
-    throw BinderException(
-        tableSchema->tableName + " table doesn't have property: " + propertyName + ".");
+    validatePropertyExist(tableSchema, propertyName);
+    auto propertyID = tableSchema->getPropertyID(propertyName);
+    validatePropertyNotExist(tableSchema, newName);
+    auto boundExtraInfo = std::make_unique<BoundExtraRenamePropertyInfo>(propertyID, newName);
+    auto boundInfo = std::make_unique<BoundAlterInfo>(
+        AlterType::RENAME_PROPERTY, tableName, tableID, std::move(boundExtraInfo));
+    return std::make_unique<BoundAlter>(std::move(boundInfo));
 }
 
 } // namespace binder

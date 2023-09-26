@@ -12,11 +12,11 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::ACCUMULATE: {
         return "ACCUMULATE";
     }
-    case LogicalOperatorType::ADD_PROPERTY: {
-        return "ADD_PROPERTY";
-    }
     case LogicalOperatorType::AGGREGATE: {
         return "AGGREGATE";
+    }
+    case LogicalOperatorType::ALTER: {
+        return "ALTER";
     }
     case LogicalOperatorType::COMMENT_ON: {
         return "COMMENT_ON";
@@ -50,9 +50,6 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     }
     case LogicalOperatorType::DISTINCT: {
         return "DISTINCT";
-    }
-    case LogicalOperatorType::DROP_PROPERTY: {
-        return "DROP_PROPERTY";
     }
     case LogicalOperatorType::DROP_TABLE: {
         return "DROP_TABLE";
@@ -113,12 +110,6 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     }
     case LogicalOperatorType::RECURSIVE_EXTEND: {
         return "RECURSIVE_EXTEND";
-    }
-    case LogicalOperatorType::RENAME_TABLE: {
-        return "RENAME_TABLE";
-    }
-    case LogicalOperatorType::RENAME_PROPERTY: {
-        return "RENAME_PROPERTY";
     }
     case LogicalOperatorType::SCAN_FILE: {
         return "SCAN_FILE";

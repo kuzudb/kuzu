@@ -1,18 +1,19 @@
 #pragma once
 
+#include "binder/bound_statement.h"
 #include "bound_create_table_info.h"
-#include "bound_ddl.h"
 
 namespace kuzu {
 namespace binder {
 
-class BoundCreateTable : public BoundDDL {
+class BoundCreateTable : public BoundStatement {
 public:
-    explicit BoundCreateTable(std::string tableName, std::unique_ptr<BoundCreateTableInfo> info)
-        : BoundDDL{common::StatementType::CREATE_TABLE, std::move(tableName)}, info{std::move(
-                                                                                   info)} {}
+    explicit BoundCreateTable(std::unique_ptr<BoundCreateTableInfo> info)
+        : BoundStatement{common::StatementType::CREATE_TABLE,
+              BoundStatementResult::createSingleStringColumnResult()},
+          info{std::move(info)} {}
 
-    inline BoundCreateTableInfo* getBoundCreateTableInfo() const { return info.get(); }
+    inline BoundCreateTableInfo* getInfo() const { return info.get(); }
 
 private:
     std::unique_ptr<BoundCreateTableInfo> info;
