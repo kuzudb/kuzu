@@ -27,16 +27,13 @@ namespace storage {
 
 struct ListOffsetInfoInStorage {
     common::offset_t prevNodeListOffset;
-    std::unique_ptr<common::ValueVector> offsetVector;
+    std::vector<std::unique_ptr<common::ValueVector>> offsetVectors;
 
-    ListOffsetInfoInStorage(
-        common::offset_t prevNodeListOffset, std::unique_ptr<common::ValueVector> offsetVector)
-        : prevNodeListOffset{prevNodeListOffset}, offsetVector{std::move(offsetVector)} {}
+    ListOffsetInfoInStorage(common::offset_t prevNodeListOffset,
+        std::vector<std::unique_ptr<common::ValueVector>> offsetVectors)
+        : prevNodeListOffset{prevNodeListOffset}, offsetVectors{std::move(offsetVectors)} {}
 
-    inline common::offset_t getListOffset(uint64_t nodePos) const {
-        return nodePos == 0 ? prevNodeListOffset :
-                              offsetVector->getValue<common::offset_t>(nodePos - 1);
-    }
+    common::offset_t getListOffset(uint64_t nodePos) const;
 
     inline uint64_t getListLength(uint64_t nodePos) const {
         return getListOffset(nodePos + 1) - getListOffset(nodePos);

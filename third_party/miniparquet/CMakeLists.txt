@@ -21,8 +21,7 @@ add_library(miniparquet STATIC
         src/thrift/transport/TTransportException.cpp
         src/thrift/transport/TBufferTransports.cpp
         src/snappy/snappy.cc
-        src/snappy/snappy-sinksource.cc
-        src/miniparquet.cpp)
+        src/snappy/snappy-sinksource.cc)
 
 target_include_directories(
         miniparquet
