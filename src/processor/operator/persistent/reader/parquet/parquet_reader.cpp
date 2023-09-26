@@ -302,13 +302,18 @@ std::unique_ptr<ColumnReader> ParquetReader::createReader() {
     if (metadata->schema[0].num_children == 0) {
         throw common::CopyException{"Parquet reader: root schema element has no children"};
     }
-    auto ret = createReaderRecursive(0, 0, 0, nextSchemaIdx, nextFileIdx);
-    if (ret->getDataType()->getPhysicalType() != common::PhysicalTypeID::STRUCT) {
+    auto rootReader = createReaderRecursive(0, 0, 0, nextSchemaIdx, nextFileIdx);
+    if (rootReader->getDataType()->getPhysicalType() != common::PhysicalTypeID::STRUCT) {
         throw common::CopyException{"Root element of Parquet file must be a struct"};
     }
+    for (auto& field : common::StructType::getFields(rootReader->getDataType())) {
+        columnNames.push_back(field->getName());
+        columnTypes.push_back(field->getType()->copy());
+    }
+
     assert(nextSchemaIdx == metadata->schema.size() - 1);
     assert(metadata->row_groups.empty() || nextFileIdx == metadata->row_groups[0].columns.size());
-    return ret;
+    return rootReader;
 }
 
 void ParquetReader::prepareRowGroupBuffer(ParquetReaderScanState& state, uint64_t col_idx) {

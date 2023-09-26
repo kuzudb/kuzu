@@ -45,6 +45,7 @@ struct FileTypeUtils {
         {".npy", FileType::NPY}, {".ttl", FileType::TURTLE}};
 
     static FileType getFileTypeFromExtension(const std::string& extension);
+    static std::string toString(FileType fileType);
 };
 
 struct ReaderConfig {
