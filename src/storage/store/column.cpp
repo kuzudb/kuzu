@@ -18,34 +18,51 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-struct InternalIDColumnFunc {
-    static void readValuesFromPageToVector(uint8_t* frame, PageElementCursor& pageCursor,
-        ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead,
-        const CompressionMetadata& /*metadata*/) {
+struct ReadInternalIDValuesToVector {
+    ReadInternalIDValuesToVector() : compressedReader{LogicalType(LogicalTypeID::INTERNAL_ID)} {}
+    void operator()(uint8_t* frame, PageElementCursor& pageCursor, ValueVector* resultVector,
+        uint32_t posInVector, uint32_t numValuesToRead, const CompressionMetadata& metadata) {
         KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
+
+        std::unique_ptr<offset_t[]> buffer = std::make_unique<offset_t[]>(numValuesToRead);
+        compressedReader(frame, pageCursor, (uint8_t*)buffer.get(), 0, numValuesToRead, metadata);
         auto resultData = (internalID_t*)resultVector->getData();
         for (auto i = 0u; i < numValuesToRead; i++) {
-            auto posInFrame = pageCursor.elemPosInPage + i;
-            resultData[posInVector + i].offset =
-                *(offset_t*)(frame + (posInFrame * sizeof(offset_t)));
+            resultData[posInVector + i].offset = buffer[i];
         }
     }
 
-    static void writeValueToPageFromVector(uint8_t* frame, uint16_t posInFrame, ValueVector* vector,
-        uint32_t posInVector, const CompressionMetadata& /*metadata*/) {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
-        auto internalID = vector->getValue<internalID_t>(posInVector);
-        memcpy(frame + posInFrame * sizeof(offset_t), &internalID.offset, sizeof(offset_t));
-    }
+private:
+    ReadCompressedValuesFromPage compressedReader;
+};
 
-    static void writeValuesToPage(uint8_t* frame, uint16_t posInFrame, const uint8_t* data,
-        uint32_t dataOffset, offset_t numValues, const CompressionMetadata& /*metadata*/) {
-        auto internalIDs = ((internalID_t*)data);
+struct WriteInternalIDValuesToPage {
+    WriteInternalIDValuesToPage() : compressedWriter{LogicalType(LogicalTypeID::INTERNAL_ID)} {}
+    void operator()(uint8_t* frame, uint16_t posInFrame, const uint8_t* data, uint32_t dataOffset,
+        offset_t numValues, const CompressionMetadata& metadata) {
+        auto internalIDValues = reinterpret_cast<const internalID_t*>(data);
+
         for (int i = 0; i < numValues; i++) {
-            memcpy(frame + posInFrame * sizeof(offset_t), &internalIDs[dataOffset + i].offset,
-                sizeof(offset_t));
+            compressedWriter(frame, posInFrame,
+                reinterpret_cast<const uint8_t*>(&internalIDValues[dataOffset + i].offset),
+                0 /*dataOffset*/, 1 /*numValues*/, metadata);
         }
     }
+
+private:
+    WriteCompressedValuesToPage compressedWriter;
+};
+
+struct WriteInternalIDValueToPageFromVector {
+    void operator()(uint8_t* frame, uint16_t posInFrame, ValueVector* vector,
+        uint32_t offsetInVector, const CompressionMetadata& metadata) {
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
+        compressedWriter(
+            frame, posInFrame, vector->getData(), offsetInVector, 1 /*numValues*/, metadata);
+    }
+
+private:
+    WriteInternalIDValuesToPage compressedWriter;
 };
 
 struct NullColumnFunc {
@@ -127,7 +144,7 @@ struct BoolColumnFunc {
 static read_values_to_vector_func_t getReadValuesToVectorFunc(const LogicalType& logicalType) {
     switch (logicalType.getLogicalTypeID()) {
     case LogicalTypeID::INTERNAL_ID:
-        return InternalIDColumnFunc::readValuesFromPageToVector;
+        return ReadInternalIDValuesToVector();
     case LogicalTypeID::BOOL:
         return BoolColumnFunc::readValuesFromPageToVector;
     default:
@@ -147,7 +164,7 @@ static read_values_to_page_func_t getReadValuesToPageFunc(const LogicalType& log
 static write_values_from_vector_func_t getWriteValueFromVectorFunc(const LogicalType& logicalType) {
     switch (logicalType.getLogicalTypeID()) {
     case LogicalTypeID::INTERNAL_ID:
-        return InternalIDColumnFunc::writeValueToPageFromVector;
+        return WriteInternalIDValueToPageFromVector();
     case LogicalTypeID::BOOL:
         return BoolColumnFunc::writeValueToPageFromVector;
     default:
@@ -158,7 +175,7 @@ static write_values_from_vector_func_t getWriteValueFromVectorFunc(const Logical
 static write_values_func_t getWriteValuesFunc(const LogicalType& logicalType) {
     switch (logicalType.getLogicalTypeID()) {
     case LogicalTypeID::INTERNAL_ID:
-        return InternalIDColumnFunc::writeValuesToPage;
+        return WriteInternalIDValuesToPage();
     case LogicalTypeID::BOOL:
         return BoolColumnFunc::writeValuesToPage;
     default:

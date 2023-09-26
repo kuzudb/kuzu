@@ -68,6 +68,11 @@ bool CompressionMetadata::canUpdateInPlace(
     }
     case CompressionType::INTEGER_BITPACKING: {
         switch (physicalType) {
+        case PhysicalTypeID::INTERNAL_ID: {
+            auto value = reinterpret_cast<const internalID_t*>(data)[pos];
+            return IntegerBitpacking<int64_t>::canUpdateInPlace(
+                value.offset, BitpackHeader::readHeader(this->data));
+        }
         case PhysicalTypeID::INT64: {
             auto value = reinterpret_cast<const int64_t*>(data)[pos];
             return IntegerBitpacking<int64_t>::canUpdateInPlace(
@@ -132,6 +137,7 @@ uint64_t CompressionMetadata::numValues(uint64_t pageSize, const LogicalType& da
     }
     case CompressionType::INTEGER_BITPACKING: {
         switch (dataType.getPhysicalType()) {
+        case PhysicalTypeID::INTERNAL_ID:
         case PhysicalTypeID::INT64:
             return IntegerBitpacking<int64_t>::numValues(pageSize, BitpackHeader::readHeader(data));
         case PhysicalTypeID::INT32:
@@ -479,6 +485,7 @@ void ReadCompressedValuesFromPageToVector::operator()(uint8_t* frame, PageElemen
             resultVector->getData(), posInVector, numValuesToRead, metadata);
     case CompressionType::INTEGER_BITPACKING: {
         switch (physicalType) {
+        case PhysicalTypeID::INTERNAL_ID:
         case PhysicalTypeID::INT64: {
             return IntegerBitpacking<int64_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
                 resultVector->getData(), posInVector, numValuesToRead, metadata);
@@ -534,6 +541,7 @@ void ReadCompressedValuesFromPage::operator()(uint8_t* frame, PageElementCursor&
             frame, pageCursor.elemPosInPage, result, startPosInResult, numValuesToRead, metadata);
     case CompressionType::INTEGER_BITPACKING: {
         switch (physicalType) {
+        case PhysicalTypeID::INTERNAL_ID:
         case PhysicalTypeID::INT64: {
             return IntegerBitpacking<int64_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
                 result, startPosInResult, numValuesToRead, metadata);
@@ -589,6 +597,7 @@ void WriteCompressedValuesToPage::operator()(uint8_t* frame, uint16_t posInFrame
             data, dataOffset, frame, posInFrame, numValues, metadata);
     case CompressionType::INTEGER_BITPACKING: {
         switch (physicalType) {
+        case PhysicalTypeID::INTERNAL_ID:
         case PhysicalTypeID::INT64: {
             return IntegerBitpacking<int64_t>().setValuesFromUncompressed(
                 data, dataOffset, frame, posInFrame, numValues, metadata);

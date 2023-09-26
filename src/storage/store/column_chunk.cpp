@@ -110,6 +110,7 @@ static std::shared_ptr<CompressionAlg> getCompression(
         return std::make_shared<Uncompressed>(dataType);
     }
     switch (dataType.getPhysicalType()) {
+    case PhysicalTypeID::INTERNAL_ID:
     case PhysicalTypeID::INT64: {
         return std::make_shared<IntegerBitpacking<int64_t>>();
     }
@@ -178,6 +179,7 @@ void ColumnChunk::initializeFunction(bool enableCompression) {
     case PhysicalTypeID::INT16:
     case PhysicalTypeID::INT8:
     case PhysicalTypeID::VAR_LIST:
+    case PhysicalTypeID::INTERNAL_ID:
     case PhysicalTypeID::UINT64:
     case PhysicalTypeID::UINT32:
     case PhysicalTypeID::UINT16:
@@ -491,8 +493,8 @@ public:
 class InternalIDColumnChunk final : public ColumnChunk {
 public:
     // Physically, we only materialize offset of INTERNAL_ID, which is same as INT64,
-    InternalIDColumnChunk(uint64_t capacity)
-        : ColumnChunk(LogicalType::INT64(), capacity, false /* enableCompression */) {}
+    InternalIDColumnChunk(uint64_t capacity, bool enableCompression)
+        : ColumnChunk(LogicalType::INT64(), capacity, enableCompression) {}
 
     void append(ValueVector* vector) {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
@@ -538,7 +540,7 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     }
         // Physically, we only materialize offset of INTERNAL_ID, which is same as INT64,
     case PhysicalTypeID::INTERNAL_ID: {
-        return std::make_unique<InternalIDColumnChunk>(capacity);
+        return std::make_unique<InternalIDColumnChunk>(capacity, enableCompression);
     }
     case PhysicalTypeID::FIXED_LIST: {
         return std::make_unique<FixedListColumnChunk>(
