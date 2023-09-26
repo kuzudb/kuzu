@@ -942,6 +942,7 @@ public:
     antlr4::tree::TerminalNode *FROM();
     KU_FilePathsContext *kU_FilePaths();
     KU_ParsingOptionsContext *kU_ParsingOptions();
+    OC_WhereContext *oC_Where();
 
    
   };

@@ -1,3 +1,4 @@
+#include "binder/expression_visitor.h"
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
 #include "planner/query_planner.h"
@@ -78,16 +79,49 @@ void QueryPlanner::planInQueryCall(
     }
 }
 
+static bool hasExternalDependency(const std::shared_ptr<Expression>& expression,
+    const std::unordered_set<std::string>& variableNameSet) {
+    auto collector = ExpressionCollector();
+    for (auto& name : collector.getDependentVariableNames(expression)) {
+        if (!variableNameSet.contains(name)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void QueryPlanner::planLoadFrom(
     binder::BoundReadingClause* readingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
     auto loadFrom = reinterpret_cast<BoundLoadFrom*>(readingClause);
+    std::unordered_set<std::string> columnNameSet;
+    for (auto& column : loadFrom->getInfo()->columns) {
+        columnNameSet.insert(column->getUniqueName());
+    }
+    expression_vector predicatesToPushDown;
+    expression_vector predicatesToPullUp;
+    for (auto& predicate : loadFrom->getPredicatesSplitOnAnd()) {
+        if (hasExternalDependency(predicate, columnNameSet)) {
+            predicatesToPullUp.push_back(predicate);
+        } else {
+            predicatesToPushDown.push_back(predicate);
+        }
+    }
     for (auto& plan : plans) {
         if (!plan->isEmpty()) {
             auto tmpPlan = std::make_unique<LogicalPlan>();
             appendScanFile(loadFrom->getInfo(), *tmpPlan);
+            if (!predicatesToPushDown.empty()) {
+                appendFilters(predicatesToPushDown, *tmpPlan);
+            }
             appendCrossProduct(AccumulateType::REGULAR, *plan, *tmpPlan);
         } else {
             appendScanFile(loadFrom->getInfo(), *plan);
+            if (!predicatesToPushDown.empty()) {
+                appendFilters(predicatesToPushDown, *plan);
+            }
+        }
+        if (!predicatesToPullUp.empty()) {
+            appendFilter(loadFrom->getWherePredicate(), *plan);
         }
     }
 }

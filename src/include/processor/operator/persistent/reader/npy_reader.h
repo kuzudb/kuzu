@@ -27,8 +27,7 @@ public:
 
     // Used in tests only.
     inline common::LogicalTypeID getType() const { return type; }
-    inline std::vector<size_t> const& getShape() const { return shape; }
-    inline size_t getNumDimensions() const { return shape.size(); }
+    inline std::vector<size_t> getShape() const { return shape; }
 
     void validate(const common::LogicalType& type_, common::offset_t numRows);
 

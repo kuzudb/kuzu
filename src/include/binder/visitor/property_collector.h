@@ -14,6 +14,7 @@ public:
 private:
     void visitMatch(const BoundReadingClause& readingClause) final;
     void visitUnwind(const BoundReadingClause& readingClause) final;
+    void visitLoadFrom(const BoundReadingClause& readingClause) final;
 
     void visitSet(const BoundUpdatingClause& updatingClause) final;
     void visitDelete(const BoundUpdatingClause& updatingClause) final;

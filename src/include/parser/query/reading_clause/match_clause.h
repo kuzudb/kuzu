@@ -19,18 +19,17 @@ public:
         return patternElements;
     }
 
-    inline void setWhereClause(std::unique_ptr<ParsedExpression> expression) {
-        whereClause = std::move(expression);
+    inline void setWherePredicate(std::unique_ptr<ParsedExpression> expression) {
+        wherePredicate = std::move(expression);
     }
-
-    inline bool hasWhereClause() const { return whereClause != nullptr; }
-    inline ParsedExpression* getWhereClause() const { return whereClause.get(); }
+    inline bool hasWherePredicate() const { return wherePredicate != nullptr; }
+    inline ParsedExpression* getWherePredicate() const { return wherePredicate.get(); }
 
     inline common::MatchClauseType getMatchClauseType() const { return matchClauseType; }
 
 private:
     std::vector<std::unique_ptr<PatternElement>> patternElements;
-    std::unique_ptr<ParsedExpression> whereClause;
+    std::unique_ptr<ParsedExpression> wherePredicate;
     common::MatchClauseType matchClauseType;
 };
 

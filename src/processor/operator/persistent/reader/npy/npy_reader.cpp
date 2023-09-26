@@ -223,7 +223,6 @@ NpyMultiFileReader::NpyMultiFileReader(const std::vector<std::string>& filePaths
 }
 
 void NpyMultiFileReader::readBlock(block_idx_t blockIdx, common::DataChunk* dataChunkToRead) const {
-    assert(fileReaders.size() > 1);
     for (auto i = 0u; i < fileReaders.size(); i++) {
         fileReaders[i]->readBlock(blockIdx, dataChunkToRead->getValueVector(i).get());
     }

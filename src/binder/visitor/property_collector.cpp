@@ -1,6 +1,7 @@
 #include "binder/visitor/property_collector.h"
 
 #include "binder/expression_visitor.h"
+#include "binder/query/reading_clause/bound_load_from.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
 #include "binder/query/reading_clause/bound_unwind_clause.h"
 #include "binder/query/updating_clause/bound_create_clause.h"
@@ -28,14 +29,21 @@ void PropertyCollector::visitMatch(const BoundReadingClause& readingClause) {
             properties.insert(rel->getInternalIDProperty());
         }
     }
-    if (matchClause.hasWhereExpression()) {
-        collectPropertyExpressions(matchClause.getWhereExpression());
+    if (matchClause.hasWherePredicate()) {
+        collectPropertyExpressions(matchClause.getWherePredicate());
     }
 }
 
 void PropertyCollector::visitUnwind(const BoundReadingClause& readingClause) {
     auto& unwindClause = (BoundUnwindClause&)readingClause;
     collectPropertyExpressions(unwindClause.getExpression());
+}
+
+void PropertyCollector::visitLoadFrom(const BoundReadingClause& readingClause) {
+    auto& loadFromClause = reinterpret_cast<const BoundLoadFrom&>(readingClause);
+    if (loadFromClause.hasWherePredicate()) {
+        collectPropertyExpressions(loadFromClause.getWherePredicate());
+    }
 }
 
 void PropertyCollector::visitSet(const BoundUpdatingClause& updatingClause) {

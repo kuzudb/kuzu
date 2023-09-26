@@ -16,19 +16,19 @@ public:
     BoundMatchClause(const BoundMatchClause& other)
         : BoundReadingClause(common::ClauseType::MATCH),
           queryGraphCollection{other.queryGraphCollection->copy()},
-          whereExpression(other.whereExpression), matchClauseType{other.matchClauseType} {}
+          wherePredicate(other.wherePredicate), matchClauseType{other.matchClauseType} {}
 
     inline QueryGraphCollection* getQueryGraphCollection() const {
         return queryGraphCollection.get();
     }
 
-    inline void setWhereExpression(std::shared_ptr<Expression> expression) {
-        whereExpression = std::move(expression);
+    inline void setWherePredicate(std::shared_ptr<Expression> expression) {
+        wherePredicate = std::move(expression);
     }
-    inline bool hasWhereExpression() const { return whereExpression != nullptr; }
-    inline std::shared_ptr<Expression> getWhereExpression() const { return whereExpression; }
+    inline bool hasWherePredicate() const { return wherePredicate != nullptr; }
+    inline std::shared_ptr<Expression> getWherePredicate() const { return wherePredicate; }
     inline expression_vector getPredicatesSplitOnAnd() const {
-        return hasWhereExpression() ? whereExpression->splitOnAND() : expression_vector{};
+        return hasWherePredicate() ? wherePredicate->splitOnAND() : expression_vector{};
     }
 
     inline common::MatchClauseType getMatchClauseType() const { return matchClauseType; }
@@ -39,7 +39,7 @@ public:
 
 private:
     std::unique_ptr<QueryGraphCollection> queryGraphCollection;
-    std::shared_ptr<Expression> whereExpression;
+    std::shared_ptr<Expression> wherePredicate;
     common::MatchClauseType matchClauseType;
 };
 
