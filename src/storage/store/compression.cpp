@@ -296,7 +296,7 @@ void IntegerBitpacking<T>::decompressFromPage(const uint8_t* srcBuffer, uint64_t
     }
 
     // Use fastunpack to directly unpack the full-sized chunks
-    for (; dstIndex < dstOffset + numValues - numValues % CHUNK_SIZE; dstIndex += CHUNK_SIZE) {
+    for (; dstIndex + CHUNK_SIZE <= dstOffset + numValues; dstIndex += CHUNK_SIZE) {
         FastPForLib::fastunpack(
             (const uint32_t*)srcCursor, (U*)dstBuffer + dstIndex, header.bitWidth);
         if (header.hasNegative) {
