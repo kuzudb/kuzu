@@ -40,9 +40,15 @@ class ParquetReader {
 public:
     ParquetReader(const std::string& filePath, storage::MemoryManager* memoryManager);
     ~ParquetReader() = default;
+
     void initializeScan(ParquetReaderScanState& state, std::vector<uint64_t> groups_to_read);
     bool scanInternal(ParquetReaderScanState& state, common::DataChunk& result);
     void scan(ParquetReaderScanState& state, common::DataChunk& result);
+
+    inline uint32_t getNumColumns() const { return columnNames.size(); }
+    inline std::string getColumnName(uint32_t idx) const { return columnNames[idx]; }
+    inline common::LogicalType* getColumnType(uint32_t idx) const { return columnTypes[idx].get(); }
+
     inline kuzu_parquet::format::FileMetaData* getMetadata() const { return metadata.get(); }
 
 private:
@@ -74,6 +80,8 @@ private:
 private:
     std::unique_ptr<common::FileInfo> fileInfo;
     std::string filePath;
+    std::vector<std::string> columnNames;
+    std::vector<std::unique_ptr<common::LogicalType>> columnTypes;
     std::unique_ptr<kuzu_parquet::format::FileMetaData> metadata;
     storage::MemoryManager* memoryManager;
 };

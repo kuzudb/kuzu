@@ -9,6 +9,7 @@
 #include "parser/query/reading_clause/load_from.h"
 #include "parser/query/reading_clause/unwind_clause.h"
 #include "processor/operator/persistent/reader/csv/csv_reader.h"
+#include "processor/operator/persistent/reader/parquet/parquet_reader.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -120,23 +121,39 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(
     auto fileType = bindFileType(filePaths);
     auto readerConfig =
         std::make_unique<ReaderConfig>(fileType, std::move(filePaths), std::move(csvReaderConfig));
-    if (readerConfig->fileType != FileType::CSV) {
-        throw BinderException("Load from non-csv file is not supported.");
-    }
     if (readerConfig->getNumFiles() > 1) {
         throw BinderException("Load from multiple files is not supported.");
     }
-    auto csvReader = BufferedCSVReader(
-        readerConfig->filePaths[0], *readerConfig->csvReaderConfig, 0 /*expectedNumColumns*/);
-    csvReader.SniffCSV();
-    auto numColumns = csvReader.getNumColumnsDetected();
     expression_vector columns;
-    auto stringType = LogicalType(LogicalTypeID::STRING);
-    for (auto i = 0; i < numColumns; ++i) {
-        auto columnName = "column" + std::to_string(i);
-        readerConfig->columnNames.push_back(columnName);
-        readerConfig->columnTypes.push_back(stringType.copy());
-        columns.push_back(createVariable(columnName, stringType));
+    switch (fileType) {
+    case FileType::CSV: {
+        auto csvReader = BufferedCSVReader(
+            readerConfig->filePaths[0], *readerConfig->csvReaderConfig, 0 /*expectedNumColumns*/);
+        csvReader.SniffCSV();
+        auto numColumns = csvReader.getNumColumnsDetected();
+        auto stringType = LogicalType(LogicalTypeID::STRING);
+        for (auto i = 0; i < numColumns; ++i) {
+            auto columnName = "column" + std::to_string(i);
+            readerConfig->columnNames.push_back(columnName);
+            readerConfig->columnTypes.push_back(stringType.copy());
+            columns.push_back(createVariable(columnName, stringType));
+        }
+    } break;
+    case FileType::PARQUET: {
+        auto reader = ParquetReader(readerConfig->filePaths[0], memoryManager);
+        auto state = std::make_unique<processor::ParquetReaderScanState>();
+        reader.initializeScan(*state, std::vector<uint64_t>{});
+        for (auto i = 0u; i < reader.getNumColumns(); ++i) {
+            auto columnName = reader.getColumnName(i);
+            auto columnType = reader.getColumnType(i);
+            readerConfig->columnNames.push_back(columnName);
+            readerConfig->columnTypes.push_back(columnType->copy());
+            columns.push_back(createVariable(columnName, *columnType));
+        }
+    } break;
+    default:
+        throw BinderException(StringUtils::string_format(
+            "Load from {} file is not supported.", FileTypeUtils::toString(fileType)));
     }
     auto info = std::make_unique<BoundFileScanInfo>(
         std::move(readerConfig), std::move(columns), nullptr, TableType::UNKNOWN);

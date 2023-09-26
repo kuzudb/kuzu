@@ -16,5 +16,25 @@ FileType FileTypeUtils::getFileTypeFromExtension(const std::string& extension) {
     return fileType;
 }
 
+std::string FileTypeUtils::toString(FileType fileType) {
+    switch (fileType) {
+    case FileType::UNKNOWN: {
+        return "UNKNOWN";
+    }
+    case FileType::CSV: {
+        return "CSV";
+    }
+    case FileType::PARQUET: {
+        return "PARQUET";
+    }
+    case FileType::NPY: {
+        return "NPY";
+    }
+    case FileType::TURTLE: {
+        return "TURTLE";
+    }
+    }
+}
+
 } // namespace common
 } // namespace kuzu

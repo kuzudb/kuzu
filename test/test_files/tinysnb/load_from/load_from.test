@@ -2,8 +2,36 @@
 -DATASET CSV tinysnb
 
 --
+-CASE LoadFromParquetTest1
+-STATEMENT LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k_0.parquet" RETURN * ORDER BY id LIMIT 5;
+---- 5
+0|73|3.258507|True|1994-01-12|FrPZkcHFuepVxcAiMwyAsRqDlRtQx|[65,25]|[4deQc5]|[[163,237],[28,60,77,31,137],[286,186,249,206]]|{id: 764, name: CwFRaCoEp}
+1|17|45.692842|False|2077-04-16|La|[64,41]|[Yq029g79TUAiq9VA,5h5ozRjtfsxbtCeb,2WLnSHVZojagYe,3HsiFD7b7DRk6n]|[[189,84,16],[143,135],[284,182,219,45],[250,143,195,210,244],[31,85]]|{id: 461, name: PmAvlzC0MVN2kr5}
+2|30|13.397253|True|2015-01-06|uQJCBEePLuGkoAp|[47,27,57,46]|[INx9T8cF,fQds,GVbSmwovuURxXiRQ6vI3]|[[89,232],[186,224],[278,106,154]]|{id: 275, name: LeJHI4vdgjFDl}
+3|4|3.174669|True|2104-03-14|fjyKxMjhXXgCkZmwBACpRrjNHlhrDtkQPl|[58,77,66,48]|[SUFT8NmyhMQ,DaTDnzkotQ2pjvdCN]|[[44]]|{id: 545, name: 0jhUkRv7R8}
+4|99|17.608944|True|2089-10-27||[78,93,50,3]|[7Jyqki,Y0FQsTGx,7LqWTypucemvMYm,t5spe07tWSCJ]|[[267,172,283],[74,37],[148,62,96,47],[277,95]]|{id: 460, name: 1e6nIx}
+-STATEMENT LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k_0.parquet" RETURN id, column1, column2 ORDER BY column1, id LIMIT 3;
+---- 3
+20|0|57.579280
+40|0|62.634335
+57|0|50.232784
+-STATEMENT LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k_0.parquet"
+            WITH id AS a, column4 AS b ORDER BY a LIMIT 1
+           MATCH (p:person) WHERE p.ID > a
+           RETURN p.fName, a, b
+---- 7
+Bob|0|1994-01-12
+Carol|0|1994-01-12
+Dan|0|1994-01-12
+Elizabeth|0|1994-01-12
+Farooq|0|1994-01-12
+Greg|0|1994-01-12
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0|1994-01-12
+-STATEMENT LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/rdf/taxonomy.ttl" RETURN COUNT(*)
+---- error
+Binder exception: Load from TURTLE file is not supported.
 
--CASE LoadFromTest1
+-CASE LoadFromCSVTest
 -STATEMENT LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eStudyAt.csv" (HEADER=True) RETURN column0, column1, column2, column3;
 ---- 3
 0|1|2021|[wwAewsdndweusd,wek]

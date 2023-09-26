@@ -38,7 +38,8 @@ count_blocks_func_t ReaderFunctions::getCountBlocksFunc(FileType fileType, Table
     case FileType::PARQUET: {
         switch (tableType) {
         case TableType::NODE:
-            return countRowsInNodeParquetFile;
+        case TableType::UNKNOWN:
+            return countRowsInParquetFile;
         case TableType::REL:
             return countRowsInRelParquetFile;
         default:
@@ -73,7 +74,8 @@ init_reader_data_func_t ReaderFunctions::getInitDataFunc(FileType fileType, Tabl
     case FileType::PARQUET: {
         switch (tableType) {
         case TableType::NODE:
-            return initNodeParquetReadData;
+        case TableType::UNKNOWN:
+            return initParquetReadData;
         case TableType::REL:
             return initRelParquetReadData;
         default:
@@ -108,7 +110,8 @@ read_rows_func_t ReaderFunctions::getReadRowsFunc(FileType fileType, common::Tab
     case FileType::PARQUET: {
         switch (tableType) {
         case TableType::NODE:
-            return readRowsFromNodeParquetFile;
+        case TableType::UNKNOWN:
+            return readRowsFromParquetFile;
         case TableType::REL:
             return readRowsFromRelParquetFile;
         default:
@@ -144,7 +147,8 @@ std::shared_ptr<ReaderFunctionData> ReaderFunctions::getReadFuncData(
     case FileType::PARQUET: {
         switch (tableType) {
         case TableType::NODE:
-            return std::make_shared<NodeParquetReaderFunctionData>();
+        case TableType::UNKNOWN:
+            return std::make_shared<ParquetReaderFunctionData>();
         case TableType::REL:
             return std::make_shared<RelParquetReaderFunctionData>();
         default:
@@ -231,7 +235,7 @@ std::vector<FileBlocksInfo> ReaderFunctions::countRowsInRelParquetFile(
     return fileInfos;
 }
 
-std::vector<FileBlocksInfo> ReaderFunctions::countRowsInNodeParquetFile(
+std::vector<FileBlocksInfo> ReaderFunctions::countRowsInParquetFile(
     const common::ReaderConfig& config, MemoryManager* memoryManager) {
     std::vector<FileBlocksInfo> fileInfos;
     fileInfos.reserve(config.filePaths.size());
@@ -302,13 +306,13 @@ void ReaderFunctions::initRelParquetReadData(ReaderFunctionData& funcData, vecto
         TableCopyUtils::createParquetReader(config.filePaths[fileIdx], config);
 }
 
-void ReaderFunctions::initNodeParquetReadData(ReaderFunctionData& funcData, vector_idx_t fileIdx,
+void ReaderFunctions::initParquetReadData(ReaderFunctionData& funcData, vector_idx_t fileIdx,
     const common::ReaderConfig& config, MemoryManager* memoryManager) {
     assert(fileIdx < config.getNumFiles());
     funcData.fileIdx = fileIdx;
-    reinterpret_cast<NodeParquetReaderFunctionData&>(funcData).reader =
+    reinterpret_cast<ParquetReaderFunctionData&>(funcData).reader =
         std::make_unique<ParquetReader>(config.filePaths[fileIdx], memoryManager);
-    reinterpret_cast<NodeParquetReaderFunctionData&>(funcData).state =
+    reinterpret_cast<ParquetReaderFunctionData&>(funcData).state =
         std::make_unique<ParquetReaderScanState>();
 }
 
@@ -362,9 +366,9 @@ void ReaderFunctions::readRowsFromRelParquetFile(const ReaderFunctionData& funct
     dataChunkToRead->state->selVector->selectedSize = table->num_rows();
 }
 
-void ReaderFunctions::readRowsFromNodeParquetFile(const ReaderFunctionData& functionData,
+void ReaderFunctions::readRowsFromParquetFile(const ReaderFunctionData& functionData,
     block_idx_t blockIdx, common::DataChunk* dataChunkToRead) {
-    auto& readerData = reinterpret_cast<const NodeParquetReaderFunctionData&>(functionData);
+    auto& readerData = reinterpret_cast<const ParquetReaderFunctionData&>(functionData);
     if (blockIdx != UINT64_MAX &&
         (readerData.state->groupIdxList.empty() || readerData.state->groupIdxList[0] != blockIdx)) {
         readerData.reader->initializeScan(*readerData.state, {blockIdx});
