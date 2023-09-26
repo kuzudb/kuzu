@@ -4,6 +4,8 @@ using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::storage;
 
+#include "arrow/array.h"
+
 namespace kuzu {
 namespace processor {
 

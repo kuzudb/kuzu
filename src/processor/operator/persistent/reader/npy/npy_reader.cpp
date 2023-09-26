@@ -207,47 +207,13 @@ void NpyReader::validate(const LogicalType& type_, offset_t numRows) {
     }
 }
 
-std::shared_ptr<arrow::DataType> NpyReader::getArrowType() const {
-    auto thisType = getType();
-    if (thisType == LogicalTypeID::DOUBLE) {
-        return arrow::float64();
-    } else if (thisType == LogicalTypeID::FLOAT) {
-        return arrow::float32();
-    } else if (thisType == LogicalTypeID::INT64) {
-        return arrow::int64();
-    } else if (thisType == LogicalTypeID::INT32) {
-        return arrow::int32();
-    } else if (thisType == LogicalTypeID::INT16) {
-        return arrow::int16();
-    } else {
-        throw CopyException("File type does not match any Arrow data type");
-    }
-}
-
-std::shared_ptr<arrow::RecordBatch> NpyReader::readBlock(block_idx_t blockIdx) const {
+void NpyReader::readBlock(block_idx_t blockIdx, common::ValueVector* vectorToRead) const {
     uint64_t rowNumber = DEFAULT_VECTOR_CAPACITY * blockIdx;
     auto rowPointer = getPointerToRow(rowNumber);
-    auto arrowType = getArrowType();
     auto numRowsToRead = std::min(DEFAULT_VECTOR_CAPACITY, getNumRows() - rowNumber);
-    auto buffer = std::make_shared<arrow::Buffer>(
-        rowPointer, numRowsToRead * arrowType->byte_width() * getNumElementsPerRow());
-    std::shared_ptr<arrow::Field> field;
-    std::shared_ptr<arrow::Array> arr;
-    if (getNumDimensions() > 1) {
-        auto elementField = std::make_shared<arrow::Field>(defaultFieldName, arrowType);
-        auto fixedListArrowType = arrow::fixed_size_list(elementField, (int32_t)numRowsToRead);
-        field = std::make_shared<arrow::Field>(defaultFieldName, fixedListArrowType);
-        auto valuesArr = std::make_shared<arrow::PrimitiveArray>(
-            arrowType, numRowsToRead * getNumElementsPerRow(), buffer);
-        arr = arrow::FixedSizeListArray::FromArrays(valuesArr, (int32_t)getNumElementsPerRow())
-                  .ValueOrDie();
-    } else {
-        field = std::make_shared<arrow::Field>(defaultFieldName, arrowType);
-        arr = std::make_shared<arrow::PrimitiveArray>(arrowType, numRowsToRead, buffer);
-    }
-    auto schema =
-        std::make_shared<arrow::Schema>(std::vector<std::shared_ptr<arrow::Field>>{field});
-    return arrow::RecordBatch::Make(schema, (int64_t)numRowsToRead, {arr});
+    memcpy(
+        vectorToRead->getData(), rowPointer, numRowsToRead * vectorToRead->getNumBytesPerValue());
+    vectorToRead->state->selVector->selectedSize = numRowsToRead;
 }
 
 NpyMultiFileReader::NpyMultiFileReader(const std::vector<std::string>& filePaths) {
@@ -256,20 +222,11 @@ NpyMultiFileReader::NpyMultiFileReader(const std::vector<std::string>& filePaths
     }
 }
 
-std::shared_ptr<arrow::RecordBatch> NpyMultiFileReader::readBlock(block_idx_t blockIdx) const {
+void NpyMultiFileReader::readBlock(block_idx_t blockIdx, common::DataChunk* dataChunkToRead) const {
     assert(fileReaders.size() > 1);
-    auto resultArrowBatch = fileReaders[0]->readBlock(blockIdx);
-    for (int fileIdx = 1; fileIdx < fileReaders.size(); fileIdx++) {
-        auto nextArrowBatch = fileReaders[fileIdx]->readBlock(blockIdx);
-        auto result = resultArrowBatch->AddColumn(
-            fileIdx, std::to_string(fileIdx), nextArrowBatch->column(0));
-        if (result.ok()) {
-            resultArrowBatch = result.ValueOrDie();
-        } else {
-            throw CopyException("Failed to read NPY file.");
-        }
+    for (auto i = 0u; i < fileReaders.size(); i++) {
+        fileReaders[i]->readBlock(blockIdx, dataChunkToRead->getValueVector(i).get());
     }
-    return resultArrowBatch;
 }
 
 } // namespace processor

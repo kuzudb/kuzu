@@ -197,6 +197,7 @@ expression_vector Binder::bindExpectedNodeFileColumns(
             columns.push_back(createVariable(columnName, stringType));
         }
     } break;
+    case FileType::NPY:
     case FileType::PARQUET:
     case FileType::CSV: {
         for (auto& property : tableSchema->properties) {
@@ -206,17 +207,6 @@ expression_vector Binder::bindExpectedNodeFileColumns(
             readerConfig.columnNames.push_back(property->getName());
             readerConfig.columnTypes.push_back(property->getDataType()->copy());
             columns.push_back(createVariable(property->getName(), *property->getDataType()));
-        }
-    } break;
-    case FileType::NPY: {
-        for (auto& property : tableSchema->properties) {
-            if (skipPropertyInFile(*property)) {
-                continue;
-            }
-            readerConfig.columnNames.push_back(property->getName());
-            readerConfig.columnTypes.push_back(property->getDataType()->copy());
-            columns.push_back(
-                createVariable(property->getName(), LogicalType{LogicalTypeID::ARROW_COLUMN}));
         }
     } break;
     default: {

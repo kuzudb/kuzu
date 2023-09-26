@@ -4,11 +4,9 @@
 #include <unordered_map>
 #include <vector>
 
+#include "common/data_chunk/data_chunk.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
-#include <arrow/array.h>
-#include <arrow/buffer.h>
-#include <arrow/record_batch.h>
 
 namespace kuzu {
 namespace processor {
@@ -25,8 +23,7 @@ public:
 
     inline size_t getNumRows() const { return shape[0]; }
 
-    std::shared_ptr<arrow::DataType> getArrowType() const;
-    std::shared_ptr<arrow::RecordBatch> readBlock(common::block_idx_t blockIdx) const;
+    void readBlock(common::block_idx_t blockIdx, common::ValueVector* vectorToRead) const;
 
     // Used in tests only.
     inline common::LogicalTypeID getType() const { return type; }
@@ -54,7 +51,7 @@ class NpyMultiFileReader {
 public:
     explicit NpyMultiFileReader(const std::vector<std::string>& filePaths);
 
-    std::shared_ptr<arrow::RecordBatch> readBlock(common::block_idx_t blockIdx) const;
+    void readBlock(common::block_idx_t blockIdx, common::DataChunk* dataChunkToRead) const;
 
 private:
     std::vector<std::unique_ptr<NpyReader>> fileReaders;
