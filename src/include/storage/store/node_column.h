@@ -38,7 +38,7 @@ public:
     NodeColumn(common::LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
         BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
         transaction::Transaction* transaction, RWPropertyStats PropertyStatistics,
-        bool requireNullColumn = true);
+        bool enableCompression, bool requireNullColumn = true);
     virtual ~NodeColumn() = default;
 
     // Expose for feature store
@@ -130,6 +130,7 @@ protected:
     read_values_to_page_func_t readToPageFunc;
     batch_lookup_func_t batchLookupFunc;
     RWPropertyStats propertyStatistics;
+    bool enableCompression;
 };
 
 class BoolNodeColumn : public NodeColumn {
@@ -137,7 +138,7 @@ public:
     BoolNodeColumn(const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
         BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
         transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
-        bool requireNullColumn = true);
+        bool enableCompression, bool requireNullColumn = true);
 };
 
 class NullNodeColumn : public NodeColumn {
@@ -146,7 +147,8 @@ class NullNodeColumn : public NodeColumn {
 public:
     NullNodeColumn(common::page_idx_t metaDAHPageIdx, BMFileHandle* dataFH,
         BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction, RWPropertyStats propertyStatistics);
+        transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
+        bool enableCompression);
 
     void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector) final;
@@ -182,7 +184,7 @@ struct NodeColumnFactory {
     static std::unique_ptr<NodeColumn> createNodeColumn(const common::LogicalType& dataType,
         const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
         BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
-        RWPropertyStats propertyStatistics);
+        RWPropertyStats propertyStatistics, bool enableCompression);
 };
 
 } // namespace storage

@@ -11,21 +11,23 @@ namespace kuzu {
 namespace main {
 
 /**
- * @brief Stores buffer pool size and max number of threads configurations.
+ * @brief Stores runtime configuration for creating or opening a Database
  */
 struct KUZU_API SystemConfig {
     /**
-     * @brief Creates a SystemConfig object with default buffer pool size and max num of threads.
-     */
-    explicit SystemConfig();
-    /**
      * @brief Creates a SystemConfig object.
      * @param bufferPoolSize Max size of the buffer pool in bytes.
+     *        The larger the buffer pool, the more data from the database files is kept in memory,
+     *        reducing the amount of File I/O
+     *  @param maxNumThreads The maximum number of threads to use during query execution
+     *  @param enableCompression Whether or not to compress data on-disk for supported types
      */
-    explicit SystemConfig(uint64_t bufferPoolSize);
+    explicit SystemConfig(
+        uint64_t bufferPoolSize = -1u, uint64_t maxNumThreads = 0, bool enableCompression = true);
 
     uint64_t bufferPoolSize;
     uint64_t maxNumThreads;
+    bool enableCompression;
 };
 
 /**

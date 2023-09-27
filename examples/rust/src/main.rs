@@ -1,11 +1,11 @@
-use kuzu::{Connection, Database, Error};
+use kuzu::{Connection, Database, Error, SystemConfig};
 
 fn main() -> Result<(), Error> {
     let db = Database::new(
         std::env::args()
             .nth(1)
             .expect("The first CLI argument should be the database path"),
-        0,
+        SystemConfig::default(),
     )?;
     let connection = Connection::new(&db)?;
 

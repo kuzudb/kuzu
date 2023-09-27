@@ -13,14 +13,14 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-StructColumnChunk::StructColumnChunk(
-    LogicalType dataType, std::unique_ptr<common::CSVReaderConfig> csvReaderConfig)
+StructColumnChunk::StructColumnChunk(LogicalType dataType,
+    std::unique_ptr<common::CSVReaderConfig> csvReaderConfig, bool enableCompression)
     : ColumnChunk{std::move(dataType), std::move(csvReaderConfig)} {
     auto fieldTypes = StructType::getFieldTypes(&this->dataType);
     childrenChunks.resize(fieldTypes.size());
     for (auto i = 0u; i < fieldTypes.size(); i++) {
-        childrenChunks[i] =
-            ColumnChunkFactory::createColumnChunk(*fieldTypes[i], this->csvReaderConfig.get());
+        childrenChunks[i] = ColumnChunkFactory::createColumnChunk(
+            *fieldTypes[i], enableCompression, this->csvReaderConfig.get());
     }
 }
 

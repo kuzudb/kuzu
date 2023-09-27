@@ -10,9 +10,9 @@ namespace storage {
 
 TableData::TableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, table_id_t tableID,
     BufferManager* bufferManager, WAL* wal, const std::vector<catalog::Property*>& properties,
-    TablesStatistics* tablesStatistics)
+    TablesStatistics* tablesStatistics, bool enableCompression)
     : dataFH{dataFH}, metadataFH{metadataFH}, tableID{tableID},
-      bufferManager{bufferManager}, wal{wal} {
+      bufferManager{bufferManager}, wal{wal}, enableCompression{enableCompression} {
     columns.reserve(properties.size());
     for (auto i = 0u; i < properties.size(); i++) {
         auto property = properties[i];
@@ -22,7 +22,8 @@ TableData::TableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, table_id_t 
         columns.push_back(
             NodeColumnFactory::createNodeColumn(*property->getDataType(), *metadataDAHInfo, dataFH,
                 metadataFH, bufferManager, wal, Transaction::getDummyReadOnlyTrx().get(),
-                RWPropertyStats(tablesStatistics, tableID, property->getPropertyID())));
+                RWPropertyStats(tablesStatistics, tableID, property->getPropertyID()),
+                enableCompression));
     }
 }
 
@@ -116,7 +117,7 @@ void TableData::addColumn(transaction::Transaction* transaction, const catalog::
                                ->getMetadataDAHInfo(transaction, tableID, columns.size());
     auto nodeColumn = NodeColumnFactory::createNodeColumn(*property.getDataType(), *metadataDAHInfo,
         dataFH, metadataFH, bufferManager, wal, transaction,
-        RWPropertyStats(tablesStats, tableID, property.getPropertyID()));
+        RWPropertyStats(tablesStats, tableID, property.getPropertyID()), enableCompression);
     nodeColumn->populateWithDefaultVal(
         property, nodeColumn.get(), defaultValueVector, getNumNodeGroups(transaction));
     columns.push_back(std::move(nodeColumn));

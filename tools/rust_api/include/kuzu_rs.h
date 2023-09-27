@@ -60,8 +60,8 @@ std::unique_ptr<std::vector<kuzu::common::LogicalType>> logical_type_get_struct_
     const kuzu::common::LogicalType& value);
 
 /* Database */
-std::unique_ptr<kuzu::main::Database> new_database(
-    const std::string& databasePath, uint64_t bufferPoolSize);
+std::unique_ptr<kuzu::main::Database> new_database(const std::string& databasePath,
+    uint64_t bufferPoolSize, uint64_t maxNumThreads, bool enableCompression);
 
 void database_set_logging_level(kuzu::main::Database& database, const std::string& level);
 

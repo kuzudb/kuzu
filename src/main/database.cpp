@@ -21,10 +21,9 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace main {
 
-SystemConfig::SystemConfig() : SystemConfig(-1u) {}
-
-SystemConfig::SystemConfig(uint64_t bufferPoolSize_) {
-    if (bufferPoolSize_ == -1u) {
+SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, bool enableCompression)
+    : maxNumThreads{maxNumThreads}, enableCompression{enableCompression} {
+    if (bufferPoolSize_ == -1u || bufferPoolSize_ == 0) {
 #if defined(_WIN32)
         MEMORYSTATUSEX status;
         status.dwLength = sizeof(status);
@@ -38,7 +37,9 @@ SystemConfig::SystemConfig(uint64_t bufferPoolSize_) {
                                      (double_t)std::min(systemMemSize, (std::uint64_t)UINTPTR_MAX));
     }
     bufferPoolSize = bufferPoolSize_;
-    maxNumThreads = std::thread::hardware_concurrency();
+    if (maxNumThreads == 0) {
+        this->maxNumThreads = std::thread::hardware_concurrency();
+    }
 }
 
 Database::Database(std::string databasePath) : Database{std::move(databasePath), SystemConfig()} {}
@@ -54,7 +55,8 @@ Database::Database(std::string databasePath, SystemConfig systemConfig)
     wal = std::make_unique<WAL>(this->databasePath, *bufferManager);
     recoverIfNecessary();
     catalog = std::make_unique<catalog::Catalog>(wal.get());
-    storageManager = std::make_unique<storage::StorageManager>(*catalog, *memoryManager, wal.get());
+    storageManager = std::make_unique<storage::StorageManager>(
+        *catalog, *memoryManager, wal.get(), systemConfig.enableCompression);
     transactionManager = std::make_unique<transaction::TransactionManager>(
         *wal, storageManager.get(), memoryManager.get());
 }

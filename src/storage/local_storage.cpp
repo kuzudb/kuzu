@@ -10,7 +10,8 @@ namespace kuzu {
 namespace storage {
 
 LocalStorage::LocalStorage(StorageManager* storageManager, MemoryManager* mm)
-    : nodesStore{&storageManager->getNodesStore()}, mm{mm} {}
+    : nodesStore{&storageManager->getNodesStore()}, mm{mm},
+      enableCompression{storageManager->compressionEnabled()} {}
 
 void LocalStorage::scan(table_id_t tableID, ValueVector* nodeIDVector,
     const std::vector<column_id_t>& columnIDs, const std::vector<ValueVector*>& outputVectors) {
@@ -31,7 +32,8 @@ void LocalStorage::lookup(table_id_t tableID, ValueVector* nodeIDVector,
 void LocalStorage::update(table_id_t tableID, column_id_t columnID, ValueVector* nodeIDVector,
     ValueVector* propertyVector) {
     if (!tables.contains(tableID)) {
-        tables.emplace(tableID, std::make_unique<LocalTable>(nodesStore->getNodeTable(tableID)));
+        tables.emplace(tableID,
+            std::make_unique<LocalTable>(nodesStore->getNodeTable(tableID), enableCompression));
     }
     tables.at(tableID)->update(columnID, nodeIDVector, propertyVector, mm);
 }
@@ -39,7 +41,8 @@ void LocalStorage::update(table_id_t tableID, column_id_t columnID, ValueVector*
 void LocalStorage::update(table_id_t tableID, column_id_t columnID, offset_t nodeOffset,
     ValueVector* propertyVector, sel_t posInPropertyVector) {
     if (!tables.contains(tableID)) {
-        tables.emplace(tableID, std::make_unique<LocalTable>(nodesStore->getNodeTable(tableID)));
+        tables.emplace(tableID,
+            std::make_unique<LocalTable>(nodesStore->getNodeTable(tableID), enableCompression));
     }
     tables.at(tableID)->update(columnID, nodeOffset, propertyVector, posInPropertyVector, mm);
 }

@@ -11,7 +11,8 @@ namespace storage {
 
 class StorageManager {
 public:
-    StorageManager(catalog::Catalog& catalog, MemoryManager& memoryManager, WAL* wal);
+    StorageManager(
+        catalog::Catalog& catalog, MemoryManager& memoryManager, WAL* wal, bool enableCompression);
 
     ~StorageManager() = default;
 
@@ -39,6 +40,8 @@ public:
     inline BMFileHandle* getDataFH() const { return dataFH.get(); }
     inline BMFileHandle* getMetadataFH() const { return metadataFH.get(); }
 
+    inline bool compressionEnabled() const { return enableCompression; }
+
 private:
     std::unique_ptr<BMFileHandle> dataFH;
     std::unique_ptr<BMFileHandle> metadataFH;
@@ -47,6 +50,7 @@ private:
     WAL* wal;
     std::unique_ptr<RelsStore> relsStore;
     std::unique_ptr<NodesStore> nodesStore;
+    bool enableCompression;
 };
 
 } // namespace storage

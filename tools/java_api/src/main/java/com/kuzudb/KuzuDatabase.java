@@ -8,6 +8,7 @@ public class KuzuDatabase {
     long db_ref;
     String db_path;
     long buffer_size;
+    boolean enableCompression = true;
     boolean destroyed = false;
 
     /**
@@ -17,7 +18,7 @@ public class KuzuDatabase {
     public KuzuDatabase(String databasePath) {
         this.db_path = databasePath;
         this.buffer_size = 0;
-        db_ref = KuzuNative.kuzu_database_init(databasePath, 0);
+        db_ref = KuzuNative.kuzu_database_init(databasePath, 0, true);
     }
 
     /**
@@ -28,7 +29,20 @@ public class KuzuDatabase {
     public KuzuDatabase(String databasePath, long bufferPoolSize) {
         this.db_path = databasePath;
         this.buffer_size = bufferPoolSize;
-        db_ref = KuzuNative.kuzu_database_init(databasePath, bufferPoolSize);
+        db_ref = KuzuNative.kuzu_database_init(databasePath, bufferPoolSize, true);
+    }
+
+    /**
+    * Creates a database object.
+    * @param databasePath: Database path. If the database does not already exist, it will be created.
+    * @param bufferPoolSize: Max size of the buffer pool in bytes.
+    * @param enableCompression: Enable compression in storage.
+    */
+    public KuzuDatabase(String databasePath, long bufferPoolSize, boolean enableCompression) {
+        this.db_path = databasePath;
+        this.buffer_size = bufferPoolSize;
+        this.enableCompression = enableCompression;
+        db_ref = KuzuNative.kuzu_database_init(databasePath, bufferPoolSize, enableCompression);
     }
 
     /**

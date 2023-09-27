@@ -15,27 +15,29 @@ class Database:
         Set the logging level.
 
     get_torch_geometric_remote_backend(num_threads)
-        Use the database as the remote backend for torch_geometric. 
+        Use the database as the remote backend for torch_geometric.
 
     """
 
-    def __init__(self, database_path, buffer_pool_size=0, lazy_init=False):
+    def __init__(self, database_path, buffer_pool_size=0, max_num_threads=0, compression=True, lazy_init=False):
         """
         Parameters
         ----------
         database_path : str
             The path to database files
         buffer_pool_size : int
-            The maximum size of buffer pool in bytes (Optional). Default to 80% 
+            The maximum size of buffer pool in bytes (Optional). Default to 80%
             of system memory.
         lazy_init : bool
             If True, the database will not be initialized until the first query.
-            This is useful when the database is not used in the main thread or 
+            This is useful when the database is not used in the main thread or
             when the main process is forked.
             Deefault to False.
         """
         self.database_path = database_path
         self.buffer_pool_size = buffer_pool_size
+        self.max_num_threads = max_num_threads
+        self.compression = compression
         self._database = None
         if not lazy_init:
             self.init_database()
@@ -54,7 +56,7 @@ class Database:
         """
         if self._database is None:
             self._database = _kuzu.Database(self.database_path,
-                                            self.buffer_pool_size)
+                                            self.buffer_pool_size, self.max_num_threads, self.compression)
 
     def resize_buffer_manager(self, new_size):
         """

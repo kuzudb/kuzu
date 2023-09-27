@@ -2,13 +2,13 @@
 //!
 //! ## Example Usage
 //! ```
-//! use kuzu::{Database, Connection};
+//! use kuzu::{Database, SystemConfig, Connection};
 //! # use anyhow::Error;
 //!
 //! # fn main() -> Result<(), Error> {
 //! # let temp_dir = tempfile::tempdir()?;
 //! # let path = temp_dir.path();
-//! let db = Database::new(path, 0)?;
+//! let db = Database::new(path, SystemConfig::default())?;
 //! let conn = Connection::new(&db)?;
 //! conn.query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")?;
 //! conn.query("CREATE (:Person {name: 'Alice', age: 25});")?;
@@ -47,7 +47,7 @@ mod query_result;
 mod value;
 
 pub use connection::{Connection, PreparedStatement};
-pub use database::{Database, LoggingLevel};
+pub use database::{Database, LoggingLevel, SystemConfig};
 pub use error::Error;
 pub use logical_type::LogicalType;
 pub use query_result::{CSVOptions, QueryResult};

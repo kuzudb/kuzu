@@ -80,7 +80,8 @@ public:
 
 class LocalColumn {
 public:
-    explicit LocalColumn(NodeColumn* column) : column{column} {};
+    explicit LocalColumn(NodeColumn* column, bool enableCompression)
+        : column{column}, enableCompression{enableCompression} {};
     virtual ~LocalColumn() = default;
 
     virtual void scan(common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
@@ -101,25 +102,28 @@ public:
 protected:
     std::map<common::node_group_idx_t, std::unique_ptr<LocalColumnChunk>> chunks;
     NodeColumn* column;
+    bool enableCompression;
 };
 
 class StringLocalColumn : public LocalColumn {
 public:
-    explicit StringLocalColumn(NodeColumn* column) : LocalColumn{column} {};
+    explicit StringLocalColumn(NodeColumn* column, bool enableCompression)
+        : LocalColumn{column, enableCompression} {};
 
     void prepareCommitForChunk(common::node_group_idx_t nodeGroupIdx) final;
 };
 
 class VarListLocalColumn : public LocalColumn {
 public:
-    explicit VarListLocalColumn(NodeColumn* column) : LocalColumn{column} {};
+    explicit VarListLocalColumn(NodeColumn* column, bool enableCompression)
+        : LocalColumn{column, enableCompression} {};
 
     void prepareCommitForChunk(common::node_group_idx_t nodeGroupIdx) final;
 };
 
 class StructLocalColumn : public LocalColumn {
 public:
-    explicit StructLocalColumn(NodeColumn* column);
+    explicit StructLocalColumn(NodeColumn* column, bool enableCompression);
 
     void scan(common::ValueVector* nodeIDVector, common::ValueVector* resultVector) final;
     void lookup(common::ValueVector* nodeIDVector, common::ValueVector* resultVector) final;
@@ -135,12 +139,14 @@ private:
 };
 
 struct LocalColumnFactory {
-    static std::unique_ptr<LocalColumn> createLocalColumn(NodeColumn* column);
+    static std::unique_ptr<LocalColumn> createLocalColumn(
+        NodeColumn* column, bool enableCompression);
 };
 
 class LocalTable {
 public:
-    explicit LocalTable(NodeTable* table) : table{table} {};
+    explicit LocalTable(NodeTable* table, bool enableCompression)
+        : table{table}, enableCompression{enableCompression} {};
 
     void scan(common::ValueVector* nodeIDVector, const std::vector<common::column_id_t>& columnIDs,
         const std::vector<common::ValueVector*>& outputVectors);
@@ -157,6 +163,7 @@ public:
 private:
     std::map<common::column_id_t, std::unique_ptr<LocalColumn>> columns;
     NodeTable* table;
+    bool enableCompression;
 };
 
 } // namespace storage

@@ -20,16 +20,64 @@ pub enum LoggingLevel {
     Error,
 }
 
+#[derive(Clone, Debug)]
+/// Configuration options for the database.
+pub struct SystemConfig {
+    /// Max size of the buffer pool in bytes
+    ///
+    /// The larger the buffer pool, the more data from the database files is kept in memory,
+    /// reducing the amount of File I/O.
+    ///
+    /// Defaults to an auto-detected size
+    buffer_pool_size: u64,
+    /// The maximum number of threads to use when executing queries
+    /// Defaults to auto-detect from the number of processors
+    max_num_threads: u64,
+    /// When true, new columns will be compressed if possible
+    /// Defaults to true
+    enable_compression: bool,
+}
+
+impl Default for SystemConfig {
+    fn default() -> SystemConfig {
+        SystemConfig {
+            buffer_pool_size: 0,
+            max_num_threads: 0,
+            enable_compression: true,
+        }
+    }
+}
+
+impl SystemConfig {
+    pub fn buffer_pool_size(mut self, buffer_pool_size: u64) -> Self {
+        self.buffer_pool_size = buffer_pool_size;
+        self
+    }
+    pub fn max_num_threads(mut self, max_num_threads: u64) -> Self {
+        self.max_num_threads = max_num_threads;
+        self
+    }
+    pub fn enable_compression(mut self, enable_compression: bool) -> Self {
+        self.enable_compression = enable_compression;
+        self
+    }
+}
+
 impl Database {
     /// Creates a database object
     ///
     /// # Arguments:
     /// * `path`: Path of the database. If the database does not already exist, it will be created.
     /// * `buffer_pool_size`: Max size of the buffer pool in bytes
-    pub fn new<P: AsRef<Path>>(path: P, buffer_pool_size: u64) -> Result<Self, Error> {
+    pub fn new<P: AsRef<Path>>(path: P, config: SystemConfig) -> Result<Self, Error> {
         let_cxx_string!(path = path.as_ref().display().to_string());
         Ok(Database {
-            db: UnsafeCell::new(ffi::new_database(&path, buffer_pool_size)?),
+            db: UnsafeCell::new(ffi::new_database(
+                &path,
+                config.buffer_pool_size,
+                config.max_num_threads,
+                config.enable_compression,
+            )?),
         })
     }
 
@@ -59,7 +107,7 @@ impl fmt::Debug for Database {
 
 #[cfg(test)]
 mod tests {
-    use crate::database::{Database, LoggingLevel};
+    use crate::database::{Database, LoggingLevel, SystemConfig};
     use anyhow::{Error, Result};
     // Note: Cargo runs tests in parallel by default, however kuzu does not support
     // working with multiple databases in parallel.
@@ -68,7 +116,7 @@ mod tests {
     #[test]
     fn create_database() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let mut db = Database::new(temp_dir.path(), 0)?;
+        let mut db = Database::new(temp_dir.path(), SystemConfig::default())?;
         db.set_logging_level(LoggingLevel::Debug);
         db.set_logging_level(LoggingLevel::Info);
         db.set_logging_level(LoggingLevel::Error);
@@ -77,8 +125,19 @@ mod tests {
     }
 
     #[test]
+    fn create_database_no_compression() -> Result<()> {
+        let temp_dir = tempfile::tempdir()?;
+        let _ = Database::new(
+            temp_dir.path(),
+            SystemConfig::default().enable_compression(false),
+        )?;
+        temp_dir.close()?;
+        Ok(())
+    }
+
+    #[test]
     fn create_database_failure() {
-        let result: Error = Database::new("", 0)
+        let result: Error = Database::new("", SystemConfig::default())
             .expect_err("An empty string should not be a valid database path!")
             .into();
         if cfg!(windows) {

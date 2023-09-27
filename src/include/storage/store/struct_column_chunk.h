@@ -7,8 +7,8 @@ namespace storage {
 
 class StructColumnChunk : public ColumnChunk {
 public:
-    StructColumnChunk(
-        common::LogicalType dataType, std::unique_ptr<common::CSVReaderConfig> csvReaderConfig);
+    StructColumnChunk(common::LogicalType dataType,
+        std::unique_ptr<common::CSVReaderConfig> csvReaderConfig, bool enableCompression);
 
 protected:
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,

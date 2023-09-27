@@ -12,7 +12,7 @@ namespace storage {
 class NodesStore {
 public:
     NodesStore(BMFileHandle* dataFH, BMFileHandle* metadataFH, const catalog::Catalog& catalog,
-        BufferManager& bufferManager, WAL* wal);
+        BufferManager& bufferManager, WAL* wal, bool enableCompression);
 
     inline PrimaryKeyIndex* getPKIndex(common::table_id_t tableID) {
         return nodeTables[tableID]->getPKIndex();
@@ -31,7 +31,8 @@ public:
         nodeTables[tableID] = std::make_unique<NodeTable>(dataFH, metadataFH,
             nodesStatisticsAndDeletedIDs.get(), *bufferManager, wal,
             reinterpret_cast<catalog::NodeTableSchema*>(
-                catalog->getReadOnlyVersion()->getTableSchema(tableID)));
+                catalog->getReadOnlyVersion()->getTableSchema(tableID)),
+            enableCompression);
     }
     inline void removeNodeTable(common::table_id_t tableID) {
         nodeTables.erase(tableID);
@@ -72,6 +73,7 @@ private:
     WAL* wal;
     BMFileHandle* dataFH;
     BMFileHandle* metadataFH;
+    bool enableCompression;
 };
 
 } // namespace storage

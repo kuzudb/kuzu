@@ -12,7 +12,7 @@ class TableData {
 public:
     TableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, common::table_id_t tableID,
         BufferManager* bufferManager, WAL* wal, const std::vector<catalog::Property*>& properties,
-        TablesStatistics* tablesStatistics);
+        TablesStatistics* tablesStatistics, bool enableCompression);
 
     void read(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         const std::vector<common::column_id_t>& columnIDs,
@@ -46,6 +46,8 @@ public:
     void checkpointInMemory();
     void rollbackInMemory();
 
+    inline bool compressionEnabled() const { return enableCompression; }
+
 private:
     void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         const std::vector<common::column_id_t>& columnIDs,
@@ -61,6 +63,7 @@ private:
     common::table_id_t tableID;
     BufferManager* bufferManager;
     WAL* wal;
+    bool enableCompression;
 };
 
 } // namespace storage

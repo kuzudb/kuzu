@@ -1,12 +1,10 @@
 #pragma once
 
 #include "main/kuzu.h"
-
-#include "pybind_include.h"
 #include "main/storage_driver.h"
+#include "pybind_include.h"
 #define PYBIND11_DETAILED_ERROR_MESSAGES
 using namespace kuzu::main;
-
 
 class PyDatabase {
     friend class PyConnection;
@@ -18,7 +16,8 @@ public:
 
     static void initialize(py::handle& m);
 
-    explicit PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize);
+    explicit PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize,
+        uint64_t maxNumThreads, bool compression);
 
     ~PyDatabase() = default;
 

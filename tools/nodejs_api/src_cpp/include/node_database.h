@@ -24,6 +24,7 @@ private:
 private:
     std::string databasePath;
     size_t bufferPoolSize;
+    bool enableCompression;
     std::shared_ptr<Database> database;
 };
 

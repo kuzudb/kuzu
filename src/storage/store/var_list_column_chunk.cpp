@@ -24,11 +24,13 @@ void VarListDataColumnChunk::resizeBuffer(uint64_t numValues) {
     dataColumnChunk->resize(capacity);
 }
 
-VarListColumnChunk::VarListColumnChunk(
-    LogicalType dataType, std::unique_ptr<common::CSVReaderConfig> csvReaderConfig)
-    : ColumnChunk{std::move(dataType), std::move(csvReaderConfig), true /* hasNullChunk */},
-      varListDataColumnChunk{ColumnChunkFactory::createColumnChunk(
-          *VarListType::getChildType(&this->dataType), this->csvReaderConfig.get())} {
+VarListColumnChunk::VarListColumnChunk(LogicalType dataType,
+    std::unique_ptr<common::CSVReaderConfig> csvReaderConfig, bool enableCompression)
+    : ColumnChunk{std::move(dataType), std::move(csvReaderConfig), enableCompression,
+          true /* hasNullChunk */},
+      varListDataColumnChunk{
+          ColumnChunkFactory::createColumnChunk(*VarListType::getChildType(&this->dataType),
+              enableCompression, this->csvReaderConfig.get())} {
     assert(this->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
 }
 

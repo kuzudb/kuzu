@@ -6,8 +6,9 @@ using namespace kuzu::common;
 
 void PyDatabase::initialize(py::handle& m) {
     py::class_<PyDatabase>(m, "Database")
-        .def(py::init<const std::string&, uint64_t>(), py::arg("database_path"),
-            py::arg("buffer_pool_size") = 0)
+        .def(py::init<const std::string&, uint64_t, uint64_t, bool>(), py::arg("database_path"),
+            py::arg("buffer_pool_size") = 0, py::arg("max_num_threads") = 0,
+            py::arg("compression") = true)
         .def("set_logging_level", &PyDatabase::setLoggingLevel, py::arg("logging_level"))
         .def("scan_node_table_as_int64", &PyDatabase::scanNodeTable<std::int64_t>,
             py::arg("table_name"), py::arg("prop_name"), py::arg("indices"), py::arg("np_array"),
@@ -28,11 +29,9 @@ void PyDatabase::initialize(py::handle& m) {
             py::arg("prop_name"), py::arg("indices"), py::arg("np_array"), py::arg("num_threads"));
 }
 
-PyDatabase::PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize) {
-    auto systemConfig = SystemConfig();
-    if (bufferPoolSize > 0) {
-        systemConfig.bufferPoolSize = bufferPoolSize;
-    }
+PyDatabase::PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize,
+    uint64_t maxNumThreads, bool compression) {
+    auto systemConfig = SystemConfig(bufferPoolSize, maxNumThreads, compression);
     database = std::make_unique<Database>(databasePath, systemConfig);
     storageDriver = std::make_unique<kuzu::main::StorageDriver>(database.get());
 }
@@ -48,4 +47,3 @@ void PyDatabase::scanNodeTable(const std::string& tableName, const std::string& 
     auto size = indices.size();
     storageDriver->scan(tableName, propName, nodeOffsets, size, result_buffer, numThreads);
 }
-

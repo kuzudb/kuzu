@@ -105,6 +105,20 @@ struct ArrowArray {
 #endif
 
 /**
+ * @brief Stores runtime configuration for creating or opening a Database
+ */
+KUZU_C_API typedef struct {
+    // bufferPoolSize Max size of the buffer pool in bytes.
+    // The larger the buffer pool, the more data from the database files is kept in memory,
+    // reducing the amount of File I/O
+    uint64_t buffer_pool_size;
+    // The maximum number of threads to use during query execution
+    uint64_t max_num_threads;
+    // Whether or not to compress data on-disk for supported types
+    bool enable_compression;
+} kuzu_system_config;
+
+/**
  * @brief kuzu_database manages all database components.
  */
 KUZU_C_API typedef struct { void* _database; } kuzu_database;
@@ -235,7 +249,8 @@ KUZU_C_API typedef enum {
  * @param buffer_pool_size The size of the buffer pool in bytes.
  * @return The database instance.
  */
-KUZU_C_API kuzu_database* kuzu_database_init(const char* database_path, uint64_t buffer_pool_size);
+KUZU_C_API kuzu_database* kuzu_database_init(
+    const char* database_path, kuzu_system_config system_config);
 /**
  * @brief Destroys the kuzu database instance and frees the allocated memory.
  * @param database The database instance to destroy.
@@ -247,6 +262,8 @@ KUZU_C_API void kuzu_database_destroy(kuzu_database* database);
  * "err".
  */
 KUZU_C_API void kuzu_database_set_logging_level(const char* logging_level);
+
+KUZU_C_API kuzu_system_config kuzu_default_system_config();
 
 // Connection
 /**

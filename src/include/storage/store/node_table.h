@@ -17,7 +17,7 @@ class NodeTable {
 public:
     NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH,
         NodesStoreStatsAndDeletedIDs* nodesStatisticsAndDeletedIDs, BufferManager& bufferManager,
-        WAL* wal, catalog::NodeTableSchema* nodeTableSchema);
+        WAL* wal, catalog::NodeTableSchema* nodeTableSchema, bool enableCompression);
 
     void initializePKIndex(catalog::NodeTableSchema* nodeTableSchema);
 
@@ -71,6 +71,8 @@ public:
     void prepareRollback();
     void checkpointInMemory();
     void rollbackInMemory();
+
+    inline bool compressionEnabled() const { return tableData->compressionEnabled(); }
 
 private:
     void insertPK(common::ValueVector* nodeIDVector, common::ValueVector* primaryKeyVector);

@@ -40,7 +40,7 @@ class CompressedFlushBuffer {
     const LogicalType& dataType;
 
 public:
-    CompressedFlushBuffer(std::unique_ptr<CompressionAlg> alg, LogicalType& dataType)
+    CompressedFlushBuffer(std::shared_ptr<CompressionAlg> alg, LogicalType& dataType)
         : alg{std::move(alg)}, dataType{dataType} {}
 
     CompressedFlushBuffer(const CompressedFlushBuffer& other) = default;
@@ -77,7 +77,7 @@ class GetCompressionMetadata {
     const LogicalType& dataType;
 
 public:
-    GetCompressionMetadata(std::unique_ptr<CompressionAlg> alg, LogicalType& dataType)
+    GetCompressionMetadata(std::shared_ptr<CompressionAlg> alg, LogicalType& dataType)
         : alg{std::move(alg)}, dataType{dataType} {}
 
     GetCompressionMetadata(const GetCompressionMetadata& other) = default;
@@ -91,13 +91,51 @@ public:
     }
 };
 
-ColumnChunk::ColumnChunk(
-    LogicalType dataType, std::unique_ptr<CSVReaderConfig> csvReaderConfig, bool hasNullChunk)
+static std::shared_ptr<CompressionAlg> getCompression(
+    const LogicalType& dataType, bool enableCompression) {
+    if (!enableCompression) {
+        return std::make_shared<Uncompressed>(dataType);
+    }
+    switch (dataType.getPhysicalType()) {
+    case PhysicalTypeID::INT64: {
+        return std::make_shared<IntegerBitpacking<int64_t>>();
+    }
+    case PhysicalTypeID::INT32: {
+        return std::make_shared<IntegerBitpacking<int32_t>>();
+    }
+    case PhysicalTypeID::INT16: {
+        return std::make_shared<IntegerBitpacking<int16_t>>();
+    }
+    case PhysicalTypeID::INT8: {
+        return std::make_shared<IntegerBitpacking<int8_t>>();
+    }
+    case PhysicalTypeID::VAR_LIST:
+    case PhysicalTypeID::UINT64: {
+        return std::make_shared<IntegerBitpacking<uint64_t>>();
+    }
+    case PhysicalTypeID::UINT32: {
+        return std::make_shared<IntegerBitpacking<uint32_t>>();
+    }
+    case PhysicalTypeID::UINT16: {
+        return std::make_shared<IntegerBitpacking<uint16_t>>();
+    }
+    case PhysicalTypeID::UINT8: {
+        return std::make_shared<IntegerBitpacking<uint8_t>>();
+    }
+    default: {
+        return std::make_shared<Uncompressed>(dataType);
+    }
+    }
+}
+
+ColumnChunk::ColumnChunk(LogicalType dataType, std::unique_ptr<CSVReaderConfig> csvReaderConfig,
+    bool enableCompression, bool hasNullChunk)
     : dataType{std::move(dataType)}, numBytesPerValue{getDataTypeSizeInChunk(this->dataType)},
       csvReaderConfig{std::move(csvReaderConfig)}, numValues{0} {
     if (hasNullChunk) {
         nullChunk = std::make_unique<NullColumnChunk>();
     }
+
     switch (this->dataType.getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
         // Since we compress into memory, storage is the same as fixed-sized values,
@@ -106,61 +144,18 @@ ColumnChunk::ColumnChunk(
         getMetadataFunction = booleanGetMetadata;
         break;
     }
-    case PhysicalTypeID::INT64: {
-        flushBufferFunction =
-            CompressedFlushBuffer(std::make_unique<IntegerBitpacking<int64_t>>(), this->dataType);
-        getMetadataFunction =
-            GetCompressionMetadata(std::make_unique<IntegerBitpacking<int64_t>>(), this->dataType);
-        break;
-    }
-    case PhysicalTypeID::INT32: {
-        flushBufferFunction =
-            CompressedFlushBuffer(std::make_unique<IntegerBitpacking<int32_t>>(), this->dataType);
-        getMetadataFunction =
-            GetCompressionMetadata(std::make_unique<IntegerBitpacking<int32_t>>(), this->dataType);
-        break;
-    }
-    case PhysicalTypeID::INT16: {
-        flushBufferFunction =
-            CompressedFlushBuffer(std::make_unique<IntegerBitpacking<int16_t>>(), this->dataType);
-        getMetadataFunction =
-            GetCompressionMetadata(std::make_unique<IntegerBitpacking<int16_t>>(), this->dataType);
-        break;
-    }
-    case PhysicalTypeID::INT8: {
-        flushBufferFunction =
-            CompressedFlushBuffer(std::make_unique<IntegerBitpacking<int8_t>>(), this->dataType);
-        getMetadataFunction =
-            GetCompressionMetadata(std::make_unique<IntegerBitpacking<int8_t>>(), this->dataType);
-        break;
-    }
+    case PhysicalTypeID::INT64:
+    case PhysicalTypeID::INT32:
+    case PhysicalTypeID::INT16:
+    case PhysicalTypeID::INT8:
     case PhysicalTypeID::VAR_LIST:
-    case PhysicalTypeID::UINT64: {
-        flushBufferFunction =
-            CompressedFlushBuffer(std::make_unique<IntegerBitpacking<uint64_t>>(), this->dataType);
-        getMetadataFunction =
-            GetCompressionMetadata(std::make_unique<IntegerBitpacking<uint64_t>>(), this->dataType);
-        break;
-    }
-    case PhysicalTypeID::UINT32: {
-        flushBufferFunction =
-            CompressedFlushBuffer(std::make_unique<IntegerBitpacking<uint32_t>>(), this->dataType);
-        getMetadataFunction =
-            GetCompressionMetadata(std::make_unique<IntegerBitpacking<uint32_t>>(), this->dataType);
-        break;
-    }
-    case PhysicalTypeID::UINT16: {
-        flushBufferFunction =
-            CompressedFlushBuffer(std::make_unique<IntegerBitpacking<uint16_t>>(), this->dataType);
-        getMetadataFunction =
-            GetCompressionMetadata(std::make_unique<IntegerBitpacking<uint16_t>>(), this->dataType);
-        break;
-    }
+    case PhysicalTypeID::UINT64:
+    case PhysicalTypeID::UINT32:
+    case PhysicalTypeID::UINT16:
     case PhysicalTypeID::UINT8: {
-        flushBufferFunction =
-            CompressedFlushBuffer(std::make_unique<IntegerBitpacking<uint8_t>>(), this->dataType);
-        getMetadataFunction =
-            GetCompressionMetadata(std::make_unique<IntegerBitpacking<uint8_t>>(), this->dataType);
+        auto compression = getCompression(this->dataType, enableCompression);
+        flushBufferFunction = CompressedFlushBuffer(compression, this->dataType);
+        getMetadataFunction = GetCompressionMetadata(compression, this->dataType);
         break;
     }
     default: {
@@ -447,7 +442,7 @@ uint64_t FixedListColumnChunk::getBufferSize() const {
 }
 
 std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
-    const LogicalType& dataType, CSVReaderConfig* csvReaderConfig) {
+    const LogicalType& dataType, bool enableCompression, CSVReaderConfig* csvReaderConfig) {
     auto csvReaderConfigCopy = csvReaderConfig ? csvReaderConfig->copy() : nullptr;
     std::unique_ptr<ColumnChunk> chunk;
     switch (dataType.getPhysicalType()) {
@@ -468,20 +463,24 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
         if (dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
             chunk = std::make_unique<SerialColumnChunk>();
         } else {
-            chunk = std::make_unique<ColumnChunk>(dataType, std::move(csvReaderConfigCopy));
+            chunk = std::make_unique<ColumnChunk>(
+                dataType, std::move(csvReaderConfigCopy), enableCompression);
         }
     } break;
     case PhysicalTypeID::FIXED_LIST: {
-        chunk = std::make_unique<FixedListColumnChunk>(dataType, std::move(csvReaderConfigCopy));
+        chunk = std::make_unique<FixedListColumnChunk>(
+            dataType, std::move(csvReaderConfigCopy), enableCompression);
     } break;
     case PhysicalTypeID::STRING: {
         chunk = std::make_unique<StringColumnChunk>(dataType, std::move(csvReaderConfigCopy));
     } break;
     case PhysicalTypeID::VAR_LIST: {
-        chunk = std::make_unique<VarListColumnChunk>(dataType, std::move(csvReaderConfigCopy));
+        chunk = std::make_unique<VarListColumnChunk>(
+            dataType, std::move(csvReaderConfigCopy), enableCompression);
     } break;
     case PhysicalTypeID::STRUCT: {
-        chunk = std::make_unique<StructColumnChunk>(dataType, std::move(csvReaderConfigCopy));
+        chunk = std::make_unique<StructColumnChunk>(
+            dataType, std::move(csvReaderConfigCopy), enableCompression);
     } break;
     default: {
         throw NotImplementedException("ColumnChunkFactory::createColumnChunk for data type " +
