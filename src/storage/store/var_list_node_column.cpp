@@ -9,6 +9,16 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
+common::offset_t ListOffsetInfoInStorage::getListOffset(uint64_t nodePos) const {
+    if (nodePos == 0) {
+        return prevNodeListOffset;
+    } else {
+        auto offsetVector = offsetVectors[(nodePos - 1) / common::DEFAULT_VECTOR_CAPACITY].get();
+        return offsetVector->getValue<common::offset_t>(
+            (nodePos - 1) % common::DEFAULT_VECTOR_CAPACITY);
+    }
+}
+
 void VarListNodeColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
     uint64_t offsetInVector) {
@@ -151,13 +161,26 @@ offset_t VarListNodeColumn::readOffset(
 ListOffsetInfoInStorage VarListNodeColumn::getListOffsetInfoInStorage(Transaction* transaction,
     node_group_idx_t nodeGroupIdx, offset_t startOffsetInNodeGroup, offset_t endOffsetInNodeGroup,
     std::shared_ptr<DataChunkState> state) {
-    auto offsetVector = std::make_unique<ValueVector>(LogicalTypeID::INT64);
-    offsetVector->setState(std::move(state));
-    NodeColumn::scan(transaction, nodeGroupIdx, startOffsetInNodeGroup, endOffsetInNodeGroup,
-        offsetVector.get());
+    auto numOffsetsToRead = endOffsetInNodeGroup - startOffsetInNodeGroup;
+    auto numOffsetVectors = numOffsetsToRead / DEFAULT_VECTOR_CAPACITY +
+                            (numOffsetsToRead % DEFAULT_VECTOR_CAPACITY ? 1 : 0);
+    std::vector<std::unique_ptr<ValueVector>> offsetVectors;
+    offsetVectors.reserve(numOffsetVectors);
+    uint64_t numOffsetsRead = 0;
+    for (auto i = 0u; i < numOffsetVectors; i++) {
+        auto offsetVector = std::make_unique<ValueVector>(LogicalTypeID::INT64);
+        auto numOffsetsToReadInCurBatch =
+            std::min(numOffsetsToRead - numOffsetsRead, DEFAULT_VECTOR_CAPACITY);
+        offsetVector->setState(state);
+        NodeColumn::scan(transaction, nodeGroupIdx, startOffsetInNodeGroup + numOffsetsRead,
+            startOffsetInNodeGroup + numOffsetsRead + numOffsetsToReadInCurBatch,
+            offsetVector.get());
+        offsetVectors.push_back(std::move(offsetVector));
+        numOffsetsRead += numOffsetsToReadInCurBatch;
+    }
     auto prevNodeListOffsetInStorage =
         readListOffsetInStorage(transaction, nodeGroupIdx, startOffsetInNodeGroup);
-    return {prevNodeListOffsetInStorage, std::move(offsetVector)};
+    return {prevNodeListOffsetInStorage, std::move(offsetVectors)};
 }
 
 } // namespace storage
