@@ -10,9 +10,9 @@ namespace function {
 
 struct ListPrepend {
     template<typename T>
-    static inline void operation(T& value, common::list_entry_t& listEntry,
-        common::list_entry_t& result, common::ValueVector& valueVector,
-        common::ValueVector& listVector, common::ValueVector& resultVector) {
+    static inline void operation(common::list_entry_t& listEntry, T& value,
+        common::list_entry_t& result, common::ValueVector& listVector,
+        common::ValueVector& valueVector, common::ValueVector& resultVector) {
         result = common::ListVector::addList(&resultVector, listEntry.size + 1);
         auto resultDataVector = common::ListVector::getDataVector(&resultVector);
         resultDataVector->copyFromVectorData(

@@ -536,6 +536,7 @@ void BuiltInVectorFunctions::registerListFunctions() {
     vectorFunctions.insert(
         {LIST_REVERSE_SORT_FUNC_NAME, ListReverseSortVectorFunction::getDefinitions()});
     vectorFunctions.insert({LIST_SUM_FUNC_NAME, ListSumVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LIST_PRODUCT_FUNC_NAME, ListProductVectorFunction::getDefinitions()});
     vectorFunctions.insert({LIST_DISTINCT_FUNC_NAME, ListDistinctVectorFunction::getDefinitions()});
     vectorFunctions.insert({LIST_UNIQUE_FUNC_NAME, ListUniqueVectorFunction::getDefinitions()});
     vectorFunctions.insert(

@@ -133,6 +133,60 @@ struct VectorListFunction : public VectorFunction {
         }
         return execFunc;
     }
+
+    template<typename OPERATION>
+    static std::unique_ptr<FunctionBindData> bindFuncListAggre(
+        const binder::expression_vector& arguments, FunctionDefinition* definition) {
+        auto vectorFunctionDefinition = reinterpret_cast<VectorFunctionDefinition*>(definition);
+        auto resultType = common::VarListType::getChildType(&arguments[0]->dataType);
+        switch (resultType->getLogicalTypeID()) {
+        case common::LogicalTypeID::SERIAL:
+        case common::LogicalTypeID::INT64: {
+            vectorFunctionDefinition->execFunc =
+                UnaryExecListStructFunction<common::list_entry_t, int64_t, OPERATION>;
+        } break;
+        case common::LogicalTypeID::INT32: {
+            vectorFunctionDefinition->execFunc =
+                UnaryExecListStructFunction<common::list_entry_t, int32_t, OPERATION>;
+        } break;
+        case common::LogicalTypeID::INT16: {
+            vectorFunctionDefinition->execFunc =
+                UnaryExecListStructFunction<common::list_entry_t, int16_t, OPERATION>;
+        } break;
+        case common::LogicalTypeID::INT8: {
+            vectorFunctionDefinition->execFunc =
+                UnaryExecListStructFunction<common::list_entry_t, int8_t, OPERATION>;
+        } break;
+        case common::LogicalTypeID::UINT64: {
+            vectorFunctionDefinition->execFunc =
+                UnaryExecListStructFunction<common::list_entry_t, uint64_t, OPERATION>;
+        } break;
+        case common::LogicalTypeID::UINT32: {
+            vectorFunctionDefinition->execFunc =
+                UnaryExecListStructFunction<common::list_entry_t, uint32_t, OPERATION>;
+        } break;
+        case common::LogicalTypeID::UINT16: {
+            vectorFunctionDefinition->execFunc =
+                UnaryExecListStructFunction<common::list_entry_t, uint16_t, OPERATION>;
+        } break;
+        case common::LogicalTypeID::UINT8: {
+            vectorFunctionDefinition->execFunc =
+                UnaryExecListStructFunction<common::list_entry_t, uint8_t, OPERATION>;
+        } break;
+        case common::LogicalTypeID::DOUBLE: {
+            vectorFunctionDefinition->execFunc =
+                UnaryExecListStructFunction<common::list_entry_t, double_t, OPERATION>;
+        } break;
+        case common::LogicalTypeID::FLOAT: {
+            vectorFunctionDefinition->execFunc =
+                UnaryExecListStructFunction<common::list_entry_t, float_t, OPERATION>;
+        } break;
+        default: {
+            throw common::NotImplementedException(definition->name + "::bindFunc");
+        }
+        }
+        return std::make_unique<FunctionBindData>(*resultType);
+    }
 };
 
 struct ListCreationVectorFunction : public VectorListFunction {
@@ -213,8 +267,10 @@ struct ListReverseSortVectorFunction : public VectorListFunction {
 
 struct ListSumVectorFunction : public VectorListFunction {
     static vector_function_definitions getDefinitions();
-    static std::unique_ptr<FunctionBindData> bindFunc(
-        const binder::expression_vector& arguments, FunctionDefinition* definition);
+};
+
+struct ListProductVectorFunction : public VectorListFunction {
+    static vector_function_definitions getDefinitions();
 };
 
 struct ListDistinctVectorFunction : public VectorListFunction {

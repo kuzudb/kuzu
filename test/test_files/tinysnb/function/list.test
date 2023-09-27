@@ -520,7 +520,7 @@ ad
 [0:7,0:7]
 
 -LOG ListPrependListOfINT64
--STATEMENT MATCH (a:person) RETURN list_prepend(a.age, a.workedHours)
+-STATEMENT MATCH (a:person) RETURN list_prepend(a.workedHours, a.age)
 ---- 8
 [35,10,5]
 [30,12,8]
@@ -532,49 +532,49 @@ ad
 [83,10,11,12,3,4,5,6,7]
 
 -LOG ListPrependListOfINT32
--STATEMENT MATCH (m:movies) RETURN list_prepend(m.length, [m.length])
+-STATEMENT MATCH (m:movies) RETURN list_prepend([m.length], m.length)
 ---- 3
 [126,126]
 [2544,2544]
 [298,298]
 
 -LOG ListPrependListOfINT16
--STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_prepend(s.length, [s.length])
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_prepend([s.length], s.length)
 ---- 3
 [5,5]
 [55,55]
 [22,22]
 
 -LOG ListPrependListOfINT8
--STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_prepend(s.level, [s.level])
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_prepend([s.level], s.level)
 ---- 3
 [5,5]
 [120,120]
 [2,2]
 
 -LOG ListPrependListOfUINT64
--STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_prepend(s.code, [s.code])
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_prepend([s.code], s.code)
 ---- 3
 [6556,6556]
 [6689,6689]
 [23,23]
 
 -LOG ListPrependListOfUINT32
--STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_prepend(s.temprature, [s.temprature])
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_prepend([s.temprature], s.temprature)
 ---- 3
 [35,35]
 [1,1]
 [20,20]
 
 -LOG ListPrependListOfUINT16
--STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_prepend(s.ulength, [s.ulength])
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_prepend([s.ulength], s.ulength)
 ---- 3
 [120,120]
 [90,90]
 [180,180]
 
 -LOG ListPrependListOfUINT8
--STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_prepend(s.ulevel, [s.ulevel])
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_prepend([s.ulevel], s.ulevel)
 ---- 3
 [15,15]
 [220,220]
@@ -582,7 +582,7 @@ ad
 
 
 -LOG ListPrependListOfFloat
--STATEMENT MATCH (a:person) RETURN list_prepend(a.height, [a.height])
+-STATEMENT MATCH (a:person) RETURN list_prepend([a.height], a.height)
 ---- 8
 [1.731000,1.731000]
 [0.990000,0.990000]
@@ -594,7 +594,7 @@ ad
 [1.323000,1.323000]
 
 -LOG ListPrependStructuredListOfStrings
--STATEMENT MATCH (a:person) RETURN array_prepend(a.fName, a.usedNames)
+-STATEMENT MATCH (a:person) RETURN array_prepend(a.usedNames, a.fName)
 ---- 8
 [Alice,Aida]
 [Bob,Bobby]
@@ -606,7 +606,7 @@ ad
 [Hubert Blaine Wolfeschlegelsteinhausenbergerdorff,Ad,De,Hi,Kye,Orlan]
 
 -LOG ListPrependStructuredListOfBools
--STATEMENT MATCH (a:person) RETURN list_prepend(a.isStudent, [a.isStudent, a.isWorker])
+-STATEMENT MATCH (a:person) RETURN list_prepend([a.isStudent, a.isWorker], a.isStudent)
 ---- 8
 [True,True,False]
 [True,True,False]
@@ -618,7 +618,7 @@ ad
 [False,False,True]
 
 -LOG ListPrependStructuredListOfDoubles
--STATEMENT MATCH (a:person) RETURN list_prepend(a.eyeSight, [a.eyeSight])
+-STATEMENT MATCH (a:person) RETURN list_prepend([a.eyeSight], a.eyeSight)
 ---- 8
 [5.000000,5.000000]
 [5.100000,5.100000]
@@ -630,7 +630,7 @@ ad
 [4.900000,4.900000]
 
 -LOG ListPrependStructuredListOfDates
--STATEMENT MATCH (a:person) RETURN list_prepend(a.birthdate, [a.birthdate])
+-STATEMENT MATCH (a:person) RETURN list_prepend([a.birthdate], a.birthdate)
 ---- 8
 [1900-01-01,1900-01-01]
 [1900-01-01,1900-01-01]
@@ -642,7 +642,7 @@ ad
 [1990-11-27,1990-11-27]
 
 -LOG ListPrependStructuredListOfTimestamps
--STATEMENT MATCH (a:person) RETURN list_prepend(a.registerTime, [a.registerTime])
+-STATEMENT MATCH (a:person) RETURN list_prepend([a.registerTime], a.registerTime)
 ---- 8
 [2011-08-20 11:25:30,2011-08-20 11:25:30]
 [2008-11-03 15:25:30.000526,2008-11-03 15:25:30.000526]
@@ -654,7 +654,7 @@ ad
 [2023-02-21 13:25:30,2023-02-21 13:25:30]
 
 -LOG ListPrependStructuredListOfIntervals
--STATEMENT MATCH (a:person) RETURN list_prepend(a.lastJobDuration, [a.lastJobDuration])
+-STATEMENT MATCH (a:person) RETURN list_prepend([a.lastJobDuration], a.lastJobDuration)
 ---- 8
 [3 years 2 days 13:02:00,3 years 2 days 13:02:00]
 [10 years 5 months 13:00:00.000024,10 years 5 months 13:00:00.000024]
@@ -666,7 +666,7 @@ ad
 [3 years 2 days 13:02:00,3 years 2 days 13:02:00]
 
 -LOG ListPrependStructuredListOfListOfInts
--STATEMENT MATCH (a:person) RETURN array_push_front([a.age, a.age], a.courseScoresPerTerm)
+-STATEMENT MATCH (a:person) RETURN array_push_front(a.courseScoresPerTerm, [a.age, a.age])
 ---- 8
 [[35,35],[10,8],[6,7,8]]
 [[30,30],[8,9],[9,10]]
@@ -678,7 +678,7 @@ ad
 [[83,83],[7],[10],[6,7]]
 
 -LOG ListPrependInternalID
--STATEMENT MATCH (a:person) RETURN list_prepend(id(a), [id(a)])
+-STATEMENT MATCH (a:person) RETURN list_prepend([id(a)], id(a))
 ---- 8
 [0:0,0:0]
 [0:1,0:1]
@@ -1673,3 +1673,73 @@ Ad
 0:5
 0:6
 0:7
+
+-LOG ListProductSeq1
+-STATEMENT Return list_product([1, 2, 3, NULL]);
+---- 1
+6
+
+-LOG ListProductSeq2
+-STATEMENT Return list_product([1.111111111111, 2.2, 3.3, NULL]);
+---- 1
+8.066667
+
+-LOG ListProductSeq3
+-STATEMENT Return list_product([NULL, NULL, NULL, NULL]);
+---- 1
+1
+# different from cypher standard: should return NULL
+
+-LOG ListProductSeq4
+-STATEMENT Return list_product([0, NULL, NULL, NULL]);
+---- 1
+0
+
+-LOG ListProductSeq5
+-STATEMENT Return list_product([-1, -2, -3]);
+---- 1
+-6
+
+-LOG ListProductInt8
+-STATEMENT Return list_product([to_int8(-1), to_int8(2), NULL, to_int8(3)]);
+---- 1
+-6
+
+-LOG ListProductInt16
+-STATEMENT Return list_product([to_int16(1), to_int16(2), to_int16(3), NULL]);
+---- 1
+6
+
+-LOG ListProductInt32
+-STATEMENT Return list_product([to_int32(-10), to_int32(20), to_int32(-5), NULL]);
+---- 1
+1000
+
+-LOG ListProductFloat
+-STATEMENT Return list_product([to_float(1.111111111111), to_float(2.2), to_float(3.3), NULL]);
+---- 1
+8.066668
+
+-LOG ListProductSerial
+-STATEMENT Return list_product([to_serial(1), to_serial(2)]);
+---- 1
+2
+
+-LOG ListProductUnsigned
+-STATEMENT Return list_product([to_uint8(1), to_uint8(10), to_uint8(3)]);
+---- 1
+30
+-STATEMENT Return list_product([to_uint16(4), to_uint16(10), to_uint16(3)]);
+---- 1
+120
+-STATEMENT Return list_product([to_uint32(9), to_uint32(2), to_uint32(3)]);
+---- 1
+54
+-STATEMENT Return list_product([to_uint64(9), to_uint64(2), to_uint64(3)]);
+---- 1
+54
+
+-LOG ListProductError
+-STATEMENT Return list_product(["ok"]);
+---- error
+LIST_PRODUCT::bindFunc
