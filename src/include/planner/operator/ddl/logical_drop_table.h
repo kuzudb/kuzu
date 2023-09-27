@@ -7,7 +7,7 @@ namespace planner {
 
 class LogicalDropTable : public LogicalDDL {
 public:
-    explicit LogicalDropTable(common::table_id_t tableID, std::string tableName,
+    LogicalDropTable(common::table_id_t tableID, std::string tableName,
         std::shared_ptr<binder::Expression> outputExpression)
         : LogicalDDL{LogicalOperatorType::DROP_TABLE, std::move(tableName),
               std::move(outputExpression)},

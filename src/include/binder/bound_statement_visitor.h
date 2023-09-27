@@ -20,11 +20,9 @@ public:
 protected:
     virtual void visitCreateTable(const BoundStatement& statement) {}
     virtual void visitDropTable(const BoundStatement& statement) {}
-    virtual void visitRenameTable(const BoundStatement& statement) {}
-    virtual void visitAddProperty(const BoundStatement& statement) {}
-    virtual void visitDropProperty(const BoundStatement& statement) {}
-    virtual void visitRenameProperty(const BoundStatement& statement) {}
-    virtual void visitCopy(const BoundStatement& statement) {}
+    virtual void visitAlter(const BoundStatement& statement) {}
+    virtual void visitCopyFrom(const BoundStatement& statement) {}
+    virtual void visitCopyTo(const BoundStatement& statement) {}
     virtual void visitStandaloneCall(const BoundStatement& statement) {}
     virtual void visitCommentOn(const BoundStatement& statement) {}
     virtual void visitExplain(const BoundStatement& statement);

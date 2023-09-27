@@ -87,6 +87,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapCopyNodeFrom(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCopyRelFrom(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDropTable(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapAlter(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapRenameTable(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapAddProperty(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDropProperty(planner::LogicalOperator* logicalOperator);

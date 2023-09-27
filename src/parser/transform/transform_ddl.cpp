@@ -1,9 +1,6 @@
-#include "parser/ddl/add_property.h"
+#include "parser/ddl/alter.h"
 #include "parser/ddl/create_table.h"
-#include "parser/ddl/drop_property.h"
-#include "parser/ddl/drop_table.h"
-#include "parser/ddl/rename_property.h"
-#include "parser/ddl/rename_table.h"
+#include "parser/ddl/drop.h"
 #include "parser/expression/parsed_literal_expression.h"
 #include "parser/transformer.h"
 
@@ -107,39 +104,62 @@ std::unique_ptr<Statement> Transformer::transformCreateRdfGraphClause(
 }
 
 std::unique_ptr<Statement> Transformer::transformDropTable(CypherParser::KU_DropTableContext& ctx) {
-    return std::make_unique<DropTable>(transformSchemaName(*ctx.oC_SchemaName()));
+    auto tableName = transformSchemaName(*ctx.oC_SchemaName());
+    return std::make_unique<Drop>(tableName);
 }
 
 std::unique_ptr<Statement> Transformer::transformRenameTable(
     CypherParser::KU_AlterTableContext& ctx) {
-    return std::make_unique<RenameTable>(transformSchemaName(*ctx.oC_SchemaName()),
-        transformSchemaName(*ctx.kU_AlterOptions()->kU_RenameTable()->oC_SchemaName()));
+    auto tableName = transformSchemaName(*ctx.oC_SchemaName());
+    auto newName = transformSchemaName(*ctx.kU_AlterOptions()->kU_RenameTable()->oC_SchemaName());
+    auto extraInfo = std::make_unique<ExtraRenameTableInfo>(std::move(newName));
+    auto info =
+        std::make_unique<AlterInfo>(AlterType::RENAME_TABLE, tableName, std::move(extraInfo));
+    return std::make_unique<Alter>(std::move(info));
 }
 
 std::unique_ptr<Statement> Transformer::transformAddProperty(
     CypherParser::KU_AlterTableContext& ctx) {
-    return std::make_unique<AddProperty>(transformSchemaName(*ctx.oC_SchemaName()),
-        transformPropertyKeyName(*ctx.kU_AlterOptions()->kU_AddProperty()->oC_PropertyKeyName()),
-        transformDataType(*ctx.kU_AlterOptions()->kU_AddProperty()->kU_DataType()),
-        ctx.kU_AlterOptions()->kU_AddProperty()->oC_Expression() ?
-            transformExpression(*ctx.kU_AlterOptions()->kU_AddProperty()->oC_Expression()) :
-            std::make_unique<ParsedLiteralExpression>(
-                std::make_unique<Value>(Value::createNullValue()), "NULL"));
+    auto tableName = transformSchemaName(*ctx.oC_SchemaName());
+    auto addPropertyCtx = ctx.kU_AlterOptions()->kU_AddProperty();
+    auto propertyName = transformPropertyKeyName(*addPropertyCtx->oC_PropertyKeyName());
+    auto dataType = transformDataType(*addPropertyCtx->kU_DataType());
+    std::unique_ptr<ParsedExpression> defaultValue;
+    if (addPropertyCtx->oC_Expression()) {
+        defaultValue = transformExpression(*addPropertyCtx->oC_Expression());
+    } else {
+        defaultValue =
+            std::make_unique<ParsedLiteralExpression>(Value::createNullValue().copy(), "NULL");
+    }
+    auto extraInfo = std::make_unique<ExtraAddPropertyInfo>(
+        std::move(propertyName), std::move(dataType), std::move(defaultValue));
+    auto info =
+        std::make_unique<AlterInfo>(AlterType::ADD_PROPERTY, tableName, std::move(extraInfo));
+    return std::make_unique<Alter>(std::move(info));
 }
 
 std::unique_ptr<Statement> Transformer::transformDropProperty(
     CypherParser::KU_AlterTableContext& ctx) {
-    return std::make_unique<DropProperty>(transformSchemaName(*ctx.oC_SchemaName()),
-        transformPropertyKeyName(*ctx.kU_AlterOptions()->kU_DropProperty()->oC_PropertyKeyName()));
+    auto tableName = transformSchemaName(*ctx.oC_SchemaName());
+    auto propertyName =
+        transformPropertyKeyName(*ctx.kU_AlterOptions()->kU_DropProperty()->oC_PropertyKeyName());
+    auto extraInfo = std::make_unique<ExtraDropPropertyInfo>(std::move(propertyName));
+    auto info =
+        std::make_unique<AlterInfo>(AlterType::DROP_PROPERTY, tableName, std::move(extraInfo));
+    return std::make_unique<Alter>(std::move(info));
 }
 
 std::unique_ptr<Statement> Transformer::transformRenameProperty(
     CypherParser::KU_AlterTableContext& ctx) {
-    return std::make_unique<RenameProperty>(transformSchemaName(*ctx.oC_SchemaName()),
-        transformPropertyKeyName(
-            *ctx.kU_AlterOptions()->kU_RenameProperty()->oC_PropertyKeyName()[0]),
-        transformPropertyKeyName(
-            *ctx.kU_AlterOptions()->kU_RenameProperty()->oC_PropertyKeyName()[1]));
+    auto tableName = transformSchemaName(*ctx.oC_SchemaName());
+    auto propertyName = transformPropertyKeyName(
+        *ctx.kU_AlterOptions()->kU_RenameProperty()->oC_PropertyKeyName()[0]);
+    auto newName = transformPropertyKeyName(
+        *ctx.kU_AlterOptions()->kU_RenameProperty()->oC_PropertyKeyName()[1]);
+    auto extraInfo = std::make_unique<ExtraRenamePropertyInfo>(propertyName, newName);
+    auto info =
+        std::make_unique<AlterInfo>(AlterType::RENAME_PROPERTY, tableName, std::move(extraInfo));
+    return std::make_unique<Alter>(std::move(info));
 }
 
 std::vector<std::pair<std::string, std::string>> Transformer::transformPropertyDefinitions(

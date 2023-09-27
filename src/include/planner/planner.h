@@ -20,13 +20,7 @@ private:
 
     static std::unique_ptr<LogicalPlan> planDropTable(const BoundStatement& statement);
 
-    static std::unique_ptr<LogicalPlan> planRenameTable(const BoundStatement& statement);
-
-    static std::unique_ptr<LogicalPlan> planAddProperty(const BoundStatement& statement);
-
-    static std::unique_ptr<LogicalPlan> planDropProperty(const BoundStatement& statement);
-
-    static std::unique_ptr<LogicalPlan> planRenameProperty(const BoundStatement& statement);
+    static std::unique_ptr<LogicalPlan> planAlter(const BoundStatement& statement);
 
     static std::unique_ptr<LogicalPlan> planStandaloneCall(const BoundStatement& statement);
 

@@ -1,9 +1,6 @@
-#include "planner/operator/ddl/logical_add_property.h"
+#include "planner/operator/ddl/logical_alter.h"
 #include "planner/operator/ddl/logical_create_table.h"
-#include "planner/operator/ddl/logical_drop_property.h"
 #include "planner/operator/ddl/logical_drop_table.h"
-#include "planner/operator/ddl/logical_rename_property.h"
-#include "planner/operator/ddl/logical_rename_table.h"
 #include "processor/operator/ddl/add_node_property.h"
 #include "processor/operator/ddl/add_rel_property.h"
 #include "processor/operator/ddl/create_node_table.h"
@@ -17,6 +14,7 @@
 #include "processor/operator/table_scan/factorized_table_scan.h"
 #include "processor/plan_mapper.h"
 
+using namespace kuzu::binder;
 using namespace kuzu::common;
 using namespace kuzu::planner;
 
@@ -86,46 +84,70 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDropTable(LogicalOperator* logi
         getOperatorID(), dropTable->getExpressionsForPrinting());
 }
 
+std::unique_ptr<PhysicalOperator> PlanMapper::mapAlter(LogicalOperator* logicalOperator) {
+    auto alter = reinterpret_cast<LogicalAlter*>(logicalOperator);
+    switch (alter->getInfo()->alterType) {
+    case AlterType::RENAME_TABLE: {
+        return mapRenameTable(logicalOperator);
+    }
+    case AlterType::ADD_PROPERTY: {
+        return mapAddProperty(logicalOperator);
+    }
+    case AlterType::DROP_PROPERTY: {
+        return mapDropProperty(logicalOperator);
+    }
+    case AlterType::RENAME_PROPERTY: {
+        return mapRenameProperty(logicalOperator);
+    }
+    default:
+        throw NotImplementedException("PlanMapper::mapAlter");
+    }
+}
+
 std::unique_ptr<PhysicalOperator> PlanMapper::mapRenameTable(LogicalOperator* logicalOperator) {
-    auto renameTable = (LogicalRenameTable*)logicalOperator;
-    return std::make_unique<RenameTable>(catalog, renameTable->getTableID(),
-        renameTable->getNewName(), getOutputPos(renameTable), getOperatorID(),
-        renameTable->getExpressionsForPrinting());
+    auto alter = reinterpret_cast<LogicalAlter*>(logicalOperator);
+    auto info = alter->getInfo();
+    auto extraInfo = reinterpret_cast<BoundExtraRenameTableInfo*>(info->extraInfo.get());
+    return std::make_unique<RenameTable>(catalog, info->tableID, extraInfo->newName,
+        getOutputPos(alter), getOperatorID(), alter->getExpressionsForPrinting());
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapAddProperty(LogicalOperator* logicalOperator) {
-    auto addProperty = (LogicalAddProperty*)logicalOperator;
+    auto alter = reinterpret_cast<LogicalAlter*>(logicalOperator);
+    auto info = alter->getInfo();
+    auto extraInfo = reinterpret_cast<BoundExtraAddPropertyInfo*>(info->extraInfo.get());
     auto expressionEvaluator =
-        ExpressionMapper::getEvaluator(addProperty->getDefaultValue(), addProperty->getSchema());
-    auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(addProperty->getTableID());
+        ExpressionMapper::getEvaluator(extraInfo->defaultValue, alter->getSchema());
+    auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(info->tableID);
     switch (tableSchema->getTableType()) {
     case TableType::NODE:
-        return std::make_unique<AddNodeProperty>(catalog, addProperty->getTableID(),
-            addProperty->getPropertyName(), addProperty->getDataType()->copy(),
-            std::move(expressionEvaluator), storageManager, getOutputPos(addProperty),
-            getOperatorID(), addProperty->getExpressionsForPrinting());
+        return std::make_unique<AddNodeProperty>(catalog, info->tableID, extraInfo->propertyName,
+            extraInfo->dataType->copy(), std::move(expressionEvaluator), storageManager,
+            getOutputPos(alter), getOperatorID(), alter->getExpressionsForPrinting());
     case TableType::REL:
-        return std::make_unique<AddRelProperty>(catalog, addProperty->getTableID(),
-            addProperty->getPropertyName(), addProperty->getDataType()->copy(),
-            std::move(expressionEvaluator), storageManager, getOutputPos(addProperty),
-            getOperatorID(), addProperty->getExpressionsForPrinting());
+        return std::make_unique<AddRelProperty>(catalog, info->tableID, extraInfo->propertyName,
+            extraInfo->dataType->copy(), std::move(expressionEvaluator), storageManager,
+            getOutputPos(alter), getOperatorID(), alter->getExpressionsForPrinting());
     default:
         throw NotImplementedException{"PlanMapper::mapAddProperty"};
     }
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapDropProperty(LogicalOperator* logicalOperator) {
-    auto dropProperty = (LogicalDropProperty*)logicalOperator;
-    return std::make_unique<DropProperty>(catalog, dropProperty->getTableID(),
-        dropProperty->getPropertyID(), getOutputPos(dropProperty), storageManager, getOperatorID(),
-        dropProperty->getExpressionsForPrinting());
+    auto alter = reinterpret_cast<LogicalAlter*>(logicalOperator);
+    auto info = alter->getInfo();
+    auto extraInfo = reinterpret_cast<BoundExtraDropPropertyInfo*>(info->extraInfo.get());
+    return std::make_unique<DropProperty>(catalog, info->tableID, extraInfo->propertyID,
+        getOutputPos(alter), storageManager, getOperatorID(), alter->getExpressionsForPrinting());
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapRenameProperty(LogicalOperator* logicalOperator) {
-    auto renameProperty = (LogicalRenameProperty*)logicalOperator;
-    return std::make_unique<RenameProperty>(catalog, renameProperty->getTableID(),
-        renameProperty->getPropertyID(), renameProperty->getNewName(), getOutputPos(renameProperty),
-        getOperatorID(), renameProperty->getExpressionsForPrinting());
+    auto alter = reinterpret_cast<LogicalAlter*>(logicalOperator);
+    auto info = alter->getInfo();
+    auto extraInfo = reinterpret_cast<BoundExtraRenamePropertyInfo*>(info->extraInfo.get());
+    return std::make_unique<RenameProperty>(catalog, info->tableID, extraInfo->propertyID,
+        extraInfo->newName, getOutputPos(alter), getOperatorID(),
+        alter->getExpressionsForPrinting());
 }
 
 } // namespace processor

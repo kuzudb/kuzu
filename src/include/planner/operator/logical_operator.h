@@ -7,8 +7,8 @@ namespace planner {
 
 enum class LogicalOperatorType : uint8_t {
     ACCUMULATE,
-    ADD_PROPERTY,
     AGGREGATE,
+    ALTER,
     COMMENT_ON,
     COPY_FROM,
     COPY_TO,
@@ -20,7 +20,6 @@ enum class LogicalOperatorType : uint8_t {
     DELETE_NODE,
     DELETE_REL,
     DISTINCT,
-    DROP_PROPERTY,
     DROP_TABLE,
     DUMMY_SCAN,
     EXPLAIN,
@@ -41,8 +40,6 @@ enum class LogicalOperatorType : uint8_t {
     PATH_PROPERTY_PROBE,
     PROJECTION,
     RECURSIVE_EXTEND,
-    RENAME_TABLE,
-    RENAME_PROPERTY,
     SCAN_FILE,
     SCAN_FRONTIER,
     SCAN_INTERNAL_ID,

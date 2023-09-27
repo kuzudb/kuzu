@@ -29,17 +29,8 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::DROP_TABLE: {
         boundStatement = bindDropTable(statement);
     } break;
-    case StatementType::RENAME_TABLE: {
-        boundStatement = bindRenameTable(statement);
-    } break;
-    case StatementType::ADD_PROPERTY: {
-        boundStatement = bindAddProperty(statement);
-    } break;
-    case StatementType::DROP_PROPERTY: {
-        boundStatement = bindDropProperty(statement);
-    } break;
-    case StatementType::RENAME_PROPERTY: {
-        boundStatement = bindRenameProperty(statement);
+    case StatementType::ALTER: {
+        boundStatement = bindAlter(statement);
     } break;
     case StatementType::QUERY: {
         boundStatement = bindQuery((const RegularQuery&)statement);

@@ -143,17 +143,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     case LogicalOperatorType::DROP_TABLE: {
         physicalOperator = mapDropTable(logicalOperator);
     } break;
-    case LogicalOperatorType::RENAME_TABLE: {
-        physicalOperator = mapRenameTable(logicalOperator);
-    } break;
-    case LogicalOperatorType::ADD_PROPERTY: {
-        physicalOperator = mapAddProperty(logicalOperator);
-    } break;
-    case LogicalOperatorType::DROP_PROPERTY: {
-        physicalOperator = mapDropProperty(logicalOperator);
-    } break;
-    case LogicalOperatorType::RENAME_PROPERTY: {
-        physicalOperator = mapRenameProperty(logicalOperator);
+    case LogicalOperatorType::ALTER: {
+        physicalOperator = mapAlter(logicalOperator);
     } break;
     case LogicalOperatorType::STANDALONE_CALL: {
         physicalOperator = mapStandaloneCall(logicalOperator);

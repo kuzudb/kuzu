@@ -37,17 +37,8 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
     case StatementType::DROP_TABLE: {
         plan = planDropTable(statement);
     } break;
-    case StatementType::RENAME_TABLE: {
-        plan = planRenameTable(statement);
-    } break;
-    case StatementType::ADD_PROPERTY: {
-        plan = planAddProperty(statement);
-    } break;
-    case StatementType::DROP_PROPERTY: {
-        plan = planDropProperty(statement);
-    } break;
-    case StatementType::RENAME_PROPERTY: {
-        plan = planRenameProperty(statement);
+    case StatementType::ALTER: {
+        plan = planAlter(statement);
     } break;
     case StatementType::STANDALONE_CALL: {
         plan = planStandaloneCall(statement);
