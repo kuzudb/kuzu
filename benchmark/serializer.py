@@ -49,19 +49,22 @@ def serialize(dataset_name, dataset_path, serialized_graph_path, benchmark_copy_
 
     for s in serialize_queries:
         logging.info('Executing query: %s', s)
-        try:
-            # Run kuzu shell one query at a time. This ensures a new process is
-            # created for each query to avoid memory leaks.
-            process = subprocess.run([kuzu_exec_path, serialized_graph_path],
-                input=(s + ";" + "\n").encode("ascii"), stdout=subprocess.PIPE, check=True)
-            print(process.stdout.decode("utf-8"), end='')
-            match = re.search('copied to table: (.*)\.', process.stdout.decode("utf-8"))
+        # Run kuzu shell one query at a time. This ensures a new process is
+        # created for each query to avoid memory leaks.
+        process = subprocess.Popen([kuzu_exec_path, serialized_graph_path],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        process.stdin.write((s + ";" + "\n").encode("ascii"))
+        process.stdin.close()
+        match = re.match('copy (.*) from', s, re.IGNORECASE)
+        for line in iter(process.stdout.readline, b''):
+            print(line.decode("utf-8"), end='')
             if match:
-                with open(os.path.join(benchmark_copy_log_dir, match.group(1) + '_log.txt'), 'wb') as f:
-                    f.write(process.stdout)
-        except subprocess.CalledProcessError as e:
+                with open(os.path.join(benchmark_copy_log_dir, match.group(1) + '_log.txt'), 'ab') as f:
+                    f.write(line)
+        process.wait()
+        if process.returncode != 0:
             logging.error('Error executing query: %s', s)
-            raise e
+            raise subprocess.CalledProcessError
 
     with open(os.path.join(serialized_graph_path, 'version.txt'), 'w') as f:
         f.write(bin_version)

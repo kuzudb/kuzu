@@ -243,7 +243,7 @@ def run_kuzu(serialized_graph_path):
             tuple(benchmark_cmd), stdout=subprocess.PIPE)
         for line in iter(process.stdout.readline, b''):
             print(line.decode("utf-8"), end='')
-        process.communicate()[0]
+        process.wait()
         if process.returncode != 0:
             print()
             logging.error("An error has occurred while running benchmark!")
