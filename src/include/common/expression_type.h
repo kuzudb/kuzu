@@ -64,6 +64,7 @@ const std::string ARRAY_HAS_FUNC_NAME = "ARRAY_HAS";
 const std::string LIST_SLICE_FUNC_NAME = "LIST_SLICE";
 const std::string ARRAY_SLICE_FUNC_NAME = "ARRAY_SLICE";
 const std::string LIST_SUM_FUNC_NAME = "LIST_SUM";
+const std::string LIST_PRODUCT_FUNC_NAME = "LIST_PRODUCT";
 const std::string LIST_SORT_FUNC_NAME = "LIST_SORT";
 const std::string LIST_REVERSE_SORT_FUNC_NAME = "LIST_REVERSE_SORT";
 const std::string LIST_DISTINCT_FUNC_NAME = "LIST_DISTINCT";

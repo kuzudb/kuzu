@@ -126,7 +126,7 @@
 [7,7]
 
 -LOG ListPrependSerial
--STATEMENT MATCH (a:person) RETURN list_prepend(a.ID, [a.ID])
+-STATEMENT MATCH (a:person) RETURN list_prepend([a.ID], a.ID)
 ---- 8
 [0,0]
 [1,1]
