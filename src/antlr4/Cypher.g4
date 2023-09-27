@@ -255,7 +255,7 @@ oC_ReadingClause
         ;
 
 kU_LoadFrom
-    :  LOAD SP FROM SP kU_FilePaths ( SP? '(' SP? kU_ParsingOptions SP? ')' )? ;
+    :  LOAD SP FROM SP kU_FilePaths ( SP? '(' SP? kU_ParsingOptions SP? ')' )? (SP? oC_Where)? ;
 
 LOAD : ( 'L' | 'l' ) ( 'O' | 'o' ) ( 'A' | 'a' ) ( 'D' | 'd' )  ;
 

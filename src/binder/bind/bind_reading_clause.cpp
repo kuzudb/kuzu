@@ -9,6 +9,7 @@
 #include "parser/query/reading_clause/load_from.h"
 #include "parser/query/reading_clause/unwind_clause.h"
 #include "processor/operator/persistent/reader/csv/csv_reader.h"
+#include "processor/operator/persistent/reader/npy_reader.h"
 #include "processor/operator/persistent/reader/parquet/parquet_reader.h"
 
 using namespace kuzu::common;
@@ -45,8 +46,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause&
     auto boundMatchClause = make_unique<BoundMatchClause>(
         std::move(queryGraphCollection), matchClause.getMatchClauseType());
     std::shared_ptr<Expression> whereExpression;
-    if (matchClause.hasWhereClause()) {
-        whereExpression = bindWhereExpression(*matchClause.getWhereClause());
+    if (matchClause.hasWherePredicate()) {
+        whereExpression = bindWhereExpression(*matchClause.getWherePredicate());
     }
     // Rewrite self loop edge
     // e.g. rewrite (a)-[e]->(a) as [a]-[e]->(b) WHERE id(a) = id(b)
@@ -79,7 +80,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause&
             expressionBinder.combineConjunctiveExpressions(predicate, whereExpression);
     }
 
-    boundMatchClause->setWhereExpression(std::move(whereExpression));
+    boundMatchClause->setWherePredicate(std::move(whereExpression));
     return boundMatchClause;
 }
 
@@ -111,6 +112,17 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     }
     return std::make_unique<BoundInQueryCall>(
         tableFunctionDefinition->tableFunc, std::move(bindData), std::move(outputExpressions));
+}
+
+static std::unique_ptr<LogicalType> bindFixedListType(
+    const std::vector<size_t>& shape, LogicalTypeID typeID) {
+    if (shape.size() == 1) {
+        return std::make_unique<LogicalType>(typeID);
+    }
+    auto childShape = std::vector<size_t>{shape.begin() + 1, shape.end()};
+    auto childType = bindFixedListType(childShape, typeID);
+    auto extraInfo = std::make_unique<FixedListTypeInfo>(std::move(childType), (uint32_t)shape[0]);
+    return std::make_unique<LogicalType>(LogicalTypeID::FIXED_LIST, std::move(extraInfo));
 }
 
 std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(
@@ -151,13 +163,26 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(
             columns.push_back(createVariable(columnName, *columnType));
         }
     } break;
+    case FileType::NPY: {
+        auto reader = NpyReader(readerConfig->filePaths[0]);
+        auto columnType = bindFixedListType(reader.getShape(), reader.getType());
+        auto columnName = std::string("column0");
+        readerConfig->columnNames.push_back(columnName);
+        readerConfig->columnTypes.push_back(columnType->copy());
+        columns.push_back(createVariable(columnName, *columnType));
+    } break;
     default:
         throw BinderException(StringUtils::string_format(
             "Load from {} file is not supported.", FileTypeUtils::toString(fileType)));
     }
     auto info = std::make_unique<BoundFileScanInfo>(
         std::move(readerConfig), std::move(columns), nullptr, TableType::UNKNOWN);
-    return std::make_unique<BoundLoadFrom>(std::move(info));
+    auto boundLoadFrom = std::make_unique<BoundLoadFrom>(std::move(info));
+    if (loadFrom.hasWherePredicate()) {
+        auto wherePredicate = expressionBinder.bindExpression(*loadFrom.getWherePredicate());
+        boundLoadFrom->setWherePredicate(std::move(wherePredicate));
+    }
+    return boundLoadFrom;
 }
 
 } // namespace binder

@@ -32,7 +32,7 @@ std::unique_ptr<ReadingClause> Transformer::transformMatch(CypherParser::OC_Matc
     auto matchClause =
         std::make_unique<MatchClause>(transformPattern(*ctx.oC_Pattern()), matchClauseType);
     if (ctx.oC_Where()) {
-        matchClause->setWhereClause(transformWhere(*ctx.oC_Where()));
+        matchClause->setWherePredicate(transformWhere(*ctx.oC_Where()));
     }
     return matchClause;
 }
@@ -60,7 +60,11 @@ std::unique_ptr<ReadingClause> Transformer::transformLoadFrom(
     if (ctx.kU_ParsingOptions()) {
         parsingOptions = transformParsingOptions(*ctx.kU_ParsingOptions());
     }
-    return std::make_unique<LoadFrom>(std::move(filePaths), std::move(parsingOptions));
+    auto loadFrom = std::make_unique<LoadFrom>(std::move(filePaths), std::move(parsingOptions));
+    if (ctx.oC_Where()) {
+        loadFrom->setWherePredicate(transformWhere(*ctx.oC_Where()));
+    }
+    return loadFrom;
 }
 
 } // namespace parser
