@@ -331,17 +331,6 @@ struct RelTableRecord {
     inline bool operator==(const RelTableRecord& rhs) const { return tableID == rhs.tableID; }
 };
 
-struct RelTableGroupRecord {
-    common::table_id_t tableID;
-    // TODO(Ziyi): add this back when we can serialize variable size record.
-    //    std::vector<RelTableRecord> relTableRecords;
-
-    RelTableGroupRecord() = default;
-    RelTableGroupRecord(common::table_id_t tableID) : tableID{tableID} {}
-
-    bool operator==(const RelTableGroupRecord& other) const;
-};
-
 struct RdfGraphRecord {
     common::table_id_t tableID;
     NodeTableRecord nodeTableRecord;
@@ -456,7 +445,6 @@ struct WALRecord {
         CommitRecord commitRecord;
         NodeTableRecord nodeTableRecord;
         RelTableRecord relTableRecord;
-        RelTableGroupRecord relTableGroupRecord;
         RdfGraphRecord rdfGraphRecord;
         DiskOverflowFileNextBytePosRecord diskOverflowFileNextBytePosRecord;
         CopyNodeRecord copyNodeRecord;
@@ -490,9 +478,6 @@ struct WALRecord {
         }
         case WALRecordType::REL_TABLE_RECORD: {
             return relTableRecord == rhs.relTableRecord;
-        }
-        case WALRecordType::REL_TABLE_GROUP_RECORD: {
-            return relTableGroupRecord == rhs.relTableGroupRecord;
         }
         case WALRecordType::RDF_GRAPH_RECORD: {
             return rdfGraphRecord == rhs.rdfGraphRecord;
@@ -531,8 +516,6 @@ struct WALRecord {
     static WALRecord newCatalogRecord();
     static WALRecord newNodeTableRecord(common::table_id_t tableID);
     static WALRecord newRelTableRecord(common::table_id_t tableID);
-    static WALRecord newRelTableGroupRecord(
-        common::table_id_t tableID, std::vector<common::table_id_t> relTableIDs);
     static WALRecord newRdfGraphRecord(common::table_id_t rdfGraphID,
         common::table_id_t nodeTableID, common::table_id_t relTableID);
     static WALRecord newOverflowFileNextBytePosRecord(

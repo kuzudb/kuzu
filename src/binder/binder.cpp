@@ -172,24 +172,6 @@ void Binder::validateTableExist(const std::string& tableName) {
     }
 }
 
-void Binder::validateNodeRelTableExist(const std::string& tableName) {
-    if (!catalog.getReadOnlyVersion()->containsNodeTable(tableName) &&
-        !catalog.getReadOnlyVersion()->containsRelTable(tableName)) {
-        throw BinderException("Table " + tableName + " does not exist.");
-    }
-}
-
-void Binder::validateNodeTableHasNoEdge(const Catalog& _catalog, table_id_t tableID) {
-    for (auto& tableSchema : _catalog.getReadOnlyVersion()->getRelTableSchemas()) {
-        auto relTableSchema = reinterpret_cast<RelTableSchema*>(tableSchema);
-        if (relTableSchema->isSrcOrDstTable(tableID)) {
-            throw BinderException(StringUtils::string_format(
-                "Cannot delete a node table with edges. It is on the edges of rel: {}.",
-                relTableSchema->tableName));
-        }
-    }
-}
-
 std::string Binder::getUniqueExpressionName(const std::string& name) {
     return "_" + std::to_string(lastExpressionId++) + "_" + name;
 }

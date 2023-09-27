@@ -20,6 +20,7 @@ add_library(kuzu_common
         type_utils.cpp
         utils.cpp
         string_utils.cpp
+        table_type.cpp
         ser_deser.cpp)
 
 target_link_libraries(kuzu_common Glob)

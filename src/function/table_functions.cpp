@@ -104,22 +104,7 @@ void ShowTablesFunction::tableFunc(std::pair<offset_t, offset_t> morsel,
     for (auto i = 0u; i < numTablesToOutput; i++) {
         auto tableSchema = tables[morsel.first + i];
         outputVectors[0]->setValue(i, tableSchema->tableName);
-
-        std::string typeString;
-        switch (tableSchema->tableType) {
-        case TableType::NODE: {
-            typeString = "NODE";
-        } break;
-        case TableType::REL: {
-            typeString = "REL";
-        } break;
-        case TableType::RDF: {
-            typeString = "RDF";
-        } break;
-        default: {
-            throw common::NotImplementedException{"ShowTablesFunction::tableFunc"};
-        }
-        };
+        std::string typeString = TableTypeUtils::toString(tableSchema->tableType);
         outputVectors[1]->setValue(i, typeString);
         outputVectors[2]->setValue(i, tableSchema->comment);
     }

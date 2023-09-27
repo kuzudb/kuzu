@@ -142,10 +142,6 @@ std::string walRecordTypeToString(WALRecordType walRecordType) {
     }
 }
 
-bool RelTableGroupRecord::operator==(const RelTableGroupRecord& other) const {
-    return tableID == other.tableID;
-}
-
 WALRecord WALRecord::newPageInsertOrUpdateRecord(StorageStructureID storageStructureID_,
     uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL, bool isInsert) {
     WALRecord retVal;
@@ -198,14 +194,6 @@ WALRecord WALRecord::newRelTableRecord(table_id_t tableID) {
     WALRecord retVal;
     retVal.recordType = WALRecordType::REL_TABLE_RECORD;
     retVal.relTableRecord = RelTableRecord(tableID);
-    return retVal;
-}
-
-WALRecord WALRecord::newRelTableGroupRecord(
-    table_id_t tableID, std::vector<table_id_t> relTableIDs) {
-    WALRecord retVal;
-    retVal.recordType = WALRecordType::REL_TABLE_GROUP_RECORD;
-    retVal.relTableGroupRecord = RelTableGroupRecord(tableID);
     return retVal;
 }
 

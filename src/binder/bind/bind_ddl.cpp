@@ -3,6 +3,7 @@
 #include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_drop_table.h"
 #include "catalog/node_table_schema.h"
+#include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
 #include "common/string_utils.h"
@@ -219,11 +220,35 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTable(const parser::Statement&
 std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement) {
     auto& dropTable = reinterpret_cast<const Drop&>(statement);
     auto tableName = dropTable.getTableName();
-    validateNodeRelTableExist(tableName);
+    validateTableExist(tableName);
     auto catalogContent = catalog.getReadOnlyVersion();
     auto tableID = catalogContent->getTableID(tableName);
-    if (catalogContent->containsNodeTable(tableName)) {
-        validateNodeTableHasNoEdge(catalog, tableID);
+    auto tableSchema = catalogContent->getTableSchema(tableID);
+    switch (tableSchema->tableType) {
+    case TableType::NODE: {
+        for (auto& schema : catalogContent->getRelTableSchemas()) {
+            auto relTableSchema = reinterpret_cast<RelTableSchema*>(schema);
+            if (relTableSchema->isSrcOrDstTable(tableID)) {
+                throw BinderException(StringUtils::string_format(
+                    "Cannot delete node table {} referenced by rel table {}.",
+                    tableSchema->tableName, relTableSchema->tableName));
+            }
+        }
+    } break;
+    case TableType::REL: {
+        for (auto& schema : catalogContent->getRelTableGroupSchemas()) {
+            auto relTableGroupSchema = reinterpret_cast<RelTableGroupSchema*>(schema);
+            for (auto& relTableID : relTableGroupSchema->getRelTableIDs()) {
+                if (relTableID == tableSchema->getTableID()) {
+                    throw BinderException(StringUtils::string_format(
+                        "Cannot delete rel table {} referenced by rel group {}.",
+                        tableSchema->tableName, relTableGroupSchema->tableName));
+                }
+            }
+        }
+    }
+    default:
+        break;
     }
     return make_unique<BoundDropTable>(tableID, tableName);
 }
@@ -255,7 +280,7 @@ std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& stateme
     auto tableName = info->tableName;
     auto newName = extraInfo->newName;
     auto catalogContent = catalog.getReadOnlyVersion();
-    validateNodeRelTableExist(tableName);
+    validateTableExist(tableName);
     if (catalogContent->containsTable(newName)) {
         throw BinderException("Table: " + newName + " already exists.");
     }
@@ -280,6 +305,19 @@ static void validatePropertyNotExist(TableSchema* tableSchema, const std::string
     }
 }
 
+static void validatePropertyDDLOnTable(TableSchema* tableSchema, const std::string& ddlOperation) {
+    switch (tableSchema->tableType) {
+    case TableType::REL_GROUP:
+    case TableType::RDF: {
+        throw BinderException(
+            StringUtils::string_format("Cannot {} property on table {} with type {}.", ddlOperation,
+                tableSchema->tableName, TableTypeUtils::toString(tableSchema->tableType)));
+    }
+    default:
+        return;
+    }
+}
+
 std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& statement) {
     auto& alter = reinterpret_cast<const Alter&>(statement);
     auto info = alter.getInfo();
@@ -287,10 +325,11 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
     auto tableName = info->tableName;
     auto dataType = bindDataType(extraInfo->dataType);
     auto propertyName = extraInfo->propertyName;
-    validateNodeRelTableExist(tableName);
+    validateTableExist(tableName);
     auto catalogContent = catalog.getReadOnlyVersion();
     auto tableID = catalogContent->getTableID(tableName);
     auto tableSchema = catalogContent->getTableSchema(tableID);
+    validatePropertyDDLOnTable(tableSchema, "add");
     validatePropertyNotExist(tableSchema, propertyName);
     if (dataType->getLogicalTypeID() == LogicalTypeID::SERIAL) {
         throw BinderException("Serial property in node table must be the primary key.");
@@ -310,10 +349,11 @@ std::unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statem
     auto extraInfo = reinterpret_cast<ExtraDropPropertyInfo*>(info->extraInfo.get());
     auto tableName = info->tableName;
     auto propertyName = extraInfo->propertyName;
-    validateNodeRelTableExist(tableName);
+    validateTableExist(tableName);
     auto catalogContent = catalog.getReadOnlyVersion();
     auto tableID = catalogContent->getTableID(tableName);
     auto tableSchema = catalogContent->getTableSchema(tableID);
+    validatePropertyDDLOnTable(tableSchema, "drop");
     validatePropertyExist(tableSchema, propertyName);
     auto propertyID = tableSchema->getPropertyID(propertyName);
     if (tableSchema->getTableType() == TableType::NODE &&
@@ -333,10 +373,11 @@ std::unique_ptr<BoundStatement> Binder::bindRenameProperty(const Statement& stat
     auto tableName = info->tableName;
     auto propertyName = extraInfo->propertyName;
     auto newName = extraInfo->newName;
-    validateNodeRelTableExist(tableName);
+    validateTableExist(tableName);
     auto catalogContent = catalog.getReadOnlyVersion();
     auto tableID = catalogContent->getTableID(tableName);
     auto tableSchema = catalogContent->getTableSchema(tableID);
+    validatePropertyDDLOnTable(tableSchema, "rename");
     validatePropertyExist(tableSchema, propertyName);
     auto propertyID = tableSchema->getPropertyID(propertyName);
     validatePropertyNotExist(tableSchema, newName);
