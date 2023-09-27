@@ -21,6 +21,8 @@ include_directories(src/parquet
         src/snappy
         src/thrift)
 
+add_compile_definitions(HAVE_STDINT_H)
+
 add_library(miniparquet STATIC
         src/parquet/parquet_constants.cpp
         src/parquet/parquet_types.cpp
