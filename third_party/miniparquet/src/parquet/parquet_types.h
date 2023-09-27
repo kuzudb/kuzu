@@ -7,9 +7,21 @@
 #ifndef parquet_TYPES_H
 #define parquet_TYPES_H
 
+#ifdef __clang__
+#define KUZU_SUPPRESS_DEPRECATION_WARNING \
+  _Pragma("clang diagnostic push");        \
+  _Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"")
+#define KUZU_UNSUPPRESS_DEPRECATION_WARNING _Pragma("clang diagnostic pop");
+#else
+#define KUZU_SUPPRESS_DEPRECATION_WARNING
+#define KUZU_UNSUPPRESS_DEPRECATION_WARNING
+#endif
+
 #include <iosfwd>
 
+KUZU_SUPPRESS_DEPRECATION_WARNING
 #include <thrift/Thrift.h>
+KUZU_UNSUPPRESS_DEPRECATION_WARNING
 #include <thrift/TApplicationException.h>
 #include <thrift/TBase.h>
 #include <thrift/protocol/TProtocol.h>

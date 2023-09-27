@@ -116,6 +116,9 @@ void ShowTablesFunction::tableFunc(std::pair<offset_t, offset_t> morsel,
         case TableType::RDF: {
             typeString = "RDF";
         } break;
+        default: {
+            throw common::NotImplementedException{"ShowTablesFunction::tableFunc"};
+        }
         };
         outputVectors[1]->setValue(i, typeString);
         outputVectors[2]->setValue(i, tableSchema->comment);

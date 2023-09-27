@@ -8,6 +8,13 @@ if(POLICY CMP0063)
     cmake_policy(SET CMP0063 NEW)
 endif()
 
+# Certain Clang compiler versions throw "deprecated declarations" warnings for
+# Thrift.h which comes from the Apache thrift library.
+# The workaround, for now, is to disable this warning if the compiler is Clang.
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    add_compile_options(-Wno-deprecated-declarations)
+endif()
+
 project(miniparquet CXX)
 
 include_directories(src/parquet
