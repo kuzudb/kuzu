@@ -9,6 +9,7 @@ import sys
 import psutil
 from serializer import _get_kuzu_version
 import multiprocessing
+import re
 
 # Get the number of CPUs, try to use sched_getaffinity if available to account 
 # for Docker CPU limits
@@ -72,6 +73,10 @@ serialized_graphs_path = {
     'ldbc-sf100-ku': os.path.join(serialized_base_dir, 'ldbc-sf100-serialized')
 }
 
+benchmark_copy_log_dir = os.path.join("/tmp", 'benchmark_copy_logs')
+shutil.rmtree(benchmark_copy_log_dir, ignore_errors=True)
+os.mkdir(benchmark_copy_log_dir)
+
 benchmark_log_dir = os.path.join("/tmp", 'benchmark_logs')
 shutil.rmtree(benchmark_log_dir, ignore_errors=True)
 os.mkdir(benchmark_log_dir)
@@ -80,6 +85,35 @@ os.mkdir(benchmark_log_dir)
 # benchmark configuration
 num_warmup = 1
 num_run = 5
+
+
+class CopyQueryBenchmark:
+    def __init__(self, benchmark_copy_log):
+        self.name = os.path.basename(benchmark_copy_log).split('_log')[0]
+        self.group = 'copy'
+        self.status = 'pass'
+
+        with open(benchmark_copy_log) as log_file:
+            self.log = log_file.read()
+        match = re.search('Time: (.*)ms \(compiling\), (.*)ms \(executing\)', self.log)
+        self.compiling_time = float(match.group(1))
+        self.execution_time = float(match.group(2))
+
+    def to_json_dict(self):
+        result = {
+            'query_name': self.name,
+            'query_group': self.group,
+            'log': self.log,
+            'records': [
+                {
+                    'status': self.status,
+                    'compiling_time': self.compiling_time,
+                    'execution_time': self.execution_time,
+                    'query_seq': 3  # value > 2 required by server
+                }
+            ]
+        }
+        return result
 
 
 class QueryBenchmark:
@@ -186,7 +220,7 @@ def serialize_dataset(dataset_name):
     serializer_script = os.path.join(base_dir, "serializer.py")
     try:
         subprocess.run([sys.executable, serializer_script, dataset_name,
-                       dataset_path, serialized_graph_path], check=True)
+                       dataset_path, serialized_graph_path, benchmark_copy_log_dir], check=True)
     except subprocess.CalledProcessError as e:
         logging.error("Failed to serialize dataset: %s", e)
         sys.exit(1)
@@ -246,6 +280,9 @@ def get_run_info():
 
 def get_query_info():
     results = []
+    for filename in os.listdir(benchmark_copy_log_dir):
+        copy_query_benchmark = CopyQueryBenchmark(os.path.join(benchmark_copy_log_dir, filename))
+        results.append(copy_query_benchmark.to_json_dict())
     for path in os.scandir(benchmark_log_dir):
         if path.is_dir():
             for filename in os.listdir(path):

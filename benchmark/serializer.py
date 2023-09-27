@@ -3,6 +3,7 @@ import logging
 import shutil
 import sys
 import subprocess
+import re
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
 kuzu_exec_path = os.path.join(
@@ -17,7 +18,7 @@ def _get_kuzu_version():
                 return line.split(' ')[2].strip()
 
 
-def serialize(dataset_name, dataset_path, serialized_graph_path):
+def serialize(dataset_name, dataset_path, serialized_graph_path, benchmark_copy_log_dir):
     bin_version = _get_kuzu_version()
 
     if not os.path.exists(serialized_graph_path):
@@ -51,8 +52,13 @@ def serialize(dataset_name, dataset_path, serialized_graph_path):
         try:
             # Run kuzu shell one query at a time. This ensures a new process is
             # created for each query to avoid memory leaks.
-            subprocess.run([kuzu_exec_path, serialized_graph_path],
-                           input=(s + ";" + "\n").encode("ascii"), check=True)
+            process = subprocess.run([kuzu_exec_path, serialized_graph_path],
+                input=(s + ";" + "\n").encode("ascii"), stdout=subprocess.PIPE, check=True)
+            print(process.stdout.decode("utf-8"), end='')
+            match = re.search('copied to table: (.*)\.', process.stdout.decode("utf-8"))
+            if match:
+                with open(os.path.join(benchmark_copy_log_dir, match.group(1) + '_log.txt'), 'wb') as f:
+                    f.write(process.stdout)
         except subprocess.CalledProcessError as e:
             logging.error('Error executing query: %s', s)
             raise e
@@ -66,8 +72,9 @@ if __name__ == '__main__':
     dataset_name = sys.argv[1]
     dataset_path = sys.argv[2]
     serialized_graph_path = sys.argv[3]
+    benchmark_copy_log_dir = sys.argv[4]
     try:
-        serialize(dataset_name, dataset_path, serialized_graph_path)
+        serialize(dataset_name, dataset_path, serialized_graph_path, benchmark_copy_log_dir)
     except Exception as e:
         logging.error('Error serializing dataset %s', dataset_name)
         logging.error(e)
