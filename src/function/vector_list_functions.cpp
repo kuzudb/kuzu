@@ -74,7 +74,7 @@ std::unique_ptr<FunctionBindData> ListCreationVectorFunction::bindFunc(
     auto resultChildType = VarListType::getChildType(&resultType);
     // Cast parameters with ANY dataType to resultChildType.
     for (auto& argument : arguments) {
-        auto parameterType = argument->getDataType();
+        auto& parameterType = argument->getDataTypeReference();
         if (parameterType != *resultChildType) {
             if (parameterType.getLogicalTypeID() == LogicalTypeID::ANY) {
                 binder::ExpressionBinder::resolveAnyDataType(*argument, *resultChildType);

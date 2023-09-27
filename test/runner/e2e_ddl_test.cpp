@@ -304,14 +304,15 @@ public:
         }
     }
 
-    void addPropertyToPersonTableWithDefaultValue(
-        std::string propertyType, std::string defaultVal, TransactionTestType transactionTestType) {
+    void addPropertyToPersonTableWithDefaultValue(std::string propertyType, std::string defaultVal,
+        TransactionTestType transactionTestType, std::string expectedVal = "") {
         executeQueryWithoutCommit(
             "ALTER TABLE person ADD random " + propertyType + " DEFAULT " + defaultVal);
         // The convertResultToString function will remove the single quote around the result
         // std::string, so we should also remove the single quote in the expected result.
         defaultVal.erase(remove(defaultVal.begin(), defaultVal.end(), '\''), defaultVal.end());
-        std::vector<std::string> expectedResult(8 /* numOfNodesInPesron */, defaultVal);
+        std::vector<std::string> expectedResult(
+            8 /* numOfNodesInPesron */, expectedVal.empty() ? defaultVal : expectedVal);
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->query("COMMIT_SKIP_CHECKPOINT");
             initWithoutLoadingGraph();
@@ -559,6 +560,27 @@ TEST_F(TinySnbDDLTest, AddListOfStringPropertyToPersonTableWithoutDefaultValueRe
         "STRING[]" /* propertyType */, TransactionTestType::RECOVERY);
 }
 
+TEST_F(TinySnbDDLTest, AddListOfStructPropertyToPersonTableWithoutDefaultValueNormalExecution) {
+    addPropertyToPersonTableWithoutDefaultValue(
+        "STRUCT(revenue int64, ages double[])[]" /* propertyType */,
+        TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(TinySnbDDLTest, AddListOfStructPropertyToPersonTableWithoutDefaultValueRecovery) {
+    addPropertyToPersonTableWithoutDefaultValue(
+        "STRUCT(revenue int64, ages double[])[]" /* propertyType */, TransactionTestType::RECOVERY);
+}
+
+TEST_F(TinySnbDDLTest, AddMapPropertyToPersonTableWithoutDefaultValueNormalExecution) {
+    addPropertyToPersonTableWithoutDefaultValue(
+        "MAP(INT64, INT32)" /* propertyType */, TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(TinySnbDDLTest, AddMapPropertyToPersonTableWithoutDefaultValueRecovery) {
+    addPropertyToPersonTableWithoutDefaultValue(
+        "MAP(STRING, INT64)" /* propertyType */, TransactionTestType::RECOVERY);
+}
+
 TEST_F(TinySnbDDLTest, AddStructPropertyToPersonTableWithoutDefaultValueNormalExecution) {
     addPropertyToPersonTableWithoutDefaultValue(
         "STRUCT(revenue int16, location string[])" /* propertyType */,
@@ -624,6 +646,33 @@ TEST_F(TinySnbDDLTest, AddListOfListOfStringPropertyToPersonTableWithDefaultValu
         "[['142','51'],['short','long','123'],['long long long string','short short short short',"
         "'short']]" /* defaultValue */,
         TransactionTestType::RECOVERY);
+}
+
+TEST_F(TinySnbDDLTest, AddListOfStructPropertyToPersonTableWithDefaultValueNormalExecution) {
+    addPropertyToPersonTableWithDefaultValue(
+        "STRUCT(revenue int64, ages double[])[]" /* propertyType */,
+        "[{revenue: 23, ages: [1.300000,2.500000]},{revenue: 33, ages: [2.700000]},{revenue: "
+        "-4, ages: [22.500000,11.300000,33.200000]}]" /* defaultValue */,
+        TransactionTestType::NORMAL_EXECUTION);
+}
+
+TEST_F(TinySnbDDLTest, AddListOfStructPropertyToPersonTableWithDefaultValueRecovery) {
+    addPropertyToPersonTableWithDefaultValue(
+        "STRUCT(revenue int64, ages double[])[]" /* propertyType */,
+        "[{revenue: 144, ages: [3.200000,7.200000]}]" /* defaultValue */,
+        TransactionTestType::RECOVERY);
+}
+
+TEST_F(TinySnbDDLTest, AddMapPropertyToPersonTableWithDefaultValueNormalExecution) {
+    addPropertyToPersonTableWithDefaultValue("MAP(STRING, INT64)" /* propertyType */,
+        "map(['key1','key2'],[400,250])" /* defaultValue */, TransactionTestType::NORMAL_EXECUTION,
+        "{key1=400, key2=250}" /* expectedVal */);
+}
+
+TEST_F(TinySnbDDLTest, AddMapPropertyToPersonTableWithDefaultValueRecovery) {
+    addPropertyToPersonTableWithDefaultValue("MAP(STRING, INT64[])" /* propertyType */,
+        "map(['key3'],[[3,2,1]])" /* defaultValue */, TransactionTestType::RECOVERY,
+        "{key3=[3,2,1]}" /* expectedVal */);
 }
 
 TEST_F(TinySnbDDLTest, AddStructPropertyToPersonTableWithDefaultValueNormalExecution) {
