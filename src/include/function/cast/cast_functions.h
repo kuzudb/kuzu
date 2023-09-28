@@ -2,6 +2,9 @@
 
 #include <cassert>
 
+#include "common/exception/runtime.h"
+#include "common/string_utils.h"
+#include "common/type_utils.h"
 #include "common/types/blob.h"
 #include "common/vector/value_vector.h"
 #include "numeric_cast.h"
@@ -83,19 +86,13 @@ inline std::string CastToString::castToStringWithVector(
     return common::TypeUtils::toString(input, (void*)&inputVector);
 }
 
-template<typename SRC, typename DST>
-static inline void numericDownCast(SRC& input, DST& result, const std::string& dstTypeStr) {
-    if (input < std::numeric_limits<DST>::min() || input > std::numeric_limits<DST>::max()) {
-        throw common::RuntimeException(
-            "Cast failed. " + std::to_string(input) + " is not in " + dstTypeStr + " range.");
-    }
-    result = (DST)input;
-}
-
 struct CastToDouble {
     template<typename T>
     static inline void operation(T& input, double_t& result) {
-        result = static_cast<double_t>(input);
+        if (!tryCastWithOverflowCheck(input, result)) {
+            throw common::RuntimeException{common::StringUtils::string_format(
+                "Value {} is not within DOUBLE range", common::TypeUtils::toString(input).c_str())};
+        }
     }
 };
 
@@ -114,7 +111,10 @@ inline void CastToDouble::operation(common::ku_string_t& input, double_t& result
 struct CastToFloat {
     template<typename T>
     static inline void operation(T& input, float_t& result) {
-        result = static_cast<float_t>(input);
+        if (!tryCastWithOverflowCheck(input, result)) {
+            throw common::RuntimeException{common::StringUtils::string_format(
+                "Value {} is not within FLOAT range", common::TypeUtils::toString(input).c_str())};
+        }
     }
 };
 
@@ -130,27 +130,15 @@ inline void CastToFloat::operation(common::ku_string_t& input, float_t& result) 
         common::LogicalType{common::LogicalTypeID::FLOAT});
 }
 
-template<>
-inline void CastToFloat::operation(double_t& input, float_t& result) {
-    numericDownCast<double_t, float_t>(input, result, "FLOAT");
-}
-
 struct CastToInt64 {
     template<typename T>
     static inline void operation(T& input, int64_t& result) {
-        result = static_cast<int64_t>(input);
+        if (!tryCastWithOverflowCheck(input, result)) {
+            throw common::RuntimeException{common::StringUtils::string_format(
+                "Value {} is not within INT64 range", common::TypeUtils::toString(input).c_str())};
+        }
     }
 };
-
-template<>
-inline void CastToInt64::operation(double_t& input, int64_t& result) {
-    numericDownCast<double_t, int64_t>(input, result, "INT64");
-}
-
-template<>
-inline void CastToInt64::operation(float_t& input, int64_t& result) {
-    numericDownCast<float_t, int64_t>(input, result, "INT64");
-}
 
 template<>
 inline void CastToInt64::operation(char*& input, int64_t& result) {
@@ -167,31 +155,22 @@ inline void CastToInt64::operation(common::ku_string_t& input, int64_t& result) 
 struct CastToSerial {
     template<typename T>
     static inline void operation(T& input, int64_t& result) {
-        CastToInt64::operation(input, result);
+        if (!tryCastWithOverflowCheck(input, result)) {
+            throw common::RuntimeException{common::StringUtils::string_format(
+                "Value {} is not within INT64 range", common::TypeUtils::toString(input).c_str())};
+        }
     }
 };
 
 struct CastToInt32 {
     template<typename T>
     static inline void operation(T& input, int32_t& result) {
-        result = static_cast<int32_t>(input);
+        if (!tryCastWithOverflowCheck(input, result)) {
+            throw common::RuntimeException{common::StringUtils::string_format(
+                "Value {} is not within INT32 range", common::TypeUtils::toString(input).c_str())};
+        }
     }
 };
-
-template<>
-inline void CastToInt32::operation(double_t& input, int32_t& result) {
-    numericDownCast<double_t, int32_t>(input, result, "INT32");
-}
-
-template<>
-inline void CastToInt32::operation(float_t& input, int32_t& result) {
-    numericDownCast<float_t, int32_t>(input, result, "INT32");
-}
-
-template<>
-inline void CastToInt32::operation(int64_t& input, int32_t& result) {
-    numericDownCast<int64_t, int32_t>(input, result, "INT32");
-}
 
 template<>
 inline void CastToInt32::operation(char*& input, int32_t& result) {
@@ -208,29 +187,12 @@ inline void CastToInt32::operation(common::ku_string_t& input, int32_t& result) 
 struct CastToInt16 {
     template<typename T>
     static inline void operation(T& input, int16_t& result) {
-        result = static_cast<int16_t>(input);
+        if (!tryCastWithOverflowCheck(input, result)) {
+            throw common::RuntimeException{common::StringUtils::string_format(
+                "Value {} is not within INT16 range", common::TypeUtils::toString(input).c_str())};
+        }
     }
 };
-
-template<>
-inline void CastToInt16::operation(double_t& input, int16_t& result) {
-    numericDownCast<double_t, int16_t>(input, result, "INT16");
-}
-
-template<>
-inline void CastToInt16::operation(float_t& input, int16_t& result) {
-    numericDownCast<float_t, int16_t>(input, result, "INT16");
-}
-
-template<>
-inline void CastToInt16::operation(int64_t& input, int16_t& result) {
-    numericDownCast<int64_t, int16_t>(input, result, "INT16");
-}
-
-template<>
-inline void CastToInt16::operation(int32_t& input, int16_t& result) {
-    numericDownCast<int32_t, int16_t>(input, result, "INT16");
-}
 
 template<>
 inline void CastToInt16::operation(common::ku_string_t& input, int16_t& result) {
@@ -247,34 +209,12 @@ inline void CastToInt16::operation(char*& input, int16_t& result) {
 struct CastToInt8 {
     template<typename T>
     static inline void operation(T& input, int8_t& result) {
-        result = static_cast<int8_t>(input);
+        if (!tryCastWithOverflowCheck(input, result)) {
+            throw common::RuntimeException{common::StringUtils::string_format(
+                "Value {} is not within INT8 range", common::TypeUtils::toString(input).c_str())};
+        }
     }
 };
-
-template<>
-inline void CastToInt8::operation(double_t& input, int8_t& result) {
-    numericDownCast<double_t, int8_t>(input, result, "INT8");
-}
-
-template<>
-inline void CastToInt8::operation(float_t& input, int8_t& result) {
-    numericDownCast<float_t, int8_t>(input, result, "INT8");
-}
-
-template<>
-inline void CastToInt8::operation(int64_t& input, int8_t& result) {
-    numericDownCast<int64_t, int8_t>(input, result, "INT8");
-}
-
-template<>
-inline void CastToInt8::operation(int32_t& input, int8_t& result) {
-    numericDownCast<int32_t, int8_t>(input, result, "INT8");
-}
-
-template<>
-inline void CastToInt8::operation(int16_t& input, int8_t& result) {
-    numericDownCast<int16_t, int8_t>(input, result, "INT8");
-}
 
 template<>
 inline void CastToInt8::operation(common::ku_string_t& input, int8_t& result) {
@@ -291,19 +231,12 @@ inline void CastToInt8::operation(char*& input, int8_t& result) {
 struct CastToUInt64 {
     template<typename T>
     static inline void operation(T& input, uint64_t& result) {
-        result = static_cast<uint64_t>(input);
+        if (!tryCastWithOverflowCheck(input, result)) {
+            throw common::RuntimeException{common::StringUtils::string_format(
+                "Value {} is not within UINT64 range", common::TypeUtils::toString(input).c_str())};
+        }
     }
 };
-
-template<>
-inline void CastToUInt64::operation(double_t& input, uint64_t& result) {
-    numericDownCast<double_t, uint64_t>(input, result, "UINT64");
-}
-
-template<>
-inline void CastToUInt64::operation(float_t& input, uint64_t& result) {
-    numericDownCast<float_t, uint64_t>(input, result, "UINT64");
-}
 
 template<>
 inline void CastToUInt64::operation(common::ku_string_t& input, uint64_t& result) {
@@ -320,29 +253,12 @@ inline void CastToUInt64::operation(char*& input, uint64_t& result) {
 struct CastToUInt32 {
     template<typename T>
     static inline void operation(T& input, uint32_t& result) {
-        result = static_cast<uint32_t>(input);
+        if (!tryCastWithOverflowCheck(input, result)) {
+            throw common::RuntimeException{common::StringUtils::string_format(
+                "Value {} is not within UINT32 range", common::TypeUtils::toString(input).c_str())};
+        }
     }
 };
-
-template<>
-inline void CastToUInt32::operation(double_t& input, uint32_t& result) {
-    numericDownCast<double_t, uint32_t>(input, result, "UINT32");
-}
-
-template<>
-inline void CastToUInt32::operation(float_t& input, uint32_t& result) {
-    numericDownCast<float_t, uint32_t>(input, result, "UINT32");
-}
-
-template<>
-inline void CastToUInt32::operation(int64_t& input, uint32_t& result) {
-    numericDownCast<int64_t, uint32_t>(input, result, "UINT32");
-}
-
-template<>
-inline void CastToUInt32::operation(uint64_t& input, uint32_t& result) {
-    numericDownCast<uint64_t, uint32_t>(input, result, "UINT32");
-}
 
 template<>
 inline void CastToUInt32::operation(common::ku_string_t& input, uint32_t& result) {
@@ -359,39 +275,12 @@ inline void CastToUInt32::operation(char*& input, uint32_t& result) {
 struct CastToUInt16 {
     template<typename T>
     static inline void operation(T& input, uint16_t& result) {
-        result = static_cast<uint16_t>(input);
+        if (!tryCastWithOverflowCheck(input, result)) {
+            throw common::RuntimeException{common::StringUtils::string_format(
+                "Value {} is not within UINT16 range", common::TypeUtils::toString(input).c_str())};
+        }
     }
 };
-
-template<>
-inline void CastToUInt16::operation(double_t& input, uint16_t& result) {
-    numericDownCast<double_t, uint16_t>(input, result, "UINT16");
-}
-
-template<>
-inline void CastToUInt16::operation(float_t& input, uint16_t& result) {
-    numericDownCast<float_t, uint16_t>(input, result, "UINT16");
-}
-
-template<>
-inline void CastToUInt16::operation(int64_t& input, uint16_t& result) {
-    numericDownCast<int64_t, uint16_t>(input, result, "UINT16");
-}
-
-template<>
-inline void CastToUInt16::operation(uint64_t& input, uint16_t& result) {
-    numericDownCast<uint64_t, uint16_t>(input, result, "UINT16");
-}
-
-template<>
-inline void CastToUInt16::operation(int32_t& input, uint16_t& result) {
-    numericDownCast<int32_t, uint16_t>(input, result, "UINT16");
-}
-
-template<>
-inline void CastToUInt16::operation(uint32_t& input, uint16_t& result) {
-    numericDownCast<uint32_t, uint16_t>(input, result, "UINT16");
-}
 
 template<>
 inline void CastToUInt16::operation(common::ku_string_t& input, uint16_t& result) {
@@ -408,49 +297,12 @@ inline void CastToUInt16::operation(char*& input, uint16_t& result) {
 struct CastToUInt8 {
     template<typename T>
     static inline void operation(T& input, uint8_t& result) {
-        result = static_cast<uint8_t>(input);
+        if (!tryCastWithOverflowCheck(input, result)) {
+            throw common::RuntimeException{common::StringUtils::string_format(
+                "Value {} is not within UINT8 range", common::TypeUtils::toString(input).c_str())};
+        }
     }
 };
-
-template<>
-inline void CastToUInt8::operation(double_t& input, uint8_t& result) {
-    numericDownCast<double_t, uint8_t>(input, result, "UINT8");
-}
-
-template<>
-inline void CastToUInt8::operation(float_t& input, uint8_t& result) {
-    numericDownCast<float_t, uint8_t>(input, result, "UINT8");
-}
-
-template<>
-inline void CastToUInt8::operation(int64_t& input, uint8_t& result) {
-    numericDownCast<int64_t, uint8_t>(input, result, "UINT8");
-}
-
-template<>
-inline void CastToUInt8::operation(uint64_t& input, uint8_t& result) {
-    numericDownCast<uint64_t, uint8_t>(input, result, "UINT8");
-}
-
-template<>
-inline void CastToUInt8::operation(int32_t& input, uint8_t& result) {
-    numericDownCast<int32_t, uint8_t>(input, result, "UINT8");
-}
-
-template<>
-inline void CastToUInt8::operation(uint32_t& input, uint8_t& result) {
-    numericDownCast<uint32_t, uint8_t>(input, result, "UINT8");
-}
-
-template<>
-inline void CastToUInt8::operation(int16_t& input, uint8_t& result) {
-    numericDownCast<int16_t, uint8_t>(input, result, "UINT8");
-}
-
-template<>
-inline void CastToUInt8::operation(uint16_t& input, uint8_t& result) {
-    numericDownCast<uint16_t, uint8_t>(input, result, "UINT8");
-}
 
 template<>
 inline void CastToUInt8::operation(common::ku_string_t& input, uint8_t& result) {

@@ -21,7 +21,7 @@ Connection Exception: Query is empty.
 -CASE Overflow
 -STATEMENT RETURN to_int16(10000000000)
 ---- error
-Runtime exception: Cast failed. 10000000000 is not in INT16 range.
+Runtime exception: Value 10000000000 is not within INT16 range
 
 -CASE Int32PrimaryKey
 -STATEMENT CREATE NODE TABLE play(a INT32, PRIMARY KEY (a))

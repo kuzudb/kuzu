@@ -31,7 +31,7 @@ def test_uint8(establish_connection):
     conn, db = establish_connection
     result = conn.execute("MATCH (a:person) -[r:studyAt]-> (b:organisation) WHERE r.length = 5 RETURN r.ulevel;")
     assert result.has_next()
-    assert result.get_next() == [15]
+    assert result.get_next() == [250]
     assert not result.has_next()
     result.close()
 
@@ -39,7 +39,7 @@ def test_uint16(establish_connection):
     conn, db = establish_connection
     result = conn.execute("MATCH (a:person) -[r:studyAt]-> (b:organisation) WHERE r.length = 5 RETURN r.ulength;")
     assert result.has_next()
-    assert result.get_next() == [120]
+    assert result.get_next() == [33768]
     assert not result.has_next()
     result.close()
 
@@ -47,7 +47,7 @@ def test_uint32(establish_connection):
     conn, db = establish_connection
     result = conn.execute("MATCH (a:person) -[r:studyAt]-> (b:organisation) WHERE r.length = 5 RETURN r.temprature;")
     assert result.has_next()
-    assert result.get_next() == [35]
+    assert result.get_next() == [32800]
     assert not result.has_next()
     result.close()
 
@@ -55,7 +55,7 @@ def test_uint64(establish_connection):
     conn, db = establish_connection
     result = conn.execute("MATCH (a:person) -[r:studyAt]-> (b:organisation) WHERE r.length = 5 RETURN r.code;")
     assert result.has_next()
-    assert result.get_next() == [6556]
+    assert result.get_next() == [9223372036854775808]
     assert not result.has_next()
     result.close()
 
@@ -224,11 +224,12 @@ def test_recursive_rel(establish_connection):
     rel = e["_rels"][0]
     excepted_rel = {'_src': {'offset': 0, 'table': 0},
                     '_dst': {'offset': 0, 'table': 1},
-                    '_label': 'studyAt', 
+                    '_label': 'studyAt',
                     'date': None, 'meetTime': None, 'validInterval': None,
                     'comments': None, 'year': 2021,
                     'places': ['wwAewsdndweusd', 'wek'],
-                    'length': 5, 'level': 5, 'code': 6556, 'temprature':35, 'ulength':120, 'ulevel': 15, 'grading': None,
+                    'length': 5, 'level': 5, 'code': 9223372036854775808, 'temprature':32800,
+                    'ulength':33768, 'ulevel': 250, 'grading': None,
                     'rating': None, 'location': None, 'times': None, 'data': None,
                     'usedAddress': None, 'address': None, 'note': None}
     assert (rel == excepted_rel)

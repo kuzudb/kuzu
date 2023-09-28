@@ -131,22 +131,22 @@ False
 -LOG SimpleCollectUINT64Test
 -STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN collect(e.code)
 ---- 1
-[6556,6689,23]
+[9223372036854775808,6689,23]
 
 -LOG SimpleCollectUINT32Test
 -STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN collect(e.temprature)
 ---- 1
-[35,1,20]
+[32800,1,20]
 
 -LOG SimpleCollectUINT16Test
 -STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN collect(e.ulength)
 ---- 1
-[120,90,180]
+[33768,90,180]
 
 -LOG SimpleCollectUINT8Test
 -STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN collect(e.ulevel)
 ---- 1
-[15,220,12]
+[250,220,12]
 
 -LOG SimpleCollectBLOBTest
 -STATEMENT MATCH (m:movies) RETURN collect(m.content)
@@ -264,56 +264,56 @@ False
 -PARALLELISM 2
 -ENUMERATE
 ---- 1
-6689
+9223372036854775808
 
 -LOG SimpleAggSumUInt64Test
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.code)
 -PARALLELISM 2
 -ENUMERATE
 ---- 1
-13268
+9223372036854782520
 
 -LOG SimpleAggMaxUInt32Test
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.temprature)
 -PARALLELISM 2
 -ENUMERATE
 ---- 1
-35
+32800
 
 -LOG SimpleAggSumUInt32Test
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.temprature)
 -PARALLELISM 2
 -ENUMERATE
 ---- 1
-56
+32821
 
 -LOG SimpleAggMaxUInt16Test
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.ulength)
 -PARALLELISM 2
 -ENUMERATE
 ---- 1
-180
+33768
 
 -LOG SimpleAggSumUInt16Test
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.ulength)
 -PARALLELISM 2
 -ENUMERATE
 ---- 1
-390
+34038
 
 -LOG SimpleAggMaxUInt8Test
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.ulevel)
 -PARALLELISM 2
 -ENUMERATE
 ---- 1
-220
+250
 
 -LOG SimpleAggSumUInt8Test
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.ulevel)
 -PARALLELISM 2
 -ENUMERATE
 ---- 1
-247
+226
 
 -LOG SimpleAggCountBlob
 -STATEMENT MATCH (m:movies) RETURN COUNT(m.content)

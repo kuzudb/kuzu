@@ -81,7 +81,7 @@ describe("UINT8", function () {
     assert.equal(Object.keys(result[0]).length, 1);
     assert.isTrue("s.ulevel" in result[0]);
     assert.equal(typeof result[0]["s.ulevel"], "number");
-    assert.equal(result[0]["s.ulevel"], 15);
+    assert.equal(result[0]["s.ulevel"], 250);
   });
 });
 
@@ -95,7 +95,7 @@ describe("UINT16", function () {
     assert.equal(Object.keys(result[0]).length, 1);
     assert.isTrue("s.ulength" in result[0]);
     assert.equal(typeof result[0]["s.ulength"], "number");
-    assert.equal(result[0]["s.ulength"], 120);
+    assert.equal(result[0]["s.ulength"], 33768);
   });
 });
 
@@ -109,7 +109,7 @@ describe("UINT32", function () {
     assert.equal(Object.keys(result[0]).length, 1);
     assert.isTrue("s.temprature" in result[0]);
     assert.equal(typeof result[0]["s.temprature"], "number");
-    assert.equal(result[0]["s.temprature"], 35);
+    assert.equal(result[0]["s.temprature"], 32800);
   });
 });
 
@@ -123,7 +123,7 @@ describe("UINT64", function () {
     assert.equal(Object.keys(result[0]).length, 1);
     assert.isTrue("s.code" in result[0]);
     assert.equal(typeof result[0]["s.code"], "number");
-    assert.equal(result[0]["s.code"], 6556);
+    assert.equal(result[0]["s.code"], 9223372036854775808);
   });
 });
 
@@ -390,10 +390,10 @@ describe("RECURSIVE_REL", function () {
           places: ["wwAewsdndweusd", "wek"],
           length: 5,
           level: 5,
-          code: 6556,
-          temprature: 35,
-          ulength: 120,
-          ulevel: 15,
+          code: 9223372036854776000,
+          temprature: 32800,
+          ulength: 33768,
+          ulevel: 250,
           grading: null,
           rating: null,
           location: null,

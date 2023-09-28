@@ -33,47 +33,47 @@ Dan
 10
 
 -LOG UINT8Equal
--STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.ulevel = 15 RETURN s.level;
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.ulevel = 250 RETURN s.level;
 ---- 1
 5
 
 -LOG UINT8NotEqual
--STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.ulevel <> 15 RETURN s.level;
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.ulevel <> 250 RETURN s.level;
 ---- 2
 120
 2
 
 -LOG UINT16NotEqual
--STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.ulength = 120 RETURN s.level;
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.ulength = 33768 RETURN s.level;
 ---- 1
 5
 
 -LOG UINT16NotEqual
--STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.ulength <> 120 RETURN s.level;
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.ulength <> 33768 RETURN s.level;
 ---- 2
 120
 2
 
 -LOG UINT32Equal
--STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.temprature = 35 RETURN s.level;
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.temprature = 32800 RETURN s.level;
 ---- 1
 5
 
 -LOG UINT32NotEqual
--STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.temprature <> 35 RETURN s.level;
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.temprature <> 32800 RETURN s.level;
 ---- 2
 120
 2
 
 -LOG UINT64Equal
--STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.code = 6556 RETURN s.level;
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.code = 6689 RETURN s.level;
 ---- 1
-5
+120
 
 -LOG UINT64NotEqual
--STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.code <> 6556 RETURN s.level;
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.code <> 6689 RETURN s.level;
 ---- 2
-120
+5
 2
 
 -LOG INT64Greater

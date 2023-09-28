@@ -315,7 +315,6 @@ vector_function_definitions CastToInt64VectorFunction::getDefinitions() {
         CAST_TO_INT64_FUNC_NAME, LogicalTypeID::INT16, LogicalTypeID::INT64));
     result.push_back(bindVectorFunction<int32_t, int64_t, CastToInt64>(
         CAST_TO_INT64_FUNC_NAME, LogicalTypeID::INT32, LogicalTypeID::INT64));
-    // down cast
     result.push_back(bindVectorFunction<uint64_t, int64_t, CastToInt64>(
         CAST_TO_INT64_FUNC_NAME, LogicalTypeID::UINT64, LogicalTypeID::INT64));
     result.push_back(bindVectorFunction<float_t, int64_t, CastToInt64>(
@@ -397,6 +396,14 @@ vector_function_definitions CastToInt8VectorFunction::getDefinitions() {
         CAST_TO_INT8_FUNC_NAME, LogicalTypeID::INT32, LogicalTypeID::INT8));
     result.push_back(bindVectorFunction<int64_t, int8_t, CastToInt8>(
         CAST_TO_INT8_FUNC_NAME, LogicalTypeID::INT64, LogicalTypeID::INT8));
+    result.push_back(bindVectorFunction<uint64_t, int8_t, CastToInt8>(
+        CAST_TO_INT8_FUNC_NAME, LogicalTypeID::UINT64, LogicalTypeID::INT8));
+    result.push_back(bindVectorFunction<uint32_t, int8_t, CastToInt8>(
+        CAST_TO_INT8_FUNC_NAME, LogicalTypeID::UINT32, LogicalTypeID::INT8));
+    result.push_back(bindVectorFunction<uint16_t, int8_t, CastToInt8>(
+        CAST_TO_INT8_FUNC_NAME, LogicalTypeID::UINT16, LogicalTypeID::INT8));
+    result.push_back(bindVectorFunction<uint8_t, int8_t, CastToInt8>(
+        CAST_TO_INT8_FUNC_NAME, LogicalTypeID::UINT8, LogicalTypeID::INT8));
     result.push_back(bindVectorFunction<float_t, int8_t, CastToInt8>(
         CAST_TO_INT8_FUNC_NAME, LogicalTypeID::FLOAT, LogicalTypeID::INT8));
     result.push_back(bindVectorFunction<uint64_t, int8_t, CastToInt8>(
