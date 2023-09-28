@@ -56,11 +56,15 @@ def serialize(dataset_name, dataset_path, serialized_graph_path, benchmark_copy_
         process.stdin.write((s + ";" + "\n").encode("ascii"))
         process.stdin.close()
         match = re.match('copy (.*) from', s, re.IGNORECASE)
+        if match:
+            f = open(os.path.join(benchmark_copy_log_dir, match.group(1) + '_log.txt'), 'ab')
         for line in iter(process.stdout.readline, b''):
-            print(line.decode("utf-8"), end='')
+            sys.stdout.write(line.decode("utf-8"))
+            sys.stdout.flush()
             if match:
-                with open(os.path.join(benchmark_copy_log_dir, match.group(1) + '_log.txt'), 'ab') as f:
-                    f.write(line)
+                f.write(line)
+        if match:
+            f.close()
         process.wait()
         if process.returncode != 0:
             logging.error('Error executing query: %s', s)
