@@ -48,21 +48,9 @@ jobs:
           file: cover.info
           functionalities: 'search'
 
-      - name: C Example
-        working-directory: examples/c
+      - name: C and C++ Examples
         run: |
-          mkdir build -p
-          cd build
-          CC=gcc CXX=g++ cmake ..
-          cmake --build .
-
-      - name: C++ Example
-        working-directory: examples/cpp
-        run: |
-          mkdir build -p
-          cd build
-          CC=gcc CXX=g++ cmake ..
-          cmake --build .
+          CC=gcc CXX=g++ make example NUM_THREADS=32
 
   rust-build-test:
     name: rust build & test
@@ -194,6 +182,10 @@ jobs:
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
           make javatest NUM_THREADS=18
+
+      - name: C and C++ Examples
+        run: |
+          make example NUM_THREADS=32
 
   header-include-guard-check:
     name: header include guard check
