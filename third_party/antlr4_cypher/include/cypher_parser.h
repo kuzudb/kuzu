@@ -710,19 +710,19 @@ public:
     KU_DataTypeContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     OC_SymbolicNameContext *oC_SymbolicName();
-    KU_ListIdentifiersContext *kU_ListIdentifiers();
     antlr4::tree::TerminalNode *UNION();
     KU_PropertyDefinitionsContext *kU_PropertyDefinitions();
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
     std::vector<KU_DataTypeContext *> kU_DataType();
     KU_DataTypeContext* kU_DataType(size_t i);
+    KU_ListIdentifiersContext *kU_ListIdentifiers();
 
    
   };
 
   KU_DataTypeContext* kU_DataType();
-
+  KU_DataTypeContext* kU_DataType(int precedence);
   class  KU_ListIdentifiersContext : public antlr4::ParserRuleContext {
   public:
     KU_ListIdentifiersContext(antlr4::ParserRuleContext *parent, size_t invokingState);
@@ -2168,6 +2168,10 @@ public:
 
   OC_DashContext* oC_Dash();
 
+
+  bool sempred(antlr4::RuleContext *_localctx, size_t ruleIndex, size_t predicateIndex) override;
+
+  bool kU_DataTypeSempred(KU_DataTypeContext *_localctx, size_t predicateIndex);
 
   // By default the static state used to implement the parser is lazily initialized during the first
   // call to the constructor. You can call this function if you wish to initialize the static state

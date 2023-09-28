@@ -160,7 +160,7 @@ TO: ( 'T' | 't' ) ( 'O' | 'o' ) ;
 
 kU_DataType
     : oC_SymbolicName
-        | ( oC_SymbolicName kU_ListIdentifiers )
+        | kU_DataType kU_ListIdentifiers
         | UNION SP? '(' SP? kU_PropertyDefinitions SP? ')'
         | oC_SymbolicName SP? '(' SP? kU_PropertyDefinitions SP? ')'
         | oC_SymbolicName SP? '(' SP? kU_DataType SP? ',' SP? kU_DataType SP? ')' ;
