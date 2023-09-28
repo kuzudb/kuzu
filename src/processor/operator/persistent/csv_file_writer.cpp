@@ -57,7 +57,7 @@ void CSVFileWriter::writeValues(std::vector<common::ValueVector*>& outputVectors
 template<typename T>
 void CSVFileWriter::writeToBuffer(common::ValueVector* vector, bool escapeStringValue) {
     auto selPos = vector->state->selVector->selectedPositions[0];
-    auto value = TypeUtils::toString(vector->getValue<T>(selPos));
+    auto value = vector->isNull(selPos) ? "" : TypeUtils::toString(vector->getValue<T>(selPos));
     if (escapeStringValue) {
         escapeString(value);
     }
@@ -68,7 +68,8 @@ template<typename T>
 void CSVFileWriter::writeListToBuffer(common::ValueVector* vector) {
     // vectors are always flat
     auto selPos = vector->state->selVector->selectedPositions[0];
-    auto value = TypeUtils::toString(vector->getValue<T>(selPos), vector);
+    auto value =
+        vector->isNull(selPos) ? "" : TypeUtils::toString(vector->getValue<T>(selPos), vector);
     escapeString(value);
     writeToBuffer(value);
 }

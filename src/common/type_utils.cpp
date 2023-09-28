@@ -93,11 +93,15 @@ std::string TypeUtils::toString(const list_entry_t& val, void* valueVector) {
     auto childType = VarListType::getChildType(&listVector->dataType);
     auto dataVector = ListVector::getDataVector(listVector);
     for (auto i = 0u; i < val.size - 1; ++i) {
-        result += castValueToString(*childType, values, dataVector);
+        result += dataVector->isNull(val.offset + i) ?
+                      "" :
+                      castValueToString(*childType, values, dataVector);
         result += ",";
         values += ListVector::getDataVector(listVector)->getNumBytesPerValue();
     }
-    result += castValueToString(*childType, values, dataVector);
+    result += dataVector->isNull(val.offset + val.size - 1) ?
+                  "" :
+                  castValueToString(*childType, values, dataVector);
     result += "]";
     return result;
 }
