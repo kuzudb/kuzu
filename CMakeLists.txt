@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.11)
 
-project(Kuzu VERSION 0.0.8.11 LANGUAGES CXX)
+project(Kuzu VERSION 0.0.8.11 LANGUAGES CXX C)
 
 find_package(Threads REQUIRED)
 
@@ -124,6 +124,7 @@ option(BUILD_PYTHON_API "Build Python API." TRUE)
 option(BUILD_SHELL "Build Interactive Shell" TRUE)
 option(BUILD_TESTS "Build C++ and Python tests." FALSE)
 option(BUILD_BENCHMARK "Build benchmarks." FALSE)
+option(BUILD_EXAMPLES "Build examples." FALSE)
 
 option(BUILD_LCOV "Build coverage report." FALSE)
 if(${BUILD_LCOV})
@@ -232,3 +233,8 @@ elseif (${BUILD_BENCHMARK})
     add_subdirectory(test/test_helper)
 endif()
 add_subdirectory(tools)
+
+if (${BUILD_EXAMPLES})
+    add_subdirectory(examples/c)
+    add_subdirectory(examples/cpp)
+endif()
