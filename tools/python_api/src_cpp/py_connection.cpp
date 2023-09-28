@@ -186,6 +186,7 @@ Value PyConnection::transformPythonValue(py::handle val) {
         return Value::createValue<bool>(val.cast<bool>());
     } else if (py::isinstance<py::int_>(val)) {
         return Value::createValue<int64_t>(val.cast<int64_t>());
+
     } else if (py::isinstance<py::float_>(val)) {
         return Value::createValue<double_t>(val.cast<double_t>());
     } else if (py::isinstance<py::str>(val)) {

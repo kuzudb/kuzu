@@ -196,6 +196,11 @@ pub enum Value {
     Int64(i64),
     Int32(i32),
     Int16(i16),
+    Int8(i8),
+    UInt64(u64),
+    UInt32(u32),
+    UInt16(u16),
+    UInt8(u8),
     Double(f64),
     Float(f32),
     /// Stored internally as the number of days since 1970-01-01 as a 32-bit signed integer, which
@@ -257,9 +262,14 @@ impl std::fmt::Display for Value {
         match self {
             Value::Bool(true) => write!(f, "True"),
             Value::Bool(false) => write!(f, "False"),
+            Value::Int8(x) => write!(f, "{x}"),
             Value::Int16(x) => write!(f, "{x}"),
             Value::Int32(x) => write!(f, "{x}"),
             Value::Int64(x) => write!(f, "{x}"),
+            Value::UInt8(x) => write!(f, "{x}"),
+            Value::UInt16(x) => write!(f, "{x}"),
+            Value::UInt32(x) => write!(f, "{x}"),
+            Value::UInt64(x) => write!(f, "{x}"),
             Value::Date(x) => write!(f, "{x}"),
             Value::String(x) => write!(f, "{x}"),
             Value::Blob(x) => write!(f, "{x:x?}"),
@@ -299,9 +309,14 @@ impl From<&Value> for LogicalType {
     fn from(value: &Value) -> Self {
         match value {
             Value::Bool(_) => LogicalType::Bool,
+            Value::Int8(_) => LogicalType::Int8,
             Value::Int16(_) => LogicalType::Int16,
             Value::Int32(_) => LogicalType::Int32,
             Value::Int64(_) => LogicalType::Int64,
+            Value::UInt8(_) => LogicalType::UInt8,
+            Value::UInt16(_) => LogicalType::UInt16,
+            Value::UInt32(_) => LogicalType::UInt32,
+            Value::UInt64(_) => LogicalType::UInt64,
             Value::Float(_) => LogicalType::Float,
             Value::Double(_) => LogicalType::Double,
             Value::Date(_) => LogicalType::Date,
@@ -345,9 +360,14 @@ impl TryFrom<&ffi::Value> for Value {
         match ffi::value_get_data_type_id(value) {
             LogicalTypeID::ANY => unimplemented!(),
             LogicalTypeID::BOOL => Ok(Value::Bool(value.get_value_bool())),
+            LogicalTypeID::INT8 => Ok(Value::Int8(value.get_value_i8())),
             LogicalTypeID::INT16 => Ok(Value::Int16(value.get_value_i16())),
             LogicalTypeID::INT32 => Ok(Value::Int32(value.get_value_i32())),
             LogicalTypeID::INT64 => Ok(Value::Int64(value.get_value_i64())),
+            LogicalTypeID::UINT8 => Ok(Value::UInt8(value.get_value_u8())),
+            LogicalTypeID::UINT16 => Ok(Value::UInt16(value.get_value_u16())),
+            LogicalTypeID::UINT32 => Ok(Value::UInt32(value.get_value_u32())),
+            LogicalTypeID::UINT64 => Ok(Value::UInt64(value.get_value_u64())),
             LogicalTypeID::FLOAT => Ok(Value::Float(value.get_value_float())),
             LogicalTypeID::DOUBLE => Ok(Value::Double(value.get_value_double())),
             LogicalTypeID::STRING => Ok(Value::String(ffi::value_get_string(value).to_string())),
@@ -503,9 +523,14 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
         match self {
             Value::Null(typ) => Ok(ffi::create_value_null((&typ).into())),
             Value::Bool(value) => Ok(ffi::create_value_bool(value)),
+            Value::Int8(value) => Ok(ffi::create_value_i8(value)),
             Value::Int16(value) => Ok(ffi::create_value_i16(value)),
             Value::Int32(value) => Ok(ffi::create_value_i32(value)),
             Value::Int64(value) => Ok(ffi::create_value_i64(value)),
+            Value::UInt8(value) => Ok(ffi::create_value_u8(value)),
+            Value::UInt16(value) => Ok(ffi::create_value_u16(value)),
+            Value::UInt32(value) => Ok(ffi::create_value_u32(value)),
+            Value::UInt64(value) => Ok(ffi::create_value_u64(value)),
             Value::Float(value) => Ok(ffi::create_value_float(value)),
             Value::Double(value) => Ok(ffi::create_value_double(value)),
             Value::String(value) => Ok(ffi::create_value_string(
@@ -594,6 +619,12 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
     }
 }
 
+impl From<i8> for Value {
+    fn from(item: i8) -> Self {
+        Value::Int8(item)
+    }
+}
+
 impl From<i16> for Value {
     fn from(item: i16) -> Self {
         Value::Int16(item)
@@ -609,6 +640,30 @@ impl From<i32> for Value {
 impl From<i64> for Value {
     fn from(item: i64) -> Self {
         Value::Int64(item)
+    }
+}
+
+impl From<u8> for Value {
+    fn from(item: u8) -> Self {
+        Value::UInt8(item)
+    }
+}
+
+impl From<u16> for Value {
+    fn from(item: u16) -> Self {
+        Value::UInt16(item)
+    }
+}
+
+impl From<u32> for Value {
+    fn from(item: u32) -> Self {
+        Value::UInt32(item)
+    }
+}
+
+impl From<u64> for Value {
+    fn from(item: u64) -> Self {
+        Value::UInt64(item)
     }
 }
 
@@ -738,9 +793,14 @@ mod tests {
     type_tests! {
         convert_var_list_type: LogicalType::VarList { child_type: Box::new(LogicalType::String) },
         convert_fixed_list_type: LogicalType::FixedList { child_type: Box::new(LogicalType::Int64), num_elements: 3 },
+        convert_int8_type: LogicalType::Int8,
         convert_int16_type: LogicalType::Int16,
         convert_int32_type: LogicalType::Int32,
         convert_int64_type: LogicalType::Int64,
+        convert_uint8_type: LogicalType::UInt8,
+        convert_uint16_type: LogicalType::UInt16,
+        convert_uint32_type: LogicalType::UInt32,
+        convert_uint64_type: LogicalType::UInt64,
         convert_float_type: LogicalType::Float,
         convert_double_type: LogicalType::Double,
         convert_timestamp_type: LogicalType::Timestamp,
@@ -760,9 +820,14 @@ mod tests {
         convert_var_list: Value::VarList(LogicalType::String, vec!["Alice".into(), "Bob".into()]),
         convert_var_list_empty: Value::VarList(LogicalType::String, vec![]),
         convert_fixed_list: Value::FixedList(LogicalType::String, vec!["Alice".into(), "Bob".into()]),
+        convert_int8: Value::Int8(0),
         convert_int16: Value::Int16(1),
         convert_int32: Value::Int32(2),
         convert_int64: Value::Int64(3),
+        convert_uint8: Value::UInt8(0),
+        convert_uint16: Value::UInt16(1),
+        convert_uint32: Value::UInt32(2),
+        convert_uint64: Value::UInt64(3),
         convert_float: Value::Float(4.),
         convert_double: Value::Double(5.),
         convert_timestamp: Value::Timestamp(datetime!(2023-06-13 11:25:30 UTC)),
@@ -782,9 +847,14 @@ mod tests {
         display_var_list: Value::VarList(LogicalType::String, vec!["Alice".into(), "Bob".into()]),
         display_var_list_empty: Value::VarList(LogicalType::String, vec![]),
         display_fixed_list: Value::FixedList(LogicalType::String, vec!["Alice".into(), "Bob".into()]),
+        display_int8: Value::Int8(0),
         display_int16: Value::Int16(1),
         display_int32: Value::Int32(2),
         display_int64: Value::Int64(3),
+        display_uint8: Value::UInt8(0),
+        display_uint16: Value::UInt16(1),
+        display_uint32: Value::UInt32(2),
+        display_uint64: Value::UInt64(3),
         // Float, double, interval and timestamp have display differences which we probably don't want to
         // reconcile
         display_date: Value::Date(date!(2023-06-13)),
@@ -813,9 +883,14 @@ mod tests {
         // }), "INT16[3][]",
         // db_var_list_string: Value::VarList(LogicalType::String, vec!["Alice".into(), "Bob".into()]), "STRING[]",
         // db_var_list_int: Value::VarList(LogicalType::Int64, vec![0i64.into(), 1i64.into(), 2i64.into()]), "INT64[]",
+        db_int8: Value::Int8(0), "INT8",
         db_int16: Value::Int16(1), "INT16",
         db_int32: Value::Int32(2), "INT32",
         db_int64: Value::Int64(3), "INT64",
+        db_uint8: Value::UInt8(0), "UINT8",
+        db_uint16: Value::UInt16(1), "UINT16",
+        db_uint32: Value::UInt32(2), "UINT32",
+        db_uint64: Value::UInt64(3), "UINT64",
         db_float: Value::Float(4.), "FLOAT",
         db_double: Value::Double(5.), "DOUBLE",
         db_timestamp: Value::Timestamp(datetime!(2023-06-13 11:25:30 UTC)), "TIMESTAMP",

@@ -165,6 +165,11 @@ KUZU_C_API typedef enum {
     KUZU_INT64 = 23,
     KUZU_INT32 = 24,
     KUZU_INT16 = 25,
+    KUZU_INT8 = 26,
+    KUZU_UINT64 = 27,
+    KUZU_UINT32 = 28,
+    KUZU_UINT16 = 29,
+    KUZU_UINT8 = 30,
     KUZU_DOUBLE = 32,
     KUZU_FLOAT = 33,
     KUZU_DATE = 34,
@@ -342,6 +347,46 @@ KUZU_C_API void kuzu_prepared_statement_bind_int32(
  */
 KUZU_C_API void kuzu_prepared_statement_bind_int16(
     kuzu_prepared_statement* prepared_statement, const char* param_name, int16_t value);
+/**
+ * @brief Binds the given int8_t value to the given parameter name in the prepared statement.
+ * @param prepared_statement The prepared statement instance to bind the value.
+ * @param param_name The parameter name to bind the value.
+ * @param value The int8_t value to bind.
+ */
+KUZU_C_API void kuzu_prepared_statement_bind_int8(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, int8_t value);
+/**
+ * @brief Binds the given uint64_t value to the given parameter name in the prepared statement.
+ * @param prepared_statement The prepared statement instance to bind the value.
+ * @param param_name The parameter name to bind the value.
+ */
+KUZU_C_API void kuzu_prepared_statement_bind_uint64(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, uint64_t value);
+/**
+ * @brief Binds the given uint32_t value to the given parameter name in the prepared statement.
+ * @param prepared_statement The prepared statement instance to bind the value.
+ * @param param_name The parameter name to bind the value.
+ * @param value The uint32_t value to bind.
+ */
+KUZU_C_API void kuzu_prepared_statement_bind_uint32(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, uint32_t value);
+/**
+ * @brief Binds the given uint16_t value to the given parameter name in the prepared statement.
+ * @param prepared_statement The prepared statement instance to bind the value.
+ * @param param_name The parameter name to bind the value.
+ * @param value The uint16_t value to bind.
+ */
+KUZU_C_API void kuzu_prepared_statement_bind_uint16(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, uint16_t value);
+/**
+ * @brief Binds the given int8_t value to the given parameter name in the prepared statement.
+ * @param prepared_statement The prepared statement instance to bind the value.
+ * @param param_name The parameter name to bind the value.
+ * @param value The int8_t value to bind.
+ */
+KUZU_C_API void kuzu_prepared_statement_bind_uint8(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, uint8_t value);
+
 /**
  * @brief Binds the given double value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
@@ -587,6 +632,12 @@ KUZU_C_API kuzu_value* kuzu_value_create_default(kuzu_logical_type* data_type);
  */
 KUZU_C_API kuzu_value* kuzu_value_create_bool(bool val_);
 /**
+ * @brief Creates a value with int8 type and the given int8 value. Caller is responsible for
+ * destroying the returned value.
+ * @param val_ The int8 value of the value to create.
+ */
+KUZU_C_API kuzu_value* kuzu_value_create_int8(int8_t val_);
+/**
  * @brief Creates a value with int16 type and the given int16 value. Caller is responsible for
  * destroying the returned value.
  * @param val_ The int16 value of the value to create.
@@ -604,6 +655,30 @@ KUZU_C_API kuzu_value* kuzu_value_create_int32(int32_t val_);
  * @param val_ The int64 value of the value to create.
  */
 KUZU_C_API kuzu_value* kuzu_value_create_int64(int64_t val_);
+/**
+ * @brief Creates a value with uint8 type and the given uint8 value. Caller is responsible for
+ * destroying the returned value.
+ * @param val_ The uint8 value of the value to create.
+ */
+KUZU_C_API kuzu_value* kuzu_value_create_uint8(uint8_t val_);
+/**
+ * @brief Creates a value with uint16 type and the given uint16 value. Caller is responsible for
+ * destroying the returned value.
+ * @param val_ The uint16 value of the value to create.
+ */
+KUZU_C_API kuzu_value* kuzu_value_create_uint16(uint16_t val_);
+/**
+ * @brief Creates a value with uint32 type and the given uint32 value. Caller is responsible for
+ * destroying the returned value.
+ * @param val_ The uint32 value of the value to create.
+ */
+KUZU_C_API kuzu_value* kuzu_value_create_uint32(uint32_t val_);
+/**
+ * @brief Creates a value with uint64 type and the given uint64 value. Caller is responsible for
+ * destroying the returned value.
+ * @param val_ The uint64 value of the value to create.
+ */
+KUZU_C_API kuzu_value* kuzu_value_create_uint64(uint64_t val_);
 /**
  * @brief Creates a value with float type and the given float value. Caller is responsible for
  * destroying the returned value.
@@ -715,6 +790,12 @@ KUZU_C_API kuzu_logical_type* kuzu_value_get_data_type(kuzu_value* value);
  * @param value The value to return.
  */
 KUZU_C_API bool kuzu_value_get_bool(kuzu_value* value);
+
+/**
+ * @brief Returns the int8 value of the given value. The value must be of type INT8.
+ * @param value The value to return.
+ */
+KUZU_C_API int8_t kuzu_value_get_int8(kuzu_value* value);
 /**
  * @brief Returns the int16 value of the given value. The value must be of type INT16.
  * @param value The value to return.
@@ -730,6 +811,26 @@ KUZU_C_API int32_t kuzu_value_get_int32(kuzu_value* value);
  * @param value The value to return.
  */
 KUZU_C_API int64_t kuzu_value_get_int64(kuzu_value* value);
+/**
+ * @brief Returns the uint8 value of the given value. The value must be of type UINT8.
+ * @param value The value to return.
+ */
+KUZU_C_API uint8_t kuzu_value_get_uint8(kuzu_value* value);
+/**
+ * @brief Returns the uint16 value of the given value. The value must be of type UINT16.
+ * @param value The value to return.
+ */
+KUZU_C_API uint16_t kuzu_value_get_uint16(kuzu_value* value);
+/**
+ * @brief Returns the uint32 value of the given value. The value must be of type UINT32.
+ * @param value The value to return.
+ */
+KUZU_C_API uint32_t kuzu_value_get_uint32(kuzu_value* value);
+/**
+ * @brief Returns the uint64 value of the given value. The value must be of type UINT64.
+ * @param value The value to return.
+ */
+KUZU_C_API uint64_t kuzu_value_get_uint64(kuzu_value* value);
 /**
  * @brief Returns the float value of the given value. The value must be of type FLOAT.
  * @param value The value to return.

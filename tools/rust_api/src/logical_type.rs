@@ -18,6 +18,16 @@ pub enum LogicalType {
     Int32,
     /// Correponds to [Value::Int16](crate::value::Value::Int16)
     Int16,
+    /// Correponds to [Value::Int8](crate::value::Value::Int8)
+    Int8,
+    /// Correponds to [Value::UInt64](crate::value::Value::UInt64)
+    UInt64,
+    /// Correponds to [Value::UInt32](crate::value::Value::UInt32)
+    UInt32,
+    /// Correponds to [Value::UInt16](crate::value::Value::UInt16)
+    UInt16,
+    /// Correponds to [Value::UInt8](crate::value::Value::UInt8)
+    UInt8,
     /// Correponds to [Value::Double](crate::value::Value::Double)
     Double,
     /// Correponds to [Value::Float](crate::value::Value::Float)
@@ -67,9 +77,14 @@ impl From<&ffi::LogicalType> for LogicalType {
             LogicalTypeID::ANY => LogicalType::Any,
             LogicalTypeID::BOOL => LogicalType::Bool,
             LogicalTypeID::SERIAL => LogicalType::Serial,
+            LogicalTypeID::INT8 => LogicalType::Int8,
             LogicalTypeID::INT16 => LogicalType::Int16,
             LogicalTypeID::INT32 => LogicalType::Int32,
             LogicalTypeID::INT64 => LogicalType::Int64,
+            LogicalTypeID::UINT8 => LogicalType::UInt8,
+            LogicalTypeID::UINT16 => LogicalType::UInt16,
+            LogicalTypeID::UINT32 => LogicalType::UInt32,
+            LogicalTypeID::UINT64 => LogicalType::UInt64,
             LogicalTypeID::FLOAT => LogicalType::Float,
             LogicalTypeID::DOUBLE => LogicalType::Double,
             LogicalTypeID::STRING => LogicalType::String,
@@ -118,6 +133,11 @@ impl From<&LogicalType> for cxx::UniquePtr<ffi::LogicalType> {
             | LogicalType::Int64
             | LogicalType::Int32
             | LogicalType::Int16
+            | LogicalType::Int8
+            | LogicalType::UInt64
+            | LogicalType::UInt32
+            | LogicalType::UInt16
+            | LogicalType::UInt8
             | LogicalType::Float
             | LogicalType::Double
             | LogicalType::Date
@@ -156,9 +176,14 @@ impl LogicalType {
             LogicalType::Any => LogicalTypeID::ANY,
             LogicalType::Bool => LogicalTypeID::BOOL,
             LogicalType::Serial => LogicalTypeID::SERIAL,
+            LogicalType::Int8 => LogicalTypeID::INT8,
             LogicalType::Int16 => LogicalTypeID::INT16,
             LogicalType::Int32 => LogicalTypeID::INT32,
             LogicalType::Int64 => LogicalTypeID::INT64,
+            LogicalType::UInt8 => LogicalTypeID::UINT8,
+            LogicalType::UInt16 => LogicalTypeID::UINT16,
+            LogicalType::UInt32 => LogicalTypeID::UINT32,
+            LogicalType::UInt64 => LogicalTypeID::UINT64,
             LogicalType::Float => LogicalTypeID::FLOAT,
             LogicalType::Double => LogicalTypeID::DOUBLE,
             LogicalType::String => LogicalTypeID::STRING,

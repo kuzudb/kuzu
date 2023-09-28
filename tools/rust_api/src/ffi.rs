@@ -22,6 +22,11 @@ pub(crate) mod ffi {
         INT64 = 23,
         INT32 = 24,
         INT16 = 25,
+        INT8 = 26,
+        UINT64 = 27,
+        UINT32 = 28,
+        UINT16 = 29,
+        UINT8 = 30,
         DOUBLE = 32,
         FLOAT = 33,
         DATE = 34,
@@ -229,12 +234,22 @@ pub(crate) mod ffi {
 
         #[rust_name = "get_value_bool"]
         fn getValue(&self) -> bool;
+        #[rust_name = "get_value_i8"]
+        fn getValue(&self) -> i8;
         #[rust_name = "get_value_i16"]
         fn getValue(&self) -> i16;
         #[rust_name = "get_value_i32"]
         fn getValue(&self) -> i32;
         #[rust_name = "get_value_i64"]
         fn getValue(&self) -> i64;
+        #[rust_name = "get_value_u8"]
+        fn getValue(&self) -> u8;
+        #[rust_name = "get_value_u16"]
+        fn getValue(&self) -> u16;
+        #[rust_name = "get_value_u32"]
+        fn getValue(&self) -> u32;
+        #[rust_name = "get_value_u64"]
+        fn getValue(&self) -> u64;
         #[rust_name = "get_value_float"]
         fn getValue(&self) -> f32;
         #[rust_name = "get_value_double"]
@@ -257,12 +272,22 @@ pub(crate) mod ffi {
 
         #[rust_name = "create_value_bool"]
         fn create_value(value: bool) -> UniquePtr<Value>;
+        #[rust_name = "create_value_i8"]
+        fn create_value(value: i8) -> UniquePtr<Value>;
         #[rust_name = "create_value_i16"]
         fn create_value(value: i16) -> UniquePtr<Value>;
         #[rust_name = "create_value_i32"]
         fn create_value(value: i32) -> UniquePtr<Value>;
         #[rust_name = "create_value_i64"]
         fn create_value(value: i64) -> UniquePtr<Value>;
+        #[rust_name = "create_value_u8"]
+        fn create_value(value: u8) -> UniquePtr<Value>;
+        #[rust_name = "create_value_u16"]
+        fn create_value(value: u16) -> UniquePtr<Value>;
+        #[rust_name = "create_value_u32"]
+        fn create_value(value: u32) -> UniquePtr<Value>;
+        #[rust_name = "create_value_u64"]
+        fn create_value(value: u64) -> UniquePtr<Value>;
         #[rust_name = "create_value_float"]
         fn create_value(value: f32) -> UniquePtr<Value>;
         #[rust_name = "create_value_double"]

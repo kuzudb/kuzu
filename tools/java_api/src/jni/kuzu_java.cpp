@@ -841,6 +841,34 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1value(
         jobject ret = env->NewObject(retClass, ctor, val);
         return ret;
     }
+    case LogicalTypeID::INT8: {
+        jclass retClass = env->FindClass("java/lang/Byte");
+        jmethodID ctor = env->GetMethodID(retClass, "<init>", "(B)V");
+        jbyte val = static_cast<jbyte>(v->getValue<int8_t>());
+        jobject ret = env->NewObject(retClass, ctor, val);
+        return ret;
+    }
+    case LogicalTypeID::UINT32: {
+        jclass retClass = env->FindClass("java/lang/Long");
+        jmethodID ctor = env->GetMethodID(retClass, "<init>", "(J)V");
+        jbyte val = static_cast<jbyte>(v->getValue<uint32_t>());
+        jobject ret = env->NewObject(retClass, ctor, val);
+        return ret;
+    }
+    case LogicalTypeID::UINT16: {
+        jclass retClass = env->FindClass("java/lang/Integer");
+        jmethodID ctor = env->GetMethodID(retClass, "<init>", "(I)V");
+        jint val = static_cast<jint>(v->getValue<uint16_t>());
+        jobject ret = env->NewObject(retClass, ctor, val);
+        return ret;
+    }
+    case LogicalTypeID::UINT8: {
+        jclass retClass = env->FindClass("java/lang/Short");
+        jmethodID ctor = env->GetMethodID(retClass, "<init>", "(S)V");
+        jshort val = static_cast<jshort>(v->getValue<uint8_t>());
+        jobject ret = env->NewObject(retClass, ctor, val);
+        return ret;
+    }
     case LogicalTypeID::DOUBLE: {
         jclass retClass = env->FindClass("java/lang/Double");
         jmethodID ctor = env->GetMethodID(retClass, "<init>", "(D)V");

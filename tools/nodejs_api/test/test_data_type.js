@@ -15,6 +15,20 @@ describe("BOOL", function () {
   });
 });
 
+describe("INT8", function () {
+  it("should convert INT8 type", async function () {
+    const queryResult = await conn.query(
+        "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE a.ID = 0 RETURN s.level"
+    );
+    const result = await queryResult.getAll();
+    assert.equal(result.length, 1);
+    assert.equal(Object.keys(result[0]).length, 1);
+    assert.isTrue("s.level" in result[0]);
+    assert.equal(typeof result[0]["s.level"], "number");
+    assert.equal(result[0]["s.level"], 5);
+  });
+});
+
 describe("INT16", function () {
   it("should convert INT16 type", async function () {
     const queryResult = await conn.query(
@@ -54,6 +68,62 @@ describe("INT64", function () {
     assert.isTrue("a.ID" in result[0]);
     assert.equal(typeof result[0]["a.ID"], "number");
     assert.equal(result[0]["a.ID"], 0);
+  });
+});
+
+describe("UINT8", function () {
+  it("should convert UINT8 type", async function () {
+    const queryResult = await conn.query(
+        "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE a.ID = 0 RETURN s.ulevel"
+    );
+    const result = await queryResult.getAll();
+    assert.equal(result.length, 1);
+    assert.equal(Object.keys(result[0]).length, 1);
+    assert.isTrue("s.ulevel" in result[0]);
+    assert.equal(typeof result[0]["s.ulevel"], "number");
+    assert.equal(result[0]["s.ulevel"], 15);
+  });
+});
+
+describe("UINT16", function () {
+  it("should convert UINT16 type", async function () {
+    const queryResult = await conn.query(
+        "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE a.ID = 0 RETURN s.ulength"
+    );
+    const result = await queryResult.getAll();
+    assert.equal(result.length, 1);
+    assert.equal(Object.keys(result[0]).length, 1);
+    assert.isTrue("s.ulength" in result[0]);
+    assert.equal(typeof result[0]["s.ulength"], "number");
+    assert.equal(result[0]["s.ulength"], 120);
+  });
+});
+
+describe("UINT32", function () {
+  it("should convert UINT32 type", async function () {
+    const queryResult = await conn.query(
+        "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE a.ID = 0 RETURN s.temprature"
+    );
+    const result = await queryResult.getAll();
+    assert.equal(result.length, 1);
+    assert.equal(Object.keys(result[0]).length, 1);
+    assert.isTrue("s.temprature" in result[0]);
+    assert.equal(typeof result[0]["s.temprature"], "number");
+    assert.equal(result[0]["s.temprature"], 35);
+  });
+});
+
+describe("UINT64", function () {
+  it("should convert UINT64 type", async function () {
+    const queryResult = await conn.query(
+        "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE a.ID = 0 RETURN s.code"
+    );
+    const result = await queryResult.getAll();
+    assert.equal(result.length, 1);
+    assert.equal(Object.keys(result[0]).length, 1);
+    assert.isTrue("s.code" in result[0]);
+    assert.equal(typeof result[0]["s.code"], "number");
+    assert.equal(result[0]["s.code"], 6556);
   });
 });
 
