@@ -11,7 +11,7 @@ namespace common {
 struct timestamp_t;
 struct date_t;
 
-KUZU_API enum class DatePartSpecifier : uint8_t {
+enum class KUZU_API DatePartSpecifier : uint8_t {
     YEAR,
     MONTH,
     DAY,
@@ -26,7 +26,7 @@ KUZU_API enum class DatePartSpecifier : uint8_t {
     HOUR,
 };
 
-KUZU_API struct interval_t {
+struct KUZU_API interval_t {
     int32_t months = 0;
     int32_t days = 0;
     int64_t micros = 0;

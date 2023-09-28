@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "common/api.h"
+
 // The Arrow C data interface.
 // https://arrow.apache.org/docs/format/CDataInterface.html
 
@@ -60,9 +62,9 @@ struct ArrowArray {
 #endif
 
 #ifdef __cplusplus
-#define KUZU_C_API extern "C"
+#define KUZU_C_API extern "C" KUZU_API
 #else
-#define KUZU_C_API
+#define KUZU_C_API KUZU_API
 #endif
 
 /**

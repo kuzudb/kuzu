@@ -9,7 +9,7 @@ namespace kuzu {
 namespace common {
 
 // Type used to represent time (microseconds)
-KUZU_API struct dtime_t {
+struct KUZU_API dtime_t {
     int64_t micros;
 
     dtime_t();

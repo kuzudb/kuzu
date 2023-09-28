@@ -31,7 +31,7 @@ public:
      */
     KUZU_API common::Value* getValue(uint32_t idx) const;
 
-    std::string toString();
+    KUZU_API std::string toString();
 
     /**
      * @param colsWidth The length of each column
