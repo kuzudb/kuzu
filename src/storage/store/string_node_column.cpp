@@ -25,7 +25,7 @@ StringNodeColumn::StringNodeColumn(LogicalType dataType, const MetadataDAHInfo& 
     : NodeColumn{std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
           transaction, stats, true} {
     if (this->dataType.getLogicalTypeID() == LogicalTypeID::STRING) {
-        writeNodeColumnFunc = StringNodeColumnFunc::writeStringValuesToPage;
+        writeFromVectorFunc = StringNodeColumnFunc::writeStringValuesToPage;
     }
     overflowMetadataDA = std::make_unique<InMemDiskArray<OverflowColumnChunkMetadata>>(*metadataFH,
         StorageStructureID::newMetadataID(), metaDAHeaderInfo.childrenInfos[0]->dataDAHPageIdx,

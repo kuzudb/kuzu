@@ -179,10 +179,7 @@ void LocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
     // Figure out if the chunk needs to be re-compressed
     auto metadata = column->getCompressionMetadata(nodeGroupIdx, TransactionType::WRITE);
     if (!metadata.canAlwaysUpdateInPlace()) {
-        auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
         for (auto& [vectorIdx, vector] : chunk->vectors) {
-            auto vectorStartOffset =
-                nodeGroupStartOffset + StorageUtils::getStartOffsetOfVectorInChunk(vectorIdx);
             for (auto i = 0u; i < vector->vector->state->selVector->selectedSize; i++) {
                 auto pos = vector->vector->state->selVector->selectedPositions[i];
                 assert(vector->validityMask[pos]);
@@ -210,6 +207,19 @@ void LocalColumn::commitLocalChunkInPlace(
     }
 }
 
+void LocalColumn::commitLocalChunkOutOfPlace(
+    node_group_idx_t nodeGroupIdx, LocalColumnChunk* localChunk) {
+    // Trigger rewriting the column chunk to another new place.
+    auto columnChunk = ColumnChunkFactory::createColumnChunk(column->getDataType());
+    // First scan the whole column chunk into ColumnChunk.
+    column->scan(nodeGroupIdx, columnChunk.get());
+    for (auto& [vectorIdx, vector] : localChunk->vectors) {
+        columnChunk->update(vector->vector.get(), vectorIdx);
+    }
+    // Append the updated ColumnChunk back to column.
+    column->append(columnChunk.get(), nodeGroupIdx);
+}
+
 void StringLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
     assert(chunks.contains(nodeGroupIdx));
     auto localChunk = chunks.at(nodeGroupIdx).get();
@@ -228,19 +238,6 @@ void StringLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
     } else {
         commitLocalChunkOutOfPlace(nodeGroupIdx, localChunk);
     }
-}
-
-void LocalColumn::commitLocalChunkOutOfPlace(
-    node_group_idx_t nodeGroupIdx, LocalColumnChunk* localChunk) {
-    // Trigger rewriting the column chunk to another new place.
-    auto columnChunk = ColumnChunkFactory::createColumnChunk(column->getDataType());
-    // First scan the whole column chunk into ColumnChunk.
-    column->scan(nodeGroupIdx, columnChunk.get());
-    for (auto& [vectorIdx, vector] : localChunk->vectors) {
-        columnChunk->update(vector->vector.get(), vectorIdx);
-    }
-    // Append the updated ColumnChunk back to column.
-    column->append(columnChunk.get(), nodeGroupIdx);
 }
 
 void VarListLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {

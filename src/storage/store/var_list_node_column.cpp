@@ -152,7 +152,7 @@ offset_t VarListNodeColumn::readOffset(
         chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType));
     pageCursor.pageIdx += chunkMeta.pageIdx;
     readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
-        readNodeColumnFunc(frame, pageCursor, offsetVector.get(), 0 /* posInVector */,
+        readToVectorFunc(frame, pageCursor, offsetVector.get(), 0 /* posInVector */,
             1 /* numValuesToRead */, chunkMeta.compMeta);
     });
     return offsetVector->getValue<offset_t>(0);

@@ -255,8 +255,8 @@ public:
 
 protected:
     explicit CompressedFunctor(const common::LogicalType& logicalType)
-        : copy{logicalType}, physicalType{logicalType.getPhysicalType()} {}
-    const Uncompressed copy;
+        : uncompressed{logicalType}, physicalType{logicalType.getPhysicalType()} {}
+    const Uncompressed uncompressed;
     const BooleanBitpacking booleanBitpacking;
     const common::PhysicalTypeID physicalType;
 };

@@ -111,7 +111,6 @@ public:
     }
 
     inline uint64_t getNumBytesPerValue() const { return numBytesPerValue; }
-    inline uint64_t getNumBytes() const { return bufferSize; }
     inline uint8_t* getData() { return buffer.get(); }
 
     virtual void write(const common::Value& val, uint64_t posToWrite);
@@ -127,6 +126,7 @@ public:
 
     void populateWithDefaultVal(common::ValueVector* defaultValueVector);
 
+    inline uint64_t getCapacity() const { return capacity; }
     inline uint64_t getNumValues() const { return numValues; }
 
     inline void setNumValues(uint64_t numValues_) { this->numValues = numValues_; }
