@@ -14,8 +14,6 @@ public:
 
     void resetToEmpty() final;
     void append(common::ValueVector* vector, common::offset_t startPosInChunk) final;
-    void append(
-        arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
 
@@ -36,13 +34,6 @@ public:
     inline common::offset_t getLastOffsetInPage() { return overflowCursor.offsetInPage; }
 
 private:
-    template<typename T>
-    void templateCopyStringArrowArray(
-        arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
-    template<typename KU_TYPE, typename ARROW_TYPE>
-    void templateCopyStringValues(
-        arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
-
     void appendStringColumnChunk(StringColumnChunk* other, common::offset_t startPosInOtherChunk,
         common::offset_t startPosInChunk, uint32_t numValuesToAppend);
 

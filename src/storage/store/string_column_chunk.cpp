@@ -38,25 +38,6 @@ void StringColumnChunk::append(common::ValueVector* vector, common::offset_t sta
     numValues += vector->state->selVector->selectedSize;
 }
 
-void StringColumnChunk::append(
-    arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    assert(
-        array->type_id() == arrow::Type::STRING || array->type_id() == arrow::Type::LARGE_STRING);
-    switch (array->type_id()) {
-    case arrow::Type::STRING: {
-        templateCopyStringArrowArray<arrow::StringArray>(array, startPosInChunk, numValuesToAppend);
-    } break;
-    case arrow::Type::LARGE_STRING: {
-        templateCopyStringArrowArray<arrow::LargeStringArray>(
-            array, startPosInChunk, numValuesToAppend);
-    } break;
-    default: {
-        throw NotImplementedException("StringColumnChunk::append");
-    }
-    }
-    numValues += numValuesToAppend;
-}
-
 void StringColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
     offset_t startPosInChunk, uint32_t numValuesToAppend) {
     auto otherChunk = reinterpret_cast<StringColumnChunk*>(other);
@@ -159,46 +140,6 @@ template<>
 std::string StringColumnChunk::getValue<std::string>(offset_t pos) const {
     auto kuStr = ((ku_string_t*)buffer.get())[pos];
     return overflowFile->readString(&kuStr);
-}
-
-template<typename T>
-void StringColumnChunk::templateCopyStringArrowArray(
-    arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    switch (dataType.getLogicalTypeID()) {
-    case LogicalTypeID::BLOB: {
-        templateCopyStringValues<blob_t, T>(array, startPosInChunk, numValuesToAppend);
-    } break;
-    case LogicalTypeID::STRING: {
-        templateCopyStringValues<ku_string_t, T>(array, startPosInChunk, numValuesToAppend);
-    } break;
-    default: {
-        throw NotImplementedException("StringColumnChunk::templateCopyStringArrowArray");
-    }
-    }
-}
-
-template<typename KU_TYPE, typename ARROW_TYPE>
-void StringColumnChunk::templateCopyStringValues(
-    arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    auto stringArray = (ARROW_TYPE*)array;
-    auto arrayData = stringArray->data();
-    if (arrayData->MayHaveNulls()) {
-        for (auto i = 0u; i < numValuesToAppend; i++) {
-            auto posInChunk = startPosInChunk + i;
-            if (arrayData->IsNull(i)) {
-                nullChunk->setNull(posInChunk, true);
-                continue;
-            }
-            auto value = stringArray->GetView(i);
-            setValueFromString<KU_TYPE>(value.data(), value.length(), posInChunk);
-        }
-    } else {
-        for (auto i = 0u; i < numValuesToAppend; i++) {
-            auto posInChunk = startPosInChunk + i;
-            auto value = stringArray->GetView(i);
-            setValueFromString<KU_TYPE>(value.data(), value.length(), posInChunk);
-        }
-    }
 }
 
 } // namespace storage
