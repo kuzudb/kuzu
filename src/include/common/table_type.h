@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 namespace kuzu {
 namespace common {
@@ -11,6 +12,10 @@ enum class TableType : uint8_t {
     REL = 2,
     RDF = 3,
     REL_GROUP = 4,
+};
+
+struct TableTypeUtils {
+    static std::string toString(TableType tableType);
 };
 
 } // namespace common

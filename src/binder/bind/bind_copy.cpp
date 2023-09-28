@@ -79,10 +79,19 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     auto& copyStatement = (CopyFrom&)statement;
     auto catalogContent = catalog.getReadOnlyVersion();
     auto tableName = copyStatement.getTableName();
-    validateNodeRelTableExist(tableName);
+    validateTableExist(tableName);
     // Bind to table schema.
     auto tableID = catalogContent->getTableID(tableName);
     auto tableSchema = catalogContent->getTableSchema(tableID);
+    switch (tableSchema->tableType) {
+    case TableType::REL_GROUP:
+    case TableType::RDF: {
+        throw BinderException(StringUtils::string_format("Cannot copy into {} table with type {}.",
+            tableName, TableTypeUtils::toString(tableSchema->tableType)));
+    }
+    default:
+        break;
+    }
     auto csvReaderConfig = bindParsingOptions(copyStatement.getParsingOptionsRef());
     auto filePaths = bindFilePaths(copyStatement.getFilePaths());
     auto fileType = bindFileType(filePaths);

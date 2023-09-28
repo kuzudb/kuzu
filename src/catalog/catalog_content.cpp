@@ -130,8 +130,18 @@ std::vector<TableSchema*> CatalogContent::getTableSchemas(
 }
 
 void CatalogContent::dropTableSchema(table_id_t tableID) {
-    auto tableName = getTableName(tableID);
-    tableNameToIDMap.erase(tableName);
+    auto tableSchema = getTableSchema(tableID);
+    switch (tableSchema->tableType) {
+    case common::TableType::REL_GROUP: {
+        auto relTableGroupSchema = reinterpret_cast<RelTableGroupSchema*>(tableSchema);
+        for (auto& relTableID : relTableGroupSchema->getRelTableIDs()) {
+            dropTableSchema(relTableID);
+        }
+    } break;
+    default:
+        break;
+    }
+    tableNameToIDMap.erase(tableSchema->tableName);
     tableSchemas.erase(tableID);
 }
 

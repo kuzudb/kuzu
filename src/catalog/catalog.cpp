@@ -58,23 +58,34 @@ common::table_id_t Catalog::addRelTableGroupSchema(const binder::BoundCreateTabl
     auto tableID = catalogContentForWriteTrx->addRelTableGroupSchema(info);
     auto relTableGroupSchema =
         (RelTableGroupSchema*)catalogContentForWriteTrx->getTableSchema(tableID);
-    // TODO(Ziyi): remove this when we can log variable size record. See also wal_record.h
     for (auto relTableID : relTableGroupSchema->getRelTableIDs()) {
         wal->logRelTableRecord(relTableID);
     }
-    wal->logRelTableGroupRecord(tableID, relTableGroupSchema->getRelTableIDs());
     return tableID;
 }
 
-common::table_id_t Catalog::addRdfGraphSchema(const binder::BoundCreateTableInfo& info) {
+table_id_t Catalog::addRdfGraphSchema(const binder::BoundCreateTableInfo& info) {
     initCatalogContentForWriteTrxIfNecessary();
     return catalogContentForWriteTrx->addRdfGraphSchema(info);
 }
 
 void Catalog::dropTableSchema(table_id_t tableID) {
     initCatalogContentForWriteTrxIfNecessary();
-    catalogContentForWriteTrx->dropTableSchema(tableID);
-    wal->logDropTableRecord(tableID);
+    auto tableSchema = catalogContentForWriteTrx->getTableSchema(tableID);
+    switch (tableSchema->tableType) {
+    case TableType::REL_GROUP: {
+        auto relTableGroupSchema = reinterpret_cast<RelTableGroupSchema*>(tableSchema);
+        auto relTableIDs = relTableGroupSchema->getRelTableIDs();
+        catalogContentForWriteTrx->dropTableSchema(tableID);
+        for (auto relTableID : relTableIDs) {
+            wal->logDropTableRecord(relTableID);
+        }
+    } break;
+    default: {
+        catalogContentForWriteTrx->dropTableSchema(tableID);
+        wal->logDropTableRecord(tableID);
+    }
+    }
 }
 
 void Catalog::renameTable(table_id_t tableID, const std::string& newName) {

@@ -255,11 +255,6 @@ private:
 
     void validateTableType(common::table_id_t tableID, common::TableType expectedTableType);
     void validateTableExist(const std::string& tableName);
-    // TODO(Xiyang): remove this validation once we refactor DDL.
-    void validateNodeRelTableExist(const std::string& tableName);
-
-    static void validateNodeTableHasNoEdge(
-        const catalog::Catalog& _catalog, common::table_id_t tableID);
 
     /*** helpers ***/
     std::string getUniqueExpressionName(const std::string& name);

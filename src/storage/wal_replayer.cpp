@@ -74,9 +74,6 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
     case WALRecordType::REL_TABLE_RECORD: {
         replayRelTableRecord(walRecord);
     } break;
-    case WALRecordType::REL_TABLE_GROUP_RECORD: {
-        replayRelTableGroupRecord(walRecord);
-    } break;
     case WALRecordType::RDF_GRAPH_RECORD: {
         replayRdfGraphRecord(walRecord);
     } break;
@@ -214,10 +211,6 @@ void WALReplayer::replayRelTableRecord(const WALRecord& walRecord, bool isRdf) {
     } else {
         // See comments for NODE_TABLE_RECORD.
     }
-}
-
-void WALReplayer::replayRelTableGroupRecord(const WALRecord& walRecord) {
-    // DO NOTHING
 }
 
 void WALReplayer::replayRdfGraphRecord(const WALRecord& walRecord) {

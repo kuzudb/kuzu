@@ -76,6 +76,9 @@ public:
     inline std::vector<TableSchema*> getRelTableSchemas() const {
         return getTableSchemas(common::TableType::REL);
     }
+    inline std::vector<TableSchema*> getRelTableGroupSchemas() const {
+        return getTableSchemas(common::TableType::REL_GROUP);
+    }
 
     std::vector<TableSchema*> getTableSchemas() const;
     std::vector<TableSchema*> getTableSchemas(
