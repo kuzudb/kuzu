@@ -52,34 +52,8 @@ public:
     }
 
 private:
-    void append(
-        arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) override;
-
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
-
-    void copyVarListFromArrowString(
-        arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
-
-    template<typename T>
-    void copyVarListFromArrowList(
-        arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
-        auto listArray = (T*)array;
-        auto dataChunkOffsetToAppend = varListDataColumnChunk.getNumValues();
-        auto curListOffset = varListDataColumnChunk.getNumValues();
-        for (auto i = 0u; i < numValuesToAppend; i++) {
-            nullChunk->setNull(i + startPosInChunk, listArray->IsNull(i));
-            auto length = listArray->value_length(i);
-            curListOffset += length;
-            setValue(curListOffset, i + startPosInChunk);
-        }
-        auto startOffset = listArray->value_offset(0);
-        auto endOffset = listArray->value_offset(numValuesToAppend);
-        varListDataColumnChunk.resizeBuffer(curListOffset);
-        varListDataColumnChunk.dataColumnChunk->append(
-            listArray->values().get(), dataChunkOffsetToAppend, endOffset - startOffset);
-        numValues += numValuesToAppend;
-    }
 
     void write(const common::Value& listVal, uint64_t posToWrite) override;
 

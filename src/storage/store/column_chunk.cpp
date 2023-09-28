@@ -1,6 +1,5 @@
 #include "storage/store/column_chunk.h"
 
-#include "arrow/array.h"
 #include "common/types/value/nested.h"
 #include "storage/storage_structure/storage_structure_utils.h"
 #include "storage/store/compression.h"
@@ -212,21 +211,7 @@ void ColumnChunk::append(common::ValueVector* vector, common::offset_t startPosI
 
 void ColumnChunk::append(
     ValueVector* vector, offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    if (vector->dataType.getPhysicalType() == PhysicalTypeID::ARROW_COLUMN) {
-        auto chunkedArray = ArrowColumnVector::getArrowColumn(vector).get();
-        for (const auto& array : chunkedArray->chunks()) {
-            auto numValuesInArrayToAppend =
-                std::min((uint64_t)array->length(), (uint64_t)numValuesToAppend);
-            if (numValuesInArrayToAppend <= 0) {
-                break;
-            }
-            append(array.get(), startPosInChunk, numValuesInArrayToAppend);
-            numValuesToAppend -= numValuesInArrayToAppend;
-            startPosInChunk += numValuesInArrayToAppend;
-        }
-    } else {
-        append(vector, startPosInChunk);
-    }
+    append(vector, startPosInChunk);
 }
 
 void ColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
@@ -238,62 +223,6 @@ void ColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
     memcpy(buffer.get() + startPosInChunk * numBytesPerValue,
         other->buffer.get() + startPosInOtherChunk * numBytesPerValue,
         numValuesToAppend * numBytesPerValue);
-    numValues += numValuesToAppend;
-}
-
-void ColumnChunk::append(
-    arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    switch (array->type_id()) {
-    case arrow::Type::INT8: {
-        templateCopyArrowArray<int8_t>(array, startPosInChunk, numValuesToAppend);
-    } break;
-    case arrow::Type::INT16: {
-        templateCopyArrowArray<int16_t>(array, startPosInChunk, numValuesToAppend);
-    } break;
-    case arrow::Type::INT32: {
-        templateCopyArrowArray<int32_t>(array, startPosInChunk, numValuesToAppend);
-    } break;
-    case arrow::Type::INT64: {
-        templateCopyArrowArray<int64_t>(array, startPosInChunk, numValuesToAppend);
-    } break;
-    case arrow::Type::UINT8: {
-        templateCopyArrowArray<uint8_t>(array, startPosInChunk, numValuesToAppend);
-    } break;
-    case arrow::Type::UINT16: {
-        templateCopyArrowArray<uint16_t>(array, startPosInChunk, numValuesToAppend);
-    } break;
-    case arrow::Type::UINT32: {
-        templateCopyArrowArray<uint32_t>(array, startPosInChunk, numValuesToAppend);
-    } break;
-    case arrow::Type::UINT64: {
-        templateCopyArrowArray<uint64_t>(array, startPosInChunk, numValuesToAppend);
-    } break;
-    case arrow::Type::DOUBLE: {
-        templateCopyArrowArray<double_t>(array, startPosInChunk, numValuesToAppend);
-    } break;
-    case arrow::Type::FLOAT: {
-        templateCopyArrowArray<float_t>(array, startPosInChunk, numValuesToAppend);
-    } break;
-    case arrow::Type::DATE32: {
-        templateCopyArrowArray<date_t>(array, startPosInChunk, numValuesToAppend);
-    } break;
-    case arrow::Type::TIMESTAMP: {
-        templateCopyArrowArray<timestamp_t>(array, startPosInChunk, numValuesToAppend);
-    } break;
-    case arrow::Type::FIXED_SIZE_LIST: {
-        templateCopyArrowArray<uint8_t*>(array, startPosInChunk, numValuesToAppend);
-    } break;
-    case arrow::Type::STRING: {
-        templateCopyStringArrowArray<arrow::StringArray>(array, startPosInChunk, numValuesToAppend);
-    } break;
-    case arrow::Type::LARGE_STRING: {
-        templateCopyStringArrowArray<arrow::LargeStringArray>(
-            array, startPosInChunk, numValuesToAppend);
-    } break;
-    default: {
-        throw NotImplementedException("ColumnChunk::append");
-    }
-    }
     numValues += numValuesToAppend;
 }
 
@@ -381,127 +310,6 @@ void ColumnChunk::populateWithDefaultVal(common::ValueVector* defaultValueVector
     }
 }
 
-template<typename T>
-void ColumnChunk::templateCopyArrowArray(
-    arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    const auto& arrowArray = array->data();
-    auto valuesInChunk = (T*)buffer.get();
-    auto valuesInArray = arrowArray->GetValues<T>(1 /* value buffer */);
-    if (arrowArray->MayHaveNulls()) {
-        for (auto i = 0u; i < numValuesToAppend; i++) {
-            auto posInChunk = startPosInChunk + i;
-            if (arrowArray->IsNull(i)) {
-                nullChunk->setNull(posInChunk, true);
-                continue;
-            }
-            valuesInChunk[posInChunk] = valuesInArray[i];
-        }
-    } else {
-        for (auto i = 0u; i < numValuesToAppend; i++) {
-            auto posInChunk = startPosInChunk + i;
-            valuesInChunk[posInChunk] = valuesInArray[i];
-        }
-    }
-}
-
-template<typename ARROW_TYPE>
-void ColumnChunk::templateCopyStringArrowArray(
-    arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    switch (dataType.getLogicalTypeID()) {
-    case LogicalTypeID::DATE: {
-        templateCopyValuesAsString<date_t, ARROW_TYPE>(array, startPosInChunk, numValuesToAppend);
-    } break;
-    case LogicalTypeID::TIMESTAMP: {
-        templateCopyValuesAsString<timestamp_t, ARROW_TYPE>(
-            array, startPosInChunk, numValuesToAppend);
-    } break;
-    case LogicalTypeID::INTERVAL: {
-        templateCopyValuesAsString<interval_t, ARROW_TYPE>(
-            array, startPosInChunk, numValuesToAppend);
-    } break;
-    case LogicalTypeID::FIXED_LIST: {
-        // Fixed list is a fixed-sized blob.
-        templateCopyValuesAsString<uint8_t*, ARROW_TYPE>(array, startPosInChunk, numValuesToAppend);
-    } break;
-    default: {
-        throw NotImplementedException("ColumnChunk::templateCopyStringArrowArray");
-    }
-    }
-}
-
-template<>
-void ColumnChunk::templateCopyArrowArray<bool>(
-    arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    auto* boolArray = (arrow::BooleanArray*)array;
-    auto data = boolArray->data();
-
-    auto arrowBuffer = boolArray->values()->data();
-    // Might read off the end with the cast, but copyNullMask should ignore the extra data
-    //
-    // The arrow BooleanArray offset should be the offset in bits
-    // Unfortunately this is not documented.
-    NullMask::copyNullMask((uint64_t*)arrowBuffer, boolArray->offset(), (uint64_t*)buffer.get(),
-        startPosInChunk, numValuesToAppend);
-
-    if (data->MayHaveNulls()) {
-        auto arrowNullBitMap = boolArray->null_bitmap_data();
-
-        // Offset should apply to both bool data and nulls
-        nullChunk->copyFromBuffer((uint64_t*)arrowNullBitMap, boolArray->offset(), startPosInChunk,
-            numValuesToAppend, true /*invert*/);
-    }
-}
-
-template<>
-void ColumnChunk::templateCopyArrowArray<uint8_t*>(
-    arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    auto fixedSizedListArray = (arrow::FixedSizeListArray*)array;
-    auto valuesInList = (uint8_t*)fixedSizedListArray->values()->data()->buffers[1]->data();
-    if (fixedSizedListArray->data()->MayHaveNulls()) {
-        for (auto i = 0u; i < numValuesToAppend; i++) {
-            auto posInChunk = startPosInChunk + i;
-            if (fixedSizedListArray->data()->IsNull(i)) {
-                nullChunk->setNull(posInChunk, true);
-                continue;
-            }
-            auto posInList = fixedSizedListArray->offset() + i;
-            memcpy(buffer.get() + getOffsetInBuffer(posInChunk),
-                valuesInList + posInList * numBytesPerValue, numBytesPerValue);
-        }
-    } else {
-        for (auto i = 0u; i < numValuesToAppend; i++) {
-            auto posInChunk = startPosInChunk + i;
-            auto posInList = fixedSizedListArray->offset() + i;
-            memcpy(buffer.get() + getOffsetInBuffer(posInChunk),
-                valuesInList + posInList * numBytesPerValue, numBytesPerValue);
-        }
-    }
-}
-
-template<typename KU_TYPE, typename ARROW_TYPE>
-void ColumnChunk::templateCopyValuesAsString(
-    arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    auto stringArray = (ARROW_TYPE*)array;
-    auto arrayData = stringArray->data();
-    if (arrayData->MayHaveNulls()) {
-        for (auto i = 0u; i < numValuesToAppend; i++) {
-            auto posInChunk = startPosInChunk + i;
-            if (arrayData->IsNull(i)) {
-                nullChunk->setNull(posInChunk, true);
-                continue;
-            }
-            auto value = stringArray->GetView(i);
-            setValueFromString<KU_TYPE>(value.data(), value.length(), posInChunk);
-        }
-    } else {
-        for (auto i = 0u; i < numValuesToAppend; i++) {
-            auto posInChunk = startPosInChunk + i;
-            auto value = stringArray->GetView(i);
-            setValueFromString<KU_TYPE>(value.data(), value.length(), posInChunk);
-        }
-    }
-}
-
 ColumnChunkMetadata ColumnChunk::getMetadataToFlush() const {
     return getMetadataFunction(buffer.get(), bufferSize, capacity, numValues);
 }
@@ -548,13 +356,6 @@ void BoolColumnChunk::append(common::ValueVector* vector, common::offset_t start
             (uint64_t*)buffer.get(), startPosInChunk + i, vector->getValue<bool>(pos));
     }
     numValues += vector->state->selVector->selectedSize;
-}
-
-void BoolColumnChunk::append(
-    arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    assert(array->type_id() == arrow::Type::BOOL);
-    templateCopyArrowArray<bool>(array, startPosInChunk, numValuesToAppend);
-    numValues += numValuesToAppend;
 }
 
 void BoolColumnChunk::append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
@@ -633,7 +434,6 @@ void FixedListColumnChunk::copyVectorToBuffer(
     for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
         auto pos = vector->state->selVector->selectedPositions[i];
         nullChunk->setNull(startPosInChunk + i, vector->isNull(pos));
-        auto offset = getOffsetInBuffer(startPosInChunk + i);
         memcpy(buffer.get() + getOffsetInBuffer(startPosInChunk + i),
             vectorDataToWriteFrom + pos * numBytesPerValue, numBytesPerValue);
     }

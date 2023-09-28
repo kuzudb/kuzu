@@ -110,21 +110,14 @@ void CopyNode::executeInternal(ExecutionContext* context) {
 
 void CopyNode::sliceDataChunk(
     const DataChunk& dataChunk, const std::vector<DataPos>& dataColumnPoses, offset_t offset) {
-    if (dataChunk.valueVectors[0]->dataType.getPhysicalType() == PhysicalTypeID::ARROW_COLUMN) {
-        for (auto& dataColumnPos : dataColumnPoses) {
-            ArrowColumnVector::slice(
-                dataChunk.valueVectors[dataColumnPos.valueVectorPos].get(), offset);
-        }
-    } else {
-        auto slicedSelVector = std::make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
-        slicedSelVector->resetSelectorToValuePosBufferWithSize(
-            dataChunk.state->selVector->selectedSize - offset);
-        for (auto i = 0u; i < slicedSelVector->selectedSize; i++) {
-            slicedSelVector->selectedPositions[i] =
-                dataChunk.state->selVector->selectedPositions[i + offset];
-        }
-        dataChunk.state->selVector = std::move(slicedSelVector);
+    auto slicedSelVector = std::make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
+    slicedSelVector->resetSelectorToValuePosBufferWithSize(
+        dataChunk.state->selVector->selectedSize - offset);
+    for (auto i = 0u; i < slicedSelVector->selectedSize; i++) {
+        slicedSelVector->selectedPositions[i] =
+            dataChunk.state->selVector->selectedPositions[i + offset];
     }
+    dataChunk.state->selVector = std::move(slicedSelVector);
 }
 
 void CopyNode::writeAndResetNodeGroup(node_group_idx_t nodeGroupIdx,

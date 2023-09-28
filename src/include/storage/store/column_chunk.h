@@ -93,9 +93,6 @@ public:
     virtual void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         common::offset_t startPosInChunk, uint32_t numValuesToAppend);
 
-    virtual void append(
-        arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
-
     ColumnChunkMetadata flushBuffer(
         BMFileHandle* dataFH, common::page_idx_t startPageIdx, const ColumnChunkMetadata& metadata);
 
@@ -140,22 +137,6 @@ protected:
     // Initializes the data buffer. Is (and should be) only called in constructor.
     virtual void initialize(common::offset_t capacity);
 
-    template<typename T>
-    void templateCopyArrowArray(
-        arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
-    template<typename ARROW_TYPE>
-    void templateCopyStringArrowArray(
-        arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
-    // TODO(Guodong/Ziyi): The conversion from string to values should be handled inside ReadFile.
-    // ARROW_TYPE can be either arrow::StringArray or arrow::LargeStringArray.
-    template<typename KU_TYPE, typename ARROW_TYPE>
-    void templateCopyValuesAsString(
-        arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
-
-    virtual inline common::page_idx_t getNumPagesForBuffer() const {
-        return getNumPagesForBytes(bufferSize);
-    }
-
     common::offset_t getOffsetInBuffer(common::offset_t pos) const;
 
     virtual void copyVectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk);
@@ -198,9 +179,6 @@ public:
               hasNullChunk) {}
 
     void append(common::ValueVector* vector, common::offset_t startPosInChunk) final;
-
-    void append(
-        arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
 
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         common::offset_t startPosInChunk, uint32_t numValuesToAppend) override;
@@ -288,12 +266,6 @@ struct ColumnChunkFactory {
         const common::LogicalType& dataType, common::CSVReaderConfig* csvReaderConfig = nullptr);
 };
 
-template<>
-void ColumnChunk::templateCopyArrowArray<bool>(
-    arrow::Array* array, common::offset_t startPosInSegment, uint32_t numValuesToAppend);
-template<>
-void ColumnChunk::templateCopyArrowArray<uint8_t*>(
-    arrow::Array* array, common::offset_t startPosInSegment, uint32_t numValuesToAppend);
 // BOOL
 template<>
 void ColumnChunk::setValueFromString<bool>(const char* value, uint64_t length, uint64_t pos);

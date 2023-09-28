@@ -32,27 +32,6 @@ VarListColumnChunk::VarListColumnChunk(
     assert(this->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
 }
 
-void VarListColumnChunk::append(
-    arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    assert(array->type_id() == arrow::Type::STRING || array->type_id() == arrow::Type::LIST ||
-           array->type_id() == arrow::Type::LARGE_LIST);
-    switch (array->type_id()) {
-    case arrow::Type::STRING: {
-        copyVarListFromArrowString(array, startPosInChunk, numValuesToAppend);
-    } break;
-    case arrow::Type::LIST: {
-        copyVarListFromArrowList<arrow::ListArray>(array, startPosInChunk, numValuesToAppend);
-    } break;
-    case arrow::Type::LARGE_LIST: {
-        copyVarListFromArrowList<arrow::LargeListArray>(array, startPosInChunk, numValuesToAppend);
-    } break;
-    default: {
-        throw NotImplementedException("ListColumnChunk::appendArray");
-    }
-    }
-    numValues += numValuesToAppend;
-}
-
 void VarListColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
     offset_t startPosInChunk, uint32_t numValuesToAppend) {
     nullChunk->append(
@@ -70,34 +49,6 @@ void VarListColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChun
         otherListChunk->varListDataColumnChunk.dataColumnChunk.get(), startOffset,
         varListDataColumnChunk.getNumValues(), endOffset - startOffset);
     numValues += numValuesToAppend;
-}
-
-void VarListColumnChunk::copyVarListFromArrowString(
-    arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    auto stringArray = (arrow::StringArray*)array;
-    auto arrayData = stringArray->data();
-    if (arrayData->MayHaveNulls()) {
-        for (auto i = 0u; i < numValuesToAppend; i++) {
-            auto posInChunk = startPosInChunk + i;
-            if (arrayData->IsNull(i)) {
-                nullChunk->setNull(posInChunk, true);
-                setValue(varListDataColumnChunk.getNumValues(), posInChunk);
-                continue;
-            }
-            auto value = stringArray->GetView(i);
-            auto listVal = TableCopyUtils::getVarListValue(
-                value.data(), 1, value.size() - 2, dataType, *csvReaderConfig);
-            write(*listVal, posInChunk);
-        }
-    } else {
-        for (auto i = 0u; i < numValuesToAppend; i++) {
-            auto value = stringArray->GetView(i);
-            auto posInChunk = startPosInChunk + i;
-            auto listVal = TableCopyUtils::getVarListValue(
-                value.data(), 1, value.size() - 2, dataType, *csvReaderConfig);
-            write(*listVal, posInChunk);
-        }
-    }
 }
 
 void VarListColumnChunk::write(const Value& listVal, uint64_t posToWrite) {
