@@ -47,6 +47,8 @@ def serialize(dataset_name, dataset_path, serialized_graph_path, benchmark_copy_
     serialize_queries = [q.strip().replace('{}', dataset_path)
                          for q in serialize_queries]
 
+    table_types = {}
+
     for s in serialize_queries:
         logging.info('Executing query: %s', s)
         # Run kuzu shell one query at a time. This ensures a new process is
@@ -55,9 +57,15 @@ def serialize(dataset_name, dataset_path, serialized_graph_path, benchmark_copy_
             stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         process.stdin.write((s + ";" + "\n").encode("ascii"))
         process.stdin.close()
-        match = re.match('copy (.*) from', s, re.IGNORECASE)
+        match = re.match('create\s+(.+?)\s+table\s+(.+?)\s*\(', s, re.IGNORECASE)
         if match:
-            f = open(os.path.join(benchmark_copy_log_dir, match.group(1) + '_log.txt'), 'ab')
+            table_types[match.group(2)] = match.group(1).lower()
+            match = False
+        else:
+            match = re.match('copy\s+(.+?)\s+from', s, re.IGNORECASE)
+        if match:
+            filename = table_types[match.group(1)] + '-' + match.group(1).replace('_', '-') + '_log.txt'
+            f = open(os.path.join(benchmark_copy_log_dir, filename), 'ab')
         for line in iter(process.stdout.readline, b''):
             sys.stdout.write(line.decode("utf-8"))
             sys.stdout.flush()

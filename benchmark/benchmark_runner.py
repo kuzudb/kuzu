@@ -89,7 +89,7 @@ num_run = 5
 
 class CopyQueryBenchmark:
     def __init__(self, benchmark_copy_log):
-        self.name = os.path.basename(benchmark_copy_log).split('_log')[0]
+        self.name = os.path.basename(benchmark_copy_log).split('_')[0]
         self.group = 'copy'
         self.status = 'pass'
 
