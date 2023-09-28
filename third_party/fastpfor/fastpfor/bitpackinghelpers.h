@@ -12,6 +12,219 @@
 
 namespace FastPForLib {
 
+// Note that this only packs 8 values
+inline void fastunpack_quarter(const uint8_t *__restrict in, uint8_t *__restrict out, const uint32_t bit) {
+  // Could have used function pointers instead of switch.
+  // Switch calls do offer the compiler more opportunities for optimization in
+  // theory. In this case, it makes no difference with a good compiler.
+  switch (bit) {
+  case 0:
+    __fastunpack0(in, out);
+    break;
+  case 1:
+    __fastunpack1(in, out);
+    break;
+  case 2:
+    __fastunpack2(in, out);
+    break;
+  case 3:
+    __fastunpack3(in, out);
+    break;
+  case 4:
+    __fastunpack4(in, out);
+    break;
+  case 5:
+    __fastunpack5(in, out);
+    break;
+  case 6:
+    __fastunpack6(in, out);
+    break;
+  case 7:
+    __fastunpack7(in, out);
+    break;
+  case 8:
+    __fastunpack8(in, out);
+    break;
+  default:
+    throw std::logic_error("Invalid bit width for bitpacking");
+  }
+}
+
+// Note that this only packs 8 values
+inline void fastpack_quarter(const uint8_t *__restrict in, uint8_t *__restrict out, const uint32_t bit) {
+  // Could have used function pointers instead of switch.
+  // Switch calls do offer the compiler more opportunities for optimization in
+  // theory. In this case, it makes no difference with a good compiler.
+  switch (bit) {
+  case 0:
+    __fastpack0(in, out);
+    break;
+  case 1:
+    __fastpack1(in, out);
+    break;
+  case 2:
+    __fastpack2(in, out);
+    break;
+  case 3:
+    __fastpack3(in, out);
+    break;
+  case 4:
+    __fastpack4(in, out);
+    break;
+  case 5:
+    __fastpack5(in, out);
+    break;
+  case 6:
+    __fastpack6(in, out);
+    break;
+  case 7:
+    __fastpack7(in, out);
+    break;
+  case 8:
+    __fastpack8(in, out);
+    break;
+  default:
+  	throw std::logic_error("Invalid bit width for bitpacking");
+  }
+}
+
+// Note that this only packs 16 values
+inline void fastunpack_half(const uint16_t *__restrict in, uint16_t *__restrict out, const uint32_t bit) {
+  // Could have used function pointers instead of switch.
+  // Switch calls do offer the compiler more opportunities for optimization in
+  // theory. In this case, it makes no difference with a good compiler.
+  switch (bit) {
+  case 0:
+    __fastunpack0(in, out);
+    break;
+  case 1:
+    __fastunpack1(in, out);
+    break;
+  case 2:
+    __fastunpack2(in, out);
+    break;
+  case 3:
+    __fastunpack3(in, out);
+    break;
+  case 4:
+    __fastunpack4(in, out);
+    break;
+  case 5:
+    __fastunpack5(in, out);
+    break;
+  case 6:
+    __fastunpack6(in, out);
+    break;
+  case 7:
+    __fastunpack7(in, out);
+    break;
+  case 8:
+    __fastunpack8(in, out);
+    break;
+  case 9:
+    __fastunpack9(in, out);
+    break;
+  case 10:
+    __fastunpack10(in, out);
+    break;
+  case 11:
+    __fastunpack11(in, out);
+    break;
+  case 12:
+    __fastunpack12(in, out);
+    break;
+  case 13:
+    __fastunpack13(in, out);
+    break;
+  case 14:
+    __fastunpack14(in, out);
+  break;
+  case 15:
+    __fastunpack15(in, out);
+    break;
+  case 16:
+    __fastunpack16(in, out);
+    break;
+  default:
+    throw std::logic_error("Invalid bit width for bitpacking");
+  }
+}
+
+// Note that this only packs 16 values
+inline void fastpack_half(const uint16_t *__restrict in, uint16_t *__restrict out, const uint32_t bit) {
+    // Could have used function pointers instead of switch.
+    // Switch calls do offer the compiler more opportunities for optimization in
+    // theory. In this case, it makes no difference with a good compiler.
+  switch (bit) {
+  case 0:
+    __fastpack0(in, out);
+    break;
+  case 1:
+    __fastpack1(in, out);
+    break;
+  case 2:
+    __fastpack2(in, out);
+    break;
+  case 3:
+    __fastpack3(in, out);
+    break;
+  case 4:
+    __fastpack4(in, out);
+    break;
+  case 5:
+    __fastpack5(in, out);
+    break;
+  case 6:
+    __fastpack6(in, out);
+    break;
+  case 7:
+    __fastpack7(in, out);
+    break;
+  case 8:
+    __fastpack8(in, out);
+    break;
+  case 9:
+    __fastpack9(in, out);
+    break;
+  case 10:
+    __fastpack10(in, out);
+    break;
+  case 11:
+    __fastpack11(in, out);
+    break;
+  case 12:
+    __fastpack12(in, out);
+    break;
+  case 13:
+    __fastpack13(in, out);
+    break;
+  case 14:
+    __fastpack14(in, out);
+    break;
+  case 15:
+    __fastpack15(in, out);
+    break;
+  case 16:
+    __fastpack16(in, out);
+    break;
+  default:
+    throw std::logic_error("Invalid bit width for bitpacking");
+  }
+}
+
+inline void fastunpack(const uint8_t *__restrict in, uint8_t *__restrict out, const uint32_t bit) {
+  for (uint8_t i = 0; i < 4; i++) {
+    fastunpack_quarter(in + (i*bit), out+(i*8), bit);
+  }
+}
+
+inline void fastunpack(const uint16_t *__restrict in,
+        		    uint16_t *__restrict out, const uint32_t bit) {
+  fastunpack_half(in, out, bit);
+  fastunpack_half(in + bit, out+16, bit);
+}
+
+
 inline void fastunpack(const uint32_t *__restrict in,
                        uint32_t *__restrict out, const uint32_t bit) {
   // Could have used function pointers instead of switch.
@@ -326,6 +539,19 @@ inline void fastunpack(const uint32_t *__restrict in,
   default:
     break;
   }
+}
+
+inline void fastpack(const uint8_t *__restrict in, uint8_t *__restrict out, const uint32_t bit) {
+  for (uint8_t i = 0; i < 4; i++) {
+    fastpack_quarter(in+(i*8), out + (i*bit), bit);
+  }
+}
+
+// Compress all 32 values
+inline void fastpack(const uint16_t *__restrict in,
+                     uint16_t *__restrict out, const uint32_t bit) {
+  fastpack_half(in, out, bit);
+  fastpack_half(in+16, out + bit, bit);
 }
 
 inline void fastpack(const uint32_t *__restrict in,

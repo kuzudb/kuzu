@@ -84,6 +84,16 @@ bool CompressionMetadata::canUpdateInPlace(
             return IntegerBitpacking<int32_t>::canUpdateInPlace(
                 value, BitpackHeader::readHeader(data));
         }
+        case PhysicalTypeID::INT16: {
+            auto value = vector.getValue<int16_t>(pos);
+            return IntegerBitpacking<int16_t>::canUpdateInPlace(
+                value, BitpackHeader::readHeader(data));
+        }
+        case PhysicalTypeID::INT8: {
+            auto value = vector.getValue<int8_t>(pos);
+            return IntegerBitpacking<int8_t>::canUpdateInPlace(
+                value, BitpackHeader::readHeader(data));
+        }
         case PhysicalTypeID::VAR_LIST:
         case PhysicalTypeID::UINT64: {
             auto value = vector.getValue<uint64_t>(pos);
@@ -93,6 +103,16 @@ bool CompressionMetadata::canUpdateInPlace(
         case PhysicalTypeID::UINT32: {
             auto value = vector.getValue<uint32_t>(pos);
             return IntegerBitpacking<uint32_t>::canUpdateInPlace(
+                value, BitpackHeader::readHeader(data));
+        }
+        case PhysicalTypeID::UINT16: {
+            auto value = vector.getValue<uint16_t>(pos);
+            return IntegerBitpacking<uint16_t>::canUpdateInPlace(
+                value, BitpackHeader::readHeader(data));
+        }
+        case PhysicalTypeID::UINT8: {
+            auto value = vector.getValue<uint8_t>(pos);
+            return IntegerBitpacking<uint8_t>::canUpdateInPlace(
                 value, BitpackHeader::readHeader(data));
         }
         default: {
@@ -121,11 +141,22 @@ uint64_t CompressionMetadata::numValues(uint64_t pageSize, const LogicalType& da
             return IntegerBitpacking<int64_t>::numValues(pageSize, BitpackHeader::readHeader(data));
         case PhysicalTypeID::INT32:
             return IntegerBitpacking<int32_t>::numValues(pageSize, BitpackHeader::readHeader(data));
+        case PhysicalTypeID::INT16:
+            return IntegerBitpacking<int16_t>::numValues(pageSize, BitpackHeader::readHeader(data));
+        case PhysicalTypeID::INT8:
+            return IntegerBitpacking<int8_t>::numValues(pageSize, BitpackHeader::readHeader(data));
         case PhysicalTypeID::VAR_LIST:
         case PhysicalTypeID::UINT64:
-            return IntegerBitpacking<int64_t>::numValues(pageSize, BitpackHeader::readHeader(data));
+            return IntegerBitpacking<uint64_t>::numValues(
+                pageSize, BitpackHeader::readHeader(data));
         case PhysicalTypeID::UINT32:
-            return IntegerBitpacking<int32_t>::numValues(pageSize, BitpackHeader::readHeader(data));
+            return IntegerBitpacking<uint32_t>::numValues(
+                pageSize, BitpackHeader::readHeader(data));
+        case PhysicalTypeID::UINT16:
+            return IntegerBitpacking<uint16_t>::numValues(
+                pageSize, BitpackHeader::readHeader(data));
+        case PhysicalTypeID::UINT8:
+            return IntegerBitpacking<uint8_t>::numValues(pageSize, BitpackHeader::readHeader(data));
         default: {
             throw common::StorageException(
                 "Attempted to read from a column chunk which uses integer bitpacking but does not "
@@ -192,6 +223,34 @@ bool IntegerBitpacking<T>::canUpdateInPlace(T value, const BitpackHeader& header
 }
 
 template<typename T>
+void fastunpack(const uint8_t* in, T* out, uint32_t bitWidth) {
+    if constexpr (std::is_same_v<std::make_signed_t<T>, int32_t> ||
+                  std::is_same_v<std::make_signed_t<T>, int64_t>) {
+        FastPForLib::fastunpack((const uint32_t*)in, out, bitWidth);
+    } else if constexpr (std::is_same_v<std::make_signed_t<T>, int16_t>) {
+        FastPForLib::fastunpack((const uint16_t*)in, out, bitWidth);
+    } else {
+        static_assert(std::is_same_v<std::make_signed_t<T>, int8_t>);
+        FastPForLib::fastunpack((const uint8_t*)in, out, bitWidth);
+    }
+}
+
+template<typename T>
+void fastpack(const T* in, uint8_t* out, uint8_t bitWidth) {
+    if constexpr (std::is_same_v<std::make_signed_t<T>, int32_t> ||
+                  std::is_same_v<std::make_signed_t<T>, int64_t>) {
+        FastPForLib::fastpack(in, (uint32_t*)out, bitWidth);
+    } else if constexpr (std::is_same_v<std::make_signed_t<T>, int16_t>) {
+        FastPForLib::fastpack(in, (uint16_t*)out, bitWidth);
+    } else if constexpr (std::is_same_v<std::make_signed_t<T>, int8_t>) {
+        FastPForLib::fastpack(in, (uint8_t*)out, bitWidth);
+    } else {
+        static_assert(std::is_same_v<T, uint16_t> || std::is_same_v<T, int16_t>);
+        FastPForLib::fastpack(in, (uint16_t*)out, bitWidth);
+    }
+}
+
+template<typename T>
 void IntegerBitpacking<T>::setValueFromUncompressed(uint8_t* srcBuffer, common::offset_t posInSrc,
     uint8_t* dstBuffer, common::offset_t posInDst, const CompressionMetadata& metadata) const {
     auto header = BitpackHeader::readHeader(metadata.data);
@@ -203,15 +262,15 @@ void IntegerBitpacking<T>::setValueFromUncompressed(uint8_t* srcBuffer, common::
     // Data can be considered to be stored in aligned chunks of 32 values
     // with a size of 32 * bitWidth bits,
     // or bitWidth 32-bit values (we cast the buffer to a uint32_t* later).
-    auto chunkStart = getChunkStart(dstBuffer, posInDst, header.bitWidth);
+    auto chunkStart = (uint8_t*)getChunkStart(dstBuffer, posInDst, header.bitWidth);
     auto posInChunk = posInDst % CHUNK_SIZE;
     auto value = ((T*)srcBuffer)[posInSrc];
     assert(canUpdateInPlace(value, header));
 
     U chunk[CHUNK_SIZE];
-    FastPForLib::fastunpack((const uint32_t*)chunkStart, chunk, header.bitWidth);
+    fastunpack(chunkStart, chunk, header.bitWidth);
     chunk[posInChunk] = (U)value;
-    FastPForLib::fastpack(chunk, (uint32_t*)chunkStart, header.bitWidth);
+    fastpack(chunk, chunkStart, header.bitWidth);
 }
 
 template<typename T>
@@ -221,7 +280,7 @@ void IntegerBitpacking<T>::getValues(const uint8_t* chunkStart, uint8_t pos, uin
     assert(pos + numValuesToRead <= CHUNK_SIZE);
 
     U chunk[CHUNK_SIZE];
-    FastPForLib::fastunpack((const uint32_t*)chunkStart, chunk, header.bitWidth);
+    fastunpack(chunkStart, chunk, header.bitWidth);
     if (header.hasNegative) {
         SignExtend<T, U, CHUNK_SIZE>((uint8_t*)chunk, header.bitWidth);
     }
@@ -256,8 +315,7 @@ uint64_t IntegerBitpacking<T>::compressNextPage(const uint8_t*& srcBuffer,
     // so we stop at the end of the last full chunk and use a temporary array to avoid overflow.
     auto lastFullChunkEnd = numValuesToCompress - numValuesToCompress % CHUNK_SIZE;
     for (auto i = 0ull; i < lastFullChunkEnd; i += CHUNK_SIZE) {
-        FastPForLib::fastpack(
-            (const U*)srcBuffer + i, (uint32_t*)(dstBuffer + i * bitWidth / 8), bitWidth);
+        fastpack((const U*)srcBuffer + i, dstBuffer + i * bitWidth / 8, bitWidth);
     }
     // Pack last partial chunk, avoiding overflows
     if (numValuesToCompress % CHUNK_SIZE > 0) {
@@ -265,8 +323,7 @@ uint64_t IntegerBitpacking<T>::compressNextPage(const uint8_t*& srcBuffer,
         U chunk[CHUNK_SIZE] = {0};
         memcpy(chunk, (const U*)srcBuffer + lastFullChunkEnd,
             numValuesToCompress % CHUNK_SIZE * sizeof(U));
-        FastPForLib::fastpack(
-            chunk, (uint32_t*)(dstBuffer + lastFullChunkEnd * bitWidth / 8), bitWidth);
+        fastpack(chunk, dstBuffer + lastFullChunkEnd * bitWidth / 8, bitWidth);
     }
     srcBuffer += numValuesToCompress * sizeof(U);
     return sizeToCompress;
@@ -297,8 +354,7 @@ void IntegerBitpacking<T>::decompressFromPage(const uint8_t* srcBuffer, uint64_t
 
     // Use fastunpack to directly unpack the full-sized chunks
     for (; dstIndex + CHUNK_SIZE <= dstOffset + numValues; dstIndex += CHUNK_SIZE) {
-        FastPForLib::fastunpack(
-            (const uint32_t*)srcCursor, (U*)dstBuffer + dstIndex, header.bitWidth);
+        fastunpack(srcCursor, (U*)dstBuffer + dstIndex, header.bitWidth);
         if (header.hasNegative) {
             SignExtend<T, U, CHUNK_SIZE>(dstBuffer + dstIndex * sizeof(U), header.bitWidth);
         }
@@ -311,11 +367,12 @@ void IntegerBitpacking<T>::decompressFromPage(const uint8_t* srcBuffer, uint64_t
     }
 }
 
-// Uses unsigned types since the storage is unsigned
-// TODO: Doesn't currently support int16
-// template class IntegerBitpacking<int16_t>;
+template class IntegerBitpacking<int8_t>;
+template class IntegerBitpacking<int16_t>;
 template class IntegerBitpacking<int32_t>;
 template class IntegerBitpacking<int64_t>;
+template class IntegerBitpacking<uint8_t>;
+template class IntegerBitpacking<uint16_t>;
 template class IntegerBitpacking<uint32_t>;
 template class IntegerBitpacking<uint64_t>;
 
@@ -384,6 +441,14 @@ void ReadCompressedValuesFromPageToVector::operator()(uint8_t* frame, PageElemen
             return IntegerBitpacking<int32_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
                 resultVector->getData(), posInVector, numValuesToRead, metadata);
         }
+        case PhysicalTypeID::INT16: {
+            return IntegerBitpacking<int16_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
+                resultVector->getData(), posInVector, numValuesToRead, metadata);
+        }
+        case PhysicalTypeID::INT8: {
+            return IntegerBitpacking<int8_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
+                resultVector->getData(), posInVector, numValuesToRead, metadata);
+        }
         case PhysicalTypeID::VAR_LIST:
         case PhysicalTypeID::UINT64: {
             return IntegerBitpacking<uint64_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
@@ -391,6 +456,14 @@ void ReadCompressedValuesFromPageToVector::operator()(uint8_t* frame, PageElemen
         }
         case PhysicalTypeID::UINT32: {
             return IntegerBitpacking<uint32_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
+                resultVector->getData(), posInVector, numValuesToRead, metadata);
+        }
+        case PhysicalTypeID::UINT16: {
+            return IntegerBitpacking<uint16_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
+                resultVector->getData(), posInVector, numValuesToRead, metadata);
+        }
+        case PhysicalTypeID::UINT8: {
+            return IntegerBitpacking<uint8_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
                 resultVector->getData(), posInVector, numValuesToRead, metadata);
         }
         default: {
@@ -422,6 +495,14 @@ void ReadCompressedValuesFromPage::operator()(uint8_t* frame, PageElementCursor&
             return IntegerBitpacking<int32_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
                 result, startPosInResult, numValuesToRead, metadata);
         }
+        case PhysicalTypeID::INT16: {
+            return IntegerBitpacking<int16_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
+                result, startPosInResult, numValuesToRead, metadata);
+        }
+        case PhysicalTypeID::INT8: {
+            return IntegerBitpacking<int8_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
+                result, startPosInResult, numValuesToRead, metadata);
+        }
         case PhysicalTypeID::VAR_LIST:
         case PhysicalTypeID::UINT64: {
             return IntegerBitpacking<uint64_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
@@ -429,6 +510,14 @@ void ReadCompressedValuesFromPage::operator()(uint8_t* frame, PageElementCursor&
         }
         case PhysicalTypeID::UINT32: {
             return IntegerBitpacking<uint32_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
+                result, startPosInResult, numValuesToRead, metadata);
+        }
+        case PhysicalTypeID::UINT16: {
+            return IntegerBitpacking<uint16_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
+                result, startPosInResult, numValuesToRead, metadata);
+        }
+        case PhysicalTypeID::UINT8: {
+            return IntegerBitpacking<int8_t>().decompressFromPage(frame, pageCursor.elemPosInPage,
                 result, startPosInResult, numValuesToRead, metadata);
         }
         default: {
@@ -459,6 +548,14 @@ void WriteCompressedValueToPage::operator()(uint8_t* frame, uint16_t posInFrame,
             return IntegerBitpacking<int32_t>().setValueFromUncompressed(
                 vector->getData(), posInVector, frame, posInFrame, metadata);
         }
+        case PhysicalTypeID::INT16: {
+            return IntegerBitpacking<int16_t>().setValueFromUncompressed(
+                vector->getData(), posInVector, frame, posInFrame, metadata);
+        }
+        case PhysicalTypeID::INT8: {
+            return IntegerBitpacking<int8_t>().setValueFromUncompressed(
+                vector->getData(), posInVector, frame, posInFrame, metadata);
+        }
         case PhysicalTypeID::VAR_LIST:
         case PhysicalTypeID::UINT64: {
             return IntegerBitpacking<uint64_t>().setValueFromUncompressed(
@@ -466,6 +563,14 @@ void WriteCompressedValueToPage::operator()(uint8_t* frame, uint16_t posInFrame,
         }
         case PhysicalTypeID::UINT32: {
             return IntegerBitpacking<uint32_t>().setValueFromUncompressed(
+                vector->getData(), posInVector, frame, posInFrame, metadata);
+        }
+        case PhysicalTypeID::UINT16: {
+            return IntegerBitpacking<uint16_t>().setValueFromUncompressed(
+                vector->getData(), posInVector, frame, posInFrame, metadata);
+        }
+        case PhysicalTypeID::UINT8: {
+            return IntegerBitpacking<uint8_t>().setValueFromUncompressed(
                 vector->getData(), posInVector, frame, posInFrame, metadata);
         }
         default: {
