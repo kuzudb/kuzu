@@ -19,7 +19,7 @@ namespace kuzu {
 namespace storage {
 
 struct InternalIDNodeColumnFunc {
-    static void readValuesFromPage(uint8_t* frame, PageElementCursor& pageCursor,
+    static void readValuesFromPageToVector(uint8_t* frame, PageElementCursor& pageCursor,
         ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead,
         const CompressionMetadata& metadata) {
         auto resultData = (internalID_t*)resultVector->getData();
@@ -38,7 +38,7 @@ struct InternalIDNodeColumnFunc {
 };
 
 struct NullNodeColumnFunc {
-    static void readValuesFromPage(uint8_t* frame, PageElementCursor& pageCursor,
+    static void readValuesFromPageToVector(uint8_t* frame, PageElementCursor& pageCursor,
         ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead,
         const CompressionMetadata& metadata) {
         // Read bit-packed null flags from the frame into the result vector
@@ -81,7 +81,13 @@ struct BoolNodeColumnFunc {
             posInVector, (uint64_t*)frame, posInFrame, 1);
     }
 
-    static void readValuesFromPage(uint8_t* frame, PageElementCursor& pageCursor, uint8_t* result,
+    static void copyValuesFromPage(uint8_t* frame, PageElementCursor& pageCursor, uint8_t* result,
+        uint32_t startPosInResult, uint64_t numValuesToRead, const CompressionMetadata& metadata) {
+        NullMask::copyNullMask((uint64_t*)frame, pageCursor.elemPosInPage, (uint64_t*)result,
+            startPosInResult, numValuesToRead);
+    }
+
+    static void batchLookupFromPage(uint8_t* frame, PageElementCursor& pageCursor, uint8_t* result,
         uint32_t startPosInResult, uint64_t numValuesToRead, const CompressionMetadata& metadata) {
         for (auto i = 0; i < numValuesToRead; i++) {
             result[startPosInResult + i] =
@@ -90,10 +96,10 @@ struct BoolNodeColumnFunc {
     }
 };
 
-static read_node_column_func_t getReadNodeColumnFunc(const LogicalType& logicalType) {
+static read_values_to_vector_func_t getReadValuesToVectorFunc(const LogicalType& logicalType) {
     switch (logicalType.getLogicalTypeID()) {
     case LogicalTypeID::INTERNAL_ID:
-        return InternalIDNodeColumnFunc::readValuesFromPage;
+        return InternalIDNodeColumnFunc::readValuesFromPageToVector;
     case LogicalTypeID::BOOL:
         return BoolNodeColumnFunc::readValuesFromPageToVector;
     default:
@@ -101,16 +107,17 @@ static read_node_column_func_t getReadNodeColumnFunc(const LogicalType& logicalT
     }
 }
 
-static lookup_node_column_func_t getLookupNodeColumnFunc(const LogicalType& logicalType) {
+static read_values_to_page_func_t getWriteValuesToPageFunc(const LogicalType& logicalType) {
     switch (logicalType.getLogicalTypeID()) {
     case LogicalTypeID::BOOL:
-        return BoolNodeColumnFunc::readValuesFromPage;
+        return BoolNodeColumnFunc::copyValuesFromPage;
     default:
         return ReadCompressedValuesFromPage(logicalType);
     }
 }
 
-static write_node_column_func_t getWriteNodeColumnFunc(const LogicalType& logicalType) {
+static write_values_from_vector_func_t getWriteValuesFromVectorFunc(
+    const LogicalType& logicalType) {
     switch (logicalType.getLogicalTypeID()) {
     case LogicalTypeID::INTERNAL_ID:
         return InternalIDNodeColumnFunc::writeValueToPage;
@@ -118,6 +125,16 @@ static write_node_column_func_t getWriteNodeColumnFunc(const LogicalType& logica
         return BoolNodeColumnFunc::writeValueToPage;
     default:
         return WriteCompressedValueToPage(logicalType);
+    }
+}
+
+static batch_lookup_func_t getBatchLookupFromPageFunc(const LogicalType& logicalType) {
+    switch (logicalType.getLogicalTypeID()) {
+    case LogicalTypeID::BOOL:
+        return BoolNodeColumnFunc::batchLookupFromPage;
+    default: {
+        return ReadCompressedValuesFromPage(logicalType);
+    }
     }
 }
 
@@ -132,9 +149,10 @@ NodeColumn::NodeColumn(LogicalType dataType, const MetadataDAHInfo& metaDAHeader
         StorageStructureID::newMetadataID(), metaDAHeaderInfo.dataDAHPageIdx, bufferManager, wal,
         transaction);
     numBytesPerFixedSizedValue = getDataTypeSizeInChunk(this->dataType);
-    readNodeColumnFunc = getReadNodeColumnFunc(this->dataType);
-    lookupNodeColumnFunc = getLookupNodeColumnFunc(this->dataType);
-    writeNodeColumnFunc = getWriteNodeColumnFunc(this->dataType);
+    readToVectorFunc = getReadValuesToVectorFunc(this->dataType);
+    readToPageFunc = getWriteValuesToPageFunc(this->dataType);
+    batchLookupFunc = getBatchLookupFromPageFunc(this->dataType);
+    writeFromVectorFunc = getWriteValuesFromVectorFunc(this->dataType);
     assert(numBytesPerFixedSizedValue <= BufferPoolConstants::PAGE_4KB_SIZE);
     if (requireNullColumn) {
         nullColumn = std::make_unique<NullNodeColumn>(metaDAHeaderInfo.nullDAHPageIdx, dataFH,
@@ -150,7 +168,7 @@ void NodeColumn::batchLookup(
         auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
         auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
         readFromPage(transaction, cursor.pageIdx, [&](uint8_t* frame) -> void {
-            lookupNodeColumnFunc(frame, cursor, result, i, 1, chunkMeta.compMeta);
+            batchLookupFunc(frame, cursor, result, i, 1, chunkMeta.compMeta);
         });
     }
 }
@@ -186,18 +204,17 @@ void NodeColumn::scan(node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) {
     } else {
         auto chunkMetadata = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
         auto cursor = PageElementCursor(chunkMetadata.pageIdx, 0);
-        auto numValuesToScan = chunkMetadata.numValues;
-        uint64_t numValuesScanned = 0;
-        while (numValuesScanned < numValuesToScan) {
-            uint64_t numValuesToScanInPage =
-                std::min((uint64_t)chunkMetadata.compMeta.numValues(
-                             BufferPoolConstants::PAGE_4KB_SIZE, dataType),
-                    numValuesToScan - numValuesScanned);
+        uint64_t numValuesPerPage =
+            chunkMetadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+        uint64_t numValuesScanned = 0u;
+        while (numValuesScanned < columnChunk->getCapacity()) {
+            auto numValuesToReadInPage =
+                std::min(numValuesPerPage, columnChunk->getCapacity() - numValuesScanned);
             readFromPage(&DUMMY_READ_TRANSACTION, cursor.pageIdx, [&](uint8_t* frame) -> void {
-                lookupNodeColumnFunc(frame, cursor, columnChunk->getData(), numValuesScanned,
-                    numValuesToScanInPage, chunkMetadata.compMeta);
+                readToPageFunc(frame, cursor, columnChunk->getData(), numValuesScanned,
+                    numValuesToReadInPage, chunkMetadata.compMeta);
             });
-            numValuesScanned += numValuesToScanInPage;
+            numValuesScanned += numValuesToReadInPage;
             cursor.nextPage();
         }
         columnChunk->setNumValues(chunkMetadata.numValues);
@@ -223,13 +240,13 @@ void NodeColumn::scanUnfiltered(Transaction* transaction, PageElementCursor& pag
     uint64_t numValuesToScan, ValueVector* resultVector, const CompressionMetadata& compMeta,
     uint64_t startPosInVector) {
     uint64_t numValuesScanned = 0;
+    auto numValuesPerPage = compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
     while (numValuesScanned < numValuesToScan) {
         uint64_t numValuesToScanInPage =
-            std::min((uint64_t)compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType) -
-                         pageCursor.elemPosInPage,
+            std::min((uint64_t)numValuesPerPage - pageCursor.elemPosInPage,
                 numValuesToScan - numValuesScanned);
         readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
-            readNodeColumnFunc(frame, pageCursor, resultVector, numValuesScanned + startPosInVector,
+            readToVectorFunc(frame, pageCursor, resultVector, numValuesScanned + startPosInVector,
                 numValuesToScanInPage, compMeta);
         });
         numValuesScanned += numValuesToScanInPage;
@@ -242,16 +259,16 @@ void NodeColumn::scanFiltered(Transaction* transaction, PageElementCursor& pageC
     auto numValuesToScan = nodeIDVector->state->getOriginalSize();
     auto numValuesScanned = 0u;
     auto posInSelVector = 0u;
+    auto numValuesPerPage = compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
     while (numValuesScanned < numValuesToScan) {
         uint64_t numValuesToScanInPage =
-            std::min((uint64_t)compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType) -
-                         pageCursor.elemPosInPage,
+            std::min((uint64_t)numValuesPerPage - pageCursor.elemPosInPage,
                 numValuesToScan - numValuesScanned);
         if (StorageStructure::isInRange(
                 nodeIDVector->state->selVector->selectedPositions[posInSelVector], numValuesScanned,
                 numValuesScanned + numValuesToScanInPage)) {
             readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
-                readNodeColumnFunc(frame, pageCursor, resultVector, numValuesScanned,
+                readToVectorFunc(frame, pageCursor, resultVector, numValuesScanned,
                     numValuesToScanInPage, compMeta);
             });
         }
@@ -289,7 +306,7 @@ void NodeColumn::lookupValue(transaction::Transaction* transaction, offset_t nod
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
     readFromPage(transaction, cursor.pageIdx, [&](uint8_t* frame) -> void {
-        readNodeColumnFunc(
+        readToVectorFunc(
             frame, cursor, resultVector, posInVector, 1 /* numValuesToRead */, chunkMeta.compMeta);
     });
 }
@@ -361,7 +378,7 @@ void NodeColumn::writeValue(
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
     try {
-        writeNodeColumnFunc(walPageInfo.frame, walPageInfo.posInPage, vectorToWriteFrom,
+        writeFromVectorFunc(walPageInfo.frame, walPageInfo.posInPage, vectorToWriteFrom,
             posInVectorToWriteFrom, chunkMeta.compMeta);
     } catch (Exception& e) {
         bufferManager->unpin(*wal->fileHandle, walPageInfo.pageIdxInWAL);
@@ -449,8 +466,8 @@ NullNodeColumn::NullNodeColumn(page_idx_t metaDAHPageIdx, BMFileHandle* dataFH,
     : NodeColumn{LogicalType(LogicalTypeID::BOOL), MetadataDAHInfo{metaDAHPageIdx}, dataFH,
           metadataFH, bufferManager, wal, transaction, propertyStatistics,
           false /*requireNullColumn*/} {
-    readNodeColumnFunc = NullNodeColumnFunc::readValuesFromPage;
-    writeNodeColumnFunc = NullNodeColumnFunc::writeValueToPage;
+    readToVectorFunc = NullNodeColumnFunc::readValuesFromPageToVector;
+    writeFromVectorFunc = NullNodeColumnFunc::writeValueToPage;
 }
 
 void NullNodeColumn::scan(

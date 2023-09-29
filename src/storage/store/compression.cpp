@@ -429,8 +429,8 @@ void ReadCompressedValuesFromPageToVector::operator()(uint8_t* frame, PageElemen
     const CompressionMetadata& metadata) {
     switch (metadata.compression) {
     case CompressionType::UNCOMPRESSED:
-        return copy.decompressFromPage(frame, pageCursor.elemPosInPage, resultVector->getData(),
-            posInVector, numValuesToRead, metadata);
+        return uncompressed.decompressFromPage(frame, pageCursor.elemPosInPage,
+            resultVector->getData(), posInVector, numValuesToRead, metadata);
     case CompressionType::INTEGER_BITPACKING: {
         switch (physicalType) {
         case PhysicalTypeID::INT64: {
@@ -483,7 +483,7 @@ void ReadCompressedValuesFromPage::operator()(uint8_t* frame, PageElementCursor&
     const CompressionMetadata& metadata) {
     switch (metadata.compression) {
     case CompressionType::UNCOMPRESSED:
-        return copy.decompressFromPage(
+        return uncompressed.decompressFromPage(
             frame, pageCursor.elemPosInPage, result, startPosInResult, numValuesToRead, metadata);
     case CompressionType::INTEGER_BITPACKING: {
         switch (physicalType) {
@@ -536,7 +536,7 @@ void WriteCompressedValueToPage::operator()(uint8_t* frame, uint16_t posInFrame,
     common::ValueVector* vector, uint32_t posInVector, const CompressionMetadata& metadata) {
     switch (metadata.compression) {
     case CompressionType::UNCOMPRESSED:
-        return copy.setValueFromUncompressed(
+        return uncompressed.setValueFromUncompressed(
             vector->getData(), posInVector, frame, posInFrame, metadata);
     case CompressionType::INTEGER_BITPACKING: {
         switch (physicalType) {

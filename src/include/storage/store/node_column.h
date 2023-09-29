@@ -12,15 +12,17 @@ namespace storage {
 
 struct CompressionMetadata;
 
-using read_node_column_func_t = std::function<void(uint8_t* frame, PageElementCursor& pageCursor,
-    common::ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead,
-    const CompressionMetadata& metadata)>;
-using write_node_column_func_t = std::function<void(uint8_t* frame, uint16_t posInFrame,
+using read_values_to_vector_func_t = std::function<void(uint8_t* frame,
+    PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
+    uint32_t numValuesToRead, const CompressionMetadata& metadata)>;
+using write_values_from_vector_func_t = std::function<void(uint8_t* frame, uint16_t posInFrame,
     common::ValueVector* vector, uint32_t posInVector, const CompressionMetadata& metadata)>;
 
-using lookup_node_column_func_t =
+using read_values_to_page_func_t =
     std::function<void(uint8_t* frame, PageElementCursor& pageCursor, uint8_t* result,
         uint32_t posInResult, uint64_t numValues, const CompressionMetadata& metadata)>;
+// This is a special usage for the `batchLookup` interface.
+using batch_lookup_func_t = read_values_to_page_func_t;
 
 class NullNodeColumn;
 class StructNodeColumn;
@@ -123,9 +125,10 @@ protected:
     std::unique_ptr<InMemDiskArray<ColumnChunkMetadata>> metadataDA;
     std::unique_ptr<NodeColumn> nullColumn;
     std::vector<std::unique_ptr<NodeColumn>> childrenColumns;
-    read_node_column_func_t readNodeColumnFunc;
-    write_node_column_func_t writeNodeColumnFunc;
-    lookup_node_column_func_t lookupNodeColumnFunc;
+    read_values_to_vector_func_t readToVectorFunc;
+    write_values_from_vector_func_t writeFromVectorFunc;
+    read_values_to_page_func_t readToPageFunc;
+    batch_lookup_func_t batchLookupFunc;
     RWPropertyStats propertyStatistics;
 };
 
