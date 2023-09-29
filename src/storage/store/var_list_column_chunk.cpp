@@ -89,8 +89,11 @@ void VarListColumnChunk::append(common::ValueVector* vector, common::offset_t st
     dataVector->setState(std::make_unique<DataChunkState>());
     dataVector->state->selVector->resetSelectorToValuePosBuffer();
     for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
-        auto listEntry =
-            vector->getValue<list_entry_t>(vector->state->selVector->selectedPositions[i]);
+        auto pos = vector->state->selVector->selectedPositions[i];
+        if (vector->isNull(pos)) {
+            continue;
+        }
+        auto listEntry = vector->getValue<list_entry_t>(pos);
         dataVector->state->selVector->selectedSize = listEntry.size;
         for (auto j = 0u; j < listEntry.size; j++) {
             dataVector->state->selVector->selectedPositions[j] = listEntry.offset + j;
