@@ -163,7 +163,7 @@ void InMemLists::setValue(offset_t nodeOffset, uint64_t pos, uint8_t* val) {
 template<typename T>
 void InMemLists::setValueFromString(
     offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
-    auto numericVal = StringCastUtils::castToNum<T>(val);
+    auto numericVal = function::castStringToNum<T>(val, length);
     setValue(nodeOffset, pos, (uint8_t*)&numericVal);
 }
 

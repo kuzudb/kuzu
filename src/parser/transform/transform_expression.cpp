@@ -1,4 +1,5 @@
 #include "common/string_utils.h"
+#include "function/cast/numeric_cast.h"
 #include "parser/expression/parsed_case_expression.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
@@ -569,7 +570,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
     CypherParser::OC_IntegerLiteralContext& ctx) {
     auto text = ctx.DecimalInteger()->getText();
     auto value =
-        std::make_unique<Value>(StringCastUtils::castToNum<int64_t>(text.c_str(), text.length()));
+        std::make_unique<Value>(function::castStringToNum<int64_t>(text.c_str(), text.length()));
     return std::make_unique<ParsedLiteralExpression>(std::move(value), ctx.getText());
 }
 
@@ -577,7 +578,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformDoubleLiteral(
     CypherParser::OC_DoubleLiteralContext& ctx) {
     auto text = ctx.RegularDecimalReal()->getText();
     auto value =
-        std::make_unique<Value>(StringCastUtils::castToNum<double_t>(text.c_str(), text.length()));
+        std::make_unique<Value>(function::castStringToNum<double_t>(text.c_str(), text.length()));
     return std::make_unique<ParsedLiteralExpression>(std::move(value), ctx.getText());
 }
 

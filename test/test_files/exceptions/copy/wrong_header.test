@@ -13,7 +13,7 @@
 ---- ok
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=true)
 ---- error
-Conversion exception: Invalid number: Alice.
+Conversion exception: Cast failed. Alice is not in INT64 range.
 
 -CASE HeaderError
 -STATEMENT create node table person (ID INT64, fName STRING, PRIMARY KEY (ID))

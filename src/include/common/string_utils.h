@@ -69,6 +69,8 @@ public:
         str = std::regex_replace(str, whiteSpacePattern, "");
     }
 
+    static void removeCStringWhiteSpaces(const char*& input, uint64_t& len);
+
     static void replaceAll(
         std::string& str, const std::string& search, const std::string& replacement);
 

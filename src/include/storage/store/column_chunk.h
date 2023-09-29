@@ -5,6 +5,7 @@
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "compression.h"
+#include "function/cast/numeric_cast.h"
 #include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/wal/wal.h"
 #include "transaction/transaction.h"
@@ -101,8 +102,7 @@ public:
 
     template<typename T>
     void setValueFromString(const char* value, uint64_t length, common::offset_t pos) {
-        auto val = common::StringCastUtils::castToNum<T>(value, length);
-        setValue<T>(val, pos);
+        setValue<T>(function::castStringToNum<T>(value, length), pos);
     }
 
     static inline common::page_idx_t getNumPagesForBytes(uint64_t numBytes) {

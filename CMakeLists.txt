@@ -223,6 +223,7 @@ include_directories(third_party/re2/include)
 include_directories(third_party/concurrentqueue)
 include_directories(third_party/serd/include)
 include_directories(third_party/miniparquet/src)
+include_directories(third_party/fast_float/include)
 
 add_subdirectory(third_party)
 add_subdirectory(src)

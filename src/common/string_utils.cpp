@@ -31,6 +31,17 @@ std::vector<std::string> StringUtils::splitBySpace(const std::string& input) {
     return result;
 }
 
+void StringUtils::removeCStringWhiteSpaces(const char*& input, uint64_t& len) {
+    // skip leading/trailing spaces
+    while (len > 0 && isspace(input[0])) {
+        input++;
+        len--;
+    }
+    while (len > 0 && isspace(input[len - 1])) {
+        len--;
+    }
+}
+
 void StringUtils::replaceAll(
     std::string& str, const std::string& search, const std::string& replacement) {
     size_t pos = 0;
