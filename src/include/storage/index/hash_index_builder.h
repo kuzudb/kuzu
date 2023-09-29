@@ -73,7 +73,6 @@ protected:
 
 template<typename T>
 class HashIndexBuilder : public BaseHashIndex {
-
 public:
     HashIndexBuilder(const std::string& fName, const common::LogicalType& keyDataType);
 
@@ -121,6 +120,7 @@ private:
     in_mem_insert_function_t keyInsertFunc;
     in_mem_equals_function_t keyEqualsFunc;
     std::unique_ptr<InMemOverflowFile> inMemOverflowFile;
+    uint8_t slotCapacity;
     std::atomic<uint64_t> numEntries;
 };
 

@@ -44,9 +44,18 @@ struct SlotEntry {
 };
 
 template<typename T>
+static constexpr uint8_t getSlotCapacity() {
+    if (std::is_same<T, int64_t>::value) {
+        return common::HashIndexConstants::INT64_SLOT_CAPACITY;
+    } else {
+        return common::HashIndexConstants::STRING_SLOT_CAPACITY;
+    }
+}
+
+template<typename T>
 struct Slot {
     SlotHeader header;
-    SlotEntry<T> entries[common::HashIndexConstants::SLOT_CAPACITY];
+    SlotEntry<T> entries[getSlotCapacity<T>()];
 };
 
 } // namespace storage
