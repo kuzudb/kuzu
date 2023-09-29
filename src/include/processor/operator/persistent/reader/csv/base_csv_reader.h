@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 
 #include "common/copier_config/copier_config.h"
 #include "common/data_chunk/data_chunk.h"
@@ -28,7 +29,7 @@ public:
     uint64_t countRows();
 
 protected:
-    void addValue(common::DataChunk& resultChunk, std::string strVal, common::column_id_t columnIdx,
+    void addValue(common::DataChunk&, std::string_view, common::column_id_t columnIdx,
         std::vector<uint64_t>& escapePositions);
     void addRow(common::DataChunk&, common::column_id_t column);
 
@@ -63,7 +64,7 @@ protected:
     virtual void handleQuotedNewline() = 0;
 
 private:
-    void copyStringToVector(common::ValueVector*, std::string);
+    void copyStringToVector(common::ValueVector*, std::string_view);
     //! Called after a row is finished to determine if we should keep processing.
     inline bool finishedBlock() {
         return mode != ParserMode::PARSING || rowToAdd >= common::DEFAULT_VECTOR_CAPACITY ||

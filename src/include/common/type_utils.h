@@ -48,7 +48,7 @@ public:
     static T castToNum(const char* data, uint64_t length) {
         T result;
         if (!tryCastToNum(data, length, result)) {
-            throw ConversionException{"Invalid number: " + std::string{data} + "."};
+            throw ConversionException{"Invalid number: " + std::string{data, length} + "."};
         }
         return result;
     }

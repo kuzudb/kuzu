@@ -74,7 +74,7 @@ std::unique_ptr<parquet::arrow::FileReader> TableCopyUtils::createParquetReader(
 }
 
 std::vector<std::pair<int64_t, int64_t>> TableCopyUtils::splitByDelimiter(
-    const std::string& l, int64_t from, int64_t to, const CSVReaderConfig& csvReaderConfig) {
+    std::string_view l, int64_t from, int64_t to, const CSVReaderConfig& csvReaderConfig) {
     std::vector<std::pair<int64_t, int64_t>> split;
     auto numListBeginChars = 0u;
     auto numStructBeginChars = 0u;
@@ -104,20 +104,20 @@ std::vector<std::pair<int64_t, int64_t>> TableCopyUtils::splitByDelimiter(
     return split;
 }
 
-std::unique_ptr<Value> TableCopyUtils::getVarListValue(const std::string& l, int64_t from,
-    int64_t to, const LogicalType& dataType, const CSVReaderConfig& csvReaderConfig) {
+std::unique_ptr<Value> TableCopyUtils::getVarListValue(std::string_view l, int64_t from, int64_t to,
+    const LogicalType& dataType, const CSVReaderConfig& csvReaderConfig) {
     switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::VAR_LIST:
         return parseVarList(l, from, to, dataType, csvReaderConfig);
     case LogicalTypeID::MAP:
         return parseMap(l, from, to, dataType, csvReaderConfig);
-    default: {
+    default: { // LCOV_EXCL_START
         throw NotImplementedException{"TableCopyUtils::getVarListValue"};
-    }
+    } // LCOV_EXCL_END
     }
 }
 
-std::unique_ptr<Value> TableCopyUtils::getArrowFixedListVal(const std::string& l, int64_t from,
+std::unique_ptr<Value> TableCopyUtils::getArrowFixedListVal(std::string_view l, int64_t from,
     int64_t to, const LogicalType& dataType, const CSVReaderConfig& csvReaderConfig) {
     assert(dataType.getLogicalTypeID() == LogicalTypeID::FIXED_LIST);
     auto split = splitByDelimiter(l, from, to, csvReaderConfig);
@@ -125,7 +125,7 @@ std::unique_ptr<Value> TableCopyUtils::getArrowFixedListVal(const std::string& l
     auto childDataType = FixedListType::getChildType(&dataType);
     uint64_t numElementsRead = 0;
     for (auto [fromPos, len] : split) {
-        std::string element = l.substr(fromPos, len);
+        std::string_view element = l.substr(fromPos, len);
         if (element.empty()) {
             continue;
         }
@@ -155,7 +155,7 @@ std::unique_ptr<Value> TableCopyUtils::getArrowFixedListVal(const std::string& l
     return std::make_unique<Value>(dataType, std::move(listValues));
 }
 
-std::unique_ptr<uint8_t[]> TableCopyUtils::getArrowFixedList(const std::string& l, int64_t from,
+std::unique_ptr<uint8_t[]> TableCopyUtils::getArrowFixedList(std::string_view l, int64_t from,
     int64_t to, const LogicalType& dataType, const CSVReaderConfig& csvReaderConfig) {
     assert(dataType.getLogicalTypeID() == LogicalTypeID::FIXED_LIST);
     auto split = splitByDelimiter(l, from, to, csvReaderConfig);
@@ -163,58 +163,58 @@ std::unique_ptr<uint8_t[]> TableCopyUtils::getArrowFixedList(const std::string& 
     auto childDataType = FixedListType::getChildType(&dataType);
     uint64_t numElementsRead = 0;
     for (auto [fromPos, len] : split) {
-        std::string element = l.substr(fromPos, len);
+        std::string_view element = l.substr(fromPos, len);
         if (element.empty()) {
             continue;
         }
         switch (childDataType->getLogicalTypeID()) {
         case LogicalTypeID::INT64: {
-            auto val = StringCastUtils::castToNum<int64_t>(element.c_str(), element.length());
+            auto val = StringCastUtils::castToNum<int64_t>(element.data(), element.length());
             memcpy(listVal.get() + numElementsRead * sizeof(int64_t), &val, sizeof(int64_t));
             numElementsRead++;
         } break;
         case LogicalTypeID::INT32: {
-            auto val = StringCastUtils::castToNum<int32_t>(element.c_str(), element.length());
+            auto val = StringCastUtils::castToNum<int32_t>(element.data(), element.length());
             memcpy(listVal.get() + numElementsRead * sizeof(int32_t), &val, sizeof(int32_t));
             numElementsRead++;
         } break;
         case LogicalTypeID::INT16: {
-            auto val = StringCastUtils::castToNum<int16_t>(element.c_str(), element.length());
+            auto val = StringCastUtils::castToNum<int16_t>(element.data(), element.length());
             memcpy(listVal.get() + numElementsRead * sizeof(int16_t), &val, sizeof(int16_t));
             numElementsRead++;
         } break;
         case LogicalTypeID::INT8: {
-            auto val = StringCastUtils::castToNum<int8_t>(element.c_str(), element.length());
+            auto val = StringCastUtils::castToNum<int8_t>(element.data(), element.length());
             memcpy(listVal.get() + numElementsRead * sizeof(int8_t), &val, sizeof(int8_t));
             numElementsRead++;
         } break;
         case LogicalTypeID::UINT64: {
-            auto val = StringCastUtils::castToNum<uint64_t>(element.c_str(), element.length());
+            auto val = StringCastUtils::castToNum<uint64_t>(element.data(), element.length());
             memcpy(listVal.get() + numElementsRead * sizeof(uint64_t), &val, sizeof(uint64_t));
             numElementsRead++;
         }
         case LogicalTypeID::UINT32: {
-            auto val = StringCastUtils::castToNum<uint32_t>(element.c_str(), element.length());
+            auto val = StringCastUtils::castToNum<uint32_t>(element.data(), element.length());
             memcpy(listVal.get() + numElementsRead * sizeof(uint32_t), &val, sizeof(uint32_t));
             numElementsRead++;
         } break;
         case LogicalTypeID::UINT16: {
-            auto val = StringCastUtils::castToNum<uint16_t>(element.c_str(), element.length());
+            auto val = StringCastUtils::castToNum<uint16_t>(element.data(), element.length());
             memcpy(listVal.get() + numElementsRead * sizeof(uint16_t), &val, sizeof(uint16_t));
             numElementsRead++;
         } break;
         case LogicalTypeID::UINT8: {
-            auto val = StringCastUtils::castToNum<uint8_t>(element.c_str(), element.length());
+            auto val = StringCastUtils::castToNum<uint8_t>(element.data(), element.length());
             memcpy(listVal.get() + numElementsRead * sizeof(uint8_t), &val, sizeof(uint8_t));
             numElementsRead++;
         } break;
         case LogicalTypeID::DOUBLE: {
-            auto val = StringCastUtils::castToNum<double_t>(element.c_str(), element.length());
+            auto val = StringCastUtils::castToNum<double_t>(element.data(), element.length());
             memcpy(listVal.get() + numElementsRead * sizeof(double_t), &val, sizeof(double_t));
             numElementsRead++;
         } break;
         case LogicalTypeID::FLOAT: {
-            auto val = StringCastUtils::castToNum<float_t>(element.c_str(), element.length());
+            auto val = StringCastUtils::castToNum<float_t>(element.data(), element.length());
             memcpy(listVal.get() + numElementsRead * sizeof(float_t), &val, sizeof(float_t));
             numElementsRead++;
         } break;
@@ -357,7 +357,7 @@ bool TableCopyUtils::tryCast(
 }
 
 std::vector<StructFieldIdxAndValue> TableCopyUtils::parseStructFieldNameAndValues(
-    LogicalType& type, const std::string& structString, const CSVReaderConfig& csvReaderConfig) {
+    LogicalType& type, std::string_view structString, const CSVReaderConfig& csvReaderConfig) {
     std::vector<StructFieldIdxAndValue> structFieldIdxAndValueParis;
     uint64_t curPos = 0u;
     while (curPos < structString.length()) {
@@ -373,64 +373,64 @@ std::vector<StructFieldIdxAndValue> TableCopyUtils::parseStructFieldNameAndValue
 }
 
 std::unique_ptr<Value> TableCopyUtils::convertStringToValue(
-    std::string element, const LogicalType& type, const CSVReaderConfig& csvReaderConfig) {
+    std::string_view element, const LogicalType& type, const CSVReaderConfig& csvReaderConfig) {
     std::unique_ptr<Value> value;
     switch (type.getLogicalTypeID()) {
     case LogicalTypeID::INT64: {
         value = std::make_unique<Value>(
-            StringCastUtils::castToNum<int64_t>(element.c_str(), element.length()));
+            StringCastUtils::castToNum<int64_t>(element.data(), element.length()));
     } break;
     case LogicalTypeID::INT32: {
         value = std::make_unique<Value>(
-            StringCastUtils::castToNum<int32_t>(element.c_str(), element.length()));
+            StringCastUtils::castToNum<int32_t>(element.data(), element.length()));
     } break;
     case LogicalTypeID::INT16: {
         value = std::make_unique<Value>(
-            StringCastUtils::castToNum<int16_t>(element.c_str(), element.length()));
+            StringCastUtils::castToNum<int16_t>(element.data(), element.length()));
     } break;
     case LogicalTypeID::INT8: {
         value = std::make_unique<Value>(
-            StringCastUtils::castToNum<int8_t>(element.c_str(), element.length()));
+            StringCastUtils::castToNum<int8_t>(element.data(), element.length()));
     } break;
     case LogicalTypeID::UINT64: {
         value = std::make_unique<Value>(
-            StringCastUtils::castToNum<uint64_t>(element.c_str(), element.length()));
+            StringCastUtils::castToNum<uint64_t>(element.data(), element.length()));
     } break;
     case LogicalTypeID::UINT32: {
         value = std::make_unique<Value>(
-            StringCastUtils::castToNum<uint32_t>(element.c_str(), element.length()));
+            StringCastUtils::castToNum<uint32_t>(element.data(), element.length()));
     } break;
     case LogicalTypeID::UINT16: {
         value = std::make_unique<Value>(
-            StringCastUtils::castToNum<uint16_t>(element.c_str(), element.length()));
+            StringCastUtils::castToNum<uint16_t>(element.data(), element.length()));
     } break;
     case LogicalTypeID::UINT8: {
         value = std::make_unique<Value>(
-            StringCastUtils::castToNum<uint8_t>(element.c_str(), element.length()));
+            StringCastUtils::castToNum<uint8_t>(element.data(), element.length()));
     } break;
     case LogicalTypeID::FLOAT: {
         value = std::make_unique<Value>(
-            StringCastUtils::castToNum<float_t>(element.c_str(), element.length()));
+            StringCastUtils::castToNum<float_t>(element.data(), element.length()));
     } break;
     case LogicalTypeID::DOUBLE: {
         value = std::make_unique<Value>(
-            StringCastUtils::castToNum<double_t>(element.c_str(), element.length()));
+            StringCastUtils::castToNum<double_t>(element.data(), element.length()));
     } break;
     case LogicalTypeID::BOOL: {
         value =
-            std::make_unique<Value>(StringCastUtils::castToBool(element.c_str(), element.length()));
+            std::make_unique<Value>(StringCastUtils::castToBool(element.data(), element.length()));
     } break;
     case LogicalTypeID::STRING: {
-        value = make_unique<Value>(LogicalType{LogicalTypeID::STRING}, element);
+        value = make_unique<Value>(LogicalType{LogicalTypeID::STRING}, std::string(element));
     } break;
     case LogicalTypeID::DATE: {
-        value = std::make_unique<Value>(Date::fromCString(element.c_str(), element.length()));
+        value = std::make_unique<Value>(Date::fromCString(element.data(), element.length()));
     } break;
     case LogicalTypeID::TIMESTAMP: {
-        value = std::make_unique<Value>(Timestamp::fromCString(element.c_str(), element.length()));
+        value = std::make_unique<Value>(Timestamp::fromCString(element.data(), element.length()));
     } break;
     case LogicalTypeID::INTERVAL: {
-        value = std::make_unique<Value>(Interval::fromCString(element.c_str(), element.length()));
+        value = std::make_unique<Value>(Interval::fromCString(element.data(), element.length()));
     } break;
     case LogicalTypeID::VAR_LIST: {
         value = getVarListValue(element, 1, element.length() - 2, type, csvReaderConfig);
@@ -454,7 +454,7 @@ void TableCopyUtils::validateNumElementsInList(uint64_t numElementsRead, const L
     }
 }
 
-std::unique_ptr<Value> TableCopyUtils::parseVarList(const std::string& l, int64_t from, int64_t to,
+std::unique_ptr<Value> TableCopyUtils::parseVarList(std::string_view l, int64_t from, int64_t to,
     const LogicalType& dataType, const CSVReaderConfig& csvReaderConfig) {
     auto split = splitByDelimiter(l, from, to, csvReaderConfig);
     std::vector<std::unique_ptr<Value>> values;
@@ -462,7 +462,7 @@ std::unique_ptr<Value> TableCopyUtils::parseVarList(const std::string& l, int64_
     // If the list is empty (e.g. []) where from is 1 and to is 0, skip parsing this empty list.
     if (to >= from) {
         for (auto [fromPos, len] : split) {
-            std::string element = l.substr(fromPos, len);
+            std::string_view element = l.substr(fromPos, len);
             std::unique_ptr<Value> value;
             if (element.empty()) {
                 value = std::make_unique<Value>(Value::createNullValue(*childDataType));
@@ -478,7 +478,7 @@ std::unique_ptr<Value> TableCopyUtils::parseVarList(const std::string& l, int64_
         std::move(values));
 }
 
-std::unique_ptr<Value> TableCopyUtils::parseMap(const std::string& l, int64_t from, int64_t to,
+std::unique_ptr<Value> TableCopyUtils::parseMap(std::string_view l, int64_t from, int64_t to,
     const LogicalType& dataType, const CSVReaderConfig& csvReaderConfig) {
     auto split = splitByDelimiter(l, from, to, csvReaderConfig);
     std::vector<std::unique_ptr<Value>> values;
@@ -501,7 +501,7 @@ std::unique_ptr<Value> TableCopyUtils::parseMap(const std::string& l, int64_t fr
 }
 
 std::pair<std::string, std::string> TableCopyUtils::parseMapFields(
-    const std::string& l, int64_t from, int64_t length, const CSVReaderConfig& csvReaderConfig) {
+    std::string_view l, int64_t from, int64_t length, const CSVReaderConfig& csvReaderConfig) {
     std::string key;
     std::string value;
     auto numListBeginChars = 0u;
@@ -526,7 +526,8 @@ std::pair<std::string, std::string> TableCopyUtils::parseMapFields(
         } else if (curChar == '=') {
             if (numListBeginChars == 0 && numStructBeginChars == 0 && numDoubleQuotes == 0 &&
                 numSingleQuotes == 0) {
-                return {l.substr(from, i), l.substr(curPos + 1, length - i - 1)};
+                return {std::string(l.substr(from, i)),
+                    std::string(l.substr(curPos + 1, length - i - 1))};
             }
         }
     }
@@ -546,23 +547,22 @@ std::unique_ptr<arrow::PrimitiveArray> TableCopyUtils::createArrowPrimitiveArray
     return std::make_unique<arrow::PrimitiveArray>(type, length, buffer);
 }
 
-std::string TableCopyUtils::parseStructFieldName(
-    const std::string& structString, uint64_t& curPos) {
+std::string TableCopyUtils::parseStructFieldName(std::string_view structString, uint64_t& curPos) {
     auto startPos = curPos;
     while (curPos < structString.length()) {
         if (structString[curPos] == ':') {
-            auto structFieldName = structString.substr(startPos, curPos - startPos);
+            std::string structFieldName(structString.substr(startPos, curPos - startPos));
             StringUtils::removeWhiteSpaces(structFieldName);
             curPos++;
             return structFieldName;
         }
         curPos++;
     }
-    throw ParserException{"Invalid struct string: " + structString};
+    throw ParserException{"Invalid struct string: " + std::string(structString)};
 }
 
 std::string TableCopyUtils::parseStructFieldValue(
-    const std::string& structString, uint64_t& curPos, const CSVReaderConfig& csvReaderConfig) {
+    std::string_view structString, uint64_t& curPos, const CSVReaderConfig& csvReaderConfig) {
     auto numListBeginChars = 0u;
     auto numStructBeginChars = 0u;
     auto numDoubleQuotes = 0u;
@@ -590,16 +590,16 @@ std::string TableCopyUtils::parseStructFieldValue(
             if (numListBeginChars == 0 && numStructBeginChars == 0 && numDoubleQuotes == 0 &&
                 numSingleQuotes == 0) {
                 curPos++;
-                return structString.substr(startPos, curPos - startPos - 1);
+                return std::string(structString.substr(startPos, curPos - startPos - 1));
             }
         }
         curPos++;
     }
     if (numListBeginChars == 0 && numStructBeginChars == 0 && numDoubleQuotes == 0 &&
         numSingleQuotes == 0) {
-        return structString.substr(startPos, curPos - startPos);
+        return std::string(structString.substr(startPos, curPos - startPos));
     } else {
-        throw ParserException{"Invalid struct string: " + structString};
+        throw ParserException{"Invalid struct string: " + std::string(structString)};
     }
 }
 
