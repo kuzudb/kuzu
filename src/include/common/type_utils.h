@@ -19,39 +19,6 @@ class StringCastUtils {
 public:
     static bool tryCastToBoolean(const char* data, uint64_t length, bool& result);
     static bool castToBool(const char* data, uint64_t length);
-    template<typename T>
-    static bool tryCastToNum(const char* data, uint64_t length, T& result) {
-        auto numStr = std::string{data, length};
-        removeSpace(numStr);
-        std::istringstream iss{numStr};
-        if (iss.str().empty()) {
-            throw ConversionException{"Empty string."};
-        }
-
-        if constexpr (std::is_same_v<int8_t, T>) {
-            int val;
-            iss >> val; // C++ will recognize int8 as char if we don't separate this case.
-            result = val;
-        } else if constexpr (std::is_same_v<uint8_t, T>) {
-            int val;
-            iss >> val; // C++ will recognize int8 as char if we don't separate this case.
-            result = val;
-        } else
-            iss >> result;
-
-        if (iss.fail() || !iss.eof()) {
-            return false;
-        }
-        return true;
-    }
-    template<typename T>
-    static T castToNum(const char* data, uint64_t length) {
-        T result;
-        if (!tryCastToNum(data, length, result)) {
-            throw ConversionException{"Invalid number: " + std::string{data, length} + "."};
-        }
-        return result;
-    }
 
 private:
     static void removeSpace(std::string& str);

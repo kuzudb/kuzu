@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/types/types.h"
+#include "function/cast/numeric_cast.h"
 #include "storage/storage_structure/in_mem_file.h"
 #include "storage/store/table_copy_utils.h"
 #include <arrow/array/array_base.h>
@@ -52,7 +53,7 @@ public:
     template<typename T, typename... Args>
     void setValueFromString(
         const char* value, uint64_t length, common::offset_t pos, Args... args) {
-        auto val = common::StringCastUtils::castToNum<T>(value, length);
+        auto val = function::castStringToNum<T>(value, length);
         setValue(val, pos);
     }
 

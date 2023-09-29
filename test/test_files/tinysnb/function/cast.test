@@ -309,6 +309,17 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 2544
 298
 
+-LOG CastUIntToInt
+-STATEMENT RETURN TO_INT64(TO_UINT64(9223372036854775807));
+---- 1
+9223372036854775807
+-STATEMENT RETURN TO_INT32(TO_UINT64("43242"));
+---- 1
+43242
+-STATEMENT RETURN TO_INT32(TO_UINT32("43242"));
+---- 1
+43242
+
 -LOG CastInt64ToInt8
 -STATEMENT MATCH (p:person) RETURN to_int8(p.age)
 ---- 8
@@ -397,3 +408,97 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 1.510000
 1.600000
 1.323000
+
+-LOG CastStringToNum
+-STATEMENT RETURN TO_INT64("12");
+---- 1
+12
+-STATEMENT RETURN TO_INT64("9223372036854775807");
+---- 1
+9223372036854775807
+-STATEMENT RETURN TO_INT32("2147483647");
+---- 1
+2147483647
+-STATEMENT RETURN TO_INT32("-2147483648");
+---- 1
+-2147483648
+-STATEMENT RETURN TO_INT16("32767");
+---- 1
+32767
+-STATEMENT RETURN TO_INT16("-32768");
+---- 1
+-32768
+-STATEMENT RETURN TO_INT8("0");
+---- 1
+0
+-STATEMENT RETURN TO_INT8("-128");
+---- 1
+-128
+-STATEMENT RETURN TO_UINT64("0");
+---- 1
+0
+-STATEMENT RETURN TO_UINT64("4320492");
+---- 1
+4320492
+-STATEMENT RETURN TO_UINT32("4294967295");
+---- 1
+4294967295
+-STATEMENT RETURN TO_UINT16("65535");
+---- 1
+65535
+-STATEMENT RETURN TO_UINT8("255");
+---- 1
+255
+-STATEMENT RETURN TO_FLOAT("   3.294");
+---- 1
+3.294000
+-STATEMENT RETURN TO_FLOAT("3.294");
+---- 1
+3.294000
+-STATEMENT RETURN TO_FLOAT("0.99");
+---- 1
+0.990000
+-STATEMENT RETURN TO_DOUBLE("3.294   ");
+---- 1
+3.294000
+-STATEMENT RETURN TO_DOUBLE("      3.294   ");
+---- 1
+3.294000
+
+-LOG StringCastError
+-STATEMENT RETURN TO_INT64("9223372036854775808");
+---- error
+Conversion exception: Cast failed. 9223372036854775808 is not in INT64 range.
+-STATEMENT RETURN TO_INT32("2147483648");
+---- error
+Conversion exception: Cast failed. 2147483648 is not in INT32 range.
+-STATEMENT RETURN TO_INT32("-2147483649");
+---- error
+Conversion exception: Cast failed. -2147483649 is not in INT32 range.
+-STATEMENT RETURN TO_INT16("32768");
+---- error
+Conversion exception: Cast failed. 32768 is not in INT16 range.
+-STATEMENT RETURN TO_INT16("-32769");
+---- error
+Conversion exception: Cast failed. -32769 is not in INT16 range.
+-STATEMENT RETURN TO_INT8("128");
+---- error
+Conversion exception: Cast failed. 128 is not in INT8 range.
+-STATEMENT RETURN TO_INT8("-129");
+---- error
+Conversion exception: Cast failed. -129 is not in INT8 range.
+-STATEMENT RETURN TO_UINT64("-1");
+---- error
+Conversion exception: Cast failed. -1 is not in UINT64 range.
+-STATEMENT RETURN TO_UINT32("4294967296");
+---- error
+Conversion exception: Cast failed. 4294967296 is not in UINT32 range.
+-STATEMENT RETURN TO_UINT16("65536");
+---- error
+Conversion exception: Cast failed. 65536 is not in UINT16 range.
+-STATEMENT RETURN TO_UINT8("256");
+---- error
+Conversion exception: Cast failed. 256 is not in UINT8 range.
+-STATEMENT RETURN TO_UINT8("-1");
+---- error
+Conversion exception: Cast failed. -1 is not in UINT8 range.

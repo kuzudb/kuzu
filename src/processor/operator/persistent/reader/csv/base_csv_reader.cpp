@@ -10,6 +10,7 @@
 #include "common/type_utils.h"
 #include "common/types/blob.h"
 #include "common/types/value/value.h"
+#include "function/cast/numeric_cast.h"
 #include "storage/store/table_copy_utils.h"
 
 using namespace kuzu::common;
@@ -217,44 +218,54 @@ void BaseCSVReader::copyStringToVector(common::ValueVector* vector, std::string_
     }
     switch (type.getLogicalTypeID()) {
     case LogicalTypeID::INT64: {
-        vector->setValue(
-            rowToAdd, StringCastUtils::castToNum<int64_t>(strVal.data(), strVal.length()));
+        int64_t val;
+        function::simpleIntegerCast<int64_t>(strVal.data(), strVal.length(), val, type);
+        vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::INT32: {
-        vector->setValue(
-            rowToAdd, StringCastUtils::castToNum<int32_t>(strVal.data(), strVal.length()));
+        int32_t val;
+        function::simpleIntegerCast<int32_t>(strVal.data(), strVal.length(), val, type);
+        vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::INT16: {
-        vector->setValue(
-            rowToAdd, StringCastUtils::castToNum<int16_t>(strVal.data(), strVal.length()));
+        int16_t val;
+        function::simpleIntegerCast<int16_t>(strVal.data(), strVal.length(), val, type);
+        vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::INT8: {
-        vector->setValue(
-            rowToAdd, StringCastUtils::castToNum<int8_t>(strVal.data(), strVal.length()));
+        int8_t val;
+        function::simpleIntegerCast<int8_t>(strVal.data(), strVal.length(), val, type);
+        vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::UINT64: {
-        vector->setValue(
-            rowToAdd, StringCastUtils::castToNum<uint64_t>(strVal.data(), strVal.length()));
+        uint64_t val;
+        function::simpleIntegerCast<uint64_t, false>(strVal.data(), strVal.length(), val, type);
+        vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::UINT32: {
-        vector->setValue(
-            rowToAdd, StringCastUtils::castToNum<uint32_t>(strVal.data(), strVal.length()));
+        uint32_t val;
+        function::simpleIntegerCast<uint32_t, false>(strVal.data(), strVal.length(), val, type);
+        vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::UINT16: {
-        vector->setValue(
-            rowToAdd, StringCastUtils::castToNum<uint16_t>(strVal.data(), strVal.length()));
+        uint16_t val;
+        function::simpleIntegerCast<uint16_t, false>(strVal.data(), strVal.length(), val, type);
+        vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::UINT8: {
-        vector->setValue(
-            rowToAdd, StringCastUtils::castToNum<uint8_t>(strVal.data(), strVal.length()));
+        uint8_t val;
+        function::simpleIntegerCast<uint8_t, false>(strVal.data(), strVal.length(), val, type);
+        vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::FLOAT: {
-        vector->setValue(
-            rowToAdd, StringCastUtils::castToNum<float_t>(strVal.data(), strVal.length()));
+        float_t val;
+        function::doubleCast<float_t>(strVal.data(), strVal.length(), val, type);
+        vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::DOUBLE: {
-        vector->setValue(
-            rowToAdd, StringCastUtils::castToNum<double_t>(strVal.data(), strVal.length()));
+        double_t val;
+        function::doubleCast<double_t>(strVal.data(), strVal.length(), val, type);
+        vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::BOOL: {
         vector->setValue(rowToAdd, StringCastUtils::castToBool(strVal.data(), strVal.length()));
