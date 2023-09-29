@@ -124,6 +124,7 @@ HashIndex<T>::HashIndex(const StorageStructureIDAndFName& storageStructureIDAndF
     const LogicalType& keyDataType, BufferManager& bufferManager, WAL* wal)
     : BaseHashIndex{keyDataType},
       storageStructureIDAndFName{storageStructureIDAndFName}, bm{bufferManager}, wal{wal} {
+    slotCapacity = getSlotCapacity<T>();
     fileHandle = bufferManager.getBMFileHandle(storageStructureIDAndFName.fName,
         FileHandle::O_PERSISTENT_FILE_NO_CREATE, BMFileHandle::FileVersionedType::VERSIONED_FILE);
     headerArray = std::make_unique<BaseDiskArray<HashIndexHeader>>(*fileHandle,
@@ -209,8 +210,7 @@ bool HashIndex<T>::performActionInChainedSlots(TransactionType trxType, HashInde
     while (slotInfo.slotType == SlotType::PRIMARY || slotInfo.slotId != 0) {
         auto slot = getSlot(trxType, slotInfo);
         if constexpr (action == ChainedSlotsAction::FIND_FREE_SLOT) {
-            if (slot.header.numEntries < HashIndexConstants::SLOT_CAPACITY ||
-                slot.header.nextOvfSlotId == 0) {
+            if (slot.header.numEntries < slotCapacity || slot.header.nextOvfSlotId == 0) {
                 // Found a slot with empty space.
                 break;
             }
@@ -250,8 +250,7 @@ template<typename T>
 void HashIndex<T>::insertIntoPersistentIndex(const uint8_t* key, offset_t value) {
     auto header = headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::WRITE);
     slot_id_t numRequiredEntries = getNumRequiredEntries(header.numEntries, 1);
-    while (numRequiredEntries >
-           pSlots->getNumElements(TransactionType::WRITE) * HashIndexConstants::SLOT_CAPACITY) {
+    while (numRequiredEntries > pSlots->getNumElements(TransactionType::WRITE) * slotCapacity) {
         splitSlot(header);
     }
     auto pSlotId = getPrimarySlotIdForKey(header, key);
@@ -279,8 +278,7 @@ template<typename T>
 void HashIndex<T>::loopChainedSlotsToFindOneWithFreeSpace(SlotInfo& slotInfo, Slot<T>& slot) {
     while (slotInfo.slotType == SlotType::PRIMARY || slotInfo.slotId > 0) {
         slot = getSlot(TransactionType::WRITE, slotInfo);
-        if (slot.header.numEntries < HashIndexConstants::SLOT_CAPACITY ||
-            slot.header.nextOvfSlotId == 0) {
+        if (slot.header.numEntries < slotCapacity || slot.header.nextOvfSlotId == 0) {
             // Found a slot with empty space.
             break;
         }
@@ -303,7 +301,7 @@ void HashIndex<T>::rehashSlots(HashIndexHeader& header) {
         auto slotHeader = slot.header;
         slot.header.reset();
         updateSlot(slotInfo, slot);
-        for (auto entryPos = 0u; entryPos < HashIndexConstants::SLOT_CAPACITY; entryPos++) {
+        for (auto entryPos = 0u; entryPos < slotCapacity; entryPos++) {
             if (!slotHeader.isEntryValid(entryPos)) {
                 continue; // Skip invalid entries.
             }
@@ -358,7 +356,7 @@ void HashIndex<T>::copyAndUpdateSlotHeader(
 template<typename T>
 void HashIndex<T>::copyKVOrEntryToSlot(
     bool isCopyEntry, const SlotInfo& slotInfo, Slot<T>& slot, const uint8_t* key, offset_t value) {
-    if (slot.header.numEntries == HashIndexConstants::SLOT_CAPACITY) {
+    if (slot.header.numEntries == slotCapacity) {
         // Allocate a new oSlot, insert the entry to the new oSlot, and update slot's
         // nextOvfSlotId.
         Slot<T> newSlot;
@@ -366,7 +364,7 @@ void HashIndex<T>::copyKVOrEntryToSlot(
         copyAndUpdateSlotHeader(isCopyEntry, newSlot, entryPos, key, value);
         slot.header.nextOvfSlotId = oSlots->pushBack(newSlot);
     } else {
-        for (auto entryPos = 0u; entryPos < HashIndexConstants::SLOT_CAPACITY; entryPos++) {
+        for (auto entryPos = 0u; entryPos < slotCapacity; entryPos++) {
             if (!slot.header.isEntryValid(entryPos)) {
                 copyAndUpdateSlotHeader(isCopyEntry, slot, entryPos, key, value);
                 break;
@@ -379,7 +377,7 @@ void HashIndex<T>::copyKVOrEntryToSlot(
 template<typename T>
 entry_pos_t HashIndex<T>::findMatchedEntryInSlot(
     TransactionType trxType, const Slot<T>& slot, const uint8_t* key) const {
-    for (auto entryPos = 0u; entryPos < HashIndexConstants::SLOT_CAPACITY; entryPos++) {
+    for (auto entryPos = 0u; entryPos < slotCapacity; entryPos++) {
         if (!slot.header.isEntryValid(entryPos)) {
             continue;
         }

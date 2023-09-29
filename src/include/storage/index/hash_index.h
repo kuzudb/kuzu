@@ -141,6 +141,7 @@ public:
     equals_function_t keyEqualsFunc;
     std::unique_ptr<DiskOverflowFile> diskOverflowFile;
     std::unique_ptr<HashIndexLocalStorage> localStorage;
+    uint8_t slotCapacity;
 };
 
 class PrimaryKeyIndex {
