@@ -851,7 +851,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1value(
     case LogicalTypeID::UINT32: {
         jclass retClass = env->FindClass("java/lang/Long");
         jmethodID ctor = env->GetMethodID(retClass, "<init>", "(J)V");
-        jbyte val = static_cast<jbyte>(v->getValue<uint32_t>());
+        jlong val = static_cast<jlong>(v->getValue<uint32_t>());
         jobject ret = env->NewObject(retClass, ctor, val);
         return ret;
     }
