@@ -350,6 +350,23 @@ public class ValueTest extends TestBase {
     }
 
     @Test
+    void ValueGetINT8() throws KuzuObjectRefDestroyedException {
+        // INT8
+        KuzuQueryResult result = conn.query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.level ORDER BY a.ID");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        KuzuFlatTuple flatTuple = result.getNext();
+        KuzuValue value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        assertFalse(value.isNull());
+
+        assertTrue(value.getValue().equals((byte) 5));
+        value.destroy();
+        flatTuple.destroy();
+        result.destroy();
+    }
+
+    @Test
     void ValueGetINT16() throws KuzuObjectRefDestroyedException {
         // INT16
         KuzuQueryResult result = conn.query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.length ORDER BY a.ID");
@@ -395,6 +412,57 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals(0L));
+        value.destroy();
+        flatTuple.destroy();
+        result.destroy();
+    }
+
+    @Test
+    void ValueGetUINT8() throws KuzuObjectRefDestroyedException {
+        // INT8
+        KuzuQueryResult result = conn.query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.ulevel ORDER BY a.ID");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        KuzuFlatTuple flatTuple = result.getNext();
+        KuzuValue value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        assertFalse(value.isNull());
+
+        assertTrue(value.getValue().equals((short) 15));
+        value.destroy();
+        flatTuple.destroy();
+        result.destroy();
+    }
+
+    @Test
+    void ValueGetUINT16() throws KuzuObjectRefDestroyedException {
+        // UINT16
+        KuzuQueryResult result = conn.query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.ulength ORDER BY a.ID");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        KuzuFlatTuple flatTuple = result.getNext();
+        KuzuValue value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        assertFalse(value.isNull());
+
+        assertTrue(value.getValue().equals(120));
+        value.destroy();
+        flatTuple.destroy();
+        result.destroy();
+    }
+
+    @Test
+    void ValueGetUINT32() throws KuzuObjectRefDestroyedException {
+        // INT16
+        KuzuQueryResult result = conn.query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.temprature ORDER BY a.ID");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        KuzuFlatTuple flatTuple = result.getNext();
+        KuzuValue value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        assertFalse(value.isNull());
+
+        assertTrue(value.getValue().equals(35L));
         value.destroy();
         flatTuple.destroy();
         result.destroy();

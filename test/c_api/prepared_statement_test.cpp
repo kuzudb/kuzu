@@ -145,6 +145,111 @@ TEST_F(CApiPreparedStatementTest, BindInt16) {
     kuzu_prepared_statement_destroy(preparedStatement);
 }
 
+TEST_F(CApiPreparedStatementTest, BindInt8) {
+    auto connection = getConnection();
+    auto query =
+        "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE s.level > $1 RETURN COUNT(*)";
+    auto preparedStatement = kuzu_connection_prepare(connection, query);
+    kuzu_prepared_statement_bind_int8(preparedStatement, (char*)"1", 3);
+    auto result = kuzu_connection_execute(connection, preparedStatement);
+    ASSERT_NE(result, nullptr);
+    ASSERT_NE(result->_query_result, nullptr);
+    ASSERT_EQ(kuzu_query_result_get_num_tuples(result), 1);
+    ASSERT_EQ(kuzu_query_result_get_num_columns(result), 1);
+    ASSERT_TRUE(kuzu_query_result_is_success(result));
+    ASSERT_TRUE(kuzu_query_result_has_next(result));
+    auto resultCpp = static_cast<QueryResult*>(result->_query_result);
+    auto tuple = resultCpp->getNext();
+    auto value = tuple->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(value, 2);
+    kuzu_query_result_destroy(result);
+    kuzu_prepared_statement_destroy(preparedStatement);
+}
+
+TEST_F(CApiPreparedStatementTest, BindUInt64) {
+    auto connection = getConnection();
+    auto query =
+        "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE s.code > $1 RETURN COUNT(*)";
+    auto preparedStatement = kuzu_connection_prepare(connection, query);
+    kuzu_prepared_statement_bind_uint64(preparedStatement, (char*)"1", 100);
+    auto result = kuzu_connection_execute(connection, preparedStatement);
+    ASSERT_NE(result, nullptr);
+    ASSERT_NE(result->_query_result, nullptr);
+    ASSERT_EQ(kuzu_query_result_get_num_tuples(result), 1);
+    ASSERT_EQ(kuzu_query_result_get_num_columns(result), 1);
+    ASSERT_TRUE(kuzu_query_result_is_success(result));
+    ASSERT_TRUE(kuzu_query_result_has_next(result));
+    auto resultCpp = static_cast<QueryResult*>(result->_query_result);
+    auto tuple = resultCpp->getNext();
+    auto value = tuple->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(value, 2);
+    kuzu_query_result_destroy(result);
+    kuzu_prepared_statement_destroy(preparedStatement);
+}
+
+TEST_F(CApiPreparedStatementTest, BindUInt32) {
+    auto connection = getConnection();
+    auto query =
+        "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE s.temprature> $1 RETURN COUNT(*)";
+    auto preparedStatement = kuzu_connection_prepare(connection, query);
+    kuzu_prepared_statement_bind_uint32(preparedStatement, (char*)"1", 10);
+    auto result = kuzu_connection_execute(connection, preparedStatement);
+    ASSERT_NE(result, nullptr);
+    ASSERT_NE(result->_query_result, nullptr);
+    ASSERT_EQ(kuzu_query_result_get_num_tuples(result), 1);
+    ASSERT_EQ(kuzu_query_result_get_num_columns(result), 1);
+    ASSERT_TRUE(kuzu_query_result_is_success(result));
+    ASSERT_TRUE(kuzu_query_result_has_next(result));
+    auto resultCpp = static_cast<QueryResult*>(result->_query_result);
+    auto tuple = resultCpp->getNext();
+    auto value = tuple->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(value, 2);
+    kuzu_query_result_destroy(result);
+    kuzu_prepared_statement_destroy(preparedStatement);
+}
+
+TEST_F(CApiPreparedStatementTest, BindUInt16) {
+    auto connection = getConnection();
+    auto query =
+        "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE s.ulength> $1 RETURN COUNT(*)";
+    auto preparedStatement = kuzu_connection_prepare(connection, query);
+    kuzu_prepared_statement_bind_uint16(preparedStatement, (char*)"1", 100);
+    auto result = kuzu_connection_execute(connection, preparedStatement);
+    ASSERT_NE(result, nullptr);
+    ASSERT_NE(result->_query_result, nullptr);
+    ASSERT_EQ(kuzu_query_result_get_num_tuples(result), 1);
+    ASSERT_EQ(kuzu_query_result_get_num_columns(result), 1);
+    ASSERT_TRUE(kuzu_query_result_is_success(result));
+    ASSERT_TRUE(kuzu_query_result_has_next(result));
+    auto resultCpp = static_cast<QueryResult*>(result->_query_result);
+    auto tuple = resultCpp->getNext();
+    auto value = tuple->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(value, 2);
+    kuzu_query_result_destroy(result);
+    kuzu_prepared_statement_destroy(preparedStatement);
+}
+
+TEST_F(CApiPreparedStatementTest, BindUInt8) {
+    auto connection = getConnection();
+    auto query =
+        "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE s.ulevel> $1 RETURN COUNT(*)";
+    auto preparedStatement = kuzu_connection_prepare(connection, query);
+    kuzu_prepared_statement_bind_uint8(preparedStatement, (char*)"1", 14);
+    auto result = kuzu_connection_execute(connection, preparedStatement);
+    ASSERT_NE(result, nullptr);
+    ASSERT_NE(result->_query_result, nullptr);
+    ASSERT_EQ(kuzu_query_result_get_num_tuples(result), 1);
+    ASSERT_EQ(kuzu_query_result_get_num_columns(result), 1);
+    ASSERT_TRUE(kuzu_query_result_is_success(result));
+    ASSERT_TRUE(kuzu_query_result_has_next(result));
+    auto resultCpp = static_cast<QueryResult*>(result->_query_result);
+    auto tuple = resultCpp->getNext();
+    auto value = tuple->getValue(0)->getValue<int64_t>();
+    ASSERT_EQ(value, 2);
+    kuzu_query_result_destroy(result);
+    kuzu_prepared_statement_destroy(preparedStatement);
+}
+
 TEST_F(CApiPreparedStatementTest, BindDouble) {
     auto connection = getConnection();
     auto query = "MATCH (a:person) WHERE a.eyeSight > $1 RETURN COUNT(*)";

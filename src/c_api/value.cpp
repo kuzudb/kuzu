@@ -46,6 +46,12 @@ kuzu_value* kuzu_value_create_bool(bool val_) {
     return c_value;
 }
 
+kuzu_value* kuzu_value_create_int8(int8_t val_) {
+    auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
+    c_value->_value = new Value(val_);
+    return c_value;
+}
+
 kuzu_value* kuzu_value_create_int16(int16_t val_) {
     auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
     c_value->_value = new Value(val_);
@@ -59,6 +65,30 @@ kuzu_value* kuzu_value_create_int32(int32_t val_) {
 }
 
 kuzu_value* kuzu_value_create_int64(int64_t val_) {
+    auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
+    c_value->_value = new Value(val_);
+    return c_value;
+}
+
+kuzu_value* kuzu_value_create_uint8(uint8_t val_) {
+    auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
+    c_value->_value = new Value(val_);
+    return c_value;
+}
+
+kuzu_value* kuzu_value_create_uint16(uint16_t val_) {
+    auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
+    c_value->_value = new Value(val_);
+    return c_value;
+}
+
+kuzu_value* kuzu_value_create_uint32(uint32_t val_) {
+    auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
+    c_value->_value = new Value(val_);
+    return c_value;
+}
+
+kuzu_value* kuzu_value_create_uint64(uint64_t val_) {
     auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
     c_value->_value = new Value(val_);
     return c_value;
@@ -189,6 +219,10 @@ bool kuzu_value_get_bool(kuzu_value* value) {
     return static_cast<Value*>(value->_value)->getValue<bool>();
 }
 
+int8_t kuzu_value_get_int8(kuzu_value* value) {
+    return static_cast<Value*>(value->_value)->getValue<int8_t>();
+}
+
 int16_t kuzu_value_get_int16(kuzu_value* value) {
     return static_cast<Value*>(value->_value)->getValue<int16_t>();
 }
@@ -199,6 +233,22 @@ int32_t kuzu_value_get_int32(kuzu_value* value) {
 
 int64_t kuzu_value_get_int64(kuzu_value* value) {
     return static_cast<Value*>(value->_value)->getValue<int64_t>();
+}
+
+uint8_t kuzu_value_get_uint8(kuzu_value* value) {
+    return static_cast<Value*>(value->_value)->getValue<uint8_t>();
+}
+
+uint16_t kuzu_value_get_uint16(kuzu_value* value) {
+    return static_cast<Value*>(value->_value)->getValue<uint16_t>();
+}
+
+uint32_t kuzu_value_get_uint32(kuzu_value* value) {
+    return static_cast<Value*>(value->_value)->getValue<uint32_t>();
+}
+
+uint64_t kuzu_value_get_uint64(kuzu_value* value) {
+    return static_cast<Value*>(value->_value)->getValue<uint64_t>();
 }
 
 float kuzu_value_get_float(kuzu_value* value) {

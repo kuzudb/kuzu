@@ -19,6 +19,45 @@ def test_int(establish_connection):
     assert not result.has_next()
     result.close()
 
+def test_int8(establish_connection):
+    conn, db = establish_connection
+    result = conn.execute("MATCH (a:person) -[r:studyAt]-> (b:organisation) WHERE r.length = 5 RETURN r.level;")
+    assert result.has_next()
+    assert result.get_next() == [5]
+    assert not result.has_next()
+    result.close()
+
+def test_uint8(establish_connection):
+    conn, db = establish_connection
+    result = conn.execute("MATCH (a:person) -[r:studyAt]-> (b:organisation) WHERE r.length = 5 RETURN r.ulevel;")
+    assert result.has_next()
+    assert result.get_next() == [15]
+    assert not result.has_next()
+    result.close()
+
+def test_uint16(establish_connection):
+    conn, db = establish_connection
+    result = conn.execute("MATCH (a:person) -[r:studyAt]-> (b:organisation) WHERE r.length = 5 RETURN r.ulength;")
+    assert result.has_next()
+    assert result.get_next() == [120]
+    assert not result.has_next()
+    result.close()
+
+def test_uint32(establish_connection):
+    conn, db = establish_connection
+    result = conn.execute("MATCH (a:person) -[r:studyAt]-> (b:organisation) WHERE r.length = 5 RETURN r.temprature;")
+    assert result.has_next()
+    assert result.get_next() == [35]
+    assert not result.has_next()
+    result.close()
+
+def test_uint64(establish_connection):
+    conn, db = establish_connection
+    result = conn.execute("MATCH (a:person) -[r:studyAt]-> (b:organisation) WHERE r.length = 5 RETURN r.code;")
+    assert result.has_next()
+    assert result.get_next() == [6556]
+    assert not result.has_next()
+    result.close()
 
 def test_serial(establish_connection):
      conn, db = establish_connection
@@ -160,6 +199,11 @@ def test_struct(establish_connection):
     assert (description['release'] ==
             datetime.datetime(2011, 2, 11, 16, 44, 22))
     assert (description['film'] == datetime.date(2013, 2, 22))
+    assert (description['stars'] == 100)
+    assert (description['u8'] == 1)
+    assert (description['u16'] == 15)
+    assert (description['u32'] == 200)
+    assert (description['u64'] == 4)
     assert not result.has_next()
     result.close()
 

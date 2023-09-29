@@ -72,6 +72,36 @@ void kuzu_prepared_statement_bind_int16(
     kuzu_prepared_statement_bind_cpp_value(prepared_statement, param_name, value_ptr);
 }
 
+void kuzu_prepared_statement_bind_int8(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, int8_t value) {
+    auto value_ptr = std::make_shared<Value>(value);
+    kuzu_prepared_statement_bind_cpp_value(prepared_statement, param_name, value_ptr);
+}
+
+void kuzu_prepared_statement_bind_uint64(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, uint64_t value) {
+    auto value_ptr = std::make_shared<Value>(value);
+    kuzu_prepared_statement_bind_cpp_value(prepared_statement, param_name, value_ptr);
+}
+
+void kuzu_prepared_statement_bind_uint32(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, uint32_t value) {
+    auto value_ptr = std::make_shared<Value>(value);
+    kuzu_prepared_statement_bind_cpp_value(prepared_statement, param_name, value_ptr);
+}
+
+void kuzu_prepared_statement_bind_uint16(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, uint16_t value) {
+    auto value_ptr = std::make_shared<Value>(value);
+    kuzu_prepared_statement_bind_cpp_value(prepared_statement, param_name, value_ptr);
+}
+
+void kuzu_prepared_statement_bind_uint8(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, uint8_t value) {
+    auto value_ptr = std::make_shared<Value>(value);
+    kuzu_prepared_statement_bind_cpp_value(prepared_statement, param_name, value_ptr);
+}
+
 void kuzu_prepared_statement_bind_double(
     kuzu_prepared_statement* prepared_statement, const char* param_name, double value) {
     auto value_ptr = std::make_shared<Value>(value);

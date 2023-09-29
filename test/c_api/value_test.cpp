@@ -88,6 +88,15 @@ TEST_F(CApiValueTest, CreateBool) {
     kuzu_value_destroy(value);
 }
 
+TEST_F(CApiValueTest, CreateInt8) {
+    kuzu_value* value = kuzu_value_create_int8(12);
+    ASSERT_FALSE(value->_is_owned_by_cpp);
+    auto cppValue = static_cast<Value*>(value->_value);
+    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::INT8);
+    ASSERT_EQ(cppValue->getValue<int8_t>(), 12);
+    kuzu_value_destroy(value);
+}
+
 TEST_F(CApiValueTest, CreateInt16) {
     kuzu_value* value = kuzu_value_create_int16(123);
     ASSERT_FALSE(value->_is_owned_by_cpp);
@@ -112,6 +121,42 @@ TEST_F(CApiValueTest, CreateInt64) {
     auto cppValue = static_cast<Value*>(value->_value);
     ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::INT64);
     ASSERT_EQ(cppValue->getValue<int64_t>(), 123);
+    kuzu_value_destroy(value);
+}
+
+TEST_F(CApiValueTest, CreateUInt8) {
+    kuzu_value* value = kuzu_value_create_uint8(12);
+    ASSERT_FALSE(value->_is_owned_by_cpp);
+    auto cppValue = static_cast<Value*>(value->_value);
+    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::UINT8);
+    ASSERT_EQ(cppValue->getValue<uint8_t>(), 12);
+    kuzu_value_destroy(value);
+}
+
+TEST_F(CApiValueTest, CreateUInt16) {
+    kuzu_value* value = kuzu_value_create_uint16(123);
+    ASSERT_FALSE(value->_is_owned_by_cpp);
+    auto cppValue = static_cast<Value*>(value->_value);
+    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::UINT16);
+    ASSERT_EQ(cppValue->getValue<uint16_t>(), 123);
+    kuzu_value_destroy(value);
+}
+
+TEST_F(CApiValueTest, CreateUInt32) {
+    kuzu_value* value = kuzu_value_create_uint32(123);
+    ASSERT_FALSE(value->_is_owned_by_cpp);
+    auto cppValue = static_cast<Value*>(value->_value);
+    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::UINT32);
+    ASSERT_EQ(cppValue->getValue<uint32_t>(), 123);
+    kuzu_value_destroy(value);
+}
+
+TEST_F(CApiValueTest, CreateUInt64) {
+    kuzu_value* value = kuzu_value_create_uint64(123);
+    ASSERT_FALSE(value->_is_owned_by_cpp);
+    auto cppValue = static_cast<Value*>(value->_value);
+    ASSERT_EQ(cppValue->getDataType()->getLogicalTypeID(), LogicalTypeID::UINT64);
+    ASSERT_EQ(cppValue->getValue<uint64_t>(), 123);
     kuzu_value_destroy(value);
 }
 
@@ -405,6 +450,22 @@ TEST_F(CApiValueTest, GetBool) {
     kuzu_query_result_destroy(result);
 }
 
+TEST_F(CApiValueTest, GetInt8) {
+    auto connection = getConnection();
+    auto result = kuzu_connection_query(connection,
+        (char*)"MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.level ORDER BY a.ID");
+    ASSERT_TRUE(kuzu_query_result_is_success(result));
+    ASSERT_TRUE(kuzu_query_result_has_next(result));
+    auto flatTuple = kuzu_query_result_get_next(result);
+    auto value = kuzu_flat_tuple_get_value(flatTuple, 0);
+    ASSERT_TRUE(value->_is_owned_by_cpp);
+    ASSERT_FALSE(kuzu_value_is_null(value));
+    ASSERT_EQ(kuzu_value_get_int8(value), 5);
+    kuzu_value_destroy(value);
+    kuzu_flat_tuple_destroy(flatTuple);
+    kuzu_query_result_destroy(result);
+}
+
 TEST_F(CApiValueTest, GetInt16) {
     auto connection = getConnection();
     auto result = kuzu_connection_query(connection,
@@ -448,6 +509,71 @@ TEST_F(CApiValueTest, GetInt64) {
     ASSERT_TRUE(value->_is_owned_by_cpp);
     ASSERT_FALSE(kuzu_value_is_null(value));
     ASSERT_EQ(kuzu_value_get_int64(value), 0);
+    kuzu_value_destroy(value);
+    kuzu_flat_tuple_destroy(flatTuple);
+    kuzu_query_result_destroy(result);
+}
+
+TEST_F(CApiValueTest, GetUInt8) {
+    auto connection = getConnection();
+    auto result = kuzu_connection_query(connection,
+        (char*)"MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.ulevel ORDER BY a.ID");
+    ASSERT_TRUE(kuzu_query_result_is_success(result));
+    ASSERT_TRUE(kuzu_query_result_has_next(result));
+    auto flatTuple = kuzu_query_result_get_next(result);
+    auto value = kuzu_flat_tuple_get_value(flatTuple, 0);
+    ASSERT_TRUE(value->_is_owned_by_cpp);
+    ASSERT_FALSE(kuzu_value_is_null(value));
+    ASSERT_EQ(kuzu_value_get_uint8(value), 15);
+    kuzu_value_destroy(value);
+    kuzu_flat_tuple_destroy(flatTuple);
+    kuzu_query_result_destroy(result);
+}
+
+TEST_F(CApiValueTest, GetUInt16) {
+    auto connection = getConnection();
+    auto result = kuzu_connection_query(connection,
+        (char*)"MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.ulength ORDER BY a.ID");
+    ASSERT_TRUE(kuzu_query_result_is_success(result));
+    ASSERT_TRUE(kuzu_query_result_has_next(result));
+    auto flatTuple = kuzu_query_result_get_next(result);
+    auto value = kuzu_flat_tuple_get_value(flatTuple, 0);
+    ASSERT_TRUE(value->_is_owned_by_cpp);
+    ASSERT_FALSE(kuzu_value_is_null(value));
+    ASSERT_EQ(kuzu_value_get_uint16(value), 120);
+    kuzu_value_destroy(value);
+    kuzu_flat_tuple_destroy(flatTuple);
+    kuzu_query_result_destroy(result);
+}
+
+TEST_F(CApiValueTest, GetUInt32) {
+    auto connection = getConnection();
+    auto result =
+        kuzu_connection_query(connection, (char*)"MATCH (a:person) -[r:studyAt]-> (b:organisation) "
+                                                 "RETURN r.temprature ORDER BY a.ID");
+    ASSERT_TRUE(kuzu_query_result_is_success(result));
+    ASSERT_TRUE(kuzu_query_result_has_next(result));
+    auto flatTuple = kuzu_query_result_get_next(result);
+    auto value = kuzu_flat_tuple_get_value(flatTuple, 0);
+    ASSERT_TRUE(value->_is_owned_by_cpp);
+    ASSERT_FALSE(kuzu_value_is_null(value));
+    ASSERT_EQ(kuzu_value_get_uint32(value), 35);
+    kuzu_value_destroy(value);
+    kuzu_flat_tuple_destroy(flatTuple);
+    kuzu_query_result_destroy(result);
+}
+
+TEST_F(CApiValueTest, GetUInt64) {
+    auto connection = getConnection();
+    auto result = kuzu_connection_query(connection,
+        (char*)"MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.code ORDER BY a.ID");
+    ASSERT_TRUE(kuzu_query_result_is_success(result));
+    ASSERT_TRUE(kuzu_query_result_has_next(result));
+    auto flatTuple = kuzu_query_result_get_next(result);
+    auto value = kuzu_flat_tuple_get_value(flatTuple, 0);
+    ASSERT_TRUE(value->_is_owned_by_cpp);
+    ASSERT_FALSE(kuzu_value_is_null(value));
+    ASSERT_EQ(kuzu_value_get_uint64(value), 6556);
     kuzu_value_destroy(value);
     kuzu_flat_tuple_destroy(flatTuple);
     kuzu_query_result_destroy(result);
