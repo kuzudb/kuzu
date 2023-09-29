@@ -47,8 +47,11 @@ public:
     inline void resizeDataColumnChunk(uint64_t numBytesForBuffer) {
         // TODO(bmwinger): This won't work properly for booleans (will be one eighth as many values
         // as could fit)
-        varListDataColumnChunk.resizeBuffer(
-            numBytesForBuffer / varListDataColumnChunk.dataColumnChunk->getNumBytesPerValue());
+        auto numValues =
+            varListDataColumnChunk.dataColumnChunk->getNumBytesPerValue() == 0 ?
+                0 :
+                numBytesForBuffer / varListDataColumnChunk.dataColumnChunk->getNumBytesPerValue();
+        varListDataColumnChunk.resizeBuffer(numValues);
     }
 
 private:
