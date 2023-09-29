@@ -51,28 +51,23 @@ def serialize(dataset_name, dataset_path, serialized_graph_path, benchmark_copy_
 
     for s in serialize_queries:
         logging.info('Executing query: %s', s)
+        create_match = re.match('create\s+(.+?)\s+table\s+(.+?)\s*\(', s, re.IGNORECASE)
         # Run kuzu shell one query at a time. This ensures a new process is
         # created for each query to avoid memory leaks.
         process = subprocess.Popen([kuzu_exec_path, serialized_graph_path],
-            stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+            stdin=subprocess.PIPE, stdout=sys.stdout if create_match else subprocess.PIPE)
         process.stdin.write((s + ";" + "\n").encode("ascii"))
         process.stdin.close()
-        match = re.match('create\s+(.+?)\s+table\s+(.+?)\s*\(', s, re.IGNORECASE)
-        if match:
-            table_types[match.group(2)] = match.group(1).lower()
-            match = False
+        if create_match:
+            table_types[create_match.group(2)] = create_match.group(1).lower()
         else:
-            match = re.match('copy\s+(.+?)\s+from', s, re.IGNORECASE)
-        if match:
-            filename = table_types[match.group(1)] + '-' + match.group(1).replace('_', '-') + '_log.txt'
-            f = open(os.path.join(benchmark_copy_log_dir, filename), 'ab')
-        for line in iter(process.stdout.readline, b''):
-            sys.stdout.write(line.decode("utf-8"))
-            sys.stdout.flush()
-            if match:
-                f.write(line)
-        if match:
-            f.close()
+            copy_match = re.match('copy\s+(.+?)\s+from', s, re.IGNORECASE)
+            filename = table_types[copy_match.group(1)] + '-' + copy_match.group(1).replace('_', '-') + '_log.txt'
+            with open(os.path.join(benchmark_copy_log_dir, filename), 'ab') as f:
+                for line in iter(process.stdout.readline, b''):
+                    sys.stdout.write(line.decode("utf-8"))
+                    sys.stdout.flush()
+                    f.write(line)
         process.wait()
         if process.returncode != 0:
             logging.error('Error executing query: %s', s)
