@@ -4,10 +4,10 @@
 --
 
 -CASE UnMatchedColumnTypeError
--STATEMENT create node table person (ID INT64, fName INT64, gender INT64, isStudent BOOLEAN, 
+-STATEMENT create node table person (ID INT64, fName INT64, gender INT64, isStudent BOOLEAN,
                                      isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE,
-                                     registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], 
-                                     usedNames STRING[], courseScoresPerTerm INT64[][], 
+                                     registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[],
+                                     usedNames STRING[], courseScoresPerTerm INT64[][],
                                      grades INT64[4], height float,
                                      PRIMARY KEY (fName))
 ---- ok

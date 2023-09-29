@@ -138,7 +138,7 @@ escape:
     goto in_quotes;
 }
 
-void BaseCSVReader::addValue(DataChunk& resultChunk, std::string strVal,
+void BaseCSVReader::addValue(DataChunk& resultChunk, std::string_view strVal,
     const column_id_t columnIdx, std::vector<uint64_t>& escapePositions) {
     if (mode == ParserMode::PARSING_HEADER) {
         return;
@@ -163,22 +163,23 @@ void BaseCSVReader::addValue(DataChunk& resultChunk, std::string strVal,
             getLineNumber(), expectedNumColumns));
     }
 
+    ValueVector* destination_vector = resultChunk.getValueVector(columnIdx).get();
     // insert the line number into the chunk
     if (!escapePositions.empty()) {
         // remove escape characters (if any)
-        std::string oldVal = strVal;
         std::string newVal = "";
         uint64_t prevPos = 0;
         for (auto i = 0u; i < escapePositions.size(); i++) {
             auto nextPos = escapePositions[i];
-            newVal += oldVal.substr(prevPos, nextPos - prevPos);
+            newVal += strVal.substr(prevPos, nextPos - prevPos);
             prevPos = nextPos + 1;
         }
-        newVal += oldVal.substr(prevPos, oldVal.size() - prevPos);
+        newVal += strVal.substr(prevPos, strVal.size() - prevPos);
         escapePositions.clear();
-        strVal = newVal;
+        copyStringToVector(destination_vector, std::string_view(newVal.begin(), newVal.end()));
+    } else {
+        copyStringToVector(destination_vector, strVal);
     }
-    copyStringToVector(resultChunk.getValueVector(columnIdx).get(), std::move(strVal));
 }
 
 void BaseCSVReader::addRow(DataChunk& resultChunk, column_id_t column) {
@@ -206,7 +207,7 @@ void BaseCSVReader::addRow(DataChunk& resultChunk, column_id_t column) {
     }
 }
 
-void BaseCSVReader::copyStringToVector(common::ValueVector* vector, std::string strVal) {
+void BaseCSVReader::copyStringToVector(common::ValueVector* vector, std::string_view strVal) {
     auto& type = vector->dataType;
     if (strVal.empty()) {
         vector->setNull(rowToAdd, true /* isNull */);
@@ -217,46 +218,46 @@ void BaseCSVReader::copyStringToVector(common::ValueVector* vector, std::string 
     switch (type.getLogicalTypeID()) {
     case LogicalTypeID::INT64: {
         vector->setValue(
-            rowToAdd, StringCastUtils::castToNum<int64_t>(strVal.c_str(), strVal.length()));
+            rowToAdd, StringCastUtils::castToNum<int64_t>(strVal.data(), strVal.length()));
     } break;
     case LogicalTypeID::INT32: {
         vector->setValue(
-            rowToAdd, StringCastUtils::castToNum<int32_t>(strVal.c_str(), strVal.length()));
+            rowToAdd, StringCastUtils::castToNum<int32_t>(strVal.data(), strVal.length()));
     } break;
     case LogicalTypeID::INT16: {
         vector->setValue(
-            rowToAdd, StringCastUtils::castToNum<int16_t>(strVal.c_str(), strVal.length()));
+            rowToAdd, StringCastUtils::castToNum<int16_t>(strVal.data(), strVal.length()));
     } break;
     case LogicalTypeID::INT8: {
         vector->setValue(
-            rowToAdd, StringCastUtils::castToNum<int8_t>(strVal.c_str(), strVal.length()));
+            rowToAdd, StringCastUtils::castToNum<int8_t>(strVal.data(), strVal.length()));
     } break;
     case LogicalTypeID::UINT64: {
         vector->setValue(
-            rowToAdd, StringCastUtils::castToNum<uint64_t>(strVal.c_str(), strVal.length()));
+            rowToAdd, StringCastUtils::castToNum<uint64_t>(strVal.data(), strVal.length()));
     } break;
     case LogicalTypeID::UINT32: {
         vector->setValue(
-            rowToAdd, StringCastUtils::castToNum<uint32_t>(strVal.c_str(), strVal.length()));
+            rowToAdd, StringCastUtils::castToNum<uint32_t>(strVal.data(), strVal.length()));
     } break;
     case LogicalTypeID::UINT16: {
         vector->setValue(
-            rowToAdd, StringCastUtils::castToNum<uint16_t>(strVal.c_str(), strVal.length()));
+            rowToAdd, StringCastUtils::castToNum<uint16_t>(strVal.data(), strVal.length()));
     } break;
     case LogicalTypeID::UINT8: {
         vector->setValue(
-            rowToAdd, StringCastUtils::castToNum<uint8_t>(strVal.c_str(), strVal.length()));
+            rowToAdd, StringCastUtils::castToNum<uint8_t>(strVal.data(), strVal.length()));
     } break;
     case LogicalTypeID::FLOAT: {
         vector->setValue(
-            rowToAdd, StringCastUtils::castToNum<float_t>(strVal.c_str(), strVal.length()));
+            rowToAdd, StringCastUtils::castToNum<float_t>(strVal.data(), strVal.length()));
     } break;
     case LogicalTypeID::DOUBLE: {
         vector->setValue(
-            rowToAdd, StringCastUtils::castToNum<double_t>(strVal.c_str(), strVal.length()));
+            rowToAdd, StringCastUtils::castToNum<double_t>(strVal.data(), strVal.length()));
     } break;
     case LogicalTypeID::BOOL: {
-        vector->setValue(rowToAdd, StringCastUtils::castToBool(strVal.c_str(), strVal.length()));
+        vector->setValue(rowToAdd, StringCastUtils::castToBool(strVal.data(), strVal.length()));
     } break;
     case LogicalTypeID::BLOB: {
         if (strVal.length() > BufferPoolConstants::PAGE_4KB_SIZE) {
@@ -264,21 +265,21 @@ void BaseCSVReader::copyStringToVector(common::ValueVector* vector, std::string 
                 ExceptionMessage::overLargeStringValueException(std::to_string(strVal.length())));
         }
         auto blobBuffer = std::make_unique<uint8_t[]>(strVal.length());
-        auto blobLen = Blob::fromString(strVal.c_str(), strVal.length(), blobBuffer.get());
+        auto blobLen = Blob::fromString(strVal.data(), strVal.length(), blobBuffer.get());
         StringVector::addString(
             vector, rowToAdd, reinterpret_cast<char*>(blobBuffer.get()), blobLen);
     } break;
     case LogicalTypeID::STRING: {
-        StringVector::addString(vector, rowToAdd, strVal.c_str(), strVal.length());
+        StringVector::addString(vector, rowToAdd, strVal.data(), strVal.length());
     } break;
     case LogicalTypeID::DATE: {
-        vector->setValue(rowToAdd, Date::fromCString(strVal.c_str(), strVal.length()));
+        vector->setValue(rowToAdd, Date::fromCString(strVal.data(), strVal.length()));
     } break;
     case LogicalTypeID::TIMESTAMP: {
-        vector->setValue(rowToAdd, Timestamp::fromCString(strVal.c_str(), strVal.length()));
+        vector->setValue(rowToAdd, Timestamp::fromCString(strVal.data(), strVal.length()));
     } break;
     case LogicalTypeID::INTERVAL: {
-        vector->setValue(rowToAdd, Interval::fromCString(strVal.c_str(), strVal.length()));
+        vector->setValue(rowToAdd, Interval::fromCString(strVal.data(), strVal.length()));
     } break;
     case LogicalTypeID::MAP:
     case LogicalTypeID::VAR_LIST: {
@@ -306,7 +307,7 @@ void BaseCSVReader::copyStringToVector(common::ValueVector* vector, std::string 
         for (auto i = 0u; i < UnionType::getNumFields(&type); i++) {
             auto internalFieldIdx = UnionType::getInternalFieldIdx(i);
             if (storage::TableCopyUtils::tryCast(
-                    *UnionType::getFieldType(&type, i), strVal.c_str(), strVal.length())) {
+                    *UnionType::getFieldType(&type, i), strVal.data(), strVal.length())) {
                 StructVector::getFieldVector(vector, internalFieldIdx)
                     ->setNull(rowToAdd, false /* isNull */);
                 copyStringToVector(
@@ -440,8 +441,8 @@ add_value:
     // We get here after we have a delimiter.
     assert(buffer[position] == csvReaderConfig.delimiter);
     // Trim one character if we have quotes.
-    addValue(resultChunk, std::string(buffer.get() + start, position - start - hasQuotes), column,
-        escapePositions);
+    addValue(resultChunk, std::string_view(buffer.get() + start, position - start - hasQuotes),
+        column, escapePositions);
     column++;
 
     // Move past the delimiter.
@@ -458,8 +459,8 @@ add_row : {
     // We get here after we have a newline.
     assert(isNewLine(buffer[position]));
     bool isCarriageReturn = buffer[position] == '\r';
-    addValue(resultChunk, std::string(buffer.get() + start, position - start - hasQuotes), column,
-        escapePositions);
+    addValue(resultChunk, std::string_view(buffer.get() + start, position - start - hasQuotes),
+        column, escapePositions);
     column++;
 
     addRow(resultChunk, column);
@@ -571,7 +572,7 @@ final_state:
     // If we were mid-value, add the remaining value to the chunk.
     if (position > start) {
         // Add remaining value to chunk.
-        addValue(resultChunk, std::string(buffer.get() + start, position - start - hasQuotes),
+        addValue(resultChunk, std::string_view(buffer.get() + start, position - start - hasQuotes),
             column, escapePositions);
         column++;
     }
