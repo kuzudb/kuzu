@@ -19,6 +19,7 @@ struct CSVReaderConfig {
     char listBeginChar;
     char listEndChar;
     bool hasHeader;
+    bool parallel;
 
     CSVReaderConfig()
         : escapeChar{CopyConstants::DEFAULT_CSV_ESCAPE_CHAR},
@@ -26,11 +27,13 @@ struct CSVReaderConfig {
           quoteChar{CopyConstants::DEFAULT_CSV_QUOTE_CHAR},
           listBeginChar{CopyConstants::DEFAULT_CSV_LIST_BEGIN_CHAR},
           listEndChar{CopyConstants::DEFAULT_CSV_LIST_END_CHAR},
-          hasHeader{CopyConstants::DEFAULT_CSV_HAS_HEADER} {}
+          hasHeader{CopyConstants::DEFAULT_CSV_HAS_HEADER},
+          parallel{CopyConstants::DEFAULT_CSV_PARALLEL} {}
+
     CSVReaderConfig(const CSVReaderConfig& other)
         : escapeChar{other.escapeChar}, delimiter{other.delimiter}, quoteChar{other.quoteChar},
           listBeginChar{other.listBeginChar},
-          listEndChar{other.listEndChar}, hasHeader{other.hasHeader} {}
+          listEndChar{other.listEndChar}, hasHeader{other.hasHeader}, parallel{other.parallel} {}
 
     inline std::unique_ptr<CSVReaderConfig> copy() const {
         return std::make_unique<CSVReaderConfig>(*this);
@@ -40,10 +43,6 @@ struct CSVReaderConfig {
 enum class FileType : uint8_t { UNKNOWN = 0, CSV = 1, PARQUET = 2, NPY = 3, TURTLE = 4 };
 
 struct FileTypeUtils {
-    inline static std::unordered_map<std::string, FileType> fileTypeMap{
-        {"unknown", FileType::UNKNOWN}, {".csv", FileType::CSV}, {".parquet", FileType::PARQUET},
-        {".npy", FileType::NPY}, {".ttl", FileType::TURTLE}};
-
     static FileType getFileTypeFromExtension(const std::string& extension);
     static std::string toString(FileType fileType);
 };
@@ -73,8 +72,13 @@ struct ReaderConfig {
         }
     }
 
-    inline bool parallelRead() const {
-        return fileType != FileType::CSV && fileType != FileType::TURTLE;
+    inline bool csvParallelRead(TableType tableType) const {
+        return tableType != TableType::REL && csvReaderConfig->parallel;
+    }
+
+    inline bool parallelRead(TableType tableType) const {
+        return (fileType != FileType::CSV || csvParallelRead(tableType)) &&
+               fileType != FileType::TURTLE;
     }
     inline uint32_t getNumFiles() const { return filePaths.size(); }
     inline uint32_t getNumColumns() const { return columnNames.size(); }

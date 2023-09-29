@@ -1,10 +1,10 @@
-#include "processor/operator/persistent/reader/csv/csv_reader.h"
+#include "processor/operator/persistent/reader/csv/base_csv_reader.h"
 
 #include <vector>
 
+#include "common/data_chunk/data_chunk.h"
 #include "common/exception/copy.h"
 #include "common/exception/message.h"
-#include "common/exception/not_implemented.h"
 #include "common/exception/parser.h"
 #include "common/string_utils.h"
 #include "common/type_utils.h"
@@ -17,13 +17,129 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-BaseCSVReader::BaseCSVReader(
-    const std::string& filePath, CSVReaderConfig csvReaderConfig, uint64_t expectedNumColumns)
-    : csvReaderConfig{std::move(csvReaderConfig)}, filePath{filePath},
-      expectedNumColumns{expectedNumColumns}, rowToAdd{0} {}
+BaseCSVReader::BaseCSVReader(const std::string& filePath, const common::ReaderConfig& readerConfig)
+    : filePath{filePath}, csvReaderConfig{*readerConfig.csvReaderConfig},
+      expectedNumColumns(readerConfig.getNumColumns()), numColumnsDetected(-1), fd(-1),
+      buffer(nullptr), bufferSize(0), position(0), rowEmpty(false), mode(ParserMode::INVALID),
+      rowToAdd(0) {
+    // TODO(Ziyi): should we wrap this fd using kuzu file handler?
+    fd = open(filePath.c_str(), O_RDONLY);
+    if (fd == -1) {
+        throw CopyException(
+            StringUtils::string_format("Could not open file {}: {}", filePath, strerror(errno)));
+    }
+}
 
-void BaseCSVReader::AddValue(DataChunk& resultChunk, std::string strVal, column_id_t& columnIdx,
-    std::vector<uint64_t>& escapePositions) {
+BaseCSVReader::~BaseCSVReader() {
+    if (fd != -1) {
+        close(fd);
+    }
+}
+
+uint64_t BaseCSVReader::parseBlock(common::block_idx_t blockIdx, DataChunk& resultChunk) {
+    currentBlockIdx = blockIdx;
+    parseBlockHook();
+    if (blockIdx == 0) {
+        readBOM();
+        if (csvReaderConfig.hasHeader) {
+            readHeader();
+        }
+    }
+    // Are we done after reading the header and executing the block hook?
+    if (finishedBlockDetail()) {
+        return 0;
+    }
+    mode = ParserMode::PARSING;
+    return parseCSV(resultChunk);
+}
+
+uint64_t BaseCSVReader::countRows() {
+    uint64_t rows = 0;
+    readBOM();
+    if (csvReaderConfig.hasHeader) {
+        readHeader();
+    }
+
+line_start:
+    // Pass bufferSize as start to avoid keeping any portion of the buffer.
+    if (!maybeReadBuffer(nullptr)) {
+        return rows;
+    }
+
+    // If the number of columns is 1, every line start indicates a row.
+    if (expectedNumColumns == 1) {
+        rows++;
+    }
+
+    if (buffer[position] == '\r') {
+        position++;
+        goto carriage_return;
+    } else if (buffer[position] == '\n') {
+        position++;
+        goto line_start;
+    } else {
+        // If we have more than one column, every non-empty line is a row.
+        if (expectedNumColumns != 1) {
+            rows++;
+        }
+        goto normal;
+    }
+normal:
+    do {
+        if (buffer[position] == '\r') {
+            position++;
+            goto carriage_return;
+        } else if (buffer[position] == '\n') {
+            position++;
+            goto line_start;
+        } else if (buffer[position] == csvReaderConfig.quoteChar) {
+            position++;
+            goto in_quotes;
+        } else {
+            position++;
+            // Just a normal character of some kind.
+        }
+    } while (maybeReadBuffer(nullptr));
+    return rows;
+
+carriage_return:
+    if (!maybeReadBuffer(nullptr)) {
+        return rows;
+    }
+
+    if (buffer[position] == '\n') {
+        position++;
+    }
+    goto line_start;
+
+in_quotes:
+    if (!maybeReadBuffer(nullptr)) {
+        return rows;
+    }
+
+    do {
+        if (buffer[position] == csvReaderConfig.quoteChar) {
+            position++;
+            goto normal;
+        } else if (buffer[position] == csvReaderConfig.escapeChar) {
+            position++;
+            goto escape;
+        } else {
+            position++;
+        }
+    } while (maybeReadBuffer(nullptr));
+    return rows;
+
+escape:
+    if (!maybeReadBuffer(nullptr)) {
+        return rows;
+    }
+    position++;
+    goto in_quotes;
+}
+
+void BaseCSVReader::addValue(DataChunk& resultChunk, std::string strVal,
+    const column_id_t columnIdx, std::vector<uint64_t>& escapePositions) {
     if (mode == ParserMode::PARSING_HEADER) {
         return;
     }
@@ -39,13 +155,12 @@ void BaseCSVReader::AddValue(DataChunk& resultChunk, std::string strVal, column_
     }
     if (mode == ParserMode::SNIFFING_DIALECT) {
         // Do not copy data while sniffing csv.
-        columnIdx++;
         return;
     }
     if (columnIdx >= expectedNumColumns) {
         throw CopyException(StringUtils::string_format(
-            "Error in file {}, on line {}: expected {} values per row, but got more. ", filePath,
-            linenr, expectedNumColumns));
+            "Error in file {}, on line {}: expected {} values per row, but got more.", filePath,
+            getLineNumber(), expectedNumColumns));
     }
 
     // insert the line number into the chunk
@@ -63,47 +178,35 @@ void BaseCSVReader::AddValue(DataChunk& resultChunk, std::string strVal, column_
         escapePositions.clear();
         strVal = newVal;
     }
-    copyStringToVector(resultChunk.getValueVector(columnIdx).get(), strVal);
-    // move to the next columnIdx
-    columnIdx++;
+    copyStringToVector(resultChunk.getValueVector(columnIdx).get(), std::move(strVal));
 }
 
-bool BaseCSVReader::AddRow(DataChunk& resultChunk, column_id_t& column) {
-    rowToAdd++;
+void BaseCSVReader::addRow(DataChunk& resultChunk, column_id_t column) {
     if (mode == ParserMode::PARSING_HEADER) {
-        return true;
+        return;
     }
-    linenr++;
     if (rowEmpty) {
         rowEmpty = false;
         if (expectedNumColumns != 1) {
-            if (mode == ParserMode::PARSING) {
-                // Set This position to be null
-                ;
-            }
-            column = 0;
-            return false;
+            return;
         }
+        // Otherwise, treat it as null.
     }
+    rowToAdd++;
     if (column < expectedNumColumns && mode != ParserMode::SNIFFING_DIALECT) {
-        // Number of column mismatch. We don't error while sniffing dialect because number of
-        // columns is only known after reading the first row.
+        // Column number mismatch. We don't error while sniffing dialect because number of columns
+        // is only known after reading the first row.
         throw CopyException(StringUtils::string_format(
-            "Error in file {} on line {}: expected {} values per row, but got {}", filePath, linenr,
-            expectedNumColumns, column));
-    }
-    if (mode == ParserMode::PARSING && rowToAdd >= DEFAULT_VECTOR_CAPACITY) {
-        return true;
+            "Error in file {} on line {}: expected {} values per row, but got {}", filePath,
+            getLineNumber(), expectedNumColumns, column));
     }
     if (mode == ParserMode::SNIFFING_DIALECT) {
-        numColumnsDetected = column; // Only read one row while sniffing csv.
-        return true;
+        numColumnsDetected = column; // Use the first row to determine the number of columns.
+        return;
     }
-    column = 0;
-    return false;
 }
 
-void BaseCSVReader::copyStringToVector(ValueVector* vector, std::string& strVal) {
+void BaseCSVReader::copyStringToVector(common::ValueVector* vector, std::string strVal) {
     auto& type = vector->dataType;
     if (strVal.empty()) {
         vector->setNull(rowToAdd, true /* isNull */);
@@ -224,72 +327,38 @@ void BaseCSVReader::copyStringToVector(ValueVector* vector, std::string& strVal)
         StructVector::getFieldVector(vector, UnionType::TAG_FIELD_IDX)
             ->setNull(rowToAdd, false /* isNull */);
     } break;
-    default: {
-        throw NotImplementedException("BaseCSVReader::AddValue");
-    }
-    }
-}
-
-BufferedCSVReader::BufferedCSVReader(
-    const std::string& filePath, CSVReaderConfig csvReaderConfig, uint64_t expectedNumColumns)
-    : BaseCSVReader{filePath, csvReaderConfig, expectedNumColumns},
-      bufferSize{0}, position{0}, start{0} {
-    Initialize();
-}
-
-BufferedCSVReader::~BufferedCSVReader() {
-    if (fd != -1) {
-        close(fd);
+    default: { // LCOV_EXCL_START
+        throw NotImplementedException("BaseCSVReader::copyStringToVector");
+    } // LCOV_EXCL_STOP
     }
 }
 
-void BufferedCSVReader::Initialize() {
-    // TODO(Ziyi): should we wrap this fd using kuzu file handler?
-    fd = open(filePath.c_str(), O_RDONLY);
-    JumpToBeginning(csvReaderConfig.hasHeader);
-    mode = ParserMode::PARSING;
-}
-
-void BufferedCSVReader::JumpToBeginning(bool skipHeader) {
-    ResetBuffer();
-    if (skipHeader) {
-        ReadHeader();
+void BaseCSVReader::readBOM() {
+    if (!maybeReadBuffer(nullptr)) {
+        return;
+    }
+    if (bufferSize >= 3 && buffer[0] == '\xEF' && buffer[1] == '\xBB' && buffer[2] == '\xBF') {
+        position = 3;
     }
 }
 
-void BufferedCSVReader::ResetBuffer() {
-    buffer.reset();
-    bufferSize = 0;
-    position = 0;
-    start = 0;
-    cachedBuffers.clear();
-}
-
-void BufferedCSVReader::ReadHeader() {
-    // ignore the first line as a header line
+void BaseCSVReader::readHeader() {
     mode = ParserMode::PARSING_HEADER;
     DataChunk dummyChunk(0);
-    ParseCSV(dummyChunk);
+    parseCSV(dummyChunk);
 }
 
-void BufferedCSVReader::SniffCSV() {
-    mode = ParserMode::SNIFFING_DIALECT;
-    DataChunk dummyChunk(0);
-    ParseCSV(dummyChunk);
-    JumpToBeginning(csvReaderConfig.hasHeader);
-}
-
-bool BufferedCSVReader::ReadBuffer(uint64_t& start, uint64_t& lineStart) {
-    if (start > bufferSize) {
-        return false;
-    }
-    auto oldBuffer = std::move(buffer);
+bool BaseCSVReader::readBuffer(uint64_t* start) {
+    std::unique_ptr<char[]> oldBuffer = std::move(buffer);
 
     // the remaining part of the last buffer
-    uint64_t remaining = bufferSize - start;
+    uint64_t remaining = 0;
+    if (start != nullptr) {
+        assert(*start <= bufferSize);
+        remaining = bufferSize - *start;
+    }
 
-    uint64_t bufferReadSize = INITIAL_BUFFER_SIZE;
-
+    uint64_t bufferReadSize = CopyConstants::INITIAL_BUFFER_SIZE;
     while (remaining > bufferReadSize) {
         bufferReadSize *= 2;
     }
@@ -298,7 +367,8 @@ bool BufferedCSVReader::ReadBuffer(uint64_t& start, uint64_t& lineStart) {
     bufferSize = remaining + bufferReadSize;
     if (remaining > 0) {
         // remaining from last buffer: copy it here
-        memcpy(buffer.get(), oldBuffer.get() + start, remaining);
+        assert(start != nullptr);
+        memcpy(buffer.get(), oldBuffer.get() + *start, remaining);
     }
 
     uint64_t readCount = read(fd, buffer.get() + remaining, bufferReadSize);
@@ -307,74 +377,50 @@ bool BufferedCSVReader::ReadBuffer(uint64_t& start, uint64_t& lineStart) {
             "Could not read from file {}: {}", filePath, strerror(errno)));
     }
 
-    bytesInChunk += readCount;
     bufferSize = remaining + readCount;
     buffer[bufferSize] = '\0';
-    if (oldBuffer) {
-        cachedBuffers.push_back(std::move(oldBuffer));
+    if (start != nullptr) {
+        *start = 0;
     }
-    start = 0;
     position = remaining;
-    if (!bomChecked) {
-        bomChecked = true;
-        if (readCount >= 3 && buffer[0] == '\xEF' && buffer[1] == '\xBB' && buffer[2] == '\xBF') {
-            start += 3;
-            position += 3;
-        }
-    }
-    lineStart = start;
-
     return readCount > 0;
 }
 
-void BufferedCSVReader::SkipEmptyLines() {
-    if (expectedNumColumns == 1) {
-        // Empty lines are null data.
-        return;
-    }
-    for (; position < bufferSize; position++) {
-        if (!isNewLine(buffer[position])) {
-            return;
-        }
-    }
-}
-
-uint64_t BufferedCSVReader::TryParseSimpleCSV(DataChunk& resultChunk, std::string& errorMessage) {
+uint64_t BaseCSVReader::parseCSV(DataChunk& resultChunk) {
     // used for parsing algorithm
     rowToAdd = 0;
-    bool finishedChunk = false;
     column_id_t column = 0;
-    uint64_t offset = 0;
+    uint64_t start = position;
     bool hasQuotes = false;
     std::vector<uint64_t> escapePositions;
 
-    uint64_t lineStart = position;
     // read values into the buffer (if any)
-    if (position >= bufferSize) {
-        if (!ReadBuffer(start, lineStart)) {
-            return 0;
-        }
+    if (!maybeReadBuffer(&start)) {
+        return 0;
     }
 
     // start parsing the first value
     goto value_start;
 value_start:
-    offset = 0;
     /* state: value_start */
     // this state parses the first character of a value
     if (buffer[position] == csvReaderConfig.quoteChar) {
+        [[unlikely]]
         // quote: actual value starts in the next position
         // move to in_quotes state
         start = position + 1;
+        hasQuotes = true;
         goto in_quotes;
     } else {
         // no quote, move to normal parsing state
         start = position;
+        hasQuotes = false;
         goto normal;
     }
 normal:
     /* state: normal parsing state */
-    // this state parses the remainder of a non-quoted value until we reach a delimiter or newline
+    // this state parses the remainder of a non-quoted value until we reach a delimiter or
+    // newline
     do {
         for (; position < bufferSize; position++) {
             if (buffer[position] == csvReaderConfig.delimiter) {
@@ -385,65 +431,59 @@ normal:
                 goto add_row;
             }
         }
-    } while (ReadBuffer(start, lineStart));
+    } while (readBuffer(&start));
+
+    [[unlikely]]
     // file ends during normal scan: go to end state
     goto final_state;
 add_value:
-    AddValue(resultChunk, std::string(buffer.get() + start, position - start - offset), column,
+    // We get here after we have a delimiter.
+    assert(buffer[position] == csvReaderConfig.delimiter);
+    // Trim one character if we have quotes.
+    addValue(resultChunk, std::string(buffer.get() + start, position - start - hasQuotes), column,
         escapePositions);
-    // increase position by 1 and move start to the new position
-    offset = 0;
-    hasQuotes = false;
-    start = ++position;
-    if (position >= bufferSize && !ReadBuffer(start, lineStart)) {
-        // file ends right after delimiter, go to final state
+    column++;
+
+    // Move past the delimiter.
+    ++position;
+    // Adjust start for MaybeReadBuffer.
+    start = position;
+    if (!maybeReadBuffer(&start)) {
+        [[unlikely]]
+        // File ends right after delimiter, go to final state
         goto final_state;
     }
     goto value_start;
 add_row : {
-    // check type of newline (\r or \n)
-    bool carriageReturn = buffer[position] == '\r';
-    AddValue(resultChunk, std::string(buffer.get() + start, position - start - offset), column,
+    // We get here after we have a newline.
+    assert(isNewLine(buffer[position]));
+    bool isCarriageReturn = buffer[position] == '\r';
+    addValue(resultChunk, std::string(buffer.get() + start, position - start - hasQuotes), column,
         escapePositions);
-    if (!errorMessage.empty()) {
-        return -1;
-    }
-    finishedChunk = AddRow(resultChunk, column);
-    if (!errorMessage.empty()) {
-        return -1;
-    }
-    // increase position by 1 and move start to the new position
-    offset = 0;
-    hasQuotes = false;
+    column++;
+
+    addRow(resultChunk, column);
+
+    column = 0;
     position++;
+    // Adjust start for ReadBuffer.
     start = position;
-    lineStart = position;
-    if (position >= bufferSize && !ReadBuffer(start, lineStart)) {
-        // file ends right after delimiter, go to final state
+    if (!maybeReadBuffer(&start)) {
+        // File ends right after newline, go to final state.
         goto final_state;
     }
-    if (carriageReturn) {
+    if (isCarriageReturn) {
         // \r newline, go to special state that parses an optional \n afterwards
         goto carriage_return;
     } else {
-        SkipEmptyLines();
-        start = position;
-        lineStart = position;
-        if (position >= bufferSize && !ReadBuffer(start, lineStart)) {
-            // file ends right after delimiter, go to final state
-            goto final_state;
-        }
-        // \n newline, move to value start
-        if (finishedChunk) {
+        if (finishedBlock()) {
             return rowToAdd;
         }
         goto value_start;
     }
 }
 in_quotes:
-    /* state: in_quotes */
-    // this state parses the remainder of a quoted value
-    hasQuotes = true;
+    // this state parses the remainder of a quoted value.
     position++;
     do {
         for (; position < bufferSize; position++) {
@@ -454,21 +494,24 @@ in_quotes:
                 // escape: store the escaped position and move to handle_escape state
                 escapePositions.push_back(position - start);
                 goto handle_escape;
+            } else if (isNewLine(buffer[position])) {
+                [[unlikely]] handleQuotedNewline();
             }
         }
-    } while (ReadBuffer(start, lineStart));
+    } while (readBuffer(&start));
+    [[unlikely]]
     // still in quoted state at the end of the file, error:
     throw CopyException(StringUtils::string_format(
-        "Error in file {} on line {}: unterminated quotes. ", filePath, linenr));
+        "Error in file {} on line {}: unterminated quotes.", filePath, getLineNumber()));
 unquote:
-    /* state: unquote */
+    assert(hasQuotes && buffer[position] == csvReaderConfig.quoteChar);
     // this state handles the state directly after we unquote
-    // in this state we expect either another quote (entering the quoted state again, and escaping
-    // the quote) or a delimiter/newline, ending the current value and moving on to the next value
+    // in this state we expect either another quote (entering the quoted state again, and
+    // escaping the quote) or a delimiter/newline, ending the current value and moving on to the
+    // next value
     position++;
-    if (position >= bufferSize && !ReadBuffer(start, lineStart)) {
+    if (!maybeReadBuffer(&start)) {
         // file ends right after unquote, go to final state
-        offset = 1;
         goto final_state;
     }
     if (buffer[position] == csvReaderConfig.quoteChar &&
@@ -478,93 +521,116 @@ unquote:
         goto in_quotes;
     } else if (buffer[position] == csvReaderConfig.delimiter) {
         // delimiter, add value
-        offset = 1;
         goto add_value;
     } else if (isNewLine(buffer[position])) {
-        offset = 1;
         goto add_row;
     } else {
-        errorMessage = StringUtils::string_format(
-            "Error in file {} on line {}: quote should be followed by end of value, end of "
-            "row or another quote.",
-            filePath, linenr);
-        return -1;
+        [[unlikely]] throw CopyException(
+            StringUtils::string_format("Error in file {} on line {}: quote should be followed by "
+                                       "end of file, end of value, end of "
+                                       "row or another quote.",
+                filePath, getLineNumber()));
     }
 handle_escape:
     /* state: handle_escape */
     // escape should be followed by a quote or another escape character
     position++;
-    if (position >= bufferSize && !ReadBuffer(start, lineStart)) {
-        errorMessage = StringUtils::string_format(
-            "Error in file {} on line {}: neither QUOTE nor ESCAPE is proceeded by ESCAPE.",
-            filePath, linenr);
-        return -1;
+    if (!maybeReadBuffer(&start)) {
+        [[unlikely]] throw CopyException(StringUtils::string_format(
+            "Error in file {} on line {}: escape at end of file.", filePath, getLineNumber()));
     }
     if (buffer[position] != csvReaderConfig.quoteChar &&
         buffer[position] != csvReaderConfig.escapeChar) {
-        errorMessage = StringUtils::string_format(
-            "Error in file {} on line {}}: neither QUOTE nor ESCAPE is proceeded by ESCAPE.",
-            filePath, linenr);
-        return -1;
+        [[unlikely]] throw CopyException(StringUtils::string_format(
+            "Error in file {} on line {}: neither QUOTE nor ESCAPE is proceeded by ESCAPE.",
+            filePath, getLineNumber()));
     }
     // escape was followed by quote or escape, go back to quoted state
     goto in_quotes;
 carriage_return:
-    /* state: carriage_return */
-    // this stage optionally skips a newline (\n) character, which allows \r\n to be interpreted as
-    // a single line
+    // this stage optionally skips a newline (\n) character, which allows \r\n to be interpreted
+    // as a single line
+
+    // position points to the character after the carriage return.
     if (buffer[position] == '\n') {
         // newline after carriage return: skip
         // increase position by 1 and move start to the new position
         start = ++position;
-        if (position >= bufferSize && !ReadBuffer(start, lineStart)) {
-            // file ends right after delimiter, go to final state
+        if (!maybeReadBuffer(&start)) {
+            // file ends right after newline, go to final state
             goto final_state;
         }
     }
-    if (finishedChunk) {
+    if (finishedBlock()) {
         return rowToAdd;
-    }
-    SkipEmptyLines();
-    start = position;
-    lineStart = position;
-    if (position >= bufferSize && !ReadBuffer(start, lineStart)) {
-        // file ends right after delimiter, go to final state
-        goto final_state;
     }
 
     goto value_start;
 final_state:
-    if (finishedChunk) {
-        return rowToAdd;
+    // We get here when the file ends.
+    // If we were mid-value, add the remaining value to the chunk.
+    if (position > start) {
+        // Add remaining value to chunk.
+        addValue(resultChunk, std::string(buffer.get() + start, position - start - hasQuotes),
+            column, escapePositions);
+        column++;
     }
-
-    if (column > 0 || position > start) {
-        // remaining values to be added to the chunk
-        AddValue(resultChunk, std::string(buffer.get() + start, position - start - offset), column,
-            escapePositions);
-        finishedChunk = AddRow(resultChunk, column);
-        SkipEmptyLines();
-        if (!errorMessage.empty()) {
-            return -1;
-        }
+    if (column > 0) {
+        addRow(resultChunk, column);
     }
-
     return rowToAdd;
 }
 
-uint64_t BufferedCSVReader::ParseCSV(DataChunk& resultChunk) {
-    std::string errorMessage;
-    auto numRowsRead = TryParseCSV(resultChunk, errorMessage);
-    if (numRowsRead == -1) {
-        throw CopyException(errorMessage);
+uint64_t BaseCSVReader::getFileOffset() const {
+    uint64_t offset = lseek(fd, 0, SEEK_CUR);
+    if (offset == -1) {
+        // LCOV_EXCL_START
+        throw CopyException(StringUtils::string_format(
+            "Could not get current file position for file {}: {}", filePath, strerror(errno)));
+        // LCOV_EXCL_END
     }
-    resultChunk.state->selVector->selectedSize = numRowsRead;
-    return numRowsRead;
+    assert(offset >= bufferSize);
+    return offset - bufferSize + position;
 }
 
-uint64_t BufferedCSVReader::TryParseCSV(DataChunk& resultChunk, std::string& errorMessage) {
-    return TryParseSimpleCSV(resultChunk, errorMessage);
+uint64_t BaseCSVReader::getLineNumber() {
+    uint64_t offset = getFileOffset();
+    uint64_t lineNumber = 1;
+    const uint64_t BUF_SIZE = 4096;
+    char buf[BUF_SIZE];
+    if (lseek(fd, 0, SEEK_SET) == -1) {
+        // LCOV_EXCL_START
+        throw CopyException(StringUtils::string_format(
+            "Could not seek to beginning of file {}: {}", filePath, strerror(errno)));
+        // LCOV_EXCL_END
+    }
+
+    bool carriageReturn = false;
+    uint64_t totalBytes = 0;
+    do {
+        uint64_t bytesRead = read(fd, buf, std::min(BUF_SIZE, offset - totalBytes));
+        if (bytesRead == -1) {
+            // LCOV_EXCL_START
+            throw CopyException(StringUtils::string_format(
+                "Could not read from file {}: {}", filePath, strerror(errno)));
+            // LCOV_EXCL_END
+        }
+        totalBytes += bytesRead;
+
+        for (uint64_t i = 0; i < bytesRead; i++) {
+            if (buf[i] == '\n') {
+                lineNumber++;
+                carriageReturn = false;
+            } else if (carriageReturn) {
+                lineNumber++;
+                carriageReturn = false;
+            }
+            if (buf[i] == '\r') {
+                carriageReturn = true;
+            }
+        }
+    } while (totalBytes < offset);
+    return lineNumber + carriageReturn;
 }
 
 } // namespace processor

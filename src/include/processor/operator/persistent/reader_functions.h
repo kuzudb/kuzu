@@ -1,6 +1,7 @@
 #pragma once
 
-#include "processor/operator/persistent/reader/csv/csv_reader.h"
+#include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
+#include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 #include "processor/operator/persistent/reader/npy_reader.h"
 #include "processor/operator/persistent/reader/parquet/parquet_reader.h"
 #include "processor/operator/persistent/reader/rdf/rdf_reader.h"
@@ -17,15 +18,27 @@ struct ReaderFunctionData {
 
     virtual ~ReaderFunctionData() = default;
 
+    virtual inline bool emptyBlockImpliesDone() const { return false; }
     virtual inline bool hasMoreToRead() const { return false; }
 };
 
 struct RelCSVReaderFunctionData : public ReaderFunctionData {
     std::shared_ptr<arrow::csv::StreamingReader> reader = nullptr;
+
+    inline bool emptyBlockImpliesDone() const override { return true; }
 };
 
-struct BufferedCSVReaderFunctionData : public ReaderFunctionData {
-    std::unique_ptr<BufferedCSVReader> reader = nullptr;
+struct SerialCSVReaderFunctionData : public ReaderFunctionData {
+    std::unique_ptr<SerialCSVReader> reader = nullptr;
+};
+
+struct ParallelCSVReaderFunctionData : public ReaderFunctionData {
+    std::unique_ptr<ParallelCSVReader> reader = nullptr;
+
+    // NOTE: It is *critical* that `emptyBlockImpliesDone` is false for Parallel CSV Reader!
+    // Otherwise, when the parallel CSV reader gets a block that resides in the middle of a header
+    // or a long line, it will return zero and cause rows to not be loaded!
+    inline bool hasMoreToRead() const override { return reader->hasMoreToRead(); }
 };
 
 struct RelParquetReaderFunctionData : public ReaderFunctionData {
@@ -36,10 +49,7 @@ struct ParquetReaderFunctionData : public ReaderFunctionData {
     std::unique_ptr<ParquetReader> reader = nullptr;
     std::unique_ptr<ParquetReaderScanState> state = nullptr;
 
-    inline bool hasMoreToRead() const override {
-        return !reinterpret_cast<const ParquetReaderFunctionData*>(this)
-                    ->state->groupIdxList.empty();
-    }
+    inline bool hasMoreToRead() const override { return !state->groupIdxList.empty(); }
 };
 
 struct NPYReaderFunctionData : public ReaderFunctionData {
@@ -67,12 +77,13 @@ using read_rows_func_t = std::function<void(
 struct ReaderFunctions {
     static validate_func_t getValidateFunc(common::FileType fileType);
     static count_blocks_func_t getCountBlocksFunc(
-        common::FileType fileType, common::TableType tableType);
+        const common::ReaderConfig& config, common::TableType tableType);
     static init_reader_data_func_t getInitDataFunc(
-        common::FileType fileType, common::TableType tableType);
-    static read_rows_func_t getReadRowsFunc(common::FileType fileType, common::TableType tableType);
+        const common::ReaderConfig& config, common::TableType tableType);
+    static read_rows_func_t getReadRowsFunc(
+        const common::ReaderConfig& config, common::TableType tableType);
     static std::shared_ptr<ReaderFunctionData> getReadFuncData(
-        common::FileType fileType, common::TableType tableType);
+        const common::ReaderConfig& config, common::TableType tableType);
 
     static inline void validateNoOp(const common::ReaderConfig& config) {
         // DO NOTHING.
@@ -81,7 +92,9 @@ struct ReaderFunctions {
 
     static std::vector<FileBlocksInfo> countRowsNoOp(
         const common::ReaderConfig& config, storage::MemoryManager* memoryManager);
-    static std::vector<FileBlocksInfo> countRowsInNodeCSVFile(
+    static std::vector<FileBlocksInfo> countRowsInSerialCSVFile(
+        const common::ReaderConfig& config, storage::MemoryManager* memoryManager);
+    static std::vector<FileBlocksInfo> countRowsInParallelCSVFile(
         const common::ReaderConfig& config, storage::MemoryManager* memoryManager);
     static std::vector<FileBlocksInfo> countRowsInRelParquetFile(
         const common::ReaderConfig& config, storage::MemoryManager* memoryManager);
@@ -94,7 +107,9 @@ struct ReaderFunctions {
 
     static void initRelCSVReadData(ReaderFunctionData& funcData, common::vector_idx_t fileIdx,
         const common::ReaderConfig& config, storage::MemoryManager* memoryManager);
-    static void initBufferedCSVReadData(ReaderFunctionData& funcData, common::vector_idx_t fileIdx,
+    static void initParallelCSVReadData(ReaderFunctionData& funcData, common::vector_idx_t fileIdx,
+        const common::ReaderConfig& config, storage::MemoryManager* memoryManager);
+    static void initSerialCSVReadData(ReaderFunctionData& funcData, common::vector_idx_t fileIdx,
         const common::ReaderConfig& config, storage::MemoryManager* memoryManager);
     static void initRelParquetReadData(ReaderFunctionData& funcData, common::vector_idx_t fileIdx,
         const common::ReaderConfig& config, storage::MemoryManager* memoryManager);
@@ -107,7 +122,9 @@ struct ReaderFunctions {
 
     static void readRowsFromRelCSVFile(const ReaderFunctionData& funcData,
         common::block_idx_t blockIdx, common::DataChunk* dataChunkToRead);
-    static void readRowsWithBufferedCSVReader(const ReaderFunctionData& funcData,
+    static void readRowsFromSerialCSVFile(const ReaderFunctionData& funcData,
+        common::block_idx_t blockIdx, common::DataChunk* dataChunkToRead);
+    static void readRowsFromParallelCSVFile(const ReaderFunctionData& funcData,
         common::block_idx_t blockIdx, common::DataChunk* dataChunkToRead);
     static void readRowsFromRelParquetFile(const ReaderFunctionData& funcData,
         common::block_idx_t blockIdx, common::DataChunk* vectorsToRead);

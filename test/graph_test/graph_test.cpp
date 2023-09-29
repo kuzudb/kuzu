@@ -128,11 +128,15 @@ void TestHelper::executeScript(const std::string& cypherScript, Connection& conn
         std::vector<std::string> csvFilePaths;
         size_t index = 0;
         while (true) {
-            size_t start = line.find("\"", index);
+            size_t start = line.find('"', index);
             if (start == std::string::npos) {
                 break;
             }
-            size_t end = line.find("\"", start + 1);
+            size_t end = line.find('"', start + 1);
+            if (end == std::string::npos) {
+                // No matching double quote, must not be a file path.
+                break;
+            }
             std::string substr = line.substr(start + 1, end - start - 1);
             // convert to lower case
             auto substrLower = substr;

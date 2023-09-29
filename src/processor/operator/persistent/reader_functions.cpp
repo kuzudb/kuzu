@@ -1,5 +1,6 @@
 #include "processor/operator/persistent/reader_functions.h"
 
+#include "common/exception/copy.h"
 #include <arrow/table.h>
 
 using namespace kuzu::common;
@@ -22,17 +23,15 @@ validate_func_t ReaderFunctions::getValidateFunc(FileType fileType) {
     }
 }
 
-count_blocks_func_t ReaderFunctions::getCountBlocksFunc(FileType fileType, TableType tableType) {
-    switch (fileType) {
+count_blocks_func_t ReaderFunctions::getCountBlocksFunc(
+    const ReaderConfig& config, TableType tableType) {
+    switch (config.fileType) {
     case FileType::CSV: {
-        switch (tableType) {
-        case TableType::NODE:
-            return countRowsInNodeCSVFile;
-        case TableType::UNKNOWN:
-        case TableType::REL:
+        if (tableType == TableType::REL) {
             return countRowsNoOp;
-        default:
-            throw NotImplementedException{"ReaderFunctions::getCountBlocksFunc"};
+        } else {
+            return config.csvReaderConfig->parallel ? countRowsInParallelCSVFile :
+                                                      countRowsInSerialCSVFile;
         }
     }
     case FileType::PARQUET: {
@@ -52,23 +51,21 @@ count_blocks_func_t ReaderFunctions::getCountBlocksFunc(FileType fileType, Table
     case FileType::TURTLE: {
         return countRowsInRDFFile;
     }
-    default: {
-        throw NotImplementedException{"ReaderFunctions::getRowsCounterFunc"};
-    }
+    default: { // LCOV_EXCL_START
+        throw NotImplementedException{"ReaderFunctions::getCountBlocksFunc"};
+    } // LCOV_EXCL_END
     }
 }
 
-init_reader_data_func_t ReaderFunctions::getInitDataFunc(FileType fileType, TableType tableType) {
-    switch (fileType) {
+init_reader_data_func_t ReaderFunctions::getInitDataFunc(
+    const ReaderConfig& config, TableType tableType) {
+    switch (config.fileType) {
     case FileType::CSV: {
-        switch (tableType) {
-        case TableType::NODE:
-        case TableType::UNKNOWN:
-            return initBufferedCSVReadData;
-        case TableType::REL:
+        if (tableType == TableType::REL) {
             return initRelCSVReadData;
-        default:
-            throw NotImplementedException{"ReaderFunctions::getInitDataFunc"};
+        } else {
+            return config.csvReaderConfig->parallel ? initParallelCSVReadData :
+                                                      initSerialCSVReadData;
         }
     }
     case FileType::PARQUET: {
@@ -94,17 +91,15 @@ init_reader_data_func_t ReaderFunctions::getInitDataFunc(FileType fileType, Tabl
     }
 }
 
-read_rows_func_t ReaderFunctions::getReadRowsFunc(FileType fileType, common::TableType tableType) {
-    switch (fileType) {
+read_rows_func_t ReaderFunctions::getReadRowsFunc(
+    const ReaderConfig& config, common::TableType tableType) {
+    switch (config.fileType) {
     case FileType::CSV: {
-        switch (tableType) {
-        case TableType::NODE:
-        case TableType::UNKNOWN:
-            return readRowsWithBufferedCSVReader;
-        case TableType::REL:
+        if (tableType == TableType::REL) {
             return readRowsFromRelCSVFile;
-        default:
-            throw NotImplementedException{"ReaderFunctions::getReadRowsFunc"};
+        } else {
+            return config.csvReaderConfig->parallel ? readRowsFromParallelCSVFile :
+                                                      readRowsFromSerialCSVFile;
         }
     }
     case FileType::PARQUET: {
@@ -131,17 +126,15 @@ read_rows_func_t ReaderFunctions::getReadRowsFunc(FileType fileType, common::Tab
 }
 
 std::shared_ptr<ReaderFunctionData> ReaderFunctions::getReadFuncData(
-    FileType fileType, TableType tableType) {
-    switch (fileType) {
+    const ReaderConfig& config, TableType tableType) {
+    switch (config.fileType) {
     case FileType::CSV: {
-        switch (tableType) {
-        case TableType::NODE:
-        case TableType::UNKNOWN:
-            return std::make_shared<BufferedCSVReaderFunctionData>();
-        case TableType::REL:
+        if (tableType == TableType::REL) {
             return std::make_shared<RelCSVReaderFunctionData>();
-        default:
-            throw NotImplementedException{"ReaderFunctions::getReadFuncData"};
+        } else if (config.csvReaderConfig->parallel) {
+            return std::make_shared<ParallelCSVReaderFunctionData>();
+        } else {
+            return std::make_shared<SerialCSVReaderFunctionData>();
         }
     }
     case FileType::PARQUET: {
@@ -187,33 +180,41 @@ std::vector<FileBlocksInfo> ReaderFunctions::countRowsNoOp(
     return fileInfos;
 }
 
-static std::unique_ptr<BufferedCSVReader> createBufferedCSVReader(
-    const std::string& path, const ReaderConfig& config) {
-    return std::make_unique<BufferedCSVReader>(
-        path, *config.csvReaderConfig, config.getNumColumns());
-}
-
-std::vector<FileBlocksInfo> ReaderFunctions::countRowsInNodeCSVFile(
-    const common::ReaderConfig& config, MemoryManager* memoryManager) {
+std::vector<FileBlocksInfo> ReaderFunctions::countRowsInSerialCSVFile(
+    const common::ReaderConfig& config, storage::MemoryManager* memoryManager) {
     std::vector<FileBlocksInfo> fileInfos;
     fileInfos.reserve(config.getNumFiles());
-    auto dataChunk = getDataChunkToRead(config, memoryManager);
-    // We should add a countNumRows() API to csvReader, so that it doesn't need to read data to
-    // valueVector when counting the csv file.
     for (const auto& path : config.filePaths) {
-        auto reader = createBufferedCSVReader(path, config);
-        row_idx_t numRowsInFile = 0;
-        block_idx_t numBlocks = 0;
-        while (true) {
-            dataChunk->state->selVector->selectedSize = 0;
-            dataChunk->resetAuxiliaryBuffer();
-            auto numRowsRead = reader->ParseCSV(*dataChunk);
-            if (numRowsRead == 0) {
-                break;
-            }
-            numRowsInFile += numRowsRead;
-            numBlocks++;
+        auto reader = make_unique<SerialCSVReader>(path, config);
+        row_idx_t numRowsInFile = reader->countRows();
+        block_idx_t numBlocks =
+            (numRowsInFile + DEFAULT_VECTOR_CAPACITY - 1) / DEFAULT_VECTOR_CAPACITY;
+        FileBlocksInfo fileBlocksInfo{numRowsInFile, numBlocks};
+        fileInfos.push_back(fileBlocksInfo);
+    }
+    return fileInfos;
+}
+
+std::vector<FileBlocksInfo> ReaderFunctions::countRowsInParallelCSVFile(
+    const common::ReaderConfig& config, storage::MemoryManager* memoryManager) {
+    std::vector<FileBlocksInfo> fileInfos;
+    fileInfos.reserve(config.getNumFiles());
+    for (const auto& path : config.filePaths) {
+        int fd = open(path.c_str(), O_RDONLY);
+        if (fd == -1) {
+            throw CopyException(
+                StringUtils::string_format("Failed to open file {}: {}", path, strerror(errno)));
         }
+        uint64_t length = lseek(fd, 0, SEEK_END);
+        close(fd);
+        if (length == -1) {
+            throw CopyException(StringUtils::string_format(
+                "Failed to seek to end of file {}: {}", path, strerror(errno)));
+        }
+        auto reader = make_unique<ParallelCSVReader>(path, config);
+        row_idx_t numRowsInFile = reader->countRows();
+        block_idx_t numBlocks =
+            (length + CopyConstants::PARALLEL_BLOCK_SIZE - 1) / CopyConstants::PARALLEL_BLOCK_SIZE;
         FileBlocksInfo fileBlocksInfo{numRowsInFile, numBlocks};
         fileInfos.push_back(fileBlocksInfo);
     }
@@ -290,12 +291,20 @@ void ReaderFunctions::initRelCSVReadData(ReaderFunctionData& funcData, vector_id
         TableCopyUtils::createRelTableCSVReader(config.filePaths[fileIdx], config);
 }
 
-void ReaderFunctions::initBufferedCSVReadData(ReaderFunctionData& funcData, vector_idx_t fileIdx,
+void ReaderFunctions::initSerialCSVReadData(ReaderFunctionData& funcData, vector_idx_t fileIdx,
     const common::ReaderConfig& config, MemoryManager* memoryManager) {
     assert(fileIdx < config.getNumFiles());
     funcData.fileIdx = fileIdx;
-    reinterpret_cast<BufferedCSVReaderFunctionData&>(funcData).reader =
-        createBufferedCSVReader(config.filePaths[fileIdx], config);
+    reinterpret_cast<SerialCSVReaderFunctionData&>(funcData).reader =
+        std::make_unique<SerialCSVReader>(config.filePaths[fileIdx], config);
+}
+
+void ReaderFunctions::initParallelCSVReadData(ReaderFunctionData& funcData, vector_idx_t fileIdx,
+    const common::ReaderConfig& config, MemoryManager* memoryManager) {
+    assert(fileIdx < config.getNumFiles());
+    funcData.fileIdx = fileIdx;
+    reinterpret_cast<ParallelCSVReaderFunctionData&>(funcData).reader =
+        std::make_unique<ParallelCSVReader>(config.filePaths[fileIdx], config);
 }
 
 void ReaderFunctions::initRelParquetReadData(ReaderFunctionData& funcData, vector_idx_t fileIdx,
@@ -346,10 +355,23 @@ void ReaderFunctions::readRowsFromRelCSVFile(const kuzu::processor::ReaderFuncti
     dataChunkToRead->state->selVector->selectedSize = recordBatch->num_rows();
 }
 
-void ReaderFunctions::readRowsWithBufferedCSVReader(
+void ReaderFunctions::readRowsFromSerialCSVFile(
     const ReaderFunctionData& functionData, block_idx_t blockIdx, DataChunk* dataChunkToRead) {
-    auto& readerData = reinterpret_cast<const BufferedCSVReaderFunctionData&>(functionData);
-    readerData.reader->ParseCSV(*dataChunkToRead);
+    auto& readerData = reinterpret_cast<const SerialCSVReaderFunctionData&>(functionData);
+    uint64_t numRows = readerData.reader->parseBlock(blockIdx, *dataChunkToRead);
+    dataChunkToRead->state->selVector->selectedSize = numRows;
+}
+
+void ReaderFunctions::readRowsFromParallelCSVFile(
+    const ReaderFunctionData& functionData, block_idx_t blockIdx, DataChunk* dataChunkToRead) {
+    auto& readerData = reinterpret_cast<const ParallelCSVReaderFunctionData&>(functionData);
+    uint64_t numRows;
+    if (blockIdx == UINT64_MAX) {
+        numRows = readerData.reader->continueBlock(*dataChunkToRead);
+    } else {
+        numRows = readerData.reader->parseBlock(blockIdx, *dataChunkToRead);
+    }
+    dataChunkToRead->state->selVector->selectedSize = numRows;
 }
 
 void ReaderFunctions::readRowsFromRelParquetFile(const ReaderFunctionData& functionData,

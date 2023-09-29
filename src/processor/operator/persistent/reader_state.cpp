@@ -66,10 +66,9 @@ void LeftArrowArrays::appendToDataChunk(common::DataChunk* dataChunk, uint64_t n
 
 void ReaderSharedState::initialize(TableType tableType) {
     validateFunc = ReaderFunctions::getValidateFunc(readerConfig->fileType);
-    initFunc = ReaderFunctions::getInitDataFunc(readerConfig->fileType, tableType);
-    countBlocksFunc = ReaderFunctions::getCountBlocksFunc(readerConfig->fileType, tableType);
-    readFunc = ReaderFunctions::getReadRowsFunc(readerConfig->fileType, tableType);
-    readFuncData = ReaderFunctions::getReadFuncData(readerConfig->fileType, tableType);
+    initFunc = ReaderFunctions::getInitDataFunc(*readerConfig, tableType);
+    countBlocksFunc = ReaderFunctions::getCountBlocksFunc(*readerConfig, tableType);
+    readFuncData = ReaderFunctions::getReadFuncData(*readerConfig, tableType);
 }
 
 void ReaderSharedState::validate() const {

@@ -8,7 +8,7 @@
 #include "parser/query/reading_clause/in_query_call_clause.h"
 #include "parser/query/reading_clause/load_from.h"
 #include "parser/query/reading_clause/unwind_clause.h"
-#include "processor/operator/persistent/reader/csv/csv_reader.h"
+#include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 #include "processor/operator/persistent/reader/npy_reader.h"
 #include "processor/operator/persistent/reader/parquet/parquet_reader.h"
 
@@ -139,9 +139,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(
     expression_vector columns;
     switch (fileType) {
     case FileType::CSV: {
-        auto csvReader = BufferedCSVReader(
-            readerConfig->filePaths[0], *readerConfig->csvReaderConfig, 0 /*expectedNumColumns*/);
-        csvReader.SniffCSV();
+        auto csvReader = SerialCSVReader(readerConfig->filePaths[0], *readerConfig);
+        csvReader.sniffCSV();
         auto numColumns = csvReader.getNumColumnsDetected();
         auto stringType = LogicalType(LogicalTypeID::STRING);
         for (auto i = 0; i < numColumns; ++i) {

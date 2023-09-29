@@ -19,9 +19,6 @@ FileType Binder::bindFileType(const std::string& filePath) {
     std::filesystem::path fileName(filePath);
     auto extension = FileUtils::getFileExtension(fileName);
     auto fileType = FileTypeUtils::getFileTypeFromExtension(extension);
-    if (fileType == FileType::UNKNOWN) {
-        throw CopyException("Unsupported file type: " + filePath);
-    }
     return fileType;
 }
 
@@ -61,14 +58,23 @@ static char bindParsingOptionValue(std::string value) {
     if (value == "\\t") {
         return '\t';
     }
-    if (value.length() > 2 || (value.length() == 2 && value[0] != '\\')) {
-        throw BinderException("Copy csv option value can only be a single character with an "
+    if (value.length() < 1 || value.length() > 2 || (value.length() == 2 && value[0] != '\\')) {
+        throw BinderException("Copy csv option value must be a single character with an "
                               "optional escape character.");
     }
     return value[value.length() - 1];
 }
 
-static void bindStringParsingOptions(
+static void bindBoolParsingOption(
+    CSVReaderConfig& csvReaderConfig, const std::string& optionName, bool optionValue) {
+    if (optionName == "HEADER") {
+        csvReaderConfig.hasHeader = optionValue;
+    } else if (optionName == "PARALLEL") {
+        csvReaderConfig.parallel = optionValue;
+    }
+}
+
+static void bindStringParsingOption(
     CSVReaderConfig& csvReaderConfig, const std::string& optionName, std::string& optionValue) {
     auto parsingOptionValue = bindParsingOptionValue(optionValue);
     if (optionName == "ESCAPE") {
@@ -84,13 +90,17 @@ static void bindStringParsingOptions(
     }
 }
 
-static bool validateStringParsingOptionName(std::string& parsingOptionName) {
-    for (auto i = 0; i < std::size(CopyConstants::STRING_CSV_PARSING_OPTIONS); i++) {
-        if (parsingOptionName == CopyConstants::STRING_CSV_PARSING_OPTIONS[i]) {
-            return true;
-        }
-    }
-    return false;
+template<uint64_t size>
+static bool hasOption(const char* const (&arr)[size], const std::string& option) {
+    return std::find(std::begin(arr), std::end(arr), option) != std::end(arr);
+}
+
+static bool validateBoolParsingOptionName(const std::string& parsingOptionName) {
+    return hasOption(CopyConstants::BOOL_CSV_PARSING_OPTIONS, parsingOptionName);
+}
+
+static bool validateStringParsingOptionName(const std::string& parsingOptionName) {
+    return hasOption(CopyConstants::STRING_CSV_PARSING_OPTIONS, parsingOptionName);
 }
 
 std::unique_ptr<CSVReaderConfig> Binder::bindParsingOptions(
@@ -99,29 +109,31 @@ std::unique_ptr<CSVReaderConfig> Binder::bindParsingOptions(
     for (auto& parsingOption : parsingOptions) {
         auto copyOptionName = parsingOption.first;
         StringUtils::toUpper(copyOptionName);
+
         bool isValidStringParsingOption = validateStringParsingOptionName(copyOptionName);
+        bool isValidBoolParsingOption = validateBoolParsingOptionName(copyOptionName);
+
         auto copyOptionExpression = parsingOption.second.get();
         auto boundCopyOptionExpression = expressionBinder.bindExpression(*copyOptionExpression);
         assert(boundCopyOptionExpression->expressionType == LITERAL);
-        if (copyOptionName == "HEADER") {
+        if (isValidBoolParsingOption) {
             if (boundCopyOptionExpression->dataType.getLogicalTypeID() != LogicalTypeID::BOOL) {
                 throw BinderException(
-                    "The value type of parsing csv option " + copyOptionName + " must be boolean.");
+                    "The type of csv parsing option " + copyOptionName + " must be a boolean.");
             }
-            csvReaderConfig->hasHeader =
+            auto copyOptionValue =
                 ((LiteralExpression&)(*boundCopyOptionExpression)).value->getValue<bool>();
-        } else if (boundCopyOptionExpression->dataType.getLogicalTypeID() ==
-                       LogicalTypeID::STRING &&
-                   isValidStringParsingOption) {
+            bindBoolParsingOption(*csvReaderConfig, copyOptionName, copyOptionValue);
+        } else if (isValidStringParsingOption) {
             if (boundCopyOptionExpression->dataType.getLogicalTypeID() != LogicalTypeID::STRING) {
                 throw BinderException(
-                    "The value type of parsing csv option " + copyOptionName + " must be string.");
+                    "The type of csv parsing option " + copyOptionName + " must be a string.");
             }
             auto copyOptionValue =
                 ((LiteralExpression&)(*boundCopyOptionExpression)).value->getValue<std::string>();
-            bindStringParsingOptions(*csvReaderConfig, copyOptionName, copyOptionValue);
+            bindStringParsingOption(*csvReaderConfig, copyOptionName, copyOptionValue);
         } else {
-            throw BinderException("Unrecognized parsing csv option: " + copyOptionName + ".");
+            throw BinderException("Unrecognized csv parsing option: " + copyOptionName + ".");
         }
     }
     return csvReaderConfig;
