@@ -311,7 +311,7 @@ bool TableCopyUtils::tryCast(
     switch (targetType.getLogicalTypeID()) {
     case LogicalTypeID::BOOL: {
         bool result;
-        return StringCastUtils::tryCastToBoolean(value, length, result);
+        return function::tryCastToBool(value, length, result);
     }
     case LogicalTypeID::INT64: {
         int64_t result;
@@ -442,8 +442,9 @@ std::unique_ptr<Value> TableCopyUtils::convertStringToValue(
         value = std::make_unique<Value>(val);
     } break;
     case LogicalTypeID::BOOL: {
-        value =
-            std::make_unique<Value>(StringCastUtils::castToBool(element.data(), element.length()));
+        bool val;
+        function::castStringToBool(element.data(), element.length(), val);
+        value = std::make_unique<Value>(val);
     } break;
     case LogicalTypeID::STRING: {
         value = make_unique<Value>(LogicalType{LogicalTypeID::STRING}, std::string(element));

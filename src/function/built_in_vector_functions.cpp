@@ -477,13 +477,18 @@ void BuiltInVectorFunctions::registerStringFunctions() {
 }
 
 void BuiltInVectorFunctions::registerCastFunctions() {
+    vectorFunctions.insert({CAST_DATE_FUNC_NAME, CastToDateVectorFunction::getDefinitions()});
     vectorFunctions.insert({CAST_TO_DATE_FUNC_NAME, CastToDateVectorFunction::getDefinitions()});
     vectorFunctions.insert(
         {CAST_TO_TIMESTAMP_FUNC_NAME, CastToTimestampVectorFunction::getDefinitions()});
     vectorFunctions.insert(
+        {CAST_INTERVAL_FUNC_NAME, CastToIntervalVectorFunction::getDefinitions()});
+    vectorFunctions.insert(
         {CAST_TO_INTERVAL_FUNC_NAME, CastToIntervalVectorFunction::getDefinitions()});
+    vectorFunctions.insert({CAST_STRING_FUNC_NAME, CastToStringVectorFunction::getDefinitions()});
     vectorFunctions.insert(
         {CAST_TO_STRING_FUNC_NAME, CastToStringVectorFunction::getDefinitions()});
+    vectorFunctions.insert({CAST_BLOB_FUNC_NAME, CastToBlobVectorFunction::getDefinitions()});
     vectorFunctions.insert({CAST_TO_BLOB_FUNC_NAME, CastToBlobVectorFunction::getDefinitions()});
     vectorFunctions.insert(
         {CAST_TO_DOUBLE_FUNC_NAME, CastToDoubleVectorFunction::getDefinitions()});
@@ -501,6 +506,7 @@ void BuiltInVectorFunctions::registerCastFunctions() {
     vectorFunctions.insert(
         {CAST_TO_UINT16_FUNC_NAME, CastToUInt16VectorFunction::getDefinitions()});
     vectorFunctions.insert({CAST_TO_UINT8_FUNC_NAME, CastToUInt8VectorFunction::getDefinitions()});
+    vectorFunctions.insert({CAST_TO_BOOL_FUNC_NAME, CastToBoolVectorFunction::getDefinitions()});
 }
 
 void BuiltInVectorFunctions::registerListFunctions() {

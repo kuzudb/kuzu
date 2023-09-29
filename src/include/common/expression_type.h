@@ -20,10 +20,13 @@ const std::string MAX_FUNC_NAME = "MAX";
 const std::string COLLECT_FUNC_NAME = "COLLECT";
 
 // cast
-const std::string CAST_TO_DATE_FUNC_NAME = "DATE";
+const std::string CAST_DATE_FUNC_NAME = "DATE";
+const std::string CAST_TO_DATE_FUNC_NAME = "TO_DATE";
 const std::string CAST_TO_TIMESTAMP_FUNC_NAME = "TIMESTAMP";
-const std::string CAST_TO_INTERVAL_FUNC_NAME = "INTERVAL";
-const std::string CAST_TO_STRING_FUNC_NAME = "STRING";
+const std::string CAST_INTERVAL_FUNC_NAME = "INTERVAL";
+const std::string CAST_TO_INTERVAL_FUNC_NAME = "TO_INTERVAL";
+const std::string CAST_STRING_FUNC_NAME = "STRING";
+const std::string CAST_TO_STRING_FUNC_NAME = "TO_STRING";
 const std::string CAST_TO_DOUBLE_FUNC_NAME = "TO_DOUBLE";
 const std::string CAST_TO_FLOAT_FUNC_NAME = "TO_FLOAT";
 const std::string CAST_TO_SERIAL_FUNC_NAME = "TO_SERIAL";
@@ -35,7 +38,9 @@ const std::string CAST_TO_UINT64_FUNC_NAME = "TO_UINT64";
 const std::string CAST_TO_UINT32_FUNC_NAME = "TO_UINT32";
 const std::string CAST_TO_UINT16_FUNC_NAME = "TO_UINT16";
 const std::string CAST_TO_UINT8_FUNC_NAME = "TO_UINT8";
-const std::string CAST_TO_BLOB_FUNC_NAME = "BLOB";
+const std::string CAST_BLOB_FUNC_NAME = "BLOB";
+const std::string CAST_TO_BLOB_FUNC_NAME = "TO_BLOB";
+const std::string CAST_TO_BOOL_FUNC_NAME = "TO_BOOL";
 
 // list
 const std::string LIST_CREATION_FUNC_NAME = "LIST_CREATION";
