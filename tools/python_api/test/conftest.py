@@ -61,7 +61,7 @@ def init_tinysnb(conn):
     with open(copy_path, "r") as f:
         for line in f.readlines():
             line = line.strip()
-            line = line.replace("dataset/tinysnb", tiny_snb_path)
+            line = line.replace("dataset/tinysnb", "../../../dataset/tinysnb")
             if line:
                 conn.execute(line)
 
