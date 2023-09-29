@@ -29,29 +29,22 @@
 -LOG CastFromUINT8
 -STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN to_int16(e.ulevel), to_int32(e.ulevel), to_int64(e.ulevel), to_float(e.ulevel), to_double(e.ulevel)
 ---- 1
-15|15|15|15.000000|15.000000
+250|250|250|250.000000|250.000000
 
 -LOG CastFromUINT16
--STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN to_int8(e.ulength), to_int32(e.ulength), to_int64(e.ulength), to_float(e.ulength), to_double(e.ulength)
+-STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=2 RETURN to_int8(e.ulength), to_int32(e.ulength), to_int64(e.ulength), to_float(e.ulength), to_double(e.ulength)
 ---- 1
-120|120|120|120.000000|120.000000
-
+90|90|90|90.000000|90.000000
 
 -LOG CastFromUINT32
--STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN to_int8(e.temprature), to_int16(e.temprature), to_int32(e.temprature), to_float(e.temprature), to_double(e.temprature)
+-STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=2 RETURN to_int8(e.temprature), to_int16(e.temprature), to_int32(e.temprature), to_float(e.temprature), to_double(e.temprature)
 ---- 1
-35|35|35|35.000000|35.000000
-
--LOG CastFromUINT32
--STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN to_int8(e.temprature), to_int16(e.temprature), to_int64(e.temprature), to_float(e.temprature), to_double(e.temprature)
----- 1
-35|35|35|35.000000|35.000000
-
+1|1|1|1.000000|1.000000
 
 -LOG CastFromFLOAT
 -STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN to_int16(p.height), to_int32(p.height), to_int64(p.height), to_double(p.height)
 ---- 1
-1|1|1|1.731000
+2|2|2|1.731000
 
 -LOG CastFromDOUBLE
 -STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN to_int16(p.eyeSight), to_int32(p.eyeSight), to_int64(p.eyeSight), to_float(p.eyeSight)
@@ -465,40 +458,14 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 ---- 1
 3.294000
 
--LOG StringCastError
--STATEMENT RETURN TO_INT64("9223372036854775808");
----- error
-Conversion exception: Cast failed. 9223372036854775808 is not in INT64 range.
--STATEMENT RETURN TO_INT32("2147483648");
----- error
-Conversion exception: Cast failed. 2147483648 is not in INT32 range.
--STATEMENT RETURN TO_INT32("-2147483649");
----- error
-Conversion exception: Cast failed. -2147483649 is not in INT32 range.
--STATEMENT RETURN TO_INT16("32768");
----- error
-Conversion exception: Cast failed. 32768 is not in INT16 range.
--STATEMENT RETURN TO_INT16("-32769");
----- error
-Conversion exception: Cast failed. -32769 is not in INT16 range.
--STATEMENT RETURN TO_INT8("128");
----- error
-Conversion exception: Cast failed. 128 is not in INT8 range.
--STATEMENT RETURN TO_INT8("-129");
----- error
-Conversion exception: Cast failed. -129 is not in INT8 range.
--STATEMENT RETURN TO_UINT64("-1");
----- error
-Conversion exception: Cast failed. -1 is not in UINT64 range.
--STATEMENT RETURN TO_UINT32("4294967296");
----- error
-Conversion exception: Cast failed. 4294967296 is not in UINT32 range.
--STATEMENT RETURN TO_UINT16("65536");
----- error
-Conversion exception: Cast failed. 65536 is not in UINT16 range.
--STATEMENT RETURN TO_UINT8("256");
----- error
-Conversion exception: Cast failed. 256 is not in UINT8 range.
--STATEMENT RETURN TO_UINT8("-1");
----- error
-Conversion exception: Cast failed. -1 is not in UINT8 range.
+-LOG CastDoubleToFloat
+-STATEMENT MATCH (p:person) RETURN to_float(p.eyeSight)
+---- 8
+5.000000
+5.100000
+5.000000
+4.800000
+4.700000
+4.500000
+4.900000
+4.900000

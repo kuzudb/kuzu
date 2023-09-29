@@ -524,7 +524,7 @@ TEST_F(CApiValueTest, GetUInt8) {
     auto value = kuzu_flat_tuple_get_value(flatTuple, 0);
     ASSERT_TRUE(value->_is_owned_by_cpp);
     ASSERT_FALSE(kuzu_value_is_null(value));
-    ASSERT_EQ(kuzu_value_get_uint8(value), 15);
+    ASSERT_EQ(kuzu_value_get_uint8(value), 250);
     kuzu_value_destroy(value);
     kuzu_flat_tuple_destroy(flatTuple);
     kuzu_query_result_destroy(result);
@@ -540,7 +540,7 @@ TEST_F(CApiValueTest, GetUInt16) {
     auto value = kuzu_flat_tuple_get_value(flatTuple, 0);
     ASSERT_TRUE(value->_is_owned_by_cpp);
     ASSERT_FALSE(kuzu_value_is_null(value));
-    ASSERT_EQ(kuzu_value_get_uint16(value), 120);
+    ASSERT_EQ(kuzu_value_get_uint16(value), 33768);
     kuzu_value_destroy(value);
     kuzu_flat_tuple_destroy(flatTuple);
     kuzu_query_result_destroy(result);
@@ -557,7 +557,7 @@ TEST_F(CApiValueTest, GetUInt32) {
     auto value = kuzu_flat_tuple_get_value(flatTuple, 0);
     ASSERT_TRUE(value->_is_owned_by_cpp);
     ASSERT_FALSE(kuzu_value_is_null(value));
-    ASSERT_EQ(kuzu_value_get_uint32(value), 35);
+    ASSERT_EQ(kuzu_value_get_uint32(value), 32800);
     kuzu_value_destroy(value);
     kuzu_flat_tuple_destroy(flatTuple);
     kuzu_query_result_destroy(result);
@@ -573,7 +573,7 @@ TEST_F(CApiValueTest, GetUInt64) {
     auto value = kuzu_flat_tuple_get_value(flatTuple, 0);
     ASSERT_TRUE(value->_is_owned_by_cpp);
     ASSERT_FALSE(kuzu_value_is_null(value));
-    ASSERT_EQ(kuzu_value_get_uint64(value), 6556);
+    ASSERT_EQ(kuzu_value_get_uint64(value), 9223372036854775808ull);
     kuzu_value_destroy(value);
     kuzu_flat_tuple_destroy(flatTuple);
     kuzu_query_result_destroy(result);

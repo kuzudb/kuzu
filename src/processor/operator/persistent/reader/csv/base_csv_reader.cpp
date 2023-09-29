@@ -177,7 +177,7 @@ void BaseCSVReader::addValue(DataChunk& resultChunk, std::string_view strVal,
         }
         newVal += strVal.substr(prevPos, strVal.size() - prevPos);
         escapePositions.clear();
-        copyStringToVector(destination_vector, std::string_view(newVal.begin(), newVal.end()));
+        copyStringToVector(destination_vector, std::string_view(newVal));
     } else {
         copyStringToVector(destination_vector, strVal);
     }

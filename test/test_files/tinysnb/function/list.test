@@ -85,28 +85,28 @@
 -LOG ListExtractListOfUINT64
 -STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN list_extract([e.code], 1)
 ---- 3
-6556
+9223372036854775808
 6689
 23
 
 -LOG ListExtractListOfUINT32
 -STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN list_extract([e.temprature], 1)
 ---- 3
-35
+32800
 1
 20
 
 -LOG ListExtractListOfUINT16
 -STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN list_extract([e.ulength], 1)
 ---- 3
-120
+33768
 90
 180
 
 -LOG ListExtractListOfUINT8
 -STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN list_extract([e.ulevel], 1)
 ---- 3
-15
+250
 220
 12
 
@@ -386,28 +386,28 @@ ad
 -LOG ListAppendListOfUINT64
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_append([s.code], s.code)
 ---- 3
-[6556,6556]
+[9223372036854775808,9223372036854775808]
 [6689,6689]
 [23,23]
 
 -LOG ListAppendListOfUINT32
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_append([s.temprature], s.temprature)
 ---- 3
-[35,35]
+[32800,32800]
 [1,1]
 [20,20]
 
 -LOG ListAppendListOfUINT16
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_append([s.ulength], s.ulength)
 ---- 3
-[120,120]
-[90,90]
 [180,180]
+[90,90]
+[33768,33768]
 
 -LOG ListAppendListOfUINT8
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_append([s.ulevel], s.ulevel)
 ---- 3
-[15,15]
+[250,250]
 [220,220]
 [12,12]
 
@@ -555,28 +555,28 @@ ad
 -LOG ListPrependListOfUINT64
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_prepend([s.code], s.code)
 ---- 3
-[6556,6556]
+[9223372036854775808,9223372036854775808]
 [6689,6689]
 [23,23]
 
 -LOG ListPrependListOfUINT32
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_prepend([s.temprature], s.temprature)
 ---- 3
-[35,35]
+[32800,32800]
 [1,1]
 [20,20]
 
 -LOG ListPrependListOfUINT16
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_prepend([s.ulength], s.ulength)
 ---- 3
-[120,120]
+[33768,33768]
 [90,90]
 [180,180]
 
 -LOG ListPrependListOfUINT8
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_prepend([s.ulevel], s.ulevel)
 ---- 3
-[15,15]
+[250,250]
 [220,220]
 [12,12]
 

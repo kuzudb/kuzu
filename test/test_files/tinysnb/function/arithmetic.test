@@ -11,7 +11,7 @@
 ---- 3
 0
 90
-0
+18
 
 -LOG sinFunctionOnDoubleTest
 -STATEMENT MATCH (a:organisation) WHERE a.name <> 'abc' RETURN sin(a.mark)

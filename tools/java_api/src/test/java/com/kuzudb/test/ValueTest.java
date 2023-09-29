@@ -419,7 +419,7 @@ public class ValueTest extends TestBase {
 
     @Test
     void ValueGetUINT8() throws KuzuObjectRefDestroyedException {
-        // INT8
+        // UINT8
         KuzuQueryResult result = conn.query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.ulevel ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -428,7 +428,7 @@ public class ValueTest extends TestBase {
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
-        assertTrue(value.getValue().equals((short) 15));
+        assertTrue(value.getValue().equals((short) 250));
         value.destroy();
         flatTuple.destroy();
         result.destroy();
@@ -445,7 +445,7 @@ public class ValueTest extends TestBase {
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
-        assertTrue(value.getValue().equals(120));
+        assertTrue(value.getValue().equals(33768));
         value.destroy();
         flatTuple.destroy();
         result.destroy();
@@ -453,7 +453,7 @@ public class ValueTest extends TestBase {
 
     @Test
     void ValueGetUINT32() throws KuzuObjectRefDestroyedException {
-        // INT16
+        // UINT32
         KuzuQueryResult result = conn.query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.temprature ORDER BY a.ID");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -462,7 +462,7 @@ public class ValueTest extends TestBase {
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
-        assertTrue(value.getValue().equals(35L));
+        assertTrue(value.getValue().equals(32800L));
         value.destroy();
         flatTuple.destroy();
         result.destroy();
