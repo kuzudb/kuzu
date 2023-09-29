@@ -140,14 +140,15 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(
     switch (fileType) {
     case FileType::CSV: {
         auto csvReader = SerialCSVReader(readerConfig->filePaths[0], *readerConfig);
-        csvReader.sniffCSV();
-        auto numColumns = csvReader.getNumColumnsDetected();
-        auto stringType = LogicalType(LogicalTypeID::STRING);
-        for (auto i = 0; i < numColumns; ++i) {
-            auto columnName = "column" + std::to_string(i);
+        auto sniffedColumns = csvReader.sniffCSV();
+        for (auto column : sniffedColumns) {
+            std::string columnName = std::move(column.first);
+            std::unique_ptr<LogicalType> columnType = std::make_unique<LogicalType>(column.second);
+            LogicalTypeID columnTypeID = columnType->getLogicalTypeID();
+
             readerConfig->columnNames.push_back(columnName);
-            readerConfig->columnTypes.push_back(stringType.copy());
-            columns.push_back(createVariable(columnName, stringType));
+            readerConfig->columnTypes.push_back(std::move(columnType));
+            columns.push_back(createVariable(columnName, columnTypeID));
         }
     } break;
     case FileType::PARQUET: {

@@ -1,5 +1,8 @@
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 
+#include "common/string_utils.h"
+#include "processor/operator/persistent/reader/csv/driver.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -9,18 +12,33 @@ SerialCSVReader::SerialCSVReader(
     const std::string& filePath, const common::ReaderConfig& readerConfig)
     : BaseCSVReader{filePath, readerConfig} {}
 
-void SerialCSVReader::sniffCSV() {
+std::vector<std::pair<std::string, LogicalType>> SerialCSVReader::sniffCSV() {
     readBOM();
-    mode = ParserMode::SNIFFING_DIALECT;
-    DataChunk dummyChunk(0);
-    // If the file happens to be empty, there are zero columns.
     numColumnsDetected = 0;
-    parseCSV(dummyChunk);
+
+    if (csvReaderConfig.hasHeader) {
+        SniffCSVNameAndTypeDriver driver;
+        parseCSV(driver);
+        return driver.columns;
+    } else {
+        SniffCSVColumnCountDriver driver;
+        parseCSV(driver);
+        std::vector<std::pair<std::string, LogicalType>> columns;
+        columns.reserve(driver.numColumns);
+        for (uint64_t i = 0; i < driver.numColumns; i++) {
+            columns.emplace_back(StringUtils::string_format("column{}", i), LogicalTypeID::STRING);
+        }
+        return columns;
+    }
 }
 
-bool SerialCSVReader::finishedBlockDetail() const {
-    // Never stop until we fill the chunk.
-    return false;
+uint64_t SerialCSVReader::parseBlock(common::block_idx_t blockIdx, common::DataChunk& resultChunk) {
+    currentBlockIdx = blockIdx;
+    if (blockIdx == 0) {
+        handleFirstBlock();
+    }
+    SerialParsingDriver driver(resultChunk, this);
+    return parseCSV(driver);
 }
 
 } // namespace processor

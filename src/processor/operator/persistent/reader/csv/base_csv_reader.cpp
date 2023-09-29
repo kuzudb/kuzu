@@ -4,14 +4,8 @@
 
 #include "common/data_chunk/data_chunk.h"
 #include "common/exception/copy.h"
-#include "common/exception/message.h"
-#include "common/exception/parser.h"
 #include "common/string_utils.h"
-#include "common/type_utils.h"
-#include "common/types/blob.h"
-#include "common/types/value/value.h"
-#include "function/cast/numeric_cast.h"
-#include "storage/store/table_copy_utils.h"
+#include "processor/operator/persistent/reader/csv/driver.h"
 
 using namespace kuzu::common;
 
@@ -21,8 +15,7 @@ namespace processor {
 BaseCSVReader::BaseCSVReader(const std::string& filePath, const common::ReaderConfig& readerConfig)
     : filePath{filePath}, csvReaderConfig{*readerConfig.csvReaderConfig},
       expectedNumColumns(readerConfig.getNumColumns()), numColumnsDetected(-1), fd(-1),
-      buffer(nullptr), bufferSize(0), position(0), rowEmpty(false), mode(ParserMode::INVALID),
-      rowToAdd(0) {
+      buffer(nullptr), bufferSize(0), position(0), rowEmpty(false) {
     // TODO(Ziyi): should we wrap this fd using kuzu file handler?
     fd = open(filePath.c_str(), O_RDONLY
 #ifdef _WIN32
@@ -41,29 +34,9 @@ BaseCSVReader::~BaseCSVReader() {
     }
 }
 
-uint64_t BaseCSVReader::parseBlock(common::block_idx_t blockIdx, DataChunk& resultChunk) {
-    currentBlockIdx = blockIdx;
-    parseBlockHook();
-    if (blockIdx == 0) {
-        readBOM();
-        if (csvReaderConfig.hasHeader) {
-            readHeader();
-        }
-    }
-    // Are we done after reading the header and executing the block hook?
-    if (finishedBlockDetail()) {
-        return 0;
-    }
-    mode = ParserMode::PARSING;
-    return parseCSV(resultChunk);
-}
-
 uint64_t BaseCSVReader::countRows() {
     uint64_t rows = 0;
-    readBOM();
-    if (csvReaderConfig.hasHeader) {
-        readHeader();
-    }
+    handleFirstBlock();
 
 line_start:
     // Pass bufferSize as start to avoid keeping any portion of the buffer.
@@ -143,32 +116,9 @@ escape:
     goto in_quotes;
 }
 
-void BaseCSVReader::addValue(DataChunk& resultChunk, std::string_view strVal,
-    const column_id_t columnIdx, std::vector<uint64_t>& escapePositions) {
-    if (mode == ParserMode::PARSING_HEADER) {
-        return;
-    }
-    auto length = strVal.length();
-    if (length == 0 && columnIdx == 0) {
-        rowEmpty = true;
-    } else {
-        rowEmpty = false;
-    }
-    if (expectedNumColumns != 0 && columnIdx == expectedNumColumns && length == 0) {
-        // skip a single trailing delimiter in last columnIdx
-        return;
-    }
-    if (mode == ParserMode::SNIFFING_DIALECT) {
-        // Do not copy data while sniffing csv.
-        return;
-    }
-    if (columnIdx >= expectedNumColumns) {
-        throw CopyException(StringUtils::string_format(
-            "Error in file {}, on line {}: expected {} values per row, but got more.", filePath,
-            getLineNumber(), expectedNumColumns));
-    }
-
-    ValueVector* destination_vector = resultChunk.getValueVector(columnIdx).get();
+template<typename Driver>
+void BaseCSVReader::addValue(Driver& driver, uint64_t rowNum, column_id_t columnIdx,
+    std::string_view strVal, std::vector<uint64_t>& escapePositions) {
     // insert the line number into the chunk
     if (!escapePositions.empty()) {
         // remove escape characters (if any)
@@ -181,171 +131,21 @@ void BaseCSVReader::addValue(DataChunk& resultChunk, std::string_view strVal,
         }
         newVal += strVal.substr(prevPos, strVal.size() - prevPos);
         escapePositions.clear();
-        copyStringToVector(destination_vector, std::string_view(newVal));
+        driver.addValue(rowNum, columnIdx, newVal);
     } else {
-        copyStringToVector(destination_vector, strVal);
+        driver.addValue(rowNum, columnIdx, strVal);
     }
 }
 
-void BaseCSVReader::addRow(DataChunk& resultChunk, column_id_t column) {
-    if (mode == ParserMode::PARSING_HEADER) {
-        return;
-    }
-    if (rowEmpty) {
-        rowEmpty = false;
-        if (expectedNumColumns != 1) {
-            return;
-        }
-        // Otherwise, treat it as null.
-    }
-    rowToAdd++;
-    if (column < expectedNumColumns && mode != ParserMode::SNIFFING_DIALECT) {
-        // Column number mismatch. We don't error while sniffing dialect because number of columns
-        // is only known after reading the first row.
-        throw CopyException(StringUtils::string_format(
-            "Error in file {} on line {}: expected {} values per row, but got {}", filePath,
-            getLineNumber(), expectedNumColumns, column));
-    }
-    if (mode == ParserMode::SNIFFING_DIALECT) {
-        numColumnsDetected = column; // Use the first row to determine the number of columns.
-        return;
-    }
+template<typename Driver>
+bool BaseCSVReader::addRow(Driver& driver, uint64_t rowNum, column_id_t column) {
+    return driver.addRow(rowNum, column);
 }
 
-void BaseCSVReader::copyStringToVector(common::ValueVector* vector, std::string_view strVal) {
-    auto& type = vector->dataType;
-    if (strVal.empty()) {
-        vector->setNull(rowToAdd, true /* isNull */);
-        return;
-    } else {
-        vector->setNull(rowToAdd, false /* isNull */);
-    }
-    switch (type.getLogicalTypeID()) {
-    case LogicalTypeID::INT64: {
-        int64_t val;
-        function::simpleIntegerCast<int64_t>(strVal.data(), strVal.length(), val, type);
-        vector->setValue(rowToAdd, val);
-    } break;
-    case LogicalTypeID::INT32: {
-        int32_t val;
-        function::simpleIntegerCast<int32_t>(strVal.data(), strVal.length(), val, type);
-        vector->setValue(rowToAdd, val);
-    } break;
-    case LogicalTypeID::INT16: {
-        int16_t val;
-        function::simpleIntegerCast<int16_t>(strVal.data(), strVal.length(), val, type);
-        vector->setValue(rowToAdd, val);
-    } break;
-    case LogicalTypeID::INT8: {
-        int8_t val;
-        function::simpleIntegerCast<int8_t>(strVal.data(), strVal.length(), val, type);
-        vector->setValue(rowToAdd, val);
-    } break;
-    case LogicalTypeID::UINT64: {
-        uint64_t val;
-        function::simpleIntegerCast<uint64_t, false>(strVal.data(), strVal.length(), val, type);
-        vector->setValue(rowToAdd, val);
-    } break;
-    case LogicalTypeID::UINT32: {
-        uint32_t val;
-        function::simpleIntegerCast<uint32_t, false>(strVal.data(), strVal.length(), val, type);
-        vector->setValue(rowToAdd, val);
-    } break;
-    case LogicalTypeID::UINT16: {
-        uint16_t val;
-        function::simpleIntegerCast<uint16_t, false>(strVal.data(), strVal.length(), val, type);
-        vector->setValue(rowToAdd, val);
-    } break;
-    case LogicalTypeID::UINT8: {
-        uint8_t val;
-        function::simpleIntegerCast<uint8_t, false>(strVal.data(), strVal.length(), val, type);
-        vector->setValue(rowToAdd, val);
-    } break;
-    case LogicalTypeID::FLOAT: {
-        float_t val;
-        function::doubleCast<float_t>(strVal.data(), strVal.length(), val, type);
-        vector->setValue(rowToAdd, val);
-    } break;
-    case LogicalTypeID::DOUBLE: {
-        double_t val;
-        function::doubleCast<double_t>(strVal.data(), strVal.length(), val, type);
-        vector->setValue(rowToAdd, val);
-    } break;
-    case LogicalTypeID::BOOL: {
-        vector->setValue(rowToAdd, StringCastUtils::castToBool(strVal.data(), strVal.length()));
-    } break;
-    case LogicalTypeID::BLOB: {
-        if (strVal.length() > BufferPoolConstants::PAGE_4KB_SIZE) {
-            throw CopyException(
-                ExceptionMessage::overLargeStringValueException(std::to_string(strVal.length())));
-        }
-        auto blobBuffer = std::make_unique<uint8_t[]>(strVal.length());
-        auto blobLen = Blob::fromString(strVal.data(), strVal.length(), blobBuffer.get());
-        StringVector::addString(
-            vector, rowToAdd, reinterpret_cast<char*>(blobBuffer.get()), blobLen);
-    } break;
-    case LogicalTypeID::STRING: {
-        StringVector::addString(vector, rowToAdd, strVal.data(), strVal.length());
-    } break;
-    case LogicalTypeID::DATE: {
-        vector->setValue(rowToAdd, Date::fromCString(strVal.data(), strVal.length()));
-    } break;
-    case LogicalTypeID::TIMESTAMP: {
-        vector->setValue(rowToAdd, Timestamp::fromCString(strVal.data(), strVal.length()));
-    } break;
-    case LogicalTypeID::INTERVAL: {
-        vector->setValue(rowToAdd, Interval::fromCString(strVal.data(), strVal.length()));
-    } break;
-    case LogicalTypeID::MAP:
-    case LogicalTypeID::VAR_LIST: {
-        auto value = storage::TableCopyUtils::getVarListValue(
-            strVal, 1, strVal.length() - 2, type, csvReaderConfig);
-        vector->copyFromValue(rowToAdd, *value);
-    } break;
-    case LogicalTypeID::FIXED_LIST: {
-        auto fixedListVal = storage::TableCopyUtils::getArrowFixedListVal(
-            strVal, 1, strVal.length() - 2, type, csvReaderConfig);
-        vector->copyFromValue(rowToAdd, *fixedListVal);
-    } break;
-    case LogicalTypeID::STRUCT: {
-        auto structString = strVal.substr(1, strVal.length() - 2);
-        auto structFieldIdxAndValuePairs = storage::TableCopyUtils::parseStructFieldNameAndValues(
-            type, structString, csvReaderConfig);
-        for (auto& fieldIdxAndValue : structFieldIdxAndValuePairs) {
-            copyStringToVector(
-                StructVector::getFieldVector(vector, fieldIdxAndValue.fieldIdx).get(),
-                fieldIdxAndValue.fieldValue);
-        }
-    } break;
-    case LogicalTypeID::UNION: {
-        union_field_idx_t selectedFieldIdx = INVALID_STRUCT_FIELD_IDX;
-        for (auto i = 0u; i < UnionType::getNumFields(&type); i++) {
-            auto internalFieldIdx = UnionType::getInternalFieldIdx(i);
-            if (storage::TableCopyUtils::tryCast(
-                    *UnionType::getFieldType(&type, i), strVal.data(), strVal.length())) {
-                StructVector::getFieldVector(vector, internalFieldIdx)
-                    ->setNull(rowToAdd, false /* isNull */);
-                copyStringToVector(
-                    StructVector::getFieldVector(vector, internalFieldIdx).get(), strVal);
-                selectedFieldIdx = i;
-                break;
-            } else {
-                StructVector::getFieldVector(vector, internalFieldIdx)
-                    ->setNull(rowToAdd, true /* isNull */);
-            }
-        }
-        if (selectedFieldIdx == INVALID_STRUCT_FIELD_IDX) {
-            throw ParserException{
-                StringUtils::string_format("No parsing rule matches value: {}.", strVal)};
-        }
-        StructVector::getFieldVector(vector, UnionType::TAG_FIELD_IDX)
-            ->setValue(rowToAdd, selectedFieldIdx);
-        StructVector::getFieldVector(vector, UnionType::TAG_FIELD_IDX)
-            ->setNull(rowToAdd, false /* isNull */);
-    } break;
-    default: { // LCOV_EXCL_START
-        throw NotImplementedException("BaseCSVReader::copyStringToVector");
-    } // LCOV_EXCL_STOP
+void BaseCSVReader::handleFirstBlock() {
+    readBOM();
+    if (csvReaderConfig.hasHeader) {
+        readHeader();
     }
 }
 
@@ -358,10 +158,16 @@ void BaseCSVReader::readBOM() {
     }
 }
 
+// Dummy driver that just skips a row.
+struct HeaderDriver {
+    bool done(uint64_t) { return true; }
+    bool addRow(uint64_t, column_id_t) { return true; }
+    void addValue(uint64_t, column_id_t, std::string_view) {}
+};
+
 void BaseCSVReader::readHeader() {
-    mode = ParserMode::PARSING_HEADER;
-    DataChunk dummyChunk(0);
-    parseCSV(dummyChunk);
+    HeaderDriver driver;
+    parseCSV(driver);
 }
 
 bool BaseCSVReader::readBuffer(uint64_t* start) {
@@ -402,9 +208,10 @@ bool BaseCSVReader::readBuffer(uint64_t* start) {
     return readCount > 0;
 }
 
-uint64_t BaseCSVReader::parseCSV(DataChunk& resultChunk) {
+template<typename Driver>
+uint64_t BaseCSVReader::parseCSV(Driver& driver) {
     // used for parsing algorithm
-    rowToAdd = 0;
+    uint64_t rowNum = 0;
     column_id_t column = 0;
     uint64_t start = position;
     bool hasQuotes = false;
@@ -456,8 +263,8 @@ add_value:
     // We get here after we have a delimiter.
     assert(buffer[position] == csvReaderConfig.delimiter);
     // Trim one character if we have quotes.
-    addValue(resultChunk, std::string_view(buffer.get() + start, position - start - hasQuotes),
-        column, escapePositions);
+    addValue(driver, rowNum, column,
+        std::string_view(buffer.get() + start, position - start - hasQuotes), escapePositions);
     column++;
 
     // Move past the delimiter.
@@ -474,11 +281,11 @@ add_row : {
     // We get here after we have a newline.
     assert(isNewLine(buffer[position]));
     bool isCarriageReturn = buffer[position] == '\r';
-    addValue(resultChunk, std::string_view(buffer.get() + start, position - start - hasQuotes),
-        column, escapePositions);
+    addValue(driver, rowNum, column,
+        std::string_view(buffer.get() + start, position - start - hasQuotes), escapePositions);
     column++;
 
-    addRow(resultChunk, column);
+    rowNum += addRow(driver, rowNum, column);
 
     column = 0;
     position++;
@@ -492,8 +299,8 @@ add_row : {
         // \r newline, go to special state that parses an optional \n afterwards
         goto carriage_return;
     } else {
-        if (finishedBlock()) {
-            return rowToAdd;
+        if (driver.done(rowNum)) {
+            return rowNum;
         }
         goto value_start;
     }
@@ -577,8 +384,8 @@ carriage_return:
             goto final_state;
         }
     }
-    if (finishedBlock()) {
-        return rowToAdd;
+    if (driver.done(rowNum)) {
+        return rowNum;
     }
 
     goto value_start;
@@ -587,15 +394,20 @@ final_state:
     // If we were mid-value, add the remaining value to the chunk.
     if (position > start) {
         // Add remaining value to chunk.
-        addValue(resultChunk, std::string_view(buffer.get() + start, position - start - hasQuotes),
-            column, escapePositions);
+        addValue(driver, rowNum, column,
+            std::string_view(buffer.get() + start, position - start - hasQuotes), escapePositions);
         column++;
     }
     if (column > 0) {
-        addRow(resultChunk, column);
+        rowNum += addRow(driver, rowNum, column);
     }
-    return rowToAdd;
+    return rowNum;
 }
+
+template uint64_t BaseCSVReader::parseCSV<ParallelParsingDriver>(ParallelParsingDriver&);
+template uint64_t BaseCSVReader::parseCSV<SerialParsingDriver>(SerialParsingDriver&);
+template uint64_t BaseCSVReader::parseCSV<SniffCSVNameAndTypeDriver>(SniffCSVNameAndTypeDriver&);
+template uint64_t BaseCSVReader::parseCSV<SniffCSVColumnCountDriver>(SniffCSVColumnCountDriver&);
 
 uint64_t BaseCSVReader::getFileOffset() const {
     uint64_t offset = lseek(fd, 0, SEEK_CUR);

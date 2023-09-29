@@ -1,0 +1,10 @@
+-GROUP CSV
+-DATASET CSV empty
+
+--
+
+-CASE TypedHeaders
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/typed-headers/person.csv" (HEADER=TRUE) WITH * RETURN height & 3, age;
+---- 2
+0|12
+2|30

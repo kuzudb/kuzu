@@ -11,27 +11,28 @@
 namespace kuzu {
 namespace processor {
 
-enum class ParserMode : uint8_t {
-    PARSING = 0,
-    PARSING_HEADER = 1,
-    SNIFFING_DIALECT = 2,
-    INVALID = 255
-};
-
 class BaseCSVReader {
+    friend class ParsingDriver;
+
 public:
     BaseCSVReader(const std::string& filePath, const common::ReaderConfig& readerConfig);
 
     virtual ~BaseCSVReader();
 
-    uint64_t parseBlock(common::block_idx_t blockIdx, common::DataChunk& resultChunk);
+    virtual uint64_t parseBlock(common::block_idx_t blockIdx, common::DataChunk& resultChunk) = 0;
 
     uint64_t countRows();
 
 protected:
-    void addValue(common::DataChunk&, std::string_view, common::column_id_t columnIdx,
+    template<typename Driver>
+    void addValue(Driver&, uint64_t rowNum, common::column_id_t columnIdx, std::string_view strVal,
         std::vector<uint64_t>& escapePositions);
-    void addRow(common::DataChunk&, common::column_id_t column);
+
+    template<typename Driver>
+    bool addRow(Driver&, uint64_t rowNum, common::column_id_t column_count);
+
+    //! Read BOM and header.
+    void handleFirstBlock();
 
     //! If this finds a BOM, it advances `position`.
     void readBOM();
@@ -49,7 +50,8 @@ protected:
         return position < bufferSize || readBuffer(start);
     }
 
-    uint64_t parseCSV(common::DataChunk& resultChunk);
+    template<typename Driver>
+    uint64_t parseCSV(Driver&);
 
     inline bool isNewLine(char c) { return c == '\n' || c == '\r'; }
 
@@ -58,18 +60,7 @@ protected:
     uint64_t getLineNumber();
 
 protected:
-    //! Called when starting the parsing of a new block.
-    virtual void parseBlockHook() = 0;
-    virtual bool finishedBlockDetail() const = 0;
     virtual void handleQuotedNewline() = 0;
-
-private:
-    void copyStringToVector(common::ValueVector*, std::string_view);
-    //! Called after a row is finished to determine if we should keep processing.
-    inline bool finishedBlock() {
-        return mode != ParserMode::PARSING || rowToAdd >= common::DEFAULT_VECTOR_CAPACITY ||
-               finishedBlockDetail();
-    }
 
 protected:
     std::string filePath;
@@ -86,10 +77,6 @@ protected:
     uint64_t position;
 
     bool rowEmpty = false;
-
-    ParserMode mode;
-
-    uint64_t rowToAdd;
 };
 
 } // namespace processor
