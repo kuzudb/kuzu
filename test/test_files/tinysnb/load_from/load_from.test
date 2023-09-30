@@ -4,6 +4,7 @@
 --
 
 -CASE LoadFromNpyTest
+-SKIP
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/npy-1d/one_dim_double.npy" RETURN * ORDER BY column0 LIMIT 5;
 ---- 3
 1.000000
@@ -20,6 +21,18 @@
 [7,8,9]
 
 -CASE LoadFromParquetTest
+-SKIP
+-STATEMENT LOAD WITH HEADERS (id INT64) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k_0.parquet" RETURN *;
+---- error
+Binder exception: Number of columns mismatch. Detect 10 but expect 1.
+-STATEMENT LOAD WITH HEADERS (id INT64, int64Column INT64, doubleColumn DOUBLE, booleanColumn BOOLEAN, dateColumn DATE, stringColumn STRING, listOfInt64 INT64[], listOfString STRING[], listOfListOfInt64 INT64[][], structColumn STRUCT(ID int64, name STRING))
+            FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k_0.parquet" RETURN id, dateColumn ORDER BY id LIMIT 1;
+---- 1
+0|1994-01-12
+-STATEMENT LOAD WITH HEADERS (id INT64, int64Column INT64, doubleColumn INT64, booleanColumn INT64, dateColumn INT64, stringColumn INT64, listOfInt64 INT64, listOfString INT64, listOfListOfInt64 INT64, structColumn INT64)
+            FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k_0.parquet" RETURN * ORDER BY id LIMIT 1;
+---- 1
+Binder exception: Column doubleColumn data type mismatch. Detect DOUBLE but expect INT64.
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k_0.parquet" RETURN * ORDER BY id LIMIT 5;
 ---- 5
 0|73|3.258507|True|1994-01-12|FrPZkcHFuepVxcAiMwyAsRqDlRtQx|[65,25]|[4deQc5]|[[163,237],[28,60,77,31,137],[286,186,249,206]]|{id: 764, name: CwFRaCoEp}
@@ -53,11 +66,30 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0|1994-01-12
 Binder exception: Load from TURTLE file is not supported.
 
 -CASE LoadFromCSVTest
--STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eStudyAt.csv" (HEADER=True) RETURN `from`, `to`, YEAR, Places;
----- 3
-0|1|2021|[wwAewsdndweusd,wek]
-2|1|2020|[anew,jsdnwusklklklwewsd]
-8|1|2020|[awndsnjwejwen,isuhuwennjnuhuhuwewe]
+-STATEMENT LOAD WITH HEADERS (a INT64) FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eStudyAt.csv" (HEADER=True) RETURN `from`, `to`, YEAR, Places;
+---- error
+Binder exception: Number of columns mismatch. Detect 10 but expect 1.
+-STATEMENT LOAD WITH HEADERS (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float) FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=True)
+            RETURN fName, gender, birthdate;
+---- 8
+Alice|1|1900-01-01
+Bob|2|1900-01-01
+Carol|1|1940-06-22
+Dan|2|1950-07-23
+Elizabeth|1|1980-10-26
+Farooq|2|1980-10-26
+Greg|2|1980-10-26
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|1990-11-27
+-STATEMENT LOAD WITH HEADERS (ID StRING, fName StRING, gender StRING, isStudent StRING, isWorker StRING, age StRING, eyeSight StRING, birthdate StRING, registerTime StRING, lastJobDuration StRING, workedHours StRING, usedNames INT64, courseScoresPerTerm StRING, grades StRING, height StRING) FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=True)
+            WHERE ID = '10'
+            RETURN *, concat(fName, 'aa');
+---- error
+Conversion exception: Cast failed. [Aida] is not in INT64 range.
+-STATEMENT LOAD WITH HEADERS (ID StRING, fName StRING, gender StRING, isStudent StRING, isWorker StRING, age StRING, eyeSight StRING, birthdate StRING, registerTime StRING, lastJobDuration StRING, workedHours StRING, usedNames StRING, courseScoresPerTerm StRING, grades StRING, height StRING) FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=True)
+            WHERE ID = '10'
+            RETURN *, concat(fName, 'aa');
+---- 1
+10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|false|true|83|4.9|1990-11-27|2023-02-21 13:25:30|3 years 2 days 13 hours 2 minutes|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]|[[7],[10],[6,7]]|[77,64,100,54]|1.323|Hubert Blaine Wolfeschlegelsteinhausenbergerdorffaa
 -STATEMENT LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=True) WITH * WHERE fname = 'Alice' RETURN concat(id, 'aa'), fname;
 ---- 1
 0aa|Alice

@@ -136,19 +136,21 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(
     if (readerConfig->getNumFiles() > 1) {
         throw BinderException("Load from multiple files is not supported.");
     }
-    expression_vector columns;
+    std::vector<std::string> inputColumnNames;
+    std::vector<std::unique_ptr<common::LogicalType>> inputColumnTypes;
+    for (auto& [name, type] : loadFrom.getColumnNameDataTypesRef()) {
+        inputColumnNames.push_back(name);
+        inputColumnTypes.push_back(bindDataType(type));
+    }
+    std::vector<std::string> detectedColumnNames;
+    std::vector<std::unique_ptr<common::LogicalType>> detectedColumnTypes;
     switch (fileType) {
     case FileType::CSV: {
         auto csvReader = SerialCSVReader(readerConfig->filePaths[0], *readerConfig);
         auto sniffedColumns = csvReader.sniffCSV();
-        for (auto column : sniffedColumns) {
-            std::string columnName = std::move(column.first);
-            std::unique_ptr<LogicalType> columnType = std::make_unique<LogicalType>(column.second);
-            LogicalTypeID columnTypeID = columnType->getLogicalTypeID();
-
-            readerConfig->columnNames.push_back(columnName);
-            readerConfig->columnTypes.push_back(std::move(columnType));
-            columns.push_back(createVariable(columnName, columnTypeID));
+        for (auto& [name, type] : sniffedColumns) {
+            detectedColumnNames.push_back(name);
+            detectedColumnTypes.push_back(type.copy());
         }
     } break;
     case FileType::PARQUET: {
@@ -156,24 +158,55 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(
         auto state = std::make_unique<processor::ParquetReaderScanState>();
         reader.initializeScan(*state, std::vector<uint64_t>{});
         for (auto i = 0u; i < reader.getNumColumns(); ++i) {
-            auto columnName = reader.getColumnName(i);
-            auto columnType = reader.getColumnType(i);
-            readerConfig->columnNames.push_back(columnName);
-            readerConfig->columnTypes.push_back(columnType->copy());
-            columns.push_back(createVariable(columnName, *columnType));
+            detectedColumnNames.push_back(reader.getColumnName(i));
+            detectedColumnTypes.push_back(reader.getColumnType(i)->copy());
         }
     } break;
     case FileType::NPY: {
         auto reader = NpyReader(readerConfig->filePaths[0]);
-        auto columnType = bindFixedListType(reader.getShape(), reader.getType());
         auto columnName = std::string("column0");
-        readerConfig->columnNames.push_back(columnName);
-        readerConfig->columnTypes.push_back(columnType->copy());
-        columns.push_back(createVariable(columnName, *columnType));
+        auto columnType = bindFixedListType(reader.getShape(), reader.getType());
+        detectedColumnNames.push_back(columnName);
+        detectedColumnTypes.push_back(columnType->copy());
     } break;
     default:
         throw BinderException(StringUtils::string_format(
             "Load from {} file is not supported.", FileTypeUtils::toString(fileType)));
+    }
+    expression_vector columns;
+    if (inputColumnTypes.empty()) {
+        for (auto i = 0u; i < detectedColumnTypes.size(); ++i) {
+            auto columnName = detectedColumnNames[i];
+            auto columnType = detectedColumnTypes[i].get();
+            readerConfig->columnNames.push_back(columnName);
+            readerConfig->columnTypes.push_back(columnType->copy());
+            columns.push_back(createVariable(columnName, *columnType));
+        }
+    } else {
+        if (inputColumnTypes.size() != detectedColumnTypes.size()) {
+            throw BinderException(
+                StringUtils::string_format("Number of columns mismatch. Detect {} but expect {}.",
+                    detectedColumnTypes.size(), inputColumnTypes.size()));
+        }
+        if (fileType == common::FileType::PARQUET) {
+            for (auto i = 0u; i < inputColumnTypes.size(); ++i) {
+                auto inputType = inputColumnTypes[i].get();
+                auto detectType = detectedColumnTypes[i].get();
+                if (*inputType != *detectType) {
+                    throw BinderException(StringUtils::string_format(
+                        "Column {} data type mismatch. Detect {} but expect {}.",
+                        inputColumnNames[i], LogicalTypeUtils::dataTypeToString(*detectType),
+                        LogicalTypeUtils::dataTypeToString(*inputType)));
+                }
+            }
+        }
+        for (auto i = 0u; i < inputColumnTypes.size(); ++i) {
+            auto columnName = inputColumnNames[i];
+            auto columnType = inputColumnTypes[i].get();
+            readerConfig->columnNames.push_back(columnName);
+            readerConfig->columnTypes.push_back(columnType->copy());
+            columns.push_back(createVariable(columnName, *columnType));
+        }
     }
     auto info = std::make_unique<BoundFileScanInfo>(
         std::move(readerConfig), std::move(columns), nullptr, TableType::UNKNOWN);

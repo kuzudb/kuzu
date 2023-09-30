@@ -56,11 +56,14 @@ std::unique_ptr<ReadingClause> Transformer::transformInQueryCall(
 std::unique_ptr<ReadingClause> Transformer::transformLoadFrom(
     CypherParser::KU_LoadFromContext& ctx) {
     auto filePaths = transformFilePaths(ctx.kU_FilePaths()->StringLiteral());
-    std::unordered_map<std::string, std::unique_ptr<ParsedExpression>> parsingOptions;
-    if (ctx.kU_ParsingOptions()) {
-        parsingOptions = transformParsingOptions(*ctx.kU_ParsingOptions());
+    auto loadFrom = std::make_unique<LoadFrom>(std::move(filePaths));
+    if (ctx.kU_PropertyDefinitions()) {
+        loadFrom->setColumnNameDataTypes(
+            transformPropertyDefinitions(*ctx.kU_PropertyDefinitions()));
     }
-    auto loadFrom = std::make_unique<LoadFrom>(std::move(filePaths), std::move(parsingOptions));
+    if (ctx.kU_ParsingOptions()) {
+        loadFrom->setParingOptions(transformParsingOptions(*ctx.kU_ParsingOptions()));
+    }
     if (ctx.oC_Where()) {
         loadFrom->setWherePredicate(transformWhere(*ctx.oC_Where()));
     }

@@ -255,9 +255,11 @@ oC_ReadingClause
         ;
 
 kU_LoadFrom
-    :  LOAD SP FROM SP kU_FilePaths ( SP? '(' SP? kU_ParsingOptions SP? ')' )? (SP? oC_Where)? ;
+    :  LOAD ( SP WITH SP HEADERS SP? '(' SP? kU_PropertyDefinitions SP? ')' )? SP FROM SP kU_FilePaths ( SP? '(' SP? kU_ParsingOptions SP? ')' )? (SP? oC_Where)? ;
 
 LOAD : ( 'L' | 'l' ) ( 'O' | 'o' ) ( 'A' | 'a' ) ( 'D' | 'd' )  ;
+
+HEADERS : ( 'H' | 'h' ) ( 'E' | 'e' ) ( 'A' | 'a' ) ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'R' | 'r' ) ( 'S' | 's' ) ;
 
 kU_InQueryCall
     : CALL SP oC_FunctionName SP? '(' oC_Literal* ')' ;
