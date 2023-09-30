@@ -89,6 +89,8 @@ private:
     std::shared_ptr<Expression> createVariable(
         const std::string& name, const common::LogicalType& dataType);
 
+    static std::unique_ptr<common::LogicalType> bindDataType(const std::string& dataType);
+
     /*** bind DDL ***/
     std::unique_ptr<BoundCreateTableInfo> bindCreateTableInfo(const parser::CreateTableInfo* info);
     std::unique_ptr<BoundCreateTableInfo> bindCreateNodeTableInfo(
@@ -107,6 +109,9 @@ private:
     std::unique_ptr<BoundStatement> bindAddProperty(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindDropProperty(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindRenameProperty(const parser::Statement& statement);
+
+    std::vector<std::unique_ptr<catalog::Property>> bindProperties(
+        std::vector<std::pair<std::string, std::string>> propertyNameDataTypes);
 
     /*** bind copy ***/
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);

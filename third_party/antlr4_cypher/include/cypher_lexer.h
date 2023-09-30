@@ -25,19 +25,19 @@ public:
     ADD = 63, PRIMARY = 64, KEY = 65, REL = 66, TO = 67, EXPLAIN = 68, PROFILE = 69, 
     BEGIN = 70, TRANSACTION = 71, READ = 72, WRITE = 73, COMMIT = 74, COMMIT_SKIP_CHECKPOINT = 75, 
     ROLLBACK = 76, ROLLBACK_SKIP_CHECKPOINT = 77, UNION = 78, ALL = 79, 
-    LOAD = 80, OPTIONAL = 81, MATCH = 82, UNWIND = 83, CREATE = 84, MERGE = 85, 
-    ON = 86, SET = 87, DELETE = 88, WITH = 89, RETURN = 90, DISTINCT = 91, 
-    STAR = 92, AS = 93, ORDER = 94, BY = 95, L_SKIP = 96, LIMIT = 97, ASCENDING = 98, 
-    ASC = 99, DESCENDING = 100, DESC = 101, WHERE = 102, SHORTEST = 103, 
-    OR = 104, XOR = 105, AND = 106, NOT = 107, INVALID_NOT_EQUAL = 108, 
-    MINUS = 109, FACTORIAL = 110, STARTS = 111, ENDS = 112, CONTAINS = 113, 
-    IS = 114, NULL_ = 115, TRUE = 116, FALSE = 117, EXISTS = 118, CASE = 119, 
-    ELSE = 120, END = 121, WHEN = 122, THEN = 123, StringLiteral = 124, 
-    EscapedChar = 125, DecimalInteger = 126, HexLetter = 127, HexDigit = 128, 
-    Digit = 129, NonZeroDigit = 130, NonZeroOctDigit = 131, ZeroDigit = 132, 
-    RegularDecimalReal = 133, UnescapedSymbolicName = 134, IdentifierStart = 135, 
-    IdentifierPart = 136, EscapedSymbolicName = 137, SP = 138, WHITESPACE = 139, 
-    Comment = 140, Unknown = 141
+    LOAD = 80, HEADERS = 81, OPTIONAL = 82, MATCH = 83, UNWIND = 84, CREATE = 85, 
+    MERGE = 86, ON = 87, SET = 88, DELETE = 89, WITH = 90, RETURN = 91, 
+    DISTINCT = 92, STAR = 93, AS = 94, ORDER = 95, BY = 96, L_SKIP = 97, 
+    LIMIT = 98, ASCENDING = 99, ASC = 100, DESCENDING = 101, DESC = 102, 
+    WHERE = 103, SHORTEST = 104, OR = 105, XOR = 106, AND = 107, NOT = 108, 
+    INVALID_NOT_EQUAL = 109, MINUS = 110, FACTORIAL = 111, STARTS = 112, 
+    ENDS = 113, CONTAINS = 114, IS = 115, NULL_ = 116, TRUE = 117, FALSE = 118, 
+    EXISTS = 119, CASE = 120, ELSE = 121, END = 122, WHEN = 123, THEN = 124, 
+    StringLiteral = 125, EscapedChar = 126, DecimalInteger = 127, HexLetter = 128, 
+    HexDigit = 129, Digit = 130, NonZeroDigit = 131, NonZeroOctDigit = 132, 
+    ZeroDigit = 133, RegularDecimalReal = 134, UnescapedSymbolicName = 135, 
+    IdentifierStart = 136, IdentifierPart = 137, EscapedSymbolicName = 138, 
+    SP = 139, WHITESPACE = 140, Comment = 141, Unknown = 142
   };
 
   explicit CypherLexer(antlr4::CharStream *input);

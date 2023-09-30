@@ -89,6 +89,35 @@ std::shared_ptr<Expression> Binder::createVariable(
     return expression;
 }
 
+std::unique_ptr<LogicalType> Binder::bindDataType(const std::string& dataType) {
+    auto boundType = LogicalTypeUtils::dataTypeFromString(dataType);
+    if (boundType.getLogicalTypeID() == LogicalTypeID::FIXED_LIST) {
+        auto validNumericTypes = LogicalTypeUtils::getNumericalLogicalTypeIDs();
+        auto childType = FixedListType::getChildType(&boundType);
+        auto numElementsInList = FixedListType::getNumElementsInList(&boundType);
+        if (find(validNumericTypes.begin(), validNumericTypes.end(),
+                childType->getLogicalTypeID()) == validNumericTypes.end()) {
+            throw BinderException("The child type of a fixed list must be a numeric type. Given: " +
+                                  LogicalTypeUtils::dataTypeToString(*childType) + ".");
+        }
+        if (numElementsInList == 0) {
+            // Note: the parser already guarantees that the number of elements is a non-negative
+            // number. However, we still need to check whether the number of elements is 0.
+            throw BinderException(
+                "The number of elements in a fixed list must be greater than 0. Given: " +
+                std::to_string(numElementsInList) + ".");
+        }
+        auto numElementsPerPage = storage::PageUtils::getNumElementsInAPage(
+            storage::StorageUtils::getDataTypeSize(boundType), true /* hasNull */);
+        if (numElementsPerPage == 0) {
+            throw BinderException(
+                StringUtils::string_format("Cannot store a fixed list of size {} in a page.",
+                    storage::StorageUtils::getDataTypeSize(boundType)));
+        }
+    }
+    return std::make_unique<LogicalType>(boundType);
+}
+
 void Binder::validateProjectionColumnNamesAreUnique(const expression_vector& expressions) {
     auto existColumnNames = std::unordered_set<std::string>();
     for (auto& expression : expressions) {
