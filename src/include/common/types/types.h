@@ -64,7 +64,7 @@ struct struct_entry_t {
 
 using union_entry_t = struct_entry_t;
 
-KUZU_API enum class LogicalTypeID : uint8_t {
+enum class KUZU_API LogicalTypeID : uint8_t {
     ANY = 0,
     NODE = 10,
     REL = 11,

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.11)
 
-project(Kuzu VERSION 0.0.8.12 LANGUAGES CXX)
+project(Kuzu VERSION 0.0.8.12 LANGUAGES CXX C)
 
 find_package(Threads REQUIRED)
 
@@ -8,6 +8,10 @@ set(CMAKE_FIND_PACKAGE_RESOLVE_SYMLINKS TRUE)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+if (MSVC)
+    set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+    set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
+endif()
 
 # Detect OS and architecture, copied from DuckDB
 set(OS_NAME "unknown")
@@ -124,6 +128,7 @@ option(BUILD_PYTHON_API "Build Python API." TRUE)
 option(BUILD_SHELL "Build Interactive Shell" TRUE)
 option(BUILD_TESTS "Build C++ and Python tests." FALSE)
 option(BUILD_BENCHMARK "Build benchmarks." FALSE)
+option(BUILD_EXAMPLES "Build examples." FALSE)
 
 option(BUILD_LCOV "Build coverage report." FALSE)
 if(${BUILD_LCOV})
@@ -233,3 +238,8 @@ elseif (${BUILD_BENCHMARK})
     add_subdirectory(test/test_helper)
 endif()
 add_subdirectory(tools)
+
+if (${BUILD_EXAMPLES})
+    add_subdirectory(examples/c)
+    add_subdirectory(examples/cpp)
+endif()

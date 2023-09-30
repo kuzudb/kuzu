@@ -8,7 +8,7 @@ namespace common {
 struct timestamp_t;
 
 // System representation of dates as the number of days since 1970-01-01.
-KUZU_API struct date_t {
+struct KUZU_API date_t {
     int32_t days;
 
     date_t();

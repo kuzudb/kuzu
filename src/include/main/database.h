@@ -13,7 +13,7 @@ namespace main {
 /**
  * @brief Stores buffer pool size and max number of threads configurations.
  */
-KUZU_API struct SystemConfig {
+struct KUZU_API SystemConfig {
     /**
      * @brief Creates a SystemConfig object with default buffer pool size and max num of threads.
      */
@@ -60,7 +60,7 @@ public:
      * @param loggingLevel New logging level. (Supported logging levels are: "info", "debug",
      * "err").
      */
-    static void setLoggingLevel(std::string loggingLevel);
+    KUZU_API static void setLoggingLevel(std::string loggingLevel);
 
 private:
     void initDBDirAndCoreFilesIfNecessary() const;

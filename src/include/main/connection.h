@@ -79,8 +79,8 @@ public:
      * parameter name and second element being parameter value.
      * @return the result of the query.
      */
-    KUZU_API template<typename... Args>
-    inline std::unique_ptr<QueryResult> execute(
+    template<typename... Args>
+    KUZU_API inline std::unique_ptr<QueryResult> execute(
         PreparedStatement* preparedStatement, std::pair<std::string, Args>... args) {
         std::unordered_map<std::string, std::shared_ptr<common::Value>> inputParameters;
         return executeWithParams(preparedStatement, inputParameters, args...);

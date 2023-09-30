@@ -80,7 +80,7 @@ public:
      */
     KUZU_API std::shared_ptr<processor::FlatTuple> getNext();
 
-    std::string toString();
+    KUZU_API std::string toString();
     /**
      * @brief writes the query result to a csv file.
      * @param fileName name of the csv file.

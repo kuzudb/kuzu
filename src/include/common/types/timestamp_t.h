@@ -7,7 +7,7 @@ namespace kuzu {
 namespace common {
 
 // Type used to represent timestamps (value is in microseconds since 1970-01-01)
-KUZU_API struct timestamp_t {
+struct KUZU_API timestamp_t {
     int64_t value = 0;
 
     timestamp_t();

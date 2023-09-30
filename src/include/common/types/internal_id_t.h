@@ -17,7 +17,7 @@ constexpr table_id_t INVALID_TABLE_ID = UINT64_MAX;
 constexpr offset_t INVALID_OFFSET = UINT64_MAX;
 
 // System representation for internalID.
-KUZU_API struct internalID_t {
+struct KUZU_API internalID_t {
     offset_t offset;
     table_id_t tableID;
 
