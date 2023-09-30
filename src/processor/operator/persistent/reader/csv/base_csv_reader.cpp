@@ -24,7 +24,11 @@ BaseCSVReader::BaseCSVReader(const std::string& filePath, const common::ReaderCo
       buffer(nullptr), bufferSize(0), position(0), rowEmpty(false), mode(ParserMode::INVALID),
       rowToAdd(0) {
     // TODO(Ziyi): should we wrap this fd using kuzu file handler?
-    fd = open(filePath.c_str(), O_RDONLY);
+    fd = open(filePath.c_str(), O_RDONLY
+#ifdef _WIN32
+                                    | _O_BINARY
+#endif
+    );
     if (fd == -1) {
         throw CopyException(
             StringUtils::string_format("Could not open file {}: {}", filePath, strerror(errno)));
