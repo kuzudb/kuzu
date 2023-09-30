@@ -115,7 +115,7 @@ public:
 
     static inline uint64_t numValues(uint64_t dataSize, const common::LogicalType& logicalType) {
         auto numBytesPerValue = getDataTypeSizeInChunk(logicalType);
-        return numBytesPerValue == 0 ? 0 : dataSize / numBytesPerValue;
+        return numBytesPerValue == 0 ? UINT64_MAX : dataSize / numBytesPerValue;
     }
 
     inline CompressionMetadata getCompressionMetadata(

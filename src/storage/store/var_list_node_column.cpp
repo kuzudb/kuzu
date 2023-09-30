@@ -54,7 +54,8 @@ void VarListNodeColumn::scan(
         NodeColumn::scan(nodeGroupIdx, columnChunk);
         auto metadata = metadataDA->get(nodeGroupIdx, transaction::TransactionType::READ_ONLY);
         varListColumnChunk->setNumValues(metadata.numValues);
-        varListColumnChunk->resizeDataColumnChunk(metadata.numPages * PageSizeClass::PAGE_4KB);
+        varListColumnChunk->resizeDataColumnChunk(
+            metadata.numPages * BufferPoolConstants::PAGE_4KB_SIZE);
         dataNodeColumn->scan(nodeGroupIdx, varListColumnChunk->getDataColumnChunk());
     }
 }
