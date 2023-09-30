@@ -19,6 +19,7 @@
 
 # Directed match of a simple relationship
 -CASE Scenario2
+-LOG Scenario2
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));

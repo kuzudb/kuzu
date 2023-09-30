@@ -47,12 +47,12 @@ void PathExpressionEvaluator::init(
         vectors->input = children[i]->resultVector.get();
         switch (child->dataType.getLogicalTypeID()) {
         case LogicalTypeID::NODE: {
-            vectors->nodeFieldVectors = getFieldVectors(
-                child->dataType, pathExpression->getNode()->dataType, vectors->input);
+            vectors->nodeFieldVectors =
+                getFieldVectors(child->dataType, *pathExpression->getNodeType(), vectors->input);
         } break;
         case LogicalTypeID::REL: {
-            vectors->relFieldVectors = getFieldVectors(
-                child->dataType, pathExpression->getRel()->dataType, vectors->input);
+            vectors->relFieldVectors =
+                getFieldVectors(child->dataType, *pathExpression->getRelType(), vectors->input);
         } break;
         case LogicalTypeID::RECURSIVE_REL: {
             auto rel = (RelExpression*)child;
@@ -61,14 +61,14 @@ void PathExpressionEvaluator::init(
             auto nodeFieldIdx = StructType::getFieldIdx(&child->dataType, InternalKeyword::NODES);
             vectors->nodesInput = StructVector::getFieldVector(vectors->input, nodeFieldIdx).get();
             vectors->nodesDataInput = ListVector::getDataVector(vectors->nodesInput);
-            vectors->nodeFieldVectors = getFieldVectors(recursiveNode->dataType,
-                pathExpression->getNode()->getDataType(), vectors->nodesDataInput);
+            vectors->nodeFieldVectors = getFieldVectors(
+                recursiveNode->dataType, *pathExpression->getNodeType(), vectors->nodesDataInput);
             auto relFieldIdx =
                 StructType::getFieldIdx(&vectors->input->dataType, InternalKeyword::RELS);
             vectors->relsInput = StructVector::getFieldVector(vectors->input, relFieldIdx).get();
             vectors->relsDataInput = ListVector::getDataVector(vectors->relsInput);
-            vectors->relFieldVectors = getFieldVectors(recursiveRel->dataType,
-                pathExpression->getRel()->getDataType(), vectors->relsDataInput);
+            vectors->relFieldVectors = getFieldVectors(
+                recursiveRel->dataType, *pathExpression->getRelType(), vectors->relsDataInput);
         } break;
         default:
             throw NotImplementedException("PathExpressionEvaluator::init");

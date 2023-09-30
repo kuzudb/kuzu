@@ -16,7 +16,6 @@
 
 -LOG KnowsThreeHopMinLenEqualsMaxLen
 -STATEMENT MATCH (a:person)-[e:knows*3..3]->(b:person) RETURN COUNT(*)
--PARALLELISM 1
 ---- 1
 108
 
@@ -77,3 +76,17 @@ Greg
 -STATEMENT MATCH (a:person)-[e:knows*1..3]->(a) WHERE a.fName='Alice' RETURN COUNT(*)
 ---- 1
 9
+
+-STATEMENT MATCH (a:person)-[e:knows*1..2 (r, n | WHERE r.date > date("1999-01-01") | {r.meetTime}, {n.fName})]->(b:person) WHERE a.ID = 5 RETURN e
+---- 7
+{_NODES: [], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:11, meetTime: 1999-04-21 15:12:11.42}->(0:2)]}
+{_NODES: [], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:9, meetTime: 1936-11-02 11:02:01}->(0:0)]}
+{_NODES: [{_ID: 0:0, _LABEL: person, fName: Alice}], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:9, meetTime: 1936-11-02 11:02:01}->(0:0),(0:0)-{_LABEL: knows, _ID: 3:0, meetTime: 1986-10-21 21:08:31.521}->(0:1)]}
+{_NODES: [{_ID: 0:0, _LABEL: person, fName: Alice}], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:9, meetTime: 1936-11-02 11:02:01}->(0:0),(0:0)-{_LABEL: knows, _ID: 3:1, meetTime: 1946-08-25 19:07:22}->(0:2)]}
+{_NODES: [{_ID: 0:0, _LABEL: person, fName: Alice}], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:9, meetTime: 1936-11-02 11:02:01}->(0:0),(0:0)-{_LABEL: knows, _ID: 3:2, meetTime: 2012-12-11 20:07:22}->(0:3)]}
+{_NODES: [{_ID: 0:2, _LABEL: person, fName: Carol}], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:11, meetTime: 1999-04-21 15:12:11.42}->(0:2),(0:2)-{_LABEL: knows, _ID: 3:6, meetTime: 2002-07-31 11:42:53.12342}->(0:0)]}
+{_NODES: [{_ID: 0:2, _LABEL: person, fName: Carol}], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:11, meetTime: 1999-04-21 15:12:11.42}->(0:2),(0:2)-{_LABEL: knows, _ID: 3:8, meetTime: 1998-10-02 13:09:22.423}->(0:3)]}
+
+-STATEMENT MATCH (a:person)-[e:knows*1..2 (r, n | WHERE n.fName = 'Alice' | {r.meetTime}, {n.fName})]->(b:person) RETURN e
+---- error
+Binder exception: Variable n is not in scope.

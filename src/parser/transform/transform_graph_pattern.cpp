@@ -123,15 +123,21 @@ std::unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
         if (range->oC_UpperBound()) {
             upperBound = range->oC_UpperBound()->getText();
         }
-
-        auto recursiveRelName = std::string();
-        std::unique_ptr<ParsedExpression> whereExpression = nullptr;
-        if (range->oC_Where()) {
-            recursiveRelName = transformVariable(*range->oC_Variable());
-            whereExpression = transformWhere(*range->oC_Where());
+        recursiveInfo = std::make_unique<RecursiveRelPatternInfo>(lowerBound, upperBound);
+        if (range->kU_RecursiveRelationshipComprehension()) {
+            auto comprehension = range->kU_RecursiveRelationshipComprehension();
+            recursiveInfo->relName = transformVariable(*comprehension->oC_Variable(0));
+            recursiveInfo->nodeName = transformVariable(*comprehension->oC_Variable(1));
+            if (comprehension->oC_Where()) {
+                recursiveInfo->whereExpression = transformWhere(*comprehension->oC_Where());
+            }
+            if (!comprehension->oC_ProjectionItems().empty()) {
+                recursiveInfo->relProjectionList =
+                    transformProjectionItems(*comprehension->oC_ProjectionItems(0));
+                recursiveInfo->nodeProjectionList =
+                    transformProjectionItems(*comprehension->oC_ProjectionItems(1));
+            }
         }
-        recursiveInfo = std::make_unique<RecursiveRelPatternInfo>(
-            lowerBound, upperBound, recursiveRelName, std::move(whereExpression));
     }
     return std::make_unique<RelPattern>(variable, relTypes, relType, arrowDirection,
         std::move(properties), std::move(recursiveInfo));

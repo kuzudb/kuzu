@@ -6,6 +6,7 @@
 #include "binder/query/updating_clause/bound_set_clause.h"
 #include "catalog/node_table_schema.h"
 #include "common/exception/binder.h"
+#include "common/string_utils.h"
 #include "parser/query/updating_clause/create_clause.h"
 #include "parser/query/updating_clause/delete_clause.h"
 #include "parser/query/updating_clause/merge_clause.h"
@@ -165,6 +166,10 @@ std::unique_ptr<BoundCreateInfo> Binder::bindCreateRelInfo(
         throw BinderException(
             "Create rel " + rel->toString() +
             " with multiple rel labels or bound by multiple node labels is not supported.");
+    }
+    if (ExpressionUtil::isRecursiveRelVariable(*rel)) {
+        throw BinderException(
+            common::StringUtils::string_format("Cannot create recursive rel {}.", rel->toString()));
     }
     auto relTableID = rel->getSingleTableID();
     auto catalogContent = catalog.getReadOnlyVersion();

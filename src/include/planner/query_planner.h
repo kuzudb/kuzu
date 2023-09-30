@@ -191,11 +191,11 @@ private:
     void createRecursivePlan(std::shared_ptr<NodeExpression> boundNode,
         std::shared_ptr<NodeExpression> recursiveNode, std::shared_ptr<RelExpression> recursiveRel,
         ExtendDirection direction, const expression_vector& predicates, LogicalPlan& plan);
-    void createPathNodePropertyScanPlan(
-        std::shared_ptr<NodeExpression> recursiveNode, LogicalPlan& plan);
-    void createPathRelPropertyScanPlan(std::shared_ptr<NodeExpression> recursiveNode,
+    void createPathNodePropertyScanPlan(std::shared_ptr<NodeExpression> node,
+        const expression_vector& properties, LogicalPlan& plan);
+    void createPathRelPropertyScanPlan(std::shared_ptr<NodeExpression> boundNode,
         std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> recursiveRel,
-        ExtendDirection direction, LogicalPlan& plan);
+        ExtendDirection direction, const expression_vector& properties, LogicalPlan& plan);
     void appendNodeLabelFilter(std::shared_ptr<Expression> nodeID,
         std::unordered_set<common::table_id_t> tableIDSet, LogicalPlan& plan);
 

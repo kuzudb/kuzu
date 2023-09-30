@@ -217,6 +217,8 @@ class StructTypeInfo : public ExtraTypeInfo {
 public:
     StructTypeInfo() = default;
     explicit StructTypeInfo(std::vector<std::unique_ptr<StructField>> fields);
+    StructTypeInfo(const std::vector<std::string>& fieldNames,
+        const std::vector<std::unique_ptr<LogicalType>>& fieldTypes);
 
     bool hasField(const std::string& fieldName) const;
     struct_field_idx_t getStructFieldIdx(std::string fieldName) const;

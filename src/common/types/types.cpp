@@ -155,6 +155,17 @@ StructTypeInfo::StructTypeInfo(std::vector<std::unique_ptr<StructField>> fields)
     }
 }
 
+StructTypeInfo::StructTypeInfo(const std::vector<std::string>& fieldNames,
+    const std::vector<std::unique_ptr<LogicalType>>& fieldTypes) {
+    for (auto i = 0u; i < fieldNames.size(); ++i) {
+        auto fieldName = fieldNames[i];
+        auto normalizedFieldName = fieldName;
+        StringUtils::toUpper(normalizedFieldName);
+        fieldNameToIdxMap.emplace(normalizedFieldName, i);
+        fields.push_back(std::make_unique<StructField>(fieldName, fieldTypes[i]->copy()));
+    }
+}
+
 bool StructTypeInfo::hasField(const std::string& fieldName) const {
     return fieldNameToIdxMap.contains(fieldName);
 }
