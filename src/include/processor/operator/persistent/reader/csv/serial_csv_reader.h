@@ -11,13 +11,11 @@ public:
     SerialCSVReader(const std::string& filePath, const common::ReaderConfig& readerConfig);
 
     //! Sniffs CSV dialect and determines skip rows, header row, column types and column names
-    void sniffCSV();
-    inline uint64_t getNumColumnsDetected() const { return numColumnsDetected; }
+    std::vector<std::pair<std::string, common::LogicalType>> sniffCSV();
+    uint64_t parseBlock(common::block_idx_t blockIdx, common::DataChunk& resultChunk) override;
 
 protected:
-    void parseBlockHook() override {}
     void handleQuotedNewline() override {}
-    bool finishedBlockDetail() const override;
 };
 
 } // namespace processor

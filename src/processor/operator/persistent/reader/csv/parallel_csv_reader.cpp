@@ -2,6 +2,7 @@
 
 #include "common/exception/copy.h"
 #include "common/string_utils.h"
+#include "processor/operator/persistent/reader/csv/driver.h"
 
 using namespace kuzu::common;
 
@@ -14,15 +15,33 @@ ParallelCSVReader::ParallelCSVReader(
 
 bool ParallelCSVReader::hasMoreToRead() const {
     // If we haven't started the first block yet or are done our block, get the next block.
-    return buffer != nullptr && !finishedBlockDetail();
+    return buffer != nullptr && !finishedBlock();
+}
+
+uint64_t ParallelCSVReader::parseBlock(
+    common::block_idx_t blockIdx, common::DataChunk& resultChunk) {
+    currentBlockIdx = blockIdx;
+    seekToBlockStart();
+    if (blockIdx == 0) {
+        readBOM();
+        if (csvReaderConfig.hasHeader) {
+            readHeader();
+        }
+    }
+    if (finishedBlock()) {
+        return 0;
+    }
+    ParallelParsingDriver driver(resultChunk, this);
+    return parseCSV(driver);
 }
 
 uint64_t ParallelCSVReader::continueBlock(common::DataChunk& resultChunk) {
-    assert(buffer != nullptr && !finishedBlockDetail() && mode == ParserMode::PARSING);
-    return parseCSV(resultChunk);
+    assert(hasMoreToRead());
+    ParallelParsingDriver driver(resultChunk, this);
+    return parseCSV(driver);
 }
 
-void ParallelCSVReader::parseBlockHook() {
+void ParallelCSVReader::seekToBlockStart() {
     // Seek to the proper location in the file.
     if (lseek(fd, currentBlockIdx * CopyConstants::PARALLEL_BLOCK_SIZE, SEEK_SET) == -1) {
         // LCOV_EXCL_START
@@ -72,7 +91,7 @@ void ParallelCSVReader::handleQuotedNewline() {
             filePath, getLineNumber()));
 }
 
-bool ParallelCSVReader::finishedBlockDetail() const {
+bool ParallelCSVReader::finishedBlock() const {
     // Only stop if we've ventured into the next block by at least a byte.
     // Use `>` because `position` points to just past the newline right now.
     return getFileOffset() > (currentBlockIdx + 1) * CopyConstants::PARALLEL_BLOCK_SIZE;
