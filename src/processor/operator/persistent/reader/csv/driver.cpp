@@ -80,7 +80,9 @@ void copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std::string_view
         vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::BOOL: {
-        vector->setValue(rowToAdd, StringCastUtils::castToBool(strVal.data(), strVal.length()));
+        bool val;
+        function::castStringToBool(strVal.data(), strVal.length(), val);
+        vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::BLOB: {
         if (strVal.length() > BufferPoolConstants::PAGE_4KB_SIZE) {

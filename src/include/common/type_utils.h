@@ -12,18 +12,6 @@
 namespace kuzu {
 namespace common {
 
-// This class is used to cast c++ const char* to c++ primitive types. Should be moved to parser
-// once the csv parser is implemented.
-class StringCastUtils {
-
-public:
-    static bool tryCastToBoolean(const char* data, uint64_t length, bool& result);
-    static bool castToBool(const char* data, uint64_t length);
-
-private:
-    static void removeSpace(std::string& str);
-};
-
 class TypeUtils {
 
 public:

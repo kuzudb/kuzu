@@ -8,35 +8,6 @@
 namespace kuzu {
 namespace common {
 
-bool StringCastUtils::tryCastToBoolean(const char* data, uint64_t length, bool& result) {
-    auto booleanStr = std::string{data, length};
-    booleanStr = StringUtils::rtrim(StringUtils::ltrim(booleanStr));
-    // Try cast boolAlpha format data(TRUE, FALSE) to boolean.
-    std::istringstream boolAlpha{booleanStr};
-    boolAlpha >> std::boolalpha >> result;
-    if (!boolAlpha.fail()) {
-        return true;
-    }
-    // Try cast numeric format data(1, 0) to boolean.
-    std::istringstream boolNonAlpha{booleanStr};
-    boolNonAlpha >> std::noboolalpha >> result;
-    return !boolNonAlpha.fail();
-}
-
-bool StringCastUtils::castToBool(const char* data, uint64_t length) {
-    bool result;
-    if (!tryCastToBoolean(data, length, result)) {
-        throw ConversionException(
-            TypeUtils::prefixConversionExceptionMessage(data, LogicalTypeID::BOOL) +
-            ". Input is not equal to True or False (in a case-insensitive manner)");
-    }
-    return result;
-}
-
-void StringCastUtils::removeSpace(std::string& str) {
-    str = StringUtils::rtrim(StringUtils::ltrim(str));
-}
-
 uint32_t TypeUtils::convertToUint32(const char* data) {
     std::istringstream iss(data);
     uint32_t val;

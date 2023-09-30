@@ -22,13 +22,14 @@ public:
         common::LogicalTypeID targetTypeID, scalar_exec_func& func);
 
 protected:
-    template<typename SOURCE_TYPE, typename TARGET_TYPE, typename FUNC>
+    template<typename TARGET_TYPE, typename FUNC>
     inline static std::unique_ptr<VectorFunctionDefinition> bindVectorFunction(
         const std::string& funcName, common::LogicalTypeID sourceTypeID,
         common::LogicalTypeID targetTypeID) {
-        return std::make_unique<VectorFunctionDefinition>(funcName,
-            std::vector<common::LogicalTypeID>{sourceTypeID}, targetTypeID,
-            UnaryExecFunction<SOURCE_TYPE, TARGET_TYPE, FUNC>);
+        scalar_exec_func func;
+        getUnaryExecFunc<TARGET_TYPE, FUNC>(sourceTypeID, func);
+        return std::make_unique<VectorFunctionDefinition>(
+            funcName, std::vector<common::LogicalTypeID>{sourceTypeID}, targetTypeID, func);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
@@ -88,6 +89,18 @@ protected:
             throw common::NotImplementedException(
                 "Unimplemented casting Function from " +
                 common::LogicalTypeUtils::dataTypeToString(srcTypeID) + " to numeric.");
+        }
+    }
+
+    template<typename DST_TYPE, typename OP>
+    static void getUnaryExecFunc(common::LogicalTypeID srcTypeID, scalar_exec_func& func) {
+        switch (srcTypeID) {
+        case common::LogicalTypeID::STRING: {
+            func = UnaryExecFunction<common::ku_string_t, DST_TYPE, OP>;
+            return;
+        }
+        default:
+            bindImplicitNumericalCastFunc<DST_TYPE, OP>(srcTypeID, func);
         }
     }
 };
@@ -153,6 +166,10 @@ struct CastToUInt16VectorFunction : public VectorCastFunction {
 };
 
 struct CastToUInt8VectorFunction : public VectorCastFunction {
+    static vector_function_definitions getDefinitions();
+};
+
+struct CastToBoolVectorFunction : public VectorCastFunction {
     static vector_function_definitions getDefinitions();
 };
 

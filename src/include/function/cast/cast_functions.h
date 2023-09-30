@@ -86,6 +86,15 @@ inline std::string CastToString::castToStringWithVector(
     return common::TypeUtils::toString(input, (void*)&inputVector);
 }
 
+struct CastToBool {
+    static inline void operation(common::ku_string_t& input, bool& result) {
+        if (!tryCastToBool(reinterpret_cast<const char*>(input.getData()), input.len, result)) {
+            throw common::ConversionException{common::StringUtils::string_format(
+                "Value {} is not a valid boolean", input.getAsString())};
+        }
+    }
+};
+
 struct CastToDouble {
     template<typename T>
     static inline void operation(T& input, double_t& result) {
@@ -161,6 +170,12 @@ struct CastToSerial {
         }
     }
 };
+
+template<>
+inline void CastToSerial::operation(common::ku_string_t& input, int64_t& result) {
+    simpleIntegerCast<int64_t>((char*)input.getData(), input.len, result,
+        common::LogicalType{common::LogicalTypeID::INT64});
+}
 
 struct CastToInt32 {
     template<typename T>
