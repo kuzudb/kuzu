@@ -66,6 +66,11 @@ jobs:
 
       - uses: actions/download-artifact@v3
         with:
+          name: libkuzu-java-linux-aarch64
+          path: java-bins
+
+      - uses: actions/download-artifact@v3
+        with:
           name: kuzu-linux-jar
           path: java-bins
 
@@ -79,6 +84,7 @@ jobs:
           jar uf kuzu_java.jar libkuzu_java_native.so_windows_amd64
           jar uf kuzu_java.jar libkuzu_java_native.so_osx_arm64
           jar uf kuzu_java.jar libkuzu_java_native.so_osx_amd64
+          jar uf kuzu_java.jar libkuzu_java_native.so_linux_arm64
         working-directory: java-bins
 
       - name: Upload jar
@@ -126,7 +132,12 @@ jobs:
 
       - uses: actions/download-artifact@v3
         with:
-          name: linux-nodejs-module
+          name: linux-nodejs-module-x86_64
+          path: tools/nodejs_api/prebuilt
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: linux-nodejs-module-aarch64
           path: tools/nodejs_api/prebuilt
 
       - uses: actions/download-artifact@v3
@@ -217,7 +228,12 @@ jobs:
 
       - uses: actions/download-artifact@v3
         with:
-          name: linux-wheels
+          name: linux-wheels-x86_64
+          path: dist
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: linux-wheels-aarch64
           path: dist
 
       - uses: actions/download-artifact@v3

@@ -9,7 +9,7 @@ Note: installing from source requires the full toolchain for building the projec
 
 # Container for self-hosted manylinux builder
 ## Introduction
-The container for manylinux builder automatically builds and upload wheels compatiable with `manylinux2014_x86_64` platform tag when it is manually triggered from CI. The spec for manylinux can be found at [https://github.com/pypa/manylinux](https://github.com/pypa/manylinux).
+The container for manylinux builder automatically builds and upload wheels compatiable with `manylinux2014_x86_64` and `manylinux_2_28_aarch64` platform tag when it is manually triggered from CI. The spec for manylinux can be found at [https://github.com/pypa/manylinux](https://github.com/pypa/manylinux).
 
 ## Build
 ```
