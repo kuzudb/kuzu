@@ -1,5 +1,6 @@
 #include "optimizer/optimizer.h"
 
+#include "main/client_context.h"
 #include "optimizer/acc_hash_join_optimizer.h"
 #include "optimizer/agg_key_dependency_optimizer.h"
 #include "optimizer/correlated_subquery_unnest_solver.h"
@@ -13,7 +14,7 @@
 namespace kuzu {
 namespace optimizer {
 
-void Optimizer::optimize(planner::LogicalPlan* plan) {
+void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* client) {
     // Factorization structure should be removed before further optimization can be applied.
     auto removeFactorizationRewriter = RemoveFactorizationRewriter();
     removeFactorizationRewriter.rewrite(plan);
@@ -30,9 +31,11 @@ void Optimizer::optimize(planner::LogicalPlan* plan) {
     auto projectionPushDownOptimizer = ProjectionPushDownOptimizer();
     projectionPushDownOptimizer.rewrite(plan);
 
-    // HashJoinSIPOptimizer should be applied after optimizers that manipulate hash join.
-    auto hashJoinSIPOptimizer = HashJoinSIPOptimizer();
-    hashJoinSIPOptimizer.rewrite(plan);
+    if (client->isEnableSemiMask()) {
+        // HashJoinSIPOptimizer should be applied after optimizers that manipulate hash join.
+        auto hashJoinSIPOptimizer = HashJoinSIPOptimizer();
+        hashJoinSIPOptimizer.rewrite(plan);
+    }
 
     auto topKOptimizer = TopKOptimizer();
     topKOptimizer.rewrite(plan);

@@ -23,8 +23,9 @@ void ActiveQuery::reset() {
 
 ClientContext::ClientContext(Database* database)
     : numThreadsForExecution{std::thread::hardware_concurrency()},
-      timeoutInMS{ClientContextConstants::TIMEOUT_IN_MS}, varLengthExtendMaxDepth{
-                                                              VAR_LENGTH_EXTEND_MAX_DEPTH} {
+      timeoutInMS{ClientContextConstants::TIMEOUT_IN_MS},
+      varLengthExtendMaxDepth{DEFAULT_VAR_LENGTH_EXTEND_MAX_DEPTH}, enableSemiMask{
+                                                                        DEFAULT_ENABLE_SEMI_MASK} {
     transactionContext = std::make_unique<TransactionContext>(database);
 }
 
