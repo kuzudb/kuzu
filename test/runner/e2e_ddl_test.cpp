@@ -265,7 +265,7 @@ public:
 
     void executeQueryWithoutCommit(std::string query) {
         auto preparedStatement = conn->prepare(query);
-        conn->query("BEGIN WRITE TRANSACTION");
+        conn->query("BEGIN TRANSACTION");
         auto mapper = PlanMapper(
             *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
         auto physicalPlan =

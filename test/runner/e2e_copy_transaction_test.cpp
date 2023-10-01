@@ -73,7 +73,7 @@ public:
     void copyNodeCSVCommitAndRecoveryTest(TransactionTestType transactionTestType) {
         conn->query(createPersonTableCMD);
         auto preparedStatement = conn->prepare(copyPersonTableCMD);
-        conn->query("BEGIN WRITE TRANSACTION");
+        conn->query("BEGIN TRANSACTION");
         auto mapper = PlanMapper(
             *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
         auto physicalPlan =
@@ -153,7 +153,7 @@ public:
         conn->query(copyPersonTableCMD);
         conn->query(createKnowsTableCMD);
         auto preparedStatement = conn->prepare(copyKnowsTableCMD);
-        conn->query("BEGIN WRITE TRANSACTION");
+        conn->query("BEGIN TRANSACTION");
         auto mapper = PlanMapper(
             *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
         auto physicalPlan =

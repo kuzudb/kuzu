@@ -4,7 +4,7 @@
 --
 
 -CASE NonNullTest
--STATEMENT BEGIN WRITE TRANSACTION
+-STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age;
 ---- 1
@@ -16,7 +16,7 @@
 70
 
 -CASE NullTest
--STATEMENT BEGIN WRITE TRANSACTION
+-STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age;
 ---- 1
@@ -29,10 +29,10 @@
 -CASE TimeoutErrorTest
 -CHECKPOINT_WAIT_TIMEOUT 10000
 -CREATE_CONNECTION conn1
--STATEMENT [conn1] BEGIN READ TRANSACTION;
+-STATEMENT [conn1] BEGIN TRANSACTION READ ONLY;
 ---- ok
 -CREATE_CONNECTION conn2
--STATEMENT [conn2] BEGIN WRITE TRANSACTION;
+-STATEMENT [conn2] BEGIN TRANSACTION;
 ---- ok
 -STATEMENT [conn2] MATCH (a:person) WHERE a.ID=0 set a.age=70;
 ---- ok
@@ -44,7 +44,7 @@ Timeout waiting for read transactions to leave the system before committing and 
 35
 
 -CASE RollbackTest
--STATEMENT BEGIN WRITE TRANSACTION;
+-STATEMENT BEGIN TRANSACTION;
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.fName='abcdefghijklmnopqrstuvwxyz'
 ---- ok
@@ -55,7 +55,7 @@ Timeout waiting for read transactions to leave the system before committing and 
 Alice
 -CASE VeryLongStringErrorsTest
 -LOG Set Very Long String Errors Test
--STATEMENT BEGIN WRITE TRANSACTION;
+-STATEMENT BEGIN TRANSACTION;
 ---- ok
 -DEFINE test_long_string REPEAT 4096 "a"
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.fName='${test_long_string}';

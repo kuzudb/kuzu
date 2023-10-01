@@ -5,7 +5,7 @@
 
 -CASE ParsingErrorRollbackTest
 
--STATEMENT BEGIN WRITE TRANSACTION
+-STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT CREATE (p:person {ID: 100})
 ---- ok

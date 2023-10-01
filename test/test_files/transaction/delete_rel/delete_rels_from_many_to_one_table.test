@@ -3,7 +3,7 @@
 --
 
 -CASE deleteRelsFromManyToOneTableCommitNormalExecution
--STATEMENT BEGIN WRITE TRANSACTION
+-STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p1:person)-[t:teaches]->(p2:person) WHERE p1.ID = 11 AND p2.ID = 1 delete t;
 ---- ok
@@ -11,7 +11,7 @@
 ---- ok
 -STATEMENT COMMIT
 ---- ok 
--STATEMENT BEGIN WRITE TRANSACTION
+-STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (:person)-[t:teaches]->(:person) return t.length
 ---- 4
@@ -21,7 +21,7 @@
 33
 
 -CASE deleteRelsFromManyToOneTableCommitRecovery
--STATEMENT BEGIN WRITE TRANSACTION
+-STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p1:person)-[t:teaches]->(p2:person) WHERE p1.ID = 11 AND p2.ID = 1 delete t;
 ---- ok
@@ -30,7 +30,7 @@
 -STATEMENT COMMIT_SKIP_CHECKPOINT
 ---- ok 
 -RELOADDB
--STATEMENT BEGIN WRITE TRANSACTION
+-STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (:person)-[t:teaches]->(:person) return t.length
 ---- 4
@@ -41,7 +41,7 @@
 
 
 -CASE deleteRelsFromManyToOneTableRollbackNormalExecution
--STATEMENT BEGIN WRITE TRANSACTION
+-STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p1:person)-[t:teaches]->(p2:person) WHERE p1.ID = 11 AND p2.ID = 1 delete t;
 ---- ok
@@ -49,7 +49,7 @@
 ---- ok
 -STATEMENT Rollback
 ---- ok 
--STATEMENT BEGIN WRITE TRANSACTION
+-STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (:person)-[t:teaches]->(:person) return t.length
 ---- 6
@@ -61,7 +61,7 @@
 33
 
 -CASE deleteRelsFromManyToOneTableRollbackRecovery
--STATEMENT BEGIN WRITE TRANSACTION
+-STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p1:person)-[t:teaches]->(p2:person) WHERE p1.ID = 11 AND p2.ID = 1 delete t;
 ---- ok
@@ -70,7 +70,7 @@
 -STATEMENT ROLLBACK_SKIP_CHECKPOINT
 ---- ok 
 -RELOADDB
--STATEMENT BEGIN WRITE TRANSACTION
+-STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (:person)-[t:teaches]->(:person) return t.length
 ---- 6

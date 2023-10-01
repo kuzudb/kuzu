@@ -23,7 +23,7 @@ public:
     void initDBAndConnection() {
         createDBAndConn();
         readConn = std::make_unique<Connection>(database.get());
-        conn->query("BEGIN WRITE TRANSACTION");
+        conn->query("BEGIN TRANSACTION");
     }
 
     void deleteNode(offset_t id) {
@@ -56,7 +56,7 @@ TEST_F(NodeInsertionDeletionTests, DeleteAddMixedTest) {
     ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10010);
     ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10000);
     conn->query("COMMIT");
-    conn->query("BEGIN WRITE TRANSACTION");
+    conn->query("BEGIN TRANSACTION");
     ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10010);
     ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10010);
 
@@ -67,7 +67,7 @@ TEST_F(NodeInsertionDeletionTests, DeleteAddMixedTest) {
     ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10000);
     ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10010);
     conn->query("COMMIT");
-    conn->query("BEGIN WRITE TRANSACTION");
+    conn->query("BEGIN TRANSACTION");
     ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10000);
     ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10000);
 
@@ -78,7 +78,7 @@ TEST_F(NodeInsertionDeletionTests, DeleteAddMixedTest) {
     ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10005);
     ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10000);
     conn->query("COMMIT");
-    conn->query("BEGIN WRITE TRANSACTION");
+    conn->query("BEGIN TRANSACTION");
     ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10005);
     ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10005);
 }

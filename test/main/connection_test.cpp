@@ -108,13 +108,13 @@ TEST_F(ApiTest, CommitRollbackRemoveActiveTransaction) {
 
 TEST_F(ApiTest, BeginningMultipleTransactionErrors) {
     conn->beginWriteTransaction();
-    ASSERT_FALSE(conn->query("BEGIN WRITE TRANSACTION")->isSuccess());
+    ASSERT_FALSE(conn->query("BEGIN TRANSACTION")->isSuccess());
     conn->beginWriteTransaction();
-    ASSERT_FALSE(conn->query("BEGIN READ TRANSACTION")->isSuccess());
+    ASSERT_FALSE(conn->query("BEGIN TRANSACTION READ ONLY")->isSuccess());
     conn->beginReadOnlyTransaction();
-    ASSERT_FALSE(conn->query("BEGIN WRITE TRANSACTION")->isSuccess());
+    ASSERT_FALSE(conn->query("BEGIN TRANSACTION")->isSuccess());
     conn->beginReadOnlyTransaction();
-    ASSERT_FALSE(conn->query("BEGIN READ TRANSACTION")->isSuccess());
+    ASSERT_FALSE(conn->query("BEGIN TRANSACTION READ ONLY")->isSuccess());
 }
 
 // These two tests are designed to make sure that the explain and profile statements don't create a
