@@ -23,14 +23,14 @@ public:
     static inline void operation(common::list_entry_t& listEntry, int64_t pos, T& result,
         common::ValueVector& listVector, common::ValueVector& posVector,
         common::ValueVector& resultVector) {
-        auto uint64Pos = (uint64_t)pos;
-        if (listEntry.size < uint64Pos) {
+        uint64_t upos = pos == -1 ? listEntry.size : pos;
+        if (listEntry.size < upos) {
             throw common::RuntimeException("list_extract(list, index): index=" +
                                            common::TypeUtils::toString(pos) + " is out of range.");
         }
         auto listDataVector = common::ListVector::getDataVector(&listVector);
         auto listValues =
-            common::ListVector::getListValuesWithOffset(&listVector, listEntry, pos - 1);
+            common::ListVector::getListValuesWithOffset(&listVector, listEntry, upos - 1);
         resultVector.copyFromVectorData(
             reinterpret_cast<uint8_t*>(&result), listDataVector, listValues);
     }

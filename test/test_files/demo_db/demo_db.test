@@ -124,6 +124,12 @@ Zhang|{_NODES: [{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}], _RELS: [(0:0)
 ---- 2
 Karissa
 Zhang
+-STATEMENT MATCH (a:User)-[e:Follows*1..2 (r, n | WHERE r.since > 2020 | {r.since}, {n.name})]->(b:User)
+           RETURN nodes(e), rels(e);
+---- 3
+[]|[(0:1)-{_LABEL: Follows, _ID: 2:2, since: 2021}->(0:2)]
+[]|[(0:2)-{_LABEL: Follows, _ID: 2:3, since: 2022}->(0:3)]
+[{_ID: 0:2, _LABEL: User, name: Zhang}]|[(0:1)-{_LABEL: Follows, _ID: 2:2, since: 2021}->(0:2),(0:2)-{_LABEL: Follows, _ID: 2:3, since: 2022}->(0:3)]
 
 -LOG AllShortestPath
 -STATEMENT MATCH p = (a)-[* ALL SHORTEST 1..3 ]-(b) WHERE a.name = 'Zhang' AND b.name='Waterloo' RETURN nodes(p);
@@ -328,3 +334,29 @@ Noura|Guelph
 -STATEMENT MATCH ()-[]-() RETURN COUNT(*);
 ---- 1
 16
+
+-LOG LoadFrom
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/user.csv"
+        RETURN *;
+---- 4
+Adam|30
+Karissa|40
+Noura|25
+Zhang|50
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/user.parquet"
+        RETURN *;
+---- 4
+Adam|30
+Karissa|40
+Noura|25
+Zhang|50
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/user.csv"
+        WHERE to_int64(column1) > 25
+        RETURN COUNT(*);
+---- 1
+3
+-STATEMENT LOAD WITH HEADERS (name STRING, age INT64) FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/user.csv"
+        WHERE name =~ 'Adam*'
+        RETURN name, age;
+---- 1
+Adam|30
