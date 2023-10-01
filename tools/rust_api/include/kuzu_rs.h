@@ -1,4 +1,10 @@
 #pragma once
+
+// We're linking against the static library, so we want to ignore exports/imports
+#ifndef KUZU_STATIC_DEFINE
+#define KUZU_STATIC_DEFINE
+#endif
+
 #include <memory>
 
 #include "rust/cxx.h"
