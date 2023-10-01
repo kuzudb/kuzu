@@ -115,11 +115,11 @@ std::unique_ptr<TableFuncBindData> ShowTablesFunction::bindFunc(main::ClientCont
     kuzu::function::TableFuncBindInput input, catalog::CatalogContent* catalog) {
     std::vector<std::string> returnColumnNames;
     std::vector<LogicalType> returnTypes;
-    returnColumnNames.emplace_back("TableName");
+    returnColumnNames.emplace_back("name");
     returnTypes.emplace_back(LogicalTypeID::STRING);
-    returnColumnNames.emplace_back("TableType");
+    returnColumnNames.emplace_back("type");
     returnTypes.emplace_back(LogicalTypeID::STRING);
-    returnColumnNames.emplace_back("TableComment");
+    returnColumnNames.emplace_back("comment");
     returnTypes.emplace_back(LogicalTypeID::STRING);
 
     return std::make_unique<ShowTablesBindData>(catalog->getTableSchemas(), std::move(returnTypes),
