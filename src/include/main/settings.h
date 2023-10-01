@@ -43,5 +43,17 @@ struct VarLengthExtendMaxDepthSetting {
     }
 };
 
+struct EnableSemiMaskSetting {
+    static constexpr const char* name = "enable_semi_mask";
+    static constexpr const common::LogicalTypeID inputType = common::LogicalTypeID::BOOL;
+    static void setContext(ClientContext* context, const common::Value& parameter) {
+        assert(parameter.getDataType()->getLogicalTypeID() == common::LogicalTypeID::BOOL);
+        context->enableSemiMask = parameter.getValue<bool>();
+    }
+    static std::string getSetting(ClientContext* context) {
+        return context->enableSemiMask ? "true" : "false";
+    }
+};
+
 } // namespace main
 } // namespace kuzu

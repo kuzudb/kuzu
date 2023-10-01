@@ -42,3 +42,14 @@ Binder exception: Upper bound of rel  exceeds maximum: 10.
 ---- 1
 354290
 
+-LOG disableSemihMaskOptimization
+-STATEMENT CALL enable_semi_mask=true
+---- ok
+-STATEMENT CALL current_setting('enable_semi_mask') RETURN *
+---- 1
+true
+-STATEMENT CALL enable_semi_mask=false
+---- ok
+-STATEMENT CALL current_setting('enable_semi_mask') RETURN *
+---- 1
+false

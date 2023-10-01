@@ -122,7 +122,7 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
         }
         // optimizing
         for (auto& plan : plans) {
-            optimizer::Optimizer::optimize(plan.get());
+            optimizer::Optimizer::optimize(plan.get(), clientContext.get());
         }
         if (!encodedJoin.empty()) {
             std::unique_ptr<LogicalPlan> match;

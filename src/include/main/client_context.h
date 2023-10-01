@@ -37,6 +37,7 @@ class ClientContext {
     friend class ThreadsSetting;
     friend class TimeoutSetting;
     friend class VarLengthExtendMaxDepthSetting;
+    friend class EnableSemiMaskSetting;
 
 public:
     explicit ClientContext(Database* database);
@@ -53,6 +54,8 @@ public:
 
     inline bool isTimeOutEnabled() const { return timeoutInMS != 0; }
 
+    inline bool isEnableSemiMask() const { return enableSemiMask; }
+
     void startTimingIfEnabled();
 
     std::string getCurrentSetting(std::string optionName);
@@ -68,6 +71,7 @@ private:
     uint64_t timeoutInMS;
     uint32_t varLengthExtendMaxDepth;
     std::unique_ptr<transaction::TransactionContext> transactionContext;
+    bool enableSemiMask;
 };
 
 } // namespace main
