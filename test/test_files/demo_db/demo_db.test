@@ -124,7 +124,10 @@ Zhang|{_NODES: [{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}], _RELS: [(0:0)
 ---- 2
 Karissa
 Zhang
+
+-LOG VarLengthFilter2
 -STATEMENT MATCH (a:User)-[e:Follows*1..2 (r, n | WHERE r.since > 2020 | {r.since}, {n.name})]->(b:User)
+           WHERE a.age > 0
            RETURN nodes(e), rels(e);
 ---- 3
 []|[(0:1)-{_LABEL: Follows, _ID: 2:2, since: 2021}->(0:2)]
