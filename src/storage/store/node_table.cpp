@@ -98,16 +98,17 @@ void NodeTable::rollbackInMemory() {
 
 void NodeTable::insertPK(ValueVector* nodeIDVector, ValueVector* primaryKeyVector) {
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
-        auto pos = nodeIDVector->state->selVector->selectedPositions[i];
-        auto offset = nodeIDVector->readNodeOffset(pos);
-        if (primaryKeyVector->isNull(pos)) {
+        auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[i];
+        auto offset = nodeIDVector->readNodeOffset(nodeIDPos);
+        auto pkPos = primaryKeyVector->state->selVector->selectedPositions[i];
+        if (primaryKeyVector->isNull(pkPos)) {
             throw RuntimeException(ExceptionMessage::nullPKException());
         }
-        if (!pkIndex->insert(primaryKeyVector, pos, offset)) {
+        if (!pkIndex->insert(primaryKeyVector, pkPos, offset)) {
             std::string pkStr =
                 primaryKeyVector->dataType.getLogicalTypeID() == LogicalTypeID::INT64 ?
-                    std::to_string(primaryKeyVector->getValue<int64_t>(pos)) :
-                    primaryKeyVector->getValue<ku_string_t>(pos).getAsString();
+                    std::to_string(primaryKeyVector->getValue<int64_t>(pkPos)) :
+                    primaryKeyVector->getValue<ku_string_t>(pkPos).getAsString();
             throw RuntimeException(ExceptionMessage::existedPKException(pkStr));
         }
     }

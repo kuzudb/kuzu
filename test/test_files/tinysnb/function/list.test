@@ -60,6 +60,16 @@
 3
 1
 10
+-STATEMENT MATCH (a:person) RETURN list_extract(a.workedHours, -1)
+---- 8
+5
+8
+5
+9
+2
+7
+1
+7
 
 -LOG ListExtractListOfINT32
 -STATEMENT MATCH (m:movies) RETURN list_extract([m.length], 1)
