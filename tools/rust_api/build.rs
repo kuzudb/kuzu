@@ -186,6 +186,9 @@ fn build_ffi(
     if bundled {
         build.define("KUZU_BUNDLED", None);
     }
+    if link_mode() == "static" {
+        build.define("KUZU_STATIC_DEFINE", None);
+    }
 
     build.includes(include_paths);
 
