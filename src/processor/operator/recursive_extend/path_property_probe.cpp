@@ -41,25 +41,31 @@ bool PathPropertyProbe::getNextTuplesInternal(ExecutionContext* context) {
     if (!children[0]->getNextTuple(context)) {
         return false;
     }
-    // Scan node property
-    auto nodeHashTable = sharedState->nodeHashTableState->getHashTable();
-    auto nodeDataSize = ListVector::getDataVectorSize(vectors->pathNodesVector);
     auto sizeProbed = 0u;
-    while (sizeProbed < nodeDataSize) {
-        auto sizeToProbe = std::min<uint64_t>(DEFAULT_VECTOR_CAPACITY, nodeDataSize - sizeProbed);
-        probe(nodeHashTable, sizeProbed, sizeToProbe, vectors->pathNodesIDDataVector,
-            vectors->pathNodesPropertyDataVectors, info->nodeTableColumnIndices);
-        sizeProbed += sizeToProbe;
+    // Scan node property
+    if (sharedState->nodeHashTableState != nullptr) {
+        auto nodeHashTable = sharedState->nodeHashTableState->getHashTable();
+        auto nodeDataSize = ListVector::getDataVectorSize(vectors->pathNodesVector);
+        while (sizeProbed < nodeDataSize) {
+            auto sizeToProbe =
+                std::min<uint64_t>(DEFAULT_VECTOR_CAPACITY, nodeDataSize - sizeProbed);
+            probe(nodeHashTable, sizeProbed, sizeToProbe, vectors->pathNodesIDDataVector,
+                vectors->pathNodesPropertyDataVectors, info->nodeTableColumnIndices);
+            sizeProbed += sizeToProbe;
+        }
     }
     // Scan rel property
-    auto relHashTable = sharedState->relHashTableState->getHashTable();
-    auto relDataSize = ListVector::getDataVectorSize(vectors->pathRelsVector);
-    sizeProbed = 0u;
-    while (sizeProbed < relDataSize) {
-        auto sizeToProbe = std::min<uint64_t>(DEFAULT_VECTOR_CAPACITY, relDataSize - sizeProbed);
-        probe(relHashTable, sizeProbed, sizeToProbe, vectors->pathRelsIDDataVector,
-            vectors->pathRelsPropertyDataVectors, info->relTableColumnIndices);
-        sizeProbed += sizeToProbe;
+    if (sharedState->relHashTableState != nullptr) {
+        auto relHashTable = sharedState->relHashTableState->getHashTable();
+        auto relDataSize = ListVector::getDataVectorSize(vectors->pathRelsVector);
+        sizeProbed = 0u;
+        while (sizeProbed < relDataSize) {
+            auto sizeToProbe =
+                std::min<uint64_t>(DEFAULT_VECTOR_CAPACITY, relDataSize - sizeProbed);
+            probe(relHashTable, sizeProbed, sizeToProbe, vectors->pathRelsIDDataVector,
+                vectors->pathRelsPropertyDataVectors, info->relTableColumnIndices);
+            sizeProbed += sizeToProbe;
+        }
     }
     return true;
 }

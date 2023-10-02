@@ -25,7 +25,8 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionConte
             bfsState = std::make_unique<VariableLengthState<true /* TRACK_PATH */>>(
                 upperBound, targetDstNodes.get());
             for (auto i = lowerBound; i <= upperBound; ++i) {
-                scanners.push_back(std::make_unique<PathScanner>(targetDstNodes.get(), i));
+                scanners.push_back(std::make_unique<PathScanner>(
+                    targetDstNodes.get(), i, dataInfo->tableIDToName));
             }
         } break;
         case planner::RecursiveJoinType::TRACK_NONE: {
@@ -47,7 +48,8 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionConte
             bfsState = std::make_unique<ShortestPathState<true /* TRACK_PATH */>>(
                 upperBound, targetDstNodes.get());
             for (auto i = lowerBound; i <= upperBound; ++i) {
-                scanners.push_back(std::make_unique<PathScanner>(targetDstNodes.get(), i));
+                scanners.push_back(std::make_unique<PathScanner>(
+                    targetDstNodes.get(), i, dataInfo->tableIDToName));
             }
         } break;
         case planner::RecursiveJoinType::TRACK_NONE: {
@@ -68,7 +70,8 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionConte
             bfsState = std::make_unique<AllShortestPathState<true /* TRACK_PATH */>>(
                 upperBound, targetDstNodes.get());
             for (auto i = lowerBound; i <= upperBound; ++i) {
-                scanners.push_back(std::make_unique<PathScanner>(targetDstNodes.get(), i));
+                scanners.push_back(std::make_unique<PathScanner>(
+                    targetDstNodes.get(), i, dataInfo->tableIDToName));
             }
         } break;
         case planner::RecursiveJoinType::TRACK_NONE: {
@@ -96,6 +99,10 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionConte
             StructType::getFieldIdx(&pathNodesDataVector->dataType, InternalKeyword::ID);
         vectors->pathNodesIDDataVector =
             StructVector::getFieldVector(pathNodesDataVector, pathNodesIDFieldIdx).get();
+        auto pathNodesLabelFieldIdx =
+            StructType::getFieldIdx(&pathNodesDataVector->dataType, InternalKeyword::LABEL);
+        vectors->pathNodesLabelDataVector =
+            StructVector::getFieldVector(pathNodesDataVector, pathNodesLabelFieldIdx).get();
         auto pathRelsFieldIdx =
             StructType::getFieldIdx(&vectors->pathVector->dataType, InternalKeyword::RELS);
         vectors->pathRelsVector =
@@ -113,6 +120,10 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionConte
             StructType::getFieldIdx(&pathRelsDataVector->dataType, InternalKeyword::ID);
         vectors->pathRelsIDDataVector =
             StructVector::getFieldVector(pathRelsDataVector, pathRelsIDFieldIdx).get();
+        auto pathRelsLabelFieldIdx =
+            StructType::getFieldIdx(&pathRelsDataVector->dataType, InternalKeyword::LABEL);
+        vectors->pathRelsLabelDataVector =
+            StructVector::getFieldVector(pathRelsDataVector, pathRelsLabelFieldIdx).get();
     }
     frontiersScanner = std::make_unique<FrontiersScanner>(std::move(scanners));
     initLocalRecursivePlan(context);

@@ -47,9 +47,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(
     if (extend->getJoinType() == planner::RecursiveJoinType::TRACK_PATH) {
         pathPos = DataPos(outSchema->getExpressionPos(*rel));
     }
+    std::unordered_map<common::table_id_t, std::string> tableIDToName;
+    for (auto& schema : catalog->getReadOnlyVersion()->getTableSchemas()) {
+        tableIDToName.insert({schema->getTableID(), schema->tableName});
+    }
     auto dataInfo = std::make_unique<RecursiveJoinDataInfo>(boundNodeIDPos, nbrNodeIDPos,
         nbrNode->getTableIDsSet(), lengthPos, std::move(recursivePlanResultSetDescriptor),
-        recursiveDstNodeIDPos, recursiveInfo->node->getTableIDsSet(), recursiveEdgeIDPos, pathPos);
+        recursiveDstNodeIDPos, recursiveInfo->node->getTableIDsSet(), recursiveEdgeIDPos, pathPos,
+        std::move(tableIDToName));
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     return std::make_unique<RecursiveJoin>(rel->getLowerBound(), rel->getUpperBound(),
         rel->getRelType(), extend->getJoinType(), sharedState, std::move(dataInfo),

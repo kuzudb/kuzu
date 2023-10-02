@@ -71,7 +71,9 @@ class PathScanner : public BaseFrontierScanner {
     using nbrs_t = std::vector<frontier::node_rel_id_t>*;
 
 public:
-    PathScanner(TargetDstNodes* targetDstNodes, size_t k) : BaseFrontierScanner{targetDstNodes, k} {
+    PathScanner(TargetDstNodes* targetDstNodes, size_t k,
+        std::unordered_map<common::table_id_t, std::string> tableIDToName)
+        : BaseFrontierScanner{targetDstNodes, k}, tableIDToName{std::move(tableIDToName)} {
         nodeIDs.resize(k + 1);
         relIDs.resize(k + 1);
     }
@@ -97,6 +99,7 @@ private:
     std::vector<common::relID_t> relIDs;
     std::stack<nbrs_t> nbrsStack;
     std::stack<int64_t> cursorStack;
+    std::unordered_map<common::table_id_t, std::string> tableIDToName;
 };
 
 /*

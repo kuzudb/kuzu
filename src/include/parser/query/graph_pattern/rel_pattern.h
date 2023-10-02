@@ -14,11 +14,13 @@ struct RecursiveRelPatternInfo {
     std::string relName;
     std::string nodeName;
     std::unique_ptr<ParsedExpression> whereExpression;
+    bool hasProjection;
     std::vector<std::unique_ptr<ParsedExpression>> relProjectionList;
     std::vector<std::unique_ptr<ParsedExpression>> nodeProjectionList;
 
     RecursiveRelPatternInfo(std::string lowerBound, std::string upperBound)
-        : lowerBound{std::move(lowerBound)}, upperBound{std::move(upperBound)} {}
+        : lowerBound{std::move(lowerBound)}, upperBound{std::move(upperBound)}, hasProjection{
+                                                                                    false} {}
 };
 
 /**

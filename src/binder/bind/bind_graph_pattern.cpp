@@ -346,7 +346,7 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     nodeFieldTypes.push_back(node->getInternalID()->getDataType().copy());
     nodeFieldTypes.push_back(node->getLabelExpression()->getDataType().copy());
     expression_vector nodeProjectionList;
-    if (recursiveRelPatternInfo->nodeProjectionList.empty()) {
+    if (!recursiveRelPatternInfo->hasProjection) {
         for (auto& expression : node->getPropertyExpressions()) {
             nodeProjectionList.push_back(expression->copy());
         }
@@ -365,12 +365,14 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
         recursiveRelPatternInfo->relName, tableIDs, nullptr, nullptr, directionType);
     scope->addExpression(rel->toString(), rel);
     expression_vector relProjectionList;
-    if (recursiveRelPatternInfo->relProjectionList.empty()) {
+    if (!recursiveRelPatternInfo->hasProjection) {
         for (auto& expression : rel->getPropertyExpressions()) {
+            if (((PropertyExpression*)expression.get())->isInternalID()) {
+                continue;
+            }
             relProjectionList.push_back(expression->copy());
         }
     } else {
-        relProjectionList.push_back(rel->getInternalIDProperty());
         for (auto& expression : recursiveRelPatternInfo->relProjectionList) {
             relProjectionList.push_back(expressionBinder.bindExpression(*expression));
         }
@@ -380,9 +382,11 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     relFieldNames.emplace_back(InternalKeyword::SRC);
     relFieldNames.emplace_back(InternalKeyword::DST);
     relFieldNames.emplace_back(InternalKeyword::LABEL);
+    relFieldNames.emplace_back(InternalKeyword::ID);
     relFieldTypes.push_back(std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID));
     relFieldTypes.push_back(std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID));
     relFieldTypes.push_back(rel->getLabelExpression()->getDataType().copy());
+    relFieldTypes.push_back(std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID));
     bindRecursiveRelProjectionList(relProjectionList, relFieldNames, relFieldTypes);
     auto relExtraInfo = std::make_unique<StructTypeInfo>(relFieldNames, relFieldTypes);
     rel->getDataTypeReference().setExtraTypeInfo(std::move(relExtraInfo));
