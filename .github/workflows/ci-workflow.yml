@@ -184,7 +184,9 @@ jobs:
           make javatest NUM_THREADS=18
 
       - name: C and C++ Examples
+        shell: cmd
         run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
           make example NUM_THREADS=32
 
   header-include-guard-check:
