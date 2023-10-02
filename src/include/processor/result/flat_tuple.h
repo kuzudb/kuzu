@@ -6,11 +6,9 @@
 #include <vector>
 
 #include "common/api.h"
+#include "common/types/value/value.h"
 
 namespace kuzu {
-namespace common {
-class Value;
-}
 namespace processor {
 
 /**
