@@ -35,11 +35,11 @@ Connection::Connection(Database* database) {
 Connection::~Connection() {}
 
 void Connection::beginReadOnlyTransaction() {
-    query("BEGIN READ TRANSACTION");
+    query("BEGIN TRANSACTION READ ONLY");
 }
 
 void Connection::beginWriteTransaction() {
-    query("BEGIN WRITE TRANSACTION");
+    query("BEGIN TRANSACTION");
 }
 
 void Connection::commit() {

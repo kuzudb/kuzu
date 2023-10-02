@@ -88,7 +88,7 @@ void BaseGraphTest::commitOrRollbackConnectionAndInitDBIfNecessary(
     if (transactionTestType == TransactionTestType::RECOVERY) {
         // This creates a new database/conn/readConn and should run the recovery algorithm.
         createDBAndConn();
-        conn->query("BEGIN WRITE TRANSACTION");
+        conn->query("BEGIN TRANSACTION");
     }
 }
 
@@ -215,7 +215,7 @@ void BaseGraphTest::commitOrRollbackConnection(
         } else {
             conn->query("ROLLBACK");
         }
-        conn->query("BEGIN WRITE TRANSACTION");
+        conn->query("BEGIN TRANSACTION");
     } else {
         if (isCommit) {
             conn->query("COMMIT_SKIP_CHECKPOINT");

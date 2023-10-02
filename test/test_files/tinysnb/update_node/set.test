@@ -76,7 +76,7 @@ abcdefghijklmnopqrstuvwxyz
 
 -CASE SetVeryLongListErrorsTest
 -DEFINE STRING_EXCEEDS_OVERFLOW ARANGE 0 5990
--STATEMENT BEGIN WRITE TRANSACTION
+-STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.fName="${STRING_EXCEEDS_OVERFLOW}"
 ---- error
@@ -231,7 +231,7 @@ Runtime exception: Maximum length of strings is 4096. Input string's length is 2
 1|10
 
 -CASE SetNonNullValueWithWriteTransaction
--STATEMENT BEGIN WRITE TRANSACTION
+-STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age
 ---- 1
@@ -243,7 +243,7 @@ Runtime exception: Maximum length of strings is 4096. Input string's length is 2
 70
 
 -CASE SetNullValueWithWriteTransaction
--STATEMENT BEGIN WRITE TRANSACTION
+-STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age
 ---- 1
@@ -254,7 +254,7 @@ Runtime exception: Maximum length of strings is 4096. Input string's length is 2
 ---- 1
 
 -CASE MultipleSetListValue
--STATEMENT BEGIN WRITE TRANSACTION
+-STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=10 SET a.usedNames=['abcndwjbwesdsd','microsofthbbjuwgedsd']
 ---- ok
@@ -309,7 +309,7 @@ Runtime exception: Maximum length of strings is 4096. Input string's length is 2
 {age: 10, name: Alice}
 {age: 20, name: Bobdjiweknfwhuwiehfuw}
 {age: 30, name: Delta}
--STATEMENT BEGIN WRITE TRANSACTION
+-STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (t:test) WHERE t.id=1 SET t.prop={age:11, name:'Alicennewjfnwefwfw'}
 ---- ok

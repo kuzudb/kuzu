@@ -23,21 +23,21 @@ public:
     COPY = 51, FROM = 52, COLUMN = 53, NODE = 54, TABLE = 55, GROUP = 56, 
     RDF = 57, GRAPH = 58, DROP = 59, ALTER = 60, DEFAULT = 61, RENAME = 62, 
     ADD = 63, PRIMARY = 64, KEY = 65, REL = 66, TO = 67, EXPLAIN = 68, PROFILE = 69, 
-    BEGIN = 70, TRANSACTION = 71, READ = 72, WRITE = 73, COMMIT = 74, COMMIT_SKIP_CHECKPOINT = 75, 
-    ROLLBACK = 76, ROLLBACK_SKIP_CHECKPOINT = 77, UNION = 78, ALL = 79, 
-    LOAD = 80, HEADERS = 81, OPTIONAL = 82, MATCH = 83, UNWIND = 84, CREATE = 85, 
-    MERGE = 86, ON = 87, SET = 88, DELETE = 89, WITH = 90, RETURN = 91, 
-    DISTINCT = 92, STAR = 93, AS = 94, ORDER = 95, BY = 96, L_SKIP = 97, 
-    LIMIT = 98, ASCENDING = 99, ASC = 100, DESCENDING = 101, DESC = 102, 
-    WHERE = 103, SHORTEST = 104, OR = 105, XOR = 106, AND = 107, NOT = 108, 
-    INVALID_NOT_EQUAL = 109, MINUS = 110, FACTORIAL = 111, STARTS = 112, 
-    ENDS = 113, CONTAINS = 114, IS = 115, NULL_ = 116, TRUE = 117, FALSE = 118, 
-    EXISTS = 119, CASE = 120, ELSE = 121, END = 122, WHEN = 123, THEN = 124, 
-    StringLiteral = 125, EscapedChar = 126, DecimalInteger = 127, HexLetter = 128, 
-    HexDigit = 129, Digit = 130, NonZeroDigit = 131, NonZeroOctDigit = 132, 
-    ZeroDigit = 133, RegularDecimalReal = 134, UnescapedSymbolicName = 135, 
-    IdentifierStart = 136, IdentifierPart = 137, EscapedSymbolicName = 138, 
-    SP = 139, WHITESPACE = 140, Comment = 141, Unknown = 142
+    BEGIN = 70, TRANSACTION = 71, READ = 72, ONLY = 73, WRITE = 74, COMMIT = 75, 
+    COMMIT_SKIP_CHECKPOINT = 76, ROLLBACK = 77, ROLLBACK_SKIP_CHECKPOINT = 78, 
+    UNION = 79, ALL = 80, LOAD = 81, HEADERS = 82, OPTIONAL = 83, MATCH = 84, 
+    UNWIND = 85, CREATE = 86, MERGE = 87, ON = 88, SET = 89, DELETE = 90, 
+    WITH = 91, RETURN = 92, DISTINCT = 93, STAR = 94, AS = 95, ORDER = 96, 
+    BY = 97, L_SKIP = 98, LIMIT = 99, ASCENDING = 100, ASC = 101, DESCENDING = 102, 
+    DESC = 103, WHERE = 104, SHORTEST = 105, OR = 106, XOR = 107, AND = 108, 
+    NOT = 109, INVALID_NOT_EQUAL = 110, MINUS = 111, FACTORIAL = 112, STARTS = 113, 
+    ENDS = 114, CONTAINS = 115, IS = 116, NULL_ = 117, TRUE = 118, FALSE = 119, 
+    EXISTS = 120, CASE = 121, ELSE = 122, END = 123, WHEN = 124, THEN = 125, 
+    StringLiteral = 126, EscapedChar = 127, DecimalInteger = 128, HexLetter = 129, 
+    HexDigit = 130, Digit = 131, NonZeroDigit = 132, NonZeroOctDigit = 133, 
+    ZeroDigit = 134, RegularDecimalReal = 135, UnescapedSymbolicName = 136, 
+    IdentifierStart = 137, IdentifierPart = 138, EscapedSymbolicName = 139, 
+    SP = 140, WHITESPACE = 141, Comment = 142, Unknown = 143
   };
 
   enum {
@@ -788,9 +788,9 @@ public:
     antlr4::tree::TerminalNode *BEGIN();
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
-    antlr4::tree::TerminalNode *READ();
     antlr4::tree::TerminalNode *TRANSACTION();
-    antlr4::tree::TerminalNode *WRITE();
+    antlr4::tree::TerminalNode *READ();
+    antlr4::tree::TerminalNode *ONLY();
     antlr4::tree::TerminalNode *COMMIT();
     antlr4::tree::TerminalNode *COMMIT_SKIP_CHECKPOINT();
     antlr4::tree::TerminalNode *ROLLBACK();

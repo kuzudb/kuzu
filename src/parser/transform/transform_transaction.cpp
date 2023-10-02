@@ -10,10 +10,12 @@ namespace parser {
 
 std::unique_ptr<Statement> Transformer::transformTransaction(
     CypherParser::KU_TransactionContext& ctx) {
-    if (ctx.READ()) {
-        return std::make_unique<TransactionStatement>(TransactionAction::BEGIN_READ);
-    } else if (ctx.WRITE()) {
-        return std::make_unique<TransactionStatement>(TransactionAction::BEGIN_WRITE);
+    if (ctx.TRANSACTION()) {
+        if (ctx.READ()) {
+            return std::make_unique<TransactionStatement>(TransactionAction::BEGIN_READ);
+        } else {
+            return std::make_unique<TransactionStatement>(TransactionAction::BEGIN_WRITE);
+        }
     } else if (ctx.COMMIT()) {
         return std::make_unique<TransactionStatement>(TransactionAction::COMMIT);
     } else if (ctx.COMMIT_SKIP_CHECKPOINT()) {

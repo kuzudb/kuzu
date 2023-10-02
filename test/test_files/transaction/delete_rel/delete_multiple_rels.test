@@ -3,13 +3,13 @@
 --
 
 -CASE deleteMultipleRelsCommitNormalExecution
--STATEMENT BEGIN WRITE TRANSACTION
+-STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(p1:person) WHERE p.ID = 1 AND p1.ID < 45 DELETE e;
 ---- ok
 -STATEMENT COMMIT
 ---- ok 
--STATEMENT BEGIN WRITE TRANSACTION
+-STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(p:person) WHERE a.ID = 1 RETURN e.length
 ---- 6
@@ -21,14 +21,14 @@
 50
 
 -CASE deleteMultipleRelsCommitRecovery
--STATEMENT BEGIN WRITE TRANSACTION
+-STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(p1:person) WHERE p.ID = 1 AND p1.ID < 45 DELETE e;
 ---- ok
 -STATEMENT COMMIT_SKIP_CHECKPOINT
 ---- ok 
 -RELOADDB
--STATEMENT BEGIN WRITE TRANSACTION
+-STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(p:person) WHERE a.ID = 1 RETURN e.length
 ---- 6
@@ -40,13 +40,13 @@
 50
 
 -CASE deleteMultipleRelsRollbackNormalExecution
--STATEMENT BEGIN WRITE TRANSACTION
+-STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(p1:person) WHERE p.ID = 1 AND p1.ID < 45 DELETE e;
 ---- ok
 -STATEMENT Rollback
 ---- ok 
--STATEMENT BEGIN WRITE TRANSACTION
+-STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(p:person) WHERE a.ID = 1 RETURN e.length
 ---- 51
@@ -103,14 +103,14 @@
 9
 
 -CASE deleteMultipleRelsRollbackRecovery
--STATEMENT BEGIN WRITE TRANSACTION
+-STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (p:person)-[e:knows]->(p1:person) WHERE p.ID = 1 AND p1.ID < 45 DELETE e;
 ---- ok
 -STATEMENT ROLLBACK_SKIP_CHECKPOINT
 ---- ok 
 -RELOADDB
--STATEMENT BEGIN WRITE TRANSACTION
+-STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(p:person) WHERE a.ID = 1 RETURN e.length
 ---- 51

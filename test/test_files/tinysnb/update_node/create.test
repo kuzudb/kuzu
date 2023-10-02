@@ -123,7 +123,7 @@
 100|50|4:3|5:3
 
 -CASE InsertNodeWithListTest
--STATEMENT BEGIN WRITE TRANSACTION
+-STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT CREATE (:person {ID:11, workedHours:[1,2,3], usedNames:['A', 'this is a long name']})
 ---- ok
@@ -151,7 +151,7 @@
 -CASE CreateStructWithWriteTransaction
 -STATEMENT CREATE NODE TABLE test(id INT64, prop STRUCT(age INT64, name STRING), PRIMARY KEY(id));
 ---- ok
--STATEMENT BEGIN WRITE TRANSACTION
+-STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT CREATE (a:test {id:1, prop:{age:10, name:'A'}})
 ---- ok

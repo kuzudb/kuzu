@@ -184,8 +184,8 @@ oC_Profile
 PROFILE : ( 'P' | 'p' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'F' | 'f' ) ( 'I' | 'i' ) ( 'L' | 'l' ) ( 'E' | 'e' ) ;
 
 kU_Transaction
-    : BEGIN SP READ SP TRANSACTION
-        | BEGIN SP WRITE SP TRANSACTION
+    : BEGIN SP TRANSACTION
+        | BEGIN SP TRANSACTION SP READ SP ONLY
         | COMMIT
         | COMMIT_SKIP_CHECKPOINT
         | ROLLBACK
@@ -196,6 +196,8 @@ BEGIN : ( 'B' | 'b' ) ( 'E' | 'e' ) ( 'G' | 'g' ) ( 'I' | 'i' ) ( 'N' | 'n' ) ;
 TRANSACTION : ( 'T' | 't' ) ( 'R' | 'r' ) ( 'A' | 'a' ) ( 'N' | 'n' ) ( 'S' | 's' ) ( 'A' | 'a' ) ( 'C' | 'c' ) ( 'T' | 't' ) ( 'I' | 'i' ) ( 'O' | 'o' ) ( 'N' | 'n' ) ;
 
 READ : ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'A' | 'a' ) ( 'D' | 'd' ) ;
+
+ONLY : ('O' | 'o' ) ( 'N' | 'n' ) ( 'L' | 'l' ) ( 'Y' | 'y' ) ;
 
 WRITE : ( 'W' | 'w' ) ( 'R' | 'r' ) ( 'I' | 'i' ) ( 'T' | 't' ) ( 'E' | 'e' ) ;
 
