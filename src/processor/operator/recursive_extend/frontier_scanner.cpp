@@ -114,14 +114,24 @@ void PathScanner::writePathToVector(RecursiveJoinVectors* vectors, sel_t& vector
     writeDstNodeOffsetAndLength(vectors->dstNodeIDVector, vectors->pathLengthVector, vectorPos);
     vectorPos++;
     for (auto i = 1u; i < k; ++i) {
-        vectors->pathNodesIDDataVector->setValue<nodeID_t>(nodeIDDataVectorPos++, nodeIDs[i]);
+        auto nodeID = nodeIDs[i];
+        vectors->pathNodesIDDataVector->setValue<nodeID_t>(nodeIDDataVectorPos, nodeID);
+        auto labelName = tableIDToName.at(nodeID.tableID);
+        StringVector::addString(vectors->pathNodesLabelDataVector, nodeIDDataVectorPos,
+            labelName.data(), labelName.length());
+        nodeIDDataVectorPos++;
     }
     for (auto i = 0u; i < k; ++i) {
         auto srcNodeID = nodeIDs[i];
         auto dstNodeID = nodeIDs[i + 1];
         vectors->pathRelsSrcIDDataVector->setValue<nodeID_t>(relIDDataVectorPos, srcNodeID);
         vectors->pathRelsDstIDDataVector->setValue<nodeID_t>(relIDDataVectorPos, dstNodeID);
-        vectors->pathRelsIDDataVector->setValue<relID_t>(relIDDataVectorPos++, relIDs[i]);
+        auto relID = relIDs[i];
+        vectors->pathRelsIDDataVector->setValue<relID_t>(relIDDataVectorPos, relID);
+        auto labelName = tableIDToName.at(relID.tableID);
+        StringVector::addString(vectors->pathRelsLabelDataVector, relIDDataVectorPos,
+            labelName.data(), labelName.length());
+        relIDDataVectorPos++;
     }
 }
 

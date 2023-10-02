@@ -48,6 +48,30 @@ void LogicalRecursiveExtend::computeFactorizedSchema() {
     rewriter.visitOperator(recursiveChild.get());
 }
 
+void LogicalPathPropertyProbe::computeFactorizedSchema() {
+    copyChildSchema(0);
+    if (nodeChild != nullptr) {
+        auto rewriter = optimizer::FactorizationRewriter();
+        rewriter.visitOperator(nodeChild.get());
+    }
+    if (relChild != nullptr) {
+        auto rewriter = optimizer::FactorizationRewriter();
+        rewriter.visitOperator(relChild.get());
+    }
+}
+
+void LogicalPathPropertyProbe::computeFlatSchema() {
+    copyChildSchema(0);
+    if (nodeChild != nullptr) {
+        auto rewriter = optimizer::RemoveFactorizationRewriter();
+        rewriter.visitOperator(nodeChild);
+    }
+    if (relChild != nullptr) {
+        auto rewriter = optimizer::RemoveFactorizationRewriter();
+        rewriter.visitOperator(relChild);
+    }
+}
+
 void LogicalScanFrontier::computeFlatSchema() {
     createEmptySchema();
     schema->createGroup();

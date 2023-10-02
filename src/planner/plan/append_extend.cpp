@@ -150,34 +150,46 @@ void QueryPlanner::appendRecursiveExtend(std::shared_ptr<NodeExpression> boundNo
     appendFlattens(extend->getGroupsPosToFlatten(), plan);
     extend->setChild(0, plan.getLastOperator());
     extend->computeFactorizedSchema();
+    plan.setLastOperator(extend);
     // Create path node property scan plan
-    auto nodeProperties = recursiveInfo->nodeProjectionList;
-    auto pathNodePropertyScanPlan = std::make_unique<LogicalPlan>();
-    createPathNodePropertyScanPlan(
-        recursiveInfo->node, recursiveInfo->nodeProjectionList, *pathNodePropertyScanPlan);
+    std::shared_ptr<LogicalOperator> nodeScanRoot;
+    if (!recursiveInfo->nodeProjectionList.empty()) {
+        auto pathNodePropertyScanPlan = std::make_unique<LogicalPlan>();
+        createPathNodePropertyScanPlan(
+            recursiveInfo->node, recursiveInfo->nodeProjectionList, *pathNodePropertyScanPlan);
+        nodeScanRoot = pathNodePropertyScanPlan->getLastOperator();
+    }
     // Create path rel property scan plan
-    auto pathRelPropertyScanPlan = std::make_unique<LogicalPlan>();
-    createPathRelPropertyScanPlan(recursiveInfo->node, recursiveInfo->nodeCopy, recursiveInfo->rel,
-        direction, recursiveInfo->relProjectionList, *pathRelPropertyScanPlan);
+    uint64_t relScanCardinality = 1u;
+    std::shared_ptr<LogicalOperator> relScanRoot;
+    if (!recursiveInfo->relProjectionList.empty()) {
+        auto pathRelPropertyScanPlan = std::make_unique<LogicalPlan>();
+        auto relProperties = recursiveInfo->relProjectionList;
+        relProperties.push_back(recursiveInfo->rel->getInternalIDProperty());
+        createPathRelPropertyScanPlan(recursiveInfo->node, recursiveInfo->nodeCopy,
+            recursiveInfo->rel, direction, relProperties, *pathRelPropertyScanPlan);
+        relScanRoot = pathRelPropertyScanPlan->getLastOperator();
+        relScanCardinality = pathRelPropertyScanPlan->getCardinality();
+    }
     // Create path property probe
-    auto pathPropertyProbe = std::make_shared<LogicalPathPropertyProbe>(rel, extend,
-        pathNodePropertyScanPlan->getLastOperator(), pathRelPropertyScanPlan->getLastOperator());
+    auto pathPropertyProbe = std::make_shared<LogicalPathPropertyProbe>(
+        rel, extend, nodeScanRoot, relScanRoot, RecursiveJoinType::TRACK_PATH);
     pathPropertyProbe->computeFactorizedSchema();
     // Check for sip
-    auto ratio = plan.getCardinality() / pathRelPropertyScanPlan->getCardinality();
+    auto ratio = plan.getCardinality() / relScanCardinality;
     if (ratio > PlannerKnobs::SIP_RATIO) {
         pathPropertyProbe->setSIP(SidewaysInfoPassing::PROHIBIT_PROBE_TO_BUILD);
     }
+    plan.setLastOperator(std::move(pathPropertyProbe));
     // Update cost
     auto extensionRate = cardinalityEstimator->getExtensionRate(*rel, *boundNode);
     plan.setCost(CostModel::computeRecursiveExtendCost(rel->getUpperBound(), extensionRate, plan));
     // Update cardinality
     auto hasAtMostOneNbr = extendHasAtMostOneNbrGuarantee(*rel, *boundNode, direction, catalog);
     if (!hasAtMostOneNbr) {
-        auto group = pathPropertyProbe->getSchema()->getGroup(nbrNode->getInternalID());
+        auto group = plan.getSchema()->getGroup(nbrNode->getInternalID());
         group->setMultiplier(extensionRate);
     }
-    plan.setLastOperator(std::move(pathPropertyProbe));
 }
 
 void QueryPlanner::createRecursivePlan(std::shared_ptr<NodeExpression> boundNode,
@@ -206,10 +218,6 @@ void QueryPlanner::createPathNodePropertyScanPlan(
     std::shared_ptr<NodeExpression> node, const expression_vector& properties, LogicalPlan& plan) {
     appendScanInternalID(node->getInternalID(), node->getTableIDs(), plan);
     appendScanNodeProperties(node->getInternalID(), node->getTableIDs(), properties, plan);
-    auto expressionsToProject = properties;
-    expressionsToProject.push_back(node->getInternalID());
-    expressionsToProject.push_back(node->getLabelExpression());
-    appendProjection(expressionsToProject, plan);
 }
 
 void QueryPlanner::createPathRelPropertyScanPlan(std::shared_ptr<NodeExpression> boundNode,
@@ -217,9 +225,7 @@ void QueryPlanner::createPathRelPropertyScanPlan(std::shared_ptr<NodeExpression>
     ExtendDirection direction, const expression_vector& properties, LogicalPlan& plan) {
     appendScanInternalID(boundNode->getInternalID(), boundNode->getTableIDs(), plan);
     appendNonRecursiveExtend(boundNode, nbrNode, rel, direction, properties, plan);
-    auto expressionsToProject = properties;
-    expressionsToProject.push_back(rel->getLabelExpression());
-    appendProjection(expressionsToProject, plan);
+    appendProjection(properties, plan);
 }
 
 void QueryPlanner::appendNodeLabelFilter(std::shared_ptr<Expression> nodeID,

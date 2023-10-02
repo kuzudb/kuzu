@@ -137,21 +137,27 @@ void HashJoinSIPOptimizer::visitPathPropertyProbe(planner::LogicalOperator* op) 
     if (pathPropertyProbe->getSIP() == planner::SidewaysInfoPassing::PROHIBIT_PROBE_TO_BUILD) {
         return;
     }
-    if (pathPropertyProbe->getNumChildren() == 1) { // No path being tracked.
+    if (pathPropertyProbe->getJoinType() == planner::RecursiveJoinType::TRACK_NONE) {
         return;
     }
     auto recursiveRel = pathPropertyProbe->getRel();
     auto nodeID = recursiveRel->getRecursiveInfo()->node->getInternalID();
     std::vector<LogicalOperator*> opsToApplySemiMask;
-    for (auto op_ :
-        resolveOperatorsToApplySemiMask(*nodeID, pathPropertyProbe->getChild(1).get())) {
-        opsToApplySemiMask.push_back(op_);
+    if (pathPropertyProbe->getNodeChild() != nullptr) {
+        auto child = pathPropertyProbe->getNodeChild().get();
+        for (auto op_ : resolveOperatorsToApplySemiMask(*nodeID, child)) {
+            opsToApplySemiMask.push_back(op_);
+        }
     }
-    for (auto op_ :
-        resolveOperatorsToApplySemiMask(*nodeID, pathPropertyProbe->getChild(2).get())) {
-        opsToApplySemiMask.push_back(op_);
+    if (pathPropertyProbe->getRelChild() != nullptr) {
+        auto child = pathPropertyProbe->getRelChild().get();
+        for (auto op_ : resolveOperatorsToApplySemiMask(*nodeID, child)) {
+            opsToApplySemiMask.push_back(op_);
+        }
     }
-    assert(opsToApplySemiMask.size() == 2);
+    if (opsToApplySemiMask.empty()) {
+        return;
+    }
     auto semiMask =
         appendPathSemiMasker(recursiveRel, opsToApplySemiMask, pathPropertyProbe->getChild(0));
     pathPropertyProbe->setSIP(planner::SidewaysInfoPassing::PROBE_TO_BUILD);

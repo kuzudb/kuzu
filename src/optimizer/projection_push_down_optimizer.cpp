@@ -47,12 +47,9 @@ void ProjectionPushDownOptimizer::visitPathPropertyProbe(planner::LogicalOperato
     auto boundNodeID = recursiveExtend->getBoundNode()->getInternalID();
     collectExpressionsInUse(boundNodeID);
     auto rel = recursiveExtend->getRel();
-    auto recursiveInfo = rel->getRecursiveInfo();
     if (!variablesInUse.contains(rel)) {
+        pathPropertyProbe->setJoinType(planner::RecursiveJoinType::TRACK_NONE);
         recursiveExtend->setJoinType(planner::RecursiveJoinType::TRACK_NONE);
-        // TODO(Xiyang): we should remove pathPropertyProbe if we don't need to track path
-        pathPropertyProbe->setChildren(
-            std::vector<std::shared_ptr<LogicalOperator>>{pathPropertyProbe->getChild(0)});
     }
 }
 

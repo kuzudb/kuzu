@@ -131,11 +131,21 @@ std::unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
             if (comprehension->oC_Where()) {
                 recursiveInfo->whereExpression = transformWhere(*comprehension->oC_Where());
             }
-            if (!comprehension->oC_ProjectionItems().empty()) {
-                recursiveInfo->relProjectionList =
-                    transformProjectionItems(*comprehension->oC_ProjectionItems(0));
-                recursiveInfo->nodeProjectionList =
-                    transformProjectionItems(*comprehension->oC_ProjectionItems(1));
+            if (comprehension->kU_IntermediateRelProjectionItems()) {
+                recursiveInfo->hasProjection = true;
+                auto relProjectionItem = comprehension->kU_IntermediateRelProjectionItems();
+                if (relProjectionItem->oC_ProjectionItems()) {
+                    recursiveInfo->relProjectionList =
+                        transformProjectionItems(*relProjectionItem->oC_ProjectionItems());
+                }
+            }
+            if (comprehension->kU_IntermediateNodeProjectionItems()) {
+                recursiveInfo->hasProjection = true;
+                auto nodeProjectionItem = comprehension->kU_IntermediateNodeProjectionItems();
+                if (nodeProjectionItem->oC_ProjectionItems()) {
+                    recursiveInfo->nodeProjectionList =
+                        transformProjectionItems(*nodeProjectionItem->oC_ProjectionItems());
+                }
             }
         }
     }

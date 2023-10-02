@@ -23,10 +23,16 @@ public:
     static inline void operation(common::list_entry_t& listEntry, int64_t pos, T& result,
         common::ValueVector& listVector, common::ValueVector& posVector,
         common::ValueVector& resultVector) {
+        if (pos == 0) {
+            throw common::RuntimeException("List extract takes 1-based position.");
+        }
         uint64_t upos = pos == -1 ? listEntry.size : pos;
         if (listEntry.size < upos) {
             throw common::RuntimeException("list_extract(list, index): index=" +
                                            common::TypeUtils::toString(pos) + " is out of range.");
+        }
+        if (listEntry.size == 0) {
+            return; // TODO(Xiyang/Ziyi): we should fix when extracting last element of list.
         }
         auto listDataVector = common::ListVector::getDataVector(&listVector);
         auto listValues =

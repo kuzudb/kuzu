@@ -40,28 +40,38 @@ class LogicalPathPropertyProbe : public LogicalOperator {
 public:
     LogicalPathPropertyProbe(std::shared_ptr<binder::RelExpression> recursiveRel,
         std::shared_ptr<LogicalOperator> probeChild, std::shared_ptr<LogicalOperator> nodeChild,
-        std::shared_ptr<LogicalOperator> relChild)
-        : LogicalOperator{LogicalOperatorType::PATH_PROPERTY_PROBE,
-              std::vector<std::shared_ptr<LogicalOperator>>{
-                  std::move(probeChild), std::move(nodeChild), std::move(relChild)}},
-          recursiveRel{std::move(recursiveRel)}, sip{SidewaysInfoPassing::NONE} {}
+        std::shared_ptr<LogicalOperator> relChild, RecursiveJoinType joinType)
+        : LogicalOperator{LogicalOperatorType::PATH_PROPERTY_PROBE, std::move(probeChild)},
+          recursiveRel{std::move(recursiveRel)}, nodeChild{std::move(nodeChild)},
+          relChild{std::move(relChild)}, joinType{joinType}, sip{SidewaysInfoPassing::NONE} {}
 
-    inline void computeFactorizedSchema() final { copyChildSchema(0); }
-    inline void computeFlatSchema() final { copyChildSchema(0); }
+    void computeFactorizedSchema() final;
+    void computeFlatSchema() final;
 
     std::string getExpressionsForPrinting() const override { return recursiveRel->toString(); }
 
     inline std::shared_ptr<binder::RelExpression> getRel() const { return recursiveRel; }
+
+    inline void setJoinType(RecursiveJoinType joinType_) { joinType = joinType_; }
+    inline RecursiveJoinType getJoinType() const { return joinType; }
+
     inline void setSIP(SidewaysInfoPassing sip_) { sip = sip_; }
     inline SidewaysInfoPassing getSIP() const { return sip; }
+    inline std::shared_ptr<LogicalOperator> getNodeChild() const { return nodeChild; }
+    inline std::shared_ptr<LogicalOperator> getRelChild() const { return relChild; }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalPathPropertyProbe>(
-            recursiveRel, children[0]->copy(), children[1]->copy(), children[2]->copy());
+        auto nodeChildCopy = nodeChild == nullptr ? nullptr : nodeChild->copy();
+        auto relChildCopy = relChild == nullptr ? nullptr : relChild->copy();
+        return std::make_unique<LogicalPathPropertyProbe>(recursiveRel, children[0]->copy(),
+            std::move(nodeChildCopy), std::move(relChildCopy), joinType);
     }
 
 private:
     std::shared_ptr<binder::RelExpression> recursiveRel;
+    std::shared_ptr<LogicalOperator> nodeChild;
+    std::shared_ptr<LogicalOperator> relChild;
+    RecursiveJoinType joinType;
     SidewaysInfoPassing sip;
 };
 

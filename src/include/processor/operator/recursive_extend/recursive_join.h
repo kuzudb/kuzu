@@ -33,24 +33,27 @@ struct RecursiveJoinDataInfo {
     DataPos recursiveEdgeIDPos;
     // Path info
     DataPos pathPos;
+    std::unordered_map<common::table_id_t, std::string> tableIDToName;
 
     RecursiveJoinDataInfo(const DataPos& srcNodePos, const DataPos& dstNodePos,
         std::unordered_set<common::table_id_t> dstNodeTableIDs, const DataPos& pathLengthPos,
         std::unique_ptr<ResultSetDescriptor> localResultSetDescriptor,
         const DataPos& recursiveDstNodeIDPos,
         std::unordered_set<common::table_id_t> recursiveDstNodeTableIDs,
-        const DataPos& recursiveEdgeIDPos, const DataPos& pathPos)
+        const DataPos& recursiveEdgeIDPos, const DataPos& pathPos,
+        std::unordered_map<common::table_id_t, std::string> tableIDToName)
         : srcNodePos{srcNodePos}, dstNodePos{dstNodePos},
           dstNodeTableIDs{std::move(dstNodeTableIDs)}, pathLengthPos{pathLengthPos},
           localResultSetDescriptor{std::move(localResultSetDescriptor)},
           recursiveDstNodeIDPos{recursiveDstNodeIDPos}, recursiveDstNodeTableIDs{std::move(
                                                             recursiveDstNodeTableIDs)},
-          recursiveEdgeIDPos{recursiveEdgeIDPos}, pathPos{pathPos} {}
+          recursiveEdgeIDPos{recursiveEdgeIDPos}, pathPos{pathPos}, tableIDToName{
+                                                                        std::move(tableIDToName)} {}
 
     inline std::unique_ptr<RecursiveJoinDataInfo> copy() {
         return std::make_unique<RecursiveJoinDataInfo>(srcNodePos, dstNodePos, dstNodeTableIDs,
             pathLengthPos, localResultSetDescriptor->copy(), recursiveDstNodeIDPos,
-            recursiveDstNodeTableIDs, recursiveEdgeIDPos, pathPos);
+            recursiveDstNodeTableIDs, recursiveEdgeIDPos, pathPos, tableIDToName);
     }
 };
 
@@ -58,13 +61,15 @@ struct RecursiveJoinVectors {
     common::ValueVector* srcNodeIDVector = nullptr;
     common::ValueVector* dstNodeIDVector = nullptr;
     common::ValueVector* pathLengthVector = nullptr;
-    common::ValueVector* pathVector = nullptr;              // STRUCT(LIST(NODE), LIST(REL))
-    common::ValueVector* pathNodesVector = nullptr;         // LIST(NODE)
-    common::ValueVector* pathNodesIDDataVector = nullptr;   // INTERNAL_ID
-    common::ValueVector* pathRelsVector = nullptr;          // LIST(REL)
-    common::ValueVector* pathRelsSrcIDDataVector = nullptr; // INTERNAL_ID
-    common::ValueVector* pathRelsDstIDDataVector = nullptr; // INTERNAL_ID
-    common::ValueVector* pathRelsIDDataVector = nullptr;    // INTERNAL_ID
+    common::ValueVector* pathVector = nullptr;               // STRUCT(LIST(NODE), LIST(REL))
+    common::ValueVector* pathNodesVector = nullptr;          // LIST(NODE)
+    common::ValueVector* pathNodesIDDataVector = nullptr;    // INTERNAL_ID
+    common::ValueVector* pathNodesLabelDataVector = nullptr; // STRING
+    common::ValueVector* pathRelsVector = nullptr;           // LIST(REL)
+    common::ValueVector* pathRelsSrcIDDataVector = nullptr;  // INTERNAL_ID
+    common::ValueVector* pathRelsDstIDDataVector = nullptr;  // INTERNAL_ID
+    common::ValueVector* pathRelsIDDataVector = nullptr;     // INTERNAL_ID
+    common::ValueVector* pathRelsLabelDataVector = nullptr;  // STRING
 
     common::ValueVector* recursiveEdgeIDVector = nullptr;
     common::ValueVector* recursiveDstNodeIDVector = nullptr;
