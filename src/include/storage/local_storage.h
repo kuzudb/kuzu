@@ -33,6 +33,7 @@ private:
     std::map<common::table_id_t, std::unique_ptr<LocalTable>> tables;
     storage::NodesStore* nodesStore;
     storage::MemoryManager* mm;
+    bool enableCompression;
 };
 
 } // namespace storage

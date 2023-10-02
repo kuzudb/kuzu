@@ -31,8 +31,8 @@ struct VarListDataColumnChunk {
 
 class VarListColumnChunk : public ColumnChunk {
 public:
-    VarListColumnChunk(
-        common::LogicalType dataType, std::unique_ptr<common::CSVReaderConfig> csvReaderConfig);
+    VarListColumnChunk(common::LogicalType dataType,
+        std::unique_ptr<common::CSVReaderConfig> csvReaderConfig, bool enableCompression);
 
     inline ColumnChunk* getDataColumnChunk() const {
         return varListDataColumnChunk.dataColumnChunk.get();

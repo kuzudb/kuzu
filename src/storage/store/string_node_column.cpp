@@ -23,7 +23,7 @@ StringNodeColumn::StringNodeColumn(LogicalType dataType, const MetadataDAHInfo& 
     BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
     transaction::Transaction* transaction, RWPropertyStats stats)
     : NodeColumn{std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
-          transaction, stats, true} {
+          transaction, stats, false /* enableCompression */, true /* requireNullColumn */} {
     if (this->dataType.getLogicalTypeID() == LogicalTypeID::STRING) {
         writeFromVectorFunc = StringNodeColumnFunc::writeStringValuesToPage;
     }

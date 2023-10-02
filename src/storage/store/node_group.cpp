@@ -11,20 +11,20 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-NodeGroup::NodeGroup(TableSchema* schema, CSVReaderConfig* csvReaderConfig)
+NodeGroup::NodeGroup(TableSchema* schema, CSVReaderConfig* csvReaderConfig, bool enableCompression)
     : nodeGroupIdx{UINT64_MAX}, numNodes{0} {
     chunks.reserve(schema->properties.size());
     for (auto& property : schema->properties) {
-        chunks.push_back(
-            ColumnChunkFactory::createColumnChunk(*property->getDataType(), csvReaderConfig));
+        chunks.push_back(ColumnChunkFactory::createColumnChunk(
+            *property->getDataType(), enableCompression, csvReaderConfig));
     }
 }
 
 NodeGroup::NodeGroup(TableData* table) : nodeGroupIdx{UINT64_MAX}, numNodes{0} {
     chunks.reserve(table->getNumColumns());
     for (auto columnID = 0u; columnID < table->getNumColumns(); columnID++) {
-        chunks.push_back(
-            ColumnChunkFactory::createColumnChunk(table->getColumn(columnID)->getDataType()));
+        chunks.push_back(ColumnChunkFactory::createColumnChunk(
+            table->getColumn(columnID)->getDataType(), table->compressionEnabled()));
     }
 }
 

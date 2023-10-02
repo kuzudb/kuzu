@@ -223,14 +223,14 @@ impl std::fmt::Display for QueryResult {
 #[cfg(test)]
 mod tests {
     use crate::connection::Connection;
-    use crate::database::Database;
+    use crate::database::{Database, SystemConfig};
     use crate::logical_type::LogicalType;
     use crate::query_result::CSVOptions;
 
     #[test]
     fn test_query_result_metadata() -> anyhow::Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), 0)?;
+        let db = Database::new(temp_dir.path(), SystemConfig::default())?;
         let connection = Connection::new(&db)?;
 
         // Create schema.
@@ -257,7 +257,7 @@ mod tests {
     fn test_csv() -> anyhow::Result<()> {
         let temp_dir = tempfile::tempdir()?;
         let path = temp_dir.path();
-        let db = Database::new(path, 0)?;
+        let db = Database::new(path, SystemConfig::default())?;
         let conn = Connection::new(&db)?;
         conn.query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")?;
         conn.query("CREATE (:Person {name: 'Alice', age: 25});")?;
@@ -283,7 +283,7 @@ mod tests {
         use arrow::array::{Int64Array, StringArray};
         let temp_dir = tempfile::tempdir()?;
         let path = temp_dir.path();
-        let db = Database::new(path, 0)?;
+        let db = Database::new(path, SystemConfig::default())?;
         let conn = Connection::new(&db)?;
         conn.query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")?;
         conn.query("CREATE (:Person {name: 'Alice', age: 25});")?;

@@ -28,7 +28,7 @@ public:
         database.reset();
         auto databasePath = getDatabasePath();
         auto databasePathCStr = databasePath.c_str();
-        _database = kuzu_database_init(databasePathCStr, 0);
+        _database = kuzu_database_init(databasePathCStr, kuzu_default_system_config());
         connection = kuzu_connection_init(_database);
     }
 

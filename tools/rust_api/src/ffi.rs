@@ -82,6 +82,8 @@ pub(crate) mod ffi {
         fn new_database(
             databasePath: &CxxString,
             bufferPoolSize: u64,
+            maxNumThreads: u64,
+            enableCompression: bool,
         ) -> Result<UniquePtr<Database>>;
 
         fn database_set_logging_level(database: Pin<&mut Database>, level: &CxxString);

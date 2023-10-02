@@ -30,10 +30,10 @@ pub struct PreparedStatement {
 /// [error](Error::FailedQuery) if another write query is in progress.
 ///
 /// ```
-/// # use kuzu::{Connection, Database, Value, Error};
+/// # use kuzu::{Connection, Database, SystemConfig, Value, Error};
 /// # fn main() -> anyhow::Result<()> {
 /// # let temp_dir = tempfile::tempdir()?;
-/// # let db = Database::new(temp_dir.path(), 0)?;
+/// # let db = Database::new(temp_dir.path(), SystemConfig::default())?;
 /// let conn = Connection::new(&db)?;
 /// conn.query("CREATE NODE TABLE Person(name STRING, age INT32, PRIMARY KEY(name));")?;
 /// // Write queries must be done sequentially
@@ -79,12 +79,12 @@ pub struct PreparedStatement {
 /// transaction, then the active transaction is rolled back.
 ///
 /// ```
-/// use kuzu::{Database, Connection};
+/// use kuzu::{Database, SystemConfig, Connection};
 /// # use anyhow::Error;
 /// # fn main() -> Result<(), Error> {
 /// # let temp_dir = tempfile::tempdir()?;
 /// # let path = temp_dir.path();
-/// let db = Database::new(path, 0)?;
+/// let db = Database::new(path, SystemConfig::default())?;
 /// let conn = Connection::new(&db)?;
 /// // AUTO_COMMIT mode
 /// conn.query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")?;
@@ -102,12 +102,12 @@ pub struct PreparedStatement {
 /// ```
 ///
 /// ```
-/// use kuzu::{Database, Connection};
+/// use kuzu::{Database, SystemConfig, Connection};
 /// # use anyhow::Error;
 /// # fn main() -> Result<(), Error> {
 /// # let temp_dir = tempfile::tempdir()?;
 /// # let path = temp_dir.path();
-/// let db = Database::new(path, 0)?;
+/// let db = Database::new(path, SystemConfig::default())?;
 /// let conn = Connection::new(&db)?;
 /// // AUTO_COMMIT mode
 /// conn.query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")?;
@@ -292,7 +292,7 @@ impl<'a> Connection<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{connection::Connection, database::Database, value::Value};
+    use crate::{Connection, Database, SystemConfig, Value};
     use anyhow::{Error, Result};
     // Note: Cargo runs tests in parallel by default, however kuzu does not support
     // working with multiple databases in parallel.
@@ -301,7 +301,7 @@ mod tests {
     #[test]
     fn test_connection_threads() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), 0)?;
+        let db = Database::new(temp_dir.path(), SystemConfig::default())?;
         let mut conn = Connection::new(&db)?;
         conn.set_max_num_threads_for_exec(5);
         assert_eq!(conn.get_max_num_threads_for_exec(), 5);
@@ -312,7 +312,7 @@ mod tests {
     #[test]
     fn test_invalid_query() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), 0)?;
+        let db = Database::new(temp_dir.path(), SystemConfig::default())?;
         let conn = Connection::new(&db)?;
         conn.query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")?;
         conn.query("CREATE (:Person {name: 'Alice', age: 25});")?;
@@ -335,7 +335,7 @@ Invalid input <MATCH (a:Person RETURN>: expected rule oC_SingleQuery (line: 1, o
     #[test]
     fn test_query_result() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), 0)?;
+        let db = Database::new(temp_dir.path(), SystemConfig::default())?;
         let conn = Connection::new(&db)?;
         conn.query("CREATE NODE TABLE Person(name STRING, age INT16, PRIMARY KEY(name));")?;
         conn.query("CREATE (:Person {name: 'Alice', age: 25});")?;
@@ -352,7 +352,7 @@ Invalid input <MATCH (a:Person RETURN>: expected rule oC_SingleQuery (line: 1, o
     #[test]
     fn test_params() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), 0)?;
+        let db = Database::new(temp_dir.path(), SystemConfig::default())?;
         let conn = Connection::new(&db)?;
         conn.query("CREATE NODE TABLE Person(name STRING, age INT16, PRIMARY KEY(name));")?;
         conn.query("CREATE (:Person {name: 'Alice', age: 25});")?;
@@ -370,7 +370,7 @@ Invalid input <MATCH (a:Person RETURN>: expected rule oC_SingleQuery (line: 1, o
     #[test]
     fn test_params_invalid_type() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), 0)?;
+        let db = Database::new(temp_dir.path(), SystemConfig::default())?;
         let conn = Connection::new(&db)?;
         conn.query("CREATE NODE TABLE Person(name STRING, age INT16, PRIMARY KEY(name));")?;
         conn.query("CREATE (:Person {name: 'Alice', age: 25});")?;
@@ -395,7 +395,7 @@ Invalid input <MATCH (a:Person RETURN>: expected rule oC_SingleQuery (line: 1, o
     #[test]
     fn test_multithreaded_single_conn() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), 0)?;
+        let db = Database::new(temp_dir.path(), SystemConfig::default())?;
 
         let conn = Connection::new(&db)?;
         conn.query("CREATE NODE TABLE Person(name STRING, age INT32, PRIMARY KEY(name));")?;
@@ -427,7 +427,7 @@ Invalid input <MATCH (a:Person RETURN>: expected rule oC_SingleQuery (line: 1, o
     #[test]
     fn test_multithreaded_multiple_conn() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), 0)?;
+        let db = Database::new(temp_dir.path(), SystemConfig::default())?;
 
         let conn = Connection::new(&db)?;
         conn.query("CREATE NODE TABLE Person(name STRING, age INT32, PRIMARY KEY(name));")?;
@@ -461,7 +461,7 @@ Invalid input <MATCH (a:Person RETURN>: expected rule oC_SingleQuery (line: 1, o
     #[test]
     fn test_table_names() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), 0)?;
+        let db = Database::new(temp_dir.path(), SystemConfig::default())?;
         let conn = Connection::new(&db)?;
         conn.query("CREATE NODE TABLE Person(name STRING, age INT16, PRIMARY KEY(name));")?;
         conn.query("CREATE REL TABLE Follows(FROM Person TO Person, since DATE);")?;

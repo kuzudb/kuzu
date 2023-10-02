@@ -210,7 +210,8 @@ void LocalColumn::commitLocalChunkInPlace(
 void LocalColumn::commitLocalChunkOutOfPlace(
     node_group_idx_t nodeGroupIdx, LocalColumnChunk* localChunk) {
     // Trigger rewriting the column chunk to another new place.
-    auto columnChunk = ColumnChunkFactory::createColumnChunk(column->getDataType());
+    auto columnChunk =
+        ColumnChunkFactory::createColumnChunk(column->getDataType(), enableCompression);
     // First scan the whole column chunk into ColumnChunk.
     column->scan(nodeGroupIdx, columnChunk.get());
     for (auto& [vectorIdx, vector] : localChunk->vectors) {
@@ -244,8 +245,10 @@ void VarListLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
     assert(chunks.contains(nodeGroupIdx));
     auto chunk = chunks.at(nodeGroupIdx).get();
     auto varListColumn = reinterpret_cast<VarListNodeColumn*>(column);
-    auto listColumnChunkInStorage = ColumnChunkFactory::createColumnChunk(column->getDataType());
-    auto columnChunkToUpdate = ColumnChunkFactory::createColumnChunk(column->getDataType());
+    auto listColumnChunkInStorage =
+        ColumnChunkFactory::createColumnChunk(column->getDataType(), enableCompression);
+    auto columnChunkToUpdate =
+        ColumnChunkFactory::createColumnChunk(column->getDataType(), enableCompression);
     varListColumn->scan(nodeGroupIdx, listColumnChunkInStorage.get());
     offset_t nextOffsetToWrite = 0;
     auto numNodesInGroup =
@@ -284,13 +287,15 @@ void VarListLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
         dataColumnChunk, nodeGroupIdx);
 }
 
-StructLocalColumn::StructLocalColumn(NodeColumn* column) : LocalColumn{column} {
+StructLocalColumn::StructLocalColumn(NodeColumn* column, bool enableCompression)
+    : LocalColumn{column, enableCompression} {
     assert(column->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
     auto dataType = column->getDataType();
     auto structFields = StructType::getFields(&dataType);
     fields.resize(structFields.size());
     for (auto i = 0u; i < structFields.size(); i++) {
-        fields[i] = LocalColumnFactory::createLocalColumn(column->getChildColumn(i));
+        fields[i] =
+            LocalColumnFactory::createLocalColumn(column->getChildColumn(i), enableCompression);
     }
 }
 
@@ -339,19 +344,20 @@ void StructLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
     }
 }
 
-std::unique_ptr<LocalColumn> LocalColumnFactory::createLocalColumn(NodeColumn* column) {
+std::unique_ptr<LocalColumn> LocalColumnFactory::createLocalColumn(
+    NodeColumn* column, bool enableCompression) {
     switch (column->getDataType().getPhysicalType()) {
     case PhysicalTypeID::STRING: {
-        return std::make_unique<StringLocalColumn>(column);
+        return std::make_unique<StringLocalColumn>(column, enableCompression);
     }
     case PhysicalTypeID::STRUCT: {
-        return std::make_unique<StructLocalColumn>(column);
+        return std::make_unique<StructLocalColumn>(column, enableCompression);
     }
     case PhysicalTypeID::VAR_LIST: {
-        return std::make_unique<VarListLocalColumn>(column);
+        return std::make_unique<VarListLocalColumn>(column, enableCompression);
     }
     default: {
-        return std::make_unique<LocalColumn>(column);
+        return std::make_unique<LocalColumn>(column, enableCompression);
     }
     }
 }
@@ -381,8 +387,8 @@ void LocalTable::lookup(ValueVector* nodeIDVector, const std::vector<column_id_t
 void LocalTable::update(column_id_t columnID, ValueVector* nodeIDVector,
     ValueVector* propertyVector, MemoryManager* mm) {
     if (!columns.contains(columnID)) {
-        columns.emplace(
-            columnID, LocalColumnFactory::createLocalColumn(table->getColumn(columnID)));
+        columns.emplace(columnID,
+            LocalColumnFactory::createLocalColumn(table->getColumn(columnID), enableCompression));
     }
     columns.at(columnID)->update(nodeIDVector, propertyVector, mm);
 }
@@ -390,8 +396,8 @@ void LocalTable::update(column_id_t columnID, ValueVector* nodeIDVector,
 void LocalTable::update(column_id_t columnID, offset_t nodeOffset, ValueVector* propertyVector,
     sel_t posInPropertyVector, MemoryManager* mm) {
     if (!columns.contains(columnID)) {
-        columns.emplace(
-            columnID, LocalColumnFactory::createLocalColumn(table->getColumn(columnID)));
+        columns.emplace(columnID,
+            LocalColumnFactory::createLocalColumn(table->getColumn(columnID), enableCompression));
     }
     columns.at(columnID)->update(nodeOffset, propertyVector, posInPropertyVector, mm);
 }

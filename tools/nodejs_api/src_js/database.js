@@ -13,7 +13,7 @@ class Database {
    * @param {String} databasePath path to the database file.
    * @param {Number} bufferManagerSize size of the buffer manager in bytes.
    */
-  constructor(databasePath, bufferManagerSize = 0) {
+  constructor(databasePath, bufferManagerSize = 0, enableCompression = true) {
     if (typeof databasePath !== "string") {
       throw new Error("Database path must be a string.");
     }
@@ -21,7 +21,7 @@ class Database {
       throw new Error("Buffer manager size must be a positive integer.");
     }
     bufferManagerSize = Math.floor(bufferManagerSize);
-    this._database = new KuzuNative.NodeDatabase(databasePath, bufferManagerSize);
+    this._database = new KuzuNative.NodeDatabase(databasePath, bufferManagerSize, enableCompression);
     this._isInitialized = false;
     this._initPromise = null;
   }

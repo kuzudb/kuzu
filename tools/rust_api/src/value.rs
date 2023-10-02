@@ -695,10 +695,7 @@ impl From<&str> for Value {
 mod tests {
     use crate::ffi::ffi;
     use crate::{
-        connection::Connection,
-        database::Database,
-        logical_type::LogicalType,
-        value::{InternalID, NodeVal, RelVal, Value},
+        Connection, Database, InternalID, LogicalType, NodeVal, RelVal, SystemConfig, Value,
     };
     use anyhow::Result;
     use std::collections::HashSet;
@@ -764,7 +761,7 @@ mod tests {
             /// Tests that passing the values through the database returns what we put in
             fn $name() -> Result<()> {
                 let temp_dir = tempfile::tempdir()?;
-                let db = Database::new(temp_dir.path(), 0)?;
+                let db = Database::new(temp_dir.path(), SystemConfig::default())?;
                 let conn = Connection::new(&db)?;
                 conn.query(&format!(
                     "CREATE NODE TABLE Person(name STRING, item {}, PRIMARY KEY(name));",
@@ -905,7 +902,7 @@ mod tests {
     /// Tests that the list value is correctly constructed
     fn test_var_list_get() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), 0)?;
+        let db = Database::new(temp_dir.path(), SystemConfig::default())?;
         let conn = Connection::new(&db)?;
         for result in conn.query("RETURN [\"Alice\", \"Bob\"] AS l;")? {
             assert_eq!(result.len(), 1);
@@ -922,7 +919,7 @@ mod tests {
     /// Test that the timestamp round-trips through kuzu's internal timestamp
     fn test_timestamp() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), 0)?;
+        let db = Database::new(temp_dir.path(), SystemConfig::default())?;
         let conn = Connection::new(&db)?;
         conn.query(
             "CREATE NODE TABLE Person(name STRING, registerTime TIMESTAMP, PRIMARY KEY(name));",
@@ -969,7 +966,7 @@ mod tests {
     #[test]
     fn test_node() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), 0)?;
+        let db = Database::new(temp_dir.path(), SystemConfig::default())?;
         let conn = Connection::new(&db)?;
         conn.query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")?;
         conn.query("CREATE (:Person {name: \"Alice\", age: 25});")?;
@@ -995,7 +992,7 @@ mod tests {
     #[test]
     fn test_recursive_rel() -> Result<()> {
         let temp_dir = tempfile::TempDir::new()?;
-        let db = Database::new(temp_dir.path(), 0)?;
+        let db = Database::new(temp_dir.path(), SystemConfig::default())?;
         let conn = Connection::new(&db)?;
         conn.query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")?;
         conn.query("CREATE REL TABLE knows(FROM Person TO Person);")?;
@@ -1043,7 +1040,7 @@ mod tests {
     /// Test that null values are read correctly by the API
     fn test_null() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), 0)?;
+        let db = Database::new(temp_dir.path(), SystemConfig::default())?;
         let conn = Connection::new(&db)?;
         let result = conn.query("RETURN null")?.next();
         let result = &result.unwrap()[0];
@@ -1056,7 +1053,7 @@ mod tests {
     /// Tests that passing the values through the database returns what we put in
     fn test_serial() -> Result<()> {
         let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), 0)?;
+        let db = Database::new(temp_dir.path(), SystemConfig::default())?;
         let conn = Connection::new(&db)?;
         conn.query("CREATE NODE TABLE Person(id SERIAL, name STRING, PRIMARY KEY(id));")?;
         conn.query("CREATE (:Person {name: \"Bob\"});")?;

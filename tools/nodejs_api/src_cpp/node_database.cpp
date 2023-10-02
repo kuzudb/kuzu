@@ -19,6 +19,7 @@ NodeDatabase::NodeDatabase(const Napi::CallbackInfo& info) : Napi::ObjectWrap<No
     Napi::HandleScope scope(env);
     databasePath = info[0].ToString();
     bufferPoolSize = info[1].As<Napi::Number>().Int64Value();
+    enableCompression = info[2].As<Napi::Boolean>().Value();
 }
 
 Napi::Value NodeDatabase::InitAsync(const Napi::CallbackInfo& info) {
@@ -33,13 +34,14 @@ Napi::Value NodeDatabase::InitAsync(const Napi::CallbackInfo& info) {
 }
 
 void NodeDatabase::InitCppDatabase() {
+    auto systemConfig = SystemConfig();
     if (bufferPoolSize) {
-        auto systemConfig = SystemConfig();
         systemConfig.bufferPoolSize = bufferPoolSize;
-        this->database = make_shared<Database>(databasePath, systemConfig);
-    } else {
-        this->database = make_shared<Database>(databasePath);
     }
+    if (!enableCompression) {
+        systemConfig.enableCompression = enableCompression;
+    }
+    this->database = make_shared<Database>(databasePath, systemConfig);
 }
 
 void NodeDatabase::setLoggingLevel(const Napi::CallbackInfo& info) {

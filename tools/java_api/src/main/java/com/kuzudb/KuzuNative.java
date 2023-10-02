@@ -56,7 +56,7 @@ public class KuzuNative {
     }
 
     // Database
-    protected static native long kuzu_database_init(String database_path, long buffer_pool_size);
+    protected static native long kuzu_database_init(String database_path, long buffer_pool_size, boolean enable_compression);
 
     protected static native void kuzu_database_destroy(KuzuDatabase db);
 

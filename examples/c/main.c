@@ -3,7 +3,7 @@
 #include "c_api/kuzu.h"
 
 int main() {
-    kuzu_database* db = kuzu_database_init("" /* fill db path */, 0);
+    kuzu_database* db = kuzu_database_init("" /* fill db path */, kuzu_default_system_config());
     kuzu_connection* conn = kuzu_connection_init(db);
 
     kuzu_query_result* result;
@@ -18,8 +18,7 @@ int main() {
     kuzu_query_result_destroy(result);
 
     // Execute a simple query.
-    result = kuzu_connection_query(
-        conn, "MATCH (a:Person) RETURN a.name AS NAME, a.age AS AGE;");
+    result = kuzu_connection_query(conn, "MATCH (a:Person) RETURN a.name AS NAME, a.age AS AGE;");
 
     // Fetch each value.
     while (kuzu_query_result_has_next(result)) {

@@ -78,8 +78,8 @@ public:
         for (auto& arrowColumnPos : copyNodeInfo.dataColumnPoses) {
             dataColumnVectors.push_back(resultSet->getValueVector(arrowColumnPos).get());
         }
-        localNodeGroup = std::make_unique<storage::NodeGroup>(
-            sharedState->tableSchema, sharedState->csvReaderConfig.get());
+        localNodeGroup = std::make_unique<storage::NodeGroup>(sharedState->tableSchema,
+            sharedState->csvReaderConfig.get(), sharedState->table->compressionEnabled());
     }
 
     inline bool canParallel() const final { return !copyNodeInfo.containsSerial; }

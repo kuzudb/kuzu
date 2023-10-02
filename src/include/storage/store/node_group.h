@@ -13,7 +13,8 @@ class TableData;
 
 class NodeGroup {
 public:
-    explicit NodeGroup(catalog::TableSchema* schema, common::CSVReaderConfig* csvReaderConfig);
+    explicit NodeGroup(catalog::TableSchema* schema, common::CSVReaderConfig* csvReaderConfig,
+        bool enableCompression);
     explicit NodeGroup(TableData* table);
 
     inline void setNodeGroupIdx(uint64_t nodeGroupIdx_) { this->nodeGroupIdx = nodeGroupIdx_; }

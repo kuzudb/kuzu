@@ -153,12 +153,15 @@ void javaMapToCPPMap(
  */
 
 JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1database_1init(
-    JNIEnv* env, jclass, jstring database_path, jlong buffer_pool_size) {
+    JNIEnv* env, jclass, jstring database_path, jlong buffer_pool_size, jboolean enable_compression) {
 
     const char* path = env->GetStringUTFChars(database_path, JNI_FALSE);
     uint64_t buffer = static_cast<uint64_t>(buffer_pool_size);
+    SystemConfig systemConfig;
+    systemConfig.bufferPoolSize = buffer == 0 ? -1u : buffer;
+    systemConfig.enableCompression = enable_compression;
     try {
-        Database* db = buffer == 0 ? new Database(path) : new Database(path, SystemConfig(buffer));
+        Database* db = new Database(path, systemConfig);
         uint64_t address = reinterpret_cast<uint64_t>(db);
 
         env->ReleaseStringUTFChars(database_path, path);

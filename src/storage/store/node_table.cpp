@@ -14,12 +14,12 @@ namespace storage {
 
 NodeTable::NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH,
     NodesStoreStatsAndDeletedIDs* nodesStatisticsAndDeletedIDs, BufferManager& bufferManager,
-    WAL* wal, NodeTableSchema* nodeTableSchema)
+    WAL* wal, NodeTableSchema* nodeTableSchema, bool enableCompression)
     : nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs},
       pkColumnID{nodeTableSchema->getColumnID(nodeTableSchema->getPrimaryKeyPropertyID())},
       tableID{nodeTableSchema->tableID}, bufferManager{bufferManager}, wal{wal} {
     tableData = std::make_unique<TableData>(dataFH, metadataFH, tableID, &bufferManager, wal,
-        nodeTableSchema->getProperties(), nodesStatisticsAndDeletedIDs);
+        nodeTableSchema->getProperties(), nodesStatisticsAndDeletedIDs, enableCompression);
     initializePKIndex(nodeTableSchema);
 }
 
