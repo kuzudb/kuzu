@@ -180,14 +180,14 @@ public:
      * @return the value of the given type.
      */
     template<class T>
-    KUZU_API T getValue() const {
+    T getValue() const {
         throw std::runtime_error("Unimplemented template for Value::getValue()");
     }
     /**
      * @return a reference to the value of the given type.
      */
     template<class T>
-    KUZU_API T& getValueReference() {
+    T& getValueReference() {
         throw std::runtime_error("Unimplemented template for Value::getValueReference()");
     }
     /**
@@ -195,7 +195,7 @@ public:
      * @return a Value object based on value.
      */
     template<class T>
-    KUZU_API static Value createValue(T value) {
+    static Value createValue(T value) {
         throw std::runtime_error("Unimplemented template for Value::createValue()");
     }
     /**
