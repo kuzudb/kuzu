@@ -13,7 +13,6 @@
 using namespace kuzu::binder;
 using namespace kuzu::common;
 using namespace kuzu::storage;
-using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace catalog {

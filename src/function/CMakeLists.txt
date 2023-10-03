@@ -1,4 +1,5 @@
 add_subdirectory(aggregate)
+add_subdirectory(table_functions)
 
 add_library(kuzu_function
         OBJECT
@@ -10,7 +11,6 @@ add_library(kuzu_function
         comparison_functions.cpp
         find_function.cpp
         scalar_macro_function.cpp
-        table_functions.cpp
         vector_arithmetic_functions.cpp
         vector_boolean_functions.cpp
         vector_cast_functions.cpp
