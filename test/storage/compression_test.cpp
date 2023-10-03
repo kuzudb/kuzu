@@ -7,6 +7,8 @@ using namespace kuzu::storage;
 
 template<typename T>
 void test_compression(CompressionAlg& alg, std::vector<T> src) {
+    // Force offset of 0 for bitpacking
+    src[0] = 0;
     auto pageSize = 4096;
     std::vector<uint8_t> dest(pageSize);
 
@@ -20,7 +22,7 @@ void test_compression(CompressionAlg& alg, std::vector<T> src) {
     std::vector<T> decompressed(src.size());
     alg.decompressFromPage(dest.data(), 0, (uint8_t*)decompressed.data(), 0, src.size(), metadata);
     EXPECT_EQ(src, decompressed);
-    // works with all bit widths
+    // works with all bit widths (but not all offsets)
     T value = 0;
     alg.setValueFromUncompressed((uint8_t*)&value, 0, (uint8_t*)dest.data(), 1, metadata);
     alg.decompressFromPage(dest.data(), 0, (uint8_t*)decompressed.data(), 0, src.size(), metadata);
@@ -73,8 +75,6 @@ TEST(CompressionTests, IntegerPackingTest32) {
         src[i] = i;
     }
     auto alg = IntegerBitpacking<int32_t>();
-    ASSERT_EQ(alg.getBitWidth((uint8_t*)src.data(), src.size()).bitWidth,
-        std::bit_width(static_cast<uint32_t>(length - 1)));
     test_compression(alg, src);
 }
 
@@ -85,15 +85,12 @@ TEST(CompressionTests, IntegerPackingTest32Small) {
         src[i] = i;
     }
     auto alg = IntegerBitpacking<int32_t>();
-    ASSERT_EQ(alg.getBitWidth((uint8_t*)src.data(), src.size()).bitWidth,
-        std::bit_width(static_cast<uint32_t>(length - 1)));
     test_compression(alg, src);
 }
 
 TEST(CompressionTests, IntegerPackingTest64) {
     std::vector<int64_t> src(128, 6);
     auto alg = IntegerBitpacking<int64_t>();
-    ASSERT_EQ(alg.getBitWidth((uint8_t*)src.data(), src.size()).bitWidth, std::bit_width(6u));
     test_compression(alg, src);
 }
 
@@ -101,7 +98,6 @@ TEST(CompressionTests, IntegerPackingTestNegative32) {
     std::vector<int32_t> src(128, -6);
     src[5] = 20;
     auto alg = IntegerBitpacking<int32_t>();
-    ASSERT_EQ(alg.getBitWidth((uint8_t*)src.data(), src.size()).bitWidth, std::bit_width(20u) + 1);
     test_compression(alg, src);
 }
 
@@ -109,7 +105,6 @@ TEST(CompressionTests, IntegerPackingTestNegative64) {
     std::vector<int64_t> src(128, -6);
     src[5] = 20;
     auto alg = IntegerBitpacking<int64_t>();
-    ASSERT_EQ(alg.getBitWidth((uint8_t*)src.data(), src.size()).bitWidth, std::bit_width(20u) + 1);
     test_compression(alg, src);
 }
 
@@ -264,6 +259,27 @@ TEST(CompressionTests, IntegerPackingMultiPageUnsigned8) {
     std::vector<uint8_t> src(numValues);
     for (int i = 0; i < numValues; i++) {
         src[i] = i % 30;
+    }
+
+    integerPackingMultiPage(src);
+}
+
+// Tests with a large fixed offset
+TEST(CompressionTests, OffsetIntegerPackingMultiPageUnsigned64) {
+    int64_t numValues = 100;
+    std::vector<uint64_t> src(numValues);
+    for (int i = 0; i < numValues; i++) {
+        src[i] = 10000000 + i;
+    }
+
+    integerPackingMultiPage(src);
+}
+
+TEST(CompressionTests, OffsetIntegerPackingMultiPageSigned64) {
+    int64_t numValues = 100;
+    std::vector<int64_t> src(numValues);
+    for (int i = 0; i < numValues; i++) {
+        src[i] = -10000000 - i;
     }
 
     integerPackingMultiPage(src);

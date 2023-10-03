@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <limits>
 
@@ -27,11 +28,12 @@ enum class CompressionType : uint8_t {
 };
 
 struct CompressionMetadata {
+    static constexpr uint8_t DATA_SIZE = 9;
     CompressionType compression;
     // Extra data to be used to store codec-specific information
-    uint8_t data;
-    explicit CompressionMetadata(
-        CompressionType compression = CompressionType::UNCOMPRESSED, uint8_t data = 0)
+    std::array<uint8_t, DATA_SIZE> data;
+    explicit CompressionMetadata(CompressionType compression = CompressionType::UNCOMPRESSED,
+        std::array<uint8_t, DATA_SIZE> data = {})
         : compression{compression}, data{data} {}
 
     // Returns the number of values which will be stored in the given data size
@@ -149,20 +151,30 @@ protected:
     const uint32_t numBytesPerValue;
 };
 
-// Six bits are needed for the bit width (fewer for smaller types, but the header byte is the same
-// for simplicity) One bit (the eighth) is needed to indicate if there are negative values The
-// seventh bit is unused
+// Serialized as nine bytes.
+// In the first byte:
+//  Six bits are needed for the bit width (fewer for smaller types, but the header byte is the same
+//  for simplicity)
+//  One bit (the eighth) is needed to indicate if there are negative values
+//  The seventh bit is unused
+// The eight remaining bytes are used for the offset
 struct BitpackHeader {
     uint8_t bitWidth;
     bool hasNegative;
+    // Offset to apply to all values
+    // Stored as unsigned, but for signed variants of IntegerBitpacking
+    // it gets cast to a signed type on use, letting it also store negative offsets
+    uint64_t offset;
     static const uint8_t NEGATIVE_FLAG = 0b10000000;
     static const uint8_t BITWIDTH_MASK = 0b01111111;
 
-    uint8_t getDataByte() const;
+    std::array<uint8_t, CompressionMetadata::DATA_SIZE> getData() const;
 
-    static BitpackHeader readHeader(uint8_t data);
+    static BitpackHeader readHeader(
+        const std::array<uint8_t, CompressionMetadata::DATA_SIZE>& data);
 };
 
+// Augmented with Frame of Reference encoding using an offset stored in the compression metadata
 template<typename T>
 class IntegerBitpacking : public CompressionAlg {
     using U = std::make_unsigned_t<T>;
@@ -198,7 +210,7 @@ public:
     CompressionMetadata getCompressionMetadata(
         const uint8_t* srcBuffer, uint64_t numValues) const override {
         auto header = getBitWidth(srcBuffer, numValues);
-        CompressionMetadata metadata{CompressionType::INTEGER_BITPACKING, header.getDataByte()};
+        CompressionMetadata metadata{CompressionType::INTEGER_BITPACKING, header.getData()};
         return metadata;
     }
 
@@ -239,7 +251,7 @@ public:
 
     inline CompressionMetadata getCompressionMetadata(
         const uint8_t* srcBuffer, uint64_t numValues) const override {
-        return CompressionMetadata{CompressionType::BOOLEAN_BITPACKING, 0};
+        return CompressionMetadata{CompressionType::BOOLEAN_BITPACKING};
     }
     uint64_t compressNextPage(const uint8_t*& srcBuffer, uint64_t numValuesRemaining,
         uint8_t* dstBuffer, uint64_t dstBufferSize,
