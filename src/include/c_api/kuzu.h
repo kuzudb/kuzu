@@ -107,7 +107,7 @@ struct ArrowArray {
 /**
  * @brief Stores runtime configuration for creating or opening a Database
  */
-KUZU_C_API typedef struct {
+typedef struct {
     // bufferPoolSize Max size of the buffer pool in bytes.
     // The larger the buffer pool, the more data from the database files is kept in memory,
     // reducing the amount of File I/O
@@ -121,20 +121,24 @@ KUZU_C_API typedef struct {
 /**
  * @brief kuzu_database manages all database components.
  */
-KUZU_C_API typedef struct { void* _database; } kuzu_database;
+typedef struct {
+    void* _database;
+} kuzu_database;
 
 /**
  * @brief kuzu_connection is used to interact with a Database instance. Each connection is
  * thread-safe. Multiple connections can connect to the same Database instance in a multi-threaded
  * environment.
  */
-KUZU_C_API typedef struct { void* _connection; } kuzu_connection;
+typedef struct {
+    void* _connection;
+} kuzu_connection;
 
 /**
  * @brief kuzu_prepared_statement is a parameterized query which can avoid planning the same query
  * for repeated execution.
  */
-KUZU_C_API typedef struct {
+typedef struct {
     void* _prepared_statement;
     void* _bound_values;
 } kuzu_prepared_statement;
@@ -142,22 +146,28 @@ KUZU_C_API typedef struct {
 /**
  * @brief kuzu_query_result stores the result of a query.
  */
-KUZU_C_API typedef struct { void* _query_result; } kuzu_query_result;
+typedef struct {
+    void* _query_result;
+} kuzu_query_result;
 
 /**
  * @brief kuzu_flat_tuple stores a vector of values.
  */
-KUZU_C_API typedef struct { void* _flat_tuple; } kuzu_flat_tuple;
+typedef struct {
+    void* _flat_tuple;
+} kuzu_flat_tuple;
 
 /**
  * @brief kuzu_logical_type is the kuzu internal representation of data types.
  */
-KUZU_C_API typedef struct { void* _data_type; } kuzu_logical_type;
+typedef struct {
+    void* _data_type;
+} kuzu_logical_type;
 
 /**
  * @brief kuzu_value is used to represent a value with any kuzu internal dataType.
  */
-KUZU_C_API typedef struct {
+typedef struct {
     void* _value;
     bool _is_owned_by_cpp;
 } kuzu_value;
@@ -165,7 +175,7 @@ KUZU_C_API typedef struct {
 /**
  * @brief kuzu internal internal_id type which stores the table_id and offset of a node/rel.
  */
-KUZU_C_API typedef struct {
+typedef struct {
     uint64_t table_id;
     uint64_t offset;
 } kuzu_internal_id_t;
@@ -173,7 +183,7 @@ KUZU_C_API typedef struct {
 /**
  * @brief kuzu internal date type which stores the number of days since 1970-01-01 00:00:00 UTC.
  */
-KUZU_C_API typedef struct {
+typedef struct {
     // Days since 1970-01-01 00:00:00 UTC.
     int32_t days;
 } kuzu_date_t;
@@ -182,7 +192,7 @@ KUZU_C_API typedef struct {
  * @brief kuzu internal timestamp type which stores the number of microseconds since 1970-01-01
  * 00:00:00 UTC.
  */
-KUZU_C_API typedef struct {
+typedef struct {
     // Microseconds since 1970-01-01 00:00:00 UTC.
     int64_t value;
 } kuzu_timestamp_t;
@@ -190,7 +200,7 @@ KUZU_C_API typedef struct {
 /**
  * @brief kuzu internal interval type which stores the months, days and microseconds.
  */
-KUZU_C_API typedef struct {
+typedef struct {
     int32_t months;
     int32_t days;
     int64_t micros;
@@ -200,12 +210,14 @@ KUZU_C_API typedef struct {
  * @brief kuzu_query_summary stores the execution time, plan, compiling time and query options of a
  * query.
  */
-KUZU_C_API typedef struct { void* _query_summary; } kuzu_query_summary;
+typedef struct {
+    void* _query_summary;
+} kuzu_query_summary;
 
 /**
  * @brief enum class for kuzu internal dataTypes.
  */
-KUZU_C_API typedef enum {
+typedef enum {
     KUZU_ANY = 0,
     KUZU_NODE = 10,
     KUZU_REL = 11,
