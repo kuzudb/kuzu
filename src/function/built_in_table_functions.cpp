@@ -3,6 +3,10 @@
 #include "common/exception/binder.h"
 #include "common/expression_type.h"
 #include "common/string_utils.h"
+#include "function/table_functions/current_setting.h"
+#include "function/table_functions/db_version.h"
+#include "function/table_functions/show_tables.h"
+#include "function/table_functions/table_info.h"
 
 using namespace kuzu::common;
 

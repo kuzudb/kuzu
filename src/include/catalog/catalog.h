@@ -5,6 +5,9 @@
 #include "catalog_content.h"
 
 namespace kuzu {
+namespace storage {
+class WAL;
+}
 namespace transaction {
 enum class TransactionAction : uint8_t;
 }
