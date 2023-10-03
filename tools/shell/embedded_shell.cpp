@@ -381,7 +381,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         if (numTuples == 1) {
             printf("(1 tuple)\n");
         } else {
-            printf("(%llu tuples)\n", numTuples);
+            printf("(%lu tuples)\n", numTuples);
         }
         printf("Time: %.2fms (compiling), %.2fms (executing)\n", querySummary->getCompilingTime(),
             querySummary->getExecutionTime());
