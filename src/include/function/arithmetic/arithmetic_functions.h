@@ -84,7 +84,7 @@ struct Abs {
         if constexpr (std::is_unsigned_v<T>) {
             result = input;
         } else {
-            result = abs(input);
+            result = std::abs(input);
         }
     }
 };
