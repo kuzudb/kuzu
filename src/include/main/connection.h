@@ -16,8 +16,8 @@ namespace main {
  * Multiple connections can connect to the same Database instance in a multi-threaded environment.
  */
 class Connection {
-    friend class kuzu::testing::ApiTest;
     friend class kuzu::testing::BaseGraphTest;
+    friend class kuzu::testing::PrivateGraphTest;
     friend class kuzu::testing::TestHelper;
     friend class kuzu::testing::TestRunner;
     friend class kuzu::benchmark::Benchmark;
@@ -80,7 +80,7 @@ public:
      * @return the result of the query.
      */
     template<typename... Args>
-    KUZU_API inline std::unique_ptr<QueryResult> execute(
+    inline std::unique_ptr<QueryResult> execute(
         PreparedStatement* preparedStatement, std::pair<std::string, Args>... args) {
         std::unordered_map<std::string, std::shared_ptr<common::Value>> inputParameters;
         return executeWithParams(preparedStatement, inputParameters, args...);
@@ -184,7 +184,8 @@ protected:
     std::unique_ptr<QueryResult> executeAndAutoCommitIfNecessaryNoLock(
         PreparedStatement* preparedStatement, uint32_t planIdx = 0u);
 
-    void addScalarFunction(std::string name, function::vector_function_definitions definitions);
+    KUZU_API void addScalarFunction(
+        std::string name, function::vector_function_definitions definitions);
 
 protected:
     Database* database;

@@ -249,13 +249,8 @@ class LogicalType {
 
 public:
     KUZU_API LogicalType() : typeID{LogicalTypeID::ANY}, extraTypeInfo{nullptr} {};
-    KUZU_API explicit LogicalType(LogicalTypeID typeID) : typeID{typeID}, extraTypeInfo{nullptr} {
-        setPhysicalType();
-    };
-    KUZU_API LogicalType(LogicalTypeID typeID, std::unique_ptr<ExtraTypeInfo> extraTypeInfo)
-        : typeID{typeID}, extraTypeInfo{std::move(extraTypeInfo)} {
-        setPhysicalType();
-    };
+    explicit KUZU_API LogicalType(LogicalTypeID typeID);
+    KUZU_API LogicalType(LogicalTypeID typeID, std::unique_ptr<ExtraTypeInfo> extraTypeInfo);
     // For deserialize only.
     LogicalType(LogicalTypeID typeID, PhysicalTypeID physicalType,
         std::unique_ptr<ExtraTypeInfo> extraTypeInfo)

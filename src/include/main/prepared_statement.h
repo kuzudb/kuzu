@@ -48,7 +48,7 @@ public:
         return parameterMap;
     }
 
-    ~PreparedStatement();
+    KUZU_API ~PreparedStatement();
 
 private:
     bool isProfile();

@@ -38,6 +38,7 @@ class Database {
     friend class Connection;
     friend class StorageDriver;
     friend class kuzu::testing::BaseGraphTest;
+    friend class kuzu::testing::PrivateGraphTest;
     friend class transaction::TransactionContext;
 
 public:

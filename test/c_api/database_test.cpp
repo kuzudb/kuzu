@@ -1,8 +1,8 @@
 #include "c_api_test/c_api_test.h"
 
-class CApiDatabaseTest : public EmptyDBTest {
+class CApiDatabaseTest : public APIEmptyDBTest {
 public:
-    void SetUp() override { EmptyDBTest::SetUp(); }
+    void SetUp() override { APIEmptyDBTest::SetUp(); }
 };
 
 TEST_F(CApiDatabaseTest, CreationAndDestroy) {

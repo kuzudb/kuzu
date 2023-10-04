@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstring>
 
+#include "common/api.h"
 #include "common/types/ku_string.h"
 
 namespace kuzu {
@@ -10,20 +11,8 @@ namespace function {
 
 struct Repeat {
 public:
-    static inline void operation(common::ku_string_t& left, int64_t& right,
-        common::ku_string_t& result, common::ValueVector& resultValueVector) {
-        result.len = left.len * right;
-        if (result.len <= common::ku_string_t::SHORT_STR_LENGTH) {
-            repeatStr((char*)result.prefix, left.getAsString(), right);
-        } else {
-            result.overflowPtr = reinterpret_cast<uint64_t>(
-                common::StringVector::getInMemOverflowBuffer(&resultValueVector)
-                    ->allocateSpace(result.len));
-            auto buffer = reinterpret_cast<char*>(result.overflowPtr);
-            repeatStr(buffer, left.getAsString(), right);
-            memcpy(result.prefix, buffer, common::ku_string_t::PREFIX_LENGTH);
-        }
-    }
+    KUZU_API static void operation(common::ku_string_t& left, int64_t& right,
+        common::ku_string_t& result, common::ValueVector& resultValueVector);
 
 private:
     static void repeatStr(char* data, std::string pattern, uint64_t count) {
