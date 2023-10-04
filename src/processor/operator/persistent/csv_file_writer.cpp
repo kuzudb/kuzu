@@ -1,7 +1,5 @@
 #include "processor/operator/persistent/csv_file_writer.h"
 
-#include <fstream>
-
 #include "common/constants.h"
 #include "common/string_utils.h"
 #include "common/type_utils.h"
@@ -57,20 +55,12 @@ void CSVFileWriter::writeValues(std::vector<common::ValueVector*>& outputVectors
 template<typename T>
 void CSVFileWriter::writeToBuffer(common::ValueVector* vector, bool escapeStringValue) {
     auto selPos = vector->state->selVector->selectedPositions[0];
-    auto value = vector->isNull(selPos) ? "" : TypeUtils::toString(vector->getValue<T>(selPos));
+    auto value = vector->isNull(selPos) ? "" :
+                                          TypeUtils::toString(vector->getValue<T>(selPos),
+                                              reinterpret_cast<void*>(vector));
     if (escapeStringValue) {
         escapeString(value);
     }
-    writeToBuffer(value);
-}
-
-template<typename T>
-void CSVFileWriter::writeListToBuffer(common::ValueVector* vector) {
-    // vectors are always flat
-    auto selPos = vector->state->selVector->selectedPositions[0];
-    auto value =
-        vector->isNull(selPos) ? "" : TypeUtils::toString(vector->getValue<T>(selPos), vector);
-    escapeString(value);
     writeToBuffer(value);
 }
 
@@ -95,20 +85,20 @@ void CSVFileWriter::writeValue(common::ValueVector* vector) {
     case LogicalTypeID::FLOAT:
         return writeToBuffer<float>(vector);
     case LogicalTypeID::DATE:
-        return writeToBuffer<date_t>(vector, true);
+        return writeToBuffer<date_t>(vector, true /* escapeStringValue */);
     case LogicalTypeID::TIMESTAMP:
-        return writeToBuffer<timestamp_t>(vector, true);
+        return writeToBuffer<timestamp_t>(vector, true /* escapeStringValue */);
     case LogicalTypeID::INTERVAL:
-        return writeToBuffer<interval_t>(vector, true);
+        return writeToBuffer<interval_t>(vector, true /* escapeStringValue */);
     case LogicalTypeID::STRING:
-        return writeToBuffer<ku_string_t>(vector, true);
+        return writeToBuffer<ku_string_t>(vector, true /* escapeStringValue */);
     case LogicalTypeID::INTERNAL_ID:
-        return writeToBuffer<internalID_t>(vector, true);
+        return writeToBuffer<internalID_t>(vector, true /* escapeStringValue */);
     case LogicalTypeID::VAR_LIST:
     case LogicalTypeID::FIXED_LIST:
-        return writeListToBuffer<list_entry_t>(vector);
+        return writeToBuffer<list_entry_t>(vector, true /* escapeStringValue */);
     case LogicalTypeID::STRUCT:
-        return writeListToBuffer<struct_entry_t>(vector);
+        return writeToBuffer<struct_entry_t>(vector, true /* escapeStringValue */);
     default: {
         throw NotImplementedException("CSVFileWriter::writeValue");
     }

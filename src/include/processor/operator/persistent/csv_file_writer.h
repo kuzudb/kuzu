@@ -23,9 +23,6 @@ private:
     template<typename T>
     void writeToBuffer(common::ValueVector* vector, bool escapeStringValue = false);
 
-    template<typename T>
-    void writeListToBuffer(common::ValueVector* vector);
-
     inline void writeToBuffer(const std::string& value) { buffer << value; }
     inline void writeToBuffer(const char value) { buffer << value; }
 

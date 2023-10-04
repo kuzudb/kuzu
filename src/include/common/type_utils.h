@@ -16,28 +16,15 @@ class TypeUtils {
 
 public:
     static uint32_t convertToUint32(const char* data);
-
-    static inline std::string toString(bool boolVal) { return boolVal ? "True" : "False"; }
-    static inline std::string toString(int64_t val) { return std::to_string(val); }
-    static inline std::string toString(int32_t val) { return std::to_string(val); }
-    static inline std::string toString(int16_t val) { return std::to_string(val); }
-    static inline std::string toString(int8_t val) { return std::to_string(val); }
-    static inline std::string toString(uint64_t val) { return std::to_string(val); }
-    static inline std::string toString(uint32_t val) { return std::to_string(val); }
-    static inline std::string toString(uint16_t val) { return std::to_string(val); }
-    static inline std::string toString(uint8_t val) { return std::to_string(val); }
-    static inline std::string toString(double_t val) { return std::to_string(val); }
-    static inline std::string toString(float_t val) { return std::to_string(val); }
-    static inline std::string toString(const internalID_t& val) {
-        return std::to_string(val.tableID) + ":" + std::to_string(val.offset);
+    template<typename T>
+    static inline std::string toString(const T& val, void* valueVector = nullptr) {
+        static_assert(std::is_same<T, int64_t>::value || std::is_same<T, int32_t>::value ||
+                      std::is_same<T, int16_t>::value || std::is_same<T, int8_t>::value ||
+                      std::is_same<T, uint64_t>::value || std::is_same<T, uint32_t>::value ||
+                      std::is_same<T, uint16_t>::value || std::is_same<T, uint8_t>::value ||
+                      std::is_same<T, double_t>::value || std::is_same<T, float_t>::value);
+        return std::to_string(val);
     }
-    static inline std::string toString(const date_t& val) { return Date::toString(val); }
-    static inline std::string toString(const timestamp_t& val) { return Timestamp::toString(val); }
-    static inline std::string toString(const interval_t& val) { return Interval::toString(val); }
-    static inline std::string toString(const ku_string_t& val) { return val.getAsString(); }
-    static inline std::string toString(const std::string& val) { return val; }
-    static std::string toString(const list_entry_t& val, void* valueVector);
-    static std::string toString(const struct_entry_t& val, void* valueVector);
 
     static inline void encodeOverflowPtr(
         uint64_t& overflowPtr, page_idx_t pageIdx, uint16_t pageOffset) {
@@ -56,6 +43,24 @@ public:
 private:
     static std::string castValueToString(const LogicalType& dataType, uint8_t* value, void* vector);
 };
+
+// Forward declaration of template specializations.
+template<>
+std::string TypeUtils::toString(const bool& val, void* valueVector);
+template<>
+std::string TypeUtils::toString(const internalID_t& val, void* valueVector);
+template<>
+std::string TypeUtils::toString(const date_t& val, void* valueVector);
+template<>
+std::string TypeUtils::toString(const timestamp_t& val, void* valueVector);
+template<>
+std::string TypeUtils::toString(const interval_t& val, void* valueVector);
+template<>
+std::string TypeUtils::toString(const ku_string_t& val, void* valueVector);
+template<>
+std::string TypeUtils::toString(const list_entry_t& val, void* valueVector);
+template<>
+std::string TypeUtils::toString(const struct_entry_t& val, void* valueVector);
 
 } // namespace common
 } // namespace kuzu
