@@ -5,6 +5,64 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
+bool ListFileID::operator==(const ListFileID& rhs) const {
+
+    if (listType != rhs.listType || listFileType != rhs.listFileType) {
+        return false;
+    }
+    switch (listType) {
+    case ListType::ADJ_LISTS: {
+        return adjListsID == rhs.adjListsID;
+    }
+    case ListType::REL_PROPERTY_LISTS: {
+        return relPropertyListID == rhs.relPropertyListID;
+    }
+    default: {
+        throw common::NotImplementedException("ListFileID::operator()==");
+    }
+    }
+}
+
+bool ColumnFileID::operator==(const ColumnFileID& rhs) const {
+    if (columnType != rhs.columnType) {
+        return false;
+    }
+    switch (columnType) {
+    case ColumnType::NODE_PROPERTY_COLUMN: {
+        return nodePropertyColumnID == rhs.nodePropertyColumnID;
+    }
+    case ColumnType::ADJ_COLUMN: {
+        return adjColumnID == rhs.adjColumnID;
+    }
+    case ColumnType::REL_PROPERTY_COLUMN: {
+        return relPropertyColumnID == rhs.relPropertyColumnID;
+    }
+    default: {
+        throw common::NotImplementedException("ColumnFileID::operator()==");
+    }
+    }
+}
+
+bool StorageStructureID::operator==(const StorageStructureID& rhs) const {
+    if (storageStructureType != rhs.storageStructureType || isOverflow != rhs.isOverflow) {
+        return false;
+    }
+    switch (storageStructureType) {
+    case StorageStructureType::COLUMN: {
+        return columnFileID == rhs.columnFileID;
+    }
+    case StorageStructureType::LISTS: {
+        return listFileID == rhs.listFileID;
+    }
+    case StorageStructureType::NODE_INDEX: {
+        return nodeIndexID == rhs.nodeIndexID;
+    }
+    default: {
+        throw common::NotImplementedException("StorageStructureID::operator==");
+    }
+    }
+}
+
 std::string storageStructureTypeToString(StorageStructureType storageStructureType) {
     switch (storageStructureType) {
     case StorageStructureType::COLUMN: {
@@ -96,6 +154,58 @@ StorageStructureID StorageStructureID::newAdjColumnID(table_id_t relTableID, Rel
     retVal.storageStructureType = StorageStructureType::COLUMN;
     retVal.columnFileID = ColumnFileID(AdjColumnID(RelNodeTableAndDir(relTableID, dir)));
     return retVal;
+}
+
+bool WALRecord::operator==(const WALRecord& rhs) const {
+    if (recordType != rhs.recordType) {
+        return false;
+    }
+    switch (recordType) {
+    case WALRecordType::PAGE_UPDATE_OR_INSERT_RECORD: {
+        return pageInsertOrUpdateRecord == rhs.pageInsertOrUpdateRecord;
+    }
+    case WALRecordType::COMMIT_RECORD: {
+        return commitRecord == rhs.commitRecord;
+    }
+    case WALRecordType::TABLE_STATISTICS_RECORD: {
+        return tableStatisticsRecord == rhs.tableStatisticsRecord;
+    }
+    case WALRecordType::CATALOG_RECORD: {
+        // CatalogRecords are empty so are always equal
+        return true;
+    }
+    case WALRecordType::NODE_TABLE_RECORD: {
+        return nodeTableRecord == rhs.nodeTableRecord;
+    }
+    case WALRecordType::REL_TABLE_RECORD: {
+        return relTableRecord == rhs.relTableRecord;
+    }
+    case WALRecordType::RDF_GRAPH_RECORD: {
+        return rdfGraphRecord == rhs.rdfGraphRecord;
+    }
+    case WALRecordType::OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
+        return diskOverflowFileNextBytePosRecord == rhs.diskOverflowFileNextBytePosRecord;
+    }
+    case WALRecordType::COPY_NODE_RECORD: {
+        return copyNodeRecord == rhs.copyNodeRecord;
+    }
+    case WALRecordType::COPY_REL_RECORD: {
+        return copyRelRecord == rhs.copyRelRecord;
+    }
+    case WALRecordType::DROP_TABLE_RECORD: {
+        return dropTableRecord == rhs.dropTableRecord;
+    }
+    case WALRecordType::DROP_PROPERTY_RECORD: {
+        return dropPropertyRecord == rhs.dropPropertyRecord;
+    }
+    case WALRecordType::ADD_PROPERTY_RECORD: {
+        return addPropertyRecord == rhs.addPropertyRecord;
+    }
+    default: {
+        throw common::RuntimeException("Unrecognized WAL record type inside ==. recordType: " +
+                                       walRecordTypeToString(recordType));
+    }
+    }
 }
 
 std::string walRecordTypeToString(WALRecordType walRecordType) {
