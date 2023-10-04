@@ -54,6 +54,37 @@ std::string TypeUtils::castValueToString(
     }
 }
 
+template<>
+std::string TypeUtils::toString(const bool& val, void* valueVector) {
+    return val ? "True" : "False";
+}
+
+template<>
+std::string TypeUtils::toString(const internalID_t& val, void* valueVector) {
+    return std::to_string(val.tableID) + ":" + std::to_string(val.offset);
+}
+
+template<>
+std::string TypeUtils::toString(const date_t& val, void* valueVector) {
+    return Date::toString(val);
+}
+
+template<>
+std::string TypeUtils::toString(const timestamp_t& val, void* valueVector) {
+    return Timestamp::toString(val);
+}
+
+template<>
+std::string TypeUtils::toString(const interval_t& val, void* valueVector) {
+    return Interval::toString(val);
+}
+
+template<>
+std::string TypeUtils::toString(const ku_string_t& val, void* valueVector) {
+    return val.getAsString();
+}
+
+template<>
 std::string TypeUtils::toString(const list_entry_t& val, void* valueVector) {
     auto listVector = (ValueVector*)valueVector;
     if (val.size == 0) {
@@ -77,6 +108,7 @@ std::string TypeUtils::toString(const list_entry_t& val, void* valueVector) {
     return result;
 }
 
+template<>
 std::string TypeUtils::toString(const struct_entry_t& val, void* valVector) {
     auto structVector = (ValueVector*)valVector;
     auto fields = StructType::getFields(&structVector->dataType);
