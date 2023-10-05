@@ -1,0 +1,24 @@
+-GROUP EmptyCreateRelTest
+-DATASET CSV empty
+
+--
+
+-CASE CreateRels
+-STATEMENT CREATE NODE TABLE N1(name STRING, PRIMARY KEY(name));
+---- ok
+-STATEMENT CREATE NODE TABLE N2(name STRING, PRIMARY KEY(name));
+---- ok
+-STATEMENT CREATE REL TABLE Rel1(FROM N1 TO N2);
+---- ok
+-STATEMENT CREATE REL TABLE Rel2(FROM N1 TO N2);
+---- ok
+-STATEMENT CREATE (n1:N1 {name: "n1a"}), (n2:N2 {name: "n2a"}), (n1)-[:Rel1]->(n2);
+---- ok
+-STATEMENT MATCH ()-[e:Rel1]->() RETURN e;
+---- 1
+(0:0)-{_LABEL: Rel1, _ID: 2:0}->(1:0)
+-STATEMENT MATCH ()-[e:Rel2]->() RETURN e;
+---- 0
+-STATEMENT MATCH ()-[e]->() RETURN e;
+---- 1
+(0:0)-{_LABEL: Rel1, _ID: 2:0}->(1:0)

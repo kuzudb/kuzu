@@ -98,18 +98,9 @@ public:
     Column* getPropertyColumn(common::property_id_t propertyID);
     Lists* getPropertyLists(common::property_id_t propertyID);
 
-    inline void scan(transaction::Transaction* transaction, RelTableScanState& scanState,
+    void scan(transaction::Transaction* transaction, RelTableScanState& scanState,
         common::ValueVector* inNodeIDVector,
-        const std::vector<common::ValueVector*>& outputVectors) {
-        if (scanState.relStats->getNumTuples() == 0) {
-            return;
-        }
-        if (scanState.relTableDataType == RelTableDataType::COLUMNS) {
-            scanColumns(transaction, scanState, inNodeIDVector, outputVectors);
-        } else {
-            scanLists(transaction, scanState, inNodeIDVector, outputVectors);
-        }
-    }
+        const std::vector<common::ValueVector*>& outputVectors);
     inline bool isBoundTable(common::table_id_t tableID_) const { return tableID_ == boundTableID; }
 
     void insertRel(common::ValueVector* boundVector, common::ValueVector* nbrVector,

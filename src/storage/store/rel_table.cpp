@@ -88,6 +88,21 @@ void DirectedRelTableData::resetColumnsAndLists(
     }
 }
 
+void DirectedRelTableData::scan(transaction::Transaction* transaction, RelTableScanState& scanState,
+    ValueVector* inNodeIDVector, const std::vector<ValueVector*>& outputVectors) {
+    if (scanState.relStats->getNumTuples() == 0) {
+        for (auto vector : outputVectors) {
+            vector->state->selVector->selectedSize = 0;
+        }
+        return;
+    }
+    if (scanState.relTableDataType == RelTableDataType::COLUMNS) {
+        scanColumns(transaction, scanState, inNodeIDVector, outputVectors);
+    } else {
+        scanLists(transaction, scanState, inNodeIDVector, outputVectors);
+    }
+}
+
 void DirectedRelTableData::scanColumns(transaction::Transaction* transaction,
     RelTableScanState& scanState, ValueVector* inNodeIDVector,
     const std::vector<ValueVector*>& outputVectors) {
