@@ -445,10 +445,8 @@ uint32_t ColumnChunk::getDataTypeSizeInChunk(LogicalType& dataType) {
     case LogicalTypeID::STRING: {
         return sizeof(ku_string_t);
     }
+    case LogicalTypeID::INTERNAL_ID:
     case LogicalTypeID::VAR_LIST: {
-        return sizeof(offset_t);
-    }
-    case LogicalTypeID::INTERNAL_ID: {
         return sizeof(offset_t);
     }
     case LogicalTypeID::SERIAL: {

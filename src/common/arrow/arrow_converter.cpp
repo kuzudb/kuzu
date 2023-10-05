@@ -44,7 +44,7 @@ void ArrowConverter::setArrowFormatForStruct(
     ArrowSchemaHolder& rootHolder, ArrowSchema& child, const main::DataTypeInfo& typeInfo) {
     auto& childrenTypesInfo = typeInfo.childrenTypesInfo;
     child.format = "+s";
-    child.name = typeInfo.name.c_str();
+    // name is set by parent.
     child.n_children = (std::int64_t)childrenTypesInfo.size();
     rootHolder.nestedChildren.emplace_back();
     rootHolder.nestedChildren.back().resize(child.n_children);

@@ -1,6 +1,7 @@
 #include "processor/operator/persistent/reader_functions.h"
 
 #include "common/exception/copy.h"
+#include "common/system_message.h"
 #include <arrow/table.h>
 
 using namespace kuzu::common;
@@ -202,14 +203,18 @@ std::vector<FileBlocksInfo> ReaderFunctions::countRowsInParallelCSVFile(
     for (const auto& path : config.filePaths) {
         int fd = open(path.c_str(), O_RDONLY);
         if (fd == -1) {
+            // LCOV_EXCL_START
             throw CopyException(
-                StringUtils::string_format("Failed to open file {}: {}", path, strerror(errno)));
+                StringUtils::string_format("Failed to open file {}: {}", path, posixErrMessage()));
+            // LCOV_EXCL_END
         }
         uint64_t length = lseek(fd, 0, SEEK_END);
         close(fd);
         if (length == -1) {
+            // LCOV_EXCL_START
             throw CopyException(StringUtils::string_format(
-                "Failed to seek to end of file {}: {}", path, strerror(errno)));
+                "Failed to seek to end of file {}: {}", path, posixErrMessage()));
+            // LCOV_EXCL_END
         }
         auto reader = make_unique<ParallelCSVReader>(path, config);
         row_idx_t numRowsInFile = reader->countRows();

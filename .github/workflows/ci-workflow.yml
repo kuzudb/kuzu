@@ -20,7 +20,7 @@ jobs:
         run: |
           pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu &&\
           pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
-      
+
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
         working-directory: tools/nodejs_api
@@ -30,7 +30,7 @@ jobs:
 
       - name: Python test
         run: CC=gcc CXX=g++ make pytest NUM_THREADS=32
-      
+
       - name: Node.js test
         run: CC=gcc CXX=g++ make nodejstest NUM_THREADS=32
 
@@ -117,7 +117,7 @@ jobs:
         shell: bash
 
   clang-build-test:
-    name: clang build & test
+    name: clang build, test & tidy
     needs: [clang-formatting-check, header-include-guard-check]
     runs-on: kuzu-self-hosted-testing
     steps:
@@ -140,12 +140,25 @@ jobs:
 
       - name: Python test
         run: CC=clang-14 CXX=clang++-14 make pytest NUM_THREADS=32
-      
+
       - name: Node.js test
         run: CC=clang-14 CXX=clang++-14 make nodejstest NUM_THREADS=32
-      
+
       - name: Java test
         run: CC=clang-14 CXX=clang++-14 make javatest NUM_THREADS=32
+
+      - name: Create compilation commands database
+        run: make clang-tidy-ci
+
+      - name: Run clang-tidy on src
+        run: run-clang-tidy -p build/release -quiet -j 32 "^$(realpath src)"
+
+      - name: Run clang-tidy on tools
+        run: run-clang-tidy -p build/release -quiet -j 32 "^$(realpath tools)/(?!shell/linenoise.cpp)"
+
+      - name: Run clang-tidy on examples
+        run: run-clang-tidy -p build/release -quiet -j 32 "^$(realpath examples)"
+
 
   msvc-build-test:
     name: msvc build & test
@@ -226,12 +239,12 @@ jobs:
     runs-on: kuzu-self-hosted-benchmarking
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Ensure Python dependencies
         run: |
           pip install torch~=1.13 --extra-index-url https://download.pytorch.org/whl/cpu &&\
           pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-1.13.0+cpu.html
-      
+
       - name: Ensure Node.js dependencies
         run: npm install
         working-directory: tools/nodejs_api

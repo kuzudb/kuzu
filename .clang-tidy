@@ -1,0 +1,16 @@
+# Bugprone exception escape is super unhelpful.
+Checks:
+  -*,
+
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-exception-escape,
+  -bugprone-forward-declaration-namespace,
+  -bugprone-implicit-widening-of-multiplication-result,
+  -bugprone-narrowing-conversions,
+  -bugprone-signed-char-misuse,
+
+  clang-analyzer-deadcode.DeadStores,
+  concurrency-*,
+HeaderFilterRegex: src/include|tools/benchmark/include|tools/nodejs_api/src_cpp/include|tools/python_api/src_cpp/include|tools/rust_api/include|tools/shell/include
+WarningsAsErrors: "*"

@@ -6,10 +6,10 @@
 #include "com_kuzudb_KuzuNative.h"
 #include "common/exception/exception.h"
 #include "common/types/types.h"
-#include "common/types/value/value.h"
 #include "common/types/value/nested.h"
 #include "common/types/value/node.h"
 #include "common/types/value/rel.h"
+#include "common/types/value/value.h"
 #include "json.hpp"
 #include "main/kuzu.h"
 #include "main/query_summary.h"
@@ -152,8 +152,8 @@ void javaMapToCPPMap(
  * All Database native functions
  */
 
-JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1database_1init(
-    JNIEnv* env, jclass, jstring database_path, jlong buffer_pool_size, jboolean enable_compression) {
+JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1database_1init(JNIEnv* env, jclass,
+    jstring database_path, jlong buffer_pool_size, jboolean enable_compression) {
 
     const char* path = env->GetStringUTFChars(database_path, JNI_FALSE);
     uint64_t buffer = static_cast<uint64_t>(buffer_pool_size);
@@ -887,7 +887,6 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1value(
         return ret;
     }
     case LogicalTypeID::DATE: {
-        jclass retClass = env->FindClass("java/time/LocalDate");
         date_t date = v->getValue<date_t>();
         jclass ldClass = env->FindClass("java/time/LocalDate");
         jmethodID ofEpochDay =

@@ -5,6 +5,7 @@
 #include "common/data_chunk/data_chunk.h"
 #include "common/exception/copy.h"
 #include "common/string_utils.h"
+#include "common/system_message.h"
 #include "processor/operator/persistent/reader/csv/driver.h"
 
 using namespace kuzu::common;
@@ -23,8 +24,10 @@ BaseCSVReader::BaseCSVReader(const std::string& filePath, const common::ReaderCo
 #endif
     );
     if (fd == -1) {
+        // LCOV_EXCL_START
         throw CopyException(
-            StringUtils::string_format("Could not open file {}: {}", filePath, strerror(errno)));
+            StringUtils::string_format("Could not open file {}: {}", filePath, posixErrMessage()));
+        // LCOV_EXCL_END
     }
 }
 
@@ -195,8 +198,10 @@ bool BaseCSVReader::readBuffer(uint64_t* start) {
 
     uint64_t readCount = read(fd, buffer.get() + remaining, bufferReadSize);
     if (readCount == -1) {
+        // LCOV_EXCL_START
         throw CopyException(StringUtils::string_format(
-            "Could not read from file {}: {}", filePath, strerror(errno)));
+            "Could not read from file {}: {}", filePath, posixErrMessage()));
+        // LCOV_EXCL_END
     }
 
     bufferSize = remaining + readCount;
@@ -414,7 +419,7 @@ uint64_t BaseCSVReader::getFileOffset() const {
     if (offset == -1) {
         // LCOV_EXCL_START
         throw CopyException(StringUtils::string_format(
-            "Could not get current file position for file {}: {}", filePath, strerror(errno)));
+            "Could not get current file position for file {}: {}", filePath, posixErrMessage()));
         // LCOV_EXCL_END
     }
     assert(offset >= bufferSize);
@@ -429,7 +434,7 @@ uint64_t BaseCSVReader::getLineNumber() {
     if (lseek(fd, 0, SEEK_SET) == -1) {
         // LCOV_EXCL_START
         throw CopyException(StringUtils::string_format(
-            "Could not seek to beginning of file {}: {}", filePath, strerror(errno)));
+            "Could not seek to beginning of file {}: {}", filePath, posixErrMessage()));
         // LCOV_EXCL_END
     }
 
@@ -440,16 +445,13 @@ uint64_t BaseCSVReader::getLineNumber() {
         if (bytesRead == -1) {
             // LCOV_EXCL_START
             throw CopyException(StringUtils::string_format(
-                "Could not read from file {}: {}", filePath, strerror(errno)));
+                "Could not read from file {}: {}", filePath, posixErrMessage()));
             // LCOV_EXCL_END
         }
         totalBytes += bytesRead;
 
         for (uint64_t i = 0; i < bytesRead; i++) {
-            if (buf[i] == '\n') {
-                lineNumber++;
-                carriageReturn = false;
-            } else if (carriageReturn) {
+            if (buf[i] == '\n' || carriageReturn) {
                 lineNumber++;
                 carriageReturn = false;
             }

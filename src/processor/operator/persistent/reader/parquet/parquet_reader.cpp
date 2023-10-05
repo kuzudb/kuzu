@@ -243,16 +243,6 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
         bool isRepeated = repetition_type == FieldRepetitionType::REPEATED;
         bool isList = sEle.__isset.converted_type && sEle.converted_type == ConvertedType::LIST;
         bool isMap = sEle.__isset.converted_type && sEle.converted_type == ConvertedType::MAP;
-        bool isMapKv =
-            sEle.__isset.converted_type && sEle.converted_type == ConvertedType::MAP_KEY_VALUE;
-        if (!isMapKv && thisIdx > 0) {
-            // check if the parent node of this is a map
-            auto& pEle = metadata->schema[thisIdx - 1];
-            bool parentIsMap =
-                pEle.__isset.converted_type && pEle.converted_type == ConvertedType::MAP;
-            bool parentHasChildren = pEle.__isset.num_children && pEle.num_children == 1;
-            isMapKv = parentIsMap && parentHasChildren;
-        }
         if (structFields.size() > 1 || (!isList && !isMap && !isRepeated)) {
             resultType = std::make_unique<common::LogicalType>(common::LogicalTypeID::STRUCT,
                 std::make_unique<common::StructTypeInfo>(std::move(structFields)));

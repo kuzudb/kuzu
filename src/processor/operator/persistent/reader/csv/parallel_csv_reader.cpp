@@ -2,6 +2,7 @@
 
 #include "common/exception/copy.h"
 #include "common/string_utils.h"
+#include "common/system_message.h"
 #include "processor/operator/persistent/reader/csv/driver.h"
 
 using namespace kuzu::common;
@@ -46,7 +47,7 @@ void ParallelCSVReader::seekToBlockStart() {
     if (lseek(fd, currentBlockIdx * CopyConstants::PARALLEL_BLOCK_SIZE, SEEK_SET) == -1) {
         // LCOV_EXCL_START
         throw CopyException(StringUtils::string_format("Failed to seek to block {} in file {}: {}",
-            currentBlockIdx, filePath, strerror(errno)));
+            currentBlockIdx, filePath, posixErrMessage()));
         // LCOV_EXCL_END
     }
 

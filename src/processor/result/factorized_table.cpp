@@ -287,8 +287,7 @@ void FactorizedTable::copyToInMemList(ft_col_idx_t colIdx,
     std::vector<ft_tuple_idx_t>& tupleIdxesToRead, uint8_t* data, NullMask* nullMask,
     uint64_t startElemPosInList, DiskOverflowFile* overflowFileOfInMemList,
     const LogicalType& type) const {
-    auto column = tableSchema->getColumn(colIdx);
-    assert(column->isFlat() == true);
+    assert(tableSchema->getColumn(colIdx)->isFlat() == true);
     auto numBytesPerValue = type.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID ?
                                 sizeof(offset_t) :
                                 LogicalTypeUtils::getRowLayoutSize(type);

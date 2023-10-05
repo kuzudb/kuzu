@@ -1,5 +1,9 @@
+#include "common/assert.h"
+#include "common/exception/runtime.h"
+#include "common/string_utils.h"
 #include "function/string/functions/base_lower_upper_function.h"
 
+using namespace kuzu::common;
 using namespace kuzu::utf8proc;
 
 namespace kuzu {
@@ -13,6 +17,12 @@ uint32_t BaseLowerUpperFunction::getResultLen(char* inputStr, uint32_t inputLen,
         if (inputStr[i] & 0x80) {
             int size = 0;
             int codepoint = utf8proc_codepoint(inputStr + i, size);
+            if (codepoint < 0) {
+                // TODO(Xiyang): We shouldn't allow invalid UTF-8 to enter a string column.
+                std::string funcName = isUpper ? "UPPER" : "LOWER";
+                throw RuntimeException(common::StringUtils::string_format(
+                    "Failed calling {}: Invalid UTF-8.", funcName));
+            }
             int convertedCodepoint =
                 isUpper ? utf8proc_toupper(codepoint) : utf8proc_tolower(codepoint);
             int newSize = utf8proc_codepoint_length(convertedCodepoint);
@@ -32,10 +42,10 @@ void BaseLowerUpperFunction::convertCase(char* result, uint32_t len, char* input
         if (input[i] & 0x80) {
             int size = 0, newSize = 0;
             int codepoint = utf8proc_codepoint(input + i, size);
+            assert(codepoint >= 0); // Validity ensured by getResultLen.
             int convertedCodepoint =
                 toUpper ? utf8proc_toupper(codepoint) : utf8proc_tolower(codepoint);
-            auto success = utf8proc_codepoint_to_utf8(convertedCodepoint, newSize, result);
-            assert(success);
+            utf8proc_codepoint_to_utf8(convertedCodepoint, newSize, result);
             result += newSize;
             i += size;
         } else {

@@ -274,7 +274,7 @@ bool Date::tryConvertDate(const char* buf, uint64_t len, uint64_t& pos, date_t& 
     int32_t day = 0;
     int32_t month = -1;
     int32_t year = 0;
-    int sep;
+    char sep;
 
     // skip leading spaces
     while (pos < len && StringUtils::CharacterIsSpace(buf[pos])) {

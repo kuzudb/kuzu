@@ -43,13 +43,7 @@ public:
     inline uint32_t getNumTableStates() const { return tableStates.size(); }
     inline NodeTableScanState* getTableState(uint32_t idx) const { return tableStates[idx].get(); }
 
-    inline void initialize(transaction::Transaction* transaction) {
-        auto numMask = tableStates[0]->getSemiMask()->getNumMasks();
-        for (auto& tableState : tableStates) {
-            assert(tableState->getSemiMask()->getNumMasks() == numMask);
-            tableState->initializeMaxOffset(transaction);
-        }
-    }
+    void initialize(transaction::Transaction* transaction);
 
     std::tuple<NodeTableScanState*, common::offset_t, common::offset_t> getNextRangeToRead();
 

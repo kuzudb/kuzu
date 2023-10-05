@@ -206,7 +206,8 @@ struct Gamma {
 struct Lgamma {
     template<class T>
     static inline void operation(T& input, double_t& result) {
-        result = lgamma(input);
+        result =
+            lgamma(input); // NOLINT(concurrency-mt-unsafe): We don't use the thread-unsafe signgam.
     }
 };
 

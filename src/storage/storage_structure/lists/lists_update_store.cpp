@@ -322,9 +322,7 @@ ft_col_idx_t ListsUpdatesStore::getColIdxInFT(ListFileID& listFileID) const {
 
 void ListsUpdatesStore::initListsUpdatesPerTablePerDirection() {
     listsUpdatesPerDirection.clear();
-    for (auto direction : RelDataDirectionUtils::getRelDataDirections()) {
-        listsUpdatesPerDirection.emplace_back();
-    }
+    listsUpdatesPerDirection.resize(RelDataDirectionUtils::getRelDataDirections().size());
 }
 
 ListsUpdatesForNodeOffset* ListsUpdatesStore::getOrCreateListsUpdatesForNodeOffset(

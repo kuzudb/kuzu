@@ -150,6 +150,10 @@ void OpProfileTree::printOpProfileBoxUpperFrame(uint32_t rowIdx, std::ostringstr
     oss << std::endl;
 }
 
+static std::string dashedLineAccountingForIndex(uint32_t width, uint32_t indent) {
+    return std::string(width - (1 + indent) * 2, '-');
+}
+
 void OpProfileTree::printOpProfileBoxes(uint32_t rowIdx, std::ostringstream& oss) const {
     auto height = calculateRowHeight(rowIdx);
     auto halfWayPoint = height / 2;
@@ -164,12 +168,13 @@ void OpProfileTree::printOpProfileBoxes(uint32_t rowIdx, std::ostringstream& oss
                 unsigned int numParams = opProfileBox->getNumParams();
                 if (i == 0) {
                     textToPrint = opProfileBox->getOpName();
-                } else if (i == 1) {
-                    textToPrint = std::string(opProfileBoxWidth - (1 + INDENT_WIDTH) * 2, '-');
+                } else if (i == 1) { // NOLINT(bugprone-branch-clone): Merging these branches is a
+                                     // logical error, and this conditional chain is pleasant.
+                    textToPrint = dashedLineAccountingForIndex(opProfileBoxWidth, INDENT_WIDTH);
                 } else if (i <= numParams + 1) {
                     textToPrint = opProfileBox->getParamsName(i - 2);
                 } else if ((i - numParams - 1) % 2) {
-                    textToPrint = std::string(opProfileBoxWidth - (1 + INDENT_WIDTH) * 2, '-');
+                    textToPrint = dashedLineAccountingForIndex(opProfileBoxWidth, INDENT_WIDTH);
                 } else {
                     textToPrint = opProfileBox->getAttribute((i - numParams - 1) / 2 - 1);
                 }

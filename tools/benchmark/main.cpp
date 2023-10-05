@@ -38,16 +38,16 @@ int main(int argc, char** argv) {
             config->bufferPoolSize = (uint64_t)stoull(getArgumentValue(arg)) << 20;
         } else {
             printf("Unrecognized option %s", arg.c_str());
-            exit(1);
+            return 1;
         }
     }
     if (datasetPath.empty()) {
         printf("Missing --dataset input.");
-        exit(1);
+        return 1;
     }
     if (benchmarkPath.empty()) {
         printf("Missing --benchmark input");
-        exit(1);
+        return 1;
     }
     auto runner = BenchmarkRunner(datasetPath, std::move(config));
     try {
