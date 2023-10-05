@@ -242,8 +242,7 @@ def run_kuzu(serialized_graph_path):
         process = subprocess.Popen(
             tuple(benchmark_cmd), stdout=subprocess.PIPE)
         for line in iter(process.stdout.readline, b''):
-            sys.stdout.write(line.decode("utf-8"))
-            sys.stdout.flush()
+            print(line.decode("utf-8"), end='', flush=True)
         process.wait()
         if process.returncode != 0:
             print()

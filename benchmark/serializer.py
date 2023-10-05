@@ -65,8 +65,7 @@ def serialize(dataset_name, dataset_path, serialized_graph_path, benchmark_copy_
             filename = table_types[copy_match.group(1)] + '-' + copy_match.group(1).replace('_', '-') + '_log.txt'
             with open(os.path.join(benchmark_copy_log_dir, filename), 'ab') as f:
                 for line in iter(process.stdout.readline, b''):
-                    sys.stdout.write(line.decode("utf-8"))
-                    sys.stdout.flush()
+                    print(line.decode("utf-8"), end='', flush=True)
                     f.write(line)
         process.wait()
         if process.returncode != 0:
