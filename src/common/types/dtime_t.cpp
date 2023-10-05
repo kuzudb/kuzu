@@ -62,7 +62,7 @@ bool Time::TryConvertTime(const char* buf, uint64_t len, uint64_t& pos, dtime_t&
         return false;
     }
 
-    int sep;
+    char sep;
 
     // skip leading spaces
     while (pos < len && isspace(buf[pos])) {

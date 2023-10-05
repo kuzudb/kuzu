@@ -67,16 +67,17 @@ AggKeyDependencyOptimizer::resolveKeysAndDependentKeys(const binder::expression_
     for (auto& expression : keys) {
         if (expression->expressionType == PROPERTY) {
             auto propertyExpression = (binder::PropertyExpression*)expression.get();
-            if (propertyExpression->isPrimaryKey() || propertyExpression->isInternalID()) {
+            if (propertyExpression->isPrimaryKey() ||
+                propertyExpression->isInternalID()) { // NOLINT(bugprone-branch-clone): Collapsing
+                                                      // is a logical error.
                 groupExpressions.push_back(expression);
             } else if (primaryVarNames.contains(propertyExpression->getVariableName())) {
                 dependentExpressions.push_back(expression);
             } else {
                 groupExpressions.push_back(expression);
             }
-        } else if (ExpressionUtil::isNodeVariable(*expression)) {
-            dependentExpressions.push_back(expression);
-        } else if (ExpressionUtil::isRelVariable(*expression)) {
+        } else if (ExpressionUtil::isNodeVariable(*expression) ||
+                   ExpressionUtil::isRelVariable(*expression)) {
             dependentExpressions.push_back(expression);
         } else {
             groupExpressions.push_back(expression);

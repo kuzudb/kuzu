@@ -91,7 +91,7 @@ std::vector<std::unique_ptr<DataTypeInfo>> QueryResult::getColumnTypesInfo() con
             columnTypeInfo->childrenTypesInfo.push_back(
                 DataTypeInfo::getInfoForDataType(LogicalType(LogicalTypeID::STRING), "_label"));
             auto numProperties = NodeVal::getNumProperties(value);
-            for (auto j = 0u; i < numProperties; j++) {
+            for (auto j = 0u; j < numProperties; j++) {
                 auto name = NodeVal::getPropertyName(value, j);
                 auto val = NodeVal::getPropertyVal(value, j);
                 columnTypeInfo->childrenTypesInfo.push_back(
@@ -104,9 +104,9 @@ std::vector<std::unique_ptr<DataTypeInfo>> QueryResult::getColumnTypesInfo() con
             columnTypeInfo->childrenTypesInfo.push_back(
                 DataTypeInfo::getInfoForDataType(LogicalType(LogicalTypeID::INTERNAL_ID), "_dst"));
             auto numProperties = RelVal::getNumProperties(value);
-            for (auto j = 0u; i < numProperties; j++) {
-                auto name = NodeVal::getPropertyName(value, j);
-                auto val = NodeVal::getPropertyVal(value, j);
+            for (auto j = 0u; j < numProperties; j++) {
+                auto name = RelVal::getPropertyName(value, j);
+                auto val = RelVal::getPropertyVal(value, j);
                 columnTypeInfo->childrenTypesInfo.push_back(
                     DataTypeInfo::getInfoForDataType(*val->getDataType(), name));
             }

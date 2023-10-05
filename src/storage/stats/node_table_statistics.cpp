@@ -113,7 +113,7 @@ void NodeTableStatsAndDeletedIDs::setDeletedNodeOffsetsForMorsel(
         auto itr = deletedNodeOffsets.begin();
         sel_t nextDeletedNodeOffset = *itr - morselBeginOffset;
         uint64_t nextSelectedPosition = 0;
-        for (sel_t pos = 0; pos < nodeOffsetVector->state->getOriginalSize(); ++pos) {
+        for (auto pos = 0; pos < nodeOffsetVector->state->getOriginalSize(); ++pos) {
             if (pos == nextDeletedNodeOffset) {
                 itr++;
                 if (itr == deletedNodeOffsets.end()) {

@@ -1,0 +1,9 @@
+-GROUP RuntimeErrorTest
+-DATASET CSV empty
+
+--
+
+-CASE InvalidUTF8
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/invalid-utf8/invalid-utf8.csv" RETURN UPPER(column0);
+---- error
+Runtime exception: Failed calling UPPER: Invalid UTF-8.

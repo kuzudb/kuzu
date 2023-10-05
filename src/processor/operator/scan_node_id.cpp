@@ -24,6 +24,15 @@ std::pair<offset_t, offset_t> NodeTableScanState::getNextRangeToRead() {
     return std::make_pair(startOffset, startOffset + range);
 }
 
+void ScanNodeIDSharedState::initialize(transaction::Transaction* transaction) {
+    auto numMask = tableStates[0]->getSemiMask()->getNumMasks();
+    for (auto& tableState : tableStates) {
+        assert(tableState->getSemiMask()->getNumMasks() == numMask);
+        tableState->initializeMaxOffset(transaction);
+    }
+    (void)numMask; // For clang-tidy: used for assert.
+}
+
 std::tuple<NodeTableScanState*, offset_t, offset_t> ScanNodeIDSharedState::getNextRangeToRead() {
     std::unique_lock lck{mtx};
     if (currentStateIdx == tableStates.size()) {

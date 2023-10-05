@@ -26,6 +26,7 @@ void CopyRelColumns::executeInternal(ExecutionContext* context) {
             numBwdRows = countRelLists(sharedState->bwdRelData.get(), info.nbrOffsetPos);
         }
         assert(numFwdRows == numBwdRows);
+        (void)numBwdRows; // For clang-tidy, value calculated for debug assert.
         numRows += numFwdRows;
     }
     sharedState->incrementNumRows(numRows);

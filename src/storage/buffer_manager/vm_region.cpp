@@ -1,6 +1,7 @@
 #include "storage/buffer_manager/vm_region.h"
 
 #include "common/string_utils.h"
+#include "common/system_message.h"
 
 #ifdef _WIN32
 #include <errhandlingapi.h>
@@ -71,17 +72,20 @@ void VMRegion::releaseFrame(frame_idx_t frameIdx) {
     // See https://arvid.io/2018/04/02/memory-mapping-on-windows/#1
     // Not sure what the differences are
     if (!VirtualFree(getFrame(frameIdx), frameSize, MEM_DECOMMIT)) {
+        auto code = GetLastError();
         throw BufferManagerException(StringUtils::string_format(
             "Releasing physical memory associated with a frame failed with error code {}: {}.",
-            GetLastError(), std::system_category().message(GetLastError())));
+            code, systemErrMessage(code)));
     }
 
 #else
     int error = madvise(getFrame(frameIdx), frameSize, MADV_DONTNEED);
     if (error != 0) {
-        throw BufferManagerException(
-            "Releasing physical memory associated with a frame failed with error code " +
-            std::to_string(error) + ": " + std::string(std::strerror(errno)));
+        // LCOV_EXCL_START
+        throw BufferManagerException(StringUtils::string_format(
+            "Releasing physical memory associated with a frame failed with error code {}: {}.",
+            error, posixErrMessage()));
+        // LCOV_EXCL_END
     }
 #endif
 }

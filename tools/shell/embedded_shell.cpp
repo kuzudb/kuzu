@@ -162,7 +162,6 @@ void highlight(char* buffer, char* resultBuf, uint32_t maxLen, uint32_t cursorPo
         }
         lineLen -= thisChar;
         buf = buf.substr(thisChar, lineLen);
-        bufLen = buf.length();
     } else if (buf.length() > maxLen) {
         uint32_t counter = 0;
         uint32_t lineLen = 0;
@@ -171,7 +170,6 @@ void highlight(char* buffer, char* resultBuf, uint32_t maxLen, uint32_t cursorPo
             lineLen = utf8proc_next_grapheme(buffer, bufLen, lineLen);
         }
         buf = buf.substr(0, lineLen);
-        bufLen = buf.length();
     }
     for (auto i = 0u; i < buf.length(); i++) {
         if ((buf[i] != ' ' && !word.empty() && word[0] == ' ') ||

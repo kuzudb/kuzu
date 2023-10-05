@@ -448,12 +448,10 @@ LogicalTypeID LogicalTypeUtils::dataTypeIDFromString(const std::string& dataType
         return LogicalTypeID::INTERNAL_ID;
     } else if ("INT64" == upperDataTypeIDString) {
         return LogicalTypeID::INT64;
-    } else if ("INT32" == upperDataTypeIDString) {
+    } else if ("INT32" == upperDataTypeIDString || "INT" == upperDataTypeIDString) {
         return LogicalTypeID::INT32;
     } else if ("INT16" == upperDataTypeIDString) {
         return LogicalTypeID::INT16;
-    } else if ("INT" == upperDataTypeIDString) {
-        return LogicalTypeID::INT32;
     } else if ("INT8" == upperDataTypeIDString) {
         return LogicalTypeID::INT8;
     } else if ("UINT64" == upperDataTypeIDString) {
