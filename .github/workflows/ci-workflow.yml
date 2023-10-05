@@ -187,7 +187,7 @@ jobs:
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
-          make example NUM_THREADS=32
+          make example NUM_THREADS=18
 
   header-include-guard-check:
     name: header include guard check
