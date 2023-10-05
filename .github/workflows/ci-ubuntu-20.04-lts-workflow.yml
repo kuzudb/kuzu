@@ -6,67 +6,97 @@ on:
     - cron: '0 0 * * *'
 
 jobs:
-  gcc-rust-build-test:
-    name: gcc & rust build & test
+  ubuntu-2004-build-test:
+    name: ubuntu-20.04 build & test
     runs-on: ubuntu-20.04
     env:
-      # Share build cache when building rust API and the example project
-      CARGO_TARGET_DIR: ${{ github.workspace }}/target
-      CARGO_BUILD_JOBS: 32
-      CC: gcc
-      CXX: g++
+      CC: gcc-10
+      CXX: g++-10
     steps:
+      - uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+
       - uses: actions/checkout@v3
 
       - name: Ensure Python dependencies
         run: |
-          pip install torch~=1.13 --extra-index-url https://download.pytorch.org/whl/cpu &&\
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-1.13.0+cpu.html
-      
-      - name: Ensure Node.js dependencies
-        run: npm install --include=dev
-        working-directory: tools/nodejs_api
+          pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
 
-      - name: Test with coverage
-        run: CC=gcc CXX=g++ make lcov NUM_THREADS=32
+      - name: Build
+        run: make release NUM_THREADS=$(nproc)
+
+      - name: Test
+        run: make test NUM_THREADS=$(nproc)
 
       - name: Python test
-        run: CC=gcc CXX=g++ make pytest NUM_THREADS=32
-      
-      - name: Node.js test
-        run: CC=gcc CXX=g++ make nodejstest NUM_THREADS=32
+        run: make pytest NUM_THREADS=$(nproc)
 
-      - name: Java test
-        run: CC=gcc CXX=g++ make javatest NUM_THREADS=32
+  macos-build-test:
+    name: macos build & test
+    strategy:
+      matrix:
+        runner: [macos-11, macos-12]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v3
 
-      - name: Generate coverage report
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Ensure Python dependencies
         run: |
-          lcov -c -d ./ --no-external -o cover.info &&\
-          lcov --remove cover.info $(< .github/workflows/lcov_exclude) -o cover.info
+          pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
 
-      - name: C Example
-        working-directory: examples/c
+      - name: Build
+        run: make release NUM_THREADS=$(sysctl -n hw.physicalcpu)
+
+      - name: Test
+        run: make test NUM_THREADS=$(sysctl -n hw.physicalcpu)
+
+      - name: Python test
+        run: make pytest NUM_THREADS=$(sysctl -n hw.physicalcpu)
+
+  windows-build-test:
+    name: windows build & test
+    strategy:
+      matrix:
+        runner: [windows-2019, windows-2022]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - run: |
+          mkdir C:\kuzu
+          git clone https://github.com/kuzudb/kuzu.git C:\kuzu
+          cd C:\kuzu
+          git switch ${{ github.ref_name }}
+
+      - uses: ilammy/msvc-dev-cmd@v1
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+
+      - name: Ensure Python dependencies
+        shell: cmd
+        working-directory: C:\kuzu
         run: |
-          mkdir build -p
-          cd build
-          CC=gcc CXX=g++ cmake ..
-          cmake --build .
+          pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install --user -r tools\python_api\requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
 
-      - name: C++ Example
-        working-directory: examples/cpp
-        run: |
-          mkdir build -p
-          cd build
-          CC=gcc CXX=g++ cmake ..
-          cmake --build .
+      - name: Build
+        shell: cmd
+        working-directory: C:\kuzu
+        run: make release NUM_THREADS=%NUMBER_OF_PROCESSORS%
 
-      - name: Rust test
-        working-directory: tools/rust_api
-        run: |
-          cargo update -p half@2.3.1 --precise '2.2.1'
-          cargo update -p time --precise '0.3.23'
-          cargo test --features arrow -- --test-threads=1
+      - name: Test
+        shell: cmd
+        working-directory: C:\kuzu
+        run: make test NUM_THREADS=%NUMBER_OF_PROCESSORS%
 
-      - name: Rust example
-        working-directory: examples/rust
-        run: cargo build
+      - name: Python test
+        shell: cmd
+        working-directory: C:\kuzu
+        run: make pytest NUM_THREADS=%NUMBER_OF_PROCESSORS%
