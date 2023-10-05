@@ -1,4 +1,4 @@
--GROUP TinySnbUpdateRelTest
+-GROUP TinySnbSetReadRelTest
 -DATASET CSV tinysnb
 
 --

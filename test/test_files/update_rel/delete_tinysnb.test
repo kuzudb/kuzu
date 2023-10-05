@@ -1,4 +1,4 @@
--GROUP TinySnbUpdateRelTest
+-GROUP TinySnbDeleteRelTest
 -DATASET CSV tinysnb
 
 --
