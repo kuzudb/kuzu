@@ -133,53 +133,6 @@ protected:
     bool enableCompression;
 };
 
-class BoolNodeColumn : public NodeColumn {
-public:
-    BoolNodeColumn(const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
-        BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
-        bool enableCompression, bool requireNullColumn = true);
-};
-
-class NullNodeColumn : public NodeColumn {
-    friend StructNodeColumn;
-
-public:
-    NullNodeColumn(common::page_idx_t metaDAHPageIdx, BMFileHandle* dataFH,
-        BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
-        bool enableCompression);
-
-    void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) final;
-    void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
-        common::ValueVector* resultVector, uint64_t offsetInVector = 0) final;
-    void scan(common::node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) final;
-
-    void lookup(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) final;
-    void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) final;
-    void setNull(common::offset_t nodeOffset) final;
-
-protected:
-    void writeInternal(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
-        uint32_t posInVectorToWriteFrom) final;
-};
-
-class SerialNodeColumn : public NodeColumn {
-public:
-    SerialNodeColumn(const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
-        BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction);
-
-    void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) final;
-    void lookup(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) final;
-    void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) final;
-};
-
 struct NodeColumnFactory {
     static std::unique_ptr<NodeColumn> createNodeColumn(const common::LogicalType& dataType,
         const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,

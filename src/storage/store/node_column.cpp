@@ -138,6 +138,134 @@ static batch_lookup_func_t getBatchLookupFromPageFunc(const LogicalType& logical
     }
 }
 
+class NullNodeColumn : public NodeColumn {
+    friend StructNodeColumn;
+
+public:
+    // Page size must be aligned to 8 byte chunks for the 64-bit NullMask algorithms to work
+    // without the possibility of memory errors from reading/writing off the end of a page.
+    static_assert(PageUtils::getNumElementsInAPage(1, false /*requireNullColumn*/) % 8 == 0);
+
+    NullNodeColumn(page_idx_t metaDAHPageIdx, BMFileHandle* dataFH, BMFileHandle* metadataFH,
+        BufferManager* bufferManager, WAL* wal, Transaction* transaction,
+        RWPropertyStats propertyStatistics, bool enableCompression)
+        : NodeColumn{LogicalType(LogicalTypeID::BOOL), MetadataDAHInfo{metaDAHPageIdx}, dataFH,
+              metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression,
+              false /*requireNullColumn*/} {
+        readToVectorFunc = NullNodeColumnFunc::readValuesFromPageToVector;
+        writeFromVectorFunc = NullNodeColumnFunc::writeValueToPage;
+    }
+
+    void scan(
+        Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) final {
+        if (propertyStatistics.mayHaveNull(*transaction)) {
+            scanInternal(transaction, nodeIDVector, resultVector);
+        } else {
+            resultVector->setAllNonNull();
+        }
+    }
+
+    void scan(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
+        offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
+        uint64_t offsetInVector) final {
+        if (propertyStatistics.mayHaveNull(*transaction)) {
+            NodeColumn::scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup,
+                resultVector, offsetInVector);
+        } else {
+            resultVector->setRangeNonNull(offsetInVector, endOffsetInGroup - startOffsetInGroup);
+        }
+    }
+
+    void scan(node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) final {
+        if (propertyStatistics.mayHaveNull(DUMMY_WRITE_TRANSACTION)) {
+            NodeColumn::scan(nodeGroupIdx, columnChunk);
+        } else {
+            static_cast<NullColumnChunk*>(columnChunk)->resetNullBuffer();
+        }
+    }
+
+    void lookup(
+        Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) final {
+        if (propertyStatistics.mayHaveNull(*transaction)) {
+            lookupInternal(transaction, nodeIDVector, resultVector);
+        } else {
+            for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
+                auto pos = nodeIDVector->state->selVector->selectedPositions[i];
+                resultVector->setNull(pos, false);
+            }
+        }
+    }
+
+    void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) final {
+        auto preScanMetadata = columnChunk->getMetadataToFlush();
+        auto startPageIdx = dataFH->addNewPages(preScanMetadata.numPages);
+        auto metadata = columnChunk->flushBuffer(dataFH, startPageIdx, preScanMetadata);
+        metadataDA->resize(nodeGroupIdx + 1);
+        metadataDA->update(nodeGroupIdx, metadata);
+        if (static_cast<NullColumnChunk*>(columnChunk)->mayHaveNull()) {
+            propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
+        }
+    }
+
+    void setNull(offset_t nodeOffset) final {
+        auto walPageInfo = createWALVersionOfPageForValue(nodeOffset);
+        try {
+            propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
+            NullMask::setNull((uint64_t*)walPageInfo.frame, walPageInfo.posInPage, true);
+        } catch (Exception& e) {
+            bufferManager->unpin(*wal->fileHandle, walPageInfo.pageIdxInWAL);
+            dataFH->releaseWALPageIdxLock(walPageInfo.originalPageIdx);
+            throw;
+        }
+        bufferManager->unpin(*wal->fileHandle, walPageInfo.pageIdxInWAL);
+        dataFH->releaseWALPageIdxLock(walPageInfo.originalPageIdx);
+    }
+
+protected:
+    void writeInternal(offset_t nodeOffset, ValueVector* vectorToWriteFrom,
+        uint32_t posInVectorToWriteFrom) final {
+        writeValue(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
+        if (vectorToWriteFrom->isNull(posInVectorToWriteFrom)) {
+            propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
+        }
+    }
+};
+
+class SerialNodeColumn : public NodeColumn {
+public:
+    SerialNodeColumn(const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
+        BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal, Transaction* transaction)
+        : NodeColumn{LogicalType(LogicalTypeID::SERIAL), metaDAHeaderInfo, dataFH, metadataFH,
+              // Serials can't be null, so they don't need PropertyStatistics
+              bufferManager, wal, transaction, RWPropertyStats::empty(),
+              false /* enableCompression */, false /*requireNullColumn*/} {}
+
+    void scan(
+        Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) final {
+        // Serial column cannot contain null values.
+        for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
+            auto pos = nodeIDVector->state->selVector->selectedPositions[i];
+            auto offset = nodeIDVector->readNodeOffset(pos);
+            assert(!resultVector->isNull(pos));
+            resultVector->setValue<offset_t>(pos, offset);
+        }
+    }
+
+    void lookup(
+        Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) final {
+        // Serial column cannot contain null values.
+        for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
+            auto pos = nodeIDVector->state->selVector->selectedPositions[i];
+            auto offset = nodeIDVector->readNodeOffset(pos);
+            resultVector->setValue<offset_t>(pos, offset);
+        }
+    }
+
+    void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) final {
+        metadataDA->resize(nodeGroupIdx + 1);
+    }
+};
+
 NodeColumn::NodeColumn(LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
     BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
     transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
@@ -450,141 +578,12 @@ PageElementCursor NodeColumn::getPageCursorForOffset(
     return pageCursor;
 }
 
-// Page size must be aligned to 8 byte chunks for the 64-bit NullMask algorithms to work
-// without the possibility of memory errors from reading/writing off the end of a page.
-static_assert(PageUtils::getNumElementsInAPage(1, false /*requireNullColumn*/) % 8 == 0);
-
-BoolNodeColumn::BoolNodeColumn(const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
-    BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal, Transaction* transaction,
-    RWPropertyStats propertyStatistics, bool enableCompression, bool requireNullColumn)
-    : NodeColumn{LogicalType(LogicalTypeID::BOOL), metaDAHeaderInfo, dataFH, metadataFH,
-          bufferManager, wal, transaction, propertyStatistics, enableCompression,
-          requireNullColumn} {}
-
-NullNodeColumn::NullNodeColumn(page_idx_t metaDAHPageIdx, BMFileHandle* dataFH,
-    BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal, Transaction* transaction,
-    RWPropertyStats propertyStatistics, bool enableCompression)
-    : NodeColumn{LogicalType(LogicalTypeID::BOOL), MetadataDAHInfo{metaDAHPageIdx}, dataFH,
-          metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression,
-          false /*requireNullColumn*/} {
-    readToVectorFunc = NullNodeColumnFunc::readValuesFromPageToVector;
-    writeFromVectorFunc = NullNodeColumnFunc::writeValueToPage;
-}
-
-void NullNodeColumn::scan(
-    Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
-    if (propertyStatistics.mayHaveNull(*transaction)) {
-        scanInternal(transaction, nodeIDVector, resultVector);
-    } else {
-        resultVector->setAllNonNull();
-    }
-}
-
-void NullNodeColumn::scan(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
-    uint64_t offsetInVector) {
-    if (propertyStatistics.mayHaveNull(*transaction)) {
-        NodeColumn::scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup,
-            resultVector, offsetInVector);
-    } else {
-        resultVector->setRangeNonNull(offsetInVector, endOffsetInGroup - startOffsetInGroup);
-    }
-}
-
-void NullNodeColumn::scan(node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) {
-    if (propertyStatistics.mayHaveNull(DUMMY_WRITE_TRANSACTION)) {
-        NodeColumn::scan(nodeGroupIdx, columnChunk);
-    } else {
-        static_cast<NullColumnChunk*>(columnChunk)->resetNullBuffer();
-    }
-}
-
-void NullNodeColumn::lookup(
-    Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
-    if (propertyStatistics.mayHaveNull(*transaction)) {
-        lookupInternal(transaction, nodeIDVector, resultVector);
-    } else {
-        for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
-            auto pos = nodeIDVector->state->selVector->selectedPositions[i];
-            resultVector->setNull(pos, false);
-        }
-    }
-}
-
-void NullNodeColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
-    auto preScanMetadata = columnChunk->getMetadataToFlush();
-    auto startPageIdx = dataFH->addNewPages(preScanMetadata.numPages);
-    auto metadata = columnChunk->flushBuffer(dataFH, startPageIdx, preScanMetadata);
-    metadataDA->resize(nodeGroupIdx + 1);
-    metadataDA->update(nodeGroupIdx, metadata);
-    if (static_cast<NullColumnChunk*>(columnChunk)->mayHaveNull()) {
-        propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
-    }
-}
-
-void NullNodeColumn::setNull(offset_t nodeOffset) {
-    auto walPageInfo = createWALVersionOfPageForValue(nodeOffset);
-    try {
-        propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
-        NullMask::setNull((uint64_t*)walPageInfo.frame, walPageInfo.posInPage, true);
-    } catch (Exception& e) {
-        bufferManager->unpin(*wal->fileHandle, walPageInfo.pageIdxInWAL);
-        dataFH->releaseWALPageIdxLock(walPageInfo.originalPageIdx);
-        throw;
-    }
-    bufferManager->unpin(*wal->fileHandle, walPageInfo.pageIdxInWAL);
-    dataFH->releaseWALPageIdxLock(walPageInfo.originalPageIdx);
-}
-
-void NullNodeColumn::writeInternal(
-    offset_t nodeOffset, ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
-    writeValue(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
-    if (vectorToWriteFrom->isNull(posInVectorToWriteFrom)) {
-        propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
-    }
-}
-
-SerialNodeColumn::SerialNodeColumn(const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
-    BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal, Transaction* transaction)
-    : NodeColumn{LogicalType(LogicalTypeID::SERIAL), metaDAHeaderInfo, dataFH, metadataFH,
-          // Serials can't be null, so they don't need PropertyStatistics
-          bufferManager, wal, transaction, RWPropertyStats::empty(), false /* enableCompression */,
-          false /*requireNullColumn*/} {}
-
-void SerialNodeColumn::scan(
-    Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
-    // Serial column cannot contain null values.
-    for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
-        auto pos = nodeIDVector->state->selVector->selectedPositions[i];
-        auto offset = nodeIDVector->readNodeOffset(pos);
-        assert(!resultVector->isNull(pos));
-        resultVector->setValue<offset_t>(pos, offset);
-    }
-}
-
-void SerialNodeColumn::lookup(
-    Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
-    // Serial column cannot contain null values.
-    for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
-        auto pos = nodeIDVector->state->selVector->selectedPositions[i];
-        auto offset = nodeIDVector->readNodeOffset(pos);
-        resultVector->setValue<offset_t>(pos, offset);
-    }
-}
-
-void SerialNodeColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
-    metadataDA->resize(nodeGroupIdx + 1);
-}
-
 std::unique_ptr<NodeColumn> NodeColumnFactory::createNodeColumn(const LogicalType& dataType,
     const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
     BufferManager* bufferManager, WAL* wal, Transaction* transaction, RWPropertyStats stats,
     bool enableCompression) {
     switch (dataType.getLogicalTypeID()) {
-    case LogicalTypeID::BOOL: {
-        return std::make_unique<BoolNodeColumn>(metaDAHeaderInfo, dataFH, metadataFH, bufferManager,
-            wal, transaction, stats, enableCompression);
-    }
+    case LogicalTypeID::BOOL:
     case LogicalTypeID::INT64:
     case LogicalTypeID::INT32:
     case LogicalTypeID::INT16:

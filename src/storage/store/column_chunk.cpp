@@ -14,6 +14,129 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
+void BoolColumnChunk::initialize(common::offset_t capacity) {
+    numBytesPerValue = 0;
+    bufferSize = numBytesForValues(capacity);
+    this->capacity = capacity;
+    buffer = std::make_unique<uint8_t[]>(bufferSize);
+    if (nullChunk) {
+        static_cast<BoolColumnChunk*>(nullChunk.get())->initialize(capacity);
+    }
+}
+
+void BoolColumnChunk::resize(uint64_t capacity) {
+    auto numBytesAfterResize = numBytesForValues(capacity);
+    assert(numBytesAfterResize > bufferSize);
+    auto reservedBuffer = std::make_unique<uint8_t[]>(numBytesAfterResize);
+    memset(reservedBuffer.get(), 0 /* non null */, numBytesAfterResize);
+    memcpy(reservedBuffer.get(), buffer.get(), bufferSize);
+    buffer = std::move(reservedBuffer);
+    bufferSize = numBytesAfterResize;
+    this->capacity = numValues;
+    if (nullChunk) {
+        nullChunk->resize(capacity);
+    }
+}
+
+void NullColumnChunk::append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
+    common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
+    copyFromBuffer((uint64_t*)static_cast<NullColumnChunk*>(other)->buffer.get(),
+        startPosInOtherChunk, startPosInChunk, numValuesToAppend);
+}
+
+class FixedListColumnChunk : public ColumnChunk {
+public:
+    FixedListColumnChunk(common::LogicalType dataType,
+        std::unique_ptr<common::CSVReaderConfig> csvReaderConfig, bool enableCompression)
+        : ColumnChunk(std::move(dataType), std::move(csvReaderConfig), enableCompression,
+              true /* hasNullChunk */) {}
+
+    void append(ColumnChunk* other, offset_t startPosInOtherChunk, common::offset_t startPosInChunk,
+        uint32_t numValuesToAppend) final {
+        auto otherChunk = (FixedListColumnChunk*)other;
+        if (nullChunk) {
+            nullChunk->append(otherChunk->nullChunk.get(), startPosInOtherChunk, startPosInChunk,
+                numValuesToAppend);
+        }
+        // TODO(Guodong): This can be optimized to not copy one by one.
+        for (auto i = 0u; i < numValuesToAppend; i++) {
+            memcpy(buffer.get() + getOffsetInBuffer(startPosInChunk + i),
+                otherChunk->buffer.get() + getOffsetInBuffer(startPosInOtherChunk + i),
+                numBytesPerValue);
+        }
+        numValues += numValuesToAppend;
+    }
+
+    void write(const Value& fixedListVal, uint64_t posToWrite) final {
+        assert(fixedListVal.getDataType()->getPhysicalType() == PhysicalTypeID::FIXED_LIST);
+        nullChunk->setNull(posToWrite, fixedListVal.isNull());
+        if (fixedListVal.isNull()) {
+            return;
+        }
+        auto numValues = NestedVal::getChildrenSize(&fixedListVal);
+        auto childType = FixedListType::getChildType(fixedListVal.getDataType());
+        auto numBytesPerValueInList = getDataTypeSizeInChunk(*childType);
+        auto bufferToWrite = buffer.get() + posToWrite * numBytesPerValue;
+        for (auto i = 0u; i < numValues; i++) {
+            auto val = NestedVal::getChildVal(&fixedListVal, i);
+            switch (childType->getPhysicalType()) {
+            case PhysicalTypeID::INT64: {
+                memcpy(bufferToWrite, &val->getValueReference<int64_t>(), numBytesPerValueInList);
+            } break;
+            case PhysicalTypeID::INT32: {
+                memcpy(bufferToWrite, &val->getValueReference<int32_t>(), numBytesPerValueInList);
+            } break;
+            case PhysicalTypeID::INT16: {
+                memcpy(bufferToWrite, &val->getValueReference<int16_t>(), numBytesPerValueInList);
+            } break;
+            case PhysicalTypeID::DOUBLE: {
+                memcpy(bufferToWrite, &val->getValueReference<double_t>(), numBytesPerValueInList);
+            } break;
+            case PhysicalTypeID::FLOAT: {
+                memcpy(bufferToWrite, &val->getValueReference<float_t>(), numBytesPerValueInList);
+            } break;
+            default: {
+                throw NotImplementedException{"FixedListColumnChunk::write"};
+            }
+            }
+            bufferToWrite += numBytesPerValueInList;
+        }
+    }
+
+    void copyVectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk) final {
+        auto vectorDataToWriteFrom = vector->getData();
+        for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
+            auto pos = vector->state->selVector->selectedPositions[i];
+            nullChunk->setNull(startPosInChunk + i, vector->isNull(pos));
+            memcpy(buffer.get() + getOffsetInBuffer(startPosInChunk + i),
+                vectorDataToWriteFrom + pos * numBytesPerValue, numBytesPerValue);
+        }
+    }
+
+private:
+    uint64_t getBufferSize() const final {
+        auto numElementsInAPage =
+            PageUtils::getNumElementsInAPage(numBytesPerValue, false /* hasNull */);
+        auto numPages = capacity / numElementsInAPage + (capacity % numElementsInAPage ? 1 : 0);
+        return common::BufferPoolConstants::PAGE_4KB_SIZE * numPages;
+    }
+};
+
+class SerialColumnChunk : public ColumnChunk {
+public:
+    SerialColumnChunk()
+        : ColumnChunk{common::LogicalType(common::LogicalTypeID::SERIAL),
+              nullptr /* copyDescription */, false /*enableCompression*/,
+              false /* hasNullChunk */} {}
+
+    inline void initialize(common::offset_t numValues) final {
+        numBytesPerValue = 0;
+        bufferSize = 0;
+        // Each byte defaults to 0, indicating everything is non-null
+        buffer = std::make_unique<uint8_t[]>(bufferSize);
+    }
+};
+
 ColumnChunkMetadata fixedSizedFlushBuffer(const uint8_t* buffer, uint64_t bufferSize,
     BMFileHandle* dataFH, page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
     FileUtils::writeToFile(dataFH->getFileInfo(), buffer, bufferSize,
@@ -365,82 +488,6 @@ void BoolColumnChunk::append(ColumnChunk* other, common::offset_t startPosInOthe
     numValues += numValuesToAppend;
 }
 
-void NullColumnChunk::append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
-    common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    copyFromBuffer((uint64_t*)static_cast<NullColumnChunk*>(other)->buffer.get(),
-        startPosInOtherChunk, startPosInChunk, numValuesToAppend);
-}
-
-void FixedListColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
-    common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    auto otherChunk = (FixedListColumnChunk*)other;
-    if (nullChunk) {
-        nullChunk->append(
-            otherChunk->nullChunk.get(), startPosInOtherChunk, startPosInChunk, numValuesToAppend);
-    }
-    // TODO(Guodong): This can be optimized to not copy one by one.
-    for (auto i = 0u; i < numValuesToAppend; i++) {
-        memcpy(buffer.get() + getOffsetInBuffer(startPosInChunk + i),
-            otherChunk->buffer.get() + getOffsetInBuffer(startPosInOtherChunk + i),
-            numBytesPerValue);
-    }
-    numValues += numValuesToAppend;
-}
-
-void FixedListColumnChunk::write(const Value& fixedListVal, uint64_t posToWrite) {
-    assert(fixedListVal.getDataType()->getPhysicalType() == PhysicalTypeID::FIXED_LIST);
-    nullChunk->setNull(posToWrite, fixedListVal.isNull());
-    if (fixedListVal.isNull()) {
-        return;
-    }
-    auto numValues = NestedVal::getChildrenSize(&fixedListVal);
-    auto childType = FixedListType::getChildType(fixedListVal.getDataType());
-    auto numBytesPerValueInList = getDataTypeSizeInChunk(*childType);
-    auto bufferToWrite = buffer.get() + posToWrite * numBytesPerValue;
-    for (auto i = 0u; i < numValues; i++) {
-        auto val = NestedVal::getChildVal(&fixedListVal, i);
-        switch (childType->getPhysicalType()) {
-        case PhysicalTypeID::INT64: {
-            memcpy(bufferToWrite, &val->getValueReference<int64_t>(), numBytesPerValueInList);
-        } break;
-        case PhysicalTypeID::INT32: {
-            memcpy(bufferToWrite, &val->getValueReference<int32_t>(), numBytesPerValueInList);
-        } break;
-        case PhysicalTypeID::INT16: {
-            memcpy(bufferToWrite, &val->getValueReference<int16_t>(), numBytesPerValueInList);
-        } break;
-        case PhysicalTypeID::DOUBLE: {
-            memcpy(bufferToWrite, &val->getValueReference<double_t>(), numBytesPerValueInList);
-        } break;
-        case PhysicalTypeID::FLOAT: {
-            memcpy(bufferToWrite, &val->getValueReference<float_t>(), numBytesPerValueInList);
-        } break;
-        default: {
-            throw NotImplementedException{"FixedListColumnChunk::write"};
-        }
-        }
-        bufferToWrite += numBytesPerValueInList;
-    }
-}
-
-void FixedListColumnChunk::copyVectorToBuffer(
-    common::ValueVector* vector, common::offset_t startPosInChunk) {
-    auto vectorDataToWriteFrom = vector->getData();
-    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
-        auto pos = vector->state->selVector->selectedPositions[i];
-        nullChunk->setNull(startPosInChunk + i, vector->isNull(pos));
-        memcpy(buffer.get() + getOffsetInBuffer(startPosInChunk + i),
-            vectorDataToWriteFrom + pos * numBytesPerValue, numBytesPerValue);
-    }
-}
-
-uint64_t FixedListColumnChunk::getBufferSize() const {
-    auto numElementsInAPage =
-        PageUtils::getNumElementsInAPage(numBytesPerValue, false /* hasNull */);
-    auto numPages = capacity / numElementsInAPage + (capacity % numElementsInAPage ? 1 : 0);
-    return common::BufferPoolConstants::PAGE_4KB_SIZE * numPages;
-}
-
 std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     const LogicalType& dataType, bool enableCompression, CSVReaderConfig* csvReaderConfig) {
     auto csvReaderConfigCopy = csvReaderConfig ? csvReaderConfig->copy() : nullptr;
@@ -519,30 +566,6 @@ void ColumnChunk::copyVectorToBuffer(
             memcpy(bufferToWrite, vectorDataToWriteFrom + pos * numBytesPerValue, numBytesPerValue);
             bufferToWrite += numBytesPerValue;
         }
-    }
-}
-
-inline void BoolColumnChunk::initialize(common::offset_t capacity) {
-    numBytesPerValue = 0;
-    bufferSize = numBytesForValues(capacity);
-    this->capacity = capacity;
-    buffer = std::make_unique<uint8_t[]>(bufferSize);
-    if (nullChunk) {
-        static_cast<BoolColumnChunk*>(nullChunk.get())->initialize(capacity);
-    }
-}
-
-void BoolColumnChunk::resize(uint64_t capacity) {
-    auto numBytesAfterResize = numBytesForValues(capacity);
-    assert(numBytesAfterResize > bufferSize);
-    auto reservedBuffer = std::make_unique<uint8_t[]>(numBytesAfterResize);
-    memset(reservedBuffer.get(), 0 /* non null */, numBytesAfterResize);
-    memcpy(reservedBuffer.get(), buffer.get(), bufferSize);
-    buffer = std::move(reservedBuffer);
-    bufferSize = numBytesAfterResize;
-    this->capacity = numValues;
-    if (nullChunk) {
-        nullChunk->resize(capacity);
     }
 }
 

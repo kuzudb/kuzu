@@ -227,39 +227,6 @@ protected:
     bool mayHaveNullValue;
 };
 
-class FixedListColumnChunk : public ColumnChunk {
-public:
-    FixedListColumnChunk(common::LogicalType dataType,
-        std::unique_ptr<common::CSVReaderConfig> csvReaderConfig, bool enableCompression)
-        : ColumnChunk(std::move(dataType), std::move(csvReaderConfig), enableCompression,
-              true /* hasNullChunk */) {}
-
-    void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
-        common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
-
-    void write(const common::Value& fixedListVal, uint64_t posToWrite) final;
-
-    void copyVectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk) final;
-
-private:
-    uint64_t getBufferSize() const final;
-};
-
-class SerialColumnChunk : public ColumnChunk {
-public:
-    SerialColumnChunk()
-        : ColumnChunk{common::LogicalType(common::LogicalTypeID::SERIAL),
-              nullptr /* copyDescription */, false /*enableCompression*/,
-              false /* hasNullChunk */} {}
-
-    inline void initialize(common::offset_t numValues) final {
-        numBytesPerValue = 0;
-        bufferSize = 0;
-        // Each byte defaults to 0, indicating everything is non-null
-        buffer = std::make_unique<uint8_t[]>(bufferSize);
-    }
-};
-
 struct ColumnChunkFactory {
     static std::unique_ptr<ColumnChunk> createColumnChunk(const common::LogicalType& dataType,
         bool enableCompression, common::CSVReaderConfig* csvReaderConfig = nullptr);
