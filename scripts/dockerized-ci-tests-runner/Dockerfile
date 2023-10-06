@@ -3,8 +3,34 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends apt-utils curl ca-certificates apt-transport-https gnupg software-properties-common
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-RUN apt-get update && apt-get install -y g++ gcc clang-14 python3-dev python3-pip python-is-python3 cmake nodejs jq curl sudo git clang-format-11 lsb-release wget lcov libssl-dev libcurl4-openssl-dev openjdk-17-jdk
+
+# Setup nodejs (see https://github.com/nodesource/distributions#installation-instructions).
+RUN mkdir -p /etc/apt/keyrings
+RUN curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+RUN echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
+
+RUN apt-get update && apt-get install -y \
+    ccache \
+    clang-14 \
+    clang-format-11 \
+    clang-tidy \
+    cmake \
+    curl \
+    g++ \
+    gcc \
+    git \
+    jq \
+    lcov \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    lsb-release \
+    nodejs \
+    openjdk-17-jdk \
+    python-is-python3 \
+    python3-dev \
+    python3-pip \
+    sudo \
+    wget
 
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 RUN useradd --create-home runner
