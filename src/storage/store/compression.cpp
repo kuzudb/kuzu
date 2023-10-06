@@ -188,31 +188,49 @@ static inline T abs(typename std::enable_if<std::is_signed<T>::value, T>::type v
 template<typename T>
 BitpackHeader IntegerBitpacking<T>::getBitWidth(
     const uint8_t* srcBuffer, uint64_t numValues) const {
-    U max = 0ull;
-    auto hasNegative = false;
+    T max = std::numeric_limits<T>::min(), min = std::numeric_limits<T>::max();
     for (int i = 0; i < numValues; i++) {
         T value = ((T*)srcBuffer)[i];
-        U absolute = abs<T>(value);
-        if (absolute > max) {
-            max = absolute;
+        if (value > max) {
+            max = value;
         }
-        if (value < 0) {
-            hasNegative = true;
+        if (value < min) {
+            min = value;
         }
     }
-    if (hasNegative) {
-        // Needs an extra bit for two's complement encoding
-        return BitpackHeader{static_cast<uint8_t>(std::bit_width(max) + 1), true /*hasNegative*/};
+    bool hasNegative;
+    uint64_t offset = 0;
+    uint8_t bitWidth;
+    // Frame of reference encoding is only used when values are either all positive or all negative,
+    // and when we will save at least 1 bit per value.
+    if (min > 0 && max > 0 && std::bit_width((U)(max - min)) < std::bit_width((U)max)) {
+        offset = min;
+        bitWidth = static_cast<uint8_t>(std::bit_width((U)(max - min)));
+        hasNegative = false;
+    } else if (min < 0 && max < 0 && std::bit_width((U)(min - max)) < std::bit_width((U)max)) {
+        offset = (U)max;
+        bitWidth = static_cast<uint8_t>(std::bit_width((U)(min - max))) + 1;
+        // This is somewhat suboptimal since we know that the values are all negative
+        // We could use an offset equal to the minimum, but values which are all negative are
+        // probably going to grow in the negative direction, leading to many re-compressions when
+        // inserting
+        hasNegative = true;
+    } else if (min < 0) {
+        bitWidth = static_cast<uint8_t>(std::bit_width((U)std::max(abs<T>(min), abs<T>(max)))) + 1;
+        hasNegative = true;
     } else {
-        return BitpackHeader{static_cast<uint8_t>(std::bit_width(max)), false /*hasNegative*/};
+        bitWidth = static_cast<uint8_t>(std::bit_width((U)std::max(abs<T>(min), abs<T>(max))));
+        hasNegative = false;
     }
+    return BitpackHeader{bitWidth, hasNegative, offset};
 }
 
 template<typename T>
 bool IntegerBitpacking<T>::canUpdateInPlace(T value, const BitpackHeader& header) {
+    T adjustedValue = value - (T)header.offset;
     // If there are negatives, the effective bit width is smaller
-    auto valueSize = std::bit_width((U)abs<T>(value));
-    if (!header.hasNegative && value < 0) {
+    auto valueSize = std::bit_width((U)abs<T>(adjustedValue));
+    if (!header.hasNegative && adjustedValue < 0) {
         return false;
     }
     if ((header.hasNegative && valueSize > header.bitWidth - 1) ||
@@ -269,7 +287,7 @@ void IntegerBitpacking<T>::setValueFromUncompressed(uint8_t* srcBuffer, common::
 
     U chunk[CHUNK_SIZE];
     fastunpack(chunkStart, chunk, header.bitWidth);
-    chunk[posInChunk] = (U)value;
+    chunk[posInChunk] = (U)(value - (T)header.offset);
     fastpack(chunk, chunkStart, header.bitWidth);
 }
 
@@ -283,6 +301,11 @@ void IntegerBitpacking<T>::getValues(const uint8_t* chunkStart, uint8_t pos, uin
     fastunpack(chunkStart, chunk, header.bitWidth);
     if (header.hasNegative) {
         SignExtend<T, U, CHUNK_SIZE>((uint8_t*)chunk, header.bitWidth);
+    }
+    if (header.offset != 0) {
+        for (int i = pos; i < pos + numValuesToRead; i++) {
+            chunk[i] = (U)((T)chunk[i] + (T)header.offset);
+        }
     }
     memcpy(dst, &chunk[pos], sizeof(T) * numValuesToRead);
 }
@@ -313,17 +336,38 @@ uint64_t IntegerBitpacking<T>::compressNextPage(const uint8_t*& srcBuffer,
     assert(dstBufferSize >= sizeToCompress);
     // This might overflow the source buffer if there are fewer values remaining than the chunk size
     // so we stop at the end of the last full chunk and use a temporary array to avoid overflow.
-    auto lastFullChunkEnd = numValuesToCompress - numValuesToCompress % CHUNK_SIZE;
-    for (auto i = 0ull; i < lastFullChunkEnd; i += CHUNK_SIZE) {
-        fastpack((const U*)srcBuffer + i, dstBuffer + i * bitWidth / 8, bitWidth);
-    }
-    // Pack last partial chunk, avoiding overflows
-    if (numValuesToCompress % CHUNK_SIZE > 0) {
-        // TODO(bmwinger): optimize to remove temporary array
-        U chunk[CHUNK_SIZE] = {0};
-        memcpy(chunk, (const U*)srcBuffer + lastFullChunkEnd,
-            numValuesToCompress % CHUNK_SIZE * sizeof(U));
-        fastpack(chunk, dstBuffer + lastFullChunkEnd * bitWidth / 8, bitWidth);
+    if (header.offset == 0) {
+        auto lastFullChunkEnd = numValuesToCompress - numValuesToCompress % CHUNK_SIZE;
+        for (auto i = 0ull; i < lastFullChunkEnd; i += CHUNK_SIZE) {
+            fastpack((const U*)srcBuffer + i, dstBuffer + i * bitWidth / 8, bitWidth);
+        }
+        // Pack last partial chunk, avoiding overflows
+        if (numValuesToCompress % CHUNK_SIZE > 0) {
+            // TODO(bmwinger): optimize to remove temporary array
+            U chunk[CHUNK_SIZE] = {0};
+            memcpy(chunk, (const U*)srcBuffer + lastFullChunkEnd,
+                numValuesToCompress % CHUNK_SIZE * sizeof(U));
+            fastpack(chunk, dstBuffer + lastFullChunkEnd * bitWidth / 8, bitWidth);
+        }
+    } else {
+        U tmp[CHUNK_SIZE];
+        auto lastFullChunkEnd = numValuesToCompress - numValuesToCompress % CHUNK_SIZE;
+        for (auto i = 0ull; i < lastFullChunkEnd; i += CHUNK_SIZE) {
+            for (int j = 0; j < CHUNK_SIZE; j++) {
+                tmp[j] = (U)(((T*)srcBuffer)[i + j] - (T)header.offset);
+            }
+            fastpack(tmp, dstBuffer + i * bitWidth / 8, bitWidth);
+        }
+        // Pack last partial chunk, avoiding overflows
+        auto remainingValues = numValuesToCompress % CHUNK_SIZE;
+        if (remainingValues > 0) {
+            memcpy(tmp, (const U*)srcBuffer + lastFullChunkEnd, remainingValues * sizeof(U));
+            for (int i = 0; i < remainingValues; i++) {
+                tmp[i] = (U)((T)tmp[i] - (T)header.offset);
+            }
+            memset(tmp + remainingValues, 0, CHUNK_SIZE - remainingValues);
+            fastpack(tmp, dstBuffer + lastFullChunkEnd * bitWidth / 8, bitWidth);
+        }
     }
     srcBuffer += numValuesToCompress * sizeof(U);
     return sizeToCompress;
@@ -357,6 +401,11 @@ void IntegerBitpacking<T>::decompressFromPage(const uint8_t* srcBuffer, uint64_t
         fastunpack(srcCursor, (U*)dstBuffer + dstIndex, header.bitWidth);
         if (header.hasNegative) {
             SignExtend<T, U, CHUNK_SIZE>(dstBuffer + dstIndex * sizeof(U), header.bitWidth);
+        }
+        if (header.offset != 0) {
+            for (int i = 0; i < CHUNK_SIZE; i++) {
+                ((T*)dstBuffer)[dstIndex + i] += (T)header.offset;
+            }
         }
         srcCursor += bytesPerChunk;
     }
@@ -409,18 +458,21 @@ void BooleanBitpacking::decompressFromPage(const uint8_t* srcBuffer, uint64_t sr
     }
 }
 
-uint8_t BitpackHeader::getDataByte() const {
-    uint8_t data = bitWidth;
+std::array<uint8_t, CompressionMetadata::DATA_SIZE> BitpackHeader::getData() const {
+    std::array<uint8_t, CompressionMetadata::DATA_SIZE> data = {bitWidth};
+    *(uint64_t*)&data[1] = offset;
     if (hasNegative) {
-        data |= NEGATIVE_FLAG;
+        data[0] |= NEGATIVE_FLAG;
     }
     return data;
 }
 
-BitpackHeader BitpackHeader::readHeader(uint8_t data) {
+BitpackHeader BitpackHeader::readHeader(
+    const std::array<uint8_t, CompressionMetadata::DATA_SIZE>& data) {
     BitpackHeader header;
-    header.bitWidth = data & BITWIDTH_MASK;
-    header.hasNegative = data & NEGATIVE_FLAG;
+    header.bitWidth = data[0] & BITWIDTH_MASK;
+    header.hasNegative = data[0] & NEGATIVE_FLAG;
+    header.offset = *(uint64_t*)&data[1];
     return header;
 }
 
