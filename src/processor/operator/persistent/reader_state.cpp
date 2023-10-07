@@ -64,42 +64,67 @@ void LeftArrowArrays::appendToDataChunk(common::DataChunk* dataChunk, uint64_t n
     dataChunk->state->selVector->selectedSize = numRowsToAppend;
 }
 
-void ReaderSharedState::initialize(TableType tableType) {
+void ReaderSharedState::initialize(MemoryManager* memoryManager, TableType tableType) {
     validateFunc = ReaderFunctions::getValidateFunc(readerConfig->fileType);
     initFunc = ReaderFunctions::getInitDataFunc(*readerConfig, tableType);
-    countBlocksFunc = ReaderFunctions::getCountBlocksFunc(*readerConfig, tableType);
+    countRowsFunc = ReaderFunctions::getCountRowsFunc(*readerConfig, tableType);
     readFuncData = ReaderFunctions::getReadFuncData(*readerConfig, tableType);
+
+    // Initialize for readers that share readFuncData.
+    if (readerConfig->fileType == FileType::CSV && !readerConfig->csvParallelRead(tableType)) {
+        initFunc(*readFuncData, 0 /* fileIdx */, *readerConfig, memoryManager);
+    }
 }
 
 void ReaderSharedState::validate() const {
     validateFunc(*readerConfig);
 }
 
-void ReaderSharedState::countBlocks(MemoryManager* memoryManager) {
-    initFunc(*readFuncData, 0 /* fileIdx */, *readerConfig, memoryManager);
-    fileInfos = countBlocksFunc(*readerConfig, memoryManager);
-    for (auto& fileInfo : fileInfos) {
-        numRows += fileInfo.numRows;
+void ReaderSharedState::countRows(MemoryManager* memoryManager) {
+    numRows = countRowsFunc(*readerConfig, memoryManager);
+}
+
+template<ReaderSharedState::ReadMode READ_MODE>
+static void lockForParallel(std::mutex& mtx) {
+    if constexpr (READ_MODE == ReaderSharedState::ReadMode::PARALLEL) {
+        mtx.lock();
     }
 }
 
 template<ReaderSharedState::ReadMode READ_MODE>
+static void unlockForParallel(std::mutex& mtx) {
+    if constexpr (READ_MODE == ReaderSharedState::ReadMode::PARALLEL) {
+        mtx.unlock();
+    }
+}
+
+template<ReaderSharedState::ReadMode READ_MODE>
+void ReaderSharedState::doneFile(vector_idx_t fileIdx) {
+    lockForParallel<READ_MODE>(mtx);
+    if (fileIdx == currFileIdx) {
+        currFileIdx +=
+            (readerConfig->fileType == common::FileType::NPY ? readerConfig->filePaths.size() : 1);
+        currBlockIdx = 0;
+    }
+    unlockForParallel<READ_MODE>(mtx);
+}
+
+template void ReaderSharedState::doneFile<ReaderSharedState::ReadMode::SERIAL>(
+    vector_idx_t fileIdx);
+template void ReaderSharedState::doneFile<ReaderSharedState::ReadMode::PARALLEL>(
+    vector_idx_t fileIdx);
+
+template<ReaderSharedState::ReadMode READ_MODE>
 std::unique_ptr<ReaderMorsel> ReaderSharedState::getMorsel() {
     std::unique_ptr<ReaderMorsel> morsel;
-    lockForParallel<READ_MODE>();
-    while (true) {
-        if (currFileIdx >= readerConfig->getNumFiles()) {
-            // No more blocks.
-            morsel = std::make_unique<ReaderMorsel>();
-            break;
-        }
-        if (currBlockIdx < fileInfos[currFileIdx].numBlocks) {
-            morsel = std::make_unique<ReaderMorsel>(currFileIdx, currBlockIdx++);
-            break;
-        }
-        moveToNextFile();
+    lockForParallel<READ_MODE>(mtx);
+    if (currFileIdx >= readerConfig->getNumFiles()) {
+        // No more blocks.
+        morsel = std::make_unique<ReaderMorsel>();
+    } else {
+        morsel = std::make_unique<ReaderMorsel>(currFileIdx, currBlockIdx++);
     }
-    unlockForParallel<READ_MODE>();
+    unlockForParallel<READ_MODE>(mtx);
     return morsel;
 }
 

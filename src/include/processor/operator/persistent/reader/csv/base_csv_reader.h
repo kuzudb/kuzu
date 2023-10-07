@@ -22,6 +22,7 @@ public:
     virtual uint64_t parseBlock(common::block_idx_t blockIdx, common::DataChunk& resultChunk) = 0;
 
     uint64_t countRows();
+    bool isEOF() const;
 
 protected:
     template<typename Driver>

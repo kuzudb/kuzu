@@ -209,11 +209,16 @@ void NpyReader::validate(const LogicalType& type_, offset_t numRows) {
 
 void NpyReader::readBlock(block_idx_t blockIdx, common::ValueVector* vectorToRead) const {
     uint64_t rowNumber = DEFAULT_VECTOR_CAPACITY * blockIdx;
-    auto rowPointer = getPointerToRow(rowNumber);
-    auto numRowsToRead = std::min(DEFAULT_VECTOR_CAPACITY, getNumRows() - rowNumber);
-    memcpy(
-        vectorToRead->getData(), rowPointer, numRowsToRead * vectorToRead->getNumBytesPerValue());
-    vectorToRead->state->selVector->selectedSize = numRowsToRead;
+    auto numRows = getNumRows();
+    if (rowNumber >= numRows) {
+        vectorToRead->state->selVector->selectedSize = 0;
+    } else {
+        auto rowPointer = getPointerToRow(rowNumber);
+        auto numRowsToRead = std::min(DEFAULT_VECTOR_CAPACITY, getNumRows() - rowNumber);
+        memcpy(vectorToRead->getData(), rowPointer,
+            numRowsToRead * vectorToRead->getNumBytesPerValue());
+        vectorToRead->state->selVector->selectedSize = numRowsToRead;
+    }
 }
 
 NpyMultiFileReader::NpyMultiFileReader(const std::vector<std::string>& filePaths) {

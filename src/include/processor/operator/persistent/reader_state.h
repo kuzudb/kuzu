@@ -40,46 +40,30 @@ public:
     };
 
     explicit ReaderSharedState(std::unique_ptr<common::ReaderConfig> readerConfig)
-        : readerConfig{std::move(readerConfig)}, numRows{0}, currFileIdx{0}, currBlockIdx{0},
-          currRowIdx{0} {}
+        : readerConfig{std::move(readerConfig)}, numRows{common::INVALID_ROW_IDX}, currFileIdx{0},
+          currBlockIdx{0}, currRowIdx{0} {}
 
-    void initialize(common::TableType tableType);
+    void initialize(storage::MemoryManager* memoryManager, common::TableType tableType);
     void validate() const;
-    void countBlocks(storage::MemoryManager* memoryManager);
+    void countRows(storage::MemoryManager* memoryManager);
 
-    inline void moveToNextFile() {
-        currFileIdx +=
-            (readerConfig->fileType == common::FileType::NPY ? readerConfig->filePaths.size() : 1);
-        currBlockIdx = 0;
-    }
+    // Signal that we are done the given file.
+    // No-op if we have already moved to the next file.
+    template<ReadMode READ_MODE>
+    void doneFile(common::vector_idx_t fileIdx);
 
     template<ReadMode READ_MODE>
     std::unique_ptr<ReaderMorsel> getMorsel();
 
     inline common::row_idx_t& getNumRowsRef() { return std::ref(numRows); }
 
-private:
-    template<ReadMode READ_MODE>
-    inline void lockForParallel() {
-        if constexpr (READ_MODE == ReadMode::PARALLEL) {
-            mtx.lock();
-        }
-    }
-    template<ReadMode READ_MODE>
-    inline void unlockForParallel() {
-        if constexpr (READ_MODE == ReadMode::PARALLEL) {
-            mtx.unlock();
-        }
-    }
-
 public:
     validate_func_t validateFunc;
     init_reader_data_func_t initFunc;
-    count_blocks_func_t countBlocksFunc;
+    count_rows_func_t countRowsFunc;
     std::shared_ptr<ReaderFunctionData> readFuncData;
 
     common::row_idx_t numRows;
-    std::vector<FileBlocksInfo> fileInfos;
 
     common::vector_idx_t currFileIdx;
     common::block_idx_t currBlockIdx;

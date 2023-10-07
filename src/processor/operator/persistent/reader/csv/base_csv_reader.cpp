@@ -119,6 +119,24 @@ escape:
     goto in_quotes;
 }
 
+bool BaseCSVReader::isEOF() const {
+    uint64_t offset = getFileOffset();
+    uint64_t end = lseek(fd, 0, SEEK_END);
+    if (end == -1) {
+        // LCOV_EXCL_START
+        throw CopyException(StringUtils::string_format(
+            "Could not seek to end of file {}: {}", filePath, posixErrMessage()));
+        // LCOV_EXCL_END
+    }
+    if (lseek(fd, offset, SEEK_SET) == -1) {
+        // LCOV_EXCL_START
+        throw CopyException(StringUtils::string_format(
+            "Could not reset position of file {}: {}", filePath, posixErrMessage()));
+        // LCOV_EXCL_END
+    }
+    return offset >= end;
+}
+
 template<typename Driver>
 void BaseCSVReader::addValue(Driver& driver, uint64_t rowNum, column_id_t columnIdx,
     std::string_view strVal, std::vector<uint64_t>& escapePositions) {
