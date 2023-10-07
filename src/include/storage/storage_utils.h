@@ -277,6 +277,10 @@ public:
                            common::StorageConstants::CATALOG_FILE_NAME_FOR_WAL);
     }
 
+    static inline std::string getLockFilePath(const std::string& directory) {
+        return common::FileUtils::joinPath(directory, common::StorageConstants::LOCK_FILE_NAME);
+    }
+
     // Note: This is a relatively slow function because of division and mod and making std::pair.
     // It is not meant to be used in performance critical code path.
     static inline std::pair<uint64_t, uint64_t> getQuotientRemainder(uint64_t i, uint64_t divisor) {

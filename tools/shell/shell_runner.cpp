@@ -15,6 +15,8 @@ int main(int argc, char* argv[]) {
         -1u);
     args::Flag disableCompression(
         parser, "nocompression", "Disable compression", {"nocompression"});
+    args::Flag readOnlyMode(
+        parser, "readOnly", "Open database at read-only mode.", {'r', "readOnly"});
     try {
         parser.ParseCLI(argc, argv);
     } catch (std::exception& e) {
@@ -32,7 +34,14 @@ int main(int argc, char* argv[]) {
     if (disableCompression) {
         systemConfig.enableCompression = false;
     }
+    if (readOnlyMode) {
+        systemConfig.accessMode = AccessMode::READ_ONLY;
+    }
     std::cout << "Opened the database at path: " << databasePath << std::endl;
+    std::cout << "Opened the database at path: " << databasePath << " under "
+              << (systemConfig.accessMode == AccessMode::READ_ONLY ? "READ_ONLY mode" :
+                                                                     "READ_WRITE mode")
+              << "." << std::endl;
     std::cout << "Enter \":help\" for usage hints." << std::endl;
     try {
         auto shell = EmbeddedShell(databasePath, systemConfig);

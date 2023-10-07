@@ -196,6 +196,7 @@ void Connection::bindParametersNoLock(PreparedStatement* preparedStatement,
 
 std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     PreparedStatement* preparedStatement, uint32_t planIdx) {
+    checkPreparedStatementAccessMode(preparedStatement);
     clientContext->resetActiveQuery();
     clientContext->startTimingIfEnabled();
     auto mapper = PlanMapper(
@@ -256,6 +257,14 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
 void Connection::addScalarFunction(
     std::string name, function::vector_function_definitions definitions) {
     database->catalog->addVectorFunction(name, std::move(definitions));
+}
+
+void Connection::checkPreparedStatementAccessMode(PreparedStatement* preparedStatement) {
+    bool isInReadOnlyMode = database->systemConfig.accessMode == AccessMode::READ_ONLY;
+    if (isInReadOnlyMode && !preparedStatement->isReadOnly()) {
+        throw ConnectionException(
+            "Cannot execute write operations in a read-only access mode database!");
+    }
 }
 
 } // namespace main

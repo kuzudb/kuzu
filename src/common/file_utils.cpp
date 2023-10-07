@@ -43,7 +43,8 @@ int64_t FileInfo::getFileSize() {
 #endif
 }
 
-std::unique_ptr<FileInfo> FileUtils::openFile(const std::string& path, int flags) {
+std::unique_ptr<FileInfo> FileUtils::openFile(
+    const std::string& path, int flags, FileLockType lock_type) {
 #if defined(_WIN32)
     auto dwDesiredAccess = 0ul;
     auto dwCreationDisposition = (flags & O_CREAT) ? OPEN_ALWAYS : OPEN_EXISTING;
@@ -62,11 +63,34 @@ std::unique_ptr<FileInfo> FileUtils::openFile(const std::string& path, int flags
         throw Exception(StringUtils::string_format("Cannot open file. path: {} - Error {}: {}",
             path, GetLastError(), std::system_category().message(GetLastError())));
     }
+    if (lock_type != FileLockType::NO_LOCK) {
+        DWORD dwFlags = lock_type == FileLockType::READ_LOCK ?
+                            LOCKFILE_FAIL_IMMEDIATELY :
+                            LOCKFILE_FAIL_IMMEDIATELY | LOCKFILE_EXCLUSIVE_LOCK;
+        OVERLAPPED overlapped = {0};
+        overlapped.Offset = 0;
+        BOOL rc = LockFileEx(handle, dwFlags, 0, 0, 0, &overlapped);
+        if (!rc) {
+            throw Exception("Could not set lock on file : " + path);
+        }
+    }
     return std::make_unique<FileInfo>(path, handle);
 #else
     int fd = open(path.c_str(), flags, 0644);
     if (fd == -1) {
         throw Exception("Cannot open file: " + path);
+    }
+    if (lock_type != FileLockType::NO_LOCK) {
+        struct flock fl;
+        memset(&fl, 0, sizeof fl);
+        fl.l_type = lock_type == FileLockType::READ_LOCK ? F_RDLCK : F_WRLCK;
+        fl.l_whence = SEEK_SET;
+        fl.l_start = 0;
+        fl.l_len = 0;
+        int rc = fcntl(fd, F_SETLK, &fl);
+        if (rc == -1) {
+            throw Exception("Could not set lock on file : " + path);
+        }
     }
     return std::make_unique<FileInfo>(path, fd);
 #endif

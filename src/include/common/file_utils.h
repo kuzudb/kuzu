@@ -15,6 +15,8 @@
 namespace kuzu {
 namespace common {
 
+enum class FileLockType : uint8_t { NO_LOCK = 0, READ_LOCK = 1, WRITE_LOCK = 2 };
+
 struct FileInfo {
 #ifdef _WIN32
     FileInfo(std::string path, const void* handle) : path{std::move(path)}, handle{handle} {}
@@ -36,7 +38,8 @@ struct FileInfo {
 
 class FileUtils {
 public:
-    static std::unique_ptr<FileInfo> openFile(const std::string& path, int flags);
+    static std::unique_ptr<FileInfo> openFile(
+        const std::string& path, int flags, FileLockType lock_type = FileLockType::NO_LOCK);
 
     static void readFromFile(
         FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position);
