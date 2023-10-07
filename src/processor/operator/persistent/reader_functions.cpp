@@ -24,16 +24,11 @@ validate_func_t ReaderFunctions::getValidateFunc(FileType fileType) {
     }
 }
 
-count_blocks_func_t ReaderFunctions::getCountBlocksFunc(
+count_rows_func_t ReaderFunctions::getCountRowsFunc(
     const ReaderConfig& config, TableType tableType) {
     switch (config.fileType) {
     case FileType::CSV: {
-        if (tableType == TableType::REL) {
-            return countRowsNoOp;
-        } else {
-            return config.csvReaderConfig->parallel ? countRowsInParallelCSVFile :
-                                                      countRowsInSerialCSVFile;
-        }
+        return tableType == TableType::REL ? countRowsNoOp : countRowsInCSVFile;
     }
     case FileType::PARQUET: {
         switch (tableType) {
@@ -174,98 +169,50 @@ void ReaderFunctions::validateNPYFiles(const common::ReaderConfig& config) {
     }
 }
 
-std::vector<FileBlocksInfo> ReaderFunctions::countRowsNoOp(
+row_idx_t ReaderFunctions::countRowsNoOp(
     const common::ReaderConfig& config, MemoryManager* memoryManager) {
-    std::vector<FileBlocksInfo> fileInfos(
-        config.getNumFiles(), {INVALID_ROW_IDX, INVALID_BLOCK_IDX});
-    return fileInfos;
+    return INVALID_ROW_IDX;
 }
 
-std::vector<FileBlocksInfo> ReaderFunctions::countRowsInSerialCSVFile(
+row_idx_t ReaderFunctions::countRowsInCSVFile(
     const common::ReaderConfig& config, storage::MemoryManager* memoryManager) {
-    std::vector<FileBlocksInfo> fileInfos;
-    fileInfos.reserve(config.getNumFiles());
+    row_idx_t numRows = 0;
     for (const auto& path : config.filePaths) {
         auto reader = make_unique<SerialCSVReader>(path, config);
-        row_idx_t numRowsInFile = reader->countRows();
-        block_idx_t numBlocks =
-            (numRowsInFile + DEFAULT_VECTOR_CAPACITY - 1) / DEFAULT_VECTOR_CAPACITY;
-        FileBlocksInfo fileBlocksInfo{numRowsInFile, numBlocks};
-        fileInfos.push_back(fileBlocksInfo);
+        numRows += reader->countRows();
     }
-    return fileInfos;
+    return numRows;
 }
 
-std::vector<FileBlocksInfo> ReaderFunctions::countRowsInParallelCSVFile(
-    const common::ReaderConfig& config, storage::MemoryManager* memoryManager) {
-    std::vector<FileBlocksInfo> fileInfos;
-    fileInfos.reserve(config.getNumFiles());
-    for (const auto& path : config.filePaths) {
-        int fd = open(path.c_str(), O_RDONLY);
-        if (fd == -1) {
-            // LCOV_EXCL_START
-            throw CopyException(
-                StringUtils::string_format("Failed to open file {}: {}", path, posixErrMessage()));
-            // LCOV_EXCL_END
-        }
-        uint64_t length = lseek(fd, 0, SEEK_END);
-        close(fd);
-        if (length == -1) {
-            // LCOV_EXCL_START
-            throw CopyException(StringUtils::string_format(
-                "Failed to seek to end of file {}: {}", path, posixErrMessage()));
-            // LCOV_EXCL_END
-        }
-        auto reader = make_unique<ParallelCSVReader>(path, config);
-        row_idx_t numRowsInFile = reader->countRows();
-        block_idx_t numBlocks =
-            (length + CopyConstants::PARALLEL_BLOCK_SIZE - 1) / CopyConstants::PARALLEL_BLOCK_SIZE;
-        FileBlocksInfo fileBlocksInfo{numRowsInFile, numBlocks};
-        fileInfos.push_back(fileBlocksInfo);
-    }
-    return fileInfos;
-}
-
-std::vector<FileBlocksInfo> ReaderFunctions::countRowsInRelParquetFile(
+row_idx_t ReaderFunctions::countRowsInRelParquetFile(
     const common::ReaderConfig& config, MemoryManager* memoryManager) {
-    std::vector<FileBlocksInfo> fileInfos;
-    fileInfos.reserve(config.getNumFiles());
+    row_idx_t numRows = 0;
     for (const auto& path : config.filePaths) {
         std::unique_ptr<parquet::arrow::FileReader> reader =
             TableCopyUtils::createParquetReader(path, config);
-        auto metadata = reader->parquet_reader()->metadata();
-        FileBlocksInfo fileBlocksInfo{
-            (row_idx_t)metadata->num_rows(), (block_idx_t)metadata->num_row_groups()};
-        fileInfos.push_back(fileBlocksInfo);
+        numRows += (row_idx_t)reader->parquet_reader()->metadata()->num_rows();
     }
-    return fileInfos;
+    return numRows;
 }
 
-std::vector<FileBlocksInfo> ReaderFunctions::countRowsInParquetFile(
+row_idx_t ReaderFunctions::countRowsInParquetFile(
     const common::ReaderConfig& config, MemoryManager* memoryManager) {
-    std::vector<FileBlocksInfo> fileInfos;
-    fileInfos.reserve(config.filePaths.size());
+    row_idx_t numRows = 0;
     for (const auto& path : config.filePaths) {
         auto reader = std::make_unique<ParquetReader>(path, memoryManager);
-        auto numRows = reader->getMetadata()->num_rows;
-        FileBlocksInfo fileBlocksInfo{
-            (row_idx_t)numRows, (block_idx_t)reader->getMetadata()->row_groups.size()};
-        fileInfos.push_back(fileBlocksInfo);
+        numRows += reader->getMetadata()->num_rows;
     }
-    return fileInfos;
+    return numRows;
 }
 
-std::vector<FileBlocksInfo> ReaderFunctions::countRowsInNPYFile(
+row_idx_t ReaderFunctions::countRowsInNPYFile(
     const common::ReaderConfig& config, MemoryManager* memoryManager) {
     assert(config.getNumFiles() != 0);
     auto reader = make_unique<NpyReader>(config.filePaths[0]);
-    auto numRows = reader->getNumRows();
-    auto numBlocks =
-        (block_idx_t)((numRows + DEFAULT_VECTOR_CAPACITY - 1) / DEFAULT_VECTOR_CAPACITY);
-    return {{numRows, numBlocks}};
+    return reader->getNumRows();
 }
 
-std::vector<FileBlocksInfo> ReaderFunctions::countRowsInRDFFile(
+row_idx_t ReaderFunctions::countRowsInRDFFile(
     const common::ReaderConfig& config, MemoryManager* memoryManager) {
     assert(config.getNumFiles() == 1);
     auto reader = make_unique<RDFReader>(config.filePaths[0]);
@@ -273,19 +220,16 @@ std::vector<FileBlocksInfo> ReaderFunctions::countRowsInRDFFile(
     dataChunk->insert(0, std::make_unique<ValueVector>(LogicalTypeID::STRING, memoryManager));
     dataChunk->insert(1, std::make_unique<ValueVector>(LogicalTypeID::STRING, memoryManager));
     dataChunk->insert(2, std::make_unique<ValueVector>(LogicalTypeID::STRING, memoryManager));
-    row_idx_t numRowsInFile = 0;
-    block_idx_t numBlocks = 0;
+    row_idx_t numRows = 0;
     while (true) {
         dataChunk->resetAuxiliaryBuffer();
         auto numRowsRead = reader->read(dataChunk.get());
         if (numRowsRead == 0) {
             break;
         }
-        numRowsInFile += numRowsRead;
-        numBlocks++;
+        numRows += numRowsRead;
     }
-    FileBlocksInfo fileBlocksInfo{numRowsInFile, numBlocks};
-    return {fileBlocksInfo};
+    return numRows;
 }
 
 void ReaderFunctions::initRelCSVReadData(ReaderFunctionData& funcData, vector_idx_t fileIdx,
@@ -382,6 +326,10 @@ void ReaderFunctions::readRowsFromParallelCSVFile(
 void ReaderFunctions::readRowsFromRelParquetFile(const ReaderFunctionData& functionData,
     block_idx_t blockIdx, common::DataChunk* dataChunkToRead) {
     auto& readerData = reinterpret_cast<const RelParquetReaderFunctionData&>(functionData);
+    if (blockIdx >= readerData.reader->num_row_groups()) {
+        dataChunkToRead->state->selVector->selectedSize = 0;
+        return;
+    }
     std::shared_ptr<arrow::Table> table;
     TableCopyUtils::throwCopyExceptionIfNotOK(
         readerData.reader->RowGroup(static_cast<int>(blockIdx))->ReadTable(&table));
@@ -396,9 +344,15 @@ void ReaderFunctions::readRowsFromRelParquetFile(const ReaderFunctionData& funct
 void ReaderFunctions::readRowsFromParquetFile(const ReaderFunctionData& functionData,
     block_idx_t blockIdx, common::DataChunk* dataChunkToRead) {
     auto& readerData = reinterpret_cast<const ParquetReaderFunctionData&>(functionData);
-    if (blockIdx != UINT64_MAX &&
-        (readerData.state->groupIdxList.empty() || readerData.state->groupIdxList[0] != blockIdx)) {
-        readerData.reader->initializeScan(*readerData.state, {blockIdx});
+    if (blockIdx != UINT64_MAX) {
+        if (blockIdx >= readerData.reader->getMetadata()->row_groups.size()) {
+            dataChunkToRead->state->selVector->selectedSize = 0;
+            return;
+        }
+        if (readerData.state->groupIdxList.empty() ||
+            readerData.state->groupIdxList[0] != blockIdx) {
+            readerData.reader->initializeScan(*readerData.state, {blockIdx});
+        }
     }
     readerData.reader->scan(*readerData.state, *dataChunkToRead);
 }

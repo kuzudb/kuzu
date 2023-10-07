@@ -10,9 +10,9 @@ namespace kuzu {
 namespace processor {
 
 void Reader::initGlobalStateInternal(ExecutionContext* context) {
-    sharedState->initialize(info->tableType);
+    sharedState->initialize(context->memoryManager, info->tableType);
     sharedState->validate();
-    sharedState->countBlocks(context->memoryManager);
+    sharedState->countRows(context->memoryManager);
 }
 
 void Reader::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
@@ -80,8 +80,8 @@ void Reader::readNextDataChunk() {
         readFunc(*readFuncData, morsel->blockIdx, dataChunk.get());
         if (dataChunk->state->selVector->selectedSize > 0) {
             leftArrowArrays.appendFromDataChunk(dataChunk.get());
-        } else if (readFuncData->emptyBlockImpliesDone()) {
-            sharedState->moveToNextFile();
+        } else if (readFuncData->doneAfterEmptyBlock()) {
+            sharedState->doneFile<READ_MODE>(morsel->fileIdx);
         }
     }
     unlockForSerial<READ_MODE>();
