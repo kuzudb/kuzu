@@ -140,6 +140,16 @@ def test_list(establish_connection):
     result.close()
 
 
+def test_map(establish_connection):
+    conn, db = establish_connection
+    result = conn.execute(
+        "MATCH (m:movies) WHERE m.length = 2544 RETURN m.audience;")
+    assert result.has_next()
+    assert result.get_next() == [{'audience1': 33}]
+    assert not result.has_next()
+    result.close()
+
+
 def test_node(establish_connection):
     conn, db = establish_connection
     result = conn.execute("MATCH (a:person) WHERE a.ID = 0 RETURN a")

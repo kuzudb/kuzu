@@ -8,7 +8,6 @@
 #include "common/types/value/rel.h"
 #include "datetime.h" // python lib
 #include "include/py_query_result_converter.h"
-#include "json.hpp"
 #include "processor/result/factorized_table.h"
 #include "processor/result/flat_tuple.h"
 
@@ -147,6 +146,16 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
             list.append(convertValueToPyObject(*NestedVal::getChildVal(&value, i)));
         }
         return std::move(list);
+    }
+    case LogicalTypeID::MAP: {
+        py::dict dict;
+        for (auto i = 0u; i < NestedVal::getChildrenSize(&value); ++i) {
+            auto childVal = NestedVal::getChildVal(&value, i);
+            auto k = convertValueToPyObject(*NestedVal::getChildVal(childVal, 0));
+            auto v = convertValueToPyObject(*NestedVal::getChildVal(childVal, 1));
+            dict[std::move(k)] = std::move(v);
+        }
+        return std::move(dict);
     }
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::UNION: {
