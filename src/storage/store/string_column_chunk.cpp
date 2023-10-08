@@ -64,7 +64,7 @@ void StringColumnChunk::update(ValueVector* vector, vector_idx_t vectorIdx) {
         nullChunk->setNull(offsetInChunk, vector->isNull(pos));
         if (!vector->isNull(pos)) {
             auto kuStr = vector->getValue<ku_string_t>(pos);
-            setValueFromString<ku_string_t>(kuStr.getAsString().c_str(), kuStr.len, offsetInChunk);
+            setValueFromString(kuStr.getAsString().c_str(), kuStr.len, offsetInChunk);
         }
     }
 }
@@ -106,27 +106,10 @@ void StringColumnChunk::write(const Value& val, uint64_t posToWrite) {
         return;
     }
     auto strVal = val.getValue<std::string>();
-    setValueFromString<ku_string_t>(strVal.c_str(), strVal.length(), posToWrite);
+    setValueFromString(strVal.c_str(), strVal.length(), posToWrite);
 }
 
-// BLOB
-template<>
-void StringColumnChunk::setValueFromString<blob_t>(
-    const char* value, uint64_t length, uint64_t pos) {
-    if (length > BufferPoolConstants::PAGE_4KB_SIZE) {
-        throw CopyException(
-            ExceptionMessage::overLargeStringValueException(std::to_string(length)));
-    }
-    auto blobBuffer = std::make_unique<uint8_t[]>(length);
-    auto blobLen = Blob::fromString(value, length, blobBuffer.get());
-    auto val = overflowFile->copyString((char*)blobBuffer.get(), blobLen, overflowCursor);
-    setValue(val, pos);
-}
-
-// STRING
-template<>
-void StringColumnChunk::setValueFromString<ku_string_t>(
-    const char* value, uint64_t length, uint64_t pos) {
+void StringColumnChunk::setValueFromString(const char* value, uint64_t length, uint64_t pos) {
     if (length > BufferPoolConstants::PAGE_4KB_SIZE) {
         throw CopyException(
             ExceptionMessage::overLargeStringValueException(std::to_string(length)));

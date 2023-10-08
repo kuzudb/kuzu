@@ -16,11 +16,6 @@ protected:
     void append(common::ValueVector* vector, common::offset_t startPosInChunk) final;
 
 private:
-    // TODO(Guodong): These methods are duplicated from `InMemStructColumnChunk`, which will be
-    // merged later.
-    void setStructFields(const char* value, uint64_t length, uint64_t pos);
-    void setValueToStructField(common::offset_t pos, const std::string& structFieldValue,
-        common::struct_field_idx_t structFiledIdx);
     void write(const common::Value& val, uint64_t posToWrite) final;
 };
 

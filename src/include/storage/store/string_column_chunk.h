@@ -20,10 +20,6 @@ public:
     void update(common::ValueVector* vector, common::vector_idx_t vectorIdx) override;
 
     template<typename T>
-    void setValueFromString(const char* value, uint64_t length, uint64_t pos) {
-        throw common::NotImplementedException("VarSizedColumnChunk::setValueFromString");
-    }
-    template<typename T>
     T getValue(common::offset_t pos) const {
         throw common::NotImplementedException("VarSizedColumnChunk::getValue");
     }
@@ -31,7 +27,7 @@ public:
     common::page_idx_t flushOverflowBuffer(BMFileHandle* dataFH, common::page_idx_t startPageIdx);
 
     inline InMemOverflowFile* getOverflowFile() { return overflowFile.get(); }
-    inline common::offset_t getLastOffsetInPage() { return overflowCursor.offsetInPage; }
+    inline common::offset_t getLastOffsetInPage() const { return overflowCursor.offsetInPage; }
 
 private:
     void appendStringColumnChunk(StringColumnChunk* other, common::offset_t startPosInOtherChunk,
@@ -39,19 +35,12 @@ private:
 
     void write(const common::Value& val, uint64_t posToWrite) override;
 
+    void setValueFromString(const char* value, uint64_t length, uint64_t pos);
+
 private:
     std::unique_ptr<InMemOverflowFile> overflowFile;
     PageByteCursor overflowCursor;
 };
-
-// BLOB
-template<>
-void StringColumnChunk::setValueFromString<common::blob_t>(
-    const char* value, uint64_t length, uint64_t pos);
-// STRING
-template<>
-void StringColumnChunk::setValueFromString<common::ku_string_t>(
-    const char* value, uint64_t length, uint64_t pos);
 
 // STRING
 template<>
