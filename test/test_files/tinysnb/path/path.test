@@ -52,3 +52,44 @@
 [(0:0)-{_LABEL: knows, _ID: 3:2, date: 2021-06-30, meetTime: 2012-12-11 20:07:22, validInterval: 10 days, comments: [ioji232,jifhe8w99u43434]}->(0:3),(0:3)-{_LABEL: workAt, _ID: 5:1, year: 2010, grading: [2.100000,4.400000], rating: 7.600000}->(1:2)]
 [(0:0)-{_LABEL: marries, _ID: 7:0, usedAddress: [toronto], address: [4,5]}->(0:1),(0:1)-{_LABEL: studyAt, _ID: 4:1, year: 2020, places: [anew,jsdnwusklklklwewsd], length: 55, level: 120, code: 6689, temprature: 1, ulength: 90, ulevel: 220}->(1:0)]
 [(0:0)-{_LABEL: meets, _ID: 6:0, location: [7.820000,3.540000], times: 5, data: \xAA\xBB\xCC\xDD}->(0:1),(0:1)-{_LABEL: studyAt, _ID: 4:1, year: 2020, places: [anew,jsdnwusklklklwewsd], length: 55, level: 120, code: 6689, temprature: 1, ulength: 90, ulevel: 220}->(1:0)]
+
+-LOG PathLength
+-STATEMENT MATCH p = (a:person)-[e:knows]->(b:person) WHERE a.ID = 0 RETURN length(p), b.fName
+---- 3
+1|Bob
+1|Carol
+1|Dan
+-STATEMENT MATCH p = (a:person)-[e:knows*1..2]->(b:person) WHERE a.ID = 0 AND b.ID = 2 RETURN length(p), length(e)
+---- 3
+1|1
+2|2
+2|2
+-STATEMENT MATCH p = (a:person)-[e:knows*1..2]->(b:person)-[:knows]->(c:person) WHERE a.ID = 0 AND b.ID = 2 AND c.ID = 0 RETURN length(p), length(e)
+---- 3
+2|1
+3|2
+3|2
+-STATEMENT MATCH p = (a:person)-[e:knows*1..2]->(b:person)-[k:knows*1..2]->(c:person) WHERE a.ID = 0 AND b.ID = 2 AND c.ID = 0 RETURN length(p), length(e), length(k)
+---- 9
+2|1|1
+3|1|2
+3|1|2
+3|2|1
+3|2|1
+4|2|2
+4|2|2
+4|2|2
+4|2|2
+-STATEMENT MATCH p = (a:person)-[e:knows*1..2]->(b:person) RETURN length(a)
+---- error
+Binder exception: Cannot match a built-in function for given function LENGTH(NODE). Supported inputs are
+(STRING) -> INT64
+-STATEMENT MATCH p = (a:person)-[e:knows*1..2]->(b:person) RETURN len(p)
+---- error
+Binder exception: Cannot match a built-in function for given function LEN(RECURSIVE_REL). Supported inputs are
+(VAR_LIST) -> INT64
+(MAP) -> INT64
+-STATEMENT MATCH p = (a:person)-[e:knows]->(b:person) RETURN length(e)
+---- error
+Binder exception: Cannot match a built-in function for given function LENGTH(REL). Supported inputs are
+(STRING) -> INT64

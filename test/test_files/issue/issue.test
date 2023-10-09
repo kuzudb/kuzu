@@ -1,0 +1,20 @@
+-GROUP IssueTest
+-DATASET CSV empty
+
+--
+
+-CASE 2158
+
+-STATEMENT CREATE NODE TABLE N1(name STRING, PRIMARY KEY(name));
+---- ok
+-STATEMENT CREATE NODE TABLE N2(name STRING, PRIMARY KEY(name));
+---- ok
+-STATEMENT CREATE REL TABLE Rel1(FROM N1 TO N2);
+---- ok
+-STATEMENT CREATE REL TABLE Rel2(FROM N1 TO N2);
+---- ok
+-STATEMENT CREATE (n1:N1 {name: "n1a"}), (n2:N2 {name: "n2a"}), (n1)-[:Rel1]->(n2);
+---- ok
+-STATEMENT MATCH p = (n1:N1)-[:Rel1]->() return length(p);
+---- 1
+1
