@@ -272,7 +272,36 @@ std::shared_ptr<Expression> ExpressionBinder::bindRecursiveJoinLengthFunction(
     if (expression.getDataType().getLogicalTypeID() != LogicalTypeID::RECURSIVE_REL) {
         return nullptr;
     }
-    return ((RelExpression&)expression).getLengthExpression();
+    if (expression.expressionType == common::PATH) {
+        int64_t numRels = 0u;
+        expression_vector recursiveRels;
+        for (auto& child : expression.getChildren()) {
+            if (ExpressionUtil::isRelVariable(*child)) {
+                numRels++;
+            } else if (ExpressionUtil::isRecursiveRelVariable(*child)) {
+                recursiveRels.push_back(child);
+            }
+        }
+        auto numRelsExpression = createLiteralExpression(std::make_unique<Value>(numRels));
+        if (recursiveRels.empty()) {
+            return numRelsExpression;
+        }
+        expression_vector children;
+        children.push_back(std::move(numRelsExpression));
+        children.push_back(
+            reinterpret_cast<RelExpression&>(*recursiveRels[0]).getLengthExpression());
+        auto result = bindScalarFunctionExpression(children, ADD_FUNC_NAME);
+        for (auto i = 1u; i < recursiveRels.size(); ++i) {
+            children[0] = std::move(result);
+            children[1] = reinterpret_cast<RelExpression&>(*recursiveRels[i]).getLengthExpression();
+            result = bindScalarFunctionExpression(children, ADD_FUNC_NAME);
+        }
+        return result;
+    } else if (ExpressionUtil::isRecursiveRelVariable(expression)) {
+        auto& recursiveRel = reinterpret_cast<const RelExpression&>(expression);
+        return recursiveRel.getLengthExpression();
+    }
+    return nullptr;
 }
 
 } // namespace binder
