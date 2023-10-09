@@ -65,12 +65,6 @@ void VarListColumnChunk::write(const Value& listVal, uint64_t posToWrite) {
     setValue(varListDataColumnChunk.getNumValues(), posToWrite);
 }
 
-void VarListColumnChunk::setValueFromString(const char* value, uint64_t length, uint64_t pos) {
-    auto listVal =
-        TableCopyUtils::getVarListValue(value, 1, length - 2, dataType, *csvReaderConfig);
-    write(*listVal, pos);
-}
-
 void VarListColumnChunk::resetToEmpty() {
     ColumnChunk::resetToEmpty();
     varListDataColumnChunk.reset();

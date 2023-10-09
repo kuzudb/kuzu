@@ -492,45 +492,6 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     return chunk;
 }
 
-// Bool
-template<>
-void ColumnChunk::setValueFromString<bool>(const char* value, uint64_t length, uint64_t pos) {
-    std::istringstream boolStream{std::string(value)};
-    bool booleanVal;
-    boolStream >> std::boolalpha >> booleanVal;
-    setValue(booleanVal, pos);
-}
-
-// Fixed list
-template<>
-void ColumnChunk::setValueFromString<uint8_t*>(const char* value, uint64_t length, uint64_t pos) {
-    auto fixedListVal =
-        TableCopyUtils::getArrowFixedList(value, 1, length - 2, dataType, *csvReaderConfig);
-    memcpy(buffer.get() + pos * numBytesPerValue, fixedListVal.get(), numBytesPerValue);
-}
-
-// Interval
-template<>
-void ColumnChunk::setValueFromString<interval_t>(const char* value, uint64_t length, uint64_t pos) {
-    auto val = Interval::fromCString(value, length);
-    setValue(val, pos);
-}
-
-// Date
-template<>
-void ColumnChunk::setValueFromString<date_t>(const char* value, uint64_t length, uint64_t pos) {
-    auto val = Date::fromCString(value, length);
-    setValue(val, pos);
-}
-
-// Timestamp
-template<>
-void ColumnChunk::setValueFromString<timestamp_t>(
-    const char* value, uint64_t length, uint64_t pos) {
-    auto val = Timestamp::fromCString(value, length);
-    setValue(val, pos);
-}
-
 offset_t ColumnChunk::getOffsetInBuffer(offset_t pos) const {
     auto numElementsInAPage =
         PageUtils::getNumElementsInAPage(numBytesPerValue, false /* hasNull */);

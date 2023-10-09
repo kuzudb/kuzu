@@ -101,11 +101,6 @@ public:
     // Returns the size of the data type in bytes
     static uint32_t getDataTypeSizeInChunk(common::LogicalType& dataType);
 
-    template<typename T>
-    void setValueFromString(const char* value, uint64_t length, common::offset_t pos) {
-        setValue<T>(function::castStringToNum<T>(value, length), pos);
-    }
-
     static inline common::page_idx_t getNumPagesForBytes(uint64_t numBytes) {
         return (numBytes + common::BufferPoolConstants::PAGE_4KB_SIZE - 1) /
                common::BufferPoolConstants::PAGE_4KB_SIZE;
@@ -269,25 +264,6 @@ struct ColumnChunkFactory {
     static std::unique_ptr<ColumnChunk> createColumnChunk(const common::LogicalType& dataType,
         bool enableCompression, common::CSVReaderConfig* csvReaderConfig = nullptr);
 };
-
-// BOOL
-template<>
-void ColumnChunk::setValueFromString<bool>(const char* value, uint64_t length, uint64_t pos);
-// FIXED_LIST
-template<>
-void ColumnChunk::setValueFromString<uint8_t*>(const char* value, uint64_t length, uint64_t pos);
-// INTERVAL
-template<>
-void ColumnChunk::setValueFromString<common::interval_t>(
-    const char* value, uint64_t length, uint64_t pos);
-// DATE
-template<>
-void ColumnChunk::setValueFromString<common::date_t>(
-    const char* value, uint64_t length, uint64_t pos);
-// TIMESTAMP
-template<>
-void ColumnChunk::setValueFromString<common::timestamp_t>(
-    const char* value, uint64_t length, uint64_t pos);
 
 } // namespace storage
 } // namespace kuzu

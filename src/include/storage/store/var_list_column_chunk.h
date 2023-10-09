@@ -38,8 +38,6 @@ public:
         return varListDataColumnChunk.dataColumnChunk.get();
     }
 
-    void setValueFromString(const char* value, uint64_t length, uint64_t pos);
-
     void resetToEmpty() final;
 
     void append(common::ValueVector* vector, common::offset_t startPosInChunk) final;
