@@ -9,9 +9,10 @@ namespace processor {
 class FileWriter {
 public:
     FileWriter(std::string filePath, std::vector<std::string> columnNames,
-        std::vector<common::LogicalType> columnTypes)
-        : filePath{filePath}, columnNames{columnNames}, columnTypes{columnTypes} {}
-    virtual ~FileWriter(){};
+        std::vector<std::unique_ptr<common::LogicalType>> columnTypes)
+        : filePath{std::move(filePath)}, columnNames{std::move(columnNames)}, columnTypes{std::move(
+                                                                                  columnTypes)} {}
+    virtual ~FileWriter() = default;
     virtual void init() = 0;
     virtual void openFile() = 0;
     virtual void closeFile() = 0;
@@ -20,7 +21,7 @@ public:
 protected:
     std::string filePath;
     std::vector<std::string> columnNames;
-    std::vector<common::LogicalType> columnTypes;
+    std::vector<std::unique_ptr<common::LogicalType>> columnTypes;
 };
 
 } // namespace processor

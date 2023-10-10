@@ -4,7 +4,6 @@
 #include "common/task_system/task_scheduler.h"
 #include "processor/operator/persistent/csv_file_writer.h"
 #include "processor/operator/persistent/file_writer.h"
-#include "processor/operator/persistent/parquet_file_writer.h"
 #include "processor/operator/physical_operator.h"
 #include "processor/operator/sink.h"
 #include "processor/result/result_set.h"
@@ -15,16 +14,11 @@ namespace processor {
 class CopyToSharedState {
 public:
     CopyToSharedState(common::FileType fileType, std::string& filePath,
-        std::vector<std::string>& columnNames, std::vector<common::LogicalType>& columnTypes) {
-        if (fileType == common::FileType::CSV) {
-            fileWriter =
-                std::make_unique<processor::CSVFileWriter>(filePath, columnNames, columnTypes);
-        } else if (fileType == common::FileType::PARQUET) {
-            fileWriter =
-                std::make_unique<processor::ParquetFileWriter>(filePath, columnNames, columnTypes);
-        } else {
-            throw common::NotImplementedException("CopyToSharedState::CopyToSharedState");
-        }
+        std::vector<std::string>& columnNames,
+        std::vector<std::unique_ptr<common::LogicalType>> columnTypes) {
+        assert(fileType == common::FileType::CSV);
+        fileWriter = std::make_unique<processor::CSVFileWriter>(
+            filePath, columnNames, std::move(columnTypes));
     }
     inline std::unique_ptr<FileWriter>& getWriter() { return fileWriter; }
 
@@ -53,7 +47,6 @@ public:
     }
 
 protected:
-    std::string getOutputMsg();
     std::vector<DataPos> vectorsToCopyPos;
 
 private:

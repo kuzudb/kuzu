@@ -3,43 +3,54 @@
 
 --
 
--CASE CommonDataTypesCopyToParquet
+-CASE TinySnbCopyToParquet
 
--STATEMENT COPY (MATCH (p:person) RETURN p.ID, id(p), p.fName, p.gender, p.isStudent, p.age, p.eyeSight, p.height) TO "${DATABASE_PATH}/common.parquet"
+-LOG CopyPersonToParquet
+-STATEMENT COPY (MATCH (p:person) RETURN p.ID, p.fName, p.gender, p.isStudent, p.age, p.eyeSight, p.height, p.birthdate, p.workedHours, p.usedNames, p.courseScoresPerTerm) TO "${DATABASE_PATH}/person.parquet"
 ---- ok
--STATEMENT create node table personCopy (ID iNt64, internalID string, fName STRiNG, gender INT64, isStudent BoOLEAN, age INT64, eyeSight DOUBLE, height float, PRIMARY KEY (ID))
----- ok
--STATEMENT COPY personCopy FROM "${DATABASE_PATH}/common.parquet" (header= TRUE)
----- ok
--STATEMENT MATCH (p:personCopy) RETURN p.ID, p.internalID, p.fName, p.gender, p.isStudent, p.age, p.eyeSight, p.height
+-STATEMENT LOAD FROM "${DATABASE_PATH}/person.parquet" RETURN *;
 ---- 8
-0|0:0|Alice|1|True|35|5.000000|1.731000
-10|0:7|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|False|83|4.900000|1.323000
-2|0:1|Bob|2|True|30|5.100000|0.990000
-3|0:2|Carol|1|False|45|5.000000|1.000000
-5|0:3|Dan|2|False|20|4.800000|1.300000
-7|0:4|Elizabeth|1|False|20|4.700000|1.463000
-8|0:5|Farooq|2|True|25|4.500000|1.510000
-9|0:6|Greg|2|False|40|4.900000|1.600000
+0|Alice|1|True|35|5.000000|1.731000|1900-01-01|[10,5]|[Aida]|[[10,8],[6,7,8]]
+2|Bob|2|True|30|5.100000|0.990000|1900-01-01|[12,8]|[Bobby]|[[8,9],[9,10]]
+3|Carol|1|False|45|5.000000|1.000000|1940-06-22|[4,5]|[Carmen,Fred]|[[8,10]]
+5|Dan|2|False|20|4.800000|1.300000|1950-07-23|[1,9]|[Wolfeschlegelstein,Daniel]|[[7,4],[8,8],[9]]
+7|Elizabeth|1|False|20|4.700000|1.463000|1980-10-26|[2]|[Ein]|[[6],[7],[8]]
+8|Farooq|2|True|25|4.500000|1.510000|1980-10-26|[3,4,5,6,7]|[Fesdwe]|[[8]]
+9|Greg|2|False|40|4.900000|1.600000|1980-10-26|[1]|[Grad]|[[10]]
+10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|False|83|4.900000|1.323000|1990-11-27|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]|[[7],[10],[6,7]]
 
+-LOG CopyOrganisationToParquet
+-STATEMENT COPY (MATCH (o:organisation) RETURN o.ID, o.state) TO "${DATABASE_PATH}/organisation.parquet"
+---- ok
+-STATEMENT LOAD FROM "${DATABASE_PATH}/organisation.parquet" RETURN *;
+---- 3
+1|{revenue: 138, location: ['toronto', 'montr,eal'], stock: {price: [96,56], volume: 1000}}
+4|{revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}
+6|{revenue: 558, location: ['very long city name', 'new york'], stock: {price: [22], volume: 99}}
 
--CASE DatesCopyToParquet
--SKIP
-# Support TIMESTAMP datatype in parquet reader
+-LOG CopyEmptyListToParquet
+-STATEMENT COPY (RETURN null,[], [1,null,3], [[],null,[3,4,5]]) TO "${DATABASE_PATH}/emptyList.parquet"
+---- ok
+-STATEMENT LOAD FROM "${DATABASE_PATH}/emptyList.parquet" RETURN *;
+---- 1
+|[]|[1,,3]|[[],,[3,4,5]]
 
--STATEMENT COPY (MATCH (p:person) RETURN p.ID, p.birthdate, p.registerTime) TO "${DATABASE_PATH}/dates.parquet";
+-LOG CopyToParquetFlatUnflat
+-STATEMENT COPY (MATCH (p:person)-[:knows]->(p1:person) return p.ID, p1.ID) TO "${DATABASE_PATH}/flatUnflat.parquet"
 ---- ok
--STATEMENT CREATE NODE TABLE personCopy(ID INT64, birthdate DATE, registerTime TIMESTAMP, PRIMARY KEY(ID))
----- ok
--STATEMENT COPY personCopy FROM "${DATABASE_PATH}/dates.parquet"
----- ok
--STATEMENT MATCH (p:personCopy) RETURN p.birthdate, p.registerTime
----- 8
-1900-01-01|2008-11-03 15:25:30.000526
-1900-01-01|2011-08-20 11:25:30
-1940-06-22|1911-08-20 02:32:21
-1950-07-23|2031-11-30 12:25:30
-1980-10-26|1972-07-31 13:22:30.678559
-1980-10-26|1976-12-23 04:41:42
-1980-10-26|1976-12-23 11:21:42
-1990-11-27|2023-02-21 13:25:30
+-STATEMENT LOAD FROM "${DATABASE_PATH}/flatUnflat.parquet" RETURN *;
+---- 14
+0|2
+0|3
+0|5
+2|0
+2|3
+2|5
+3|0
+3|2
+3|5
+5|0
+5|2
+5|3
+7|8
+7|9
