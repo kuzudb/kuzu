@@ -2,12 +2,12 @@
 
 #include <cassert>
 
+#include "cast_utils.h"
 #include "common/exception/runtime.h"
 #include "common/string_utils.h"
 #include "common/type_utils.h"
 #include "common/types/blob.h"
 #include "common/vector/value_vector.h"
-#include "numeric_cast.h"
 
 namespace kuzu {
 namespace function {

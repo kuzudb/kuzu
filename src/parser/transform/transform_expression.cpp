@@ -1,5 +1,5 @@
 #include "common/string_utils.h"
-#include "function/cast/numeric_cast.h"
+#include "function/cast/cast_utils.h"
 #include "parser/expression/parsed_case_expression.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_literal_expression.h"

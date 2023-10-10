@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/types/types.h"
-#include "function/cast/numeric_cast.h"
+#include "function/cast/cast_utils.h"
 #include "storage/storage_structure/in_mem_file.h"
 #include "storage/store/table_copy_utils.h"
 #include <arrow/array/array_base.h>

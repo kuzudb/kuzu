@@ -1,0 +1,4 @@
+list | str
+'(this | is a word | normal not escape | ~' ( ) | , ~~ ~' )'|'try escape ~~'
+'(escape | is escape success? ~~)'|' ~' ( ) do not need to escape sepeical | ()'
+'(~~ ~' not work also this "~'" )'|'nu'

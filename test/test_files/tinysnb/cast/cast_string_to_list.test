@@ -1,0 +1,45 @@
+-GROUP TinySnbReadTest
+-DATASET CSV load-from-test
+
+--
+
+-CASE CastStringToList
+-STATEMENT LOAD WITH HEADERS (list INT64[][]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/should_pass.csv" RETURN *;
+---- 7
+[[1,3,423,124,43242],[432]]
+[[1,3,423,124,43242],[432]]
+[[1,3,423,124,43242],[432]]
+[,[],[1,2,3]]
+[,,,,,,,,,,[1,2,3]]
+[[],[],[]]
+[,,]
+
+-CASE ChangeCSVConfig
+-STATEMENT LOAD WITH HEADERS (list STRING[], str STRING) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/change_config.csv" (HEADER=true, DELIM="|", ESCAPE="~", QUOTE="'", LIST_BEGIN="(", LIST_END=")") RETURN * ;
+---- 3
+[escape , is escape success? ~]| ' ( ) do not need to escape sepeical | ()
+[this , is a word , normal not escape , ' ( ) | , ~ ' ]|try escape ~
+[~ ' not work also this "'" ]|nu
+
+-CASE ErrorTest
+-STATEMENT LOAD WITH HEADERS (list STRING[][]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/delim_fail.csv" (DELIM="|", ESCAPE="~", QUOTE="'", LIST_BEGIN="(", LIST_END=")") RETURN * ;
+---- error
+Conversion exception: Cast failed. "((hello),(bdfadf),)" is not in STRING[][] range.
+-STATEMENT LOAD WITH HEADERS (list STRING[][]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/bracket_fail.csv" (DELIM="|", ESCAPE="~", LIST_BEGIN="(", LIST_END=")") RETURN * ;
+---- error
+Conversion exception: Cast failed. (() is not in STRING[][] range.
+-STATEMENT LOAD WITH HEADERS (list INT32[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/quote_fail.csv" RETURN * ;
+---- error
+Binder exception: Number of columns mismatch. Detect 3 but expect 1.
+-STATEMENT LOAD WITH HEADERS (list STRING[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/single_quote.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. ['fdsfdsfe werw] is not in STRING[] range.
+-STATEMENT LOAD WITH HEADERS (list STRING[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/single_quote2.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. [[' this is a signle quote]] is not in STRING[] range.
+-STATEMENT LOAD WITH HEADERS (list UINT8[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/single_struct.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. [{32, 32] is not in UINT8[] range.
+-STATEMENT LOAD WITH HEADERS (list UINT8[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/conversion_fail.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. 432412 is not in UINT8 range.

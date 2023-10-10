@@ -125,6 +125,10 @@ struct CastToBlobVectorFunction : public VectorCastFunction {
     static vector_function_definitions getDefinitions();
 };
 
+struct CastToBoolVectorFunction : public VectorCastFunction {
+    static vector_function_definitions getDefinitions();
+};
+
 struct CastToDoubleVectorFunction : public VectorCastFunction {
     static vector_function_definitions getDefinitions();
 };
@@ -166,10 +170,6 @@ struct CastToUInt16VectorFunction : public VectorCastFunction {
 };
 
 struct CastToUInt8VectorFunction : public VectorCastFunction {
-    static vector_function_definitions getDefinitions();
-};
-
-struct CastToBoolVectorFunction : public VectorCastFunction {
     static vector_function_definitions getDefinitions();
 };
 

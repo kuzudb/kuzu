@@ -8,16 +8,6 @@
 namespace kuzu {
 namespace common {
 
-uint32_t TypeUtils::convertToUint32(const char* data) {
-    std::istringstream iss(data);
-    uint32_t val;
-    if (!(iss >> val)) {
-        throw ConversionException(
-            StringUtils::string_format("Failed to convert {} to uint32_t", data));
-    }
-    return val;
-}
-
 std::string TypeUtils::castValueToString(
     const LogicalType& dataType, uint8_t* value, void* vector) {
     auto valueVector = reinterpret_cast<ValueVector*>(vector);

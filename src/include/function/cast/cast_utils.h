@@ -6,55 +6,14 @@
 #include "common/string_utils.h"
 #include "common/type_utils.h"
 #include "common/types/ku_string.h"
+#include "common/vector/value_vector.h"
 #include "fast_float.h"
 #include "numeric_limits.h"
 
 namespace kuzu {
 namespace function {
 
-static bool tryCastToBool(const char* input, uint64_t len, bool& result) {
-    common::StringUtils::removeCStringWhiteSpaces(input, len);
-
-    switch (len) {
-    case 1: {
-        char c = std::tolower(*input);
-        if (c == 't' || c == '1') {
-            result = true;
-            return true;
-        } else if (c == 'f' || c == '0') {
-            result = false;
-            return true;
-        }
-        return false;
-    }
-    case 4: {
-        auto t = std::tolower(input[0]);
-        auto r = std::tolower(input[1]);
-        auto u = std::tolower(input[2]);
-        auto e = std::tolower(input[3]);
-        if (t == 't' && r == 'r' && u == 'u' && e == 'e') {
-            result = true;
-            return true;
-        }
-        return false;
-    }
-    case 5: {
-        auto f = std::tolower(input[0]);
-        auto a = std::tolower(input[1]);
-        auto l = std::tolower(input[2]);
-        auto s = std::tolower(input[3]);
-        auto e = std::tolower(input[4]);
-        if (f == 'f' && a == 'a' && l == 'l' && s == 's' && e == 'e') {
-            result = false;
-            return true;
-        }
-        return false;
-    }
-    default:
-        return false;
-    }
-}
-
+// cast string to numerical
 template<typename T>
 struct IntegerCastData {
     using Result = T;
@@ -86,6 +45,11 @@ struct IntegerCastOperation {
     }
 };
 
+// cast string to bool
+bool tryCastToBool(const char* input, uint64_t len, bool& result);
+void castStringToBool(const char* input, uint64_t len, bool& result);
+
+// cast to numerical values
 // TODO: support exponent + decimal
 template<class T, bool NEGATIVE, bool ALLOW_EXPONENT = false, class OP = IntegerCastOperation>
 static bool integerCastLoop(const char* input, uint64_t len, T& result) {
@@ -190,13 +154,6 @@ static void doubleCast(const char* input, uint64_t len, T& result,
     }
 }
 
-static void castStringToBool(const char* input, uint64_t len, bool& result) {
-    if (!tryCastToBool(input, len, result)) {
-        throw common::ConversionException(
-            "Cast failed. " + std::string{input, len} + " is not in BOOL range.");
-    }
-}
-
 template<typename T>
 static inline T castStringToNum(const char* input, uint64_t len,
     const common::LogicalType& type = common::LogicalType{common::LogicalTypeID::ANY}) {
@@ -213,21 +170,21 @@ inline uint64_t castStringToNum(const char* input, uint64_t len, const common::L
 }
 
 template<>
-inline uint32_t castStringToNum(const char* input, uint64_t len, const common::LogicalType& type) {
+uint32_t castStringToNum(const char* input, uint64_t len, const common::LogicalType& type) {
     uint32_t result;
     simpleIntegerCast<uint32_t, false>(input, len, result, type);
     return result;
 }
 
 template<>
-inline uint16_t castStringToNum(const char* input, uint64_t len, const common::LogicalType& type) {
+uint16_t castStringToNum(const char* input, uint64_t len, const common::LogicalType& type) {
     uint16_t result;
     simpleIntegerCast<uint16_t, false>(input, len, result, type);
     return result;
 }
 
 template<>
-inline uint8_t castStringToNum(const char* input, uint64_t len, const common::LogicalType& type) {
+uint8_t castStringToNum(const char* input, uint64_t len, const common::LogicalType& type) {
     uint8_t result;
     simpleIntegerCast<uint8_t, false>(input, len, result, type);
     return result;

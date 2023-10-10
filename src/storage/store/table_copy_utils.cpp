@@ -4,7 +4,7 @@
 #include "common/exception/copy.h"
 #include "common/exception/parser.h"
 #include "common/string_utils.h"
-#include "function/cast/numeric_cast.h"
+#include "function/cast/cast_utils.h"
 #include "storage/storage_structure/lists/lists.h"
 #include <arrow/api.h>
 #include <arrow/csv/api.h>
