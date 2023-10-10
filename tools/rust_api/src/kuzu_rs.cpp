@@ -44,6 +44,11 @@ std::unique_ptr<kuzu::common::LogicalType> create_logical_type_struct(
         LogicalTypeID::STRUCT, std::make_unique<kuzu::common::StructTypeInfo>(std::move(fields)));
 }
 
+std::unique_ptr<kuzu::common::LogicalType> create_logical_type_map(
+    std::unique_ptr<LogicalType> keyType, std::unique_ptr<LogicalType> valueType) {
+    return kuzu::common::MapType::createMapType(std::move(keyType), std::move(valueType));
+}
+
 const LogicalType& logical_type_get_var_list_child_type(const LogicalType& logicalType) {
     return *kuzu::common::VarListType::getChildType(&logicalType);
 }

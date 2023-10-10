@@ -62,6 +62,10 @@ pub enum LogicalType {
     /// Correponds to [Value::Rel](crate::value::Value::Rel)
     Rel,
     RecursiveRel,
+    Map {
+        key_type: Box<LogicalType>,
+        value_type: Box<LogicalType>,
+    },
 }
 
 impl From<&ffi::Value> for LogicalType {
@@ -117,6 +121,26 @@ impl From<&ffi::LogicalType> for LogicalType {
             LogicalTypeID::NODE => LogicalType::Node,
             LogicalTypeID::REL => LogicalType::Rel,
             LogicalTypeID::RECURSIVE_REL => LogicalType::RecursiveRel,
+            LogicalTypeID::MAP => {
+                let child_types = ffi::logical_type_get_var_list_child_type(logical_type);
+                let types = ffi::logical_type_get_struct_field_types(child_types);
+                let key_type = types
+                    .as_ref()
+                    .unwrap()
+                    .get(0)
+                    .expect(
+                        "First element of map type list should be the key type, but list was empty",
+                    )
+                    .into();
+                let value_type = types.as_ref().unwrap()
+                    .get(1)
+                    .expect("Second element of map type list should be the value type, but list did not have two elements")
+                    .into();
+                LogicalType::Map {
+                    key_type: Box::new(key_type),
+                    value_type: Box::new(value_type),
+                }
+            }
             // Should be unreachable, as cxx will check that the LogicalTypeID enum matches the one
             // on the C++ side.
             x => panic!("Unsupported type {:?}", x),
@@ -165,6 +189,10 @@ impl From<&LogicalType> for cxx::UniquePtr<ffi::LogicalType> {
                 }
                 ffi::create_logical_type_struct(&names, builder)
             }
+            LogicalType::Map {
+                key_type,
+                value_type,
+            } => ffi::create_logical_type_map(key_type.as_ref().into(), value_type.as_ref().into()),
         }
     }
 }
@@ -198,6 +226,7 @@ impl LogicalType {
             LogicalType::Node => LogicalTypeID::NODE,
             LogicalType::Rel => LogicalTypeID::REL,
             LogicalType::RecursiveRel => LogicalTypeID::RECURSIVE_REL,
+            LogicalType::Map { .. } => LogicalTypeID::MAP,
         }
     }
 }

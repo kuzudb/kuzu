@@ -385,6 +385,8 @@ struct StructType {
 };
 
 struct MapType {
+    static std::unique_ptr<LogicalType> createMapType(
+        std::unique_ptr<LogicalType> keyType, std::unique_ptr<LogicalType> valueType);
     static inline LogicalType* getKeyType(const LogicalType* type) {
         assert(type->getLogicalTypeID() == LogicalTypeID::MAP);
         return StructType::getFieldTypes(VarListType::getChildType(type))[0];
