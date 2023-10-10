@@ -347,7 +347,8 @@ unquote:
         // escaped quote, return to quoted state and store escape position
         escapePositions.push_back(position - start);
         goto in_quotes;
-    } else if (buffer[position] == csvReaderConfig.delimiter) {
+    } else if (buffer[position] == csvReaderConfig.delimiter ||
+               buffer[position] == csvReaderConfig.listEndChar) {
         // delimiter, add value
         goto add_value;
     } else if (isNewLine(buffer[position])) {

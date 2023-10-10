@@ -15,7 +15,6 @@ namespace common {
 class TypeUtils {
 
 public:
-    static uint32_t convertToUint32(const char* data);
     template<typename T>
     static inline std::string toString(const T& val, void* valueVector = nullptr) {
         static_assert(std::is_same<T, int64_t>::value || std::is_same<T, int32_t>::value ||

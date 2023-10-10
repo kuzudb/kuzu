@@ -7,7 +7,7 @@
 #include "common/type_utils.h"
 #include "common/types/blob.h"
 #include "common/types/value/value.h"
-#include "function/cast/numeric_cast.h"
+#include "function/cast/cast_utils.h"
 #include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 #include "storage/store/table_copy_utils.h"
@@ -18,6 +18,157 @@ namespace kuzu {
 namespace processor {
 
 ParsingDriver::ParsingDriver(common::DataChunk& chunk) : chunk(chunk), rowEmpty(false) {}
+
+void copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std::string_view strVal,
+    CSVReaderConfig csvReaderConfig);
+
+static void skipWhitespace(const char*& input, const char* end) {
+    while (input < end && isspace(*input)) {
+        input++;
+    }
+}
+
+bool skipToCloseQuotes(
+    const char*& input, const char* end, const CSVReaderConfig& csvReaderConfig) {
+    input++; // skip the first " '
+    // TODO: escape char
+    while (input != end) {
+        if (*input == '\'') {
+            return true;
+        }
+        input++;
+    }
+    return false;
+}
+
+static bool skipToClose(const char*& input, const char* end, uint64_t& lvl, char target,
+    const CSVReaderConfig& csvReaderConfig) {
+    input++;
+    while (input != end) {
+        if (*input == '\'') {
+            if (!skipToCloseQuotes(input, end, csvReaderConfig)) {
+                return false;
+            }
+        } else if (*input == '{') { // must have closing brackets fro {, ] if they are not quoted
+            if (!skipToClose(input, end, lvl, '}', csvReaderConfig)) {
+                return false;
+            }
+        } else if (*input == csvReaderConfig.listBeginChar) {
+            if (!skipToClose(input, end, lvl, csvReaderConfig.listEndChar, csvReaderConfig)) {
+                return false;
+            }
+            lvl++; // nested one more level
+        } else if (*input == target) {
+            if (target == ']') {
+                lvl--;
+            }
+            return true;
+        }
+        input++;
+    }
+    return false; // no corresponding closing bracket
+}
+
+struct CountPartOperation {
+    uint64_t count = 0;
+
+    void handleValue(const char* start, const char* end, const CSVReaderConfig& config) { count++; }
+};
+
+struct SplitStringListOperation {
+    SplitStringListOperation(uint64_t& offset, common::ValueVector* resultVector)
+        : offset(offset), resultVector(resultVector) {}
+
+    uint64_t& offset;
+    ValueVector* resultVector;
+
+    void handleValue(const char* start, const char* end, const CSVReaderConfig& csvReaderConfig) {
+        // NULL
+        auto start_copy = start;
+        skipWhitespace(start, end);
+        if (end - start >= 4 && (*start == 'N' || *start == 'n') &&
+            (*(start + 1) == 'U' || *(start + 1) == 'u') &&
+            (*(start + 2) == 'L' || *(start + 2) == 'l') &&
+            (*(start + 3) == 'L' || *(start + 3) == 'l')) {
+            auto null_end = start + 4;
+            skipWhitespace(null_end, end);
+            if (null_end == end) {
+                start_copy = end;
+            }
+        }
+        if (start == end) { // check if its empty string - NULL
+            start_copy = end;
+        }
+        copyStringToVector(
+            resultVector, offset, std::string_view{start_copy, end}, csvReaderConfig);
+        offset++;
+    }
+};
+
+template<typename T>
+static bool splitCString(
+    const char* input, uint64_t len, T& state, const CSVReaderConfig& csvReaderConfig) {
+    auto end = input + len;
+    uint64_t lvl = 1;
+    bool seen_value = false;
+
+    // locate [
+    skipWhitespace(input, end);
+    if (input == end || *input != csvReaderConfig.listBeginChar) {
+        return false;
+    }
+    input++;
+
+    // TODO: test if not skipping any white space works for all data type
+    auto start_ptr = input;
+    while (input < end) {
+        auto ch = *input;
+        if (ch == csvReaderConfig.listBeginChar) {
+            if (!skipToClose(input, end, ++lvl, csvReaderConfig.listEndChar, csvReaderConfig)) {
+                return false;
+            }
+        } else if (ch == '\'') {
+            if (!skipToCloseQuotes(input, end, csvReaderConfig)) {
+                return false;
+            }
+        } else if (ch == '{') {
+            uint64_t struct_lvl = 0;
+            skipToClose(input, end, struct_lvl, '}', csvReaderConfig);
+        } else if (ch == csvReaderConfig.delimiter || ch == csvReaderConfig.listEndChar) { // split
+            if (ch != csvReaderConfig.listEndChar || start_ptr < input || seen_value) {
+                state.handleValue(start_ptr, input, csvReaderConfig);
+                seen_value = true;
+            }
+            if (ch == csvReaderConfig.listEndChar) { // last ]
+                lvl--;
+                break;
+            }
+            start_ptr = ++input;
+            continue;
+        }
+        input++;
+    }
+    skipWhitespace(++input, end);
+    return (input == end && lvl == 0);
+}
+
+static void castStringToList(const char* input, uint64_t len, ValueVector* vector,
+    uint64_t rowToAdd, const CSVReaderConfig& csvReaderConfig) {
+    // calculate the number of elements in array
+    CountPartOperation state;
+    splitCString(input, len, state, csvReaderConfig);
+
+    auto list_entry = ListVector::addList(vector, state.count);
+    vector->setValue<list_entry_t>(rowToAdd, list_entry);
+    auto listDataVector = common::ListVector::getDataVector(vector);
+
+    SplitStringListOperation split{list_entry.offset, listDataVector};
+    if (!splitCString(input, len, split, csvReaderConfig)) {
+        throw common::ConversionException(
+            "Cast failed. " + std::string{input, len} + " is not in " +
+            common::LogicalTypeUtils::dataTypeToString(vector->dataType) + " range.");
+    }
+}
 
 void copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std::string_view strVal,
     CSVReaderConfig csvReaderConfig) {
@@ -106,11 +257,13 @@ void copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std::string_view
     case LogicalTypeID::INTERVAL: {
         vector->setValue(rowToAdd, Interval::fromCString(strVal.data(), strVal.length()));
     } break;
-    case LogicalTypeID::MAP:
-    case LogicalTypeID::VAR_LIST: {
+    case LogicalTypeID::MAP: {
         auto value = storage::TableCopyUtils::getVarListValue(
             strVal, 1, strVal.length() - 2, type, csvReaderConfig);
         vector->copyFromValue(rowToAdd, *value);
+    } break;
+    case LogicalTypeID::VAR_LIST: {
+        castStringToList(strVal.data(), strVal.length(), vector, rowToAdd, csvReaderConfig);
     } break;
     case LogicalTypeID::FIXED_LIST: {
         auto fixedListVal = storage::TableCopyUtils::getArrowFixedListVal(

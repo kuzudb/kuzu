@@ -11,6 +11,7 @@
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
 #include "common/string_utils.h"
+#include "function/cast/cast_utils.h"
 #include "main/client_context.h"
 
 using namespace kuzu::common;
@@ -424,10 +425,13 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
 std::pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
     const kuzu::parser::RelPattern& relPattern) {
     auto recursiveInfo = relPattern.getRecursiveInfo();
-    auto lowerBound = TypeUtils::convertToUint32(recursiveInfo->lowerBound.c_str());
+    uint32_t lowerBound;
+    function::simpleIntegerCast(
+        recursiveInfo->lowerBound.c_str(), recursiveInfo->lowerBound.length(), lowerBound);
     auto upperBound = clientContext->varLengthExtendMaxDepth;
     if (!recursiveInfo->upperBound.empty()) {
-        upperBound = TypeUtils::convertToUint32(recursiveInfo->upperBound.c_str());
+        function::simpleIntegerCast(
+            recursiveInfo->upperBound.c_str(), recursiveInfo->upperBound.length(), upperBound);
     }
     if (lowerBound > upperBound) {
         throw BinderException(

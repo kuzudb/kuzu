@@ -245,3 +245,6 @@ Conversion exception: Cast failed. -1 is not in UINT8 range.
 -STATEMENT RETURN TO_BOOL("fasdf");
 ---- error
 Conversion exception: Value fasdf is not a valid boolean
+-STATEMENT RETURN TO_BOOL("fal");
+---- error
+Conversion exception: Value fal is not a valid boolean
