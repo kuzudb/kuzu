@@ -49,7 +49,7 @@ public:
         common::ValueVector* resultVector);
     virtual void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
-        common::ValueVector* resultVector, uint64_t offsetInVector = 0);
+        common::ValueVector* resultVector, uint64_t offsetInVector);
     virtual void scan(common::node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk);
     virtual void lookup(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector);
@@ -63,16 +63,12 @@ public:
     inline uint64_t getNumNodeGroups(transaction::Transaction* transaction) const {
         return metadataDA->getNumElements(transaction->getType());
     }
-    inline NodeColumn* getChildColumn(common::vector_idx_t childIdx) {
-        assert(childIdx < childrenColumns.size());
-        return childrenColumns[childIdx].get();
-    }
 
     virtual void checkpointInMemory();
     virtual void rollbackInMemory();
 
     void populateWithDefaultVal(const catalog::Property& property, NodeColumn* nodeColumn,
-        common::ValueVector* defaultValueVector, uint64_t numNodeGroups);
+        common::ValueVector* defaultValueVector, uint64_t numNodeGroups) const;
 
     inline CompressionMetadata getCompressionMetadata(
         common::node_group_idx_t nodeGroupIdx, transaction::TransactionType transaction) const {
@@ -124,7 +120,6 @@ protected:
     WAL* wal;
     std::unique_ptr<InMemDiskArray<ColumnChunkMetadata>> metadataDA;
     std::unique_ptr<NodeColumn> nullColumn;
-    std::vector<std::unique_ptr<NodeColumn>> childrenColumns;
     read_values_to_vector_func_t readToVectorFunc;
     write_values_from_vector_func_t writeFromVectorFunc;
     read_values_to_page_func_t readToPageFunc;

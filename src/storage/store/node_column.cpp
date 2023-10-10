@@ -270,8 +270,8 @@ NodeColumn::NodeColumn(LogicalType dataType, const MetadataDAHInfo& metaDAHeader
     BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
     transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
     bool enableCompression, bool requireNullColumn)
-    : storageStructureID{StorageStructureID::newDataID()}, dataType{dataType}, dataFH{dataFH},
-      metadataFH{metadataFH}, bufferManager{bufferManager},
+    : storageStructureID{StorageStructureID::newDataID()}, dataType{std::move(dataType)},
+      dataFH{dataFH}, metadataFH{metadataFH}, bufferManager{bufferManager},
       propertyStatistics{propertyStatistics}, wal{wal}, enableCompression{enableCompression} {
     metadataDA = std::make_unique<InMemDiskArray<ColumnChunkMetadata>>(*metadataFH,
         StorageStructureID::newMetadataID(), metaDAHeaderInfo.dataDAHPageIdx, bufferManager, wal,
@@ -456,11 +456,6 @@ void NodeColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
     metadataDA->update(nodeGroupIdx, metadata);
     // Null column chunk.
     nullColumn->append(columnChunk->getNullChunk(), nodeGroupIdx);
-    // Children column chunks.
-    assert(childrenColumns.size() == columnChunk->getNumChildren());
-    for (auto i = 0u; i < childrenColumns.size(); i++) {
-        childrenColumns[i]->append(columnChunk->getChild(i), nodeGroupIdx);
-    }
 }
 
 void NodeColumn::write(ValueVector* nodeIDVector, ValueVector* vectorToWriteFrom) {
@@ -539,9 +534,6 @@ void NodeColumn::setNull(offset_t nodeOffset) {
 
 void NodeColumn::checkpointInMemory() {
     metadataDA->checkpointInMemoryIfNecessary();
-    for (auto& child : childrenColumns) {
-        child->checkpointInMemory();
-    }
     if (nullColumn) {
         nullColumn->checkpointInMemory();
     }
@@ -549,18 +541,15 @@ void NodeColumn::checkpointInMemory() {
 
 void NodeColumn::rollbackInMemory() {
     metadataDA->rollbackInMemoryIfNecessary();
-    for (auto& child : childrenColumns) {
-        child->rollbackInMemory();
-    }
     if (nullColumn) {
         nullColumn->rollbackInMemory();
     }
 }
 
 void NodeColumn::populateWithDefaultVal(const Property& property, NodeColumn* nodeColumn,
-    ValueVector* defaultValueVector, uint64_t numNodeGroups) {
-    auto columnChunk = ColumnChunkFactory::createColumnChunk(
-        *property.getDataType(), enableCompression, nullptr /* copyDescription */);
+    ValueVector* defaultValueVector, uint64_t numNodeGroups) const {
+    auto columnChunk =
+        ColumnChunkFactory::createColumnChunk(*property.getDataType(), enableCompression);
     columnChunk->populateWithDefaultVal(defaultValueVector);
     for (auto i = 0u; i < numNodeGroups; i++) {
         nodeColumn->append(columnChunk.get(), i);

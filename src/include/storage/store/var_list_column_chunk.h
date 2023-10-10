@@ -14,7 +14,7 @@ struct VarListDataColumnChunk {
         : dataColumnChunk{std::move(dataChunk)}, capacity{
                                                      common::StorageConstants::NODE_GROUP_SIZE} {}
 
-    void reset();
+    void reset() const;
 
     void resizeBuffer(uint64_t numValues);
 
@@ -31,8 +31,7 @@ struct VarListDataColumnChunk {
 
 class VarListColumnChunk : public ColumnChunk {
 public:
-    VarListColumnChunk(common::LogicalType dataType,
-        std::unique_ptr<common::CSVReaderConfig> csvReaderConfig, bool enableCompression);
+    VarListColumnChunk(common::LogicalType dataType, bool enableCompression);
 
     inline ColumnChunk* getDataColumnChunk() const {
         return varListDataColumnChunk.dataColumnChunk.get();

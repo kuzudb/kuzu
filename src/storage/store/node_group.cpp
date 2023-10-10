@@ -11,12 +11,12 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-NodeGroup::NodeGroup(TableSchema* schema, CSVReaderConfig* csvReaderConfig, bool enableCompression)
+NodeGroup::NodeGroup(TableSchema* schema, bool enableCompression)
     : nodeGroupIdx{UINT64_MAX}, numNodes{0} {
     chunks.reserve(schema->properties.size());
     for (auto& property : schema->properties) {
-        chunks.push_back(ColumnChunkFactory::createColumnChunk(
-            *property->getDataType(), enableCompression, csvReaderConfig));
+        chunks.push_back(
+            ColumnChunkFactory::createColumnChunk(*property->getDataType(), enableCompression));
     }
 }
 
@@ -52,7 +52,7 @@ uint64_t NodeGroup::append(
             continue;
         }
         auto dataPos = dataPoses[i - serialSkip];
-        chunk->append(resultSet->getValueVector(dataPos).get(), numNodes, numValuesToAppendInChunk);
+        chunk->append(resultSet->getValueVector(dataPos).get(), numNodes);
     }
     resultSet->getDataChunk(dataPoses[0].dataChunkPos)->state->selVector->selectedSize =
         originalVectorSize;

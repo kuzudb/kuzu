@@ -290,12 +290,13 @@ void VarListLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
 StructLocalColumn::StructLocalColumn(NodeColumn* column, bool enableCompression)
     : LocalColumn{column, enableCompression} {
     assert(column->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
-    auto dataType = column->getDataType();
+    auto structColumn = static_cast<StructNodeColumn*>(column);
+    auto dataType = structColumn->getDataType();
     auto structFields = StructType::getFields(&dataType);
     fields.resize(structFields.size());
     for (auto i = 0u; i < structFields.size(); i++) {
         fields[i] =
-            LocalColumnFactory::createLocalColumn(column->getChildColumn(i), enableCompression);
+            LocalColumnFactory::createLocalColumn(structColumn->getChild(i), enableCompression);
     }
 }
 

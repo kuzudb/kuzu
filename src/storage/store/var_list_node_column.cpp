@@ -110,7 +110,7 @@ void VarListNodeColumn::scanUnfiltered(Transaction* transaction, node_group_idx_
     auto startListOffsetInStorage = listOffsetInfoInStorage.getListOffset(0);
     auto endListOffsetInStorage = listOffsetInfoInStorage.getListOffset(numValuesToScan);
     dataNodeColumn->scan(transaction, nodeGroupIdx, startListOffsetInStorage,
-        endListOffsetInStorage, ListVector::getDataVector(resultVector));
+        endListOffsetInStorage, ListVector::getDataVector(resultVector), 0 /* offsetInVector */);
 }
 
 void VarListNodeColumn::scanFiltered(Transaction* transaction, node_group_idx_t nodeGroupIdx,
@@ -175,7 +175,7 @@ ListOffsetInfoInStorage VarListNodeColumn::getListOffsetInfoInStorage(Transactio
         offsetVector->setState(state);
         NodeColumn::scan(transaction, nodeGroupIdx, startOffsetInNodeGroup + numOffsetsRead,
             startOffsetInNodeGroup + numOffsetsRead + numOffsetsToReadInCurBatch,
-            offsetVector.get());
+            offsetVector.get(), 0 /* offsetInVector */);
         offsetVectors.push_back(std::move(offsetVector));
         numOffsetsRead += numOffsetsToReadInCurBatch;
     }

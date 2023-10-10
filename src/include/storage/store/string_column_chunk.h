@@ -9,8 +9,7 @@ namespace storage {
 
 class StringColumnChunk : public ColumnChunk {
 public:
-    StringColumnChunk(
-        common::LogicalType dataType, std::unique_ptr<common::CSVReaderConfig> csvReaderConfig);
+    explicit StringColumnChunk(common::LogicalType dataType);
 
     void resetToEmpty() final;
     void append(common::ValueVector* vector, common::offset_t startPosInChunk) final;

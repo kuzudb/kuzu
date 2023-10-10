@@ -24,7 +24,7 @@ struct BaseColumnChunkMetadata {
     common::page_idx_t pageIdx;
     common::page_idx_t numPages;
 
-    BaseColumnChunkMetadata() : pageIdx{common::INVALID_PAGE_IDX}, numPages{0} {}
+    BaseColumnChunkMetadata() : BaseColumnChunkMetadata{common::INVALID_PAGE_IDX, 0} {}
     BaseColumnChunkMetadata(common::page_idx_t pageIdx, common::page_idx_t numPages)
         : pageIdx(pageIdx), numPages(numPages) {}
     virtual ~BaseColumnChunkMetadata() = default;
@@ -61,9 +61,8 @@ public:
 
     // ColumnChunks must be initialized after construction, so this constructor should only be used
     // through the ColumnChunkFactory
-    explicit ColumnChunk(common::LogicalType dataType,
-        std::unique_ptr<common::CSVReaderConfig> csvReaderConfig, bool enableCompression = true,
-        bool hasNullChunk = true);
+    explicit ColumnChunk(
+        common::LogicalType dataType, bool enableCompression = true, bool hasNullChunk = true);
 
     virtual ~ColumnChunk() = default;
 
@@ -75,12 +74,7 @@ public:
     inline NullColumnChunk* getNullChunk() { return nullChunk.get(); }
     inline common::LogicalType getDataType() const { return dataType; }
 
-    inline common::vector_idx_t getNumChildren() const { return childrenChunks.size(); }
-    inline ColumnChunk* getChild(common::vector_idx_t idx) {
-        assert(idx < childrenChunks.size());
-        return childrenChunks[idx].get();
-    }
-    virtual inline uint64_t getBufferSize() const { return numBytesPerValue * capacity; }
+    uint64_t getBufferSize() const;
 
     virtual void resetToEmpty();
 
@@ -88,9 +82,6 @@ public:
     virtual ColumnChunkMetadata getMetadataToFlush() const;
 
     virtual void append(common::ValueVector* vector, common::offset_t startPosInChunk);
-
-    void append(
-        common::ValueVector* vector, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
 
     virtual void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         common::offset_t startPosInChunk, uint32_t numValuesToAppend);
@@ -113,7 +104,7 @@ public:
 
     // numValues must be at least the number of values the ColumnChunk was first initialized
     // with
-    virtual void resize(uint64_t numValues);
+    virtual void resize(uint64_t newCapacity);
 
     template<typename T>
     inline void setValue(T val, common::offset_t pos) {
@@ -131,7 +122,8 @@ public:
 
 protected:
     // Initializes the data buffer. Is (and should be) only called in constructor.
-    virtual void initialize(common::offset_t capacity);
+    void initializeBuffer(common::offset_t capacity);
+    void initializeFunction(bool enableCompression);
 
     common::offset_t getOffsetInBuffer(common::offset_t pos) const;
 
@@ -144,8 +136,6 @@ protected:
     uint64_t capacity;
     std::unique_ptr<uint8_t[]> buffer;
     std::unique_ptr<NullColumnChunk> nullChunk;
-    std::vector<std::unique_ptr<ColumnChunk>> childrenChunks;
-    std::unique_ptr<common::CSVReaderConfig> csvReaderConfig;
     uint64_t numValues;
     std::function<ColumnChunkMetadata(
         const uint8_t*, uint64_t, BMFileHandle*, common::page_idx_t, const ColumnChunkMetadata&)>
@@ -169,9 +159,8 @@ inline bool ColumnChunk::getValue(common::offset_t pos) const {
 // Stored as bitpacked booleans in-memory and on-disk
 class BoolColumnChunk : public ColumnChunk {
 public:
-    BoolColumnChunk(
-        std::unique_ptr<common::CSVReaderConfig> csvReaderConfig, bool hasNullChunk = true)
-        : ColumnChunk(common::LogicalType(common::LogicalTypeID::BOOL), std::move(csvReaderConfig),
+    explicit BoolColumnChunk(bool hasNullChunk = true)
+        : ColumnChunk(common::LogicalType(common::LogicalTypeID::BOOL),
               // Booleans are always compressed
               false /* enableCompression */, hasNullChunk) {}
 
@@ -179,23 +168,11 @@ public:
 
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         common::offset_t startPosInChunk, uint32_t numValuesToAppend) override;
-
-    void resize(uint64_t capacity) final;
-
-protected:
-    inline uint64_t numBytesForValues(common::offset_t numValues) const {
-        // 8 values per byte, and we need a buffer size which is a multiple of 8 bytes
-        return ceil(numValues / 8.0 / 8.0) * 8;
-    }
-
-    void initialize(common::offset_t capacity) final;
 };
 
 class NullColumnChunk : public BoolColumnChunk {
 public:
-    NullColumnChunk()
-        : BoolColumnChunk(nullptr /*copyDescription*/, false /*hasNullChunk*/), mayHaveNullValue{
-                                                                                    false} {}
+    NullColumnChunk() : BoolColumnChunk(false /*hasNullChunk*/), mayHaveNullValue{false} {}
     // Maybe this should be combined with BoolColumnChunk if the only difference is these functions?
     inline bool isNull(common::offset_t pos) const { return getValue<bool>(pos); }
     inline void setNull(common::offset_t pos, bool isNull) {
@@ -228,8 +205,8 @@ protected:
 };
 
 struct ColumnChunkFactory {
-    static std::unique_ptr<ColumnChunk> createColumnChunk(const common::LogicalType& dataType,
-        bool enableCompression, common::CSVReaderConfig* csvReaderConfig = nullptr);
+    static std::unique_ptr<ColumnChunk> createColumnChunk(
+        const common::LogicalType& dataType, bool enableCompression);
 };
 
 } // namespace storage

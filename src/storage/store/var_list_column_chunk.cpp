@@ -10,7 +10,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-void VarListDataColumnChunk::reset() {
+void VarListDataColumnChunk::reset() const {
     dataColumnChunk->resetToEmpty();
 }
 
@@ -24,13 +24,10 @@ void VarListDataColumnChunk::resizeBuffer(uint64_t numValues) {
     dataColumnChunk->resize(capacity);
 }
 
-VarListColumnChunk::VarListColumnChunk(LogicalType dataType,
-    std::unique_ptr<common::CSVReaderConfig> csvReaderConfig, bool enableCompression)
-    : ColumnChunk{std::move(dataType), std::move(csvReaderConfig), enableCompression,
-          true /* hasNullChunk */},
-      varListDataColumnChunk{
-          ColumnChunkFactory::createColumnChunk(*VarListType::getChildType(&this->dataType),
-              enableCompression, this->csvReaderConfig.get())} {
+VarListColumnChunk::VarListColumnChunk(LogicalType dataType, bool enableCompression)
+    : ColumnChunk{std::move(dataType), enableCompression, true /* hasNullChunk */},
+      varListDataColumnChunk{ColumnChunkFactory::createColumnChunk(
+          *VarListType::getChildType(&this->dataType), enableCompression)} {
     assert(this->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
 }
 
