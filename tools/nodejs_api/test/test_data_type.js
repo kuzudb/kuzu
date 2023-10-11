@@ -416,3 +416,17 @@ describe("RECURSIVE_REL", function () {
     });
   });
 });
+
+describe("MAP", function () {
+  it("should convert MAP type", async function () {
+    const queryResult = await conn.query(
+      "MATCH (m:movies) WHERE m.length = 2544 RETURN m.audience;"
+    );
+    const result = await queryResult.getAll();
+    assert.equal(result.length, 1);
+    assert.equal(Object.keys(result[0]).length, 1);
+    assert.isTrue("m.audience" in result[0]);
+    assert.equal(typeof result[0]["m.audience"], "object");
+    assert.deepEqual(result[0]["m.audience"], {'audience1': 33});
+  });
+});

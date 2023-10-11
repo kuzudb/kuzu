@@ -137,6 +137,16 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
     case LogicalTypeID::INTERNAL_ID: {
         return ConvertNodeIdToNapiObject(value.getValue<nodeID_t>(), env);
     }
+    case LogicalTypeID::MAP: {
+        Napi::Object napiObj = Napi::Object::New(env);
+        for (auto i = 0u; i < NestedVal::getChildrenSize(&value); ++i) {
+            auto childVal = NestedVal::getChildVal(&value, i);
+            auto key = NestedVal::getChildVal(childVal, 0)->toString();
+            auto val = ConvertToNapiObject(*NestedVal::getChildVal(childVal, 1), env);
+            napiObj.Set(key, val);
+        }
+        return napiObj;
+    }
     default:
         throw Exception("Unsupported type: " + LogicalTypeUtils::dataTypeToString(*dataType));
     }
