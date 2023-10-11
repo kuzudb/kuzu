@@ -808,23 +808,30 @@ std::unique_ptr<LogicalType> LogicalTypeUtils::parseStructType(const std::string
         LogicalTypeID::STRUCT, std::make_unique<StructTypeInfo>(parseStructTypeInfo(trimmedStr)));
 }
 
-std::unique_ptr<LogicalType> LogicalTypeUtils::parseMapType(const std::string& trimmedStr) {
-    auto leftBracketPos = trimmedStr.find('(');
-    auto rightBracketPos = trimmedStr.find_last_of(')');
-    if (leftBracketPos == std::string::npos || rightBracketPos == std::string::npos) {
-        throw Exception("Cannot parse struct type: " + trimmedStr);
-    }
-    auto mapTypeStr = trimmedStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1);
-    auto keyValueTypes = StringUtils::split(mapTypeStr, ",");
+std::unique_ptr<LogicalType> MapType::createMapType(
+    std::unique_ptr<LogicalType> keyType, std::unique_ptr<LogicalType> valueType) {
     std::vector<std::unique_ptr<StructField>> structFields;
-    structFields.emplace_back(std::make_unique<StructField>(InternalKeyword::MAP_KEY,
-        std::make_unique<LogicalType>(dataTypeFromString(keyValueTypes[0]))));
-    structFields.emplace_back(std::make_unique<StructField>(InternalKeyword::MAP_VALUE,
-        std::make_unique<LogicalType>(dataTypeFromString(keyValueTypes[1]))));
+    structFields.push_back(
+        std::make_unique<StructField>(InternalKeyword::MAP_KEY, std::move(keyType)));
+    structFields.push_back(
+        std::make_unique<StructField>(InternalKeyword::MAP_VALUE, std::move(valueType)));
     auto childType = std::make_unique<LogicalType>(
         LogicalTypeID::STRUCT, std::make_unique<StructTypeInfo>(std::move(structFields)));
     return std::make_unique<LogicalType>(
         LogicalTypeID::MAP, std::make_unique<VarListTypeInfo>(std::move(childType)));
+}
+
+std::unique_ptr<LogicalType> LogicalTypeUtils::parseMapType(const std::string& trimmedStr) {
+    auto leftBracketPos = trimmedStr.find('(');
+    auto rightBracketPos = trimmedStr.find_last_of(')');
+    if (leftBracketPos == std::string::npos || rightBracketPos == std::string::npos) {
+        throw Exception("Cannot parse map type: " + trimmedStr);
+    }
+    auto mapTypeStr = trimmedStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1);
+    auto keyValueTypes = StringUtils::split(mapTypeStr, ",");
+    return MapType::createMapType(
+        std::make_unique<LogicalType>(dataTypeFromString(keyValueTypes[0])),
+        std::make_unique<LogicalType>(dataTypeFromString(keyValueTypes[1])));
 }
 
 std::unique_ptr<LogicalType> LogicalTypeUtils::parseUnionType(const std::string& trimmedStr) {

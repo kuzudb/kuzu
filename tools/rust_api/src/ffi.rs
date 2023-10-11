@@ -195,6 +195,10 @@ pub(crate) mod ffi {
             field_names: &Vec<String>,
             types: UniquePtr<TypeListBuilder>,
         ) -> UniquePtr<LogicalType>;
+        fn create_logical_type_map(
+            keyType: UniquePtr<LogicalType>,
+            valueType: UniquePtr<LogicalType>,
+        ) -> UniquePtr<LogicalType>;
 
         fn logical_type_get_var_list_child_type(value: &LogicalType) -> &LogicalType;
         fn logical_type_get_fixed_list_child_type(value: &LogicalType) -> &LogicalType;

@@ -244,6 +244,7 @@ pub enum Value {
         /// Sequence of Rels which make up the RecursiveRel
         rels: Vec<RelVal>,
     },
+    Map((LogicalType, LogicalType), Vec<(Value, Value)>),
 }
 
 fn display_list<T: std::fmt::Display>(f: &mut fmt::Formatter<'_>, list: &Vec<T>) -> fmt::Result {
@@ -284,6 +285,16 @@ impl std::fmt::Display for Value {
                 write!(f, "{{")?;
                 for (i, (name, value)) in x.iter().enumerate() {
                     write!(f, "{}: {}", name, value)?;
+                    if i != x.len() - 1 {
+                        write!(f, ", ")?;
+                    }
+                }
+                write!(f, "}}")
+            }
+            Value::Map(_, x) => {
+                write!(f, "{{")?;
+                for (i, (name, value)) in x.iter().enumerate() {
+                    write!(f, "{}={}", name, value)?;
                     if i != x.len() - 1 {
                         write!(f, ", ")?;
                     }
@@ -345,6 +356,10 @@ impl From<&Value> for LogicalType {
             Value::Node(_) => LogicalType::Node,
             Value::Rel(_) => LogicalType::Rel,
             Value::RecursiveRel { .. } => LogicalType::RecursiveRel,
+            Value::Map((key_type, value_type), _) => LogicalType::Map {
+                key_type: Box::new(key_type.clone()),
+                value_type: Box::new(value_type.clone()),
+            },
         }
     }
 }
@@ -432,6 +447,25 @@ impl TryFrom<&ffi::Value> for Value {
                     result.push((name, value));
                 }
                 Ok(Value::Struct(result))
+            }
+            LogicalTypeID::MAP => {
+                let mut result = vec![];
+                for index in 0..ffi::value_get_children_size(value) {
+                    let pair = ffi::value_get_child(value, index);
+                    result.push((
+                        ffi::value_get_child(pair, 0).try_into()?,
+                        ffi::value_get_child(pair, 1).try_into()?,
+                    ));
+                }
+                if let LogicalType::Map {
+                    key_type,
+                    value_type,
+                } = value.into()
+                {
+                    Ok(Value::Map((*key_type, *value_type), result))
+                } else {
+                    unreachable!()
+                }
             }
             LogicalTypeID::NODE => {
                 let id = ffi::node_value_get_node_id(value);
@@ -568,6 +602,30 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
                 Ok(ffi::get_list_value(
                     (&LogicalType::VarList {
                         child_type: Box::new(typ),
+                    })
+                        .into(),
+                    builder,
+                ))
+            }
+            Value::Map((key_type, value_type), values) => {
+                let mut builder = ffi::create_list();
+                let list_type = LogicalType::Struct {
+                    fields: vec![
+                        ("KEY".to_string(), key_type.clone()),
+                        ("VALUE".to_string(), value_type.clone()),
+                    ],
+                };
+                for (key, value) in values {
+                    let mut pair = ffi::create_list();
+                    pair.pin_mut().insert(key.try_into()?);
+                    pair.pin_mut().insert(value.try_into()?);
+                    let pair_value = ffi::get_list_value((&list_type).into(), pair);
+                    builder.pin_mut().insert(pair_value);
+                }
+                Ok(ffi::get_list_value(
+                    (&LogicalType::Map {
+                        key_type: Box::new(key_type),
+                        value_type: Box::new(value_type),
                     })
                         .into(),
                     builder,
@@ -811,6 +869,7 @@ mod tests {
         convert_internal_id_type: LogicalType::InternalID,
         convert_rel_type: LogicalType::Rel,
         convert_recursive_rel_type: LogicalType::RecursiveRel,
+        convert_map_type: LogicalType::Map { key_type: Box::new(LogicalType::Interval), value_type: Box::new(LogicalType::Rel) },
     }
 
     value_tests! {
@@ -838,6 +897,7 @@ mod tests {
         }),
         convert_struct: Value::Struct(vec![("NAME".to_string(), "Alice".into()), ("AGE".to_string(), 25.into())]),
         convert_internal_id: Value::InternalID(InternalID { table_id: 0, offset: 0 }),
+        convert_map: Value::Map((LogicalType::String, LogicalType::Int64), vec![(Value::String("key".to_string()), Value::Int64(24))]),
     }
 
     display_tests! {
@@ -865,21 +925,23 @@ mod tests {
         display_struct: Value::Struct(vec![("NAME".to_string(), "Alice".into()), ("AGE".to_string(), 25.into())]),
         display_internal_id: Value::InternalID(InternalID { table_id: 0, offset: 0 }),
         // Node and Rel Cannot be easily created on the C++ side
+        display_map: Value::Map((LogicalType::String, LogicalType::Int64), vec![(Value::String("key".to_string()), Value::Int64(24))]),
     }
 
     database_tests! {
         // Passing these values as arguments is not yet implemented in kuzu:
-        // db_struct:
-        //    Value::Struct(vec![("item".to_string(), "Knife".into()), ("count".to_string(), 1.into())]),
-        //    "STRUCT(item STRING, count INT32)",
-        // db_fixed_list: Value::FixedList(LogicalType::String, vec!["Alice".into(), "Bob".into()]), "STRING[2]",
-        // db_null_string: Value::Null(LogicalType::String), "STRING",
-        // db_null_int: Value::Null(LogicalType::Int64), "INT64",
-        // db_null_list: Value::Null(LogicalType::VarList {
-        //    child_type: Box::new(LogicalType::FixedList { child_type: Box::new(LogicalType::Int16), num_elements: 3 })
-        // }), "INT16[3][]",
         // db_var_list_string: Value::VarList(LogicalType::String, vec!["Alice".into(), "Bob".into()]), "STRING[]",
         // db_var_list_int: Value::VarList(LogicalType::Int64, vec![0i64.into(), 1i64.into(), 2i64.into()]), "INT64[]",
+        // db_map: Value::Map((LogicalType::String, LogicalType::Int64), vec![(Value::String("key".to_string()), Value::Int64(24))]), "MAP(STRING,INT64)",
+        // db_fixed_list: Value::FixedList(LogicalType::Int64, vec![1i64.into(), 2i64.into(), 3i64.into()]), "INT64[3]",
+        db_struct:
+           Value::Struct(vec![("item".to_string(), "Knife".into()), ("count".to_string(), 1.into())]),
+           "STRUCT(item STRING, count INT32)",
+        db_null_string: Value::Null(LogicalType::String), "STRING",
+        db_null_int: Value::Null(LogicalType::Int64), "INT64",
+        db_null_list: Value::Null(LogicalType::VarList {
+           child_type: Box::new(LogicalType::FixedList { child_type: Box::new(LogicalType::Int16), num_elements: 3 })
+        }), "INT16[3][]",
         db_int8: Value::Int8(0), "INT8",
         db_int16: Value::Int16(1), "INT16",
         db_int32: Value::Int32(2), "INT32",
