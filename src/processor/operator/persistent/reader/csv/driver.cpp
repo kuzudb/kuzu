@@ -20,7 +20,7 @@ namespace processor {
 ParsingDriver::ParsingDriver(common::DataChunk& chunk) : chunk(chunk), rowEmpty(false) {}
 
 void copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std::string_view strVal,
-    CSVReaderConfig csvReaderConfig);
+    const CSVReaderConfig& csvReaderConfig);
 
 static void skipWhitespace(const char*& input, const char* end) {
     while (input < end && isspace(*input)) {
@@ -28,12 +28,18 @@ static void skipWhitespace(const char*& input, const char* end) {
     }
 }
 
-bool skipToCloseQuotes(
-    const char*& input, const char* end, const CSVReaderConfig& csvReaderConfig) {
+static void trimRightWhitespace(const char* input, const char*& end) {
+    while (input < end && isspace(*(end - 1))) {
+        end--;
+    }
+}
+
+bool skipToCloseQuotes(const char*& input, const char* end) {
+    auto ch = *input;
     input++; // skip the first " '
     // TODO: escape char
     while (input != end) {
-        if (*input == '\'') {
+        if (*input == ch) {
             return true;
         }
         input++;
@@ -46,7 +52,7 @@ static bool skipToClose(const char*& input, const char* end, uint64_t& lvl, char
     input++;
     while (input != end) {
         if (*input == '\'') {
-            if (!skipToCloseQuotes(input, end, csvReaderConfig)) {
+            if (!skipToCloseQuotes(input, end)) {
                 return false;
             }
         } else if (*input == '{') { // must have closing brackets fro {, ] if they are not quoted
@@ -119,7 +125,6 @@ static bool splitCString(
     }
     input++;
 
-    // TODO: test if not skipping any white space works for all data type
     auto start_ptr = input;
     while (input < end) {
         auto ch = *input;
@@ -128,7 +133,7 @@ static bool splitCString(
                 return false;
             }
         } else if (ch == '\'') {
-            if (!skipToCloseQuotes(input, end, csvReaderConfig)) {
+            if (!skipToCloseQuotes(input, end)) {
                 return false;
             }
         } else if (ch == '{') {
@@ -164,14 +169,103 @@ static void castStringToList(const char* input, uint64_t len, ValueVector* vecto
 
     SplitStringListOperation split{list_entry.offset, listDataVector};
     if (!splitCString(input, len, split, csvReaderConfig)) {
-        throw common::ConversionException(
-            "Cast failed. " + std::string{input, len} + " is not in " +
-            common::LogicalTypeUtils::dataTypeToString(vector->dataType) + " range.");
+        throw ConversionException("Cast failed. " + std::string{input, len} + " is not in " +
+                                  LogicalTypeUtils::dataTypeToString(vector->dataType) + " range.");
+    }
+}
+
+static bool parseStructFieldName(const char*& input, const char* end) {
+    while (input < end) {
+        if (*input == ':') {
+            return true;
+        }
+        input++;
+    }
+    return false;
+}
+
+static bool parseStructFieldValue(
+    const char*& input, const char* end, const CSVReaderConfig& csvReaderConfig) {
+    uint64_t lvl = 0;
+    while (input < end) {
+        if (*input == '"' || *input == '\'') {
+            if (!skipToCloseQuotes(input, end)) {
+                return false;
+            }
+        } else if (*input == '{') {
+            if (!skipToClose(input, end, lvl, '}', csvReaderConfig)) {
+                return false;
+            }
+        } else if (*input == csvReaderConfig.listBeginChar) {
+            if (!skipToClose(input, end, lvl, csvReaderConfig.listEndChar, csvReaderConfig)) {
+                return false;
+            }
+        } else if (*input == csvReaderConfig.delimiter || *input == '}') {
+            if (*input == '}') {
+                auto copy = input + 1;
+                skipWhitespace(copy, end);
+                return (copy == end);
+            }
+            return true;
+        }
+        input++;
+    }
+    return false;
+}
+
+static bool tryCastStringToStruct(const char* input, uint64_t len, ValueVector* vector,
+    uint64_t rowToAdd, const CSVReaderConfig& csvReaderConfig) {
+    // check if start with {
+    auto end = input + len;
+    auto type = vector->dataType;
+    skipWhitespace(input, end);
+    if (input == end || *input != '{') {
+        return false;
+    }
+    skipWhitespace(++input, end);
+
+    if (*input == '}') {
+        skipWhitespace(++input, end);
+        return input == end;
+    }
+
+    while (input < end) {
+        auto keyStart = input;
+        if (!parseStructFieldName(input, end)) { // find key
+            return false;
+        }
+        auto keyEnd = input;
+        trimRightWhitespace(keyStart, keyEnd);
+        auto fieldIdx = StructType::getFieldIdx(&type, std::string{keyStart, keyEnd});
+        if (fieldIdx == INVALID_STRUCT_FIELD_IDX) {
+            throw ParserException{"Invalid struct field name: " + std::string{keyStart, keyEnd}};
+        }
+
+        skipWhitespace(++input, end);
+        auto valStart = input;
+        if (!parseStructFieldValue(input, end, csvReaderConfig)) { // find value
+            return false;
+        }
+        auto valEnd = input;
+        trimRightWhitespace(valStart, valEnd);
+        skipWhitespace(++input, end);
+
+        copyStringToVector(StructVector::getFieldVector(vector, fieldIdx).get(), rowToAdd,
+            std::string_view{valStart, valEnd}, csvReaderConfig);
+    }
+    return true;
+}
+
+static void castStringToStruct(const char* input, uint64_t len, ValueVector* vector,
+    uint64_t rowToAdd, const CSVReaderConfig& csvReaderConfig) {
+    if (!tryCastStringToStruct(input, len, vector, rowToAdd, csvReaderConfig)) {
+        throw ConversionException("Cast failed. " + std::string{input, len} + " is not in " +
+                                  LogicalTypeUtils::dataTypeToString(vector->dataType) + " range.");
     }
 }
 
 void copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std::string_view strVal,
-    CSVReaderConfig csvReaderConfig) {
+    const CSVReaderConfig& csvReaderConfig) {
     auto& type = vector->dataType;
     if (strVal.empty()) {
         vector->setNull(rowToAdd, true /* isNull */);
@@ -271,14 +365,7 @@ void copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std::string_view
         vector->copyFromValue(rowToAdd, *fixedListVal);
     } break;
     case LogicalTypeID::STRUCT: {
-        auto structString = strVal.substr(1, strVal.length() - 2);
-        auto structFieldIdxAndValuePairs = storage::TableCopyUtils::parseStructFieldNameAndValues(
-            type, structString, csvReaderConfig);
-        for (auto& fieldIdxAndValue : structFieldIdxAndValuePairs) {
-            copyStringToVector(
-                StructVector::getFieldVector(vector, fieldIdxAndValue.fieldIdx).get(), rowToAdd,
-                fieldIdxAndValue.fieldValue, csvReaderConfig);
-        }
+        castStringToStruct(strVal.data(), strVal.length(), vector, rowToAdd, csvReaderConfig);
     } break;
     case LogicalTypeID::UNION: {
         union_field_idx_t selectedFieldIdx = INVALID_STRUCT_FIELD_IDX;
