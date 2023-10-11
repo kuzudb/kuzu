@@ -62,9 +62,13 @@ pub enum LogicalType {
     /// Correponds to [Value::Rel](crate::value::Value::Rel)
     Rel,
     RecursiveRel,
+    /// Correponds to [Value::Map](crate::value::Value::Map)
     Map {
         key_type: Box<LogicalType>,
         value_type: Box<LogicalType>,
+    },
+    Union {
+        types: Vec<(String, LogicalType)>,
     },
 }
 
@@ -141,6 +145,18 @@ impl From<&ffi::LogicalType> for LogicalType {
                     value_type: Box::new(value_type),
                 }
             }
+            LogicalTypeID::UNION => {
+                let names = ffi::logical_type_get_struct_field_names(logical_type);
+                let types = ffi::logical_type_get_struct_field_types(logical_type);
+                LogicalType::Union {
+                    types: names
+                        .into_iter()
+                        // Skip the tag field
+                        .skip(1)
+                        .zip(types.into_iter().skip(1).map(Into::<LogicalType>::into))
+                        .collect(),
+                }
+            }
             // Should be unreachable, as cxx will check that the LogicalTypeID enum matches the one
             // on the C++ side.
             x => panic!("Unsupported type {:?}", x),
@@ -187,7 +203,18 @@ impl From<&LogicalType> for cxx::UniquePtr<ffi::LogicalType> {
                     names.push(name.clone());
                     builder.pin_mut().insert(typ.into());
                 }
-                ffi::create_logical_type_struct(&names, builder)
+                ffi::create_logical_type_struct(ffi::LogicalTypeID::STRUCT, &names, builder)
+            }
+            LogicalType::Union { types } => {
+                let mut builder = ffi::create_type_list();
+                let mut names = vec![];
+                names.push("tag".to_string());
+                builder.pin_mut().insert((&LogicalType::Int64).into());
+                for (name, typ) in types {
+                    names.push(name.clone());
+                    builder.pin_mut().insert(typ.into());
+                }
+                ffi::create_logical_type_struct(ffi::LogicalTypeID::UNION, &names, builder)
             }
             LogicalType::Map {
                 key_type,
@@ -227,6 +254,7 @@ impl LogicalType {
             LogicalType::Rel => LogicalTypeID::REL,
             LogicalType::RecursiveRel => LogicalTypeID::RECURSIVE_REL,
             LogicalType::Map { .. } => LogicalTypeID::MAP,
+            LogicalType::Union { .. } => LogicalTypeID::UNION,
         }
     }
 }

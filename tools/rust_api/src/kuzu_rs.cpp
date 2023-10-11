@@ -33,7 +33,7 @@ std::unique_ptr<LogicalType> create_logical_type_fixed_list(
         std::make_unique<FixedListTypeInfo>(std::move(childType), numElements));
 }
 
-std::unique_ptr<kuzu::common::LogicalType> create_logical_type_struct(
+std::unique_ptr<kuzu::common::LogicalType> create_logical_type_struct(LogicalTypeID typeID,
     const rust::Vec<rust::String>& fieldNames, std::unique_ptr<TypeListBuilder> fieldTypes) {
     std::vector<std::unique_ptr<StructField>> fields;
     for (auto i = 0u; i < fieldNames.size(); i++) {
@@ -41,7 +41,7 @@ std::unique_ptr<kuzu::common::LogicalType> create_logical_type_struct(
             std::string(fieldNames[i]), std::move(fieldTypes->types[i])));
     }
     return std::make_unique<LogicalType>(
-        LogicalTypeID::STRUCT, std::make_unique<kuzu::common::StructTypeInfo>(std::move(fields)));
+        typeID, std::make_unique<kuzu::common::StructTypeInfo>(std::move(fields)));
 }
 
 std::unique_ptr<kuzu::common::LogicalType> create_logical_type_map(

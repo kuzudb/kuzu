@@ -60,7 +60,7 @@ void StructNodeColumn::writeInternal(
 
 void StructNodeColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
     NodeColumn::append(columnChunk, nodeGroupIdx);
-    assert(columnChunk->getDataType().getLogicalTypeID() == LogicalTypeID::STRUCT);
+    assert(columnChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
     auto structColumnChunk = static_cast<StructColumnChunk*>(columnChunk);
     for (auto i = 0u; i < childColumns.size(); i++) {
         childColumns[i]->append(structColumnChunk->getChild(i), nodeGroupIdx);
