@@ -13,20 +13,22 @@ namespace parser {
 class CopyFrom : public Statement {
 public:
     explicit CopyFrom(bool byColumn_, std::vector<std::string> filePaths, std::string tableName,
-        parsing_option_t parsingOptions)
-        : Statement{common::StatementType::COPY_FROM}, byColumn_{byColumn_}, filePaths{std::move(
-                                                                                 filePaths)},
-          tableName{std::move(tableName)}, parsingOptions{std::move(parsingOptions)} {}
+        std::vector<std::string> columnNames, parsing_option_t parsingOptions)
+        : Statement{common::StatementType::COPY_FROM}, byColumn_{byColumn_},
+          filePaths{std::move(filePaths)}, tableName{std::move(tableName)},
+          columnNames{std::move(columnNames)}, parsingOptions{std::move(parsingOptions)} {}
 
     inline bool byColumn() const { return byColumn_; }
     inline std::vector<std::string> getFilePaths() const { return filePaths; }
     inline std::string getTableName() const { return tableName; }
+    inline std::vector<std::string> getColumnNames() const { return columnNames; }
     inline const parsing_option_t& getParsingOptionsRef() const { return parsingOptions; }
 
 private:
     bool byColumn_;
     std::vector<std::string> filePaths;
     std::string tableName;
+    std::vector<std::string> columnNames;
     parsing_option_t parsingOptions;
 };
 
