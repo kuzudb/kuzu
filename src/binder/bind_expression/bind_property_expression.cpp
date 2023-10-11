@@ -76,33 +76,20 @@ std::shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     auto child = bindExpression(*parsedExpression.getChild(0));
     validateExpectedDataType(*child,
         std::vector<LogicalTypeID>{LogicalTypeID::NODE, LogicalTypeID::REL, LogicalTypeID::STRUCT});
-    if (ExpressionUtil::isNodeVariable(*child)) {
-        return bindNodePropertyExpression(*child, propertyName);
-    } else if (ExpressionUtil::isRelVariable(*child)) {
-        return bindRelPropertyExpression(*child, propertyName);
-    } else {
-        return bindStructPropertyExpression(child, propertyName);
+    if (ExpressionUtil::isNodeVariable(*child) || ExpressionUtil::isRelVariable(*child)) {
+        return bindNodeOrRelPropertyExpression(*child, propertyName);
     }
+    return bindStructPropertyExpression(child, propertyName);
 }
 
-std::shared_ptr<Expression> ExpressionBinder::bindNodePropertyExpression(
+std::shared_ptr<Expression> ExpressionBinder::bindNodeOrRelPropertyExpression(
     const Expression& child, const std::string& propertyName) {
-    auto& node = (NodeExpression&)child;
-    if (!node.hasPropertyExpression(propertyName)) {
+    auto& nodeOrRel = reinterpret_cast<const NodeOrRelExpression&>(child);
+    if (!nodeOrRel.hasPropertyExpression(propertyName)) {
         throw BinderException(
             "Cannot find property " + propertyName + " for " + child.toString() + ".");
     }
-    return node.getPropertyExpression(propertyName);
-}
-
-std::shared_ptr<Expression> ExpressionBinder::bindRelPropertyExpression(
-    const Expression& child, const std::string& propertyName) {
-    auto& rel = (RelExpression&)child;
-    if (!rel.hasPropertyExpression(propertyName)) {
-        throw BinderException(
-            "Cannot find property " + propertyName + " for " + child.toString() + ".");
-    }
-    return rel.getPropertyExpression(propertyName);
+    return nodeOrRel.getPropertyExpression(propertyName);
 }
 
 std::shared_ptr<Expression> ExpressionBinder::bindStructPropertyExpression(

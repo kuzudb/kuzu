@@ -16,7 +16,7 @@ class ClientContext;
 
 namespace binder {
 
-class BoundCreateInfo;
+class BoundInsertInfo;
 class BoundSetPropertyInfo;
 class BoundDeleteInfo;
 class BoundWithClause;
@@ -167,7 +167,7 @@ private:
     // TODO(Guodong/Xiyang): Is update clause an accurate name? How about (data)modificationClause?
     std::unique_ptr<BoundUpdatingClause> bindUpdatingClause(
         const parser::UpdatingClause& updatingClause);
-    std::unique_ptr<BoundUpdatingClause> bindCreateClause(
+    std::unique_ptr<BoundUpdatingClause> bindInsertClause(
         const parser::UpdatingClause& updatingClause);
     std::unique_ptr<BoundUpdatingClause> bindMergeClause(
         const parser::UpdatingClause& updatingClause);
@@ -176,17 +176,18 @@ private:
     std::unique_ptr<BoundUpdatingClause> bindDeleteClause(
         const parser::UpdatingClause& updatingClause);
 
-    std::vector<std::unique_ptr<BoundCreateInfo>> bindCreateInfos(
+    std::vector<std::unique_ptr<BoundInsertInfo>> bindCreateInfos(
         const QueryGraphCollection& queryGraphCollection,
         const PropertyKeyValCollection& keyValCollection, const expression_set& nodeRelScope_);
-    std::unique_ptr<BoundCreateInfo> bindCreateNodeInfo(
+    std::unique_ptr<BoundInsertInfo> bindInsertNodeInfo(
         std::shared_ptr<NodeExpression> node, const PropertyKeyValCollection& collection);
-    std::unique_ptr<BoundCreateInfo> bindCreateRelInfo(
+    std::unique_ptr<BoundInsertInfo> bindInsertRelInfo(
         std::shared_ptr<RelExpression> rel, const PropertyKeyValCollection& collection);
+    std::vector<expression_pair> bindSetItems(const PropertyKeyValCollection& collection,
+        catalog::TableSchema* tableSchema, const std::shared_ptr<Expression>& nodeOrRel);
     std::unique_ptr<BoundSetPropertyInfo> bindSetPropertyInfo(
-        std::pair<parser::ParsedExpression*, parser::ParsedExpression*> setItem);
-    expression_pair bindSetItem(
-        std::pair<parser::ParsedExpression*, parser::ParsedExpression*> setItem);
+        parser::ParsedExpression* lhs, parser::ParsedExpression* rhs);
+    expression_pair bindSetItem(parser::ParsedExpression* lhs, parser::ParsedExpression* rhs);
 
     /*** bind projection clause ***/
     std::unique_ptr<BoundWithClause> bindWithClause(const parser::WithClause& withClause);

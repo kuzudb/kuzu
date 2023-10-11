@@ -106,8 +106,8 @@ void BoundStatementVisitor::visitUpdatingClause(const BoundUpdatingClause& updat
     case ClauseType::DELETE_: {
         visitDelete(updatingClause);
     } break;
-    case ClauseType::CREATE: {
-        visitCreate(updatingClause);
+    case ClauseType::INSERT: {
+        visitInsert(updatingClause);
     } break;
     case ClauseType::MERGE: {
         visitMerge(updatingClause);

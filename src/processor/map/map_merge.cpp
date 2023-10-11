@@ -16,16 +16,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapMerge(planner::LogicalOperator*
     auto nodesStore = &storageManager.getNodesStore();
     auto relsStore = &storageManager.getRelsStore();
     std::vector<std::unique_ptr<NodeInsertExecutor>> nodeInsertExecutors;
-    for (auto& info : logicalMerge->getCreateNodeInfosRef()) {
+    for (auto& info : logicalMerge->getInsertNodeInfosRef()) {
         nodeInsertExecutors.push_back(
             getNodeInsertExecutor(nodesStore, relsStore, info.get(), *inSchema, *outSchema));
     }
-    std::vector<std::unique_ptr<NodeSetExecutor>> nodeSetExecutors;
-    for (auto& info : logicalMerge->getCreateNodeSetInfosRef()) {
-        nodeSetExecutors.push_back(getNodeSetExecutor(nodesStore, info.get(), *inSchema));
-    }
     std::vector<std::unique_ptr<RelInsertExecutor>> relInsertExecutors;
-    for (auto& info : logicalMerge->getCreateRelInfosRef()) {
+    for (auto& info : logicalMerge->getInsertRelInfosRef()) {
         relInsertExecutors.push_back(
             getRelInsertExecutor(relsStore, info.get(), *inSchema, *outSchema));
     }
@@ -46,10 +42,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapMerge(planner::LogicalOperator*
         onMatchRelSetExecutors.push_back(getRelSetExecutor(relsStore, info.get(), *inSchema));
     }
     return std::make_unique<Merge>(markPos, std::move(nodeInsertExecutors),
-        std::move(nodeSetExecutors), std::move(relInsertExecutors),
-        std::move(onCreateNodeSetExecutors), std::move(onCreateRelSetExecutors),
-        std::move(onMatchNodeSetExecutors), std::move(onMatchRelSetExecutors),
-        std::move(prevOperator), getOperatorID(), logicalMerge->getExpressionsForPrinting());
+        std::move(relInsertExecutors), std::move(onCreateNodeSetExecutors),
+        std::move(onCreateRelSetExecutors), std::move(onMatchNodeSetExecutors),
+        std::move(onMatchRelSetExecutors), std::move(prevOperator), getOperatorID(),
+        logicalMerge->getExpressionsForPrinting());
 }
 
 } // namespace processor

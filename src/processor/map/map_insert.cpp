@@ -1,5 +1,5 @@
 #include "binder/expression/node_expression.h"
-#include "planner/operator/persistent/logical_create.h"
+#include "planner/operator/persistent/logical_insert.h"
 #include "processor/operator/persistent/insert.h"
 #include "processor/plan_mapper.h"
 
@@ -26,7 +26,7 @@ static std::vector<DataPos> populateLhsVectorPositions(
 
 std::unique_ptr<NodeInsertExecutor> PlanMapper::getNodeInsertExecutor(
     storage::NodesStore* nodesStore, storage::RelsStore* relsStore,
-    planner::LogicalCreateNodeInfo* info, const planner::Schema& inSchema,
+    planner::LogicalInsertNodeInfo* info, const planner::Schema& inSchema,
     const planner::Schema& outSchema) const {
     auto node = info->node;
     auto nodeTableID = node->getSingleTableID();
@@ -48,22 +48,22 @@ std::unique_ptr<NodeInsertExecutor> PlanMapper::getNodeInsertExecutor(
         std::move(lhsVectorPositions), std::move(evaluators));
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateNode(LogicalOperator* logicalOperator) {
-    auto logicalCreateNode = (LogicalCreateNode*)logicalOperator;
-    auto outSchema = logicalCreateNode->getSchema();
-    auto inSchema = logicalCreateNode->getChild(0)->getSchema();
+std::unique_ptr<PhysicalOperator> PlanMapper::mapInsertNode(LogicalOperator* logicalOperator) {
+    auto logicalInsertNode = (LogicalInsertNode*)logicalOperator;
+    auto outSchema = logicalInsertNode->getSchema();
+    auto inSchema = logicalInsertNode->getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     std::vector<std::unique_ptr<NodeInsertExecutor>> executors;
-    for (auto& info : logicalCreateNode->getInfosRef()) {
+    for (auto& info : logicalInsertNode->getInfosRef()) {
         executors.push_back(getNodeInsertExecutor(&storageManager.getNodesStore(),
             &storageManager.getRelsStore(), info.get(), *inSchema, *outSchema));
     }
     return std::make_unique<InsertNode>(std::move(executors), std::move(prevOperator),
-        getOperatorID(), logicalCreateNode->getExpressionsForPrinting());
+        getOperatorID(), logicalInsertNode->getExpressionsForPrinting());
 }
 
 std::unique_ptr<RelInsertExecutor> PlanMapper::getRelInsertExecutor(storage::RelsStore* relsStore,
-    planner::LogicalCreateRelInfo* info, const planner::Schema& inSchema,
+    planner::LogicalInsertRelInfo* info, const planner::Schema& inSchema,
     const planner::Schema& outSchema) {
     auto rel = info->rel;
     auto relTableID = rel->getSingleTableID();
@@ -81,18 +81,18 @@ std::unique_ptr<RelInsertExecutor> PlanMapper::getRelInsertExecutor(storage::Rel
         dstNodePos, std::move(lhsVectorPositions), std::move(evaluators));
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateRel(LogicalOperator* logicalOperator) {
-    auto logicalCreateRel = (LogicalCreateRel*)logicalOperator;
-    auto inSchema = logicalCreateRel->getChild(0)->getSchema();
-    auto outSchema = logicalCreateRel->getSchema();
+std::unique_ptr<PhysicalOperator> PlanMapper::mapInsertRel(LogicalOperator* logicalOperator) {
+    auto logicalInsertRel = (LogicalInsertRel*)logicalOperator;
+    auto inSchema = logicalInsertRel->getChild(0)->getSchema();
+    auto outSchema = logicalInsertRel->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     std::vector<std::unique_ptr<RelInsertExecutor>> executors;
-    for (auto& info : logicalCreateRel->getInfosRef()) {
+    for (auto& info : logicalInsertRel->getInfosRef()) {
         executors.push_back(getRelInsertExecutor(
             &storageManager.getRelsStore(), info.get(), *inSchema, *outSchema));
     }
     return std::make_unique<InsertRel>(std::move(executors), std::move(prevOperator),
-        getOperatorID(), logicalCreateRel->getExpressionsForPrinting());
+        getOperatorID(), logicalInsertRel->getExpressionsForPrinting());
 }
 
 } // namespace processor

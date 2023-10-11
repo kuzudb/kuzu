@@ -99,8 +99,8 @@ struct SplitStringListOperation {
         if (start == end) { // check if its empty string - NULL
             start_copy = end;
         }
-        copyStringToVector(
-            resultVector, offset, std::string_view{start_copy, end}, csvReaderConfig);
+        copyStringToVector(resultVector, offset,
+            std::string_view{start_copy, (size_t)(end - start_copy)}, csvReaderConfig);
         offset++;
     }
 };

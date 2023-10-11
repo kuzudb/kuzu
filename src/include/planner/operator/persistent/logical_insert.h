@@ -6,52 +6,52 @@
 namespace kuzu {
 namespace planner {
 
-struct LogicalCreateNodeInfo {
+struct LogicalInsertNodeInfo {
     std::shared_ptr<binder::NodeExpression> node;
     std::vector<binder::expression_pair> setItems;
     binder::expression_vector propertiesToReturn;
 
-    LogicalCreateNodeInfo(std::shared_ptr<binder::NodeExpression> node,
+    LogicalInsertNodeInfo(std::shared_ptr<binder::NodeExpression> node,
         std::vector<binder::expression_pair> setItems, binder::expression_vector propertiesToReturn)
         : node{std::move(node)}, setItems{std::move(setItems)}, propertiesToReturn{std::move(
                                                                     propertiesToReturn)} {}
-    LogicalCreateNodeInfo(const LogicalCreateNodeInfo& other)
+    LogicalInsertNodeInfo(const LogicalInsertNodeInfo& other)
         : node{other.node}, setItems{other.setItems}, propertiesToReturn{other.propertiesToReturn} {
     }
 
-    inline std::unique_ptr<LogicalCreateNodeInfo> copy() const {
-        return std::make_unique<LogicalCreateNodeInfo>(*this);
+    inline std::unique_ptr<LogicalInsertNodeInfo> copy() const {
+        return std::make_unique<LogicalInsertNodeInfo>(*this);
     }
 
-    static std::vector<std::unique_ptr<LogicalCreateNodeInfo>> copy(
-        const std::vector<std::unique_ptr<LogicalCreateNodeInfo>>& infos);
+    static std::vector<std::unique_ptr<LogicalInsertNodeInfo>> copy(
+        const std::vector<std::unique_ptr<LogicalInsertNodeInfo>>& infos);
 };
 
-struct LogicalCreateRelInfo {
+struct LogicalInsertRelInfo {
     std::shared_ptr<binder::RelExpression> rel;
     std::vector<binder::expression_pair> setItems;
     binder::expression_vector propertiesToReturn;
 
-    LogicalCreateRelInfo(std::shared_ptr<binder::RelExpression> rel,
+    LogicalInsertRelInfo(std::shared_ptr<binder::RelExpression> rel,
         std::vector<binder::expression_pair> setItems, binder::expression_vector propertiesToReturn)
         : rel{std::move(rel)}, setItems{std::move(setItems)}, propertiesToReturn{
                                                                   std::move(propertiesToReturn)} {}
-    LogicalCreateRelInfo(const LogicalCreateRelInfo& other)
+    LogicalInsertRelInfo(const LogicalInsertRelInfo& other)
         : rel{other.rel}, setItems{other.setItems}, propertiesToReturn{other.propertiesToReturn} {}
 
-    inline std::unique_ptr<LogicalCreateRelInfo> copy() const {
-        return std::make_unique<LogicalCreateRelInfo>(*this);
+    inline std::unique_ptr<LogicalInsertRelInfo> copy() const {
+        return std::make_unique<LogicalInsertRelInfo>(*this);
     }
 
-    static std::vector<std::unique_ptr<LogicalCreateRelInfo>> copy(
-        const std::vector<std::unique_ptr<LogicalCreateRelInfo>>& infos);
+    static std::vector<std::unique_ptr<LogicalInsertRelInfo>> copy(
+        const std::vector<std::unique_ptr<LogicalInsertRelInfo>>& infos);
 };
 
-class LogicalCreateNode : public LogicalOperator {
+class LogicalInsertNode : public LogicalOperator {
 public:
-    LogicalCreateNode(std::vector<std::unique_ptr<LogicalCreateNodeInfo>> infos,
+    LogicalInsertNode(std::vector<std::unique_ptr<LogicalInsertNodeInfo>> infos,
         std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::CREATE_NODE, std::move(child)}, infos{std::move(
+        : LogicalOperator{LogicalOperatorType::INSERT_NODE, std::move(child)}, infos{std::move(
                                                                                    infos)} {}
 
     void computeFactorizedSchema() final;
@@ -61,24 +61,24 @@ public:
 
     f_group_pos_set getGroupsPosToFlatten();
 
-    inline const std::vector<std::unique_ptr<LogicalCreateNodeInfo>>& getInfosRef() const {
+    inline const std::vector<std::unique_ptr<LogicalInsertNodeInfo>>& getInfosRef() const {
         return infos;
     }
 
     inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalCreateNode>(
-            LogicalCreateNodeInfo::copy(infos), children[0]->copy());
+        return std::make_unique<LogicalInsertNode>(
+            LogicalInsertNodeInfo::copy(infos), children[0]->copy());
     }
 
 private:
-    std::vector<std::unique_ptr<LogicalCreateNodeInfo>> infos;
+    std::vector<std::unique_ptr<LogicalInsertNodeInfo>> infos;
 };
 
-class LogicalCreateRel : public LogicalOperator {
+class LogicalInsertRel : public LogicalOperator {
 public:
-    LogicalCreateRel(std::vector<std::unique_ptr<LogicalCreateRelInfo>> infos,
+    LogicalInsertRel(std::vector<std::unique_ptr<LogicalInsertRelInfo>> infos,
         std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::CREATE_REL, std::move(child)}, infos{std::move(
+        : LogicalOperator{LogicalOperatorType::INSERT_REL, std::move(child)}, infos{std::move(
                                                                                   infos)} {}
 
     void computeFactorizedSchema() final;
@@ -88,15 +88,15 @@ public:
 
     f_group_pos_set getGroupsPosToFlatten();
 
-    inline const std::vector<std::unique_ptr<LogicalCreateRelInfo>>& getInfosRef() { return infos; }
+    inline const std::vector<std::unique_ptr<LogicalInsertRelInfo>>& getInfosRef() { return infos; }
 
     inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalCreateRel>(
-            LogicalCreateRelInfo::copy(infos), children[0]->copy());
+        return std::make_unique<LogicalInsertRel>(
+            LogicalInsertRelInfo::copy(infos), children[0]->copy());
     }
 
 private:
-    std::vector<std::unique_ptr<LogicalCreateRelInfo>> infos;
+    std::vector<std::unique_ptr<LogicalInsertRelInfo>> infos;
 };
 
 } // namespace planner

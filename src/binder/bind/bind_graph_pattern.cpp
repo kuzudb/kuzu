@@ -243,7 +243,8 @@ std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern
         queryRel = createNonRecursiveQueryRel(
             relPattern.getVariableName(), tableIDs, srcNode, dstNode, directionType);
         for (auto& [propertyName, rhs] : relPattern.getPropertyKeyVals()) {
-            auto boundLhs = expressionBinder.bindRelPropertyExpression(*queryRel, propertyName);
+            auto boundLhs =
+                expressionBinder.bindNodeOrRelPropertyExpression(*queryRel, propertyName);
             auto boundRhs = expressionBinder.bindExpression(*rhs);
             boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
             collection.addKeyVal(queryRel, propertyName, std::make_pair(boundLhs, boundRhs));
@@ -297,7 +298,7 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
     auto readVersion = catalog.getReadOnlyVersion();
     if (readVersion->getTableSchema(tableIDs[0])->getTableType() == TableType::RDF) {
         auto predicateID =
-            expressionBinder.bindRelPropertyExpression(*queryRel, RDFKeyword::PREDICT_ID);
+            expressionBinder.bindNodeOrRelPropertyExpression(*queryRel, RDFKeyword::PREDICT_ID);
         auto resourceTableIDs = getNodeTableIDs(tableIDs);
         auto resourceTableSchemas = readVersion->getTableSchemas(resourceTableIDs);
         auto predicateIRI = createPropertyExpression(common::RDFKeyword::IRI,
@@ -396,7 +397,7 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     scope->removeExpression(node->toString()); // We don't support running predicate on node.
     expression_vector predicates;
     for (auto& [propertyName, rhs] : relPattern.getPropertyKeyVals()) {
-        auto boundLhs = expressionBinder.bindRelPropertyExpression(*rel, propertyName);
+        auto boundLhs = expressionBinder.bindNodeOrRelPropertyExpression(*rel, propertyName);
         auto boundRhs = expressionBinder.bindExpression(*rhs);
         boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
         predicates.push_back(
@@ -485,7 +486,7 @@ std::shared_ptr<NodeExpression> Binder::bindQueryNode(
         }
     }
     for (auto& [propertyName, rhs] : nodePattern.getPropertyKeyVals()) {
-        auto boundLhs = expressionBinder.bindNodePropertyExpression(*queryNode, propertyName);
+        auto boundLhs = expressionBinder.bindNodeOrRelPropertyExpression(*queryNode, propertyName);
         auto boundRhs = expressionBinder.bindExpression(*rhs);
         boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
         collection.addKeyVal(queryNode, propertyName, std::make_pair(boundLhs, boundRhs));

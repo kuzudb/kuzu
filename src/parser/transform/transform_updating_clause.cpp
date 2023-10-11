@@ -1,5 +1,5 @@
-#include "parser/query/updating_clause/create_clause.h"
 #include "parser/query/updating_clause/delete_clause.h"
+#include "parser/query/updating_clause/insert_clause.h"
 #include "parser/query/updating_clause/merge_clause.h"
 #include "parser/query/updating_clause/set_clause.h"
 #include "parser/transformer.h"
@@ -22,7 +22,7 @@ std::unique_ptr<UpdatingClause> Transformer::transformUpdatingClause(
 }
 
 std::unique_ptr<UpdatingClause> Transformer::transformCreate(CypherParser::OC_CreateContext& ctx) {
-    return std::make_unique<CreateClause>(transformPattern(*ctx.oC_Pattern()));
+    return std::make_unique<InsertClause>(transformPattern(*ctx.oC_Pattern()));
 }
 
 std::unique_ptr<UpdatingClause> Transformer::transformMerge(CypherParser::OC_MergeContext& ctx) {

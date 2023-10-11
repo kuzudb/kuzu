@@ -11,7 +11,6 @@ class Merge : public PhysicalOperator {
 public:
     Merge(const DataPos& markPos,
         std::vector<std::unique_ptr<NodeInsertExecutor>> nodeInsertExecutors,
-        std::vector<std::unique_ptr<NodeSetExecutor>> nodeSetExecutors,
         std::vector<std::unique_ptr<RelInsertExecutor>> relInsertExecutors,
         std::vector<std::unique_ptr<NodeSetExecutor>> onCreateNodeSetExecutors,
         std::vector<std::unique_ptr<RelSetExecutor>> onCreateRelSetExecutors,
@@ -20,7 +19,6 @@ public:
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::MERGE, std::move(child), id, paramsString},
           markPos{markPos}, nodeInsertExecutors{std::move(nodeInsertExecutors)},
-          nodeSetExecutors{std::move(nodeSetExecutors)},
           relInsertExecutors{std::move(relInsertExecutors)}, onCreateNodeSetExecutors{std::move(
                                                                  onCreateNodeSetExecutors)},
           onCreateRelSetExecutors{std::move(onCreateRelSetExecutors)},
@@ -35,7 +33,7 @@ public:
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<Merge>(markPos, NodeInsertExecutor::copy(nodeInsertExecutors),
-            NodeSetExecutor::copy(nodeSetExecutors), RelInsertExecutor::copy(relInsertExecutors),
+            RelInsertExecutor::copy(relInsertExecutors),
             NodeSetExecutor::copy(onCreateNodeSetExecutors),
             RelSetExecutor::copy(onCreateRelSetExecutors),
             NodeSetExecutor::copy(onMatchNodeSetExecutors),
@@ -47,7 +45,6 @@ private:
     common::ValueVector* markVector = nullptr;
 
     std::vector<std::unique_ptr<NodeInsertExecutor>> nodeInsertExecutors;
-    std::vector<std::unique_ptr<NodeSetExecutor>> nodeSetExecutors;
     std::vector<std::unique_ptr<RelInsertExecutor>> relInsertExecutors;
 
     std::vector<std::unique_ptr<NodeSetExecutor>> onCreateNodeSetExecutors;

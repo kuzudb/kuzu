@@ -1,5 +1,5 @@
-#include "binder/query/updating_clause/bound_create_clause.h"
 #include "binder/query/updating_clause/bound_delete_clause.h"
+#include "binder/query/updating_clause/bound_insert_clause.h"
 #include "binder/query/updating_clause/bound_merge_clause.h"
 #include "binder/query/updating_clause/bound_set_clause.h"
 #include "planner/operator/persistent/logical_merge.h"
@@ -19,8 +19,8 @@ void QueryPlanner::planUpdatingClause(
 
 void QueryPlanner::planUpdatingClause(BoundUpdatingClause& updatingClause, LogicalPlan& plan) {
     switch (updatingClause.getClauseType()) {
-    case ClauseType::CREATE: {
-        planCreateClause(updatingClause, plan);
+    case ClauseType::INSERT: {
+        planInsertClause(updatingClause, plan);
         return;
     }
     case ClauseType::MERGE: {
@@ -40,19 +40,19 @@ void QueryPlanner::planUpdatingClause(BoundUpdatingClause& updatingClause, Logic
     }
 }
 
-void QueryPlanner::planCreateClause(
+void QueryPlanner::planInsertClause(
     binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan) {
-    auto& createClause = (BoundCreateClause&)updatingClause;
+    auto& insertClause = (BoundInsertClause&)updatingClause;
     if (plan.isEmpty()) { // E.g. CREATE (a:Person {age:20})
         appendDummyScan(plan);
     } else {
         appendAccumulate(AccumulateType::REGULAR, plan);
     }
-    if (createClause.hasNodeInfo()) {
-        appendCreateNode(createClause.getNodeInfos(), plan);
+    if (insertClause.hasNodeInfo()) {
+        appendInsertNode(insertClause.getNodeInfos(), plan);
     }
-    if (createClause.hasRelInfo()) {
-        appendCreateRel(createClause.getRelInfos(), plan);
+    if (insertClause.hasRelInfo()) {
+        appendInsertRel(insertClause.getRelInfos(), plan);
     }
 }
 
@@ -64,7 +64,7 @@ void QueryPlanner::planMergeClause(binder::BoundUpdatingClause& updatingClause, 
     }
     planOptionalMatch(*mergeClause.getQueryGraphCollection(), predicates, plan);
     std::shared_ptr<Expression> mark;
-    auto& createInfos = mergeClause.getCreateInfosRef();
+    auto& createInfos = mergeClause.getInsertInfosRef();
     assert(!createInfos.empty());
     auto createInfo = createInfos[0].get();
     switch (createInfo->updateTableType) {
@@ -79,21 +79,17 @@ void QueryPlanner::planMergeClause(binder::BoundUpdatingClause& updatingClause, 
     default:
         throw common::NotImplementedException("QueryPlanner::planMergeClause");
     }
-    std::vector<std::unique_ptr<LogicalCreateNodeInfo>> logicalCreateNodeInfos;
-    std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalCreateNodeSetInfos;
-    if (mergeClause.hasCreateNodeInfo()) {
-        auto boundCreateNodeInfos = mergeClause.getCreateNodeInfos();
-        for (auto& info : boundCreateNodeInfos) {
-            logicalCreateNodeInfos.push_back(createLogicalCreateNodeInfo(info));
-        }
-        for (auto& info : createLogicalSetPropertyInfo(boundCreateNodeInfos)) {
-            logicalCreateNodeSetInfos.push_back(createLogicalSetPropertyInfo(info.get()));
+    std::vector<std::unique_ptr<LogicalInsertNodeInfo>> logicalInsertNodeInfos;
+    if (mergeClause.hasInsertNodeInfo()) {
+        auto boundInsertNodeInfos = mergeClause.getInsertNodeInfos();
+        for (auto& info : boundInsertNodeInfos) {
+            logicalInsertNodeInfos.push_back(createLogicalInsertNodeInfo(info));
         }
     }
-    std::vector<std::unique_ptr<LogicalCreateRelInfo>> logicalCreateRelInfos;
-    if (mergeClause.hasCreateRelInfo()) {
-        for (auto& info : mergeClause.getCreateRelInfos()) {
-            logicalCreateRelInfos.push_back(createLogicalCreateRelInfo(info));
+    std::vector<std::unique_ptr<LogicalInsertRelInfo>> logicalInsertRelInfos;
+    if (mergeClause.hasInsertRelInfo()) {
+        for (auto& info : mergeClause.getInsertRelInfos()) {
+            logicalInsertRelInfos.push_back(createLogicalInsertRelInfo(info));
         }
     }
     std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalOnCreateSetNodeInfos;
@@ -120,11 +116,10 @@ void QueryPlanner::planMergeClause(binder::BoundUpdatingClause& updatingClause, 
             logicalOnMatchSetRelInfos.push_back(createLogicalSetPropertyInfo(info));
         }
     }
-    auto merge = std::make_shared<LogicalMerge>(mark, std::move(logicalCreateNodeInfos),
-        std::move(logicalCreateNodeSetInfos), std::move(logicalCreateRelInfos),
-        std::move(logicalOnCreateSetNodeInfos), std::move(logicalOnCreateSetRelInfos),
-        std::move(logicalOnMatchSetNodeInfos), std::move(logicalOnMatchSetRelInfos),
-        plan.getLastOperator());
+    auto merge = std::make_shared<LogicalMerge>(mark, std::move(logicalInsertNodeInfos),
+        std::move(logicalInsertRelInfos), std::move(logicalOnCreateSetNodeInfos),
+        std::move(logicalOnCreateSetRelInfos), std::move(logicalOnMatchSetNodeInfos),
+        std::move(logicalOnMatchSetRelInfos), plan.getLastOperator());
     appendFlattens(merge->getGroupsPosToFlatten(), plan);
     merge->setChild(0, plan.getLastOperator());
     merge->computeFactorizedSchema();

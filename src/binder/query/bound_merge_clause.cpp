@@ -9,20 +9,20 @@ BoundMergeClause::BoundMergeClause(const BoundMergeClause& other)
     : BoundUpdatingClause{ClauseType::MERGE} {
     queryGraphCollection = other.queryGraphCollection->copy();
     predicate = other.predicate;
-    for (auto& createInfo : other.createInfos) {
-        createInfos.push_back(createInfo->copy());
+    for (auto& info : other.insertInfos) {
+        insertInfos.push_back(info->copy());
     }
-    for (auto& setPropertyInfo : other.onMatchSetPropertyInfos) {
-        onMatchSetPropertyInfos.push_back(setPropertyInfo->copy());
+    for (auto& info : other.onMatchSetPropertyInfos) {
+        onMatchSetPropertyInfos.push_back(info->copy());
     }
-    for (auto& setPropertyInfo : other.onCreateSetPropertyInfos) {
-        onCreateSetPropertyInfos.push_back(setPropertyInfo->copy());
+    for (auto& info : other.onCreateSetPropertyInfos) {
+        onCreateSetPropertyInfos.push_back(info->copy());
     }
 }
 
-bool BoundMergeClause::hasCreateInfo(
-    const std::function<bool(const BoundCreateInfo&)>& check) const {
-    for (auto& info : createInfos) {
+bool BoundMergeClause::hasInsertInfo(
+    const std::function<bool(const BoundInsertInfo&)>& check) const {
+    for (auto& info : insertInfos) {
         if (check(*info)) {
             return true;
         }
@@ -30,10 +30,10 @@ bool BoundMergeClause::hasCreateInfo(
     return false;
 }
 
-std::vector<BoundCreateInfo*> BoundMergeClause::getCreateInfos(
-    const std::function<bool(const BoundCreateInfo&)>& check) const {
-    std::vector<BoundCreateInfo*> result;
-    for (auto& info : createInfos) {
+std::vector<BoundInsertInfo*> BoundMergeClause::getInsertInfos(
+    const std::function<bool(const BoundInsertInfo&)>& check) const {
+    std::vector<BoundInsertInfo*> result;
+    for (auto& info : insertInfos) {
         if (check(*info)) {
             result.push_back(info.get());
         }

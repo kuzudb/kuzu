@@ -73,11 +73,11 @@ void LogicalOperatorVisitor::visitOperatorSwitch(planner::LogicalOperator* op) {
     case LogicalOperatorType::DELETE_REL: {
         visitDeleteRel(op);
     } break;
-    case LogicalOperatorType::CREATE_NODE: {
-        visitCreateNode(op);
+    case LogicalOperatorType::INSERT_NODE: {
+        visitInsertNode(op);
     } break;
-    case LogicalOperatorType::CREATE_REL: {
-        visitCreateRel(op);
+    case LogicalOperatorType::INSERT_REL: {
+        visitInsertRel(op);
     } break;
     case LogicalOperatorType::MERGE: {
         visitMerge(op);
@@ -159,11 +159,11 @@ std::shared_ptr<planner::LogicalOperator> LogicalOperatorVisitor::visitOperatorR
     case LogicalOperatorType::DELETE_REL: {
         return visitDeleteRelReplace(op);
     }
-    case LogicalOperatorType::CREATE_NODE: {
-        return visitCreateNodeReplace(op);
+    case LogicalOperatorType::INSERT_NODE: {
+        return visitInsertNodeReplace(op);
     }
-    case LogicalOperatorType::CREATE_REL: {
-        return visitCreateRelReplace(op);
+    case LogicalOperatorType::INSERT_REL: {
+        return visitInsertRelReplace(op);
     }
     case LogicalOperatorType::MERGE: {
         return visitMergeReplace(op);

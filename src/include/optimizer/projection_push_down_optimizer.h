@@ -30,8 +30,8 @@ private:
     void visitUnwind(planner::LogicalOperator* op) override;
     void visitSetNodeProperty(planner::LogicalOperator* op) override;
     void visitSetRelProperty(planner::LogicalOperator* op) override;
-    void visitCreateNode(planner::LogicalOperator* op) override;
-    void visitCreateRel(planner::LogicalOperator* op) override;
+    void visitInsertNode(planner::LogicalOperator* op) override;
+    void visitInsertRel(planner::LogicalOperator* op) override;
     void visitDeleteNode(planner::LogicalOperator* op) override;
     void visitDeleteRel(planner::LogicalOperator* op) override;
     void visitMerge(planner::LogicalOperator* op) override;

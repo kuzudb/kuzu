@@ -1,6 +1,6 @@
 #pragma once
 
-#include "binder/expression/rel_expression.h"
+#include "binder/expression/expression.h"
 #include "update_table_type.h"
 
 namespace kuzu {
