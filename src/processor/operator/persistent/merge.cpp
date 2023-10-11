@@ -8,9 +8,6 @@ void Merge::initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* cont
     for (auto& executor : nodeInsertExecutors) {
         executor->init(resultSet, context);
     }
-    for (auto& executor : nodeSetExecutors) {
-        executor->init(resultSet, context);
-    }
     for (auto& executor : relInsertExecutors) {
         executor->init(resultSet, context);
     }
@@ -44,9 +41,6 @@ bool Merge::getNextTuplesInternal(ExecutionContext* context) {
     } else {
         for (auto& executor : nodeInsertExecutors) {
             executor->insert(transaction);
-        }
-        for (auto& executor : nodeSetExecutors) {
-            executor->set(context);
         }
         for (auto& executor : relInsertExecutors) {
             executor->insert(transaction);

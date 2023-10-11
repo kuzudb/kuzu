@@ -10,8 +10,8 @@
 #include "planner/operator/logical_order_by.h"
 #include "planner/operator/logical_projection.h"
 #include "planner/operator/logical_unwind.h"
-#include "planner/operator/persistent/logical_create.h"
 #include "planner/operator/persistent/logical_delete.h"
+#include "planner/operator/persistent/logical_insert.h"
 #include "planner/operator/persistent/logical_merge.h"
 #include "planner/operator/persistent/logical_set.h"
 
@@ -157,18 +157,18 @@ void ProjectionPushDownOptimizer::visitUnwind(planner::LogicalOperator* op) {
     collectExpressionsInUse(unwind->getExpression());
 }
 
-void ProjectionPushDownOptimizer::visitCreateNode(planner::LogicalOperator* op) {
-    auto createNode = (LogicalCreateNode*)op;
-    for (auto& info : createNode->getInfosRef()) {
+void ProjectionPushDownOptimizer::visitInsertNode(planner::LogicalOperator* op) {
+    auto insertNode = (LogicalInsertNode*)op;
+    for (auto& info : insertNode->getInfosRef()) {
         for (auto& setItem : info->setItems) {
             collectExpressionsInUse(setItem.second);
         }
     }
 }
 
-void ProjectionPushDownOptimizer::visitCreateRel(planner::LogicalOperator* op) {
-    auto createRel = (LogicalCreateRel*)op;
-    for (auto& info : createRel->getInfosRef()) {
+void ProjectionPushDownOptimizer::visitInsertRel(planner::LogicalOperator* op) {
+    auto insertRel = (LogicalInsertRel*)op;
+    for (auto& info : insertRel->getInfosRef()) {
         auto rel = info->rel;
         collectExpressionsInUse(rel->getSrcNode()->getInternalID());
         collectExpressionsInUse(rel->getDstNode()->getInternalID());
@@ -199,12 +199,12 @@ void ProjectionPushDownOptimizer::visitDeleteRel(planner::LogicalOperator* op) {
 void ProjectionPushDownOptimizer::visitMerge(planner::LogicalOperator* op) {
     auto merge = (LogicalMerge*)op;
     collectExpressionsInUse(merge->getMark());
-    for (auto& info : merge->getCreateNodeInfosRef()) {
+    for (auto& info : merge->getInsertNodeInfosRef()) {
         for (auto& setItem : info->setItems) {
             collectExpressionsInUse(setItem.second);
         }
     }
-    for (auto& info : merge->getCreateRelInfosRef()) {
+    for (auto& info : merge->getInsertRelInfosRef()) {
         auto rel = info->rel;
         collectExpressionsInUse(rel->getSrcNode()->getInternalID());
         collectExpressionsInUse(rel->getDstNode()->getInternalID());
@@ -212,11 +212,6 @@ void ProjectionPushDownOptimizer::visitMerge(planner::LogicalOperator* op) {
         for (auto& setItem : info->setItems) {
             collectExpressionsInUse(setItem.second);
         }
-    }
-    for (auto& info : merge->getCreateNodeSetInfosRef()) {
-        auto node = (NodeExpression*)info->nodeOrRel.get();
-        collectExpressionsInUse(node->getInternalID());
-        collectExpressionsInUse(info->setItem.second);
     }
     for (auto& info : merge->getOnCreateSetNodeInfosRef()) {
         auto node = (NodeExpression*)info->nodeOrRel.get();

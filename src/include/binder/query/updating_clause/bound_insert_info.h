@@ -6,21 +6,21 @@
 namespace kuzu {
 namespace binder {
 
-struct BoundCreateInfo {
+struct BoundInsertInfo {
     UpdateTableType updateTableType;
     std::shared_ptr<Expression> nodeOrRel;
     std::vector<expression_pair> setItems;
 
-    BoundCreateInfo(UpdateTableType updateTableType, std::shared_ptr<Expression> nodeOrRel,
+    BoundInsertInfo(UpdateTableType updateTableType, std::shared_ptr<Expression> nodeOrRel,
         std::vector<expression_pair> setItems)
         : updateTableType{updateTableType}, nodeOrRel{std::move(nodeOrRel)}, setItems{std::move(
                                                                                  setItems)} {}
-    BoundCreateInfo(const BoundCreateInfo& other)
+    BoundInsertInfo(const BoundInsertInfo& other)
         : updateTableType{other.updateTableType}, nodeOrRel{other.nodeOrRel}, setItems{
                                                                                   other.setItems} {}
 
-    inline std::unique_ptr<BoundCreateInfo> copy() {
-        return std::make_unique<BoundCreateInfo>(*this);
+    inline std::unique_ptr<BoundInsertInfo> copy() {
+        return std::make_unique<BoundInsertInfo>(*this);
     }
 };
 

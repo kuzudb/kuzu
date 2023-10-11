@@ -113,11 +113,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     case LogicalOperatorType::DUMMY_SCAN: {
         physicalOperator = mapDummyScan(logicalOperator);
     } break;
-    case LogicalOperatorType::CREATE_NODE: {
-        physicalOperator = mapCreateNode(logicalOperator);
+    case LogicalOperatorType::INSERT_NODE: {
+        physicalOperator = mapInsertNode(logicalOperator);
     } break;
-    case LogicalOperatorType::CREATE_REL: {
-        physicalOperator = mapCreateRel(logicalOperator);
+    case LogicalOperatorType::INSERT_REL: {
+        physicalOperator = mapInsertRel(logicalOperator);
     } break;
     case LogicalOperatorType::SET_NODE_PROPERTY: {
         physicalOperator = mapSetNodeProperty(logicalOperator);

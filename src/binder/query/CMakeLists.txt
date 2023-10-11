@@ -1,7 +1,7 @@
 add_library(
         kuzu_binder_query
         OBJECT
-        bound_create_clause.cpp
+        bound_insert_clause.cpp
         bound_delete_clause.cpp
         bound_merge_clause.cpp
         bound_set_clause.cpp

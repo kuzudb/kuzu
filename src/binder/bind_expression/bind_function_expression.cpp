@@ -181,7 +181,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(
         return node.getInternalID();
     }
     if (ExpressionUtil::isRelVariable(*expression)) {
-        return bindRelPropertyExpression(*expression, InternalKeyword::ID);
+        return bindNodeOrRelPropertyExpression(*expression, InternalKeyword::ID);
     }
     assert(expression->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
     auto stringValue =

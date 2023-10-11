@@ -37,7 +37,7 @@ protected:
     void visitUpdatingClause(const BoundUpdatingClause& updatingClause);
     virtual void visitSet(const BoundUpdatingClause& updatingClause) {}
     virtual void visitDelete(const BoundUpdatingClause& updatingClause) {}
-    virtual void visitCreate(const BoundUpdatingClause& updatingClause) {}
+    virtual void visitInsert(const BoundUpdatingClause& updatingClause) {}
     virtual void visitMerge(const BoundUpdatingClause& updatingClause) {}
 
     virtual void visitProjectionBody(const BoundProjectionBody& projectionBody) {}

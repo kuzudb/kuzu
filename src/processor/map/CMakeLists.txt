@@ -12,7 +12,7 @@ add_library(kuzu_processor_mapper
         map_comment_on.cpp
         map_copy_to.cpp
         map_copy_from.cpp
-        map_create.cpp
+        map_insert.cpp
         map_create_macro.cpp
         map_cross_product.cpp
         map_ddl.cpp

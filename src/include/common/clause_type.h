@@ -9,7 +9,7 @@ enum class ClauseType : uint8_t {
     // updating clause
     SET = 0,
     DELETE_ = 1, // winnt.h defines DELETE as a macro, so we use DELETE_ instead of DELETE.
-    CREATE = 2,
+    INSERT = 2,
     MERGE = 3,
 
     // reading clause

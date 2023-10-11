@@ -1,7 +1,7 @@
 #pragma once
 
 #include "binder/query/query_graph.h"
-#include "bound_create_info.h"
+#include "bound_insert_info.h"
 #include "bound_set_info.h"
 #include "bound_updating_clause.h"
 
@@ -12,10 +12,10 @@ class BoundMergeClause : public BoundUpdatingClause {
 public:
     BoundMergeClause(std::unique_ptr<QueryGraphCollection> queryGraphCollection,
         std::shared_ptr<Expression> predicate,
-        std::vector<std::unique_ptr<BoundCreateInfo>> createInfos)
+        std::vector<std::unique_ptr<BoundInsertInfo>> insertInfos)
         : BoundUpdatingClause{common::ClauseType::MERGE}, queryGraphCollection{std::move(
                                                               queryGraphCollection)},
-          predicate{std::move(predicate)}, createInfos{std::move(createInfos)} {}
+          predicate{std::move(predicate)}, insertInfos{std::move(insertInfos)} {}
     BoundMergeClause(const BoundMergeClause& other);
 
     inline QueryGraphCollection* getQueryGraphCollection() const {
@@ -24,8 +24,8 @@ public:
     inline bool hasPredicate() const { return predicate != nullptr; }
     inline std::shared_ptr<Expression> getPredicate() const { return predicate; }
 
-    inline const std::vector<std::unique_ptr<BoundCreateInfo>>& getCreateInfosRef() const {
-        return createInfos;
+    inline const std::vector<std::unique_ptr<BoundInsertInfo>>& getInsertInfosRef() const {
+        return insertInfos;
     }
     inline const std::vector<std::unique_ptr<BoundSetPropertyInfo>>& getOnMatchSetInfosRef() const {
         return onMatchSetPropertyInfos;
@@ -35,23 +35,23 @@ public:
         return onCreateSetPropertyInfos;
     }
 
-    inline bool hasCreateNodeInfo() const {
-        return hasCreateInfo([](const BoundCreateInfo& info) {
+    inline bool hasInsertNodeInfo() const {
+        return hasInsertInfo([](const BoundInsertInfo& info) {
             return info.updateTableType == UpdateTableType::NODE;
         });
     }
-    inline std::vector<BoundCreateInfo*> getCreateNodeInfos() const {
-        return getCreateInfos([](const BoundCreateInfo& info) {
+    inline std::vector<BoundInsertInfo*> getInsertNodeInfos() const {
+        return getInsertInfos([](const BoundInsertInfo& info) {
             return info.updateTableType == UpdateTableType::NODE;
         });
     }
-    inline bool hasCreateRelInfo() const {
-        return hasCreateInfo([](const BoundCreateInfo& info) {
+    inline bool hasInsertRelInfo() const {
+        return hasInsertInfo([](const BoundInsertInfo& info) {
             return info.updateTableType == UpdateTableType::REL;
         });
     }
-    inline std::vector<BoundCreateInfo*> getCreateRelInfos() const {
-        return getCreateInfos([](const BoundCreateInfo& info) {
+    inline std::vector<BoundInsertInfo*> getInsertRelInfos() const {
+        return getInsertInfos([](const BoundInsertInfo& info) {
             return info.updateTableType == UpdateTableType::REL;
         });
     }
@@ -110,9 +110,9 @@ public:
     }
 
 private:
-    bool hasCreateInfo(const std::function<bool(const BoundCreateInfo& info)>& check) const;
-    std::vector<BoundCreateInfo*> getCreateInfos(
-        const std::function<bool(const BoundCreateInfo& info)>& check) const;
+    bool hasInsertInfo(const std::function<bool(const BoundInsertInfo& info)>& check) const;
+    std::vector<BoundInsertInfo*> getInsertInfos(
+        const std::function<bool(const BoundInsertInfo& info)>& check) const;
 
     bool hasOnMatchSetInfo(
         const std::function<bool(const BoundSetPropertyInfo& info)>& check) const;
@@ -129,7 +129,7 @@ private:
     std::unique_ptr<QueryGraphCollection> queryGraphCollection;
     std::shared_ptr<Expression> predicate;
     // Pattern to create on match failure.
-    std::vector<std::unique_ptr<BoundCreateInfo>> createInfos;
+    std::vector<std::unique_ptr<BoundInsertInfo>> insertInfos;
     // Update on match
     std::vector<std::unique_ptr<BoundSetPropertyInfo>> onMatchSetPropertyInfos;
     // Update on create

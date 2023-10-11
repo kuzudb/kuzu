@@ -1,6 +1,6 @@
-#include "binder/query/updating_clause/bound_create_clause.h"
+#include "binder/query/updating_clause/bound_insert_clause.h"
 #include "binder/query/updating_clause/bound_set_clause.h"
-#include "planner/operator/persistent/logical_create.h"
+#include "planner/operator/persistent/logical_insert.h"
 #include "planner/query_planner.h"
 
 using namespace kuzu::binder;
@@ -8,63 +8,50 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace planner {
 
-std::unique_ptr<LogicalCreateNodeInfo> QueryPlanner::createLogicalCreateNodeInfo(
-    BoundCreateInfo* boundCreateInfo) {
-    auto node = std::static_pointer_cast<NodeExpression>(boundCreateInfo->nodeOrRel);
+std::unique_ptr<LogicalInsertNodeInfo> QueryPlanner::createLogicalInsertNodeInfo(
+    BoundInsertInfo* boundInsertInfo) {
+    auto node = std::static_pointer_cast<NodeExpression>(boundInsertInfo->nodeOrRel);
     auto propertiesToReturn = getProperties(*node);
-    return std::make_unique<LogicalCreateNodeInfo>(
-        node, boundCreateInfo->setItems, std::move(propertiesToReturn));
+    return std::make_unique<LogicalInsertNodeInfo>(
+        node, boundInsertInfo->setItems, std::move(propertiesToReturn));
 }
 
-std::unique_ptr<LogicalCreateRelInfo> QueryPlanner::createLogicalCreateRelInfo(
-    BoundCreateInfo* boundCreateInfo) {
-    auto rel = std::static_pointer_cast<RelExpression>(boundCreateInfo->nodeOrRel);
+std::unique_ptr<LogicalInsertRelInfo> QueryPlanner::createLogicalInsertRelInfo(
+    BoundInsertInfo* boundInsertInfo) {
+    auto rel = std::static_pointer_cast<RelExpression>(boundInsertInfo->nodeOrRel);
     auto propertiesToReturn = getProperties(*rel);
-    return std::make_unique<LogicalCreateRelInfo>(
-        rel, boundCreateInfo->setItems, std::move(propertiesToReturn));
+    return std::make_unique<LogicalInsertRelInfo>(
+        rel, boundInsertInfo->setItems, std::move(propertiesToReturn));
 }
 
-std::vector<std::unique_ptr<BoundSetPropertyInfo>> QueryPlanner::createLogicalSetPropertyInfo(
-    const std::vector<binder::BoundCreateInfo*>& boundCreateInfos) {
-    std::vector<std::unique_ptr<BoundSetPropertyInfo>> result;
-    for (auto& boundCreateInfo : boundCreateInfos) {
-        auto node = std::static_pointer_cast<NodeExpression>(boundCreateInfo->nodeOrRel);
-        for (auto& setItem : boundCreateInfo->setItems) {
-            result.push_back(
-                std::make_unique<BoundSetPropertyInfo>(UpdateTableType::NODE, node, setItem));
-        }
+void QueryPlanner::appendInsertNode(
+    const std::vector<binder::BoundInsertInfo*>& boundInsertInfos, LogicalPlan& plan) {
+    std::vector<std::unique_ptr<LogicalInsertNodeInfo>> logicalInfos;
+    logicalInfos.reserve(boundInsertInfos.size());
+    for (auto& boundInfo : boundInsertInfos) {
+        logicalInfos.push_back(createLogicalInsertNodeInfo(boundInfo));
     }
-    return result;
+    auto insertNode =
+        std::make_shared<LogicalInsertNode>(std::move(logicalInfos), plan.getLastOperator());
+    appendFlattens(insertNode->getGroupsPosToFlatten(), plan);
+    insertNode->setChild(0, plan.getLastOperator());
+    insertNode->computeFactorizedSchema();
+    plan.setLastOperator(insertNode);
 }
 
-void QueryPlanner::appendCreateNode(
-    const std::vector<binder::BoundCreateInfo*>& boundCreateInfos, LogicalPlan& plan) {
-    std::vector<std::unique_ptr<LogicalCreateNodeInfo>> logicalInfos;
-    logicalInfos.reserve(boundCreateInfos.size());
-    for (auto& boundInfo : boundCreateInfos) {
-        logicalInfos.push_back(createLogicalCreateNodeInfo(boundInfo));
+void QueryPlanner::appendInsertRel(
+    const std::vector<binder::BoundInsertInfo*>& boundInsertInfos, LogicalPlan& plan) {
+    std::vector<std::unique_ptr<LogicalInsertRelInfo>> logicalInfos;
+    logicalInfos.reserve(boundInsertInfos.size());
+    for (auto& boundInfo : boundInsertInfos) {
+        logicalInfos.push_back(createLogicalInsertRelInfo(boundInfo));
     }
-    auto createNode =
-        std::make_shared<LogicalCreateNode>(std::move(logicalInfos), plan.getLastOperator());
-    appendFlattens(createNode->getGroupsPosToFlatten(), plan);
-    createNode->setChild(0, plan.getLastOperator());
-    createNode->computeFactorizedSchema();
-    plan.setLastOperator(createNode);
-}
-
-void QueryPlanner::appendCreateRel(
-    const std::vector<binder::BoundCreateInfo*>& boundCreateInfos, LogicalPlan& plan) {
-    std::vector<std::unique_ptr<LogicalCreateRelInfo>> logicalInfos;
-    logicalInfos.reserve(boundCreateInfos.size());
-    for (auto& boundInfo : boundCreateInfos) {
-        logicalInfos.push_back(createLogicalCreateRelInfo(boundInfo));
-    }
-    auto createRel =
-        std::make_shared<LogicalCreateRel>(std::move(logicalInfos), plan.getLastOperator());
-    appendFlattens(createRel->getGroupsPosToFlatten(), plan);
-    createRel->setChild(0, plan.getLastOperator());
-    createRel->computeFactorizedSchema();
-    plan.setLastOperator(createRel);
+    auto insertRel =
+        std::make_shared<LogicalInsertRel>(std::move(logicalInfos), plan.getLastOperator());
+    appendFlattens(insertRel->getGroupsPosToFlatten(), plan);
+    insertRel->setChild(0, plan.getLastOperator());
+    insertRel->computeFactorizedSchema();
+    plan.setLastOperator(insertRel);
 }
 } // namespace planner
 } // namespace kuzu

@@ -52,9 +52,7 @@ private:
     expression_vector bindStructPropertyStarExpression(std::shared_ptr<Expression> child);
     std::shared_ptr<Expression> bindPropertyExpression(
         const parser::ParsedExpression& parsedExpression);
-    std::shared_ptr<Expression> bindNodePropertyExpression(
-        const Expression& child, const std::string& propertyName);
-    std::shared_ptr<Expression> bindRelPropertyExpression(
+    std::shared_ptr<Expression> bindNodeOrRelPropertyExpression(
         const Expression& child, const std::string& propertyName);
     std::shared_ptr<Expression> bindStructPropertyExpression(
         std::shared_ptr<Expression> child, const std::string& propertyName);

@@ -29,25 +29,16 @@ void NodeInsertExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
     }
 }
 
-// TODO: consider move to storage
-static void writeLhsVectors(const std::vector<common::ValueVector*>& lhsVectors,
-    const std::vector<common::ValueVector*>& rhsVectors) {
-    for (auto i = 0u; i < lhsVectors.size(); ++i) {
-        auto lhsVector = lhsVectors[i];
-        auto rhsVector = rhsVectors[i];
-        if (lhsVector == nullptr) {
-            continue;
-        }
-        assert(lhsVector->state->selVector->selectedSize == 1 &&
-               rhsVector->state->selVector->selectedSize == 1);
-        auto lhsPos = lhsVector->state->selVector->selectedPositions[0];
-        auto rhsPos = rhsVector->state->selVector->selectedPositions[0];
-        if (rhsVector->isNull(rhsPos)) {
-            lhsVector->setNull(lhsPos, true);
-        } else {
-            lhsVector->setNull(lhsPos, false);
-            lhsVector->copyFromVectorData(lhsPos, rhsVector, rhsPos);
-        }
+static void writeLhsVector(common::ValueVector* lhsVector, common::ValueVector* rhsVector) {
+    assert(lhsVector->state->selVector->selectedSize == 1 &&
+           rhsVector->state->selVector->selectedSize == 1);
+    auto lhsPos = lhsVector->state->selVector->selectedPositions[0];
+    auto rhsPos = rhsVector->state->selVector->selectedPositions[0];
+    if (rhsVector->isNull(rhsPos)) {
+        lhsVector->setNull(lhsPos, true);
+    } else {
+        lhsVector->setNull(lhsPos, false);
+        lhsVector->copyFromVectorData(lhsPos, rhsVector, rhsPos);
     }
 }
 
@@ -59,7 +50,24 @@ void NodeInsertExecutor::insert(transaction::Transaction* transaction) {
     for (auto& relTable : relTablesToInit) {
         relTable->initEmptyRelsForNewNode(nodeIDVector);
     }
-    writeLhsVectors(propertyLhsVectors, propertyRhsVectors);
+    for (auto i = 0u; i < propertyLhsVectors.size(); ++i) {
+        auto lhsVector = propertyLhsVectors[i];
+        auto rhsVector = propertyRhsVectors[i];
+        if (lhsVector == nullptr) {
+            // No need to project out lhs vector.
+            continue;
+        }
+        if (lhsVector->dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
+            // Lhs vector is serial so there is no corresponding rhs vector.
+            auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[0];
+            auto lhsPos = lhsVector->state->selVector->selectedPositions[0];
+            auto nodeID = nodeIDVector->getValue<nodeID_t>(nodeIDPos);
+            lhsVector->setNull(lhsPos, false);
+            lhsVector->setValue<int64_t>(lhsPos, nodeID.offset);
+        } else {
+            writeLhsVector(lhsVector, rhsVector);
+        }
+    }
 }
 
 std::vector<std::unique_ptr<NodeInsertExecutor>> NodeInsertExecutor::copy(
@@ -106,7 +114,15 @@ void RelInsertExecutor::insert(transaction::Transaction* tx) {
     }
     table->insertRel(srcNodeIDVector, dstNodeIDVector, propertyRhsVectors);
     relsStatistics.updateNumRelsByValue(table->getRelTableID(), 1);
-    writeLhsVectors(propertyLhsVectors, propertyRhsVectors);
+    for (auto i = 0u; i < propertyLhsVectors.size(); ++i) {
+        auto lhsVector = propertyLhsVectors[i];
+        auto rhsVector = propertyRhsVectors[i];
+        if (lhsVector == nullptr) {
+            // No need to project out lhs vector.
+            continue;
+        }
+        writeLhsVector(lhsVector, rhsVector);
+    }
 }
 
 std::vector<std::unique_ptr<RelInsertExecutor>> RelInsertExecutor::copy(

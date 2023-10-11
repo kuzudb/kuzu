@@ -1,13 +1,12 @@
-#include "planner/operator/persistent/logical_create.h"
-
 #include "planner/operator/factorization/flatten_resolver.h"
+#include "planner/operator/persistent/logical_insert.h"
 
 namespace kuzu {
 namespace planner {
 
-std::vector<std::unique_ptr<LogicalCreateNodeInfo>> LogicalCreateNodeInfo::copy(
-    const std::vector<std::unique_ptr<LogicalCreateNodeInfo>>& infos) {
-    std::vector<std::unique_ptr<LogicalCreateNodeInfo>> infosCopy;
+std::vector<std::unique_ptr<LogicalInsertNodeInfo>> LogicalInsertNodeInfo::copy(
+    const std::vector<std::unique_ptr<LogicalInsertNodeInfo>>& infos) {
+    std::vector<std::unique_ptr<LogicalInsertNodeInfo>> infosCopy;
     infosCopy.reserve(infos.size());
     for (auto& info : infos) {
         infosCopy.push_back(info->copy());
@@ -15,9 +14,9 @@ std::vector<std::unique_ptr<LogicalCreateNodeInfo>> LogicalCreateNodeInfo::copy(
     return infosCopy;
 }
 
-std::vector<std::unique_ptr<LogicalCreateRelInfo>> LogicalCreateRelInfo::copy(
-    const std::vector<std::unique_ptr<LogicalCreateRelInfo>>& infos) {
-    std::vector<std::unique_ptr<LogicalCreateRelInfo>> infosCopy;
+std::vector<std::unique_ptr<LogicalInsertRelInfo>> LogicalInsertRelInfo::copy(
+    const std::vector<std::unique_ptr<LogicalInsertRelInfo>>& infos) {
+    std::vector<std::unique_ptr<LogicalInsertRelInfo>> infosCopy;
     infosCopy.reserve(infos.size());
     for (auto& info : infos) {
         infosCopy.push_back(info->copy());
@@ -25,7 +24,7 @@ std::vector<std::unique_ptr<LogicalCreateRelInfo>> LogicalCreateRelInfo::copy(
     return infosCopy;
 }
 
-void LogicalCreateNode::computeFactorizedSchema() {
+void LogicalInsertNode::computeFactorizedSchema() {
     copyChildSchema(0);
     for (auto& info : infos) {
         auto groupPos = schema->createGroup();
@@ -37,7 +36,7 @@ void LogicalCreateNode::computeFactorizedSchema() {
     }
 }
 
-void LogicalCreateNode::computeFlatSchema() {
+void LogicalInsertNode::computeFlatSchema() {
     copyChildSchema(0);
     for (auto& info : infos) {
         for (auto& property : info->propertiesToReturn) {
@@ -47,7 +46,7 @@ void LogicalCreateNode::computeFlatSchema() {
     }
 }
 
-std::string LogicalCreateNode::getExpressionsForPrinting() const {
+std::string LogicalInsertNode::getExpressionsForPrinting() const {
     std::string result;
     for (auto& info : infos) {
         result += info->node->toString() + ",";
@@ -55,7 +54,7 @@ std::string LogicalCreateNode::getExpressionsForPrinting() const {
     return result;
 }
 
-f_group_pos_set LogicalCreateNode::getGroupsPosToFlatten() {
+f_group_pos_set LogicalInsertNode::getGroupsPosToFlatten() {
     // Flatten all inputs. E.g. MATCH (a) CREATE (b). We need to create b for each tuple in the
     // match clause. This is to simplify operator implementation.
     auto childSchema = children[0]->getSchema();
@@ -63,7 +62,7 @@ f_group_pos_set LogicalCreateNode::getGroupsPosToFlatten() {
         childSchema->getGroupsPosInScope(), childSchema);
 }
 
-void LogicalCreateRel::computeFactorizedSchema() {
+void LogicalInsertRel::computeFactorizedSchema() {
     copyChildSchema(0);
     for (auto& info : infos) {
         auto groupPos = schema->createGroup();
@@ -74,7 +73,7 @@ void LogicalCreateRel::computeFactorizedSchema() {
     }
 }
 
-void LogicalCreateRel::computeFlatSchema() {
+void LogicalInsertRel::computeFlatSchema() {
     copyChildSchema(0);
     for (auto& info : infos) {
         for (auto& property : info->propertiesToReturn) {
@@ -83,7 +82,7 @@ void LogicalCreateRel::computeFlatSchema() {
     }
 }
 
-std::string LogicalCreateRel::getExpressionsForPrinting() const {
+std::string LogicalInsertRel::getExpressionsForPrinting() const {
     std::string result;
     for (auto& info : infos) {
         result += info->rel->toString() + ",";
@@ -91,7 +90,7 @@ std::string LogicalCreateRel::getExpressionsForPrinting() const {
     return result;
 }
 
-f_group_pos_set LogicalCreateRel::getGroupsPosToFlatten() {
+f_group_pos_set LogicalInsertRel::getGroupsPosToFlatten() {
     auto childSchema = children[0]->getSchema();
     return factorization::FlattenAll::getGroupsPosToFlatten(
         childSchema->getGroupsPosInScope(), childSchema);

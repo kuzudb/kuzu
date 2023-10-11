@@ -27,12 +27,6 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::COPY_TO: {
         return "COPY_TO";
     }
-    case LogicalOperatorType::CREATE_NODE: {
-        return "CREATE_NODE";
-    }
-    case LogicalOperatorType::CREATE_REL: {
-        return "CREATE_REL";
-    }
     case LogicalOperatorType::CREATE_MACRO: {
         return "CREATE_MACRO";
     }
@@ -86,6 +80,12 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     }
     case LogicalOperatorType::INTERSECT: {
         return "INTERSECT";
+    }
+    case LogicalOperatorType::INSERT_NODE: {
+        return "INSERT_NODE";
+    }
+    case LogicalOperatorType::INSERT_REL: {
+        return "INSERT_REL";
     }
     case LogicalOperatorType::LIMIT: {
         return "LIMIT";

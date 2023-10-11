@@ -4,8 +4,8 @@
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
 #include "binder/query/reading_clause/bound_unwind_clause.h"
-#include "binder/query/updating_clause/bound_create_clause.h"
 #include "binder/query/updating_clause/bound_delete_clause.h"
+#include "binder/query/updating_clause/bound_insert_clause.h"
 #include "binder/query/updating_clause/bound_merge_clause.h"
 #include "binder/query/updating_clause/bound_set_clause.h"
 
@@ -61,9 +61,9 @@ void PropertyCollector::visitDelete(const BoundUpdatingClause& updatingClause) {
     }
 }
 
-void PropertyCollector::visitCreate(const BoundUpdatingClause& updatingClause) {
-    auto& boundCreateClause = (BoundCreateClause&)updatingClause;
-    for (auto& info : boundCreateClause.getInfosRef()) {
+void PropertyCollector::visitInsert(const BoundUpdatingClause& updatingClause) {
+    auto& insertClause = (BoundInsertClause&)updatingClause;
+    for (auto& info : insertClause.getInfosRef()) {
         for (auto& setItem : info->setItems) {
             collectPropertyExpressions(setItem.second);
         }
@@ -80,7 +80,7 @@ void PropertyCollector::visitMerge(const BoundUpdatingClause& updatingClause) {
     if (boundMergeClause.hasPredicate()) {
         collectPropertyExpressions(boundMergeClause.getPredicate());
     }
-    for (auto& info : boundMergeClause.getCreateInfosRef()) {
+    for (auto& info : boundMergeClause.getInsertInfosRef()) {
         for (auto& setItem : info->setItems) {
             collectPropertyExpressions(setItem.second);
         }

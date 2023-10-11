@@ -12,8 +12,8 @@
 namespace kuzu {
 namespace planner {
 struct LogicalSetPropertyInfo;
-struct LogicalCreateNodeInfo;
-struct LogicalCreateRelInfo;
+struct LogicalInsertNodeInfo;
+struct LogicalInsertRelInfo;
 class LogicalCopyFrom;
 } // namespace planner
 
@@ -70,8 +70,8 @@ private:
     std::unique_ptr<PhysicalOperator> mapUnionAll(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapAccumulate(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDummyScan(planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapCreateNode(planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapCreateRel(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapInsertNode(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapInsertRel(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSetNodeProperty(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapSetRelProperty(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapDeleteNode(planner::LogicalOperator* logicalOperator);
@@ -131,10 +131,10 @@ private:
         const binder::expression_vector& expressionsToCollect, planner::Schema* schema);
 
     std::unique_ptr<NodeInsertExecutor> getNodeInsertExecutor(storage::NodesStore* nodesStore,
-        storage::RelsStore* relsStore, planner::LogicalCreateNodeInfo* info,
+        storage::RelsStore* relsStore, planner::LogicalInsertNodeInfo* info,
         const planner::Schema& inSchema, const planner::Schema& outSchema) const;
     std::unique_ptr<RelInsertExecutor> getRelInsertExecutor(storage::RelsStore* relsStore,
-        planner::LogicalCreateRelInfo* info, const planner::Schema& inSchema,
+        planner::LogicalInsertRelInfo* info, const planner::Schema& inSchema,
         const planner::Schema& outSchema);
     std::unique_ptr<NodeSetExecutor> getNodeSetExecutor(storage::NodesStore* store,
         planner::LogicalSetPropertyInfo* info, const planner::Schema& inSchema);

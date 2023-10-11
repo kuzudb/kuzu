@@ -18,7 +18,7 @@ private:
 
     void visitSet(const BoundUpdatingClause& updatingClause) final;
     void visitDelete(const BoundUpdatingClause& updatingClause) final;
-    void visitCreate(const BoundUpdatingClause& updatingClause) final;
+    void visitInsert(const BoundUpdatingClause& updatingClause) final;
     void visitMerge(const BoundUpdatingClause& updatingClause) final;
 
     void visitProjectionBody(const BoundProjectionBody& projectionBody) final;

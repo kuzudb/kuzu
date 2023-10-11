@@ -9,7 +9,7 @@
 
 namespace kuzu {
 namespace binder {
-class BoundCreateInfo;
+class BoundInsertInfo;
 class BoundSetPropertyInfo;
 class BoundDeleteInfo;
 struct BoundFileScanInfo;
@@ -17,8 +17,8 @@ struct BoundFileScanInfo;
 
 namespace planner {
 
-class LogicalCreateNodeInfo;
-class LogicalCreateRelInfo;
+class LogicalInsertNodeInfo;
+class LogicalInsertRelInfo;
 class LogicalSetPropertyInfo;
 
 class QueryPlanner {
@@ -67,7 +67,7 @@ private:
     void planUpdatingClause(binder::BoundUpdatingClause& updatingClause,
         std::vector<std::unique_ptr<LogicalPlan>>& plans);
     void planUpdatingClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan);
-    void planCreateClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan);
+    void planInsertClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan);
     void planMergeClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan);
     void planSetClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan);
     void planDeleteClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan);
@@ -140,10 +140,10 @@ private:
         std::vector<std::unique_ptr<LogicalPlan>> rightPlans);
 
     // Append updating operators
-    void appendCreateNode(
-        const std::vector<binder::BoundCreateInfo*>& boundCreateInfos, LogicalPlan& plan);
-    void appendCreateRel(
-        const std::vector<binder::BoundCreateInfo*>& boundCreateInfos, LogicalPlan& plan);
+    void appendInsertNode(
+        const std::vector<binder::BoundInsertInfo*>& boundInsertInfos, LogicalPlan& plan);
+    void appendInsertRel(
+        const std::vector<binder::BoundInsertInfo*>& boundInsertInfos, LogicalPlan& plan);
     void appendSetNodeProperty(
         const std::vector<binder::BoundSetPropertyInfo*>& boundInfos, LogicalPlan& plan);
     void appendSetRelProperty(
@@ -152,15 +152,12 @@ private:
         const std::vector<binder::BoundDeleteInfo*>& boundInfos, LogicalPlan& plan);
     void appendDeleteRel(
         const std::vector<binder::BoundDeleteInfo*>& boundInfos, LogicalPlan& plan);
-    std::unique_ptr<LogicalCreateNodeInfo> createLogicalCreateNodeInfo(
-        BoundCreateInfo* boundCreateInfo);
-    std::unique_ptr<LogicalCreateRelInfo> createLogicalCreateRelInfo(
-        BoundCreateInfo* boundCreateInfo);
+    std::unique_ptr<LogicalInsertNodeInfo> createLogicalInsertNodeInfo(
+        BoundInsertInfo* boundInsertInfo);
+    std::unique_ptr<LogicalInsertRelInfo> createLogicalInsertRelInfo(
+        BoundInsertInfo* boundInsertInfo);
     std::unique_ptr<LogicalSetPropertyInfo> createLogicalSetPropertyInfo(
         BoundSetPropertyInfo* boundSetPropertyInfo);
-    // TODO(Xiyang): remove this after refactoring
-    std::vector<std::unique_ptr<BoundSetPropertyInfo>> createLogicalSetPropertyInfo(
-        const std::vector<binder::BoundCreateInfo*>& boundCreateInfos);
 
     // Append projection operators
     void appendProjection(const binder::expression_vector& expressionsToProject, LogicalPlan& plan);

@@ -16,8 +16,8 @@
 #include "planner/operator/logical_union.h"
 #include "planner/operator/logical_unwind.h"
 #include "planner/operator/persistent/logical_copy_to.h"
-#include "planner/operator/persistent/logical_create.h"
 #include "planner/operator/persistent/logical_delete.h"
+#include "planner/operator/persistent/logical_insert.h"
 #include "planner/operator/persistent/logical_merge.h"
 #include "planner/operator/persistent/logical_set.h"
 
@@ -180,16 +180,16 @@ void FactorizationRewriter::visitDeleteRel(planner::LogicalOperator* op) {
     }
 }
 
-void FactorizationRewriter::visitCreateNode(planner::LogicalOperator* op) {
-    auto createNode = (LogicalCreateNode*)op;
-    auto groupsPosToFlatten = createNode->getGroupsPosToFlatten();
-    createNode->setChild(0, appendFlattens(createNode->getChild(0), groupsPosToFlatten));
+void FactorizationRewriter::visitInsertNode(planner::LogicalOperator* op) {
+    auto insertNode = (LogicalInsertNode*)op;
+    auto groupsPosToFlatten = insertNode->getGroupsPosToFlatten();
+    insertNode->setChild(0, appendFlattens(insertNode->getChild(0), groupsPosToFlatten));
 }
 
-void FactorizationRewriter::visitCreateRel(planner::LogicalOperator* op) {
-    auto createRel = (LogicalCreateRel*)op;
-    auto groupsPosToFlatten = createRel->getGroupsPosToFlatten();
-    createRel->setChild(0, appendFlattens(createRel->getChild(0), groupsPosToFlatten));
+void FactorizationRewriter::visitInsertRel(planner::LogicalOperator* op) {
+    auto insertRel = (LogicalInsertRel*)op;
+    auto groupsPosToFlatten = insertRel->getGroupsPosToFlatten();
+    insertRel->setChild(0, appendFlattens(insertRel->getChild(0), groupsPosToFlatten));
 }
 
 void FactorizationRewriter::visitMerge(planner::LogicalOperator* op) {
