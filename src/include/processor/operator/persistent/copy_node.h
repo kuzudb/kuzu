@@ -11,20 +11,13 @@ namespace processor {
 class CopyNodeSharedState {
 public:
     CopyNodeSharedState(uint64_t& numRows, catalog::NodeTableSchema* tableSchema,
-        storage::NodeTable* table, storage::MemoryManager* memoryManager, bool isCopyRdf,
-        std::unique_ptr<common::CSVReaderConfig> csvReaderConfig);
+        storage::NodeTable* table, storage::MemoryManager* memoryManager, bool isCopyRdf);
 
     inline void initialize(const std::string& directory) { initializePrimaryKey(directory); };
 
     inline common::offset_t getNextNodeGroupIdx() {
         std::unique_lock<std::mutex> lck{mtx};
         return getNextNodeGroupIdxWithoutLock();
-    }
-    inline void setNextNodeGroupIdx(common::node_group_idx_t nextNodeGroupIdx) {
-        std::unique_lock<std::mutex> lck{mtx};
-        if (nextNodeGroupIdx > currentNodeGroupIdx) {
-            currentNodeGroupIdx = nextNodeGroupIdx;
-        }
     }
 
     inline uint64_t getCurNodeGroupIdx() const { return currentNodeGroupIdx; }
@@ -50,7 +43,6 @@ public:
     // The sharedNodeGroup is to accumulate left data within local node groups in CopyNode ops.
     std::unique_ptr<storage::NodeGroup> sharedNodeGroup;
     bool isCopyRdf;
-    std::unique_ptr<common::CSVReaderConfig> csvReaderConfig; // TODO: remove this
 };
 
 struct CopyNodeInfo {
@@ -78,8 +70,8 @@ public:
         for (auto& arrowColumnPos : copyNodeInfo.dataColumnPoses) {
             dataColumnVectors.push_back(resultSet->getValueVector(arrowColumnPos).get());
         }
-        localNodeGroup = std::make_unique<storage::NodeGroup>(sharedState->tableSchema,
-            sharedState->csvReaderConfig.get(), sharedState->table->compressionEnabled());
+        localNodeGroup = std::make_unique<storage::NodeGroup>(
+            sharedState->tableSchema, sharedState->table->compressionEnabled());
     }
 
     inline bool canParallel() const final { return !copyNodeInfo.containsSerial; }

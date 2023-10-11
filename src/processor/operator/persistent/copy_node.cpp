@@ -14,10 +14,9 @@ namespace kuzu {
 namespace processor {
 
 CopyNodeSharedState::CopyNodeSharedState(uint64_t& numRows, NodeTableSchema* tableSchema,
-    NodeTable* table, MemoryManager* memoryManager, bool isCopyRdf,
-    std::unique_ptr<common::CSVReaderConfig> csvReaderConfig)
+    NodeTable* table, MemoryManager* memoryManager, bool isCopyRdf)
     : numRows{numRows}, tableSchema{tableSchema}, table{table}, pkColumnID{0}, hasLoggedWAL{false},
-      currentNodeGroupIdx{0}, isCopyRdf{isCopyRdf}, csvReaderConfig{std::move(csvReaderConfig)} {
+      currentNodeGroupIdx{0}, isCopyRdf{isCopyRdf} {
     auto ftTableSchema = std::make_unique<FactorizedTableSchema>();
     ftTableSchema->appendColumn(
         std::make_unique<ColumnSchema>(false /* flat */, 0 /* dataChunkPos */,

@@ -10,9 +10,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-StringColumnChunk::StringColumnChunk(
-    LogicalType dataType, std::unique_ptr<CSVReaderConfig> csvReaderConfig)
-    : ColumnChunk{std::move(dataType), std::move(csvReaderConfig)} {
+StringColumnChunk::StringColumnChunk(LogicalType dataType) : ColumnChunk{std::move(dataType)} {
     overflowFile = std::make_unique<InMemOverflowFile>();
     overflowCursor.pageIdx = 0;
     overflowCursor.offsetInPage = 0;
@@ -24,7 +22,7 @@ void StringColumnChunk::resetToEmpty() {
     overflowCursor.resetValue();
 }
 
-void StringColumnChunk::append(common::ValueVector* vector, common::offset_t startPosInChunk) {
+void StringColumnChunk::append(ValueVector* vector, offset_t startPosInChunk) {
     assert(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     ColumnChunk::copyVectorToBuffer(vector, startPosInChunk);
     auto stringsToSetOverflow = (ku_string_t*)(buffer.get() + startPosInChunk * numBytesPerValue);

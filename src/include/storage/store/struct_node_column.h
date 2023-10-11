@@ -15,7 +15,17 @@ public:
 
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
-        common::ValueVector* resultVector, uint64_t offsetInVector = 0) final;
+        common::ValueVector* resultVector, uint64_t offsetInVector) final;
+
+    void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) final;
+
+    void checkpointInMemory() final;
+    void rollbackInMemory() final;
+
+    inline NodeColumn* getChild(common::vector_idx_t childIdx) {
+        assert(childIdx < childColumns.size());
+        return childColumns[childIdx].get();
+    }
 
 protected:
     void scanInternal(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
@@ -24,6 +34,9 @@ protected:
         common::ValueVector* resultVector) final;
     void writeInternal(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
         uint32_t posInVectorToWriteFrom) final;
+
+private:
+    std::vector<std::unique_ptr<NodeColumn>> childColumns;
 };
 
 } // namespace storage

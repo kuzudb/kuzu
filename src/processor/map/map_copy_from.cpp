@@ -44,9 +44,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
     // Map copy node.
     auto nodeTable = storageManager.getNodesStore().getNodeTable(tableSchema->tableID);
     bool isCopyRdf = readerConfig->fileType == FileType::TURTLE;
-    auto copyNodeSharedState = std::make_shared<CopyNodeSharedState>(
-        reader->getSharedState()->getNumRowsRef(), tableSchema, nodeTable, memoryManager, isCopyRdf,
-        readerConfig->csvReaderConfig->copy());
+    auto copyNodeSharedState =
+        std::make_shared<CopyNodeSharedState>(reader->getSharedState()->getNumRowsRef(),
+            tableSchema, nodeTable, memoryManager, isCopyRdf);
     CopyNodeInfo copyNodeDataInfo{readerInfo->dataColumnsPos, nodeTable,
         &storageManager.getRelsStore(), catalog, storageManager.getWAL(),
         copyFromInfo->containsSerial};
