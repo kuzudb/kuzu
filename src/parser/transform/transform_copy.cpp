@@ -49,8 +49,8 @@ std::vector<std::string> Transformer::transformFilePaths(
 std::vector<std::string> Transformer::transformColumnNames(
     CypherParser::KU_ColumnNamesContext& ctx) {
     std::vector<std::string> columnNames;
-    for (auto& columnName : ctx.oC_SymbolicName()) {
-        columnNames.push_back(transformSymbolicName(*columnName));
+    for (auto& columnName : ctx.oC_PropertyKeyName()) {
+        columnNames.push_back(transformPropertyKeyName(*columnName));
     }
     return columnNames;
 }

@@ -303,8 +303,8 @@ public:
   public:
     KU_ColumnNamesContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    std::vector<OC_SymbolicNameContext *> oC_SymbolicName();
-    OC_SymbolicNameContext* oC_SymbolicName(size_t i);
+    std::vector<OC_PropertyKeyNameContext *> oC_PropertyKeyName();
+    OC_PropertyKeyNameContext* oC_PropertyKeyName(size_t i);
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
 

@@ -377,10 +377,10 @@ void cypherParserInitialize() {
   	337,5,2,0,0,336,338,5,140,0,0,337,336,1,0,0,0,337,338,1,0,0,0,338,339,
   	1,0,0,0,339,341,3,24,12,0,340,342,5,140,0,0,341,340,1,0,0,0,341,342,1,
   	0,0,0,342,343,1,0,0,0,343,344,5,3,0,0,344,346,1,0,0,0,345,333,1,0,0,0,
-  	345,346,1,0,0,0,346,5,1,0,0,0,347,358,3,266,133,0,348,350,5,140,0,0,349,
+  	345,346,1,0,0,0,346,5,1,0,0,0,347,358,3,258,129,0,348,350,5,140,0,0,349,
   	348,1,0,0,0,349,350,1,0,0,0,350,351,1,0,0,0,351,353,5,4,0,0,352,354,5,
-  	140,0,0,353,352,1,0,0,0,353,354,1,0,0,0,354,355,1,0,0,0,355,357,3,266,
-  	133,0,356,349,1,0,0,0,357,360,1,0,0,0,358,356,1,0,0,0,358,359,1,0,0,0,
+  	140,0,0,353,352,1,0,0,0,353,354,1,0,0,0,354,355,1,0,0,0,355,357,3,258,
+  	129,0,356,349,1,0,0,0,357,360,1,0,0,0,358,356,1,0,0,0,358,359,1,0,0,0,
   	359,7,1,0,0,0,360,358,1,0,0,0,361,362,5,51,0,0,362,363,5,140,0,0,363,
   	364,3,264,132,0,364,365,5,140,0,0,365,366,5,52,0,0,366,367,5,140,0,0,
   	367,369,5,2,0,0,368,370,5,140,0,0,369,368,1,0,0,0,369,370,1,0,0,0,370,
@@ -1465,12 +1465,12 @@ CypherParser::KU_ColumnNamesContext::KU_ColumnNamesContext(ParserRuleContext *pa
   : ParserRuleContext(parent, invokingState) {
 }
 
-std::vector<CypherParser::OC_SymbolicNameContext *> CypherParser::KU_ColumnNamesContext::oC_SymbolicName() {
-  return getRuleContexts<CypherParser::OC_SymbolicNameContext>();
+std::vector<CypherParser::OC_PropertyKeyNameContext *> CypherParser::KU_ColumnNamesContext::oC_PropertyKeyName() {
+  return getRuleContexts<CypherParser::OC_PropertyKeyNameContext>();
 }
 
-CypherParser::OC_SymbolicNameContext* CypherParser::KU_ColumnNamesContext::oC_SymbolicName(size_t i) {
-  return getRuleContext<CypherParser::OC_SymbolicNameContext>(i);
+CypherParser::OC_PropertyKeyNameContext* CypherParser::KU_ColumnNamesContext::oC_PropertyKeyName(size_t i) {
+  return getRuleContext<CypherParser::OC_PropertyKeyNameContext>(i);
 }
 
 std::vector<tree::TerminalNode *> CypherParser::KU_ColumnNamesContext::SP() {
@@ -1503,7 +1503,7 @@ CypherParser::KU_ColumnNamesContext* CypherParser::kU_ColumnNames() {
     size_t alt;
     enterOuterAlt(_localctx, 1);
     setState(347);
-    oC_SymbolicName();
+    oC_PropertyKeyName();
     setState(358);
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 18, _ctx);
@@ -1528,7 +1528,7 @@ CypherParser::KU_ColumnNamesContext* CypherParser::kU_ColumnNames() {
           match(CypherParser::SP);
         }
         setState(355);
-        oC_SymbolicName(); 
+        oC_PropertyKeyName(); 
       }
       setState(360);
       _errHandler->sync(this);
