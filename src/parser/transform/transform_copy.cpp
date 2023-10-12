@@ -15,21 +15,26 @@ std::unique_ptr<Statement> Transformer::transformCopyTo(CypherParser::KU_CopyTOC
 std::unique_ptr<Statement> Transformer::transformCopyFrom(CypherParser::KU_CopyFromContext& ctx) {
     auto filePaths = transformFilePaths(ctx.kU_FilePaths()->StringLiteral());
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
+    std::vector<std::string> columnNames;
+    if (ctx.kU_ColumnNames()) {
+        columnNames = transformColumnNames(*ctx.kU_ColumnNames());
+    }
     std::unordered_map<std::string, std::unique_ptr<ParsedExpression>> parsingOptions;
     if (ctx.kU_ParsingOptions()) {
         parsingOptions = transformParsingOptions(*ctx.kU_ParsingOptions());
     }
     return std::make_unique<CopyFrom>(false /* byColumn */, std::move(filePaths),
-        std::move(tableName), std::move(parsingOptions));
+        std::move(tableName), std::move(columnNames), std::move(parsingOptions));
 }
 
 std::unique_ptr<Statement> Transformer::transformCopyFromByColumn(
     CypherParser::KU_CopyFromByColumnContext& ctx) {
     auto filePaths = transformFilePaths(ctx.StringLiteral());
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
+    auto columnNames = std::vector<std::string>();
     auto parsingOptions = std::unordered_map<std::string, std::unique_ptr<ParsedExpression>>();
-    return std::make_unique<CopyFrom>(
-        true /* byColumn */, std::move(filePaths), std::move(tableName), std::move(parsingOptions));
+    return std::make_unique<CopyFrom>(true /* byColumn */, std::move(filePaths),
+        std::move(tableName), std::move(columnNames), std::move(parsingOptions));
 }
 
 std::vector<std::string> Transformer::transformFilePaths(
@@ -39,6 +44,15 @@ std::vector<std::string> Transformer::transformFilePaths(
         csvFiles.push_back(transformStringLiteral(*csvFile));
     }
     return csvFiles;
+}
+
+std::vector<std::string> Transformer::transformColumnNames(
+    CypherParser::KU_ColumnNamesContext& ctx) {
+    std::vector<std::string> columnNames;
+    for (auto& columnName : ctx.oC_PropertyKeyName()) {
+        columnNames.push_back(transformPropertyKeyName(*columnName));
+    }
+    return columnNames;
 }
 
 std::unordered_map<std::string, std::unique_ptr<ParsedExpression>>
