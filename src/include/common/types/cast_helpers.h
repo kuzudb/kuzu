@@ -122,7 +122,8 @@ struct DateToStringCast {
         }
         // optionally add BC to the end of the date
         if (add_bc) {
-            strcpy(ptr, " (BC)");
+            strcpy(ptr, " (BC)"); // NOLINT(clang-analyzer-security.insecureAPI.strcpy): safety
+                                  // guaranteed by Length().
         }
     }
 };
@@ -282,7 +283,8 @@ struct IntervalToStringCast {
             }
         } else if (length == 0) {
             // empty interval: default to 00:00:00
-            strcpy(buffer, "00:00:00");
+            strcpy(buffer, "00:00:00"); // NOLINT(clang-analyzer-security.insecureAPI.strcpy):
+                                        // safety guaranteed by Length().
             return 8;
         }
         return length;

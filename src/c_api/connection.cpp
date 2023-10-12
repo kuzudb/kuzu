@@ -1,4 +1,5 @@
 #include "binder/bound_statement_result.h"
+#include "c_api/helpers.h"
 #include "c_api/kuzu.h"
 #include "common/exception/exception.h"
 #include "main/kuzu.h"

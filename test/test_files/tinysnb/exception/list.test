@@ -6,7 +6,7 @@
 -CASE SetListPropertyError
 -STATEMENT MATCH (a:person) SET a.workedHours=['A', 'B']
 ---- error
-Binder exception: Expression LIST_CREATION(A,B) has data type STRING[] but expect INT64[]. Implicit cast is not supported.
+Binder exception: Expression LIST_CREATION(A,B) has data type STRING[] but expected INT64[]. Implicit cast is not supported.
 
 -CASE ListFunctionMatchError1
 -STATEMENT MATCH (a:person) RETURN array_concat(a.workedHours, a.age)
