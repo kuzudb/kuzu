@@ -1,7 +1,7 @@
 #include "binder/binder.h"
 #include "binder/bound_create_macro.h"
 #include "common/exception/binder.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "parser/create_macro.h"
 
 using namespace kuzu::common;
@@ -14,7 +14,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateMacro(const Statement& stateme
     auto& createMacro = reinterpret_cast<const CreateMacro&>(statement);
     auto macroName = createMacro.getMacroName();
     if (catalog.getReadOnlyVersion()->containMacro(macroName)) {
-        throw BinderException{StringUtils::string_format("Macro {} already exists.", macroName)};
+        throw BinderException{stringFormat("Macro {} already exists.", macroName)};
     }
     parser::default_macro_args defaultArgs;
     for (auto& defaultArg : createMacro.getDefaultArgs()) {

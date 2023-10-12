@@ -3,7 +3,7 @@
 #include "binder/expression/literal_expression.h"
 #include "binder/expression_binder.h"
 #include "common/exception/binder.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "function/function_definition.h"
 
 using namespace kuzu::common;
@@ -102,7 +102,7 @@ std::unique_ptr<FunctionBindData> StructExtractVectorFunctions::bindFunc(
     assert(definition->returnTypeID == LogicalTypeID::ANY);
     auto fieldIdx = StructType::getFieldIdx(&structType, key);
     if (fieldIdx == INVALID_STRUCT_FIELD_IDX) {
-        throw BinderException(StringUtils::string_format("Invalid struct field name: {}.", key));
+        throw BinderException(stringFormat("Invalid struct field name: {}.", key));
     }
     return std::make_unique<StructExtractBindData>(
         *(StructType::getFieldTypes(&structType))[fieldIdx], fieldIdx);

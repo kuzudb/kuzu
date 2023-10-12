@@ -7,7 +7,7 @@
 #include "binder/expression/path_expression.h"
 #include "binder/expression/rel_expression.h"
 #include "binder/expression_visitor.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "expression_evaluator/case_evaluator.h"
 #include "expression_evaluator/function_evaluator.h"
 #include "expression_evaluator/literal_evaluator.h"
@@ -68,7 +68,7 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getEvaluator(
     } else if (canEvaluateAsFunction(expressionType)) {
         return getFunctionEvaluator(expression, schema);
     } else {
-        throw NotImplementedException(StringUtils::string_format(
+        throw NotImplementedException(stringFormat(
             "Cannot evaluate expression with type {}.", expressionTypeToString(expressionType)));
     }
 }
@@ -84,7 +84,7 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getConstantEvaluator(
     } else if (canEvaluateAsFunction(expressionType)) {
         return getFunctionEvaluator(expression, nullptr);
     } else {
-        throw NotImplementedException(StringUtils::string_format(
+        throw NotImplementedException(stringFormat(
             "Cannot evaluate expression with type {}.", expressionTypeToString(expressionType)));
     }
 }

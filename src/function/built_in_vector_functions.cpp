@@ -2,7 +2,7 @@
 
 #include "common/exception/binder.h"
 #include "common/exception/catalog.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/blob/vector_blob_functions.h"
 #include "function/cast/vector_cast_functions.h"
@@ -584,7 +584,7 @@ void BuiltInVectorFunctions::registerPathFunctions() {
 void BuiltInVectorFunctions::addFunction(
     std::string name, function::vector_function_definitions definitions) {
     if (vectorFunctions.contains(name)) {
-        throw CatalogException{StringUtils::string_format("function {} already exists.", name)};
+        throw CatalogException{stringFormat("function {} already exists.", name)};
     }
     vectorFunctions.emplace(std::move(name), std::move(definitions));
 }

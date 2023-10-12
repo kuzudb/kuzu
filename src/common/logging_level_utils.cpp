@@ -1,6 +1,7 @@
 #include "common/logging_level_utils.h"
 
 #include "common/exception/conversion.h"
+#include "common/string_format.h"
 #include "common/string_utils.h"
 #include "common/utils.h"
 
@@ -16,8 +17,7 @@ spdlog::level::level_enum LoggingLevelUtils::convertStrToLevelEnum(std::string l
     } else if (loggingLevel == "err") {
         return spdlog::level::level_enum::err;
     } else {
-        throw ConversionException(
-            StringUtils::string_format("Unsupported logging level: {}.", loggingLevel));
+        throw ConversionException(stringFormat("Unsupported logging level: {}.", loggingLevel));
     }
 }
 

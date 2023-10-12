@@ -6,6 +6,7 @@
 #include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
+#include "common/string_format.h"
 #include "common/string_utils.h"
 #include "parser/ddl/alter.h"
 #include "parser/ddl/create_table.h"
@@ -26,12 +27,12 @@ std::vector<std::unique_ptr<Property>> Binder::bindProperties(
     boundPropertyNameDataTypes.reserve(propertyNameDataTypes.size());
     for (auto& propertyNameDataType : propertyNameDataTypes) {
         if (boundPropertyNames.contains(propertyNameDataType.first)) {
-            throw BinderException(StringUtils::string_format(
-                "Duplicated column name: {}, column name must be unique.",
-                propertyNameDataType.first));
+            throw BinderException(
+                stringFormat("Duplicated column name: {}, column name must be unique.",
+                    propertyNameDataType.first));
         } else if (TableSchema::isReservedPropertyName(propertyNameDataType.first)) {
             throw BinderException(
-                StringUtils::string_format("PropertyName: {} is an internal reserved propertyName.",
+                stringFormat("PropertyName: {} is an internal reserved propertyName.",
                     propertyNameDataType.first));
         }
         boundPropertyNameDataTypes.push_back(std::make_unique<Property>(
@@ -111,10 +112,9 @@ std::unique_ptr<BoundCreateTableInfo> Binder::bindCreateRelTableInfo(const Creat
             boundProperty->getDataType()->getLogicalTypeID() == LogicalTypeID::UNION ||
             boundProperty->getDataType()->getLogicalTypeID() == LogicalTypeID::STRUCT ||
             boundProperty->getDataType()->getLogicalTypeID() == LogicalTypeID::MAP) {
-            throw BinderException(
-                StringUtils::string_format("{} property is not supported in rel table.",
-                    LogicalTypeUtils::dataTypeToString(
-                        boundProperty->getDataType()->getLogicalTypeID())));
+            throw BinderException(stringFormat("{} property is not supported in rel table.",
+                LogicalTypeUtils::dataTypeToString(
+                    boundProperty->getDataType()->getLogicalTypeID())));
         }
     }
     auto extraInfo = (ExtraCreateRelTableInfo*)info->extraInfo.get();
@@ -206,9 +206,9 @@ std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement
         for (auto& schema : catalogContent->getRelTableSchemas()) {
             auto relTableSchema = reinterpret_cast<RelTableSchema*>(schema);
             if (relTableSchema->isSrcOrDstTable(tableID)) {
-                throw BinderException(StringUtils::string_format(
-                    "Cannot delete node table {} referenced by rel table {}.",
-                    tableSchema->tableName, relTableSchema->tableName));
+                throw BinderException(
+                    stringFormat("Cannot delete node table {} referenced by rel table {}.",
+                        tableSchema->tableName, relTableSchema->tableName));
             }
         }
     } break;
@@ -217,9 +217,9 @@ std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement
             auto relTableGroupSchema = reinterpret_cast<RelTableGroupSchema*>(schema);
             for (auto& relTableID : relTableGroupSchema->getRelTableIDs()) {
                 if (relTableID == tableSchema->getTableID()) {
-                    throw BinderException(StringUtils::string_format(
-                        "Cannot delete rel table {} referenced by rel group {}.",
-                        tableSchema->tableName, relTableGroupSchema->tableName));
+                    throw BinderException(
+                        stringFormat("Cannot delete rel table {} referenced by rel group {}.",
+                            tableSchema->tableName, relTableGroupSchema->tableName));
                 }
             }
         }
@@ -287,7 +287,7 @@ static void validatePropertyDDLOnTable(TableSchema* tableSchema, const std::stri
     case TableType::REL_GROUP:
     case TableType::RDF: {
         throw BinderException(
-            StringUtils::string_format("Cannot {} property on table {} with type {}.", ddlOperation,
+            stringFormat("Cannot {} property on table {} with type {}.", ddlOperation,
                 tableSchema->tableName, TableTypeUtils::toString(tableSchema->tableType)));
     }
     default:

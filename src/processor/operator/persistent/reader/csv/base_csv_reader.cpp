@@ -4,7 +4,7 @@
 
 #include "common/data_chunk/data_chunk.h"
 #include "common/exception/copy.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "common/system_message.h"
 #include "processor/operator/persistent/reader/csv/driver.h"
 
@@ -26,7 +26,7 @@ BaseCSVReader::BaseCSVReader(const std::string& filePath, const common::ReaderCo
     if (fd == -1) {
         // LCOV_EXCL_START
         throw CopyException(
-            StringUtils::string_format("Could not open file {}: {}", filePath, posixErrMessage()));
+            stringFormat("Could not open file {}: {}", filePath, posixErrMessage()));
         // LCOV_EXCL_END
     }
 }
@@ -124,14 +124,14 @@ bool BaseCSVReader::isEOF() const {
     uint64_t end = lseek(fd, 0, SEEK_END);
     if (end == -1) {
         // LCOV_EXCL_START
-        throw CopyException(StringUtils::string_format(
-            "Could not seek to end of file {}: {}", filePath, posixErrMessage()));
+        throw CopyException(
+            stringFormat("Could not seek to end of file {}: {}", filePath, posixErrMessage()));
         // LCOV_EXCL_END
     }
     if (lseek(fd, offset, SEEK_SET) == -1) {
         // LCOV_EXCL_START
-        throw CopyException(StringUtils::string_format(
-            "Could not reset position of file {}: {}", filePath, posixErrMessage()));
+        throw CopyException(
+            stringFormat("Could not reset position of file {}: {}", filePath, posixErrMessage()));
         // LCOV_EXCL_END
     }
     return offset >= end;
@@ -212,8 +212,8 @@ bool BaseCSVReader::readBuffer(uint64_t* start) {
     uint64_t readCount = read(fd, buffer.get() + remaining, bufferReadSize);
     if (readCount == -1) {
         // LCOV_EXCL_START
-        throw CopyException(StringUtils::string_format(
-            "Could not read from file {}: {}", filePath, posixErrMessage()));
+        throw CopyException(
+            stringFormat("Could not read from file {}: {}", filePath, posixErrMessage()));
         // LCOV_EXCL_END
     }
 
@@ -342,7 +342,7 @@ in_quotes:
     } while (readBuffer(&start));
     [[unlikely]]
     // still in quoted state at the end of the file, error:
-    throw CopyException(StringUtils::string_format(
+    throw CopyException(stringFormat(
         "Error in file {} on line {}: unterminated quotes.", filePath, getLineNumber()));
 unquote:
     assert(hasQuotes && buffer[position] == csvReaderConfig.quoteChar);
@@ -368,9 +368,9 @@ unquote:
         goto add_row;
     } else {
         [[unlikely]] throw CopyException(
-            StringUtils::string_format("Error in file {} on line {}: quote should be followed by "
-                                       "end of file, end of value, end of "
-                                       "row or another quote.",
+            stringFormat("Error in file {} on line {}: quote should be followed by "
+                         "end of file, end of value, end of "
+                         "row or another quote.",
                 filePath, getLineNumber()));
     }
 handle_escape:
@@ -378,12 +378,12 @@ handle_escape:
     // escape should be followed by a quote or another escape character
     position++;
     if (!maybeReadBuffer(&start)) {
-        [[unlikely]] throw CopyException(StringUtils::string_format(
+        [[unlikely]] throw CopyException(stringFormat(
             "Error in file {} on line {}: escape at end of file.", filePath, getLineNumber()));
     }
     if (buffer[position] != csvReaderConfig.quoteChar &&
         buffer[position] != csvReaderConfig.escapeChar) {
-        [[unlikely]] throw CopyException(StringUtils::string_format(
+        [[unlikely]] throw CopyException(stringFormat(
             "Error in file {} on line {}: neither QUOTE nor ESCAPE is proceeded by ESCAPE.",
             filePath, getLineNumber()));
     }
@@ -432,7 +432,7 @@ uint64_t BaseCSVReader::getFileOffset() const {
     uint64_t offset = lseek(fd, 0, SEEK_CUR);
     if (offset == -1) {
         // LCOV_EXCL_START
-        throw CopyException(StringUtils::string_format(
+        throw CopyException(stringFormat(
             "Could not get current file position for file {}: {}", filePath, posixErrMessage()));
         // LCOV_EXCL_END
     }
@@ -447,7 +447,7 @@ uint64_t BaseCSVReader::getLineNumber() {
     char buf[BUF_SIZE];
     if (lseek(fd, 0, SEEK_SET) == -1) {
         // LCOV_EXCL_START
-        throw CopyException(StringUtils::string_format(
+        throw CopyException(stringFormat(
             "Could not seek to beginning of file {}: {}", filePath, posixErrMessage()));
         // LCOV_EXCL_END
     }
@@ -458,8 +458,8 @@ uint64_t BaseCSVReader::getLineNumber() {
         uint64_t bytesRead = read(fd, buf, std::min(BUF_SIZE, offset - totalBytes));
         if (bytesRead == -1) {
             // LCOV_EXCL_START
-            throw CopyException(StringUtils::string_format(
-                "Could not read from file {}: {}", filePath, posixErrMessage()));
+            throw CopyException(
+                stringFormat("Could not read from file {}: {}", filePath, posixErrMessage()));
             // LCOV_EXCL_END
         }
         totalBytes += bytesRead;

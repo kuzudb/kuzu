@@ -1,7 +1,7 @@
 #include "include/py_connection.h"
 #include "include/py_database.h"
 #include "include/py_prepared_statement.h"
-#include "spdlog/spdlog.h"
+#include "include/py_query_result.h"
 
 void bind(py::module& m) {
     PyDatabase::initialize(m);

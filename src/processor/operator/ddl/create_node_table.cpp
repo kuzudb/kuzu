@@ -1,7 +1,7 @@
 #include "processor/operator/ddl/create_node_table.h"
 
 #include "catalog/node_table_schema.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "storage/storage_manager.h"
 
 using namespace kuzu::catalog;
@@ -19,7 +19,7 @@ void CreateNodeTable::executeDDLInternal() {
 }
 
 std::string CreateNodeTable::getOutputMsg() {
-    return StringUtils::string_format("Node table: {} has been created.", info->tableName);
+    return stringFormat("Node table: {} has been created.", info->tableName);
 }
 
 } // namespace processor

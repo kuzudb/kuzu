@@ -1,6 +1,6 @@
 #include "processor/operator/persistent/copy_rel_lists.h"
 
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "processor/result/factorized_table.h"
 #include "storage/store/table_copy_utils.h"
 
@@ -99,7 +99,7 @@ void CopyRelLists::finalize(ExecutionContext* context) {
         }
     }
     sharedState->updateRelsStatistics();
-    auto outputMsg = StringUtils::string_format("{} number of tuples has been copied to table: {}.",
+    auto outputMsg = stringFormat("{} number of tuples has been copied to table: {}.",
         sharedState->numRows.load(), info.schema->tableName.c_str());
     FactorizedTableUtils::appendStringToTable(
         sharedState->fTable.get(), outputMsg, context->memoryManager);

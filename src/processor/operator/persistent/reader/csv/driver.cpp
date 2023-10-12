@@ -3,7 +3,7 @@
 #include "common/exception/copy.h"
 #include "common/exception/message.h"
 #include "common/exception/parser.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "common/type_utils.h"
 #include "common/types/blob.h"
 #include "common/types/value/value.h"
@@ -238,7 +238,7 @@ static void castStringToList(const char* input, uint64_t len, ValueVector* vecto
 static void validateNumElementsInList(uint64_t numElementsRead, const LogicalType& type) {
     auto numElementsInList = FixedListType::getNumElementsInList(&type);
     if (numElementsRead != numElementsInList) {
-        throw CopyException(StringUtils::string_format(
+        throw CopyException(stringFormat(
             "Each fixed list should have fixed number of elements. Expected: {}, Actual: {}.",
             numElementsInList, numElementsRead));
     }
@@ -586,8 +586,7 @@ void copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std::string_view
             }
         }
         if (selectedFieldIdx == INVALID_STRUCT_FIELD_IDX) {
-            throw ParserException{
-                StringUtils::string_format("No parsing rule matches value: {}.", strVal)};
+            throw ParserException{stringFormat("No parsing rule matches value: {}.", strVal)};
         }
         StructVector::getFieldVector(vector, UnionType::TAG_FIELD_IDX)
             ->setValue(rowToAdd, selectedFieldIdx);
@@ -618,9 +617,9 @@ void ParsingDriver::addValue(
         return;
     }
     if (columnIdx >= reader->expectedNumColumns) {
-        throw CopyException(StringUtils::string_format(
-            "Error in file {}, on line {}: expected {} values per row, but got more.",
-            reader->filePath, reader->getLineNumber(), reader->expectedNumColumns));
+        throw CopyException(
+            stringFormat("Error in file {}, on line {}: expected {} values per row, but got more.",
+                reader->filePath, reader->getLineNumber(), reader->expectedNumColumns));
     }
     copyStringToVector(
         chunk.getValueVector(columnIdx).get(), rowNum, value, reader->csvReaderConfig);
@@ -637,7 +636,7 @@ bool ParsingDriver::addRow(uint64_t rowNum, common::column_id_t columnCount) {
     }
     if (columnCount < reader->expectedNumColumns) {
         // Column number mismatch.
-        throw CopyException(StringUtils::string_format(
+        throw CopyException(stringFormat(
             "Error in file {} on line {}: expected {} values per row, but got {}", reader->filePath,
             reader->getLineNumber(), reader->expectedNumColumns, columnCount));
     }

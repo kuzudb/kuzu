@@ -1,6 +1,6 @@
 #include "storage/buffer_manager/vm_region.h"
 
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "common/system_message.h"
 
 #ifdef _WIN32
@@ -29,7 +29,7 @@ VMRegion::VMRegion(PageSizeClass pageSizeClass, uint64_t maxRegionSize) : numFra
 #ifdef _WIN32
     region = (uint8_t*)VirtualAlloc(NULL, getMaxRegionSize(), MEM_RESERVE, PAGE_READWRITE);
     if (region == NULL) {
-        throw BufferManagerException(StringUtils::string_format(
+        throw BufferManagerException(stringFormat(
             "VirtualAlloc for size {} failed with error code {}: {}.", getMaxRegionSize(),
             GetLastError(), std::system_category().message(GetLastError())));
     }
@@ -50,7 +50,7 @@ uint8_t* VMRegion::getFrame(frame_idx_t frameIdx) {
     auto result = VirtualAlloc(
         region + ((std::uint64_t)frameIdx * frameSize), frameSize, MEM_COMMIT, PAGE_READWRITE);
     if (result == NULL) {
-        throw BufferManagerException(StringUtils::string_format(
+        throw BufferManagerException(stringFormat(
             "VirtualAlloc MEM_COMMIT failed with error code {}: {}.", getMaxRegionSize(),
             GetLastError(), std::system_category().message(GetLastError())));
     }
@@ -73,7 +73,7 @@ void VMRegion::releaseFrame(frame_idx_t frameIdx) {
     // Not sure what the differences are
     if (!VirtualFree(getFrame(frameIdx), frameSize, MEM_DECOMMIT)) {
         auto code = GetLastError();
-        throw BufferManagerException(StringUtils::string_format(
+        throw BufferManagerException(stringFormat(
             "Releasing physical memory associated with a frame failed with error code {}: {}.",
             code, systemErrMessage(code)));
     }
@@ -82,7 +82,7 @@ void VMRegion::releaseFrame(frame_idx_t frameIdx) {
     int error = madvise(getFrame(frameIdx), frameSize, MADV_DONTNEED);
     if (error != 0) {
         // LCOV_EXCL_START
-        throw BufferManagerException(StringUtils::string_format(
+        throw BufferManagerException(stringFormat(
             "Releasing physical memory associated with a frame failed with error code {}: {}.",
             error, posixErrMessage()));
         // LCOV_EXCL_END

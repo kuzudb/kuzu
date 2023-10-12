@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <cstring>
 
-#include "common/string_utils.h"
+#include "common/string_format.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -25,9 +25,9 @@ OrderByKeyEncoder::OrderByKeyEncoder(const OrderByDataInfo& orderByDataInfo,
     assert(this->numBytesPerTuple == getNumBytesPerTuple());
     maxNumTuplesPerBlock = BufferPoolConstants::PAGE_256KB_SIZE / numBytesPerTuple;
     if (maxNumTuplesPerBlock <= 0) {
-        throw RuntimeException(StringUtils::string_format(
-            "TupleSize({} bytes) is larger than the LARGE_PAGE_SIZE({} bytes)", numBytesPerTuple,
-            BufferPoolConstants::PAGE_256KB_SIZE));
+        throw RuntimeException(
+            stringFormat("TupleSize({} bytes) is larger than the LARGE_PAGE_SIZE({} bytes)",
+                numBytesPerTuple, BufferPoolConstants::PAGE_256KB_SIZE));
     }
     encodeFunctions.reserve(orderByDataInfo.keysPos.size());
     for (auto& type : orderByDataInfo.keyTypes) {

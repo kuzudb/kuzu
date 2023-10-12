@@ -1,7 +1,7 @@
 #include "common/types/dtime_t.h"
 
 #include "common/exception/conversion.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "common/types/cast_helpers.h"
 #include "common/types/date_t.h"
 #include "common/utils.h"
@@ -132,10 +132,9 @@ dtime_t Time::FromCString(const char* buf, uint64_t len) {
     dtime_t result;
     uint64_t pos;
     if (!Time::TryConvertTime(buf, len, pos, result)) {
-        throw ConversionException(
-            StringUtils::string_format("Error occurred during parsing time. Given: \"{}\". "
-                                       "Expected format: (hh:mm:ss[.zzzzzz]).",
-                std::string(buf, len)));
+        throw ConversionException(stringFormat("Error occurred during parsing time. Given: \"{}\". "
+                                               "Expected format: (hh:mm:ss[.zzzzzz]).",
+            std::string(buf, len)));
     }
     return result;
 }
@@ -161,7 +160,7 @@ bool Time::IsValid(int32_t hour, int32_t minute, int32_t second, int32_t microse
 
 dtime_t Time::FromTime(int32_t hour, int32_t minute, int32_t second, int32_t microseconds) {
     if (!Time::IsValid(hour, minute, second, microseconds)) {
-        throw ConversionException(StringUtils::string_format(
+        throw ConversionException(stringFormat(
             "Time field value out of range: {}:{}:{}[.{}].", hour, minute, second, microseconds));
     }
     int64_t result;

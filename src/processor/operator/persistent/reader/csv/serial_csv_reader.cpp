@@ -1,6 +1,6 @@
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "processor/operator/persistent/reader/csv/driver.h"
 
 using namespace kuzu::common;
@@ -26,7 +26,7 @@ std::vector<std::pair<std::string, LogicalType>> SerialCSVReader::sniffCSV() {
         std::vector<std::pair<std::string, LogicalType>> columns;
         columns.reserve(driver.numColumns);
         for (uint64_t i = 0; i < driver.numColumns; i++) {
-            columns.emplace_back(StringUtils::string_format("column{}", i), LogicalTypeID::STRING);
+            columns.emplace_back(stringFormat("column{}", i), LogicalTypeID::STRING);
         }
         return columns;
     }

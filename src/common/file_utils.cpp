@@ -1,7 +1,9 @@
 #include "common/file_utils.h"
 
+#include <cstring>
+
 #include "common/exception/storage.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "glob/glob.hpp"
 
 #ifdef _WIN32
@@ -29,9 +31,8 @@ int64_t FileInfo::getFileSize() {
     LARGE_INTEGER size;
     if (!GetFileSizeEx((HANDLE)handle, &size)) {
         auto error = GetLastError();
-        throw StorageException(
-            StringUtils::string_format("Cannot read size of file. path: {} - Error {}: {}", path,
-                error, std::system_category().message(error)));
+        throw StorageException(stringFormat("Cannot read size of file. path: {} - Error {}: {}",
+            path, error, std::system_category().message(error)));
     }
     return size.QuadPart;
 #else
@@ -60,8 +61,8 @@ std::unique_ptr<FileInfo> FileUtils::openFile(
     HANDLE handle = CreateFileA(path.c_str(), dwDesiredAccess, dwShareMode, nullptr,
         dwCreationDisposition, FILE_ATTRIBUTE_NORMAL, nullptr);
     if (handle == INVALID_HANDLE_VALUE) {
-        throw Exception(StringUtils::string_format("Cannot open file. path: {} - Error {}: {}",
-            path, GetLastError(), std::system_category().message(GetLastError())));
+        throw Exception(stringFormat("Cannot open file. path: {} - Error {}: {}", path,
+            GetLastError(), std::system_category().message(GetLastError())));
     }
     if (lock_type != FileLockType::NO_LOCK) {
         DWORD dwFlags = lock_type == FileLockType::READ_LOCK ?
@@ -100,7 +101,7 @@ void FileUtils::writeToFile(
     FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes, uint64_t offset) {
     auto fileSize = fileInfo->getFileSize();
     if (fileSize == -1) {
-        throw Exception(StringUtils::string_format("File {} not open.", fileInfo->path));
+        throw Exception(stringFormat("File {} not open.", fileInfo->path));
     }
     uint64_t remainingNumBytesToWrite = numBytes;
     uint64_t bufferOffset = 0;
@@ -117,20 +118,20 @@ void FileUtils::writeToFile(
         if (!WriteFile((HANDLE)fileInfo->handle, buffer + bufferOffset, numBytesToWrite,
                 &numBytesWritten, &overlapped)) {
             auto error = GetLastError();
-            throw Exception(StringUtils::string_format(
-                "Cannot write to file. path: {} handle: {} offsetToWrite: {} "
-                "numBytesToWrite: {} numBytesWritten: {}. Error {}: {}.",
-                fileInfo->path, (intptr_t)fileInfo->handle, offset, numBytesToWrite,
-                numBytesWritten, error, std::system_category().message(error)));
+            throw Exception(
+                stringFormat("Cannot write to file. path: {} handle: {} offsetToWrite: {} "
+                             "numBytesToWrite: {} numBytesWritten: {}. Error {}: {}.",
+                    fileInfo->path, (intptr_t)fileInfo->handle, offset, numBytesToWrite,
+                    numBytesWritten, error, std::system_category().message(error)));
         }
 #else
         uint64_t numBytesWritten =
             pwrite(fileInfo->fd, buffer + bufferOffset, numBytesToWrite, offset);
         if (numBytesWritten != numBytesToWrite) {
-            throw Exception(StringUtils::string_format(
-                "Cannot write to file. path: {} fileDescriptor: {} offsetToWrite: {} "
-                "numBytesToWrite: {} numBytesWritten: {}.",
-                fileInfo->path, fileInfo->fd, offset, numBytesToWrite, numBytesWritten));
+            throw Exception(
+                stringFormat("Cannot write to file. path: {} fileDescriptor: {} offsetToWrite: {} "
+                             "numBytesToWrite: {} numBytesWritten: {}.",
+                    fileInfo->path, fileInfo->fd, offset, numBytesToWrite, numBytesWritten));
         }
 #endif
         remainingNumBytesToWrite -= numBytesWritten;
@@ -145,7 +146,7 @@ void FileUtils::copyFile(
         return;
     std::error_code errorCode;
     if (!std::filesystem::copy_file(from, to, options, errorCode)) {
-        throw Exception(StringUtils::string_format(
+        throw Exception(stringFormat(
             "Error copying file {} to {}.  ErrorMessage: {}", from, to, errorCode.message()));
     }
 }
@@ -165,25 +166,23 @@ void FileUtils::readFromFile(
     overlapped.OffsetHigh = position >> 32;
     if (!ReadFile((HANDLE)fileInfo->handle, buffer, numBytes, &numBytesRead, &overlapped)) {
         auto error = GetLastError();
-        throw StorageException(StringUtils::string_format(
-            "Cannot read from file: {} handle: {} "
-            "numBytesRead: {} numBytesToRead: {} position: {}. Error {}: {}",
-            fileInfo->path, (intptr_t)fileInfo->handle, numBytesRead, numBytes, position, error,
-            std::system_category().message(error)));
+        throw StorageException(
+            stringFormat("Cannot read from file: {} handle: {} "
+                         "numBytesRead: {} numBytesToRead: {} position: {}. Error {}: {}",
+                fileInfo->path, (intptr_t)fileInfo->handle, numBytesRead, numBytes, position, error,
+                std::system_category().message(error)));
     }
     if (numBytesRead != numBytes && fileInfo->getFileSize() != position + numBytesRead) {
-        throw StorageException(
-            StringUtils::string_format("Cannot read from file: {} handle: {} "
-                                       "numBytesRead: {} numBytesToRead: {} position: {}",
-                fileInfo->path, (intptr_t)fileInfo->handle, numBytesRead, numBytes, position));
+        throw StorageException(stringFormat("Cannot read from file: {} handle: {} "
+                                            "numBytesRead: {} numBytesToRead: {} position: {}",
+            fileInfo->path, (intptr_t)fileInfo->handle, numBytesRead, numBytes, position));
     }
 #else
     auto numBytesRead = pread(fileInfo->fd, buffer, numBytes, position);
     if (numBytesRead != numBytes && fileInfo->getFileSize() != position + numBytesRead) {
-        throw Exception(
-            StringUtils::string_format("Cannot read from file: {} fileDescriptor: {} "
-                                       "numBytesRead: {} numBytesToRead: {} position: {}",
-                fileInfo->path, fileInfo->fd, numBytesRead, numBytes, position));
+        throw Exception(stringFormat("Cannot read from file: {} fileDescriptor: {} "
+                                     "numBytesRead: {} numBytesToRead: {} position: {}",
+            fileInfo->path, fileInfo->fd, numBytesRead, numBytes, position));
     }
 #endif
 }
@@ -191,15 +190,14 @@ void FileUtils::readFromFile(
 void FileUtils::createDir(const std::string& dir) {
     try {
         if (std::filesystem::exists(dir)) {
-            throw Exception(StringUtils::string_format("Directory {} already exists.", dir));
+            throw Exception(stringFormat("Directory {} already exists.", dir));
         }
         if (!std::filesystem::create_directory(dir)) {
-            throw Exception(StringUtils::string_format(
+            throw Exception(stringFormat(
                 "Directory {} cannot be created. Check if it exists and remove it.", dir));
         }
     } catch (std::exception& e) {
-        throw Exception(
-            StringUtils::string_format("Failed to create directory {} due to: {}", dir, e.what()));
+        throw Exception(stringFormat("Failed to create directory {} due to: {}", dir, e.what()));
     }
 }
 
@@ -214,7 +212,7 @@ void FileUtils::removeDir(const std::string& dir) {
     if (!fileOrPathExists(dir))
         return;
     if (!std::filesystem::remove_all(dir, removeErrorCode)) {
-        throw Exception(StringUtils::string_format(
+        throw Exception(stringFormat(
             "Error removing directory {}.  Error Message: {}", dir, removeErrorCode.message()));
     }
 }
@@ -226,9 +224,8 @@ void FileUtils::renameFileIfExists(const std::string& oldName, const std::string
     std::error_code errorCode;
     std::filesystem::rename(oldName, newName, errorCode);
     if (errorCode.value() != 0) {
-        throw Exception(
-            StringUtils::string_format("Error replacing file {} to {}.  ErrorMessage: {}", oldName,
-                newName, errorCode.message()));
+        throw Exception(stringFormat("Error replacing file {} to {}.  ErrorMessage: {}", oldName,
+            newName, errorCode.message()));
     }
 }
 
@@ -236,8 +233,8 @@ void FileUtils::removeFileIfExists(const std::string& path) {
     if (!fileOrPathExists(path))
         return;
     if (remove(path.c_str()) != 0) {
-        throw Exception(StringUtils::string_format(
-            "Error removing directory or file {}.  Error Message: ", path));
+        throw Exception(
+            stringFormat("Error removing directory or file {}.  Error Message: ", path));
     }
 }
 
@@ -258,16 +255,15 @@ void FileUtils::truncateFileToSize(FileInfo* fileInfo, uint64_t size) {
     if (SetFilePointer((HANDLE)fileInfo->handle, size & 0xffffffff, offsetHighPtr, FILE_BEGIN) ==
         INVALID_SET_FILE_POINTER) {
         auto error = GetLastError();
-        throw Exception(
-            StringUtils::string_format("Cannot set file pointer for file: {} handle: {} "
-                                       "new position: {}. Error {}: {}",
-                fileInfo->path, (intptr_t)fileInfo->handle, size, error,
-                std::system_category().message(error)));
+        throw Exception(stringFormat("Cannot set file pointer for file: {} handle: {} "
+                                     "new position: {}. Error {}: {}",
+            fileInfo->path, (intptr_t)fileInfo->handle, size, error,
+            std::system_category().message(error)));
     }
     if (!SetEndOfFile((HANDLE)fileInfo->handle)) {
         auto error = GetLastError();
-        throw Exception(StringUtils::string_format("Cannot truncate file: {} handle: {} "
-                                                   "size: {}. Error {}: {}",
+        throw Exception(stringFormat("Cannot truncate file: {} handle: {} "
+                                     "size: {}. Error {}: {}",
             fileInfo->path, (intptr_t)fileInfo->handle, size, error,
             std::system_category().message(error)));
     }

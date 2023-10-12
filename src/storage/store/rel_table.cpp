@@ -1,6 +1,6 @@
 #include "storage/store/rel_table.h"
 
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "storage/storage_structure/lists/lists_update_iterator.h"
 
 using namespace kuzu::catalog;
@@ -184,10 +184,9 @@ void DirectedRelTableData::insertRel(ValueVector* boundVector, ValueVector* nbrV
         boundVector->readNodeOffset(boundVector->state->selVector->selectedPositions[0]);
     // TODO(Guodong): We should pass a write transaction pointer down.
     if (!adjColumn->isNull(nodeOffset, transaction::Transaction::getDummyWriteTrx().get())) {
-        throw RuntimeException(
-            StringUtils::string_format("Node in RelTable {} cannot "
-                                       "have more than one neighbour in the {} direction.",
-                tableID, RelDataDirectionUtils::relDataDirectionToString(direction)));
+        throw RuntimeException(stringFormat("Node in RelTable {} cannot "
+                                            "have more than one neighbour in the {} direction.",
+            tableID, RelDataDirectionUtils::relDataDirectionToString(direction)));
     }
     adjColumn->write(boundVector, nbrVector);
     for (auto i = 0u; i < relPropertyVectors.size(); i++) {

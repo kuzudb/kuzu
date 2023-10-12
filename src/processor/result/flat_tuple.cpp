@@ -1,7 +1,7 @@
 #include "processor/result/flat_tuple.h"
 
 #include "common/exception/runtime.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "common/types/value/value.h"
 #include "utf8proc.h"
 #include "utf8proc_wrapper.h"
@@ -22,7 +22,7 @@ uint32_t FlatTuple::len() const {
 
 Value* FlatTuple::getValue(uint32_t idx) const {
     if (idx >= len()) {
-        throw RuntimeException(StringUtils::string_format(
+        throw RuntimeException(stringFormat(
             "ValIdx is out of range. Number of values in flatTuple: {}, valIdx: {}.", len(), idx));
     }
     return values[idx].get();

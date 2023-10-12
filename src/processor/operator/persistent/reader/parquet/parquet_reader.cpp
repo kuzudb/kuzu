@@ -3,7 +3,7 @@
 #include "common/exception/copy.h"
 #include "common/exception/not_implemented.h"
 #include "common/file_utils.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "processor/operator/persistent/reader/parquet/list_column_reader.h"
 #include "processor/operator/persistent/reader/parquet/thrift_tools.h"
 
@@ -146,7 +146,7 @@ bool ParquetReader::scanInternal(ParquetReaderScanState& state, common::DataChun
         auto rowsRead = childReader->read(resultVector->state->selVector->selectedSize, filterMask,
             definePtr, repeatPtr, resultVector.get());
         if (rowsRead != result.state->selVector->selectedSize) {
-            throw common::CopyException(common::StringUtils::string_format(
+            throw common::CopyException(common::stringFormat(
                 "Mismatch in parquet read for column {}, expected {} rows, got {}", fileColIdx,
                 result.state->selVector->selectedSize, rowsRead));
         }
@@ -169,8 +169,8 @@ void ParquetReader::initMetadata() {
     auto& transport = reinterpret_cast<ThriftFileTransport&>(*proto->getTransport());
     auto fileSize = transport.GetSize();
     if (fileSize < 12) {
-        throw common::CopyException{common::StringUtils::string_format(
-            "File {} too small to be a Parquet file", fileInfo->path.c_str())};
+        throw common::CopyException{common::stringFormat(
+            "File {} is too small to be a Parquet file", fileInfo->path.c_str())};
     }
 
     ResizeableBuffer buf;
@@ -182,17 +182,17 @@ void ParquetReader::initMetadata() {
 
     if (memcmp(buf.ptr + 4, "PAR1", 4) != 0) {
         if (memcmp(buf.ptr + 4, "PARE", 4) == 0) {
-            throw common::CopyException{common::StringUtils::string_format(
+            throw common::CopyException{common::stringFormat(
                 "Encrypted Parquet files are not supported for file {}", fileInfo->path.c_str())};
         }
-        throw common::CopyException{common::StringUtils::string_format(
-            "No magic bytes found at end of file {}", fileInfo->path.c_str())};
+        throw common::CopyException{common::stringFormat(
+            "No magic bytes found at the end of file {}", fileInfo->path.c_str())};
     }
     // read four-byte footer length from just before the end magic bytes
     auto footerLen = *reinterpret_cast<uint32_t*>(buf.ptr);
     if (footerLen == 0 || fileSize < 12 + footerLen) {
-        throw common::CopyException{common::StringUtils::string_format(
-            "Footer length error in file {}", fileInfo->path.c_str())};
+        throw common::CopyException{
+            common::stringFormat("Footer length error in file {}", fileInfo->path.c_str())};
     }
     auto metadataPos = fileSize - (footerLen + 8);
     transport.SetLocation(metadataPos);

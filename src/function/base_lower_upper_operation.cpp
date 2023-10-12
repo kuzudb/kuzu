@@ -1,6 +1,6 @@
 #include "common/assert.h"
 #include "common/exception/runtime.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "function/string/functions/base_lower_upper_function.h"
 
 using namespace kuzu::common;
@@ -20,8 +20,8 @@ uint32_t BaseLowerUpperFunction::getResultLen(char* inputStr, uint32_t inputLen,
             if (codepoint < 0) {
                 // TODO(Xiyang): We shouldn't allow invalid UTF-8 to enter a string column.
                 std::string funcName = isUpper ? "UPPER" : "LOWER";
-                throw RuntimeException(common::StringUtils::string_format(
-                    "Failed calling {}: Invalid UTF-8.", funcName));
+                throw RuntimeException(
+                    common::stringFormat("Failed calling {}: Invalid UTF-8.", funcName));
             }
             int convertedCodepoint =
                 isUpper ? utf8proc_toupper(codepoint) : utf8proc_tolower(codepoint);

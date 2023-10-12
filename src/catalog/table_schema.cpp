@@ -9,6 +9,7 @@
 #include "common/exception/not_implemented.h"
 #include "common/exception/runtime.h"
 #include "common/ser_deser.h"
+#include "common/string_format.h"
 #include "common/string_utils.h"
 
 using namespace kuzu::common;
@@ -35,7 +36,7 @@ std::string TableSchema::getPropertyName(property_id_t propertyID) const {
             return property->getName();
         }
     }
-    throw RuntimeException(StringUtils::string_format(
+    throw RuntimeException(stringFormat(
         "Table: {} doesn't have a property with propertyID={}.", tableName, propertyID));
 }
 
@@ -45,7 +46,7 @@ property_id_t TableSchema::getPropertyID(const std::string& propertyName) const 
             return property->getPropertyID();
         }
     }
-    throw RuntimeException(StringUtils::string_format(
+    throw RuntimeException(stringFormat(
         "Table: {} doesn't have a property with propertyName={}.", tableName, propertyName));
 }
 
@@ -65,7 +66,7 @@ Property* TableSchema::getProperty(property_id_t propertyID) const {
             return property.get();
         }
     }
-    throw RuntimeException(StringUtils::string_format(
+    throw RuntimeException(stringFormat(
         "Table: {} doesn't have a property with propertyID={}.", tableName, propertyID));
 }
 
@@ -76,8 +77,7 @@ void TableSchema::renameProperty(property_id_t propertyID, const std::string& ne
             return;
         }
     }
-    throw InternalException(
-        StringUtils::string_format("Property with id={} not found.", propertyID));
+    throw InternalException(stringFormat("Property with id={} not found.", propertyID));
 }
 
 void TableSchema::serialize(FileInfo* fileInfo, uint64_t& offset) {

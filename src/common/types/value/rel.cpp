@@ -1,8 +1,8 @@
 #include "common/types/value/rel.h"
 
 #include "common/constants.h"
+#include "common/string_format.h"
 #include "common/types/value/value.h"
-#include "spdlog/fmt/fmt.h"
 
 namespace kuzu {
 namespace common {
@@ -83,7 +83,7 @@ std::string RelVal::toString(const Value* val) {
 void RelVal::throwIfNotRel(const Value* val) {
     if (val->dataType->getLogicalTypeID() != LogicalTypeID::REL) {
         auto actualType = LogicalTypeUtils::dataTypeToString(val->dataType->getLogicalTypeID());
-        throw Exception(fmt::format("Expected REL type, but got {} type", actualType));
+        throw Exception(stringFormat("Expected REL type, but got {} type", actualType));
     }
 }
 

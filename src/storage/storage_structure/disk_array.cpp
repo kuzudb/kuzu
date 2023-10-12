@@ -1,6 +1,6 @@
 #include "storage/storage_structure/disk_array.h"
 
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "common/utils.h"
 #include "storage/index/hash_index_header.h"
 #include "storage/index/hash_index_slot.h"
@@ -75,7 +75,7 @@ template<typename U>
 void BaseDiskArray<U>::checkOutOfBoundAccess(TransactionType trxType, uint64_t idx) {
     auto currentNumElements = getNumElementsNoLock(trxType);
     if (idx >= currentNumElements) {
-        throw RuntimeException(StringUtils::string_format(
+        throw RuntimeException(stringFormat(
             "idx: {} of the DiskArray to be accessed is >= numElements in DiskArray{}.", idx,
             currentNumElements));
     }

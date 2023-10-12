@@ -1,7 +1,7 @@
 #include "processor/operator/comment_on.h"
 
 #include "catalog/catalog.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 
 using namespace kuzu::common;
 
@@ -15,7 +15,7 @@ bool CommentOn::getNextTuplesInternal(kuzu::processor::ExecutionContext* context
     commentOnInfo->catalog->setTableComment(commentOnInfo->tableID, commentOnInfo->comment);
     commentOnInfo->hasExecuted = true;
     outputVector->setValue<std::string>(outputVector->state->selVector->selectedPositions[0],
-        StringUtils::string_format("Table {} comment updated.", commentOnInfo->tableName));
+        stringFormat("Table {} comment updated.", commentOnInfo->tableName));
     metrics->numOutputTuple.increase(1);
     return true;
 }

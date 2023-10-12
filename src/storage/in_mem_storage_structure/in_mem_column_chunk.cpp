@@ -3,7 +3,7 @@
 #include "common/exception/copy.h"
 #include "common/exception/message.h"
 #include "common/exception/not_implemented.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "common/types/blob.h"
 #include "common/types/types.h"
 
@@ -161,7 +161,7 @@ void InMemColumnChunk::copyArrowArray(
     } break;
     default: {
         throw CopyException(
-            StringUtils::string_format("Unsupported data type {}.", arrowArray.type()->ToString()));
+            stringFormat("Unsupported data type {}.", arrowArray.type()->ToString()));
     }
     }
 }

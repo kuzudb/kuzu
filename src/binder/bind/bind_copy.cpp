@@ -5,7 +5,7 @@
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
 #include "common/exception/message.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "common/table_type.h"
 #include "parser/copy.h"
 
@@ -78,8 +78,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     switch (tableSchema->tableType) {
     case TableType::REL_GROUP:
     case TableType::RDF: {
-        throw BinderException(StringUtils::string_format("Cannot copy into {} table with type {}.",
-            tableName, TableTypeUtils::toString(tableSchema->tableType)));
+        throw BinderException(stringFormat("Cannot copy into {} table with type {}.", tableName,
+            TableTypeUtils::toString(tableSchema->tableType)));
     }
     default:
         break;
