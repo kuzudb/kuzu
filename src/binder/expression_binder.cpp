@@ -94,8 +94,8 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
     if (expression->dataType.getLogicalTypeID() == LogicalTypeID::ANY) {
         if (targetTypeID == LogicalTypeID::VAR_LIST) {
             // e.g. len($1) we cannot infer the child type for $1.
-            throw BinderException("Cannot resolve recursive data type for expression " +
-                                  expression->toString() + ".");
+            throw BinderException(stringFormat(
+                "Cannot resolve recursive data type for expression {}.", expression->toString()));
         }
         resolveAnyDataType(*expression, LogicalType(targetTypeID));
         return expression;
@@ -118,10 +118,10 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCast(
             std::move(bindData), std::move(children), execFunc, nullptr /* selectFunc */,
             std::move(uniqueName));
     } else {
-        throw BinderException("Expression " + expression->toString() + " has data type " +
-                              LogicalTypeUtils::dataTypeToString(expression->dataType) +
-                              " but expect " + LogicalTypeUtils::dataTypeToString(targetType) +
-                              ". Implicit cast is not supported.");
+        throw BinderException(stringFormat(
+            "Expression {} has data type {} but expected {}. Implicit cast is not supported.",
+            expression->toString(), LogicalTypeUtils::dataTypeToString(expression->dataType),
+            LogicalTypeUtils::dataTypeToString(targetType)));
     }
 }
 
@@ -139,10 +139,9 @@ void ExpressionBinder::validateExpectedDataType(
     auto dataType = expression.dataType;
     auto targetsSet = std::unordered_set<LogicalTypeID>{targets.begin(), targets.end()};
     if (!targetsSet.contains(dataType.getLogicalTypeID())) {
-        throw BinderException(expression.toString() + " has data type " +
-                              LogicalTypeUtils::dataTypeToString(dataType.getLogicalTypeID()) +
-                              ". " + LogicalTypeUtils::dataTypesToString(targets) +
-                              " was expected.");
+        throw BinderException(stringFormat("{} has data type {} but {} was expected.",
+            expression.toString(), LogicalTypeUtils::dataTypeToString(dataType.getLogicalTypeID()),
+            LogicalTypeUtils::dataTypesToString(targets)));
     }
 }
 
@@ -152,7 +151,7 @@ void ExpressionBinder::validateAggregationExpressionIsNotNested(const Expression
     }
     if (ExpressionVisitor::hasAggregate(*expression.getChild(0))) {
         throw BinderException(
-            "Expression " + expression.toString() + " contains nested aggregation.");
+            stringFormat("Expression {} contains nested aggregation.", expression.toString()));
     }
 }
 

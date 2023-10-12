@@ -1,5 +1,6 @@
 #include "processor/result/flat_tuple.h"
 
+#include "c_api/helpers.h"
 #include "c_api/kuzu.h"
 #include "common/exception/exception.h"
 
@@ -35,8 +36,5 @@ kuzu_value* kuzu_flat_tuple_get_value(kuzu_flat_tuple* flat_tuple, uint64_t inde
 
 char* kuzu_flat_tuple_to_string(kuzu_flat_tuple* flat_tuple) {
     auto flat_tuple_shared_ptr = static_cast<std::shared_ptr<FlatTuple>*>(flat_tuple->_flat_tuple);
-    auto string = (*flat_tuple_shared_ptr)->toString();
-    char* string_c = (char*)malloc(string.size() + 1);
-    strcpy(string_c, string.c_str());
-    return string_c;
+    return convertToOwnedCString((*flat_tuple_shared_ptr)->toString());
 }

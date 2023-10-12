@@ -1,5 +1,6 @@
 #include "common/types/value/value.h"
 
+#include "c_api/helpers.h"
 #include "c_api/kuzu.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
@@ -185,10 +186,7 @@ uint64_t kuzu_value_get_struct_num_fields(kuzu_value* value) {
 char* kuzu_value_get_struct_field_name(kuzu_value* value, uint64_t index) {
     auto val = static_cast<Value*>(value->_value);
     auto data_type = val->getDataType();
-    auto struct_field_name = StructType::getFields(data_type)[index]->getName();
-    auto* c_struct_field_name = (char*)malloc(sizeof(char) * (struct_field_name.size() + 1));
-    strcpy(c_struct_field_name, struct_field_name.c_str());
-    return c_struct_field_name;
+    return convertToOwnedCString(StructType::getFields(data_type)[index]->getName());
 }
 
 kuzu_value* kuzu_value_get_struct_field_value(kuzu_value* value, uint64_t index) {
@@ -291,24 +289,16 @@ kuzu_interval_t kuzu_value_get_interval(kuzu_value* value) {
 }
 
 char* kuzu_value_get_string(kuzu_value* value) {
-    auto string_val = static_cast<Value*>(value->_value)->getValue<std::string>();
-    auto* c_string = (char*)malloc(string_val.size() + 1);
-    strcpy(c_string, string_val.c_str());
-    return c_string;
+    return convertToOwnedCString(static_cast<Value*>(value->_value)->getValue<std::string>());
 }
 
 uint8_t* kuzu_value_get_blob(kuzu_value* value) {
-    auto string_val = static_cast<Value*>(value->_value)->getValue<std::string>();
-    auto* c_blob = (uint8_t*)malloc(string_val.size() + 1);
-    strcpy((char*)c_blob, string_val.c_str());
-    return c_blob;
+    return (uint8_t*)convertToOwnedCString(
+        static_cast<Value*>(value->_value)->getValue<std::string>());
 }
 
 char* kuzu_value_to_string(kuzu_value* value) {
-    auto string_val = static_cast<Value*>(value->_value)->toString();
-    auto* c_string = (char*)malloc(string_val.size() + 1);
-    strcpy(c_string, string_val.c_str());
-    return c_string;
+    return convertToOwnedCString(static_cast<Value*>(value->_value)->toString());
 }
 
 kuzu_value* kuzu_node_val_get_id_val(kuzu_value* node_val) {
@@ -336,10 +326,7 @@ kuzu_internal_id_t kuzu_node_val_get_id(kuzu_value* node_val) {
 }
 
 char* kuzu_node_val_get_label_name(kuzu_value* node_val) {
-    auto label_name = NodeVal::getLabelName(static_cast<Value*>(node_val->_value));
-    auto* c_string = (char*)malloc(label_name.size() + 1);
-    strcpy(c_string, label_name.c_str());
-    return c_string;
+    return convertToOwnedCString(NodeVal::getLabelName(static_cast<Value*>(node_val->_value)));
 }
 
 uint64_t kuzu_node_val_get_property_size(kuzu_value* node_val) {
@@ -347,10 +334,8 @@ uint64_t kuzu_node_val_get_property_size(kuzu_value* node_val) {
 }
 
 char* kuzu_node_val_get_property_name_at(kuzu_value* node_val, uint64_t index) {
-    auto name = NodeVal::getPropertyName(static_cast<Value*>(node_val->_value), index);
-    auto* c_string = (char*)malloc(name.size() + 1);
-    strcpy(c_string, name.c_str());
-    return c_string;
+    return convertToOwnedCString(
+        NodeVal::getPropertyName(static_cast<Value*>(node_val->_value), index));
 }
 
 kuzu_value* kuzu_node_val_get_property_value_at(kuzu_value* node_val, uint64_t index) {
@@ -362,10 +347,7 @@ kuzu_value* kuzu_node_val_get_property_value_at(kuzu_value* node_val, uint64_t i
 }
 
 char* kuzu_node_val_to_string(kuzu_value* node_val) {
-    auto string_val = NodeVal::toString(static_cast<Value*>(node_val->_value));
-    auto* c_string = (char*)malloc(string_val.size() + 1);
-    strcpy(c_string, string_val.c_str());
-    return c_string;
+    return convertToOwnedCString(NodeVal::toString(static_cast<Value*>(node_val->_value)));
 }
 
 kuzu_value* kuzu_rel_val_get_src_id_val(kuzu_value* rel_val) {
@@ -401,20 +383,15 @@ kuzu_internal_id_t kuzu_rel_val_get_dst_id(kuzu_value* rel_val) {
 }
 
 char* kuzu_rel_val_get_label_name(kuzu_value* rel_val) {
-    auto label = RelVal::getLabelName(static_cast<Value*>(rel_val->_value));
-    auto* c_string = (char*)malloc(label.size() + 1);
-    strcpy(c_string, label.c_str());
-    return c_string;
+    return convertToOwnedCString(RelVal::getLabelName(static_cast<Value*>(rel_val->_value)));
 }
 
 uint64_t kuzu_rel_val_get_property_size(kuzu_value* rel_val) {
     return RelVal::getNumProperties(static_cast<Value*>(rel_val->_value));
 }
 char* kuzu_rel_val_get_property_name_at(kuzu_value* rel_val, uint64_t index) {
-    auto name = RelVal::getPropertyName(static_cast<Value*>(rel_val->_value), index);
-    auto* c_string = (char*)malloc(name.size() + 1);
-    strcpy(c_string, name.c_str());
-    return c_string;
+    return convertToOwnedCString(
+        RelVal::getPropertyName(static_cast<Value*>(rel_val->_value), index));
 }
 
 kuzu_value* kuzu_rel_val_get_property_value_at(kuzu_value* rel_val, uint64_t index) {
@@ -426,8 +403,5 @@ kuzu_value* kuzu_rel_val_get_property_value_at(kuzu_value* rel_val, uint64_t ind
 }
 
 char* kuzu_rel_val_to_string(kuzu_value* rel_val) {
-    auto string_val = RelVal::toString(static_cast<Value*>(rel_val->_value));
-    auto* c_string = (char*)malloc(string_val.size() + 1);
-    strcpy(c_string, string_val.c_str());
-    return c_string;
+    return convertToOwnedCString(RelVal::toString(static_cast<Value*>(rel_val->_value)));
 }
