@@ -16,10 +16,6 @@ void PyConnection::initialize(py::handle& m) {
             py::arg("parameters") = py::dict())
         .def("set_max_threads_for_exec", &PyConnection::setMaxNumThreadForExec,
             py::arg("num_threads"))
-        .def("get_node_property_names", &PyConnection::getNodePropertyNames, py::arg("table_name"))
-        .def("get_node_table_names", &PyConnection::getNodeTableNames)
-        .def("get_rel_property_names", &PyConnection::getRelPropertyNames, py::arg("table_name"))
-        .def("get_rel_table_names", &PyConnection::getRelTableNames)
         .def("prepare", &PyConnection::prepare, py::arg("query"))
         .def("set_query_timeout", &PyConnection::setQueryTimeout, py::arg("timeout_in_ms"))
         .def("get_num_nodes", &PyConnection::getNumNodes, py::arg("node_name"))
@@ -59,22 +55,6 @@ std::unique_ptr<PyQueryResult> PyConnection::execute(
 
 void PyConnection::setMaxNumThreadForExec(uint64_t numThreads) {
     conn->setMaxNumThreadForExec(numThreads);
-}
-
-py::str PyConnection::getNodePropertyNames(const std::string& tableName) {
-    return conn->getNodePropertyNames(tableName);
-}
-
-py::str PyConnection::getNodeTableNames() {
-    return conn->getNodeTableNames();
-}
-
-py::str PyConnection::getRelPropertyNames(const std::string& tableName) {
-    return conn->getRelPropertyNames(tableName);
-}
-
-py::str PyConnection::getRelTableNames() {
-    return conn->getRelTableNames();
 }
 
 PyPreparedStatement PyConnection::prepare(const std::string& query) {

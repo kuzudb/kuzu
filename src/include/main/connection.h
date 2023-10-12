@@ -95,25 +95,6 @@ public:
     KUZU_API std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
         std::unordered_map<std::string, std::shared_ptr<common::Value>>& inputParams);
     /**
-     * @return all node table names in string format.
-     */
-    KUZU_API std::string getNodeTableNames();
-    /**
-     * @return all rel table names in string format.
-     */
-    KUZU_API std::string getRelTableNames();
-    /**
-     * @param nodeTableName The name of the node table.
-     * @return all property names of the given table.
-     */
-    KUZU_API std::string getNodePropertyNames(const std::string& tableName);
-    /**
-     * @param relTableName The name of the rel table.
-     * @return all property names of the given table.
-     */
-    KUZU_API std::string getRelPropertyNames(const std::string& relTableName);
-
-    /**
      * @brief interrupts all queries currently executing within this connection.
      */
     KUZU_API void interrupt();

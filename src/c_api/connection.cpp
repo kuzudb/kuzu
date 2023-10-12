@@ -87,36 +87,6 @@ kuzu_query_result* kuzu_connection_execute(
     return c_query_result;
 }
 
-char* kuzu_connection_get_node_table_names(kuzu_connection* connection) {
-    auto node_table_names = static_cast<Connection*>(connection->_connection)->getNodeTableNames();
-    char* node_table_names_c = (char*)malloc(node_table_names.size() + 1);
-    strcpy(node_table_names_c, node_table_names.c_str());
-    return node_table_names_c;
-}
-
-char* kuzu_connection_get_rel_table_names(kuzu_connection* connection) {
-    auto rel_table_names = static_cast<Connection*>(connection->_connection)->getRelTableNames();
-    char* rel_table_names_c = (char*)malloc(rel_table_names.size() + 1);
-    strcpy(rel_table_names_c, rel_table_names.c_str());
-    return rel_table_names_c;
-}
-
-char* kuzu_connection_get_node_property_names(kuzu_connection* connection, const char* table_name) {
-    auto node_property_names =
-        static_cast<Connection*>(connection->_connection)->getNodePropertyNames(table_name);
-    char* node_property_names_c = (char*)malloc(node_property_names.size() + 1);
-    strcpy(node_property_names_c, node_property_names.c_str());
-    return node_property_names_c;
-}
-
-char* kuzu_connection_get_rel_property_names(kuzu_connection* connection, const char* table_name) {
-    auto rel_property_names =
-        static_cast<Connection*>(connection->_connection)->getRelPropertyNames(table_name);
-    char* rel_property_names_c = (char*)malloc(rel_property_names.size() + 1);
-    strcpy(rel_property_names_c, rel_property_names.c_str());
-    return rel_property_names_c;
-}
-
 void kuzu_connection_interrupt(kuzu_connection* connection) {
     static_cast<Connection*>(connection->_connection)->interrupt();
 }

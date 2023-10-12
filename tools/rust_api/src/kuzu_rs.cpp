@@ -103,19 +103,6 @@ std::unique_ptr<kuzu::main::QueryResult> connection_execute(kuzu::main::Connecti
     return connection.executeWithParams(&query, params->inputParams);
 }
 
-rust::String get_node_table_names(Connection& connection) {
-    return rust::String(connection.getNodeTableNames());
-}
-rust::String get_rel_table_names(Connection& connection) {
-    return rust::String(connection.getRelTableNames());
-}
-rust::String get_node_property_names(Connection& connection, rust::Str tableName) {
-    return rust::String(connection.getNodePropertyNames(std::string(tableName)));
-}
-rust::String get_rel_property_names(Connection& connection, rust::Str relTableName) {
-    return rust::String(connection.getRelPropertyNames(std::string(relTableName)));
-}
-
 rust::String prepared_statement_error_message(const kuzu::main::PreparedStatement& statement) {
     return rust::String(statement.getErrorMessage());
 }

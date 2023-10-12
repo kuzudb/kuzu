@@ -120,15 +120,6 @@ pub(crate) mod ffi {
         fn rollback(self: Pin<&mut Connection>) -> Result<()>;
         fn interrupt(self: Pin<&mut Connection>) -> Result<()>;
         fn setQueryTimeOut(self: Pin<&mut Connection>, timeout_ms: u64);
-
-        #[namespace = "kuzu_rs"]
-        fn get_node_table_names(conn: Pin<&mut Connection>) -> String;
-        #[namespace = "kuzu_rs"]
-        fn get_rel_table_names(conn: Pin<&mut Connection>) -> String;
-        #[namespace = "kuzu_rs"]
-        fn get_node_property_names(conn: Pin<&mut Connection>, node_table_name: &str) -> String;
-        #[namespace = "kuzu_rs"]
-        fn get_rel_property_names(conn: Pin<&mut Connection>, rel_table_name: &str) -> String;
     }
 
     #[namespace = "kuzu::main"]
