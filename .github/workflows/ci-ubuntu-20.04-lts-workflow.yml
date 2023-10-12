@@ -341,15 +341,12 @@ jobs:
 
       - name: Python test
         run: make pytest NUM_THREADS=$(nproc)
-        continue-on-error: ${{ matrix.image == 'fedora:38' }}
 
       - name: Node.js test
         run: make nodejstest NUM_THREADS=$(nproc)
-        continue-on-error: ${{ matrix.image == 'fedora:38' }}
 
       - name: Java test
         run: make javatest NUM_THREADS=$(nproc)
-        continue-on-error: ${{ matrix.image == 'fedora:38' }}
 
       - name: Rust share build
         run: echo $'[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
@@ -481,15 +478,12 @@ jobs:
 
       - name: Python test
         run: make pytest NUM_THREADS=$(nproc)
-        continue-on-error: true
 
       - name: Node.js test
         run: make nodejstest NUM_THREADS=$(nproc)
-        continue-on-error: true
 
       - name: Java test
         run: make javatest NUM_THREADS=$(nproc)
-        continue-on-error: true
 
       - name: Rust share build
         run: echo $'[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
