@@ -5,7 +5,7 @@
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
 #include "common/exception/not_implemented.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -66,8 +66,7 @@ std::shared_ptr<Expression> Binder::bindWhereExpression(const ParsedExpression& 
 common::table_id_t Binder::bindTableID(const std::string& tableName) const {
     auto catalogContent = catalog.getReadOnlyVersion();
     if (!catalogContent->containsTable(tableName)) {
-        throw BinderException(
-            common::StringUtils::string_format("Table {} does not exist.", tableName));
+        throw BinderException(common::stringFormat("Table {} does not exist.", tableName));
     }
     return catalogContent->getTableID(tableName);
 }
@@ -110,9 +109,8 @@ std::unique_ptr<LogicalType> Binder::bindDataType(const std::string& dataType) {
         auto numElementsPerPage = storage::PageUtils::getNumElementsInAPage(
             storage::StorageUtils::getDataTypeSize(boundType), true /* hasNull */);
         if (numElementsPerPage == 0) {
-            throw BinderException(
-                StringUtils::string_format("Cannot store a fixed list of size {} in a page.",
-                    storage::StorageUtils::getDataTypeSize(boundType)));
+            throw BinderException(stringFormat("Cannot store a fixed list of size {} in a page.",
+                storage::StorageUtils::getDataTypeSize(boundType)));
         }
     }
     return std::make_unique<LogicalType>(boundType);

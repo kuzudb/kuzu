@@ -10,7 +10,7 @@
 #include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "function/cast/cast_utils.h"
 #include "main/client_context.h"
 
@@ -186,7 +186,7 @@ static std::unique_ptr<Expression> createPropertyExpression(const std::string& p
     }
     for (auto type : propertyDataTypes) {
         if (*propertyDataTypes[0] != *type) {
-            StringUtils::string_format("Expect same data type for property {} but find {} and {}",
+            stringFormat("Expected the same data type for property {} but found {} and {}.",
                 propertyName, LogicalTypeUtils::dataTypeToString(*type),
                 LogicalTypeUtils::dataTypeToString(*propertyDataTypes[0]));
         }
@@ -315,7 +315,7 @@ static void bindRecursiveRelProjectionList(const expression_vector& projectionLi
     std::vector<std::string>& fieldNames, std::vector<std::unique_ptr<LogicalType>>& fieldTypes) {
     for (auto& expression : projectionList) {
         if (expression->expressionType != common::PROPERTY) {
-            throw BinderException(StringUtils::string_format(
+            throw BinderException(stringFormat(
                 "Unsupported projection item {} on recursive rel.", expression->toString()));
         }
         auto property = reinterpret_cast<PropertyExpression*>(expression.get());

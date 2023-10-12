@@ -7,6 +7,7 @@
 #include "common/exception/catalog.h"
 #include "common/exception/runtime.h"
 #include "common/ser_deser.h"
+#include "common/string_format.h"
 #include "common/string_utils.h"
 #include "storage/storage_utils.h"
 
@@ -229,10 +230,10 @@ std::unique_ptr<CatalogContent> CatalogContent::copy() const {
 void CatalogContent::validateStorageVersion(storage_version_t savedStorageVersion) {
     auto storageVersion = StorageVersionInfo::getStorageVersion();
     if (savedStorageVersion != storageVersion) {
-        throw RuntimeException(StringUtils::string_format(
-            "Trying to read a database file with a different version. "
-            "Database file version: {}, Current build storage version: {}",
-            savedStorageVersion, storageVersion));
+        throw RuntimeException(
+            stringFormat("Trying to read a database file with a different version. "
+                         "Database file version: {}, Current build storage version: {}",
+                savedStorageVersion, storageVersion));
     }
 }
 

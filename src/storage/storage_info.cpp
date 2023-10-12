@@ -1,7 +1,7 @@
 #include "storage/storage_info.h"
 
 #include "common/exception/runtime.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 
 using namespace kuzu::common;
 
@@ -12,7 +12,7 @@ storage_version_t StorageVersionInfo::getStorageVersion() {
     auto storageVersionInfo = getStorageVersionInfo();
     if (!storageVersionInfo.contains(KUZU_STORAGE_VERSION)) {
         throw RuntimeException(
-            StringUtils::string_format("Invalid storage version name: {}", KUZU_STORAGE_VERSION));
+            stringFormat("Invalid storage version name: {}", KUZU_STORAGE_VERSION));
     }
     return storageVersionInfo.at(KUZU_STORAGE_VERSION);
 }

@@ -1,7 +1,7 @@
 #include "processor/operator/ddl/create_rdf_graph.h"
 
 #include "catalog/rdf_graph_schema.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "storage/storage_manager.h"
 
 using namespace kuzu::catalog;
@@ -24,7 +24,7 @@ void CreateRdfGraph::executeDDLInternal() {
 }
 
 std::string CreateRdfGraph::getOutputMsg() {
-    return common::StringUtils::string_format("RDF graph {} has been created.", info->tableName);
+    return common::stringFormat("RDF graph {} has been created.", info->tableName);
 }
 
 } // namespace processor

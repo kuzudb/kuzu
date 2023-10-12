@@ -3,7 +3,7 @@
 #include <cstring>
 
 #include "common/file_utils.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "gtest/gtest.h"
 #include "main/kuzu.h"
 #include "test_helper/test_helper.h"
@@ -22,7 +22,7 @@ static void removeDir(const std::string& dir) {
     if (common::FileUtils::fileOrPathExists(dir)) {
         std::error_code removeErrorCode;
         if (!std::filesystem::remove_all(dir, removeErrorCode)) {
-            throw common::Exception(common::StringUtils::string_format(
+            throw common::Exception(common::stringFormat(
                 "Error removing directory {}.  Error Message: {}", dir, removeErrorCode.message()));
         }
     }

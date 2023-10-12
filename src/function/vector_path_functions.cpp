@@ -2,7 +2,7 @@
 
 #include "binder/expression/literal_expression.h"
 #include "common/exception/binder.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "function/path/path_function_executor.h"
 #include "function/struct/vector_struct_functions.h"
 
@@ -54,7 +54,7 @@ vector_function_definitions PropertiesVectorFunction::getDefinitions() {
 std::unique_ptr<FunctionBindData> PropertiesVectorFunction::bindFunc(
     const binder::expression_vector& arguments, FunctionDefinition* definition) {
     if (arguments[1]->expressionType != ExpressionType::LITERAL) {
-        throw BinderException(StringUtils::string_format(
+        throw BinderException(stringFormat(
             "Expect literal input as the second argument for {}().", PROPERTIES_FUNC_NAME));
     }
     auto key = ((binder::LiteralExpression&)*arguments[1]).getValue()->getValue<std::string>();
@@ -65,10 +65,10 @@ std::unique_ptr<FunctionBindData> PropertiesVectorFunction::bindFunc(
         childType->getLogicalTypeID() == LogicalTypeID::REL) {
         fieldIdx = StructType::getFieldIdx(childType, key);
         if (fieldIdx == INVALID_STRUCT_FIELD_IDX) {
-            throw BinderException(StringUtils::string_format("Invalid property name: {}.", key));
+            throw BinderException(stringFormat("Invalid property name: {}.", key));
         }
     } else {
-        throw BinderException(StringUtils::string_format(
+        throw BinderException(stringFormat(
             "Cannot extract properties from {}.", LogicalTypeUtils::dataTypeToString(listType)));
     }
     auto field = StructType::getField(childType, fieldIdx);

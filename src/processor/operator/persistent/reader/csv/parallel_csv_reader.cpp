@@ -1,7 +1,7 @@
 #include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
 
 #include "common/exception/copy.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "common/system_message.h"
 #include "processor/operator/persistent/reader/csv/driver.h"
 
@@ -46,7 +46,7 @@ void ParallelCSVReader::seekToBlockStart() {
     // Seek to the proper location in the file.
     if (lseek(fd, currentBlockIdx * CopyConstants::PARALLEL_BLOCK_SIZE, SEEK_SET) == -1) {
         // LCOV_EXCL_START
-        throw CopyException(StringUtils::string_format("Failed to seek to block {} in file {}: {}",
+        throw CopyException(stringFormat("Failed to seek to block {} in file {}: {}",
             currentBlockIdx, filePath, posixErrMessage()));
         // LCOV_EXCL_END
     }
@@ -85,11 +85,10 @@ void ParallelCSVReader::seekToBlockStart() {
 }
 
 void ParallelCSVReader::handleQuotedNewline() {
-    throw CopyException(
-        StringUtils::string_format("Quoted newlines are not supported in parallel CSV reader "
-                                   "(while parsing {} on line {}). Please "
-                                   "specify PARALLEL=FALSE in the options.",
-            filePath, getLineNumber()));
+    throw CopyException(stringFormat("Quoted newlines are not supported in parallel CSV reader "
+                                     "(while parsing {} on line {}). Please "
+                                     "specify PARALLEL=FALSE in the options.",
+        filePath, getLineNumber()));
 }
 
 bool ParallelCSVReader::finishedBlock() const {

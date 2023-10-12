@@ -32,7 +32,9 @@ void BenchmarkRunner::registerBenchmarks(const std::string& path) {
 void BenchmarkRunner::runAllBenchmarks() {
     for (auto& benchmark : benchmarks) {
         try {
-            runBenchmark(benchmark.get());
+            runBenchmark( // NOLINT(clang-analyzer-optin.cplusplus.UninitializedObject): spdlog has
+                          // an unitialized object.
+                benchmark.get());
         } catch (std::exception& e) {
             spdlog::error(
                 "Error encountered while running benchmark {}: {}.", benchmark->name, e.what());
@@ -58,7 +60,9 @@ double BenchmarkRunner::computeAverageOfLastRuns(
 }
 
 void BenchmarkRunner::runBenchmark(Benchmark* benchmark) const {
-    spdlog::info("Running benchmark {} with {} thread", benchmark->name, config->numThreads);
+    spdlog::info("Running benchmark {} with {} thread", // NOLINT(clang-analyzer-optin.cplusplus.UninitializedObject):
+                                                        // spdlog has an unitialized object.
+        benchmark->name, config->numThreads);
     for (auto i = 0u; i < config->numWarmups; ++i) {
         spdlog::info("Warm up");
         benchmark->run();
@@ -70,10 +74,9 @@ void BenchmarkRunner::runBenchmark(Benchmark* benchmark) const {
         benchmark->log(i + 1, *queryResult);
         runTimes[i] = queryResult->getQuerySummary()->getExecutionTime();
     }
-    spdlog::info("Time Taken (Average of Last " + std::to_string(config->numRuns) +
-                 " runs) (ms): " +
-                 std::to_string(computeAverageOfLastRuns(
-                     &runTimes[0], config->numRuns, config->numRuns /* numRunsToAverage */)));
+    spdlog::info("Time Taken (Average of Last {} runs) (ms): {}", config->numRuns,
+        computeAverageOfLastRuns(
+            &runTimes[0], config->numRuns, config->numRuns /* numRunsToAverage */));
 }
 
 void BenchmarkRunner::profileQueryIfEnabled(Benchmark* benchmark) const {

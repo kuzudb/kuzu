@@ -1,7 +1,7 @@
 #include "storage/stats/node_table_statistics.h"
 
 #include "common/ser_deser.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "storage/stats/table_statistics_collection.h"
 
 using namespace kuzu::common;
@@ -81,15 +81,14 @@ void NodeTableStatsAndDeletedIDs::deleteNode(offset_t nodeOffset) {
     auto maxNodeOffset = getMaxNodeOffset();
     if (maxNodeOffset == UINT64_MAX || nodeOffset > maxNodeOffset) {
         throw RuntimeException(
-            StringUtils::string_format("Cannot delete nodeOffset {} in nodeTable {}. maxNodeOffset "
-                                       "is either -1 or nodeOffset is > maxNodeOffset: {}.",
+            stringFormat("Cannot delete nodeOffset {} in nodeTable {}. maxNodeOffset "
+                         "is either -1 or nodeOffset is > maxNodeOffset: {}.",
                 nodeOffset, tableID, maxNodeOffset));
     }
     auto morselIdxAndOffset =
         StorageUtils::getQuotientRemainder(nodeOffset, DEFAULT_VECTOR_CAPACITY);
     if (isDeleted(nodeOffset, morselIdxAndOffset.first)) {
-        throw RuntimeException(
-            StringUtils::string_format("Node with offset {} is already deleted.", nodeOffset));
+        throw RuntimeException(stringFormat("Node with offset {} is already deleted.", nodeOffset));
     }
     errorIfNodeHasEdges(nodeOffset);
     if (!hasDeletedNodesPerMorsel[morselIdxAndOffset.first]) {
@@ -171,7 +170,7 @@ void NodeTableStatsAndDeletedIDs::errorIfNodeHasEdges(offset_t nodeOffset) {
         auto numElementsInList =
             adjList->getTotalNumElementsInList(transaction::TransactionType::WRITE, nodeOffset);
         if (numElementsInList != 0) {
-            throw RuntimeException(StringUtils::string_format(
+            throw RuntimeException(stringFormat(
                 "Currently deleting a node with edges is not supported. node table {} nodeOffset "
                 "{} has {} (one-to-many or many-to-many) edges.",
                 tableID, nodeOffset, numElementsInList));
@@ -179,7 +178,7 @@ void NodeTableStatsAndDeletedIDs::errorIfNodeHasEdges(offset_t nodeOffset) {
     }
     for (Column* adjColumn : adjListsAndColumns.second) {
         if (!adjColumn->isNull(nodeOffset, transaction::Transaction::getDummyWriteTrx().get())) {
-            throw RuntimeException(StringUtils::string_format(
+            throw RuntimeException(stringFormat(
                 "Currently deleting a node with edges is not supported. node table {} nodeOffset "
                 "{}  has a 1-1 edge.",
                 tableID, nodeOffset));

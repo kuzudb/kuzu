@@ -4,6 +4,7 @@
 
 #include "common/exception/test.h"
 #include "common/file_utils.h"
+#include "common/string_format.h"
 #include "common/string_utils.h"
 #include "spdlog/spdlog.h"
 #include "test_helper/test_helper.h"
@@ -69,8 +70,7 @@ CSVToParquetConverter::readCopyCommandsFromCopyCypherFile(
     auto copyFile = FileUtils::joinPath(csvDatasetPath, TestHelper::COPY_FILE_NAME);
     std::ifstream file(copyFile);
     if (!file.is_open()) {
-        throw TestException(
-            StringUtils::string_format("Error opening file: {}, errno: {}.", copyFile, errno));
+        throw TestException(stringFormat("Error opening file: {}, errno: {}.", copyFile, errno));
     }
     std::string line;
     std::vector<CopyCommandInfo> copyCommands;
@@ -85,8 +85,8 @@ void CSVToParquetConverter::createCopyFile(const std::string& parquetDatasetPath
     auto targetCopyCypherFile = FileUtils::joinPath(parquetDatasetPath, TestHelper::COPY_FILE_NAME);
     std::ofstream outfile(targetCopyCypherFile);
     if (!outfile.is_open()) {
-        throw TestException(StringUtils::string_format(
-            "Error opening file: {}, errno: {}.", targetCopyCypherFile, errno));
+        throw TestException(
+            stringFormat("Error opening file: {}, errno: {}.", targetCopyCypherFile, errno));
     }
     for (const auto& copyCommand : copyCommands) {
         auto cmd = "COPY " + copyCommand.table + " FROM '" + copyCommand.parquetFilePath + "'";

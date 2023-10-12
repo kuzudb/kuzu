@@ -213,7 +213,7 @@ void BasicColumnWriter::flushPage(BasicColumnWriterState& state) {
 
     // now that we have finished writing the data we know the uncompressed size
     if (bufferedWriter.getSize() > uint64_t(function::NumericLimits<int32_t>::maximum())) {
-        throw common::RuntimeException{common::StringUtils::string_format(
+        throw common::RuntimeException{common::stringFormat(
             "Parquet writer: %d uncompressed page size out of range for type integer",
             bufferedWriter.getSize())};
     }

@@ -1,7 +1,7 @@
 #include "storage/storage_utils.h"
 
 #include "common/null_buffer.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "storage/in_mem_storage_structure/in_mem_column.h"
 #include "storage/in_mem_storage_structure/in_mem_lists.h"
 #include "storage/storage_manager.h"
@@ -14,14 +14,14 @@ namespace storage {
 
 std::string StorageUtils::getNodeIndexFName(
     const std::string& directory, const table_id_t& tableID, DBFileType dbFileType) {
-    auto fName = StringUtils::string_format("n-{}", tableID);
+    auto fName = stringFormat("n-{}", tableID);
     return appendWALFileSuffixIfNecessary(
         FileUtils::joinPath(directory, fName + StorageConstants::INDEX_FILE_SUFFIX), dbFileType);
 }
 
 std::string StorageUtils::getNodePropertyColumnFName(const std::string& directory,
     const table_id_t& tableID, uint32_t propertyID, DBFileType dbFileType) {
-    auto fName = StringUtils::string_format("n-{}-{}", tableID, propertyID);
+    auto fName = stringFormat("n-{}-{}", tableID, propertyID);
     return appendWALFileSuffixIfNecessary(
         FileUtils::joinPath(directory, fName + StorageConstants::COLUMN_FILE_SUFFIX), dbFileType);
 }
@@ -40,7 +40,7 @@ std::string StorageUtils::getPropertyNullFName(const std::string& filePath) {
 
 std::string StorageUtils::getAdjListsFName(const std::string& directory,
     const table_id_t& relTableID, const RelDataDirection& relDirection, DBFileType dbFileType) {
-    auto fName = StringUtils::string_format("r-{}-{}", relTableID, relDirection);
+    auto fName = stringFormat("r-{}-{}", relTableID, relDirection);
     return appendWALFileSuffixIfNecessary(
         FileUtils::joinPath(directory, fName + StorageConstants::LISTS_FILE_SUFFIX), dbFileType);
 }
@@ -48,7 +48,7 @@ std::string StorageUtils::getAdjListsFName(const std::string& directory,
 std::string StorageUtils::getRelPropertyColumnFName(const std::string& directory,
     const table_id_t& relTableID, const RelDataDirection& relDirection, const uint32_t propertyID,
     DBFileType dbFileType) {
-    auto fName = StringUtils::string_format("r-{}-{}-{}", relTableID, relDirection, propertyID);
+    auto fName = stringFormat("r-{}-{}-{}", relTableID, relDirection, propertyID);
     return appendWALFileSuffixIfNecessary(
         FileUtils::joinPath(directory, fName + StorageConstants::COLUMN_FILE_SUFFIX), dbFileType);
 }
@@ -56,14 +56,14 @@ std::string StorageUtils::getRelPropertyColumnFName(const std::string& directory
 std::string StorageUtils::getRelPropertyListsFName(const std::string& directory,
     const table_id_t& relTableID, const RelDataDirection& relDirection, const uint32_t propertyID,
     DBFileType dbFileType) {
-    auto fName = StringUtils::string_format("r-{}-{}-{}", relTableID, relDirection, propertyID);
+    auto fName = stringFormat("r-{}-{}-{}", relTableID, relDirection, propertyID);
     return appendWALFileSuffixIfNecessary(
         FileUtils::joinPath(directory, fName + StorageConstants::LISTS_FILE_SUFFIX), dbFileType);
 }
 
 std::string StorageUtils::getAdjColumnFName(const std::string& directory,
     const table_id_t& relTableID, const RelDataDirection& relDirection, DBFileType dbFileType) {
-    auto fName = StringUtils::string_format("r-{}-{}", relTableID, relDirection);
+    auto fName = stringFormat("r-{}-{}", relTableID, relDirection);
     return appendWALFileSuffixIfNecessary(
         FileUtils::joinPath(directory, fName + StorageConstants::COLUMN_FILE_SUFFIX), dbFileType);
 }

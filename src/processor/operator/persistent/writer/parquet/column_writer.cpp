@@ -215,9 +215,9 @@ void ColumnWriter::compressPage(BufferedSerializer& bufferedSerializer, size_t& 
     }
 
     if (compressedSize > uint64_t(function::NumericLimits<int32_t>::maximum())) {
-        throw RuntimeException(StringUtils::string_format(
-            "Parquet writer: {} compressed page size out of range for type integer",
-            bufferedSerializer.getSize()));
+        throw RuntimeException(
+            stringFormat("Parquet writer: {} compressed page size out of range for type integer",
+                bufferedSerializer.getSize()));
     }
 }
 

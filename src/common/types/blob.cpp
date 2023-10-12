@@ -1,7 +1,7 @@
 #include "common/types/blob.h"
 
 #include "common/exception/conversion.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 
 namespace kuzu {
 namespace common {
@@ -35,9 +35,9 @@ uint64_t Blob::getBlobSize(const ku_string_t& blob) {
         } else if (blobStr[i] <= 127) {
             blobSize++;
         } else {
-            throw ConversionException(StringUtils::string_format(
+            throw ConversionException(
                 "Invalid byte encountered in STRING -> BLOB conversion. All non-ascii characters "
-                "must be escaped with hex codes (e.g. \\xAA)"));
+                "must be escaped with hex codes (e.g. \\xAA)");
         }
     }
     return blobSize;
@@ -95,9 +95,9 @@ void Blob::validateHexCode(const uint8_t* blobStr, uint64_t length, uint64_t cur
             0 ||
         HexFormatConstants::HEX_MAP[blobStr[curPos + HexFormatConstants::FIRST_BYTE_POS]] < 0 ||
         HexFormatConstants::HEX_MAP[blobStr[curPos + HexFormatConstants::SECOND_BYTES_POS]] < 0) {
-        throw ConversionException(StringUtils::string_format(
-            "Invalid hex escape code encountered in string -> blob conversion: {}",
-            std::string((char*)blobStr + curPos, HexFormatConstants::LENGTH)));
+        throw ConversionException(
+            stringFormat("Invalid hex escape code encountered in string -> blob conversion: {}",
+                std::string((char*)blobStr + curPos, HexFormatConstants::LENGTH)));
     }
 }
 

@@ -1,7 +1,7 @@
 #include "graph_test/graph_test.h"
 
 #include "binder/binder.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "parser/parser.h"
 #include "spdlog/spdlog.h"
 #include "storage/storage_manager.h"

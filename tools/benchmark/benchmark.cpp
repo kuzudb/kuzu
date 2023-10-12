@@ -54,7 +54,9 @@ void Benchmark::logQueryInfo(
 void Benchmark::log(uint32_t runNum, QueryResult& queryResult) const {
     auto querySummary = queryResult.getQuerySummary();
     auto actualOutput = testing::TestHelper::convertResultToString(queryResult);
-    spdlog::info("Run number: {}", runNum);
+    spdlog::info("Run number: {}", // NOLINT(clang-analyzer-optin.cplusplus.UninitializedObject):
+                                   // spdlog has ab unitialized object.
+        runNum);
     spdlog::info("Compiling time {}", querySummary->getCompilingTime());
     spdlog::info("Execution time {}", querySummary->getExecutionTime());
     verify(actualOutput);

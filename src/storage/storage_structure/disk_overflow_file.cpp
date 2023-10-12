@@ -1,7 +1,7 @@
 #include "storage/storage_structure/disk_overflow_file.h"
 
 #include "common/null_buffer.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "common/type_utils.h"
 #include "common/types/value/value.h"
 
@@ -188,8 +188,9 @@ void DiskOverflowFile::setStringOverflowWithoutLock(
     if (len <= ku_string_t::SHORT_STR_LENGTH) {
         return;
     } else if (len > BufferPoolConstants::PAGE_4KB_SIZE) {
-        throw RuntimeException(StringUtils::getLongStringErrorMessage(
-            srcRawString, BufferPoolConstants::PAGE_4KB_SIZE));
+        throw RuntimeException(
+            stringFormat("Maximum length of strings is {}. Input string's length is {}.",
+                BufferPoolConstants::PAGE_4KB_SIZE, strlen(srcRawString)));
     }
     addNewPageIfNecessaryWithoutLock(len);
     auto updatedPageInfoAndWALPageFrame = createWALVersionOfPageIfNecessaryForElement(
@@ -235,9 +236,9 @@ void DiskOverflowFile::setListRecursiveIfNestedWithoutLock(
     auto childType = VarListType::getChildType(&dataType);
     auto elementSize = storage::StorageUtils::getDataTypeSize(*childType);
     if (inMemSrcList.size * elementSize > BufferPoolConstants::PAGE_4KB_SIZE) {
-        throw RuntimeException(StringUtils::string_format(
-            "Maximum num bytes of a LIST is %d. Input list's num bytes is %d.",
-            BufferPoolConstants::PAGE_4KB_SIZE, inMemSrcList.size * elementSize));
+        throw RuntimeException(
+            stringFormat("Maximum num bytes of a LIST is %d. Input list's num bytes is %d.",
+                BufferPoolConstants::PAGE_4KB_SIZE, inMemSrcList.size * elementSize));
     }
     addNewPageIfNecessaryWithoutLock(inMemSrcList.size * elementSize);
     auto updatedPageInfoAndWALPageFrame = createWALVersionOfPageIfNecessaryForElement(

@@ -1,4 +1,4 @@
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "graph_test/graph_test.h"
 #include "processor/plan_mapper.h"
 #include "processor/processor.h"
@@ -289,8 +289,7 @@ public:
 
     void addPropertyToPersonTableWithoutDefaultValue(
         std::string propertyType, TransactionTestType transactionTestType) {
-        executeQueryWithoutCommit(
-            StringUtils::string_format("ALTER TABLE person ADD random {}", propertyType));
+        executeQueryWithoutCommit(stringFormat("ALTER TABLE person ADD random {}", propertyType));
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->query("COMMIT_SKIP_CHECKPOINT");
             initWithoutLoadingGraph();
@@ -326,8 +325,7 @@ public:
 
     void addPropertyToStudyAtTableWithoutDefaultValue(
         std::string propertyType, TransactionTestType transactionTestType) {
-        executeQueryWithoutCommit(
-            StringUtils::string_format("ALTER TABLE studyAt ADD random {}", propertyType));
+        executeQueryWithoutCommit(stringFormat("ALTER TABLE studyAt ADD random {}", propertyType));
         auto tableSchema = catalog->getWriteVersion()->getTableSchema(studyAtTableID);
         auto propertyID = tableSchema->getPropertyID("random");
         auto hasOverflow = containsOverflowFile(
@@ -367,8 +365,8 @@ public:
 
     void addPropertyToStudyAtTableWithDefaultValue(
         std::string propertyType, std::string defaultVal, TransactionTestType transactionTestType) {
-        executeQueryWithoutCommit(StringUtils::string_format(
-            "ALTER TABLE studyAt ADD random {} DEFAULT {}", propertyType, defaultVal));
+        executeQueryWithoutCommit(
+            stringFormat("ALTER TABLE studyAt ADD random {} DEFAULT {}", propertyType, defaultVal));
         auto relTableSchema = catalog->getWriteVersion()->getTableSchema(studyAtTableID);
         auto propertyID = relTableSchema->getPropertyID("random");
         auto hasOverflow = containsOverflowFile(

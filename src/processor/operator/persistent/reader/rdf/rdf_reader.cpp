@@ -4,6 +4,7 @@
 
 #include "common/constants.h"
 #include "common/exception/copy.h"
+#include "common/string_format.h"
 #include "common/vector/value_vector.h"
 #include "serd.h"
 
@@ -36,7 +37,7 @@ SerdStatus RDFReader::errorHandle(void* handle, const SerdError* error) {
     }
     if (error->status != SERD_SUCCESS && error->status != SERD_FAILURE) {
         throw common::CopyException(
-            common::StringUtils::string_format("{} while reading rdf file at line {} and col {}",
+            common::stringFormat("{} while reading rdf file at line {} and col {}",
                 (char*)serd_strerror(error->status), error->line, error->col));
     }
     return error->status;

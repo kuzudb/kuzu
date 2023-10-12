@@ -14,7 +14,7 @@
 
 #include "common/exception/buffer_manager.h"
 #include "common/exception/copy.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "common/utils.h"
 #include "pyparse.h"
 #include "storage/storage_utils.h"
@@ -40,17 +40,17 @@ NpyReader::NpyReader(const std::string& filePath) : filePath{filePath} {
     auto handle =
         CreateFileMappingW((HANDLE)_get_osfhandle(fd), NULL, PAGE_READONLY, high, low, NULL);
     if (handle == NULL) {
-        throw BufferManagerException(StringUtils::string_format(
-            "CreateFileMapping for size {} failed with error code {}: {}.", fileSize,
-            GetLastError(), std::system_category().message(GetLastError())));
+        throw BufferManagerException(
+            stringFormat("CreateFileMapping for size {} failed with error code {}: {}.", fileSize,
+                GetLastError(), std::system_category().message(GetLastError())));
     }
 
     mmapRegion = MapViewOfFile(handle, FILE_MAP_READ, 0, 0, fileSize);
     CloseHandle(handle);
     if (mmapRegion == NULL) {
         throw BufferManagerException(
-            StringUtils::string_format("MapViewOfFile for size {} failed with error code {}: {}.",
-                fileSize, GetLastError(), std::system_category().message(GetLastError())));
+            stringFormat("MapViewOfFile for size {} failed with error code {}: {}.", fileSize,
+                GetLastError(), std::system_category().message(GetLastError())));
     }
 #else
     mmapRegion = mmap(nullptr, fileSize, PROT_READ, MAP_SHARED, fd, 0);
@@ -172,8 +172,7 @@ void NpyReader::parseType(std::string descr) {
 void NpyReader::validate(const LogicalType& type_, offset_t numRows) {
     auto numNodesInFile = getNumRows();
     if (numNodesInFile == 0) {
-        throw CopyException(
-            StringUtils::string_format("Number of rows in npy file {} is 0.", filePath));
+        throw CopyException(stringFormat("Number of rows in npy file {} is 0.", filePath));
     }
     if (numNodesInFile != numRows) {
         throw CopyException("Number of rows in npy files is not equal to each other.");
@@ -181,28 +180,26 @@ void NpyReader::validate(const LogicalType& type_, offset_t numRows) {
     // TODO(Guodong): Set npy reader data type to FIXED_LIST, so we can simplify checks here.
     if (type_.getLogicalTypeID() == this->type) {
         if (getNumElementsPerRow() != 1) {
-            throw CopyException(
-                StringUtils::string_format("Cannot copy a vector property in npy file {} to a "
-                                           "scalar property.",
-                    filePath));
+            throw CopyException(stringFormat("Cannot copy a vector property in npy file {} to a "
+                                             "scalar property.",
+                filePath));
         }
         return;
     } else if (type_.getLogicalTypeID() == LogicalTypeID::FIXED_LIST) {
         if (this->type != FixedListType::getChildType(&type_)->getLogicalTypeID()) {
-            throw CopyException(StringUtils::string_format("The type of npy file {} does not "
-                                                           "match the expected type.",
+            throw CopyException(stringFormat("The type of npy file {} does not "
+                                             "match the expected type.",
                 filePath));
         }
         if (getNumElementsPerRow() != FixedListType::getNumElementsInList(&type_)) {
-            throw CopyException(
-                StringUtils::string_format("The shape of {} does not match the length of the "
-                                           "fixed list property.",
-                    filePath));
+            throw CopyException(stringFormat("The shape of {} does not match the length of the "
+                                             "fixed list property.",
+                filePath));
         }
         return;
     } else {
-        throw CopyException(StringUtils::string_format("The type of npy file {} does not "
-                                                       "match the expected type.",
+        throw CopyException(stringFormat("The type of npy file {} does not "
+                                         "match the expected type.",
             filePath));
     }
 }

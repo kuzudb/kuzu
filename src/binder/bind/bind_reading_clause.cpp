@@ -5,6 +5,7 @@
 #include "binder/query/reading_clause/bound_match_clause.h"
 #include "binder/query/reading_clause/bound_unwind_clause.h"
 #include "common/exception/binder.h"
+#include "common/string_format.h"
 #include "function/table_functions/bind_input.h"
 #include "parser/query/reading_clause/in_query_call_clause.h"
 #include "parser/query/reading_clause/load_from.h"
@@ -189,10 +190,9 @@ void Binder::validateColumnTypes(const std::vector<std::string>& columnNames,
     assert(expectedColumnTypes.size() == detectedColumnTypes.size());
     for (auto i = 0; i < expectedColumnTypes.size(); ++i) {
         if (*expectedColumnTypes[i] != *detectedColumnTypes[i]) {
-            throw BinderException(
-                StringUtils::string_format("Column `{}` type mismatch. Expected {} but got {}.",
-                    columnNames[i], LogicalTypeUtils::dataTypeToString(*expectedColumnTypes[i]),
-                    LogicalTypeUtils::dataTypeToString(*detectedColumnTypes[i])));
+            throw BinderException(stringFormat("Column `{}` type mismatch. Expected {} but got {}.",
+                columnNames[i], LogicalTypeUtils::dataTypeToString(*expectedColumnTypes[i]),
+                LogicalTypeUtils::dataTypeToString(*detectedColumnTypes[i])));
         }
     }
 }
@@ -202,7 +202,7 @@ void Binder::validateNumColumns(uint32_t expectedNumber, uint32_t detectedNumber
         return; // Empty CSV. Continue processing.
     }
     if (expectedNumber != detectedNumber) {
-        throw BinderException(StringUtils::string_format(
+        throw BinderException(stringFormat(
             "Number of columns mismatch. Expected {} but got {}.", expectedNumber, detectedNumber));
     }
 }
@@ -267,7 +267,7 @@ void Binder::sniffFile(const common::ReaderConfig& readerConfig, uint32_t fileId
         columnTypes.push_back(columnType->copy());
     } break;
     default:
-        throw BinderException(StringUtils::string_format(
+        throw BinderException(stringFormat(
             "Cannot sniff header of file type {}", FileTypeUtils::toString(readerConfig.fileType)));
     }
 }

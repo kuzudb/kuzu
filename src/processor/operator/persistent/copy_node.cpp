@@ -2,7 +2,7 @@
 
 #include "common/exception/copy.h"
 #include "common/exception/message.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "storage/stats/nodes_store_statistics.h"
 #include "storage/store/string_column_chunk.h"
 
@@ -199,8 +199,8 @@ void CopyNode::finalize(ExecutionContext* context) {
     }
     sharedState->table->getNodeStatisticsAndDeletedIDs()->setNumTuplesForTable(
         sharedState->table->getTableID(), numNodes);
-    auto outputMsg = StringUtils::string_format("{} number of tuples has been copied to table: {}.",
-        numNodes, sharedState->tableSchema->tableName.c_str());
+    auto outputMsg = stringFormat("{} number of tuples has been copied to table: {}.", numNodes,
+        sharedState->tableSchema->tableName.c_str());
     FactorizedTableUtils::appendStringToTable(
         sharedState->fTable.get(), outputMsg, context->memoryManager);
 }

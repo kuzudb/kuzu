@@ -1,9 +1,6 @@
-#pragma once
-
 #include <cstring>
 
 #include "common/file_utils.h"
-#include "common/string_utils.h"
 #include "graph_test/base_graph_test.h"
 #include "gtest/gtest.h"
 #include "main/kuzu.h"

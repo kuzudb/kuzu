@@ -3,7 +3,7 @@
 #include "common/constants.h"
 #include "common/exception/copy.h"
 #include "common/exception/parser.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "function/cast/cast_utils.h"
 #include "storage/storage_structure/lists/lists.h"
 #include <arrow/api.h>
@@ -67,9 +67,9 @@ std::unique_ptr<parquet::arrow::FileReader> TableCopyUtils::createParquetReader(
         reader->parquet_reader()->metadata()->schema()->group_node()->field_count();
     if (config.getNumColumns() != actualNumColumns) {
         // Note: Some parquet files may contain an index column.
-        throw CopyException(StringUtils::string_format(
-            "Unmatched number of columns in parquet file. Expect: {}, got: {}.",
-            config.getNumColumns(), actualNumColumns));
+        throw CopyException(
+            stringFormat("Unmatched number of columns in parquet file. Expected: {}, got: {}.",
+                config.getNumColumns(), actualNumColumns));
     }
     return reader;
 }
@@ -474,7 +474,7 @@ std::unique_ptr<Value> TableCopyUtils::convertStringToValue(
 void TableCopyUtils::validateNumElementsInList(uint64_t numElementsRead, const LogicalType& type) {
     auto numElementsInList = FixedListType::getNumElementsInList(&type);
     if (numElementsRead != numElementsInList) {
-        throw CopyException(StringUtils::string_format(
+        throw CopyException(stringFormat(
             "Each fixed list should have fixed number of elements. Expected: {}, Actual: {}.",
             numElementsInList, numElementsRead));
     }
@@ -557,8 +557,7 @@ std::pair<std::string, std::string> TableCopyUtils::parseMapFields(
             }
         }
     }
-    throw ParserException{
-        StringUtils::string_format("Invalid map field string {}.", l.substr(from, length))};
+    throw ParserException{stringFormat("Invalid map field string {}.", l.substr(from, length))};
 }
 
 std::unique_ptr<arrow::PrimitiveArray> TableCopyUtils::createArrowPrimitiveArray(

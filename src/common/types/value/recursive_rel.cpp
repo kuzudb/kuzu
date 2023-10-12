@@ -1,9 +1,9 @@
 #include "common/types/value/recursive_rel.h"
 
 #include "common/exception/exception.h"
+#include "common/string_format.h"
 #include "common/types/types.h"
 #include "common/types/value/value.h"
-#include "spdlog/fmt/fmt.h"
 
 namespace kuzu {
 namespace common {
@@ -21,7 +21,7 @@ Value* RecursiveRelVal::getRels(const Value* val) {
 void RecursiveRelVal::throwIfNotRecursiveRel(const Value* val) {
     if (val->dataType->getLogicalTypeID() != LogicalTypeID::RECURSIVE_REL) {
         auto actualType = LogicalTypeUtils::dataTypeToString(val->dataType->getLogicalTypeID());
-        throw Exception(fmt::format("Expected RECURSIVE_REL type, but got {} type", actualType));
+        throw Exception(stringFormat("Expected RECURSIVE_REL type, but got {} type", actualType));
     }
 }
 

@@ -1,7 +1,7 @@
 #include "common/assert.h"
 
 #include "common/exception/internal.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "common/utils.h"
 
 namespace kuzu {
@@ -11,7 +11,7 @@ void kuAssertInternal(bool condition, const char* condition_name, const char* fi
     if (condition) {
         return;
     }
-    throw InternalException(StringUtils::string_format(
+    throw InternalException(stringFormat(
         "Assertion triggered in file \"{}\" on line {}: {}", file, linenr, condition_name));
 }
 

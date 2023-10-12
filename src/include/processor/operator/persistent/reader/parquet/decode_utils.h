@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/exception/copy.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "resizable_buffer.h"
 
 namespace kuzu {
@@ -22,7 +22,7 @@ public:
     static uint32_t BitUnpack(
         ByteBuffer& buffer, uint8_t& bitpack_pos, T* dest, uint32_t count, uint8_t width) {
         if (width >= ParquetDecodeUtils::BITPACK_MASKS_SIZE) {
-            throw common::CopyException(common::StringUtils::string_format(
+            throw common::CopyException(common::stringFormat(
                 "The width ({}) of the bitpacked data exceeds the supported max width ({}), "
                 "the file might be corrupted.",
                 width, ParquetDecodeUtils::BITPACK_MASKS_SIZE));
