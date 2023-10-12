@@ -750,7 +750,7 @@ void Column::populateWithDefaultVal(const Property& property, Column* column,
         auto chunkMeta = metadataDA_->get(i, TransactionType::WRITE);
         auto capacity = columnChunk->getCapacity();
         while (capacity < chunkMeta.numValues) {
-            capacity *= VAR_LIST_RESIZE_RATIO;
+            capacity *= CHUNK_RESIZE_RATIO;
         }
         if (capacity > columnChunk->getCapacity()) {
             auto newColumnChunk = ColumnChunkFactory::createColumnChunk(
@@ -804,7 +804,7 @@ std::unique_ptr<Column> ColumnFactory::createColumn(std::unique_ptr<common::Logi
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING: {
         return std::make_unique<StringColumn>(std::move(dataType), metaDAHeaderInfo, dataFH,
-            metadataFH, bufferManager, wal, transaction, propertyStatistics);
+            metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
     }
     case LogicalTypeID::MAP:
     case LogicalTypeID::VAR_LIST: {

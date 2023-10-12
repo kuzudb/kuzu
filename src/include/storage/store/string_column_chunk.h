@@ -6,12 +6,22 @@
 namespace kuzu {
 namespace storage {
 
+struct string_hash {
+    using hash_type = std::hash<std::string_view>;
+    using is_transparent = void;
+
+    std::size_t operator()(const char* str) const { return hash_type{}(str); }
+    std::size_t operator()(std::string_view str) const { return hash_type{}(str); }
+    std::size_t operator()(std::string const& str) const { return hash_type{}(str); }
+};
+
 class StringColumnChunk : public ColumnChunk {
     using string_offset_t = uint64_t;
     using string_index_t = uint32_t;
 
 public:
-    explicit StringColumnChunk(std::unique_ptr<common::LogicalType> dataType, uint64_t capacity);
+    explicit StringColumnChunk(
+        std::unique_ptr<common::LogicalType> dataType, uint64_t capacity, bool enableCompression);
 
     void resetToEmpty() final;
     void append(common::ValueVector* vector) final;
@@ -41,6 +51,8 @@ public:
     ColumnChunk* getDataChunk() { return stringDataChunk.get(); }
     ColumnChunk* getOffsetChunk() { return offsetChunk.get(); }
 
+    void finalize() final;
+
 private:
     void appendStringColumnChunk(StringColumnChunk* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend);
@@ -52,6 +64,10 @@ private:
     // of characters stored.
     std::unique_ptr<ColumnChunk> stringDataChunk;
     std::unique_ptr<ColumnChunk> offsetChunk;
+    std::unordered_map<std::string, string_index_t, string_hash, std::equal_to<>> indexTable;
+    bool enableCompression;
+    // If we never update a value, we don't need to prune unused strings in finalize
+    bool needFinalize;
 };
 
 // STRING

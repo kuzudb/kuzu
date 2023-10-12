@@ -18,7 +18,7 @@ void VarListDataColumnChunk::resizeBuffer(uint64_t numValues) {
     }
     capacity = capacity == 0 ? 1 : capacity;
     while (capacity < numValues) {
-        capacity *= VAR_LIST_RESIZE_RATIO;
+        capacity *= CHUNK_RESIZE_RATIO;
     }
     dataColumnChunk->resize(capacity);
 }

@@ -13,12 +13,12 @@ namespace storage {
 StringColumn::StringColumn(std::unique_ptr<LogicalType> dataType,
     const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
     BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
-    RWPropertyStats stats)
+    RWPropertyStats stats, bool enableCompression)
     : Column{std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
-          transaction, stats, true /* enableCompression */, true /* requireNullColumn */} {
-    dataColumn =
-        std::make_unique<Column>(LogicalType::UINT8(), *metaDAHeaderInfo.childrenInfos[0], dataFH,
-            metadataFH, bufferManager, wal, transaction, stats, false, false /*requireNullColumn*/);
+          transaction, stats, enableCompression, true /* requireNullColumn */} {
+    dataColumn = std::make_unique<Column>(LogicalType::UINT8(), *metaDAHeaderInfo.childrenInfos[0],
+        dataFH, metadataFH, bufferManager, wal, transaction, stats, false /*enableCompression*/,
+        false /*requireNullColumn*/);
     offsetColumn = std::make_unique<Column>(LogicalType::UINT64(),
         *metaDAHeaderInfo.childrenInfos[1], dataFH, metadataFH, bufferManager, wal, transaction,
         stats, enableCompression, false /*requireNullColumn*/);
@@ -39,6 +39,7 @@ void StringColumn::scanOffsets(Transaction* transaction, const ReadState& state,
 void StringColumn::scanValueToVector(Transaction* transaction, const ReadState& dataState,
     string_offset_t startOffset, string_offset_t endOffset, ValueVector* resultVector,
     uint64_t offsetInVector) {
+    // TODO: don't scan the same string multiple times when values are duplicated
     KU_ASSERT(endOffset >= startOffset);
     // Add string to vector first and read directly into the vector
     auto& kuString =

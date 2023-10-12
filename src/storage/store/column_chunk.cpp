@@ -509,7 +509,8 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
             std::move(dataType), capacity, enableCompression);
     }
     case PhysicalTypeID::STRING: {
-        return std::make_unique<StringColumnChunk>(std::move(dataType), capacity);
+        return std::make_unique<StringColumnChunk>(
+            std::move(dataType), capacity, enableCompression);
     }
     case PhysicalTypeID::VAR_LIST: {
         return std::make_unique<VarListColumnChunk>(
