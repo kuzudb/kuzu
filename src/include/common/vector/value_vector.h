@@ -29,7 +29,7 @@ public:
         assert(dataTypeID != LogicalTypeID::VAR_LIST);
     }
 
-    ~ValueVector() = default;
+    KUZU_API ~ValueVector() = default;
 
     void setState(std::shared_ptr<DataChunkState> state_);
 
@@ -41,7 +41,7 @@ public:
         nullMask->setNullFromRange(startPos, len, false);
     }
     inline const uint64_t* getNullMaskData() { return nullMask->getData(); }
-    inline void setNull(uint32_t pos, bool isNull) { nullMask->setNull(pos, isNull); }
+    KUZU_API void setNull(uint32_t pos, bool isNull);
     inline uint8_t isNull(uint32_t pos) const { return nullMask->isNull(pos); }
     inline void setAsSingleNullEntry() {
         state->selVector->selectedSize = 1;
@@ -59,7 +59,7 @@ public:
         return ((T*)valueBuffer.get())[pos];
     }
     template<typename T>
-    void setValue(uint32_t pos, T val);
+    KUZU_API void setValue(uint32_t pos, T val);
     // copyFromRowData assumes rowData is non-NULL.
     void copyFromRowData(uint32_t pos, const uint8_t* rowData);
     // copyToRowData assumes srcVectorData is non-NULL.
@@ -83,7 +83,7 @@ public:
     inline void setSequential() { _isSequential = true; }
     inline bool isSequential() const { return _isSequential; }
 
-    void resetAuxiliaryBuffer();
+    KUZU_API void resetAuxiliaryBuffer();
 
     // If there is still non-null values after discarding, return true. Otherwise, return false.
     // For an unflat vector, its selection vector is also updated to the resultSelVector.

@@ -1,12 +1,12 @@
 #pragma once
 
-#include "graph_test/base_graph_test.h"
+#include "graph_test/graph_test.h"
 #include "json.hpp"
 
 namespace kuzu {
 namespace testing {
 
-class ApiTest : public BaseGraphTest {
+class PrivateApiTest : public BaseGraphTest {
 public:
     void SetUp() override {
         BaseGraphTest::SetUp();

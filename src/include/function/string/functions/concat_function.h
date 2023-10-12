@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstring>
 
+#include "common/api.h"
 #include "common/types/ku_string.h"
 #include "common/vector/value_vector.h"
 
@@ -15,23 +16,8 @@ struct Concat {
         assert(false);
     }
 
-    static void concat(const char* left, uint32_t leftLen, const char* right, uint32_t rightLen,
-        common::ku_string_t& result, common::ValueVector& resultValueVector) {
-        auto len = leftLen + rightLen;
-        if (len <= common::ku_string_t::SHORT_STR_LENGTH /* concat's result is short */) {
-            memcpy(result.prefix, left, leftLen);
-            memcpy(result.prefix + leftLen, right, rightLen);
-        } else {
-            result.overflowPtr = reinterpret_cast<uint64_t>(
-                common::StringVector::getInMemOverflowBuffer(&resultValueVector)
-                    ->allocateSpace(len));
-            auto buffer = reinterpret_cast<char*>(result.overflowPtr);
-            memcpy(buffer, left, leftLen);
-            memcpy(buffer + leftLen, right, rightLen);
-            memcpy(result.prefix, buffer, common::ku_string_t::PREFIX_LENGTH);
-        }
-        result.len = len;
-    }
+    KUZU_API static void concat(const char* left, uint32_t leftLen, const char* right,
+        uint32_t rightLen, common::ku_string_t& result, common::ValueVector& resultValueVector);
 };
 
 template<>

@@ -12,7 +12,7 @@ class NodeColumn;
 
 namespace main {
 
-class StorageDriver {
+class KUZU_API StorageDriver {
 public:
     explicit StorageDriver(Database* database);
 

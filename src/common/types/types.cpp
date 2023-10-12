@@ -244,6 +244,14 @@ void StructTypeInfo::serializeInternal(FileInfo* fileInfo, uint64_t& offset) con
     SerDeser::serializeVectorOfPtrs(fields, fileInfo, offset);
 }
 
+LogicalType::LogicalType(LogicalTypeID typeID) : typeID{typeID}, extraTypeInfo{nullptr} {
+    setPhysicalType();
+};
+LogicalType::LogicalType(LogicalTypeID typeID, std::unique_ptr<ExtraTypeInfo> extraTypeInfo)
+    : typeID{typeID}, extraTypeInfo{std::move(extraTypeInfo)} {
+    setPhysicalType();
+};
+
 LogicalType::LogicalType(const LogicalType& other) {
     typeID = other.typeID;
     physicalType = other.physicalType;

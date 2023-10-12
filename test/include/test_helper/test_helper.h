@@ -2,11 +2,7 @@
 
 #include <cstring>
 
-#include "common/file_utils.h"
 #include "main/kuzu.h"
-#include "parser/parser.h"
-#include "planner/operator/logical_plan_util.h"
-#include "planner/planner.h"
 
 using namespace kuzu::main;
 
@@ -50,9 +46,6 @@ public:
     static std::string appendKuzuRootPath(const std::string& path) {
         return KUZU_ROOT_DIRECTORY + std::string("/") + path;
     }
-
-    static std::unique_ptr<planner::LogicalPlan> getLogicalPlan(
-        const std::string& query, Connection& conn);
 
     static std::string getMillisecondsSuffix();
 

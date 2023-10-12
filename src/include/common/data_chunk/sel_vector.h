@@ -33,7 +33,7 @@ public:
     }
     inline sel_t* getSelectedPositionsBuffer() { return selectedPositionsBuffer.get(); }
 
-    static const sel_t INCREMENTAL_SELECTED_POS[DEFAULT_VECTOR_CAPACITY];
+    KUZU_API static const sel_t INCREMENTAL_SELECTED_POS[DEFAULT_VECTOR_CAPACITY];
 
 public:
     sel_t* selectedPositions;
