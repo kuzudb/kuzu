@@ -5,6 +5,43 @@
 
 -CASE FunctionList
 
+-LOG ListLiteral
+-STATEMENT RETURN [1,,3];
+---- 1
+[1,,3]
+-STATEMENT UNWIND [1,,3] AS a RETURN a IS NULL;
+---- 3
+False
+False
+True
+-STATEMENT RETURN [1, 'a'];
+---- error
+Binder exception: Cannot bind LIST_CREATION with parameter type INT64 and STRING.
+-STATEMENT RETURN [1,,'a'];
+---- error
+Binder exception: Cannot bind LIST_CREATION with parameter type INT64 and STRING.
+-STATEMENT RETURN [1, NULL];
+---- 1
+[1,]
+-STATEMENT RETURN [];
+---- 1
+[]
+-STATEMENT RETURN [NULL, NULL];
+---- 1
+[,]
+-STATEMENT RETURN ['a', , []];
+---- error
+Binder exception: Cannot bind LIST_CREATION with parameter type STRING and INT64[].
+-STATEMENT RETURN [[], , []];
+---- 1
+[[],,[]]
+-STATEMENT RETURN [[1], , [2]];
+---- 1
+[[1],,[2]]
+-STATEMENT RETURN [[1], , ['a']];
+---- error
+Binder exception: Cannot bind LIST_CREATION with parameter type INT64[] and STRING[].
+
 -LOG NodeLISTStructuredPropertiesTest
 -STATEMENT MATCH (a:person) RETURN a.workedHours, a.usedNames, a.courseScoresPerTerm
 ---- 8

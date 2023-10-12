@@ -570,7 +570,10 @@ TRUE : ( 'T' | 't' ) ( 'R' | 'r' ) ( 'U' | 'u' ) ( 'E' | 'e' ) ;
 FALSE : ( 'F' | 'f' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'S' | 's' ) ( 'E' | 'e' ) ;
 
 oC_ListLiteral
-    :  '[' SP? ( oC_Expression SP? ( ',' SP? oC_Expression SP? )* )? ']' ;
+    :  '[' SP? ( oC_Expression SP? ( kU_ListEntry SP? )* )? ']' ;
+
+kU_ListEntry
+    : ',' SP? oC_Expression? ;
 
 kU_StructLiteral
     :  '{' SP? kU_StructField SP? ( ',' SP? kU_StructField SP? )* '}' ;
