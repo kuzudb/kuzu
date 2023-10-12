@@ -26,64 +26,65 @@ void AggKeyDependencyOptimizer::visitOperator(planner::LogicalOperator* op) {
 
 void AggKeyDependencyOptimizer::visitAggregate(planner::LogicalOperator* op) {
     auto agg = (LogicalAggregate*)op;
-    auto [keyExpressions, payloadExpressions] =
-        resolveKeysAndDependentKeys(agg->getKeyExpressions());
-    agg->setKeyExpressions(keyExpressions);
-    agg->setDependentKeyExpressions(payloadExpressions);
+    auto [keys, dependentKeys] = resolveKeysAndDependentKeys(agg->getKeyExpressions());
+    agg->setKeyExpressions(keys);
+    agg->setDependentKeyExpressions(dependentKeys);
 }
 
 void AggKeyDependencyOptimizer::visitDistinct(planner::LogicalOperator* op) {
     auto distinct = (LogicalDistinct*)op;
-    auto [keyExpressions, payloadExpressions] =
-        resolveKeysAndDependentKeys(distinct->getKeyExpressions());
-    distinct->setKeyExpressions(keyExpressions);
-    distinct->setDependentKeyExpressions(payloadExpressions);
+    auto [keys, dependentKeys] = resolveKeysAndDependentKeys(distinct->getKeyExpressions());
+    distinct->setKeyExpressions(keys);
+    distinct->setDependentKeyExpressions(dependentKeys);
 }
 
 std::pair<binder::expression_vector, binder::expression_vector>
-AggKeyDependencyOptimizer::resolveKeysAndDependentKeys(const binder::expression_vector& keys) {
+AggKeyDependencyOptimizer::resolveKeysAndDependentKeys(const expression_vector& inputKeys) {
     // Consider example RETURN a.ID, a.age, COUNT(*).
     // We first collect a.ID into primaryKeys. Then collect "a" into primaryVarNames.
     // Finally, we loop through all group by keys to put non-primary key properties under name "a"
     // into dependentKeyExpressions.
 
-    // Collect primary keys from group keys.
-    std::vector<binder::PropertyExpression*> primaryKeys;
-    for (auto& expression : keys) {
-        if (expression->expressionType == PROPERTY) {
-            auto propertyExpression = (binder::PropertyExpression*)expression.get();
-            if (propertyExpression->isPrimaryKey() || propertyExpression->isInternalID()) {
-                primaryKeys.push_back(propertyExpression);
-            }
-        }
-    }
-    // Collect variable names whose primary key is part of group keys.
+    // Collect primary variables from keys.
     std::unordered_set<std::string> primaryVarNames;
-    for (auto& primaryKey : primaryKeys) {
-        primaryVarNames.insert(primaryKey->getVariableName());
-    }
-    binder::expression_vector groupExpressions;
-    binder::expression_vector dependentExpressions;
-    for (auto& expression : keys) {
-        if (expression->expressionType == PROPERTY) {
-            auto propertyExpression = (binder::PropertyExpression*)expression.get();
-            if (propertyExpression->isPrimaryKey() ||
-                propertyExpression->isInternalID()) { // NOLINT(bugprone-branch-clone): Collapsing
-                                                      // is a logical error.
-                groupExpressions.push_back(expression);
-            } else if (primaryVarNames.contains(propertyExpression->getVariableName())) {
-                dependentExpressions.push_back(expression);
-            } else {
-                groupExpressions.push_back(expression);
+    for (auto& key : inputKeys) {
+        if (key->expressionType == PROPERTY) {
+            auto property = (PropertyExpression*)key.get();
+            if (property->isPrimaryKey() || property->isInternalID()) {
+                primaryVarNames.insert(property->getVariableName());
             }
-        } else if (ExpressionUtil::isNodeVariable(*expression) ||
-                   ExpressionUtil::isRelVariable(*expression)) {
-            dependentExpressions.push_back(expression);
-        } else {
-            groupExpressions.push_back(expression);
         }
     }
-    return std::make_pair(std::move(groupExpressions), std::move(dependentExpressions));
+    // Resolve key dependency.
+    binder::expression_vector keys;
+    binder::expression_vector dependentKeys;
+    for (auto& key : inputKeys) {
+        if (key->expressionType == PROPERTY) {
+            auto property = (PropertyExpression*)key.get();
+            if (property->isPrimaryKey() ||
+                property->isInternalID()) { // NOLINT(bugprone-branch-clone): Collapsing
+                                            // is a logical error.
+                // Primary properties are always keys.
+                keys.push_back(key);
+            } else if (primaryVarNames.contains(property->getVariableName())) {
+                // Properties depend on any primary property are dependent keys.
+                // e.g. a.age depends on a._id
+                dependentKeys.push_back(key);
+            } else {
+                keys.push_back(key);
+            }
+        } else if (ExpressionUtil::isNodeVariable(*key) || ExpressionUtil::isRelVariable(*key)) {
+            if (primaryVarNames.contains(key->getUniqueName())) {
+                // e.g. a depends on a._id
+                dependentKeys.push_back(key);
+            } else {
+                keys.push_back(key);
+            }
+        } else {
+            keys.push_back(key);
+        }
+    }
+    return std::make_pair(std::move(keys), std::move(dependentKeys));
 }
 
 } // namespace optimizer
