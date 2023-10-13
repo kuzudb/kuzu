@@ -89,7 +89,6 @@ dateColumn DATE, timestampColumn TIMESTAMP, stringColumn STRING, listOfInt INT64
 
 -INSERT_STATEMENT_BLOCK VALIDATE_RESULT
 
--SKIP
 -LOG TestParquet
 -STATEMENT COPY (MATCH (r:tableOfTypes) RETURN r.id,
                                                r.doubleColumn,

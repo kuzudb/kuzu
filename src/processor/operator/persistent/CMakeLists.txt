@@ -2,6 +2,7 @@ add_subdirectory(reader/parquet)
 add_subdirectory(reader/csv)
 add_subdirectory(reader/rdf)
 add_subdirectory(reader/npy)
+add_subdirectory(writer/parquet)
 
 add_library(kuzu_processor_operator_persistent
         OBJECT
@@ -10,6 +11,7 @@ add_library(kuzu_processor_operator_persistent
         copy_rel_columns.cpp
         copy_rel_lists.cpp
         copy_to.cpp
+        copy_to_parquet.cpp
         csv_file_writer.cpp
         delete.cpp
         delete_executor.cpp
@@ -17,7 +19,6 @@ add_library(kuzu_processor_operator_persistent
         insert_executor.cpp
         merge.cpp
         parquet_column_writer.cpp
-        parquet_file_writer.cpp
         reader.cpp
         reader_functions.cpp
         reader_state.cpp
