@@ -10,6 +10,10 @@ namespace kuzu {
 namespace catalog {
 class TableSchema;
 }
+namespace common {
+class Serializer;
+class Deserializer;
+} // namespace common
 namespace storage {
 
 class TableStatistics {
@@ -38,10 +42,9 @@ public:
         propertyStatistics[propertyID] = std::make_unique<PropertyStatistics>(newStats);
     }
 
-    void serialize(common::FileInfo* fileInfo, uint64_t& offset);
-    static std::unique_ptr<TableStatistics> deserialize(
-        common::FileInfo* fileInfo, uint64_t& offset);
-    virtual void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) = 0;
+    void serialize(common::Serializer& serializer);
+    static std::unique_ptr<TableStatistics> deserialize(common::Deserializer& deserializer);
+    virtual void serializeInternal(common::Serializer& serializer) = 0;
 
     virtual std::unique_ptr<TableStatistics> copy() = 0;
 

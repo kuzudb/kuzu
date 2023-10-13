@@ -1,6 +1,7 @@
 #include "function/scalar_macro_function.h"
 
-#include "common/ser_deser.h"
+#include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -25,30 +26,29 @@ std::unique_ptr<ScalarMacroFunction> ScalarMacroFunction::copy() const {
         expression->copy(), positionalArgs, std::move(defaultArgsCopy));
 }
 
-void ScalarMacroFunction::serialize(FileInfo* fileInfo, uint64_t& offset) const {
-    expression->serialize(fileInfo, offset);
-    SerDeser::serializeVector(positionalArgs, fileInfo, offset);
+void ScalarMacroFunction::serialize(Serializer& serializer) const {
+    expression->serialize(serializer);
+    serializer.serializeVector(positionalArgs);
     auto vectorSize = defaultArgs.size();
-    SerDeser::serializeValue(vectorSize, fileInfo, offset);
+    serializer.serializeValue(vectorSize);
     for (auto& defaultArg : defaultArgs) {
-        SerDeser::serializeValue(defaultArg.first, fileInfo, offset);
-        defaultArg.second->serialize(fileInfo, offset);
+        serializer.serializeValue(defaultArg.first);
+        defaultArg.second->serialize(serializer);
     }
 }
 
-std::unique_ptr<ScalarMacroFunction> ScalarMacroFunction::deserialize(
-    FileInfo* fileInfo, uint64_t& offset) {
-    auto expression = ParsedExpression::deserialize(fileInfo, offset);
+std::unique_ptr<ScalarMacroFunction> ScalarMacroFunction::deserialize(Deserializer& deserializer) {
+    auto expression = ParsedExpression::deserialize(deserializer);
     std::vector<std::string> positionalArgs;
-    SerDeser::deserializeVector(positionalArgs, fileInfo, offset);
+    deserializer.deserializeVector(positionalArgs);
     default_macro_args defaultArgs;
     uint64_t vectorSize;
-    SerDeser::deserializeValue(vectorSize, fileInfo, offset);
+    deserializer.deserializeValue(vectorSize);
     defaultArgs.reserve(vectorSize);
     for (auto i = 0u; i < vectorSize; i++) {
         std::string key;
-        SerDeser::deserializeValue(key, fileInfo, offset);
-        auto val = ParsedExpression::deserialize(fileInfo, offset);
+        deserializer.deserializeValue(key);
+        auto val = ParsedExpression::deserialize(deserializer);
         defaultArgs.emplace_back(std::move(key), std::move(val));
     }
     return std::make_unique<ScalarMacroFunction>(

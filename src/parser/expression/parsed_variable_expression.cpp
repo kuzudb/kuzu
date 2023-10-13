@@ -1,6 +1,6 @@
 #include "parser/expression/parsed_variable_expression.h"
 
-#include "common/ser_deser.h"
+#include "common/serializer/deserializer.h"
 
 using namespace kuzu::common;
 
@@ -8,9 +8,9 @@ namespace kuzu {
 namespace parser {
 
 std::unique_ptr<ParsedVariableExpression> ParsedVariableExpression::deserialize(
-    FileInfo* fileInfo, uint64_t& offset) {
+    Deserializer& deserializer) {
     std::string variableName;
-    SerDeser::deserializeValue(variableName, fileInfo, offset);
+    deserializer.deserializeValue(variableName);
     return std::make_unique<ParsedVariableExpression>(std::move(variableName));
 }
 

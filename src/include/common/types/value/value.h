@@ -20,6 +20,8 @@ class NestedVal;
 class RecursiveRelVal;
 class ArrowRowBatch;
 class ValueVector;
+class Serializer;
+class Deserializer;
 
 class Value {
     friend class NodeVal;
@@ -207,9 +209,9 @@ public:
      */
     KUZU_API std::string toString() const;
 
-    void serialize(FileInfo* fileInfo, uint64_t& offset) const;
+    void serialize(Serializer& serializer) const;
 
-    static std::unique_ptr<Value> deserialize(FileInfo* fileInfo, uint64_t& offset);
+    static std::unique_ptr<Value> deserialize(Deserializer& deserializer);
 
 private:
     Value();

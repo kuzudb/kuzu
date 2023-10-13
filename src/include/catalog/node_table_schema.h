@@ -34,8 +34,7 @@ public:
 
     inline Property* getPrimaryKey() const { return properties[primaryKeyPropertyID].get(); }
 
-    static std::unique_ptr<NodeTableSchema> deserialize(
-        common::FileInfo* fileInfo, uint64_t& offset);
+    static std::unique_ptr<NodeTableSchema> deserialize(common::Deserializer& deserializer);
 
     inline common::property_id_t getPrimaryKeyPropertyID() const { return primaryKeyPropertyID; }
 
@@ -53,7 +52,7 @@ public:
     }
 
 private:
-    void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) final;
+    void serializeInternal(common::Serializer& serializer) final;
 
 private:
     // TODO(Semih): When we support updating the schemas, we need to update this or, we need

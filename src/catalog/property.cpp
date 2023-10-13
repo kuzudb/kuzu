@@ -1,27 +1,28 @@
 #include "catalog/property.h"
 
-#include "common/ser_deser.h"
+#include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace catalog {
 
-void Property::serialize(FileInfo* fileInfo, uint64_t& offset) const {
-    SerDeser::serializeValue(name, fileInfo, offset);
-    dataType->serialize(fileInfo, offset);
-    SerDeser::serializeValue(propertyID, fileInfo, offset);
-    SerDeser::serializeValue(tableID, fileInfo, offset);
+void Property::serialize(Serializer& serializer) const {
+    serializer.serializeValue(name);
+    dataType->serialize(serializer);
+    serializer.serializeValue(propertyID);
+    serializer.serializeValue(tableID);
 }
 
-std::unique_ptr<Property> Property::deserialize(FileInfo* fileInfo, uint64_t& offset) {
+std::unique_ptr<Property> Property::deserialize(Deserializer& deserializer) {
     std::string name;
     property_id_t propertyID;
     table_id_t tableID;
-    SerDeser::deserializeValue(name, fileInfo, offset);
-    auto dataType = LogicalType::deserialize(fileInfo, offset);
-    SerDeser::deserializeValue(propertyID, fileInfo, offset);
-    SerDeser::deserializeValue(tableID, fileInfo, offset);
+    deserializer.deserializeValue(name);
+    auto dataType = LogicalType::deserialize(deserializer);
+    deserializer.deserializeValue(propertyID);
+    deserializer.deserializeValue(tableID);
     return std::make_unique<Property>(name, std::move(dataType), propertyID, tableID);
 }
 

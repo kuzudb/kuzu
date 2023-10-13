@@ -15,6 +15,8 @@
 namespace kuzu {
 namespace common {
 
+class Serializer;
+class Deserializer;
 class FileInfo;
 
 using sel_t = uint16_t;
@@ -134,18 +136,15 @@ class ExtraTypeInfo {
 public:
     virtual ~ExtraTypeInfo() = default;
 
-    inline void serialize(FileInfo* fileInfo, uint64_t& offset) const {
-        serializeInternal(fileInfo, offset);
-    }
+    inline void serialize(Serializer& serializer) const { serializeInternal(serializer); }
 
     virtual std::unique_ptr<ExtraTypeInfo> copy() const = 0;
 
 protected:
-    virtual void serializeInternal(FileInfo* fileInfo, uint64_t& offset) const = 0;
+    virtual void serializeInternal(Serializer& serializer) const = 0;
 };
 
 class VarListTypeInfo : public ExtraTypeInfo {
-    friend class SerDeser;
 
 public:
     VarListTypeInfo() = default;
@@ -157,17 +156,16 @@ public:
     bool operator==(const VarListTypeInfo& other) const;
     std::unique_ptr<ExtraTypeInfo> copy() const override;
 
-    static std::unique_ptr<ExtraTypeInfo> deserialize(FileInfo* fileInfo, uint64_t& offset);
+    static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
 
 protected:
-    void serializeInternal(FileInfo* fileInfo, uint64_t& offset) const override;
+    void serializeInternal(Serializer& serializer) const override;
 
 protected:
     std::unique_ptr<LogicalType> childType;
 };
 
 class FixedListTypeInfo : public VarListTypeInfo {
-    friend class SerDeser;
 
 public:
     FixedListTypeInfo() = default;
@@ -176,18 +174,17 @@ public:
         : VarListTypeInfo{std::move(childType)}, fixedNumElementsInList{fixedNumElementsInList} {}
     inline uint64_t getNumElementsInList() const { return fixedNumElementsInList; }
     bool operator==(const FixedListTypeInfo& other) const;
-    static std::unique_ptr<ExtraTypeInfo> deserialize(FileInfo* fileInfo, uint64_t& offset);
+    static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
     std::unique_ptr<ExtraTypeInfo> copy() const override;
 
 private:
-    void serializeInternal(FileInfo* fileInfo, uint64_t& offset) const override;
+    void serializeInternal(Serializer& serializer) const override;
 
 private:
     uint64_t fixedNumElementsInList;
 };
 
 class StructField {
-    friend class SerDeser;
 
 public:
     StructField() : type{std::make_unique<LogicalType>()} {}
@@ -200,9 +197,9 @@ public:
 
     bool operator==(const StructField& other) const;
 
-    void serialize(FileInfo* fileInfo, uint64_t& offset) const;
+    void serialize(Serializer& serializer) const;
 
-    static std::unique_ptr<StructField> deserialize(FileInfo* fileInfo, uint64_t& offset);
+    static std::unique_ptr<StructField> deserialize(Deserializer& deserializer);
 
     std::unique_ptr<StructField> copy() const;
 
@@ -212,7 +209,6 @@ private:
 };
 
 class StructTypeInfo : public ExtraTypeInfo {
-    friend class SerDeser;
 
 public:
     StructTypeInfo() = default;
@@ -229,11 +225,11 @@ public:
     std::vector<StructField*> getStructFields() const;
     bool operator==(const kuzu::common::StructTypeInfo& other) const;
 
-    static std::unique_ptr<ExtraTypeInfo> deserialize(FileInfo* fileInfo, uint64_t& offset);
+    static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
     std::unique_ptr<ExtraTypeInfo> copy() const override;
 
 private:
-    void serializeInternal(FileInfo* fileInfo, uint64_t& offset) const override;
+    void serializeInternal(Serializer& serializer) const override;
 
 private:
     std::vector<std::unique_ptr<StructField>> fields;
@@ -241,7 +237,6 @@ private:
 };
 
 class LogicalType {
-    friend class SerDeser;
     friend class LogicalTypeUtils;
     friend class StructType;
     friend class VarListType;
@@ -274,9 +269,9 @@ public:
         extraTypeInfo = std::move(typeInfo);
     }
 
-    void serialize(FileInfo* fileInfo, uint64_t& offset) const;
+    void serialize(Serializer& serializer) const;
 
-    static std::unique_ptr<LogicalType> deserialize(FileInfo* fileInfo, uint64_t& offset);
+    static std::unique_ptr<LogicalType> deserialize(Deserializer& deserializer);
 
     std::unique_ptr<LogicalType> copy() const;
 

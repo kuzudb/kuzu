@@ -13,9 +13,8 @@ struct ParsedCaseAlternative {
         std::unique_ptr<ParsedExpression> thenExpression)
         : whenExpression{std::move(whenExpression)}, thenExpression{std::move(thenExpression)} {}
 
-    void serialize(common::FileInfo* fileInfo, uint64_t& offset) const;
-    static std::unique_ptr<ParsedCaseAlternative> deserialize(
-        common::FileInfo* fileInfo, uint64_t& offset);
+    void serialize(common::Serializer& serializer) const;
+    static std::unique_ptr<ParsedCaseAlternative> deserialize(common::Deserializer& deserializer);
 
     inline std::unique_ptr<ParsedCaseAlternative> copy() const {
         return std::make_unique<ParsedCaseAlternative>(
@@ -71,13 +70,12 @@ public:
     inline bool hasElseExpression() const { return elseExpression != nullptr; }
     inline ParsedExpression* getElseExpression() const { return elseExpression.get(); }
 
-    static std::unique_ptr<ParsedCaseExpression> deserialize(
-        common::FileInfo* fileInfo, uint64_t& offset);
+    static std::unique_ptr<ParsedCaseExpression> deserialize(common::Deserializer& deserializer);
 
     std::unique_ptr<ParsedExpression> copy() const override;
 
 private:
-    void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) const override;
+    void serializeInternal(common::Serializer& serializer) const override;
 
 private:
     // Optional. If not specified, directly check next whenExpression

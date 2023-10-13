@@ -41,7 +41,7 @@ public:
     }
 
     static std::unique_ptr<ParsedFunctionExpression> deserialize(
-        common::FileInfo* fileInfo, uint64_t& offset);
+        common::Deserializer& deserializer);
 
     inline std::unique_ptr<ParsedExpression> copy() const override {
         return std::make_unique<ParsedFunctionExpression>(
@@ -49,7 +49,7 @@ public:
     }
 
 private:
-    void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) const override;
+    void serializeInternal(common::Serializer& serializer) const override;
 
 private:
     bool isDistinct;

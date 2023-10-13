@@ -27,9 +27,9 @@ public:
 
     inline common::offset_t getNextRelOffset() const { return nextRelOffset; }
 
-    void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) final;
+    void serializeInternal(common::Serializer& serializer) final;
     static std::unique_ptr<RelTableStats> deserialize(
-        uint64_t numRels, common::table_id_t tableID, common::FileInfo* fileInfo, uint64_t& offset);
+        uint64_t numRels, common::table_id_t tableID, common::Deserializer& deserializer);
 
     inline std::unique_ptr<TableStatistics> copy() final {
         return std::make_unique<RelTableStats>(*this);

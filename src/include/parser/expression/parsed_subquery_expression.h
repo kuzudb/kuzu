@@ -32,7 +32,7 @@ public:
     inline ParsedExpression* getWhereClause() const { return whereClause.get(); }
 
     static std::unique_ptr<ParsedSubqueryExpression> deserialize(
-        common::FileInfo* fileInfo, uint64_t& offset) {
+        common::Deserializer& deserializer) {
         throw common::NotImplementedException{"ParsedSubqueryExpression::deserialize()"};
     }
 
@@ -41,7 +41,7 @@ public:
     }
 
 private:
-    void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) const override {
+    void serializeInternal(common::Serializer& serializer) const override {
         throw common::NotImplementedException{"ParsedSubqueryExpression::serializeInternal()"};
     }
 

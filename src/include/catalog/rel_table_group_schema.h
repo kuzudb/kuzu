@@ -19,15 +19,14 @@ public:
 
     inline std::vector<common::table_id_t> getRelTableIDs() const { return relTableIDs; }
 
-    static std::unique_ptr<RelTableGroupSchema> deserialize(
-        common::FileInfo* fileInfo, uint64_t& offset);
+    static std::unique_ptr<RelTableGroupSchema> deserialize(common::Deserializer& deserializer);
 
     inline std::unique_ptr<TableSchema> copy() const final {
         return std::make_unique<RelTableGroupSchema>(tableName, tableID, relTableIDs);
     }
 
 private:
-    void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) override;
+    void serializeInternal(common::Serializer& serializer) override;
 
 private:
     std::vector<common::table_id_t> relTableIDs;

@@ -1,7 +1,8 @@
 #include "common/types/value/value.h"
 
 #include "common/null_buffer.h"
-#include "common/ser_deser.h"
+#include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
 #include "common/types/blob.h"
 #include "storage/storage_utils.h"
 
@@ -550,124 +551,124 @@ void Value::copyFromUnion(const uint8_t* kuUnion) {
     }
 }
 
-void Value::serialize(FileInfo* fileInfo, uint64_t& offset) const {
-    dataType->serialize(fileInfo, offset);
-    SerDeser::serializeValue(isNull_, fileInfo, offset);
+void Value::serialize(Serializer& serializer) const {
+    dataType->serialize(serializer);
+    serializer.serializeValue(isNull_);
     switch (dataType->getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
-        SerDeser::serializeValue(val.booleanVal, fileInfo, offset);
+        serializer.serializeValue(val.booleanVal);
     } break;
     case PhysicalTypeID::INT64: {
-        SerDeser::serializeValue(val.int64Val, fileInfo, offset);
+        serializer.serializeValue(val.int64Val);
     } break;
     case PhysicalTypeID::INT32: {
-        SerDeser::serializeValue(val.int32Val, fileInfo, offset);
+        serializer.serializeValue(val.int32Val);
     } break;
     case PhysicalTypeID::INT16: {
-        SerDeser::serializeValue(val.int16Val, fileInfo, offset);
+        serializer.serializeValue(val.int16Val);
     } break;
     case PhysicalTypeID::INT8: {
-        SerDeser::serializeValue(val.int8Val, fileInfo, offset);
+        serializer.serializeValue(val.int8Val);
     } break;
     case PhysicalTypeID::UINT64: {
-        SerDeser::serializeValue(val.uint64Val, fileInfo, offset);
+        serializer.serializeValue(val.uint64Val);
     } break;
     case PhysicalTypeID::UINT32: {
-        SerDeser::serializeValue(val.uint32Val, fileInfo, offset);
+        serializer.serializeValue(val.uint32Val);
     } break;
     case PhysicalTypeID::UINT16: {
-        SerDeser::serializeValue(val.uint16Val, fileInfo, offset);
+        serializer.serializeValue(val.uint16Val);
     } break;
     case PhysicalTypeID::UINT8: {
-        SerDeser::serializeValue(val.uint8Val, fileInfo, offset);
+        serializer.serializeValue(val.uint8Val);
     } break;
     case PhysicalTypeID::DOUBLE: {
-        SerDeser::serializeValue(val.doubleVal, fileInfo, offset);
+        serializer.serializeValue(val.doubleVal);
     } break;
     case PhysicalTypeID::FLOAT: {
-        SerDeser::serializeValue(val.floatVal, fileInfo, offset);
+        serializer.serializeValue(val.floatVal);
     } break;
     case PhysicalTypeID::INTERVAL: {
-        SerDeser::serializeValue(val.intervalVal, fileInfo, offset);
+        serializer.serializeValue(val.intervalVal);
     } break;
     case PhysicalTypeID::INTERNAL_ID: {
-        SerDeser::serializeValue(val.internalIDVal, fileInfo, offset);
+        serializer.serializeValue(val.internalIDVal);
     } break;
     case PhysicalTypeID::STRING: {
-        SerDeser::serializeValue(strVal, fileInfo, offset);
+        serializer.serializeValue(strVal);
     } break;
     case PhysicalTypeID::VAR_LIST:
     case PhysicalTypeID::FIXED_LIST:
     case PhysicalTypeID::STRUCT: {
         for (auto i = 0u; i < childrenSize; ++i) {
-            children[i]->serialize(fileInfo, offset);
+            children[i]->serialize(serializer);
         }
     } break;
     default: {
         throw NotImplementedException{"Value::serialize"};
     }
     }
-    SerDeser::serializeValue(childrenSize, fileInfo, offset);
+    serializer.serializeValue(childrenSize);
 }
 
-std::unique_ptr<Value> Value::deserialize(FileInfo* fileInfo, uint64_t& offset) {
-    LogicalType dataType = *LogicalType::deserialize(fileInfo, offset);
+std::unique_ptr<Value> Value::deserialize(Deserializer& deserializer) {
+    LogicalType dataType = *LogicalType::deserialize(deserializer);
     bool isNull;
-    SerDeser::deserializeValue(isNull, fileInfo, offset);
+    deserializer.deserializeValue(isNull);
     std::unique_ptr<Value> val = std::make_unique<Value>(createDefaultValue(dataType));
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
-        SerDeser::deserializeValue(val->val.booleanVal, fileInfo, offset);
+        deserializer.deserializeValue(val->val.booleanVal);
     } break;
     case PhysicalTypeID::INT64: {
-        SerDeser::deserializeValue(val->val.int64Val, fileInfo, offset);
+        deserializer.deserializeValue(val->val.int64Val);
     } break;
     case PhysicalTypeID::INT32: {
-        SerDeser::deserializeValue(val->val.int32Val, fileInfo, offset);
+        deserializer.deserializeValue(val->val.int32Val);
     } break;
     case PhysicalTypeID::INT16: {
-        SerDeser::deserializeValue(val->val.int16Val, fileInfo, offset);
+        deserializer.deserializeValue(val->val.int16Val);
     } break;
     case PhysicalTypeID::INT8: {
-        SerDeser::deserializeValue(val->val.int8Val, fileInfo, offset);
+        deserializer.deserializeValue(val->val.int8Val);
     } break;
     case PhysicalTypeID::UINT64: {
-        SerDeser::deserializeValue(val->val.uint64Val, fileInfo, offset);
+        deserializer.deserializeValue(val->val.uint64Val);
     } break;
     case PhysicalTypeID::UINT32: {
-        SerDeser::deserializeValue(val->val.uint32Val, fileInfo, offset);
+        deserializer.deserializeValue(val->val.uint32Val);
     } break;
     case PhysicalTypeID::UINT16: {
-        SerDeser::deserializeValue(val->val.uint16Val, fileInfo, offset);
+        deserializer.deserializeValue(val->val.uint16Val);
     } break;
     case PhysicalTypeID::UINT8: {
-        SerDeser::deserializeValue(val->val.uint8Val, fileInfo, offset);
+        deserializer.deserializeValue(val->val.uint8Val);
     } break;
     case PhysicalTypeID::DOUBLE: {
-        SerDeser::deserializeValue(val->val.doubleVal, fileInfo, offset);
+        deserializer.deserializeValue(val->val.doubleVal);
     } break;
     case PhysicalTypeID::FLOAT: {
-        SerDeser::deserializeValue(val->val.floatVal, fileInfo, offset);
+        deserializer.deserializeValue(val->val.floatVal);
     } break;
     case PhysicalTypeID::INTERVAL: {
-        SerDeser::deserializeValue(val->val.intervalVal, fileInfo, offset);
+        deserializer.deserializeValue(val->val.intervalVal);
     } break;
     case PhysicalTypeID::INTERNAL_ID: {
-        SerDeser::deserializeValue(val->val.internalIDVal, fileInfo, offset);
+        deserializer.deserializeValue(val->val.internalIDVal);
     } break;
     case PhysicalTypeID::STRING: {
-        SerDeser::deserializeValue(val->strVal, fileInfo, offset);
+        deserializer.deserializeValue(val->strVal);
     } break;
     case PhysicalTypeID::VAR_LIST:
     case PhysicalTypeID::FIXED_LIST:
     case PhysicalTypeID::STRUCT: {
-        SerDeser::deserializeVectorOfPtrs(val->children, fileInfo, offset);
+        deserializer.deserializeVectorOfPtrs(val->children);
     } break;
     default: {
         throw NotImplementedException{"Value::deserializeValue"};
     }
     }
-    SerDeser::deserializeValue(val->childrenSize, fileInfo, offset);
+    deserializer.deserializeValue(val->childrenSize);
     val->setNull(isNull);
     return val;
 }

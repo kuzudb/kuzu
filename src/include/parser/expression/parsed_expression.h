@@ -11,7 +11,9 @@ namespace kuzu {
 
 namespace common {
 class FileInfo;
-}
+class Serializer;
+class Deserializer;
+} // namespace common
 
 namespace parser {
 
@@ -62,16 +64,15 @@ public:
         return std::make_unique<ParsedExpression>(type, alias, rawName, copyChildren());
     }
 
-    void serialize(common::FileInfo* fileInfo, uint64_t& offset) const;
+    void serialize(common::Serializer& serializer) const;
 
-    static std::unique_ptr<ParsedExpression> deserialize(
-        common::FileInfo* fileInfo, uint64_t& offset);
+    static std::unique_ptr<ParsedExpression> deserialize(common::Deserializer& deserializer);
 
 protected:
     parsed_expression_vector copyChildren() const;
 
 private:
-    virtual inline void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) const {}
+    virtual inline void serializeInternal(common::Serializer& serializer) const {}
 
 protected:
     common::ExpressionType type;

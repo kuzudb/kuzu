@@ -75,7 +75,8 @@ void BasicColumnWriter::beginWrite(ColumnWriterState& writerState) {
         hdr.data_page_header.definition_level_encoding = Encoding::RLE;
         hdr.data_page_header.repetition_level_encoding = Encoding::RLE;
 
-        writeInfo.bufferWriter = std::make_unique<BufferedSerializer>();
+        writeInfo.bufferWriter = std::make_shared<BufferedSerializer>();
+        writeInfo.writer = std::make_unique<Serializer>(writeInfo.bufferWriter);
         writeInfo.writeCount = pageInfo.emptyCount;
         writeInfo.maxWriteCount = pageInfo.rowCount;
         writeInfo.pageState = initializePageState(state);
@@ -101,8 +102,8 @@ void BasicColumnWriter::write(
         auto writeCount =
             std::min<uint64_t>(remaining, writeInfo.maxWriteCount - writeInfo.writeCount);
 
-        writeVector(*writeInfo.bufferWriter, state.statsState.get(), writeInfo.pageState.get(),
-            vector, offset, offset + writeCount);
+        writeVector(*writeInfo.writer, state.statsState.get(), writeInfo.pageState.get(), vector,
+            offset, offset + writeCount);
 
         writeInfo.writeCount += writeCount;
         if (writeInfo.writeCount == writeInfo.maxWriteCount) {
@@ -151,8 +152,8 @@ void BasicColumnWriter::finalizeWrite(ColumnWriterState& writerState) {
     columnChunk.meta_data.total_uncompressed_size = totalUncompressedSize;
 }
 
-void BasicColumnWriter::writeLevels(BufferedSerializer& bufferedSerializer,
-    const std::vector<uint16_t>& levels, uint64_t maxValue, uint64_t startOffset, uint64_t count) {
+void BasicColumnWriter::writeLevels(Serializer& serializer, const std::vector<uint16_t>& levels,
+    uint64_t maxValue, uint64_t startOffset, uint64_t count) {
     if (levels.empty() || count == 0) {
         return;
     }
@@ -168,12 +169,12 @@ void BasicColumnWriter::writeLevels(BufferedSerializer& bufferedSerializer,
     rleEncoder.finishPrepare();
 
     // Start off by writing the byte count as a uint32_t.
-    bufferedSerializer.write<uint32_t>(rleEncoder.getByteCount());
-    rleEncoder.beginWrite(bufferedSerializer, levels[startOffset]);
+    serializer.write<uint32_t>(rleEncoder.getByteCount());
+    rleEncoder.beginWrite(serializer, levels[startOffset]);
     for (auto i = startOffset + 1; i < startOffset + count; i++) {
-        rleEncoder.writeValue(bufferedSerializer, levels[i]);
+        rleEncoder.writeValue(serializer, levels[i]);
     }
-    rleEncoder.finishWrite(bufferedSerializer);
+    rleEncoder.finishWrite(serializer);
 }
 
 void BasicColumnWriter::nextPage(BasicColumnWriterState& state) {
@@ -190,12 +191,12 @@ void BasicColumnWriter::nextPage(BasicColumnWriterState& state) {
     state.currentPage++;
 
     // write the repetition levels
-    writeLevels(*writeInfo.bufferWriter, state.repetitionLevels, maxRepeat, pageInfo.offset,
-        pageInfo.rowCount);
+    writeLevels(
+        *writeInfo.writer, state.repetitionLevels, maxRepeat, pageInfo.offset, pageInfo.rowCount);
 
     // write the definition levels
-    writeLevels(*writeInfo.bufferWriter, state.definitionLevels, maxDefine, pageInfo.offset,
-        pageInfo.rowCount);
+    writeLevels(
+        *writeInfo.writer, state.definitionLevels, maxDefine, pageInfo.offset, pageInfo.rowCount);
 }
 
 void BasicColumnWriter::flushPage(BasicColumnWriterState& state) {
@@ -209,7 +210,7 @@ void BasicColumnWriter::flushPage(BasicColumnWriterState& state) {
     auto& bufferedWriter = *writeInfo.bufferWriter;
     auto& hdr = writeInfo.pageHeader;
 
-    flushPageState(bufferedWriter, writeInfo.pageState.get());
+    flushPageState(*writeInfo.writer, writeInfo.pageState.get());
 
     // now that we have finished writing the data we know the uncompressed size
     if (bufferedWriter.getSize() > uint64_t(function::NumericLimits<int32_t>::maximum())) {
@@ -251,6 +252,7 @@ void BasicColumnWriter::writeDictionary(BasicColumnWriterState& state,
     hdr.dictionary_page_header.num_values = rowCount;
 
     writeInfo.bufferWriter = std::move(bufferedSerializer);
+    writeInfo.writer = std::make_unique<Serializer>(writeInfo.bufferWriter);
     writeInfo.writeCount = 0;
     writeInfo.maxWriteCount = 0;
 

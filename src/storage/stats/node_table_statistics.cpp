@@ -1,7 +1,9 @@
 #include "storage/stats/node_table_statistics.h"
 
-#include "common/ser_deser.h"
+#include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
 #include "common/string_format.h"
+#include "common/string_utils.h"
 #include "storage/stats/table_statistics_collection.h"
 
 using namespace kuzu::common;
@@ -148,17 +150,17 @@ std::vector<offset_t> NodeTableStatsAndDeletedIDs::getDeletedNodeOffsets() const
     return retVal;
 }
 
-void NodeTableStatsAndDeletedIDs::serializeInternal(FileInfo* fileInfo, uint64_t& offset) {
-    SerDeser::serializeVector(getDeletedNodeOffsets(), fileInfo, offset);
-    SerDeser::serializeVectorOfPtrs(metadataDAHInfos, fileInfo, offset);
+void NodeTableStatsAndDeletedIDs::serializeInternal(Serializer& serializer) {
+    serializer.serializeVector(getDeletedNodeOffsets());
+    serializer.serializeVectorOfPtrs(metadataDAHInfos);
 }
 
 std::unique_ptr<NodeTableStatsAndDeletedIDs> NodeTableStatsAndDeletedIDs::deserialize(
-    table_id_t tableID, offset_t maxNodeOffset, FileInfo* fileInfo, uint64_t& offset) {
+    table_id_t tableID, offset_t maxNodeOffset, Deserializer& deserializer) {
     std::vector<offset_t> deletedNodeOffsets;
     std::vector<std::unique_ptr<MetadataDAHInfo>> metadataDAHInfos;
-    SerDeser::deserializeVector(deletedNodeOffsets, fileInfo, offset);
-    SerDeser::deserializeVectorOfPtrs(metadataDAHInfos, fileInfo, offset);
+    deserializer.deserializeVector(deletedNodeOffsets);
+    deserializer.deserializeVectorOfPtrs(metadataDAHInfos);
     auto result =
         std::make_unique<NodeTableStatsAndDeletedIDs>(tableID, maxNodeOffset, deletedNodeOffsets);
     result->metadataDAHInfos = std::move(metadataDAHInfos);

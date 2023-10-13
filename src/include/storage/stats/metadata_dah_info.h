@@ -19,9 +19,8 @@ struct MetadataDAHInfo {
 
     std::unique_ptr<MetadataDAHInfo> copy();
 
-    void serialize(common::FileInfo* fileInfo, uint64_t& offset) const;
-    static std::unique_ptr<MetadataDAHInfo> deserialize(
-        common::FileInfo* fileInfo, uint64_t& offset);
+    void serialize(common::Serializer& serializer) const;
+    static std::unique_ptr<MetadataDAHInfo> deserialize(common::Deserializer& deserializer);
 };
 
 } // namespace storage
