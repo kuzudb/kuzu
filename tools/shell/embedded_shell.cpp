@@ -32,14 +32,9 @@ struct ShellCommand {
     const std::string CLEAR = ":clear";
     const std::string QUIT = ":quit";
     const std::string THREAD = ":thread";
-    const std::string LIST_NODES = ":list_nodes";
-    const std::string LIST_RELS = ":list_rels";
-    const std::string SHOW_NODE = ":show_node";
-    const std::string SHOW_REL = ":show_rel";
     const std::string LOGGING_LEVEL = ":logging_level";
     const std::string QUERY_TIMEOUT = ":timeout";
-    const std::vector<std::string> commandList = {HELP, CLEAR, QUIT, THREAD, LIST_NODES, LIST_RELS,
-        SHOW_NODE, SHOW_REL, LOGGING_LEVEL, QUERY_TIMEOUT};
+    const std::vector<std::string> commandList = {HELP, CLEAR, QUIT, THREAD, LOGGING_LEVEL, QUERY_TIMEOUT};
 } shellCommand;
 
 const char* TAB = "    ";
@@ -232,14 +227,6 @@ void EmbeddedShell::run() {
             break;
         } else if (lineStr.rfind(shellCommand.THREAD) == 0) {
             setNumThreads(lineStr.substr(shellCommand.THREAD.length()));
-        } else if (lineStr.rfind(shellCommand.LIST_NODES) == 0) {
-            printf("%s", conn->getNodeTableNames().c_str());
-        } else if (lineStr.rfind(shellCommand.LIST_RELS) == 0) {
-            printf("%s", conn->getRelTableNames().c_str());
-        } else if (lineStr.rfind(shellCommand.SHOW_NODE) == 0) {
-            printNodeSchema(lineStr.substr(shellCommand.SHOW_NODE.length()));
-        } else if (lineStr.rfind(shellCommand.SHOW_REL) == 0) {
-            printRelSchema(lineStr.substr(shellCommand.SHOW_REL.length()));
         } else if (lineStr.rfind(shellCommand.LOGGING_LEVEL) == 0) {
             setLoggingLevel(lineStr.substr(shellCommand.LOGGING_LEVEL.length()));
         } else if (lineStr.rfind(shellCommand.QUERY_TIMEOUT) == 0) {
@@ -288,20 +275,6 @@ void EmbeddedShell::setNumThreads(const std::string& numThreadsString) {
     } catch (Exception& e) { printf("%s", e.what()); }
 }
 
-void EmbeddedShell::printNodeSchema(const std::string& tableName) {
-    auto name = StringUtils::ltrim(tableName);
-    try {
-        printf("%s\n", conn->getNodePropertyNames(name).c_str());
-    } catch (Exception& e) { printf("%s\n", e.what()); }
-}
-
-void EmbeddedShell::printRelSchema(const std::string& tableName) {
-    auto name = StringUtils::ltrim(tableName);
-    try {
-        printf("%s\n", conn->getRelPropertyNames(name).c_str());
-    } catch (Exception& e) { printf("%s\n", e.what()); }
-}
-
 void EmbeddedShell::printHelp() {
     printf("%s%s %sget command list\n", TAB, shellCommand.HELP.c_str(), TAB);
     printf("%s%s %sclear shell\n", TAB, shellCommand.CLEAR.c_str(), TAB);
@@ -313,10 +286,6 @@ void EmbeddedShell::printHelp() {
         TAB, shellCommand.LOGGING_LEVEL.c_str(), TAB);
     printf("%s%s [query_timeout] %sset query timeout in ms\n", TAB,
         shellCommand.QUERY_TIMEOUT.c_str(), TAB);
-    printf("%s%s %slist all node tables\n", TAB, shellCommand.LIST_NODES.c_str(), TAB);
-    printf("%s%s %slist all rel tables\n", TAB, shellCommand.LIST_RELS.c_str(), TAB);
-    printf("%s%s %s[table_name] show node schema\n", TAB, shellCommand.SHOW_NODE.c_str(), TAB);
-    printf("%s%s %s[table_name] show rel schema\n", TAB, shellCommand.SHOW_REL.c_str(), TAB);
 }
 
 void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {

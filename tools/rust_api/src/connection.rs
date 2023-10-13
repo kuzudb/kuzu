@@ -257,30 +257,6 @@ impl<'a> Connection<'a> {
         Ok(conn.interrupt()?)
     }
 
-    /// Returns all node table names in string format
-    pub fn get_node_table_names(&self) -> String {
-        let conn = unsafe { (*self.conn.get()).pin_mut() };
-        ffi::get_node_table_names(conn)
-    }
-
-    /// Returns all rel table names in string format
-    pub fn get_rel_table_names(&self) -> String {
-        let conn = unsafe { (*self.conn.get()).pin_mut() };
-        ffi::get_rel_table_names(conn)
-    }
-
-    /// Returns all property names of the given table
-    pub fn get_node_property_names(&self, table_name: &str) -> String {
-        let conn = unsafe { (*self.conn.get()).pin_mut() };
-        ffi::get_node_property_names(conn, table_name)
-    }
-
-    /// Returns all property names of the given table
-    pub fn get_rel_property_names(&self, rel_table_name: &str) -> String {
-        let conn = unsafe { (*self.conn.get()).pin_mut() };
-        ffi::get_rel_property_names(conn, rel_table_name)
-    }
-
     /// Sets the query timeout value of the current connection
     ///
     /// A value of zero (the default) disables the timeout.
@@ -454,36 +430,6 @@ Invalid input <MATCH (a:Person RETURN>: expected rule oC_SingleQuery (line: 1, o
 
         assert_eq!(alice, vec!["Alice".into(), 25.into()]);
         assert_eq!(bob, vec!["Bob".into(), 30.into()]);
-        temp_dir.close()?;
-        Ok(())
-    }
-
-    #[test]
-    fn test_table_names() -> Result<()> {
-        let temp_dir = tempfile::tempdir()?;
-        let db = Database::new(temp_dir.path(), SystemConfig::default())?;
-        let conn = Connection::new(&db)?;
-        conn.query("CREATE NODE TABLE Person(name STRING, age INT16, PRIMARY KEY(name));")?;
-        conn.query("CREATE REL TABLE Follows(FROM Person TO Person, since DATE);")?;
-        assert_eq!(
-            conn.get_node_table_names(),
-            "Node tables: \n\tPerson\n".to_string()
-        );
-        assert_eq!(
-            conn.get_rel_table_names(),
-            "Rel tables: \n\tFollows\n".to_string()
-        );
-        assert_eq!(
-            conn.get_node_property_names("Person"),
-            "Person properties: \n\tname STRING(PRIMARY KEY)\n\tage INT16\n".to_string()
-        );
-        assert_eq!(
-            conn.get_rel_property_names("Follows"),
-            "Follows src node: Person\n\
-            Follows dst node: Person\nFollows properties: \n\tsince DATE\n"
-                .to_string()
-        );
-
         temp_dir.close()?;
         Ok(())
     }

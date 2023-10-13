@@ -273,60 +273,6 @@ public class ConnectionTest extends TestBase {
     }
 
     @Test
-    void ConnGetNodeTableNames() throws KuzuObjectRefDestroyedException {
-        String result = conn.getNodeTableNames();
-        assertNotNull(result);
-        assertTrue(result.equals("Node tables: \n" +
-                "\torganisation\n" +
-                "\tperson\n" +
-                "\tmovies\n") ||
-                result.equals("Node tables: \n" +
-                        "\tmovies\n" +
-                        "\tperson\n" +
-                        "\torganisation\n"));
-    }
-
-    @Test
-    void ConnGetRelTableNames() throws KuzuObjectRefDestroyedException {
-        String result = conn.getRelTableNames();
-        assertNotNull(result);
-        assertTrue(result.equals("Rel tables: \n" +
-                "\tmeets\n" +
-                "\tstudyAt\n" +
-                "\tknows\n" +
-                "\tworkAt\n" +
-                "\tmarries\n") ||
-                result.equals("Rel tables: \n" +
-                        "\tmarries\n" +
-                        "\tworkAt\n" +
-                        "\tknows\n" +
-                        "\tstudyAt\n" +
-                        "\tmeets\n"));
-    }
-
-    @Test
-    void ConnGetNodePropertyNames() throws KuzuObjectRefDestroyedException {
-        String result = conn.getNodePropertyNames("movies");
-        assertNotNull(result);
-        assertTrue(result.equals("movies properties: \n" +
-                "\tname STRING(PRIMARY KEY)\n" +
-                "\tlength INT32\n" +
-                "\tnote STRING\n" +
-                "\tdescription STRUCT(DOUBLE,INT64,TIMESTAMP,DATE)\n"));
-    }
-
-    @Test
-    void ConnGetRelPropertyNames() throws KuzuObjectRefDestroyedException {
-        String result = conn.getRelPropertyNames("meets");
-        assertNotNull(result);
-        assertTrue(result.equals("meets src node: person\n" +
-                "meets dst node: person\n" +
-                "meets properties: \n" +
-                "\tlocation FLOAT[2]\n" +
-                "\ttimes INT32\n"));
-    }
-
-    @Test
     void ConnQueryTimeout() throws KuzuObjectRefDestroyedException {
         conn.setQueryTimeout(1);
         KuzuQueryResult result = conn.query("MATCH (a:person)-[:knows*1..28]->(b:person) RETURN COUNT(*);");

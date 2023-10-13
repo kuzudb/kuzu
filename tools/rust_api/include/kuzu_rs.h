@@ -69,11 +69,6 @@ std::unique_ptr<kuzu::main::Connection> database_connect(kuzu::main::Database& d
 std::unique_ptr<kuzu::main::QueryResult> connection_execute(kuzu::main::Connection& connection,
     kuzu::main::PreparedStatement& query, std::unique_ptr<QueryParams> params);
 
-rust::String get_node_table_names(kuzu::main::Connection& connection);
-rust::String get_rel_table_names(kuzu::main::Connection& connection);
-rust::String get_node_property_names(kuzu::main::Connection& connection, rust::Str tableName);
-rust::String get_rel_property_names(kuzu::main::Connection& connection, rust::Str relTableName);
-
 /* PreparedStatement */
 rust::String prepared_statement_error_message(const kuzu::main::PreparedStatement& statement);
 

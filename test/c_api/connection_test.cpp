@@ -95,64 +95,6 @@ TEST_F(CApiConnectionTest, Execute) {
     kuzu_query_result_destroy(result);
 }
 
-TEST_F(CApiConnectionTest, GetNodeTableNames) {
-    auto connection = getConnection();
-    auto result = kuzu_connection_get_node_table_names(connection);
-    ASSERT_NE(result, nullptr);
-    auto resultString = std::string(result);
-    ASSERT_EQ(resultString, "Node tables: \n"
-                            "\tmovies\n"
-                            "\torganisation\n"
-                            "\tperson\n");
-    free(result);
-}
-
-TEST_F(CApiConnectionTest, GetRelTableNames) {
-    auto connection = getConnection();
-    auto result = kuzu_connection_get_rel_table_names(connection);
-    ASSERT_NE(result, nullptr);
-    auto resultString = std::string(result);
-    ASSERT_EQ(resultString, "Rel tables: \n"
-                            "\tknows\n"
-                            "\tmarries\n"
-                            "\tmeets\n"
-                            "\tstudyAt\n"
-                            "\tworkAt\n");
-    free(result);
-}
-
-TEST_F(CApiConnectionTest, GetNodePropertyNames) {
-    auto connection = getConnection();
-    auto result = kuzu_connection_get_node_property_names(connection, "movies");
-    ASSERT_NE(result, nullptr);
-    auto resultString = std::string(result);
-    ASSERT_EQ(resultString, "movies properties: \n"
-                            "\tname STRING(PRIMARY KEY)\n"
-                            "\tlength INT32\n"
-                            "\tnote STRING\n"
-                            "\tdescription STRUCT(rating:DOUBLE, stars:INT8, views:INT64, "
-                            "release:TIMESTAMP, film:DATE, u8:UINT8, u16:UINT16, u32:UINT32, "
-                            "u64:UINT64)\n"
-                            "\tcontent BLOB\n"
-                            "\taudience MAP(STRING: INT64)\n"
-                            "\tgrade UNION(credit:BOOL, grade1:DOUBLE, grade2:INT64)\n");
-    free(result);
-}
-
-TEST_F(CApiConnectionTest, GetRelPropertyNames) {
-    auto connection = getConnection();
-    auto result = kuzu_connection_get_rel_property_names(connection, "meets");
-    ASSERT_NE(result, nullptr);
-    auto resultString = std::string(result);
-    ASSERT_EQ(resultString, "meets src node: person\n"
-                            "meets dst node: person\n"
-                            "meets properties: \n"
-                            "\tlocation FLOAT[2]\n"
-                            "\ttimes INT32\n"
-                            "\tdata BLOB\n");
-    free(result);
-}
-
 TEST_F(CApiConnectionTest, QueryTimeout) {
     auto connection = getConnection();
     kuzu_connection_set_query_timeout(connection, 1);

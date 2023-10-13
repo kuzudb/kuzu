@@ -315,38 +315,6 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1connection_1execute(
     return ret;
 }
 
-JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1connection_1get_1node_1table_1names(
-    JNIEnv* env, jclass, jobject thisConn) {
-    Connection* conn = getConnection(env, thisConn);
-    jstring result = env->NewStringUTF(conn->getNodeTableNames().c_str());
-    return result;
-}
-
-JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1connection_1get_1rel_1table_1names(
-    JNIEnv* env, jclass, jobject thisConn) {
-    Connection* conn = getConnection(env, thisConn);
-    jstring result = env->NewStringUTF(conn->getRelTableNames().c_str());
-    return result;
-}
-
-JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1connection_1get_1node_1property_1names(
-    JNIEnv* env, jclass, jobject thisConn, jstring table_name) {
-    Connection* conn = getConnection(env, thisConn);
-    const char* name = env->GetStringUTFChars(table_name, JNI_FALSE);
-    jstring result = env->NewStringUTF(conn->getNodePropertyNames(name).c_str());
-    env->ReleaseStringUTFChars(table_name, name);
-    return result;
-}
-
-JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1connection_1get_1rel_1property_1names(
-    JNIEnv* env, jclass, jobject thisConn, jstring table_name) {
-    Connection* conn = getConnection(env, thisConn);
-    const char* name = env->GetStringUTFChars(table_name, JNI_FALSE);
-    jstring result = env->NewStringUTF(conn->getRelPropertyNames(name).c_str());
-    env->ReleaseStringUTFChars(table_name, name);
-    return result;
-}
-
 JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1connection_1interrupt(
     JNIEnv* env, jclass, jobject thisConn) {
     Connection* conn = getConnection(env, thisConn);

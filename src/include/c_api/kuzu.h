@@ -325,30 +325,6 @@ KUZU_C_API kuzu_prepared_statement* kuzu_connection_prepare(
 KUZU_C_API kuzu_query_result* kuzu_connection_execute(
     kuzu_connection* connection, kuzu_prepared_statement* prepared_statement);
 /**
- * @brief Returns all node table names of the database.
- * @param connection The connection instance to return all node table names.
- */
-KUZU_C_API char* kuzu_connection_get_node_table_names(kuzu_connection* connection);
-/**
- * @brief Returns all rel table names of the database.
- * @param connection The connection instance to return all rel table names.
- */
-KUZU_C_API char* kuzu_connection_get_rel_table_names(kuzu_connection* connection);
-/**
- * @brief Returns all property names of the given node table.
- * @param connection The connection instance to return all property names.
- * @param table_name The table name to return all property names.
- */
-KUZU_C_API char* kuzu_connection_get_node_property_names(
-    kuzu_connection* connection, const char* table_name);
-/**
- * @brief Returns all property names of the given rel table.
- * @param connection The connection instance to return all property names.
- * @param table_name The table name to return all property names.
- */
-KUZU_C_API char* kuzu_connection_get_rel_property_names(
-    kuzu_connection* connection, const char* table_name);
-/**
  * @brief Interrupts the current query execution in the connection.
  * @param connection The connection instance to interrupt.
  */
