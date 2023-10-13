@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace testing {
 
-class PrivateApiTest : public BaseGraphTest {
+class PrivateApiTest : public DBTest {
 public:
     void SetUp() override {
         BaseGraphTest::SetUp();
