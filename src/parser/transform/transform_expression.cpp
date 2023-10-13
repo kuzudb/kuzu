@@ -429,8 +429,18 @@ std::unique_ptr<ParsedExpression> Transformer::transformListLiteral(
     CypherParser::OC_ListLiteralContext& ctx) {
     auto listCreation =
         std::make_unique<ParsedFunctionExpression>(LIST_CREATION_FUNC_NAME, ctx.getText());
-    for (auto& childExpr : ctx.oC_Expression()) {
-        listCreation->addChild(transformExpression(*childExpr));
+    if (ctx.oC_Expression() == nullptr) { // empty list
+        return listCreation;
+    }
+    listCreation->addChild(transformExpression(*ctx.oC_Expression()));
+    for (auto& listEntry : ctx.kU_ListEntry()) {
+        if (listEntry->oC_Expression() == nullptr) {
+            auto nullValue = Value::createNullValue();
+            listCreation->addChild(
+                std::make_unique<ParsedLiteralExpression>(nullValue.copy(), nullValue.toString()));
+        } else {
+            listCreation->addChild(transformExpression(*listEntry->oC_Expression()));
+        }
     }
     return listCreation;
 }

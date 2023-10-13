@@ -106,7 +106,7 @@ struct SplitStringListOperation {
             start_copy = end;
         }
         copyStringToVector(resultVector, offset,
-            std::string_view{start_copy, (size_t)(end - start_copy)}, csvReaderConfig);
+            std::string_view{start_copy, (uint32_t)(end - start_copy)}, csvReaderConfig);
         offset++;
     }
 };
