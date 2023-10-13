@@ -248,3 +248,24 @@ Conversion exception: Value fasdf is not a valid boolean
 -STATEMENT RETURN TO_BOOL("fal");
 ---- error
 Conversion exception: Value fal is not a valid boolean
+
+-CASE SerialOutOfRange
+-STATEMENT RETURN TO_SERIAL(TO_UINT64(9223372036854775807) * TO_UINT64(2));
+---- error
+Runtime exception: Value 18446744073709551614 is not within INT64 range
+
+-CASE NonAsciiStringToBlob
+-STATEMENT RETURN BLOB('😀')
+---- error
+Conversion exception: Invalid byte encountered in STRING -> BLOB conversion. All non-ascii characters must be escaped with hex codes (e.g. \xAA)
+
+-CASE StringToBlobInvalidHexCode
+-STATEMENT RETURN BLOB('\\xgg')
+---- error
+Conversion exception: Invalid hex escape code encountered in string -> blob conversion: \xgg
+
+-CASE StringToBlobUnterminatedHexCode
+-STATEMENT RETURN BLOB('\\xa')
+---- error
+Conversion exception: Invalid hex escape code encountered in string -> blob conversion: unterminated escape code at end of string
+

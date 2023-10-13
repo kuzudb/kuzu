@@ -30,6 +30,16 @@ TEST_F(CApiQueryResultTest, GetErrorMessage) {
     free(errorMessage);
 }
 
+TEST_F(CApiQueryResultTest, ToString) {
+    auto connection = getConnection();
+    auto result = kuzu_connection_query(connection, "MATCH (a:person) RETURN COUNT(*)");
+    ASSERT_TRUE(kuzu_query_result_is_success(result));
+    auto str_repr = kuzu_query_result_to_string(result);
+    ASSERT_NE(str_repr, nullptr);
+    free(str_repr);
+    kuzu_query_result_destroy(result);
+}
+
 TEST_F(CApiQueryResultTest, GetNumColumns) {
     auto connection = getConnection();
     auto result =

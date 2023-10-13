@@ -30,24 +30,16 @@ std::vector<Property*> TableSchema::getProperties() const {
     return propertiesToReturn;
 }
 
-std::string TableSchema::getPropertyName(property_id_t propertyID) const {
-    for (auto& property : properties) {
-        if (property->getPropertyID() == propertyID) {
-            return property->getName();
-        }
-    }
-    throw RuntimeException(stringFormat(
-        "Table: {} doesn't have a property with propertyID={}.", tableName, propertyID));
-}
-
 property_id_t TableSchema::getPropertyID(const std::string& propertyName) const {
     for (auto& property : properties) {
         if (property->getName() == propertyName) {
             return property->getPropertyID();
         }
     }
+    // LCOV_EXCL_START
     throw RuntimeException(stringFormat(
         "Table: {} doesn't have a property with propertyName={}.", tableName, propertyName));
+    // LCOV_EXCL_END
 }
 
 // TODO(Guodong): Instead of looping over properties, cache a map between propertyID and columnID.
@@ -66,8 +58,10 @@ Property* TableSchema::getProperty(property_id_t propertyID) const {
             return property.get();
         }
     }
+    // LCOV_EXCL_START
     throw RuntimeException(stringFormat(
         "Table: {} doesn't have a property with propertyID={}.", tableName, propertyID));
+    // LCOV_EXCL_END
 }
 
 void TableSchema::renameProperty(property_id_t propertyID, const std::string& newName) {
@@ -77,7 +71,9 @@ void TableSchema::renameProperty(property_id_t propertyID, const std::string& ne
             return;
         }
     }
+    // LCOV_EXCL_START
     throw InternalException(stringFormat("Property with id={} not found.", propertyID));
+    // LCOV_EXCL_END
 }
 
 void TableSchema::serialize(FileInfo* fileInfo, uint64_t& offset) {
@@ -118,7 +114,9 @@ std::unique_ptr<TableSchema> TableSchema::deserialize(FileInfo* fileInfo, uint64
         result = RdfGraphSchema::deserialize(fileInfo, offset);
     } break;
     default: {
+        // LCOV_EXCL_START
         throw NotImplementedException{"TableSchema::deserialize"};
+        // LCOV_EXCL_END
     }
     }
     result->tableName = tableName;

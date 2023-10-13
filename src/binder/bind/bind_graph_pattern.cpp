@@ -186,9 +186,10 @@ static std::unique_ptr<Expression> createPropertyExpression(const std::string& p
     }
     for (auto type : propertyDataTypes) {
         if (*propertyDataTypes[0] != *type) {
-            stringFormat("Expected the same data type for property {} but found {} and {}.",
-                propertyName, LogicalTypeUtils::dataTypeToString(*type),
-                LogicalTypeUtils::dataTypeToString(*propertyDataTypes[0]));
+            throw BinderException(
+                stringFormat("Expected the same data type for property {} but found {} and {}.",
+                    propertyName, LogicalTypeUtils::dataTypeToString(*type),
+                    LogicalTypeUtils::dataTypeToString(*propertyDataTypes[0])));
         }
     }
     return make_unique<PropertyExpression>(*propertyDataTypes[0], propertyName, uniqueVariableName,

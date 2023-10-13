@@ -11,8 +11,10 @@ namespace storage {
 storage_version_t StorageVersionInfo::getStorageVersion() {
     auto storageVersionInfo = getStorageVersionInfo();
     if (!storageVersionInfo.contains(KUZU_STORAGE_VERSION)) {
+        // LCOV_EXCL_START
         throw RuntimeException(
             stringFormat("Invalid storage version name: {}", KUZU_STORAGE_VERSION));
+        // LCOV_EXCL_END
     }
     return storageVersionInfo.at(KUZU_STORAGE_VERSION);
 }

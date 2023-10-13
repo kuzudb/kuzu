@@ -75,9 +75,11 @@ template<typename U>
 void BaseDiskArray<U>::checkOutOfBoundAccess(TransactionType trxType, uint64_t idx) {
     auto currentNumElements = getNumElementsNoLock(trxType);
     if (idx >= currentNumElements) {
+        // LCOV_EXCL_START
         throw RuntimeException(stringFormat(
             "idx: {} of the DiskArray to be accessed is >= numElements in DiskArray{}.", idx,
             currentNumElements));
+        // LCOV_EXCL_END
     }
 }
 

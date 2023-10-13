@@ -586,7 +586,8 @@ void copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std::string_view
             }
         }
         if (selectedFieldIdx == INVALID_STRUCT_FIELD_IDX) {
-            throw ParserException{stringFormat("No parsing rule matches value: {}.", strVal)};
+            throw ConversionException{stringFormat("Could not convert to union type {}: {}.",
+                LogicalTypeUtils::dataTypeToString(type), strVal)};
         }
         StructVector::getFieldVector(vector, UnionType::TAG_FIELD_IDX)
             ->setValue(rowToAdd, selectedFieldIdx);
