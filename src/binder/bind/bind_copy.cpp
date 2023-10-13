@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "binder/binder.h"
 #include "binder/copy/bound_copy_from.h"
 #include "binder/copy/bound_copy_to.h"
@@ -36,6 +38,15 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     auto readerConfig = std::make_unique<ReaderConfig>(
         fileType, std::vector<std::string>{boundFilePath}, columnNames, std::move(columnTypes));
     return std::make_unique<BoundCopyTo>(std::move(readerConfig), std::move(query));
+}
+
+static void validatePartialColumns(TableSchema* schema, const std::vector<std::string>& partialColumnNames) {
+    for (auto& columnName: partialColumnNames) {
+        if (!schema->containProperty(columnName)) {
+            throw BinderException(StringUtils::string_format(
+                "Table {} does not contain column {}.", schema->tableName, columnName));
+        }
+    }
 }
 
 // As a temporary constraint, we require npy files loaded with COPY FROM BY COLUMN keyword.
@@ -92,6 +103,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     default:
         break;
     }
+    validatePartialColumns(tableSchema, copyStatement.getColumnNames());
     auto csvReaderConfig = bindParsingOptions(copyStatement.getParsingOptionsRef());
     auto filePaths = bindFilePaths(copyStatement.getFilePaths());
     auto fileType = bindFileType(filePaths);
@@ -104,7 +116,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     }
     switch (tableSchema->tableType) {
     case TableType::NODE:
-        return bindCopyNodeFrom(std::move(readerConfig), tableSchema);
+        return bindCopyNodeFrom(std::move(readerConfig), tableSchema, copyStatement.getColumnNames());
     case TableType::REL: {
         if (readerConfig->fileType == FileType::TURTLE) {
             return bindCopyRdfRelFrom(std::move(readerConfig), tableSchema);
@@ -118,10 +130,11 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(
-    std::unique_ptr<ReaderConfig> readerConfig, TableSchema* tableSchema) {
+    std::unique_ptr<ReaderConfig> readerConfig, TableSchema* tableSchema,
+    const std::vector<std::string>& partialColumnNames) {
     // For table with SERIAL columns, we need to read in serial from files.
     auto containsSerial = bindContainsSerial(tableSchema);
-    auto columns = bindExpectedNodeFileColumns(tableSchema, *readerConfig);
+    auto columns = bindExpectedNodeFileColumns(tableSchema, *readerConfig, partialColumnNames);
     auto offset = createVariable(std::string(Property::OFFSET_NAME), LogicalTypeID::INT64);
     auto boundFileScanInfo = std::make_unique<BoundFileScanInfo>(
         std::move(readerConfig), std::move(columns), std::move(offset), TableType::NODE);
@@ -193,7 +206,8 @@ static bool skipPropertyInFile(const Property& property) {
 }
 
 expression_vector Binder::bindExpectedNodeFileColumns(
-    TableSchema* tableSchema, ReaderConfig& readerConfig) {
+    TableSchema* tableSchema, ReaderConfig& readerConfig,
+    const std::vector<std::string>& partialColumnNames) {
     expression_vector columns;
     switch (readerConfig.fileType) {
     case FileType::TURTLE: {
@@ -215,6 +229,13 @@ expression_vector Binder::bindExpectedNodeFileColumns(
             }
             readerConfig.columnNames.push_back(property->getName());
             readerConfig.columnTypes.push_back(property->getDataType()->copy());
+            if (!partialColumnNames.empty() &&
+                std::all_of(partialColumnNames.begin(), partialColumnNames.end(),
+                    [&property](const std::string& columnName) {
+                        return columnName != property->getName();
+                    })) {
+                continue;
+            }
             columns.push_back(createVariable(property->getName(), *property->getDataType()));
         }
     } break;
