@@ -32,7 +32,7 @@ struct HashSlot {
  *
  */
 class AggregateHashTable;
-using compare_function_t = std::function<bool(const uint8_t*, const uint8_t*)>;
+using compare_function_t = std::function<bool(common::ValueVector*, uint32_t, const uint8_t*)>;
 using update_agg_function_t =
     std::function<void(AggregateHashTable*, const std::vector<common::ValueVector*>&,
         const std::vector<common::ValueVector*>&, std::unique_ptr<function::AggregateFunction>&,
@@ -181,16 +181,8 @@ private:
 
     void resizeHashTableIfNecessary(uint32_t maxNumDistinctHashKeys);
 
-    template<typename type>
-    static bool compareEntryWithKeys(const uint8_t* keyValue, const uint8_t* entry) {
-        uint8_t result;
-        kuzu::function::Equals::operation(*(type*)keyValue, *(type*)entry, result,
-            nullptr /* leftVector */, nullptr /* rightVector */);
-        return result != 0;
-    }
-
     static void getCompareEntryWithKeysFunc(
-        common::PhysicalTypeID physicalType, compare_function_t& func);
+        const common::LogicalType& logicalType, compare_function_t& func);
 
     void updateNullAggVectorState(const std::vector<common::ValueVector*>& flatKeyVectors,
         const std::vector<common::ValueVector*>& unFlatKeyVectors,

@@ -1,5 +1,6 @@
 #include "processor/operator/aggregate/aggregate_hash_table.h"
 
+#include "common/null_buffer.h"
 #include "common/utils.h"
 #include "function/aggregate/base_count.h"
 #include "function/hash/vector_hash_functions.h"
@@ -138,7 +139,7 @@ void AggregateHashTable::initializeFT(
     for (auto& dataType : keyDataTypes) {
         auto size = LogicalTypeUtils::getRowLayoutSize(dataType);
         tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnflat, dataChunkPos, size));
-        getCompareEntryWithKeysFunc(dataType.getPhysicalType(), compareFuncs[colIdx]);
+        getCompareEntryWithKeysFunc(dataType, compareFuncs[colIdx]);
         numBytesForKeys += size;
         colIdx++;
     }
@@ -466,7 +467,6 @@ bool AggregateHashTable::matchFlatGroupByKeys(
         auto keyVector = keyVectors[i];
         assert(keyVector->state->isFlat());
         auto pos = keyVector->state->selVector->selectedPositions[0];
-        auto keyValue = keyVector->getData() + pos * keyVector->getNumBytesPerValue();
         auto isKeyVectorNull = keyVector->isNull(pos);
         auto isEntryKeyNull = factorizedTable->isNonOverflowColNull(
             entry + factorizedTable->getTableSchema()->getNullMapOffset(), i);
@@ -478,7 +478,7 @@ bool AggregateHashTable::matchFlatGroupByKeys(
             return false;
         }
         if (!compareFuncs[i](
-                keyValue, entry + factorizedTable->getTableSchema()->getColOffset(i))) {
+                keyVector, pos, entry + factorizedTable->getTableSchema()->getColOffset(i))) {
             return false;
         }
     }
@@ -494,8 +494,8 @@ uint64_t AggregateHashTable::matchUnFlatVecWithFTColumn(
         if (factorizedTable->hasNoNullGuarantee(colIdx)) {
             for (auto i = 0u; i < numMayMatches; i++) {
                 auto idx = mayMatchIdxes[i];
-                if (compareFuncs[colIdx](vector->getData() + idx * vector->getNumBytesPerValue(),
-                        hashSlotsToUpdateAggState[idx]->entry + colOffset)) {
+                if (compareFuncs[colIdx](
+                        vector, idx, hashSlotsToUpdateAggState[idx]->entry + colOffset)) {
                     mayMatchIdxes[mayMatchIdx++] = idx;
                 } else {
                     noMatchIdxes[numNoMatches++] = idx;
@@ -504,7 +504,6 @@ uint64_t AggregateHashTable::matchUnFlatVecWithFTColumn(
         } else {
             for (auto i = 0u; i < numMayMatches; i++) {
                 auto idx = mayMatchIdxes[i];
-                auto value = vector->getData() + idx * vector->getNumBytesPerValue();
                 auto isEntryKeyNull = factorizedTable->isNonOverflowColNull(
                     hashSlotsToUpdateAggState[idx]->entry +
                         factorizedTable->getTableSchema()->getNullMapOffset(),
@@ -514,7 +513,7 @@ uint64_t AggregateHashTable::matchUnFlatVecWithFTColumn(
                     continue;
                 }
                 if (compareFuncs[colIdx](
-                        value, hashSlotsToUpdateAggState[idx]->entry + colOffset)) {
+                        vector, idx, hashSlotsToUpdateAggState[idx]->entry + colOffset)) {
                     mayMatchIdxes[mayMatchIdx++] = idx;
                 } else {
                     noMatchIdxes[numNoMatches++] = idx;
@@ -524,7 +523,6 @@ uint64_t AggregateHashTable::matchUnFlatVecWithFTColumn(
     } else {
         for (auto i = 0u; i < numMayMatches; i++) {
             auto idx = mayMatchIdxes[i];
-            auto value = vector->getData() + idx * vector->getNumBytesPerValue();
             auto isKeyVectorNull = vector->isNull(idx);
             auto isEntryKeyNull = factorizedTable->isNonOverflowColNull(
                 hashSlotsToUpdateAggState[idx]->entry +
@@ -538,7 +536,8 @@ uint64_t AggregateHashTable::matchUnFlatVecWithFTColumn(
                 continue;
             }
 
-            if (compareFuncs[colIdx](value, hashSlotsToUpdateAggState[idx]->entry + colOffset)) {
+            if (compareFuncs[colIdx](
+                    vector, idx, hashSlotsToUpdateAggState[idx]->entry + colOffset)) {
                 mayMatchIdxes[mayMatchIdx++] = idx;
             } else {
                 noMatchIdxes[numNoMatches++] = idx;
@@ -555,7 +554,6 @@ uint64_t AggregateHashTable::matchFlatVecWithFTColumn(
     uint64_t mayMatchIdx = 0;
     auto pos = vector->state->selVector->selectedPositions[0];
     auto isVectorNull = vector->isNull(pos);
-    auto value = vector->getData() + pos * vector->getNumBytesPerValue();
     for (auto i = 0u; i < numMayMatches; i++) {
         auto idx = mayMatchIdxes[i];
         auto isEntryKeyNull = factorizedTable->isNonOverflowColNull(
@@ -569,7 +567,7 @@ uint64_t AggregateHashTable::matchFlatVecWithFTColumn(
             noMatchIdxes[numNoMatches++] = idx;
             continue;
         }
-        if (compareFuncs[colIdx](value, hashSlotsToUpdateAggState[idx]->entry + colOffset)) {
+        if (compareFuncs[colIdx](vector, pos, hashSlotsToUpdateAggState[idx]->entry + colOffset)) {
             mayMatchIdxes[mayMatchIdx++] = idx;
         } else {
             noMatchIdxes[numNoMatches++] = idx;
@@ -632,68 +630,105 @@ void AggregateHashTable::resizeHashTableIfNecessary(uint32_t maxNumDistinctHashK
     }
 }
 
+template<typename T>
+static bool compareEntry(common::ValueVector* vector, uint32_t vectorPos, const uint8_t* entry) {
+    uint8_t result;
+    auto key = vector->getData() + vectorPos * vector->getNumBytesPerValue();
+    kuzu::function::Equals::operation(
+        *(T*)key, *(T*)entry, result, nullptr /* leftVector */, nullptr /* rightVector */);
+    return result != 0;
+}
+
+static bool compareNodeEntry(
+    common::ValueVector* vector, uint32_t vectorPos, const uint8_t* entry) {
+    assert(0 == common::StructType::getFieldIdx(&vector->dataType, common::InternalKeyword::ID));
+    auto idVector = common::StructVector::getFieldVector(vector, 0).get();
+    return compareEntry<common::internalID_t>(idVector, vectorPos,
+        entry + common::NullBuffer::getNumBytesForNullValues(
+                    common::StructType::getNumFields(&vector->dataType)));
+}
+
+static bool compareRelEntry(common::ValueVector* vector, uint32_t vectorPos, const uint8_t* entry) {
+    assert(3 == common::StructType::getFieldIdx(&vector->dataType, common::InternalKeyword::ID));
+    auto idVector = common::StructVector::getFieldVector(vector, 3).get();
+    return compareEntry<common::internalID_t>(idVector, vectorPos,
+        entry + sizeof(common::internalID_t) * 2 + sizeof(common::ku_string_t) +
+            common::NullBuffer::getNumBytesForNullValues(
+                common::StructType::getNumFields(&vector->dataType)));
+}
+
 void AggregateHashTable::getCompareEntryWithKeysFunc(
-    PhysicalTypeID physicalType, compare_function_t& func) {
-    switch (physicalType) {
+    const LogicalType& logicalType, compare_function_t& func) {
+    switch (logicalType.getPhysicalType()) {
     case PhysicalTypeID::INTERNAL_ID: {
-        func = compareEntryWithKeys<nodeID_t>;
+        func = compareEntry<nodeID_t>;
         return;
     }
     case PhysicalTypeID::BOOL: {
-        func = compareEntryWithKeys<bool>;
+        func = compareEntry<bool>;
         return;
     }
     case PhysicalTypeID::INT64: {
-        func = compareEntryWithKeys<int64_t>;
+        func = compareEntry<int64_t>;
         return;
     }
     case PhysicalTypeID::INT32: {
-        func = compareEntryWithKeys<int32_t>;
+        func = compareEntry<int32_t>;
         return;
     }
     case PhysicalTypeID::INT16: {
-        func = compareEntryWithKeys<int16_t>;
+        func = compareEntry<int16_t>;
         return;
     }
     case PhysicalTypeID::INT8: {
-        func = compareEntryWithKeys<int8_t>;
+        func = compareEntry<int8_t>;
         return;
     }
     case PhysicalTypeID::UINT64: {
-        func = compareEntryWithKeys<uint64_t>;
+        func = compareEntry<uint64_t>;
         return;
     }
     case PhysicalTypeID::UINT32: {
-        func = compareEntryWithKeys<uint32_t>;
+        func = compareEntry<uint32_t>;
         return;
     }
     case PhysicalTypeID::UINT16: {
-        func = compareEntryWithKeys<uint16_t>;
+        func = compareEntry<uint16_t>;
         return;
     }
     case PhysicalTypeID::UINT8: {
-        func = compareEntryWithKeys<uint8_t>;
+        func = compareEntry<uint8_t>;
         return;
     }
     case PhysicalTypeID::DOUBLE: {
-        func = compareEntryWithKeys<double_t>;
+        func = compareEntry<double_t>;
         return;
     }
     case PhysicalTypeID::FLOAT: {
-        func = compareEntryWithKeys<float_t>;
+        func = compareEntry<float_t>;
         return;
     }
     case PhysicalTypeID::STRING: {
-        func = compareEntryWithKeys<ku_string_t>;
+        func = compareEntry<ku_string_t>;
         return;
     }
     case PhysicalTypeID::INTERVAL: {
-        func = compareEntryWithKeys<interval_t>;
+        func = compareEntry<interval_t>;
         return;
+    }
+    case PhysicalTypeID::STRUCT: {
+        if (logicalType.getLogicalTypeID() == LogicalTypeID::NODE) {
+            func = compareNodeEntry;
+            return;
+        } else if (logicalType.getLogicalTypeID() == LogicalTypeID::REL) {
+            func = compareRelEntry;
+            return;
+        }
     }
     default: {
         throw RuntimeException(
-            "Cannot compare data type " + PhysicalTypeUtils::physicalTypeToString(physicalType));
+            "Cannot compare data type " +
+            PhysicalTypeUtils::physicalTypeToString(logicalType.getPhysicalType()));
     }
     }
 }
