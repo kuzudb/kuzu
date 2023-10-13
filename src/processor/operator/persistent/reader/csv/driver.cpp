@@ -11,6 +11,7 @@
 #include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 #include "storage/store/table_copy_utils.h"
+#include "utf8proc_wrapper.h"
 
 using namespace kuzu::common;
 
@@ -340,6 +341,9 @@ void copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std::string_view
             vector, rowToAdd, reinterpret_cast<char*>(blobBuffer.get()), blobLen);
     } break;
     case LogicalTypeID::STRING: {
+        if (!utf8proc::Utf8Proc::isValid(strVal.data(), strVal.length())) {
+            throw common::CopyException{"Invalid UTF8-encoded string."};
+        }
         StringVector::addString(vector, rowToAdd, strVal.data(), strVal.length());
     } break;
     case LogicalTypeID::DATE: {
