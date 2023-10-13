@@ -251,7 +251,7 @@ static bool tryCastStringToStruct(const char* input, uint64_t len, ValueVector* 
         skipWhitespace(++input, end);
 
         copyStringToVector(StructVector::getFieldVector(vector, fieldIdx).get(), rowToAdd,
-            std::string_view{valStart, valEnd}, csvReaderConfig);
+            std::string_view{valStart, (size_t)(valEnd - valStart)}, csvReaderConfig);
     }
     return true;
 }
