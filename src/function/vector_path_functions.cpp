@@ -55,7 +55,7 @@ std::unique_ptr<FunctionBindData> PropertiesVectorFunction::bindFunc(
     const binder::expression_vector& arguments, FunctionDefinition* definition) {
     if (arguments[1]->expressionType != ExpressionType::LITERAL) {
         throw BinderException(stringFormat(
-            "Expect literal input as the second argument for {}().", PROPERTIES_FUNC_NAME));
+            "Expected literal input as the second argument for {}().", PROPERTIES_FUNC_NAME));
     }
     auto key = ((binder::LiteralExpression&)*arguments[1]).getValue()->getValue<std::string>();
     auto listType = arguments[0]->getDataType();

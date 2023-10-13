@@ -230,10 +230,12 @@ std::unique_ptr<CatalogContent> CatalogContent::copy() const {
 void CatalogContent::validateStorageVersion(storage_version_t savedStorageVersion) {
     auto storageVersion = StorageVersionInfo::getStorageVersion();
     if (savedStorageVersion != storageVersion) {
+        // LCOV_EXCL_START
         throw RuntimeException(
             stringFormat("Trying to read a database file with a different version. "
                          "Database file version: {}, Current build storage version: {}",
                 savedStorageVersion, storageVersion));
+        // LCOV_EXCL_END
     }
 }
 

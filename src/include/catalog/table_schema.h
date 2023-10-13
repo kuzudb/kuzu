@@ -62,8 +62,6 @@ public:
             std::move(propertyName), std::move(dataType), increaseNextPropertyID(), tableID));
     }
 
-    std::string getPropertyName(common::property_id_t propertyID) const;
-
     common::property_id_t getPropertyID(const std::string& propertyName) const;
     common::column_id_t getColumnID(common::property_id_t propertyID) const;
 

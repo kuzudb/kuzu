@@ -68,8 +68,10 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getEvaluator(
     } else if (canEvaluateAsFunction(expressionType)) {
         return getFunctionEvaluator(expression, schema);
     } else {
+        // LCOV_EXCL_START
         throw NotImplementedException(stringFormat(
             "Cannot evaluate expression with type {}.", expressionTypeToString(expressionType)));
+        // LCOV_EXCL_END
     }
 }
 
@@ -84,8 +86,10 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getConstantEvaluator(
     } else if (canEvaluateAsFunction(expressionType)) {
         return getFunctionEvaluator(expression, nullptr);
     } else {
+        // LCOV_EXCL_START
         throw NotImplementedException(stringFormat(
             "Cannot evaluate expression with type {}.", expressionTypeToString(expressionType)));
+        // LCOV_EXCL_END
     }
 }
 

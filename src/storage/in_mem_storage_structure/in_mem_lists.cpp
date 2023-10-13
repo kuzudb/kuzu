@@ -88,7 +88,7 @@ void InMemLists::copyArrowArray(arrow::Array* boundNodeOffsets, arrow::Array* po
     } break;
         // TODO(Ziyi): Add support of VAR_LIST and more native parquet data types.
     default: {
-        throw CopyException("Unsupported data type ");
+        throw CopyException("Unsupported data type");
     }
     }
 }

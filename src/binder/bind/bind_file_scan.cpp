@@ -46,9 +46,6 @@ std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& f
         boundFilePaths.insert(
             boundFilePaths.end(), globbedFilePaths.begin(), globbedFilePaths.end());
     }
-    if (boundFilePaths.empty()) {
-        throw BinderException{stringFormat("Invalid file path: {}.", filePaths[0])};
-    }
     return boundFilePaths;
 }
 
