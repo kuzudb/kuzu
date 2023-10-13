@@ -1,0 +1,9 @@
+-GROUP CopyInvalidUTF8
+-DATASET CSV copy-fault-tests/invalid-utf8
+
+--
+
+-CASE InvalidUTF8
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-utf8/invalid-utf8.csv"
+---- error
+Copy exception: Invalid UTF8-encoded string.
