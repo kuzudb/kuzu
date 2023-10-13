@@ -5,6 +5,26 @@
 namespace kuzu {
 namespace common {
 
+std::vector<std::string> StringUtils::splitComma(
+    const std::string& input, bool ignoreEmptyStringParts) {
+    auto result = std::vector<std::string>();
+    auto currentPos = 0u;
+    auto lvl = 0u;
+    while (currentPos < input.length()) {
+        if (input[currentPos] == '(') {
+            lvl++;
+        } else if (input[currentPos] == ')') {
+            lvl--;
+        } else if (lvl == 0 && input[currentPos] == ',') {
+            break;
+        }
+        currentPos++;
+    }
+    result.push_back(input.substr(0, currentPos));
+    result.push_back(input.substr(currentPos + 1));
+    return result;
+}
+
 std::vector<std::string> StringUtils::split(
     const std::string& input, const std::string& delimiter, bool ignoreEmptyStringParts) {
     auto result = std::vector<std::string>();

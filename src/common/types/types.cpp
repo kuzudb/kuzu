@@ -836,7 +836,7 @@ std::unique_ptr<LogicalType> LogicalTypeUtils::parseMapType(const std::string& t
         throw Exception("Cannot parse map type: " + trimmedStr);
     }
     auto mapTypeStr = trimmedStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1);
-    auto keyValueTypes = StringUtils::split(mapTypeStr, ",");
+    auto keyValueTypes = StringUtils::splitComma(mapTypeStr);
     return MapType::createMapType(
         std::make_unique<LogicalType>(dataTypeFromString(keyValueTypes[0])),
         std::make_unique<LogicalType>(dataTypeFromString(keyValueTypes[1])));
