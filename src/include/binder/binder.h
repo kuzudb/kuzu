@@ -162,6 +162,18 @@ private:
         const parser::ReadingClause& readingClause);
     std::unique_ptr<BoundReadingClause> bindInQueryCall(const parser::ReadingClause& readingClause);
     std::unique_ptr<BoundReadingClause> bindLoadFrom(const parser::ReadingClause& readingClause);
+    expression_vector createColumnExpressions(common::ReaderConfig& readerConfig,
+        const std::vector<std::string>& columnNames,
+        const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes);
+    void sniffFiles(const common::ReaderConfig& readerConfig, std::vector<std::string>& columnNames,
+        std::vector<std::unique_ptr<common::LogicalType>>& columnTypes);
+    void sniffFile(const common::ReaderConfig& readerConfig, uint32_t fileIdx,
+        std::vector<std::string>& columnNames,
+        std::vector<std::unique_ptr<common::LogicalType>>& columnTypes);
+    static void validateNumColumns(uint32_t expectedNumber, uint32_t detectedNumber);
+    static void validateColumnTypes(const std::vector<std::string>& expectedColumnNames,
+        const std::vector<std::unique_ptr<common::LogicalType>>& expectedColumnTypes,
+        const std::vector<std::unique_ptr<common::LogicalType>>& detectedColumnTypes);
 
     /*** bind updating clause ***/
     // TODO(Guodong/Xiyang): Is update clause an accurate name? How about (data)modificationClause?

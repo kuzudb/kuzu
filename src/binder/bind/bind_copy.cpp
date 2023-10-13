@@ -49,14 +49,6 @@ static void validateByColumnKeyword(FileType fileType, bool byColumn) {
     }
 }
 
-static void validateCopyNpyFilesMatchSchema(uint32_t numFiles, TableSchema* schema) {
-    if (schema->properties.size() != numFiles) {
-        throw BinderException(StringUtils::string_format(
-            "Number of npy files is not equal to number of properties in table {}.",
-            schema->tableName));
-    }
-}
-
 static void validateCopyNpyNotForRelTables(TableSchema* schema) {
     if (schema->tableType == TableType::REL) {
         throw BinderException(
@@ -99,7 +91,6 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
         std::make_unique<ReaderConfig>(fileType, std::move(filePaths), std::move(csvReaderConfig));
     validateByColumnKeyword(readerConfig->fileType, copyStatement.byColumn());
     if (readerConfig->fileType == FileType::NPY) {
-        validateCopyNpyFilesMatchSchema(readerConfig->getNumFiles(), tableSchema);
         validateCopyNpyNotForRelTables(tableSchema);
     }
     switch (tableSchema->tableType) {
@@ -194,16 +185,16 @@ static bool skipPropertyInFile(const Property& property) {
 
 expression_vector Binder::bindExpectedNodeFileColumns(
     TableSchema* tableSchema, ReaderConfig& readerConfig) {
-    expression_vector columns;
+    // Resolve expected columns.
+    std::vector<std::string> expectedColumnNames;
+    std::vector<std::unique_ptr<common::LogicalType>> expectedColumnTypes;
     switch (readerConfig.fileType) {
     case FileType::TURTLE: {
         auto stringType = LogicalType{LogicalTypeID::STRING};
-        auto columnNames = std::vector<std::string>{
+        expectedColumnNames = {
             std::string(RDF_SUBJECT), std::string(RDF_PREDICATE), std::string(RDF_OBJECT)};
-        for (auto& columnName : columnNames) {
-            readerConfig.columnNames.push_back(columnName);
-            readerConfig.columnTypes.push_back(stringType.copy());
-            columns.push_back(createVariable(columnName, stringType));
+        for (auto _ : expectedColumnNames) {
+            expectedColumnTypes.push_back(stringType.copy());
         }
     } break;
     case FileType::NPY:
@@ -213,16 +204,29 @@ expression_vector Binder::bindExpectedNodeFileColumns(
             if (skipPropertyInFile(*property)) {
                 continue;
             }
-            readerConfig.columnNames.push_back(property->getName());
-            readerConfig.columnTypes.push_back(property->getDataType()->copy());
-            columns.push_back(createVariable(property->getName(), *property->getDataType()));
+            expectedColumnNames.push_back(property->getName());
+            expectedColumnTypes.push_back(property->getDataType()->copy());
         }
     } break;
     default: {
         throw NotImplementedException{"Binder::bindCopyNodeColumns"};
     }
     }
-    return columns;
+    if (readerConfig.fileType == common::FileType::TURTLE) {
+        // Nothing to validate for turtle
+        return createColumnExpressions(readerConfig, expectedColumnNames, expectedColumnTypes);
+    }
+    // Detect columns from file.
+    std::vector<std::string> detectedColumnNames;
+    std::vector<std::unique_ptr<common::LogicalType>> detectedColumnTypes;
+    sniffFiles(readerConfig, detectedColumnNames, detectedColumnTypes);
+    // Validate.
+    validateNumColumns(expectedColumnTypes.size(), detectedColumnTypes.size());
+    if (readerConfig.fileType == common::FileType::PARQUET) {
+        // HACK(Ziyi): We should allow casting in Parquet reader.
+        validateColumnTypes(expectedColumnNames, expectedColumnTypes, detectedColumnTypes);
+    }
+    return createColumnExpressions(readerConfig, expectedColumnNames, expectedColumnTypes);
 }
 
 expression_vector Binder::bindExpectedRelFileColumns(
@@ -272,6 +276,20 @@ expression_vector Binder::bindExpectedRelFileColumns(
     default: {
         throw NotImplementedException{"Binder::bindCopyRelColumns"};
     }
+    }
+    if (readerConfig.fileType == common::FileType::TURTLE) {
+        // Nothing to validate for turtle
+        return columns;
+    }
+    // Detect columns from file.
+    std::vector<std::string> detectedColumnNames;
+    std::vector<std::unique_ptr<common::LogicalType>> detectedColumnTypes;
+    sniffFiles(readerConfig, detectedColumnNames, detectedColumnTypes);
+    // Validate number of columns.
+    validateNumColumns(readerConfig.getNumColumns(), detectedColumnTypes.size());
+    if (readerConfig.fileType == common::FileType::PARQUET) {
+        validateColumnTypes(
+            readerConfig.columnNames, readerConfig.columnTypes, detectedColumnTypes);
     }
     return columns;
 }

@@ -50,7 +50,7 @@ Conversion exception: Cast failed. "((hello),(bdfadf),)" is not in STRING[][] ra
 Conversion exception: Cast failed. (() is not in STRING[][] range.
 -STATEMENT LOAD WITH HEADERS (list INT32[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/quote_fail.csv" RETURN * ;
 ---- error
-Binder exception: Number of columns mismatch. Detect 3 but expect 1.
+Binder exception: Number of columns mismatch. Expected 1 but got 3.
 -STATEMENT LOAD WITH HEADERS (list STRING[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/single_quote.csv" RETURN *;
 ---- error
 Conversion exception: Cast failed. ['fdsfdsfe werw] is not in STRING[] range.

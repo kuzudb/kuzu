@@ -29,9 +29,6 @@ protected:
     void addValue(Driver&, uint64_t rowNum, common::column_id_t columnIdx, std::string_view strVal,
         std::vector<uint64_t>& escapePositions);
 
-    template<typename Driver>
-    bool addRow(Driver&, uint64_t rowNum, common::column_id_t column_count);
-
     //! Read BOM and header.
     void handleFirstBlock();
 
