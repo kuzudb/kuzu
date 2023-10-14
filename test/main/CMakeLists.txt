@@ -10,4 +10,4 @@ add_kuzu_api_test(main_test
 
 # Also tested for coverage in connection_test.cpp
 # but full testing requires some private APIs
-add_kuzu_test(transaction_test.cpp)
+add_kuzu_test(transaction_test transaction_test.cpp)
