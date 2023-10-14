@@ -4,6 +4,7 @@
 #include <cstring>
 
 #include "common/types/ku_list.h"
+#include "function/string/functions/substr_function.h"
 
 namespace kuzu {
 namespace function {
@@ -31,9 +32,8 @@ struct ListSlice {
         common::ValueVector& resultValueVector) {
         int64_t startIdx = (begin == 0) ? 1 : begin;
         int64_t endIdx = (end == 0) ? str.len : end;
-        result.len = std::min(endIdx - startIdx + 1, str.len - startIdx + 1);
-        common::StringVector::addString(
-            &resultValueVector, result, (const char*)(str.getData() + startIdx - 1), result.len);
+        SubStr::operation(str, startIdx, std::min(endIdx - startIdx + 1, str.len - startIdx + 1),
+            result, resultValueVector);
     }
 };
 
