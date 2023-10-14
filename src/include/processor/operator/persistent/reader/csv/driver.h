@@ -62,6 +62,7 @@ struct SniffCSVNameAndTypeDriver {
 };
 
 struct SniffCSVColumnCountDriver {
+    bool emptyRow = true;
     uint64_t numColumns = 0;
 
     bool done(uint64_t rowNum);

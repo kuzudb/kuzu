@@ -612,14 +612,24 @@ bool SniffCSVNameAndTypeDriver::addRow(uint64_t, common::column_id_t) {
 }
 
 bool SniffCSVColumnCountDriver::done(uint64_t) {
-    return true;
+    return !emptyRow;
 }
 
-void SniffCSVColumnCountDriver::addValue(uint64_t, common::column_id_t, std::string_view value) {
+void SniffCSVColumnCountDriver::addValue(
+    uint64_t, common::column_id_t columnIdx, std::string_view value) {
+    if (value != "" || columnIdx > 0) {
+        emptyRow = false;
+    }
     numColumns++;
 }
 
 bool SniffCSVColumnCountDriver::addRow(uint64_t, common::column_id_t) {
+    if (emptyRow) {
+        // If this is the last row, we just return zero: we don't know how many columns there are
+        // supposed to be.
+        numColumns = 0;
+        return false;
+    }
     return true;
 }
 

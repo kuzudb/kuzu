@@ -158,11 +158,6 @@ void BaseCSVReader::addValue(Driver& driver, uint64_t rowNum, column_id_t column
     }
 }
 
-template<typename Driver>
-bool BaseCSVReader::addRow(Driver& driver, uint64_t rowNum, column_id_t column) {
-    return driver.addRow(rowNum, column);
-}
-
 void BaseCSVReader::handleFirstBlock() {
     readBOM();
     if (csvReaderConfig.hasHeader) {
@@ -308,7 +303,7 @@ add_row : {
         std::string_view(buffer.get() + start, position - start - hasQuotes), escapePositions);
     column++;
 
-    rowNum += addRow(driver, rowNum, column);
+    rowNum += driver.addRow(rowNum, column);
 
     column = 0;
     position++;
@@ -423,7 +418,7 @@ final_state:
         column++;
     }
     if (column > 0) {
-        rowNum += addRow(driver, rowNum, column);
+        rowNum += driver.addRow(rowNum, column);
     }
     return rowNum;
 }
