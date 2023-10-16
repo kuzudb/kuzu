@@ -49,16 +49,16 @@ public:
 struct CopyRelInfo {
     catalog::RelTableSchema* schema;
     std::vector<DataPos> dataPoses;
-    DataPos offsetPos;
+    DataPos internalIDPos;
     DataPos boundOffsetPos;
     DataPos nbrOffsetPos;
     storage::WAL* wal;
     bool containsSerial;
 
     CopyRelInfo(catalog::RelTableSchema* schema, std::vector<DataPos> dataPose,
-        const DataPos& offsetPos, const DataPos& boundOffsetPos, const DataPos& nbrOffsetPos,
+        const DataPos& internalIDPos, const DataPos& boundOffsetPos, const DataPos& nbrOffsetPos,
         storage::WAL* wal, bool containsSerial)
-        : schema{schema}, dataPoses{std::move(dataPose)}, offsetPos{offsetPos},
+        : schema{schema}, dataPoses{std::move(dataPose)}, internalIDPos{internalIDPos},
           boundOffsetPos{boundOffsetPos}, nbrOffsetPos{nbrOffsetPos}, wal{wal},
           containsSerial{containsSerial} {}
 };

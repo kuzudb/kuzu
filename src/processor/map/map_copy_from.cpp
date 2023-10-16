@@ -68,7 +68,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRelColumnsOrLists(
     assert(prevOperator->getChild(0)->getOperatorType() == PhysicalOperatorType::READER);
     auto reader = (Reader*)prevOperator->getChild(0);
     auto tableSchema = reinterpret_cast<RelTableSchema*>(copyFromInfo->tableSchema);
-    auto offsetDataPos = DataPos{outFSchema->getExpressionPos(*copyFromInfo->fileScanInfo->offset)};
+    auto internalIDDataPos =
+        DataPos{outFSchema->getExpressionPos(*copyFromInfo->fileScanInfo->internalID)};
     DataPos srcOffsetPos;
     DataPos dstOffsetPos;
     std::vector<DataPos> dataColumnPositions;
@@ -85,7 +86,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRelColumnsOrLists(
         dstOffsetPos = DataPos{outFSchema->getExpressionPos(*extraInfo->dstOffset)};
         dataColumnPositions = reader->getReaderInfo()->dataColumnsPos;
     }
-    CopyRelInfo copyRelInfo{tableSchema, dataColumnPositions, offsetDataPos, srcOffsetPos,
+    CopyRelInfo copyRelInfo{tableSchema, dataColumnPositions, internalIDDataPos, srcOffsetPos,
         dstOffsetPos, storageManager.getWAL(), copyFromInfo->containsSerial};
     if (isColumns) {
         return std::make_unique<CopyRelColumns>(copyRelInfo, std::move(sharedState),
