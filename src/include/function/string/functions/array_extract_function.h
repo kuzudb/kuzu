@@ -4,7 +4,7 @@
 #include <cstring>
 
 #include "common/types/ku_string.h"
-#include "length_function.h"
+#include "function/list/functions/list_len_function.h"
 #include "substr_function.h"
 
 namespace kuzu {
@@ -19,7 +19,7 @@ struct ArrayExtract {
         }
         auto stringVal = str.getAsString();
         int64_t strLen;
-        Length::operation(str, strLen);
+        ListLen::operation(str, strLen);
         auto idxPos = idx > 0 ? std::min(idx, strLen) : std::max(strLen + idx, (int64_t)0) + 1;
         auto startPos = idxPos - 1;
         auto endPos = startPos + 1;

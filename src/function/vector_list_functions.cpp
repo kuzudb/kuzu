@@ -122,15 +122,17 @@ vector_function_definitions ListRangeVectorFunction::getDefinitions() {
     return result;
 }
 
-vector_function_definitions ListLenVectorFunction::getDefinitions() {
+vector_function_definitions SizeVectorFunction::getDefinitions() {
     vector_function_definitions result;
-    auto execFunc = UnaryExecFunction<list_entry_t, int64_t, ListLen>;
-    result.push_back(std::make_unique<VectorFunctionDefinition>(LIST_LEN_FUNC_NAME,
-        std::vector<LogicalTypeID>{LogicalTypeID::VAR_LIST}, LogicalTypeID::INT64, execFunc,
-        true /* isVarlength*/));
+    result.push_back(std::make_unique<VectorFunctionDefinition>(SIZE_FUNC_NAME,
+        std::vector<LogicalTypeID>{LogicalTypeID::VAR_LIST}, LogicalTypeID::INT64,
+        UnaryExecFunction<list_entry_t, int64_t, ListLen>, true /* isVarlength*/));
     result.push_back(std::make_unique<VectorFunctionDefinition>(CARDINALITY_FUNC_NAME,
-        std::vector<LogicalTypeID>{LogicalTypeID::MAP}, LogicalTypeID::INT64, execFunc,
-        true /* isVarlength*/));
+        std::vector<LogicalTypeID>{LogicalTypeID::MAP}, LogicalTypeID::INT64,
+        UnaryExecFunction<list_entry_t, int64_t, ListLen>, true /* isVarlength*/));
+    result.push_back(std::make_unique<VectorFunctionDefinition>(SIZE_FUNC_NAME,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::INT64,
+        UnaryExecFunction<ku_string_t, int64_t, ListLen>, true /* isVarlength*/));
     return result;
 }
 

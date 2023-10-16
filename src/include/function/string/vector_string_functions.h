@@ -71,10 +71,6 @@ struct LeftVectorFunction : public VectorStringFunction {
     static vector_function_definitions getDefinitions();
 };
 
-struct LengthVectorFunction : public VectorStringFunction {
-    static vector_function_definitions getDefinitions();
-};
-
 struct LowerVectorFunction : public VectorStringFunction {
     static inline vector_function_definitions getDefinitions() {
         return getUnaryStrFunctionDefintion<Lower>(common::LOWER_FUNC_NAME);
