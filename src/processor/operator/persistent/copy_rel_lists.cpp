@@ -56,9 +56,11 @@ void CopyRelLists::copyRelLists(DirectedInMemRelData* relData, const DataPos& bo
         TableCopyUtils::throwCopyExceptionIfNotOK(
             arrow::AllocateBuffer((int64_t)(numRows * sizeof(offset_t))).Value(&relIDBuffer));
         auto relOffsets = (offset_t*)relIDBuffer->data();
-        auto offsetValueVector = resultSet->getValueVector(info.offsetPos);
-        auto startRowIdx = offsetValueVector->getValue<offset_t>(
-            offsetValueVector->state->selVector->selectedPositions[0]);
+        auto internalIDValueVector = resultSet->getValueVector(info.internalIDPos);
+        auto startRowIdx = internalIDValueVector
+                               ->getValue<internalID_t>(
+                                   internalIDValueVector->state->selVector->selectedPositions[0])
+                               .offset;
         for (auto rowIdx = 0u; rowIdx < numRows; rowIdx++) {
             relOffsets[rowIdx] = startRowIdx + rowIdx;
         }

@@ -7,17 +7,17 @@ namespace kuzu {
 namespace processor {
 
 struct ReaderInfo {
-    DataPos nodeOffsetPos;
+    DataPos internalIDPos;
     std::vector<DataPos> dataColumnsPos;
 
     common::TableType tableType;
 
-    ReaderInfo(const DataPos& nodeOffsetPos, std::vector<DataPos> dataColumnsPos,
+    ReaderInfo(const DataPos& internalIDPos, std::vector<DataPos> dataColumnsPos,
         common::TableType tableType)
-        : nodeOffsetPos{nodeOffsetPos}, dataColumnsPos{std::move(dataColumnsPos)}, tableType{
+        : internalIDPos{internalIDPos}, dataColumnsPos{std::move(dataColumnsPos)}, tableType{
                                                                                        tableType} {}
     ReaderInfo(const ReaderInfo& other)
-        : nodeOffsetPos{other.nodeOffsetPos},
+        : internalIDPos{other.internalIDPos},
           dataColumnsPos{other.dataColumnsPos}, tableType{other.tableType} {}
 
     inline uint32_t getNumColumns() const { return dataColumnsPos.size(); }
@@ -31,7 +31,7 @@ public:
         uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::READER, id, paramsString}, info{std::move(info)},
           sharedState{std::move(sharedState)}, dataChunk{nullptr},
-          offsetVector{nullptr}, readFunc{nullptr}, initFunc{nullptr}, readFuncData{nullptr} {}
+          internalIDVector{nullptr}, readFunc{nullptr}, initFunc{nullptr}, readFuncData{nullptr} {}
 
     inline bool isSource() const final { return true; }
     inline bool canParallel() const final {
@@ -76,7 +76,7 @@ private:
     LeftArrowArrays leftArrowArrays;
 
     std::unique_ptr<common::DataChunk> dataChunk;
-    common::ValueVector* offsetVector;
+    common::ValueVector* internalIDVector;
 
     read_rows_func_t readFunc;
     init_reader_data_func_t initFunc;

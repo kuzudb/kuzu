@@ -59,9 +59,11 @@ row_idx_t CopyRelColumns::copyRelColumns(RelDataDirection relDirection,
             arrow::AllocateBuffer((int64_t)(numRowsInChunk * sizeof(offset_t)))
                 .Value(&relIDBuffer));
         auto relOffsets = (offset_t*)relIDBuffer->data();
-        auto offsetValueVector = resultSet->getValueVector(info.offsetPos);
-        auto startRowIdx = offsetValueVector->getValue<offset_t>(
-            offsetValueVector->state->selVector->selectedPositions[0]);
+        auto internalIDValueVector = resultSet->getValueVector(info.internalIDPos);
+        auto startRowIdx = internalIDValueVector
+                               ->getValue<internalID_t>(
+                                   internalIDValueVector->state->selVector->selectedPositions[0])
+                               .offset;
         for (auto rowIdx = 0u; rowIdx < numRowsInChunk; rowIdx++) {
             relOffsets[rowIdx] = startRowIdx + rowIdx;
         }

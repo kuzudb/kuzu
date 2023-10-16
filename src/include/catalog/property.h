@@ -10,7 +10,7 @@ public:
     // TODO: these should be guarded as reserved property names.
     static constexpr std::string_view REL_FROM_PROPERTY_NAME = "_FROM_";
     static constexpr std::string_view REL_TO_PROPERTY_NAME = "_TO_";
-    static constexpr std::string_view OFFSET_NAME = "_OFFSET_";
+    static constexpr std::string_view INTERNAL_ID_NAME = "_ID_";
     static constexpr std::string_view REL_BOUND_OFFSET_NAME = "_BOUND_OFFSET_";
     static constexpr std::string_view REL_NBR_OFFSET_NAME = "_NBR_OFFSET_";
 

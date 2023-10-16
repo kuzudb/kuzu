@@ -24,8 +24,8 @@ void Reader::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* cont
     }
     initFunc = ReaderFunctions::getInitDataFunc(*sharedState->readerConfig, info->tableType);
     readFunc = ReaderFunctions::getReadRowsFunc(*sharedState->readerConfig, info->tableType);
-    if (info->nodeOffsetPos.dataChunkPos != INVALID_DATA_CHUNK_POS) {
-        offsetVector = resultSet->getValueVector(info->nodeOffsetPos).get();
+    if (info->internalIDPos.dataChunkPos != INVALID_DATA_CHUNK_POS) {
+        internalIDVector = resultSet->getValueVector(info->internalIDPos).get();
     }
     assert(!sharedState->readerConfig->filePaths.empty());
     if (sharedState->readerConfig->fileType == FileType::CSV &&
@@ -54,9 +54,11 @@ void Reader::readNextDataChunk() {
                 std::min(leftArrowArrays.getLeftNumRows(), DEFAULT_VECTOR_CAPACITY);
             leftArrowArrays.appendToDataChunk(dataChunk.get(), numLeftToAppend);
             auto currRowIdx = sharedState->currRowIdx.fetch_add(numLeftToAppend);
-            if (offsetVector != nullptr) {
-                offsetVector->setValue(
-                    offsetVector->state->selVector->selectedPositions[0], currRowIdx);
+            if (internalIDVector != nullptr) {
+                internalIDVector
+                    ->getValue<internalID_t>(
+                        internalIDVector->state->selVector->selectedPositions[0])
+                    .offset = currRowIdx;
             }
             break;
         }
