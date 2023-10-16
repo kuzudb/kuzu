@@ -42,7 +42,7 @@ Binder exception: Cannot bind LIST_CREATION with parameter type STRING and INT64
 ---- error
 Binder exception: Cannot bind LIST_CREATION with parameter type INT64[] and STRING[].
 
--LOG NodeLISTStructuredPropertiesTest
+-LOG NodeLISTPropertiesTest
 -STATEMENT MATCH (a:person) RETURN a.workedHours, a.usedNames, a.courseScoresPerTerm
 ---- 8
 [1,9]|[Wolfeschlegelstein,Daniel]|[[7,4],[8,8],[9]]
@@ -241,7 +241,7 @@ False
 10 years 5 months 13:00:00.000024
 3 years 2 days 13:02:00
 
--LOG ListExtractStructuredListOfListOfInts
+-LOG ListExtractListOfListOfInts
 -STATEMENT MATCH (a:person) RETURN list_element(a.courseScoresPerTerm, 1)
 ---- 8
 [10,8]
@@ -253,7 +253,7 @@ False
 [10]
 [7]
 
--LOG ListExtractStructuredList
+-LOG ListExtractList
 -STATEMENT MATCH (a:person) RETURN a.usedNames[1]
 ---- 8
 Aida
@@ -306,8 +306,8 @@ ad
 ---- 1
 是一个中
 
--LOG ListLenStructuredListOfInts
--STATEMENT MATCH (a:person) RETURN len(a.workedHours)
+-LOG ListLenListOfInts
+-STATEMENT MATCH (a:person) RETURN size(a.workedHours)
 ---- 8
 2
 2
@@ -318,7 +318,19 @@ ad
 1
 8
 
--LOG ListConcatStructuredListOfInts
+-LOG ListSize
+-STATEMENT MATCH (a:person) RETURN size(a.courseScoresPerTerm)
+---- 8
+2
+2
+1
+3
+3
+1
+1
+3
+
+-LOG ListConcatListOfInts
 -STATEMENT MATCH (a:person) RETURN list_concat(a.workedHours, [a.age, a.gender])
 ---- 8
 [10,5,35,1]
@@ -342,7 +354,7 @@ ad
 [1,3]
 [10,11,12,3,4,5,6,7,3]
 
--LOG ListConcatStructuredListOfStrings
+-LOG ListConcatListOfStrings
 -STATEMENT MATCH (a:person) RETURN array_concat(a.usedNames, [a.fName])
 ---- 8
 [Aida,Alice]
@@ -354,7 +366,7 @@ ad
 [Grad,Greg]
 [Ad,De,Hi,Kye,Orlan,Hubert Blaine Wolfeschlegelsteinhausenbergerdorff]
 
--LOG ListConcatStructuredListOfListOfInts
+-LOG ListConcatListOfListOfInts
 -STATEMENT MATCH (a:person) RETURN array_cat(a.courseScoresPerTerm, [[a.age, a.age], [a.gender]])
 ---- 8
 [[10,8],[6,7,8],[35,35],[1]]
@@ -474,7 +486,7 @@ ad
 [1.600000,1.600000]
 [1.323000,1.323000]
 
--LOG ListAppendStructuredListOfStrings
+-LOG ListAppendListOfStrings
 -STATEMENT MATCH (a:person) RETURN array_append(a.usedNames, a.fName)
 ---- 8
 [Aida,Alice]
@@ -486,7 +498,7 @@ ad
 [Grad,Greg]
 [Ad,De,Hi,Kye,Orlan,Hubert Blaine Wolfeschlegelsteinhausenbergerdorff]
 
--LOG ListAppendStructuredListOfListOfInts
+-LOG ListAppendListOfListOfInts
 -STATEMENT MATCH (a:person) RETURN array_push_back(a.courseScoresPerTerm, [a.age, a.age])
 ---- 8
 [[10,8],[6,7,8],[35,35]]
@@ -498,7 +510,7 @@ ad
 [[10],[40,40]]
 [[7],[10],[6,7],[83,83]]
 
--LOG ListAppendStructuredListOfBools
+-LOG ListAppendListOfBools
 -STATEMENT MATCH (a:person) RETURN list_append([a.isStudent, a.isWorker], a.isStudent)
 ---- 8
 [True,False,True]
@@ -510,7 +522,7 @@ ad
 [False,False,False]
 [False,True,False]
 
--LOG ListAppendStructuredListOfDoubles
+-LOG ListAppendListOfDoubles
 -STATEMENT MATCH (a:person) RETURN list_append([a.eyeSight], a.eyeSight)
 ---- 8
 [5.000000,5.000000]
@@ -522,7 +534,7 @@ ad
 [4.900000,4.900000]
 [4.900000,4.900000]
 
--LOG ListAppendStructuredListOfDates
+-LOG ListAppendListOfDates
 -STATEMENT MATCH (a:person) RETURN list_append([a.birthdate], a.birthdate)
 ---- 8
 [1900-01-01,1900-01-01]
@@ -534,7 +546,7 @@ ad
 [1980-10-26,1980-10-26]
 [1990-11-27,1990-11-27]
 
--LOG ListAppendStructuredListOfTimestamps
+-LOG ListAppendListOfTimestamps
 -STATEMENT MATCH (a:person) RETURN list_append([a.registerTime], a.registerTime)
 ---- 8
 [2011-08-20 11:25:30,2011-08-20 11:25:30]
@@ -546,7 +558,7 @@ ad
 [1976-12-23 04:41:42,1976-12-23 04:41:42]
 [2023-02-21 13:25:30,2023-02-21 13:25:30]
 
--LOG ListAppendStructuredListOfIntervals
+-LOG ListAppendListOfIntervals
 -STATEMENT MATCH (a:person) RETURN list_append([a.lastJobDuration], a.lastJobDuration)
 ---- 8
 [3 years 2 days 13:02:00,3 years 2 days 13:02:00]
@@ -644,7 +656,7 @@ ad
 [1.600000,1.600000]
 [1.323000,1.323000]
 
--LOG ListPrependStructuredListOfStrings
+-LOG ListPrependListOfStrings
 -STATEMENT MATCH (a:person) RETURN array_prepend(a.usedNames, a.fName)
 ---- 8
 [Alice,Aida]
@@ -656,7 +668,7 @@ ad
 [Greg,Grad]
 [Hubert Blaine Wolfeschlegelsteinhausenbergerdorff,Ad,De,Hi,Kye,Orlan]
 
--LOG ListPrependStructuredListOfBools
+-LOG ListPrependListOfBools
 -STATEMENT MATCH (a:person) RETURN list_prepend([a.isStudent, a.isWorker], a.isStudent)
 ---- 8
 [True,True,False]
@@ -668,7 +680,7 @@ ad
 [False,False,False]
 [False,False,True]
 
--LOG ListPrependStructuredListOfDoubles
+-LOG ListPrependListOfDoubles
 -STATEMENT MATCH (a:person) RETURN list_prepend([a.eyeSight], a.eyeSight)
 ---- 8
 [5.000000,5.000000]
@@ -680,7 +692,7 @@ ad
 [4.900000,4.900000]
 [4.900000,4.900000]
 
--LOG ListPrependStructuredListOfDates
+-LOG ListPrependListOfDates
 -STATEMENT MATCH (a:person) RETURN list_prepend([a.birthdate], a.birthdate)
 ---- 8
 [1900-01-01,1900-01-01]
@@ -692,7 +704,7 @@ ad
 [1980-10-26,1980-10-26]
 [1990-11-27,1990-11-27]
 
--LOG ListPrependStructuredListOfTimestamps
+-LOG ListPrependListOfTimestamps
 -STATEMENT MATCH (a:person) RETURN list_prepend([a.registerTime], a.registerTime)
 ---- 8
 [2011-08-20 11:25:30,2011-08-20 11:25:30]
@@ -704,7 +716,7 @@ ad
 [1976-12-23 04:41:42,1976-12-23 04:41:42]
 [2023-02-21 13:25:30,2023-02-21 13:25:30]
 
--LOG ListPrependStructuredListOfIntervals
+-LOG ListPrependListOfIntervals
 -STATEMENT MATCH (a:person) RETURN list_prepend([a.lastJobDuration], a.lastJobDuration)
 ---- 8
 [3 years 2 days 13:02:00,3 years 2 days 13:02:00]
@@ -716,7 +728,7 @@ ad
 [10 years 5 months 13:00:00.000024,10 years 5 months 13:00:00.000024]
 [3 years 2 days 13:02:00,3 years 2 days 13:02:00]
 
--LOG ListPrependStructuredListOfListOfInts
+-LOG ListPrependListOfListOfInts
 -STATEMENT MATCH (a:person) RETURN array_push_front(a.courseScoresPerTerm, [a.age, a.age])
 ---- 8
 [[35,35],[10,8],[6,7,8]]
@@ -740,7 +752,7 @@ ad
 [0:6,0:6]
 [0:7,0:7]
 
--LOG ListPositionStructuredListOfInts
+-LOG ListPositionListOfInts
 -STATEMENT MATCH (a:person) RETURN list_position(a.workedHours, 5)
 ---- 8
 2
@@ -752,7 +764,7 @@ ad
 0
 6
 
--LOG ListPositionStructuredListOfStrings
+-LOG ListPositionListOfStrings
 -STATEMENT MATCH (a:person) RETURN array_position(a.usedNames, "Grad")
 ---- 8
 0
@@ -771,7 +783,7 @@ ad
 2
 4
 
--LOG ListPositionStructuredListOfListOfInts
+-LOG ListPositionListOfListOfInts
 -STATEMENT MATCH (a:person) RETURN array_indexof(a.courseScoresPerTerm, [8])
 ---- 8
 0
@@ -879,7 +891,7 @@ ad
 0
 0
 
--LOG ListContainsStructuredListOfInts
+-LOG ListContainsListOfInts
 -STATEMENT MATCH (a:person) RETURN list_contains(a.workedHours, 5)
 ---- 8
 True
@@ -897,7 +909,7 @@ True
 7
 8
 
--LOG ListContainsStructuredListOfStrings
+-LOG ListContainsListOfStrings
 -STATEMENT MATCH (a:person) RETURN list_has(a.usedNames, "Grad")
 ---- 8
 False
@@ -909,7 +921,7 @@ False
 True
 False
 
--LOG ListContainsStructuredListOfListOfInts
+-LOG ListContainsListOfListOfInts
 -STATEMENT MATCH (a:person) RETURN array_contains(a.courseScoresPerTerm, [8])
 ---- 8
 False
@@ -935,7 +947,7 @@ True
 [7,9,10,20]
 [7,9,10,20,15,192]
 
--LOG ListSliceStructuredListOfInts
+-LOG ListSliceListOfInts
 -STATEMENT MATCH (a:person) RETURN list_slice(a.workedHours, 1, 2)
 ---- 8
 [10]
@@ -947,7 +959,7 @@ True
 [1]
 [10]
 
--LOG ListSliceStructuredListOfListOfInts
+-LOG ListSliceListOfListOfInts
 -STATEMENT MATCH (a:person) RETURN array_slice(a.usedNames, 1, 2)
 ---- 8
 [Aida]
@@ -959,7 +971,7 @@ True
 [Grad]
 [Ad]
 
--LOG ListSliceStructuredListOfStrings
+-LOG ListSliceListOfStrings
 -STATEMENT MATCH (a:person) RETURN list_slice(a.courseScoresPerTerm, 1, 2)
 ---- 8
 [[10,8]]
@@ -971,14 +983,14 @@ True
 [[10]]
 [[7]]
 
--LOG ListSliceStructuredString
+-LOG ListSliceString
 -STATEMENT MATCH (o:organisation) RETURN o.name[1:4]
 ---- 3
 ABFs
 CsWo
 DEsW
 
--LOG ListSliceStructuredStringRight
+-LOG ListSliceStringRight
 -STATEMENT MATCH (a:person) RETURN a.fName[4:]
 ---- 8
 ce
@@ -990,7 +1002,7 @@ ooq
 g
 ert Blaine Wolfeschlegelsteinhausenbergerdorff
 
--LOG ListSliceStructuredStringLeft
+-LOG ListSliceStringLeft
 -STATEMENT MATCH (a:person) RETURN a.fName[:5]
 ---- 8
 Alice
@@ -1002,14 +1014,14 @@ Faroo
 Greg
 Huber
 
--LOG ListSliceStructuredStringNull
+-LOG ListSliceStringNull
 -STATEMENT MATCH (o:organisation) RETURN o.name[:]
 ---- 3
 ABFsUni
 CsWork
 DEsWork
 
--LOG ListSliceStructuredStringDoubleSlice
+-LOG ListSliceStringDoubleSlice
 -STATEMENT MATCH (a:person) RETURN a.fName[3:][2:4]
 ---- 8
 ce

@@ -5,7 +5,6 @@
 #include "function/string/functions/contains_function.h"
 #include "function/string/functions/ends_with_function.h"
 #include "function/string/functions/left_operation.h"
-#include "function/string/functions/length_function.h"
 #include "function/string/functions/lpad_function.h"
 #include "function/string/functions/regexp_extract_all_function.h"
 #include "function/string/functions/regexp_extract_function.h"
@@ -165,14 +164,6 @@ vector_function_definitions LeftVectorFunction::getDefinitions() {
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::INT64},
         LogicalTypeID::STRING, BinaryStringExecFunction<ku_string_t, int64_t, ku_string_t, Left>,
         false /* isVarLength */));
-    return definitions;
-}
-
-vector_function_definitions LengthVectorFunction::getDefinitions() {
-    vector_function_definitions definitions;
-    definitions.emplace_back(make_unique<VectorFunctionDefinition>(LENGTH_FUNC_NAME,
-        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::INT64,
-        UnaryExecFunction<ku_string_t, int64_t, Length>, false /* isVarLength */));
     return definitions;
 }
 

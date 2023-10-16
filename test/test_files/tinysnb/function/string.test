@@ -90,12 +90,12 @@
 ---- 1
 1
 
--LOG DateVarAndStrVarConcatStructured
+-LOG DateVarAndStrVarConcat
 -STATEMENT MATCH (a:person) WHERE '1900-01-01Alice' = concat(string(a.birthdate), a.fName) RETURN COUNT(*)
 ---- 1
 1
 
--LOG TimestampVarAndStrVarConcatStructured
+-LOG TimestampVarAndStrVarConcat
 -STATEMENT MATCH (a:person) WHERE '2011-08-20 11:25:30Alice' = concat(string(a.registerTime), a.fName) RETURN COUNT(*)
 ---- 1
 1
@@ -151,7 +151,7 @@ False
 ---- 1
 Carol
 
--LOG LowerStructuredStr
+-LOG LowerStr
 -STATEMENT MATCH (o:organisation) RETURN lower(o.name)
 ---- 3
 abfsuni
@@ -165,7 +165,7 @@ sóló cón tu párejâ
 the 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 roma
 
--LOG UpperStructuredStr
+-LOG UpperStr
 -STATEMENT MATCH (o:organisation) RETURN upper(o.name)
 ---- 3
 ABFSUNI
@@ -179,28 +179,28 @@ SÓLÓ CÓN TU PÁREJÂ
 THE 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 MOVIE
 ROMA
 
--LOG TrimStructuredStr
+-LOG TrimStr
 -STATEMENT MATCH (o:organisation) RETURN trim(o.name)
 ---- 3
 ABFsUni
 CsWork
 DEsWork
 
--LOG LtrimStructuredStr
+-LOG LtrimStr
 -STATEMENT MATCH (o:organisation) RETURN ltrim(o.name)
 ---- 3
 ABFsUni
 CsWork
 DEsWork
 
--LOG RtrimStructuredStr
+-LOG RtrimStr
 -STATEMENT MATCH (o:organisation) RETURN rtrim(o.name)
 ---- 3
 ABFsUni
 CsWork
 DEsWork
 
--LOG ReverseStructuredStr
+-LOG ReverseStr
 -STATEMENT MATCH (o:organisation) RETURN reverse(o.name)
 ---- 3
 inUsFBA
@@ -214,21 +214,28 @@ kroWsED
 eivom 🚗🍞🌦️🌍🧘🏻‍♂️😃😂 ehT
 amoR
 
--LOG LengthStructuredStr
--STATEMENT MATCH (o:organisation) RETURN length(o.name)
+-LOG LengthStr
+-STATEMENT MATCH (o:organisation) RETURN size(o.name)
 ---- 3
 7
 6
 7
 
--LOG RepeatStructuredStr
+-LOG SizeStr
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN size(s.places[1])
+---- 3
+13
+14
+4
+
+-LOG RepeatStr
 -STATEMENT MATCH (o:organisation) RETURN repeat(o.name, o.ID)
 ---- 3
 ABFsUni
 CsWorkCsWorkCsWorkCsWork
 DEsWorkDEsWorkDEsWorkDEsWorkDEsWorkDEsWork
 
--LOG LpadStructuredStrAndLiteralInt
+-LOG LpadStrAndLiteralInt
 -STATEMENT MATCH (p:person) RETURN lpad(p.fName, 5, "<")
 ---- 8
 Alice
@@ -266,7 +273,7 @@ Huber
 
 
 
--LOG RpadStructuredStrAndLiteralInt
+-LOG RpadStrAndLiteralInt
 -STATEMENT MATCH (p:person) RETURN rpad(p.fName, 15, ">")
 ---- 8
 Alice>>>>>>>>>>
@@ -292,7 +299,7 @@ Romaâó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞
 
 
 
--LOG RpadStructuredStrAndStructuredInt
+-LOG RpadStrAndInt
 -STATEMENT MATCH (p:person) RETURN rpad(p.fName, p.ID, "<")
 ---- 8
 
@@ -311,7 +318,7 @@ Hubert Bla
 
 
 
--LOG SubStrStructuredStrAndLiteralInt
+-LOG SubStrStrAndLiteralInt
 -STATEMENT MATCH (p:person) RETURN substr(p.fName, 2, 12)
 ---- 8
 lice
@@ -323,7 +330,7 @@ arooq
 reg
 ubert Blaine
 
--LOG LeftPositiveIdxStructuredStrAndLiteralInt
+-LOG LeftPositiveIdxStrAndLiteralInt
 -STATEMENT MATCH (p:person) RETURN left(p.fName, 11)
 ---- 8
 Alice
@@ -342,14 +349,14 @@ Sóló c
 The 😂😃
 Roma
 
--LOG LeftPositiveIdxStructuredStrAndStructuredInt
+-LOG LeftPositiveIdxStrAndInt
 -STATEMENT MATCH (o:organisation) RETURN left(o.name, o.ID)
 ---- 3
 A
 CsWo
 DEsWor
 
--LOG LeftNegativeIdxStructuredStrAndLiteralInt
+-LOG LeftNegativeIdxStrAndLiteralInt
 -STATEMENT MATCH (p:person) RETURN left(p.fName, -4)
 ---- 8
 A
@@ -367,7 +374,7 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerd
 Sóló cón tu
 The 😂😃🧘🏻‍♂️🌍🌦️🍞
 
--LOG RightPositiveIdxStructuredStrAndLiteralInt
+-LOG RightPositiveIdxStrAndLiteralInt
 -STATEMENT MATCH (p:person) RETURN right(p.fName, 10)
 ---- 8
 Alice
@@ -386,14 +393,14 @@ ergerdorff
 movie
 Roma
 
--LOG RightPositiveIdxStructuredStrAndStructuredInt
+-LOG RightPositiveIdxStrAndInt
 -STATEMENT MATCH (o:organisation) RETURN right(o.name, o.ID)
 ---- 3
 i
 Work
 EsWork
 
--LOG RightNegativeIdxStructuredStrAndLiteralInt
+-LOG RightNegativeIdxStrAndLiteralInt
 -STATEMENT MATCH (p:person) RETURN right(p.fName, -4)
 ---- 8
 e
@@ -412,14 +419,14 @@ rt Blaine Wolfeschlegelsteinhausenbergerdorff
  😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 a
 
--LOG ArrayExtractPositiveIdxStructuredStrAndStructuredInt
+-LOG ArrayExtractPositiveIdxStrAndInt
 -STATEMENT MATCH (o:organisation) RETURN array_extract(o.name, o.ID + 2)
 ---- 3
 F
 k
 k
 
--LOG ArrayExtractNegativeIdxStructuredStrAndStructuredInt
+-LOG ArrayExtractNegativeIdxStrAndInt
 -STATEMENT MATCH (o:organisation) RETURN array_extract(o.name, o.ID - 5)
 ---- 3
 s
@@ -447,7 +454,7 @@ R
 
 
 
--LOG ListExtractStructuredString
+-LOG ListExtractString
 -STATEMENT MATCH (o:organisation) RETURN o.name[2]
 ---- 3
 B
@@ -494,7 +501,7 @@ R
 
 
 
--LOG SuffixStructuredStr
+-LOG SuffixStr
 -STATEMENT MATCH (o:organisation) RETURN suffix(o.name, "Work")
 ---- 3
 False

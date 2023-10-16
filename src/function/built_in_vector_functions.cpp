@@ -447,7 +447,6 @@ void BuiltInVectorFunctions::registerStringFunctions() {
     vectorFunctions.insert({ENDS_WITH_FUNC_NAME, EndsWithVectorFunction::getDefinitions()});
     vectorFunctions.insert({LCASE_FUNC_NAME, LowerVectorFunction::getDefinitions()});
     vectorFunctions.insert({LEFT_FUNC_NAME, LeftVectorFunction::getDefinitions()});
-    vectorFunctions.insert({LENGTH_FUNC_NAME, LengthVectorFunction::getDefinitions()});
     vectorFunctions.insert({LOWER_FUNC_NAME, LowerVectorFunction::getDefinitions()});
     vectorFunctions.insert({LPAD_FUNC_NAME, LpadVectorFunction::getDefinitions()});
     vectorFunctions.insert({LTRIM_FUNC_NAME, LtrimVectorFunction::getDefinitions()});
@@ -512,7 +511,7 @@ void BuiltInVectorFunctions::registerCastFunctions() {
 void BuiltInVectorFunctions::registerListFunctions() {
     vectorFunctions.insert({LIST_CREATION_FUNC_NAME, ListCreationVectorFunction::getDefinitions()});
     vectorFunctions.insert({LIST_RANGE_FUNC_NAME, ListRangeVectorFunction::getDefinitions()});
-    vectorFunctions.insert({LIST_LEN_FUNC_NAME, ListLenVectorFunction::getDefinitions()});
+    vectorFunctions.insert({SIZE_FUNC_NAME, SizeVectorFunction::getDefinitions()});
     vectorFunctions.insert({LIST_EXTRACT_FUNC_NAME, ListExtractVectorFunction::getDefinitions()});
     vectorFunctions.insert({LIST_ELEMENT_FUNC_NAME, ListExtractVectorFunction::getDefinitions()});
     vectorFunctions.insert({LIST_CONCAT_FUNC_NAME, ListConcatVectorFunction::getDefinitions()});
@@ -559,7 +558,7 @@ void BuiltInVectorFunctions::registerMapFunctions() {
     vectorFunctions.insert({MAP_CREATION_FUNC_NAME, MapCreationVectorFunctions::getDefinitions()});
     vectorFunctions.insert({MAP_EXTRACT_FUNC_NAME, MapExtractVectorFunctions::getDefinitions()});
     vectorFunctions.insert({ELEMENT_AT_FUNC_NAME, MapExtractVectorFunctions::getDefinitions()});
-    vectorFunctions.insert({CARDINALITY_FUNC_NAME, ListLenVectorFunction::getDefinitions()});
+    vectorFunctions.insert({CARDINALITY_FUNC_NAME, SizeVectorFunction::getDefinitions()});
     vectorFunctions.insert({MAP_KEYS_FUNC_NAME, MapKeysVectorFunctions::getDefinitions()});
     vectorFunctions.insert({MAP_VALUES_FUNC_NAME, MapValuesVectorFunctions::getDefinitions()});
 }

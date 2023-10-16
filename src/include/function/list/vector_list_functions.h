@@ -203,7 +203,7 @@ struct ListRangeVectorFunction : public VectorListFunction {
         const binder::expression_vector& arguments, FunctionDefinition* definition);
 };
 
-struct ListLenVectorFunction : public VectorListFunction {
+struct SizeVectorFunction : public VectorListFunction {
     static vector_function_definitions getDefinitions();
 };
 

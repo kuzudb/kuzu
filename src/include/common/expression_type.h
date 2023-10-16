@@ -47,7 +47,6 @@ const std::string LIST_CREATION_FUNC_NAME = "LIST_CREATION";
 const std::string LIST_RANGE_FUNC_NAME = "RANGE";
 const std::string LIST_EXTRACT_FUNC_NAME = "LIST_EXTRACT";
 const std::string LIST_ELEMENT_FUNC_NAME = "LIST_ELEMENT";
-const std::string LIST_LEN_FUNC_NAME = "LEN";
 const std::string LIST_CONCAT_FUNC_NAME = "LIST_CONCAT";
 const std::string LIST_CAT_FUNC_NAME = "LIST_CAT";
 const std::string ARRAY_CONCAT_FUNC_NAME = "ARRAY_CONCAT";
@@ -174,6 +173,7 @@ const std::string REGEXP_MATCHES_FUNC_NAME = "REGEXP_MATCHES";
 const std::string REGEXP_REPLACE_FUNC_NAME = "REGEXP_REPLACE";
 const std::string REGEXP_EXTRACT_FUNC_NAME = "REGEXP_EXTRACT";
 const std::string REGEXP_EXTRACT_ALL_FUNC_NAME = "REGEXP_EXTRACT_ALL";
+const std::string SIZE_FUNC_NAME = "SIZE";
 
 // Date functions.
 const std::string DATE_PART_FUNC_NAME = "DATE_PART";
