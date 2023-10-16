@@ -27,3 +27,56 @@
 -STATEMENT MATCH (t:Test) RETURN t;
 ---- 1
 {_ID: 0:0, _LABEL: Test, id: 0, content: mycontent}
+
+-CASE Kind-Of-Fruit
+-STATEMENT CREATE NODE TABLE T(name STRING, PRIMARY KEY(name));
+---- ok
+-STATEMENT CREATE NODE TABLE Fruit(name STRING, PRIMARY KEY(name));
+---- ok
+-STATEMENT CREATE REL TABLE LIKES(FROM T TO Fruit);
+---- ok
+-STATEMENT CREATE REL TABLE KIND_OF(FROM T TO T);
+---- ok
+-STATEMENT CREATE
+        (t1:T {name: "T1"}),
+        (t2:T {name: "T2"}),
+        (t3:T {name: "T3"}),
+        (f1:Fruit {name: "Banana"}),
+        (f2:Fruit {name: "Orange"}),
+        (f3:Fruit {name: "Apple"}),
+        (t1)-[:LIKES]->(f1),
+        (t2)-[:LIKES]->(f2),
+        (t3)-[:LIKES]->(f3),
+        (t1)-[:KIND_OF]->(t2),
+        (t2)-[:KIND_OF]->(t3);
+---- ok
+-STATEMENT MATCH (t1:T)-[:KIND_OF*]->(t2:T), (t1)-[:LIKES]->(f1:Fruit), (t2)-[:LIKES]->(f2:Fruit)
+            WHERE f1.name = "Apple" and f2.name = "Banana" OR f1.name = "Banana" and f2.name = "Apple" return t1 as t
+---- 1
+{_ID: 0:0, _LABEL: T, name: T1}
+-STATEMENT MATCH (t:T)-[:LIKES]->(:Fruit {name: "Apple"}), (t)-[:LIKES]->(:Fruit {name: "Banana"}) return t;
+---- 0
+-STATEMENT MATCH (t1:T)-[:KIND_OF*]->(t2:T), (t1)-[:LIKES]->(f1:Fruit), (t2)-[:LIKES]->(f2:Fruit)
+            WHERE f1.name = "Apple" and f2.name = "Banana" OR f1.name = "Banana" and f2.name = "Apple" return t1 as t
+           UNION
+           MATCH (t:T)-[:LIKES]->(:Fruit {name: "Apple"}), (t)-[:LIKES]->(:Fruit {name: "Banana"}) return t;
+---- 1
+{_ID: 0:0, _LABEL: T, name: T1}
+
+-CASE 2184
+-STATEMENT CREATE NODE TABLE T(name STRING, PRIMARY KEY(name));
+---- ok
+-STATEMENT CREATE NODE TABLE T2(name STRING, myprops MAP(STRING,STRING), PRIMARY KEY(name));
+---- ok
+-STATEMENT CREATE REL TABLE KIND_OF3(FROM T TO T, myprops MAP(STRING,STRING));
+---- error
+Binder exception: MAP property is not supported in rel table.
+-STATEMENT CREATE REL TABLE KIND_OF3(FROM T TO T, myprops SERIAL);
+---- error
+Binder exception: SERIAL property is not supported in rel table.
+-STATEMENT CREATE REL TABLE KIND_OF3(FROM T TO T, myprops STRUCT(v INT64));
+---- error
+Binder exception: STRUCT property is not supported in rel table.
+-STATEMENT CREATE REL TABLE KIND_OF3(FROM T TO T, myprops UNION(v1 STRING, v2 INT64));
+---- error
+Binder exception: UNION property is not supported in rel table.

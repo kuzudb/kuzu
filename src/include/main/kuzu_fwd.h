@@ -5,8 +5,8 @@
 namespace kuzu {
 
 namespace testing {
-class ApiTest;
 class BaseGraphTest;
+class PrivateGraphTest;
 class TestHelper;
 class TestRunner;
 class TinySnbDDLTest;

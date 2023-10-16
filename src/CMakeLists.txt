@@ -33,7 +33,6 @@ target_include_directories(kuzu_shared
         PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
 include(GenerateExportHeader)
-generate_export_header(kuzu_shared BASE_NAME kuzu EXPORT_MACRO_NAME KUZU_API STATIC_DEFINE KUZU_STATIC_DEFINE)
 target_include_directories(kuzu PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(kuzu_shared PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_compile_definitions(kuzu PUBLIC KUZU_STATIC_DEFINE)

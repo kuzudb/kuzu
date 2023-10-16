@@ -161,6 +161,9 @@ public:
         return std::make_unique<FactorizedTableSchema>(*this);
     }
 
+    uint64_t getNumFlatColumns() const;
+    uint64_t getNumUnflatColumns() const;
+
 private:
     std::vector<std::unique_ptr<ColumnSchema>> columns;
     uint32_t numBytesForDataPerTuple = 0;

@@ -143,7 +143,7 @@ void ColumnChunk::initializeBuffer(offset_t capacity_) {
     bufferSize = getBufferSize();
     buffer = std::make_unique<uint8_t[]>(bufferSize);
     if (nullChunk) {
-        static_cast<ColumnChunk*>(nullChunk.get())->initializeBuffer(capacity);
+        nullChunk->initializeBuffer(capacity_);
     }
 }
 
@@ -250,16 +250,19 @@ void ColumnChunk::write(const Value& val, uint64_t posToWrite) {
 }
 
 void ColumnChunk::resize(uint64_t newCapacity) {
-    capacity = newCapacity;
-    auto numBytesAfterResize = getBufferSize();
-    assert(numBytesAfterResize > bufferSize);
-    auto resizedBuffer = std::make_unique<uint8_t[]>(numBytesAfterResize);
-    if (dataType.getPhysicalType() == common::PhysicalTypeID::BOOL) {
-        memset(resizedBuffer.get(), 0 /* non null */, numBytesAfterResize);
+    if (numBytesPerValue != 0) {
+        // Avoid resizing struct/serial columns.
+        capacity = newCapacity;
+        auto numBytesAfterResize = getBufferSize();
+        assert(numBytesAfterResize > bufferSize);
+        auto resizedBuffer = std::make_unique<uint8_t[]>(numBytesAfterResize);
+        if (dataType.getPhysicalType() == common::PhysicalTypeID::BOOL) {
+            memset(resizedBuffer.get(), 0 /* non null */, numBytesAfterResize);
+        }
+        memcpy(resizedBuffer.get(), buffer.get(), bufferSize);
+        bufferSize = numBytesAfterResize;
+        buffer = std::move(resizedBuffer);
     }
-    memcpy(resizedBuffer.get(), buffer.get(), bufferSize);
-    bufferSize = numBytesAfterResize;
-    buffer = std::move(resizedBuffer);
     if (nullChunk) {
         nullChunk->resize(newCapacity);
     }

@@ -13,7 +13,6 @@ using namespace kuzu::common;
 
 class NodeConnection : public Napi::ObjectWrap<NodeConnection> {
     friend class ConnectionInitAsyncWorker;
-    friend class ConnectionTableMetadataAsyncWorker;
     friend class ConnectionExecuteAsyncWorker;
     friend class NodePreparedStatement;
 
@@ -26,10 +25,6 @@ private:
     Napi::Value InitAsync(const Napi::CallbackInfo& info);
     void InitCppConnection();
     void SetMaxNumThreadForExec(const Napi::CallbackInfo& info);
-    Napi::Value GetNodeTableNamesAsync(const Napi::CallbackInfo& info);
-    Napi::Value GetRelTableNamesAsync(const Napi::CallbackInfo& info);
-    Napi::Value GetNodePropertyNamesAsync(const Napi::CallbackInfo& info);
-    Napi::Value GetRelPropertyNamesAsync(const Napi::CallbackInfo& info);
     Napi::Value ExecuteAsync(const Napi::CallbackInfo& info);
 
 private:
@@ -63,47 +58,6 @@ enum GetTableMetadataType {
     REL_TABLE_NAME,
     NODE_PROPERTY_NAME,
     REL_PROPERTY_NAME
-};
-
-class ConnectionTableMetadataAsyncWorker : public Napi::AsyncWorker {
-public:
-    ConnectionTableMetadataAsyncWorker(Napi::Function& callback, NodeConnection* nodeConnection,
-        std::string tableName, GetTableMetadataType getTableMetadataType)
-        : AsyncWorker(callback), nodeConnection(nodeConnection), tableName(tableName),
-          getTableMetadataType(getTableMetadataType) {}
-
-    ~ConnectionTableMetadataAsyncWorker() = default;
-
-    inline void Execute() override {
-        try {
-            switch (getTableMetadataType) {
-            case NODE_TABLE_NAME:
-                result = nodeConnection->connection->getNodeTableNames();
-                break;
-            case REL_TABLE_NAME:
-                result = nodeConnection->connection->getRelTableNames();
-                break;
-            case NODE_PROPERTY_NAME:
-                result = nodeConnection->connection->getNodePropertyNames(tableName);
-                break;
-            case REL_PROPERTY_NAME:
-                result = nodeConnection->connection->getRelPropertyNames(tableName);
-                break;
-            }
-        } catch (const std::exception& exc) { SetError(std::string(exc.what())); }
-    }
-
-    inline void OnOK() override {
-        Callback().Call({Env().Null(), Napi::String::New(Env(), result)});
-    }
-
-    inline void OnError(Napi::Error const& error) override { Callback().Call({error.Value()}); }
-
-private:
-    NodeConnection* nodeConnection;
-    std::string tableName;
-    std::string result;
-    GetTableMetadataType getTableMetadataType;
 };
 
 class ConnectionExecuteAsyncWorker : public Napi::AsyncWorker {

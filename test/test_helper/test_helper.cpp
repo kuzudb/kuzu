@@ -83,10 +83,5 @@ std::string TestHelper::getMillisecondsSuffix() {
     return std::to_string(ms);
 }
 
-std::unique_ptr<planner::LogicalPlan> TestHelper::getLogicalPlan(
-    const std::string& query, kuzu::main::Connection& conn) {
-    return std::move(conn.prepare(query)->logicalPlans[0]);
-}
-
 } // namespace testing
 } // namespace kuzu

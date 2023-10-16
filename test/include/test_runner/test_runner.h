@@ -1,3 +1,5 @@
+#pragma once
+
 #include "common/file_utils.h"
 #include "gtest/gtest.h"
 #include "parser/parser.h"

@@ -16,8 +16,8 @@ namespace main {
  * Multiple connections can connect to the same Database instance in a multi-threaded environment.
  */
 class Connection {
-    friend class kuzu::testing::ApiTest;
     friend class kuzu::testing::BaseGraphTest;
+    friend class kuzu::testing::PrivateGraphTest;
     friend class kuzu::testing::TestHelper;
     friend class kuzu::testing::TestRunner;
     friend class kuzu::benchmark::Benchmark;
@@ -80,7 +80,7 @@ public:
      * @return the result of the query.
      */
     template<typename... Args>
-    KUZU_API inline std::unique_ptr<QueryResult> execute(
+    inline std::unique_ptr<QueryResult> execute(
         PreparedStatement* preparedStatement, std::pair<std::string, Args>... args) {
         std::unordered_map<std::string, std::shared_ptr<common::Value>> inputParameters;
         return executeWithParams(preparedStatement, inputParameters, args...);
@@ -94,25 +94,6 @@ public:
      */
     KUZU_API std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
         std::unordered_map<std::string, std::shared_ptr<common::Value>>& inputParams);
-    /**
-     * @return all node table names in string format.
-     */
-    KUZU_API std::string getNodeTableNames();
-    /**
-     * @return all rel table names in string format.
-     */
-    KUZU_API std::string getRelTableNames();
-    /**
-     * @param nodeTableName The name of the node table.
-     * @return all property names of the given table.
-     */
-    KUZU_API std::string getNodePropertyNames(const std::string& tableName);
-    /**
-     * @param relTableName The name of the rel table.
-     * @return all property names of the given table.
-     */
-    KUZU_API std::string getRelPropertyNames(const std::string& relTableName);
-
     /**
      * @brief interrupts all queries currently executing within this connection.
      */
@@ -184,7 +165,8 @@ protected:
     std::unique_ptr<QueryResult> executeAndAutoCommitIfNecessaryNoLock(
         PreparedStatement* preparedStatement, uint32_t planIdx = 0u);
 
-    void addScalarFunction(std::string name, function::vector_function_definitions definitions);
+    KUZU_API void addScalarFunction(
+        std::string name, function::vector_function_definitions definitions);
 
 protected:
     Database* database;

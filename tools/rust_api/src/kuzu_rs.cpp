@@ -33,7 +33,7 @@ std::unique_ptr<LogicalType> create_logical_type_fixed_list(
         std::make_unique<FixedListTypeInfo>(std::move(childType), numElements));
 }
 
-std::unique_ptr<kuzu::common::LogicalType> create_logical_type_struct(
+std::unique_ptr<kuzu::common::LogicalType> create_logical_type_struct(LogicalTypeID typeID,
     const rust::Vec<rust::String>& fieldNames, std::unique_ptr<TypeListBuilder> fieldTypes) {
     std::vector<std::unique_ptr<StructField>> fields;
     for (auto i = 0u; i < fieldNames.size(); i++) {
@@ -41,7 +41,7 @@ std::unique_ptr<kuzu::common::LogicalType> create_logical_type_struct(
             std::string(fieldNames[i]), std::move(fieldTypes->types[i])));
     }
     return std::make_unique<LogicalType>(
-        LogicalTypeID::STRUCT, std::make_unique<kuzu::common::StructTypeInfo>(std::move(fields)));
+        typeID, std::make_unique<kuzu::common::StructTypeInfo>(std::move(fields)));
 }
 
 std::unique_ptr<kuzu::common::LogicalType> create_logical_type_map(
@@ -101,19 +101,6 @@ std::unique_ptr<kuzu::main::Connection> database_connect(kuzu::main::Database& d
 std::unique_ptr<kuzu::main::QueryResult> connection_execute(kuzu::main::Connection& connection,
     kuzu::main::PreparedStatement& query, std::unique_ptr<QueryParams> params) {
     return connection.executeWithParams(&query, params->inputParams);
-}
-
-rust::String get_node_table_names(Connection& connection) {
-    return rust::String(connection.getNodeTableNames());
-}
-rust::String get_rel_table_names(Connection& connection) {
-    return rust::String(connection.getRelTableNames());
-}
-rust::String get_node_property_names(Connection& connection, rust::Str tableName) {
-    return rust::String(connection.getNodePropertyNames(std::string(tableName)));
-}
-rust::String get_rel_property_names(Connection& connection, rust::Str relTableName) {
-    return rust::String(connection.getRelPropertyNames(std::string(relTableName)));
 }
 
 rust::String prepared_statement_error_message(const kuzu::main::PreparedStatement& statement) {

@@ -2,6 +2,7 @@
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_plan_util.h"
 #include "planner/operator/scan/logical_scan_node_property.h"
+#include "test_runner/test_runner.h"
 
 namespace kuzu {
 namespace testing {
@@ -13,11 +14,11 @@ public:
     }
 
     std::string getEncodedPlan(const std::string& query) {
-        return planner::LogicalPlanUtil::encodeJoin(*TestHelper::getLogicalPlan(query, *conn));
+        return planner::LogicalPlanUtil::encodeJoin(*TestRunner::getLogicalPlan(query, *conn));
     }
 
     std::shared_ptr<planner::LogicalOperator> getRoot(const std::string& query) {
-        return TestHelper::getLogicalPlan(query, *conn)->getLastOperator();
+        return TestRunner::getLogicalPlan(query, *conn)->getLastOperator();
     }
 };
 

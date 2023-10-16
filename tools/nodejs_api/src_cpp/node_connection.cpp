@@ -15,10 +15,6 @@ Napi::Object NodeConnection::Init(Napi::Env env, Napi::Object exports) {
             InstanceMethod("initAsync", &NodeConnection::InitAsync),
             InstanceMethod("executeAsync", &NodeConnection::ExecuteAsync),
             InstanceMethod("setMaxNumThreadForExec", &NodeConnection::SetMaxNumThreadForExec),
-            InstanceMethod("getNodeTableNamesAsync", &NodeConnection::GetNodeTableNamesAsync),
-            InstanceMethod("getRelTableNamesAsync", &NodeConnection::GetRelTableNamesAsync),
-            InstanceMethod("getNodePropertyNamesAsync", &NodeConnection::GetNodePropertyNamesAsync),
-            InstanceMethod("getRelPropertyNamesAsync", &NodeConnection::GetRelPropertyNamesAsync),
         });
 
     exports.Set("NodeConnection", t);
@@ -78,42 +74,3 @@ void NodeConnection::SetMaxNumThreadForExec(const Napi::CallbackInfo& info) {
     }
 }
 
-Napi::Value NodeConnection::GetNodeTableNamesAsync(const Napi::CallbackInfo& info) {
-    Napi::Env env = info.Env();
-    Napi::HandleScope scope(env);
-    auto callback = info[0].As<Napi::Function>();
-    auto* asyncWorker = new ConnectionTableMetadataAsyncWorker(callback, this, "", NODE_TABLE_NAME);
-    asyncWorker->Queue();
-    return info.Env().Undefined();
-}
-
-Napi::Value NodeConnection::GetRelTableNamesAsync(const Napi::CallbackInfo& info) {
-    Napi::Env env = info.Env();
-    Napi::HandleScope scope(env);
-    auto callback = info[0].As<Napi::Function>();
-    auto* asyncWorker = new ConnectionTableMetadataAsyncWorker(callback, this, "", REL_TABLE_NAME);
-    asyncWorker->Queue();
-    return info.Env().Undefined();
-}
-
-Napi::Value NodeConnection::GetNodePropertyNamesAsync(const Napi::CallbackInfo& info) {
-    Napi::Env env = info.Env();
-    Napi::HandleScope scope(env);
-    std::string tableName = info[0].ToString();
-    auto callback = info[1].As<Napi::Function>();
-    auto* asyncWorker =
-        new ConnectionTableMetadataAsyncWorker(callback, this, tableName, NODE_PROPERTY_NAME);
-    asyncWorker->Queue();
-    return info.Env().Undefined();
-}
-
-Napi::Value NodeConnection::GetRelPropertyNamesAsync(const Napi::CallbackInfo& info) {
-    Napi::Env env = info.Env();
-    Napi::HandleScope scope(env);
-    std::string tableName = info[0].ToString();
-    auto callback = info[1].As<Napi::Function>();
-    auto* asyncWorker =
-        new ConnectionTableMetadataAsyncWorker(callback, this, tableName, REL_PROPERTY_NAME);
-    asyncWorker->Queue();
-    return info.Env().Undefined();
-}

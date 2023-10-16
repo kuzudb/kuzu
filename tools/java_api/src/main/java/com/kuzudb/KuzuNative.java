@@ -88,16 +88,6 @@ public class KuzuNative {
     protected static native KuzuQueryResult kuzu_connection_execute(
             KuzuConnection connection, KuzuPreparedStatement prepared_statement, Map<String, KuzuValue> param);
 
-    protected static native String kuzu_connection_get_node_table_names(KuzuConnection connection);
-
-    protected static native String kuzu_connection_get_rel_table_names(KuzuConnection connection);
-
-    protected static native String kuzu_connection_get_node_property_names(
-            KuzuConnection connection, String table_name);
-
-    protected static native String kuzu_connection_get_rel_property_names(
-            KuzuConnection connection, String table_name);
-
     protected static native void kuzu_connection_interrupt(KuzuConnection connection);
 
     protected static native void kuzu_connection_set_query_timeout(

@@ -4,24 +4,22 @@
 
 #include "c_api/kuzu.h"
 #include "common/file_utils.h"
-#include "graph_test/graph_test.h"
+#include "graph_test/api_graph_test.h"
 #include "gtest/gtest.h"
 #include "main/kuzu.h"
 #include "parser/parser.h"
-#include "planner/operator/logical_plan_util.h"
-#include "planner/planner.h"
 #include "test_helper/test_helper.h"
 
 using ::testing::Test;
 using namespace kuzu::testing;
 
-class CApiTest : public DBTest {
+class CApiTest : public APIDBTest {
 public:
     kuzu_database* _database;
     kuzu_connection* connection;
 
     void SetUp() override {
-        DBTest::SetUp();
+        APIDBTest::SetUp();
         // In C API tests, we don't use the database and connection created by DBTest because
         // they are not C++ objects.
         conn.reset();
@@ -41,6 +39,6 @@ public:
     void TearDown() override {
         kuzu_connection_destroy(connection);
         kuzu_database_destroy(_database);
-        DBTest::TearDown();
+        APIDBTest::TearDown();
     }
 };

@@ -127,6 +127,8 @@ std::unique_ptr<BoundProjectionBody> Binder::bindProjectionBody(
         }
     }
     if (!groupByExpressions.empty()) {
+        // TODO(Xiyang): we can remove augment group by. But make sure we test sufficient including
+        // edge case and bug before release.
         expression_vector augmentedGroupByExpressions = groupByExpressions;
         for (auto& expression : groupByExpressions) {
             if (ExpressionUtil::isNodeVariable(*expression)) {

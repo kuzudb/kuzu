@@ -20,14 +20,6 @@ public:
 
     void setMaxNumThreadForExec(uint64_t numThreads);
 
-    py::str getNodePropertyNames(const std::string& tableName);
-
-    py::str getNodeTableNames();
-
-    py::str getRelPropertyNames(const std::string& tableName);
-
-    py::str getRelTableNames();
-
     PyPreparedStatement prepare(const std::string& query);
 
     uint64_t getNumNodes(const std::string& nodeName);

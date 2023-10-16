@@ -53,6 +53,19 @@ void VectorHashFunction::computeHash(ValueVector* operand, ValueVector* result) 
     case PhysicalTypeID::INTERVAL: {
         UnaryHashFunctionExecutor::execute<interval_t, hash_t>(*operand, *result);
     } break;
+    case PhysicalTypeID::STRUCT: {
+        if (operand->dataType.getLogicalTypeID() == LogicalTypeID::NODE) {
+            assert(0 == common::StructType::getFieldIdx(&operand->dataType, InternalKeyword::ID));
+            UnaryHashFunctionExecutor::execute<internalID_t, hash_t>(
+                *StructVector::getFieldVector(operand, 0), *result);
+            break;
+        } else if (operand->dataType.getLogicalTypeID() == LogicalTypeID::REL) {
+            assert(3 == StructType::getFieldIdx(&operand->dataType, InternalKeyword::ID));
+            UnaryHashFunctionExecutor::execute<internalID_t, hash_t>(
+                *StructVector::getFieldVector(operand, 3), *result);
+            break;
+        }
+    }
     default: {
         throw RuntimeException(
             "Cannot hash data type " +

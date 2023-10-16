@@ -140,48 +140,6 @@ public class KuzuConnection {
     }
 
     /**
-    * Get names of all node tables in the database.
-    * @return Names of all node tables in the database.
-    * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
-    */
-    public String getNodeTableNames() throws KuzuObjectRefDestroyedException {
-        checkNotDestroyed();
-        return KuzuNative.kuzu_connection_get_node_table_names(this);
-    }
-
-    /**
-    * Get names of all relationship tables in the database.
-    * @return Names of all relationship tables in the database.
-    * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
-    */
-    public String getRelTableNames() throws KuzuObjectRefDestroyedException {
-        checkNotDestroyed();
-        return KuzuNative.kuzu_connection_get_rel_table_names(this);
-    }
-
-    /**
-    * Get names of all node properties in the given table.
-    * @param tableName: The table name.
-    * @return Names of all node properties in the given table.
-    * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
-    */
-    public String getNodePropertyNames(String tableName) throws KuzuObjectRefDestroyedException {
-        checkNotDestroyed();
-        return KuzuNative.kuzu_connection_get_node_property_names(this, tableName);
-    }
-
-    /**
-    * Get names of all relationship properties in the given table.
-    * @param tableName: The table name.
-    * @return Names of all relationship properties in the given table.
-    * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
-    */
-    public String getRelPropertyNames(String tableName) throws KuzuObjectRefDestroyedException {
-        checkNotDestroyed();
-        return KuzuNative.kuzu_connection_get_rel_property_names(this, tableName);
-    }
-
-    /**
     * Interrupts all queries currently executed within this connection.
     * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
     */

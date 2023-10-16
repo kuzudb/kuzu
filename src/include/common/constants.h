@@ -7,7 +7,7 @@
 namespace kuzu {
 namespace common {
 
-constexpr char KUZU_VERSION[] = "v0.0.9";
+constexpr char KUZU_VERSION[] = "v0.0.10";
 
 constexpr uint64_t DEFAULT_VECTOR_CAPACITY_LOG_2 = 11;
 constexpr uint64_t DEFAULT_VECTOR_CAPACITY = (uint64_t)1 << DEFAULT_VECTOR_CAPACITY_LOG_2;
@@ -182,6 +182,22 @@ struct OrderByConstants {
     static constexpr uint64_t NUM_BYTES_FOR_PAYLOAD_IDX = 8;
     static constexpr uint64_t MIN_SIZE_TO_REDUCE = common::DEFAULT_VECTOR_CAPACITY * 5;
     static constexpr uint64_t MIN_LIMIT_RATIO_TO_REDUCE = 2;
+};
+
+struct ParquetConstants {
+    static constexpr uint64_t PARQUET_DEFINE_VALID = 65535;
+    static constexpr const char* PARQUET_MAGIC_WORDS = "PAR1";
+    // We limit the uncompressed page size to 100MB.
+    // The max size in Parquet is 2GB, but we choose a more conservative limit.
+    static constexpr uint64_t MAX_UNCOMPRESSED_PAGE_SIZE = 100000000;
+    // Dictionary pages must be below 2GB. Unlike data pages, there's only one dictionary page.
+    // For this reason we go with a much higher, but still a conservative upper bound of 1GB.
+    static constexpr uint64_t MAX_UNCOMPRESSED_DICT_PAGE_SIZE = 1e9;
+    // The maximum size a key entry in an RLE page takes.
+    static constexpr uint64_t MAX_DICTIONARY_KEY_SIZE = sizeof(uint32_t);
+    // The size of encoding the string length.
+    static constexpr uint64_t STRING_LENGTH_SIZE = sizeof(uint32_t);
+    static constexpr uint64_t MAX_STRING_STATISTICS_SIZE = 10000;
 };
 
 } // namespace common

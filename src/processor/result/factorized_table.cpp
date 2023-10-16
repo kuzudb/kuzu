@@ -45,6 +45,26 @@ bool FactorizedTableSchema::operator==(const FactorizedTableSchema& other) const
            other.numBytesForNullMapPerTuple;
 }
 
+uint64_t FactorizedTableSchema::getNumFlatColumns() const {
+    auto numFlatColumns = 0u;
+    for (auto& column : columns) {
+        if (column->isFlat()) {
+            numFlatColumns++;
+        }
+    }
+    return numFlatColumns;
+}
+
+uint64_t FactorizedTableSchema::getNumUnflatColumns() const {
+    auto numUnflatColumns = 0u;
+    for (auto& column : columns) {
+        if (!column->isFlat()) {
+            numUnflatColumns++;
+        }
+    }
+    return numUnflatColumns;
+}
+
 void DataBlock::copyTuples(DataBlock* blockToCopyFrom, ft_tuple_idx_t tupleIdxToCopyFrom,
     DataBlock* blockToCopyInto, ft_tuple_idx_t tupleIdxToCopyTo, uint32_t numTuplesToCopy,
     uint32_t numBytesPerTuple) {

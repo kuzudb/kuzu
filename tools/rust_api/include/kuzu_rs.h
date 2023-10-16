@@ -42,7 +42,8 @@ std::unique_ptr<kuzu::common::LogicalType> create_logical_type_var_list(
 std::unique_ptr<kuzu::common::LogicalType> create_logical_type_fixed_list(
     std::unique_ptr<kuzu::common::LogicalType> childType, uint64_t numElements);
 std::unique_ptr<kuzu::common::LogicalType> create_logical_type_struct(
-    const rust::Vec<rust::String>& fieldNames, std::unique_ptr<TypeListBuilder> fieldTypes);
+    kuzu::common::LogicalTypeID typeID, const rust::Vec<rust::String>& fieldNames,
+    std::unique_ptr<TypeListBuilder> fieldTypes);
 std::unique_ptr<kuzu::common::LogicalType> create_logical_type_map(
     std::unique_ptr<kuzu::common::LogicalType> keyType,
     std::unique_ptr<kuzu::common::LogicalType> valueType);
@@ -67,11 +68,6 @@ void database_set_logging_level(kuzu::main::Database& database, const std::strin
 std::unique_ptr<kuzu::main::Connection> database_connect(kuzu::main::Database& database);
 std::unique_ptr<kuzu::main::QueryResult> connection_execute(kuzu::main::Connection& connection,
     kuzu::main::PreparedStatement& query, std::unique_ptr<QueryParams> params);
-
-rust::String get_node_table_names(kuzu::main::Connection& connection);
-rust::String get_rel_table_names(kuzu::main::Connection& connection);
-rust::String get_node_property_names(kuzu::main::Connection& connection, rust::Str tableName);
-rust::String get_rel_property_names(kuzu::main::Connection& connection, rust::Str relTableName);
 
 /* PreparedStatement */
 rust::String prepared_statement_error_message(const kuzu::main::PreparedStatement& statement);

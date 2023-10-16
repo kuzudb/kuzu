@@ -118,7 +118,7 @@ def collect_binaries():
         shutil.copy(lib_path, os.path.join(base_dir, "kuzu_shared.lib"))
         logging.info("Copied kuzu_shared.lib")
         shell_path = os.path.join(workspace_root, "build", "release",
-                                  "tools", "shell", "kuzu_shell.exe")
+                                  "src", "kuzu_shell.exe")
         if not os.path.exists(shell_path):
             logging.error("No shell binary found")
             sys.exit(1)

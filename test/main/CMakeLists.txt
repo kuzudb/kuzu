@@ -1,4 +1,4 @@
-add_kuzu_test(main_test
+add_kuzu_api_test(main_test
         arrow_test.cpp
         config_test.cpp
         connection_test.cpp
@@ -7,3 +7,7 @@ add_kuzu_test(main_test
         result_value_test.cpp
         storage_driver_test.cpp
         udf_test.cpp)
+
+# Also tested for coverage in connection_test.cpp
+# but full testing requires some private APIs
+add_kuzu_test(transaction_test transaction_test.cpp)

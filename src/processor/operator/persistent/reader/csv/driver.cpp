@@ -11,6 +11,7 @@
 #include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 #include "storage/store/table_copy_utils.h"
+#include "utf8proc_wrapper.h"
 
 using namespace kuzu::common;
 
@@ -20,7 +21,7 @@ namespace processor {
 ParsingDriver::ParsingDriver(common::DataChunk& chunk) : chunk(chunk), rowEmpty(false) {}
 
 void copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std::string_view strVal,
-    CSVReaderConfig csvReaderConfig);
+    const CSVReaderConfig& csvReaderConfig);
 
 static void skipWhitespace(const char*& input, const char* end) {
     while (input < end && isspace(*input)) {
@@ -28,12 +29,18 @@ static void skipWhitespace(const char*& input, const char* end) {
     }
 }
 
-bool skipToCloseQuotes(
-    const char*& input, const char* end, const CSVReaderConfig& csvReaderConfig) {
+static void trimRightWhitespace(const char* input, const char*& end) {
+    while (input < end && isspace(*(end - 1))) {
+        end--;
+    }
+}
+
+bool skipToCloseQuotes(const char*& input, const char* end) {
+    auto ch = *input;
     input++; // skip the first " '
     // TODO: escape char
     while (input != end) {
-        if (*input == '\'') {
+        if (*input == ch) {
             return true;
         }
         input++;
@@ -46,7 +53,7 @@ static bool skipToClose(const char*& input, const char* end, uint64_t& lvl, char
     input++;
     while (input != end) {
         if (*input == '\'') {
-            if (!skipToCloseQuotes(input, end, csvReaderConfig)) {
+            if (!skipToCloseQuotes(input, end)) {
                 return false;
             }
         } else if (*input == '{') { // must have closing brackets fro {, ] if they are not quoted
@@ -59,7 +66,7 @@ static bool skipToClose(const char*& input, const char* end, uint64_t& lvl, char
             }
             lvl++; // nested one more level
         } else if (*input == target) {
-            if (target == ']') {
+            if (target == csvReaderConfig.listEndChar) {
                 lvl--;
             }
             return true;
@@ -72,11 +79,17 @@ static bool skipToClose(const char*& input, const char* end, uint64_t& lvl, char
 struct CountPartOperation {
     uint64_t count = 0;
 
-    void handleValue(const char* start, const char* end, const CSVReaderConfig& config) { count++; }
+    static inline bool handleKey(
+        const char* start, const char* end, const CSVReaderConfig& config) {
+        return true;
+    }
+    inline void handleValue(const char* start, const char* end, const CSVReaderConfig& config) {
+        count++;
+    }
 };
 
 struct SplitStringListOperation {
-    SplitStringListOperation(uint64_t& offset, common::ValueVector* resultVector)
+    SplitStringListOperation(uint64_t& offset, ValueVector* resultVector)
         : offset(offset), resultVector(resultVector) {}
 
     uint64_t& offset;
@@ -84,7 +97,7 @@ struct SplitStringListOperation {
 
     void handleValue(const char* start, const char* end, const CSVReaderConfig& csvReaderConfig) {
         // NULL
-        auto start_copy = start;
+        auto startCopy = start;
         skipWhitespace(start, end);
         if (end - start >= 4 && (*start == 'N' || *start == 'n') &&
             (*(start + 1) == 'U' || *(start + 1) == 'u') &&
@@ -93,20 +106,43 @@ struct SplitStringListOperation {
             auto null_end = start + 4;
             skipWhitespace(null_end, end);
             if (null_end == end) {
-                start_copy = end;
+                startCopy = end;
             }
         }
         if (start == end) { // check if its empty string - NULL
-            start_copy = end;
+            startCopy = end;
         }
         copyStringToVector(resultVector, offset,
-            std::string_view{start_copy, (size_t)(end - start_copy)}, csvReaderConfig);
+            std::string_view{startCopy, (uint32_t)(end - startCopy)}, csvReaderConfig);
         offset++;
     }
 };
 
+struct SplitStringMapOperation {
+    SplitStringMapOperation(uint64_t& offset, ValueVector* resultVector)
+        : offset(offset), resultVector(resultVector) {}
+
+    uint64_t& offset;
+    ValueVector* resultVector;
+
+    inline bool handleKey(
+        const char* start, const char* end, const CSVReaderConfig& csvReaderConfig) {
+        trimRightWhitespace(start, end);
+        copyStringToVector(StructVector::getFieldVector(resultVector, 0).get(), offset,
+            std::string_view{start, (uint32_t)(end - start)}, csvReaderConfig);
+        return true;
+    }
+
+    inline void handleValue(
+        const char* start, const char* end, const CSVReaderConfig& csvReaderConfig) {
+        trimRightWhitespace(start, end);
+        copyStringToVector(StructVector::getFieldVector(resultVector, 1).get(), offset++,
+            std::string_view{start, (uint32_t)(end - start)}, csvReaderConfig);
+    }
+};
+
 template<typename T>
-static bool splitCString(
+static bool splitCStringList(
     const char* input, uint64_t len, T& state, const CSVReaderConfig& csvReaderConfig) {
     auto end = input + len;
     uint64_t lvl = 1;
@@ -119,7 +155,6 @@ static bool splitCString(
     }
     input++;
 
-    // TODO: test if not skipping any white space works for all data type
     auto start_ptr = input;
     while (input < end) {
         auto ch = *input;
@@ -127,8 +162,8 @@ static bool splitCString(
             if (!skipToClose(input, end, ++lvl, csvReaderConfig.listEndChar, csvReaderConfig)) {
                 return false;
             }
-        } else if (ch == '\'') {
-            if (!skipToCloseQuotes(input, end, csvReaderConfig)) {
+        } else if (ch == '\'' || ch == '"') {
+            if (!skipToCloseQuotes(input, end)) {
                 return false;
             }
         } else if (ch == '{') {
@@ -156,22 +191,203 @@ static void castStringToList(const char* input, uint64_t len, ValueVector* vecto
     uint64_t rowToAdd, const CSVReaderConfig& csvReaderConfig) {
     // calculate the number of elements in array
     CountPartOperation state;
-    splitCString(input, len, state, csvReaderConfig);
+    splitCStringList(input, len, state, csvReaderConfig);
 
     auto list_entry = ListVector::addList(vector, state.count);
     vector->setValue<list_entry_t>(rowToAdd, list_entry);
     auto listDataVector = common::ListVector::getDataVector(vector);
 
     SplitStringListOperation split{list_entry.offset, listDataVector};
-    if (!splitCString(input, len, split, csvReaderConfig)) {
-        throw common::ConversionException(
-            "Cast failed. " + std::string{input, len} + " is not in " +
-            common::LogicalTypeUtils::dataTypeToString(vector->dataType) + " range.");
+    if (!splitCStringList(input, len, split, csvReaderConfig)) {
+        throw ConversionException("Cast failed. " + std::string{input, len} + " is not in " +
+                                  LogicalTypeUtils::dataTypeToString(vector->dataType) + " range.");
+    }
+}
+
+template<typename T>
+static bool parseKeyOrValue(const char*& input, const char* end, T& state, bool isKey,
+    bool& closeBracket, const CSVReaderConfig& csvReaderConfig) {
+    auto start = input;
+    uint64_t lvl = 0;
+
+    while (input < end) {
+        if (*input == '"' || *input == '\'') {
+            if (!skipToCloseQuotes(input, end)) {
+                return false;
+            };
+        } else if (*input == '{') {
+            if (!skipToClose(input, end, lvl, '}', csvReaderConfig)) {
+                return false;
+            }
+        } else if (*input == csvReaderConfig.listBeginChar) {
+            if (!skipToClose(input, end, lvl, csvReaderConfig.listEndChar, csvReaderConfig)) {
+                return false;
+            };
+        } else if (isKey && *input == '=') {
+            return state.handleKey(start, input, csvReaderConfig);
+        } else if (!isKey && (*input == csvReaderConfig.delimiter || *input == '}')) {
+            state.handleValue(start, input, csvReaderConfig);
+            if (*input == '}') {
+                closeBracket = true;
+            }
+            return true;
+        }
+        input++;
+    }
+    return false;
+}
+
+// {a=12,b=13}
+template<typename T>
+static bool splitCStringMap(
+    const char* input, uint64_t len, T& state, const CSVReaderConfig& csvReaderConfig) {
+    auto end = input + len;
+    bool closeBracket = false;
+
+    skipWhitespace(input, end);
+    if (input == end || *input != '{') { // start with {
+        return false;
+    }
+    skipWhitespace(++input, end);
+    if (input == end) {
+        return false;
+    }
+    if (*input == '}') {
+        skipWhitespace(++input, end); // empty
+        return input == end;
+    }
+
+    while (input < end) {
+        if (!parseKeyOrValue(input, end, state, true, closeBracket, csvReaderConfig)) {
+            return false;
+        }
+        skipWhitespace(++input, end);
+        if (!parseKeyOrValue(input, end, state, false, closeBracket, csvReaderConfig)) {
+            return false;
+        }
+        skipWhitespace(++input, end);
+        if (closeBracket) {
+            return (input == end);
+        }
+    }
+    return false;
+}
+
+static void castStringToMap(const char* input, uint64_t len, ValueVector* vector, uint64_t rowToAdd,
+    const CSVReaderConfig& csvReaderConfig) {
+    // count the number of maps in map
+    CountPartOperation state;
+    splitCStringMap(input, len, state, csvReaderConfig);
+
+    auto list_entry = ListVector::addList(vector, state.count);
+    vector->setValue<list_entry_t>(rowToAdd, list_entry);
+    auto structVector = common::ListVector::getDataVector(vector);
+
+    SplitStringMapOperation split{list_entry.offset, structVector};
+    if (!splitCStringMap(input, len, split, csvReaderConfig)) {
+        throw ConversionException("Cast failed. " + std::string{input, len} + " is not in " +
+                                  LogicalTypeUtils::dataTypeToString(vector->dataType) + " range.");
+    }
+}
+
+static bool parseStructFieldName(const char*& input, const char* end) {
+    while (input < end) {
+        if (*input == ':') {
+            return true;
+        }
+        input++;
+    }
+    return false;
+}
+
+static bool parseStructFieldValue(
+    const char*& input, const char* end, const CSVReaderConfig& csvReaderConfig, bool& closeBrack) {
+    uint64_t lvl = 0;
+    while (input < end) {
+        if (*input == '"' || *input == '\'') {
+            if (!skipToCloseQuotes(input, end)) {
+                return false;
+            }
+        } else if (*input == '{') {
+            if (!skipToClose(input, end, lvl, '}', csvReaderConfig)) {
+                return false;
+            }
+        } else if (*input == csvReaderConfig.listBeginChar) {
+            if (!skipToClose(input, end, ++lvl, csvReaderConfig.listEndChar, csvReaderConfig)) {
+                return false;
+            }
+        } else if (*input == csvReaderConfig.delimiter || *input == '}') {
+            if (*input == '}') {
+                closeBrack = true;
+            }
+            return (lvl == 0);
+        }
+        input++;
+    }
+    return false;
+}
+
+static bool tryCastStringToStruct(const char* input, uint64_t len, ValueVector* vector,
+    uint64_t rowToAdd, const CSVReaderConfig& csvReaderConfig) {
+    // check if start with {
+    auto end = input + len;
+    auto type = vector->dataType;
+    skipWhitespace(input, end);
+    if (input == end || *input != '{') {
+        return false;
+    }
+    skipWhitespace(++input, end);
+
+    if (input == end) { // no closing bracket
+        return false;
+    }
+    if (*input == '}') {
+        skipWhitespace(++input, end);
+        return input == end;
+    }
+
+    bool closeBracket = false;
+    while (input < end) {
+        auto keyStart = input;
+        if (!parseStructFieldName(input, end)) { // find key
+            return false;
+        }
+        auto keyEnd = input;
+        trimRightWhitespace(keyStart, keyEnd);
+        auto fieldIdx = StructType::getFieldIdx(&type, std::string{keyStart, keyEnd});
+        if (fieldIdx == INVALID_STRUCT_FIELD_IDX) {
+            throw ParserException{"Invalid struct field name: " + std::string{keyStart, keyEnd}};
+        }
+
+        skipWhitespace(++input, end);
+        auto valStart = input;
+        if (!parseStructFieldValue(input, end, csvReaderConfig, closeBracket)) { // find value
+            return false;
+        }
+        auto valEnd = input;
+        trimRightWhitespace(valStart, valEnd);
+        skipWhitespace(++input, end);
+
+        copyStringToVector(StructVector::getFieldVector(vector, fieldIdx).get(), rowToAdd,
+            std::string_view{valStart, (uint32_t)(valEnd - valStart)}, csvReaderConfig);
+
+        if (closeBracket) {
+            return (input == end);
+        }
+    }
+    return false;
+}
+
+static void castStringToStruct(const char* input, uint64_t len, ValueVector* vector,
+    uint64_t rowToAdd, const CSVReaderConfig& csvReaderConfig) {
+    if (!tryCastStringToStruct(input, len, vector, rowToAdd, csvReaderConfig)) {
+        throw ConversionException("Cast failed. " + std::string{input, len} + " is not in " +
+                                  LogicalTypeUtils::dataTypeToString(vector->dataType) + " range.");
     }
 }
 
 void copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std::string_view strVal,
-    CSVReaderConfig csvReaderConfig) {
+    const CSVReaderConfig& csvReaderConfig) {
     auto& type = vector->dataType;
     if (strVal.empty()) {
         vector->setNull(rowToAdd, true /* isNull */);
@@ -246,6 +462,9 @@ void copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std::string_view
             vector, rowToAdd, reinterpret_cast<char*>(blobBuffer.get()), blobLen);
     } break;
     case LogicalTypeID::STRING: {
+        if (!utf8proc::Utf8Proc::isValid(strVal.data(), strVal.length())) {
+            throw common::CopyException{"Invalid UTF8-encoded string."};
+        }
         StringVector::addString(vector, rowToAdd, strVal.data(), strVal.length());
     } break;
     case LogicalTypeID::DATE: {
@@ -258,9 +477,7 @@ void copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std::string_view
         vector->setValue(rowToAdd, Interval::fromCString(strVal.data(), strVal.length()));
     } break;
     case LogicalTypeID::MAP: {
-        auto value = storage::TableCopyUtils::getVarListValue(
-            strVal, 1, strVal.length() - 2, type, csvReaderConfig);
-        vector->copyFromValue(rowToAdd, *value);
+        castStringToMap(strVal.data(), strVal.length(), vector, rowToAdd, csvReaderConfig);
     } break;
     case LogicalTypeID::VAR_LIST: {
         castStringToList(strVal.data(), strVal.length(), vector, rowToAdd, csvReaderConfig);
@@ -271,14 +488,7 @@ void copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std::string_view
         vector->copyFromValue(rowToAdd, *fixedListVal);
     } break;
     case LogicalTypeID::STRUCT: {
-        auto structString = strVal.substr(1, strVal.length() - 2);
-        auto structFieldIdxAndValuePairs = storage::TableCopyUtils::parseStructFieldNameAndValues(
-            type, structString, csvReaderConfig);
-        for (auto& fieldIdxAndValue : structFieldIdxAndValuePairs) {
-            copyStringToVector(
-                StructVector::getFieldVector(vector, fieldIdxAndValue.fieldIdx).get(), rowToAdd,
-                fieldIdxAndValue.fieldValue, csvReaderConfig);
-        }
+        castStringToStruct(strVal.data(), strVal.length(), vector, rowToAdd, csvReaderConfig);
     } break;
     case LogicalTypeID::UNION: {
         union_field_idx_t selectedFieldIdx = INVALID_STRUCT_FIELD_IDX;
@@ -402,14 +612,24 @@ bool SniffCSVNameAndTypeDriver::addRow(uint64_t, common::column_id_t) {
 }
 
 bool SniffCSVColumnCountDriver::done(uint64_t) {
-    return true;
+    return !emptyRow;
 }
 
-void SniffCSVColumnCountDriver::addValue(uint64_t, common::column_id_t, std::string_view value) {
+void SniffCSVColumnCountDriver::addValue(
+    uint64_t, common::column_id_t columnIdx, std::string_view value) {
+    if (value != "" || columnIdx > 0) {
+        emptyRow = false;
+    }
     numColumns++;
 }
 
 bool SniffCSVColumnCountDriver::addRow(uint64_t, common::column_id_t) {
+    if (emptyRow) {
+        // If this is the last row, we just return zero: we don't know how many columns there are
+        // supposed to be.
+        numColumns = 0;
+        return false;
+    }
     return true;
 }
 

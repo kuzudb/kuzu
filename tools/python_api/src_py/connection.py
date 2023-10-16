@@ -114,35 +114,24 @@ class Connection:
         LIST_START_SYMBOL = "["
         LIST_END_SYMBOL = "]"
         self.init_connection()
-        result_str = self._connection.get_node_property_names(
-            table_name)
+        query_result = self.execute(
+            "CALL table_info('%s') RETURN *;" % table_name)
         results = {}
-        for (i, line) in enumerate(result_str.splitlines()):
-            # ignore first line
-            if i == 0:
-                continue
-            line = line.strip()
-            if line == "":
-                continue
-            line_splited = line.split(" ")
-            if len(line_splited) < 2:
-                continue
-
-            prop_name = line_splited[0]
-            prop_type = " ".join(line_splited[1:])
-
-            is_primary_key = PRIMARY_KEY_SYMBOL in prop_type
-            prop_type = prop_type.replace(PRIMARY_KEY_SYMBOL, "")
+        while query_result.has_next():
+            row = query_result.get_next()
+            prop_name = row[1]
+            prop_type = row[2]
+            is_primary_key = row[3] == True
             dimension = prop_type.count(LIST_START_SYMBOL)
-            splited = prop_type.split(LIST_START_SYMBOL)
+            splitted = prop_type.split(LIST_START_SYMBOL)
             shape = []
-            for s in splited:
+            for s in splitted:
                 if LIST_END_SYMBOL not in s:
                     continue
                 s = s.split(LIST_END_SYMBOL)[0]
                 if s != "":
                     shape.append(int(s))
-            prop_type = splited[0]
+            prop_type = splitted[0]
             results[prop_name] = {
                 "type": prop_type,
                 "dimension": dimension,
@@ -155,38 +144,30 @@ class Connection:
     def _get_node_table_names(self):
         results = []
         self.init_connection()
-        result_str = self._connection.get_node_table_names()
-        for (i, line) in enumerate(result_str.splitlines()):
-            # ignore first line
-            if i == 0:
-                continue
-            line = line.strip()
-            if line == "":
-                continue
-            results.append(line)
+        query_result = self.execute("CALL show_tables() RETURN *;")
+        while query_result.has_next():
+            row = query_result.get_next()
+            if row[1] == "NODE":
+                results.append(row[0])
         return results
 
     def _get_rel_table_names(self):
         results = []
         self.init_connection()
-        result_str = self._connection.get_rel_table_names()
-        for i, line in enumerate(result_str.splitlines()):
-            if i == 0:
-                continue
-            line = line.strip()
-            if line == "":
-                continue
-            props_str = self._connection.get_rel_property_names(line)
-            src_node = None
-            dst_node = None
-            for prop_str in props_str.splitlines():
-                if "src node:" in prop_str:
-                    src_node = prop_str.split(":")[1].strip()
-                if "dst node:" in prop_str:
-                    dst_node = prop_str.split(":")[1].strip()
-                if src_node is not None and dst_node is not None:
-                    break
-            results.append({"name": line, "src": src_node, "dst": dst_node})
+        tables_result = self.execute("CALL show_tables() RETURN *;")
+        while tables_result.has_next():
+            row = tables_result.get_next()
+            if row[1] == "REL":
+                name = row[0]
+                connections_result = self.execute("CALL show_connection('%s') RETURN *;" % name)
+                src_dst_row = connections_result.get_next()
+                src_node = src_dst_row[0]
+                dst_node = src_dst_row[1]
+                results.append({
+                    "name": name,
+                    "src": src_node,
+                    "dst": dst_node
+                })
         return results
 
     def set_query_timeout(self, timeout_in_ms):

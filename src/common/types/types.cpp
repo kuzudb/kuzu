@@ -244,6 +244,14 @@ void StructTypeInfo::serializeInternal(FileInfo* fileInfo, uint64_t& offset) con
     SerDeser::serializeVectorOfPtrs(fields, fileInfo, offset);
 }
 
+LogicalType::LogicalType(LogicalTypeID typeID) : typeID{typeID}, extraTypeInfo{nullptr} {
+    setPhysicalType();
+};
+LogicalType::LogicalType(LogicalTypeID typeID, std::unique_ptr<ExtraTypeInfo> extraTypeInfo)
+    : typeID{typeID}, extraTypeInfo{std::move(extraTypeInfo)} {
+    setPhysicalType();
+};
+
 LogicalType::LogicalType(const LogicalType& other) {
     typeID = other.typeID;
     physicalType = other.physicalType;
@@ -828,7 +836,7 @@ std::unique_ptr<LogicalType> LogicalTypeUtils::parseMapType(const std::string& t
         throw Exception("Cannot parse map type: " + trimmedStr);
     }
     auto mapTypeStr = trimmedStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1);
-    auto keyValueTypes = StringUtils::split(mapTypeStr, ",");
+    auto keyValueTypes = StringUtils::splitComma(mapTypeStr);
     return MapType::createMapType(
         std::make_unique<LogicalType>(dataTypeFromString(keyValueTypes[0])),
         std::make_unique<LogicalType>(dataTypeFromString(keyValueTypes[1])));
