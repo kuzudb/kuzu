@@ -76,6 +76,26 @@ static bool skipToClose(const char*& input, const char* end, uint64_t& lvl, char
     return false; // no corresponding closing bracket
 }
 
+static bool isNull(std::string_view& str) {
+    auto start = str.data();
+    auto end = start + str.length();
+    skipWhitespace(start, end);
+    if (start == end) {
+        return true;
+    }
+    if (end - start >= 4 && (*start == 'N' || *start == 'n') &&
+        (*(start + 1) == 'U' || *(start + 1) == 'u') &&
+        (*(start + 2) == 'L' || *(start + 2) == 'l') &&
+        (*(start + 3) == 'L' || *(start + 3) == 'l')) {
+        start += 4;
+        skipWhitespace(start, end);
+        if (start == end) {
+            return true;
+        }
+    }
+    return false;
+}
+
 struct CountPartOperation {
     uint64_t count = 0;
 
@@ -96,24 +116,29 @@ struct SplitStringListOperation {
     ValueVector* resultVector;
 
     void handleValue(const char* start, const char* end, const CSVReaderConfig& csvReaderConfig) {
-        // NULL
-        auto startCopy = start;
-        skipWhitespace(start, end);
-        if (end - start >= 4 && (*start == 'N' || *start == 'n') &&
-            (*(start + 1) == 'U' || *(start + 1) == 'u') &&
-            (*(start + 2) == 'L' || *(start + 2) == 'l') &&
-            (*(start + 3) == 'L' || *(start + 3) == 'l')) {
-            auto null_end = start + 4;
-            skipWhitespace(null_end, end);
-            if (null_end == end) {
-                startCopy = end;
-            }
+        copyStringToVector(resultVector, offset, std::string_view{start, (uint32_t)(end - start)},
+            csvReaderConfig);
+        offset++;
+    }
+};
+
+template<typename T>
+struct SplitStringFixedListOperation {
+    SplitStringFixedListOperation(uint64_t& offset, ValueVector* resultVector)
+        : offset(offset), resultVector(resultVector) {}
+
+    uint64_t& offset;
+    ValueVector* resultVector;
+
+    void handleValue(const char* start, const char* end, const CSVReaderConfig& csvReaderConfig) {
+        T value;
+        auto str = std::string_view{start, (uint32_t)(end - start)};
+        if (str.empty() || isNull(str)) {
+            throw ConversionException("Cast failed. NULL is not allowed for FIXEDLIST.");
         }
-        if (start == end) { // check if its empty string - NULL
-            startCopy = end;
-        }
-        copyStringToVector(resultVector, offset,
-            std::string_view{startCopy, (uint32_t)(end - startCopy)}, csvReaderConfig);
+        auto type = FixedListType::getChildType(&resultVector->dataType);
+        value = function::castStringToNum<T>(start, str.length(), *type);
+        resultVector->setValue(offset, value);
         offset++;
     }
 };
@@ -187,6 +212,15 @@ static bool splitCStringList(
     return (input == end && lvl == 0);
 }
 
+template<typename T>
+static void tryListCast(const char* input, uint64_t len, T split,
+    const CSVReaderConfig& csvReaderConfig, ValueVector* vector) {
+    if (!splitCStringList(input, len, split, csvReaderConfig)) {
+        throw ConversionException("Cast failed. " + std::string{input, len} + " is not in " +
+                                  LogicalTypeUtils::dataTypeToString(vector->dataType) + " range.");
+    }
+}
+
 static void castStringToList(const char* input, uint64_t len, ValueVector* vector,
     uint64_t rowToAdd, const CSVReaderConfig& csvReaderConfig) {
     // calculate the number of elements in array
@@ -198,9 +232,54 @@ static void castStringToList(const char* input, uint64_t len, ValueVector* vecto
     auto listDataVector = common::ListVector::getDataVector(vector);
 
     SplitStringListOperation split{list_entry.offset, listDataVector};
-    if (!splitCStringList(input, len, split, csvReaderConfig)) {
-        throw ConversionException("Cast failed. " + std::string{input, len} + " is not in " +
-                                  LogicalTypeUtils::dataTypeToString(vector->dataType) + " range.");
+    tryListCast(input, len, split, csvReaderConfig, vector);
+}
+
+static void validateNumElementsInList(uint64_t numElementsRead, const LogicalType& type) {
+    auto numElementsInList = FixedListType::getNumElementsInList(&type);
+    if (numElementsRead != numElementsInList) {
+        throw CopyException(StringUtils::string_format(
+            "Each fixed list should have fixed number of elements. Expected: {}, Actual: {}.",
+            numElementsInList, numElementsRead));
+    }
+}
+
+static void castStringToFixedList(const char* input, uint64_t len, ValueVector* vector,
+    uint64_t rowToAdd, const CSVReaderConfig& csvReaderConfig) {
+    assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::FIXED_LIST);
+    auto childDataType = FixedListType::getChildType(&vector->dataType);
+
+    // calculate the number of elements in array
+    CountPartOperation state;
+    splitCStringList(input, len, state, csvReaderConfig);
+    validateNumElementsInList(state.count, vector->dataType);
+
+    auto startOffset = state.count * rowToAdd;
+    switch (childDataType->getLogicalTypeID()) {
+    // TODO: currently only allow these type
+    case LogicalTypeID::INT64: {
+        SplitStringFixedListOperation<int64_t> split{startOffset, vector};
+        tryListCast(input, len, split, csvReaderConfig, vector);
+    } break;
+    case LogicalTypeID::INT32: {
+        SplitStringFixedListOperation<int32_t> split{startOffset, vector};
+        tryListCast(input, len, split, csvReaderConfig, vector);
+    } break;
+    case LogicalTypeID::INT16: {
+        SplitStringFixedListOperation<int16_t> split{startOffset, vector};
+        tryListCast(input, len, split, csvReaderConfig, vector);
+    } break;
+    case LogicalTypeID::FLOAT: {
+        SplitStringFixedListOperation<float_t> split{startOffset, vector};
+        tryListCast(input, len, split, csvReaderConfig, vector);
+    } break;
+    case LogicalTypeID::DOUBLE: {
+        SplitStringFixedListOperation<double_t> split{startOffset, vector};
+        tryListCast(input, len, split, csvReaderConfig, vector);
+    } break;
+    default: {
+        throw NotImplementedException("Unsupported data type: Driver::castStringToFixedList");
+    }
     }
 }
 
@@ -237,7 +316,7 @@ static bool parseKeyOrValue(const char*& input, const char* end, T& state, bool 
     return false;
 }
 
-// {a=12,b=13}
+// Split map of format: {a=12,b=13}
 template<typename T>
 static bool splitCStringMap(
     const char* input, uint64_t len, T& state, const CSVReaderConfig& csvReaderConfig) {
@@ -389,7 +468,8 @@ static void castStringToStruct(const char* input, uint64_t len, ValueVector* vec
 void copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std::string_view strVal,
     const CSVReaderConfig& csvReaderConfig) {
     auto& type = vector->dataType;
-    if (strVal.empty()) {
+
+    if (strVal.empty() || isNull(strVal)) {
         vector->setNull(rowToAdd, true /* isNull */);
         return;
     } else {
@@ -483,9 +563,7 @@ void copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std::string_view
         castStringToList(strVal.data(), strVal.length(), vector, rowToAdd, csvReaderConfig);
     } break;
     case LogicalTypeID::FIXED_LIST: {
-        auto fixedListVal = storage::TableCopyUtils::getArrowFixedListVal(
-            strVal, 1, strVal.length() - 2, type, csvReaderConfig);
-        vector->copyFromValue(rowToAdd, *fixedListVal);
+        castStringToFixedList(strVal.data(), strVal.length(), vector, rowToAdd, csvReaderConfig);
     } break;
     case LogicalTypeID::STRUCT: {
         castStringToStruct(strVal.data(), strVal.length(), vector, rowToAdd, csvReaderConfig);
