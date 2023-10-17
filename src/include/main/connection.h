@@ -141,7 +141,7 @@ public:
         addScalarFunction(name, std::move(definitions));
     }
 
-protected:
+private:
     std::unique_ptr<QueryResult> query(const std::string& query, const std::string& encodedJoin);
 
     std::unique_ptr<QueryResult> queryResultWithError(const std::string& errMsg);
@@ -168,7 +168,9 @@ protected:
     KUZU_API void addScalarFunction(
         std::string name, function::vector_function_definitions definitions);
 
-protected:
+    void checkPreparedStatementAccessMode(PreparedStatement* preparedStatement);
+
+private:
     Database* database;
     std::unique_ptr<ClientContext> clientContext;
     std::mutex mtx;

@@ -95,6 +95,7 @@ struct StorageConstants {
     static constexpr char CATALOG_FILE_NAME_FOR_WAL[] = "catalog.kz.wal";
     static constexpr char DATA_FILE_NAME[] = "data.kz";
     static constexpr char METADATA_FILE_NAME[] = "metadata.kz";
+    static constexpr char LOCK_FILE_NAME[] = ".lock";
 
     // The number of pages that we add at one time when we need to grow a file.
     static constexpr uint64_t PAGE_GROUP_SIZE_LOG2 = 10;
