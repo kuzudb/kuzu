@@ -46,7 +46,7 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           file: cover.info
-          functionalities: 'search'
+          functionalities: "search"
 
       - name: C and C++ Examples
         run: |
@@ -159,7 +159,6 @@ jobs:
       - name: Run clang-tidy on examples
         run: run-clang-tidy -p build/release -quiet -j 32 "^$(realpath examples)"
 
-
   msvc-build-test:
     name: msvc build & test
     needs: [clang-formatting-check, header-include-guard-check]
@@ -254,3 +253,61 @@ jobs:
 
       - name: Benchmark
         run: python3 benchmark/benchmark_runner.py --dataset ldbc-sf100 --thread 10
+
+  macos-build-test:
+    name: clang build & test
+    needs: [clang-formatting-check, header-include-guard-check, rustfmt-check]
+    runs-on: self-hosted-mac-x64
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Ensure Python dependencies
+        run: |
+          pip3 install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu &&\
+          pip3 install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+
+      - name: Ensure Node.js dependencies
+        run: npm install --include=dev
+        working-directory: tools/nodejs_api
+
+      - name: Build
+        run: make release NUM_THREADS=32
+
+      - name: Test
+        run: |
+          ulimit -n 10240
+          make test NUM_THREADS=32
+
+      - name: Python test
+        run: |
+          ulimit -n 10240
+          make pytest NUM_THREADS=32
+
+      - name: C and C++ Examples
+        run: |
+          ulimit -n 10240
+          make example NUM_THREADS=32
+
+      - name: Node.js test
+        run: |
+          ulimit -n 10240
+          make nodejstest NUM_THREADS=32
+
+      - name: Java test
+        run: |
+          ulimit -n 10240
+          make javatest NUM_THREADS=32
+
+      - name: Rust share build
+        # Share build cache when building rust API and the example project
+        run: echo $'[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
+
+      - name: Rust test
+        run: |
+          ulimit -n 10240
+          make rusttest NUM_THREADS=32
+
+      - name: Rust example
+        run: |
+          ulimit -n 10240
+          make rustexample NUM_THREADS=32
