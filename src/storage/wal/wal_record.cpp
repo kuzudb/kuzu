@@ -307,12 +307,13 @@ WALRecord WALRecord::newRelTableRecord(table_id_t tableID) {
     return retVal;
 }
 
-WALRecord WALRecord::newRdfGraphRecord(
-    table_id_t rdfGraphID, table_id_t nodeTableID, table_id_t relTableID) {
+WALRecord WALRecord::newRdfGraphRecord(table_id_t rdfGraphID, table_id_t resourceTableID,
+    table_id_t literalTableID, table_id_t resourceTripleTableID, table_id_t literalTripleTableID) {
     WALRecord retVal;
     retVal.recordType = WALRecordType::RDF_GRAPH_RECORD;
-    retVal.rdfGraphRecord =
-        RdfGraphRecord(rdfGraphID, NodeTableRecord(nodeTableID), RelTableRecord(relTableID));
+    retVal.rdfGraphRecord = RdfGraphRecord(rdfGraphID, NodeTableRecord(resourceTableID),
+        NodeTableRecord(literalTableID), RelTableRecord(resourceTripleTableID),
+        RelTableRecord(literalTripleTableID));
     return retVal;
 }
 

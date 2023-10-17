@@ -2,6 +2,7 @@
 #include "planner/operator/persistent/logical_copy_from.h"
 #include "processor/operator/index_lookup.h"
 #include "processor/operator/persistent/copy_node.h"
+#include "processor/operator/persistent/copy_rdf_resource.h"
 #include "processor/operator/persistent/copy_rel.h"
 #include "processor/operator/persistent/copy_rel_columns.h"
 #include "processor/operator/persistent/copy_rel_lists.h"
@@ -31,32 +32,62 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logic
     // LCOV_EXCL_STOP
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
-    planner::LogicalOperator* logicalOperator) {
-    auto copyFrom = (LogicalCopyFrom*)logicalOperator;
+std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* logicalOperator) {
+    auto copyFrom = reinterpret_cast<LogicalCopyFrom*>(logicalOperator);
     auto copyFromInfo = copyFrom->getInfo();
-    auto readerConfig = copyFromInfo->fileScanInfo->readerConfig.get();
-    auto tableSchema = (catalog::NodeTableSchema*)copyFromInfo->tableSchema;
+    auto tableSchema = (NodeTableSchema*)copyFromInfo->tableSchema;
+    auto nodeTable = storageManager.getNodesStore().getNodeTable(tableSchema->tableID);
     // Map reader.
     auto prevOperator = mapOperator(copyFrom->getChild(0).get());
     auto reader = reinterpret_cast<Reader*>(prevOperator.get());
     auto readerInfo = reader->getReaderInfo();
-    // Map copy node.
-    auto nodeTable = storageManager.getNodesStore().getNodeTable(tableSchema->tableID);
-    bool isCopyRdf = readerConfig->fileType == FileType::TURTLE;
-    auto copyNodeSharedState =
-        std::make_shared<CopyNodeSharedState>(reader->getSharedState()->getNumRowsRef(),
-            tableSchema, nodeTable, memoryManager, isCopyRdf);
-    CopyNodeInfo copyNodeDataInfo{readerInfo->dataColumnsPos, nodeTable,
-        &storageManager.getRelsStore(), catalog, storageManager.getWAL(),
-        copyFromInfo->containsSerial};
-    auto copyNode = std::make_unique<CopyNode>(copyNodeSharedState, copyNodeDataInfo,
-        std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), std::move(prevOperator),
-        getOperatorID(), copyFrom->getExpressionsForPrinting());
+    // Populate shared state
+    auto sharedState =
+        std::make_shared<CopyNodeSharedState>(reader->getSharedState()->getNumRowsRef());
+    sharedState->wal = storageManager.getWAL();
+    sharedState->table = nodeTable;
+    auto properties = tableSchema->getProperties();
+    for (auto& property : properties) {
+        sharedState->columnTypes.push_back(property->getDataType()->copy());
+    }
+    auto pk = tableSchema->getPrimaryKey();
+    for (auto i = 0u; i < properties.size(); ++i) {
+        if (properties[i]->getPropertyID() == pk->getPropertyID()) {
+            sharedState->pkColumnIdx = i;
+        }
+    }
+    sharedState->pkType = pk->getDataType()->copy();
+    sharedState->fTable = getSingleStringColumnFTable();
+    // Populate info
+    std::unordered_set<common::table_id_t> connectedRelTableIDSet;
+    for (auto tableID : tableSchema->getFwdRelTableIDSet()) {
+        connectedRelTableIDSet.insert(tableID);
+    }
+    for (auto tableID : tableSchema->getBwdRelTableIDSet()) {
+        connectedRelTableIDSet.insert(tableID);
+    }
+    std::vector<storage::RelTable*> connectedRelTables;
+    for (auto tableID : connectedRelTableIDSet) {
+        connectedRelTables.push_back(storageManager.getRelsStore().getRelTable(tableID));
+    }
+    auto info = std::make_unique<CopyNodeInfo>(readerInfo->dataColumnsPos, nodeTable,
+        tableSchema->tableName, std::move(connectedRelTables), copyFromInfo->containsSerial);
+
+    std::unique_ptr<PhysicalOperator> copyNode;
+    auto readerConfig = copyFromInfo->fileScanInfo->readerConfig.get();
+    if (readerConfig->fileType == FileType::TURTLE &&
+        readerConfig->rdfReaderConfig->mode == RdfReaderMode::RESOURCE) {
+        copyNode = std::make_unique<CopyRdfResource>(sharedState, std::move(info),
+            std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), std::move(prevOperator),
+            getOperatorID(), copyFrom->getExpressionsForPrinting());
+    } else {
+        copyNode = std::make_unique<CopyNode>(sharedState, std::move(info),
+            std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), std::move(prevOperator),
+            getOperatorID(), copyFrom->getExpressionsForPrinting());
+    }
     auto outputExpressions = binder::expression_vector{copyFrom->getOutputExpression()->copy()};
     return createFactorizedTableScanAligned(outputExpressions, copyFrom->getSchema(),
-        copyNodeSharedState->fTable, DEFAULT_VECTOR_CAPACITY /* maxMorselSize */,
-        std::move(copyNode));
+        sharedState->fTable, DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(copyNode));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRelColumnsOrLists(
@@ -65,8 +96,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRelColumnsOrLists(
     auto copyFromInfo = copyFrom->getInfo();
     auto outFSchema = copyFrom->getSchema();
     auto prevOperator = mapOperator(copyFrom->getChild(0).get());
-    assert(prevOperator->getChild(0)->getOperatorType() == PhysicalOperatorType::READER);
-    auto reader = (Reader*)prevOperator->getChild(0);
+    Reader* reader;
+    if (prevOperator->getOperatorType() == PhysicalOperatorType::READER) {
+        reader = reinterpret_cast<Reader*>(prevOperator.get());
+    } else {
+        assert(prevOperator->getChild(0)->getOperatorType() == PhysicalOperatorType::READER);
+        reader = reinterpret_cast<Reader*>(prevOperator->getChild(0));
+    }
+
     auto tableSchema = reinterpret_cast<RelTableSchema*>(copyFromInfo->tableSchema);
     auto internalIDDataPos =
         DataPos{outFSchema->getExpressionPos(*copyFromInfo->fileScanInfo->internalID)};
@@ -155,6 +192,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRelFrom(
     auto copyFromInfo = copyFrom->getInfo();
     auto outFSchema = copyFrom->getSchema();
     auto tableSchema = reinterpret_cast<RelTableSchema*>(copyFromInfo->tableSchema);
+
     auto fwdRelData = initializeDirectedInMemRelData(RelDataDirection::FWD, tableSchema,
         storageManager.getNodesStore(), storageManager.getDirectory(),
         copyFromInfo->fileScanInfo->readerConfig->csvReaderConfig.get());

@@ -12,15 +12,26 @@ namespace processor {
 void CreateRdfGraph::executeDDLInternal() {
     auto newRdfGraphID = catalog->addRdfGraphSchema(*info);
     auto writeCatalog = catalog->getWriteVersion();
-    auto newRdfGraphSchema = (RdfGraphSchema*)writeCatalog->getTableSchema(newRdfGraphID);
-    auto newNodeTableSchema =
-        (NodeTableSchema*)writeCatalog->getTableSchema(newRdfGraphSchema->getNodeTableID());
-    nodesStatistics->addNodeStatisticsAndDeletedIDs(newNodeTableSchema);
-    auto newRelTableSchema =
-        (RelTableSchema*)writeCatalog->getTableSchema(newRdfGraphSchema->getRelTableID());
-    relsStatistics->addTableStatistic(newRelTableSchema);
-    storageManager->getWAL()->logRdfGraphRecord(
-        newRdfGraphID, newRdfGraphSchema->getNodeTableID(), newRdfGraphSchema->getRelTableID());
+    auto rdfGraphSchema =
+        reinterpret_cast<RdfGraphSchema*>(writeCatalog->getTableSchema(newRdfGraphID));
+    auto resourceTableID = rdfGraphSchema->getResourceTableID();
+    auto resourceTableSchema =
+        reinterpret_cast<NodeTableSchema*>(writeCatalog->getTableSchema(resourceTableID));
+    nodesStatistics->addNodeStatisticsAndDeletedIDs(resourceTableSchema);
+    auto literalTableID = rdfGraphSchema->getLiteralTableID();
+    auto literalTableSchema =
+        reinterpret_cast<NodeTableSchema*>(writeCatalog->getTableSchema(literalTableID));
+    nodesStatistics->addNodeStatisticsAndDeletedIDs(literalTableSchema);
+    auto resourceTripleTableID = rdfGraphSchema->getResourceTripleTableID();
+    auto resourceTripleTableSchema =
+        reinterpret_cast<RelTableSchema*>(writeCatalog->getTableSchema(resourceTripleTableID));
+    relsStatistics->addTableStatistic(resourceTripleTableSchema);
+    auto literalTripleTableID = rdfGraphSchema->getLiteralTripleTableID();
+    auto literalTripleTableSchema =
+        reinterpret_cast<RelTableSchema*>(writeCatalog->getTableSchema(literalTripleTableID));
+    relsStatistics->addTableStatistic(literalTripleTableSchema);
+    storageManager->getWAL()->logRdfGraphRecord(newRdfGraphID, resourceTableID, literalTableID,
+        resourceTripleTableID, literalTripleTableID);
 }
 
 std::string CreateRdfGraph::getOutputMsg() {

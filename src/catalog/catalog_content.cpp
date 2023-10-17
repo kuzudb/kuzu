@@ -95,19 +95,30 @@ table_id_t CatalogContent::addRelTableGroupSchema(const binder::BoundCreateTable
 table_id_t CatalogContent::addRdfGraphSchema(const BoundCreateTableInfo& info) {
     table_id_t rdfGraphID = assignNextTableID();
     auto extraInfo = reinterpret_cast<BoundExtraCreateRdfGraphInfo*>(info.extraInfo.get());
-    auto nodeInfo = extraInfo->nodeInfo.get();
-    auto relInfo = extraInfo->relInfo.get();
-    auto relExtraInfo = (BoundExtraCreateRelTableInfo*)relInfo->extraInfo.get();
-    // Node table schema
-    auto nodeTableID = addNodeTableSchema(*nodeInfo);
-    // Rel table schema
-    relExtraInfo->srcTableID = nodeTableID;
-    relExtraInfo->dstTableID = nodeTableID;
-    auto relTableID = addRelTableSchema(*relInfo);
+    auto resourceInfo = extraInfo->resourceInfo.get();
+    auto literalInfo = extraInfo->literalInfo.get();
+    auto resourceTripleInfo = extraInfo->resourceTripleInfo.get();
+    auto literalTripleInfo = extraInfo->literalTripleInfo.get();
+    auto resourceTripleExtraInfo =
+        reinterpret_cast<BoundExtraCreateRelTableInfo*>(resourceTripleInfo->extraInfo.get());
+    auto literalTripleExtraInfo =
+        reinterpret_cast<BoundExtraCreateRelTableInfo*>(literalTripleInfo->extraInfo.get());
+    // Resource table
+    auto resourceTableID = addNodeTableSchema(*resourceInfo);
+    // Literal table
+    auto literalTableID = addNodeTableSchema(*literalInfo);
+    // Resource triple table
+    resourceTripleExtraInfo->srcTableID = resourceTableID;
+    resourceTripleExtraInfo->dstTableID = resourceTableID;
+    auto resourceTripleTableID = addRelTableSchema(*resourceTripleInfo);
+    // Literal triple table
+    literalTripleExtraInfo->srcTableID = resourceTableID;
+    literalTripleExtraInfo->dstTableID = literalTableID;
+    auto literalTripleTableID = addRelTableSchema(*literalTripleInfo);
     // Rdf table schema
     auto rdfGraphName = info.tableName;
-    auto rdfGraphSchema =
-        std::make_unique<RdfGraphSchema>(rdfGraphName, rdfGraphID, nodeTableID, relTableID);
+    auto rdfGraphSchema = std::make_unique<RdfGraphSchema>(rdfGraphName, rdfGraphID,
+        resourceTableID, literalTableID, resourceTripleTableID, literalTripleTableID);
     tableNameToIDMap.emplace(rdfGraphName, rdfGraphID);
     tableSchemas.emplace(rdfGraphID, std::move(rdfGraphSchema));
     return rdfGraphID;

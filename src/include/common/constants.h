@@ -41,9 +41,13 @@ struct InternalKeyword {
 
 struct RDFKeyword {
     static constexpr char IRI[] = "IRI";
-    static constexpr char PREDICT_ID[] = "PREDICT_ID";
-    static constexpr char NODE_TABLE_SUFFIX[] = "_RESOURCE";
-    static constexpr char REL_TABLE_SUFFIX[] = "_TRIPLES";
+    static constexpr char ID[] = "ID";
+    static constexpr char PREDICT_ID[] = "PREDICT_ID"; // TODO: rename
+    static constexpr std::string_view RESOURCE_TABLE_SUFFIX = "_resource_t";
+    static constexpr std::string_view LITERAL_TABLE_SUFFIX = "_literal_t";
+    static constexpr std::string_view RESOURCE_TRIPLE_TABLE_SUFFIX = "_resource_triples_t";
+    static constexpr std::string_view LITERAL_TRIPLE_TABLE_SUFFIX = "_literal_triples_t";
+    static constexpr std::string_view ANONYMOUS = "anonymous";
 };
 
 enum PageSizeClass : uint8_t {

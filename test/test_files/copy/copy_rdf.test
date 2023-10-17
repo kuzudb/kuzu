@@ -9,7 +9,7 @@
 -LOG CountRDFNodeTable
 -STATEMENT MATCH (s:taxonomy) RETURN COUNT(s.IRI)
 ---- 1
-1138397
+1138441
 
 -LOG QueryRDFNodeTable
 -STATEMENT MATCH (s:taxonomy) RETURN s.IRI ORDER BY s.IRI LIMIT 5

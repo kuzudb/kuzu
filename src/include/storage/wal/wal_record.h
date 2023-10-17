@@ -282,17 +282,25 @@ struct RelTableRecord {
 
 struct RdfGraphRecord {
     common::table_id_t tableID;
-    NodeTableRecord nodeTableRecord;
-    RelTableRecord relTableRecord;
+    NodeTableRecord resourceTableRecord;
+    NodeTableRecord literalTableRecord;
+    RelTableRecord resourceTripleTableRecord;
+    RelTableRecord literalTripleTableRecord;
 
     RdfGraphRecord() = default;
-    RdfGraphRecord(
-        common::table_id_t tableID, NodeTableRecord nodeTableRecord, RelTableRecord relTableRecord)
-        : tableID{tableID}, nodeTableRecord{nodeTableRecord}, relTableRecord{relTableRecord} {}
+    RdfGraphRecord(common::table_id_t tableID, NodeTableRecord resourceTableRecord,
+        NodeTableRecord literalTableRecord, RelTableRecord resourceTripleTableRecord,
+        RelTableRecord literalTripleTableRecord)
+        : tableID{tableID}, resourceTableRecord{resourceTableRecord},
+          literalTableRecord{literalTableRecord},
+          resourceTripleTableRecord{resourceTripleTableRecord}, literalTripleTableRecord{
+                                                                    literalTripleTableRecord} {}
 
     inline bool operator==(const RdfGraphRecord& rhs) const {
-        return tableID == rhs.tableID && nodeTableRecord == rhs.nodeTableRecord &&
-               relTableRecord == rhs.relTableRecord;
+        return tableID == rhs.tableID && resourceTableRecord == rhs.resourceTableRecord &&
+               literalTableRecord == rhs.literalTableRecord &&
+               resourceTripleTableRecord == rhs.resourceTripleTableRecord &&
+               literalTripleTableRecord == rhs.literalTripleTableRecord;
     }
 };
 
@@ -416,7 +424,8 @@ struct WALRecord {
     static WALRecord newNodeTableRecord(common::table_id_t tableID);
     static WALRecord newRelTableRecord(common::table_id_t tableID);
     static WALRecord newRdfGraphRecord(common::table_id_t rdfGraphID,
-        common::table_id_t nodeTableID, common::table_id_t relTableID);
+        common::table_id_t resourceTableID, common::table_id_t literalTableID,
+        common::table_id_t resourceTripleTableID, common::table_id_t literalTripleTableID);
     static WALRecord newOverflowFileNextBytePosRecord(
         StorageStructureID storageStructureID_, uint64_t prevNextByteToWriteTo_);
     static WALRecord newCopyNodeRecord(common::table_id_t tableID, common::page_idx_t startPageIdx);

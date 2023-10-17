@@ -8,13 +8,6 @@
 namespace kuzu {
 namespace binder {
 
-// Note: this is a temporary workaround before we can copy RDF in one statement.
-// enum class BoundCopyInfoType : uint8_t {
-//    NODE = 0,
-//    REL = 1,
-//    RDF_REL = 2,
-//};
-
 struct ExtraBoundCopyFromInfo {
     virtual ~ExtraBoundCopyFromInfo() = default;
     virtual std::unique_ptr<ExtraBoundCopyFromInfo> copy() = 0;
@@ -70,27 +63,17 @@ struct ExtraBoundCopyRelInfo : public ExtraBoundCopyFromInfo {
 };
 
 struct ExtraBoundCopyRdfRelInfo : public ExtraBoundCopyFromInfo {
-    common::table_id_t nodeTableID;
     std::shared_ptr<Expression> subjectOffset;
     std::shared_ptr<Expression> predicateOffset;
     std::shared_ptr<Expression> objectOffset;
-    std::shared_ptr<Expression> subjectKey;
-    std::shared_ptr<Expression> predicateKey;
-    std::shared_ptr<Expression> objectKey;
 
-    ExtraBoundCopyRdfRelInfo(common::table_id_t nodeTableID,
-        std::shared_ptr<Expression> subjectOffset, std::shared_ptr<Expression> predicateOffset,
-        std::shared_ptr<Expression> objectOffset, std::shared_ptr<Expression> subjectKey,
-        std::shared_ptr<Expression> predicateKey, std::shared_ptr<Expression> objectKey)
-        : nodeTableID{nodeTableID}, subjectOffset{std::move(subjectOffset)},
-          predicateOffset{std::move(predicateOffset)}, objectOffset{std::move(objectOffset)},
-          subjectKey{std::move(subjectKey)},
-          predicateKey{std::move(predicateKey)}, objectKey{std::move(objectKey)} {}
+    ExtraBoundCopyRdfRelInfo(std::shared_ptr<Expression> subjectOffset,
+        std::shared_ptr<Expression> predicateOffset, std::shared_ptr<Expression> objectOffset)
+        : subjectOffset{std::move(subjectOffset)}, predicateOffset{std::move(predicateOffset)},
+          objectOffset{std::move(objectOffset)} {}
     ExtraBoundCopyRdfRelInfo(const ExtraBoundCopyRdfRelInfo& other)
-        : nodeTableID{other.nodeTableID}, subjectOffset{other.subjectOffset},
-          predicateOffset{other.predicateOffset}, objectOffset{other.objectOffset},
-          subjectKey{other.subjectKey}, predicateKey{other.predicateKey}, objectKey{
-                                                                              other.objectKey} {}
+        : subjectOffset{other.subjectOffset}, predicateOffset{other.predicateOffset},
+          objectOffset{other.objectOffset} {}
 
     inline std::unique_ptr<ExtraBoundCopyFromInfo> copy() final {
         return std::make_unique<ExtraBoundCopyRdfRelInfo>(*this);

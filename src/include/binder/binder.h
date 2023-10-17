@@ -67,10 +67,10 @@ class Binder {
 
 public:
     explicit Binder(const catalog::Catalog& catalog, storage::MemoryManager* memoryManager,
-        main::ClientContext* clientContext)
-        : catalog{catalog}, memoryManager{memoryManager}, lastExpressionId{0},
-          scope{std::make_unique<BinderScope>()}, expressionBinder{this}, clientContext{
-                                                                              clientContext} {}
+        storage::StorageManager* storageManager, main::ClientContext* clientContext)
+        : catalog{catalog}, memoryManager{memoryManager}, storageManager{storageManager},
+          lastExpressionId{0}, scope{std::make_unique<BinderScope>()}, expressionBinder{this},
+          clientContext{clientContext} {}
 
     std::unique_ptr<BoundStatement> bind(const parser::Statement& statement);
 
@@ -116,6 +116,8 @@ private:
     /*** bind copy ***/
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCopyNodeFrom(
+        std::unique_ptr<common::ReaderConfig> readerConfig, catalog::TableSchema* tableSchema);
+    std::unique_ptr<BoundStatement> bindCopyRdfNodeFrom(
         std::unique_ptr<common::ReaderConfig> readerConfig, catalog::TableSchema* tableSchema);
     std::unique_ptr<BoundStatement> bindCopyRelFrom(
         std::unique_ptr<common::ReaderConfig> readerConfig, catalog::TableSchema* tableSchema);
@@ -288,6 +290,7 @@ private:
 private:
     const catalog::Catalog& catalog;
     storage::MemoryManager* memoryManager;
+    storage::StorageManager* storageManager;
     uint32_t lastExpressionId;
     std::unique_ptr<BinderScope> scope;
     ExpressionBinder expressionBinder;

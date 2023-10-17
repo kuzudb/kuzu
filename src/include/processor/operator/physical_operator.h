@@ -18,6 +18,7 @@ enum class PhysicalOperatorType : uint8_t {
     STANDALONE_CALL,
     IN_QUERY_CALL,
     COPY_NODE,
+    COPY_RDF,
     COPY_REL_COLUMNS,
     COPY_REL_LISTS,
     COPY_TO_CSV,

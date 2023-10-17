@@ -1,7 +1,5 @@
 #include "processor/operator/persistent/reader.h"
 
-#include "processor/operator/persistent/reader/npy_reader.h"
-
 using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::storage;

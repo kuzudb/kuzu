@@ -82,14 +82,22 @@ struct BoundExtraCreateRelTableGroupInfo : public BoundExtraCreateTableInfo {
 };
 
 struct BoundExtraCreateRdfGraphInfo : public BoundExtraCreateTableInfo {
-    std::unique_ptr<BoundCreateTableInfo> nodeInfo;
-    std::unique_ptr<BoundCreateTableInfo> relInfo;
+    std::unique_ptr<BoundCreateTableInfo> resourceInfo;
+    std::unique_ptr<BoundCreateTableInfo> literalInfo;
+    std::unique_ptr<BoundCreateTableInfo> resourceTripleInfo;
+    std::unique_ptr<BoundCreateTableInfo> literalTripleInfo;
 
-    BoundExtraCreateRdfGraphInfo(std::unique_ptr<BoundCreateTableInfo> nodeInfo,
-        std::unique_ptr<BoundCreateTableInfo> relInfo)
-        : nodeInfo{std::move(nodeInfo)}, relInfo{std::move(relInfo)} {}
+    BoundExtraCreateRdfGraphInfo(std::unique_ptr<BoundCreateTableInfo> resourceInfo,
+        std::unique_ptr<BoundCreateTableInfo> literalInfo,
+        std::unique_ptr<BoundCreateTableInfo> resourceTripleInfo,
+        std::unique_ptr<BoundCreateTableInfo> literalTripleInfo)
+        : resourceInfo{std::move(resourceInfo)}, literalInfo{std::move(literalInfo)},
+          resourceTripleInfo{std::move(resourceTripleInfo)}, literalTripleInfo{
+                                                                 std::move(literalTripleInfo)} {}
     BoundExtraCreateRdfGraphInfo(const BoundExtraCreateRdfGraphInfo& other)
-        : nodeInfo{other.nodeInfo->copy()}, relInfo{other.relInfo->copy()} {}
+        : resourceInfo{other.resourceInfo->copy()}, literalInfo{other.literalInfo->copy()},
+          resourceTripleInfo{other.resourceTripleInfo->copy()},
+          literalTripleInfo{other.literalTripleInfo->copy()} {}
 
     inline std::unique_ptr<BoundExtraCreateTableInfo> copy() const final {
         return std::make_unique<BoundExtraCreateRdfGraphInfo>(*this);

@@ -149,37 +149,68 @@ std::unique_ptr<BoundCreateTableInfo> Binder::bindCreateRelTableGroupInfo(
         TableType::REL_GROUP, info->tableName, std::move(boundExtraInfo));
 }
 
-static inline std::string getRdfNodeTableName(const std::string& rdfName) {
-    return rdfName + common::RDFKeyword::NODE_TABLE_SUFFIX;
+static std::string getRdfResourceTableName(const std::string& rdfName) {
+    return rdfName + std::string(RDFKeyword::RESOURCE_TABLE_SUFFIX);
 }
 
-static inline std::string getRdfRelTableName(const std::string& rdfName) {
-    return rdfName + common::RDFKeyword::REL_TABLE_SUFFIX;
+static std::string getRdfLiteralTableName(const std::string& rdfName) {
+    return rdfName + std::string(RDFKeyword::LITERAL_TABLE_SUFFIX);
+}
+
+static inline std::string getRdfResourceTripleTableName(const std::string& rdfName) {
+    return rdfName + std::string(RDFKeyword::RESOURCE_TRIPLE_TABLE_SUFFIX);
+}
+
+static std::string getRdfLiteralTripleTableName(const std::string& rdfName) {
+    return rdfName + std::string(RDFKeyword::LITERAL_TRIPLE_TABLE_SUFFIX);
 }
 
 std::unique_ptr<BoundCreateTableInfo> Binder::bindCreateRdfGraphInfo(const CreateTableInfo* info) {
     auto rdfGraphName = info->tableName;
     auto stringType = std::make_unique<LogicalType>(LogicalTypeID::STRING);
-    // RDF node (resource) table
-    auto nodeTableName = getRdfNodeTableName(rdfGraphName);
-    std::vector<std::unique_ptr<Property>> nodeProperties;
-    nodeProperties.push_back(
-        std::make_unique<Property>(common::RDFKeyword::IRI, stringType->copy()));
-    auto boundNodeExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(
-        0 /* primaryKeyIdx */, std::move(nodeProperties));
-    auto boundNodeCreateInfo = std::make_unique<BoundCreateTableInfo>(
-        TableType::NODE, nodeTableName, std::move(boundNodeExtraInfo));
-    // RDF rel (triples) table
-    auto relTableName = getRdfRelTableName(rdfGraphName);
-    std::vector<std::unique_ptr<Property>> relProperties;
-    relProperties.push_back(std::make_unique<Property>(
-        common::RDFKeyword::PREDICT_ID, std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID)));
-    auto boundRelExtraInfo = std::make_unique<BoundExtraCreateRelTableInfo>(
-        RelMultiplicity::MANY_MANY, INVALID_TABLE_ID, INVALID_TABLE_ID, std::move(relProperties));
-    auto boundRelCreateInfo = std::make_unique<BoundCreateTableInfo>(
-        TableType::REL, relTableName, std::move(boundRelExtraInfo));
+    auto serialType = std::make_unique<LogicalType>(LogicalTypeID::SERIAL);
+    // Resource table.
+    auto resourceTableName = getRdfResourceTableName(rdfGraphName);
+    std::vector<std::unique_ptr<Property>> resourceProperties;
+    resourceProperties.push_back(std::make_unique<Property>(RDFKeyword::IRI, stringType->copy()));
+    auto resourceExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(
+        0 /* primaryKeyIdx */, std::move(resourceProperties));
+    auto resourceCreateInfo = std::make_unique<BoundCreateTableInfo>(
+        TableType::NODE, resourceTableName, std::move(resourceExtraInfo));
+    // Literal table.
+    auto literalTableName = getRdfLiteralTableName(rdfGraphName);
+    std::vector<std::unique_ptr<Property>> literalProperties;
+    literalProperties.push_back(std::make_unique<Property>(RDFKeyword::ID, serialType->copy()));
+    literalProperties.push_back(
+        std::make_unique<Property>(std::string(RDFKeyword::IRI), stringType->copy()));
+    auto literalExtraInfo = std::make_unique<BoundExtraCreateNodeTableInfo>(
+        0 /* primaryKeyIdx */, std::move(literalProperties));
+    auto literalCreateInfo = std::make_unique<BoundCreateTableInfo>(
+        TableType::NODE, literalTableName, std::move(literalExtraInfo));
+    // Resource triple table.
+    auto resourceTripleTableName = getRdfResourceTripleTableName(rdfGraphName);
+    std::vector<std::unique_ptr<Property>> resourceTripleProperties;
+    resourceTripleProperties.push_back(std::make_unique<Property>(
+        common::RDFKeyword::PREDICT_ID, std::make_unique<LogicalType>(LogicalTypeID::INT64)));
+    auto boundResourceTripleExtraInfo =
+        std::make_unique<BoundExtraCreateRelTableInfo>(RelMultiplicity::MANY_MANY, INVALID_TABLE_ID,
+            INVALID_TABLE_ID, std::move(resourceTripleProperties));
+    auto boundResourceTripleCreateInfo = std::make_unique<BoundCreateTableInfo>(
+        TableType::REL, resourceTripleTableName, std::move(boundResourceTripleExtraInfo));
+    // Literal triple table.
+    auto literalTripleTableName = getRdfLiteralTripleTableName(rdfGraphName);
+    std::vector<std::unique_ptr<Property>> literalTripleProperties;
+    literalTripleProperties.push_back(std::make_unique<Property>(
+        common::RDFKeyword::PREDICT_ID, std::make_unique<LogicalType>(LogicalTypeID::INT64)));
+    auto boundLiteralTripleExtraInfo =
+        std::make_unique<BoundExtraCreateRelTableInfo>(RelMultiplicity::MANY_MANY, INVALID_TABLE_ID,
+            INVALID_TABLE_ID, std::move(literalTripleProperties));
+    auto boundLiteralTripleCreateInfo = std::make_unique<BoundCreateTableInfo>(
+        TableType::REL, literalTripleTableName, std::move(boundLiteralTripleExtraInfo));
+    // Rdf table.
     auto boundExtraInfo = std::make_unique<BoundExtraCreateRdfGraphInfo>(
-        std::move(boundNodeCreateInfo), std::move(boundRelCreateInfo));
+        std::move(resourceCreateInfo), std::move(literalCreateInfo),
+        std::move(boundResourceTripleCreateInfo), std::move(boundLiteralTripleCreateInfo));
     return std::make_unique<BoundCreateTableInfo>(
         TableType::RDF, rdfGraphName, std::move(boundExtraInfo));
 }

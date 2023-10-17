@@ -213,23 +213,10 @@ row_idx_t ReaderFunctions::countRowsInNPYFile(
 }
 
 row_idx_t ReaderFunctions::countRowsInRDFFile(
-    const common::ReaderConfig& config, MemoryManager* memoryManager) {
+    const common::ReaderConfig& config, MemoryManager* /*memoryManager*/) {
     assert(config.getNumFiles() == 1);
-    auto reader = make_unique<RDFReader>(config.filePaths[0]);
-    auto dataChunk = std::make_unique<DataChunk>(3);
-    dataChunk->insert(0, std::make_unique<ValueVector>(LogicalTypeID::STRING, memoryManager));
-    dataChunk->insert(1, std::make_unique<ValueVector>(LogicalTypeID::STRING, memoryManager));
-    dataChunk->insert(2, std::make_unique<ValueVector>(LogicalTypeID::STRING, memoryManager));
-    row_idx_t numRows = 0;
-    while (true) {
-        dataChunk->resetAuxiliaryBuffer();
-        auto numRowsRead = reader->read(dataChunk.get());
-        if (numRowsRead == 0) {
-            break;
-        }
-        numRows += numRowsRead;
-    }
-    return numRows;
+    auto reader = make_unique<RDFReader>(config.filePaths[0], config.rdfReaderConfig->copy());
+    return reader->countLine();
 }
 
 void ReaderFunctions::initRelCSVReadData(ReaderFunctionData& funcData, vector_idx_t fileIdx,
@@ -285,7 +272,7 @@ void ReaderFunctions::initRDFReadData(ReaderFunctionData& funcData, vector_idx_t
     const common::ReaderConfig& config, MemoryManager* /*memoryManager*/) {
     funcData.fileIdx = fileIdx;
     reinterpret_cast<RDFReaderFunctionData&>(funcData).reader =
-        make_unique<RDFReader>(config.filePaths[0]);
+        make_unique<RDFReader>(config.filePaths[0], config.rdfReaderConfig->copy());
 }
 
 void ReaderFunctions::readRowsFromRelCSVFile(const kuzu::processor::ReaderFunctionData& funcData,

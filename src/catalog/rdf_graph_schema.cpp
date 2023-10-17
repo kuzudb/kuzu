@@ -9,16 +9,19 @@ namespace kuzu {
 namespace catalog {
 
 void RdfGraphSchema::serializeInternal(Serializer& serializer) {
-    serializer.serializeValue(nodeTableID);
-    serializer.serializeValue(relTableID);
+    serializer.serializeValue(resourceTableID);
+    serializer.serializeValue(literalTableID);
+    serializer.serializeValue(resourceTripleTableID);
+    serializer.serializeValue(literalTripleTableID);
 }
 
 std::unique_ptr<RdfGraphSchema> RdfGraphSchema::deserialize(Deserializer& deserializer) {
-    table_id_t nodeTableID;
-    table_id_t relTableID;
-    deserializer.deserializeValue(nodeTableID);
-    deserializer.deserializeValue(relTableID);
-    return std::make_unique<RdfGraphSchema>(nodeTableID, relTableID);
+    auto schema = std::make_unique<RdfGraphSchema>();
+    deserializer.deserializeValue(schema->resourceTableID);
+    deserializer.deserializeValue(schema->literalTableID);
+    deserializer.deserializeValue(schema->resourceTripleTableID);
+    deserializer.deserializeValue(schema->literalTripleTableID);
+    return schema;
 }
 
 } // namespace catalog

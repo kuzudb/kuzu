@@ -10,6 +10,17 @@ std::shared_ptr<DataChunkState> DataChunkState::getSingleValueDataChunkState() {
     return state;
 }
 
+void DataChunkState::slice(offset_t offset) {
+    // NOTE: this operation has performance penalty. Ideally we should directly modify selVector
+    // instead of creating a new one.
+    auto slicedSelVector = std::make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
+    slicedSelVector->resetSelectorToValuePosBufferWithSize(selVector->selectedSize - offset);
+    for (auto i = 0u; i < slicedSelVector->selectedSize; i++) {
+        slicedSelVector->selectedPositions[i] = selVector->selectedPositions[i + offset];
+    }
+    selVector = std::move(slicedSelVector);
+}
+
 const sel_t SelectionVector::INCREMENTAL_SELECTED_POS[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
     13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
     37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
