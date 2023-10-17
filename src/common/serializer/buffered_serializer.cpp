@@ -5,8 +5,8 @@
 namespace kuzu {
 namespace common {
 
-BufferedSerializer::BufferedSerializer(uint64_t maximum_size)
-    : BufferedSerializer(std::make_unique<uint8_t[]>(maximum_size), maximum_size) {}
+BufferedSerializer::BufferedSerializer(uint64_t maximumSize)
+    : BufferedSerializer(std::make_unique<uint8_t[]>(maximumSize), maximumSize) {}
 
 BufferedSerializer::BufferedSerializer(std::unique_ptr<uint8_t[]> data, uint64_t size)
     : maximumSize(size), data(data.get()) {

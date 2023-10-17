@@ -728,8 +728,8 @@ std::vector<LogicalTypeID> LogicalTypeUtils::getIntegerLogicalTypeIDs() {
 }
 
 std::vector<LogicalType> LogicalTypeUtils::getAllValidLogicTypes() {
-    // TODO(Ziyi): Add FIX_LIST,STRUCT,MAP type to allValidTypeID when we support functions on
-    // FIXED_LIST,STRUCT,MAP.
+    // TODO(Ziyi): Add FIX_LIST,MAP type to allValidTypeID when we support functions on
+    // FIXED_LIST,MAP.
     return std::vector<LogicalType>{LogicalType{LogicalTypeID::INTERNAL_ID},
         LogicalType{LogicalTypeID::BOOL}, LogicalType{LogicalTypeID::INT64},
         LogicalType{LogicalTypeID::INT32}, LogicalType{LogicalTypeID::INT16},
@@ -740,7 +740,8 @@ std::vector<LogicalType> LogicalTypeUtils::getAllValidLogicTypes() {
         LogicalType{LogicalTypeID::DATE}, LogicalType{LogicalTypeID::TIMESTAMP},
         LogicalType{LogicalTypeID::INTERVAL}, LogicalType{LogicalTypeID::VAR_LIST},
         LogicalType{LogicalTypeID::FLOAT}, LogicalType{LogicalTypeID::SERIAL},
-        LogicalType{LogicalTypeID::NODE}, LogicalType{LogicalTypeID::REL}};
+        LogicalType{LogicalTypeID::NODE}, LogicalType{LogicalTypeID::REL},
+        LogicalType{LogicalTypeID::STRUCT}};
 }
 
 std::vector<std::string> LogicalTypeUtils::parseStructFields(const std::string& structTypeStr) {

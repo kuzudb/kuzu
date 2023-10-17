@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include "common/serializer/writer.h"
 
@@ -19,7 +20,7 @@ class BufferedSerializer : public Writer {
 public:
     // Serializes to a buffer allocated by the serializer, will expand when
     // writing past the initial threshold.
-    explicit BufferedSerializer(uint64_t maximum_size = SERIALIZER_DEFAULT_SIZE);
+    explicit BufferedSerializer(uint64_t maximumSize = SERIALIZER_DEFAULT_SIZE);
     // Serializes to a provided (owned) data pointer.
     BufferedSerializer(std::unique_ptr<uint8_t[]> data, uint64_t size);
 
@@ -40,6 +41,10 @@ public:
     }
 
     void write(const uint8_t* buffer, uint64_t len) final;
+
+    inline void writeBufferData(const std::string& str) {
+        write(reinterpret_cast<const uint8_t*>(str.c_str()), str.size());
+    }
 
 private:
     uint64_t maximumSize;

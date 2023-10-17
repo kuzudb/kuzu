@@ -20,7 +20,7 @@ enum class PhysicalOperatorType : uint8_t {
     COPY_NODE,
     COPY_REL_COLUMNS,
     COPY_REL_LISTS,
-    COPY_TO,
+    COPY_TO_CSV,
     COPY_TO_PARQUET,
     CREATE_NODE_TABLE,
     CREATE_REL_TABLE,
