@@ -255,7 +255,7 @@ jobs:
         run: python3 benchmark/benchmark_runner.py --dataset ldbc-sf100 --thread 10
 
   macos-build-test:
-    name: clang build & test
+    name: apple clang build & test
     needs: [clang-formatting-check, header-include-guard-check, rustfmt-check]
     runs-on: self-hosted-mac-x64
     steps:
