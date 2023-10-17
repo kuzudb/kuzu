@@ -7,7 +7,9 @@ public:
 
 TEST_F(CApiDatabaseTest, CreationAndDestroy) {
     auto databasePathCStr = databasePath.c_str();
-    auto database = kuzu_database_init(databasePathCStr, kuzu_default_system_config());
+    auto systemConfig = kuzu_default_system_config();
+    systemConfig.buffer_pool_size = 512 * 1024;
+    auto database = kuzu_database_init(databasePathCStr, systemConfig);
     ASSERT_NE(database, nullptr);
     ASSERT_NE(database->_database, nullptr);
     auto databaseCpp = static_cast<Database*>(database->_database);
