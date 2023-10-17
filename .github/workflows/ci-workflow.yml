@@ -305,10 +305,12 @@ jobs:
       - name: Rust test
         run: |
           ulimit -n 10240
+          source /Users/runner/.cargo/env
           make rusttest NUM_THREADS=32
 
       - name: Rust example
         working-directory: examples/rust
         run: |
           ulimit -n 10240
+          source /Users/runner/.cargo/env
           cargo build --features arrow
