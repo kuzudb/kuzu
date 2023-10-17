@@ -308,6 +308,7 @@ jobs:
           make rusttest NUM_THREADS=32
 
       - name: Rust example
+        working-directory: examples/rust
         run: |
           ulimit -n 10240
-          make rustexample NUM_THREADS=32
+          cargo build --features arrow
