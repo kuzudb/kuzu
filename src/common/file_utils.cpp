@@ -44,11 +44,12 @@ int64_t FileInfo::getFileSize() {
 }
 
 std::unique_ptr<FileInfo> FileUtils::openFile(
-    const std::string& path, int flags, FileLockType lock_type) {
+    const std::string& path, int flags, FileLockType lock_type, bool aligned) {
 #if defined(_WIN32)
     auto dwDesiredAccess = 0ul;
     auto dwCreationDisposition = (flags & O_CREAT) ? OPEN_ALWAYS : OPEN_EXISTING;
     auto dwShareMode = FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE;
+    auto dwFlagsAndAttributes = FILE_ATTRIBUTE_NORMAL;
     if (flags & (O_CREAT | O_WRONLY | O_RDWR)) {
         dwDesiredAccess |= GENERIC_WRITE;
     }
@@ -56,9 +57,12 @@ std::unique_ptr<FileInfo> FileUtils::openFile(
     if (!(flags & O_WRONLY)) {
         dwDesiredAccess |= GENERIC_READ;
     }
+    if (aligned) {
+        dwFlagsAndAttributes |= FILE_FLAG_NO_BUFFERING;
+    }
 
     HANDLE handle = CreateFileA(path.c_str(), dwDesiredAccess, dwShareMode, nullptr,
-        dwCreationDisposition, FILE_ATTRIBUTE_NORMAL, nullptr);
+        dwCreationDisposition, dwFlagsAndAttributes, nullptr);
     if (handle == INVALID_HANDLE_VALUE) {
         throw Exception(StringUtils::string_format("Cannot open file. path: {} - Error {}: {}",
             path, GetLastError(), std::system_category().message(GetLastError())));

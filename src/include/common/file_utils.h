@@ -38,8 +38,8 @@ struct FileInfo {
 
 class FileUtils {
 public:
-    static std::unique_ptr<FileInfo> openFile(
-        const std::string& path, int flags, FileLockType lock_type = FileLockType::NO_LOCK);
+    static std::unique_ptr<FileInfo> openFile(const std::string& path, int flags,
+        FileLockType lock_type = FileLockType::NO_LOCK, bool aligned = false);
 
     static void readFromFile(
         FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position);

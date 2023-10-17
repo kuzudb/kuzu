@@ -96,7 +96,8 @@ std::unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(
                                "StorageUtils::getFileInfoFromStorageStructureID.");
     }
     }
-    return FileUtils::openFile(fName, O_RDWR);
+    // Only used in wal_replayer for aligned access
+    return FileUtils::openFile(fName, O_RDWR, FileLockType::NO_LOCK, true /*aligned*/);
 }
 
 std::string StorageUtils::getColumnFName(
