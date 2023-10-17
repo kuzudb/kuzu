@@ -4,15 +4,18 @@
 --
 
 -CASE CastStringToList
--STATEMENT LOAD WITH HEADERS (list INT64[][], a struct(num INT64, str STRING)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/should_pass.csv" RETURN *;
----- 7
-[[1,3,423,124,43242],[432]]|{num: -423432, str: this is a string []}
-[[1,3,423,124,43242],[432]]|{num: 3423423, str: this is a string}
-[[1,3,423,124,43242],[432]]|{num: 3424231143, str: this is a normal string no space ' , , does not count'}
-[,[],[1,2,3]]|{num: 0, str: this is a string}
-[,,,,,,,,,,[1,2,3]]|{num: 1, str: yes}
-[[],[],[]]|{num: 2341, str: no}
-[,,]|{num: 0, str: }
+-STATEMENT LOAD WITH HEADERS (list INT64[][], a struct(num INT64, str STRING), fixedList INT16[3]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/should_pass.csv" RETURN *;
+---- 10
+[[1,3,423,124,43242],[432]]|{num: -423432, str: this is a string []}|[255,254,43]
+[[1,3,423,124,43242],[432]]|{num: 3423423, str: this is a string}|[250,249,21]
+[[1,3,423,124,43242],[432]]|{num: 3424231143, str: this is a normal string no space ' , , does not count'}|[0,134,255]
+[,[],[1,2,3]]|{num: 0, str: this is a string}|[0,0,0]
+[,,,,,,,,,,[1,2,3]]|{num: 1, str: yes}|
+[[],[],[]]|{num: 2341, str: }|
+[,,]|{num: 0, str: }|[29,21,1]
+[]||[111,0,0]
+||[0,111,12]
+|{num: 0, str: }|[0,0,0]
 -STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, struct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/change_config.csv" (HEADER=true, DELIM="|", ESCAPE="~", QUOTE="'", LIST_BEGIN="(", LIST_END=")") RETURN * ;
 ---- 3
 [escape , is escape success? ~]| ' ( ) do not need to escape sepeical | ()|{a: {b: {c: []}}}
@@ -40,6 +43,25 @@
 {{}={}}
 {=}
 {}
+-STATEMENT LOAD WITH HEADERS (fixedList INT32[92]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/long_fixed_list2.csv" (QUOTE="'") RETURN *;
+---- 1
+[32131,0,0,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313,32131,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313,32131,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313,32131,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313,32131,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313,32131,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313]
+-STATEMENT LOAD WITH HEADERS (fixedList FLOAT[1]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/fixed_list_correct.csv" RETURN *;
+---- 6
+[23123.433594]
+[-4321312.500000]
+[-1.344455]
+[43213123584.000000]
+[-4212.423340]
+[-2.000000]
+-STATEMENT LOAD WITH HEADERS (fixedList INT64[3]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/fixed_list_int64.csv" RETURN *;
+---- 3
+[4234234,4234535,-3242342]
+[4234234,4234535,0]
+[4234234,0,-3242342]
+-STATEMENT LOAD WITH HEADERS (fixedList DOUBLE[83]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/long_fixed_list.csv" RETURN *;
+---- 1
+[4123.120000,0.000000,0.000000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,543523442342.434326]
 
 -CASE ErrorTest
 -STATEMENT LOAD WITH HEADERS (list STRING[][]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/delim_fail.csv" (DELIM="|", ESCAPE="~", QUOTE="'", LIST_BEGIN="(", LIST_END=")") RETURN * ;
@@ -105,3 +127,27 @@ Conversion exception: Cast failed. {{3=3} is not in MAP(UINT8: UINT8) range.
 -STATEMENT LOAD WITH HEADERS (a MAP(UINT16, UINT16[])) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map_no_closing4.csv" RETURN *;
 ---- error
 Conversion exception: Cast failed. {432=[432,432} is not in MAP(UINT16: UINT16[]) range.
+-STATEMENT LOAD WITH HEADERS (a INT64[4]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/incorrect_num.csv" RETURN *;
+---- error
+Copy exception: Each fixed list should have fixed number of elements. Expected: 4, Actual: 2.
+-STATEMENT LOAD WITH HEADERS (a STRING[2]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/unsupported_type.csv" RETURN *;
+---- error
+Binder exception: The child type of a fixed list must be a numeric type. Given: STRING.
+-STATEMENT LOAD WITH HEADERS (a INT16[1]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/fail_conversion.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. 4324234543543534534524 is not in INT16 range.
+-STATEMENT LOAD WITH HEADERS (a INT64[2]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/fail_conversion2.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. [4324, 432] fewrew is not in INT64[2] range.
+-STATEMENT LOAD WITH HEADERS (fixedList INT64[0]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/zero_ele.csv" RETURN *;
+---- error
+Binder exception: The number of elements in a fixed list must be greater than 0. Given: 0.
+-STATEMENT LOAD WITH HEADERS (fixedList UINT8[1]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/unsupported_type2.csv" RETURN *;
+---- error
+Unsupported data type: Driver::castStringToFixedList
+-STATEMENT LOAD WITH HEADERS (fixedList INT64[1]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/fixed_list_null.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. NULL is not allowed for FIXEDLIST.
+-STATEMENT LOAD WITH HEADERS (fixedList INT64[2]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/fixed_list_null2.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. NULL is not allowed for FIXEDLIST.
