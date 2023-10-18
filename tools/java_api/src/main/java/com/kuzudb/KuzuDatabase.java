@@ -4,12 +4,27 @@ package com.kuzudb;
 * The KuzuDatabase class is the main class of KuzuDB. It manages all database components.
 */
 public class KuzuDatabase {
+    public enum AccessMode {
+        READ_ONLY(0),
+        READ_WRITE(1);
+
+        private final int value;
+
+        AccessMode(int value) {
+            this.value = value;
+        }
+
+        public int getValue() {
+            return value;
+        }
+    }
 
     long db_ref;
     String db_path;
     long buffer_size;
     boolean enableCompression = true;
     boolean destroyed = false;
+    AccessMode accessMode = AccessMode.READ_WRITE;
 
     /**
      * Creates a database object.
@@ -18,18 +33,7 @@ public class KuzuDatabase {
     public KuzuDatabase(String databasePath) {
         this.db_path = databasePath;
         this.buffer_size = 0;
-        db_ref = KuzuNative.kuzu_database_init(databasePath, 0, true);
-    }
-
-    /**
-    * Creates a database object.
-    * @param databasePath: Database path. If the database does not already exist, it will be created.
-    * @param bufferPoolSize: Max size of the buffer pool in bytes.
-    */
-    public KuzuDatabase(String databasePath, long bufferPoolSize) {
-        this.db_path = databasePath;
-        this.buffer_size = bufferPoolSize;
-        db_ref = KuzuNative.kuzu_database_init(databasePath, bufferPoolSize, true);
+        db_ref = KuzuNative.kuzu_database_init(databasePath, 0, true, AccessMode.READ_WRITE.getValue());
     }
 
     /**
@@ -38,11 +42,13 @@ public class KuzuDatabase {
     * @param bufferPoolSize: Max size of the buffer pool in bytes.
     * @param enableCompression: Enable compression in storage.
     */
-    public KuzuDatabase(String databasePath, long bufferPoolSize, boolean enableCompression) {
+    public KuzuDatabase(String databasePath, long bufferPoolSize, boolean enableCompression, AccessMode accessMode) {
         this.db_path = databasePath;
         this.buffer_size = bufferPoolSize;
         this.enableCompression = enableCompression;
-        db_ref = KuzuNative.kuzu_database_init(databasePath, bufferPoolSize, enableCompression);
+        this.accessMode = accessMode;
+        int accessModeValue = accessMode.getValue();
+        db_ref = KuzuNative.kuzu_database_init(databasePath, bufferPoolSize, enableCompression, accessModeValue);
     }
 
     /**
