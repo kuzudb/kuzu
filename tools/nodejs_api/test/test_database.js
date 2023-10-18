@@ -41,7 +41,7 @@ describe("Database constructor", function () {
 
   it("should create a database in read-only mode", async function () {
     // TODO: Enable this test on Windows when the read-only mode is implemented.
-    if (process.platform === "darwin") {
+    if (process.platform === "win32") {
       this._runnable.title += " (skipped: not implemented on Windows)";
       this.skip();
     }
