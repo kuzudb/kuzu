@@ -93,7 +93,9 @@ void VMRegion::releaseFrame(frame_idx_t frameIdx) {
 frame_group_idx_t VMRegion::addNewFrameGroup() {
     std::unique_lock xLck{mtx};
     if (numFrameGroups >= maxNumFrameGroups) {
+        // LCOV_EXCL_START
         throw BufferManagerException("No more frame groups can be added to the allocator.");
+        // LCOV_EXCL_END
     }
     return numFrameGroups++;
 }

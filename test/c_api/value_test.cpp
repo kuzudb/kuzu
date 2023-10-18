@@ -9,7 +9,7 @@ public:
     }
 };
 
-TEST_F(CApiValueTest, CreateNull) {
+TEST(CApiValueTestEmptyDB, CreateNull) {
     kuzu_value* value = kuzu_value_create_null();
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
@@ -18,7 +18,7 @@ TEST_F(CApiValueTest, CreateNull) {
     kuzu_value_destroy(value);
 }
 
-TEST_F(CApiValueTest, CreateNullWithDatatype) {
+TEST(CApiValueTestEmptyDB, CreateNullWithDatatype) {
     auto type = kuzu_data_type_create(kuzu_data_type_id::KUZU_INT64, nullptr, 0);
     kuzu_value* value = kuzu_value_create_null_with_data_type(type);
     ASSERT_FALSE(value->_is_owned_by_cpp);
@@ -29,7 +29,7 @@ TEST_F(CApiValueTest, CreateNullWithDatatype) {
     kuzu_value_destroy(value);
 }
 
-TEST_F(CApiValueTest, IsNull) {
+TEST(CApiValueTestEmptyDB, IsNull) {
     kuzu_value* value = kuzu_value_create_int64(123);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     ASSERT_FALSE(kuzu_value_is_null(value));
@@ -39,7 +39,7 @@ TEST_F(CApiValueTest, IsNull) {
     kuzu_value_destroy(value);
 }
 
-TEST_F(CApiValueTest, SetNull) {
+TEST(CApiValueTestEmptyDB, SetNull) {
     kuzu_value* value = kuzu_value_create_int64(123);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     ASSERT_FALSE(kuzu_value_is_null(value));
@@ -50,7 +50,7 @@ TEST_F(CApiValueTest, SetNull) {
     kuzu_value_destroy(value);
 }
 
-TEST_F(CApiValueTest, CreateDefault) {
+TEST(CApiValueTestEmptyDB, CreateDefault) {
     auto type = kuzu_data_type_create(kuzu_data_type_id::KUZU_INT64, nullptr, 0);
     kuzu_value* value = kuzu_value_create_default(type);
     ASSERT_FALSE(value->_is_owned_by_cpp);
@@ -72,7 +72,7 @@ TEST_F(CApiValueTest, CreateDefault) {
     kuzu_value_destroy(value);
 }
 
-TEST_F(CApiValueTest, CreateBool) {
+TEST(CApiValueTestEmptyDB, CreateBool) {
     kuzu_value* value = kuzu_value_create_bool(true);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
@@ -88,7 +88,7 @@ TEST_F(CApiValueTest, CreateBool) {
     kuzu_value_destroy(value);
 }
 
-TEST_F(CApiValueTest, CreateInt8) {
+TEST(CApiValueTestEmptyDB, CreateInt8) {
     kuzu_value* value = kuzu_value_create_int8(12);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
@@ -97,7 +97,7 @@ TEST_F(CApiValueTest, CreateInt8) {
     kuzu_value_destroy(value);
 }
 
-TEST_F(CApiValueTest, CreateInt16) {
+TEST(CApiValueTestEmptyDB, CreateInt16) {
     kuzu_value* value = kuzu_value_create_int16(123);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
@@ -106,7 +106,7 @@ TEST_F(CApiValueTest, CreateInt16) {
     kuzu_value_destroy(value);
 }
 
-TEST_F(CApiValueTest, CreateInt32) {
+TEST(CApiValueTestEmptyDB, CreateInt32) {
     kuzu_value* value = kuzu_value_create_int32(123);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
@@ -115,7 +115,7 @@ TEST_F(CApiValueTest, CreateInt32) {
     kuzu_value_destroy(value);
 }
 
-TEST_F(CApiValueTest, CreateInt64) {
+TEST(CApiValueTestEmptyDB, CreateInt64) {
     kuzu_value* value = kuzu_value_create_int64(123);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
@@ -124,7 +124,7 @@ TEST_F(CApiValueTest, CreateInt64) {
     kuzu_value_destroy(value);
 }
 
-TEST_F(CApiValueTest, CreateUInt8) {
+TEST(CApiValueTestEmptyDB, CreateUInt8) {
     kuzu_value* value = kuzu_value_create_uint8(12);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
@@ -133,7 +133,7 @@ TEST_F(CApiValueTest, CreateUInt8) {
     kuzu_value_destroy(value);
 }
 
-TEST_F(CApiValueTest, CreateUInt16) {
+TEST(CApiValueTestEmptyDB, CreateUInt16) {
     kuzu_value* value = kuzu_value_create_uint16(123);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
@@ -142,7 +142,7 @@ TEST_F(CApiValueTest, CreateUInt16) {
     kuzu_value_destroy(value);
 }
 
-TEST_F(CApiValueTest, CreateUInt32) {
+TEST(CApiValueTestEmptyDB, CreateUInt32) {
     kuzu_value* value = kuzu_value_create_uint32(123);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
@@ -151,7 +151,7 @@ TEST_F(CApiValueTest, CreateUInt32) {
     kuzu_value_destroy(value);
 }
 
-TEST_F(CApiValueTest, CreateUInt64) {
+TEST(CApiValueTestEmptyDB, CreateUInt64) {
     kuzu_value* value = kuzu_value_create_uint64(123);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
@@ -160,7 +160,7 @@ TEST_F(CApiValueTest, CreateUInt64) {
     kuzu_value_destroy(value);
 }
 
-TEST_F(CApiValueTest, CreateFloat) {
+TEST(CApiValueTestEmptyDB, CreateFloat) {
     kuzu_value* value = kuzu_value_create_float(123.456);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
@@ -169,7 +169,7 @@ TEST_F(CApiValueTest, CreateFloat) {
     kuzu_value_destroy(value);
 }
 
-TEST_F(CApiValueTest, CreateDouble) {
+TEST(CApiValueTestEmptyDB, CreateDouble) {
     kuzu_value* value = kuzu_value_create_double(123.456);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
@@ -178,7 +178,7 @@ TEST_F(CApiValueTest, CreateDouble) {
     kuzu_value_destroy(value);
 }
 
-TEST_F(CApiValueTest, CreateInternalID) {
+TEST(CApiValueTestEmptyDB, CreateInternalID) {
     auto internalID = kuzu_internal_id_t{1, 123};
     kuzu_value* value = kuzu_value_create_internal_id(internalID);
     ASSERT_FALSE(value->_is_owned_by_cpp);
@@ -190,7 +190,7 @@ TEST_F(CApiValueTest, CreateInternalID) {
     kuzu_value_destroy(value);
 }
 
-TEST_F(CApiValueTest, CreateDate) {
+TEST(CApiValueTestEmptyDB, CreateDate) {
     kuzu_value* value = kuzu_value_create_date(kuzu_date_t{123});
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
@@ -200,7 +200,7 @@ TEST_F(CApiValueTest, CreateDate) {
     kuzu_value_destroy(value);
 }
 
-TEST_F(CApiValueTest, CreateTimeStamp) {
+TEST(CApiValueTestEmptyDB, CreateTimeStamp) {
     kuzu_value* value = kuzu_value_create_timestamp(kuzu_timestamp_t{123});
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
@@ -210,7 +210,7 @@ TEST_F(CApiValueTest, CreateTimeStamp) {
     kuzu_value_destroy(value);
 }
 
-TEST_F(CApiValueTest, CreateInterval) {
+TEST(CApiValueTestEmptyDB, CreateInterval) {
     kuzu_value* value = kuzu_value_create_interval(kuzu_interval_t{12, 3, 300});
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
@@ -222,7 +222,7 @@ TEST_F(CApiValueTest, CreateInterval) {
     kuzu_value_destroy(value);
 }
 
-TEST_F(CApiValueTest, CreateString) {
+TEST(CApiValueTestEmptyDB, CreateString) {
     kuzu_value* value = kuzu_value_create_string((char*)"abcdefg");
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
@@ -231,7 +231,7 @@ TEST_F(CApiValueTest, CreateString) {
     kuzu_value_destroy(value);
 }
 
-TEST_F(CApiValueTest, Clone) {
+TEST(CApiValueTestEmptyDB, Clone) {
     kuzu_value* value = kuzu_value_create_string((char*)"abcdefg");
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
@@ -248,7 +248,7 @@ TEST_F(CApiValueTest, Clone) {
     kuzu_value_destroy(clone);
 }
 
-TEST_F(CApiValueTest, Copy) {
+TEST(CApiValueTestEmptyDB, Copy) {
     kuzu_value* value = kuzu_value_create_string((char*)"abc");
 
     kuzu_value* value2 = kuzu_value_create_string((char*)"abcdefg");
