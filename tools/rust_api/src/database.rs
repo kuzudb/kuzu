@@ -21,6 +21,21 @@ pub enum LoggingLevel {
 }
 
 #[derive(Clone, Debug)]
+pub enum AccessMode {
+    ReadWrite,
+    ReadOnly,
+}
+
+impl From<AccessMode> for ffi::AccessMode {
+    fn from(other: AccessMode) -> Self {
+        match other {
+            AccessMode::ReadWrite => ffi::AccessMode::READ_WRITE,
+            AccessMode::ReadOnly => ffi::AccessMode::READ_ONLY,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 /// Configuration options for the database.
 pub struct SystemConfig {
     /// Max size of the buffer pool in bytes
@@ -36,6 +51,7 @@ pub struct SystemConfig {
     /// When true, new columns will be compressed if possible
     /// Defaults to true
     enable_compression: bool,
+    access_mode: AccessMode,
 }
 
 impl Default for SystemConfig {
@@ -44,6 +60,7 @@ impl Default for SystemConfig {
             buffer_pool_size: 0,
             max_num_threads: 0,
             enable_compression: true,
+            access_mode: AccessMode::ReadWrite,
         }
     }
 }
@@ -59,6 +76,10 @@ impl SystemConfig {
     }
     pub fn enable_compression(mut self, enable_compression: bool) -> Self {
         self.enable_compression = enable_compression;
+        self
+    }
+    pub fn access_mode(mut self, access_mode: AccessMode) -> Self {
+        self.access_mode = access_mode;
         self
     }
 }
@@ -77,6 +98,7 @@ impl Database {
                 config.buffer_pool_size,
                 config.max_num_threads,
                 config.enable_compression,
+                config.access_mode.into(),
             )?),
         })
     }
@@ -107,7 +129,8 @@ impl fmt::Debug for Database {
 
 #[cfg(test)]
 mod tests {
-    use crate::database::{Database, LoggingLevel, SystemConfig};
+    use crate::connection::Connection;
+    use crate::database::{AccessMode, Database, LoggingLevel, SystemConfig};
     use anyhow::{Error, Result};
     // Note: Cargo runs tests in parallel by default, however kuzu does not support
     // working with multiple databases in parallel.
@@ -155,5 +178,29 @@ mod tests {
                 .to_string()
                 .starts_with("Failed to create directory  due to"));
         }
+    }
+
+    #[test]
+    fn test_database_read_only() -> Result<()> {
+        let temp_dir = tempfile::tempdir()?;
+        // Create database first so that it can be opened read-only
+        {
+            Database::new(temp_dir.path(), SystemConfig::default())?;
+        }
+        let db = Database::new(
+            temp_dir.path(),
+            SystemConfig::default().access_mode(AccessMode::ReadOnly),
+        )?;
+        let conn = Connection::new(&db)?;
+        let result: Error = conn
+            .query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")
+            .expect_err("Invalid syntax in query should produce an error")
+            .into();
+
+        assert_eq!(
+            result.to_string(),
+            "Cannot execute write operations in a read-only access mode database!"
+        );
+        Ok(())
     }
 }
