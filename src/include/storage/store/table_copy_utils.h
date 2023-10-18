@@ -54,8 +54,6 @@ public:
 
     static std::shared_ptr<arrow::DataType> toArrowDataType(const common::LogicalType& dataType);
 
-    static bool tryCast(const common::LogicalType& targetType, const char* value, uint64_t length);
-
     static std::vector<StructFieldIdxAndValue> parseStructFieldNameAndValues(
         common::LogicalType& type, std::string_view structString,
         const common::CSVReaderConfig& csvReaderConfig);

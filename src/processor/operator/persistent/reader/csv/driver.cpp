@@ -465,6 +465,124 @@ static void castStringToStruct(const char* input, uint64_t len, ValueVector* vec
     }
 }
 
+template<typename T>
+static inline void testAndSetValue(ValueVector* vector, uint64_t rowToAdd, T result, bool success) {
+    if (success) {
+        vector->setValue(rowToAdd, result);
+    }
+}
+
+static bool tryCastUnionField(
+    ValueVector* vector, uint64_t rowToAdd, const char* input, uint64_t len) {
+    auto& targetType = vector->dataType;
+    bool success = false;
+    switch (targetType.getLogicalTypeID()) {
+    case LogicalTypeID::BOOL: {
+        bool result;
+        success = function::tryCastToBool(input, len, result);
+        testAndSetValue(vector, rowToAdd, result, success);
+    } break;
+    case LogicalTypeID::INT64: {
+        int64_t result;
+        success = function::trySimpleIntegerCast(input, len, result);
+        testAndSetValue(vector, rowToAdd, result, success);
+    } break;
+    case LogicalTypeID::INT32: {
+        int32_t result;
+        success = function::trySimpleIntegerCast(input, len, result);
+        testAndSetValue(vector, rowToAdd, result, success);
+    } break;
+    case LogicalTypeID::INT16: {
+        int16_t result;
+        success = function::trySimpleIntegerCast(input, len, result);
+        testAndSetValue(vector, rowToAdd, result, success);
+    } break;
+    case LogicalTypeID::INT8: {
+        int8_t result;
+        success = function::trySimpleIntegerCast(input, len, result);
+        testAndSetValue(vector, rowToAdd, result, success);
+    } break;
+    case LogicalTypeID::UINT64: {
+        uint64_t result;
+        success = function::trySimpleIntegerCast<uint64_t, false>(input, len, result);
+        testAndSetValue(vector, rowToAdd, result, success);
+    } break;
+    case LogicalTypeID::UINT32: {
+        uint32_t result;
+        success = function::trySimpleIntegerCast<uint32_t, false>(input, len, result);
+        testAndSetValue(vector, rowToAdd, result, success);
+    } break;
+    case LogicalTypeID::UINT16: {
+        uint16_t result;
+        success = function::trySimpleIntegerCast<uint16_t, false>(input, len, result);
+        testAndSetValue(vector, rowToAdd, result, success);
+    } break;
+    case LogicalTypeID::UINT8: {
+        uint8_t result;
+        success = function::trySimpleIntegerCast<uint8_t, false>(input, len, result);
+        testAndSetValue(vector, rowToAdd, result, success);
+    } break;
+    case LogicalTypeID::DOUBLE: {
+        double_t result;
+        success = function::tryDoubleCast(input, len, result);
+        testAndSetValue(vector, rowToAdd, result, success);
+    } break;
+    case LogicalTypeID::FLOAT: {
+        float_t result;
+        success = function::tryDoubleCast(input, len, result);
+        testAndSetValue(vector, rowToAdd, result, success);
+    } break;
+    case LogicalTypeID::DATE: {
+        date_t result;
+        uint64_t pos;
+        success = Date::tryConvertDate(input, len, pos, result);
+        testAndSetValue(vector, rowToAdd, result, success);
+    } break;
+    case LogicalTypeID::TIMESTAMP: {
+        timestamp_t result;
+        success = Timestamp::tryConvertTimestamp(input, len, result);
+        testAndSetValue(vector, rowToAdd, result, success);
+    } break;
+    case LogicalTypeID::STRING: {
+        if (!utf8proc::Utf8Proc::isValid(input, len)) {
+            throw common::CopyException{"Invalid UTF8-encoded string."};
+        }
+        StringVector::addString(vector, rowToAdd, input, len);
+        return true;
+    } break;
+    default: {
+        return false;
+    }
+    }
+    return success;
+}
+
+static void castStringToUnion(ValueVector* vector, std::string_view strVal, uint64_t rowToAdd) {
+    auto& type = vector->dataType;
+    union_field_idx_t selectedFieldIdx = INVALID_STRUCT_FIELD_IDX;
+
+    for (auto i = 0u; i < UnionType::getNumFields(&type); i++) {
+        auto internalFieldIdx = UnionType::getInternalFieldIdx(i);
+        auto fieldVector = StructVector::getFieldVector(vector, internalFieldIdx).get();
+        if (tryCastUnionField(fieldVector, rowToAdd, strVal.data(), strVal.length())) {
+            fieldVector->setNull(rowToAdd, false /* isNull */);
+            selectedFieldIdx = i;
+            break;
+        } else {
+            fieldVector->setNull(rowToAdd, true /* isNull */);
+        }
+    }
+
+    if (selectedFieldIdx == INVALID_STRUCT_FIELD_IDX) {
+        throw ConversionException{stringFormat("Could not convert to union type {}: {}.",
+            LogicalTypeUtils::dataTypeToString(type), strVal)};
+    }
+    StructVector::getFieldVector(vector, UnionType::TAG_FIELD_IDX)
+        ->setValue(rowToAdd, selectedFieldIdx);
+    StructVector::getFieldVector(vector, UnionType::TAG_FIELD_IDX)
+        ->setNull(rowToAdd, false /* isNull */);
+}
+
 void copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std::string_view strVal,
     const CSVReaderConfig& csvReaderConfig) {
     auto& type = vector->dataType;
@@ -569,30 +687,7 @@ void copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std::string_view
         castStringToStruct(strVal.data(), strVal.length(), vector, rowToAdd, csvReaderConfig);
     } break;
     case LogicalTypeID::UNION: {
-        union_field_idx_t selectedFieldIdx = INVALID_STRUCT_FIELD_IDX;
-        for (auto i = 0u; i < UnionType::getNumFields(&type); i++) {
-            auto internalFieldIdx = UnionType::getInternalFieldIdx(i);
-            if (storage::TableCopyUtils::tryCast(
-                    *UnionType::getFieldType(&type, i), strVal.data(), strVal.length())) {
-                StructVector::getFieldVector(vector, internalFieldIdx)
-                    ->setNull(rowToAdd, false /* isNull */);
-                copyStringToVector(StructVector::getFieldVector(vector, internalFieldIdx).get(),
-                    rowToAdd, strVal, csvReaderConfig);
-                selectedFieldIdx = i;
-                break;
-            } else {
-                StructVector::getFieldVector(vector, internalFieldIdx)
-                    ->setNull(rowToAdd, true /* isNull */);
-            }
-        }
-        if (selectedFieldIdx == INVALID_STRUCT_FIELD_IDX) {
-            throw ConversionException{stringFormat("Could not convert to union type {}: {}.",
-                LogicalTypeUtils::dataTypeToString(type), strVal)};
-        }
-        StructVector::getFieldVector(vector, UnionType::TAG_FIELD_IDX)
-            ->setValue(rowToAdd, selectedFieldIdx);
-        StructVector::getFieldVector(vector, UnionType::TAG_FIELD_IDX)
-            ->setNull(rowToAdd, false /* isNull */);
+        castStringToUnion(vector, strVal, rowToAdd);
     } break;
     default: { // LCOV_EXCL_START
         throw NotImplementedException("BaseCSVReader::copyStringToVector");
