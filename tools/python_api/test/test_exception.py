@@ -33,3 +33,8 @@ def test_read_only_exception(establish_connection):
     conn = kuzu.Connection(read_only_db)
     with pytest.raises(RuntimeError, match="Cannot execute write operations in a read-only access mode database!"):
         conn.execute("CREATE NODE TABLE test (id INT64, PRIMARY KEY(id));")
+
+def test_query_exception(establish_connection):
+    conn, db = establish_connection
+    with pytest.raises(RuntimeError, match="Binder exception: Table nonexisting does not exist."):
+        conn.execute("MATCH (a:nonexisting) RETURN a;")

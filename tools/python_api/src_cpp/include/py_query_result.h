@@ -1,7 +1,7 @@
 #pragma once
 
-#include <vector>
 #include <memory>
+#include <vector>
 
 #include "arrow_array.h"
 #include "common/arrow/arrow.h"
@@ -43,6 +43,8 @@ public:
 
     bool isSuccess() const;
 
+    std::string getErrorMessage() const;
+
     double getExecutionTime();
 
     double getCompilingTime();
@@ -52,7 +54,8 @@ public:
 private:
     static py::dict convertNodeIdToPyDict(const kuzu::common::nodeID_t& nodeId);
 
-    bool getNextArrowChunk(const std::vector<std::unique_ptr<DataTypeInfo>>& typesInfo, py::list& batches, std::int64_t chunk_size);
+    bool getNextArrowChunk(const std::vector<std::unique_ptr<DataTypeInfo>>& typesInfo,
+        py::list& batches, std::int64_t chunk_size);
     py::object getArrowChunks(
         const std::vector<std::unique_ptr<DataTypeInfo>>& typesInfo, std::int64_t chunkSize);
 

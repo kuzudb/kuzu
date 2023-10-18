@@ -11,9 +11,6 @@ class QueryResult:
     check_for_query_result_close()
         Check if the query result is closed and raise an exception if it is.
 
-    is_success()
-        Check if the query execution is successful.
-
     has_next()
         Check if there are more rows in the query result.
 
@@ -84,17 +81,6 @@ class QueryResult:
 
         if self.is_closed:
             raise Exception("Query result is closed")
-
-    def is_success(self):
-        """
-        Check if the query execution is successful or not.
-
-        Returns
-        -------
-        bool
-            True if the query is executed successfully, False otherwise.
-        """
-        return self._query_result.isSuccess()
 
     def has_next(self):
         """
