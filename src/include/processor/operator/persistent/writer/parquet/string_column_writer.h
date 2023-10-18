@@ -123,12 +123,12 @@ public:
 
     void finalizeAnalyze(ColumnWriterState& writerState) override;
 
-    void writeVector(BufferedSerializer& bufferedSerializer, ColumnWriterStatistics* statsToWrite,
+    void writeVector(common::Serializer& bufferedSerializer, ColumnWriterStatistics* statsToWrite,
         ColumnWriterPageState* writerPageState, common::ValueVector* vector, uint64_t chunkStart,
         uint64_t chunkEnd) override;
 
     void flushPageState(
-        BufferedSerializer& bufferedSerializer, ColumnWriterPageState* writerPageState) override;
+        common::Serializer& bufferedSerializer, ColumnWriterPageState* writerPageState) override;
 
     void flushDictionary(
         BasicColumnWriterState& writerState, ColumnWriterStatistics* writerStats) override;

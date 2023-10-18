@@ -31,10 +31,9 @@ struct ScalarMacroFunction {
 
     std::unique_ptr<ScalarMacroFunction> copy() const;
 
-    void serialize(common::FileInfo* fileInfo, uint64_t& offset) const;
+    void serialize(common::Serializer& serializer) const;
 
-    static std::unique_ptr<ScalarMacroFunction> deserialize(
-        common::FileInfo* fileInfo, uint64_t& offset);
+    static std::unique_ptr<ScalarMacroFunction> deserialize(common::Deserializer& deserializer);
 };
 
 } // namespace function

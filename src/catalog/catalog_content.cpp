@@ -6,7 +6,9 @@
 #include "catalog/rel_table_schema.h"
 #include "common/exception/catalog.h"
 #include "common/exception/runtime.h"
-#include "common/ser_deser.h"
+#include "common/serializer/buffered_file.h"
+#include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
 #include "storage/storage_utils.h"
@@ -154,39 +156,39 @@ void CatalogContent::renameTable(table_id_t tableID, const std::string& newName)
 
 void CatalogContent::saveToFile(const std::string& directory, DBFileType dbFileType) {
     auto catalogPath = StorageUtils::getCatalogFilePath(directory, dbFileType);
-    auto fileInfo = FileUtils::openFile(catalogPath, O_WRONLY | O_CREAT);
-    uint64_t offset = 0;
-    writeMagicBytes(fileInfo.get(), offset);
-    SerDeser::serializeValue(StorageVersionInfo::getStorageVersion(), fileInfo.get(), offset);
-    SerDeser::serializeValue(tableSchemas.size(), fileInfo.get(), offset);
+    Serializer serializer(
+        std::make_unique<BufferedFileWriter>(FileUtils::openFile(catalogPath, O_WRONLY | O_CREAT)));
+    writeMagicBytes(serializer);
+    serializer.serializeValue(StorageVersionInfo::getStorageVersion());
+    serializer.serializeValue(tableSchemas.size());
     for (auto& [tableID, tableSchema] : tableSchemas) {
-        SerDeser::serializeValue(tableID, fileInfo.get(), offset);
-        tableSchema->serialize(fileInfo.get(), offset);
+        serializer.serializeValue(tableID);
+        tableSchema->serialize(serializer);
     }
-    SerDeser::serializeValue(nextTableID, fileInfo.get(), offset);
-    SerDeser::serializeUnorderedMap(macros, fileInfo.get(), offset);
+    serializer.serializeValue(nextTableID);
+    serializer.serializeUnorderedMap(macros);
 }
 
 void CatalogContent::readFromFile(const std::string& directory, DBFileType dbFileType) {
     auto catalogPath = StorageUtils::getCatalogFilePath(directory, dbFileType);
-    auto fileInfo = FileUtils::openFile(catalogPath, O_RDONLY);
-    uint64_t offset = 0;
-    validateMagicBytes(fileInfo.get(), offset);
+    Deserializer deserializer(
+        std::make_unique<BufferedFileReader>(FileUtils::openFile(catalogPath, O_RDONLY)));
+    validateMagicBytes(deserializer);
     storage_version_t savedStorageVersion;
-    SerDeser::deserializeValue(savedStorageVersion, fileInfo.get(), offset);
+    deserializer.deserializeValue(savedStorageVersion);
     validateStorageVersion(savedStorageVersion);
     uint64_t numTables;
-    SerDeser::deserializeValue(numTables, fileInfo.get(), offset);
+    deserializer.deserializeValue(numTables);
     table_id_t tableID;
     for (auto i = 0u; i < numTables; i++) {
-        SerDeser::deserializeValue(tableID, fileInfo.get(), offset);
-        tableSchemas[tableID] = TableSchema::deserialize(fileInfo.get(), offset);
+        deserializer.deserializeValue(tableID);
+        tableSchemas[tableID] = TableSchema::deserialize(deserializer);
     }
     for (auto& [tableID_, tableSchema] : tableSchemas) {
         tableNameToIDMap[tableSchema->tableName] = tableID_;
     }
-    SerDeser::deserializeValue(nextTableID, fileInfo.get(), offset);
-    SerDeser::deserializeUnorderedMap(macros, fileInfo.get(), offset);
+    deserializer.deserializeValue(nextTableID);
+    deserializer.deserializeUnorderedMap(macros);
 }
 
 ExpressionType CatalogContent::getFunctionType(const std::string& name) const {
@@ -239,11 +241,11 @@ void CatalogContent::validateStorageVersion(storage_version_t savedStorageVersio
     }
 }
 
-void CatalogContent::validateMagicBytes(FileInfo* fileInfo, offset_t& offset) {
+void CatalogContent::validateMagicBytes(Deserializer& deserializer) {
     auto numMagicBytes = strlen(StorageVersionInfo::MAGIC_BYTES);
     uint8_t magicBytes[4];
     for (auto i = 0u; i < numMagicBytes; i++) {
-        SerDeser::deserializeValue<uint8_t>(magicBytes[i], fileInfo, offset);
+        deserializer.deserializeValue<uint8_t>(magicBytes[i]);
     }
     if (memcmp(magicBytes, StorageVersionInfo::MAGIC_BYTES, numMagicBytes) != 0) {
         throw RuntimeException(
@@ -251,10 +253,10 @@ void CatalogContent::validateMagicBytes(FileInfo* fileInfo, offset_t& offset) {
     }
 }
 
-void CatalogContent::writeMagicBytes(FileInfo* fileInfo, offset_t& offset) {
+void CatalogContent::writeMagicBytes(Serializer& serializer) {
     auto numMagicBytes = strlen(StorageVersionInfo::MAGIC_BYTES);
     for (auto i = 0u; i < numMagicBytes; i++) {
-        SerDeser::serializeValue<uint8_t>(StorageVersionInfo::MAGIC_BYTES[i], fileInfo, offset);
+        serializer.serializeValue<uint8_t>(StorageVersionInfo::MAGIC_BYTES[i]);
     }
 }
 

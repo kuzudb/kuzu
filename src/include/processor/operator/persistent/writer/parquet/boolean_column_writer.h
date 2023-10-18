@@ -55,12 +55,12 @@ public:
         return std::make_unique<BooleanWriterPageState>();
     }
 
-    void writeVector(BufferedSerializer& bufferedSerializer,
+    void writeVector(common::Serializer& bufferedSerializer,
         ColumnWriterStatistics* writerStatistics, ColumnWriterPageState* writerPageState,
         common::ValueVector* vector, uint64_t chunkStart, uint64_t chunkEnd) override;
 
     void flushPageState(
-        BufferedSerializer& temp_writer, ColumnWriterPageState* writerPageState) override;
+        common::Serializer& temp_writer, ColumnWriterPageState* writerPageState) override;
 };
 
 } // namespace processor

@@ -6,7 +6,8 @@
 #include "common/exception/binder.h"
 #include "common/exception/not_implemented.h"
 #include "common/null_buffer.h"
-#include "common/ser_deser.h"
+#include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
 #include "common/string_utils.h"
 #include "common/types/interval_t.h"
 #include "common/types/ku_list.h"
@@ -97,23 +98,22 @@ std::unique_ptr<ExtraTypeInfo> VarListTypeInfo::copy() const {
     return std::make_unique<VarListTypeInfo>(childType->copy());
 }
 
-std::unique_ptr<ExtraTypeInfo> VarListTypeInfo::deserialize(FileInfo* fileInfo, uint64_t& offset) {
-    return std::make_unique<VarListTypeInfo>(LogicalType::deserialize(fileInfo, offset));
+std::unique_ptr<ExtraTypeInfo> VarListTypeInfo::deserialize(Deserializer& deserializer) {
+    return std::make_unique<VarListTypeInfo>(LogicalType::deserialize(deserializer));
 }
 
-void VarListTypeInfo::serializeInternal(FileInfo* fileInfo, uint64_t& offset) const {
-    childType->serialize(fileInfo, offset);
+void VarListTypeInfo::serializeInternal(Serializer& serializer) const {
+    childType->serialize(serializer);
 }
 
 bool FixedListTypeInfo::operator==(const FixedListTypeInfo& other) const {
     return *childType == *other.childType && fixedNumElementsInList == other.fixedNumElementsInList;
 }
 
-std::unique_ptr<ExtraTypeInfo> FixedListTypeInfo::deserialize(
-    FileInfo* fileInfo, uint64_t& offset) {
-    auto childType = LogicalType::deserialize(fileInfo, offset);
+std::unique_ptr<ExtraTypeInfo> FixedListTypeInfo::deserialize(Deserializer& deserializer) {
+    auto childType = LogicalType::deserialize(deserializer);
     uint64_t fixedNumElementsInList;
-    SerDeser::deserializeValue(fixedNumElementsInList, fileInfo, offset);
+    deserializer.deserializeValue(fixedNumElementsInList);
     return std::make_unique<FixedListTypeInfo>(std::move(childType), fixedNumElementsInList);
 }
 
@@ -121,24 +121,24 @@ std::unique_ptr<ExtraTypeInfo> FixedListTypeInfo::copy() const {
     return std::make_unique<FixedListTypeInfo>(childType->copy(), fixedNumElementsInList);
 }
 
-void FixedListTypeInfo::serializeInternal(FileInfo* fileInfo, uint64_t& offset) const {
-    VarListTypeInfo::serializeInternal(fileInfo, offset);
-    SerDeser::serializeValue(fixedNumElementsInList, fileInfo, offset);
+void FixedListTypeInfo::serializeInternal(Serializer& serializer) const {
+    VarListTypeInfo::serializeInternal(serializer);
+    serializer.serializeValue(fixedNumElementsInList);
 }
 
 bool StructField::operator==(const StructField& other) const {
     return *type == *other.type;
 }
 
-void StructField::serialize(FileInfo* fileInfo, uint64_t& offset) const {
-    SerDeser::serializeValue(name, fileInfo, offset);
-    type->serialize(fileInfo, offset);
+void StructField::serialize(Serializer& serializer) const {
+    serializer.serializeValue(name);
+    type->serialize(serializer);
 }
 
-std::unique_ptr<StructField> StructField::deserialize(FileInfo* fileInfo, uint64_t& offset) {
+std::unique_ptr<StructField> StructField::deserialize(Deserializer& deserializer) {
     std::string name;
-    SerDeser::deserializeValue(name, fileInfo, offset);
-    auto type = LogicalType::deserialize(fileInfo, offset);
+    deserializer.deserializeValue(name);
+    auto type = LogicalType::deserialize(deserializer);
     return std::make_unique<StructField>(std::move(name), std::move(type));
 }
 
@@ -226,9 +226,9 @@ bool StructTypeInfo::operator==(const StructTypeInfo& other) const {
     return true;
 }
 
-std::unique_ptr<ExtraTypeInfo> StructTypeInfo::deserialize(FileInfo* fileInfo, uint64_t& offset) {
+std::unique_ptr<ExtraTypeInfo> StructTypeInfo::deserialize(Deserializer& deserializer) {
     std::vector<std::unique_ptr<StructField>> fields;
-    SerDeser::deserializeVectorOfPtrs(fields, fileInfo, offset);
+    deserializer.deserializeVectorOfPtrs(fields);
     return std::make_unique<StructTypeInfo>(std::move(fields));
 }
 
@@ -240,8 +240,8 @@ std::unique_ptr<ExtraTypeInfo> StructTypeInfo::copy() const {
     return std::make_unique<StructTypeInfo>(std::move(structFields));
 }
 
-void StructTypeInfo::serializeInternal(FileInfo* fileInfo, uint64_t& offset) const {
-    SerDeser::serializeVectorOfPtrs(fields, fileInfo, offset);
+void StructTypeInfo::serializeInternal(Serializer& serializer) const {
+    serializer.serializeVectorOfPtrs(fields);
 }
 
 LogicalType::LogicalType(LogicalTypeID typeID) : typeID{typeID}, extraTypeInfo{nullptr} {
@@ -303,34 +303,34 @@ LogicalType& LogicalType::operator=(LogicalType&& other) noexcept {
     return *this;
 }
 
-void LogicalType::serialize(FileInfo* fileInfo, uint64_t& offset) const {
-    SerDeser::serializeValue(typeID, fileInfo, offset);
-    SerDeser::serializeValue(physicalType, fileInfo, offset);
+void LogicalType::serialize(Serializer& serializer) const {
+    serializer.serializeValue(typeID);
+    serializer.serializeValue(physicalType);
     switch (physicalType) {
     case PhysicalTypeID::VAR_LIST:
     case PhysicalTypeID::FIXED_LIST:
     case PhysicalTypeID::STRUCT:
-        extraTypeInfo->serialize(fileInfo, offset);
+        extraTypeInfo->serialize(serializer);
     default:
         break;
     }
 }
 
-std::unique_ptr<LogicalType> LogicalType::deserialize(FileInfo* fileInfo, uint64_t& offset) {
+std::unique_ptr<LogicalType> LogicalType::deserialize(Deserializer& deserializer) {
     LogicalTypeID typeID;
-    SerDeser::deserializeValue(typeID, fileInfo, offset);
+    deserializer.deserializeValue(typeID);
     PhysicalTypeID physicalType;
-    SerDeser::deserializeValue(physicalType, fileInfo, offset);
+    deserializer.deserializeValue(physicalType);
     std::unique_ptr<ExtraTypeInfo> extraTypeInfo;
     switch (physicalType) {
     case PhysicalTypeID::VAR_LIST: {
-        extraTypeInfo = VarListTypeInfo::deserialize(fileInfo, offset);
+        extraTypeInfo = VarListTypeInfo::deserialize(deserializer);
     } break;
     case PhysicalTypeID::FIXED_LIST: {
-        extraTypeInfo = FixedListTypeInfo::deserialize(fileInfo, offset);
+        extraTypeInfo = FixedListTypeInfo::deserialize(deserializer);
     } break;
     case PhysicalTypeID::STRUCT: {
-        extraTypeInfo = StructTypeInfo::deserialize(fileInfo, offset);
+        extraTypeInfo = StructTypeInfo::deserialize(deserializer);
     } break;
     default:
         extraTypeInfo = nullptr;

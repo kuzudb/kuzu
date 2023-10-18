@@ -3,7 +3,6 @@
 #include "catalog/node_table_schema.h"
 #include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
-#include "common/ser_deser.h"
 #include "storage/wal/wal.h"
 #include "transaction/transaction_action.h"
 

@@ -9,6 +9,10 @@
 #include "table_schema.h"
 
 namespace kuzu {
+namespace common {
+class Serializer;
+class Deserializer;
+} // namespace common
 namespace catalog {
 
 class CatalogContent {
@@ -117,9 +121,9 @@ private:
 
     static void validateStorageVersion(storage::storage_version_t savedStorageVersion);
 
-    static void validateMagicBytes(common::FileInfo* fileInfo, common::offset_t& offset);
+    static void validateMagicBytes(common::Deserializer& deserializer);
 
-    static void writeMagicBytes(common::FileInfo* fileInfo, common::offset_t& offset);
+    static void writeMagicBytes(common::Serializer& serializer);
 
     void registerBuiltInFunctions();
 

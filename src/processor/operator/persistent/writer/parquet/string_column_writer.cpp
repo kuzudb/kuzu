@@ -115,7 +115,7 @@ void StringColumnWriter::finalizeAnalyze(ColumnWriterState& writerState) {
     }
 }
 
-void StringColumnWriter::writeVector(BufferedSerializer& bufferedSerializer,
+void StringColumnWriter::writeVector(common::Serializer& serializer,
     ColumnWriterStatistics* statsToWrite, ColumnWriterPageState* writerPageState,
     ValueVector* vector, uint64_t chunkStart, uint64_t chunkEnd) {
     auto pageState = reinterpret_cast<StringWriterPageState*>(writerPageState);
@@ -131,12 +131,12 @@ void StringColumnWriter::writeVector(BufferedSerializer& bufferedSerializer,
             auto value_index = pageState->dictionary.at(vector->getValue<ku_string_t>(pos));
             if (!pageState->writtenValue) {
                 // Write the bit-width as a one-byte entry.
-                bufferedSerializer.write<uint8_t>(pageState->bitWidth);
+                serializer.write<uint8_t>(pageState->bitWidth);
                 // Now begin writing the actual value.
-                pageState->encoder.beginWrite(bufferedSerializer, value_index);
+                pageState->encoder.beginWrite(serializer, value_index);
                 pageState->writtenValue = true;
             } else {
-                pageState->encoder.writeValue(bufferedSerializer, value_index);
+                pageState->encoder.writeValue(serializer, value_index);
             }
         }
     } else {
@@ -147,23 +147,23 @@ void StringColumnWriter::writeVector(BufferedSerializer& bufferedSerializer,
             }
             auto& str = vector->getValue<ku_string_t>(pos);
             stats->update(str);
-            bufferedSerializer.write<uint32_t>(str.len);
-            bufferedSerializer.writeData(str.getData(), str.len);
+            serializer.write<uint32_t>(str.len);
+            serializer.write(str.getData(), str.len);
         }
     }
 }
 
 void StringColumnWriter::flushPageState(
-    BufferedSerializer& bufferedSerializer, ColumnWriterPageState* writerPageState) {
+    common::Serializer& serializer, ColumnWriterPageState* writerPageState) {
     auto pageState = reinterpret_cast<StringWriterPageState*>(writerPageState);
     if (pageState->bitWidth != 0) {
         if (!pageState->writtenValue) {
             // all values are null
             // just write the bit width
-            bufferedSerializer.write<uint8_t>(pageState->bitWidth);
+            serializer.write<uint8_t>(pageState->bitWidth);
             return;
         }
-        pageState->encoder.finishWrite(bufferedSerializer);
+        pageState->encoder.finishWrite(serializer);
     }
 }
 
@@ -181,14 +181,14 @@ void StringColumnWriter::flushDictionary(
         values[entry.second] = entry.first;
     }
     // First write the contents of the dictionary page to a temporary buffer.
-    auto bufferedSerializer = std::make_unique<BufferedSerializer>();
+    auto bufferedSerializer = std::make_unique<common::BufferedSerializer>();
     for (auto r = 0u; r < values.size(); r++) {
         auto& value = values[r];
         // Update the statistics.
         stats->update(value);
         // Write this string value to the dictionary.
         bufferedSerializer->write<uint32_t>(value.len);
-        bufferedSerializer->writeData(value.getData(), value.len);
+        bufferedSerializer->write(value.getData(), value.len);
     }
     // Flush the dictionary page and add it to the to-be-written pages.
     writeDictionary(state, std::move(bufferedSerializer), values.size());

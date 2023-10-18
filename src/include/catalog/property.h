@@ -3,6 +3,10 @@
 #include "common/types/types.h"
 
 namespace kuzu {
+namespace common {
+class Serializer;
+class Deserializer;
+} // namespace common
 namespace catalog {
 
 class Property {
@@ -37,8 +41,8 @@ public:
 
     inline void rename(std::string newName) { this->name = std::move(newName); }
 
-    void serialize(common::FileInfo* fileInfo, uint64_t& offset) const;
-    static std::unique_ptr<Property> deserialize(common::FileInfo* fileInfo, uint64_t& offset);
+    void serialize(common::Serializer& serializer) const;
+    static std::unique_ptr<Property> deserialize(common::Deserializer& deserializer);
 
     inline std::unique_ptr<Property> copy() const {
         return std::make_unique<Property>(name, dataType->copy(), propertyID, tableID);

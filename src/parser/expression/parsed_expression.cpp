@@ -1,7 +1,8 @@
 #include "parser/expression/parsed_expression.h"
 
 #include "common/exception/not_implemented.h"
-#include "common/ser_deser.h"
+#include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
 #include "parser/expression/parsed_case_expression.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
@@ -37,46 +38,45 @@ parsed_expression_vector ParsedExpression::copyChildren() const {
     return childrenCopy;
 }
 
-void ParsedExpression::serialize(FileInfo* fileInfo, uint64_t& offset) const {
-    SerDeser::serializeValue(type, fileInfo, offset);
-    SerDeser::serializeValue(alias, fileInfo, offset);
-    SerDeser::serializeValue(rawName, fileInfo, offset);
-    SerDeser::serializeVectorOfPtrs(children, fileInfo, offset);
-    serializeInternal(fileInfo, offset);
+void ParsedExpression::serialize(Serializer& serializer) const {
+    serializer.serializeValue(type);
+    serializer.serializeValue(alias);
+    serializer.serializeValue(rawName);
+    serializer.serializeVectorOfPtrs(children);
+    serializeInternal(serializer);
 }
 
-std::unique_ptr<ParsedExpression> ParsedExpression::deserialize(
-    FileInfo* fileInfo, uint64_t& offset) {
+std::unique_ptr<ParsedExpression> ParsedExpression::deserialize(Deserializer& deserializer) {
     ExpressionType type;
     std::string alias;
     std::string rawName;
     parsed_expression_vector children;
-    SerDeser::deserializeValue(type, fileInfo, offset);
-    SerDeser::deserializeValue(alias, fileInfo, offset);
-    SerDeser::deserializeValue(rawName, fileInfo, offset);
-    SerDeser::deserializeVectorOfPtrs(children, fileInfo, offset);
+    deserializer.deserializeValue(type);
+    deserializer.deserializeValue(alias);
+    deserializer.deserializeValue(rawName);
+    deserializer.deserializeVectorOfPtrs(children);
     std::unique_ptr<ParsedExpression> parsedExpression;
     switch (type) {
     case ExpressionType::CASE_ELSE: {
-        parsedExpression = ParsedCaseExpression::deserialize(fileInfo, offset);
+        parsedExpression = ParsedCaseExpression::deserialize(deserializer);
     } break;
     case ExpressionType::FUNCTION: {
-        parsedExpression = ParsedFunctionExpression::deserialize(fileInfo, offset);
+        parsedExpression = ParsedFunctionExpression::deserialize(deserializer);
     } break;
     case ExpressionType::LITERAL: {
-        parsedExpression = ParsedLiteralExpression::deserialize(fileInfo, offset);
+        parsedExpression = ParsedLiteralExpression::deserialize(deserializer);
     } break;
     case ExpressionType::PARAMETER: {
-        parsedExpression = ParsedParameterExpression::deserialize(fileInfo, offset);
+        parsedExpression = ParsedParameterExpression::deserialize(deserializer);
     } break;
     case ExpressionType::PROPERTY: {
-        parsedExpression = ParsedPropertyExpression::deserialize(fileInfo, offset);
+        parsedExpression = ParsedPropertyExpression::deserialize(deserializer);
     } break;
     case ExpressionType::EXISTENTIAL_SUBQUERY: {
-        parsedExpression = ParsedSubqueryExpression::deserialize(fileInfo, offset);
+        parsedExpression = ParsedSubqueryExpression::deserialize(deserializer);
     } break;
     case ExpressionType::VARIABLE: {
-        parsedExpression = ParsedVariableExpression::deserialize(fileInfo, offset);
+        parsedExpression = ParsedVariableExpression::deserialize(deserializer);
     } break;
     default:
         throw NotImplementedException{"ParsedExpression::deserialize"};

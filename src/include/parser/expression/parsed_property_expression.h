@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/constants.h"
-#include "common/ser_deser.h"
+#include "common/serializer/serializer.h"
 #include "parsed_expression.h"
 
 namespace kuzu {
@@ -28,7 +28,7 @@ public:
     inline bool isStar() const { return propertyName == common::InternalKeyword::STAR; }
 
     static std::unique_ptr<ParsedPropertyExpression> deserialize(
-        common::FileInfo* fileInfo, uint64_t& offset);
+        common::Deserializer& deserializer);
 
     inline std::unique_ptr<ParsedExpression> copy() const override {
         return std::make_unique<ParsedPropertyExpression>(
@@ -36,8 +36,8 @@ public:
     }
 
 private:
-    inline void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) const override {
-        common::SerDeser::serializeValue(propertyName, fileInfo, offset);
+    inline void serializeInternal(common::Serializer& serializer) const override {
+        serializer.serializeValue(propertyName);
     }
 
 private:

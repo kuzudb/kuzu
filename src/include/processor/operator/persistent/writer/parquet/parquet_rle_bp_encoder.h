@@ -1,6 +1,6 @@
 #pragma once
 
-#include "buffered_serializer.h"
+#include "common/serializer/serializer.h"
 
 namespace kuzu {
 namespace processor {
@@ -17,9 +17,9 @@ public:
     void prepareValue(uint32_t value);
     void finishPrepare();
 
-    void beginWrite(BufferedSerializer& writer, uint32_t first_value);
-    void writeValue(BufferedSerializer& writer, uint32_t value);
-    void finishWrite(BufferedSerializer& writer);
+    void beginWrite(common::Serializer& writer, uint32_t first_value);
+    void writeValue(common::Serializer& writer, uint32_t value);
+    void finishWrite(common::Serializer& writer);
 
     uint64_t getByteCount();
 
@@ -36,7 +36,7 @@ private:
 
 private:
     void finishRun();
-    void writeRun(BufferedSerializer& bufferedSerializer);
+    void writeRun(common::Serializer& bufferedSerializer);
 };
 
 } // namespace processor

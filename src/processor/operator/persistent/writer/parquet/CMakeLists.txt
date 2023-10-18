@@ -2,7 +2,6 @@ add_library(kuzu_processor_operator_parquet_writer
         OBJECT
         basic_column_writer.cpp
         boolean_column_writer.cpp
-        buffered_serializer.cpp
         column_writer.cpp
         struct_column_writer.cpp
         string_column_writer.cpp

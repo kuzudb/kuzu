@@ -2,6 +2,7 @@ add_subdirectory(arrow)
 add_subdirectory(copier_config)
 add_subdirectory(data_chunk)
 add_subdirectory(exception)
+add_subdirectory(serializer)
 add_subdirectory(task_system)
 add_subdirectory(types)
 add_subdirectory(vector)
@@ -20,8 +21,7 @@ add_library(kuzu_common
         type_utils.cpp
         utils.cpp
         string_utils.cpp
-        table_type.cpp
-        ser_deser.cpp)
+        table_type.cpp)
 
 target_link_libraries(kuzu_common Glob)
 

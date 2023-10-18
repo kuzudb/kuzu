@@ -1,9 +1,9 @@
-#include "processor/operator/persistent/writer/parquet/buffered_serializer.h"
+#include "common/serializer/buffered_serializer.h"
 
 #include <cstring>
 
 namespace kuzu {
-namespace processor {
+namespace common {
 
 BufferedSerializer::BufferedSerializer(uint64_t maximum_size)
     : BufferedSerializer(std::make_unique<uint8_t[]>(maximum_size), maximum_size) {}
@@ -14,7 +14,7 @@ BufferedSerializer::BufferedSerializer(std::unique_ptr<uint8_t[]> data, uint64_t
     blob.data = std::move(data);
 }
 
-void BufferedSerializer::writeData(const uint8_t* buffer, uint64_t len) {
+void BufferedSerializer::write(const uint8_t* buffer, uint64_t len) {
     if (blob.size + len >= maximumSize) {
         do {
             maximumSize *= 2;
@@ -29,5 +29,5 @@ void BufferedSerializer::writeData(const uint8_t* buffer, uint64_t len) {
     blob.size += len;
 }
 
-} // namespace processor
+} // namespace common
 } // namespace kuzu
