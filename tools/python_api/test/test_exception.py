@@ -22,3 +22,11 @@ def test_db_path_exception():
         error_message = 'filesystem error'
     with pytest.raises(RuntimeError, match=error_message):
         kuzu.Database(str(path))
+
+def test_read_only_exception(establish_connection):
+    _, db = establish_connection
+    path = db.database_path
+    read_only_db = kuzu.Database(path, access_mode=kuzu.AccessMode.READ_ONLY)
+    conn = kuzu.Connection(read_only_db)
+    with pytest.raises(RuntimeError, match="Cannot execute write operations in a read-only access mode database!"):
+        conn.execute("CREATE NODE TABLE test (id INT64, PRIMARY KEY(id));")
