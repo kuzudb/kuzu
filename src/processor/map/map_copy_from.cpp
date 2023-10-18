@@ -47,13 +47,18 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
     auto copyNodeSharedState =
         std::make_shared<CopyNodeSharedState>(reader->getSharedState()->getNumRowsRef(),
             tableSchema, nodeTable, memoryManager, isCopyRdf);
-    CopyNodeInfo copyNodeDataInfo{readerInfo->dataColumnsPos, nodeTable,
+    std::vector<DataPos> dataColumnPoses = readerInfo->dataColumnsPos;
+    uint32_t nullDataColumnPosesStartIdx = dataColumnPoses.size();
+    for (auto& expression : copyFromInfo->nullColumns) {
+        dataColumnPoses.emplace_back(copyFrom->getSchema()->getExpressionPos(*expression));
+    }
+    CopyNodeInfo copyNodeDataInfo{dataColumnPoses, nullDataColumnPosesStartIdx, nodeTable,
         &storageManager.getRelsStore(), catalog, storageManager.getWAL(),
         copyFromInfo->containsSerial};
     auto copyNode = std::make_unique<CopyNode>(copyNodeSharedState, copyNodeDataInfo,
         std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), std::move(prevOperator),
         getOperatorID(), copyFrom->getExpressionsForPrinting());
-    auto outputExpressions = binder::expression_vector{copyFrom->getOutputExpression()->copy()};
+    auto outputExpressions = expression_vector{copyFrom->getOutputExpression()->copy()};
     return createFactorizedTableScanAligned(outputExpressions, copyFrom->getSchema(),
         copyNodeSharedState->fTable, DEFAULT_VECTOR_CAPACITY /* maxMorselSize */,
         std::move(copyNode));

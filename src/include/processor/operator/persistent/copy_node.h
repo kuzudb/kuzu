@@ -47,16 +47,18 @@ public:
 
 struct CopyNodeInfo {
     std::vector<DataPos> dataColumnPoses;
+    uint32_t nullDataColumnPosesStartIdx;
     storage::NodeTable* table;
     storage::RelsStore* relsStore;
     catalog::Catalog* catalog;
     storage::WAL* wal;
     bool containsSerial;
 
-    CopyNodeInfo(std::vector<DataPos> dataColumnPoses, storage::NodeTable* table,
-        storage::RelsStore* relsStore, catalog::Catalog* catalog, storage::WAL* wal,
-        bool containsSerial)
-        : dataColumnPoses{std::move(dataColumnPoses)}, table{table}, relsStore{relsStore},
+    CopyNodeInfo(std::vector<DataPos> dataColumnPoses, uint32_t nullDataColumnPosesStartIdx,
+        storage::NodeTable* table, storage::RelsStore* relsStore, catalog::Catalog* catalog,
+        storage::WAL* wal, bool containsSerial)
+        : dataColumnPoses{std::move(dataColumnPoses)},
+          nullDataColumnPosesStartIdx{nullDataColumnPosesStartIdx}, table{table}, relsStore{relsStore},
           catalog{catalog}, wal{wal}, containsSerial{containsSerial} {}
 };
 
@@ -67,9 +69,6 @@ public:
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString);
 
     inline void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final {
-        for (auto& arrowColumnPos : copyNodeInfo.dataColumnPoses) {
-            dataColumnVectors.push_back(resultSet->getValueVector(arrowColumnPos).get());
-        }
         localNodeGroup = std::make_unique<storage::NodeGroup>(
             sharedState->tableSchema, sharedState->table->compressionEnabled());
     }
@@ -114,7 +113,6 @@ private:
 private:
     std::shared_ptr<CopyNodeSharedState> sharedState;
     CopyNodeInfo copyNodeInfo;
-    std::vector<common::ValueVector*> dataColumnVectors;
     std::unique_ptr<storage::NodeGroup> localNodeGroup;
 };
 

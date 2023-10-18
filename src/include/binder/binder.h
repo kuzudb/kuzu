@@ -122,7 +122,7 @@ private:
         std::unique_ptr<common::ReaderConfig> readerConfig, catalog::TableSchema* tableSchema);
     std::unique_ptr<BoundStatement> bindCopyRdfRelFrom(
         std::unique_ptr<common::ReaderConfig> readerConfig, catalog::TableSchema* tableSchema);
-    expression_vector bindExpectedNodeFileColumns(
+    std::pair<expression_vector, expression_vector> bindExpectedNodeFileColumns(
         catalog::TableSchema* tableSchema, common::ReaderConfig& readerConfig,
         const std::vector<std::string>& partialColumnNames);
     expression_vector bindExpectedRelFileColumns(
