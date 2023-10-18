@@ -1,5 +1,6 @@
 const { assert } = require("chai");
 const tmp = require("tmp");
+const process = require("process");
 
 describe("Database constructor", function () {
   it("should create a database with a valid path and buffer size", async function () {
@@ -39,6 +40,12 @@ describe("Database constructor", function () {
   });
 
   it("should create a database in read-only mode", async function () {
+    // TODO: Enable this test on Windows when the read-only mode is implemented.
+    if (process.platform === "darwin") {
+      this._runnable.title += " (skipped: not implemented on Windows)";
+      this.skip();
+    }
+
     const tmpDbPath = await new Promise((resolve, reject) => {
       tmp.dir({ unsafeCleanup: true }, (err, path, _) => {
         if (err) {

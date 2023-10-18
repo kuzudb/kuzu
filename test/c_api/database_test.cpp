@@ -17,6 +17,10 @@ TEST_F(CApiDatabaseTest, CreationAndDestroy) {
 }
 
 TEST_F(CApiDatabaseTest, CreationReadOnly) {
+// TODO: Enable this test on Windows when the read-only mode is implemented.
+#ifdef _WIN32
+    return;
+#endif
     auto databasePathCStr = databasePath.c_str();
     auto systemConfig = kuzu_default_system_config();
     // First, create a database with read-write access mode.

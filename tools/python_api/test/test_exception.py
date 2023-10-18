@@ -24,6 +24,9 @@ def test_db_path_exception():
         kuzu.Database(str(path))
 
 def test_read_only_exception(establish_connection):
+    # TODO: Enable this test on Windows when the read-only mode is implemented.
+    if sys.platform == "win32":
+        pytest.skip("Read-only mode has not been implemented on Windows yet")
     _, db = establish_connection
     path = db.database_path
     read_only_db = kuzu.Database(path, access_mode=kuzu.AccessMode.READ_ONLY)
