@@ -36,7 +36,8 @@ TEST_F(CApiDatabaseTest, CreationReadOnly) {
     // Try to write to the database.
     auto connection = kuzu_connection_init(database);
     ASSERT_NE(connection, nullptr);
-    auto queryResult = kuzu_connection_query(connection, "CREATE NODE TABLE User(name STRING, age INT64, reg_date DATE, PRIMARY KEY (name))");
+    auto queryResult = kuzu_connection_query(connection,
+        "CREATE NODE TABLE User(name STRING, age INT64, reg_date DATE, PRIMARY KEY (name))");
     ASSERT_EQ(queryResult, nullptr);
     kuzu_connection_destroy(connection);
     kuzu_database_destroy(database);
