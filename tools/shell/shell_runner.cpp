@@ -37,8 +37,7 @@ int main(int argc, char* argv[]) {
     if (readOnlyMode) {
         systemConfig.accessMode = AccessMode::READ_ONLY;
     }
-    std::cout << "Opened the database at path: " << databasePath << std::endl;
-    std::cout << "Opened the database at path: " << databasePath << " under "
+    std::cout << "Opened the database at path: " << databasePath << " in "
               << (systemConfig.accessMode == AccessMode::READ_ONLY ? "READ_ONLY mode" :
                                                                      "READ_WRITE mode")
               << "." << std::endl;

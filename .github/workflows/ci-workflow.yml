@@ -94,16 +94,10 @@ jobs:
         run: npm install --include=dev
         working-directory: tools/nodejs_api
 
-      - name: Build debug
-        run: CC=gcc CXX=g++ make alldebug NUM_THREADS=32
-
-      - name: Run test with ASan
-        run: ctest --output-on-failure -j 10
+      - name: Test with ASAN
+        run: CC=gcc CXX=g++ make test ASAN=1 NUM_THREADS=32
         env:
-          LD_PRELOAD: "/usr/lib/x86_64-linux-gnu/libasan.so.6"
           ASAN_OPTIONS: "detect_leaks=1:log_path=/tmp/asan.log"
-        working-directory: ./build/debug/test
-        continue-on-error: true
 
       - name: Report ASan log
         run: |

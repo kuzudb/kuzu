@@ -113,24 +113,20 @@ clang-tidy-ci:
 	$(call mkdirp,build/release) && cd build/release && \
 	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_EXPORT_COMPILE_COMMANDS=1 ../..
 
-pytest:
-	$(MAKE) release
+pytest: release
 	cd $(ROOT_DIR)/tools/python_api/test && \
 	python3 -m pytest -v test_main.py
 
-nodejstest:
-	$(MAKE) nodejs
+nodejstest: nodejs
 	cd $(ROOT_DIR)/tools/nodejs_api/ && \
 	npm test
 
-javatest: arrow
+javatest: arrow java
 ifeq ($(OS),Windows_NT)
-	$(MAKE) java
 	$(call mkdirp,tools/java_api/build/test)  && cd tools/java_api/ && \
 	javac -d build/test -cp ".;build/kuzu_java.jar;third_party/junit-platform-console-standalone-1.9.3.jar"  -sourcepath src/test/java/com/kuzudb/test/*.java && \
 	java -jar third_party/junit-platform-console-standalone-1.9.3.jar -cp ".;build/kuzu_java.jar;build/test/" --scan-classpath --include-package=com.kuzudb.java_test --details=verbose
 else
-	$(MAKE) java
 	$(call mkdirp,tools/java_api/build/test)  && cd tools/java_api/ && \
 	javac -d build/test -cp ".:build/kuzu_java.jar:third_party/junit-platform-console-standalone-1.9.3.jar"  -sourcepath src/test/java/com/kuzudb/test/*.java && \
 	java -jar third_party/junit-platform-console-standalone-1.9.3.jar -cp ".:build/kuzu_java.jar:build/test/" --scan-classpath --include-package=com.kuzudb.java_test --details=verbose
