@@ -49,7 +49,6 @@ static void getLockFileFlagsAndType(
     AccessMode accessMode, bool createNew, int& flags, FileLockType& lock) {
     flags = accessMode == AccessMode::READ_ONLY ? O_RDONLY : O_RDWR;
     if (createNew) {
-        assert(flags == O_RDWR);
         flags |= O_CREAT;
     }
     lock = accessMode == AccessMode::READ_ONLY ? FileLockType::READ_LOCK : FileLockType::WRITE_LOCK;

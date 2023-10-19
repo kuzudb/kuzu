@@ -46,9 +46,22 @@ pub(crate) mod ffi {
         MAP = 54,
         UNION = 55,
     }
+
     #[namespace = "kuzu::common"]
     unsafe extern "C++" {
         type LogicalTypeID;
+    }
+
+    #[namespace = "kuzu::main"]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    enum AccessMode {
+        READ_ONLY = 0,
+        READ_WRITE = 1,
+    }
+
+    #[namespace = "kuzu::main"]
+    unsafe extern "C++" {
+        type AccessMode;
     }
 
     #[namespace = "kuzu::main"]
@@ -84,6 +97,7 @@ pub(crate) mod ffi {
             bufferPoolSize: u64,
             maxNumThreads: u64,
             enableCompression: bool,
+            access_mode: AccessMode,
         ) -> Result<UniquePtr<Database>>;
 
         fn database_set_logging_level(database: Pin<&mut Database>, level: &CxxString);
