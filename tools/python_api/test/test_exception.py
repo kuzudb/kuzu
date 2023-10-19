@@ -22,3 +22,19 @@ def test_db_path_exception():
         error_message = 'filesystem error'
     with pytest.raises(RuntimeError, match=error_message):
         kuzu.Database(str(path))
+
+def test_read_only_exception(establish_connection):
+    # TODO: Enable this test on Windows when the read-only mode is implemented.
+    if sys.platform == "win32":
+        pytest.skip("Read-only mode has not been implemented on Windows yet")
+    _, db = establish_connection
+    path = db.database_path
+    read_only_db = kuzu.Database(path, access_mode=kuzu.AccessMode.READ_ONLY)
+    conn = kuzu.Connection(read_only_db)
+    with pytest.raises(RuntimeError, match="Cannot execute write operations in a read-only access mode database!"):
+        conn.execute("CREATE NODE TABLE test (id INT64, PRIMARY KEY(id));")
+
+def test_query_exception(establish_connection):
+    conn, db = establish_connection
+    with pytest.raises(RuntimeError, match="Binder exception: Table nonexisting does not exist."):
+        conn.execute("MATCH (a:nonexisting) RETURN a;")

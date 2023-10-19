@@ -49,13 +49,16 @@ uint64_t kuzu_connection_get_max_num_thread_for_exec(kuzu_connection* connection
 }
 
 kuzu_query_result* kuzu_connection_query(kuzu_connection* connection, const char* query) {
-    auto query_result = static_cast<Connection*>(connection->_connection)->query(query).release();
-    if (query_result == nullptr) {
-        return nullptr;
-    }
-    auto* c_query_result = new kuzu_query_result;
-    c_query_result->_query_result = query_result;
-    return c_query_result;
+    try {
+        auto query_result =
+            static_cast<Connection*>(connection->_connection)->query(query).release();
+        if (query_result == nullptr) {
+            return nullptr;
+        }
+        auto* c_query_result = new kuzu_query_result;
+        c_query_result->_query_result = query_result;
+        return c_query_result;
+    } catch (Exception& e) { return nullptr; }
 }
 
 kuzu_prepared_statement* kuzu_connection_prepare(kuzu_connection* connection, const char* query) {

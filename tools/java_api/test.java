@@ -30,7 +30,7 @@ public class test {
         String db_path = "./test_db";
         deleteFolder(new File(db_path));
         BufferedReader reader;
-        KuzuDatabase db = new KuzuDatabase(db_path, 0);
+        KuzuDatabase db = new KuzuDatabase(db_path);
         KuzuConnection conn = new KuzuConnection(db);
         try {
 			reader = new BufferedReader(new FileReader("../../dataset/tinysnb/schema.cypher"));

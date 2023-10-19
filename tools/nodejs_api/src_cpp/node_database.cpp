@@ -1,6 +1,5 @@
 #include "include/node_database.h"
 
-
 Napi::Object NodeDatabase::Init(Napi::Env env, Napi::Object exports) {
     Napi::HandleScope scope(env);
 
@@ -20,6 +19,7 @@ NodeDatabase::NodeDatabase(const Napi::CallbackInfo& info) : Napi::ObjectWrap<No
     databasePath = info[0].ToString();
     bufferPoolSize = info[1].As<Napi::Number>().Int64Value();
     enableCompression = info[2].As<Napi::Boolean>().Value();
+    accessMode = static_cast<AccessMode>(info[3].As<Napi::Number>().Int32Value());
 }
 
 Napi::Value NodeDatabase::InitAsync(const Napi::CallbackInfo& info) {
@@ -41,7 +41,8 @@ void NodeDatabase::InitCppDatabase() {
     if (!enableCompression) {
         systemConfig.enableCompression = enableCompression;
     }
-    this->database = make_shared<Database>(databasePath, systemConfig);
+    systemConfig.accessMode = accessMode;
+    this->database = std::make_shared<Database>(databasePath, systemConfig);
 }
 
 void NodeDatabase::setLoggingLevel(const Napi::CallbackInfo& info) {
