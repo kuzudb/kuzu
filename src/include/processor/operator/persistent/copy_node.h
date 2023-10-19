@@ -47,18 +47,18 @@ public:
 
 struct CopyNodeInfo {
     std::vector<DataPos> dataColumnPoses;
-    uint32_t nullDataColumnPosesStartIdx;
+    std::vector<bool> dataColumnPosesIsNull;
     storage::NodeTable* table;
     storage::RelsStore* relsStore;
     catalog::Catalog* catalog;
     storage::WAL* wal;
     bool containsSerial;
 
-    CopyNodeInfo(std::vector<DataPos> dataColumnPoses, uint32_t nullDataColumnPosesStartIdx,
+    CopyNodeInfo(std::vector<DataPos> dataColumnPoses, std::vector<bool> dataColumnPosesIsNull,
         storage::NodeTable* table, storage::RelsStore* relsStore, catalog::Catalog* catalog,
         storage::WAL* wal, bool containsSerial)
         : dataColumnPoses{std::move(dataColumnPoses)},
-          nullDataColumnPosesStartIdx{nullDataColumnPosesStartIdx}, table{table}, relsStore{relsStore},
+          dataColumnPosesIsNull{std::move(dataColumnPosesIsNull)}, table{table}, relsStore{relsStore},
           catalog{catalog}, wal{wal}, containsSerial{containsSerial} {}
 };
 

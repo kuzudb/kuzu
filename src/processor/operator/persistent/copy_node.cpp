@@ -86,8 +86,10 @@ void CopyNode::executeInternal(ExecutionContext* context) {
     // CopyNode goes through UNDO log, should be logged and flushed to WAL before making changes.
     sharedState->logCopyNodeWALRecord(copyNodeInfo.wal);
     while (children[0]->getNextTuple(context)) {
-        for (auto i = copyNodeInfo.nullDataColumnPosesStartIdx; i < copyNodeInfo.dataColumnPoses.size(); ++i) {
-            resultSet->getValueVector(copyNodeInfo.dataColumnPoses[i])->setAllNull();
+        for (auto i = 0u; i < copyNodeInfo.dataColumnPoses.size(); ++i) {
+            if (copyNodeInfo.dataColumnPosesIsNull[i]) {
+                resultSet->getValueVector(copyNodeInfo.dataColumnPoses[i])->setAllNull();
+            }
         }
         auto originalSelVector =
             resultSet->getDataChunk(copyNodeInfo.dataColumnPoses[0].dataChunkPos)->state->selVector;

@@ -47,12 +47,24 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
     auto copyNodeSharedState =
         std::make_shared<CopyNodeSharedState>(reader->getSharedState()->getNumRowsRef(),
             tableSchema, nodeTable, memoryManager, isCopyRdf);
-    std::vector<DataPos> dataColumnPoses = readerInfo->dataColumnsPos;
-    uint32_t nullDataColumnPosesStartIdx = dataColumnPoses.size();
-    for (auto& expression : copyFromInfo->nullColumns) {
-        dataColumnPoses.emplace_back(copyFrom->getSchema()->getExpressionPos(*expression));
+    std::vector<DataPos> dataColumnPoses;
+    dataColumnPoses.reserve(tableSchema->getNumProperties());
+    std::vector<bool> dataColumnPosesIsNull;
+    dataColumnPosesIsNull.reserve(tableSchema->getNumProperties());
+    auto nullColumnsIt = copyFromInfo->nullColumns.begin();
+    for (auto& property : tableSchema->getProperties()) {
+        uint32_t i = std::find(readerConfig->columnNames.begin(), readerConfig->columnNames.end(),
+            property->getName()) - readerConfig->columnNames.begin();
+        if (i < readerInfo->dataColumnsPos.size()) {
+            dataColumnPoses.emplace_back(readerInfo->dataColumnsPos[i]);
+            dataColumnPosesIsNull.emplace_back(false);
+        } else {
+            dataColumnPoses.emplace_back(copyFrom->getSchema()->getExpressionPos(**nullColumnsIt));
+            dataColumnPosesIsNull.emplace_back(true);
+            nullColumnsIt = std::next(nullColumnsIt);
+        }
     }
-    CopyNodeInfo copyNodeDataInfo{dataColumnPoses, nullDataColumnPosesStartIdx, nodeTable,
+    CopyNodeInfo copyNodeDataInfo{dataColumnPoses, dataColumnPosesIsNull, nodeTable,
         &storageManager.getRelsStore(), catalog, storageManager.getWAL(),
         copyFromInfo->containsSerial};
     auto copyNode = std::make_unique<CopyNode>(copyNodeSharedState, copyNodeDataInfo,

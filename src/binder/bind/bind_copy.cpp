@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <set>
 
 #include "binder/binder.h"
 #include "binder/copy/bound_copy_from.h"
@@ -46,6 +47,10 @@ static void validatePartialColumns(TableSchema* schema, const std::vector<std::s
             throw BinderException(StringUtils::string_format(
                 "Table {} does not contain column {}.", schema->tableName, columnName));
         }
+    }
+    std::set<std::string> uniquePartialColumnNames(partialColumnNames.begin(), partialColumnNames.end());
+    if (uniquePartialColumnNames.size() != partialColumnNames.size()) {
+        throw BinderException("Specified columns contain duplicates.");
     }
 }
 
@@ -227,20 +232,28 @@ std::pair<expression_vector, expression_vector> Binder::bindExpectedNodeFileColu
     case FileType::NPY:
     case FileType::PARQUET:
     case FileType::CSV: {
-        for (auto& property : tableSchema->properties) {
-            if (skipPropertyInFile(*property)) {
-                continue;
-            }
-            if (partialColumnNames.empty() ||
-                std::any_of(partialColumnNames.begin(), partialColumnNames.end(),
-                    [&property](const std::string& columnName) {
-                        return columnName == property->getName();
-                    })) {
+        auto properties = tableSchema->getProperties();
+        std::remove_if(properties.begin(), properties.end(),
+            [](auto& property) { return skipPropertyInFile(*property); });
+        if (partialColumnNames.empty()) {
+            for (auto& property : properties) {
                 readerConfig.columnNames.push_back(property->getName());
                 readerConfig.columnTypes.push_back(property->getDataType()->copy());
                 columns.push_back(createVariable(property->getName(), *property->getDataType()));
-            } else {
-                nullColumns.push_back(createVariable(property->getName(), *property->getDataType()));
+            }
+        } else {
+            for (auto& columnName : partialColumnNames) {
+                auto it = std::find_if(properties.begin(), properties.end(),
+                    [&columnName](auto& property) { return property->getName() == columnName; });
+                auto property = *it;
+                readerConfig.columnNames.push_back(property->getName());
+                readerConfig.columnTypes.push_back(property->getDataType()->copy());
+                columns.push_back(createVariable(property->getName(), *property->getDataType()));
+                properties.erase(it);
+            }
+            for (auto& property : properties) {
+                nullColumns.push_back(
+                    createVariable(property->getName(), *property->getDataType()));
             }
         }
     } break;
