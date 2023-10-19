@@ -2,24 +2,15 @@
 
 GENERATOR=
 FORCE_COLOR=
-NUM_THREADS=
-TEST_JOBS=
+NUM_THREADS ?= 1
+TEST_JOBS ?= 10
 SANITIZER_FLAG=
 ROOT_DIR=$(CURDIR)
 
-ifndef $(NUM_THREADS)
-	NUM_THREADS=1
-endif
 export CMAKE_BUILD_PARALLEL_LEVEL=$(NUM_THREADS)
 
-ifndef $(TEST_JOBS)
-	TEST_JOBS=10
-endif
-
 ifeq ($(OS),Windows_NT)
-	ifndef $(GEN)
-		GEN=ninja
-	endif
+	GEN ?= ninja
 	SHELL := cmd.exe
 	.SHELLFLAGS := /c
 endif

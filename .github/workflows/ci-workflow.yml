@@ -13,6 +13,11 @@ jobs:
     name: gcc build & test
     needs: [clang-formatting-check, header-include-guard-check]
     runs-on: kuzu-self-hosted-testing
+    env:
+      NUM_THREADS: 32
+      TEST_JOBS: 16
+      CC: gcc
+      CXX: g++
     steps:
       - uses: actions/checkout@v3
 
@@ -26,16 +31,16 @@ jobs:
         working-directory: tools/nodejs_api
 
       - name: Test with coverage
-        run: CC=gcc CXX=g++ make lcov NUM_THREADS=32
+        run: make lcov
 
       - name: Python test
-        run: CC=gcc CXX=g++ make pytest NUM_THREADS=32
+        run: make pytest
 
       - name: Node.js test
-        run: CC=gcc CXX=g++ make nodejstest NUM_THREADS=32
+        run: make nodejstest
 
       - name: Java test
-        run: CC=gcc CXX=g++ make javatest NUM_THREADS=32
+        run: make javatest
 
       - name: Generate coverage report
         run: |
@@ -50,7 +55,7 @@ jobs:
 
       - name: C and C++ Examples
         run: |
-          CC=gcc CXX=g++ make example NUM_THREADS=32
+          make example
 
   rust-build-test:
     name: rust build & test
@@ -82,6 +87,11 @@ jobs:
     name: gcc build & test with asan
     needs: [gcc-build-test]
     runs-on: kuzu-self-hosted-testing
+    env:
+      NUM_THREADS: 32
+      TEST_JOBS: 16
+      CC: gcc
+      CXX: g++
     steps:
       - uses: actions/checkout@v3
 
@@ -95,7 +105,7 @@ jobs:
         working-directory: tools/nodejs_api
 
       - name: Test with ASAN
-        run: CC=gcc CXX=g++ make test ASAN=1 NUM_THREADS=32
+        run: make test ASAN=1
         env:
           ASAN_OPTIONS: "detect_leaks=1:log_path=/tmp/asan.log"
 
@@ -114,6 +124,11 @@ jobs:
     name: clang build, test & tidy
     needs: [clang-formatting-check, header-include-guard-check]
     runs-on: kuzu-self-hosted-testing
+    env:
+      CC: clang-14
+      CXX: clang++-14
+      NUM_THREADS: 32
+      TEST_JOBS: 16
     steps:
       - uses: actions/checkout@v3
 
@@ -127,19 +142,19 @@ jobs:
         working-directory: tools/nodejs_api
 
       - name: Build
-        run: CC=clang-14 CXX=clang++-14 make release NUM_THREADS=32
+        run: make release
 
       - name: Test
-        run: CC=clang-14 CXX=clang++-14 make test NUM_THREADS=32
+        run: make test
 
       - name: Python test
-        run: CC=clang-14 CXX=clang++-14 make pytest NUM_THREADS=32
+        run: make pytest
 
       - name: Node.js test
-        run: CC=clang-14 CXX=clang++-14 make nodejstest NUM_THREADS=32
+        run: make nodejstest
 
       - name: Java test
-        run: CC=clang-14 CXX=clang++-14 make javatest NUM_THREADS=32
+        run: make javatest
 
       - name: Create compilation commands database
         run: make clang-tidy-ci
@@ -161,6 +176,8 @@ jobs:
       # Shorten build path as much as possible
       CARGO_TARGET_DIR: ${{ github.workspace }}/rs
       CARGO_BUILD_JOBS: 18
+      NUM_THREADS: 18
+      TEST_JOBS: 9
     steps:
       - uses: actions/checkout@v3
 
@@ -168,7 +185,7 @@ jobs:
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
-          make test NUM_THREADS=18
+          make test
 
       - name: Rust test
         shell: cmd
@@ -187,13 +204,13 @@ jobs:
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
-          make javatest NUM_THREADS=18
+          make javatest
 
       - name: C and C++ Examples
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
-          make example NUM_THREADS=18
+          make example
 
   header-include-guard-check:
     name: header include guard check
@@ -252,6 +269,9 @@ jobs:
     name: apple clang build & test
     needs: [clang-formatting-check, header-include-guard-check, rustfmt-check]
     runs-on: self-hosted-mac-x64
+    env:
+      NUM_THREADS: 32
+      TEST_JOBS: 16
     steps:
       - uses: actions/checkout@v3
 
@@ -265,32 +285,32 @@ jobs:
         working-directory: tools/nodejs_api
 
       - name: Build
-        run: make release NUM_THREADS=32
+        run: make release
 
       - name: Test
         run: |
           ulimit -n 10240
-          make test NUM_THREADS=32
+          make test
 
       - name: Python test
         run: |
           ulimit -n 10240
-          make pytest NUM_THREADS=32
+          make pytest
 
       - name: C and C++ Examples
         run: |
           ulimit -n 10240
-          make example NUM_THREADS=32
+          make example
 
       - name: Node.js test
         run: |
           ulimit -n 10240
-          make nodejstest NUM_THREADS=32
+          make nodejstest
 
       - name: Java test
         run: |
           ulimit -n 10240
-          make javatest NUM_THREADS=32
+          make javatest
 
       - name: Rust share build
         # Share build cache when building rust API and the example project
@@ -300,7 +320,7 @@ jobs:
         run: |
           ulimit -n 10240
           source /Users/runner/.cargo/env
-          make rusttest NUM_THREADS=32
+          make rusttest
 
       - name: Rust example
         working-directory: examples/rust

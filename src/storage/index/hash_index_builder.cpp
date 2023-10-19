@@ -49,7 +49,7 @@ void HashIndexBuilder<T>::bulkReserve(uint32_t numEntries_) {
     auto numSlotsOfCurrentLevel = 1 << indexHeader->currentLevel;
     while ((numSlotsOfCurrentLevel << 1) < numRequiredSlots) {
         indexHeader->incrementLevel();
-        numSlotsOfCurrentLevel = numSlotsOfCurrentLevel << 1;
+        numSlotsOfCurrentLevel <<= 1;
     }
     if (numRequiredSlots > numSlotsOfCurrentLevel) {
         indexHeader->nextSplitSlotId = numRequiredSlots - numSlotsOfCurrentLevel;
