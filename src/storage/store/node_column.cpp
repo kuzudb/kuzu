@@ -221,8 +221,7 @@ public:
         dataFH->releaseWALPageIdxLock(walPageInfo.originalPageIdx);
     }
 
-protected:
-    void writeInternal(offset_t nodeOffset, ValueVector* vectorToWriteFrom,
+    void write(offset_t nodeOffset, ValueVector* vectorToWriteFrom,
         uint32_t posInVectorToWriteFrom) final {
         writeValue(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
         if (vectorToWriteFrom->isNull(posInVectorToWriteFrom)) {
@@ -458,36 +457,9 @@ void NodeColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
     nullColumn->append(columnChunk->getNullChunk(), nodeGroupIdx);
 }
 
-void NodeColumn::write(ValueVector* nodeIDVector, ValueVector* vectorToWriteFrom) {
-    if (nodeIDVector->state->isFlat() && vectorToWriteFrom->state->isFlat()) {
-        auto nodeOffset =
-            nodeIDVector->readNodeOffset(nodeIDVector->state->selVector->selectedPositions[0]);
-        writeInternal(nodeOffset, vectorToWriteFrom,
-            vectorToWriteFrom->state->selVector->selectedPositions[0]);
-    } else if (nodeIDVector->state->isFlat() && !vectorToWriteFrom->state->isFlat()) {
-        auto nodeOffset =
-            nodeIDVector->readNodeOffset(nodeIDVector->state->selVector->selectedPositions[0]);
-        auto lastPos = vectorToWriteFrom->state->selVector->selectedSize - 1;
-        writeInternal(nodeOffset, vectorToWriteFrom, lastPos);
-    } else if (!nodeIDVector->state->isFlat() && vectorToWriteFrom->state->isFlat()) {
-        for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
-            auto nodeOffset =
-                nodeIDVector->readNodeOffset(nodeIDVector->state->selVector->selectedPositions[i]);
-            writeInternal(nodeOffset, vectorToWriteFrom,
-                vectorToWriteFrom->state->selVector->selectedPositions[0]);
-        }
-    } else if (!nodeIDVector->state->isFlat() && !vectorToWriteFrom->state->isFlat()) {
-        for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
-            auto pos = nodeIDVector->state->selVector->selectedPositions[i];
-            auto nodeOffset = nodeIDVector->readNodeOffset(pos);
-            writeInternal(nodeOffset, vectorToWriteFrom, pos);
-        }
-    }
-}
-
-void NodeColumn::writeInternal(
+void NodeColumn::write(
     offset_t nodeOffset, ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
-    nullColumn->writeInternal(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
+    nullColumn->write(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
     bool isNull = vectorToWriteFrom->isNull(posInVectorToWriteFrom);
     if (isNull) {
         return;

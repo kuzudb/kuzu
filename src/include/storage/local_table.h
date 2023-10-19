@@ -64,7 +64,7 @@ struct LocalVectorFactory {
 
 class LocalColumnChunk {
 public:
-    explicit LocalColumnChunk(common::LogicalType& dataType, MemoryManager* mm)
+    explicit LocalColumnChunk(const common::LogicalType& dataType, MemoryManager* mm)
         : dataType{dataType}, mm{mm} {};
 
     void scan(common::vector_idx_t vectorIdx, common::ValueVector* resultVector);
