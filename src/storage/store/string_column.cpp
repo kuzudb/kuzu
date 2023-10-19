@@ -1,6 +1,5 @@
 #include "storage/store/string_column.h"
 
-#include "common/type_utils.h"
 #include "storage/store/string_column_chunk.h"
 
 using namespace kuzu::catalog;
@@ -10,30 +9,44 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-struct StringColumnFunc {
-    static void writeStringValuesToPage(uint8_t* frame, uint16_t posInFrame, ValueVector* vector,
-        uint32_t posInVector, const CompressionMetadata& /*metadata*/) {
-        auto kuStrInFrame = (ku_string_t*)(frame + (posInFrame * sizeof(ku_string_t)));
-        auto kuStrInVector = vector->getValue<ku_string_t>(posInVector);
-        memcpy(kuStrInFrame->prefix, kuStrInVector.prefix,
-            std::min((uint64_t)kuStrInVector.len, ku_string_t::SHORT_STR_LENGTH));
-        kuStrInFrame->len = kuStrInVector.len;
-        kuStrInFrame->overflowPtr = kuStrInVector.overflowPtr;
-    }
-};
-
 StringColumn::StringColumn(std::unique_ptr<LogicalType> dataType,
     const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
     BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
     RWPropertyStats stats)
     : Column{std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
-          transaction, stats, false /* enableCompression */, true /* requireNullColumn */} {
-    if (this->dataType->getLogicalTypeID() == LogicalTypeID::STRING) {
-        writeFromVectorFunc = StringColumnFunc::writeStringValuesToPage;
+          transaction, stats, true /* enableCompression */, true /* requireNullColumn */} {
+    dataColumn =
+        std::make_unique<Column>(LogicalType::UINT8(), *metaDAHeaderInfo.childrenInfos[0], dataFH,
+            metadataFH, bufferManager, wal, transaction, stats, false, false /*requireNullColumn*/);
+    offsetColumn = std::make_unique<Column>(LogicalType::UINT64(),
+        *metaDAHeaderInfo.childrenInfos[1], dataFH, metadataFH, bufferManager, wal, transaction,
+        stats, enableCompression, false /*requireNullColumn*/);
+}
+
+void StringColumn::scanOffsets(Transaction* transaction, const ReadState& state,
+    string_offset_t* offsets, uint64_t index, uint64_t dataSize) {
+    // We either need to read the next value, or store the maximum string offset at the end.
+    // Otherwise we won't know what the length of the last string is.
+    if (index < state.metadata.numValues - 1) {
+        offsetColumn->scan(transaction, state, index, index + 2, (uint8_t*)offsets);
+    } else {
+        offsetColumn->scan(transaction, state, index, index + 1, (uint8_t*)offsets);
+        offsets[1] = dataSize;
     }
-    overflowMetadataDA = std::make_unique<InMemDiskArray<OverflowColumnChunkMetadata>>(*metadataFH,
-        DBFileID::newMetadataFileID(), metaDAHeaderInfo.childrenInfos[0]->dataDAHPageIdx,
-        bufferManager, wal, transaction);
+}
+
+void StringColumn::scanValueToVector(Transaction* transaction, const ReadState& dataState,
+    string_offset_t startOffset, string_offset_t endOffset, ValueVector* resultVector,
+    uint64_t offsetInVector) {
+    KU_ASSERT(endOffset >= startOffset);
+    // Add string to vector first and read directly into the vector
+    auto& kuString =
+        StringVector::reserveString(resultVector, offsetInVector, endOffset - startOffset);
+    dataColumn->scan(transaction, dataState, startOffset, endOffset, (uint8_t*)kuString.getData());
+    // Update prefix to match the scanned string data
+    if (!ku_string_t::isShortString(kuString.len)) {
+        memcpy(kuString.prefix, kuString.getData(), ku_string_t::PREFIX_LENGTH);
+    }
 }
 
 void StringColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
@@ -41,75 +54,63 @@ void StringColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     uint64_t offsetInVector) {
     nullColumn->scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup, resultVector,
         offsetInVector);
-    Column::scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup, resultVector,
+    scanUnfiltered(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup, resultVector,
         offsetInVector);
-    auto numValuesToRead = endOffsetInGroup - startOffsetInGroup;
-    auto overflowPageIdx = overflowMetadataDA->get(nodeGroupIdx, transaction->getType()).pageIdx;
-    for (auto i = 0u; i < numValuesToRead; i++) {
-        auto pos = offsetInVector + i;
-        if (resultVector->isNull(pos)) {
-            continue;
-        }
-        readStringValueFromOvf(
-            transaction, resultVector->getValue<ku_string_t>(pos), resultVector, overflowPageIdx);
-    }
 }
 
 void StringColumn::scan(
     Transaction* transaction, node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) {
     Column::scan(transaction, nodeGroupIdx, columnChunk);
     auto stringColumnChunk = reinterpret_cast<StringColumnChunk*>(columnChunk);
-    auto overflowMetadata = overflowMetadataDA->get(nodeGroupIdx, TransactionType::WRITE);
-    auto inMemOverflowFile = stringColumnChunk->getOverflowFile();
-    inMemOverflowFile->addNewPages(overflowMetadata.numPages);
-    for (auto i = 0u; i < overflowMetadata.numPages; i++) {
-        auto pageIdx = overflowMetadata.pageIdx + i;
-        FileUtils::readFromFile(dataFH->getFileInfo(), inMemOverflowFile->getPage(i)->data,
-            BufferPoolConstants::PAGE_4KB_SIZE, pageIdx * BufferPoolConstants::PAGE_4KB_SIZE);
+
+    auto dataMetadata = dataColumn->getMetadata(nodeGroupIdx, transaction->getType());
+    // Make sure that the chunk is large enough
+    if (dataMetadata.numValues > stringColumnChunk->getDataChunk()->getCapacity()) {
+        stringColumnChunk->getDataChunk()->resize(std::bit_ceil(dataMetadata.numValues));
     }
+    dataColumn->scan(transaction, nodeGroupIdx, stringColumnChunk->getDataChunk());
+
+    auto offsetMetadata = dataColumn->getMetadata(nodeGroupIdx, transaction->getType());
+    // Make sure that the chunk is large enough
+    if (offsetMetadata.numValues > stringColumnChunk->getOffsetChunk()->getCapacity()) {
+        stringColumnChunk->getOffsetChunk()->resize(std::bit_ceil(offsetMetadata.numValues));
+    }
+    offsetColumn->scan(transaction, nodeGroupIdx, stringColumnChunk->getOffsetChunk());
 }
 
 void StringColumn::append(ColumnChunk* columnChunk, node_group_idx_t nodeGroupIdx) {
     Column::append(columnChunk, nodeGroupIdx);
     auto stringColumnChunk = reinterpret_cast<StringColumnChunk*>(columnChunk);
-    auto startPageIdx = dataFH->addNewPages(stringColumnChunk->getOverflowFile()->getNumPages());
-    auto numPagesForOverflow = stringColumnChunk->flushOverflowBuffer(dataFH, startPageIdx);
-    overflowMetadataDA->resize(nodeGroupIdx + 1);
-    overflowMetadataDA->update(
-        nodeGroupIdx, OverflowColumnChunkMetadata{startPageIdx, numPagesForOverflow,
-                          stringColumnChunk->getLastOffsetInPage()});
+    dataColumn->append(stringColumnChunk->getDataChunk(), nodeGroupIdx);
+    offsetColumn->append(stringColumnChunk->getOffsetChunk(), nodeGroupIdx);
 }
 
-void StringColumn::writeValue(
-    offset_t nodeOffset, ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
+void StringColumn::writeValue(const ColumnChunkMetadata& chunkMeta, offset_t nodeOffset,
+    ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
     auto& kuStr = vectorToWriteFrom->getValue<ku_string_t>(posInVectorToWriteFrom);
-    if (!ku_string_t::isShortString(kuStr.len)) {
-        auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
-        auto overflowMetadata = overflowMetadataDA->get(nodeGroupIdx, TransactionType::WRITE);
-        auto overflowPageIdxInChunk = overflowMetadata.numPages - 1;
-        auto walPageIdxAndFrame = DBFileUtils::createWALVersionIfNecessaryAndPinPage(
-            overflowMetadata.pageIdx + overflowPageIdxInChunk, false /* insertingNewPage */,
-            *dataFH, dbFileID, *bufferManager, *wal);
-        memcpy(walPageIdxAndFrame.frame + overflowMetadata.lastOffsetInPage,
-            reinterpret_cast<uint8_t*>(kuStr.overflowPtr), kuStr.len);
-        bufferManager->unpin(*wal->fileHandle, walPageIdxAndFrame.pageIdxInWAL);
-        dataFH->releaseWALPageIdxLock(walPageIdxAndFrame.originalPageIdx);
-        TypeUtils::encodeOverflowPtr(
-            kuStr.overflowPtr, overflowPageIdxInChunk, overflowMetadata.lastOffsetInPage);
-        overflowMetadata.lastOffsetInPage += kuStr.len;
-        overflowMetadataDA->update(nodeGroupIdx, overflowMetadata);
-    }
-    Column::writeValue(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
+    // Write string data to end of dataColumn
+    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+    auto startOffset =
+        dataColumn->appendValues(nodeGroupIdx, (const uint8_t*)kuStr.getData(), kuStr.len);
+
+    // Write offset
+    string_index_t index =
+        offsetColumn->appendValues(nodeGroupIdx, (const uint8_t*)&startOffset, 1);
+
+    // Write index to main column
+    Column::writeValue(chunkMeta, nodeOffset, (uint8_t*)&index);
 }
 
 void StringColumn::checkpointInMemory() {
     Column::checkpointInMemory();
-    overflowMetadataDA->checkpointInMemoryIfNecessary();
+    dataColumn->checkpointInMemory();
+    offsetColumn->checkpointInMemory();
 }
 
 void StringColumn::rollbackInMemory() {
     Column::rollbackInMemory();
-    overflowMetadataDA->rollbackInMemoryIfNecessary();
+    dataColumn->rollbackInMemory();
+    offsetColumn->rollbackInMemory();
 }
 
 void StringColumn::scanInternal(
@@ -118,15 +119,56 @@ void StringColumn::scanInternal(
     auto startNodeOffset = nodeIDVector->readNodeOffset(0);
     KU_ASSERT(startNodeOffset % DEFAULT_VECTOR_CAPACITY == 0);
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(startNodeOffset);
-    Column::scanInternal(transaction, nodeIDVector, resultVector);
-    auto overflowPageIdx = overflowMetadataDA->get(nodeGroupIdx, transaction->getType()).pageIdx;
+    auto startOffsetInGroup =
+        startNodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+    if (nodeIDVector->state->selVector->isUnfiltered()) {
+        scanUnfiltered(transaction, nodeGroupIdx, startOffsetInGroup,
+            startOffsetInGroup + nodeIDVector->state->selVector->selectedSize, resultVector);
+    } else {
+        scanFiltered(transaction, nodeGroupIdx, startOffsetInGroup, nodeIDVector, resultVector);
+    }
+}
+
+void StringColumn::scanUnfiltered(transaction::Transaction* transaction,
+    node_group_idx_t nodeGroupIdx, offset_t startOffsetInGroup, offset_t endOffsetInGroup,
+    common::ValueVector* resultVector, uint64_t startPosInVector) {
+    auto numValuesToRead = endOffsetInGroup - startOffsetInGroup;
+    auto indices = std::make_unique<string_index_t[]>(numValuesToRead);
+    auto indexState = getReadState(transaction->getType(), nodeGroupIdx);
+    auto offsetState = offsetColumn->getReadState(transaction->getType(), nodeGroupIdx);
+    auto dataState = dataColumn->getReadState(transaction->getType(), nodeGroupIdx);
+    Column::scan(
+        transaction, indexState, startOffsetInGroup, endOffsetInGroup, (uint8_t*)indices.get());
+    for (auto i = 0u; i < numValuesToRead; i++) {
+        if (resultVector->isNull(startPosInVector + i)) {
+            continue;
+        }
+        string_offset_t offsets[2];
+        scanOffsets(transaction, offsetState, offsets, indices[i], dataState.metadata.numValues);
+        scanValueToVector(
+            transaction, dataState, offsets[0], offsets[1], resultVector, startPosInVector + i);
+    }
+}
+
+void StringColumn::scanFiltered(transaction::Transaction* transaction,
+    node_group_idx_t nodeGroupIdx, common::offset_t startOffsetInGroup,
+    common::ValueVector* nodeIDVector, common::ValueVector* resultVector) {
+
+    auto indexState = getReadState(transaction->getType(), nodeGroupIdx);
+    auto offsetState = offsetColumn->getReadState(transaction->getType(), nodeGroupIdx);
+    auto dataState = dataColumn->getReadState(transaction->getType(), nodeGroupIdx);
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[i];
         if (resultVector->isNull(pos)) {
+            // Ignore positions which were scanned as null
             continue;
         }
-        readStringValueFromOvf(
-            transaction, resultVector->getValue<ku_string_t>(pos), resultVector, overflowPageIdx);
+        auto offsetInGroup = startOffsetInGroup + pos;
+        string_index_t index;
+        Column::scan(transaction, indexState, offsetInGroup, offsetInGroup + 1, (uint8_t*)&index);
+        string_offset_t offsets[2];
+        scanOffsets(transaction, offsetState, offsets, index, dataState.metadata.numValues);
+        scanValueToVector(transaction, dataState, offsets[0], offsets[1], resultVector, pos);
     }
 }
 
@@ -134,34 +176,92 @@ void StringColumn::lookupInternal(
     Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
     KU_ASSERT(dataType->getPhysicalType() == PhysicalTypeID::STRING);
     auto startNodeOffset = nodeIDVector->readNodeOffset(0);
-    auto overflowPageIdx =
-        overflowMetadataDA
-            ->get(StorageUtils::getNodeGroupIdx(startNodeOffset), transaction->getType())
-            .pageIdx;
-    Column::lookupInternal(transaction, nodeIDVector, resultVector);
+    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(startNodeOffset);
+
+    auto indexState = getReadState(transaction->getType(), nodeGroupIdx);
+    auto offsetState = offsetColumn->getReadState(transaction->getType(), nodeGroupIdx);
+    auto dataState = dataColumn->getReadState(transaction->getType(), nodeGroupIdx);
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = resultVector->state->selVector->selectedPositions[i];
-        if (!resultVector->isNull(pos)) {
-            readStringValueFromOvf(transaction, resultVector->getValue<ku_string_t>(pos),
-                resultVector, overflowPageIdx);
+        if (resultVector->isNull(pos)) {
+            // Ignore positions which were scanned as null
+            continue;
         }
+        string_offset_t offsets[2];
+        auto offsetInGroup =
+            startNodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx) + pos;
+        string_index_t index;
+        Column::scan(transaction, indexState, offsetInGroup, offsetInGroup + 1, (uint8_t*)&index);
+        scanOffsets(transaction, offsetState, offsets, index, dataState.metadata.numValues);
+        scanValueToVector(transaction, dataState, offsets[0], offsets[1], resultVector, pos);
     }
 }
 
-void StringColumn::readStringValueFromOvf(Transaction* transaction, ku_string_t& kuStr,
-    ValueVector* resultVector, page_idx_t overflowPageIdx) {
-    if (ku_string_t::isShortString(kuStr.len)) {
-        return;
+bool StringColumn::canCommitInPlace(transaction::Transaction* transaction,
+    node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk) {
+    std::vector<row_idx_t> rowIdxesToRead;
+    for (auto& [nodeOffset, rowIdx] : localChunk->getUpdateInfoRef()) {
+        rowIdxesToRead.push_back(rowIdx);
     }
-    PageByteCursor cursor;
-    TypeUtils::decodeOverflowPtr(kuStr.overflowPtr, cursor.pageIdx, cursor.offsetInPage);
-    cursor.pageIdx += overflowPageIdx;
-    auto [fileHandleToPin, pageIdxToPin] = DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(
-        *dataFH, cursor.pageIdx, *wal, transaction->getType());
-    bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) {
-        StringVector::addString(
-            resultVector, kuStr, (const char*)(frame + cursor.offsetInPage), kuStr.len);
-    });
+    for (auto& [nodeOffset, rowIdx] : localChunk->getInsertInfoRef()) {
+        rowIdxesToRead.push_back(rowIdx);
+    }
+    std::sort(rowIdxesToRead.begin(), rowIdxesToRead.end());
+    auto totalStringLengthToAdd = 0u;
+    uint64_t newStrings = rowIdxesToRead.size();
+
+    for (auto rowIdx : rowIdxesToRead) {
+        auto localVector = localChunk->getLocalVector(rowIdx);
+        auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
+
+        auto kuStr = localVector->getVector()->getValue<ku_string_t>(offsetInVector);
+        totalStringLengthToAdd += kuStr.len;
+    }
+
+    // Make sure there is sufficient space in the data chunk (not currently compressed)
+    auto dataColumnMetadata = getDataColumn()->getMetadata(nodeGroupIdx, transaction->getType());
+    auto totalStringDataAfterUpdate = dataColumnMetadata.numValues + totalStringLengthToAdd;
+    if (totalStringDataAfterUpdate >
+        dataColumnMetadata.numPages * BufferPoolConstants::PAGE_4KB_SIZE) {
+        // Data cannot be updated in place
+        return false;
+    }
+
+    // Check if offsets can be updated in-place
+    auto offsetColumnMetadata =
+        getOffsetColumn()->getMetadata(nodeGroupIdx, transaction->getType());
+    auto offsetCapacity =
+        offsetColumnMetadata.compMeta.numValues(
+            BufferPoolConstants::PAGE_4KB_SIZE, *getOffsetColumn()->getDataType()) *
+        offsetColumnMetadata.numPages;
+    auto totalStringsAfterUpdate = offsetColumnMetadata.numValues + newStrings;
+
+    if (totalStringsAfterUpdate > offsetCapacity ||
+        !offsetColumnMetadata.compMeta.canUpdateInPlace(
+            (const uint8_t*)&totalStringDataAfterUpdate, 0, dataType->getPhysicalType())) {
+        return false;
+    }
+
+    // Check if the index column can store the largest new index in-place
+    auto indexColumnMetadata = getMetadata(nodeGroupIdx, transaction->getType());
+    if (!indexColumnMetadata.compMeta.canUpdateInPlace(
+            (const uint8_t*)&totalStringsAfterUpdate, 0, dataType->getPhysicalType())) {
+        return false;
+    }
+
+    // Indices are limited to 32 bits but in theory could be larger than that since the offset
+    // column can grow beyond the node group size.
+    //
+    // E.g. one big string is written first, followed by NODE_GROUP_SIZE-1 small strings,
+    // which are all updated in-place many times (which may fit if the first string is large
+    // enough that 2^n minus the first string's size is large enough to fit the other strings,
+    // for some n.
+    // 32 bits should give plenty of space for updates.
+    if (offsetColumnMetadata.numValues + newStrings >
+        std::numeric_limits<StringColumn::string_index_t>::max()) [[unlikely]] {
+        return false;
+    }
+    return true;
 }
 
 } // namespace storage

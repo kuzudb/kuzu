@@ -1,12 +1,15 @@
 #pragma once
 
-#include "storage/storage_structure/in_mem_file.h"
+#include "common/assert.h"
 #include "storage/store/column_chunk.h"
 
 namespace kuzu {
 namespace storage {
 
 class StringColumnChunk : public ColumnChunk {
+    using string_offset_t = uint64_t;
+    using string_index_t = uint32_t;
+
 public:
     explicit StringColumnChunk(std::unique_ptr<common::LogicalType> dataType, uint64_t capacity);
 
@@ -24,10 +27,19 @@ public:
         KU_UNREACHABLE;
     }
 
-    common::page_idx_t flushOverflowBuffer(BMFileHandle* dataFH, common::page_idx_t startPageIdx);
+    uint64_t getStringLength(common::offset_t pos) const {
+        auto index = ColumnChunk::getValue<string_index_t>(pos);
+        if (index + 1 < offsetChunk->getNumValues()) {
+            KU_ASSERT(offsetChunk->getValue<string_offset_t>(index + 1) >=
+                      offsetChunk->getValue<string_offset_t>(index));
+            return offsetChunk->getValue<string_offset_t>(index + 1) -
+                   offsetChunk->getValue<string_offset_t>(index);
+        }
+        return stringDataChunk->getNumValues() - offsetChunk->getValue<string_offset_t>(index);
+    }
 
-    inline InMemOverflowFile* getOverflowFile() { return overflowFile.get(); }
-    inline common::offset_t getLastOffsetInPage() const { return overflowCursor.offsetInPage; }
+    ColumnChunk* getDataChunk() { return stringDataChunk.get(); }
+    ColumnChunk* getOffsetChunk() { return offsetChunk.get(); }
 
 private:
     void appendStringColumnChunk(StringColumnChunk* other, common::offset_t startPosInOtherChunk,
@@ -36,13 +48,17 @@ private:
     void setValueFromString(const char* value, uint64_t length, uint64_t pos);
 
 private:
-    std::unique_ptr<InMemOverflowFile> overflowFile;
-    PageByteCursor overflowCursor;
+    // String data is stored as a UINT8 chunk, using the numValues in the chunk to track the number
+    // of characters stored.
+    std::unique_ptr<ColumnChunk> stringDataChunk;
+    std::unique_ptr<ColumnChunk> offsetChunk;
 };
 
 // STRING
 template<>
 std::string StringColumnChunk::getValue<std::string>(common::offset_t pos) const;
+template<>
+std::string_view StringColumnChunk::getValue<std::string_view>(common::offset_t pos) const;
 
 } // namespace storage
 } // namespace kuzu

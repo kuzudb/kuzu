@@ -19,12 +19,15 @@ void test_compression(CompressionAlg& alg, std::vector<T> src) {
     const uint8_t* srcCursor = (uint8_t*)src.data();
     alg.compressNextPage(srcCursor, numValuesRemaining, dest.data(), pageSize, metadata);
     std::vector<T> decompressed(src.size());
-    alg.decompressFromPage(dest.data(), 0, (uint8_t*)decompressed.data(), 0, src.size(), metadata);
+    alg.decompressFromPage(dest.data(), 0 /*srcOffset*/, (uint8_t*)decompressed.data(),
+        0 /*dstOffset*/, src.size(), metadata);
     EXPECT_EQ(src, decompressed);
     // works with all bit widths (but not all offsets)
     T value = 0;
-    alg.setValueFromUncompressed((uint8_t*)&value, 0, (uint8_t*)dest.data(), 1, metadata);
-    alg.decompressFromPage(dest.data(), 0, (uint8_t*)decompressed.data(), 0, src.size(), metadata);
+    alg.setValuesFromUncompressed((uint8_t*)&value, 0 /*srcOffset*/, (uint8_t*)dest.data(),
+        1 /*dstOffset*/, 1 /*numValues*/, metadata);
+    alg.decompressFromPage(dest.data(), 0 /*srcOffset*/, (uint8_t*)decompressed.data(),
+        0 /*dstOffset*/, src.size(), metadata);
     src[1] = value;
     EXPECT_EQ(decompressed, src);
     EXPECT_EQ(decompressed[1], value);
@@ -38,8 +41,8 @@ void test_compression(CompressionAlg& alg, std::vector<T> src) {
     // Decompress part of a page
     decompressed.clear();
     decompressed.resize(src.size() / 2);
-    alg.decompressFromPage(
-        dest.data(), src.size() / 3, (uint8_t*)decompressed.data(), 0, src.size() / 2, metadata);
+    alg.decompressFromPage(dest.data(), src.size() / 3 /*srcOffset*/, (uint8_t*)decompressed.data(),
+        0 /*dstOffset*/, src.size() / 2 /*numValues*/, metadata);
     auto expected = std::vector(src);
     expected.erase(expected.begin(), expected.begin() + src.size() / 3);
     expected.resize(src.size() / 2);
@@ -47,8 +50,8 @@ void test_compression(CompressionAlg& alg, std::vector<T> src) {
 
     decompressed.clear();
     decompressed.resize(src.size() / 2);
-    alg.decompressFromPage(
-        dest.data(), src.size() / 7, (uint8_t*)decompressed.data(), 0, src.size() / 2, metadata);
+    alg.decompressFromPage(dest.data(), src.size() / 7 /*srcOffset*/, (uint8_t*)decompressed.data(),
+        0 /*dstOffset*/, src.size() / 2 /*numValues*/, metadata);
     expected = std::vector(src);
     expected.erase(expected.begin(), expected.begin() + src.size() / 7);
     expected.resize(src.size() / 2);

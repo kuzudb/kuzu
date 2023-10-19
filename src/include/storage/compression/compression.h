@@ -42,7 +42,7 @@ struct CompressionMetadata {
     // Returns true if and only if the provided value within the vector can be updated
     // in this chunk in-place.
     bool canUpdateInPlace(
-        const common::ValueVector& vector, uint32_t pos, common::PhysicalTypeID physicalType) const;
+        const uint8_t* data, uint32_t pos, common::PhysicalTypeID physicalType) const;
     bool canAlwaysUpdateInPlace() const;
 };
 
@@ -52,8 +52,8 @@ public:
 
     // Takes a single uncompressed value from the srcBuffer and compresses it into the dstBuffer
     // Offsets refer to value offsets, not byte offsets
-    virtual void setValueFromUncompressed(uint8_t* srcBuffer, common::offset_t posInSrc,
-        uint8_t* dstBuffer, common::offset_t posInDst,
+    virtual void setValuesFromUncompressed(const uint8_t* srcBuffer, common::offset_t srcOffset,
+        uint8_t* dstBuffer, common::offset_t dstOffset, common::offset_t numValues,
         const CompressionMetadata& metadata) const = 0;
 
     // Reads a value from the buffer at the given position and stores it at the given memory address
@@ -102,11 +102,11 @@ public:
 
     Uncompressed(const Uncompressed&) = default;
 
-    inline void setValueFromUncompressed(uint8_t* srcBuffer, common::offset_t posInSrc,
-        uint8_t* dstBuffer, common::offset_t posInDst,
+    inline void setValuesFromUncompressed(const uint8_t* srcBuffer, common::offset_t srcOffset,
+        uint8_t* dstBuffer, common::offset_t dstOffset, common::offset_t numValues,
         const CompressionMetadata& /*metadata*/) const final {
-        memcpy(dstBuffer + posInDst * numBytesPerValue, srcBuffer + posInSrc * numBytesPerValue,
-            numBytesPerValue);
+        memcpy(dstBuffer + dstOffset * numBytesPerValue, srcBuffer + srcOffset * numBytesPerValue,
+            numBytesPerValue * numValues);
     }
 
     inline void getValue(const uint8_t* buffer, common::offset_t posInBuffer, uint8_t* dst,
@@ -185,8 +185,9 @@ public:
     IntegerBitpacking() = default;
     IntegerBitpacking(const IntegerBitpacking&) = default;
 
-    void setValueFromUncompressed(uint8_t* srcBuffer, common::offset_t posInSrc, uint8_t* dstBuffer,
-        common::offset_t posInDst, const CompressionMetadata& metadata) const final;
+    void setValuesFromUncompressed(const uint8_t* srcBuffer, common::offset_t srcOffset,
+        uint8_t* dstBuffer, common::offset_t dstOffset, common::offset_t numValues,
+        const CompressionMetadata& metadata) const final;
 
     // Read a single value from the buffer
     void getValue(const uint8_t* buffer, common::offset_t posInBuffer, uint8_t* dst,
@@ -241,8 +242,9 @@ public:
     BooleanBitpacking() = default;
     BooleanBitpacking(const BooleanBitpacking&) = default;
 
-    void setValueFromUncompressed(uint8_t* srcBuffer, common::offset_t posInSrc, uint8_t* dstBuffer,
-        common::offset_t posInDst, const CompressionMetadata& metadata) const final;
+    void setValuesFromUncompressed(const uint8_t* srcBuffer, common::offset_t srcOffset,
+        uint8_t* dstBuffer, common::offset_t dstOffset, common::offset_t numValues,
+        const CompressionMetadata& metadata) const final;
 
     void getValue(const uint8_t* buffer, common::offset_t posInBuffer, uint8_t* dst,
         common::offset_t posInDst, const CompressionMetadata& metadata) const final;
@@ -294,14 +296,28 @@ public:
         uint32_t startPosInResult, uint64_t numValuesToRead, const CompressionMetadata& metadata);
 };
 
-class WriteCompressedValueToPage : public CompressedFunctor {
+class WriteCompressedValuesToPage : public CompressedFunctor {
 public:
-    explicit WriteCompressedValueToPage(const common::LogicalType& logicalType)
+    explicit WriteCompressedValuesToPage(const common::LogicalType& logicalType)
         : CompressedFunctor(logicalType) {}
-    WriteCompressedValueToPage(const WriteCompressedValueToPage&) = default;
+    WriteCompressedValuesToPage(const WriteCompressedValuesToPage&) = default;
+
+    void operator()(uint8_t* frame, uint16_t posInFrame, const uint8_t* data,
+        common::offset_t dataOffset, common::offset_t numValues,
+        const CompressionMetadata& metadata);
+};
+
+class WriteCompressedValueToPageFromVector {
+public:
+    explicit WriteCompressedValueToPageFromVector(const common::LogicalType& logicalType)
+        : writeFunc(logicalType) {}
+    WriteCompressedValueToPageFromVector(const WriteCompressedValueToPageFromVector&) = default;
 
     void operator()(uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector,
         uint32_t posInVector, const CompressionMetadata& metadata);
+
+private:
+    WriteCompressedValuesToPage writeFunc;
 };
 
 } // namespace storage

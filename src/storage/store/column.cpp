@@ -30,11 +30,20 @@ struct InternalIDColumnFunc {
         }
     }
 
-    static void writeValueToPage(uint8_t* frame, uint16_t posInFrame, ValueVector* vector,
+    static void writeValueToPageFromVector(uint8_t* frame, uint16_t posInFrame, ValueVector* vector,
         uint32_t posInVector, const CompressionMetadata& /*metadata*/) {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
         auto internalID = vector->getValue<internalID_t>(posInVector);
         memcpy(frame + posInFrame * sizeof(offset_t), &internalID.offset, sizeof(offset_t));
+    }
+
+    static void writeValuesToPage(uint8_t* frame, uint16_t posInFrame, const uint8_t* data,
+        uint32_t dataOffset, offset_t numValues, const CompressionMetadata& /*metadata*/) {
+        auto internalIDs = ((internalID_t*)data);
+        for (int i = 0; i < numValues; i++) {
+            memcpy(frame + posInFrame * sizeof(offset_t), &internalIDs[dataOffset + i].offset,
+                sizeof(offset_t));
+        }
     }
 };
 
@@ -49,12 +58,19 @@ struct NullColumnFunc {
             (uint64_t*)frame, pageCursor.elemPosInPage, posInVector, numValuesToRead);
     }
 
-    static void writeValueToPage(uint8_t* frame, uint16_t posInFrame, ValueVector* vector,
+    static void writeValueToPageFromVector(uint8_t* frame, uint16_t posInFrame, ValueVector* vector,
         uint32_t posInVector, const CompressionMetadata& /*metadata*/) {
         // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
         // Otherwise, it could read off the end of the page.
-        NullMask::setNull(
-            (uint64_t*)frame, posInFrame, NullMask::isNull(vector->getNullMaskData(), posInVector));
+        NullMask::setNull((uint64_t*)frame, posInFrame, vector->isNull(posInVector));
+    }
+
+    static void writeValuesToPage(uint8_t* frame, uint16_t posInFrame, const uint8_t* data,
+        offset_t dataOffset, offset_t numValues, const CompressionMetadata& /*metadata*/) {
+        // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
+        // Otherwise, it could read off the end of the page.
+        NullMask::copyNullMask(
+            (const uint64_t*)data, dataOffset, (uint64_t*)frame, posInFrame, numValues);
     }
 };
 
@@ -73,13 +89,21 @@ struct BoolColumnFunc {
         }
     }
 
-    static void writeValueToPage(uint8_t* frame, uint16_t posInFrame, ValueVector* vector,
+    static void writeValueToPageFromVector(uint8_t* frame, uint16_t posInFrame, ValueVector* vector,
         uint32_t posInVector, const CompressionMetadata& /*metadata*/) {
         // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
         // Otherwise, it could read/write off the end of the page.
-        NullMask::copyNullMask(vector->getValue<bool>(posInVector) ? &NullMask::ALL_NULL_ENTRY :
-                                                                     &NullMask::NO_NULL_ENTRY,
-            posInVector, (uint64_t*)frame, posInFrame, 1);
+        NullMask::setNull((uint64_t*)frame, posInFrame, vector->getValue<bool>(posInVector));
+    }
+
+    static void writeValuesToPage(uint8_t* frame, uint16_t posInFrame, const uint8_t* data,
+        offset_t dataOffset, offset_t numValues, const CompressionMetadata& /*metadata*/) {
+        // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
+        // Otherwise, it could read/write off the end of the page.
+        for (offset_t i = 0; i < numValues; i++) {
+            NullMask::setNull(
+                (uint64_t*)frame, posInFrame, NullMask::isNull((uint64_t*)data, dataOffset));
+        }
     }
 
     static void copyValuesFromPage(uint8_t* frame, PageElementCursor& pageCursor, uint8_t* result,
@@ -110,7 +134,7 @@ static read_values_to_vector_func_t getReadValuesToVectorFunc(const LogicalType&
     }
 }
 
-static read_values_to_page_func_t getWriteValuesToPageFunc(const LogicalType& logicalType) {
+static read_values_to_page_func_t getReadValuesToPageFunc(const LogicalType& logicalType) {
     switch (logicalType.getLogicalTypeID()) {
     case LogicalTypeID::BOOL:
         return BoolColumnFunc::copyValuesFromPage;
@@ -119,15 +143,25 @@ static read_values_to_page_func_t getWriteValuesToPageFunc(const LogicalType& lo
     }
 }
 
-static write_values_from_vector_func_t getWriteValuesFromVectorFunc(
-    const LogicalType& logicalType) {
+static write_values_from_vector_func_t getWriteValueFromVectorFunc(const LogicalType& logicalType) {
     switch (logicalType.getLogicalTypeID()) {
     case LogicalTypeID::INTERNAL_ID:
-        return InternalIDColumnFunc::writeValueToPage;
+        return InternalIDColumnFunc::writeValueToPageFromVector;
     case LogicalTypeID::BOOL:
-        return BoolColumnFunc::writeValueToPage;
+        return BoolColumnFunc::writeValueToPageFromVector;
     default:
-        return WriteCompressedValueToPage(logicalType);
+        return WriteCompressedValueToPageFromVector(logicalType);
+    }
+}
+
+static write_values_func_t getWriteValuesFunc(const LogicalType& logicalType) {
+    switch (logicalType.getLogicalTypeID()) {
+    case LogicalTypeID::INTERNAL_ID:
+        return InternalIDColumnFunc::writeValuesToPage;
+    case LogicalTypeID::BOOL:
+        return BoolColumnFunc::writeValuesToPage;
+    default:
+        return WriteCompressedValuesToPage(logicalType);
     }
 }
 
@@ -156,7 +190,8 @@ public:
               bufferManager, wal, transaction, propertyStatistics, enableCompression,
               false /*requireNullColumn*/} {
         readToVectorFunc = NullColumnFunc::readValuesFromPageToVector;
-        writeFromVectorFunc = NullColumnFunc::writeValueToPage;
+        writeFromVectorFunc = NullColumnFunc::writeValueToPageFromVector;
+        writeFunc = NullColumnFunc::writeValuesToPage;
     }
 
     void scan(
@@ -227,7 +262,9 @@ public:
 
     void write(offset_t nodeOffset, ValueVector* vectorToWriteFrom,
         uint32_t posInVectorToWriteFrom) final {
-        writeValue(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
+        auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+        auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
+        writeValue(chunkMeta, nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
         if (vectorToWriteFrom->isNull(posInVectorToWriteFrom)) {
             propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
         }
@@ -296,9 +333,10 @@ Column::Column(std::unique_ptr<common::LogicalType> dataType,
         transaction);
     numBytesPerFixedSizedValue = getDataTypeSizeInChunk(*this->dataType);
     readToVectorFunc = getReadValuesToVectorFunc(*this->dataType);
-    readToPageFunc = getWriteValuesToPageFunc(*this->dataType);
+    readToPageFunc = getReadValuesToPageFunc(*this->dataType);
     batchLookupFunc = getBatchLookupFromPageFunc(*this->dataType);
-    writeFromVectorFunc = getWriteValuesFromVectorFunc(*this->dataType);
+    writeFromVectorFunc = getWriteValueFromVectorFunc(*this->dataType);
+    writeFunc = getWriteValuesFunc(*this->dataType);
     KU_ASSERT(numBytesPerFixedSizedValue <= BufferPoolConstants::PAGE_4KB_SIZE);
     if (requireNullColumn) {
         nullColumn = std::make_unique<NullColumn>(metaDAHeaderInfo.nullDAHPageIdx, dataFH,
@@ -334,13 +372,11 @@ void Column::scan(transaction::Transaction* transaction, node_group_idx_t nodeGr
         nullColumn->scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup,
             resultVector, offsetInVector);
     }
-    auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
-    auto pageCursor = PageUtils::getPageElementCursorForPos(startOffsetInGroup,
-        chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType));
-    pageCursor.pageIdx += chunkMeta.pageIdx;
+    auto state = getReadState(transaction->getType(), nodeGroupIdx);
+    auto pageCursor = getPageCursorForOffsetInGroup(startOffsetInGroup, state);
     auto numValuesToScan = endOffsetInGroup - startOffsetInGroup;
     scanUnfiltered(
-        transaction, pageCursor, numValuesToScan, resultVector, chunkMeta, offsetInVector);
+        transaction, pageCursor, numValuesToScan, resultVector, state.metadata, offsetInVector);
 }
 
 void Column::scan(
@@ -352,6 +388,7 @@ void Column::scan(
         columnChunk->setNumValues(0);
     } else {
         auto chunkMetadata = metadataDA->get(nodeGroupIdx, transaction->getType());
+        KU_ASSERT(chunkMetadata.numValues <= columnChunk->getCapacity());
         auto cursor = PageElementCursor(chunkMetadata.pageIdx, 0);
         uint64_t numValuesPerPage =
             chunkMetadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType);
@@ -375,6 +412,7 @@ void Column::scanInternal(
     Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
     auto startNodeOffset = nodeIDVector->readNodeOffset(0);
     KU_ASSERT(startNodeOffset % DEFAULT_VECTOR_CAPACITY == 0);
+    // TODO: replace with state
     auto cursor = getPageCursorForOffset(transaction->getType(), startNodeOffset);
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(startNodeOffset);
     auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
@@ -493,22 +531,39 @@ void Column::write(
         nullColumn->write(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
     }
     bool isNull = vectorToWriteFrom->isNull(posInVectorToWriteFrom);
-    if (isNull) {
-        return;
-    }
-    writeValue(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
-}
-
-void Column::writeValue(
-    offset_t nodeOffset, ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
-    auto walPageInfo = createWALVersionOfPageForValue(nodeOffset);
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
+    if (!isNull) {
+        writeValue(chunkMeta, nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
+    }
+    if (nodeOffset >= chunkMeta.numValues) {
+        chunkMeta.numValues = nodeOffset + 1;
+        metadataDA->update(nodeGroupIdx, chunkMeta);
+    }
+}
+
+void Column::writeValue(const ColumnChunkMetadata& chunkMeta, offset_t nodeOffset,
+    ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
+    auto walPageInfo = createWALVersionOfPageForValue(nodeOffset);
     KU_ASSERT(
         chunkMeta.pageIdx <= walPageInfo.originalPageIdx < chunkMeta.pageIdx + chunkMeta.numPages);
     try {
         writeFromVectorFunc(walPageInfo.frame, walPageInfo.posInPage, vectorToWriteFrom,
             posInVectorToWriteFrom, chunkMeta.compMeta);
+    } catch (Exception& e) {
+        bufferManager->unpin(*wal->fileHandle, walPageInfo.pageIdxInWAL);
+        dataFH->releaseWALPageIdxLock(walPageInfo.originalPageIdx);
+        throw;
+    }
+    bufferManager->unpin(*wal->fileHandle, walPageInfo.pageIdxInWAL);
+    dataFH->releaseWALPageIdxLock(walPageInfo.originalPageIdx);
+}
+
+void Column::writeValue(
+    const ColumnChunkMetadata& chunkMeta, offset_t nodeOffset, const uint8_t* data) {
+    auto walPageInfo = createWALVersionOfPageForValue(nodeOffset);
+    try {
+        writeFunc(walPageInfo.frame, walPageInfo.posInPage, data, 0, 1, chunkMeta.compMeta);
     } catch (Exception& e) {
         bufferManager->unpin(*wal->fileHandle, walPageInfo.pageIdxInWAL);
         dataFH->releaseWALPageIdxLock(walPageInfo.originalPageIdx);
@@ -529,6 +584,12 @@ WALPageIdxPosInPageAndFrame Column::createWALVersionOfPageForValue(offset_t node
     auto walPageIdxAndFrame = DBFileUtils::createWALVersionIfNecessaryAndPinPage(
         originalPageCursor.pageIdx, insertingNewPage, *dataFH, dbFileID, *bufferManager, *wal);
     return {walPageIdxAndFrame, originalPageCursor.elemPosInPage};
+}
+
+Column::ReadState Column::getReadState(
+    TransactionType transactionType, node_group_idx_t nodeGroupIdx) const {
+    auto metadata = metadataDA->get(nodeGroupIdx, transactionType);
+    return {metadata, metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType)};
 }
 
 void Column::setNull(offset_t nodeOffset) {
@@ -594,7 +655,7 @@ bool Column::canCommitInPlace(
         auto localVector = localChunk->getLocalVector(rowIdx);
         auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
         if (!metadata.compMeta.canUpdateInPlace(
-                *localVector->getVector(), offsetInVector, dataType->getPhysicalType())) {
+                localVector->getVector()->getData(), offsetInVector, dataType->getPhysicalType())) {
             return false;
         }
     }
@@ -691,12 +752,9 @@ void Column::populateWithDefaultVal(const Property& property, Column* column,
 PageElementCursor Column::getPageCursorForOffset(
     TransactionType transactionType, offset_t nodeOffset) {
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
+    auto state = getReadState(transactionType, nodeGroupIdx);
     auto offsetInNodeGroup = nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    auto chunkMeta = metadataDA->get(nodeGroupIdx, transactionType);
-    auto pageCursor = PageUtils::getPageElementCursorForPos(offsetInNodeGroup,
-        chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType));
-    pageCursor.pageIdx += chunkMeta.pageIdx;
-    return pageCursor;
+    return getPageCursorForOffsetInGroup(offsetInNodeGroup, state);
 }
 
 std::unique_ptr<Column> ColumnFactory::createColumn(std::unique_ptr<common::LogicalType> dataType,
@@ -751,6 +809,71 @@ std::unique_ptr<Column> ColumnFactory::createColumn(std::unique_ptr<common::Logi
         KU_UNREACHABLE;
     }
     }
+}
+
+PageElementCursor Column::getPageCursorForOffsetInGroup(
+    common::offset_t nodeOffset, const ReadState& state) {
+    auto pageCursor = PageUtils::getPageElementCursorForPos(nodeOffset, state.numValuesPerPage);
+    pageCursor.pageIdx += state.metadata.pageIdx;
+    return pageCursor;
+}
+
+void Column::scan(Transaction* transaction, const ReadState& state, offset_t startOffsetInGroup,
+    offset_t endOffsetInGroup, uint8_t* result) {
+    auto cursor = getPageCursorForOffsetInGroup(startOffsetInGroup, state);
+    auto numValuesToScan = endOffsetInGroup - startOffsetInGroup;
+    uint64_t numValuesScanned = 0;
+    while (numValuesScanned < numValuesToScan) {
+        uint64_t numValuesToScanInPage =
+            std::min((uint64_t)state.numValuesPerPage - cursor.elemPosInPage,
+                numValuesToScan - numValuesScanned);
+        readFromPage(transaction, cursor.pageIdx, [&](uint8_t* frame) -> void {
+            readToPageFunc(frame, cursor, result, numValuesScanned, numValuesToScanInPage,
+                state.metadata.compMeta);
+        });
+        numValuesScanned += numValuesToScanInPage;
+        cursor.nextPage();
+    }
+}
+
+offset_t Column::appendValues(
+    node_group_idx_t nodeGroupIdx, const uint8_t* data, offset_t numValues) {
+    auto state = getReadState(TransactionType::WRITE, nodeGroupIdx);
+    auto startOffset = state.metadata.numValues;
+    auto cursor = getPageCursorForOffsetInGroup(startOffset, state);
+    offset_t valuesWritten = 0;
+    while (valuesWritten < numValues) {
+        bool insertingNewPage = false;
+        if (cursor.pageIdx >= dataFH->getNumPages()) {
+            KU_ASSERT(cursor.pageIdx == dataFH->getNumPages());
+            DBFileUtils::insertNewPage(*dataFH, dbFileID, *bufferManager, *wal);
+            insertingNewPage = true;
+        }
+
+        uint64_t numValuesToWriteInPage = std::min(
+            (uint64_t)state.numValuesPerPage - cursor.elemPosInPage, numValues - valuesWritten);
+        auto walPageInfo = DBFileUtils::createWALVersionIfNecessaryAndPinPage(
+            cursor.pageIdx, insertingNewPage, *dataFH, dbFileID, *bufferManager, *wal);
+
+        try {
+            writeFunc(walPageInfo.frame, cursor.elemPosInPage, data, 0, numValuesToWriteInPage,
+                state.metadata.compMeta);
+        } catch (Exception& e) {
+            bufferManager->unpin(*wal->fileHandle, walPageInfo.pageIdxInWAL);
+            dataFH->releaseWALPageIdxLock(walPageInfo.originalPageIdx);
+            throw;
+        }
+        bufferManager->unpin(*wal->fileHandle, walPageInfo.pageIdxInWAL);
+        dataFH->releaseWALPageIdxLock(walPageInfo.originalPageIdx);
+        valuesWritten += numValuesToWriteInPage;
+        if (valuesWritten < numValues) {
+            cursor.nextPage();
+            state.metadata.numPages++;
+        }
+    }
+    state.metadata.numValues += numValues;
+    metadataDA->update(nodeGroupIdx, state.metadata);
+    return startOffset;
 }
 
 } // namespace storage
