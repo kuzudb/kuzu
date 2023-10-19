@@ -1,14 +1,11 @@
 #pragma once
 
 #include <functional>
+#include <queue>
 #include <vector>
 
-#include "concurrentqueue.h"
 #include "storage/buffer_manager/bm_file_handle.h"
-
-namespace spdlog {
-class logger;
-}
+#include "storage/buffer_manager/locked_queue.h"
 
 namespace kuzu {
 namespace storage {
@@ -35,13 +32,16 @@ struct EvictionCandidate {
     PageState* pageState = nullptr;
     // The version of the corresponding page at the time the candidate is enqueued.
     uint64_t pageVersion = -1u;
+
+    inline bool operator==(const EvictionCandidate& other) {
+        return fileHandle == other.fileHandle && pageIdx == other.pageIdx &&
+               pageState == other.pageState && pageVersion == other.pageVersion;
+    }
 };
 
 class EvictionQueue {
 public:
-    explicit EvictionQueue(uint64_t capacity) : capacity{capacity} {
-        queue = std::make_unique<moodycamel::ConcurrentQueue<EvictionCandidate>>(capacity);
-    }
+    EvictionQueue() { queue = std::make_unique<LockedQueue<EvictionCandidate>>(); }
 
     inline void enqueue(EvictionCandidate& candidate) {
         std::shared_lock sLck{mtx};
@@ -63,8 +63,7 @@ public:
 
 private:
     std::shared_mutex mtx;
-    uint64_t capacity;
-    std::unique_ptr<moodycamel::ConcurrentQueue<EvictionCandidate>> queue;
+    std::unique_ptr<LockedQueue<EvictionCandidate>> queue;
 };
 
 /**
@@ -193,7 +192,7 @@ public:
     inline common::frame_group_idx_t addNewFrameGroup(common::PageSizeClass pageSizeClass) {
         return vmRegions[pageSizeClass]->addNewFrameGroup();
     }
-    inline void clearEvictionQueue() { evictionQueue = std::make_unique<EvictionQueue>(0); }
+    inline void clearEvictionQueue() { evictionQueue = std::make_unique<EvictionQueue>(); }
 
 private:
     bool claimAFrame(
@@ -221,7 +220,6 @@ private:
     }
 
 private:
-    std::shared_ptr<spdlog::logger> logger;
     std::atomic<uint64_t> usedMemory;
     std::atomic<uint64_t> bufferPoolSize;
     std::atomic<uint64_t> numEvictionQueueInsertions;
