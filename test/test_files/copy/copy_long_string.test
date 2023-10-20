@@ -1,20 +1,13 @@
 -GROUP CopyLongStringTest
--DATASET CSV copy-fault-tests/long-string
--SKIP
+-DATASET CSV empty
 
 --
 
 -CASE LongStringError
--DEFINE AliceStr REPEAT 819 "Alice"
 
--LOG LongStringAlice
--STATEMENT MATCH (p:person) RETURN p.fName;
----- 2
-${AliceStr}A
-Bob
-
--LOG Gender
--STATEMENT MATCH (p:person) RETURN p.gender
----- 2
-1
-2
+-LOG LongStringError
+-STATEMENT create node table person1 (ID INT64, fName STRING, gender INT64, PRIMARY KEY (ID));
+---- ok
+-STATEMENT copy person1 from '${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/long-string/vPerson.csv';
+---- error
+Copy exception: Maximum length of strings is 4096. Input string's length is 5625.

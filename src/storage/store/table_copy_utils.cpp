@@ -2,6 +2,7 @@
 
 #include "common/constants.h"
 #include "common/exception/copy.h"
+#include "common/exception/message.h"
 #include "common/exception/parser.h"
 #include "common/string_format.h"
 #include "function/cast/cast_utils.h"
@@ -505,6 +506,12 @@ std::unique_ptr<arrow::PrimitiveArray> TableCopyUtils::createArrowPrimitiveArray
     const std::shared_ptr<arrow::DataType>& type, std::shared_ptr<arrow::Buffer> buffer,
     uint64_t length) {
     return std::make_unique<arrow::PrimitiveArray>(type, length, buffer);
+}
+
+void TableCopyUtils::validateStrLen(uint64_t strLen) {
+    if (strLen > BufferPoolConstants::PAGE_4KB_SIZE) {
+        throw CopyException(ExceptionMessage::overLargeStringValueException(strLen));
+    }
 }
 
 std::string TableCopyUtils::parseStructFieldName(std::string_view structString, uint64_t& curPos) {

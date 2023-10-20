@@ -650,16 +650,14 @@ void copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std::string_view
         vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::BLOB: {
-        if (strVal.length() > BufferPoolConstants::PAGE_4KB_SIZE) {
-            throw CopyException(
-                ExceptionMessage::overLargeStringValueException(std::to_string(strVal.length())));
-        }
+        storage::TableCopyUtils::validateStrLen(strVal.length());
         auto blobBuffer = std::make_unique<uint8_t[]>(strVal.length());
         auto blobLen = Blob::fromString(strVal.data(), strVal.length(), blobBuffer.get());
         StringVector::addString(
             vector, rowToAdd, reinterpret_cast<char*>(blobBuffer.get()), blobLen);
     } break;
     case LogicalTypeID::STRING: {
+        storage::TableCopyUtils::validateStrLen(strVal.length());
         if (!utf8proc::Utf8Proc::isValid(strVal.data(), strVal.length())) {
             throw common::CopyException{"Invalid UTF8-encoded string."};
         }

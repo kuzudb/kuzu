@@ -108,10 +108,7 @@ void StringColumnChunk::write(const Value& val, uint64_t posToWrite) {
 }
 
 void StringColumnChunk::setValueFromString(const char* value, uint64_t length, uint64_t pos) {
-    if (length > BufferPoolConstants::PAGE_4KB_SIZE) {
-        throw CopyException(
-            ExceptionMessage::overLargeStringValueException(std::to_string(length)));
-    }
+    TableCopyUtils::validateStrLen(length);
     auto val = overflowFile->copyString(value, length, overflowCursor);
     setValue(val, pos);
 }

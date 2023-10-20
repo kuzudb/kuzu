@@ -57,8 +57,7 @@ private:
 
     void write(const common::Value& listVal, uint64_t posToWrite) override;
 
-private:
-    VarListDataColumnChunk varListDataColumnChunk;
+    void copyListValues(const common::list_entry_t& entry, common::ValueVector* dataVector);
 
     inline uint64_t getListLen(common::offset_t offset) const {
         return getListOffset(offset + 1) - getListOffset(offset);
@@ -67,6 +66,9 @@ private:
     inline common::offset_t getListOffset(common::offset_t offset) const {
         return offset == 0 ? 0 : getValue<uint64_t>(offset - 1);
     }
+
+private:
+    VarListDataColumnChunk varListDataColumnChunk;
 };
 
 } // namespace storage
