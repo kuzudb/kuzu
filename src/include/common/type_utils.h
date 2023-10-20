@@ -40,7 +40,8 @@ public:
     static std::string prefixConversionExceptionMessage(const char* data, LogicalTypeID dataTypeID);
 
 private:
-    static std::string castValueToString(const LogicalType& dataType, uint8_t* value, void* vector);
+    static std::string castValueToString(
+        const LogicalType& dataType, const uint8_t* value, void* vector);
 };
 
 // Forward declaration of template specializations.
@@ -58,6 +59,8 @@ template<>
 std::string TypeUtils::toString(const ku_string_t& val, void* valueVector);
 template<>
 std::string TypeUtils::toString(const list_entry_t& val, void* valueVector);
+template<>
+std::string TypeUtils::toString(const map_entry_t& val, void* valueVector);
 template<>
 std::string TypeUtils::toString(const struct_entry_t& val, void* valueVector);
 

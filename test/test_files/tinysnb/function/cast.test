@@ -217,9 +217,9 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 -LOG CastStructToString
 -STATEMENT MATCH (o:organisation) RETURN string(o.state)
 ---- 3
-{138,['toronto', 'montr,eal'],{[96,56],1000}}
-{152,["vanco,uver north area"],{[15,78,671],432}}
-{558,['very long city name', 'new york'],{[22],99}}
+{revenue: 138, location: ['toronto', 'montr,eal'], stock: {price: [96,56], volume: 1000}}
+{revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}
+{revenue: 558, location: ['very long city name', 'new york'], stock: {price: [22], volume: 99}}
 
 -LOG CastInt8ToDouble
 -STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_double(e.level)

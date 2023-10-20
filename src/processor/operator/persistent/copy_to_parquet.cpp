@@ -3,9 +3,13 @@
 namespace kuzu {
 namespace processor {
 
+using namespace kuzu::common;
+using namespace kuzu::storage;
+
 void CopyToParquetLocalState::init(
-    CopyToParquetInfo* info, storage::MemoryManager* mm, ResultSet* resultSet) {
-    ft = std::make_unique<FactorizedTable>(mm, std::move(info->tableSchema));
+    CopyToInfo* info, storage::MemoryManager* mm, ResultSet* resultSet) {
+    auto copyToInfo = reinterpret_cast<CopyToParquetInfo*>(info);
+    ft = std::make_unique<FactorizedTable>(mm, std::move(copyToInfo->tableSchema));
     vectorsToAppend.reserve(info->dataPoses.size());
     for (auto& pos : info->dataPoses) {
         vectorsToAppend.push_back(resultSet->getValueVector(pos).get());
@@ -13,27 +17,29 @@ void CopyToParquetLocalState::init(
     this->mm = mm;
 }
 
-std::vector<std::unique_ptr<common::LogicalType>> CopyToParquetInfo::copyTypes() {
-    std::vector<std::unique_ptr<common::LogicalType>> copiedTypes;
-    for (auto& type : types) {
-        copiedTypes.push_back(type->copy());
+void CopyToParquetLocalState::sink(CopyToSharedState* sharedState) {
+    ft->append(vectorsToAppend);
+    if (ft->getTotalNumFlatTuples() > StorageConstants::NODE_GROUP_SIZE) {
+        reinterpret_cast<CopyToParquetSharedState*>(sharedState)->flush(*ft);
     }
-    return copiedTypes;
 }
 
-void CopyToParquet::initLocalStateInternal(
-    kuzu::processor::ResultSet* resultSet, kuzu::processor::ExecutionContext* context) {
-    localState->init(info.get(), context->memoryManager, resultSet);
+void CopyToParquetLocalState::finalize(CopyToSharedState* sharedState) {
+    reinterpret_cast<CopyToParquetSharedState*>(sharedState)->flush(*ft);
 }
 
-void CopyToParquet::executeInternal(kuzu::processor::ExecutionContext* context) {
-    while (children[0]->getNextTuple(context)) {
-        localState->append();
-        if (localState->ft->getTotalNumFlatTuples() > common::StorageConstants::NODE_GROUP_SIZE) {
-            sharedState->writer->flush(*localState->ft);
-        }
-    }
-    sharedState->writer->flush(*localState->ft);
+void CopyToParquetSharedState::init(CopyToInfo* info, MemoryManager* mm) {
+    auto parquetInfo = reinterpret_cast<CopyToParquetInfo*>(info);
+    writer = std::make_unique<ParquetWriter>(parquetInfo->fileName,
+        LogicalType::copy(parquetInfo->types), parquetInfo->names, parquetInfo->codec, mm);
+}
+
+void CopyToParquetSharedState::finalize() {
+    writer->finalize();
+}
+
+void CopyToParquetSharedState::flush(FactorizedTable& ft) {
+    writer->flush(ft);
 }
 
 } // namespace processor

@@ -11,6 +11,7 @@ add_library(kuzu_processor_operator_persistent
         copy_rel_columns.cpp
         copy_rel_lists.cpp
         copy_to.cpp
+        copy_to_csv.cpp
         copy_to_parquet.cpp
         csv_file_writer.cpp
         delete.cpp

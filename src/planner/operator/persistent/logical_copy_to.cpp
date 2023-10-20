@@ -21,7 +21,7 @@ f_group_pos_set LogicalCopyTo::getGroupsPosToFlatten() {
             dependentGroupsPos.insert(grouPos);
         }
     }
-    return factorization::FlattenAll::getGroupsPosToFlatten(dependentGroupsPos, childSchema);
+    return factorization::FlattenAllButOne::getGroupsPosToFlatten(dependentGroupsPos, childSchema);
 }
 
 } // namespace planner

@@ -118,6 +118,7 @@ struct CastToIntervalVectorFunction : public VectorCastFunction {
 };
 
 struct CastToStringVectorFunction : public VectorCastFunction {
+    static void getUnaryCastExecFunction(common::LogicalTypeID typeID, scalar_exec_func& func);
     static vector_function_definitions getDefinitions();
 };
 

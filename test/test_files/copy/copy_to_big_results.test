@@ -84,7 +84,7 @@ dateColumn DATE, timestampColumn TIMESTAMP, stringColumn STRING, listOfInt INT64
 
 ---- ok
 
--STATEMENT COPY tableOfTypesCopyCSV FROM '${DATABASE_PATH}/out.csv' (HEADER=TRUE);
+-STATEMENT COPY tableOfTypesCopyCSV FROM '${DATABASE_PATH}/out.csv';
 ---- ok
 
 -INSERT_STATEMENT_BLOCK VALIDATE_RESULT

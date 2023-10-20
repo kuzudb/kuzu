@@ -47,7 +47,7 @@ TEST(StringFormat, FormatString) {
     std::string a_string = "abc";
     char a_c_string[] = "def";
     std::string another_string = "ghi";
-    std::string_view a_view(another_string.begin(), another_string.end());
+    std::string_view a_view(another_string.c_str());
     ASSERT_EQ(stringFormat("{} {} {}", a_string, a_c_string, a_view), "abc def ghi");
 }
 

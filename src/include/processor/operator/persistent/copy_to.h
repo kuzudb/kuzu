@@ -1,58 +1,67 @@
 #pragma once
 
-#include "common/copier_config/copier_config.h"
-#include "common/task_system/task_scheduler.h"
-#include "processor/operator/persistent/csv_file_writer.h"
-#include "processor/operator/persistent/file_writer.h"
-#include "processor/operator/physical_operator.h"
 #include "processor/operator/sink.h"
 #include "processor/result/result_set.h"
 
 namespace kuzu {
 namespace processor {
 
+struct CopyToInfo {
+    std::vector<std::string> names;
+    std::vector<DataPos> dataPoses;
+    std::string fileName;
+
+    CopyToInfo(std::vector<std::string> names, std::vector<DataPos> dataPoses, std::string fileName)
+        : names{std::move(names)}, dataPoses{std::move(dataPoses)}, fileName{std::move(fileName)} {}
+
+    virtual ~CopyToInfo() = default;
+
+    virtual std::unique_ptr<CopyToInfo> copy() = 0;
+};
+
+class CopyToSharedState;
+
+class CopyToLocalState {
+public:
+    virtual ~CopyToLocalState() = default;
+
+    virtual void init(CopyToInfo* info, storage::MemoryManager* mm, ResultSet* resultSet) = 0;
+
+    virtual void sink(CopyToSharedState* sharedState) = 0;
+
+    virtual void finalize(CopyToSharedState* sharedState) = 0;
+};
+
 class CopyToSharedState {
 public:
-    CopyToSharedState(common::FileType fileType, std::string& filePath,
-        std::vector<std::string>& columnNames,
-        std::vector<std::unique_ptr<common::LogicalType>> columnTypes) {
-        assert(fileType == common::FileType::CSV);
-        fileWriter = std::make_unique<processor::CSVFileWriter>(
-            filePath, columnNames, std::move(columnTypes));
-    }
-    inline std::unique_ptr<FileWriter>& getWriter() { return fileWriter; }
+    virtual ~CopyToSharedState() = default;
 
-private:
-    std::unique_ptr<FileWriter> fileWriter;
+    virtual void init(CopyToInfo* info, storage::MemoryManager* mm) = 0;
+
+    virtual void finalize() = 0;
 };
 
 class CopyTo : public Sink {
 public:
     CopyTo(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        std::shared_ptr<CopyToSharedState> sharedState, std::vector<DataPos> vectorsToCopyPos,
-        uint32_t id, const std::string& paramsString, std::unique_ptr<PhysicalOperator> child)
-        : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::COPY_TO, std::move(child), id,
-              paramsString},
-          sharedState{std::move(sharedState)}, vectorsToCopyPos{std::move(vectorsToCopyPos)} {}
+        std::unique_ptr<CopyToInfo> info, std::unique_ptr<CopyToLocalState> localState,
+        std::shared_ptr<CopyToSharedState> sharedState, PhysicalOperatorType opType,
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
+        : Sink{std::move(resultSetDescriptor), opType, std::move(child), id, paramsString},
+          info{std::move(info)}, localState{std::move(localState)}, sharedState{
+                                                                        std::move(sharedState)} {}
 
-    inline bool canParallel() const final { return false; }
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
 
-    void executeInternal(ExecutionContext* context) final;
+    void initGlobalStateInternal(ExecutionContext* context) final;
 
     void finalize(ExecutionContext* context) final;
 
-    std::unique_ptr<PhysicalOperator> clone() final {
-        return make_unique<CopyTo>(resultSetDescriptor->copy(), sharedState, vectorsToCopyPos, id,
-            paramsString, children[0]->clone());
-    }
+    void executeInternal(processor::ExecutionContext* context) final;
 
 protected:
-    std::vector<DataPos> vectorsToCopyPos;
-
-private:
-    void initGlobalStateInternal(ExecutionContext* context) override;
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
-    std::vector<common::ValueVector*> outputVectors;
+    std::unique_ptr<CopyToInfo> info;
+    std::unique_ptr<CopyToLocalState> localState;
     std::shared_ptr<CopyToSharedState> sharedState;
 };
 
