@@ -91,6 +91,22 @@ struct VectorFunction {
         UnaryFunctionExecutor::execute<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
     }
 
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void UnaryStringExecFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        common::ValueVector& result) {
+        assert(params.size() == 1);
+        UnaryFunctionExecutor::executeString<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
+    }
+
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void UnaryCastExecFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        common::ValueVector& result) {
+        assert(params.size() == 1);
+        UnaryFunctionExecutor::executeCast<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
+    }
+
     template<typename RESULT_TYPE, typename FUNC>
     static void ConstExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result) {

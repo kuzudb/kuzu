@@ -420,3 +420,12 @@ The license is valid until 82:00:00.1 test
 -ENUMERATE
 ---- 1
 9
+
+-LOG IntervalImplicitCast
+-STATEMENT CREATE NODE TABLE A(id SERIAL, intv INTERVAL, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (a:A {intv: "1 year 2 days"});
+---- ok
+-STATEMENT MATCH (a:A) RETURN a.intv;
+---- 1
+1 year 2 days

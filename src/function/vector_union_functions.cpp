@@ -49,7 +49,7 @@ vector_function_definitions UnionTagVectorFunction::getDefinitions() {
     vector_function_definitions definitions;
     definitions.push_back(make_unique<VectorFunctionDefinition>(UNION_TAG_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::UNION}, LogicalTypeID::STRING,
-        UnaryExecListStructFunction<struct_entry_t, ku_string_t, UnionTag>, nullptr, nullptr,
+        UnaryExecListStructFunction<union_entry_t, ku_string_t, UnionTag>, nullptr, nullptr,
         false /* isVarLength */));
     return definitions;
 }

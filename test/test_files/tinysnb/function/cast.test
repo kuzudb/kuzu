@@ -531,3 +531,9 @@ False
 -STATEMENT RETURN to_int8(to_int128(1)), to_int16(to_int128(2)), to_int32(to_int128(3)), to_int64(to_int128(4)), to_uint8(to_int128(5)), to_uint16(to_int128(6)), to_uint32(to_int128(7)), to_uint64(to_int128(8))
 ---- 1
 1|2|3|4|5|6|7|8
+
+-LOG CastInt128ToOtherTypes
+-STATEMENT RETURN TO_FLOAT(170141183460469231731687303715884105727), TO_INT64(-4324324);
+---- 1
+170141183460469231731687303715884105728.000000|-4324324
+

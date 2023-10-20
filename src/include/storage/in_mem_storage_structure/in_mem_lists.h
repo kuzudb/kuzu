@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/copier_config/copier_config.h"
+#include "function/cast/functions/cast_string_to_functions.h"
 #include "storage/storage_structure/in_mem_file.h"
 #include "storage/storage_structure/lists/list_headers.h"
 #include "storage/storage_structure/lists/lists_metadata.h"
@@ -48,7 +49,11 @@ public:
     void setValue(common::offset_t nodeOffset, uint64_t pos, uint8_t* val);
     template<typename T>
     void setValueFromString(
-        common::offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length);
+        common::offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
+        T result;
+        function::CastStringToTypes::operation(val, length, result);
+        setValue(nodeOffset, pos, (uint8_t*)&result);
+    }
 
     virtual inline InMemOverflowFile* getInMemOverflowFile() { return nullptr; }
     inline ListsMetadataBuilder* getListsMetadataBuilder() { return listsMetadataBuilder.get(); }
@@ -200,25 +205,9 @@ template<>
 void InMemLists::templateCopyArrayToRelLists<bool>(
     arrow::Array* boundNodeOffsets, arrow::Array* posInRelList, arrow::Array* array);
 
-// BOOL
-template<>
-void InMemLists::setValueFromString<bool>(
-    common::offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length);
 // FIXED_LIST
 template<>
 void InMemLists::setValueFromString<uint8_t*>(
-    common::offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length);
-// INTERVAL
-template<>
-void InMemLists::setValueFromString<common::interval_t>(
-    common::offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length);
-// DATE
-template<>
-void InMemLists::setValueFromString<common::date_t>(
-    common::offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length);
-// TIMESTAMP
-template<>
-void InMemLists::setValueFromString<common::timestamp_t>(
     common::offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length);
 
 template<>

@@ -1,6 +1,6 @@
 #include "processor/operator/persistent/writer/parquet/basic_column_writer.h"
 
-#include "function/cast/numeric_limits.h"
+#include "function/cast/functions/numeric_limits.h"
 #include "processor/operator/persistent/reader/parquet/parquet_rle_bp_decoder.h"
 #include "processor/operator/persistent/writer//parquet/parquet_rle_bp_encoder.h"
 #include "processor/operator/persistent/writer/parquet/parquet_writer.h"

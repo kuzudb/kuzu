@@ -68,7 +68,9 @@ struct map_entry_t {
     list_entry_t entry;
 };
 
-using union_entry_t = struct_entry_t;
+struct union_entry_t {
+    int64_t pos;
+};
 
 enum class KUZU_API LogicalTypeID : uint8_t {
     ANY = 0,

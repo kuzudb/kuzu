@@ -5,7 +5,6 @@
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "compression.h"
-#include "function/cast/cast_utils.h"
 #include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/wal/wal.h"
 #include "transaction/transaction.h"

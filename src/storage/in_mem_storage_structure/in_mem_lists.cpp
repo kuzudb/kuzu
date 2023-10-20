@@ -163,22 +163,6 @@ void InMemLists::setValue(offset_t nodeOffset, uint64_t pos, uint8_t* val) {
             numBytesForElement);
 }
 
-template<typename T>
-void InMemLists::setValueFromString(
-    offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
-    auto numericVal = function::castStringToNum<T>(val, length);
-    setValue(nodeOffset, pos, (uint8_t*)&numericVal);
-}
-
-template<>
-void InMemLists::setValueFromString<bool>(
-    offset_t nodeOffset, uint64_t pos, const char* val, uint64_t /*length*/) {
-    std::istringstream boolStream{std::string(val)};
-    bool booleanVal;
-    boolStream >> std::boolalpha >> booleanVal;
-    setValue(nodeOffset, pos, (uint8_t*)&booleanVal);
-}
-
 // Fixed list
 template<>
 void InMemLists::setValueFromString<uint8_t*>(
@@ -186,30 +170,6 @@ void InMemLists::setValueFromString<uint8_t*>(
     auto fixedListVal =
         TableCopyUtils::getArrowFixedList(val, 1, length - 2, dataType, *csvReaderConfig);
     setValue(nodeOffset, pos, fixedListVal.get());
-}
-
-// Interval
-template<>
-void InMemLists::setValueFromString<interval_t>(
-    offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
-    auto intervalVal = Interval::fromCString(val, length);
-    setValue(nodeOffset, pos, (uint8_t*)&intervalVal);
-}
-
-// Date
-template<>
-void InMemLists::setValueFromString<date_t>(
-    offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
-    auto dateVal = Date::fromCString(val, length);
-    setValue(nodeOffset, pos, (uint8_t*)&dateVal);
-}
-
-// Timestamp
-template<>
-void InMemLists::setValueFromString<timestamp_t>(
-    offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
-    auto timestampVal = Timestamp::fromCString(val, length);
-    setValue(nodeOffset, pos, (uint8_t*)&timestampVal);
 }
 
 void InMemLists::initListsMetadataAndAllocatePages(

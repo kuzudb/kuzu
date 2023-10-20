@@ -40,7 +40,7 @@ struct VectorStringFunction : public VectorFunction {
     }
 
     template<class OPERATION>
-    static inline vector_function_definitions getUnaryStrFunctionDefintion(std::string funcName) {
+    static inline vector_function_definitions getUnaryStrFunctionDefinition(std::string funcName) {
         vector_function_definitions definitions;
         definitions.emplace_back(std::make_unique<VectorFunctionDefinition>(funcName,
             std::vector<common::LogicalTypeID>{common::LogicalTypeID::STRING},
@@ -73,7 +73,7 @@ struct LeftVectorFunction : public VectorStringFunction {
 
 struct LowerVectorFunction : public VectorStringFunction {
     static inline vector_function_definitions getDefinitions() {
-        return getUnaryStrFunctionDefintion<Lower>(common::LOWER_FUNC_NAME);
+        return getUnaryStrFunctionDefinition<Lower>(common::LOWER_FUNC_NAME);
     }
 };
 
@@ -83,7 +83,7 @@ struct LpadVectorFunction : public VectorStringFunction {
 
 struct LtrimVectorFunction : public VectorStringFunction {
     static inline vector_function_definitions getDefinitions() {
-        return getUnaryStrFunctionDefintion<Ltrim>(common::LTRIM_FUNC_NAME);
+        return getUnaryStrFunctionDefinition<Ltrim>(common::LTRIM_FUNC_NAME);
     }
 };
 
@@ -93,7 +93,7 @@ struct RepeatVectorFunction : public VectorStringFunction {
 
 struct ReverseVectorFunction : public VectorStringFunction {
     static inline vector_function_definitions getDefinitions() {
-        return getUnaryStrFunctionDefintion<Reverse>(common::REVERSE_FUNC_NAME);
+        return getUnaryStrFunctionDefinition<Reverse>(common::REVERSE_FUNC_NAME);
     }
 };
 
@@ -107,7 +107,7 @@ struct RpadVectorFunction : public VectorStringFunction {
 
 struct RtrimVectorFunction : public VectorStringFunction {
     static inline vector_function_definitions getDefinitions() {
-        return getUnaryStrFunctionDefintion<Rtrim>(common::RTRIM_FUNC_NAME);
+        return getUnaryStrFunctionDefinition<Rtrim>(common::RTRIM_FUNC_NAME);
     }
 };
 
@@ -121,13 +121,13 @@ struct SubStrVectorFunction : public VectorStringFunction {
 
 struct TrimVectorFunction : public VectorStringFunction {
     static inline vector_function_definitions getDefinitions() {
-        return getUnaryStrFunctionDefintion<Trim>(common::TRIM_FUNC_NAME);
+        return getUnaryStrFunctionDefinition<Trim>(common::TRIM_FUNC_NAME);
     }
 };
 
 struct UpperVectorFunction : public VectorStringFunction {
     static inline vector_function_definitions getDefinitions() {
-        return getUnaryStrFunctionDefintion<Upper>(common::UPPER_FUNC_NAME);
+        return getUnaryStrFunctionDefinition<Upper>(common::UPPER_FUNC_NAME);
     }
 };
 

@@ -1,34 +1,35 @@
 -GROUP TinySnbExceptionTest
--DATASET CSV tinysnb
+-DATASET CSV empty
 
 --
 
--CASE DivideBy0Error
+-CASE EXCEPTION
+-LOG DivideBy0Error
 -STATEMENT RETURN 1 / 0
 ---- error
 Runtime exception: Divide by zero.
 
--CASE ModuloBy0Error
+-LOG ModuloBy0Error
 -STATEMENT RETURN 1 % 0
 ---- error
 Runtime exception: Modulo by zero.
 
--CASE EmptyQuery
+-LOG EmptyQuery
 -STATEMENT  
 ---- error
 Connection Exception: Query is empty.
 
--CASE Overflow
+-LOG Overflow
 -STATEMENT RETURN to_int16(10000000000)
 ---- error
-Runtime exception: Value 10000000000 is not within INT16 range
+Overflow exception: Value 10000000000 is not within INT16 range
 
--CASE Int32PrimaryKey
+-LOG Int32PrimaryKey
 -STATEMENT CREATE NODE TABLE play(a INT32, PRIMARY KEY (a))
 ---- error
 Binder exception: Invalid primary key type: INT32. Expected STRING or INT64.
 
--CASE UnalignedKeyAndValueList
+-LOG UnalignedKeyAndValueList
 -STATEMENT RETURN MAP([4],[3,2])
 ---- error
 Runtime exception: Unaligned key list and value list.

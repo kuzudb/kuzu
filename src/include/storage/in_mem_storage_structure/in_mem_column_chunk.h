@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/types/types.h"
-#include "function/cast/cast_utils.h"
+#include "function/cast/functions/cast_string_to_functions.h"
 #include "storage/storage_structure/in_mem_file.h"
 #include "storage/store/table_copy_utils.h"
 #include <arrow/array/array_base.h>
@@ -50,10 +50,10 @@ public:
     template<typename T>
     void templateCopyValuesToPage(arrow::Array& array, arrow::Array* nodeOffsets);
 
-    template<typename T, typename... Args>
-    void setValueFromString(
-        const char* value, uint64_t length, common::offset_t pos, Args... /*args*/) {
-        auto val = function::castStringToNum<T>(value, length);
+    template<typename T>
+    void setValueFromString(const char* value, uint64_t length, common::offset_t pos) {
+        T val;
+        function::CastStringToTypes::operation(value, length, val);
         setValue(val, pos);
     }
 
@@ -141,25 +141,9 @@ template<>
 void InMemColumnChunk::templateCopyValuesToPage<uint8_t*>(
     arrow::Array& array, arrow::Array* offsets);
 
-// BOOL
-template<>
-void InMemColumnChunk::setValueFromString<bool>(
-    const char* value, uint64_t length, common::offset_t pos);
 // FIXED_LIST
 template<>
 void InMemColumnChunk::setValueFromString<uint8_t*>(
-    const char* value, uint64_t length, uint64_t pos);
-// INTERVAL
-template<>
-void InMemColumnChunk::setValueFromString<common::interval_t>(
-    const char* value, uint64_t length, uint64_t pos);
-// DATE
-template<>
-void InMemColumnChunk::setValueFromString<common::date_t>(
-    const char* value, uint64_t length, uint64_t pos);
-// TIMESTAMP
-template<>
-void InMemColumnChunk::setValueFromString<common::timestamp_t>(
     const char* value, uint64_t length, uint64_t pos);
 
 } // namespace storage
