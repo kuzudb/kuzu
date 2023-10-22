@@ -45,8 +45,7 @@ void StringLocalVector::update(
     sel_t offsetInLocalVector, ValueVector* updateVector, sel_t offsetInUpdateVector) {
     auto kuStr = updateVector->getValue<ku_string_t>(offsetInUpdateVector);
     if (kuStr.len > BufferPoolConstants::PAGE_4KB_SIZE) {
-        throw RuntimeException(
-            ExceptionMessage::overLargeStringValueException(std::to_string(kuStr.len)));
+        throw RuntimeException(ExceptionMessage::overLargeStringValueException(kuStr.len));
     } else if (!ku_string_t::isShortString(kuStr.len)) {
         ovfStringLength += kuStr.len;
     }

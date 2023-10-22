@@ -358,10 +358,7 @@ void InMemColumnChunkWithOverflow::templateCopyValuesAsStringToPageWithOverflow(
 template<>
 void InMemColumnChunkWithOverflow::setValWithOverflow<ku_string_t>(
     PageByteCursor& overflowCursor, const char* value, uint64_t length, uint64_t pos) {
-    if (length > BufferPoolConstants::PAGE_4KB_SIZE) {
-        throw CopyException(
-            ExceptionMessage::overLargeStringValueException(std::to_string(length)));
-    }
+    TableCopyUtils::validateStrLen(length);
     auto val = inMemOverflowFile->copyString(value, length, overflowCursor);
     setValue(val, pos);
 }

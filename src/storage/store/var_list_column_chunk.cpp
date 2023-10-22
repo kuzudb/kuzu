@@ -86,14 +86,25 @@ void VarListColumnChunk::append(common::ValueVector* vector, common::offset_t st
         if (vector->isNull(pos)) {
             continue;
         }
-        auto listEntry = vector->getValue<list_entry_t>(pos);
-        dataVector->state->selVector->selectedSize = listEntry.size;
-        for (auto j = 0u; j < listEntry.size; j++) {
-            dataVector->state->selVector->selectedPositions[j] = listEntry.offset + j;
-        }
-        varListDataColumnChunk.append(dataVector);
+        copyListValues(vector->getValue<list_entry_t>(pos), dataVector);
     }
     numValues += vector->state->selVector->selectedSize;
+}
+
+void VarListColumnChunk::copyListValues(const list_entry_t& entry, ValueVector* dataVector) {
+    auto numListValuesToCopy = entry.size;
+    auto numListValuesCopied = 0;
+    while (numListValuesCopied < numListValuesToCopy) {
+        auto numListValuesToCopyInBatch =
+            std::min<uint64_t>(numListValuesToCopy - numListValuesCopied, DEFAULT_VECTOR_CAPACITY);
+        dataVector->state->selVector->selectedSize = numListValuesToCopyInBatch;
+        for (auto j = 0u; j < numListValuesToCopyInBatch; j++) {
+            dataVector->state->selVector->selectedPositions[j] =
+                entry.offset + numListValuesCopied + j;
+        }
+        varListDataColumnChunk.append(dataVector);
+        numListValuesCopied += numListValuesToCopyInBatch;
+    }
 }
 
 } // namespace storage

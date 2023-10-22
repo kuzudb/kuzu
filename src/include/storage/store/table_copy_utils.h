@@ -63,6 +63,7 @@ public:
     static std::unique_ptr<arrow::PrimitiveArray> createArrowPrimitiveArray(
         const std::shared_ptr<arrow::DataType>& type, std::shared_ptr<arrow::Buffer> buffer,
         uint64_t length);
+    static void validateStrLen(uint64_t strLen);
 
 private:
     static std::unique_ptr<common::Value> convertStringToValue(std::string_view element,

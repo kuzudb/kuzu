@@ -21,7 +21,7 @@ std::string ExceptionMessage::invalidPKType(const std::string& type) {
         type);
 }
 
-std::string ExceptionMessage::overLargeStringValueException(const std::string& length) {
+std::string ExceptionMessage::overLargeStringValueException(uint64_t length) {
     return stringFormat("Maximum length of strings is 4096. Input string's length is {}.", length);
 }
 
