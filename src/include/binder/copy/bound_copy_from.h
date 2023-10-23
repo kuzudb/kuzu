@@ -31,8 +31,8 @@ struct BoundCopyFromInfo {
         std::unique_ptr<BoundFileScanInfo> fileScanInfo, expression_vector nullColumns,
         bool containsSerial, std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo)
         : tableSchema{tableSchema}, fileScanInfo{std::move(fileScanInfo)},
-          nullColumns{std::move(nullColumns)}, containsSerial{containsSerial},
-          extraInfo{std::move(extraInfo)} {}
+          nullColumns{std::move(nullColumns)}, containsSerial{containsSerial}, extraInfo{std::move(
+                                                                                   extraInfo)} {}
     BoundCopyFromInfo(const BoundCopyFromInfo& other)
         : tableSchema{other.tableSchema}, fileScanInfo{other.fileScanInfo->copy()},
           nullColumns{other.nullColumns}, containsSerial{other.containsSerial} {

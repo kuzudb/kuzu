@@ -41,14 +41,16 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     return std::make_unique<BoundCopyTo>(std::move(readerConfig), std::move(query));
 }
 
-static void validatePartialColumns(TableSchema* schema, const std::vector<std::string>& partialColumnNames) {
-    for (auto& columnName: partialColumnNames) {
+static void validatePartialColumns(
+    TableSchema* schema, const std::vector<std::string>& partialColumnNames) {
+    for (auto& columnName : partialColumnNames) {
         if (!schema->containProperty(columnName)) {
             throw BinderException(StringUtils::string_format(
                 "Table {} does not contain column {}.", schema->tableName, columnName));
         }
     }
-    std::set<std::string> uniquePartialColumnNames(partialColumnNames.begin(), partialColumnNames.end());
+    std::set<std::string> uniquePartialColumnNames(
+        partialColumnNames.begin(), partialColumnNames.end());
     if (uniquePartialColumnNames.size() != partialColumnNames.size()) {
         throw BinderException("Specified columns contain duplicates.");
     }
@@ -121,7 +123,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     }
     switch (tableSchema->tableType) {
     case TableType::NODE:
-        return bindCopyNodeFrom(std::move(readerConfig), tableSchema, copyStatement.getColumnNames());
+        return bindCopyNodeFrom(
+            std::move(readerConfig), tableSchema, copyStatement.getColumnNames());
     case TableType::REL: {
         if (readerConfig->fileType == FileType::TURTLE) {
             return bindCopyRdfRelFrom(std::move(readerConfig), tableSchema);
@@ -134,9 +137,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     }
 }
 
-std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(
-    std::unique_ptr<ReaderConfig> readerConfig, TableSchema* tableSchema,
-    const std::vector<std::string>& partialColumnNames) {
+std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(std::unique_ptr<ReaderConfig> readerConfig,
+    TableSchema* tableSchema, const std::vector<std::string>& partialColumnNames) {
     // For table with SERIAL columns, we need to read in serial from files.
     auto containsSerial = bindContainsSerial(tableSchema);
     auto columnsPair = bindExpectedNodeFileColumns(tableSchema, *readerConfig, partialColumnNames);
@@ -172,8 +174,9 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(
     auto extraCopyRelInfo = std::make_unique<ExtraBoundCopyRelInfo>(
         srcTableSchema, dstTableSchema, srcOffset, dstOffset, srcKey, dstKey);
     expression_vector nullColumns; // to be implemented
-    auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(
-        tableSchema, std::move(boundFileScanInfo), std::move(nullColumns), containsSerial, std::move(extraCopyRelInfo));
+    auto boundCopyFromInfo =
+        std::make_unique<BoundCopyFromInfo>(tableSchema, std::move(boundFileScanInfo),
+            std::move(nullColumns), containsSerial, std::move(extraCopyRelInfo));
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
@@ -204,8 +207,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfRelFrom(
     auto extraInfo = std::make_unique<ExtraBoundCopyRdfRelInfo>(nodeTableID, subjectOffset,
         predicateOffset, objectOffset, subjectKey, predicateKey, objectKey);
     expression_vector nullColumns;
-    auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(
-        tableSchema, std::move(boundFileScanInfo), std::move(nullColumns), containsSerial, std::move(extraInfo));
+    auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(tableSchema,
+        std::move(boundFileScanInfo), std::move(nullColumns), containsSerial, std::move(extraInfo));
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 

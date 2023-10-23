@@ -53,7 +53,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
         dataColumnPoses = readerInfo->dataColumnsPos;
         dataColumnPosesIsNull.assign(readerInfo->dataColumnsPos.size(), false);
     } else {
-        auto numDataColumnPoses = readerInfo->dataColumnsPos.size() + copyFromInfo->nullColumns.size();
+        auto numDataColumnPoses =
+            readerInfo->dataColumnsPos.size() + copyFromInfo->nullColumns.size();
         dataColumnPoses.reserve(numDataColumnPoses);
         dataColumnPosesIsNull.reserve(numDataColumnPoses);
         auto nullColumnsIt = copyFromInfo->nullColumns.begin();

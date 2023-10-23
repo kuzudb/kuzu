@@ -57,9 +57,10 @@ struct CopyNodeInfo {
     CopyNodeInfo(std::vector<DataPos> dataColumnPoses, std::vector<bool> dataColumnPosesIsNull,
         storage::NodeTable* table, storage::RelsStore* relsStore, catalog::Catalog* catalog,
         storage::WAL* wal, bool containsSerial)
-        : dataColumnPoses{std::move(dataColumnPoses)},
-          dataColumnPosesIsNull{std::move(dataColumnPosesIsNull)}, table{table}, relsStore{relsStore},
-          catalog{catalog}, wal{wal}, containsSerial{containsSerial} {}
+        : dataColumnPoses{std::move(dataColumnPoses)}, dataColumnPosesIsNull{std::move(
+                                                           dataColumnPosesIsNull)},
+          table{table}, relsStore{relsStore}, catalog{catalog}, wal{wal}, containsSerial{
+                                                                              containsSerial} {}
 };
 
 class CopyNode : public Sink {
