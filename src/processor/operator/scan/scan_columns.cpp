@@ -3,7 +3,7 @@
 namespace kuzu {
 namespace processor {
 
-void ScanColumns::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+void ScanColumns::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {
     inputNodeIDVector = resultSet->getValueVector(inputNodeIDVectorPos).get();
     for (auto& dataPos : outPropertyVectorsPos) {
         auto vector = resultSet->getValueVector(dataPos);

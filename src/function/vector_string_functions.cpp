@@ -295,7 +295,7 @@ vector_function_definitions RegexpExtractAllVectorFunction::getDefinitions() {
 }
 
 std::unique_ptr<FunctionBindData> RegexpExtractAllVectorFunction::bindFunc(
-    const binder::expression_vector& arguments, FunctionDefinition* definition) {
+    const binder::expression_vector& /*arguments*/, FunctionDefinition* /*definition*/) {
     return std::make_unique<FunctionBindData>(LogicalType(LogicalTypeID::VAR_LIST,
         std::make_unique<VarListTypeInfo>(std::make_unique<LogicalType>(LogicalTypeID::STRING))));
 }

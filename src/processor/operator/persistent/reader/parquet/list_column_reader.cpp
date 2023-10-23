@@ -38,8 +38,8 @@ void ListColumnReader::applyPendingSkips(uint64_t numValues) {
     }
 }
 
-uint64_t ListColumnReader::read(uint64_t numValues, parquet_filter_t& filter, uint8_t* defineOut,
-    uint8_t* repeatOut, common::ValueVector* resultOut) {
+uint64_t ListColumnReader::read(uint64_t numValues, parquet_filter_t& /*filter*/,
+    uint8_t* defineOut, uint8_t* repeatOut, common::ValueVector* resultOut) {
     common::offset_t resultOffset = 0;
     auto resultPtr = reinterpret_cast<common::list_entry_t*>(resultOut->getData());
 

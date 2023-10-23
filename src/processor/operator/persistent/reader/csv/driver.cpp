@@ -100,10 +100,11 @@ struct CountPartOperation {
     uint64_t count = 0;
 
     static inline bool handleKey(
-        const char* start, const char* end, const CSVReaderConfig& config) {
+        const char* /*start*/, const char* /*end*/, const CSVReaderConfig& /*config*/) {
         return true;
     }
-    inline void handleValue(const char* start, const char* end, const CSVReaderConfig& config) {
+    inline void handleValue(
+        const char* /*start*/, const char* /*end*/, const CSVReaderConfig& /*config*/) {
         count++;
     }
 };
@@ -130,7 +131,8 @@ struct SplitStringFixedListOperation {
     uint64_t& offset;
     ValueVector* resultVector;
 
-    void handleValue(const char* start, const char* end, const CSVReaderConfig& csvReaderConfig) {
+    void handleValue(
+        const char* start, const char* end, const CSVReaderConfig& /*csvReaderConfig*/) {
         T value;
         auto str = std::string_view{start, (uint32_t)(end - start)};
         if (str.empty() || isNull(str)) {
@@ -724,7 +726,7 @@ void ParsingDriver::addValue(
         chunk.getValueVector(columnIdx).get(), rowNum, value, reader->csvReaderConfig);
 }
 
-bool ParsingDriver::addRow(uint64_t rowNum, common::column_id_t columnCount) {
+bool ParsingDriver::addRow(uint64_t /*rowNum*/, common::column_id_t columnCount) {
     BaseCSVReader* reader = getReader();
     if (rowEmpty) {
         rowEmpty = false;

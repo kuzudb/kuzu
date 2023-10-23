@@ -8,7 +8,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void Profile::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+void Profile::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {
     outputVector = resultSet->getValueVector(outputPos).get();
 }
 

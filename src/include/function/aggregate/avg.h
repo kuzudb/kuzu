@@ -25,7 +25,7 @@ struct AvgFunction {
     static std::unique_ptr<AggregateState> initialize() { return std::make_unique<AvgState>(); }
 
     static void updateAll(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
-        storage::MemoryManager* memoryManager) {
+        storage::MemoryManager* /*memoryManager*/) {
         auto state = reinterpret_cast<AvgState*>(state_);
         assert(!input->state->isFlat());
         if (input->hasNoNullsGuarantee()) {
@@ -44,7 +44,7 @@ struct AvgFunction {
     }
 
     static inline void updatePos(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
-        uint32_t pos, storage::MemoryManager* memoryManager) {
+        uint32_t pos, storage::MemoryManager* /*memoryManager*/) {
         updateSingleValue(reinterpret_cast<AvgState*>(state_), input, pos, multiplicity);
     }
 
@@ -63,7 +63,7 @@ struct AvgFunction {
     }
 
     static void combine(
-        uint8_t* state_, uint8_t* otherState_, storage::MemoryManager* memoryManager) {
+        uint8_t* state_, uint8_t* otherState_, storage::MemoryManager* /*memoryManager*/) {
         auto otherState = reinterpret_cast<AvgState*>(otherState_);
         if (otherState->isNull) {
             return;

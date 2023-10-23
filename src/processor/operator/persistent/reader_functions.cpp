@@ -170,12 +170,12 @@ void ReaderFunctions::validateNPYFiles(const common::ReaderConfig& config) {
 }
 
 row_idx_t ReaderFunctions::countRowsNoOp(
-    const common::ReaderConfig& config, MemoryManager* memoryManager) {
+    const common::ReaderConfig& /*config*/, MemoryManager* /*memoryManager*/) {
     return INVALID_ROW_IDX;
 }
 
 row_idx_t ReaderFunctions::countRowsInCSVFile(
-    const common::ReaderConfig& config, storage::MemoryManager* memoryManager) {
+    const common::ReaderConfig& config, storage::MemoryManager* /*memoryManager*/) {
     row_idx_t numRows = 0;
     for (const auto& path : config.filePaths) {
         auto reader = make_unique<SerialCSVReader>(path, config);
@@ -185,7 +185,7 @@ row_idx_t ReaderFunctions::countRowsInCSVFile(
 }
 
 row_idx_t ReaderFunctions::countRowsInRelParquetFile(
-    const common::ReaderConfig& config, MemoryManager* memoryManager) {
+    const common::ReaderConfig& config, MemoryManager* /*memoryManager*/) {
     row_idx_t numRows = 0;
     for (const auto& path : config.filePaths) {
         std::unique_ptr<parquet::arrow::FileReader> reader =
@@ -206,7 +206,7 @@ row_idx_t ReaderFunctions::countRowsInParquetFile(
 }
 
 row_idx_t ReaderFunctions::countRowsInNPYFile(
-    const common::ReaderConfig& config, MemoryManager* memoryManager) {
+    const common::ReaderConfig& config, MemoryManager* /*memoryManager*/) {
     assert(config.getNumFiles() != 0);
     auto reader = make_unique<NpyReader>(config.filePaths[0]);
     return reader->getNumRows();
@@ -233,7 +233,7 @@ row_idx_t ReaderFunctions::countRowsInRDFFile(
 }
 
 void ReaderFunctions::initRelCSVReadData(ReaderFunctionData& funcData, vector_idx_t fileIdx,
-    const common::ReaderConfig& config, MemoryManager* memoryManager) {
+    const common::ReaderConfig& config, MemoryManager* /*memoryManager*/) {
     assert(fileIdx < config.getNumFiles());
     funcData.fileIdx = fileIdx;
     reinterpret_cast<RelCSVReaderFunctionData&>(funcData).reader =
@@ -241,7 +241,7 @@ void ReaderFunctions::initRelCSVReadData(ReaderFunctionData& funcData, vector_id
 }
 
 void ReaderFunctions::initSerialCSVReadData(ReaderFunctionData& funcData, vector_idx_t fileIdx,
-    const common::ReaderConfig& config, MemoryManager* memoryManager) {
+    const common::ReaderConfig& config, MemoryManager* /*memoryManager*/) {
     assert(fileIdx < config.getNumFiles());
     funcData.fileIdx = fileIdx;
     reinterpret_cast<SerialCSVReaderFunctionData&>(funcData).reader =
@@ -249,7 +249,7 @@ void ReaderFunctions::initSerialCSVReadData(ReaderFunctionData& funcData, vector
 }
 
 void ReaderFunctions::initParallelCSVReadData(ReaderFunctionData& funcData, vector_idx_t fileIdx,
-    const common::ReaderConfig& config, MemoryManager* memoryManager) {
+    const common::ReaderConfig& config, MemoryManager* /*memoryManager*/) {
     assert(fileIdx < config.getNumFiles());
     funcData.fileIdx = fileIdx;
     reinterpret_cast<ParallelCSVReaderFunctionData&>(funcData).reader =
@@ -257,7 +257,7 @@ void ReaderFunctions::initParallelCSVReadData(ReaderFunctionData& funcData, vect
 }
 
 void ReaderFunctions::initRelParquetReadData(ReaderFunctionData& funcData, vector_idx_t fileIdx,
-    const common::ReaderConfig& config, MemoryManager* memoryManager) {
+    const common::ReaderConfig& config, MemoryManager* /*memoryManager*/) {
     assert(fileIdx < config.getNumFiles());
     funcData.fileIdx = fileIdx;
     reinterpret_cast<RelParquetReaderFunctionData&>(funcData).reader =
@@ -275,21 +275,21 @@ void ReaderFunctions::initParquetReadData(ReaderFunctionData& funcData, vector_i
 }
 
 void ReaderFunctions::initNPYReadData(ReaderFunctionData& funcData, vector_idx_t fileIdx,
-    const common::ReaderConfig& config, MemoryManager* memoryManager) {
+    const common::ReaderConfig& config, MemoryManager* /*memoryManager*/) {
     funcData.fileIdx = fileIdx;
     reinterpret_cast<NPYReaderFunctionData&>(funcData).reader =
         make_unique<NpyMultiFileReader>(config.filePaths);
 }
 
 void ReaderFunctions::initRDFReadData(ReaderFunctionData& funcData, vector_idx_t fileIdx,
-    const common::ReaderConfig& config, MemoryManager* memoryManager) {
+    const common::ReaderConfig& config, MemoryManager* /*memoryManager*/) {
     funcData.fileIdx = fileIdx;
     reinterpret_cast<RDFReaderFunctionData&>(funcData).reader =
         make_unique<RDFReader>(config.filePaths[0]);
 }
 
 void ReaderFunctions::readRowsFromRelCSVFile(const kuzu::processor::ReaderFunctionData& funcData,
-    common::block_idx_t blockIdx, common::DataChunk* dataChunkToRead) {
+    common::block_idx_t /*blockIdx*/, common::DataChunk* dataChunkToRead) {
     auto& readerData = reinterpret_cast<const RelCSVReaderFunctionData&>(funcData);
     std::shared_ptr<arrow::RecordBatch> recordBatch;
     TableCopyUtils::throwCopyExceptionIfNotOK(readerData.reader->ReadNext(&recordBatch));
@@ -364,7 +364,7 @@ void ReaderFunctions::readRowsFromNPYFile(const ReaderFunctionData& functionData
 }
 
 void ReaderFunctions::readRowsFromRDFFile(const ReaderFunctionData& functionData,
-    common::block_idx_t blockIdx, common::DataChunk* dataChunkToRead) {
+    common::block_idx_t /*blockIdx*/, common::DataChunk* dataChunkToRead) {
     auto& readerData = reinterpret_cast<const RDFReaderFunctionData&>(functionData);
     readerData.reader->read(dataChunkToRead);
 }

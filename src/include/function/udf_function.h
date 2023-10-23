@@ -77,8 +77,8 @@ struct UDF {
     }
 
     template<typename RESULT_TYPE, typename... Args>
-    static function::scalar_exec_func createUnaryExecFunc(
-        RESULT_TYPE (*udfFunc)(Args...), std::vector<common::LogicalTypeID> parameterTypes) {
+    static function::scalar_exec_func createUnaryExecFunc(RESULT_TYPE (*/*udfFunc*/)(Args...),
+        std::vector<common::LogicalTypeID> /*parameterTypes*/) {
         throw common::NotImplementedException{"function::createUnaryExecFunc()"};
     }
 
@@ -102,8 +102,8 @@ struct UDF {
     }
 
     template<typename RESULT_TYPE, typename... Args>
-    static function::scalar_exec_func createBinaryExecFunc(
-        RESULT_TYPE (*udfFunc)(Args...), std::vector<common::LogicalTypeID> parameterTypes) {
+    static function::scalar_exec_func createBinaryExecFunc(RESULT_TYPE (*/*udfFunc*/)(Args...),
+        std::vector<common::LogicalTypeID> /*parameterTypes*/) {
         throw common::NotImplementedException{"function::createBinaryExecFunc()"};
     }
 
@@ -129,8 +129,8 @@ struct UDF {
     }
 
     template<typename RESULT_TYPE, typename... Args>
-    static function::scalar_exec_func createTernaryExecFunc(
-        RESULT_TYPE (*udfFunc)(Args...), std::vector<common::LogicalTypeID> parameterTypes) {
+    static function::scalar_exec_func createTernaryExecFunc(RESULT_TYPE (*/*udfFunc*/)(Args...),
+        std::vector<common::LogicalTypeID> /*parameterTypes*/) {
         throw common::NotImplementedException{"function::createTernaryExecFunc()"};
     }
 

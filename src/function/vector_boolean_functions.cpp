@@ -82,6 +82,7 @@ void VectorBooleanFunction::bindBinarySelectFunction(ExpressionType expressionTy
 void VectorBooleanFunction::bindUnaryExecFunction(ExpressionType expressionType,
     const binder::expression_vector& children, scalar_exec_func& func) {
     assert(children.size() == 1 && children[0]->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
+    (void)children;
     switch (expressionType) {
     case NOT: {
         func = &UnaryBooleanExecFunction<Not>;
@@ -96,6 +97,7 @@ void VectorBooleanFunction::bindUnaryExecFunction(ExpressionType expressionType,
 void VectorBooleanFunction::bindUnarySelectFunction(ExpressionType expressionType,
     const binder::expression_vector& children, scalar_select_func& func) {
     assert(children.size() == 1 && children[0]->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
+    (void)children;
     switch (expressionType) {
     case NOT: {
         func = &UnaryBooleanSelectFunction<Not>;

@@ -30,7 +30,7 @@ public:
     }
 
     inline void markVisited(common::nodeID_t boundNodeID, common::nodeID_t nbrNodeID,
-        common::nodeID_t relID, uint64_t multiplicity) final {
+        common::nodeID_t relID, uint64_t /*multiplicity*/) final {
         if (visited.contains(nbrNodeID)) {
             return;
         }

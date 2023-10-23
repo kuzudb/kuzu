@@ -22,7 +22,7 @@ bool BaseAggregate::containDistinctAggregate() const {
     return false;
 }
 
-void BaseAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+void BaseAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {
     for (auto& inputInfo : aggregateInputInfos) {
         auto aggregateInput = std::make_unique<AggregateInput>();
         if (inputInfo->aggregateVectorPos.dataChunkPos == INVALID_DATA_CHUNK_POS) {

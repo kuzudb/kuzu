@@ -3,7 +3,7 @@
 namespace kuzu {
 namespace processor {
 
-void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {
     inNodeVector = resultSet->getValueVector(posInfo->inNodeVectorPos).get();
     outNodeVector = resultSet->getValueVector(posInfo->outNodeVectorPos).get();
     for (auto& dataPos : posInfo->outVectorsPos) {

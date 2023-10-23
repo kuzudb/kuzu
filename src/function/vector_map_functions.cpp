@@ -22,7 +22,8 @@ vector_function_definitions MapCreationVectorFunctions::getDefinitions() {
 }
 
 std::unique_ptr<FunctionBindData> MapCreationVectorFunctions::bindFunc(
-    const binder::expression_vector& arguments, kuzu::function::FunctionDefinition* definition) {
+    const binder::expression_vector& arguments,
+    kuzu::function::FunctionDefinition* /*definition*/) {
     auto keyType = VarListType::getChildType(&arguments[0]->dataType);
     auto valueType = VarListType::getChildType(&arguments[1]->dataType);
     std::vector<std::unique_ptr<StructField>> structFields;
@@ -77,7 +78,8 @@ vector_function_definitions MapKeysVectorFunctions::getDefinitions() {
 }
 
 std::unique_ptr<FunctionBindData> MapKeysVectorFunctions::bindFunc(
-    const binder::expression_vector& arguments, kuzu::function::FunctionDefinition* definition) {
+    const binder::expression_vector& arguments,
+    kuzu::function::FunctionDefinition* /*definition*/) {
     auto returnListInfo = std::make_unique<VarListTypeInfo>(
         std::make_unique<LogicalType>(*MapType::getKeyType(&arguments[0]->dataType)));
     return std::make_unique<FunctionBindData>(
@@ -95,7 +97,8 @@ vector_function_definitions MapValuesVectorFunctions::getDefinitions() {
 }
 
 std::unique_ptr<FunctionBindData> MapValuesVectorFunctions::bindFunc(
-    const binder::expression_vector& arguments, kuzu::function::FunctionDefinition* definition) {
+    const binder::expression_vector& arguments,
+    kuzu::function::FunctionDefinition* /*definition*/) {
     auto returnListInfo = std::make_unique<VarListTypeInfo>(
         std::make_unique<LogicalType>(*MapType::getValueType(&arguments[0]->dataType)));
     return std::make_unique<FunctionBindData>(

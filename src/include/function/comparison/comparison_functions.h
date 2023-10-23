@@ -12,7 +12,7 @@ namespace function {
 struct Equals {
     template<class A, class B>
     static inline void operation(const A& left, const B& right, uint8_t& result,
-        common::ValueVector* leftVector, common::ValueVector* rightVector) {
+        common::ValueVector* /*leftVector*/, common::ValueVector* /*rightVector*/) {
         result = left == right;
     }
 };
@@ -29,7 +29,7 @@ struct NotEquals {
 struct GreaterThan {
     template<class A, class B>
     static inline void operation(const A& left, const B& right, uint8_t& result,
-        common::ValueVector* leftVector, common::ValueVector* rightVector) {
+        common::ValueVector* /*leftVector*/, common::ValueVector* /*rightVector*/) {
         result = left > right;
     }
 };

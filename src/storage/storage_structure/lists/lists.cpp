@@ -237,7 +237,7 @@ void ListPropertyLists::readFromList(ValueVector* valueVector, ListHandle& listH
 }
 
 void AdjLists::readValues(
-    Transaction* transaction, ValueVector* valueVector, ListHandle& listHandle) {
+    Transaction* /*transaction*/, ValueVector* valueVector, ListHandle& listHandle) {
     valueVector->state->selVector->resetSelectorToUnselected();
     if (listHandle.getListSourceStore() == ListSourceStore::UPDATE_STORE) {
         readFromListsUpdatesStore(listHandle, valueVector);

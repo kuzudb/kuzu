@@ -260,7 +260,7 @@ void EmbeddedShell::run() {
     }
 }
 
-void EmbeddedShell::interruptHandler(int signal) {
+void EmbeddedShell::interruptHandler(int  /*signal*/) {
     globalConnection->interrupt();
 }
 

@@ -5,7 +5,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void ParquetColumnWriter::nextParquetColumn(LogicalTypeID logicalTypeID) {
+void ParquetColumnWriter::nextParquetColumn(LogicalTypeID /*logicalTypeID*/) {
     columnWriter = rowGroupWriter->column(currentParquetColumn);
     currentParquetColumn++;
     if (currentParquetColumn == totalColumns) {
@@ -185,7 +185,7 @@ void ParquetColumnWriter::extractNested(uint8_t* value, const ValueVector* vecto
 
 void ParquetColumnWriter::extractList(const list_entry_t& list, const ValueVector* vector,
     std::map<std::string, ParquetColumn>& parquetColumns, int currentElementIdx,
-    int parentElementIdx, int depth, std::string parentStructFieldName) {
+    int /*parentElementIdx*/, int depth, std::string parentStructFieldName) {
     auto values = ListVector::getListValues(vector, list);
     auto dataVector = ListVector::getDataVector(vector);
     depth++;

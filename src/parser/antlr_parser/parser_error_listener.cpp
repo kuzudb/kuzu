@@ -10,7 +10,7 @@ namespace kuzu {
 namespace parser {
 
 void ParserErrorListener::syntaxError(Recognizer* recognizer, Token* offendingSymbol, size_t line,
-    size_t charPositionInLine, const std::string& msg, std::exception_ptr e) {
+    size_t charPositionInLine, const std::string& msg, std::exception_ptr /*e*/) {
     auto finalError = msg + " (line: " + std::to_string(line) +
                       ", offset: " + std::to_string(charPositionInLine) + ")\n" +
                       formatUnderLineError(*recognizer, *offendingSymbol, line, charPositionInLine);

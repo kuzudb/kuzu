@@ -27,16 +27,17 @@ public:
     inline bool hasDefines() { return maxDefine > 0; }
     inline bool hasRepeats() { return maxRepeat > 0; }
     virtual inline void skip(uint64_t numValues) { pendingSkips += numValues; }
-    virtual inline void dictionary(std::shared_ptr<ResizeableBuffer> data, uint64_t num_entries) {
+    virtual inline void dictionary(
+        std::shared_ptr<ResizeableBuffer> /*data*/, uint64_t /*num_entries*/) {
         throw common::NotImplementedException{"Dictionary"};
     }
-    virtual inline void offsets(uint32_t* offsets, uint8_t* defines, uint64_t numValues,
-        parquet_filter_t& filter, uint64_t resultOffset, common::ValueVector* result) {
+    virtual inline void offsets(uint32_t* /*offsets*/, uint8_t* /*defines*/, uint64_t /*numValues*/,
+        parquet_filter_t& /*filter*/, uint64_t /*resultOffset*/, common::ValueVector* /*result*/) {
         throw common::NotImplementedException{"ColumnReader::offsets"};
     }
-    virtual inline void plain(std::shared_ptr<ByteBuffer> plainData, uint8_t* defines,
-        uint64_t numValues, parquet_filter_t& filter, uint64_t resultOffset,
-        common::ValueVector* result) {
+    virtual inline void plain(std::shared_ptr<ByteBuffer> /*plainData*/, uint8_t* /*defines*/,
+        uint64_t /*numValues*/, parquet_filter_t& /*filter*/, uint64_t /*resultOffset*/,
+        common::ValueVector* /*result*/) {
         throw common::NotImplementedException{"ColumnReader::plain"};
     }
     virtual inline void resetPage() {}

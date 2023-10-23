@@ -10,8 +10,7 @@ namespace common {
 
 class StringUtils {
 public:
-    static std::vector<std::string> splitComma(
-        const std::string& input, bool ignoreEmptyStringParts = true);
+    static std::vector<std::string> splitComma(const std::string& input);
 
     static std::vector<std::string> split(
         const std::string& input, const std::string& delimiter, bool ignoreEmptyStringParts = true);

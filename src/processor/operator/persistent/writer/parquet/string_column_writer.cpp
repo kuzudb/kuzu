@@ -133,7 +133,7 @@ void StringColumnWriter::writeVector(common::Serializer& serializer,
                 // Write the bit-width as a one-byte entry.
                 serializer.write<uint8_t>(pageState->bitWidth);
                 // Now begin writing the actual value.
-                pageState->encoder.beginWrite(serializer, value_index);
+                pageState->encoder.beginWrite(value_index);
                 pageState->writtenValue = true;
             } else {
                 pageState->encoder.writeValue(serializer, value_index);

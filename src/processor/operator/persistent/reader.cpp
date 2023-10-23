@@ -38,7 +38,7 @@ void Reader::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* cont
     }
 }
 
-bool Reader::getNextTuplesInternal(ExecutionContext* context) {
+bool Reader::getNextTuplesInternal(ExecutionContext* /*context*/) {
     sharedState->readerConfig->parallelRead(info->tableType) ?
         readNextDataChunk<ReaderSharedState::ReadMode::PARALLEL>() :
         readNextDataChunk<ReaderSharedState::ReadMode::SERIAL>();

@@ -170,7 +170,7 @@ void WALReplayerUtils::removeListFilesIfExists(const std::string& fileName) {
 
 void WALReplayerUtils::fileOperationOnNodeFiles(NodeTableSchema* nodeTableSchema,
     const std::string& directory, std::function<void(std::string fileName)> columnFileOperation,
-    std::function<void(std::string fileName)> listFileOperation) {
+    std::function<void(std::string fileName)> /*listFileOperation*/) {
     columnFileOperation(
         StorageUtils::getNodeIndexFName(directory, nodeTableSchema->tableID, DBFileType::ORIGINAL));
 }
@@ -197,7 +197,7 @@ void WALReplayerUtils::fileOperationOnRelFiles(RelTableSchema* relTableSchema,
 }
 
 void WALReplayerUtils::fileOperationOnRelPropertyFiles(RelTableSchema* tableSchema,
-    table_id_t nodeTableID, const std::string& directory, RelDataDirection relDirection,
+    table_id_t /*nodeTableID*/, const std::string& directory, RelDataDirection relDirection,
     bool isColumnProperty, std::function<void(std::string fileName)> columnFileOperation,
     std::function<void(std::string fileName)> listFileOperation) {
     for (auto& property : tableSchema->properties) {

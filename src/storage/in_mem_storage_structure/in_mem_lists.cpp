@@ -12,7 +12,7 @@ namespace kuzu {
 namespace storage {
 
 PageElementCursor InMemLists::calcPageElementCursor(
-    uint64_t reversePos, uint8_t numBytesPerElement, offset_t nodeOffset) {
+    uint64_t reversePos, uint8_t /*numBytesPerElement*/, offset_t nodeOffset) {
     PageElementCursor cursor;
     auto listSize = listHeadersBuilder->getListSize(nodeOffset);
     auto csrOffset = listHeadersBuilder->getCSROffset(nodeOffset);
@@ -38,7 +38,7 @@ InMemLists::InMemLists(std::string fName, uint64_t numBytesForElement, LogicalTy
 }
 
 void InMemLists::copyArrowArray(arrow::Array* boundNodeOffsets, arrow::Array* posInRelLists,
-    arrow::Array* array, PropertyCopyState* copyState) {
+    arrow::Array* array, PropertyCopyState* /*copyState*/) {
     switch (array->type_id()) {
     case arrow::Type::BOOL: {
         templateCopyArrayToRelLists<bool>(boundNodeOffsets, posInRelLists, array);
@@ -172,7 +172,7 @@ void InMemLists::setValueFromString(
 
 template<>
 void InMemLists::setValueFromString<bool>(
-    offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
+    offset_t nodeOffset, uint64_t pos, const char* val, uint64_t /*length*/) {
     std::istringstream boolStream{std::string(val)};
     bool booleanVal;
     boolStream >> std::boolalpha >> booleanVal;
@@ -213,7 +213,7 @@ void InMemLists::setValueFromString<timestamp_t>(
 }
 
 void InMemLists::initListsMetadataAndAllocatePages(
-    uint64_t numNodes, ListHeaders* listHeaders, ListsMetadata* listsMetadata) {
+    uint64_t numNodes, ListHeaders* listHeaders, ListsMetadata* /*listsMetadata*/) {
     offset_t nodeOffset = 0u;
     auto largeListIdx = 0u;
     auto numElementsPerPage =
@@ -248,7 +248,7 @@ void InMemLists::calculatePagesForList(uint64_t& numPages, uint64_t& offsetInPag
 
 void InMemLists::fillInMemListsWithStrValFunc(InMemLists* inMemLists, uint8_t* defaultVal,
     PageByteCursor& pageByteCursor, offset_t nodeOffset, uint64_t posInList,
-    const LogicalType& dataType) {
+    const LogicalType& /*dataType*/) {
     auto strVal = *(ku_string_t*)defaultVal;
     inMemLists->getInMemOverflowFile()->copyStringOverflow(
         pageByteCursor, reinterpret_cast<uint8_t*>(strVal.overflowPtr), &strVal);

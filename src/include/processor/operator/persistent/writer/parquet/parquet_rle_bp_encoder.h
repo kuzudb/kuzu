@@ -17,7 +17,7 @@ public:
     void prepareValue(uint32_t value);
     void finishPrepare();
 
-    void beginWrite(common::Serializer& writer, uint32_t first_value);
+    void beginWrite(uint32_t first_value);
     void writeValue(common::Serializer& writer, uint32_t value);
     void finishWrite(common::Serializer& writer);
 

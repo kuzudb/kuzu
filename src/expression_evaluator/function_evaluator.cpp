@@ -57,7 +57,7 @@ std::unique_ptr<ExpressionEvaluator> FunctionExpressionEvaluator::clone() {
 }
 
 void FunctionExpressionEvaluator::resolveResultVector(
-    const ResultSet& resultSet, MemoryManager* memoryManager) {
+    const ResultSet& /*resultSet*/, MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(expression->dataType, memoryManager);
     std::vector<ExpressionEvaluator*> inputEvaluators;
     inputEvaluators.reserve(children.size());

@@ -57,7 +57,7 @@ void ListCreationVectorFunction::execFunc(
 }
 
 std::unique_ptr<FunctionBindData> ListCreationVectorFunction::bindFunc(
-    const binder::expression_vector& arguments, FunctionDefinition* definition) {
+    const binder::expression_vector& arguments, FunctionDefinition* /*definition*/) {
     // ListCreation requires all parameters to have the same type or be ANY type. The result type of
     // listCreation can be determined by the first non-ANY type parameter. If all parameters have
     // dataType ANY, then the resultType will be INT64[] (default type).
@@ -97,7 +97,7 @@ vector_function_definitions ListCreationVectorFunction::getDefinitions() {
 }
 
 std::unique_ptr<FunctionBindData> ListRangeVectorFunction::bindFunc(
-    const binder::expression_vector& arguments, kuzu::function::FunctionDefinition* definition) {
+    const binder::expression_vector& arguments, FunctionDefinition* /*definition*/) {
     assert(arguments[0]->dataType == arguments[1]->dataType);
     auto varListTypeInfo = std::make_unique<VarListTypeInfo>(
         std::make_unique<LogicalType>(arguments[0]->dataType.getLogicalTypeID()));
@@ -239,7 +239,7 @@ vector_function_definitions ListConcatVectorFunction::getDefinitions() {
 }
 
 std::unique_ptr<FunctionBindData> ListConcatVectorFunction::bindFunc(
-    const binder::expression_vector& arguments, kuzu::function::FunctionDefinition* definition) {
+    const binder::expression_vector& arguments, FunctionDefinition* /*definition*/) {
     if (arguments[0]->getDataType() != arguments[1]->getDataType()) {
         throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(
             LIST_CONCAT_FUNC_NAME, arguments[0]->getDataType(), arguments[1]->getDataType()));
@@ -340,7 +340,7 @@ vector_function_definitions ListSliceVectorFunction::getDefinitions() {
 }
 
 std::unique_ptr<FunctionBindData> ListSliceVectorFunction::bindFunc(
-    const binder::expression_vector& arguments, FunctionDefinition* definition) {
+    const binder::expression_vector& arguments, FunctionDefinition* /*definition*/) {
     return std::make_unique<FunctionBindData>(arguments[0]->getDataType());
 }
 

@@ -74,7 +74,7 @@ std::unique_ptr<ExpressionEvaluator> CaseExpressionEvaluator::clone() {
 }
 
 void CaseExpressionEvaluator::resolveResultVector(
-    const ResultSet& resultSet, MemoryManager* memoryManager) {
+    const ResultSet& /*resultSet*/, MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(expression->dataType, memoryManager);
     std::vector<ExpressionEvaluator*> inputEvaluators;
     for (auto& alternative : alternativeEvaluators) {

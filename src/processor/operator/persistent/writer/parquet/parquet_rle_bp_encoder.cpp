@@ -64,7 +64,7 @@ uint64_t RleBpEncoder::getByteCount() {
     return byteCount;
 }
 
-void RleBpEncoder::beginWrite(common::Serializer& writer, uint32_t first_value) {
+void RleBpEncoder::beginWrite(uint32_t first_value) {
     // start the RLE runs
     lastValue = first_value;
     currentRunCount = 1;

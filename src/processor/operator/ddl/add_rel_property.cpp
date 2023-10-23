@@ -12,8 +12,8 @@ namespace kuzu {
 namespace processor {
 
 static void createFileForRelColumnPropertyWithDefaultVal(table_id_t relTableID,
-    table_id_t boundTableID, RelDataDirection direction, const catalog::Property& property,
-    uint8_t* defaultVal, bool isDefaultValNull, StorageManager& storageManager) {
+    table_id_t /*boundTableID*/, RelDataDirection direction, const catalog::Property& property,
+    uint8_t* /*defaultVal*/, bool isDefaultValNull, StorageManager& storageManager) {
     auto inMemColumn = std::make_unique<InMemColumn>(
         StorageUtils::getRelPropertyColumnFName(storageManager.getDirectory(), relTableID,
             direction, property.getPropertyID(), DBFileType::WAL_VERSION),

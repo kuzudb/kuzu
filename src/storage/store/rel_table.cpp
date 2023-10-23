@@ -74,7 +74,7 @@ void DirectedRelTableData::initializeLists(RelTableSchema* tableSchema, WAL* wal
 }
 
 void DirectedRelTableData::resetColumnsAndLists(
-    catalog::RelTableSchema* tableSchema, kuzu::storage::WAL* wal) {
+    catalog::RelTableSchema* tableSchema, kuzu::storage::WAL* /*wal*/) {
     if (isSingleMultiplicity()) {
         adjColumn.reset();
         for (auto& property : tableSchema->properties) {

@@ -5,8 +5,7 @@
 namespace kuzu {
 namespace common {
 
-std::vector<std::string> StringUtils::splitComma(
-    const std::string& input, bool ignoreEmptyStringParts) {
+std::vector<std::string> StringUtils::splitComma(const std::string& input) {
     auto result = std::vector<std::string>();
     auto currentPos = 0u;
     auto lvl = 0u;

@@ -16,7 +16,7 @@ class TypeUtils {
 
 public:
     template<typename T>
-    static inline std::string toString(const T& val, void* valueVector = nullptr) {
+    static inline std::string toString(const T& val, void* /*valueVector*/ = nullptr) {
         static_assert(std::is_same<T, int64_t>::value || std::is_same<T, int32_t>::value ||
                       std::is_same<T, int16_t>::value || std::is_same<T, int8_t>::value ||
                       std::is_same<T, uint64_t>::value || std::is_same<T, uint32_t>::value ||

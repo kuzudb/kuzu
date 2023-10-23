@@ -20,7 +20,7 @@ vector_function_definitions StructPackVectorFunctions::getDefinitions() {
 }
 
 std::unique_ptr<FunctionBindData> StructPackVectorFunctions::bindFunc(
-    const binder::expression_vector& arguments, FunctionDefinition* definition) {
+    const binder::expression_vector& arguments, FunctionDefinition* /*definition*/) {
     std::vector<std::unique_ptr<StructField>> fields;
     for (auto& argument : arguments) {
         if (argument->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
@@ -49,7 +49,7 @@ void StructPackVectorFunctions::execFunc(
     }
 }
 
-void StructPackVectorFunctions::compileFunc(FunctionBindData* bindData,
+void StructPackVectorFunctions::compileFunc(FunctionBindData* /*bindData*/,
     const std::vector<std::shared_ptr<ValueVector>>& parameters,
     std::shared_ptr<ValueVector>& result) {
     // Our goal is to make the state of the resultVector consistent with its children vectors.
@@ -93,13 +93,12 @@ vector_function_definitions StructExtractVectorFunctions::getDefinitions() {
 }
 
 std::unique_ptr<FunctionBindData> StructExtractVectorFunctions::bindFunc(
-    const binder::expression_vector& arguments, FunctionDefinition* definition) {
+    const binder::expression_vector& arguments, FunctionDefinition* /*definition*/) {
     auto structType = arguments[0]->getDataType();
     if (arguments[1]->expressionType != LITERAL) {
         throw BinderException("Key name for struct/union extract must be STRING literal.");
     }
     auto key = ((binder::LiteralExpression&)*arguments[1]).getValue()->getValue<std::string>();
-    assert(definition->returnTypeID == LogicalTypeID::ANY);
     auto fieldIdx = StructType::getFieldIdx(&structType, key);
     if (fieldIdx == INVALID_STRUCT_FIELD_IDX) {
         throw BinderException(stringFormat("Invalid struct field name: {}.", key));

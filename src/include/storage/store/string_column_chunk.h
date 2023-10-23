@@ -19,7 +19,7 @@ public:
     void update(common::ValueVector* vector, common::vector_idx_t vectorIdx) override;
 
     template<typename T>
-    T getValue(common::offset_t pos) const {
+    T getValue(common::offset_t /*pos*/) const {
         throw common::NotImplementedException("VarSizedColumnChunk::getValue");
     }
 

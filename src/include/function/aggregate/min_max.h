@@ -15,7 +15,7 @@ struct MinMaxFunction {
             outputVector->setValue(pos, val);
             overflowBuffer.reset();
         }
-        inline void setVal(T& val_, storage::MemoryManager* memoryManager) { val = val_; }
+        inline void setVal(T& val_, storage::MemoryManager* /*memoryManager*/) { val = val_; }
 
         std::unique_ptr<common::InMemOverflowBuffer> overflowBuffer;
         T val;
@@ -24,7 +24,7 @@ struct MinMaxFunction {
     static std::unique_ptr<AggregateState> initialize() { return std::make_unique<MinMaxState>(); }
 
     template<class OP>
-    static void updateAll(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
+    static void updateAll(uint8_t* state_, common::ValueVector* input, uint64_t /*multiplicity*/,
         storage::MemoryManager* memoryManager) {
         assert(!input->state->isFlat());
         auto state = reinterpret_cast<MinMaxState*>(state_);
@@ -44,8 +44,8 @@ struct MinMaxFunction {
     }
 
     template<class OP>
-    static inline void updatePos(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
-        uint32_t pos, storage::MemoryManager* memoryManager) {
+    static inline void updatePos(uint8_t* state_, common::ValueVector* input,
+        uint64_t /*multiplicity*/, uint32_t pos, storage::MemoryManager* memoryManager) {
         updateSingleValue<OP>(reinterpret_cast<MinMaxState*>(state_), input, pos, memoryManager);
     }
 

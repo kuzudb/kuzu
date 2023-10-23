@@ -46,17 +46,17 @@ public:
 
 private:
     static inline void removeColumnFilesForPropertyIfExists(const std::string& directory,
-        common::table_id_t relTableID, common::table_id_t boundTableID,
+        common::table_id_t relTableID, common::table_id_t /*boundTableID*/,
         common::RelDataDirection relDirection, common::property_id_t propertyID,
-        common::DBFileType dbFileType) {
+        common::DBFileType /*dbFileType*/) {
         removeColumnFilesIfExists(StorageUtils::getRelPropertyColumnFName(
             directory, relTableID, relDirection, propertyID, common::DBFileType::ORIGINAL));
     }
 
     static inline void removeListFilesForPropertyIfExists(const std::string& directory,
-        common::table_id_t relTableID, common::table_id_t boundTableID,
+        common::table_id_t relTableID, common::table_id_t /*boundTableID*/,
         common::RelDataDirection relDirection, common::property_id_t propertyID,
-        common::DBFileType dbFileType) {
+        common::DBFileType /*dbFileType*/) {
         removeListFilesIfExists(StorageUtils::getRelPropertyListsFName(
             directory, relTableID, relDirection, propertyID, common::DBFileType::ORIGINAL));
     }

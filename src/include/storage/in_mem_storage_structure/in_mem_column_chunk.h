@@ -52,7 +52,7 @@ public:
 
     template<typename T, typename... Args>
     void setValueFromString(
-        const char* value, uint64_t length, common::offset_t pos, Args... args) {
+        const char* value, uint64_t length, common::offset_t pos, Args... /*args*/) {
         auto val = function::castStringToNum<T>(value, length);
         setValue(val, pos);
     }
@@ -102,8 +102,8 @@ public:
         arrow::Array& array, PropertyCopyState* copyState, arrow::Array* nodeOffsets);
 
     template<typename T>
-    void setValWithOverflow(
-        PageByteCursor& overflowCursor, const char* value, uint64_t length, uint64_t pos) {
+    void setValWithOverflow(PageByteCursor& /*overflowCursor*/, const char* /*value*/,
+        uint64_t /*length*/, uint64_t /*pos*/) {
         assert(false);
     }
 

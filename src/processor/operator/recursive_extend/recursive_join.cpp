@@ -10,7 +10,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) {
+void RecursiveJoin::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* context) {
     populateTargetDstNodes();
     vectors = std::make_unique<RecursiveJoinVectors>();
     vectors->srcNodeIDVector = resultSet->getValueVector(dataInfo->srcNodePos).get();

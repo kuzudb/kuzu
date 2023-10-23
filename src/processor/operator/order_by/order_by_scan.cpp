@@ -14,11 +14,11 @@ void OrderByScanLocalState::init(
         sharedState.getMergedKeyBlock(), sharedState.getPayloadTables());
 }
 
-void OrderByScan::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+void OrderByScan::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {
     localState->init(outVectorPos, *sharedState, *resultSet);
 }
 
-bool OrderByScan::getNextTuplesInternal(ExecutionContext* context) {
+bool OrderByScan::getNextTuplesInternal(ExecutionContext* /*context*/) {
     // If there is no more tuples to read, just return false.
     auto numTuplesRead = localState->scan();
     metrics->numOutputTuple.increase(numTuplesRead);

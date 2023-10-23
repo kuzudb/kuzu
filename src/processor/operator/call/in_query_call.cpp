@@ -12,13 +12,13 @@ std::pair<offset_t, offset_t> InQueryCallSharedState::getNextBatch() {
     return std::make_pair(offset - numTuplesInBatch, offset);
 }
 
-void InQueryCall::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+void InQueryCall::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {
     for (auto& outputPos : inQueryCallInfo->outputPoses) {
         outputVectors.push_back(resultSet->getValueVector(outputPos).get());
     }
 }
 
-bool InQueryCall::getNextTuplesInternal(kuzu::processor::ExecutionContext* context) {
+bool InQueryCall::getNextTuplesInternal(kuzu::processor::ExecutionContext* /*context*/) {
     auto morsel = sharedState->getNextBatch();
     if (morsel.second > morsel.first) {
         inQueryCallInfo->tableFunc(morsel, inQueryCallInfo->bindData.get(), outputVectors);

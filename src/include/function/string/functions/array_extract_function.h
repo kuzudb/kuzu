@@ -35,7 +35,7 @@ struct ArrayExtract {
         } else {
             int64_t characterCount = 0, startBytePos = 0, endBytePos = 0;
             kuzu::utf8proc::utf8proc_grapheme_callback(
-                stringVal.c_str(), stringVal.size(), [&](int64_t gstart, int64_t gend) {
+                stringVal.c_str(), stringVal.size(), [&](int64_t gstart, int64_t /*gend*/) {
                     if (characterCount == startPos) {
                         startBytePos = gstart;
                     } else if (characterCount == endPos) {

@@ -167,7 +167,7 @@ void CopyToCSVLocalState::writeRows() {
     }
 }
 
-void CopyToCSVSharedState::init(CopyToInfo* info, MemoryManager* mm) {
+void CopyToCSVSharedState::init(CopyToInfo* info, MemoryManager* /*mm*/) {
     fileInfo = FileUtils::openFile(info->fileName, O_WRONLY | O_CREAT | O_TRUNC);
 }
 

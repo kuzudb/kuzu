@@ -6,7 +6,7 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-void NodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
+void NodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* /*context*/) {
     nodeIDVector = resultSet->getValueVector(nodeIDPos).get();
 }
 
@@ -40,7 +40,7 @@ void MultiLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
         pkVectors.at(nodeID.tableID).get());
 }
 
-void RelDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
+void RelDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* /*context*/) {
     srcNodeIDVector = resultSet->getValueVector(srcNodeIDPos).get();
     dstNodeIDVector = resultSet->getValueVector(dstNodeIDPos).get();
     relIDVector = resultSet->getValueVector(relIDPos).get();

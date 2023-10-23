@@ -203,7 +203,7 @@ public:
      * @return a Value object based on value.
      */
     template<class T>
-    static Value createValue(T value) {
+    static Value createValue(T /*value*/) {
         throw std::runtime_error("Unimplemented template for Value::createValue()");
     }
     /**

@@ -170,7 +170,7 @@ void BasicColumnWriter::writeLevels(Serializer& serializer, const std::vector<ui
 
     // Start off by writing the byte count as a uint32_t.
     serializer.write<uint32_t>(rleEncoder.getByteCount());
-    rleEncoder.beginWrite(serializer, levels[startOffset]);
+    rleEncoder.beginWrite(levels[startOffset]);
     for (auto i = startOffset + 1; i < startOffset + count; i++) {
         rleEncoder.writeValue(serializer, levels[i]);
     }

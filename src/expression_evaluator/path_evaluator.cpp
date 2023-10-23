@@ -206,7 +206,7 @@ void PathExpressionEvaluator::copyFieldVectors(offset_t inputVectorPos,
 }
 
 void PathExpressionEvaluator::resolveResultVector(
-    const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) {
+    const processor::ResultSet& /*resultSet*/, storage::MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(expression->getDataType(), memoryManager);
     std::vector<ExpressionEvaluator*> inputEvaluators;
     inputEvaluators.reserve(children.size());

@@ -27,7 +27,7 @@ ColumnReader::ColumnReader(ParquetReader& reader, std::unique_ptr<common::Logica
     : schema{schema}, fileIdx{fileIdx}, maxDefine{maxDefinition}, maxRepeat{maxRepeat},
       reader{reader}, type{std::move(type)}, pageRowsAvailable{0} {}
 
-void ColumnReader::initializeRead(uint64_t rowGroupIdx,
+void ColumnReader::initializeRead(uint64_t /*rowGroupIdx*/,
     const std::vector<kuzu_parquet::format::ColumnChunk>& columns,
     kuzu_apache::thrift::protocol::TProtocol& protocol) {
     assert(fileIdx < columns.size());
@@ -226,7 +226,7 @@ std::unique_ptr<ColumnReader> ColumnReader::createReader(ParquetReader& reader,
     }
 }
 
-void ColumnReader::prepareRead(parquet_filter_t& filter) {
+void ColumnReader::prepareRead(parquet_filter_t& /*filter*/) {
     dictDecoder.reset();
     defineDecoder.reset();
     block.reset();

@@ -14,7 +14,7 @@ public:
     // - default step = 1
     template<typename T>
     static inline void operation(T& start, T& end, common::list_entry_t& result,
-        common::ValueVector& leftVector, common::ValueVector& rightVector,
+        common::ValueVector& leftVector, common::ValueVector& /*rightVector*/,
         common::ValueVector& resultVector) {
         T step = 1;
         operation(start, end, step, result, leftVector, resultVector);
@@ -22,7 +22,7 @@ public:
 
     template<typename T>
     static inline void operation(T& start, T& end, T& step, common::list_entry_t& result,
-        common::ValueVector& inputVector, common::ValueVector& resultVector) {
+        common::ValueVector& /*inputVector*/, common::ValueVector& resultVector) {
         if (step == 0) {
             throw common::RuntimeException("Step of range cannot be 0.");
         }

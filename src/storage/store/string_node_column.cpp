@@ -10,7 +10,7 @@ namespace kuzu {
 namespace storage {
 
 void StringNodeColumnFunc::writeStringValuesToPage(uint8_t* frame, uint16_t posInFrame,
-    ValueVector* vector, uint32_t posInVector, const CompressionMetadata& metadata) {
+    ValueVector* vector, uint32_t posInVector, const CompressionMetadata& /*metadata*/) {
     auto kuStrInFrame = (ku_string_t*)(frame + (posInFrame * sizeof(ku_string_t)));
     auto kuStrInVector = vector->getValue<ku_string_t>(posInVector);
     memcpy(kuStrInFrame->prefix, kuStrInVector.prefix,

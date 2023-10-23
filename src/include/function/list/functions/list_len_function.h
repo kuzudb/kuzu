@@ -4,6 +4,7 @@
 #include <cstring>
 
 #include "common/types/ku_list.h"
+#include "common/types/ku_string.h"
 #include "utf8proc.h"
 
 namespace kuzu {
@@ -27,7 +28,7 @@ inline void ListLen::operation(common::ku_string_t& input, int64_t& result) {
             // Use grapheme iterator to identify bytes of utf8 char and increment once for each
             // char.
             utf8proc::utf8proc_grapheme_callback(
-                inputString.c_str(), totalByteLength, [&](size_t start, size_t end) {
+                inputString.c_str(), totalByteLength, [&](size_t /*start*/, size_t /*end*/) {
                     length++;
                     return true;
                 });

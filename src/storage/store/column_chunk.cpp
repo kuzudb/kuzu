@@ -23,13 +23,13 @@ ColumnChunkMetadata fixedSizedFlushBuffer(const uint8_t* buffer, uint64_t buffer
 }
 
 ColumnChunkMetadata fixedSizedGetMetadata(
-    const uint8_t* buffer, uint64_t bufferSize, uint64_t capacity, uint64_t numValues) {
+    const uint8_t* /*buffer*/, uint64_t bufferSize, uint64_t /*capacity*/, uint64_t numValues) {
     return ColumnChunkMetadata(INVALID_PAGE_IDX, ColumnChunk::getNumPagesForBytes(bufferSize),
         numValues, CompressionMetadata());
 }
 
 ColumnChunkMetadata booleanGetMetadata(
-    const uint8_t* buffer, uint64_t bufferSize, uint64_t capacity, uint64_t numValues) {
+    const uint8_t* /*buffer*/, uint64_t bufferSize, uint64_t /*capacity*/, uint64_t numValues) {
     return ColumnChunkMetadata(INVALID_PAGE_IDX, ColumnChunk::getNumPagesForBytes(bufferSize),
         numValues, CompressionMetadata(CompressionType::BOOLEAN_BITPACKING));
 }
@@ -44,8 +44,8 @@ public:
 
     CompressedFlushBuffer(const CompressedFlushBuffer& other) = default;
 
-    ColumnChunkMetadata operator()(const uint8_t* buffer, uint64_t bufferSize, BMFileHandle* dataFH,
-        page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
+    ColumnChunkMetadata operator()(const uint8_t* buffer, uint64_t /*bufferSize*/,
+        BMFileHandle* dataFH, page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
         auto valuesRemaining = metadata.numValues;
         const uint8_t* bufferStart = buffer;
         auto compressedBuffer = std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_4KB_SIZE);
@@ -82,7 +82,7 @@ public:
     GetCompressionMetadata(const GetCompressionMetadata& other) = default;
 
     ColumnChunkMetadata operator()(
-        const uint8_t* buffer, uint64_t bufferSize, uint64_t capacity, uint64_t numValues) {
+        const uint8_t* buffer, uint64_t /*bufferSize*/, uint64_t capacity, uint64_t numValues) {
         auto metadata = alg->getCompressionMetadata(buffer, numValues);
         auto numValuesPerPage = metadata.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
         auto numPages = capacity / numValuesPerPage + (capacity % numValuesPerPage == 0 ? 0 : 1);

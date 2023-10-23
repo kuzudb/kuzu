@@ -15,7 +15,7 @@ public:
     inline std::string getParameterName() const { return parameterName; }
 
     static std::unique_ptr<ParsedParameterExpression> deserialize(
-        common::Deserializer& deserializer) {
+        common::Deserializer& /*deserializer*/) {
         throw common::NotImplementedException{"ParsedParameterExpression::deserialize()"};
     }
 
@@ -24,7 +24,7 @@ public:
     }
 
 private:
-    void serializeInternal(common::Serializer& serializer) const override {
+    void serializeInternal(common::Serializer& /*serializer*/) const override {
         throw common::NotImplementedException{"ParsedParameterExpression::serializeInternal()"};
     }
 

@@ -160,6 +160,9 @@ inline bool try_func(const std::function<void(uint8_t*)>& func, uint8_t* frame,
             throw EXCEPTION_ACCESS_VIOLATION;
         }
     }
+#else
+    (void)pageSizeClass;
+    (void)vmRegions;
 #endif
     return true;
 }

@@ -21,21 +21,21 @@ ArrowRowBatch::ArrowRowBatch(
 // TODO(Ziyi): use physical type instead of logical type here.
 template<LogicalTypeID DT>
 void ArrowRowBatch::templateInitializeVector(
-    ArrowVector* vector, const main::DataTypeInfo& typeInfo, std::int64_t capacity) {
+    ArrowVector* vector, const main::DataTypeInfo& /*typeInfo*/, std::int64_t capacity) {
     initializeNullBits(vector->validity, capacity);
     vector->data.reserve(storage::StorageUtils::getDataTypeSize(LogicalType{DT}) * capacity);
 }
 
 template<>
 void ArrowRowBatch::templateInitializeVector<LogicalTypeID::BOOL>(
-    ArrowVector* vector, const main::DataTypeInfo& typeInfo, std::int64_t capacity) {
+    ArrowVector* vector, const main::DataTypeInfo& /*typeInfo*/, std::int64_t capacity) {
     initializeNullBits(vector->validity, capacity);
     vector->data.reserve(getNumBytesForBits(capacity));
 }
 
 template<>
 void ArrowRowBatch::templateInitializeVector<LogicalTypeID::STRING>(
-    ArrowVector* vector, const main::DataTypeInfo& typeInfo, std::int64_t capacity) {
+    ArrowVector* vector, const main::DataTypeInfo& /*typeInfo*/, std::int64_t capacity) {
     initializeNullBits(vector->validity, capacity);
     // Initialize offsets and string values buffer.
     vector->data.reserve((capacity + 1) * sizeof(std::uint32_t));
@@ -164,14 +164,14 @@ void ArrowRowBatch::appendValue(
 
 template<LogicalTypeID DT>
 void ArrowRowBatch::templateCopyNonNullValue(
-    ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
+    ArrowVector* vector, const main::DataTypeInfo& /*typeInfo*/, Value* value, std::int64_t pos) {
     auto valSize = storage::StorageUtils::getDataTypeSize(LogicalType{DT});
     std::memcpy(vector->data.data() + pos * valSize, &value->val, valSize);
 }
 
 template<>
 void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::BOOL>(
-    ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
+    ArrowVector* vector, const main::DataTypeInfo& /*typeInfo*/, Value* value, std::int64_t pos) {
     if (value->val.booleanVal) {
         setBitToOne(vector->data.data(), pos);
     } else {
@@ -181,7 +181,7 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::BOOL>(
 
 template<>
 void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::STRING>(
-    ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
+    ArrowVector* vector, const main::DataTypeInfo& /*typeInfo*/, Value* value, std::int64_t pos) {
     auto offsets = (std::uint32_t*)vector->data.data();
     auto strLength = value->strVal.length();
     offsets[pos + 1] = offsets[pos] + strLength;
@@ -217,7 +217,7 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::VAR_LIST>(
 
 template<>
 void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::INTERNAL_ID>(
-    ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
+    ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t /*pos*/) {
     auto nodeID = value->getValue<nodeID_t>();
     Value offsetVal((std::int64_t)nodeID.offset);
     Value tableIDVal((std::int64_t)nodeID.tableID);
@@ -227,7 +227,7 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::INTERNAL_ID>(
 
 template<>
 void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::NODE>(
-    ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
+    ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t /*pos*/) {
     appendValue(
         vector->childData[0].get(), *typeInfo.childrenTypesInfo[0], NodeVal::getNodeIDVal(value));
     appendValue(
@@ -245,7 +245,7 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::NODE>(
 
 template<>
 void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::REL>(
-    ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
+    ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t /*pos*/) {
     appendValue(
         vector->childData[0].get(), *typeInfo.childrenTypesInfo[0], RelVal::getSrcNodeIDVal(value));
     appendValue(
@@ -412,7 +412,7 @@ static std::unique_ptr<ArrowArray> createArrayFromVector(ArrowVector& vector) {
 
 template<LogicalTypeID DT>
 ArrowArray* ArrowRowBatch::templateCreateArray(
-    ArrowVector& vector, const main::DataTypeInfo& typeInfo) {
+    ArrowVector& vector, const main::DataTypeInfo& /*typeInfo*/) {
     auto result = createArrayFromVector(vector);
     vector.array = std::move(result);
     return vector.array.get();
@@ -420,7 +420,7 @@ ArrowArray* ArrowRowBatch::templateCreateArray(
 
 template<>
 ArrowArray* ArrowRowBatch::templateCreateArray<LogicalTypeID::STRING>(
-    ArrowVector& vector, const main::DataTypeInfo& typeInfo) {
+    ArrowVector& vector, const main::DataTypeInfo& /*typeInfo*/) {
     auto result = createArrayFromVector(vector);
     result->n_buffers = 3;
     result->buffers[2] = vector.overflow.data();
