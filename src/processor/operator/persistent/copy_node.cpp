@@ -87,7 +87,7 @@ void CopyNode::executeInternal(ExecutionContext* context) {
     sharedState->logCopyNodeWALRecord(copyNodeInfo.wal);
     while (children[0]->getNextTuple(context)) {
         for (auto i = 0u; i < copyNodeInfo.dataColumnPoses.size(); ++i) {
-            if (copyNodeInfo.dataColumnPosesIsNull[i]) {
+            if (copyNodeInfo.nullDataColumnPoses[i]) {
                 resultSet->getValueVector(copyNodeInfo.dataColumnPoses[i])->setAllNull();
             }
         }

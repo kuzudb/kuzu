@@ -41,7 +41,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     return std::make_unique<BoundCopyTo>(std::move(readerConfig), std::move(query));
 }
 
-static void validatePartialColumns(
+static void validateColumnNames(
     TableSchema* schema, const std::vector<std::string>& partialColumnNames) {
     for (auto& columnName : partialColumnNames) {
         if (!schema->containProperty(columnName)) {
@@ -49,9 +49,8 @@ static void validatePartialColumns(
                 "Table {} does not contain column {}.", schema->tableName, columnName));
         }
     }
-    std::set<std::string> uniquePartialColumnNames(
-        partialColumnNames.begin(), partialColumnNames.end());
-    if (uniquePartialColumnNames.size() != partialColumnNames.size()) {
+    std::set<std::string> uniqueColumnNames(partialColumnNames.begin(), partialColumnNames.end());
+    if (uniqueColumnNames.size() != partialColumnNames.size()) {
         throw BinderException("Specified columns contain duplicates.");
     }
 }
@@ -110,7 +109,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     default:
         break;
     }
-    validatePartialColumns(tableSchema, copyStatement.getColumnNames());
+    validateColumnNames(tableSchema, copyStatement.getColumnNames());
     auto csvReaderConfig = bindParsingOptions(copyStatement.getParsingOptionsRef());
     auto filePaths = bindFilePaths(copyStatement.getFilePaths());
     auto fileType = bindFileType(filePaths);

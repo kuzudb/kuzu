@@ -48,15 +48,15 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
         std::make_shared<CopyNodeSharedState>(reader->getSharedState()->getNumRowsRef(),
             tableSchema, nodeTable, memoryManager, isCopyRdf);
     std::vector<DataPos> dataColumnPoses;
-    std::vector<bool> dataColumnPosesIsNull;
+    std::vector<bool> nullDataColumnPoses;
     if (isCopyRdf) {
         dataColumnPoses = readerInfo->dataColumnsPos;
-        dataColumnPosesIsNull.assign(readerInfo->dataColumnsPos.size(), false);
+        nullDataColumnPoses.assign(readerInfo->dataColumnsPos.size(), false);
     } else {
         auto numDataColumnPoses =
             readerInfo->dataColumnsPos.size() + copyFromInfo->nullColumns.size();
         dataColumnPoses.reserve(numDataColumnPoses);
-        dataColumnPosesIsNull.reserve(numDataColumnPoses);
+        nullDataColumnPoses.reserve(numDataColumnPoses);
         auto nullColumnsIt = copyFromInfo->nullColumns.begin();
         for (auto& property : tableSchema->getProperties()) {
             if (property->getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL ||
@@ -68,16 +68,16 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
                          readerConfig->columnNames.begin();
             if (i < readerInfo->dataColumnsPos.size()) {
                 dataColumnPoses.emplace_back(readerInfo->dataColumnsPos[i]);
-                dataColumnPosesIsNull.emplace_back(false);
+                nullDataColumnPoses.emplace_back(false);
             } else {
                 dataColumnPoses.emplace_back(
                     copyFrom->getSchema()->getExpressionPos(**nullColumnsIt));
-                dataColumnPosesIsNull.emplace_back(true);
+                nullDataColumnPoses.emplace_back(true);
                 nullColumnsIt = std::next(nullColumnsIt);
             }
         }
     }
-    CopyNodeInfo copyNodeDataInfo{dataColumnPoses, dataColumnPosesIsNull, nodeTable,
+    CopyNodeInfo copyNodeDataInfo{dataColumnPoses, nullDataColumnPoses, nodeTable,
         &storageManager.getRelsStore(), catalog, storageManager.getWAL(),
         copyFromInfo->containsSerial};
     auto copyNode = std::make_unique<CopyNode>(copyNodeSharedState, copyNodeDataInfo,
