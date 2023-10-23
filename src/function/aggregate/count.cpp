@@ -12,7 +12,7 @@ namespace kuzu {
 namespace function {
 
 void CountFunction::updateAll(
-    uint8_t* state_, ValueVector* input, uint64_t multiplicity, MemoryManager* memoryManager) {
+    uint8_t* state_, ValueVector* input, uint64_t multiplicity, MemoryManager* /*memoryManager*/) {
     auto state = reinterpret_cast<CountState*>(state_);
     if (input->hasNoNullsGuarantee()) {
         for (auto i = 0u; i < input->state->selVector->selectedSize; ++i) {

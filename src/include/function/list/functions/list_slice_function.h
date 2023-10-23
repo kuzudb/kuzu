@@ -28,7 +28,7 @@ struct ListSlice {
     }
 
     static inline void operation(common::ku_string_t& str, int64_t& begin, int64_t& end,
-        common::ku_string_t& result, common::ValueVector& listValueVector,
+        common::ku_string_t& result, common::ValueVector& /*listValueVector*/,
         common::ValueVector& resultValueVector) {
         int64_t startIdx = (begin == 0) ? 1 : begin;
         int64_t endIdx = (end == 0) ? str.len : end;

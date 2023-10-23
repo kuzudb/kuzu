@@ -7,7 +7,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void Intersect::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+void Intersect::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {
     outKeyVector = resultSet->getValueVector(outputDataPos);
     for (auto& dataInfo : intersectDataInfos) {
         probeKeyVectors.push_back(resultSet->getValueVector(dataInfo.keyDataPos));

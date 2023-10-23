@@ -74,12 +74,12 @@ public:
         kuzu_parquet::format::RowGroup& rowGroup) = 0;
     // Indicates whether the write need to analyse the data before preparing it.
     virtual bool hasAnalyze() { return false; }
-    virtual void analyze(ColumnWriterState& state, ColumnWriterState* parent,
-        common::ValueVector* vector, uint64_t count) {
+    virtual void analyze(ColumnWriterState& /*state*/, ColumnWriterState* /*parent*/,
+        common::ValueVector* /*vector*/, uint64_t /*count*/) {
         throw common::NotImplementedException{"ColumnWriter::analyze"};
     }
     // Called after all data has been passed to Analyze.
-    virtual void finalizeAnalyze(ColumnWriterState& state) {
+    virtual void finalizeAnalyze(ColumnWriterState& /*state*/) {
         throw common::NotImplementedException{"ColumnWriter::finalizeAnalyze"};
     }
     virtual void prepare(ColumnWriterState& state, ColumnWriterState* parent,

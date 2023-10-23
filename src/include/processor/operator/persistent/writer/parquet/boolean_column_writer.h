@@ -45,13 +45,13 @@ public:
         return std::make_unique<BooleanStatisticsState>();
     }
 
-    inline uint64_t getRowSize(
-        common::ValueVector* vector, uint64_t index, BasicColumnWriterState& state) override {
+    inline uint64_t getRowSize(common::ValueVector* /*vector*/, uint64_t /*index*/,
+        BasicColumnWriterState& /*state*/) override {
         return sizeof(bool);
     }
 
     inline std::unique_ptr<ColumnWriterPageState> initializePageState(
-        BasicColumnWriterState& state) override {
+        BasicColumnWriterState& /*state*/) override {
         return std::make_unique<BooleanWriterPageState>();
     }
 

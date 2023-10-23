@@ -4,6 +4,7 @@
 #include <cstring>
 
 #include "common/types/ku_string.h"
+#include "common/vector/value_vector.h"
 #include "utf8proc.h"
 
 namespace kuzu {
@@ -30,7 +31,7 @@ public:
         } else {
             int64_t characterCount = 0, startBytePos = 0, endBytePos = 0;
             kuzu::utf8proc::utf8proc_grapheme_callback(
-                srcStr.c_str(), srcStr.size(), [&](int64_t gstart, int64_t gend) {
+                srcStr.c_str(), srcStr.size(), [&](int64_t gstart, int64_t /*gend*/) {
                     if (characterCount == startPos) {
                         startBytePos = gstart;
                     } else if (characterCount == endPos) {

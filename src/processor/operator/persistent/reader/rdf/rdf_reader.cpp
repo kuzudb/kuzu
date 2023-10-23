@@ -31,7 +31,7 @@ RDFReader::~RDFReader() {
     fclose(fp);
 }
 
-SerdStatus RDFReader::errorHandle(void* handle, const SerdError* error) {
+SerdStatus RDFReader::errorHandle(void* /*handle*/, const SerdError* error) {
     if (error->status == SERD_ERR_BAD_SYNTAX) {
         return error->status;
     }
@@ -43,9 +43,9 @@ SerdStatus RDFReader::errorHandle(void* handle, const SerdError* error) {
     return error->status;
 }
 
-SerdStatus RDFReader::handleStatements(void* handle, SerdStatementFlags flags,
-    const SerdNode* graph, const SerdNode* subject, const SerdNode* predicate,
-    const SerdNode* object, const SerdNode* object_datatype, const SerdNode* object_lang) {
+SerdStatus RDFReader::handleStatements(void* handle, SerdStatementFlags /*flags*/,
+    const SerdNode* /*graph*/, const SerdNode* subject, const SerdNode* predicate,
+    const SerdNode* object, const SerdNode* /*object_datatype*/, const SerdNode* /*object_lang*/) {
     auto rdfReader = reinterpret_cast<RDFReader*>(handle);
 
     if (!(isSerdTypeSupported(subject->type) && isSerdTypeSupported(predicate->type) &&

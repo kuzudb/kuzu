@@ -95,6 +95,7 @@ struct VectorFunction {
     static void ConstExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result) {
         assert(params.empty());
+        (void)params;
         ConstFunctionExecutor::execute<RESULT_TYPE, FUNC>(result);
     }
 

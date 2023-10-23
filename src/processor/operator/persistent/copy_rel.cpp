@@ -31,7 +31,7 @@ void CopyRelSharedState::logCopyRelWALRecord(WAL* wal) {
     }
 }
 
-void CopyRel::initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) {
+void CopyRel::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* /*context*/) {
     localState = std::make_unique<CopyRelLocalState>();
     localState->fwdCopyStates.resize(this->info.schema->getNumProperties());
     for (auto i = 0u; i < this->info.schema->getNumProperties(); i++) {
@@ -43,7 +43,7 @@ void CopyRel::initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* co
     }
 }
 
-void CopyRel::initGlobalStateInternal(ExecutionContext* context) {
+void CopyRel::initGlobalStateInternal(ExecutionContext* /*context*/) {
     if (!isCopyAllowed()) {
         throw CopyException(ExceptionMessage::notAllowCopyOnNonEmptyTableException());
     }

@@ -41,7 +41,7 @@ struct BaseParquetOperator {
     }
 
     template<class SRC, class TGT>
-    static void handleStats(ColumnWriterStatistics* stats, SRC sourceValue, TGT targetValue) {
+    static void handleStats(ColumnWriterStatistics* stats, SRC /*sourceValue*/, TGT targetValue) {
         auto& numericStats = (NumericStatisticsState<SRC, TGT, BaseParquetOperator>&)*stats;
         uint8_t result;
         function::LessThan::operation(targetValue, numericStats.min, result,
@@ -90,13 +90,13 @@ public:
     }
 
     inline void writeVector(common::Serializer& bufferedSerializer, ColumnWriterStatistics* stats,
-        ColumnWriterPageState* pageState, common::ValueVector* vector, uint64_t chunkStart,
+        ColumnWriterPageState* /*pageState*/, common::ValueVector* vector, uint64_t chunkStart,
         uint64_t chunkEnd) override {
         templatedWritePlain(vector, stats, chunkStart, chunkEnd, bufferedSerializer);
     }
 
-    inline uint64_t getRowSize(
-        common::ValueVector* vector, uint64_t index, BasicColumnWriterState& state) override {
+    inline uint64_t getRowSize(common::ValueVector* /*vector*/, uint64_t /*index*/,
+        BasicColumnWriterState& /*state*/) override {
         return sizeof(TGT);
     }
 };

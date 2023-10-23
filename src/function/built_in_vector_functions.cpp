@@ -321,7 +321,7 @@ uint32_t BuiltInVectorFunctions::getFunctionCost(const std::vector<LogicalType>&
 }
 
 uint32_t BuiltInVectorFunctions::matchParameters(const std::vector<LogicalType>& inputTypes,
-    const std::vector<LogicalTypeID>& targetTypeIDs, bool isOverload) {
+    const std::vector<LogicalTypeID>& targetTypeIDs, bool /*isOverload*/) {
     if (inputTypes.size() != targetTypeIDs.size()) {
         return UINT32_MAX;
     }
@@ -337,7 +337,7 @@ uint32_t BuiltInVectorFunctions::matchParameters(const std::vector<LogicalType>&
 }
 
 uint32_t BuiltInVectorFunctions::matchVarLengthParameters(
-    const std::vector<LogicalType>& inputTypes, LogicalTypeID targetTypeID, bool isOverload) {
+    const std::vector<LogicalType>& inputTypes, LogicalTypeID targetTypeID, bool /*isOverload*/) {
     auto cost = 0u;
     for (auto& inputType : inputTypes) {
         auto castCost = getCastCost(inputType.getLogicalTypeID(), targetTypeID);

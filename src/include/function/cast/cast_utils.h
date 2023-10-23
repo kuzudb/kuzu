@@ -42,7 +42,7 @@ struct IntegerCastOperation {
     // TODO: handle decimals
 
     template<class T, bool NEGATIVE>
-    static bool finalize(T& state) {
+    static bool finalize(T& /*state*/) {
         return true;
     }
 };
@@ -239,8 +239,8 @@ static inline T castStringToNum(const char* input, uint64_t len,
 }
 
 template<>
-inline common::int128_t castStringToNum(
-    const char* input, uint64_t len, const common::LogicalType& type) {
+inline common::int128_t castStringToNum(const char* input, uint64_t len,
+    const common::LogicalType& /*type*/) { // NOLINT(misc-unused-parameters): False positive
     common::int128_t result{};
     simpleInt128Cast(input, len, result);
     return result;

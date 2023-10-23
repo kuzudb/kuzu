@@ -8,7 +8,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-bool CommentOn::getNextTuplesInternal(kuzu::processor::ExecutionContext* context) {
+bool CommentOn::getNextTuplesInternal(kuzu::processor::ExecutionContext* /*context*/) {
     if (commentOnInfo->hasExecuted) {
         return false;
     }

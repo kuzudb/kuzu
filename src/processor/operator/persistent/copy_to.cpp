@@ -11,7 +11,7 @@ void CopyTo::initGlobalStateInternal(ExecutionContext* context) {
     sharedState->init(info.get(), context->memoryManager);
 }
 
-void CopyTo::finalize(ExecutionContext* context) {
+void CopyTo::finalize(ExecutionContext* /*context*/) {
     sharedState->finalize();
 }
 

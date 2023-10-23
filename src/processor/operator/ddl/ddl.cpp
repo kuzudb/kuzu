@@ -3,11 +3,11 @@
 namespace kuzu {
 namespace processor {
 
-void DDL::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+void DDL::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {
     outputVector = resultSet->getValueVector(outputPos).get();
 }
 
-bool DDL::getNextTuplesInternal(ExecutionContext* context) {
+bool DDL::getNextTuplesInternal(ExecutionContext* /*context*/) {
     if (hasExecuted) {
         return false;
     }

@@ -12,12 +12,12 @@ public:
     bool isReadOnly(const BoundStatement& statement);
 
 private:
-    void visitCommentOn(const BoundStatement& statement) override { readOnly = false; }
-    void visitCopyFrom(const BoundStatement& statement) override { readOnly = false; }
-    void visitCreateMacro(const BoundStatement& statement) override { readOnly = false; }
-    void visitCreateTable(const BoundStatement& statement) override { readOnly = false; }
-    void visitDropTable(const BoundStatement& statement) override { readOnly = false; }
-    void visitAlter(const BoundStatement& statement) override { readOnly = false; }
+    void visitCommentOn(const BoundStatement& /*statement*/) override { readOnly = false; }
+    void visitCopyFrom(const BoundStatement& /*statement*/) override { readOnly = false; }
+    void visitCreateMacro(const BoundStatement& /*statement*/) override { readOnly = false; }
+    void visitCreateTable(const BoundStatement& /*statement*/) override { readOnly = false; }
+    void visitDropTable(const BoundStatement& /*statement*/) override { readOnly = false; }
+    void visitAlter(const BoundStatement& /*statement*/) override { readOnly = false; }
     void visitQueryPart(const NormalizedQueryPart& queryPart) final;
 
 private:

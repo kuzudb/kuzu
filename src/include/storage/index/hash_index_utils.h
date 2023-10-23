@@ -33,7 +33,7 @@ public:
 private:
     // InsertFunc
     inline static void insertFuncForInt64(const uint8_t* key, common::offset_t offset,
-        uint8_t* entry, InMemOverflowFile* inMemOverflowFile = nullptr) {
+        uint8_t* entry, InMemOverflowFile* /*inMemOverflowFile*/ = nullptr) {
         memcpy(entry, key, NUM_BYTES_FOR_INT64_KEY);
         memcpy(entry + NUM_BYTES_FOR_INT64_KEY, &offset, sizeof(common::offset_t));
     }
@@ -44,7 +44,7 @@ private:
         memcpy(entry + NUM_BYTES_FOR_STRING_KEY, &offset, sizeof(common::offset_t));
     }
     inline static bool equalsFuncForInt64(const uint8_t* keyToLookup, const uint8_t* keyInEntry,
-        const InMemOverflowFile* inMemOverflowFile = nullptr) {
+        const InMemOverflowFile* /*inMemOverflowFile*/ = nullptr) {
         return memcmp(keyToLookup, keyInEntry, sizeof(int64_t)) == 0;
     }
     static bool equalsFuncForString(const uint8_t* keyToLookup, const uint8_t* keyInEntry,
@@ -56,7 +56,7 @@ class HashIndexUtils {
 public:
     // InsertFunc
     inline static void insertFuncForInt64(const uint8_t* key, common::offset_t offset,
-        uint8_t* entry, DiskOverflowFile* overflowFile = nullptr) {
+        uint8_t* entry, DiskOverflowFile* /*overflowFile*/ = nullptr) {
         memcpy(entry, key, NUM_BYTES_FOR_INT64_KEY);
         memcpy(entry + NUM_BYTES_FOR_INT64_KEY, &offset, sizeof(common::offset_t));
     }
@@ -84,8 +84,9 @@ public:
     // EqualsFunc
     static bool isStringPrefixAndLenEquals(
         const uint8_t* keyToLookup, const common::ku_string_t* keyInEntry);
-    inline static bool equalsFuncForInt64(transaction::TransactionType trxType,
-        const uint8_t* keyToLookup, const uint8_t* keyInEntry, DiskOverflowFile* diskOverflowFile) {
+    inline static bool equalsFuncForInt64(transaction::TransactionType /*trxType*/,
+        const uint8_t* keyToLookup, const uint8_t* keyInEntry,
+        DiskOverflowFile* /*diskOverflowFile*/) {
         return *(int64_t*)keyToLookup == *(int64_t*)keyInEntry;
     }
     static bool equalsFuncForString(transaction::TransactionType trxType,

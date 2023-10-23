@@ -66,7 +66,7 @@ public:
         std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString);
 
-    inline void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final {
+    inline void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) final {
         for (auto& arrowColumnPos : copyNodeInfo.dataColumnPoses) {
             dataColumnVectors.push_back(resultSet->getValueVector(arrowColumnPos).get());
         }

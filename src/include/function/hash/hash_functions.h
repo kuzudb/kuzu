@@ -23,7 +23,7 @@ inline common::hash_t combineHashScalar(common::hash_t a, common::hash_t b) {
 
 struct Hash {
     template<class T>
-    static inline void operation(const T& key, common::hash_t& result) {
+    static inline void operation(const T& /*key*/, common::hash_t& /*result*/) {
         throw common::RuntimeException(
             "Hash type: " + std::string(typeid(T).name()) + " is not supported.");
     }
@@ -127,7 +127,7 @@ inline void Hash::operation(const common::interval_t& key, common::hash_t& resul
 }
 
 template<>
-inline void Hash::operation(const common::ku_list_t& key, common::hash_t& result) {
+inline void Hash::operation(const common::ku_list_t& /*key*/, common::hash_t& /*result*/) {
     throw common::RuntimeException(
         "Computing hash value of list DataType is currently unsupported.");
 }

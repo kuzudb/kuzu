@@ -111,7 +111,7 @@ row_idx_t CopyRelColumns::countRelLists(
     return numRows_;
 }
 
-void CopyRelColumns::finalize(ExecutionContext* context) {
+void CopyRelColumns::finalize(ExecutionContext* /*context*/) {
     if (sharedState->fwdRelData->relDataFormat == RelDataFormat::COLUMN) {
         flushRelColumns(sharedState->fwdRelData.get());
     } else {

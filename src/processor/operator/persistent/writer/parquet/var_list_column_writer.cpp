@@ -16,8 +16,8 @@ bool VarListColumnWriter::hasAnalyze() {
     return childWriter->hasAnalyze();
 }
 
-void VarListColumnWriter::analyze(ColumnWriterState& writerState, ColumnWriterState* parent,
-    common::ValueVector* vector, uint64_t count) {
+void VarListColumnWriter::analyze(ColumnWriterState& writerState, ColumnWriterState* /*parent*/,
+    common::ValueVector* vector, uint64_t /*count*/) {
     auto& state = reinterpret_cast<ListColumnWriterState&>(writerState);
     childWriter->analyze(*state.childState, &writerState, common::ListVector::getDataVector(vector),
         common::ListVector::getDataVectorSize(vector));
@@ -91,7 +91,7 @@ void VarListColumnWriter::beginWrite(ColumnWriterState& state_p) {
 }
 
 void VarListColumnWriter::write(
-    ColumnWriterState& writerState, common::ValueVector* vector, uint64_t count) {
+    ColumnWriterState& writerState, common::ValueVector* vector, uint64_t /*count*/) {
     auto& state = reinterpret_cast<ListColumnWriterState&>(writerState);
     childWriter->write(*state.childState, common::ListVector::getDataVector(vector),
         common::ListVector::getDataVectorSize(vector));

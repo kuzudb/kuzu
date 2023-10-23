@@ -42,7 +42,7 @@ protected:
     void writeLevels(common::Serializer& bufferedSerializer, const std::vector<uint16_t>& levels,
         uint64_t maxValue, uint64_t startOffset, uint64_t count);
 
-    virtual kuzu_parquet::format::Encoding::type getEncoding(BasicColumnWriterState& state) {
+    virtual kuzu_parquet::format::Encoding::type getEncoding(BasicColumnWriterState& /*state*/) {
         return kuzu_parquet::format::Encoding::PLAIN;
     }
 
@@ -56,7 +56,7 @@ protected:
 
     // Initialize the writer for a specific page. Only used for scalar types.
     virtual std::unique_ptr<ColumnWriterPageState> initializePageState(
-        BasicColumnWriterState& state) {
+        BasicColumnWriterState& /*state*/) {
         return nullptr;
     }
 
@@ -66,7 +66,7 @@ protected:
 
     // Retrieves the row size of a vector at the specified location. Only used for scalar types.
     virtual uint64_t getRowSize(
-        common::ValueVector* vector, uint64_t index, BasicColumnWriterState& state) {
+        common::ValueVector* /*vector*/, uint64_t /*index*/, BasicColumnWriterState& /*state*/) {
         throw common::NotImplementedException{"BasicColumnWriter::getRowSize"};
     }
     // Writes a (subset of a) vector to the specified serializer. Only used for scalar types.
@@ -74,14 +74,15 @@ protected:
         ColumnWriterPageState* pageState, common::ValueVector* vector, uint64_t chunkStart,
         uint64_t chunkEnd) = 0;
 
-    virtual bool hasDictionary(BasicColumnWriterState& writerState) { return false; }
+    virtual bool hasDictionary(BasicColumnWriterState& /*writerState*/) { return false; }
     // The number of elements in the dictionary.
-    virtual uint64_t dictionarySize(BasicColumnWriterState& writerState) {
+    virtual uint64_t dictionarySize(BasicColumnWriterState& /*writerState*/) {
         throw common::NotImplementedException{"BasicColumnWriter::dictionarySize"};
     }
     void writeDictionary(BasicColumnWriterState& state,
         std::unique_ptr<common::BufferedSerializer> bufferedSerializer, uint64_t rowCount);
-    virtual void flushDictionary(BasicColumnWriterState& state, ColumnWriterStatistics* stats) {
+    virtual void flushDictionary(
+        BasicColumnWriterState& /*state*/, ColumnWriterStatistics* /*stats*/) {
         throw common::NotImplementedException{"BasicColumnWriter::flushDictionary"};
     }
 

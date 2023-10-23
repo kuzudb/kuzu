@@ -246,7 +246,7 @@ void TopKBuffer::appendSelState(
 }
 
 void TopKLocalState::init(const OrderByDataInfo& orderByDataInfo,
-    storage::MemoryManager* memoryManager, ResultSet& resultSet, uint64_t skipNumber,
+    storage::MemoryManager* memoryManager, ResultSet& /*resultSet*/, uint64_t skipNumber,
     uint64_t limitNumber) {
     buffer = std::make_unique<TopKBuffer>(orderByDataInfo);
     buffer->init(memoryManager, skipNumber, limitNumber);

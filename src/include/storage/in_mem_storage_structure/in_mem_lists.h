@@ -83,8 +83,8 @@ private:
         uint64_t numElementsInList, uint64_t numElementsPerPage);
 
     static inline void fillInMemListsWithNonOverflowValFunc(InMemLists* inMemLists,
-        uint8_t* defaultVal, PageByteCursor& pageByteCursor, common::offset_t nodeOffset,
-        uint64_t posInList, const common::LogicalType& dataType) {
+        uint8_t* defaultVal, PageByteCursor& /*pageByteCursor*/, common::offset_t nodeOffset,
+        uint64_t posInList, const common::LogicalType& /*dataType*/) {
         inMemLists->setValue(nodeOffset, posInList, defaultVal);
     }
     static void fillInMemListsWithStrValFunc(InMemLists* inMemLists, uint8_t* defaultVal,
@@ -138,8 +138,9 @@ protected:
     void templateCopyArrayAsStringToRelListsWithOverflow(arrow::Array* boundNodeOffsets,
         arrow::Array* posInRelList, arrow::Array* array, PageByteCursor& overflowCursor);
     template<typename T>
-    void setValueFromStringWithOverflow(PageByteCursor& overflowCursor, common::offset_t nodeOffset,
-        uint64_t pos, const char* val, uint64_t length) {
+    void setValueFromStringWithOverflow(PageByteCursor& /*overflowCursor*/,
+        common::offset_t /*nodeOffset*/, uint64_t /*pos*/, const char* /*val*/,
+        uint64_t /*length*/) {
         assert(false);
     }
 

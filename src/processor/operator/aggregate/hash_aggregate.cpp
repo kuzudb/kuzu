@@ -13,7 +13,7 @@ void HashAggregateSharedState::appendAggregateHashTable(
     localAggregateHashTables.push_back(std::move(aggregateHashTable));
 }
 
-void HashAggregateSharedState::combineAggregateHashTable(MemoryManager& memoryManager) {
+void HashAggregateSharedState::combineAggregateHashTable(MemoryManager& /*memoryManager*/) {
     std::unique_lock lck{mtx};
     if (localAggregateHashTables.size() == 1) {
         globalAggregateHashTable = std::move(localAggregateHashTables[0]);

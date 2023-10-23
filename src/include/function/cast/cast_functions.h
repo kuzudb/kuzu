@@ -51,13 +51,13 @@ struct CastToString {
 
 template<>
 inline std::string CastToString::castToString(
-    common::int128_t& input, const common::ValueVector& inputVector) {
+    common::int128_t& input, const common::ValueVector& /*inputVector*/) {
     return common::Int128_t::ToString(input);
 }
 
 struct CastToBlob {
     static inline void operation(common::ku_string_t& input, common::blob_t& result,
-        common::ValueVector& inputVector, common::ValueVector& resultVector) {
+        common::ValueVector& /*inputVector*/, common::ValueVector& resultVector) {
         result.value.len = common::Blob::getBlobSize(input);
         if (!common::ku_string_t::isShortString(result.value.len)) {
             auto overflowBuffer = common::StringVector::getInMemOverflowBuffer(&resultVector);

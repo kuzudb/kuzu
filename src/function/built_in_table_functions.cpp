@@ -35,7 +35,7 @@ struct CurrentSettingFunction {
         return std::make_unique<TableFunctionDefinition>("current_setting", tableFunc, bindFunc);
     }
 
-    static void tableFunc(std::pair<offset_t, offset_t> morsel, TableFuncBindData* bindData,
+    static void tableFunc(std::pair<offset_t, offset_t> /*morsel*/, TableFuncBindData* bindData,
         std::vector<ValueVector*> outputVectors) {
         auto currentSettingBindData = reinterpret_cast<CurrentSettingBindData*>(bindData);
         auto outputVector = outputVectors[0];
@@ -45,8 +45,8 @@ struct CurrentSettingFunction {
         outputVector->state->selVector->selectedSize = 1;
     }
 
-    static std::unique_ptr<TableFuncBindData> bindFunc(
-        main::ClientContext* context, TableFuncBindInput input, catalog::CatalogContent* catalog) {
+    static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
+        TableFuncBindInput input, catalog::CatalogContent* /*catalog*/) {
         auto optionName = input.inputs[0].getValue<std::string>();
         std::vector<std::string> returnColumnNames;
         std::vector<LogicalType> returnTypes;
@@ -62,8 +62,8 @@ struct DBVersionFunction {
         return std::make_unique<TableFunctionDefinition>("db_version", tableFunc, bindFunc);
     }
 
-    static void tableFunc(std::pair<offset_t, offset_t> morsel,
-        function::TableFuncBindData* bindData, std::vector<ValueVector*> outputVectors) {
+    static void tableFunc(std::pair<offset_t, offset_t> /*morsel*/,
+        function::TableFuncBindData* /*bindData*/, std::vector<ValueVector*> outputVectors) {
         auto outputVector = outputVectors[0];
         auto pos = outputVector->state->selVector->selectedPositions[0];
         outputVectors[0]->setValue(pos, std::string(KUZU_VERSION));
@@ -71,8 +71,8 @@ struct DBVersionFunction {
         outputVector->state->selVector->selectedSize = 1;
     }
 
-    static std::unique_ptr<TableFuncBindData> bindFunc(
-        main::ClientContext* context, TableFuncBindInput input, catalog::CatalogContent* catalog) {
+    static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
+        TableFuncBindInput /*input*/, catalog::CatalogContent* /*catalog*/) {
         std::vector<std::string> returnColumnNames;
         std::vector<LogicalType> returnTypes;
         returnColumnNames.emplace_back("version");
@@ -116,8 +116,8 @@ struct ShowTablesFunction {
         outputVectors[0]->state->selVector->selectedSize = numTablesToOutput;
     }
 
-    static std::unique_ptr<TableFuncBindData> bindFunc(
-        main::ClientContext* context, TableFuncBindInput input, catalog::CatalogContent* catalog) {
+    static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
+        TableFuncBindInput /*input*/, catalog::CatalogContent* catalog) {
         std::vector<std::string> returnColumnNames;
         std::vector<LogicalType> returnTypes;
         returnColumnNames.emplace_back("name");
@@ -178,8 +178,8 @@ struct TableInfoFunction {
         }
     }
 
-    static std::unique_ptr<TableFuncBindData> bindFunc(
-        main::ClientContext* context, TableFuncBindInput input, catalog::CatalogContent* catalog) {
+    static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
+        TableFuncBindInput input, catalog::CatalogContent* catalog) {
         std::vector<std::string> returnColumnNames;
         std::vector<LogicalType> returnTypes;
         auto tableName = input.inputs[0].getValue<std::string>();
@@ -260,8 +260,8 @@ struct ShowConnectionFunction {
         }
     }
 
-    static std::unique_ptr<ShowConnectionBindData> bindFunc(
-        main::ClientContext* context, TableFuncBindInput input, catalog::CatalogContent* catalog) {
+    static std::unique_ptr<ShowConnectionBindData> bindFunc(main::ClientContext* /*context*/,
+        TableFuncBindInput input, catalog::CatalogContent* catalog) {
         std::vector<std::string> returnColumnNames;
         std::vector<LogicalType> returnTypes;
         auto tableName = input.inputs[0].getValue<std::string>();

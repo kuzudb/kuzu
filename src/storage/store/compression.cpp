@@ -426,18 +426,19 @@ template class IntegerBitpacking<uint32_t>;
 template class IntegerBitpacking<uint64_t>;
 
 void BooleanBitpacking::setValueFromUncompressed(uint8_t* srcBuffer, offset_t posInSrc,
-    uint8_t* dstBuffer, offset_t posInDst, const CompressionMetadata& metadata) const {
+    uint8_t* dstBuffer, offset_t posInDst, const CompressionMetadata& /*metadata*/) const {
     auto val = ((bool*)srcBuffer)[posInSrc];
     common::NullMask::setNull((uint64_t*)dstBuffer, posInDst, val);
 }
 
 void BooleanBitpacking::getValue(const uint8_t* buffer, offset_t posInBuffer, uint8_t* dst,
-    offset_t posInDst, const CompressionMetadata& metadata) const {
+    offset_t posInDst, const CompressionMetadata& /*metadata*/) const {
     *(dst + posInDst) = common::NullMask::isNull((uint64_t*)buffer, posInBuffer);
 }
 
 uint64_t BooleanBitpacking::compressNextPage(const uint8_t*& srcBuffer, uint64_t numValuesRemaining,
-    uint8_t* dstBuffer, uint64_t dstBufferSize, const struct CompressionMetadata& metadata) const {
+    uint8_t* dstBuffer, uint64_t dstBufferSize,
+    const struct CompressionMetadata& /*metadata*/) const {
     // TODO(bmwinger): Optimize, e.g. using an integer bitpacking function
     auto numValuesToCompress = std::min(numValuesRemaining, numValues(dstBufferSize));
     for (auto i = 0ull; i < numValuesToCompress; i++) {
@@ -450,7 +451,7 @@ uint64_t BooleanBitpacking::compressNextPage(const uint8_t*& srcBuffer, uint64_t
 
 void BooleanBitpacking::decompressFromPage(const uint8_t* srcBuffer, uint64_t srcOffset,
     uint8_t* dstBuffer, uint64_t dstOffset, uint64_t numValues,
-    const CompressionMetadata& metadata) const {
+    const CompressionMetadata& /*metadata*/) const {
     // TODO(bmwinger): Optimize, e.g. using an integer bitpacking function
     for (auto i = 0ull; i < numValues; i++) {
         ((bool*)dstBuffer)[dstOffset + i] =

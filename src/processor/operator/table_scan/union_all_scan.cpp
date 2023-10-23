@@ -31,13 +31,14 @@ std::unique_ptr<UnionAllScanMorsel> UnionAllScanSharedState::getMorselNoLock(
     return morsel;
 }
 
-void UnionAllScan::initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) {
+void UnionAllScan::initLocalStateInternal(
+    ResultSet* /*resultSet_*/, ExecutionContext* /*context*/) {
     for (auto& dataPos : info->outputPositions) {
         vectors.push_back(resultSet->getValueVector(dataPos).get());
     }
 }
 
-bool UnionAllScan::getNextTuplesInternal(ExecutionContext* context) {
+bool UnionAllScan::getNextTuplesInternal(ExecutionContext* /*context*/) {
     auto morsel = sharedState->getMorsel();
     if (morsel->numTuples == 0) {
         return false;

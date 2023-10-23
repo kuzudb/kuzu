@@ -13,7 +13,7 @@ namespace function {
 struct ListExtract {
 public:
     template<typename T>
-    static inline void setValue(T& src, T& dest, common::ValueVector& resultValueVector) {
+    static inline void setValue(T& src, T& dest, common::ValueVector& /*resultValueVector*/) {
         dest = src;
     }
 
@@ -21,7 +21,7 @@ public:
     // is 1).
     template<typename T>
     static inline void operation(common::list_entry_t& listEntry, int64_t pos, T& result,
-        common::ValueVector& listVector, common::ValueVector& posVector,
+        common::ValueVector& listVector, common::ValueVector& /*posVector*/,
         common::ValueVector& resultVector) {
         if (pos == 0) {
             throw common::RuntimeException("List extract takes 1-based position.");

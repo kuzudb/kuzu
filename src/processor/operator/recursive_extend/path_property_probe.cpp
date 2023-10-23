@@ -7,7 +7,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void PathPropertyProbe::initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) {
+void PathPropertyProbe::initLocalStateInternal(
+    ResultSet* /*resultSet_*/, ExecutionContext* /*context*/) {
     localState = std::make_unique<PathPropertyProbeLocalState>();
     vectors = std::make_unique<Vectors>();
     auto pathVector = resultSet->getValueVector(info->pathPos);

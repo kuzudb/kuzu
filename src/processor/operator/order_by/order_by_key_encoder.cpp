@@ -262,7 +262,7 @@ void OrderByKeyEncoder::getEncodingFunction(PhysicalTypeID physicalType, encode_
 }
 
 template<>
-void OrderByKeyEncoder::encodeData(int8_t data, uint8_t* resultPtr, bool swapBytes) {
+void OrderByKeyEncoder::encodeData(int8_t data, uint8_t* resultPtr, bool /*swapBytes*/) {
     memcpy(resultPtr, (void*)&data, sizeof(data));
     resultPtr[0] = flipSign(resultPtr[0]);
 }
@@ -295,7 +295,7 @@ void OrderByKeyEncoder::encodeData(int64_t data, uint8_t* resultPtr, bool swapBy
 }
 
 template<>
-void OrderByKeyEncoder::encodeData(uint8_t data, uint8_t* resultPtr, bool swapBytes) {
+void OrderByKeyEncoder::encodeData(uint8_t data, uint8_t* resultPtr, bool /*swapBytes*/) {
     memcpy(resultPtr, (void*)&data, sizeof(data));
 }
 
@@ -330,7 +330,7 @@ void OrderByKeyEncoder::encodeData(common::int128_t data, uint8_t* resultPtr, bo
 }
 
 template<>
-void OrderByKeyEncoder::encodeData(bool data, uint8_t* resultPtr, bool swapBytes) {
+void OrderByKeyEncoder::encodeData(bool data, uint8_t* resultPtr, bool /*swapBytes*/) {
     uint8_t val = data ? 1 : 0;
     memcpy(resultPtr, (void*)&val, sizeof(data));
 }
@@ -371,7 +371,7 @@ void OrderByKeyEncoder::encodeData(interval_t data, uint8_t* resultPtr, bool swa
 }
 
 template<>
-void OrderByKeyEncoder::encodeData(ku_string_t data, uint8_t* resultPtr, bool swapBytes) {
+void OrderByKeyEncoder::encodeData(ku_string_t data, uint8_t* resultPtr, bool /*swapBytes*/) {
     // Only encode the prefix of ku_string.
     memcpy(resultPtr, (void*)data.getAsString().c_str(),
         std::min((uint32_t)ku_string_t::SHORT_STR_LENGTH, data.len));

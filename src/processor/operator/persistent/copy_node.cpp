@@ -75,7 +75,7 @@ void CopyNodeSharedState::appendLocalNodeGroup(std::unique_ptr<NodeGroup> localN
     }
 }
 
-void CopyNode::initGlobalStateInternal(ExecutionContext* context) {
+void CopyNode::initGlobalStateInternal(ExecutionContext* /*context*/) {
     if (!isCopyAllowed()) {
         throw CopyException(ExceptionMessage::notAllowCopyOnNonEmptyTableException());
     }
@@ -108,7 +108,7 @@ void CopyNode::executeInternal(ExecutionContext* context) {
 }
 
 void CopyNode::sliceDataChunk(
-    const DataChunk& dataChunk, const std::vector<DataPos>& dataColumnPoses, offset_t offset) {
+    const DataChunk& dataChunk, const std::vector<DataPos>& /*dataColumnPoses*/, offset_t offset) {
     auto slicedSelVector = std::make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
     slicedSelVector->resetSelectorToValuePosBufferWithSize(
         dataChunk.state->selVector->selectedSize - offset);

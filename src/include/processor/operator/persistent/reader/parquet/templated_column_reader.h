@@ -8,16 +8,16 @@ namespace processor {
 
 template<class VALUE_TYPE>
 struct TemplatedParquetValueConversion {
-    static VALUE_TYPE dictRead(ByteBuffer& dict, uint32_t& offset, ColumnReader& reader) {
+    static VALUE_TYPE dictRead(ByteBuffer& dict, uint32_t& offset, ColumnReader& /*reader*/) {
         assert(offset < dict.len / sizeof(VALUE_TYPE));
         return ((VALUE_TYPE*)dict.ptr)[offset];
     }
 
-    static VALUE_TYPE plainRead(ByteBuffer& plainData, ColumnReader& reader) {
+    static VALUE_TYPE plainRead(ByteBuffer& plainData, ColumnReader& /*reader*/) {
         return plainData.read<VALUE_TYPE>();
     }
 
-    static void plainSkip(ByteBuffer& plainData, ColumnReader& reader) {
+    static void plainSkip(ByteBuffer& plainData, ColumnReader& /*reader*/) {
         plainData.inc(sizeof(VALUE_TYPE));
     }
 };
@@ -68,7 +68,7 @@ public:
             std::move(plainData), defines, numValues, filter, resultOffset, result);
     }
 
-    void dictionary(std::shared_ptr<ResizeableBuffer> data, uint64_t num_entries) override {
+    void dictionary(std::shared_ptr<ResizeableBuffer> data, uint64_t /*num_entries*/) override {
         dict = std::move(data);
     }
 };
@@ -81,11 +81,11 @@ struct CallbackParquetValueConversion {
             dict, offset, reader);
     }
 
-    static DUCKDB_PHYSICAL_TYPE plainRead(ByteBuffer& plainData, ColumnReader& reader) {
+    static DUCKDB_PHYSICAL_TYPE plainRead(ByteBuffer& plainData, ColumnReader& /*reader*/) {
         return FUNC(plainData.read<PARQUET_PHYSICAL_TYPE>());
     }
 
-    static void plainSkip(ByteBuffer& plainData, ColumnReader& reader) {
+    static void plainSkip(ByteBuffer& plainData, ColumnReader& /*reader*/) {
         plainData.inc(sizeof(PARQUET_PHYSICAL_TYPE));
     }
 };

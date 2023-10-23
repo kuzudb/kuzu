@@ -17,7 +17,8 @@ vector_function_definitions UnionValueVectorFunction::getDefinitions() {
 }
 
 std::unique_ptr<FunctionBindData> UnionValueVectorFunction::bindFunc(
-    const binder::expression_vector& arguments, kuzu::function::FunctionDefinition* definition) {
+    const binder::expression_vector& arguments,
+    kuzu::function::FunctionDefinition* /*definition*/) {
     assert(arguments.size() == 1);
     std::vector<std::unique_ptr<StructField>> fields;
     // TODO(Ziy): Use UINT8 to represent tag value.
@@ -31,11 +32,11 @@ std::unique_ptr<FunctionBindData> UnionValueVectorFunction::bindFunc(
 }
 
 void UnionValueVectorFunction::execFunc(
-    const std::vector<std::shared_ptr<ValueVector>>& parameters, ValueVector& result) {
+    const std::vector<std::shared_ptr<ValueVector>>& /*parameters*/, ValueVector& result) {
     UnionVector::setTagField(&result, UnionType::TAG_FIELD_IDX);
 }
 
-void UnionValueVectorFunction::compileFunc(FunctionBindData* bindData,
+void UnionValueVectorFunction::compileFunc(FunctionBindData* /*bindData*/,
     const std::vector<std::shared_ptr<ValueVector>>& parameters,
     std::shared_ptr<ValueVector>& result) {
     assert(parameters.size() == 1);

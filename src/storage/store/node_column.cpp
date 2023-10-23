@@ -21,7 +21,7 @@ namespace storage {
 struct InternalIDNodeColumnFunc {
     static void readValuesFromPageToVector(uint8_t* frame, PageElementCursor& pageCursor,
         ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead,
-        const CompressionMetadata& metadata) {
+        const CompressionMetadata& /*metadata*/) {
         auto resultData = (internalID_t*)resultVector->getData();
         for (auto i = 0u; i < numValuesToRead; i++) {
             auto posInFrame = pageCursor.elemPosInPage + i;
@@ -31,7 +31,7 @@ struct InternalIDNodeColumnFunc {
     }
 
     static void writeValueToPage(uint8_t* frame, uint16_t posInFrame, ValueVector* vector,
-        uint32_t posInVector, const CompressionMetadata& metadata) {
+        uint32_t posInVector, const CompressionMetadata& /*metadata*/) {
         auto relID = vector->getValue<relID_t>(posInVector);
         memcpy(frame + posInFrame * sizeof(offset_t), &relID.offset, sizeof(offset_t));
     }
@@ -40,7 +40,7 @@ struct InternalIDNodeColumnFunc {
 struct NullNodeColumnFunc {
     static void readValuesFromPageToVector(uint8_t* frame, PageElementCursor& pageCursor,
         ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead,
-        const CompressionMetadata& metadata) {
+        const CompressionMetadata& /*metadata*/) {
         // Read bit-packed null flags from the frame into the result vector
         // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
         // Otherwise, it could read off the end of the page.
@@ -49,7 +49,7 @@ struct NullNodeColumnFunc {
     }
 
     static void writeValueToPage(uint8_t* frame, uint16_t posInFrame, ValueVector* vector,
-        uint32_t posInVector, const CompressionMetadata& metadata) {
+        uint32_t posInVector, const CompressionMetadata& /*metadata*/) {
         // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
         // Otherwise, it could read off the end of the page.
         NullMask::setNull(
@@ -60,7 +60,7 @@ struct NullNodeColumnFunc {
 struct BoolNodeColumnFunc {
     static void readValuesFromPageToVector(uint8_t* frame, PageElementCursor& pageCursor,
         ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead,
-        const CompressionMetadata& metadata) {
+        const CompressionMetadata& /*metadata*/) {
         // Read bit-packed null flags from the frame into the result vector
         // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
         // Otherwise, it could read off the end of the page.
@@ -73,7 +73,7 @@ struct BoolNodeColumnFunc {
     }
 
     static void writeValueToPage(uint8_t* frame, uint16_t posInFrame, ValueVector* vector,
-        uint32_t posInVector, const CompressionMetadata& metadata) {
+        uint32_t posInVector, const CompressionMetadata& /*metadata*/) {
         // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
         // Otherwise, it could read/write off the end of the page.
         NullMask::copyNullMask(vector->getValue<bool>(posInVector) ? &NullMask::ALL_NULL_ENTRY :
@@ -82,13 +82,15 @@ struct BoolNodeColumnFunc {
     }
 
     static void copyValuesFromPage(uint8_t* frame, PageElementCursor& pageCursor, uint8_t* result,
-        uint32_t startPosInResult, uint64_t numValuesToRead, const CompressionMetadata& metadata) {
+        uint32_t startPosInResult, uint64_t numValuesToRead,
+        const CompressionMetadata& /*metadata*/) {
         NullMask::copyNullMask((uint64_t*)frame, pageCursor.elemPosInPage, (uint64_t*)result,
             startPosInResult, numValuesToRead);
     }
 
     static void batchLookupFromPage(uint8_t* frame, PageElementCursor& pageCursor, uint8_t* result,
-        uint32_t startPosInResult, uint64_t numValuesToRead, const CompressionMetadata& metadata) {
+        uint32_t startPosInResult, uint64_t numValuesToRead,
+        const CompressionMetadata& /*metadata*/) {
         for (auto i = 0; i < numValuesToRead; i++) {
             result[startPosInResult + i] =
                 NullMask::isNull((uint64_t*)frame, pageCursor.elemPosInPage + i);
@@ -241,7 +243,7 @@ public:
               false /* enableCompression */, false /*requireNullColumn*/} {}
 
     void scan(
-        Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) final {
+        Transaction* /*transaction*/, ValueVector* nodeIDVector, ValueVector* resultVector) final {
         // Serial column cannot contain null values.
         for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
             auto pos = nodeIDVector->state->selVector->selectedPositions[i];
@@ -252,7 +254,7 @@ public:
     }
 
     void lookup(
-        Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) final {
+        Transaction* /*transaction*/, ValueVector* nodeIDVector, ValueVector* resultVector) final {
         // Serial column cannot contain null values.
         for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
             auto pos = nodeIDVector->state->selVector->selectedPositions[i];
@@ -261,7 +263,7 @@ public:
         }
     }
 
-    void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) final {
+    void append(ColumnChunk* /*columnChunk*/, uint64_t nodeGroupIdx) final {
         metadataDA->resize(nodeGroupIdx + 1);
     }
 };

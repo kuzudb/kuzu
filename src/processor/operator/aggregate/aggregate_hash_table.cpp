@@ -397,9 +397,9 @@ void AggregateHashTable::computeVectorHashes(const std::vector<ValueVector*>& fl
 }
 
 void AggregateHashTable::updateDistinctAggState(const std::vector<ValueVector*>& flatKeyVectors,
-    const std::vector<ValueVector*>& unFlatKeyVectors,
+    const std::vector<ValueVector*>& /*unFlatKeyVectors*/,
     std::unique_ptr<AggregateFunction>& aggregateFunction, ValueVector* aggregateVector,
-    uint64_t multiplicity, uint32_t colIdx, uint32_t aggStateOffset) {
+    uint64_t /*multiplicity*/, uint32_t colIdx, uint32_t aggStateOffset) {
     auto distinctHT = distinctHashTables[colIdx].get();
     assert(distinctHT != nullptr);
     if (distinctHT->isAggregateValueDistinctForGroupByKeys(flatKeyVectors, aggregateVector)) {
@@ -423,7 +423,7 @@ void AggregateHashTable::updateDistinctAggState(const std::vector<ValueVector*>&
 void AggregateHashTable::updateAggState(const std::vector<ValueVector*>& flatKeyVectors,
     const std::vector<ValueVector*>& unFlatKeyVectors,
     std::unique_ptr<AggregateFunction>& aggregateFunction, ValueVector* aggVector,
-    uint64_t multiplicity, uint32_t colIdx, uint32_t aggStateOffset) {
+    uint64_t multiplicity, uint32_t /*colIdx*/, uint32_t aggStateOffset) {
     if (!aggVector) {
         updateNullAggVectorState(
             flatKeyVectors, unFlatKeyVectors, aggregateFunction, multiplicity, aggStateOffset);
@@ -763,7 +763,7 @@ void AggregateHashTable::updateNullAggVectorState(const std::vector<ValueVector*
 }
 
 void AggregateHashTable::updateBothFlatAggVectorState(
-    const std::vector<ValueVector*>& flatKeyVectors,
+    const std::vector<ValueVector*>& /*flatKeyVectors*/,
     std::unique_ptr<AggregateFunction>& aggregateFunction, ValueVector* aggVector,
     uint64_t multiplicity, uint32_t aggStateOffset) {
     auto aggPos = aggVector->state->selVector->selectedPositions[0];
@@ -776,7 +776,7 @@ void AggregateHashTable::updateBothFlatAggVectorState(
 }
 
 void AggregateHashTable::updateFlatUnFlatKeyFlatAggVectorState(
-    const std::vector<ValueVector*>& flatKeyVectors,
+    const std::vector<ValueVector*>& /*flatKeyVectors*/,
     const std::vector<ValueVector*>& unFlatKeyVectors,
     std::unique_ptr<AggregateFunction>& aggregateFunction, ValueVector* aggVector,
     uint64_t multiplicity, uint32_t aggStateOffset) {
@@ -845,8 +845,8 @@ void AggregateHashTable::updateFlatKeyUnFlatAggVectorState(
 }
 
 void AggregateHashTable::updateBothUnFlatSameDCAggVectorState(
-    const std::vector<ValueVector*>& flatKeyVectors,
-    const std::vector<ValueVector*>& unFlatKeyVectors,
+    const std::vector<ValueVector*>& /*flatKeyVectors*/,
+    const std::vector<ValueVector*>& /*unFlatKeyVectors*/,
     std::unique_ptr<AggregateFunction>& aggregateFunction, ValueVector* aggVector,
     uint64_t multiplicity, uint32_t aggStateOffset) {
     if (aggVector->hasNoNullsGuarantee()) {
@@ -887,7 +887,7 @@ void AggregateHashTable::updateBothUnFlatSameDCAggVectorState(
 }
 
 void AggregateHashTable::updateBothUnFlatDifferentDCAggVectorState(
-    const std::vector<ValueVector*>& flatKeyVectors,
+    const std::vector<ValueVector*>& /*flatKeyVectors*/,
     const std::vector<ValueVector*>& unFlatKeyVectors,
     std::unique_ptr<AggregateFunction>& aggregateFunction, ValueVector* aggVector,
     uint64_t multiplicity, uint32_t aggStateOffset) {

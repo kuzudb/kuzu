@@ -109,7 +109,7 @@ void InMemColumnChunk::copyArrowBatch(std::shared_ptr<arrow::RecordBatch> batch)
 }
 
 void InMemColumnChunk::copyArrowArray(
-    arrow::Array& arrowArray, PropertyCopyState* copyState, arrow::Array* nodeOffsets) {
+    arrow::Array& arrowArray, PropertyCopyState* /*copyState*/, arrow::Array* nodeOffsets) {
     switch (arrowArray.type_id()) {
     case arrow::Type::BOOL: {
         templateCopyValuesToPage<bool>(arrowArray, nodeOffsets);
@@ -427,7 +427,8 @@ offset_t InMemFixedListColumnChunk::getOffsetInBuffer(offset_t pos) {
 
 // Bool
 template<>
-void InMemColumnChunk::setValueFromString<bool>(const char* value, uint64_t length, uint64_t pos) {
+void InMemColumnChunk::setValueFromString<bool>(
+    const char* value, uint64_t /*length*/, uint64_t pos) {
     std::istringstream boolStream{std::string(value)};
     bool booleanVal;
     boolStream >> std::boolalpha >> booleanVal;

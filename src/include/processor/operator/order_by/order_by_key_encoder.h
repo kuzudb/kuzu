@@ -96,8 +96,10 @@ private:
     }
 
     template<typename type>
-    static void encodeData(type data, uint8_t* resultPtr, bool swapBytes) {
-        assert(false);
+    static void encodeData(type /*data*/, uint8_t* /*resultPtr*/, bool /*swapBytes*/) {
+        // LCOV_EXCL_START
+        throw common::NotImplementedException("OrderByKeyEncoder::encodeData");
+        // LCOV_EXCL_END
     }
 
     static inline uint8_t flipSign(uint8_t key_byte) { return key_byte ^ 128; }

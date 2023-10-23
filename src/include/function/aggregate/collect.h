@@ -78,7 +78,7 @@ struct CollectFunction {
     }
 
     static void combine(
-        uint8_t* state_, uint8_t* otherState_, storage::MemoryManager* memoryManager) {
+        uint8_t* state_, uint8_t* otherState_, storage::MemoryManager* /*memoryManager*/) {
         auto otherState = reinterpret_cast<CollectState*>(otherState_);
         if (otherState->isNull) {
             return;

@@ -6,7 +6,8 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace processor {
 
-void BaseAggregateScan::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+void BaseAggregateScan::initLocalStateInternal(
+    ResultSet* resultSet, ExecutionContext* /*context*/) {
     for (auto& dataPos : aggregatesPos) {
         auto valueVector = resultSet->getValueVector(dataPos);
         aggregateVectors.push_back(valueVector);

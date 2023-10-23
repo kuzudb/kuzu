@@ -8,11 +8,11 @@
 # each newly added node).
 -CASE CopyNodeAndQueryEmptyRelTable
 
--STATEMENT create node table person 
-             (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, 
+-STATEMENT create node table person
+             (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN,
               isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE,
-              registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], 
-              usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, 
+              registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[],
+              usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float,
               PRIMARY KEY (ID));
 ---- ok
 

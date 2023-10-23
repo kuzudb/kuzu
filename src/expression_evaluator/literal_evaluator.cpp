@@ -8,7 +8,7 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace evaluator {
 
-bool LiteralExpressionEvaluator::select(SelectionVector& selVector) {
+bool LiteralExpressionEvaluator::select(SelectionVector& /*selVector*/) {
     assert(resultVector->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
     auto pos = resultVector->state->selVector->selectedPositions[0];
     assert(pos == 0u);
@@ -16,7 +16,7 @@ bool LiteralExpressionEvaluator::select(SelectionVector& selVector) {
 }
 
 void LiteralExpressionEvaluator::resolveResultVector(
-    const processor::ResultSet& resultSet, MemoryManager* memoryManager) {
+    const processor::ResultSet& /*resultSet*/, MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(*value->getDataType(), memoryManager);
     resultVector->setState(DataChunkState::getSingleValueDataChunkState());
     if (value->isNull()) {
