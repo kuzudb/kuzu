@@ -233,8 +233,7 @@ std::pair<expression_vector, expression_vector> Binder::bindExpectedNodeFileColu
     case FileType::PARQUET:
     case FileType::CSV: {
         auto properties = tableSchema->getProperties();
-        std::remove_if(properties.begin(), properties.end(),
-            [](auto& property) { return skipPropertyInFile(*property); });
+        std::erase_if(properties, [](auto& property) { return skipPropertyInFile(*property); });
         if (partialColumnNames.empty()) {
             for (auto& property : properties) {
                 readerConfig.columnNames.push_back(property->getName());

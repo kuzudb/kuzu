@@ -48,20 +48,32 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
         std::make_shared<CopyNodeSharedState>(reader->getSharedState()->getNumRowsRef(),
             tableSchema, nodeTable, memoryManager, isCopyRdf);
     std::vector<DataPos> dataColumnPoses;
-    dataColumnPoses.reserve(tableSchema->getNumProperties());
     std::vector<bool> dataColumnPosesIsNull;
-    dataColumnPosesIsNull.reserve(tableSchema->getNumProperties());
-    auto nullColumnsIt = copyFromInfo->nullColumns.begin();
-    for (auto& property : tableSchema->getProperties()) {
-        uint32_t i = std::find(readerConfig->columnNames.begin(), readerConfig->columnNames.end(),
-            property->getName()) - readerConfig->columnNames.begin();
-        if (i < readerInfo->dataColumnsPos.size()) {
-            dataColumnPoses.emplace_back(readerInfo->dataColumnsPos[i]);
-            dataColumnPosesIsNull.emplace_back(false);
-        } else {
-            dataColumnPoses.emplace_back(copyFrom->getSchema()->getExpressionPos(**nullColumnsIt));
-            dataColumnPosesIsNull.emplace_back(true);
-            nullColumnsIt = std::next(nullColumnsIt);
+    if (isCopyRdf) {
+        dataColumnPoses = readerInfo->dataColumnsPos;
+        dataColumnPosesIsNull.assign(readerInfo->dataColumnsPos.size(), false);
+    } else {
+        auto numDataColumnPoses = readerInfo->dataColumnsPos.size() + copyFromInfo->nullColumns.size();
+        dataColumnPoses.reserve(numDataColumnPoses);
+        dataColumnPosesIsNull.reserve(numDataColumnPoses);
+        auto nullColumnsIt = copyFromInfo->nullColumns.begin();
+        for (auto& property : tableSchema->getProperties()) {
+            if (property->getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL ||
+                TableSchema::isReservedPropertyName(property->getName())) {
+                continue;
+            }
+            uint32_t i = std::find(readerConfig->columnNames.begin(),
+                             readerConfig->columnNames.end(), property->getName()) -
+                         readerConfig->columnNames.begin();
+            if (i < readerInfo->dataColumnsPos.size()) {
+                dataColumnPoses.emplace_back(readerInfo->dataColumnsPos[i]);
+                dataColumnPosesIsNull.emplace_back(false);
+            } else {
+                dataColumnPoses.emplace_back(
+                    copyFrom->getSchema()->getExpressionPos(**nullColumnsIt));
+                dataColumnPosesIsNull.emplace_back(true);
+                nullColumnsIt = std::next(nullColumnsIt);
+            }
         }
     }
     CopyNodeInfo copyNodeDataInfo{dataColumnPoses, dataColumnPosesIsNull, nodeTable,
