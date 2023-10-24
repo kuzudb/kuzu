@@ -8,6 +8,15 @@ on:
     branches:
       - master
 
+# Only allow one run in this group to run at a time, and cancel any runs in progress in this group.
+# We use the workflow name and then add the pull request number, or (if it's a push to master), we use the name of the branch.
+# See github's docs[1] and a relevant stack overflow answer[2]
+#   [1]: https://docs.github.com/en/actions/using-jobs/using-concurrency
+#   [2]: https://stackoverflow.com/questions/66335225/how-to-cancel-previous-runs-in-the-pr-when-you-push-new-commitsupdate-the-curre
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   gcc-build-test:
     name: gcc build & test
