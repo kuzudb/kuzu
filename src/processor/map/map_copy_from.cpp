@@ -47,13 +47,43 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
     auto copyNodeSharedState =
         std::make_shared<CopyNodeSharedState>(reader->getSharedState()->getNumRowsRef(),
             tableSchema, nodeTable, memoryManager, isCopyRdf);
-    CopyNodeInfo copyNodeDataInfo{readerInfo->dataColumnsPos, nodeTable,
+    std::vector<DataPos> dataColumnPoses;
+    std::vector<bool> nullDataColumnPoses;
+    if (isCopyRdf) {
+        dataColumnPoses = readerInfo->dataColumnsPos;
+        nullDataColumnPoses.assign(readerInfo->dataColumnsPos.size(), false);
+    } else {
+        auto numDataColumnPoses =
+            readerInfo->dataColumnsPos.size() + copyFromInfo->nullColumns.size();
+        dataColumnPoses.reserve(numDataColumnPoses);
+        nullDataColumnPoses.reserve(numDataColumnPoses);
+        auto nullColumnsIt = copyFromInfo->nullColumns.begin();
+        for (auto& property : tableSchema->getProperties()) {
+            if (property->getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL ||
+                TableSchema::isReservedPropertyName(property->getName())) {
+                continue;
+            }
+            uint32_t i = std::find(readerConfig->columnNames.begin(),
+                             readerConfig->columnNames.end(), property->getName()) -
+                         readerConfig->columnNames.begin();
+            if (i < readerInfo->dataColumnsPos.size()) {
+                dataColumnPoses.emplace_back(readerInfo->dataColumnsPos[i]);
+                nullDataColumnPoses.emplace_back(false);
+            } else {
+                dataColumnPoses.emplace_back(
+                    copyFrom->getSchema()->getExpressionPos(**nullColumnsIt));
+                nullDataColumnPoses.emplace_back(true);
+                nullColumnsIt = std::next(nullColumnsIt);
+            }
+        }
+    }
+    CopyNodeInfo copyNodeDataInfo{dataColumnPoses, nullDataColumnPoses, nodeTable,
         &storageManager.getRelsStore(), catalog, storageManager.getWAL(),
         copyFromInfo->containsSerial};
     auto copyNode = std::make_unique<CopyNode>(copyNodeSharedState, copyNodeDataInfo,
         std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), std::move(prevOperator),
         getOperatorID(), copyFrom->getExpressionsForPrinting());
-    auto outputExpressions = binder::expression_vector{copyFrom->getOutputExpression()->copy()};
+    auto outputExpressions = expression_vector{copyFrom->getOutputExpression()->copy()};
     return createFactorizedTableScanAligned(outputExpressions, copyFrom->getSchema(),
         copyNodeSharedState->fTable, DEFAULT_VECTOR_CAPACITY /* maxMorselSize */,
         std::move(copyNode));

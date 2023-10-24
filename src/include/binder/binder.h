@@ -116,13 +116,15 @@ private:
     /*** bind copy ***/
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCopyNodeFrom(
-        std::unique_ptr<common::ReaderConfig> readerConfig, catalog::TableSchema* tableSchema);
+        std::unique_ptr<common::ReaderConfig> readerConfig, catalog::TableSchema* tableSchema,
+        const std::vector<std::string>& partialColumnNames);
     std::unique_ptr<BoundStatement> bindCopyRelFrom(
         std::unique_ptr<common::ReaderConfig> readerConfig, catalog::TableSchema* tableSchema);
     std::unique_ptr<BoundStatement> bindCopyRdfRelFrom(
         std::unique_ptr<common::ReaderConfig> readerConfig, catalog::TableSchema* tableSchema);
-    expression_vector bindExpectedNodeFileColumns(
-        catalog::TableSchema* tableSchema, common::ReaderConfig& readerConfig);
+    std::pair<expression_vector, expression_vector> bindExpectedNodeFileColumns(
+        catalog::TableSchema* tableSchema, common::ReaderConfig& readerConfig,
+        const std::vector<std::string>& partialColumnNames);
     expression_vector bindExpectedRelFileColumns(
         catalog::TableSchema* tableSchema, common::ReaderConfig& readerConfig);
     std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
