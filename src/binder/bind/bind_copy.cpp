@@ -45,7 +45,7 @@ static void validateColumnNames(
     TableSchema* schema, const std::vector<std::string>& partialColumnNames) {
     for (auto& columnName : partialColumnNames) {
         if (!schema->containProperty(columnName)) {
-            throw BinderException(StringUtils::string_format(
+            throw BinderException(stringFormat(
                 "Table {} does not contain column {}.", schema->tableName, columnName));
         }
     }
