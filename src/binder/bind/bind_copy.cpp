@@ -134,7 +134,8 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(std::unique_ptr<ReaderC
     auto columnsPair = bindExpectedNodeFileColumns(tableSchema, *readerConfig, partialColumnNames);
     auto columns = columnsPair.first;
     auto nullColumns = columnsPair.second;
-    auto nodeID = createVariable(std::string(Property::INTERNAL_ID_NAME), LogicalTypeID::INTERNAL_ID);
+    auto nodeID =
+        createVariable(std::string(Property::INTERNAL_ID_NAME), LogicalTypeID::INTERNAL_ID);
     auto boundFileScanInfo = std::make_unique<BoundFileScanInfo>(
         std::move(readerConfig), std::move(columns), std::move(nodeID), TableType::NODE);
     auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(
