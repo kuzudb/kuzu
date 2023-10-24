@@ -85,13 +85,14 @@ Parser exception: extraneous input ')' expecting {COMMENT, HexLetter, UnescapedS
                      ^
 
 -CASE PartialColumnsMissingTest
+-PARALLELISM 1
 -STATEMENT CREATE NODE TABLE tableOfTypes6 (id INT64, int64Column INT64, doubleColumn DOUBLE, booleanColumn BOOLEAN,
                                             dateColumn DATE, timestampColumn TIMESTAMP, stringColumn STRING,
                                             listOfInt INT64[],
                                             PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY tableOfTypes6 (id, int64Column, doubleColumn, dateColumn, timestampColumn, stringColumn,
-    listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (HEADER=true, PARALLEL=false);
+    listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (HEADER=true);
 ---- error
 Conversion exception: Error occurred during parsing date. Given: "true". Expected format: (YYYY-MM-DD)
 
@@ -107,13 +108,14 @@ Conversion exception: Error occurred during parsing date. Given: "true". Expecte
 Binder exception: Table tableOfTypes7 does not contain column nonexistentColumn.
 
 -CASE PartialColumnsExtraTest
+-PARALLELISM 1
 -STATEMENT CREATE NODE TABLE tableOfTypes8 (id INT64, int64Column INT64, doubleColumn DOUBLE, booleanColumn BOOLEAN,
                                             dateColumn DATE, timestampColumn TIMESTAMP, stringColumn STRING,
                                             listOfInt INT64[], extraColumn BOOLEAN,
                                             PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY tableOfTypes8 (id, int64Column, doubleColumn, booleanColumn, dateColumn, timestampColumn, stringColumn,
-    listOfInt, extraColumn) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (HEADER=true, PARALLEL=false);
+    listOfInt, extraColumn) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (HEADER=true);
 ---- error
 Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv on line 2: expected 9 values per row, but got 8
 
