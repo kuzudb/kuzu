@@ -4,7 +4,10 @@
 --
 
 -CASE NoPartialColumnsTest
--STATEMENT CREATE NODE TABLE tableOfTypes1 (id INT64, int64Column INT64, doubleColumn DOUBLE, booleanColumn BOOLEAN, dateColumn DATE, timestampColumn TIMESTAMP, stringColumn STRING, listOfInt INT64[], PRIMARY KEY (id));
+-STATEMENT CREATE NODE TABLE tableOfTypes1 (id INT64, int64Column INT64, doubleColumn DOUBLE, booleanColumn BOOLEAN,
+                                            dateColumn DATE, timestampColumn TIMESTAMP, stringColumn STRING,
+                                            listOfInt INT64[],
+                                            PRIMARY KEY (id));
 ---- ok
 -STATEMENT COPY tableOfTypes1 FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (HEADER=true);
 ---- ok
@@ -85,7 +88,6 @@ Parser exception: extraneous input ')' expecting {COMMENT, HexLetter, UnescapedS
                      ^
 
 -CASE PartialColumnsMissingTest
--PARALLELISM 1
 -STATEMENT CREATE NODE TABLE tableOfTypes6 (id INT64, int64Column INT64, doubleColumn DOUBLE, booleanColumn BOOLEAN,
                                             dateColumn DATE, timestampColumn TIMESTAMP, stringColumn STRING,
                                             listOfInt INT64[],
@@ -94,7 +96,7 @@ Parser exception: extraneous input ')' expecting {COMMENT, HexLetter, UnescapedS
 -STATEMENT COPY tableOfTypes6 (id, int64Column, doubleColumn, dateColumn, timestampColumn, stringColumn,
     listOfInt) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (HEADER=true);
 ---- error
-Conversion exception: Error occurred during parsing date. Given: "true". Expected format: (YYYY-MM-DD)
+Binder exception: Number of columns mismatch. Expected 7 but got 8.
 
 -CASE PartialColumnsNonexistentTest
 -STATEMENT CREATE NODE TABLE tableOfTypes7 (id INT64, int64Column INT64, doubleColumn DOUBLE, booleanColumn BOOLEAN,
@@ -108,7 +110,6 @@ Conversion exception: Error occurred during parsing date. Given: "true". Expecte
 Binder exception: Table tableOfTypes7 does not contain column nonexistentColumn.
 
 -CASE PartialColumnsExtraTest
--PARALLELISM 1
 -STATEMENT CREATE NODE TABLE tableOfTypes8 (id INT64, int64Column INT64, doubleColumn DOUBLE, booleanColumn BOOLEAN,
                                             dateColumn DATE, timestampColumn TIMESTAMP, stringColumn STRING,
                                             listOfInt INT64[], extraColumn BOOLEAN,
@@ -117,7 +118,7 @@ Binder exception: Table tableOfTypes7 does not contain column nonexistentColumn.
 -STATEMENT COPY tableOfTypes8 (id, int64Column, doubleColumn, booleanColumn, dateColumn, timestampColumn, stringColumn,
     listOfInt, extraColumn) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv" (HEADER=true);
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/csv/types_50k.csv on line 2: expected 9 values per row, but got 8
+Binder exception: Number of columns mismatch. Expected 9 but got 8.
 
 -CASE PartialColumnsDuplicateTest
 -STATEMENT CREATE NODE TABLE tableOfTypes9 (id INT64, int64Column INT64, doubleColumn DOUBLE, booleanColumn BOOLEAN,
@@ -159,10 +160,19 @@ Binder exception: Specified columns contain duplicates.
 Copy exception: Found NULL, which violates the non-null constraint of the primary key column.
 
 -CASE PartialColumnsArbitraryOrderParquetTest
--STATEMENT CREATE NODE TABLE tableOfTypes12 (nullStructColumn STRUCT(ID int64, name STRING), booleanColumn BOOLEAN, doubleColumn DOUBLE, listOfInt64 INT64[], nullListOfListOfInt64 INT64[][], listOfString STRING[], int64Column INT64, nullId INT64, nullInt64Column INT64, nullDateColumn DATE, nullListOfInt64 INT64[], nullBooleanColumn BOOLEAN, dateColumn DATE, listOfListOfInt64 INT64[][], id INT64, nullDoubleColumn DOUBLE, nullListOfString STRING[], structColumn STRUCT(ID int64, name STRING), stringColumn STRING, nullStringColumn STRING,
-                                            PRIMARY KEY (id));
+-STATEMENT CREATE NODE TABLE tableOfTypes12 (nullStructColumn STRUCT(ID int64, name STRING), booleanColumn BOOLEAN,
+                                             doubleColumn DOUBLE, listOfInt64 INT64[], nullListOfListOfInt64 INT64[][],
+                                             listOfString STRING[], int64Column INT64, nullId INT64,
+                                             nullInt64Column INT64, nullDateColumn DATE, nullListOfInt64 INT64[],
+                                             nullBooleanColumn BOOLEAN, dateColumn DATE, listOfListOfInt64 INT64[][],
+                                             id INT64, nullDoubleColumn DOUBLE, nullListOfString STRING[],
+                                             structColumn STRUCT(ID int64, name STRING), stringColumn STRING,
+                                             nullStringColumn STRING,
+                                             PRIMARY KEY (id));
 ---- ok
--STATEMENT COPY tableOfTypes12 (id, int64Column, doubleColumn, booleanColumn, dateColumn, stringColumn, listOfInt64, listOfString, listOfListOfInt64, structColumn) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k*.parquet" (HEADER=true);
+-STATEMENT COPY tableOfTypes12 (id, int64Column, doubleColumn, booleanColumn, dateColumn, stringColumn, listOfInt64,
+listOfString, listOfListOfInt64, structColumn) FROM
+"${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k*.parquet" (HEADER=true);
 ---- ok
 -STATEMENT MATCH (row:tableOfTypes12) WHERE row.id >= 20 AND row.id <= 24 RETURN row.*;
 ---- 5
