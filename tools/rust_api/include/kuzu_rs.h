@@ -129,6 +129,7 @@ int64_t value_get_interval_secs(const kuzu::common::Value& value);
 int32_t value_get_interval_micros(const kuzu::common::Value& value);
 int32_t value_get_date_days(const kuzu::common::Value& value);
 int64_t value_get_timestamp_micros(const kuzu::common::Value& value);
+std::array<uint64_t, 2> value_get_int128_t(const kuzu::common::Value& value);
 std::array<uint64_t, 2> value_get_internal_id(const kuzu::common::Value& value);
 uint32_t value_get_children_size(const kuzu::common::Value& value);
 const kuzu::common::Value& value_get_child(const kuzu::common::Value& value, uint32_t index);
@@ -144,6 +145,7 @@ std::unique_ptr<kuzu::common::Value> create_value_interval(
     const int32_t months, const int32_t days, const int64_t micros);
 std::unique_ptr<kuzu::common::Value> create_value_null(
     std::unique_ptr<kuzu::common::LogicalType> typ);
+std::unique_ptr<kuzu::common::Value> create_value_int128_t(int64_t high, uint64_t low);
 std::unique_ptr<kuzu::common::Value> create_value_internal_id(uint64_t offset, uint64_t table);
 
 template<typename T>

@@ -273,6 +273,7 @@ pub(crate) mod ffi {
         fn value_get_interval_micros(value: &Value) -> i32;
         fn value_get_timestamp_micros(value: &Value) -> i64;
         fn value_get_date_days(value: &Value) -> i32;
+        fn value_get_int128_t(value: &Value) -> [u64; 2];
         fn value_get_internal_id(value: &Value) -> [u64; 2];
 
         fn value_get_data_type_id(value: &Value) -> LogicalTypeID;
@@ -311,6 +312,7 @@ pub(crate) mod ffi {
         fn create_value_timestamp(value: i64) -> UniquePtr<Value>;
         fn create_value_date(value: i64) -> UniquePtr<Value>;
         fn create_value_interval(months: i32, days: i32, micros: i64) -> UniquePtr<Value>;
+        fn create_value_int128_t(high: i64, low: u64) -> UniquePtr<Value>;
         fn create_value_internal_id(offset: u64, table: u64) -> UniquePtr<Value>;
 
         fn node_value_get_node_id(value: &Value) -> [u64; 2];

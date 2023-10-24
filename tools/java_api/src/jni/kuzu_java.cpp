@@ -841,6 +841,14 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1value(
         jobject ret = env->NewObject(retClass, ctor, val);
         return ret;
     }
+    case LogicalTypeID::INT128: {
+        jclass bigIntegerClass = env->FindClass("java/math/BigInteger");
+        jmethodID ctor = env->GetMethodID(bigIntegerClass, "<init>", "(Ljava/lang/String;)V");
+        int128_t int128_val = v->getValue<int128_t>();
+        jstring val = env->NewStringUTF(Int128_t::ToString(int128_val).c_str());
+        jobject ret = env->NewObject(bigIntegerClass, ctor, val);
+        return ret;
+    }
     case LogicalTypeID::DOUBLE: {
         jclass retClass = env->FindClass("java/lang/Double");
         jmethodID ctor = env->GetMethodID(retClass, "<init>", "(D)V");

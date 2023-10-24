@@ -28,6 +28,8 @@ pub enum LogicalType {
     UInt16,
     /// Correponds to [Value::UInt8](crate::value::Value::UInt8)
     UInt8,
+    /// Correponds to [Value::Int128](crate::value::Value::Int128)
+    Int128,
     /// Correponds to [Value::Double](crate::value::Value::Double)
     Double,
     /// Correponds to [Value::Float](crate::value::Value::Float)
@@ -93,6 +95,7 @@ impl From<&ffi::LogicalType> for LogicalType {
             LogicalTypeID::UINT16 => LogicalType::UInt16,
             LogicalTypeID::UINT32 => LogicalType::UInt32,
             LogicalTypeID::UINT64 => LogicalType::UInt64,
+            LogicalTypeID::INT128 => LogicalType::Int128,
             LogicalTypeID::FLOAT => LogicalType::Float,
             LogicalTypeID::DOUBLE => LogicalType::Double,
             LogicalTypeID::STRING => LogicalType::String,
@@ -178,6 +181,7 @@ impl From<&LogicalType> for cxx::UniquePtr<ffi::LogicalType> {
             | LogicalType::UInt32
             | LogicalType::UInt16
             | LogicalType::UInt8
+            | LogicalType::Int128
             | LogicalType::Float
             | LogicalType::Double
             | LogicalType::Date
@@ -239,6 +243,7 @@ impl LogicalType {
             LogicalType::UInt16 => LogicalTypeID::UINT16,
             LogicalType::UInt32 => LogicalTypeID::UINT32,
             LogicalType::UInt64 => LogicalTypeID::UINT64,
+            LogicalType::Int128 => LogicalTypeID::INT128,
             LogicalType::Float => LogicalTypeID::FLOAT,
             LogicalType::Double => LogicalTypeID::DOUBLE,
             LogicalType::String => LogicalTypeID::STRING,

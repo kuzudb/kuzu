@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.Duration;
 import java.time.Instant;
@@ -463,6 +464,24 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals(32800L));
+        value.destroy();
+        flatTuple.destroy();
+        result.destroy();
+    }
+
+    @Test
+    void ValueGetInt128() throws KuzuObjectRefDestroyedException {
+        // INT128
+        KuzuQueryResult result = conn.query("MATCH (a:person) -[r:studyAt]-> (b:organisation) RETURN r.hugedata ORDER BY a.ID");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        KuzuFlatTuple flatTuple = result.getNext();
+        KuzuValue value = flatTuple.getValue(0);
+
+        assertTrue(value.isOwnedByCPP());
+        assertFalse(value.isNull());
+
+        assertEquals(value.getValue(), new BigInteger("1844674407370955161811111111"));
         value.destroy();
         flatTuple.destroy();
         result.destroy();
