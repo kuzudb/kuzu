@@ -47,7 +47,7 @@ bool Reader::getNextTuplesInternal(ExecutionContext* /*context*/) {
 
 template<ReaderSharedState::ReadMode READ_MODE>
 void Reader::readNextDataChunk() {
-    lockForSerial<READ_MODE>();
+    auto lckGuard = lockIfSerial<READ_MODE>();
     while (true) {
         if (leftArrowArrays.getLeftNumRows() > 0) {
             auto numLeftToAppend =
@@ -86,7 +86,6 @@ void Reader::readNextDataChunk() {
             sharedState->doneFile<READ_MODE>(morsel->fileIdx);
         }
     }
-    unlockForSerial<READ_MODE>();
 }
 
 template void Reader::readNextDataChunk<ReaderSharedState::ReadMode::SERIAL>();

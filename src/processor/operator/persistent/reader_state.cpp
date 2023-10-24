@@ -85,28 +85,22 @@ void ReaderSharedState::countRows(MemoryManager* memoryManager) {
 }
 
 template<ReaderSharedState::ReadMode READ_MODE>
-static void lockForParallel(std::mutex& mtx) {
+[[nodiscard]] static std::optional<std::lock_guard<std::mutex>> lockIfParallel(std::mutex& mtx) {
     if constexpr (READ_MODE == ReaderSharedState::ReadMode::PARALLEL) {
-        mtx.lock();
-    }
-}
-
-template<ReaderSharedState::ReadMode READ_MODE>
-static void unlockForParallel(std::mutex& mtx) {
-    if constexpr (READ_MODE == ReaderSharedState::ReadMode::PARALLEL) {
-        mtx.unlock();
+        return std::make_optional<std::lock_guard<std::mutex>>(mtx);
+    } else {
+        return std::nullopt;
     }
 }
 
 template<ReaderSharedState::ReadMode READ_MODE>
 void ReaderSharedState::doneFile(vector_idx_t fileIdx) {
-    lockForParallel<READ_MODE>(mtx);
+    auto lckGuard = lockIfParallel<READ_MODE>(mtx);
     if (fileIdx == currFileIdx) {
         currFileIdx +=
             (readerConfig->fileType == common::FileType::NPY ? readerConfig->filePaths.size() : 1);
         currBlockIdx = 0;
     }
-    unlockForParallel<READ_MODE>(mtx);
 }
 
 template void ReaderSharedState::doneFile<ReaderSharedState::ReadMode::SERIAL>(
@@ -117,14 +111,13 @@ template void ReaderSharedState::doneFile<ReaderSharedState::ReadMode::PARALLEL>
 template<ReaderSharedState::ReadMode READ_MODE>
 std::unique_ptr<ReaderMorsel> ReaderSharedState::getMorsel() {
     std::unique_ptr<ReaderMorsel> morsel;
-    lockForParallel<READ_MODE>(mtx);
+    auto lckGuard = lockIfParallel<READ_MODE>(mtx);
     if (currFileIdx >= readerConfig->getNumFiles()) {
         // No more blocks.
         morsel = std::make_unique<ReaderMorsel>();
     } else {
         morsel = std::make_unique<ReaderMorsel>(currFileIdx, currBlockIdx++);
     }
-    unlockForParallel<READ_MODE>(mtx);
     return morsel;
 }
 
