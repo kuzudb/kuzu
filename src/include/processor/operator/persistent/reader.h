@@ -57,15 +57,11 @@ private:
     void readNextDataChunk();
 
     template<ReaderSharedState::ReadMode READ_MODE>
-    inline void lockForSerial() {
+    [[nodiscard]] inline std::optional<std::lock_guard<std::mutex>> lockIfSerial() {
         if constexpr (READ_MODE == ReaderSharedState::ReadMode::SERIAL) {
-            sharedState->mtx.lock();
-        }
-    }
-    template<ReaderSharedState::ReadMode READ_MODE>
-    inline void unlockForSerial() {
-        if constexpr (READ_MODE == ReaderSharedState::ReadMode::SERIAL) {
-            sharedState->mtx.unlock();
+            return std::make_optional<std::lock_guard<std::mutex>>(sharedState->mtx);
+        } else {
+            return std::nullopt;
         }
     }
 
