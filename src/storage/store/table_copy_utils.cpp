@@ -140,6 +140,7 @@ std::unique_ptr<Value> TableCopyUtils::getArrowFixedListVal(std::string_view l, 
         case LogicalTypeID::UINT32:
         case LogicalTypeID::UINT16:
         case LogicalTypeID::UINT8:
+        case LogicalTypeID::INT128:
         case LogicalTypeID::DOUBLE:
         case LogicalTypeID::FLOAT: {
             listValues.push_back(convertStringToValue(element, *childDataType, csvReaderConfig));
@@ -222,6 +223,12 @@ std::unique_ptr<uint8_t[]> TableCopyUtils::getArrowFixedList(std::string_view l,
             memcpy(listVal.get() + numElementsRead * sizeof(uint8_t), &val, sizeof(uint8_t));
             numElementsRead++;
         } break;
+        case LogicalTypeID::INT128: {
+            common::int128_t val{};
+            function::simpleInt128Cast(element.data(), element.length(), val);
+            memcpy(listVal.get() + numElementsRead * sizeof(int128_t), &val, sizeof(int128_t));
+            numElementsRead++;
+        } break;
         case LogicalTypeID::DOUBLE: {
             double_t val;
             function::doubleCast<double_t>(element.data(), element.length(), val, dataType);
@@ -281,6 +288,9 @@ std::shared_ptr<arrow::DataType> TableCopyUtils::toArrowDataType(const LogicalTy
     }
     case LogicalTypeID::UINT8: {
         return arrow::uint8();
+    }
+    case LogicalTypeID::INT128: {
+        return arrow::decimal128(38, 0);
     }
     case LogicalTypeID::DOUBLE: {
         return arrow::float64();
@@ -365,6 +375,11 @@ std::unique_ptr<Value> TableCopyUtils::convertStringToValue(
     case LogicalTypeID::UINT8: {
         uint8_t val;
         function::simpleIntegerCast<uint8_t, false>(element.data(), element.length(), val, type);
+        value = std::make_unique<Value>(val);
+    } break;
+    case LogicalTypeID::INT128: {
+        int128_t val{};
+        function::simpleInt128Cast(element.data(), element.length(), val);
         value = std::make_unique<Value>(val);
     } break;
     case LogicalTypeID::FLOAT: {

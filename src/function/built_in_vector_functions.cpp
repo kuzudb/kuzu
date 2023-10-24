@@ -95,6 +95,8 @@ uint32_t BuiltInVectorFunctions::getCastCost(
             return castUInt16(targetTypeID);
         case LogicalTypeID::UINT8:
             return castUInt8(targetTypeID);
+        case LogicalTypeID::INT128:
+            return castInt128(targetTypeID);
         case LogicalTypeID::DOUBLE:
             return castDouble(targetTypeID);
         case LogicalTypeID::FLOAT:
@@ -129,6 +131,7 @@ uint32_t BuiltInVectorFunctions::getTargetTypeCost(LogicalTypeID typeID) {
     case LogicalTypeID::DOUBLE: {
         return 102;
     }
+    case LogicalTypeID::INT128:
     case LogicalTypeID::TIMESTAMP: {
         return 120;
     }
@@ -140,6 +143,7 @@ uint32_t BuiltInVectorFunctions::getTargetTypeCost(LogicalTypeID typeID) {
 
 uint32_t BuiltInVectorFunctions::castInt64(LogicalTypeID targetTypeID) {
     switch (targetTypeID) {
+    case LogicalTypeID::INT128:
     case LogicalTypeID::FLOAT:
     case LogicalTypeID::DOUBLE:
         return getTargetTypeCost(targetTypeID);
@@ -151,6 +155,7 @@ uint32_t BuiltInVectorFunctions::castInt64(LogicalTypeID targetTypeID) {
 uint32_t BuiltInVectorFunctions::castInt32(LogicalTypeID targetTypeID) {
     switch (targetTypeID) {
     case LogicalTypeID::INT64:
+    case LogicalTypeID::INT128:
     case LogicalTypeID::FLOAT:
     case LogicalTypeID::DOUBLE:
         return getTargetTypeCost(targetTypeID);
@@ -163,6 +168,7 @@ uint32_t BuiltInVectorFunctions::castInt16(LogicalTypeID targetTypeID) {
     switch (targetTypeID) {
     case LogicalTypeID::INT32:
     case LogicalTypeID::INT64:
+    case LogicalTypeID::INT128:
     case LogicalTypeID::FLOAT:
     case LogicalTypeID::DOUBLE:
         return getTargetTypeCost(targetTypeID);
@@ -176,6 +182,7 @@ uint32_t BuiltInVectorFunctions::castInt8(LogicalTypeID targetTypeID) {
     case LogicalTypeID::INT16:
     case LogicalTypeID::INT32:
     case LogicalTypeID::INT64:
+    case LogicalTypeID::INT128:
     case LogicalTypeID::FLOAT:
     case LogicalTypeID::DOUBLE:
         return getTargetTypeCost(targetTypeID);
@@ -228,6 +235,16 @@ uint32_t BuiltInVectorFunctions::castUInt8(LogicalTypeID targetTypeID) {
     case LogicalTypeID::UINT16:
     case LogicalTypeID::UINT32:
     case LogicalTypeID::UINT64:
+    case LogicalTypeID::FLOAT:
+    case LogicalTypeID::DOUBLE:
+        return getTargetTypeCost(targetTypeID);
+    default:
+        return UNDEFINED_CAST_COST;
+    }
+}
+
+uint32_t BuiltInVectorFunctions::castInt128(LogicalTypeID targetTypeID) {
+    switch (targetTypeID) {
     case LogicalTypeID::FLOAT:
     case LogicalTypeID::DOUBLE:
         return getTargetTypeCost(targetTypeID);
@@ -505,6 +522,8 @@ void BuiltInVectorFunctions::registerCastFunctions() {
     vectorFunctions.insert(
         {CAST_TO_UINT16_FUNC_NAME, CastToUInt16VectorFunction::getDefinitions()});
     vectorFunctions.insert({CAST_TO_UINT8_FUNC_NAME, CastToUInt8VectorFunction::getDefinitions()});
+    vectorFunctions.insert(
+        {CAST_TO_INT128_FUNC_NAME, CastToInt128VectorFunction::getDefinitions()});
     vectorFunctions.insert({CAST_TO_BOOL_FUNC_NAME, CastToBoolVectorFunction::getDefinitions()});
 }
 

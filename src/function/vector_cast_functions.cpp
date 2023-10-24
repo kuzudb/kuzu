@@ -56,6 +56,8 @@ std::string VectorCastFunction::bindImplicitCastFuncName(const LogicalType& dstT
         return CAST_TO_UINT16_FUNC_NAME;
     case LogicalTypeID::UINT8:
         return CAST_TO_UINT8_FUNC_NAME;
+    case LogicalTypeID::INT128:
+        return CAST_TO_INT128_FUNC_NAME;
     case LogicalTypeID::FLOAT:
         return CAST_TO_FLOAT_FUNC_NAME;
     case LogicalTypeID::DOUBLE:
@@ -107,6 +109,10 @@ void VectorCastFunction::bindImplicitCastFunc(
     }
     case LogicalTypeID::UINT64: {
         bindImplicitNumericalCastFunc<uint64_t, CastToUInt64>(sourceTypeID, func);
+        return;
+    }
+    case LogicalTypeID::INT128: {
+        bindImplicitNumericalCastFunc<int128_t, CastToInt128>(sourceTypeID, func);
         return;
     }
     case LogicalTypeID::FLOAT: {
@@ -193,6 +199,9 @@ void CastToStringVectorFunction::getUnaryCastExecFunction(
     case common::LogicalTypeID::UINT16: {
         func = UnaryCastExecFunction<uint16_t, ku_string_t, CastToString>;
     } break;
+    case common::LogicalTypeID::INT128: {
+        func = UnaryCastExecFunction<int128_t, ku_string_t, CastToString>;
+    }
     case common::LogicalTypeID::UINT8: {
         func = UnaryCastExecFunction<uint8_t, ku_string_t, CastToString>;
     } break;
@@ -384,6 +393,18 @@ vector_function_definitions CastToUInt8VectorFunction::getDefinitions() {
     }
     result.push_back(bindVectorFunction<uint8_t, CastToUInt8>(
         CAST_TO_UINT8_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::UINT8));
+    return result;
+}
+
+vector_function_definitions CastToInt128VectorFunction::getDefinitions() {
+    vector_function_definitions result;
+    // down cast
+    for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
+        result.push_back(bindVectorFunction<int128_t, CastToInt128>(
+            CAST_TO_INT128_FUNC_NAME, typeID, LogicalTypeID::INT128));
+    }
+    result.push_back(bindVectorFunction<int128_t, CastToInt128>(
+        CAST_TO_INT128_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::INT128));
     return result;
 }
 

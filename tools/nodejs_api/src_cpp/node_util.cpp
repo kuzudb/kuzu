@@ -42,6 +42,15 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
     case LogicalTypeID::SERIAL: {
         return Napi::Number::New(env, value.getValue<int64_t>());
     }
+    case LogicalTypeID::INT128: {
+        auto val = value.getValue<kuzu::common::int128_t>();
+        auto negative = val.high < 0;
+        if (negative) {
+            kuzu::common::Int128_t::negateInPlace(val);
+        }
+        const uint64_t words[] = {val.low, static_cast<uint64_t>(val.high)};
+        return Napi::BigInt::New(env, negative, 2, words);
+    }
     case LogicalTypeID::FLOAT: {
         return Napi::Number::New(env, value.getValue<float>());
     }

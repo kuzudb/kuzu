@@ -18,6 +18,7 @@ public enum KuzuDataTypeID {
     UINT32(28),
     UINT16(29),
     UINT8(30),
+    INT128(31),
     DOUBLE(32),
     FLOAT(33),
     DATE(34),

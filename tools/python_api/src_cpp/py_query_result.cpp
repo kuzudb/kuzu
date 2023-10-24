@@ -102,6 +102,13 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     case LogicalTypeID::UINT64: {
         return py::cast(value.getValue<uint64_t>());
     }
+    case LogicalTypeID::INT128: {
+        kuzu::common::int128_t result = value.getValue<kuzu::common::int128_t>();
+        std::string int128_string = kuzu::common::Int128_t::ToString(result);
+        py::object Decimal = py::module_::import("decimal").attr("Decimal");
+        py::object largeInt = Decimal(int128_string);
+        return largeInt;
+    }
     case LogicalTypeID::FLOAT: {
         return py::cast(value.getValue<float>());
     }

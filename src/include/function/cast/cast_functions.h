@@ -49,6 +49,12 @@ struct CastToString {
     }
 };
 
+template<>
+inline std::string CastToString::castToString(
+    common::int128_t& input, const common::ValueVector& inputVector) {
+    return common::Int128_t::ToString(input);
+}
+
 struct CastToBlob {
     static inline void operation(common::ku_string_t& input, common::blob_t& result,
         common::ValueVector& inputVector, common::ValueVector& resultVector) {
@@ -93,6 +99,11 @@ struct CastToDouble {
 };
 
 template<>
+inline void CastToDouble::operation(common::int128_t& input, double_t& result) {
+    common::Int128_t::tryCast(input, result);
+}
+
+template<>
 inline void CastToDouble::operation(char*& input, double_t& result) {
     doubleCast<double_t>(
         input, strlen(input), result, common::LogicalType{common::LogicalTypeID::DOUBLE});
@@ -126,6 +137,11 @@ inline void CastToFloat::operation(common::ku_string_t& input, float_t& result) 
         common::LogicalType{common::LogicalTypeID::FLOAT});
 }
 
+template<>
+inline void CastToFloat::operation(common::int128_t& input, float_t& result) {
+    common::Int128_t::tryCast(input, result);
+}
+
 struct CastToInt64 {
     template<typename T>
     static inline void operation(T& input, int64_t& result) {
@@ -146,6 +162,11 @@ template<>
 inline void CastToInt64::operation(common::ku_string_t& input, int64_t& result) {
     simpleIntegerCast<int64_t, true>((char*)input.getData(), input.len, result,
         common::LogicalType{common::LogicalTypeID::INT64});
+}
+
+template<>
+inline void CastToInt64::operation(common::int128_t& input, int64_t& result) {
+    common::Int128_t::tryCast(input, result);
 }
 
 struct CastToSerial {
@@ -186,6 +207,11 @@ inline void CastToInt32::operation(common::ku_string_t& input, int32_t& result) 
         common::LogicalType{common::LogicalTypeID::INT32});
 }
 
+template<>
+inline void CastToInt32::operation(common::int128_t& input, int32_t& result) {
+    common::Int128_t::tryCast(input, result);
+}
+
 struct CastToInt16 {
     template<typename T>
     static inline void operation(T& input, int16_t& result) {
@@ -206,6 +232,11 @@ template<>
 inline void CastToInt16::operation(char*& input, int16_t& result) {
     simpleIntegerCast<int16_t, true>(
         input, strlen(input), result, common::LogicalType{common::LogicalTypeID::INT16});
+}
+
+template<>
+inline void CastToInt16::operation(common::int128_t& input, int16_t& result) {
+    common::Int128_t::tryCast(input, result);
 }
 
 struct CastToInt8 {
@@ -230,6 +261,11 @@ inline void CastToInt8::operation(char*& input, int8_t& result) {
         input, strlen(input), result, common::LogicalType{common::LogicalTypeID::INT8});
 }
 
+template<>
+inline void CastToInt8::operation(common::int128_t& input, int8_t& result) {
+    common::Int128_t::tryCast(input, result);
+}
+
 struct CastToUInt64 {
     template<typename T>
     static inline void operation(T& input, uint64_t& result) {
@@ -250,6 +286,11 @@ template<>
 inline void CastToUInt64::operation(char*& input, uint64_t& result) {
     simpleIntegerCast<uint64_t, false>(
         input, strlen(input), result, common::LogicalType{common::LogicalTypeID::UINT64});
+}
+
+template<>
+inline void CastToUInt64::operation(common::int128_t& input, uint64_t& result) {
+    common::Int128_t::tryCast(input, result);
 }
 
 struct CastToUInt32 {
@@ -274,6 +315,11 @@ inline void CastToUInt32::operation(char*& input, uint32_t& result) {
         input, strlen(input), result, common::LogicalType{common::LogicalTypeID::UINT32});
 }
 
+template<>
+inline void CastToUInt32::operation(common::int128_t& input, uint32_t& result) {
+    common::Int128_t::tryCast(input, result);
+}
+
 struct CastToUInt16 {
     template<typename T>
     static inline void operation(T& input, uint16_t& result) {
@@ -296,6 +342,11 @@ inline void CastToUInt16::operation(char*& input, uint16_t& result) {
         input, strlen(input), result, common::LogicalType{common::LogicalTypeID::UINT16});
 }
 
+template<>
+inline void CastToUInt16::operation(common::int128_t& input, uint16_t& result) {
+    common::Int128_t::tryCast(input, result);
+}
+
 struct CastToUInt8 {
     template<typename T>
     static inline void operation(T& input, uint8_t& result) {
@@ -316,6 +367,29 @@ template<>
 inline void CastToUInt8::operation(char*& input, uint8_t& result) {
     simpleIntegerCast<uint8_t, false>(
         input, strlen(input), result, common::LogicalType{common::LogicalTypeID::UINT8});
+}
+
+template<>
+inline void CastToUInt8::operation(common::int128_t& input, uint8_t& result) {
+    common::Int128_t::tryCast(input, result);
+}
+
+struct CastToInt128 {
+    template<typename T>
+    static inline void operation(T& input, common::int128_t& result) {
+        common::Int128_t::tryCastTo(input, result);
+    }
+};
+
+template<>
+inline void CastToInt128::operation(common::ku_string_t& input, common::int128_t& result) {
+    auto data = (char*)input.getData();
+    simpleInt128Cast(data, input.len, result);
+}
+
+template<>
+inline void CastToInt128::operation(const char*& input, common::int128_t& result) {
+    simpleInt128Cast(input, strlen(input), result);
 }
 
 } // namespace function

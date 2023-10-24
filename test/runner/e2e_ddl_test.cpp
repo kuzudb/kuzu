@@ -260,7 +260,8 @@ public:
         ASSERT_EQ(TestHelper::convertResultToString(*result),
             std::vector<std::string>{"(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, length: 5, "
                                      "level: 5, code: 9223372036854775808,"
-                                     " temprature: 32800, ulength: 33768, ulevel: 250}->(1:0)"});
+                                     " temprature: 32800, ulength: 33768, ulevel: 250, "
+                                     "hugedata: 1844674407370955161811111111}->(1:0)"});
     }
 
     void executeQueryWithoutCommit(std::string query) {

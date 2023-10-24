@@ -258,6 +258,9 @@ void JoinHashTable::getHashFunction(PhysicalTypeID physicalTypeID, hash_function
     case PhysicalTypeID::UINT8: {
         func = hashEntry<uint8_t>;
     }
+    case PhysicalTypeID::INT128: {
+        func = hashEntry<int128_t>;
+    }
     case PhysicalTypeID::DOUBLE: {
         func = hashEntry<double_t>;
     } break;
@@ -316,6 +319,9 @@ void JoinHashTable::getCompareFunction(
     }
     case PhysicalTypeID::UINT8: {
         func = compareEntry<uint8_t>;
+    }
+    case PhysicalTypeID::INT128: {
+        func = compareEntry<int128_t>;
     }
     case PhysicalTypeID::DOUBLE: {
         func = compareEntry<double_t>;

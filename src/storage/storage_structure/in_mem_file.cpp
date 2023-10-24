@@ -313,6 +313,7 @@ ku_list_t InMemOverflowFile::appendList(
     case LogicalTypeID::UINT32:
     case LogicalTypeID::UINT16:
     case LogicalTypeID::UINT8:
+    case LogicalTypeID::INT128:
     case LogicalTypeID::DOUBLE:
     case LogicalTypeID::FLOAT:
     case LogicalTypeID::DATE: {

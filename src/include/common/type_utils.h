@@ -4,6 +4,7 @@
 
 #include "common/exception/conversion.h"
 #include "common/types/date_t.h"
+#include "common/types/int128_t.h"
 #include "common/types/interval_t.h"
 #include "common/types/ku_string.h"
 #include "common/types/timestamp_t.h"
@@ -11,7 +12,6 @@
 
 namespace kuzu {
 namespace common {
-
 class TypeUtils {
 
 public:
@@ -24,7 +24,7 @@ public:
                       std::is_same<T, double_t>::value || std::is_same<T, float_t>::value);
         return std::to_string(val);
     }
-
+    static inline std::string toString(int128_t val) { return Int128_t::ToString(val); }
     static inline void encodeOverflowPtr(
         uint64_t& overflowPtr, page_idx_t pageIdx, uint16_t pageOffset) {
         memcpy(&overflowPtr, &pageIdx, 4);

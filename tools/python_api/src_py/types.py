@@ -17,6 +17,7 @@ class Type(Enum):
     UINT32 = "UINT32"
     UINT16 = "UINT16"
     UINT8 = "UINT8"
+    INT128 = "INT128"
     DOUBLE = "DOUBLE"
     FLOAT = "FLOAT"
     DATE = "DATE"

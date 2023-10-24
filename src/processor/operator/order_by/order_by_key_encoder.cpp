@@ -236,6 +236,10 @@ void OrderByKeyEncoder::getEncodingFunction(PhysicalTypeID physicalType, encode_
         func = encodeTemplate<uint8_t>;
         return;
     }
+    case PhysicalTypeID::INT128: {
+        func = encodeTemplate<int128_t>;
+        return;
+    }
     case PhysicalTypeID::DOUBLE: {
         func = encodeTemplate<double_t>;
         return;
@@ -317,6 +321,12 @@ void OrderByKeyEncoder::encodeData(uint64_t data, uint8_t* resultPtr, bool swapB
         data = BSWAP64(data);
     }
     memcpy(resultPtr, (void*)&data, sizeof(data));
+}
+
+template<>
+void OrderByKeyEncoder::encodeData(common::int128_t data, uint8_t* resultPtr, bool swapBytes) {
+    encodeData<int64_t>(data.high, resultPtr, swapBytes);
+    encodeData<uint64_t>(data.low, resultPtr + sizeof(data.high), swapBytes);
 }
 
 template<>

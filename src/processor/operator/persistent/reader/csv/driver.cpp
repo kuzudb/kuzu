@@ -634,6 +634,11 @@ void copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std::string_view
         function::simpleIntegerCast<uint8_t, false>(strVal.data(), strVal.length(), val, type);
         vector->setValue(rowToAdd, val);
     } break;
+    case LogicalTypeID::INT128: {
+        int128_t val{};
+        function::simpleInt128Cast(strVal.data(), strVal.length(), val);
+        vector->setValue(rowToAdd, val);
+    } break;
     case LogicalTypeID::FLOAT: {
         float_t val;
         function::doubleCast<float_t>(strVal.data(), strVal.length(), val, type);

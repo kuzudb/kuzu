@@ -61,6 +61,8 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
         return Value((uint16_t)0);
     case LogicalTypeID::UINT8:
         return Value((uint8_t)0);
+    case LogicalTypeID::INT128:
+        return Value(int128_t(0));
     case LogicalTypeID::BOOL:
         return Value(true);
     case LogicalTypeID::DOUBLE:
@@ -157,6 +159,11 @@ Value::Value(uint64_t val_) : isNull_{false} {
     val.uint64Val = val_;
 }
 
+Value::Value(int128_t val_) : isNull_{false} {
+    dataType = std::make_unique<LogicalType>(LogicalTypeID::INT128);
+    val.int128Val = val_;
+}
+
 Value::Value(float_t val_) : isNull_{false} {
     dataType = std::make_unique<LogicalType>(LogicalTypeID::FLOAT);
     val.floatVal = val_;
@@ -243,6 +250,9 @@ void Value::copyValueFrom(const uint8_t* value) {
     case LogicalTypeID::UINT8: {
         val.uint8Val = *((uint8_t*)value);
     } break;
+    case LogicalTypeID::INT128: {
+        val.int128Val = *((int128_t*)value);
+    } break;
     case LogicalTypeID::BOOL: {
         val.booleanVal = *((bool*)value);
     } break;
@@ -321,6 +331,9 @@ void Value::copyValueFrom(const Value& other) {
     case PhysicalTypeID::UINT8: {
         val.uint8Val = other.val.uint8Val;
     } break;
+    case PhysicalTypeID::INT128: {
+        val.int128Val = other.val.int128Val;
+    } break;
     case PhysicalTypeID::DOUBLE: {
         val.doubleVal = other.val.doubleVal;
     } break;
@@ -373,6 +386,8 @@ std::string Value::toString() const {
         return TypeUtils::toString(val.uint16Val);
     case LogicalTypeID::UINT8:
         return TypeUtils::toString(val.uint8Val);
+    case LogicalTypeID::INT128:
+        return TypeUtils::toString(val.int128Val);
     case LogicalTypeID::DOUBLE:
         return TypeUtils::toString(val.doubleVal);
     case LogicalTypeID::FLOAT:
@@ -582,6 +597,9 @@ void Value::serialize(Serializer& serializer) const {
     case PhysicalTypeID::UINT8: {
         serializer.serializeValue(val.uint8Val);
     } break;
+    case PhysicalTypeID::INT128: {
+        serializer.serializeValue(val.int128Val);
+    } break;
     case PhysicalTypeID::DOUBLE: {
         serializer.serializeValue(val.doubleVal);
     } break;
@@ -643,6 +661,9 @@ std::unique_ptr<Value> Value::deserialize(Deserializer& deserializer) {
     } break;
     case PhysicalTypeID::UINT8: {
         deserializer.deserializeValue(val->val.uint8Val);
+    } break;
+    case PhysicalTypeID::INT128: {
+        deserializer.deserializeValue(val->val.int128Val);
     } break;
     case PhysicalTypeID::DOUBLE: {
         deserializer.deserializeValue(val->val.doubleVal);

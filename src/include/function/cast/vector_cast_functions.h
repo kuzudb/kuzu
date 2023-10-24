@@ -77,6 +77,10 @@ protected:
             func = UnaryExecFunction<uint64_t, DST_TYPE, OP>;
             return;
         }
+        case common::LogicalTypeID::INT128: {
+            func = UnaryExecFunction<kuzu::common::int128_t, DST_TYPE, OP>;
+            return;
+        }
         case common::LogicalTypeID::FLOAT: {
             func = UnaryExecFunction<float_t, DST_TYPE, OP>;
             return;
@@ -171,6 +175,10 @@ struct CastToUInt16VectorFunction : public VectorCastFunction {
 };
 
 struct CastToUInt8VectorFunction : public VectorCastFunction {
+    static vector_function_definitions getDefinitions();
+};
+
+struct CastToInt128VectorFunction : public VectorCastFunction {
     static vector_function_definitions getDefinitions();
 };
 

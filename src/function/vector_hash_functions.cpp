@@ -41,6 +41,9 @@ void VectorHashFunction::computeHash(ValueVector* operand, ValueVector* result) 
     case PhysicalTypeID::UINT8: {
         UnaryHashFunctionExecutor::execute<uint8_t, hash_t>(*operand, *result);
     } break;
+    case PhysicalTypeID::INT128: {
+        UnaryHashFunctionExecutor::execute<int128_t, hash_t>(*operand, *result);
+    } break;
     case PhysicalTypeID::DOUBLE: {
         UnaryHashFunctionExecutor::execute<double, hash_t>(*operand, *result);
     } break;

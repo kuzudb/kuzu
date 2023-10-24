@@ -138,6 +138,9 @@ void InMemColumnChunk::copyArrowArray(
     case arrow::Type::UINT64: {
         templateCopyValuesToPage<uint64_t>(arrowArray, nodeOffsets);
     } break;
+    case arrow::Type::DECIMAL128: {
+        templateCopyValuesToPage<int128_t>(arrowArray, nodeOffsets);
+    } break;
     case arrow::Type::DOUBLE: {
         templateCopyValuesToPage<double_t>(arrowArray, nodeOffsets);
     } break;
