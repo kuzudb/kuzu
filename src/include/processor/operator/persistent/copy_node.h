@@ -69,7 +69,7 @@ public:
         std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString);
 
-    inline void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final {
+    inline void initLocalStateInternal(ResultSet* /*resultSet*/, ExecutionContext* /*context*/) final {
         localNodeGroup = std::make_unique<storage::NodeGroup>(
             sharedState->tableSchema, sharedState->table->compressionEnabled());
     }
