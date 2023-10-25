@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
     libssl-dev \
     lsb-release \
+    ninja-build \
     nodejs \
     openjdk-17-jdk \
     python-is-python3 \
