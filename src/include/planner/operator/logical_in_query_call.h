@@ -1,7 +1,7 @@
 #pragma once
 
-#include "function/table_functions.h"
 #include "function/table_functions/bind_data.h"
+#include "function/table_functions/table_functions.h"
 #include "planner/operator/logical_operator.h"
 
 namespace kuzu {
@@ -9,13 +9,13 @@ namespace planner {
 
 class LogicalInQueryCall : public LogicalOperator {
 public:
-    LogicalInQueryCall(function::table_func_t tableFunc,
+    LogicalInQueryCall(function::TableFunctionDefinition* tableFunc,
         std::unique_ptr<function::TableFuncBindData> bindData,
         binder::expression_vector outputExpressions)
-        : LogicalOperator{LogicalOperatorType::IN_QUERY_CALL}, tableFunc{std::move(tableFunc)},
+        : LogicalOperator{LogicalOperatorType::IN_QUERY_CALL}, tableFunc{tableFunc},
           bindData{std::move(bindData)}, outputExpressions{std::move(outputExpressions)} {}
 
-    inline function::table_func_t getTableFunc() const { return tableFunc; }
+    inline function::TableFunctionDefinition* getTableFunc() const { return tableFunc; }
 
     inline function::TableFuncBindData* getBindData() const { return bindData.get(); }
 
@@ -32,7 +32,7 @@ public:
     }
 
 private:
-    function::table_func_t tableFunc;
+    function::TableFunctionDefinition* tableFunc;
     std::unique_ptr<function::TableFuncBindData> bindData;
     binder::expression_vector outputExpressions;
 };

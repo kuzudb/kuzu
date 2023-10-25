@@ -2,20 +2,20 @@
 
 #include "binder/expression/expression.h"
 #include "binder/query/reading_clause/bound_reading_clause.h"
-#include "function/table_functions.h"
 #include "function/table_functions/bind_data.h"
+#include "function/table_functions/table_functions.h"
 
 namespace kuzu {
 namespace binder {
 
 class BoundInQueryCall : public BoundReadingClause {
 public:
-    BoundInQueryCall(function::table_func_t tableFunc,
+    BoundInQueryCall(function::TableFunctionDefinition* tableFunc,
         std::unique_ptr<function::TableFuncBindData> bindData, expression_vector outputExpressions)
         : BoundReadingClause{common::ClauseType::IN_QUERY_CALL}, tableFunc{std::move(tableFunc)},
           bindData{std::move(bindData)}, outputExpressions{std::move(outputExpressions)} {}
 
-    inline function::table_func_t getTableFunc() const { return tableFunc; }
+    inline function::TableFunctionDefinition* getTableFunc() const { return tableFunc; }
 
     inline function::TableFuncBindData* getBindData() const { return bindData.get(); }
 
@@ -26,7 +26,7 @@ public:
     }
 
 private:
-    function::table_func_t tableFunc;
+    function::TableFunctionDefinition* tableFunc;
     std::unique_ptr<function::TableFuncBindData> bindData;
     expression_vector outputExpressions;
 };

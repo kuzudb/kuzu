@@ -17,11 +17,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapInQueryCall(
     }
     auto inQueryCallFuncInfo = std::make_unique<InQueryCallInfo>(logicalInQueryCall->getTableFunc(),
         logicalInQueryCall->getBindData()->copy(), std::move(outputPoses));
-    auto inQueryCallSharedState =
-        std::make_unique<InQueryCallSharedState>(logicalInQueryCall->getBindData()->maxOffset);
     return std::make_unique<InQueryCall>(std::move(inQueryCallFuncInfo),
-        std::move(inQueryCallSharedState), PhysicalOperatorType::IN_QUERY_CALL, getOperatorID(),
-        logicalInQueryCall->getExpressionsForPrinting());
+        std::make_shared<InQueryCallSharedState>(), PhysicalOperatorType::IN_QUERY_CALL,
+        getOperatorID(), logicalInQueryCall->getExpressionsForPrinting());
 }
 
 } // namespace processor

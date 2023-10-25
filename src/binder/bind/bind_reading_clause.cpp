@@ -113,7 +113,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
             createVariable(bindData->returnColumnNames[i], bindData->returnTypes[i]));
     }
     return std::make_unique<BoundInQueryCall>(
-        tableFunctionDefinition->tableFunc, std::move(bindData), std::move(outputExpressions));
+        tableFunctionDefinition, std::move(bindData), std::move(outputExpressions));
 }
 
 static std::unique_ptr<LogicalType> bindFixedListType(

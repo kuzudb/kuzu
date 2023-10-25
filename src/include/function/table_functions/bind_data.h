@@ -4,21 +4,19 @@
 
 namespace kuzu {
 namespace function {
+
 struct TableFuncBindData {
     std::vector<common::LogicalType> returnTypes;
     std::vector<std::string> returnColumnNames;
-    common::offset_t maxOffset;
 
-    TableFuncBindData(std::vector<common::LogicalType> returnTypes,
-        std::vector<std::string> returnColumnNames, common::offset_t maxOffset)
-        : returnTypes{std::move(returnTypes)},
-          returnColumnNames{std::move(returnColumnNames)}, maxOffset{maxOffset} {}
+    TableFuncBindData(
+        std::vector<common::LogicalType> returnTypes, std::vector<std::string> returnColumnNames)
+        : returnTypes{std::move(returnTypes)}, returnColumnNames{std::move(returnColumnNames)} {}
 
     virtual ~TableFuncBindData() = default;
 
-    virtual std::unique_ptr<TableFuncBindData> copy() {
-        return std::make_unique<TableFuncBindData>(returnTypes, returnColumnNames, maxOffset);
-    }
+    virtual std::unique_ptr<TableFuncBindData> copy() = 0;
 };
+
 } // namespace function
 } // namespace kuzu
