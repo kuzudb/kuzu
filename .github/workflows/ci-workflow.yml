@@ -25,6 +25,7 @@ jobs:
     env:
       NUM_THREADS: 32
       TEST_JOBS: 16
+      GEN: ninja
       CC: gcc
       CXX: g++
     steps:
@@ -99,6 +100,7 @@ jobs:
     env:
       NUM_THREADS: 32
       TEST_JOBS: 16
+      GEN: ninja
       CC: gcc
       CXX: g++
     steps:
@@ -134,10 +136,11 @@ jobs:
     needs: [clang-formatting-check, header-include-guard-check]
     runs-on: kuzu-self-hosted-testing
     env:
-      CC: clang-14
-      CXX: clang++-14
       NUM_THREADS: 32
       TEST_JOBS: 16
+      GEN: ninja
+      CC: clang-14
+      CXX: clang++-14
     steps:
       - uses: actions/checkout@v3
 
@@ -281,6 +284,7 @@ jobs:
     env:
       NUM_THREADS: 32
       TEST_JOBS: 16
+      GEN: ninja
     steps:
       - uses: actions/checkout@v3
 
