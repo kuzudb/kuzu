@@ -49,7 +49,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeProperty(
         std::vector<column_id_t> columnIDs;
         for (auto& expression : scanProperty.getProperties()) {
             auto property = static_pointer_cast<PropertyExpression>(expression);
-            columnIDs.push_back(tableSchema->getColumnID(property->getPropertyID(tableID)));
+            if (property->hasPropertyID(tableID)) {
+                columnIDs.push_back(tableSchema->getColumnID(property->getPropertyID(tableID)));
+            } else {
+                columnIDs.push_back(UINT32_MAX);
+            }
         }
         return std::make_unique<ScanSingleNodeTable>(inputNodeIDVectorPos, std::move(outVectorsPos),
             nodeStore.getNodeTable(tableID), std::move(columnIDs), std::move(prevOperator),

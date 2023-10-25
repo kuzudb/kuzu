@@ -67,6 +67,10 @@ public:
           srcNode{std::move(srcNode)}, dstNode{std::move(dstNode)},
           directionType{directionType}, relType{relType} {}
 
+    inline bool isRecursive() const {
+        return dataType.getLogicalTypeID() == common::LogicalTypeID::RECURSIVE_REL;
+    }
+
     inline bool isBoundByMultiLabeledNode() const {
         return srcNode->isMultiLabeled() || dstNode->isMultiLabeled();
     }

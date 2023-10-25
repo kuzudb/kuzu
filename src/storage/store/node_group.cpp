@@ -36,30 +36,6 @@ void NodeGroup::resetToEmpty() {
     }
 }
 
-// uint64_t NodeGroup::append(
-//    ResultSet* resultSet, std::vector<DataPos> dataPoses, uint64_t numValuesToAppend) {
-//    auto numValuesToAppendInChunk =
-//        std::min(numValuesToAppend, StorageConstants::NODE_GROUP_SIZE - numNodes);
-//    auto serialSkip = 0u;
-//    auto originalVectorSize =
-//        resultSet->getDataChunk(dataPoses[0].dataChunkPos)->state->selVector->selectedSize;
-//    resultSet->getDataChunk(dataPoses[0].dataChunkPos)->state->selVector->selectedSize =
-//        numValuesToAppendInChunk;
-//    for (auto i = 0u; i < chunks.size(); i++) {
-//        auto chunk = chunks[i].get();
-//        if (chunk->getDataType().getLogicalTypeID() == common::LogicalTypeID::SERIAL) {
-//            serialSkip++;
-//            continue;
-//        }
-//        auto dataPos = dataPoses[i - serialSkip];
-//        chunk->append(resultSet->getValueVector(dataPos).get(), numNodes);
-//    }
-//    resultSet->getDataChunk(dataPoses[0].dataChunkPos)->state->selVector->selectedSize =
-//        originalVectorSize;
-//    numNodes += numValuesToAppendInChunk;
-//    return numValuesToAppendInChunk;
-//}
-
 uint64_t NodeGroup::append(const std::vector<ValueVector*>& columnVectors,
     DataChunkState* columnState, uint64_t numValuesToAppend) {
     auto numValuesToAppendInChunk =

@@ -132,24 +132,6 @@ std::shared_ptr<Expression> Binder::createPath(
         uniqueName, pathName, std::move(nodeType), std::move(relType), children);
 }
 
-static std::vector<table_id_t> pruneRelTableIDs(const Catalog& catalog_,
-    const std::vector<table_id_t>& relTableIDs, const NodeExpression& srcNode,
-    const NodeExpression& dstNode) {
-    auto srcNodeTableIDs = srcNode.getTableIDsSet();
-    auto dstNodeTableIDs = dstNode.getTableIDsSet();
-    std::vector<table_id_t> result;
-    for (auto& relTableID : relTableIDs) {
-        auto relTableSchema = reinterpret_cast<RelTableSchema*>(
-            catalog_.getReadOnlyVersion()->getTableSchema(relTableID));
-        if (!srcNodeTableIDs.contains(relTableSchema->getSrcTableID()) ||
-            !dstNodeTableIDs.contains(relTableSchema->getDstTableID())) {
-            continue;
-        }
-        result.push_back(relTableID);
-    }
-    return result;
-}
-
 static std::vector<std::string> getPropertyNames(const std::vector<TableSchema*>& tableSchemas) {
     std::vector<std::string> result;
     std::unordered_set<std::string> propertyNamesSet;
@@ -262,17 +244,7 @@ std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern
 std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::string& parsedName,
     const std::vector<table_id_t>& tableIDs, std::shared_ptr<NodeExpression> srcNode,
     std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType) {
-    // tableIDs can be relTableIDs or rdfGraphTableIDs.
     auto relTableIDs = getRelTableIDs(tableIDs);
-    if (directionType == RelDirectionType::SINGLE && srcNode && dstNode) {
-        // We perform table ID pruning as an optimization. BOTH direction type requires a more
-        // advanced pruning logic because it does not have notion of src & dst by nature.
-        relTableIDs = pruneRelTableIDs(catalog, relTableIDs, *srcNode, *dstNode);
-    }
-    if (relTableIDs.empty()) {
-        throw BinderException("Nodes " + srcNode->toString() + " and " + dstNode->toString() +
-                              " are not connected through rel " + parsedName + ".");
-    }
     auto queryRel = make_shared<RelExpression>(LogicalType(LogicalTypeID::REL),
         getUniqueExpressionName(parsedName), parsedName, relTableIDs, std::move(srcNode),
         std::move(dstNode), directionType, QueryRelType::NON_RECURSIVE);
