@@ -44,9 +44,9 @@ RUN /home/runner/.cargo/bin/rustup toolchain install 1.67
 
 RUN mkdir /home/runner/actions-runner
 WORKDIR /home/runner/actions-runner
-RUN curl -o actions-runner-linux-x64-2.308.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.308.0/actions-runner-linux-x64-2.308.0.tar.gz
-RUN echo "9f994158d49c5af39f57a65bf1438cbae4968aec1e4fec132dd7992ad57c74fa  actions-runner-linux-x64-2.308.0.tar.gz" | shasum -a 256 -c
-RUN tar xzf ./actions-runner-linux-x64-2.308.0.tar.gz
+RUN curl -o actions-runner-linux-x64-2.310.2.tar.gz -L https://github.com/actions/runner/releases/download/v2.310.2/actions-runner-linux-x64-2.310.2.tar.gz
+RUN echo "fb28a1c3715e0a6c5051af0e6eeff9c255009e2eec6fb08bc2708277fbb49f93  actions-runner-linux-x64-2.310.2.tar.gz" | shasum -a 256 -c
+RUN tar xzf ./actions-runner-linux-x64-2.310.2.tar.gz
 
 COPY --chown=runner:runner start.sh start.sh
 RUN chmod +x start.sh
