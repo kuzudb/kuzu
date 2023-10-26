@@ -24,7 +24,7 @@ public:
                       std::is_same<T, double_t>::value || std::is_same<T, float_t>::value);
         return std::to_string(val);
     }
-    static inline std::string toString(int128_t val) { return Int128_t::ToString(val); }
+
     static inline void encodeOverflowPtr(
         uint64_t& overflowPtr, page_idx_t pageIdx, uint16_t pageOffset) {
         memcpy(&overflowPtr, &pageIdx, 4);
@@ -43,6 +43,11 @@ private:
     static std::string castValueToString(
         const LogicalType& dataType, const uint8_t* value, void* vector);
 };
+
+template<>
+inline std::string TypeUtils::toString(const int128_t& val, void* /*valueVector*/) {
+    return Int128_t::ToString(val);
+}
 
 // Forward declaration of template specializations.
 template<>

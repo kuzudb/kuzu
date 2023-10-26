@@ -8,7 +8,7 @@
 #include "common/types/value/node.h"
 #include "common/types/value/recursive_rel.h"
 #include "common/types/value/rel.h"
-#include "function/cast/cast_functions.h"
+#include "function/cast/functions/cast_string_to_functions.h"
 #include "main/kuzu.h"
 
 using namespace kuzu::common;
@@ -269,10 +269,10 @@ kuzu_int128_t kuzu_int128_t_from_string(const char* str) {
     int128_t int128_val = 0;
     kuzu_int128_t c_int128;
     try {
-        kuzu::function::CastToInt128::operation(str, int128_val);
+        kuzu::function::CastStringToTypes::operation(str, strlen(str), int128_val);
         c_int128.low = int128_val.low;
         c_int128.high = int128_val.high;
-    } catch (kuzu::common::ConversionException& e) {
+    } catch (ConversionException& e) {
         c_int128.low = 0;
         c_int128.high = 0;
     }
@@ -283,7 +283,7 @@ char* kuzu_int128_t_to_string(kuzu_int128_t int128_val) {
     int128_t c_int128;
     c_int128.low = int128_val.low;
     c_int128.high = int128_val.high;
-    return convertToOwnedCString(kuzu::common::Int128_t::ToString(c_int128));
+    return convertToOwnedCString(TypeUtils::toString(c_int128));
 }
 // TODO: bind all int128_t supported functions
 

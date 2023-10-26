@@ -425,16 +425,6 @@ offset_t InMemFixedListColumnChunk::getOffsetInBuffer(offset_t pos) {
     return offsetInBuffer;
 }
 
-// Bool
-template<>
-void InMemColumnChunk::setValueFromString<bool>(
-    const char* value, uint64_t /*length*/, uint64_t pos) {
-    std::istringstream boolStream{std::string(value)};
-    bool booleanVal;
-    boolStream >> std::boolalpha >> booleanVal;
-    setValue(booleanVal, pos);
-}
-
 // Fixed list
 template<>
 void InMemColumnChunk::setValueFromString<uint8_t*>(
@@ -444,30 +434,6 @@ void InMemColumnChunk::setValueFromString<uint8_t*>(
     // TODO(Guodong): Keep value size as a class field.
     memcpy(buffer.get() + pos * storage::StorageUtils::getDataTypeSize(dataType),
         fixedListVal.get(), storage::StorageUtils::getDataTypeSize(dataType));
-}
-
-// Interval
-template<>
-void InMemColumnChunk::setValueFromString<interval_t>(
-    const char* value, uint64_t length, uint64_t pos) {
-    auto val = Interval::fromCString(value, length);
-    setValue(val, pos);
-}
-
-// Date
-template<>
-void InMemColumnChunk::setValueFromString<date_t>(
-    const char* value, uint64_t length, uint64_t pos) {
-    auto val = Date::fromCString(value, length);
-    setValue(val, pos);
-}
-
-// Timestamp
-template<>
-void InMemColumnChunk::setValueFromString<timestamp_t>(
-    const char* value, uint64_t length, uint64_t pos) {
-    auto val = Timestamp::fromCString(value, length);
-    setValue(val, pos);
 }
 
 } // namespace storage

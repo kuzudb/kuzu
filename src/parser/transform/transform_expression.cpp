@@ -1,5 +1,5 @@
 #include "common/string_utils.h"
-#include "function/cast/cast_utils.h"
+#include "function/cast/functions/cast_string_to_functions.h"
 #include "parser/expression/parsed_case_expression.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
@@ -579,25 +579,24 @@ std::string Transformer::transformPropertyKeyName(CypherParser::OC_PropertyKeyNa
 std::unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
     CypherParser::OC_IntegerLiteralContext& ctx) {
     auto text = ctx.DecimalInteger()->getText();
-    function::IntegerCastData<int64_t> data{};
-    auto len = text.length();
-    if (tryIntegerCast<function::IntegerCastData<int64_t>, true>(
-            text.c_str(), (uint64_t&)len, data)) {
-        auto value = std::make_unique<Value>(
-            function::castStringToNum<int64_t>(text.c_str(), text.length()));
-        return std::make_unique<ParsedLiteralExpression>(std::move(value), ctx.getText());
+    int64_t result;
+    if (function::CastStringToTypes::tryCast(text.c_str(), text.length(), result)) {
+        return std::make_unique<ParsedLiteralExpression>(
+            std::make_unique<Value>(result), ctx.getText());
     }
-    auto value = std::make_unique<Value>(
-        function::castStringToNum<common::int128_t>(text.c_str(), text.length()));
-    return std::make_unique<ParsedLiteralExpression>(std::move(value), ctx.getText());
+    int128_t result128;
+    function::CastStringToTypes::operation(text.c_str(), text.length(), result128);
+    return std::make_unique<ParsedLiteralExpression>(
+        std::make_unique<Value>(result128), ctx.getText());
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformDoubleLiteral(
     CypherParser::OC_DoubleLiteralContext& ctx) {
     auto text = ctx.RegularDecimalReal()->getText();
-    auto value =
-        std::make_unique<Value>(function::castStringToNum<double_t>(text.c_str(), text.length()));
-    return std::make_unique<ParsedLiteralExpression>(std::move(value), ctx.getText());
+    double_t result;
+    function::CastStringToTypes::operation(text.c_str(), text.length(), result);
+    return std::make_unique<ParsedLiteralExpression>(
+        std::make_unique<Value>(result), ctx.getText());
 }
 
 } // namespace parser

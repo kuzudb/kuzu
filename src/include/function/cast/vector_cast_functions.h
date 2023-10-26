@@ -1,6 +1,7 @@
 #pragma once
 
-#include "cast_functions.h"
+#include "function/cast/functions/cast_functions.h"
+#include "function/cast/functions/cast_string_to_functions.h"
 #include "function/vector_functions.h"
 
 namespace kuzu {
@@ -23,21 +24,13 @@ public:
 
 protected:
     template<typename TARGET_TYPE, typename FUNC>
-    inline static std::unique_ptr<VectorFunctionDefinition> bindVectorFunction(
+    inline static std::unique_ptr<VectorFunctionDefinition> bindNumericCastVectorFunction(
         const std::string& funcName, common::LogicalTypeID sourceTypeID,
         common::LogicalTypeID targetTypeID) {
         scalar_exec_func func;
-        getUnaryExecFunc<TARGET_TYPE, FUNC>(sourceTypeID, func);
+        bindImplicitNumericalCastFunc<TARGET_TYPE, FUNC>(sourceTypeID, func);
         return std::make_unique<VectorFunctionDefinition>(
             funcName, std::vector<common::LogicalTypeID>{sourceTypeID}, targetTypeID, func);
-    }
-
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void UnaryCastExecFunction(
-        const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result) {
-        assert(params.size() == 1);
-        UnaryFunctionExecutor::executeCast<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
     }
 
     template<typename DST_TYPE, typename OP>
@@ -78,7 +71,7 @@ protected:
             return;
         }
         case common::LogicalTypeID::INT128: {
-            func = UnaryExecFunction<kuzu::common::int128_t, DST_TYPE, OP>;
+            func = UnaryExecFunction<common::int128_t, DST_TYPE, OP>;
             return;
         }
         case common::LogicalTypeID::FLOAT: {
@@ -96,16 +89,12 @@ protected:
         }
     }
 
-    template<typename DST_TYPE, typename OP>
-    static void getUnaryExecFunc(common::LogicalTypeID srcTypeID, scalar_exec_func& func) {
-        switch (srcTypeID) {
-        case common::LogicalTypeID::STRING: {
-            func = UnaryExecFunction<common::ku_string_t, DST_TYPE, OP>;
-            return;
-        }
-        default:
-            bindImplicitNumericalCastFunc<DST_TYPE, OP>(srcTypeID, func);
-        }
+    template<typename TARGET_TYPE>
+    inline static std::unique_ptr<VectorFunctionDefinition> bindCastStringToVectorFunction(
+        const std::string& funcName, common::LogicalTypeID targetTypeID) {
+        return std::make_unique<VectorFunctionDefinition>(funcName,
+            std::vector<common::LogicalTypeID>{common::LogicalTypeID::STRING}, targetTypeID,
+            UnaryStringExecFunction<common::ku_string_t, TARGET_TYPE, CastStringToTypes>);
     }
 };
 
@@ -122,7 +111,8 @@ struct CastToIntervalVectorFunction : public VectorCastFunction {
 };
 
 struct CastToStringVectorFunction : public VectorCastFunction {
-    static void getUnaryCastExecFunction(common::LogicalTypeID typeID, scalar_exec_func& func);
+    static void getUnaryCastToStringExecFunction(
+        common::LogicalTypeID typeID, scalar_exec_func& func);
     static vector_function_definitions getDefinitions();
 };
 
@@ -143,6 +133,10 @@ struct CastToFloatVectorFunction : public VectorCastFunction {
 };
 
 struct CastToSerialVectorFunction : public VectorCastFunction {
+    static vector_function_definitions getDefinitions();
+};
+
+struct CastToInt128VectorFunction : public VectorCastFunction {
     static vector_function_definitions getDefinitions();
 };
 
@@ -175,10 +169,6 @@ struct CastToUInt16VectorFunction : public VectorCastFunction {
 };
 
 struct CastToUInt8VectorFunction : public VectorCastFunction {
-    static vector_function_definitions getDefinitions();
-};
-
-struct CastToInt128VectorFunction : public VectorCastFunction {
     static vector_function_definitions getDefinitions();
 };
 

@@ -5,7 +5,7 @@
 #include "common/exception/message.h"
 #include "common/exception/parser.h"
 #include "common/string_format.h"
-#include "function/cast/cast_utils.h"
+#include "function/cast/functions/cast_string_to_functions.h"
 #include "storage/storage_structure/lists/lists.h"
 #include <arrow/api.h>
 #include <arrow/csv/api.h>
@@ -173,71 +173,32 @@ std::unique_ptr<uint8_t[]> TableCopyUtils::getArrowFixedList(std::string_view l,
         switch (childDataType->getLogicalTypeID()) {
         case LogicalTypeID::INT64: {
             int64_t val;
-            function::simpleIntegerCast<int64_t>(element.data(), element.length(), val, dataType);
+            function::CastStringToTypes::operation(element.data(), element.length(), val);
             memcpy(listVal.get() + numElementsRead * sizeof(int64_t), &val, sizeof(int64_t));
             numElementsRead++;
         } break;
         case LogicalTypeID::INT32: {
             int32_t val;
-            function::simpleIntegerCast<int32_t>(element.data(), element.length(), val, dataType);
+            function::CastStringToTypes::operation(element.data(), element.length(), val);
             memcpy(listVal.get() + numElementsRead * sizeof(int32_t), &val, sizeof(int32_t));
             numElementsRead++;
         } break;
         case LogicalTypeID::INT16: {
             int16_t val;
-            function::simpleIntegerCast<int16_t>(element.data(), element.length(), val, dataType);
+            function::CastStringToTypes::operation(element.data(), element.length(), val);
             memcpy(listVal.get() + numElementsRead * sizeof(int16_t), &val, sizeof(int16_t));
             numElementsRead++;
         } break;
-        case LogicalTypeID::INT8: {
-            int8_t val;
-            function::simpleIntegerCast<int8_t>(element.data(), element.length(), val, dataType);
-            memcpy(listVal.get() + numElementsRead * sizeof(int8_t), &val, sizeof(int8_t));
-            numElementsRead++;
-        } break;
-        case LogicalTypeID::UINT64: {
-            uint64_t val;
-            function::simpleIntegerCast<uint64_t, false>(
-                element.data(), element.length(), val, dataType);
-            memcpy(listVal.get() + numElementsRead * sizeof(uint64_t), &val, sizeof(uint64_t));
-            numElementsRead++;
-        }
-        case LogicalTypeID::UINT32: {
-            uint32_t val;
-            function::simpleIntegerCast<uint32_t, false>(
-                element.data(), element.length(), val, dataType);
-            memcpy(listVal.get() + numElementsRead * sizeof(uint32_t), &val, sizeof(uint32_t));
-            numElementsRead++;
-        } break;
-        case LogicalTypeID::UINT16: {
-            uint16_t val;
-            function::simpleIntegerCast<uint16_t, false>(
-                element.data(), element.length(), val, dataType);
-            memcpy(listVal.get() + numElementsRead * sizeof(uint16_t), &val, sizeof(uint16_t));
-            numElementsRead++;
-        } break;
-        case LogicalTypeID::UINT8: {
-            uint8_t val;
-            function::simpleIntegerCast<uint8_t, false>(
-                element.data(), element.length(), val, dataType);
-            memcpy(listVal.get() + numElementsRead * sizeof(uint8_t), &val, sizeof(uint8_t));
-            numElementsRead++;
-        } break;
-        case LogicalTypeID::INT128: {
-            common::int128_t val{};
-            function::simpleInt128Cast(element.data(), element.length(), val);
-            memcpy(listVal.get() + numElementsRead * sizeof(int128_t), &val, sizeof(int128_t));
-            numElementsRead++;
-        } break;
+        // TODO: other types not supported - only support int64, int32, int16, double, float
         case LogicalTypeID::DOUBLE: {
             double_t val;
-            function::doubleCast<double_t>(element.data(), element.length(), val, dataType);
+            function::CastStringToTypes::operation(element.data(), element.length(), val);
             memcpy(listVal.get() + numElementsRead * sizeof(double_t), &val, sizeof(double_t));
             numElementsRead++;
         } break;
         case LogicalTypeID::FLOAT: {
             float_t val;
-            function::doubleCast<float_t>(element.data(), element.length(), val, dataType);
+            function::CastStringToTypes::operation(element.data(), element.length(), val);
             memcpy(listVal.get() + numElementsRead * sizeof(float_t), &val, sizeof(float_t));
             numElementsRead++;
         } break;
@@ -339,75 +300,81 @@ std::unique_ptr<Value> TableCopyUtils::convertStringToValue(
     switch (type.getLogicalTypeID()) {
     case LogicalTypeID::INT64: {
         int64_t val;
-        function::simpleIntegerCast<int64_t>(element.data(), element.length(), val, type);
+        function::CastStringToTypes::operation(element.data(), element.length(), val);
         value = std::make_unique<Value>(val);
     } break;
     case LogicalTypeID::INT32: {
         int32_t val;
-        function::simpleIntegerCast<int32_t>(element.data(), element.length(), val, type);
+        function::CastStringToTypes::operation(element.data(), element.length(), val);
         value = std::make_unique<Value>(val);
     } break;
     case LogicalTypeID::INT16: {
         int16_t val;
-        function::simpleIntegerCast<int16_t>(element.data(), element.length(), val, type);
+        function::CastStringToTypes::operation(element.data(), element.length(), val);
         value = std::make_unique<Value>(val);
     } break;
     case LogicalTypeID::INT8: {
         int8_t val;
-        function::simpleIntegerCast<int8_t>(element.data(), element.length(), val, type);
+        function::CastStringToTypes::operation(element.data(), element.length(), val);
         value = std::make_unique<Value>(val);
     } break;
     case LogicalTypeID::UINT64: {
         uint64_t val;
-        function::simpleIntegerCast<uint64_t, false>(element.data(), element.length(), val, type);
+        function::CastStringToTypes::operation(element.data(), element.length(), val);
         value = std::make_unique<Value>(val);
     } break;
     case LogicalTypeID::UINT32: {
         uint32_t val;
-        function::simpleIntegerCast<uint32_t, false>(element.data(), element.length(), val, type);
+        function::CastStringToTypes::operation(element.data(), element.length(), val);
         value = std::make_unique<Value>(val);
     } break;
     case LogicalTypeID::UINT16: {
         uint16_t val;
-        function::simpleIntegerCast<uint16_t, false>(element.data(), element.length(), val, type);
+        function::CastStringToTypes::operation(element.data(), element.length(), val);
         value = std::make_unique<Value>(val);
     } break;
     case LogicalTypeID::UINT8: {
         uint8_t val;
-        function::simpleIntegerCast<uint8_t, false>(element.data(), element.length(), val, type);
+        function::CastStringToTypes::operation(element.data(), element.length(), val);
         value = std::make_unique<Value>(val);
     } break;
     case LogicalTypeID::INT128: {
         int128_t val{};
-        function::simpleInt128Cast(element.data(), element.length(), val);
+        function::CastStringToTypes::operation(element.data(), element.length(), val);
         value = std::make_unique<Value>(val);
     } break;
     case LogicalTypeID::FLOAT: {
         float_t val;
-        function::doubleCast<float_t>(element.data(), element.length(), val, type);
+        function::CastStringToTypes::operation(element.data(), element.length(), val);
         value = std::make_unique<Value>(val);
     } break;
     case LogicalTypeID::DOUBLE: {
         double_t val;
-        function::doubleCast<double_t>(element.data(), element.length(), val, type);
+        function::CastStringToTypes::operation(element.data(), element.length(), val);
         value = std::make_unique<Value>(val);
     } break;
     case LogicalTypeID::BOOL: {
         bool val;
-        function::castStringToBool(element.data(), element.length(), val);
+        function::CastStringToTypes::operation(element.data(), element.length(), val);
         value = std::make_unique<Value>(val);
     } break;
     case LogicalTypeID::STRING: {
         value = make_unique<Value>(LogicalType{LogicalTypeID::STRING}, std::string(element));
     } break;
     case LogicalTypeID::DATE: {
-        value = std::make_unique<Value>(Date::fromCString(element.data(), element.length()));
+        date_t val;
+        function::CastStringToTypes::operation(element.data(), element.length(), val);
+        value = std::make_unique<Value>(val);
     } break;
     case LogicalTypeID::TIMESTAMP: {
-        value = std::make_unique<Value>(Timestamp::fromCString(element.data(), element.length()));
+        timestamp_t val;
+        function::CastStringToTypes::operation(element.data(), element.length(), val);
+        value = std::make_unique<Value>(val);
     } break;
     case LogicalTypeID::INTERVAL: {
-        value = std::make_unique<Value>(Interval::fromCString(element.data(), element.length()));
+        interval_t val;
+        function::CastStringToTypes::operation(element.data(), element.length(), val);
+        value = std::make_unique<Value>(val);
     } break;
     case LogicalTypeID::VAR_LIST: {
         value = getVarListValue(element, 1, element.length() - 2, type, csvReaderConfig);

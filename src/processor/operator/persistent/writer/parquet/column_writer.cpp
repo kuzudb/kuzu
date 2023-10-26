@@ -2,7 +2,7 @@
 
 #include "common/exception/not_implemented.h"
 #include "common/string_utils.h"
-#include "function/cast/numeric_limits.h"
+#include "function/cast/functions/numeric_limits.h"
 #include "processor/operator/persistent/writer/parquet/boolean_column_writer.h"
 #include "processor/operator/persistent/writer/parquet/parquet_writer.h"
 #include "processor/operator/persistent/writer/parquet/standard_column_writer.h"

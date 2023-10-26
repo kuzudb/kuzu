@@ -1,4 +1,6 @@
-#include "function/cast/cast_utils.h"
+#include "function/cast/functions/cast_string_non_nested_functions.h"
+
+#include "common/string_format.h"
 
 namespace kuzu {
 namespace function {
@@ -48,8 +50,8 @@ bool tryCastToBool(const char* input, uint64_t len, bool& result) {
 
 void castStringToBool(const char* input, uint64_t len, bool& result) {
     if (!tryCastToBool(input, len, result)) {
-        throw common::ConversionException(
-            "Cast failed. " + std::string{input, len} + " is not in BOOL range.");
+        throw common::ConversionException{
+            common::stringFormat("Value {} is not a valid boolean", std::string{input, len})};
     }
 }
 

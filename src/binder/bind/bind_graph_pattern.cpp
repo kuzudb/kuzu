@@ -11,7 +11,7 @@
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
-#include "function/cast/cast_utils.h"
+#include "function/cast/functions/cast_string_to_functions.h"
 #include "main/client_context.h"
 
 using namespace kuzu::common;
@@ -428,11 +428,11 @@ std::pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
     const kuzu::parser::RelPattern& relPattern) {
     auto recursiveInfo = relPattern.getRecursiveInfo();
     uint32_t lowerBound;
-    function::simpleIntegerCast(
+    function::CastStringToTypes::operation(
         recursiveInfo->lowerBound.c_str(), recursiveInfo->lowerBound.length(), lowerBound);
     auto upperBound = clientContext->varLengthExtendMaxDepth;
     if (!recursiveInfo->upperBound.empty()) {
-        function::simpleIntegerCast(
+        function::CastStringToTypes::operation(
             recursiveInfo->upperBound.c_str(), recursiveInfo->upperBound.length(), upperBound);
     }
     if (lowerBound > upperBound) {

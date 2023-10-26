@@ -1,7 +1,5 @@
 #include "function/cast/vector_cast_functions.h"
 
-#include "function/cast/cast_functions.h"
-
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -125,19 +123,19 @@ void VectorCastFunction::bindImplicitCastFunc(
     }
     case LogicalTypeID::DATE: {
         assert(sourceTypeID == LogicalTypeID::STRING);
-        func = &UnaryExecFunction<ku_string_t, date_t, CastStringToDate>;
+        func = &UnaryStringExecFunction<ku_string_t, date_t, CastStringToTypes>;
         return;
     }
     case LogicalTypeID::TIMESTAMP: {
         assert(sourceTypeID == LogicalTypeID::STRING || sourceTypeID == LogicalTypeID::DATE);
         func = sourceTypeID == LogicalTypeID::STRING ?
-                   &UnaryExecFunction<ku_string_t, timestamp_t, CastStringToTimestamp> :
+                   &UnaryStringExecFunction<ku_string_t, timestamp_t, CastStringToTypes> :
                    &UnaryExecFunction<date_t, timestamp_t, CastDateToTimestamp>;
         return;
     }
     case LogicalTypeID::INTERVAL: {
         assert(sourceTypeID == LogicalTypeID::STRING);
-        func = &UnaryExecFunction<ku_string_t, interval_t, CastStringToInterval>;
+        func = &UnaryStringExecFunction<ku_string_t, interval_t, CastStringToTypes>;
         return;
     }
     default:
@@ -149,29 +147,26 @@ void VectorCastFunction::bindImplicitCastFunc(
 
 vector_function_definitions CastToDateVectorFunction::getDefinitions() {
     vector_function_definitions result;
-    result.push_back(make_unique<VectorFunctionDefinition>(CAST_TO_DATE_FUNC_NAME,
-        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::DATE,
-        UnaryExecFunction<ku_string_t, date_t, CastStringToDate>));
+    result.push_back(
+        bindCastStringToVectorFunction<date_t>(CAST_TO_DATE_FUNC_NAME, LogicalTypeID::DATE));
     return result;
 }
 
 vector_function_definitions CastToTimestampVectorFunction::getDefinitions() {
     vector_function_definitions result;
-    result.push_back(std::make_unique<VectorFunctionDefinition>(CAST_TO_TIMESTAMP_FUNC_NAME,
-        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::TIMESTAMP,
-        UnaryExecFunction<ku_string_t, timestamp_t, CastStringToTimestamp>));
+    result.push_back(bindCastStringToVectorFunction<timestamp_t>(
+        CAST_TO_TIMESTAMP_FUNC_NAME, LogicalTypeID::TIMESTAMP));
     return result;
 }
 
 vector_function_definitions CastToIntervalVectorFunction::getDefinitions() {
     vector_function_definitions result;
-    result.push_back(make_unique<VectorFunctionDefinition>(CAST_TO_INTERVAL_FUNC_NAME,
-        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::INTERVAL,
-        UnaryExecFunction<ku_string_t, interval_t, CastStringToInterval>));
+    result.push_back(bindCastStringToVectorFunction<interval_t>(
+        CAST_TO_INTERVAL_FUNC_NAME, LogicalTypeID::INTERVAL));
     return result;
 }
 
-void CastToStringVectorFunction::getUnaryCastExecFunction(
+void CastToStringVectorFunction::getUnaryCastToStringExecFunction(
     common::LogicalTypeID typeID, scalar_exec_func& func) {
     switch (typeID) {
     case common::LogicalTypeID::BOOL: {
@@ -241,7 +236,7 @@ void CastToStringVectorFunction::getUnaryCastExecFunction(
         // LCOV_EXCL_START
     default:
         throw common::NotImplementedException{
-            "CastToStringVectorFunction::getUnaryCastExecFunction"};
+            "CastToStringVectorFunction::getUnaryCastToStringExecFunction"};
         // LCOV_EXCL_END
     }
 }
@@ -251,7 +246,7 @@ vector_function_definitions CastToStringVectorFunction::getDefinitions() {
     result.reserve(LogicalTypeUtils::getAllValidLogicTypes().size());
     for (auto& type : LogicalTypeUtils::getAllValidLogicTypes()) {
         scalar_exec_func execFunc;
-        getUnaryCastExecFunction(type.getLogicalTypeID(), execFunc);
+        getUnaryCastToStringExecFunction(type.getLogicalTypeID(), execFunc);
         auto definition = std::make_unique<VectorFunctionDefinition>(CAST_TO_STRING_FUNC_NAME,
             std::vector<LogicalTypeID>{type.getLogicalTypeID()}, LogicalTypeID::STRING, execFunc);
         result.push_back(std::move(definition));
@@ -261,150 +256,147 @@ vector_function_definitions CastToStringVectorFunction::getDefinitions() {
 
 vector_function_definitions CastToBlobVectorFunction::getDefinitions() {
     vector_function_definitions result;
-    result.push_back(make_unique<VectorFunctionDefinition>(CAST_TO_BLOB_FUNC_NAME,
-        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::BLOB,
-        UnaryCastExecFunction<ku_string_t, blob_t, CastToBlob>));
+    result.push_back(
+        bindCastStringToVectorFunction<blob_t>(CAST_TO_BLOB_FUNC_NAME, LogicalTypeID::BLOB));
     return result;
 }
 
 vector_function_definitions CastToBoolVectorFunction::getDefinitions() {
     vector_function_definitions result;
-    result.push_back(make_unique<VectorFunctionDefinition>(CAST_TO_BOOL_FUNC_NAME,
-        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::BOOL,
-        UnaryExecFunction<ku_string_t, bool, CastToBool>));
+    result.push_back(
+        bindCastStringToVectorFunction<bool>(CAST_TO_BOOL_FUNC_NAME, LogicalTypeID::BOOL));
     return result;
 }
 
 vector_function_definitions CastToDoubleVectorFunction::getDefinitions() {
     vector_function_definitions result;
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        result.push_back(bindVectorFunction<double_t, CastToDouble>(
+        result.push_back(bindNumericCastVectorFunction<double_t, CastToDouble>(
             CAST_TO_DOUBLE_FUNC_NAME, typeID, LogicalTypeID::DOUBLE));
     }
-    result.push_back(bindVectorFunction<double_t, CastToDouble>(
-        CAST_TO_DOUBLE_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::DOUBLE));
+    result.push_back(
+        bindCastStringToVectorFunction<double_t>(CAST_TO_DOUBLE_FUNC_NAME, LogicalTypeID::DOUBLE));
     return result;
 }
 
 vector_function_definitions CastToFloatVectorFunction::getDefinitions() {
     vector_function_definitions result;
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        result.push_back(bindVectorFunction<float_t, CastToFloat>(
+        result.push_back(bindNumericCastVectorFunction<float_t, CastToFloat>(
             CAST_TO_FLOAT_FUNC_NAME, typeID, LogicalTypeID::FLOAT));
     }
-    result.push_back(bindVectorFunction<float_t, CastToFloat>(
-        CAST_TO_FLOAT_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::FLOAT));
+    result.push_back(
+        bindCastStringToVectorFunction<float_t>(CAST_TO_FLOAT_FUNC_NAME, LogicalTypeID::FLOAT));
+    return result;
+}
+
+vector_function_definitions CastToInt128VectorFunction::getDefinitions() {
+    vector_function_definitions result;
+    for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
+        result.push_back(bindNumericCastVectorFunction<int128_t, CastToInt128>(
+            CAST_TO_INT128_FUNC_NAME, typeID, LogicalTypeID::INT128));
+    }
+    result.push_back(
+        bindCastStringToVectorFunction<int128_t>(CAST_TO_INT128_FUNC_NAME, LogicalTypeID::INT128));
     return result;
 }
 
 vector_function_definitions CastToSerialVectorFunction::getDefinitions() {
     vector_function_definitions result;
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        result.push_back(bindVectorFunction<int64_t, CastToSerial>(
+        result.push_back(bindNumericCastVectorFunction<int64_t, CastToSerial>(
             CAST_TO_SERIAL_FUNC_NAME, typeID, LogicalTypeID::SERIAL));
     }
-    result.push_back(bindVectorFunction<int64_t, CastToSerial>(
-        CAST_TO_SERIAL_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::SERIAL));
+    result.push_back(
+        bindCastStringToVectorFunction<int64_t>(CAST_TO_SERIAL_FUNC_NAME, LogicalTypeID::INT64));
     return result;
 }
 
 vector_function_definitions CastToInt64VectorFunction::getDefinitions() {
     vector_function_definitions result;
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        result.push_back(bindVectorFunction<int64_t, CastToInt64>(
+        result.push_back(bindNumericCastVectorFunction<int64_t, CastToInt64>(
             CAST_TO_INT64_FUNC_NAME, typeID, LogicalTypeID::INT64));
     }
-    result.push_back(bindVectorFunction<int64_t, CastToInt64>(
-        CAST_TO_INT64_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::INT64));
+    result.push_back(
+        bindCastStringToVectorFunction<int64_t>(CAST_TO_INT64_FUNC_NAME, LogicalTypeID::INT64));
     return result;
 }
 
 vector_function_definitions CastToInt32VectorFunction::getDefinitions() {
     vector_function_definitions result;
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        result.push_back(bindVectorFunction<int32_t, CastToInt32>(
+        result.push_back(bindNumericCastVectorFunction<int32_t, CastToInt32>(
             CAST_TO_INT32_FUNC_NAME, typeID, LogicalTypeID::INT32));
     }
-    result.push_back(bindVectorFunction<int32_t, CastToInt32>(
-        CAST_TO_INT32_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::INT32));
+    result.push_back(
+        bindCastStringToVectorFunction<int32_t>(CAST_TO_INT32_FUNC_NAME, LogicalTypeID::INT32));
     return result;
 }
 
 vector_function_definitions CastToInt16VectorFunction::getDefinitions() {
     vector_function_definitions result;
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        result.push_back(bindVectorFunction<int16_t, CastToInt16>(
+        result.push_back(bindNumericCastVectorFunction<int16_t, CastToInt16>(
             CAST_TO_INT16_FUNC_NAME, typeID, LogicalTypeID::INT16));
     }
-    result.push_back(bindVectorFunction<int16_t, CastToInt16>(
-        CAST_TO_INT16_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::INT16));
+    result.push_back(
+        bindCastStringToVectorFunction<int16_t>(CAST_TO_INT16_FUNC_NAME, LogicalTypeID::INT16));
     return result;
 }
 
 vector_function_definitions CastToInt8VectorFunction::getDefinitions() {
     vector_function_definitions result;
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        result.push_back(bindVectorFunction<int8_t, CastToInt8>(
+        result.push_back(bindNumericCastVectorFunction<int8_t, CastToInt8>(
             CAST_TO_INT8_FUNC_NAME, typeID, LogicalTypeID::INT8));
     }
-    result.push_back(bindVectorFunction<int8_t, CastToInt8>(
-        CAST_TO_INT8_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::INT8));
+    result.push_back(
+        bindCastStringToVectorFunction<int8_t>(CAST_TO_INT8_FUNC_NAME, LogicalTypeID::INT8));
     return result;
 }
 
 vector_function_definitions CastToUInt64VectorFunction::getDefinitions() {
     vector_function_definitions result;
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        result.push_back(bindVectorFunction<uint64_t, CastToUInt64>(
+        result.push_back(bindNumericCastVectorFunction<uint64_t, CastToUInt64>(
             CAST_TO_UINT64_FUNC_NAME, typeID, LogicalTypeID::UINT64));
     }
-    result.push_back(bindVectorFunction<uint64_t, CastToUInt64>(
-        CAST_TO_UINT64_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::UINT64));
+    result.push_back(
+        bindCastStringToVectorFunction<uint64_t>(CAST_TO_UINT64_FUNC_NAME, LogicalTypeID::UINT64));
     return result;
 }
 
 vector_function_definitions CastToUInt32VectorFunction::getDefinitions() {
     vector_function_definitions result;
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        result.push_back(bindVectorFunction<uint32_t, CastToUInt32>(
+        result.push_back(bindNumericCastVectorFunction<uint32_t, CastToUInt32>(
             CAST_TO_UINT32_FUNC_NAME, typeID, LogicalTypeID::UINT32));
     }
-    result.push_back(bindVectorFunction<uint32_t, CastToUInt32>(
-        CAST_TO_UINT32_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::UINT32));
+    result.push_back(
+        bindCastStringToVectorFunction<uint32_t>(CAST_TO_UINT32_FUNC_NAME, LogicalTypeID::UINT32));
     return result;
 }
 
 vector_function_definitions CastToUInt16VectorFunction::getDefinitions() {
     vector_function_definitions result;
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        result.push_back(bindVectorFunction<uint16_t, CastToUInt16>(
+        result.push_back(bindNumericCastVectorFunction<uint16_t, CastToUInt16>(
             CAST_TO_UINT16_FUNC_NAME, typeID, LogicalTypeID::UINT16));
     }
-    result.push_back(bindVectorFunction<uint16_t, CastToUInt16>(
-        CAST_TO_UINT16_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::UINT16));
+    result.push_back(
+        bindCastStringToVectorFunction<uint16_t>(CAST_TO_UINT16_FUNC_NAME, LogicalTypeID::UINT16));
     return result;
 }
 
 vector_function_definitions CastToUInt8VectorFunction::getDefinitions() {
     vector_function_definitions result;
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        result.push_back(bindVectorFunction<uint8_t, CastToUInt8>(
+        result.push_back(bindNumericCastVectorFunction<uint8_t, CastToUInt8>(
             CAST_TO_UINT8_FUNC_NAME, typeID, LogicalTypeID::UINT8));
     }
-    result.push_back(bindVectorFunction<uint8_t, CastToUInt8>(
-        CAST_TO_UINT8_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::UINT8));
-    return result;
-}
-
-vector_function_definitions CastToInt128VectorFunction::getDefinitions() {
-    vector_function_definitions result;
-    // down cast
-    for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
-        result.push_back(bindVectorFunction<int128_t, CastToInt128>(
-            CAST_TO_INT128_FUNC_NAME, typeID, LogicalTypeID::INT128));
-    }
-    result.push_back(bindVectorFunction<int128_t, CastToInt128>(
-        CAST_TO_INT128_FUNC_NAME, LogicalTypeID::STRING, LogicalTypeID::INT128));
+    result.push_back(
+        bindCastStringToVectorFunction<uint8_t>(CAST_TO_UINT8_FUNC_NAME, LogicalTypeID::UINT8));
     return result;
 }
 

@@ -2,7 +2,7 @@
 
 #include "basic_column_writer.h"
 #include "common/serializer/serializer.h"
-#include "function/cast/numeric_limits.h"
+#include "function/cast/functions/numeric_limits.h"
 #include "function/comparison/comparison_functions.h"
 
 namespace kuzu {
