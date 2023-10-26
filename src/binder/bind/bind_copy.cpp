@@ -207,9 +207,9 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfRelFrom(
     }
     auto relID = createVariable(std::string(Property::INTERNAL_ID_NAME), LogicalTypeID::INT64);
     auto boundFileScanInfo = std::make_unique<BoundFileScanInfo>(
-        std::move(readerConfig), columns, std::move(relID), TableType::REL);
+        std::move(readerConfig), columns, relID, TableType::REL);
     auto extraInfo = std::make_unique<ExtraBoundCopyRdfRelInfo>(columns[0], columns[1], columns[2]);
-    columns.push_back(relID);
+    columns.push_back(std::move(relID));
     auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(tableSchema,
         std::move(boundFileScanInfo), containsSerial, std::move(columns), std::move(extraInfo));
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));

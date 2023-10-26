@@ -5,7 +5,6 @@
 #include "storage/store/compression.h"
 #include "storage/store/string_column_chunk.h"
 #include "storage/store/struct_column_chunk.h"
-#include "storage/store/table_copy_utils.h"
 #include "storage/store/var_list_column_chunk.h"
 
 using namespace kuzu::common;
@@ -217,11 +216,11 @@ void ColumnChunk::write(ValueVector* valueVector, ValueVector* offsetInChunkVect
         auto offsetInChunk = offsets[offsetInChunkVector->state->selVector->selectedPositions[i]];
         assert(offsetInChunk < capacity);
         auto offsetInVector = valueVector->state->selVector->selectedPositions[i];
-        nullChunk->setNull(offsetInChunk, valueVector->isNull(offsetInVector));
         if (!valueVector->isNull(offsetInVector)) {
             memcpy(buffer.get() + offsetInChunk * numBytesPerValue,
                 valueVector->getData() + offsetInVector * numBytesPerValue, numBytesPerValue);
         }
+        nullChunk->setNull(offsetInChunk, valueVector->isNull(offsetInVector));
         if (offsetInChunk >= numValues) {
             numValues = offsetInChunk + 1;
         }

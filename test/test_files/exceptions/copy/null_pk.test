@@ -14,7 +14,6 @@ Copy exception: Found NULL, which violates the non-null constraint of the primar
 Copy exception: Found NULL, which violates the non-null constraint of the primary key column.
 
 -CASE NullPrimaryKeyInRelFile
--SKIP
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/vPerson-valid.csv"
 ---- ok
 -STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/vMovie.csv"

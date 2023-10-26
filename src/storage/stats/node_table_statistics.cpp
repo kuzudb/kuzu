@@ -167,28 +167,6 @@ std::unique_ptr<NodeTableStatsAndDeletedIDs> NodeTableStatsAndDeletedIDs::deseri
     return result;
 }
 
-// TODO(Guodong): Fix delete node with connected edges.
-// void NodeTableStatsAndDeletedIDs::errorIfNodeHasEdges(offset_t nodeOffset) {
-//    for (AdjLists* adjList : adjListsAndColumns.first) {
-//        auto numElementsInList =
-//            adjList->getTotalNumElementsInList(transaction::TransactionType::WRITE, nodeOffset);
-//        if (numElementsInList != 0) {
-//            throw RuntimeException(StringUtils::string_format(
-//                "Currently deleting a node with edges is not supported. node table {} nodeOffset "
-//                "{} has {} (one-to-many or many-to-many) edges.",
-//                tableID, nodeOffset, numElementsInList));
-//        }
-//    }
-//    for (Column* adjColumn : adjListsAndColumns.second) {
-//        if (!adjColumn->isNull(nodeOffset, transaction::Transaction::getDummyWriteTrx().get())) {
-//            throw RuntimeException(StringUtils::string_format(
-//                "Currently deleting a node with edges is not supported. node table {} nodeOffset "
-//                "{}  has a 1-1 edge.",
-//                tableID, nodeOffset));
-//        }
-//    }
-//}
-
 bool NodeTableStatsAndDeletedIDs::isDeleted(offset_t nodeOffset, uint64_t morselIdx) {
     auto iter = deletedNodeOffsetsPerMorsel.find(morselIdx);
     if (iter != deletedNodeOffsetsPerMorsel.end()) {

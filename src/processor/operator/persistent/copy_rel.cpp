@@ -35,6 +35,12 @@ void CopyRelSharedState::logCopyRelWALRecord(WAL* wal) {
 
 void CopyRel::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* /*context*/) {
     localState = std::make_unique<CopyRelLocalState>();
+    localState->nodeGroup = NodeGroupFactory::createNodeGroup(
+        info->dataFormat, sharedState->columnTypes, sharedState->table->compressionEnabled());
+    if (info->dataFormat == ColumnDataFormat::REGULAR_COL) {
+        // Adj column should be guaranteed to be the first one in a node group.
+        localState->nodeGroup->getColumnChunk(0)->getNullChunk()->resetToAllNull();
+    }
 }
 
 void CopyRel::initGlobalStateInternal(ExecutionContext* /*context*/) {
@@ -44,16 +50,12 @@ void CopyRel::initGlobalStateInternal(ExecutionContext* /*context*/) {
     sharedState->logCopyRelWALRecord(info->wal);
 }
 
-void CopyRel::executeInternal(ExecutionContext* context) {
+void CopyRel::executeInternal(ExecutionContext* /*context*/) {
     while (true) {
         localState->currentPartition =
             partitionerSharedState->getNextPartition(info->partitioningIdx);
         if (localState->currentPartition == INVALID_PARTITION_IDX) {
             break;
-        }
-        if (!localState->nodeGroup) {
-            localState->nodeGroup = NodeGroupFactory::createNodeGroup(info->dataFormat,
-                sharedState->columnTypes, sharedState->table->compressionEnabled());
         }
         // Read the whole partition, and set to node group.
         auto partitioningBuffer = partitionerSharedState->partitioningBuffers[info->partitioningIdx]

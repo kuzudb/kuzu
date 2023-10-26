@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include "processor/operator/persistent/reader_state.h"
 #include "processor/operator/physical_operator.h"
 

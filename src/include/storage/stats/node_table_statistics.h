@@ -72,8 +72,6 @@ public:
     }
 
 private:
-    //    void errorIfNodeHasEdges(common::offset_t nodeOffset);
-
     // We pass the morselIdx to not do the division nodeOffset/DEFAULT_VECTOR_CAPACITY again
     bool isDeleted(common::offset_t nodeOffset, uint64_t morselIdx);
 

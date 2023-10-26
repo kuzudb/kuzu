@@ -3,7 +3,6 @@
 #include "common/exception/message.h"
 #include "common/exception/not_implemented.h"
 #include "storage/index/hash_index.h"
-#include "storage/store/table_copy_utils.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -34,8 +33,21 @@ std::unique_ptr<PhysicalOperator> IndexLookup::clone() {
 
 void IndexLookup::indexLookup(transaction::Transaction* transaction, const IndexLookupInfo& info) {
     auto keyVector = resultSet->getValueVector(info.keyVectorPos).get();
+    checkNullKeys(keyVector);
     auto resultVector = resultSet->getValueVector(info.resultVectorPos).get();
     fillOffsetArraysFromVector(transaction, info, keyVector, resultVector);
+}
+
+void IndexLookup::checkNullKeys(ValueVector* keyVector) {
+    if (keyVector->hasNoNullsGuarantee()) {
+        return;
+    }
+    for (auto i = 0u; i < keyVector->state->selVector->selectedSize; i++) {
+        auto pos = keyVector->state->selVector->selectedPositions[i];
+        if (keyVector->isNull(pos)) {
+            throw RuntimeException(ExceptionMessage::nullPKException());
+        }
+    }
 }
 
 void IndexLookup::fillOffsetArraysFromVector(transaction::Transaction* transaction,

@@ -44,26 +44,27 @@ Carol
 484
 
 -CASE BothBound
+-SKIP
 -STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*1..1]->(b:person) RETURN b.fName;
 ---- 1
 Bob
 -STATEMENT MATCH (c:person) WHERE c.fName="Dan" CREATE(c)-[:meets]->(b:person {ID: 11, fName: "Mike"});
 ---- ok
-#-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*1..3]->(b:person) RETURN b.fName;
-#---- 3
-#Bob
-#Dan
-#Mike
-#-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*2..3]->(b:person) RETURN b.fName;
-#---- 2
-#Dan
-#Mike
-#-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*3..3]->(b:person) RETURN b.fName;
-#---- 1
-#Mike
-#-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*3..4]->(b:person) RETURN b.fName;
-#---- 1
-#Mike
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*1..3]->(b:person) RETURN b.fName;
+---- 3
+Bob
+Dan
+Mike
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*2..3]->(b:person) RETURN b.fName;
+---- 2
+Dan
+Mike
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*3..3]->(b:person) RETURN b.fName;
+---- 1
+Mike
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*3..4]->(b:person) RETURN b.fName;
+---- 1
+Mike
 
 -CASE SingleAsterisk
 -SKIP

@@ -1,5 +1,7 @@
 #include "processor/operator/persistent/reader_state.h"
 
+#include <optional>
+
 using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::storage;

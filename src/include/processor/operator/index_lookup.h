@@ -46,6 +46,7 @@ public:
 
 private:
     void indexLookup(transaction::Transaction* transaction, const IndexLookupInfo& info);
+    void checkNullKeys(common::ValueVector* keyVector);
     void fillOffsetArraysFromVector(transaction::Transaction* transaction,
         const IndexLookupInfo& info, common::ValueVector* keyVector,
         common::ValueVector* resultVector);

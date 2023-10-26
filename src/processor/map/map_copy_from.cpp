@@ -45,8 +45,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
         std::make_shared<CopyNodeSharedState>(reader->getSharedState()->getNumRowsRef());
     sharedState->wal = storageManager.getWAL();
     sharedState->table = nodeTable;
-    for (auto& column : copyFromInfo->dataColumnsToCopy) {
-        sharedState->columnTypes.push_back(column->getDataType().copy());
+    for (auto& property : tableSchema->getProperties()) {
+        sharedState->columnTypes.push_back(property->getDataType()->copy());
     }
     auto properties = tableSchema->getProperties();
     auto pk = tableSchema->getPrimaryKey();

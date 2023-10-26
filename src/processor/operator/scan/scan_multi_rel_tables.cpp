@@ -16,12 +16,15 @@ void RelTableCollectionScanner::init() {
 
 bool RelTableCollectionScanner::scan(ValueVector* inVector,
     const std::vector<ValueVector*>& outputVectors, Transaction* transaction) {
-    do {
+    while (true) {
         if (readStates[currentTableIdx]->hasMoreToRead()) {
             assert(readStates[currentTableIdx]->dataFormat == ColumnDataFormat::CSR_COL);
             auto scanInfo = scanInfos[currentTableIdx].get();
             scanInfo->table->read(transaction, *readStates[currentTableIdx], scanInfo->direction,
                 inVector, scanInfo->columnIDs, outputVectors);
+            if (outputVectors[0]->state->selVector->selectedSize > 0) {
+                return true;
+            }
         } else {
             currentTableIdx = nextTableIdx;
             if (currentTableIdx == readStates.size()) {
@@ -31,18 +34,21 @@ bool RelTableCollectionScanner::scan(ValueVector* inVector,
                 outputVectors[0]->state->selVector->resetSelectorToValuePosBufferWithSize(1);
                 outputVectors[0]->state->selVector->selectedPositions[0] =
                     inVector->state->selVector->selectedPositions[0];
+                auto scanInfo = scanInfos[currentTableIdx].get();
+                scanInfo->table->read(transaction, *readStates[currentTableIdx],
+                    scanInfo->direction, inVector, scanInfo->columnIDs, outputVectors);
+                nextTableIdx++;
+                if (outputVectors[0]->state->selVector->selectedSize > 0) {
+                    return true;
+                }
             } else {
                 auto scanInfo = scanInfos[currentTableIdx].get();
                 scanInfo->table->initializeReadState(
                     transaction, scanInfo->direction, inVector, readStates[currentTableIdx].get());
+                nextTableIdx++;
             }
-            auto scanInfo = scanInfos[currentTableIdx].get();
-            scanInfo->table->read(transaction, *readStates[currentTableIdx], scanInfo->direction,
-                inVector, scanInfo->columnIDs, outputVectors);
-            nextTableIdx++;
         }
-    } while (outputVectors[0]->state->selVector->selectedSize == 0);
-    return true;
+    }
 }
 
 std::unique_ptr<RelTableCollectionScanner> RelTableCollectionScanner::clone() const {
