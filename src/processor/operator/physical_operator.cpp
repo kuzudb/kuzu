@@ -32,6 +32,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::COPY_NODE: {
         return "COPY_NODE";
     }
+    case PhysicalOperatorType::COPY_RDF: {
+        return "COPY_RDF";
+    }
     case PhysicalOperatorType::COPY_REL_COLUMNS: {
         return "COPY_REL_COLUMNS";
     }

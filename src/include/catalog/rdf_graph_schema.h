@@ -7,31 +7,38 @@ namespace catalog {
 
 class RdfGraphSchema : public TableSchema {
 public:
-    RdfGraphSchema(std::string tableName, common::table_id_t tableID,
-        common::table_id_t nodeTableID, common::table_id_t relTableID)
-        : TableSchema{std::move(tableName), tableID, common::TableType::RDF,
-              std::vector<std::unique_ptr<Property>>{}},
-          nodeTableID{nodeTableID}, relTableID{relTableID} {}
-    RdfGraphSchema(common::table_id_t nodeTableID, common::table_id_t relTableID)
+    RdfGraphSchema()
         : TableSchema{common::InternalKeyword::ANONYMOUS, common::INVALID_TABLE_ID,
-              common::TableType::RDF, std::vector<std::unique_ptr<Property>>{}},
-          nodeTableID{nodeTableID}, relTableID{relTableID} {}
+              common::TableType::RDF, std::vector<std::unique_ptr<Property>>{}} {}
+    RdfGraphSchema(std::string tableName, common::table_id_t rdfID,
+        common::table_id_t resourceTableID, common::table_id_t literalTabelID,
+        common::table_id_t resourceTripleTableID, common::table_id_t literalTripleTableID)
+        : TableSchema{std::move(tableName), rdfID, common::TableType::RDF,
+              std::vector<std::unique_ptr<Property>>{}},
+          resourceTableID{resourceTableID}, literalTableID{literalTabelID},
+          resourceTripleTableID{resourceTripleTableID}, literalTripleTableID{literalTripleTableID} {
+    }
 
-    inline common::table_id_t getNodeTableID() const { return nodeTableID; }
-    inline common::table_id_t getRelTableID() const { return relTableID; }
+    inline common::table_id_t getResourceTableID() const { return resourceTableID; }
+    inline common::table_id_t getLiteralTableID() const { return literalTableID; }
+    inline common::table_id_t getResourceTripleTableID() const { return resourceTripleTableID; }
+    inline common::table_id_t getLiteralTripleTableID() const { return literalTripleTableID; }
 
     static std::unique_ptr<RdfGraphSchema> deserialize(common::Deserializer& deserializer);
 
     inline std::unique_ptr<TableSchema> copy() const final {
-        return std::make_unique<RdfGraphSchema>(tableName, tableID, nodeTableID, relTableID);
+        return std::make_unique<RdfGraphSchema>(tableName, tableID, resourceTableID, literalTableID,
+            resourceTripleTableID, literalTripleTableID);
     }
 
 private:
     void serializeInternal(common::Serializer& serializer) final;
 
 private:
-    common::table_id_t nodeTableID;
-    common::table_id_t relTableID;
+    common::table_id_t resourceTableID;
+    common::table_id_t literalTableID;
+    common::table_id_t resourceTripleTableID;
+    common::table_id_t literalTripleTableID;
 };
 
 } // namespace catalog

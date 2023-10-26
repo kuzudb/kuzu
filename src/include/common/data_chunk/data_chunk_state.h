@@ -36,6 +36,8 @@ public:
 
     inline uint64_t getNumSelectedValues() const { return selVector->selectedSize; }
 
+    void slice(offset_t offset);
+
 public:
     std::shared_ptr<SelectionVector> selVector;
 

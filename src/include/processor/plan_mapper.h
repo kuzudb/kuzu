@@ -126,9 +126,6 @@ private:
         std::vector<DataPos> aggregatesOutputPos, planner::Schema* inSchema,
         planner::Schema* outSchema, std::unique_ptr<PhysicalOperator> prevOperator,
         const std::string& paramsString);
-    std::unique_ptr<PhysicalOperator> appendResultCollector(
-        std::unique_ptr<PhysicalOperator> lastOperator,
-        const binder::expression_vector& expressionsToCollect, planner::Schema* schema);
 
     std::unique_ptr<NodeInsertExecutor> getNodeInsertExecutor(storage::NodesStore* nodesStore,
         storage::RelsStore* relsStore, planner::LogicalInsertNodeInfo* info,
@@ -140,6 +137,8 @@ private:
         planner::LogicalSetPropertyInfo* info, const planner::Schema& inSchema);
     std::unique_ptr<RelSetExecutor> getRelSetExecutor(storage::RelsStore* store,
         planner::LogicalSetPropertyInfo* info, const planner::Schema& inSchema);
+
+    std::shared_ptr<FactorizedTable> getSingleStringColumnFTable();
 
     inline uint32_t getOperatorID() { return physicalOperatorID++; }
 

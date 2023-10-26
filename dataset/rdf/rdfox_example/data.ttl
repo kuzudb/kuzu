@@ -1,0 +1,29 @@
+@prefix : <https://rdfox.com/getting-started/> .
+
+:peter :forename "Peter" ;
+    a :Person ;
+    :marriedTo :lois ;
+    :gender "male" .
+
+:lois :forename "Lois" ;
+    a :Person ;
+    :gender "female" .
+
+:meg :forename "Meg" ;
+    a :Person ;
+    :hasParent :lois, :peter ;
+    :gender "female" .
+
+:chris :forename "Chris" ;
+    a :Person ;
+    :hasParent :peter ;
+    :gender "male" .
+
+:stewie :forename "Stewie" ;
+    a :Person ;
+    :hasParent :lois ;
+    :gender "male" .
+
+:brian :forename "Brian" . # Brian is a dog
+
+:andy :age 12 .

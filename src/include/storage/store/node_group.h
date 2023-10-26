@@ -13,7 +13,8 @@ class TableData;
 
 class NodeGroup {
 public:
-    NodeGroup(catalog::TableSchema* schema, bool enableCompression);
+    NodeGroup(const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes,
+        bool enableCompression);
     explicit NodeGroup(TableData* table);
 
     inline void setNodeGroupIdx(uint64_t nodeGroupIdx_) { this->nodeGroupIdx = nodeGroupIdx_; }
@@ -27,8 +28,8 @@ public:
 
     void resetToEmpty();
 
-    uint64_t append(processor::ResultSet* resultSet, std::vector<processor::DataPos> dataPoses,
-        uint64_t numValuesToAppend);
+    uint64_t append(const std::vector<common::ValueVector*>& columnVectors,
+        common::DataChunkState* columnState, uint64_t numValuesToAppend);
 
     common::offset_t append(NodeGroup* other, common::offset_t offsetInOtherNodeGroup);
 

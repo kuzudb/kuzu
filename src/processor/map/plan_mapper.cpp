@@ -21,8 +21,8 @@ static void setPhysicalPlanIfProfile(
 std::unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(
     LogicalPlan* logicalPlan, const binder::expression_vector& expressionsToCollect) {
     auto lastOperator = mapOperator(logicalPlan->getLastOperator().get());
-    lastOperator = appendResultCollector(
-        std::move(lastOperator), expressionsToCollect, logicalPlan->getSchema());
+    lastOperator = createResultCollector(AccumulateType::REGULAR, expressionsToCollect,
+        logicalPlan->getSchema(), std::move(lastOperator));
     auto physicalPlan = make_unique<PhysicalPlan>(std::move(lastOperator));
     setPhysicalPlanIfProfile(logicalPlan, physicalPlan.get());
     return physicalPlan;
@@ -183,11 +183,13 @@ std::vector<DataPos> PlanMapper::getExpressionsDataPos(
     return result;
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::appendResultCollector(
-    std::unique_ptr<PhysicalOperator> lastOperator,
-    const binder::expression_vector& expressionsToCollect, planner::Schema* schema) {
-    return createResultCollector(
-        AccumulateType::REGULAR, expressionsToCollect, schema, std::move(lastOperator));
+std::shared_ptr<FactorizedTable> PlanMapper::getSingleStringColumnFTable() {
+    auto ftTableSchema = std::make_unique<FactorizedTableSchema>();
+    ftTableSchema->appendColumn(
+        std::make_unique<ColumnSchema>(false /* flat */, 0 /* dataChunkPos */,
+            LogicalTypeUtils::getRowLayoutSize(LogicalType{LogicalTypeID::STRING})));
+    auto fTable = std::make_shared<FactorizedTable>(memoryManager, std::move(ftTableSchema));
+    return fTable;
 }
 
 } // namespace processor

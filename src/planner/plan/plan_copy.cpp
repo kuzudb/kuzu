@@ -30,35 +30,20 @@ std::unique_ptr<LogicalPlan> Planner::planCopyFrom(const BoundStatement& stateme
     auto plan = std::make_unique<LogicalPlan>();
     QueryPlanner::appendScanFile(copyFromInfo->fileScanInfo.get(), *plan);
     auto tableType = copyFromInfo->tableSchema->tableType;
-    if (tableType == TableType::REL) {
-        if (fileType == FileType::TURTLE) {
-            auto extraInfo =
-                reinterpret_cast<ExtraBoundCopyRdfRelInfo*>(copyFromInfo->extraInfo.get());
-            std::vector<std::unique_ptr<LogicalIndexScanNodeInfo>> infos;
-            auto pkType = LogicalType(LogicalTypeID::STRING);
-            infos.push_back(std::make_unique<LogicalIndexScanNodeInfo>(extraInfo->nodeTableID,
-                extraInfo->subjectOffset, extraInfo->subjectKey, pkType.copy()));
-            infos.push_back(std::make_unique<LogicalIndexScanNodeInfo>(extraInfo->nodeTableID,
-                extraInfo->predicateOffset, extraInfo->predicateKey, pkType.copy()));
-            infos.push_back(std::make_unique<LogicalIndexScanNodeInfo>(extraInfo->nodeTableID,
-                extraInfo->objectOffset, extraInfo->objectKey, pkType.copy()));
-            appendIndexScan(std::move(infos), *plan);
-        } else {
-            auto extraInfo =
-                reinterpret_cast<ExtraBoundCopyRelInfo*>(copyFromInfo->extraInfo.get());
-            std::vector<std::unique_ptr<LogicalIndexScanNodeInfo>> infos;
-            auto srcNodeTableSchema = reinterpret_cast<NodeTableSchema*>(extraInfo->srcTableSchema);
-            auto srcTableID = srcNodeTableSchema->getTableID();
-            auto srcPkType = srcNodeTableSchema->getPrimaryKey()->getDataType();
-            infos.push_back(std::make_unique<LogicalIndexScanNodeInfo>(
-                srcTableID, extraInfo->srcOffset, extraInfo->srcKey, srcPkType->copy()));
-            auto dstNodeTableSchema = reinterpret_cast<NodeTableSchema*>(extraInfo->dstTableSchema);
-            auto dstTableID = dstNodeTableSchema->getTableID();
-            auto dstPkType = dstNodeTableSchema->getPrimaryKey()->getDataType();
-            infos.push_back(std::make_unique<LogicalIndexScanNodeInfo>(
-                dstTableID, extraInfo->dstOffset, extraInfo->dstKey, dstPkType->copy()));
-            appendIndexScan(std::move(infos), *plan);
-        }
+    if (tableType == TableType::REL && fileType != FileType::TURTLE) {
+        auto extraInfo = reinterpret_cast<ExtraBoundCopyRelInfo*>(copyFromInfo->extraInfo.get());
+        std::vector<std::unique_ptr<LogicalIndexScanNodeInfo>> infos;
+        auto srcNodeTableSchema = reinterpret_cast<NodeTableSchema*>(extraInfo->srcTableSchema);
+        auto srcTableID = srcNodeTableSchema->getTableID();
+        auto srcPkType = srcNodeTableSchema->getPrimaryKey()->getDataType();
+        infos.push_back(std::make_unique<LogicalIndexScanNodeInfo>(
+            srcTableID, extraInfo->srcOffset, extraInfo->srcKey, srcPkType->copy()));
+        auto dstNodeTableSchema = reinterpret_cast<NodeTableSchema*>(extraInfo->dstTableSchema);
+        auto dstTableID = dstNodeTableSchema->getTableID();
+        auto dstPkType = dstNodeTableSchema->getPrimaryKey()->getDataType();
+        infos.push_back(std::make_unique<LogicalIndexScanNodeInfo>(
+            dstTableID, extraInfo->dstOffset, extraInfo->dstKey, dstPkType->copy()));
+        appendIndexScan(std::move(infos), *plan);
     }
     auto copy = make_shared<LogicalCopyFrom>(copyFromInfo->copy(),
         copyFrom.getStatementResult()->getSingleExpressionToCollect(), plan->getLastOperator());

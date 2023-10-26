@@ -8,6 +8,7 @@
 #include "common/constants.h"
 #include "common/table_type.h"
 #include "common/types/types.h"
+#include "rdf_config.h"
 
 namespace kuzu {
 namespace common {
@@ -53,6 +54,8 @@ struct ReaderConfig {
     std::vector<std::string> columnNames;
     std::vector<std::unique_ptr<common::LogicalType>> columnTypes;
     std::unique_ptr<CSVReaderConfig> csvReaderConfig = nullptr;
+    // NOTE: Do not try to refactor this with CSVReaderConfig. We might remove this.
+    std::unique_ptr<RdfReaderConfig> rdfReaderConfig;
 
     ReaderConfig(FileType fileType, std::vector<std::string> filePaths,
         std::unique_ptr<CSVReaderConfig> csvReaderConfig)
@@ -68,7 +71,10 @@ struct ReaderConfig {
         : fileType{other.fileType}, filePaths{other.filePaths}, columnNames{other.columnNames},
           columnTypes{LogicalType::copy(other.columnTypes)} {
         if (other.csvReaderConfig != nullptr) {
-            this->csvReaderConfig = std::make_unique<CSVReaderConfig>(*other.csvReaderConfig);
+            this->csvReaderConfig = other.csvReaderConfig->copy();
+        }
+        if (other.rdfReaderConfig != nullptr) {
+            this->rdfReaderConfig = other.rdfReaderConfig->copy();
         }
     }
 

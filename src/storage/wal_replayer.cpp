@@ -215,13 +215,19 @@ void WALReplayer::replayRelTableRecord(const WALRecord& walRecord, bool isRdf) {
 
 void WALReplayer::replayRdfGraphRecord(const WALRecord& walRecord) {
     if (isCheckpoint) {
-        WALRecord nodeTableWALRecord = {.recordType = WALRecordType::NODE_TABLE_RECORD,
-            .nodeTableRecord = walRecord.rdfGraphRecord.nodeTableRecord};
-        replayNodeTableRecord(nodeTableWALRecord);
+        WALRecord resourceTableWALRecord = {.recordType = WALRecordType::NODE_TABLE_RECORD,
+            .nodeTableRecord = walRecord.rdfGraphRecord.resourceTableRecord};
+        replayNodeTableRecord(resourceTableWALRecord);
+        WALRecord literalTableWALRecord = {.recordType = WALRecordType::NODE_TABLE_RECORD,
+            .nodeTableRecord = walRecord.rdfGraphRecord.literalTableRecord};
+        replayNodeTableRecord(literalTableWALRecord);
 
-        WALRecord triplesRelTableWALRecord = {.recordType = WALRecordType::REL_TABLE_RECORD,
-            .relTableRecord = walRecord.rdfGraphRecord.relTableRecord};
-        replayRelTableRecord(triplesRelTableWALRecord, true /* isRdf */);
+        WALRecord resourceTripleTableWALRecord = {.recordType = WALRecordType::REL_TABLE_RECORD,
+            .relTableRecord = walRecord.rdfGraphRecord.resourceTripleTableRecord};
+        replayRelTableRecord(resourceTripleTableWALRecord, true /* isRdf */);
+        WALRecord literalTripleTableWALRecord = {.recordType = WALRecordType::REL_TABLE_RECORD,
+            .relTableRecord = walRecord.rdfGraphRecord.literalTripleTableRecord};
+        replayRelTableRecord(literalTripleTableWALRecord, true /* isRdf */);
     } else {
         // See comments for NODE_TABLE_RECORD.
     }
