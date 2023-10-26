@@ -2,7 +2,7 @@
 
 #include <unordered_map>
 
-#include "table_functions.h"
+#include "table_functions/table_functions.h"
 
 namespace kuzu {
 namespace function {

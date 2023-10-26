@@ -1,4 +1,5 @@
 add_subdirectory(aggregate)
+add_subdirectory(table_functions)
 
 add_library(kuzu_function
         OBJECT
