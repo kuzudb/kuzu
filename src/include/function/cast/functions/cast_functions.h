@@ -15,14 +15,9 @@ namespace function {
 
 struct CastToString {
     template<typename T>
-    static inline std::string castToString(T& input, const common::ValueVector& inputVector) {
-        return common::TypeUtils::toString(input, (void*)&inputVector);
-    }
-
-    template<typename T>
     static inline void operation(T& input, common::ku_string_t& result,
         common::ValueVector& inputVector, common::ValueVector& resultVector) {
-        std::string resultStr = castToString(input, inputVector);
+        std::string resultStr = common::TypeUtils::toString(input, (void*)&inputVector);
         if (resultStr.length() > common::ku_string_t::SHORT_STR_LENGTH) {
             result.overflowPtr = reinterpret_cast<uint64_t>(
                 common::StringVector::getInMemOverflowBuffer(&resultVector)

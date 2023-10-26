@@ -166,8 +166,48 @@ vector_function_definitions CastToIntervalVectorFunction::getDefinitions() {
     return result;
 }
 
+void castFixedListToString(
+    ValueVector& param, uint64_t pos, ValueVector& resultVector, uint64_t resultPos) {
+    resultVector.setNull(resultPos, param.isNull(pos));
+    if (param.isNull(pos)) {
+        return;
+    }
+    std::string result = "[";
+    auto numValuesPerList = FixedListType::getNumElementsInList(&param.dataType);
+    auto childType = FixedListType::getChildType(&param.dataType);
+    auto values = param.getData() + pos * param.getNumBytesPerValue();
+    for (auto i = 0u; i < numValuesPerList - 1; ++i) {
+        // Note: FixedList can only store numeric types and doesn't allow nulls.
+        result += TypeUtils::castValueToString(*childType, values, nullptr /* vector */);
+        result += ",";
+        values += PhysicalTypeUtils::getFixedTypeSize(childType->getPhysicalType());
+    }
+    result += TypeUtils::castValueToString(*childType, values, nullptr /* vector */);
+    result += "]";
+    resultVector.setValue(resultPos, result);
+}
+
+void fixedListCastExecFunction(
+    const std::vector<std::shared_ptr<ValueVector>>& params, common::ValueVector& result) {
+    assert(params.size() == 1);
+    auto param = params[0];
+    if (param->state->isFlat()) {
+        castFixedListToString(*param, param->state->selVector->selectedPositions[0], result,
+            result.state->selVector->selectedPositions[0]);
+    } else if (param->state->selVector->isUnfiltered()) {
+        for (auto i = 0u; i < param->state->selVector->selectedSize; i++) {
+            castFixedListToString(*param, i, result, i);
+        }
+    } else {
+        for (auto i = 0u; i < param->state->selVector->selectedSize; i++) {
+            castFixedListToString(*param, param->state->selVector->selectedPositions[i], result,
+                result.state->selVector->selectedPositions[i]);
+        }
+    }
+}
+
 void CastToStringVectorFunction::getUnaryCastToStringExecFunction(
-    common::LogicalTypeID typeID, scalar_exec_func& func) {
+    LogicalTypeID typeID, scalar_exec_func& func) {
     switch (typeID) {
     case common::LogicalTypeID::BOOL: {
         func = UnaryCastExecFunction<bool, ku_string_t, CastToString>;
@@ -196,7 +236,7 @@ void CastToStringVectorFunction::getUnaryCastToStringExecFunction(
     } break;
     case common::LogicalTypeID::INT128: {
         func = UnaryCastExecFunction<int128_t, ku_string_t, CastToString>;
-    }
+    } break;
     case common::LogicalTypeID::UINT8: {
         func = UnaryCastExecFunction<uint8_t, ku_string_t, CastToString>;
     } break;
@@ -218,12 +258,17 @@ void CastToStringVectorFunction::getUnaryCastToStringExecFunction(
     case common::LogicalTypeID::INTERNAL_ID: {
         func = UnaryCastExecFunction<internalID_t, ku_string_t, CastToString>;
     } break;
-    case common::LogicalTypeID::BLOB:
+    case common::LogicalTypeID::BLOB: {
+        func = UnaryCastExecFunction<blob_t, ku_string_t, CastToString>;
+    } break;
     case common::LogicalTypeID::STRING: {
         func = UnaryCastExecFunction<ku_string_t, ku_string_t, CastToString>;
     } break;
     case common::LogicalTypeID::VAR_LIST: {
         func = UnaryCastExecFunction<list_entry_t, ku_string_t, CastToString>;
+    } break;
+    case common::LogicalTypeID::FIXED_LIST: {
+        func = fixedListCastExecFunction;
     } break;
     case common::LogicalTypeID::MAP: {
         func = UnaryCastExecFunction<map_entry_t, ku_string_t, CastToString>;
@@ -232,6 +277,9 @@ void CastToStringVectorFunction::getUnaryCastToStringExecFunction(
     case common::LogicalTypeID::REL:
     case common::LogicalTypeID::STRUCT: {
         func = UnaryCastExecFunction<struct_entry_t, ku_string_t, CastToString>;
+    } break;
+    case common::LogicalTypeID::UNION: {
+        func = UnaryCastExecFunction<union_entry_t, ku_string_t, CastToString>;
     } break;
         // LCOV_EXCL_START
     default:

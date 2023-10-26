@@ -2,7 +2,7 @@
 
 #include "common/exception/conversion.h"
 #include "common/exception/runtime.h"
-#include "common/string_utils.h"
+#include "common/types/blob.h"
 #include "common/vector/value_vector.h"
 
 namespace kuzu {
@@ -57,6 +57,11 @@ std::string TypeUtils::castValueToString(
 }
 
 template<>
+std::string TypeUtils::toString(const int128_t& val, void* /*valueVector*/) {
+    return Int128_t::ToString(val);
+}
+
+template<>
 std::string TypeUtils::toString(const bool& val, void* /*valueVector*/) {
     return val ? "True" : "False";
 }
@@ -84,6 +89,11 @@ std::string TypeUtils::toString(const interval_t& val, void* /*valueVector*/) {
 template<>
 std::string TypeUtils::toString(const ku_string_t& val, void* /*valueVector*/) {
     return val.getAsString();
+}
+
+template<>
+std::string TypeUtils::toString(const blob_t& val, void* /*valueVector*/) {
+    return Blob::toString(val.value.getData(), val.value.len);
 }
 
 template<>
@@ -168,10 +178,15 @@ std::string TypeUtils::toString(const struct_entry_t& val, void* valVector) {
     return result;
 }
 
-std::string TypeUtils::prefixConversionExceptionMessage(
-    const char* data, LogicalTypeID dataTypeID) {
-    return "Cannot convert string " + std::string(data) + " to " +
-           LogicalTypeUtils::dataTypeToString(dataTypeID) + ".";
+template<>
+std::string TypeUtils::toString(const union_entry_t& val, void* valVector) {
+    auto structVector = (ValueVector*)valVector;
+    auto unionFieldIdx =
+        UnionVector::getTagVector(structVector)->getValue<union_field_idx_t>(val.entry.pos);
+    auto unionFieldVector = UnionVector::getValVector(structVector, unionFieldIdx);
+    return castValueToString(unionFieldVector->dataType,
+        unionFieldVector->getData() + unionFieldVector->getNumBytesPerValue() * val.entry.pos,
+        unionFieldVector);
 }
 
 } // namespace common
