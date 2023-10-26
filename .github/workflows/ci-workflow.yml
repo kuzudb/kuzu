@@ -138,7 +138,6 @@ jobs:
     env:
       NUM_THREADS: 32
       TEST_JOBS: 16
-      GEN: ninja
       CC: clang-14
       CXX: clang++-14
     steps:
@@ -257,19 +256,13 @@ jobs:
 
   benchmark:
     name: benchmark
-    needs: [gcc-build-test, clang-build-test]
+    # needs: [gcc-build-test, clang-build-test]
+    env:
+      NUM_THREADS: 30
+      GEN: ninja
     runs-on: kuzu-self-hosted-benchmarking
     steps:
       - uses: actions/checkout@v3
-
-      - name: Ensure Python dependencies
-        run: |
-          pip install torch~=1.13 --extra-index-url https://download.pytorch.org/whl/cpu &&\
-          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-1.13.0+cpu.html
-
-      - name: Ensure Node.js dependencies
-        run: npm install
-        working-directory: tools/nodejs_api
 
       - name: Build
         run: make benchmark NUM_THREADS=30
