@@ -1,6 +1,5 @@
 #include "storage/store/var_list_column_chunk.h"
 
-#include "arrow/array.h"
 #include "common/types/value/nested.h"
 #include "common/types/value/value.h"
 #include "storage/store/table_copy_utils.h"
@@ -24,10 +23,11 @@ void VarListDataColumnChunk::resizeBuffer(uint64_t numValues) {
     dataColumnChunk->resize(capacity);
 }
 
-VarListColumnChunk::VarListColumnChunk(LogicalType dataType, bool enableCompression)
-    : ColumnChunk{std::move(dataType), enableCompression, true /* hasNullChunk */},
+VarListColumnChunk::VarListColumnChunk(
+    LogicalType dataType, uint64_t capacity, bool enableCompression)
+    : ColumnChunk{std::move(dataType), capacity, enableCompression, true /* hasNullChunk */},
       varListDataColumnChunk{ColumnChunkFactory::createColumnChunk(
-          *VarListType::getChildType(&this->dataType), enableCompression)} {
+          *VarListType::getChildType(&this->dataType), capacity, enableCompression)} {
     assert(this->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
 }
 
@@ -50,16 +50,8 @@ void VarListColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChun
     numValues += numValuesToAppend;
 }
 
-void VarListColumnChunk::write(const Value& listVal, uint64_t posToWrite) {
-    assert(listVal.getDataType()->getPhysicalType() == PhysicalTypeID::VAR_LIST);
-    auto numValuesInList = NestedVal::getChildrenSize(&listVal);
-    varListDataColumnChunk.resizeBuffer(varListDataColumnChunk.getNumValues() + numValuesInList);
-    for (auto i = 0u; i < numValuesInList; i++) {
-        varListDataColumnChunk.dataColumnChunk->write(
-            *NestedVal::getChildVal(&listVal, i), varListDataColumnChunk.getNumValues());
-        varListDataColumnChunk.increaseNumValues(1);
-    }
-    setValue(varListDataColumnChunk.getNumValues(), posToWrite);
+void VarListColumnChunk::write(ValueVector* valueVector, ValueVector* offsetInChunkVector) {
+    // TODO(Guodong): Implement this.
 }
 
 void VarListColumnChunk::resetToEmpty() {
@@ -67,9 +59,9 @@ void VarListColumnChunk::resetToEmpty() {
     varListDataColumnChunk.reset();
 }
 
-void VarListColumnChunk::append(common::ValueVector* vector, common::offset_t startPosInChunk) {
+void VarListColumnChunk::append(ValueVector* vector, offset_t startPosInChunk) {
     auto nextListOffsetInChunk = getListOffset(startPosInChunk);
-    auto offsetBufferToWrite = (common::offset_t*)(buffer.get());
+    auto offsetBufferToWrite = (offset_t*)(buffer.get());
     for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
         auto pos = vector->state->selVector->selectedPositions[i];
         uint64_t listLen = vector->isNull(pos) ? 0 : vector->getValue<list_entry_t>(pos).size;

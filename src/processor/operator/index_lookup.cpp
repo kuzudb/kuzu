@@ -2,11 +2,8 @@
 
 #include "common/exception/message.h"
 #include "common/exception/not_implemented.h"
-#include "common/exception/runtime.h"
 #include "storage/index/hash_index.h"
 #include "storage/store/table_copy_utils.h"
-#include <arrow/array/array_base.h>
-#include <arrow/type.h>
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -20,7 +17,7 @@ bool IndexLookup::getNextTuplesInternal(ExecutionContext* context) {
     }
     for (auto& info : infos) {
         assert(info);
-        indexLookup(*info);
+        indexLookup(context->clientContext->getActiveTransaction(), *info);
     }
     return true;
 }
@@ -35,113 +32,48 @@ std::unique_ptr<PhysicalOperator> IndexLookup::clone() {
         std::move(copiedInfos), children[0]->clone(), getOperatorID(), paramsString);
 }
 
-void IndexLookup::indexLookup(const IndexLookupInfo& info) {
+void IndexLookup::indexLookup(transaction::Transaction* transaction, const IndexLookupInfo& info) {
     auto keyVector = resultSet->getValueVector(info.keyVectorPos).get();
-    arrow::ArrayVector offsetArraysVector;
-    if (keyVector->dataType.getPhysicalType() == PhysicalTypeID::ARROW_COLUMN) {
-        fillOffsetArraysFromArrowVector(info, keyVector, offsetArraysVector);
-    } else {
-        fillOffsetArraysFromVector(info, keyVector, offsetArraysVector);
-    }
-    auto offsetChunkedArray = std::make_shared<arrow::ChunkedArray>(offsetArraysVector);
-    ArrowColumnVector::setArrowColumn(
-        resultSet->getValueVector(info.resultVectorPos).get(), offsetChunkedArray);
+    auto resultVector = resultSet->getValueVector(info.resultVectorPos).get();
+    fillOffsetArraysFromVector(transaction, info, keyVector, resultVector);
 }
 
-void IndexLookup::lookupOnArray(
-    const IndexLookupInfo& info, arrow::Array* array, common::offset_t* offsets) {
-    std::string errorPKValueStr;
-    auto length = array->length();
+void IndexLookup::fillOffsetArraysFromVector(transaction::Transaction* transaction,
+    const IndexLookupInfo& info, ValueVector* keyVector, ValueVector* resultVector) {
+    assert(resultVector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
+    auto offsets = (offset_t*)resultVector->getData();
+    auto numKeys = keyVector->state->selVector->selectedSize;
     switch (info.pkDataType->getLogicalTypeID()) {
-    case LogicalTypeID::SERIAL: {
-        for (auto i = 0u; i < length; i++) {
-            offsets[i] = static_cast<offset_t>(dynamic_cast<arrow::Int64Array*>(array)->Value(i));
-        }
-    } break;
     case LogicalTypeID::INT64: {
-        auto numKeysFound = 0u;
-        for (auto i = 0u; i < length; i++) {
-            auto val = dynamic_cast<arrow::Int64Array*>(array)->Value(i);
-            numKeysFound +=
-                info.pkIndex->lookup(&transaction::DUMMY_READ_TRANSACTION, val, offsets[i]);
-        }
-        if (numKeysFound != length) {
-            for (auto i = 0u; i < length; i++) {
-                auto val = dynamic_cast<arrow::Int64Array*>(array)->Value(i);
-                if (!info.pkIndex->lookup(&transaction::DUMMY_READ_TRANSACTION, val, offsets[i])) {
-                    errorPKValueStr = std::to_string(val);
-                    break;
-                }
+        for (auto i = 0u; i < numKeys; i++) {
+            auto pos = keyVector->state->selVector->selectedPositions[i];
+            auto key = keyVector->getValue<int64_t>(pos);
+            if (!info.pkIndex->lookup(transaction, key, offsets[i])) {
+                throw RuntimeException(ExceptionMessage::nonExistPKException(std::to_string(key)));
             }
         }
     } break;
     case LogicalTypeID::STRING: {
-        auto numKeysFound = 0u;
-        for (auto i = 0u; i < length; i++) {
-            auto val = std::string(dynamic_cast<arrow::StringArray*>(array)->GetView(i));
-            numKeysFound +=
-                info.pkIndex->lookup(&transaction::DUMMY_READ_TRANSACTION, val.c_str(), offsets[i]);
-        }
-        if (numKeysFound != length) {
-            for (auto i = 0u; i < length; i++) {
-                auto val = std::string(dynamic_cast<arrow::StringArray*>(array)->GetView(i));
-                if (!info.pkIndex->lookup(
-                        &transaction::DUMMY_READ_TRANSACTION, val.c_str(), offsets[i])) {
-                    errorPKValueStr = val;
-                    break;
-                }
+        for (auto i = 0u; i < numKeys; i++) {
+            auto key =
+                keyVector->getValue<ku_string_t>(keyVector->state->selVector->selectedPositions[i]);
+            if (!info.pkIndex->lookup(transaction, key.getAsString().c_str(), offsets[i])) {
+                throw RuntimeException(ExceptionMessage::nonExistPKException(key.getAsString()));
             }
+        }
+    } break;
+    case LogicalTypeID::SERIAL: {
+        for (auto i = 0u; i < numKeys; i++) {
+            auto pos = keyVector->state->selVector->selectedPositions[i];
+            offsets[i] = keyVector->getValue<int64_t>(pos);
         }
     } break;
         // LCOV_EXCL_START
     default: {
-        throw NotImplementedException(ExceptionMessage::invalidPKType(
-            LogicalTypeUtils::dataTypeToString(info.pkDataType->getLogicalTypeID())));
+        throw NotImplementedException("IndexLookup::fillOffsetArraysFromVector");
     }
         // LCOV_EXCL_STOP
     }
-    if (!errorPKValueStr.empty()) {
-        throw RuntimeException(ExceptionMessage::nonExistPKException(errorPKValueStr));
-    }
-}
-
-void IndexLookup::fillOffsetArraysFromArrowVector(const IndexLookupInfo& info,
-    common::ValueVector* keyVector, arrow::ArrayVector& offsetArraysVector) {
-    // This should be changed to handle non-arrow Vectors once the new csv reader is in.
-    auto keyChunkedArray = ArrowColumnVector::getArrowColumn(keyVector);
-    offsetArraysVector.reserve(keyChunkedArray->num_chunks());
-    for (auto& keyArray : keyChunkedArray->chunks()) {
-        auto numKeys = keyArray->length();
-        std::shared_ptr<arrow::Buffer> arrowBuffer;
-        TableCopyUtils::throwCopyExceptionIfNotOK(
-            arrow::AllocateBuffer((int64_t)(numKeys * sizeof(offset_t))).Value(&arrowBuffer));
-        auto offsets = (offset_t*)arrowBuffer->data();
-        if (keyArray->null_count() != 0) {
-            throw RuntimeException(ExceptionMessage::nullPKException());
-        }
-        lookupOnArray(info, keyArray.get(), offsets);
-        offsetArraysVector.push_back(TableCopyUtils::createArrowPrimitiveArray(
-            std::make_shared<arrow::Int64Type>(), arrowBuffer, numKeys));
-    }
-}
-
-void IndexLookup::fillOffsetArraysFromVector(const kuzu::processor::IndexLookupInfo& info,
-    common::ValueVector* keyVector,
-    std::vector<std::shared_ptr<arrow::Array>>& offsetArraysVector) {
-    auto numKeys = keyVector->state->selVector->selectedSize;
-    std::shared_ptr<arrow::Buffer> arrowBuffer;
-    TableCopyUtils::throwCopyExceptionIfNotOK(
-        arrow::AllocateBuffer((int64_t)(numKeys * sizeof(offset_t))).Value(&arrowBuffer));
-    auto offsets = (offset_t*)arrowBuffer->data();
-    for (auto i = 0u; i < keyVector->state->selVector->selectedSize; i++) {
-        info.pkIndex->lookup(&transaction::DUMMY_READ_TRANSACTION,
-            keyVector->getValue<ku_string_t>(keyVector->state->selVector->selectedPositions[i])
-                .getAsString()
-                .c_str(),
-            offsets[i]);
-    }
-    offsetArraysVector.push_back(TableCopyUtils::createArrowPrimitiveArray(
-        std::make_shared<arrow::Int64Type>(), arrowBuffer, numKeys));
 }
 
 } // namespace processor

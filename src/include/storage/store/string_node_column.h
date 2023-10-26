@@ -1,19 +1,14 @@
 #pragma once
 
 #include "storage/stats/table_statistics.h"
-#include "storage/store/node_column.h"
+#include "storage/store/column.h"
 
 namespace kuzu {
 namespace storage {
 
-struct StringNodeColumnFunc {
-    static void writeStringValuesToPage(uint8_t* frame, uint16_t posInFrame,
-        common::ValueVector* vector, uint32_t posInVector, const CompressionMetadata& metadata);
-};
-
-class StringNodeColumn : public NodeColumn {
+class StringColumn : public Column {
 public:
-    StringNodeColumn(common::LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
+    StringColumn(common::LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
         BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
         transaction::Transaction* transaction, RWPropertyStats propertyStatistics);
 

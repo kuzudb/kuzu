@@ -209,12 +209,12 @@ void LocalColumn::commitLocalChunkInPlace(
 void LocalColumn::commitLocalChunkOutOfPlace(
     node_group_idx_t nodeGroupIdx, LocalColumnChunk* localChunk) {
     // Trigger rewriting the column chunk to another new place.
-    auto columnChunk =
-        ColumnChunkFactory::createColumnChunk(column->getDataType(), enableCompression);
+    auto columnChunk = ColumnChunkFactory::createColumnChunk(
+        column->getDataType(), StorageConstants::NODE_GROUP_SIZE, enableCompression);
     // First scan the whole column chunk into ColumnChunk.
     column->scan(nodeGroupIdx, columnChunk.get());
     for (auto& [vectorIdx, vector] : localChunk->vectors) {
-        columnChunk->update(vector->vector.get(), vectorIdx);
+        columnChunk->write(vector->vector.get(), vectorIdx << DEFAULT_VECTOR_CAPACITY_LOG_2);
     }
     // Append the updated ColumnChunk back to column.
     column->append(columnChunk.get(), nodeGroupIdx);
@@ -223,7 +223,7 @@ void LocalColumn::commitLocalChunkOutOfPlace(
 void StringLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
     assert(chunks.contains(nodeGroupIdx));
     auto localChunk = chunks.at(nodeGroupIdx).get();
-    auto stringColumn = reinterpret_cast<StringNodeColumn*>(column);
+    auto stringColumn = reinterpret_cast<StringColumn*>(column);
     auto overflowMetadata =
         stringColumn->getOverflowMetadataDA()->get(nodeGroupIdx, TransactionType::WRITE);
     auto ovfStringLengthInChunk = 0u;
@@ -243,11 +243,11 @@ void StringLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
 void VarListLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
     assert(chunks.contains(nodeGroupIdx));
     auto chunk = chunks.at(nodeGroupIdx).get();
-    auto varListColumn = reinterpret_cast<VarListNodeColumn*>(column);
-    auto listColumnChunkInStorage =
-        ColumnChunkFactory::createColumnChunk(column->getDataType(), enableCompression);
-    auto columnChunkToUpdate =
-        ColumnChunkFactory::createColumnChunk(column->getDataType(), enableCompression);
+    auto varListColumn = reinterpret_cast<VarListColumn*>(column);
+    auto listColumnChunkInStorage = ColumnChunkFactory::createColumnChunk(
+        column->getDataType(), StorageConstants::NODE_GROUP_SIZE, enableCompression);
+    auto columnChunkToUpdate = ColumnChunkFactory::createColumnChunk(
+        column->getDataType(), StorageConstants::NODE_GROUP_SIZE, enableCompression);
     varListColumn->scan(nodeGroupIdx, listColumnChunkInStorage.get());
     offset_t nextOffsetToWrite = 0;
     auto numNodesInGroup =
@@ -282,14 +282,13 @@ void VarListLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
     column->append(columnChunkToUpdate.get(), nodeGroupIdx);
     auto dataColumnChunk =
         reinterpret_cast<VarListColumnChunk*>(columnChunkToUpdate.get())->getDataColumnChunk();
-    reinterpret_cast<VarListNodeColumn*>(column)->dataNodeColumn->append(
-        dataColumnChunk, nodeGroupIdx);
+    reinterpret_cast<VarListColumn*>(column)->dataColumn->append(dataColumnChunk, nodeGroupIdx);
 }
 
-StructLocalColumn::StructLocalColumn(NodeColumn* column, bool enableCompression)
+StructLocalColumn::StructLocalColumn(Column* column, bool enableCompression)
     : LocalColumn{column, enableCompression} {
     assert(column->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
-    auto structColumn = static_cast<StructNodeColumn*>(column);
+    auto structColumn = static_cast<StructColumn*>(column);
     auto dataType = structColumn->getDataType();
     auto structFields = StructType::getFields(&dataType);
     fields.resize(structFields.size());
@@ -345,7 +344,7 @@ void StructLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
 }
 
 std::unique_ptr<LocalColumn> LocalColumnFactory::createLocalColumn(
-    NodeColumn* column, bool enableCompression) {
+    Column* column, bool enableCompression) {
     switch (column->getDataType().getPhysicalType()) {
     case PhysicalTypeID::STRING: {
         return std::make_unique<StringLocalColumn>(column, enableCompression);

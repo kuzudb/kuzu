@@ -264,7 +264,7 @@ void BufferManager::addToEvictionQueue(
     BMFileHandle* fileHandle, page_idx_t pageIdx, PageState* pageState) {
     auto currStateAndVersion = pageState->getStateAndVersion();
     if (++numEvictionQueueInsertions == BufferPoolConstants::EVICTION_QUEUE_PURGING_INTERVAL) {
-        evictionQueue->removeNonEvictableCandidates();
+        //        evictionQueue->removeNonEvictableCandidates();
         numEvictionQueueInsertions = 0;
     }
     pageState->tryMark(currStateAndVersion);

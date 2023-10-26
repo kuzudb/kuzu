@@ -3,6 +3,7 @@
 #include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
 #include "common/string_format.h"
+#include "storage/storage_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -17,7 +18,12 @@ void CreateRelTableGroup::executeDDLInternal() {
         (RelTableGroupSchema*)writeCatalog->getTableSchema(newRelTableGroupID);
     for (auto& relTableID : newRelTableGroupSchema->getRelTableIDs()) {
         auto newRelTableSchema = writeCatalog->getTableSchema(relTableID);
-        relsStatistics->addTableStatistic((RelTableSchema*)newRelTableSchema);
+        storageManager->getRelsStore().getRelsStatistics()->addTableStatistic(
+            (RelTableSchema*)newRelTableSchema);
+    }
+    // TODO(Ziyi): remove this when we can log variable size record. See also wal_record.h
+    for (auto relTableID : newRelTableGroupSchema->getRelTableIDs()) {
+        storageManager->getWAL()->logRelTableRecord(relTableID);
     }
 }
 

@@ -30,11 +30,6 @@ public:
         return getMaxNodeOffsetFromNumTuples(getNumTuples());
     }
 
-    inline void setAdjListsAndColumns(
-        std::pair<std::vector<AdjLists*>, std::vector<Column*>> adjListsAndColumns_) {
-        adjListsAndColumns = std::move(adjListsAndColumns_);
-    }
-
     common::offset_t addNode();
 
     void deleteNode(common::offset_t nodeOffset);
@@ -77,7 +72,7 @@ public:
     }
 
 private:
-    void errorIfNodeHasEdges(common::offset_t nodeOffset);
+    //    void errorIfNodeHasEdges(common::offset_t nodeOffset);
 
     // We pass the morselIdx to not do the division nodeOffset/DEFAULT_VECTOR_CAPACITY again
     bool isDeleted(common::offset_t nodeOffset, uint64_t morselIdx);
@@ -85,9 +80,6 @@ private:
 private:
     common::table_id_t tableID;
     std::vector<std::unique_ptr<MetadataDAHInfo>> metadataDAHInfos;
-    // Note: This is initialized explicitly through a call to setAdjListsAndColumns after
-    // construction.
-    std::pair<std::vector<AdjLists*>, std::vector<Column*>> adjListsAndColumns;
     std::vector<bool> hasDeletedNodesPerMorsel;
     std::map<uint64_t, std::set<common::offset_t>> deletedNodeOffsetsPerMorsel;
 };

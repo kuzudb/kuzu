@@ -227,18 +227,6 @@ public:
     }
 };
 
-class ArrowColumnVector {
-public:
-    static inline std::shared_ptr<arrow::ChunkedArray> getArrowColumn(ValueVector* vector) {
-        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::ARROW_COLUMN);
-        return reinterpret_cast<ArrowColumnAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())->column;
-    }
-
-    static void setArrowColumn(ValueVector* vector, std::shared_ptr<arrow::ChunkedArray> column);
-
-    static void slice(ValueVector* vector, offset_t offset);
-};
-
 class MapVector {
 public:
     static inline ValueVector* getKeyVector(const ValueVector* vector) {

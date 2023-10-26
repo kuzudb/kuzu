@@ -3,7 +3,7 @@ add_library(
         OBJECT
         test_parser.cpp
         test_runner.cpp
-        csv_to_parquet_converter.cpp
+#        csv_to_parquet_converter.cpp
 )
 
 target_include_directories(

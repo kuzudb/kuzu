@@ -30,7 +30,7 @@ private:
 
 class TablesStatistics;
 
-// Accessor used by NodeColumn, so that it doesn't need to handle the TableStatistics directly
+// Accessor used by Column, so that it doesn't need to handle the TableStatistics directly
 class RWPropertyStats {
 public:
     RWPropertyStats(TablesStatistics* tablesStatistics, common::table_id_t tableID,

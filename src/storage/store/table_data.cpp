@@ -9,23 +9,9 @@ namespace kuzu {
 namespace storage {
 
 TableData::TableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, table_id_t tableID,
-    BufferManager* bufferManager, WAL* wal, const std::vector<catalog::Property*>& properties,
-    TablesStatistics* tablesStatistics, bool enableCompression)
-    : dataFH{dataFH}, metadataFH{metadataFH}, tableID{tableID},
-      bufferManager{bufferManager}, wal{wal}, enableCompression{enableCompression} {
-    columns.reserve(properties.size());
-    for (auto i = 0u; i < properties.size(); i++) {
-        auto property = properties[i];
-        auto metadataDAHInfo =
-            dynamic_cast<NodesStoreStatsAndDeletedIDs*>(tablesStatistics)
-                ->getMetadataDAHInfo(Transaction::getDummyWriteTrx().get(), tableID, i);
-        columns.push_back(
-            NodeColumnFactory::createNodeColumn(*property->getDataType(), *metadataDAHInfo, dataFH,
-                metadataFH, bufferManager, wal, Transaction::getDummyReadOnlyTrx().get(),
-                RWPropertyStats(tablesStatistics, tableID, property->getPropertyID()),
-                enableCompression));
-    }
-}
+    BufferManager* bufferManager, WAL* wal, bool enableCompression, ColumnDataFormat dataFormat)
+    : dataFH{dataFH}, metadataFH{metadataFH}, tableID{tableID}, bufferManager{bufferManager},
+      wal{wal}, enableCompression{enableCompression}, dataFormat{dataFormat} {}
 
 void TableData::read(transaction::Transaction* transaction, ValueVector* nodeIDVector,
     const std::vector<column_id_t>& columnIDs, const std::vector<ValueVector*>& outputVectors) {
@@ -48,8 +34,7 @@ void TableData::scan(transaction::Transaction* transaction, ValueVector* nodeIDV
         }
     }
     if (transaction->isWriteTransaction()) {
-        auto localStorage = transaction->getLocalStorage();
-        localStorage->scan(tableID, nodeIDVector, columnIDs, outputVectors);
+        transaction->getLocalStorage()->scan(tableID, nodeIDVector, columnIDs, outputVectors);
     }
 }
 
@@ -115,12 +100,12 @@ void TableData::addColumn(transaction::Transaction* transaction, const catalog::
     ValueVector* defaultValueVector, TablesStatistics* tablesStats) {
     auto metadataDAHInfo = dynamic_cast<NodesStoreStatsAndDeletedIDs*>(tablesStats)
                                ->getMetadataDAHInfo(transaction, tableID, columns.size());
-    auto nodeColumn = NodeColumnFactory::createNodeColumn(*property.getDataType(), *metadataDAHInfo,
-        dataFH, metadataFH, bufferManager, wal, transaction,
+    auto column = ColumnFactory::createColumn(*property.getDataType(), *metadataDAHInfo, dataFH,
+        metadataFH, bufferManager, wal, transaction,
         RWPropertyStats(tablesStats, tableID, property.getPropertyID()), enableCompression);
-    nodeColumn->populateWithDefaultVal(
-        property, nodeColumn.get(), defaultValueVector, getNumNodeGroups(transaction));
-    columns.push_back(std::move(nodeColumn));
+    column->populateWithDefaultVal(
+        property, column.get(), defaultValueVector, getNumNodeGroups(transaction));
+    columns.push_back(std::move(column));
 }
 
 void TableData::checkpointInMemory() {

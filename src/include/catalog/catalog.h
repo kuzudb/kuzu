@@ -44,7 +44,7 @@ public:
 
     static inline void saveInitialCatalogToFile(const std::string& directory) {
         std::make_unique<Catalog>()->getReadOnlyVersion()->saveToFile(
-            directory, common::DBFileType::ORIGINAL);
+            directory, common::FileVersionType::ORIGINAL);
     }
 
     common::ExpressionType getFunctionType(const std::string& name) const;

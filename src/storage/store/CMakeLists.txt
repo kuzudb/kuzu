@@ -2,11 +2,13 @@ add_library(kuzu_storage_store
         OBJECT
         column_chunk.cpp
         compression.cpp
-        node_column.cpp
+        column.cpp
         node_group.cpp
         node_table.cpp
+        node_table_data.cpp
         nodes_store.cpp
         rel_table.cpp
+        rel_table_data.cpp
         rels_store.cpp
         string_column_chunk.cpp
         string_node_column.cpp

@@ -1,6 +1,6 @@
 #include "storage/store/var_list_node_column.h"
 
-#include "storage/store/node_column.h"
+#include "storage/store/column.h"
 #include "storage/store/var_list_column_chunk.h"
 
 using namespace kuzu::common;
@@ -19,7 +19,7 @@ common::offset_t ListOffsetInfoInStorage::getListOffset(uint64_t nodePos) const 
     }
 }
 
-void VarListNodeColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+void VarListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
     uint64_t offsetInVector) {
     // TODO(Ziyi): the current scan function requires two dynamic allocation of vectors which may be
@@ -40,27 +40,26 @@ void VarListNodeColumn::scan(Transaction* transaction, node_group_idx_t nodeGrou
         listOffsetInVector += length;
     }
     ListVector::resizeDataVector(resultVector, listOffsetInVector);
-    dataNodeColumn->scan(transaction, nodeGroupIdx, listOffsetInfoInStorage.getListOffset(0),
+    dataColumn->scan(transaction, nodeGroupIdx, listOffsetInfoInStorage.getListOffset(0),
         listOffsetInfoInStorage.getListOffset(numValues), ListVector::getDataVector(resultVector),
         offsetToWriteListData);
 }
 
-void VarListNodeColumn::scan(
-    node_group_idx_t nodeGroupIdx, kuzu::storage::ColumnChunk* columnChunk) {
+void VarListColumn::scan(node_group_idx_t nodeGroupIdx, kuzu::storage::ColumnChunk* columnChunk) {
     auto varListColumnChunk = reinterpret_cast<VarListColumnChunk*>(columnChunk);
     if (nodeGroupIdx >= metadataDA->getNumElements()) {
         varListColumnChunk->setNumValues(0);
     } else {
-        NodeColumn::scan(nodeGroupIdx, columnChunk);
+        Column::scan(nodeGroupIdx, columnChunk);
         auto metadata = metadataDA->get(nodeGroupIdx, transaction::TransactionType::READ_ONLY);
         varListColumnChunk->setNumValues(metadata.numValues);
         varListColumnChunk->resizeDataColumnChunk(
             metadata.numPages * BufferPoolConstants::PAGE_4KB_SIZE);
-        dataNodeColumn->scan(nodeGroupIdx, varListColumnChunk->getDataColumnChunk());
+        dataColumn->scan(nodeGroupIdx, varListColumnChunk->getDataColumnChunk());
     }
 }
 
-void VarListNodeColumn::scanInternal(
+void VarListColumn::scanInternal(
     Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
     resultVector->resetAuxiliaryBuffer();
     auto startNodeOffset = nodeIDVector->readNodeOffset(0);
@@ -77,7 +76,7 @@ void VarListNodeColumn::scanInternal(
     }
 }
 
-void VarListNodeColumn::lookupValue(Transaction* transaction, offset_t nodeOffset,
+void VarListColumn::lookupValue(Transaction* transaction, offset_t nodeOffset,
     ValueVector* resultVector, uint32_t posInVector) {
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     auto nodeOffsetInGroup = nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
@@ -87,17 +86,17 @@ void VarListNodeColumn::lookupValue(Transaction* transaction, offset_t nodeOffse
     auto offsetInVector = posInVector == 0 ? 0 : resultVector->getValue<offset_t>(posInVector - 1);
     resultVector->setValue(posInVector, list_entry_t{offsetInVector, length});
     ListVector::resizeDataVector(resultVector, offsetInVector + length);
-    dataNodeColumn->scan(transaction, StorageUtils::getNodeGroupIdx(nodeOffset), listOffset,
+    dataColumn->scan(transaction, StorageUtils::getNodeGroupIdx(nodeOffset), listOffset,
         listOffset + length, ListVector::getDataVector(resultVector), offsetInVector);
 }
 
-void VarListNodeColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
-    NodeColumn::append(columnChunk, nodeGroupIdx);
+void VarListColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
+    Column::append(columnChunk, nodeGroupIdx);
     auto dataColumnChunk = reinterpret_cast<VarListColumnChunk*>(columnChunk)->getDataColumnChunk();
-    dataNodeColumn->append(dataColumnChunk, nodeGroupIdx);
+    dataColumn->append(dataColumnChunk, nodeGroupIdx);
 }
 
-void VarListNodeColumn::scanUnfiltered(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+void VarListColumn::scanUnfiltered(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     ValueVector* resultVector, const ListOffsetInfoInStorage& listOffsetInfoInStorage) {
     auto numValuesToScan = resultVector->state->selVector->selectedSize;
     offset_t offsetInVector = 0;
@@ -109,11 +108,11 @@ void VarListNodeColumn::scanUnfiltered(Transaction* transaction, node_group_idx_
     ListVector::resizeDataVector(resultVector, offsetInVector);
     auto startListOffsetInStorage = listOffsetInfoInStorage.getListOffset(0);
     auto endListOffsetInStorage = listOffsetInfoInStorage.getListOffset(numValuesToScan);
-    dataNodeColumn->scan(transaction, nodeGroupIdx, startListOffsetInStorage,
-        endListOffsetInStorage, ListVector::getDataVector(resultVector), 0 /* offsetInVector */);
+    dataColumn->scan(transaction, nodeGroupIdx, startListOffsetInStorage, endListOffsetInStorage,
+        ListVector::getDataVector(resultVector), 0 /* offsetInVector */);
 }
 
-void VarListNodeColumn::scanFiltered(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+void VarListColumn::scanFiltered(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     ValueVector* resultVector, const ListOffsetInfoInStorage& listOffsetInfoInStorage) {
     offset_t listOffset = 0;
     for (auto i = 0u; i < resultVector->state->selVector->selectedSize; i++) {
@@ -128,23 +127,23 @@ void VarListNodeColumn::scanFiltered(Transaction* transaction, node_group_idx_t 
         auto pos = resultVector->state->selVector->selectedPositions[i];
         auto startOffsetInStorageToScan = listOffsetInfoInStorage.getListOffset(pos);
         auto endOffsetInStorageToScan = listOffsetInfoInStorage.getListOffset(pos + 1);
-        dataNodeColumn->scan(transaction, nodeGroupIdx, startOffsetInStorageToScan,
+        dataColumn->scan(transaction, nodeGroupIdx, startOffsetInStorageToScan,
             endOffsetInStorageToScan, ListVector::getDataVector(resultVector), listOffset);
         listOffset += resultVector->getValue<list_entry_t>(pos).size;
     }
 }
 
-void VarListNodeColumn::checkpointInMemory() {
-    NodeColumn::checkpointInMemory();
-    dataNodeColumn->checkpointInMemory();
+void VarListColumn::checkpointInMemory() {
+    Column::checkpointInMemory();
+    dataColumn->checkpointInMemory();
 }
 
-void VarListNodeColumn::rollbackInMemory() {
-    NodeColumn::rollbackInMemory();
-    dataNodeColumn->rollbackInMemory();
+void VarListColumn::rollbackInMemory() {
+    Column::rollbackInMemory();
+    dataColumn->rollbackInMemory();
 }
 
-offset_t VarListNodeColumn::readOffset(
+offset_t VarListColumn::readOffset(
     Transaction* transaction, node_group_idx_t nodeGroupIdx, offset_t offsetInNodeGroup) {
     auto offsetVector = std::make_unique<ValueVector>(LogicalTypeID::INT64);
     offsetVector->state = DataChunkState::getSingleValueDataChunkState();
@@ -159,7 +158,7 @@ offset_t VarListNodeColumn::readOffset(
     return offsetVector->getValue<offset_t>(0);
 }
 
-ListOffsetInfoInStorage VarListNodeColumn::getListOffsetInfoInStorage(Transaction* transaction,
+ListOffsetInfoInStorage VarListColumn::getListOffsetInfoInStorage(Transaction* transaction,
     node_group_idx_t nodeGroupIdx, offset_t startOffsetInNodeGroup, offset_t endOffsetInNodeGroup,
     std::shared_ptr<DataChunkState> state) {
     auto numOffsetsToRead = endOffsetInNodeGroup - startOffsetInNodeGroup;
@@ -173,7 +172,7 @@ ListOffsetInfoInStorage VarListNodeColumn::getListOffsetInfoInStorage(Transactio
         auto numOffsetsToReadInCurBatch =
             std::min(numOffsetsToRead - numOffsetsRead, DEFAULT_VECTOR_CAPACITY);
         offsetVector->setState(state);
-        NodeColumn::scan(transaction, nodeGroupIdx, startOffsetInNodeGroup + numOffsetsRead,
+        Column::scan(transaction, nodeGroupIdx, startOffsetInNodeGroup + numOffsetsRead,
             startOffsetInNodeGroup + numOffsetsRead + numOffsetsToReadInCurBatch,
             offsetVector.get(), 0 /* offsetInVector */);
         offsetVectors.push_back(std::move(offsetVector));

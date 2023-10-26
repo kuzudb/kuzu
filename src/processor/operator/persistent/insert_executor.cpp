@@ -48,7 +48,8 @@ void NodeInsertExecutor::insert(transaction::Transaction* transaction) {
     }
     table->insert(transaction, nodeIDVector, propertyRhsVectors);
     for (auto& relTable : relTablesToInit) {
-        relTable->initEmptyRelsForNewNode(nodeIDVector);
+        // TODO(Guodong): Fix insert.
+        //        relTable->initEmptyRelsForNewNode(nodeIDVector);
     }
     for (auto i = 0u; i < propertyLhsVectors.size(); ++i) {
         auto lhsVector = propertyLhsVectors[i];
@@ -106,14 +107,15 @@ void RelInsertExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
 }
 
 void RelInsertExecutor::insert(transaction::Transaction* tx) {
-    auto offset = relsStatistics.getNextRelOffset(tx, table->getRelTableID());
+    auto offset = relsStatistics.getNextRelOffset(tx, table->getTableID());
     propertyRhsVectors[0]->setValue(0, offset); // internal ID property
     propertyRhsVectors[0]->setNull(0, false);
     for (auto i = 1; i < propertyRhsEvaluators.size(); ++i) {
         propertyRhsEvaluators[i]->evaluate();
     }
-    table->insertRel(srcNodeIDVector, dstNodeIDVector, propertyRhsVectors);
-    relsStatistics.updateNumRelsByValue(table->getRelTableID(), 1);
+    // TODO(Guodong): Fix insert.
+    //    table->insertRel(srcNodeIDVector, dstNodeIDVector, propertyRhsVectors);
+    //    relsStatistics.updateNumRelsByValue(table->getRelTableID(), 1);
     for (auto i = 0u; i < propertyLhsVectors.size(); ++i) {
         auto lhsVector = propertyLhsVectors[i];
         auto rhsVector = propertyRhsVectors[i];

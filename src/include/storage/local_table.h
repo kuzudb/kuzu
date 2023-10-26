@@ -6,7 +6,7 @@
 
 namespace kuzu {
 namespace storage {
-class NodeColumn;
+class Column;
 class NodeTable;
 
 class LocalVector {
@@ -80,7 +80,7 @@ public:
 
 class LocalColumn {
 public:
-    explicit LocalColumn(NodeColumn* column, bool enableCompression)
+    explicit LocalColumn(Column* column, bool enableCompression)
         : column{column}, enableCompression{enableCompression} {};
     virtual ~LocalColumn() = default;
 
@@ -101,13 +101,13 @@ public:
 
 protected:
     std::map<common::node_group_idx_t, std::unique_ptr<LocalColumnChunk>> chunks;
-    NodeColumn* column;
+    Column* column;
     bool enableCompression;
 };
 
 class StringLocalColumn : public LocalColumn {
 public:
-    explicit StringLocalColumn(NodeColumn* column, bool enableCompression)
+    explicit StringLocalColumn(Column* column, bool enableCompression)
         : LocalColumn{column, enableCompression} {};
 
     void prepareCommitForChunk(common::node_group_idx_t nodeGroupIdx) final;
@@ -115,7 +115,7 @@ public:
 
 class VarListLocalColumn : public LocalColumn {
 public:
-    explicit VarListLocalColumn(NodeColumn* column, bool enableCompression)
+    explicit VarListLocalColumn(Column* column, bool enableCompression)
         : LocalColumn{column, enableCompression} {};
 
     void prepareCommitForChunk(common::node_group_idx_t nodeGroupIdx) final;
@@ -123,7 +123,7 @@ public:
 
 class StructLocalColumn : public LocalColumn {
 public:
-    explicit StructLocalColumn(NodeColumn* column, bool enableCompression);
+    explicit StructLocalColumn(Column* column, bool enableCompression);
 
     void scan(common::ValueVector* nodeIDVector, common::ValueVector* resultVector) final;
     void lookup(common::ValueVector* nodeIDVector, common::ValueVector* resultVector) final;
@@ -139,8 +139,7 @@ private:
 };
 
 struct LocalColumnFactory {
-    static std::unique_ptr<LocalColumn> createLocalColumn(
-        NodeColumn* column, bool enableCompression);
+    static std::unique_ptr<LocalColumn> createLocalColumn(Column* column, bool enableCompression);
 };
 
 class LocalTable {

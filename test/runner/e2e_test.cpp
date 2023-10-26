@@ -1,6 +1,6 @@
 #include "common/string_utils.h"
 #include "graph_test/graph_test.h"
-#include "test_runner/csv_to_parquet_converter.h"
+//#include "test_runner/csv_to_parquet_converter.h"
 #include "test_runner/test_parser.h"
 
 using ::testing::Test;
@@ -32,8 +32,9 @@ public:
         parquetTempDatasetPath = generateParquetTempDatasetPath();
         dataset = TestHelper::appendKuzuRootPath("dataset/" + dataset);
         if (datasetType == TestGroup::DatasetType::CSV_TO_PARQUET) {
-            dataset =
-                CSVToParquetConverter::convertCSVDatasetToParquet(dataset, parquetTempDatasetPath);
+            //            dataset =
+            //                CSVToParquetConverter::convertCSVDatasetToParquet(dataset,
+            //                parquetTempDatasetPath);
         }
     }
 
@@ -55,10 +56,11 @@ private:
     std::set<std::string> connNames;
 
     std::string generateParquetTempDatasetPath() {
-        return TestHelper::appendKuzuRootPath(
-            TestHelper::PARQUET_TEMP_DATASET_PATH +
-            CSVToParquetConverter::replaceSlashesWithUnderscores(dataset) + getTestGroupAndName() +
-            TestHelper::getMillisecondsSuffix());
+        return "";
+        //        return TestHelper::appendKuzuRootPath(
+        //            TestHelper::PARQUET_TEMP_DATASET_PATH +
+        //            CSVToParquetConverter::replaceSlashesWithUnderscores(dataset) +
+        //            getTestGroupAndName() + TestHelper::getMillisecondsSuffix());
     }
 };
 

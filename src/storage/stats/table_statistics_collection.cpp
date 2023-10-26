@@ -11,24 +11,25 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-TablesStatistics::TablesStatistics(BMFileHandle* metadataFH) : metadataFH{metadataFH} {
+TablesStatistics::TablesStatistics(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal)
+    : metadataFH{metadataFH}, bufferManager{bufferManager}, wal{wal} {
     tablesStatisticsContentForReadOnlyTrx = std::make_unique<TablesStatisticsContent>();
 }
 
 void TablesStatistics::readFromFile(const std::string& directory) {
-    readFromFile(directory, DBFileType::ORIGINAL);
+    readFromFile(directory, FileVersionType::ORIGINAL);
 }
 
-void TablesStatistics::readFromFile(const std::string& directory, DBFileType dbFileType) {
-    auto filePath = getTableStatisticsFilePath(directory, dbFileType);
+void TablesStatistics::readFromFile(const std::string& directory, FileVersionType fileVersionType) {
+    auto filePath = getTableStatisticsFilePath(directory, fileVersionType);
     auto deser =
         Deserializer(std::make_unique<BufferedFileReader>(FileUtils::openFile(filePath, O_RDONLY)));
     deser.deserializeUnorderedMap(tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable);
 }
 
-void TablesStatistics::saveToFile(const std::string& directory, DBFileType dbFileType,
+void TablesStatistics::saveToFile(const std::string& directory, FileVersionType fileVersionType,
     transaction::TransactionType transactionType) {
-    auto filePath = getTableStatisticsFilePath(directory, dbFileType);
+    auto filePath = getTableStatisticsFilePath(directory, fileVersionType);
     auto ser = Serializer(
         std::make_unique<BufferedFileWriter>(FileUtils::openFile(filePath, O_WRONLY | O_CREAT)));
     auto& tablesStatisticsContent = (transactionType == transaction::TransactionType::READ_ONLY ||

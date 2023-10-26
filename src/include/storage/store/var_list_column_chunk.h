@@ -1,6 +1,5 @@
 #pragma once
 
-#include "arrow/array/array_nested.h"
 #include "storage/store/column_chunk.h"
 
 namespace kuzu {
@@ -31,7 +30,7 @@ struct VarListDataColumnChunk {
 
 class VarListColumnChunk : public ColumnChunk {
 public:
-    VarListColumnChunk(common::LogicalType dataType, bool enableCompression);
+    VarListColumnChunk(common::LogicalType dataType, uint64_t capacity, bool enableCompression);
 
     inline ColumnChunk* getDataColumnChunk() const {
         return varListDataColumnChunk.dataColumnChunk.get();
@@ -40,6 +39,8 @@ public:
     void resetToEmpty() final;
 
     void append(common::ValueVector* vector, common::offset_t startPosInChunk) final;
+
+    void write(common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector);
 
     inline void resizeDataColumnChunk(uint64_t numBytesForBuffer) {
         // TODO(bmwinger): This won't work properly for booleans (will be one eighth as many values
@@ -54,8 +55,6 @@ public:
 private:
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
-
-    void write(const common::Value& listVal, uint64_t posToWrite) override;
 
     void copyListValues(const common::list_entry_t& entry, common::ValueVector* dataVector);
 

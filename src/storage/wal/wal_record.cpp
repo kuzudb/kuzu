@@ -5,154 +5,50 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-bool ListFileID::operator==(const ListFileID& rhs) const {
-
-    if (listType != rhs.listType || listFileType != rhs.listFileType) {
+bool DBFileID::operator==(const DBFileID& rhs) const {
+    if (dbFileType != rhs.dbFileType) {
         return false;
     }
-    switch (listType) {
-    case ListType::ADJ_LISTS: {
-        return adjListsID == rhs.adjListsID;
-    }
-    case ListType::REL_PROPERTY_LISTS: {
-        return relPropertyListID == rhs.relPropertyListID;
-    }
-    default: {
-        throw common::NotImplementedException("ListFileID::operator()==");
-    }
-    }
-}
-
-bool ColumnFileID::operator==(const ColumnFileID& rhs) const {
-    if (columnType != rhs.columnType) {
-        return false;
-    }
-    switch (columnType) {
-    case ColumnType::NODE_PROPERTY_COLUMN: {
-        return nodePropertyColumnID == rhs.nodePropertyColumnID;
-    }
-    case ColumnType::ADJ_COLUMN: {
-        return adjColumnID == rhs.adjColumnID;
-    }
-    case ColumnType::REL_PROPERTY_COLUMN: {
-        return relPropertyColumnID == rhs.relPropertyColumnID;
-    }
-    default: {
-        throw common::NotImplementedException("ColumnFileID::operator()==");
-    }
-    }
-}
-
-bool StorageStructureID::operator==(const StorageStructureID& rhs) const {
-    if (storageStructureType != rhs.storageStructureType || isOverflow != rhs.isOverflow) {
-        return false;
-    }
-    switch (storageStructureType) {
-    case StorageStructureType::COLUMN: {
-        return columnFileID == rhs.columnFileID;
-    }
-    case StorageStructureType::LISTS: {
-        return listFileID == rhs.listFileID;
-    }
-    case StorageStructureType::NODE_INDEX: {
+    switch (dbFileType) {
+    case DBFileType::NODE_INDEX: {
         return nodeIndexID == rhs.nodeIndexID;
     }
     default: {
-        throw common::NotImplementedException("StorageStructureID::operator==");
+        throw common::NotImplementedException("DBFileID::operator==");
     }
     }
 }
 
-std::string storageStructureTypeToString(StorageStructureType storageStructureType) {
-    switch (storageStructureType) {
-    case StorageStructureType::COLUMN: {
-        return "COLUMN";
+std::string dbFileTypeToString(DBFileType dbFileType) {
+    switch (dbFileType) {
+    case DBFileType::DATA: {
+        return "DATA";
     }
-    case StorageStructureType::LISTS: {
-        return "LISTS";
+    case DBFileType::METADATA: {
+        return "METADATA";
     }
-    case StorageStructureType::NODE_INDEX: {
+    case DBFileType::NODE_INDEX: {
         return "NODE_INDEX";
     }
     default: {
-        throw NotImplementedException("storageStructureTypeToString");
+        throw NotImplementedException("dbFileTypeToString");
     }
     }
 }
 
-StorageStructureID StorageStructureID::newDataID() {
-    StorageStructureID retVal;
-    retVal.isOverflow = false;
-    retVal.isNullBits = false;
-    retVal.storageStructureType = StorageStructureType::DATA;
+DBFileID DBFileID::newDataFileID() {
+    DBFileID retVal{DBFileType::DATA, false};
     return retVal;
 }
 
-StorageStructureID StorageStructureID::newMetadataID() {
-    StorageStructureID retVal;
-    retVal.isOverflow = false;
-    retVal.isNullBits = false;
-    retVal.storageStructureType = StorageStructureType::METADATA;
+DBFileID DBFileID::newMetadataFileID() {
+    DBFileID retVal{DBFileType::METADATA, false};
     return retVal;
 }
 
-StorageStructureID StorageStructureID::newNodePropertyColumnID(
-    table_id_t tableID, property_id_t propertyID) {
-    StorageStructureID retVal;
-    retVal.storageStructureType = StorageStructureType::COLUMN;
-    retVal.isOverflow = false;
-    retVal.isNullBits = false;
-    retVal.columnFileID = ColumnFileID(NodePropertyColumnID(tableID, propertyID));
-    return retVal;
-}
-
-StorageStructureID StorageStructureID::newNodeIndexID(table_id_t tableID) {
-    StorageStructureID retVal;
-    retVal.isOverflow = false;
-    retVal.isNullBits = false;
-    retVal.storageStructureType = StorageStructureType::NODE_INDEX;
+DBFileID DBFileID::newPKIndexFileID(common::table_id_t tableID) {
+    DBFileID retVal{DBFileType::NODE_INDEX};
     retVal.nodeIndexID = NodeIndexID(tableID);
-    return retVal;
-}
-
-StorageStructureID StorageStructureID::newAdjListsID(
-    table_id_t relTableID, RelDataDirection dir, ListFileType listFileType) {
-    StorageStructureID retVal;
-    retVal.isOverflow = false;
-    retVal.isNullBits = false;
-    retVal.storageStructureType = StorageStructureType::LISTS;
-    retVal.listFileID = ListFileID(listFileType, AdjListsID(RelNodeTableAndDir(relTableID, dir)));
-    return retVal;
-}
-
-StorageStructureID StorageStructureID::newRelPropertyListsID(table_id_t relTableID,
-    RelDataDirection dir, property_id_t propertyID, ListFileType listFileType) {
-    StorageStructureID retVal;
-    retVal.isOverflow = false;
-    retVal.isNullBits = false;
-    retVal.storageStructureType = StorageStructureType::LISTS;
-    retVal.listFileID = ListFileID(
-        listFileType, RelPropertyListsID(RelNodeTableAndDir(relTableID, dir), propertyID));
-    return retVal;
-}
-
-StorageStructureID StorageStructureID::newRelPropertyColumnID(
-    table_id_t relTableID, RelDataDirection dir, property_id_t propertyID) {
-    StorageStructureID retVal;
-    retVal.isOverflow = false;
-    retVal.isNullBits = false;
-    retVal.storageStructureType = StorageStructureType::COLUMN;
-    retVal.columnFileID =
-        ColumnFileID(RelPropertyColumnID(RelNodeTableAndDir(relTableID, dir), propertyID));
-    return retVal;
-}
-
-StorageStructureID StorageStructureID::newAdjColumnID(table_id_t relTableID, RelDataDirection dir) {
-    StorageStructureID retVal;
-    retVal.isOverflow = false;
-    retVal.isNullBits = false;
-    retVal.storageStructureType = StorageStructureType::COLUMN;
-    retVal.columnFileID = ColumnFileID(AdjColumnID(RelNodeTableAndDir(relTableID, dir)));
     return retVal;
 }
 
@@ -174,13 +70,13 @@ bool WALRecord::operator==(const WALRecord& rhs) const {
         // CatalogRecords are empty so are always equal
         return true;
     }
-    case WALRecordType::NODE_TABLE_RECORD: {
+    case WALRecordType::CREATE_NODE_TABLE_RECORD: {
         return nodeTableRecord == rhs.nodeTableRecord;
     }
-    case WALRecordType::REL_TABLE_RECORD: {
+    case WALRecordType::CREATE_REL_TABLE_RECORD: {
         return relTableRecord == rhs.relTableRecord;
     }
-    case WALRecordType::RDF_GRAPH_RECORD: {
+    case WALRecordType::CREATE_RDF_GRAPH_RECORD: {
         return rdfGraphRecord == rhs.rdfGraphRecord;
     }
     case WALRecordType::OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
@@ -222,13 +118,13 @@ std::string walRecordTypeToString(WALRecordType walRecordType) {
     case WALRecordType::CATALOG_RECORD: {
         return "CATALOG_RECORD";
     }
-    case WALRecordType::NODE_TABLE_RECORD: {
+    case WALRecordType::CREATE_NODE_TABLE_RECORD: {
         return "NODE_TABLE_RECORD";
     }
-    case WALRecordType::REL_TABLE_RECORD: {
+    case WALRecordType::CREATE_REL_TABLE_RECORD: {
         return "REL_TABLE_RECORD";
     }
-    case WALRecordType::REL_TABLE_GROUP_RECORD: {
+    case WALRecordType::CREATE_REL_TABLE_GROUP_RECORD: {
         return "REL_TABLE_GROUP_RECORD";
     }
     case WALRecordType::OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
@@ -252,25 +148,25 @@ std::string walRecordTypeToString(WALRecordType walRecordType) {
     }
 }
 
-WALRecord WALRecord::newPageInsertOrUpdateRecord(StorageStructureID storageStructureID_,
-    uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL, bool isInsert) {
+WALRecord WALRecord::newPageInsertOrUpdateRecord(
+    DBFileID dbFileID, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL, bool isInsert) {
     WALRecord retVal;
     retVal.recordType = WALRecordType::PAGE_UPDATE_OR_INSERT_RECORD;
-    retVal.pageInsertOrUpdateRecord = PageUpdateOrInsertRecord(
-        storageStructureID_, pageIdxInOriginalFile, pageIdxInWAL, isInsert);
+    retVal.pageInsertOrUpdateRecord =
+        PageUpdateOrInsertRecord(dbFileID, pageIdxInOriginalFile, pageIdxInWAL, isInsert);
     return retVal;
 }
 
 WALRecord WALRecord::newPageUpdateRecord(
-    StorageStructureID storageStructureID_, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL) {
+    DBFileID dbFileID, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL) {
     return WALRecord::newPageInsertOrUpdateRecord(
-        storageStructureID_, pageIdxInOriginalFile, pageIdxInWAL, false /* is update */);
+        dbFileID, pageIdxInOriginalFile, pageIdxInWAL, false /* is update */);
 }
 
 WALRecord WALRecord::newPageInsertRecord(
-    StorageStructureID storageStructureID_, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL) {
+    DBFileID dbFileID, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL) {
     return WALRecord::newPageInsertOrUpdateRecord(
-        storageStructureID_, pageIdxInOriginalFile, pageIdxInWAL, true /* is insert */);
+        dbFileID, pageIdxInOriginalFile, pageIdxInWAL, true /* is insert */);
 }
 
 WALRecord WALRecord::newCommitRecord(uint64_t transactionID) {
@@ -295,14 +191,14 @@ WALRecord WALRecord::newCatalogRecord() {
 
 WALRecord WALRecord::newNodeTableRecord(table_id_t tableID) {
     WALRecord retVal;
-    retVal.recordType = WALRecordType::NODE_TABLE_RECORD;
+    retVal.recordType = WALRecordType::CREATE_NODE_TABLE_RECORD;
     retVal.nodeTableRecord = NodeTableRecord(tableID);
     return retVal;
 }
 
 WALRecord WALRecord::newRelTableRecord(table_id_t tableID) {
     WALRecord retVal;
-    retVal.recordType = WALRecordType::REL_TABLE_RECORD;
+    retVal.recordType = WALRecordType::CREATE_REL_TABLE_RECORD;
     retVal.relTableRecord = RelTableRecord(tableID);
     return retVal;
 }
@@ -310,7 +206,7 @@ WALRecord WALRecord::newRelTableRecord(table_id_t tableID) {
 WALRecord WALRecord::newRdfGraphRecord(table_id_t rdfGraphID, table_id_t resourceTableID,
     table_id_t literalTableID, table_id_t resourceTripleTableID, table_id_t literalTripleTableID) {
     WALRecord retVal;
-    retVal.recordType = WALRecordType::RDF_GRAPH_RECORD;
+    retVal.recordType = WALRecordType::CREATE_RDF_GRAPH_RECORD;
     retVal.rdfGraphRecord = RdfGraphRecord(rdfGraphID, NodeTableRecord(resourceTableID),
         NodeTableRecord(literalTableID), RelTableRecord(resourceTripleTableID),
         RelTableRecord(literalTripleTableID));
@@ -318,11 +214,11 @@ WALRecord WALRecord::newRdfGraphRecord(table_id_t rdfGraphID, table_id_t resourc
 }
 
 WALRecord WALRecord::newOverflowFileNextBytePosRecord(
-    StorageStructureID storageStructureID_, uint64_t prevNextByteToWriteTo_) {
+    DBFileID dbFileID_, uint64_t prevNextByteToWriteTo_) {
     WALRecord retVal;
     retVal.recordType = WALRecordType::OVERFLOW_FILE_NEXT_BYTE_POS_RECORD;
     retVal.diskOverflowFileNextBytePosRecord =
-        DiskOverflowFileNextBytePosRecord(storageStructureID_, prevNextByteToWriteTo_);
+        DiskOverflowFileNextBytePosRecord(dbFileID_, prevNextByteToWriteTo_);
     return retVal;
 }
 

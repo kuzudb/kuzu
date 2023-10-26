@@ -1,6 +1,6 @@
 #pragma once
 
-#include "storage/store/node_column.h"
+#include "storage/store/column.h"
 #include "storage/store/node_group.h"
 
 namespace kuzu {
@@ -11,8 +11,8 @@ class NodesStoreStatsAndDeletedIDs;
 class TableData {
 public:
     TableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, common::table_id_t tableID,
-        BufferManager* bufferManager, WAL* wal, const std::vector<catalog::Property*>& properties,
-        TablesStatistics* tablesStatistics, bool enableCompression);
+        BufferManager* bufferManager, WAL* wal, bool enableCompression,
+        common::ColumnDataFormat dataFormat);
 
     void read(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         const std::vector<common::column_id_t>& columnIDs,
@@ -24,7 +24,7 @@ public:
     void update(transaction::Transaction* transaction, common::column_id_t columnID,
         common::offset_t nodeOffset, common::ValueVector* propertyVector,
         common::sel_t posInPropertyVector) const;
-    void append(NodeGroup* nodeGroup);
+    virtual void append(NodeGroup* nodeGroup);
 
     inline void dropColumn(common::column_id_t columnID) {
         columns.erase(columns.begin() + columnID);
@@ -33,7 +33,7 @@ public:
         common::ValueVector* defaultValueVector, TablesStatistics* tableStats);
 
     inline common::vector_idx_t getNumColumns() const { return columns.size(); }
-    inline NodeColumn* getColumn(common::column_id_t columnID) {
+    inline Column* getColumn(common::column_id_t columnID) {
         assert(columnID < columns.size());
         return columns[columnID].get();
     }
@@ -43,12 +43,12 @@ public:
     }
     inline BMFileHandle* getDataFH() const { return dataFH; }
 
-    void checkpointInMemory();
-    void rollbackInMemory();
+    virtual void checkpointInMemory();
+    virtual void rollbackInMemory();
 
     inline bool compressionEnabled() const { return enableCompression; }
 
-private:
+protected:
     void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         const std::vector<common::column_id_t>& columnIDs,
         const std::vector<common::ValueVector*>& outputVectors);
@@ -56,8 +56,9 @@ private:
         const std::vector<common::column_id_t>& columnIDs,
         const std::vector<common::ValueVector*>& outputVectors);
 
-private:
-    std::vector<std::unique_ptr<NodeColumn>> columns;
+protected:
+    common::ColumnDataFormat dataFormat;
+    std::vector<std::unique_ptr<Column>> columns;
     BMFileHandle* dataFH;
     BMFileHandle* metadataFH;
     common::table_id_t tableID;

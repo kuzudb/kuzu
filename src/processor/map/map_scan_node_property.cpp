@@ -1,5 +1,5 @@
 #include "planner/operator/scan/logical_scan_node_property.h"
-#include "processor/operator/scan/scan_node_table.h"
+#include "processor/operator/scan/scan_multi_node_tables.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::binder;
@@ -51,9 +51,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeProperty(
             auto property = static_pointer_cast<PropertyExpression>(expression);
             columnIDs.push_back(tableSchema->getColumnID(property->getPropertyID(tableID)));
         }
-        return std::make_unique<ScanSingleNodeTable>(inputNodeIDVectorPos, std::move(outVectorsPos),
-            nodeStore.getNodeTable(tableID), std::move(columnIDs), std::move(prevOperator),
-            getOperatorID(), scanProperty.getExpressionsForPrinting());
+        auto info = std::make_unique<ScanNodeTableInfo>(
+            nodeStore.getNodeTable(tableID), std::move(columnIDs));
+        return std::make_unique<ScanSingleNodeTable>(std::move(info), inputNodeIDVectorPos,
+            std::move(outVectorsPos), std::move(prevOperator), getOperatorID(),
+            scanProperty.getExpressionsForPrinting());
     }
 }
 

@@ -2,7 +2,6 @@
 
 #include <shared_mutex>
 
-#include "arrow/array.h"
 #include "common/constants.h"
 #include "common/types/value/value.h"
 #include "storage/storage_structure/in_mem_page.h"
@@ -78,9 +77,6 @@ public:
         common::LogicalType* childDataType);
 
     std::string readString(common::ku_string_t* strInInMemOvfFile);
-
-    common::ku_list_t appendList(common::LogicalType& type, arrow::ListArray& listArray,
-        uint64_t pos, PageByteCursor& overflowCursor);
 
 private:
     common::page_idx_t addANewOverflowPage();

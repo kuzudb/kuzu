@@ -1,11 +1,18 @@
 #include "storage/stats/rels_store_statistics.h"
 
 #include "storage/stats/rel_table_statistics.h"
+#include "storage/wal/wal.h"
 
 using namespace kuzu::common;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace storage {
+
+RelsStoreStats::RelsStoreStats(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal)
+    : TablesStatistics{metadataFH, bufferManager, wal} {
+    readFromFile(wal->getDirectory());
+}
 
 // We should only call this function after we call setNumRelsPerDirectionBoundTableID.
 void RelsStoreStats::setNumTuplesForTable(table_id_t relTableID, uint64_t numRels) {
@@ -42,6 +49,51 @@ offset_t RelsStoreStats::getNextRelOffset(
             tablesStatisticsContentForWriteTrx;
     return ((RelTableStats*)tableStatisticContent->tableStatisticPerTable.at(tableID).get())
         ->getNextRelOffset();
+}
+
+void RelsStoreStats::addMetadataDAHInfo(table_id_t tableID, const LogicalType& dataType) {
+    initTableStatisticsForWriteTrx();
+    auto tableStats = dynamic_cast<RelTableStats*>(
+        tablesStatisticsContentForWriteTrx->tableStatisticPerTable[tableID].get());
+    tableStats->addMetadataDAHInfoForColumn(
+        createMetadataDAHInfo(dataType, *metadataFH, bufferManager, wal), RelDataDirection::FWD);
+    tableStats->addMetadataDAHInfoForColumn(
+        createMetadataDAHInfo(dataType, *metadataFH, bufferManager, wal), RelDataDirection::BWD);
+}
+
+void RelsStoreStats::removeMetadataDAHInfo(table_id_t tableID, column_id_t columnID) {
+    initTableStatisticsForWriteTrx();
+    auto tableStats = dynamic_cast<RelTableStats*>(
+        tablesStatisticsContentForWriteTrx->tableStatisticPerTable[tableID].get());
+    tableStats->removeMetadataDAHInfoForColumn(columnID, RelDataDirection::FWD);
+    tableStats->removeMetadataDAHInfoForColumn(columnID, RelDataDirection::BWD);
+}
+
+MetadataDAHInfo* RelsStoreStats::getCSROffsetMetadataDAHInfo(
+    Transaction* transaction, table_id_t tableID, RelDataDirection direction) {
+    if (transaction->isWriteTransaction()) {
+        initTableStatisticsForWriteTrx();
+    }
+    auto tableStats = getRelStatistics(tableID, transaction);
+    return tableStats->getCSROffsetMetadataDAHInfo(direction);
+}
+
+MetadataDAHInfo* RelsStoreStats::getAdjMetadataDAHInfo(
+    Transaction* transaction, table_id_t tableID, RelDataDirection direction) {
+    if (transaction->isWriteTransaction()) {
+        initTableStatisticsForWriteTrx();
+    }
+    auto tableStats = getRelStatistics(tableID, transaction);
+    return tableStats->getAdjMetadataDAHInfo(direction);
+}
+
+MetadataDAHInfo* RelsStoreStats::getPropertyMetadataDAHInfo(transaction::Transaction* transaction,
+    table_id_t tableID, column_id_t columnID, RelDataDirection direction) {
+    if (transaction->isWriteTransaction()) {
+        initTableStatisticsForWriteTrx();
+    }
+    auto relTableStats = getRelStatistics(tableID, transaction);
+    return relTableStats->getPropertyMetadataDAHInfo(columnID, direction);
 }
 
 } // namespace storage

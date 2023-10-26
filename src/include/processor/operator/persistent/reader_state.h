@@ -15,21 +15,6 @@ struct ReaderMorsel {
         : fileIdx{fileIdx}, blockIdx{blockIdx} {}
 };
 
-class LeftArrowArrays {
-public:
-    explicit LeftArrowArrays() : leftNumRows{0} {}
-
-    inline uint64_t getLeftNumRows() const { return leftNumRows; }
-
-    void appendFromDataChunk(common::DataChunk* dataChunk);
-
-    void appendToDataChunk(common::DataChunk* dataChunk, uint64_t numRowsToAppend);
-
-private:
-    common::row_idx_t leftNumRows;
-    std::vector<arrow::ArrayVector> leftArrays;
-};
-
 class ReaderSharedState {
     friend class Reader;
 
@@ -72,7 +57,6 @@ public:
 private:
     std::mutex mtx;
     std::unique_ptr<common::ReaderConfig> readerConfig;
-    LeftArrowArrays leftArrowArrays;
 };
 
 } // namespace processor

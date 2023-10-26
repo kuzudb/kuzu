@@ -1,7 +1,5 @@
 #include "processor/operator/physical_operator.h"
 
-#include <regex>
-
 #include "common/exception/not_implemented.h"
 
 using namespace kuzu::common;
@@ -35,11 +33,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::COPY_RDF: {
         return "COPY_RDF";
     }
-    case PhysicalOperatorType::COPY_REL_COLUMNS: {
-        return "COPY_REL_COLUMNS";
-    }
-    case PhysicalOperatorType::COPY_REL_LISTS: {
-        return "COPY_REL_LISTS";
+    case PhysicalOperatorType::COPY_REL: {
+        return "COPY_REL";
     }
     case PhysicalOperatorType::CREATE_MACRO: {
         return "CREATE_MACRO";
@@ -89,9 +84,6 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::FLATTEN: {
         return "FLATTEN";
     }
-    case PhysicalOperatorType::GENERIC_SCAN_REL_TABLES: {
-        return "GENERIC_SCAN_REL_TABLES";
-    }
     case PhysicalOperatorType::HASH_JOIN_BUILD: {
         return "HASH_JOIN_BUILD";
     }
@@ -119,6 +111,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::MULTIPLICITY_REDUCER: {
         return "MULTIPLICITY_REDUCER";
     }
+    case PhysicalOperatorType::PARTITIONER: {
+        return "PARTITIONER";
+    }
     case PhysicalOperatorType::PATH_PROPERTY_PROBE: {
         return "PATH_PROPERTY_PROBE";
     }
@@ -140,20 +135,23 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::SCAN_FRONTIER: {
         return "SCAN_FRONTIER";
     }
+    case PhysicalOperatorType::SCAN_MULTI_NODE_TABLES: {
+        return "SCAN_MULTI_NODE_TABLES";
+    }
+    case PhysicalOperatorType::SCAN_MULTI_REL_TABLES: {
+        return "SCAN_MULTI_REL_TABLES";
+    }
     case PhysicalOperatorType::SCAN_NODE_ID: {
         return "SCAN_NODE_ID";
     }
-    case PhysicalOperatorType::SCAN_NODE_PROPERTY: {
-        return "SCAN_NODE_PROPERTY";
+    case PhysicalOperatorType::SCAN_NODE_TABLE: {
+        return "SCAN_NODE_TABLE";
     }
-    case PhysicalOperatorType::SCAN_REL_PROPERTY: {
-        return "SCAN_REL_PROPERTY";
+    case PhysicalOperatorType::SCAN_PARTITION: {
+        return "SCAN_PARTITION";
     }
-    case PhysicalOperatorType::SCAN_REL_TABLE_COLUMNS: {
-        return "SCAN_REL_TABLE_COLUMNS";
-    }
-    case PhysicalOperatorType::SCAN_REL_TABLE_LISTS: {
-        return "SCAN_REL_TABLE_LISTS";
+    case PhysicalOperatorType::SCAN_REL_TABLE: {
+        return "SCAN_REL_TABLE";
     }
     case PhysicalOperatorType::SEMI_MASKER: {
         return "SEMI_MASKER";
@@ -163,9 +161,6 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     }
     case PhysicalOperatorType::SET_REL_PROPERTY: {
         return "SET_REL_PROPERTY";
-    }
-    case PhysicalOperatorType::SIMPLE_RECURSIVE_JOIN: {
-        return "SIMPLE_RECURSIVE_JOIN";
     }
     case PhysicalOperatorType::SKIP: {
         return "SKIP";
@@ -193,12 +188,6 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     }
     case PhysicalOperatorType::UNWIND: {
         return "UNWIND";
-    }
-    case PhysicalOperatorType::VAR_LENGTH_ADJ_LIST_EXTEND: {
-        return "VAR_LENGTH_ADJ_EXTEND";
-    }
-    case PhysicalOperatorType::VAR_LENGTH_COLUMN_EXTEND: {
-        return "VAR_LENGTH_COL_EXTEND";
     }
     case PhysicalOperatorType::IN_QUERY_CALL: {
         return "IN_QUERY_CALL";

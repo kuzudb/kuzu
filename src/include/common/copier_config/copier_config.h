@@ -78,12 +78,8 @@ struct ReaderConfig {
         }
     }
 
-    inline bool csvParallelRead(TableType tableType) const {
-        return tableType != TableType::REL && csvReaderConfig->parallel;
-    }
-
     inline bool parallelRead(TableType tableType) const {
-        return (fileType != FileType::CSV || csvParallelRead(tableType)) &&
+        return (fileType != FileType::CSV || csvReaderConfig->parallel) &&
                fileType != FileType::TURTLE;
     }
     inline uint32_t getNumFiles() const { return filePaths.size(); }

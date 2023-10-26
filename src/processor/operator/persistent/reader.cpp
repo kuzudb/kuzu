@@ -20,18 +20,18 @@ void Reader::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* cont
     for (auto i = 0u; i < info->getNumColumns(); i++) {
         dataChunk->insert(i, resultSet->getValueVector(info->dataColumnsPos[i]));
     }
-    initFunc = ReaderFunctions::getInitDataFunc(*sharedState->readerConfig, info->tableType);
-    readFunc = ReaderFunctions::getReadRowsFunc(*sharedState->readerConfig, info->tableType);
-    if (info->internalIDPos.dataChunkPos != INVALID_DATA_CHUNK_POS) {
-        internalIDVector = resultSet->getValueVector(info->internalIDPos).get();
+    initFunc = ReaderFunctions::getInitDataFunc(*sharedState->readerConfig);
+    readFunc = ReaderFunctions::getReadRowsFunc(*sharedState->readerConfig);
+    if (info->offsetPos.dataChunkPos != INVALID_DATA_CHUNK_POS) {
+        offsetVector = resultSet->getValueVector(info->offsetPos).get();
+        assert(offsetVector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
     }
     assert(!sharedState->readerConfig->filePaths.empty());
     if (sharedState->readerConfig->fileType == FileType::CSV &&
-        !sharedState->readerConfig->csvParallelRead(info->tableType)) {
+        !sharedState->readerConfig->csvReaderConfig->parallel) {
         readFuncData = sharedState->readFuncData;
     } else {
-        readFuncData =
-            ReaderFunctions::getReadFuncData(*sharedState->readerConfig, info->tableType);
+        readFuncData = ReaderFunctions::getReadFuncData(*sharedState->readerConfig);
         initFunc(*readFuncData, 0, *sharedState->readerConfig, memoryManager);
     }
 }
@@ -47,16 +47,16 @@ template<ReaderSharedState::ReadMode READ_MODE>
 void Reader::readNextDataChunk() {
     auto lckGuard = lockIfSerial<READ_MODE>();
     while (true) {
-        if (leftArrowArrays.getLeftNumRows() > 0) {
-            auto numLeftToAppend =
-                std::min(leftArrowArrays.getLeftNumRows(), DEFAULT_VECTOR_CAPACITY);
-            leftArrowArrays.appendToDataChunk(dataChunk.get(), numLeftToAppend);
+        if (leftNumRows > 0) {
+            auto numLeftToAppend = std::min(leftNumRows, DEFAULT_VECTOR_CAPACITY);
+            leftNumRows -= numLeftToAppend;
             auto currRowIdx = sharedState->currRowIdx.fetch_add(numLeftToAppend);
-            if (internalIDVector != nullptr) {
-                internalIDVector
-                    ->getValue<internalID_t>(
-                        internalIDVector->state->selVector->selectedPositions[0])
-                    .offset = currRowIdx;
+            if (offsetVector != nullptr) {
+                // TODO(Guodong): Fill rel offsets. Move to separate function.
+                auto offsets = ((offset_t*)offsetVector->getData());
+                for (auto i = 0u; i < numLeftToAppend; i++) {
+                    offsets[offsetVector->state->selVector->selectedPositions[i]] = currRowIdx + i;
+                }
             }
             break;
         }
@@ -65,7 +65,7 @@ void Reader::readNextDataChunk() {
         if (readFuncData->hasMoreToRead()) {
             readFunc(*readFuncData, UINT64_MAX /* blockIdx */, dataChunk.get());
             if (dataChunk->state->selVector->selectedSize > 0) {
-                leftArrowArrays.appendFromDataChunk(dataChunk.get());
+                leftNumRows += dataChunk->state->selVector->selectedSize;
                 continue;
             }
         }
@@ -79,7 +79,7 @@ void Reader::readNextDataChunk() {
         }
         readFunc(*readFuncData, morsel->blockIdx, dataChunk.get());
         if (dataChunk->state->selVector->selectedSize > 0) {
-            leftArrowArrays.appendFromDataChunk(dataChunk.get());
+            leftNumRows += dataChunk->state->selVector->selectedSize;
         } else if (readFuncData->doneAfterEmptyBlock()) {
             sharedState->doneFile<READ_MODE>(morsel->fileIdx);
         }

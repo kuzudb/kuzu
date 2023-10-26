@@ -1,6 +1,5 @@
 #include "storage/store/string_column_chunk.h"
 
-#include "common/exception/copy.h"
 #include "common/exception/message.h"
 #include "common/exception/not_implemented.h"
 #include "storage/store/table_copy_utils.h"
@@ -10,7 +9,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-StringColumnChunk::StringColumnChunk(LogicalType dataType) : ColumnChunk{std::move(dataType)} {
+StringColumnChunk::StringColumnChunk(LogicalType dataType, uint64_t capacity)
+    : ColumnChunk{std::move(dataType), capacity} {
     overflowFile = std::make_unique<InMemOverflowFile>();
     overflowCursor.pageIdx = 0;
     overflowCursor.offsetInPage = 0;
@@ -54,8 +54,7 @@ void StringColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk
     numValues += numValuesToAppend;
 }
 
-void StringColumnChunk::update(ValueVector* vector, vector_idx_t vectorIdx) {
-    auto startOffsetInChunk = vectorIdx << DEFAULT_VECTOR_CAPACITY_LOG_2;
+void StringColumnChunk::write(ValueVector* vector, offset_t startOffsetInChunk) {
     for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
         auto pos = vector->state->selVector->selectedPositions[i];
         auto offsetInChunk = startOffsetInChunk + pos;
@@ -66,6 +65,24 @@ void StringColumnChunk::update(ValueVector* vector, vector_idx_t vectorIdx) {
         }
     }
 }
+
+void StringColumnChunk::write(ValueVector* valueVector, ValueVector* offsetInChunkVector) {
+    assert(valueVector->dataType.getPhysicalType() == PhysicalTypeID::STRING &&
+           offsetInChunkVector->dataType.getPhysicalType() == PhysicalTypeID::INT64 &&
+           valueVector->state->selVector->selectedSize ==
+               offsetInChunkVector->state->selVector->selectedSize);
+    auto offsets = (offset_t*)offsetInChunkVector->getData();
+    for (auto i = 0u; i < valueVector->state->selVector->selectedSize; i++) {
+        auto offsetInChunk = offsets[offsetInChunkVector->state->selVector->selectedPositions[i]];
+        auto offsetInVector = valueVector->state->selVector->selectedPositions[i];
+        nullChunk->setNull(offsetInChunk, valueVector->isNull(offsetInVector));
+        if (!valueVector->isNull(offsetInVector)) {
+            auto kuStr = valueVector->getValue<ku_string_t>(offsetInVector);
+            setValueFromString(kuStr.getAsString().c_str(), kuStr.len, offsetInChunk);
+        }
+    }
+}
+
 page_idx_t StringColumnChunk::flushOverflowBuffer(BMFileHandle* dataFH, page_idx_t startPageIdx) {
     for (auto i = 0u; i < overflowFile->getNumPages(); i++) {
         FileUtils::writeToFile(dataFH->getFileInfo(), overflowFile->getPage(i)->data,
@@ -95,16 +112,6 @@ void StringColumnChunk::appendStringColumnChunk(StringColumnChunk* other,
                 cursorToCopyFrom.offsetInPage,
             &kuVals[posInChunk]);
     }
-}
-
-void StringColumnChunk::write(const Value& val, uint64_t posToWrite) {
-    assert(val.getDataType()->getPhysicalType() == PhysicalTypeID::STRING);
-    nullChunk->setNull(posToWrite, val.isNull());
-    if (val.isNull()) {
-        return;
-    }
-    auto strVal = val.getValue<std::string>();
-    setValueFromString(strVal.c_str(), strVal.length(), posToWrite);
 }
 
 void StringColumnChunk::setValueFromString(const char* value, uint64_t length, uint64_t pos) {

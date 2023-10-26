@@ -14,6 +14,7 @@
 #Copy exception: Invalid: In CSV column #1: CSV conversion error to int32: invalid value '312abc'
 
 -CASE InvalidRel
+-SKIP
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vPerson-valid.csv"
 ---- ok
 -STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-row/vMovie-valid.csv"

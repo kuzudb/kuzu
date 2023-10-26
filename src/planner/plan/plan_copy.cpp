@@ -2,6 +2,7 @@
 #include "binder/copy/bound_copy_to.h"
 #include "binder/expression/variable_expression.h"
 #include "catalog/node_table_schema.h"
+#include "planner/operator/logical_partitioner.h"
 #include "planner/operator/persistent/logical_copy_from.h"
 #include "planner/operator/persistent/logical_copy_to.h"
 #include "planner/operator/scan/logical_index_scan.h"
@@ -21,6 +22,45 @@ static void appendIndexScan(
         std::make_shared<LogicalIndexScanNode>(std::move(infos), plan.getLastOperator());
     indexScan->computeFactorizedSchema();
     plan.setLastOperator(std::move(indexScan));
+}
+
+static void appendPartitioner(BoundCopyFromInfo* copyFromInfo, LogicalPlan& plan) {
+    std::vector<std::unique_ptr<LogicalPartitionerInfo>> infos;
+    auto fileType = copyFromInfo->fileScanInfo->readerConfig->fileType;
+    switch (fileType) {
+    case FileType::TURTLE: {
+        auto extraInfo = reinterpret_cast<ExtraBoundCopyRdfRelInfo*>(copyFromInfo->extraInfo.get());
+        infos.push_back(std::make_unique<LogicalPartitionerInfo>(
+            extraInfo->subjectOffset, copyFromInfo->dataColumnsToCopy, ColumnDataFormat::CSR_COL));
+        infos.push_back(std::make_unique<LogicalPartitionerInfo>(
+            extraInfo->objectOffset, copyFromInfo->dataColumnsToCopy, ColumnDataFormat::CSR_COL));
+    } break;
+    case FileType::CSV:
+    case FileType::NPY:
+    case FileType::PARQUET: {
+        auto extraInfo = reinterpret_cast<ExtraBoundCopyRelInfo*>(copyFromInfo->extraInfo.get());
+        auto tableSchema = reinterpret_cast<RelTableSchema*>(copyFromInfo->tableSchema);
+        // Partitioner for FWD direction rel data.
+        infos.push_back(std::make_unique<LogicalPartitionerInfo>(extraInfo->srcOffset,
+            copyFromInfo->dataColumnsToCopy,
+            tableSchema->isSingleMultiplicityInDirection(FWD) ? ColumnDataFormat::REGULAR_COL :
+                                                                ColumnDataFormat::CSR_COL));
+        // Partitioner for BWD direction rel data.
+        infos.push_back(std::make_unique<LogicalPartitionerInfo>(extraInfo->dstOffset,
+            copyFromInfo->dataColumnsToCopy,
+            tableSchema->isSingleMultiplicityInDirection(BWD) ? ColumnDataFormat::REGULAR_COL :
+                                                                ColumnDataFormat::CSR_COL));
+    } break;
+        // LCOV_EXCL_START
+    default: {
+        throw NotImplementedException("PlanMapper::appendIndexScan");
+    }
+        // LCOV_EXCL_STOP
+    }
+    auto partitioner =
+        std::make_shared<LogicalPartitioner>(std::move(infos), plan.getLastOperator());
+    partitioner->computeFactorizedSchema();
+    plan.setLastOperator(std::move(partitioner));
 }
 
 std::unique_ptr<LogicalPlan> Planner::planCopyFrom(const BoundStatement& statement) {
@@ -44,6 +84,7 @@ std::unique_ptr<LogicalPlan> Planner::planCopyFrom(const BoundStatement& stateme
         infos.push_back(std::make_unique<LogicalIndexScanNodeInfo>(
             dstTableID, extraInfo->dstOffset, extraInfo->dstKey, dstPkType->copy()));
         appendIndexScan(std::move(infos), *plan);
+        appendPartitioner(copyFromInfo, *plan);
     }
     auto copy = make_shared<LogicalCopyFrom>(copyFromInfo->copy(),
         copyFrom.getStatementResult()->getSingleExpressionToCollect(), plan->getLastOperator());

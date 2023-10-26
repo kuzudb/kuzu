@@ -118,12 +118,11 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(
     // For table with SERIAL columns, we need to read in serial from files.
     auto containsSerial = bindContainsSerial(tableSchema);
     auto columns = bindExpectedNodeFileColumns(tableSchema, *readerConfig);
-    auto nodeID =
-        createVariable(std::string(Property::INTERNAL_ID_NAME), LogicalTypeID::INTERNAL_ID);
+    auto nodeID = createVariable(std::string(Property::INTERNAL_ID_NAME), LogicalTypeID::INT64);
     auto boundFileScanInfo = std::make_unique<BoundFileScanInfo>(
-        std::move(readerConfig), std::move(columns), std::move(nodeID), TableType::NODE);
-    auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(
-        tableSchema, std::move(boundFileScanInfo), containsSerial, nullptr /* extraInfo */);
+        std::move(readerConfig), columns, std::move(nodeID), TableType::NODE);
+    auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(tableSchema,
+        std::move(boundFileScanInfo), containsSerial, std::move(columns), nullptr /* extraInfo */);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
@@ -131,8 +130,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfNodeFrom(
     std::unique_ptr<ReaderConfig> readerConfig, TableSchema* tableSchema) {
     auto containsSerial = bindContainsSerial(tableSchema);
     auto stringType = LogicalType{LogicalTypeID::STRING};
-    auto nodeID =
-        createVariable(std::string(Property::INTERNAL_ID_NAME), LogicalTypeID::INTERNAL_ID);
+    auto nodeID = createVariable(std::string(Property::INTERNAL_ID_NAME), LogicalTypeID::INT64);
     expression_vector columns;
     auto columnName = std::string(RDFKeyword::ANONYMOUS);
     readerConfig->columnNames.push_back(columnName);
@@ -147,9 +145,9 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfNodeFrom(
             std::make_unique<RdfReaderConfig>(RdfReaderMode::LITERAL, nullptr /* index */);
     }
     auto boundFileScanInfo = std::make_unique<BoundFileScanInfo>(
-        std::move(readerConfig), std::move(columns), std::move(nodeID), TableType::NODE);
-    auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(
-        tableSchema, std::move(boundFileScanInfo), containsSerial, nullptr /* extraInfo */);
+        std::move(readerConfig), columns, std::move(nodeID), TableType::NODE);
+    auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(tableSchema,
+        std::move(boundFileScanInfo), containsSerial, std::move(columns), nullptr /* extraInfo */);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
@@ -158,32 +156,38 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(
     // For table with SERIAL columns, we need to read in serial from files.
     auto containsSerial = bindContainsSerial(tableSchema);
     assert(containsSerial == false);
-    auto columns = bindExpectedRelFileColumns(tableSchema, *readerConfig);
-    auto srcKey = columns[0];
-    auto dstKey = columns[1];
-    auto relID =
-        createVariable(std::string(Property::INTERNAL_ID_NAME), LogicalTypeID::INTERNAL_ID);
+    auto columnsToRead = bindExpectedRelFileColumns(tableSchema, *readerConfig);
+    auto relID = createVariable(std::string(Property::INTERNAL_ID_NAME), LogicalTypeID::INT64);
     auto boundFileScanInfo = std::make_unique<BoundFileScanInfo>(
-        std::move(readerConfig), std::move(columns), std::move(relID), TableType::REL);
+        std::move(readerConfig), columnsToRead, relID->copy(), TableType::REL);
     auto relTableSchema = reinterpret_cast<RelTableSchema*>(tableSchema);
     auto srcTableSchema =
         catalog.getReadOnlyVersion()->getTableSchema(relTableSchema->getSrcTableID());
     auto dstTableSchema =
         catalog.getReadOnlyVersion()->getTableSchema(relTableSchema->getDstTableID());
-    auto arrowColumnType = LogicalType{LogicalTypeID::ARROW_COLUMN};
-    auto srcOffset = createVariable(std::string(Property::REL_BOUND_OFFSET_NAME), arrowColumnType);
-    auto dstOffset = createVariable(std::string(Property::REL_NBR_OFFSET_NAME), arrowColumnType);
+    auto srcKey = columnsToRead[0];
+    auto dstKey = columnsToRead[1];
+    auto srcNodeID =
+        createVariable(std::string(Property::REL_BOUND_OFFSET_NAME), LogicalTypeID::INT64);
+    auto dstNodeID =
+        createVariable(std::string(Property::REL_NBR_OFFSET_NAME), LogicalTypeID::INT64);
     auto extraCopyRelInfo = std::make_unique<ExtraBoundCopyRelInfo>(
-        srcTableSchema, dstTableSchema, srcOffset, dstOffset, srcKey, dstKey);
-    auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(
-        tableSchema, std::move(boundFileScanInfo), containsSerial, std::move(extraCopyRelInfo));
+        srcTableSchema, dstTableSchema, srcNodeID, dstNodeID, srcKey, dstKey);
+    // Skip the first two columns.
+    expression_vector columnsToCopy{std::move(srcNodeID), std::move(dstNodeID), std::move(relID)};
+    for (auto i = 2; i < columnsToRead.size(); i++) {
+        columnsToCopy.push_back(columnsToRead[i]);
+    }
+    auto boundCopyFromInfo =
+        std::make_unique<BoundCopyFromInfo>(tableSchema, std::move(boundFileScanInfo),
+            containsSerial, std::move(columnsToCopy), std::move(extraCopyRelInfo));
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCopyRdfRelFrom(
     std::unique_ptr<ReaderConfig> readerConfig, TableSchema* tableSchema) {
     auto containsSerial = bindContainsSerial(tableSchema);
-    auto offsetType = std::make_unique<LogicalType>(LogicalTypeID::ARROW_COLUMN);
+    auto offsetType = std::make_unique<LogicalType>(LogicalTypeID::INT64);
     expression_vector columns;
     for (auto i = 0u; i < 3; ++i) {
         auto columnName = std::string(RDFKeyword::ANONYMOUS) + std::to_string(i);
@@ -201,13 +205,13 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfRelFrom(
         readerConfig->rdfReaderConfig =
             std::make_unique<RdfReaderConfig>(RdfReaderMode::LITERAL_TRIPLE, index);
     }
-    auto relID =
-        createVariable(std::string(Property::INTERNAL_ID_NAME), LogicalTypeID::INTERNAL_ID);
+    auto relID = createVariable(std::string(Property::INTERNAL_ID_NAME), LogicalTypeID::INT64);
     auto boundFileScanInfo = std::make_unique<BoundFileScanInfo>(
         std::move(readerConfig), columns, std::move(relID), TableType::REL);
     auto extraInfo = std::make_unique<ExtraBoundCopyRdfRelInfo>(columns[0], columns[1], columns[2]);
-    auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(
-        tableSchema, std::move(boundFileScanInfo), containsSerial, std::move(extraInfo));
+    columns.push_back(relID);
+    auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(tableSchema,
+        std::move(boundFileScanInfo), containsSerial, std::move(columns), std::move(extraInfo));
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
@@ -234,7 +238,7 @@ expression_vector Binder::bindExpectedNodeFileColumns(
         }
     } break;
     default: {
-        throw NotImplementedException{"Binder::bindCopyNodeColumns"};
+        throw NotImplementedException{"Binder::bindCopyNodeFileColumns"};
     }
     }
     // Detect columns from file.
@@ -258,7 +262,6 @@ expression_vector Binder::bindExpectedRelFileColumns(
     case FileType::CSV:
     case FileType::PARQUET:
     case FileType::NPY: {
-        auto arrowColumnType = LogicalType{LogicalTypeID::ARROW_COLUMN};
         auto srcColumnName = std::string(Property::REL_FROM_PROPERTY_NAME);
         auto dstColumnName = std::string(Property::REL_TO_PROPERTY_NAME);
         readerConfig.columnNames.push_back(srcColumnName);
@@ -269,19 +272,28 @@ expression_vector Binder::bindExpectedRelFileColumns(
         auto dstTable =
             catalog.getReadOnlyVersion()->getTableSchema(relTableSchema->getDstTableID());
         assert(dstTable->tableType == TableType::NODE);
-        readerConfig.columnTypes.push_back(
-            reinterpret_cast<NodeTableSchema*>(srcTable)->getPrimaryKey()->getDataType()->copy());
-        readerConfig.columnTypes.push_back(
-            reinterpret_cast<NodeTableSchema*>(dstTable)->getPrimaryKey()->getDataType()->copy());
-        columns.push_back(createVariable(srcColumnName, arrowColumnType));
-        columns.push_back(createVariable(dstColumnName, arrowColumnType));
+        auto srcPKColumnType =
+            reinterpret_cast<NodeTableSchema*>(srcTable)->getPrimaryKey()->getDataType()->copy();
+        if (srcPKColumnType->getLogicalTypeID() == LogicalTypeID::SERIAL) {
+            srcPKColumnType = std::make_unique<LogicalType>(LogicalTypeID::INT64);
+        }
+        auto dstPKColumnType =
+            reinterpret_cast<NodeTableSchema*>(dstTable)->getPrimaryKey()->getDataType()->copy();
+        if (dstPKColumnType->getLogicalTypeID() == LogicalTypeID::SERIAL) {
+            dstPKColumnType = std::make_unique<LogicalType>(LogicalTypeID::INT64);
+        }
+        columns.push_back(createVariable(srcColumnName, *srcPKColumnType));
+        columns.push_back(createVariable(dstColumnName, *dstPKColumnType));
+        readerConfig.columnTypes.push_back(std::move(srcPKColumnType));
+        readerConfig.columnTypes.push_back(std::move(dstPKColumnType));
         for (auto& property : tableSchema->properties) {
             if (skipPropertyInFile(*property)) {
                 continue;
             }
             readerConfig.columnNames.push_back(property->getName());
-            readerConfig.columnTypes.push_back(property->getDataType()->copy());
-            columns.push_back(createVariable(property->getName(), arrowColumnType));
+            auto columnType = property->getDataType()->copy();
+            columns.push_back(createVariable(property->getName(), *columnType));
+            readerConfig.columnTypes.push_back(std::move(columnType));
         }
     } break;
     default: {

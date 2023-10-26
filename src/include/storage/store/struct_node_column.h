@@ -1,14 +1,14 @@
 #pragma once
 
 #include "storage/stats/table_statistics.h"
-#include "storage/store/node_column.h"
+#include "storage/store/column.h"
 
 namespace kuzu {
 namespace storage {
 
-class StructNodeColumn : public NodeColumn {
+class StructColumn : public Column {
 public:
-    StructNodeColumn(common::LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
+    StructColumn(common::LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
         BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
         transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
         bool enableCompression);
@@ -22,7 +22,7 @@ public:
     void checkpointInMemory() final;
     void rollbackInMemory() final;
 
-    inline NodeColumn* getChild(common::vector_idx_t childIdx) {
+    inline Column* getChild(common::vector_idx_t childIdx) {
         assert(childIdx < childColumns.size());
         return childColumns[childIdx].get();
     }
@@ -36,7 +36,7 @@ protected:
         uint32_t posInVectorToWriteFrom) final;
 
 private:
-    std::vector<std::unique_ptr<NodeColumn>> childColumns;
+    std::vector<std::unique_ptr<Column>> childColumns;
 };
 
 } // namespace storage

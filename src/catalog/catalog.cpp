@@ -25,7 +25,8 @@ void Catalog::prepareCommitOrRollback(TransactionAction action) {
     if (hasUpdates()) {
         wal->logCatalogRecord();
         if (action == TransactionAction::COMMIT) {
-            catalogContentForWriteTrx->saveToFile(wal->getDirectory(), DBFileType::WAL_VERSION);
+            catalogContentForWriteTrx->saveToFile(
+                wal->getDirectory(), FileVersionType::WAL_VERSION);
         }
     }
 }
@@ -48,7 +49,6 @@ table_id_t Catalog::addNodeTableSchema(const binder::BoundCreateTableInfo& info)
 table_id_t Catalog::addRelTableSchema(const binder::BoundCreateTableInfo& info) {
     initCatalogContentForWriteTrxIfNecessary();
     auto tableID = catalogContentForWriteTrx->addRelTableSchema(info);
-    wal->logRelTableRecord(tableID);
     return tableID;
 }
 
@@ -57,9 +57,6 @@ common::table_id_t Catalog::addRelTableGroupSchema(const binder::BoundCreateTabl
     auto tableID = catalogContentForWriteTrx->addRelTableGroupSchema(info);
     auto relTableGroupSchema =
         (RelTableGroupSchema*)catalogContentForWriteTrx->getTableSchema(tableID);
-    for (auto relTableID : relTableGroupSchema->getRelTableIDs()) {
-        wal->logRelTableRecord(relTableID);
-    }
     return tableID;
 }
 
@@ -104,8 +101,6 @@ void Catalog::addRelProperty(
     initCatalogContentForWriteTrxIfNecessary();
     catalogContentForWriteTrx->getTableSchema(tableID)->addRelProperty(
         propertyName, std::move(dataType));
-    wal->logAddPropertyRecord(
-        tableID, catalogContentForWriteTrx->getTableSchema(tableID)->getPropertyID(propertyName));
 }
 
 void Catalog::dropProperty(table_id_t tableID, property_id_t propertyID) {

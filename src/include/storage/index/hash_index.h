@@ -81,8 +81,8 @@ template<typename T>
 class HashIndex : public BaseHashIndex {
 
 public:
-    HashIndex(const StorageStructureIDAndFName& storageStructureIDAndFName,
-        const common::LogicalType& keyDataType, BufferManager& bufferManager, WAL* wal);
+    HashIndex(const DBFileIDAndName& dbFileIDAndName, const common::LogicalType& keyDataType,
+        BufferManager& bufferManager, WAL* wal);
 
 public:
     bool lookupInternal(
@@ -130,7 +130,7 @@ private:
     }
 
 public:
-    StorageStructureIDAndFName storageStructureIDAndFName;
+    DBFileIDAndName dbFileIDAndName;
     BufferManager& bm;
     WAL* wal;
     std::unique_ptr<BMFileHandle> fileHandle;
@@ -147,15 +147,15 @@ public:
 class PrimaryKeyIndex {
 
 public:
-    PrimaryKeyIndex(const StorageStructureIDAndFName& storageStructureIDAndFName,
-        const common::LogicalType& keyDataType, BufferManager& bufferManager, WAL* wal)
+    PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, const common::LogicalType& keyDataType,
+        BufferManager& bufferManager, WAL* wal)
         : keyDataTypeID{keyDataType.getLogicalTypeID()} {
         if (keyDataTypeID == common::LogicalTypeID::INT64) {
             hashIndexForInt64 = std::make_unique<HashIndex<int64_t>>(
-                storageStructureIDAndFName, keyDataType, bufferManager, wal);
+                dbFileIDAndName, keyDataType, bufferManager, wal);
         } else {
             hashIndexForString = std::make_unique<HashIndex<common::ku_string_t>>(
-                storageStructureIDAndFName, keyDataType, bufferManager, wal);
+                dbFileIDAndName, keyDataType, bufferManager, wal);
         }
     }
 

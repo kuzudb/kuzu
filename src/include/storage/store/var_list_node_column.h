@@ -1,6 +1,6 @@
 #pragma once
 
-#include "node_column.h"
+#include "column.h"
 #include "storage/stats/table_statistics.h"
 
 // List is a nested data type which is stored as two columns:
@@ -40,18 +40,18 @@ struct ListOffsetInfoInStorage {
     }
 };
 
-class VarListNodeColumn : public NodeColumn {
+class VarListColumn : public Column {
     friend class VarListLocalColumn;
 
 public:
-    VarListNodeColumn(common::LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
+    VarListColumn(common::LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
         BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
         transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
         bool enableCompression)
-        : NodeColumn{std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
+        : Column{std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
               transaction, propertyStatistics, enableCompression, true /* requireNullColumn */} {
-        dataNodeColumn =
-            NodeColumnFactory::createNodeColumn(*common::VarListType::getChildType(&this->dataType),
+        dataColumn =
+            ColumnFactory::createColumn(*common::VarListType::getChildType(&this->dataType),
                 *metaDAHeaderInfo.childrenInfos[0], dataFH, metadataFH, bufferManager, wal,
                 transaction, propertyStatistics, enableCompression);
     }
@@ -98,7 +98,7 @@ private:
         common::offset_t endOffsetInNodeGroup, std::shared_ptr<common::DataChunkState> state);
 
 private:
-    std::unique_ptr<NodeColumn> dataNodeColumn;
+    std::unique_ptr<Column> dataColumn;
 };
 
 } // namespace storage

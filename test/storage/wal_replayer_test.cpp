@@ -1,3 +1,4 @@
+#include "common/exception/storage.h"
 #include "graph_test/graph_test.h"
 #include "storage/wal_replayer.h"
 
@@ -13,8 +14,7 @@ class WALReplayerTests : public DBTest {
 
 TEST_F(WALReplayerTests, ReplayingUncommittedWALForChekpointErrors) {
     WALReplayer walReplayer(getWAL(*database), getStorageManager(*database),
-        getMemoryManager(*database), getBufferManager(*database), getCatalog(*database),
-        WALReplayMode::COMMIT_CHECKPOINT);
+        getBufferManager(*database), getCatalog(*database), WALReplayMode::COMMIT_CHECKPOINT);
     try {
         walReplayer.replay();
         FAIL();

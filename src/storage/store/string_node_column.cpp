@@ -9,35 +9,37 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-void StringNodeColumnFunc::writeStringValuesToPage(uint8_t* frame, uint16_t posInFrame,
-    ValueVector* vector, uint32_t posInVector, const CompressionMetadata& /*metadata*/) {
-    auto kuStrInFrame = (ku_string_t*)(frame + (posInFrame * sizeof(ku_string_t)));
-    auto kuStrInVector = vector->getValue<ku_string_t>(posInVector);
-    memcpy(kuStrInFrame->prefix, kuStrInVector.prefix,
-        std::min((uint64_t)kuStrInVector.len, ku_string_t::SHORT_STR_LENGTH));
-    kuStrInFrame->len = kuStrInVector.len;
-    kuStrInFrame->overflowPtr = kuStrInVector.overflowPtr;
-}
+struct StringColumnFunc {
+    static void writeStringValuesToPage(uint8_t* frame, uint16_t posInFrame, ValueVector* vector,
+        uint32_t posInVector, const CompressionMetadata& /*metadata*/) {
+        auto kuStrInFrame = (ku_string_t*)(frame + (posInFrame * sizeof(ku_string_t)));
+        auto kuStrInVector = vector->getValue<ku_string_t>(posInVector);
+        memcpy(kuStrInFrame->prefix, kuStrInVector.prefix,
+            std::min((uint64_t)kuStrInVector.len, ku_string_t::SHORT_STR_LENGTH));
+        kuStrInFrame->len = kuStrInVector.len;
+        kuStrInFrame->overflowPtr = kuStrInVector.overflowPtr;
+    }
+};
 
-StringNodeColumn::StringNodeColumn(LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
+StringColumn::StringColumn(LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
     BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
     transaction::Transaction* transaction, RWPropertyStats stats)
-    : NodeColumn{std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
+    : Column{std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
           transaction, stats, false /* enableCompression */, true /* requireNullColumn */} {
     if (this->dataType.getLogicalTypeID() == LogicalTypeID::STRING) {
-        writeFromVectorFunc = StringNodeColumnFunc::writeStringValuesToPage;
+        writeFromVectorFunc = StringColumnFunc::writeStringValuesToPage;
     }
     overflowMetadataDA = std::make_unique<InMemDiskArray<OverflowColumnChunkMetadata>>(*metadataFH,
-        StorageStructureID::newMetadataID(), metaDAHeaderInfo.childrenInfos[0]->dataDAHPageIdx,
+        DBFileID::newMetadataFileID(), metaDAHeaderInfo.childrenInfos[0]->dataDAHPageIdx,
         bufferManager, wal, transaction);
 }
 
-void StringNodeColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+void StringColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
     uint64_t offsetInVector) {
     nullColumn->scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup, resultVector,
         offsetInVector);
-    NodeColumn::scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup, resultVector,
+    Column::scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup, resultVector,
         offsetInVector);
     auto numValuesToRead = endOffsetInGroup - startOffsetInGroup;
     auto overflowPageIdx = overflowMetadataDA->get(nodeGroupIdx, transaction->getType()).pageIdx;
@@ -51,8 +53,8 @@ void StringNodeColumn::scan(Transaction* transaction, node_group_idx_t nodeGroup
     }
 }
 
-void StringNodeColumn::scan(node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) {
-    NodeColumn::scan(nodeGroupIdx, columnChunk);
+void StringColumn::scan(node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) {
+    Column::scan(nodeGroupIdx, columnChunk);
     auto stringColumnChunk = reinterpret_cast<StringColumnChunk*>(columnChunk);
     auto overflowMetadata = overflowMetadataDA->get(nodeGroupIdx, TransactionType::WRITE);
     auto inMemOverflowFile = stringColumnChunk->getOverflowFile();
@@ -64,8 +66,8 @@ void StringNodeColumn::scan(node_group_idx_t nodeGroupIdx, ColumnChunk* columnCh
     }
 }
 
-void StringNodeColumn::append(ColumnChunk* columnChunk, node_group_idx_t nodeGroupIdx) {
-    NodeColumn::append(columnChunk, nodeGroupIdx);
+void StringColumn::append(ColumnChunk* columnChunk, node_group_idx_t nodeGroupIdx) {
+    Column::append(columnChunk, nodeGroupIdx);
     auto stringColumnChunk = reinterpret_cast<StringColumnChunk*>(columnChunk);
     auto startPageIdx = dataFH->addNewPages(stringColumnChunk->getOverflowFile()->getNumPages());
     auto numPagesForOverflow = stringColumnChunk->flushOverflowBuffer(dataFH, startPageIdx);
@@ -75,16 +77,16 @@ void StringNodeColumn::append(ColumnChunk* columnChunk, node_group_idx_t nodeGro
                           stringColumnChunk->getLastOffsetInPage()});
 }
 
-void StringNodeColumn::writeValue(
+void StringColumn::writeValue(
     offset_t nodeOffset, ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
     auto& kuStr = vectorToWriteFrom->getValue<ku_string_t>(posInVectorToWriteFrom);
     if (!ku_string_t::isShortString(kuStr.len)) {
         auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
         auto overflowMetadata = overflowMetadataDA->get(nodeGroupIdx, TransactionType::WRITE);
         auto overflowPageIdxInChunk = overflowMetadata.numPages - 1;
-        auto walPageIdxAndFrame = StorageStructureUtils::createWALVersionIfNecessaryAndPinPage(
+        auto walPageIdxAndFrame = DBFileUtils::createWALVersionIfNecessaryAndPinPage(
             overflowMetadata.pageIdx + overflowPageIdxInChunk, false /* insertingNewPage */,
-            *dataFH, storageStructureID, *bufferManager, *wal);
+            *dataFH, dbFileID, *bufferManager, *wal);
         memcpy(walPageIdxAndFrame.frame + overflowMetadata.lastOffsetInPage,
             reinterpret_cast<uint8_t*>(kuStr.overflowPtr), kuStr.len);
         bufferManager->unpin(*wal->fileHandle, walPageIdxAndFrame.pageIdxInWAL);
@@ -94,26 +96,26 @@ void StringNodeColumn::writeValue(
         overflowMetadata.lastOffsetInPage += kuStr.len;
         overflowMetadataDA->update(nodeGroupIdx, overflowMetadata);
     }
-    NodeColumn::writeValue(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
+    Column::writeValue(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
 }
 
-void StringNodeColumn::checkpointInMemory() {
-    NodeColumn::checkpointInMemory();
+void StringColumn::checkpointInMemory() {
+    Column::checkpointInMemory();
     overflowMetadataDA->checkpointInMemoryIfNecessary();
 }
 
-void StringNodeColumn::rollbackInMemory() {
-    NodeColumn::rollbackInMemory();
+void StringColumn::rollbackInMemory() {
+    Column::rollbackInMemory();
     overflowMetadataDA->rollbackInMemoryIfNecessary();
 }
 
-void StringNodeColumn::scanInternal(
+void StringColumn::scanInternal(
     Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
     assert(resultVector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     auto startNodeOffset = nodeIDVector->readNodeOffset(0);
     assert(startNodeOffset % DEFAULT_VECTOR_CAPACITY == 0);
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(startNodeOffset);
-    NodeColumn::scanInternal(transaction, nodeIDVector, resultVector);
+    Column::scanInternal(transaction, nodeIDVector, resultVector);
     auto overflowPageIdx = overflowMetadataDA->get(nodeGroupIdx, transaction->getType()).pageIdx;
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[i];
@@ -125,7 +127,7 @@ void StringNodeColumn::scanInternal(
     }
 }
 
-void StringNodeColumn::lookupInternal(
+void StringColumn::lookupInternal(
     Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
     assert(dataType.getPhysicalType() == PhysicalTypeID::STRING);
     auto startNodeOffset = nodeIDVector->readNodeOffset(0);
@@ -133,7 +135,7 @@ void StringNodeColumn::lookupInternal(
         overflowMetadataDA
             ->get(StorageUtils::getNodeGroupIdx(startNodeOffset), transaction->getType())
             .pageIdx;
-    NodeColumn::lookupInternal(transaction, nodeIDVector, resultVector);
+    Column::lookupInternal(transaction, nodeIDVector, resultVector);
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = resultVector->state->selVector->selectedPositions[i];
         if (!resultVector->isNull(pos)) {
@@ -143,7 +145,7 @@ void StringNodeColumn::lookupInternal(
     }
 }
 
-void StringNodeColumn::readStringValueFromOvf(Transaction* transaction, ku_string_t& kuStr,
+void StringColumn::readStringValueFromOvf(Transaction* transaction, ku_string_t& kuStr,
     ValueVector* resultVector, page_idx_t overflowPageIdx) {
     if (ku_string_t::isShortString(kuStr.len)) {
         return;
@@ -151,9 +153,8 @@ void StringNodeColumn::readStringValueFromOvf(Transaction* transaction, ku_strin
     PageByteCursor cursor;
     TypeUtils::decodeOverflowPtr(kuStr.overflowPtr, cursor.pageIdx, cursor.offsetInPage);
     cursor.pageIdx += overflowPageIdx;
-    auto [fileHandleToPin, pageIdxToPin] =
-        StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
-            *dataFH, cursor.pageIdx, *wal, transaction->getType());
+    auto [fileHandleToPin, pageIdxToPin] = DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(
+        *dataFH, cursor.pageIdx, *wal, transaction->getType());
     bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) {
         StringVector::addString(
             resultVector, kuStr, (const char*)(frame + cursor.offsetInPage), kuStr.len);

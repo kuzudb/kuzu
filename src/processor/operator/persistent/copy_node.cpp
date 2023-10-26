@@ -3,6 +3,7 @@
 #include "common/exception/copy.h"
 #include "common/exception/message.h"
 #include "common/string_format.h"
+#include "processor/result/factorized_table.h"
 #include "storage/stats/nodes_store_statistics.h"
 #include "storage/store/string_column_chunk.h"
 
@@ -16,7 +17,7 @@ namespace processor {
 void CopyNodeSharedState::init() {
     if (pkType->getLogicalTypeID() != LogicalTypeID::SERIAL) {
         auto indexFName = StorageUtils::getNodeIndexFName(
-            wal->getDirectory(), table->getTableID(), DBFileType::ORIGINAL);
+            wal->getDirectory(), table->getTableID(), FileVersionType::ORIGINAL);
         pkIndex = std::make_unique<PrimaryKeyIndexBuilder>(indexFName, *pkType);
         // Since hashIndexBuilder doesn't support dynamic rehash, we need to reserve enough number
         // of slots when copying turtle files.
@@ -61,7 +62,7 @@ void CopyNode::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*
     for (auto& pos : info->columnPositions) {
         columnVectors.push_back(resultSet->getValueVector(pos).get());
     }
-    localNodeGroup = std::make_unique<storage::NodeGroup>(
+    localNodeGroup = NodeGroupFactory::createNodeGroup(ColumnDataFormat::REGULAR_COL,
         sharedState->columnTypes, sharedState->table->compressionEnabled());
     columnState = resultSet->getDataChunk(info->columnPositions[0].dataChunkPos)->state.get();
 }
@@ -145,9 +146,6 @@ void CopyNode::finalize(ExecutionContext* context) {
     }
     if (sharedState->pkIndex) {
         sharedState->pkIndex->flush();
-    }
-    for (auto& relTable : info->connectedRelTables) {
-        relTable->batchInitEmptyRelsForNewNodes(relTable->getRelTableID(), numNodes);
     }
     sharedState->table->getNodeStatisticsAndDeletedIDs()->setNumTuplesForTable(
         sharedState->table->getTableID(), numNodes);

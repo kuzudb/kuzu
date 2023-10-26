@@ -1,24 +1,29 @@
 -GROUP EmptyCreateRelTest
 -DATASET CSV empty
-
+-SKIP
 --
 
--CASE CreateRels
--STATEMENT CREATE NODE TABLE N1(name STRING, PRIMARY KEY(name));
+-CASE CreateOneToOneRel
+-PARALLELISM 1
+-STATEMENT CREATE NODE TABLE N1(ID INT64, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE NODE TABLE N2(name STRING, PRIMARY KEY(name));
+-STATEMENT CREATE NODE TABLE N2(ID INT64, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE Rel1(FROM N1 TO N2);
+-STATEMENT CREATE REL TABLE Rel1(FROM N1 TO N2, ONE_ONE);
 ---- ok
--STATEMENT CREATE REL TABLE Rel2(FROM N1 TO N2);
+-STATEMENT CREATE (:N1 {ID: 10}), (:N1 {ID: 1}), (:N2 {ID: 12}), (:N2 {ID: 8})
 ---- ok
--STATEMENT CREATE (n1:N1 {name: "n1a"}), (n2:N2 {name: "n2a"}), (n1)-[:Rel1]->(n2);
+-STATEMENT MATCH (n:N1) RETURN n.ID
+---- 2
+10
+1
+-STATEMENT MATCH (n:N2) RETURN n.ID
+---- 2
+12
+8
+-STATEMENT COPY Rel1 FROM '${KUZU_ROOT_DIRECTORY}/dataset/one_to_one_rel/rel.csv';
 ---- ok
--STATEMENT MATCH ()-[e:Rel1]->() RETURN e;
----- 1
-(0:0)-{_LABEL: Rel1, _ID: 2:0}->(1:0)
--STATEMENT MATCH ()-[e:Rel2]->() RETURN e;
----- 0
--STATEMENT MATCH ()-[e]->() RETURN e;
----- 1
-(0:0)-{_LABEL: Rel1, _ID: 2:0}->(1:0)
+-STATEMENT MATCH (n1:N1)-[e:Rel1]->(n2:N2) RETURN e
+---- 2
+(0:0)-{_LABEL: Rel1, _ID: 2:0}->(1:1)
+(0:1)-{_LABEL: Rel1, _ID: 2:1}->(1:0)

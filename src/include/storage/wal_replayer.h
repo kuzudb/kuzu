@@ -19,8 +19,8 @@ enum class WALReplayMode : uint8_t { COMMIT_CHECKPOINT, ROLLBACK, RECOVERY_CHECK
 // Note: This class is not thread-safe.
 class WALReplayer {
 public:
-    WALReplayer(WAL* wal, StorageManager* storageManager, MemoryManager* memoryManager,
-        BufferManager* bufferManager, catalog::Catalog* catalog, WALReplayMode replayMode);
+    WALReplayer(WAL* wal, StorageManager* storageManager, BufferManager* bufferManager,
+        catalog::Catalog* catalog, WALReplayMode replayMode);
 
     void replay();
 
@@ -32,7 +32,7 @@ private:
     void replayCatalogRecord();
     void replayNodeTableRecord(const WALRecord& walRecord);
     // TODO(Guodong/Ziyi) : fix this
-    void replayRelTableRecord(const WALRecord& walRecord, bool isRdf = false);
+    void replayRelTableRecord(const WALRecord& walRecord);
     void replayRdfGraphRecord(const WALRecord& walRecord);
     void replayOverflowFileNextBytePosRecord(const WALRecord& walRecord);
     void replayCopyNodeRecord(const WALRecord& walRecord);
@@ -42,12 +42,11 @@ private:
     void replayAddPropertyRecord(const WALRecord& walRecord);
 
     void checkpointOrRollbackVersionedFileHandleAndBufferManager(
-        const WALRecord& walRecord, const StorageStructureID& storageStructureID);
+        const WALRecord& walRecord, const DBFileID& dbFileID);
     void truncateFileIfInsertion(
         BMFileHandle* fileHandle, const PageUpdateOrInsertRecord& pageInsertOrUpdateRecord);
-    BMFileHandle* getVersionedFileHandleIfWALVersionAndBMShouldBeCleared(
-        const StorageStructureID& storageStructureID);
-    std::unique_ptr<catalog::Catalog> getCatalogForRecovery(common::DBFileType dbFileType);
+    BMFileHandle* getVersionedFileHandleIfWALVersionAndBMShouldBeCleared(const DBFileID& dbFileID);
+    std::unique_ptr<catalog::Catalog> getCatalogForRecovery(common::FileVersionType dbFileType);
 
 private:
     bool isRecovering;
@@ -56,7 +55,6 @@ private:
     // has been initialized during recovery, i.e., isRecovering=true.
     StorageManager* storageManager;
     BufferManager* bufferManager;
-    MemoryManager* memoryManager;
     std::shared_ptr<BMFileHandle> walFileHandle;
     std::unique_ptr<uint8_t[]> pageBuffer;
     WAL* wal;

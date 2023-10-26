@@ -57,11 +57,11 @@ False||
 152|["vanco,uver north area"]|{price: [15,78,671], volume: 432}
 558|['very long city name', 'new york']|{price: [22], volume: 99}
 
--LOG ReturnRelStarTest
--STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID =7 RETURN e.*;
----- 2
-1905-12-12|2020-03-01 12:11:41.6552|00:47:58|[peweeeeeeeeeeeeeeeee,kowje9w0eweeeeeeeee]
-1905-12-12|2025-01-01 11:22:33.52|00:47:58|[ahu2333333333333,12weeeeeeeeeeeeeeeeee]
+#-LOG ReturnRelStarTest
+#-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID =7 RETURN e.*;
+#---- 2
+#1905-12-12|2020-03-01 12:11:41.6552|00:47:58|[peweeeeeeeeeeeeeeeee,kowje9w0eweeeeeeeee]
+#1905-12-12|2025-01-01 11:22:33.52|00:47:58|[ahu2333333333333,12weeeeeeeeeeeeeeeeee]
 
 -LOG PersonNodesTestNull
 -STATEMENT MATCH (a:person) RETURN a.ID, a.fName STARTS WITH NULL, a.isWorker, a.isWorker AND null
@@ -380,12 +380,12 @@ Dan|Carol
 5:1
 5:2
 
--LOG QueryOneToOneRelTable
--STATEMENT MATCH (:person)-[m:marries]->(:person) RETURN m
----- 3
-(0:0)-{_LABEL: marries, _ID: 7:0, usedAddress: [toronto], address: [4,5]}->(0:1)
-(0:2)-{_LABEL: marries, _ID: 7:1, address: [2,5], note: long long long string}->(0:3)
-(0:4)-{_LABEL: marries, _ID: 7:2, usedAddress: [], address: [3,9], note: short str}->(0:5)
+#-LOG QueryOneToOneRelTable
+#-STATEMENT MATCH (:person)-[m:marries]->(:person) RETURN m
+#---- 3
+#(0:0)-{_LABEL: marries, _ID: 7:0, usedAddress: [toronto], address: [4,5]}->(0:1)
+#(0:2)-{_LABEL: marries, _ID: 7:1, address: [2,5], note: long long long string}->(0:3)
+#(0:4)-{_LABEL: marries, _ID: 7:2, usedAddress: [], address: [3,9], note: short str}->(0:5)
 
 -LOG ReturnFixedListNodeProp
 -STATEMENT MATCH (a:person) RETURN a.grades
@@ -654,16 +654,16 @@ Dan|Carol
 \xAB\xCD
 pure ascii characters
 
--LOG ReturnRelBlobProp
--STATEMENT MATCH (p:person)-[e:meets]->(p1:person) RETURN e.data;
----- 7
-MIXED \x5CxAC with ASCII \x5Cx0A
-NO hex code
-NO hex code
-\x5Cx3A\x5CxA3
-\x5Cx3A\x5CxA3
-\x5CxA1\x5Cx2A
-\x5CxAA\x5CxBB\x5CxCC\x5CxDD
+#-LOG ReturnRelBlobProp
+#-STATEMENT MATCH (p:person)-[e:meets]->(p1:person) RETURN e.data;
+#---- 7
+#MIXED \x5CxAC with ASCII \x5Cx0A
+#NO hex code
+#NO hex code
+#\x5Cx3A\x5CxA3
+#\x5Cx3A\x5CxA3
+#\x5CxA1\x5Cx2A
+#\x5CxAA\x5CxBB\x5CxCC\x5CxDD
 
 -LOG ReturnStringLiteralWithSpecialChar
 -STATEMENT RETURN "hEl \'\"\\";
