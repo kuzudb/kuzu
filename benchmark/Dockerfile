@@ -12,6 +12,7 @@ RUN apt-get update && apt-get -y install \
     jq \
     libssl-dev \
     libcurl4-openssl-dev \
+    ninja-build \
     python3-dev \
     python3-pip \
     python-is-python3
