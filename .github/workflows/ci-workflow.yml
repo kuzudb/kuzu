@@ -167,17 +167,8 @@ jobs:
       - name: Java test
         run: make javatest
 
-      - name: Create compilation commands database
-        run: make clang-tidy-ci
-
-      - name: Run clang-tidy on src
-        run: run-clang-tidy -p build/release -quiet -j 32 "^$(realpath src)"
-
-      - name: Run clang-tidy on tools
-        run: run-clang-tidy -p build/release -quiet -j 32 "^$(realpath tools)/(?!shell/linenoise.cpp)"
-
-      - name: Run clang-tidy on examples
-        run: run-clang-tidy -p build/release -quiet -j 32 "^$(realpath examples)"
+      - name: Run clang-tidy
+        run: make tidy
 
   msvc-build-test:
     name: msvc build & test

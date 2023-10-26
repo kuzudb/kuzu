@@ -95,14 +95,12 @@ lcov:
 	ctest --output-on-failure -j ${TEST_JOBS}
 
 clangd:
-	$(call mkdirp,build/clangd) && cd build/clangd && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=Release -DBUILD_EXAMPLES=TRUE \
-		-DBUILD_BENCHMARK=TRUE -DBUILD_JAVA=TRUE -DBUILD_NODEJS=TRUE -DBUILD_TESTS=TRUE ../..
-
-clang-tidy-ci:
-	# For CI: export compile commands for the built items.
 	$(call mkdirp,build/release) && cd build/release && \
 	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_EXPORT_COMPILE_COMMANDS=1 ../..
+
+tidy: clangd
+	run-clang-tidy -p build/release -quiet -j $(NUM_THREADS) \
+		"^$(realpath src)|$(realpath tools)/(?!shell/linenoise.cpp)|$(realpath examples)"
 
 pytest: release
 	cd $(ROOT_DIR)/tools/python_api/test && \
