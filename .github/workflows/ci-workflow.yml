@@ -225,8 +225,11 @@ jobs:
 
   clang-formatting-check:
     name: clang-format check
-    runs-on: kuzu-self-hosted-testing
+    runs-on: ubuntu-22.04
     steps:
+      - name: Install clang-format
+        run:  apt-get install -y clang-format-11
+        
       - uses: actions/checkout@v3
 
       - name: Check source format
