@@ -35,3 +35,11 @@
 -STATEMENT MATCH (a)-[e]-(b) WHERE a.ID = 0 AND b.ID = 2 DELETE e
 ---- error
 Binder exception: Delete undirected rel is not supported.
+
+
+-CASE RedundantRelDeletions
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[e:knows]->(c:person) DELETE e
+---- ok
+-STATEMENT MATCH (:person)-[:knows]->(:person) RETURN COUNT(*)
+---- 1
+2

@@ -108,7 +108,7 @@ public:
         const common::ValueVector* dstNodeIDVector,
         const std::vector<common::ValueVector*>& relPropertyVectors);
 
-    void deleteRelIfNecessary(common::ValueVector* srcNodeIDVector,
+    bool deleteRelIfNecessary(common::ValueVector* srcNodeIDVector,
         common::ValueVector* dstNodeIDVector, common::ValueVector* relIDVector);
 
     uint64_t getNumInsertedRelsForNodeOffset(

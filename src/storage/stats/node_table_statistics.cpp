@@ -90,7 +90,7 @@ void NodeTableStatsAndDeletedIDs::deleteNode(offset_t nodeOffset) {
     auto morselIdxAndOffset =
         StorageUtils::getQuotientRemainder(nodeOffset, DEFAULT_VECTOR_CAPACITY);
     if (isDeleted(nodeOffset, morselIdxAndOffset.first)) {
-        throw RuntimeException(stringFormat("Node with offset {} is already deleted.", nodeOffset));
+        return;
     }
     errorIfNodeHasEdges(nodeOffset);
     if (!hasDeletedNodesPerMorsel[morselIdxAndOffset.first]) {

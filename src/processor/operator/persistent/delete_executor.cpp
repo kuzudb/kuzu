@@ -47,8 +47,9 @@ void RelDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* /*context*/
 }
 
 void SingleLabelRelDeleteExecutor::delete_() {
-    table->deleteRel(srcNodeIDVector, dstNodeIDVector, relIDVector);
-    relsStatistic->updateNumRelsByValue(table->getRelTableID(), -1);
+    if (table->deleteRel(srcNodeIDVector, dstNodeIDVector, relIDVector)) {
+        relsStatistic->updateNumRelsByValue(table->getRelTableID(), -1);
+    }
 }
 
 void MultiLabelRelDeleteExecutor::delete_() {
@@ -57,9 +58,10 @@ void MultiLabelRelDeleteExecutor::delete_() {
     auto relID = relIDVector->getValue<internalID_t>(pos);
     assert(tableIDToTableMap.contains(relID.tableID));
     auto [table, statistic] = tableIDToTableMap.at(relID.tableID);
-    table->deleteRel(srcNodeIDVector, dstNodeIDVector, relIDVector);
-    assert(table->getRelTableID() == relID.tableID);
-    statistic->updateNumRelsByValue(table->getRelTableID(), -1);
+    if (table->deleteRel(srcNodeIDVector, dstNodeIDVector, relIDVector)) {
+        assert(table->getRelTableID() == relID.tableID);
+        statistic->updateNumRelsByValue(table->getRelTableID(), -1);
+    }
 }
 
 } // namespace processor
