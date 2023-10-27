@@ -7,6 +7,7 @@
 #include "common/serializer/serializer.h"
 #include "common/type_utils.h"
 #include "common/types/blob.h"
+#include "common/types/ku_string.h"
 #include "storage/storage_utils.h"
 
 namespace kuzu {
@@ -101,10 +102,11 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
         children.push_back(std::make_unique<Value>(createNullValue()));
         return Value(dataType, std::move(children));
     }
+    case LogicalTypeID::NODE:
+    case LogicalTypeID::REL:
     case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::STRUCT:
-    case LogicalTypeID::NODE:
-    case LogicalTypeID::REL: {
+    case LogicalTypeID::RDF_VARIANT: {
         std::vector<std::unique_ptr<Value>> children;
         for (auto& field : StructType::getFields(&dataType)) {
             children.push_back(std::make_unique<Value>(createDefaultValue(*field->getType())));
@@ -290,7 +292,8 @@ void Value::copyValueFrom(const uint8_t* value) {
     case LogicalTypeID::NODE:
     case LogicalTypeID::REL:
     case LogicalTypeID::RECURSIVE_REL:
-    case LogicalTypeID::STRUCT: {
+    case LogicalTypeID::STRUCT:
+    case LogicalTypeID::RDF_VARIANT: {
         copyFromStruct(value);
     } break;
     default:
@@ -409,29 +412,15 @@ std::string Value::toString() const {
         return Blob::toString(reinterpret_cast<const uint8_t*>(strVal.c_str()), strVal.length());
     case LogicalTypeID::STRING:
         return strVal;
+    case LogicalTypeID::RDF_VARIANT: {
+        return rdfVariantToString();
+    }
     case LogicalTypeID::MAP: {
-        std::string result = "{";
-        for (auto i = 0u; i < childrenSize; ++i) {
-            auto structVal = children[i].get();
-            result += structVal->children[0]->toString();
-            result += "=";
-            result += structVal->children[1]->toString();
-            result += (i == childrenSize - 1 ? "" : ", ");
-        }
-        result += "}";
-        return result;
+        return mapToString();
     }
     case LogicalTypeID::VAR_LIST:
     case LogicalTypeID::FIXED_LIST: {
-        std::string result = "[";
-        for (auto i = 0u; i < childrenSize; ++i) {
-            result += children[i]->toString();
-            if (i != childrenSize - 1) {
-                result += ",";
-            }
-        }
-        result += "]";
-        return result;
+        return listToString();
     }
     case LogicalTypeID::UNION: {
         // Only one member in the union can be active at a time and that member is always stored
@@ -440,49 +429,13 @@ std::string Value::toString() const {
     }
     case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::STRUCT: {
-        std::string result = "{";
-        auto fieldNames = StructType::getFieldNames(dataType.get());
-        for (auto i = 0u; i < childrenSize; ++i) {
-            result += fieldNames[i] + ": ";
-            result += children[i]->toString();
-            if (i != childrenSize - 1) {
-                result += ", ";
-            }
-        }
-        result += "}";
-        return result;
+        return structToString();
     }
     case LogicalTypeID::NODE: {
-        std::string result = "{";
-        auto fieldNames = StructType::getFieldNames(dataType.get());
-        for (auto i = 0u; i < childrenSize; ++i) {
-            if (children[i]->isNull_) {
-                // Avoid printing null key value pair.
-                continue;
-            }
-            if (i != 0) {
-                result += ", ";
-            }
-            result += fieldNames[i] + ": " + children[i]->toString();
-        }
-        result += "}";
-        return result;
+        return nodeToString();
     }
     case LogicalTypeID::REL: {
-        std::string result = "(" + children[0]->toString() + ")-{";
-        auto fieldNames = StructType::getFieldNames(dataType.get());
-        for (auto i = 2u; i < childrenSize; ++i) {
-            if (children[i]->isNull_) {
-                // Avoid printing null key value pair.
-                continue;
-            }
-            if (i != 2) {
-                result += ", ";
-            }
-            result += fieldNames[i] + ": " + children[i]->toString();
-        }
-        result += "}->(" + children[1]->toString() + ")";
-        return result;
+        return relToString();
     }
     default:
         // LCOV_EXCL_START
@@ -703,6 +656,101 @@ std::unique_ptr<Value> Value::deserialize(Deserializer& deserializer) {
     deserializer.deserializeValue(val->childrenSize);
     val->setNull(isNull);
     return val;
+}
+
+std::string Value::rdfVariantToString() const {
+    auto type = static_cast<LogicalTypeID>(children[0]->val.uint8Val);
+    switch (type) {
+    case LogicalTypeID::STRING:
+        return children[1]->strVal;
+    case LogicalTypeID::INT64: {
+        return TypeUtils::toString(Blob::getValue<int64_t>(children[1]->strVal.data()));
+    }
+    case LogicalTypeID::DOUBLE: {
+        return TypeUtils::toString(Blob::getValue<double_t>(children[1]->strVal.data()));
+    }
+    case LogicalTypeID::BOOL: {
+        return TypeUtils::toString(Blob::getValue<bool>(children[1]->strVal.data()));
+    }
+    case LogicalTypeID::DATE: {
+        return TypeUtils::toString(Blob::getValue<date_t>(children[1]->strVal.data()));
+    }
+    default:
+        return children[1]->strVal;
+    }
+}
+
+std::string Value::mapToString() const {
+    std::string result = "{";
+    for (auto i = 0u; i < childrenSize; ++i) {
+        auto structVal = children[i].get();
+        result += structVal->children[0]->toString();
+        result += "=";
+        result += structVal->children[1]->toString();
+        result += (i == childrenSize - 1 ? "" : ", ");
+    }
+    result += "}";
+    return result;
+}
+
+std::string Value::listToString() const {
+    std::string result = "[";
+    for (auto i = 0u; i < childrenSize; ++i) {
+        result += children[i]->toString();
+        if (i != childrenSize - 1) {
+            result += ",";
+        }
+    }
+    result += "]";
+    return result;
+}
+
+std::string Value::structToString() const {
+    std::string result = "{";
+    auto fieldNames = StructType::getFieldNames(dataType.get());
+    for (auto i = 0u; i < childrenSize; ++i) {
+        result += fieldNames[i] + ": ";
+        result += children[i]->toString();
+        if (i != childrenSize - 1) {
+            result += ", ";
+        }
+    }
+    result += "}";
+    return result;
+}
+
+std::string Value::nodeToString() const {
+    std::string result = "{";
+    auto fieldNames = StructType::getFieldNames(dataType.get());
+    for (auto i = 0u; i < childrenSize; ++i) {
+        if (children[i]->isNull_) {
+            // Avoid printing null key value pair.
+            continue;
+        }
+        if (i != 0) {
+            result += ", ";
+        }
+        result += fieldNames[i] + ": " + children[i]->toString();
+    }
+    result += "}";
+    return result;
+}
+
+std::string Value::relToString() const {
+    std::string result = "(" + children[0]->toString() + ")-{";
+    auto fieldNames = StructType::getFieldNames(dataType.get());
+    for (auto i = 2u; i < childrenSize; ++i) {
+        if (children[i]->isNull_) {
+            // Avoid printing null key value pair.
+            continue;
+        }
+        if (i != 2) {
+            result += ", ";
+        }
+        result += fieldNames[i] + ": " + children[i]->toString();
+    }
+    result += "}->(" + children[1]->toString() + ")";
+    return result;
 }
 
 } // namespace common
