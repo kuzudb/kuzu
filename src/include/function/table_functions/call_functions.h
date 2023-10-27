@@ -2,10 +2,10 @@
 
 #include "catalog/catalog_content.h"
 #include "common/vector/value_vector.h"
+#include "function/table_functions.h"
 #include "function/table_functions/bind_data.h"
 #include "function/table_functions/bind_input.h"
 #include "main/client_context.h"
-#include "table_functions.h"
 
 namespace kuzu {
 namespace function {
@@ -66,10 +66,7 @@ struct CurrentSettingBindData : public CallTableFuncBindData {
 };
 
 struct CurrentSettingFunction : public CallFunction {
-    inline static std::unique_ptr<TableFunctionDefinition> getDefinitions() {
-        return std::make_unique<TableFunctionDefinition>(
-            "current_setting", tableFunc, bindFunc, initSharedState);
-    }
+    static function_set getFunctionSet();
 
     static void tableFunc(TableFunctionInput& data, std::vector<common::ValueVector*> output);
 
@@ -78,10 +75,7 @@ struct CurrentSettingFunction : public CallFunction {
 };
 
 struct DBVersionFunction : public CallFunction {
-    inline static std::unique_ptr<TableFunctionDefinition> getDefinitions() {
-        return std::make_unique<TableFunctionDefinition>(
-            "db_version", tableFunc, bindFunc, initSharedState);
-    }
+    static function_set getFunctionSet();
 
     static void tableFunc(
         TableFunctionInput& input, std::vector<common::ValueVector*> outputVectors);
@@ -106,10 +100,7 @@ struct ShowTablesBindData : public CallTableFuncBindData {
 };
 
 struct ShowTablesFunction : public CallFunction {
-    inline static std::unique_ptr<TableFunctionDefinition> getDefinitions() {
-        return std::make_unique<TableFunctionDefinition>(
-            "show_tables", tableFunc, bindFunc, initSharedState);
-    }
+    static function_set getFunctionSet();
 
     static void tableFunc(
         TableFunctionInput& input, std::vector<common::ValueVector*> outputVectors);
@@ -134,10 +125,7 @@ struct TableInfoBindData : public CallTableFuncBindData {
 };
 
 struct TableInfoFunction : public CallFunction {
-    inline static std::unique_ptr<TableFunctionDefinition> getDefinitions() {
-        return std::make_unique<TableFunctionDefinition>(
-            "table_info", tableFunc, bindFunc, initSharedState);
-    }
+    static function_set getFunctionSet();
 
     static void tableFunc(
         TableFunctionInput& input, std::vector<common::ValueVector*> outputVectors);
@@ -162,10 +150,7 @@ struct ShowConnectionBindData : public TableInfoBindData {
 };
 
 struct ShowConnectionFunction : public CallFunction {
-    inline static std::unique_ptr<TableFunctionDefinition> getDefinitions() {
-        return std::make_unique<TableFunctionDefinition>(
-            "show_connection", tableFunc, bindFunc, initSharedState);
-    }
+    static function_set getFunctionSet();
 
     static void outputRelTableConnection(common::ValueVector* srcTableNameVector,
         common::ValueVector* dstTableNameVector, uint64_t outputPos,

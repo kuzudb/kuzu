@@ -5,7 +5,7 @@
 #include "common/exception/not_implemented.h"
 #include "common/types/blob.h"
 #include "common/types/ku_string.h"
-#include "function/vector_functions.h"
+#include "function/scalar_function.h"
 
 namespace kuzu {
 namespace function {
@@ -212,41 +212,37 @@ struct UDF {
     }
 
     template<typename TR, typename... Args>
-    static vector_function_definitions getFunctionDefinition(const std::string& name,
-        TR (*udfFunc)(Args...), std::vector<common::LogicalTypeID> parameterTypes,
-        common::LogicalTypeID returnType) {
-        vector_function_definitions definitions;
+    static function_set getFunction(const std::string& name, TR (*udfFunc)(Args...),
+        std::vector<common::LogicalTypeID> parameterTypes, common::LogicalTypeID returnType) {
+        function_set definitions;
         if (returnType == common::LogicalTypeID::STRING) {
-            throw common::NotImplementedException{"function::getFunctionDefinition"};
+            throw common::NotImplementedException{"function::getFunction"};
         }
         validateType<TR>(returnType);
         scalar_exec_func scalarExecFunc = getScalarExecFunc<TR, Args...>(udfFunc, parameterTypes);
-        definitions.push_back(std::make_unique<function::VectorFunctionDefinition>(
+        definitions.push_back(std::make_unique<function::ScalarFunction>(
             name, std::move(parameterTypes), returnType, std::move(scalarExecFunc)));
         return definitions;
     }
 
     template<typename TR, typename... Args>
-    static vector_function_definitions getFunctionDefinition(
-        const std::string& name, TR (*udfFunc)(Args...)) {
-        return getFunctionDefinition<TR, Args...>(
+    static function_set getFunction(const std::string& name, TR (*udfFunc)(Args...)) {
+        return getFunction<TR, Args...>(
             name, udfFunc, getParameterTypes<Args...>(), getParameterType<TR>());
     }
 
     template<typename TR, typename... Args>
-    static vector_function_definitions getVectorizedFunctionDefinition(
-        const std::string& name, scalar_exec_func execFunc) {
-        vector_function_definitions definitions;
-        definitions.push_back(std::make_unique<function::VectorFunctionDefinition>(
+    static function_set getVectorizedFunction(const std::string& name, scalar_exec_func execFunc) {
+        function_set definitions;
+        definitions.push_back(std::make_unique<function::ScalarFunction>(
             name, getParameterTypes<Args...>(), getParameterType<TR>(), std::move(execFunc)));
         return definitions;
     }
 
-    static vector_function_definitions getVectorizedFunctionDefinition(const std::string& name,
-        scalar_exec_func execFunc, std::vector<common::LogicalTypeID> parameterTypes,
-        common::LogicalTypeID returnType) {
-        vector_function_definitions definitions;
-        definitions.push_back(std::make_unique<function::VectorFunctionDefinition>(
+    static function_set getVectorizedFunction(const std::string& name, scalar_exec_func execFunc,
+        std::vector<common::LogicalTypeID> parameterTypes, common::LogicalTypeID returnType) {
+        function_set definitions;
+        definitions.push_back(std::make_unique<function::ScalarFunction>(
             name, std::move(parameterTypes), returnType, std::move(execFunc)));
         return definitions;
     }

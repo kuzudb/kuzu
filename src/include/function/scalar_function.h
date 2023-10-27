@@ -3,14 +3,14 @@
 #include "binary_function_executor.h"
 #include "binder/expression/expression.h"
 #include "const_function_executor.h"
-#include "function_definition.h"
+#include "function.h"
 #include "ternary_function_executor.h"
 #include "unary_function_executor.h"
 
 namespace kuzu {
 namespace function {
 
-struct VectorFunctionDefinition;
+struct ScalarFunction;
 
 using scalar_compile_func =
     std::function<void(FunctionBindData*, const std::vector<std::shared_ptr<common::ValueVector>>&,
@@ -19,46 +19,37 @@ using scalar_exec_func = std::function<void(
     const std::vector<std::shared_ptr<common::ValueVector>>&, common::ValueVector&)>;
 using scalar_select_func = std::function<bool(
     const std::vector<std::shared_ptr<common::ValueVector>>&, common::SelectionVector&)>;
-using vector_function_definitions = std::vector<std::unique_ptr<VectorFunctionDefinition>>;
+using function_set = std::vector<std::unique_ptr<Function>>;
 
-struct VectorFunctionDefinition : public FunctionDefinition {
+struct ScalarFunction : public BaseScalarFunction {
 
-    VectorFunctionDefinition(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
+    ScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
         common::LogicalTypeID returnTypeID, scalar_exec_func execFunc, bool isVarLength = false)
-        : VectorFunctionDefinition{std::move(name), std::move(parameterTypeIDs), returnTypeID,
+        : ScalarFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID,
               std::move(execFunc), nullptr, nullptr, nullptr, isVarLength} {}
 
-    VectorFunctionDefinition(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
+    ScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
         common::LogicalTypeID returnTypeID, scalar_exec_func execFunc,
         scalar_select_func selectFunc, bool isVarLength = false)
-        : VectorFunctionDefinition{std::move(name), std::move(parameterTypeIDs), returnTypeID,
+        : ScalarFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID,
               std::move(execFunc), std::move(selectFunc), nullptr, nullptr, isVarLength} {}
 
-    VectorFunctionDefinition(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
+    ScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
         common::LogicalTypeID returnTypeID, scalar_exec_func execFunc,
-        scalar_select_func selectFunc, bind_func bindFunc, bool isVarLength = false)
-        : VectorFunctionDefinition{std::move(name), std::move(parameterTypeIDs), returnTypeID,
+        scalar_select_func selectFunc, scalar_bind_func bindFunc, bool isVarLength = false)
+        : ScalarFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID,
               std::move(execFunc), std::move(selectFunc), nullptr, std::move(bindFunc),
               isVarLength} {}
 
-    VectorFunctionDefinition(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
+    ScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
         common::LogicalTypeID returnTypeID, scalar_exec_func execFunc,
-        scalar_select_func selectFunc, scalar_compile_func compileFunc, bind_func bindFunc,
+        scalar_select_func selectFunc, scalar_compile_func compileFunc, scalar_bind_func bindFunc,
         bool isVarLength = false)
-        : FunctionDefinition{std::move(name), std::move(parameterTypeIDs), returnTypeID,
-              std::move(bindFunc)},
+        : BaseScalarFunction{FunctionType::SCALAR, std::move(name), std::move(parameterTypeIDs),
+              returnTypeID, std::move(bindFunc)},
           execFunc{std::move(execFunc)}, selectFunc(std::move(selectFunc)),
           compileFunc{std::move(compileFunc)}, isVarLength{isVarLength} {}
 
-    scalar_exec_func execFunc;
-    scalar_select_func selectFunc;
-    scalar_compile_func compileFunc;
-    // Currently we only one variable-length function which is list creation. The expectation is
-    // that all parameters must have the same type as parameterTypes[0].
-    bool isVarLength;
-};
-
-struct VectorFunction {
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
     static void TernaryExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result) {
@@ -141,6 +132,13 @@ struct VectorFunction {
         UnaryFunctionExecutor::executeListStruct<OPERAND_TYPE, RESULT_TYPE, FUNC>(
             *params[0], result);
     }
+
+    scalar_exec_func execFunc;
+    scalar_select_func selectFunc;
+    scalar_compile_func compileFunc;
+    // Currently we only one variable-length function which is list creation. The expectation is
+    // that all parameters must have the same type as parameterTypes[0].
+    bool isVarLength;
 };
 
 } // namespace function

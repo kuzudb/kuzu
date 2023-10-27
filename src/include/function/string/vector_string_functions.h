@@ -1,17 +1,17 @@
 #pragma once
 
+#include "function/scalar_function.h"
 #include "function/string/functions/lower_function.h"
 #include "function/string/functions/ltrim_function.h"
 #include "function/string/functions/reverse_function.h"
 #include "function/string/functions/rtrim_function.h"
 #include "function/string/functions/trim_function.h"
 #include "function/string/functions/upper_function.h"
-#include "function/vector_functions.h"
 
 namespace kuzu {
 namespace function {
 
-struct VectorStringFunction : public VectorFunction {
+struct VectorStringFunction {
 
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
     static void TernaryStringExecFunction(
@@ -40,117 +40,117 @@ struct VectorStringFunction : public VectorFunction {
     }
 
     template<class OPERATION>
-    static inline vector_function_definitions getUnaryStrFunctionDefinition(std::string funcName) {
-        vector_function_definitions definitions;
-        definitions.emplace_back(std::make_unique<VectorFunctionDefinition>(funcName,
+    static inline function_set getUnaryStrFunction(std::string funcName) {
+        function_set functionSet;
+        functionSet.emplace_back(std::make_unique<ScalarFunction>(funcName,
             std::vector<common::LogicalTypeID>{common::LogicalTypeID::STRING},
             common::LogicalTypeID::STRING,
             UnaryStringExecFunction<common::ku_string_t, common::ku_string_t, OPERATION>,
             false /* isVarLength */));
-        return definitions;
+        return functionSet;
     }
 };
 
-struct ArrayExtractVectorFunction : public VectorStringFunction {
-    static vector_function_definitions getDefinitions();
+struct ArrayExtractFunction {
+    static function_set getFunctionSet();
 };
 
-struct ConcatVectorFunction : public VectorStringFunction {
-    static vector_function_definitions getDefinitions();
+struct ConcatFunction : public VectorStringFunction {
+    static function_set getFunctionSet();
 };
 
-struct ContainsVectorFunction : public VectorStringFunction {
-    static vector_function_definitions getDefinitions();
+struct ContainsFunction : public VectorStringFunction {
+    static function_set getFunctionSet();
 };
 
-struct EndsWithVectorFunction : public VectorStringFunction {
-    static vector_function_definitions getDefinitions();
+struct EndsWithFunction : public VectorStringFunction {
+    static function_set getFunctionSet();
 };
 
-struct LeftVectorFunction : public VectorStringFunction {
-    static vector_function_definitions getDefinitions();
+struct LeftFunction : public VectorStringFunction {
+    static function_set getFunctionSet();
 };
 
-struct LowerVectorFunction : public VectorStringFunction {
-    static inline vector_function_definitions getDefinitions() {
-        return getUnaryStrFunctionDefinition<Lower>(common::LOWER_FUNC_NAME);
+struct LowerFunction : public VectorStringFunction {
+    static inline function_set getFunctionSet() {
+        return getUnaryStrFunction<Lower>(common::LOWER_FUNC_NAME);
     }
 };
 
-struct LpadVectorFunction : public VectorStringFunction {
-    static vector_function_definitions getDefinitions();
+struct LpadFunction : public VectorStringFunction {
+    static function_set getFunctionSet();
 };
 
-struct LtrimVectorFunction : public VectorStringFunction {
-    static inline vector_function_definitions getDefinitions() {
-        return getUnaryStrFunctionDefinition<Ltrim>(common::LTRIM_FUNC_NAME);
+struct LtrimFunction : public VectorStringFunction {
+    static inline function_set getFunctionSet() {
+        return getUnaryStrFunction<Ltrim>(common::LTRIM_FUNC_NAME);
     }
 };
 
-struct RepeatVectorFunction : public VectorStringFunction {
-    static vector_function_definitions getDefinitions();
+struct RepeatFunction : public VectorStringFunction {
+    static function_set getFunctionSet();
 };
 
-struct ReverseVectorFunction : public VectorStringFunction {
-    static inline vector_function_definitions getDefinitions() {
-        return getUnaryStrFunctionDefinition<Reverse>(common::REVERSE_FUNC_NAME);
+struct ReverseFunction : public VectorStringFunction {
+    static inline function_set getFunctionSet() {
+        return getUnaryStrFunction<Reverse>(common::REVERSE_FUNC_NAME);
     }
 };
 
-struct RightVectorFunction : public VectorStringFunction {
-    static vector_function_definitions getDefinitions();
+struct RightFunction : public VectorStringFunction {
+    static function_set getFunctionSet();
 };
 
-struct RpadVectorFunction : public VectorStringFunction {
-    static vector_function_definitions getDefinitions();
+struct RpadFunction : public VectorStringFunction {
+    static function_set getFunctionSet();
 };
 
-struct RtrimVectorFunction : public VectorStringFunction {
-    static inline vector_function_definitions getDefinitions() {
-        return getUnaryStrFunctionDefinition<Rtrim>(common::RTRIM_FUNC_NAME);
+struct RtrimFunction : public VectorStringFunction {
+    static inline function_set getFunctionSet() {
+        return getUnaryStrFunction<Rtrim>(common::RTRIM_FUNC_NAME);
     }
 };
 
-struct StartsWithVectorFunction : public VectorStringFunction {
-    static vector_function_definitions getDefinitions();
+struct StartsWithFunction : public VectorStringFunction {
+    static function_set getFunctionSet();
 };
 
-struct SubStrVectorFunction : public VectorStringFunction {
-    static vector_function_definitions getDefinitions();
+struct SubStrFunction : public VectorStringFunction {
+    static function_set getFunctionSet();
 };
 
-struct TrimVectorFunction : public VectorStringFunction {
-    static inline vector_function_definitions getDefinitions() {
-        return getUnaryStrFunctionDefinition<Trim>(common::TRIM_FUNC_NAME);
+struct TrimFunction : public VectorStringFunction {
+    static inline function_set getFunctionSet() {
+        return getUnaryStrFunction<Trim>(common::TRIM_FUNC_NAME);
     }
 };
 
-struct UpperVectorFunction : public VectorStringFunction {
-    static inline vector_function_definitions getDefinitions() {
-        return getUnaryStrFunctionDefinition<Upper>(common::UPPER_FUNC_NAME);
+struct UpperFunction : public VectorStringFunction {
+    static inline function_set getFunctionSet() {
+        return getUnaryStrFunction<Upper>(common::UPPER_FUNC_NAME);
     }
 };
 
-struct RegexpFullMatchVectorFunction : public VectorStringFunction {
-    static vector_function_definitions getDefinitions();
+struct RegexpFullMatchFunction : public VectorStringFunction {
+    static function_set getFunctionSet();
 };
 
-struct RegexpMatchesVectorFunction : public VectorStringFunction {
-    static vector_function_definitions getDefinitions();
+struct RegexpMatchesFunction : public VectorStringFunction {
+    static function_set getFunctionSet();
 };
 
-struct RegexpReplaceVectorFunction : public VectorStringFunction {
-    static vector_function_definitions getDefinitions();
+struct RegexpReplaceFunction : public VectorStringFunction {
+    static function_set getFunctionSet();
 };
 
-struct RegexpExtractVectorFunction : public VectorStringFunction {
-    static vector_function_definitions getDefinitions();
+struct RegexpExtractFunction : public VectorStringFunction {
+    static function_set getFunctionSet();
 };
 
-struct RegexpExtractAllVectorFunction : public VectorStringFunction {
-    static vector_function_definitions getDefinitions();
+struct RegexpExtractAllFunction : public VectorStringFunction {
+    static function_set getFunctionSet();
     static std::unique_ptr<FunctionBindData> bindFunc(
-        const binder::expression_vector& arguments, FunctionDefinition* definition);
+        const binder::expression_vector& arguments, Function* function);
 };
 
 } // namespace function

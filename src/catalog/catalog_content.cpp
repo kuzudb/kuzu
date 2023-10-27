@@ -204,21 +204,29 @@ void CatalogContent::readFromFile(const std::string& directory, DBFileType dbFil
 
 ExpressionType CatalogContent::getFunctionType(const std::string& name) const {
     auto upperCaseName = StringUtils::getUpper(name);
-    if (builtInVectorFunctions->containsFunction(upperCaseName)) {
-        return FUNCTION;
-    } else if (builtInAggregateFunctions->containsFunction(upperCaseName)) {
-        return AGGREGATE_FUNCTION;
-    } else if (macros.contains(upperCaseName)) {
+    if (macros.contains(upperCaseName)) {
         return MACRO;
-    } else {
+    } else if (!builtInFunctions->containsFunction(name)) {
         throw CatalogException(name + " function does not exist.");
+    } else {
+        // TODO(Ziyi): we should let table function use the same interface to bind.
+        auto funcType = builtInFunctions->getFunctionType(upperCaseName);
+        switch (funcType) {
+        case function::FunctionType::SCALAR:
+            return FUNCTION;
+        case function::FunctionType::AGGREGATE:
+            return AGGREGATE_FUNCTION;
+            // LCOV_EXCL_START
+        default:
+            throw NotImplementedException{"CatalogContent::getFunctionType"};
+            // LCOV_EXCL_END
+        }
     }
 }
 
-void CatalogContent::addVectorFunction(
-    std::string name, function::vector_function_definitions definitions) {
+void CatalogContent::addFunction(std::string name, function::function_set definitions) {
     StringUtils::toUpper(name);
-    builtInVectorFunctions->addFunction(std::move(name), std::move(definitions));
+    builtInFunctions->addFunction(std::move(name), std::move(definitions));
 }
 
 void CatalogContent::addScalarMacroFunction(
@@ -272,9 +280,7 @@ void CatalogContent::writeMagicBytes(Serializer& serializer) {
 }
 
 void CatalogContent::registerBuiltInFunctions() {
-    builtInVectorFunctions = std::make_unique<function::BuiltInVectorFunctions>();
-    builtInAggregateFunctions = std::make_unique<function::BuiltInAggregateFunctions>();
-    builtInTableFunctions = std::make_unique<function::BuiltInTableFunctions>();
+    builtInFunctions = std::make_unique<function::BuiltInFunctions>();
 }
 
 bool CatalogContent::containsTable(const std::string& tableName, TableType tableType) const {

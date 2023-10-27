@@ -1,21 +1,20 @@
 #pragma once
 
-#include "function/vector_functions.h"
+#include "function/scalar_function.h"
 
 namespace kuzu {
 namespace function {
-class VectorTimestampFunction : public VectorFunction {};
 
-struct CenturyVectorFunction : public VectorTimestampFunction {
-    static vector_function_definitions getDefinitions();
+struct CenturyFunction {
+    static function_set getFunctionSet();
 };
 
-struct EpochMsVectorFunction : public VectorTimestampFunction {
-    static vector_function_definitions getDefinitions();
+struct EpochMsFunction {
+    static function_set getFunctionSet();
 };
 
-struct ToTimestampVectorFunction : public VectorTimestampFunction {
-    static vector_function_definitions getDefinitions();
+struct ToTimestampFunction {
+    static function_set getFunctionSet();
 };
 
 } // namespace function

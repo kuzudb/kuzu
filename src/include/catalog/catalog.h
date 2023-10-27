@@ -23,16 +23,9 @@ public:
     inline CatalogContent* getReadOnlyVersion() const { return catalogContentForReadOnlyTrx.get(); }
     inline CatalogContent* getWriteVersion() const { return catalogContentForWriteTrx.get(); }
 
-    inline function::BuiltInVectorFunctions* getBuiltInVectorFunctions() const {
-        return catalogContentForReadOnlyTrx->builtInVectorFunctions.get();
+    inline function::BuiltInFunctions* getBuiltInFunctions() const {
+        return catalogContentForReadOnlyTrx->builtInFunctions.get();
     }
-    inline function::BuiltInAggregateFunctions* getBuiltInAggregateFunction() const {
-        return catalogContentForReadOnlyTrx->builtInAggregateFunctions.get();
-    }
-    inline function::BuiltInTableFunctions* getBuiltInTableFunction() const {
-        return catalogContentForReadOnlyTrx->builtInTableFunctions.get();
-    }
-
     void prepareCommitOrRollback(transaction::TransactionAction action);
     void checkpointInMemory();
 
@@ -71,7 +64,7 @@ public:
     std::unordered_set<TableSchema*> getAllRelTableSchemasContainBoundTable(
         common::table_id_t boundTableID) const;
 
-    void addVectorFunction(std::string name, function::vector_function_definitions definitions);
+    void addFunction(std::string name, function::function_set functionSet);
 
     void addScalarMacroFunction(
         std::string name, std::unique_ptr<function::ScalarMacroFunction> macro);

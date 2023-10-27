@@ -1,7 +1,7 @@
 #pragma once
 
 #include "boolean_function_executor.h"
-#include "function/vector_functions.h"
+#include "function/scalar_function.h"
 
 namespace kuzu {
 namespace function {

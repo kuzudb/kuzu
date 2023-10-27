@@ -1,8 +1,8 @@
 #pragma once
 
 #include "expression.h"
-#include "function/aggregate/aggregate_function.h"
-#include "function/vector_functions.h"
+#include "function/aggregate_function.h"
+#include "function/scalar_function.h"
 
 namespace kuzu {
 namespace binder {

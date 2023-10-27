@@ -11,48 +11,48 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-vector_function_definitions NodesVectorFunction::getDefinitions() {
-    vector_function_definitions definitions;
-    definitions.push_back(make_unique<VectorFunctionDefinition>(NODES_FUNC_NAME,
+function_set NodesFunction::getFunctionSet() {
+    function_set functionSet;
+    functionSet.push_back(make_unique<ScalarFunction>(NODES_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::RECURSIVE_REL}, LogicalTypeID::ANY, nullptr,
-        nullptr, StructExtractVectorFunctions::compileFunc, bindFunc, false /* isVarLength */));
-    return definitions;
+        nullptr, StructExtractFunctions::compileFunc, bindFunc, false /* isVarLength */));
+    return functionSet;
 }
 
-std::unique_ptr<FunctionBindData> NodesVectorFunction::bindFunc(
-    const binder::expression_vector& arguments, FunctionDefinition* /*definition*/) {
+std::unique_ptr<FunctionBindData> NodesFunction::bindFunc(
+    const binder::expression_vector& arguments, Function* /*function*/) {
     auto structType = arguments[0]->getDataType();
     auto fieldIdx = StructType::getFieldIdx(&structType, InternalKeyword::NODES);
     return std::make_unique<StructExtractBindData>(
         *(StructType::getFieldTypes(&structType))[fieldIdx], fieldIdx);
 }
 
-vector_function_definitions RelsVectorFunction::getDefinitions() {
-    vector_function_definitions definitions;
-    definitions.push_back(make_unique<VectorFunctionDefinition>(RELS_FUNC_NAME,
+function_set RelsFunction::getFunctionSet() {
+    function_set functionSet;
+    functionSet.push_back(make_unique<ScalarFunction>(RELS_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::RECURSIVE_REL}, LogicalTypeID::ANY, nullptr,
-        nullptr, StructExtractVectorFunctions::compileFunc, bindFunc, false /* isVarLength */));
-    return definitions;
+        nullptr, StructExtractFunctions::compileFunc, bindFunc, false /* isVarLength */));
+    return functionSet;
 }
 
-std::unique_ptr<FunctionBindData> RelsVectorFunction::bindFunc(
-    const binder::expression_vector& arguments, FunctionDefinition* /*definition*/) {
+std::unique_ptr<FunctionBindData> RelsFunction::bindFunc(
+    const binder::expression_vector& arguments, Function* /*function*/) {
     auto structType = arguments[0]->getDataType();
     auto fieldIdx = StructType::getFieldIdx(&structType, InternalKeyword::RELS);
     return std::make_unique<StructExtractBindData>(
         *(StructType::getFieldTypes(&structType))[fieldIdx], fieldIdx);
 }
 
-vector_function_definitions PropertiesVectorFunction::getDefinitions() {
-    vector_function_definitions definitions;
-    definitions.push_back(make_unique<VectorFunctionDefinition>(PROPERTIES_FUNC_NAME,
+function_set PropertiesFunction::getFunctionSet() {
+    function_set functions;
+    functions.push_back(make_unique<ScalarFunction>(PROPERTIES_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::VAR_LIST, LogicalTypeID::STRING},
         LogicalTypeID::ANY, execFunc, nullptr, compileFunc, bindFunc, false /* isVarLength */));
-    return definitions;
+    return functions;
 }
 
-std::unique_ptr<FunctionBindData> PropertiesVectorFunction::bindFunc(
-    const binder::expression_vector& arguments, FunctionDefinition* /*definition*/) {
+std::unique_ptr<FunctionBindData> PropertiesFunction::bindFunc(
+    const binder::expression_vector& arguments, Function* /*function*/) {
     if (arguments[1]->expressionType != ExpressionType::LITERAL) {
         throw BinderException(stringFormat(
             "Expected literal input as the second argument for {}().", PROPERTIES_FUNC_NAME));
@@ -77,7 +77,7 @@ std::unique_ptr<FunctionBindData> PropertiesVectorFunction::bindFunc(
     return std::make_unique<PropertiesBindData>(*returnType, fieldIdx);
 }
 
-void PropertiesVectorFunction::compileFunc(FunctionBindData* bindData,
+void PropertiesFunction::compileFunc(FunctionBindData* bindData,
     const std::vector<std::shared_ptr<ValueVector>>& parameters,
     std::shared_ptr<ValueVector>& result) {
     assert(parameters[0]->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
@@ -87,7 +87,7 @@ void PropertiesVectorFunction::compileFunc(FunctionBindData* bindData,
     ListVector::setDataVector(result.get(), fieldVector);
 }
 
-void PropertiesVectorFunction::execFunc(
+void PropertiesFunction::execFunc(
     const std::vector<std::shared_ptr<ValueVector>>& parameters, ValueVector& result) {
     if (parameters[0]->state->isFlat()) {
         auto inputPos = parameters[0]->state->selVector->selectedPositions[0];
@@ -115,38 +115,38 @@ void PropertiesVectorFunction::execFunc(
     }
 }
 
-vector_function_definitions IsTrailVectorFunction::getDefinitions() {
-    vector_function_definitions definitions;
-    definitions.push_back(make_unique<VectorFunctionDefinition>(IS_TRAIL_FUNC_NAME,
+function_set IsTrailFunction::getFunctionSet() {
+    function_set functionSet;
+    functionSet.push_back(make_unique<ScalarFunction>(IS_TRAIL_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::RECURSIVE_REL}, LogicalTypeID::BOOL, execFunc,
         selectFunc, nullptr, nullptr, false /* isVarLength */));
-    return definitions;
+    return functionSet;
 }
 
-void IsTrailVectorFunction::execFunc(
+void IsTrailFunction::execFunc(
     const std::vector<std::shared_ptr<ValueVector>>& parameters, ValueVector& result) {
     UnaryPathExecutor::executeRelIDs(*parameters[0], result);
 }
 
-bool IsTrailVectorFunction::selectFunc(
+bool IsTrailFunction::selectFunc(
     const std::vector<std::shared_ptr<ValueVector>>& parameters, SelectionVector& selectionVector) {
     return UnaryPathExecutor::selectRelIDs(*parameters[0], selectionVector);
 }
 
-vector_function_definitions IsACyclicVectorFunction::getDefinitions() {
-    vector_function_definitions definitions;
-    definitions.push_back(make_unique<VectorFunctionDefinition>(IS_ACYCLIC_FUNC_NAME,
+function_set IsACyclicFunction::getFunctionSet() {
+    function_set functionSet;
+    functionSet.push_back(make_unique<ScalarFunction>(IS_ACYCLIC_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::RECURSIVE_REL}, LogicalTypeID::BOOL, execFunc,
         selectFunc, nullptr, nullptr, false /* isVarLength */));
-    return definitions;
+    return functionSet;
 }
 
-void IsACyclicVectorFunction::execFunc(
+void IsACyclicFunction::execFunc(
     const std::vector<std::shared_ptr<ValueVector>>& parameters, ValueVector& result) {
     UnaryPathExecutor::executeNodeIDs(*parameters[0], result);
 }
 
-bool IsACyclicVectorFunction::selectFunc(
+bool IsACyclicFunction::selectFunc(
     const std::vector<std::shared_ptr<ValueVector>>& parameters, SelectionVector& selectionVector) {
     return UnaryPathExecutor::selectNodeIDs(*parameters[0], selectionVector);
 }

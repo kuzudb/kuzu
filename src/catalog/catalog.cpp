@@ -136,9 +136,8 @@ std::unordered_set<TableSchema*> Catalog::getAllRelTableSchemasContainBoundTable
     return relTableSchemas;
 }
 
-void Catalog::addVectorFunction(
-    std::string name, function::vector_function_definitions definitions) {
-    catalogContentForReadOnlyTrx->addVectorFunction(std::move(name), std::move(definitions));
+void Catalog::addFunction(std::string name, function::function_set functionSet) {
+    catalogContentForReadOnlyTrx->addFunction(std::move(name), std::move(functionSet));
 }
 
 void Catalog::addScalarMacroFunction(

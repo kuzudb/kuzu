@@ -1,7 +1,7 @@
 #pragma once
 
 #include "expression_evaluator.h"
-#include "function/vector_functions.h"
+#include "function/scalar_function.h"
 
 namespace kuzu {
 namespace evaluator {

@@ -113,32 +113,28 @@ public:
 
     template<typename TR, typename... Args>
     void createScalarFunction(const std::string& name, TR (*udfFunc)(Args...)) {
-        auto definitions = function::UDF::getFunctionDefinition<TR, Args...>(name, udfFunc);
-        addScalarFunction(name, std::move(definitions));
+        addScalarFunction(name, std::move(function::UDF::getFunction<TR, Args...>(name, udfFunc)));
     }
 
     template<typename TR, typename... Args>
     void createScalarFunction(const std::string& name,
         std::vector<common::LogicalTypeID> parameterTypes, common::LogicalTypeID returnType,
         TR (*udfFunc)(Args...)) {
-        auto definitions = function::UDF::getFunctionDefinition<TR, Args...>(
-            name, udfFunc, std::move(parameterTypes), returnType);
-        addScalarFunction(name, std::move(definitions));
+        addScalarFunction(name, function::UDF::getFunction<TR, Args...>(
+                                    name, udfFunc, std::move(parameterTypes), returnType));
     }
 
     template<typename TR, typename... Args>
     void createVectorizedFunction(const std::string& name, function::scalar_exec_func scalarFunc) {
-        auto definitions = function::UDF::getVectorizedFunctionDefinition<TR, Args...>(
-            name, std::move(scalarFunc));
-        addScalarFunction(name, std::move(definitions));
+        addScalarFunction(
+            name, function::UDF::getVectorizedFunction<TR, Args...>(name, std::move(scalarFunc)));
     }
 
     void createVectorizedFunction(const std::string& name,
         std::vector<common::LogicalTypeID> parameterTypes, common::LogicalTypeID returnType,
         function::scalar_exec_func scalarFunc) {
-        auto definitions = function::UDF::getVectorizedFunctionDefinition(
-            name, std::move(scalarFunc), std::move(parameterTypes), returnType);
-        addScalarFunction(name, std::move(definitions));
+        addScalarFunction(name, function::UDF::getVectorizedFunction(name, std::move(scalarFunc),
+                                    std::move(parameterTypes), returnType));
     }
 
 private:
@@ -165,8 +161,7 @@ private:
     std::unique_ptr<QueryResult> executeAndAutoCommitIfNecessaryNoLock(
         PreparedStatement* preparedStatement, uint32_t planIdx = 0u);
 
-    KUZU_API void addScalarFunction(
-        std::string name, function::vector_function_definitions definitions);
+    KUZU_API void addScalarFunction(std::string name, function::function_set definitions);
 
     void checkPreparedStatementAccessMode(PreparedStatement* preparedStatement);
 

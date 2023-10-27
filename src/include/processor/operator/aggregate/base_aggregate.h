@@ -1,7 +1,7 @@
 #pragma once
 
 #include "aggregate_input.h"
-#include "function/aggregate/aggregate_function.h"
+#include "function/aggregate_function.h"
 #include "processor/operator/sink.h"
 
 namespace kuzu {

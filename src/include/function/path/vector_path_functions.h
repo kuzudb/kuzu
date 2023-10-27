@@ -1,20 +1,20 @@
 #pragma once
 
-#include "function/vector_functions.h"
+#include "function/scalar_function.h"
 
 namespace kuzu {
 namespace function {
 
-struct NodesVectorFunction {
-    static vector_function_definitions getDefinitions();
+struct NodesFunction {
+    static function_set getFunctionSet();
     static std::unique_ptr<FunctionBindData> bindFunc(
-        const binder::expression_vector& arguments, FunctionDefinition* definition);
+        const binder::expression_vector& arguments, Function* function);
 };
 
-struct RelsVectorFunction {
-    static vector_function_definitions getDefinitions();
+struct RelsFunction {
+    static function_set getFunctionSet();
     static std::unique_ptr<FunctionBindData> bindFunc(
-        const binder::expression_vector& arguments, FunctionDefinition* definition);
+        const binder::expression_vector& arguments, Function* function);
 };
 
 struct PropertiesBindData : public FunctionBindData {
@@ -24,10 +24,10 @@ struct PropertiesBindData : public FunctionBindData {
         : FunctionBindData{std::move(dataType)}, childIdx{childIdx} {}
 };
 
-struct PropertiesVectorFunction {
-    static vector_function_definitions getDefinitions();
+struct PropertiesFunction {
+    static function_set getFunctionSet();
     static std::unique_ptr<FunctionBindData> bindFunc(
-        const binder::expression_vector& arguments, FunctionDefinition* definition);
+        const binder::expression_vector& arguments, Function* function);
     static void compileFunc(FunctionBindData* bindData,
         const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
         std::shared_ptr<common::ValueVector>& result);
@@ -35,16 +35,16 @@ struct PropertiesVectorFunction {
         common::ValueVector& result);
 };
 
-struct IsTrailVectorFunction {
-    static vector_function_definitions getDefinitions();
+struct IsTrailFunction {
+    static function_set getFunctionSet();
     static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
         common::ValueVector& result);
     static bool selectFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
         common::SelectionVector& selectionVector);
 };
 
-struct IsACyclicVectorFunction {
-    static vector_function_definitions getDefinitions();
+struct IsACyclicFunction {
+    static function_set getFunctionSet();
     static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
         common::ValueVector& result);
     static bool selectFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,

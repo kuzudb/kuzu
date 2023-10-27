@@ -5,12 +5,12 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-vector_function_definitions OffsetVectorFunction::getDefinitions() {
-    vector_function_definitions definitions;
-    definitions.push_back(make_unique<VectorFunctionDefinition>(OFFSET_FUNC_NAME,
+function_set OffsetFunction::getFunctionSet() {
+    function_set functionSet;
+    functionSet.push_back(make_unique<ScalarFunction>(OFFSET_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::INTERNAL_ID}, LogicalTypeID::INT64,
-        OffsetVectorFunction::execFunction));
-    return definitions;
+        OffsetFunction::execFunction));
+    return functionSet;
 }
 
 } // namespace function

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "function/aggregate_function.h"
 #include "processor/result/factorized_table.h"
 
 namespace kuzu {
@@ -96,10 +97,10 @@ struct CollectFunction {
     static void finalize(uint8_t* state_) {}
 
     static std::unique_ptr<FunctionBindData> bindFunc(
-        const binder::expression_vector& arguments, FunctionDefinition* definition) {
+        const binder::expression_vector& arguments, Function* definition) {
         assert(arguments.size() == 1);
-        auto aggFuncDefinition = reinterpret_cast<AggregateFunctionDefinition*>(definition);
-        aggFuncDefinition->aggregateFunction->setInputDataType(arguments[0]->dataType);
+        auto aggFuncDefinition = reinterpret_cast<AggregateFunction*>(definition);
+        aggFuncDefinition->parameterTypeIDs[0] = arguments[0]->dataType.getLogicalTypeID();
         auto varListTypeInfo = std::make_unique<common::VarListTypeInfo>(
             std::make_unique<common::LogicalType>(arguments[0]->dataType));
         auto returnType =

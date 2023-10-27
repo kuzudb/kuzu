@@ -1,12 +1,12 @@
 #pragma once
 
-#include "function/vector_functions.h"
+#include "function/scalar_function.h"
 #include "label_functions.h"
 
 namespace kuzu {
 namespace function {
 
-struct LabelVectorFunction {
+struct LabelFunction {
     static void execFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result) {
         assert(params.size() == 2);
