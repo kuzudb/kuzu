@@ -244,10 +244,8 @@ jobs:
     name: rustfmt check
     runs-on: ubuntu-22.04
     steps:
-      - name: Install rustfmt
-        run: |
-          rustup update
-          rustup component add rustfmt
+      - name: Update rust
+        run: rustup update
 
       - uses: actions/checkout@v3
 
