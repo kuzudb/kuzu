@@ -209,7 +209,7 @@ public:
 
     void insertRel(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
         const std::vector<common::ValueVector*>& relPropertyVectors);
-    void deleteRel(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
+    bool deleteRel(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
         common::ValueVector* relIDVector);
     void updateRel(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
         common::ValueVector* relIDVector, common::ValueVector* propertyVector, uint32_t propertyID);

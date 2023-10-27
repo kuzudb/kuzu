@@ -1,5 +1,6 @@
 #include "storage/stats/rels_store_statistics.h"
 
+#include "common/assert.h"
 #include "storage/stats/rel_table_statistics.h"
 
 using namespace kuzu::common;
@@ -25,6 +26,8 @@ void RelsStoreStats::updateNumRelsByValue(table_id_t relTableID, int64_t value) 
     auto relStatistics =
         (RelTableStats*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable[relTableID]
             .get();
+    auto numRelsBeforeUpdate = relStatistics->getNumTuples();
+    KU_ASSERT(!(numRelsBeforeUpdate == 0 && value < 0));
     auto numRelsAfterUpdate = relStatistics->getNumTuples() + value;
     relStatistics->setNumTuples(numRelsAfterUpdate);
     // Update the nextRelID only when we are inserting rels.

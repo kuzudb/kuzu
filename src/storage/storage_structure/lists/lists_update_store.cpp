@@ -112,7 +112,7 @@ void ListsUpdatesStore::insertRelIfNecessary(const ValueVector* srcNodeIDVector,
     }
 }
 
-void ListsUpdatesStore::deleteRelIfNecessary(
+bool ListsUpdatesStore::deleteRelIfNecessary(
     ValueVector* srcNodeIDVector, ValueVector* dstNodeIDVector, ValueVector* relIDVector) {
     auto srcNodeID = srcNodeIDVector->getValue<nodeID_t>(
         srcNodeIDVector->state->selVector->selectedPositions[0]);
@@ -144,11 +144,16 @@ void ListsUpdatesStore::deleteRelIfNecessary(
         for (auto direction : RelDataDirectionUtils::getRelDataDirections()) {
             auto boundNodeID = direction == RelDataDirection::FWD ? srcNodeID : dstNodeID;
             if (!relTableSchema->isSingleMultiplicityInDirection(direction)) {
-                getOrCreateListsUpdatesForNodeOffset(direction, boundNodeID)
-                    ->deletedRelOffsets.insert(relID.offset);
+                auto listUpdatesForNodeOffset =
+                    getOrCreateListsUpdatesForNodeOffset(direction, boundNodeID);
+                if (listUpdatesForNodeOffset->deletedRelOffsets.contains(relID.offset)) {
+                    return false;
+                }
+                listUpdatesForNodeOffset->deletedRelOffsets.insert(relID.offset);
             }
         }
     }
+    return true;
 }
 
 uint64_t ListsUpdatesStore::getNumInsertedRelsForNodeOffset(

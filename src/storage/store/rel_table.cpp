@@ -319,13 +319,13 @@ void RelTable::insertRel(ValueVector* srcNodeIDVector, ValueVector* dstNodeIDVec
     listsUpdatesStore->insertRelIfNecessary(srcNodeIDVector, dstNodeIDVector, relPropertyVectors);
 }
 
-void RelTable::deleteRel(
+bool RelTable::deleteRel(
     ValueVector* srcNodeIDVector, ValueVector* dstNodeIDVector, ValueVector* relIDVector) {
     assert(srcNodeIDVector->state->isFlat() && dstNodeIDVector->state->isFlat() &&
            relIDVector->state->isFlat());
     fwdRelTableData->deleteRel(srcNodeIDVector);
     bwdRelTableData->deleteRel(dstNodeIDVector);
-    listsUpdatesStore->deleteRelIfNecessary(srcNodeIDVector, dstNodeIDVector, relIDVector);
+    return listsUpdatesStore->deleteRelIfNecessary(srcNodeIDVector, dstNodeIDVector, relIDVector);
 }
 
 void RelTable::updateRel(ValueVector* srcNodeIDVector, ValueVector* dstNodeIDVector,
