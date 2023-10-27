@@ -254,9 +254,7 @@ jobs:
 
       - name: Check api format
         working-directory: tools/rust_api
-        run: |
-          source $HOME/.cargo/env
-          cargo fmt --check
+        run: cargo fmt --check
 
   benchmark:
     name: benchmark
