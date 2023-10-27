@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <unordered_set>
+#include <vector>
 
 #include "common/api.h"
 
@@ -12,6 +14,8 @@ using nodeID_t = internalID_t;
 using relID_t = internalID_t;
 
 using table_id_t = uint64_t;
+using table_id_vector_t = std::vector<table_id_t>;
+using table_id_set_t = std::unordered_set<table_id_t>;
 using offset_t = uint64_t;
 constexpr table_id_t INVALID_TABLE_ID = UINT64_MAX;
 constexpr offset_t INVALID_OFFSET = UINT64_MAX;

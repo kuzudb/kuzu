@@ -230,6 +230,40 @@ Runtime exception: Maximum length of strings is 4096. Input string's length is 2
 0|0
 1|10
 
+-CASE SETMultiLabelWithPruning
+-STATEMENT MATCH (a:person)-[:knows]->(b) WHERE a.ID=0 SET b.name = "a", b.fName = "XX" RETURN b.name, b.fName;
+---- 3
+|XX
+|XX
+|XX
+-STATEMENT MATCH (b) RETURN b.name, b.fName
+---- 14
+ABFsUni|
+CsWork|
+DEsWork|
+Roma|
+Sóló cón tu párejâ|
+The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|
+|Alice
+|Elizabeth
+|Farooq
+|Greg
+|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+|XX
+|XX
+|XX
+-STATEMENT MATCH (a:person)-[e:knows|:studyAt]->(b:person) WHERE a.ID=0 SET e.year = 2023, e.date = date("2023-11-11") RETURN e.year, e.date;
+---- 3
+|2023-11-11
+|2023-11-11
+|2023-11-11
+-STATEMENT MATCH (a:person)-[e:knows|:studyAt]->(b:person:organisation) WHERE a.ID=0 RETURN e.year, e.date;
+---- 4
+2021|
+|2023-11-11
+|2023-11-11
+|2023-11-11
+
 -CASE SetNonNullValueWithWriteTransaction
 -STATEMENT BEGIN TRANSACTION
 ---- ok

@@ -35,6 +35,15 @@ static void writeToPropertyVector(ValueVector* propertyVector, uint32_t property
 }
 
 void SingleLabelNodeSetExecutor::set(ExecutionContext* context) {
+    if (setInfo.columnID == common::INVALID_COLUMN_ID) {
+        if (lhsVector != nullptr) {
+            for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
+                auto lhsPos = nodeIDVector->state->selVector->selectedPositions[i];
+                lhsVector->setNull(lhsPos, true);
+            }
+        }
+        return;
+    }
     evaluator->evaluate();
     setInfo.table->update(
         context->clientContext->getActiveTransaction(), setInfo.columnID, nodeIDVector, rhsVector);
@@ -105,6 +114,13 @@ static void writeToPropertyVector(ValueVector* propertyVector, ValueVector* rhsV
 }
 
 void SingleLabelRelSetExecutor::set() {
+    if (propertyID == INVALID_PROPERTY_ID) {
+        if (lhsVector != nullptr) {
+            auto pos = relIDVector->state->selVector->selectedPositions[0];
+            lhsVector->setNull(pos, true);
+        }
+        return;
+    }
     evaluator->evaluate();
     table->updateRel(srcNodeIDVector, dstNodeIDVector, relIDVector, rhsVector, propertyID);
     if (lhsVector != nullptr) {

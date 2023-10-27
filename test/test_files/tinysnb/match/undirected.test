@@ -65,6 +65,11 @@ Dan|Carol
 ---- 1
 54
 
+-LOG UndirLabelPruning
+-STATEMENT MATCH (a:person)-[:knows|:studyAt|:workAt]-(b:person) RETURN COUNT(*);
+---- 1
+28
+
 -LOG UndirPattern
 -STATEMENT MATCH ()-[:studyAt]-(a)-[:meets]-()-[:workAt]-() RETURN a.fName;
 -ENUMERATE

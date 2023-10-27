@@ -53,7 +53,7 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     default:
         throw NotImplementedException("Binder::bind");
     }
-    BoundStatementRewriter::rewrite(*boundStatement);
+    BoundStatementRewriter::rewrite(*boundStatement, catalog);
     return boundStatement;
 }
 
