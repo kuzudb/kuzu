@@ -76,8 +76,11 @@
 
 -LOG MapKeys
 -STATEMENT RETURN map_keys(map([[5], [28, 75, 32], [], [33, 11, 66, 33]], ['a', 'b', 'd', 'e']));
+---- error
+Binder exception: Cannot bind LIST_CREATION with parameter type INT64[] and STRING[].
+-STATEMENT RETURN map_keys(map([[5], [28, 75, 32], [1], [33, 11, 66, 33]], ['a', 'b', 'd', 'e']));
 ---- 1
-[[5],[28,75,32],[],[33,11,66,33]]
+[[5],[28,75,32],[1],[33,11,66,33]]
 
 -LOG EmptyMapKeys
 -STATEMENT RETURN map_keys(map([], []));

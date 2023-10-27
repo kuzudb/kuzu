@@ -1,5 +1,6 @@
 #include "function/union/vector_union_functions.h"
 
+#include "binder/expression_binder.h"
 #include "function/struct/vector_struct_functions.h"
 #include "function/union/functions/union_tag.h"
 
@@ -23,8 +24,12 @@ std::unique_ptr<FunctionBindData> UnionValueFunction::bindFunc(
     // TODO(Ziy): Use UINT8 to represent tag value.
     fields.push_back(std::make_unique<StructField>(
         UnionType::TAG_FIELD_NAME, std::make_unique<LogicalType>(UnionType::TAG_FIELD_TYPE)));
+    if (arguments[0]->getDataType().getLogicalTypeID() == common::LogicalTypeID::ANY) {
+        binder::ExpressionBinder::resolveAnyDataType(
+            *arguments[0], LogicalType(LogicalTypeID::STRING));
+    }
     fields.push_back(std::make_unique<StructField>(
-        arguments[0]->getAlias(), std::make_unique<LogicalType>(arguments[0]->getDataType())));
+        arguments[0]->getAlias(), arguments[0]->getDataType().copy()));
     auto resultType =
         LogicalType(LogicalTypeID::UNION, std::make_unique<StructTypeInfo>(std::move(fields)));
     return std::make_unique<FunctionBindData>(resultType);

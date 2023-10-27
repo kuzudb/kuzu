@@ -269,6 +269,7 @@ public:
 
     inline PhysicalTypeID getPhysicalType() const { return physicalType; }
 
+    inline bool hasExtraTypeInfo() const { return extraTypeInfo != nullptr; }
     inline void setExtraTypeInfo(std::unique_ptr<ExtraTypeInfo> typeInfo) {
         extraTypeInfo = std::move(typeInfo);
     }
@@ -432,6 +433,7 @@ public:
     static uint32_t getRowLayoutSize(const LogicalType& logicalType);
     static bool isNumerical(const LogicalType& dataType);
     static bool isNested(const LogicalType& dataType);
+    static bool isNested(LogicalTypeID logicalTypeID);
     static std::vector<LogicalType> getAllValidComparableLogicalTypes();
     static std::vector<LogicalTypeID> getNumericalLogicalTypeIDs();
     static std::vector<LogicalTypeID> getIntegerLogicalTypeIDs();
