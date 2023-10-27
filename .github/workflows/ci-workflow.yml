@@ -138,8 +138,8 @@ jobs:
     env:
       NUM_THREADS: 32
       TEST_JOBS: 16
-      CC: clang-14
-      CXX: clang++-14
+      CC: clang
+      CXX: clang++
     steps:
       - uses: actions/checkout@v3
 
@@ -216,7 +216,7 @@ jobs:
 
   header-include-guard-check:
     name: header include guard check
-    runs-on: kuzu-self-hosted-testing
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
 
@@ -225,8 +225,13 @@ jobs:
 
   clang-formatting-check:
     name: clang-format check
-    runs-on: kuzu-self-hosted-testing
+    runs-on: ubuntu-22.04
     steps:
+      - name: Install clang-format
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format-11
+
       - uses: actions/checkout@v3
 
       - name: Check source format
@@ -237,11 +242,14 @@ jobs:
 
   rustfmt-check:
     name: rustfmt check
-    runs-on: kuzu-self-hosted-testing
+    runs-on: ubuntu-22.04
     steps:
+      - name: Update Rust
+        run: rustup update
+
       - uses: actions/checkout@v3
 
-      - name: Check api format
+      - name: Check Rust API format
         working-directory: tools/rust_api
         run: cargo fmt --check
 
