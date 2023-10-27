@@ -35,10 +35,9 @@ using vector_idx_t = uint32_t;
 constexpr vector_idx_t INVALID_VECTOR_IDX = UINT32_MAX;
 using block_idx_t = uint64_t;
 constexpr block_idx_t INVALID_BLOCK_IDX = UINT64_MAX;
-using field_idx_t = uint64_t;
-using struct_field_idx_t = uint64_t;
-using union_field_idx_t = uint64_t;
-constexpr struct_field_idx_t INVALID_STRUCT_FIELD_IDX = UINT64_MAX;
+using struct_field_idx_t = uint8_t;
+using union_field_idx_t = struct_field_idx_t;
+constexpr struct_field_idx_t INVALID_STRUCT_FIELD_IDX = UINT8_MAX;
 using row_idx_t = uint64_t;
 constexpr row_idx_t INVALID_ROW_IDX = UINT64_MAX;
 constexpr uint32_t UNDEFINED_CAST_COST = UINT32_MAX;
@@ -69,7 +68,7 @@ struct map_entry_t {
 };
 
 struct union_entry_t {
-    int64_t pos;
+    struct_entry_t entry;
 };
 
 enum class KUZU_API LogicalTypeID : uint8_t {
@@ -396,7 +395,7 @@ struct MapType {
 struct UnionType {
     static constexpr union_field_idx_t TAG_FIELD_IDX = 0;
 
-    static constexpr LogicalTypeID TAG_FIELD_TYPE = LogicalTypeID::INT64;
+    static constexpr LogicalTypeID TAG_FIELD_TYPE = LogicalTypeID::INT8;
 
     static constexpr char TAG_FIELD_NAME[] = "tag";
 

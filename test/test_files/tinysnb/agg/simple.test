@@ -6,11 +6,11 @@
 -CASE AggSimple
 
 -LOG OneHopSimpleAggTest
--STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN COUNT(a.ID), MIN(a.fName), MAX(c.ID)
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN COUNT(a.ID), MIN(a.fName), MAX(c.ID),count(a.grades)
 -PARALLELISM 8
 -ENUMERATE
 ---- 1
-36|Alice|5
+36|Alice|5|36
 
 -LOG SimpleAvgTest
 -STATEMENT MATCH (a:person) RETURN AVG(a.age), AVG(a.eyeSight)
@@ -250,11 +250,11 @@ False
 82
 
 -LOG SimpleAggAvgInt16Test
--STATEMENT MATCH (m:movies) RETURN AVG(m.length)
+-STATEMENT MATCH (m:movies) RETURN AVG(m.length), count(m.audience), count(m.grade)
 -PARALLELISM 7
 -ENUMERATE
 ---- 1
-989.333333
+989.333333|3|3
 
 -LOG SimpleAggMaxInt8Test
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.level)
