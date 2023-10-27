@@ -1,6 +1,6 @@
 #include "main/query_summary.h"
 
-#include "common/statement_type.h"
+#include "common/enums/statement_type.h"
 
 using namespace kuzu::common;
 

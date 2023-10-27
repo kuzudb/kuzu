@@ -40,35 +40,38 @@ Lists* DirectedRelTableData::getPropertyLists(property_id_t propertyID) {
     return nullptr;
 }
 
-void DirectedRelTableData::initializeData(RelTableSchema* tableSchema, WAL* wal) {
+void DirectedRelTableData::initializeData(
+    RelTableSchema* tableSchema, WAL* wal, AccessMode accessMode) {
     if (isSingleMultiplicity()) {
-        initializeColumns(tableSchema, wal);
+        initializeColumns(tableSchema, wal, accessMode);
     } else {
-        initializeLists(tableSchema, wal);
+        initializeLists(tableSchema, wal, accessMode);
     }
 }
 
-void DirectedRelTableData::initializeColumns(RelTableSchema* tableSchema, WAL* wal) {
+void DirectedRelTableData::initializeColumns(
+    RelTableSchema* tableSchema, WAL* wal, AccessMode accessMode) {
     adjColumn = ColumnFactory::getColumn(StorageUtils::getAdjColumnStructureIDAndFName(
                                              wal->getDirectory(), tableSchema->tableID, direction),
-        LogicalType(LogicalTypeID::INTERNAL_ID), &bufferManager, wal);
+        LogicalType(LogicalTypeID::INTERNAL_ID), &bufferManager, wal, accessMode);
     for (auto& property : tableSchema->properties) {
         propertyColumns[property->getPropertyID()] = ColumnFactory::getColumn(
             StorageUtils::getRelPropertyColumnStructureIDAndFName(
                 wal->getDirectory(), tableSchema->tableID, direction, property->getPropertyID()),
-            *property->getDataType(), &bufferManager, wal);
+            *property->getDataType(), &bufferManager, wal, accessMode);
     }
 }
 
-void DirectedRelTableData::initializeLists(RelTableSchema* tableSchema, WAL* wal) {
+void DirectedRelTableData::initializeLists(
+    RelTableSchema* tableSchema, WAL* wal, AccessMode accessMode) {
     adjLists = std::make_unique<AdjLists>(StorageUtils::getAdjListsStructureIDAndFName(
                                               wal->getDirectory(), tableSchema->tableID, direction),
-        tableSchema->getNbrTableID(direction), &bufferManager, wal, listsUpdatesStore);
+        tableSchema->getNbrTableID(direction), &bufferManager, wal, accessMode, listsUpdatesStore);
     for (auto& property : tableSchema->properties) {
         propertyLists[property->getPropertyID()] = ListsFactory::getLists(
             StorageUtils::getRelPropertyListsStructureIDAndFName(
                 wal->getDirectory(), tableSchema->tableID, direction, *property),
-            *property->getDataType(), adjLists->getHeaders(), &bufferManager, wal,
+            *property->getDataType(), adjLists->getHeaders(), &bufferManager, wal, accessMode,
             listsUpdatesStore);
     }
 }
@@ -239,8 +242,8 @@ DirectedRelTableData::getListsUpdateIteratorsForDirection() {
     return listsUpdateIteratorsForDirection;
 }
 
-RelTable::RelTable(
-    const Catalog& catalog, table_id_t tableID, MemoryManager& memoryManager, WAL* wal)
+RelTable::RelTable(const Catalog& catalog, table_id_t tableID, MemoryManager& memoryManager,
+    WAL* wal, AccessMode accessMode)
     : tableID{tableID}, wal{wal} {
     auto tableSchema =
         reinterpret_cast<RelTableSchema*>(catalog.getReadOnlyVersion()->getTableSchema(tableID));
@@ -253,12 +256,12 @@ RelTable::RelTable(
         std::make_unique<DirectedRelTableData>(tableID, tableSchema->getBoundTableID(BWD),
             tableSchema->getNbrTableID(BWD), BWD, listsUpdatesStore.get(),
             *memoryManager.getBufferManager(), tableSchema->isSingleMultiplicityInDirection(BWD));
-    initializeData(tableSchema);
+    initializeData(tableSchema, accessMode);
 }
 
-void RelTable::initializeData(RelTableSchema* tableSchema) {
-    fwdRelTableData->initializeData(tableSchema, wal);
-    bwdRelTableData->initializeData(tableSchema, wal);
+void RelTable::initializeData(RelTableSchema* tableSchema, AccessMode accessMode) {
+    fwdRelTableData->initializeData(tableSchema, wal, accessMode);
+    bwdRelTableData->initializeData(tableSchema, wal, accessMode);
 }
 
 std::vector<AdjLists*> RelTable::getAllAdjLists(table_id_t boundTableID) {
@@ -417,13 +420,13 @@ void DirectedRelTableData::addProperty(const Property& property, WAL* wal) {
             ColumnFactory::getColumn(
                 StorageUtils::getRelPropertyColumnStructureIDAndFName(
                     wal->getDirectory(), tableID, direction, property.getPropertyID()),
-                *property.getDataType(), &bufferManager, wal));
+                *property.getDataType(), &bufferManager, wal, AccessMode::READ_WRITE));
     } else {
         propertyLists.emplace(property.getPropertyID(),
             ListsFactory::getLists(StorageUtils::getRelPropertyListsStructureIDAndFName(
                                        wal->getDirectory(), tableID, direction, property),
                 *property.getDataType(), adjLists->getHeaders(), &bufferManager, wal,
-                listsUpdatesStore));
+                AccessMode::READ_WRITE, listsUpdatesStore));
     }
 }
 

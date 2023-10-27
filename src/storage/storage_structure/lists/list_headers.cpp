@@ -18,13 +18,14 @@ ListHeadersBuilder::ListHeadersBuilder(const std::string& baseListFName, uint64_
 }
 
 ListHeaders::ListHeaders(const StorageStructureIDAndFName& storageStructureIDAndFNameForBaseList,
-    BufferManager* bufferManager, WAL* wal)
+    BufferManager* bufferManager, WAL* wal, AccessMode accessMode)
     : storageStructureIDAndFName(storageStructureIDAndFNameForBaseList) {
     storageStructureIDAndFName.storageStructureID.listFileID.listFileType = ListFileType::HEADERS;
     storageStructureIDAndFName.fName =
         StorageUtils::getListHeadersFName(storageStructureIDAndFNameForBaseList.fName);
     fileHandle = bufferManager->getBMFileHandle(storageStructureIDAndFName.fName,
-        FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
+        accessMode == AccessMode::READ_ONLY ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
+                                              FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
         BMFileHandle::FileVersionedType::VERSIONED_FILE);
     storageStructureIDAndFName.storageStructureID.listFileID.listFileType = ListFileType::HEADERS;
     storageStructureIDAndFName.fName = fileHandle->getFileInfo()->path;

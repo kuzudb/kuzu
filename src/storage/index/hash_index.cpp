@@ -121,12 +121,14 @@ void HashIndexLocalStorage::clear() {
 
 template<typename T>
 HashIndex<T>::HashIndex(const StorageStructureIDAndFName& storageStructureIDAndFName,
-    const LogicalType& keyDataType, BufferManager& bufferManager, WAL* wal)
+    AccessMode accessMode, const LogicalType& keyDataType, BufferManager& bufferManager, WAL* wal)
     : BaseHashIndex{keyDataType},
       storageStructureIDAndFName{storageStructureIDAndFName}, bm{bufferManager}, wal{wal} {
     slotCapacity = getSlotCapacity<T>();
     fileHandle = bufferManager.getBMFileHandle(storageStructureIDAndFName.fName,
-        FileHandle::O_PERSISTENT_FILE_NO_CREATE, BMFileHandle::FileVersionedType::VERSIONED_FILE);
+        accessMode == AccessMode::READ_ONLY ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
+                                              FileHandle::O_PERSISTENT_FILE_NO_CREATE,
+        BMFileHandle::FileVersionedType::VERSIONED_FILE);
     headerArray = std::make_unique<BaseDiskArray<HashIndexHeader>>(*fileHandle,
         storageStructureIDAndFName.storageStructureID, INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, &bm, wal,
         Transaction::getDummyReadOnlyTrx().get());
@@ -146,7 +148,8 @@ HashIndex<T>::HashIndex(const StorageStructureIDAndFName& storageStructureIDAndF
     keyEqualsFunc = HashIndexUtils::initializeEqualsFunc(indexHeader->keyDataTypeID);
     localStorage = std::make_unique<HashIndexLocalStorage>(keyDataType);
     if (keyDataType.getLogicalTypeID() == LogicalTypeID::STRING) {
-        diskOverflowFile = std::make_unique<DiskOverflowFile>(storageStructureIDAndFName, &bm, wal);
+        diskOverflowFile =
+            std::make_unique<DiskOverflowFile>(storageStructureIDAndFName, &bm, wal, accessMode);
     }
 }
 

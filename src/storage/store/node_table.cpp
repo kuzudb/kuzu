@@ -12,7 +12,7 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-NodeTable::NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH,
+NodeTable::NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH, AccessMode accessMode,
     NodesStoreStatsAndDeletedIDs* nodesStatisticsAndDeletedIDs, BufferManager& bufferManager,
     WAL* wal, NodeTableSchema* nodeTableSchema, bool enableCompression)
     : nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs},
@@ -20,14 +20,14 @@ NodeTable::NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH,
       tableID{nodeTableSchema->tableID}, bufferManager{bufferManager}, wal{wal} {
     tableData = std::make_unique<TableData>(dataFH, metadataFH, tableID, &bufferManager, wal,
         nodeTableSchema->getProperties(), nodesStatisticsAndDeletedIDs, enableCompression);
-    initializePKIndex(nodeTableSchema);
+    initializePKIndex(nodeTableSchema, accessMode);
 }
 
-void NodeTable::initializePKIndex(NodeTableSchema* nodeTableSchema) {
+void NodeTable::initializePKIndex(NodeTableSchema* nodeTableSchema, AccessMode accessMode) {
     if (nodeTableSchema->getPrimaryKey()->getDataType()->getLogicalTypeID() !=
         LogicalTypeID::SERIAL) {
         pkIndex = std::make_unique<PrimaryKeyIndex>(
-            StorageUtils::getNodeIndexIDAndFName(wal->getDirectory(), tableID),
+            StorageUtils::getNodeIndexIDAndFName(wal->getDirectory(), tableID), accessMode,
             *nodeTableSchema->getPrimaryKey()->getDataType(), bufferManager, wal);
     }
 }

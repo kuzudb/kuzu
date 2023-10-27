@@ -91,9 +91,12 @@ public:
     inline AdjLists* getAdjLists() const { return adjLists.get(); }
     inline bool isSingleMultiplicity() const { return isSingleMultiplicityInDirection; }
 
-    void initializeData(catalog::RelTableSchema* tableSchema, WAL* wal);
-    void initializeColumns(catalog::RelTableSchema* tableSchema, WAL* wal);
-    void initializeLists(catalog::RelTableSchema* tableSchema, WAL* wal);
+    void initializeData(
+        catalog::RelTableSchema* tableSchema, WAL* wal, common::AccessMode accessMode);
+    void initializeColumns(
+        catalog::RelTableSchema* tableSchema, WAL* wal, common::AccessMode accessMode);
+    void initializeLists(
+        catalog::RelTableSchema* tableSchema, WAL* wal, common::AccessMode accessMode);
     void resetColumnsAndLists(catalog::RelTableSchema* tableSchema, WAL* wal);
     Column* getPropertyColumn(common::property_id_t propertyID);
     Lists* getPropertyLists(common::property_id_t propertyID);
@@ -146,9 +149,9 @@ private:
 class RelTable {
 public:
     RelTable(const catalog::Catalog& catalog, common::table_id_t tableID,
-        MemoryManager& memoryManager, WAL* wal);
+        MemoryManager& memoryManager, WAL* wal, common::AccessMode accessMode);
 
-    void initializeData(catalog::RelTableSchema* tableSchema);
+    void initializeData(catalog::RelTableSchema* tableSchema, common::AccessMode accessMode);
 
     inline void resetColumnsAndLists(catalog::RelTableSchema* tableSchema) {
         fwdRelTableData->resetColumnsAndLists(tableSchema, wal);

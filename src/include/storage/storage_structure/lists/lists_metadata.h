@@ -37,7 +37,7 @@ class ListsMetadata : public BaseListsMetadata {
 
 public:
     explicit ListsMetadata(const StorageStructureIDAndFName& storageStructureIDAndFNameForBaseList,
-        BufferManager* bufferManager, WAL* wal);
+        BufferManager* bufferManager, WAL* wal, common::AccessMode accessMode);
 
     // Returns a function that can map the logical pageIdx of a chunk ito its corresponding physical
     // pageIdx in a disk file.

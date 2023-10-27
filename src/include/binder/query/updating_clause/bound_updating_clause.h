@@ -1,7 +1,7 @@
 #pragma once
 
 #include "binder/expression/expression.h"
-#include "common/clause_type.h"
+#include "common/enums/clause_type.h"
 
 namespace kuzu {
 namespace binder {

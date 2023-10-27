@@ -1,7 +1,7 @@
 #pragma once
 
 #include "binder/expression/node_expression.h"
-#include "common/statement_type.h"
+#include "common/enums/statement_type.h"
 #include "expression_mapper.h"
 #include "planner/operator/logical_plan.h"
 #include "processor/operator/result_collector.h"

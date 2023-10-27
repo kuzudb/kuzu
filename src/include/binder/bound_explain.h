@@ -1,7 +1,7 @@
 #pragma once
 
 #include "binder/bound_statement.h"
-#include "common/explain_type.h"
+#include "common/enums/explain_type.h"
 
 namespace kuzu {
 namespace binder {

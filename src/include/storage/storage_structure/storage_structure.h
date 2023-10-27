@@ -1,7 +1,6 @@
 #pragma once
 
 #include <functional>
-#include <utility>
 
 #include "common/constants.h"
 #include "common/vector/value_vector.h"
@@ -27,13 +26,14 @@ public:
     StorageStructure() = default;
 
     StorageStructure(const StorageStructureIDAndFName& storageStructureIDAndFName,
-        BufferManager* bufferManager, WAL* wal)
+        BufferManager* bufferManager, WAL* wal, common::AccessMode accessMode)
         : logger{common::LoggerUtils::getLogger(common::LoggerConstants::LoggerEnum::STORAGE)},
           storageStructureID{storageStructureIDAndFName.storageStructureID},
           bufferManager{bufferManager}, wal{wal} {
         assert(!storageStructureIDAndFName.fName.empty());
         fileHandle = bufferManager->getBMFileHandle(storageStructureIDAndFName.fName,
-            FileHandle::O_PERSISTENT_FILE_NO_CREATE,
+            accessMode == common::AccessMode::READ_ONLY ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
+                                                          FileHandle::O_PERSISTENT_FILE_NO_CREATE,
             BMFileHandle::FileVersionedType::VERSIONED_FILE);
     }
 
@@ -90,7 +90,7 @@ protected:
 
     BaseColumnOrList(const StorageStructureIDAndFName& storageStructureIDAndFName,
         common::LogicalType dataType, const size_t& elementSize, BufferManager* bufferManager,
-        bool hasInlineNullBytes, WAL* wal);
+        bool hasInlineNullBytes, WAL* wal, common::AccessMode accessMode);
 
     void readBySequentialCopy(transaction::Transaction* transaction, common::ValueVector* vector,
         PageElementCursor& cursor,

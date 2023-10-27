@@ -11,8 +11,8 @@ namespace storage {
 // RelsStore stores adjacent rels of a node as well as the properties of rels in the system.
 class RelsStore {
 public:
-    RelsStore(BMFileHandle* metadataFH, const catalog::Catalog& catalog,
-        MemoryManager& memoryManager, WAL* wal);
+    RelsStore(BMFileHandle* metadataFH, common::AccessMode accessMode,
+        const catalog::Catalog& catalog, MemoryManager& memoryManager, WAL* wal);
 
     inline Column* getRelPropertyColumn(common::RelDataDirection relDirection,
         common::table_id_t relTableID, uint64_t propertyIdx) const {
@@ -38,7 +38,8 @@ public:
     // is running on the system, so we can directly create and insert a RelTable into relTables.
     inline void createRelTable(
         common::table_id_t tableID, catalog::Catalog* catalog, MemoryManager* memoryManager) {
-        relTables[tableID] = std::make_unique<RelTable>(*catalog, tableID, *memoryManager, wal);
+        relTables[tableID] = std::make_unique<RelTable>(
+            *catalog, tableID, *memoryManager, wal, common::AccessMode::READ_WRITE);
     }
 
     // This function is used for testing only.

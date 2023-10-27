@@ -82,7 +82,8 @@ class HashIndex : public BaseHashIndex {
 
 public:
     HashIndex(const StorageStructureIDAndFName& storageStructureIDAndFName,
-        const common::LogicalType& keyDataType, BufferManager& bufferManager, WAL* wal);
+        common::AccessMode accessMode, const common::LogicalType& keyDataType,
+        BufferManager& bufferManager, WAL* wal);
 
 public:
     bool lookupInternal(
@@ -148,14 +149,15 @@ class PrimaryKeyIndex {
 
 public:
     PrimaryKeyIndex(const StorageStructureIDAndFName& storageStructureIDAndFName,
-        const common::LogicalType& keyDataType, BufferManager& bufferManager, WAL* wal)
+        common::AccessMode accessMode, const common::LogicalType& keyDataType,
+        BufferManager& bufferManager, WAL* wal)
         : keyDataTypeID{keyDataType.getLogicalTypeID()} {
         if (keyDataTypeID == common::LogicalTypeID::INT64) {
             hashIndexForInt64 = std::make_unique<HashIndex<int64_t>>(
-                storageStructureIDAndFName, keyDataType, bufferManager, wal);
+                storageStructureIDAndFName, accessMode, keyDataType, bufferManager, wal);
         } else {
             hashIndexForString = std::make_unique<HashIndex<common::ku_string_t>>(
-                storageStructureIDAndFName, keyDataType, bufferManager, wal);
+                storageStructureIDAndFName, accessMode, keyDataType, bufferManager, wal);
         }
     }
 

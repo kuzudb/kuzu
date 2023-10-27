@@ -19,10 +19,10 @@ class DiskOverflowFile : public StorageStructure {
 
 public:
     DiskOverflowFile(const StorageStructureIDAndFName& storageStructureIDAndFNameOfMainDBFile,
-        BufferManager* bufferManager, WAL* wal)
+        BufferManager* bufferManager, WAL* wal, common::AccessMode accessMode)
         : StorageStructure(
               constructOverflowStorageStructureIDAndFName(storageStructureIDAndFNameOfMainDBFile),
-              bufferManager, wal),
+              bufferManager, wal, accessMode),
           loggedNewOverflowFileNextBytePosRecord{false} {
         nextBytePosToWriteTo =
             fileHandle->getNumPages() * common::BufferPoolConstants::PAGE_4KB_SIZE;

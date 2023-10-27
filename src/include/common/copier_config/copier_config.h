@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "common/constants.h"
-#include "common/table_type.h"
+#include "common/enums/table_type.h"
 #include "common/types/types.h"
 #include "rdf_config.h"
 

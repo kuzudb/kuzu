@@ -26,8 +26,8 @@ WALPageIdxPosInPageAndFrame StorageStructure::createWALVersionOfPageIfNecessaryF
 
 BaseColumnOrList::BaseColumnOrList(const StorageStructureIDAndFName& storageStructureIDAndFName,
     LogicalType dataType, const size_t& elementSize, BufferManager* bufferManager,
-    bool hasInlineNullBytes, WAL* wal)
-    : StorageStructure(storageStructureIDAndFName, bufferManager, wal),
+    bool hasInlineNullBytes, WAL* wal, AccessMode accessMode)
+    : StorageStructure(storageStructureIDAndFName, bufferManager, wal, accessMode),
       dataType{std::move(dataType)}, elementSize{elementSize} {
     numElementsPerPage = PageUtils::getNumElementsInAPage(elementSize, hasInlineNullBytes);
 }

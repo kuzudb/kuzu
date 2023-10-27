@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/join_type.h"
+#include "common/enums/join_type.h"
 #include "processor/operator/result_collector.h"
 
 namespace kuzu {

@@ -47,9 +47,9 @@ public:
     Lists(const StorageStructureIDAndFName& storageStructureIDAndFName,
         const common::LogicalType& dataType, const size_t& elementSize,
         std::shared_ptr<ListHeaders> headers, BufferManager* bufferManager, WAL* wal,
-        ListsUpdatesStore* listsUpdatesStore)
+        common::AccessMode accessMode, ListsUpdatesStore* listsUpdatesStore)
         : Lists{storageStructureIDAndFName, dataType, elementSize, std::move(headers),
-              bufferManager, true /*hasNULLBytes*/, wal, listsUpdatesStore} {};
+              bufferManager, true /*hasNULLBytes*/, wal, accessMode, listsUpdatesStore} {};
     inline ListsMetadata& getListsMetadata() { return metadata; };
     inline std::shared_ptr<ListHeaders> getHeaders() const { return headers; };
     inline uint64_t getNumElementsFromListHeader(common::offset_t nodeOffset) const {
@@ -103,12 +103,12 @@ protected:
     Lists(const StorageStructureIDAndFName& storageStructureIDAndFName,
         const common::LogicalType& dataType, const size_t& elementSize,
         std::shared_ptr<ListHeaders> headers, BufferManager* bufferManager, bool hasNULLBytes,
-        WAL* wal, ListsUpdatesStore* listsUpdatesStore)
+        WAL* wal, common::AccessMode accessMode, ListsUpdatesStore* listsUpdatesStore)
         : BaseColumnOrList{storageStructureIDAndFName, dataType, elementSize, bufferManager,
-              hasNULLBytes, wal},
+              hasNULLBytes, wal, accessMode},
           storageStructureIDAndFName{storageStructureIDAndFName},
-          metadata{storageStructureIDAndFName, bufferManager, wal}, headers{std::move(headers)},
-          listsUpdatesStore{listsUpdatesStore} {};
+          metadata{storageStructureIDAndFName, bufferManager, wal, accessMode},
+          headers{std::move(headers)}, listsUpdatesStore{listsUpdatesStore} {};
 
 private:
     void fillInMemListsFromFrame(InMemList& inMemList, const uint8_t* frame, uint64_t elemPosInPage,
@@ -132,11 +132,12 @@ class PropertyListsWithOverflow : public Lists {
 public:
     PropertyListsWithOverflow(const StorageStructureIDAndFName& storageStructureIDAndFName,
         const common::LogicalType& dataType, std::shared_ptr<ListHeaders> headers,
-        BufferManager* bufferManager, WAL* wal, ListsUpdatesStore* listsUpdatesStore)
+        BufferManager* bufferManager, WAL* wal, common::AccessMode accessMode,
+        ListsUpdatesStore* listsUpdatesStore)
         : Lists{storageStructureIDAndFName, dataType,
               storage::StorageUtils::getDataTypeSize(dataType), std::move(headers), bufferManager,
-              wal, listsUpdatesStore},
-          diskOverflowFile{storageStructureIDAndFName, bufferManager, wal} {}
+              wal, accessMode, listsUpdatesStore},
+          diskOverflowFile{storageStructureIDAndFName, bufferManager, wal, accessMode} {}
 
 private:
     inline DiskOverflowFile* getDiskOverflowFileIfExists() override { return &diskOverflowFile; }
@@ -150,10 +151,10 @@ class StringPropertyLists : public PropertyListsWithOverflow {
 public:
     StringPropertyLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
         const std::shared_ptr<ListHeaders>& headers, BufferManager* bufferManager, WAL* wal,
-        ListsUpdatesStore* listsUpdatesStore)
+        common::AccessMode accessMode, ListsUpdatesStore* listsUpdatesStore)
         : PropertyListsWithOverflow{storageStructureIDAndFName,
               common::LogicalType{common::LogicalTypeID::STRING}, headers, bufferManager, wal,
-              listsUpdatesStore} {};
+              accessMode, listsUpdatesStore} {};
 
 private:
     void readFromList(common::ValueVector* valueVector, ListHandle& listHandle) override;
@@ -164,9 +165,10 @@ class ListPropertyLists : public PropertyListsWithOverflow {
 public:
     ListPropertyLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
         const common::LogicalType& dataType, const std::shared_ptr<ListHeaders>& headers,
-        BufferManager* bufferManager, WAL* wal, ListsUpdatesStore* listsUpdatesStore)
+        BufferManager* bufferManager, WAL* wal, common::AccessMode accessMode,
+        ListsUpdatesStore* listsUpdatesStore)
         : PropertyListsWithOverflow{storageStructureIDAndFName, dataType, headers, bufferManager,
-              wal, listsUpdatesStore} {};
+              wal, accessMode, listsUpdatesStore} {};
 
 private:
     void readListFromPages(
@@ -179,11 +181,12 @@ class AdjLists : public Lists {
 public:
     AdjLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
         common::table_id_t nbrTableID, BufferManager* bufferManager, WAL* wal,
-        ListsUpdatesStore* listsUpdatesStore)
+        common::AccessMode accessMode, ListsUpdatesStore* listsUpdatesStore)
         : Lists{storageStructureIDAndFName, common::LogicalType(common::LogicalTypeID::INTERNAL_ID),
               sizeof(common::offset_t),
-              std::make_shared<ListHeaders>(storageStructureIDAndFName, bufferManager, wal),
-              bufferManager, false /* hasNullBytes */, wal, listsUpdatesStore},
+              std::make_shared<ListHeaders>(
+                  storageStructureIDAndFName, bufferManager, wal, accessMode),
+              bufferManager, false /* hasNullBytes */, wal, accessMode, listsUpdatesStore},
           nbrTableID{nbrTableID} {};
 
     inline bool mayContainNulls() const final { return false; }
@@ -215,10 +218,10 @@ class RelIDList : public Lists {
 public:
     RelIDList(const StorageStructureIDAndFName& storageStructureIDAndFName,
         std::shared_ptr<ListHeaders> headers, BufferManager* bufferManager, WAL* wal,
-        ListsUpdatesStore* listsUpdatesStore)
+        common::AccessMode accessMode, ListsUpdatesStore* listsUpdatesStore)
         : Lists{storageStructureIDAndFName, common::LogicalType{common::LogicalTypeID::INTERNAL_ID},
-              sizeof(common::offset_t), std::move(headers), bufferManager, wal, listsUpdatesStore} {
-    }
+              sizeof(common::offset_t), std::move(headers), bufferManager, wal, accessMode,
+              listsUpdatesStore} {}
 
     void setDeletedRelsIfNecessary(transaction::Transaction* transaction, ListHandle& listHandle,
         common::ValueVector* relIDVector) override;
@@ -244,7 +247,8 @@ class ListsFactory {
 public:
     static std::unique_ptr<Lists> getLists(const StorageStructureIDAndFName& structureIDAndFName,
         const common::LogicalType& dataType, const std::shared_ptr<ListHeaders>& adjListsHeaders,
-        BufferManager* bufferManager, WAL* wal, ListsUpdatesStore* listsUpdatesStore) {
+        BufferManager* bufferManager, WAL* wal, common::AccessMode accessMode,
+        ListsUpdatesStore* listsUpdatesStore) {
         assert(listsUpdatesStore != nullptr);
         switch (dataType.getLogicalTypeID()) {
         case common::LogicalTypeID::INT64:
@@ -265,17 +269,17 @@ public:
         case common::LogicalTypeID::FIXED_LIST:
             return std::make_unique<Lists>(structureIDAndFName, dataType,
                 storage::StorageUtils::getDataTypeSize(dataType), adjListsHeaders, bufferManager,
-                wal, listsUpdatesStore);
+                wal, accessMode, listsUpdatesStore);
         case common::LogicalTypeID::BLOB:
         case common::LogicalTypeID::STRING:
-            return std::make_unique<StringPropertyLists>(
-                structureIDAndFName, adjListsHeaders, bufferManager, wal, listsUpdatesStore);
+            return std::make_unique<StringPropertyLists>(structureIDAndFName, adjListsHeaders,
+                bufferManager, wal, accessMode, listsUpdatesStore);
         case common::LogicalTypeID::VAR_LIST:
             return std::make_unique<ListPropertyLists>(structureIDAndFName, dataType,
-                adjListsHeaders, bufferManager, wal, listsUpdatesStore);
+                adjListsHeaders, bufferManager, wal, accessMode, listsUpdatesStore);
         case common::LogicalTypeID::INTERNAL_ID:
-            return std::make_unique<RelIDList>(
-                structureIDAndFName, adjListsHeaders, bufferManager, wal, listsUpdatesStore);
+            return std::make_unique<RelIDList>(structureIDAndFName, adjListsHeaders, bufferManager,
+                wal, accessMode, listsUpdatesStore);
         default:
             throw common::StorageException("Invalid type for property list creation.");
         }

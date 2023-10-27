@@ -78,7 +78,7 @@ std::unique_ptr<std::vector<kuzu::common::LogicalType>> logical_type_get_struct_
 }
 
 std::unique_ptr<Database> new_database(const std::string& databasePath, uint64_t bufferPoolSize,
-    uint64_t maxNumThreads, bool enableCompression, kuzu::main::AccessMode accessMode) {
+    uint64_t maxNumThreads, bool enableCompression, kuzu::common::AccessMode accessMode) {
     auto systemConfig = SystemConfig();
     if (bufferPoolSize > 0) {
         systemConfig.bufferPoolSize = bufferPoolSize;

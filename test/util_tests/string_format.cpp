@@ -1,7 +1,7 @@
 #include "common/string_format.h"
 
+#include "common/enums/rel_direction.h"
 #include "common/exception/internal.h"
-#include "common/rel_direction.h"
 #include "common/types/internal_id_t.h"
 #include "gtest/gtest.h"
 

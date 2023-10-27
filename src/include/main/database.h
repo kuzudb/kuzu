@@ -5,12 +5,11 @@
 
 #include "common/api.h"
 #include "common/constants.h"
+#include "common/enums/access_mode.h"
 #include "kuzu_fwd.h"
 
 namespace kuzu {
 namespace main {
-
-enum class AccessMode : uint8_t { READ_ONLY = 0, READ_WRITE = 1 };
 
 /**
  * @brief Stores runtime configuration for creating or opening a Database
@@ -26,12 +25,13 @@ struct KUZU_API SystemConfig {
      *  @param accessMode Access mode to the database (READ_ONLY or READ_WRITE)
      */
     explicit SystemConfig(uint64_t bufferPoolSize = -1u, uint64_t maxNumThreads = 0,
-        bool enableCompression = true, AccessMode accessMode = AccessMode::READ_WRITE);
+        bool enableCompression = true,
+        common::AccessMode accessMode = common::AccessMode::READ_WRITE);
 
     uint64_t bufferPoolSize;
     uint64_t maxNumThreads;
     bool enableCompression;
-    AccessMode accessMode;
+    common::AccessMode accessMode;
 };
 
 /**

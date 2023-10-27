@@ -64,11 +64,11 @@ Database::Database(std::string databasePath, SystemConfig systemConfig)
     memoryManager = std::make_unique<MemoryManager>(bufferManager.get());
     queryProcessor = std::make_unique<processor::QueryProcessor>(this->systemConfig.maxNumThreads);
     initDBDirAndCoreFilesIfNecessary();
-    wal = std::make_unique<WAL>(this->databasePath, *bufferManager);
+    wal = std::make_unique<WAL>(this->databasePath, systemConfig.accessMode, *bufferManager);
     recoverIfNecessary();
     catalog = std::make_unique<catalog::Catalog>(wal.get());
-    storageManager = std::make_unique<storage::StorageManager>(
-        *catalog, *memoryManager, wal.get(), systemConfig.enableCompression);
+    storageManager = std::make_unique<storage::StorageManager>(systemConfig.accessMode, *catalog,
+        *memoryManager, wal.get(), systemConfig.enableCompression);
     transactionManager = std::make_unique<transaction::TransactionManager>(
         *wal, storageManager.get(), memoryManager.get());
 }

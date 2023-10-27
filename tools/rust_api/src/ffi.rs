@@ -53,14 +53,14 @@ pub(crate) mod ffi {
         type LogicalTypeID;
     }
 
-    #[namespace = "kuzu::main"]
+    #[namespace = "kuzu::common"]
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     enum AccessMode {
         READ_ONLY = 0,
         READ_WRITE = 1,
     }
 
-    #[namespace = "kuzu::main"]
+    #[namespace = "kuzu::common"]
     unsafe extern "C++" {
         type AccessMode;
     }

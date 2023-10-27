@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/rel_direction.h"
+#include "common/enums/rel_direction.h"
 #include "table_schema.h"
 
 namespace kuzu {

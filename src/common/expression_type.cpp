@@ -1,4 +1,4 @@
-#include "common/expression_type.h"
+#include "common/enums/expression_type.h"
 
 #include "common/exception/not_implemented.h"
 
