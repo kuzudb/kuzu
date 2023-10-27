@@ -781,6 +781,9 @@ std::vector<std::string> LogicalTypeUtils::parseStructFields(const std::string& 
                 startPos = curPos + 1;
             }
         } break;
+        default: {
+            // Normal character, continue.
+        }
         }
         curPos++;
     }
