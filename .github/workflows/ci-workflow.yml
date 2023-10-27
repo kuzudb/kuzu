@@ -228,8 +228,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Install clang-format
-        run:  apt-get install -y clang-format-11
-        
+        run:  sudo apt-get install -y clang-format-11
+
       - uses: actions/checkout@v3
 
       - name: Check source format
