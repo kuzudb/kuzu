@@ -244,7 +244,7 @@ jobs:
     name: rustfmt check
     runs-on: ubuntu-22.04
     steps:
-      - name: Update rust
+      - name: Update Rust
         run: rustup update
 
       - uses: actions/checkout@v3
