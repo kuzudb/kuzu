@@ -10,15 +10,12 @@ RUN curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg -
 RUN echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
 
 RUN apt-get update && apt-get install -y \
+    build-essential \
     ccache \
-    clang-14 \
-    clang-format-11 \
-    clang-tidy \
     cmake \
     curl \
-    g++ \
-    gcc \
     git \
+    gnupg \
     jq \
     lcov \
     libcurl4-openssl-dev \
@@ -30,8 +27,14 @@ RUN apt-get update && apt-get install -y \
     python-is-python3 \
     python3-dev \
     python3-pip \
-    sudo \
+    software-properties-common \
     wget
+
+RUN wget https://apt.llvm.org/llvm.sh && \
+    chmod +x llvm.sh && \
+    yes | ./llvm.sh 17 all && \
+    rm llvm.sh && \
+    ln /usr/bin/run-clang-tidy-17 /usr/bin/run-clang-tidy
 
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 RUN useradd --create-home runner
