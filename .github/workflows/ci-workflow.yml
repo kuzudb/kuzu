@@ -228,7 +228,9 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Install clang-format
-        run:  sudo apt-get install -y clang-format-11
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format-11
 
       - uses: actions/checkout@v3
 
@@ -240,13 +242,21 @@ jobs:
 
   rustfmt-check:
     name: rustfmt check
-    runs-on: kuzu-self-hosted-testing
+    runs-on: ubuntu-22.04
     steps:
+      - name: Install rustfmt
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          source $HOME/.cargo/env
+          rustup component add rustfmt
+
       - uses: actions/checkout@v3
 
       - name: Check api format
         working-directory: tools/rust_api
-        run: cargo fmt --check
+        run: |
+          source $HOME/.cargo/env
+          cargo fmt --check
 
   benchmark:
     name: benchmark
