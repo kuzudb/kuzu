@@ -138,8 +138,8 @@ jobs:
     env:
       NUM_THREADS: 32
       TEST_JOBS: 16
-      CC: clang-17
-      CXX: clang++-17
+      CC: clang
+      CXX: clang++
     steps:
       - uses: actions/checkout@v3
 

@@ -34,6 +34,8 @@ RUN wget https://apt.llvm.org/llvm.sh && \
     chmod +x llvm.sh && \
     yes | ./llvm.sh 17 all && \
     rm llvm.sh && \
+    ln /usr/bin/clang++-17 /usr/bin/clang++ && \
+    ln /usr/bin/clang-17 /usr/bin/clang && \
     ln /usr/bin/run-clang-tidy-17 /usr/bin/run-clang-tidy
 
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
