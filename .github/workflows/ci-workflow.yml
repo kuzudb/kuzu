@@ -216,7 +216,7 @@ jobs:
 
   header-include-guard-check:
     name: header include guard check
-    runs-on: kuzu-self-hosted-testing
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
 
@@ -252,7 +252,7 @@ jobs:
 
       - uses: actions/checkout@v3
 
-      - name: Check api format
+      - name: Check Rust API format
         working-directory: tools/rust_api
         run: cargo fmt --check
 
