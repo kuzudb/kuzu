@@ -9,7 +9,7 @@ namespace processor {
 
 class NodeDeleteExecutor {
 public:
-    NodeDeleteExecutor(const DataPos& nodeIDPos) : nodeIDPos{nodeIDPos} {}
+    NodeDeleteExecutor(const DataPos& nodeIDPos) : nodeIDPos{nodeIDPos}, nodeIDVector(nullptr) {}
     virtual ~NodeDeleteExecutor() = default;
 
     virtual void init(ResultSet* resultSet, ExecutionContext* context);
@@ -67,7 +67,8 @@ class RelDeleteExecutor {
 public:
     RelDeleteExecutor(
         const DataPos& srcNodeIDPos, const DataPos& dstNodeIDPos, const DataPos& relIDPos)
-        : srcNodeIDPos{srcNodeIDPos}, dstNodeIDPos{dstNodeIDPos}, relIDPos{relIDPos} {}
+        : srcNodeIDPos{srcNodeIDPos}, dstNodeIDPos{dstNodeIDPos}, relIDPos{relIDPos},
+          srcNodeIDVector(nullptr), dstNodeIDVector(nullptr), relIDVector(nullptr) {}
     virtual ~RelDeleteExecutor() = default;
 
     void init(ResultSet* resultSet, ExecutionContext* context);
@@ -86,19 +87,17 @@ protected:
     common::ValueVector* relIDVector;
 };
 
-class SingleLabelRelDeleteExecutor : public RelDeleteExecutor {
+class SingleLabelRelDeleteExecutor final : public RelDeleteExecutor {
 public:
     SingleLabelRelDeleteExecutor(storage::RelsStoreStats* relsStatistic, storage::RelTable* table,
         const DataPos& srcNodeIDPos, const DataPos& dstNodeIDPos, const DataPos& relIDPos)
         : RelDeleteExecutor(srcNodeIDPos, dstNodeIDPos, relIDPos),
           relsStatistic{relsStatistic}, table{table} {}
-    SingleLabelRelDeleteExecutor(const SingleLabelRelDeleteExecutor& other)
-        : RelDeleteExecutor(other.srcNodeIDPos, other.dstNodeIDPos, other.relIDPos),
-          relsStatistic{other.relsStatistic}, table{other.table} {}
+    SingleLabelRelDeleteExecutor(const SingleLabelRelDeleteExecutor& other) = default;
 
-    void delete_() final;
+    void delete_();
 
-    inline std::unique_ptr<RelDeleteExecutor> copy() const final {
+    inline std::unique_ptr<RelDeleteExecutor> copy() const {
         return std::make_unique<SingleLabelRelDeleteExecutor>(*this);
     }
 
@@ -107,7 +106,7 @@ private:
     storage::RelTable* table;
 };
 
-class MultiLabelRelDeleteExecutor : public RelDeleteExecutor {
+class MultiLabelRelDeleteExecutor final : public RelDeleteExecutor {
     using rel_table_statistic_pair = std::pair<storage::RelTable*, storage::RelsStoreStats*>;
 
 public:
@@ -116,13 +115,11 @@ public:
         const DataPos& srcNodeIDPos, const DataPos& dstNodeIDPos, const DataPos& relIDPos)
         : RelDeleteExecutor(srcNodeIDPos, dstNodeIDPos, relIDPos), tableIDToTableMap{std::move(
                                                                        tableIDToTableMap)} {}
-    MultiLabelRelDeleteExecutor(const MultiLabelRelDeleteExecutor& other)
-        : RelDeleteExecutor(other.srcNodeIDPos, other.dstNodeIDPos, other.relIDPos),
-          tableIDToTableMap{other.tableIDToTableMap} {}
+    MultiLabelRelDeleteExecutor(const MultiLabelRelDeleteExecutor& other) = default;
 
-    void delete_() final;
+    void delete_();
 
-    inline std::unique_ptr<RelDeleteExecutor> copy() const final {
+    inline std::unique_ptr<RelDeleteExecutor> copy() const {
         return std::make_unique<MultiLabelRelDeleteExecutor>(*this);
     }
 

@@ -1,5 +1,6 @@
 #include "processor/result/factorized_table.h"
 
+#include "common/assert.h"
 #include "common/data_chunk/data_chunk_state.h"
 #include "common/null_buffer.h"
 #include "common/vector/value_vector.h"
@@ -197,6 +198,7 @@ void FactorizedTable::lookup(std::vector<ValueVector*>& vectors,
     uint64_t startPos, uint64_t numTuplesToRead) const {
     assert(vectors.size() == colIdxesToScan.size());
     auto tuplesToRead = std::make_unique<uint8_t*[]>(tupleIdxesToRead.size());
+    KU_ASSERT(numTuplesToRead > 0);
     for (auto i = 0u; i < numTuplesToRead; i++) {
         tuplesToRead[i] = getTuple(tupleIdxesToRead[i + startPos]);
     }
