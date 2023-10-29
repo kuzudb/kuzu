@@ -9,7 +9,7 @@ BaseAggregateSharedState::BaseAggregateSharedState(
     const std::vector<std::unique_ptr<AggregateFunction>>& aggregateFunctions)
     : currentOffset{0} {
     for (auto& aggregateFunction : aggregateFunctions) {
-        this->aggregateFunctions.push_back(aggregateFunction->clone());
+        this->aggregateFunctions.push_back(aggregateFunction->copy());
     }
 }
 
@@ -42,7 +42,7 @@ void BaseAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
 std::vector<std::unique_ptr<function::AggregateFunction>> BaseAggregate::cloneAggFunctions() {
     std::vector<std::unique_ptr<AggregateFunction>> result;
     for (auto& function : aggregateFunctions) {
-        result.push_back(function->clone());
+        result.push_back(function->copy());
     }
     return result;
 }

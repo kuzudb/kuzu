@@ -8,17 +8,16 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-vector_function_definitions UnionValueVectorFunction::getDefinitions() {
-    vector_function_definitions definitions;
-    definitions.push_back(make_unique<VectorFunctionDefinition>(UNION_VALUE_FUNC_NAME,
+function_set UnionValueFunction::getFunctionSet() {
+    function_set functionSet;
+    functionSet.push_back(make_unique<ScalarFunction>(UNION_VALUE_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::UNION, execFunc, nullptr,
         compileFunc, bindFunc, false /* isVarLength */));
-    return definitions;
+    return functionSet;
 }
 
-std::unique_ptr<FunctionBindData> UnionValueVectorFunction::bindFunc(
-    const binder::expression_vector& arguments,
-    kuzu::function::FunctionDefinition* /*definition*/) {
+std::unique_ptr<FunctionBindData> UnionValueFunction::bindFunc(
+    const binder::expression_vector& arguments, kuzu::function::Function* /*function*/) {
     assert(arguments.size() == 1);
     std::vector<std::unique_ptr<StructField>> fields;
     // TODO(Ziy): Use UINT8 to represent tag value.
@@ -31,12 +30,12 @@ std::unique_ptr<FunctionBindData> UnionValueVectorFunction::bindFunc(
     return std::make_unique<FunctionBindData>(resultType);
 }
 
-void UnionValueVectorFunction::execFunc(
+void UnionValueFunction::execFunc(
     const std::vector<std::shared_ptr<ValueVector>>& /*parameters*/, ValueVector& result) {
     UnionVector::setTagField(&result, UnionType::TAG_FIELD_IDX);
 }
 
-void UnionValueVectorFunction::compileFunc(FunctionBindData* /*bindData*/,
+void UnionValueFunction::compileFunc(FunctionBindData* /*bindData*/,
     const std::vector<std::shared_ptr<ValueVector>>& parameters,
     std::shared_ptr<ValueVector>& result) {
     assert(parameters.size() == 1);
@@ -45,22 +44,22 @@ void UnionValueVectorFunction::compileFunc(FunctionBindData* /*bindData*/,
     UnionVector::referenceVector(result.get(), UnionType::TAG_FIELD_IDX, parameters[0]);
 }
 
-vector_function_definitions UnionTagVectorFunction::getDefinitions() {
-    vector_function_definitions definitions;
-    definitions.push_back(make_unique<VectorFunctionDefinition>(UNION_TAG_FUNC_NAME,
+function_set UnionTagFunction::getFunctionSet() {
+    function_set functionSet;
+    functionSet.push_back(make_unique<ScalarFunction>(UNION_TAG_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::UNION}, LogicalTypeID::STRING,
-        UnaryExecListStructFunction<union_entry_t, ku_string_t, UnionTag>, nullptr, nullptr,
-        false /* isVarLength */));
-    return definitions;
+        ScalarFunction::UnaryExecListStructFunction<union_entry_t, ku_string_t, UnionTag>, nullptr,
+        nullptr, false /* isVarLength */));
+    return functionSet;
 }
 
-vector_function_definitions UnionExtractVectorFunction::getDefinitions() {
-    vector_function_definitions definitions;
-    definitions.push_back(make_unique<VectorFunctionDefinition>(UNION_EXTRACT_FUNC_NAME,
+function_set UnionExtractFunction::getFunctionSet() {
+    function_set functionSet;
+    functionSet.push_back(make_unique<ScalarFunction>(UNION_EXTRACT_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::UNION, LogicalTypeID::STRING}, LogicalTypeID::ANY,
-        nullptr, nullptr, StructExtractVectorFunctions::compileFunc,
-        StructExtractVectorFunctions::bindFunc, false /* isVarLength */));
-    return definitions;
+        nullptr, nullptr, StructExtractFunctions::compileFunc, StructExtractFunctions::bindFunc,
+        false /* isVarLength */));
+    return functionSet;
 }
 
 } // namespace function

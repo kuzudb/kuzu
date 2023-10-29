@@ -254,9 +254,8 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     return queryResult;
 }
 
-void Connection::addScalarFunction(
-    std::string name, function::vector_function_definitions definitions) {
-    database->catalog->addVectorFunction(name, std::move(definitions));
+void Connection::addScalarFunction(std::string name, function::function_set definitions) {
+    database->catalog->addFunction(name, std::move(definitions));
 }
 
 void Connection::checkPreparedStatementAccessMode(PreparedStatement* preparedStatement) {

@@ -157,7 +157,7 @@ void AggregateHashTable::initializeFT(
         auto& aggFunc = aggFuncs[i];
         tableSchema->appendColumn(std::make_unique<ColumnSchema>(
             isUnflat, dataChunkPos, aggFunc->getAggregateStateSize()));
-        aggregateFunctions[i] = aggFunc->clone();
+        aggregateFunctions[i] = aggFunc->copy();
         updateAggFuncs[i] = aggFunc->isFunctionDistinct() ?
                                 &AggregateHashTable::updateDistinctAggState :
                                 &AggregateHashTable::updateAggState;
@@ -918,7 +918,7 @@ std::vector<std::unique_ptr<AggregateHashTable>> AggregateHashTableUtils::create
                 distinctKeysDataTypes[i] = groupByKeyDataTypes[i];
             }
             distinctKeysDataTypes[groupByKeyDataTypes.size()] =
-                aggregateFunction->getInputDataType();
+                LogicalType{aggregateFunction->parameterTypeIDs[0]};
             std::vector<std::unique_ptr<AggregateFunction>> emptyFunctions;
             auto ht = std::make_unique<AggregateHashTable>(memoryManager,
                 std::move(distinctKeysDataTypes), emptyFunctions, 0 /* numEntriesToAllocate */);

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "aggregate_function.h"
+#include "function/aggregate_function.h"
 
 namespace kuzu {
 namespace function {

@@ -51,12 +51,12 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     const expression_vector& children, const std::string& functionName) {
-    auto builtInFunctions = binder->catalog.getBuiltInVectorFunctions();
+    auto builtInFunctions = binder->catalog.getBuiltInFunctions();
     std::vector<LogicalType> childrenTypes;
     for (auto& child : children) {
         childrenTypes.push_back(child->dataType);
     }
-    auto function = builtInFunctions->matchVectorFunction(functionName, childrenTypes);
+    auto function = builtInFunctions->matchScalarFunction(functionName, childrenTypes);
     expression_vector childrenAfterCast;
     for (auto i = 0u; i < children.size(); ++i) {
         auto targetType =
@@ -79,7 +79,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     const ParsedExpression& parsedExpression, const std::string& functionName, bool isDistinct) {
-    auto builtInFunctions = binder->catalog.getBuiltInAggregateFunction();
+    auto builtInFunctions = binder->catalog.getBuiltInFunctions();
     std::vector<LogicalType> childrenTypes;
     expression_vector children;
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
@@ -92,7 +92,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
         childrenTypes.push_back(child->dataType);
         children.push_back(std::move(child));
     }
-    auto function = builtInFunctions->matchFunction(functionName, childrenTypes, isDistinct);
+    auto function =
+        builtInFunctions->matchAggregateFunction(functionName, childrenTypes, isDistinct)->copy();
     if (function->paramRewriteFunc) {
         function->paramRewriteFunc(children);
     }
@@ -103,13 +104,13 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     }
     std::unique_ptr<function::FunctionBindData> bindData;
     if (function->bindFunc) {
-        bindData = function->bindFunc(children, function);
+        bindData = function->bindFunc(children, function.get());
     } else {
         bindData =
             std::make_unique<function::FunctionBindData>(LogicalType(function->returnTypeID));
     }
     return make_shared<AggregateFunctionExpression>(functionName, std::move(bindData),
-        std::move(children), function->aggregateFunction->clone(), uniqueExpressionName);
+        std::move(children), std::move(function), uniqueExpressionName);
 }
 
 std::shared_ptr<Expression> ExpressionBinder::bindMacroExpression(
@@ -247,7 +248,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
     default:
         throw NotImplementedException("ExpressionBinder::bindLabelFunction");
     }
-    auto execFunc = function::LabelVectorFunction::execFunction;
+    auto execFunc = function::LabelFunction::execFunction;
     auto bindData =
         std::make_unique<function::FunctionBindData>(LogicalType(LogicalTypeID::STRING));
     auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(LABEL_FUNC_NAME, children);

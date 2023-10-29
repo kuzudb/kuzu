@@ -1,9 +1,7 @@
 #pragma once
 
 #include "binder/ddl/bound_create_table_info.h"
-#include "function/aggregate/built_in_aggregate_functions.h"
-#include "function/built_in_table_functions.h"
-#include "function/built_in_vector_functions.h"
+#include "function/built_in_function.h"
 #include "function/scalar_macro_function.h"
 #include "storage/storage_info.h"
 #include "table_schema.h"
@@ -109,7 +107,7 @@ public:
 
     common::ExpressionType getFunctionType(const std::string& name) const;
 
-    void addVectorFunction(std::string name, function::vector_function_definitions definitions);
+    void addFunction(std::string name, function::function_set definitions);
 
     void addScalarMacroFunction(
         std::string name, std::unique_ptr<function::ScalarMacroFunction> macro);
@@ -139,9 +137,7 @@ private:
     // is re-constructed when reading from the catalog file.
     std::unordered_map<std::string, common::table_id_t> tableNameToIDMap;
     common::table_id_t nextTableID;
-    std::unique_ptr<function::BuiltInVectorFunctions> builtInVectorFunctions;
-    std::unique_ptr<function::BuiltInAggregateFunctions> builtInAggregateFunctions;
-    std::unique_ptr<function::BuiltInTableFunctions> builtInTableFunctions;
+    std::unique_ptr<function::BuiltInFunctions> builtInFunctions;
     std::unordered_map<std::string, std::unique_ptr<function::ScalarMacroFunction>> macros;
 };
 

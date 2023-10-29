@@ -12,6 +12,13 @@ using namespace kuzu::common;
 using namespace kuzu::catalog;
 using namespace kuzu::main;
 
+function_set CurrentSettingFunction::getFunctionSet() {
+    function_set functionSet;
+    functionSet.push_back(
+        std::make_unique<TableFunction>("current_setting", tableFunc, bindFunc, initSharedState));
+    return functionSet;
+}
+
 CallFuncMorsel CallFuncSharedState::getMorsel() {
     std::lock_guard lck{mtx};
     assert(curOffset <= maxOffset);
@@ -54,6 +61,13 @@ std::unique_ptr<TableFuncBindData> CurrentSettingFunction::bindFunc(
         std::move(returnTypes), std::move(returnColumnNames), 1 /* one row result */);
 }
 
+function_set DBVersionFunction::getFunctionSet() {
+    function_set functionSet;
+    functionSet.push_back(
+        std::make_unique<TableFunction>("db_version", tableFunc, bindFunc, initSharedState));
+    return functionSet;
+}
+
 void DBVersionFunction::tableFunc(
     TableFunctionInput& input, std::vector<ValueVector*> outputVectors) {
     auto sharedState = reinterpret_cast<CallFuncSharedState*>(input.sharedState);
@@ -76,6 +90,13 @@ std::unique_ptr<TableFuncBindData> DBVersionFunction::bindFunc(
     returnTypes.emplace_back(LogicalTypeID::STRING);
     return std::make_unique<CallTableFuncBindData>(
         std::move(returnTypes), std::move(returnColumnNames), 1 /* one row result */);
+}
+
+function_set ShowTablesFunction::getFunctionSet() {
+    function_set functionSet;
+    functionSet.push_back(
+        std::make_unique<TableFunction>("show_tables", tableFunc, bindFunc, initSharedState));
+    return functionSet;
 }
 
 void ShowTablesFunction::tableFunc(
@@ -111,6 +132,13 @@ std::unique_ptr<TableFuncBindData> ShowTablesFunction::bindFunc(
 
     return std::make_unique<ShowTablesBindData>(catalog->getTableSchemas(), std::move(returnTypes),
         std::move(returnColumnNames), catalog->getTableCount());
+}
+
+function_set TableInfoFunction::getFunctionSet() {
+    function_set functionSet;
+    functionSet.push_back(
+        std::make_unique<TableFunction>("table_info", tableFunc, bindFunc, initSharedState));
+    return functionSet;
 }
 
 void TableInfoFunction::tableFunc(
@@ -164,6 +192,13 @@ std::unique_ptr<TableFuncBindData> TableInfoFunction::bindFunc(
     }
     return std::make_unique<TableInfoBindData>(
         schema, std::move(returnTypes), std::move(returnColumnNames), schema->getNumProperties());
+}
+
+function_set ShowConnectionFunction::getFunctionSet() {
+    function_set functionSet;
+    functionSet.push_back(
+        std::make_unique<TableFunction>("db_version", tableFunc, bindFunc, initSharedState));
+    return functionSet;
 }
 
 void ShowConnectionFunction::outputRelTableConnection(ValueVector* srcTableNameVector,

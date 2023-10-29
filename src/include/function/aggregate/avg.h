@@ -1,7 +1,7 @@
 #pragma once
 
-#include "aggregate_function.h"
 #include "common/types/int128_t.h"
+#include "function/aggregate_function.h"
 #include "function/arithmetic/arithmetic_functions.h"
 
 namespace kuzu {

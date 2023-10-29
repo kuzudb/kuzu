@@ -2,7 +2,6 @@
 
 #include "catalog/catalog.h"
 #include "function/table_functions/bind_data.h"
-#include "function/table_functions/table_functions.h"
 #include "processor/operator/physical_operator.h"
 
 namespace kuzu {
@@ -13,11 +12,11 @@ struct InQueryCallSharedState {
 };
 
 struct InQueryCallInfo {
-    function::TableFunctionDefinition* function;
+    function::TableFunction* function;
     std::unique_ptr<function::TableFuncBindData> bindData;
     std::vector<DataPos> outputPoses;
 
-    InQueryCallInfo(function::TableFunctionDefinition* function,
+    InQueryCallInfo(function::TableFunction* function,
         std::unique_ptr<function::TableFuncBindData> bindData, std::vector<DataPos> outputPoses)
         : function{function}, bindData{std::move(bindData)}, outputPoses{std::move(outputPoses)} {}
 

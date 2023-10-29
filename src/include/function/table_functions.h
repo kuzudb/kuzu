@@ -1,10 +1,6 @@
 #pragma once
 
-#include <functional>
-#include <memory>
-#include <string>
-
-#include "common/types/internal_id_t.h"
+#include "function.h"
 
 namespace kuzu {
 namespace catalog {
@@ -48,16 +44,17 @@ typedef void (*table_func_t)(TableFunctionInput& data, std::vector<common::Value
 typedef std::unique_ptr<SharedTableFuncState> (*table_func_init_shared_t)(
     TableFunctionInitInput& input);
 
-struct TableFunctionDefinition {
-    std::string name;
+struct TableFunction : public Function {
     table_func_t tableFunc;
     table_func_bind_t bindFunc;
     table_func_init_shared_t initSharedStateFunc;
 
-    TableFunctionDefinition(std::string name, table_func_t tableFunc, table_func_bind_t bindFunc,
+    TableFunction(std::string name, table_func_t tableFunc, table_func_bind_t bindFunc,
         table_func_init_shared_t initSharedFunc)
-        : name{std::move(name)}, tableFunc{std::move(tableFunc)}, bindFunc{std::move(bindFunc)},
-          initSharedStateFunc{initSharedFunc} {}
+        : Function{FunctionType::TABLE, std::move(name),
+              std::vector<common::LogicalTypeID>{} /* dummyParamterTypes */},
+          tableFunc{std::move(tableFunc)}, bindFunc{std::move(bindFunc)}, initSharedStateFunc{
+                                                                              initSharedFunc} {}
 };
 
 } // namespace function

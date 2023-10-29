@@ -2,31 +2,30 @@
 
 #include "binder/expression/expression.h"
 #include "comparison_functions.h"
-#include "function/vector_functions.h"
+#include "function/scalar_function.h"
 
 namespace kuzu {
 namespace function {
 
-class VectorComparisonFunction : public VectorFunction {
-protected:
-    template<typename FUNC>
-    static vector_function_definitions getDefinitions(const std::string& name) {
-        vector_function_definitions definitions;
+struct ComparisonFunction {
+    template<typename OP>
+    static function_set getFunctionSet(const std::string& name) {
+        function_set functionSet;
         for (auto& comparableType : common::LogicalTypeUtils::getAllValidComparableLogicalTypes()) {
-            definitions.push_back(getDefinition<FUNC>(name, comparableType, comparableType));
+            functionSet.push_back(getFunction<OP>(name, comparableType, comparableType));
         }
-        definitions.push_back(
-            getDefinition<FUNC>(name, common::LogicalType{common::LogicalTypeID::VAR_LIST},
+        functionSet.push_back(
+            getFunction<OP>(name, common::LogicalType{common::LogicalTypeID::VAR_LIST},
                 common::LogicalType{common::LogicalTypeID::VAR_LIST}));
-        definitions.push_back(
-            getDefinition<FUNC>(name, common::LogicalType{common::LogicalTypeID::STRUCT},
+        functionSet.push_back(
+            getFunction<OP>(name, common::LogicalType{common::LogicalTypeID::STRUCT},
                 common::LogicalType{common::LogicalTypeID::STRUCT}));
         // We can only check whether two internal ids are equal or not. So INTERNAL_ID is not
         // part of the comparable logical types.
-        definitions.push_back(
-            getDefinition<FUNC>(name, common::LogicalType{common::LogicalTypeID::INTERNAL_ID},
+        functionSet.push_back(
+            getFunction<OP>(name, common::LogicalType{common::LogicalTypeID::INTERNAL_ID},
                 common::LogicalType{common::LogicalTypeID::INTERNAL_ID}));
-        return definitions;
+        return functionSet;
     }
 
 private:
@@ -49,13 +48,13 @@ private:
     }
 
     template<typename FUNC>
-    static inline std::unique_ptr<VectorFunctionDefinition> getDefinition(
+    static inline std::unique_ptr<ScalarFunction> getFunction(
         const std::string& name, common::LogicalType leftType, common::LogicalType rightType) {
         scalar_exec_func execFunc;
         getExecFunc<FUNC>(leftType.getPhysicalType(), rightType.getPhysicalType(), execFunc);
         scalar_select_func selectFunc;
         getSelectFunc<FUNC>(leftType.getPhysicalType(), rightType.getPhysicalType(), selectFunc);
-        return std::make_unique<VectorFunctionDefinition>(name,
+        return std::make_unique<ScalarFunction>(name,
             std::vector<common::LogicalTypeID>{
                 leftType.getLogicalTypeID(), rightType.getLogicalTypeID()},
             common::LogicalTypeID::BOOL, execFunc, selectFunc);
@@ -197,41 +196,40 @@ private:
     }
 };
 
-struct EqualsVectorFunction : public VectorComparisonFunction {
-    static inline vector_function_definitions getDefinitions() {
-        return VectorComparisonFunction::getDefinitions<Equals>(common::EQUALS_FUNC_NAME);
+struct EqualsFunction {
+    static inline function_set getFunctionSet() {
+        return ComparisonFunction::getFunctionSet<Equals>(common::EQUALS_FUNC_NAME);
     }
 };
 
-struct NotEqualsVectorFunction : public VectorComparisonFunction {
-    static inline vector_function_definitions getDefinitions() {
-        return VectorComparisonFunction::getDefinitions<NotEquals>(common::NOT_EQUALS_FUNC_NAME);
+struct NotEqualsFunction {
+    static inline function_set getFunctionSet() {
+        return ComparisonFunction::getFunctionSet<NotEquals>(common::NOT_EQUALS_FUNC_NAME);
     }
 };
 
-struct GreaterThanVectorFunction : public VectorComparisonFunction {
-    static inline vector_function_definitions getDefinitions() {
-        return VectorComparisonFunction::getDefinitions<GreaterThan>(
-            common::GREATER_THAN_FUNC_NAME);
+struct GreaterThanFunction {
+    static inline function_set getFunctionSet() {
+        return ComparisonFunction::getFunctionSet<GreaterThan>(common::GREATER_THAN_FUNC_NAME);
     }
 };
 
-struct GreaterThanEqualsVectorFunction : public VectorComparisonFunction {
-    static inline vector_function_definitions getDefinitions() {
-        return VectorComparisonFunction::getDefinitions<GreaterThanEquals>(
+struct GreaterThanEqualsFunction {
+    static inline function_set getFunctionSet() {
+        return ComparisonFunction::getFunctionSet<GreaterThanEquals>(
             common::GREATER_THAN_EQUALS_FUNC_NAME);
     }
 };
 
-struct LessThanVectorFunction : public VectorComparisonFunction {
-    static inline vector_function_definitions getDefinitions() {
-        return VectorComparisonFunction::getDefinitions<LessThan>(common::LESS_THAN_FUNC_NAME);
+struct LessThanFunction {
+    static inline function_set getFunctionSet() {
+        return ComparisonFunction::getFunctionSet<LessThan>(common::LESS_THAN_FUNC_NAME);
     }
 };
 
-struct LessThanEqualsVectorFunction : public VectorComparisonFunction {
-    static inline vector_function_definitions getDefinitions() {
-        return VectorComparisonFunction::getDefinitions<LessThanEquals>(
+struct LessThanEqualsFunction {
+    static inline function_set getFunctionSet() {
+        return ComparisonFunction::getFunctionSet<LessThanEquals>(
             common::LESS_THAN_EQUALS_FUNC_NAME);
     }
 };

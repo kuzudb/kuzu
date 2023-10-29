@@ -1,6 +1,6 @@
 #pragma once
 
-#include "function/aggregate/aggregate_function.h"
+#include "function/aggregate_function.h"
 #include "processor/operator/physical_operator.h"
 
 namespace kuzu {

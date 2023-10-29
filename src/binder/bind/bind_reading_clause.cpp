@@ -98,14 +98,13 @@ std::unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause
 
 std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause& readingClause) {
     auto& call = reinterpret_cast<const InQueryCallClause&>(readingClause);
-    auto tableFunctionDefinition =
-        catalog.getBuiltInTableFunction()->mathTableFunction(call.getFuncName());
+    auto tableFunction = catalog.getBuiltInFunctions()->mathTableFunction(call.getFuncName());
     auto inputValues = std::vector<Value>{};
     for (auto& parameter : call.getParameters()) {
         auto boundExpr = expressionBinder.bindLiteralExpression(*parameter);
         inputValues.push_back(*reinterpret_cast<LiteralExpression*>(boundExpr.get())->getValue());
     }
-    auto bindData = tableFunctionDefinition->bindFunc(clientContext,
+    auto bindData = tableFunction->bindFunc(clientContext,
         function::TableFuncBindInput{std::move(inputValues)}, catalog.getReadOnlyVersion());
     expression_vector outputExpressions;
     for (auto i = 0u; i < bindData->returnColumnNames.size(); i++) {
@@ -113,7 +112,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
             createVariable(bindData->returnColumnNames[i], bindData->returnTypes[i]));
     }
     return std::make_unique<BoundInQueryCall>(
-        tableFunctionDefinition, std::move(bindData), std::move(outputExpressions));
+        std::move(tableFunction), std::move(bindData), std::move(outputExpressions));
 }
 
 static std::unique_ptr<LogicalType> bindFixedListType(

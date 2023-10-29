@@ -13,7 +13,7 @@ void NodeRelExpressionEvaluator::evaluate() {
     for (auto& child : children) {
         child->evaluate();
     }
-    StructPackVectorFunctions::execFunc(parameters, *resultVector);
+    StructPackFunctions::execFunc(parameters, *resultVector);
 }
 
 void NodeRelExpressionEvaluator::resolveResultVector(
@@ -26,7 +26,7 @@ void NodeRelExpressionEvaluator::resolveResultVector(
         inputEvaluators.push_back(child.get());
     }
     resolveResultStateFromChildren(inputEvaluators);
-    StructPackVectorFunctions::compileFunc(nullptr, parameters, resultVector);
+    StructPackFunctions::compileFunc(nullptr, parameters, resultVector);
 }
 
 } // namespace evaluator

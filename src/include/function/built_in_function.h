@@ -1,26 +1,47 @@
 #pragma once
 
-#include "vector_functions.h"
+#include "aggregate_function.h"
+#include "scalar_function.h"
+#include "table_functions.h"
 
 namespace kuzu {
 namespace function {
 
-class BuiltInVectorFunctions {
+class BuiltInFunctions {
 
 public:
-    BuiltInVectorFunctions() { registerVectorFunctions(); }
+    BuiltInFunctions();
 
     inline bool containsFunction(const std::string& functionName) {
-        return vectorFunctions.contains(functionName);
+        return functions.contains(functionName);
     }
 
-    VectorFunctionDefinition* matchVectorFunction(
+    FunctionType getFunctionType(const std::string& functionName) {
+        assert(containsFunction(functionName));
+        return functions.at(functionName)[0]->type;
+    }
+
+    // TODO(Ziyi): We should have a unified interface for matching table, aggregate and scalar
+    // functions.
+    ScalarFunction* matchScalarFunction(
         const std::string& name, const std::vector<common::LogicalType>& inputTypes);
+
+    AggregateFunction* matchAggregateFunction(const std::string& name,
+        const std::vector<common::LogicalType>& inputTypes, bool isDistinct);
+
+    TableFunction* mathTableFunction(const std::string& name);
 
     static uint32_t getCastCost(
         common::LogicalTypeID inputTypeID, common::LogicalTypeID targetTypeID);
 
-    void addFunction(std::string name, function::vector_function_definitions definitions);
+    void addFunction(std::string name, function::function_set definitions);
+
+    uint32_t getAggregateFunctionCost(const std::vector<common::LogicalType>& inputTypes,
+        bool isDistinct, AggregateFunction* function);
+
+    void validateNonEmptyCandidateFunctions(std::vector<AggregateFunction*>& candidateFunctions,
+        const std::string& name, const std::vector<common::LogicalType>& inputTypes,
+        bool isDistinct);
 
 private:
     static uint32_t getTargetTypeCost(common::LogicalTypeID typeID);
@@ -51,20 +72,20 @@ private:
 
     static uint32_t castSerial(common::LogicalTypeID targetTypeID);
 
-    VectorFunctionDefinition* getBestMatch(std::vector<VectorFunctionDefinition*>& functions);
+    ScalarFunction* getBestMatch(std::vector<ScalarFunction*>& functions);
 
     uint32_t getFunctionCost(const std::vector<common::LogicalType>& inputTypes,
-        VectorFunctionDefinition* function, bool isOverload);
+        ScalarFunction* function, bool isOverload);
     uint32_t matchParameters(const std::vector<common::LogicalType>& inputTypes,
         const std::vector<common::LogicalTypeID>& targetTypeIDs, bool isOverload);
     uint32_t matchVarLengthParameters(const std::vector<common::LogicalType>& inputTypes,
         common::LogicalTypeID targetTypeID, bool isOverload);
 
-    void validateNonEmptyCandidateFunctions(
-        std::vector<VectorFunctionDefinition*>& candidateFunctions, const std::string& name,
-        const std::vector<common::LogicalType>& inputTypes);
+    void validateNonEmptyCandidateFunctions(std::vector<ScalarFunction*>& candidateFunctions,
+        const std::string& name, const std::vector<common::LogicalType>& inputTypes);
 
-    void registerVectorFunctions();
+    // Scalar functions.
+    void registerScalarFunctions();
     void registerComparisonFunctions();
     void registerArithmeticFunctions();
     void registerDateFunctions();
@@ -80,9 +101,21 @@ private:
     void registerNodeRelFunctions();
     void registerPathFunctions();
 
+    // Aggregate functions.
+    void registerAggregateFunctions();
+    void registerCountStar();
+    void registerCount();
+    void registerSum();
+    void registerAvg();
+    void registerMin();
+    void registerMax();
+    void registerCollect();
+
+    // Table functions.
+    void registerTableFunctions();
+
 private:
-    // TODO(Ziyi): Refactor VectorFunction/tableOperation to inherit from the same base class.
-    std::unordered_map<std::string, vector_function_definitions> vectorFunctions;
+    std::unordered_map<std::string, function_set> functions;
 };
 
 } // namespace function
