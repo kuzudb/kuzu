@@ -59,6 +59,14 @@ def test_uint64(establish_connection):
     assert not result.has_next()
     result.close()
 
+def test_int128(establish_connection):
+    conn, db = establish_connection
+    result = conn.execute("MATCH (a:person) -[r:studyAt]-> (b:organisation) WHERE r.length = 5 RETURN r.hugedata;")
+    assert result.has_next()
+    assert result.get_next() == [1844674407370955161811111111]
+    assert not result.has_next()
+    result.close()
+
 def test_serial(establish_connection):
      conn, db = establish_connection
      result = conn.execute("MATCH (a:moviesSerial) WHERE a.ID = 2 RETURN a.ID;")

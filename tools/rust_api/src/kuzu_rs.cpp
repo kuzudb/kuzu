@@ -217,6 +217,12 @@ int32_t value_get_date_days(const kuzu::common::Value& value) {
 int64_t value_get_timestamp_micros(const kuzu::common::Value& value) {
     return value.getValue<kuzu::common::timestamp_t>().value;
 }
+std::array<uint64_t, 2> value_get_int128_t(const kuzu::common::Value& value) {
+    auto int128 = value.getValue<kuzu::common::int128_t>();
+    auto int128_high = static_cast<uint64_t>(int128.high);
+    return std::array{int128_high, int128.low};
+}
+
 std::array<uint64_t, 2> value_get_internal_id(const kuzu::common::Value& value) {
     auto internalID = value.getValue<kuzu::common::internalID_t>();
     return std::array{internalID.offset, internalID.tableID};
@@ -260,6 +266,9 @@ std::unique_ptr<kuzu::common::Value> create_value_null(
 }
 std::unique_ptr<kuzu::common::Value> create_value_internal_id(uint64_t offset, uint64_t table) {
     return std::make_unique<kuzu::common::Value>(kuzu::common::internalID_t(offset, table));
+}
+std::unique_ptr<kuzu::common::Value> create_value_int128_t(int64_t high, uint64_t low) {
+    return std::make_unique<kuzu::common::Value>(kuzu::common::int128_t(low, high));
 }
 
 std::unique_ptr<kuzu::common::Value> get_list_value(

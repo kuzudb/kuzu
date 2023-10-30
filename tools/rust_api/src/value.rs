@@ -201,6 +201,7 @@ pub enum Value {
     UInt32(u32),
     UInt16(u16),
     UInt8(u8),
+    Int128(i128),
     Double(f64),
     Float(f32),
     /// Stored internally as the number of days since 1970-01-01 as a 32-bit signed integer, which
@@ -277,6 +278,7 @@ impl std::fmt::Display for Value {
             Value::UInt16(x) => write!(f, "{x}"),
             Value::UInt32(x) => write!(f, "{x}"),
             Value::UInt64(x) => write!(f, "{x}"),
+            Value::Int128(x) => write!(f, "{x}"),
             Value::Date(x) => write!(f, "{x}"),
             Value::String(x) => write!(f, "{x}"),
             Value::Blob(x) => write!(f, "{x:x?}"),
@@ -335,6 +337,7 @@ impl From<&Value> for LogicalType {
             Value::UInt16(_) => LogicalType::UInt16,
             Value::UInt32(_) => LogicalType::UInt32,
             Value::UInt64(_) => LogicalType::UInt64,
+            Value::Int128(_) => LogicalType::Int128,
             Value::Float(_) => LogicalType::Float,
             Value::Double(_) => LogicalType::Double,
             Value::Date(_) => LogicalType::Date,
@@ -393,6 +396,14 @@ impl TryFrom<&ffi::Value> for Value {
             LogicalTypeID::UINT16 => Ok(Value::UInt16(value.get_value_u16())),
             LogicalTypeID::UINT32 => Ok(Value::UInt32(value.get_value_u32())),
             LogicalTypeID::UINT64 => Ok(Value::UInt64(value.get_value_u64())),
+            LogicalTypeID::INT128 => {
+                let int128_val = ffi::value_get_int128_t(value);
+                let low = int128_val[1];
+                let high = int128_val[0] as i64;
+                Ok(Value::Int128(
+                    (low as i128) + ((high as i128) * (u64::MAX as i128)),
+                ))
+            }
             LogicalTypeID::FLOAT => Ok(Value::Float(value.get_value_float())),
             LogicalTypeID::DOUBLE => Ok(Value::Double(value.get_value_double())),
             LogicalTypeID::STRING => Ok(Value::String(ffi::value_get_string(value).to_string())),
@@ -588,6 +599,11 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
             Value::UInt16(value) => Ok(ffi::create_value_u16(value)),
             Value::UInt32(value) => Ok(ffi::create_value_u32(value)),
             Value::UInt64(value) => Ok(ffi::create_value_u64(value)),
+            Value::Int128(value) => {
+                let low = (value % (u64::MAX as i128)) as u64;
+                let high = ((value - low as i128) / (u64::MAX as i128)) as i64;
+                Ok(ffi::create_value_int128_t(high, low))
+            }
             Value::Float(value) => Ok(ffi::create_value_float(value)),
             Value::Double(value) => Ok(ffi::create_value_double(value)),
             Value::String(value) => Ok(ffi::create_value_string(
@@ -757,6 +773,12 @@ impl From<u64> for Value {
     }
 }
 
+impl From<i128> for Value {
+    fn from(item: i128) -> Self {
+        Value::Int128(item)
+    }
+}
+
 impl From<f32> for Value {
     fn from(item: f32) -> Self {
         Value::Float(item)
@@ -888,6 +910,7 @@ mod tests {
         convert_uint16_type: LogicalType::UInt16,
         convert_uint32_type: LogicalType::UInt32,
         convert_uint64_type: LogicalType::UInt64,
+        convert_int128_type: LogicalType::Int128,
         convert_float_type: LogicalType::Float,
         convert_double_type: LogicalType::Double,
         convert_timestamp_type: LogicalType::Timestamp,
@@ -917,6 +940,8 @@ mod tests {
         convert_uint16: Value::UInt16(1),
         convert_uint32: Value::UInt32(2),
         convert_uint64: Value::UInt64(3),
+        convert_int128: Value::Int128(1),
+        convert_int128_large: Value::Int128(184467440737095516158),
         convert_float: Value::Float(4.),
         convert_double: Value::Double(5.),
         convert_timestamp: Value::Timestamp(datetime!(2023-06-13 11:25:30 UTC)),
@@ -995,6 +1020,7 @@ mod tests {
         db_uint16: Value::UInt16(1), "UINT16",
         db_uint32: Value::UInt32(2), "UINT32",
         db_uint64: Value::UInt64(3), "UINT64",
+        db_int128: Value::Int128(4), "INT128",
         db_float: Value::Float(4.), "FLOAT",
         db_double: Value::Double(5.), "DOUBLE",
         db_timestamp: Value::Timestamp(datetime!(2023-06-13 11:25:30 UTC)), "TIMESTAMP",
