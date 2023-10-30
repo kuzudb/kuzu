@@ -56,6 +56,9 @@ void NodeTable::delete_(
     }
     for (auto i = 0; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[i];
+        if (nodeIDVector->isNull(pos)) {
+            continue;
+        }
         auto nodeOffset = nodeIDVector->readNodeOffset(pos);
         nodesStatisticsAndDeletedIDs->deleteNode(tableID, nodeOffset);
     }

@@ -323,6 +323,10 @@ bool RelTable::deleteRel(
     ValueVector* srcNodeIDVector, ValueVector* dstNodeIDVector, ValueVector* relIDVector) {
     assert(srcNodeIDVector->state->isFlat() && dstNodeIDVector->state->isFlat() &&
            relIDVector->state->isFlat());
+    auto relIDPos = relIDVector->state->selVector->selectedPositions[0];
+    if (relIDVector->isNull(relIDPos)) {
+        return false;
+    }
     fwdRelTableData->deleteRel(srcNodeIDVector);
     bwdRelTableData->deleteRel(dstNodeIDVector);
     return listsUpdatesStore->deleteRelIfNecessary(srcNodeIDVector, dstNodeIDVector, relIDVector);
@@ -332,14 +336,17 @@ void RelTable::updateRel(ValueVector* srcNodeIDVector, ValueVector* dstNodeIDVec
     ValueVector* relIDVector, ValueVector* propertyVector, uint32_t propertyID) {
     assert(srcNodeIDVector->state->isFlat() && dstNodeIDVector->state->isFlat() &&
            relIDVector->state->isFlat() && propertyVector->state->isFlat());
+    auto relIDPos = relIDVector->state->selVector->selectedPositions[0];
+    if (relIDVector->isNull(relIDPos)) {
+        return;
+    }
     auto srcNode = srcNodeIDVector->getValue<nodeID_t>(
         srcNodeIDVector->state->selVector->selectedPositions[0]);
     auto dstNode = dstNodeIDVector->getValue<nodeID_t>(
         dstNodeIDVector->state->selVector->selectedPositions[0]);
     fwdRelTableData->updateRel(srcNodeIDVector, propertyID, propertyVector);
     bwdRelTableData->updateRel(dstNodeIDVector, propertyID, propertyVector);
-    auto relID =
-        relIDVector->getValue<relID_t>(relIDVector->state->selVector->selectedPositions[0]);
+    auto relID = relIDVector->getValue<relID_t>(relIDPos);
     ListsUpdateInfo listsUpdateInfo = ListsUpdateInfo{propertyVector, propertyID, relID.offset,
         fwdRelTableData->getListOffset(srcNode, relID.offset),
         bwdRelTableData->getListOffset(dstNode, relID.offset)};

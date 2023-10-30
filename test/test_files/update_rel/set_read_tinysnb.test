@@ -38,3 +38,21 @@
 ---- 2
 2023-10-10|
 2023-10-10|2024
+
+-CASE OptionalSetReadTest
+-STATEMENT OPTIONAL MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID = 0 AND e.date > date("2023-01-01") SET e.date = date("2024-01-01") RETURN e.date;
+---- 1
+
+-STATEMENT OPTIONAL MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID = 0 RETURN e.date;
+---- 3
+2021-06-30
+2021-06-30
+2021-06-30
+-STATEMENT OPTIONAL MATCH (a)-[e]->(b) WHERE b.ID = 1 AND e.year > 10000 SET e.length = 100 RETURN e.length
+---- 1
+
+-STATEMENT OPTIONAL MATCH (a)-[e]->(b) WHERE b.ID = 1 RETURN e.length
+---- 3
+5
+55
+22

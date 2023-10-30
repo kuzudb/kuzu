@@ -306,3 +306,21 @@ The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|
 -STATEMENT MATCH (a:person) WHERE a.ID=5 RETURN a.usedNames
 ---- 1
 [abcndwjbwesdsd,microsofthbbjuwgedsd]
+
+
+-CASE OptionalSET
+-STATEMENT OPTIONAL MATCH (a:person) WHERE a.ID > 100 SET a.fName = 'a' RETURN a.fName;
+---- 1
+
+-STATEMENT MATCH (a:person) WHERE a.ID < 3 RETURN a.fName;
+---- 2
+Alice
+Bob
+-STATEMENT OPTIONAL MATCH (a) WHERE a.ID > 100 SET a.name, a.fName;
+----1
+
+-STATEMENT MATCH (a)  WHERE a.ID < 3 RETURN a.name, a.fName;
+---- 3
+ABFsUni|
+|Alice
+|Bob
