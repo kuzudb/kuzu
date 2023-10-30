@@ -8,18 +8,13 @@ namespace parser {
 
 class InQueryCallClause : public ReadingClause {
 public:
-    InQueryCallClause(
-        std::string optionName, std::vector<std::unique_ptr<ParsedExpression>> parameters)
-        : ReadingClause{common::ClauseType::IN_QUERY_CALL}, funcName{std::move(optionName)},
-          parameters{std::move(parameters)} {}
-
-    inline std::string getFuncName() const { return funcName; }
-
-    std::vector<ParsedExpression*> getParameters() const;
+    InQueryCallClause(std::unique_ptr<ParsedExpression> functionExpression)
+        : ReadingClause{common::ClauseType::IN_QUERY_CALL}, functionExpression{
+                                                                std::move(functionExpression)} {}
+    ParsedExpression* getFunctionExpression() const { return functionExpression.get(); }
 
 private:
-    std::string funcName;
-    std::vector<std::unique_ptr<ParsedExpression>> parameters;
+    std::unique_ptr<ParsedExpression> functionExpression;
 };
 
 } // namespace parser

@@ -1,5 +1,4 @@
 #include "binder/binder.h"
-#include "binder/expression/literal_expression.h"
 #include "binder/query/reading_clause/bound_in_query_call.h"
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
@@ -7,6 +6,8 @@
 #include "common/exception/binder.h"
 #include "common/string_format.h"
 #include "function/table_functions/bind_input.h"
+#include "parser/expression/parsed_function_expression.h"
+#include "parser/expression/parsed_literal_expression.h"
 #include "parser/query/reading_clause/in_query_call_clause.h"
 #include "parser/query/reading_clause/load_from.h"
 #include "parser/query/reading_clause/unwind_clause.h"
@@ -98,12 +99,22 @@ std::unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause
 
 std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause& readingClause) {
     auto& call = reinterpret_cast<const InQueryCallClause&>(readingClause);
-    auto tableFunction = catalog.getBuiltInFunctions()->mathTableFunction(call.getFuncName());
-    auto inputValues = std::vector<Value>{};
-    for (auto& parameter : call.getParameters()) {
-        auto boundExpr = expressionBinder.bindLiteralExpression(*parameter);
-        inputValues.push_back(*reinterpret_cast<LiteralExpression*>(boundExpr.get())->getValue());
+    auto funcExpr = reinterpret_cast<ParsedFunctionExpression*>(call.getFunctionExpression());
+    std::vector<std::unique_ptr<Value>> inputValues;
+    std::vector<LogicalType*> inputTypes;
+    for (auto i = 0u; i < funcExpr->getNumChildren(); i++) {
+        auto parameter = funcExpr->getChild(i);
+        if (parameter->getExpressionType() != ExpressionType::LITERAL) {
+            throw BinderException{"Parameters in table function must be a literal expression."};
+        }
+        auto expressionValue = reinterpret_cast<ParsedLiteralExpression*>(parameter)->getValue();
+        inputTypes.push_back(expressionValue->getDataType());
+        inputValues.push_back(expressionValue->copy());
     }
+    auto funcNameToMatch = funcExpr->getFunctionName();
+    StringUtils::toUpper(funcNameToMatch);
+    auto tableFunction = reinterpret_cast<function::TableFunction*>(
+        catalog.getBuiltInFunctions()->matchScalarFunction(std::move(funcNameToMatch), inputTypes));
     auto bindData = tableFunction->bindFunc(clientContext,
         function::TableFuncBindInput{std::move(inputValues)}, catalog.getReadOnlyVersion());
     expression_vector outputExpressions;

@@ -27,6 +27,8 @@ struct Function {
 
     virtual ~Function() = default;
 
+    virtual std::string signatureToString() const = 0;
+
     // TODO(Ziyi): Move to catalog entry once we have implemented the catalog entry.
     FunctionType type;
     std::string name;
@@ -40,7 +42,7 @@ struct BaseScalarFunction : public Function {
         : Function{type, std::move(name), std::move(parameterTypeIDs)},
           returnTypeID{returnTypeID}, bindFunc{std::move(bindFunc)} {}
 
-    inline std::string signatureToString() const {
+    inline std::string signatureToString() const override {
         std::string result = common::LogicalTypeUtils::dataTypesToString(parameterTypeIDs);
         result += " -> " + common::LogicalTypeUtils::dataTypeToString(returnTypeID);
         return result;

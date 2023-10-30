@@ -14,8 +14,8 @@ using namespace kuzu::main;
 
 function_set CurrentSettingFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(
-        std::make_unique<TableFunction>("current_setting", tableFunc, bindFunc, initSharedState));
+    functionSet.push_back(std::make_unique<TableFunction>("current_setting", tableFunc, bindFunc,
+        initSharedState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
     return functionSet;
 }
 
@@ -52,7 +52,7 @@ void CurrentSettingFunction::tableFunc(TableFunctionInput& data, std::vector<Val
 
 std::unique_ptr<TableFuncBindData> CurrentSettingFunction::bindFunc(
     ClientContext* context, TableFuncBindInput input, CatalogContent* /*catalog*/) {
-    auto optionName = input.inputs[0].getValue<std::string>();
+    auto optionName = input.inputs[0]->getValue<std::string>();
     std::vector<std::string> returnColumnNames;
     std::vector<LogicalType> returnTypes;
     returnColumnNames.emplace_back(optionName);
@@ -63,8 +63,8 @@ std::unique_ptr<TableFuncBindData> CurrentSettingFunction::bindFunc(
 
 function_set DBVersionFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(
-        std::make_unique<TableFunction>("db_version", tableFunc, bindFunc, initSharedState));
+    functionSet.push_back(std::make_unique<TableFunction>(
+        "db_version", tableFunc, bindFunc, initSharedState, std::vector<LogicalTypeID>{}));
     return functionSet;
 }
 
@@ -94,8 +94,8 @@ std::unique_ptr<TableFuncBindData> DBVersionFunction::bindFunc(
 
 function_set ShowTablesFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(
-        std::make_unique<TableFunction>("show_tables", tableFunc, bindFunc, initSharedState));
+    functionSet.push_back(std::make_unique<TableFunction>(
+        "show_tables", tableFunc, bindFunc, initSharedState, std::vector<LogicalTypeID>{}));
     return functionSet;
 }
 
@@ -136,8 +136,8 @@ std::unique_ptr<TableFuncBindData> ShowTablesFunction::bindFunc(
 
 function_set TableInfoFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(
-        std::make_unique<TableFunction>("table_info", tableFunc, bindFunc, initSharedState));
+    functionSet.push_back(std::make_unique<TableFunction>("table_info", tableFunc, bindFunc,
+        initSharedState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
     return functionSet;
 }
 
@@ -177,7 +177,7 @@ std::unique_ptr<TableFuncBindData> TableInfoFunction::bindFunc(
     ClientContext* /*context*/, TableFuncBindInput input, CatalogContent* catalog) {
     std::vector<std::string> returnColumnNames;
     std::vector<LogicalType> returnTypes;
-    auto tableName = input.inputs[0].getValue<std::string>();
+    auto tableName = input.inputs[0]->getValue<std::string>();
     auto tableID = catalog->getTableID(tableName);
     auto schema = catalog->getTableSchema(tableID);
     returnColumnNames.emplace_back("property id");
@@ -196,8 +196,8 @@ std::unique_ptr<TableFuncBindData> TableInfoFunction::bindFunc(
 
 function_set ShowConnectionFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(
-        std::make_unique<TableFunction>("db_version", tableFunc, bindFunc, initSharedState));
+    functionSet.push_back(std::make_unique<TableFunction>("db_version", tableFunc, bindFunc,
+        initSharedState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
     return functionSet;
 }
 
@@ -253,7 +253,7 @@ std::unique_ptr<TableFuncBindData> ShowConnectionFunction::bindFunc(
     ClientContext* /*context*/, TableFuncBindInput input, CatalogContent* catalog) {
     std::vector<std::string> returnColumnNames;
     std::vector<LogicalType> returnTypes;
-    auto tableName = input.inputs[0].getValue<std::string>();
+    auto tableName = input.inputs[0]->getValue<std::string>();
     auto tableID = catalog->getTableID(tableName);
     auto schema = catalog->getTableSchema(tableID);
     auto tableType = schema->getTableType();
