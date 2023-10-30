@@ -148,6 +148,9 @@ void LocalColumn::update(
     ValueVector* nodeIDVector, ValueVector* propertyVector, MemoryManager* mm) {
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[i];
+        if (nodeIDVector->isNull(pos)) {
+            continue;
+        }
         auto nodeID = nodeIDVector->getValue<nodeID_t>(pos);
         update(nodeID.offset, propertyVector,
             propertyVector->state->selVector->selectedPositions[i], mm);

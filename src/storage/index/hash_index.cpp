@@ -456,12 +456,18 @@ void PrimaryKeyIndex::delete_(ValueVector* keyVector) {
     if (keyDataTypeID == LogicalTypeID::INT64) {
         for (auto i = 0u; i < keyVector->state->selVector->selectedSize; i++) {
             auto pos = keyVector->state->selVector->selectedPositions[i];
+            if (keyVector->isNull(pos)) {
+                continue;
+            }
             auto key = keyVector->getValue<int64_t>(pos);
             hashIndexForInt64->deleteInternal(reinterpret_cast<const uint8_t*>(&key));
         }
     } else {
         for (auto i = 0u; i < keyVector->state->selVector->selectedSize; i++) {
             auto pos = keyVector->state->selVector->selectedPositions[i];
+            if (keyVector->isNull(pos)) {
+                continue;
+            }
             auto key = keyVector->getValue<ku_string_t>(pos).getAsString();
             hashIndexForString->deleteInternal(reinterpret_cast<const uint8_t*>(key.c_str()));
         }
