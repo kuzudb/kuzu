@@ -3,14 +3,17 @@
 using namespace kuzu::common;
 using namespace kuzu::testing;
 
+static void checkTuple(kuzu::processor::FlatTuple* tuple, const std::string& groundTruth) {
+    ASSERT_STREQ(tuple->toString().c_str(), groundTruth.c_str());
+}
+
 TEST_F(ApiTest, MultiParamsPrepare) {
     auto preparedStatement = conn->prepare(
         "MATCH (a:person) WHERE a.fName STARTS WITH $n OR a.fName CONTAINS $xx RETURN COUNT(*)");
     auto result = conn->execute(preparedStatement.get(), std::make_pair(std::string("n"), "A"),
         std::make_pair(std::string("xx"), "ooq"));
     ASSERT_TRUE(result->hasNext());
-    auto tuple = result->getNext();
-    ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 2);
+    checkTuple(result->getNext().get(), "2\n");
     ASSERT_FALSE(result->hasNext());
 }
 
@@ -19,8 +22,7 @@ TEST_F(ApiTest, PrepareBool) {
         conn->prepare("MATCH (a:person) WHERE a.isStudent = $1 RETURN COUNT(*)");
     auto result = conn->execute(preparedStatement.get(), std::make_pair(std::string("1"), true));
     ASSERT_TRUE(result->hasNext());
-    auto tuple = result->getNext();
-    ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 3);
+    checkTuple(result->getNext().get(), "3\n");
     ASSERT_FALSE(result->hasNext());
 }
 
@@ -29,8 +31,7 @@ TEST_F(ApiTest, PrepareInt) {
     auto result =
         conn->execute(preparedStatement.get(), std::make_pair(std::string("1"), (int64_t)10));
     ASSERT_TRUE(result->hasNext());
-    auto tuple = result->getNext();
-    ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 45);
+    checkTuple(result->getNext().get(), "45\n");
     ASSERT_FALSE(result->hasNext());
 }
 
@@ -40,8 +41,7 @@ TEST_F(ApiTest, PrepareDouble) {
     auto result =
         conn->execute(preparedStatement.get(), std::make_pair(std::string("1"), (double_t)10.5));
     ASSERT_TRUE(result->hasNext());
-    auto tuple = result->getNext();
-    ASSERT_EQ(tuple->getValue(0)->getValue<double>(), 15.5);
+    checkTuple(result->getNext().get(), "15.500000\n");
     ASSERT_FALSE(result->hasNext());
 }
 
@@ -50,8 +50,7 @@ TEST_F(ApiTest, PrepareString) {
         conn->prepare("MATCH (a:person) WHERE a.fName STARTS WITH $n RETURN COUNT(*)");
     auto result = conn->execute(preparedStatement.get(), std::make_pair(std::string("n"), "A"));
     ASSERT_TRUE(result->hasNext());
-    auto tuple = result->getNext();
-    ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 1);
+    checkTuple(result->getNext().get(), "1\n");
     ASSERT_FALSE(result->hasNext());
 }
 
@@ -61,8 +60,7 @@ TEST_F(ApiTest, PrepareDate) {
     auto result = conn->execute(
         preparedStatement.get(), std::make_pair(std::string("n"), Date::fromDate(1900, 1, 1)));
     ASSERT_TRUE(result->hasNext());
-    auto tuple = result->getNext();
-    ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 2);
+    checkTuple(result->getNext().get(), "2\n");
     ASSERT_FALSE(result->hasNext());
 }
 
@@ -74,8 +72,7 @@ TEST_F(ApiTest, PrepareTimestamp) {
     auto result = conn->execute(preparedStatement.get(),
         std::make_pair(std::string("n"), Timestamp::fromDateTime(date, time)));
     ASSERT_TRUE(result->hasNext());
-    auto tuple = result->getNext();
-    ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 1);
+    checkTuple(result->getNext().get(), "1\n");
     ASSERT_FALSE(result->hasNext());
 }
 
@@ -87,21 +84,68 @@ TEST_F(ApiTest, PrepareInterval) {
         std::make_pair(
             std::string("n"), Interval::fromCString(intervalStr.c_str(), intervalStr.length())));
     ASSERT_TRUE(result->hasNext());
-    auto tuple = result->getNext();
-    ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 2);
+    checkTuple(result->getNext().get(), "2\n");
     ASSERT_FALSE(result->hasNext());
 }
 
-// TEST_F(ApiTest, DefaultParam) {
-//    auto preparedStatement = conn->prepare("MATCH (a:person) WHERE $1 = $2 RETURN COUNT(*)");
-//    auto result =
-//        conn->execute(preparedStatement.get(), std::make_pair(std::string("1"), (int64_t)1.4),
-//            std::make_pair(std::string("2"), (int64_t)1.4));
-//    ASSERT_TRUE(result->hasNext());
-//    auto tuple = result->getNext();
-//    ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 8);
-//    ASSERT_FALSE(result->hasNext());
-//}
+TEST_F(ApiTest, PrepareDefaultParam) {
+    auto preparedStatement = conn->prepare("RETURN to_int8($1)");
+    auto result = conn->execute(preparedStatement.get(), std::make_pair(std::string("1"), "1"));
+    ASSERT_TRUE(result->hasNext());
+    checkTuple(result->getNext().get(), "1\n");
+    ASSERT_FALSE(result->hasNext());
+    preparedStatement = conn->prepare("RETURN size($1)");
+    result = conn->execute(preparedStatement.get(), std::make_pair(std::string("1"), 1));
+    ASSERT_FALSE(result->isSuccess());
+    ASSERT_STREQ(
+        result->getErrorMessage().c_str(), "Parameter 1 has data type INT32 but expects STRING.");
+}
+
+TEST_F(ApiTest, PrepareDefaultListParam) {
+    auto preparedStatement = conn->prepare("RETURN [1, $1]");
+    auto result =
+        conn->execute(preparedStatement.get(), std::make_pair(std::string("1"), (int64_t)1));
+    ASSERT_TRUE(result->hasNext());
+    checkTuple(result->getNext().get(), "[1,1]\n");
+    result = conn->execute(preparedStatement.get(), std::make_pair(std::string("1"), "as"));
+    ASSERT_FALSE(result->isSuccess());
+    ASSERT_STREQ(
+        result->getErrorMessage().c_str(), "Parameter 1 has data type STRING but expects INT64.");
+    preparedStatement = conn->prepare("RETURN [$1]");
+    result = conn->execute(preparedStatement.get(), std::make_pair(std::string("1"), "as"));
+    ASSERT_TRUE(result->hasNext());
+    checkTuple(result->getNext().get(), "[as]\n");
+    preparedStatement = conn->prepare("RETURN [to_int32($1)]");
+    result = conn->execute(preparedStatement.get(), std::make_pair(std::string("1"), "10"));
+    ASSERT_TRUE(result->hasNext());
+    checkTuple(result->getNext().get(), "[10]\n");
+}
+
+TEST_F(ApiTest, PrepareDefaultStructParam) {
+    auto preparedStatement = conn->prepare("RETURN {a:$1}");
+    auto result = conn->execute(preparedStatement.get(), std::make_pair(std::string("1"), "10"));
+    ASSERT_TRUE(result->hasNext());
+    checkTuple(result->getNext().get(), "{a: 10}\n");
+    result = conn->execute(preparedStatement.get(), std::make_pair(std::string("1"), 1));
+    ASSERT_FALSE(result->isSuccess());
+    ASSERT_STREQ(
+        result->getErrorMessage().c_str(), "Parameter 1 has data type INT32 but expects STRING.");
+}
+
+TEST_F(ApiTest, PrepareDefaultMapParam) {
+    auto preparedStatement = conn->prepare("RETURN map([$1], [$2])");
+    auto result = conn->execute(preparedStatement.get(), std::make_pair(std::string("1"), "10"),
+        std::make_pair(std::string("2"), "abc"));
+    ASSERT_TRUE(result->hasNext());
+    checkTuple(result->getNext().get(), "{10=abc}\n");
+}
+
+TEST_F(ApiTest, PrepareDefaultUnionParam) {
+    auto preparedStatement = conn->prepare("RETURN union_value(a := $1)");
+    auto result = conn->execute(preparedStatement.get(), std::make_pair(std::string("1"), "10"));
+    ASSERT_TRUE(result->hasNext());
+    checkTuple(result->getNext().get(), "10\n");
+}
 
 TEST_F(ApiTest, PrepareLargeJoin) {
     auto preparedStatement = conn->prepare(

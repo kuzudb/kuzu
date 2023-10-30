@@ -99,15 +99,10 @@ private:
         const parser::ParsedExpression& parsedExpression);
 
     /****** cast *****/
-    // Note: we expose two implicitCastIfNecessary interfaces.
-    // For function binding we cast with data type ID because function definition cannot be
-    // recursively generated, e.g. list_extract(param) we only declare param with type LIST but do
-    // not specify its child type.
-    // For the rest, i.e. set clause binding, we cast with data type. For example, a.list = $1.
-    static std::shared_ptr<Expression> implicitCastIfNecessary(
-        const std::shared_ptr<Expression>& expression, const common::LogicalType& targetType);
     static std::shared_ptr<Expression> implicitCastIfNecessary(
         const std::shared_ptr<Expression>& expression, common::LogicalTypeID targetTypeID);
+    static std::shared_ptr<Expression> implicitCastIfNecessary(
+        const std::shared_ptr<Expression>& expression, const common::LogicalType& targetType);
     static std::shared_ptr<Expression> implicitCast(
         const std::shared_ptr<Expression>& expression, const common::LogicalType& targetType);
 

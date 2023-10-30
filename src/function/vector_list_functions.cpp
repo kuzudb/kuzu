@@ -56,35 +56,38 @@ void ListCreationFunction::execFunc(
     }
 }
 
+static LogicalType getValidLogicalType(const binder::expression_vector& expressions) {
+    for (auto& expression : expressions) {
+        if (expression->dataType.getLogicalTypeID() != LogicalTypeID::ANY) {
+            return expression->dataType;
+        }
+    }
+    return LogicalType(common::LogicalTypeID::ANY);
+}
+
 std::unique_ptr<FunctionBindData> ListCreationFunction::bindFunc(
     const binder::expression_vector& arguments, Function* /*function*/) {
     // ListCreation requires all parameters to have the same type or be ANY type. The result type of
     // listCreation can be determined by the first non-ANY type parameter. If all parameters have
     // dataType ANY, then the resultType will be INT64[] (default type).
-    auto varListTypeInfo =
-        std::make_unique<VarListTypeInfo>(std::make_unique<LogicalType>(LogicalTypeID::INT64));
-    auto resultType = LogicalType{LogicalTypeID::VAR_LIST, std::move(varListTypeInfo)};
-    for (auto& argument : arguments) {
-        if (argument->getDataType().getLogicalTypeID() != LogicalTypeID::ANY) {
-            varListTypeInfo = std::make_unique<VarListTypeInfo>(
-                std::make_unique<LogicalType>(argument->getDataType()));
-            resultType = LogicalType{LogicalTypeID::VAR_LIST, std::move(varListTypeInfo)};
-            break;
-        }
+    auto childType = getValidLogicalType(arguments);
+    if (childType.getLogicalTypeID() == common::LogicalTypeID::ANY) {
+        childType = LogicalType(common::LogicalTypeID::STRING);
     }
-    auto resultChildType = VarListType::getChildType(&resultType);
     // Cast parameters with ANY dataType to resultChildType.
     for (auto& argument : arguments) {
         auto& parameterType = argument->getDataTypeReference();
-        if (parameterType != *resultChildType) {
+        if (parameterType != childType) {
             if (parameterType.getLogicalTypeID() == LogicalTypeID::ANY) {
-                binder::ExpressionBinder::resolveAnyDataType(*argument, *resultChildType);
+                binder::ExpressionBinder::resolveAnyDataType(*argument, childType);
             } else {
                 throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(
                     LIST_CREATION_FUNC_NAME, arguments[0]->getDataType(), argument->getDataType()));
             }
         }
     }
+    auto varListTypeInfo = std::make_unique<VarListTypeInfo>(childType.copy());
+    auto resultType = LogicalType{LogicalTypeID::VAR_LIST, std::move(varListTypeInfo)};
     return std::make_unique<FunctionBindData>(resultType);
 }
 

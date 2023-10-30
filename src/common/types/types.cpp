@@ -707,12 +707,19 @@ bool LogicalTypeUtils::isNumerical(const LogicalType& dataType) {
 }
 
 bool LogicalTypeUtils::isNested(const LogicalType& dataType) {
-    switch (dataType.typeID) {
+    return isNested(dataType.typeID);
+}
+
+bool LogicalTypeUtils::isNested(kuzu::common::LogicalTypeID logicalTypeID) {
+    switch (logicalTypeID) {
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::VAR_LIST:
     case LogicalTypeID::FIXED_LIST:
     case LogicalTypeID::UNION:
     case LogicalTypeID::MAP:
+    case LogicalTypeID::NODE:
+    case LogicalTypeID::REL:
+    case LogicalTypeID::RECURSIVE_REL:
         return true;
     default:
         return false;

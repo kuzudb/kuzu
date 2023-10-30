@@ -29,11 +29,11 @@
 6|{revenue: 558, location: ['very long city name', 'new york'], stock: {price: [22], volume: 99}}
 
 -LOG CopyEmptyListToParquet
--STATEMENT COPY (RETURN null,[], [1,null,3], [[],null,[3,4,5]]) TO "${DATABASE_PATH}/emptyList.parquet"
+-STATEMENT COPY (RETURN null,[], [1,null,3], [[1],null,[3,4,5]], [[], ["a"]]) TO "${DATABASE_PATH}/emptyList.parquet"
 ---- ok
 -STATEMENT LOAD FROM "${DATABASE_PATH}/emptyList.parquet" RETURN *;
 ---- 1
-|[]|[1,,3]|[[],,[3,4,5]]
+|[]|[1,,3]|[[1],,[3,4,5]]|[[],[a]]
 
 -LOG CopyToParquetFlatUnflat
 -STATEMENT COPY (MATCH (p:person)-[:knows]->(p1:person) return p.ID, p1.ID) TO "${DATABASE_PATH}/flatUnflat.parquet"

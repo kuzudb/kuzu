@@ -370,19 +370,26 @@ uint32_t BuiltInFunctions::castSerial(LogicalTypeID targetTypeID) {
 
 // When there is multiple candidates functions, e.g. double + int and double + double for input
 // "1.5 + parameter", we prefer the one without any implicit casting i.e. double + double.
+// Additionally, we prefer function with string parameter because string is most permissive and can
+// be cast to any type.
 ScalarFunction* BuiltInFunctions::getBestMatch(std::vector<ScalarFunction*>& functionsToMatch) {
     assert(functionsToMatch.size() > 1);
     ScalarFunction* result = nullptr;
     auto cost = UNDEFINED_CAST_COST;
     for (auto& function : functionsToMatch) {
+        auto currentCost = 0;
         std::unordered_set<LogicalTypeID> distinctParameterTypes;
         for (auto& parameterTypeID : function->parameterTypeIDs) {
+            if (parameterTypeID != LogicalTypeID::STRING) {
+                currentCost++;
+            }
             if (!distinctParameterTypes.contains(parameterTypeID)) {
+                currentCost++;
                 distinctParameterTypes.insert(parameterTypeID);
             }
         }
-        if (distinctParameterTypes.size() < cost) {
-            cost = distinctParameterTypes.size();
+        if (currentCost < cost) {
+            cost = currentCost;
             result = function;
         }
     }

@@ -31,7 +31,7 @@ Binder exception: Cannot bind LIST_CREATION with parameter type INT64 and STRING
 [,]
 -STATEMENT RETURN ['a', , []];
 ---- error
-Binder exception: Cannot bind LIST_CREATION with parameter type STRING and INT64[].
+Binder exception: Cannot bind LIST_CREATION with parameter type STRING and STRING[].
 -STATEMENT RETURN [[], , []];
 ---- 1
 [[],,[]]
@@ -411,12 +411,12 @@ ad
 []
 
 -LOG ListConcatINT64AndNull
--STATEMENT RETURN LIST_CONCAT([1,2,NULL], [NULL])
+-STATEMENT RETURN LIST_CONCAT([1,2,NULL], [to_int64(NULL)])
 ---- 1
 [1,2,,]
 
 -LOG ListConcatNullAndINT64
--STATEMENT RETURN LIST_CONCAT([NULL], [NULL, 1, 3])
+-STATEMENT RETURN LIST_CONCAT([to_int64(NULL)], [NULL, 1, 3])
 ---- 1
 [,,1,3]
 
@@ -1798,7 +1798,7 @@ Ad
 8.066667
 
 -LOG ListProductSeq3
--STATEMENT Return list_product([NULL, NULL, NULL, NULL]);
+-STATEMENT Return list_product([to_int64(NULL), NULL, NULL, NULL]);
 ---- 1
 1
 # different from cypher standard: should return NULL

@@ -73,6 +73,31 @@ std::shared_ptr<Expression> ExpressionBinder::foldExpression(
     return result;
 }
 
+static std::string unsupportedImplicitCastException(
+    const Expression& expression, const common::LogicalType& targetType) {
+    return stringFormat(
+        "Expression {} has data type {} but expected {}. Implicit cast is not supported.",
+        expression.toString(), LogicalTypeUtils::dataTypeToString(expression.dataType),
+        LogicalTypeUtils::dataTypeToString(targetType));
+}
+
+std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
+    const std::shared_ptr<Expression>& expression, common::LogicalTypeID targetTypeID) {
+    if (LogicalTypeUtils::isNested(targetTypeID)) {
+        if (expression->getDataType().getLogicalTypeID() == common::LogicalTypeID::ANY) {
+            throw BinderException(stringFormat(
+                "Cannot resolve recursive data type for expression {}.", expression->toString()));
+        }
+        // We don't support casting to nested data type. So instead we validate type match.
+        if (expression->getDataType().getLogicalTypeID() != targetTypeID) {
+            throw BinderException(
+                unsupportedImplicitCastException(*expression, LogicalType{targetTypeID}));
+        }
+        return expression;
+    }
+    return implicitCastIfNecessary(expression, LogicalType(targetTypeID));
+}
+
 std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
     const std::shared_ptr<Expression>& expression, const LogicalType& targetType) {
     if (targetType.getLogicalTypeID() == LogicalTypeID::ANY || expression->dataType == targetType) {
@@ -83,25 +108,6 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
         return expression;
     }
     return implicitCast(expression, targetType);
-}
-
-std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
-    const std::shared_ptr<Expression>& expression, LogicalTypeID targetTypeID) {
-    if (targetTypeID == LogicalTypeID::ANY ||
-        expression->dataType.getLogicalTypeID() == targetTypeID) {
-        return expression;
-    }
-    if (expression->dataType.getLogicalTypeID() == LogicalTypeID::ANY) {
-        if (targetTypeID == LogicalTypeID::VAR_LIST) {
-            // e.g. len($1) we cannot infer the child type for $1.
-            throw BinderException(stringFormat(
-                "Cannot resolve recursive data type for expression {}.", expression->toString()));
-        }
-        resolveAnyDataType(*expression, LogicalType(targetTypeID));
-        return expression;
-    }
-    assert(targetTypeID != LogicalTypeID::VAR_LIST);
-    return implicitCast(expression, LogicalType(targetTypeID));
 }
 
 std::shared_ptr<Expression> ExpressionBinder::implicitCast(
@@ -118,10 +124,7 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCast(
             std::move(bindData), std::move(children), execFunc, nullptr /* selectFunc */,
             std::move(uniqueName));
     } else {
-        throw BinderException(stringFormat(
-            "Expression {} has data type {} but expected {}. Implicit cast is not supported.",
-            expression->toString(), LogicalTypeUtils::dataTypeToString(expression->dataType),
-            LogicalTypeUtils::dataTypeToString(targetType)));
+        throw BinderException(unsupportedImplicitCastException(*expression, targetType));
     }
 }
 
