@@ -307,6 +307,20 @@ n
 sdwe
 ad
 
+-LOG ListExtractWithNull
+-STATEMENT RETURN list_extract([1,3,null,null,2],3)
+---- 1
+
+
+-LOG ExtractNullList
+-STATEMENT RETURN list_extract(null,1)
+---- 1
+
+
+-LOG ListExtractNullPos
+-STATEMENT RETURN LIST_EXTRACT([3,4,5],NULL)
+---- 1
+
 
 -LOG SliceUTF8String
 -STATEMENT Return '这是一个中文句子'[2:5]
