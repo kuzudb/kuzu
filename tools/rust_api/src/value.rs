@@ -941,6 +941,7 @@ mod tests {
         convert_uint32: Value::UInt32(2),
         convert_uint64: Value::UInt64(3),
         convert_int128: Value::Int128(1),
+        convert_int128_large: Value::Int128(184467440737095516158),
         convert_float: Value::Float(4.),
         convert_double: Value::Double(5.),
         convert_timestamp: Value::Timestamp(datetime!(2023-06-13 11:25:30 UTC)),
