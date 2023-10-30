@@ -50,14 +50,17 @@ public:
     /**
      * @return the src nodeID value of the RelVal as nodeID struct.
      */
+    // TODO(Change): REMOVE ME and use getSrcNodeIDVal.
     KUZU_API static nodeID_t getSrcNodeID(const Value* val);
     /**
      * @return the dst nodeID value of the RelVal as nodeID struct.
      */
+    // TODO(Change): REMOVE ME and use getDstNodeIDVal.
     KUZU_API static nodeID_t getDstNodeID(const Value* val);
     /**
      * @return the name of the RelVal.
      */
+    // TODO(Change): REMOVE ME and create getLabelVal.
     KUZU_API static std::string getLabelName(const Value* val);
     /**
      * @return the value of the RelVal in string format.
