@@ -15,11 +15,12 @@ namespace storage {
 
 class NodeTable {
 public:
-    NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH,
+    NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH, common::AccessMode accessMode,
         NodesStoreStatsAndDeletedIDs* nodesStatisticsAndDeletedIDs, BufferManager& bufferManager,
         WAL* wal, catalog::NodeTableSchema* nodeTableSchema, bool enableCompression);
 
-    void initializePKIndex(catalog::NodeTableSchema* nodeTableSchema);
+    void initializePKIndex(
+        catalog::NodeTableSchema* nodeTableSchema, common::AccessMode accessMode);
 
     inline common::offset_t getMaxNodeOffset(transaction::Transaction* transaction) const {
         return nodesStatisticsAndDeletedIDs->getMaxNodeOffset(transaction, tableID);

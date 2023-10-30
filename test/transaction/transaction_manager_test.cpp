@@ -17,7 +17,7 @@ protected:
         createDBAndConn();
         bufferManager = getBufferManager(*database);
         std::make_unique<BufferManager>(BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
-        wal = std::make_unique<WAL>(databasePath, *bufferManager);
+        wal = std::make_unique<WAL>(databasePath, AccessMode::READ_WRITE, *bufferManager);
         transactionManager = std::make_unique<TransactionManager>(
             *wal, getStorageManager(*database), getMemoryManager(*database));
     }

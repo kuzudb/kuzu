@@ -9,12 +9,13 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-WAL::WAL(const std::string& directory, BufferManager& bufferManager)
+WAL::WAL(const std::string& directory, AccessMode accessMode, BufferManager& bufferManager)
     : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::WAL)}, directory{directory},
       bufferManager{bufferManager}, isLastLoggedRecordCommit_{false} {
     fileHandle = bufferManager.getBMFileHandle(
         FileUtils::joinPath(directory, std::string(StorageConstants::WAL_FILE_SUFFIX)),
-        FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
+        accessMode == AccessMode::READ_ONLY ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
+                                              FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
         BMFileHandle::FileVersionedType::NON_VERSIONED_FILE);
     initCurrentPage();
 }

@@ -12,13 +12,15 @@ namespace storage {
 
 ListsMetadata::ListsMetadata(
     const StorageStructureIDAndFName& storageStructureIDAndFNameForBaseList,
-    BufferManager* bufferManager, WAL* wal)
+    BufferManager* bufferManager, WAL* wal, AccessMode accessMode)
     : BaseListsMetadata(), storageStructureIDAndFName(storageStructureIDAndFNameForBaseList) {
     storageStructureIDAndFName.storageStructureID.listFileID.listFileType = ListFileType::METADATA;
     storageStructureIDAndFName.fName =
         StorageUtils::getListMetadataFName(storageStructureIDAndFNameForBaseList.fName);
     metadataVersionedFileHandle = bufferManager->getBMFileHandle(storageStructureIDAndFName.fName,
-        FileHandle::O_PERSISTENT_FILE_NO_CREATE, BMFileHandle::FileVersionedType::VERSIONED_FILE);
+        accessMode == AccessMode::READ_ONLY ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
+                                              FileHandle::O_PERSISTENT_FILE_NO_CREATE,
+        BMFileHandle::FileVersionedType::VERSIONED_FILE);
     chunkToPageListHeadIdxMap = std::make_unique<InMemDiskArray<uint32_t>>(
         *metadataVersionedFileHandle, storageStructureIDAndFName.storageStructureID,
         CHUNK_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX, bufferManager, wal,

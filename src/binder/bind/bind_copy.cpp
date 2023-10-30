@@ -3,10 +3,10 @@
 #include "binder/copy/bound_copy_to.h"
 #include "catalog/node_table_schema.h"
 #include "catalog/rel_table_schema.h"
+#include "common/enums/table_type.h"
 #include "common/exception/binder.h"
 #include "common/exception/message.h"
 #include "common/string_format.h"
-#include "common/table_type.h"
 #include "parser/copy.h"
 #include "storage/storage_manager.h"
 

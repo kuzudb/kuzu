@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/join_type.h"
+#include "common/enums/join_type.h"
 #include "logical_operator.h"
 #include "planner/operator/sip/side_way_info_passing.h"
 

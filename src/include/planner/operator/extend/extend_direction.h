@@ -3,7 +3,7 @@
 #include <cstdint>
 
 #include "binder/expression/rel_expression.h"
-#include "common/rel_direction.h"
+#include "common/enums/rel_direction.h"
 
 namespace kuzu {
 namespace planner {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/join_type.h"
+#include "common/enums/join_type.h"
 #include "processor/operator/filtering_operator.h"
 #include "processor/operator/hash_join/hash_join_build.h"
 #include "processor/operator/physical_operator.h"

@@ -11,8 +11,9 @@ namespace storage {
 
 class NodesStore {
 public:
-    NodesStore(BMFileHandle* dataFH, BMFileHandle* metadataFH, const catalog::Catalog& catalog,
-        BufferManager& bufferManager, WAL* wal, bool enableCompression);
+    NodesStore(BMFileHandle* dataFH, BMFileHandle* metadataFH, common::AccessMode accessMode,
+        const catalog::Catalog& catalog, BufferManager& bufferManager, WAL* wal,
+        bool enableCompression);
 
     inline PrimaryKeyIndex* getPKIndex(common::table_id_t tableID) {
         return nodeTables[tableID]->getPKIndex();
@@ -29,7 +30,7 @@ public:
     inline void createNodeTable(
         common::table_id_t tableID, BufferManager* bufferManager, catalog::Catalog* catalog) {
         nodeTables[tableID] = std::make_unique<NodeTable>(dataFH, metadataFH,
-            nodesStatisticsAndDeletedIDs.get(), *bufferManager, wal,
+            common::AccessMode::READ_WRITE, nodesStatisticsAndDeletedIDs.get(), *bufferManager, wal,
             reinterpret_cast<catalog::NodeTableSchema*>(
                 catalog->getReadOnlyVersion()->getTableSchema(tableID)),
             enableCompression);

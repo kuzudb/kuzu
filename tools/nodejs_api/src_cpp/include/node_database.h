@@ -25,7 +25,7 @@ private:
     std::string databasePath;
     size_t bufferPoolSize;
     bool enableCompression;
-    AccessMode accessMode;
+    kuzu::common::AccessMode accessMode;
     std::shared_ptr<Database> database;
 };
 

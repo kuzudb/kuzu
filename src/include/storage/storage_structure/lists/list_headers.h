@@ -68,7 +68,7 @@ private:
 class ListHeaders {
 public:
     explicit ListHeaders(const StorageStructureIDAndFName& storageStructureIDAndFNameForBaseList,
-        BufferManager* bufferManager, WAL* wal);
+        BufferManager* bufferManager, WAL* wal, common::AccessMode accessMode);
 
     inline csr_offset_t getCSROffset(common::offset_t offset) const {
         return offset % common::ListsMetadataConstants::LISTS_CHUNK_SIZE == 0 ?

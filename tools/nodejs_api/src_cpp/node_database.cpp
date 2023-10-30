@@ -19,7 +19,7 @@ NodeDatabase::NodeDatabase(const Napi::CallbackInfo& info) : Napi::ObjectWrap<No
     databasePath = info[0].ToString();
     bufferPoolSize = info[1].As<Napi::Number>().Int64Value();
     enableCompression = info[2].As<Napi::Boolean>().Value();
-    accessMode = static_cast<AccessMode>(info[3].As<Napi::Number>().Int32Value());
+    accessMode = static_cast<kuzu::common::AccessMode>(info[3].As<Napi::Number>().Int32Value());
 }
 
 Napi::Value NodeDatabase::InitAsync(const Napi::CallbackInfo& info) {

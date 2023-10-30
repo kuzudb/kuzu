@@ -15,7 +15,7 @@ protected:
         LoggerUtils::createLogger(LoggerConstants::LoggerEnum::STORAGE);
         bufferManager = std::make_unique<BufferManager>(
             BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
-        wal = make_unique<WAL>(databasePath, *bufferManager);
+        wal = make_unique<WAL>(databasePath, AccessMode::READ_WRITE, *bufferManager);
     }
 
     void TearDown() override {
@@ -167,7 +167,7 @@ TEST_F(WALTests, TestOpeningExistingWAL) {
     addStructuredNodePropertyMainFilePageRecord(
         assignedPageIdxs, numStructuredNodePropertyMainFilePageRecords);
     wal.reset();
-    wal = make_unique<WAL>(databasePath, *bufferManager);
+    wal = make_unique<WAL>(databasePath, AccessMode::READ_WRITE, *bufferManager);
 
     auto walIterator = wal->getIterator();
     readAndVerifyStructuredNodePropertyMainFilePageRecords(walIterator.get(), assignedPageIdxs,

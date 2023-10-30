@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "common/expression_type.h"
+#include "common/enums/expression_type.h"
 
 namespace kuzu {
 

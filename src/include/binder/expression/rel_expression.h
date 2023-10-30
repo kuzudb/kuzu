@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/query_rel_type.h"
+#include "common/enums/query_rel_type.h"
 #include "node_expression.h"
 
 namespace kuzu {

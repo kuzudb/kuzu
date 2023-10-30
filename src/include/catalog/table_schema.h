@@ -5,7 +5,7 @@
 #include <unordered_set>
 
 #include "common/constants.h"
-#include "common/table_type.h"
+#include "common/enums/table_type.h"
 #include "property.h"
 
 namespace kuzu {

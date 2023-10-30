@@ -308,12 +308,12 @@ void WALReplayer::replayCopyNodeRecord(const kuzu::storage::WALRecord& walRecord
             auto nodeTableSchema = reinterpret_cast<NodeTableSchema*>(
                 catalog->getReadOnlyVersion()->getTableSchema(tableID));
             storageManager->getNodesStore().getNodeTable(tableID)->initializePKIndex(
-                nodeTableSchema);
+                nodeTableSchema, AccessMode::READ_WRITE);
             for (auto schema : catalog->getAllRelTableSchemasContainBoundTable(tableID)) {
                 auto relTableSchema = reinterpret_cast<RelTableSchema*>(schema);
                 storageManager->getRelsStore()
                     .getRelTable(relTableSchema->tableID)
-                    ->initializeData(relTableSchema);
+                    ->initializeData(relTableSchema, AccessMode::READ_WRITE);
             }
         } else {
             // RECOVERY.
@@ -338,7 +338,7 @@ void WALReplayer::replayCopyRelRecord(const kuzu::storage::WALRecord& walRecord)
             // CHECKPOINT.
             relTable->resetColumnsAndLists(relTableSchema);
             // See comments for COPY_NODE_RECORD.
-            relTable->initializeData(relTableSchema);
+            relTable->initializeData(relTableSchema, AccessMode::READ_WRITE);
             storageManager->getNodesStore()
                 .getNodesStatisticsAndDeletedIDs()
                 ->setAdjListsAndColumns(&storageManager->getRelsStore());
