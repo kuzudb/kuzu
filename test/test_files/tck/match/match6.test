@@ -1,0 +1,108 @@
+-GROUP TCKMatch6
+-DATASET CSV tck
+
+--
+
+# Zero-length named path
+-CASE Scenario1
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A);
+---- ok
+-STATEMENT MATCH p = (a)
+           RETURN p;
+---- 1
+{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0}], _RELS: []}
+
+# Return a simple path
+-CASE Scenario2
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE KNOWS(FROM A TO B);
+---- ok
+-STATEMENT CREATE (a:A {name: 'A'})-[:KNOWS]->(b:B {name: 'B'});
+---- ok
+-STATEMENT MATCH p = (a {name: 'A'})-->(b)
+           RETURN p;
+---- 1
+{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 1:0, _LABEL: B, ID: 0, name: B}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 2:0}->(1:0)]}
+
+# Return a three node path
+-CASE Scenario3
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE C(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP KNOWS(FROM A TO B, FROM B TO C);
+---- ok
+-STATEMENT CREATE (a:A {name: 'A'})-[:KNOWS_A_B]->(b:B {name: 'B'})-[:KNOWS_B_C]->(c:C {name: 'C'});
+---- ok
+-STATEMENT MATCH p = (a {name: 'A'})-[rel1]->(b)-[rel2]->(c)
+           RETURN p;
+---- 1
+{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 1:0, _LABEL: B, ID: 0, name: B},{_ID: 2:0, _LABEL: C, ID: 0, name: C}], _RELS: [(0:0)-{_LABEL: KNOWS_A_B, _ID: 4:0}->(1:0),(1:0)-{_LABEL: KNOWS_B_C, _ID: 5:0}->(2:0)]}
+
+# Respecting direction when matching non-existent path
+-CASE Scenario4
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO B);
+---- ok
+-STATEMENT CREATE (a:A {name: 'a'}), (b:B {name: 'b'})
+           CREATE (a)-[:T]->(b);
+---- ok
+-STATEMENT MATCH p = ({name: 'a'})<--({name: 'b'})
+           RETURN p;
+---- 0
+
+# Path query should return results in written order
+-CASE Scenario5
+-STATEMENT CREATE NODE TABLE Label1(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE Label2(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE TYPE(FROM Label2 TO Label1);
+---- ok
+-STATEMENT CREATE (:Label1)<-[:TYPE]-(:Label2);
+---- ok
+-STATEMENT MATCH p = (a:Label1)<--(:Label2)
+           RETURN p;
+---- 1
+{_NODES: [{_ID: 0:0, _LABEL: Label1, ID: 0},{_ID: 1:0, _LABEL: Label2, ID: 0}], _RELS: [(1:0)-{_LABEL: TYPE, _ID: 2:0}->(0:0)]}
+
+# Handling direction of named paths
+-CASE Scenario6
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO B);
+---- ok
+-STATEMENT CREATE (a:A)-[:T]->(b:B);
+---- ok
+-STATEMENT MATCH p = (b)<--(a)
+           RETURN p;
+---- 1
+{_NODES: [{_ID: 1:0, _LABEL: B, ID: 0},{_ID: 0:0, _LABEL: A, ID: 0}], _RELS: [(0:0)-{_LABEL: T, _ID: 2:0}->(1:0)]}
+
+# Respecting direction when matching existing path
+-CASE Scenario7
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO B);
+---- ok
+-STATEMENT CREATE (a:A {name: 'a'}), (b:B {name: 'b'})
+           CREATE (a)-[:T]->(b);
+---- ok
+-STATEMENT MATCH p = ({name: 'a'})-->({name: 'b'})
+           RETURN p;
+---- 1
+{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: a},{_ID: 1:0, _LABEL: B, ID: 0, name: b}], _RELS: [(0:0)-{_LABEL: T, _ID: 2:0}->(1:0)]}
