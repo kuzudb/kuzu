@@ -12,3 +12,5 @@ add_library(kuzu_processor_operator_parquet_writer
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_processor_operator_parquet_writer>
         PARENT_SCOPE)
+
+target_link_libraries(kuzu_processor_operator_parquet_writer PUBLIC miniparquet)
