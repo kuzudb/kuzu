@@ -1,10 +1,9 @@
 #pragma once
 
 #include "catalog/catalog.h"
+#include "storage/stats/metadata_dah_info.h"
 #include "storage/stats/property_statistics.h"
-#include "storage/stats/table_statistics.h"
 #include "storage/storage_structure/disk_array.h"
-#include "storage/storage_structure/storage_structure.h"
 #include "storage/store/column_chunk.h"
 
 namespace kuzu {
@@ -29,11 +28,6 @@ class StructNodeColumn;
 // TODO(Guodong): This is intentionally duplicated with `Column`, as for now, we don't change rel
 // tables. `Column` is used for rel tables only. Eventually, we should remove `Column`.
 class NodeColumn {
-    friend class LocalColumn;
-    friend class StringLocalColumn;
-    friend class VarListLocalColumn;
-    friend class StructNodeColumn;
-
 public:
     NodeColumn(common::LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
         BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
@@ -58,7 +52,7 @@ public:
 
     virtual void setNull(common::offset_t nodeOffset);
 
-    inline common::LogicalType getDataType() const { return dataType; }
+    inline const common::LogicalType& getDataType() const { return dataType; }
     inline uint32_t getNumBytesPerValue() const { return numBytesPerFixedSizedValue; }
     inline uint64_t getNumNodeGroups(transaction::Transaction* transaction) const {
         return metadataDA->getNumElements(transaction->getType());
@@ -70,10 +64,13 @@ public:
     void populateWithDefaultVal(const catalog::Property& property, NodeColumn* nodeColumn,
         common::ValueVector* defaultValueVector, uint64_t numNodeGroups) const;
 
-    inline CompressionMetadata getCompressionMetadata(
+    inline ColumnChunkMetadata getMetadata(
         common::node_group_idx_t nodeGroupIdx, transaction::TransactionType transaction) const {
-        return metadataDA->get(nodeGroupIdx, transaction).compMeta;
+        return metadataDA->get(nodeGroupIdx, transaction);
     }
+
+    virtual void write(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
+        uint32_t posInVectorToWriteFrom);
 
 protected:
     virtual void scanInternal(transaction::Transaction* transaction,
@@ -92,13 +89,6 @@ protected:
     void readFromPage(transaction::Transaction* transaction, common::page_idx_t pageIdx,
         const std::function<void(uint8_t*)>& func);
 
-    void write(common::ValueVector* nodeIDVector, common::ValueVector* vectorToWriteFrom);
-    inline void write(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
-        uint32_t posInVectorToWriteFrom) {
-        writeInternal(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
-    }
-    virtual void writeInternal(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
-        uint32_t posInVectorToWriteFrom);
     virtual void writeValue(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
         uint32_t posInVectorToWriteFrom);
 

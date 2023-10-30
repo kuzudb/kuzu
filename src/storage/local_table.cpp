@@ -158,7 +158,7 @@ void LocalColumn::update(offset_t nodeOffset, ValueVector* propertyVector,
     sel_t posInPropertyVector, MemoryManager* mm) {
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     if (!chunks.contains(nodeGroupIdx)) {
-        chunks.emplace(nodeGroupIdx, std::make_unique<LocalColumnChunk>(column->dataType, mm));
+        chunks.emplace(nodeGroupIdx, std::make_unique<LocalColumnChunk>(column->getDataType(), mm));
     }
     auto chunk = chunks.at(nodeGroupIdx).get();
     auto [vectorIdxInChunk, offsetInVector] =
@@ -176,7 +176,7 @@ void LocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
     assert(chunks.contains(nodeGroupIdx));
     auto chunk = chunks.at(nodeGroupIdx).get();
     // Figure out if the chunk needs to be re-compressed
-    auto metadata = column->getCompressionMetadata(nodeGroupIdx, TransactionType::WRITE);
+    auto metadata = column->getMetadata(nodeGroupIdx, TransactionType::WRITE).compMeta;
     if (!metadata.canAlwaysUpdateInPlace()) {
         for (auto& [vectorIdx, vector] : chunk->vectors) {
             for (auto i = 0u; i < vector->vector->state->selVector->selectedSize; i++) {
@@ -251,9 +251,9 @@ void VarListLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
     varListColumn->scan(nodeGroupIdx, listColumnChunkInStorage.get());
     offset_t nextOffsetToWrite = 0;
     auto numNodesInGroup =
-        nodeGroupIdx >= column->metadataDA->getNumElements() ?
+        nodeGroupIdx >= column->getNumNodeGroups(&DUMMY_READ_TRANSACTION) ?
             0 :
-            column->metadataDA->get(nodeGroupIdx, TransactionType::READ_ONLY).numValues;
+            column->getMetadata(nodeGroupIdx, TransactionType::READ_ONLY).numValues;
     for (auto& [vectorIdx, localVector] : chunk->vectors) {
         auto startOffsetInChunk = StorageUtils::getStartOffsetOfVectorInChunk(vectorIdx);
         auto listVector = localVector->vector.get();

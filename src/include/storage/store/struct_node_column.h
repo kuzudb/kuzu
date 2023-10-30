@@ -26,14 +26,14 @@ public:
         assert(childIdx < childColumns.size());
         return childColumns[childIdx].get();
     }
+    void write(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
+        uint32_t posInVectorToWriteFrom) final;
 
 protected:
     void scanInternal(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector) final;
     void lookupInternal(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector) final;
-    void writeInternal(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
-        uint32_t posInVectorToWriteFrom) final;
 
 private:
     std::vector<std::unique_ptr<NodeColumn>> childColumns;

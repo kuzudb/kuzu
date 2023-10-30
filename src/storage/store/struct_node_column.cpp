@@ -53,9 +53,9 @@ void StructNodeColumn::lookupInternal(
     }
 }
 
-void StructNodeColumn::writeInternal(
+void StructNodeColumn::write(
     offset_t nodeOffset, ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
-    nullColumn->writeInternal(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
+    nullColumn->write(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
 }
 
 void StructNodeColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
