@@ -2,12 +2,13 @@
 
 #include "common/constants.h"
 #include "common/exception/buffer_manager.h"
-#include "spdlog/spdlog.h"
 
 #if defined(_WIN32)
 #include <exception>
 
 #include <eh.h>
+#include <windows.h>
+#include <winnt.h>
 #endif
 
 using namespace kuzu::common;
