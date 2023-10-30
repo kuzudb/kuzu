@@ -1,9 +1,9 @@
--GROUP TCK
+-GROUP TCKMatch5
 -DATASET CSV tck-likes
 
 --
 
--CASE match5
+-CASE Scenario1-24
 # Handling unbounded variable length match
 -LOG Scenario1
 -STATEMENT MATCH (a:A)
@@ -277,7 +277,7 @@ n001
 n010
 n011
 
-#  Handling a variable length relationship and a standard relationship in chain, longer 1
+# Handling a variable length relationship and a standard relationship in chain, longer 1
 -LOG Scenario23
 -STATEMENT MATCH (a:A)
            MATCH (a)-[:LIKES*2]->()-[:LIKES]->(c)
@@ -312,8 +312,8 @@ n0111
 -STATEMENT  MATCH (d:D)
             CREATE (e1:E {name: concat(d.name, '0')}),
                    (e2:E {name: concat(d.name, '1')})
-            CREATE (d)-[:LIKES]->(e1),
-                   (d)-[:LIKES]->(e2);
+            CREATE (d)-[:LIKES_D_E]->(e1),
+                   (d)-[:LIKES_D_E]->(e2);
 ---- ok
 -STATEMENT MATCH (a:A)
            MATCH (a)-[:LIKES]->()-[:LIKES*3]->(c)
@@ -338,30 +338,126 @@ n01111
 
 # Handling mixed relationship patterns and directions 1
 -CASE Scenario26
--STATEMENT MATCH (a:A)-[r]->(b)
+-STATEMENT MATCH (a:A)-[r]->(b:B)
+           DELETE r
+           CREATE (b)-[:LIKES_B_A]->(a);
+---- ok
+-STATEMENT MATCH (d:D)
+           CREATE (e1:E {name: concat(d.name, '0')}),
+                  (e2:E {name: concat(d.name, '1')})
+           CREATE (d)-[:LIKES_D_E]->(e1),
+                  (d)-[:LIKES_D_E]->(e2);
+---- ok
+-STATEMENT MATCH (a:A)
+           MATCH (a)<-[:LIKES]-()-[:LIKES*3]->(c)
+           RETURN c.name;
+---- 16
+n00000
+n00001
+n00010
+n00011
+n00100
+n00101
+n00110
+n00111
+n01000
+n01001
+n01010
+n01011
+n01100
+n01101
+n01110
+n01111
+
+# Handling mixed relationship patterns and directions 2
+-CASE Scenario27
+-SKIP
+-STATEMENT MATCH (a)-[r]->(b)
+           WHERE NOT LABEL(a) = 'A'
            DELETE r
            CREATE (b)-[:LIKES]->(a);
 ---- ok
--STATEMENT
+-STATEMENT MATCH (d:D)
+           CREATE (e1:E {name: concat(d.name, '0')}),
+                  (e2:E {name: concat(d.name, '1')})
+           CREATE (d)-[:LIKES_D_E]->(e1),
+                  (d)-[:LIKES_D_E]->(e2);
+---- ok
+-STATEMENT MATCH (a:A)
+           MATCH (a)-[:LIKES]->()<-[:LIKES*3]->(c)
+           RETURN c.name;
+---- 16
+n00000
+n00001
+n00010
+n00011
+n00100
+n00101
+n00110
+n00111
+n01000
+n01001
+n01010
+n01011
+n01100
+n01101
+n01110
+n01111
 
+# Handling mixed relationship patterns 1
+-CASE Scenario28
+-STATEMENT  MATCH (d:D)
+            CREATE (e1:E {name: concat(d.name, '0')}),
+                   (e2:E {name: concat(d.name, '1')})
+            CREATE (d)-[:LIKES_D_E]->(e1),
+                   (d)-[:LIKES_D_E]->(e2);
+---- ok
+-STATEMENT MATCH (a:A)
+           MATCH (p)-[:LIKES*1]->()-[:LIKES]->()-[r:LIKES*2]->(c)
+           RETURN c.name;
+---- 16
+n00000
+n00001
+n00010
+n00011
+n00100
+n00101
+n00110
+n00111
+n01000
+n01001
+n01010
+n01011
+n01100
+n01101
+n01110
+n01111
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# Handling mixed relationship patterns 2
+-CASE Scenario29
+-STATEMENT  MATCH (d:D)
+            CREATE (e1:E {name: concat(d.name, '0')}),
+                   (e2:E {name: concat(d.name, '1')})
+            CREATE (d)-[:LIKES_D_E]->(e1),
+                   (d)-[:LIKES_D_E]->(e2);
+---- ok
+-STATEMENT MATCH (a:A)
+           MATCH (p)-[:LIKES]->()-[:LIKES*2]->()-[r:LIKES]->(c)
+           RETURN c.name;
+---- 16
+n00000
+n00001
+n00010
+n00011
+n00100
+n00101
+n00110
+n00111
+n01000
+n01001
+n01010
+n01011
+n01100
+n01101
+n01110
+n01111
