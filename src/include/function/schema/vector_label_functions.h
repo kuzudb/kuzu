@@ -10,7 +10,7 @@ struct LabelFunction {
     static void execFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result) {
         assert(params.size() == 2);
-        BinaryFunctionExecutor::executeListStruct<common::internalID_t, common::list_entry_t,
+        BinaryFunctionExecutor::executeListExtract<common::internalID_t, common::list_entry_t,
             common::ku_string_t, Label>(*params[0], *params[1], result);
     }
 };
