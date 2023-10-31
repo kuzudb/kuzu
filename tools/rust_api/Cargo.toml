@@ -1,6 +1,6 @@
 [package]
 name = "kuzu"
-version = "0.0.11"
+version = "0.0.12"
 description = "An in-process property graph database management system built for query speed and scalability"
 # Note: 1.63 required for building tests
 rust-version = "1.51"

@@ -89,10 +89,7 @@ describe("Execute", function () {
       await conn.execute(preparedStatement, { 1: 0 });
       assert.fail("No error thrown when the prepared statement is invalid.");
     } catch (e) {
-      assert.equal(
-        e.message,
-        "Binder exception: Table dog does not exist."
-      );
+      assert.equal(e.message, "Binder exception: Table dog does not exist.");
     }
   });
 
@@ -185,10 +182,7 @@ describe("Query", function () {
       await conn.query("MATCH (a:dog) RETURN COUNT(*)");
       assert.fail("No error thrown when the query is invalid.");
     } catch (e) {
-      assert.equal(
-        e.message,
-        "Binder exception: Table dog does not exist."
-      );
+      assert.equal(e.message, "Binder exception: Table dog does not exist.");
     }
   });
 
@@ -198,6 +192,36 @@ describe("Query", function () {
       assert.fail("No error thrown when the query is not a string.");
     } catch (e) {
       assert.equal(e.message, "statement must be a string.");
+    }
+  });
+});
+
+describe("Timeout", function () {
+  it("should abort a query if the timeout is reached", async function () {
+    try {
+      const newConn = new kuzu.Connection(db);
+      await newConn.init();
+      newConn.setQueryTimeout(1);
+      await newConn.query(
+        "MATCH (a:person)-[:knows*1..28]->(b:person) RETURN COUNT(*);"
+      );
+      assert.fail("No error thrown when the query times out.");
+    } catch (err) {
+      assert.equal(err.message, "Interrupted.");
+    }
+  });
+
+  it("should allow setting a timeout before the connection is initialized", async function () {
+    try {
+      const newConn = new kuzu.Connection(db);
+      newConn.setQueryTimeout(1);
+      await newConn.init();
+      await newConn.query(
+        "MATCH (a:person)-[:knows*1..28]->(b:person) RETURN COUNT(*);"
+      );
+      assert.fail("No error thrown when the query times out.");
+    } catch (err) {
+      assert.equal(err.message, "Interrupted.");
     }
   });
 });
