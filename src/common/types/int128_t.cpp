@@ -346,7 +346,7 @@ int128_t Int128_t::Mod(int128_t lhs, int128_t rhs) {
 //===============================================================================================
 // Cast operation
 //===============================================================================================
-template<class DST, bool SIGNED = true>
+template<class DST, bool SIGNED=true>
 bool TryCastInt128Template(int128_t input, DST& result) {
     switch (input.high) {
     case 0:
@@ -356,6 +356,10 @@ bool TryCastInt128Template(int128_t input, DST& result) {
         }
         break;
     case -1:
+        if constexpr (!SIGNED) {
+            throw common::OverflowException(
+                "Cast failed. Cannot cast " + Int128_t::ToString(input) + " to unsigned type.");
+        }
         if (input.low >=
             uint64_t(std::numeric_limits<DST>::max()) - uint64_t(std::numeric_limits<DST>::max())) {
             result = static_cast<DST>(std::numeric_limits<DST>::max() - input.low) - 1;
@@ -391,22 +395,22 @@ bool Int128_t::tryCast(int128_t input, int64_t& result) {
 
 template<>
 bool Int128_t::tryCast(int128_t input, uint8_t& result) {
-    return TryCastInt128Template<uint8_t>(input, result);
+    return TryCastInt128Template<uint8_t, false>(input, result);
 }
 
 template<>
 bool Int128_t::tryCast(int128_t input, uint16_t& result) {
-    return TryCastInt128Template<uint16_t>(input, result);
+    return TryCastInt128Template<uint16_t, false>(input, result);
 }
 
 template<>
 bool Int128_t::tryCast(int128_t input, uint32_t& result) {
-    return TryCastInt128Template<uint32_t>(input, result);
+    return TryCastInt128Template<uint32_t, false>(input, result);
 }
 
 template<>
 bool Int128_t::tryCast(int128_t input, uint64_t& result) {
-    return TryCastInt128Template<uint64_t>(input, result);
+    return TryCastInt128Template<uint64_t, false>(input, result);
 }
 
 template<>
