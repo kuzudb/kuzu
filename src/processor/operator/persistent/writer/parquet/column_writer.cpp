@@ -4,6 +4,7 @@
 #include "common/string_utils.h"
 #include "function/cast/functions/numeric_limits.h"
 #include "processor/operator/persistent/writer/parquet/boolean_column_writer.h"
+#include "processor/operator/persistent/writer/parquet/interval_column_writer.h"
 #include "processor/operator/persistent/writer/parquet/parquet_writer.h"
 #include "processor/operator/persistent/writer/parquet/standard_column_writer.h"
 #include "processor/operator/persistent/writer/parquet/string_column_writer.h"
@@ -16,6 +17,21 @@ namespace processor {
 
 using namespace kuzu_parquet::format;
 using namespace kuzu::common;
+
+struct ParquetInt128Operator {
+    template<class SRC, class TGT>
+    static inline TGT Operation(SRC input) {
+        return Int128_t::Cast<double>(input);
+    }
+
+    template<class /*SRC*/, class /*TGT*/>
+    static inline std::unique_ptr<ColumnWriterStatistics> initializeStats() {
+        return std::make_unique<ColumnWriterStatistics>();
+    }
+
+    template<class SRC, class TGT>
+    static void handleStats(ColumnWriterStatistics* stats, SRC source, TGT target) {}
+};
 
 ColumnWriter::ColumnWriter(ParquetWriter& writer, uint64_t schemaIdx,
     std::vector<std::string> schemaPath, uint64_t maxRepeat, uint64_t maxDefine, bool canHaveNulls)
@@ -47,7 +63,7 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
         schemas.push_back(std::move(schema_element));
         schemaPathToCreate.push_back(name);
 
-        // construct the child types recursively
+        // Construct the child types recursively.
         std::vector<std::unique_ptr<ColumnWriter>> childWriters;
         childWriters.reserve(fields.size());
         for (auto& field : fields) {
@@ -61,30 +77,30 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
     }
     case LogicalTypeID::VAR_LIST: {
         auto childType = VarListType::getChildType(type);
-        // set up the two schema elements for the list
+        // Set up the two schema elements for the list
         // for some reason we only set the converted type in the OPTIONAL element
-        // first an OPTIONAL element
-        kuzu_parquet::format::SchemaElement optional_element;
-        optional_element.repetition_type = nullType;
-        optional_element.num_children = 1;
-        optional_element.converted_type = ConvertedType::LIST;
-        optional_element.__isset.num_children = true;
-        optional_element.__isset.type = false;
-        optional_element.__isset.repetition_type = true;
-        optional_element.__isset.converted_type = true;
-        optional_element.name = name;
-        schemas.push_back(std::move(optional_element));
+        // first an OPTIONAL element.
+        kuzu_parquet::format::SchemaElement optionalElem;
+        optionalElem.repetition_type = nullType;
+        optionalElem.num_children = 1;
+        optionalElem.converted_type = ConvertedType::LIST;
+        optionalElem.__isset.num_children = true;
+        optionalElem.__isset.type = false;
+        optionalElem.__isset.repetition_type = true;
+        optionalElem.__isset.converted_type = true;
+        optionalElem.name = name;
+        schemas.push_back(std::move(optionalElem));
         schemaPathToCreate.push_back(name);
 
-        // then a REPEATED element
-        kuzu_parquet::format::SchemaElement repeated_element;
-        repeated_element.repetition_type = FieldRepetitionType::REPEATED;
-        repeated_element.num_children = 1;
-        repeated_element.__isset.num_children = true;
-        repeated_element.__isset.type = false;
-        repeated_element.__isset.repetition_type = true;
-        repeated_element.name = "list";
-        schemas.push_back(std::move(repeated_element));
+        // Then a REPEATED element.
+        kuzu_parquet::format::SchemaElement repeatedElem;
+        repeatedElem.repetition_type = FieldRepetitionType::REPEATED;
+        repeatedElem.num_children = 1;
+        repeatedElem.__isset.num_children = true;
+        repeatedElem.__isset.type = false;
+        repeatedElem.__isset.repetition_type = true;
+        repeatedElem.name = "list";
+        schemas.push_back(std::move(repeatedElem));
         schemaPathToCreate.emplace_back("list");
 
         auto child_writer = createWriterRecursive(schemas, writer, childType, "element",
@@ -92,6 +108,54 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
         return std::make_unique<VarListColumnWriter>(writer, schemaIdx,
             std::move(schemaPathToCreate), maxRepeatToCreate, maxDefineToCreate,
             std::move(child_writer), canHaveNullsToCreate);
+    }
+    case LogicalTypeID::MAP: {
+        // Maps are stored as follows in parquet:
+        // <map-repetition> group <name> (MAP) {
+        // 	repeated group key_value {
+        // 		required <key-type> key;
+        // 		<value-repetition> <value-type> value;
+        // 	}
+        // }
+        kuzu_parquet::format::SchemaElement topElement;
+        topElement.repetition_type = nullType;
+        topElement.num_children = 1;
+        topElement.converted_type = ConvertedType::MAP;
+        topElement.__isset.repetition_type = true;
+        topElement.__isset.num_children = true;
+        topElement.__isset.converted_type = true;
+        topElement.__isset.type = false;
+        topElement.name = name;
+        schemas.push_back(std::move(topElement));
+        schemaPathToCreate.push_back(name);
+
+        // key_value element
+        kuzu_parquet::format::SchemaElement kv_element;
+        kv_element.repetition_type = FieldRepetitionType::REPEATED;
+        kv_element.num_children = 2;
+        kv_element.__isset.repetition_type = true;
+        kv_element.__isset.num_children = true;
+        kv_element.__isset.type = false;
+        kv_element.name = "key_value";
+        schemas.push_back(std::move(kv_element));
+        schemaPathToCreate.emplace_back("key_value");
+
+        // Construct the child types recursively.
+        std::vector<common::LogicalType*> kvTypes{
+            MapType::getKeyType(type), MapType::getValueType(type)};
+        std::vector<std::string> kvNames{"key", "value"};
+        std::vector<std::unique_ptr<ColumnWriter>> childrenWriters;
+        childrenWriters.reserve(2);
+        for (auto i = 0u; i < 2; i++) {
+            auto childWriter = createWriterRecursive(schemas, writer, kvTypes[i], kvNames[i],
+                schemaPathToCreate, mm, maxRepeatToCreate + 1, maxDefineToCreate + 2, i != 0);
+            childrenWriters.push_back(std::move(childWriter));
+        }
+        auto structWriter = std::make_unique<StructColumnWriter>(writer, schemaIdx,
+            schemaPathToCreate, maxRepeatToCreate, maxDefineToCreate, std::move(childrenWriters),
+            canHaveNullsToCreate);
+        return std::make_unique<VarListColumnWriter>(writer, schemaIdx, schemaPathToCreate,
+            maxRepeatToCreate, maxDefineToCreate, std::move(structWriter), canHaveNullsToCreate);
     }
     default: {
         SchemaElement schemaElement;
@@ -110,6 +174,10 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
             return std::make_unique<BooleanColumnWriter>(writer, schemaIdx,
                 std::move(schemaPathToCreate), maxRepeatToCreate, maxDefineToCreate,
                 canHaveNullsToCreate);
+        case LogicalTypeID::INT8:
+            return std::make_unique<StandardColumnWriter<int8_t, int32_t>>(writer, schemaIdx,
+                std::move(schemaPathToCreate), maxRepeatToCreate, maxDefineToCreate,
+                canHaveNullsToCreate);
         case LogicalTypeID::INT16:
             return std::make_unique<StandardColumnWriter<int16_t, int32_t>>(writer, schemaIdx,
                 std::move(schemaPathToCreate), maxRepeatToCreate, maxDefineToCreate,
@@ -121,6 +189,26 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
                 canHaveNullsToCreate);
         case LogicalTypeID::INT64:
             return std::make_unique<StandardColumnWriter<int64_t, int64_t>>(writer, schemaIdx,
+                std::move(schemaPathToCreate), maxRepeatToCreate, maxDefineToCreate,
+                canHaveNullsToCreate);
+        case LogicalTypeID::INT128:
+            return std::make_unique<StandardColumnWriter<int128_t, double, ParquetInt128Operator>>(
+                writer, schemaIdx, std::move(schemaPathToCreate), maxRepeatToCreate,
+                maxDefineToCreate, canHaveNullsToCreate);
+        case LogicalTypeID::UINT8:
+            return std::make_unique<StandardColumnWriter<uint8_t, int32_t>>(writer, schemaIdx,
+                std::move(schemaPathToCreate), maxRepeatToCreate, maxDefineToCreate,
+                canHaveNullsToCreate);
+        case LogicalTypeID::UINT16:
+            return std::make_unique<StandardColumnWriter<uint16_t, int32_t>>(writer, schemaIdx,
+                std::move(schemaPathToCreate), maxRepeatToCreate, maxDefineToCreate,
+                canHaveNullsToCreate);
+        case LogicalTypeID::UINT32:
+            return std::make_unique<StandardColumnWriter<uint32_t, uint32_t>>(writer, schemaIdx,
+                std::move(schemaPathToCreate), maxRepeatToCreate, maxDefineToCreate,
+                canHaveNullsToCreate);
+        case LogicalTypeID::UINT64:
+            return std::make_unique<StandardColumnWriter<uint64_t, uint64_t>>(writer, schemaIdx,
                 std::move(schemaPathToCreate), maxRepeatToCreate, maxDefineToCreate,
                 canHaveNullsToCreate);
         case LogicalTypeID::FLOAT:
@@ -136,8 +224,14 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
             return std::make_unique<StringColumnWriter>(writer, schemaIdx,
                 std::move(schemaPathToCreate), maxRepeatToCreate, maxDefineToCreate,
                 canHaveNullsToCreate, mm);
+        case LogicalTypeID::INTERVAL:
+            return std::make_unique<IntervalColumnWriter>(writer, schemaIdx,
+                std::move(schemaPathToCreate), maxRepeatToCreate, maxDefineToCreate,
+                canHaveNullsToCreate);
+            // LCOV_EXCL_START
         default:
-            throw NotImplementedException("ParquetWriter::convertToParquetType");
+            throw NotImplementedException("ParquetWriter::createWriterRecursive");
+            // LCOV_EXCL_STOP
         }
     }
     }

@@ -3,6 +3,7 @@ add_library(kuzu_processor_operator_parquet_writer
         basic_column_writer.cpp
         boolean_column_writer.cpp
         column_writer.cpp
+        interval_column_writer.cpp
         struct_column_writer.cpp
         string_column_writer.cpp
         var_list_column_writer.cpp

@@ -2,11 +2,14 @@
 
 #include "common/exception/not_implemented.h"
 #include "common/types/date_t.h"
+#include "miniz_wrapper.hpp"
 #include "processor/operator/persistent/reader/parquet/boolean_column_reader.h"
 #include "processor/operator/persistent/reader/parquet/callback_column_reader.h"
+#include "processor/operator/persistent/reader/parquet/interval_column_reader.h"
 #include "processor/operator/persistent/reader/parquet/string_column_reader.h"
 #include "processor/operator/persistent/reader/parquet/templated_column_reader.h"
 #include "snappy/snappy.h"
+#include "zstd.h"
 
 namespace kuzu {
 namespace processor {
@@ -195,6 +198,10 @@ std::unique_ptr<ColumnReader> ColumnReader::createReader(ParquetReader& reader,
     case common::LogicalTypeID::BOOL:
         return std::make_unique<BooleanColumnReader>(
             reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+    case common::LogicalTypeID::INT8:
+        return std::make_unique<
+            TemplatedColumnReader<int8_t, TemplatedParquetValueConversion<int32_t>>>(
+            reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
     case common::LogicalTypeID::INT16:
         return std::make_unique<
             TemplatedColumnReader<int16_t, TemplatedParquetValueConversion<int32_t>>>(
@@ -206,6 +213,22 @@ std::unique_ptr<ColumnReader> ColumnReader::createReader(ParquetReader& reader,
     case common::LogicalTypeID::INT64:
         return std::make_unique<
             TemplatedColumnReader<int64_t, TemplatedParquetValueConversion<int64_t>>>(
+            reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+    case common::LogicalTypeID::UINT8:
+        return std::make_unique<
+            TemplatedColumnReader<uint8_t, TemplatedParquetValueConversion<uint32_t>>>(
+            reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+    case common::LogicalTypeID::UINT16:
+        return std::make_unique<
+            TemplatedColumnReader<uint16_t, TemplatedParquetValueConversion<uint32_t>>>(
+            reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+    case common::LogicalTypeID::UINT32:
+        return std::make_unique<
+            TemplatedColumnReader<uint32_t, TemplatedParquetValueConversion<uint32_t>>>(
+            reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+    case common::LogicalTypeID::UINT64:
+        return std::make_unique<
+            TemplatedColumnReader<uint64_t, TemplatedParquetValueConversion<uint64_t>>>(
             reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
     case common::LogicalTypeID::FLOAT:
         return std::make_unique<
@@ -220,6 +243,9 @@ std::unique_ptr<ColumnReader> ColumnReader::createReader(ParquetReader& reader,
             reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
     case common::LogicalTypeID::STRING:
         return std::make_unique<StringColumnReader>(
+            reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+    case common::LogicalTypeID::INTERVAL:
+        return std::make_unique<IntervalColumnReader>(
             reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
     default:
         throw common::NotImplementedException{"ColumnReader::createReader"};
@@ -270,36 +296,51 @@ void ColumnReader::decompressInternal(kuzu_parquet::format::CompressionCodec::ty
     case CompressionCodec::UNCOMPRESSED:
         throw common::CopyException("Parquet data unexpectedly uncompressed");
     case CompressionCodec::GZIP: {
-        throw common::NotImplementedException("ColumnReader::decompressInternal");
+        MiniZStream s;
+        s.Decompress(
+            reinterpret_cast<const char*>(src), srcSize, reinterpret_cast<char*>(dst), dstSize);
+        break;
     }
     case CompressionCodec::SNAPPY: {
         {
-            size_t uncompressed_size = 0;
+            size_t uncompressedSize = 0;
             auto res = kuzu_snappy::GetUncompressedLength(
-                reinterpret_cast<const char*>(src), srcSize, &uncompressed_size);
+                reinterpret_cast<const char*>(src), srcSize, &uncompressedSize);
+            // LCOV_EXCL_START
             if (!res) {
-                throw std::runtime_error("Snappy decompression failure");
+                throw common::RuntimeException{"Failed to decompress parquet file."};
             }
-            if (uncompressed_size != (size_t)dstSize) {
-                throw std::runtime_error(
-                    "Snappy decompression failure: Uncompressed data size mismatch");
+            if (uncompressedSize != (size_t)dstSize) {
+                throw common::RuntimeException{
+                    "Snappy decompression failure: Uncompressed data size mismatch"};
             }
+            // LCOV_EXCL_STOP
         }
         auto res = kuzu_snappy::RawUncompress(
             reinterpret_cast<const char*>(src), srcSize, reinterpret_cast<char*>(dst));
+        // LCOV_EXCL_START
         if (!res) {
-            throw std::runtime_error("Snappy decompression failure");
+            throw common::RuntimeException{"Snappy decompression failure"};
         }
+        // LCOV_EXCL_STOP
         break;
     }
     case CompressionCodec::ZSTD: {
-        throw common::NotImplementedException("ColumnReader::decompressInternal");
+        auto res = duckdb_zstd::ZSTD_decompress(dst, dstSize, src, srcSize);
+        // LCOV_EXCL_START
+        if (duckdb_zstd::ZSTD_isError(res) || res != (size_t)dstSize) {
+            throw common::RuntimeException{"ZSTD Decompression failure"};
+        }
+        // LCOV_EXCL_STOP
+        break;
     }
     default: {
+        // LCOV_EXCL_START
         std::stringstream codec_name;
         codec_name << codec;
         throw common::CopyException("Unsupported compression codec \"" + codec_name.str() +
                                     "\". Supported options are uncompressed, gzip, snappy or zstd");
+        // LCOV_EXCL_STOP
     }
     }
 }

@@ -248,7 +248,9 @@ class LogicalType {
     friend struct FixedListType;
 
 public:
-    KUZU_API LogicalType() : typeID{LogicalTypeID::ANY}, extraTypeInfo{nullptr} {};
+    KUZU_API LogicalType() : typeID{LogicalTypeID::ANY}, extraTypeInfo{nullptr} {
+        setPhysicalType();
+    };
     explicit KUZU_API LogicalType(LogicalTypeID typeID);
     KUZU_API LogicalType(LogicalTypeID typeID, std::unique_ptr<ExtraTypeInfo> extraTypeInfo);
     // For deserialize only.
