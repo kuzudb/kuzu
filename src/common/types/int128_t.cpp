@@ -346,7 +346,7 @@ int128_t Int128_t::Mod(int128_t lhs, int128_t rhs) {
 //===============================================================================================
 // Cast operation
 //===============================================================================================
-template<class DST, bool SIGNED=true>
+template<class DST, bool SIGNED = true>
 bool TryCastInt128Template(int128_t input, DST& result) {
     switch (input.high) {
     case 0:
