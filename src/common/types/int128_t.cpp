@@ -4,11 +4,10 @@
 #include <limits>
 
 #include "common/exception/overflow.h"
-#include "common/int128_t.h"
 #include "common/types/ku_string.h"
+#include "function/cast/functions/numeric_limits.h"
 
-namespace kuzu {
-namespace common {
+namespace kuzu::common {
 
 const int128_t Int128_t::powerOf10[]{
     int128_t(1),
@@ -350,7 +349,7 @@ template<class DST, bool SIGNED = true>
 bool TryCastInt128Template(int128_t input, DST& result) {
     switch (input.high) {
     case 0:
-        if (input.low <= uint64_t(std::numeric_limits<DST>::max())) {
+        if (input.low <= uint64_t(function::NumericLimits<DST>::maximum())) {
             result = static_cast<DST>(input.low);
             return true;
         }
@@ -360,9 +359,9 @@ bool TryCastInt128Template(int128_t input, DST& result) {
             throw common::OverflowException(
                 "Cast failed. Cannot cast " + Int128_t::ToString(input) + " to unsigned type.");
         }
-        if (input.low >=
-            uint64_t(std::numeric_limits<DST>::max()) - uint64_t(std::numeric_limits<DST>::max())) {
-            result = static_cast<DST>(std::numeric_limits<DST>::max() - input.low) - 1;
+        if (input.low >= uint64_t(function::NumericLimits<DST>::maximum()) -
+                             uint64_t(function::NumericLimits<DST>::maximum())) {
+            result = static_cast<DST>(function::NumericLimits<DST>::maximum() - input.low) - 1;
             return true;
         }
         break;
@@ -425,10 +424,11 @@ template<class REAL_T>
 bool CastInt128ToFloating(int128_t input, REAL_T& result) {
     switch (input.high) {
     case -1:
-        result = -REAL_T(std::numeric_limits<REAL_T>::max() - input.low) - 1;
+        result = -REAL_T(function::NumericLimits<uint64_t>::maximum() - input.low) - 1;
         break;
     default:
-        result = REAL_T(input.high) * std::numeric_limits<uint64_t>::max() + REAL_T(input.low);
+        result =
+            REAL_T(input.high) * function::NumericLimits<uint64_t>::maximum() + REAL_T(input.low);
         break;
     }
     return true;
@@ -522,8 +522,8 @@ bool castFloatingToInt128(REAL_T value, int128_t& result) {
     if (negative) {
         value = -value;
     }
-    result.low = (uint64_t)fmod(value, REAL_T(std::numeric_limits<uint64_t>::max()));
-    result.high = (uint64_t)(value / REAL_T(std::numeric_limits<uint64_t>::max()));
+    result.low = (uint64_t)fmod(value, REAL_T(function::NumericLimits<uint64_t>::maximum()));
+    result.high = (uint64_t)(value / REAL_T(function::NumericLimits<uint64_t>::maximum()));
     if (negative) {
         Int128_t::negateInPlace(result);
     }
@@ -619,5 +619,4 @@ int128_t::operator int64_t() const {
     return NarrowCast<int64_t>(*this);
 }
 
-} // namespace common
-} // namespace kuzu
+} // namespace kuzu::common

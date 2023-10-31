@@ -221,7 +221,6 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 [43,83,67,43]
 [77,64,100,54]
 
-
 -LOG CastMapToString
 -STATEMENT MATCH (m:movies) RETURN string(m.audience)
 ---- 3
@@ -393,6 +392,11 @@ abcd
 -STATEMENT Return to_uint16(to_int64(1)), to_uint16(to_int32(2)), to_uint16(to_int16(3)), to_uint16(to_int8(4)), to_uint16(to_uint8(5)), to_uint16(to_uint32(7)), to_uint16(to_uint64(8)), to_uint16(to_int128(9))
 ---- 1
 1|2|3|4|5|7|8|9
+
+-LOG CastUnsignedIntToFLoatDouble
+-STATEMENT Return to_float(to_uint64(1)), to_double(to_uint64(2)), to_float(to_uint32(3)), to_double(to_uint32(4)), to_float(to_uint16(5)), to_double(to_uint16(6)), to_float(to_uint8(7)), to_double(to_uint8(8))
+---- 1
+1.000000|2.000000|3.000000|4.000000|5.000000|6.000000|7.000000|8.000000
 
 -LOG CastNumericalToUInt32
 -STATEMENT Return to_uint32(to_int64(1)), to_uint32(to_int32(2)), to_uint32(to_int16(3)), to_uint32(to_int8(4)), to_uint32(to_uint8(5)), to_uint32(to_uint16(6)), to_uint32(to_uint64(8)), to_uint32(to_int128(9))
@@ -575,3 +579,12 @@ False
 ---- 1
 170141183460469231731687303715884105728.000000|-4324324
 
+-LOG CastNegInt128ToFloatDouble
+-STATEMENT Return to_float(to_int128(-15)), to_double(to_int128(-1)), to_float(to_int128(15)), to_double(to_int128(1))
+---- 1
+-15.000000|-1.000000|15.000000|1.000000
+
+-LOG CastFloatDoubleToInt128
+-STATEMENT Return to_int128(to_float(-15)), to_int128(to_double(-1)), to_int128(to_float(15)), to_int128(to_double(1))
+---- 1
+-15|-1|15|1
