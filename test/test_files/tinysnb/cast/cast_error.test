@@ -240,6 +240,18 @@ Conversion exception: Cast failed. -1 is not in UINT8 range.
 -STATEMENT RETURN TO_INT128(170141183460469231731687303715884105728);
 ---- error
 Conversion exception: Cast failed. 170141183460469231731687303715884105728 is not within INT128 range.
+-STATEMENT RETURN TO_INT128("-170141183460469231731687303715884105728");
+---- error
+Conversion exception: Cast failed. -170141183460469231731687303715884105728 is not within INT128 range.
+-STATEMENT RETURN TO_UINT8(TO_INT128(-1));
+---- error
+Overflow exception: Cast failed. Cannot cast -1 to unsigned type.
+-STATEMENT RETURN TO_UINT16(TO_INT128(-10));
+---- error
+Overflow exception: Cast failed. Cannot cast -10 to unsigned type.
+-STATEMENT RETURN TO_UINT64(TO_INT128(-15));
+---- error
+Overflow exception: Cast failed. Cannot cast -15 to unsigned type.
 -STATEMENT RETURN TO_INT128(170141183460469231731687303715884105727) + TO_INT128(10);
 ---- error
 Overflow exception: INT128 is out of range: cannot add.
