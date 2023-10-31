@@ -50,11 +50,14 @@ struct TableFunction : public Function {
     table_func_init_shared_t initSharedStateFunc;
 
     TableFunction(std::string name, table_func_t tableFunc, table_func_bind_t bindFunc,
-        table_func_init_shared_t initSharedFunc)
-        : Function{FunctionType::TABLE, std::move(name),
-              std::vector<common::LogicalTypeID>{} /* dummyParamterTypes */},
+        table_func_init_shared_t initSharedFunc, std::vector<common::LogicalTypeID> inputTypes)
+        : Function{FunctionType::TABLE, std::move(name), std::move(inputTypes)},
           tableFunc{std::move(tableFunc)}, bindFunc{std::move(bindFunc)}, initSharedStateFunc{
                                                                               initSharedFunc} {}
+
+    inline std::string signatureToString() const override {
+        return common::LogicalTypeUtils::dataTypesToString(parameterTypeIDs);
+    }
 };
 
 } // namespace function

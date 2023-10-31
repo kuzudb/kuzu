@@ -97,3 +97,20 @@ person|organisation
 -STATEMENT CALL show_connection('person') RETURN *
 ---- error
 Binder exception: Show connection can only be called on a rel table!
+
+-LOG WrongNumParameter
+-STATEMENT CALL table_info('person', 'knows') RETURN *
+---- error
+Binder exception: Cannot match a built-in function for given function TABLE_INFO(STRING,STRING). Supported inputs are
+(STRING)
+
+-LOG WrongParameterType
+-STATEMENT CALL show_connection(123) RETURN *
+---- error
+Binder exception: Cannot match a built-in function for given function SHOW_CONNECTION(INT64). Supported inputs are
+(STRING)
+
+-LOG WrongParameterExprType
+-STATEMENT CALL show_connection(upper("person")) RETURN *
+---- error
+Binder exception: Parameters in table function must be a literal expression.

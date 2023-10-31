@@ -962,11 +962,8 @@ public:
     KU_InQueryCallContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *CALL();
-    std::vector<antlr4::tree::TerminalNode *> SP();
-    antlr4::tree::TerminalNode* SP(size_t i);
-    OC_FunctionNameContext *oC_FunctionName();
-    std::vector<OC_LiteralContext *> oC_Literal();
-    OC_LiteralContext* oC_Literal(size_t i);
+    antlr4::tree::TerminalNode *SP();
+    OC_FunctionInvocationContext *oC_FunctionInvocation();
 
    
   };

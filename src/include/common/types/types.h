@@ -427,8 +427,8 @@ class LogicalTypeUtils {
 public:
     KUZU_API static std::string dataTypeToString(const LogicalType& dataType);
     KUZU_API static std::string dataTypeToString(LogicalTypeID dataTypeID);
-    static std::string dataTypesToString(const std::vector<LogicalType>& dataTypes);
-    static std::string dataTypesToString(const std::vector<LogicalTypeID>& dataTypeIDs);
+    static std::string dataTypesToString(const std::vector<LogicalType*>& dataTypes);
+    KUZU_API static std::string dataTypesToString(const std::vector<LogicalTypeID>& dataTypeIDs);
     KUZU_API static LogicalType dataTypeFromString(const std::string& dataTypeString);
     static uint32_t getRowLayoutSize(const LogicalType& logicalType);
     static bool isNumerical(const LogicalType& dataType);

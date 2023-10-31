@@ -640,10 +640,10 @@ std::string LogicalTypeUtils::dataTypeToString(LogicalTypeID dataTypeID) {
     }
 }
 
-std::string LogicalTypeUtils::dataTypesToString(const std::vector<LogicalType>& dataTypes) {
+std::string LogicalTypeUtils::dataTypesToString(const std::vector<LogicalType*>& dataTypes) {
     std::vector<LogicalTypeID> dataTypeIDs;
     for (auto& dataType : dataTypes) {
-        dataTypeIDs.push_back(dataType.typeID);
+        dataTypeIDs.push_back(dataType->typeID);
     }
     return dataTypesToString(dataTypeIDs);
 }
