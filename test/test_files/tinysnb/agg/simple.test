@@ -201,11 +201,11 @@ False
 ---- 1
 [{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000}]
 
-#-LOG SimpleCollectRelTest
-#-STATEMENT MATCH (p:person)-[e:knows]->(p1:person) WHERE p.ID = 0 AND p1.ID = 2 WITH collect(e) as relation RETURN relation;
-#-PARALLELISM 6
-#---- 1
-#[(0:0)-{_LABEL: knows, _ID: 3:0, date: 2021-06-30, meetTime: 1986-10-21 21:08:31.521, validInterval: 10 years 5 months 13:00:00.000024, comments: [rnme,m8sihsdnf2990nfiwf]}->(0:1)]
+-LOG SimpleCollectRelTest
+-STATEMENT MATCH (p:person)-[e:knows]->(p1:person) WHERE p.ID = 0 AND p1.ID = 2 WITH collect(e) as relation RETURN relation;
+-PARALLELISM 6
+---- 1
+[(0:0)-{_LABEL: knows, _ID: 3:0, date: 2021-06-30, meetTime: 1986-10-21 21:08:31.521, validInterval: 10 years 5 months 13:00:00.000024, comments: [rnme,m8sihsdnf2990nfiwf]}->(0:1)]
 
 -LOG SimpleAggMinTimestampTest
 -STATEMENT MATCH (a:person) RETURN MIN(a.registerTime)

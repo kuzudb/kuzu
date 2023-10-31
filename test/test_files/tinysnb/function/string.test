@@ -221,12 +221,12 @@ amoR
 6
 7
 
-#-LOG SizeStr
-#-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN size(s.places[1])
-#---- 3
-#13
-#14
-#4
+-LOG SizeStr
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN size(s.places[1])
+---- 3
+13
+14
+4
 
 -LOG RepeatStr
 -STATEMENT MATCH (o:organisation) RETURN repeat(o.name, o.ID)

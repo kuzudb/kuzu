@@ -271,16 +271,6 @@ void FactorizedTable::updateFlatCell(
     }
 }
 
-void FactorizedTable::copySingleValueToVector(ft_tuple_idx_t tupleIdx, ft_col_idx_t colIdx,
-    ValueVector* valueVector, uint32_t posInVector) const {
-    auto tuple = getTuple(tupleIdx);
-    auto isNullInFT = isNonOverflowColNull(tuple + tableSchema->getNullMapOffset(), colIdx);
-    valueVector->setNull(posInVector, isNullInFT);
-    if (!isNullInFT) {
-        valueVector->copyFromRowData(posInVector, tuple + tableSchema->getColOffset(colIdx));
-    }
-}
-
 bool FactorizedTable::isOverflowColNull(
     const uint8_t* nullBuffer, ft_tuple_idx_t tupleIdx, ft_col_idx_t colIdx) const {
     assert(colIdx < tableSchema->getNumColumns());
@@ -301,57 +291,6 @@ bool FactorizedTable::isNonOverflowColNull(const uint8_t* nullBuffer, ft_col_idx
 void FactorizedTable::setNonOverflowColNull(uint8_t* nullBuffer, ft_col_idx_t colIdx) {
     NullBuffer::setNull(nullBuffer, colIdx);
     tableSchema->setMayContainsNullsToTrue(colIdx);
-}
-
-void FactorizedTable::copyToInMemList(ft_col_idx_t colIdx,
-    std::vector<ft_tuple_idx_t>& tupleIdxesToRead, uint8_t* data, NullMask* nullMask,
-    uint64_t startElemPosInList, DiskOverflowFile* overflowFileOfInMemList,
-    const LogicalType& type) const {
-    assert(tableSchema->getColumn(colIdx)->isFlat() == true);
-    auto numBytesPerValue = type.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID ?
-                                sizeof(offset_t) :
-                                LogicalTypeUtils::getRowLayoutSize(type);
-    auto colOffset = tableSchema->getColOffset(colIdx);
-    auto listToFill = data + startElemPosInList * numBytesPerValue;
-    for (auto i = 0u; i < tupleIdxesToRead.size(); i++) {
-        auto tuple = getTuple(tupleIdxesToRead[i]);
-        auto isNullInFT = isNonOverflowColNull(tuple + tableSchema->getNullMapOffset(), colIdx);
-        if (nullMask != nullptr) {
-            nullMask->setNull(startElemPosInList + i, isNullInFT);
-        }
-        if (!isNullInFT) {
-            memcpy(listToFill, tuple + colOffset, numBytesPerValue);
-            copyOverflowIfNecessary(listToFill, tuple + colOffset, type, overflowFileOfInMemList);
-        }
-        listToFill += numBytesPerValue;
-    }
-}
-
-// This function can generalized to search a value with any dataType.
-int64_t FactorizedTable::findValueInFlatColumn(ft_col_idx_t colIdx, int64_t value) const {
-    assert(tableSchema->getColumn(colIdx)->isFlat());
-    if (numTuples == 0) {
-        return -1;
-    }
-    auto tupleIdx = 0u;
-    auto numBlocks = flatTupleBlockCollection->getNumBlocks();
-    auto numBytesForCol = tableSchema->getColumn(colIdx)->getNumBytes();
-    for (auto blockIdx = 0u; blockIdx < numBlocks; blockIdx++) {
-        // If this is not the last block, the numTuplesInCurBlock must be equal to the
-        // numTuplesPerBlock. If this is the last block, the numTuplesInCurBLock equals to the
-        // numTuples % numTuplesPerBlock.
-        auto numTuplesInCurBlock =
-            blockIdx == (numBlocks - 1) ? numTuples % numTuplesPerBlock : numTuplesPerBlock;
-        auto tuplePtr = getTuple(tupleIdx);
-        for (auto i = 0u; i < numTuplesInCurBlock; i++) {
-            if (memcmp(tuplePtr + tableSchema->getColOffset(colIdx), &value, numBytesForCol) == 0) {
-                return tupleIdx;
-            }
-            tuplePtr += tableSchema->getNumBytesPerTuple();
-            tupleIdx++;
-        }
-    }
-    return -1;
 }
 
 void FactorizedTable::clear() {
@@ -668,25 +607,6 @@ void FactorizedTable::readFlatColToUnflatVector(uint8_t** tuplesToRead, ft_col_i
                     positionInVectorToWrite, dataBuffer + tableSchema->getColOffset(colIdx));
             }
         }
-    }
-}
-
-void FactorizedTable::copyOverflowIfNecessary(
-    uint8_t* dst, uint8_t* src, const LogicalType& type, DiskOverflowFile* diskOverflowFile) {
-    switch (type.getPhysicalType()) {
-    case PhysicalTypeID::STRING: {
-        ku_string_t* stringToWriteFrom = (ku_string_t*)src;
-        if (!ku_string_t::isShortString(stringToWriteFrom->len)) {
-            diskOverflowFile->writeStringOverflowAndUpdateOverflowPtr(
-                *stringToWriteFrom, *(ku_string_t*)dst);
-        }
-    } break;
-    case PhysicalTypeID::VAR_LIST: {
-        diskOverflowFile->writeListOverflowAndUpdateOverflowPtr(
-            *(ku_list_t*)src, *(ku_list_t*)dst, type);
-    } break;
-    default:
-        return;
     }
 }
 

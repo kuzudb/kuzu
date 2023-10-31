@@ -14,10 +14,9 @@ class TableData;
 class NodeGroup {
 public:
     NodeGroup(const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes,
-        bool enableCompression, uint64_t capacity);
+        bool enableCompression, bool needFinalize, uint64_t capacity);
     explicit NodeGroup(TableData* table);
 
-    inline void setNodeGroupIdx(uint64_t nodeGroupIdx_) { this->nodeGroupIdx = nodeGroupIdx_; }
     inline uint64_t getNodeGroupIdx() const { return nodeGroupIdx; }
     inline common::offset_t getNumNodes() const { return numNodes; }
     inline common::vector_idx_t getNumColumnChunks() { return chunks.size(); }
@@ -31,10 +30,10 @@ public:
 
     uint64_t append(const std::vector<common::ValueVector*>& columnVectors,
         common::DataChunkState* columnState, uint64_t numValuesToAppend);
-
     common::offset_t append(NodeGroup* other, common::offset_t offsetInOtherNodeGroup);
+    void write(common::DataChunk* dataChunk, common::vector_idx_t offsetVector);
 
-    void append(common::DataChunk* dataChunk, common::vector_idx_t offsetVector);
+    void finalize(uint64_t nodeGroupIdx_);
 
 private:
     uint64_t nodeGroupIdx;
@@ -45,13 +44,12 @@ private:
 class CSRNodeGroup : public NodeGroup {
 public:
     CSRNodeGroup(const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes,
-        bool enableCompression)
+        bool enableCompression, bool needFinalize)
         // By default, initialize all column chunks except for the csrOffsetChunk to empty, as they
         // should be resized after csr offset calculation (e.g., during CopyRel).
-        : NodeGroup{columnTypes, enableCompression, 0 /* capacity */} {
-        csrOffsetChunk =
-            std::make_unique<ColumnChunk>(common::LogicalType{common::LogicalTypeID::INT64},
-                common::StorageConstants::NODE_GROUP_SIZE, enableCompression);
+        : NodeGroup{columnTypes, enableCompression, needFinalize, 0 /* capacity */} {
+        csrOffsetChunk = ColumnChunkFactory::createColumnChunk(
+            common::LogicalType{common::LogicalTypeID::INT64}, enableCompression);
     }
 
     inline ColumnChunk* getCSROffsetChunk() { return csrOffsetChunk.get(); }
@@ -63,7 +61,8 @@ private:
 struct NodeGroupFactory {
     static std::unique_ptr<NodeGroup> createNodeGroup(common::ColumnDataFormat dataFormat,
         const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes,
-        bool enableCompression, uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE);
+        bool enableCompression, bool needFinalize = false,
+        uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE);
 };
 
 } // namespace storage

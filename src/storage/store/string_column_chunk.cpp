@@ -55,6 +55,7 @@ void StringColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk
 }
 
 void StringColumnChunk::write(ValueVector* vector, offset_t startOffsetInChunk) {
+    assert(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
         auto pos = vector->state->selVector->selectedPositions[i];
         auto offsetInChunk = startOffsetInChunk + pos;

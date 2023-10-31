@@ -35,7 +35,7 @@ void CopyRdfResource::initLocalStateInternal(
 }
 
 static void writeNodeGroup(node_group_idx_t nodeGroupIdx, NodeTable* table, NodeGroup* nodeGroup) {
-    nodeGroup->setNodeGroupIdx(nodeGroupIdx);
+    nodeGroup->finalize(nodeGroupIdx);
     table->append(nodeGroup);
     nodeGroup->resetToEmpty();
 }

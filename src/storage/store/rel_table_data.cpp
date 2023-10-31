@@ -13,8 +13,8 @@ RelDataReadState::RelDataReadState(ColumnDataFormat dataFormat)
     : dataFormat{dataFormat}, startNodeOffset{0}, numNodes{0}, currentNodeOffset{0},
       currentPosInCSRList{0} {
     csrListEntries.resize(StorageConstants::NODE_GROUP_SIZE, {0, 0});
-    csrOffsetChunk = ColumnChunkFactory::createColumnChunk(LogicalType{LogicalTypeID::INT64},
-        StorageConstants::NODE_GROUP_SIZE, false /* enableCompression */);
+    csrOffsetChunk = ColumnChunkFactory::createColumnChunk(
+        LogicalType{LogicalTypeID::INT64}, false /* enableCompression */);
 }
 
 void RelDataReadState::populateCSRListEntries() {
@@ -78,7 +78,7 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
 }
 
 void RelTableData::initializeReadState(
-    Transaction* transaction, ValueVector* inNodeIDVector, RelDataReadState* readState) {
+    Transaction* /*transaction*/, ValueVector* inNodeIDVector, RelDataReadState* readState) {
     assert(dataFormat == ColumnDataFormat::CSR_COL);
     auto nodeOffset =
         inNodeIDVector->readNodeOffset(inNodeIDVector->state->selVector->selectedPositions[0]);
@@ -97,7 +97,7 @@ void RelTableData::initializeReadState(
     }
 }
 
-void RelTableData::scanRegularColumns(Transaction* transaction, RelDataReadState& readState,
+void RelTableData::scanRegularColumns(Transaction* transaction, RelDataReadState& /*readState*/,
     ValueVector* inNodeIDVector, const std::vector<column_id_t>& columnIDs,
     const std::vector<ValueVector*>& outputVectors) {
     adjColumn->scan(transaction, inNodeIDVector, outputVectors[0]);

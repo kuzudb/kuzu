@@ -28,7 +28,6 @@
 [Wolfeschlegelstein,Daniel]
 
 -CASE RelPropertyColumnWithList
--SKIP
 -STATEMENT MATCH ()-[s:studyAt]-() RETURN s.places
 ---- 6
 [anew,jsdnwusklklklwewsd]

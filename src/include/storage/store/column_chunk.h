@@ -69,8 +69,6 @@ public:
     inline NullColumnChunk* getNullChunk() { return nullChunk.get(); }
     inline common::LogicalType getDataType() const { return dataType; }
 
-    uint64_t getBufferSize() const;
-
     virtual void resetToEmpty();
 
     // Note that the startPageIdx is not known, so it will always be common::INVALID_PAGE_IDX
@@ -83,9 +81,6 @@ public:
     ColumnChunkMetadata flushBuffer(
         BMFileHandle* dataFH, common::page_idx_t startPageIdx, const ColumnChunkMetadata& metadata);
 
-    // Returns the size of the data type in bytes
-    static uint32_t getDataTypeSizeInChunk(common::LogicalType& dataType);
-
     static inline common::page_idx_t getNumPagesForBytes(uint64_t numBytes) {
         return (numBytes + common::BufferPoolConstants::PAGE_4KB_SIZE - 1) /
                common::BufferPoolConstants::PAGE_4KB_SIZE;
@@ -95,7 +90,7 @@ public:
     inline uint8_t* getData() { return buffer.get(); }
 
     virtual void write(common::ValueVector* vector, common::offset_t startOffsetInChunk);
-    virtual void write(common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector);
+    virtual void write(common::ValueVector* vector, common::ValueVector* offsetsInChunk);
 
     // numValues must be at least the number of values the ColumnChunk was first initialized
     // with
@@ -107,6 +102,9 @@ public:
     }
 
     void populateWithDefaultVal(common::ValueVector* defaultValueVector);
+    virtual std::unique_ptr<ColumnChunk> finalize() {
+        return nullptr; // Nothing to be finalized.
+    }
 
     inline uint64_t getCapacity() const { return capacity; }
     inline uint64_t getNumValues() const { return numValues; }
@@ -120,6 +118,11 @@ protected:
     common::offset_t getOffsetInBuffer(common::offset_t pos) const;
 
     virtual void copyVectorToBuffer(common::ValueVector* vector, common::offset_t startPosInChunk);
+
+private:
+    uint64_t getBufferSize() const;
+    // Returns the size of the data type in bytes
+    static uint32_t getDataTypeSizeInChunk(common::LogicalType& dataType);
 
 protected:
     common::LogicalType dataType;
@@ -202,8 +205,9 @@ protected:
 };
 
 struct ColumnChunkFactory {
-    static std::unique_ptr<ColumnChunk> createColumnChunk(
-        const common::LogicalType& dataType, uint64_t capacity, bool enableCompression);
+    static std::unique_ptr<ColumnChunk> createColumnChunk(const common::LogicalType& dataType,
+        bool enableCompression, bool needFinalize = false,
+        uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE);
 };
 
 } // namespace storage

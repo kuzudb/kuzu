@@ -81,7 +81,7 @@ void CopyNode::executeInternal(ExecutionContext* context) {
 void CopyNode::writeAndResetNodeGroup(node_group_idx_t nodeGroupIdx,
     PrimaryKeyIndexBuilder* pkIndex, column_id_t pkColumnID, NodeTable* table,
     NodeGroup* nodeGroup) {
-    nodeGroup->setNodeGroupIdx(nodeGroupIdx);
+    nodeGroup->finalize(nodeGroupIdx);
     auto startOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     if (pkIndex) {
         populatePKIndex(pkIndex, nodeGroup->getColumnChunk(pkColumnID), startOffset,

@@ -5,12 +5,12 @@
 
 -CASE AggHash
 
-#-STATEMENT MATCH (a:person)-[r:knows]->(b:person) WHERE a.ID=0 RETURN r, COUNT(*)
-#-ENUMERATE
-#---- 3
-#(0:0)-{_LABEL: knows, _ID: 3:0, date: 2021-06-30, meetTime: 1986-10-21 21:08:31.521, validInterval: 10 years 5 months 13:00:00.000024, comments: [rnme,m8sihsdnf2990nfiwf]}->(0:1)|1
-#(0:0)-{_LABEL: knows, _ID: 3:1, date: 2021-06-30, meetTime: 1946-08-25 19:07:22, validInterval: 20 years 30 days 48:00:00, comments: [njnojppo9u0jkmf,fjiojioh9h9h89hph]}->(0:2)|1
-#(0:0)-{_LABEL: knows, _ID: 3:2, date: 2021-06-30, meetTime: 2012-12-11 20:07:22, validInterval: 10 days, comments: [ioji232,jifhe8w99u43434]}->(0:3)|1
+-STATEMENT MATCH (a:person)-[r:knows]->(b:person) WHERE a.ID=0 RETURN r, COUNT(*)
+-ENUMERATE
+---- 3
+(0:0)-{_LABEL: knows, _ID: 3:0, date: 2021-06-30, meetTime: 1986-10-21 21:08:31.521, validInterval: 10 years 5 months 13:00:00.000024, comments: [rnme,m8sihsdnf2990nfiwf]}->(0:1)|1
+(0:0)-{_LABEL: knows, _ID: 3:1, date: 2021-06-30, meetTime: 1946-08-25 19:07:22, validInterval: 20 years 30 days 48:00:00, comments: [njnojppo9u0jkmf,fjiojioh9h9h89hph]}->(0:2)|1
+(0:0)-{_LABEL: knows, _ID: 3:2, date: 2021-06-30, meetTime: 2012-12-11 20:07:22, validInterval: 10 days, comments: [ioji232,jifhe8w99u43434]}->(0:3)|1
 
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN a, COUNT(*)
 -ENUMERATE
@@ -249,17 +249,17 @@ Elizabeth|[25,40]
 2020|[-1844674407370955161511,-15]
 2021|[1844674407370955161811111111]
 
-#-LOG HashCollectOnNodeTest
-#-STATEMENT MATCH (p:person) WHERE p.ID = 3 or p.ID = 5 RETURN p.gender, collect(p)
-#---- 2
-#1|[{_ID: 0:2, _LABEL: person, ID: 3, fName: Carol, gender: 1, isStudent: False, isWorker: True, age: 45, eyeSight: 5.000000, birthdate: 1940-06-22, registerTime: 1911-08-20 02:32:21, lastJobDuration: 48:24:11, workedHours: [4,5], usedNames: [Carmen,Fred], courseScoresPerTerm: [[8,10]], grades: [91,75,21,95], height: 1.000000}]
-#2|[{_ID: 0:3, _LABEL: person, ID: 5, fName: Dan, gender: 2, isStudent: False, isWorker: True, age: 20, eyeSight: 4.800000, birthdate: 1950-07-23, registerTime: 2031-11-30 12:25:30, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [1,9], usedNames: [Wolfeschlegelstein,Daniel], courseScoresPerTerm: [[7,4],[8,8],[9]], grades: [76,88,99,89], height: 1.300000}]
+-LOG HashCollectOnNodeTest
+-STATEMENT MATCH (p:person) WHERE p.ID = 3 or p.ID = 5 RETURN p.gender, collect(p)
+---- 2
+1|[{_ID: 0:2, _LABEL: person, ID: 3, fName: Carol, gender: 1, isStudent: False, isWorker: True, age: 45, eyeSight: 5.000000, birthdate: 1940-06-22, registerTime: 1911-08-20 02:32:21, lastJobDuration: 48:24:11, workedHours: [4,5], usedNames: [Carmen,Fred], courseScoresPerTerm: [[8,10]], grades: [91,75,21,95], height: 1.000000}]
+2|[{_ID: 0:3, _LABEL: person, ID: 5, fName: Dan, gender: 2, isStudent: False, isWorker: True, age: 20, eyeSight: 4.800000, birthdate: 1950-07-23, registerTime: 2031-11-30 12:25:30, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [1,9], usedNames: [Wolfeschlegelstein,Daniel], courseScoresPerTerm: [[7,4],[8,8],[9]], grades: [76,88,99,89], height: 1.300000}]
 
-#-LOG HashCollectOnRelTest
-#-STATEMENT MATCH (p:person)-[e:knows]->(p1:person) WHERE offset(ID(e)) = 1 or offset(ID(e)) = 4 RETURN p.gender, collect(e)
-#---- 2
-#1|[(0:0)-{_LABEL: knows, _ID: 3:1, date: 2021-06-30, meetTime: 1946-08-25 19:07:22, validInterval: 20 years 30 days 48:00:00, comments: [njnojppo9u0jkmf,fjiojioh9h9h89hph]}->(0:2)]
-#2|[(0:1)-{_LABEL: knows, _ID: 3:4, date: 1950-05-14, meetTime: 1946-08-25 19:07:22, validInterval: 00:23:00, comments: [fwehu9h9832wewew,23u9h989sdfsss]}->(0:2)]
+-LOG HashCollectOnRelTest
+-STATEMENT MATCH (p:person)-[e:knows]->(p1:person) WHERE offset(ID(e)) = 1 or offset(ID(e)) = 4 RETURN p.gender, collect(e)
+---- 2
+1|[(0:0)-{_LABEL: knows, _ID: 3:1, date: 2021-06-30, meetTime: 1946-08-25 19:07:22, validInterval: 20 years 30 days 48:00:00, comments: [njnojppo9u0jkmf,fjiojioh9h9h89hph]}->(0:2)]
+2|[(0:1)-{_LABEL: knows, _ID: 3:4, date: 1950-05-14, meetTime: 1946-08-25 19:07:22, validInterval: 00:23:00, comments: [fwehu9h9832wewew,23u9h989sdfsss]}->(0:2)]
 
 -LOG HashAggCountBlob
 -STATEMENT MATCH (m:movies) RETURN m.length > 2542, COUNT(m.content)

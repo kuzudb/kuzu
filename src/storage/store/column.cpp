@@ -570,8 +570,8 @@ void Column::rollbackInMemory() {
 
 void Column::populateWithDefaultVal(const Property& property, Column* column,
     ValueVector* defaultValueVector, uint64_t numNodeGroups) const {
-    auto columnChunk = ColumnChunkFactory::createColumnChunk(
-        *property.getDataType(), StorageConstants::NODE_GROUP_SIZE, enableCompression);
+    auto columnChunk =
+        ColumnChunkFactory::createColumnChunk(*property.getDataType(), enableCompression);
     columnChunk->populateWithDefaultVal(defaultValueVector);
     for (auto i = 0u; i < numNodeGroups; i++) {
         column->append(columnChunk.get(), i);

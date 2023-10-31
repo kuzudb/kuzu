@@ -90,23 +90,21 @@ TEST_F(CApiQueryResultTest, GetColumnDataType) {
     kuzu_query_result_destroy(result);
 }
 
-// TODO(Guodong): Turn this back.
-// TEST_F(CApiQueryResultTest, GetArrowSchema) {
-//    auto connection = getConnection();
-//    auto result = kuzu_connection_query(connection, "MATCH (p:person)-[k:knows]-(q:person) RETURN
-//    "
-//                                                    "p.fName, k, q.fName");
-//    ASSERT_TRUE(kuzu_query_result_is_success(result));
-//    auto schema = kuzu_query_result_get_arrow_schema(result);
-//    ASSERT_STREQ(schema.name, "kuzu_query_result");
-//    ASSERT_EQ(schema.n_children, 3);
-//    ASSERT_STREQ(schema.children[0]->name, "p.fName");
-//    ASSERT_STREQ(schema.children[1]->name, "k");
-//    ASSERT_STREQ(schema.children[2]->name, "q.fName");
-//
-//    schema.release(&schema);
-//    kuzu_query_result_destroy(result);
-//}
+TEST_F(CApiQueryResultTest, GetArrowSchema) {
+    auto connection = getConnection();
+    auto result = kuzu_connection_query(
+        connection, "MATCH (p:person)-[k:knows]-(q:person) RETURN p.fName, k, q.fName");
+    ASSERT_TRUE(kuzu_query_result_is_success(result));
+    auto schema = kuzu_query_result_get_arrow_schema(result);
+    ASSERT_STREQ(schema.name, "kuzu_query_result");
+    ASSERT_EQ(schema.n_children, 3);
+    ASSERT_STREQ(schema.children[0]->name, "p.fName");
+    ASSERT_STREQ(schema.children[1]->name, "k");
+    ASSERT_STREQ(schema.children[2]->name, "q.fName");
+
+    schema.release(&schema);
+    kuzu_query_result_destroy(result);
+}
 
 TEST_F(CApiQueryResultTest, GetQuerySummary) {
     auto connection = getConnection();

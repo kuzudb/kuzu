@@ -64,7 +64,7 @@ void TableData::insert(transaction::Transaction* transaction, ValueVector* nodeI
     auto currentNumNodeGroups = getNumNodeGroups(transaction);
     if (lastOffset >= StorageUtils::getStartOffsetOfNodeGroup(currentNumNodeGroups)) {
         auto newNodeGroup = std::make_unique<NodeGroup>(this);
-        newNodeGroup->setNodeGroupIdx(currentNumNodeGroups);
+        newNodeGroup->finalize(currentNumNodeGroups);
         append(newNodeGroup.get());
     }
     for (auto columnID = 0u; columnID < columns.size(); columnID++) {

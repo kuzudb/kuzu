@@ -673,31 +673,30 @@ TEST_F(CApiValueTest, GetInternalID) {
     kuzu_query_result_destroy(result);
 }
 
-// TEST_F(CApiValueTest, GetRelVal) {
-//    auto connection = getConnection();
-//    auto result = kuzu_connection_query(
-//        connection, (char*)"MATCH (a:person) -[r:knows]-> (b:person) RETURN r ORDER BY a.ID,
-//        b.ID");
-//    ASSERT_TRUE(kuzu_query_result_is_success(result));
-//    ASSERT_TRUE(kuzu_query_result_has_next(result));
-//    auto flatTuple = kuzu_query_result_get_next(result);
-//    auto rel = kuzu_flat_tuple_get_value(flatTuple, 0);
-//    ASSERT_TRUE(rel->_is_owned_by_cpp);
-//    auto relSrcID = kuzu_rel_val_get_src_id(rel);
-//    ASSERT_EQ(relSrcID.table_id, 0);
-//    ASSERT_EQ(relSrcID.offset, 0);
-//    auto relDstID = kuzu_rel_val_get_dst_id(rel);
-//    ASSERT_EQ(relDstID.table_id, 0);
-//    ASSERT_EQ(relDstID.offset, 1);
-//    auto relLabel = kuzu_rel_val_get_label_name(rel);
-//    ASSERT_STREQ(relLabel, "knows");
-//    auto propertiesSize = kuzu_rel_val_get_property_size(rel);
-//    ASSERT_EQ(propertiesSize, 4);
-//    free(relLabel);
-//    kuzu_value_destroy(rel);
-//    kuzu_flat_tuple_destroy(flatTuple);
-//    kuzu_query_result_destroy(result);
-//}
+TEST_F(CApiValueTest, GetRelVal) {
+    auto connection = getConnection();
+    auto result = kuzu_connection_query(
+        connection, (char*)"MATCH (a:person) -[r:knows]-> (b:person) RETURN r ORDER BY a.ID, b.ID");
+    ASSERT_TRUE(kuzu_query_result_is_success(result));
+    ASSERT_TRUE(kuzu_query_result_has_next(result));
+    auto flatTuple = kuzu_query_result_get_next(result);
+    auto rel = kuzu_flat_tuple_get_value(flatTuple, 0);
+    ASSERT_TRUE(rel->_is_owned_by_cpp);
+    auto relSrcID = kuzu_rel_val_get_src_id(rel);
+    ASSERT_EQ(relSrcID.table_id, 0);
+    ASSERT_EQ(relSrcID.offset, 0);
+    auto relDstID = kuzu_rel_val_get_dst_id(rel);
+    ASSERT_EQ(relDstID.table_id, 0);
+    ASSERT_EQ(relDstID.offset, 1);
+    auto relLabel = kuzu_rel_val_get_label_name(rel);
+    ASSERT_STREQ(relLabel, "knows");
+    auto propertiesSize = kuzu_rel_val_get_property_size(rel);
+    ASSERT_EQ(propertiesSize, 4);
+    free(relLabel);
+    kuzu_value_destroy(rel);
+    kuzu_flat_tuple_destroy(flatTuple);
+    kuzu_query_result_destroy(result);
+}
 
 TEST_F(CApiValueTest, GetDate) {
     auto connection = getConnection();

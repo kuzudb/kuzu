@@ -52,7 +52,7 @@ protected:
     void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         const std::vector<common::column_id_t>& columnIDs,
         const std::vector<common::ValueVector*>& outputVectors);
-    void lookup(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
+    virtual void lookup(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         const std::vector<common::column_id_t>& columnIDs,
         const std::vector<common::ValueVector*>& outputVectors);
 

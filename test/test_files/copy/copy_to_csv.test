@@ -4,7 +4,6 @@
 --
 
 -CASE TinySnbCopyToCSV
--SKIP
 -STATEMENT COPY (MATCH (p:person) RETURN [id(p)], p.ID, p.fName, p.gender, p.isStudent, p.age, p.eyeSight, p.birthdate, p.registerTime, p.lastJobDuration, p.workedHours, p.usedNames, p.courseScoresPerTerm, p.height) TO "${DATABASE_PATH}/tinysnb.csv"
 ---- ok
 -STATEMENT load from "${DATABASE_PATH}/tinysnb.csv" return *

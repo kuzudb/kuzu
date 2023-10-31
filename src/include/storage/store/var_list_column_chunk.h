@@ -10,8 +10,7 @@ struct VarListDataColumnChunk {
     uint64_t capacity;
 
     explicit VarListDataColumnChunk(std::unique_ptr<ColumnChunk> dataChunk)
-        : dataColumnChunk{std::move(dataChunk)}, capacity{
-                                                     common::StorageConstants::NODE_GROUP_SIZE} {}
+        : dataColumnChunk{std::move(dataChunk)}, capacity{this->dataColumnChunk->capacity} {}
 
     void reset() const;
 
@@ -22,10 +21,6 @@ struct VarListDataColumnChunk {
     }
 
     inline uint64_t getNumValues() const { return dataColumnChunk->getNumValues(); }
-
-    inline void increaseNumValues(uint64_t numValues) const {
-        dataColumnChunk->numValues += numValues;
-    }
 };
 
 class VarListColumnChunk : public ColumnChunk {
@@ -33,41 +28,63 @@ public:
     VarListColumnChunk(common::LogicalType dataType, uint64_t capacity, bool enableCompression);
 
     inline ColumnChunk* getDataColumnChunk() const {
-        return varListDataColumnChunk.dataColumnChunk.get();
+        return varListDataColumnChunk->dataColumnChunk.get();
     }
 
     void resetToEmpty() final;
 
     void append(common::ValueVector* vector, common::offset_t startPosInChunk) final;
+    inline void write(common::ValueVector* /*valueVector*/,
+        common::ValueVector* /*offsetInChunkVector*/) override {
+        throw common::NotImplementedException("VarListColumnChunk::write");
+    }
 
-    void write(common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector);
-
+    inline VarListDataColumnChunk* getVarListDataColumnChunk() {
+        return varListDataColumnChunk.get();
+    }
     inline void resizeDataColumnChunk(uint64_t numBytesForBuffer) {
         // TODO(bmwinger): This won't work properly for booleans (will be one eighth as many values
         // as could fit)
         auto numValues =
-            varListDataColumnChunk.dataColumnChunk->getNumBytesPerValue() == 0 ?
+            varListDataColumnChunk->dataColumnChunk->getNumBytesPerValue() == 0 ?
                 0 :
-                numBytesForBuffer / varListDataColumnChunk.dataColumnChunk->getNumBytesPerValue();
-        varListDataColumnChunk.resizeBuffer(numValues);
+                numBytesForBuffer / varListDataColumnChunk->dataColumnChunk->getNumBytesPerValue();
+        varListDataColumnChunk->resizeBuffer(numValues);
     }
+
+protected:
+    void copyListValues(const common::list_entry_t& entry, common::ValueVector* dataVector);
 
 private:
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
 
-    void copyListValues(const common::list_entry_t& entry, common::ValueVector* dataVector);
-
     inline uint64_t getListLen(common::offset_t offset) const {
         return getListOffset(offset + 1) - getListOffset(offset);
     }
-
     inline common::offset_t getListOffset(common::offset_t offset) const {
         return offset == 0 ? 0 : getValue<uint64_t>(offset - 1);
     }
 
+protected:
+    bool enableCompression;
+    std::unique_ptr<VarListDataColumnChunk> varListDataColumnChunk;
+};
+
+class AuxVarListColumnChunk : public VarListColumnChunk {
+public:
+    AuxVarListColumnChunk(common::LogicalType dataType, uint64_t capacity, bool enableCompression)
+        : VarListColumnChunk{dataType, capacity * 2 /* for sizeof(list_entry_t) */,
+              enableCompression},
+          lastDataOffset{0} {}
+
+    void resize(uint64_t newCapacity) final;
+    void write(common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector) final;
+
+    std::unique_ptr<ColumnChunk> finalize() final;
+
 private:
-    VarListDataColumnChunk varListDataColumnChunk;
+    uint64_t lastDataOffset;
 };
 
 } // namespace storage

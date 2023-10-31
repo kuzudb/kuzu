@@ -209,8 +209,8 @@ void LocalColumn::commitLocalChunkInPlace(
 void LocalColumn::commitLocalChunkOutOfPlace(
     node_group_idx_t nodeGroupIdx, LocalColumnChunk* localChunk) {
     // Trigger rewriting the column chunk to another new place.
-    auto columnChunk = ColumnChunkFactory::createColumnChunk(
-        column->getDataType(), StorageConstants::NODE_GROUP_SIZE, enableCompression);
+    auto columnChunk =
+        ColumnChunkFactory::createColumnChunk(column->getDataType(), enableCompression);
     // First scan the whole column chunk into ColumnChunk.
     column->scan(nodeGroupIdx, columnChunk.get());
     for (auto& [vectorIdx, vector] : localChunk->vectors) {
@@ -244,10 +244,10 @@ void VarListLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
     assert(chunks.contains(nodeGroupIdx));
     auto chunk = chunks.at(nodeGroupIdx).get();
     auto varListColumn = reinterpret_cast<VarListColumn*>(column);
-    auto listColumnChunkInStorage = ColumnChunkFactory::createColumnChunk(
-        column->getDataType(), StorageConstants::NODE_GROUP_SIZE, enableCompression);
-    auto columnChunkToUpdate = ColumnChunkFactory::createColumnChunk(
-        column->getDataType(), StorageConstants::NODE_GROUP_SIZE, enableCompression);
+    auto listColumnChunkInStorage =
+        ColumnChunkFactory::createColumnChunk(column->getDataType(), enableCompression);
+    auto columnChunkToUpdate =
+        ColumnChunkFactory::createColumnChunk(column->getDataType(), enableCompression);
     varListColumn->scan(nodeGroupIdx, listColumnChunkInStorage.get());
     offset_t nextOffsetToWrite = 0;
     auto numNodesInGroup =

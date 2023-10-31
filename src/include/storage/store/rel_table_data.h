@@ -47,7 +47,7 @@ public:
     }
     void lookup(transaction::Transaction* transaction, common::ValueVector* inNodeIDVector,
         const std::vector<common::column_id_t>& columnIDs,
-        const std::vector<common::ValueVector*>& outputVectors);
+        const std::vector<common::ValueVector*>& outputVectors) final;
     void append(NodeGroup* nodeGroup) final;
 
     inline common::ColumnDataFormat getDataFormat() const { return dataFormat; }

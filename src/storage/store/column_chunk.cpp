@@ -206,21 +206,21 @@ void ColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
     numValues += numValuesToAppend;
 }
 
-void ColumnChunk::write(ValueVector* valueVector, ValueVector* offsetInChunkVector) {
-    assert(valueVector->dataType.getPhysicalType() == dataType.getPhysicalType() &&
-           offsetInChunkVector->dataType.getPhysicalType() == PhysicalTypeID::INT64 &&
-           valueVector->state->selVector->selectedSize ==
-               offsetInChunkVector->state->selVector->selectedSize);
-    auto offsets = (offset_t*)offsetInChunkVector->getData();
-    for (auto i = 0u; i < offsetInChunkVector->state->selVector->selectedSize; i++) {
-        auto offsetInChunk = offsets[offsetInChunkVector->state->selVector->selectedPositions[i]];
+void ColumnChunk::write(ValueVector* vector, ValueVector* offsetsInChunk) {
+    assert(
+        vector->dataType.getPhysicalType() == dataType.getPhysicalType() &&
+        offsetsInChunk->dataType.getPhysicalType() == PhysicalTypeID::INT64 &&
+        vector->state->selVector->selectedSize == offsetsInChunk->state->selVector->selectedSize);
+    auto offsets = (offset_t*)offsetsInChunk->getData();
+    for (auto i = 0u; i < offsetsInChunk->state->selVector->selectedSize; i++) {
+        auto offsetInChunk = offsets[offsetsInChunk->state->selVector->selectedPositions[i]];
         assert(offsetInChunk < capacity);
-        auto offsetInVector = valueVector->state->selVector->selectedPositions[i];
-        if (!valueVector->isNull(offsetInVector)) {
+        auto offsetInVector = vector->state->selVector->selectedPositions[i];
+        if (!vector->isNull(offsetInVector)) {
             memcpy(buffer.get() + offsetInChunk * numBytesPerValue,
-                valueVector->getData() + offsetInVector * numBytesPerValue, numBytesPerValue);
+                vector->getData() + offsetInVector * numBytesPerValue, numBytesPerValue);
         }
-        nullChunk->setNull(offsetInChunk, valueVector->isNull(offsetInVector));
+        nullChunk->setNull(offsetInChunk, vector->isNull(offsetInVector));
         if (offsetInChunk >= numValues) {
             numValues = offsetInChunk + 1;
         }
@@ -402,9 +402,7 @@ void BoolColumnChunk::write(
         if (nullChunk) {
             nullChunk->setNull(offsetInChunk, valueVector->isNull(offsetInVector));
         }
-        if (offsetInChunk >= numValues) {
-            numValues = offsetInChunk + 1;
-        }
+        numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
     }
 }
 
@@ -451,9 +449,7 @@ public:
                 memcpy(buffer.get() + getOffsetInBuffer(offsetInChunk),
                     valueVector->getData() + offsetInVector * numBytesPerValue, numBytesPerValue);
             }
-            if (offsetInChunk >= numValues) {
-                numValues = offsetInChunk + 1;
-            }
+            numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
         }
     }
 
@@ -469,7 +465,7 @@ public:
 };
 
 std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
-    const LogicalType& dataType, uint64_t capacity, bool enableCompression) {
+    const LogicalType& dataType, bool enableCompression, bool needFinalize, uint64_t capacity) {
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
         return std::make_unique<BoolColumnChunk>(capacity);
@@ -505,7 +501,11 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
         return std::make_unique<StringColumnChunk>(dataType, capacity);
     }
     case PhysicalTypeID::VAR_LIST: {
-        return std::make_unique<VarListColumnChunk>(dataType, capacity, enableCompression);
+        if (needFinalize) {
+            return std::make_unique<AuxVarListColumnChunk>(dataType, capacity, enableCompression);
+        } else {
+            return std::make_unique<VarListColumnChunk>(dataType, capacity, enableCompression);
+        }
     }
     case PhysicalTypeID::STRUCT: {
         return std::make_unique<StructColumnChunk>(dataType, capacity, enableCompression);

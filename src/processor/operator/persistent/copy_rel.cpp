@@ -35,11 +35,13 @@ void CopyRelSharedState::logCopyRelWALRecord(WAL* wal) {
 
 void CopyRel::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* /*context*/) {
     localState = std::make_unique<CopyRelLocalState>();
-    localState->nodeGroup = NodeGroupFactory::createNodeGroup(
-        info->dataFormat, sharedState->columnTypes, sharedState->table->compressionEnabled());
+    localState->nodeGroup =
+        NodeGroupFactory::createNodeGroup(info->dataFormat, sharedState->columnTypes,
+            sharedState->table->compressionEnabled(), true /* needFinalize */);
     if (info->dataFormat == ColumnDataFormat::REGULAR_COL) {
-        // Adj column should be guaranteed to be the first one in a node group.
-        localState->nodeGroup->getColumnChunk(0)->getNullChunk()->resetToAllNull();
+        for (auto i = 0u; i < localState->nodeGroup->getNumColumnChunks(); i++) {
+            localState->nodeGroup->getColumnChunk(i)->getNullChunk()->resetToAllNull();
+        }
     }
 }
 
@@ -68,26 +70,28 @@ void CopyRel::executeInternal(ExecutionContext* /*context*/) {
             auto offsetVector = dataChunk->getValueVector(offsetVectorIdx).get();
             setOffsetToWithinNodeGroup(offsetVector, startOffset);
             numRows += offsetVector->state->selVector->selectedSize;
-            if (info->dataFormat == ColumnDataFormat::REGULAR_COL) {
-                localState->nodeGroup->append(dataChunk.get(), offsetVectorIdx);
-            }
         }
+        ColumnChunk* csrOffsetChunk = nullptr;
         if (info->dataFormat == ColumnDataFormat::CSR_COL) {
             auto csrNodeGroup = static_cast<CSRNodeGroup*>(localState->nodeGroup.get());
-            auto csrOffsetChunk = csrNodeGroup->getCSROffsetChunk();
+            csrOffsetChunk = csrNodeGroup->getCSROffsetChunk();
             csrOffsetChunk->setNumValues(StorageConstants::NODE_GROUP_SIZE);
             populateCSROffsets(csrOffsetChunk, partitioningBuffer, offsetVectorIdx);
             // Resize csr data column chunks.
             for (auto i = 0u; i < localState->nodeGroup->getNumColumnChunks(); i++) {
-                localState->nodeGroup->getColumnChunk(i)->resize(numRows);
-            }
-            for (auto& dataChunk : partitioningBuffer->chunks) {
-                auto offsetVector = dataChunk->getValueVector(offsetVectorIdx).get();
-                setOffsetFromCSROffsets(offsetVector, (offset_t*)csrOffsetChunk->getData());
-                localState->nodeGroup->append(dataChunk.get(), offsetVectorIdx);
+                auto chunk = localState->nodeGroup->getColumnChunk(i);
+                chunk->resize(numRows);
             }
         }
-        localState->nodeGroup->setNodeGroupIdx(localState->currentPartition);
+        for (auto& dataChunk : partitioningBuffer->chunks) {
+            if (info->dataFormat == ColumnDataFormat::CSR_COL) {
+                assert(csrOffsetChunk);
+                auto offsetVector = dataChunk->getValueVector(offsetVectorIdx).get();
+                setOffsetFromCSROffsets(offsetVector, (offset_t*)csrOffsetChunk->getData());
+            }
+            localState->nodeGroup->write(dataChunk.get(), offsetVectorIdx);
+        }
+        localState->nodeGroup->finalize(localState->currentPartition);
         // Flush node group to table.
         sharedState->table->append(localState->nodeGroup.get(), info->dataDirection);
         sharedState->incrementNumRows(localState->nodeGroup->getNumNodes());
