@@ -46,6 +46,9 @@ interval_t interval_t::operator+(const interval_t& rhs) const {
 }
 
 timestamp_t interval_t::operator+(const timestamp_t& rhs) const {
+    if (!Timestamp::IsFinite(rhs)) {
+        throw ConversionException("Cannot add infinite timestamp to interval.");
+    }
     return rhs + *this;
 }
 

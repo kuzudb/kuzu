@@ -348,6 +348,11 @@ February
 1976-12-23 04:41:42
 2006-02-12 11:25:33
 
+-LOG TestTimestampLiteral
+-STATEMENT RETURN to_timestamp(0), to_timestamp(1), to_timestamp(1574802684.0), to_timestamp(-1), to_timestamp(-10)
+---- 1
+1970-01-01 00:00:00|1970-01-01 00:00:01|2019-11-26 21:11:24|1969-12-31 23:59:59|1969-12-31 23:59:50
+
 -LOG StructuredTimestampComparisonAcrossNodesNonEquality
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.registerTime <> b.registerTime RETURN COUNT(*)
 ---- 1

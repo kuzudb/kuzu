@@ -26,8 +26,8 @@ function_set EpochMsFunction::getFunctionSet() {
 function_set ToTimestampFunction::getFunctionSet() {
     function_set result;
     result.push_back(make_unique<ScalarFunction>(TO_TIMESTAMP_FUNC_NAME,
-        std::vector<LogicalTypeID>{LogicalTypeID::INT64}, LogicalTypeID::TIMESTAMP,
-        ScalarFunction::UnaryExecFunction<int64_t, timestamp_t, ToTimestamp>));
+        std::vector<LogicalTypeID>{LogicalTypeID::DOUBLE}, LogicalTypeID::TIMESTAMP,
+        ScalarFunction::UnaryExecFunction<double, timestamp_t, ToTimestamp>));
     return result;
 }
 

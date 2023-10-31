@@ -2,6 +2,7 @@
 
 #include "common/exception/conversion.h"
 #include "common/string_utils.h"
+#include "function/cast/functions/cast_functions.h"
 
 namespace kuzu {
 namespace common {
@@ -252,6 +253,9 @@ timestamp_t Timestamp::fromDateTime(date_t date, dtime_t time) {
 }
 
 void Timestamp::convert(timestamp_t timestamp, date_t& out_date, dtime_t& out_time) {
+    if (!IsFinite(timestamp)) {
+        throw ConversionException("Cannot convert infinite timestamp to date/time.");
+    }
     out_date = getDate(timestamp);
     out_time = getTime(timestamp);
 }
@@ -264,7 +268,7 @@ timestamp_t Timestamp::fromEpochMilliSeconds(int64_t ms) {
     return fromEpochMicroSeconds(ms * Interval::MICROS_PER_MSEC);
 }
 
-timestamp_t Timestamp::fromEpochSeconds(int64_t sec) {
+timestamp_t Timestamp::fromEpochSeconds(double sec) {
     return fromEpochMicroSeconds(sec * Interval::MICROS_PER_SEC);
 }
 

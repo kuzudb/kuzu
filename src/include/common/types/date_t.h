@@ -9,7 +9,7 @@ struct timestamp_t;
 
 // System representation of dates as the number of days since 1970-01-01.
 struct KUZU_API date_t {
-    int32_t days;
+    int32_t days = 0;
 
     date_t();
     explicit date_t(int32_t days_p);

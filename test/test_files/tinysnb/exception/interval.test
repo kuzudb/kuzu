@@ -29,3 +29,8 @@ Conversion exception: Unrecognized interval specifier string: millseconds.
 -STATEMENT MATCH (a:person) return interval("10 years 2 days 48 hours 28 seconds microseconds")
 ---- error
 Conversion exception: Error occurred during parsing interval. Given: "10 years 2 days 48 hours 28 seconds microseconds".
+
+-LOG TOTimeStampCastError
+-STATEMENT MATCH (a:person) return to_timestamp(9223372036854775808)
+---- error
+Conversion exception: Cannot convert infinite timestamp to date/time.

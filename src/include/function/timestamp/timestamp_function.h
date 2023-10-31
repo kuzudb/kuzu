@@ -19,7 +19,7 @@ struct EpochMs {
 };
 
 struct ToTimestamp {
-    static inline void operation(int64_t& sec, common::timestamp_t& result) {
+    static inline void operation(double& sec, common::timestamp_t& result) {
         result = common::Timestamp::fromEpochSeconds(sec);
     }
 };

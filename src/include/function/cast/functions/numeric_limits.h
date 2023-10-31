@@ -4,6 +4,7 @@
 #include <limits>
 
 #include "common/types/int128_t.h"
+#include "common/types/timestamp_t.h"
 
 namespace kuzu {
 namespace function {
@@ -28,6 +29,15 @@ struct NumericLimits<common::int128_t> {
     static constexpr bool isSigned() { return true; }
     static constexpr uint64_t digits() { return 39; }
 };
+
+template<>
+struct NumericLimits<common::timestamp_t> {
+    static constexpr long minimum() { return -std::numeric_limits<int64_t>::max(); }
+    static constexpr long maximum() { return std::numeric_limits<int64_t>::max(); }
+    static constexpr bool isSigned() { return true; }
+    static constexpr uint64_t digits() { return 64; }
+};
+
 
 template<>
 constexpr uint64_t NumericLimits<int8_t>::digits() {

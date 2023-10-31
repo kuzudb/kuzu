@@ -2,6 +2,7 @@
 
 #include "date_t.h"
 #include "dtime_t.h"
+#include "function/cast/functions/numeric_limits.h"
 
 namespace kuzu {
 namespace common {
@@ -38,6 +39,10 @@ struct KUZU_API timestamp_t {
     timestamp_t operator-(const interval_t& interval) const;
 
     interval_t operator-(const timestamp_t& rhs) const;
+
+    static timestamp_t infinity() { return timestamp_t(std::numeric_limits<int64_t>::max()); }
+
+    static timestamp_t ninfinity() { return timestamp_t(std::numeric_limits<int64_t>::min()); }
 };
 
 // Note: Aside from some minor changes, this implementation is copied from DuckDB's source code:
@@ -63,6 +68,11 @@ public:
     // Create a Timestamp object from a specified (date, time) combination.
     KUZU_API static timestamp_t fromDateTime(date_t date, dtime_t time);
 
+    //! Is the timestamp finite or infinite?
+    static inline bool IsFinite(timestamp_t timestamp) {
+        return timestamp != timestamp_t::infinity() && timestamp != timestamp_t::ninfinity();
+    }
+
     KUZU_API static bool tryConvertTimestamp(const char* str, uint64_t len, timestamp_t& result);
 
     // Extract the date and time from a given timestamp object.
@@ -75,7 +85,7 @@ public:
     KUZU_API static timestamp_t fromEpochMilliSeconds(int64_t ms);
 
     // Create a Timestamp object from the specified epochSec.
-    KUZU_API static timestamp_t fromEpochSeconds(int64_t sec);
+    KUZU_API static timestamp_t fromEpochSeconds(double sec);
 
     // Create a Timestamp object from the specified epochNs.
     KUZU_API static timestamp_t fromEpochNanoSeconds(int64_t ns);
