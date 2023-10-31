@@ -316,14 +316,6 @@ void IntegerBitpacking<T>::getValues(const uint8_t* chunkStart, uint8_t pos, uin
 }
 
 template<typename T>
-void IntegerBitpacking<T>::getValue(const uint8_t* buffer, offset_t posInBuffer, uint8_t* dst,
-    offset_t posInDst, const CompressionMetadata& metadata) const {
-    auto header = BitpackHeader::readHeader(metadata.data);
-    auto chunkStart = getChunkStart(buffer, posInBuffer, header.bitWidth);
-    getValues(chunkStart, posInBuffer % CHUNK_SIZE, dst + posInDst * sizeof(T), 1, header);
-}
-
-template<typename T>
 uint64_t IntegerBitpacking<T>::compressNextPage(const uint8_t*& srcBuffer,
     uint64_t numValuesRemaining, uint8_t* dstBuffer, uint64_t dstBufferSize,
     const struct CompressionMetadata& metadata) const {
@@ -436,11 +428,6 @@ void BooleanBitpacking::setValuesFromUncompressed(const uint8_t* srcBuffer, offs
     for (auto i = 0; i < numValues; i++) {
         NullMask::setNull((uint64_t*)dstBuffer, dstOffset + i, ((bool*)srcBuffer)[srcOffset + i]);
     }
-}
-
-void BooleanBitpacking::getValue(const uint8_t* buffer, offset_t posInBuffer, uint8_t* dst,
-    offset_t posInDst, const CompressionMetadata& /*metadata*/) const {
-    *(dst + posInDst) = NullMask::isNull((uint64_t*)buffer, posInBuffer);
 }
 
 uint64_t BooleanBitpacking::compressNextPage(const uint8_t*& srcBuffer, uint64_t numValuesRemaining,
