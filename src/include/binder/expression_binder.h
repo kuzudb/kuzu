@@ -12,7 +12,6 @@ class Value;
 namespace binder {
 
 class Binder;
-class CaseAlternative;
 
 class ExpressionBinder {
     friend class Binder;

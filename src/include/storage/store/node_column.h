@@ -23,8 +23,6 @@ using read_values_to_page_func_t =
 // This is a special usage for the `batchLookup` interface.
 using batch_lookup_func_t = read_values_to_page_func_t;
 
-class NullNodeColumn;
-class StructNodeColumn;
 // TODO(Guodong): This is intentionally duplicated with `Column`, as for now, we don't change rel
 // tables. `Column` is used for rel tables only. Eventually, we should remove `Column`.
 class NodeColumn {

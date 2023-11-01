@@ -13,7 +13,6 @@ namespace storage {
 typedef std::vector<std::atomic<uint64_t>> atomic_uint64_vec_t;
 
 class InMemLists;
-class AdjLists;
 struct PropertyCopyState;
 
 using fill_in_mem_lists_function_t =

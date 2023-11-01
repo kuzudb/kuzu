@@ -12,10 +12,8 @@
 namespace kuzu {
 namespace common {
 
-struct KUZU_API int128_t;
-
 // System representation for int128_t.
-struct int128_t {
+struct KUZU_API int128_t {
     uint64_t low;
     int64_t high;
 

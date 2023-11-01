@@ -6,8 +6,6 @@
 namespace kuzu {
 namespace storage {
 
-class NodesStoreStatsAndDeletedIDs;
-
 class TableData {
 public:
     TableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, common::table_id_t tableID,

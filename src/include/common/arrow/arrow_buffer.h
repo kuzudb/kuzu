@@ -2,8 +2,6 @@
 
 #include "common/utils.h"
 
-struct ArrowSchema;
-
 namespace kuzu {
 namespace common {
 

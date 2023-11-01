@@ -46,8 +46,6 @@
 // The Arrow C data interface.
 // https://arrow.apache.org/docs/format/CDataInterface.html
 
-#include <stdint.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif

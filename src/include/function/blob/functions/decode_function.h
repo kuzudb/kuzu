@@ -1,6 +1,8 @@
 #pragma once
 
+#include "common/exception/runtime.h"
 #include "common/types/blob.h"
+#include "common/vector/value_vector.h"
 #include "utf8proc_wrapper.h"
 
 namespace kuzu {

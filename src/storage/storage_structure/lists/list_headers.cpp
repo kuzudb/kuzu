@@ -7,6 +7,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
+static constexpr uint64_t LIST_HEADERS_HEADER_PAGE_IDX = 0;
+
 ListHeadersBuilder::ListHeadersBuilder(const std::string& baseListFName, uint64_t numElements) {
     fileHandle = make_unique<FileHandle>(StorageUtils::getListHeadersFName(baseListFName),
         FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS);

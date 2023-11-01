@@ -17,7 +17,6 @@ namespace common {
 
 class Serializer;
 class Deserializer;
-class FileInfo;
 
 using sel_t = uint16_t;
 using hash_t = uint64_t;

@@ -13,8 +13,6 @@
 namespace kuzu {
 namespace storage {
 
-class StorageManager;
-
 struct StorageStructureIDAndFName {
     StorageStructureIDAndFName(StorageStructureID storageStructureID, std::string fName)
         : storageStructureID{storageStructureID}, fName{std::move(fName)} {};

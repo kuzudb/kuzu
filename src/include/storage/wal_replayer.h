@@ -5,10 +5,6 @@
 #include "storage/wal/wal.h"
 #include "storage/wal/wal_record.h"
 
-namespace spdlog {
-class logger;
-}
-
 namespace kuzu {
 namespace storage {
 

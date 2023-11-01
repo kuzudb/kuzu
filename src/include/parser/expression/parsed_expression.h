@@ -10,7 +10,6 @@
 namespace kuzu {
 
 namespace common {
-class FileInfo;
 class Serializer;
 class Deserializer;
 } // namespace common

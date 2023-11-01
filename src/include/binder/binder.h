@@ -14,14 +14,16 @@ namespace main {
 class ClientContext;
 }
 
+namespace storage {
+class StorageManager;
+}
+
 namespace binder {
 
 class BoundInsertInfo;
 class BoundSetPropertyInfo;
-class BoundDeleteInfo;
 class BoundWithClause;
 class BoundReturnClause;
-class BoundFileScanInfo;
 
 // BinderScope keeps track of expressions in scope and their aliases. We maintain the order of
 // expressions in

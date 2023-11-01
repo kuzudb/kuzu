@@ -9,15 +9,10 @@
 #include "storage/wal/wal.h"
 #include "transaction/transaction.h"
 
-namespace arrow {
-class Array;
-}
-
 namespace kuzu {
 namespace storage {
 
 class NullColumnChunk;
-class CompressionAlg;
 
 struct BaseColumnChunkMetadata {
     common::page_idx_t pageIdx;

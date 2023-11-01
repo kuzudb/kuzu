@@ -7,8 +7,6 @@
 #include "common/types/types.h"
 #include "main/query_result.h"
 
-struct ArrowSchema;
-
 namespace kuzu {
 namespace common {
 

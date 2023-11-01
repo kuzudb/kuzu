@@ -37,8 +37,6 @@ using csr_offset_t = uint32_t;
  * the next page group). Then we go to pageLists[idxOfNextPageGroupBeginInPageLists + (5-3=2)].
  */
 
-static constexpr uint64_t LIST_HEADERS_HEADER_PAGE_IDX = 0;
-
 class ListHeadersBuilder {
 public:
     explicit ListHeadersBuilder(const std::string& baseListFName, uint64_t numElements);

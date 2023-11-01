@@ -8,7 +8,6 @@
 namespace kuzu {
 namespace storage {
 
-class NodeTable;
 class TableData;
 
 class NodeGroup {

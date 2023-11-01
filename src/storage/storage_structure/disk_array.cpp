@@ -139,7 +139,7 @@ uint64_t BaseDiskArray<U>::resize(uint64_t newNumElements) {
     std::unique_lock xLck{diskArraySharedMtx};
     hasTransactionalUpdates = true;
     auto currentNumElements = getNumElementsNoLock(transaction::TransactionType::WRITE);
-    U val;
+    U val{};
     while (currentNumElements < newNumElements) {
         pushBackNoLock(val);
         currentNumElements++;

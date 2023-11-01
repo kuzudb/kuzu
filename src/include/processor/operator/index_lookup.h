@@ -4,8 +4,6 @@
 
 namespace arrow {
 class Array;
-class PrimitiveArray;
-class DataType;
 } // namespace arrow
 
 namespace kuzu {
