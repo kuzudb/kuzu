@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <limits>
 
-#include "common/int128_t.h"
+#include "common/types/int128_t.h"
 
 namespace kuzu {
 namespace function {
