@@ -1,6 +1,5 @@
 #include "storage/store/struct_column.h"
 
-#include "storage/stats/table_statistics.h"
 #include "storage/store/struct_column_chunk.h"
 
 using namespace kuzu::catalog;

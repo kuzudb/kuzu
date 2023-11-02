@@ -1,7 +1,5 @@
 #include "storage/store/compression.h"
 
-#include <math.h>
-
 #include <string>
 
 #include "common/exception/not_implemented.h"

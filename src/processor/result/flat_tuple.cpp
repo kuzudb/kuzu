@@ -1,5 +1,7 @@
 #include "processor/result/flat_tuple.h"
 
+#include <sstream>
+
 #include "common/exception/runtime.h"
 #include "common/string_format.h"
 #include "common/types/value/value.h"

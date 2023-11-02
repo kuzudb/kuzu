@@ -1,4 +1,6 @@
+#include <inttypes.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "c_api/kuzu.h"
 
@@ -32,7 +34,7 @@ int main() {
         int64_t age = kuzu_value_get_int64(value);
         kuzu_value_destroy(value);
 
-        printf("name: %s, age: %lld \n", name, age);
+        printf("name: %s, age: %" PRIi64 " \n", name, age);
         free(name);
         kuzu_flat_tuple_destroy(tuple);
     }

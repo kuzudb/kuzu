@@ -2,6 +2,7 @@
 
 #include "function/aggregate_function.h"
 #include "processor/result/factorized_table.h"
+#include "storage/storage_utils.h"
 
 namespace kuzu {
 namespace function {

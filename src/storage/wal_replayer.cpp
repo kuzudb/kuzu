@@ -1,6 +1,7 @@
 #include "storage/wal_replayer.h"
 
 #include "catalog/node_table_schema.h"
+#include "common/exception/not_implemented.h"
 #include "common/exception/storage.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
@@ -315,7 +316,9 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
                 // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
             } break;
             default: {
-                throw NotImplementedException{"WALReplayer::replayDropTableRecord"};
+                // LCOV_EXCL_START
+                throw NotImplementedException("WALReplayer::replayDropTableRecord");
+                // LCOV_EXCL_END
             }
             }
         } else {
@@ -335,7 +338,9 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
                 // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
             } break;
             default: {
-                throw NotImplementedException{"WALReplayer::replayDropTableRecord"};
+                // LCOV_EXCL_START
+                throw NotImplementedException("WALReplayer::replayDropTableRecord");
+                // LCOV_EXCL_END
             }
             }
         }
@@ -362,7 +367,9 @@ void WALReplayer::replayDropPropertyRecord(const kuzu::storage::WALRecord& walRe
                 // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
             } break;
             default: {
-                throw NotImplementedException{"WALReplayer::replayDropPropertyRecord"};
+                // LCOV_EXCL_START
+                throw NotImplementedException("WALReplayer::replayDropPropertyRecord");
+                // LCOV_EXCL_END
             }
             }
         } else {
@@ -378,7 +385,9 @@ void WALReplayer::replayDropPropertyRecord(const kuzu::storage::WALRecord& walRe
                 // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
             } break;
             default: {
-                throw NotImplementedException{"WALReplayer::replayDropPropertyRecord"};
+                // LCOV_EXCL_START
+                throw NotImplementedException("WALReplayer::replayDropPropertyRecord");
+                // LCOV_EXCL_END
             }
             }
         }
@@ -398,7 +407,9 @@ void WALReplayer::replayAddPropertyRecord(const kuzu::storage::WALRecord& walRec
             case TableType::REL: {
             } break;
             default: {
-                throw NotImplementedException{"WALReplayer::replayDropPropertyRecord"};
+                // LCOV_EXCL_START
+                throw NotImplementedException("WALReplayer::replayDropPropertyRecord");
+                // LCOV_EXCL_END
             }
             }
         } else {
@@ -414,7 +425,9 @@ void WALReplayer::replayAddPropertyRecord(const kuzu::storage::WALRecord& walRec
                 // DO NOTHING.
             } break;
             default: {
+                // LCOV_EXCL_START
                 throw NotImplementedException{"WALReplayer::replayDropPropertyRecord"};
+                // LCOV_EXCL_END
             }
             }
         }
@@ -430,7 +443,9 @@ void WALReplayer::replayAddPropertyRecord(const kuzu::storage::WALRecord& walRec
                 tableSchema->getColumnID(propertyID));
         } break;
         default: {
+            // LCOV_EXCL_START
             throw NotImplementedException{"WALReplayer::replayDropPropertyRecord"};
+            // LCOV_EXCL_END
         }
         }
     }
@@ -488,8 +503,10 @@ BMFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleare
                                      index->getFileHandle();
     }
     default:
+        // LCOV_EXCL_START
         throw NotImplementedException(
             "WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleared");
+        // LCOV_EXCL_END
     }
 }
 

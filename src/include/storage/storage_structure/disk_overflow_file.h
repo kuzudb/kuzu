@@ -2,8 +2,6 @@
 
 #include <fcntl.h>
 
-#include "common/types/ku_list.h"
-#include "common/vector/value_vector.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/storage_structure/db_file_utils.h"
 #include "storage/storage_utils.h"

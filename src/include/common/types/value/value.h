@@ -1,9 +1,8 @@
 #pragma once
 
-#include <utility>
+#include <cmath>
 
 #include "common/api.h"
-#include "common/type_utils.h"
 #include "common/types/date_t.h"
 #include "common/types/int128_t.h"
 #include "common/types/internal_id_t.h"

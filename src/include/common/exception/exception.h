@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdexcept>
+#include <exception>
 #include <string>
 
 namespace kuzu {

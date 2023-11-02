@@ -1,12 +1,12 @@
 #include "benchmark.h"
 
-#include <filesystem>
 #include <fstream>
 
 #include "spdlog/spdlog.h"
 #include "test_helper.h"
 
 using namespace kuzu::common;
+using namespace kuzu::main;
 
 namespace kuzu {
 namespace benchmark {

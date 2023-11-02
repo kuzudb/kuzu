@@ -1,7 +1,8 @@
 #pragma once
 
-#include "common/enums/join_type.h"
-#include "processor/operator/result_collector.h"
+#include "processor/data_pos.h"
+#include "processor/operator/physical_operator.h"
+#include "processor/result/factorized_table.h"
 
 namespace kuzu {
 namespace processor {

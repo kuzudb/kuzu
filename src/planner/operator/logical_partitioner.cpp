@@ -1,5 +1,7 @@
 #include "planner/operator/logical_partitioner.h"
 
+#include "binder/expression/expression_util.h"
+
 namespace kuzu {
 namespace planner {
 

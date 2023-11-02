@@ -1,7 +1,6 @@
 #pragma once
 
-#include "common/type_utils.h"
-#include "common/types/date_t.h"
+#include "common/types/interval_t.h"
 
 namespace kuzu {
 namespace function {

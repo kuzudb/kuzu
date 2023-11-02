@@ -2,7 +2,6 @@
 
 #include "copy_node.h"
 #include "processor/operator/sink.h"
-#include "storage/store/node_table.h"
 
 namespace kuzu {
 namespace processor {

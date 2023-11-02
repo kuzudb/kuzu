@@ -1,5 +1,8 @@
 #include "expression_evaluator/case_evaluator.h"
 
+#include <cmath>
+
+#include "common/exception/not_implemented.h"
 #include "common/types/date_t.h"
 #include "common/types/interval_t.h"
 #include "common/types/ku_string.h"

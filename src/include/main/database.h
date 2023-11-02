@@ -1,10 +1,9 @@
 #pragma once
 
 #include <memory>
-#include <thread>
+#include <string>
 
 #include "common/api.h"
-#include "common/constants.h"
 #include "common/enums/access_mode.h"
 #include "kuzu_fwd.h"
 

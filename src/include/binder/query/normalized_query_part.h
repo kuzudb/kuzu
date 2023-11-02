@@ -3,7 +3,6 @@
 #include "binder/query/reading_clause/bound_reading_clause.h"
 #include "binder/query/return_with_clause/bound_projection_body.h"
 #include "binder/query/updating_clause/bound_updating_clause.h"
-#include "query_graph.h"
 
 namespace kuzu {
 namespace binder {

@@ -1,6 +1,7 @@
 #pragma once
 
-#include "catalog/table_schema.h"
+#include "catalog/property.h"
+#include "common/enums/table_type.h"
 
 namespace kuzu {
 namespace catalog {

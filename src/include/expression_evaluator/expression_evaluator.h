@@ -1,8 +1,5 @@
 #pragma once
 
-#include <functional>
-
-#include "binder/expression/expression.h"
 #include "processor/result/result_set.h"
 
 namespace kuzu {

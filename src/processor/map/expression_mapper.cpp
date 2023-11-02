@@ -1,12 +1,12 @@
 #include "processor/expression_mapper.h"
 
 #include "binder/expression/case_expression.h"
+#include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/node_expression.h"
 #include "binder/expression/parameter_expression.h"
-#include "binder/expression/path_expression.h"
 #include "binder/expression/rel_expression.h"
-#include "binder/expression_visitor.h"
+#include "binder/expression_visitor.h" // IWYU pragma: keep (used in assert)
 #include "common/string_format.h"
 #include "expression_evaluator/case_evaluator.h"
 #include "expression_evaluator/function_evaluator.h"

@@ -3,7 +3,6 @@
 #include <unordered_map>
 
 #include "binder/expression/expression.h"
-#include "binder/expression/expression_util.h"
 
 namespace kuzu {
 namespace planner {

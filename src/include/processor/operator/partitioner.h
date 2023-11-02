@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/column_data_format.h"
 #include "processor/operator/sink.h"
 
 namespace kuzu {

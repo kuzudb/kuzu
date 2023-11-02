@@ -18,7 +18,6 @@
 #include <string.h>
 
 #include <cstdint>
-#include <limits>
 #include <type_traits>
 
 namespace kuzu {

@@ -1,5 +1,8 @@
 #include "common/arrow/arrow_row_batch.h"
 
+#include <cstring>
+
+#include "common/exception/runtime.h"
 #include "common/types/value/node.h"
 #include "common/types/value/rel.h"
 #include "common/types/value/value.h"

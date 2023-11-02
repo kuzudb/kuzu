@@ -1,15 +1,11 @@
 #pragma once
 
-#include <atomic>
 #include <memory>
-#include <mutex>
 #include <shared_mutex>
-#include <vector>
 
 #include "common/constants.h"
 #include "common/file_utils.h"
 #include "common/types/types.h"
-#include "storage/storage_utils.h"
 
 namespace kuzu {
 namespace storage {

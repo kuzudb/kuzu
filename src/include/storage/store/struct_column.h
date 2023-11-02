@@ -1,6 +1,5 @@
 #pragma once
 
-#include "storage/stats/table_statistics.h"
 #include "storage/store/column.h"
 
 namespace kuzu {

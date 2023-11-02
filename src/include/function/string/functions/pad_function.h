@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cassert>
-#include <cstring>
 
 #include "common/types/ku_string.h"
 #include "common/vector/value_vector.h"

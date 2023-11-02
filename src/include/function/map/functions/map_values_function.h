@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/vector/value_vector.h"
+#include "function/map/functions/base_map_extract_function.h"
 
 namespace kuzu {
 namespace function {

@@ -1,9 +1,13 @@
 #pragma once
 
 #include "binder/query/bound_regular_query.h"
+#include "binder/query/query_graph.h"
+#include "catalog/catalog.h"
+#include "common/copier_config/copier_config.h"
 #include "expression_binder.h"
-#include "parser/copy.h"
+#include "parser/query/graph_pattern/pattern_element.h"
 #include "parser/query/regular_query.h"
+#include "storage/storage_manager.h"
 
 namespace kuzu {
 namespace parser {

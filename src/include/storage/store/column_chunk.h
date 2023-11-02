@@ -1,14 +1,11 @@
 #pragma once
 
-#include "common/column_data_format.h"
-#include "common/copier_config/copier_config.h"
-#include "common/type_utils.h"
+#include <functional>
+
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "compression.h"
 #include "storage/buffer_manager/bm_file_handle.h"
-#include "storage/wal/wal.h"
-#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace storage {

@@ -1,8 +1,6 @@
 #include "binder/binder.h"
 #include "binder/query/return_with_clause/bound_return_clause.h"
 #include "binder/query/return_with_clause/bound_with_clause.h"
-#include "parser/query/return_with_clause/return_clause.h"
-#include "parser/query/return_with_clause/with_clause.h"
 
 using namespace kuzu::parser;
 

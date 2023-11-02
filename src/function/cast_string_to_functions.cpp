@@ -1,7 +1,7 @@
 #include "function/cast/functions/cast_string_to_functions.h"
 
 #include "common/exception/copy.h"
-#include "common/exception/message.h"
+#include "common/exception/not_implemented.h"
 #include "common/exception/parser.h"
 #include "common/string_format.h"
 #include "common/types/blob.h"

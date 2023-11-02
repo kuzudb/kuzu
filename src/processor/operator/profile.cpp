@@ -1,7 +1,6 @@
 #include "processor/operator/profile.h"
 
 #include "main/plan_printer.h"
-#include "processor/physical_plan.h"
 
 using namespace kuzu::common;
 

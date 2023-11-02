@@ -2,7 +2,7 @@
 
 #include <shared_mutex>
 
-#include "common/constants.h"
+#include "common/types/ku_string.h"
 #include "common/types/value/value.h"
 #include "storage/storage_structure/in_mem_page.h"
 #include "storage/storage_utils.h"

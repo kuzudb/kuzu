@@ -1,10 +1,6 @@
 #pragma once
 
-#include <cstring>
-
 #include "main/kuzu.h"
-
-using namespace kuzu::main;
 
 namespace kuzu {
 namespace testing {
@@ -35,9 +31,9 @@ public:
         const std::string& path, bool checkOutputOrder = false);
 
     static std::vector<std::string> convertResultToString(
-        QueryResult& queryResult, bool checkOutputOrder = false);
+        main::QueryResult& queryResult, bool checkOutputOrder = false);
 
-    static void executeScript(const std::string& path, Connection& conn);
+    static void executeScript(const std::string& path, main::Connection& conn);
 
     static std::string getTestListFile() {
         return appendKuzuRootPath(std::string(E2E_TEST_FILES_DIRECTORY) + "/test_list");
@@ -50,7 +46,7 @@ public:
     static std::string getMillisecondsSuffix();
 
 private:
-    static void initializeConnection(TestQueryConfig* config, Connection& conn);
+    static void initializeConnection(TestQueryConfig* config, main::Connection& conn);
 };
 
 } // namespace testing

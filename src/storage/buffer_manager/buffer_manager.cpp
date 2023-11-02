@@ -1,7 +1,10 @@
 #include "storage/buffer_manager/buffer_manager.h"
 
+#include <cstring>
+
 #include "common/constants.h"
 #include "common/exception/buffer_manager.h"
+#include "common/exception/not_implemented.h"
 
 #if defined(_WIN32)
 #include <exception>

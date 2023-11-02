@@ -1,4 +1,4 @@
-#include "binder/query/updating_clause/bound_set_clause.h"
+#include "binder/query/updating_clause/bound_set_info.h"
 #include "planner/operator/factorization/flatten_resolver.h"
 #include "planner/operator/persistent/logical_set.h"
 #include "planner/query_planner.h"

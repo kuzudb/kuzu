@@ -4,6 +4,7 @@
 #include "common/serializer/serializer.h"
 #include "common/string_format.h"
 #include "storage/stats/table_statistics_collection.h"
+#include "storage/storage_utils.h"
 
 using namespace kuzu::common;
 

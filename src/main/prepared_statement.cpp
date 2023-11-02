@@ -1,6 +1,6 @@
 #include "main/prepared_statement.h"
 
-#include "binder/bound_statement_result.h"
+#include "binder/bound_statement_result.h" // IWYU pragma: keep (used to avoid error in destructor)
 #include "common/enums/statement_type.h"
 #include "planner/operator/logical_plan.h"
 

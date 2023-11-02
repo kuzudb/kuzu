@@ -1,12 +1,9 @@
 #pragma once
 
-#include "binder/expression/node_expression.h"
-#include "common/enums/statement_type.h"
 #include "expression_mapper.h"
 #include "planner/operator/logical_plan.h"
 #include "processor/operator/result_collector.h"
 #include "processor/physical_plan.h"
-#include "storage/stats/node_table_statistics.h"
 #include "storage/storage_manager.h"
 
 namespace kuzu {

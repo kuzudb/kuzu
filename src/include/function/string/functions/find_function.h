@@ -1,8 +1,5 @@
 #pragma once
 
-#include <cassert>
-#include <cstring>
-
 #include "common/types/ku_string.h"
 
 namespace kuzu {

@@ -1,12 +1,14 @@
 #include "binder/copy/bound_copy_from.h"
 #include "binder/copy/bound_copy_to.h"
-#include "binder/expression/variable_expression.h"
 #include "catalog/node_table_schema.h"
+#include "catalog/rel_table_schema.h"
+#include "common/exception/not_implemented.h"
 #include "planner/operator/logical_partitioner.h"
 #include "planner/operator/persistent/logical_copy_from.h"
 #include "planner/operator/persistent/logical_copy_to.h"
 #include "planner/operator/scan/logical_index_scan.h"
 #include "planner/planner.h"
+#include "planner/query_planner.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::storage;

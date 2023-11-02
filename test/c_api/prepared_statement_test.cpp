@@ -1,5 +1,8 @@
 #include "c_api_test/c_api_test.h"
 
+using namespace kuzu::main;
+using namespace kuzu::testing;
+
 class CApiPreparedStatementTest : public CApiTest {
 public:
     std::string getInputDir() override {

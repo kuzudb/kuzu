@@ -1,11 +1,7 @@
 #pragma once
 
-#include <cassert>
-
 #include "cast_string_non_nested_functions.h"
 #include "common/copier_config/copier_config.h"
-#include "common/exception/runtime.h"
-#include "common/string_format.h"
 #include "common/type_utils.h"
 #include "common/types/blob.h"
 #include "common/vector/value_vector.h"

@@ -1,15 +1,11 @@
 #pragma once
 
-#include <cassert>
-
 #include "common/exception/conversion.h"
 #include "common/string_utils.h"
-#include "common/type_utils.h"
 #include "common/types/int128_t.h"
-#include "common/types/ku_string.h"
-#include "common/vector/value_vector.h"
+#include "common/types/types.h"
 #include "fast_float.h"
-#include "numeric_cast.h"
+#include "function/cast/functions/numeric_limits.h"
 
 namespace kuzu {
 namespace function {

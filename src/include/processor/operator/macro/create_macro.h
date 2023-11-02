@@ -1,7 +1,6 @@
 #pragma once
 
 #include "catalog/catalog.h"
-#include "common/string_utils.h"
 #include "function/scalar_macro_function.h"
 #include "processor/operator/physical_operator.h"
 

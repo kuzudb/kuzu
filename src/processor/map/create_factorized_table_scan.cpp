@@ -1,3 +1,4 @@
+#include "binder/expression/expression_util.h"
 #include "processor/operator/table_scan/factorized_table_scan.h"
 #include "processor/plan_mapper.h"
 

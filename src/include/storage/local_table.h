@@ -1,6 +1,7 @@
 #pragma once
 
 #include <bitset>
+#include <map>
 
 #include "common/vector/value_vector.h"
 

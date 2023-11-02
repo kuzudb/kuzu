@@ -1,11 +1,11 @@
 #include "storage/storage_utils.h"
 
+#include "common/exception/runtime.h"
 #include "common/null_buffer.h"
 #include "common/string_format.h"
-#include "common/string_utils.h"
-#include "storage/storage_manager.h"
+#include "common/types/ku_list.h"
+#include "common/types/ku_string.h"
 
-using namespace kuzu::catalog;
 using namespace kuzu::common;
 
 namespace kuzu {

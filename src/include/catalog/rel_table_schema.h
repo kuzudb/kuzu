@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/constants.h"
 #include "common/enums/rel_direction.h"
 #include "table_schema.h"
 

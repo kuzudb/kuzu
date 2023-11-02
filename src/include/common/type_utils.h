@@ -1,8 +1,7 @@
 #pragma once
 
-#include <sstream>
+#include <cmath>
 
-#include "common/exception/conversion.h"
 #include "common/types/date_t.h"
 #include "common/types/int128_t.h"
 #include "common/types/interval_t.h"

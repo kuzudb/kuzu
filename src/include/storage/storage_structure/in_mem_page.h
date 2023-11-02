@@ -1,11 +1,7 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
-#include <vector>
-
-#include "common/constants.h"
-#include "common/null_mask.h"
-#include "common/types/internal_id_t.h"
 
 namespace kuzu {
 namespace storage {

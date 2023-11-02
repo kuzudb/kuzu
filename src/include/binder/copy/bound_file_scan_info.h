@@ -1,8 +1,8 @@
 #pragma once
 
 #include "binder/expression/expression.h"
-#include "catalog/table_schema.h"
 #include "common/copier_config/copier_config.h"
+#include "common/enums/table_type.h"
 
 namespace kuzu {
 namespace binder {

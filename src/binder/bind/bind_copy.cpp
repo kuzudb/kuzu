@@ -6,6 +6,7 @@
 #include "common/enums/table_type.h"
 #include "common/exception/binder.h"
 #include "common/exception/message.h"
+#include "common/exception/not_implemented.h"
 #include "common/string_format.h"
 #include "parser/copy.h"
 #include "storage/storage_manager.h"
@@ -111,7 +112,9 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
         }
     }
     default:
+        // LCOV_EXCL_START
         throw NotImplementedException("bindCopyFromClause");
+        // LCOV_EXCL_END
     }
 }
 
@@ -240,7 +243,9 @@ expression_vector Binder::bindExpectedNodeFileColumns(
         }
     } break;
     default: {
-        throw NotImplementedException{"Binder::bindCopyNodeFileColumns"};
+        // LCOV_EXCL_START
+        throw NotImplementedException("Binder::bindCopyNodeFileColumns");
+        // LCOV_EXCL_END
     }
     }
     // Detect columns from file.
@@ -299,7 +304,9 @@ expression_vector Binder::bindExpectedRelFileColumns(
         }
     } break;
     default: {
-        throw NotImplementedException{"Binder::bindCopyRelColumns"};
+        // LCOV_EXCL_START
+        throw NotImplementedException("Binder::bindCopyRelColumns");
+        // LCOV_EXCL_END
     }
     }
     // Detect columns from file.

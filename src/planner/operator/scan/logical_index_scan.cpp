@@ -1,5 +1,7 @@
 #include "planner/operator/scan/logical_index_scan.h"
 
+#include "binder/expression/expression_util.h"
+
 namespace kuzu {
 namespace planner {
 

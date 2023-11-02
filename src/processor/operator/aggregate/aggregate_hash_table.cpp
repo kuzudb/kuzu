@@ -2,7 +2,7 @@
 
 #include "common/null_buffer.h"
 #include "common/utils.h"
-#include "function/aggregate/base_count.h"
+#include "function/comparison/comparison_functions.h"
 #include "function/hash/vector_hash_functions.h"
 
 using namespace kuzu::common;
@@ -634,7 +634,7 @@ template<typename T>
 static bool compareEntry(common::ValueVector* vector, uint32_t vectorPos, const uint8_t* entry) {
     uint8_t result;
     auto key = vector->getData() + vectorPos * vector->getNumBytesPerValue();
-    kuzu::function::Equals::operation(
+    function::Equals::operation(
         *(T*)key, *(T*)entry, result, nullptr /* leftVector */, nullptr /* rightVector */);
     return result != 0;
 }

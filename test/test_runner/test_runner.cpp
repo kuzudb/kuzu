@@ -4,6 +4,8 @@
 
 #include "common/exception/test.h"
 #include "common/string_utils.h"
+#include "gtest/gtest.h"
+#include "planner/operator/logical_plan.h"
 #include "spdlog/spdlog.h"
 #include "test_helper/test_helper.h"
 

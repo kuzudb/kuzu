@@ -2,6 +2,8 @@
 #include "planner/operator/logical_unwind.h"
 #include "planner/query_planner.h"
 
+using namespace kuzu::binder;
+
 namespace kuzu {
 namespace planner {
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/constants.h"
 #include "common/enums/query_rel_type.h"
 #include "node_expression.h"
 

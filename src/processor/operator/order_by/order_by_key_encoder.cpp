@@ -4,6 +4,8 @@
 #include <cstring>
 
 #include "common/string_format.h"
+#include "common/utils.h"
+#include "storage/storage_utils.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -257,7 +259,9 @@ void OrderByKeyEncoder::getEncodingFunction(PhysicalTypeID physicalType, encode_
         return;
     }
     default:
-        throw NotImplementedException{"OrderByKeyEncoder::getEncodingFunction"};
+        // LCOV_EXCL_START
+        throw NotImplementedException("OrderByKeyEncoder::getEncodingFunction");
+        // LCOV_EXCL_END
     }
 }
 

@@ -2,7 +2,6 @@
 #include "main/plan_printer.h"
 #include "planner/operator/logical_explain.h"
 #include "processor/operator/profile.h"
-#include "processor/operator/table_scan/factorized_table_scan.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::common;

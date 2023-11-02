@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/types/blob.h"
+#include "common/vector/value_vector.h"
 
 namespace kuzu {
 namespace function {

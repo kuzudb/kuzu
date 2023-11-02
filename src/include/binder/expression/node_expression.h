@@ -1,7 +1,6 @@
 #pragma once
 
 #include "node_rel_expression.h"
-#include "property_expression.h"
 
 namespace kuzu {
 namespace binder {

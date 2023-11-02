@@ -2,7 +2,6 @@
 
 #include <cstdint>
 
-#include "common/copier_config/copier_config.h"
 #include "common/data_chunk/data_chunk.h"
 
 namespace kuzu {

@@ -1,9 +1,6 @@
 #pragma once
 
-#include <cassert>
-#include <cstring>
-
-#include "common/types/ku_list.h"
+#include "common/vector/value_vector.h"
 #include "list_position_function.h"
 
 namespace kuzu {

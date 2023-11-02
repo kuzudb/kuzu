@@ -1,10 +1,6 @@
 #pragma once
 
-#include <string>
-#include <unordered_map>
-
-#include "common/assert.h"
-#include "processor/data_pos.h"
+#include "common/types/types.h"
 
 namespace kuzu {
 namespace planner {

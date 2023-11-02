@@ -1,5 +1,10 @@
 #pragma once
 
+#include <cmath>
+
+#include "common/exception/not_implemented.h"
+#include "common/types/int128_t.h"
+#include "common/types/interval_t.h"
 #include "function/scalar_function.h"
 
 namespace kuzu {

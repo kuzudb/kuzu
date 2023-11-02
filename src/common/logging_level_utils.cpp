@@ -3,7 +3,6 @@
 #include "common/exception/conversion.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
-#include "common/utils.h"
 
 namespace kuzu {
 namespace common {

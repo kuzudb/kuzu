@@ -1,9 +1,8 @@
 #include "storage/store/node_group.h"
 
 #include "common/constants.h"
-#include "storage/store/node_table.h"
+#include "storage/store/table_data.h"
 
-using namespace kuzu::processor;
 using namespace kuzu::common;
 using namespace kuzu::catalog;
 using namespace kuzu::transaction;

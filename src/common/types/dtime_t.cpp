@@ -1,10 +1,11 @@
 #include "common/types/dtime_t.h"
 
+#include <memory>
+
 #include "common/exception/conversion.h"
 #include "common/string_format.h"
 #include "common/types/cast_helpers.h"
 #include "common/types/date_t.h"
-#include "common/utils.h"
 
 namespace kuzu {
 namespace common {

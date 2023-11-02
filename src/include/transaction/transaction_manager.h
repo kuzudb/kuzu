@@ -4,7 +4,6 @@
 #include <mutex>
 #include <unordered_set>
 
-#include "common/utils.h"
 #include "storage/wal/wal.h"
 #include "transaction.h"
 

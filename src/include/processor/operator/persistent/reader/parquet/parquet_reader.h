@@ -5,7 +5,7 @@
 #include "common/types/types.h"
 #include "parquet/parquet_types.h"
 #include "resizable_buffer.h"
-#include "struct_column_reader.h"
+#include "thrift/protocol/TCompactProtocol.h"
 #include "thrift_tools.h"
 
 namespace kuzu {

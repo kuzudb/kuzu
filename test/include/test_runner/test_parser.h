@@ -1,9 +1,7 @@
-#include <cstring>
 #include <fstream>
 #include <numeric>
 
 #include "common/exception/test.h"
-#include "common/file_utils.h"
 #include "test_runner/test_group.h"
 
 namespace kuzu {

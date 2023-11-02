@@ -1,11 +1,7 @@
 #pragma once
 
-#include <cstring>
-
 #include "graph_test/base_graph_test.h"
 #include "main/kuzu.h"
-
-using ::testing::Test;
 
 namespace kuzu {
 namespace testing {

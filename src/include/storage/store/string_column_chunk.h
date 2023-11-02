@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/types/blob.h"
+#include "common/exception/not_implemented.h"
 #include "storage/storage_structure/in_mem_file.h"
 #include "storage/store/column_chunk.h"
 

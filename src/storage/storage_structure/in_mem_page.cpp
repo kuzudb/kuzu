@@ -1,7 +1,9 @@
 #include "storage/storage_structure/in_mem_page.h"
 
-#include <cmath>
 #include <cstring>
+
+#include "common/constants.h"
+#include "common/null_mask.h"
 
 using namespace kuzu::common;
 

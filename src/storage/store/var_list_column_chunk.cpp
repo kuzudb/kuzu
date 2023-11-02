@@ -1,6 +1,5 @@
 #include "storage/store/var_list_column_chunk.h"
 
-#include "common/types/value/nested.h"
 #include "common/types/value/value.h"
 
 using namespace kuzu::common;

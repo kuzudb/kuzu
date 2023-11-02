@@ -1,7 +1,7 @@
 #include "storage/store/string_column_chunk.h"
 
-#include "common/exception/message.h"
 #include "common/exception/not_implemented.h"
+#include "common/type_utils.h"
 #include "storage/store/table_copy_utils.h"
 
 using namespace kuzu::common;

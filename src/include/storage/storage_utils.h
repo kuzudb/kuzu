@@ -1,13 +1,11 @@
 #pragma once
 
+#include <cmath>
 #include <string>
 
-#include "catalog/table_schema.h"
-#include "common/column_data_format.h"
 #include "common/constants.h"
 #include "common/file_utils.h"
 #include "common/null_mask.h"
-#include "common/utils.h"
 #include "storage/wal/wal_record.h"
 
 namespace kuzu {

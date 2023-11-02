@@ -1,5 +1,7 @@
 #include "processor/operator/order_by/order_by_merge.h"
 
+#include <thread>
+
 #include "common/constants.h"
 
 using namespace kuzu::common;

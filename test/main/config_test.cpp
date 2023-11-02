@@ -1,6 +1,7 @@
 #include "main_test_helper/main_test_helper.h"
 
 using namespace kuzu::common;
+using namespace kuzu::main;
 using namespace kuzu::testing;
 
 TEST_F(ApiTest, ClientConfig) {

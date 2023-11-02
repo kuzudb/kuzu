@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include "function/hash/hash_functions.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

@@ -1,3 +1,4 @@
+#include "common/exception/not_implemented.h"
 #include "planner/operator/ddl/logical_alter.h"
 #include "planner/operator/ddl/logical_create_table.h"
 #include "planner/operator/ddl/logical_drop_table.h"
@@ -11,7 +12,6 @@
 #include "processor/operator/ddl/drop_table.h"
 #include "processor/operator/ddl/rename_property.h"
 #include "processor/operator/ddl/rename_table.h"
-#include "processor/operator/table_scan/factorized_table_scan.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::binder;
@@ -42,8 +42,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateTable(LogicalOperator* lo
     case TableType::RDF: {
         return mapCreateRdfGraph(logicalOperator);
     }
-    default:                                                         // LCOV_EXCL_START
-        throw NotImplementedException("PlanMapper::mapCreateTable"); // LCOV_EXCL_STOP
+    default:
+        // LCOV_EXCL_START
+        throw NotImplementedException("PlanMapper::mapCreateTable");
+        // LCOV_EXCL_END
     }
 }
 
@@ -98,7 +100,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAlter(LogicalOperator* logicalO
         return mapRenameProperty(logicalOperator);
     }
     default:
+        // LCOV_EXCL_START
         throw NotImplementedException("PlanMapper::mapAlter");
+        // LCOV_EXCL_END
     }
 }
 
@@ -127,7 +131,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAddProperty(LogicalOperator* lo
             extraInfo->dataType->copy(), std::move(expressionEvaluator), storageManager,
             getOutputPos(alter), getOperatorID(), alter->getExpressionsForPrinting());
     default:
-        throw NotImplementedException{"PlanMapper::mapAddProperty"};
+        // LCOV_EXCL_START
+        throw NotImplementedException("PlanMapper::mapAddProperty");
+        // LCOV_EXCL_END
     }
 }
 

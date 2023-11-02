@@ -1,10 +1,7 @@
 #pragma once
 
 #include <algorithm>
-#include <unordered_map>
-#include <unordered_set>
 
-#include "common/constants.h"
 #include "common/enums/table_type.h"
 #include "property.h"
 

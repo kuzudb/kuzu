@@ -1,10 +1,10 @@
 #pragma once
 
+#include <functional>
 #include <string>
 #include <vector>
 
-#include "common/constants.h"
-#include "common/utils.h"
+#include "common/exception/not_implemented.h"
 #include "common/vector/value_vector.h"
 #include "order_by_data_info.h"
 #include "processor/result/factorized_table.h"

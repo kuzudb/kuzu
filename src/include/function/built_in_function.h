@@ -2,7 +2,6 @@
 
 #include "aggregate_function.h"
 #include "scalar_function.h"
-#include "table_functions.h"
 
 namespace kuzu {
 namespace function {

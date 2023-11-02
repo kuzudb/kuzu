@@ -1,7 +1,7 @@
 #pragma once
 
-#include "function/scalar_function.h"
-#include "label_functions.h"
+#include "function/binary_function_executor.h"
+#include "function/schema/label_functions.h"
 
 namespace kuzu {
 namespace function {

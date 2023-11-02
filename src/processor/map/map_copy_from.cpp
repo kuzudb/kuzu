@@ -1,6 +1,6 @@
 #include "binder/copy/bound_copy_from.h"
+#include "catalog/node_table_schema.h"
 #include "planner/operator/persistent/logical_copy_from.h"
-#include "processor/operator/index_lookup.h"
 #include "processor/operator/partitioner.h"
 #include "processor/operator/persistent/copy_node.h"
 #include "processor/operator/persistent/copy_rdf_resource.h"

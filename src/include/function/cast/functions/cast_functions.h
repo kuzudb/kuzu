@@ -1,14 +1,12 @@
 #pragma once
 
-#include <cassert>
+#include <cmath>
 
-#include "cast_string_non_nested_functions.h"
-#include "common/exception/conversion.h"
 #include "common/exception/overflow.h"
 #include "common/string_format.h"
 #include "common/type_utils.h"
-#include "common/types/blob.h"
 #include "common/vector/value_vector.h"
+#include "function/cast/functions/numeric_cast.h"
 
 namespace kuzu {
 namespace function {

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <mutex>
-
 #include "common/enums/access_mode.h"
 #include "storage/store/nodes_store.h"
 #include "storage/store/rels_store.h"

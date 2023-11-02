@@ -1,7 +1,5 @@
 #include "processor/operator/order_by/key_block_merger.h"
 
-#include "function/comparison/comparison_functions.h"
-
 using namespace kuzu::common;
 using namespace kuzu::processor;
 using namespace kuzu::storage;

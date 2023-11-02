@@ -1,5 +1,7 @@
 #include "storage/wal/wal_record.h"
 
+#include "common/exception/not_implemented.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -14,7 +16,9 @@ bool DBFileID::operator==(const DBFileID& rhs) const {
         return nodeIndexID == rhs.nodeIndexID;
     }
     default: {
-        throw common::NotImplementedException("DBFileID::operator==");
+        // LCOV_EXCL_START
+        throw NotImplementedException("DBFileID::operator==");
+        // LCOV_EXCL_END
     }
     }
 }
@@ -31,7 +35,9 @@ std::string dbFileTypeToString(DBFileType dbFileType) {
         return "NODE_INDEX";
     }
     default: {
+        // LCOV_EXCL_START
         throw NotImplementedException("dbFileTypeToString");
+        // LCOV_EXCL_END
     }
     }
 }
@@ -98,8 +104,10 @@ bool WALRecord::operator==(const WALRecord& rhs) const {
         return addPropertyRecord == rhs.addPropertyRecord;
     }
     default: {
-        throw common::RuntimeException("Unrecognized WAL record type inside ==. recordType: " +
-                                       walRecordTypeToString(recordType));
+        // LCOV_EXCL_START
+        throw NotImplementedException("Unrecognized WAL record type inside ==. recordType: " +
+                                      walRecordTypeToString(recordType));
+        // LCOV_EXCL_END
     }
     }
 }
@@ -143,7 +151,9 @@ std::string walRecordTypeToString(WALRecordType walRecordType) {
         return "DROP_PROPERTY_RECORD";
     }
     default: {
+        // LCOV_EXCL_START
         throw NotImplementedException("walRecordTypeToString");
+        // LCOV_EXCL_END
     }
     }
 }

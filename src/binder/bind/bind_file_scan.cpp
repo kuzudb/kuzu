@@ -1,5 +1,4 @@
 #include "binder/binder.h"
-#include "binder/copy/bound_file_scan_info.h"
 #include "binder/expression/literal_expression.h"
 #include "common/exception/binder.h"
 #include "common/exception/copy.h"

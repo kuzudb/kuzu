@@ -1,5 +1,6 @@
 #include "planner/operator/logical_order_by.h"
 
+#include "binder/expression/expression_util.h"
 #include "planner/operator/factorization/flatten_resolver.h"
 #include "planner/operator/factorization/sink_util.h"
 

@@ -2,7 +2,6 @@
 
 #include <memory>
 
-#include "binder/expression/expression.h"
 #include "common/enums/clause_type.h"
 
 namespace kuzu {

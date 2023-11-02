@@ -1,3 +1,4 @@
+#include "binder/expression/property_expression.h"
 #include "planner/operator/logical_fill_table_id.h"
 #include "planner/operator/scan/logical_scan_internal_id.h"
 #include "planner/operator/scan/logical_scan_node_property.h"

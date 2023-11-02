@@ -1,7 +1,6 @@
 #pragma once
 
-#include "processor/operator/scan/scan_rel_csr_columns.h"
-#include "processor/operator/scan/scan_rel_regular_columns.h"
+#include "processor/operator/scan/scan_rel_table.h"
 
 namespace kuzu {
 namespace processor {

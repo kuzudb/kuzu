@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 
 #ifdef _WIN32
+#include "common/exception/buffer_manager.h"
 #include <errhandlingapi.h>
 #include <handleapi.h>
 #include <memoryapi.h>
@@ -12,7 +13,6 @@
 #include <unistd.h>
 #endif
 
-#include "common/exception/buffer_manager.h"
 #include "common/exception/copy.h"
 #include "common/string_format.h"
 #include "common/utils.h"

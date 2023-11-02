@@ -1,12 +1,14 @@
-#include "binder/query/updating_clause/bound_delete_clause.h"
+#include "binder/query/updating_clause/bound_delete_info.h"
 #include "planner/operator/persistent/logical_delete.h"
 #include "planner/query_planner.h"
+
+using namespace kuzu::binder;
 
 namespace kuzu {
 namespace planner {
 
 void QueryPlanner::appendDeleteNode(
-    const std::vector<binder::BoundDeleteInfo*>& boundInfos, LogicalPlan& plan) {
+    const std::vector<BoundDeleteInfo*>& boundInfos, LogicalPlan& plan) {
     std::vector<std::shared_ptr<binder::NodeExpression>> nodes;
     for (auto& boundInfo : boundInfos) {
         nodes.push_back(std::static_pointer_cast<NodeExpression>(boundInfo->nodeOrRel));
@@ -17,7 +19,7 @@ void QueryPlanner::appendDeleteNode(
 }
 
 void QueryPlanner::appendDeleteRel(
-    const std::vector<binder::BoundDeleteInfo*>& boundInfos, LogicalPlan& plan) {
+    const std::vector<BoundDeleteInfo*>& boundInfos, LogicalPlan& plan) {
     std::vector<std::shared_ptr<RelExpression>> rels;
     for (auto& info : boundInfos) {
         auto rel = std::static_pointer_cast<RelExpression>(info->nodeOrRel);

@@ -1,7 +1,6 @@
 #pragma once
 
-#include "common/data_chunk/data_chunk.h"
-#include "common/data_chunk/data_chunk_state.h"
+#include "common/data_chunk/sel_vector.h"
 
 namespace kuzu {
 namespace processor {

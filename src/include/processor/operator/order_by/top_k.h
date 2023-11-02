@@ -1,8 +1,5 @@
 #pragma once
 
-#include <queue>
-
-#include "function/binary_function_executor.h"
 #include "processor/operator/sink.h"
 #include "sort_state.h"
 

@@ -1,8 +1,11 @@
 #include "common/types/value/value.h"
 
+#include "common/exception/not_implemented.h"
+#include "common/exception/runtime.h"
 #include "common/null_buffer.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
+#include "common/type_utils.h"
 #include "common/types/blob.h"
 #include "storage/storage_utils.h"
 
@@ -357,9 +360,11 @@ void Value::copyValueFrom(const Value& other) {
         }
     } break;
     default:
+        // LCOV_EXCL_START
         throw NotImplementedException("Value::Value(const Value&) for type " +
                                       LogicalTypeUtils::dataTypeToString(*dataType) +
                                       " is not implemented.");
+        // LCOV_EXCL_END
     }
 }
 
@@ -480,9 +485,11 @@ std::string Value::toString() const {
         return result;
     }
     default:
+        // LCOV_EXCL_START
         throw NotImplementedException("Value::toString for type " +
                                       LogicalTypeUtils::dataTypeToString(*dataType) +
                                       " is not implemented.");
+        // LCOV_EXCL_END
     }
 }
 
@@ -623,7 +630,9 @@ void Value::serialize(Serializer& serializer) const {
         }
     } break;
     default: {
-        throw NotImplementedException{"Value::serialize"};
+        // LCOV_EXCL_START
+        throw NotImplementedException("Value::serialize");
+        // LCOV_EXCL_END
     }
     }
     serializer.serializeValue(childrenSize);
@@ -686,7 +695,9 @@ std::unique_ptr<Value> Value::deserialize(Deserializer& deserializer) {
         deserializer.deserializeVectorOfPtrs(val->children);
     } break;
     default: {
-        throw NotImplementedException{"Value::deserializeValue"};
+        // LCOV_EXCL_START
+        throw NotImplementedException("Value::deserializeValue");
+        // LCOV_EXCL_END
     }
     }
     deserializer.deserializeValue(val->childrenSize);

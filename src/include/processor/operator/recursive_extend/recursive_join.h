@@ -4,8 +4,8 @@
 #include "common/enums/query_rel_type.h"
 #include "frontier_scanner.h"
 #include "planner/operator/extend/recursive_join_type.h"
+#include "processor/operator/mask.h"
 #include "processor/operator/physical_operator.h"
-#include "processor/operator/result_collector.h"
 
 namespace kuzu {
 namespace processor {

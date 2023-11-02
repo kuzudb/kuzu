@@ -2,7 +2,6 @@
 
 #include <utility>
 
-#include "function/hash/hash_functions.h"
 #include "hash_index_builder.h"
 #include "storage/storage_structure/disk_overflow_file.h"
 

@@ -1,4 +1,9 @@
-#include "c_api_test/c_api_test.h"
+#include "c_api/kuzu.h"
+#include "graph_test/api_graph_test.h"
+#include "gtest/gtest.h"
+
+using namespace kuzu::main;
+using namespace kuzu::testing;
 
 class CApiDatabaseTest : public APIEmptyDBTest {
 public:

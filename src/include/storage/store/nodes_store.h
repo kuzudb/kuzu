@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <vector>
 
 #include "storage/stats/nodes_store_statistics.h"
 #include "storage/store/node_table.h"

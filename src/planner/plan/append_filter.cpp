@@ -1,6 +1,8 @@
 #include "planner/operator/logical_filter.h"
 #include "planner/query_planner.h"
 
+using namespace kuzu::binder;
+
 namespace kuzu {
 namespace planner {
 

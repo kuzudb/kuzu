@@ -3,6 +3,7 @@
 #include <stack>
 
 #include "bfs_state.h"
+#include "common/vector/value_vector.h"
 
 namespace kuzu {
 namespace processor {

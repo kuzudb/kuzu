@@ -2,8 +2,6 @@
 
 #include <queue>
 
-#include "common/constants.h"
-#include "common/vector/value_vector.h"
 #include "processor/operator/order_by/key_block_merger.h"
 #include "processor/operator/order_by/order_by_key_encoder.h"
 #include "processor/result/factorized_table.h"

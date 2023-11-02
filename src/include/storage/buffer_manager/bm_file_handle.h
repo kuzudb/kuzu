@@ -1,5 +1,8 @@
 #pragma once
 
+#include <atomic>
+#include <cmath>
+
 #include "storage/buffer_manager/vm_region.h"
 #include "storage/file_handle.h"
 

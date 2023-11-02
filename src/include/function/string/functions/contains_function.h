@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cassert>
-
 #include "common/types/ku_string.h"
 #include "function/string/functions/find_function.h"
 

@@ -1,5 +1,3 @@
-#include <string>
-
 #include "common/types/date_t.h"
 #include "gtest/gtest.h"
 

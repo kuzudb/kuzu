@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/vector/value_vector.h"
 #include "function/scalar_function.h"
 
 namespace kuzu {

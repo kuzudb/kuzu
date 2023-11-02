@@ -1,10 +1,7 @@
 #pragma once
 
-#include <map>
+#include <functional>
 #include <string>
-
-#include "catalog/catalog.h"
-#include "storage/store/column.h"
 
 namespace kuzu {
 namespace catalog {

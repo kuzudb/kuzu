@@ -1,9 +1,8 @@
-#include "binder/bound_statement.h"
+#include "main/prepared_statement.h"
+
 #include "c_api/helpers.h"
 #include "c_api/kuzu.h"
 #include "common/types/value/value.h"
-#include "main/kuzu.h"
-#include "planner/operator/logical_plan.h"
 
 using namespace kuzu::common;
 using namespace kuzu::main;

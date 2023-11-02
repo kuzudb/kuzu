@@ -1,6 +1,6 @@
 #pragma once
 
-#include "planner/operator/logical_operator.h"
+#include "planner/operator/schema.h"
 
 namespace kuzu {
 namespace planner {

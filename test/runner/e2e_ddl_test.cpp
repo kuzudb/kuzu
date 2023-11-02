@@ -1,3 +1,4 @@
+#include "binder/bound_statement_result.h"
 #include "common/string_format.h"
 #include "graph_test/graph_test.h"
 #include "processor/plan_mapper.h"

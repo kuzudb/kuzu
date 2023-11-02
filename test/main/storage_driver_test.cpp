@@ -1,6 +1,7 @@
 #include "main/storage_driver.h"
 #include "main_test_helper/main_test_helper.h"
 
+using namespace kuzu::main;
 using namespace kuzu::testing;
 using namespace kuzu::common;
 

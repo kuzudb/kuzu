@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "antlr4-runtime.h"
+#include "antlr4-runtime.h" // IWYU pragma: keep. This is the public header.
 
 namespace kuzu {
 namespace parser {

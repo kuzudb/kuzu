@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstring>
+
 #include "common/utils.h"
 
 namespace kuzu {

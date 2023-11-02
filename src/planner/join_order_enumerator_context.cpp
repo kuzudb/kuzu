@@ -1,5 +1,7 @@
 #include "planner/join_order_enumerator_context.h"
 
+using namespace kuzu::binder;
+
 namespace kuzu {
 namespace planner {
 

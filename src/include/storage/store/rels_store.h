@@ -1,7 +1,6 @@
 #pragma once
 
 #include "catalog/catalog.h"
-#include "common/file_utils.h"
 #include "storage/stats/rels_store_statistics.h"
 #include "storage/store/rel_table.h"
 

@@ -1,6 +1,10 @@
 #pragma once
 
+#include "catalog/table_schema.h"
+#include "storage/buffer_manager/buffer_manager.h"
+#include "storage/stats/metadata_dah_info.h"
 #include "storage/stats/table_statistics.h"
+#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace storage {

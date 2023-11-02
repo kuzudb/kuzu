@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cassert>
 #include <cstring>
 
 #include "base_str_function.h"
