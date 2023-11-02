@@ -243,9 +243,9 @@ private:
 
 class LogicalType {
     friend class LogicalTypeUtils;
-    friend class StructType;
-    friend class VarListType;
-    friend class FixedListType;
+    friend struct StructType;
+    friend struct VarListType;
+    friend struct FixedListType;
 
 public:
     KUZU_API LogicalType() : typeID{LogicalTypeID::ANY}, extraTypeInfo{nullptr} {};

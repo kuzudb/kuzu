@@ -78,7 +78,6 @@ if(MSVC)
     # Required for M_PI on Windows
     add_compile_definitions(_USE_MATH_DEFINES)
     add_compile_definitions(NOMINMAX)
-    add_compile_definitions(ARROW_STATIC PARQUET_STATIC)
     add_compile_definitions(SERD_STATIC)
     # TODO (bmwinger): Figure out if this can be set automatically by cmake,
     # or at least better integrated with user-specified options
