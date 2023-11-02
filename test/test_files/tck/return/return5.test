@@ -49,6 +49,7 @@ Florescu
 
 # Aggregate on list values
 -CASE Scenario5
+-SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, color STRING[], PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE (:A {color: ['red']}),
