@@ -1,0 +1,14 @@
+-GROUP TCKReturn8
+-DATASET CSV tck
+
+--
+
+# Return aggregation after With filtering
+-CASE Scenario1
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {num: 43}), (:A {num: 42});
+---- ok
+-STATEMENT MATCH (n) WITH n WHERE n.num = 42 RETURN count(*);
+---- 1
+1
