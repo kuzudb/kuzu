@@ -28,6 +28,8 @@ public:
     inline bool isFull() const { return numNodes == common::StorageConstants::NODE_GROUP_SIZE; }
 
     void resetToEmpty();
+    void setChunkToAllNull(common::vector_idx_t chunkIdx);
+    void resizeChunks(uint64_t newSize);
 
     uint64_t append(const std::vector<common::ValueVector*>& columnVectors,
         common::DataChunkState* columnState, uint64_t numValuesToAppend);

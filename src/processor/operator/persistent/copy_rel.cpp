@@ -38,11 +38,6 @@ void CopyRel::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext
     localState->nodeGroup =
         NodeGroupFactory::createNodeGroup(info->dataFormat, sharedState->columnTypes,
             sharedState->table->compressionEnabled(), true /* needFinalize */);
-    if (info->dataFormat == ColumnDataFormat::REGULAR) {
-        for (auto i = 0u; i < localState->nodeGroup->getNumColumnChunks(); i++) {
-            localState->nodeGroup->getColumnChunk(i)->getNullChunk()->resetToAllNull();
-        }
-    }
 }
 
 void CopyRel::initGlobalStateInternal(ExecutionContext* /*context*/) {
@@ -78,10 +73,10 @@ void CopyRel::executeInternal(ExecutionContext* /*context*/) {
             csrOffsetChunk->setNumValues(StorageConstants::NODE_GROUP_SIZE);
             populateCSROffsets(csrOffsetChunk, partitioningBuffer, offsetVectorIdx);
             // Resize csr data column chunks.
-            for (auto i = 0u; i < localState->nodeGroup->getNumColumnChunks(); i++) {
-                auto chunk = localState->nodeGroup->getColumnChunk(i);
-                chunk->resize(numRows);
-            }
+            localState->nodeGroup->resizeChunks(numRows);
+        } else {
+            // Set adj column chunk to all null.
+            localState->nodeGroup->setChunkToAllNull(0 /* chunkIdx */);
         }
         for (auto& dataChunk : *partitioningBuffer) {
             if (info->dataFormat == ColumnDataFormat::CSR) {

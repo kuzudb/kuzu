@@ -133,7 +133,6 @@ uint64_t CompressionMetadata::numValues(uint64_t pageSize, const LogicalType& da
     }
     case CompressionType::INTEGER_BITPACKING: {
         switch (dataType.getPhysicalType()) {
-        case PhysicalTypeID::INTERNAL_ID:
         case PhysicalTypeID::INT64:
             return IntegerBitpacking<int64_t>::numValues(pageSize, BitpackHeader::readHeader(data));
         case PhysicalTypeID::INT32:
