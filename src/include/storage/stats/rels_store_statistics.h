@@ -5,18 +5,15 @@
 
 namespace kuzu {
 namespace storage {
+
 // Manages the disk image of the numRels and numRelsPerDirectionBoundTable.
 class RelsStoreStats : public TablesStatistics {
-
 public:
     // Should only be used by saveInitialRelsStatisticsToFile to start a database from an empty
     // directory.
-    RelsStoreStats() : TablesStatistics{nullptr} {};
+    RelsStoreStats() : TablesStatistics{nullptr, nullptr, nullptr} {};
     // Should be used when an already loaded database is started from a directory.
-    explicit RelsStoreStats(BMFileHandle* metadataFH, const std::string& directory)
-        : TablesStatistics{metadataFH} {
-        readFromFile(directory);
-    }
+    RelsStoreStats(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal);
 
     // Should only be used by tests.
     explicit RelsStoreStats(std::unordered_map<common::table_id_t, std::unique_ptr<RelTableStats>>
@@ -24,12 +21,16 @@ public:
 
     static inline void saveInitialRelsStatisticsToFile(const std::string& directory) {
         std::make_unique<RelsStoreStats>()->saveToFile(
-            directory, common::DBFileType::ORIGINAL, transaction::TransactionType::READ_ONLY);
+            directory, common::FileVersionType::ORIGINAL, transaction::TransactionType::READ_ONLY);
     }
 
-    inline RelTableStats* getRelStatistics(common::table_id_t tableID) const {
+    inline RelTableStats* getRelStatistics(
+        common::table_id_t tableID, transaction::Transaction* transaction) const {
         auto& tableStatisticPerTable =
-            tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable;
+            transaction->getType() == transaction::TransactionType::READ_ONLY ?
+                tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable :
+                tablesStatisticsContentForWriteTrx->tableStatisticPerTable;
+        assert(tableStatisticPerTable.contains(tableID));
         return (RelTableStats*)tableStatisticPerTable[tableID].get();
     }
 
@@ -40,10 +41,20 @@ public:
     common::offset_t getNextRelOffset(
         transaction::Transaction* transaction, common::table_id_t tableID);
 
+    void addMetadataDAHInfo(common::table_id_t tableID, const common::LogicalType& dataType);
+    void removeMetadataDAHInfo(common::table_id_t tableID, common::column_id_t columnID);
+    MetadataDAHInfo* getCSROffsetMetadataDAHInfo(transaction::Transaction* transaction,
+        common::table_id_t tableID, common::RelDataDirection direction);
+    MetadataDAHInfo* getAdjMetadataDAHInfo(transaction::Transaction* transaction,
+        common::table_id_t tableID, common::RelDataDirection direction);
+    MetadataDAHInfo* getPropertyMetadataDAHInfo(transaction::Transaction* transaction,
+        common::table_id_t tableID, common::column_id_t columnID,
+        common::RelDataDirection direction);
+
 protected:
     inline std::unique_ptr<TableStatistics> constructTableStatistic(
         catalog::TableSchema* tableSchema) override {
-        return std::make_unique<RelTableStats>(*tableSchema);
+        return std::make_unique<RelTableStats>(metadataFH, *tableSchema, bufferManager, wal);
     }
 
     inline std::unique_ptr<TableStatistics> constructTableStatistic(
@@ -52,15 +63,16 @@ protected:
     }
 
     inline std::string getTableStatisticsFilePath(
-        const std::string& directory, common::DBFileType dbFileType) override {
+        const std::string& directory, common::FileVersionType dbFileType) override {
         return StorageUtils::getRelsStatisticsFilePath(directory, dbFileType);
     }
 
     inline void increaseNextRelOffset(common::table_id_t relTableID, uint64_t numTuples) {
         ((RelTableStats*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable.at(relTableID)
                 .get())
-            ->nextRelOffset += numTuples;
+            ->incrementNextRelOffset(numTuples);
     }
 };
+
 } // namespace storage
 } // namespace kuzu

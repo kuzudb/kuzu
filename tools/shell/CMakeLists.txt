@@ -13,3 +13,6 @@ add_executable(kuzu_shell
         shell_runner.cpp)
 
 target_link_libraries(kuzu_shell kuzu)
+if (MSVC)
+        target_link_libraries(kuzu_shell ws2_32)
+endif()

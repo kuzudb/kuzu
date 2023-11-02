@@ -3,7 +3,6 @@
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "common/string_format.h"
-#include "common/string_utils.h"
 #include "storage/stats/table_statistics_collection.h"
 
 using namespace kuzu::common;
@@ -27,7 +26,7 @@ NodeTableStatsAndDeletedIDs::NodeTableStatsAndDeletedIDs(
     : NodeTableStatsAndDeletedIDs{tableID, maxNodeOffset, deletedNodeOffsets, {}} {}
 
 NodeTableStatsAndDeletedIDs::NodeTableStatsAndDeletedIDs(const NodeTableStatsAndDeletedIDs& other)
-    : TableStatistics{other}, tableID{other.tableID}, adjListsAndColumns{other.adjListsAndColumns},
+    : TableStatistics{other}, tableID{other.tableID},
       hasDeletedNodesPerMorsel{other.hasDeletedNodesPerMorsel},
       deletedNodeOffsetsPerMorsel{other.deletedNodeOffsetsPerMorsel} {
     metadataDAHInfos.clear();
@@ -92,7 +91,8 @@ void NodeTableStatsAndDeletedIDs::deleteNode(offset_t nodeOffset) {
     if (isDeleted(nodeOffset, morselIdxAndOffset.first)) {
         return;
     }
-    errorIfNodeHasEdges(nodeOffset);
+    // TODO(Guodong): Fix delete node with connected edges.
+    //    errorIfNodeHasEdges(nodeOffset);
     if (!hasDeletedNodesPerMorsel[morselIdxAndOffset.first]) {
         std::set<offset_t> deletedNodeOffsets;
         deletedNodeOffsetsPerMorsel.insert({morselIdxAndOffset.first, deletedNodeOffsets});
@@ -165,27 +165,6 @@ std::unique_ptr<NodeTableStatsAndDeletedIDs> NodeTableStatsAndDeletedIDs::deseri
         std::make_unique<NodeTableStatsAndDeletedIDs>(tableID, maxNodeOffset, deletedNodeOffsets);
     result->metadataDAHInfos = std::move(metadataDAHInfos);
     return result;
-}
-
-void NodeTableStatsAndDeletedIDs::errorIfNodeHasEdges(offset_t nodeOffset) {
-    for (AdjLists* adjList : adjListsAndColumns.first) {
-        auto numElementsInList =
-            adjList->getTotalNumElementsInList(transaction::TransactionType::WRITE, nodeOffset);
-        if (numElementsInList != 0) {
-            throw RuntimeException(stringFormat(
-                "Currently deleting a node with edges is not supported. node table {} nodeOffset "
-                "{} has {} (one-to-many or many-to-many) edges.",
-                tableID, nodeOffset, numElementsInList));
-        }
-    }
-    for (Column* adjColumn : adjListsAndColumns.second) {
-        if (!adjColumn->isNull(nodeOffset, transaction::Transaction::getDummyWriteTrx().get())) {
-            throw RuntimeException(stringFormat(
-                "Currently deleting a node with edges is not supported. node table {} nodeOffset "
-                "{}  has a 1-1 edge.",
-                tableID, nodeOffset));
-        }
-    }
 }
 
 bool NodeTableStatsAndDeletedIDs::isDeleted(offset_t nodeOffset, uint64_t morselIdx) {

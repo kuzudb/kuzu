@@ -3,7 +3,6 @@
 #include <mutex>
 
 #include "common/exception/copy.h"
-#include "common/exception/storage.h"
 #include "common/type_utils.h"
 #include "common/types/value/nested.h"
 
@@ -280,100 +279,6 @@ std::string InMemOverflowFile::readString(ku_string_t* strInInMemOvfFile) {
         return {
             reinterpret_cast<const char*>(pages[pageIdx]->data + pagePos), strInInMemOvfFile->len};
     }
-}
-
-ku_list_t InMemOverflowFile::appendList(
-    LogicalType& type, arrow::ListArray& listArray, uint64_t pos, PageByteCursor& overflowCursor) {
-    auto startOffset = listArray.value_offset(pos);
-    auto endOffset = listArray.value_offset(pos + 1);
-    ku_list_t kuList;
-    kuList.size = endOffset - startOffset;
-    auto numBytesPerValue =
-        storage::StorageUtils::getDataTypeSize(*VarListType::getChildType(&type));
-    if (overflowCursor.offsetInPage + (kuList.size * numBytesPerValue) >=
-            BufferPoolConstants::PAGE_4KB_SIZE ||
-        overflowCursor.pageIdx == UINT32_MAX) {
-        overflowCursor.offsetInPage = 0;
-        overflowCursor.pageIdx = addANewOverflowPage();
-    }
-    TypeUtils::encodeOverflowPtr(
-        kuList.overflowPtr, overflowCursor.pageIdx, overflowCursor.offsetInPage);
-    lock.lock();
-    // We need to cache the current overflowCursor, because we are reusing the overflowCursor when
-    // appending child lists and strings.
-    auto curOverflowCursor = overflowCursor;
-    // Reserve space for list children elements.
-    overflowCursor.offsetInPage += numBytesPerValue * kuList.size;
-    switch (VarListType::getChildType(&type)->getLogicalTypeID()) {
-    case LogicalTypeID::INT64:
-    case LogicalTypeID::INT32:
-    case LogicalTypeID::INT16:
-    case LogicalTypeID::INT8:
-    case LogicalTypeID::UINT64:
-    case LogicalTypeID::UINT32:
-    case LogicalTypeID::UINT16:
-    case LogicalTypeID::UINT8:
-    case LogicalTypeID::INT128:
-    case LogicalTypeID::DOUBLE:
-    case LogicalTypeID::FLOAT:
-    case LogicalTypeID::DATE: {
-        auto arrayData =
-            listArray.values()->data()->buffers[1]->data() + startOffset * numBytesPerValue;
-        for (; startOffset < endOffset; startOffset++) {
-            pages[curOverflowCursor.pageIdx]->write(curOverflowCursor.offsetInPage,
-                curOverflowCursor.offsetInPage, arrayData, numBytesPerValue);
-            arrayData += numBytesPerValue;
-            curOverflowCursor.offsetInPage += numBytesPerValue;
-        }
-    } break;
-    case LogicalTypeID::STRING: {
-        auto& stringArray = reinterpret_cast<arrow::StringArray&>(*listArray.values());
-        auto childStrings = std::vector<ku_string_t>{(uint64_t)(endOffset - startOffset)};
-        lock.unlock();
-        for (auto offset = startOffset; offset < endOffset; offset++) {
-            auto stringView = stringArray.GetView(offset);
-            childStrings[offset - startOffset] = copyString(stringView.data(),
-                std::min<uint64_t>(
-                    BufferPoolConstants::PAGE_4KB_SIZE, (uint64_t)stringView.length()),
-                overflowCursor);
-        }
-        lock.lock();
-        for (auto childString : childStrings) {
-            pages[curOverflowCursor.pageIdx]->write(curOverflowCursor.offsetInPage,
-                curOverflowCursor.offsetInPage, (uint8_t*)&childString, numBytesPerValue);
-            curOverflowCursor.offsetInPage += numBytesPerValue;
-        }
-    } break;
-    case LogicalTypeID::VAR_LIST: {
-        auto& subListArray = reinterpret_cast<arrow::ListArray&>(*listArray.values());
-        auto childLists = std::vector<ku_list_t>{(uint64_t)(endOffset - startOffset)};
-        lock.unlock();
-        for (auto offset = startOffset; offset < endOffset; offset++) {
-            childLists[offset - startOffset] =
-                appendList(*VarListType::getChildType(&type), subListArray, offset, overflowCursor);
-        }
-        lock.lock();
-        for (auto childList : childLists) {
-            pages[curOverflowCursor.pageIdx]->write(curOverflowCursor.offsetInPage,
-                curOverflowCursor.offsetInPage, (uint8_t*)&childList, numBytesPerValue);
-            curOverflowCursor.offsetInPage += numBytesPerValue;
-        }
-    } break;
-    case LogicalTypeID::FIXED_LIST: {
-        auto& subListArray = reinterpret_cast<arrow::ListArray&>(*listArray.values());
-        for (auto offset = startOffset; offset < endOffset; offset++) {
-            auto values =
-                subListArray.values()->data()->buffers[1]->data() + offset * numBytesPerValue;
-            pages[curOverflowCursor.pageIdx]->write(curOverflowCursor.offsetInPage,
-                curOverflowCursor.offsetInPage, values, numBytesPerValue);
-            curOverflowCursor.offsetInPage += numBytesPerValue;
-        }
-    } break;
-    default:
-        throw NotImplementedException{"InMemOverflowFile::appendList"};
-    }
-    lock.unlock();
-    return kuList;
 }
 
 void InMemOverflowFile::resetElementsOverflowPtrIfNecessary(PageByteCursor& pageByteCursor,

@@ -9,24 +9,10 @@ bool ScanSingleNodeTable::getNextTuplesInternal(ExecutionContext* context) {
     if (!children[0]->getNextTuple(context)) {
         return false;
     }
-    for (auto& outputVector : outPropertyVectors) {
+    for (auto& outputVector : outVectors) {
         outputVector->resetAuxiliaryBuffer();
     }
-    info->table->read(transaction, inputNodeIDVector, info->columnIDs, outPropertyVectors);
-    return true;
-}
-
-bool ScanMultiNodeTables::getNextTuplesInternal(ExecutionContext* context) {
-    if (!children[0]->getNextTuple(context)) {
-        return false;
-    }
-    auto tableID =
-        inputNodeIDVector
-            ->getValue<nodeID_t>(inputNodeIDVector->state->selVector->selectedPositions[0])
-            .tableID;
-    auto tableScanInfo = tables.at(tableID).get();
-    tableScanInfo->table->read(
-        transaction, inputNodeIDVector, tableScanInfo->columnIDs, outPropertyVectors);
+    info->table->read(transaction, inVector, info->columnIDs, outVectors);
     return true;
 }
 

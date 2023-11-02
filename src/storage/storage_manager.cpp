@@ -25,9 +25,8 @@ StorageManager::StorageManager(AccessMode accessMode, Catalog& catalog,
         BMFileHandle::FileVersionedType::VERSIONED_FILE);
     nodesStore = std::make_unique<NodesStore>(dataFH.get(), metadataFH.get(), accessMode, catalog,
         *memoryManager.getBufferManager(), wal, enableCompression);
-    relsStore =
-        std::make_unique<RelsStore>(metadataFH.get(), accessMode, catalog, memoryManager, wal);
-    nodesStore->getNodesStatisticsAndDeletedIDs()->setAdjListsAndColumns(relsStore.get());
+    relsStore = std::make_unique<RelsStore>(dataFH.get(), metadataFH.get(), catalog,
+        *memoryManager.getBufferManager(), wal, enableCompression);
 }
 
 } // namespace storage

@@ -9,6 +9,7 @@
 namespace kuzu {
 namespace storage {
 
+// TODO(Guodong): NodesStore, RelsStore and StorageManager should be merged together.
 class NodesStore {
 public:
     NodesStore(BMFileHandle* dataFH, BMFileHandle* metadataFH, common::AccessMode accessMode,

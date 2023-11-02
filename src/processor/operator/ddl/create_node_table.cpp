@@ -14,7 +14,9 @@ void CreateNodeTable::executeDDLInternal() {
     auto newTableID = catalog->addNodeTableSchema(*info);
     auto newNodeTableSchema =
         reinterpret_cast<NodeTableSchema*>(catalog->getWriteVersion()->getTableSchema(newTableID));
-    nodesStatistics->addNodeStatisticsAndDeletedIDs(newNodeTableSchema);
+    storageManager->getNodesStore()
+        .getNodesStatisticsAndDeletedIDs()
+        ->addNodeStatisticsAndDeletedIDs(newNodeTableSchema);
     storageManager->getWAL()->logNodeTableRecord(newTableID);
 }
 

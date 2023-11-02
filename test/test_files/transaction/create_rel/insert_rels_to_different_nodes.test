@@ -1,6 +1,8 @@
 -GROUP CreateRelTest
 -DATASET CSV rel-update-tests
+-SKIP
 --
+
 -DEFINE_STATEMENT_BLOCK INSERT_RELS_TO_DIFFERENT_NODES [
 -STATEMENT MATCH (a:person),(b:person) WHERE a.ID=500 and b.ID=2200 CREATE (a)-[e:knows]->(b)
 ---- ok

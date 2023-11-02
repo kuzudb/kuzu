@@ -34,23 +34,8 @@ protected:
     static inline bool hasActiveTransaction(main::Connection& connection) {
         return connection.clientContext->getTransactionContext()->hasActiveTransaction();
     }
-    void validateColumnFilesExistence(std::string fileName, bool existence, bool hasOverflow);
-
-    void validateListFilesExistence(
-        std::string fileName, bool existence, bool hasOverflow, bool hasHeader);
-
-    void validateNodeColumnFilesExistence(
-        catalog::NodeTableSchema* nodeTableSchema, common::DBFileType dbFileType, bool existence);
-
-    void validateRelColumnAndListFilesExistence(
-        catalog::RelTableSchema* relTableSchema, common::DBFileType dbFileType, bool existence);
 
     void validateQueryBestPlanJoinOrder(std::string query, std::string expectedJoinOrder);
-
-private:
-    void validateRelPropertyFiles(catalog::RelTableSchema* relTableSchema,
-        common::RelDataDirection relDirection, bool isColumnProperty, common::DBFileType dbFileType,
-        bool existence);
 };
 
 // This class starts database without initializing graph.

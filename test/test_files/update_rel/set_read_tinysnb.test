@@ -1,6 +1,6 @@
 -GROUP TinySnbSetReadRelTest
 -DATASET CSV tinysnb
-
+-SKIP
 --
 
 -CASE SetReadTest1

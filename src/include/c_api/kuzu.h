@@ -250,7 +250,6 @@ typedef enum {
     KUZU_INTERVAL = 36,
     KUZU_FIXED_LIST = 37,
     KUZU_INTERNAL_ID = 40,
-    KUZU_ARROW_COLUMN = 41,
     // variable size types
     KUZU_STRING = 50,
     KUZU_BLOB = 51,

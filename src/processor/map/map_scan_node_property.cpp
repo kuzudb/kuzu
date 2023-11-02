@@ -1,5 +1,5 @@
 #include "planner/operator/scan/logical_scan_node_property.h"
-#include "processor/operator/scan/scan_node_table.h"
+#include "processor/operator/scan/scan_multi_node_tables.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::binder;

@@ -102,8 +102,8 @@ public:
 
     void renameTable(common::table_id_t tableID, const std::string& newName);
 
-    void saveToFile(const std::string& directory, common::DBFileType dbFileType);
-    void readFromFile(const std::string& directory, common::DBFileType dbFileType);
+    void saveToFile(const std::string& directory, common::FileVersionType dbFileType);
+    void readFromFile(const std::string& directory, common::FileVersionType dbFileType);
 
     common::ExpressionType getFunctionType(const std::string& name) const;
 

@@ -25,13 +25,23 @@ std::unique_ptr<PropertyStatistics> PropertyStatistics::deserialize(
 // Read/write statistics cannot be cached since functions like checkpointInMemoryIfNecessary may
 // overwrite them and invalidate the reference
 bool RWPropertyStats::mayHaveNull(const transaction::Transaction& transaction) {
+    // TODO(Guodong): INVALID_PROPERTY_ID is used here because we have some columns not exposed as
+    // property in table schema. Should be fixed once we properly align properties and columns.
+    if (propertyID == common::INVALID_PROPERTY_ID) {
+        return true;
+    }
     auto statistics =
         tablesStatistics->getPropertyStatisticsForTable(transaction, tableID, propertyID);
     return statistics.mayHaveNull();
 }
 
 void RWPropertyStats::setHasNull(const transaction::Transaction& transaction) {
-    tablesStatistics->getPropertyStatisticsForTable(transaction, tableID, propertyID).setHasNull();
+    // TODO(Guodong): INVALID_PROPERTY_ID is used here because we have some columns not exposed as
+    // property in table schema. Should be fixed once we properly align properties and columns.
+    if (propertyID != common::INVALID_PROPERTY_ID) {
+        tablesStatistics->getPropertyStatisticsForTable(transaction, tableID, propertyID)
+            .setHasNull();
+    }
 }
 
 } // namespace storage

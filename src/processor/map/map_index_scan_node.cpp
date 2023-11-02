@@ -8,7 +8,8 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapIndexScanNode(LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapIndexScan(
+    planner::LogicalOperator* logicalOperator) {
     auto logicalIndexScan = (LogicalIndexScanNode*)logicalOperator;
     auto inSchema = logicalIndexScan->getChild(0)->getSchema();
     auto outSchema = logicalIndexScan->getSchema();
@@ -23,7 +24,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapIndexScanNode(LogicalOperator* 
             auto offsetPos = DataPos(outSchema->getExpressionPos(*info->offset));
             auto keyPos = DataPos(outSchema->getExpressionPos(*info->key));
             indexLookupInfos.push_back(std::make_unique<IndexLookupInfo>(
-                info->indexType->copy(), storageIndex, keyPos, offsetPos));
+                info->nodeTableID, info->indexType->copy(), storageIndex, keyPos, offsetPos));
         }
         return std::make_unique<IndexLookup>(std::move(indexLookupInfos), std::move(prevOperator),
             getOperatorID(), logicalIndexScan->getExpressionsForPrinting());

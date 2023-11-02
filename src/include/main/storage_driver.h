@@ -7,7 +7,7 @@
 
 namespace kuzu {
 namespace storage {
-class NodeColumn;
+class Column;
 }
 
 namespace main {
@@ -25,7 +25,7 @@ public:
     uint64_t getNumRels(const std::string& relName);
 
 private:
-    void scanColumn(transaction::Transaction* transaction, storage::NodeColumn* column,
+    void scanColumn(transaction::Transaction* transaction, storage::Column* column,
         common::offset_t* offsets, size_t size, uint8_t* result);
 
 private:
