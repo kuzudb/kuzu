@@ -253,11 +253,12 @@ void StructTypeInfo::serializeInternal(Serializer& serializer) const {
 
 LogicalType::LogicalType(LogicalTypeID typeID) : typeID{typeID}, extraTypeInfo{nullptr} {
     setPhysicalType();
-};
+}
+
 LogicalType::LogicalType(LogicalTypeID typeID, std::unique_ptr<ExtraTypeInfo> extraTypeInfo)
     : typeID{typeID}, extraTypeInfo{std::move(extraTypeInfo)} {
     setPhysicalType();
-};
+}
 
 LogicalType::LogicalType(const LogicalType& other) {
     typeID = other.typeID;
@@ -430,9 +431,6 @@ void LogicalType::setPhysicalType() {
     case LogicalTypeID::UNION:
     case LogicalTypeID::STRUCT: {
         physicalType = PhysicalTypeID::STRUCT;
-    } break;
-    case LogicalTypeID::ARROW_COLUMN: {
-        physicalType = PhysicalTypeID::ARROW_COLUMN;
     } break;
     default:
         throw NotImplementedException{"LogicalType::setPhysicalType()."};

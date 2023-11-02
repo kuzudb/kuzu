@@ -1,7 +1,5 @@
 #include "common/vector/auxiliary_buffer.h"
 
-#include "arrow/array.h"
-#include "arrow/chunked_array.h"
 #include "common/vector/value_vector.h"
 
 namespace kuzu {
@@ -82,8 +80,6 @@ std::unique_ptr<AuxiliaryBuffer> AuxiliaryBufferFactory::getAuxiliaryBuffer(
     case PhysicalTypeID::VAR_LIST:
         return std::make_unique<ListAuxiliaryBuffer>(
             *VarListType::getChildType(&type), memoryManager);
-    case PhysicalTypeID::ARROW_COLUMN:
-        return std::make_unique<ArrowColumnAuxiliaryBuffer>();
     default:
         return nullptr;
     }

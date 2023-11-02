@@ -37,8 +37,6 @@ pub(crate) mod ffi {
 
         INTERNAL_ID = 40,
 
-        ARROW_COLUMN = 41,
-
         // variable size types
         STRING = 50,
         BLOB = 51,

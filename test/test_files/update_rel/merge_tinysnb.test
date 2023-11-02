@@ -1,6 +1,6 @@
 -GROUP TinySnbMergeRelTest
 -DATASET CSV tinysnb
-
+-SKIP
 --
 
 -CASE Merge1

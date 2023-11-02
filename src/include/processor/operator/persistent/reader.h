@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include "processor/operator/persistent/reader_state.h"
 #include "processor/operator/physical_operator.h"
 
@@ -7,18 +9,18 @@ namespace kuzu {
 namespace processor {
 
 struct ReaderInfo {
-    DataPos internalIDPos;
+    DataPos offsetPos;
     std::vector<DataPos> dataColumnsPos;
 
     common::TableType tableType;
 
     ReaderInfo(const DataPos& internalIDPos, std::vector<DataPos> dataColumnsPos,
         common::TableType tableType)
-        : internalIDPos{internalIDPos}, dataColumnsPos{std::move(dataColumnsPos)}, tableType{
-                                                                                       tableType} {}
+        : offsetPos{internalIDPos}, dataColumnsPos{std::move(dataColumnsPos)}, tableType{
+                                                                                   tableType} {}
     ReaderInfo(const ReaderInfo& other)
-        : internalIDPos{other.internalIDPos},
-          dataColumnsPos{other.dataColumnsPos}, tableType{other.tableType} {}
+        : offsetPos{other.offsetPos}, dataColumnsPos{other.dataColumnsPos}, tableType{
+                                                                                other.tableType} {}
 
     inline uint32_t getNumColumns() const { return dataColumnsPos.size(); }
 
@@ -30,8 +32,8 @@ public:
     Reader(std::unique_ptr<ReaderInfo> info, std::shared_ptr<ReaderSharedState> sharedState,
         uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::READER, id, paramsString}, info{std::move(info)},
-          sharedState{std::move(sharedState)}, dataChunk{nullptr},
-          internalIDVector{nullptr}, readFunc{nullptr}, initFunc{nullptr}, readFuncData{nullptr} {}
+          sharedState{std::move(sharedState)}, leftNumRows{0}, dataChunk{nullptr},
+          offsetVector{nullptr}, readFunc{nullptr}, initFunc{nullptr}, readFuncData{nullptr} {}
 
     inline bool isSource() const final { return true; }
     inline bool canParallel() const final {
@@ -69,10 +71,10 @@ private:
     std::unique_ptr<ReaderInfo> info;
     std::shared_ptr<ReaderSharedState> sharedState;
 
-    LeftArrowArrays leftArrowArrays;
+    common::row_idx_t leftNumRows;
 
     std::unique_ptr<common::DataChunk> dataChunk;
-    common::ValueVector* internalIDVector;
+    common::ValueVector* offsetVector;
 
     read_rows_func_t readFunc;
     init_reader_data_func_t initFunc;

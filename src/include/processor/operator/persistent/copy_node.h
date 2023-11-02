@@ -54,15 +54,12 @@ struct CopyNodeInfo {
     std::vector<DataPos> columnPositions;
     storage::NodeTable* table;
     std::string tableName;
-    std::vector<storage::RelTable*> connectedRelTables;
     bool containsSerial;
 
     CopyNodeInfo(std::vector<DataPos> columnPositions, storage::NodeTable* table,
-        std::string tableName, std::vector<storage::RelTable*> connectedRelTables,
-        bool containsSerial)
-        : columnPositions{std::move(columnPositions)}, table{table}, tableName{std::move(
-                                                                         tableName)},
-          connectedRelTables{std::move(connectedRelTables)}, containsSerial{containsSerial} {}
+        std::string tableName, bool containsSerial)
+        : columnPositions{std::move(columnPositions)}, table{table},
+          tableName{std::move(tableName)}, containsSerial{containsSerial} {}
     CopyNodeInfo(const CopyNodeInfo& other) = default;
 
     inline std::unique_ptr<CopyNodeInfo> copy() const {

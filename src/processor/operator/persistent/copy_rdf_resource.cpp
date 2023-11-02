@@ -2,6 +2,7 @@
 
 #include "common/exception/copy.h"
 #include "common/string_format.h"
+#include "processor/result/factorized_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -29,12 +30,12 @@ void CopyRdfResource::initLocalStateInternal(
     assert(info->columnPositions.size() == 1);
     vector = resultSet->getValueVector(info->columnPositions[0]).get();
     columnState = vector->state.get();
-    localNodeGroup = std::make_unique<storage::NodeGroup>(
+    localNodeGroup = NodeGroupFactory::createNodeGroup(ColumnDataFormat::REGULAR,
         sharedState->columnTypes, sharedState->table->compressionEnabled());
 }
 
 static void writeNodeGroup(node_group_idx_t nodeGroupIdx, NodeTable* table, NodeGroup* nodeGroup) {
-    nodeGroup->setNodeGroupIdx(nodeGroupIdx);
+    nodeGroup->finalize(nodeGroupIdx);
     table->append(nodeGroup);
     nodeGroup->resetToEmpty();
 }
@@ -60,9 +61,6 @@ void CopyRdfResource::finalize(ExecutionContext* context) {
     }
     if (sharedState->pkIndex) {
         sharedState->pkIndex->flush();
-    }
-    for (auto& relTable : info->connectedRelTables) {
-        relTable->batchInitEmptyRelsForNewNodes(relTable->getRelTableID(), numNodes);
     }
     sharedState->table->getNodeStatisticsAndDeletedIDs()->setNumTuplesForTable(
         sharedState->table->getTableID(), numNodes);

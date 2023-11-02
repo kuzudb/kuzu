@@ -4,21 +4,17 @@
 
 #include <string>
 
-#include "arrow/array.h"
 #include "common/exception/not_implemented.h"
 #include "common/exception/storage.h"
 #include "common/null_mask.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "fastpfor/bitpackinghelpers.h"
-#include "storage/store/node_column.h"
+#include "storage/store/column.h"
 #include "storage/store/sign_extend.h"
 #include <bit>
 
 using namespace kuzu::common;
-namespace arrow {
-class Array;
-}
 
 namespace kuzu {
 namespace storage {
@@ -137,6 +133,7 @@ uint64_t CompressionMetadata::numValues(uint64_t pageSize, const LogicalType& da
     }
     case CompressionType::INTEGER_BITPACKING: {
         switch (dataType.getPhysicalType()) {
+        case PhysicalTypeID::INTERNAL_ID:
         case PhysicalTypeID::INT64:
             return IntegerBitpacking<int64_t>::numValues(pageSize, BitpackHeader::readHeader(data));
         case PhysicalTypeID::INT32:

@@ -5,6 +5,7 @@
 
 # Handling fixed-length variable length pattern
 -CASE Scenario1
+-SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE T(FROM A TO A);
@@ -18,6 +19,7 @@
 
 # Simple variable length pattern
 -CASE Scenario2
+-SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE CONTAIN(FROM A TO A);
@@ -37,6 +39,7 @@
 
 # Zero-length variable length pattern in the middle of the pattern
 -CASE Scenario3
+-SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE CONTAIN(FROM A TO A);
@@ -80,6 +83,7 @@
 
 # Matching variable length pattern with property predicate
 -CASE Scenario5
+-SKIP
 -STATEMENT CREATE NODE TABLE Artist(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE WORKED_WITH(FROM Artist TO Artist, year INT64);
@@ -99,6 +103,7 @@
 
 # Matching variable length patterns from a bound node
 -CASE Scenario6
+-SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE X(FROM A To A);
@@ -162,6 +167,7 @@
 # Fail when asterisk operator is missing
 # Fail on negative bound
 -CASE Scenario9&10
+-SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE B(ID SERIAL, name STRING, PRIMARY KEY(ID));

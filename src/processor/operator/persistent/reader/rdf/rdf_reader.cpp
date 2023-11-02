@@ -169,22 +169,6 @@ SerdStatus RDFReader::prefixSink(void* handle, const SerdNode* /*name*/, const S
     return SERD_SUCCESS;
 }
 
-static void setArrowVector(
-    common::ValueVector* vector, common::ValueVector* offsetVector, uint32_t size) {
-    std::shared_ptr<arrow::Buffer> arrowBuffer;
-    TableCopyUtils::throwCopyExceptionIfNotOK(
-        arrow::AllocateBuffer((int64_t)(size * sizeof(offset_t))).Value(&arrowBuffer));
-    auto offsets = (offset_t*)arrowBuffer->data();
-    for (auto i = 0u; i < size; ++i) {
-        offsets[i] = offsetVector->getValue<int64_t>(i);
-    }
-    arrow::ArrayVector offsetArraysVector;
-    offsetArraysVector.push_back(TableCopyUtils::createArrowPrimitiveArray(
-        std::make_shared<arrow::Int64Type>(), arrowBuffer, size));
-    auto offsetChunkedArray = std::make_shared<arrow::ChunkedArray>(offsetArraysVector);
-    ArrowColumnVector::setArrowColumn(vector, offsetChunkedArray);
-}
-
 common::offset_t RDFReader::countLine() {
     if (status) {
         return 0;
@@ -236,16 +220,6 @@ offset_t RDFReader::read(DataChunk* dataChunk) {
         }
     }
     dataChunk->state->selVector->selectedSize = vectorSize;
-    switch (config->mode) {
-    case common::RdfReaderMode::RESOURCE_TRIPLE:
-    case common::RdfReaderMode::LITERAL_TRIPLE: {
-        setArrowVector(sVector, sOffsetVector.get(), vectorSize);
-        setArrowVector(pVector, pOffsetVector.get(), vectorSize);
-        setArrowVector(oVector, oOffsetVector.get(), vectorSize);
-    } break;
-    default:
-        break;
-    }
     return rowOffset;
 }
 

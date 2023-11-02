@@ -103,15 +103,15 @@ void Database::initDBDirAndCoreFilesIfNecessary() {
     }
     openLockFile();
     if (!FileUtils::fileOrPathExists(StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(
-            databasePath, DBFileType::ORIGINAL))) {
+            databasePath, FileVersionType::ORIGINAL))) {
         NodesStoreStatsAndDeletedIDs::saveInitialNodesStatisticsAndDeletedIDsToFile(databasePath);
     }
     if (!FileUtils::fileOrPathExists(
-            StorageUtils::getRelsStatisticsFilePath(databasePath, DBFileType::ORIGINAL))) {
+            StorageUtils::getRelsStatisticsFilePath(databasePath, FileVersionType::ORIGINAL))) {
         RelsStoreStats::saveInitialRelsStatisticsToFile(databasePath);
     }
     if (!FileUtils::fileOrPathExists(
-            StorageUtils::getCatalogFilePath(databasePath, DBFileType::ORIGINAL))) {
+            StorageUtils::getCatalogFilePath(databasePath, FileVersionType::ORIGINAL))) {
         Catalog::saveInitialCatalogToFile(databasePath);
     }
 }
@@ -191,15 +191,15 @@ void Database::rollback(
 void Database::checkpointAndClearWAL(WALReplayMode replayMode) {
     assert(replayMode == WALReplayMode::COMMIT_CHECKPOINT ||
            replayMode == WALReplayMode::RECOVERY_CHECKPOINT);
-    auto walReplayer = std::make_unique<WALReplayer>(wal.get(), storageManager.get(),
-        memoryManager.get(), bufferManager.get(), catalog.get(), replayMode);
+    auto walReplayer = std::make_unique<WALReplayer>(
+        wal.get(), storageManager.get(), bufferManager.get(), catalog.get(), replayMode);
     walReplayer->replay();
     wal->clearWAL();
 }
 
 void Database::rollbackAndClearWAL() {
     auto walReplayer = std::make_unique<WALReplayer>(wal.get(), storageManager.get(),
-        memoryManager.get(), bufferManager.get(), catalog.get(), WALReplayMode::ROLLBACK);
+        bufferManager.get(), catalog.get(), WALReplayMode::ROLLBACK);
     walReplayer->replay();
     wal->clearWAL();
 }

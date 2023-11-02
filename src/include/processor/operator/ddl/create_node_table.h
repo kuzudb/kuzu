@@ -10,11 +10,10 @@ namespace processor {
 class CreateNodeTable : public DDL {
 public:
     CreateNodeTable(catalog::Catalog* catalog, storage::StorageManager* storageManager,
-        storage::NodesStoreStatsAndDeletedIDs* nodesStatistics,
         std::unique_ptr<binder::BoundCreateTableInfo> info, const DataPos& outputPos, uint32_t id,
         const std::string& paramsString)
         : DDL{PhysicalOperatorType::CREATE_NODE_TABLE, catalog, outputPos, id, paramsString},
-          storageManager{storageManager}, nodesStatistics{nodesStatistics}, info{std::move(info)} {}
+          storageManager{storageManager}, info{std::move(info)} {}
 
     void executeDDLInternal() final;
 
@@ -22,12 +21,11 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<CreateNodeTable>(
-            catalog, storageManager, nodesStatistics, info->copy(), outputPos, id, paramsString);
+            catalog, storageManager, info->copy(), outputPos, id, paramsString);
     }
 
 private:
     storage::StorageManager* storageManager;
-    storage::NodesStoreStatsAndDeletedIDs* nodesStatistics;
     std::unique_ptr<binder::BoundCreateTableInfo> info;
 };
 

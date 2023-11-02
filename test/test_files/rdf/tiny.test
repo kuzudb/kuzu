@@ -1,0 +1,54 @@
+-GROUP CopyRDFTest
+-DATASET TTL rdf
+
+--
+
+-CASE TinyRDFTest
+-SKIP
+-STATEMENT MATCH (s:tiny) RETURN id(s), s.IRI
+---- 22
+1:0|http://dbpedia.org/class/yago/'hood108641944
+1:10|http://www.w3.org/2000/01/rdf-schema#subClassOf1
+1:11|http://www.w3.org/2000/01/rdf-schema#subClassOf2
+1:12|http://www.w3.org/2000/01/rdf-schema#subClassOf3
+1:13|http://www.w3.org/2000/01/rdf-schema#subClassOf4
+1:14|http://www.w3.org/2000/01/rdf-schema#subClassOf5
+1:15|http://www.w3.org/2000/01/rdf-schema#subClassOf6
+1:16|http://www.w3.org/2000/01/rdf-schema#subClassOf7
+1:17|http://www.w3.org/2000/01/rdf-schema#subClassOf8
+1:18|http://dbpedia.org/class/yago/Vicinity108641113
+1:19|http://dbpedia.org/class/yago/LegalHoliday115199592
+1:1|http://dbpedia.org/class/yago/14July115200493
+1:20|http://dbpedia.org/class/yago/Decade115204983
+1:21|http://dbpedia.org/class/yago/Self-reportPersonalityInventory106474603
+1:2|http://dbpedia.org/class/yago/1530s115148787
+1:3|http://dbpedia.org/class/yago/16PF106475933
+1:4|http://dbpedia.org/class/yago/1750s115149933
+1:5|http://dbpedia.org/class/yago/1760s115150304
+1:6|http://dbpedia.org/class/yago/1770s115150790
+1:7|http://dbpedia.org/class/yago/1780s115151175
+1:8|http://dbpedia.org/class/yago/1790s115151561
+1:9|http://www.w3.org/2000/01/rdf-schema#subClassOf0
+
+-STATEMENT MATCH (s:tiny)-[p:tiny]->(o:tiny) RETURN s.IRI, p.IRI, o.IRI
+---- 9
+http://dbpedia.org/class/yago/'hood108641944|http://www.w3.org/2000/01/rdf-schema#subClassOf0|http://dbpedia.org/class/yago/Vicinity108641113
+http://dbpedia.org/class/yago/14July115200493|http://www.w3.org/2000/01/rdf-schema#subClassOf1|http://dbpedia.org/class/yago/LegalHoliday115199592
+http://dbpedia.org/class/yago/1530s115148787|http://www.w3.org/2000/01/rdf-schema#subClassOf2|http://dbpedia.org/class/yago/Decade115204983
+http://dbpedia.org/class/yago/16PF106475933|http://www.w3.org/2000/01/rdf-schema#subClassOf3|http://dbpedia.org/class/yago/Self-reportPersonalityInventory106474603
+http://dbpedia.org/class/yago/1750s115149933|http://www.w3.org/2000/01/rdf-schema#subClassOf4|http://dbpedia.org/class/yago/Decade115204983
+http://dbpedia.org/class/yago/1760s115150304|http://www.w3.org/2000/01/rdf-schema#subClassOf5|http://dbpedia.org/class/yago/Decade115204983
+http://dbpedia.org/class/yago/1770s115150790|http://www.w3.org/2000/01/rdf-schema#subClassOf6|http://dbpedia.org/class/yago/Decade115204983
+http://dbpedia.org/class/yago/1780s115151175|http://www.w3.org/2000/01/rdf-schema#subClassOf7|http://dbpedia.org/class/yago/Decade115204983
+http://dbpedia.org/class/yago/1790s115151561|http://www.w3.org/2000/01/rdf-schema#subClassOf8|http://dbpedia.org/class/yago/Decade115204983
+
+-STATEMENT MATCH (s:tiny) RETURN COUNT(s.IRI)
+---- 1
+22
+-STATEMENT MATCH (s:tiny) RETURN s.IRI ORDER BY s.IRI LIMIT 5
+---- 5
+http://dbpedia.org/class/yago/'hood108641944
+http://dbpedia.org/class/yago/14July115200493
+http://dbpedia.org/class/yago/1530s115148787
+http://dbpedia.org/class/yago/16PF106475933
+http://dbpedia.org/class/yago/1750s115149933

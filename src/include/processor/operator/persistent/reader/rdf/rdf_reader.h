@@ -1,6 +1,5 @@
 #pragma once
 
-#include "arrow/type_fwd.h"
 #include "common/copier_config/rdf_config.h"
 #include "common/data_chunk/data_chunk.h"
 #include "common/string_utils.h"

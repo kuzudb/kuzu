@@ -20,22 +20,20 @@ WAL::WAL(const std::string& directory, AccessMode accessMode, BufferManager& buf
     initCurrentPage();
 }
 
-page_idx_t WAL::logPageUpdateRecord(
-    StorageStructureID storageStructureID, page_idx_t pageIdxInOriginalFile) {
+page_idx_t WAL::logPageUpdateRecord(DBFileID dbFileID, page_idx_t pageIdxInOriginalFile) {
     lock_t lck{mtx};
     auto pageIdxInWAL = fileHandle->addNewPage();
     WALRecord walRecord =
-        WALRecord::newPageUpdateRecord(storageStructureID, pageIdxInOriginalFile, pageIdxInWAL);
+        WALRecord::newPageUpdateRecord(dbFileID, pageIdxInOriginalFile, pageIdxInWAL);
     addNewWALRecordNoLock(walRecord);
     return pageIdxInWAL;
 }
 
-page_idx_t WAL::logPageInsertRecord(
-    StorageStructureID storageStructureID, page_idx_t pageIdxInOriginalFile) {
+page_idx_t WAL::logPageInsertRecord(DBFileID dbFileID, page_idx_t pageIdxInOriginalFile) {
     lock_t lck{mtx};
     auto pageIdxInWAL = fileHandle->addNewPage();
     WALRecord walRecord =
-        WALRecord::newPageInsertRecord(storageStructureID, pageIdxInOriginalFile, pageIdxInWAL);
+        WALRecord::newPageInsertRecord(dbFileID, pageIdxInOriginalFile, pageIdxInWAL);
     addNewWALRecordNoLock(walRecord);
     return pageIdxInWAL;
 }
@@ -78,11 +76,10 @@ void WAL::logRdfGraphRecord(table_id_t rdfGraphID, table_id_t resourceTableID,
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logOverflowFileNextBytePosRecord(
-    StorageStructureID storageStructureID, uint64_t prevNextByteToWriteTo) {
+void WAL::logOverflowFileNextBytePosRecord(DBFileID dbFileID, uint64_t prevNextByteToWriteTo) {
     lock_t lck{mtx};
     WALRecord walRecord =
-        WALRecord::newOverflowFileNextBytePosRecord(storageStructureID, prevNextByteToWriteTo);
+        WALRecord::newOverflowFileNextBytePosRecord(dbFileID, prevNextByteToWriteTo);
     addNewWALRecordNoLock(walRecord);
 }
 
@@ -96,6 +93,7 @@ void WAL::logCopyNodeRecord(table_id_t tableID, page_idx_t startPageIdx) {
 void WAL::logCopyRelRecord(table_id_t tableID) {
     lock_t lck{mtx};
     WALRecord walRecord = WALRecord::newCopyRelRecord(tableID);
+    updatedRelTables.insert(tableID);
     addNewWALRecordNoLock(walRecord);
 }
 

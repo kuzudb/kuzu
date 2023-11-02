@@ -22,6 +22,7 @@ add_library(kuzu_planner_operator
         logical_limit.cpp
         logical_operator.cpp
         logical_order_by.cpp
+        logical_partitioner.cpp
         logical_plan.cpp
         logical_plan_util.cpp
         logical_projection.cpp

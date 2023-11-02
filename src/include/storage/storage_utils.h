@@ -1,9 +1,9 @@
 #pragma once
 
 #include <string>
-#include <utility>
 
 #include "catalog/table_schema.h"
+#include "common/column_data_format.h"
 #include "common/constants.h"
 #include "common/file_utils.h"
 #include "common/null_mask.h"
@@ -15,10 +15,10 @@ namespace storage {
 
 class StorageManager;
 
-struct StorageStructureIDAndFName {
-    StorageStructureIDAndFName(StorageStructureID storageStructureID, std::string fName)
-        : storageStructureID{storageStructureID}, fName{std::move(fName)} {};
-    StorageStructureID storageStructureID;
+struct DBFileIDAndName {
+    DBFileIDAndName(DBFileID dbFileID, std::string fName)
+        : dbFileID{dbFileID}, fName{std::move(fName)} {};
+    DBFileID dbFileID;
     std::string fName;
 };
 
@@ -114,7 +114,7 @@ public:
     }
 
     static std::string getNodeIndexFName(const std::string& directory,
-        const common::table_id_t& tableID, common::DBFileType dbFileType);
+        const common::table_id_t& tableID, common::FileVersionType dbFileType);
 
     static inline std::string getDataFName(const std::string& directory) {
         return common::FileUtils::joinPath(directory, common::StorageConstants::DATA_FILE_NAME);
@@ -124,89 +124,10 @@ public:
         return common::FileUtils::joinPath(directory, common::StorageConstants::METADATA_FILE_NAME);
     }
 
-    // TODO: This function should be removed after the refactoring of rel tables into node groups.
-    static std::string getNodePropertyColumnFName(const std::string& directory,
-        const common::table_id_t& tableID, uint32_t propertyID, common::DBFileType dbFileType);
-
-    static std::string appendStructFieldName(
-        std::string filePath, common::struct_field_idx_t structFieldIdx);
-    static std::string getPropertyNullFName(const std::string& filePath);
-
-    static inline StorageStructureIDAndFName getNodeNullColumnStructureIDAndFName(
-        StorageStructureIDAndFName propertyColumnIDAndFName) {
-        auto nullColumnStructureIDAndFName = propertyColumnIDAndFName;
-        nullColumnStructureIDAndFName.fName =
-            StorageUtils::getPropertyNullFName(propertyColumnIDAndFName.fName);
-        nullColumnStructureIDAndFName.storageStructureID.isNullBits = true;
-        return nullColumnStructureIDAndFName;
-    }
-
-    static inline StorageStructureIDAndFName getNodeIndexIDAndFName(
+    static inline DBFileIDAndName getNodeIndexIDAndFName(
         const std::string& directory, common::table_id_t tableID) {
-        auto fName = getNodeIndexFName(directory, tableID, common::DBFileType::ORIGINAL);
-        return {StorageStructureID::newNodeIndexID(tableID), fName};
-    }
-
-    // Returns the StorageStructureIDAndFName for the "base" lists structure/file. Callers need to
-    // modify it to obtain versions for METADATA and HEADERS structures/files.
-    static inline StorageStructureIDAndFName getAdjListsStructureIDAndFName(
-        const std::string& directory, common::table_id_t relTableID, common::RelDataDirection dir) {
-        auto fName = getAdjListsFName(directory, relTableID, dir, common::DBFileType::ORIGINAL);
-        return {
-            StorageStructureID::newAdjListsID(relTableID, dir, ListFileType::BASE_LISTS), fName};
-    }
-
-    // Returns the StorageStructureIDAndFName for the "base" lists structure/file. Callers need to
-    // modify it to obtain versions for METADATA and HEADERS structures/files.
-    static inline StorageStructureIDAndFName getRelPropertyListsStructureIDAndFName(
-        const std::string& directory, common::table_id_t relTableID, common::RelDataDirection dir,
-        const catalog::Property& property) {
-        auto fName = getRelPropertyListsFName(
-            directory, relTableID, dir, property.getPropertyID(), common::DBFileType::ORIGINAL);
-        return {StorageStructureID::newRelPropertyListsID(
-                    relTableID, dir, property.getPropertyID(), ListFileType::BASE_LISTS),
-            fName};
-    }
-
-    static std::string getAdjColumnFName(const std::string& directory,
-        const common::table_id_t& relTableID, const common::RelDataDirection& relDirection,
-        common::DBFileType dbFileType);
-
-    static inline StorageStructureIDAndFName getAdjColumnStructureIDAndFName(
-        const std::string& directory, const common::table_id_t& relTableID,
-        const common::RelDataDirection& relDirection) {
-        auto fName =
-            getAdjColumnFName(directory, relTableID, relDirection, common::DBFileType::ORIGINAL);
-        return {StorageStructureID::newAdjColumnID(relTableID, relDirection), fName};
-    }
-
-    static std::string getAdjListsFName(const std::string& directory,
-        const common::table_id_t& relTableID, const common::RelDataDirection& relDirection,
-        common::DBFileType dbFileType);
-
-    static std::string getRelPropertyColumnFName(const std::string& directory,
-        const common::table_id_t& relTableID, const common::RelDataDirection& relDirection,
-        uint32_t propertyID, common::DBFileType dbFileType);
-
-    static inline StorageStructureIDAndFName getRelPropertyColumnStructureIDAndFName(
-        const std::string& directory, const common::table_id_t& relTableID,
-        const common::RelDataDirection& relDirection, uint32_t propertyID) {
-        auto fName = getRelPropertyColumnFName(
-            directory, relTableID, relDirection, propertyID, common::DBFileType::ORIGINAL);
-        return {StorageStructureID::newRelPropertyColumnID(relTableID, relDirection, propertyID),
-            fName};
-    }
-
-    static std::string getRelPropertyListsFName(const std::string& directory,
-        const common::table_id_t& relTableID, const common::RelDataDirection& relDirection,
-        uint32_t propertyID, common::DBFileType dbFileType);
-
-    static inline std::string getListHeadersFName(std::string baseListFName) {
-        return appendSuffixOrInsertBeforeWALSuffix(std::move(baseListFName), ".headers");
-    }
-
-    static inline std::string getListMetadataFName(std::string baseListFName) {
-        return appendSuffixOrInsertBeforeWALSuffix(std::move(baseListFName), ".metadata");
+        auto fName = getNodeIndexFName(directory, tableID, common::FileVersionType::ORIGINAL);
+        return {DBFileID::newPKIndexFileID(tableID), fName};
     }
 
     static inline std::string getOverflowFileName(const std::string& fName) {
@@ -216,63 +137,43 @@ public:
 
     static inline void overwriteNodesStatisticsAndDeletedIDsFileWithVersionFromWAL(
         const std::string& directory) {
-        common::FileUtils::overwriteFile(
-            getNodesStatisticsAndDeletedIDsFilePath(directory, common::DBFileType::WAL_VERSION),
-            getNodesStatisticsAndDeletedIDsFilePath(directory, common::DBFileType::ORIGINAL));
+        common::FileUtils::overwriteFile(getNodesStatisticsAndDeletedIDsFilePath(
+                                             directory, common::FileVersionType::WAL_VERSION),
+            getNodesStatisticsAndDeletedIDsFilePath(directory, common::FileVersionType::ORIGINAL));
     }
 
     static inline std::string getNodesStatisticsAndDeletedIDsFilePath(
-        const std::string& directory, common::DBFileType dbFileType) {
+        const std::string& directory, common::FileVersionType dbFileType) {
         return common::FileUtils::joinPath(
-            directory, dbFileType == common::DBFileType::ORIGINAL ?
+            directory, dbFileType == common::FileVersionType::ORIGINAL ?
                            common::StorageConstants::NODES_STATISTICS_AND_DELETED_IDS_FILE_NAME :
                            common::StorageConstants::NODES_STATISTICS_FILE_NAME_FOR_WAL);
     }
 
     static inline void overwriteRelsStatisticsFileWithVersionFromWAL(const std::string& directory) {
         common::FileUtils::overwriteFile(
-            getRelsStatisticsFilePath(directory, common::DBFileType::WAL_VERSION),
-            getRelsStatisticsFilePath(directory, common::DBFileType::ORIGINAL));
+            getRelsStatisticsFilePath(directory, common::FileVersionType::WAL_VERSION),
+            getRelsStatisticsFilePath(directory, common::FileVersionType::ORIGINAL));
     }
 
     static inline std::string getRelsStatisticsFilePath(
-        const std::string& directory, common::DBFileType dbFileType) {
+        const std::string& directory, common::FileVersionType dbFileType) {
         return common::FileUtils::joinPath(
-            directory, dbFileType == common::DBFileType::ORIGINAL ?
+            directory, dbFileType == common::FileVersionType::ORIGINAL ?
                            common::StorageConstants::RELS_METADATA_FILE_NAME :
                            common::StorageConstants::RELS_METADATA_FILE_NAME_FOR_WAL);
     }
 
-    static inline uint64_t getNumChunks(common::offset_t numNodes) {
-        auto numChunks = StorageUtils::getListChunkIdx(numNodes);
-        if (0 != (numNodes & (common::ListsMetadataConstants::LISTS_CHUNK_SIZE - 1))) {
-            numChunks++;
-        }
-        return numChunks;
-    }
-
-    static inline uint64_t getListChunkIdx(common::offset_t nodeOffset) {
-        return nodeOffset >> common::ListsMetadataConstants::LISTS_CHUNK_SIZE_LOG_2;
-    }
-
-    static inline common::offset_t getChunkIdxBeginNodeOffset(uint64_t chunkIdx) {
-        return chunkIdx << common::ListsMetadataConstants::LISTS_CHUNK_SIZE_LOG_2;
-    }
-
-    static inline common::offset_t getChunkIdxEndNodeOffsetInclusive(uint64_t chunkIdx) {
-        return ((chunkIdx + 1) << common::ListsMetadataConstants::LISTS_CHUNK_SIZE_LOG_2) - 1;
-    }
-
     static inline void overwriteCatalogFileWithVersionFromWAL(const std::string& directory) {
         common::FileUtils::overwriteFile(
-            getCatalogFilePath(directory, common::DBFileType::WAL_VERSION),
-            getCatalogFilePath(directory, common::DBFileType::ORIGINAL));
+            getCatalogFilePath(directory, common::FileVersionType::WAL_VERSION),
+            getCatalogFilePath(directory, common::FileVersionType::ORIGINAL));
     }
 
     static inline std::string getCatalogFilePath(
-        const std::string& directory, common::DBFileType dbFileType) {
+        const std::string& directory, common::FileVersionType dbFileType) {
         return common::FileUtils::joinPath(
-            directory, dbFileType == common::DBFileType::ORIGINAL ?
+            directory, dbFileType == common::FileVersionType::ORIGINAL ?
                            common::StorageConstants::CATALOG_FILE_NAME :
                            common::StorageConstants::CATALOG_FILE_NAME_FOR_WAL);
     }
@@ -296,9 +197,10 @@ public:
     }
 
     static inline std::string appendWALFileSuffixIfNecessary(
-        const std::string& fileName, common::DBFileType dbFileType) {
-        return dbFileType == common::DBFileType::WAL_VERSION ? appendWALFileSuffix(fileName) :
-                                                               fileName;
+        const std::string& fileName, common::FileVersionType fileVersionType) {
+        return fileVersionType == common::FileVersionType::WAL_VERSION ?
+                   appendWALFileSuffix(fileName) :
+                   fileName;
     }
 
     static inline std::string appendWALFileSuffix(const std::string& fileName) {
@@ -307,22 +209,13 @@ public:
     }
 
     static std::unique_ptr<common::FileInfo> getFileInfoForReadWrite(
-        const std::string& directory, StorageStructureID storageStructureID);
-
-    static std::string getColumnFName(
-        const std::string& directory, StorageStructureID storageStructureID);
-
-    static std::string getListFName(
-        const std::string& directory, StorageStructureID storageStructureID);
-
-    static void initializeListsHeaders(common::table_id_t relTableID, uint64_t numNodesInTable,
-        const std::string& directory, common::RelDataDirection relDirection);
+        const std::string& directory, DBFileID dbFileID);
 
     static uint32_t getDataTypeSize(const common::LogicalType& type);
 
 private:
     static std::string appendSuffixOrInsertBeforeWALSuffix(
-        std::string fileName, std::string suffix);
+        const std::string& fileName, const std::string& suffix);
 };
 
 } // namespace storage

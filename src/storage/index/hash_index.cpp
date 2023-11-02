@@ -120,28 +120,25 @@ void HashIndexLocalStorage::clear() {
 }
 
 template<typename T>
-HashIndex<T>::HashIndex(const StorageStructureIDAndFName& storageStructureIDAndFName,
-    AccessMode accessMode, const LogicalType& keyDataType, BufferManager& bufferManager, WAL* wal)
-    : BaseHashIndex{keyDataType},
-      storageStructureIDAndFName{storageStructureIDAndFName}, bm{bufferManager}, wal{wal} {
+HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName, AccessMode accessMode,
+    const LogicalType& keyDataType, BufferManager& bufferManager, WAL* wal)
+    : BaseHashIndex{keyDataType}, dbFileIDAndName{dbFileIDAndName}, bm{bufferManager}, wal{wal} {
     slotCapacity = getSlotCapacity<T>();
-    fileHandle = bufferManager.getBMFileHandle(storageStructureIDAndFName.fName,
+    fileHandle = bufferManager.getBMFileHandle(dbFileIDAndName.fName,
         accessMode == AccessMode::READ_ONLY ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
                                               FileHandle::O_PERSISTENT_FILE_NO_CREATE,
         BMFileHandle::FileVersionedType::VERSIONED_FILE);
-    headerArray = std::make_unique<BaseDiskArray<HashIndexHeader>>(*fileHandle,
-        storageStructureIDAndFName.storageStructureID, INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, &bm, wal,
-        Transaction::getDummyReadOnlyTrx().get());
+    headerArray =
+        std::make_unique<BaseDiskArray<HashIndexHeader>>(*fileHandle, dbFileIDAndName.dbFileID,
+            INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, &bm, wal, Transaction::getDummyReadOnlyTrx().get());
     // Read indexHeader from the headerArray, which contains only one element.
     indexHeader = std::make_unique<HashIndexHeader>(
         headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::READ_ONLY));
     assert(indexHeader->keyDataTypeID == keyDataType.getLogicalTypeID());
-    pSlots = std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle,
-        storageStructureIDAndFName.storageStructureID, P_SLOTS_HEADER_PAGE_IDX, &bm, wal,
-        Transaction::getDummyReadOnlyTrx().get());
-    oSlots = std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle,
-        storageStructureIDAndFName.storageStructureID, O_SLOTS_HEADER_PAGE_IDX, &bm, wal,
-        Transaction::getDummyReadOnlyTrx().get());
+    pSlots = std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle, dbFileIDAndName.dbFileID,
+        P_SLOTS_HEADER_PAGE_IDX, &bm, wal, Transaction::getDummyReadOnlyTrx().get());
+    oSlots = std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle, dbFileIDAndName.dbFileID,
+        O_SLOTS_HEADER_PAGE_IDX, &bm, wal, Transaction::getDummyReadOnlyTrx().get());
     // Initialize functions.
     keyHashFunc = HashIndexUtils::initializeHashFunc(indexHeader->keyDataTypeID);
     keyInsertFunc = HashIndexUtils::initializeInsertFunc(indexHeader->keyDataTypeID);
@@ -149,7 +146,7 @@ HashIndex<T>::HashIndex(const StorageStructureIDAndFName& storageStructureIDAndF
     localStorage = std::make_unique<HashIndexLocalStorage>(keyDataType);
     if (keyDataType.getLogicalTypeID() == LogicalTypeID::STRING) {
         diskOverflowFile =
-            std::make_unique<DiskOverflowFile>(storageStructureIDAndFName, &bm, wal, accessMode);
+            std::make_unique<DiskOverflowFile>(dbFileIDAndName, &bm, wal, accessMode);
     }
 }
 
@@ -395,8 +392,7 @@ template<typename T>
 void HashIndex<T>::prepareCommit() {
     std::unique_lock xlock{localStorage->localStorageSharedMutex};
     if (localStorage->hasUpdates()) {
-        wal->addToUpdatedNodeTables(
-            storageStructureIDAndFName.storageStructureID.nodeIndexID.tableID);
+        wal->addToUpdatedNodeTables(dbFileIDAndName.dbFileID.nodeIndexID.tableID);
         localStorage->applyLocalChanges(
             [this](const uint8_t* key) -> void { this->deleteFromPersistentIndex(key); },
             [this](const uint8_t* key, offset_t value) -> void {
@@ -409,8 +405,7 @@ template<typename T>
 void HashIndex<T>::prepareRollback() {
     std::unique_lock xlock{localStorage->localStorageSharedMutex};
     if (localStorage->hasUpdates()) {
-        wal->addToUpdatedNodeTables(
-            storageStructureIDAndFName.storageStructureID.nodeIndexID.tableID);
+        wal->addToUpdatedNodeTables(dbFileIDAndName.dbFileID.nodeIndexID.tableID);
     }
 }
 

@@ -11,12 +11,14 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-StructColumnChunk::StructColumnChunk(LogicalType dataType, bool enableCompression)
-    : ColumnChunk{std::move(dataType)} {
+StructColumnChunk::StructColumnChunk(
+    LogicalType dataType, uint64_t capacity, bool enableCompression)
+    : ColumnChunk{std::move(dataType), capacity} {
     auto fieldTypes = StructType::getFieldTypes(&this->dataType);
     childChunks.resize(fieldTypes.size());
     for (auto i = 0u; i < fieldTypes.size(); i++) {
-        childChunks[i] = ColumnChunkFactory::createColumnChunk(*fieldTypes[i], enableCompression);
+        childChunks[i] =
+            ColumnChunkFactory::createColumnChunk(*fieldTypes[i], capacity, enableCompression);
     }
 }
 
@@ -32,7 +34,7 @@ void StructColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk
     numValues += numValuesToAppend;
 }
 
-void StructColumnChunk::append(common::ValueVector* vector, common::offset_t startPosInChunk) {
+void StructColumnChunk::append(ValueVector* vector, offset_t startPosInChunk) {
     auto numFields = StructType::getNumFields(&dataType);
     for (auto i = 0u; i < numFields; i++) {
         childChunks[i]->append(StructVector::getFieldVector(vector, i).get(), startPosInChunk);
@@ -51,11 +53,19 @@ void StructColumnChunk::resize(uint64_t newCapacity) {
     }
 }
 
-void StructColumnChunk::write(const Value& val, uint64_t posToWrite) {
-    assert(val.getDataType()->getPhysicalType() == PhysicalTypeID::STRUCT);
-    auto numElements = NestedVal::getChildrenSize(&val);
-    for (auto i = 0u; i < numElements; i++) {
-        childChunks[i]->write(*NestedVal::getChildVal(&val, i), posToWrite);
+void StructColumnChunk::write(ValueVector* vector, offset_t startOffsetInChunk) {
+    assert(vector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
+    auto fields = StructVector::getFieldVectors(vector);
+    for (auto i = 0u; i < fields.size(); i++) {
+        childChunks[i]->write(fields[i].get(), startOffsetInChunk);
+    }
+}
+
+void StructColumnChunk::write(ValueVector* valueVector, ValueVector* offsetInChunkVector) {
+    assert(valueVector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
+    auto fields = StructVector::getFieldVectors(valueVector);
+    for (auto i = 0u; i < fields.size(); i++) {
+        childChunks[i]->write(fields[i].get(), offsetInChunkVector);
     }
 }
 

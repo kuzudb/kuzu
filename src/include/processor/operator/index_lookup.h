@@ -2,12 +2,6 @@
 
 #include "processor/operator/physical_operator.h"
 
-namespace arrow {
-class Array;
-class PrimitiveArray;
-class DataType;
-} // namespace arrow
-
 namespace kuzu {
 namespace storage {
 class PrimaryKeyIndex;
@@ -15,20 +9,21 @@ class PrimaryKeyIndex;
 namespace processor {
 
 struct IndexLookupInfo {
+    common::table_id_t tableID;
     std::unique_ptr<common::LogicalType> pkDataType;
     storage::PrimaryKeyIndex* pkIndex; // NULL if the PK data type is SERIAL.
     DataPos keyVectorPos;
     DataPos resultVectorPos;
 
-    IndexLookupInfo(std::unique_ptr<common::LogicalType> pkDataType,
+    IndexLookupInfo(common::table_id_t tableID, std::unique_ptr<common::LogicalType> pkDataType,
         storage::PrimaryKeyIndex* pkIndex, const DataPos& keyVectorPos,
         const DataPos& resultVectorPos)
-        : pkDataType{std::move(pkDataType)}, pkIndex{pkIndex}, keyVectorPos{keyVectorPos},
-          resultVectorPos{resultVectorPos} {}
+        : tableID{tableID}, pkDataType{std::move(pkDataType)}, pkIndex{pkIndex},
+          keyVectorPos{keyVectorPos}, resultVectorPos{resultVectorPos} {}
 
     inline std::unique_ptr<IndexLookupInfo> copy() {
         return std::make_unique<IndexLookupInfo>(
-            pkDataType->copy(), pkIndex, keyVectorPos, resultVectorPos);
+            tableID, pkDataType->copy(), pkIndex, keyVectorPos, resultVectorPos);
     }
 };
 
@@ -44,14 +39,11 @@ public:
     std::unique_ptr<PhysicalOperator> clone() final;
 
 private:
-    void indexLookup(const IndexLookupInfo& info);
-    static void lookupOnArray(
-        const IndexLookupInfo& info, arrow::Array* array, common::offset_t* offsets);
-    void fillOffsetArraysFromArrowVector(const IndexLookupInfo& info,
-        common::ValueVector* keyVector,
-        std::vector<std::shared_ptr<arrow::Array>>& offsetArraysVector);
-    void fillOffsetArraysFromVector(const IndexLookupInfo& info, common::ValueVector* keyVector,
-        std::vector<std::shared_ptr<arrow::Array>>& offsetArraysVector);
+    void indexLookup(transaction::Transaction* transaction, const IndexLookupInfo& info);
+    void checkNullKeys(common::ValueVector* keyVector);
+    void fillOffsetArraysFromVector(transaction::Transaction* transaction,
+        const IndexLookupInfo& info, common::ValueVector* keyVector,
+        common::ValueVector* resultVector);
 
 private:
     std::vector<std::unique_ptr<IndexLookupInfo>> infos;

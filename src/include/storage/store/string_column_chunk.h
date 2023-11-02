@@ -9,14 +9,15 @@ namespace storage {
 
 class StringColumnChunk : public ColumnChunk {
 public:
-    explicit StringColumnChunk(common::LogicalType dataType);
+    explicit StringColumnChunk(common::LogicalType dataType, uint64_t capacity);
 
     void resetToEmpty() final;
     void append(common::ValueVector* vector, common::offset_t startPosInChunk) final;
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
 
-    void update(common::ValueVector* vector, common::vector_idx_t vectorIdx) override;
+    void write(common::ValueVector* vector, common::offset_t startOffsetInChunk) final;
+    void write(common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector) final;
 
     template<typename T>
     T getValue(common::offset_t /*pos*/) const {
@@ -31,8 +32,6 @@ public:
 private:
     void appendStringColumnChunk(StringColumnChunk* other, common::offset_t startPosInOtherChunk,
         common::offset_t startPosInChunk, uint32_t numValuesToAppend);
-
-    void write(const common::Value& val, uint64_t posToWrite) override;
 
     void setValueFromString(const char* value, uint64_t length, uint64_t pos);
 

@@ -91,10 +91,10 @@ public:
     }
 
     common::page_idx_t logPageUpdateRecord(
-        StorageStructureID storageStructureID, common::page_idx_t pageIdxInOriginalFile);
+        DBFileID dbFileID, common::page_idx_t pageIdxInOriginalFile);
 
     common::page_idx_t logPageInsertRecord(
-        StorageStructureID storageStructureID, common::page_idx_t pageIdxInOriginalFile);
+        DBFileID dbFileID, common::page_idx_t pageIdxInOriginalFile);
 
     void logCommit(uint64_t transactionID);
 
@@ -108,8 +108,7 @@ public:
         common::table_id_t literalTableID, common::table_id_t resourceTripleTableID,
         common::table_id_t literalTripleTableID);
 
-    void logOverflowFileNextBytePosRecord(
-        StorageStructureID storageStructureID, uint64_t prevNextByteToWriteTo);
+    void logOverflowFileNextBytePosRecord(DBFileID dbFileID, uint64_t prevNextByteToWriteTo);
 
     void logCopyNodeRecord(common::table_id_t tableID, common::page_idx_t startPageIdx);
 
