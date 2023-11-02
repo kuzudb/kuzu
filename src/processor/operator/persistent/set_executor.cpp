@@ -126,7 +126,8 @@ void SingleLabelRelSetExecutor::set() {
         return;
     }
     evaluator->evaluate();
-    table->updateRel(srcNodeIDVector, dstNodeIDVector, relIDVector, rhsVector, propertyID);
+    // TODO(Guodong): Fix set.
+    //    table->updateRel(srcNodeIDVector, dstNodeIDVector, relIDVector, rhsVector, propertyID);
     if (lhsVector != nullptr) {
         writeToPropertyVector(relIDVector, lhsVector, rhsVector);
     }
@@ -144,7 +145,8 @@ void MultiLabelRelSetExecutor::set() {
         return;
     }
     auto [table, propertyID] = tableIDToTableAndPropertyID.at(relID.tableID);
-    table->updateRel(srcNodeIDVector, dstNodeIDVector, relIDVector, rhsVector, propertyID);
+    // TODO(Guodong): Fix set.
+    //    table->updateRel(srcNodeIDVector, dstNodeIDVector, relIDVector, rhsVector, propertyID);
     if (lhsVector != nullptr) {
         writeToPropertyVector(relIDVector, lhsVector, rhsVector);
     }

@@ -1,11 +1,10 @@
 #include "storage/store/column_chunk.h"
 
 #include "common/types/value/nested.h"
-#include "storage/storage_structure/storage_structure_utils.h"
+#include "storage/storage_structure/db_file_utils.h"
 #include "storage/store/compression.h"
 #include "storage/store/string_column_chunk.h"
 #include "storage/store/struct_column_chunk.h"
-#include "storage/store/table_copy_utils.h"
 #include "storage/store/var_list_column_chunk.h"
 
 using namespace kuzu::common;
@@ -96,6 +95,7 @@ static std::shared_ptr<CompressionAlg> getCompression(
         return std::make_shared<Uncompressed>(dataType);
     }
     switch (dataType.getPhysicalType()) {
+    case PhysicalTypeID::INTERNAL_ID:
     case PhysicalTypeID::INT64: {
         return std::make_shared<IntegerBitpacking<int64_t>>();
     }
@@ -127,13 +127,14 @@ static std::shared_ptr<CompressionAlg> getCompression(
     }
 }
 
-ColumnChunk::ColumnChunk(LogicalType dataType, bool enableCompression, bool hasNullChunk)
+ColumnChunk::ColumnChunk(
+    LogicalType dataType, uint64_t capacity, bool enableCompression, bool hasNullChunk)
     : dataType{std::move(dataType)},
       numBytesPerValue{getDataTypeSizeInChunk(this->dataType)}, numValues{0} {
     if (hasNullChunk) {
-        nullChunk = std::make_unique<NullColumnChunk>();
+        nullChunk = std::make_unique<NullColumnChunk>(capacity);
     }
-    initializeBuffer(StorageConstants::NODE_GROUP_SIZE);
+    initializeBuffer(capacity);
     initializeFunction(enableCompression);
 }
 
@@ -156,6 +157,7 @@ void ColumnChunk::initializeFunction(bool enableCompression) {
         getMetadataFunction = booleanGetMetadata;
         break;
     }
+    case PhysicalTypeID::INTERNAL_ID:
     case PhysicalTypeID::INT64:
     case PhysicalTypeID::INT32:
     case PhysicalTypeID::INT16:
@@ -180,18 +182,20 @@ void ColumnChunk::initializeFunction(bool enableCompression) {
 
 void ColumnChunk::resetToEmpty() {
     if (nullChunk) {
-        nullChunk->resetNullBuffer();
+        nullChunk->resetToNoNull();
     }
     numValues = 0;
 }
 
 void ColumnChunk::append(ValueVector* vector, offset_t startPosInChunk) {
+    assert(vector->dataType.getPhysicalType() == dataType.getPhysicalType());
     copyVectorToBuffer(vector, startPosInChunk);
     numValues += vector->state->selVector->selectedSize;
 }
 
 void ColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
     offset_t startPosInChunk, uint32_t numValuesToAppend) {
+    assert(other->dataType.getPhysicalType() == dataType.getPhysicalType());
     if (nullChunk) {
         nullChunk->append(
             other->nullChunk.get(), startPosInOtherChunk, startPosInChunk, numValuesToAppend);
@@ -202,65 +206,55 @@ void ColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
     numValues += numValuesToAppend;
 }
 
-void ColumnChunk::write(const Value& val, uint64_t posToWrite) {
-    nullChunk->setNull(posToWrite, val.isNull());
-    if (val.isNull()) {
-        return;
+void ColumnChunk::write(ValueVector* vector, ValueVector* offsetsInChunk) {
+    assert(
+        vector->dataType.getPhysicalType() == dataType.getPhysicalType() &&
+        offsetsInChunk->dataType.getPhysicalType() == PhysicalTypeID::INT64 &&
+        vector->state->selVector->selectedSize == offsetsInChunk->state->selVector->selectedSize);
+    auto offsets = (offset_t*)offsetsInChunk->getData();
+    for (auto i = 0u; i < offsetsInChunk->state->selVector->selectedSize; i++) {
+        auto offsetInChunk = offsets[offsetsInChunk->state->selVector->selectedPositions[i]];
+        assert(offsetInChunk < capacity);
+        auto offsetInVector = vector->state->selVector->selectedPositions[i];
+        if (!vector->isNull(offsetInVector)) {
+            memcpy(buffer.get() + offsetInChunk * numBytesPerValue,
+                vector->getData() + offsetInVector * numBytesPerValue, numBytesPerValue);
+        }
+        nullChunk->setNull(offsetInChunk, vector->isNull(offsetInVector));
+        if (offsetInChunk >= numValues) {
+            numValues = offsetInChunk + 1;
+        }
     }
-    switch (dataType.getPhysicalType()) {
-    case PhysicalTypeID::BOOL: {
-        setValue(val.getValue<bool>(), posToWrite);
-    } break;
-    case PhysicalTypeID::INT64: {
-        setValue(val.getValue<int64_t>(), posToWrite);
-    } break;
-    case PhysicalTypeID::INT32: {
-        setValue(val.getValue<int32_t>(), posToWrite);
-    } break;
-    case PhysicalTypeID::INT16: {
-        setValue(val.getValue<int16_t>(), posToWrite);
-    } break;
-    case PhysicalTypeID::INT8: {
-        setValue(val.getValue<int8_t>(), posToWrite);
-    } break;
-    case PhysicalTypeID::UINT64: {
-        setValue(val.getValue<uint64_t>(), posToWrite);
-    } break;
-    case PhysicalTypeID::UINT32: {
-        setValue(val.getValue<uint32_t>(), posToWrite);
-    } break;
-    case PhysicalTypeID::UINT16: {
-        setValue(val.getValue<uint16_t>(), posToWrite);
-    } break;
-    case PhysicalTypeID::UINT8: {
-        setValue(val.getValue<uint8_t>(), posToWrite);
-    } break;
-    case PhysicalTypeID::INT128: {
-        setValue(val.getValue<int128_t>(), posToWrite);
-    } break;
-    case PhysicalTypeID::DOUBLE: {
-        setValue(val.getValue<double_t>(), posToWrite);
-    } break;
-    case PhysicalTypeID::FLOAT: {
-        setValue(val.getValue<float_t>(), posToWrite);
-    } break;
-    case PhysicalTypeID::INTERVAL: {
-        setValue(val.getValue<interval_t>(), posToWrite);
-    } break;
-    default: {
-        throw NotImplementedException{"ColumnChunk::write"};
-    }
+}
+
+// NOTE: This function is only called in LocalTable right now when performing out-of-place
+// committing. While BOOL never triggers that, overriding of this function in BoolColumnChunk is
+// skipped. Also, VAR_LIST has a different logic for handling out-of-place committing as it has to
+// be slided. However, this is unsafe, as this function can also be used for other purposes later.
+// Thus, an assertion is added at the first line.
+void ColumnChunk::write(ValueVector* vector, offset_t startOffsetInChunk) {
+    assert(dataType.getPhysicalType() != PhysicalTypeID::BOOL &&
+           dataType.getPhysicalType() != PhysicalTypeID::VAR_LIST);
+    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
+        auto pos = vector->state->selVector->selectedPositions[i];
+        auto offsetInChunk = startOffsetInChunk + pos;
+        nullChunk->setNull(offsetInChunk, vector->isNull(pos));
+        if (!vector->isNull(pos)) {
+            memcpy(buffer.get() + offsetInChunk * numBytesPerValue,
+                vector->getData() + pos * numBytesPerValue, numBytesPerValue);
+        }
+        if (pos >= numValues) {
+            numValues = pos + 1;
+        }
     }
 }
 
 void ColumnChunk::resize(uint64_t newCapacity) {
-    if (numBytesPerValue != 0) {
-        // Avoid resizing struct/serial columns.
-        capacity = newCapacity;
-        auto numBytesAfterResize = getBufferSize();
-        assert(numBytesAfterResize > bufferSize);
+    capacity = newCapacity;
+    auto numBytesAfterResize = getBufferSize();
+    if (numBytesAfterResize > bufferSize) {
         auto resizedBuffer = std::make_unique<uint8_t[]>(numBytesAfterResize);
-        if (dataType.getPhysicalType() == common::PhysicalTypeID::BOOL) {
+        if (dataType.getPhysicalType() == PhysicalTypeID::BOOL) {
             memset(resizedBuffer.get(), 0 /* non null */, numBytesAfterResize);
         }
         memcpy(resizedBuffer.get(), buffer.get(), bufferSize);
@@ -315,22 +309,6 @@ void ColumnChunk::copyVectorToBuffer(ValueVector* vector, offset_t startPosInChu
             nullChunk->setNull(startPosInChunk + i, vector->isNull(pos));
             memcpy(bufferToWrite, vectorDataToWriteFrom + pos * numBytesPerValue, numBytesPerValue);
             bufferToWrite += numBytesPerValue;
-        }
-    }
-}
-
-void ColumnChunk::update(ValueVector* vector, vector_idx_t vectorIdx) {
-    auto startOffsetInChunk = vectorIdx << DEFAULT_VECTOR_CAPACITY_LOG_2;
-    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
-        auto pos = vector->state->selVector->selectedPositions[i];
-        auto offsetInChunk = startOffsetInChunk + pos;
-        nullChunk->setNull(offsetInChunk, vector->isNull(pos));
-        if (!vector->isNull(pos)) {
-            memcpy(buffer.get() + offsetInChunk * numBytesPerValue,
-                vector->getData() + pos * numBytesPerValue, numBytesPerValue);
-        }
-        if (pos >= numValues) {
-            numValues = pos + 1;
         }
     }
 }
@@ -408,16 +386,36 @@ void BoolColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
     numValues += numValuesToAppend;
 }
 
-void NullColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
-    offset_t startPosInChunk, uint32_t numValuesToAppend) {
+void BoolColumnChunk::write(
+    common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector) {
+    assert(valueVector->dataType.getPhysicalType() == PhysicalTypeID::BOOL &&
+           offsetInChunkVector->dataType.getPhysicalType() == PhysicalTypeID::INT64 &&
+           valueVector->state->selVector->selectedSize ==
+               offsetInChunkVector->state->selVector->selectedSize);
+    auto offsets = (offset_t*)offsetInChunkVector->getData();
+    for (auto i = 0u; i < offsetInChunkVector->state->selVector->selectedSize; i++) {
+        auto offsetInChunk = offsets[offsetInChunkVector->state->selVector->selectedPositions[i]];
+        assert(offsetInChunk < capacity);
+        auto offsetInVector = valueVector->state->selVector->selectedPositions[i];
+        NullMask::copyNullMask((uint64_t*)valueVector->getData(), offsetInVector,
+            (uint64_t*)buffer.get(), offsetInChunk, 1);
+        if (nullChunk) {
+            nullChunk->setNull(offsetInChunk, valueVector->isNull(offsetInVector));
+        }
+        numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
+    }
+}
+
+void NullColumnChunk::append(ColumnChunk* other, offset_t startOffsetInOtherChunk,
+    offset_t startOffsetInChunk, uint32_t numValuesToAppend) {
     copyFromBuffer((uint64_t*)static_cast<NullColumnChunk*>(other)->buffer.get(),
-        startPosInOtherChunk, startPosInChunk, numValuesToAppend);
+        startOffsetInOtherChunk, startOffsetInChunk, numValuesToAppend);
 }
 
 class FixedListColumnChunk : public ColumnChunk {
 public:
-    FixedListColumnChunk(LogicalType dataType, bool enableCompression)
-        : ColumnChunk(std::move(dataType), enableCompression, true /* hasNullChunk */) {}
+    FixedListColumnChunk(LogicalType dataType, uint64_t capacity, bool enableCompression)
+        : ColumnChunk(std::move(dataType), capacity, enableCompression, true /* hasNullChunk */) {}
 
     void append(ColumnChunk* other, offset_t startPosInOtherChunk, offset_t startPosInChunk,
         uint32_t numValuesToAppend) final {
@@ -435,39 +433,23 @@ public:
         numValues += numValuesToAppend;
     }
 
-    void write(const Value& fixedListVal, uint64_t posToWrite) final {
-        assert(fixedListVal.getDataType()->getPhysicalType() == PhysicalTypeID::FIXED_LIST);
-        nullChunk->setNull(posToWrite, fixedListVal.isNull());
-        if (fixedListVal.isNull()) {
-            return;
-        }
-        auto numValues = NestedVal::getChildrenSize(&fixedListVal);
-        auto childType = FixedListType::getChildType(fixedListVal.getDataType());
-        auto numBytesPerValueInList = getDataTypeSizeInChunk(*childType);
-        auto bufferToWrite = buffer.get() + posToWrite * numBytesPerValue;
-        for (auto i = 0u; i < numValues; i++) {
-            auto val = NestedVal::getChildVal(&fixedListVal, i);
-            switch (childType->getPhysicalType()) {
-            case PhysicalTypeID::INT64: {
-                memcpy(bufferToWrite, &val->getValueReference<int64_t>(), numBytesPerValueInList);
-            } break;
-            case PhysicalTypeID::INT32: {
-                memcpy(bufferToWrite, &val->getValueReference<int32_t>(), numBytesPerValueInList);
-            } break;
-            case PhysicalTypeID::INT16: {
-                memcpy(bufferToWrite, &val->getValueReference<int16_t>(), numBytesPerValueInList);
-            } break;
-            case PhysicalTypeID::DOUBLE: {
-                memcpy(bufferToWrite, &val->getValueReference<double_t>(), numBytesPerValueInList);
-            } break;
-            case PhysicalTypeID::FLOAT: {
-                memcpy(bufferToWrite, &val->getValueReference<float_t>(), numBytesPerValueInList);
-            } break;
-            default: {
-                throw NotImplementedException{"FixedListColumnChunk::write"};
+    void write(ValueVector* valueVector, ValueVector* offsetInChunkVector) {
+        assert(valueVector->dataType.getPhysicalType() == PhysicalTypeID::FIXED_LIST &&
+               offsetInChunkVector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
+        auto offsets = (offset_t*)offsetInChunkVector->getData();
+        assert(valueVector->state->selVector->selectedSize ==
+               offsetInChunkVector->state->selVector->selectedSize);
+        for (auto i = 0u; i < offsetInChunkVector->state->selVector->selectedSize; i++) {
+            auto offsetInChunk =
+                offsets[offsetInChunkVector->state->selVector->selectedPositions[i]];
+            assert(offsetInChunk < capacity);
+            auto offsetInVector = valueVector->state->selVector->selectedPositions[i];
+            nullChunk->setNull(offsetInChunk, valueVector->isNull(offsetInVector));
+            if (!valueVector->isNull(offsetInVector)) {
+                memcpy(buffer.get() + getOffsetInBuffer(offsetInChunk),
+                    valueVector->getData() + offsetInVector * numBytesPerValue, numBytesPerValue);
             }
-            }
-            bufferToWrite += numBytesPerValueInList;
+            numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
         }
     }
 
@@ -483,12 +465,11 @@ public:
 };
 
 std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
-    const LogicalType& dataType, bool enableCompression) {
-    std::unique_ptr<ColumnChunk> chunk;
+    const LogicalType& dataType, bool enableCompression, bool needFinalize, uint64_t capacity) {
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
-        chunk = std::make_unique<BoolColumnChunk>();
-    } break;
+        return std::make_unique<BoolColumnChunk>(capacity);
+    }
     case PhysicalTypeID::INT64:
     case PhysicalTypeID::INT32:
     case PhysicalTypeID::INT16:
@@ -502,31 +483,39 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     case PhysicalTypeID::FLOAT:
     case PhysicalTypeID::INTERVAL: {
         if (dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
-            chunk = std::make_unique<ColumnChunk>(LogicalType(LogicalTypeID::SERIAL),
+            return std::make_unique<ColumnChunk>(LogicalType(LogicalTypeID::SERIAL), capacity,
                 false /*enableCompression*/, false /* hasNullChunk */);
         } else {
-            chunk = std::make_unique<ColumnChunk>(dataType, enableCompression);
+            return std::make_unique<ColumnChunk>(dataType, capacity, enableCompression);
         }
-    } break;
+    }
+        // Physically, we only materialize offset of INTERNAL_ID, which is same as INT64,
+    case PhysicalTypeID::INTERNAL_ID: {
+        return std::make_unique<ColumnChunk>(
+            LogicalType(LogicalTypeID::INT64), capacity, false /* enableCompression */);
+    }
     case PhysicalTypeID::FIXED_LIST: {
-        chunk = std::make_unique<FixedListColumnChunk>(dataType, enableCompression);
-    } break;
+        return std::make_unique<FixedListColumnChunk>(dataType, capacity, enableCompression);
+    }
     case PhysicalTypeID::STRING: {
-        chunk = std::make_unique<StringColumnChunk>(dataType);
-    } break;
+        return std::make_unique<StringColumnChunk>(dataType, capacity);
+    }
     case PhysicalTypeID::VAR_LIST: {
-        chunk = std::make_unique<VarListColumnChunk>(dataType, enableCompression);
-    } break;
+        if (needFinalize) {
+            return std::make_unique<AuxVarListColumnChunk>(dataType, capacity, enableCompression);
+        } else {
+            return std::make_unique<VarListColumnChunk>(dataType, capacity, enableCompression);
+        }
+    }
     case PhysicalTypeID::STRUCT: {
-        chunk = std::make_unique<StructColumnChunk>(dataType, enableCompression);
-    } break;
+        return std::make_unique<StructColumnChunk>(dataType, capacity, enableCompression);
+    }
     default: {
         throw NotImplementedException("ColumnChunkFactory::createColumnChunk for data type " +
                                       LogicalTypeUtils::dataTypeToString(dataType) +
                                       " is not supported.");
     }
     }
-    return chunk;
 }
 
 } // namespace storage

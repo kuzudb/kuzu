@@ -12,11 +12,11 @@ class NodesStoreStatsAndDeletedIDs : public TablesStatistics {
 public:
     // Should only be used by saveInitialNodesStatisticsAndDeletedIDsToFile to start a database
     // from an empty directory.
-    NodesStoreStatsAndDeletedIDs() : TablesStatistics{nullptr} {};
+    NodesStoreStatsAndDeletedIDs() : TablesStatistics{nullptr, nullptr, nullptr} {};
     // Should be used when an already loaded database is started from a directory.
     NodesStoreStatsAndDeletedIDs(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-        common::DBFileType dbFileType = common::DBFileType::ORIGINAL)
-        : TablesStatistics{metadataFH}, bufferManager{bufferManager}, wal{wal} {
+        common::FileVersionType dbFileType = common::FileVersionType::ORIGINAL)
+        : TablesStatistics{metadataFH, bufferManager, wal} {
         readFromFile(wal->getDirectory(), dbFileType);
     }
 
@@ -30,14 +30,9 @@ public:
         return getNodeTableStats(transaction::TransactionType::READ_ONLY, tableID);
     }
 
-    inline void rollbackInMemoryIfNecessary() {
-        lock_t lck{mtx};
-        tablesStatisticsContentForWriteTrx.reset();
-    }
-
     static inline void saveInitialNodesStatisticsAndDeletedIDsToFile(const std::string& directory) {
         std::make_unique<NodesStoreStatsAndDeletedIDs>()->saveToFile(
-            directory, common::DBFileType::ORIGINAL, transaction::TransactionType::READ_ONLY);
+            directory, common::FileVersionType::ORIGINAL, transaction::TransactionType::READ_ONLY);
     }
 
     inline void setNumTuplesForTable(common::table_id_t tableID, uint64_t numTuples) override {
@@ -52,8 +47,6 @@ public:
     inline uint32_t getNumNodeStatisticsAndDeleteIDsPerTable() const {
         return tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable.size();
     }
-
-    void setAdjListsAndColumns(RelsStore* relsStore);
 
     // This function assumes that there is a single write transaction. That is why for now we
     // keep the interface simple and no transaction is passed.
@@ -98,7 +91,7 @@ protected:
     }
 
     inline std::string getTableStatisticsFilePath(
-        const std::string& directory, common::DBFileType dbFileType) override {
+        const std::string& directory, common::FileVersionType dbFileType) override {
         return StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(directory, dbFileType);
     }
 
@@ -113,10 +106,6 @@ private:
                        tablesStatisticsContentForWriteTrx->tableStatisticPerTable.at(tableID)
                            .get());
     }
-
-private:
-    BufferManager* bufferManager;
-    WAL* wal;
 };
 } // namespace storage
 } // namespace kuzu

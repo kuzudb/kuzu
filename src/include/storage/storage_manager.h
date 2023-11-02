@@ -10,6 +10,7 @@
 namespace kuzu {
 namespace storage {
 
+// TODO(Guodong): NodesStore, RelsStore and StorageManager should be merged together.
 class StorageManager {
 public:
     StorageManager(common::AccessMode accessMode, catalog::Catalog& catalog,

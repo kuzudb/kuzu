@@ -50,32 +50,30 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateTable(LogicalOperator* lo
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateNodeTable(LogicalOperator* logicalOperator) {
     auto createTable = (LogicalCreateTable*)logicalOperator;
     return std::make_unique<CreateNodeTable>(catalog, &storageManager,
-        storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs(),
         createTable->getInfo()->copy(), getOutputPos(createTable), getOperatorID(),
         createTable->getExpressionsForPrinting());
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateRelTable(LogicalOperator* logicalOperator) {
     auto createTable = (LogicalCreateTable*)logicalOperator;
-    return std::make_unique<CreateRelTable>(catalog,
-        storageManager.getRelsStore().getRelsStatistics(), createTable->getInfo()->copy(),
-        getOutputPos(createTable), getOperatorID(), createTable->getExpressionsForPrinting());
+    return std::make_unique<CreateRelTable>(catalog, &storageManager,
+        createTable->getInfo()->copy(), getOutputPos(createTable), getOperatorID(),
+        createTable->getExpressionsForPrinting());
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateRelTableGroup(
     LogicalOperator* logicalOperator) {
     auto createTable = (LogicalCreateTable*)logicalOperator;
-    return std::make_unique<CreateRelTableGroup>(catalog,
-        storageManager.getRelsStore().getRelsStatistics(), createTable->getInfo()->copy(),
-        getOutputPos(createTable), getOperatorID(), createTable->getExpressionsForPrinting());
+    return std::make_unique<CreateRelTableGroup>(catalog, &storageManager,
+        createTable->getInfo()->copy(), getOutputPos(createTable), getOperatorID(),
+        createTable->getExpressionsForPrinting());
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateRdfGraph(LogicalOperator* logicalOperator) {
     auto createTable = (LogicalCreateTable*)logicalOperator;
     return std::make_unique<CreateRdfGraph>(catalog, &storageManager,
-        storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs(),
-        storageManager.getRelsStore().getRelsStatistics(), createTable->getInfo()->copy(),
-        getOutputPos(createTable), getOperatorID(), createTable->getExpressionsForPrinting());
+        createTable->getInfo()->copy(), getOutputPos(createTable), getOperatorID(),
+        createTable->getExpressionsForPrinting());
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapDropTable(LogicalOperator* logicalOperator) {

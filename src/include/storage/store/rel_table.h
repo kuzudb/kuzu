@@ -1,249 +1,72 @@
 #pragma once
 
-#include "catalog/catalog.h"
-#include "common/utils.h"
+#include "catalog/rel_table_schema.h"
+#include "common/column_data_format.h"
 #include "storage/stats/rel_table_statistics.h"
-#include "storage/storage_structure/column.h"
-#include "storage/storage_structure/lists/lists.h"
 #include "storage/storage_utils.h"
+#include "storage/store/rel_table_data.h"
 
 namespace kuzu {
 namespace storage {
 
-enum class RelTableDataType : uint8_t {
-    COLUMNS = 0,
-    LISTS = 1,
-};
-
-class ListsUpdateIteratorsForDirection {
-public:
-    inline ListsUpdateIterator* getListUpdateIteratorForAdjList() {
-        return listUpdateIteratorForAdjList.get();
-    }
-
-    inline std::unordered_map<common::property_id_t, std::unique_ptr<ListsUpdateIterator>>&
-    getListsUpdateIteratorsForPropertyLists() {
-        return listUpdateIteratorsForPropertyLists;
-    }
-
-    void addListUpdateIteratorForAdjList(std::unique_ptr<ListsUpdateIterator>);
-
-    void addListUpdateIteratorForPropertyList(
-        common::property_id_t propertyID, std::unique_ptr<ListsUpdateIterator> listsUpdateIterator);
-
-    void doneUpdating();
-
-private:
-    std::unique_ptr<ListsUpdateIterator> listUpdateIteratorForAdjList;
-    std::unordered_map<common::property_id_t, std::unique_ptr<ListsUpdateIterator>>
-        listUpdateIteratorsForPropertyLists;
-};
-
-struct RelTableScanState {
-public:
-    RelTableScanState(storage::RelTableStats* relStats,
-        std::vector<common::property_id_t> propertyIds, RelTableDataType relTableDataType)
-        : relStats{relStats}, relTableDataType{relTableDataType}, propertyIds{
-                                                                      std::move(propertyIds)} {
-        if (relTableDataType == RelTableDataType::LISTS) {
-            syncState = std::make_unique<ListSyncState>();
-            // The first listHandle is for adj lists.
-            listHandles.resize(this->propertyIds.size() + 1);
-            for (auto i = 0u; i < this->propertyIds.size() + 1; i++) {
-                listHandles[i] = std::make_unique<ListHandle>(*syncState);
-            }
-        }
-    }
-
-    bool hasMoreAndSwitchSourceIfNecessary() const {
-        return relTableDataType == RelTableDataType::LISTS &&
-               syncState->hasMoreAndSwitchSourceIfNecessary();
-    }
-
-    RelTableStats* relStats;
-    RelTableDataType relTableDataType;
-    std::vector<common::property_id_t> propertyIds;
-    // sync state between adj and property lists
-    std::unique_ptr<ListSyncState> syncState;
-    std::vector<std::unique_ptr<ListHandle>> listHandles;
-};
-
-class DirectedRelTableData {
-public:
-    DirectedRelTableData(common::table_id_t tableID, common::table_id_t boundTableID,
-        common::table_id_t nbrTableID, common::RelDataDirection direction,
-        ListsUpdatesStore* listsUpdatesStore, BufferManager& bufferManager,
-        bool isSingleMultiplicityInDirection)
-        : tableID{tableID}, boundTableID{boundTableID}, nbrTableID{nbrTableID},
-          direction{direction}, listsUpdatesStore{listsUpdatesStore}, bufferManager{bufferManager},
-          isSingleMultiplicityInDirection{isSingleMultiplicityInDirection} {}
-
-    inline uint32_t getNumPropertyLists() { return propertyLists.size(); }
-    // Returns the list offset of the given relID if the relID stored as list in the current
-    // direction, otherwise it returns UINT64_MAX.
-    inline list_offset_t getListOffset(common::nodeID_t nodeID, int64_t relID) {
-        return adjLists != nullptr ? ((RelIDList*)getPropertyLists(
-                                          catalog::RelTableSchema::INTERNAL_REL_ID_PROPERTY_ID))
-                                         ->getListOffset(nodeID.offset, relID) :
-                                     UINT64_MAX;
-    }
-    inline Column* getAdjColumn() const { return adjColumn.get(); }
-    inline AdjLists* getAdjLists() const { return adjLists.get(); }
-    inline bool isSingleMultiplicity() const { return isSingleMultiplicityInDirection; }
-
-    void initializeData(
-        catalog::RelTableSchema* tableSchema, WAL* wal, common::AccessMode accessMode);
-    void initializeColumns(
-        catalog::RelTableSchema* tableSchema, WAL* wal, common::AccessMode accessMode);
-    void initializeLists(
-        catalog::RelTableSchema* tableSchema, WAL* wal, common::AccessMode accessMode);
-    void resetColumnsAndLists(catalog::RelTableSchema* tableSchema, WAL* wal);
-    Column* getPropertyColumn(common::property_id_t propertyID);
-    Lists* getPropertyLists(common::property_id_t propertyID);
-
-    void scan(transaction::Transaction* transaction, RelTableScanState& scanState,
-        common::ValueVector* inNodeIDVector,
-        const std::vector<common::ValueVector*>& outputVectors);
-    inline bool isBoundTable(common::table_id_t tableID_) const { return tableID_ == boundTableID; }
-
-    void insertRel(common::ValueVector* boundVector, common::ValueVector* nbrVector,
-        const std::vector<common::ValueVector*>& relPropertyVectors);
-    void deleteRel(common::ValueVector* boundVector);
-    void updateRel(common::ValueVector* boundVector, common::property_id_t propertyID,
-        common::ValueVector* propertyVector);
-    void performOpOnListsWithUpdates(const std::function<void(Lists*)>& opOnListsWithUpdates);
-    std::unique_ptr<ListsUpdateIteratorsForDirection> getListsUpdateIteratorsForDirection();
-    void removeProperty(common::property_id_t propertyID);
-    void addProperty(const catalog::Property& property, WAL* wal);
-    void batchInitEmptyRelsForNewNodes(
-        common::table_id_t relTableID, uint64_t numNodesInTable, const std::string& directory);
-
-private:
-    void scanColumns(transaction::Transaction* transaction, RelTableScanState& scanState,
-        common::ValueVector* inNodeIDVector,
-        const std::vector<common::ValueVector*>& outputVectors);
-    void scanLists(transaction::Transaction* transaction, RelTableScanState& scanState,
-        common::ValueVector* inNodeIDVector,
-        const std::vector<common::ValueVector*>& outputVectors);
-
-    void fillNbrTableIDs(common::ValueVector* vector) const;
-    void fillRelTableIDs(common::ValueVector* vector) const;
-
-private:
-    // TODO(Guodong): remove the distinction between AdjColumn and Column, also AdjLists and Lists.
-    std::unordered_map<common::property_id_t, std::unique_ptr<Column>> propertyColumns;
-    std::unique_ptr<Column> adjColumn;
-    std::unordered_map<common::property_id_t, std::unique_ptr<Lists>> propertyLists;
-    std::unique_ptr<AdjLists> adjLists;
-    common::table_id_t tableID;
-    common::table_id_t boundTableID;
-    common::table_id_t nbrTableID;
-    common::RelDataDirection direction;
-    ListsUpdatesStore* listsUpdatesStore;
-    BufferManager& bufferManager;
-    // TODO(Guodong): remove this variable when removing the distinction between AdjColumn and
-    // Column.
-    bool isSingleMultiplicityInDirection;
-};
-
 class RelTable {
 public:
-    RelTable(const catalog::Catalog& catalog, common::table_id_t tableID,
-        MemoryManager& memoryManager, WAL* wal, common::AccessMode accessMode);
+    RelTable(BMFileHandle* dataFH, BMFileHandle* metadataFH, RelsStoreStats* relsStoreStats,
+        BufferManager* bufferManager, catalog::RelTableSchema* schema, WAL* wal,
+        bool enableCompression);
 
-    void initializeData(catalog::RelTableSchema* tableSchema, common::AccessMode accessMode);
+    inline common::table_id_t getTableID() const { return tableID; }
 
-    inline void resetColumnsAndLists(catalog::RelTableSchema* tableSchema) {
-        fwdRelTableData->resetColumnsAndLists(tableSchema, wal);
-        bwdRelTableData->resetColumnsAndLists(tableSchema, wal);
+    inline void initializeReadState(transaction::Transaction* transaction,
+        common::RelDataDirection direction, common::ValueVector* inNodeIDVector,
+        RelDataReadState* readState) {
+        return direction == common::FWD ?
+                   fwdRelTableData->initializeReadState(transaction, inNodeIDVector, readState) :
+                   bwdRelTableData->initializeReadState(transaction, inNodeIDVector, readState);
     }
+    void read(transaction::Transaction* transaction, RelDataReadState& scanState,
+        common::RelDataDirection direction, common::ValueVector* inNodeIDVector,
+        const std::vector<common::column_id_t>& columnIDs,
+        const std::vector<common::ValueVector*>& outputVectors);
 
-    inline Column* getPropertyColumn(
-        common::RelDataDirection relDirection, common::property_id_t propertyId) {
-        return relDirection == common::RelDataDirection::FWD ?
-                   fwdRelTableData->getPropertyColumn(propertyId) :
-                   bwdRelTableData->getPropertyColumn(propertyId);
+    inline void dropColumn(common::column_id_t columnID) {
+        fwdRelTableData->dropColumn(columnID);
+        bwdRelTableData->dropColumn(columnID);
     }
-    inline Lists* getPropertyLists(
-        common::RelDataDirection relDirection, common::property_id_t propertyId) {
-        return relDirection == common::RelDataDirection::FWD ?
-                   fwdRelTableData->getPropertyLists(propertyId) :
-                   bwdRelTableData->getPropertyLists(propertyId);
-    }
-    inline uint32_t getNumPropertyLists(common::RelDataDirection relDirection) {
-        return relDirection == common::RelDataDirection::FWD ?
-                   fwdRelTableData->getNumPropertyLists() :
-                   bwdRelTableData->getNumPropertyLists();
-    }
-    inline Column* getAdjColumn(common::RelDataDirection relDirection) {
-        return relDirection == common::RelDataDirection::FWD ? fwdRelTableData->getAdjColumn() :
-                                                               bwdRelTableData->getAdjColumn();
-    }
-    inline AdjLists* getAdjLists(common::RelDataDirection relDirection) {
-        return relDirection == common::RelDataDirection::FWD ? fwdRelTableData->getAdjLists() :
-                                                               bwdRelTableData->getAdjLists();
-    }
-    // TODO: rename to getTableID()
-    inline common::table_id_t getRelTableID() const { return tableID; }
-    inline DirectedRelTableData* getDirectedTableData(common::RelDataDirection relDirection) {
-        return relDirection == common::FWD ? fwdRelTableData.get() : bwdRelTableData.get();
-    }
-    inline void removeProperty(
-        common::property_id_t propertyID, catalog::RelTableSchema& relTableSchema) {
-        fwdRelTableData->removeProperty(propertyID);
-        bwdRelTableData->removeProperty(propertyID);
-        listsUpdatesStore->updateSchema(relTableSchema);
-    }
-    inline bool isSingleMultiplicityInDirection(common::RelDataDirection relDirection) {
-        return relDirection == common::RelDataDirection::FWD ?
-                   fwdRelTableData->isSingleMultiplicity() :
-                   bwdRelTableData->isSingleMultiplicity();
-    }
+    void addColumn(transaction::Transaction* transaction, const catalog::Property& property,
+        common::ValueVector* defaultValueVector);
 
-    std::vector<AdjLists*> getAllAdjLists(common::table_id_t boundTableID);
-    std::vector<Column*> getAllAdjColumns(common::table_id_t boundTableID);
+    inline common::ColumnDataFormat getTableDataFormat(common::RelDataDirection direction) {
+        return direction == common::FWD ? fwdRelTableData->getDataFormat() :
+                                          bwdRelTableData->getDataFormat();
+    }
+    inline void append(NodeGroup* nodeGroup, common::RelDataDirection direction) {
+        direction == common::FWD ? fwdRelTableData->append(nodeGroup) :
+                                   bwdRelTableData->append(nodeGroup);
+    }
+    inline bool compressionEnabled() const { return fwdRelTableData->compressionEnabled(); }
 
-    // Prepares all the db file changes necessary to update the "persistent" store of lists with the
-    // listsUpdatesStore, which stores the updates by the write transaction locally.
-    void prepareCommit();
-    void prepareRollback();
     void checkpointInMemory();
     void rollbackInMemory();
 
-    void insertRel(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
-        const std::vector<common::ValueVector*>& relPropertyVectors);
-    bool deleteRel(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
-        common::ValueVector* relIDVector);
-    void updateRel(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
-        common::ValueVector* relIDVector, common::ValueVector* propertyVector, uint32_t propertyID);
-    void initEmptyRelsForNewNode(common::ValueVector* nodeIDVector);
-    void batchInitEmptyRelsForNewNodes(common::table_id_t relTableID, uint64_t numNodesInTable);
-    void addProperty(const catalog::Property& property, catalog::RelTableSchema& relTableSchema);
-
 private:
-    inline void clearListsUpdatesStore() { listsUpdatesStore->clear(); }
-    static void updateListOP(ListsUpdateIterator* listsUpdateIterator, common::offset_t nodeOffset,
-        InMemList& inMemList);
-    void performOpOnListsWithUpdates(const std::function<void(Lists*)>& opOnListsWithUpdates,
-        const std::function<void()>& opIfHasUpdates);
-    std::unique_ptr<ListsUpdateIteratorsForDirection> getListsUpdateIteratorsForDirection(
-        common::RelDataDirection relDirection) const;
-    void prepareCommitForDirection(common::RelDataDirection relDirection);
-    void prepareCommitForListWithUpdateStoreDataOnly(AdjLists* adjLists,
-        common::offset_t nodeOffset, ListsUpdatesForNodeOffset* listsUpdatesForNodeOffset,
-        common::RelDataDirection relDirection,
-        ListsUpdateIteratorsForDirection* listsUpdateIteratorsForDirection,
-        const std::function<void(ListsUpdateIterator* listsUpdateIterator, common::offset_t,
-            InMemList& inMemList)>& opOnListsUpdateIterators);
-    void prepareCommitForList(AdjLists* adjLists, common::offset_t nodeOffset,
-        ListsUpdatesForNodeOffset* listsUpdatesForNodeOffset, common::RelDataDirection relDirection,
-        ListsUpdateIteratorsForDirection* listsUpdateIteratorsForDirection);
+    void scan(transaction::Transaction* transaction, RelDataReadState& scanState,
+        common::RelDataDirection direction, common::ValueVector* inNodeIDVector,
+        const std::vector<common::column_id_t>& columnIDs,
+        const std::vector<common::ValueVector*>& outputVectors);
+    void lookup(transaction::Transaction* transaction, common::RelDataDirection direction,
+        common::ValueVector* inNodeIDVector, const std::vector<common::column_id_t>& columnIDs,
+        const std::vector<common::ValueVector*>& outputVectors);
+
+    inline RelTableData* getDirectedTableData(common::RelDataDirection direction) {
+        return direction == common::FWD ? fwdRelTableData.get() : bwdRelTableData.get();
+    }
 
 private:
     common::table_id_t tableID;
-    std::unique_ptr<DirectedRelTableData> fwdRelTableData;
-    std::unique_ptr<DirectedRelTableData> bwdRelTableData;
-    std::unique_ptr<ListsUpdatesStore> listsUpdatesStore;
+    RelsStoreStats* relsStoreStats;
+    std::unique_ptr<RelTableData> fwdRelTableData;
+    std::unique_ptr<RelTableData> bwdRelTableData;
     WAL* wal;
 };
 

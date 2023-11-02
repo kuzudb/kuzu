@@ -17,16 +17,22 @@ struct BoundCopyFromInfo {
     catalog::TableSchema* tableSchema;
     std::unique_ptr<BoundFileScanInfo> fileScanInfo;
     bool containsSerial;
+    expression_vector columns;
     std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo;
 
     BoundCopyFromInfo(catalog::TableSchema* tableSchema,
         std::unique_ptr<BoundFileScanInfo> fileScanInfo, bool containsSerial,
-        std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo)
+        expression_vector columns, std::unique_ptr<ExtraBoundCopyFromInfo> extraInfo)
         : tableSchema{tableSchema}, fileScanInfo{std::move(fileScanInfo)},
-          containsSerial{containsSerial}, extraInfo{std::move(extraInfo)} {}
+          containsSerial{containsSerial}, columns{std::move(columns)}, extraInfo{
+                                                                           std::move(extraInfo)} {}
     BoundCopyFromInfo(const BoundCopyFromInfo& other)
         : tableSchema{other.tableSchema}, fileScanInfo{other.fileScanInfo->copy()},
           containsSerial{other.containsSerial} {
+        columns.reserve(other.columns.size());
+        for (auto& column : other.columns) {
+            columns.push_back(column->copy());
+        }
         if (other.extraInfo) {
             extraInfo = other.extraInfo->copy();
         }

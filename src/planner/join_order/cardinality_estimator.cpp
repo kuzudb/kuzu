@@ -113,7 +113,10 @@ uint64_t CardinalityEstimator::getNumNodes(const std::vector<common::table_id_t>
 uint64_t CardinalityEstimator::getNumRels(const std::vector<common::table_id_t>& tableIDs) {
     auto numRels = 0u;
     for (auto tableID : tableIDs) {
-        numRels += relsStatistics.getRelStatistics(tableID)->getNumTuples();
+        numRels +=
+            relsStatistics
+                .getRelStatistics(tableID, transaction::Transaction::getDummyReadOnlyTrx().get())
+                ->getNumTuples();
     }
     return atLeastOne(numRels);
 }

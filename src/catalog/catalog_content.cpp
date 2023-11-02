@@ -25,7 +25,7 @@ CatalogContent::CatalogContent() : nextTableID{0} {
 }
 
 CatalogContent::CatalogContent(const std::string& directory) {
-    readFromFile(directory, DBFileType::ORIGINAL);
+    readFromFile(directory, FileVersionType::ORIGINAL);
     registerBuiltInFunctions();
 }
 
@@ -165,7 +165,7 @@ void CatalogContent::renameTable(table_id_t tableID, const std::string& newName)
     tableSchema->updateTableName(newName);
 }
 
-void CatalogContent::saveToFile(const std::string& directory, DBFileType dbFileType) {
+void CatalogContent::saveToFile(const std::string& directory, FileVersionType dbFileType) {
     auto catalogPath = StorageUtils::getCatalogFilePath(directory, dbFileType);
     Serializer serializer(
         std::make_unique<BufferedFileWriter>(FileUtils::openFile(catalogPath, O_WRONLY | O_CREAT)));
@@ -180,7 +180,7 @@ void CatalogContent::saveToFile(const std::string& directory, DBFileType dbFileT
     serializer.serializeUnorderedMap(macros);
 }
 
-void CatalogContent::readFromFile(const std::string& directory, DBFileType dbFileType) {
+void CatalogContent::readFromFile(const std::string& directory, FileVersionType dbFileType) {
     auto catalogPath = StorageUtils::getCatalogFilePath(directory, dbFileType);
     Deserializer deserializer(
         std::make_unique<BufferedFileReader>(FileUtils::openFile(catalogPath, O_RDONLY)));

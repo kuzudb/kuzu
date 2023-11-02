@@ -7,6 +7,7 @@
 namespace kuzu {
 namespace common {
 
+// TODO: Change to enum class
 enum RelDataDirection : uint8_t { FWD = 0, BWD = 1 };
 
 struct RelDataDirectionUtils {

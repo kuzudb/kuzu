@@ -45,7 +45,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
         physicalOperator = mapFillTableID(logicalOperator);
     } break;
     case LogicalOperatorType::INDEX_SCAN_NODE: {
-        physicalOperator = mapIndexScanNode(logicalOperator);
+        physicalOperator = mapIndexScan(logicalOperator);
     } break;
     case LogicalOperatorType::UNWIND: {
         physicalOperator = mapUnwind(logicalOperator);
@@ -136,6 +136,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     } break;
     case LogicalOperatorType::COPY_FROM: {
         physicalOperator = mapCopyFrom(logicalOperator);
+    } break;
+    case LogicalOperatorType::PARTITIONER: {
+        physicalOperator = mapPartitioner(logicalOperator);
     } break;
     case LogicalOperatorType::COPY_TO: {
         physicalOperator = mapCopyTo(logicalOperator);

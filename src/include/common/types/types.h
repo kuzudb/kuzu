@@ -17,7 +17,7 @@ namespace common {
 
 class Serializer;
 class Deserializer;
-class FileInfo;
+struct FileInfo;
 
 using sel_t = uint16_t;
 using hash_t = uint64_t;
@@ -42,6 +42,9 @@ using row_idx_t = uint64_t;
 constexpr row_idx_t INVALID_ROW_IDX = UINT64_MAX;
 constexpr uint32_t UNDEFINED_CAST_COST = UINT32_MAX;
 using node_group_idx_t = uint64_t;
+constexpr node_group_idx_t INVALID_NODE_GROUP_IDX = UINT64_MAX;
+using partition_idx_t = uint64_t;
+constexpr partition_idx_t INVALID_PARTITION_IDX = UINT64_MAX;
 
 // System representation for a variable-sized overflow value.
 struct overflow_value_t {
@@ -98,7 +101,6 @@ enum class KUZU_API LogicalTypeID : uint8_t {
     FIXED_LIST = 37,
 
     INTERNAL_ID = 40,
-    ARROW_COLUMN = 41,
 
     STRING = 50,
     BLOB = 51,
@@ -125,7 +127,6 @@ enum class PhysicalTypeID : uint8_t {
     FLOAT = 12,
     INTERVAL = 13,
     INTERNAL_ID = 14,
-    ARROW_COLUMN = 15,
 
     // Variable size types.
     STRING = 20,
@@ -242,9 +243,9 @@ private:
 
 class LogicalType {
     friend class LogicalTypeUtils;
-    friend class StructType;
-    friend class VarListType;
-    friend class FixedListType;
+    friend struct StructType;
+    friend struct VarListType;
+    friend struct FixedListType;
 
 public:
     KUZU_API LogicalType() : typeID{LogicalTypeID::ANY}, extraTypeInfo{nullptr} {};
@@ -451,7 +452,7 @@ private:
     static std::unique_ptr<LogicalType> parseUnionType(const std::string& trimmedStr);
 };
 
-enum class DBFileType : uint8_t { ORIGINAL = 0, WAL_VERSION = 1 };
+enum class FileVersionType : uint8_t { ORIGINAL = 0, WAL_VERSION = 1 };
 
 } // namespace common
 } // namespace kuzu

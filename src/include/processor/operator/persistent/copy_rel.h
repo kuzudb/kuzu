@@ -1,78 +1,52 @@
 #pragma once
 
 #include "catalog/rel_table_schema.h"
+#include "common/enums/rel_direction.h"
 #include "processor/data_pos.h"
+#include "processor/operator/partitioner.h"
 #include "processor/operator/sink.h"
-#include "storage/in_mem_storage_structure/in_mem_column.h"
-#include "storage/in_mem_storage_structure/in_mem_column_chunk.h"
-#include "storage/in_mem_storage_structure/in_mem_lists.h"
 #include "storage/stats/rels_store_statistics.h"
+#include "storage/store/node_group.h"
+#include "storage/store/rel_table.h"
+#include "storage/wal/wal.h"
 
 namespace kuzu {
 namespace processor {
 
-struct DirectedInMemRelColumns {
-    std::unique_ptr<storage::InMemColumnChunk> adjColumnChunk;
-    std::unique_ptr<storage::InMemColumn> adjColumn;
-    std::unordered_map<common::property_id_t, std::unique_ptr<storage::InMemColumnChunk>>
-        propertyColumnChunks;
-    std::unordered_map<common::property_id_t, std::unique_ptr<storage::InMemColumn>>
-        propertyColumns;
-};
-
-struct DirectedInMemRelLists {
-    std::unique_ptr<storage::atomic_uint64_vec_t> relListsSizes;
-    std::unique_ptr<storage::InMemAdjLists> adjList;
-    std::unordered_map<common::property_id_t, std::unique_ptr<storage::InMemLists>> propertyLists;
-};
-
-enum class RelDataFormat : uint8_t { COLUMN = 0, CSR_LISTS = 1 };
-
-class DirectedInMemRelData {
-public:
-    void setColumns(std::unique_ptr<DirectedInMemRelColumns> columns_) {
-        relDataFormat = RelDataFormat::COLUMN;
-        this->columns = std::move(columns_);
-    }
-
-    void setRelLists(std::unique_ptr<DirectedInMemRelLists> lists_) {
-        relDataFormat = RelDataFormat::CSR_LISTS;
-        this->lists = std::move(lists_);
-    }
-
-public:
-    RelDataFormat relDataFormat;
-    std::unique_ptr<DirectedInMemRelColumns> columns;
-    std::unique_ptr<DirectedInMemRelLists> lists;
-};
-
 struct CopyRelInfo {
     catalog::RelTableSchema* schema;
+    common::vector_idx_t partitioningIdx;
+    common::RelDataDirection dataDirection;
+    common::ColumnDataFormat dataFormat;
     std::vector<DataPos> dataPoses;
-    DataPos internalIDPos;
-    DataPos boundOffsetPos;
-    DataPos nbrOffsetPos;
+    DataPos srcOffsetPos;
+    DataPos relIDPos;
     storage::WAL* wal;
-    bool containsSerial;
 
-    CopyRelInfo(catalog::RelTableSchema* schema, std::vector<DataPos> dataPose,
-        const DataPos& internalIDPos, const DataPos& boundOffsetPos, const DataPos& nbrOffsetPos,
-        storage::WAL* wal, bool containsSerial)
-        : schema{schema}, dataPoses{std::move(dataPose)}, internalIDPos{internalIDPos},
-          boundOffsetPos{boundOffsetPos}, nbrOffsetPos{nbrOffsetPos}, wal{wal},
-          containsSerial{containsSerial} {}
+    CopyRelInfo(catalog::RelTableSchema* schema, common::vector_idx_t partitioningIdx,
+        common::RelDataDirection dataDirection, common::ColumnDataFormat dataFormat,
+        std::vector<DataPos> dataPose, const DataPos& srcOffsetPos, const DataPos& relIDPos,
+        storage::WAL* wal)
+        : schema{schema}, partitioningIdx{partitioningIdx}, dataDirection{dataDirection},
+          dataFormat{dataFormat}, dataPoses{std::move(dataPose)},
+          srcOffsetPos{srcOffsetPos}, relIDPos{relIDPos}, wal{wal} {}
+    CopyRelInfo(const CopyRelInfo& other)
+        : schema{other.schema}, partitioningIdx{other.partitioningIdx},
+          dataDirection{other.dataDirection},
+          dataFormat{other.dataFormat}, dataPoses{other.dataPoses},
+          srcOffsetPos{other.srcOffsetPos}, relIDPos{other.relIDPos}, wal{other.wal} {}
+
+    inline std::unique_ptr<CopyRelInfo> copy() { return std::make_unique<CopyRelInfo>(*this); }
 };
 
 class CopyRel;
 class CopyRelSharedState {
     friend class CopyRel;
-    friend class CopyRelColumns;
-    friend class CopyRelLists;
 
 public:
-    CopyRelSharedState(common::table_id_t tableID, storage::RelsStoreStats* relsStatistics,
-        std::unique_ptr<DirectedInMemRelData> fwdRelData,
-        std::unique_ptr<DirectedInMemRelData> bwdRelData, storage::MemoryManager* memoryManager);
+    CopyRelSharedState(common::table_id_t tableID, storage::RelTable* table,
+        std::vector<std::unique_ptr<common::LogicalType>> columnTypes,
+        storage::RelsStoreStats* relsStatistics, storage::MemoryManager* memoryManager);
 
     void logCopyRelWALRecord(storage::WAL* wal);
     inline void incrementNumRows(common::row_idx_t numRowsToIncrement) {
@@ -85,51 +59,61 @@ public:
 private:
     std::mutex mtx;
     common::table_id_t tableID;
+    storage::RelTable* table;
+    std::vector<std::unique_ptr<common::LogicalType>> columnTypes;
     storage::RelsStoreStats* relsStatistics;
-    std::unique_ptr<DirectedInMemRelData> fwdRelData;
-    std::unique_ptr<DirectedInMemRelData> bwdRelData;
     std::shared_ptr<FactorizedTable> fTable;
     bool hasLoggedWAL;
     std::atomic<common::row_idx_t> numRows;
 };
 
 struct CopyRelLocalState {
-    std::vector<std::unique_ptr<storage::PropertyCopyState>> fwdCopyStates;
-    std::vector<std::unique_ptr<storage::PropertyCopyState>> bwdCopyStates;
+    common::partition_idx_t currentPartition = common::INVALID_PARTITION_IDX;
+    std::unique_ptr<storage::NodeGroup> nodeGroup;
 };
 
 class CopyRel : public Sink {
 public:
-    // Copy rel columns.
-    CopyRel(CopyRelInfo info, std::shared_ptr<CopyRelSharedState> sharedState,
-        std::unique_ptr<ResultSetDescriptor> resultSetDescriptor, PhysicalOperatorType opType,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : Sink{std::move(resultSetDescriptor), opType, std::move(child), id, paramsString},
-          info{std::move(info)}, sharedState{std::move(sharedState)} {}
+    CopyRel(std::unique_ptr<CopyRelInfo> info,
+        std::shared_ptr<PartitionerSharedState> partitionerSharedState,
+        std::shared_ptr<CopyRelSharedState> sharedState,
+        std::unique_ptr<ResultSetDescriptor> resultSetDescriptor, uint32_t id,
+        const std::string& paramsString)
+        : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::COPY_REL, id, paramsString},
+          info{std::move(info)}, partitionerSharedState{std::move(partitionerSharedState)},
+          sharedState{std::move(sharedState)} {}
 
-    // Copy rel lists.
-    CopyRel(CopyRelInfo info, std::shared_ptr<CopyRelSharedState> sharedState,
-        std::unique_ptr<ResultSetDescriptor> resultSetDescriptor, PhysicalOperatorType opType,
-        std::unique_ptr<PhysicalOperator> left, std::unique_ptr<PhysicalOperator> right,
-        uint32_t id, const std::string& paramsString)
-        : Sink{std::move(resultSetDescriptor), opType, std::move(left), id, paramsString},
-          info{std::move(info)}, sharedState{std::move(sharedState)} {
-        children.push_back(std::move(right));
-    }
-
-    inline bool canParallel() const final { return !info.containsSerial; }
+    inline bool isSource() const final { return true; }
 
     void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) final;
     void initGlobalStateInternal(ExecutionContext* context) final;
 
+    void executeInternal(ExecutionContext* context) final;
+    void finalize(ExecutionContext* context) final;
+
+    inline std::unique_ptr<PhysicalOperator> clone() final {
+        return std::make_unique<CopyRel>(info->copy(), partitionerSharedState, sharedState,
+            resultSetDescriptor->copy(), id, paramsString);
+    }
+
 private:
     inline bool isCopyAllowed() const {
-        return sharedState->relsStatistics->getRelStatistics(info.schema->tableID)
+        return sharedState->relsStatistics
+                   ->getRelStatistics(
+                       info->schema->tableID, transaction::Transaction::getDummyReadOnlyTrx().get())
                    ->getNextRelOffset() == 0;
     }
 
+    static void populateCSROffsets(storage::ColumnChunk* csrOffsetChunk,
+        data_partition_t* partition, common::vector_idx_t offsetVectorIdx);
+    static void setOffsetToWithinNodeGroup(
+        common::ValueVector* vector, common::offset_t startOffset);
+    static void setOffsetFromCSROffsets(
+        common::ValueVector* offsetVector, common::offset_t* csrOffsets);
+
 protected:
-    CopyRelInfo info;
+    std::unique_ptr<CopyRelInfo> info;
+    std::shared_ptr<PartitionerSharedState> partitionerSharedState;
     std::shared_ptr<CopyRelSharedState> sharedState;
     std::unique_ptr<CopyRelLocalState> localState;
 };

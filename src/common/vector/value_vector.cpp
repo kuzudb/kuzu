@@ -4,7 +4,6 @@
 #include "common/types/value/nested.h"
 #include "common/types/value/value.h"
 #include "common/vector/auxiliary_buffer.h"
-#include <arrow/array.h>
 
 namespace kuzu {
 namespace common {
@@ -17,12 +16,12 @@ ValueVector::ValueVector(LogicalType dataType, storage::MemoryManager* memoryMan
     auxiliaryBuffer = AuxiliaryBufferFactory::getAuxiliaryBuffer(this->dataType, memoryManager);
 }
 
-void ValueVector::setState(std::shared_ptr<DataChunkState> state) {
-    this->state = state;
+void ValueVector::setState(std::shared_ptr<DataChunkState> state_) {
+    this->state = state_;
     if (dataType.getPhysicalType() == PhysicalTypeID::STRUCT) {
         auto childrenVectors = StructVector::getFieldVectors(this);
         for (auto& childVector : childrenVectors) {
-            childVector->setState(state);
+            childVector->setState(state_);
         }
     }
 }
@@ -346,9 +345,6 @@ uint32_t ValueVector::getDataTypeSize(const LogicalType& type) {
     case PhysicalTypeID::VAR_LIST: {
         return sizeof(list_entry_t);
     }
-    case PhysicalTypeID::ARROW_COLUMN: {
-        return 0;
-    }
     default: {
         return PhysicalTypeUtils::getFixedTypeSize(type.getPhysicalType());
     }
@@ -362,20 +358,6 @@ void ValueVector::initializeValueBuffer() {
         // valueVector.
         StructVector::initializeEntries(this);
     }
-}
-
-void ArrowColumnVector::setArrowColumn(
-    ValueVector* vector, std::shared_ptr<arrow::ChunkedArray> column) {
-    assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::ARROW_COLUMN);
-    auto arrowColumnBuffer =
-        reinterpret_cast<ArrowColumnAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
-    arrowColumnBuffer->column = std::move(column);
-}
-
-void ArrowColumnVector::slice(ValueVector* vector, offset_t offset) {
-    auto arrowColumnBuffer =
-        reinterpret_cast<ArrowColumnAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
-    setArrowColumn(vector, arrowColumnBuffer->column->Slice((int64_t)offset));
 }
 
 template KUZU_API void ValueVector::setValue<nodeID_t>(uint32_t pos, nodeID_t val);

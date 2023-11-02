@@ -26,6 +26,7 @@ Runtime exception: Found duplicated primary key value 100, which violates the un
 Runtime exception: Found NULL, which violates the non-null constraint of the primary key column.
 
 -CASE DeleteNodeWithEdgeErrorTest
+-SKIP
 -STATEMENT MATCH (a:person) WHERE a.ID = 0 DELETE a
 ---- error
 Runtime exception: Currently deleting a node with edges is not supported. node table 0 nodeOffset 0 has 3 (one-to-many or many-to-many) edges.

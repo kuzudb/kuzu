@@ -1,4 +1,4 @@
--GROUP CopyNodeInitRelTablesTest
+-GROUP CopyPKBasics
 -DATASET CSV empty
 
 --

@@ -1,5 +1,4 @@
 #include "main/kuzu.h"
-#include <arrow/api.h>
 
 namespace kuzu {
 namespace testing {
@@ -34,8 +33,9 @@ private:
     static CopyCommandInfo createCopyCommandInfo(
         const std::string& parquetDatasetPath, std::string copyStatement);
 
-    static arrow::Status runCSVToParquetConversion(const std::string& inputFile,
-        const std::string& outputFile, char delimiter, bool hasHeader);
+    // TODO: This has to be re-implemented to not rely on arrow, instead of on our own parquet lib.
+    //    static arrow::Status runCSVToParquetConversion(const std::string& inputFile,
+    //        const std::string& outputFile, char delimiter, bool hasHeader);
 
     static void copySchema(
         const std::string& csvDatasetPath, const std::string& parquetDatasetPath);

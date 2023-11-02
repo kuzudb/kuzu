@@ -32,8 +32,7 @@ public:
         parquetTempDatasetPath = generateParquetTempDatasetPath();
         dataset = TestHelper::appendKuzuRootPath("dataset/" + dataset);
         if (datasetType == TestGroup::DatasetType::CSV_TO_PARQUET) {
-            dataset =
-                CSVToParquetConverter::convertCSVDatasetToParquet(dataset, parquetTempDatasetPath);
+            throw NotImplementedException("CSV_TO_PARQUET dataset type is not implemented yet.");
         }
     }
 

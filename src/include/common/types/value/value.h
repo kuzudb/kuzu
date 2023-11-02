@@ -16,7 +16,7 @@ namespace common {
 
 class NodeVal;
 class RelVal;
-class FileInfo;
+struct FileInfo;
 class NestedVal;
 class RecursiveRelVal;
 class ArrowRowBatch;

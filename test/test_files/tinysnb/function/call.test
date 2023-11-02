@@ -79,7 +79,7 @@ height
 -LOG ReturnDBVersion
 -STATEMENT CALL db_version() RETURN version
 ---- 1
-v0.0.12
+v0.0.12.1
 
 -LOG ReturnTableConnection
 -STATEMENT CALL show_connection('knows') RETURN *

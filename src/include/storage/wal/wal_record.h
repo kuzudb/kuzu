@@ -10,148 +10,6 @@
 namespace kuzu {
 namespace storage {
 
-enum class ListType : uint8_t {
-    ADJ_LISTS = 0,
-    REL_PROPERTY_LISTS = 1,
-};
-
-enum class ListFileType : uint8_t {
-    BASE_LISTS = 0,
-    HEADERS = 1,
-    METADATA = 2,
-};
-
-enum class ColumnType : uint8_t {
-    NODE_PROPERTY_COLUMN = 0,
-    ADJ_COLUMN = 1,
-    REL_PROPERTY_COLUMN = 2,
-};
-
-struct RelNodeTableAndDir {
-    common::table_id_t relTableID;
-    common::RelDataDirection dir;
-
-    RelNodeTableAndDir() = default;
-
-    RelNodeTableAndDir(common::table_id_t relTableID, common::RelDataDirection dir)
-        : relTableID{relTableID}, dir{dir} {}
-
-    inline bool operator==(const RelNodeTableAndDir& rhs) const {
-        return relTableID == rhs.relTableID && dir == rhs.dir;
-    }
-};
-
-struct AdjListsID {
-    RelNodeTableAndDir relNodeTableAndDir;
-
-    AdjListsID() = default;
-
-    explicit AdjListsID(RelNodeTableAndDir relNodeTableAndDir)
-        : relNodeTableAndDir{relNodeTableAndDir} {}
-
-    inline bool operator==(const AdjListsID& rhs) const {
-        return relNodeTableAndDir == rhs.relNodeTableAndDir;
-    }
-};
-
-struct RelPropertyListsID {
-    RelNodeTableAndDir relNodeTableAndDir;
-    common::property_id_t propertyID;
-
-    RelPropertyListsID() = default;
-
-    RelPropertyListsID(RelNodeTableAndDir relNodeTableAndDir, common::property_id_t propertyID)
-        : relNodeTableAndDir{relNodeTableAndDir}, propertyID{propertyID} {}
-
-    inline bool operator==(const RelPropertyListsID& rhs) const {
-        return relNodeTableAndDir == rhs.relNodeTableAndDir && propertyID == rhs.propertyID;
-    }
-};
-
-struct ListFileID {
-    ListType listType;
-    ListFileType listFileType;
-    union {
-        AdjListsID adjListsID;
-        RelPropertyListsID relPropertyListID;
-    };
-
-    ListFileID() = default;
-
-    ListFileID(ListFileType listFileType, AdjListsID adjListsID)
-        : listType{ListType::ADJ_LISTS}, listFileType{listFileType}, adjListsID{adjListsID} {}
-
-    ListFileID(ListFileType listFileType, RelPropertyListsID relPropertyListID)
-        : listType{ListType::REL_PROPERTY_LISTS}, listFileType{listFileType},
-          relPropertyListID{relPropertyListID} {}
-
-    bool operator==(const ListFileID& rhs) const;
-};
-
-struct NodePropertyColumnID {
-    common::table_id_t tableID;
-    common::property_id_t propertyID;
-
-    NodePropertyColumnID() = default;
-
-    NodePropertyColumnID(common::table_id_t tableID, common::property_id_t propertyID)
-        : tableID{tableID}, propertyID{propertyID} {}
-
-    inline bool operator==(const NodePropertyColumnID& rhs) const {
-        return tableID == rhs.tableID && propertyID == rhs.propertyID;
-    }
-};
-
-struct AdjColumnID {
-    RelNodeTableAndDir relNodeTableAndDir;
-
-    AdjColumnID() = default;
-
-    explicit AdjColumnID(RelNodeTableAndDir relNodeTableAndDir)
-        : relNodeTableAndDir{relNodeTableAndDir} {}
-
-    inline bool operator==(const AdjColumnID& rhs) const {
-        return relNodeTableAndDir == rhs.relNodeTableAndDir;
-    }
-};
-
-struct RelPropertyColumnID {
-    RelNodeTableAndDir relNodeTableAndDir;
-    common::property_id_t propertyID;
-
-    RelPropertyColumnID() = default;
-
-    RelPropertyColumnID(RelNodeTableAndDir relNodeTableAndDir, common::property_id_t propertyID)
-        : relNodeTableAndDir{relNodeTableAndDir}, propertyID{propertyID} {}
-
-    inline bool operator==(const RelPropertyColumnID& rhs) const {
-        return relNodeTableAndDir == rhs.relNodeTableAndDir && propertyID == rhs.propertyID;
-    }
-};
-
-struct ColumnFileID {
-    ColumnType columnType;
-    union {
-        NodePropertyColumnID nodePropertyColumnID;
-        AdjColumnID adjColumnID;
-        RelPropertyColumnID relPropertyColumnID;
-    };
-
-    ColumnFileID() = default;
-
-    explicit ColumnFileID(NodePropertyColumnID nodePropertyColumnID,
-        ColumnType columnType = ColumnType::NODE_PROPERTY_COLUMN)
-        : columnType{columnType}, nodePropertyColumnID{nodePropertyColumnID} {}
-
-    explicit ColumnFileID(AdjColumnID adjColumnID)
-        : columnType{ColumnType::ADJ_COLUMN}, adjColumnID{adjColumnID} {}
-
-    explicit ColumnFileID(RelPropertyColumnID relPropertyColumnID)
-        : columnType{ColumnType::REL_PROPERTY_COLUMN}, relPropertyColumnID{relPropertyColumnID} {}
-
-    bool operator==(const ColumnFileID& rhs) const;
-};
-
 struct NodeIndexID {
     common::table_id_t tableID;
 
@@ -162,50 +20,29 @@ struct NodeIndexID {
     inline bool operator==(const NodeIndexID& rhs) const { return tableID == rhs.tableID; }
 };
 
-enum class StorageStructureType : uint8_t {
-    COLUMN = 0,
-    LISTS = 1,
-    NODE_INDEX = 2,
-    DATA = 3,
-    METADATA = 4,
+enum class DBFileType : uint8_t {
+    NODE_INDEX = 0,
+    DATA = 1,
+    METADATA = 2,
 };
 
-std::string storageStructureTypeToString(StorageStructureType storageStructureType);
+std::string dbFileTypeToString(DBFileType dbFileType);
 
-// StorageStructureIDs start with 1 byte type and 1 byte isOverflow field followed with additional
+// DBFileID start with 1 byte type and 1 byte isOverflow field followed with additional
 // bytes needed by the different log types. We don't need these to be byte aligned because they are
 // not stored in memory. These are used to serialize and deserialize log entries.
-struct StorageStructureID {
-    StorageStructureType storageStructureType;
+struct DBFileID {
+    DBFileType dbFileType;
     bool isOverflow;
-    bool isNullBits;
     union {
-        ColumnFileID columnFileID;
-        ListFileID listFileID;
         NodeIndexID nodeIndexID;
     };
 
-    bool operator==(const StorageStructureID& rhs) const;
+    bool operator==(const DBFileID& rhs) const;
 
-    static StorageStructureID newDataID();
-    static StorageStructureID newMetadataID();
-
-    static StorageStructureID newNodePropertyColumnID(
-        common::table_id_t tableID, common::property_id_t propertyID);
-
-    static StorageStructureID newRelPropertyColumnID(common::table_id_t relTableID,
-        common::RelDataDirection dir, common::property_id_t propertyID);
-
-    static StorageStructureID newAdjColumnID(
-        common::table_id_t relTableID, common::RelDataDirection dir);
-
-    static StorageStructureID newNodeIndexID(common::table_id_t tableID);
-
-    static StorageStructureID newAdjListsID(
-        common::table_id_t relTableID, common::RelDataDirection dir, ListFileType listFileType);
-
-    static StorageStructureID newRelPropertyListsID(common::table_id_t relTableID,
-        common::RelDataDirection dir, common::property_id_t propertyID, ListFileType listFileType);
+    static DBFileID newDataFileID();
+    static DBFileID newMetadataFileID();
+    static DBFileID newPKIndexFileID(common::table_id_t tableID);
 };
 
 enum class WALRecordType : uint8_t {
@@ -213,10 +50,10 @@ enum class WALRecordType : uint8_t {
     TABLE_STATISTICS_RECORD = 2,
     COMMIT_RECORD = 3,
     CATALOG_RECORD = 4,
-    NODE_TABLE_RECORD = 5,
-    REL_TABLE_RECORD = 6,
-    REL_TABLE_GROUP_RECORD = 7,
-    RDF_GRAPH_RECORD = 8,
+    CREATE_NODE_TABLE_RECORD = 5,
+    CREATE_REL_TABLE_RECORD = 6,
+    CREATE_REL_TABLE_GROUP_RECORD = 7,
+    CREATE_RDF_GRAPH_RECORD = 8,
     // Records the nextBytePosToWriteTo field's last value before the write trx started. This is
     // used when rolling back to restore this value.
     OVERFLOW_FILE_NEXT_BYTE_POS_RECORD = 17,
@@ -230,22 +67,21 @@ enum class WALRecordType : uint8_t {
 std::string walRecordTypeToString(WALRecordType walRecordType);
 
 struct PageUpdateOrInsertRecord {
-    StorageStructureID storageStructureID;
-    // PageIdx in the file of updated storage structure, identified by the storageStructureID field
+    DBFileID dbFileID;
+    // PageIdx in the file of updated storage structure, identified by the dbFileID field
     uint64_t pageIdxInOriginalFile;
     uint64_t pageIdxInWAL;
     bool isInsert;
 
     PageUpdateOrInsertRecord() = default;
 
-    PageUpdateOrInsertRecord(StorageStructureID storageStructureID, uint64_t pageIdxInOriginalFile,
-        uint64_t pageIdxInWAL, bool isInsert)
-        : storageStructureID{storageStructureID}, pageIdxInOriginalFile{pageIdxInOriginalFile},
+    PageUpdateOrInsertRecord(
+        DBFileID dbFileID, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL, bool isInsert)
+        : dbFileID{dbFileID}, pageIdxInOriginalFile{pageIdxInOriginalFile},
           pageIdxInWAL{pageIdxInWAL}, isInsert{isInsert} {}
 
     inline bool operator==(const PageUpdateOrInsertRecord& rhs) const {
-        return storageStructureID == rhs.storageStructureID &&
-               pageIdxInOriginalFile == rhs.pageIdxInOriginalFile &&
+        return dbFileID == rhs.dbFileID && pageIdxInOriginalFile == rhs.pageIdxInOriginalFile &&
                pageIdxInWAL == rhs.pageIdxInWAL && isInsert == rhs.isInsert;
     }
 };
@@ -305,18 +141,16 @@ struct RdfGraphRecord {
 };
 
 struct DiskOverflowFileNextBytePosRecord {
-    StorageStructureID storageStructureID;
+    DBFileID dbFileID;
     uint64_t prevNextBytePosToWriteTo;
 
     DiskOverflowFileNextBytePosRecord() = default;
 
-    DiskOverflowFileNextBytePosRecord(
-        StorageStructureID storageStructureID, uint64_t prevNextByteToWriteTo)
-        : storageStructureID{storageStructureID}, prevNextBytePosToWriteTo{prevNextByteToWriteTo} {}
+    DiskOverflowFileNextBytePosRecord(DBFileID dbFileID, uint64_t prevNextByteToWriteTo)
+        : dbFileID{dbFileID}, prevNextBytePosToWriteTo{prevNextByteToWriteTo} {}
 
     inline bool operator==(const DiskOverflowFileNextBytePosRecord& rhs) const {
-        return storageStructureID == rhs.storageStructureID &&
-               prevNextBytePosToWriteTo == rhs.prevNextBytePosToWriteTo;
+        return dbFileID == rhs.dbFileID && prevNextBytePosToWriteTo == rhs.prevNextBytePosToWriteTo;
     }
 };
 
@@ -414,10 +248,10 @@ struct WALRecord {
 
     bool operator==(const WALRecord& rhs) const;
 
-    static WALRecord newPageUpdateRecord(StorageStructureID storageStructureID_,
-        uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL);
-    static WALRecord newPageInsertRecord(StorageStructureID storageStructureID_,
-        uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL);
+    static WALRecord newPageUpdateRecord(
+        DBFileID dbFileID, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL);
+    static WALRecord newPageInsertRecord(
+        DBFileID dbFileID, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL);
     static WALRecord newCommitRecord(uint64_t transactionID);
     static WALRecord newTableStatisticsRecord(bool isNodeTable);
     static WALRecord newCatalogRecord();
@@ -427,7 +261,7 @@ struct WALRecord {
         common::table_id_t resourceTableID, common::table_id_t literalTableID,
         common::table_id_t resourceTripleTableID, common::table_id_t literalTripleTableID);
     static WALRecord newOverflowFileNextBytePosRecord(
-        StorageStructureID storageStructureID_, uint64_t prevNextByteToWriteTo_);
+        DBFileID dbFileID, uint64_t prevNextByteToWriteTo_);
     static WALRecord newCopyNodeRecord(common::table_id_t tableID, common::page_idx_t startPageIdx);
     static WALRecord newCopyRelRecord(common::table_id_t tableID);
     static WALRecord newDropTableRecord(common::table_id_t tableID);
@@ -441,8 +275,8 @@ struct WALRecord {
     void writeWALRecordToBytes(uint8_t* bytes, uint64_t& offset);
 
 private:
-    static WALRecord newPageInsertOrUpdateRecord(StorageStructureID storageStructureID_,
-        uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL, bool isInsert);
+    static WALRecord newPageInsertOrUpdateRecord(
+        DBFileID dbFileID, uint64_t pageIdxInOriginalFile, uint64_t pageIdxInWAL, bool isInsert);
 };
 
 } // namespace storage

@@ -11,12 +11,13 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-NodeGroup::NodeGroup(
-    const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes, bool enableCompression)
+NodeGroup::NodeGroup(const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes,
+    bool enableCompression, bool needFinalize, uint64_t capacity)
     : nodeGroupIdx{UINT64_MAX}, numNodes{0} {
     chunks.reserve(columnTypes.size());
     for (auto& type : columnTypes) {
-        chunks.push_back(ColumnChunkFactory::createColumnChunk(*type, enableCompression));
+        chunks.push_back(ColumnChunkFactory::createColumnChunk(
+            *type, enableCompression, needFinalize, capacity));
     }
 }
 
@@ -67,6 +68,39 @@ offset_t NodeGroup::append(NodeGroup* other, offset_t offsetInOtherNodeGroup) {
     }
     numNodes += numNodesToAppend;
     return numNodesToAppend;
+}
+
+void NodeGroup::write(DataChunk* dataChunk, vector_idx_t offsetVectorIdx) {
+    assert(dataChunk->getNumValueVectors() == chunks.size() + 1);
+    auto offsetVector = dataChunk->getValueVector(offsetVectorIdx).get();
+    vector_idx_t vectorIdx = 0, chunkIdx = 0;
+    for (auto i = 0u; i < dataChunk->getNumValueVectors(); i++) {
+        if (i == offsetVectorIdx) {
+            vectorIdx++;
+            continue;
+        }
+        assert(vectorIdx < dataChunk->getNumValueVectors());
+        chunks[chunkIdx++]->write(dataChunk->getValueVector(vectorIdx++).get(), offsetVector);
+    }
+    numNodes += offsetVector->state->selVector->selectedSize;
+}
+
+void NodeGroup::finalize(uint64_t nodeGroupIdx_) {
+    nodeGroupIdx = nodeGroupIdx_;
+    for (auto i = 0u; i < chunks.size(); i++) {
+        auto finalizedChunk = chunks[i]->finalize();
+        if (finalizedChunk) {
+            chunks[i] = std::move(finalizedChunk);
+        }
+    }
+}
+
+std::unique_ptr<NodeGroup> NodeGroupFactory::createNodeGroup(common::ColumnDataFormat dataFormat,
+    const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes, bool enableCompression,
+    bool needFinalize, uint64_t capacity) {
+    return dataFormat == ColumnDataFormat::REGULAR ?
+               std::make_unique<NodeGroup>(columnTypes, enableCompression, needFinalize, capacity) :
+               std::make_unique<CSRNodeGroup>(columnTypes, enableCompression, needFinalize);
 }
 
 } // namespace storage

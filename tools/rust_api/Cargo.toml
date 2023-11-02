@@ -16,8 +16,6 @@ include = [
     "/include",
     "/kuzu-src/src",
     "/kuzu-src/third_party",
-    "/kuzu-src/external/CMakeLists.txt",
-    "/kuzu-src/external/arrow",
     "/kuzu-src/Makefile",
     "/kuzu-src/CMakeLists.txt",
     "/kuzu-src/tools/CMakeLists.txt",

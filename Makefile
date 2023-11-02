@@ -1,4 +1,4 @@
-.PHONY: release debug test benchmark all alldebug arrow clean clean-external clean-all
+.PHONY: release debug test benchmark all alldebug clean clean-all
 
 GENERATOR=
 FORCE_COLOR=
@@ -110,7 +110,7 @@ nodejstest: nodejs
 	cd $(ROOT_DIR)/tools/nodejs_api/ && \
 	npm test
 
-javatest: arrow java
+javatest: java
 ifeq ($(OS),Windows_NT)
 	$(call mkdirp,tools/java_api/build/test)  && cd tools/java_api/ && \
 	javac -d build/test -cp ".;build/kuzu_java.jar;third_party/junit-platform-console-standalone-1.9.3.jar"  -sourcepath src/test/java/com/kuzudb/test/*.java && \

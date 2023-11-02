@@ -26,7 +26,6 @@ public enum KuzuDataTypeID {
     INTERVAL(36),
     FIXED_LIST(37),
     INTERNAL_ID(40),
-    ARROW_COLUMN(41),
     STRING(50),
     BLOB(51),
     VAR_LIST(52),
