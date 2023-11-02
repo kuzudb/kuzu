@@ -78,6 +78,8 @@ fn link_libraries() {
         println!("cargo:rustc-link-lib=static=serd");
         println!("cargo:rustc-link-lib=static=fastpfor");
         println!("cargo:rustc-link-lib=static=miniparquet");
+        println!("cargo:rustc-link-lib=static=zstd");
+        println!("cargo:rustc-link-lib=static=miniz");
     }
 }
 
@@ -115,6 +117,8 @@ fn build_bundled_cmake() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
         "serd",
         "fastpfor",
         "miniparquet",
+        "zstd",
+        "miniz",
     ] {
         let lib_path = build_dir
             .join("build")

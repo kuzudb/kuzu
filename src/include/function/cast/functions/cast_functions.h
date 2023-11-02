@@ -48,7 +48,7 @@ inline void CastToDouble::operation(common::int128_t& input, double_t& result) {
     if (!common::Int128_t::tryCast(input, result)) { // LCOV_EXCL_START
         throw common::OverflowException{common::stringFormat(
             "Value {} is not within DOUBLE range", common::TypeUtils::toString(input).c_str())};
-    }; // LCOV_EXCL_STOP
+    } // LCOV_EXCL_STOP
 }
 
 struct CastToFloat {

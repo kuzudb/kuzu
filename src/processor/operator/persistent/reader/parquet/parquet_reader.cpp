@@ -203,10 +203,10 @@ void ParquetReader::initMetadata() {
 }
 
 std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t depth,
-    uint64_t maxDefine, uint64_t maxRepeat, uint64_t& next_schema_idx, uint64_t& next_file_idx) {
-    assert(next_schema_idx < metadata->schema.size());
-    auto& sEle = metadata->schema[next_schema_idx];
-    auto thisIdx = next_schema_idx;
+    uint64_t maxDefine, uint64_t maxRepeat, uint64_t& nextSchemaIdx, uint64_t& nextFileIdx) {
+    assert(nextSchemaIdx < metadata->schema.size());
+    auto& sEle = metadata->schema[nextSchemaIdx];
+    auto thisIdx = nextSchemaIdx;
 
     auto repetition_type = FieldRepetitionType::REQUIRED;
     if (sEle.__isset.repetition_type && thisIdx > 0) {
@@ -218,22 +218,18 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
     if (repetition_type == FieldRepetitionType::REPEATED) {
         maxRepeat++;
     }
-    if (sEle.__isset.num_children && sEle.num_children > 0) { // inner node
+    if (sEle.__isset.num_children && sEle.num_children > 0) {
         std::vector<std::unique_ptr<common::StructField>> structFields;
         std::vector<std::unique_ptr<ColumnReader>> childrenReaders;
-
         uint64_t cIdx = 0;
         while (cIdx < (uint64_t)sEle.num_children) {
-            next_schema_idx++;
-
-            auto& child_ele = metadata->schema[next_schema_idx];
-
-            auto child_reader = createReaderRecursive(
-                depth + 1, maxDefine, maxRepeat, next_schema_idx, next_file_idx);
+            nextSchemaIdx++;
+            auto& childEle = metadata->schema[nextSchemaIdx];
+            auto childReader =
+                createReaderRecursive(depth + 1, maxDefine, maxRepeat, nextSchemaIdx, nextFileIdx);
             structFields.push_back(std::make_unique<common::StructField>(
-                child_ele.name, child_reader->getDataType()->copy()));
-            childrenReaders.push_back(std::move(child_reader));
-
+                childEle.name, childReader->getDataType()->copy()));
+            childrenReaders.push_back(std::move(childReader));
             cIdx++;
         }
         assert(!structFields.empty());
@@ -243,6 +239,38 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
         bool isRepeated = repetition_type == FieldRepetitionType::REPEATED;
         bool isList = sEle.__isset.converted_type && sEle.converted_type == ConvertedType::LIST;
         bool isMap = sEle.__isset.converted_type && sEle.converted_type == ConvertedType::MAP;
+        bool isMapKV =
+            sEle.__isset.converted_type && sEle.converted_type == ConvertedType::MAP_KEY_VALUE;
+        if (!isMapKV && thisIdx > 0) {
+            // check if the parent node of this is a map
+            auto& parentEle = metadata->schema[thisIdx - 1];
+            bool parentIsMap =
+                parentEle.__isset.converted_type && parentEle.converted_type == ConvertedType::MAP;
+            bool parentHasChildren = parentEle.__isset.num_children && parentEle.num_children == 1;
+            isMapKV = parentIsMap && parentHasChildren;
+        }
+
+        if (isMapKV) {
+            // LCOV_EXCL_START
+            if (structFields.size() != 2) {
+                throw common::CopyException{"MAP_KEY_VALUE requires two children"};
+            }
+            if (!isRepeated) {
+                throw common::CopyException{"MAP_KEY_VALUE needs to be repeated"};
+            }
+            // LCOV_EXCL_STOP
+            auto structType = std::make_unique<common::LogicalType>(common::LogicalTypeID::STRUCT,
+                std::make_unique<common::StructTypeInfo>(std::move(structFields)));
+            resultType = std::make_unique<common::LogicalType>(common::LogicalTypeID::MAP,
+                std::make_unique<common::VarListTypeInfo>(std::move(structType)));
+
+            auto structReader = std::make_unique<StructColumnReader>(*this,
+                common::VarListType::getChildType(resultType.get())->copy(), sEle, thisIdx,
+                maxDefine - 1, maxRepeat - 1, std::move(childrenReaders));
+            return std::make_unique<ListColumnReader>(*this, std::move(resultType), sEle, thisIdx,
+                maxDefine, maxRepeat, std::move(structReader), memoryManager);
+        }
+
         if (structFields.size() > 1 || (!isList && !isMap && !isRepeated)) {
             resultType = std::make_unique<common::LogicalType>(common::LogicalTypeID::STRUCT,
                 std::make_unique<common::StructTypeInfo>(std::move(structFields)));
@@ -261,24 +289,26 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
                 maxDefine, maxRepeat, std::move(result), memoryManager);
         }
         return result;
-    } else { // leaf node
+    } else {
+        // LCOV_EXCL_START
         if (!sEle.__isset.type) {
             throw common::CopyException{"Node has neither num_children nor type set - this "
                                         "violates the Parquet spec (corrupted file)"};
         }
+        // LCOV_EXCL_STOP
         if (sEle.repetition_type == FieldRepetitionType::REPEATED) {
             auto derivedType = deriveLogicalType(sEle);
             auto varListTypeInfo = std::make_unique<common::VarListTypeInfo>(derivedType->copy());
             auto listType = std::make_unique<common::LogicalType>(
                 common::LogicalTypeID::VAR_LIST, std::move(varListTypeInfo));
             auto elementReader = ColumnReader::createReader(
-                *this, std::move(derivedType), sEle, next_file_idx++, maxDefine, maxRepeat);
+                *this, std::move(derivedType), sEle, nextFileIdx++, maxDefine, maxRepeat);
             return std::make_unique<ListColumnReader>(*this, std::move(listType), sEle, thisIdx,
                 maxDefine, maxRepeat, std::move(elementReader), memoryManager);
         }
         // TODO check return value of derive type or should we only do this on read()
         return ColumnReader::createReader(
-            *this, deriveLogicalType(sEle), sEle, next_file_idx++, maxDefine, maxRepeat);
+            *this, deriveLogicalType(sEle), sEle, nextFileIdx++, maxDefine, maxRepeat);
     }
 }
 
@@ -344,7 +374,9 @@ std::unique_ptr<common::LogicalType> ParquetReader::deriveLogicalType(
     const kuzu_parquet::format::SchemaElement& s_ele) {
     // inner node
     if (s_ele.type == Type::FIXED_LEN_BYTE_ARRAY && !s_ele.__isset.type_length) {
+        // LCOV_EXCL_START
         throw common::CopyException("FIXED_LEN_BYTE_ARRAY requires length to be set");
+        // LCOV_EXCL_STOP
     }
     if (s_ele.__isset.converted_type) {
         switch (s_ele.converted_type) {
@@ -352,64 +384,101 @@ std::unique_ptr<common::LogicalType> ParquetReader::deriveLogicalType(
             if (s_ele.type == Type::INT32) {
                 return std::make_unique<common::LogicalType>(common::LogicalTypeID::INT8);
             } else {
+                // LCOV_EXCL_START
                 throw common::CopyException{
                     "INT8 converted type can only be set for value of Type::INT32"};
+                // LCOV_EXCL_STOP
             }
         case ConvertedType::INT_16:
             if (s_ele.type == Type::INT32) {
                 return std::make_unique<common::LogicalType>(common::LogicalTypeID::INT16);
             } else {
+                // LCOV_EXCL_START
                 throw common::CopyException{
                     "INT16 converted type can only be set for value of Type::INT32"};
+                // LCOV_EXCL_STOP
             }
         case ConvertedType::INT_32:
             if (s_ele.type == Type::INT32) {
                 return std::make_unique<common::LogicalType>(common::LogicalTypeID::INT32);
             } else {
+                // LCOV_EXCL_START
                 throw common::CopyException{
                     "INT32 converted type can only be set for value of Type::INT32"};
+                // LCOV_EXCL_STOP
             }
         case ConvertedType::INT_64:
             if (s_ele.type == Type::INT64) {
                 return std::make_unique<common::LogicalType>(common::LogicalTypeID::INT64);
             } else {
+                // LCOV_EXCL_START
                 throw common::CopyException{
                     "INT64 converted type can only be set for value of Type::INT64"};
+                // LCOV_EXCL_STOP
+            }
+        case ConvertedType::UINT_8:
+            if (s_ele.type == Type::INT32) {
+                return std::make_unique<common::LogicalType>(common::LogicalTypeID::UINT8);
+            } else {
+                // LCOV_EXCL_START
+                throw common::CopyException{
+                    "UINT8 converted type can only be set for value of Type::INT32"};
+                // LCOV_EXCL_STOP
+            }
+        case ConvertedType::UINT_16:
+            if (s_ele.type == Type::INT32) {
+                return std::make_unique<common::LogicalType>(common::LogicalTypeID::UINT16);
+            } else {
+                // LCOV_EXCL_START
+                throw common::CopyException{
+                    "UINT16 converted type can only be set for value of Type::INT32"};
+                // LCOV_EXCL_STOP
+            }
+        case ConvertedType::UINT_32:
+            if (s_ele.type == Type::INT32) {
+                return std::make_unique<common::LogicalType>(common::LogicalTypeID::UINT32);
+            } else {
+                // LCOV_EXCL_START
+                throw common::CopyException{
+                    "UINT32 converted type can only be set for value of Type::INT32"};
+                // LCOV_EXCL_STOP
+            }
+        case ConvertedType::UINT_64:
+            if (s_ele.type == Type::INT64) {
+                return std::make_unique<common::LogicalType>(common::LogicalTypeID::UINT64);
+            } else {
+                // LCOV_EXCL_START
+                throw common::CopyException{
+                    "UINT64 converted type can only be set for value of Type::INT64"};
+                // LCOV_EXCL_STOP
             }
         case ConvertedType::DATE:
             if (s_ele.type == Type::INT32) {
                 return std::make_unique<common::LogicalType>(common::LogicalTypeID::DATE);
             } else {
+                // LCOV_EXCL_START
                 throw common::CopyException{
                     "DATE converted type can only be set for value of Type::INT32"};
+                // LCOV_EXCL_STOP
             }
+        case ConvertedType::INTERVAL: {
+            return std::make_unique<common::LogicalType>(common::LogicalTypeID::INTERVAL);
+        }
         case ConvertedType::UTF8:
-        case ConvertedType::ENUM:
             switch (s_ele.type) {
             case Type::BYTE_ARRAY:
             case Type::FIXED_LEN_BYTE_ARRAY:
                 return std::make_unique<common::LogicalType>(common::LogicalTypeID::STRING);
+                // LCOV_EXCL_START
             default:
                 throw common::CopyException(
                     "UTF8 converted type can only be set for Type::(FIXED_LEN_)BYTE_ARRAY");
+                // LCOV_EXCL_STOP
             }
-        case ConvertedType::TIME_MILLIS:
-        case ConvertedType::TIME_MICROS:
-        case ConvertedType::INTERVAL:
-        case ConvertedType::JSON:
-        case ConvertedType::MAP:
-        case ConvertedType::MAP_KEY_VALUE:
-        case ConvertedType::LIST:
-        case ConvertedType::BSON:
-        case ConvertedType::UINT_8:
-        case ConvertedType::UINT_16:
-        case ConvertedType::UINT_32:
-        case ConvertedType::UINT_64:
-        case ConvertedType::TIMESTAMP_MICROS:
-        case ConvertedType::TIMESTAMP_MILLIS:
-        case ConvertedType::DECIMAL:
         default:
+            // LCOV_EXCL_START
             throw common::CopyException{"Unsupported converted type"};
+            // LCOV_EXCL_STOP
         }
     } else {
         // no converted type set

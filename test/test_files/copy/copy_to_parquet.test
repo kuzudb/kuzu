@@ -5,19 +5,19 @@
 
 -CASE TinySnbCopyToParquet
 
--LOG CopyPersonToParquet
--STATEMENT COPY (MATCH (p:person) RETURN p.ID, p.fName, p.gender, p.isStudent, p.age, p.eyeSight, p.height, p.birthdate, p.workedHours, p.usedNames, p.courseScoresPerTerm) TO "${DATABASE_PATH}/person.parquet"
+-CASE CopyPersonToParquet
+-STATEMENT COPY (MATCH (p:person) return p.ID, p.fName, p.gender, p.isStudent, p.isWorker, p.age, p.eyeSight, p.birthdate, p.lastJobDuration, p.workedHours, p.usedNames, p.courseScoresPerTerm, p.height) to '${DATABASE_PATH}/tinysnb.parquet';
 ---- ok
--STATEMENT LOAD FROM "${DATABASE_PATH}/person.parquet" RETURN *;
+-STATEMENT LOAD FROM '${DATABASE_PATH}/tinysnb.parquet' RETURN *;
 ---- 8
-0|Alice|1|True|35|5.000000|1.731000|1900-01-01|[10,5]|[Aida]|[[10,8],[6,7,8]]
-2|Bob|2|True|30|5.100000|0.990000|1900-01-01|[12,8]|[Bobby]|[[8,9],[9,10]]
-3|Carol|1|False|45|5.000000|1.000000|1940-06-22|[4,5]|[Carmen,Fred]|[[8,10]]
-5|Dan|2|False|20|4.800000|1.300000|1950-07-23|[1,9]|[Wolfeschlegelstein,Daniel]|[[7,4],[8,8],[9]]
-7|Elizabeth|1|False|20|4.700000|1.463000|1980-10-26|[2]|[Ein]|[[6],[7],[8]]
-8|Farooq|2|True|25|4.500000|1.510000|1980-10-26|[3,4,5,6,7]|[Fesdwe]|[[8]]
-9|Greg|2|False|40|4.900000|1.600000|1980-10-26|[1]|[Grad]|[[10]]
-10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|False|83|4.900000|1.323000|1990-11-27|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]|[[7],[10],[6,7]]
+0|Alice|1|True|False|35|5.000000|1900-01-01|3 years 2 days 13:02:00|[10,5]|[Aida]|[[10,8],[6,7,8]]|1.731000
+2|Bob|2|True|False|30|5.100000|1900-01-01|10 years 5 months 13:00:00|[12,8]|[Bobby]|[[8,9],[9,10]]|0.990000
+3|Carol|1|False|True|45|5.000000|1940-06-22|48:24:11|[4,5]|[Carmen,Fred]|[[8,10]]|1.000000
+5|Dan|2|False|True|20|4.800000|1950-07-23|10 years 5 months 13:00:00|[1,9]|[Wolfeschlegelstein,Daniel]|[[7,4],[8,8],[9]]|1.300000
+7|Elizabeth|1|False|True|20|4.700000|1980-10-26|48:24:11|[2]|[Ein]|[[6],[7],[8]]|1.463000
+8|Farooq|2|True|False|25|4.500000|1980-10-26|00:18:00.024|[3,4,5,6,7]|[Fesdwe]|[[8]]|1.510000
+9|Greg|2|False|False|40|4.900000|1980-10-26|10 years 5 months 13:00:00|[1]|[Grad]|[[10]]|1.600000
+10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|False|True|83|4.900000|1990-11-27|3 years 2 days 13:02:00|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]|[[7],[10],[6,7]]|1.323000
 
 -LOG CopyOrganisationToParquet
 -STATEMENT COPY (MATCH (o:organisation) RETURN o.ID, o.state) TO "${DATABASE_PATH}/organisation.parquet"
@@ -27,6 +27,24 @@
 1|{revenue: 138, location: ['toronto', 'montr,eal'], stock: {price: [96,56], volume: 1000}}
 4|{revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}
 6|{revenue: 558, location: ['very long city name', 'new york'], stock: {price: [22], volume: 99}}
+
+-LOG CopyMoviesToParquet
+-STATEMENT COPY (MATCH (m:movies) RETURN m.length, m.audience) TO "${DATABASE_PATH}/movies.parquet"
+---- ok
+-STATEMENT LOAD FROM "${DATABASE_PATH}/movies.parquet" RETURN *;
+---- 3
+126|{audience1=52, audience53=42}
+2544|{audience1=33}
+298|{}
+
+-LOG CopyStudyAtToParquet
+-STATEMENT COPY (match (:person)-[s:studyAt]->(:organisation) return s.*) to "${DATABASE_PATH}/studyAt.parquet"
+---- ok
+-STATEMENT LOAD FROM "${DATABASE_PATH}/studyAt.parquet" RETURN *;
+---- 3
+2021|[wwAewsdndweusd,wek]|5|5|9223372036854775808|32800|33768|250|1844674407370955161600000000.000000
+2020|[anew,jsdnwusklklklwewsd]|55|120|6689|1|90|220|-1844674407370955161600.000000
+2020|[awndsnjwejwen,isuhuwennjnuhuhuwewe]|22|2|23|20|180|12|-15.000000
 
 -LOG CopyEmptyListToParquet
 -STATEMENT COPY (RETURN null,[], [1,null,3], [[1],null,[3,4,5]], [[], ["a"]]) TO "${DATABASE_PATH}/emptyList.parquet"

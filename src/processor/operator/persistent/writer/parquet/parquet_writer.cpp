@@ -54,17 +54,24 @@ Type::type ParquetWriter::convertToParquetType(LogicalType* type) {
     case LogicalTypeID::INT8:
     case LogicalTypeID::INT16:
     case LogicalTypeID::INT32:
+    case LogicalTypeID::UINT8:
+    case LogicalTypeID::UINT16:
+    case LogicalTypeID::UINT32:
     case LogicalTypeID::DATE:
         return Type::INT32;
+    case LogicalTypeID::UINT64:
     case LogicalTypeID::INT64:
         return Type::INT64;
     case LogicalTypeID::FLOAT:
         return Type::FLOAT;
+    case LogicalTypeID::INT128:
     case LogicalTypeID::DOUBLE:
         return Type::DOUBLE;
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING:
         return Type::BYTE_ARRAY;
+    case LogicalTypeID::INTERVAL:
+        return Type::FIXED_LEN_BYTE_ARRAY;
     default:
         throw NotImplementedException("ParquetWriter::convertToParquetType");
     }
@@ -88,12 +95,34 @@ void ParquetWriter::setSchemaProperties(LogicalType* type, SchemaElement& schema
         schemaElement.converted_type = ConvertedType::INT_64;
         schemaElement.__isset.converted_type = true;
     } break;
+    case LogicalTypeID::UINT8: {
+        schemaElement.converted_type = ConvertedType::UINT_8;
+        schemaElement.__isset.converted_type = true;
+    } break;
+    case LogicalTypeID::UINT16: {
+        schemaElement.converted_type = ConvertedType::UINT_16;
+        schemaElement.__isset.converted_type = true;
+    } break;
+    case LogicalTypeID::UINT32: {
+        schemaElement.converted_type = ConvertedType::UINT_32;
+        schemaElement.__isset.converted_type = true;
+    } break;
+    case LogicalTypeID::UINT64: {
+        schemaElement.converted_type = ConvertedType::UINT_64;
+        schemaElement.__isset.converted_type = true;
+    } break;
     case LogicalTypeID::DATE: {
         schemaElement.converted_type = ConvertedType::DATE;
         schemaElement.__isset.converted_type = true;
     } break;
     case LogicalTypeID::STRING: {
         schemaElement.converted_type = ConvertedType::UTF8;
+        schemaElement.__isset.converted_type = true;
+    } break;
+    case LogicalTypeID::INTERVAL: {
+        schemaElement.type_length = common::ParquetConstants::PARQUET_INTERVAL_SIZE;
+        schemaElement.converted_type = ConvertedType::INTERVAL;
+        schemaElement.__isset.type_length = true;
         schemaElement.__isset.converted_type = true;
     } break;
     default:

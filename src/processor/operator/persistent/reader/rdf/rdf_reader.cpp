@@ -8,7 +8,6 @@
 #include "common/vector/value_vector.h"
 #include "serd.h"
 #include "storage/index/hash_index.h"
-#include "storage/store/table_copy_utils.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
