@@ -461,6 +461,16 @@ std::unique_ptr<common::LogicalType> ParquetReader::deriveLogicalType(
                     "DATE converted type can only be set for value of Type::INT32"};
                 // LCOV_EXCL_STOP
             }
+        case ConvertedType::TIMESTAMP_MICROS:
+        case ConvertedType::TIMESTAMP_MILLIS:
+            if (s_ele.type == Type::INT64) {
+                return std::make_unique<common::LogicalType>(common::LogicalTypeID::TIMESTAMP);
+            } else {
+                // LCOV_EXCL_START
+                throw common::CopyException(
+                    "TIMESTAMP converted type can only be set for value of Type::INT64");
+                // LCOV_EXCL_STOP
+            }
         case ConvertedType::INTERVAL: {
             return std::make_unique<common::LogicalType>(common::LogicalTypeID::INTERVAL);
         }
@@ -490,13 +500,16 @@ std::unique_ptr<common::LogicalType> ParquetReader::deriveLogicalType(
             return std::make_unique<common::LogicalType>(common::LogicalTypeID::INT32);
         case Type::INT64:
             return std::make_unique<common::LogicalType>(common::LogicalTypeID::INT64);
+        case Type::INT96:
+            return std::make_unique<common::LogicalType>(common::LogicalTypeID::TIMESTAMP);
         case Type::FLOAT:
             return std::make_unique<common::LogicalType>(common::LogicalTypeID::FLOAT);
         case Type::DOUBLE:
             return std::make_unique<common::LogicalType>(common::LogicalTypeID::DOUBLE);
         case Type::BYTE_ARRAY:
         case Type::FIXED_LEN_BYTE_ARRAY:
-            return std::make_unique<common::LogicalType>(common::LogicalTypeID::STRING);
+            // TODO(Ziyi): Support parquet copy option(binary_as_string).
+            return std::make_unique<common::LogicalType>(common::LogicalTypeID::BLOB);
         default:
             return std::make_unique<common::LogicalType>(common::LogicalTypeID::ANY);
         }

@@ -240,7 +240,7 @@ Value Util::TransformNapiValue(
             throw Exception("Expected a date for parameter " + key + ".");
         }
         auto napiDate = napiValue.As<Napi::Date>();
-        timestamp_t timestamp = Timestamp::fromEpochMs(napiDate.ValueOf());
+        timestamp_t timestamp = Timestamp::fromEpochMilliSeconds(napiDate.ValueOf());
         auto dateVal = Timestamp::getDate(timestamp);
         return Value(dateVal);
     }
@@ -249,7 +249,7 @@ Value Util::TransformNapiValue(
             throw Exception("Expected a date for parameter " + key + ".");
         }
         auto napiDate = napiValue.As<Napi::Date>();
-        timestamp_t timestamp = Timestamp::fromEpochMs(napiDate.ValueOf());
+        timestamp_t timestamp = Timestamp::fromEpochMilliSeconds(napiDate.ValueOf());
         return Value(timestamp);
     }
     case LogicalTypeID::INTERVAL: {

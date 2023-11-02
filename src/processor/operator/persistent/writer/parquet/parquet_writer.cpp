@@ -61,6 +61,7 @@ Type::type ParquetWriter::convertToParquetType(LogicalType* type) {
         return Type::INT32;
     case LogicalTypeID::UINT64:
     case LogicalTypeID::INT64:
+    case LogicalTypeID::TIMESTAMP:
         return Type::INT64;
     case LogicalTypeID::FLOAT:
         return Type::FLOAT;
@@ -124,6 +125,14 @@ void ParquetWriter::setSchemaProperties(LogicalType* type, SchemaElement& schema
         schemaElement.converted_type = ConvertedType::INTERVAL;
         schemaElement.__isset.type_length = true;
         schemaElement.__isset.converted_type = true;
+    } break;
+    case LogicalTypeID::TIMESTAMP: {
+        schemaElement.converted_type = ConvertedType::TIMESTAMP_MICROS;
+        schemaElement.__isset.converted_type = true;
+        schemaElement.__isset.logicalType = true;
+        schemaElement.logicalType.__isset.TIMESTAMP = true;
+        schemaElement.logicalType.TIMESTAMP.isAdjustedToUTC = false;
+        schemaElement.logicalType.TIMESTAMP.unit.__isset.MICROS = true;
     } break;
     default:
         break;

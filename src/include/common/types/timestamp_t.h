@@ -69,10 +69,16 @@ public:
     KUZU_API static void convert(timestamp_t timestamp, date_t& out_date, dtime_t& out_time);
 
     // Create a Timestamp object from the specified epochMs.
-    KUZU_API static timestamp_t fromEpochMs(int64_t epochMs);
+    KUZU_API static timestamp_t fromEpochMicroSeconds(int64_t epochMs);
+
+    // Create a Timestamp object from the specified epochMs.
+    KUZU_API static timestamp_t fromEpochMilliSeconds(int64_t ms);
 
     // Create a Timestamp object from the specified epochSec.
-    KUZU_API static timestamp_t fromEpochSec(int64_t epochSec);
+    KUZU_API static timestamp_t fromEpochSeconds(int64_t sec);
+
+    // Create a Timestamp object from the specified epochNs.
+    KUZU_API static timestamp_t fromEpochNanoSeconds(int64_t ns);
 
     KUZU_API static int32_t getTimestampPart(DatePartSpecifier specifier, timestamp_t& timestamp);
 
