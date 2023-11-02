@@ -1,5 +1,8 @@
 name: CI
 
+env:
+  WERROR: 1
+
 on:
   pull_request:
     branches:
@@ -180,6 +183,7 @@ jobs:
       CARGO_BUILD_JOBS: 18
       NUM_THREADS: 18
       TEST_JOBS: 9
+      WERROR: 0
     steps:
       - uses: actions/checkout@v3
 

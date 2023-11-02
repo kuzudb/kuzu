@@ -6,11 +6,7 @@
 #include <regex>
 
 #include "catalog/catalog.h"
-#include "common/logging_level_utils.h"
 #include "common/string_utils.h"
-#include "common/type_utils.h"
-#include "json.hpp"
-#include "processor/result/factorized_table.h"
 #include "utf8proc.h"
 #include "utf8proc_wrapper.h"
 
@@ -260,7 +256,7 @@ void EmbeddedShell::run() {
     }
 }
 
-void EmbeddedShell::interruptHandler(int  /*signal*/) {
+void EmbeddedShell::interruptHandler(int /*signal*/) {
     globalConnection->interrupt();
 }
 
@@ -352,7 +348,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         if (numTuples == 1) {
             printf("(1 tuple)\n");
         } else {
-            printf("(%lu tuples)\n", numTuples);
+            printf("(%" PRIu64 " tuples)\n", numTuples);
         }
         printf("Time: %.2fms (compiling), %.2fms (executing)\n", querySummary->getCompilingTime(),
             querySummary->getExecutionTime());

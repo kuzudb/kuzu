@@ -427,8 +427,8 @@ bool CastInt128ToFloating(int128_t input, REAL_T& result) {
         result = -REAL_T(function::NumericLimits<uint64_t>::maximum() - input.low) - 1;
         break;
     default:
-        result =
-            REAL_T(input.high) * function::NumericLimits<uint64_t>::maximum() + REAL_T(input.low);
+        result = REAL_T(input.high) * REAL_T(function::NumericLimits<uint64_t>::maximum()) +
+                 REAL_T(input.low);
         break;
     }
     return true;
