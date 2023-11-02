@@ -1,6 +1,9 @@
 #pragma once
 
-#include "binder/expression/expression.h"
+#include <cmath>
+
+#include "common/types/int128_t.h"
+#include "common/types/interval_t.h"
 #include "comparison_functions.h"
 #include "function/scalar_function.h"
 

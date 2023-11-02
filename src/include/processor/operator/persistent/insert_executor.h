@@ -3,6 +3,7 @@
 #include "expression_evaluator/expression_evaluator.h"
 #include "processor/execution_context.h"
 #include "storage/store/node_table.h"
+#include "storage/store/rel_table.h"
 
 namespace kuzu {
 namespace processor {

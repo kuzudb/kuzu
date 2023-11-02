@@ -1,8 +1,13 @@
 #pragma once
+
+#include <memory>
 #include <optional>
 #include <set>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
-#include "main/kuzu.h"
+#include "common/constants.h"
 
 namespace kuzu {
 namespace testing {

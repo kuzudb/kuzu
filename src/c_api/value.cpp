@@ -9,10 +9,8 @@
 #include "common/types/value/recursive_rel.h"
 #include "common/types/value/rel.h"
 #include "function/cast/functions/cast_string_to_functions.h"
-#include "main/kuzu.h"
 
 using namespace kuzu::common;
-using namespace kuzu::main;
 
 kuzu_value* kuzu_value_create_null() {
     auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));

@@ -1,6 +1,6 @@
 #include "common/types/types.h"
 
-#include <stdexcept>
+#include <cmath>
 
 #include "common/constants.h"
 #include "common/exception/binder.h"

@@ -1,5 +1,7 @@
 #include "function/cast/vector_cast_functions.h"
 
+#include "function/cast/functions/cast_functions.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

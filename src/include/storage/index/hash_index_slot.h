@@ -4,7 +4,6 @@
 
 #include "common/constants.h"
 #include "common/types/internal_id_t.h"
-#include "common/types/ku_string.h"
 
 namespace kuzu {
 namespace storage {

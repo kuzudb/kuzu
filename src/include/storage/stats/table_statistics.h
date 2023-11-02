@@ -1,9 +1,6 @@
 #pragma once
 
-#include <atomic>
-#include <mutex>
-
-#include "storage/stats/metadata_dah_info.h"
+#include "common/enums/table_type.h"
 #include "storage/stats/property_statistics.h"
 
 namespace kuzu {

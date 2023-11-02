@@ -1,9 +1,11 @@
 #include "function/aggregate_function.h"
 
+#include "common/exception/not_implemented.h"
+#include "common/types/interval_t.h"
 #include "function/aggregate/avg.h"
-#include "function/aggregate/collect.h"
 #include "function/aggregate/min_max.h"
 #include "function/aggregate/sum.h"
+#include "function/comparison/comparison_functions.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;

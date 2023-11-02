@@ -1,4 +1,6 @@
-#include "main/kuzu.h"
+#include <algorithm>
+#include <string>
+#include <vector>
 
 namespace kuzu {
 namespace testing {

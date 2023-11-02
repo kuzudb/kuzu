@@ -1,5 +1,10 @@
 #include "function/arithmetic/vector_arithmetic_functions.h"
 
+#include "common/types/date_t.h"
+#include "common/types/interval_t.h"
+#include "common/types/timestamp_t.h"
+#include "function/arithmetic/arithmetic_functions.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

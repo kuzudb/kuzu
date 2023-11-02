@@ -3,7 +3,6 @@
 #include <memory>
 
 #include "storage/local_storage.h"
-#include "transaction_action.h"
 
 namespace kuzu {
 namespace transaction {

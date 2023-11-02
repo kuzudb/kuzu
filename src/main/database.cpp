@@ -9,10 +9,12 @@
 #include "common/exception/exception.h"
 #include "common/file_utils.h"
 #include "common/logging_level_utils.h"
+#include "common/utils.h"
 #include "processor/processor.h"
 #include "spdlog/spdlog.h"
 #include "storage/storage_manager.h"
 #include "storage/wal_replayer.h"
+#include "transaction/transaction_action.h"
 #include "transaction/transaction_manager.h"
 
 using namespace kuzu::catalog;

@@ -1,6 +1,7 @@
+#include "main/query_result.h"
+
 #include "c_api/helpers.h"
 #include "c_api/kuzu.h"
-#include "main/kuzu.h"
 
 using namespace kuzu::main;
 using namespace kuzu::common;

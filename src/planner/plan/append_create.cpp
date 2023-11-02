@@ -1,5 +1,4 @@
-#include "binder/query/updating_clause/bound_insert_clause.h"
-#include "binder/query/updating_clause/bound_set_clause.h"
+#include "binder/query/updating_clause/bound_insert_info.h"
 #include "planner/operator/persistent/logical_insert.h"
 #include "planner/query_planner.h"
 

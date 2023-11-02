@@ -2,7 +2,7 @@
 
 #include <array>
 #include <cstdint>
-#include <limits>
+#include <cstring>
 
 #include "common/types/types.h"
 

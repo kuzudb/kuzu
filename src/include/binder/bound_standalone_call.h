@@ -1,5 +1,6 @@
 #pragma once
 
+#include "binder/bound_statement.h"
 #include "binder/expression/expression.h"
 #include "main/db_config.h"
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include "common/enums/explain_type.h"
 #include "parser/statement.h"
 

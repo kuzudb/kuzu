@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <numeric>
 #include <unordered_map>
 
@@ -7,9 +8,7 @@
 #include "common/types/value/value.h"
 #include "common/vector/value_vector.h"
 #include "processor/data_pos.h"
-#include "processor/result/flat_tuple.h"
 #include "storage/buffer_manager/memory_manager.h"
-#include "storage/storage_structure/disk_overflow_file.h"
 
 namespace kuzu {
 namespace processor {
@@ -221,7 +220,7 @@ public:
 
     bool hasUnflatCol() const;
     inline bool hasUnflatCol(std::vector<ft_col_idx_t>& colIdxes) const {
-        return any_of(colIdxes.begin(), colIdxes.end(),
+        return std::any_of(colIdxes.begin(), colIdxes.end(),
             [this](ft_col_idx_t colIdx) { return !tableSchema->getColumn(colIdx)->isFlat(); });
     }
 

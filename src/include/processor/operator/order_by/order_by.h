@@ -1,7 +1,5 @@
 #pragma once
 
-#include "common/data_chunk/data_chunk_state.h"
-#include "common/in_mem_overflow_buffer.h"
 #include "processor/operator/sink.h"
 #include "processor/result/result_set.h"
 #include "sort_state.h"

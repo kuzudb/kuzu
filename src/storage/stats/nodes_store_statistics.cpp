@@ -1,8 +1,5 @@
 #include "storage/stats/nodes_store_statistics.h"
 
-#include "common/constants.h"
-#include "common/string_utils.h"
-
 using namespace kuzu::common;
 
 namespace kuzu {

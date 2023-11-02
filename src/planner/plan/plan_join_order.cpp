@@ -1,8 +1,10 @@
 #include "binder/expression_visitor.h"
+#include "common/exception/not_implemented.h"
 #include "planner/join_order/cost_model.h"
 #include "planner/operator/scan/logical_scan_internal_id.h"
 #include "planner/query_planner.h"
 
+using namespace kuzu::binder;
 using namespace kuzu::common;
 
 namespace kuzu {

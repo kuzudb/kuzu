@@ -1,7 +1,7 @@
 #include "processor/operator/persistent/writer/parquet/column_writer.h"
 
 #include "common/exception/not_implemented.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "function/cast/functions/numeric_limits.h"
 #include "processor/operator/persistent/writer/parquet/boolean_column_writer.h"
 #include "processor/operator/persistent/writer/parquet/interval_column_writer.h"

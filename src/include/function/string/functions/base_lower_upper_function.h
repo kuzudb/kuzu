@@ -1,12 +1,8 @@
 #pragma once
 
-#include <cassert>
-#include <cstring>
-
 #include "common/api.h"
 #include "common/types/ku_string.h"
 #include "common/vector/value_vector.h"
-#include "utf8proc.h"
 
 namespace kuzu {
 namespace function {

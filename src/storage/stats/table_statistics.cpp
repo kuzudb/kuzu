@@ -1,6 +1,7 @@
 #include "storage/stats/table_statistics.h"
 
 #include "catalog/table_schema.h"
+#include "common/exception/not_implemented.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "storage/stats/node_table_statistics.h"

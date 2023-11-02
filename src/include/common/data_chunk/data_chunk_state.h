@@ -1,8 +1,5 @@
 #pragma once
 
-#include <cstring>
-#include <vector>
-
 #include "common/data_chunk/sel_vector.h"
 
 namespace kuzu {

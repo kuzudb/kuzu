@@ -1,17 +1,10 @@
 #pragma once
 
-#include <cstring>
-
 #include "c_api/kuzu.h"
-#include "common/file_utils.h"
 #include "graph_test/api_graph_test.h"
-#include "gtest/gtest.h"
-#include "main/kuzu.h"
-#include "parser/parser.h"
-#include "test_helper/test_helper.h"
 
-using ::testing::Test;
-using namespace kuzu::testing;
+namespace kuzu {
+namespace testing {
 
 class CApiTest : public APIDBTest {
 public:
@@ -44,3 +37,6 @@ public:
         APIDBTest::TearDown();
     }
 };
+
+} // namespace testing
+} // namespace kuzu

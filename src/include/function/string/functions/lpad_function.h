@@ -1,8 +1,5 @@
 #pragma once
 
-#include <cassert>
-#include <cstring>
-
 #include "base_pad_function.h"
 #include "common/types/ku_string.h"
 

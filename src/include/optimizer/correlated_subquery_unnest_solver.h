@@ -1,7 +1,6 @@
 #pragma once
 
 #include "logical_operator_visitor.h"
-#include "planner/operator/logical_plan.h"
 
 namespace kuzu {
 namespace optimizer {

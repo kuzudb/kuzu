@@ -4,6 +4,7 @@
 #include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
+#include "common/exception/not_implemented.h"
 
 namespace kuzu {
 namespace function {

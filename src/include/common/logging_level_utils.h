@@ -1,6 +1,6 @@
 #pragma once
 
-#include "spdlog/spdlog.h"
+#include "spdlog/spdlog.h" // IWYU pragma: keep: this is the public header.
 
 namespace kuzu {
 namespace common {

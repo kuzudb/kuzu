@@ -1,8 +1,5 @@
 #pragma once
 
-#include <functional>
-
-#include "common/type_utils.h"
 #include "common/vector/value_vector.h"
 
 namespace kuzu {

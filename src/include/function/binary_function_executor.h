@@ -1,10 +1,6 @@
 #pragma once
 
-#include <functional>
-
-#include "common/type_utils.h"
 #include "common/vector/value_vector.h"
-#include "function/comparison/comparison_functions.h"
 
 namespace kuzu {
 namespace function {

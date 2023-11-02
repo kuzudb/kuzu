@@ -1,9 +1,7 @@
 #pragma once
 
-#include <cassert>
-#include <cstring>
-
-#include "common/types/ku_list.h"
+#include "common/vector/value_vector.h"
+#include "function/comparison/comparison_functions.h"
 
 namespace kuzu {
 namespace function {

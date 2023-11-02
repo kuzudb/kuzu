@@ -1,11 +1,12 @@
 #include "graph_test/base_graph_test.h"
 
-#include "binder/binder.h"
+#include <fstream>
+
 #include "common/string_format.h"
 #include "spdlog/spdlog.h"
 
-using ::testing::Test;
 using namespace kuzu::common;
+using namespace kuzu::main;
 
 namespace kuzu {
 namespace testing {

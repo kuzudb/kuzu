@@ -1,8 +1,6 @@
 #include "c_api/kuzu.h"
 #include "common/types/types.h"
-#include "main/kuzu.h"
 
-using namespace kuzu::main;
 using namespace kuzu::common;
 
 kuzu_logical_type* kuzu_data_type_create(

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/copier_config/copier_config.h"
-#include "processor/result/result_set.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
 
 namespace kuzu {
 namespace processor {

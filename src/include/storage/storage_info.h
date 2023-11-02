@@ -1,9 +1,7 @@
 #pragma once
 
-#include "exception"
 #include <string>
-
-#include "common/utils.h"
+#include <unordered_map>
 
 namespace kuzu {
 namespace storage {

@@ -1,9 +1,8 @@
 #include "processor/operator/persistent/reader_functions.h"
 
-#include "common/exception/copy.h"
+#include "common/enums/table_type.h"
 
 using namespace kuzu::common;
-using namespace kuzu::catalog;
 using namespace kuzu::storage;
 
 namespace kuzu {

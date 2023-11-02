@@ -4,6 +4,7 @@
 
 #include "common/constants.h"
 #include "common/exception/copy.h"
+#include "common/exception/not_implemented.h"
 #include "common/string_format.h"
 #include "common/vector/value_vector.h"
 #include "serd.h"
@@ -141,9 +142,9 @@ SerdStatus RDFReader::readerStatementSink(void* handle, SerdStatementFlags /*fla
         reader->vectorSize++;
         reader->rowOffset++;
     } break;
-        // LCOV_EXCL_START
     default:
-        throw common::NotImplementedException("RDFReader::statementSink");
+        // LCOV_EXCL_START
+        throw NotImplementedException("RDFReader::statementSink");
         // LCOV_EXCL_STOP
     }
 

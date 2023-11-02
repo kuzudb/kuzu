@@ -1,6 +1,7 @@
 #include "expression_evaluator/path_evaluator.h"
 
 #include "binder/expression/path_expression.h"
+#include "binder/expression/rel_expression.h"
 #include "common/string_utils.h"
 
 using namespace kuzu::common;

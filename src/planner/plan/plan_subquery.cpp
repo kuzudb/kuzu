@@ -1,7 +1,10 @@
 #include "binder/expression/existential_subquery_expression.h"
+#include "binder/expression/expression_util.h"
 #include "binder/expression_visitor.h"
+#include "common/exception/not_implemented.h"
 #include "planner/query_planner.h"
 
+using namespace kuzu::binder;
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -99,8 +102,10 @@ void QueryPlanner::planExistsSubquery(
     auto predicates = subquery->getPredicatesSplitOnAnd();
     auto correlatedExpressions = outerPlan.getSchema()->getSubExpressionsInScope(subquery);
     if (correlatedExpressions.empty()) {
-        throw common::NotImplementedException(
+        // LCOV_EXCL_START
+        throw NotImplementedException(
             "Exists subquery with no correlated join conditions is not yet supported.");
+        // LCOV_EXCL_END
     }
     // See planOptionalMatch for un-nesting logic.
     bool isInternalIDCorrelated = ExpressionUtil::isExpressionsWithDataType(

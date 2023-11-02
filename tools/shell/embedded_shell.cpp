@@ -4,6 +4,7 @@
 #include <cctype>
 #include <csignal>
 #include <regex>
+#include <sstream>
 
 #include "catalog/catalog.h"
 #include "common/string_utils.h"

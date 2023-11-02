@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "common/arrow/arrow.h"
-#include "common/types/types.h"
 #include "main/query_result.h"
 
 struct ArrowSchema;

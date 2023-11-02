@@ -1,6 +1,7 @@
 #include "storage/wal_replayer_utils.h"
 
 #include "catalog/node_table_schema.h"
+#include "common/exception/not_implemented.h"
 #include "storage/index/hash_index_builder.h"
 
 using namespace kuzu::catalog;

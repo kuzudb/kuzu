@@ -2,7 +2,9 @@
 
 #include "processor/execution_context.h"
 #include "processor/result/result_set.h"
+#include "storage/stats/rels_store_statistics.h"
 #include "storage/store/node_table.h"
+#include "storage/store/rel_table.h"
 
 namespace kuzu {
 namespace processor {

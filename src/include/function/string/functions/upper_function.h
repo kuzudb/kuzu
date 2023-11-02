@@ -1,9 +1,8 @@
 #pragma once
 
-#include <cassert>
-#include <cstring>
-
 #include "common/types/ku_string.h"
+#include "common/vector/value_vector.h"
+#include "function/string/functions/base_lower_upper_function.h"
 
 namespace kuzu {
 namespace function {

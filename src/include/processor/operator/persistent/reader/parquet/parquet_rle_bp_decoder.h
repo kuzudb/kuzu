@@ -1,9 +1,7 @@
 #pragma once
 
 #include "decode_utils.h"
-#include "parquet/parquet_types.h"
 #include "resizable_buffer.h"
-#include "thrift_tools.h"
 
 namespace kuzu {
 namespace processor {

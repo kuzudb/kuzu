@@ -6,6 +6,8 @@
 #include "planner/operator/ddl/logical_drop_table.h"
 #include "planner/planner.h"
 
+using namespace kuzu::binder;
+
 namespace kuzu {
 namespace planner {
 

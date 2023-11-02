@@ -1,9 +1,11 @@
 #pragma once
 
 #include "common/types/types.h"
-#include "transaction/transaction.h"
 
 namespace kuzu {
+namespace transaction {
+class Transaction;
+};
 namespace storage {
 
 class PropertyStatistics {

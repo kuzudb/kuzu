@@ -1,8 +1,14 @@
 #include "processor/operator/persistent/reader/csv/base_csv_reader.h"
 
+#include <fcntl.h>
+#if defined(_WIN32)
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
+
 #include <vector>
 
-#include "common/data_chunk/data_chunk.h"
 #include "common/exception/copy.h"
 #include "common/string_format.h"
 #include "common/system_message.h"

@@ -1,5 +1,7 @@
 #include "main/storage_driver.h"
 
+#include <thread>
+
 #include "storage/storage_manager.h"
 
 using namespace kuzu::common;

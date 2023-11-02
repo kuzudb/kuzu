@@ -1,5 +1,6 @@
 #include "binder/rewriter/with_clause_projection_rewriter.h"
 
+#include "binder/expression/property_expression.h"
 #include "binder/visitor/property_collector.h"
 
 using namespace kuzu::common;

@@ -5,7 +5,6 @@
 #include <mutex>
 #include <stack>
 
-#include "common/constants.h"
 #include "common/types/types.h"
 
 namespace kuzu {

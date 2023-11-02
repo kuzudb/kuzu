@@ -1,7 +1,5 @@
 #pragma once
 
-#include <functional>
-
 #include "common/vector/value_vector.h"
 #include "function/hash/hash_functions.h"
 

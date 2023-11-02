@@ -1,14 +1,11 @@
 #include "storage/store/column_chunk.h"
 
-#include "common/types/value/nested.h"
-#include "storage/storage_structure/db_file_utils.h"
 #include "storage/store/compression.h"
 #include "storage/store/string_column_chunk.h"
 #include "storage/store/struct_column_chunk.h"
 #include "storage/store/var_list_column_chunk.h"
 
 using namespace kuzu::common;
-using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace storage {

@@ -2,7 +2,6 @@
 
 #include "optimizer/factorization_rewriter.h"
 #include "optimizer/remove_factorization_rewriter.h"
-#include "planner/operator/factorization/sink_util.h"
 
 namespace kuzu {
 namespace planner {

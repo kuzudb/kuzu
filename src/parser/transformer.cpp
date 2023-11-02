@@ -3,7 +3,7 @@
 #include "common/exception/not_implemented.h"
 #include "common/string_utils.h"
 #include "parser/explain_statement.h"
-#include "parser/query/regular_query.h"
+#include "parser/query/regular_query.h" // IWYU pragma: keep (fixes a forward declaration error)
 
 using namespace kuzu::common;
 

@@ -1,9 +1,7 @@
 #pragma once
 
-#include <cassert>
 #include <cstring>
 
-#include "common/types/ku_list.h"
 #include "common/types/ku_string.h"
 #include "utf8proc.h"
 

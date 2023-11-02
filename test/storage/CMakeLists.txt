@@ -1,3 +1,2 @@
-#add_kuzu_test(disk_array_update_test disk_array_update_test.cpp)
 add_kuzu_test(node_insertion_deletion_test node_insertion_deletion_test.cpp)
 add_kuzu_test(compression_test compression_test.cpp)

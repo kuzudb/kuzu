@@ -1,5 +1,6 @@
 #include "common/string_utils.h"
 
+#include <sstream>
 #include <vector>
 
 namespace kuzu {

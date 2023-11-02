@@ -4,6 +4,7 @@
 #include "common/types/types.h"
 #include "db_file_utils.h"
 #include "storage/buffer_manager/bm_file_handle.h"
+#include "storage/storage_utils.h"
 #include "storage/wal/wal.h"
 #include "transaction/transaction.h"
 

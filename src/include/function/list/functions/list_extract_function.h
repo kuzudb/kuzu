@@ -1,8 +1,6 @@
 #pragma once
 
-#include <cassert>
-#include <cstring>
-
+#include "common/type_utils.h"
 #include "common/types/ku_string.h"
 #include "common/vector/value_vector.h"
 #include "function/string/functions/array_extract_function.h"

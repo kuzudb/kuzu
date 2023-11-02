@@ -5,7 +5,6 @@
 
 #include "common/vector/value_vector.h"
 #include "function/function.h"
-#include "function/scalar_function.h"
 
 namespace kuzu {
 namespace function {

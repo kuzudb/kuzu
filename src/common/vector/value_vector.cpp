@@ -1,5 +1,6 @@
 #include "common/vector/value_vector.h"
 
+#include "common/exception/not_implemented.h"
 #include "common/null_buffer.h"
 #include "common/types/value/nested.h"
 #include "common/types/value/value.h"

@@ -2,7 +2,6 @@
 
 #include "parquet/parquet_types.h"
 #include "parquet_rle_bp_encoder.h"
-#include "processor/operator/persistent/reader/parquet/parquet_rle_bp_decoder.h"
 #include "processor/operator/persistent/writer/parquet/basic_column_writer.h"
 
 namespace kuzu {

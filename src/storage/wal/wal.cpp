@@ -1,7 +1,8 @@
 #include "storage/wal/wal.h"
 
+#include "common/exception/runtime.h"
 #include "common/utils.h"
-#include "spdlog/spdlog.h"
+#include "spdlog/spdlog.h" // IWYU pragma: keep: public interface to spdlog.
 #include "storage/storage_utils.h"
 
 using namespace kuzu::common;
@@ -193,7 +194,7 @@ WALIterator::WALIterator(std::shared_ptr<BMFileHandle> fileHandle, std::mutex& m
 void WALIterator::getNextRecord(WALRecord& retVal) {
     lock_t lck{mtx};
     if (!hasNextRecordNoLock()) {
-        throw RuntimeException("WALIterator cannot read  more log records from the WAL.");
+        throw RuntimeException("WALIterator cannot read more log records from the WAL.");
     }
     WALRecord::constructWALRecordFromBytes(
         retVal, currentHeaderPageBuffer.get(), offsetInCurrentHeaderPage);

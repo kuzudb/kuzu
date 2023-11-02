@@ -1,7 +1,6 @@
 #include "processor/plan_mapper.h"
 
-#include <set>
-
+#include "common/exception/not_implemented.h"
 #include "processor/operator/profile.h"
 
 using namespace kuzu::common;

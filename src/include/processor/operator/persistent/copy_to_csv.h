@@ -3,7 +3,7 @@
 #include "common/file_utils.h"
 #include "common/serializer/buffered_serializer.h"
 #include "copy_to.h"
-#include "function/cast/vector_cast_functions.h"
+#include "function/scalar_function.h"
 
 namespace kuzu {
 namespace processor {

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstring>
-
 #include "common/file_utils.h"
 #include "common/string_format.h"
 #include "gtest/gtest.h"

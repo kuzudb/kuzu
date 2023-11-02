@@ -5,7 +5,6 @@
 #include <thread>
 
 #include "common/task_system/task.h"
-#include "common/utils.h"
 #include "processor/execution_context.h"
 
 namespace kuzu {

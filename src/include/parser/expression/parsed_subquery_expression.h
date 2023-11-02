@@ -2,7 +2,7 @@
 
 #include "common/exception/not_implemented.h"
 #include "parsed_expression.h"
-#include "parser/query/reading_clause/match_clause.h"
+#include "parser/query/graph_pattern/pattern_element.h"
 
 namespace kuzu {
 namespace parser {

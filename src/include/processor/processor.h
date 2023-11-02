@@ -1,11 +1,8 @@
 #pragma once
 
-#include <thread>
-
 #include "common/task_system/task_scheduler.h"
 #include "processor/physical_plan.h"
 #include "processor/result/factorized_table.h"
-#include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
 namespace processor {

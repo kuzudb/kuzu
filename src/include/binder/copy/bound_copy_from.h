@@ -3,7 +3,6 @@
 #include "binder/bound_statement.h"
 #include "bound_file_scan_info.h"
 #include "catalog/table_schema.h"
-#include "common/copier_config/copier_config.h"
 
 namespace kuzu {
 namespace binder {

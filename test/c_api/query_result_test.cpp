@@ -5,6 +5,7 @@
 using namespace kuzu::main;
 using namespace kuzu::common;
 using namespace kuzu::processor;
+using namespace kuzu::testing;
 
 class CApiQueryResultTest : public CApiTest {
 public:

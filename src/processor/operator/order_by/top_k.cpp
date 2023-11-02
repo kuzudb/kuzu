@@ -1,5 +1,8 @@
 #include "processor/operator/order_by/top_k.h"
 
+#include "function/binary_function_executor.h"
+#include "function/comparison/comparison_functions.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

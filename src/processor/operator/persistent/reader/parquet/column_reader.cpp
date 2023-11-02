@@ -1,5 +1,7 @@
 #include "processor/operator/persistent/reader/parquet/column_reader.h"
 
+#include <sstream>
+
 #include "common/exception/not_implemented.h"
 #include "common/types/date_t.h"
 #include "miniz_wrapper.hpp"

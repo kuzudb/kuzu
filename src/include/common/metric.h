@@ -1,7 +1,5 @@
 #pragma once
 
-#include <mutex>
-
 #include "common/timer.h"
 
 namespace kuzu {

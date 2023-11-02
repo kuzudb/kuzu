@@ -1,5 +1,11 @@
 #include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
 
+#if defined(_WIN32)
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
+
 #include "common/exception/copy.h"
 #include "common/string_format.h"
 #include "common/system_message.h"

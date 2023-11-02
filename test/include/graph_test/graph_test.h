@@ -1,17 +1,7 @@
-#include <cstring>
-
-#include "common/file_utils.h"
 #include "graph_test/base_graph_test.h"
-#include "gtest/gtest.h"
 #include "main/kuzu.h"
-#include "parser/parser.h"
-#include "planner/operator/logical_plan_util.h"
-#include "planner/planner.h"
-#include "test_helper/test_helper.h"
 #include "test_runner/test_runner.h"
 #include "transaction/transaction_context.h"
-
-using ::testing::Test;
 
 namespace kuzu {
 namespace testing {

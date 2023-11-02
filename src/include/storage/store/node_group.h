@@ -1,9 +1,8 @@
 #pragma once
 
-#include "catalog/catalog.h"
-#include "processor/result/result_set.h"
+#include "common/column_data_format.h"
+#include "common/data_chunk/data_chunk.h"
 #include "storage/store/column_chunk.h"
-#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace storage {

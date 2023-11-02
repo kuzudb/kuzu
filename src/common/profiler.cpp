@@ -1,7 +1,5 @@
 #include "common/profiler.h"
 
-#include <cassert>
-
 namespace kuzu {
 namespace common {
 

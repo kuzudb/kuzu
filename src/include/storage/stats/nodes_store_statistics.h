@@ -1,7 +1,10 @@
 #pragma once
 
+#include "catalog/node_table_schema.h"
 #include "storage/stats/node_table_statistics.h"
 #include "storage/stats/table_statistics_collection.h"
+#include "storage/storage_utils.h"
+#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace storage {

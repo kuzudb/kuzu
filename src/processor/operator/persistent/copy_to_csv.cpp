@@ -1,5 +1,7 @@
 #include "processor/operator/persistent/copy_to_csv.h"
 
+#include "function/cast/vector_cast_functions.h"
+
 namespace kuzu {
 namespace processor {
 

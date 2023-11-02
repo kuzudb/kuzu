@@ -1,6 +1,7 @@
 #include "storage/file_handle.h"
 
-#include "common/utils.h"
+#include <cmath>
+#include <mutex>
 
 using namespace kuzu::common;
 

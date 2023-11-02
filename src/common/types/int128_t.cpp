@@ -1,10 +1,8 @@
 #include "common/types/int128_t.h"
 
 #include <cmath>
-#include <limits>
 
 #include "common/exception/overflow.h"
-#include "common/types/ku_string.h"
 #include "function/cast/functions/numeric_limits.h"
 
 namespace kuzu::common {

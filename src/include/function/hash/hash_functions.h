@@ -1,12 +1,14 @@
 #pragma once
 
+#include <cmath>
 #include <cstdint>
 #include <unordered_set>
 
 #include "common/exception/runtime.h"
-#include "common/type_utils.h"
+#include "common/types/int128_t.h"
+#include "common/types/interval_t.h"
 #include "common/types/ku_list.h"
-#include "common/utils.h"
+#include "common/types/ku_string.h"
 
 namespace kuzu {
 namespace function {

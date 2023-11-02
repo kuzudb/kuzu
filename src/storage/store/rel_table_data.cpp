@@ -1,5 +1,6 @@
 #include "storage/store/rel_table_data.h"
 
+#include "common/assert.h"
 #include "storage/stats/rels_store_statistics.h"
 
 using namespace kuzu::catalog;

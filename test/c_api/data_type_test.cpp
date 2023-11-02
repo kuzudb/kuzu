@@ -1,5 +1,7 @@
-#include "c_api_test/c_api_test.h"
-using namespace kuzu::main;
+#include "c_api/kuzu.h"
+#include "common/types/types.h"
+#include "gtest/gtest.h"
+
 using namespace kuzu::common;
 
 TEST(CApiDataTypeTest, Create) {

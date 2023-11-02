@@ -1,6 +1,8 @@
 #include "binder/visitor/property_collector.h"
 #include "planner/query_planner.h"
 
+using namespace kuzu::binder;
+
 namespace kuzu {
 namespace planner {
 

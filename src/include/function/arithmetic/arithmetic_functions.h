@@ -4,7 +4,7 @@
 #include <cstdlib>
 
 #include "common/exception/runtime.h"
-#include "common/type_utils.h"
+#include "common/types/int128_t.h"
 
 namespace kuzu {
 namespace function {

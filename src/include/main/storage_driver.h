@@ -1,7 +1,5 @@
 #pragma once
 
-#include <queue>
-
 #include "common/types/internal_id_t.h"
 #include "database.h"
 

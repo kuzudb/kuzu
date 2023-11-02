@@ -5,6 +5,7 @@
 #include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
 #include "common/exception/catalog.h"
+#include "common/exception/not_implemented.h"
 #include "common/exception/runtime.h"
 #include "common/serializer/buffered_file.h"
 #include "common/serializer/deserializer.h"
@@ -216,9 +217,9 @@ ExpressionType CatalogContent::getFunctionType(const std::string& name) const {
             return FUNCTION;
         case function::FunctionType::AGGREGATE:
             return AGGREGATE_FUNCTION;
-            // LCOV_EXCL_START
         default:
-            throw NotImplementedException{"CatalogContent::getFunctionType"};
+            // LCOV_EXCL_START
+            throw NotImplementedException("CatalogContent::getFunctionType");
             // LCOV_EXCL_END
         }
     }

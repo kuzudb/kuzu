@@ -1,6 +1,7 @@
 #pragma once
 
-#include "binder/expression/expression.h"
+#include <memory>
+
 #include "common/enums/clause_type.h"
 
 namespace kuzu {

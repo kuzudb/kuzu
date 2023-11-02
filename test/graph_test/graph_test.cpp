@@ -2,10 +2,14 @@
 
 #include "binder/binder.h"
 #include "parser/parser.h"
+#include "planner/operator/logical_plan_util.h"
+#include "planner/planner.h"
 #include "spdlog/spdlog.h"
 #include "storage/storage_manager.h"
+#include "transaction/transaction_manager.h"
 
 using ::testing::Test;
+using namespace kuzu::binder;
 using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::planner;

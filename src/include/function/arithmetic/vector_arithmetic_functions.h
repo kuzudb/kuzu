@@ -1,6 +1,9 @@
 #pragma once
 
-#include "arithmetic_functions.h"
+#include <cmath>
+
+#include "common/exception/not_implemented.h"
+#include "common/types/int128_t.h"
 #include "function/scalar_function.h"
 
 namespace kuzu {

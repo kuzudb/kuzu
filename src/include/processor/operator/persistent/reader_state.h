@@ -1,6 +1,8 @@
 #pragma once
 
-#include "common/data_chunk/data_chunk.h"
+#include <atomic>
+
+#include "common/enums/table_type.h"
 #include "processor/operator/persistent/reader_functions.h"
 
 namespace kuzu {

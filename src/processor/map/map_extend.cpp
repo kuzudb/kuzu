@@ -1,6 +1,9 @@
+#include "binder/expression/property_expression.h"
+#include "common/exception/not_implemented.h"
 #include "planner/operator/extend/logical_extend.h"
-#include "processor/operator/filter.h"
 #include "processor/operator/scan/scan_multi_rel_tables.h"
+#include "processor/operator/scan/scan_rel_csr_columns.h"
+#include "processor/operator/scan/scan_rel_regular_columns.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::binder;

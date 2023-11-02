@@ -1,7 +1,6 @@
 #pragma once
 
 #include "graph_test/graph_test.h"
-#include "json.hpp"
 
 namespace kuzu {
 namespace testing {
@@ -20,7 +19,7 @@ public:
         return TestHelper::appendKuzuRootPath("dataset/tinysnb/");
     }
 
-    static void assertMatchPersonCountStar(Connection* conn) {
+    static void assertMatchPersonCountStar(main::Connection* conn) {
         auto result = conn->query("MATCH (a:person) RETURN COUNT(*)");
         ASSERT_TRUE(result->hasNext());
         auto tuple = result->getNext();
@@ -28,7 +27,7 @@ public:
         ASSERT_FALSE(result->hasNext());
     }
 
-    static void executeLongRunningQuery(Connection* conn) {
+    static void executeLongRunningQuery(main::Connection* conn) {
         auto result = conn->query("MATCH (a:person)-[:knows*1..28]->(b:person) RETURN COUNT(*)");
         ASSERT_FALSE(result->isSuccess());
         ASSERT_EQ(result->getErrorMessage(), "Interrupted.");

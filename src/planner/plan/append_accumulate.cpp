@@ -1,6 +1,7 @@
 #include "planner/operator/logical_accumulate.h"
 #include "planner/query_planner.h"
 
+using namespace kuzu::binder;
 using namespace kuzu::common;
 
 namespace kuzu {

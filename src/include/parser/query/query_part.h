@@ -1,8 +1,6 @@
 #pragma once
 
-#include <cassert>
-
-#include "parser/query/reading_clause/match_clause.h"
+#include "parser/query/reading_clause/reading_clause.h"
 #include "parser/query/return_with_clause/with_clause.h"
 #include "parser/query/updating_clause/updating_clause.h"
 

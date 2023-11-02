@@ -1,8 +1,4 @@
-#include <set>
-
 #include "binder/binder.h"
-#include "binder/expression/expression_util.h"
-#include "binder/expression/function_expression.h"
 #include "binder/expression/path_expression.h"
 #include "binder/expression/property_expression.h"
 #include "catalog/node_table_schema.h"
@@ -10,6 +6,7 @@
 #include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
+#include "common/exception/not_implemented.h"
 #include "common/string_format.h"
 #include "function/cast/functions/cast_string_to_functions.h"
 #include "main/client_context.h"

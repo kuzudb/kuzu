@@ -3,7 +3,6 @@
 #include "catalog/rel_table_schema.h"
 #include "common/column_data_format.h"
 #include "storage/stats/rel_table_statistics.h"
-#include "storage/storage_utils.h"
 #include "storage/store/rel_table_data.h"
 
 namespace kuzu {

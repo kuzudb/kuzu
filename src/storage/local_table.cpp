@@ -4,7 +4,6 @@
 #include "common/exception/runtime.h"
 #include "storage/store/node_table.h"
 #include "storage/store/string_column.h"
-#include "storage/store/string_column_chunk.h"
 #include "storage/store/struct_column.h"
 #include "storage/store/var_list_column.h"
 #include "storage/store/var_list_column_chunk.h"

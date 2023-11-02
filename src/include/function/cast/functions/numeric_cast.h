@@ -1,7 +1,7 @@
 #pragma once
 
+#include <cmath>
 #include <cstdint>
-#include <limits>
 
 #include "numeric_limits.h"
 

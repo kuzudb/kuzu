@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/api.h"
 #include "common/types/ku_string.h"
 
 namespace kuzu {

@@ -3,9 +3,11 @@
 #include <map>
 #include <set>
 
-#include "catalog/node_table_schema.h"
+#include "common/vector/value_vector.h"
+#include "storage/buffer_manager/buffer_manager.h"
+#include "storage/stats/metadata_dah_info.h"
 #include "storage/stats/table_statistics.h"
-#include "storage/store/rels_store.h"
+#include "storage/wal/wal.h"
 
 namespace kuzu {
 namespace common {

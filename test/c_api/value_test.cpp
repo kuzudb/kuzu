@@ -1,6 +1,8 @@
 #include "c_api_test/c_api_test.h"
+
 using namespace kuzu::main;
 using namespace kuzu::common;
+using namespace kuzu::testing;
 
 class CApiValueTest : public CApiTest {
 public:

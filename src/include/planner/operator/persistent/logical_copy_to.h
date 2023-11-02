@@ -2,7 +2,6 @@
 
 #include "common/copier_config/copier_config.h"
 #include "planner/operator/logical_operator.h"
-#include "planner/operator/logical_plan.h"
 
 namespace kuzu {
 namespace planner {

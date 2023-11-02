@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/constants.h"
 #include "table_schema.h"
 
 namespace kuzu {

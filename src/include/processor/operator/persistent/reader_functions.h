@@ -2,12 +2,12 @@
 
 #include <functional>
 
+#include "common/enums/table_type.h"
 #include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 #include "processor/operator/persistent/reader/npy_reader.h"
 #include "processor/operator/persistent/reader/parquet/parquet_reader.h"
 #include "processor/operator/persistent/reader/rdf/rdf_reader.h"
-#include "storage/store/table_copy_utils.h"
 
 namespace kuzu {
 namespace processor {

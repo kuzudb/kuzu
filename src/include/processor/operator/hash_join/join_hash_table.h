@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/utils.h"
-#include "function/hash/hash_functions.h"
+#include <functional>
+
 #include "processor/operator/base_hash_table.h"
 #include "storage/buffer_manager/memory_manager.h"
 

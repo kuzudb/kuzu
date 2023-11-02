@@ -1,11 +1,9 @@
 #pragma once
 
-#include <cassert>
 #include <cstring>
 
 #include "common/types/ku_string.h"
 #include "function/list/functions/list_len_function.h"
-#include "substr_function.h"
 
 namespace kuzu {
 namespace function {

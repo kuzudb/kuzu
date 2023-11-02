@@ -1,6 +1,6 @@
 #include "processor/operator/recursive_extend/path_property_probe.h"
 
-#include "function/hash/vector_hash_functions.h"
+#include "function/hash/hash_functions.h"
 
 using namespace kuzu::common;
 

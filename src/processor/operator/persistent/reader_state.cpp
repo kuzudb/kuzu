@@ -2,7 +2,6 @@
 
 #include <optional>
 
-using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::storage;
 

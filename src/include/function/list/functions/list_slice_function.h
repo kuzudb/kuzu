@@ -1,9 +1,5 @@
 #pragma once
 
-#include <cassert>
-#include <cstring>
-
-#include "common/types/ku_list.h"
 #include "function/string/functions/substr_function.h"
 
 namespace kuzu {

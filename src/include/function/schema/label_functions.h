@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/type_utils.h"
 #include "function/list/functions/list_extract_function.h"
 
 namespace kuzu {

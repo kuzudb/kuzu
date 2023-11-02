@@ -1,8 +1,6 @@
 #pragma once
 
-#include <string>
-
-#include "antlr4-runtime.h"
+#include "antlr4-runtime.h" // IWYU pragma: keep; this is the public header.
 
 namespace kuzu {
 namespace parser {

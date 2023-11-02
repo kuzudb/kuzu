@@ -4,6 +4,7 @@
 #include "binder/bound_statement_result.h"
 // This header is generated at build time. See CMakeLists.txt.
 #include "com_kuzudb_KuzuNative.h"
+#include "common/exception/conversion.h"
 #include "common/exception/exception.h"
 #include "common/types/types.h"
 #include "common/types/value/nested.h"

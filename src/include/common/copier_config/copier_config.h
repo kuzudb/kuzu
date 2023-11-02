@@ -1,12 +1,9 @@
 #pragma once
 
-#include <cassert>
-#include <fstream>
 #include <memory>
 #include <vector>
 
 #include "common/constants.h"
-#include "common/enums/table_type.h"
 #include "common/types/types.h"
 #include "rdf_config.h"
 

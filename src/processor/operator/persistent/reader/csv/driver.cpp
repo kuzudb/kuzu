@@ -1,13 +1,10 @@
 #include "processor/operator/persistent/reader/csv/driver.h"
 
 #include "common/exception/copy.h"
-#include "common/exception/message.h"
 #include "common/string_format.h"
-#include "common/types/value/value.h"
 #include "function/cast/functions/cast_string_to_functions.h"
 #include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
-#include "storage/store/table_copy_utils.h"
 
 using namespace kuzu::common;
 

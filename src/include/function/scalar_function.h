@@ -1,7 +1,6 @@
 #pragma once
 
 #include "binary_function_executor.h"
-#include "binder/expression/expression.h"
 #include "const_function_executor.h"
 #include "function.h"
 #include "ternary_function_executor.h"

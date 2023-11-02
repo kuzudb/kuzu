@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <memory>
 
-#include "common/api.h"
 #include "common/timer.h"
 #include "main/kuzu_fwd.h"
 

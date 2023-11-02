@@ -1,7 +1,6 @@
 #pragma once
 
 #include "binder/expression/expression.h"
-#include "catalog/catalog.h"
 #include "parser/expression/parsed_expression.h"
 
 namespace kuzu {

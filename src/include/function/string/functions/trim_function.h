@@ -1,8 +1,5 @@
 #pragma once
 
-#include <cassert>
-#include <cstring>
-
 #include "common/types/ku_string.h"
 #include "ltrim_function.h"
 #include "rtrim_function.h"

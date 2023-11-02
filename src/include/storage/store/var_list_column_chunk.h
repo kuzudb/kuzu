@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/exception/not_implemented.h"
 #include "storage/store/column_chunk.h"
 
 namespace kuzu {
@@ -37,7 +38,9 @@ public:
     void append(common::ValueVector* vector, common::offset_t startPosInChunk) final;
     inline void write(common::ValueVector* /*valueVector*/,
         common::ValueVector* /*offsetInChunkVector*/) override {
+        // LCOV_EXCL_START
         throw common::NotImplementedException("VarListColumnChunk::write");
+        // LCOV_EXCL_END
     }
 
     inline VarListDataColumnChunk* getVarListDataColumnChunk() {

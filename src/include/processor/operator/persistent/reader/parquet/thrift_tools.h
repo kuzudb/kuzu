@@ -1,9 +1,9 @@
 #pragma once
+#include <cstring>
 #include <list>
 
 #include "common/file_utils.h"
-#include "thrift/protocol/TCompactProtocol.h"
-#include "thrift/transport/TBufferTransports.h"
+#include "thrift/transport/TVirtualTransport.h"
 
 namespace kuzu {
 namespace processor {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/types/value/value.h"
+#include "common/types/types.h"
 
 namespace kuzu {
 namespace function {

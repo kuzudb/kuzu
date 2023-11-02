@@ -4,10 +4,11 @@
 // =========================================================================================
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
+#include <stdexcept>
+#include <string>
 
 #include "common/api.h"
-#include "common/string_utils.h"
 
 namespace kuzu {
 namespace common {

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "binder/expression/expression.h"
+#include "common/exception/not_implemented.h"
 #include "expression_evaluator.h"
 
 namespace kuzu {

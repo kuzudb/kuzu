@@ -2,8 +2,6 @@
 
 #include <cstdint>
 #include <functional>
-#include <string>
-#include <unordered_map>
 
 #include "common/types/types.h"
 #include "storage/buffer_manager/bm_file_handle.h"

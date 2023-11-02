@@ -1,6 +1,6 @@
 #pragma once
 
-#include "function/cast/functions/cast_functions.h"
+#include "common/exception/not_implemented.h"
 #include "function/cast/functions/cast_string_to_functions.h"
 #include "function/scalar_function.h"
 

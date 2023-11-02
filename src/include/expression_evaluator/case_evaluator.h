@@ -2,6 +2,7 @@
 
 #include <bitset>
 
+#include "binder/expression/expression.h"
 #include "expression_evaluator.h"
 
 namespace kuzu {

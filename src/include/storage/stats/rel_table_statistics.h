@@ -1,9 +1,9 @@
 #pragma once
 
-#include <map>
-
+#include "common/enums/rel_direction.h"
+#include "storage/buffer_manager/buffer_manager.h"
+#include "storage/stats/metadata_dah_info.h"
 #include "storage/stats/table_statistics.h"
-#include "storage/storage_utils.h"
 
 namespace kuzu {
 namespace storage {
