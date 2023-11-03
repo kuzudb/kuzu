@@ -1,10 +1,8 @@
 #include "binder/binder.h"
-#include "binder/ddl/bound_create_table.h"
-#include "catalog/rdf_graph_schema.h"
 #include "catalog/rel_table_schema.h"
 #include "common/keyword/rdf_keyword.h"
 #include "common/types/rdf_variant_type.h"
-#include "parser/ddl/create_table.h"
+#include "parser/ddl/create_table_info.h"
 
 using namespace kuzu::parser;
 using namespace kuzu::common;

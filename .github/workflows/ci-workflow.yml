@@ -28,6 +28,8 @@ jobs:
     env:
       NUM_THREADS: 32
       TEST_JOBS: 16
+      CLANGD_DIAGNOSTIC_JOBS: 32
+      CLANGD_DIAGNOSTIC_INSTANCES: 6
       GEN: ninja
       CC: gcc
       CXX: g++
@@ -65,6 +67,9 @@ jobs:
         with:
           file: cover.info
           functionalities: "search"
+
+      - name: Check for clangd diagnostics
+        run: make clangd-diagnostics
 
       - name: C and C++ Examples
         run: |

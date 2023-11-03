@@ -36,7 +36,8 @@ RUN wget https://apt.llvm.org/llvm.sh && \
     rm llvm.sh && \
     ln /usr/bin/clang++-17 /usr/bin/clang++ && \
     ln /usr/bin/clang-17 /usr/bin/clang && \
-    ln /usr/bin/run-clang-tidy-17 /usr/bin/run-clang-tidy
+    ln /usr/bin/run-clang-tidy-17 /usr/bin/run-clang-tidy && \
+    ln /usr/bin/clangd-17 /usr/bin/clangd
 
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 RUN useradd --create-home runner
