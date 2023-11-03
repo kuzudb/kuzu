@@ -8,6 +8,7 @@
 #include "processor/operator/persistent/reader/parquet/boolean_column_reader.h"
 #include "processor/operator/persistent/reader/parquet/callback_column_reader.h"
 #include "processor/operator/persistent/reader/parquet/interval_column_reader.h"
+#include "processor/operator/persistent/reader/parquet/parquet_timestamp.h"
 #include "processor/operator/persistent/reader/parquet/string_column_reader.h"
 #include "processor/operator/persistent/reader/parquet/templated_column_reader.h"
 #include "snappy/snappy.h"
@@ -21,10 +22,6 @@ using kuzu_parquet::format::ConvertedType;
 using kuzu_parquet::format::Encoding;
 using kuzu_parquet::format::PageType;
 using kuzu_parquet::format::Type;
-
-static common::date_t ParquetIntToDate(const int32_t& raw_date) {
-    return common::date_t(raw_date);
-}
 
 ColumnReader::ColumnReader(ParquetReader& reader, std::unique_ptr<common::LogicalType> type,
     const kuzu_parquet::format::SchemaElement& schema, uint64_t fileIdx, uint64_t maxDefinition,
@@ -241,16 +238,23 @@ std::unique_ptr<ColumnReader> ColumnReader::createReader(ParquetReader& reader,
             TemplatedColumnReader<double, TemplatedParquetValueConversion<double>>>(
             reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
     case common::LogicalTypeID::DATE:
-        return std::make_unique<CallbackColumnReader<int32_t, common::date_t, ParquetIntToDate>>(
+        return std::make_unique<
+            CallbackColumnReader<int32_t, common::date_t, ParquetTimeStampUtils::parquetIntToDate>>(
             reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+    case common::LogicalTypeID::BLOB:
     case common::LogicalTypeID::STRING:
         return std::make_unique<StringColumnReader>(
             reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
     case common::LogicalTypeID::INTERVAL:
         return std::make_unique<IntervalColumnReader>(
             reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+    case common::LogicalTypeID::TIMESTAMP:
+        return createTimestampReader(
+            reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+        // LCOV_EXCL_START
     default:
         throw common::NotImplementedException{"ColumnReader::createReader"};
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -479,6 +483,54 @@ uint64_t ColumnReader::getTotalCompressedSize() {
         return 0;
     }
     return chunk->meta_data.total_compressed_size;
+}
+
+std::unique_ptr<ColumnReader> ColumnReader::createTimestampReader(ParquetReader& reader,
+    std::unique_ptr<common::LogicalType> type, const kuzu_parquet::format::SchemaElement& schema,
+    uint64_t fileIdx, uint64_t maxDefine, uint64_t maxRepeat) {
+    switch (schema.type) {
+    case Type::INT96: {
+        return std::make_unique<CallbackColumnReader<Int96, common::timestamp_t,
+            ParquetTimeStampUtils::impalaTimestampToTimestamp>>(
+            reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+    }
+    case Type::INT64: {
+        if (schema.__isset.logicalType && schema.logicalType.__isset.TIMESTAMP) {
+            if (schema.logicalType.TIMESTAMP.unit.__isset.MILLIS) {
+                return std::make_unique<CallbackColumnReader<int64_t, common::timestamp_t,
+                    ParquetTimeStampUtils::parquetTimestampMsToTimestamp>>(
+                    reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+            } else if (schema.logicalType.TIMESTAMP.unit.__isset.MICROS) {
+                return std::make_unique<CallbackColumnReader<int64_t, common::timestamp_t,
+                    ParquetTimeStampUtils::parquetTimestampMicrosToTimestamp>>(
+                    reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+            } else if (schema.logicalType.TIMESTAMP.unit.__isset.NANOS) {
+                return std::make_unique<CallbackColumnReader<int64_t, common::timestamp_t,
+                    ParquetTimeStampUtils::parquetTimestampNsToTimestamp>>(
+                    reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+            }
+            // LCOV_EXCL_START
+        } else if (schema.__isset.converted_type) {
+            // For legacy compatibility.
+            switch (schema.converted_type) {
+            case ConvertedType::TIMESTAMP_MICROS:
+                return std::make_unique<CallbackColumnReader<int64_t, common::timestamp_t,
+                    ParquetTimeStampUtils::parquetTimestampMicrosToTimestamp>>(
+                    reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+            case ConvertedType::TIMESTAMP_MILLIS:
+                return std::make_unique<CallbackColumnReader<int64_t, common::timestamp_t,
+                    ParquetTimeStampUtils::parquetTimestampMsToTimestamp>>(
+                    reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+            default:
+                throw common::NotImplementedException{"ColumnReader::createReader"};
+            }
+            // LCOV_EXCL_STOP
+        }
+    }
+    default: { // LCOV_EXCL_START
+        throw common::NotImplementedException{"ColumnReader::createReader"};
+    } // LCOV_EXCL_STOP
+    }
 }
 
 const uint64_t ParquetDecodeUtils::BITPACK_MASKS[] = {0, 1, 3, 7, 15, 31, 63, 127, 255, 511, 1023,

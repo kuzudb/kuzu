@@ -87,6 +87,12 @@ public:
         }
     }
 
+private:
+    static std::unique_ptr<ColumnReader> createTimestampReader(ParquetReader& reader,
+        std::unique_ptr<common::LogicalType> type,
+        const kuzu_parquet::format::SchemaElement& schema, uint64_t fileIdx, uint64_t maxDefine,
+        uint64_t maxRepeat);
+
 protected:
     const kuzu_parquet::format::SchemaElement& schema;
 

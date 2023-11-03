@@ -50,6 +50,7 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
     }
     auto schemaIdx = schemas.size();
     switch (type->getLogicalTypeID()) {
+    case LogicalTypeID::UNION:
     case LogicalTypeID::STRUCT: {
         auto fields = StructType::getFields(type);
         // set up the schema element for this struct
@@ -187,6 +188,7 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
             return std::make_unique<StandardColumnWriter<int32_t, int32_t>>(writer, schemaIdx,
                 std::move(schemaPathToCreate), maxRepeatToCreate, maxDefineToCreate,
                 canHaveNullsToCreate);
+        case LogicalTypeID::TIMESTAMP:
         case LogicalTypeID::INT64:
             return std::make_unique<StandardColumnWriter<int64_t, int64_t>>(writer, schemaIdx,
                 std::move(schemaPathToCreate), maxRepeatToCreate, maxDefineToCreate,
