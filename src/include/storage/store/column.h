@@ -80,10 +80,10 @@ protected:
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
     void scanUnfiltered(transaction::Transaction* transaction, PageElementCursor& pageCursor,
         uint64_t numValuesToScan, common::ValueVector* resultVector,
-        const CompressionMetadata& compMeta, uint64_t startPosInVector = 0);
+        const ColumnChunkMetadata& chunkMeta, uint64_t startPosInVector = 0);
     void scanFiltered(transaction::Transaction* transaction, PageElementCursor& pageCursor,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector,
-        const CompressionMetadata& compMeta);
+        const ColumnChunkMetadata& chunkMeta);
     virtual void lookupInternal(transaction::Transaction* transaction,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
     virtual void lookupValue(transaction::Transaction* transaction, common::offset_t nodeOffset,

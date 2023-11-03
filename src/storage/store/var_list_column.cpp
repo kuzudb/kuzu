@@ -51,10 +51,10 @@ void VarListColumn::scan(node_group_idx_t nodeGroupIdx, kuzu::storage::ColumnChu
         varListColumnChunk->setNumValues(0);
     } else {
         Column::scan(nodeGroupIdx, columnChunk);
-        auto metadata = metadataDA->get(nodeGroupIdx, transaction::TransactionType::READ_ONLY);
-        varListColumnChunk->setNumValues(metadata.numValues);
+        auto dataColumnMetadata =
+            dataColumn->getMetadata(nodeGroupIdx, transaction::TransactionType::WRITE);
         varListColumnChunk->resizeDataColumnChunk(
-            metadata.numPages * BufferPoolConstants::PAGE_4KB_SIZE);
+            dataColumnMetadata.numPages * BufferPoolConstants::PAGE_4KB_SIZE);
         dataColumn->scan(nodeGroupIdx, varListColumnChunk->getDataColumnChunk());
     }
 }
