@@ -6,6 +6,7 @@ NUM_THREADS ?= 1
 TEST_JOBS ?= 10
 SANITIZER_FLAG=
 WERROR_FLAG=
+CLANGD_DIAGNOSTIC_INSTANCES ?= 4
 ROOT_DIR=$(CURDIR)
 
 export CMAKE_BUILD_PARALLEL_LEVEL=$(NUM_THREADS)
@@ -106,6 +107,11 @@ clangd:
 tidy: clangd
 	run-clang-tidy -p build/release -quiet -j $(NUM_THREADS) \
 		"^$(realpath src)|$(realpath tools)/(?!shell/linenoise.cpp)|$(realpath examples)"
+
+clangd-diagnostics: clangd
+	find src -name *.h -or -name *.cpp | xargs \
+		./scripts/get-clangd-diagnostics.py --compile-commands-dir build/release \
+		-j $(NUM_THREADS) --instances $(CLANGD_DIAGNOSTIC_INSTANCES)
 
 pytest: release
 	cd $(ROOT_DIR)/tools/python_api/test && \
