@@ -1,5 +1,6 @@
 #include "storage/store/node_group.h"
 
+#include "common/assert.h"
 #include "common/constants.h"
 #include "storage/store/table_data.h"
 
@@ -33,6 +34,17 @@ void NodeGroup::resetToEmpty() {
     nodeGroupIdx = UINT64_MAX;
     for (auto& chunk : chunks) {
         chunk->resetToEmpty();
+    }
+}
+
+void NodeGroup::setChunkToAllNull(common::vector_idx_t chunkIdx) {
+    KU_ASSERT(chunkIdx < chunks.size())
+    chunks[chunkIdx]->getNullChunk()->resetToAllNull();
+}
+
+void NodeGroup::resizeChunks(uint64_t newSize) {
+    for (auto& chunk : chunks) {
+        chunk->resize(newSize);
     }
 }
 

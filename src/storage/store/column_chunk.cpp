@@ -92,7 +92,6 @@ static std::shared_ptr<CompressionAlg> getCompression(
         return std::make_shared<Uncompressed>(dataType);
     }
     switch (dataType.getPhysicalType()) {
-    case PhysicalTypeID::INTERNAL_ID:
     case PhysicalTypeID::INT64: {
         return std::make_shared<IntegerBitpacking<int64_t>>();
     }
@@ -154,7 +153,6 @@ void ColumnChunk::initializeFunction(bool enableCompression) {
         getMetadataFunction = booleanGetMetadata;
         break;
     }
-    case PhysicalTypeID::INTERNAL_ID:
     case PhysicalTypeID::INT64:
     case PhysicalTypeID::INT32:
     case PhysicalTypeID::INT16:

@@ -21,8 +21,8 @@ RelTable::RelTable(BMFileHandle* dataFH, BMFileHandle* metadataFH, RelsStoreStat
 void RelTable::read(Transaction* transaction, RelDataReadState& scanState,
     RelDataDirection direction, ValueVector* inNodeIDVector,
     const std::vector<column_id_t>& columnIDs, const std::vector<ValueVector*>& outputVectors) {
-    if (!inNodeIDVector->isSequential() &&
-        getTableDataFormat(direction) == ColumnDataFormat::REGULAR) {
+    if (getTableDataFormat(direction) == ColumnDataFormat::REGULAR &&
+        !inNodeIDVector->isSequential()) {
         lookup(transaction, direction, inNodeIDVector, columnIDs, outputVectors);
     } else {
         scan(transaction, scanState, direction, inNodeIDVector, columnIDs, outputVectors);
