@@ -1,5 +1,11 @@
 @prefix : <https://rdfox.com/getting-started/> .
 
+:andy :literal 12 ;
+      :literal -14.9 ;
+      :literal true ;
+      :literal 1.663E-2 ;
+      :literal "1999-08-16"^^<http://www.w3.org/2001/XMLSchema#date> .
+
 :peter :forename "Peter" ;
     a :Person ;
     :marriedTo :lois ;
@@ -25,5 +31,3 @@
     :gender "male" .
 
 :brian :forename "Brian" . # Brian is a dog
-
-:andy :age 12 .

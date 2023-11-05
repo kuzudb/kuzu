@@ -34,6 +34,15 @@ struct Blob {
 
     static uint64_t fromString(const char* str, uint64_t length, uint8_t* resultBuffer);
 
+    template<typename T>
+    static inline T getValue(blob_t data) {
+        return *reinterpret_cast<T*>(data.value.getData());
+    }
+    template<typename T>
+    static inline T getValue(char* data) {
+        return *reinterpret_cast<T*>(data);
+    }
+
 private:
     static void validateHexCode(const uint8_t* blobStr, uint64_t length, uint64_t curPos);
 };

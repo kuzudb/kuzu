@@ -154,6 +154,7 @@ void CastFunction::bindImplicitCastFunc(
 
 function_set CastToDateFunction::getFunctionSet() {
     function_set result;
+    // STRING -> DATE
     result.push_back(CastFunction::CastFunction::bindCastStringToFunction<date_t>(
         CAST_TO_DATE_FUNC_NAME, LogicalTypeID::DATE));
     return result;
@@ -161,6 +162,7 @@ function_set CastToDateFunction::getFunctionSet() {
 
 function_set CastToTimestampFunction::getFunctionSet() {
     function_set result;
+    // STRING -> TIMESTAMP
     result.push_back(CastFunction::CastFunction::bindCastStringToFunction<timestamp_t>(
         CAST_TO_TIMESTAMP_FUNC_NAME, LogicalTypeID::TIMESTAMP));
     return result;
@@ -168,6 +170,7 @@ function_set CastToTimestampFunction::getFunctionSet() {
 
 function_set CastToIntervalFunction::getFunctionSet() {
     function_set result;
+    // STRING -> INTERVAL
     result.push_back(CastFunction::CastFunction::bindCastStringToFunction<interval_t>(
         CAST_TO_INTERVAL_FUNC_NAME, LogicalTypeID::INTERVAL));
     return result;
@@ -298,6 +301,7 @@ void CastToStringFunction::getUnaryCastToStringExecFunction(
 
 function_set CastToStringFunction::getFunctionSet() {
     function_set result;
+    // ANY -> STRING
     result.reserve(LogicalTypeUtils::getAllValidLogicTypes().size());
     for (auto& type : LogicalTypeUtils::getAllValidLogicTypes()) {
         scalar_exec_func execFunc;
@@ -311,6 +315,7 @@ function_set CastToStringFunction::getFunctionSet() {
 
 function_set CastToBlobFunction::getFunctionSet() {
     function_set result;
+    // STRING -> BLOB
     result.push_back(CastFunction::CastFunction::bindCastStringToFunction<blob_t>(
         CAST_TO_BLOB_FUNC_NAME, LogicalTypeID::BLOB));
     return result;

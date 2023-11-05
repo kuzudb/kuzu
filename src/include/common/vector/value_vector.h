@@ -21,6 +21,7 @@ class ValueVector {
     friend class StructVector;
     friend class StringVector;
     friend class ArrowColumnVector;
+    friend class RdfLiteralVector;
 
 public:
     explicit ValueVector(LogicalType dataType, storage::MemoryManager* memoryManager = nullptr);
@@ -121,6 +122,15 @@ public:
         ValueVector* vector, ku_string_t& dstStr, const char* srcStr, uint64_t length);
     static void copyToRowData(const ValueVector* vector, uint32_t pos, uint8_t* rowData,
         InMemOverflowBuffer* rowOverflowBuffer);
+};
+
+struct BlobVector {
+    static void addBlob(ValueVector* vector, uint32_t pos, const char* data, uint32_t length) {
+        StringVector::addString(vector, pos, data, length);
+    }
+    static void addBlob(ValueVector* vector, uint32_t pos, uint8_t* data, uint64_t length) {
+        StringVector::addString(vector, pos, reinterpret_cast<const char*>(data), length);
+    }
 };
 
 class ListVector {

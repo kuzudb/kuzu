@@ -5,13 +5,16 @@
 #include "common/constants.h"
 #include "common/exception/copy.h"
 #include "common/exception/not_implemented.h"
+#include "common/keyword/rdf_keyword.h"
 #include "common/string_format.h"
 #include "common/vector/value_vector.h"
+#include "function/cast/functions/cast_string_non_nested_functions.h"
 #include "serd.h"
 #include "storage/index/hash_index.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
+using namespace kuzu::common::rdf;
 
 namespace kuzu {
 namespace processor {
@@ -56,15 +59,6 @@ SerdStatus RDFReader::errorHandle(void* /*handle*/, const SerdError* error) {
     return error->status;
 }
 
-//<<<<<<< HEAD
-// SerdStatus RDFReader::handleStatements(void* handle, SerdStatementFlags /*flags*/,
-//    const SerdNode* /*graph*/, const SerdNode* subject, const SerdNode* predicate,
-//    const SerdNode* object, const SerdNode* /*object_datatype*/, const SerdNode* /*object_lang*/)
-//    { auto rdfReader = reinterpret_cast<RDFReader*>(handle);
-//
-//    if (!(isSerdTypeSupported(subject->type) && isSerdTypeSupported(predicate->type) &&
-//            isSerdTypeSupported(object->type))) {
-//=======
 static bool supportSerdType(SerdType type) {
     switch (type) {
     case SERD_BLANK:
@@ -77,10 +71,71 @@ static bool supportSerdType(SerdType type) {
     }
 }
 
-static void addSerdNodeToVector(
-    common::ValueVector* vector, uint32_t vectorPos, const SerdNode* node) {
+static void addResourceToVector(
+    common::ValueVector* vector, uint32_t vectorPos, const SerdNode* resourceNode) {
     StringVector::addString(
-        vector, vectorPos, reinterpret_cast<const char*>(node->buf), node->n_bytes);
+        vector, vectorPos, reinterpret_cast<const char*>(resourceNode->buf), resourceNode->n_bytes);
+}
+
+template<typename T>
+static void addVariant(ValueVector* vector, uint32_t pos, LogicalTypeID typeID, T val) {
+    auto typeVector = StructVector::getFieldVector(vector, 0).get();
+    auto valVector = StructVector::getFieldVector(vector, 1).get();
+    typeVector->setValue<uint8_t>(pos, static_cast<uint8_t>(typeID));
+    BlobVector::addBlob(valVector, pos, (uint8_t*)&val, sizeof(T));
+}
+static void addVariant(ValueVector* vector, uint32_t pos, const char* src, uint32_t length) {
+    auto typeVector = StructVector::getFieldVector(vector, 0).get();
+    auto valVector = StructVector::getFieldVector(vector, 1).get();
+    typeVector->setValue<uint8_t>(pos, static_cast<uint8_t>(LogicalTypeID::STRING));
+    BlobVector::addBlob(valVector, pos, src, length);
+}
+
+static void addLiteralToVector(common::ValueVector* vector, uint32_t pos,
+    const SerdNode* literalNode, const SerdNode* typeNode) {
+    auto data = reinterpret_cast<const char*>(literalNode->buf);
+    auto length = literalNode->n_bytes;
+    if (typeNode == nullptr) { // No type information available. Treat as string.
+        addVariant(vector, pos, data, length);
+        return;
+    }
+    bool resolveAsString = true;
+    auto type = std::string_view(reinterpret_cast<const char*>(typeNode->buf), typeNode->n_bytes);
+    if (type.starts_with(XSD)) {
+        if (type.ends_with(XSD_integer)) {
+            // XSD:integer
+            int64_t result;
+            if (function::trySimpleIntegerCast<int64_t>(data, length, result)) {
+                addVariant<int64_t>(vector, pos, LogicalTypeID::INT64, result);
+                resolveAsString = false;
+            }
+        } else if (type.ends_with(XSD_double) || type.ends_with(XSD_decimal)) {
+            // XSD:double or XSD:decimal
+            double_t result;
+            if (function::tryDoubleCast(data, length, result)) {
+                addVariant<double_t>(vector, pos, LogicalTypeID::DOUBLE, result);
+                resolveAsString = false;
+            }
+        } else if (type.ends_with(XSD_boolean)) {
+            // XSD:bool
+            bool result;
+            if (function::tryCastToBool(data, length, result)) {
+                addVariant<bool>(vector, pos, LogicalTypeID::BOOL, result);
+                resolveAsString = false;
+            }
+        } else if (type.ends_with(XSD_date)) {
+            // XSD:date
+            date_t result;
+            uint64_t dummy = 0;
+            if (Date::tryConvertDate(data, length, dummy, result)) {
+                addVariant<date_t>(vector, pos, LogicalTypeID::DATE, result);
+                resolveAsString = false;
+            }
+        }
+    }
+    if (resolveAsString) {
+        addVariant(vector, pos, data, length);
+    }
 }
 
 static common::offset_t lookupResourceNode(PrimaryKeyIndex* index, const SerdNode* node) {
@@ -94,7 +149,7 @@ static common::offset_t lookupResourceNode(PrimaryKeyIndex* index, const SerdNod
 
 SerdStatus RDFReader::readerStatementSink(void* handle, SerdStatementFlags /*flags*/,
     const SerdNode* /*graph*/, const SerdNode* subject, const SerdNode* predicate,
-    const SerdNode* object, const SerdNode* /*object_datatype*/, const SerdNode* /*object_lang*/) {
+    const SerdNode* object, const SerdNode* object_datatype, const SerdNode* /*object_lang*/) {
     if (!supportSerdType(subject->type) || !supportSerdType(predicate->type) ||
         !supportSerdType(object->type)) {
         return SERD_SUCCESS;
@@ -103,16 +158,16 @@ SerdStatus RDFReader::readerStatementSink(void* handle, SerdStatementFlags /*fla
 
     switch (reader->config->mode) {
     case RdfReaderMode::RESOURCE: {
-        addSerdNodeToVector(reader->sVector, reader->vectorSize++, subject);
-        addSerdNodeToVector(reader->sVector, reader->vectorSize++, predicate);
+        addResourceToVector(reader->sVector, reader->vectorSize++, subject);
+        addResourceToVector(reader->sVector, reader->vectorSize++, predicate);
         if (object->type != SERD_LITERAL) {
-            addSerdNodeToVector(reader->sVector, reader->vectorSize++, object);
+            addResourceToVector(reader->sVector, reader->vectorSize++, object);
         }
         reader->rowOffset++;
     } break;
     case RdfReaderMode::LITERAL: {
         if (object->type == SERD_LITERAL) {
-            addSerdNodeToVector(reader->sVector, reader->vectorSize++, object);
+            addLiteralToVector(reader->sVector, reader->vectorSize++, object, object_datatype);
             reader->rowOffset++;
         }
     } break;

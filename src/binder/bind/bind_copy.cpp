@@ -9,7 +9,6 @@
 #include "common/exception/not_implemented.h"
 #include "common/string_format.h"
 #include "parser/copy.h"
-#include "storage/storage_manager.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;
@@ -131,31 +130,6 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
-std::unique_ptr<BoundStatement> Binder::bindCopyRdfNodeFrom(
-    std::unique_ptr<ReaderConfig> readerConfig, TableSchema* tableSchema) {
-    auto containsSerial = bindContainsSerial(tableSchema);
-    auto stringType = LogicalType{LogicalTypeID::STRING};
-    auto nodeID = createVariable(std::string(Property::INTERNAL_ID_NAME), LogicalTypeID::INT64);
-    expression_vector columns;
-    auto columnName = std::string(RDFKeyword::ANONYMOUS);
-    readerConfig->columnNames.push_back(columnName);
-    readerConfig->columnTypes.push_back(stringType.copy());
-    columns.push_back(createVariable(columnName, stringType));
-    if (tableSchema->tableName.ends_with(common::RDFKeyword::RESOURCE_TABLE_SUFFIX)) {
-        readerConfig->rdfReaderConfig =
-            std::make_unique<RdfReaderConfig>(RdfReaderMode::RESOURCE, nullptr /* index */);
-    } else {
-        assert(tableSchema->tableName.ends_with(common::RDFKeyword::LITERAL_TABLE_SUFFIX));
-        readerConfig->rdfReaderConfig =
-            std::make_unique<RdfReaderConfig>(RdfReaderMode::LITERAL, nullptr /* index */);
-    }
-    auto boundFileScanInfo = std::make_unique<BoundFileScanInfo>(
-        std::move(readerConfig), columns, std::move(nodeID), TableType::NODE);
-    auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(tableSchema,
-        std::move(boundFileScanInfo), containsSerial, std::move(columns), nullptr /* extraInfo */);
-    return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
-}
-
 std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(
     std::unique_ptr<ReaderConfig> readerConfig, TableSchema* tableSchema) {
     // For table with SERIAL columns, we need to read in serial from files.
@@ -186,37 +160,6 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(
     auto boundCopyFromInfo =
         std::make_unique<BoundCopyFromInfo>(tableSchema, std::move(boundFileScanInfo),
             containsSerial, std::move(columnsToCopy), std::move(extraCopyRelInfo));
-    return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
-}
-
-std::unique_ptr<BoundStatement> Binder::bindCopyRdfRelFrom(
-    std::unique_ptr<ReaderConfig> readerConfig, TableSchema* tableSchema) {
-    auto containsSerial = bindContainsSerial(tableSchema);
-    auto offsetType = std::make_unique<LogicalType>(LogicalTypeID::INT64);
-    expression_vector columns;
-    for (auto i = 0u; i < 3; ++i) {
-        auto columnName = std::string(RDFKeyword::ANONYMOUS) + std::to_string(i);
-        readerConfig->columnNames.push_back(columnName);
-        readerConfig->columnTypes.push_back(offsetType->copy());
-        columns.push_back(createVariable(columnName, *offsetType));
-    }
-    auto relTableSchema = reinterpret_cast<RelTableSchema*>(tableSchema);
-    auto resourceTableID = relTableSchema->getSrcTableID();
-    auto index = storageManager->getNodesStore().getPKIndex(resourceTableID);
-    if (tableSchema->tableName.ends_with(common::RDFKeyword::RESOURCE_TRIPLE_TABLE_SUFFIX)) {
-        readerConfig->rdfReaderConfig =
-            std::make_unique<RdfReaderConfig>(RdfReaderMode::RESOURCE_TRIPLE, index);
-    } else {
-        readerConfig->rdfReaderConfig =
-            std::make_unique<RdfReaderConfig>(RdfReaderMode::LITERAL_TRIPLE, index);
-    }
-    auto relID = createVariable(std::string(Property::INTERNAL_ID_NAME), LogicalTypeID::INT64);
-    auto boundFileScanInfo = std::make_unique<BoundFileScanInfo>(
-        std::move(readerConfig), columns, relID, TableType::REL);
-    auto extraInfo = std::make_unique<ExtraBoundCopyRdfRelInfo>(columns[0], columns[1], columns[2]);
-    columns.push_back(std::move(relID));
-    auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(tableSchema,
-        std::move(boundFileScanInfo), containsSerial, std::move(columns), std::move(extraInfo));
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 

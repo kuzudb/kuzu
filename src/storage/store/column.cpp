@@ -601,7 +601,8 @@ std::unique_ptr<Column> ColumnFactory::createColumn(const common::LogicalType& d
             bufferManager, wal, transaction, propertyStatistics, enableCompression);
     }
     case LogicalTypeID::UNION:
-    case LogicalTypeID::STRUCT: {
+    case LogicalTypeID::STRUCT:
+    case LogicalTypeID::RDF_VARIANT: {
         return std::make_unique<StructColumn>(dataType, metaDAHeaderInfo, dataFH, metadataFH,
             bufferManager, wal, transaction, propertyStatistics, enableCompression);
     }

@@ -7,6 +7,7 @@
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
 #include "common/exception/not_implemented.h"
+#include "common/keyword/rdf_keyword.h"
 #include "common/string_format.h"
 #include "function/cast/functions/cast_string_to_functions.h"
 #include "main/client_context.h"
@@ -268,15 +269,15 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
     auto readVersion = catalog.getReadOnlyVersion();
     if (readVersion->getTableSchema(tableIDs[0])->getTableType() == TableType::RDF) {
         auto predicateID =
-            expressionBinder.bindNodeOrRelPropertyExpression(*queryRel, RDFKeyword::PREDICT_ID);
+            expressionBinder.bindNodeOrRelPropertyExpression(*queryRel, std::string(rdf::PID));
         auto resourceTableIDs = getNodeTableIDs(tableIDs);
         auto resourceTableSchemas = readVersion->getTableSchemas(resourceTableIDs);
-        auto predicateIRI = createPropertyExpression(common::RDFKeyword::IRI,
+        auto predicateIRI = createPropertyExpression(std::string(rdf::IRI),
             queryRel->getUniqueName(), queryRel->getVariableName(), resourceTableSchemas);
         auto rdfInfo =
             std::make_unique<RdfPredicateInfo>(std::move(resourceTableIDs), std::move(predicateID));
         queryRel->setRdfPredicateInfo(std::move(rdfInfo));
-        queryRel->addPropertyExpression(common::RDFKeyword::IRI, std::move(predicateIRI));
+        queryRel->addPropertyExpression(std::string(rdf::IRI), std::move(predicateIRI));
     }
     return queryRel;
 }

@@ -1,3 +1,6 @@
+add_subdirectory(copy)
+add_subdirectory(ddl)
+
 add_library(
         kuzu_binder_bind
         OBJECT

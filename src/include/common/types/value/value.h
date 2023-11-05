@@ -227,6 +227,13 @@ private:
     void copyFromStruct(const uint8_t* kuStruct);
     void copyFromUnion(const uint8_t* kuUnion);
 
+    std::string rdfVariantToString() const;
+    std::string mapToString() const;
+    std::string listToString() const;
+    std::string structToString() const;
+    std::string nodeToString() const;
+    std::string relToString() const;
+
 public:
     union Val {
         constexpr Val() : booleanVal{false} {}

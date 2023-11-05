@@ -101,10 +101,12 @@ enum class KUZU_API LogicalTypeID : uint8_t {
 
     STRING = 50,
     BLOB = 51,
+
     VAR_LIST = 52,
     STRUCT = 53,
     MAP = 54,
     UNION = 55,
+    RDF_VARIANT = 56,
 };
 
 enum class PhysicalTypeID : uint8_t {

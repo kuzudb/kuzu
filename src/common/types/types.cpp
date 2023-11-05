@@ -429,7 +429,8 @@ void LogicalType::setPhysicalType() {
     case LogicalTypeID::REL:
     case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::UNION:
-    case LogicalTypeID::STRUCT: {
+    case LogicalTypeID::STRUCT:
+    case LogicalTypeID::RDF_VARIANT: {
         physicalType = PhysicalTypeID::STRUCT;
     } break;
     default:
@@ -569,6 +570,7 @@ std::string LogicalTypeUtils::dataTypeToString(const LogicalType& dataType) {
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING:
     case LogicalTypeID::SERIAL:
+    case LogicalTypeID::RDF_VARIANT:
         return dataTypeToString(dataType.typeID);
     default:
         throw NotImplementedException("LogicalTypeUtils::dataTypeToString.");
@@ -627,6 +629,8 @@ std::string LogicalTypeUtils::dataTypeToString(LogicalTypeID dataTypeID) {
         return "FIXED_LIST";
     case LogicalTypeID::STRUCT:
         return "STRUCT";
+    case LogicalTypeID::RDF_VARIANT:
+        return "RDF_VARIANT";
     case LogicalTypeID::SERIAL:
         return "SERIAL";
     case LogicalTypeID::MAP:

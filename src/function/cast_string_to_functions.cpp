@@ -38,7 +38,7 @@ void CastStringToTypes::operation(const char* input, uint64_t len, common::blob_
     storage::TableCopyUtils::validateStrLen(len);
     auto blobBuffer = std::make_unique<uint8_t[]>(len);
     auto blobLen = Blob::fromString(input, len, blobBuffer.get());
-    StringVector::addString(vector, rowToAdd, reinterpret_cast<char*>(blobBuffer.get()), blobLen);
+    BlobVector::addBlob(vector, rowToAdd, blobBuffer.get(), blobLen);
 }
 
 // ---------------------- cast String to nested types ------------------------------ //
