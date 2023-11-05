@@ -96,7 +96,8 @@ struct ScalarFunction : public BaseScalarFunction {
     static void UnaryExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/) {
         KU_ASSERT(params.size() == 1);
-        UnaryFunctionExecutor::execute<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
+        UnaryFunctionExecutor::executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, UnaryFunctionWrapper>(
+            *params[0], result, nullptr /* dataPtr */);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
@@ -104,7 +105,8 @@ struct ScalarFunction : public BaseScalarFunction {
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
         KU_ASSERT(params.size() == 1);
-        UnaryFunctionExecutor::executeString<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
+        UnaryFunctionExecutor::executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC,
+            UnaryStringFunctionWrapper>(*params[0], result, nullptr /* dataPtr */);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
@@ -121,7 +123,26 @@ struct ScalarFunction : public BaseScalarFunction {
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
         KU_ASSERT(params.size() == 1);
-        UnaryFunctionExecutor::executeCast<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
+        UnaryFunctionExecutor::executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC,
+            UnaryCastFunctionWrapper>(*params[0], result, nullptr /* dataPtr */);
+    }
+
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void UnaryTryCastExecFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
+        KU_ASSERT(params.size() == 1);
+        UnaryFunctionExecutor::executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC,
+            UnaryTryCastFunctionWrapper>(*params[0], result, nullptr /* dataPtr */);
+    }
+
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void UnaryExecListStructFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
+        KU_ASSERT(params.size() == 1);
+        UnaryFunctionExecutor::executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC,
+            UnaryListFunctionWrapper>(*params[0], result, nullptr /* dataPtr */);
     }
 
     template<typename RESULT_TYPE, typename FUNC>
@@ -148,15 +169,6 @@ struct ScalarFunction : public BaseScalarFunction {
         KU_ASSERT(params.size() == 2);
         BinaryFunctionExecutor::executeListStruct<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
             *params[0], *params[1], result);
-    }
-
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void UnaryExecListStructFunction(
-        const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
-        KU_ASSERT(params.size() == 1);
-        UnaryFunctionExecutor::executeListStruct<OPERAND_TYPE, RESULT_TYPE, FUNC>(
-            *params[0], result);
     }
 
     scalar_exec_func execFunc;

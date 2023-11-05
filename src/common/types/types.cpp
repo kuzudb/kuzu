@@ -722,6 +722,7 @@ bool LogicalTypeUtils::isNested(kuzu::common::LogicalTypeID logicalTypeID) {
     case LogicalTypeID::NODE:
     case LogicalTypeID::REL:
     case LogicalTypeID::RECURSIVE_REL:
+    case LogicalTypeID::RDF_VARIANT:
         return true;
     default:
         return false;
@@ -767,7 +768,7 @@ std::vector<LogicalType> LogicalTypeUtils::getAllValidLogicTypes() {
         LogicalType{LogicalTypeID::MAP}, LogicalType{LogicalTypeID::FLOAT},
         LogicalType{LogicalTypeID::SERIAL}, LogicalType{LogicalTypeID::NODE},
         LogicalType{LogicalTypeID::REL}, LogicalType{LogicalTypeID::STRUCT},
-        LogicalType{LogicalTypeID::UNION}};
+        LogicalType{LogicalTypeID::UNION}, LogicalType{LogicalTypeID::RDF_VARIANT}};
 }
 
 std::vector<std::string> LogicalTypeUtils::parseStructFields(const std::string& structTypeStr) {

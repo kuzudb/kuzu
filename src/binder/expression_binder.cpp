@@ -114,16 +114,16 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
 std::shared_ptr<Expression> ExpressionBinder::implicitCast(
     const std::shared_ptr<Expression>& expression, const LogicalType& targetType) {
     if (CastFunction::hasImplicitCast(expression->dataType, targetType)) {
-        auto functionName = CastFunction::bindImplicitCastFuncName(targetType);
+        auto functionName =
+            stringFormat("CAST_TO({})", LogicalTypeUtils::dataTypeToString(targetType));
         auto children = expression_vector{expression};
         auto bindData = std::make_unique<FunctionBindData>(targetType);
-        function::scalar_exec_func execFunc;
-        CastFunction::bindImplicitCastFunc(
-            expression->dataType.getLogicalTypeID(), targetType.getLogicalTypeID(), execFunc);
+        auto scalarFunction = CastFunction::bindCastFunction(
+            functionName, expression->dataType.getLogicalTypeID(), targetType.getLogicalTypeID());
         auto uniqueName = ScalarFunctionExpression::getUniqueName(functionName, children);
         return std::make_shared<ScalarFunctionExpression>(functionName, FUNCTION,
-            std::move(bindData), std::move(children), execFunc, nullptr /* selectFunc */,
-            std::move(uniqueName));
+            std::move(bindData), std::move(children), scalarFunction->execFunc,
+            nullptr /* selectFunc */, std::move(uniqueName));
     } else {
         throw BinderException(unsupportedImplicitCastException(*expression, targetType));
     }
