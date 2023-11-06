@@ -1,4 +1,4 @@
-name: CI-Ubuntu-20.04-LTS
+name: Multiplatform Build & Test
 
 on:
   workflow_dispatch:
