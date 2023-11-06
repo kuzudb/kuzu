@@ -326,7 +326,7 @@ jobs:
           alternatives --set python3 /usr/bin/python3.9
           echo "/opt/rh/gcc-toolset-12/root/usr/bin" >> $GITHUB_PATH
           echo "PYTHON_EXECUTABLE=/usr/bin/python3.9" >> $GITHUB_ENV
-          echp "PYBIND11_PYTHON_VERSION=3.9" >> $GITHUB_ENV
+          echo "PYBIND11_PYTHON_VERSION=3.9" >> $GITHUB_ENV
 
       - uses: actions/checkout@v3
 
