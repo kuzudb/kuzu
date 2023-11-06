@@ -52,7 +52,7 @@ struct ScalarFunction : public BaseScalarFunction {
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
     static void TernaryExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
-        assert(params.size() == 3);
+        KU_ASSERT(params.size() == 3);
         TernaryFunctionExecutor::execute<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(
             *params[0], *params[1], *params[2], result);
     }
@@ -61,7 +61,7 @@ struct ScalarFunction : public BaseScalarFunction {
     static void TernaryStringExecFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
-        assert(params.size() == 3);
+        KU_ASSERT(params.size() == 3);
         TernaryFunctionExecutor::executeString<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(
             *params[0], *params[1], *params[2], result);
     }
@@ -69,7 +69,7 @@ struct ScalarFunction : public BaseScalarFunction {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
     static void BinaryExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
-        assert(params.size() == 2);
+        KU_ASSERT(params.size() == 2);
         BinaryFunctionExecutor::execute<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
             *params[0], *params[1], result);
     }
@@ -78,7 +78,7 @@ struct ScalarFunction : public BaseScalarFunction {
     static void BinaryStringExecFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
-        assert(params.size() == 2);
+        KU_ASSERT(params.size() == 2);
         BinaryFunctionExecutor::executeString<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
             *params[0], *params[1], result);
     }
@@ -87,7 +87,7 @@ struct ScalarFunction : public BaseScalarFunction {
     static bool BinarySelectFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::SelectionVector& selVector) {
-        assert(params.size() == 2);
+        KU_ASSERT(params.size() == 2);
         return BinaryFunctionExecutor::select<LEFT_TYPE, RIGHT_TYPE, FUNC>(
             *params[0], *params[1], selVector);
     }
@@ -95,7 +95,7 @@ struct ScalarFunction : public BaseScalarFunction {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
     static void UnaryExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/) {
-        assert(params.size() == 1);
+        KU_ASSERT(params.size() == 1);
         UnaryFunctionExecutor::execute<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
     }
 
@@ -103,7 +103,7 @@ struct ScalarFunction : public BaseScalarFunction {
     static void UnaryStringExecFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
-        assert(params.size() == 1);
+        KU_ASSERT(params.size() == 1);
         UnaryFunctionExecutor::executeString<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
     }
 
@@ -111,7 +111,7 @@ struct ScalarFunction : public BaseScalarFunction {
     static void UnaryCastStringExecFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* dataPtr) {
-        assert(params.size() == 1);
+        KU_ASSERT(params.size() == 1);
         UnaryFunctionExecutor::executeCastString<OPERAND_TYPE, RESULT_TYPE, FUNC>(
             *params[0], result, dataPtr);
     }
@@ -120,14 +120,14 @@ struct ScalarFunction : public BaseScalarFunction {
     static void UnaryCastExecFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
-        assert(params.size() == 1);
+        KU_ASSERT(params.size() == 1);
         UnaryFunctionExecutor::executeCast<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
     }
 
     template<typename RESULT_TYPE, typename FUNC>
     static void ConstExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
-        assert(params.empty());
+        KU_ASSERT(params.empty());
         (void)params;
         ConstFunctionExecutor::execute<RESULT_TYPE, FUNC>(result);
     }
@@ -136,7 +136,7 @@ struct ScalarFunction : public BaseScalarFunction {
     static void TernaryExecListStructFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
-        assert(params.size() == 3);
+        KU_ASSERT(params.size() == 3);
         TernaryFunctionExecutor::executeListStruct<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(
             *params[0], *params[1], *params[2], result);
     }
@@ -145,7 +145,7 @@ struct ScalarFunction : public BaseScalarFunction {
     static void BinaryExecListStructFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
-        assert(params.size() == 2);
+        KU_ASSERT(params.size() == 2);
         BinaryFunctionExecutor::executeListStruct<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
             *params[0], *params[1], result);
     }
@@ -154,7 +154,7 @@ struct ScalarFunction : public BaseScalarFunction {
     static void UnaryExecListStructFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
-        assert(params.size() == 1);
+        KU_ASSERT(params.size() == 1);
         UnaryFunctionExecutor::executeListStruct<OPERAND_TYPE, RESULT_TYPE, FUNC>(
             *params[0], result);
     }

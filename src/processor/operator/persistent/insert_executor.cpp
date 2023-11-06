@@ -32,8 +32,8 @@ void NodeInsertExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
 }
 
 static void writeLhsVector(common::ValueVector* lhsVector, common::ValueVector* rhsVector) {
-    assert(lhsVector->state->selVector->selectedSize == 1 &&
-           rhsVector->state->selVector->selectedSize == 1);
+    KU_ASSERT(lhsVector->state->selVector->selectedSize == 1 &&
+              rhsVector->state->selVector->selectedSize == 1);
     auto lhsPos = lhsVector->state->selVector->selectedPositions[0];
     auto rhsPos = rhsVector->state->selVector->selectedPositions[0];
     if (rhsVector->isNull(rhsPos)) {

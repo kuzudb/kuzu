@@ -112,7 +112,7 @@ struct TernaryFunctionExecutor {
         typename OP_WRAPPER>
     static void executeFlatUnflatUnflat(common::ValueVector& a, common::ValueVector& b,
         common::ValueVector& c, common::ValueVector& result, void* dataPtr) {
-        assert(b.state == c.state);
+        KU_ASSERT(b.state == c.state);
         auto aPos = a.state->selVector->selectedPositions[0];
         if (a.isNull(aPos)) {
             result.setAllNull();
@@ -198,7 +198,7 @@ struct TernaryFunctionExecutor {
         typename OP_WRAPPER>
     static void executeAllUnFlat(common::ValueVector& a, common::ValueVector& b,
         common::ValueVector& c, common::ValueVector& result, void* dataPtr) {
-        assert(a.state == b.state && b.state == c.state);
+        KU_ASSERT(a.state == b.state && b.state == c.state);
         if (a.hasNoNullsGuarantee() && b.hasNoNullsGuarantee() && c.hasNoNullsGuarantee()) {
             if (a.state->selVector->isUnfiltered()) {
                 for (uint64_t i = 0; i < a.state->selVector->selectedSize; i++) {
@@ -281,7 +281,7 @@ struct TernaryFunctionExecutor {
         typename OP_WRAPPER>
     static void executeUnflatFlatUnflat(common::ValueVector& a, common::ValueVector& b,
         common::ValueVector& c, common::ValueVector& result, void* dataPtr) {
-        assert(a.state == c.state);
+        KU_ASSERT(a.state == c.state);
         auto bPos = b.state->selVector->selectedPositions[0];
         if (b.isNull(bPos)) {
             result.setAllNull();
@@ -324,7 +324,7 @@ struct TernaryFunctionExecutor {
         typename OP_WRAPPER>
     static void executeUnflatUnFlatFlat(common::ValueVector& a, common::ValueVector& b,
         common::ValueVector& c, common::ValueVector& result, void* dataPtr) {
-        assert(a.state == b.state);
+        KU_ASSERT(a.state == b.state);
         auto cPos = c.state->selVector->selectedPositions[0];
         if (c.isNull(cPos)) {
             result.setAllNull();
@@ -393,7 +393,7 @@ struct TernaryFunctionExecutor {
             executeUnflatFlatUnflat<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
                 a, b, c, result, dataPtr);
         } else {
-            assert(false);
+            KU_ASSERT(false);
         }
     }
 

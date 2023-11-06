@@ -21,7 +21,7 @@ public:
     inline common::offset_t getNumNodes() const { return numNodes; }
     inline common::vector_idx_t getNumColumnChunks() { return chunks.size(); }
     inline ColumnChunk* getColumnChunk(common::column_id_t columnID) {
-        assert(columnID < chunks.size());
+        KU_ASSERT(columnID < chunks.size());
         return chunks[columnID].get();
     }
     inline bool isFull() const { return numNodes == common::StorageConstants::NODE_GROUP_SIZE; }

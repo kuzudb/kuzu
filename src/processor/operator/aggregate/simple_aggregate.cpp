@@ -17,7 +17,7 @@ SimpleAggregateSharedState::SimpleAggregateSharedState(
 void SimpleAggregateSharedState::combineAggregateStates(
     const std::vector<std::unique_ptr<AggregateState>>& localAggregateStates,
     storage::MemoryManager* memoryManager) {
-    assert(localAggregateStates.size() == globalAggregateStates.size());
+    KU_ASSERT(localAggregateStates.size() == globalAggregateStates.size());
     std::unique_lock lck{mtx};
     for (auto i = 0u; i < aggregateFunctions.size(); ++i) {
         aggregateFunctions[i]->combineState((uint8_t*)globalAggregateStates[i].get(),

@@ -53,12 +53,12 @@ uint32_t OpProfileBox::getAttributeMaxLen() const {
 }
 
 std::string OpProfileBox::getParamsName(uint32_t idx) const {
-    assert(idx < paramsNames.size());
+    KU_ASSERT(idx < paramsNames.size());
     return paramsNames[idx];
 }
 
 std::string OpProfileBox::getAttribute(uint32_t idx) const {
-    assert(idx < attributes.size());
+    KU_ASSERT(idx < attributes.size());
     return attributes[idx];
 }
 

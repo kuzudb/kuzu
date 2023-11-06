@@ -23,7 +23,7 @@ void StringColumnChunk::resetToEmpty() {
 }
 
 void StringColumnChunk::append(ValueVector* vector, offset_t startPosInChunk) {
-    assert(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
+    KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     ColumnChunk::copyVectorToBuffer(vector, startPosInChunk);
     auto stringsToSetOverflow = (ku_string_t*)(buffer.get() + startPosInChunk * numBytesPerValue);
     for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
@@ -55,7 +55,7 @@ void StringColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk
 }
 
 void StringColumnChunk::write(ValueVector* vector, offset_t startOffsetInChunk) {
-    assert(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
+    KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
         auto pos = vector->state->selVector->selectedPositions[i];
         auto offsetInChunk = startOffsetInChunk + pos;
@@ -68,10 +68,10 @@ void StringColumnChunk::write(ValueVector* vector, offset_t startOffsetInChunk) 
 }
 
 void StringColumnChunk::write(ValueVector* valueVector, ValueVector* offsetInChunkVector) {
-    assert(valueVector->dataType.getPhysicalType() == PhysicalTypeID::STRING &&
-           offsetInChunkVector->dataType.getPhysicalType() == PhysicalTypeID::INT64 &&
-           valueVector->state->selVector->selectedSize ==
-               offsetInChunkVector->state->selVector->selectedSize);
+    KU_ASSERT(valueVector->dataType.getPhysicalType() == PhysicalTypeID::STRING &&
+              offsetInChunkVector->dataType.getPhysicalType() == PhysicalTypeID::INT64 &&
+              valueVector->state->selVector->selectedSize ==
+                  offsetInChunkVector->state->selVector->selectedSize);
     auto offsets = (offset_t*)offsetInChunkVector->getData();
     for (auto i = 0u; i < valueVector->state->selVector->selectedSize; i++) {
         auto offsetInChunk = offsets[offsetInChunkVector->state->selVector->selectedPositions[i]];

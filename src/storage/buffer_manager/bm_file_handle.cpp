@@ -54,9 +54,9 @@ void BMFileHandle::addNewPageGroupWithoutLock() {
 }
 
 page_group_idx_t BMFileHandle::addWALPageIdxGroupIfNecessary(page_idx_t originalPageIdx) {
-    assert(fileVersionedType == FileVersionedType::VERSIONED_FILE);
+    KU_ASSERT(fileVersionedType == FileVersionedType::VERSIONED_FILE);
     std::unique_lock xLck{fhSharedMutex};
-    assert(originalPageIdx < numPages);
+    KU_ASSERT(originalPageIdx < numPages);
     // Although getPageElementCursorForPos is written to get offsets of elements
     // in pages, it simply can be used to find the group/chunk and offset/pos in group/chunk for
     // any chunked data structure.
@@ -84,7 +84,7 @@ void BMFileHandle::removePageIdxAndTruncateIfNecessary(page_idx_t pageIdx) {
     if (numPageGroups == frameGroupIdxes.size()) {
         return;
     }
-    assert(numPageGroups < frameGroupIdxes.size());
+    KU_ASSERT(numPageGroups < frameGroupIdxes.size());
     frameGroupIdxes.resize(numPageGroups);
     if (numPageGroups == 0) {
         walPageIdxGroups.clear();
@@ -97,12 +97,12 @@ void BMFileHandle::removePageIdxAndTruncateIfNecessary(page_idx_t pageIdx) {
 }
 
 void BMFileHandle::acquireWALPageIdxLock(page_idx_t originalPageIdx) {
-    assert(fileVersionedType == FileVersionedType::VERSIONED_FILE);
+    KU_ASSERT(fileVersionedType == FileVersionedType::VERSIONED_FILE);
     std::shared_lock sLck{fhSharedMutex};
-    assert(numPages > originalPageIdx);
+    KU_ASSERT(numPages > originalPageIdx);
     auto [pageGroupIdx, pageIdxInGroup] =
         PageUtils::getPageElementCursorForPos(originalPageIdx, StorageConstants::PAGE_GROUP_SIZE);
-    assert(walPageIdxGroups.contains(pageGroupIdx));
+    KU_ASSERT(walPageIdxGroups.contains(pageGroupIdx));
     walPageIdxGroups[pageGroupIdx]->acquireWALPageIdxLock(pageIdxInGroup);
 }
 
@@ -114,7 +114,7 @@ void BMFileHandle::releaseWALPageIdxLock(page_idx_t originalPageIdx) {
 }
 
 bool BMFileHandle::hasWALPageGroup(page_group_idx_t originalPageIdx) {
-    assert(fileVersionedType == FileVersionedType::VERSIONED_FILE);
+    KU_ASSERT(fileVersionedType == FileVersionedType::VERSIONED_FILE);
     std::shared_lock sLck{fhSharedMutex};
     auto [pageGroupIdx, pageIdxInGroup] =
         PageUtils::getPageElementCursorForPos(originalPageIdx, StorageConstants::PAGE_GROUP_SIZE);
@@ -122,7 +122,7 @@ bool BMFileHandle::hasWALPageGroup(page_group_idx_t originalPageIdx) {
 }
 
 bool BMFileHandle::hasWALPageVersionNoWALPageIdxLock(page_idx_t originalPageIdx) {
-    assert(fileVersionedType == FileVersionedType::VERSIONED_FILE);
+    KU_ASSERT(fileVersionedType == FileVersionedType::VERSIONED_FILE);
     std::shared_lock sLck{fhSharedMutex};
     auto [pageGroupIdx, pageIdxInGroup] =
         PageUtils::getPageElementCursorForPos(originalPageIdx, StorageConstants::PAGE_GROUP_SIZE);
@@ -149,7 +149,7 @@ void BMFileHandle::clearWALPageIdxIfNecessary(page_idx_t originalPageIdx) {
 
 // This function assumes that the caller has already acquired the lock for originalPageIdx.
 page_idx_t BMFileHandle::getWALPageIdxNoWALPageIdxLock(page_idx_t originalPageIdx) {
-    assert(fileVersionedType == FileVersionedType::VERSIONED_FILE);
+    KU_ASSERT(fileVersionedType == FileVersionedType::VERSIONED_FILE);
     // See the comment about a shared lock in hasWALPageVersionNoWALPageIdxLock
     std::shared_lock sLck{fhSharedMutex};
     auto [pageGroupIdx, pageIdxInGroup] =
@@ -158,7 +158,7 @@ page_idx_t BMFileHandle::getWALPageIdxNoWALPageIdxLock(page_idx_t originalPageId
 }
 
 void BMFileHandle::setWALPageIdx(page_idx_t originalPageIdx, page_idx_t pageIdxInWAL) {
-    assert(fileVersionedType == FileVersionedType::VERSIONED_FILE);
+    KU_ASSERT(fileVersionedType == FileVersionedType::VERSIONED_FILE);
     std::shared_lock sLck{fhSharedMutex};
     setWALPageIdxNoLock(originalPageIdx, pageIdxInWAL);
 }
@@ -166,7 +166,7 @@ void BMFileHandle::setWALPageIdx(page_idx_t originalPageIdx, page_idx_t pageIdxI
 void BMFileHandle::setWALPageIdxNoLock(page_idx_t originalPageIdx, page_idx_t pageIdxInWAL) {
     auto [pageGroupIdx, pageIdxInGroup] =
         PageUtils::getPageElementCursorForPos(originalPageIdx, StorageConstants::PAGE_GROUP_SIZE);
-    assert(walPageIdxGroups.contains(pageGroupIdx));
+    KU_ASSERT(walPageIdxGroups.contains(pageGroupIdx));
     walPageIdxGroups[pageGroupIdx]->setWALVersionPageIdxNoLock(pageIdxInGroup, pageIdxInWAL);
 }
 

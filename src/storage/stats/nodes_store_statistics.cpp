@@ -7,7 +7,7 @@ namespace storage {
 
 offset_t NodesStoreStatsAndDeletedIDs::getMaxNodeOffset(
     transaction::Transaction* transaction, table_id_t tableID) {
-    assert(transaction);
+    KU_ASSERT(transaction);
     if (transaction->getType() == transaction::TransactionType::READ_ONLY) {
         return getNodeStatisticsAndDeletedIDs(tableID)->getMaxNodeOffset();
     } else {

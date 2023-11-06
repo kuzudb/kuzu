@@ -36,7 +36,7 @@ private:
     static void BinaryComparisonExecFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
-        assert(params.size() == 2);
+        KU_ASSERT(params.size() == 2);
         BinaryFunctionExecutor::executeComparison<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
             *params[0], *params[1], result);
     }
@@ -45,7 +45,7 @@ private:
     static bool BinaryComparisonSelectFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::SelectionVector& selVector) {
-        assert(params.size() == 2);
+        KU_ASSERT(params.size() == 2);
         return BinaryFunctionExecutor::selectComparison<LEFT_TYPE, RIGHT_TYPE, FUNC>(
             *params[0], *params[1], selVector);
     }
@@ -135,7 +135,7 @@ private:
     template<typename FUNC>
     static void getSelectFunc(common::PhysicalTypeID leftTypeID, common::PhysicalTypeID rightTypeID,
         scalar_select_func& func) {
-        assert(leftTypeID == rightTypeID);
+        KU_ASSERT(leftTypeID == rightTypeID);
         switch (leftTypeID) {
         case common::PhysicalTypeID::INT64: {
             func = BinaryComparisonSelectFunction<int64_t, int64_t, FUNC>;

@@ -47,7 +47,7 @@ void CSVFileWriter::writeValues(std::vector<common::ValueVector*>& outputVectors
     }
     auto i = 0u;
     for (; i < outputVectors.size() - 1; i++) {
-        assert(outputVectors[i]->state->isFlat());
+        KU_ASSERT(outputVectors[i]->state->isFlat());
         writeValue(outputVectors[i]);
         writeToBuffer(CopyConstants::DEFAULT_CSV_DELIMITER);
     }

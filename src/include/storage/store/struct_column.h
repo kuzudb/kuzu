@@ -22,7 +22,7 @@ public:
     void rollbackInMemory() final;
 
     inline Column* getChild(common::vector_idx_t childIdx) {
-        assert(childIdx < childColumns.size());
+        KU_ASSERT(childIdx < childColumns.size());
         return childColumns[childIdx].get();
     }
     void write(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,

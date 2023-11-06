@@ -83,7 +83,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformComparisonExpression(
     }
     // Antlr parser throws error for conjunctive comparison.
     // Transformer should only handle the case of single comparison operator.
-    assert(ctx.kU_ComparisonOperator().size() == 1);
+    KU_ASSERT(ctx.kU_ComparisonOperator().size() == 1);
     auto left = transformBitwiseOrOperatorExpression(*ctx.kU_BitwiseOrOperatorExpression(0));
     auto right = transformBitwiseOrOperatorExpression(*ctx.kU_BitwiseOrOperatorExpression(1));
     auto comparisonOperator = ctx.kU_ComparisonOperator()[0]->getText();
@@ -103,7 +103,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformComparisonExpression(
         return std::make_unique<ParsedExpression>(
             ExpressionType::LESS_THAN, std::move(left), std::move(right), ctx.getText());
     } else {
-        assert(comparisonOperator == "<=");
+        KU_ASSERT(comparisonOperator == "<=");
         return std::make_unique<ParsedExpression>(
             ExpressionType::LESS_THAN_EQUALS, std::move(left), std::move(right), ctx.getText());
     }
@@ -156,7 +156,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformBitShiftOperatorExpressi
                 expression = std::make_unique<ParsedFunctionExpression>(
                     BITSHIFT_LEFT_FUNC_NAME, std::move(expression), std::move(next), rawName);
             } else {
-                assert(bitShiftOperator == ">>");
+                KU_ASSERT(bitShiftOperator == ">>");
                 expression = std::make_unique<ParsedFunctionExpression>(
                     BITSHIFT_RIGHT_FUNC_NAME, std::move(expression), std::move(next), rawName);
             }
@@ -277,7 +277,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformStringOperatorExpression
         return std::make_unique<ParsedFunctionExpression>(
             CONTAINS_FUNC_NAME, std::move(propertyExpression), std::move(right), rawExpression);
     } else {
-        assert(ctx.oC_RegularExpression());
+        KU_ASSERT(ctx.oC_RegularExpression());
         return std::make_unique<ParsedFunctionExpression>(REGEXP_FULL_MATCH_FUNC_NAME,
             std::move(propertyExpression), std::move(right), rawExpression);
     }
@@ -348,7 +348,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformNullOperatorExpression(
     CypherParser::OC_NullOperatorExpressionContext& ctx,
     std::unique_ptr<ParsedExpression> propertyExpression) {
     auto rawExpression = propertyExpression->getRawName() + " " + ctx.getText();
-    assert(ctx.IS() && ctx.NULL_());
+    KU_ASSERT(ctx.IS() && ctx.NULL_());
     return ctx.NOT() ? std::make_unique<ParsedExpression>(ExpressionType::IS_NOT_NULL,
                            std::move(propertyExpression), rawExpression) :
                        std::make_unique<ParsedExpression>(
@@ -385,7 +385,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformAtom(CypherParser::OC_At
     } else if (ctx.oC_ExistentialSubquery()) {
         return transformExistentialSubquery(*ctx.oC_ExistentialSubquery());
     } else {
-        assert(ctx.oC_Variable());
+        KU_ASSERT(ctx.oC_Variable());
         return std::make_unique<ParsedVariableExpression>(
             transformVariable(*ctx.oC_Variable()), ctx.getText());
     }
@@ -408,7 +408,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformLiteral(
     } else if (ctx.kU_StructLiteral()) {
         return transformStructLiteral(*ctx.kU_StructLiteral());
     } else {
-        assert(ctx.oC_ListLiteral());
+        KU_ASSERT(ctx.oC_ListLiteral());
         return transformListLiteral(*ctx.oC_ListLiteral());
     }
 }
@@ -421,7 +421,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformBooleanLiteral(
     } else if (ctx.FALSE()) {
         literal = std::make_unique<Value>(false);
     }
-    assert(literal);
+    KU_ASSERT(literal);
     return std::make_unique<ParsedLiteralExpression>(std::move(literal), ctx.getText());
 }
 
@@ -480,7 +480,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformFunctionInvocation(
     auto functionName = transformFunctionName(*ctx.oC_FunctionName());
     if (ctx.STAR()) {
         StringUtils::toUpper(functionName);
-        assert(functionName == "COUNT");
+        KU_ASSERT(functionName == "COUNT");
         return std::make_unique<ParsedFunctionExpression>(COUNT_STAR_FUNC_NAME, ctx.getText());
     }
     auto expression = std::make_unique<ParsedFunctionExpression>(
@@ -530,7 +530,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformCaseExpression(
         if (ctx.oC_Expression().size() == 1) {
             elseExpression = transformExpression(*ctx.oC_Expression(0));
         } else {
-            assert(ctx.oC_Expression().size() == 2);
+            KU_ASSERT(ctx.oC_Expression().size() == 2);
             caseExpression = transformExpression(*ctx.oC_Expression(0));
             elseExpression = transformExpression(*ctx.oC_Expression(1));
         }
@@ -561,7 +561,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformNumberLiteral(
     if (ctx.oC_IntegerLiteral()) {
         return transformIntegerLiteral(*ctx.oC_IntegerLiteral());
     } else {
-        assert(ctx.oC_DoubleLiteral());
+        KU_ASSERT(ctx.oC_DoubleLiteral());
         return transformDoubleLiteral(*ctx.oC_DoubleLiteral());
     }
 }

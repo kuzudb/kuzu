@@ -15,7 +15,7 @@ bool IndexLookup::getNextTuplesInternal(ExecutionContext* context) {
         return false;
     }
     for (auto& info : infos) {
-        assert(info);
+        KU_ASSERT(info);
         indexLookup(context->clientContext->getActiveTransaction(), *info);
     }
     return true;
@@ -54,7 +54,7 @@ void IndexLookup::checkNullKeys(ValueVector* keyVector) {
 // TODO(Guodong): Add short path for unfiltered case.
 void IndexLookup::fillOffsetArraysFromVector(transaction::Transaction* transaction,
     const IndexLookupInfo& info, ValueVector* keyVector, ValueVector* resultVector) {
-    assert(resultVector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
+    KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
     auto offsets = (offset_t*)resultVector->getData();
     auto numKeys = keyVector->state->selVector->selectedSize;
     switch (info.pkDataType->getLogicalTypeID()) {

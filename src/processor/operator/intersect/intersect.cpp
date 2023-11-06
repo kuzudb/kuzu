@@ -37,7 +37,7 @@ void Intersect::probeHTs() {
     std::vector<std::vector<overflow_value_t>> flatTuples(probeKeyVectors.size());
     hash_t hashVal;
     for (auto i = 0u; i < probeKeyVectors.size(); i++) {
-        assert(probeKeyVectors[i]->state->isFlat());
+        KU_ASSERT(probeKeyVectors[i]->state->isFlat());
         probedFlatTuples[i].clear();
         auto key = probeKeyVectors[i]->getValue<nodeID_t>(
             probeKeyVectors[i]->state->selVector->selectedPositions[0]);
@@ -54,7 +54,7 @@ void Intersect::probeHTs() {
 
 void Intersect::twoWayIntersect(nodeID_t* leftNodeIDs, SelectionVector& lSelVector,
     nodeID_t* rightNodeIDs, SelectionVector& rSelVector) {
-    assert(lSelVector.selectedSize <= rSelVector.selectedSize);
+    KU_ASSERT(lSelVector.selectedSize <= rSelVector.selectedSize);
     sel_t leftPosition = 0, rightPosition = 0;
     uint64_t outputValuePosition = 0;
     while (leftPosition < lSelVector.selectedSize && rightPosition < rSelVector.selectedSize) {
@@ -89,7 +89,7 @@ static std::vector<overflow_value_t> fetchListsToIntersectFromTuples(
 }
 
 static std::vector<uint32_t> swapSmallestListToFront(std::vector<overflow_value_t>& lists) {
-    assert(lists.size() >= 2);
+    KU_ASSERT(lists.size() >= 2);
     std::vector<uint32_t> listIdxes(lists.size());
     iota(listIdxes.begin(), listIdxes.end(), 0);
     uint32_t smallestListIdx = 0;
@@ -121,7 +121,7 @@ void Intersect::intersectLists(const std::vector<overflow_value_t>& listsToInter
         outKeyVector->state->selVector->selectedSize = 0;
         return;
     }
-    assert(listsToIntersect[0].numElements <= DEFAULT_VECTOR_CAPACITY);
+    KU_ASSERT(listsToIntersect[0].numElements <= DEFAULT_VECTOR_CAPACITY);
     memcpy(outKeyVector->getData(), listsToIntersect[0].value,
         listsToIntersect[0].numElements * sizeof(nodeID_t));
     SelectionVector lSelVector(listsToIntersect[0].numElements);

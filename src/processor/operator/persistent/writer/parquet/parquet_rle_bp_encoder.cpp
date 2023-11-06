@@ -1,7 +1,6 @@
 #include "processor/operator/persistent/writer/parquet/parquet_rle_bp_encoder.h"
 
-#include <cassert>
-
+#include "common/assert.h"
 #include "common/exception/not_implemented.h"
 
 namespace kuzu {
@@ -60,7 +59,7 @@ void RleBpEncoder::finishPrepare() {
 }
 
 uint64_t RleBpEncoder::getByteCount() {
-    assert(byteCount != uint64_t(-1));
+    KU_ASSERT(byteCount != uint64_t(-1));
     return byteCount;
 }
 
@@ -74,7 +73,7 @@ void RleBpEncoder::writeRun(common::Serializer& writer) {
     // write the header of the run
     varintEncode(currentRunCount << 1, writer);
     // now write the value
-    assert(lastValue >> (byteWidth * 8) == 0);
+    KU_ASSERT(lastValue >> (byteWidth * 8) == 0);
     switch (byteWidth) {
     case 1:
         writer.write<uint8_t>(lastValue);

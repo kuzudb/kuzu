@@ -28,7 +28,7 @@ uint32_t BaseLowerUpperFunction::getResultLen(char* inputStr, uint32_t inputLen,
             int convertedCodepoint =
                 isUpper ? utf8proc_toupper(codepoint) : utf8proc_tolower(codepoint);
             int newSize = utf8proc_codepoint_length(convertedCodepoint);
-            assert(newSize >= 0);
+            KU_ASSERT(newSize >= 0);
             outputLength += newSize;
             i += size;
         } else {
@@ -44,7 +44,7 @@ void BaseLowerUpperFunction::convertCase(char* result, uint32_t len, char* input
         if (input[i] & 0x80) {
             int size = 0, newSize = 0;
             int codepoint = utf8proc_codepoint(input + i, size);
-            assert(codepoint >= 0); // Validity ensured by getResultLen.
+            KU_ASSERT(codepoint >= 0); // Validity ensured by getResultLen.
             int convertedCodepoint =
                 toUpper ? utf8proc_toupper(codepoint) : utf8proc_tolower(codepoint);
             utf8proc_codepoint_to_utf8(convertedCodepoint, newSize, result);

@@ -103,7 +103,7 @@ std::unique_ptr<LogicalPlan> Planner::planCopyTo(const Catalog& catalog,
     const BoundStatement& statement) {
     auto& copyClause = reinterpret_cast<const BoundCopyTo&>(statement);
     auto regularQuery = copyClause.getRegularQuery();
-    assert(regularQuery->getStatementType() == StatementType::QUERY);
+    KU_ASSERT(regularQuery->getStatementType() == StatementType::QUERY);
     auto plan = QueryPlanner(catalog, nodesStatistics, relsStatistics).getBestPlan(*regularQuery);
     auto logicalCopyTo =
         make_shared<LogicalCopyTo>(plan->getLastOperator(), copyClause.getConfig()->copy());

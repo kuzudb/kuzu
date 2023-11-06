@@ -14,7 +14,7 @@ namespace kuzu {
 namespace common {
 
 void Value::setDataType(const LogicalType& dataType_) {
-    assert(dataType->getLogicalTypeID() == LogicalTypeID::ANY);
+    KU_ASSERT(dataType->getLogicalTypeID() == LogicalTypeID::ANY);
     dataType = dataType_.copy();
 }
 
@@ -308,7 +308,7 @@ void Value::copyValueFrom(const Value& other) {
         return;
     }
     isNull_ = false;
-    assert(*dataType == *other.dataType);
+    KU_ASSERT(*dataType == *other.dataType);
     switch (dataType->getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
         val.booleanVal = other.val.booleanVal;

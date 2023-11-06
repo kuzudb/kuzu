@@ -194,7 +194,7 @@ TEST_F(ApiTest, TernaryUDFMoreParamType) {
 
 static void addFour(const std::vector<std::shared_ptr<ValueVector>>& parameters,
     ValueVector& result, void* /*dataPtr*/ = nullptr) {
-    assert(parameters.size() == 1);
+    KU_ASSERT(parameters.size() == 1);
     auto parameter = parameters[0];
     result.resetAuxiliaryBuffer();
     result.state = parameter->state;
@@ -225,7 +225,7 @@ struct AddDate {
 
 static void addDate(const std::vector<std::shared_ptr<ValueVector>>& parameters,
     ValueVector& result, void* /*dataPtr*/ = nullptr) {
-    assert(parameters.size() == 2);
+    KU_ASSERT(parameters.size() == 2);
     function::BinaryFunctionExecutor::execute<date_t, int64_t, date_t, AddDate>(
         *parameters[0], *parameters[1], result);
 }
@@ -255,7 +255,7 @@ struct ConditionalConcat {
 
 static void conditionalConcat(const std::vector<std::shared_ptr<ValueVector>>& parameters,
     ValueVector& result, void* /*dataPtr*/ = nullptr) {
-    assert(parameters.size() == 3);
+    KU_ASSERT(parameters.size() == 3);
     function::TernaryFunctionExecutor::executeString<ku_string_t, bool, ku_string_t, ku_string_t,
         ConditionalConcat>(*parameters[0], *parameters[1], *parameters[2], result);
 }

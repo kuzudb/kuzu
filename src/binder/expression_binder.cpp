@@ -133,7 +133,7 @@ void ExpressionBinder::resolveAnyDataType(Expression& expression, const LogicalT
     if (expression.expressionType == PARAMETER) { // expression is parameter
         ((ParameterExpression&)expression).setDataType(targetType);
     } else { // expression is null literal
-        assert(expression.expressionType == LITERAL);
+        KU_ASSERT(expression.expressionType == LITERAL);
         ((LiteralExpression&)expression).setDataType(targetType);
     }
 }

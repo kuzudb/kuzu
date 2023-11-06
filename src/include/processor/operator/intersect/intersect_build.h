@@ -19,7 +19,7 @@ public:
     }
 
     inline void appendVectors() final {
-        assert(keyVectors.size() == 1);
+        KU_ASSERT(keyVectors.size() == 1);
         hashTable->appendVectorWithSorting(keyVectors[0], payloadVectors);
     }
 };

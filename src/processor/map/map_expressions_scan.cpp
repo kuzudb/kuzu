@@ -21,14 +21,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExpressionsScan(
     auto expressionsToScan = expressionsScan->getExpressions();
     std::vector<ft_col_idx_t> colIndicesToScan;
     for (auto& expression : expressionsToScan) {
-        assert(materializedExpressionToColIdx.contains(expression));
+        KU_ASSERT(materializedExpressionToColIdx.contains(expression));
         colIndicesToScan.push_back(materializedExpressionToColIdx.at(expression));
     }
     auto schema = expressionsScan->getSchema();
-    assert(logicalOpToPhysicalOpMap.contains(outerAccumulate));
+    KU_ASSERT(logicalOpToPhysicalOpMap.contains(outerAccumulate));
     auto physicalOp = logicalOpToPhysicalOpMap.at(outerAccumulate);
-    assert(physicalOp->getOperatorType() == PhysicalOperatorType::FACTORIZED_TABLE_SCAN);
-    assert(physicalOp->getChild(0)->getOperatorType() == PhysicalOperatorType::RESULT_COLLECTOR);
+    KU_ASSERT(physicalOp->getOperatorType() == PhysicalOperatorType::FACTORIZED_TABLE_SCAN);
+    KU_ASSERT(physicalOp->getChild(0)->getOperatorType() == PhysicalOperatorType::RESULT_COLLECTOR);
     auto resultCollector = (ResultCollector*)physicalOp->getChild(0);
     auto table = resultCollector->getResultFactorizedTable();
     return createFactorizedTableScan(expressionsToScan, colIndicesToScan, schema, table,

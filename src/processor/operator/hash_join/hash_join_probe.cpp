@@ -18,8 +18,8 @@ void HashJoinProbe::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     }
     // We only need to read nonKeys from the factorizedTable. Key columns are always kept as first k
     // columns in the factorizedTable, so we skip the first k columns.
-    assert(probeDataInfo.keysDataPos.size() + probeDataInfo.getNumPayloads() + 1 ==
-           sharedState->getHashTable()->getTableSchema()->getNumColumns());
+    KU_ASSERT(probeDataInfo.keysDataPos.size() + probeDataInfo.getNumPayloads() + 1 ==
+              sharedState->getHashTable()->getTableSchema()->getNumColumns());
     columnIdxsToReadFrom.resize(probeDataInfo.getNumPayloads());
     iota(
         columnIdxsToReadFrom.begin(), columnIdxsToReadFrom.end(), probeDataInfo.keysDataPos.size());
@@ -54,7 +54,7 @@ bool HashJoinProbe::getMatchedTuplesForFlatKey(ExecutionContext* context) {
 }
 
 bool HashJoinProbe::getMatchedTuplesForUnFlatKey(ExecutionContext* context) {
-    assert(keyVectors.size() == 1);
+    KU_ASSERT(keyVectors.size() == 1);
     auto keyVector = keyVectors[0];
     restoreSelVector(keyVector->state->selVector);
     if (!children[0]->getNextTuple(context)) {
@@ -112,7 +112,7 @@ uint64_t HashJoinProbe::getLeftJoinResult() {
         // clear, NULL keys should only be discarded for probe but should not reflect on the vector.
         // The following for loop is a temporary hack.
         for (auto& vector : keyVectors) {
-            assert(vector->state->isFlat());
+            KU_ASSERT(vector->state->isFlat());
             vector->state->selVector->selectedSize = 1;
         }
         probeState->probedTuples[0] = nullptr;

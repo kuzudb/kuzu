@@ -40,7 +40,7 @@ void QueryPlanner::planProjectionBody(
 
 void QueryPlanner::planAggregate(const expression_vector& expressionsToAggregate,
     const expression_vector& expressionsToGroupBy, LogicalPlan& plan) {
-    assert(!expressionsToAggregate.empty());
+    KU_ASSERT(!expressionsToAggregate.empty());
     expression_vector expressionsToProject;
     for (auto& expressionToAggregate : expressionsToAggregate) {
         if (ExpressionChildrenCollector::collectChildren(*expressionToAggregate)

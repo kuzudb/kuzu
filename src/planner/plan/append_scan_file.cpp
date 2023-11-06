@@ -5,7 +5,7 @@ namespace kuzu {
 namespace planner {
 
 void QueryPlanner::appendScanFile(binder::BoundFileScanInfo* fileScanInfo, LogicalPlan& plan) {
-    assert(plan.isEmpty());
+    KU_ASSERT(plan.isEmpty());
     auto scanFile = std::make_shared<LogicalScanFile>(fileScanInfo->copy());
     scanFile->computeFactorizedSchema();
     plan.setLastOperator(std::move(scanFile));

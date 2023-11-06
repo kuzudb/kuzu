@@ -93,7 +93,7 @@ void PathPropertyProbe::probe(kuzu::processor::JoinHashTable* hashTable, uint64_
             }
             localState->probedTuples[i] = *hashTable->getPrevTuple(currentTuple);
         }
-        assert(localState->matchedTuples[i] != nullptr);
+        KU_ASSERT(localState->matchedTuples[i] != nullptr);
     }
     // Scan table
     auto factorizedTable = hashTable->getFactorizedTable();

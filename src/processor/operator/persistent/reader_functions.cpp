@@ -109,7 +109,7 @@ std::shared_ptr<ReaderFunctionData> ReaderFunctions::getReadFuncData(const Reade
 
 void ReaderFunctions::validateNPYFiles(const common::ReaderConfig& config) {
     // Validate one file for one column.
-    assert(!config.filePaths.empty() && config.getNumFiles() == config.getNumColumns());
+    KU_ASSERT(!config.filePaths.empty() && config.getNumFiles() == config.getNumColumns());
     row_idx_t numRows;
     for (auto i = 0u; i < config.getNumFiles(); i++) {
         auto reader = make_unique<NpyReader>(config.filePaths[i]);
@@ -147,21 +147,21 @@ row_idx_t ReaderFunctions::countRowsInParquetFile(
 
 row_idx_t ReaderFunctions::countRowsInNPYFile(
     const common::ReaderConfig& config, MemoryManager* /*memoryManager*/) {
-    assert(config.getNumFiles() != 0);
+    KU_ASSERT(config.getNumFiles() != 0);
     auto reader = make_unique<NpyReader>(config.filePaths[0]);
     return reader->getNumRows();
 }
 
 row_idx_t ReaderFunctions::countRowsInRDFFile(
     const common::ReaderConfig& config, MemoryManager* /*memoryManager*/) {
-    assert(config.getNumFiles() == 1);
+    KU_ASSERT(config.getNumFiles() == 1);
     auto reader = make_unique<RDFReader>(config.filePaths[0], config.rdfReaderConfig->copy());
     return reader->countLine();
 }
 
 void ReaderFunctions::initSerialCSVReadData(ReaderFunctionData& funcData, vector_idx_t fileIdx,
     const common::ReaderConfig& config, MemoryManager* /*memoryManager*/) {
-    assert(fileIdx < config.getNumFiles());
+    KU_ASSERT(fileIdx < config.getNumFiles());
     funcData.fileIdx = fileIdx;
     reinterpret_cast<SerialCSVReaderFunctionData&>(funcData).reader =
         std::make_unique<SerialCSVReader>(config.filePaths[fileIdx], config);
@@ -169,7 +169,7 @@ void ReaderFunctions::initSerialCSVReadData(ReaderFunctionData& funcData, vector
 
 void ReaderFunctions::initParallelCSVReadData(ReaderFunctionData& funcData, vector_idx_t fileIdx,
     const common::ReaderConfig& config, MemoryManager* /*memoryManager*/) {
-    assert(fileIdx < config.getNumFiles());
+    KU_ASSERT(fileIdx < config.getNumFiles());
     funcData.fileIdx = fileIdx;
     reinterpret_cast<ParallelCSVReaderFunctionData&>(funcData).reader =
         std::make_unique<ParallelCSVReader>(config.filePaths[fileIdx], config);
@@ -177,7 +177,7 @@ void ReaderFunctions::initParallelCSVReadData(ReaderFunctionData& funcData, vect
 
 void ReaderFunctions::initParquetReadData(ReaderFunctionData& funcData, vector_idx_t fileIdx,
     const common::ReaderConfig& config, MemoryManager* memoryManager) {
-    assert(fileIdx < config.getNumFiles());
+    KU_ASSERT(fileIdx < config.getNumFiles());
     funcData.fileIdx = fileIdx;
     reinterpret_cast<ParquetReaderFunctionData&>(funcData).reader =
         std::make_unique<ParquetReader>(config.filePaths[fileIdx], memoryManager);

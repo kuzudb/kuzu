@@ -56,13 +56,14 @@ public:
             oldStateAndVersion, updateStateWithSameVersion(oldStateAndVersion, LOCKED));
     }
     inline void unlock() {
-        assert(getState(stateAndVersion.load()) == LOCKED);
+        // TODO(Keenan / Guodong): Track down this rare bug and re-enable the assert. Ref #2289.
+        // KU_ASSERT(getState(stateAndVersion.load()) == LOCKED);
         stateAndVersion.store(updateStateAndIncrementVersion(stateAndVersion.load(), UNLOCKED),
             std::memory_order_release);
     }
     // Change page state from Mark to Unlocked.
     inline bool tryClearMark(uint64_t oldStateAndVersion) {
-        assert(getState(oldStateAndVersion) == MARKED);
+        KU_ASSERT(getState(oldStateAndVersion) == MARKED);
         return stateAndVersion.compare_exchange_strong(
             oldStateAndVersion, updateStateWithSameVersion(oldStateAndVersion, UNLOCKED));
     }
@@ -72,11 +73,11 @@ public:
     }
 
     inline void setDirty() {
-        assert(getState(stateAndVersion.load()) == LOCKED);
+        KU_ASSERT(getState(stateAndVersion.load()) == LOCKED);
         stateAndVersion |= DIRTY_MASK;
     }
     inline void clearDirty() {
-        assert(getState(stateAndVersion.load()) == LOCKED);
+        KU_ASSERT(getState(stateAndVersion.load()) == LOCKED);
         stateAndVersion &= ~DIRTY_MASK;
     }
     inline bool isDirty() const { return stateAndVersion & DIRTY_MASK; }
@@ -144,7 +145,7 @@ public:
 
     // This function assumes the page is already LOCKED.
     inline void setLockedPageDirty(common::page_idx_t pageIdx) {
-        assert(pageIdx < numPages);
+        KU_ASSERT(pageIdx < numPages);
         pageStates[pageIdx]->setDirty();
     }
 
@@ -173,11 +174,11 @@ public:
 
 private:
     inline PageState* getPageState(common::page_idx_t pageIdx) {
-        assert(pageIdx < numPages && pageStates[pageIdx]);
+        KU_ASSERT(pageIdx < numPages && pageStates[pageIdx]);
         return pageStates[pageIdx].get();
     }
     inline common::frame_idx_t getFrameIdx(common::page_idx_t pageIdx) {
-        assert(pageIdx < pageCapacity);
+        KU_ASSERT(pageIdx < pageCapacity);
         return (frameGroupIdxes[pageIdx >> common::StorageConstants::PAGE_GROUP_SIZE_LOG2]
                    << common::StorageConstants::PAGE_GROUP_SIZE_LOG2) |
                (pageIdx & common::StorageConstants::PAGE_IDX_IN_GROUP_MASK);

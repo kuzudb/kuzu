@@ -48,7 +48,7 @@ void StructColumnChunk::resize(uint64_t newCapacity) {
 }
 
 void StructColumnChunk::write(ValueVector* vector, offset_t startOffsetInChunk) {
-    assert(vector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
+    KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
     auto fields = StructVector::getFieldVectors(vector);
     for (auto i = 0u; i < fields.size(); i++) {
         childChunks[i]->write(fields[i].get(), startOffsetInChunk);
@@ -56,7 +56,7 @@ void StructColumnChunk::write(ValueVector* vector, offset_t startOffsetInChunk) 
 }
 
 void StructColumnChunk::write(ValueVector* valueVector, ValueVector* offsetInChunkVector) {
-    assert(valueVector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
+    KU_ASSERT(valueVector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
     auto fields = StructVector::getFieldVectors(valueVector);
     for (auto i = 0u; i < fields.size(); i++) {
         childChunks[i]->write(fields[i].get(), offsetInChunkVector);

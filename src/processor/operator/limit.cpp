@@ -19,7 +19,7 @@ bool Limit::getNextTuplesInternal(ExecutionContext* context) {
             // If all dataChunks are flat, numTupleAvailable = 1 which means numTupleProcessedBefore
             // = limitNumber. So execution is terminated in above if statement.
             auto& dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
-            assert(!dataChunkToSelect->state->isFlat());
+            KU_ASSERT(!dataChunkToSelect->state->isFlat());
             dataChunkToSelect->state->selVector->selectedSize = numTupleToProcessInCurrentResultSet;
             metrics->numOutputTuple.increase(numTupleToProcessInCurrentResultSet);
         }

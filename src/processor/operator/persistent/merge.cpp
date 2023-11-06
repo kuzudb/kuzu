@@ -29,7 +29,7 @@ bool Merge::getNextTuplesInternal(ExecutionContext* context) {
     if (!children[0]->getNextTuple(context)) {
         return false;
     }
-    assert(markVector->state->isFlat());
+    KU_ASSERT(markVector->state->isFlat());
     auto pos = markVector->state->selVector->selectedPositions[0];
     if (!markVector->isNull(pos)) {
         for (auto& executor : onMatchNodeSetExecutors) {

@@ -70,7 +70,7 @@ std::unique_ptr<LogicalPlan> QueryPlanner::getBestPlan(
 
 std::unique_ptr<LogicalPlan> QueryPlanner::createUnionPlan(
     std::vector<std::unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll) {
-    assert(!childrenPlans.empty());
+    KU_ASSERT(!childrenPlans.empty());
     auto plan = std::make_unique<LogicalPlan>();
     std::vector<std::shared_ptr<LogicalOperator>> children;
     for (auto& childPlan : childrenPlans) {

@@ -159,7 +159,7 @@ void ParquetWriter::prepareRowGroup(FactorizedTable& ft, PreparedRowGroup& resul
 
     auto& states = result.states;
     // iterate over each of the columns of the chunk collection and write them
-    assert(ft.getTableSchema()->getNumColumns() == columnWriters.size());
+    KU_ASSERT(ft.getTableSchema()->getNumColumns() == columnWriters.size());
     std::vector<std::unique_ptr<ColumnWriterState>> writerStates;
     std::unique_ptr<DataChunk> unflatDataChunkToRead =
         std::make_unique<DataChunk>(ft.getTableSchema()->getNumUnflatColumns());

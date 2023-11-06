@@ -112,7 +112,7 @@ std::unique_ptr<CSVReaderConfig> Binder::bindParsingOptions(
 
         auto copyOptionExpression = parsingOption.second.get();
         auto boundCopyOptionExpression = expressionBinder.bindExpression(*copyOptionExpression);
-        assert(boundCopyOptionExpression->expressionType == LITERAL);
+        KU_ASSERT(boundCopyOptionExpression->expressionType == LITERAL);
         if (isValidBoolParsingOption) {
             if (boundCopyOptionExpression->dataType.getLogicalTypeID() != LogicalTypeID::BOOL) {
                 throw BinderException(

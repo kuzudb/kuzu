@@ -179,7 +179,7 @@ struct BinaryFunctionExecutor {
         typename OP_WRAPPER>
     static void executeBothUnFlat(common::ValueVector& left, common::ValueVector& right,
         common::ValueVector& result, void* dataPtr) {
-        assert(left.state == right.state);
+        KU_ASSERT(left.state == right.state);
         if (left.hasNoNullsGuarantee() && right.hasNoNullsGuarantee()) {
             if (result.state->selVector->isUnfiltered()) {
                 for (uint64_t i = 0; i < result.state->selVector->selectedSize; i++) {
@@ -233,7 +233,7 @@ struct BinaryFunctionExecutor {
             executeBothUnFlat<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
                 left, right, result, dataPtr);
         } else {
-            assert(false);
+            KU_ASSERT(false);
         }
     }
 

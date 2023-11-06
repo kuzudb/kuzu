@@ -77,7 +77,7 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getEvaluator(
 
 std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getConstantEvaluator(
     const std::shared_ptr<Expression>& expression) {
-    assert(ExpressionVisitor::isConstant(*expression));
+    KU_ASSERT(ExpressionVisitor::isConstant(*expression));
     auto expressionType = expression->expressionType;
     if (isExpressionLiteral(expressionType)) {
         return getLiteralEvaluator(*expression);
@@ -103,13 +103,13 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getLiteralEvaluator(
 std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getParameterEvaluator(
     const Expression& expression) {
     auto& parameterExpression = (ParameterExpression&)expression;
-    assert(parameterExpression.getLiteral() != nullptr);
+    KU_ASSERT(parameterExpression.getLiteral() != nullptr);
     return std::make_unique<LiteralExpressionEvaluator>(parameterExpression.getLiteral());
 }
 
 std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getReferenceEvaluator(
     std::shared_ptr<Expression> expression, const Schema* schema) {
-    assert(schema != nullptr);
+    KU_ASSERT(schema != nullptr);
     auto vectorPos = DataPos(schema->getExpressionPos(*expression));
     auto expressionGroup = schema->getGroup(expression->getUniqueName());
     return std::make_unique<ReferenceExpressionEvaluator>(vectorPos, expressionGroup->isFlat());

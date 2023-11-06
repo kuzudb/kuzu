@@ -9,11 +9,11 @@ StructColumnReader::StructColumnReader(ParquetReader& reader,
     std::vector<std::unique_ptr<ColumnReader>> childReaders)
     : ColumnReader(reader, std::move(type), schema, schemaIdx, maxDefine, maxRepeat),
       childReaders(std::move(childReaders)) {
-    assert(this->type->getPhysicalType() == common::PhysicalTypeID::STRUCT);
+    KU_ASSERT(this->type->getPhysicalType() == common::PhysicalTypeID::STRUCT);
 }
 
 ColumnReader* StructColumnReader::getChildReader(uint64_t childIdx) {
-    assert(childIdx < childReaders.size());
+    KU_ASSERT(childIdx < childReaders.size());
     return childReaders[childIdx].get();
 }
 
@@ -42,7 +42,7 @@ void StructColumnReader::registerPrefetch(ThriftFileTransport& transport, bool a
 uint64_t StructColumnReader::read(uint64_t num_values, parquet_filter_t& filter,
     uint8_t* define_out, uint8_t* repeat_out, common::ValueVector* result) {
     auto& fieldVectors = common::StructVector::getFieldVectors(result);
-    assert(common::StructType::getNumFields(type.get()) == fieldVectors.size());
+    KU_ASSERT(common::StructType::getNumFields(type.get()) == fieldVectors.size());
     if (pendingSkips > 0) {
         applyPendingSkips(pendingSkips);
     }

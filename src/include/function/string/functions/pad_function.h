@@ -1,7 +1,6 @@
 #pragma once
 
-#include <cassert>
-
+#include "common/assert.h"
 #include "common/types/ku_string.h"
 #include "common/vector/value_vector.h"
 
@@ -19,7 +18,7 @@ public:
             result.set("", 0);
             return;
         }
-        assert(characterToPad.len == 1);
+        KU_ASSERT(characterToPad.len == 1);
         padOperation(result, src, characterToPad);
         common::StringVector::addString(
             &resultValueVector, result, (const char*)result.getData(), count);

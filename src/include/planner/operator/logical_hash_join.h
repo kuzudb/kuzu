@@ -60,7 +60,7 @@ public:
     inline std::vector<join_condition_t> getJoinConditions() const { return joinConditions; }
     inline common::JoinType getJoinType() const { return joinType; }
     inline std::shared_ptr<binder::Expression> getMark() const {
-        assert(joinType == common::JoinType::MARK && mark);
+        KU_ASSERT(joinType == common::JoinType::MARK && mark);
         return mark;
     }
     inline void setSIP(SidewaysInfoPassing sip_) { sip = sip_; }

@@ -33,7 +33,7 @@ std::shared_ptr<LogicalOperator> TopKOptimizer::visitLimitReplace(
         return op; // only skip no limit. No need to rewrite
     }
     auto multiplicityReducer = limit->getChild(0);
-    assert(multiplicityReducer->getOperatorType() == LogicalOperatorType::MULTIPLICITY_REDUCER);
+    KU_ASSERT(multiplicityReducer->getOperatorType() == LogicalOperatorType::MULTIPLICITY_REDUCER);
     if (multiplicityReducer->getChild(0)->getOperatorType() != LogicalOperatorType::PROJECTION) {
         return op;
     }

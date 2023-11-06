@@ -191,7 +191,7 @@ void PathExpressionEvaluator::copyRels(sel_t resultPos) {
 void PathExpressionEvaluator::copyFieldVectors(offset_t inputVectorPos,
     const std::vector<ValueVector*>& inputFieldVectors, offset_t& resultVectorPos,
     const std::vector<ValueVector*>& resultFieldVectors) {
-    assert(resultFieldVectors.size() == inputFieldVectors.size());
+    KU_ASSERT(resultFieldVectors.size() == inputFieldVectors.size());
     for (auto i = 0u; i < inputFieldVectors.size(); ++i) {
         auto inputFieldVector = inputFieldVectors[i];
         auto resultFieldVector = resultFieldVectors[i];
@@ -200,7 +200,7 @@ void PathExpressionEvaluator::copyFieldVectors(offset_t inputVectorPos,
             continue;
         }
         resultFieldVector->setNull(resultVectorPos, false);
-        assert(inputFieldVector->dataType == resultFieldVector->dataType);
+        KU_ASSERT(inputFieldVector->dataType == resultFieldVector->dataType);
         resultFieldVector->copyFromVectorData(resultVectorPos, inputFieldVector, inputVectorPos);
     }
     resultVectorPos++;

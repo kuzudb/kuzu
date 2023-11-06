@@ -1,8 +1,8 @@
 #pragma once
 
-#include <cassert>
 #include <numeric>
 
+#include "common/assert.h"
 #include "common/data_chunk/data_chunk_state.h"
 #include "common/null_mask.h"
 #include "common/types/ku_string.h"
@@ -27,7 +27,7 @@ public:
     explicit ValueVector(LogicalType dataType, storage::MemoryManager* memoryManager = nullptr);
     explicit ValueVector(LogicalTypeID dataTypeID, storage::MemoryManager* memoryManager = nullptr)
         : ValueVector(LogicalType(dataTypeID), memoryManager) {
-        assert(dataTypeID != LogicalTypeID::VAR_LIST);
+        KU_ASSERT(dataTypeID != LogicalTypeID::VAR_LIST);
     }
 
     KUZU_API ~ValueVector() = default;
@@ -77,7 +77,7 @@ public:
     inline uint8_t* getData() const { return valueBuffer.get(); }
 
     inline offset_t readNodeOffset(uint32_t pos) const {
-        assert(dataType.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID);
+        KU_ASSERT(dataType.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID);
         return getValue<nodeID_t>(pos).offset;
     }
 
@@ -109,7 +109,7 @@ private:
 class StringVector {
 public:
     static inline InMemOverflowBuffer* getInMemOverflowBuffer(ValueVector* vector) {
-        assert(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
         return reinterpret_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->getOverflowBuffer();
     }
@@ -137,33 +137,33 @@ class ListVector {
 public:
     static inline void setDataVector(
         const ValueVector* vector, std::shared_ptr<ValueVector> dataVector) {
-        assert(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
         auto listBuffer = reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
         listBuffer->setDataVector(std::move(dataVector));
     }
     static inline ValueVector* getDataVector(const ValueVector* vector) {
-        assert(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
         return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->getDataVector();
     }
     static inline uint64_t getDataVectorSize(const ValueVector* vector) {
-        assert(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
         return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())->getSize();
     }
 
     static inline uint8_t* getListValues(const ValueVector* vector, const list_entry_t& listEntry) {
-        assert(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
         auto dataVector = getDataVector(vector);
         return dataVector->getData() + dataVector->getNumBytesPerValue() * listEntry.offset;
     }
     static inline uint8_t* getListValuesWithOffset(
         const ValueVector* vector, const list_entry_t& listEntry, offset_t elementOffsetInList) {
-        assert(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
         return getListValues(vector, listEntry) +
                elementOffsetInList * getDataVector(vector)->getNumBytesPerValue();
     }
     static inline list_entry_t addList(ValueVector* vector, uint64_t listSize) {
-        assert(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
         return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->addList(listSize);
     }
@@ -218,12 +218,12 @@ public:
 class UnionVector {
 public:
     static inline ValueVector* getTagVector(const ValueVector* vector) {
-        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::UNION);
+        KU_ASSERT(vector->dataType.getLogicalTypeID() == LogicalTypeID::UNION);
         return StructVector::getFieldVector(vector, UnionType::TAG_FIELD_IDX).get();
     }
 
     static inline ValueVector* getValVector(const ValueVector* vector, union_field_idx_t fieldIdx) {
-        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::UNION);
+        KU_ASSERT(vector->dataType.getLogicalTypeID() == LogicalTypeID::UNION);
         return StructVector::getFieldVector(vector, UnionType::getInternalFieldIdx(fieldIdx)).get();
     }
 
@@ -234,7 +234,7 @@ public:
     }
 
     static inline void setTagField(ValueVector* vector, union_field_idx_t tag) {
-        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::UNION);
+        KU_ASSERT(vector->dataType.getLogicalTypeID() == LogicalTypeID::UNION);
         for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
             vector->setValue<struct_field_idx_t>(
                 vector->state->selVector->selectedPositions[i], tag);

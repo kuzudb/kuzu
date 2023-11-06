@@ -57,11 +57,11 @@ public:
         metadataDAHInfos.push_back(std::move(metadataDAHInfo));
     }
     inline void removeMetadataDAHInfoForColumn(common::column_id_t columnID) {
-        assert(columnID < metadataDAHInfos.size());
+        KU_ASSERT(columnID < metadataDAHInfos.size());
         metadataDAHInfos.erase(metadataDAHInfos.begin() + columnID);
     }
     inline MetadataDAHInfo* getMetadataDAHInfo(common::column_id_t columnID) {
-        assert(columnID < metadataDAHInfos.size());
+        KU_ASSERT(columnID < metadataDAHInfos.size());
         return metadataDAHInfos[columnID].get();
     }
 

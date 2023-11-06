@@ -225,7 +225,7 @@ void AggregateHashTable::resize(uint64_t newSize) {
 
 void AggregateHashTable::initializeFTEntryWithFlatVec(
     ValueVector* flatVector, uint64_t numEntriesToInitialize, uint32_t colIdx) {
-    assert(flatVector->state->isFlat());
+    KU_ASSERT(flatVector->state->isFlat());
     auto colOffset = factorizedTable->getTableSchema()->getColOffset(colIdx);
     auto pos = flatVector->state->selVector->selectedPositions[0];
     if (flatVector->isNull(pos)) {
@@ -247,7 +247,7 @@ void AggregateHashTable::initializeFTEntryWithFlatVec(
 
 void AggregateHashTable::initializeFTEntryWithUnFlatVec(
     ValueVector* unFlatVector, uint64_t numEntriesToInitialize, uint32_t colIdx) {
-    assert(!unFlatVector->state->isFlat());
+    KU_ASSERT(!unFlatVector->state->isFlat());
     auto colOffset = factorizedTable->getTableSchema()->getColOffset(colIdx);
     if (unFlatVector->hasNoNullsGuarantee()) {
         for (auto i = 0u; i < numEntriesToInitialize; i++) {
@@ -401,7 +401,7 @@ void AggregateHashTable::updateDistinctAggState(const std::vector<ValueVector*>&
     std::unique_ptr<AggregateFunction>& aggregateFunction, ValueVector* aggregateVector,
     uint64_t /*multiplicity*/, uint32_t colIdx, uint32_t aggStateOffset) {
     auto distinctHT = distinctHashTables[colIdx].get();
-    assert(distinctHT != nullptr);
+    KU_ASSERT(distinctHT != nullptr);
     if (distinctHT->isAggregateValueDistinctForGroupByKeys(flatKeyVectors, aggregateVector)) {
         auto pos = aggregateVector->state->selVector->selectedPositions[0];
         if (!aggregateVector->isNull(pos)) {
@@ -465,7 +465,7 @@ bool AggregateHashTable::matchFlatGroupByKeys(
     const std::vector<ValueVector*>& keyVectors, uint8_t* entry) {
     for (auto i = 0u; i < keyVectors.size(); i++) {
         auto keyVector = keyVectors[i];
-        assert(keyVector->state->isFlat());
+        KU_ASSERT(keyVector->state->isFlat());
         auto pos = keyVector->state->selVector->selectedPositions[0];
         auto isKeyVectorNull = keyVector->isNull(pos);
         auto isEntryKeyNull = factorizedTable->isNonOverflowColNull(
@@ -487,7 +487,7 @@ bool AggregateHashTable::matchFlatGroupByKeys(
 
 uint64_t AggregateHashTable::matchUnFlatVecWithFTColumn(
     ValueVector* vector, uint64_t numMayMatches, uint64_t& numNoMatches, uint32_t colIdx) {
-    assert(!vector->state->isFlat());
+    KU_ASSERT(!vector->state->isFlat());
     auto colOffset = factorizedTable->getTableSchema()->getColOffset(colIdx);
     uint64_t mayMatchIdx = 0;
     if (vector->hasNoNullsGuarantee()) {
@@ -549,7 +549,7 @@ uint64_t AggregateHashTable::matchUnFlatVecWithFTColumn(
 
 uint64_t AggregateHashTable::matchFlatVecWithFTColumn(
     ValueVector* vector, uint64_t numMayMatches, uint64_t& numNoMatches, uint32_t colIdx) {
-    assert(vector->state->isFlat());
+    KU_ASSERT(vector->state->isFlat());
     auto colOffset = factorizedTable->getTableSchema()->getColOffset(colIdx);
     uint64_t mayMatchIdx = 0;
     auto pos = vector->state->selVector->selectedPositions[0];
@@ -641,7 +641,7 @@ static bool compareEntry(common::ValueVector* vector, uint32_t vectorPos, const 
 
 static bool compareNodeEntry(
     common::ValueVector* vector, uint32_t vectorPos, const uint8_t* entry) {
-    assert(0 == common::StructType::getFieldIdx(&vector->dataType, common::InternalKeyword::ID));
+    KU_ASSERT(0 == common::StructType::getFieldIdx(&vector->dataType, common::InternalKeyword::ID));
     auto idVector = common::StructVector::getFieldVector(vector, 0).get();
     return compareEntry<common::internalID_t>(idVector, vectorPos,
         entry + common::NullBuffer::getNumBytesForNullValues(
@@ -649,7 +649,7 @@ static bool compareNodeEntry(
 }
 
 static bool compareRelEntry(common::ValueVector* vector, uint32_t vectorPos, const uint8_t* entry) {
-    assert(3 == common::StructType::getFieldIdx(&vector->dataType, common::InternalKeyword::ID));
+    KU_ASSERT(3 == common::StructType::getFieldIdx(&vector->dataType, common::InternalKeyword::ID));
     auto idVector = common::StructVector::getFieldVector(vector, 3).get();
     return compareEntry<common::internalID_t>(idVector, vectorPos,
         entry + sizeof(common::internalID_t) * 2 + sizeof(common::ku_string_t) +

@@ -19,7 +19,7 @@ RelsStoreStats::RelsStoreStats(BMFileHandle* metadataFH, BufferManager* bufferMa
 void RelsStoreStats::setNumTuplesForTable(table_id_t relTableID, uint64_t numRels) {
     std::unique_lock lck{mtx};
     initTableStatisticsForWriteTrxNoLock();
-    assert(tablesStatisticsContentForWriteTrx->tableStatisticPerTable.contains(relTableID));
+    KU_ASSERT(tablesStatisticsContentForWriteTrx->tableStatisticPerTable.contains(relTableID));
     auto relStatistics =
         (RelTableStats*)tablesStatisticsContentForWriteTrx->tableStatisticPerTable[relTableID]
             .get();

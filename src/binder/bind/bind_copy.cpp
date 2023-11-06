@@ -134,7 +134,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(
     std::unique_ptr<ReaderConfig> readerConfig, TableSchema* tableSchema) {
     // For table with SERIAL columns, we need to read in serial from files.
     auto containsSerial = bindContainsSerial(tableSchema);
-    assert(containsSerial == false);
+    KU_ASSERT(containsSerial == false);
     auto columnsToRead = bindExpectedRelFileColumns(tableSchema, *readerConfig);
     auto relID = createVariable(std::string(Property::INTERNAL_ID_NAME), LogicalTypeID::INT64);
     auto boundFileScanInfo = std::make_unique<BoundFileScanInfo>(
@@ -218,10 +218,10 @@ expression_vector Binder::bindExpectedRelFileColumns(
         readerConfig.columnNames.push_back(dstColumnName);
         auto srcTable =
             catalog.getReadOnlyVersion()->getTableSchema(relTableSchema->getSrcTableID());
-        assert(srcTable->tableType == TableType::NODE);
+        KU_ASSERT(srcTable->tableType == TableType::NODE);
         auto dstTable =
             catalog.getReadOnlyVersion()->getTableSchema(relTableSchema->getDstTableID());
-        assert(dstTable->tableType == TableType::NODE);
+        KU_ASSERT(dstTable->tableType == TableType::NODE);
         auto srcPKColumnType =
             reinterpret_cast<NodeTableSchema*>(srcTable)->getPrimaryKey()->getDataType()->copy();
         if (srcPKColumnType->getLogicalTypeID() == LogicalTypeID::SERIAL) {

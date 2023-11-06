@@ -115,7 +115,7 @@ bool ExpressionVisitor::satisfyAny(
 
 std::unordered_set<std::string> ExpressionCollector::getDependentVariableNames(
     const std::shared_ptr<Expression>& expression) {
-    assert(expressions.empty());
+    KU_ASSERT(expressions.empty());
     collectExpressionsInternal(expression, [&](const Expression& expression) {
         return expression.expressionType == ExpressionType::PROPERTY ||
                expression.expressionType == ExpressionType::VARIABLE;
@@ -126,7 +126,7 @@ std::unordered_set<std::string> ExpressionCollector::getDependentVariableNames(
             auto property = (PropertyExpression*)expr.get();
             result.insert(property->getVariableName());
         } else {
-            assert(expr->expressionType == ExpressionType::VARIABLE);
+            KU_ASSERT(expr->expressionType == ExpressionType::VARIABLE);
             result.insert(expr->getUniqueName());
         }
     }

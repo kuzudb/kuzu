@@ -1,9 +1,9 @@
 #pragma once
 
-#include <cassert>
 #include <memory>
 #include <string>
 
+#include "common/assert.h"
 #include "common/constants.h"
 
 namespace spdlog {
@@ -38,7 +38,7 @@ class BitmaskUtils {
 
 public:
     static inline uint64_t all1sMaskForLeastSignificantBits(uint64_t numBits) {
-        assert(numBits <= 64);
+        KU_ASSERT(numBits <= 64);
         return numBits == 64 ? UINT64_MAX : ((uint64_t)1 << numBits) - 1;
     }
 };

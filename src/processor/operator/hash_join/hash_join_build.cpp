@@ -35,7 +35,7 @@ void HashJoinBuild::setKeyState(common::DataChunkState* state) {
     if (keyState == nullptr) {
         keyState = state;
     } else {
-        assert(keyState == state); // two pointers should be pointing to the same state
+        KU_ASSERT(keyState == state); // two pointers should be pointing to the same state
     }
 }
 

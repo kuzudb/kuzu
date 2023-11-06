@@ -63,7 +63,7 @@ class StringWriterPageState : public ColumnWriterPageState {
 public:
     explicit StringWriterPageState(uint32_t bitWidth, const string_map_t<uint32_t>& values)
         : bitWidth(bitWidth), dictionary(values), encoder(bitWidth), writtenValue(false) {
-        assert(isDictionaryEncoded() || (bitWidth == 0 && dictionary.empty()));
+        KU_ASSERT(isDictionaryEncoded() || (bitWidth == 0 && dictionary.empty()));
     }
 
     inline bool isDictionaryEncoded() { return bitWidth != 0; }
@@ -113,7 +113,7 @@ public:
 
     inline uint64_t dictionarySize(BasicColumnWriterState& writerState) override {
         auto& state = reinterpret_cast<StringColumnWriterState&>(writerState);
-        assert(state.isDictionaryEncoded());
+        KU_ASSERT(state.isDictionaryEncoded());
         return state.dictionary.size();
     }
 

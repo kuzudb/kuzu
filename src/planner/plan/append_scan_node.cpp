@@ -12,7 +12,7 @@ namespace planner {
 
 void QueryPlanner::appendScanInternalID(
     std::shared_ptr<Expression> internalID, std::vector<table_id_t> tableIDs, LogicalPlan& plan) {
-    assert(plan.isEmpty());
+    KU_ASSERT(plan.isEmpty());
     auto scan = make_shared<LogicalScanInternalID>(std::move(internalID), std::move(tableIDs));
     scan->computeFactorizedSchema();
     // update cardinality
@@ -36,7 +36,7 @@ void QueryPlanner::appendScanNodeProperties(std::shared_ptr<Expression> nodeID,
         if (((PropertyExpression&)*property).isInternalID()) {
             continue;
         }
-        assert(!plan.getSchema()->isExpressionInScope(*property));
+        KU_ASSERT(!plan.getSchema()->isExpressionInScope(*property));
         propertiesToScan_.push_back(property);
     }
     if (propertiesToScan_.empty()) {

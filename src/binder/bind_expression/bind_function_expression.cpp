@@ -191,7 +191,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(
     if (ExpressionUtil::isRelVariable(*expression)) {
         return bindNodeOrRelPropertyExpression(*expression, InternalKeyword::ID);
     }
-    assert(expression->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
+    KU_ASSERT(expression->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
     auto stringValue =
         std::make_unique<Value>(LogicalType{LogicalTypeID::STRING}, InternalKeyword::ID);
     return bindScalarFunctionExpression(

@@ -76,6 +76,7 @@ set(INSTALL_CMAKE_DIR
 option(ENABLE_ADDRESS_SANITIZER "Enable address sanitizer." FALSE)
 option(ENABLE_THREAD_SANITIZER "Enable thread sanitizer." FALSE)
 option(ENABLE_UBSAN "Enable undefined behavior sanitizer." FALSE)
+option(ENABLE_RUNTIME_CHECKS "Enable runtime coherency checks (e.g. asserts)" FALSE)
 option(USE_SYSTEM_ARROW "Use system version of arrow" FALSE)
 if(MSVC)
     # Required for M_PI on Windows
@@ -129,6 +130,11 @@ if(${ENABLE_UBSAN})
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -fno-common -fpermissive")
     endif()
 endif()
+
+if(${ENABLE_RUNTIME_CHECKS})
+    add_compile_definitions(KUZU_RUNTIME_CHECKS)
+endif()
+
 option(BUILD_PYTHON_API "Build Python API." TRUE)
 option(BUILD_SHELL "Build Interactive Shell" TRUE)
 option(BUILD_TESTS "Build C++ and Python tests." FALSE)

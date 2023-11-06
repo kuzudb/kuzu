@@ -22,7 +22,7 @@ protected:
     }
 
     inline void initSlotConstant(uint64_t numSlotsPerBlock_) {
-        assert(numSlotsPerBlock_ == common::nextPowerOfTwo(numSlotsPerBlock_));
+        KU_ASSERT(numSlotsPerBlock_ == common::nextPowerOfTwo(numSlotsPerBlock_));
         numSlotsPerBlock = numSlotsPerBlock_;
         numSlotsPerBlockLog2 = std::log2(numSlotsPerBlock);
         slotIdxInBlockMask =

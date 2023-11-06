@@ -168,13 +168,13 @@ public:
     // These two lookups are used by InMemRelCSVCopier.
     inline bool lookup(
         transaction::Transaction* transaction, int64_t key, common::offset_t& result) {
-        assert(keyDataTypeID == common::LogicalTypeID::INT64);
+        KU_ASSERT(keyDataTypeID == common::LogicalTypeID::INT64);
         return hashIndexForInt64->lookupInternal(
             transaction, reinterpret_cast<const uint8_t*>(&key), result);
     }
     inline bool lookup(
         transaction::Transaction* transaction, const char* key, common::offset_t& result) {
-        assert(keyDataTypeID == common::LogicalTypeID::STRING);
+        KU_ASSERT(keyDataTypeID == common::LogicalTypeID::STRING);
         return hashIndexForString->lookupInternal(
             transaction, reinterpret_cast<const uint8_t*>(key), result);
     }
@@ -207,19 +207,19 @@ public:
 
 private:
     inline void deleteKey(int64_t key) {
-        assert(keyDataTypeID == common::LogicalTypeID::INT64);
+        KU_ASSERT(keyDataTypeID == common::LogicalTypeID::INT64);
         hashIndexForInt64->deleteInternal(reinterpret_cast<const uint8_t*>(&key));
     }
     inline void deleteKey(const char* key) {
-        assert(keyDataTypeID == common::LogicalTypeID::STRING);
+        KU_ASSERT(keyDataTypeID == common::LogicalTypeID::STRING);
         hashIndexForString->deleteInternal(reinterpret_cast<const uint8_t*>(key));
     }
     inline bool insert(int64_t key, common::offset_t value) {
-        assert(keyDataTypeID == common::LogicalTypeID::INT64);
+        KU_ASSERT(keyDataTypeID == common::LogicalTypeID::INT64);
         return hashIndexForInt64->insertInternal(reinterpret_cast<const uint8_t*>(&key), value);
     }
     inline bool insert(const char* key, common::offset_t value) {
-        assert(keyDataTypeID == common::LogicalTypeID::STRING);
+        KU_ASSERT(keyDataTypeID == common::LogicalTypeID::STRING);
         return hashIndexForString->insertInternal(reinterpret_cast<const uint8_t*>(key), value);
     }
 

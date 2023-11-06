@@ -27,7 +27,7 @@ struct AvgFunction {
     static void updateAll(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
         storage::MemoryManager* /*memoryManager*/) {
         auto state = reinterpret_cast<AvgState*>(state_);
-        assert(!input->state->isFlat());
+        KU_ASSERT(!input->state->isFlat());
         if (input->hasNoNullsGuarantee()) {
             for (auto i = 0u; i < input->state->selVector->selectedSize; ++i) {
                 auto pos = input->state->selVector->selectedPositions[i];

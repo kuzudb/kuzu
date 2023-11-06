@@ -29,7 +29,7 @@ VarListColumnChunk::VarListColumnChunk(
     varListDataColumnChunk = std::make_unique<VarListDataColumnChunk>(
         ColumnChunkFactory::createColumnChunk(*VarListType::getChildType(&this->dataType),
             enableCompression, false /* needFinalize */, 0 /* capacity */));
-    assert(this->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+    KU_ASSERT(this->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
 }
 
 void VarListColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
@@ -98,15 +98,15 @@ void VarListColumnChunk::copyListValues(const list_entry_t& entry, ValueVector* 
 }
 
 void AuxVarListColumnChunk::write(ValueVector* vector, ValueVector* offsetInChunkVector) {
-    assert(vector->dataType.getPhysicalType() == dataType.getPhysicalType() &&
-           offsetInChunkVector->dataType.getPhysicalType() == PhysicalTypeID::INT64 &&
-           vector->state->selVector->selectedSize ==
-               offsetInChunkVector->state->selVector->selectedSize);
+    KU_ASSERT(vector->dataType.getPhysicalType() == dataType.getPhysicalType() &&
+              offsetInChunkVector->dataType.getPhysicalType() == PhysicalTypeID::INT64 &&
+              vector->state->selVector->selectedSize ==
+                  offsetInChunkVector->state->selVector->selectedSize);
     auto offsets = (offset_t*)offsetInChunkVector->getData();
     auto chunkListEntries = (list_entry_t*)buffer.get();
     for (auto i = 0u; i < offsetInChunkVector->state->selVector->selectedSize; i++) {
         auto offsetInChunk = offsets[offsetInChunkVector->state->selVector->selectedPositions[i]];
-        assert(offsetInChunk < capacity);
+        KU_ASSERT(offsetInChunk < capacity);
         auto offsetInVector = vector->state->selVector->selectedPositions[i];
         uint64_t listLen = vector->isNull(offsetInVector) ?
                                0 :
@@ -140,7 +140,7 @@ void AuxVarListColumnChunk::resize(uint64_t newCapacity) {
 std::unique_ptr<ColumnChunk> AuxVarListColumnChunk::finalize() {
     std::unique_ptr<ColumnChunk> result = ColumnChunkFactory::createColumnChunk(
         dataType, enableCompression, false /* needFinalize */, capacity / 2);
-    assert(result->getDataType().getPhysicalType() == PhysicalTypeID::VAR_LIST);
+    KU_ASSERT(result->getDataType().getPhysicalType() == PhysicalTypeID::VAR_LIST);
     auto resultVarListChunk = reinterpret_cast<VarListColumnChunk*>(result.get());
     resultVarListChunk->getNullChunk()->append(nullChunk.get(), 0, 0, numValues);
     auto resultOffsets = reinterpret_cast<offset_t*>(resultVarListChunk->getData());

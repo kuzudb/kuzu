@@ -133,7 +133,7 @@ public:
         }
         uint64_t numValues = std::min(numValuesRemaining, dstBufferSize / numBytesPerValue);
         uint64_t sizeToCopy = numValues * numBytesPerValue;
-        assert(sizeToCopy <= dstBufferSize);
+        KU_ASSERT(sizeToCopy <= dstBufferSize);
         std::memcpy(dstBuffer, srcBuffer, sizeToCopy);
         srcBuffer += sizeToCopy;
         return sizeToCopy;

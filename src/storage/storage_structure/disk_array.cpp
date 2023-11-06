@@ -308,7 +308,7 @@ std::pair<page_idx_t, bool> BaseDiskArray<U>::getAPPageIdxAndAddAPToPIPIfNecessa
             false /* is not inserting a new ap page */);
     } else {
         // apIdx even if it's being inserted should never be > updatedDiskArrayHeader->numAPs.
-        assert(apIdx == updatedDiskArrayHeader->numAPs);
+        KU_ASSERT(apIdx == updatedDiskArrayHeader->numAPs);
         // We need to add a new AP. This may further cause a new pip to be inserted, which is
         // handled by the if/else-if/else branch below.
         page_idx_t newAPPageIdx = fileHandle.addNewPage();
@@ -372,7 +372,7 @@ BaseInMemDiskArray<U>::BaseInMemDiskArray(
 template<typename U>
 U& BaseInMemDiskArray<U>::operator[](uint64_t idx) {
     auto apCursor = BaseDiskArray<U>::getAPIdxAndOffsetInAP(idx);
-    assert(apCursor.pageIdx < this->header.numAPs);
+    KU_ASSERT(apCursor.pageIdx < this->header.numAPs);
     return *(U*)(inMemArrayPages[apCursor.pageIdx].get() + apCursor.offsetInPage);
 }
 

@@ -12,7 +12,7 @@ std::pair<offset_t, offset_t> NodeTableScanState::getNextRangeToRead() {
     }
     if (isSemiMaskEnabled()) {
         auto currentMorselIdx = MaskUtil::getMorselIdx(currentNodeOffset);
-        assert(currentNodeOffset % DEFAULT_VECTOR_CAPACITY == 0);
+        KU_ASSERT(currentNodeOffset % DEFAULT_VECTOR_CAPACITY == 0);
         while (currentMorselIdx <= maxMorselIdx && !semiMask->isMorselMasked(currentMorselIdx)) {
             currentMorselIdx++;
         }
@@ -27,7 +27,7 @@ std::pair<offset_t, offset_t> NodeTableScanState::getNextRangeToRead() {
 void ScanNodeIDSharedState::initialize(transaction::Transaction* transaction) {
     auto numMask = tableStates[0]->getSemiMask()->getNumMasks();
     for (auto& tableState : tableStates) {
-        assert(tableState->getSemiMask()->getNumMasks() == numMask);
+        KU_ASSERT(tableState->getSemiMask()->getNumMasks() == numMask);
         tableState->initializeMaxOffset(transaction);
     }
     (void)numMask; // For clang-tidy: used for assert.
@@ -48,7 +48,7 @@ std::tuple<NodeTableScanState*, offset_t, offset_t> ScanNodeIDSharedState::getNe
         startOffset = _startOffset;
         endOffset = _endOffset;
     }
-    assert(currentStateIdx < tableStates.size());
+    KU_ASSERT(currentStateIdx < tableStates.size());
     return std::make_tuple(tableStates[currentStateIdx].get(), startOffset, endOffset);
 }
 

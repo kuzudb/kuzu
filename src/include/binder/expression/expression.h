@@ -1,11 +1,11 @@
 #pragma once
 
-#include <cassert>
 #include <functional>
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
 
+#include "common/assert.h"
 #include "common/enums/expression_type.h"
 #include "common/exception/internal.h"
 #include "common/types/types.h"
@@ -54,7 +54,7 @@ public:
     inline void setAlias(const std::string& name) { alias = name; }
 
     inline std::string getUniqueName() const {
-        assert(!uniqueName.empty());
+        KU_ASSERT(!uniqueName.empty());
         return uniqueName;
     }
 

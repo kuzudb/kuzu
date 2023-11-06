@@ -55,9 +55,9 @@ void PyQueryResult::writeToCSV(const py::str& filename, const py::str& delimiter
     std::string delimiterStr = delimiter;
     std::string escapeCharacterStr = escapeCharacter;
     std::string newlineStr = newline;
-    assert(delimiterStr.size() == 1);
-    assert(escapeCharacterStr.size() == 1);
-    assert(newlineStr.size() == 1);
+    KU_ASSERT(delimiterStr.size() == 1);
+    KU_ASSERT(escapeCharacterStr.size() == 1);
+    KU_ASSERT(newlineStr.size() == 1);
     queryResult->writeToCSV(filename, delimiterStr[0], escapeCharacterStr[0], newlineStr[0]);
 }
 

@@ -4,7 +4,7 @@ namespace kuzu {
 namespace common {
 
 uint8_t* InMemOverflowBuffer::allocateSpace(uint64_t size) {
-    assert(size <= BufferPoolConstants::PAGE_256KB_SIZE);
+    KU_ASSERT(size <= BufferPoolConstants::PAGE_256KB_SIZE);
     if (requireNewBlock(size)) {
         allocateNewBlock();
     }

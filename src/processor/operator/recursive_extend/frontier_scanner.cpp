@@ -49,7 +49,7 @@ void BaseFrontierScanner::resetState(const BaseBFSState& bfsState) {
 
 void DstNodeScanner::scanFromDstOffset(RecursiveJoinVectors* vectors, sel_t& vectorPos,
     sel_t& /*nodeIDDataVectorPos*/, sel_t& /*relIDDataVectorPos*/) {
-    assert(vectorPos < DEFAULT_VECTOR_CAPACITY);
+    KU_ASSERT(vectorPos < DEFAULT_VECTOR_CAPACITY);
     writeDstNodeOffsetAndLength(vectors->dstNodeIDVector, vectors->pathLengthVector, vectorPos);
     vectorPos++;
 }
@@ -106,7 +106,7 @@ void PathScanner::initDfs(const frontier::node_rel_id_t& nodeAndRelID, size_t cu
 
 void PathScanner::writePathToVector(RecursiveJoinVectors* vectors, sel_t& vectorPos,
     sel_t& nodeIDDataVectorPos, sel_t& relIDDataVectorPos) {
-    assert(vectorPos < DEFAULT_VECTOR_CAPACITY);
+    KU_ASSERT(vectorPos < DEFAULT_VECTOR_CAPACITY);
     auto nodeEntry = ListVector::addList(vectors->pathNodesVector, k > 0 ? k - 1 : 0);
     auto relEntry = ListVector::addList(vectors->pathRelsVector, k);
     vectors->pathNodesVector->setValue(vectorPos, nodeEntry);

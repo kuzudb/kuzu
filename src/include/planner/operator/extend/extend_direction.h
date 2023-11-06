@@ -24,7 +24,7 @@ struct ExtendDirectionUtils {
     }
 
     static inline common::RelDataDirection getRelDataDirection(ExtendDirection extendDirection) {
-        assert(extendDirection != ExtendDirection::BOTH);
+        KU_ASSERT(extendDirection != ExtendDirection::BOTH);
         return extendDirection == ExtendDirection::FWD ? common::RelDataDirection::FWD :
                                                          common::RelDataDirection::BWD;
     }

@@ -31,10 +31,10 @@ void MultiLabelNodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* 
 }
 
 void MultiLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
-    assert(nodeIDVector->state->selVector->selectedSize == 1);
+    KU_ASSERT(nodeIDVector->state->selVector->selectedSize == 1);
     auto pos = nodeIDVector->state->selVector->selectedPositions[0];
     auto nodeID = nodeIDVector->getValue<internalID_t>(pos);
-    assert(tableIDToTableMap.contains(nodeID.tableID) && pkVectors.contains(nodeID.tableID));
+    KU_ASSERT(tableIDToTableMap.contains(nodeID.tableID) && pkVectors.contains(nodeID.tableID));
     auto table = tableIDToTableMap.at(nodeID.tableID);
     table->delete_(context->clientContext->getActiveTransaction(), nodeIDVector,
         pkVectors.at(nodeID.tableID).get());
@@ -53,14 +53,14 @@ void SingleLabelRelDeleteExecutor::delete_() {
 }
 
 void MultiLabelRelDeleteExecutor::delete_() {
-    assert(relIDVector->state->isFlat());
+    KU_ASSERT(relIDVector->state->isFlat());
     auto pos = relIDVector->state->selVector->selectedPositions[0];
     auto relID = relIDVector->getValue<internalID_t>(pos);
-    assert(tableIDToTableMap.contains(relID.tableID));
+    KU_ASSERT(tableIDToTableMap.contains(relID.tableID));
     auto [table, statistic] = tableIDToTableMap.at(relID.tableID);
     // TODO(Guodong): Fix delete.
     //    table->deleteRel(srcNodeIDVector, dstNodeIDVector, relIDVector);
-    //    assert(table->getTableID() == relID.tableID);
+    //    KU_ASSERT(table->getTableID() == relID.tableID);
     //    statistic->updateNumRelsByValue(table->getTableID(), -1);
 }
 

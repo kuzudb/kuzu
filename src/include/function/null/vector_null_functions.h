@@ -19,7 +19,7 @@ private:
     static void UnaryNullExecFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
-        assert(params.size() == 1);
+        KU_ASSERT(params.size() == 1);
         NullOperationExecutor::execute<FUNC>(*params[0], result);
     }
 
@@ -27,7 +27,7 @@ private:
     static bool UnaryNullSelectFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::SelectionVector& selVector) {
-        assert(params.size() == 1);
+        KU_ASSERT(params.size() == 1);
         return NullOperationExecutor::select<FUNC>(*params[0], selVector);
     }
 };

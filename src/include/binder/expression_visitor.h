@@ -50,7 +50,7 @@ class ExpressionCollector {
 public:
     inline expression_vector collectPropertyExpressions(
         const std::shared_ptr<Expression>& expression) {
-        assert(expressions.empty());
+        KU_ASSERT(expressions.empty());
         collectExpressionsInternal(expression, [&](const Expression& expression) {
             return expression.expressionType == common::ExpressionType::PROPERTY;
         });
@@ -59,7 +59,7 @@ public:
 
     inline expression_vector collectTopLevelSubqueryExpressions(
         const std::shared_ptr<Expression>& expression) {
-        assert(expressions.empty());
+        KU_ASSERT(expressions.empty());
         collectExpressionsInternal(expression, [&](const Expression& expression) {
             return expression.expressionType == common::ExpressionType::EXISTENTIAL_SUBQUERY;
         });

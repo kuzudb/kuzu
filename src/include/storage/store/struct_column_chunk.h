@@ -10,7 +10,7 @@ public:
     StructColumnChunk(common::LogicalType dataType, uint64_t capacity, bool enableCompression);
 
     inline ColumnChunk* getChild(common::vector_idx_t childIdx) {
-        assert(childIdx < childChunks.size());
+        KU_ASSERT(childIdx < childChunks.size());
         return childChunks[childIdx].get();
     }
 

@@ -35,7 +35,7 @@ private:
     inline uint64_t atLeastOne(uint64_t x) { return x == 0 ? 1 : x; }
 
     inline uint64_t getNodeIDDom(const std::string& nodeIDName) {
-        assert(nodeIDName2dom.contains(nodeIDName));
+        KU_ASSERT(nodeIDName2dom.contains(nodeIDName));
         return nodeIDName2dom.at(nodeIDName);
     }
     uint64_t getNumNodes(const std::vector<common::table_id_t>& tableIDs);

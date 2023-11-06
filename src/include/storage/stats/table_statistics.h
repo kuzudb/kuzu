@@ -26,12 +26,12 @@ public:
     inline bool isEmpty() const { return numTuples == 0; }
     inline uint64_t getNumTuples() const { return numTuples; }
     virtual inline void setNumTuples(uint64_t numTuples_) {
-        assert(numTuples_ != UINT64_MAX);
+        KU_ASSERT(numTuples_ != UINT64_MAX);
         numTuples = numTuples_;
     }
 
     inline PropertyStatistics& getPropertyStatistics(common::property_id_t propertyID) {
-        assert(propertyStatistics.contains(propertyID));
+        KU_ASSERT(propertyStatistics.contains(propertyID));
         return *(propertyStatistics.at(propertyID));
     }
     inline void setPropertyStatistics(

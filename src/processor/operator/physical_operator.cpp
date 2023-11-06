@@ -222,7 +222,7 @@ PhysicalOperator::PhysicalOperator(PhysicalOperatorType operatorType,
 }
 
 std::unique_ptr<PhysicalOperator> PhysicalOperator::moveUnaryChild() {
-    assert(children.size() == 1);
+    KU_ASSERT(children.size() == 1);
     auto result = std::move(children[0]);
     children.clear();
     return result;

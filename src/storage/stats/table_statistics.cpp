@@ -25,7 +25,7 @@ TableStatistics::TableStatistics(common::TableType tableType, uint64_t numTuples
         propertyStatistics)
     : tableType{tableType}, numTuples{numTuples}, tableID{tableID}, propertyStatistics{std::move(
                                                                         propertyStatistics)} {
-    assert(numTuples != UINT64_MAX);
+    KU_ASSERT(numTuples != UINT64_MAX);
 }
 
 TableStatistics::TableStatistics(const TableStatistics& other)

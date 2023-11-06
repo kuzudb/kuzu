@@ -16,7 +16,7 @@ public:
     }
 
     FunctionType getFunctionType(const std::string& functionName) {
-        assert(containsFunction(functionName));
+        KU_ASSERT(containsFunction(functionName));
         return functions.at(functionName)[0]->type;
     }
 

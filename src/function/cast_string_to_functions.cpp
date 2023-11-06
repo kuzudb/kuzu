@@ -347,7 +347,7 @@ static void validateNumElementsInList(uint64_t numElementsRead, const LogicalTyp
 
 void castStringToFixedList(const char* input, uint64_t len, ValueVector* vector, uint64_t rowToAdd,
     const CSVReaderConfig* csvReaderConfig) {
-    assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::FIXED_LIST);
+    KU_ASSERT(vector->dataType.getLogicalTypeID() == LogicalTypeID::FIXED_LIST);
     auto childDataType = FixedListType::getChildType(&vector->dataType);
 
     // calculate the number of elements in array

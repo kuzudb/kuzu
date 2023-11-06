@@ -16,7 +16,7 @@ public:
             ParquetDecodeUtils::ZigzagToInt(ParquetDecodeUtils::VarintDecode<int64_t>(buffer_));
 
         // some derivatives
-        assert(miniblocks_per_block > 0);
+        KU_ASSERT(miniblocks_per_block > 0);
         values_per_miniblock = block_value_count / miniblocks_per_block;
         miniblock_bit_widths = std::unique_ptr<uint8_t[]>(new uint8_t[miniblocks_per_block]);
 

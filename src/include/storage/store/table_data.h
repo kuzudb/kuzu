@@ -35,11 +35,11 @@ public:
 
     inline common::vector_idx_t getNumColumns() const { return columns.size(); }
     inline Column* getColumn(common::column_id_t columnID) {
-        assert(columnID < columns.size());
+        KU_ASSERT(columnID < columns.size());
         return columns[columnID].get();
     }
     inline common::node_group_idx_t getNumNodeGroups(transaction::Transaction* transaction) const {
-        assert(!columns.empty());
+        KU_ASSERT(!columns.empty());
         return columns[0]->getNumNodeGroups(transaction);
     }
     inline BMFileHandle* getDataFH() const { return dataFH; }

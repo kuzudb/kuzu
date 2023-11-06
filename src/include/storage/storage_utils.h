@@ -50,7 +50,7 @@ struct PageElementCursor {
 
 struct PageUtils {
     static constexpr uint32_t getNumElementsInAPage(uint32_t elementSize, bool hasNull) {
-        assert(elementSize > 0);
+        KU_ASSERT(elementSize > 0);
         auto numBytesPerNullEntry = common::NullMask::NUM_BITS_PER_NULL_ENTRY >> 3;
         auto numNullEntries =
             hasNull ?
@@ -68,14 +68,14 @@ struct PageUtils {
     // the element in the page as the offset.
     static inline PageElementCursor getPageElementCursorForPos(
         uint64_t elementPos, uint32_t numElementsPerPage) {
-        assert((elementPos / numElementsPerPage) < UINT32_MAX);
+        KU_ASSERT((elementPos / numElementsPerPage) < UINT32_MAX);
         return PageElementCursor{(common::page_idx_t)(elementPos / numElementsPerPage),
             (uint16_t)(elementPos % numElementsPerPage)};
     }
 
     static inline PageByteCursor getPageByteCursorForPos(
         uint64_t elementPos, uint32_t numElementsPerPage, uint64_t elementSize) {
-        assert((elementPos / numElementsPerPage) < UINT32_MAX);
+        KU_ASSERT((elementPos / numElementsPerPage) < UINT32_MAX);
         return PageByteCursor{(common::page_idx_t)(elementPos / numElementsPerPage),
             (uint16_t)(elementPos % numElementsPerPage * elementSize)};
     }
@@ -202,7 +202,7 @@ public:
     }
 
     static inline std::string appendWALFileSuffix(const std::string& fileName) {
-        assert(fileName.find(common::StorageConstants::WAL_FILE_SUFFIX) == std::string::npos);
+        KU_ASSERT(fileName.find(common::StorageConstants::WAL_FILE_SUFFIX) == std::string::npos);
         return fileName + common::StorageConstants::WAL_FILE_SUFFIX;
     }
 

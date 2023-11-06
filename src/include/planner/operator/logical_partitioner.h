@@ -39,7 +39,7 @@ public:
 
     inline common::vector_idx_t getNumInfos() { return infos.size(); }
     inline LogicalPartitionerInfo* getInfo(common::vector_idx_t idx) {
-        assert(idx < infos.size());
+        KU_ASSERT(idx < infos.size());
         return infos[idx].get();
     }
 

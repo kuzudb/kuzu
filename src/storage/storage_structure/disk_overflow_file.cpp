@@ -85,7 +85,7 @@ WALPageIdxPosInPageAndFrame DiskOverflowFile::createWALVersionOfPageIfNecessaryF
         PageUtils::getPageElementCursorForPos(elementOffset, numElementsPerPage);
     bool insertingNewPage = false;
     if (originalPageCursor.pageIdx >= fileHandle->getNumPages()) {
-        assert(originalPageCursor.pageIdx == fileHandle->getNumPages());
+        KU_ASSERT(originalPageCursor.pageIdx == fileHandle->getNumPages());
         DBFileUtils::insertNewPage(*fileHandle, dbFileID, *bufferManager, *wal);
         insertingNewPage = true;
     }

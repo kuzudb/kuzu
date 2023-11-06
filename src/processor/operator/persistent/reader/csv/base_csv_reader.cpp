@@ -198,7 +198,7 @@ bool BaseCSVReader::readBuffer(uint64_t* start) {
     // the remaining part of the last buffer
     uint64_t remaining = 0;
     if (start != nullptr) {
-        assert(*start <= bufferSize);
+        KU_ASSERT(*start <= bufferSize);
         remaining = bufferSize - *start;
     }
 
@@ -211,7 +211,7 @@ bool BaseCSVReader::readBuffer(uint64_t* start) {
     bufferSize = remaining + bufferReadSize;
     if (remaining > 0) {
         // remaining from last buffer: copy it here
-        assert(start != nullptr);
+        KU_ASSERT(start != nullptr);
         memcpy(buffer.get(), oldBuffer.get() + *start, remaining);
     }
 
@@ -285,7 +285,7 @@ normal:
     goto final_state;
 add_value:
     // We get here after we have a delimiter.
-    assert(buffer[position] == csvReaderConfig.delimiter);
+    KU_ASSERT(buffer[position] == csvReaderConfig.delimiter);
     // Trim one character if we have quotes.
     addValue(driver, rowNum, column,
         std::string_view(buffer.get() + start, position - start - hasQuotes), escapePositions);
@@ -303,7 +303,7 @@ add_value:
     goto value_start;
 add_row : {
     // We get here after we have a newline.
-    assert(isNewLine(buffer[position]));
+    KU_ASSERT(isNewLine(buffer[position]));
     bool isCarriageReturn = buffer[position] == '\r';
     addValue(driver, rowNum, column,
         std::string_view(buffer.get() + start, position - start - hasQuotes), escapePositions);
@@ -351,7 +351,7 @@ in_quotes:
     throw CopyException(stringFormat(
         "Error in file {} on line {}: unterminated quotes.", filePath, getLineNumber()));
 unquote:
-    assert(hasQuotes && buffer[position] == csvReaderConfig.quoteChar);
+    KU_ASSERT(hasQuotes && buffer[position] == csvReaderConfig.quoteChar);
     // this state handles the state directly after we unquote
     // in this state we expect either another quote (entering the quoted state again, and
     // escaping the quote) or a delimiter/newline, ending the current value and moving on to the
@@ -442,7 +442,7 @@ uint64_t BaseCSVReader::getFileOffset() const {
             "Could not get current file position for file {}: {}", filePath, posixErrMessage()));
         // LCOV_EXCL_END
     }
-    assert(offset >= bufferSize);
+    KU_ASSERT(offset >= bufferSize);
     return offset - bufferSize + position;
 }
 

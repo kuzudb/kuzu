@@ -79,7 +79,7 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
 
 void RelTableData::initializeReadState(
     Transaction* /*transaction*/, ValueVector* inNodeIDVector, RelDataReadState* readState) {
-    assert(dataFormat == ColumnDataFormat::CSR);
+    KU_ASSERT(dataFormat == ColumnDataFormat::CSR);
     auto nodeOffset =
         inNodeIDVector->readNodeOffset(inNodeIDVector->state->selVector->selectedPositions[0]);
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);

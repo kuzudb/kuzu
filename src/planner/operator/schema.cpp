@@ -17,14 +17,14 @@ f_group_pos Schema::createGroup() {
 
 void Schema::insertToScope(
     const std::shared_ptr<binder::Expression>& expression, f_group_pos groupPos) {
-    assert(!expressionNameToGroupPos.contains(expression->getUniqueName()));
+    KU_ASSERT(!expressionNameToGroupPos.contains(expression->getUniqueName()));
     expressionNameToGroupPos.insert({expression->getUniqueName(), groupPos});
     expressionsInScope.push_back(expression);
 }
 
 void Schema::insertToGroupAndScope(
     const std::shared_ptr<binder::Expression>& expression, f_group_pos groupPos) {
-    assert(!expressionNameToGroupPos.contains(expression->getUniqueName()));
+    KU_ASSERT(!expressionNameToGroupPos.contains(expression->getUniqueName()));
     expressionNameToGroupPos.insert({expression->getUniqueName(), groupPos});
     groups[groupPos]->insertExpression(expression);
     expressionsInScope.push_back(expression);

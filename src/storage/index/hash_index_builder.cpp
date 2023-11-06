@@ -74,7 +74,7 @@ bool HashIndexBuilder<T>::appendInternal(const uint8_t* key, offset_t value) {
         currentSlotInfo.slotId = currentSlot->header.nextOvfSlotId;
         currentSlotInfo.slotType = SlotType::OVF;
     }
-    assert(currentSlot);
+    KU_ASSERT(currentSlot);
     insertToSlotWithoutLock(currentSlot, key, value);
     numEntries.fetch_add(1);
     return true;

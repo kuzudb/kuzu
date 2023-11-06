@@ -237,7 +237,7 @@ void WALReplayer::replayOverflowFileNextBytePosRecord(const WALRecord& walRecord
     if (isRecovering) {
         return;
     }
-    assert(walRecord.diskOverflowFileNextBytePosRecord.dbFileID.isOverflow);
+    KU_ASSERT(walRecord.diskOverflowFileNextBytePosRecord.dbFileID.isOverflow);
     auto dbFileID = walRecord.diskOverflowFileNextBytePosRecord.dbFileID;
     DiskOverflowFile* diskOverflowFile;
     switch (dbFileID.dbFileType) {

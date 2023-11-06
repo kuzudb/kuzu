@@ -1,9 +1,9 @@
 #pragma once
 
-#include <cassert>
 #include <sstream>
 #include <string>
 
+#include "common/assert.h"
 #include "common/profiler.h"
 #include "json_fwd.hpp"
 #include "kuzu_fwd.h"
@@ -57,8 +57,8 @@ private:
     static std::string genHorizLine(uint32_t len);
 
     inline void validateRowIdxAndColIdx(uint32_t rowIdx, uint32_t colIdx) const {
-        assert(0 <= rowIdx && rowIdx < opProfileBoxes.size() && 0 <= colIdx &&
-               colIdx < opProfileBoxes[rowIdx].size());
+        KU_ASSERT(0 <= rowIdx && rowIdx < opProfileBoxes.size() && 0 <= colIdx &&
+                  colIdx < opProfileBoxes[rowIdx].size());
         (void)rowIdx;
         (void)colIdx;
     }
