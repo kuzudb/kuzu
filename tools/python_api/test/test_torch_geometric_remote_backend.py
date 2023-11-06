@@ -1,6 +1,9 @@
 import torch
 import random
+import sys
 
+sys.path.append('../build/')
+import kuzu
 
 TINY_SNB_KNOWS_GROUND_TRUTH = {
     0: [2, 3, 5],
@@ -95,3 +98,13 @@ def test_remote_backend_feature_store_types_2d(establish_connection):
         assert f32.shape == torch.Size([1, 3])
         for j in range(3):
             assert f32[0, j].item() - (base_number + j) - 1 < 1e-6
+
+def test_remote_backend_20k(establish_connection):
+    _, db = establish_connection
+    conn = kuzu.Connection(db, num_threads=1)
+    conn.execute('create node table npy20k (id INT64,f32 FLOAT[10],PRIMARY KEY(id));')
+    conn.execute('copy npy20k from ("../../../dataset/npy-20k/id_int64.npy", "../../../dataset/npy-20k/two_dim_float.npy") by column;')
+    del conn
+    fs, _ = db.get_torch_geometric_remote_backend(8)
+    for i in range(20000):
+        assert fs['npy20k', 'id', i].item() == i
