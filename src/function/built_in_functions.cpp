@@ -68,6 +68,9 @@ Function* BuiltInFunctions::matchScalarFunction(
     uint32_t minCost = UINT32_MAX;
     for (auto& function : functionSet) {
         auto func = reinterpret_cast<Function*>(function.get());
+        if (name == CAST_FUNC_NAME) {
+            return func;
+        }
         auto cost = getFunctionCost(inputTypes, func, isOverload);
         if (cost == UINT32_MAX) {
             continue;
@@ -597,6 +600,7 @@ void BuiltInFunctions::registerCastFunctions() {
     functions.insert({CAST_TO_UINT8_FUNC_NAME, CastToUInt8Function::getFunctionSet()});
     functions.insert({CAST_TO_INT128_FUNC_NAME, CastToInt128Function::getFunctionSet()});
     functions.insert({CAST_TO_BOOL_FUNC_NAME, CastToBoolFunction::getFunctionSet()});
+    functions.insert({CAST_FUNC_NAME, CastAnyFunction::getFunctionSet()});
 }
 
 void BuiltInFunctions::registerListFunctions() {

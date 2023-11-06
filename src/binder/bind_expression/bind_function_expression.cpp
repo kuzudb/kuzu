@@ -59,17 +59,23 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     auto function = reinterpret_cast<function::ScalarFunction*>(
         builtInFunctions->matchScalarFunction(functionName, childrenTypes));
     expression_vector childrenAfterCast;
-    for (auto i = 0u; i < children.size(); ++i) {
-        auto targetType =
-            function->isVarLength ? function->parameterTypeIDs[0] : function->parameterTypeIDs[i];
-        childrenAfterCast.push_back(implicitCastIfNecessary(children[i], targetType));
-    }
     std::unique_ptr<function::FunctionBindData> bindData;
-    if (function->bindFunc) {
-        bindData = function->bindFunc(childrenAfterCast, function);
+    if (functionName == CAST_FUNC_NAME) {
+        bindData = function->bindFunc(children, function);
+        childrenAfterCast.push_back(
+            implicitCastIfNecessary(children[0], function->parameterTypeIDs[0]));
     } else {
-        bindData =
-            std::make_unique<function::FunctionBindData>(LogicalType(function->returnTypeID));
+        for (auto i = 0u; i < children.size(); ++i) {
+            auto targetType = function->isVarLength ? function->parameterTypeIDs[0] :
+                                                      function->parameterTypeIDs[i];
+            childrenAfterCast.push_back(implicitCastIfNecessary(children[i], targetType));
+        }
+        if (function->bindFunc) {
+            bindData = function->bindFunc(childrenAfterCast, function);
+        } else {
+            bindData =
+                std::make_unique<function::FunctionBindData>(LogicalType(function->returnTypeID));
+        }
     }
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(function->name, childrenAfterCast);
@@ -253,8 +259,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
     auto bindData =
         std::make_unique<function::FunctionBindData>(LogicalType(LogicalTypeID::STRING));
     auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(LABEL_FUNC_NAME, children);
-    return make_shared<ScalarFunctionExpression>(LABEL_FUNC_NAME, FUNCTION, std::move(bindData),
-        std::move(children), execFunc, nullptr, uniqueExpressionName);
+    return std::make_shared<ScalarFunctionExpression>(LABEL_FUNC_NAME, FUNCTION,
+        std::move(bindData), std::move(children), execFunc, nullptr, uniqueExpressionName);
 }
 
 std::unique_ptr<Expression> ExpressionBinder::createInternalLengthExpression(

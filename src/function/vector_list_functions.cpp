@@ -33,8 +33,8 @@ static std::string getListFunctionIncompatibleChildrenTypeErrorMsg(
                        LogicalTypeUtils::dataTypeToString(right) + ".");
 }
 
-void ListCreationFunction::execFunc(
-    const std::vector<std::shared_ptr<ValueVector>>& parameters, ValueVector& result) {
+void ListCreationFunction::execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
+    ValueVector& result, void* /*dataPtr*/) {
     assert(result.dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST);
     result.resetAuxiliaryBuffer();
     for (auto selectedPos = 0u; selectedPos < result.state->selVector->selectedSize;
@@ -139,7 +139,8 @@ function_set SizeFunction::getFunctionSet() {
 
 template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
 static void BinaryExecListExtractFunction(
-    const std::vector<std::shared_ptr<common::ValueVector>>& params, common::ValueVector& result) {
+    const std::vector<std::shared_ptr<common::ValueVector>>& params, common::ValueVector& result,
+    void* /*dataPtr*/ = nullptr) {
     assert(params.size() == 2);
     BinaryFunctionExecutor::executeListExtract<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
         *params[0], *params[1], result);

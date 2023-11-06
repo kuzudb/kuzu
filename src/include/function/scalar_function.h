@@ -15,7 +15,7 @@ using scalar_compile_func =
     std::function<void(FunctionBindData*, const std::vector<std::shared_ptr<common::ValueVector>>&,
         std::shared_ptr<common::ValueVector>&)>;
 using scalar_exec_func = std::function<void(
-    const std::vector<std::shared_ptr<common::ValueVector>>&, common::ValueVector&)>;
+    const std::vector<std::shared_ptr<common::ValueVector>>&, common::ValueVector&, void*)>;
 using scalar_select_func = std::function<bool(
     const std::vector<std::shared_ptr<common::ValueVector>>&, common::SelectionVector&)>;
 using function_set = std::vector<std::unique_ptr<Function>>;
@@ -51,17 +51,35 @@ struct ScalarFunction : public BaseScalarFunction {
 
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
     static void TernaryExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result) {
+        common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
         assert(params.size() == 3);
         TernaryFunctionExecutor::execute<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(
             *params[0], *params[1], *params[2], result);
     }
 
+    template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void TernaryStringExecFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
+        assert(params.size() == 3);
+        TernaryFunctionExecutor::executeString<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(
+            *params[0], *params[1], *params[2], result);
+    }
+
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
     static void BinaryExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result) {
+        common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
         assert(params.size() == 2);
         BinaryFunctionExecutor::execute<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
+            *params[0], *params[1], result);
+    }
+
+    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void BinaryStringExecFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
+        assert(params.size() == 2);
+        BinaryFunctionExecutor::executeString<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
             *params[0], *params[1], result);
     }
 
@@ -76,7 +94,7 @@ struct ScalarFunction : public BaseScalarFunction {
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
     static void UnaryExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result) {
+        common::ValueVector& result, void* /*dataPtr*/) {
         assert(params.size() == 1);
         UnaryFunctionExecutor::execute<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
     }
@@ -84,22 +102,31 @@ struct ScalarFunction : public BaseScalarFunction {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
     static void UnaryStringExecFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result) {
+        common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
         assert(params.size() == 1);
         UnaryFunctionExecutor::executeString<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void UnaryCastStringExecFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        common::ValueVector& result, void* dataPtr) {
+        assert(params.size() == 1);
+        UnaryFunctionExecutor::executeCastString<OPERAND_TYPE, RESULT_TYPE, FUNC>(
+            *params[0], result, dataPtr);
+    }
+
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
     static void UnaryCastExecFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result) {
+        common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
         assert(params.size() == 1);
         UnaryFunctionExecutor::executeCast<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
     }
 
     template<typename RESULT_TYPE, typename FUNC>
     static void ConstExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result) {
+        common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
         assert(params.empty());
         (void)params;
         ConstFunctionExecutor::execute<RESULT_TYPE, FUNC>(result);
@@ -108,7 +135,7 @@ struct ScalarFunction : public BaseScalarFunction {
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
     static void TernaryExecListStructFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result) {
+        common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
         assert(params.size() == 3);
         TernaryFunctionExecutor::executeListStruct<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(
             *params[0], *params[1], *params[2], result);
@@ -117,7 +144,7 @@ struct ScalarFunction : public BaseScalarFunction {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
     static void BinaryExecListStructFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result) {
+        common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
         assert(params.size() == 2);
         BinaryFunctionExecutor::executeListStruct<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
             *params[0], *params[1], result);
@@ -126,7 +153,7 @@ struct ScalarFunction : public BaseScalarFunction {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
     static void UnaryExecListStructFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result) {
+        common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
         assert(params.size() == 1);
         UnaryFunctionExecutor::executeListStruct<OPERAND_TYPE, RESULT_TYPE, FUNC>(
             *params[0], result);

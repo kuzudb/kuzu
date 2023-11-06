@@ -32,13 +32,13 @@ struct PropertiesFunction {
         const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
         std::shared_ptr<common::ValueVector>& result);
     static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
-        common::ValueVector& result);
+        common::ValueVector& result, void* /*dataPtr*/ = nullptr);
 };
 
 struct IsTrailFunction {
     static function_set getFunctionSet();
     static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
-        common::ValueVector& result);
+        common::ValueVector& result, void* /*dataPtr*/ = nullptr);
     static bool selectFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
         common::SelectionVector& selectionVector);
 };
@@ -46,7 +46,7 @@ struct IsTrailFunction {
 struct IsACyclicFunction {
     static function_set getFunctionSet();
     static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
-        common::ValueVector& result);
+        common::ValueVector& result, void* /*dataPtr*/ = nullptr);
     static bool selectFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
         common::SelectionVector& selectionVector);
 };

@@ -12,40 +12,14 @@ namespace kuzu {
 namespace function {
 
 struct VectorStringFunction {
-
-    template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void TernaryStringExecFunction(
-        const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result) {
-        assert(params.size() == 3);
-        TernaryFunctionExecutor::executeString<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(
-            *params[0], *params[1], *params[2], result);
-    }
-
-    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void BinaryStringExecFunction(
-        const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result) {
-        assert(params.size() == 2);
-        BinaryFunctionExecutor::executeString<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
-            *params[0], *params[1], result);
-    }
-
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void UnaryStringExecFunction(
-        const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result) {
-        assert(params.size() == 1);
-        UnaryFunctionExecutor::executeString<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
-    }
-
     template<class OPERATION>
     static inline function_set getUnaryStrFunction(std::string funcName) {
         function_set functionSet;
         functionSet.emplace_back(std::make_unique<ScalarFunction>(funcName,
             std::vector<common::LogicalTypeID>{common::LogicalTypeID::STRING},
             common::LogicalTypeID::STRING,
-            UnaryStringExecFunction<common::ku_string_t, common::ku_string_t, OPERATION>,
+            ScalarFunction::UnaryStringExecFunction<common::ku_string_t, common::ku_string_t,
+                OPERATION>,
             false /* isVarLength */));
         return functionSet;
     }

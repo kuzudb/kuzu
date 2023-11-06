@@ -21,8 +21,15 @@ void FunctionExpressionEvaluator::evaluate() {
     for (auto& child : children) {
         child->evaluate();
     }
+    auto expr = reinterpret_cast<binder::ScalarFunctionExpression*>(expression.get());
+    if (expr->getFunctionName() == CAST_FUNC_NAME &&
+        parameters[0]->dataType.getLogicalTypeID() == LogicalTypeID::STRING) {
+        execFunc(parameters, *resultVector,
+            reinterpret_cast<function::StringCastFunctionBindData*>(expr->getBindData()));
+        return;
+    }
     if (execFunc != nullptr) {
-        execFunc(parameters, *resultVector);
+        execFunc(parameters, *resultVector, nullptr);
     }
 }
 
@@ -34,7 +41,7 @@ bool FunctionExpressionEvaluator::select(SelectionVector& selVector) {
     // implemented (e.g. list_contains). We should remove this if statement eventually.
     if (selectFunc == nullptr) {
         assert(resultVector->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
-        execFunc(parameters, *resultVector);
+        execFunc(parameters, *resultVector, nullptr);
         auto numSelectedValues = 0u;
         for (auto i = 0u; i < resultVector->state->selVector->selectedSize; ++i) {
             auto pos = resultVector->state->selVector->selectedPositions[i];

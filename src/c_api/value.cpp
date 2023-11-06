@@ -267,7 +267,7 @@ kuzu_int128_t kuzu_int128_t_from_string(const char* str) {
     int128_t int128_val = 0;
     kuzu_int128_t c_int128;
     try {
-        kuzu::function::CastStringToTypes::operation(str, strlen(str), int128_val);
+        kuzu::function::CastString::operation(ku_string_t{str, strlen(str)}, int128_val);
         c_int128.low = int128_val.low;
         c_int128.high = int128_val.high;
     } catch (ConversionException& e) {

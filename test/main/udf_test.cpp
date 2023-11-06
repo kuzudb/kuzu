@@ -192,8 +192,8 @@ TEST_F(ApiTest, TernaryUDFMoreParamType) {
         "Catalog exception: Expected exactly three parameter types for ternary udf. Got: 4.");
 }
 
-static void addFour(
-    const std::vector<std::shared_ptr<ValueVector>>& parameters, ValueVector& result) {
+static void addFour(const std::vector<std::shared_ptr<ValueVector>>& parameters,
+    ValueVector& result, void* /*dataPtr*/ = nullptr) {
     assert(parameters.size() == 1);
     auto parameter = parameters[0];
     result.resetAuxiliaryBuffer();
@@ -223,8 +223,8 @@ struct AddDate {
     }
 };
 
-static void addDate(
-    const std::vector<std::shared_ptr<ValueVector>>& parameters, ValueVector& result) {
+static void addDate(const std::vector<std::shared_ptr<ValueVector>>& parameters,
+    ValueVector& result, void* /*dataPtr*/ = nullptr) {
     assert(parameters.size() == 2);
     function::BinaryFunctionExecutor::execute<date_t, int64_t, date_t, AddDate>(
         *parameters[0], *parameters[1], result);
@@ -253,8 +253,8 @@ struct ConditionalConcat {
     }
 };
 
-static void conditionalConcat(
-    const std::vector<std::shared_ptr<ValueVector>>& parameters, ValueVector& result) {
+static void conditionalConcat(const std::vector<std::shared_ptr<ValueVector>>& parameters,
+    ValueVector& result, void* /*dataPtr*/ = nullptr) {
     assert(parameters.size() == 3);
     function::TernaryFunctionExecutor::executeString<ku_string_t, bool, ku_string_t, ku_string_t,
         ConditionalConcat>(*parameters[0], *parameters[1], *parameters[2], result);

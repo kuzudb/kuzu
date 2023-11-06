@@ -57,7 +57,8 @@ public:
           execFunc{std::move(execFunc)}, selectFunc{std::move(selectFunc)}, compileFunc{std::move(
                                                                                 compileFunc)} {}
 
-    static std::string getUniqueName(const std::string& functionName, expression_vector& children);
+    static std::string getUniqueName(
+        const std::string& functionName, const expression_vector& children);
 
     std::string toStringInternal() const final;
 

@@ -20,6 +20,7 @@ const std::string MAX_FUNC_NAME = "MAX";
 const std::string COLLECT_FUNC_NAME = "COLLECT";
 
 // cast
+const std::string CAST_FUNC_NAME = "CAST";
 const std::string CAST_DATE_FUNC_NAME = "DATE";
 const std::string CAST_TO_DATE_FUNC_NAME = "TO_DATE";
 const std::string CAST_TO_TIMESTAMP_FUNC_NAME = "TIMESTAMP";

@@ -1,5 +1,8 @@
 #include "function/cast/vector_cast_functions.h"
 
+#include "binder/binder.h"
+#include "binder/expression/literal_expression.h"
+#include "common/exception/binder.h"
 #include "function/cast/functions/cast_functions.h"
 
 using namespace kuzu::common;
@@ -127,20 +130,20 @@ void CastFunction::bindImplicitCastFunc(
     }
     case LogicalTypeID::DATE: {
         assert(sourceTypeID == LogicalTypeID::STRING);
-        func = &ScalarFunction::UnaryStringExecFunction<ku_string_t, date_t, CastStringToTypes>;
+        func = &ScalarFunction::UnaryCastStringExecFunction<ku_string_t, date_t, CastString>;
         return;
     }
     case LogicalTypeID::TIMESTAMP: {
         assert(sourceTypeID == LogicalTypeID::STRING || sourceTypeID == LogicalTypeID::DATE);
-        func = sourceTypeID == LogicalTypeID::STRING ?
-                   &ScalarFunction::UnaryStringExecFunction<ku_string_t, timestamp_t,
-                       CastStringToTypes> :
-                   &ScalarFunction::UnaryExecFunction<date_t, timestamp_t, CastDateToTimestamp>;
+        func =
+            sourceTypeID == LogicalTypeID::STRING ?
+                &ScalarFunction::UnaryCastStringExecFunction<ku_string_t, timestamp_t, CastString> :
+                &ScalarFunction::UnaryExecFunction<date_t, timestamp_t, CastDateToTimestamp>;
         return;
     }
     case LogicalTypeID::INTERVAL: {
         assert(sourceTypeID == LogicalTypeID::STRING);
-        func = &ScalarFunction::UnaryStringExecFunction<ku_string_t, interval_t, CastStringToTypes>;
+        func = &ScalarFunction::UnaryCastStringExecFunction<ku_string_t, interval_t, CastString>;
         return;
     }
     default:
@@ -197,8 +200,8 @@ void castFixedListToString(
     resultVector.setValue(resultPos, result);
 }
 
-void fixedListCastExecFunction(
-    const std::vector<std::shared_ptr<ValueVector>>& params, common::ValueVector& result) {
+void fixedListCastExecFunction(const std::vector<std::shared_ptr<ValueVector>>& params,
+    common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
     assert(params.size() == 1);
     auto param = params[0];
     if (param->state->isFlat()) {
@@ -296,6 +299,138 @@ void CastToStringFunction::getUnaryCastToStringExecFunction(
         throw common::NotImplementedException{
             "CastToStringFunction::getUnaryCastToStringExecFunction"};
         // LCOV_EXCL_END
+    }
+}
+
+void CastFunction::getNumericalCastFunc(
+    common::LogicalTypeID srcTypeID, common::LogicalTypeID dstTypeID, scalar_exec_func& func) {
+    switch (dstTypeID) {
+    case common::LogicalTypeID::FLOAT: {
+        bindImplicitNumericalCastFunc<float_t, CastToFloat>(srcTypeID, func);
+    } break;
+    case common::LogicalTypeID::DOUBLE: {
+        bindImplicitNumericalCastFunc<double_t, CastToDouble>(srcTypeID, func);
+    } break;
+    case common::LogicalTypeID::SERIAL: {
+        bindImplicitNumericalCastFunc<int64_t, CastToSerial>(srcTypeID, func);
+    } break;
+    case common::LogicalTypeID::INT128: {
+        bindImplicitNumericalCastFunc<int128_t, CastToInt128>(srcTypeID, func);
+    } break;
+    case common::LogicalTypeID::INT64: {
+        bindImplicitNumericalCastFunc<int64_t, CastToInt64>(srcTypeID, func);
+    } break;
+    case common::LogicalTypeID::INT32: {
+        bindImplicitNumericalCastFunc<int32_t, CastToInt32>(srcTypeID, func);
+    } break;
+    case common::LogicalTypeID::INT16: {
+        bindImplicitNumericalCastFunc<int16_t, CastToInt16>(srcTypeID, func);
+    } break;
+    case common::LogicalTypeID::INT8: {
+        bindImplicitNumericalCastFunc<int8_t, CastToInt8>(srcTypeID, func);
+    } break;
+    case common::LogicalTypeID::UINT64: {
+        bindImplicitNumericalCastFunc<uint64_t, CastToUInt64>(srcTypeID, func);
+    } break;
+    case common::LogicalTypeID::UINT32: {
+        bindImplicitNumericalCastFunc<uint32_t, CastToUInt32>(srcTypeID, func);
+    } break;
+    case common::LogicalTypeID::UINT16: {
+        bindImplicitNumericalCastFunc<uint16_t, CastToUInt16>(srcTypeID, func);
+    } break;
+    case common::LogicalTypeID::UINT8: {
+        bindImplicitNumericalCastFunc<uint8_t, CastToUInt8>(srcTypeID, func);
+    } break;
+    default:
+        throw common::NotImplementedException(
+            "Unimplemented casting Function from " +
+            common::LogicalTypeUtils::dataTypeToString(srcTypeID) + " to numeric.");
+    }
+}
+
+void CastFunction::getCastStringExecFunc(common::LogicalTypeID dstTypeID, scalar_exec_func& func) {
+    switch (dstTypeID) {
+    case common::LogicalTypeID::FLOAT: {
+        func =
+            ScalarFunction::UnaryCastStringExecFunction<common::ku_string_t, float_t, CastString>;
+    } break;
+    case common::LogicalTypeID::DOUBLE: {
+        func =
+            ScalarFunction::UnaryCastStringExecFunction<common::ku_string_t, double_t, CastString>;
+    } break;
+    case common::LogicalTypeID::INT128: {
+        func =
+            ScalarFunction::UnaryCastStringExecFunction<common::ku_string_t, int128_t, CastString>;
+    } break;
+    case common::LogicalTypeID::SERIAL:
+    case common::LogicalTypeID::INT64: {
+        func =
+            ScalarFunction::UnaryCastStringExecFunction<common::ku_string_t, int64_t, CastString>;
+    } break;
+    case common::LogicalTypeID::INT32: {
+        func =
+            ScalarFunction::UnaryCastStringExecFunction<common::ku_string_t, int32_t, CastString>;
+    } break;
+    case common::LogicalTypeID::INT16: {
+        func =
+            ScalarFunction::UnaryCastStringExecFunction<common::ku_string_t, int16_t, CastString>;
+    } break;
+    case common::LogicalTypeID::INT8: {
+        func = ScalarFunction::UnaryCastStringExecFunction<common::ku_string_t, int8_t, CastString>;
+    } break;
+    case common::LogicalTypeID::UINT64: {
+        func =
+            ScalarFunction::UnaryCastStringExecFunction<common::ku_string_t, uint64_t, CastString>;
+    } break;
+    case common::LogicalTypeID::UINT32: {
+        func =
+            ScalarFunction::UnaryCastStringExecFunction<common::ku_string_t, uint32_t, CastString>;
+    } break;
+    case common::LogicalTypeID::UINT16: {
+        func =
+            ScalarFunction::UnaryCastStringExecFunction<common::ku_string_t, uint16_t, CastString>;
+    } break;
+    case common::LogicalTypeID::UINT8: {
+        func =
+            ScalarFunction::UnaryCastStringExecFunction<common::ku_string_t, uint8_t, CastString>;
+    } break;
+    case common::LogicalTypeID::BOOL: {
+        func = ScalarFunction::UnaryCastStringExecFunction<common::ku_string_t, bool, CastString>;
+    } break;
+    case common::LogicalTypeID::DATE: {
+        func = ScalarFunction::UnaryCastStringExecFunction<common::ku_string_t, date_t, CastString>;
+    } break;
+    case common::LogicalTypeID::INTERVAL: {
+        func = ScalarFunction::UnaryCastStringExecFunction<common::ku_string_t, interval_t,
+            CastString>;
+    } break;
+    case common::LogicalTypeID::TIMESTAMP: {
+        func = ScalarFunction::UnaryCastStringExecFunction<common::ku_string_t, timestamp_t,
+            CastString>;
+    } break;
+    case common::LogicalTypeID::BLOB: {
+        func = ScalarFunction::UnaryCastStringExecFunction<common::ku_string_t, blob_t, CastString>;
+    } break;
+    case common::LogicalTypeID::VAR_LIST: {
+        func = ScalarFunction::UnaryCastStringExecFunction<common::ku_string_t, list_entry_t,
+            CastString>;
+    } break;
+    case common::LogicalTypeID::MAP: {
+        func = ScalarFunction::UnaryCastStringExecFunction<common::ku_string_t, map_entry_t,
+            CastString>;
+    } break;
+    case common::LogicalTypeID::STRUCT: {
+        func = ScalarFunction::UnaryCastStringExecFunction<common::ku_string_t, struct_entry_t,
+            CastString>;
+    } break;
+    case common::LogicalTypeID::UNION: {
+        func = ScalarFunction::UnaryCastStringExecFunction<common::ku_string_t, union_entry_t,
+            CastString>;
+    } break;
+    default:
+        throw common::NotImplementedException(
+            "Unimplemented casting Function from string to " +
+            common::LogicalTypeUtils::dataTypeToString(dstTypeID) + ".");
     }
 }
 
@@ -457,6 +592,49 @@ function_set CastToUInt8Function::getFunctionSet() {
     }
     result.push_back(CastFunction::bindCastStringToFunction<uint8_t>(
         CAST_TO_UINT8_FUNC_NAME, LogicalTypeID::UINT8));
+    return result;
+}
+
+void CastAnyFunction::getUnaryCastExecFunction(
+    LogicalTypeID srcTypeID, LogicalTypeID dstTypeID, scalar_exec_func& func) {
+    if (dstTypeID == LogicalTypeID::STRING) {
+        CastToStringFunction::getUnaryCastToStringExecFunction(srcTypeID, func);
+    } else if (srcTypeID == LogicalTypeID::STRING) {
+        CastFunction::getCastStringExecFunc(dstTypeID, func);
+    } else {
+        CastFunction::getNumericalCastFunc(srcTypeID, dstTypeID, func);
+    }
+}
+
+std::unique_ptr<FunctionBindData> CastAnyFunction::bindFunc(
+    const binder::expression_vector& arguments, Function* function) {
+    // check the size of the arguments
+    if (arguments.size() != 2) {
+        throw BinderException("Invalid number of arguments for given function CAST.");
+    }
+
+    auto inputTypeID = arguments[0]->dataType.getLogicalTypeID();
+    if (inputTypeID == LogicalTypeID::ANY) {
+        inputTypeID = LogicalTypeID::STRING;
+    }
+    auto str = ((binder::LiteralExpression&)*arguments[1]).getValue()->getValue<std::string>();
+    auto outputType = binder::Binder::bindDataType(str);
+    auto func = reinterpret_cast<ScalarFunction*>(function);
+    func->name = "CAST_TO_" + str;
+    func->parameterTypeIDs[0] = inputTypeID;
+    getUnaryCastExecFunction(inputTypeID, outputType->getLogicalTypeID(), func->execFunc);
+
+    if (inputTypeID == LogicalTypeID::STRING) {
+        return std::make_unique<function::StringCastFunctionBindData>(*outputType);
+    }
+    return std::make_unique<function::FunctionBindData>(*outputType);
+}
+
+function_set CastAnyFunction::getFunctionSet() {
+    function_set result;
+    result.push_back(std::make_unique<ScalarFunction>(CAST_FUNC_NAME,
+        std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::ANY, nullptr, nullptr,
+        bindFunc, false));
     return result;
 }
 

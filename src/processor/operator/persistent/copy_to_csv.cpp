@@ -137,7 +137,7 @@ void CopyToCSVLocalState::writeString(const uint8_t* strData, uint64_t strLen, b
 void CopyToCSVLocalState::writeRows() {
     for (auto i = 0u; i < vectorsToCast.size(); i++) {
         std::vector<std::shared_ptr<ValueVector>> vectorToCast = {vectorsToCast[i]};
-        castFuncs[i](vectorToCast, *castVectors[i]);
+        castFuncs[i](vectorToCast, *castVectors[i], nullptr);
     }
 
     uint64_t numRowsToWrite = 1;

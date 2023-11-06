@@ -35,8 +35,8 @@ std::unique_ptr<FunctionBindData> UnionValueFunction::bindFunc(
     return std::make_unique<FunctionBindData>(resultType);
 }
 
-void UnionValueFunction::execFunc(
-    const std::vector<std::shared_ptr<ValueVector>>& /*parameters*/, ValueVector& result) {
+void UnionValueFunction::execFunc(const std::vector<std::shared_ptr<ValueVector>>& /*parameters*/,
+    ValueVector& result, void* /*dataPtr*/) {
     UnionVector::setTagField(&result, UnionType::TAG_FIELD_IDX);
 }
 

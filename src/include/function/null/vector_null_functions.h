@@ -18,7 +18,7 @@ private:
     template<typename FUNC>
     static void UnaryNullExecFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result) {
+        common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
         assert(params.size() == 1);
         NullOperationExecutor::execute<FUNC>(*params[0], result);
     }
