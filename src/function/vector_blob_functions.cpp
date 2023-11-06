@@ -3,7 +3,6 @@
 #include "function/blob/functions/decode_function.h"
 #include "function/blob/functions/encode_function.h"
 #include "function/blob/functions/octet_length_function.h"
-#include "function/string/vector_string_functions.h"
 
 using namespace kuzu::common;
 
