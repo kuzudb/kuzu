@@ -289,6 +289,7 @@ jobs:
       JAVA_HOME: /usr/lib/jvm/java-17-openjdk
     steps:
       - name: Enable EPEL
+        if: ${{ matrix.image == 'rockylinux:8' || matrix.image ==  'rockylinux:9' }}
         run: |
           dnf update -y
           dnf install -y epel-release
