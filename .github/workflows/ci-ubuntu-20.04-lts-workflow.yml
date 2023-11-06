@@ -3,7 +3,7 @@ name: CI-Ubuntu-20.04-LTS
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 8 * * *'
 
 jobs:
   ubuntu-2004-build-test:
