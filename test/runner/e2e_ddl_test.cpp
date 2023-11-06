@@ -42,8 +42,7 @@ public:
     void validateDatabaseStateAfterCommitCreateNodeTable() {
         ASSERT_TRUE(catalog->getReadOnlyVersion()->containsNodeTable("EXAM_PAPER"));
         ASSERT_EQ(getStorageManager(*database)
-                      ->getNodesStore()
-                      .getNodesStatisticsAndDeletedIDs()
+                      ->getNodesStatisticsAndDeletedIDs()
                       ->getNumNodeStatisticsAndDeleteIDsPerTable(),
             4);
     }
@@ -58,8 +57,7 @@ public:
             conn->query("COMMIT_SKIP_CHECKPOINT");
             ASSERT_FALSE(catalog->getReadOnlyVersion()->containsNodeTable("EXAM_PAPER"));
             ASSERT_EQ(getStorageManager(*database)
-                          ->getNodesStore()
-                          .getNodesStatisticsAndDeletedIDs()
+                          ->getNodesStatisticsAndDeletedIDs()
                           ->getNumNodeStatisticsAndDeleteIDsPerTable(),
                 3);
             initWithoutLoadingGraph();
@@ -76,7 +74,6 @@ public:
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->query("COMMIT_SKIP_CHECKPOINT");
             ASSERT_FALSE(catalog->getReadOnlyVersion()->containsRelTable("likes"));
-            ASSERT_EQ(getStorageManager(*database)->getRelsStore().getNumRelTables(), 5);
             initWithoutLoadingGraph();
         } else {
             conn->query("COMMIT");

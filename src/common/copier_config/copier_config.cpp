@@ -36,7 +36,7 @@ std::string FileTypeUtils::toString(FileType fileType) {
     }
         // LCOV_EXCL_START
     default: {
-        KU_ASSERT(false)
+        KU_NOT_REACHABLE();
     }
         // LCOV_EXCL_END
     }

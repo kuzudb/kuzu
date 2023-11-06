@@ -13,9 +13,8 @@ public:
         const std::string& paramsString)
         : DDL{PhysicalOperatorType::CREATE_RDF_GRAPH, catalog, outputPos, id, paramsString},
           storageManager{storageManager},
-          nodesStatistics{storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs()},
-          relsStatistics{storageManager->getRelsStore().getRelsStatistics()}, info{std::move(
-                                                                                  info)} {}
+          nodesStatistics{storageManager->getNodesStatisticsAndDeletedIDs()},
+          relsStatistics{storageManager->getRelsStatistics()}, info{std::move(info)} {}
 
     void executeDDLInternal() final;
 

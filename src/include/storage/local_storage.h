@@ -4,7 +4,6 @@
 
 namespace kuzu {
 namespace storage {
-class NodesStore;
 class StorageManager;
 
 // Data structures in LocalStorage are not thread-safe.
@@ -32,7 +31,7 @@ public:
 
 private:
     std::map<common::table_id_t, std::unique_ptr<LocalTable>> tables;
-    storage::NodesStore* nodesStore;
+    StorageManager* storageManager;
     storage::MemoryManager* mm;
     bool enableCompression;
 };

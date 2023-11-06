@@ -30,13 +30,10 @@ private:
     void replayPageUpdateOrInsertRecord(const WALRecord& walRecord);
     void replayTableStatisticsRecord(const WALRecord& walRecord);
     void replayCatalogRecord();
-    void replayNodeTableRecord(const WALRecord& walRecord);
-    // TODO(Guodong/Ziyi) : fix this
-    void replayRelTableRecord(const WALRecord& walRecord);
+    void replayCreateTableRecord(const WALRecord& walRecord);
     void replayRdfGraphRecord(const WALRecord& walRecord);
     void replayOverflowFileNextBytePosRecord(const WALRecord& walRecord);
-    void replayCopyNodeRecord(const WALRecord& walRecord);
-    void replayCopyRelRecord(const WALRecord& walRecord);
+    void replayCopyTableRecord(const WALRecord& walRecord);
     void replayDropTableRecord(const WALRecord& walRecord);
     void replayDropPropertyRecord(const WALRecord& walRecord);
     void replayAddPropertyRecord(const WALRecord& walRecord);

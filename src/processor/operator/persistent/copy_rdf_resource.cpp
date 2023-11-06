@@ -30,8 +30,8 @@ void CopyRdfResource::initLocalStateInternal(
     KU_ASSERT(info->columnPositions.size() == 1);
     vector = resultSet->getValueVector(info->columnPositions[0]).get();
     columnState = vector->state.get();
-    localNodeGroup = NodeGroupFactory::createNodeGroup(ColumnDataFormat::REGULAR,
-        sharedState->columnTypes, sharedState->table->compressionEnabled());
+    localNodeGroup = NodeGroupFactory::createNodeGroup(
+        ColumnDataFormat::REGULAR, sharedState->columnTypes, info->compressionEnabled);
 }
 
 static void writeNodeGroup(node_group_idx_t nodeGroupIdx, NodeTable* table, NodeGroup* nodeGroup) {

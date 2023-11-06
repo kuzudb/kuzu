@@ -13,8 +13,7 @@ void AddRelProperty::executeDDLInternal() {
     auto addedPropertyID = tableSchema->getPropertyID(propertyName);
     auto addedProp =
         catalog->getWriteVersion()->getTableSchema(tableID)->getProperty(addedPropertyID);
-    storageManager.getRelsStore().getRelTable(tableID)->addColumn(
-        transaction, *addedProp, getDefaultValVector());
+    storageManager.getRelTable(tableID)->addColumn(transaction, *addedProp, getDefaultValVector());
     storageManager.getWAL()->logAddPropertyRecord(tableID, addedProp->getPropertyID());
 }
 

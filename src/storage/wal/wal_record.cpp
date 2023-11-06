@@ -76,11 +76,8 @@ bool WALRecord::operator==(const WALRecord& rhs) const {
         // CatalogRecords are empty so are always equal
         return true;
     }
-    case WALRecordType::CREATE_NODE_TABLE_RECORD: {
-        return nodeTableRecord == rhs.nodeTableRecord;
-    }
-    case WALRecordType::CREATE_REL_TABLE_RECORD: {
-        return relTableRecord == rhs.relTableRecord;
+    case WALRecordType::CREATE_TABLE_RECORD: {
+        return createTableRecord == rhs.createTableRecord;
     }
     case WALRecordType::CREATE_RDF_GRAPH_RECORD: {
         return rdfGraphRecord == rhs.rdfGraphRecord;
@@ -88,11 +85,8 @@ bool WALRecord::operator==(const WALRecord& rhs) const {
     case WALRecordType::OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
         return diskOverflowFileNextBytePosRecord == rhs.diskOverflowFileNextBytePosRecord;
     }
-    case WALRecordType::COPY_NODE_RECORD: {
-        return copyNodeRecord == rhs.copyNodeRecord;
-    }
-    case WALRecordType::COPY_REL_RECORD: {
-        return copyRelRecord == rhs.copyRelRecord;
+    case WALRecordType::COPY_TABLE_RECORD: {
+        return copyTableRecord == rhs.copyTableRecord;
     }
     case WALRecordType::DROP_TABLE_RECORD: {
         return dropTableRecord == rhs.dropTableRecord;
@@ -126,11 +120,8 @@ std::string walRecordTypeToString(WALRecordType walRecordType) {
     case WALRecordType::CATALOG_RECORD: {
         return "CATALOG_RECORD";
     }
-    case WALRecordType::CREATE_NODE_TABLE_RECORD: {
-        return "NODE_TABLE_RECORD";
-    }
-    case WALRecordType::CREATE_REL_TABLE_RECORD: {
-        return "REL_TABLE_RECORD";
+    case WALRecordType::CREATE_TABLE_RECORD: {
+        return "CREATE_TABLE_RECORD";
     }
     case WALRecordType::CREATE_REL_TABLE_GROUP_RECORD: {
         return "REL_TABLE_GROUP_RECORD";
@@ -138,11 +129,8 @@ std::string walRecordTypeToString(WALRecordType walRecordType) {
     case WALRecordType::OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
         return "OVERFLOW_FILE_NEXT_BYTE_POS_RECORD";
     }
-    case WALRecordType::COPY_NODE_RECORD: {
-        return "COPY_NODE_RECORD";
-    }
-    case WALRecordType::COPY_REL_RECORD: {
-        return "COPY_REL_RECORD";
+    case WALRecordType::COPY_TABLE_RECORD: {
+        return "COPY_TABLE_RECORD";
     }
     case WALRecordType::DROP_TABLE_RECORD: {
         return "DROP_TABLE_RECORD";
@@ -199,17 +187,10 @@ WALRecord WALRecord::newCatalogRecord() {
     return retVal;
 }
 
-WALRecord WALRecord::newNodeTableRecord(table_id_t tableID) {
+WALRecord WALRecord::newCreateTableRecord(table_id_t tableID, TableType tableType) {
     WALRecord retVal;
-    retVal.recordType = WALRecordType::CREATE_NODE_TABLE_RECORD;
-    retVal.nodeTableRecord = NodeTableRecord(tableID);
-    return retVal;
-}
-
-WALRecord WALRecord::newRelTableRecord(table_id_t tableID) {
-    WALRecord retVal;
-    retVal.recordType = WALRecordType::CREATE_REL_TABLE_RECORD;
-    retVal.relTableRecord = RelTableRecord(tableID);
+    retVal.recordType = WALRecordType::CREATE_TABLE_RECORD;
+    retVal.createTableRecord = CreateTableRecord(tableID, tableType);
     return retVal;
 }
 
@@ -217,9 +198,11 @@ WALRecord WALRecord::newRdfGraphRecord(table_id_t rdfGraphID, table_id_t resourc
     table_id_t literalTableID, table_id_t resourceTripleTableID, table_id_t literalTripleTableID) {
     WALRecord retVal;
     retVal.recordType = WALRecordType::CREATE_RDF_GRAPH_RECORD;
-    retVal.rdfGraphRecord = RdfGraphRecord(rdfGraphID, NodeTableRecord(resourceTableID),
-        NodeTableRecord(literalTableID), RelTableRecord(resourceTripleTableID),
-        RelTableRecord(literalTripleTableID));
+    retVal.rdfGraphRecord =
+        RdfGraphRecord(rdfGraphID, CreateTableRecord(resourceTableID, TableType::NODE),
+            CreateTableRecord(literalTableID, TableType::NODE),
+            CreateTableRecord(resourceTripleTableID, TableType::REL),
+            CreateTableRecord(literalTripleTableID, TableType::REL));
     return retVal;
 }
 
@@ -232,17 +215,10 @@ WALRecord WALRecord::newOverflowFileNextBytePosRecord(
     return retVal;
 }
 
-WALRecord WALRecord::newCopyNodeRecord(table_id_t tableID, page_idx_t startPageIdx) {
+WALRecord WALRecord::newCopyTableRecord(table_id_t tableID, TableType tableType) {
     WALRecord retVal;
-    retVal.recordType = WALRecordType::COPY_NODE_RECORD;
-    retVal.copyNodeRecord = CopyNodeRecord(tableID, startPageIdx);
-    return retVal;
-}
-
-WALRecord WALRecord::newCopyRelRecord(table_id_t tableID) {
-    WALRecord retVal;
-    retVal.recordType = WALRecordType::COPY_REL_RECORD;
-    retVal.copyRelRecord = CopyRelRecord(tableID);
+    retVal.recordType = WALRecordType::COPY_TABLE_RECORD;
+    retVal.copyTableRecord = CopyTableRecord(tableID, tableType);
     return retVal;
 }
 

@@ -106,9 +106,8 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
         preparedStatement->parameterMap = binder.getParameterMap();
         preparedStatement->statementResult = boundStatement->getStatementResult()->copy();
         // planning
-        auto nodeStatistics =
-            database->storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs();
-        auto relStatistics = database->storageManager->getRelsStore().getRelsStatistics();
+        auto nodeStatistics = database->storageManager->getNodesStatisticsAndDeletedIDs();
+        auto relStatistics = database->storageManager->getRelsStatistics();
         std::vector<std::unique_ptr<LogicalPlan>> plans;
         if (enumerateAllPlans) {
             plans = Planner::getAllPlans(

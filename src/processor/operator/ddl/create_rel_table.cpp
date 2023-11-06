@@ -15,8 +15,8 @@ void CreateRelTable::executeDDLInternal() {
     auto newRelTableID = catalog->addRelTableSchema(*info);
     auto newRelTableSchema = reinterpret_cast<RelTableSchema*>(
         catalog->getWriteVersion()->getTableSchema(newRelTableID));
-    storageManager->getRelsStore().getRelsStatistics()->addTableStatistic(newRelTableSchema);
-    storageManager->getWAL()->logRelTableRecord(newRelTableID);
+    storageManager->getRelsStatistics()->addTableStatistic(newRelTableSchema);
+    storageManager->getWAL()->logCreateRelTableRecord(newRelTableID);
 }
 
 std::string CreateRelTable::getOutputMsg() {

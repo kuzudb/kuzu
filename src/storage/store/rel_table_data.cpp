@@ -77,9 +77,14 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
     dynamic_cast<InternalIDColumn*>(columns[REL_ID_COLUMN_ID].get())->setCommonTableID(tableID);
 }
 
-void RelTableData::initializeReadState(
-    Transaction* /*transaction*/, ValueVector* inNodeIDVector, RelDataReadState* readState) {
-    KU_ASSERT(dataFormat == ColumnDataFormat::CSR);
+void RelTableData::initializeReadState(Transaction* /*transaction*/, RelDataDirection direction,
+    std::vector<common::column_id_t> columnIDs, ValueVector* inNodeIDVector,
+    RelDataReadState* readState) {
+    readState->direction = direction;
+    readState->columnIDs = std::move(columnIDs);
+    if (dataFormat == ColumnDataFormat::REGULAR) {
+        return;
+    }
     auto nodeOffset =
         inNodeIDVector->readNodeOffset(inNodeIDVector->state->selVector->selectedPositions[0]);
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
@@ -97,28 +102,27 @@ void RelTableData::initializeReadState(
     }
 }
 
-void RelTableData::scanRegularColumns(Transaction* transaction, RelDataReadState& /*readState*/,
-    ValueVector* inNodeIDVector, const std::vector<column_id_t>& columnIDs,
-    const std::vector<ValueVector*>& outputVectors) {
+void RelTableData::scanRegularColumns(Transaction* transaction, RelDataReadState& readState,
+    ValueVector* inNodeIDVector, const std::vector<ValueVector*>& outputVectors) {
     adjColumn->scan(transaction, inNodeIDVector, outputVectors[0]);
     if (!ValueVector::discardNull(*outputVectors[0])) {
         return;
     }
-    for (auto i = 0u; i < columnIDs.size(); i++) {
-        auto columnID = columnIDs[i];
+    for (auto i = 0u; i < readState.columnIDs.size(); i++) {
+        auto columnID = readState.columnIDs[i];
         auto outputVectorId = i + 1; // Skip output from adj column.
         if (columnID == INVALID_COLUMN_ID) {
             outputVectors[outputVectorId]->setAllNull();
             continue;
         }
-        columns[columnIDs[i]]->scan(transaction, inNodeIDVector, outputVectors[outputVectorId]);
+        columns[readState.columnIDs[i]]->scan(
+            transaction, inNodeIDVector, outputVectors[outputVectorId]);
     }
 }
 
 void RelTableData::scanCSRColumns(Transaction* transaction, RelDataReadState& readState,
-    ValueVector* inNodeIDVector, const std::vector<column_id_t>& columnIDs,
-    const std::vector<ValueVector*>& outputVectors) {
-    KU_ASSERT(dataFormat == ColumnDataFormat::CSR && inNodeIDVector->state->isFlat());
+    ValueVector* /*inNodeIDVector*/, const std::vector<ValueVector*>& outputVectors) {
+    KU_ASSERT(dataFormat == ColumnDataFormat::CSR);
     auto [startOffset, endOffset] = readState.getStartAndEndOffset();
     auto numRowsToRead = endOffset - startOffset;
     outputVectors[0]->state->selVector->resetSelectorToUnselectedWithSize(numRowsToRead);
@@ -126,33 +130,34 @@ void RelTableData::scanCSRColumns(Transaction* transaction, RelDataReadState& re
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(readState.currentCSRNodeOffset);
     adjColumn->scan(transaction, nodeGroupIdx, startOffset, endOffset, outputVectors[0],
         0 /* offsetInVector */);
-    for (auto i = 0u; i < columnIDs.size(); i++) {
-        auto columnID = columnIDs[i];
+    for (auto i = 0u; i < readState.columnIDs.size(); i++) {
+        auto columnID = readState.columnIDs[i];
         auto outputVectorId = i + 1; // Skip output from adj column.
         if (columnID == INVALID_COLUMN_ID) {
             outputVectors[outputVectorId]->setAllNull();
             continue;
         }
-        columns[columnIDs[i]]->scan(transaction, nodeGroupIdx, startOffset, endOffset,
+        columns[readState.columnIDs[i]]->scan(transaction, nodeGroupIdx, startOffset, endOffset,
             outputVectors[outputVectorId], 0 /* offsetInVector */);
     }
 }
 
-void RelTableData::lookup(Transaction* transaction, ValueVector* inNodeIDVector,
-    const std::vector<column_id_t>& columnIDs, const std::vector<ValueVector*>& outputVectors) {
+void RelTableData::lookup(Transaction* transaction, TableReadState& readState,
+    ValueVector* inNodeIDVector, const std::vector<ValueVector*>& outputVectors) {
     // Note: The scan operator should guarantee that the first property in the output is adj column.
     adjColumn->lookup(transaction, inNodeIDVector, outputVectors[0]);
     if (!ValueVector::discardNull(*outputVectors[0])) {
         return;
     }
-    for (auto i = 0u; i < columnIDs.size(); i++) {
-        auto columnID = columnIDs[i];
+    for (auto i = 0u; i < readState.columnIDs.size(); i++) {
+        auto columnID = readState.columnIDs[i];
         auto outputVectorId = i + 1; // Skip output from adj column.
         if (columnID == INVALID_COLUMN_ID) {
             outputVectors[outputVectorId]->setAllNull();
             continue;
         }
-        columns[columnIDs[i]]->lookup(transaction, inNodeIDVector, outputVectors[outputVectorId]);
+        columns[readState.columnIDs[i]]->lookup(
+            transaction, inNodeIDVector, outputVectors[outputVectorId]);
     }
 }
 

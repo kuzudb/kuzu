@@ -8,8 +8,7 @@ void AddNodeProperty::executeDDLInternal() {
     auto schema = catalog->getWriteVersion()->getTableSchema(tableID);
     auto addedPropID = schema->getPropertyID(propertyName);
     auto addedProp = schema->getProperty(addedPropID);
-    storageManager.getNodesStore().getNodeTable(tableID)->addColumn(
-        *addedProp, getDefaultValVector(), transaction);
+    storageManager.getNodeTable(tableID)->addColumn(transaction, *addedProp, getDefaultValVector());
     storageManager.getWAL()->logAddPropertyRecord(tableID, addedProp->getPropertyID());
 }
 

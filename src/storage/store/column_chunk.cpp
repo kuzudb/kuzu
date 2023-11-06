@@ -1,6 +1,5 @@
 #include "storage/store/column_chunk.h"
 
-#include "storage/store/compression.h"
 #include "storage/store/string_column_chunk.h"
 #include "storage/store/struct_column_chunk.h"
 #include "storage/store/var_list_column_chunk.h"

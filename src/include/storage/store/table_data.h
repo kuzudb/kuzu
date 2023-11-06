@@ -6,18 +6,23 @@
 namespace kuzu {
 namespace storage {
 
-class NodesStoreStatsAndDeletedIDs;
+struct TableReadState {
+    virtual ~TableReadState() = default;
+
+    std::vector<common::column_id_t> columnIDs;
+};
 
 class TableData {
 public:
-    TableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, common::table_id_t tableID,
-        BufferManager* bufferManager, WAL* wal, bool enableCompression,
-        common::ColumnDataFormat dataFormat);
     virtual ~TableData() = default;
 
-    void read(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        const std::vector<common::column_id_t>& columnIDs,
-        const std::vector<common::ValueVector*>& outputVectors);
+    virtual void scan(transaction::Transaction* transaction, TableReadState& readState,
+        common::ValueVector* nodeIDVector,
+        const std::vector<common::ValueVector*>& outputVectors) = 0;
+    virtual void lookup(transaction::Transaction* transaction, TableReadState& readState,
+        common::ValueVector* nodeIDVector,
+        const std::vector<common::ValueVector*>& outputVectors) = 0;
+
     void insert(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         const std::vector<common::ValueVector*>& propertyVectors);
     void update(transaction::Transaction* transaction, common::column_id_t columnID,
@@ -25,7 +30,8 @@ public:
     void update(transaction::Transaction* transaction, common::column_id_t columnID,
         common::offset_t nodeOffset, common::ValueVector* propertyVector,
         common::sel_t posInPropertyVector) const;
-    virtual void append(NodeGroup* nodeGroup);
+
+    virtual void append(NodeGroup* nodeGroup) = 0;
 
     inline void dropColumn(common::column_id_t columnID) {
         columns.erase(columns.begin() + columnID);
@@ -42,20 +48,16 @@ public:
         KU_ASSERT(!columns.empty());
         return columns[0]->getNumNodeGroups(transaction);
     }
-    inline BMFileHandle* getDataFH() const { return dataFH; }
 
     virtual void checkpointInMemory();
     virtual void rollbackInMemory();
 
-    inline bool compressionEnabled() const { return enableCompression; }
-
 protected:
-    void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        const std::vector<common::column_id_t>& columnIDs,
-        const std::vector<common::ValueVector*>& outputVectors);
-    virtual void lookup(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        const std::vector<common::column_id_t>& columnIDs,
-        const std::vector<common::ValueVector*>& outputVectors);
+    TableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, common::table_id_t tableID,
+        BufferManager* bufferManager, WAL* wal, bool enableCompression,
+        common::ColumnDataFormat dataFormat)
+        : dataFH{dataFH}, metadataFH{metadataFH}, tableID{tableID}, bufferManager{bufferManager},
+          wal{wal}, enableCompression{enableCompression}, dataFormat{dataFormat} {}
 
 protected:
     common::ColumnDataFormat dataFormat;

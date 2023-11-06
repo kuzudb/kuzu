@@ -7,19 +7,17 @@
 namespace kuzu {
 namespace storage {
 
-class NodeTable;
-class TableData;
+class Column;
 
 class NodeGroup {
 public:
     NodeGroup(const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes,
         bool enableCompression, bool needFinalize, uint64_t capacity);
-    explicit NodeGroup(TableData* table);
+    explicit NodeGroup(const std::vector<std::unique_ptr<Column>>& columns, bool enableCompression);
     virtual ~NodeGroup() = default;
 
     inline uint64_t getNodeGroupIdx() const { return nodeGroupIdx; }
     inline common::offset_t getNumNodes() const { return numNodes; }
-    inline common::vector_idx_t getNumColumnChunks() { return chunks.size(); }
     inline ColumnChunk* getColumnChunk(common::column_id_t columnID) {
         KU_ASSERT(columnID < chunks.size());
         return chunks[columnID].get();

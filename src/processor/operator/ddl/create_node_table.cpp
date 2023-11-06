@@ -14,10 +14,9 @@ void CreateNodeTable::executeDDLInternal() {
     auto newTableID = catalog->addNodeTableSchema(*info);
     auto newNodeTableSchema =
         reinterpret_cast<NodeTableSchema*>(catalog->getWriteVersion()->getTableSchema(newTableID));
-    storageManager->getNodesStore()
-        .getNodesStatisticsAndDeletedIDs()
-        ->addNodeStatisticsAndDeletedIDs(newNodeTableSchema);
-    storageManager->getWAL()->logNodeTableRecord(newTableID);
+    storageManager->getNodesStatisticsAndDeletedIDs()->addNodeStatisticsAndDeletedIDs(
+        newNodeTableSchema);
+    storageManager->getWAL()->logCreateNodeTableRecord(newTableID);
 }
 
 std::string CreateNodeTable::getOutputMsg() {

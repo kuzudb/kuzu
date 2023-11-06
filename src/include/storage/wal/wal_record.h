@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/enums/table_type.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 
@@ -46,15 +47,13 @@ enum class WALRecordType : uint8_t {
     TABLE_STATISTICS_RECORD = 2,
     COMMIT_RECORD = 3,
     CATALOG_RECORD = 4,
-    CREATE_NODE_TABLE_RECORD = 5,
-    CREATE_REL_TABLE_RECORD = 6,
+    CREATE_TABLE_RECORD = 6,
     CREATE_REL_TABLE_GROUP_RECORD = 7,
     CREATE_RDF_GRAPH_RECORD = 8,
     // Records the nextBytePosToWriteTo field's last value before the write trx started. This is
     // used when rolling back to restore this value.
     OVERFLOW_FILE_NEXT_BYTE_POS_RECORD = 17,
-    COPY_NODE_RECORD = 18,
-    COPY_REL_RECORD = 19,
+    COPY_TABLE_RECORD = 19,
     DROP_TABLE_RECORD = 20,
     DROP_PROPERTY_RECORD = 21,
     ADD_PROPERTY_RECORD = 22,
@@ -94,35 +93,30 @@ struct CommitRecord {
     }
 };
 
-struct NodeTableRecord {
+struct CreateTableRecord {
     common::table_id_t tableID;
+    common::TableType tableType;
 
-    NodeTableRecord() = default;
-    explicit NodeTableRecord(common::table_id_t tableID) : tableID{tableID} {}
+    CreateTableRecord() = default;
+    explicit CreateTableRecord(common::table_id_t tableID, common::TableType tableType)
+        : tableID{tableID}, tableType{tableType} {}
 
-    inline bool operator==(const NodeTableRecord& rhs) const { return tableID == rhs.tableID; }
-};
-
-struct RelTableRecord {
-    common::table_id_t tableID;
-
-    RelTableRecord() = default;
-    explicit RelTableRecord(common::table_id_t tableID) : tableID{tableID} {}
-
-    inline bool operator==(const RelTableRecord& rhs) const { return tableID == rhs.tableID; }
+    inline bool operator==(const CreateTableRecord& rhs) const {
+        return tableID == rhs.tableID && tableType == rhs.tableType;
+    }
 };
 
 struct RdfGraphRecord {
     common::table_id_t tableID;
-    NodeTableRecord resourceTableRecord;
-    NodeTableRecord literalTableRecord;
-    RelTableRecord resourceTripleTableRecord;
-    RelTableRecord literalTripleTableRecord;
+    CreateTableRecord resourceTableRecord;
+    CreateTableRecord literalTableRecord;
+    CreateTableRecord resourceTripleTableRecord;
+    CreateTableRecord literalTripleTableRecord;
 
     RdfGraphRecord() = default;
-    RdfGraphRecord(common::table_id_t tableID, NodeTableRecord resourceTableRecord,
-        NodeTableRecord literalTableRecord, RelTableRecord resourceTripleTableRecord,
-        RelTableRecord literalTripleTableRecord)
+    RdfGraphRecord(common::table_id_t tableID, CreateTableRecord resourceTableRecord,
+        CreateTableRecord literalTableRecord, CreateTableRecord resourceTripleTableRecord,
+        CreateTableRecord literalTripleTableRecord)
         : tableID{tableID}, resourceTableRecord{resourceTableRecord},
           literalTableRecord{literalTableRecord},
           resourceTripleTableRecord{resourceTripleTableRecord}, literalTripleTableRecord{
@@ -150,28 +144,18 @@ struct DiskOverflowFileNextBytePosRecord {
     }
 };
 
-struct CopyNodeRecord {
+struct CopyTableRecord {
     common::table_id_t tableID;
-    common::page_idx_t startPageIdx;
+    common::TableType tableType;
 
-    CopyNodeRecord() = default;
+    CopyTableRecord() = default;
 
-    explicit CopyNodeRecord(common::table_id_t tableID, common::page_idx_t startPageIdx)
-        : tableID{tableID}, startPageIdx{startPageIdx} {}
+    explicit CopyTableRecord(common::table_id_t tableID, common::TableType tableType)
+        : tableID{tableID}, tableType{tableType} {}
 
-    inline bool operator==(const CopyNodeRecord& rhs) const {
-        return tableID == rhs.tableID && startPageIdx == rhs.startPageIdx;
+    inline bool operator==(const CopyTableRecord& rhs) const {
+        return tableID == rhs.tableID && tableType == rhs.tableType;
     }
-};
-
-struct CopyRelRecord {
-    common::table_id_t tableID;
-
-    CopyRelRecord() = default;
-
-    explicit CopyRelRecord(common::table_id_t tableID) : tableID{tableID} {}
-
-    inline bool operator==(const CopyRelRecord& rhs) const { return tableID == rhs.tableID; }
 };
 
 struct TableStatisticsRecord {
@@ -230,12 +214,10 @@ struct WALRecord {
     union {
         PageUpdateOrInsertRecord pageInsertOrUpdateRecord;
         CommitRecord commitRecord;
-        NodeTableRecord nodeTableRecord;
-        RelTableRecord relTableRecord;
+        CreateTableRecord createTableRecord;
         RdfGraphRecord rdfGraphRecord;
         DiskOverflowFileNextBytePosRecord diskOverflowFileNextBytePosRecord;
-        CopyNodeRecord copyNodeRecord;
-        CopyRelRecord copyRelRecord;
+        CopyTableRecord copyTableRecord;
         TableStatisticsRecord tableStatisticsRecord;
         DropTableRecord dropTableRecord;
         DropPropertyRecord dropPropertyRecord;
@@ -251,15 +233,13 @@ struct WALRecord {
     static WALRecord newCommitRecord(uint64_t transactionID);
     static WALRecord newTableStatisticsRecord(bool isNodeTable);
     static WALRecord newCatalogRecord();
-    static WALRecord newNodeTableRecord(common::table_id_t tableID);
-    static WALRecord newRelTableRecord(common::table_id_t tableID);
+    static WALRecord newCreateTableRecord(common::table_id_t tableID, common::TableType tableType);
     static WALRecord newRdfGraphRecord(common::table_id_t rdfGraphID,
         common::table_id_t resourceTableID, common::table_id_t literalTableID,
         common::table_id_t resourceTripleTableID, common::table_id_t literalTripleTableID);
     static WALRecord newOverflowFileNextBytePosRecord(
         DBFileID dbFileID, uint64_t prevNextByteToWriteTo_);
-    static WALRecord newCopyNodeRecord(common::table_id_t tableID, common::page_idx_t startPageIdx);
-    static WALRecord newCopyRelRecord(common::table_id_t tableID);
+    static WALRecord newCopyTableRecord(common::table_id_t tableID, common::TableType tableType);
     static WALRecord newDropTableRecord(common::table_id_t tableID);
     static WALRecord newDropPropertyRecord(
         common::table_id_t tableID, common::property_id_t propertyID);

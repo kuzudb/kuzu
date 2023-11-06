@@ -28,8 +28,8 @@ void PrivateGraphTest::validateQueryBestPlanJoinOrder(
         database->storageManager.get(), conn->clientContext.get())
                           .bind(*parsedQuery);
     auto plan = Planner::getBestPlan(*catalog,
-        *getStorageManager(*database)->getNodesStore().getNodesStatisticsAndDeletedIDs(),
-        *getStorageManager(*database)->getRelsStore().getRelsStatistics(), *boundQuery);
+        *getStorageManager(*database)->getNodesStatisticsAndDeletedIDs(),
+        *getStorageManager(*database)->getRelsStatistics(), *boundQuery);
     ASSERT_STREQ(LogicalPlanUtil::encodeJoin(*plan).c_str(), expectedJoinOrder.c_str());
 }
 
