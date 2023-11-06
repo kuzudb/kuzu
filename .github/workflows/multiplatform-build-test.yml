@@ -7,7 +7,7 @@ on:
 
 jobs:
   ubuntu-2004-build-test:
-    name: ubuntu-20.04 build & test
+    name: ubuntu-20.04
     runs-on: ubuntu-20.04
     env:
       CC: gcc-10
@@ -60,11 +60,11 @@ jobs:
         run: cargo build --release --features arrow
 
   macos-build-test:
-    name: macos build & test
     strategy:
       matrix:
         runner: [macos-11, macos-12]
       fail-fast: false
+    name: ${{ matrix.runner }}
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v3
@@ -118,11 +118,11 @@ jobs:
         run: cargo build --release --features arrow
 
   windows-build-test:
-    name: windows build & test
     strategy:
       matrix:
         runner: [windows-2019, windows-2022]
       fail-fast: false
+    name: ${{ matrix.runner }}
     runs-on: ${{ matrix.runner }}
     steps:   
       - name: Disable Windows Defender
@@ -204,11 +204,11 @@ jobs:
           cargo build --release --features arrow
 
   debian-ubuntu-build-test:
-    name: ubuntu & debian build & test
     strategy:
       matrix:
         image: ['ubuntu:23.04', 'ubuntu:23.10', 'debian:11', 'debian:12']
       fail-fast: false
+    name: ${{ matrix.image }}
     runs-on: ubuntu-latest
     container:
       image: ${{ matrix.image }}
@@ -280,11 +280,11 @@ jobs:
         run: cargo build --release --features arrow
 
   rhel-fedora-build-test:
-    name: rockylinux & fedora build & test
     strategy:
       matrix:
         image: ['rockylinux:8', 'rockylinux:9', 'fedora:38']
       fail-fast: false
+    name: ${{ matrix.image }}
     runs-on: ubuntu-latest
     container:
       image: ${{ matrix.image }}
@@ -371,7 +371,7 @@ jobs:
         run: cargo build --release --features arrow
 
   centos-7-build-test:
-    name: centos-7 build & test
+    name: centos-7
     runs-on: ubuntu-latest
     container:
       image: quay.io/pypa/manylinux2014_x86_64
@@ -441,7 +441,7 @@ jobs:
         run: cargo build --release --features arrow
 
   archlinux-build-test:
-    name: archlinux-latest build & test
+    name: archlinux
     runs-on: ubuntu-latest
     container:
       image: archlinux:latest
