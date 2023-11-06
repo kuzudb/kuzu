@@ -134,7 +134,21 @@ jobs:
         runner: [windows-2019, windows-2022]
       fail-fast: false
     runs-on: ${{ matrix.runner }}
-    steps:
+    steps:   
+      - name: Disable Windows Defender
+        shell: powershell
+        run: |
+          Set-MpPreference -DisableRealtimeMonitoring $true
+          Set-MpPreference -DisableBehaviorMonitoring $true
+          Set-MpPreference -DisableBlockAtFirstSeen $true
+          Set-MpPreference -DisableIOAVProtection $true
+          Set-MpPreference -DisablePrivacyMode $true
+          Set-MpPreference -SignatureDisableUpdateOnStartupWithoutEngine $true
+          Set-MpPreference -DisableArchiveScanning $true
+          Set-MpPreference -DisableIntrusionPreventionSystem $true
+          Set-MpPreference -DisableScriptScanning $true
+          Set-MpPreference -SubmitSamplesConsent NeverSend
+          
       - uses: actions/checkout@v3
 
       - uses: ilammy/msvc-dev-cmd@v1
