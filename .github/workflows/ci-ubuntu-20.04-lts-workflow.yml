@@ -57,11 +57,11 @@ jobs:
         run: |
           cargo update -p half@2.3.1 --precise '2.2.1'
           cargo update -p time --precise '0.3.23'
-          cargo test --features arrow -- --test-threads=1
+          cargo test --release --features arrow -- --test-threads=1
 
       - name: Rust example
         working-directory: examples/rust
-        run: cargo build --features arrow
+        run: cargo build --release --features arrow
 
   macos-build-test:
     name: macos build & test
@@ -114,11 +114,11 @@ jobs:
         run: |
           cargo update -p half@2.3.1 --precise '2.2.1'
           cargo update -p time --precise '0.3.23'
-          cargo test --features arrow -- --test-threads=1
+          cargo test --release --features arrow -- --test-threads=1
 
       - name: Rust example
         working-directory: examples/rust
-        run: cargo build --features arrow
+        run: cargo build --release --features arrow
 
   windows-build-test:
     name: windows build & test
@@ -127,18 +127,13 @@ jobs:
         runner: [windows-2019, windows-2022]
     runs-on: ${{ matrix.runner }}
     steps:
-      - name: Custom checkout onto C drive
-        shell: cmd
-        run: |
-          mkdir C:\kuzu
-          git clone https://github.com/kuzudb/kuzu.git C:\kuzu
-          git -C C:\kuzu switch ${{ github.ref_name }}
+      - uses: actions/checkout@v3
 
       - uses: ilammy/msvc-dev-cmd@v1
 
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.8'
+          python-version: '3.10'
 
       - name: Ensure Python dependencies
         shell: cmd
@@ -198,15 +193,14 @@ jobs:
           set CARGO_BUILD_JOBS=%NUMBER_OF_PROCESSORS%
           cargo update -p half@2.3.1 --precise '2.2.1'
           cargo update -p time --precise '0.3.23'
-          cargo test --features arrow -- --test-threads=1
+          cargo test --release --features arrow -- --test-threads=1
 
       - name: Rust example
         shell: cmd
         working-directory: C:\kuzu\examples\rust
         run: |
           set CARGO_BUILD_JOBS=%NUMBER_OF_PROCESSORS%
-          cargo build --features arrow
-        continue-on-error: true
+          cargo build --release --features arrow
 
   ubuntu-2304-debian-build-test:
     name: ubuntu-23.04 & debian build & test
@@ -282,11 +276,11 @@ jobs:
         run: |
           cargo update -p half@2.3.1 --precise '2.2.1'
           cargo update -p time --precise '0.3.23'
-          cargo test --features arrow -- --test-threads=1
+          cargo test --release --features arrow -- --test-threads=1
 
       - name: Rust example
         working-directory: examples/rust
-        run: cargo build --features arrow
+        run: cargo build --release --features arrow
 
   rockylinux-fedora-38-build-test:
     name: rockylinux & fedora-38 build & test
@@ -359,11 +353,11 @@ jobs:
         run: |
           cargo update -p half@2.3.1 --precise '2.2.1'
           cargo update -p time --precise '0.3.23'
-          cargo test --features arrow -- --test-threads=1
+          cargo test --release --features arrow -- --test-threads=1
 
       - name: Rust example
         working-directory: examples/rust
-        run: cargo build --features arrow
+        run: cargo build --release --features arrow
 
   centos-7-build-test:
     name: centos-7 build & test
@@ -429,11 +423,11 @@ jobs:
         run: |
           cargo update -p half@2.3.1 --precise '2.2.1'
           cargo update -p time --precise '0.3.23'
-          cargo test --features arrow -- --test-threads=1
+          cargo test --release --features arrow -- --test-threads=1
 
       - name: Rust example
         working-directory: examples/rust
-        run: cargo build --features arrow
+        run: cargo build --release --features arrow
 
   archlinux-latest-build-test:
     name: archlinux-latest build & test
@@ -496,8 +490,8 @@ jobs:
         run: |
           cargo update -p half@2.3.1 --precise '2.2.1'
           cargo update -p time --precise '0.3.23'
-          cargo test --features arrow -- --test-threads=1
+          cargo test --release --features arrow -- --test-threads=1
 
       - name: Rust example
         working-directory: examples/rust
-        run: cargo build --features arrow
+        run: cargo build --release --features arrow
