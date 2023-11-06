@@ -38,7 +38,6 @@ struct NumericLimits<common::timestamp_t> {
     static constexpr uint64_t digits() { return 64; }
 };
 
-
 template<>
 constexpr uint64_t NumericLimits<int8_t>::digits() {
     return 3;
