@@ -135,8 +135,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: mozilla-actions/sccache-action@v0.0.3
-
       - uses: ilammy/msvc-dev-cmd@v1
 
       - uses: actions/setup-python@v4
@@ -186,9 +184,7 @@ jobs:
         shell: cmd
         run: |
           set OPENSSL_DIR=C:\Program Files\OpenSSL-Win64
-          set KUZU_TESTING=1
-          set CFLAGS=/MDd
-          set CXXFLAGS=/MDd /std:c++20
+          set CXXFLAGS=/std:c++20
           set CARGO_BUILD_JOBS=%NUMBER_OF_PROCESSORS%
           cargo update -p half@2.3.1 --precise '2.2.1'
           cargo update -p time --precise '0.3.23'
@@ -204,7 +200,7 @@ jobs:
     name: ubuntu & debian build & test
     strategy:
       matrix:
-        image: ['ubuntu:23.04', 'debian:11', 'debian:12']
+        image: ['ubuntu:23.04', 'ubuntu:23.10', 'debian:11', 'debian:12']
     runs-on: ubuntu-latest
     container:
       image: ${{ matrix.image }}
@@ -308,6 +304,7 @@ jobs:
         if: matrix.image == 'rockylinux:8'
         run: |
           alternatives --set python /usr/bin/python3.9
+          alternatives --set python3 /usr/bin/python3.9
           echo "/opt/rh/gcc-toolset-12/root/usr/bin" >> $GITHUB_PATH
 
       - uses: actions/checkout@v3
