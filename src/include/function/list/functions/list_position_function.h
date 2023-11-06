@@ -1,9 +1,7 @@
 #pragma once
 
-#include <cassert>
-#include <cstring>
-
-#include "common/types/ku_list.h"
+#include "common/vector/value_vector.h"
+#include "function/comparison/comparison_functions.h"
 
 namespace kuzu {
 namespace function {
@@ -14,7 +12,7 @@ struct ListPosition {
     template<typename T>
     static inline void operation(common::list_entry_t& list, T& element, int64_t& result,
         common::ValueVector& listVector, common::ValueVector& elementVector,
-        common::ValueVector& resultVector) {
+        common::ValueVector& /*resultVector*/) {
         if (*common::VarListType::getChildType(&listVector.dataType) != elementVector.dataType) {
             result = 0;
             return;

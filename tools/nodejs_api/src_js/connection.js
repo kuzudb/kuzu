@@ -56,6 +56,9 @@ class Connection {
               if (this._numThreads) {
                 this._connection.setMaxNumThreadForExec(this._numThreads);
               }
+              if (this._queryTimeout) {
+                this._connection.setQueryTimeout(this._queryTimeout);
+              }
               resolve();
             }
           });
@@ -194,10 +197,31 @@ class Connection {
     if (typeof numThreads !== "number" || !numThreads || numThreads < 0) {
       throw new Error("numThreads must be a positive number.");
     }
-    if (!this.isInitialized) {
+    if (this._isInitialized) {
       this._connection.setMaxNumThreadForExec(numThreads);
+    } else {
+      this._numThreads = numThreads;
     }
-    this._numThreads = numThreads;
+  }
+
+  /**
+   * Set the timeout for queries. Queries that take longer than the timeout
+   * will be aborted.
+   * @param {Number} timeoutInMs the timeout in milliseconds.
+   */
+  setQueryTimeout(timeoutInMs) {
+    if (
+      typeof timeoutInMs !== "number" ||
+      isNaN(timeoutInMs) ||
+      timeoutInMs <= 0
+    ) {
+      throw new Error("timeoutInMs must be a positive number.");
+    }
+    if (this._isInitialized) {
+      this._connection.setQueryTimeout(timeoutInMs);
+    } else {
+      this._queryTimeout = timeoutInMs;
+    }
   }
 }
 

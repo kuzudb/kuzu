@@ -8,207 +8,202 @@
 -LOG CastUint64ToInt64OutOfRange
 -STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return to_int64(e.code);
 ---- error
-Runtime exception: Value 9223372036854775808 is not within INT64 range
+Overflow exception: Value 9223372036854775808 is not within INT64 range
 
 -LOG CastUint64ToInt32OutOfRange
 -STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return to_int32(e.code);
 ---- error
-Runtime exception: Value 9223372036854775808 is not within INT32 range
+Overflow exception: Value 9223372036854775808 is not within INT32 range
 
 -LOG CastInt64ToInt32OutOfRange
--STATEMENT return to_int32(2147483648);
+-STATEMENT return to_int32("2147483648");
 ---- error
-Runtime exception: Value 2147483648 is not within INT32 range
+Conversion exception: Cast failed. 2147483648 is not in INT32 range.
 
 -LOG CastUint32ToInt32OutOfRange
 -STATEMENT return to_int32(to_uint32(4294967295));
 ---- error
-Runtime exception: Value 4294967295 is not within INT32 range
+Overflow exception: Value 4294967295 is not within INT32 range
 
 -LOG CastUint64ToInt16OutOfRange
 -STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return to_int16(e.code);
 ---- error
-Runtime exception: Value 9223372036854775808 is not within INT16 range
+Overflow exception: Value 9223372036854775808 is not within INT16 range
 
 -LOG CastInt64ToInt16OutOfRange
--STATEMENT RETURN to_int16(32768);
+-STATEMENT RETURN to_int16("32768");
 ---- error
-Runtime exception: Value 32768 is not within INT16 range
+Conversion exception: Cast failed. 32768 is not in INT16 range.
 
 -LOG CastUint32ToInt16OutOfRange
 -STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return to_int16(e.temprature);
 ---- error
-Runtime exception: Value 32800 is not within INT16 range
+Overflow exception: Value 32800 is not within INT16 range
 
 -LOG CastInt32ToInt16OutOfRange
--STATEMENT RETURN to_int16(to_int32(-32770));
+-STATEMENT RETURN to_int16(to_int32("-32770"));
 ---- error
-Runtime exception: Value -32770 is not within INT16 range
+Overflow exception: Value -32770 is not within INT16 range
 
 -LOG CastUint16ToInt16OutOfRange
 -STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return to_int16(e.ulength);
 ---- error
-Runtime exception: Value 33768 is not within INT16 range
+Overflow exception: Value 33768 is not within INT16 range
 
 -LOG CastUint64ToInt8OutOfRange
 -STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return to_int8(e.code);
 ---- error
-Runtime exception: Value 9223372036854775808 is not within INT8 range
+Overflow exception: Value 9223372036854775808 is not within INT8 range
 
 -LOG CastInt64ToInt8OutOfRange
 -STATEMENT return to_int8(-1000);
 ---- error
-Runtime exception: Value -1000 is not within INT8 range
+Overflow exception: Value -1000 is not within INT8 range
 
 -LOG CastUint32ToInt8OutOfRange
 -STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return to_int8(e.temprature);
 ---- error
-Runtime exception: Value 32800 is not within INT8 range
+Overflow exception: Value 32800 is not within INT8 range
 
 -LOG CastInt32ToInt8OutOfRange
 -STATEMENT return to_int8(to_int32(1000));
 ---- error
-Runtime exception: Value 1000 is not within INT8 range
+Overflow exception: Value 1000 is not within INT8 range
 
 -LOG CastUint16ToInt8OutOfRange
 -STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return to_int8(e.ulength);
 ---- error
-Runtime exception: Value 33768 is not within INT8 range
+Overflow exception: Value 33768 is not within INT8 range
 
 -LOG CastInt16ToInt8OutOfRange
 -STATEMENT return to_int8(to_int16(520));
 ---- error
-Runtime exception: Value 520 is not within INT8 range
+Overflow exception: Value 520 is not within INT8 range
 
 -LOG CastUint8ToInt8OutOfRange
 -STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return to_int8(e.ulevel);
 ---- error
-Runtime exception: Value 250 is not within INT8 range
+Overflow exception: Value 250 is not within INT8 range
 
 -LOG CastInt64ToUint64OutOfRange
 -STATEMENT return to_uint64(-500);
 ---- error
-Runtime exception: Value -500 is not within UINT64 range
+Overflow exception: Value -500 is not within UINT64 range
 
 -LOG CastInt32ToUint64OutOfRange
 -STATEMENT return to_uint64(to_int32(-1024));
 ---- error
-Runtime exception: Value -1024 is not within UINT64 range
+Overflow exception: Value -1024 is not within UINT64 range
 
 -LOG CastInt16ToUint64OutOfRange
 -STATEMENT return to_uint64(to_int16(-1));
 ---- error
-Runtime exception: Value -1 is not within UINT64 range
+Overflow exception: Value -1 is not within UINT64 range
 
 -LOG CastInt8ToUint64OutOfRange
 -STATEMENT return to_uint64(to_int8(-2));
 ---- error
-Runtime exception: Value -2 is not within UINT64 range
+Overflow exception: Value -2 is not within UINT64 range
 
 -LOG CastUint64ToUint32OutOfRange
 -STATEMENT return to_uint32(to_uint64(922337203685477580));
 ---- error
-Runtime exception: Value 922337203685477580 is not within UINT32 range
+Overflow exception: Value 922337203685477580 is not within UINT32 range
 
 -LOG CastInt64ToUint32OutOfRange
 -STATEMENT return to_uint32(9223372036854775807);
 ---- error
-Runtime exception: Value 9223372036854775807 is not within UINT32 range
+Overflow exception: Value 9223372036854775807 is not within UINT32 range
 
 -LOG CastInt32ToUint32OutOfRange
--STATEMENT return to_uint32(to_int32(-10244));
+-STATEMENT return to_uint32(to_int32("-10244"));
 ---- error
-Runtime exception: Value -10244 is not within UINT32 range
+Overflow exception: Value -10244 is not within UINT32 range
 
 -LOG CastInt16ToUint32OutOfRange
 -STATEMENT return to_uint32(to_int16(-100));
 ---- error
-Runtime exception: Value -100 is not within UINT32 range
+Overflow exception: Value -100 is not within UINT32 range
 
 -LOG CastInt8ToUint32OutOfRange
 -STATEMENT return to_uint32(to_int8(-110));
 ---- error
-Runtime exception: Value -110 is not within UINT32 range
+Overflow exception: Value -110 is not within UINT32 range
 
 -LOG CastUint64ToUint16OutOfRange
 -STATEMENT return to_uint16(to_uint64(922337203685477580));
 ---- error
-Runtime exception: Value 922337203685477580 is not within UINT16 range
+Overflow exception: Value 922337203685477580 is not within UINT16 range
 
 -LOG CastInt64ToUint16OutOfRange
--STATEMENT return to_uint16(922337203685);
+-STATEMENT return to_uint16("922337203685");
 ---- error
-Runtime exception: Value 922337203685 is not within UINT16 range
+Conversion exception: Cast failed. 922337203685 is not in UINT16 range.
 
 -LOG CastUint32ToUint16OutOfRange
 -STATEMENT return to_uint16(to_uint32(65536));
 ---- error
-Runtime exception: Value 65536 is not within UINT16 range
+Overflow exception: Value 65536 is not within UINT16 range
 
 -LOG CastInt32ToUint16OutOfRange
--STATEMENT return to_uint16(to_int32(-10244));
+-STATEMENT return to_uint16(to_int32("-10244"));
 ---- error
-Runtime exception: Value -10244 is not within UINT16 range
+Overflow exception: Value -10244 is not within UINT16 range
 
 -LOG CastInt16ToUint16OutOfRange
 -STATEMENT return to_uint16(to_int16(-100));
 ---- error
-Runtime exception: Value -100 is not within UINT16 range
+Overflow exception: Value -100 is not within UINT16 range
 
 -LOG CastInt8ToUint16OutOfRange
 -STATEMENT return to_uint16(to_int8(-110));
 ---- error
-Runtime exception: Value -110 is not within UINT16 range
+Overflow exception: Value -110 is not within UINT16 range
 
 -LOG CastUint64ToUint8OutOfRange
 -STATEMENT return to_uint8(to_uint64(922337203685477580));
 ---- error
-Runtime exception: Value 922337203685477580 is not within UINT8 range
+Overflow exception: Value 922337203685477580 is not within UINT8 range
 
 -LOG CastInt64ToUint8OutOfRange
 -STATEMENT return to_uint8(257);
 ---- error
-Runtime exception: Value 257 is not within UINT8 range
+Overflow exception: Value 257 is not within UINT8 range
 
 -LOG CastUint32ToUint8OutOfRange
 -STATEMENT return to_uint8(to_uint32(300));
 ---- error
-Runtime exception: Value 300 is not within UINT8 range
+Overflow exception: Value 300 is not within UINT8 range
 
 -LOG CastInt32ToUint8OutOfRange
--STATEMENT return to_uint8(to_int32(-10244));
+-STATEMENT return to_uint8(to_int32("-10244"));
 ---- error
-Runtime exception: Value -10244 is not within UINT8 range
+Overflow exception: Value -10244 is not within UINT8 range
 
 -LOG CastUint16ToUint8OutOfRange
 -STATEMENT return to_uint8(to_uint16(312));
 ---- error
-Runtime exception: Value 312 is not within UINT8 range
+Overflow exception: Value 312 is not within UINT8 range
 
 -LOG CastInt16ToUint8OutOfRange
 -STATEMENT return to_uint8(to_int16(-100));
 ---- error
-Runtime exception: Value -100 is not within UINT8 range
+Overflow exception: Value -100 is not within UINT8 range
 
 -LOG CastInt8ToUint8OutOfRange
 -STATEMENT return to_uint8(to_int8(-3));
 ---- error
-Runtime exception: Value -3 is not within UINT8 range
+Overflow exception: Value -3 is not within UINT8 range
 
 -LOG CastDoubleToInt64OutOfRange
 -STATEMENT return to_int64(9223372038854775807.452313);
 ---- error
-Runtime exception: Value 9223372038854774784.000000 is not within INT64 range
+Overflow exception: Value 9223372038854774784.000000 is not within INT64 range
 
 -LOG CastFloatToUint8OutOfRange
 -STATEMENT return to_uint8(-728.923);
 ---- error
-Runtime exception: Value -728.923000 is not within UINT8 range
-
--LOG StringCastError
--STATEMENT RETURN TO_INT64("9223372036854775808");
----- error
-Conversion exception: Cast failed. 9223372036854775808 is not in INT64 range.
+Overflow exception: Value -728.923000 is not within UINT8 range
 -STATEMENT RETURN TO_INT32("2147483648");
 ---- error
 Conversion exception: Cast failed. 2147483648 is not in INT32 range.
@@ -242,9 +237,94 @@ Conversion exception: Cast failed. 256 is not in UINT8 range.
 -STATEMENT RETURN TO_UINT8("-1");
 ---- error
 Conversion exception: Cast failed. -1 is not in UINT8 range.
+-STATEMENT RETURN TO_INT128(170141183460469231731687303715884105728);
+---- error
+Conversion exception: Cast failed. 170141183460469231731687303715884105728 is not within INT128 range.
+-STATEMENT RETURN TO_INT128("-170141183460469231731687303715884105728");
+---- error
+Conversion exception: Cast failed. -170141183460469231731687303715884105728 is not within INT128 range.
+-STATEMENT RETURN TO_UINT8(TO_INT128(-1));
+---- error
+Overflow exception: Cast failed. Cannot cast -1 to unsigned type.
+-STATEMENT RETURN TO_UINT16(TO_INT128(-10));
+---- error
+Overflow exception: Cast failed. Cannot cast -10 to unsigned type.
+-STATEMENT RETURN TO_UINT64(TO_INT128(-15));
+---- error
+Overflow exception: Cast failed. Cannot cast -15 to unsigned type.
+-STATEMENT RETURN TO_INT128(170141183460469231731687303715884105727) + TO_INT128(10);
+---- error
+Overflow exception: INT128 is out of range: cannot add.
+-STATEMENT RETURN TO_INT128(-170141183460469231731687303715884105727) + TO_INT128(-10);
+---- error
+Overflow exception: INT128 is out of range: cannot add.
+-STATEMENT RETURN TO_INT128(170141183460469231731687303715884105727) - TO_INT128(-10);
+---- error
+Overflow exception: INT128 is out of range: cannot subtract.
+-STATEMENT RETURN TO_INT128(-170141183460469231731687303715884105727) - TO_INT128(10);
+---- error
+Overflow exception: INT128 is out of range: cannot subtract.
+-STATEMENT RETURN TO_INT128(-170141183460469231731687303715884105727) * TO_INT128(10);
+---- error
+Overflow exception: INT128 is out of range: cannot multiply.
+-STATEMENT RETURN TO_INT128(170141183460469231731687303715884105727) * TO_INT128(10);
+---- error
+Overflow exception: INT128 is out of range: cannot multiply.
 -STATEMENT RETURN TO_BOOL("fasdf");
 ---- error
 Conversion exception: Value fasdf is not a valid boolean
 -STATEMENT RETURN TO_BOOL("fal");
 ---- error
 Conversion exception: Value fal is not a valid boolean
+
+-LOG SerialOutOfRange
+-STATEMENT RETURN TO_SERIAL(TO_UINT64(9223372036854775807) * TO_UINT64(2));
+---- error
+Overflow exception: Value 18446744073709551614 is not within INT64 range
+-STATEMENT RETURN TO_SERIAL(TO_UINT64(18446744073709551615));
+---- error
+Overflow exception: Value 18446744073709551615 is not within INT64 range
+
+-LOG NonAsciiStringToBlob
+-STATEMENT RETURN BLOB('😀')
+---- error
+Conversion exception: Invalid byte encountered in STRING -> BLOB conversion. All non-ascii characters must be escaped with hex codes (e.g. \xAA)
+
+-LOG StringToBlobInvalidHexCode
+-STATEMENT RETURN BLOB('\\xgg')
+---- error
+Conversion exception: Invalid hex escape code encountered in string -> blob conversion: \xgg
+
+-LOG StringToBlobUnterminatedHexCode
+-STATEMENT RETURN BLOB('\\xa')
+---- error
+Conversion exception: Invalid hex escape code encountered in string -> blob conversion: unterminated escape code at end of string
+
+-LOG INT128CastToError
+-STATEMENT RETURN TO_SERIAL(TO_INT128(18446744073709551615));
+---- error
+Overflow exception: Value 18446744073709551615 is not within INT64 range
+-STATEMENT RETURN TO_INT64(TO_INT128(18446744073709551615));
+---- error
+Overflow exception: Value 18446744073709551615 is not within INT64 range
+-STATEMENT RETURN TO_INT32(TO_INT128(18446744073709551615));
+---- error
+Overflow exception: Value 18446744073709551615 is not within INT32 range
+-STATEMENT RETURN TO_INT16(TO_INT128(18446744073709551615));
+---- error
+Overflow exception: Value 18446744073709551615 is not within INT16 range
+-STATEMENT RETURN TO_INT8(TO_INT128(18446744073709551615));
+---- error
+Overflow exception: Value 18446744073709551615 is not within INT8 range
+-STATEMENT RETURN TO_UINT64(TO_INT128(184467440737095516151));
+---- error
+Overflow exception: Value 184467440737095516151 is not within UINT64 range
+-STATEMENT RETURN TO_UINT32(TO_INT128(18446744073709551615));
+---- error
+Overflow exception: Value 18446744073709551615 is not within UINT32 range
+-STATEMENT RETURN TO_UINT16(TO_INT128(18446744073709551615));
+---- error
+Overflow exception: Value 18446744073709551615 is not within UINT16 range
+-STATEMENT RETURN TO_UINT8(TO_INT128(256));
+---- error
+Overflow exception: Value 256 is not within UINT8 range

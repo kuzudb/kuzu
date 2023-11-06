@@ -22,6 +22,7 @@ add_library(kuzu_processor_operator
         index_scan.cpp
         limit.cpp
         multiplicity_reducer.cpp
+        partitioner.cpp
         physical_operator.cpp
         projection.cpp
         profile.cpp

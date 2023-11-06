@@ -1,8 +1,5 @@
 #pragma once
 
-#include <cstring>
-#include <vector>
-
 #include "common/data_chunk/sel_vector.h"
 
 namespace kuzu {
@@ -35,6 +32,8 @@ public:
     inline void setToUnflat() { fStateType = FStateType::UNFLAT; }
 
     inline uint64_t getNumSelectedValues() const { return selVector->selectedSize; }
+
+    void slice(offset_t offset);
 
 public:
     std::shared_ptr<SelectionVector> selVector;

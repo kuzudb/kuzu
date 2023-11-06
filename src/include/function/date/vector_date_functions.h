@@ -1,41 +1,40 @@
 #pragma once
 
-#include "function/vector_functions.h"
+#include "function/scalar_function.h"
 
 namespace kuzu {
 namespace function {
-class VectorDateFunction : public VectorFunction {};
 
-struct DatePartVectorFunction : public VectorDateFunction {
-    static vector_function_definitions getDefinitions();
+struct DatePartFunction {
+    static function_set getFunctionSet();
 };
 
-struct DateTruncVectorFunction : public VectorDateFunction {
-    static vector_function_definitions getDefinitions();
+struct DateTruncFunction {
+    static function_set getFunctionSet();
 };
 
-struct DayNameVectorFunction : public VectorDateFunction {
-    static vector_function_definitions getDefinitions();
+struct DayNameFunction {
+    static function_set getFunctionSet();
 };
 
-struct GreatestVectorFunction : public VectorDateFunction {
-    static vector_function_definitions getDefinitions();
+struct GreatestFunction {
+    static function_set getFunctionSet();
 };
 
-struct LastDayVectorFunction : public VectorDateFunction {
-    static vector_function_definitions getDefinitions();
+struct LastDayFunction {
+    static function_set getFunctionSet();
 };
 
-struct LeastVectorFunction : public VectorDateFunction {
-    static vector_function_definitions getDefinitions();
+struct LeastFunction {
+    static function_set getFunctionSet();
 };
 
-struct MakeDateVectorFunction : public VectorDateFunction {
-    static vector_function_definitions getDefinitions();
+struct MakeDateFunction {
+    static function_set getFunctionSet();
 };
 
-struct MonthNameVectorFunction : public VectorDateFunction {
-    static vector_function_definitions getDefinitions();
+struct MonthNameFunction {
+    static function_set getFunctionSet();
 };
 
 } // namespace function

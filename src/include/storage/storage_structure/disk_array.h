@@ -2,9 +2,10 @@
 
 #include "common/constants.h"
 #include "common/types/types.h"
+#include "db_file_utils.h"
 #include "storage/buffer_manager/bm_file_handle.h"
+#include "storage/storage_utils.h"
 #include "storage/wal/wal.h"
-#include "storage_structure_utils.h"
 #include "transaction/transaction.h"
 
 namespace kuzu {
@@ -41,7 +42,7 @@ struct DiskArrayHeader {
 };
 
 struct PIP {
-    PIP() : nextPipPageIdx{StorageStructureUtils::NULL_PAGE_IDX} {}
+    PIP() : nextPipPageIdx{DBFileUtils::NULL_PAGE_IDX} {}
 
     common::page_idx_t nextPipPageIdx;
     common::page_idx_t pageIdxs[NUM_PAGE_IDXS_PER_PIP];
@@ -99,9 +100,8 @@ public:
     // Used by copiers.
     BaseDiskArray(FileHandle& fileHandle, common::page_idx_t headerPageIdx, uint64_t elementSize);
     // Used when loading from file
-    BaseDiskArray(FileHandle& fileHandle, StorageStructureID storageStructureID,
-        common::page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction);
+    BaseDiskArray(FileHandle& fileHandle, DBFileID dbFileID, common::page_idx_t headerPageIdx,
+        BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction);
 
     virtual ~BaseDiskArray() = default;
 
@@ -178,7 +178,7 @@ public:
 
 protected:
     FileHandle& fileHandle;
-    StorageStructureID storageStructureID;
+    DBFileID dbFileID;
     common::page_idx_t headerPageIdx;
     bool hasTransactionalUpdates;
     BufferManager* bufferManager;
@@ -193,9 +193,8 @@ class BaseInMemDiskArray : public BaseDiskArray<U> {
 protected:
     BaseInMemDiskArray(
         FileHandle& fileHandle, common::page_idx_t headerPageIdx, uint64_t elementSize);
-    BaseInMemDiskArray(FileHandle& fileHandle, StorageStructureID storageStructureID,
-        common::page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction);
+    BaseInMemDiskArray(FileHandle& fileHandle, DBFileID dbFileID, common::page_idx_t headerPageIdx,
+        BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction);
 
 public:
     // [] operator can be used to update elements, e.g., diskArray[5] = 4, when building an
@@ -230,15 +229,14 @@ protected:
 template<typename T>
 class InMemDiskArray : public BaseInMemDiskArray<T> {
 public:
-    InMemDiskArray(FileHandle& fileHandle, StorageStructureID storageStructureID,
-        common::page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction);
+    InMemDiskArray(FileHandle& fileHandle, DBFileID dbFileID, common::page_idx_t headerPageIdx,
+        BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction);
 
     static inline common::page_idx_t addDAHPageToFile(
         BMFileHandle& fileHandle, BufferManager* bufferManager, WAL* wal) {
         DiskArrayHeader daHeader(sizeof(T));
-        return StorageStructureUtils::insertNewPage(fileHandle,
-            StorageStructureID{StorageStructureType::METADATA}, *bufferManager, *wal,
+        return DBFileUtils::insertNewPage(fileHandle, DBFileID{DBFileType::METADATA},
+            *bufferManager, *wal,
             [&](uint8_t* frame) -> void { memcpy(frame, &daHeader, sizeof(DiskArrayHeader)); });
     }
 

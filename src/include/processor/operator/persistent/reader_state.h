@@ -1,6 +1,8 @@
 #pragma once
 
-#include "common/data_chunk/data_chunk.h"
+#include <atomic>
+
+#include "common/enums/table_type.h"
 #include "processor/operator/persistent/reader_functions.h"
 
 namespace kuzu {
@@ -13,21 +15,6 @@ struct ReaderMorsel {
     ReaderMorsel() : fileIdx{common::INVALID_VECTOR_IDX}, blockIdx{common::INVALID_BLOCK_IDX} {}
     ReaderMorsel(common::vector_idx_t fileIdx, common::block_idx_t blockIdx)
         : fileIdx{fileIdx}, blockIdx{blockIdx} {}
-};
-
-class LeftArrowArrays {
-public:
-    explicit LeftArrowArrays() : leftNumRows{0} {}
-
-    inline uint64_t getLeftNumRows() const { return leftNumRows; }
-
-    void appendFromDataChunk(common::DataChunk* dataChunk);
-
-    void appendToDataChunk(common::DataChunk* dataChunk, uint64_t numRowsToAppend);
-
-private:
-    common::row_idx_t leftNumRows;
-    std::vector<arrow::ArrayVector> leftArrays;
 };
 
 class ReaderSharedState {
@@ -72,7 +59,6 @@ public:
 private:
     std::mutex mtx;
     std::unique_ptr<common::ReaderConfig> readerConfig;
-    LeftArrowArrays leftArrowArrays;
 };
 
 } // namespace processor

@@ -3,11 +3,17 @@
 #include <map>
 #include <set>
 
-#include "catalog/node_table_schema.h"
+#include "common/vector/value_vector.h"
+#include "storage/buffer_manager/buffer_manager.h"
+#include "storage/stats/metadata_dah_info.h"
 #include "storage/stats/table_statistics.h"
-#include "storage/store/rels_store.h"
+#include "storage/wal/wal.h"
 
 namespace kuzu {
+namespace common {
+class Serializer;
+class Deserializer;
+} // namespace common
 namespace storage {
 
 class NodeTableStatsAndDeletedIDs : public TableStatistics {
@@ -24,11 +30,6 @@ public:
 
     inline common::offset_t getMaxNodeOffset() {
         return getMaxNodeOffsetFromNumTuples(getNumTuples());
-    }
-
-    inline void setAdjListsAndColumns(
-        std::pair<std::vector<AdjLists*>, std::vector<Column*>> adjListsAndColumns_) {
-        adjListsAndColumns = std::move(adjListsAndColumns_);
     }
 
     common::offset_t addNode();
@@ -64,26 +65,21 @@ public:
         return metadataDAHInfos[columnID].get();
     }
 
-    void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) final;
+    void serializeInternal(common::Serializer& serializer) final;
     static std::unique_ptr<NodeTableStatsAndDeletedIDs> deserialize(common::table_id_t tableID,
-        common::offset_t maxNodeOffset, common::FileInfo* fileInfo, uint64_t& offset);
+        common::offset_t maxNodeOffset, common::Deserializer& deserializer);
 
     std::unique_ptr<TableStatistics> copy() final {
         return std::make_unique<NodeTableStatsAndDeletedIDs>(*this);
     }
 
 private:
-    void errorIfNodeHasEdges(common::offset_t nodeOffset);
-
     // We pass the morselIdx to not do the division nodeOffset/DEFAULT_VECTOR_CAPACITY again
     bool isDeleted(common::offset_t nodeOffset, uint64_t morselIdx);
 
 private:
     common::table_id_t tableID;
     std::vector<std::unique_ptr<MetadataDAHInfo>> metadataDAHInfos;
-    // Note: This is initialized explicitly through a call to setAdjListsAndColumns after
-    // construction.
-    std::pair<std::vector<AdjLists*>, std::vector<Column*>> adjListsAndColumns;
     std::vector<bool> hasDeletedNodesPerMorsel;
     std::map<uint64_t, std::set<common::offset_t>> deletedNodeOffsetsPerMorsel;
 };

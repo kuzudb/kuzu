@@ -1,13 +1,12 @@
 #pragma once
 
 #include <cstdint>
-#include <string>
-#include <unordered_map>
+#include <string_view>
 
 namespace kuzu {
 namespace common {
 
-constexpr char KUZU_VERSION[] = "v0.0.10";
+constexpr char KUZU_VERSION[] = "v0.0.12.1";
 
 constexpr uint64_t DEFAULT_VECTOR_CAPACITY_LOG_2 = 11;
 constexpr uint64_t DEFAULT_VECTOR_CAPACITY = (uint64_t)1 << DEFAULT_VECTOR_CAPACITY_LOG_2;
@@ -37,13 +36,6 @@ struct InternalKeyword {
     static constexpr char PLACE_HOLDER[] = "_PLACE_HOLDER";
     static constexpr char MAP_KEY[] = "KEY";
     static constexpr char MAP_VALUE[] = "VALUE";
-};
-
-struct RDFKeyword {
-    static constexpr char IRI[] = "IRI";
-    static constexpr char PREDICT_ID[] = "PREDICT_ID";
-    static constexpr char NODE_TABLE_SUFFIX[] = "_RESOURCE";
-    static constexpr char REL_TABLE_SUFFIX[] = "_TRIPLES";
 };
 
 enum PageSizeClass : uint8_t {
@@ -81,8 +73,6 @@ struct BufferPoolConstants {
 
 struct StorageConstants {
     static constexpr char OVERFLOW_FILE_SUFFIX[] = ".ovf";
-    static constexpr char COLUMN_FILE_SUFFIX[] = ".col";
-    static constexpr char LISTS_FILE_SUFFIX[] = ".lists";
     static constexpr char WAL_FILE_SUFFIX[] = ".wal";
     static constexpr char INDEX_FILE_SUFFIX[] = ".hindex";
     static constexpr char NODES_STATISTICS_AND_DELETED_IDS_FILE_NAME[] =
@@ -95,6 +85,7 @@ struct StorageConstants {
     static constexpr char CATALOG_FILE_NAME_FOR_WAL[] = "catalog.kz.wal";
     static constexpr char DATA_FILE_NAME[] = "data.kz";
     static constexpr char METADATA_FILE_NAME[] = "metadata.kz";
+    static constexpr char LOCK_FILE_NAME[] = ".lock";
 
     // The number of pages that we add at one time when we need to grow a file.
     static constexpr uint64_t PAGE_GROUP_SIZE_LOG2 = 10;
@@ -105,18 +96,6 @@ struct StorageConstants {
     static constexpr uint64_t NODE_GROUP_SIZE = (uint64_t)1 << NODE_GROUP_SIZE_LOG2;
 };
 
-struct ListsMetadataConstants {
-    // LIST_CHUNK_SIZE should strictly be a power of 2.
-    constexpr static uint16_t LISTS_CHUNK_SIZE_LOG_2 = 9;
-    constexpr static uint16_t LISTS_CHUNK_SIZE = 1 << LISTS_CHUNK_SIZE_LOG_2;
-    // All pageLists (defined later) are broken in pieces (called a pageListGroups) of size
-    // PAGE_LIST_GROUP_SIZE + 1 each and chained together. In each piece, there are
-    // PAGE_LIST_GROUP_SIZE elements of that list and the offset to the next pageListGroups in the
-    // blob that contains all pageListGroups of all lists.
-    static constexpr uint32_t PAGE_LIST_GROUP_SIZE = 20;
-    static constexpr uint32_t PAGE_LIST_GROUP_WITH_NEXT_PTR_SIZE = PAGE_LIST_GROUP_SIZE + 1;
-};
-
 // Hash Index Configurations
 struct HashIndexConstants {
     static constexpr uint8_t INT64_SLOT_CAPACITY = 15;
@@ -125,9 +104,6 @@ struct HashIndexConstants {
 };
 
 struct CopyConstants {
-    // Size (in bytes) of the chunks to be read in Node/Rel Copier
-    static constexpr uint64_t CSV_READING_BLOCK_SIZE = 1 << 23;
-
     // Initial size of buffer for CSV Reader.
     static constexpr uint64_t INITIAL_BUFFER_SIZE = 16384;
     // This means that we will usually read the entirety of the contents of the file we need for a
@@ -198,6 +174,17 @@ struct ParquetConstants {
     // The size of encoding the string length.
     static constexpr uint64_t STRING_LENGTH_SIZE = sizeof(uint32_t);
     static constexpr uint64_t MAX_STRING_STATISTICS_SIZE = 10000;
+    static constexpr uint64_t PARQUET_INTERVAL_SIZE = 12;
+};
+
+struct CopyToCSVConstants {
+    static constexpr const char* DEFAULT_CSV_DELIMITER = ",";
+    static constexpr const char* DEFAULT_CSV_NEWLINE = "\n";
+    static constexpr const char* DEFAULT_NULL_STR = "";
+    static constexpr const bool DEFAULT_FORCE_QUOTE = false;
+    static constexpr const char* DEFAULT_QUOTE = "\"";
+    static constexpr const char* DEFAULT_ESCAPE = "\\";
+    static constexpr const uint64_t DEFAULT_CSV_FLUSH_SIZE = 4096 * 8;
 };
 
 } // namespace common

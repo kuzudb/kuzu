@@ -1,7 +1,5 @@
 #pragma once
 
-#include "binder/expression/node_expression.h"
-#include "logical_operator_visitor.h"
 #include "planner/operator/logical_plan.h"
 
 namespace kuzu {

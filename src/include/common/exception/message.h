@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 
 namespace kuzu {
@@ -14,7 +15,7 @@ struct ExceptionMessage {
     static inline std::string notAllowCopyOnNonEmptyTableException() {
         return "COPY commands can only be executed once on a table.";
     }
-    static std::string overLargeStringValueException(const std::string& length);
+    static std::string overLargeStringValueException(uint64_t length);
     static std::string violateUniquenessOfRelAdjColumn(const std::string& tableName,
         const std::string& offset, const std::string& multiplicity, const std::string& direction);
 

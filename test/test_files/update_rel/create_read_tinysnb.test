@@ -1,10 +1,9 @@
 -GROUP TinySnbCreateReadRelTest
 -DATASET CSV tinysnb
-
+-SKIP
 --
 
 -CASE CreateRelRead1
--SKIP
 -STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 2 CREATE (a)-[e:knows {date:date('2023-03-03')}]->(b) RETURN id(e), e.date;
 ---- 1
 0:14|2023-03-03
@@ -31,3 +30,22 @@
 (0:0)-{_LABEL: knows, _ID: 3:14, date: 2023-04-04}->(0:1)
 (0:0)-{_LABEL: knows, _ID: 3:15, date: 2023-04-04}->(0:2)
 (0:0)-{_LABEL: knows, _ID: 3:16, date: 2023-04-04}->(0:3)
+
+-CASE OptionalCreate
+-STATEMENT OPTIONAL MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 100 CREATE (a)-[e:knows {date:date("2023-01-01")}]->(b) RETURN e.date;
+---- 1
+
+-STATEMENT OPTIONAL MATCH (a:person), (b:person) WHERE a.ID = 100 AND b.ID = 0 CREATE (a)-[e:knows {date:date("2023-01-01")}]->(b) RETURN e.date;
+---- 1
+
+-STATEMENT OPTIONAL MATCH (a:person), (b:person) WHERE a.ID = 100 AND b.ID = 100 CREATE (a)-[e:knows {date:date("2023-01-01")}]->(b) RETURN e.date;
+---- 1
+
+-STATEMENT MATCH (a:person)-[e:knows]-(b:person) WHERE a.ID = 0 RETURN e.date;
+---- 6
+2021-06-30
+2021-06-30
+2021-06-30
+2021-06-30
+2021-06-30
+2021-06-30

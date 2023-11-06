@@ -8,7 +8,9 @@
 #include "common/exception/internal.h"
 #include "common/exception/not_implemented.h"
 #include "common/exception/runtime.h"
-#include "common/ser_deser.h"
+#include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
+#include "common/string_format.h"
 #include "common/string_utils.h"
 
 using namespace kuzu::common;
@@ -29,24 +31,16 @@ std::vector<Property*> TableSchema::getProperties() const {
     return propertiesToReturn;
 }
 
-std::string TableSchema::getPropertyName(property_id_t propertyID) const {
-    for (auto& property : properties) {
-        if (property->getPropertyID() == propertyID) {
-            return property->getName();
-        }
-    }
-    throw RuntimeException(StringUtils::string_format(
-        "Table: {} doesn't have a property with propertyID={}.", tableName, propertyID));
-}
-
 property_id_t TableSchema::getPropertyID(const std::string& propertyName) const {
     for (auto& property : properties) {
         if (property->getName() == propertyName) {
             return property->getPropertyID();
         }
     }
-    throw RuntimeException(StringUtils::string_format(
+    // LCOV_EXCL_START
+    throw RuntimeException(stringFormat(
         "Table: {} doesn't have a property with propertyName={}.", tableName, propertyName));
+    // LCOV_EXCL_END
 }
 
 // TODO(Guodong): Instead of looping over properties, cache a map between propertyID and columnID.
@@ -65,8 +59,10 @@ Property* TableSchema::getProperty(property_id_t propertyID) const {
             return property.get();
         }
     }
-    throw RuntimeException(StringUtils::string_format(
+    // LCOV_EXCL_START
+    throw RuntimeException(stringFormat(
         "Table: {} doesn't have a property with propertyID={}.", tableName, propertyID));
+    // LCOV_EXCL_END
 }
 
 void TableSchema::renameProperty(property_id_t propertyID, const std::string& newName) {
@@ -76,49 +72,52 @@ void TableSchema::renameProperty(property_id_t propertyID, const std::string& ne
             return;
         }
     }
-    throw InternalException(
-        StringUtils::string_format("Property with id={} not found.", propertyID));
+    // LCOV_EXCL_START
+    throw InternalException(stringFormat("Property with id={} not found.", propertyID));
+    // LCOV_EXCL_END
 }
 
-void TableSchema::serialize(FileInfo* fileInfo, uint64_t& offset) {
-    SerDeser::serializeValue(tableName, fileInfo, offset);
-    SerDeser::serializeValue(tableID, fileInfo, offset);
-    SerDeser::serializeValue(tableType, fileInfo, offset);
-    SerDeser::serializeVectorOfPtrs(properties, fileInfo, offset);
-    SerDeser::serializeValue(comment, fileInfo, offset);
-    SerDeser::serializeValue(nextPropertyID, fileInfo, offset);
-    serializeInternal(fileInfo, offset);
+void TableSchema::serialize(Serializer& serializer) {
+    serializer.serializeValue(tableName);
+    serializer.serializeValue(tableID);
+    serializer.serializeValue(tableType);
+    serializer.serializeVectorOfPtrs(properties);
+    serializer.serializeValue(comment);
+    serializer.serializeValue(nextPropertyID);
+    serializeInternal(serializer);
 }
 
-std::unique_ptr<TableSchema> TableSchema::deserialize(FileInfo* fileInfo, uint64_t& offset) {
+std::unique_ptr<TableSchema> TableSchema::deserialize(Deserializer& deserializer) {
     std::string tableName;
     table_id_t tableID;
     TableType tableType;
     std::vector<std::unique_ptr<Property>> properties;
     std::string comment;
     property_id_t nextPropertyID;
-    SerDeser::deserializeValue(tableName, fileInfo, offset);
-    SerDeser::deserializeValue(tableID, fileInfo, offset);
-    SerDeser::deserializeValue(tableType, fileInfo, offset);
-    SerDeser::deserializeVectorOfPtrs(properties, fileInfo, offset);
-    SerDeser::deserializeValue(comment, fileInfo, offset);
-    SerDeser::deserializeValue(nextPropertyID, fileInfo, offset);
+    deserializer.deserializeValue(tableName);
+    deserializer.deserializeValue(tableID);
+    deserializer.deserializeValue(tableType);
+    deserializer.deserializeVectorOfPtrs(properties);
+    deserializer.deserializeValue(comment);
+    deserializer.deserializeValue(nextPropertyID);
     std::unique_ptr<TableSchema> result;
     switch (tableType) {
     case TableType::NODE: {
-        result = NodeTableSchema::deserialize(fileInfo, offset);
+        result = NodeTableSchema::deserialize(deserializer);
     } break;
     case TableType::REL: {
-        result = RelTableSchema::deserialize(fileInfo, offset);
+        result = RelTableSchema::deserialize(deserializer);
     } break;
     case TableType::REL_GROUP: {
-        result = RelTableGroupSchema::deserialize(fileInfo, offset);
+        result = RelTableGroupSchema::deserialize(deserializer);
     } break;
     case TableType::RDF: {
-        result = RdfGraphSchema::deserialize(fileInfo, offset);
+        result = RdfGraphSchema::deserialize(deserializer);
     } break;
     default: {
+        // LCOV_EXCL_START
         throw NotImplementedException{"TableSchema::deserialize"};
+        // LCOV_EXCL_END
     }
     }
     result->tableName = tableName;

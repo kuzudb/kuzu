@@ -30,6 +30,7 @@ class Catalog;
 namespace common {
 enum class StatementType : uint8_t;
 class Value;
+struct FileInfo;
 } // namespace common
 
 namespace storage {

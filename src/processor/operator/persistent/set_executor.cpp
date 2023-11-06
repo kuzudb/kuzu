@@ -24,17 +24,29 @@ std::vector<std::unique_ptr<NodeSetExecutor>> NodeSetExecutor::copy(
     return executorsCopy;
 }
 
-static void writeToPropertyVector(ValueVector* propertyVector, uint32_t propertyVectorPos,
-    ValueVector* rhsVector, uint32_t rhsVectorPos) {
-    if (rhsVector->isNull(rhsVectorPos)) {
-        propertyVector->setNull(propertyVectorPos, true);
-    } else {
-        propertyVector->setNull(propertyVectorPos, false);
-        propertyVector->copyFromVectorData(propertyVectorPos, rhsVector, rhsVectorPos);
+static void writeToPropertyVector(ValueVector* internalIDVector, ValueVector* propertyVector,
+    uint32_t propertyVectorPos, ValueVector* rhsVector, uint32_t rhsVectorPos) {
+    if (internalIDVector->isNull(propertyVectorPos)) { // No update happened.
+        return;
     }
+    if (rhsVector->isNull(rhsVectorPos)) { // Update to NULL
+        propertyVector->setNull(propertyVectorPos, true);
+        return;
+    }
+    propertyVector->setNull(propertyVectorPos, false);
+    propertyVector->copyFromVectorData(propertyVectorPos, rhsVector, rhsVectorPos);
 }
 
 void SingleLabelNodeSetExecutor::set(ExecutionContext* context) {
+    if (setInfo.columnID == common::INVALID_COLUMN_ID) {
+        if (lhsVector != nullptr) {
+            for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
+                auto lhsPos = nodeIDVector->state->selVector->selectedPositions[i];
+                lhsVector->setNull(lhsPos, true);
+            }
+        }
+        return;
+    }
     evaluator->evaluate();
     setInfo.table->update(
         context->clientContext->getActiveTransaction(), setInfo.columnID, nodeIDVector, rhsVector);
@@ -45,7 +57,7 @@ void SingleLabelNodeSetExecutor::set(ExecutionContext* context) {
             rhsPos = rhsVector->state->selVector->selectedPositions[0];
         }
         if (lhsVector != nullptr) {
-            writeToPropertyVector(lhsVector, lhsPos, rhsVector, rhsPos);
+            writeToPropertyVector(nodeIDVector, lhsVector, lhsPos, rhsVector, rhsPos);
         }
     }
 }
@@ -69,7 +81,7 @@ void MultiLabelNodeSetExecutor::set(ExecutionContext* context) {
         setInfo.table->update(context->clientContext->getActiveTransaction(), setInfo.columnID,
             nodeID.offset, rhsVector, rhsPos);
         if (lhsVector != nullptr) {
-            writeToPropertyVector(lhsVector, lhsPos, rhsVector, rhsPos);
+            writeToPropertyVector(nodeIDVector, lhsVector, lhsPos, rhsVector, rhsPos);
         }
     }
 }
@@ -96,19 +108,28 @@ std::vector<std::unique_ptr<RelSetExecutor>> RelSetExecutor::copy(
 }
 
 // Assume both input vectors are flat. Should be removed eventually.
-static void writeToPropertyVector(ValueVector* propertyVector, ValueVector* rhsVector) {
+static void writeToPropertyVector(
+    ValueVector* relIDVector, ValueVector* propertyVector, ValueVector* rhsVector) {
     assert(propertyVector->state->selVector->selectedSize == 1);
     auto propertyVectorPos = propertyVector->state->selVector->selectedPositions[0];
     assert(rhsVector->state->selVector->selectedSize == 1);
     auto rhsVectorPos = rhsVector->state->selVector->selectedPositions[0];
-    writeToPropertyVector(propertyVector, propertyVectorPos, rhsVector, rhsVectorPos);
+    writeToPropertyVector(relIDVector, propertyVector, propertyVectorPos, rhsVector, rhsVectorPos);
 }
 
 void SingleLabelRelSetExecutor::set() {
+    if (propertyID == INVALID_PROPERTY_ID) {
+        if (lhsVector != nullptr) {
+            auto pos = relIDVector->state->selVector->selectedPositions[0];
+            lhsVector->setNull(pos, true);
+        }
+        return;
+    }
     evaluator->evaluate();
-    table->updateRel(srcNodeIDVector, dstNodeIDVector, relIDVector, rhsVector, propertyID);
+    // TODO(Guodong): Fix set.
+    //    table->updateRel(srcNodeIDVector, dstNodeIDVector, relIDVector, rhsVector, propertyID);
     if (lhsVector != nullptr) {
-        writeToPropertyVector(lhsVector, rhsVector);
+        writeToPropertyVector(relIDVector, lhsVector, rhsVector);
     }
 }
 
@@ -124,9 +145,10 @@ void MultiLabelRelSetExecutor::set() {
         return;
     }
     auto [table, propertyID] = tableIDToTableAndPropertyID.at(relID.tableID);
-    table->updateRel(srcNodeIDVector, dstNodeIDVector, relIDVector, rhsVector, propertyID);
+    // TODO(Guodong): Fix set.
+    //    table->updateRel(srcNodeIDVector, dstNodeIDVector, relIDVector, rhsVector, propertyID);
     if (lhsVector != nullptr) {
-        writeToPropertyVector(lhsVector, rhsVector);
+        writeToPropertyVector(relIDVector, lhsVector, rhsVector);
     }
 }
 

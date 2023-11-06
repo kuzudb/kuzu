@@ -1,7 +1,6 @@
 #pragma once
 
 #include "catalog/catalog.h"
-#include "common/string_utils.h"
 #include "function/scalar_macro_function.h"
 #include "processor/operator/physical_operator.h"
 
@@ -34,7 +33,8 @@ public:
     inline bool isSource() const override { return true; }
     inline bool canParallel() const final { return false; }
 
-    inline void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override {
+    inline void initLocalStateInternal(
+        ResultSet* resultSet, ExecutionContext* /*context*/) override {
         outputVector = resultSet->getValueVector(createMacroInfo->outputPos).get();
     }
 

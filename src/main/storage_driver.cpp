@@ -1,5 +1,7 @@
 #include "main/storage_driver.h"
 
+#include <thread>
+
 #include "storage/storage_manager.h"
 
 using namespace kuzu::common;
@@ -51,13 +53,13 @@ uint64_t StorageDriver::getNumNodes(const std::string& nodeName) {
 uint64_t StorageDriver::getNumRels(const std::string& relName) {
     auto catalogContent = catalog->getReadOnlyVersion();
     auto relTableID = catalogContent->getTableID(relName);
-    auto relStatistics =
-        storageManager->getRelsStore().getRelsStatistics()->getRelStatistics(relTableID);
+    auto relStatistics = storageManager->getRelsStore().getRelsStatistics()->getRelStatistics(
+        relTableID, Transaction::getDummyReadOnlyTrx().get());
     return relStatistics->getNumTuples();
 }
 
-void StorageDriver::scanColumn(Transaction* transaction, storage::NodeColumn* column,
-    offset_t* offsets, size_t size, uint8_t* result) {
+void StorageDriver::scanColumn(Transaction* transaction, storage::Column* column, offset_t* offsets,
+    size_t size, uint8_t* result) {
     column->batchLookup(transaction, offsets, size, result);
 }
 

@@ -1,5 +1,7 @@
+#include "main/query_result.h"
+
+#include "c_api/helpers.h"
 #include "c_api/kuzu.h"
-#include "main/kuzu.h"
 
 using namespace kuzu::main;
 using namespace kuzu::common;
@@ -24,9 +26,7 @@ char* kuzu_query_result_get_error_message(kuzu_query_result* query_result) {
     if (error_message.empty()) {
         return nullptr;
     }
-    char* error_message_c = (char*)malloc(error_message.size() + 1);
-    strcpy(error_message_c, error_message.c_str());
-    return error_message_c;
+    return convertToOwnedCString(error_message);
 }
 
 uint64_t kuzu_query_result_get_num_columns(kuzu_query_result* query_result) {
@@ -38,10 +38,7 @@ char* kuzu_query_result_get_column_name(kuzu_query_result* query_result, uint64_
     if (index >= column_names.size()) {
         return nullptr;
     }
-    auto column_name = column_names[index];
-    char* column_name_c = (char*)malloc(column_name.size() + 1);
-    strcpy(column_name_c, column_name.c_str());
-    return column_name_c;
+    return convertToOwnedCString(column_names[index]);
 }
 
 kuzu_logical_type* kuzu_query_result_get_column_data_type(
@@ -80,10 +77,8 @@ kuzu_flat_tuple* kuzu_query_result_get_next(kuzu_query_result* query_result) {
 }
 
 char* kuzu_query_result_to_string(kuzu_query_result* query_result) {
-    auto string = static_cast<QueryResult*>(query_result->_query_result)->toString();
-    char* string_c = (char*)malloc(string.size() + 1);
-    strcpy(string_c, string.c_str());
-    return string_c;
+    return convertToOwnedCString(
+        static_cast<QueryResult*>(query_result->_query_result)->toString());
 }
 
 void kuzu_query_result_write_to_csv(kuzu_query_result* query_result, const char* file_path,

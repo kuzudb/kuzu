@@ -6,9 +6,12 @@
 
 namespace kuzu {
 namespace function {
+
 struct TableFuncBindInput {
-    explicit TableFuncBindInput(std::vector<common::Value> inputs) : inputs{std::move(inputs)} {}
-    std::vector<common::Value> inputs;
+    explicit TableFuncBindInput(std::vector<std::unique_ptr<common::Value>> inputs)
+        : inputs{std::move(inputs)} {}
+    std::vector<std::unique_ptr<common::Value>> inputs;
 };
+
 } // namespace function
 } // namespace kuzu

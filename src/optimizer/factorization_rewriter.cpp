@@ -200,10 +200,8 @@ void FactorizationRewriter::visitMerge(planner::LogicalOperator* op) {
 
 void FactorizationRewriter::visitCopyTo(planner::LogicalOperator* op) {
     auto copyTo = (LogicalCopyTo*)op;
-    if (copyTo->getConfig()->fileType == common::FileType::CSV) {
-        auto groupsPosToFlatten = copyTo->getGroupsPosToFlatten();
-        copyTo->setChild(0, appendFlattens(copyTo->getChild(0), groupsPosToFlatten));
-    }
+    auto groupsPosToFlatten = copyTo->getGroupsPosToFlatten();
+    copyTo->setChild(0, appendFlattens(copyTo->getChild(0), groupsPosToFlatten));
 }
 
 std::shared_ptr<planner::LogicalOperator> FactorizationRewriter::appendFlattens(

@@ -5,8 +5,12 @@
 #include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
 #include "common/exception/catalog.h"
+#include "common/exception/not_implemented.h"
 #include "common/exception/runtime.h"
-#include "common/ser_deser.h"
+#include "common/serializer/buffered_file.h"
+#include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
+#include "common/string_format.h"
 #include "common/string_utils.h"
 #include "storage/storage_utils.h"
 
@@ -22,7 +26,7 @@ CatalogContent::CatalogContent() : nextTableID{0} {
 }
 
 CatalogContent::CatalogContent(const std::string& directory) {
-    readFromFile(directory, DBFileType::ORIGINAL);
+    readFromFile(directory, FileVersionType::ORIGINAL);
     registerBuiltInFunctions();
 }
 
@@ -92,19 +96,30 @@ table_id_t CatalogContent::addRelTableGroupSchema(const binder::BoundCreateTable
 table_id_t CatalogContent::addRdfGraphSchema(const BoundCreateTableInfo& info) {
     table_id_t rdfGraphID = assignNextTableID();
     auto extraInfo = reinterpret_cast<BoundExtraCreateRdfGraphInfo*>(info.extraInfo.get());
-    auto nodeInfo = extraInfo->nodeInfo.get();
-    auto relInfo = extraInfo->relInfo.get();
-    auto relExtraInfo = (BoundExtraCreateRelTableInfo*)relInfo->extraInfo.get();
-    // Node table schema
-    auto nodeTableID = addNodeTableSchema(*nodeInfo);
-    // Rel table schema
-    relExtraInfo->srcTableID = nodeTableID;
-    relExtraInfo->dstTableID = nodeTableID;
-    auto relTableID = addRelTableSchema(*relInfo);
+    auto resourceInfo = extraInfo->resourceInfo.get();
+    auto literalInfo = extraInfo->literalInfo.get();
+    auto resourceTripleInfo = extraInfo->resourceTripleInfo.get();
+    auto literalTripleInfo = extraInfo->literalTripleInfo.get();
+    auto resourceTripleExtraInfo =
+        reinterpret_cast<BoundExtraCreateRelTableInfo*>(resourceTripleInfo->extraInfo.get());
+    auto literalTripleExtraInfo =
+        reinterpret_cast<BoundExtraCreateRelTableInfo*>(literalTripleInfo->extraInfo.get());
+    // Resource table
+    auto resourceTableID = addNodeTableSchema(*resourceInfo);
+    // Literal table
+    auto literalTableID = addNodeTableSchema(*literalInfo);
+    // Resource triple table
+    resourceTripleExtraInfo->srcTableID = resourceTableID;
+    resourceTripleExtraInfo->dstTableID = resourceTableID;
+    auto resourceTripleTableID = addRelTableSchema(*resourceTripleInfo);
+    // Literal triple table
+    literalTripleExtraInfo->srcTableID = resourceTableID;
+    literalTripleExtraInfo->dstTableID = literalTableID;
+    auto literalTripleTableID = addRelTableSchema(*literalTripleInfo);
     // Rdf table schema
     auto rdfGraphName = info.tableName;
-    auto rdfGraphSchema =
-        std::make_unique<RdfGraphSchema>(rdfGraphName, rdfGraphID, nodeTableID, relTableID);
+    auto rdfGraphSchema = std::make_unique<RdfGraphSchema>(rdfGraphName, rdfGraphID,
+        resourceTableID, literalTableID, resourceTripleTableID, literalTripleTableID);
     tableNameToIDMap.emplace(rdfGraphName, rdfGraphID);
     tableSchemas.emplace(rdfGraphID, std::move(rdfGraphSchema));
     return rdfGraphID;
@@ -151,60 +166,68 @@ void CatalogContent::renameTable(table_id_t tableID, const std::string& newName)
     tableSchema->updateTableName(newName);
 }
 
-void CatalogContent::saveToFile(const std::string& directory, DBFileType dbFileType) {
+void CatalogContent::saveToFile(const std::string& directory, FileVersionType dbFileType) {
     auto catalogPath = StorageUtils::getCatalogFilePath(directory, dbFileType);
-    auto fileInfo = FileUtils::openFile(catalogPath, O_WRONLY | O_CREAT);
-    uint64_t offset = 0;
-    writeMagicBytes(fileInfo.get(), offset);
-    SerDeser::serializeValue(StorageVersionInfo::getStorageVersion(), fileInfo.get(), offset);
-    SerDeser::serializeValue(tableSchemas.size(), fileInfo.get(), offset);
+    Serializer serializer(
+        std::make_unique<BufferedFileWriter>(FileUtils::openFile(catalogPath, O_WRONLY | O_CREAT)));
+    writeMagicBytes(serializer);
+    serializer.serializeValue(StorageVersionInfo::getStorageVersion());
+    serializer.serializeValue(tableSchemas.size());
     for (auto& [tableID, tableSchema] : tableSchemas) {
-        SerDeser::serializeValue(tableID, fileInfo.get(), offset);
-        tableSchema->serialize(fileInfo.get(), offset);
+        serializer.serializeValue(tableID);
+        tableSchema->serialize(serializer);
     }
-    SerDeser::serializeValue(nextTableID, fileInfo.get(), offset);
-    SerDeser::serializeUnorderedMap(macros, fileInfo.get(), offset);
+    serializer.serializeValue(nextTableID);
+    serializer.serializeUnorderedMap(macros);
 }
 
-void CatalogContent::readFromFile(const std::string& directory, DBFileType dbFileType) {
+void CatalogContent::readFromFile(const std::string& directory, FileVersionType dbFileType) {
     auto catalogPath = StorageUtils::getCatalogFilePath(directory, dbFileType);
-    auto fileInfo = FileUtils::openFile(catalogPath, O_RDONLY);
-    uint64_t offset = 0;
-    validateMagicBytes(fileInfo.get(), offset);
+    Deserializer deserializer(
+        std::make_unique<BufferedFileReader>(FileUtils::openFile(catalogPath, O_RDONLY)));
+    validateMagicBytes(deserializer);
     storage_version_t savedStorageVersion;
-    SerDeser::deserializeValue(savedStorageVersion, fileInfo.get(), offset);
+    deserializer.deserializeValue(savedStorageVersion);
     validateStorageVersion(savedStorageVersion);
     uint64_t numTables;
-    SerDeser::deserializeValue(numTables, fileInfo.get(), offset);
+    deserializer.deserializeValue(numTables);
     table_id_t tableID;
     for (auto i = 0u; i < numTables; i++) {
-        SerDeser::deserializeValue(tableID, fileInfo.get(), offset);
-        tableSchemas[tableID] = TableSchema::deserialize(fileInfo.get(), offset);
+        deserializer.deserializeValue(tableID);
+        tableSchemas[tableID] = TableSchema::deserialize(deserializer);
     }
     for (auto& [tableID_, tableSchema] : tableSchemas) {
         tableNameToIDMap[tableSchema->tableName] = tableID_;
     }
-    SerDeser::deserializeValue(nextTableID, fileInfo.get(), offset);
-    SerDeser::deserializeUnorderedMap(macros, fileInfo.get(), offset);
+    deserializer.deserializeValue(nextTableID);
+    deserializer.deserializeUnorderedMap(macros);
 }
 
 ExpressionType CatalogContent::getFunctionType(const std::string& name) const {
     auto upperCaseName = StringUtils::getUpper(name);
-    if (builtInVectorFunctions->containsFunction(upperCaseName)) {
-        return FUNCTION;
-    } else if (builtInAggregateFunctions->containsFunction(upperCaseName)) {
-        return AGGREGATE_FUNCTION;
-    } else if (macros.contains(upperCaseName)) {
+    if (macros.contains(upperCaseName)) {
         return MACRO;
-    } else {
+    } else if (!builtInFunctions->containsFunction(name)) {
         throw CatalogException(name + " function does not exist.");
+    } else {
+        // TODO(Ziyi): we should let table function use the same interface to bind.
+        auto funcType = builtInFunctions->getFunctionType(upperCaseName);
+        switch (funcType) {
+        case function::FunctionType::SCALAR:
+            return FUNCTION;
+        case function::FunctionType::AGGREGATE:
+            return AGGREGATE_FUNCTION;
+        default:
+            // LCOV_EXCL_START
+            throw NotImplementedException("CatalogContent::getFunctionType");
+            // LCOV_EXCL_END
+        }
     }
 }
 
-void CatalogContent::addVectorFunction(
-    std::string name, function::vector_function_definitions definitions) {
+void CatalogContent::addFunction(std::string name, function::function_set definitions) {
     StringUtils::toUpper(name);
-    builtInVectorFunctions->addFunction(std::move(name), std::move(definitions));
+    builtInFunctions->addFunction(std::move(name), std::move(definitions));
 }
 
 void CatalogContent::addScalarMacroFunction(
@@ -229,18 +252,20 @@ std::unique_ptr<CatalogContent> CatalogContent::copy() const {
 void CatalogContent::validateStorageVersion(storage_version_t savedStorageVersion) {
     auto storageVersion = StorageVersionInfo::getStorageVersion();
     if (savedStorageVersion != storageVersion) {
-        throw RuntimeException(StringUtils::string_format(
-            "Trying to read a database file with a different version. "
-            "Database file version: {}, Current build storage version: {}",
-            savedStorageVersion, storageVersion));
+        // LCOV_EXCL_START
+        throw RuntimeException(
+            stringFormat("Trying to read a database file with a different version. "
+                         "Database file version: {}, Current build storage version: {}",
+                savedStorageVersion, storageVersion));
+        // LCOV_EXCL_END
     }
 }
 
-void CatalogContent::validateMagicBytes(FileInfo* fileInfo, offset_t& offset) {
+void CatalogContent::validateMagicBytes(Deserializer& deserializer) {
     auto numMagicBytes = strlen(StorageVersionInfo::MAGIC_BYTES);
     uint8_t magicBytes[4];
     for (auto i = 0u; i < numMagicBytes; i++) {
-        SerDeser::deserializeValue<uint8_t>(magicBytes[i], fileInfo, offset);
+        deserializer.deserializeValue<uint8_t>(magicBytes[i]);
     }
     if (memcmp(magicBytes, StorageVersionInfo::MAGIC_BYTES, numMagicBytes) != 0) {
         throw RuntimeException(
@@ -248,17 +273,15 @@ void CatalogContent::validateMagicBytes(FileInfo* fileInfo, offset_t& offset) {
     }
 }
 
-void CatalogContent::writeMagicBytes(FileInfo* fileInfo, offset_t& offset) {
+void CatalogContent::writeMagicBytes(Serializer& serializer) {
     auto numMagicBytes = strlen(StorageVersionInfo::MAGIC_BYTES);
     for (auto i = 0u; i < numMagicBytes; i++) {
-        SerDeser::serializeValue<uint8_t>(StorageVersionInfo::MAGIC_BYTES[i], fileInfo, offset);
+        serializer.serializeValue<uint8_t>(StorageVersionInfo::MAGIC_BYTES[i]);
     }
 }
 
 void CatalogContent::registerBuiltInFunctions() {
-    builtInVectorFunctions = std::make_unique<function::BuiltInVectorFunctions>();
-    builtInAggregateFunctions = std::make_unique<function::BuiltInAggregateFunctions>();
-    builtInTableFunctions = std::make_unique<function::BuiltInTableFunctions>();
+    builtInFunctions = std::make_unique<function::BuiltInFunctions>();
 }
 
 bool CatalogContent::containsTable(const std::string& tableName, TableType tableType) const {

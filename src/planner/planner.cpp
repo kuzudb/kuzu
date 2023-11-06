@@ -4,12 +4,14 @@
 #include "binder/bound_create_macro.h"
 #include "binder/bound_explain.h"
 #include "binder/bound_standalone_call.h"
-#include "binder/expression/variable_expression.h"
+#include "common/exception/not_implemented.h"
 #include "planner/operator/logical_comment_on.h"
 #include "planner/operator/logical_create_macro.h"
 #include "planner/operator/logical_explain.h"
 #include "planner/operator/logical_standalone_call.h"
+#include "planner/query_planner.h"
 
+using namespace kuzu::binder;
 using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::storage;

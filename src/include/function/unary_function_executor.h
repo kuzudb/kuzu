@@ -1,7 +1,5 @@
 #pragma once
 
-#include <functional>
-
 #include "common/vector/value_vector.h"
 
 namespace kuzu {
@@ -14,16 +12,16 @@ namespace function {
 
 struct UnaryFunctionWrapper {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static inline void operation(OPERAND_TYPE& input, RESULT_TYPE& result, void* inputVector,
-        void* resultVector, void* dataPtr) {
+    static inline void operation(OPERAND_TYPE& input, RESULT_TYPE& result, void* /*inputVector*/,
+        void* /*resultVector*/, void* /*dataPtr*/) {
         FUNC::operation(input, result);
     }
 };
 
 struct UnaryStringFunctionWrapper {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void operation(OPERAND_TYPE& input, RESULT_TYPE& result, void* inputVector,
-        void* resultVector, void* dataPtr) {
+    static void operation(OPERAND_TYPE& input, RESULT_TYPE& result, void* /*inputVector*/,
+        void* resultVector, void* /*dataPtr*/) {
         FUNC::operation(input, result, *(common::ValueVector*)resultVector);
     }
 };
@@ -31,7 +29,7 @@ struct UnaryStringFunctionWrapper {
 struct UnaryListFunctionWrapper {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
     static inline void operation(OPERAND_TYPE& input, RESULT_TYPE& result, void* leftValueVector,
-        void* resultValueVector, void* dataPtr) {
+        void* resultValueVector, void* /*dataPtr*/) {
         FUNC::operation(input, result, *(common::ValueVector*)leftValueVector,
             *(common::ValueVector*)resultValueVector);
     }
@@ -40,7 +38,7 @@ struct UnaryListFunctionWrapper {
 struct UnaryCastFunctionWrapper {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
     static void operation(OPERAND_TYPE& input, RESULT_TYPE& result, void* inputVector,
-        void* resultVector, void* dataPtr) {
+        void* resultVector, void* /*dataPtr*/) {
         FUNC::operation(
             input, result, *(common::ValueVector*)inputVector, *(common::ValueVector*)resultVector);
     }
@@ -48,8 +46,8 @@ struct UnaryCastFunctionWrapper {
 
 struct UnaryUDFFunctionWrapper {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static inline void operation(OPERAND_TYPE& input, RESULT_TYPE& result, void* inputVector,
-        void* resultVector, void* dataPtr) {
+    static inline void operation(OPERAND_TYPE& input, RESULT_TYPE& result, void* /*inputVector*/,
+        void* /*resultVector*/, void* dataPtr) {
         FUNC::operation(input, result, dataPtr);
     }
 };

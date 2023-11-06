@@ -1,33 +1,32 @@
 #pragma once
 
-#include "common/vector/value_vector.h"
-#include "function/vector_functions.h"
+#include "function/scalar_function.h"
 
 namespace kuzu {
 namespace function {
 
-struct MapCreationVectorFunctions {
-    static vector_function_definitions getDefinitions();
+struct MapCreationFunctions {
+    static function_set getFunctionSet();
     static std::unique_ptr<FunctionBindData> bindFunc(
-        const binder::expression_vector& arguments, FunctionDefinition* definition);
+        const binder::expression_vector& arguments, Function* function);
 };
 
-struct MapExtractVectorFunctions {
-    static vector_function_definitions getDefinitions();
+struct MapExtractFunctions {
+    static function_set getFunctionSet();
     static std::unique_ptr<FunctionBindData> bindFunc(
-        const binder::expression_vector& arguments, FunctionDefinition* definition);
+        const binder::expression_vector& arguments, Function* function);
 };
 
-struct MapKeysVectorFunctions {
-    static vector_function_definitions getDefinitions();
+struct MapKeysFunctions {
+    static function_set getFunctionSet();
     static std::unique_ptr<FunctionBindData> bindFunc(
-        const binder::expression_vector& arguments, FunctionDefinition* definition);
+        const binder::expression_vector& arguments, Function* function);
 };
 
-struct MapValuesVectorFunctions {
-    static vector_function_definitions getDefinitions();
+struct MapValuesFunctions {
+    static function_set getFunctionSet();
     static std::unique_ptr<FunctionBindData> bindFunc(
-        const binder::expression_vector& arguments, FunctionDefinition* definition);
+        const binder::expression_vector& arguments, Function* function);
 };
 
 } // namespace function

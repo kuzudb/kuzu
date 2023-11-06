@@ -1,6 +1,6 @@
 #include "planner/subplans_table.h"
 
-#include "common/assert.h"
+using namespace kuzu::binder;
 
 namespace kuzu {
 namespace planner {

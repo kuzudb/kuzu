@@ -28,7 +28,7 @@ void ResultCollector::executeInternal(ExecutionContext* context) {
     }
 }
 
-void ResultCollector::finalize(ExecutionContext* context) {
+void ResultCollector::finalize(ExecutionContext* /*context*/) {
     switch (info->accumulateType) {
     case AccumulateType::OPTIONAL_: {
         // We should remove currIdx completely as some of the code still relies on currIdx = -1 to

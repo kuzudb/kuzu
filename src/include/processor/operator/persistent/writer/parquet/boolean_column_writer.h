@@ -45,22 +45,22 @@ public:
         return std::make_unique<BooleanStatisticsState>();
     }
 
-    inline uint64_t getRowSize(
-        common::ValueVector* vector, uint64_t index, BasicColumnWriterState& state) override {
+    inline uint64_t getRowSize(common::ValueVector* /*vector*/, uint64_t /*index*/,
+        BasicColumnWriterState& /*state*/) override {
         return sizeof(bool);
     }
 
     inline std::unique_ptr<ColumnWriterPageState> initializePageState(
-        BasicColumnWriterState& state) override {
+        BasicColumnWriterState& /*state*/) override {
         return std::make_unique<BooleanWriterPageState>();
     }
 
-    void writeVector(BufferedSerializer& bufferedSerializer,
+    void writeVector(common::Serializer& bufferedSerializer,
         ColumnWriterStatistics* writerStatistics, ColumnWriterPageState* writerPageState,
         common::ValueVector* vector, uint64_t chunkStart, uint64_t chunkEnd) override;
 
     void flushPageState(
-        BufferedSerializer& temp_writer, ColumnWriterPageState* writerPageState) override;
+        common::Serializer& temp_writer, ColumnWriterPageState* writerPageState) override;
 };
 
 } // namespace processor

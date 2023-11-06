@@ -84,37 +84,37 @@ Parser exception: Invalid input <MATCH (n $>: expected rule oC_SingleQuery (line
 ---- ok
 -STATEMENT MATCH ()-[r]-() MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH ()-[r]->() MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH ()<-[r]-() MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH (), ()-[r]-() MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH ()-[r]-(), () MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH ()-[]-(), ()-[r]-() MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH ()-[]-()-[r]-() MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH ()-[]-()-[]-(), ()-[r]-() MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH ()-[]-()-[]-(), ()-[r]-(), () MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH ()-[]-()-[]-(), (), ()-[r]-() MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH (x), (a)-[q]-(b), (s), (s)-[r]->(t)<-[]-(b) MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 
 # Fail when a path has the same variable in a preceding MATCH
 -CASE Scenario8
@@ -124,52 +124,52 @@ Binder exception: r has data type REL. (NODE) was expected.
 ---- ok
 -STATEMENT MATCH r = ()-[]-() MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH r = ()-[]->() MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH r = ()<-[]-() MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH r = ()-[*1..30]-() MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH r = ()-[*1..30]->() MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH (), r = ()-[]-() MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH (), r = ()-[]->() MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH (), r = ()<-[]-() MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH (), r = ()-[*1..30]-() MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH (), r = ()-[*1..30]->() MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH ()-[]-(), r = ()-[]-(), () MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH r = ()-[]-(), ()-[]-(), () MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH ()-[]-()<-[]-(), r = ()-[]-() MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH (x), r = (a)-[q]-(b), (s)-[p]-(t)-[]-(b) MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH (x), (a)-[q]-(b), r = (s)-[p]-(t)-[]-(b) MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH (x), (a)-[q]-(b), r = (s)-[p]->(t)<-[]-(b) MATCH (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 
 
 # Fail when a relationship has the same variable in the same pattern
@@ -180,79 +180,79 @@ Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
 ---- ok
 -STATEMENT MATCH ()-[r]-(r) RETURN r;
 ---- error
-Binder exception: r has data type NODE. (REL) was expected.
+Binder exception: r has data type NODE but (REL) was expected.
 -STATEMENT MATCH ()-[r]->(r) RETURN r;
 ---- error
-Binder exception: r has data type NODE. (REL) was expected.
+Binder exception: r has data type NODE but (REL) was expected.
 -STATEMENT MATCH ()<-[r]-(r) RETURN r;
 ---- error
-Binder exception: r has data type NODE. (REL) was expected.
+Binder exception: r has data type NODE but (REL) was expected.
 -STATEMENT MATCH ()-[r]-()-[]-(r) RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH ()-[r*1..30]-()-[]-(r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH ()-[r]-(), (r) RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH ()-[r]->(), (r) RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH ()<-[r]-(), (r) RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH ()-[r]-(), (r)-[]-() RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH ()-[r]-(), ()-[]-(r) RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH (s)-[r]-(t), (r)-[]-(t) RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH (s)-[r]-(t), (s)-[]-(r) RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH (), ()-[r]-(), (r) RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH ()-[r]-(), (), (r) RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH ()-[r]-(), (r), () RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH ()-[]-(), ()-[r]-(), (r) RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH ()-[]-()-[r]-(), ()-[]-(r) RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH ()-[]-()-[]-(), ()-[r]-(), (r) RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH ()-[]-()-[r]-(), (r), ()-[]-() RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH ()-[]-()-[r]-(), (), (r)-[]-() RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH ()-[]-()-[r*1..30]-(), (r), ()-[]-() RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH ()-[*1..30]-()-[r]-(), (), (r)-[]-() RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH ()-[*1..30]-()-[r]-(), (), (r)-[*1..30]-() RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH ()-[*1..30]-()-[r]-(), (), ()-[*1..30]-(r) RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 -STATEMENT MATCH (x), (a)-[r]-(b), (s), (s)-[]->(r)<-[]-(b) RETURN r;
 ---- error
-Binder exception: r has data type REL. (NODE) was expected.
+Binder exception: r has data type REL but (NODE) was expected.
 
 # Fail when a path has the same variable in the same pattern
 -CASE Scenario10
@@ -262,64 +262,64 @@ Binder exception: r has data type REL. (NODE) was expected.
 ---- ok
 -STATEMENT MATCH r = ()-[]-(), (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH r = ()-[]->(), (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH r = ()<-[]-(), (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH r = ()-[*1..30]-(), (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH r = ()-[*1..30]->(), (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH (), r = ()-[]-(), (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH (), r = ()-[]->(), (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH (), r = ()<-[]-(), (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH (), r = ()-[*1..30]-(), (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH (), r = ()-[*1..30]->(), (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH ()-[]-(), r = ()-[]-(), (), (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH r = ()-[]-(), ()-[]-(), (), (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH ()-[]-()<-[]-(), r = ()-[]-(), (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH (x), r = (a)-[q]-(b), (s)-[p]-(t)-[]-(b), (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH (x), (a)-[q]-(b), r = (s)-[p]-(t)-[]-(b), (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH (x), (a)-[q]-(b), r = (s)-[p]->(t)<-[]-(b), (r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH (x), r = (s)-[p]-(t)-[]-(b), (r), (a)-[q]-(b) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH (x), r = (s)-[p]->(t)<-[]-(b), (r), (a)-[q]-(b) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH (x), r = (s)-[p]-(t)-[]-(b), (a)-[q]-(r) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 -STATEMENT MATCH (x), r = (s)-[p]->(t)<-[]-(b), (r)-[q]-(b) RETURN r;
 ---- error
-Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
+Binder exception: r has data type RECURSIVE_REL but (NODE) was expected.
 
 # Fail when a path has the same variable in the same pattern
 -CASE Scenario11
@@ -327,22 +327,22 @@ Binder exception: r has data type RECURSIVE_REL. (NODE) was expected.
 ---- ok
 -STATEMENT WITH true AS n MATCH (n) RETURN n;
 ---- error
-Binder exception: n has data type BOOL. (NODE) was expected.
+Binder exception: n has data type BOOL but (NODE) was expected.
 -STATEMENT WITH 123 AS n MATCH (n) RETURN n;
 ---- error
-Binder exception: n has data type INT64. (NODE) was expected.
+Binder exception: n has data type INT64 but (NODE) was expected.
 -STATEMENT WITH 123.4 AS n MATCH (n) RETURN n;
 ---- error
-Binder exception: n has data type DOUBLE. (NODE) was expected.
+Binder exception: n has data type DOUBLE but (NODE) was expected.
 -STATEMENT WITH 'foo' AS n MATCH (n) RETURN n;
 ---- error
-Binder exception: n has data type STRING. (NODE) was expected.
+Binder exception: n has data type STRING but (NODE) was expected.
 -STATEMENT WITH [10] AS n MATCH (n) RETURN n;
 ---- error
-Binder exception: n has data type VAR_LIST. (NODE) was expected.
+Binder exception: n has data type VAR_LIST but (NODE) was expected.
 -STATEMENT WITH {x: 1} AS n MATCH (n) RETURN n;
 ---- error
-Binder exception: n has data type STRUCT. (NODE) was expected.
+Binder exception: n has data type STRUCT but (NODE) was expected.
 -STATEMENT WITH {x: [1]} AS n MATCH (n) RETURN n;
 ---- error
-Binder exception: n has data type STRUCT. (NODE) was expected.
+Binder exception: n has data type STRUCT but (NODE) was expected.

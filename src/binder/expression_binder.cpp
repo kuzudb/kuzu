@@ -7,6 +7,7 @@
 #include "binder/expression_visitor.h"
 #include "common/exception/binder.h"
 #include "common/exception/not_implemented.h"
+#include "common/string_format.h"
 #include "expression_evaluator/expression_evaluator_utils.h"
 #include "function/cast/vector_cast_functions.h"
 
@@ -73,6 +74,31 @@ std::shared_ptr<Expression> ExpressionBinder::foldExpression(
     return result;
 }
 
+static std::string unsupportedImplicitCastException(
+    const Expression& expression, const common::LogicalType& targetType) {
+    return stringFormat(
+        "Expression {} has data type {} but expected {}. Implicit cast is not supported.",
+        expression.toString(), LogicalTypeUtils::dataTypeToString(expression.dataType),
+        LogicalTypeUtils::dataTypeToString(targetType));
+}
+
+std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
+    const std::shared_ptr<Expression>& expression, common::LogicalTypeID targetTypeID) {
+    if (LogicalTypeUtils::isNested(targetTypeID)) {
+        if (expression->getDataType().getLogicalTypeID() == common::LogicalTypeID::ANY) {
+            throw BinderException(stringFormat(
+                "Cannot resolve recursive data type for expression {}.", expression->toString()));
+        }
+        // We don't support casting to nested data type. So instead we validate type match.
+        if (expression->getDataType().getLogicalTypeID() != targetTypeID) {
+            throw BinderException(
+                unsupportedImplicitCastException(*expression, LogicalType{targetTypeID}));
+        }
+        return expression;
+    }
+    return implicitCastIfNecessary(expression, LogicalType(targetTypeID));
+}
+
 std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
     const std::shared_ptr<Expression>& expression, const LogicalType& targetType) {
     if (targetType.getLogicalTypeID() == LogicalTypeID::ANY || expression->dataType == targetType) {
@@ -85,43 +111,21 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
     return implicitCast(expression, targetType);
 }
 
-std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
-    const std::shared_ptr<Expression>& expression, LogicalTypeID targetTypeID) {
-    if (targetTypeID == LogicalTypeID::ANY ||
-        expression->dataType.getLogicalTypeID() == targetTypeID) {
-        return expression;
-    }
-    if (expression->dataType.getLogicalTypeID() == LogicalTypeID::ANY) {
-        if (targetTypeID == LogicalTypeID::VAR_LIST) {
-            // e.g. len($1) we cannot infer the child type for $1.
-            throw BinderException("Cannot resolve recursive data type for expression " +
-                                  expression->toString() + ".");
-        }
-        resolveAnyDataType(*expression, LogicalType(targetTypeID));
-        return expression;
-    }
-    assert(targetTypeID != LogicalTypeID::VAR_LIST);
-    return implicitCast(expression, LogicalType(targetTypeID));
-}
-
 std::shared_ptr<Expression> ExpressionBinder::implicitCast(
     const std::shared_ptr<Expression>& expression, const LogicalType& targetType) {
-    if (VectorCastFunction::hasImplicitCast(expression->dataType, targetType)) {
-        auto functionName = VectorCastFunction::bindImplicitCastFuncName(targetType);
+    if (CastFunction::hasImplicitCast(expression->dataType, targetType)) {
+        auto functionName = CastFunction::bindImplicitCastFuncName(targetType);
         auto children = expression_vector{expression};
         auto bindData = std::make_unique<FunctionBindData>(targetType);
         function::scalar_exec_func execFunc;
-        VectorCastFunction::bindImplicitCastFunc(
+        CastFunction::bindImplicitCastFunc(
             expression->dataType.getLogicalTypeID(), targetType.getLogicalTypeID(), execFunc);
         auto uniqueName = ScalarFunctionExpression::getUniqueName(functionName, children);
         return std::make_shared<ScalarFunctionExpression>(functionName, FUNCTION,
             std::move(bindData), std::move(children), execFunc, nullptr /* selectFunc */,
             std::move(uniqueName));
     } else {
-        throw BinderException("Expression " + expression->toString() + " has data type " +
-                              LogicalTypeUtils::dataTypeToString(expression->dataType) +
-                              " but expect " + LogicalTypeUtils::dataTypeToString(targetType) +
-                              ". Implicit cast is not supported.");
+        throw BinderException(unsupportedImplicitCastException(*expression, targetType));
     }
 }
 
@@ -139,10 +143,9 @@ void ExpressionBinder::validateExpectedDataType(
     auto dataType = expression.dataType;
     auto targetsSet = std::unordered_set<LogicalTypeID>{targets.begin(), targets.end()};
     if (!targetsSet.contains(dataType.getLogicalTypeID())) {
-        throw BinderException(expression.toString() + " has data type " +
-                              LogicalTypeUtils::dataTypeToString(dataType.getLogicalTypeID()) +
-                              ". " + LogicalTypeUtils::dataTypesToString(targets) +
-                              " was expected.");
+        throw BinderException(stringFormat("{} has data type {} but {} was expected.",
+            expression.toString(), LogicalTypeUtils::dataTypeToString(dataType.getLogicalTypeID()),
+            LogicalTypeUtils::dataTypesToString(targets)));
     }
 }
 
@@ -152,7 +155,7 @@ void ExpressionBinder::validateAggregationExpressionIsNotNested(const Expression
     }
     if (ExpressionVisitor::hasAggregate(*expression.getChild(0))) {
         throw BinderException(
-            "Expression " + expression.toString() + " contains nested aggregation.");
+            stringFormat("Expression {} contains nested aggregation.", expression.toString()));
     }
 }
 

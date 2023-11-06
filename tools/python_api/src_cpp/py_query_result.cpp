@@ -27,6 +27,7 @@ void PyQueryResult::initialize(py::handle& m) {
         .def("getColumnDataTypes", &PyQueryResult::getColumnDataTypes)
         .def("resetIterator", &PyQueryResult::resetIterator)
         .def("isSuccess", &PyQueryResult::isSuccess)
+        .def("getErrorMessage", &PyQueryResult::getErrorMessage)
         .def("getCompilingTime", &PyQueryResult::getCompilingTime)
         .def("getExecutionTime", &PyQueryResult::getExecutionTime)
         .def("getNumTuples", &PyQueryResult::getNumTuples);
@@ -100,6 +101,13 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     }
     case LogicalTypeID::UINT64: {
         return py::cast(value.getValue<uint64_t>());
+    }
+    case LogicalTypeID::INT128: {
+        kuzu::common::int128_t result = value.getValue<kuzu::common::int128_t>();
+        std::string int128_string = kuzu::common::Int128_t::ToString(result);
+        py::object Decimal = py::module_::import("decimal").attr("Decimal");
+        py::object largeInt = Decimal(int128_string);
+        return largeInt;
     }
     case LogicalTypeID::FLOAT: {
         return py::cast(value.getValue<float>());
@@ -212,8 +220,8 @@ py::object PyQueryResult::getAsDF() {
     return QueryResultConverter(queryResult.get()).toDF();
 }
 
-bool PyQueryResult::getNextArrowChunk(
-    const std::vector<std::unique_ptr<DataTypeInfo>>& typesInfo, py::list& batches, std::int64_t chunkSize) {
+bool PyQueryResult::getNextArrowChunk(const std::vector<std::unique_ptr<DataTypeInfo>>& typesInfo,
+    py::list& batches, std::int64_t chunkSize) {
     if (!queryResult->hasNext()) {
         return false;
     }
@@ -273,6 +281,10 @@ void PyQueryResult::resetIterator() {
 
 bool PyQueryResult::isSuccess() const {
     return queryResult->isSuccess();
+}
+
+std::string PyQueryResult::getErrorMessage() const {
+    return queryResult->getErrorMessage();
 }
 
 py::dict PyQueryResult::convertNodeIdToPyDict(const nodeID_t& nodeId) {

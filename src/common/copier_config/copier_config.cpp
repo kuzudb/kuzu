@@ -1,5 +1,6 @@
 #include "common/copier_config/copier_config.h"
 
+#include "common/assert.h"
 #include "common/exception/copy.h"
 
 namespace kuzu {
@@ -33,6 +34,11 @@ std::string FileTypeUtils::toString(FileType fileType) {
     case FileType::TURTLE: {
         return "TURTLE";
     }
+        // LCOV_EXCL_START
+    default: {
+        KU_ASSERT(false)
+    }
+        // LCOV_EXCL_END
     }
 }
 

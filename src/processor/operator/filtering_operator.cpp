@@ -1,5 +1,7 @@
 #include "processor/operator/filtering_operator.h"
 
+#include <cstring>
+
 using namespace kuzu::common;
 
 namespace kuzu {

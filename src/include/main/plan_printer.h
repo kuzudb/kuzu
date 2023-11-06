@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cassert>
-#include <fstream>
 #include <sstream>
 #include <string>
 
@@ -60,6 +59,8 @@ private:
     inline void validateRowIdxAndColIdx(uint32_t rowIdx, uint32_t colIdx) const {
         assert(0 <= rowIdx && rowIdx < opProfileBoxes.size() && 0 <= colIdx &&
                colIdx < opProfileBoxes[rowIdx].size());
+        (void)rowIdx;
+        (void)colIdx;
     }
 
     void insertOpProfileBox(

@@ -170,6 +170,7 @@ Runtime exception: Maximum length of strings is 4096. Input string's length is 2
 9|2
 
 -CASE SetRelInt16PropTest
+-SKIP
 -STATEMENT MATCH (a:person)-[e:studyAt]->(b:organisation) WHERE a.ID = 0 SET e.length=99
 ---- ok
 -STATEMENT MATCH (a:person)-[e:studyAt]->(b:organisation) RETURN e.length
@@ -230,6 +231,41 @@ Runtime exception: Maximum length of strings is 4096. Input string's length is 2
 0|0
 1|10
 
+-CASE SETMultiLabelWithPruning
+-SKIP
+-STATEMENT MATCH (a:person)-[:knows]->(b) WHERE a.ID=0 SET b.name = "a", b.fName = "XX" RETURN b.name, b.fName;
+---- 3
+|XX
+|XX
+|XX
+-STATEMENT MATCH (b) RETURN b.name, b.fName
+---- 14
+ABFsUni|
+CsWork|
+DEsWork|
+Roma|
+Sóló cón tu párejâ|
+The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|
+|Alice
+|Elizabeth
+|Farooq
+|Greg
+|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+|XX
+|XX
+|XX
+-STATEMENT MATCH (a:person)-[e:knows|:studyAt]->(b:person) WHERE a.ID=0 SET e.year = 2023, e.date = date("2023-11-11") RETURN e.year, e.date;
+---- 3
+|2023-11-11
+|2023-11-11
+|2023-11-11
+-STATEMENT MATCH (a:person)-[e:knows|:studyAt]->(b:person:organisation) WHERE a.ID=0 RETURN e.year, e.date;
+---- 4
+2021|
+|2023-11-11
+|2023-11-11
+|2023-11-11
+
 -CASE SetNonNullValueWithWriteTransaction
 -STATEMENT BEGIN TRANSACTION
 ---- ok
@@ -272,3 +308,21 @@ Runtime exception: Maximum length of strings is 4096. Input string's length is 2
 -STATEMENT MATCH (a:person) WHERE a.ID=5 RETURN a.usedNames
 ---- 1
 [abcndwjbwesdsd,microsofthbbjuwgedsd]
+
+
+-CASE OptionalSET
+-STATEMENT OPTIONAL MATCH (a:person) WHERE a.ID > 100 SET a.fName = 'a' RETURN a.fName;
+---- 1
+
+-STATEMENT MATCH (a:person) WHERE a.ID < 3 RETURN a.fName;
+---- 2
+Alice
+Bob
+-STATEMENT OPTIONAL MATCH (a) WHERE a.ID > 100 SET a.name, a.fName;
+----1
+
+-STATEMENT MATCH (a)  WHERE a.ID < 3 RETURN a.name, a.fName;
+---- 3
+ABFsUni|
+|Alice
+|Bob

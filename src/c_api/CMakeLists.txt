@@ -3,6 +3,7 @@ add_library(kuzu_c_api
         connection.cpp
         database.cpp
         data_type.cpp
+        helpers.cpp
         flat_tuple.cpp
         prepared_statement.cpp
         query_result.cpp

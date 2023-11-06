@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/data_chunk/data_chunk.h"
-#include "processor/result/result_set_descriptor.h"
+#include "processor/data_pos.h"
 
 namespace kuzu {
 namespace processor {

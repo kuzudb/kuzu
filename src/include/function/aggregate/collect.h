@@ -1,6 +1,8 @@
 #pragma once
 
+#include "function/aggregate_function.h"
 #include "processor/result/factorized_table.h"
+#include "storage/storage_utils.h"
 
 namespace kuzu {
 namespace function {
@@ -78,7 +80,7 @@ struct CollectFunction {
     }
 
     static void combine(
-        uint8_t* state_, uint8_t* otherState_, storage::MemoryManager* memoryManager) {
+        uint8_t* state_, uint8_t* otherState_, storage::MemoryManager* /*memoryManager*/) {
         auto otherState = reinterpret_cast<CollectState*>(otherState_);
         if (otherState->isNull) {
             return;
@@ -96,10 +98,10 @@ struct CollectFunction {
     static void finalize(uint8_t* state_) {}
 
     static std::unique_ptr<FunctionBindData> bindFunc(
-        const binder::expression_vector& arguments, FunctionDefinition* definition) {
+        const binder::expression_vector& arguments, Function* definition) {
         assert(arguments.size() == 1);
-        auto aggFuncDefinition = reinterpret_cast<AggregateFunctionDefinition*>(definition);
-        aggFuncDefinition->aggregateFunction->setInputDataType(arguments[0]->dataType);
+        auto aggFuncDefinition = reinterpret_cast<AggregateFunction*>(definition);
+        aggFuncDefinition->parameterTypeIDs[0] = arguments[0]->dataType.getLogicalTypeID();
         auto varListTypeInfo = std::make_unique<common::VarListTypeInfo>(
             std::make_unique<common::LogicalType>(arguments[0]->dataType));
         auto returnType =

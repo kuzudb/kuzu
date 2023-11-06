@@ -2,7 +2,7 @@
 
 #include "common/exception/not_implemented.h"
 #include "parsed_expression.h"
-#include "parser/query/reading_clause/match_clause.h"
+#include "parser/query/graph_pattern/pattern_element.h"
 
 namespace kuzu {
 namespace parser {
@@ -32,7 +32,7 @@ public:
     inline ParsedExpression* getWhereClause() const { return whereClause.get(); }
 
     static std::unique_ptr<ParsedSubqueryExpression> deserialize(
-        common::FileInfo* fileInfo, uint64_t& offset) {
+        common::Deserializer& /*deserializer*/) {
         throw common::NotImplementedException{"ParsedSubqueryExpression::deserialize()"};
     }
 
@@ -41,7 +41,7 @@ public:
     }
 
 private:
-    void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) const override {
+    void serializeInternal(common::Serializer& /*serializer*/) const override {
         throw common::NotImplementedException{"ParsedSubqueryExpression::serializeInternal()"};
     }
 

@@ -1,3 +1,5 @@
+#include "binder/expression/expression_util.h"
+#include "binder/expression/property_expression.h"
 #include "common/string_utils.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "processor/operator/hash_join/hash_join_build.h"

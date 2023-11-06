@@ -2,8 +2,6 @@
 
 #include "binder/copy/bound_copy_from.h"
 #include "catalog/table_schema.h"
-#include "common/copier_config/copier_config.h"
-#include "common/table_type.h"
 #include "planner/operator/logical_operator.h"
 
 namespace kuzu {

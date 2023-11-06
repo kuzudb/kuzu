@@ -1,9 +1,8 @@
 #pragma once
 
-#include "processor/operator/order_by/order_by.h"
+#include "processor/operator/order_by/sort_state.h"
 #include "processor/operator/physical_operator.h"
 #include "processor/operator/sink.h"
-#include "processor/result/factorized_table.h"
 #include "processor/result/result_set.h"
 
 namespace kuzu {

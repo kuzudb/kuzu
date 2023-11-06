@@ -1,6 +1,6 @@
 #pragma once
 
-#include "aggregate_function.h"
+#include "function/aggregate_function.h"
 #include "function/arithmetic/arithmetic_functions.h"
 
 namespace kuzu {
@@ -22,7 +22,7 @@ struct SumFunction {
     static std::unique_ptr<AggregateState> initialize() { return std::make_unique<SumState>(); }
 
     static void updateAll(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
-        storage::MemoryManager* memoryManager) {
+        storage::MemoryManager* /*memoryManager*/) {
         assert(!input->state->isFlat());
         auto state = reinterpret_cast<SumState*>(state_);
         if (input->hasNoNullsGuarantee()) {
@@ -41,7 +41,7 @@ struct SumFunction {
     }
 
     static inline void updatePos(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
-        uint32_t pos, storage::MemoryManager* memoryManager) {
+        uint32_t pos, storage::MemoryManager* /*memoryManager*/) {
         auto state = reinterpret_cast<SumState*>(state_);
         updateSingleValue(state, input, pos, multiplicity);
     }
@@ -60,7 +60,7 @@ struct SumFunction {
     }
 
     static void combine(
-        uint8_t* state_, uint8_t* otherState_, storage::MemoryManager* memoryManager) {
+        uint8_t* state_, uint8_t* otherState_, storage::MemoryManager* /*memoryManager*/) {
         auto otherState = reinterpret_cast<SumState*>(otherState_);
         if (otherState->isNull) {
             return;

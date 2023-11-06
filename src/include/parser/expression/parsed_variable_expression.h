@@ -1,6 +1,7 @@
 #pragma once
 
-#include "common/ser_deser.h"
+#include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
 #include "parsed_expression.h"
 
 namespace kuzu {
@@ -24,7 +25,7 @@ public:
     inline std::string getVariableName() const { return variableName; }
 
     static std::unique_ptr<ParsedVariableExpression> deserialize(
-        common::FileInfo* fileInfo, uint64_t& offset);
+        common::Deserializer& deserializer);
 
     inline std::unique_ptr<ParsedExpression> copy() const override {
         return std::make_unique<ParsedVariableExpression>(
@@ -32,8 +33,8 @@ public:
     }
 
 private:
-    inline void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) const override {
-        common::SerDeser::serializeValue(variableName, fileInfo, offset);
+    inline void serializeInternal(common::Serializer& serializer) const override {
+        serializer.serializeValue(variableName);
     }
 
 private:

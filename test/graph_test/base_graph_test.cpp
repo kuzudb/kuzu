@@ -1,11 +1,12 @@
 #include "graph_test/base_graph_test.h"
 
-#include "binder/binder.h"
-#include "common/string_utils.h"
+#include <fstream>
+
+#include "common/string_format.h"
 #include "spdlog/spdlog.h"
 
-using ::testing::Test;
 using namespace kuzu::common;
+using namespace kuzu::main;
 
 namespace kuzu {
 namespace testing {
@@ -28,8 +29,7 @@ void TestHelper::executeScript(const std::string& cypherScript, Connection& conn
     }
     std::ifstream file(cypherScript);
     if (!file.is_open()) {
-        throw Exception(
-            StringUtils::string_format("Error opening file: {}, errno: {}.", cypherScript, errno));
+        throw Exception(stringFormat("Error opening file: {}, errno: {}.", cypherScript, errno));
     }
     std::string line;
     while (getline(file, line)) {
@@ -67,7 +67,7 @@ void TestHelper::executeScript(const std::string& cypherScript, Connection& conn
         auto result = conn.query(line);
         std::cout << "Executed query: " << line << std::endl;
         if (!result->isSuccess()) {
-            throw Exception(StringUtils::string_format(
+            throw Exception(stringFormat(
                 "Failed to execute statement: {}.\nError: {}", line, result->getErrorMessage()));
         }
     }

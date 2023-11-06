@@ -1,8 +1,10 @@
 #include "binder/expression_visitor.h"
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
+#include "common/exception/not_implemented.h"
 #include "planner/query_planner.h"
 
+using namespace kuzu::binder;
 using namespace kuzu::common;
 
 namespace kuzu {

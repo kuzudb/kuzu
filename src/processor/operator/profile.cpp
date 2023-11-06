@@ -1,14 +1,13 @@
 #include "processor/operator/profile.h"
 
 #include "main/plan_printer.h"
-#include "processor/physical_plan.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace processor {
 
-void Profile::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+void Profile::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {
     outputVector = resultSet->getValueVector(outputPos).get();
 }
 

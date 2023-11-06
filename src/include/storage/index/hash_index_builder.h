@@ -80,7 +80,7 @@ public:
     // Reserves space for at least the specified number of elements.
     void bulkReserve(uint32_t numEntries);
 
-    // Note: append assumes that bulkRserve has been called before it and the index has reserved
+    // Note: append assumes that bulkReserve has been called before it and the index has reserved
     // enough space already.
     inline bool append(int64_t key, common::offset_t value) {
         return appendInternal(reinterpret_cast<const uint8_t*>(&key), value);

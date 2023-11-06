@@ -1,7 +1,6 @@
 #pragma once
 
 #include "binder/ddl/bound_create_table_info.h"
-#include "catalog/table_schema.h"
 #include "planner/operator/ddl/logical_ddl.h"
 
 namespace kuzu {

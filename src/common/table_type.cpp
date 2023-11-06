@@ -1,4 +1,4 @@
-#include "common/table_type.h"
+#include "common/enums/table_type.h"
 
 #include "common/exception/not_implemented.h"
 

@@ -2,7 +2,6 @@
 
 #include <utility>
 
-#include "function/hash/hash_functions.h"
 #include "hash_index_builder.h"
 #include "storage/storage_structure/disk_overflow_file.h"
 
@@ -81,7 +80,7 @@ template<typename T>
 class HashIndex : public BaseHashIndex {
 
 public:
-    HashIndex(const StorageStructureIDAndFName& storageStructureIDAndFName,
+    HashIndex(const DBFileIDAndName& dbFileIDAndName, common::AccessMode accessMode,
         const common::LogicalType& keyDataType, BufferManager& bufferManager, WAL* wal);
 
 public:
@@ -130,7 +129,7 @@ private:
     }
 
 public:
-    StorageStructureIDAndFName storageStructureIDAndFName;
+    DBFileIDAndName dbFileIDAndName;
     BufferManager& bm;
     WAL* wal;
     std::unique_ptr<BMFileHandle> fileHandle;
@@ -147,15 +146,15 @@ public:
 class PrimaryKeyIndex {
 
 public:
-    PrimaryKeyIndex(const StorageStructureIDAndFName& storageStructureIDAndFName,
+    PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, common::AccessMode accessMode,
         const common::LogicalType& keyDataType, BufferManager& bufferManager, WAL* wal)
         : keyDataTypeID{keyDataType.getLogicalTypeID()} {
         if (keyDataTypeID == common::LogicalTypeID::INT64) {
             hashIndexForInt64 = std::make_unique<HashIndex<int64_t>>(
-                storageStructureIDAndFName, keyDataType, bufferManager, wal);
+                dbFileIDAndName, accessMode, keyDataType, bufferManager, wal);
         } else {
             hashIndexForString = std::make_unique<HashIndex<common::ku_string_t>>(
-                storageStructureIDAndFName, keyDataType, bufferManager, wal);
+                dbFileIDAndName, accessMode, keyDataType, bufferManager, wal);
         }
     }
 

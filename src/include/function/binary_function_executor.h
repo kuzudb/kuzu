@@ -1,10 +1,6 @@
 #pragma once
 
-#include <functional>
-
-#include "common/type_utils.h"
 #include "common/vector/value_vector.h"
-#include "function/comparison/comparison_functions.h"
 
 namespace kuzu {
 namespace function {
@@ -17,8 +13,8 @@ namespace function {
 struct BinaryFunctionWrapper {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename OP>
     static inline void operation(LEFT_TYPE& left, RIGHT_TYPE& right, RESULT_TYPE& result,
-        common::ValueVector* leftValueVector, common::ValueVector* rightValueVector,
-        common::ValueVector* resultValueVector, void* dataPtr) {
+        common::ValueVector* /*leftValueVector*/, common::ValueVector* /*rightValueVector*/,
+        common::ValueVector* /*resultValueVector*/, uint64_t /*resultPos*/, void* /*dataPtr*/) {
         OP::operation(left, right, result);
     }
 };
@@ -27,16 +23,26 @@ struct BinaryListStructFunctionWrapper {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename OP>
     static inline void operation(LEFT_TYPE& left, RIGHT_TYPE& right, RESULT_TYPE& result,
         common::ValueVector* leftValueVector, common::ValueVector* rightValueVector,
-        common::ValueVector* resultValueVector, void* dataPtr) {
+        common::ValueVector* resultValueVector, uint64_t /*resultPos*/, void* /*dataPtr*/) {
         OP::operation(left, right, result, *leftValueVector, *rightValueVector, *resultValueVector);
+    }
+};
+
+struct BinaryListExtractFunctionWrapper {
+    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename OP>
+    static inline void operation(LEFT_TYPE& left, RIGHT_TYPE& right, RESULT_TYPE& result,
+        common::ValueVector* leftValueVector, common::ValueVector* rightValueVector,
+        common::ValueVector* resultValueVector, uint64_t resultPos, void* /*dataPtr*/) {
+        OP::operation(left, right, result, *leftValueVector, *rightValueVector, *resultValueVector,
+            resultPos);
     }
 };
 
 struct BinaryStringFunctionWrapper {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename OP>
     static inline void operation(LEFT_TYPE& left, RIGHT_TYPE& right, RESULT_TYPE& result,
-        common::ValueVector* leftValueVector, common::ValueVector* rightValueVector,
-        common::ValueVector* resultValueVector, void* dataPtr) {
+        common::ValueVector* /*leftValueVector*/, common::ValueVector* /*rightValueVector*/,
+        common::ValueVector* resultValueVector, uint64_t /*resultPos*/, void* /*dataPtr*/) {
         OP::operation(left, right, result, *resultValueVector);
     }
 };
@@ -45,7 +51,7 @@ struct BinaryComparisonFunctionWrapper {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename OP>
     static inline void operation(LEFT_TYPE& left, RIGHT_TYPE& right, RESULT_TYPE& result,
         common::ValueVector* leftValueVector, common::ValueVector* rightValueVector,
-        common::ValueVector* resultValueVector, void* dataPtr) {
+        common::ValueVector* /*resultValueVector*/, uint64_t /*resultPos*/, void* /*dataPtr*/) {
         OP::operation(left, right, result, leftValueVector, rightValueVector);
     }
 };
@@ -53,8 +59,8 @@ struct BinaryComparisonFunctionWrapper {
 struct BinaryUDFFunctionWrapper {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename OP>
     static inline void operation(LEFT_TYPE& left, RIGHT_TYPE& right, RESULT_TYPE& result,
-        common::ValueVector* leftValueVector, common::ValueVector* rightValueVector,
-        common::ValueVector* resultValueVector, void* dataPtr) {
+        common::ValueVector* /*leftValueVector*/, common::ValueVector* /*rightValueVector*/,
+        common::ValueVector* /*resultValueVector*/, uint64_t /*resultPos*/, void* dataPtr) {
         OP::operation(left, right, result, dataPtr);
     }
 };
@@ -68,7 +74,7 @@ struct BinaryFunctionExecutor {
         OP_WRAPPER::template operation<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
             ((LEFT_TYPE*)left.getData())[lPos], ((RIGHT_TYPE*)right.getData())[rPos],
             ((RESULT_TYPE*)resultValueVector.getData())[resPos], &left, &right, &resultValueVector,
-            dataPtr);
+            resPos, dataPtr);
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
@@ -253,6 +259,13 @@ struct BinaryFunctionExecutor {
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void executeListExtract(
+        common::ValueVector& left, common::ValueVector& right, common::ValueVector& result) {
+        executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, BinaryListExtractFunctionWrapper>(
+            left, right, result, nullptr /* dataPtr */);
+    }
+
+    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
     static void executeComparison(
         common::ValueVector& left, common::ValueVector& right, common::ValueVector& result) {
         executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, BinaryComparisonFunctionWrapper>(
@@ -269,7 +282,7 @@ struct BinaryFunctionExecutor {
     struct BinarySelectWrapper {
         template<typename LEFT_TYPE, typename RIGHT_TYPE, typename OP>
         static inline void operation(LEFT_TYPE& left, RIGHT_TYPE& right, uint8_t& result,
-            common::ValueVector* leftValueVector, common::ValueVector* rightValueVector) {
+            common::ValueVector* /*leftValueVector*/, common::ValueVector* /*rightValueVector*/) {
             OP::operation(left, right, result);
         }
     };

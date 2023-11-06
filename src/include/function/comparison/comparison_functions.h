@@ -1,9 +1,5 @@
 #pragma once
 
-#include <cassert>
-#include <functional>
-
-#include "common/type_utils.h"
 #include "common/vector/value_vector.h"
 
 namespace kuzu {
@@ -12,7 +8,7 @@ namespace function {
 struct Equals {
     template<class A, class B>
     static inline void operation(const A& left, const B& right, uint8_t& result,
-        common::ValueVector* leftVector, common::ValueVector* rightVector) {
+        common::ValueVector* /*leftVector*/, common::ValueVector* /*rightVector*/) {
         result = left == right;
     }
 };
@@ -29,7 +25,7 @@ struct NotEquals {
 struct GreaterThan {
     template<class A, class B>
     static inline void operation(const A& left, const B& right, uint8_t& result,
-        common::ValueVector* leftVector, common::ValueVector* rightVector) {
+        common::ValueVector* /*leftVector*/, common::ValueVector* /*rightVector*/) {
         result = left > right;
     }
 };

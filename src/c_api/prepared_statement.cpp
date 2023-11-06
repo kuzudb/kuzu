@@ -1,8 +1,8 @@
-#include "binder/bound_statement.h"
+#include "main/prepared_statement.h"
+
+#include "c_api/helpers.h"
 #include "c_api/kuzu.h"
 #include "common/types/value/value.h"
-#include "main/kuzu.h"
-#include "planner/operator/logical_plan.h"
 
 using namespace kuzu::common;
 using namespace kuzu::main;
@@ -43,9 +43,7 @@ char* kuzu_prepared_statement_get_error_message(kuzu_prepared_statement* prepare
     if (error_message.empty()) {
         return nullptr;
     }
-    char* error_message_c = (char*)malloc(error_message.size() + 1);
-    strcpy(error_message_c, error_message.c_str());
-    return error_message_c;
+    return convertToOwnedCString(error_message);
 }
 
 void kuzu_prepared_statement_bind_bool(

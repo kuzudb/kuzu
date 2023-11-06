@@ -1,10 +1,6 @@
 #pragma once
 
-#include "common/file_utils.h"
-#include "gtest/gtest.h"
-#include "parser/parser.h"
-#include "planner/operator/logical_plan_util.h"
-#include "planner/planner.h"
+#include "main/connection.h"
 #include "test_runner/test_group.h"
 
 namespace kuzu {

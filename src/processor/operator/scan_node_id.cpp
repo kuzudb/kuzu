@@ -52,12 +52,12 @@ std::tuple<NodeTableScanState*, offset_t, offset_t> ScanNodeIDSharedState::getNe
     return std::make_tuple(tableStates[currentStateIdx].get(), startOffset, endOffset);
 }
 
-void ScanNodeID::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+void ScanNodeID::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {
     outValueVector = resultSet->getValueVector(outDataPos);
     outValueVector->setSequential();
 }
 
-bool ScanNodeID::getNextTuplesInternal(ExecutionContext* context) {
+bool ScanNodeID::getNextTuplesInternal(ExecutionContext* /*context*/) {
     do {
         auto [state, startOffset, endOffset] = sharedState->getNextRangeToRead();
         if (state == nullptr) {

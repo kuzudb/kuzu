@@ -3,6 +3,7 @@
 #include "catalog/node_table_schema.h"
 #include "common/exception/message.h"
 #include "common/exception/runtime.h"
+#include "storage/store/node_table_data.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
@@ -12,22 +13,22 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-NodeTable::NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH,
+NodeTable::NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH, AccessMode accessMode,
     NodesStoreStatsAndDeletedIDs* nodesStatisticsAndDeletedIDs, BufferManager& bufferManager,
     WAL* wal, NodeTableSchema* nodeTableSchema, bool enableCompression)
     : nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs},
       pkColumnID{nodeTableSchema->getColumnID(nodeTableSchema->getPrimaryKeyPropertyID())},
       tableID{nodeTableSchema->tableID}, bufferManager{bufferManager}, wal{wal} {
-    tableData = std::make_unique<TableData>(dataFH, metadataFH, tableID, &bufferManager, wal,
+    tableData = std::make_unique<NodeTableData>(dataFH, metadataFH, tableID, &bufferManager, wal,
         nodeTableSchema->getProperties(), nodesStatisticsAndDeletedIDs, enableCompression);
-    initializePKIndex(nodeTableSchema);
+    initializePKIndex(nodeTableSchema, accessMode);
 }
 
-void NodeTable::initializePKIndex(NodeTableSchema* nodeTableSchema) {
+void NodeTable::initializePKIndex(NodeTableSchema* nodeTableSchema, AccessMode accessMode) {
     if (nodeTableSchema->getPrimaryKey()->getDataType()->getLogicalTypeID() !=
         LogicalTypeID::SERIAL) {
         pkIndex = std::make_unique<PrimaryKeyIndex>(
-            StorageUtils::getNodeIndexIDAndFName(wal->getDirectory(), tableID),
+            StorageUtils::getNodeIndexIDAndFName(wal->getDirectory(), tableID), accessMode,
             *nodeTableSchema->getPrimaryKey()->getDataType(), bufferManager, wal);
     }
 }
@@ -56,6 +57,9 @@ void NodeTable::delete_(
     }
     for (auto i = 0; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[i];
+        if (nodeIDVector->isNull(pos)) {
+            continue;
+        }
         auto nodeOffset = nodeIDVector->readNodeOffset(pos);
         nodesStatisticsAndDeletedIDs->deleteNode(tableID, nodeOffset);
     }

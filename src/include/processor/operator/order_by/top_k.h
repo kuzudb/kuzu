@@ -1,8 +1,5 @@
 #pragma once
 
-#include <queue>
-
-#include "function/binary_function_executor.h"
 #include "processor/operator/sink.h"
 #include "sort_state.h"
 
@@ -138,7 +135,7 @@ private:
     std::mutex mtx;
 };
 
-class TopK : public Sink {
+class TopK final : public Sink {
 public:
     TopK(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::unique_ptr<OrderByDataInfo> info, std::shared_ptr<TopKSharedState> sharedState,
@@ -149,17 +146,17 @@ public:
           info(std::move(info)), sharedState{std::move(sharedState)}, skipNumber{skipNumber},
           limitNumber{limitNumber} {}
 
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context);
 
-    inline void initGlobalStateInternal(ExecutionContext* context) final {
+    inline void initGlobalStateInternal(ExecutionContext* context) {
         sharedState->init(*info, context->memoryManager, skipNumber, limitNumber);
     }
 
-    void executeInternal(ExecutionContext* context) final;
+    void executeInternal(ExecutionContext* context);
 
-    void finalize(ExecutionContext* context) final { sharedState->finalize(); }
+    void finalize(ExecutionContext* /*context*/) { sharedState->finalize(); }
 
-    std::unique_ptr<PhysicalOperator> clone() final {
+    std::unique_ptr<PhysicalOperator> clone() {
         return std::make_unique<TopK>(resultSetDescriptor->copy(), info->copy(), sharedState,
             skipNumber, limitNumber, children[0]->clone(), id, paramsString);
     }

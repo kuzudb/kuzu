@@ -1,3 +1,4 @@
+#include "binder/expression/property_expression.h"
 #include "binder/expression/rel_expression.h"
 #include "planner/operator/persistent/logical_set.h"
 #include "processor/operator/persistent/set.h"
@@ -38,8 +39,12 @@ std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(storage::NodesSt
     } else {
         auto tableID = node->getSingleTableID();
         auto table = store->getNodeTable(tableID);
-        auto columnID = catalog->getReadOnlyVersion()->getTableSchema(tableID)->getColumnID(
-            property->getPropertyID(tableID));
+        auto columnID = INVALID_COLUMN_ID;
+        if (property->hasPropertyID(tableID)) {
+            auto propertyID = property->getPropertyID(tableID);
+            columnID =
+                catalog->getReadOnlyVersion()->getTableSchema(tableID)->getColumnID(propertyID);
+        }
         return std::make_unique<SingleLabelNodeSetExecutor>(
             NodeSetInfo{table, columnID}, nodeIDPos, propertyPos, std::move(evaluator));
     }
@@ -86,7 +91,10 @@ std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(storage::RelsStore
     } else {
         auto tableID = rel->getSingleTableID();
         auto table = store->getRelTable(tableID);
-        auto propertyID = property->getPropertyID(tableID);
+        auto propertyID = common::INVALID_PROPERTY_ID;
+        if (property->hasPropertyID(tableID)) {
+            propertyID = property->getPropertyID(tableID);
+        }
         return std::make_unique<SingleLabelRelSetExecutor>(
             table, propertyID, srcNodePos, dstNodePos, relIDPos, propertyPos, std::move(evaluator));
     }

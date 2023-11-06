@@ -18,11 +18,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanFile(LogicalOperator* logic
     for (auto& expression : info->columns) {
         dataColumnsPos.emplace_back(outSchema->getExpressionPos(*expression));
     }
-    auto offsetPos = DataPos{};
-    if (info->offset != nullptr) {
-        offsetPos = DataPos(outSchema->getExpressionPos(*info->offset));
+    auto internalIDPos = DataPos{};
+    if (info->internalID != nullptr) {
+        internalIDPos = DataPos(outSchema->getExpressionPos(*info->internalID));
     }
-    auto readInfo = std::make_unique<ReaderInfo>(offsetPos, dataColumnsPos, info->tableType);
+    auto readInfo = std::make_unique<ReaderInfo>(internalIDPos, dataColumnsPos, info->tableType);
     return std::make_unique<Reader>(std::move(readInfo), readerSharedState, getOperatorID(),
         logicalOperator->getExpressionsForPrinting());
 }

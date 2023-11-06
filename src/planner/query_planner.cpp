@@ -1,8 +1,11 @@
 #include "planner/query_planner.h"
 
+#include "binder/expression/property_expression.h"
 #include "binder/query/bound_regular_query.h"
+#include "common/exception/not_implemented.h"
 #include "planner/operator/logical_union.h"
 
+using namespace kuzu::binder;
 using namespace kuzu::common;
 
 namespace kuzu {

@@ -1,5 +1,6 @@
 const { assert } = require("chai");
 const tmp = require("tmp");
+const process = require("process");
 
 describe("Database constructor", function () {
   it("should create a database with a valid path and buffer size", async function () {
@@ -36,6 +37,63 @@ describe("Database constructor", function () {
     assert.exists(testDb._database);
     assert.isTrue(testDb._isInitialized);
     assert.notExists(testDb._initPromise);
+  });
+
+  it("should create a database in read-only mode", async function () {
+    // TODO: Enable this test on Windows when the read-only mode is implemented.
+    if (process.platform === "win32") {
+      this._runnable.title += " (skipped: not implemented on Windows)";
+      this.skip();
+    }
+
+    const tmpDbPath = await new Promise((resolve, reject) => {
+      tmp.dir({ unsafeCleanup: true }, (err, path, _) => {
+        if (err) {
+          return reject(err);
+        }
+        return resolve(path);
+      });
+    });
+    const testDb = new kuzu.Database(tmpDbPath, 1 << 28 /* 256MB */);
+    assert.exists(testDb);
+    assert.equal(testDb.constructor.name, "Database");
+    await testDb.init();
+    assert.exists(testDb._database);
+    assert.isTrue(testDb._isInitialized);
+    assert.notExists(testDb._initPromise);
+    delete testDb;
+    const testDbReadOnly = new kuzu.Database(
+      tmpDbPath,
+      1 << 28 /* 256MB */,
+      true,
+      kuzu.AccessMode.READ_ONLY
+    );
+    assert.exists(testDbReadOnly);
+    assert.equal(testDbReadOnly.constructor.name, "Database");
+    await testDbReadOnly.init();
+    assert.exists(testDbReadOnly._database);
+    assert.isTrue(testDbReadOnly._isInitialized);
+    assert.notExists(testDbReadOnly._initPromise);
+    const connection = new kuzu.Connection(testDbReadOnly);
+    assert.exists(connection);
+    assert.equal(connection.constructor.name, "Connection");
+    await connection.init();
+    assert.exists(connection._connection);
+    assert.isTrue(connection._isInitialized);
+    assert.notExists(connection._initPromise);
+    try {
+      const _ = await connection.query(
+        "CREATE NODE TABLE test (id INT64, PRIMARY KEY(id))"
+      );
+      assert.fail(
+        "No error thrown when executing CREATE TABLE in read-only mode."
+      );
+    } catch (e) {
+      assert.equal(
+        e.message,
+        "Cannot execute write operations in a read-only access mode database!"
+      );
+    }
   });
 
   it("should throw error if the path is invalid", async function () {

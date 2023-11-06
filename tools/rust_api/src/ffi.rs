@@ -27,6 +27,7 @@ pub(crate) mod ffi {
         UINT32 = 28,
         UINT16 = 29,
         UINT8 = 30,
+        INT128 = 31,
         DOUBLE = 32,
         FLOAT = 33,
         DATE = 34,
@@ -36,8 +37,6 @@ pub(crate) mod ffi {
 
         INTERNAL_ID = 40,
 
-        ARROW_COLUMN = 41,
-
         // variable size types
         STRING = 50,
         BLOB = 51,
@@ -46,9 +45,22 @@ pub(crate) mod ffi {
         MAP = 54,
         UNION = 55,
     }
+
     #[namespace = "kuzu::common"]
     unsafe extern "C++" {
         type LogicalTypeID;
+    }
+
+    #[namespace = "kuzu::common"]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    enum AccessMode {
+        READ_ONLY = 0,
+        READ_WRITE = 1,
+    }
+
+    #[namespace = "kuzu::common"]
+    unsafe extern "C++" {
+        type AccessMode;
     }
 
     #[namespace = "kuzu::main"]
@@ -84,6 +96,7 @@ pub(crate) mod ffi {
             bufferPoolSize: u64,
             maxNumThreads: u64,
             enableCompression: bool,
+            access_mode: AccessMode,
         ) -> Result<UniquePtr<Database>>;
 
         fn database_set_logging_level(database: Pin<&mut Database>, level: &CxxString);
@@ -258,6 +271,7 @@ pub(crate) mod ffi {
         fn value_get_interval_micros(value: &Value) -> i32;
         fn value_get_timestamp_micros(value: &Value) -> i64;
         fn value_get_date_days(value: &Value) -> i32;
+        fn value_get_int128_t(value: &Value) -> [u64; 2];
         fn value_get_internal_id(value: &Value) -> [u64; 2];
 
         fn value_get_data_type_id(value: &Value) -> LogicalTypeID;
@@ -296,6 +310,7 @@ pub(crate) mod ffi {
         fn create_value_timestamp(value: i64) -> UniquePtr<Value>;
         fn create_value_date(value: i64) -> UniquePtr<Value>;
         fn create_value_interval(months: i32, days: i32, micros: i64) -> UniquePtr<Value>;
+        fn create_value_int128_t(high: i64, low: u64) -> UniquePtr<Value>;
         fn create_value_internal_id(offset: u64, table: u64) -> UniquePtr<Value>;
 
         fn node_value_get_node_id(value: &Value) -> [u64; 2];

@@ -6,7 +6,7 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-void NodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
+void NodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* /*context*/) {
     nodeIDVector = resultSet->getValueVector(nodeIDPos).get();
 }
 
@@ -40,15 +40,16 @@ void MultiLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
         pkVectors.at(nodeID.tableID).get());
 }
 
-void RelDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
+void RelDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* /*context*/) {
     srcNodeIDVector = resultSet->getValueVector(srcNodeIDPos).get();
     dstNodeIDVector = resultSet->getValueVector(dstNodeIDPos).get();
     relIDVector = resultSet->getValueVector(relIDPos).get();
 }
 
 void SingleLabelRelDeleteExecutor::delete_() {
-    table->deleteRel(srcNodeIDVector, dstNodeIDVector, relIDVector);
-    relsStatistic->updateNumRelsByValue(table->getRelTableID(), -1);
+    // TODO(Guodong): Fix delete.
+    //    table->deleteRel(srcNodeIDVector, dstNodeIDVector, relIDVector);
+    //    relsStatistic->updateNumRelsByValue(table->getTableID(), -1);
 }
 
 void MultiLabelRelDeleteExecutor::delete_() {
@@ -57,9 +58,10 @@ void MultiLabelRelDeleteExecutor::delete_() {
     auto relID = relIDVector->getValue<internalID_t>(pos);
     assert(tableIDToTableMap.contains(relID.tableID));
     auto [table, statistic] = tableIDToTableMap.at(relID.tableID);
-    table->deleteRel(srcNodeIDVector, dstNodeIDVector, relIDVector);
-    assert(table->getRelTableID() == relID.tableID);
-    statistic->updateNumRelsByValue(table->getRelTableID(), -1);
+    // TODO(Guodong): Fix delete.
+    //    table->deleteRel(srcNodeIDVector, dstNodeIDVector, relIDVector);
+    //    assert(table->getTableID() == relID.tableID);
+    //    statistic->updateNumRelsByValue(table->getTableID(), -1);
 }
 
 } // namespace processor

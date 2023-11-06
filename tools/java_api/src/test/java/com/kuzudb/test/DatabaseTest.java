@@ -18,7 +18,7 @@ public class DatabaseTest extends TestBase {
     void DBCreationAndDestroy() {
         try {
             String dbPath = tempDir.toFile().getAbsolutePath();
-            KuzuDatabase database = new KuzuDatabase(dbPath, 1024 * 1024 * 1024);
+            KuzuDatabase database = new KuzuDatabase(dbPath, 1024 * 1024 * 1024, true, KuzuDatabase.AccessMode.READ_WRITE);
             database.destroy();
             database = new KuzuDatabase(dbPath);
             database.destroy();
@@ -30,7 +30,7 @@ public class DatabaseTest extends TestBase {
     @Test
     void DBInvalidPath() {
         try {
-            KuzuDatabase database = new KuzuDatabase("", 0);
+            KuzuDatabase database = new KuzuDatabase("");
             database.destroy();
             fail("DBInvalidPath did not throw exception as expected.");
         } catch (Exception e) {

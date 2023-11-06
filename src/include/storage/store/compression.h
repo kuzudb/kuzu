@@ -2,7 +2,7 @@
 
 #include <array>
 #include <cstdint>
-#include <limits>
+#include <cstring>
 
 #include "common/types/types.h"
 
@@ -104,13 +104,13 @@ public:
 
     inline void setValueFromUncompressed(uint8_t* srcBuffer, common::offset_t posInSrc,
         uint8_t* dstBuffer, common::offset_t posInDst,
-        const CompressionMetadata& metadata) const final {
+        const CompressionMetadata& /*metadata*/) const final {
         memcpy(dstBuffer + posInDst * numBytesPerValue, srcBuffer + posInSrc * numBytesPerValue,
             numBytesPerValue);
     }
 
     inline void getValue(const uint8_t* buffer, common::offset_t posInBuffer, uint8_t* dst,
-        common::offset_t posInDst, const CompressionMetadata& metadata) const override {
+        common::offset_t posInDst, const CompressionMetadata& /*metadata*/) const override {
         memcpy(dst + posInDst * numBytesPerValue, buffer + posInBuffer * numBytesPerValue,
             numBytesPerValue);
     }
@@ -121,13 +121,13 @@ public:
     }
 
     inline CompressionMetadata getCompressionMetadata(
-        const uint8_t* srcBuffer, uint64_t numValues) const override {
+        const uint8_t* /*srcBuffer*/, uint64_t /*numValues*/) const override {
         return CompressionMetadata();
     }
 
     inline uint64_t compressNextPage(const uint8_t*& srcBuffer, uint64_t numValuesRemaining,
         uint8_t* dstBuffer, uint64_t dstBufferSize,
-        const struct CompressionMetadata& metadata) const override {
+        const struct CompressionMetadata& /*metadata*/) const override {
         if (numBytesPerValue == 0) {
             return 0;
         }
@@ -141,7 +141,7 @@ public:
 
     inline void decompressFromPage(const uint8_t* srcBuffer, uint64_t srcOffset, uint8_t* dstBuffer,
         uint64_t dstOffset, uint64_t numValues,
-        const CompressionMetadata& metadata) const override {
+        const CompressionMetadata& /*metadata*/) const override {
         std::memcpy(dstBuffer + dstOffset * numBytesPerValue,
             srcBuffer + srcOffset * numBytesPerValue, numValues * numBytesPerValue);
     }
@@ -250,7 +250,7 @@ public:
     static inline uint64_t numValues(uint64_t dataSize) { return dataSize * 8; }
 
     inline CompressionMetadata getCompressionMetadata(
-        const uint8_t* srcBuffer, uint64_t numValues) const override {
+        const uint8_t* /*srcBuffer*/, uint64_t /*numValues*/) const override {
         return CompressionMetadata{CompressionType::BOOLEAN_BITPACKING};
     }
     uint64_t compressNextPage(const uint8_t*& srcBuffer, uint64_t numValuesRemaining,

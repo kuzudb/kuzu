@@ -1,6 +1,7 @@
 #include "storage/stats/metadata_dah_info.h"
 
-#include "common/ser_deser.h"
+#include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
 
 using namespace kuzu::common;
 
@@ -16,18 +17,17 @@ std::unique_ptr<MetadataDAHInfo> MetadataDAHInfo::copy() {
     return result;
 }
 
-void MetadataDAHInfo::serialize(FileInfo* fileInfo, uint64_t& offset) const {
-    SerDeser::serializeValue(dataDAHPageIdx, fileInfo, offset);
-    SerDeser::serializeValue(nullDAHPageIdx, fileInfo, offset);
-    SerDeser::serializeVectorOfPtrs(childrenInfos, fileInfo, offset);
+void MetadataDAHInfo::serialize(Serializer& serializer) const {
+    serializer.serializeValue(dataDAHPageIdx);
+    serializer.serializeValue(nullDAHPageIdx);
+    serializer.serializeVectorOfPtrs(childrenInfos);
 }
 
-std::unique_ptr<MetadataDAHInfo> MetadataDAHInfo::deserialize(
-    FileInfo* fileInfo, uint64_t& offset) {
+std::unique_ptr<MetadataDAHInfo> MetadataDAHInfo::deserialize(Deserializer& deserializer) {
     auto metadataDAHInfo = std::make_unique<MetadataDAHInfo>();
-    SerDeser::deserializeValue(metadataDAHInfo->dataDAHPageIdx, fileInfo, offset);
-    SerDeser::deserializeValue(metadataDAHInfo->nullDAHPageIdx, fileInfo, offset);
-    SerDeser::deserializeVectorOfPtrs(metadataDAHInfo->childrenInfos, fileInfo, offset);
+    deserializer.deserializeValue(metadataDAHInfo->dataDAHPageIdx);
+    deserializer.deserializeValue(metadataDAHInfo->nullDAHPageIdx);
+    deserializer.deserializeVectorOfPtrs(metadataDAHInfo->childrenInfos);
     return metadataDAHInfo;
 }
 

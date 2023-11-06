@@ -1,6 +1,6 @@
 #pragma once
 
-#include "processor/operator/intersect/intersect_build.h"
+#include "processor/operator/hash_join/hash_join_build.h"
 #include "processor/operator/physical_operator.h"
 
 namespace kuzu {

@@ -17,7 +17,10 @@ public:
 
     inline std::string getVariableName() const { return variableName; }
 
-    inline void addTableIDs(const std::vector<common::table_id_t>& tableIDsToAdd) {
+    inline void setTableIDs(common::table_id_vector_t tableIDs) {
+        this->tableIDs = std::move(tableIDs);
+    }
+    inline void addTableIDs(const common::table_id_vector_t& tableIDsToAdd) {
         auto tableIDsSet = getTableIDsSet();
         for (auto tableID : tableIDsToAdd) {
             if (!tableIDsSet.contains(tableID)) {
@@ -25,6 +28,7 @@ public:
             }
         }
     }
+
     inline bool isMultiLabeled() const { return tableIDs.size() > 1; }
     inline uint32_t getNumTableIDs() const { return tableIDs.size(); }
     inline std::vector<common::table_id_t> getTableIDs() const { return tableIDs; }

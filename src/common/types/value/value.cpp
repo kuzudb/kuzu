@@ -1,8 +1,13 @@
 #include "common/types/value/value.h"
 
+#include "common/exception/not_implemented.h"
+#include "common/exception/runtime.h"
 #include "common/null_buffer.h"
-#include "common/ser_deser.h"
+#include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
+#include "common/type_utils.h"
 #include "common/types/blob.h"
+#include "common/types/ku_string.h"
 #include "storage/storage_utils.h"
 
 namespace kuzu {
@@ -60,6 +65,8 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
         return Value((uint16_t)0);
     case LogicalTypeID::UINT8:
         return Value((uint8_t)0);
+    case LogicalTypeID::INT128:
+        return Value(int128_t(0));
     case LogicalTypeID::BOOL:
         return Value(true);
     case LogicalTypeID::DOUBLE:
@@ -95,10 +102,11 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
         children.push_back(std::make_unique<Value>(createNullValue()));
         return Value(dataType, std::move(children));
     }
+    case LogicalTypeID::NODE:
+    case LogicalTypeID::REL:
     case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::STRUCT:
-    case LogicalTypeID::NODE:
-    case LogicalTypeID::REL: {
+    case LogicalTypeID::RDF_VARIANT: {
         std::vector<std::unique_ptr<Value>> children;
         for (auto& field : StructType::getFields(&dataType)) {
             children.push_back(std::make_unique<Value>(createDefaultValue(*field->getType())));
@@ -154,6 +162,11 @@ Value::Value(uint32_t val_) : isNull_{false} {
 Value::Value(uint64_t val_) : isNull_{false} {
     dataType = std::make_unique<LogicalType>(LogicalTypeID::UINT64);
     val.uint64Val = val_;
+}
+
+Value::Value(int128_t val_) : isNull_{false} {
+    dataType = std::make_unique<LogicalType>(LogicalTypeID::INT128);
+    val.int128Val = val_;
 }
 
 Value::Value(float_t val_) : isNull_{false} {
@@ -242,6 +255,9 @@ void Value::copyValueFrom(const uint8_t* value) {
     case LogicalTypeID::UINT8: {
         val.uint8Val = *((uint8_t*)value);
     } break;
+    case LogicalTypeID::INT128: {
+        val.int128Val = *((int128_t*)value);
+    } break;
     case LogicalTypeID::BOOL: {
         val.booleanVal = *((bool*)value);
     } break;
@@ -276,7 +292,8 @@ void Value::copyValueFrom(const uint8_t* value) {
     case LogicalTypeID::NODE:
     case LogicalTypeID::REL:
     case LogicalTypeID::RECURSIVE_REL:
-    case LogicalTypeID::STRUCT: {
+    case LogicalTypeID::STRUCT:
+    case LogicalTypeID::RDF_VARIANT: {
         copyFromStruct(value);
     } break;
     default:
@@ -320,6 +337,9 @@ void Value::copyValueFrom(const Value& other) {
     case PhysicalTypeID::UINT8: {
         val.uint8Val = other.val.uint8Val;
     } break;
+    case PhysicalTypeID::INT128: {
+        val.int128Val = other.val.int128Val;
+    } break;
     case PhysicalTypeID::DOUBLE: {
         val.doubleVal = other.val.doubleVal;
     } break;
@@ -343,9 +363,11 @@ void Value::copyValueFrom(const Value& other) {
         }
     } break;
     default:
+        // LCOV_EXCL_START
         throw NotImplementedException("Value::Value(const Value&) for type " +
                                       LogicalTypeUtils::dataTypeToString(*dataType) +
                                       " is not implemented.");
+        // LCOV_EXCL_END
     }
 }
 
@@ -372,6 +394,8 @@ std::string Value::toString() const {
         return TypeUtils::toString(val.uint16Val);
     case LogicalTypeID::UINT8:
         return TypeUtils::toString(val.uint8Val);
+    case LogicalTypeID::INT128:
+        return TypeUtils::toString(val.int128Val);
     case LogicalTypeID::DOUBLE:
         return TypeUtils::toString(val.doubleVal);
     case LogicalTypeID::FLOAT:
@@ -388,29 +412,15 @@ std::string Value::toString() const {
         return Blob::toString(reinterpret_cast<const uint8_t*>(strVal.c_str()), strVal.length());
     case LogicalTypeID::STRING:
         return strVal;
+    case LogicalTypeID::RDF_VARIANT: {
+        return rdfVariantToString();
+    }
     case LogicalTypeID::MAP: {
-        std::string result = "{";
-        for (auto i = 0u; i < childrenSize; ++i) {
-            auto structVal = children[i].get();
-            result += structVal->children[0]->toString();
-            result += "=";
-            result += structVal->children[1]->toString();
-            result += (i == childrenSize - 1 ? "" : ", ");
-        }
-        result += "}";
-        return result;
+        return mapToString();
     }
     case LogicalTypeID::VAR_LIST:
     case LogicalTypeID::FIXED_LIST: {
-        std::string result = "[";
-        for (auto i = 0u; i < childrenSize; ++i) {
-            result += children[i]->toString();
-            if (i != childrenSize - 1) {
-                result += ",";
-            }
-        }
-        result += "]";
-        return result;
+        return listToString();
     }
     case LogicalTypeID::UNION: {
         // Only one member in the union can be active at a time and that member is always stored
@@ -419,54 +429,20 @@ std::string Value::toString() const {
     }
     case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::STRUCT: {
-        std::string result = "{";
-        auto fieldNames = StructType::getFieldNames(dataType.get());
-        for (auto i = 0u; i < childrenSize; ++i) {
-            result += fieldNames[i] + ": ";
-            result += children[i]->toString();
-            if (i != childrenSize - 1) {
-                result += ", ";
-            }
-        }
-        result += "}";
-        return result;
+        return structToString();
     }
     case LogicalTypeID::NODE: {
-        std::string result = "{";
-        auto fieldNames = StructType::getFieldNames(dataType.get());
-        for (auto i = 0u; i < childrenSize; ++i) {
-            if (children[i]->isNull_) {
-                // Avoid printing null key value pair.
-                continue;
-            }
-            if (i != 0) {
-                result += ", ";
-            }
-            result += fieldNames[i] + ": " + children[i]->toString();
-        }
-        result += "}";
-        return result;
+        return nodeToString();
     }
     case LogicalTypeID::REL: {
-        std::string result = "(" + children[0]->toString() + ")-{";
-        auto fieldNames = StructType::getFieldNames(dataType.get());
-        for (auto i = 2u; i < childrenSize; ++i) {
-            if (children[i]->isNull_) {
-                // Avoid printing null key value pair.
-                continue;
-            }
-            if (i != 2) {
-                result += ", ";
-            }
-            result += fieldNames[i] + ": " + children[i]->toString();
-        }
-        result += "}->(" + children[1]->toString() + ")";
-        return result;
+        return relToString();
     }
     default:
+        // LCOV_EXCL_START
         throw NotImplementedException("Value::toString for type " +
                                       LogicalTypeUtils::dataTypeToString(*dataType) +
                                       " is not implemented.");
+        // LCOV_EXCL_END
     }
 }
 
@@ -550,126 +526,231 @@ void Value::copyFromUnion(const uint8_t* kuUnion) {
     }
 }
 
-void Value::serialize(FileInfo* fileInfo, uint64_t& offset) const {
-    dataType->serialize(fileInfo, offset);
-    SerDeser::serializeValue(isNull_, fileInfo, offset);
+void Value::serialize(Serializer& serializer) const {
+    dataType->serialize(serializer);
+    serializer.serializeValue(isNull_);
     switch (dataType->getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
-        SerDeser::serializeValue(val.booleanVal, fileInfo, offset);
+        serializer.serializeValue(val.booleanVal);
     } break;
     case PhysicalTypeID::INT64: {
-        SerDeser::serializeValue(val.int64Val, fileInfo, offset);
+        serializer.serializeValue(val.int64Val);
     } break;
     case PhysicalTypeID::INT32: {
-        SerDeser::serializeValue(val.int32Val, fileInfo, offset);
+        serializer.serializeValue(val.int32Val);
     } break;
     case PhysicalTypeID::INT16: {
-        SerDeser::serializeValue(val.int16Val, fileInfo, offset);
+        serializer.serializeValue(val.int16Val);
     } break;
     case PhysicalTypeID::INT8: {
-        SerDeser::serializeValue(val.int8Val, fileInfo, offset);
+        serializer.serializeValue(val.int8Val);
     } break;
     case PhysicalTypeID::UINT64: {
-        SerDeser::serializeValue(val.uint64Val, fileInfo, offset);
+        serializer.serializeValue(val.uint64Val);
     } break;
     case PhysicalTypeID::UINT32: {
-        SerDeser::serializeValue(val.uint32Val, fileInfo, offset);
+        serializer.serializeValue(val.uint32Val);
     } break;
     case PhysicalTypeID::UINT16: {
-        SerDeser::serializeValue(val.uint16Val, fileInfo, offset);
+        serializer.serializeValue(val.uint16Val);
     } break;
     case PhysicalTypeID::UINT8: {
-        SerDeser::serializeValue(val.uint8Val, fileInfo, offset);
+        serializer.serializeValue(val.uint8Val);
+    } break;
+    case PhysicalTypeID::INT128: {
+        serializer.serializeValue(val.int128Val);
     } break;
     case PhysicalTypeID::DOUBLE: {
-        SerDeser::serializeValue(val.doubleVal, fileInfo, offset);
+        serializer.serializeValue(val.doubleVal);
     } break;
     case PhysicalTypeID::FLOAT: {
-        SerDeser::serializeValue(val.floatVal, fileInfo, offset);
+        serializer.serializeValue(val.floatVal);
     } break;
     case PhysicalTypeID::INTERVAL: {
-        SerDeser::serializeValue(val.intervalVal, fileInfo, offset);
+        serializer.serializeValue(val.intervalVal);
     } break;
     case PhysicalTypeID::INTERNAL_ID: {
-        SerDeser::serializeValue(val.internalIDVal, fileInfo, offset);
+        serializer.serializeValue(val.internalIDVal);
     } break;
     case PhysicalTypeID::STRING: {
-        SerDeser::serializeValue(strVal, fileInfo, offset);
+        serializer.serializeValue(strVal);
     } break;
     case PhysicalTypeID::VAR_LIST:
     case PhysicalTypeID::FIXED_LIST:
     case PhysicalTypeID::STRUCT: {
         for (auto i = 0u; i < childrenSize; ++i) {
-            children[i]->serialize(fileInfo, offset);
+            children[i]->serialize(serializer);
         }
     } break;
     default: {
-        throw NotImplementedException{"Value::serialize"};
+        // LCOV_EXCL_START
+        throw NotImplementedException("Value::serialize");
+        // LCOV_EXCL_END
     }
     }
-    SerDeser::serializeValue(childrenSize, fileInfo, offset);
+    serializer.serializeValue(childrenSize);
 }
 
-std::unique_ptr<Value> Value::deserialize(FileInfo* fileInfo, uint64_t& offset) {
-    LogicalType dataType = *LogicalType::deserialize(fileInfo, offset);
+std::unique_ptr<Value> Value::deserialize(Deserializer& deserializer) {
+    LogicalType dataType = *LogicalType::deserialize(deserializer);
     bool isNull;
-    SerDeser::deserializeValue(isNull, fileInfo, offset);
+    deserializer.deserializeValue(isNull);
     std::unique_ptr<Value> val = std::make_unique<Value>(createDefaultValue(dataType));
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
-        SerDeser::deserializeValue(val->val.booleanVal, fileInfo, offset);
+        deserializer.deserializeValue(val->val.booleanVal);
     } break;
     case PhysicalTypeID::INT64: {
-        SerDeser::deserializeValue(val->val.int64Val, fileInfo, offset);
+        deserializer.deserializeValue(val->val.int64Val);
     } break;
     case PhysicalTypeID::INT32: {
-        SerDeser::deserializeValue(val->val.int32Val, fileInfo, offset);
+        deserializer.deserializeValue(val->val.int32Val);
     } break;
     case PhysicalTypeID::INT16: {
-        SerDeser::deserializeValue(val->val.int16Val, fileInfo, offset);
+        deserializer.deserializeValue(val->val.int16Val);
     } break;
     case PhysicalTypeID::INT8: {
-        SerDeser::deserializeValue(val->val.int8Val, fileInfo, offset);
+        deserializer.deserializeValue(val->val.int8Val);
     } break;
     case PhysicalTypeID::UINT64: {
-        SerDeser::deserializeValue(val->val.uint64Val, fileInfo, offset);
+        deserializer.deserializeValue(val->val.uint64Val);
     } break;
     case PhysicalTypeID::UINT32: {
-        SerDeser::deserializeValue(val->val.uint32Val, fileInfo, offset);
+        deserializer.deserializeValue(val->val.uint32Val);
     } break;
     case PhysicalTypeID::UINT16: {
-        SerDeser::deserializeValue(val->val.uint16Val, fileInfo, offset);
+        deserializer.deserializeValue(val->val.uint16Val);
     } break;
     case PhysicalTypeID::UINT8: {
-        SerDeser::deserializeValue(val->val.uint8Val, fileInfo, offset);
+        deserializer.deserializeValue(val->val.uint8Val);
+    } break;
+    case PhysicalTypeID::INT128: {
+        deserializer.deserializeValue(val->val.int128Val);
     } break;
     case PhysicalTypeID::DOUBLE: {
-        SerDeser::deserializeValue(val->val.doubleVal, fileInfo, offset);
+        deserializer.deserializeValue(val->val.doubleVal);
     } break;
     case PhysicalTypeID::FLOAT: {
-        SerDeser::deserializeValue(val->val.floatVal, fileInfo, offset);
+        deserializer.deserializeValue(val->val.floatVal);
     } break;
     case PhysicalTypeID::INTERVAL: {
-        SerDeser::deserializeValue(val->val.intervalVal, fileInfo, offset);
+        deserializer.deserializeValue(val->val.intervalVal);
     } break;
     case PhysicalTypeID::INTERNAL_ID: {
-        SerDeser::deserializeValue(val->val.internalIDVal, fileInfo, offset);
+        deserializer.deserializeValue(val->val.internalIDVal);
     } break;
     case PhysicalTypeID::STRING: {
-        SerDeser::deserializeValue(val->strVal, fileInfo, offset);
+        deserializer.deserializeValue(val->strVal);
     } break;
     case PhysicalTypeID::VAR_LIST:
     case PhysicalTypeID::FIXED_LIST:
     case PhysicalTypeID::STRUCT: {
-        SerDeser::deserializeVectorOfPtrs(val->children, fileInfo, offset);
+        deserializer.deserializeVectorOfPtrs(val->children);
     } break;
     default: {
-        throw NotImplementedException{"Value::deserializeValue"};
+        // LCOV_EXCL_START
+        throw NotImplementedException("Value::deserializeValue");
+        // LCOV_EXCL_END
     }
     }
-    SerDeser::deserializeValue(val->childrenSize, fileInfo, offset);
+    deserializer.deserializeValue(val->childrenSize);
     val->setNull(isNull);
     return val;
+}
+
+std::string Value::rdfVariantToString() const {
+    auto type = static_cast<LogicalTypeID>(children[0]->val.uint8Val);
+    switch (type) {
+    case LogicalTypeID::STRING:
+        return children[1]->strVal;
+    case LogicalTypeID::INT64: {
+        return TypeUtils::toString(Blob::getValue<int64_t>(children[1]->strVal.data()));
+    }
+    case LogicalTypeID::DOUBLE: {
+        return TypeUtils::toString(Blob::getValue<double_t>(children[1]->strVal.data()));
+    }
+    case LogicalTypeID::BOOL: {
+        return TypeUtils::toString(Blob::getValue<bool>(children[1]->strVal.data()));
+    }
+    case LogicalTypeID::DATE: {
+        return TypeUtils::toString(Blob::getValue<date_t>(children[1]->strVal.data()));
+    }
+    default:
+        return children[1]->strVal;
+    }
+}
+
+std::string Value::mapToString() const {
+    std::string result = "{";
+    for (auto i = 0u; i < childrenSize; ++i) {
+        auto structVal = children[i].get();
+        result += structVal->children[0]->toString();
+        result += "=";
+        result += structVal->children[1]->toString();
+        result += (i == childrenSize - 1 ? "" : ", ");
+    }
+    result += "}";
+    return result;
+}
+
+std::string Value::listToString() const {
+    std::string result = "[";
+    for (auto i = 0u; i < childrenSize; ++i) {
+        result += children[i]->toString();
+        if (i != childrenSize - 1) {
+            result += ",";
+        }
+    }
+    result += "]";
+    return result;
+}
+
+std::string Value::structToString() const {
+    std::string result = "{";
+    auto fieldNames = StructType::getFieldNames(dataType.get());
+    for (auto i = 0u; i < childrenSize; ++i) {
+        result += fieldNames[i] + ": ";
+        result += children[i]->toString();
+        if (i != childrenSize - 1) {
+            result += ", ";
+        }
+    }
+    result += "}";
+    return result;
+}
+
+std::string Value::nodeToString() const {
+    std::string result = "{";
+    auto fieldNames = StructType::getFieldNames(dataType.get());
+    for (auto i = 0u; i < childrenSize; ++i) {
+        if (children[i]->isNull_) {
+            // Avoid printing null key value pair.
+            continue;
+        }
+        if (i != 0) {
+            result += ", ";
+        }
+        result += fieldNames[i] + ": " + children[i]->toString();
+    }
+    result += "}";
+    return result;
+}
+
+std::string Value::relToString() const {
+    std::string result = "(" + children[0]->toString() + ")-{";
+    auto fieldNames = StructType::getFieldNames(dataType.get());
+    for (auto i = 2u; i < childrenSize; ++i) {
+        if (children[i]->isNull_) {
+            // Avoid printing null key value pair.
+            continue;
+        }
+        if (i != 2) {
+            result += ", ";
+        }
+        result += fieldNames[i] + ": " + children[i]->toString();
+    }
+    result += "}->(" + children[1]->toString() + ")";
+    return result;
 }
 
 } // namespace common

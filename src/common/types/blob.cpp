@@ -1,7 +1,7 @@
 #include "common/types/blob.h"
 
 #include "common/exception/conversion.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 
 namespace kuzu {
 namespace common {
@@ -35,9 +35,9 @@ uint64_t Blob::getBlobSize(const ku_string_t& blob) {
         } else if (blobStr[i] <= 127) {
             blobSize++;
         } else {
-            throw ConversionException(StringUtils::string_format(
+            throw ConversionException(
                 "Invalid byte encountered in STRING -> BLOB conversion. All non-ascii characters "
-                "must be escaped with hex codes (e.g. \\xAA)"));
+                "must be escaped with hex codes (e.g. \\xAA)");
         }
     }
     return blobSize;
@@ -58,9 +58,10 @@ uint64_t Blob::fromString(const char* str, uint64_t length, uint8_t* resultBuffe
         } else if (str[i] <= 127) {
             resultBuffer[resultPos++] = str[i];
         } else {
-            throw ConversionException(
-                "Invalid byte encountered in STRING -> BLOB conversion. All non-ascii characters "
-                "must be escaped with hex codes (e.g. \\xAA)");
+            // LCOV_EXCL_START
+            throw InternalException("Invalid byte encountered in STRING -> BLOB conversion that "
+                                    "should have been caught during getBlobSize");
+            // LCOV_EXCL_END
         }
     }
     return resultPos;
@@ -89,15 +90,15 @@ void Blob::validateHexCode(const uint8_t* blobStr, uint64_t length, uint64_t cur
     if (curPos + HexFormatConstants::LENGTH > length) {
         throw ConversionException(
             "Invalid hex escape code encountered in string -> blob conversion: "
-            "unterminated escape code at end of blob");
+            "unterminated escape code at end of string");
     }
     if (memcmp(blobStr + curPos, HexFormatConstants::PREFIX, HexFormatConstants::PREFIX_LENGTH) !=
             0 ||
         HexFormatConstants::HEX_MAP[blobStr[curPos + HexFormatConstants::FIRST_BYTE_POS]] < 0 ||
         HexFormatConstants::HEX_MAP[blobStr[curPos + HexFormatConstants::SECOND_BYTES_POS]] < 0) {
-        throw ConversionException(StringUtils::string_format(
-            "Invalid hex escape code encountered in string -> blob conversion: {}",
-            std::string((char*)blobStr + curPos, HexFormatConstants::LENGTH)));
+        throw ConversionException(
+            stringFormat("Invalid hex escape code encountered in string -> blob conversion: {}",
+                std::string((char*)blobStr + curPos, HexFormatConstants::LENGTH)));
     }
 }
 

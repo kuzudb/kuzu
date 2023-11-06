@@ -243,6 +243,12 @@ Elizabeth|[25,40]
 2020|[220,12]
 2021|[250]
 
+-LOG HashCollectOnInt128Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.year, collect(s.hugedata)
+---- 2
+2020|[-1844674407370955161511,-15]
+2021|[1844674407370955161811111111]
+
 -LOG HashCollectOnNodeTest
 -STATEMENT MATCH (p:person) WHERE p.ID = 3 or p.ID = 5 RETURN p.gender, collect(p)
 ---- 2
@@ -303,6 +309,13 @@ True|1
 23|1
 9223372036854775808|1
 6689|1
+
+-LOG HashAggINT128Key
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.hugedata, COUNT(s.year)
+---- 3
+-1844674407370955161511|1
+-15|1
+1844674407370955161811111111|1
 
 -LOG HashAggMinBlob
 -STATEMENT MATCH (m:movies) RETURN m.length <> 298, MIN(m.content)

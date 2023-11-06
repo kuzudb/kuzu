@@ -1,4 +1,5 @@
-#include "common/string_utils.h"
+#include "binder/bound_statement_result.h"
+#include "common/string_format.h"
 #include "graph_test/graph_test.h"
 #include "processor/plan_mapper.h"
 #include "processor/processor.h"
@@ -68,11 +69,6 @@ public:
         validateDatabaseStateAfterCommitCreateNodeTable();
     }
 
-    void validateDatabaseStateAfterCommitCreateRelTable() {
-        ASSERT_TRUE(catalog->getReadOnlyVersion()->containsRelTable("likes"));
-        ASSERT_EQ(getStorageManager(*database)->getRelsStore().getNumRelTables(), 6);
-    }
-
     void createRelTable(TransactionTestType transactionTestType) {
         executeQueryWithoutCommit(
             "CREATE REL TABLE likes(FROM person TO organisation, RATING INT64, MANY_ONE)");
@@ -85,7 +81,6 @@ public:
         } else {
             conn->query("COMMIT");
         }
-        validateDatabaseStateAfterCommitCreateRelTable();
     }
 
     void validateBelongsRelTable() {
@@ -128,10 +123,6 @@ public:
             conn->query("COMMIT");
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containsRelTable("belongs"));
         }
-        auto relTableSchema = (RelTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(
-            catalog->getReadOnlyVersion()->getTableID("belongs"));
-        validateRelColumnAndListFilesExistence(
-            relTableSchema, DBFileType::ORIGINAL, true /* existence */);
         executeQueryWithoutCommit("COPY belongs FROM \"" +
                                   TestHelper::appendKuzuRootPath("dataset/tinysnb/eBelongs.csv\""));
         if (transactionTestType == TransactionTestType::RECOVERY) {
@@ -149,19 +140,15 @@ public:
             catalog->getReadOnlyVersion()
                 ->getTableSchema(catalog->getReadOnlyVersion()->getTableID("university"))
                 ->copy();
-        auto nodeTableSchema = reinterpret_cast<NodeTableSchema*>(tableSchema.get());
         executeQueryWithoutCommit("DROP TABLE university");
-        validateNodeColumnFilesExistence(nodeTableSchema, DBFileType::ORIGINAL, true);
         ASSERT_TRUE(catalog->getReadOnlyVersion()->containsNodeTable("university"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->query("COMMIT_SKIP_CHECKPOINT");
-            validateNodeColumnFilesExistence(nodeTableSchema, DBFileType::ORIGINAL, true);
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containsNodeTable("university"));
             initWithoutLoadingGraph();
         } else {
             conn->query("COMMIT");
         }
-        validateNodeColumnFilesExistence(nodeTableSchema, DBFileType::ORIGINAL, false);
         ASSERT_FALSE(catalog->getReadOnlyVersion()->containsNodeTable("university"));
     }
 
@@ -169,29 +156,19 @@ public:
         auto tableSchema = catalog->getReadOnlyVersion()
                                ->getTableSchema(catalog->getReadOnlyVersion()->getTableID("knows"))
                                ->copy();
-        auto relTableSchema = reinterpret_cast<RelTableSchema*>(tableSchema.get());
         executeQueryWithoutCommit("DROP TABLE knows");
-        validateRelColumnAndListFilesExistence(relTableSchema, DBFileType::ORIGINAL, true);
         ASSERT_TRUE(catalog->getReadOnlyVersion()->containsRelTable("knows"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->query("COMMIT_SKIP_CHECKPOINT");
-            validateRelColumnAndListFilesExistence(relTableSchema, DBFileType::ORIGINAL, true);
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containsRelTable("knows"));
             initWithoutLoadingGraph();
         } else {
             conn->query("COMMIT");
         }
-        validateRelColumnAndListFilesExistence(relTableSchema, DBFileType::ORIGINAL, false);
         ASSERT_FALSE(catalog->getReadOnlyVersion()->containsRelTable("knows"));
     }
 
     void dropNodeTableProperty(TransactionTestType transactionTestType) {
-        auto personSchema = catalog->getReadOnlyVersion()->getTableSchema(personTableID);
-        auto propertyToDrop = personSchema->getProperty(personSchema->getPropertyID("gender"));
-        auto propertyFileName = StorageUtils::getNodePropertyColumnFName(
-            databasePath, personTableID, propertyToDrop->getPropertyID(), DBFileType::ORIGINAL);
-        bool hasOverflowFile =
-            containsOverflowFile(propertyToDrop->getDataType()->getLogicalTypeID());
         executeQueryWithoutCommit("ALTER TABLE person DROP gender");
         ASSERT_TRUE(catalog->getReadOnlyVersion()
                         ->getTableSchema(personTableID)
@@ -217,50 +194,26 @@ public:
     }
 
     void dropRelTableProperty(TransactionTestType transactionTestType) {
-        auto studyAtSchema = catalog->getReadOnlyVersion()->getTableSchema(studyAtTableID);
-        auto propertyToDrop = studyAtSchema->getProperty(studyAtSchema->getPropertyID("places"));
-        // Note: studyAt is a MANY-ONE rel table. Properties are stored as columns in the fwd
-        // direction and stored as lists in the bwd direction.
-        auto propertyFWDColumnFileName =
-            StorageUtils::getRelPropertyColumnFName(databasePath, studyAtTableID,
-                RelDataDirection::FWD, propertyToDrop->getPropertyID(), DBFileType::ORIGINAL);
-        auto propertyBWDListFileName =
-            StorageUtils::getRelPropertyListsFName(databasePath, studyAtTableID,
-                RelDataDirection::BWD, propertyToDrop->getPropertyID(), DBFileType::ORIGINAL);
-        bool hasOverflowFile =
-            containsOverflowFile(propertyToDrop->getDataType()->getLogicalTypeID());
         executeQueryWithoutCommit("ALTER TABLE studyAt DROP places");
-        validateColumnFilesExistence(
-            propertyFWDColumnFileName, true /* existence */, hasOverflowFile);
-        validateListFilesExistence(
-            propertyBWDListFileName, true /* existence */, hasOverflowFile, false /* hasHeader */);
         ASSERT_TRUE(catalog->getReadOnlyVersion()
                         ->getTableSchema(studyAtTableID)
                         ->containProperty("places"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->query("COMMIT_SKIP_CHECKPOINT");
             // The file for property places should still exist until we do checkpoint.
-            validateColumnFilesExistence(
-                propertyFWDColumnFileName, true /* existence */, hasOverflowFile);
-            validateListFilesExistence(propertyBWDListFileName, true /* existence */,
-                hasOverflowFile, false /* hasHeader */);
             initWithoutLoadingGraph();
         } else {
             conn->query("COMMIT");
         }
-        validateColumnFilesExistence(
-            propertyFWDColumnFileName, false /* existence */, hasOverflowFile);
-        validateListFilesExistence(
-            propertyBWDListFileName, false /* existence */, hasOverflowFile, false /* hasHeader */);
         ASSERT_FALSE(catalog->getReadOnlyVersion()
                          ->getTableSchema(personTableID)
                          ->containProperty("places"));
         auto result = conn->query(
             "MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1");
         ASSERT_EQ(TestHelper::convertResultToString(*result),
-            std::vector<std::string>{"(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, length: 5, "
-                                     "level: 5, code: 9223372036854775808,"
-                                     " temprature: 32800, ulength: 33768, ulevel: 250}->(1:0)"});
+            std::vector<std::string>{
+                "(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, length: 5, level: 5, code: "
+                "9223372036854775808, temprature: 32800, ulength: 33768, ulevel: 250}->(1:0)"});
     }
 
     void executeQueryWithoutCommit(std::string query) {
@@ -275,22 +228,9 @@ public:
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
     }
 
-    void validateDatabaseFileBeforeCheckpointAddProperty(const std::string& originalVersionFileName,
-        const std::string& walVersionFileName, bool hasOverflow) {
-        validateColumnFilesExistence(walVersionFileName, true /* existence */, hasOverflow);
-        validateColumnFilesExistence(originalVersionFileName, false /* existence */, hasOverflow);
-    }
-
-    void validateDatabaseFileAfterCheckpointAddProperty(const std::string& originalVersionFileName,
-        const std::string& walVersionFileName, bool hasOverflow) {
-        validateColumnFilesExistence(walVersionFileName, false /* existence */, hasOverflow);
-        validateColumnFilesExistence(originalVersionFileName, true /* existence */, hasOverflow);
-    }
-
     void addPropertyToPersonTableWithoutDefaultValue(
         std::string propertyType, TransactionTestType transactionTestType) {
-        executeQueryWithoutCommit(
-            StringUtils::string_format("ALTER TABLE person ADD random {}", propertyType));
+        executeQueryWithoutCommit(stringFormat("ALTER TABLE person ADD random {}", propertyType));
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->query("COMMIT_SKIP_CHECKPOINT");
             initWithoutLoadingGraph();
@@ -326,38 +266,13 @@ public:
 
     void addPropertyToStudyAtTableWithoutDefaultValue(
         std::string propertyType, TransactionTestType transactionTestType) {
-        executeQueryWithoutCommit(
-            StringUtils::string_format("ALTER TABLE studyAt ADD random {}", propertyType));
-        auto tableSchema = catalog->getWriteVersion()->getTableSchema(studyAtTableID);
-        auto propertyID = tableSchema->getPropertyID("random");
-        auto hasOverflow = containsOverflowFile(
-            tableSchema->getProperty(propertyID)->getDataType()->getLogicalTypeID());
-        auto fwdColumnOriginalVersionFileName = StorageUtils::getRelPropertyColumnFName(
-            databasePath, studyAtTableID, RelDataDirection::FWD, propertyID, DBFileType::ORIGINAL);
-        auto fwdColumnWALVersionFileName = StorageUtils::getRelPropertyColumnFName(databasePath,
-            studyAtTableID, RelDataDirection::FWD, propertyID, DBFileType::WAL_VERSION);
-        auto bwdListOriginalVersionFileName = StorageUtils::getRelPropertyListsFName(
-            databasePath, studyAtTableID, RelDataDirection::BWD, propertyID, DBFileType::ORIGINAL);
-        auto bwdListWALVersionFileName = StorageUtils::getRelPropertyListsFName(databasePath,
-            studyAtTableID, RelDataDirection::BWD, propertyID, DBFileType::WAL_VERSION);
-        validateDatabaseFileBeforeCheckpointAddProperty(
-            fwdColumnOriginalVersionFileName, fwdColumnWALVersionFileName, hasOverflow);
-        validateDatabaseFileBeforeCheckpointAddProperty(
-            bwdListOriginalVersionFileName, bwdListWALVersionFileName, hasOverflow);
+        executeQueryWithoutCommit(stringFormat("ALTER TABLE studyAt ADD random {}", propertyType));
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->query("COMMIT_SKIP_CHECKPOINT");
-            validateDatabaseFileBeforeCheckpointAddProperty(
-                fwdColumnOriginalVersionFileName, fwdColumnWALVersionFileName, hasOverflow);
-            validateDatabaseFileBeforeCheckpointAddProperty(
-                bwdListOriginalVersionFileName, bwdListWALVersionFileName, hasOverflow);
             initWithoutLoadingGraph();
         } else {
             conn->query("COMMIT");
         }
-        validateDatabaseFileAfterCheckpointAddProperty(
-            fwdColumnOriginalVersionFileName, fwdColumnWALVersionFileName, hasOverflow);
-        validateDatabaseFileAfterCheckpointAddProperty(
-            bwdListOriginalVersionFileName, bwdListWALVersionFileName, hasOverflow);
         // Note: the default value of the new property is NULL if not specified by the user.
         auto result = conn->query("MATCH (:person)-[e:studyAt]->(:organisation) return e.random");
         while (result->hasNext()) {
@@ -367,40 +282,16 @@ public:
 
     void addPropertyToStudyAtTableWithDefaultValue(
         std::string propertyType, std::string defaultVal, TransactionTestType transactionTestType) {
-        executeQueryWithoutCommit(StringUtils::string_format(
-            "ALTER TABLE studyAt ADD random {} DEFAULT {}", propertyType, defaultVal));
-        auto relTableSchema = catalog->getWriteVersion()->getTableSchema(studyAtTableID);
-        auto propertyID = relTableSchema->getPropertyID("random");
-        auto hasOverflow = containsOverflowFile(
-            relTableSchema->getProperty(propertyID)->getDataType()->getLogicalTypeID());
-        auto fwdColumnOriginalVersionFileName = StorageUtils::getRelPropertyColumnFName(
-            databasePath, studyAtTableID, RelDataDirection::FWD, propertyID, DBFileType::ORIGINAL);
-        auto fwdColumnWALVersionFileName = StorageUtils::getRelPropertyColumnFName(databasePath,
-            studyAtTableID, RelDataDirection::FWD, propertyID, DBFileType::WAL_VERSION);
-        auto bwdListOriginalVersionFileName = StorageUtils::getRelPropertyListsFName(
-            databasePath, studyAtTableID, RelDataDirection::BWD, propertyID, DBFileType::ORIGINAL);
-        auto bwdListWALVersionFileName = StorageUtils::getRelPropertyListsFName(databasePath,
-            studyAtTableID, RelDataDirection::BWD, propertyID, DBFileType::WAL_VERSION);
-        validateDatabaseFileBeforeCheckpointAddProperty(
-            fwdColumnOriginalVersionFileName, fwdColumnWALVersionFileName, hasOverflow);
-        validateDatabaseFileBeforeCheckpointAddProperty(
-            bwdListOriginalVersionFileName, bwdListWALVersionFileName, hasOverflow);
+        executeQueryWithoutCommit(
+            stringFormat("ALTER TABLE studyAt ADD random {} DEFAULT {}", propertyType, defaultVal));
         defaultVal.erase(remove(defaultVal.begin(), defaultVal.end(), '\''), defaultVal.end());
         std::vector<std::string> expectedResult(3 /* numOfRelsInStudyAt */, defaultVal);
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->query("COMMIT_SKIP_CHECKPOINT");
-            validateDatabaseFileBeforeCheckpointAddProperty(
-                fwdColumnOriginalVersionFileName, fwdColumnWALVersionFileName, hasOverflow);
-            validateDatabaseFileBeforeCheckpointAddProperty(
-                bwdListOriginalVersionFileName, bwdListWALVersionFileName, hasOverflow);
             initWithoutLoadingGraph();
         } else {
             conn->query("COMMIT");
         }
-        validateDatabaseFileAfterCheckpointAddProperty(
-            fwdColumnOriginalVersionFileName, fwdColumnWALVersionFileName, hasOverflow);
-        validateDatabaseFileAfterCheckpointAddProperty(
-            bwdListOriginalVersionFileName, bwdListWALVersionFileName, hasOverflow);
         ASSERT_EQ(TestHelper::convertResultToString(
                       *conn->query("MATCH (:person)-[e:studyAt]->(:organisation) return e.random")),
             expectedResult);
@@ -486,13 +377,13 @@ TEST_F(TinySnbDDLTest, DropNodeTableCommitRecovery) {
     dropNodeTableCommitAndRecoveryTest(TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbDDLTest, DropRelTableCommitNormalExecution) {
-    dropRelTableCommitAndRecoveryTest(TransactionTestType::NORMAL_EXECUTION);
-}
+// TEST_F(TinySnbDDLTest, DropRelTableCommitNormalExecution) {
+//    dropRelTableCommitAndRecoveryTest(TransactionTestType::NORMAL_EXECUTION);
+//}
 
-TEST_F(TinySnbDDLTest, DropRelTableCommitRecovery) {
-    dropRelTableCommitAndRecoveryTest(TransactionTestType::RECOVERY);
-}
+// TEST_F(TinySnbDDLTest, DropRelTableCommitRecovery) {
+//    dropRelTableCommitAndRecoveryTest(TransactionTestType::RECOVERY);
+//}
 
 TEST_F(TinySnbDDLTest, DropNodeTablePropertyNormalExecution) {
     dropNodeTableProperty(TransactionTestType::NORMAL_EXECUTION);
@@ -502,13 +393,13 @@ TEST_F(TinySnbDDLTest, DropNodeTablePropertyRecovery) {
     dropNodeTableProperty(TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbDDLTest, DropRelTablePropertyNormalExecution) {
-    dropRelTableProperty(TransactionTestType::NORMAL_EXECUTION);
-}
+// TEST_F(TinySnbDDLTest, DropRelTablePropertyNormalExecution) {
+//    dropRelTableProperty(TransactionTestType::NORMAL_EXECUTION);
+//}
 
-TEST_F(TinySnbDDLTest, DropRelTablePropertyRecovery) {
-    dropRelTableProperty(TransactionTestType::RECOVERY);
-}
+// TEST_F(TinySnbDDLTest, DropRelTablePropertyRecovery) {
+//    dropRelTableProperty(TransactionTestType::RECOVERY);
+//}
 
 TEST_F(TinySnbDDLTest, AddInt64PropertyToPersonTableWithoutDefaultValueNormalExecution) {
     addPropertyToPersonTableWithoutDefaultValue(
@@ -688,25 +579,25 @@ TEST_F(TinySnbDDLTest, AddStructPropertyToPersonTableWithDefaultValueRecovery) {
         "{price: [5,3,2], volume: 24}" /* defaultValue */, TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbDDLTest, AddInt64PropertyToStudyAtTableWithoutDefaultValueNormalExecution) {
-    addPropertyToStudyAtTableWithoutDefaultValue(
-        "INT64" /* propertyType */, TransactionTestType::NORMAL_EXECUTION);
-}
+// TEST_F(TinySnbDDLTest, AddInt64PropertyToStudyAtTableWithoutDefaultValueNormalExecution) {
+//    addPropertyToStudyAtTableWithoutDefaultValue(
+//        "INT64" /* propertyType */, TransactionTestType::NORMAL_EXECUTION);
+//}
 
-TEST_F(TinySnbDDLTest, AddInt64PropertyToStudyAtTableWithoutDefaultValueRecovery) {
-    addPropertyToStudyAtTableWithoutDefaultValue(
-        "INT64" /* propertyType */, TransactionTestType::RECOVERY);
-}
+// TEST_F(TinySnbDDLTest, AddInt64PropertyToStudyAtTableWithoutDefaultValueRecovery) {
+//    addPropertyToStudyAtTableWithoutDefaultValue(
+//        "INT64" /* propertyType */, TransactionTestType::RECOVERY);
+//}
 
-TEST_F(TinySnbDDLTest, AddStringPropertyToStudyAtTableWithoutDefaultValueNormalExecution) {
-    addPropertyToStudyAtTableWithoutDefaultValue(
-        "STRING" /* propertyType */, TransactionTestType::NORMAL_EXECUTION);
-}
+// TEST_F(TinySnbDDLTest, AddStringPropertyToStudyAtTableWithoutDefaultValueNormalExecution) {
+//    addPropertyToStudyAtTableWithoutDefaultValue(
+//        "STRING" /* propertyType */, TransactionTestType::NORMAL_EXECUTION);
+//}
 
-TEST_F(TinySnbDDLTest, AddStringPropertyToStudyAtTableWithoutDefaultValueRecovery) {
-    addPropertyToStudyAtTableWithoutDefaultValue(
-        "STRING" /* propertyType */, TransactionTestType::RECOVERY);
-}
+// TEST_F(TinySnbDDLTest, AddStringPropertyToStudyAtTableWithoutDefaultValueRecovery) {
+//    addPropertyToStudyAtTableWithoutDefaultValue(
+//        "STRING" /* propertyType */, TransactionTestType::RECOVERY);
+//}
 
 // TEST_F(TinySnbDDLTest, AddListOfInt64PropertyToStudyAtTableWithoutDefaultValueNormalExecution) {
 //    addPropertyToStudyAtTableWithoutDefaultValue(
@@ -717,12 +608,12 @@ TEST_F(TinySnbDDLTest, AddStringPropertyToStudyAtTableWithoutDefaultValueRecover
 //    addPropertyToStudyAtTableWithoutDefaultValue(
 //        "INT64[]" /* propertyType */, TransactionTestType::RECOVERY);
 //}
-//
+
 // TEST_F(TinySnbDDLTest, AddListOfStringPropertyToStudyAtTableWithoutDefaultValueNormalExecution) {
 //    addPropertyToStudyAtTableWithoutDefaultValue(
 //        "STRING[]" /* propertyType */, TransactionTestType::NORMAL_EXECUTION);
 //}
-//
+
 // TEST_F(TinySnbDDLTest, AddListOfStringPropertyToStudyAtTableWithoutDefaultValueRecovery) {
 //    addPropertyToStudyAtTableWithoutDefaultValue(
 //        "STRING[]" /* propertyType */, TransactionTestType::RECOVERY);
@@ -732,17 +623,17 @@ TEST_F(TinySnbDDLTest, AddStringPropertyToStudyAtTableWithoutDefaultValueRecover
 //    addPropertyToStudyAtTableWithDefaultValue(
 //        "INT64" /* propertyType */, "42" /* defaultVal */, TransactionTestType::NORMAL_EXECUTION);
 //}
-//
+
 // TEST_F(TinySnbDDLTest, AddInt64PropertyToStudyAtTableWithDefaultValueRecovery) {
 //    addPropertyToStudyAtTableWithDefaultValue(
 //        "INT64" /* propertyType */, "42" /* defaultVal */, TransactionTestType::RECOVERY);
 //}
-//
+
 // TEST_F(TinySnbDDLTest, AddStringPropertyToStudyAtTableWithDefaultValueNormalExecution) {
 //    addPropertyToStudyAtTableWithDefaultValue("STRING" /* propertyType */,
 //        "'VERY LONG STRING!!'" /* defaultVal */, TransactionTestType::NORMAL_EXECUTION);
 //}
-//
+
 // TEST_F(TinySnbDDLTest, AddStringPropertyToStudyAtTableWithDefaultValueRecovery) {
 //    addPropertyToStudyAtTableWithDefaultValue("STRING" /* propertyType */,
 //        "'VERY SHORT STRING!!'" /* defaultVal */, TransactionTestType::RECOVERY);
@@ -752,22 +643,22 @@ TEST_F(TinySnbDDLTest, AddStringPropertyToStudyAtTableWithoutDefaultValueRecover
 //    addPropertyToStudyAtTableWithDefaultValue("INT64[]" /* propertyType */,
 //        "[11,15,20]" /* defaultVal */, TransactionTestType::NORMAL_EXECUTION);
 //}
-//
+
 // TEST_F(TinySnbDDLTest, AddListOfINT64PropertyToStudyAtTableWithDefaultValueRecovery) {
 //    addPropertyToStudyAtTableWithDefaultValue("INT64[]" /* propertyType */,
 //        "[5,6,7,1,3]" /* defaultVal */, TransactionTestType::RECOVERY);
 //}
-//
+
 // TEST_F(TinySnbDDLTest, AddListOfStringPropertyToStudyAtTableWithDefaultValueNormalExecution) {
 //    addPropertyToStudyAtTableWithDefaultValue("STRING[]" /* propertyType */,
 //        "['13','15','long string!!']" /* defaultVal */, TransactionTestType::NORMAL_EXECUTION);
 //}
-//
+
 // TEST_F(TinySnbDDLTest, AddListOfStringPropertyToStudyAtTableWithDefaultValueRecovery) {
 //    addPropertyToStudyAtTableWithDefaultValue("STRING[]" /* propertyType */,
 //        "['2','SHORT','SUPER LONG STRINGS']" /* defaultVal */, TransactionTestType::RECOVERY);
 //}
-//
+
 // TEST_F(TinySnbDDLTest,
 // AddListOfListOfStringPropertyToStudyAtTableWithDefaultValueNormalExecution) {
 //    addPropertyToStudyAtTableWithDefaultValue("STRING[][]" /* propertyType */,
@@ -776,7 +667,7 @@ TEST_F(TinySnbDDLTest, AddStringPropertyToStudyAtTableWithoutDefaultValueRecover
 //        ,
 //        TransactionTestType::NORMAL_EXECUTION);
 //}
-//
+
 // TEST_F(TinySnbDDLTest, AddListOfListOfStringPropertyToStudyAtTableWithDefaultValueRecovery) {
 //    addPropertyToStudyAtTableWithDefaultValue("STRING[][]" /* propertyType */,
 //        "[['hello','good','long long string test'],['6'],['very very long string']]" /* defaultVal

@@ -1,20 +1,7 @@
-#pragma once
-
-#include <cstring>
-
-#include "common/file_utils.h"
-#include "common/string_utils.h"
 #include "graph_test/base_graph_test.h"
-#include "gtest/gtest.h"
 #include "main/kuzu.h"
-#include "parser/parser.h"
-#include "planner/operator/logical_plan_util.h"
-#include "planner/planner.h"
-#include "test_helper/test_helper.h"
 #include "test_runner/test_runner.h"
 #include "transaction/transaction_context.h"
-
-using ::testing::Test;
 
 namespace kuzu {
 namespace testing {
@@ -37,23 +24,8 @@ protected:
     static inline bool hasActiveTransaction(main::Connection& connection) {
         return connection.clientContext->getTransactionContext()->hasActiveTransaction();
     }
-    void validateColumnFilesExistence(std::string fileName, bool existence, bool hasOverflow);
-
-    void validateListFilesExistence(
-        std::string fileName, bool existence, bool hasOverflow, bool hasHeader);
-
-    void validateNodeColumnFilesExistence(
-        catalog::NodeTableSchema* nodeTableSchema, common::DBFileType dbFileType, bool existence);
-
-    void validateRelColumnAndListFilesExistence(
-        catalog::RelTableSchema* relTableSchema, common::DBFileType dbFileType, bool existence);
 
     void validateQueryBestPlanJoinOrder(std::string query, std::string expectedJoinOrder);
-
-private:
-    void validateRelPropertyFiles(catalog::RelTableSchema* relTableSchema,
-        common::RelDataDirection relDirection, bool isColumnProperty, common::DBFileType dbFileType,
-        bool existence);
 };
 
 // This class starts database without initializing graph.

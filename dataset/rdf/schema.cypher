@@ -1,1 +1,0 @@
-CREATE RDF GRAPH tiny;

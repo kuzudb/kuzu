@@ -7,8 +7,8 @@ void LogicalScanFile::computeFactorizedSchema() {
     createEmptySchema();
     auto groupPos = schema->createGroup();
     schema->insertToGroupAndScope(info->columns, groupPos);
-    if (info->offset != nullptr) {
-        schema->insertToGroupAndScope(info->offset, groupPos);
+    if (info->internalID != nullptr) {
+        schema->insertToGroupAndScope(info->internalID, groupPos);
     }
 }
 
@@ -16,8 +16,8 @@ void LogicalScanFile::computeFlatSchema() {
     createEmptySchema();
     schema->createGroup();
     schema->insertToGroupAndScope(info->columns, 0);
-    if (info->offset != nullptr) {
-        schema->insertToGroupAndScope(info->offset, 0);
+    if (info->internalID != nullptr) {
+        schema->insertToGroupAndScope(info->internalID, 0);
     }
 }
 

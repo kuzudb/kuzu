@@ -1,5 +1,7 @@
 #include "common/arrow/arrow_converter.h"
 
+#include <cstring>
+
 #include "common/arrow/arrow_row_batch.h"
 #include "common/exception/internal.h"
 

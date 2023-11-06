@@ -1,15 +1,11 @@
 #pragma once
 
-#include <atomic>
 #include <memory>
-#include <mutex>
 #include <shared_mutex>
-#include <vector>
 
 #include "common/constants.h"
 #include "common/file_utils.h"
 #include "common/types/types.h"
-#include "storage/storage_utils.h"
 
 namespace kuzu {
 namespace storage {
@@ -22,7 +18,10 @@ public:
     constexpr static uint8_t isNewInMemoryTmpFileMask{0b0000'0010}; // represents 2nd LSB
     // createIfNotExistsMask only applies to existing db files; tmp i-memory files are not created
     constexpr static uint8_t createIfNotExistsMask{0b0000'0100}; // represents 3rd LSB
+    constexpr static uint8_t isReadOnlyMask{0b0000'1000};        // represents 4th LSB
 
+    // READ_ONLY subsumes DEFAULT_PAGED, PERSISTENT, and NO_CREATE.
+    constexpr static uint8_t O_PERSISTENT_FILE_READ_ONLY{0b0000'1000};
     constexpr static uint8_t O_PERSISTENT_FILE_NO_CREATE{0b0000'0000};
     constexpr static uint8_t O_PERSISTENT_FILE_CREATE_NOT_EXISTS{0b0000'0100};
     constexpr static uint8_t O_IN_MEM_TEMP_FILE{0b0000'0011};
@@ -43,6 +42,7 @@ public:
 
     inline bool isLargePaged() const { return flags & isLargePagedMask; }
     inline bool isNewTmpFile() const { return flags & isNewInMemoryTmpFileMask; }
+    inline bool isReadOnlyFile() const { return flags & isReadOnlyMask; }
     inline bool createFileIfNotExists() const { return flags & createIfNotExistsMask; }
 
     inline common::page_idx_t getNumPages() const { return numPages; }

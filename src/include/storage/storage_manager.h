@@ -1,7 +1,6 @@
 #pragma once
 
-#include <mutex>
-
+#include "common/enums/access_mode.h"
 #include "storage/store/nodes_store.h"
 #include "storage/store/rels_store.h"
 #include "storage/wal/wal.h"
@@ -9,10 +8,11 @@
 namespace kuzu {
 namespace storage {
 
+// TODO(Guodong): NodesStore, RelsStore and StorageManager should be merged together.
 class StorageManager {
 public:
-    StorageManager(
-        catalog::Catalog& catalog, MemoryManager& memoryManager, WAL* wal, bool enableCompression);
+    StorageManager(common::AccessMode accessMode, catalog::Catalog& catalog,
+        MemoryManager& memoryManager, WAL* wal, bool enableCompression);
 
     ~StorageManager() = default;
 

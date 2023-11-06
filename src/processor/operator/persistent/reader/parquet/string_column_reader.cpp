@@ -68,7 +68,7 @@ void StringColumnReader::dictionary(std::shared_ptr<ResizeableBuffer> data, uint
 }
 
 common::ku_string_t StringParquetValueConversion::dictRead(
-    ByteBuffer& dict, uint32_t& offset, ColumnReader& reader) {
+    ByteBuffer& /*dict*/, uint32_t& offset, ColumnReader& reader) {
     auto& dictStrings = reinterpret_cast<StringColumnReader&>(reader).dictStrs;
     return dictStrings[offset];
 }

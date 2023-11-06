@@ -6,11 +6,11 @@
 -CASE AggSimple
 
 -LOG OneHopSimpleAggTest
--STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN COUNT(a.ID), MIN(a.fName), MAX(c.ID)
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN COUNT(a.ID), MIN(a.fName), MAX(c.ID),count(a.grades)
 -PARALLELISM 8
 -ENUMERATE
 ---- 1
-36|Alice|5
+36|Alice|5|36
 
 -LOG SimpleAvgTest
 -STATEMENT MATCH (a:person) RETURN AVG(a.age), AVG(a.eyeSight)
@@ -108,6 +108,12 @@ False
 ---- 1
 2|1
 
+-LOG INT128KeyTest
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.hugedata = 1844674407370955161811111111 RETURN p.ID, o.ID
+-ENUMERATE
+---- 1
+0|1
+
 -LOG SimpleCollectINT64Test
 -STATEMENT MATCH (p:person) RETURN collect(p.age)
 ---- 1
@@ -147,6 +153,11 @@ False
 -STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN collect(e.ulevel)
 ---- 1
 [250,220,12]
+
+-LOG SimpleCollectINT128Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN collect(e.hugedata)
+---- 1
+[1844674407370955161811111111,-1844674407370955161511,-15]
 
 -LOG SimpleCollectBLOBTest
 -STATEMENT MATCH (m:movies) RETURN collect(m.content)
@@ -239,11 +250,11 @@ False
 82
 
 -LOG SimpleAggAvgInt16Test
--STATEMENT MATCH (m:movies) RETURN AVG(m.length)
+-STATEMENT MATCH (m:movies) RETURN AVG(m.length), count(m.audience), count(m.grade)
 -PARALLELISM 7
 -ENUMERATE
 ---- 1
-989.333333
+989.333333|3|3
 
 -LOG SimpleAggMaxInt8Test
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.level)
@@ -314,6 +325,20 @@ False
 -ENUMERATE
 ---- 1
 226
+
+-LOG SimpleAggMaxInt128Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.hugedata)
+-PARALLELISM 2
+-ENUMERATE
+---- 1
+1844674407370955161811111111
+
+-LOG SimpleAggSumInt128Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.hugedata)
+-PARALLELISM 2
+-ENUMERATE
+---- 1
+1844672562696547790855949585
 
 -LOG SimpleAggCountBlob
 -STATEMENT MATCH (m:movies) RETURN COUNT(m.content)

@@ -1,25 +1,27 @@
 #pragma once
 
+#include "binder/expression/expression.h"
+#include "common/exception/not_implemented.h"
 #include "expression_evaluator.h"
 
 namespace kuzu {
 namespace evaluator {
 
-class PathExpressionEvaluator : public ExpressionEvaluator {
+class PathExpressionEvaluator final : public ExpressionEvaluator {
 public:
     PathExpressionEvaluator(std::shared_ptr<binder::Expression> expression,
         std::vector<std::unique_ptr<ExpressionEvaluator>> children)
         : ExpressionEvaluator{std::move(children)}, expression{std::move(expression)} {}
 
-    void init(const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) final;
+    void init(const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager);
 
-    void evaluate() final;
+    void evaluate();
 
-    bool select(common::SelectionVector& selVector) final {
+    bool select(common::SelectionVector& /*selVector*/) {
         throw common::NotImplementedException("PathExpressionEvaluator::select");
     }
 
-    inline std::unique_ptr<ExpressionEvaluator> clone() final {
+    inline std::unique_ptr<ExpressionEvaluator> clone() {
         std::vector<std::unique_ptr<ExpressionEvaluator>> clonedChildren;
         for (auto& child : children) {
             clonedChildren.push_back(child->clone());
@@ -45,7 +47,7 @@ private:
     };
 
     void resolveResultVector(
-        const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) final;
+        const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager);
 
     void copyNodes(common::sel_t resultPos);
     void copyRels(common::sel_t resultPos);

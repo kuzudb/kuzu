@@ -1,27 +1,15 @@
 #pragma once
 
-#include <algorithm>
-#include <cstring>
 #include <regex>
-#include <sstream>
 #include <string>
 #include <vector>
-
-#include "spdlog/fmt/fmt.h"
 
 namespace kuzu {
 namespace common {
 
 class StringUtils {
-
 public:
-    template<typename... Args>
-    inline static std::string string_format(const std::string& format, Args... args) {
-        return fmt::format(fmt::runtime(format), args...);
-    }
-
-    static std::vector<std::string> splitComma(
-        const std::string& input, bool ignoreEmptyStringParts = true);
+    static std::vector<std::string> splitComma(const std::string& input);
 
     static std::vector<std::string> split(
         const std::string& input, const std::string& delimiter, bool ignoreEmptyStringParts = true);
@@ -46,12 +34,6 @@ public:
     }
 
     static bool CharacterIsDigit(char c) { return c >= '0' && c <= '9'; }
-
-    static std::string getLongStringErrorMessage(
-        const char* strToInsert, uint64_t maxAllowedStrSize) {
-        return string_format("Maximum length of strings is {}. Input string's length is {}.",
-            maxAllowedStrSize, strlen(strToInsert), strToInsert);
-    }
 
     static inline std::string ltrim(const std::string& input) {
         auto s = input;

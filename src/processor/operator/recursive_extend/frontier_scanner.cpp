@@ -48,7 +48,7 @@ void BaseFrontierScanner::resetState(const BaseBFSState& bfsState) {
 }
 
 void DstNodeScanner::scanFromDstOffset(RecursiveJoinVectors* vectors, sel_t& vectorPos,
-    sel_t& nodeIDDataVectorPos, sel_t& relIDDataVectorPos) {
+    sel_t& /*nodeIDDataVectorPos*/, sel_t& /*relIDDataVectorPos*/) {
     assert(vectorPos < DEFAULT_VECTOR_CAPACITY);
     writeDstNodeOffsetAndLength(vectors->dstNodeIDVector, vectors->pathLengthVector, vectorPos);
     vectorPos++;
@@ -136,7 +136,7 @@ void PathScanner::writePathToVector(RecursiveJoinVectors* vectors, sel_t& vector
 }
 
 void DstNodeWithMultiplicityScanner::scanFromDstOffset(RecursiveJoinVectors* vectors,
-    sel_t& vectorPos, sel_t& nodeIDDataVectorPos, sel_t& relIDDataVectorPos) {
+    sel_t& vectorPos, sel_t& /*nodeIDDataVectorPos*/, sel_t& /*relIDDataVectorPos*/) {
     auto& multiplicity = frontiers[k]->nodeIDToMultiplicity.at(currentDstNodeID);
     while (multiplicity > 0 && vectorPos < DEFAULT_VECTOR_CAPACITY) {
         writeDstNodeOffsetAndLength(vectors->dstNodeIDVector, vectors->pathLengthVector, vectorPos);

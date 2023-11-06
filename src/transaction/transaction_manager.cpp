@@ -1,5 +1,7 @@
 #include "transaction/transaction_manager.h"
 
+#include <thread>
+
 #include "common/exception/transaction_manager.h"
 
 using namespace kuzu::common;

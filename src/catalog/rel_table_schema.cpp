@@ -1,7 +1,8 @@
 #include "catalog/rel_table_schema.h"
 
 #include "common/exception/catalog.h"
-#include "common/ser_deser.h"
+#include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
 
 using namespace kuzu::common;
 
@@ -40,19 +41,19 @@ std::string getRelMultiplicityAsString(RelMultiplicity relMultiplicity) {
     }
 }
 
-void RelTableSchema::serializeInternal(FileInfo* fileInfo, uint64_t& offset) {
-    SerDeser::serializeValue(relMultiplicity, fileInfo, offset);
-    SerDeser::serializeValue(srcTableID, fileInfo, offset);
-    SerDeser::serializeValue(dstTableID, fileInfo, offset);
+void RelTableSchema::serializeInternal(Serializer& serializer) {
+    serializer.serializeValue(relMultiplicity);
+    serializer.serializeValue(srcTableID);
+    serializer.serializeValue(dstTableID);
 }
 
-std::unique_ptr<RelTableSchema> RelTableSchema::deserialize(FileInfo* fileInfo, uint64_t& offset) {
+std::unique_ptr<RelTableSchema> RelTableSchema::deserialize(Deserializer& deserializer) {
     RelMultiplicity relMultiplicity;
     table_id_t srcTableID;
     table_id_t dstTableID;
-    SerDeser::deserializeValue(relMultiplicity, fileInfo, offset);
-    SerDeser::deserializeValue(srcTableID, fileInfo, offset);
-    SerDeser::deserializeValue(dstTableID, fileInfo, offset);
+    deserializer.deserializeValue(relMultiplicity);
+    deserializer.deserializeValue(srcTableID);
+    deserializer.deserializeValue(dstTableID);
     return std::make_unique<RelTableSchema>(relMultiplicity, srcTableID, dstTableID);
 }
 

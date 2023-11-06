@@ -1,4 +1,4 @@
 #pragma once
 
-#include "connection.h"
-#include "database.h"
+#include "connection.h" // IWYU pragma: export
+#include "database.h"   // IWYU pragma: export

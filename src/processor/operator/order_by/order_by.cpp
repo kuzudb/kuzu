@@ -16,7 +16,7 @@ void OrderBy::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* con
     }
 }
 
-void OrderBy::initGlobalStateInternal(ExecutionContext* context) {
+void OrderBy::initGlobalStateInternal(ExecutionContext* /*context*/) {
     sharedState->init(*info);
 }
 

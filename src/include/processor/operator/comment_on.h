@@ -32,7 +32,8 @@ public:
     inline bool isSource() const override { return true; }
     inline bool canParallel() const final { return false; }
 
-    inline void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override {
+    inline void initLocalStateInternal(
+        ResultSet* resultSet, ExecutionContext* /*context*/) override {
         outputVector = resultSet->getValueVector(commentOnInfo->outputPos).get();
     }
 

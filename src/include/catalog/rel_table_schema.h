@@ -1,6 +1,7 @@
 #pragma once
 
-#include "common/rel_direction.h"
+#include "common/constants.h"
+#include "common/enums/rel_direction.h"
 #include "table_schema.h"
 
 namespace kuzu {
@@ -57,8 +58,7 @@ public:
 
     inline common::table_id_t getDstTableID() const { return dstTableID; }
 
-    static std::unique_ptr<RelTableSchema> deserialize(
-        common::FileInfo* fileInfo, uint64_t& offset);
+    static std::unique_ptr<RelTableSchema> deserialize(common::Deserializer& deserializer);
 
     inline std::unique_ptr<TableSchema> copy() const override {
         return std::make_unique<RelTableSchema>(tableName, tableID, Property::copy(properties),
@@ -66,7 +66,7 @@ public:
     }
 
 private:
-    void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) final;
+    void serializeInternal(common::Serializer& serializer) final;
 
 private:
     RelMultiplicity relMultiplicity;

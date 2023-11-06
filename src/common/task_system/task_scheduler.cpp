@@ -1,7 +1,6 @@
 #include "common/task_system/task_scheduler.h"
 
 #include "common/constants.h"
-#include "spdlog/spdlog.h"
 
 using namespace kuzu::common;
 
@@ -35,7 +34,7 @@ void TaskScheduler::scheduleTaskAndWaitOrError(
     }
     auto scheduledTask = scheduleTask(task);
     while (!task->isCompleted()) {
-        if (context != nullptr && context->clientContext->isTimeOutEnabled()) {
+        if (context->clientContext->isTimeOutEnabled()) {
             interruptTaskIfTimeOutNoLock(context);
         } else if (task->hasException()) {
             // Interrupt tasks that errored, so other threads can stop working on them early.

@@ -1,5 +1,7 @@
 #include "processor/operator/order_by/order_by_merge.h"
 
+#include <thread>
+
 #include "common/constants.h"
 
 using namespace kuzu::common;
@@ -7,14 +9,14 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void OrderByMerge::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+void OrderByMerge::initLocalStateInternal(ResultSet* /*resultSet*/, ExecutionContext* /*context*/) {
     // OrderByMerge is the only sink operator in a pipeline and only modifies the
     // sharedState by merging sortedKeyBlocks, So we don't need to initialize the resultSet.
     localMerger = make_unique<KeyBlockMerger>(sharedState->getPayloadTables(),
         sharedState->getStrKeyColInfo(), sharedState->getNumBytesPerTuple());
 }
 
-void OrderByMerge::executeInternal(ExecutionContext* context) {
+void OrderByMerge::executeInternal(ExecutionContext* /*context*/) {
     while (!sharedDispatcher->isDoneMerge()) {
         auto keyBlockMergeMorsel = sharedDispatcher->getMorsel();
         if (keyBlockMergeMorsel == nullptr) {

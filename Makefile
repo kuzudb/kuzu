@@ -1,25 +1,17 @@
-.PHONY: release debug test benchmark all alldebug arrow clean clean-external clean-all
+.PHONY: release debug test benchmark all alldebug clean clean-all
 
 GENERATOR=
 FORCE_COLOR=
-NUM_THREADS=
-TEST_JOBS=
+NUM_THREADS ?= 1
+TEST_JOBS ?= 10
 SANITIZER_FLAG=
+WERROR_FLAG=
 ROOT_DIR=$(CURDIR)
 
-ifndef $(NUM_THREADS)
-	NUM_THREADS=1
-endif
 export CMAKE_BUILD_PARALLEL_LEVEL=$(NUM_THREADS)
 
-ifndef $(TEST_JOBS)
-	TEST_JOBS=10
-endif
-
 ifeq ($(OS),Windows_NT)
-	ifndef $(GEN)
-		GEN=ninja
-	endif
+	GEN ?= ninja
 	SHELL := cmd.exe
 	.SHELLFLAGS := /c
 endif
@@ -39,6 +31,10 @@ ifeq ($(UBSAN), 1)
 	SANITIZER_FLAG=-DENABLE_ADDRESS_SANITIZER=FALSE -DENABLE_THREAD_SANITIZER=TRUE -DENABLE_UBSAN=TRUE
 endif
 
+ifeq ($(WERROR), 1)
+	WERROR_FLAG=-DENABLE_WERROR=TRUE
+endif
+
 ifeq ($(OS),Windows_NT)
 define mkdirp
 	(if not exist "$(1)" mkdir "$(1)")
@@ -51,86 +47,80 @@ endif
 
 release:
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release ../.. && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) -DCMAKE_BUILD_TYPE=Release ../.. && \
 	cmake --build . --config Release
 
 debug:
 	$(call mkdirp,build/debug) && cd build/debug && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Debug ../.. && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) -DCMAKE_BUILD_TYPE=Debug ../.. && \
 	cmake --build . --config Debug
 
 all:
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE -DBUILD_BENCHMARK=TRUE -DBUILD_NODEJS=TRUE -DBUILD_EXAMPLES=TRUE ../.. && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE -DBUILD_BENCHMARK=TRUE -DBUILD_NODEJS=TRUE -DBUILD_EXAMPLES=TRUE ../.. && \
 	cmake --build . --config Release
 
 example:
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_EXAMPLES=TRUE ../.. && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_EXAMPLES=TRUE ../.. && \
 	cmake --build . --config Release
 
 alldebug:
 	$(call mkdirp,build/debug) && cd build/debug && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=TRUE -DBUILD_BENCHMARK=TRUE -DBUILD_NODEJS=TRUE -DBUILD_EXAMPLES=TRUE ../.. && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=TRUE -DBUILD_BENCHMARK=TRUE -DBUILD_NODEJS=TRUE -DBUILD_EXAMPLES=TRUE ../.. && \
 	cmake --build . --config Debug
 
 benchmark:
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_BENCHMARK=TRUE ../.. && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_BENCHMARK=TRUE ../.. && \
 	cmake --build . --config Release
 
 nodejs:
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_NODEJS=TRUE ../.. && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_NODEJS=TRUE ../.. && \
 	cmake --build . --config Release
 
 java:
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_JAVA=TRUE ../.. && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_JAVA=TRUE ../.. && \
 	cmake --build . --config Release
 
 test:
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE ../.. && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE ../.. && \
 	cmake --build . --config Release
 	cd $(ROOT_DIR)/build/release/test && \
 	ctest --output-on-failure -j ${TEST_JOBS}
 
 lcov:
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE -DBUILD_NODEJS=TRUE -DBUILD_LCOV=TRUE ../.. && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE -DBUILD_NODEJS=TRUE -DBUILD_LCOV=TRUE ../.. && \
 	cmake --build . --config Release
 	cd $(ROOT_DIR)/build/release/test && \
 	ctest --output-on-failure -j ${TEST_JOBS}
 
 clangd:
-	$(call mkdirp,build/clangd) && cd build/clangd && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE=Release -DBUILD_EXAMPLES=TRUE \
-		-DBUILD_BENCHMARK=TRUE -DBUILD_JAVA=TRUE -DBUILD_NODEJS=TRUE -DBUILD_TESTS=TRUE ../..
-
-clang-tidy-ci:
-	# For CI: export compile commands for the built items.
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_EXPORT_COMPILE_COMMANDS=1 ../..
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) -DCMAKE_EXPORT_COMPILE_COMMANDS=1 ../..
 
-pytest:
-	$(MAKE) release
+tidy: clangd
+	run-clang-tidy -p build/release -quiet -j $(NUM_THREADS) \
+		"^$(realpath src)|$(realpath tools)/(?!shell/linenoise.cpp)|$(realpath examples)"
+
+pytest: release
 	cd $(ROOT_DIR)/tools/python_api/test && \
 	python3 -m pytest -v test_main.py
 
-nodejstest:
-	$(MAKE) nodejs
+nodejstest: nodejs
 	cd $(ROOT_DIR)/tools/nodejs_api/ && \
 	npm test
 
-javatest: arrow
+javatest: java
 ifeq ($(OS),Windows_NT)
-	$(MAKE) java
 	$(call mkdirp,tools/java_api/build/test)  && cd tools/java_api/ && \
 	javac -d build/test -cp ".;build/kuzu_java.jar;third_party/junit-platform-console-standalone-1.9.3.jar"  -sourcepath src/test/java/com/kuzudb/test/*.java && \
 	java -jar third_party/junit-platform-console-standalone-1.9.3.jar -cp ".;build/kuzu_java.jar;build/test/" --scan-classpath --include-package=com.kuzudb.java_test --details=verbose
 else
-	$(MAKE) java
 	$(call mkdirp,tools/java_api/build/test)  && cd tools/java_api/ && \
 	javac -d build/test -cp ".:build/kuzu_java.jar:third_party/junit-platform-console-standalone-1.9.3.jar"  -sourcepath src/test/java/com/kuzudb/test/*.java && \
 	java -jar third_party/junit-platform-console-standalone-1.9.3.jar -cp ".:build/kuzu_java.jar:build/test/" --scan-classpath --include-package=com.kuzudb.java_test --details=verbose

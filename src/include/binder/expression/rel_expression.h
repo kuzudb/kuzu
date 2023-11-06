@@ -1,6 +1,7 @@
 #pragma once
 
-#include "common/query_rel_type.h"
+#include "common/constants.h"
+#include "common/enums/query_rel_type.h"
 #include "node_expression.h"
 
 namespace kuzu {
@@ -66,6 +67,10 @@ public:
               std::move(tableIDs)},
           srcNode{std::move(srcNode)}, dstNode{std::move(dstNode)},
           directionType{directionType}, relType{relType} {}
+
+    inline bool isRecursive() const {
+        return dataType.getLogicalTypeID() == common::LogicalTypeID::RECURSIVE_REL;
+    }
 
     inline bool isBoundByMultiLabeledNode() const {
         return srcNode->isMultiLabeled() || dstNode->isMultiLabeled();

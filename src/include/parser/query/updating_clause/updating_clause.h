@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/clause_type.h"
+#include "common/enums/clause_type.h"
 
 namespace kuzu {
 namespace parser {

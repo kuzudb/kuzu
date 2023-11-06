@@ -9,13 +9,13 @@ namespace planner {
 
 class LogicalInQueryCall : public LogicalOperator {
 public:
-    LogicalInQueryCall(function::table_func_t tableFunc,
+    LogicalInQueryCall(function::TableFunction* tableFunc,
         std::unique_ptr<function::TableFuncBindData> bindData,
         binder::expression_vector outputExpressions)
-        : LogicalOperator{LogicalOperatorType::IN_QUERY_CALL}, tableFunc{std::move(tableFunc)},
+        : LogicalOperator{LogicalOperatorType::IN_QUERY_CALL}, tableFunc{tableFunc},
           bindData{std::move(bindData)}, outputExpressions{std::move(outputExpressions)} {}
 
-    inline function::table_func_t getTableFunc() const { return tableFunc; }
+    inline function::TableFunction* getTableFunc() const { return tableFunc; }
 
     inline function::TableFuncBindData* getBindData() const { return bindData.get(); }
 
@@ -32,7 +32,7 @@ public:
     }
 
 private:
-    function::table_func_t tableFunc;
+    function::TableFunction* tableFunc;
     std::unique_ptr<function::TableFuncBindData> bindData;
     binder::expression_vector outputExpressions;
 };

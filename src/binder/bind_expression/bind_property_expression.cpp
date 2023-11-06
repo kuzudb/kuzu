@@ -1,8 +1,10 @@
 #include "binder/expression/expression_util.h"
+#include "binder/expression/property_expression.h"
 #include "binder/expression/rel_expression.h"
 #include "binder/expression_binder.h"
+#include "catalog/table_schema.h"
 #include "common/exception/binder.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "parser/expression/parsed_property_expression.h"
 
 using namespace kuzu::common;
@@ -63,7 +65,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     const ParsedExpression& parsedExpression) {
     auto& propertyExpression = (ParsedPropertyExpression&)parsedExpression;
     if (propertyExpression.isStar()) {
-        throw BinderException(StringUtils::string_format(
+        throw BinderException(stringFormat(
             "Cannot bind {} as a single property expression.", parsedExpression.toString()));
     }
     auto propertyName = propertyExpression.getPropertyName();

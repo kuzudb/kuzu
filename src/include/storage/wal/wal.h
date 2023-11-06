@@ -2,6 +2,7 @@
 
 #include <unordered_set>
 
+#include "common/enums/access_mode.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/wal/wal_record.h"
 
@@ -71,7 +72,7 @@ class WAL : public BaseWALAndWALIterator {
     friend WALIterator;
 
 public:
-    WAL(const std::string& directory, BufferManager& bufferManager);
+    WAL(const std::string& directory, common::AccessMode accessMode, BufferManager& bufferManager);
 
     // Destructing WAL flushes any unwritten header page but not the other pages. The caller
     // which possibly has access to the buffer manager needs to ensure any unwritten pages
@@ -90,10 +91,10 @@ public:
     }
 
     common::page_idx_t logPageUpdateRecord(
-        StorageStructureID storageStructureID, common::page_idx_t pageIdxInOriginalFile);
+        DBFileID dbFileID, common::page_idx_t pageIdxInOriginalFile);
 
     common::page_idx_t logPageInsertRecord(
-        StorageStructureID storageStructureID, common::page_idx_t pageIdxInOriginalFile);
+        DBFileID dbFileID, common::page_idx_t pageIdxInOriginalFile);
 
     void logCommit(uint64_t transactionID);
 
@@ -103,11 +104,11 @@ public:
 
     void logNodeTableRecord(common::table_id_t tableID);
     void logRelTableRecord(common::table_id_t tableID);
-    void logRdfGraphRecord(common::table_id_t rdfGraphID, common::table_id_t nodeTableID,
-        common::table_id_t relTableID);
+    void logRdfGraphRecord(common::table_id_t rdfGraphID, common::table_id_t resourceTableID,
+        common::table_id_t literalTableID, common::table_id_t resourceTripleTableID,
+        common::table_id_t literalTripleTableID);
 
-    void logOverflowFileNextBytePosRecord(
-        StorageStructureID storageStructureID, uint64_t prevNextByteToWriteTo);
+    void logOverflowFileNextBytePosRecord(DBFileID dbFileID, uint64_t prevNextByteToWriteTo);
 
     void logCopyNodeRecord(common::table_id_t tableID, common::page_idx_t startPageIdx);
 

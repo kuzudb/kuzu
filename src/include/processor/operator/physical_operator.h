@@ -1,10 +1,8 @@
 #pragma once
 
 #include "common/exception/interrupt.h"
-#include "processor/data_pos.h"
 #include "processor/execution_context.h"
 #include "processor/result/result_set.h"
-#include "storage/buffer_manager/buffer_manager.h"
 
 namespace kuzu {
 namespace processor {
@@ -18,9 +16,9 @@ enum class PhysicalOperatorType : uint8_t {
     STANDALONE_CALL,
     IN_QUERY_CALL,
     COPY_NODE,
-    COPY_REL_COLUMNS,
-    COPY_REL_LISTS,
-    COPY_TO,
+    COPY_RDF,
+    COPY_REL,
+    COPY_TO_CSV,
     COPY_TO_PARQUET,
     CREATE_NODE_TABLE,
     CREATE_REL_TABLE,
@@ -34,7 +32,6 @@ enum class PhysicalOperatorType : uint8_t {
     FILL_TABLE_ID,
     FILTER,
     FLATTEN,
-    GENERIC_SCAN_REL_TABLES,
     HASH_JOIN_BUILD,
     HASH_JOIN_PROBE,
     INDEX_LOOKUP,
@@ -46,6 +43,7 @@ enum class PhysicalOperatorType : uint8_t {
     LIMIT,
     MERGE,
     MULTIPLICITY_REDUCER,
+    PARTITIONER,
     PATH_PROPERTY_PROBE,
     PROJECTION,
     PROFILE,
@@ -55,15 +53,14 @@ enum class PhysicalOperatorType : uint8_t {
     RENAME_TABLE,
     RESULT_COLLECTOR,
     SCAN_FRONTIER,
+    SCAN_MULTI_NODE_TABLES,
+    SCAN_MULTI_REL_TABLES,
     SCAN_NODE_ID,
-    SCAN_NODE_PROPERTY,
-    SCAN_REL_PROPERTY,
-    SCAN_REL_TABLE_COLUMNS,
-    SCAN_REL_TABLE_LISTS,
+    SCAN_NODE_TABLE,
+    SCAN_REL_TABLE,
     SEMI_MASKER,
     SET_NODE_PROPERTY,
     SET_REL_PROPERTY,
-    SIMPLE_RECURSIVE_JOIN,
     SKIP,
     TOP_K,
     TOP_K_SCAN,
@@ -73,8 +70,6 @@ enum class PhysicalOperatorType : uint8_t {
     ORDER_BY_SCAN,
     UNION_ALL_SCAN,
     UNWIND,
-    VAR_LENGTH_ADJ_LIST_EXTEND,
-    VAR_LENGTH_COLUMN_EXTEND,
 };
 
 class PhysicalOperatorUtils {

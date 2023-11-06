@@ -2,6 +2,7 @@
 
 const KuzuNative = require("./kuzujs.node");
 const LoggingLevel = require("./logging_level.js");
+const AccessMode = require("./access_mode.js");
 
 class Database {
   /**
@@ -12,8 +13,15 @@ class Database {
    *
    * @param {String} databasePath path to the database file.
    * @param {Number} bufferManagerSize size of the buffer manager in bytes.
+   * @param {Boolean} enableCompression whether to enable compression.
+   * @param {AccessMode} accessMode access mode for the database.
    */
-  constructor(databasePath, bufferManagerSize = 0, enableCompression = true) {
+  constructor(
+    databasePath,
+    bufferManagerSize = 0,
+    enableCompression = true,
+    accessMode = AccessMode.READ_WRITE
+  ) {
     if (typeof databasePath !== "string") {
       throw new Error("Database path must be a string.");
     }
@@ -21,7 +29,12 @@ class Database {
       throw new Error("Buffer manager size must be a positive integer.");
     }
     bufferManagerSize = Math.floor(bufferManagerSize);
-    this._database = new KuzuNative.NodeDatabase(databasePath, bufferManagerSize, enableCompression);
+    this._database = new KuzuNative.NodeDatabase(
+      databasePath,
+      bufferManagerSize,
+      enableCompression,
+      accessMode
+    );
     this._isInitialized = false;
     this._initPromise = null;
   }

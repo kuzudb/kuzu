@@ -1,5 +1,3 @@
-#include <string>
-
 #include "common/exception/conversion.h"
 #include "common/types/date_t.h"
 #include "common/types/timestamp_t.h"

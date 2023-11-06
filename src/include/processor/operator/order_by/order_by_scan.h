@@ -1,6 +1,6 @@
 #pragma once
 
-#include "processor/operator/order_by/order_by.h"
+#include "processor/operator/order_by/sort_state.h"
 #include "processor/operator/physical_operator.h"
 
 namespace kuzu {

@@ -1,7 +1,8 @@
 #pragma once
 
+#include <algorithm>
+
 #include "frontier.h"
-#include "processor/operator/mask.h"
 
 namespace kuzu {
 namespace processor {

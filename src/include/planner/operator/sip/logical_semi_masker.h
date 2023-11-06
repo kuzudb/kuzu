@@ -1,6 +1,5 @@
 #pragma once
 
-#include "binder/expression/node_expression.h"
 #include "common/exception/runtime.h"
 #include "planner/operator/logical_operator.h"
 

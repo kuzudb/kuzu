@@ -28,8 +28,8 @@ bool StructColumnWriter::hasAnalyze() {
     return false;
 }
 
-void StructColumnWriter::analyze(
-    ColumnWriterState& state_p, ColumnWriterState* parent, ValueVector* vector, uint64_t count) {
+void StructColumnWriter::analyze(ColumnWriterState& state_p, ColumnWriterState* /*parent*/,
+    ValueVector* vector, uint64_t count) {
     auto& state = reinterpret_cast<StructColumnWriterState&>(state_p);
     auto& childVectors = StructVector::getFieldVectors(vector);
     for (auto child_idx = 0u; child_idx < childWriters.size(); child_idx++) {

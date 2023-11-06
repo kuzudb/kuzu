@@ -1,24 +1,24 @@
 #pragma once
 
 #include <algorithm>
-#include <unordered_map>
-#include <unordered_set>
 
-#include "common/constants.h"
-#include "common/table_type.h"
+#include "common/enums/table_type.h"
 #include "property.h"
 
 namespace kuzu {
+namespace common {
+class Serializer;
+class Deserializer;
+} // namespace common
 namespace catalog {
 
 class TableSchema {
 public:
     TableSchema(std::string tableName, common::table_id_t tableID, common::TableType tableType,
         std::vector<std::unique_ptr<Property>> properties)
-        : tableName{std::move(tableName)}, tableID{tableID}, tableType{tableType},
-          properties{std::move(properties)}, nextPropertyID{(
-                                                 common::property_id_t)this->properties.size()},
-          comment{"" /* empty comment */} {}
+        : tableType{tableType}, tableName{std::move(tableName)}, tableID{tableID},
+          properties{std::move(properties)}, comment{"" /* empty comment */},
+          nextPropertyID{(common::property_id_t)this->properties.size()} {}
     TableSchema(common::TableType tableType, std::string tableName, common::table_id_t tableID,
         std::vector<std::unique_ptr<Property>> properties, std::string comment,
         common::property_id_t nextPropertyID)
@@ -62,8 +62,6 @@ public:
             std::move(propertyName), std::move(dataType), increaseNextPropertyID(), tableID));
     }
 
-    std::string getPropertyName(common::property_id_t propertyID) const;
-
     common::property_id_t getPropertyID(const std::string& propertyName) const;
     common::column_id_t getColumnID(common::property_id_t propertyID) const;
 
@@ -71,8 +69,8 @@ public:
 
     void renameProperty(common::property_id_t propertyID, const std::string& newName);
 
-    void serialize(common::FileInfo* fileInfo, uint64_t& offset);
-    static std::unique_ptr<TableSchema> deserialize(common::FileInfo* fileInfo, uint64_t& offset);
+    void serialize(common::Serializer& serializer);
+    static std::unique_ptr<TableSchema> deserialize(common::Deserializer& deserializer);
 
     inline common::TableType getTableType() const { return tableType; }
 
@@ -85,7 +83,7 @@ public:
 private:
     inline common::property_id_t increaseNextPropertyID() { return nextPropertyID++; }
 
-    virtual void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) = 0;
+    virtual void serializeInternal(common::Serializer& serializer) = 0;
 
 public:
     common::TableType tableType;

@@ -1,15 +1,16 @@
 #pragma once
 
-#include <atomic>
-#include <mutex>
-
-#include "storage/stats/metadata_dah_info.h"
+#include "common/enums/table_type.h"
 #include "storage/stats/property_statistics.h"
 
 namespace kuzu {
 namespace catalog {
 class TableSchema;
 }
+namespace common {
+class Serializer;
+class Deserializer;
+} // namespace common
 namespace storage {
 
 class TableStatistics {
@@ -18,7 +19,7 @@ public:
     TableStatistics(common::TableType tableType, uint64_t numTuples, common::table_id_t tableID,
         std::unordered_map<common::property_id_t, std::unique_ptr<PropertyStatistics>>&&
             propertyStatistics);
-    explicit TableStatistics(const TableStatistics& other);
+    TableStatistics(const TableStatistics& other);
 
     virtual ~TableStatistics() = default;
 
@@ -38,10 +39,9 @@ public:
         propertyStatistics[propertyID] = std::make_unique<PropertyStatistics>(newStats);
     }
 
-    void serialize(common::FileInfo* fileInfo, uint64_t& offset);
-    static std::unique_ptr<TableStatistics> deserialize(
-        common::FileInfo* fileInfo, uint64_t& offset);
-    virtual void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) = 0;
+    void serialize(common::Serializer& serializer);
+    static std::unique_ptr<TableStatistics> deserialize(common::Deserializer& deserializer);
+    virtual void serializeInternal(common::Serializer& serializer) = 0;
 
     virtual std::unique_ptr<TableStatistics> copy() = 0;
 

@@ -1,5 +1,8 @@
 #include "expression_evaluator/case_evaluator.h"
 
+#include <cmath>
+
+#include "common/exception/not_implemented.h"
 #include "common/types/date_t.h"
 #include "common/types/interval_t.h"
 #include "common/types/ku_string.h"
@@ -74,7 +77,7 @@ std::unique_ptr<ExpressionEvaluator> CaseExpressionEvaluator::clone() {
 }
 
 void CaseExpressionEvaluator::resolveResultVector(
-    const ResultSet& resultSet, MemoryManager* memoryManager) {
+    const ResultSet& /*resultSet*/, MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(expression->dataType, memoryManager);
     std::vector<ExpressionEvaluator*> inputEvaluators;
     for (auto& alternative : alternativeEvaluators) {

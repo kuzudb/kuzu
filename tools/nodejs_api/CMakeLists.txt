@@ -3,7 +3,7 @@ project (kuzujs)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_definitions(-DNAPI_VERSION=5)
+add_definitions(-DNAPI_VERSION=6)
 add_definitions(-DNODE_RUNTIME=node)
 add_definitions(-DBUILDING_NODE_EXTENSION)
 

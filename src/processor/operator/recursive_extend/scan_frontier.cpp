@@ -3,7 +3,7 @@
 namespace kuzu {
 namespace processor {
 
-bool ScanFrontier::getNextTuplesInternal(ExecutionContext* context) {
+bool ScanFrontier::getNextTuplesInternal(ExecutionContext* /*context*/) {
     if (!hasExecuted) {
         hasExecuted = true;
         return true;

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "common/data_chunk/data_chunk_state.h"
-#include "common/in_mem_overflow_buffer.h"
 #include "processor/operator/sink.h"
 #include "processor/result/result_set.h"
 #include "sort_state.h"
@@ -22,7 +20,7 @@ public:
 
     void executeInternal(ExecutionContext* context) override;
 
-    void finalize(ExecutionContext* context) override {
+    void finalize(ExecutionContext* /*context*/) override {
         // TODO(Ziyi): we always call lookup function on the first factorizedTable in sharedState
         // and that lookup function may read tuples in other factorizedTable, So we need to combine
         // hasNoNullGuarantee with other factorizedTables. This is not a good way to solve this

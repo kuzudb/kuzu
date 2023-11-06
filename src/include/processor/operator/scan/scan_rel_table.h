@@ -1,64 +1,50 @@
 #pragma once
 
-#include "processor/operator/physical_operator.h"
+#include "processor/operator/scan/scan_table.h"
 #include "storage/store/rel_table.h"
 
 namespace kuzu {
 namespace processor {
 
-struct ScanRelTalePosInfo {
-    DataPos inNodeVectorPos;
-    DataPos outNodeVectorPos;
-    std::vector<DataPos> outVectorsPos;
+struct ScanRelTableInfo {
+    storage::RelTable* table;
+    common::RelDataDirection direction;
+    std::vector<common::column_id_t> columnIDs;
 
-    ScanRelTalePosInfo(const DataPos& inNodeVectorPos, const DataPos& outNodeVectorPos,
-        std::vector<DataPos> outVectorsPos)
-        : inNodeVectorPos{inNodeVectorPos}, outNodeVectorPos{outNodeVectorPos},
-          outVectorsPos{std::move(outVectorsPos)} {}
-    ScanRelTalePosInfo(const ScanRelTalePosInfo& other)
-        : inNodeVectorPos{other.inNodeVectorPos}, outNodeVectorPos{other.outNodeVectorPos},
-          outVectorsPos{other.outVectorsPos} {}
+    ScanRelTableInfo(storage::RelTable* table, common::RelDataDirection direction,
+        std::vector<common::column_id_t> columnIDs)
+        : table{table}, direction{direction}, columnIDs{std::move(columnIDs)} {}
+    ScanRelTableInfo(const ScanRelTableInfo& other)
+        : table{other.table}, direction{other.direction}, columnIDs{other.columnIDs} {}
 
-    inline std::unique_ptr<ScanRelTalePosInfo> copy() const {
-        return std::make_unique<ScanRelTalePosInfo>(*this);
+    inline std::unique_ptr<ScanRelTableInfo> copy() const {
+        return std::make_unique<ScanRelTableInfo>(*this);
     }
 };
 
-struct RelTableScanInfo {
-    storage::RelTableDataType relTableDataType;
-    storage::DirectedRelTableData* tableData;
-    storage::RelTableStats* relStats;
-    std::vector<common::property_id_t> propertyIds;
-
-    RelTableScanInfo(storage::RelTableDataType relTableDataType,
-        storage::DirectedRelTableData* tableData, storage::RelTableStats* relStats,
-        std::vector<common::property_id_t> propertyIds)
-        : relTableDataType{relTableDataType}, tableData{tableData}, relStats{relStats},
-          propertyIds{std::move(propertyIds)} {}
-    RelTableScanInfo(const RelTableScanInfo& other)
-        : relTableDataType{other.relTableDataType}, tableData{other.tableData},
-          relStats{other.relStats}, propertyIds{other.propertyIds} {}
-
-    inline std::unique_ptr<RelTableScanInfo> copy() const {
-        return std::make_unique<RelTableScanInfo>(*this);
+class ScanRelTable : public ScanTable {
+public:
+    ScanRelTable(std::unique_ptr<ScanRelTableInfo> info, const DataPos& inVectorPos,
+        std::vector<DataPos> outVectorsPos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        const std::string& paramsString)
+        : ScanRelTable{PhysicalOperatorType::SCAN_REL_TABLE, std::move(info), inVectorPos,
+              std::move(outVectorsPos), std::move(child), id, paramsString} {
+        scanState = std::make_unique<storage::RelDataReadState>(
+            this->info->table->getTableDataFormat(this->info->direction));
     }
-};
+    virtual ~ScanRelTable() = default;
 
-class ScanRelTable : public PhysicalOperator {
 protected:
-    ScanRelTable(std::unique_ptr<ScanRelTalePosInfo> posInfo, PhysicalOperatorType operatorType,
+    ScanRelTable(PhysicalOperatorType operatorType, std::unique_ptr<ScanRelTableInfo> info,
+        const DataPos& inVectorPos, std::vector<DataPos> outVectorsPos,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{operatorType, std::move(child), id, paramsString}, posInfo{std::move(
-                                                                                  posInfo)} {}
-
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
+        : ScanTable{operatorType, inVectorPos, std::move(outVectorsPos), std::move(child), id,
+              paramsString},
+          info{std::move(info)} {}
 
 protected:
-    std::unique_ptr<ScanRelTalePosInfo> posInfo;
-
-    common::ValueVector* inNodeVector;
-    common::ValueVector* outNodeVector;
-    std::vector<common::ValueVector*> outVectors;
+    std::unique_ptr<ScanRelTableInfo> info;
+    std::unique_ptr<storage::RelDataReadState> scanState;
 };
 
 } // namespace processor

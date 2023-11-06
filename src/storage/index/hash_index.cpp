@@ -120,33 +120,33 @@ void HashIndexLocalStorage::clear() {
 }
 
 template<typename T>
-HashIndex<T>::HashIndex(const StorageStructureIDAndFName& storageStructureIDAndFName,
+HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName, AccessMode accessMode,
     const LogicalType& keyDataType, BufferManager& bufferManager, WAL* wal)
-    : BaseHashIndex{keyDataType},
-      storageStructureIDAndFName{storageStructureIDAndFName}, bm{bufferManager}, wal{wal} {
+    : BaseHashIndex{keyDataType}, dbFileIDAndName{dbFileIDAndName}, bm{bufferManager}, wal{wal} {
     slotCapacity = getSlotCapacity<T>();
-    fileHandle = bufferManager.getBMFileHandle(storageStructureIDAndFName.fName,
-        FileHandle::O_PERSISTENT_FILE_NO_CREATE, BMFileHandle::FileVersionedType::VERSIONED_FILE);
-    headerArray = std::make_unique<BaseDiskArray<HashIndexHeader>>(*fileHandle,
-        storageStructureIDAndFName.storageStructureID, INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, &bm, wal,
-        Transaction::getDummyReadOnlyTrx().get());
+    fileHandle = bufferManager.getBMFileHandle(dbFileIDAndName.fName,
+        accessMode == AccessMode::READ_ONLY ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
+                                              FileHandle::O_PERSISTENT_FILE_NO_CREATE,
+        BMFileHandle::FileVersionedType::VERSIONED_FILE);
+    headerArray =
+        std::make_unique<BaseDiskArray<HashIndexHeader>>(*fileHandle, dbFileIDAndName.dbFileID,
+            INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, &bm, wal, Transaction::getDummyReadOnlyTrx().get());
     // Read indexHeader from the headerArray, which contains only one element.
     indexHeader = std::make_unique<HashIndexHeader>(
         headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::READ_ONLY));
     assert(indexHeader->keyDataTypeID == keyDataType.getLogicalTypeID());
-    pSlots = std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle,
-        storageStructureIDAndFName.storageStructureID, P_SLOTS_HEADER_PAGE_IDX, &bm, wal,
-        Transaction::getDummyReadOnlyTrx().get());
-    oSlots = std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle,
-        storageStructureIDAndFName.storageStructureID, O_SLOTS_HEADER_PAGE_IDX, &bm, wal,
-        Transaction::getDummyReadOnlyTrx().get());
+    pSlots = std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle, dbFileIDAndName.dbFileID,
+        P_SLOTS_HEADER_PAGE_IDX, &bm, wal, Transaction::getDummyReadOnlyTrx().get());
+    oSlots = std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle, dbFileIDAndName.dbFileID,
+        O_SLOTS_HEADER_PAGE_IDX, &bm, wal, Transaction::getDummyReadOnlyTrx().get());
     // Initialize functions.
     keyHashFunc = HashIndexUtils::initializeHashFunc(indexHeader->keyDataTypeID);
     keyInsertFunc = HashIndexUtils::initializeInsertFunc(indexHeader->keyDataTypeID);
     keyEqualsFunc = HashIndexUtils::initializeEqualsFunc(indexHeader->keyDataTypeID);
     localStorage = std::make_unique<HashIndexLocalStorage>(keyDataType);
     if (keyDataType.getLogicalTypeID() == LogicalTypeID::STRING) {
-        diskOverflowFile = std::make_unique<DiskOverflowFile>(storageStructureIDAndFName, &bm, wal);
+        diskOverflowFile =
+            std::make_unique<DiskOverflowFile>(dbFileIDAndName, &bm, wal, accessMode);
     }
 }
 
@@ -392,8 +392,7 @@ template<typename T>
 void HashIndex<T>::prepareCommit() {
     std::unique_lock xlock{localStorage->localStorageSharedMutex};
     if (localStorage->hasUpdates()) {
-        wal->addToUpdatedNodeTables(
-            storageStructureIDAndFName.storageStructureID.nodeIndexID.tableID);
+        wal->addToUpdatedNodeTables(dbFileIDAndName.dbFileID.nodeIndexID.tableID);
         localStorage->applyLocalChanges(
             [this](const uint8_t* key) -> void { this->deleteFromPersistentIndex(key); },
             [this](const uint8_t* key, offset_t value) -> void {
@@ -406,8 +405,7 @@ template<typename T>
 void HashIndex<T>::prepareRollback() {
     std::unique_lock xlock{localStorage->localStorageSharedMutex};
     if (localStorage->hasUpdates()) {
-        wal->addToUpdatedNodeTables(
-            storageStructureIDAndFName.storageStructureID.nodeIndexID.tableID);
+        wal->addToUpdatedNodeTables(dbFileIDAndName.dbFileID.nodeIndexID.tableID);
     }
 }
 
@@ -456,12 +454,18 @@ void PrimaryKeyIndex::delete_(ValueVector* keyVector) {
     if (keyDataTypeID == LogicalTypeID::INT64) {
         for (auto i = 0u; i < keyVector->state->selVector->selectedSize; i++) {
             auto pos = keyVector->state->selVector->selectedPositions[i];
+            if (keyVector->isNull(pos)) {
+                continue;
+            }
             auto key = keyVector->getValue<int64_t>(pos);
             hashIndexForInt64->deleteInternal(reinterpret_cast<const uint8_t*>(&key));
         }
     } else {
         for (auto i = 0u; i < keyVector->state->selVector->selectedSize; i++) {
             auto pos = keyVector->state->selVector->selectedPositions[i];
+            if (keyVector->isNull(pos)) {
+                continue;
+            }
             auto key = keyVector->getValue<ku_string_t>(pos).getAsString();
             hashIndexForString->deleteInternal(reinterpret_cast<const uint8_t*>(key.c_str()));
         }

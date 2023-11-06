@@ -15,6 +15,7 @@ Napi::Object NodeConnection::Init(Napi::Env env, Napi::Object exports) {
             InstanceMethod("initAsync", &NodeConnection::InitAsync),
             InstanceMethod("executeAsync", &NodeConnection::ExecuteAsync),
             InstanceMethod("setMaxNumThreadForExec", &NodeConnection::SetMaxNumThreadForExec),
+            InstanceMethod("setQueryTimeout", &NodeConnection::SetQueryTimeout),
         });
 
     exports.Set("NodeConnection", t);
@@ -44,6 +45,28 @@ void NodeConnection::InitCppConnection() {
     database.reset();
 }
 
+void NodeConnection::SetMaxNumThreadForExec(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    Napi::HandleScope scope(env);
+    size_t numThreads = info[0].ToNumber().Int64Value();
+    try {
+        this->connection->setMaxNumThreadForExec(numThreads);
+    } catch (const std::exception& exc) {
+        Napi::Error::New(env, std::string(exc.what())).ThrowAsJavaScriptException();
+    }
+}
+
+void NodeConnection::SetQueryTimeout(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    Napi::HandleScope scope(env);
+    size_t timeout = info[0].ToNumber().Int64Value();
+    try {
+        this->connection->setQueryTimeOut(timeout);
+    } catch (const std::exception& exc) {
+        Napi::Error::New(env, std::string(exc.what())).ThrowAsJavaScriptException();
+    }
+}
+
 Napi::Value NodeConnection::ExecuteAsync(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     Napi::HandleScope scope(env);
@@ -62,15 +85,3 @@ Napi::Value NodeConnection::ExecuteAsync(const Napi::CallbackInfo& info) {
     }
     return info.Env().Undefined();
 }
-
-void NodeConnection::SetMaxNumThreadForExec(const Napi::CallbackInfo& info) {
-    Napi::Env env = info.Env();
-    Napi::HandleScope scope(env);
-    size_t numThreads = info[0].ToNumber().Int64Value();
-    try {
-        this->connection->setMaxNumThreadForExec(numThreads);
-    } catch (const std::exception& exc) {
-        Napi::Error::New(env, std::string(exc.what())).ThrowAsJavaScriptException();
-    }
-}
-

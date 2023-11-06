@@ -1,13 +1,13 @@
 #include "processor/expression_mapper.h"
 
 #include "binder/expression/case_expression.h"
+#include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/node_expression.h"
 #include "binder/expression/parameter_expression.h"
-#include "binder/expression/path_expression.h"
 #include "binder/expression/rel_expression.h"
-#include "binder/expression_visitor.h"
-#include "common/string_utils.h"
+#include "binder/expression_visitor.h" // IWYU pragma: keep (used in assert)
+#include "common/string_format.h"
 #include "expression_evaluator/case_evaluator.h"
 #include "expression_evaluator/function_evaluator.h"
 #include "expression_evaluator/literal_evaluator.h"
@@ -68,8 +68,10 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getEvaluator(
     } else if (canEvaluateAsFunction(expressionType)) {
         return getFunctionEvaluator(expression, schema);
     } else {
-        throw NotImplementedException(StringUtils::string_format(
+        // LCOV_EXCL_START
+        throw NotImplementedException(stringFormat(
             "Cannot evaluate expression with type {}.", expressionTypeToString(expressionType)));
+        // LCOV_EXCL_END
     }
 }
 
@@ -84,8 +86,10 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getConstantEvaluator(
     } else if (canEvaluateAsFunction(expressionType)) {
         return getFunctionEvaluator(expression, nullptr);
     } else {
-        throw NotImplementedException(StringUtils::string_format(
+        // LCOV_EXCL_START
+        throw NotImplementedException(stringFormat(
             "Cannot evaluate expression with type {}.", expressionTypeToString(expressionType)));
+        // LCOV_EXCL_END
     }
 }
 

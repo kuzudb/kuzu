@@ -5,7 +5,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void BaseSemiMasker::initGlobalStateInternal(ExecutionContext* context) {
+void BaseSemiMasker::initGlobalStateInternal(ExecutionContext* /*context*/) {
     for (auto& [table, masks] : info->masksPerTable) {
         for (auto& maskWithIdx : masks) {
             auto maskIdx = maskWithIdx.first->getNumMasks();
@@ -16,7 +16,7 @@ void BaseSemiMasker::initGlobalStateInternal(ExecutionContext* context) {
     }
 }
 
-void BaseSemiMasker::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+void BaseSemiMasker::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {
     keyVector = resultSet->getValueVector(info->keyPos).get();
     for (auto& [table, masks] : info->masksPerTable) {
         for (auto& maskWithIdx : masks) {

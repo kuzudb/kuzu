@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cassert>
-
 #include "expression_evaluator/expression_evaluator.h"
 #include "processor/operator/physical_operator.h"
 

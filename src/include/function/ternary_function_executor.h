@@ -1,8 +1,5 @@
 #pragma once
 
-#include <functional>
-
-#include "common/type_utils.h"
 #include "common/vector/value_vector.h"
 
 namespace kuzu {
@@ -11,7 +8,7 @@ namespace function {
 struct TernaryFunctionWrapper {
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename OP>
     static inline void operation(A_TYPE& a, B_TYPE& b, C_TYPE& c, RESULT_TYPE& result,
-        void* aValueVector, void* resultValueVector, void* dataPtr) {
+        void* /*aValueVector*/, void* /*resultValueVector*/, void* /*dataPtr*/) {
         OP::operation(a, b, c, result);
     }
 };
@@ -19,7 +16,7 @@ struct TernaryFunctionWrapper {
 struct TernaryStringFunctionWrapper {
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename OP>
     static inline void operation(A_TYPE& a, B_TYPE& b, C_TYPE& c, RESULT_TYPE& result,
-        void* aValueVector, void* resultValueVector, void* dataPtr) {
+        void* /*aValueVector*/, void* resultValueVector, void* /*dataPtr*/) {
         OP::operation(a, b, c, result, *(common::ValueVector*)resultValueVector);
     }
 };
@@ -27,7 +24,7 @@ struct TernaryStringFunctionWrapper {
 struct TernaryListFunctionWrapper {
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename OP>
     static inline void operation(A_TYPE& a, B_TYPE& b, C_TYPE& c, RESULT_TYPE& result,
-        void* aValueVector, void* resultValueVector, void* dataPtr) {
+        void* aValueVector, void* resultValueVector, void* /*dataPtr*/) {
         OP::operation(a, b, c, result, *(common::ValueVector*)aValueVector,
             *(common::ValueVector*)resultValueVector);
     }
@@ -36,7 +33,7 @@ struct TernaryListFunctionWrapper {
 struct TernaryUDFFunctionWrapper {
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename OP>
     static inline void operation(A_TYPE& a, B_TYPE& b, C_TYPE& c, RESULT_TYPE& result,
-        void* aValueVector, void* resultValueVector, void* dataPtr) {
+        void* /*aValueVector*/, void* /*resultValueVector*/, void* dataPtr) {
         OP::operation(a, b, c, result, dataPtr);
     }
 };

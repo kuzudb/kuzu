@@ -1,8 +1,6 @@
 #pragma once
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
 
 /* Export header from common/api.h */
 // Helpers
@@ -116,6 +114,8 @@ typedef struct {
     uint64_t max_num_threads;
     // Whether or not to compress data on-disk for supported types
     bool enable_compression;
+    // Access mode to the database (READ_ONLY or READ_WRITE)
+    uint8_t access_mode;
 } kuzu_system_config;
 
 /**
@@ -214,6 +214,11 @@ typedef struct {
     void* _query_summary;
 } kuzu_query_summary;
 
+typedef struct {
+    uint64_t low;
+    int64_t high;
+} kuzu_int128_t;
+
 /**
  * @brief enum class for kuzu internal dataTypes.
  */
@@ -235,6 +240,7 @@ typedef enum {
     KUZU_UINT32 = 28,
     KUZU_UINT16 = 29,
     KUZU_UINT8 = 30,
+    KUZU_INT128 = 31,
     KUZU_DOUBLE = 32,
     KUZU_FLOAT = 33,
     KUZU_DATE = 34,
@@ -242,7 +248,6 @@ typedef enum {
     KUZU_INTERVAL = 36,
     KUZU_FIXED_LIST = 37,
     KUZU_INTERNAL_ID = 40,
-    KUZU_ARROW_COLUMN = 41,
     // variable size types
     KUZU_STRING = 50,
     KUZU_BLOB = 51,
@@ -251,6 +256,11 @@ typedef enum {
     KUZU_MAP = 54,
     KUZU_UNION = 55,
 } kuzu_data_type_id;
+
+typedef enum {
+    READ_ONLY = 0,
+    READ_WRITE = 1,
+} kuzu_access_mode;
 
 // Database
 /**
@@ -724,6 +734,12 @@ KUZU_C_API kuzu_value* kuzu_value_create_uint32(uint32_t val_);
  */
 KUZU_C_API kuzu_value* kuzu_value_create_uint64(uint64_t val_);
 /**
+ * @brief Creates a value with int128 type and the given int128 value. Caller is responsible for
+ * destroying the returned value.
+ * @param val_ The int128 value of the value to create.
+ */
+KUZU_C_API kuzu_value* kuzu_value_create_int128(kuzu_int128_t val_);
+/**
  * @brief Creates a value with float type and the given float value. Caller is responsible for
  * destroying the returned value.
  * @param val_ The float value of the value to create.
@@ -875,6 +891,19 @@ KUZU_C_API uint32_t kuzu_value_get_uint32(kuzu_value* value);
  * @param value The value to return.
  */
 KUZU_C_API uint64_t kuzu_value_get_uint64(kuzu_value* value);
+/**
+ * @brief Returns the int128 value of the given value. The value must be of type INT128.
+ * @param value The value to return.
+ */
+KUZU_C_API kuzu_int128_t kuzu_value_get_int128(kuzu_value* value);
+/**
+ * @brief convert a string to int128 value.
+ */
+KUZU_C_API kuzu_int128_t kuzu_int128_t_from_string(const char* str);
+/**
+ * @brief convert int128 to corresponding string.
+ */
+KUZU_C_API char* kuzu_int128_t_to_string(kuzu_int128_t val);
 /**
  * @brief Returns the float value of the given value. The value must be of type FLOAT.
  * @param value The value to return.

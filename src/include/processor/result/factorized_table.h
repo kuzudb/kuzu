@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <numeric>
 #include <unordered_map>
 
@@ -7,10 +8,7 @@
 #include "common/types/value/value.h"
 #include "common/vector/value_vector.h"
 #include "processor/data_pos.h"
-#include "processor/result/flat_tuple.h"
 #include "storage/buffer_manager/memory_manager.h"
-#include "storage/storage_structure/disk_overflow_file.h"
-#include "storage/storage_structure/storage_structure.h"
 
 namespace kuzu {
 namespace processor {
@@ -222,7 +220,7 @@ public:
 
     bool hasUnflatCol() const;
     inline bool hasUnflatCol(std::vector<ft_col_idx_t>& colIdxes) const {
-        return any_of(colIdxes.begin(), colIdxes.end(),
+        return std::any_of(colIdxes.begin(), colIdxes.end(),
             [this](ft_col_idx_t colIdx) { return !tableSchema->getColumn(colIdx)->isFlat(); });
     }
 
@@ -256,19 +254,11 @@ public:
         return tableSchema->getColumn(colIdx)->hasNoNullGuarantee();
     }
 
-    void copySingleValueToVector(ft_tuple_idx_t tupleIdx, ft_col_idx_t colIdx,
-        common::ValueVector* valueVector, uint32_t posInVector) const;
     bool isOverflowColNull(
         const uint8_t* nullBuffer, ft_tuple_idx_t tupleIdx, ft_col_idx_t colIdx) const;
     bool isNonOverflowColNull(const uint8_t* nullBuffer, ft_col_idx_t colIdx) const;
     void setNonOverflowColNull(uint8_t* nullBuffer, ft_col_idx_t colIdx);
-    // Note: this function also resets the overflow ptr of list and string to point to a buffer
-    // inside overflowFileOfInMemList.
-    void copyToInMemList(ft_col_idx_t colIdx, std::vector<ft_tuple_idx_t>& tupleIdxesToRead,
-        uint8_t* data, common::NullMask* nullMask, uint64_t startElemPosInList,
-        storage::DiskOverflowFile* overflowFileOfInMemList, const common::LogicalType& type) const;
     void clear();
-    int64_t findValueInFlatColumn(ft_col_idx_t colIdx, int64_t value) const;
 
 private:
     void setOverflowColNull(uint8_t* nullBuffer, ft_col_idx_t colIdx, ft_tuple_idx_t tupleIdx);
@@ -317,8 +307,6 @@ private:
         common::ValueVector& vector, uint64_t numTuplesToRead) const;
     void readFlatCol(uint8_t** tuplesToRead, ft_col_idx_t colIdx, common::ValueVector& vector,
         uint64_t numTuplesToRead) const;
-    static void copyOverflowIfNecessary(uint8_t* dst, uint8_t* src, const common::LogicalType& type,
-        storage::DiskOverflowFile* diskOverflowFile);
 
 private:
     storage::MemoryManager* memoryManager;

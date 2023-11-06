@@ -1,6 +1,5 @@
 #pragma once
 
-#include "binder/query/normalized_single_query.h"
 #include "planner/operator/logical_plan.h"
 #include "planner/subplans_table.h"
 
@@ -22,25 +21,28 @@ public:
           queryGraph{nullptr}, subqueryType{SubqueryType::NONE}, correlatedExpressionsCardinality{
                                                                      1} {}
 
-    void init(QueryGraph* queryGraph, const expression_vector& predicates);
+    void init(binder::QueryGraph* queryGraph, const binder::expression_vector& predicates);
 
-    inline expression_vector getWhereExpressions() { return whereExpressionsSplitOnAND; }
+    inline binder::expression_vector getWhereExpressions() { return whereExpressionsSplitOnAND; }
 
-    inline bool containPlans(const SubqueryGraph& subqueryGraph) const {
+    inline bool containPlans(const binder::SubqueryGraph& subqueryGraph) const {
         return subPlansTable->containSubgraphPlans(subqueryGraph);
     }
     inline std::vector<std::unique_ptr<LogicalPlan>>& getPlans(
-        const SubqueryGraph& subqueryGraph) const {
+        const binder::SubqueryGraph& subqueryGraph) const {
         return subPlansTable->getSubgraphPlans(subqueryGraph);
     }
-    inline void addPlan(const SubqueryGraph& subqueryGraph, std::unique_ptr<LogicalPlan> plan) {
+    inline void addPlan(
+        const binder::SubqueryGraph& subqueryGraph, std::unique_ptr<LogicalPlan> plan) {
         subPlansTable->addPlan(subqueryGraph, std::move(plan));
     }
 
-    inline SubqueryGraph getEmptySubqueryGraph() const { return SubqueryGraph(*queryGraph); }
-    SubqueryGraph getFullyMatchedSubqueryGraph() const;
+    inline binder::SubqueryGraph getEmptySubqueryGraph() const {
+        return binder::SubqueryGraph(*queryGraph);
+    }
+    binder::SubqueryGraph getFullyMatchedSubqueryGraph() const;
 
-    inline QueryGraph* getQueryGraph() { return queryGraph; }
+    inline binder::QueryGraph* getQueryGraph() { return queryGraph; }
 
     inline binder::expression_vector getCorrelatedExpressions() const {
         return correlatedExpressions;
@@ -51,16 +53,16 @@ public:
     void resetState();
 
 private:
-    expression_vector whereExpressionsSplitOnAND;
+    binder::expression_vector whereExpressionsSplitOnAND;
 
     uint32_t currentLevel;
     uint32_t maxLevel;
 
     std::unique_ptr<SubPlansTable> subPlansTable;
-    QueryGraph* queryGraph;
+    binder::QueryGraph* queryGraph;
 
     SubqueryType subqueryType;
-    expression_vector correlatedExpressions;
+    binder::expression_vector correlatedExpressions;
     uint64_t correlatedExpressionsCardinality;
 };
 

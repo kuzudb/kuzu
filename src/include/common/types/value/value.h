@@ -1,10 +1,10 @@
 #pragma once
 
-#include <utility>
+#include <cmath>
 
 #include "common/api.h"
-#include "common/type_utils.h"
 #include "common/types/date_t.h"
+#include "common/types/int128_t.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/interval_t.h"
 #include "common/types/ku_list.h"
@@ -15,11 +15,13 @@ namespace common {
 
 class NodeVal;
 class RelVal;
-class FileInfo;
+struct FileInfo;
 class NestedVal;
 class RecursiveRelVal;
 class ArrowRowBatch;
 class ValueVector;
+class Serializer;
+class Deserializer;
 
 class Value {
     friend class NodeVal;
@@ -89,6 +91,11 @@ public:
      * @return a Value with UINT64 type and val_ value.
      */
     KUZU_API explicit Value(uint64_t val_);
+    /**
+     * @param val_ the int128_t value to set.
+     * @return a Value with INT128 type and val_ value.
+     */
+    KUZU_API explicit Value(int128_t val_);
     /**
      * @param val_ the double value to set.
      * @return a Value with DOUBLE type and val_ value.
@@ -195,7 +202,7 @@ public:
      * @return a Value object based on value.
      */
     template<class T>
-    static Value createValue(T value) {
+    static Value createValue(T /*value*/) {
         throw std::runtime_error("Unimplemented template for Value::createValue()");
     }
     /**
@@ -207,9 +214,9 @@ public:
      */
     KUZU_API std::string toString() const;
 
-    void serialize(FileInfo* fileInfo, uint64_t& offset) const;
+    void serialize(Serializer& serializer) const;
 
-    static std::unique_ptr<Value> deserialize(FileInfo* fileInfo, uint64_t& offset);
+    static std::unique_ptr<Value> deserialize(Deserializer& deserializer);
 
 private:
     Value();
@@ -220,10 +227,18 @@ private:
     void copyFromStruct(const uint8_t* kuStruct);
     void copyFromUnion(const uint8_t* kuUnion);
 
+    std::string rdfVariantToString() const;
+    std::string mapToString() const;
+    std::string listToString() const;
+    std::string structToString() const;
+    std::string nodeToString() const;
+    std::string relToString() const;
+
 public:
     union Val {
         constexpr Val() : booleanVal{false} {}
         bool booleanVal;
+        int128_t int128Val;
         int64_t int64Val;
         int32_t int32Val;
         int16_t int16Val;
@@ -328,6 +343,15 @@ template<>
 KUZU_API inline uint8_t Value::getValue() const {
     assert(dataType->getLogicalTypeID() == LogicalTypeID::UINT8);
     return val.uint8Val;
+}
+
+/**
+ * @return int128 value.
+ */
+template<>
+KUZU_API inline int128_t Value::getValue() const {
+    assert(dataType->getLogicalTypeID() == LogicalTypeID::INT128);
+    return val.int128Val;
 }
 
 /**
@@ -476,6 +500,15 @@ KUZU_API inline uint64_t& Value::getValueReference() {
 }
 
 /**
+ * @return the reference to the int128 value.
+ */
+template<>
+KUZU_API inline int128_t& Value::getValueReference() {
+    assert(dataType->getLogicalTypeID() == LogicalTypeID::INT128);
+    return val.int128Val;
+}
+
+/**
  * @return the reference to the float value.
  */
 template<>
@@ -612,6 +645,15 @@ KUZU_API inline Value Value::createValue(uint32_t val) {
  */
 template<>
 KUZU_API inline Value Value::createValue(uint64_t val) {
+    return Value(val);
+}
+
+/**
+ * @param val the int128_t value
+ * @return a Value with INT128 type and val value.
+ */
+template<>
+KUZU_API inline Value Value::createValue(int128_t val) {
     return Value(val);
 }
 

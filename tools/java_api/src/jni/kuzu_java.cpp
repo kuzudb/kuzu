@@ -4,6 +4,7 @@
 #include "binder/bound_statement_result.h"
 // This header is generated at build time. See CMakeLists.txt.
 #include "com_kuzudb_KuzuNative.h"
+#include "common/exception/conversion.h"
 #include "common/exception/exception.h"
 #include "common/types/types.h"
 #include "common/types/value/nested.h"
@@ -153,13 +154,14 @@ void javaMapToCPPMap(
  */
 
 JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1database_1init(JNIEnv* env, jclass,
-    jstring database_path, jlong buffer_pool_size, jboolean enable_compression) {
+    jstring database_path, jlong buffer_pool_size, jboolean enable_compression, jint access_mode) {
 
     const char* path = env->GetStringUTFChars(database_path, JNI_FALSE);
     uint64_t buffer = static_cast<uint64_t>(buffer_pool_size);
     SystemConfig systemConfig;
     systemConfig.bufferPoolSize = buffer == 0 ? -1u : buffer;
     systemConfig.enableCompression = enable_compression;
+    systemConfig.accessMode = static_cast<AccessMode>(access_mode);
     try {
         Database* db = new Database(path, systemConfig);
         uint64_t address = reinterpret_cast<uint64_t>(db);
@@ -838,6 +840,14 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1value(
         jmethodID ctor = env->GetMethodID(retClass, "<init>", "(S)V");
         jshort val = static_cast<jshort>(v->getValue<uint8_t>());
         jobject ret = env->NewObject(retClass, ctor, val);
+        return ret;
+    }
+    case LogicalTypeID::INT128: {
+        jclass bigIntegerClass = env->FindClass("java/math/BigInteger");
+        jmethodID ctor = env->GetMethodID(bigIntegerClass, "<init>", "(Ljava/lang/String;)V");
+        int128_t int128_val = v->getValue<int128_t>();
+        jstring val = env->NewStringUTF(Int128_t::ToString(int128_val).c_str());
+        jobject ret = env->NewObject(bigIntegerClass, ctor, val);
         return ret;
     }
     case LogicalTypeID::DOUBLE: {

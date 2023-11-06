@@ -1,6 +1,6 @@
 #pragma once
 
-#include "binder/query/reading_clause/bound_match_clause.h"
+#include "binder/query/query_graph.h"
 #include "expression.h"
 
 namespace kuzu {

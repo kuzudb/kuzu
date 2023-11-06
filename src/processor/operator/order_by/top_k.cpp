@@ -1,5 +1,8 @@
 #include "processor/operator/order_by/top_k.h"
 
+#include "function/binary_function_executor.h"
+#include "function/comparison/comparison_functions.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -246,7 +249,7 @@ void TopKBuffer::appendSelState(
 }
 
 void TopKLocalState::init(const OrderByDataInfo& orderByDataInfo,
-    storage::MemoryManager* memoryManager, ResultSet& resultSet, uint64_t skipNumber,
+    storage::MemoryManager* memoryManager, ResultSet& /*resultSet*/, uint64_t skipNumber,
     uint64_t limitNumber) {
     buffer = std::make_unique<TopKBuffer>(orderByDataInfo);
     buffer->init(memoryManager, skipNumber, limitNumber);

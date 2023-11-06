@@ -1,12 +1,14 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
+#include "binder/expression/property_expression.h"
 #include "binder/query/updating_clause/bound_delete_clause.h"
 #include "binder/query/updating_clause/bound_insert_clause.h"
 #include "binder/query/updating_clause/bound_merge_clause.h"
 #include "binder/query/updating_clause/bound_set_clause.h"
 #include "catalog/node_table_schema.h"
 #include "common/exception/binder.h"
-#include "common/string_utils.h"
+#include "common/exception/not_implemented.h"
+#include "common/string_format.h"
 #include "parser/query/updating_clause/delete_clause.h"
 #include "parser/query/updating_clause/insert_clause.h"
 #include "parser/query/updating_clause/merge_clause.h"
@@ -163,7 +165,7 @@ std::unique_ptr<BoundInsertInfo> Binder::bindInsertRelInfo(
     }
     if (ExpressionUtil::isRecursiveRelVariable(*rel)) {
         throw BinderException(
-            common::StringUtils::string_format("Cannot create recursive rel {}.", rel->toString()));
+            common::stringFormat("Cannot create recursive rel {}.", rel->toString()));
     }
     auto relTableID = rel->getSingleTableID();
     auto tableSchema = catalog.getReadOnlyVersion()->getTableSchema(relTableID);

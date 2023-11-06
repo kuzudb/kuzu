@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "common/alter_type.h"
+#include "common/enums/alter_type.h"
 #include "parser/expression/parsed_expression.h"
 
 namespace kuzu {

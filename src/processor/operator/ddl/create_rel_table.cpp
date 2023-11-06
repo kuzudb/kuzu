@@ -1,7 +1,8 @@
 #include "processor/operator/ddl/create_rel_table.h"
 
 #include "catalog/rel_table_schema.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
+#include "storage/storage_manager.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -14,11 +15,12 @@ void CreateRelTable::executeDDLInternal() {
     auto newRelTableID = catalog->addRelTableSchema(*info);
     auto newRelTableSchema = reinterpret_cast<RelTableSchema*>(
         catalog->getWriteVersion()->getTableSchema(newRelTableID));
-    relsStatistics->addTableStatistic(newRelTableSchema);
+    storageManager->getRelsStore().getRelsStatistics()->addTableStatistic(newRelTableSchema);
+    storageManager->getWAL()->logRelTableRecord(newRelTableID);
 }
 
 std::string CreateRelTable::getOutputMsg() {
-    return StringUtils::string_format("Rel table: {} has been created.", info->tableName);
+    return stringFormat("Rel table: {} has been created.", info->tableName);
 }
 
 } // namespace processor

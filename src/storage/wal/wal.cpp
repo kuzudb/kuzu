@@ -1,7 +1,8 @@
 #include "storage/wal/wal.h"
 
+#include "common/exception/runtime.h"
 #include "common/utils.h"
-#include "spdlog/spdlog.h"
+#include "spdlog/spdlog.h" // IWYU pragma: keep: public interface to spdlog.
 #include "storage/storage_utils.h"
 
 using namespace kuzu::common;
@@ -9,32 +10,31 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-WAL::WAL(const std::string& directory, BufferManager& bufferManager)
+WAL::WAL(const std::string& directory, AccessMode accessMode, BufferManager& bufferManager)
     : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::WAL)}, directory{directory},
       bufferManager{bufferManager}, isLastLoggedRecordCommit_{false} {
     fileHandle = bufferManager.getBMFileHandle(
         FileUtils::joinPath(directory, std::string(StorageConstants::WAL_FILE_SUFFIX)),
-        FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
+        accessMode == AccessMode::READ_ONLY ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
+                                              FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
         BMFileHandle::FileVersionedType::NON_VERSIONED_FILE);
     initCurrentPage();
 }
 
-page_idx_t WAL::logPageUpdateRecord(
-    StorageStructureID storageStructureID, page_idx_t pageIdxInOriginalFile) {
+page_idx_t WAL::logPageUpdateRecord(DBFileID dbFileID, page_idx_t pageIdxInOriginalFile) {
     lock_t lck{mtx};
     auto pageIdxInWAL = fileHandle->addNewPage();
     WALRecord walRecord =
-        WALRecord::newPageUpdateRecord(storageStructureID, pageIdxInOriginalFile, pageIdxInWAL);
+        WALRecord::newPageUpdateRecord(dbFileID, pageIdxInOriginalFile, pageIdxInWAL);
     addNewWALRecordNoLock(walRecord);
     return pageIdxInWAL;
 }
 
-page_idx_t WAL::logPageInsertRecord(
-    StorageStructureID storageStructureID, page_idx_t pageIdxInOriginalFile) {
+page_idx_t WAL::logPageInsertRecord(DBFileID dbFileID, page_idx_t pageIdxInOriginalFile) {
     lock_t lck{mtx};
     auto pageIdxInWAL = fileHandle->addNewPage();
     WALRecord walRecord =
-        WALRecord::newPageInsertRecord(storageStructureID, pageIdxInOriginalFile, pageIdxInWAL);
+        WALRecord::newPageInsertRecord(dbFileID, pageIdxInOriginalFile, pageIdxInWAL);
     addNewWALRecordNoLock(walRecord);
     return pageIdxInWAL;
 }
@@ -69,17 +69,18 @@ void WAL::logRelTableRecord(table_id_t tableID) {
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logRdfGraphRecord(table_id_t rdfGraphID, table_id_t nodeTableID, table_id_t relTableID) {
+void WAL::logRdfGraphRecord(table_id_t rdfGraphID, table_id_t resourceTableID,
+    table_id_t literalTableID, table_id_t resourceTripleTableID, table_id_t literalTripleTableID) {
     lock_t lck{mtx};
-    WALRecord walRecord = WALRecord::newRdfGraphRecord(rdfGraphID, nodeTableID, relTableID);
+    WALRecord walRecord = WALRecord::newRdfGraphRecord(
+        rdfGraphID, resourceTableID, literalTableID, resourceTripleTableID, literalTripleTableID);
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logOverflowFileNextBytePosRecord(
-    StorageStructureID storageStructureID, uint64_t prevNextByteToWriteTo) {
+void WAL::logOverflowFileNextBytePosRecord(DBFileID dbFileID, uint64_t prevNextByteToWriteTo) {
     lock_t lck{mtx};
     WALRecord walRecord =
-        WALRecord::newOverflowFileNextBytePosRecord(storageStructureID, prevNextByteToWriteTo);
+        WALRecord::newOverflowFileNextBytePosRecord(dbFileID, prevNextByteToWriteTo);
     addNewWALRecordNoLock(walRecord);
 }
 
@@ -93,6 +94,7 @@ void WAL::logCopyNodeRecord(table_id_t tableID, page_idx_t startPageIdx) {
 void WAL::logCopyRelRecord(table_id_t tableID) {
     lock_t lck{mtx};
     WALRecord walRecord = WALRecord::newCopyRelRecord(tableID);
+    updatedRelTables.insert(tableID);
     addNewWALRecordNoLock(walRecord);
 }
 
@@ -192,7 +194,7 @@ WALIterator::WALIterator(std::shared_ptr<BMFileHandle> fileHandle, std::mutex& m
 void WALIterator::getNextRecord(WALRecord& retVal) {
     lock_t lck{mtx};
     if (!hasNextRecordNoLock()) {
-        throw RuntimeException("WALIterator cannot read  more log records from the WAL.");
+        throw RuntimeException("WALIterator cannot read more log records from the WAL.");
     }
     WALRecord::constructWALRecordFromBytes(
         retVal, currentHeaderPageBuffer.get(), offsetInCurrentHeaderPage);

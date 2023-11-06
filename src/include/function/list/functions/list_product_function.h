@@ -8,7 +8,7 @@ namespace function {
 struct ListProduct {
     template<typename T>
     static inline void operation(common::list_entry_t& input, T& result,
-        common::ValueVector& inputVector, common::ValueVector& resultVector) {
+        common::ValueVector& inputVector, common::ValueVector& /*resultVector*/) {
         auto inputDataVector = common::ListVector::getDataVector(&inputVector);
         result = 1;
         for (auto i = 0; i < input.size; i++) {

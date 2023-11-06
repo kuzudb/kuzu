@@ -13,7 +13,7 @@ public:
         : PhysicalOperator{PhysicalOperatorType::FILL_TABLE_ID, std::move(child), id, paramsString},
           internalIDPos{internalIDPos}, tableID{tableID} {}
 
-    inline void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) final {
+    inline void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* /*context*/) final {
         internalIDVector = resultSet_->getValueVector(internalIDPos).get();
     }
 

@@ -1,7 +1,7 @@
 #include "include/py_connection.h"
 
 #include "binder/bound_statement_result.h"
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "datetime.h" // from Python
 #include "main/connection.h"
 #include "planner/operator/logical_plan.h"
@@ -92,7 +92,7 @@ void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
     // Run queries in batch to fetch edges.
     auto queryString = "MATCH (a:{})-[:{}]->(b:{}) WHERE offset(id(b)) >= $s AND offset(id(b)) < "
                        "$e RETURN offset(id(a)), offset(id(b))";
-    auto query = StringUtils::string_format(queryString, srcTableName, relName, dstTableName);
+    auto query = stringFormat(queryString, srcTableName, relName, dstTableName);
     auto preparedStatement = conn->prepare(query);
     auto srcBuffer = buffer;
     auto dstBuffer = buffer + numRels;

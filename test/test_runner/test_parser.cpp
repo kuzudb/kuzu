@@ -2,6 +2,7 @@
 
 #include <fstream>
 
+#include "common/file_utils.h"
 #include "common/string_utils.h"
 #include "test_helper/test_helper.h"
 

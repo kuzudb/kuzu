@@ -1,5 +1,11 @@
 #include "function/comparison/comparison_functions.h"
 
+#include <cmath>
+
+#include "common/exception/not_implemented.h"
+#include "common/types/int128_t.h"
+#include "common/types/interval_t.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -52,6 +58,11 @@ static void executeNestedOperation(uint8_t& result, ValueVector* leftVector,
     case PhysicalTypeID::UINT8: {
         OP::operation(leftVector->getValue<uint8_t>(leftPos),
             rightVector->getValue<uint8_t>(rightPos), result, nullptr /* left */,
+            nullptr /* right */);
+    } break;
+    case PhysicalTypeID::INT128: {
+        OP::operation(leftVector->getValue<int128_t>(leftPos),
+            rightVector->getValue<int128_t>(rightPos), result, nullptr /* left */,
             nullptr /* right */);
     } break;
     case PhysicalTypeID::DOUBLE: {

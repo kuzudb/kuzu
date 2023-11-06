@@ -30,7 +30,7 @@ public:
 };
 
 struct BooleanParquetValueConversion {
-    static bool dictRead(ByteBuffer& dict, uint32_t& offset, ColumnReader& reader) {
+    static bool dictRead(ByteBuffer& /*dict*/, uint32_t& /*offset*/, ColumnReader& /*reader*/) {
         throw common::CopyException{"Dicts for booleans make no sense"};
     }
 

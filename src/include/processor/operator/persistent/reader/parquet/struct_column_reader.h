@@ -1,7 +1,6 @@
 #pragma once
 
 #include "column_reader.h"
-#include "templated_column_reader.h"
 
 namespace kuzu {
 namespace processor {

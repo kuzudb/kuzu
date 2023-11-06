@@ -1,8 +1,8 @@
 #include "binder/binder.h"
-#include "binder/copy/bound_file_scan_info.h"
 #include "binder/expression/literal_expression.h"
 #include "common/exception/binder.h"
 #include "common/exception/copy.h"
+#include "common/string_format.h"
 #include "common/string_utils.h"
 
 using namespace kuzu::parser;
@@ -39,14 +39,11 @@ std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& f
     for (auto& filePath : filePaths) {
         auto globbedFilePaths = FileUtils::globFilePath(filePath);
         if (globbedFilePaths.empty()) {
-            throw BinderException{StringUtils::string_format(
-                "No file found that matches the pattern: {}.", filePath)};
+            throw BinderException{
+                stringFormat("No file found that matches the pattern: {}.", filePath)};
         }
         boundFilePaths.insert(
             boundFilePaths.end(), globbedFilePaths.begin(), globbedFilePaths.end());
-    }
-    if (boundFilePaths.empty()) {
-        throw BinderException{StringUtils::string_format("Invalid file path: {}.", filePaths[0])};
     }
     return boundFilePaths;
 }

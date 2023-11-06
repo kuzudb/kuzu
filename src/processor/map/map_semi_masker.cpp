@@ -1,3 +1,4 @@
+#include "common/exception/not_implemented.h"
 #include "planner/operator/sip/logical_semi_masker.h"
 #include "processor/operator/recursive_extend/recursive_join.h"
 #include "processor/operator/scan_node_id.h"

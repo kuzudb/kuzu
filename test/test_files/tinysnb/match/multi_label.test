@@ -26,10 +26,15 @@
 ---- 1
 704
 
--LOG UnLabelOneHopTest
+-LOG UnLabelTest1
 -STATEMENT MATCH ()-[]->() RETURN COUNT(*)
 ---- 1
 30
+
+-LOG UnLabelTest2
+-STATEMENT MATCH (a)-[:knows|:studyAt]->(b)-[:knows|:studyAt]->(c) RETURN COUNT(*)
+---- 1
+43
 
 -LOG MultiLabelOneHopTest1
 -STATEMENT MATCH (a:person)-[e:knows|:marries]->(b:person) RETURN COUNT(*)
@@ -52,3 +57,8 @@
 -ENUMERATE
 ---- 1
 17
+
+-LOG MultiLabelNodePruning
+-STATEMENT MATCH (a:person)-[:knows]->(b)<-[:studyAt]-(c) RETURN COUNT(*)
+---- error
+Binder exception: Cannot find a label for node b that connects to all of its neighbour relationships.

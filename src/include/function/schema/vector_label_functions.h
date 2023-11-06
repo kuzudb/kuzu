@@ -1,16 +1,16 @@
 #pragma once
 
-#include "function/vector_functions.h"
-#include "label_functions.h"
+#include "function/binary_function_executor.h"
+#include "function/schema/label_functions.h"
 
 namespace kuzu {
 namespace function {
 
-struct LabelVectorFunction {
+struct LabelFunction {
     static void execFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result) {
         assert(params.size() == 2);
-        BinaryFunctionExecutor::executeListStruct<common::internalID_t, common::list_entry_t,
+        BinaryFunctionExecutor::executeListExtract<common::internalID_t, common::list_entry_t,
             common::ku_string_t, Label>(*params[0], *params[1], result);
     }
 };

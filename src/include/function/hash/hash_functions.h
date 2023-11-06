@@ -1,12 +1,14 @@
 #pragma once
 
+#include <cmath>
 #include <cstdint>
 #include <unordered_set>
 
 #include "common/exception/runtime.h"
-#include "common/type_utils.h"
+#include "common/types/int128_t.h"
+#include "common/types/interval_t.h"
 #include "common/types/ku_list.h"
-#include "common/utils.h"
+#include "common/types/ku_string.h"
 
 namespace kuzu {
 namespace function {
@@ -23,7 +25,7 @@ inline common::hash_t combineHashScalar(common::hash_t a, common::hash_t b) {
 
 struct Hash {
     template<class T>
-    static inline void operation(const T& key, common::hash_t& result) {
+    static inline void operation(const T& /*key*/, common::hash_t& /*result*/) {
         throw common::RuntimeException(
             "Hash type: " + std::string(typeid(T).name()) + " is not supported.");
     }
@@ -96,6 +98,11 @@ inline void Hash::operation(const int8_t& key, common::hash_t& result) {
 }
 
 template<>
+inline void Hash::operation(const common::int128_t& key, common::hash_t& result) {
+    result = murmurhash64(key.low) ^ murmurhash64(key.high);
+}
+
+template<>
 inline void Hash::operation(const double_t& key, common::hash_t& result) {
     result = murmurhash64(key);
 }
@@ -122,7 +129,7 @@ inline void Hash::operation(const common::interval_t& key, common::hash_t& resul
 }
 
 template<>
-inline void Hash::operation(const common::ku_list_t& key, common::hash_t& result) {
+inline void Hash::operation(const common::ku_list_t& /*key*/, common::hash_t& /*result*/) {
     throw common::RuntimeException(
         "Computing hash value of list DataType is currently unsupported.");
 }

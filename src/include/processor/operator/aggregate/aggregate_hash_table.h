@@ -1,8 +1,7 @@
 #pragma once
 
 #include "aggregate_input.h"
-#include "function/aggregate/aggregate_function.h"
-#include "function/comparison/comparison_functions.h"
+#include "function/aggregate_function.h"
 #include "processor/operator/base_hash_table.h"
 #include "storage/buffer_manager/memory_manager.h"
 

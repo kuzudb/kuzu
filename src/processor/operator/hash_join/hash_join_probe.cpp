@@ -1,7 +1,5 @@
 #include "processor/operator/hash_join/hash_join_probe.h"
 
-#include "function/hash/hash_functions.h"
-
 using namespace kuzu::common;
 
 namespace kuzu {

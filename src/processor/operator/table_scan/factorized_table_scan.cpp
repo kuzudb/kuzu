@@ -11,13 +11,14 @@ std::unique_ptr<FactorizedTableScanMorsel> FactorizedTableScanSharedState::getMo
     return morsel;
 }
 
-void FactorizedTableScan::initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) {
+void FactorizedTableScan::initLocalStateInternal(
+    ResultSet* /*resultSet_*/, ExecutionContext* /*context*/) {
     for (auto& dataPos : info->outputPositions) {
         vectors.push_back(resultSet->getValueVector(dataPos).get());
     }
 }
 
-bool FactorizedTableScan::getNextTuplesInternal(ExecutionContext* context) {
+bool FactorizedTableScan::getNextTuplesInternal(ExecutionContext* /*context*/) {
     auto morsel = sharedState->getMorsel();
     if (morsel->numTuples == 0) {
         return false;

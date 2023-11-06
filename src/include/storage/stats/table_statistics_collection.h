@@ -1,6 +1,10 @@
 #pragma once
 
+#include "catalog/table_schema.h"
+#include "storage/buffer_manager/buffer_manager.h"
+#include "storage/stats/metadata_dah_info.h"
 #include "storage/stats/table_statistics.h"
+#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace storage {
@@ -12,14 +16,15 @@ struct TablesStatisticsContent {
 class WAL;
 class TablesStatistics {
 public:
-    TablesStatistics(BMFileHandle* metadataFH);
+    TablesStatistics(BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal);
 
     virtual ~TablesStatistics() = default;
 
     virtual void setNumTuplesForTable(common::table_id_t tableID, uint64_t numTuples) = 0;
 
     inline void writeTablesStatisticsFileForWALRecord(const std::string& directory) {
-        saveToFile(directory, common::DBFileType::WAL_VERSION, transaction::TransactionType::WRITE);
+        saveToFile(
+            directory, common::FileVersionType::WAL_VERSION, transaction::TransactionType::WRITE);
     }
 
     inline bool hasUpdates() { return tablesStatisticsContentForWriteTrx != nullptr; }
@@ -27,6 +32,10 @@ public:
     inline void checkpointInMemoryIfNecessary() {
         std::unique_lock lck{mtx};
         tablesStatisticsContentForReadOnlyTrx = std::move(tablesStatisticsContentForWriteTrx);
+    }
+    inline void rollbackInMemoryIfNecessary() {
+        std::unique_lock lck{mtx};
+        tablesStatisticsContentForWriteTrx.reset();
     }
 
     inline TablesStatisticsContent* getReadOnlyVersion() const {
@@ -64,12 +73,12 @@ protected:
         TableStatistics* tableStatistics) = 0;
 
     virtual std::string getTableStatisticsFilePath(
-        const std::string& directory, common::DBFileType dbFileType) = 0;
+        const std::string& directory, common::FileVersionType dbFileType) = 0;
 
     void readFromFile(const std::string& directory);
-    void readFromFile(const std::string& directory, common::DBFileType dbFileType);
+    void readFromFile(const std::string& directory, common::FileVersionType dbFileType);
 
-    void saveToFile(const std::string& directory, common::DBFileType dbFileType,
+    void saveToFile(const std::string& directory, common::FileVersionType dbFileType,
         transaction::TransactionType transactionType);
 
     void initTableStatisticsForWriteTrx();
@@ -77,6 +86,8 @@ protected:
 
 protected:
     BMFileHandle* metadataFH;
+    BufferManager* bufferManager;
+    WAL* wal;
     std::unique_ptr<TablesStatisticsContent> tablesStatisticsContentForReadOnlyTrx;
     std::unique_ptr<TablesStatisticsContent> tablesStatisticsContentForWriteTrx;
     std::mutex mtx;

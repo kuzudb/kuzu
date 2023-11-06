@@ -1,4 +1,3 @@
-#include "binder/expression/node_expression.h"
 #include "planner/operator/persistent/logical_insert.h"
 #include "processor/operator/persistent/insert.h"
 #include "processor/plan_mapper.h"

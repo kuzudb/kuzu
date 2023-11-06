@@ -60,6 +60,13 @@
 0.771215
 -0.899880
 
+-LOG cosFunctionOnInt128Test
+-STATEMENT MATCH (m:movies) RETURN cos(to_int128(m.length))
+---- 3
+0.943984
+0.771215
+-0.899880
+
 -LOG tanFunctionOnDoubleTest
 -STATEMENT MATCH (a:organisation) RETURN tan(a.mark)
 ---- 3
@@ -122,6 +129,21 @@
 1.570796
 3.141593
 3.141593
+
+-LOG modFunctionOnINT128Test
+-STATEMENT RETURN to_int128(100) % to_int128(3)
+---- 1
+1
+
+-LOG modNegFunctionOnINT128Test
+-STATEMENT RETURN to_int128(-100) % to_int128(3)
+---- 1
+-1
+
+-LOG negModFunctionOnINT128Test
+-STATEMENT RETURN to_int128(100) % to_int128(-3)
+---- 1
+1
 
 -LOG atanFunctionOnDoubleTest
 -STATEMENT MATCH (a:organisation) RETURN atan(a.rating)
@@ -385,6 +407,13 @@
 2
 7
 
+-LOG AbsFunctionInt128
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN abs(e.hugedata)
+---- 3
+1844674407370955161511
+1844674407370955161811111111
+15
+
 -LOG FloorFunctionStrInt
 -STATEMENT MATCH (a:organisation) RETURN floor(a.score)
 ---- 3
@@ -392,8 +421,22 @@
 -100
 7
 
+-LOG FloorFunctionInt128
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN floor(e.hugedata)
+---- 3
+-1844674407370955161511
+1844674407370955161811111111
+-15
+
 -LOG CeilFunctionStrInt
 -STATEMENT MATCH (a:organisation) RETURN ceil(a.score)
+---- 3
+-2
+-100
+7
+
+-LOG CeilFunctionInt128
+-STATEMENT MATCH (a:organisation) RETURN ceil(to_int128(a.score))
 ---- 3
 -2
 -100
@@ -464,3 +507,32 @@
 9
 124
 6
+
+-LOG Int128OperatorTest
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.hugedata + 1 - to_int128(3) * to_int128(2) - to_int128(9) / to_int128(3)
+---- 3
+1844674407370955161811111103
+-1844674407370955161519
+-23
+
+-LOG INT128DivTest
+-STATEMENT RETURN to_int128(6) / to_int128(3)
+---- 1
+2
+
+-LOG INT128NegDivTest
+-STATEMENT RETURN to_int128(-6) / to_int128(3)
+---- 1
+-2
+
+-LOG INT128DivNegTest
+-STATEMENT RETURN to_int128(6) / to_int128(-3)
+---- 1
+-2
+
+-LOG INT128RangeTest
+-STATEMENT RETURN to_int128(170141183460469231731687303715884105727)
+---- 1
+170141183460469231731687303715884105727
+
+

@@ -1,7 +1,8 @@
 #include "main/query_summary.h"
 
+#include <cstdlib>
+
 #include "c_api/kuzu.h"
-#include "json.hpp"
 
 using namespace kuzu::main;
 

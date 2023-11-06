@@ -2,6 +2,8 @@
 #include "planner/operator/logical_in_query_call.h"
 #include "planner/query_planner.h"
 
+using namespace kuzu::binder;
+
 namespace kuzu {
 namespace planner {
 

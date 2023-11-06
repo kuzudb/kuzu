@@ -1,0 +1,18 @@
+-GROUP ParquetTimestampTest
+-DATASET CSV empty
+
+--
+
+-CASE impalaTimestamp
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/reader/parquet/timestamp/impala_timestamp.parquet' RETURN *
+---- 3
+2023-11-02 12:00:00
+1949-10-01 13:30:45
+1965-12-30 15:15:20
+
+-CASE timestampMSNS
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/reader/parquet/timestamp/timestamp_ms_ns.parquet' RETURN *
+---- 3
+2021-11-02 20:33:20|2012-05-01 15:13:24
+2021-11-02 21:20:00|2021-09-30 07:46:40
+2021-11-02 22:20:00|2016-08-15 20:06:40

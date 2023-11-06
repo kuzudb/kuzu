@@ -57,29 +57,28 @@ void LogicalPlanUtil::encodeJoinRecursive(
 }
 
 void LogicalPlanUtil::encodeCrossProduct(
-    LogicalOperator* logicalOperator, std::string& encodeString) {
+    LogicalOperator* /*logicalOperator*/, std::string& encodeString) {
     encodeString += "CP()";
 }
 
 void LogicalPlanUtil::encodeIntersect(LogicalOperator* logicalOperator, std::string& encodeString) {
-    auto logicalIntersect = (LogicalIntersect*)logicalOperator;
+    auto logicalIntersect = reinterpret_cast<LogicalIntersect*>(logicalOperator);
     encodeString += "I(" + logicalIntersect->getIntersectNodeID()->toString() + ")";
 }
 
 void LogicalPlanUtil::encodeHashJoin(LogicalOperator* logicalOperator, std::string& encodeString) {
-    auto logicalHashJoin = (LogicalHashJoin*)logicalOperator;
-    encodeString += "HJ(";
-    encodeString += logicalHashJoin->getExpressionsForPrinting() + ")";
+    auto logicalHashJoin = reinterpret_cast<LogicalHashJoin*>(logicalOperator);
+    encodeString += "HJ(" + logicalHashJoin->getExpressionsForPrinting() + ")";
 }
 
 void LogicalPlanUtil::encodeExtend(LogicalOperator* logicalOperator, std::string& encodeString) {
-    auto logicalExtend = (LogicalExtend*)logicalOperator;
+    auto logicalExtend = reinterpret_cast<LogicalExtend*>(logicalOperator);
     encodeString += "E(" + logicalExtend->getNbrNode()->toString() + ")";
 }
 
 void LogicalPlanUtil::encodeRecursiveExtend(
     LogicalOperator* logicalOperator, std::string& encodeString) {
-    auto logicalExtend = (LogicalRecursiveExtend*)logicalOperator;
+    auto logicalExtend = reinterpret_cast<LogicalRecursiveExtend*>(logicalOperator);
     encodeString += "RE(" + logicalExtend->getNbrNode()->toString() + ")";
 }
 

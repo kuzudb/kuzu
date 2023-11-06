@@ -3,6 +3,7 @@
 #include <bitset>
 
 #include "common/constants.h"
+#include "common/exception/not_implemented.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "parquet/parquet_types.h"
@@ -27,17 +28,24 @@ public:
     inline bool hasDefines() { return maxDefine > 0; }
     inline bool hasRepeats() { return maxRepeat > 0; }
     virtual inline void skip(uint64_t numValues) { pendingSkips += numValues; }
-    virtual inline void dictionary(std::shared_ptr<ResizeableBuffer> data, uint64_t num_entries) {
-        throw common::NotImplementedException{"Dictionary"};
+    virtual inline void dictionary(
+        std::shared_ptr<ResizeableBuffer> /*data*/, uint64_t /*num_entries*/) {
+        // LCOV_EXCL_START
+        throw common::NotImplementedException("Dictionary");
+        // LCOV_EXCL_END
     }
-    virtual inline void offsets(uint32_t* offsets, uint8_t* defines, uint64_t numValues,
-        parquet_filter_t& filter, uint64_t resultOffset, common::ValueVector* result) {
-        throw common::NotImplementedException{"ColumnReader::offsets"};
+    virtual inline void offsets(uint32_t* /*offsets*/, uint8_t* /*defines*/, uint64_t /*numValues*/,
+        parquet_filter_t& /*filter*/, uint64_t /*resultOffset*/, common::ValueVector* /*result*/) {
+        // LCOV_EXCL_START
+        throw common::NotImplementedException("ColumnReader::offsets");
+        // LCOV_EXCL_END
     }
-    virtual inline void plain(std::shared_ptr<ByteBuffer> plainData, uint8_t* defines,
-        uint64_t numValues, parquet_filter_t& filter, uint64_t resultOffset,
-        common::ValueVector* result) {
-        throw common::NotImplementedException{"ColumnReader::plain"};
+    virtual inline void plain(std::shared_ptr<ByteBuffer> /*plainData*/, uint8_t* /*defines*/,
+        uint64_t /*numValues*/, parquet_filter_t& /*filter*/, uint64_t /*resultOffset*/,
+        common::ValueVector* /*result*/) {
+        // LCOV_EXCL_START
+        throw common::NotImplementedException("ColumnReader::plain");
+        // LCOV_EXCL_END
     }
     virtual inline void resetPage() {}
     virtual inline uint64_t getGroupRowsAvailable() { return groupRowsAvailable; }
@@ -78,6 +86,12 @@ public:
             }
         }
     }
+
+private:
+    static std::unique_ptr<ColumnReader> createTimestampReader(ParquetReader& reader,
+        std::unique_ptr<common::LogicalType> type,
+        const kuzu_parquet::format::SchemaElement& schema, uint64_t fileIdx, uint64_t maxDefine,
+        uint64_t maxRepeat);
 
 protected:
     const kuzu_parquet::format::SchemaElement& schema;

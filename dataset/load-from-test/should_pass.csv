@@ -1,7 +1,0 @@
-"      [   [   1   ,3,    423   ,   124,43242     ]  ,   [   432    ]]","{num: 3424231143, str: this is a normal string no space ' , , does not count'  }"
-"[   [   1   ,3,    423   ,   124,43242     ]      ,      [432]]      ","{num : -423432  , str: this is a string [] }"
-"[,[], [1, 2, 3]]","{      num :       0  , str: this is a string }   "
-"[null, NULL, Null, nUll, nuLl, nulL, nuLL, NUll, NuLl     , NulL, [1, 2, 3]]","{num:1,str:yes}"
-"[[], [], []  ]","{num:2341,str:no}"
-"[,      ,]"," {  }"
-"[[1,3,423,124,43242],[432]]","{  num  : 3423423  , str: this is a string  }"

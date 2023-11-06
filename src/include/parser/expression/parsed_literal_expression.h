@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/ser_deser.h"
 #include "common/types/value/value.h"
 #include "parsed_expression.h"
 
@@ -24,9 +23,8 @@ public:
     inline common::Value* getValue() const { return value.get(); }
 
     static inline std::unique_ptr<ParsedLiteralExpression> deserialize(
-        common::FileInfo* fileInfo, uint64_t& offset) {
-        return std::make_unique<ParsedLiteralExpression>(
-            common::Value::deserialize(fileInfo, offset));
+        common::Deserializer& deserializer) {
+        return std::make_unique<ParsedLiteralExpression>(common::Value::deserialize(deserializer));
     }
 
     inline std::unique_ptr<ParsedExpression> copy() const override {
@@ -35,8 +33,8 @@ public:
     }
 
 private:
-    void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) const override {
-        value->serialize(fileInfo, offset);
+    void serializeInternal(common::Serializer& serializer) const override {
+        value->serialize(serializer);
     }
 
 private:

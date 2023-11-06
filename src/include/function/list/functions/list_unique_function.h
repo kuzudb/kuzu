@@ -10,7 +10,7 @@ namespace function {
 template<typename T>
 struct ListUnique {
     static inline void operation(common::list_entry_t& input, int64_t& result,
-        common::ValueVector& inputVector, common::ValueVector& resultVector) {
+        common::ValueVector& inputVector, common::ValueVector& /*resultVector*/) {
         std::set<T> uniqueValues;
         auto inputValues =
             reinterpret_cast<T*>(common::ListVector::getListValues(&inputVector, input));

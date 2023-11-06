@@ -1,14 +1,14 @@
 #pragma once
 
-#include "function/vector_functions.h"
+#include "function/scalar_function.h"
 
 namespace kuzu {
 namespace function {
 
-struct UnionValueVectorFunction : public VectorFunction {
-    static vector_function_definitions getDefinitions();
+struct UnionValueFunction {
+    static function_set getFunctionSet();
     static std::unique_ptr<FunctionBindData> bindFunc(
-        const binder::expression_vector& arguments, FunctionDefinition* definition);
+        const binder::expression_vector& arguments, Function* function);
     static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
         common::ValueVector& result);
     static void compileFunc(FunctionBindData* bindData,
@@ -16,12 +16,12 @@ struct UnionValueVectorFunction : public VectorFunction {
         std::shared_ptr<common::ValueVector>& result);
 };
 
-struct UnionTagVectorFunction : public VectorFunction {
-    static vector_function_definitions getDefinitions();
+struct UnionTagFunction {
+    static function_set getFunctionSet();
 };
 
-struct UnionExtractVectorFunction : public VectorFunction {
-    static vector_function_definitions getDefinitions();
+struct UnionExtractFunction {
+    static function_set getFunctionSet();
 };
 
 } // namespace function

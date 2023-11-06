@@ -1,7 +1,8 @@
 #pragma once
 
 #include "basic_column_writer.h"
-#include "function/cast/numeric_limits.h"
+#include "common/serializer/serializer.h"
+#include "function/cast/functions/numeric_limits.h"
 #include "function/comparison/comparison_functions.h"
 
 namespace kuzu {
@@ -40,7 +41,7 @@ struct BaseParquetOperator {
     }
 
     template<class SRC, class TGT>
-    static void handleStats(ColumnWriterStatistics* stats, SRC sourceValue, TGT targetValue) {
+    static void handleStats(ColumnWriterStatistics* stats, SRC /*sourceValue*/, TGT targetValue) {
         auto& numericStats = (NumericStatisticsState<SRC, TGT, BaseParquetOperator>&)*stats;
         uint8_t result;
         function::LessThan::operation(targetValue, numericStats.min, result,
@@ -77,7 +78,7 @@ public:
     }
 
     void templatedWritePlain(common::ValueVector* vector, ColumnWriterStatistics* stats,
-        uint64_t chunkStart, uint64_t chunkEnd, BufferedSerializer& ser) {
+        uint64_t chunkStart, uint64_t chunkEnd, common::Serializer& ser) {
         for (auto r = chunkStart; r < chunkEnd; r++) {
             auto pos = getVectorPos(vector, r);
             if (!vector->isNull(pos)) {
@@ -88,14 +89,14 @@ public:
         }
     }
 
-    inline void writeVector(BufferedSerializer& bufferedSerializer, ColumnWriterStatistics* stats,
-        ColumnWriterPageState* pageState, common::ValueVector* vector, uint64_t chunkStart,
+    inline void writeVector(common::Serializer& bufferedSerializer, ColumnWriterStatistics* stats,
+        ColumnWriterPageState* /*pageState*/, common::ValueVector* vector, uint64_t chunkStart,
         uint64_t chunkEnd) override {
         templatedWritePlain(vector, stats, chunkStart, chunkEnd, bufferedSerializer);
     }
 
-    inline uint64_t getRowSize(
-        common::ValueVector* vector, uint64_t index, BasicColumnWriterState& state) override {
+    inline uint64_t getRowSize(common::ValueVector* /*vector*/, uint64_t /*index*/,
+        BasicColumnWriterState& /*state*/) override {
         return sizeof(TGT);
     }
 };

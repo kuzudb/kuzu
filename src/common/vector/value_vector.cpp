@@ -1,10 +1,10 @@
 #include "common/vector/value_vector.h"
 
+#include "common/exception/not_implemented.h"
 #include "common/null_buffer.h"
 #include "common/types/value/nested.h"
 #include "common/types/value/value.h"
 #include "common/vector/auxiliary_buffer.h"
-#include <arrow/array.h>
 
 namespace kuzu {
 namespace common {
@@ -17,12 +17,12 @@ ValueVector::ValueVector(LogicalType dataType, storage::MemoryManager* memoryMan
     auxiliaryBuffer = AuxiliaryBufferFactory::getAuxiliaryBuffer(this->dataType, memoryManager);
 }
 
-void ValueVector::setState(std::shared_ptr<DataChunkState> state) {
-    this->state = state;
+void ValueVector::setState(std::shared_ptr<DataChunkState> state_) {
+    this->state = state_;
     if (dataType.getPhysicalType() == PhysicalTypeID::STRUCT) {
         auto childrenVectors = StructVector::getFieldVectors(this);
         for (auto& childVector : childrenVectors) {
-            childVector->setState(state);
+            childVector->setState(state_);
         }
     }
 }
@@ -157,6 +157,9 @@ void ValueVector::copyFromValue(uint64_t pos, const Value& value) {
     case PhysicalTypeID::UINT8: {
         memcpy(dstValue, &value.val.uint8Val, numBytesPerValue);
     } break;
+    case PhysicalTypeID::INT128: {
+        memcpy(dstValue, &value.val.int128Val, numBytesPerValue);
+    } break;
     case PhysicalTypeID::DOUBLE: {
         memcpy(dstValue, &value.val.doubleVal, numBytesPerValue);
     } break;
@@ -258,6 +261,9 @@ std::unique_ptr<Value> ValueVector::getAsValue(uint64_t pos) {
     case PhysicalTypeID::UINT8: {
         value->val.uint8Val = getValue<uint8_t>(pos);
     } break;
+    case PhysicalTypeID::INT128: {
+        value->val.int128Val = getValue<int128_t>(pos);
+    } break;
     case PhysicalTypeID::DOUBLE: {
         value->val.doubleVal = getValue<double_t>(pos);
     } break;
@@ -340,9 +346,6 @@ uint32_t ValueVector::getDataTypeSize(const LogicalType& type) {
     case PhysicalTypeID::VAR_LIST: {
         return sizeof(list_entry_t);
     }
-    case PhysicalTypeID::ARROW_COLUMN: {
-        return 0;
-    }
     default: {
         return PhysicalTypeUtils::getFixedTypeSize(type.getPhysicalType());
     }
@@ -358,20 +361,6 @@ void ValueVector::initializeValueBuffer() {
     }
 }
 
-void ArrowColumnVector::setArrowColumn(
-    ValueVector* vector, std::shared_ptr<arrow::ChunkedArray> column) {
-    assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::ARROW_COLUMN);
-    auto arrowColumnBuffer =
-        reinterpret_cast<ArrowColumnAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
-    arrowColumnBuffer->column = std::move(column);
-}
-
-void ArrowColumnVector::slice(ValueVector* vector, offset_t offset) {
-    auto arrowColumnBuffer =
-        reinterpret_cast<ArrowColumnAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
-    setArrowColumn(vector, arrowColumnBuffer->column->Slice((int64_t)offset));
-}
-
 template KUZU_API void ValueVector::setValue<nodeID_t>(uint32_t pos, nodeID_t val);
 template KUZU_API void ValueVector::setValue<bool>(uint32_t pos, bool val);
 template KUZU_API void ValueVector::setValue<int64_t>(uint32_t pos, int64_t val);
@@ -382,6 +371,7 @@ template KUZU_API void ValueVector::setValue<uint64_t>(uint32_t pos, uint64_t va
 template KUZU_API void ValueVector::setValue<uint32_t>(uint32_t pos, uint32_t val);
 template KUZU_API void ValueVector::setValue<uint16_t>(uint32_t pos, uint16_t val);
 template KUZU_API void ValueVector::setValue<uint8_t>(uint32_t pos, uint8_t val);
+template KUZU_API void ValueVector::setValue<int128_t>(uint32_t pos, int128_t val);
 template KUZU_API void ValueVector::setValue<double_t>(uint32_t pos, double_t val);
 template KUZU_API void ValueVector::setValue<float_t>(uint32_t pos, float_t val);
 template KUZU_API void ValueVector::setValue<date_t>(uint32_t pos, date_t val);

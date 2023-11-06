@@ -1,7 +1,6 @@
 #pragma once
 
 #include "transaction.h"
-#include "transaction_manager.h"
 
 namespace kuzu {
 namespace main {

@@ -4,7 +4,7 @@
 #include <cstdlib>
 
 #include "common/exception/runtime.h"
-#include "common/type_utils.h"
+#include "common/types/int128_t.h"
 
 namespace kuzu {
 namespace function {
@@ -64,6 +64,19 @@ inline void Modulo::operation(int64_t& left, int64_t& right, int64_t& result) {
     result = left % right;
 }
 
+template<>
+inline void Modulo::operation(
+    common::int128_t& left, common::int128_t& right, common::int128_t& result) {
+    // LCOV_EXCL_START
+    if (right == 0) {
+        // According to c++ standard, only INT128 % 0(INT128) is undefined. (eg. DOUBLE % 0(INT128)
+        // and INT128 % 0.0(DOUBLE) are well-defined).
+        throw common::RuntimeException("Modulo by zero.");
+    }
+    // LCOV_EXCL_END
+    result = left % right;
+}
+
 struct Power {
     template<class A, class B, class R>
     static inline void operation(A& left, B& right, R& result) {
@@ -89,6 +102,11 @@ struct Abs {
     }
 };
 
+template<>
+inline void Abs::operation(common::int128_t& input, common::int128_t& result) {
+    result = input < 0 ? -input : input;
+}
+
 struct Floor {
     template<class T>
     static inline void operation(T& input, T& result) {
@@ -96,12 +114,22 @@ struct Floor {
     }
 };
 
+template<>
+inline void Floor::operation(common::int128_t& input, common::int128_t& result) {
+    result = input;
+}
+
 struct Ceil {
     template<class T>
     static inline void operation(T& input, T& result) {
         result = ceil(input);
     }
 };
+
+template<>
+inline void Ceil::operation(common::int128_t& input, common::int128_t& result) {
+    result = input;
+}
 
 struct Sin {
     template<class T>

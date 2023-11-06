@@ -14,16 +14,9 @@ public:
         : DDL{PhysicalOperatorType::DROP_PROPERTY, catalog, outputPos, id, paramsString},
           storageManager{storageManager}, tableID{tableID}, propertyID{propertyID} {}
 
-    void executeDDLInternal() override {
-        auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(tableID);
-        catalog->dropProperty(tableID, propertyID);
-        if (tableSchema->tableType == common::TableType::NODE) {
-            auto nodesStats = storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs();
-            nodesStats->removeMetadataDAHInfo(tableID, tableSchema->getColumnID(propertyID));
-        }
-    }
+    void executeDDLInternal() final;
 
-    std::string getOutputMsg() override { return {"Drop succeed."}; }
+    std::string getOutputMsg() final { return {"Drop succeed."}; }
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<DropProperty>(

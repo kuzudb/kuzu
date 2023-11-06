@@ -1,6 +1,8 @@
 #pragma once
 
-#include "common/explain_type.h"
+#include <memory>
+
+#include "common/enums/explain_type.h"
 #include "parser/statement.h"
 
 namespace kuzu {

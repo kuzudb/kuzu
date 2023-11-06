@@ -1,9 +1,6 @@
 #pragma once
 
 #include <cassert>
-#include <cmath>
-#include <cstring>
-#include <map>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -15,7 +12,9 @@
 namespace kuzu {
 namespace common {
 
-class FileInfo;
+class Serializer;
+class Deserializer;
+struct FileInfo;
 
 using sel_t = uint16_t;
 using hash_t = uint64_t;
@@ -33,14 +32,16 @@ using vector_idx_t = uint32_t;
 constexpr vector_idx_t INVALID_VECTOR_IDX = UINT32_MAX;
 using block_idx_t = uint64_t;
 constexpr block_idx_t INVALID_BLOCK_IDX = UINT64_MAX;
-using field_idx_t = uint64_t;
-using struct_field_idx_t = uint64_t;
-using union_field_idx_t = uint64_t;
-constexpr struct_field_idx_t INVALID_STRUCT_FIELD_IDX = UINT64_MAX;
+using struct_field_idx_t = uint8_t;
+using union_field_idx_t = struct_field_idx_t;
+constexpr struct_field_idx_t INVALID_STRUCT_FIELD_IDX = UINT8_MAX;
 using row_idx_t = uint64_t;
 constexpr row_idx_t INVALID_ROW_IDX = UINT64_MAX;
 constexpr uint32_t UNDEFINED_CAST_COST = UINT32_MAX;
 using node_group_idx_t = uint64_t;
+constexpr node_group_idx_t INVALID_NODE_GROUP_IDX = UINT64_MAX;
+using partition_idx_t = uint64_t;
+constexpr partition_idx_t INVALID_PARTITION_IDX = UINT64_MAX;
 
 // System representation for a variable-sized overflow value.
 struct overflow_value_t {
@@ -62,7 +63,13 @@ struct struct_entry_t {
     int64_t pos;
 };
 
-using union_entry_t = struct_entry_t;
+struct map_entry_t {
+    list_entry_t entry;
+};
+
+struct union_entry_t {
+    struct_entry_t entry;
+};
 
 enum class KUZU_API LogicalTypeID : uint8_t {
     ANY = 0,
@@ -73,7 +80,6 @@ enum class KUZU_API LogicalTypeID : uint8_t {
     // incremented by 1 starting from 0.
     SERIAL = 13,
 
-    // fixed size types
     BOOL = 22,
     INT64 = 23,
     INT32 = 24,
@@ -83,6 +89,7 @@ enum class KUZU_API LogicalTypeID : uint8_t {
     UINT32 = 28,
     UINT16 = 29,
     UINT8 = 30,
+    INT128 = 31,
     DOUBLE = 32,
     FLOAT = 33,
     DATE = 34,
@@ -92,15 +99,14 @@ enum class KUZU_API LogicalTypeID : uint8_t {
 
     INTERNAL_ID = 40,
 
-    ARROW_COLUMN = 41,
-
-    // variable size types
     STRING = 50,
     BLOB = 51,
+
     VAR_LIST = 52,
     STRUCT = 53,
     MAP = 54,
     UNION = 55,
+    RDF_VARIANT = 56,
 };
 
 enum class PhysicalTypeID : uint8_t {
@@ -115,11 +121,11 @@ enum class PhysicalTypeID : uint8_t {
     UINT32 = 7,
     UINT16 = 8,
     UINT8 = 9,
-    DOUBLE = 10,
-    FLOAT = 11,
-    INTERVAL = 12,
-    INTERNAL_ID = 13,
-    ARROW_COLUMN = 14,
+    INT128 = 10,
+    DOUBLE = 11,
+    FLOAT = 12,
+    INTERVAL = 13,
+    INTERNAL_ID = 14,
 
     // Variable size types.
     STRING = 20,
@@ -134,18 +140,15 @@ class ExtraTypeInfo {
 public:
     virtual ~ExtraTypeInfo() = default;
 
-    inline void serialize(FileInfo* fileInfo, uint64_t& offset) const {
-        serializeInternal(fileInfo, offset);
-    }
+    inline void serialize(Serializer& serializer) const { serializeInternal(serializer); }
 
     virtual std::unique_ptr<ExtraTypeInfo> copy() const = 0;
 
 protected:
-    virtual void serializeInternal(FileInfo* fileInfo, uint64_t& offset) const = 0;
+    virtual void serializeInternal(Serializer& serializer) const = 0;
 };
 
 class VarListTypeInfo : public ExtraTypeInfo {
-    friend class SerDeser;
 
 public:
     VarListTypeInfo() = default;
@@ -157,17 +160,16 @@ public:
     bool operator==(const VarListTypeInfo& other) const;
     std::unique_ptr<ExtraTypeInfo> copy() const override;
 
-    static std::unique_ptr<ExtraTypeInfo> deserialize(FileInfo* fileInfo, uint64_t& offset);
+    static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
 
 protected:
-    void serializeInternal(FileInfo* fileInfo, uint64_t& offset) const override;
+    void serializeInternal(Serializer& serializer) const override;
 
 protected:
     std::unique_ptr<LogicalType> childType;
 };
 
 class FixedListTypeInfo : public VarListTypeInfo {
-    friend class SerDeser;
 
 public:
     FixedListTypeInfo() = default;
@@ -176,18 +178,17 @@ public:
         : VarListTypeInfo{std::move(childType)}, fixedNumElementsInList{fixedNumElementsInList} {}
     inline uint64_t getNumElementsInList() const { return fixedNumElementsInList; }
     bool operator==(const FixedListTypeInfo& other) const;
-    static std::unique_ptr<ExtraTypeInfo> deserialize(FileInfo* fileInfo, uint64_t& offset);
+    static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
     std::unique_ptr<ExtraTypeInfo> copy() const override;
 
 private:
-    void serializeInternal(FileInfo* fileInfo, uint64_t& offset) const override;
+    void serializeInternal(Serializer& serializer) const override;
 
 private:
     uint64_t fixedNumElementsInList;
 };
 
 class StructField {
-    friend class SerDeser;
 
 public:
     StructField() : type{std::make_unique<LogicalType>()} {}
@@ -200,9 +201,9 @@ public:
 
     bool operator==(const StructField& other) const;
 
-    void serialize(FileInfo* fileInfo, uint64_t& offset) const;
+    void serialize(Serializer& serializer) const;
 
-    static std::unique_ptr<StructField> deserialize(FileInfo* fileInfo, uint64_t& offset);
+    static std::unique_ptr<StructField> deserialize(Deserializer& deserializer);
 
     std::unique_ptr<StructField> copy() const;
 
@@ -212,7 +213,6 @@ private:
 };
 
 class StructTypeInfo : public ExtraTypeInfo {
-    friend class SerDeser;
 
 public:
     StructTypeInfo() = default;
@@ -229,11 +229,11 @@ public:
     std::vector<StructField*> getStructFields() const;
     bool operator==(const kuzu::common::StructTypeInfo& other) const;
 
-    static std::unique_ptr<ExtraTypeInfo> deserialize(FileInfo* fileInfo, uint64_t& offset);
+    static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
     std::unique_ptr<ExtraTypeInfo> copy() const override;
 
 private:
-    void serializeInternal(FileInfo* fileInfo, uint64_t& offset) const override;
+    void serializeInternal(Serializer& serializer) const override;
 
 private:
     std::vector<std::unique_ptr<StructField>> fields;
@@ -241,14 +241,15 @@ private:
 };
 
 class LogicalType {
-    friend class SerDeser;
     friend class LogicalTypeUtils;
-    friend class StructType;
-    friend class VarListType;
-    friend class FixedListType;
+    friend struct StructType;
+    friend struct VarListType;
+    friend struct FixedListType;
 
 public:
-    KUZU_API LogicalType() : typeID{LogicalTypeID::ANY}, extraTypeInfo{nullptr} {};
+    KUZU_API LogicalType() : typeID{LogicalTypeID::ANY}, extraTypeInfo{nullptr} {
+        setPhysicalType();
+    };
     explicit KUZU_API LogicalType(LogicalTypeID typeID);
     KUZU_API LogicalType(LogicalTypeID typeID, std::unique_ptr<ExtraTypeInfo> extraTypeInfo);
     // For deserialize only.
@@ -270,13 +271,14 @@ public:
 
     inline PhysicalTypeID getPhysicalType() const { return physicalType; }
 
+    inline bool hasExtraTypeInfo() const { return extraTypeInfo != nullptr; }
     inline void setExtraTypeInfo(std::unique_ptr<ExtraTypeInfo> typeInfo) {
         extraTypeInfo = std::move(typeInfo);
     }
 
-    void serialize(FileInfo* fileInfo, uint64_t& offset) const;
+    void serialize(Serializer& serializer) const;
 
-    static std::unique_ptr<LogicalType> deserialize(FileInfo* fileInfo, uint64_t& offset);
+    static std::unique_ptr<LogicalType> deserialize(Deserializer& deserializer);
 
     std::unique_ptr<LogicalType> copy() const;
 
@@ -396,7 +398,7 @@ struct MapType {
 struct UnionType {
     static constexpr union_field_idx_t TAG_FIELD_IDX = 0;
 
-    static constexpr LogicalTypeID TAG_FIELD_TYPE = LogicalTypeID::INT64;
+    static constexpr LogicalTypeID TAG_FIELD_TYPE = LogicalTypeID::INT8;
 
     static constexpr char TAG_FIELD_NAME[] = "tag";
 
@@ -427,12 +429,13 @@ class LogicalTypeUtils {
 public:
     KUZU_API static std::string dataTypeToString(const LogicalType& dataType);
     KUZU_API static std::string dataTypeToString(LogicalTypeID dataTypeID);
-    static std::string dataTypesToString(const std::vector<LogicalType>& dataTypes);
-    static std::string dataTypesToString(const std::vector<LogicalTypeID>& dataTypeIDs);
+    static std::string dataTypesToString(const std::vector<LogicalType*>& dataTypes);
+    KUZU_API static std::string dataTypesToString(const std::vector<LogicalTypeID>& dataTypeIDs);
     KUZU_API static LogicalType dataTypeFromString(const std::string& dataTypeString);
     static uint32_t getRowLayoutSize(const LogicalType& logicalType);
     static bool isNumerical(const LogicalType& dataType);
     static bool isNested(const LogicalType& dataType);
+    static bool isNested(LogicalTypeID logicalTypeID);
     static std::vector<LogicalType> getAllValidComparableLogicalTypes();
     static std::vector<LogicalTypeID> getNumericalLogicalTypeIDs();
     static std::vector<LogicalTypeID> getIntegerLogicalTypeIDs();
@@ -450,7 +453,7 @@ private:
     static std::unique_ptr<LogicalType> parseUnionType(const std::string& trimmedStr);
 };
 
-enum class DBFileType : uint8_t { ORIGINAL = 0, WAL_VERSION = 1 };
+enum class FileVersionType : uint8_t { ORIGINAL = 0, WAL_VERSION = 1 };
 
 } // namespace common
 } // namespace kuzu

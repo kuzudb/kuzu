@@ -1,7 +1,9 @@
 #include "storage/stats/table_statistics.h"
 
 #include "catalog/table_schema.h"
-#include "common/ser_deser.h"
+#include "common/exception/not_implemented.h"
+#include "common/serializer/deserializer.h"
+#include "common/serializer/serializer.h"
 #include "storage/stats/node_table_statistics.h"
 #include "storage/stats/rel_table_statistics.h"
 
@@ -34,33 +36,31 @@ TableStatistics::TableStatistics(const TableStatistics& other)
     }
 }
 
-void TableStatistics::serialize(FileInfo* fileInfo, uint64_t& offset) {
-    SerDeser::serializeValue(tableType, fileInfo, offset);
-    SerDeser::serializeValue(numTuples, fileInfo, offset);
-    SerDeser::serializeValue(tableID, fileInfo, offset);
-    SerDeser::serializeUnorderedMap(propertyStatistics, fileInfo, offset);
-    serializeInternal(fileInfo, offset);
+void TableStatistics::serialize(Serializer& serializer) {
+    serializer.serializeValue(tableType);
+    serializer.serializeValue(numTuples);
+    serializer.serializeValue(tableID);
+    serializer.serializeUnorderedMap(propertyStatistics);
+    serializeInternal(serializer);
 }
 
-std::unique_ptr<TableStatistics> TableStatistics::deserialize(
-    FileInfo* fileInfo, uint64_t& offset) {
+std::unique_ptr<TableStatistics> TableStatistics::deserialize(Deserializer& deserializer) {
     TableType tableType;
     uint64_t numTuples;
     table_id_t tableID;
     std::unordered_map<property_id_t, std::unique_ptr<PropertyStatistics>> propertyStatistics;
-    SerDeser::deserializeValue(tableType, fileInfo, offset);
-    SerDeser::deserializeValue(numTuples, fileInfo, offset);
-    SerDeser::deserializeValue(tableID, fileInfo, offset);
-    SerDeser::deserializeUnorderedMap(propertyStatistics, fileInfo, offset);
+    deserializer.deserializeValue(tableType);
+    deserializer.deserializeValue(numTuples);
+    deserializer.deserializeValue(tableID);
+    deserializer.deserializeUnorderedMap(propertyStatistics);
     std::unique_ptr<TableStatistics> result;
     switch (tableType) {
     case TableType::NODE: {
         result = NodeTableStatsAndDeletedIDs::deserialize(tableID,
-            NodeTableStatsAndDeletedIDs::getMaxNodeOffsetFromNumTuples(numTuples), fileInfo,
-            offset);
+            NodeTableStatsAndDeletedIDs::getMaxNodeOffsetFromNumTuples(numTuples), deserializer);
     } break;
     case TableType::REL: {
-        result = RelTableStats::deserialize(numTuples, tableID, fileInfo, offset);
+        result = RelTableStats::deserialize(numTuples, tableID, deserializer);
     } break;
     // LCOV_EXCL_START
     default: {

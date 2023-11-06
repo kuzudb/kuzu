@@ -3,6 +3,10 @@
 #include "common/types/types.h"
 
 namespace kuzu {
+namespace common {
+class Serializer;
+class Deserializer;
+} // namespace common
 namespace catalog {
 
 class Property {
@@ -10,7 +14,7 @@ public:
     // TODO: these should be guarded as reserved property names.
     static constexpr std::string_view REL_FROM_PROPERTY_NAME = "_FROM_";
     static constexpr std::string_view REL_TO_PROPERTY_NAME = "_TO_";
-    static constexpr std::string_view OFFSET_NAME = "_OFFSET_";
+    static constexpr std::string_view INTERNAL_ID_NAME = "_ID_";
     static constexpr std::string_view REL_BOUND_OFFSET_NAME = "_BOUND_OFFSET_";
     static constexpr std::string_view REL_NBR_OFFSET_NAME = "_NBR_OFFSET_";
 
@@ -37,8 +41,8 @@ public:
 
     inline void rename(std::string newName) { this->name = std::move(newName); }
 
-    void serialize(common::FileInfo* fileInfo, uint64_t& offset) const;
-    static std::unique_ptr<Property> deserialize(common::FileInfo* fileInfo, uint64_t& offset);
+    void serialize(common::Serializer& serializer) const;
+    static std::unique_ptr<Property> deserialize(common::Deserializer& deserializer);
 
     inline std::unique_ptr<Property> copy() const {
         return std::make_unique<Property>(name, dataType->copy(), propertyID, tableID);

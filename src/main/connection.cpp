@@ -2,11 +2,8 @@
 
 #include "binder/binder.h"
 #include "binder/visitor/statement_read_write_analyzer.h"
-#include "catalog/node_table_schema.h"
 #include "common/exception/connection.h"
-#include "common/exception/runtime.h"
 #include "main/database.h"
-#include "main/plan_printer.h"
 #include "optimizer/optimizer.h"
 #include "parser/parser.h"
 #include "planner/operator/logical_plan_util.h"
@@ -100,8 +97,8 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
         // parsing
         auto statement = Parser::parseQuery(query);
         // binding
-        auto binder =
-            Binder(*database->catalog, database->memoryManager.get(), clientContext.get());
+        auto binder = Binder(*database->catalog, database->memoryManager.get(),
+            database->storageManager.get(), clientContext.get());
         auto boundStatement = binder.bind(*statement);
         preparedStatement->preparedSummary.statementType = boundStatement->getStatementType();
         preparedStatement->readOnly =
@@ -196,6 +193,7 @@ void Connection::bindParametersNoLock(PreparedStatement* preparedStatement,
 
 std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     PreparedStatement* preparedStatement, uint32_t planIdx) {
+    checkPreparedStatementAccessMode(preparedStatement);
     clientContext->resetActiveQuery();
     clientContext->startTimingIfEnabled();
     auto mapper = PlanMapper(
@@ -253,9 +251,16 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     return queryResult;
 }
 
-void Connection::addScalarFunction(
-    std::string name, function::vector_function_definitions definitions) {
-    database->catalog->addVectorFunction(name, std::move(definitions));
+void Connection::addScalarFunction(std::string name, function::function_set definitions) {
+    database->catalog->addFunction(name, std::move(definitions));
+}
+
+void Connection::checkPreparedStatementAccessMode(PreparedStatement* preparedStatement) {
+    bool isInReadOnlyMode = database->systemConfig.accessMode == AccessMode::READ_ONLY;
+    if (isInReadOnlyMode && !preparedStatement->isReadOnly()) {
+        throw ConnectionException(
+            "Cannot execute write operations in a read-only access mode database!");
+    }
 }
 
 } // namespace main

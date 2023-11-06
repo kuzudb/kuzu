@@ -1,5 +1,7 @@
 #include "common/types/ku_list.h"
 
+#include <cstring>
+
 #include "storage/storage_utils.h"
 
 namespace kuzu {

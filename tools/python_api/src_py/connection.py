@@ -86,11 +86,12 @@ class Connection:
             raise RuntimeError("Parameters must be a dict")
         prepared_statement = self.prepare(
             query) if type(query) == str else query
-        return QueryResult(self,
-                           self._connection.execute(
+        _query_result = self._connection.execute(
                                prepared_statement._prepared_statement,
                                parameters)
-                           )
+        if not _query_result.isSuccess():
+            raise RuntimeError(_query_result.getErrorMessage())
+        return QueryResult(self, _query_result)
 
     def prepare(self, query):
         """

@@ -1,8 +1,5 @@
 #include "storage/stats/nodes_store_statistics.h"
 
-#include "common/constants.h"
-#include "common/string_utils.h"
-
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -19,13 +16,6 @@ offset_t NodesStoreStatsAndDeletedIDs::getMaxNodeOffset(
                    getNodeStatisticsAndDeletedIDs(tableID)->getMaxNodeOffset() :
                    getNodeTableStats(transaction::TransactionType::WRITE, tableID)
                        ->getMaxNodeOffset();
-    }
-}
-
-void NodesStoreStatsAndDeletedIDs::setAdjListsAndColumns(RelsStore* relsStore) {
-    for (auto& tableIDStatistics : tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable) {
-        getNodeStatisticsAndDeletedIDs(tableIDStatistics.first)
-            ->setAdjListsAndColumns(relsStore->getAdjListsAndColumns(tableIDStatistics.first));
     }
 }
 
@@ -85,16 +75,9 @@ MetadataDAHInfo* NodesStoreStatsAndDeletedIDs::getMetadataDAHInfo(
     transaction::Transaction* transaction, table_id_t tableID, column_id_t columnID) {
     if (transaction->isWriteTransaction()) {
         initTableStatisticsForWriteTrx();
-        assert(tablesStatisticsContentForWriteTrx->tableStatisticPerTable.contains(tableID));
-        auto nodeTableStats = dynamic_cast<NodeTableStatsAndDeletedIDs*>(
-            tablesStatisticsContentForWriteTrx->tableStatisticPerTable[tableID].get());
-        return nodeTableStats->getMetadataDAHInfo(columnID);
-    } else {
-        assert(tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable.contains(tableID));
-        auto nodeTableStats = dynamic_cast<NodeTableStatsAndDeletedIDs*>(
-            tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable[tableID].get());
-        return nodeTableStats->getMetadataDAHInfo(columnID);
     }
+    auto nodeTableStats = getNodeTableStats(transaction->getType(), tableID);
+    return nodeTableStats->getMetadataDAHInfo(columnID);
 }
 
 } // namespace storage

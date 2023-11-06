@@ -1,0 +1,170 @@
+-GROUP TinySnbReadTest
+-DATASET CSV load-from-test
+
+--
+
+-CASE CastStringToList
+-STATEMENT LOAD WITH HEADERS (list INT64[][], a struct(num INT64, str STRING), fixedList INT16[3]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/should_pass.csv" RETURN *;
+---- 10
+[[1,3,423,124,43242],[432]]|{num: -423432, str: this is a string []}|[255,254,43]
+[[1,3,423,124,43242],[432]]|{num: 3423423, str: this is a string}|[250,249,21]
+[[1,3,423,124,43242],[432]]|{num: 3424231143, str: this is a normal string no space ' , , does not count'}|[0,134,255]
+[,[],[1,2,3]]|{num: 0, str: this is a string}|[0,0,0]
+[,,,,,,,,,,[1,2,3]]|{num: 1, str: yes}|
+[[],[],[]]|{num: 2341, str: }|
+[,,]|{num: 0, str: }|[29,21,1]
+[]||[111,0,0]
+||[0,111,12]
+|{num: 0, str: }|[0,0,0]
+-STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, struct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/change_config.csv" (HEADER=true, DELIM="|", ESCAPE="~", QUOTE="'", LIST_BEGIN="(", LIST_END=")") RETURN * ;
+---- 3
+[escape , is escape success? ~]| ' ( ) do not need to escape sepeical | ()|{a: {b: {c: []}}}
+[this , is a word , normal not escape , ' ( ) | , ~ ' ]|try escape ~|{a: {b: {c: [3432423,-43423,31231,]}}}
+[~ ' not work also this '"" ]|nu|{a: {b: {c: []}}}
+-STATEMENT LOAD WITH HEADERS (map MAP(STRING, MAP(STRING, INT16))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/nested_map_correct.csv" RETURN *;
+---- 3
+{c={a=3423}, b={g=3421}}
+{d={}}
+{}
+-STATEMENT LOAD WITH HEADERS (map MAP(INT32[], STRUCT(c STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_correct.csv" (HEADER=true, DELIM=">") RETURN *;
+---- 6
+{[432,24,12]={c: okay}, [90,11,43,54]={c: bad}, [0]={c: good}}
+{[]={c: }}
+{[11,43,]={c: this is a struct}}
+{[]={c: this is not empty}}
+{[1000,143245,432,43241,-43214324,-432423,-4324324,-41412,-131242143,0,-4324324,0]={c: }}
+{={c: '~~ have some > >'}}
+-STATEMENT LOAD WITH HEADERS (map MAP(MAP(INT64, INT64), MAP(STRING, STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/nested_map2.csv" RETURN *;
+---- 7
+{{18046=18046, 2=321, 3=423421}={dJ3cf6Y=dJ3cf6Y, dJ3cf6Y=dJ3cf6Y, dJ3cf6Y=dJ3cf6Y}}
+{{30099=30099, 1=0}={3mTEf=3mTEf, 3mTEf=3mTEf, 3mTEf=3mTEf}}
+{{31395=31395}={}}
+{{}={YQcmYouhyFqD3y=YQcmYouhyFqD3y, YQcmYouhyFqD3y=YQcmYouhyFqD3y, YQcmYouhyFqD3y=YQcmYouhyFqD3y}}
+{{}={}}
+{=}
+{}
+-STATEMENT LOAD WITH HEADERS (fixedList INT32[92]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/long_fixed_list2.csv" (QUOTE="'") RETURN *;
+---- 1
+[32131,0,0,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313,32131,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313,32131,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313,32131,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313,32131,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313,32131,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313]
+-STATEMENT LOAD WITH HEADERS (fixedList FLOAT[1], bool BOOLEAN, intv INTERVAL) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/fixed_list_correct.csv" RETURN *;
+---- 6
+[23123.433594]|True|1 month 2 days
+[-4321312.500000]|True|1 year 3 days
+[-1.344455]|False|3 days
+[43213123584.000000]|False|12 years 3 months 30 days
+[-4212.423340]|False|
+[-2.000000]|True|10 months
+-STATEMENT LOAD WITH HEADERS (fixedList INT64[3], date DATE, timestamp TIMESTAMP) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/fixed_list_int64.csv" RETURN *;
+---- 3
+[4234234,4234535,-3242342]|2022-06-06|2022-11-22 15:12:22
+[4234234,4234535,0]|2013-02-21|1970-01-01 10:00:00.004666
+[4234234,0,-3242342]|2019-12-30|1970-01-01 00:00:00.004666
+-STATEMENT LOAD WITH HEADERS (fixedList DOUBLE[83]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/long_fixed_list.csv" RETURN *;
+---- 1
+[4123.120000,0.000000,0.000000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,543523442342.434326]
+-STATEMENT LOAD WITH HEADERS (u UNION(v1 INT64, v2 BOOLEAN), u2 UNION(v1 UINT32, v2 INT32, v3 DATE), u3 UNION(v1 UINT8, v2 UINT16, v3 TIMESTAMP, v4 FLOAT), u4 UNION(v1 UINT64, v2 INT8, v3 INT16, v4 DOUBLE), u5 UNION(v1 STRING)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/union/union_correct.csv" RETURN *;
+---- 9
+False||255|18446744073709551615|fsdfa
+True|432|0|-1.432415|543fasf
+34234|4294967295|65535|-128|432
+-42342345|-1|-1.000000|-129|fasf
+True|2022-06-06|4324.123047|-32768|
+|2019-03-19|-12.343200|32768|
+|-2147483648|1970-01-01 10:00:00.004666|-32769.000000|fsdxcv
+0|0|2014-05-12 12:11:59|4324254534123134124032.000000|fsaf
+False|-4325||18446744073709551616.000000|  dfsa
+
+-CASE ErrorTest
+-STATEMENT LOAD WITH HEADERS (list STRING[][]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/delim_error.csv" (DELIM="|", ESCAPE="~", QUOTE="'", LIST_BEGIN="(", LIST_END=")") RETURN * ;
+---- error
+Conversion exception: Cast failed. "((hello),(bdfadf),)" is not in STRING[][] range.
+-STATEMENT LOAD WITH HEADERS (list STRING[][]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/bracket_error.csv" (DELIM="|", ESCAPE="~", LIST_BEGIN="(", LIST_END=")") RETURN * ;
+---- error
+Conversion exception: Cast failed. (() is not in STRING[][] range.
+-STATEMENT LOAD WITH HEADERS (list INT32[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/quote_error.csv" RETURN * ;
+---- error
+Binder exception: Number of columns mismatch. Expected 1 but got 3.
+-STATEMENT LOAD WITH HEADERS (list STRING[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/single_quote.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. ['fdsfdsfe werw] is not in STRING[] range.
+-STATEMENT LOAD WITH HEADERS (list STRING[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/single_quote2.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. [[' this is a signle quote]] is not in STRING[] range.
+-STATEMENT LOAD WITH HEADERS (list UINT8[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/single_struct_bracket.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. [{32, 32] is not in UINT8[] range.
+-STATEMENT LOAD WITH HEADERS (list UINT8[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/conversion_error.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. 432412 is not in UINT8 range.
+-STATEMENT LOAD WITH HEADERS (q STRUCT(a STRUCT(b STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_bracket_error1.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. {a: {b: fsdf is not in STRUCT(a:STRUCT(b:STRING)) range.
+-STATEMENT LOAD WITH HEADERS (q STRUCT(a STRUCT(b STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_bracket_error2.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. {a: {b: fds} is not in STRUCT(a:STRUCT(b:STRING)) range.
+-STATEMENT LOAD WITH HEADERS (a STRUCT(c STRING)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_close_error.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. { c : 423 } c: 479, is not in STRUCT(c:STRING) range.
+-STATEMENT LOAD WITH HEADERS (a STRUCT(c INT32)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/invalid_field_name.csv" RETURN *;
+---- error
+Parser exception: Invalid struct field name: d
+-STATEMENT LOAD WITH HEADERS (a STRUCT(c INT32)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_no_field_name.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. {c 3423} is not in STRUCT(c:INT32) range.
+-STATEMENT LOAD WITH HEADERS (a STRUCT(c INT32)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_quote_error.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. { c: 'fdsfs } is not in STRUCT(c:INT32) range.
+-STATEMENT LOAD WITH HEADERS (a STRUCT(c INT32)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_noclose.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. { is not in STRUCT(c:INT32) range.
+-STATEMENT LOAD WITH HEADERS (a MAP(UINT8, UINT8)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_incorrect_type.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. -3 is not in UINT8 range.
+-STATEMENT LOAD WITH HEADERS (a MAP(UINT8, UINT8)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_val.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. {4324} is not in MAP(UINT8: UINT8) range.
+-STATEMENT LOAD WITH HEADERS (a MAP(UINT8, UINT8)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_closing1.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. {10=10, 20=20, is not in MAP(UINT8: UINT8) range.
+-STATEMENT LOAD WITH HEADERS (a MAP(UINT8, UINT8)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_closing2.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. { is not in MAP(UINT8: UINT8) range.
+-STATEMENT LOAD WITH HEADERS (a MAP(STRING, UINT8)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_quote.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. {324="} is not in MAP(STRING: UINT8) range.
+-STATEMENT LOAD WITH HEADERS (a MAP(UINT8, UINT8)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_closing3.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. {{3=3} is not in MAP(UINT8: UINT8) range.
+-STATEMENT LOAD WITH HEADERS (a MAP(UINT16, UINT16[])) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_closing4.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. {432=[432,432} is not in MAP(UINT16: UINT16[]) range.
+-STATEMENT LOAD WITH HEADERS (a INT64[4]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/incorrect_num.csv" RETURN *;
+---- error
+Copy exception: Each fixed list should have fixed number of elements. Expected: 4, Actual: 2.
+-STATEMENT LOAD WITH HEADERS (a STRING[2]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/unsupported_type.csv" RETURN *;
+---- error
+Binder exception: The child type of a fixed list must be a numeric type. Given: STRING.
+-STATEMENT LOAD WITH HEADERS (a INT16[1]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/error_conversion.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. 4324234543543534534524 is not in INT16 range.
+-STATEMENT LOAD WITH HEADERS (a INT64[2]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/error_conversion2.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. [4324, 432] fewrew is not in INT64[2] range.
+-STATEMENT LOAD WITH HEADERS (fixedList INT64[0]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/zero_ele.csv" RETURN *;
+---- error
+Binder exception: The number of elements in a fixed list must be greater than 0. Given: 0.
+-STATEMENT LOAD WITH HEADERS (fixedList UINT8[1]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/unsupported_type2.csv" RETURN *;
+---- error
+Unsupported data type: Driver::castStringToFixedList
+-STATEMENT LOAD WITH HEADERS (fixedList INT64[1]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/fixed_list_null.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. NULL is not allowed for FIXEDLIST.
+-STATEMENT LOAD WITH HEADERS (fixedList INT64[2]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/fixed_list_null2.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. NULL is not allowed for FIXEDLIST.
+-STATEMENT LOAD WITH HEADERS (a UNION(v1 INT64, v2 STRING)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-utf8/invalid-utf8.csv" RETURN *;
+---- error
+Copy exception: Invalid UTF8-encoded string.
+-STATEMENT LOAD WITH HEADERS (a UNION(v1 INT64, v2 INT32)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/union/union_error.csv" RETURN *;
+---- error
+Conversion exception: Could not convert to union type UNION(v1:INT64, v2:INT32): fdsaf.

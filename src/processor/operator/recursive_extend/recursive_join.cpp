@@ -1,5 +1,6 @@
 #include "processor/operator/recursive_extend/recursive_join.h"
 
+#include "common/exception/not_implemented.h"
 #include "processor/operator/recursive_extend/all_shortest_path_state.h"
 #include "processor/operator/recursive_extend/scan_frontier.h"
 #include "processor/operator/recursive_extend/shortest_path_state.h"
@@ -10,7 +11,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) {
+void RecursiveJoin::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* context) {
     populateTargetDstNodes();
     vectors = std::make_unique<RecursiveJoinVectors>();
     vectors->srcNodeIDVector = resultSet->getValueVector(dataInfo->srcNodePos).get();

@@ -256,12 +256,20 @@ void Timestamp::convert(timestamp_t timestamp, date_t& out_date, dtime_t& out_ti
     out_time = getTime(timestamp);
 }
 
-timestamp_t Timestamp::fromEpochMs(int64_t epochMs) {
-    return timestamp_t(epochMs * Interval::MICROS_PER_MSEC);
+timestamp_t Timestamp::fromEpochMicroSeconds(int64_t micros) {
+    return timestamp_t(micros);
 }
 
-timestamp_t Timestamp::fromEpochSec(int64_t epochSec) {
-    return timestamp_t(epochSec * Interval::MICROS_PER_SEC);
+timestamp_t Timestamp::fromEpochMilliSeconds(int64_t ms) {
+    return fromEpochMicroSeconds(ms * Interval::MICROS_PER_MSEC);
+}
+
+timestamp_t Timestamp::fromEpochSeconds(int64_t sec) {
+    return fromEpochMicroSeconds(sec * Interval::MICROS_PER_SEC);
+}
+
+timestamp_t Timestamp::fromEpochNanoSeconds(int64_t ns) {
+    return fromEpochMicroSeconds(ns / 1000);
 }
 
 int32_t Timestamp::getTimestampPart(DatePartSpecifier specifier, timestamp_t& timestamp) {

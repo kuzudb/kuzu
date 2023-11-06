@@ -20,13 +20,14 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     ExpressionType expressionType, const expression_vector& children) {
-    auto builtInFunctions = binder->catalog.getBuiltInVectorFunctions();
+    auto builtInFunctions = binder->catalog.getBuiltInFunctions();
     auto functionName = expressionTypeToString(expressionType);
-    std::vector<LogicalType> childrenTypes;
+    std::vector<LogicalType*> childrenTypes;
     for (auto& child : children) {
-        childrenTypes.push_back(child->dataType);
+        childrenTypes.push_back(&child->dataType);
     }
-    auto function = builtInFunctions->matchVectorFunction(functionName, childrenTypes);
+    auto function = reinterpret_cast<function::ScalarFunction*>(
+        builtInFunctions->matchScalarFunction(functionName, childrenTypes));
     expression_vector childrenAfterCast;
     for (auto i = 0u; i < children.size(); ++i) {
         childrenAfterCast.push_back(

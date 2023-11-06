@@ -6,11 +6,15 @@
 #include <unistd.h>
 #endif
 
+#include "common/exception/exception.h"
+#include "common/file_utils.h"
 #include "common/logging_level_utils.h"
+#include "common/utils.h"
 #include "processor/processor.h"
 #include "spdlog/spdlog.h"
 #include "storage/storage_manager.h"
 #include "storage/wal_replayer.h"
+#include "transaction/transaction_action.h"
 #include "transaction/transaction_manager.h"
 
 using namespace kuzu::catalog;
@@ -21,8 +25,9 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace main {
 
-SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, bool enableCompression)
-    : maxNumThreads{maxNumThreads}, enableCompression{enableCompression} {
+SystemConfig::SystemConfig(
+    uint64_t bufferPoolSize_, uint64_t maxNumThreads, bool enableCompression, AccessMode accessMode)
+    : maxNumThreads{maxNumThreads}, enableCompression{enableCompression}, accessMode{accessMode} {
     if (bufferPoolSize_ == -1u || bufferPoolSize_ == 0) {
 #if defined(_WIN32)
         MEMORYSTATUSEX status;
@@ -42,6 +47,15 @@ SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, boo
     }
 }
 
+static void getLockFileFlagsAndType(
+    AccessMode accessMode, bool createNew, int& flags, FileLockType& lock) {
+    flags = accessMode == AccessMode::READ_ONLY ? O_RDONLY : O_RDWR;
+    if (createNew) {
+        flags |= O_CREAT;
+    }
+    lock = accessMode == AccessMode::READ_ONLY ? FileLockType::READ_LOCK : FileLockType::WRITE_LOCK;
+}
+
 Database::Database(std::string databasePath) : Database{std::move(databasePath), SystemConfig()} {}
 
 Database::Database(std::string databasePath, SystemConfig systemConfig)
@@ -52,11 +66,11 @@ Database::Database(std::string databasePath, SystemConfig systemConfig)
     memoryManager = std::make_unique<MemoryManager>(bufferManager.get());
     queryProcessor = std::make_unique<processor::QueryProcessor>(this->systemConfig.maxNumThreads);
     initDBDirAndCoreFilesIfNecessary();
-    wal = std::make_unique<WAL>(this->databasePath, *bufferManager);
+    wal = std::make_unique<WAL>(this->databasePath, systemConfig.accessMode, *bufferManager);
     recoverIfNecessary();
     catalog = std::make_unique<catalog::Catalog>(wal.get());
-    storageManager = std::make_unique<storage::StorageManager>(
-        *catalog, *memoryManager, wal.get(), systemConfig.enableCompression);
+    storageManager = std::make_unique<storage::StorageManager>(systemConfig.accessMode, *catalog,
+        *memoryManager, wal.get(), systemConfig.enableCompression);
     transactionManager = std::make_unique<transaction::TransactionManager>(
         *wal, storageManager.get(), memoryManager.get());
 }
@@ -70,20 +84,36 @@ void Database::setLoggingLevel(std::string loggingLevel) {
     spdlog::set_level(LoggingLevelUtils::convertStrToLevelEnum(std::move(loggingLevel)));
 }
 
-void Database::initDBDirAndCoreFilesIfNecessary() const {
+void Database::openLockFile() {
+    int flags;
+    FileLockType lock;
+    auto lockFilePath = StorageUtils::getLockFilePath(databasePath);
+    if (!FileUtils::fileOrPathExists(lockFilePath)) {
+        getLockFileFlagsAndType(systemConfig.accessMode, true, flags, lock);
+    } else {
+        getLockFileFlagsAndType(systemConfig.accessMode, false, flags, lock);
+    }
+    lockFile = FileUtils::openFile(lockFilePath, flags, lock);
+}
+
+void Database::initDBDirAndCoreFilesIfNecessary() {
     if (!FileUtils::fileOrPathExists(databasePath)) {
+        if (systemConfig.accessMode == AccessMode::READ_ONLY) {
+            throw Exception("Cannot create an empty database under READ ONLY mode.");
+        }
         FileUtils::createDir(databasePath);
     }
+    openLockFile();
     if (!FileUtils::fileOrPathExists(StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(
-            databasePath, DBFileType::ORIGINAL))) {
+            databasePath, FileVersionType::ORIGINAL))) {
         NodesStoreStatsAndDeletedIDs::saveInitialNodesStatisticsAndDeletedIDsToFile(databasePath);
     }
     if (!FileUtils::fileOrPathExists(
-            StorageUtils::getRelsStatisticsFilePath(databasePath, DBFileType::ORIGINAL))) {
+            StorageUtils::getRelsStatisticsFilePath(databasePath, FileVersionType::ORIGINAL))) {
         RelsStoreStats::saveInitialRelsStatisticsToFile(databasePath);
     }
     if (!FileUtils::fileOrPathExists(
-            StorageUtils::getCatalogFilePath(databasePath, DBFileType::ORIGINAL))) {
+            StorageUtils::getCatalogFilePath(databasePath, FileVersionType::ORIGINAL))) {
         Catalog::saveInitialCatalogToFile(databasePath);
     }
 }
@@ -163,15 +193,15 @@ void Database::rollback(
 void Database::checkpointAndClearWAL(WALReplayMode replayMode) {
     assert(replayMode == WALReplayMode::COMMIT_CHECKPOINT ||
            replayMode == WALReplayMode::RECOVERY_CHECKPOINT);
-    auto walReplayer = std::make_unique<WALReplayer>(wal.get(), storageManager.get(),
-        memoryManager.get(), bufferManager.get(), catalog.get(), replayMode);
+    auto walReplayer = std::make_unique<WALReplayer>(
+        wal.get(), storageManager.get(), bufferManager.get(), catalog.get(), replayMode);
     walReplayer->replay();
     wal->clearWAL();
 }
 
 void Database::rollbackAndClearWAL() {
     auto walReplayer = std::make_unique<WALReplayer>(wal.get(), storageManager.get(),
-        memoryManager.get(), bufferManager.get(), catalog.get(), WALReplayMode::ROLLBACK);
+        bufferManager.get(), catalog.get(), WALReplayMode::ROLLBACK);
     walReplayer->replay();
     wal->clearWAL();
 }

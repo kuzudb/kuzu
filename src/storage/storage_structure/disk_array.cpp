@@ -1,10 +1,10 @@
 #include "storage/storage_structure/disk_array.h"
 
-#include "common/string_utils.h"
+#include "common/string_format.h"
 #include "common/utils.h"
 #include "storage/index/hash_index_header.h"
 #include "storage/index/hash_index_slot.h"
-#include "storage/store/node_column.h"
+#include "storage/store/column_chunk.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -16,7 +16,7 @@ DiskArrayHeader::DiskArrayHeader(uint64_t elementSize)
     : alignedElementSizeLog2{(uint64_t)ceil(log2(elementSize))},
       numElementsPerPageLog2{BufferPoolConstants::PAGE_4KB_SIZE_LOG2 - alignedElementSizeLog2},
       elementPageOffsetMask{BitmaskUtils::all1sMaskForLeastSignificantBits(numElementsPerPageLog2)},
-      firstPIPPageIdx{StorageStructureUtils::NULL_PAGE_IDX}, numElements{0}, numAPs{0} {}
+      firstPIPPageIdx{DBFileUtils::NULL_PAGE_IDX}, numElements{0}, numAPs{0} {}
 
 void DiskArrayHeader::saveToDisk(FileHandle& fileHandle, uint64_t headerPageIdx) {
     FileUtils::writeToFile(fileHandle.getFileInfo(), reinterpret_cast<uint8_t*>(this),
@@ -39,21 +39,17 @@ BaseDiskArray<U>::BaseDiskArray(
       hasTransactionalUpdates{false}, bufferManager{nullptr}, wal{nullptr} {}
 
 template<typename U>
-BaseDiskArray<U>::BaseDiskArray(FileHandle& fileHandle, StorageStructureID storageStructureID,
-    page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal,
-    transaction::Transaction* transaction)
-    : fileHandle{fileHandle}, storageStructureID{storageStructureID}, headerPageIdx{headerPageIdx},
+BaseDiskArray<U>::BaseDiskArray(FileHandle& fileHandle, DBFileID dbFileID, page_idx_t headerPageIdx,
+    BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction)
+    : fileHandle{fileHandle}, dbFileID{dbFileID}, headerPageIdx{headerPageIdx},
       hasTransactionalUpdates{false}, bufferManager{bufferManager}, wal{wal} {
-    auto [fileHandleToPin, pageIdxToPin] =
-        StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
-            reinterpret_cast<BMFileHandle&>(fileHandle), headerPageIdx, *wal,
-            transaction->getType());
+    auto [fileHandleToPin, pageIdxToPin] = DBFileUtils::getFileHandleAndPhysicalPageIdxToPin(
+        reinterpret_cast<BMFileHandle&>(fileHandle), headerPageIdx, *wal, transaction->getType());
     bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin,
         [&](uint8_t* frame) -> void { memcpy(&header, frame, sizeof(DiskArrayHeader)); });
-    if (this->header.firstPIPPageIdx != StorageStructureUtils::NULL_PAGE_IDX) {
+    if (this->header.firstPIPPageIdx != DBFileUtils::NULL_PAGE_IDX) {
         pips.emplace_back(fileHandle, header.firstPIPPageIdx);
-        while (pips[pips.size() - 1].pipContents.nextPipPageIdx !=
-               StorageStructureUtils::NULL_PAGE_IDX) {
+        while (pips[pips.size() - 1].pipContents.nextPipPageIdx != DBFileUtils::NULL_PAGE_IDX) {
             pips.emplace_back(fileHandle, pips[pips.size() - 1].pipContents.nextPipPageIdx);
         }
     }
@@ -75,9 +71,11 @@ template<typename U>
 void BaseDiskArray<U>::checkOutOfBoundAccess(TransactionType trxType, uint64_t idx) {
     auto currentNumElements = getNumElementsNoLock(trxType);
     if (idx >= currentNumElements) {
-        throw RuntimeException(StringUtils::string_format(
+        // LCOV_EXCL_START
+        throw RuntimeException(stringFormat(
             "idx: {} of the DiskArray to be accessed is >= numElements in DiskArray{}.", idx,
             currentNumElements));
+        // LCOV_EXCL_END
     }
 }
 
@@ -97,7 +95,7 @@ U BaseDiskArray<U>::get(uint64_t idx, TransactionType trxType) {
     } else {
         U retVal;
         ((BMFileHandle&)fileHandle).acquireWALPageIdxLock(apPageIdx);
-        StorageStructureUtils::readWALVersionOfPage(bmFileHandle, apPageIdx, *bufferManager, *wal,
+        DBFileUtils::readWALVersionOfPage(bmFileHandle, apPageIdx, *bufferManager, *wal,
             [&retVal, &apCursor](
                 const uint8_t* frame) -> void { retVal = *(U*)(frame + apCursor.offsetInPage); });
         return retVal;
@@ -120,7 +118,7 @@ void BaseDiskArray<U>::update(uint64_t idx, U val) {
     // getAPPageIdxNoLock logic needs to change to give the same guarantee (e.g., an apIdx = 0, may
     // no longer to be guaranteed to be in pips[0].)
     page_idx_t apPageIdx = getAPPageIdxNoLock(apCursor.pageIdx, TransactionType::WRITE);
-    StorageStructureUtils::updatePage((BMFileHandle&)fileHandle, storageStructureID, apPageIdx,
+    DBFileUtils::updatePage((BMFileHandle&)fileHandle, dbFileID, apPageIdx,
         false /* not inserting a new page */, *bufferManager, *wal,
         [&apCursor, &val](uint8_t* frame) -> void { *(U*)(frame + apCursor.offsetInPage) = val; });
 }
@@ -148,8 +146,8 @@ uint64_t BaseDiskArray<U>::resize(uint64_t newNumElements) {
 template<typename U>
 uint64_t BaseDiskArray<U>::pushBackNoLock(U val) {
     uint64_t elementIdx;
-    StorageStructureUtils::updatePage((BMFileHandle&)(fileHandle), storageStructureID,
-        headerPageIdx, false /* not inserting a new page */, *bufferManager, *wal,
+    DBFileUtils::updatePage((BMFileHandle&)(fileHandle), dbFileID, headerPageIdx,
+        false /* not inserting a new page */, *bufferManager, *wal,
         [this, &val, &elementIdx](uint8_t* frame) -> void {
             auto updatedDiskArrayHeader = ((DiskArrayHeader*)frame);
             elementIdx = updatedDiskArrayHeader->numElements;
@@ -157,10 +155,10 @@ uint64_t BaseDiskArray<U>::pushBackNoLock(U val) {
             auto [apPageIdx, isNewlyAdded] = getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(
                 (DiskArrayHeader*)frame, apCursor.pageIdx);
             // Now do the push back.
-            StorageStructureUtils::updatePage((BMFileHandle&)(fileHandle), storageStructureID,
-                apPageIdx, isNewlyAdded, *bufferManager, *wal,
-                [&apCursor, &val](
-                    uint8_t* frame) -> void { *(U*)(frame + apCursor.offsetInPage) = val; });
+            DBFileUtils::updatePage((BMFileHandle&)(fileHandle), dbFileID, apPageIdx, isNewlyAdded,
+                *bufferManager, *wal, [&apCursor, &val](uint8_t* frame) -> void {
+                    *(U*)(frame + apCursor.offsetInPage) = val;
+                });
             updatedDiskArrayHeader->numElements++;
         });
     return elementIdx;
@@ -187,8 +185,8 @@ void BaseDiskArray<U>::setNextPIPPageIDxOfPIPNoLock(DiskArrayHeader* updatedDisk
          * pipPageIdxOfPreviousPIP. 2) if pipPageIdxOfPreviousPIP is an existing PIP, in which
          * case again this function is not creating pipPageIdxOfPreviousPIP.
          */
-        StorageStructureUtils::updatePage((BMFileHandle&)fileHandle, storageStructureID,
-            pipPageIdxOfPreviousPIP, false /* not inserting a new page */, *bufferManager, *wal,
+        DBFileUtils::updatePage((BMFileHandle&)fileHandle, dbFileID, pipPageIdxOfPreviousPIP,
+            false /* not inserting a new page */, *bufferManager, *wal,
             [&nextPIPPageIdx](
                 const uint8_t* frame) -> void { ((PIP*)frame)->nextPipPageIdx = nextPIPPageIdx; });
         // The above updatePage operation changes the "previousPIP" identified by
@@ -213,7 +211,7 @@ page_idx_t BaseDiskArray<U>::getAPPageIdxNoLock(page_idx_t apIdx, TransactionTyp
         page_idx_t retVal;
         page_idx_t pageIdxOfUpdatedPip = getUpdatedPageIdxOfPipNoLock(pipIdx);
         ((BMFileHandle&)fileHandle).acquireWALPageIdxLock(pageIdxOfUpdatedPip);
-        StorageStructureUtils::readWALVersionOfPage((BMFileHandle&)fileHandle, pageIdxOfUpdatedPip,
+        DBFileUtils::readWALVersionOfPage((BMFileHandle&)fileHandle, pageIdxOfUpdatedPip,
             *bufferManager, *wal, [&retVal, &offsetInPIP](const uint8_t* frame) -> void {
                 retVal = ((PIP*)frame)->pageIdxs[offsetInPIP];
             });
@@ -292,8 +290,8 @@ uint64_t BaseDiskArray<U>::readUInt64HeaderFieldNoLock(
     } else {
         uint64_t retVal;
         ((BMFileHandle&)fileHandle).acquireWALPageIdxLock(headerPageIdx);
-        StorageStructureUtils::readWALVersionOfPage((BMFileHandle&)fileHandle, headerPageIdx,
-            *bufferManager, *wal, [&retVal, &readOp](uint8_t* frame) -> void {
+        DBFileUtils::readWALVersionOfPage((BMFileHandle&)fileHandle, headerPageIdx, *bufferManager,
+            *wal, [&retVal, &readOp](uint8_t* frame) -> void {
                 retVal = readOp((DiskArrayHeader*)frame);
             });
         return retVal;
@@ -321,7 +319,7 @@ std::pair<page_idx_t, bool> BaseDiskArray<U>::getAPPageIdxAndAddAPToPIPIfNecessa
         uint64_t pipIdx = pipIdxAndOffsetOfNewAP.first;
         uint64_t offsetOfNewAPInPIP = pipIdxAndOffsetOfNewAP.second;
         updatedDiskArrayHeader->numAPs++;
-        page_idx_t pipPageIdx = StorageStructureUtils::NULL_PAGE_IDX;
+        page_idx_t pipPageIdx = DBFileUtils::NULL_PAGE_IDX;
         bool isInsertingANewPIPPage = false;
         if (pipIdx < pips.size()) {
             // We do not need to insert a new pip and we need to add newAPPageIdx to a PIP that
@@ -341,12 +339,12 @@ std::pair<page_idx_t, bool> BaseDiskArray<U>::getAPPageIdxAndAddAPToPIPIfNecessa
             setNextPIPPageIDxOfPIPNoLock(updatedDiskArrayHeader, pipIdxOfPreviousPIP, pipPageIdx);
         }
         // Finally we update the PIP page (possibly newly created) and add newAPPageIdx into it.
-        StorageStructureUtils::updatePage((BMFileHandle&)fileHandle, storageStructureID, pipPageIdx,
+        DBFileUtils::updatePage((BMFileHandle&)fileHandle, dbFileID, pipPageIdx,
             isInsertingANewPIPPage, *bufferManager, *wal,
             [&isInsertingANewPIPPage, &newAPPageIdx, &offsetOfNewAPInPIP](
                 const uint8_t* frame) -> void {
                 if (isInsertingANewPIPPage) {
-                    ((PIP*)frame)->nextPipPageIdx = StorageStructureUtils::NULL_PAGE_IDX;
+                    ((PIP*)frame)->nextPipPageIdx = DBFileUtils::NULL_PAGE_IDX;
                 }
                 ((PIP*)frame)->pageIdxs[offsetOfNewAPInPIP] = newAPPageIdx;
             });
@@ -355,11 +353,10 @@ std::pair<page_idx_t, bool> BaseDiskArray<U>::getAPPageIdxAndAddAPToPIPIfNecessa
 }
 
 template<typename U>
-BaseInMemDiskArray<U>::BaseInMemDiskArray(FileHandle& fileHandle,
-    StorageStructureID storageStructureID, page_idx_t headerPageIdx, BufferManager* bufferManager,
-    WAL* wal, transaction::Transaction* transaction)
-    : BaseDiskArray<U>(
-          fileHandle, storageStructureID, headerPageIdx, bufferManager, wal, transaction) {
+BaseInMemDiskArray<U>::BaseInMemDiskArray(FileHandle& fileHandle, DBFileID dbFileID,
+    page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal,
+    transaction::Transaction* transaction)
+    : BaseDiskArray<U>(fileHandle, dbFileID, headerPageIdx, bufferManager, wal, transaction) {
     for (page_idx_t apIdx = 0; apIdx < this->header.numAPs; ++apIdx) {
         addInMemoryArrayPageAndReadFromFile(this->getAPPageIdxNoLock(apIdx));
     }
@@ -392,11 +389,10 @@ void BaseInMemDiskArray<U>::readArrayPageFromFile(uint64_t apIdx, page_idx_t apP
 }
 
 template<typename T>
-InMemDiskArray<T>::InMemDiskArray(FileHandle& fileHandle, StorageStructureID storageStructureID,
+InMemDiskArray<T>::InMemDiskArray(FileHandle& fileHandle, DBFileID dbFileID,
     page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal,
     transaction::Transaction* transaction)
-    : BaseInMemDiskArray<T>(
-          fileHandle, storageStructureID, headerPageIdx, bufferManager, wal, transaction) {}
+    : BaseInMemDiskArray<T>(fileHandle, dbFileID, headerPageIdx, bufferManager, wal, transaction) {}
 
 template<typename T>
 void InMemDiskArray<T>::checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isCheckpoint) {

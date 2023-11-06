@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include "processor/operator/persistent/reader_state.h"
 #include "processor/operator/physical_operator.h"
 
@@ -7,18 +9,18 @@ namespace kuzu {
 namespace processor {
 
 struct ReaderInfo {
-    DataPos nodeOffsetPos;
+    DataPos offsetPos;
     std::vector<DataPos> dataColumnsPos;
 
     common::TableType tableType;
 
-    ReaderInfo(const DataPos& nodeOffsetPos, std::vector<DataPos> dataColumnsPos,
+    ReaderInfo(const DataPos& internalIDPos, std::vector<DataPos> dataColumnsPos,
         common::TableType tableType)
-        : nodeOffsetPos{nodeOffsetPos}, dataColumnsPos{std::move(dataColumnsPos)}, tableType{
-                                                                                       tableType} {}
+        : offsetPos{internalIDPos}, dataColumnsPos{std::move(dataColumnsPos)}, tableType{
+                                                                                   tableType} {}
     ReaderInfo(const ReaderInfo& other)
-        : nodeOffsetPos{other.nodeOffsetPos},
-          dataColumnsPos{other.dataColumnsPos}, tableType{other.tableType} {}
+        : offsetPos{other.offsetPos}, dataColumnsPos{other.dataColumnsPos}, tableType{
+                                                                                other.tableType} {}
 
     inline uint32_t getNumColumns() const { return dataColumnsPos.size(); }
 
@@ -30,7 +32,7 @@ public:
     Reader(std::unique_ptr<ReaderInfo> info, std::shared_ptr<ReaderSharedState> sharedState,
         uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::READER, id, paramsString}, info{std::move(info)},
-          sharedState{std::move(sharedState)}, dataChunk{nullptr},
+          sharedState{std::move(sharedState)}, leftNumRows{0}, dataChunk{nullptr},
           offsetVector{nullptr}, readFunc{nullptr}, initFunc{nullptr}, readFuncData{nullptr} {}
 
     inline bool isSource() const final { return true; }
@@ -57,15 +59,11 @@ private:
     void readNextDataChunk();
 
     template<ReaderSharedState::ReadMode READ_MODE>
-    inline void lockForSerial() {
+    [[nodiscard]] inline std::optional<std::lock_guard<std::mutex>> lockIfSerial() {
         if constexpr (READ_MODE == ReaderSharedState::ReadMode::SERIAL) {
-            sharedState->mtx.lock();
-        }
-    }
-    template<ReaderSharedState::ReadMode READ_MODE>
-    inline void unlockForSerial() {
-        if constexpr (READ_MODE == ReaderSharedState::ReadMode::SERIAL) {
-            sharedState->mtx.unlock();
+            return std::make_optional<std::lock_guard<std::mutex>>(sharedState->mtx);
+        } else {
+            return std::nullopt;
         }
     }
 
@@ -73,7 +71,7 @@ private:
     std::unique_ptr<ReaderInfo> info;
     std::shared_ptr<ReaderSharedState> sharedState;
 
-    LeftArrowArrays leftArrowArrays;
+    common::row_idx_t leftNumRows;
 
     std::unique_ptr<common::DataChunk> dataChunk;
     common::ValueVector* offsetVector;

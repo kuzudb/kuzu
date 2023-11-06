@@ -1,10 +1,10 @@
 #pragma once
 
 #include <memory>
-#include <thread>
+#include <string>
 
 #include "common/api.h"
-#include "common/constants.h"
+#include "common/enums/access_mode.h"
 #include "kuzu_fwd.h"
 
 namespace kuzu {
@@ -21,13 +21,16 @@ struct KUZU_API SystemConfig {
      *        reducing the amount of File I/O
      *  @param maxNumThreads The maximum number of threads to use during query execution
      *  @param enableCompression Whether or not to compress data on-disk for supported types
+     *  @param accessMode Access mode to the database (READ_ONLY or READ_WRITE)
      */
-    explicit SystemConfig(
-        uint64_t bufferPoolSize = -1u, uint64_t maxNumThreads = 0, bool enableCompression = true);
+    explicit SystemConfig(uint64_t bufferPoolSize = -1u, uint64_t maxNumThreads = 0,
+        bool enableCompression = true,
+        common::AccessMode accessMode = common::AccessMode::READ_WRITE);
 
     uint64_t bufferPoolSize;
     uint64_t maxNumThreads;
     bool enableCompression;
+    common::AccessMode accessMode;
 };
 
 /**
@@ -66,7 +69,8 @@ public:
     KUZU_API static void setLoggingLevel(std::string loggingLevel);
 
 private:
-    void initDBDirAndCoreFilesIfNecessary() const;
+    void openLockFile();
+    void initDBDirAndCoreFilesIfNecessary();
     static void initLoggers();
     static void dropLoggers();
 
@@ -91,6 +95,7 @@ private:
     std::unique_ptr<transaction::TransactionManager> transactionManager;
     std::unique_ptr<storage::WAL> wal;
     std::shared_ptr<spdlog::logger> logger;
+    std::unique_ptr<common::FileInfo> lockFile;
 };
 
 } // namespace main

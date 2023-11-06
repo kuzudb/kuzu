@@ -1,10 +1,11 @@
 #pragma once
 
+#include <iterator>
 #include <vector>
 
+#include "common/constants.h"
 #include "common/exception/runtime.h"
 #include "storage/buffer_manager/memory_manager.h"
-#include "storage/file_handle.h"
 
 namespace kuzu {
 namespace common {

@@ -7,7 +7,7 @@
 namespace kuzu {
 namespace processor {
 
-static void varintEncode(uint32_t val, BufferedSerializer& ser) {
+static void varintEncode(uint32_t val, common::Serializer& ser) {
     do {
         uint8_t byte = val & 127;
         val >>= 7;
@@ -64,13 +64,13 @@ uint64_t RleBpEncoder::getByteCount() {
     return byteCount;
 }
 
-void RleBpEncoder::beginWrite(BufferedSerializer& writer, uint32_t first_value) {
+void RleBpEncoder::beginWrite(uint32_t first_value) {
     // start the RLE runs
     lastValue = first_value;
     currentRunCount = 1;
 }
 
-void RleBpEncoder::writeRun(BufferedSerializer& writer) {
+void RleBpEncoder::writeRun(common::Serializer& writer) {
     // write the header of the run
     varintEncode(currentRunCount << 1, writer);
     // now write the value
@@ -96,7 +96,7 @@ void RleBpEncoder::writeRun(BufferedSerializer& writer) {
     currentRunCount = 1;
 }
 
-void RleBpEncoder::writeValue(BufferedSerializer& writer, uint32_t value) {
+void RleBpEncoder::writeValue(common::Serializer& writer, uint32_t value) {
     if (value != lastValue) {
         writeRun(writer);
         lastValue = value;
@@ -105,7 +105,7 @@ void RleBpEncoder::writeValue(BufferedSerializer& writer, uint32_t value) {
     }
 }
 
-void RleBpEncoder::finishWrite(BufferedSerializer& writer) {
+void RleBpEncoder::finishWrite(common::Serializer& writer) {
     writeRun(writer);
 }
 

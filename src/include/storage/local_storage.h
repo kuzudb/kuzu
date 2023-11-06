@@ -1,10 +1,11 @@
 #pragma once
 
-#include "local_table.h"
+#include "storage/local_table.h"
 
 namespace kuzu {
 namespace storage {
 class NodesStore;
+class StorageManager;
 
 // Data structures in LocalStorage are not thread-safe.
 // For now, we only support single thread insertions and updates. Once we optimize them with

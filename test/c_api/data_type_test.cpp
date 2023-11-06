@@ -1,15 +1,10 @@
-#include "c_api_test/c_api_test.h"
-using namespace kuzu::main;
+#include "c_api/kuzu.h"
+#include "common/types/types.h"
+#include "gtest/gtest.h"
+
 using namespace kuzu::common;
 
-class CApiDataTypeTest : public CApiTest {
-public:
-    std::string getInputDir() override {
-        return TestHelper::appendKuzuRootPath("dataset/tinysnb/");
-    }
-};
-
-TEST_F(CApiDataTypeTest, Create) {
+TEST(CApiDataTypeTest, Create) {
     auto dataType = kuzu_data_type_create(kuzu_data_type_id::KUZU_INT64, nullptr, 0);
     ASSERT_NE(dataType, nullptr);
     auto dataTypeCpp = (LogicalType*)dataType->_data_type;
@@ -34,7 +29,7 @@ TEST_F(CApiDataTypeTest, Create) {
     kuzu_data_type_destroy(dataType3);
 }
 
-TEST_F(CApiDataTypeTest, Clone) {
+TEST(CApiDataTypeTest, Clone) {
     auto dataType = kuzu_data_type_create(kuzu_data_type_id::KUZU_INT64, nullptr, 0);
     ASSERT_NE(dataType, nullptr);
     auto dataTypeClone = kuzu_data_type_clone(dataType);
@@ -67,7 +62,7 @@ TEST_F(CApiDataTypeTest, Clone) {
     kuzu_data_type_destroy(dataTypeClone3);
 }
 
-TEST_F(CApiDataTypeTest, Eqauls) {
+TEST(CApiDataTypeTest, Eqauls) {
     auto dataType = kuzu_data_type_create(kuzu_data_type_id::KUZU_INT64, nullptr, 0);
     ASSERT_NE(dataType, nullptr);
     auto dataTypeClone = kuzu_data_type_clone(dataType);
@@ -98,7 +93,7 @@ TEST_F(CApiDataTypeTest, Eqauls) {
     kuzu_data_type_destroy(dataTypeClone3);
 }
 
-TEST_F(CApiDataTypeTest, GetID) {
+TEST(CApiDataTypeTest, GetID) {
     auto dataType = kuzu_data_type_create(kuzu_data_type_id::KUZU_INT64, nullptr, 0);
     ASSERT_NE(dataType, nullptr);
     ASSERT_EQ(kuzu_data_type_get_id(dataType), kuzu_data_type_id::KUZU_INT64);
@@ -118,7 +113,7 @@ TEST_F(CApiDataTypeTest, GetID) {
 
 // TODO(Chang): The getChildType interface has been removed from the C++ DataType class.
 // Consider adding the StructType/ListType helper to C binding.
-// TEST_F(CApiDataTypeTest, GetChildType) {
+// TEST(CApiDataTypeTest, GetChildType) {
 //    auto dataType = kuzu_data_type_create(kuzu_data_type_id::KUZU_INT64, nullptr, 0);
 //    ASSERT_NE(dataType, nullptr);
 //    ASSERT_EQ(kuzu_data_type_get_child_type(dataType), nullptr);
@@ -143,7 +138,7 @@ TEST_F(CApiDataTypeTest, GetID) {
 //    kuzu_data_type_destroy(dataType);
 //}
 
-TEST_F(CApiDataTypeTest, GetFixedNumElementsInList) {
+TEST(CApiDataTypeTest, GetFixedNumElementsInList) {
     auto dataType = kuzu_data_type_create(kuzu_data_type_id::KUZU_INT64, nullptr, 0);
     ASSERT_NE(dataType, nullptr);
     ASSERT_EQ(kuzu_data_type_get_fixed_num_elements_in_list(dataType), 0);

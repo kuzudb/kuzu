@@ -13,11 +13,11 @@ void NodeRelExpressionEvaluator::evaluate() {
     for (auto& child : children) {
         child->evaluate();
     }
-    StructPackVectorFunctions::execFunc(parameters, *resultVector);
+    StructPackFunctions::execFunc(parameters, *resultVector);
 }
 
 void NodeRelExpressionEvaluator::resolveResultVector(
-    const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) {
+    const processor::ResultSet& /*resultSet*/, storage::MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(nodeOrRel->getDataType(), memoryManager);
     std::vector<ExpressionEvaluator*> inputEvaluators;
     inputEvaluators.reserve(children.size());
@@ -26,7 +26,7 @@ void NodeRelExpressionEvaluator::resolveResultVector(
         inputEvaluators.push_back(child.get());
     }
     resolveResultStateFromChildren(inputEvaluators);
-    StructPackVectorFunctions::compileFunc(nullptr, parameters, resultVector);
+    StructPackFunctions::compileFunc(nullptr, parameters, resultVector);
 }
 
 } // namespace evaluator

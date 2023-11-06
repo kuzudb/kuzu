@@ -37,6 +37,7 @@ enum class LogicalOperatorType : uint8_t {
     MULTIPLICITY_REDUCER,
     NODE_LABEL_FILTER,
     ORDER_BY,
+    PARTITIONER,
     PATH_PROPERTY_PROBE,
     PROJECTION,
     RECURSIVE_EXTEND,

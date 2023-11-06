@@ -1,8 +1,4 @@
-#include <set>
-
 #include "binder/binder.h"
-#include "binder/expression/expression_util.h"
-#include "binder/expression/function_expression.h"
 #include "binder/expression/path_expression.h"
 #include "binder/expression/property_expression.h"
 #include "catalog/node_table_schema.h"
@@ -10,8 +6,10 @@
 #include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
-#include "common/string_utils.h"
-#include "function/cast/cast_utils.h"
+#include "common/exception/not_implemented.h"
+#include "common/keyword/rdf_keyword.h"
+#include "common/string_format.h"
+#include "function/cast/functions/cast_string_to_functions.h"
 #include "main/client_context.h"
 
 using namespace kuzu::common;
@@ -132,24 +130,6 @@ std::shared_ptr<Expression> Binder::createPath(
         uniqueName, pathName, std::move(nodeType), std::move(relType), children);
 }
 
-static std::vector<table_id_t> pruneRelTableIDs(const Catalog& catalog_,
-    const std::vector<table_id_t>& relTableIDs, const NodeExpression& srcNode,
-    const NodeExpression& dstNode) {
-    auto srcNodeTableIDs = srcNode.getTableIDsSet();
-    auto dstNodeTableIDs = dstNode.getTableIDsSet();
-    std::vector<table_id_t> result;
-    for (auto& relTableID : relTableIDs) {
-        auto relTableSchema = reinterpret_cast<RelTableSchema*>(
-            catalog_.getReadOnlyVersion()->getTableSchema(relTableID));
-        if (!srcNodeTableIDs.contains(relTableSchema->getSrcTableID()) ||
-            !dstNodeTableIDs.contains(relTableSchema->getDstTableID())) {
-            continue;
-        }
-        result.push_back(relTableID);
-    }
-    return result;
-}
-
 static std::vector<std::string> getPropertyNames(const std::vector<TableSchema*>& tableSchemas) {
     std::vector<std::string> result;
     std::unordered_set<std::string> propertyNamesSet;
@@ -186,9 +166,10 @@ static std::unique_ptr<Expression> createPropertyExpression(const std::string& p
     }
     for (auto type : propertyDataTypes) {
         if (*propertyDataTypes[0] != *type) {
-            StringUtils::string_format("Expect same data type for property {} but find {} and {}",
-                propertyName, LogicalTypeUtils::dataTypeToString(*type),
-                LogicalTypeUtils::dataTypeToString(*propertyDataTypes[0]));
+            throw BinderException(
+                stringFormat("Expected the same data type for property {} but found {} and {}.",
+                    propertyName, LogicalTypeUtils::dataTypeToString(*type),
+                    LogicalTypeUtils::dataTypeToString(*propertyDataTypes[0])));
         }
     }
     return make_unique<PropertyExpression>(*propertyDataTypes[0], propertyName, uniqueVariableName,
@@ -261,17 +242,7 @@ std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern
 std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::string& parsedName,
     const std::vector<table_id_t>& tableIDs, std::shared_ptr<NodeExpression> srcNode,
     std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType) {
-    // tableIDs can be relTableIDs or rdfGraphTableIDs.
     auto relTableIDs = getRelTableIDs(tableIDs);
-    if (directionType == RelDirectionType::SINGLE && srcNode && dstNode) {
-        // We perform table ID pruning as an optimization. BOTH direction type requires a more
-        // advanced pruning logic because it does not have notion of src & dst by nature.
-        relTableIDs = pruneRelTableIDs(catalog, relTableIDs, *srcNode, *dstNode);
-    }
-    if (relTableIDs.empty()) {
-        throw BinderException("Nodes " + srcNode->toString() + " and " + dstNode->toString() +
-                              " are not connected through rel " + parsedName + ".");
-    }
     auto queryRel = make_shared<RelExpression>(LogicalType(LogicalTypeID::REL),
         getUniqueExpressionName(parsedName), parsedName, relTableIDs, std::move(srcNode),
         std::move(dstNode), directionType, QueryRelType::NON_RECURSIVE);
@@ -298,15 +269,15 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
     auto readVersion = catalog.getReadOnlyVersion();
     if (readVersion->getTableSchema(tableIDs[0])->getTableType() == TableType::RDF) {
         auto predicateID =
-            expressionBinder.bindNodeOrRelPropertyExpression(*queryRel, RDFKeyword::PREDICT_ID);
+            expressionBinder.bindNodeOrRelPropertyExpression(*queryRel, std::string(rdf::PID));
         auto resourceTableIDs = getNodeTableIDs(tableIDs);
         auto resourceTableSchemas = readVersion->getTableSchemas(resourceTableIDs);
-        auto predicateIRI = createPropertyExpression(common::RDFKeyword::IRI,
+        auto predicateIRI = createPropertyExpression(std::string(rdf::IRI),
             queryRel->getUniqueName(), queryRel->getVariableName(), resourceTableSchemas);
         auto rdfInfo =
             std::make_unique<RdfPredicateInfo>(std::move(resourceTableIDs), std::move(predicateID));
         queryRel->setRdfPredicateInfo(std::move(rdfInfo));
-        queryRel->addPropertyExpression(common::RDFKeyword::IRI, std::move(predicateIRI));
+        queryRel->addPropertyExpression(std::string(rdf::IRI), std::move(predicateIRI));
     }
     return queryRel;
 }
@@ -315,7 +286,7 @@ static void bindRecursiveRelProjectionList(const expression_vector& projectionLi
     std::vector<std::string>& fieldNames, std::vector<std::unique_ptr<LogicalType>>& fieldTypes) {
     for (auto& expression : projectionList) {
         if (expression->expressionType != common::PROPERTY) {
-            throw BinderException(StringUtils::string_format(
+            throw BinderException(stringFormat(
                 "Unsupported projection item {} on recursive rel.", expression->toString()));
         }
         auto property = reinterpret_cast<PropertyExpression*>(expression.get());
@@ -427,11 +398,11 @@ std::pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
     const kuzu::parser::RelPattern& relPattern) {
     auto recursiveInfo = relPattern.getRecursiveInfo();
     uint32_t lowerBound;
-    function::simpleIntegerCast(
+    function::CastStringToTypes::operation(
         recursiveInfo->lowerBound.c_str(), recursiveInfo->lowerBound.length(), lowerBound);
     auto upperBound = clientContext->varLengthExtendMaxDepth;
     if (!recursiveInfo->upperBound.empty()) {
-        function::simpleIntegerCast(
+        function::CastStringToTypes::operation(
             recursiveInfo->upperBound.c_str(), recursiveInfo->upperBound.length(), upperBound);
     }
     if (lowerBound > upperBound) {
@@ -581,7 +552,8 @@ std::vector<table_id_t> Binder::getNodeTableIDs(const std::vector<table_id_t>& t
         for (auto& tableID : tableIDs) {
             auto rdfGraphSchema =
                 reinterpret_cast<RdfGraphSchema*>(readVersion->getTableSchema(tableID));
-            result.push_back(rdfGraphSchema->getNodeTableID());
+            result.push_back(rdfGraphSchema->getResourceTableID());
+            result.push_back(rdfGraphSchema->getLiteralTableID());
         }
         return result;
     }
@@ -602,7 +574,8 @@ std::vector<table_id_t> Binder::getRelTableIDs(const std::vector<table_id_t>& ta
         for (auto& tableID : tableIDs) {
             auto rdfGraphSchema =
                 reinterpret_cast<RdfGraphSchema*>(readVersion->getTableSchema(tableID));
-            result.push_back(rdfGraphSchema->getRelTableID());
+            result.push_back(rdfGraphSchema->getResourceTripleTableID());
+            result.push_back(rdfGraphSchema->getLiteralTripleTableID());
         }
         return result;
     }

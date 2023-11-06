@@ -5,6 +5,7 @@
 using namespace kuzu::main;
 using namespace kuzu::common;
 using namespace kuzu::processor;
+using namespace kuzu::testing;
 
 class CApiQueryResultTest : public CApiTest {
 public:
@@ -28,6 +29,16 @@ TEST_F(CApiQueryResultTest, GetErrorMessage) {
     ASSERT_EQ(std::string(errorMessage), "Binder exception: Table personnnn does not exist.");
     kuzu_query_result_destroy(result);
     free(errorMessage);
+}
+
+TEST_F(CApiQueryResultTest, ToString) {
+    auto connection = getConnection();
+    auto result = kuzu_connection_query(connection, "MATCH (a:person) RETURN COUNT(*)");
+    ASSERT_TRUE(kuzu_query_result_is_success(result));
+    auto str_repr = kuzu_query_result_to_string(result);
+    ASSERT_NE(str_repr, nullptr);
+    free(str_repr);
+    kuzu_query_result_destroy(result);
 }
 
 TEST_F(CApiQueryResultTest, GetNumColumns) {
@@ -82,8 +93,8 @@ TEST_F(CApiQueryResultTest, GetColumnDataType) {
 
 TEST_F(CApiQueryResultTest, GetArrowSchema) {
     auto connection = getConnection();
-    auto result = kuzu_connection_query(connection, "MATCH (p:person)-[k:knows]-(q:person) RETURN "
-                                                    "p.fName, k, q.fName");
+    auto result = kuzu_connection_query(
+        connection, "MATCH (p:person)-[k:knows]-(q:person) RETURN p.fName, k, q.fName");
     ASSERT_TRUE(kuzu_query_result_is_success(result));
     auto schema = kuzu_query_result_get_arrow_schema(result);
     ASSERT_STREQ(schema.name, "kuzu_query_result");

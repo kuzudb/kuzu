@@ -1,6 +1,7 @@
 #pragma once
 
-#include "aggregate_function.h"
+#include "common/types/int128_t.h"
+#include "function/aggregate_function.h"
 #include "function/arithmetic/arithmetic_functions.h"
 
 namespace kuzu {
@@ -24,7 +25,7 @@ struct AvgFunction {
     static std::unique_ptr<AggregateState> initialize() { return std::make_unique<AvgState>(); }
 
     static void updateAll(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
-        storage::MemoryManager* memoryManager) {
+        storage::MemoryManager* /*memoryManager*/) {
         auto state = reinterpret_cast<AvgState*>(state_);
         assert(!input->state->isFlat());
         if (input->hasNoNullsGuarantee()) {
@@ -43,7 +44,7 @@ struct AvgFunction {
     }
 
     static inline void updatePos(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
-        uint32_t pos, storage::MemoryManager* memoryManager) {
+        uint32_t pos, storage::MemoryManager* /*memoryManager*/) {
         updateSingleValue(reinterpret_cast<AvgState*>(state_), input, pos, multiplicity);
     }
 
@@ -62,7 +63,7 @@ struct AvgFunction {
     }
 
     static void combine(
-        uint8_t* state_, uint8_t* otherState_, storage::MemoryManager* memoryManager) {
+        uint8_t* state_, uint8_t* otherState_, storage::MemoryManager* /*memoryManager*/) {
         auto otherState = reinterpret_cast<AvgState*>(otherState_);
         if (otherState->isNull) {
             return;
@@ -84,6 +85,15 @@ struct AvgFunction {
         }
     }
 };
+
+template<>
+void AvgFunction<common::int128_t>::finalize(uint8_t* state_) {
+    auto state = reinterpret_cast<AvgState*>(state_);
+    if (!state->isNull) {
+        state->avg = common::Int128_t::Cast<long double>(state->sum) /
+                     common::Int128_t::Cast<long double>(state->count);
+    }
+}
 
 } // namespace function
 } // namespace kuzu

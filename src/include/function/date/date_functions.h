@@ -1,15 +1,19 @@
 #pragma once
 
-#include "common/type_utils.h"
+#include "common/exception/not_implemented.h"
 #include "common/types/date_t.h"
+#include "common/types/ku_string.h"
+#include "common/types/timestamp_t.h"
 
 namespace kuzu {
 namespace function {
 
 struct DayName {
     template<class T>
-    static inline void operation(T& input, common::ku_string_t& result) {
-        assert(false);
+    static inline void operation(T& /*input*/, common::ku_string_t& /*result*/) {
+        // LCOV_EXCL_START
+        throw common::NotImplementedException("Invalid DayName() call on non-datetime object");
+        // LCOV_EXCL_END
     }
 };
 
@@ -30,8 +34,10 @@ inline void DayName::operation(common::timestamp_t& input, common::ku_string_t& 
 
 struct MonthName {
     template<class T>
-    static inline void operation(T& input, common::ku_string_t& result) {
-        assert(false);
+    static inline void operation(T& /*input*/, common::ku_string_t& /*result*/) {
+        // LCOV_EXCL_START
+        throw common::NotImplementedException("Invalid MonthName() call on non-datetime object");
+        // LCOV_EXCL_END
     }
 };
 
@@ -52,8 +58,11 @@ inline void MonthName::operation(common::timestamp_t& input, common::ku_string_t
 
 struct LastDay {
     template<class T>
-    static inline void operation(T& input, common::date_t& result) {
-        assert(false);
+
+    static inline void operation(T& /*input*/, common::date_t& /*result*/) {
+        // LCOV_EXCL_START
+        throw common::NotImplementedException("Invalid LastDay() call on non-datetime object");
+        // LCOV_EXCL_END
     }
 };
 
@@ -72,8 +81,11 @@ inline void LastDay::operation(common::timestamp_t& input, common::date_t& resul
 
 struct DatePart {
     template<class LEFT_TYPE, class RIGHT_TYPE>
-    static inline void operation(LEFT_TYPE& partSpecifier, RIGHT_TYPE& input, int64_t& result) {
-        assert(false);
+    static inline void operation(
+        LEFT_TYPE& /*partSpecifier*/, RIGHT_TYPE& /*input*/, int64_t& /*result*/) {
+        // LCOV_EXCL_START
+        throw common::NotImplementedException("Invalid DatePart() call on non-datetime object");
+        // LCOV_EXCL_END
     }
 };
 
@@ -103,8 +115,11 @@ inline void DatePart::operation(
 
 struct DateTrunc {
     template<class LEFT_TYPE, class RIGHT_TYPE>
-    static inline void operation(LEFT_TYPE& partSpecifier, RIGHT_TYPE& input, RIGHT_TYPE& result) {
-        assert(false);
+    static inline void operation(
+        LEFT_TYPE& /*partSpecifier*/, RIGHT_TYPE& /*input*/, RIGHT_TYPE& /*result*/) {
+        // LCOV_EXCL_START
+        throw common::NotImplementedException("Invalid DatePart() call on non-datetime object");
+        // LCOV_EXCL_END
     }
 };
 

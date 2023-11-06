@@ -10,27 +10,27 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-vector_function_definitions OctetLengthVectorFunctions::getDefinitions() {
-    vector_function_definitions definitions;
-    definitions.push_back(make_unique<VectorFunctionDefinition>(OCTET_LENGTH_FUNC_NAME,
+function_set OctetLengthFunctions::getFunctionSet() {
+    function_set definitions;
+    definitions.push_back(make_unique<ScalarFunction>(OCTET_LENGTH_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::BLOB}, LogicalTypeID::INT64,
-        UnaryExecFunction<blob_t, int64_t, OctetLength>, nullptr, nullptr, nullptr,
+        ScalarFunction::UnaryExecFunction<blob_t, int64_t, OctetLength>, nullptr, nullptr, nullptr,
         false /* isVarLength */));
     return definitions;
 }
 
-vector_function_definitions EncodeVectorFunctions::getDefinitions() {
-    vector_function_definitions definitions;
-    definitions.push_back(make_unique<VectorFunctionDefinition>(ENCODE_FUNC_NAME,
+function_set EncodeFunctions::getFunctionSet() {
+    function_set definitions;
+    definitions.push_back(make_unique<ScalarFunction>(ENCODE_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::BLOB,
         VectorStringFunction::UnaryStringExecFunction<ku_string_t, blob_t, Encode>, nullptr,
         false /* isVarLength */));
     return definitions;
 }
 
-vector_function_definitions DecodeVectorFunctions::getDefinitions() {
-    vector_function_definitions definitions;
-    definitions.push_back(make_unique<VectorFunctionDefinition>(DECODE_FUNC_NAME,
+function_set DecodeFunctions::getFunctionSet() {
+    function_set definitions;
+    definitions.push_back(make_unique<ScalarFunction>(DECODE_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::BLOB}, LogicalTypeID::STRING,
         VectorStringFunction::UnaryStringExecFunction<blob_t, ku_string_t, Decode>, nullptr,
         false /* isVarLength */));

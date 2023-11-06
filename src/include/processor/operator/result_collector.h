@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/join_type.h"
+#include "common/enums/join_type.h"
 #include "processor/operator/sink.h"
 #include "processor/result/factorized_table.h"
 

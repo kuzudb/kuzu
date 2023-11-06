@@ -3,29 +3,29 @@
 #include "binder/expression/literal_expression.h"
 #include "binder/expression_binder.h"
 #include "common/exception/binder.h"
-#include "common/string_utils.h"
-#include "function/function_definition.h"
+#include "common/string_format.h"
+#include "function/function.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace function {
 
-vector_function_definitions StructPackVectorFunctions::getDefinitions() {
-    vector_function_definitions definitions;
-    definitions.push_back(make_unique<VectorFunctionDefinition>(STRUCT_PACK_FUNC_NAME,
+function_set StructPackFunctions::getFunctionSet() {
+    function_set functions;
+    functions.push_back(make_unique<ScalarFunction>(STRUCT_PACK_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::STRUCT, execFunc, nullptr,
         compileFunc, bindFunc, true /* isVarLength */));
-    return definitions;
+    return functions;
 }
 
-std::unique_ptr<FunctionBindData> StructPackVectorFunctions::bindFunc(
-    const binder::expression_vector& arguments, FunctionDefinition* definition) {
+std::unique_ptr<FunctionBindData> StructPackFunctions::bindFunc(
+    const binder::expression_vector& arguments, Function* /*function*/) {
     std::vector<std::unique_ptr<StructField>> fields;
     for (auto& argument : arguments) {
         if (argument->getDataType().getLogicalTypeID() == LogicalTypeID::ANY) {
             binder::ExpressionBinder::resolveAnyDataType(
-                *argument, LogicalType{LogicalTypeID::INT64});
+                *argument, LogicalType{LogicalTypeID::STRING});
         }
         fields.emplace_back(
             std::make_unique<StructField>(argument->getAlias(), argument->getDataType().copy()));
@@ -35,7 +35,7 @@ std::unique_ptr<FunctionBindData> StructPackVectorFunctions::bindFunc(
     return std::make_unique<FunctionBindData>(resultType);
 }
 
-void StructPackVectorFunctions::execFunc(
+void StructPackFunctions::execFunc(
     const std::vector<std::shared_ptr<ValueVector>>& parameters, ValueVector& result) {
     for (auto i = 0u; i < parameters.size(); i++) {
         auto& parameter = parameters[i];
@@ -49,7 +49,7 @@ void StructPackVectorFunctions::execFunc(
     }
 }
 
-void StructPackVectorFunctions::compileFunc(FunctionBindData* bindData,
+void StructPackFunctions::compileFunc(FunctionBindData* /*bindData*/,
     const std::vector<std::shared_ptr<ValueVector>>& parameters,
     std::shared_ptr<ValueVector>& result) {
     // Our goal is to make the state of the resultVector consistent with its children vectors.
@@ -63,7 +63,7 @@ void StructPackVectorFunctions::compileFunc(FunctionBindData* bindData,
     }
 }
 
-void StructPackVectorFunctions::copyParameterValueToStructFieldVector(
+void StructPackFunctions::copyParameterValueToStructFieldVector(
     const ValueVector* parameter, ValueVector* structField, DataChunkState* structVectorState) {
     // If the parameter is unFlat, then its state must be consistent with the result's state.
     // Thus, we don't need to copy values to structFieldVector.
@@ -80,35 +80,34 @@ void StructPackVectorFunctions::copyParameterValueToStructFieldVector(
     }
 }
 
-vector_function_definitions StructExtractVectorFunctions::getDefinitions() {
-    vector_function_definitions definitions;
+function_set StructExtractFunctions::getFunctionSet() {
+    function_set functions;
     auto inputTypeIDs =
         std::vector<LogicalTypeID>{LogicalTypeID::STRUCT, LogicalTypeID::NODE, LogicalTypeID::REL};
     for (auto inputTypeID : inputTypeIDs) {
-        definitions.push_back(make_unique<VectorFunctionDefinition>(STRUCT_EXTRACT_FUNC_NAME,
+        functions.push_back(make_unique<ScalarFunction>(STRUCT_EXTRACT_FUNC_NAME,
             std::vector<LogicalTypeID>{inputTypeID, LogicalTypeID::STRING}, LogicalTypeID::ANY,
             nullptr, nullptr, compileFunc, bindFunc, false /* isVarLength */));
     }
-    return definitions;
+    return functions;
 }
 
-std::unique_ptr<FunctionBindData> StructExtractVectorFunctions::bindFunc(
-    const binder::expression_vector& arguments, FunctionDefinition* definition) {
+std::unique_ptr<FunctionBindData> StructExtractFunctions::bindFunc(
+    const binder::expression_vector& arguments, Function* /*function*/) {
     auto structType = arguments[0]->getDataType();
     if (arguments[1]->expressionType != LITERAL) {
         throw BinderException("Key name for struct/union extract must be STRING literal.");
     }
     auto key = ((binder::LiteralExpression&)*arguments[1]).getValue()->getValue<std::string>();
-    assert(definition->returnTypeID == LogicalTypeID::ANY);
     auto fieldIdx = StructType::getFieldIdx(&structType, key);
     if (fieldIdx == INVALID_STRUCT_FIELD_IDX) {
-        throw BinderException(StringUtils::string_format("Invalid struct field name: {}.", key));
+        throw BinderException(stringFormat("Invalid struct field name: {}.", key));
     }
     return std::make_unique<StructExtractBindData>(
         *(StructType::getFieldTypes(&structType))[fieldIdx], fieldIdx);
 }
 
-void StructExtractVectorFunctions::compileFunc(FunctionBindData* bindData,
+void StructExtractFunctions::compileFunc(FunctionBindData* bindData,
     const std::vector<std::shared_ptr<ValueVector>>& parameters,
     std::shared_ptr<ValueVector>& result) {
     assert(parameters[0]->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);

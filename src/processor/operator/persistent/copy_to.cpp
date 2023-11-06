@@ -1,29 +1,25 @@
 #include "processor/operator/persistent/copy_to.h"
 
-using namespace kuzu::common;
-
 namespace kuzu {
 namespace processor {
 
-void CopyTo::initGlobalStateInternal(ExecutionContext* context) {
-    sharedState->getWriter()->init();
-}
-
 void CopyTo::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    outputVectors.reserve(vectorsToCopyPos.size());
-    for (auto& pos : vectorsToCopyPos) {
-        outputVectors.push_back(resultSet->getValueVector(pos).get());
-    }
+    localState->init(info.get(), context->memoryManager, resultSet);
 }
 
-void CopyTo::executeInternal(ExecutionContext* context) {
+void CopyTo::initGlobalStateInternal(ExecutionContext* context) {
+    sharedState->init(info.get(), context->memoryManager);
+}
+
+void CopyTo::finalize(ExecutionContext* /*context*/) {
+    sharedState->finalize();
+}
+
+void CopyTo::executeInternal(processor::ExecutionContext* context) {
     while (children[0]->getNextTuple(context)) {
-        sharedState->getWriter()->writeValues(outputVectors);
+        localState->sink(sharedState.get());
     }
-}
-
-void CopyTo::finalize(ExecutionContext* context) {
-    sharedState->getWriter()->closeFile();
+    localState->finalize(sharedState.get());
 }
 
 } // namespace processor

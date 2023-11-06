@@ -65,19 +65,10 @@ fn link_libraries() {
             println!("cargo:rustc-link-lib=dylib=stdc++");
         }
 
-        println!("cargo:rustc-link-lib=static=arrow_bundled_dependencies");
         if env::var("KUZU_TESTING").is_ok() && cfg!(windows) {
             find_openssl_windows();
             println!("cargo:rustc-link-lib=dylib=libssl");
             println!("cargo:rustc-link-lib=dylib=libcrypto");
-        }
-
-        if cfg!(windows) {
-            println!("cargo:rustc-link-lib=static=parquet_static");
-            println!("cargo:rustc-link-lib=static=arrow_static");
-        } else {
-            println!("cargo:rustc-link-lib=static=parquet");
-            println!("cargo:rustc-link-lib=static=arrow");
         }
 
         println!("cargo:rustc-link-lib=static=utf8proc");
@@ -87,6 +78,8 @@ fn link_libraries() {
         println!("cargo:rustc-link-lib=static=serd");
         println!("cargo:rustc-link-lib=static=fastpfor");
         println!("cargo:rustc-link-lib=static=miniparquet");
+        println!("cargo:rustc-link-lib=static=zstd");
+        println!("cargo:rustc-link-lib=static=miniz");
     }
 }
 
@@ -101,34 +94,12 @@ fn build_bundled_cmake() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
             Path::new(&std::env::var("CARGO_MANIFEST_DIR").unwrap()).join("../..")
         }
     };
-    let mut arrow_build = cmake::Config::new(kuzu_root.join("external"));
-    arrow_build
-        .no_build_target(true)
-        // Needs separate out directory so they don't clobber each other
-        .out_dir(Path::new(&env::var("OUT_DIR").unwrap()).join("arrow"));
-
-    if cfg!(windows) {
-        arrow_build.generator("Ninja");
-        arrow_build.cxxflag("/EHsc");
-    }
-    let arrow_build_dir = arrow_build.build();
-
-    let arrow_install = arrow_build_dir.join("build/arrow/install");
-    println!(
-        "cargo:rustc-link-search=native={}",
-        arrow_install.join("lib").display()
-    );
-    println!(
-        "cargo:rustc-link-search=native={}",
-        arrow_install.join("lib64").display()
-    );
 
     let mut build = cmake::Config::new(&kuzu_root);
     build
         .no_build_target(true)
         .define("BUILD_SHELL", "OFF")
-        .define("BUILD_PYTHON_API", "OFF")
-        .define("ARROW_INSTALL", &arrow_install);
+        .define("BUILD_PYTHON_API", "OFF");
     if cfg!(windows) {
         build.generator("Ninja");
         build.cxxflag("/EHsc");
@@ -146,6 +117,8 @@ fn build_bundled_cmake() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
         "serd",
         "fastpfor",
         "miniparquet",
+        "zstd",
+        "miniz",
     ] {
         let lib_path = build_dir
             .join("build")
@@ -165,11 +138,9 @@ fn build_bundled_cmake() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
     Ok(vec![
         kuzu_root.join("src/include"),
         build_dir.join("build/src"),
-        kuzu_root.join("third_party/concurrentqueue"),
         kuzu_root.join("third_party/nlohmann_json"),
         kuzu_root.join("third_party/spdlog"),
         kuzu_root.join("third_party/fastpfor"),
-        arrow_install.join("include"),
     ])
 }
 

@@ -5,20 +5,21 @@
 namespace kuzu {
 namespace binder {
 
-class StatementReadWriteAnalyzer : public BoundStatementVisitor {
+class StatementReadWriteAnalyzer final : public BoundStatementVisitor {
 public:
     StatementReadWriteAnalyzer() : BoundStatementVisitor(), readOnly{true} {}
 
     bool isReadOnly(const BoundStatement& statement);
 
 private:
-    void visitCommentOn(const BoundStatement& statement) override { readOnly = false; }
-    void visitCopyFrom(const BoundStatement& statement) override { readOnly = false; }
-    void visitCreateMacro(const BoundStatement& statement) override { readOnly = false; }
-    void visitCreateTable(const BoundStatement& statement) override { readOnly = false; }
-    void visitDropTable(const BoundStatement& statement) override { readOnly = false; }
-    void visitAlter(const BoundStatement& statement) override { readOnly = false; }
-    void visitQueryPart(const NormalizedQueryPart& queryPart) final;
+    void visitCommentOn(const BoundStatement& /*statement*/) { readOnly = false; }
+    void visitCopyFrom(const BoundStatement& /*statement*/) { readOnly = false; }
+    void visitCreateMacro(const BoundStatement& /*statement*/) { readOnly = false; }
+    void visitCreateTable(const BoundStatement& /*statement*/) { readOnly = false; }
+    void visitDropTable(const BoundStatement& /*statement*/) { readOnly = false; }
+    void visitAlter(const BoundStatement& /*statement*/) { readOnly = false; }
+    void visitStandaloneCall(const BoundStatement& /*statement*/) { readOnly = false; }
+    void visitQueryPart(const NormalizedQueryPart& queryPart);
 
 private:
     bool readOnly;

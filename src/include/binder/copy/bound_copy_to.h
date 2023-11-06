@@ -1,9 +1,5 @@
 #pragma once
 
-#include <string>
-#include <unordered_map>
-#include <vector>
-
 #include "binder/query/bound_regular_query.h"
 #include "common/copier_config/copier_config.h"
 

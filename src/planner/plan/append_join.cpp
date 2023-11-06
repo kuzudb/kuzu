@@ -8,7 +8,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace planner {
 
-void QueryPlanner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType joinType,
+void QueryPlanner::appendHashJoin(const binder::expression_vector& joinNodeIDs, JoinType joinType,
     LogicalPlan& probePlan, LogicalPlan& buildPlan) {
     std::vector<join_condition_t> joinConditions;
     for (auto& joinNodeID : joinNodeIDs) {
@@ -39,8 +39,9 @@ void QueryPlanner::appendHashJoin(const expression_vector& joinNodeIDs, JoinType
     probePlan.setLastOperator(std::move(hashJoin));
 }
 
-void QueryPlanner::appendMarkJoin(const expression_vector& joinNodeIDs,
-    const std::shared_ptr<Expression>& mark, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
+void QueryPlanner::appendMarkJoin(const binder::expression_vector& joinNodeIDs,
+    const std::shared_ptr<binder::Expression>& mark, LogicalPlan& probePlan,
+    LogicalPlan& buildPlan) {
     std::vector<join_condition_t> joinConditions;
     for (auto& joinNodeID : joinNodeIDs) {
         joinConditions.emplace_back(joinNodeID, joinNodeID);
@@ -59,7 +60,7 @@ void QueryPlanner::appendMarkJoin(const expression_vector& joinNodeIDs,
     probePlan.setLastOperator(std::move(hashJoin));
 }
 
-void QueryPlanner::appendIntersect(const std::shared_ptr<Expression>& intersectNodeID,
+void QueryPlanner::appendIntersect(const std::shared_ptr<binder::Expression>& intersectNodeID,
     binder::expression_vector& boundNodeIDs, LogicalPlan& probePlan,
     std::vector<std::unique_ptr<LogicalPlan>>& buildPlans) {
     assert(boundNodeIDs.size() == buildPlans.size());

@@ -15,11 +15,12 @@ namespace storage {
 
 class NodeTable {
 public:
-    NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH,
+    NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH, common::AccessMode accessMode,
         NodesStoreStatsAndDeletedIDs* nodesStatisticsAndDeletedIDs, BufferManager& bufferManager,
         WAL* wal, catalog::NodeTableSchema* nodeTableSchema, bool enableCompression);
 
-    void initializePKIndex(catalog::NodeTableSchema* nodeTableSchema);
+    void initializePKIndex(
+        catalog::NodeTableSchema* nodeTableSchema, common::AccessMode accessMode);
 
     inline common::offset_t getMaxNodeOffset(transaction::Transaction* transaction) const {
         return nodesStatisticsAndDeletedIDs->getMaxNodeOffset(transaction, tableID);
@@ -53,7 +54,7 @@ public:
     inline void append(NodeGroup* nodeGroup) { tableData->append(nodeGroup); }
 
     inline common::column_id_t getNumColumns() const { return tableData->getNumColumns(); }
-    inline NodeColumn* getColumn(common::column_id_t columnID) {
+    inline Column* getColumn(common::column_id_t columnID) {
         return tableData->getColumn(columnID);
     }
     inline common::column_id_t getPKColumnID() const { return pkColumnID; }
@@ -76,9 +77,6 @@ public:
 
 private:
     void insertPK(common::ValueVector* nodeIDVector, common::ValueVector* primaryKeyVector);
-    inline uint64_t getNumNodeGroups(transaction::Transaction* transaction) const {
-        return tableData->getNumNodeGroups(transaction);
-    }
 
 private:
     NodesStoreStatsAndDeletedIDs* nodesStatisticsAndDeletedIDs;

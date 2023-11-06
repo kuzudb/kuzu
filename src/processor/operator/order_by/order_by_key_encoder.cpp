@@ -3,7 +3,9 @@
 #include <cstdint>
 #include <cstring>
 
-#include "common/string_utils.h"
+#include "common/string_format.h"
+#include "common/utils.h"
+#include "storage/storage_utils.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -25,9 +27,9 @@ OrderByKeyEncoder::OrderByKeyEncoder(const OrderByDataInfo& orderByDataInfo,
     assert(this->numBytesPerTuple == getNumBytesPerTuple());
     maxNumTuplesPerBlock = BufferPoolConstants::PAGE_256KB_SIZE / numBytesPerTuple;
     if (maxNumTuplesPerBlock <= 0) {
-        throw RuntimeException(StringUtils::string_format(
-            "TupleSize({} bytes) is larger than the LARGE_PAGE_SIZE({} bytes)", numBytesPerTuple,
-            BufferPoolConstants::PAGE_256KB_SIZE));
+        throw RuntimeException(
+            stringFormat("TupleSize({} bytes) is larger than the LARGE_PAGE_SIZE({} bytes)",
+                numBytesPerTuple, BufferPoolConstants::PAGE_256KB_SIZE));
     }
     encodeFunctions.reserve(orderByDataInfo.keysPos.size());
     for (auto& type : orderByDataInfo.keyTypes) {
@@ -236,6 +238,10 @@ void OrderByKeyEncoder::getEncodingFunction(PhysicalTypeID physicalType, encode_
         func = encodeTemplate<uint8_t>;
         return;
     }
+    case PhysicalTypeID::INT128: {
+        func = encodeTemplate<int128_t>;
+        return;
+    }
     case PhysicalTypeID::DOUBLE: {
         func = encodeTemplate<double_t>;
         return;
@@ -253,12 +259,14 @@ void OrderByKeyEncoder::getEncodingFunction(PhysicalTypeID physicalType, encode_
         return;
     }
     default:
-        throw NotImplementedException{"OrderByKeyEncoder::getEncodingFunction"};
+        // LCOV_EXCL_START
+        throw NotImplementedException("OrderByKeyEncoder::getEncodingFunction");
+        // LCOV_EXCL_END
     }
 }
 
 template<>
-void OrderByKeyEncoder::encodeData(int8_t data, uint8_t* resultPtr, bool swapBytes) {
+void OrderByKeyEncoder::encodeData(int8_t data, uint8_t* resultPtr, bool /*swapBytes*/) {
     memcpy(resultPtr, (void*)&data, sizeof(data));
     resultPtr[0] = flipSign(resultPtr[0]);
 }
@@ -291,7 +299,7 @@ void OrderByKeyEncoder::encodeData(int64_t data, uint8_t* resultPtr, bool swapBy
 }
 
 template<>
-void OrderByKeyEncoder::encodeData(uint8_t data, uint8_t* resultPtr, bool swapBytes) {
+void OrderByKeyEncoder::encodeData(uint8_t data, uint8_t* resultPtr, bool /*swapBytes*/) {
     memcpy(resultPtr, (void*)&data, sizeof(data));
 }
 
@@ -320,7 +328,13 @@ void OrderByKeyEncoder::encodeData(uint64_t data, uint8_t* resultPtr, bool swapB
 }
 
 template<>
-void OrderByKeyEncoder::encodeData(bool data, uint8_t* resultPtr, bool swapBytes) {
+void OrderByKeyEncoder::encodeData(common::int128_t data, uint8_t* resultPtr, bool swapBytes) {
+    encodeData<int64_t>(data.high, resultPtr, swapBytes);
+    encodeData<uint64_t>(data.low, resultPtr + sizeof(data.high), swapBytes);
+}
+
+template<>
+void OrderByKeyEncoder::encodeData(bool data, uint8_t* resultPtr, bool /*swapBytes*/) {
     uint8_t val = data ? 1 : 0;
     memcpy(resultPtr, (void*)&val, sizeof(data));
 }
@@ -361,7 +375,7 @@ void OrderByKeyEncoder::encodeData(interval_t data, uint8_t* resultPtr, bool swa
 }
 
 template<>
-void OrderByKeyEncoder::encodeData(ku_string_t data, uint8_t* resultPtr, bool swapBytes) {
+void OrderByKeyEncoder::encodeData(ku_string_t data, uint8_t* resultPtr, bool /*swapBytes*/) {
     // Only encode the prefix of ku_string.
     memcpy(resultPtr, (void*)data.getAsString().c_str(),
         std::min((uint32_t)ku_string_t::SHORT_STR_LENGTH, data.len));

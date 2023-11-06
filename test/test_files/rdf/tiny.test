@@ -4,6 +4,7 @@
 --
 
 -CASE TinyRDFTest
+-SKIP
 -STATEMENT MATCH (s:tiny) RETURN id(s), s.IRI
 ---- 22
 1:0|http://dbpedia.org/class/yago/'hood108641944

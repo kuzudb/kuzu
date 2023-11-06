@@ -3,11 +3,10 @@
 #include "common/exception/message.h"
 #include "common/exception/runtime.h"
 #include "storage/store/node_table.h"
-#include "storage/store/string_column_chunk.h"
-#include "storage/store/string_node_column.h"
-#include "storage/store/struct_node_column.h"
+#include "storage/store/string_column.h"
+#include "storage/store/struct_column.h"
+#include "storage/store/var_list_column.h"
 #include "storage/store/var_list_column_chunk.h"
-#include "storage/store/var_list_node_column.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -45,8 +44,7 @@ void StringLocalVector::update(
     sel_t offsetInLocalVector, ValueVector* updateVector, sel_t offsetInUpdateVector) {
     auto kuStr = updateVector->getValue<ku_string_t>(offsetInUpdateVector);
     if (kuStr.len > BufferPoolConstants::PAGE_4KB_SIZE) {
-        throw RuntimeException(
-            ExceptionMessage::overLargeStringValueException(std::to_string(kuStr.len)));
+        throw RuntimeException(ExceptionMessage::overLargeStringValueException(kuStr.len));
     } else if (!ku_string_t::isShortString(kuStr.len)) {
         ovfStringLength += kuStr.len;
     }
@@ -149,6 +147,9 @@ void LocalColumn::update(
     ValueVector* nodeIDVector, ValueVector* propertyVector, MemoryManager* mm) {
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[i];
+        if (nodeIDVector->isNull(pos)) {
+            continue;
+        }
         auto nodeID = nodeIDVector->getValue<nodeID_t>(pos);
         update(nodeID.offset, propertyVector,
             propertyVector->state->selVector->selectedPositions[i], mm);
@@ -159,7 +160,7 @@ void LocalColumn::update(offset_t nodeOffset, ValueVector* propertyVector,
     sel_t posInPropertyVector, MemoryManager* mm) {
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     if (!chunks.contains(nodeGroupIdx)) {
-        chunks.emplace(nodeGroupIdx, std::make_unique<LocalColumnChunk>(column->dataType, mm));
+        chunks.emplace(nodeGroupIdx, std::make_unique<LocalColumnChunk>(column->getDataType(), mm));
     }
     auto chunk = chunks.at(nodeGroupIdx).get();
     auto [vectorIdxInChunk, offsetInVector] =
@@ -177,7 +178,7 @@ void LocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
     assert(chunks.contains(nodeGroupIdx));
     auto chunk = chunks.at(nodeGroupIdx).get();
     // Figure out if the chunk needs to be re-compressed
-    auto metadata = column->getCompressionMetadata(nodeGroupIdx, TransactionType::WRITE);
+    auto metadata = column->getMetadata(nodeGroupIdx, TransactionType::WRITE).compMeta;
     if (!metadata.canAlwaysUpdateInPlace()) {
         for (auto& [vectorIdx, vector] : chunk->vectors) {
             for (auto i = 0u; i < vector->vector->state->selVector->selectedSize; i++) {
@@ -215,7 +216,7 @@ void LocalColumn::commitLocalChunkOutOfPlace(
     // First scan the whole column chunk into ColumnChunk.
     column->scan(nodeGroupIdx, columnChunk.get());
     for (auto& [vectorIdx, vector] : localChunk->vectors) {
-        columnChunk->update(vector->vector.get(), vectorIdx);
+        columnChunk->write(vector->vector.get(), vectorIdx << DEFAULT_VECTOR_CAPACITY_LOG_2);
     }
     // Append the updated ColumnChunk back to column.
     column->append(columnChunk.get(), nodeGroupIdx);
@@ -224,7 +225,7 @@ void LocalColumn::commitLocalChunkOutOfPlace(
 void StringLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
     assert(chunks.contains(nodeGroupIdx));
     auto localChunk = chunks.at(nodeGroupIdx).get();
-    auto stringColumn = reinterpret_cast<StringNodeColumn*>(column);
+    auto stringColumn = reinterpret_cast<StringColumn*>(column);
     auto overflowMetadata =
         stringColumn->getOverflowMetadataDA()->get(nodeGroupIdx, TransactionType::WRITE);
     auto ovfStringLengthInChunk = 0u;
@@ -244,7 +245,7 @@ void StringLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
 void VarListLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
     assert(chunks.contains(nodeGroupIdx));
     auto chunk = chunks.at(nodeGroupIdx).get();
-    auto varListColumn = reinterpret_cast<VarListNodeColumn*>(column);
+    auto varListColumn = reinterpret_cast<VarListColumn*>(column);
     auto listColumnChunkInStorage =
         ColumnChunkFactory::createColumnChunk(column->getDataType(), enableCompression);
     auto columnChunkToUpdate =
@@ -252,9 +253,9 @@ void VarListLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
     varListColumn->scan(nodeGroupIdx, listColumnChunkInStorage.get());
     offset_t nextOffsetToWrite = 0;
     auto numNodesInGroup =
-        nodeGroupIdx >= column->metadataDA->getNumElements() ?
+        nodeGroupIdx >= column->getNumNodeGroups(&DUMMY_READ_TRANSACTION) ?
             0 :
-            column->metadataDA->get(nodeGroupIdx, TransactionType::READ_ONLY).numValues;
+            column->getMetadata(nodeGroupIdx, TransactionType::READ_ONLY).numValues;
     for (auto& [vectorIdx, localVector] : chunk->vectors) {
         auto startOffsetInChunk = StorageUtils::getStartOffsetOfVectorInChunk(vectorIdx);
         auto listVector = localVector->vector.get();
@@ -283,14 +284,13 @@ void VarListLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
     column->append(columnChunkToUpdate.get(), nodeGroupIdx);
     auto dataColumnChunk =
         reinterpret_cast<VarListColumnChunk*>(columnChunkToUpdate.get())->getDataColumnChunk();
-    reinterpret_cast<VarListNodeColumn*>(column)->dataNodeColumn->append(
-        dataColumnChunk, nodeGroupIdx);
+    reinterpret_cast<VarListColumn*>(column)->dataColumn->append(dataColumnChunk, nodeGroupIdx);
 }
 
-StructLocalColumn::StructLocalColumn(NodeColumn* column, bool enableCompression)
+StructLocalColumn::StructLocalColumn(Column* column, bool enableCompression)
     : LocalColumn{column, enableCompression} {
     assert(column->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
-    auto structColumn = static_cast<StructNodeColumn*>(column);
+    auto structColumn = static_cast<StructColumn*>(column);
     auto dataType = structColumn->getDataType();
     auto structFields = StructType::getFields(&dataType);
     fields.resize(structFields.size());
@@ -346,7 +346,7 @@ void StructLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
 }
 
 std::unique_ptr<LocalColumn> LocalColumnFactory::createLocalColumn(
-    NodeColumn* column, bool enableCompression) {
+    Column* column, bool enableCompression) {
     switch (column->getDataType().getPhysicalType()) {
     case PhysicalTypeID::STRING: {
         return std::make_unique<StringLocalColumn>(column, enableCompression);

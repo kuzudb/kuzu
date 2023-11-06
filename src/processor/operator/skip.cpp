@@ -3,7 +3,7 @@
 namespace kuzu {
 namespace processor {
 
-void Skip::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+void Skip::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {
     dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
 }
 

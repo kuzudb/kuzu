@@ -1,7 +1,5 @@
 #pragma once
 
-#include <unordered_map>
-
 #include "parser/expression/parsed_expression.h"
 #include "parser/statement.h"
 

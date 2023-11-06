@@ -23,7 +23,7 @@ public class TestHelper {
 
     public static void loadData(String dbPath) throws IOException, KuzuObjectRefDestroyedException {
         BufferedReader reader;
-        db = new KuzuDatabase(dbPath, 0);
+        db = new KuzuDatabase(dbPath);
         conn = new KuzuConnection(db);
         KuzuQueryResult result;
 

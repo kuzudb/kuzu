@@ -1,10 +1,10 @@
 #pragma once
 
+#include <functional>
 #include <string>
 #include <vector>
 
-#include "common/constants.h"
-#include "common/utils.h"
+#include "common/exception/not_implemented.h"
 #include "common/vector/value_vector.h"
 #include "order_by_data_info.h"
 #include "processor/result/factorized_table.h"
@@ -96,8 +96,10 @@ private:
     }
 
     template<typename type>
-    static void encodeData(type data, uint8_t* resultPtr, bool swapBytes) {
-        assert(false);
+    static void encodeData(type /*data*/, uint8_t* /*resultPtr*/, bool /*swapBytes*/) {
+        // LCOV_EXCL_START
+        throw common::NotImplementedException("OrderByKeyEncoder::encodeData");
+        // LCOV_EXCL_END
     }
 
     static inline uint8_t flipSign(uint8_t key_byte) { return key_byte ^ 128; }

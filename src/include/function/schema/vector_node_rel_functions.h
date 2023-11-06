@@ -1,13 +1,13 @@
 #pragma once
 
-#include "function/vector_functions.h"
+#include "function/scalar_function.h"
 #include "offset_functions.h"
 
 namespace kuzu {
 namespace function {
 
-struct OffsetVectorFunction {
-    static vector_function_definitions getDefinitions();
+struct OffsetFunction {
+    static function_set getFunctionSet();
     static void execFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result) {
         assert(params.size() == 1);

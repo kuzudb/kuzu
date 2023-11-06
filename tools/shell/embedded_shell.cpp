@@ -4,13 +4,10 @@
 #include <cctype>
 #include <csignal>
 #include <regex>
+#include <sstream>
 
 #include "catalog/catalog.h"
-#include "common/logging_level_utils.h"
 #include "common/string_utils.h"
-#include "common/type_utils.h"
-#include "json.hpp"
-#include "processor/result/factorized_table.h"
 #include "utf8proc.h"
 #include "utf8proc_wrapper.h"
 
@@ -34,7 +31,8 @@ struct ShellCommand {
     const std::string THREAD = ":thread";
     const std::string LOGGING_LEVEL = ":logging_level";
     const std::string QUERY_TIMEOUT = ":timeout";
-    const std::vector<std::string> commandList = {HELP, CLEAR, QUIT, THREAD, LOGGING_LEVEL, QUERY_TIMEOUT};
+    const std::vector<std::string> commandList = {
+        HELP, CLEAR, QUIT, THREAD, LOGGING_LEVEL, QUERY_TIMEOUT};
 } shellCommand;
 
 const char* TAB = "    ";
@@ -136,13 +134,13 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
     }
 }
 
-void highlight(char* buffer, char* resultBuf, uint32_t maxLen, uint32_t cursorPos) {
+void highlight(char* buffer, char* resultBuf, uint32_t renderWidth, uint32_t cursorPos) {
     std::string buf(buffer);
     auto bufLen = buf.length();
     std::ostringstream highlightBuffer;
     std::string word;
     std::vector<std::string> tokenList;
-    if (cursorPos > maxLen) {
+    if (cursorPos > renderWidth) {
         uint32_t counter = 0;
         uint32_t thisChar = 0;
         uint32_t lineLen = 0;
@@ -151,16 +149,16 @@ void highlight(char* buffer, char* resultBuf, uint32_t maxLen, uint32_t cursorPo
             thisChar = utf8proc_next_grapheme(buffer, bufLen, thisChar);
         }
         lineLen = thisChar;
-        while (counter > cursorPos - maxLen + 1) {
+        while (counter > cursorPos - renderWidth + 1) {
             counter -= Utf8Proc::renderWidth(buffer, thisChar);
             thisChar = Utf8Proc::previousGraphemeCluster(buffer, bufLen, thisChar);
         }
         lineLen -= thisChar;
         buf = buf.substr(thisChar, lineLen);
-    } else if (buf.length() > maxLen) {
+    } else if (buf.length() > renderWidth) {
         uint32_t counter = 0;
         uint32_t lineLen = 0;
-        while (counter < maxLen) {
+        while (counter < renderWidth) {
             counter += Utf8Proc::renderWidth(buffer, lineLen);
             lineLen = utf8proc_next_grapheme(buffer, bufLen, lineLen);
         }
@@ -193,7 +191,10 @@ void highlight(char* buffer, char* resultBuf, uint32_t maxLen, uint32_t cursorPo
 #endif
         highlightBuffer << token;
     }
-    strcpy(resultBuf, highlightBuffer.str().c_str());
+    // Linenoise allocates a fixed size buffer for the current line's contents, and doesn't export
+    // the length.
+    constexpr size_t LINENOISE_MAX_LINE = 4096;
+    strncpy(resultBuf, highlightBuffer.str().c_str(), LINENOISE_MAX_LINE - 1);
 }
 
 EmbeddedShell::EmbeddedShell(const std::string& databasePath, const SystemConfig& systemConfig) {
@@ -256,7 +257,7 @@ void EmbeddedShell::run() {
     }
 }
 
-void EmbeddedShell::interruptHandler(int signal) {
+void EmbeddedShell::interruptHandler(int /*signal*/) {
     globalConnection->interrupt();
 }
 
@@ -348,7 +349,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         if (numTuples == 1) {
             printf("(1 tuple)\n");
         } else {
-            printf("(%lu tuples)\n", numTuples);
+            printf("(%" PRIu64 " tuples)\n", numTuples);
         }
         printf("Time: %.2fms (compiling), %.2fms (executing)\n", querySummary->getCompilingTime(),
             querySummary->getExecutionTime());

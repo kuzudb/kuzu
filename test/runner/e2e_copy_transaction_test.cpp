@@ -1,11 +1,13 @@
 #include <set>
 
+#include "binder/bound_statement_result.h"
 #include "graph_test/graph_test.h"
 #include "processor/plan_mapper.h"
 #include "processor/processor.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
+using namespace kuzu::main;
 using namespace kuzu::processor;
 using namespace kuzu::storage;
 using namespace kuzu::testing;
@@ -44,8 +46,6 @@ public:
     void validateDatabaseStateBeforeCheckPointCopyNode(table_id_t tableID) {
         auto nodeTableSchema =
             (NodeTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(tableID);
-        validateNodeColumnFilesExistence(
-            nodeTableSchema, DBFileType::ORIGINAL, true /* existence */);
         ASSERT_EQ(std::make_unique<Connection>(database.get())
                       ->query("MATCH (p:person) return *")
                       ->getNumTuples(),
@@ -60,8 +60,6 @@ public:
     void validateDatabaseStateAfterCheckPointCopyNode(table_id_t tableID) {
         auto nodeTableSchema =
             (NodeTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(tableID);
-        validateNodeColumnFilesExistence(
-            nodeTableSchema, DBFileType::ORIGINAL, true /* existence */);
         validateTinysnbPersonAgeProperty();
         ASSERT_EQ(getStorageManager(*database)
                       ->getNodesStore()
@@ -123,8 +121,6 @@ public:
     void validateDatabaseStateBeforeCheckPointCopyRel(table_id_t tableID) {
         auto relTableSchema =
             (RelTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(tableID);
-        validateRelColumnAndListFilesExistence(
-            relTableSchema, DBFileType::ORIGINAL, true /* existence */);
         auto dummyWriteTrx = transaction::Transaction::getDummyWriteTrx();
         ASSERT_EQ(
             getStorageManager(*database)->getRelsStore().getRelsStatistics()->getNextRelOffset(
@@ -135,8 +131,6 @@ public:
     void validateDatabaseStateAfterCheckPointCopyRel(table_id_t knowsTableID) {
         auto relTableSchema =
             (RelTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(knowsTableID);
-        validateRelColumnAndListFilesExistence(
-            relTableSchema, DBFileType::ORIGINAL, true /* existence */);
         validateTinysnbKnowsDateProperty();
         auto relsStatistics = getStorageManager(*database)->getRelsStore().getRelsStatistics();
         auto dummyWriteTrx = transaction::Transaction::getDummyWriteTrx();

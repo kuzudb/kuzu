@@ -1,6 +1,5 @@
 #pragma once
 
-#include "catalog/catalog.h"
 #include "function/table_functions.h"
 #include "function/table_functions/bind_data.h"
 #include "processor/operator/physical_operator.h"
@@ -9,27 +8,20 @@ namespace kuzu {
 namespace processor {
 
 struct InQueryCallSharedState {
-    common::offset_t offset = 0;
-    common::offset_t maxOffset;
-    std::mutex mtx;
-
-    explicit InQueryCallSharedState(common::offset_t maxOffset) : maxOffset{maxOffset} {}
-
-    std::pair<common::offset_t, common::offset_t> getNextBatch();
+    std::unique_ptr<function::SharedTableFuncState> sharedState;
 };
 
 struct InQueryCallInfo {
-    function::table_func_t tableFunc;
+    function::TableFunction* function;
     std::unique_ptr<function::TableFuncBindData> bindData;
     std::vector<DataPos> outputPoses;
 
-    InQueryCallInfo(function::table_func_t tableFunc,
+    InQueryCallInfo(function::TableFunction* function,
         std::unique_ptr<function::TableFuncBindData> bindData, std::vector<DataPos> outputPoses)
-        : tableFunc{std::move(tableFunc)}, bindData{std::move(bindData)}, outputPoses{std::move(
-                                                                              outputPoses)} {}
+        : function{function}, bindData{std::move(bindData)}, outputPoses{std::move(outputPoses)} {}
 
     std::unique_ptr<InQueryCallInfo> copy() {
-        return std::make_unique<InQueryCallInfo>(tableFunc, bindData->copy(), outputPoses);
+        return std::make_unique<InQueryCallInfo>(function, bindData->copy(), outputPoses);
     }
 };
 
@@ -44,6 +36,8 @@ public:
     inline bool isSource() const override { return true; }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
+
+    void initGlobalStateInternal(ExecutionContext* context) override;
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 

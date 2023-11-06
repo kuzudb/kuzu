@@ -1,14 +1,9 @@
 #pragma once
 
-#include <algorithm>
-#include <functional>
 #include <unordered_map>
-#include <unordered_set>
 
 #include "binder/query/query_graph.h"
 #include "planner/operator/logical_plan.h"
-
-using namespace kuzu::binder;
 
 namespace kuzu {
 namespace planner {
@@ -28,7 +23,7 @@ const uint64_t MAX_LEVEL_TO_PLAN_EXACTLY = 7;
 // Therefore, we try to be factorization aware when keeping optimal plans.
 class SubgraphPlans {
 public:
-    SubgraphPlans(const SubqueryGraph& subqueryGraph);
+    SubgraphPlans(const binder::SubqueryGraph& subqueryGraph);
 
     inline uint64_t getMaxCost() const { return maxCost; }
 
@@ -39,7 +34,7 @@ public:
 private:
     // To balance computation time, we encode plan by only considering the flat information of the
     // nodes that are involved in current subgraph.
-    std::bitset<MAX_NUM_QUERY_VARIABLES> encodePlan(const LogicalPlan& plan);
+    std::bitset<binder::MAX_NUM_QUERY_VARIABLES> encodePlan(const LogicalPlan& plan);
 
 private:
     constexpr static uint32_t MAX_NUM_PLANS = 10;
@@ -48,7 +43,7 @@ private:
     uint64_t maxCost = UINT64_MAX;
     binder::expression_vector nodeIDsToEncode;
     std::vector<std::unique_ptr<LogicalPlan>> plans;
-    std::unordered_map<std::bitset<MAX_NUM_QUERY_VARIABLES>, common::vector_idx_t>
+    std::unordered_map<std::bitset<binder::MAX_NUM_QUERY_VARIABLES>, common::vector_idx_t>
         encodedPlan2PlanIdx;
 };
 
@@ -56,17 +51,17 @@ private:
 // variables.
 class DPLevel {
 public:
-    inline bool contains(const SubqueryGraph& subqueryGraph) {
+    inline bool contains(const binder::SubqueryGraph& subqueryGraph) {
         return subgraph2Plans.contains(subqueryGraph);
     }
 
-    inline SubgraphPlans* getSubgraphPlans(const SubqueryGraph& subqueryGraph) {
+    inline SubgraphPlans* getSubgraphPlans(const binder::SubqueryGraph& subqueryGraph) {
         return subgraph2Plans.at(subqueryGraph).get();
     }
 
-    std::vector<SubqueryGraph> getSubqueryGraphs();
+    std::vector<binder::SubqueryGraph> getSubqueryGraphs();
 
-    void addPlan(const SubqueryGraph& subqueryGraph, std::unique_ptr<LogicalPlan> plan);
+    void addPlan(const binder::SubqueryGraph& subqueryGraph, std::unique_ptr<LogicalPlan> plan);
 
     inline void clear() { subgraph2Plans.clear(); }
 
@@ -74,27 +69,28 @@ private:
     constexpr static uint32_t MAX_NUM_SUBGRAPH = 50;
 
 private:
-    subquery_graph_V_map_t<std::unique_ptr<SubgraphPlans>> subgraph2Plans;
+    binder::subquery_graph_V_map_t<std::unique_ptr<SubgraphPlans>> subgraph2Plans;
 };
 
 class SubPlansTable {
 public:
     void resize(uint32_t newSize);
 
-    uint64_t getMaxCost(const SubqueryGraph& subqueryGraph) const;
+    uint64_t getMaxCost(const binder::SubqueryGraph& subqueryGraph) const;
 
-    bool containSubgraphPlans(const SubqueryGraph& subqueryGraph) const;
+    bool containSubgraphPlans(const binder::SubqueryGraph& subqueryGraph) const;
 
-    std::vector<std::unique_ptr<LogicalPlan>>& getSubgraphPlans(const SubqueryGraph& subqueryGraph);
+    std::vector<std::unique_ptr<LogicalPlan>>& getSubgraphPlans(
+        const binder::SubqueryGraph& subqueryGraph);
 
-    std::vector<SubqueryGraph> getSubqueryGraphs(uint32_t level);
+    std::vector<binder::SubqueryGraph> getSubqueryGraphs(uint32_t level);
 
-    void addPlan(const SubqueryGraph& subqueryGraph, std::unique_ptr<LogicalPlan> plan);
+    void addPlan(const binder::SubqueryGraph& subqueryGraph, std::unique_ptr<LogicalPlan> plan);
 
     void clear();
 
 private:
-    DPLevel* getDPLevel(const SubqueryGraph& subqueryGraph) const {
+    DPLevel* getDPLevel(const binder::SubqueryGraph& subqueryGraph) const {
         return dpLevels[subqueryGraph.getTotalNumVariables()].get();
     }
 

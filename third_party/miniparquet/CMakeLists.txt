@@ -21,8 +21,6 @@ include_directories(src/parquet
         src/snappy
         src/thrift)
 
-add_compile_definitions(HAVE_STDINT_H)
-
 add_library(miniparquet STATIC
         src/parquet/parquet_constants.cpp
         src/parquet/parquet_types.cpp
@@ -32,6 +30,7 @@ add_library(miniparquet STATIC
         src/snappy/snappy.cc
         src/snappy/snappy-sinksource.cc)
 
+target_compile_definitions(miniparquet PUBLIC HAVE_STDINT_H)
 target_include_directories(
         miniparquet
         PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)

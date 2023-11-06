@@ -4,6 +4,7 @@
 #include "common/exception/not_implemented.h"
 #include "common/exception/transaction_manager.h"
 #include "main/database.h"
+#include "transaction/transaction_manager.h"
 
 using namespace kuzu::common;
 

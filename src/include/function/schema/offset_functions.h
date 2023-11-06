@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/type_utils.h"
+#include "common/types/internal_id_t.h"
 
 namespace kuzu {
 namespace function {

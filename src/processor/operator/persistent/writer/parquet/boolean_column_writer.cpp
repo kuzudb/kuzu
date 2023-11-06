@@ -1,9 +1,11 @@
 #include "processor/operator/persistent/writer/parquet/boolean_column_writer.h"
 
+#include "common/serializer/serializer.h"
+
 namespace kuzu {
 namespace processor {
 
-void BooleanColumnWriter::writeVector(BufferedSerializer& temp_writer,
+void BooleanColumnWriter::writeVector(common::Serializer& temp_writer,
     ColumnWriterStatistics* writerStatistics, ColumnWriterPageState* writerPageState,
     common::ValueVector* vector, uint64_t chunkStart, uint64_t chunkEnd) {
     auto stats = reinterpret_cast<BooleanStatisticsState*>(writerStatistics);
@@ -30,7 +32,7 @@ void BooleanColumnWriter::writeVector(BufferedSerializer& temp_writer,
 }
 
 void BooleanColumnWriter::flushPageState(
-    BufferedSerializer& temp_writer, ColumnWriterPageState* writerPageState) {
+    common::Serializer& temp_writer, ColumnWriterPageState* writerPageState) {
     auto state = reinterpret_cast<BooleanWriterPageState*>(writerPageState);
     if (state->bytePos > 0) {
         temp_writer.write<uint8_t>(state->byte);

@@ -6,64 +6,62 @@
 -CASE FunctionCast
 
 -LOG CastFromINT8
--STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN to_int16(e.level), to_int32(e.level), to_int64(e.level), to_float(e.level), to_double(e.level)
+-STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN to_int16(e.level), to_int32(e.level), to_int64(e.level), to_int128(e.level), to_float(e.level), to_double(e.level)
 ---- 1
-5|5|5|5.000000|5.000000
+5|5|5|5|5.000000|5.000000
 
 
 -LOG CastFromINT16
--STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN to_int8(e.length), to_int32(e.length), to_int64(e.length), to_float(e.length), to_double(e.length)
+-STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN to_int8(e.length), to_int32(e.length), to_int64(e.length), to_int128(e.length), to_float(e.length), to_double(e.length)
 ---- 1
-5|5|5|5.000000|5.000000
+5|5|5|5|5.000000|5.000000
 
 -LOG CastFromINT32
--STATEMENT MATCH (m:movies) WHERE m.name='Roma' RETURN to_int16(m.length), to_int64(m.length), to_float(m.length), to_double(m.length)
+-STATEMENT MATCH (m:movies) WHERE m.name='Roma' RETURN to_int16(m.length), to_int64(m.length), to_int128(m.length), to_float(m.length), to_double(m.length)
 ---- 1
-298|298|298.000000|298.000000
+298|298|298|298.000000|298.000000
 
 -LOG CastFromINT64
--STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN to_int8(p.gender), to_int16(p.gender), to_int32(p.gender), to_float(p.gender), to_double(p.gender)
+-STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN to_int8(p.gender), to_int16(p.gender), to_int32(p.gender), to_int128(p.gender), to_float(p.gender), to_double(p.gender)
 ---- 1
-1|1|1|1.000000|1.000000
+1|1|1|1|1.000000|1.000000
 
 -LOG CastFromUINT8
--STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN to_int16(e.ulevel), to_int32(e.ulevel), to_int64(e.ulevel), to_float(e.ulevel), to_double(e.ulevel)
+-STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN to_int16(e.ulevel), to_int32(e.ulevel), to_int64(e.ulevel), to_int128(e.ulevel), to_float(e.ulevel), to_double(e.ulevel)
 ---- 1
-250|250|250|250.000000|250.000000
+250|250|250|250|250.000000|250.000000
 
 -LOG CastFromUINT16
--STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=2 RETURN to_int8(e.ulength), to_int32(e.ulength), to_int64(e.ulength), to_float(e.ulength), to_double(e.ulength)
+-STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=2 RETURN to_int8(e.ulength), to_int32(e.ulength), to_int64(e.ulength), to_int128(e.ulength), to_float(e.ulength), to_double(e.ulength)
 ---- 1
-90|90|90|90.000000|90.000000
+90|90|90|90|90.000000|90.000000
 
 -LOG CastFromUINT32
--STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=2 RETURN to_int8(e.temprature), to_int16(e.temprature), to_int32(e.temprature), to_float(e.temprature), to_double(e.temprature)
+-STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=2 RETURN to_int8(e.temprature), to_int16(e.temprature), to_int32(e.temprature), to_int128(e.temprature), to_float(e.temprature), to_double(e.temprature)
 ---- 1
-1|1|1|1.000000|1.000000
+1|1|1|1|1.000000|1.000000
 
 -LOG CastFromFLOAT
--STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN to_int16(p.height), to_int32(p.height), to_int64(p.height), to_double(p.height)
+-STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN to_int16(p.height), to_int32(p.height), to_int64(p.height), to_int128(p.height), to_double(p.height)
 ---- 1
-2|2|2|1.731000
+2|2|2|1|1.731000
 
 -LOG CastFromDOUBLE
--STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN to_int16(p.eyeSight), to_int32(p.eyeSight), to_int64(p.eyeSight), to_float(p.eyeSight)
+-STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN to_int16(p.eyeSight), to_int32(p.eyeSight), to_int64(p.eyeSight), to_int128(p.eyeSight), to_float(p.eyeSight)
 ---- 1
-5|5|5|5.000000
+5|5|5|5|5.000000
+
+-CASE CastDataTypeToString
+
+-LOG InsertToPerson
+-STATEMENT CREATE (a:person {ID: 12})
+---- ok
+-STATEMENT CREATE (o:organisation {ID: 15})
+---- ok
 
 -LOG CastBoolToString
 -STATEMENT MATCH (p:person) RETURN string(p.isStudent)
----- 8
-True
-True
-False
-False
-False
-True
-False
-False
--STATEMENT MATCH (p:person) RETURN to_string(p.isStudent)
----- 8
+---- 9
 True
 True
 False
@@ -73,9 +71,10 @@ True
 False
 False
 
+
 -LOG CastInt64ToString
 -STATEMENT MATCH (p:person) RETURN string(p.age)
----- 8
+---- 9
 35
 30
 45
@@ -84,6 +83,7 @@ False
 25
 40
 83
+
 
 -LOG CastInt32ToString
 -STATEMENT MATCH (m:movies) RETURN string(m.length)
@@ -108,7 +108,7 @@ False
 
 -LOG CastDoubleToString
 -STATEMENT MATCH (p:person) RETURN string(p.eyeSight)
----- 8
+---- 9
 5.000000
 5.100000
 5.000000
@@ -118,9 +118,10 @@ False
 4.900000
 4.900000
 
+
 -LOG CastFloatToString
 -STATEMENT MATCH (p:person) RETURN string(p.height)
----- 8
+---- 9
 1.731000
 0.990000
 1.000000
@@ -130,9 +131,10 @@ False
 1.600000
 1.323000
 
+
 -LOG CastDateToString
 -STATEMENT MATCH (p:person) RETURN string(p.birthdate)
----- 8
+---- 9
 1900-01-01
 1900-01-01
 1940-06-22
@@ -142,9 +144,10 @@ False
 1980-10-26
 1990-11-27
 
+
 -LOG CastTimestampToString
 -STATEMENT MATCH (p:person) RETURN string(p.registerTime)
----- 8
+---- 9
 2011-08-20 11:25:30
 2008-11-03 15:25:30.000526
 1911-08-20 02:32:21
@@ -154,9 +157,10 @@ False
 1976-12-23 04:41:42
 2023-02-21 13:25:30
 
+
 -LOG CastIntervalToString
 -STATEMENT MATCH (p:person) RETURN string(p.lastJobDuration)
----- 8
+---- 9
 3 years 2 days 13:02:00
 10 years 5 months 13:00:00.000024
 48:24:11
@@ -166,9 +170,10 @@ False
 10 years 5 months 13:00:00.000024
 3 years 2 days 13:02:00
 
+
 -LOG CastStringToString
 -STATEMENT MATCH (p:person) RETURN string(p.fName)
----- 8
+---- 9
 Alice
 Bob
 Carol
@@ -178,9 +183,10 @@ Farooq
 Greg
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 
+
 -LOG CastListOfIntsToString
 -STATEMENT MATCH (p:person) RETURN string(p.workedHours)
----- 8
+---- 9
 [10,5]
 [12,8]
 [4,5]
@@ -190,9 +196,10 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 [1]
 [10,11,12,3,4,5,6,7]
 
+
 -LOG CastListOfListOfIntsToString
 -STATEMENT MATCH (p:person) RETURN string(p.courseScoresPerTerm)
----- 8
+---- 9
 [[10,8],[6,7,8]]
 [[8,9],[9,10]]
 [[8,10]]
@@ -202,9 +209,28 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 [[10]]
 [[7],[10],[6,7]]
 
+
+-LOG CastFixedListToString
+-STATEMENT MATCH (p:person) where p.ID > 1 RETURN string(p.grades)
+---- 8
+[98,42,93,88]
+[91,75,21,95]
+[76,88,99,89]
+[96,59,65,88]
+[80,78,34,83]
+[43,83,67,43]
+[77,64,100,54]
+
+-LOG CastMapToString
+-STATEMENT MATCH (m:movies) RETURN string(m.audience)
+---- 3
+{audience1=33}
+{audience1=52, audience53=42}
+{}
+
 -LOG CastInternalIDToString
 -STATEMENT MATCH (p:person) RETURN string(id(p))
----- 8
+---- 9
 0:0
 0:1
 0:2
@@ -213,14 +239,25 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 0:5
 0:6
 0:7
+0:8
 
 -LOG CastStructToString
 -STATEMENT MATCH (o:organisation) RETURN string(o.state)
----- 3
-{138,['toronto', 'montr,eal'],{[96,56],1000}}
-{152,["vanco,uver north area"],{[15,78,671],432}}
-{558,['very long city name', 'new york'],{[22],99}}
+---- 4
+{revenue: 138, location: ['toronto', 'montr,eal'], stock: {price: [96,56], volume: 1000}}
+{revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}
+{revenue: 558, location: ['very long city name', 'new york'], stock: {price: [22], volume: 99}}
 
+
+-LOG CastUnionToString
+-STATEMENT MATCH (o:organisation) RETURN string(o.info)
+---- 4
+3.120000
+abcd
+2023-12-15
+
+
+-CASE DataTypeCasting
 -LOG CastInt8ToDouble
 -STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_double(e.level)
 ---- 3
@@ -342,29 +379,39 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 
 
 -LOG CastNumericalToInt8
--STATEMENT Return to_int8(to_int64(1)), to_int8(to_int32(2)), to_int8(to_int16(3)), to_int8(to_int8(4)), to_int8(to_uint8(5)), to_int8(to_uint16(6)), to_int8(to_uint32(7)), to_int8(to_uint64(8))
+-STATEMENT Return to_int8(to_int64(1)), to_int8(to_int32(2)), to_int8(to_int16(3)), to_int8(to_int8(4)), to_int8(to_uint8(5)), to_int8(to_uint16(6)), to_int8(to_uint32(7)), to_int8(to_uint64(8)), to_int8(to_int128(9))
 ---- 1
-1|2|3|4|5|6|7|8
+1|2|3|4|5|6|7|8|9
 
 -LOG CastNumericalToUInt8
--STATEMENT Return to_uint8(to_int64(1)), to_uint8(to_int32(2)), to_uint8(to_int16(3)), to_uint8(to_int8(4)), to_uint8(to_uint16(6)), to_uint8(to_uint32(7)), to_uint8(to_uint64(8))
+-STATEMENT Return to_uint8(to_int64(1)), to_uint8(to_int32(2)), to_uint8(to_int16(3)), to_uint8(to_int8(4)), to_uint8(to_uint16(6)), to_uint8(to_uint32(7)), to_uint8(to_uint64(8)), to_uint8(to_int128(9))
 ---- 1
-1|2|3|4|6|7|8
+1|2|3|4|6|7|8|9
 
 -LOG CastNumericalToUInt16
--STATEMENT Return to_uint16(to_int64(1)), to_uint16(to_int32(2)), to_uint16(to_int16(3)), to_uint16(to_int8(4)), to_uint16(to_uint8(5)), to_uint16(to_uint32(7)), to_uint16(to_uint64(8))
+-STATEMENT Return to_uint16(to_int64(1)), to_uint16(to_int32(2)), to_uint16(to_int16(3)), to_uint16(to_int8(4)), to_uint16(to_uint8(5)), to_uint16(to_uint32(7)), to_uint16(to_uint64(8)), to_uint16(to_int128(9))
 ---- 1
-1|2|3|4|5|7|8
+1|2|3|4|5|7|8|9
+
+-LOG CastUnsignedIntToFLoatDouble
+-STATEMENT Return to_float(to_uint64(1)), to_double(to_uint64(2)), to_float(to_uint32(3)), to_double(to_uint32(4)), to_float(to_uint16(5)), to_double(to_uint16(6)), to_float(to_uint8(7)), to_double(to_uint8(8))
+---- 1
+1.000000|2.000000|3.000000|4.000000|5.000000|6.000000|7.000000|8.000000
 
 -LOG CastNumericalToUInt32
--STATEMENT Return to_uint32(to_int64(1)), to_uint32(to_int32(2)), to_uint32(to_int16(3)), to_uint32(to_int8(4)), to_uint32(to_uint8(5)), to_uint32(to_uint16(6)), to_uint32(to_uint64(8))
+-STATEMENT Return to_uint32(to_int64(1)), to_uint32(to_int32(2)), to_uint32(to_int16(3)), to_uint32(to_int8(4)), to_uint32(to_uint8(5)), to_uint32(to_uint16(6)), to_uint32(to_uint64(8)), to_uint32(to_int128(9))
 ---- 1
-1|2|3|4|5|6|8
+1|2|3|4|5|6|8|9
 
 -LOG CastNumericalToUInt64
--STATEMENT Return to_uint64(to_int64(1)), to_uint64(to_int32(2)), to_uint64(to_int16(3)), to_uint64(to_int8(4)), to_uint64(to_uint8(5)), to_uint64(to_uint16(6)), to_uint64(to_uint32(7))
+-STATEMENT Return to_uint64(to_int64(1)), to_uint64(to_int32(2)), to_uint64(to_int16(3)), to_uint64(to_int8(4)), to_uint64(to_uint8(5)), to_uint64(to_uint16(6)), to_uint64(to_uint32(7)), to_uint64(to_int128(9))
 ---- 1
-1|2|3|4|5|6|7
+1|2|3|4|5|6|7|9
+
+-LOG CastNumericalToInt128
+-STATEMENT Return to_int128(to_int64(1)), to_int128(to_int32(2)), to_int128(to_int16(3)), to_int128(to_int8(4)), to_int128(to_uint8(5)), to_int128(to_uint16(6)), to_int128(to_uint32(7)), to_int128(to_uint64(8))
+---- 1
+1|2|3|4|5|6|7|8
 
 -LOG CastInt64ToDouble
 -STATEMENT MATCH (p:person) RETURN to_double(p.age)
@@ -391,14 +438,14 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 2.000000
 
 -LOG CastDoubleToUInt
--STATEMENT RETURN to_uint8(to_double(1)), to_uint16(to_double(2)), to_uint32(to_double(3)), to_uint64(to_double(4))
+-STATEMENT RETURN to_uint8(to_double(1)), to_uint16(to_double(2)), to_uint32(to_double(3)), to_uint64(to_double(4)), to_int128(to_double(5))
 ---- 1
-1|2|3|4
+1|2|3|4|5
 
 -LOG CastFloatToUInt
--STATEMENT RETURN to_uint8(to_float(1)), to_uint16(to_float(2)), to_uint32(to_float(3)), to_uint64(to_float(4))
+-STATEMENT RETURN to_uint8(to_float(1)), to_uint16(to_float(2)), to_uint32(to_float(3)), to_uint64(to_float(4)), to_int128(to_float(5))
 ---- 1
-1|2|3|4
+1|2|3|4|5
 
 -LOG CastFloatToDouble
 -STATEMENT MATCH (p:person) RETURN to_double(p.height)
@@ -458,6 +505,9 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 -STATEMENT RETURN TO_UINT8("255");
 ---- 1
 255
+-STATEMENT RETURN TO_INT128("1844674407370955161811111111");
+---- 1
+1844674407370955161811111111
 -STATEMENT RETURN TO_FLOAT("   3.294");
 ---- 1
 3.294000
@@ -467,6 +517,9 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 -STATEMENT RETURN TO_FLOAT("0.99");
 ---- 1
 0.990000
+-STATEMENT RETURN TO_FLOAT("42341.43299123");
+---- 1
+42341.433594
 -STATEMENT RETURN TO_DOUBLE("3.294   ");
 ---- 1
 3.294000
@@ -515,3 +568,23 @@ False
 4.500000
 4.900000
 4.900000
+
+-LOG CastNumericalToINT128Test
+-STATEMENT RETURN to_int8(to_int128(1)), to_int16(to_int128(2)), to_int32(to_int128(3)), to_int64(to_int128(4)), to_uint8(to_int128(5)), to_uint16(to_int128(6)), to_uint32(to_int128(7)), to_uint64(to_int128(8))
+---- 1
+1|2|3|4|5|6|7|8
+
+-LOG CastInt128ToOtherTypes
+-STATEMENT RETURN TO_FLOAT(170141183460469231731687303715884105727), TO_INT64(-4324324);
+---- 1
+170141183460469231731687303715884105728.000000|-4324324
+
+-LOG CastNegInt128ToFloatDouble
+-STATEMENT Return to_float(to_int128(-15)), to_double(to_int128(-1)), to_float(to_int128(15)), to_double(to_int128(1))
+---- 1
+-15.000000|-1.000000|15.000000|1.000000
+
+-LOG CastFloatDoubleToInt128
+-STATEMENT Return to_int128(to_float(-15)), to_int128(to_double(-1)), to_int128(to_float(15)), to_int128(to_double(1))
+---- 1
+-15|-1|15|1

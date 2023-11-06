@@ -21,6 +21,7 @@ class ValueVector {
     friend class StructVector;
     friend class StringVector;
     friend class ArrowColumnVector;
+    friend class RdfLiteralVector;
 
 public:
     explicit ValueVector(LogicalType dataType, storage::MemoryManager* memoryManager = nullptr);
@@ -123,6 +124,15 @@ public:
         InMemOverflowBuffer* rowOverflowBuffer);
 };
 
+struct BlobVector {
+    static void addBlob(ValueVector* vector, uint32_t pos, const char* data, uint32_t length) {
+        StringVector::addString(vector, pos, data, length);
+    }
+    static void addBlob(ValueVector* vector, uint32_t pos, uint8_t* data, uint64_t length) {
+        StringVector::addString(vector, pos, reinterpret_cast<const char*>(data), length);
+    }
+};
+
 class ListVector {
 public:
     static inline void setDataVector(
@@ -212,6 +222,11 @@ public:
         return StructVector::getFieldVector(vector, UnionType::TAG_FIELD_IDX).get();
     }
 
+    static inline ValueVector* getValVector(const ValueVector* vector, union_field_idx_t fieldIdx) {
+        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::UNION);
+        return StructVector::getFieldVector(vector, UnionType::getInternalFieldIdx(fieldIdx)).get();
+    }
+
     static inline void referenceVector(ValueVector* vector, union_field_idx_t fieldIdx,
         std::shared_ptr<ValueVector> vectorToReference) {
         StructVector::referenceVector(
@@ -225,18 +240,6 @@ public:
                 vector->state->selVector->selectedPositions[i], tag);
         }
     }
-};
-
-class ArrowColumnVector {
-public:
-    static inline std::shared_ptr<arrow::ChunkedArray> getArrowColumn(ValueVector* vector) {
-        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::ARROW_COLUMN);
-        return reinterpret_cast<ArrowColumnAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())->column;
-    }
-
-    static void setArrowColumn(ValueVector* vector, std::shared_ptr<arrow::ChunkedArray> column);
-
-    static void slice(ValueVector* vector, offset_t offset);
 };
 
 class MapVector {

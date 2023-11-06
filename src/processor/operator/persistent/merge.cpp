@@ -3,7 +3,7 @@
 namespace kuzu {
 namespace processor {
 
-void Merge::initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) {
+void Merge::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* context) {
     markVector = resultSet->getValueVector(markPos).get();
     for (auto& executor : nodeInsertExecutors) {
         executor->init(resultSet, context);

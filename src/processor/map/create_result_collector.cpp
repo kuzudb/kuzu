@@ -1,3 +1,4 @@
+#include "binder/expression/expression_util.h"
 #include "processor/operator/result_collector.h"
 #include "processor/plan_mapper.h"
 

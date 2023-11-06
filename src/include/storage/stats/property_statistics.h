@@ -1,9 +1,11 @@
 #pragma once
 
 #include "common/types/types.h"
-#include "transaction/transaction.h"
 
 namespace kuzu {
+namespace transaction {
+class Transaction;
+};
 namespace storage {
 
 class PropertyStatistics {
@@ -17,9 +19,8 @@ public:
     inline bool mayHaveNull() const { return mayHaveNullValue; }
     PropertyStatistics(PropertyStatistics& other) = default;
 
-    void serialize(common::FileInfo* fileInfo, uint64_t& offset);
-    static std::unique_ptr<PropertyStatistics> deserialize(
-        common::FileInfo* fileInfo, uint64_t& offset);
+    void serialize(common::Serializer& serializer);
+    static std::unique_ptr<PropertyStatistics> deserialize(common::Deserializer& deserializer);
 
     inline void setHasNull() { mayHaveNullValue = true; }
 
@@ -31,7 +32,7 @@ private:
 
 class TablesStatistics;
 
-// Accessor used by NodeColumn, so that it doesn't need to handle the TableStatistics directly
+// Accessor used by Column, so that it doesn't need to handle the TableStatistics directly
 class RWPropertyStats {
 public:
     RWPropertyStats(TablesStatistics* tablesStatistics, common::table_id_t tableID,

@@ -1,5 +1,6 @@
 from . import _kuzu
 from .types import Type
+from .access_mode import AccessMode
 
 
 class Database:
@@ -19,7 +20,8 @@ class Database:
 
     """
 
-    def __init__(self, database_path, buffer_pool_size=0, max_num_threads=0, compression=True, lazy_init=False):
+    def __init__(self, database_path, buffer_pool_size=0, max_num_threads=0, compression=True, lazy_init=False,
+                    access_mode=AccessMode.READ_WRITE):
         """
         Parameters
         ----------
@@ -38,6 +40,7 @@ class Database:
         self.buffer_pool_size = buffer_pool_size
         self.max_num_threads = max_num_threads
         self.compression = compression
+        self.access_mode = access_mode.value
         self._database = None
         if not lazy_init:
             self.init_database()
@@ -46,6 +49,8 @@ class Database:
         state = {
             "database_path": self.database_path,
             "buffer_pool_size": self.buffer_pool_size,
+            "compression": self.compression,
+            "access_mode": self.access_mode,
             "_database": None
         }
         return state
@@ -56,7 +61,7 @@ class Database:
         """
         if self._database is None:
             self._database = _kuzu.Database(self.database_path,
-                                            self.buffer_pool_size, self.max_num_threads, self.compression)
+                                            self.buffer_pool_size, self.max_num_threads, self.compression, self.access_mode)
 
     def resize_buffer_manager(self, new_size):
         """

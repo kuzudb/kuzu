@@ -1,13 +1,17 @@
 #include "binder/binder.h"
-#include "binder/expression/literal_expression.h"
 #include "binder/query/reading_clause/bound_in_query_call.h"
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
 #include "binder/query/reading_clause/bound_unwind_clause.h"
 #include "common/exception/binder.h"
+#include "common/string_format.h"
+#include "common/string_utils.h"
 #include "function/table_functions/bind_input.h"
+#include "parser/expression/parsed_function_expression.h"
+#include "parser/expression/parsed_literal_expression.h"
 #include "parser/query/reading_clause/in_query_call_clause.h"
 #include "parser/query/reading_clause/load_from.h"
+#include "parser/query/reading_clause/match_clause.h"
 #include "parser/query/reading_clause/unwind_clause.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 #include "processor/operator/persistent/reader/npy_reader.h"
@@ -97,14 +101,23 @@ std::unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause
 
 std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause& readingClause) {
     auto& call = reinterpret_cast<const InQueryCallClause&>(readingClause);
-    auto tableFunctionDefinition =
-        catalog.getBuiltInTableFunction()->mathTableFunction(call.getFuncName());
-    auto inputValues = std::vector<Value>{};
-    for (auto& parameter : call.getParameters()) {
-        auto boundExpr = expressionBinder.bindLiteralExpression(*parameter);
-        inputValues.push_back(*reinterpret_cast<LiteralExpression*>(boundExpr.get())->getValue());
+    auto funcExpr = reinterpret_cast<ParsedFunctionExpression*>(call.getFunctionExpression());
+    std::vector<std::unique_ptr<Value>> inputValues;
+    std::vector<LogicalType*> inputTypes;
+    for (auto i = 0u; i < funcExpr->getNumChildren(); i++) {
+        auto parameter = funcExpr->getChild(i);
+        if (parameter->getExpressionType() != ExpressionType::LITERAL) {
+            throw BinderException{"Parameters in table function must be a literal expression."};
+        }
+        auto expressionValue = reinterpret_cast<ParsedLiteralExpression*>(parameter)->getValue();
+        inputTypes.push_back(expressionValue->getDataType());
+        inputValues.push_back(expressionValue->copy());
     }
-    auto bindData = tableFunctionDefinition->bindFunc(clientContext,
+    auto funcNameToMatch = funcExpr->getFunctionName();
+    StringUtils::toUpper(funcNameToMatch);
+    auto tableFunction = reinterpret_cast<function::TableFunction*>(
+        catalog.getBuiltInFunctions()->matchScalarFunction(std::move(funcNameToMatch), inputTypes));
+    auto bindData = tableFunction->bindFunc(clientContext,
         function::TableFuncBindInput{std::move(inputValues)}, catalog.getReadOnlyVersion());
     expression_vector outputExpressions;
     for (auto i = 0u; i < bindData->returnColumnNames.size(); i++) {
@@ -112,7 +125,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
             createVariable(bindData->returnColumnNames[i], bindData->returnTypes[i]));
     }
     return std::make_unique<BoundInQueryCall>(
-        tableFunctionDefinition->tableFunc, std::move(bindData), std::move(outputExpressions));
+        std::move(tableFunction), std::move(bindData), std::move(outputExpressions));
 }
 
 static std::unique_ptr<LogicalType> bindFixedListType(
@@ -189,10 +202,9 @@ void Binder::validateColumnTypes(const std::vector<std::string>& columnNames,
     assert(expectedColumnTypes.size() == detectedColumnTypes.size());
     for (auto i = 0; i < expectedColumnTypes.size(); ++i) {
         if (*expectedColumnTypes[i] != *detectedColumnTypes[i]) {
-            throw BinderException(
-                StringUtils::string_format("Column `{}` type mismatch. Expected {} but got {}.",
-                    columnNames[i], LogicalTypeUtils::dataTypeToString(*expectedColumnTypes[i]),
-                    LogicalTypeUtils::dataTypeToString(*detectedColumnTypes[i])));
+            throw BinderException(stringFormat("Column `{}` type mismatch. Expected {} but got {}.",
+                columnNames[i], LogicalTypeUtils::dataTypeToString(*expectedColumnTypes[i]),
+                LogicalTypeUtils::dataTypeToString(*detectedColumnTypes[i])));
         }
     }
 }
@@ -202,7 +214,7 @@ void Binder::validateNumColumns(uint32_t expectedNumber, uint32_t detectedNumber
         return; // Empty CSV. Continue processing.
     }
     if (expectedNumber != detectedNumber) {
-        throw BinderException(StringUtils::string_format(
+        throw BinderException(stringFormat(
             "Number of columns mismatch. Expected {} but got {}.", expectedNumber, detectedNumber));
     }
 }
@@ -267,7 +279,7 @@ void Binder::sniffFile(const common::ReaderConfig& readerConfig, uint32_t fileId
         columnTypes.push_back(columnType->copy());
     } break;
     default:
-        throw BinderException(StringUtils::string_format(
+        throw BinderException(stringFormat(
             "Cannot sniff header of file type {}", FileTypeUtils::toString(readerConfig.fileType)));
     }
 }

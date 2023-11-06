@@ -3,7 +3,7 @@
 namespace kuzu {
 namespace processor {
 
-void CrossProduct::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+void CrossProduct::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {
     for (auto& pos : info->outVecPos) {
         vectorsToScan.push_back(resultSet->getValueVector(pos).get());
     }

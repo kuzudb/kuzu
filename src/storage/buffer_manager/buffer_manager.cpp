@@ -1,13 +1,17 @@
 #include "storage/buffer_manager/buffer_manager.h"
 
+#include <cstring>
+
 #include "common/constants.h"
 #include "common/exception/buffer_manager.h"
-#include "spdlog/spdlog.h"
+#include "common/exception/not_implemented.h"
 
 #if defined(_WIN32)
 #include <exception>
 
 #include <eh.h>
+#include <windows.h>
+#include <winnt.h>
 #endif
 
 using namespace kuzu::common;
@@ -53,7 +57,7 @@ void EvictionQueue::removeCandidatesForFile(kuzu::storage::BMFileHandle& fileHan
     std::unique_lock xLck{mtx};
     EvictionCandidate candidate;
     uint64_t loopedCandidateIdx = 0;
-    auto numCandidatesInQueue = queue->size_approx();
+    auto numCandidatesInQueue = queue->size();
     while (loopedCandidateIdx < numCandidatesInQueue && queue->try_dequeue(candidate)) {
         if (candidate.fileHandle != &fileHandle) {
             queue->enqueue(candidate);
@@ -63,9 +67,7 @@ void EvictionQueue::removeCandidatesForFile(kuzu::storage::BMFileHandle& fileHan
 }
 
 BufferManager::BufferManager(uint64_t bufferPoolSize)
-    : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER)}, usedMemory{0},
-      bufferPoolSize{bufferPoolSize}, numEvictionQueueInsertions{0} {
-    logger->info("Done initializing buffer manager.");
+    : usedMemory{0}, bufferPoolSize{bufferPoolSize}, numEvictionQueueInsertions{0} {
     if (bufferPoolSize < BufferPoolConstants::PAGE_4KB_SIZE) {
         throw BufferManagerException("The given buffer pool size should be at least 4KB.");
     }
@@ -73,8 +75,7 @@ BufferManager::BufferManager(uint64_t bufferPoolSize)
     vmRegions[0] = std::make_unique<VMRegion>(
         PageSizeClass::PAGE_4KB, BufferPoolConstants::DEFAULT_VM_REGION_MAX_SIZE);
     vmRegions[1] = std::make_unique<VMRegion>(PageSizeClass::PAGE_256KB, bufferPoolSize);
-    evictionQueue =
-        std::make_unique<EvictionQueue>(bufferPoolSize / BufferPoolConstants::PAGE_4KB_SIZE);
+    evictionQueue = std::make_unique<EvictionQueue>();
 }
 
 // Important Note: Pin returns a raw pointer to the frame. This is potentially very dangerous and
@@ -109,6 +110,11 @@ uint8_t* BufferManager::pin(
         } break;
         case PageState::LOCKED: {
             continue;
+        }
+        default: {
+            // LCOV_EXCL_START
+            throw NotImplementedException("Invalid PageState in BufferManager::pin!");
+            // LCOV_EXCL_END
         }
         }
     }
@@ -163,6 +169,9 @@ inline bool try_func(const std::function<void(uint8_t*)>& func, uint8_t* frame,
             throw EXCEPTION_ACCESS_VIOLATION;
         }
     }
+#else
+    (void)pageSizeClass;
+    (void)vmRegions;
 #endif
     return true;
 }

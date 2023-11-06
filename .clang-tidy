@@ -1,4 +1,5 @@
 # Bugprone exception escape is super unhelpful.
+# NewDeleteLeaks has many false positives w.r.t smart pointers.
 Checks:
   -*,
 
@@ -10,7 +11,12 @@ Checks:
   -bugprone-narrowing-conversions,
   -bugprone-signed-char-misuse,
 
-  clang-analyzer-deadcode.DeadStores,
+  clang-analyzer-*,
+  -clang-analyzer-cplusplus.NewDeleteLeaks,
+
   concurrency-*,
+
+  misc-unused-parameters,
+
 HeaderFilterRegex: src/include|tools/benchmark/include|tools/nodejs_api/src_cpp/include|tools/python_api/src_cpp/include|tools/rust_api/include|tools/shell/include
 WarningsAsErrors: "*"

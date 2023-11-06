@@ -1,9 +1,9 @@
 #include "common/types/value/node.h"
 
 #include "common/constants.h"
+#include "common/string_format.h"
 #include "common/types/types.h"
 #include "common/types/value/value.h"
-#include "spdlog/fmt/fmt.h"
 
 namespace kuzu {
 namespace common {
@@ -79,7 +79,7 @@ std::string NodeVal::toString(const Value* val) {
 void NodeVal::throwIfNotNode(const Value* val) {
     if (val->dataType->getLogicalTypeID() != LogicalTypeID::NODE) {
         auto actualType = LogicalTypeUtils::dataTypeToString(val->dataType->getLogicalTypeID());
-        throw Exception(fmt::format("Expected NODE type, but got {} type", actualType));
+        throw Exception(stringFormat("Expected NODE type, but got {} type", actualType));
     }
 }
 

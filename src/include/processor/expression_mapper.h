@@ -2,8 +2,6 @@
 
 #include "binder/expression/expression.h"
 #include "expression_evaluator/expression_evaluator.h"
-#include "processor/execution_context.h"
-#include "processor/result/result_set.h"
 #include "processor/result/result_set_descriptor.h"
 
 namespace kuzu {

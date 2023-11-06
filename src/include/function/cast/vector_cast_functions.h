@@ -1,7 +1,8 @@
 #pragma once
 
-#include "cast_functions.h"
-#include "function/vector_functions.h"
+#include "common/exception/not_implemented.h"
+#include "function/cast/functions/cast_string_to_functions.h"
+#include "function/scalar_function.h"
 
 namespace kuzu {
 namespace function {
@@ -11,8 +12,7 @@ namespace function {
  *  Explicit casts are performed from user function calls, e.g. date(), string().
  *  Implicit casts are added internally.
  */
-class VectorCastFunction : public VectorFunction {
-public:
+struct CastFunction {
     // This function is only used by expression binder when implicit cast is needed.
     // The expression binder should consider reusing the existing matchFunction() API.
     static bool hasImplicitCast(
@@ -21,23 +21,14 @@ public:
     static void bindImplicitCastFunc(common::LogicalTypeID sourceTypeID,
         common::LogicalTypeID targetTypeID, scalar_exec_func& func);
 
-protected:
     template<typename TARGET_TYPE, typename FUNC>
-    inline static std::unique_ptr<VectorFunctionDefinition> bindVectorFunction(
+    inline static std::unique_ptr<ScalarFunction> bindNumericCastFunction(
         const std::string& funcName, common::LogicalTypeID sourceTypeID,
         common::LogicalTypeID targetTypeID) {
         scalar_exec_func func;
-        getUnaryExecFunc<TARGET_TYPE, FUNC>(sourceTypeID, func);
-        return std::make_unique<VectorFunctionDefinition>(
+        bindImplicitNumericalCastFunc<TARGET_TYPE, FUNC>(sourceTypeID, func);
+        return std::make_unique<ScalarFunction>(
             funcName, std::vector<common::LogicalTypeID>{sourceTypeID}, targetTypeID, func);
-    }
-
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void UnaryCastExecFunction(
-        const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result) {
-        assert(params.size() == 1);
-        UnaryFunctionExecutor::executeCast<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
     }
 
     template<typename DST_TYPE, typename OP>
@@ -45,44 +36,48 @@ protected:
         common::LogicalTypeID srcTypeID, scalar_exec_func& func) {
         switch (srcTypeID) {
         case common::LogicalTypeID::INT8: {
-            func = UnaryExecFunction<int8_t, DST_TYPE, OP>;
+            func = ScalarFunction::UnaryExecFunction<int8_t, DST_TYPE, OP>;
             return;
         }
         case common::LogicalTypeID::INT16: {
-            func = UnaryExecFunction<int16_t, DST_TYPE, OP>;
+            func = ScalarFunction::UnaryExecFunction<int16_t, DST_TYPE, OP>;
             return;
         }
         case common::LogicalTypeID::INT32: {
-            func = UnaryExecFunction<int32_t, DST_TYPE, OP>;
+            func = ScalarFunction::UnaryExecFunction<int32_t, DST_TYPE, OP>;
             return;
         }
         case common::LogicalTypeID::SERIAL:
         case common::LogicalTypeID::INT64: {
-            func = UnaryExecFunction<int64_t, DST_TYPE, OP>;
+            func = ScalarFunction::UnaryExecFunction<int64_t, DST_TYPE, OP>;
             return;
         }
         case common::LogicalTypeID::UINT8: {
-            func = UnaryExecFunction<uint8_t, DST_TYPE, OP>;
+            func = ScalarFunction::UnaryExecFunction<uint8_t, DST_TYPE, OP>;
             return;
         }
         case common::LogicalTypeID::UINT16: {
-            func = UnaryExecFunction<uint16_t, DST_TYPE, OP>;
+            func = ScalarFunction::UnaryExecFunction<uint16_t, DST_TYPE, OP>;
             return;
         }
         case common::LogicalTypeID::UINT32: {
-            func = UnaryExecFunction<uint32_t, DST_TYPE, OP>;
+            func = ScalarFunction::UnaryExecFunction<uint32_t, DST_TYPE, OP>;
             return;
         }
         case common::LogicalTypeID::UINT64: {
-            func = UnaryExecFunction<uint64_t, DST_TYPE, OP>;
+            func = ScalarFunction::UnaryExecFunction<uint64_t, DST_TYPE, OP>;
+            return;
+        }
+        case common::LogicalTypeID::INT128: {
+            func = ScalarFunction::UnaryExecFunction<common::int128_t, DST_TYPE, OP>;
             return;
         }
         case common::LogicalTypeID::FLOAT: {
-            func = UnaryExecFunction<float_t, DST_TYPE, OP>;
+            func = ScalarFunction::UnaryExecFunction<float_t, DST_TYPE, OP>;
             return;
         }
         case common::LogicalTypeID::DOUBLE: {
-            func = UnaryExecFunction<double_t, DST_TYPE, OP>;
+            func = ScalarFunction::UnaryExecFunction<double_t, DST_TYPE, OP>;
             return;
         }
         default:
@@ -92,85 +87,88 @@ protected:
         }
     }
 
-    template<typename DST_TYPE, typename OP>
-    static void getUnaryExecFunc(common::LogicalTypeID srcTypeID, scalar_exec_func& func) {
-        switch (srcTypeID) {
-        case common::LogicalTypeID::STRING: {
-            func = UnaryExecFunction<common::ku_string_t, DST_TYPE, OP>;
-            return;
-        }
-        default:
-            bindImplicitNumericalCastFunc<DST_TYPE, OP>(srcTypeID, func);
-        }
+    template<typename TARGET_TYPE>
+    inline static std::unique_ptr<ScalarFunction> bindCastStringToFunction(
+        const std::string& funcName, common::LogicalTypeID targetTypeID) {
+        return std::make_unique<ScalarFunction>(funcName,
+            std::vector<common::LogicalTypeID>{common::LogicalTypeID::STRING}, targetTypeID,
+            ScalarFunction::UnaryStringExecFunction<common::ku_string_t, TARGET_TYPE,
+                CastStringToTypes>);
     }
 };
 
-struct CastToDateVectorFunction : public VectorCastFunction {
-    static vector_function_definitions getDefinitions();
+struct CastToDateFunction {
+    static function_set getFunctionSet();
 };
 
-struct CastToTimestampVectorFunction : public VectorCastFunction {
-    static vector_function_definitions getDefinitions();
+struct CastToTimestampFunction {
+    static function_set getFunctionSet();
 };
 
-struct CastToIntervalVectorFunction : public VectorCastFunction {
-    static vector_function_definitions getDefinitions();
+struct CastToIntervalFunction {
+    static function_set getFunctionSet();
 };
 
-struct CastToStringVectorFunction : public VectorCastFunction {
-    static vector_function_definitions getDefinitions();
+struct CastToStringFunction {
+    static void getUnaryCastToStringExecFunction(
+        common::LogicalTypeID typeID, scalar_exec_func& func);
+    static function_set getFunctionSet();
 };
 
-struct CastToBlobVectorFunction : public VectorCastFunction {
-    static vector_function_definitions getDefinitions();
+struct CastToBlobFunction {
+    static function_set getFunctionSet();
 };
 
-struct CastToBoolVectorFunction : public VectorCastFunction {
-    static vector_function_definitions getDefinitions();
+struct CastToBoolFunction {
+    static function_set getFunctionSet();
 };
 
-struct CastToDoubleVectorFunction : public VectorCastFunction {
-    static vector_function_definitions getDefinitions();
+struct CastToDoubleFunction {
+    static function_set getFunctionSet();
 };
 
-struct CastToFloatVectorFunction : public VectorCastFunction {
-    static vector_function_definitions getDefinitions();
+struct CastToFloatFunction {
+    static function_set getFunctionSet();
 };
 
-struct CastToSerialVectorFunction : public VectorCastFunction {
-    static vector_function_definitions getDefinitions();
+struct CastToSerialFunction {
+    static function_set getFunctionSet();
 };
 
-struct CastToInt64VectorFunction : public VectorCastFunction {
-    static vector_function_definitions getDefinitions();
+struct CastToInt128Function {
+    static function_set getFunctionSet();
 };
 
-struct CastToInt32VectorFunction : public VectorCastFunction {
-    static vector_function_definitions getDefinitions();
+struct CastToInt64Function {
+    static function_set getFunctionSet();
 };
 
-struct CastToInt16VectorFunction : public VectorCastFunction {
-    static vector_function_definitions getDefinitions();
+struct CastToInt32Function {
+    static function_set getFunctionSet();
 };
 
-struct CastToInt8VectorFunction : public VectorCastFunction {
-    static vector_function_definitions getDefinitions();
+struct CastToInt16Function {
+    static function_set getFunctionSet();
 };
 
-struct CastToUInt64VectorFunction : public VectorCastFunction {
-    static vector_function_definitions getDefinitions();
+struct CastToInt8Function {
+    static function_set getFunctionSet();
 };
 
-struct CastToUInt32VectorFunction : public VectorCastFunction {
-    static vector_function_definitions getDefinitions();
+struct CastToUInt64Function {
+    static function_set getFunctionSet();
 };
 
-struct CastToUInt16VectorFunction : public VectorCastFunction {
-    static vector_function_definitions getDefinitions();
+struct CastToUInt32Function {
+    static function_set getFunctionSet();
 };
 
-struct CastToUInt8VectorFunction : public VectorCastFunction {
-    static vector_function_definitions getDefinitions();
+struct CastToUInt16Function {
+    static function_set getFunctionSet();
+};
+
+struct CastToUInt8Function {
+    static function_set getFunctionSet();
 };
 
 } // namespace function

@@ -1,7 +1,6 @@
 #include "processor/plan_mapper.h"
 
-#include <set>
-
+#include "common/exception/not_implemented.h"
 #include "processor/operator/profile.h"
 
 using namespace kuzu::common;
@@ -21,8 +20,8 @@ static void setPhysicalPlanIfProfile(
 std::unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(
     LogicalPlan* logicalPlan, const binder::expression_vector& expressionsToCollect) {
     auto lastOperator = mapOperator(logicalPlan->getLastOperator().get());
-    lastOperator = appendResultCollector(
-        std::move(lastOperator), expressionsToCollect, logicalPlan->getSchema());
+    lastOperator = createResultCollector(AccumulateType::REGULAR, expressionsToCollect,
+        logicalPlan->getSchema(), std::move(lastOperator));
     auto physicalPlan = make_unique<PhysicalPlan>(std::move(lastOperator));
     setPhysicalPlanIfProfile(logicalPlan, physicalPlan.get());
     return physicalPlan;
@@ -45,7 +44,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
         physicalOperator = mapFillTableID(logicalOperator);
     } break;
     case LogicalOperatorType::INDEX_SCAN_NODE: {
-        physicalOperator = mapIndexScanNode(logicalOperator);
+        physicalOperator = mapIndexScan(logicalOperator);
     } break;
     case LogicalOperatorType::UNWIND: {
         physicalOperator = mapUnwind(logicalOperator);
@@ -137,6 +136,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     case LogicalOperatorType::COPY_FROM: {
         physicalOperator = mapCopyFrom(logicalOperator);
     } break;
+    case LogicalOperatorType::PARTITIONER: {
+        physicalOperator = mapPartitioner(logicalOperator);
+    } break;
     case LogicalOperatorType::COPY_TO: {
         physicalOperator = mapCopyTo(logicalOperator);
     } break;
@@ -183,11 +185,13 @@ std::vector<DataPos> PlanMapper::getExpressionsDataPos(
     return result;
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::appendResultCollector(
-    std::unique_ptr<PhysicalOperator> lastOperator,
-    const binder::expression_vector& expressionsToCollect, planner::Schema* schema) {
-    return createResultCollector(
-        AccumulateType::REGULAR, expressionsToCollect, schema, std::move(lastOperator));
+std::shared_ptr<FactorizedTable> PlanMapper::getSingleStringColumnFTable() {
+    auto ftTableSchema = std::make_unique<FactorizedTableSchema>();
+    ftTableSchema->appendColumn(
+        std::make_unique<ColumnSchema>(false /* flat */, 0 /* dataChunkPos */,
+            LogicalTypeUtils::getRowLayoutSize(LogicalType{LogicalTypeID::STRING})));
+    auto fTable = std::make_shared<FactorizedTable>(memoryManager, std::move(ftTableSchema));
+    return fTable;
 }
 
 } // namespace processor
