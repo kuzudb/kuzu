@@ -63,7 +63,7 @@ void QueryPlanner::appendMarkJoin(const binder::expression_vector& joinNodeIDs,
 void QueryPlanner::appendIntersect(const std::shared_ptr<binder::Expression>& intersectNodeID,
     binder::expression_vector& boundNodeIDs, LogicalPlan& probePlan,
     std::vector<std::unique_ptr<LogicalPlan>>& buildPlans) {
-    assert(boundNodeIDs.size() == buildPlans.size());
+    KU_ASSERT(boundNodeIDs.size() == buildPlans.size());
     std::vector<std::shared_ptr<LogicalOperator>> buildChildren;
     binder::expression_vector keyNodeIDs;
     for (auto i = 0u; i < buildPlans.size(); ++i) {

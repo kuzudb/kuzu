@@ -15,7 +15,7 @@ public:
     ResultSet(ResultSetDescriptor* resultSetDescriptor, storage::MemoryManager* memoryManager);
 
     inline void insert(uint32_t pos, std::shared_ptr<common::DataChunk> dataChunk) {
-        assert(dataChunks.size() > pos);
+        KU_ASSERT(dataChunks.size() > pos);
         dataChunks[pos] = std::move(dataChunk);
     }
 

@@ -23,7 +23,7 @@ void LogicalExtend::computeFactorizedSchema() {
     if (hasAtMostOneNbr) {
         nbrGroupPos = boundGroupPos;
     } else {
-        assert(schema->getGroup(boundGroupPos)->isFlat());
+        KU_ASSERT(schema->getGroup(boundGroupPos)->isFlat());
         nbrGroupPos = schema->createGroup();
     }
     schema->insertToGroupAndScope(nbrNode->getInternalID(), nbrGroupPos);

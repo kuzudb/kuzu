@@ -18,7 +18,7 @@ bool RelTableCollectionScanner::scan(ValueVector* inVector,
     const std::vector<ValueVector*>& outputVectors, Transaction* transaction) {
     while (true) {
         if (readStates[currentTableIdx]->hasMoreToRead()) {
-            assert(readStates[currentTableIdx]->dataFormat == ColumnDataFormat::CSR);
+            KU_ASSERT(readStates[currentTableIdx]->dataFormat == ColumnDataFormat::CSR);
             auto scanInfo = scanInfos[currentTableIdx].get();
             scanInfo->table->read(transaction, *readStates[currentTableIdx], scanInfo->direction,
                 inVector, scanInfo->columnIDs, outputVectors);

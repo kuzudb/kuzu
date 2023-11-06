@@ -35,7 +35,7 @@ public:
         return propertyIDPerTable.contains(tableID);
     }
     inline common::property_id_t getPropertyID(common::table_id_t tableID) const {
-        assert(propertyIDPerTable.contains(tableID));
+        KU_ASSERT(propertyIDPerTable.contains(tableID));
         return propertyIDPerTable.at(tableID);
     }
 

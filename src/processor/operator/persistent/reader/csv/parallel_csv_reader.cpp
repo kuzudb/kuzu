@@ -43,7 +43,7 @@ uint64_t ParallelCSVReader::parseBlock(
 }
 
 uint64_t ParallelCSVReader::continueBlock(common::DataChunk& resultChunk) {
-    assert(hasMoreToRead());
+    KU_ASSERT(hasMoreToRead());
     ParallelParsingDriver driver(resultChunk, this);
     return parseCSV(driver);
 }

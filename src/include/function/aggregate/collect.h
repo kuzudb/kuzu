@@ -34,7 +34,7 @@ struct CollectFunction {
 
     static void updateAll(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
         storage::MemoryManager* memoryManager) {
-        assert(!input->state->isFlat());
+        KU_ASSERT(!input->state->isFlat());
         auto state = reinterpret_cast<CollectState*>(state_);
         if (input->hasNoNullsGuarantee()) {
             for (auto i = 0u; i < input->state->selVector->selectedSize; ++i) {
@@ -99,7 +99,7 @@ struct CollectFunction {
 
     static std::unique_ptr<FunctionBindData> bindFunc(
         const binder::expression_vector& arguments, Function* definition) {
-        assert(arguments.size() == 1);
+        KU_ASSERT(arguments.size() == 1);
         auto aggFuncDefinition = reinterpret_cast<AggregateFunction*>(definition);
         aggFuncDefinition->parameterTypeIDs[0] = arguments[0]->dataType.getLogicalTypeID();
         auto varListTypeInfo = std::make_unique<common::VarListTypeInfo>(

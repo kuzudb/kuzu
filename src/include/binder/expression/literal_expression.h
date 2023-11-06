@@ -14,7 +14,7 @@ public:
     inline bool isNull() const { return value->isNull(); }
 
     inline void setDataType(const common::LogicalType& targetType) {
-        assert(dataType.getLogicalTypeID() == common::LogicalTypeID::ANY && isNull());
+        KU_ASSERT(dataType.getLogicalTypeID() == common::LogicalTypeID::ANY && isNull());
         dataType = targetType;
         value->setDataType(targetType);
     }

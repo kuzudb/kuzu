@@ -1,5 +1,6 @@
 #include "parser/transformer.h"
 
+#include "common/assert.h"
 #include "common/exception/not_implemented.h"
 #include "common/string_utils.h"
 #include "parser/explain_statement.h"
@@ -64,7 +65,7 @@ std::string Transformer::transformSymbolicName(CypherParser::OC_SymbolicNameCont
         // it such that we don't store the symbol with escape character.
         return escapedSymbolName.substr(1, escapedSymbolName.size() - 2);
     } else {
-        assert(ctx.HexLetter() || ctx.UnescapedSymbolicName() || ctx.kU_NonReservedKeywords());
+        KU_ASSERT(ctx.HexLetter() || ctx.UnescapedSymbolicName() || ctx.kU_NonReservedKeywords());
         return ctx.getText();
     }
 }

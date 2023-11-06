@@ -22,7 +22,7 @@ function_set CurrentSettingFunction::getFunctionSet() {
 
 CallFuncMorsel CallFuncSharedState::getMorsel() {
     std::lock_guard lck{mtx};
-    assert(curOffset <= maxOffset);
+    KU_ASSERT(curOffset <= maxOffset);
     if (curOffset == maxOffset) {
         return CallFuncMorsel::createInvalidMorsel();
     } else {
@@ -206,7 +206,7 @@ void ShowConnectionFunction::outputRelTableConnection(ValueVector* srcTableNameV
     ValueVector* dstTableNameVector, uint64_t outputPos, CatalogContent* catalog,
     table_id_t tableID) {
     auto tableSchema = catalog->getTableSchema(tableID);
-    assert(tableSchema->tableType == TableType::REL);
+    KU_ASSERT(tableSchema->tableType == TableType::REL);
     auto srcTableID = reinterpret_cast<RelTableSchema*>(tableSchema)->getSrcTableID();
     auto dstTableID = reinterpret_cast<RelTableSchema*>(tableSchema)->getDstTableID();
     srcTableNameVector->setValue(outputPos, catalog->getTableName(srcTableID));

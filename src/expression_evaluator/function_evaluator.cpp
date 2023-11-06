@@ -40,7 +40,7 @@ bool FunctionExpressionEvaluator::select(SelectionVector& selVector) {
     // Temporary code path for function whose return type is BOOL but select interface is not
     // implemented (e.g. list_contains). We should remove this if statement eventually.
     if (selectFunc == nullptr) {
-        assert(resultVector->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
+        KU_ASSERT(resultVector->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
         execFunc(parameters, *resultVector, nullptr);
         auto numSelectedValues = 0u;
         for (auto i = 0u; i < resultVector->state->selVector->selectedSize; ++i) {

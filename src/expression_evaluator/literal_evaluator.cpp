@@ -9,9 +9,9 @@ namespace kuzu {
 namespace evaluator {
 
 bool LiteralExpressionEvaluator::select(SelectionVector& /*selVector*/) {
-    assert(resultVector->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
+    KU_ASSERT(resultVector->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
     auto pos = resultVector->state->selVector->selectedPositions[0];
-    assert(pos == 0u);
+    KU_ASSERT(pos == 0u);
     return resultVector->getValue<bool>(pos) && (!resultVector->isNull(pos));
 }
 

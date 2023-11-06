@@ -5,7 +5,7 @@ namespace kuzu {
 namespace planner {
 
 void QueryPlanner::appendDummyScan(LogicalPlan& plan) {
-    assert(plan.isEmpty());
+    KU_ASSERT(plan.isEmpty());
     auto dummyScan = std::make_shared<LogicalDummyScan>();
     dummyScan->computeFactorizedSchema();
     plan.setLastOperator(std::move(dummyScan));

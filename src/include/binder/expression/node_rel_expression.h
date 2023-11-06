@@ -36,13 +36,13 @@ public:
         return {tableIDs.begin(), tableIDs.end()};
     }
     inline common::table_id_t getSingleTableID() const {
-        assert(tableIDs.size() == 1);
+        KU_ASSERT(tableIDs.size() == 1);
         return tableIDs[0];
     }
 
     inline void addPropertyExpression(
         const std::string& propertyName, std::unique_ptr<Expression> property) {
-        assert(!propertyNameToIdx.contains(propertyName));
+        KU_ASSERT(!propertyNameToIdx.contains(propertyName));
         propertyNameToIdx.insert({propertyName, properties.size()});
         properties.push_back(std::move(property));
     }
@@ -51,7 +51,7 @@ public:
     }
     inline std::shared_ptr<Expression> getPropertyExpression(
         const std::string& propertyName) const {
-        assert(propertyNameToIdx.contains(propertyName));
+        KU_ASSERT(propertyNameToIdx.contains(propertyName));
         return properties[propertyNameToIdx.at(propertyName)]->copy();
     }
     inline const std::vector<std::unique_ptr<Expression>>& getPropertyExpressions() const {

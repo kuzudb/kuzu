@@ -24,7 +24,7 @@ namespace kuzu {
 namespace main {
 
 Connection::Connection(Database* database) {
-    assert(database != nullptr);
+    KU_ASSERT(database != nullptr);
     this->database = database;
     clientContext = std::make_unique<ClientContext>(database);
 }

@@ -80,7 +80,7 @@ std::unique_ptr<FunctionBindData> PropertiesFunction::bindFunc(
 void PropertiesFunction::compileFunc(FunctionBindData* bindData,
     const std::vector<std::shared_ptr<ValueVector>>& parameters,
     std::shared_ptr<ValueVector>& result) {
-    assert(parameters[0]->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+    KU_ASSERT(parameters[0]->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
     auto propertiesBindData = reinterpret_cast<PropertiesBindData*>(bindData);
     auto fieldVector = StructVector::getFieldVector(
         ListVector::getDataVector(parameters[0].get()), propertiesBindData->childIdx);

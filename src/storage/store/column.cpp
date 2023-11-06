@@ -22,7 +22,7 @@ struct InternalIDColumnFunc {
     static void readValuesFromPageToVector(uint8_t* frame, PageElementCursor& pageCursor,
         ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead,
         const CompressionMetadata& /*metadata*/) {
-        assert(resultVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
+        KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
         auto resultData = (internalID_t*)resultVector->getData();
         for (auto i = 0u; i < numValuesToRead; i++) {
             auto posInFrame = pageCursor.elemPosInPage + i;
@@ -33,7 +33,7 @@ struct InternalIDColumnFunc {
 
     static void writeValueToPage(uint8_t* frame, uint16_t posInFrame, ValueVector* vector,
         uint32_t posInVector, const CompressionMetadata& /*metadata*/) {
-        assert(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
         auto internalID = vector->getValue<internalID_t>(posInVector);
         memcpy(frame + posInFrame * sizeof(offset_t), &internalID.offset, sizeof(offset_t));
     }
@@ -249,7 +249,7 @@ public:
         for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
             auto pos = nodeIDVector->state->selVector->selectedPositions[i];
             auto offset = nodeIDVector->readNodeOffset(pos);
-            assert(!resultVector->isNull(pos));
+            KU_ASSERT(!resultVector->isNull(pos));
             resultVector->setValue<offset_t>(pos, offset);
         }
     }
@@ -299,7 +299,7 @@ Column::Column(LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo, BM
     readToPageFunc = getWriteValuesToPageFunc(this->dataType);
     batchLookupFunc = getBatchLookupFromPageFunc(this->dataType);
     writeFromVectorFunc = getWriteValuesFromVectorFunc(this->dataType);
-    assert(numBytesPerFixedSizedValue <= BufferPoolConstants::PAGE_4KB_SIZE);
+    KU_ASSERT(numBytesPerFixedSizedValue <= BufferPoolConstants::PAGE_4KB_SIZE);
     if (requireNullColumn) {
         nullColumn = std::make_unique<NullColumn>(metaDAHeaderInfo.nullDAHPageIdx, dataFH,
             metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
@@ -371,7 +371,7 @@ void Column::scan(node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) {
 void Column::scanInternal(
     Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
     auto startNodeOffset = nodeIDVector->readNodeOffset(0);
-    assert(startNodeOffset % DEFAULT_VECTOR_CAPACITY == 0);
+    KU_ASSERT(startNodeOffset % DEFAULT_VECTOR_CAPACITY == 0);
     auto cursor = getPageCursorForOffset(transaction->getType(), startNodeOffset);
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(startNodeOffset);
     auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
@@ -512,7 +512,7 @@ WALPageIdxPosInPageAndFrame Column::createWALVersionOfPageForValue(offset_t node
     auto originalPageCursor = getPageCursorForOffset(TransactionType::WRITE, nodeOffset);
     bool insertingNewPage = false;
     if (originalPageCursor.pageIdx >= dataFH->getNumPages()) {
-        assert(originalPageCursor.pageIdx == dataFH->getNumPages());
+        KU_ASSERT(originalPageCursor.pageIdx == dataFH->getNumPages());
         DBFileUtils::insertNewPage(*dataFH, dbFileID, *bufferManager, *wal);
         insertingNewPage = true;
     }

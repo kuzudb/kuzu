@@ -137,7 +137,7 @@ std::vector<TableSchema*> CatalogContent::getTableSchemas(
     const std::vector<table_id_t>& tableIDs) const {
     std::vector<TableSchema*> result;
     for (auto tableID : tableIDs) {
-        assert(tableSchemas.contains(tableID));
+        KU_ASSERT(tableSchemas.contains(tableID));
         result.push_back(tableSchemas.at(tableID).get());
     }
     return result;

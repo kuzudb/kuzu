@@ -16,7 +16,7 @@ std::unique_ptr<BoundRegularQuery> Binder::bindQuery(const RegularQuery& regular
         normalizedSingleQueries.push_back(bindSingleQuery(*regularQuery.getSingleQuery(i)));
     }
     validateUnionColumnsOfTheSameType(normalizedSingleQueries);
-    assert(!normalizedSingleQueries.empty());
+    KU_ASSERT(!normalizedSingleQueries.empty());
     auto boundRegularQuery = std::make_unique<BoundRegularQuery>(
         regularQuery.getIsUnionAll(), normalizedSingleQueries[0]->getStatementResult()->copy());
     for (auto& normalizedSingleQuery : normalizedSingleQueries) {

@@ -206,7 +206,7 @@ void RecursiveJoin::updateVisitedNodes(nodeID_t boundNodeID) {
 void RecursiveJoin::initLocalRecursivePlan(ExecutionContext* context) {
     auto op = recursiveRoot.get();
     while (!op->isSource()) {
-        assert(op->getNumChildren() == 1);
+        KU_ASSERT(op->getNumChildren() == 1);
         op = op->getChild(0);
     }
     scanFrontier = (ScanFrontier*)op;
@@ -233,7 +233,7 @@ void RecursiveJoin::populateTargetDstNodes() {
                 }
             }
         } else {
-            assert(targetNodeIDs.empty());
+            KU_ASSERT(targetNodeIDs.empty());
             numTargetNodes += numNodes;
         }
     }

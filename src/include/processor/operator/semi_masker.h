@@ -25,12 +25,12 @@ public:
         : keyPos{other.keyPos}, masksPerTable{other.masksPerTable} {}
 
     inline const std::vector<mask_with_idx>& getSingleTableMasks() const {
-        assert(masksPerTable.size() == 1);
+        KU_ASSERT(masksPerTable.size() == 1);
         return masksPerTable.begin()->second;
     }
 
     inline const std::vector<mask_with_idx>& getTableMasks(common::table_id_t tableID) const {
-        assert(masksPerTable.contains(tableID));
+        KU_ASSERT(masksPerTable.contains(tableID));
         return masksPerTable.at(tableID);
     }
 

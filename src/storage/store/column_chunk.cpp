@@ -183,14 +183,14 @@ void ColumnChunk::resetToEmpty() {
 }
 
 void ColumnChunk::append(ValueVector* vector, offset_t startPosInChunk) {
-    assert(vector->dataType.getPhysicalType() == dataType.getPhysicalType());
+    KU_ASSERT(vector->dataType.getPhysicalType() == dataType.getPhysicalType());
     copyVectorToBuffer(vector, startPosInChunk);
     numValues += vector->state->selVector->selectedSize;
 }
 
 void ColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
     offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    assert(other->dataType.getPhysicalType() == dataType.getPhysicalType());
+    KU_ASSERT(other->dataType.getPhysicalType() == dataType.getPhysicalType());
     if (nullChunk) {
         nullChunk->append(
             other->nullChunk.get(), startPosInOtherChunk, startPosInChunk, numValuesToAppend);
@@ -202,14 +202,14 @@ void ColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
 }
 
 void ColumnChunk::write(ValueVector* vector, ValueVector* offsetsInChunk) {
-    assert(
+    KU_ASSERT(
         vector->dataType.getPhysicalType() == dataType.getPhysicalType() &&
         offsetsInChunk->dataType.getPhysicalType() == PhysicalTypeID::INT64 &&
         vector->state->selVector->selectedSize == offsetsInChunk->state->selVector->selectedSize);
     auto offsets = (offset_t*)offsetsInChunk->getData();
     for (auto i = 0u; i < offsetsInChunk->state->selVector->selectedSize; i++) {
         auto offsetInChunk = offsets[offsetsInChunk->state->selVector->selectedPositions[i]];
-        assert(offsetInChunk < capacity);
+        KU_ASSERT(offsetInChunk < capacity);
         auto offsetInVector = vector->state->selVector->selectedPositions[i];
         if (!vector->isNull(offsetInVector)) {
             memcpy(buffer.get() + offsetInChunk * numBytesPerValue,
@@ -228,8 +228,8 @@ void ColumnChunk::write(ValueVector* vector, ValueVector* offsetsInChunk) {
 // be slided. However, this is unsafe, as this function can also be used for other purposes later.
 // Thus, an assertion is added at the first line.
 void ColumnChunk::write(ValueVector* vector, offset_t startOffsetInChunk) {
-    assert(dataType.getPhysicalType() != PhysicalTypeID::BOOL &&
-           dataType.getPhysicalType() != PhysicalTypeID::VAR_LIST);
+    KU_ASSERT(dataType.getPhysicalType() != PhysicalTypeID::BOOL &&
+              dataType.getPhysicalType() != PhysicalTypeID::VAR_LIST);
     for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
         auto pos = vector->state->selVector->selectedPositions[i];
         auto offsetInChunk = startOffsetInChunk + pos;
@@ -285,7 +285,7 @@ offset_t ColumnChunk::getOffsetInBuffer(offset_t pos) const {
     auto posCursor = PageUtils::getPageByteCursorForPos(pos, numElementsInAPage, numBytesPerValue);
     auto offsetInBuffer =
         posCursor.pageIdx * BufferPoolConstants::PAGE_4KB_SIZE + posCursor.offsetInPage;
-    assert(offsetInBuffer + numBytesPerValue <= bufferSize);
+    KU_ASSERT(offsetInBuffer + numBytesPerValue <= bufferSize);
     return offsetInBuffer;
 }
 
@@ -360,7 +360,7 @@ uint64_t ColumnChunk::getBufferSize() const {
 }
 
 void BoolColumnChunk::append(ValueVector* vector, offset_t startPosInChunk) {
-    assert(vector->dataType.getPhysicalType() == PhysicalTypeID::BOOL);
+    KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::BOOL);
     for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
         auto pos = vector->state->selVector->selectedPositions[i];
         nullChunk->setNull(startPosInChunk + i, vector->isNull(pos));
@@ -383,14 +383,14 @@ void BoolColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
 
 void BoolColumnChunk::write(
     common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector) {
-    assert(valueVector->dataType.getPhysicalType() == PhysicalTypeID::BOOL &&
-           offsetInChunkVector->dataType.getPhysicalType() == PhysicalTypeID::INT64 &&
-           valueVector->state->selVector->selectedSize ==
-               offsetInChunkVector->state->selVector->selectedSize);
+    KU_ASSERT(valueVector->dataType.getPhysicalType() == PhysicalTypeID::BOOL &&
+              offsetInChunkVector->dataType.getPhysicalType() == PhysicalTypeID::INT64 &&
+              valueVector->state->selVector->selectedSize ==
+                  offsetInChunkVector->state->selVector->selectedSize);
     auto offsets = (offset_t*)offsetInChunkVector->getData();
     for (auto i = 0u; i < offsetInChunkVector->state->selVector->selectedSize; i++) {
         auto offsetInChunk = offsets[offsetInChunkVector->state->selVector->selectedPositions[i]];
-        assert(offsetInChunk < capacity);
+        KU_ASSERT(offsetInChunk < capacity);
         auto offsetInVector = valueVector->state->selVector->selectedPositions[i];
         NullMask::copyNullMask((uint64_t*)valueVector->getData(), offsetInVector,
             (uint64_t*)buffer.get(), offsetInChunk, 1);
@@ -429,15 +429,15 @@ public:
     }
 
     void write(ValueVector* valueVector, ValueVector* offsetInChunkVector) {
-        assert(valueVector->dataType.getPhysicalType() == PhysicalTypeID::FIXED_LIST &&
-               offsetInChunkVector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
+        KU_ASSERT(valueVector->dataType.getPhysicalType() == PhysicalTypeID::FIXED_LIST &&
+                  offsetInChunkVector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
         auto offsets = (offset_t*)offsetInChunkVector->getData();
-        assert(valueVector->state->selVector->selectedSize ==
-               offsetInChunkVector->state->selVector->selectedSize);
+        KU_ASSERT(valueVector->state->selVector->selectedSize ==
+                  offsetInChunkVector->state->selVector->selectedSize);
         for (auto i = 0u; i < offsetInChunkVector->state->selVector->selectedSize; i++) {
             auto offsetInChunk =
                 offsets[offsetInChunkVector->state->selVector->selectedPositions[i]];
-            assert(offsetInChunk < capacity);
+            KU_ASSERT(offsetInChunk < capacity);
             auto offsetInVector = valueVector->state->selVector->selectedPositions[i];
             nullChunk->setNull(offsetInChunk, valueVector->isNull(offsetInVector));
             if (!valueVector->isNull(offsetInVector)) {

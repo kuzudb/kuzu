@@ -80,7 +80,7 @@ void CopyRel::executeInternal(ExecutionContext* /*context*/) {
         }
         for (auto& dataChunk : *partitioningBuffer) {
             if (info->dataFormat == ColumnDataFormat::CSR) {
-                assert(csrOffsetChunk);
+                KU_ASSERT(csrOffsetChunk);
                 auto offsetVector = dataChunk->getValueVector(offsetVectorIdx).get();
                 setOffsetFromCSROffsets(offsetVector, (offset_t*)csrOffsetChunk->getData());
             }
@@ -118,7 +118,7 @@ void CopyRel::populateCSROffsets(
 
 // TODO(Guodong): Can we guarantee vector is not filtered and get rid of access to selVector?
 void CopyRel::setOffsetToWithinNodeGroup(ValueVector* vector, offset_t startOffset) {
-    assert(vector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
+    KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
     auto offsets = (offset_t*)vector->getData();
     for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
         auto pos = vector->state->selVector->selectedPositions[i];
@@ -127,7 +127,7 @@ void CopyRel::setOffsetToWithinNodeGroup(ValueVector* vector, offset_t startOffs
 }
 
 void CopyRel::setOffsetFromCSROffsets(ValueVector* offsetVector, offset_t* csrOffsets) {
-    assert(offsetVector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
+    KU_ASSERT(offsetVector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
     for (auto i = 0u; i < offsetVector->state->selVector->selectedSize; i++) {
         auto pos = offsetVector->state->selVector->selectedPositions[i];
         auto nodeOffset = offsetVector->getValue<offset_t>(pos);

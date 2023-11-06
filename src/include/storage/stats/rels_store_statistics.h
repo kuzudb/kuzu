@@ -31,7 +31,7 @@ public:
             transaction->getType() == transaction::TransactionType::READ_ONLY ?
                 tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable :
                 tablesStatisticsContentForWriteTrx->tableStatisticPerTable;
-        assert(tableStatisticPerTable.contains(tableID));
+        KU_ASSERT(tableStatisticPerTable.contains(tableID));
         return (RelTableStats*)tableStatisticPerTable[tableID].get();
     }
 

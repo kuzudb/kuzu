@@ -51,7 +51,7 @@ HashIndexLocalLookupState HashIndexLocalStorage::lookup(const uint8_t* key, offs
         auto keyVal = *(int64_t*)key;
         return templatedLocalStorageForInt.lookup(keyVal, result);
     } else {
-        assert(keyDataType.getLogicalTypeID() == LogicalTypeID::STRING);
+        KU_ASSERT(keyDataType.getLogicalTypeID() == LogicalTypeID::STRING);
         auto keyVal = std::string((char*)key);
         return templatedLocalStorageForString.lookup(keyVal, result);
     }
@@ -63,7 +63,7 @@ void HashIndexLocalStorage::deleteKey(const uint8_t* key) {
         auto keyVal = *(int64_t*)key;
         templatedLocalStorageForInt.deleteKey(keyVal);
     } else {
-        assert(keyDataType.getLogicalTypeID() == LogicalTypeID::STRING);
+        KU_ASSERT(keyDataType.getLogicalTypeID() == LogicalTypeID::STRING);
         auto keyVal = std::string((char*)key);
         templatedLocalStorageForString.deleteKey(keyVal);
     }
@@ -75,7 +75,7 @@ bool HashIndexLocalStorage::insert(const uint8_t* key, offset_t value) {
         auto keyVal = *(int64_t*)key;
         return templatedLocalStorageForInt.insert(keyVal, value);
     } else {
-        assert(keyDataType.getLogicalTypeID() == LogicalTypeID::STRING);
+        KU_ASSERT(keyDataType.getLogicalTypeID() == LogicalTypeID::STRING);
         auto keyVal = std::string((char*)key);
         return templatedLocalStorageForString.insert(keyVal, value);
     }
@@ -91,7 +91,7 @@ void HashIndexLocalStorage::applyLocalChanges(const std::function<void(const uin
             insertOp((uint8_t*)&key, val);
         }
     } else {
-        assert(keyDataType.getLogicalTypeID() == LogicalTypeID::STRING);
+        KU_ASSERT(keyDataType.getLogicalTypeID() == LogicalTypeID::STRING);
         for (auto& key : templatedLocalStorageForString.localDeletions) {
             deleteOp((uint8_t*)key.c_str());
         }
@@ -105,7 +105,7 @@ bool HashIndexLocalStorage::hasUpdates() const {
     if (keyDataType.getLogicalTypeID() == LogicalTypeID::INT64) {
         return templatedLocalStorageForInt.hasUpdates();
     } else {
-        assert(keyDataType.getLogicalTypeID() == LogicalTypeID::STRING);
+        KU_ASSERT(keyDataType.getLogicalTypeID() == LogicalTypeID::STRING);
         return templatedLocalStorageForString.hasUpdates();
     }
 }
@@ -114,7 +114,7 @@ void HashIndexLocalStorage::clear() {
     if (keyDataType.getLogicalTypeID() == LogicalTypeID::INT64) {
         templatedLocalStorageForInt.clear();
     } else {
-        assert(keyDataType.getLogicalTypeID() == LogicalTypeID::STRING);
+        KU_ASSERT(keyDataType.getLogicalTypeID() == LogicalTypeID::STRING);
         templatedLocalStorageForString.clear();
     }
 }
@@ -134,7 +134,7 @@ HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName, AccessMode acces
     // Read indexHeader from the headerArray, which contains only one element.
     indexHeader = std::make_unique<HashIndexHeader>(
         headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::READ_ONLY));
-    assert(indexHeader->keyDataTypeID == keyDataType.getLogicalTypeID());
+    KU_ASSERT(indexHeader->keyDataTypeID == keyDataType.getLogicalTypeID());
     pSlots = std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle, dbFileIDAndName.dbFileID,
         P_SLOTS_HEADER_PAGE_IDX, &bm, wal, Transaction::getDummyReadOnlyTrx().get());
     oSlots = std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle, dbFileIDAndName.dbFileID,
@@ -163,14 +163,14 @@ bool HashIndex<T>::lookupInternal(Transaction* transaction, const uint8_t* key, 
     if (transaction->isReadOnly()) {
         return lookupInPersistentIndex(transaction->getType(), key, result);
     } else {
-        assert(transaction->isWriteTransaction());
+        KU_ASSERT(transaction->isWriteTransaction());
         auto localLookupState = localStorage->lookup(key, result);
         if (localLookupState == HashIndexLocalLookupState::KEY_FOUND) {
             return true;
         } else if (localLookupState == HashIndexLocalLookupState::KEY_DELETED) {
             return false;
         } else {
-            assert(localLookupState == HashIndexLocalLookupState::KEY_NOT_EXIST);
+            KU_ASSERT(localLookupState == HashIndexLocalLookupState::KEY_NOT_EXIST);
             return lookupInPersistentIndex(transaction->getType(), key, result);
         }
     }
@@ -438,7 +438,7 @@ template class HashIndex<ku_string_t>;
 
 bool PrimaryKeyIndex::lookup(
     Transaction* trx, ValueVector* keyVector, uint64_t vectorPos, offset_t& result) {
-    assert(!keyVector->isNull(vectorPos));
+    KU_ASSERT(!keyVector->isNull(vectorPos));
     if (keyDataTypeID == LogicalTypeID::INT64) {
         auto key = keyVector->getValue<int64_t>(vectorPos);
         return hashIndexForInt64->lookupInternal(
@@ -473,7 +473,7 @@ void PrimaryKeyIndex::delete_(ValueVector* keyVector) {
 }
 
 bool PrimaryKeyIndex::insert(ValueVector* keyVector, uint64_t vectorPos, offset_t value) {
-    assert(!keyVector->isNull(vectorPos));
+    KU_ASSERT(!keyVector->isNull(vectorPos));
     if (keyDataTypeID == LogicalTypeID::INT64) {
         auto key = keyVector->getValue<int64_t>(vectorPos);
         return hashIndexForInt64->insertInternal(reinterpret_cast<const uint8_t*>(&key), value);

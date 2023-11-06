@@ -58,13 +58,13 @@ void TablesStatistics::initTableStatisticsForWriteTrxNoLock() {
 PropertyStatistics& TablesStatistics::getPropertyStatisticsForTable(
     const transaction::Transaction& transaction, table_id_t tableID, property_id_t propertyID) {
     if (transaction.isReadOnly()) {
-        assert(tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable.contains(tableID));
+        KU_ASSERT(tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable.contains(tableID));
         auto tableStatistics =
             tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable.at(tableID).get();
         return tableStatistics->getPropertyStatistics(propertyID);
     } else {
         initTableStatisticsForWriteTrx();
-        assert(tablesStatisticsContentForWriteTrx->tableStatisticPerTable.contains(tableID));
+        KU_ASSERT(tablesStatisticsContentForWriteTrx->tableStatisticPerTable.contains(tableID));
         auto tableStatistics =
             tablesStatisticsContentForWriteTrx->tableStatisticPerTable.at(tableID).get();
         return tableStatistics->getPropertyStatistics(propertyID);
@@ -74,7 +74,7 @@ PropertyStatistics& TablesStatistics::getPropertyStatisticsForTable(
 void TablesStatistics::setPropertyStatisticsForTable(
     table_id_t tableID, property_id_t propertyID, PropertyStatistics stats) {
     initTableStatisticsForWriteTrx();
-    assert(tablesStatisticsContentForWriteTrx->tableStatisticPerTable.contains(tableID));
+    KU_ASSERT(tablesStatisticsContentForWriteTrx->tableStatisticPerTable.contains(tableID));
     auto tableStatistics =
         tablesStatisticsContentForWriteTrx->tableStatisticPerTable.at(tableID).get();
     tableStatistics->setPropertyStatistics(propertyID, stats);

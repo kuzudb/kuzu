@@ -1,3 +1,4 @@
+#include "common/assert.h"
 #include "parser/query/updating_clause/delete_clause.h"
 #include "parser/query/updating_clause/insert_clause.h"
 #include "parser/query/updating_clause/merge_clause.h"
@@ -16,7 +17,7 @@ std::unique_ptr<UpdatingClause> Transformer::transformUpdatingClause(
     } else if (ctx.oC_Set()) {
         return transformSet(*ctx.oC_Set());
     } else {
-        assert(ctx.oC_Delete());
+        KU_ASSERT(ctx.oC_Delete());
         return transformDelete(*ctx.oC_Delete());
     }
 }

@@ -204,7 +204,7 @@ void ParquetReader::initMetadata() {
 
 std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t depth,
     uint64_t maxDefine, uint64_t maxRepeat, uint64_t& nextSchemaIdx, uint64_t& nextFileIdx) {
-    assert(nextSchemaIdx < metadata->schema.size());
+    KU_ASSERT(nextSchemaIdx < metadata->schema.size());
     auto& sEle = metadata->schema[nextSchemaIdx];
     auto thisIdx = nextSchemaIdx;
 
@@ -232,7 +232,7 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
             childrenReaders.push_back(std::move(childReader));
             cIdx++;
         }
-        assert(!structFields.empty());
+        KU_ASSERT(!structFields.empty());
         std::unique_ptr<ColumnReader> result;
         std::unique_ptr<common::LogicalType> resultType;
 
@@ -331,8 +331,9 @@ std::unique_ptr<ColumnReader> ParquetReader::createReader() {
         columnTypes.push_back(field->getType()->copy());
     }
 
-    assert(nextSchemaIdx == metadata->schema.size() - 1);
-    assert(metadata->row_groups.empty() || nextFileIdx == metadata->row_groups[0].columns.size());
+    KU_ASSERT(nextSchemaIdx == metadata->schema.size() - 1);
+    KU_ASSERT(
+        metadata->row_groups.empty() || nextFileIdx == metadata->row_groups[0].columns.size());
     return rootReader;
 }
 

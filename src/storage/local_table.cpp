@@ -116,7 +116,7 @@ void LocalColumnChunk::update(vector_idx_t vectorIdx, sel_t offsetInLocalVector,
 }
 
 void LocalColumn::scan(ValueVector* nodeIDVector, ValueVector* outputVector) {
-    assert(nodeIDVector->isSequential());
+    KU_ASSERT(nodeIDVector->isSequential());
     auto nodeID = nodeIDVector->getValue<nodeID_t>(0);
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeID.offset);
     if (!chunks.contains(nodeGroupIdx)) {
@@ -175,7 +175,7 @@ void LocalColumn::prepareCommit() {
 }
 
 void LocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
-    assert(chunks.contains(nodeGroupIdx));
+    KU_ASSERT(chunks.contains(nodeGroupIdx));
     auto chunk = chunks.at(nodeGroupIdx).get();
     // Figure out if the chunk needs to be re-compressed
     auto metadata = column->getMetadata(nodeGroupIdx, TransactionType::WRITE).compMeta;
@@ -183,7 +183,7 @@ void LocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
         for (auto& [vectorIdx, vector] : chunk->vectors) {
             for (auto i = 0u; i < vector->vector->state->selVector->selectedSize; i++) {
                 auto pos = vector->vector->state->selVector->selectedPositions[i];
-                assert(vector->validityMask[pos]);
+                KU_ASSERT(vector->validityMask[pos]);
                 if (!metadata.canUpdateInPlace(
                         *vector->vector, pos, column->getDataType().getPhysicalType())) {
                     return commitLocalChunkOutOfPlace(nodeGroupIdx, chunk);
@@ -202,7 +202,7 @@ void LocalColumn::commitLocalChunkInPlace(
             nodeGroupStartOffset + StorageUtils::getStartOffsetOfVectorInChunk(vectorIdx);
         for (auto i = 0u; i < vector->vector->state->selVector->selectedSize; i++) {
             auto pos = vector->vector->state->selVector->selectedPositions[i];
-            assert(vector->validityMask[pos]);
+            KU_ASSERT(vector->validityMask[pos]);
             column->write(vectorStartOffset + pos, vector->vector.get(), pos);
         }
     }
@@ -223,7 +223,7 @@ void LocalColumn::commitLocalChunkOutOfPlace(
 }
 
 void StringLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
-    assert(chunks.contains(nodeGroupIdx));
+    KU_ASSERT(chunks.contains(nodeGroupIdx));
     auto localChunk = chunks.at(nodeGroupIdx).get();
     auto stringColumn = reinterpret_cast<StringColumn*>(column);
     auto overflowMetadata =
@@ -243,7 +243,7 @@ void StringLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
 }
 
 void VarListLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
-    assert(chunks.contains(nodeGroupIdx));
+    KU_ASSERT(chunks.contains(nodeGroupIdx));
     auto chunk = chunks.at(nodeGroupIdx).get();
     auto varListColumn = reinterpret_cast<VarListColumn*>(column);
     auto listColumnChunkInStorage =
@@ -289,7 +289,7 @@ void VarListLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
 
 StructLocalColumn::StructLocalColumn(Column* column, bool enableCompression)
     : LocalColumn{column, enableCompression} {
-    assert(column->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
+    KU_ASSERT(column->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
     auto structColumn = static_cast<StructColumn*>(column);
     auto dataType = structColumn->getDataType();
     auto structFields = StructType::getFields(&dataType);
@@ -303,7 +303,7 @@ StructLocalColumn::StructLocalColumn(Column* column, bool enableCompression)
 void StructLocalColumn::scan(ValueVector* nodeIDVector, ValueVector* resultVector) {
     LocalColumn::scan(nodeIDVector, resultVector);
     auto fieldVectors = StructVector::getFieldVectors(resultVector);
-    assert(fieldVectors.size() == fields.size());
+    KU_ASSERT(fieldVectors.size() == fields.size());
     for (auto i = 0u; i < fields.size(); i++) {
         fields[i]->scan(nodeIDVector, fieldVectors[i].get());
     }
@@ -312,7 +312,7 @@ void StructLocalColumn::scan(ValueVector* nodeIDVector, ValueVector* resultVecto
 void StructLocalColumn::lookup(ValueVector* nodeIDVector, ValueVector* resultVector) {
     LocalColumn::lookup(nodeIDVector, resultVector);
     auto fieldVectors = StructVector::getFieldVectors(resultVector);
-    assert(fieldVectors.size() == fields.size());
+    KU_ASSERT(fieldVectors.size() == fields.size());
     for (auto i = 0u; i < fields.size(); i++) {
         fields[i]->lookup(nodeIDVector, fieldVectors[i].get());
     }
@@ -322,7 +322,7 @@ void StructLocalColumn::update(
     ValueVector* nodeIDVector, ValueVector* propertyVector, MemoryManager* mm) {
     LocalColumn::update(nodeIDVector, propertyVector, mm);
     auto propertyFieldVectors = StructVector::getFieldVectors(propertyVector);
-    assert(propertyFieldVectors.size() == fields.size());
+    KU_ASSERT(propertyFieldVectors.size() == fields.size());
     for (auto i = 0u; i < fields.size(); i++) {
         fields[i]->update(nodeIDVector, propertyFieldVectors[i].get(), mm);
     }
@@ -332,7 +332,7 @@ void StructLocalColumn::update(offset_t nodeOffset, ValueVector* propertyVector,
     sel_t posInPropertyVector, MemoryManager* mm) {
     LocalColumn::update(nodeOffset, propertyVector, posInPropertyVector, mm);
     auto propertyFieldVectors = StructVector::getFieldVectors(propertyVector);
-    assert(propertyFieldVectors.size() == fields.size());
+    KU_ASSERT(propertyFieldVectors.size() == fields.size());
     for (auto i = 0u; i < fields.size(); i++) {
         fields[i]->update(nodeOffset, propertyFieldVectors[i].get(), posInPropertyVector, mm);
     }

@@ -61,7 +61,7 @@ uint64_t NodeGroup::append(const std::vector<ValueVector*>& columnVectors,
             serialSkip++;
             continue;
         }
-        assert(chunk->getDataType() == columnVectors[i - serialSkip]->dataType);
+        KU_ASSERT(chunk->getDataType() == columnVectors[i - serialSkip]->dataType);
         chunk->append(columnVectors[i - serialSkip], numNodes);
     }
     columnState->selVector->selectedSize = originalSize;
@@ -70,7 +70,7 @@ uint64_t NodeGroup::append(const std::vector<ValueVector*>& columnVectors,
 }
 
 offset_t NodeGroup::append(NodeGroup* other, offset_t offsetInOtherNodeGroup) {
-    assert(other->chunks.size() == chunks.size());
+    KU_ASSERT(other->chunks.size() == chunks.size());
     auto numNodesToAppend = std::min(
         other->numNodes - offsetInOtherNodeGroup, StorageConstants::NODE_GROUP_SIZE - numNodes);
     for (auto i = 0u; i < chunks.size(); i++) {
@@ -82,7 +82,7 @@ offset_t NodeGroup::append(NodeGroup* other, offset_t offsetInOtherNodeGroup) {
 }
 
 void NodeGroup::write(DataChunk* dataChunk, vector_idx_t offsetVectorIdx) {
-    assert(dataChunk->getNumValueVectors() == chunks.size() + 1);
+    KU_ASSERT(dataChunk->getNumValueVectors() == chunks.size() + 1);
     auto offsetVector = dataChunk->getValueVector(offsetVectorIdx).get();
     vector_idx_t vectorIdx = 0, chunkIdx = 0;
     for (auto i = 0u; i < dataChunk->getNumValueVectors(); i++) {
@@ -90,7 +90,7 @@ void NodeGroup::write(DataChunk* dataChunk, vector_idx_t offsetVectorIdx) {
             vectorIdx++;
             continue;
         }
-        assert(vectorIdx < dataChunk->getNumValueVectors());
+        KU_ASSERT(vectorIdx < dataChunk->getNumValueVectors());
         chunks[chunkIdx++]->write(dataChunk->getValueVector(vectorIdx++).get(), offsetVector);
     }
     numNodes += offsetVector->state->selVector->selectedSize;

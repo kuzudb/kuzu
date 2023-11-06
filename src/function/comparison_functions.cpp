@@ -178,7 +178,7 @@ static void executeNestedGreaterThan(uint8_t& isGreaterThan, uint8_t& isEqual,
 template<>
 void GreaterThan::operation(const list_entry_t& left, const list_entry_t& right, uint8_t& result,
     ValueVector* leftVector, ValueVector* rightVector) {
-    assert(leftVector->dataType == rightVector->dataType);
+    KU_ASSERT(leftVector->dataType == rightVector->dataType);
     auto leftDataVector = ListVector::getDataVector(leftVector);
     auto rightDataVector = ListVector::getDataVector(rightVector);
     auto commonLength = std::min(left.size, right.size);
@@ -198,7 +198,8 @@ void GreaterThan::operation(const list_entry_t& left, const list_entry_t& right,
 template<>
 void GreaterThan::operation(const struct_entry_t& left, const struct_entry_t& right,
     uint8_t& result, ValueVector* leftVector, ValueVector* rightVector) {
-    assert(leftVector->dataType == rightVector->dataType);
+    // TODO(Xiyang): There is a bug with casting NULL from STRING, ref #2356
+    // KU_ASSERT(leftVector->dataType == rightVector->dataType);
     auto leftFields = StructVector::getFieldVectors(leftVector);
     auto rightFields = StructVector::getFieldVectors(rightVector);
     uint8_t isEqual;

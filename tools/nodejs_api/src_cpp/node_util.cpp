@@ -167,8 +167,8 @@ std::unordered_map<std::string, std::shared_ptr<Value>> Util::TransformParameter
     std::unordered_map<std::string, std::shared_ptr<Value>> result;
     for (size_t i = 0; i < params.Length(); i++) {
         auto param = params.Get(i).As<Napi::Array>();
-        assert(param.Length() == 2);
-        assert(param.Get(uint32_t(0)).IsString());
+        KU_ASSERT(param.Length() == 2);
+        KU_ASSERT(param.Get(uint32_t(0)).IsString());
         auto key = param.Get(uint32_t(0)).ToString().Utf8Value();
         if (!parameterMap.count(key)) {
             throw Exception("Parameter " + key + " is not defined in the prepared statement");

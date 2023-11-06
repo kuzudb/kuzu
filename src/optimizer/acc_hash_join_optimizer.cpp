@@ -220,7 +220,7 @@ HashJoinSIPOptimizer::resolveShortestPathExtendToApplySemiMask(
 std::shared_ptr<planner::LogicalOperator> HashJoinSIPOptimizer::appendNodeSemiMasker(
     std::vector<planner::LogicalOperator*> opsToApplySemiMask,
     std::shared_ptr<planner::LogicalOperator> child) {
-    assert(!opsToApplySemiMask.empty());
+    KU_ASSERT(!opsToApplySemiMask.empty());
     auto op = opsToApplySemiMask[0];
     std::shared_ptr<Expression> key;
     std::vector<table_id_t> nodeTableIDs;
@@ -248,9 +248,9 @@ std::shared_ptr<planner::LogicalOperator> HashJoinSIPOptimizer::appendPathSemiMa
     std::shared_ptr<binder::Expression> pathExpression,
     std::vector<planner::LogicalOperator*> opsToApplySemiMask,
     std::shared_ptr<planner::LogicalOperator> child) {
-    assert(!opsToApplySemiMask.empty());
+    KU_ASSERT(!opsToApplySemiMask.empty());
     auto op = opsToApplySemiMask[0];
-    assert(op->getOperatorType() == planner::LogicalOperatorType::SCAN_INTERNAL_ID);
+    KU_ASSERT(op->getOperatorType() == planner::LogicalOperatorType::SCAN_INTERNAL_ID);
     auto scan = reinterpret_cast<LogicalScanInternalID*>(op);
     auto semiMasker = std::make_shared<LogicalSemiMasker>(
         SemiMaskType::PATH, pathExpression, scan->getTableIDs(), opsToApplySemiMask, child);

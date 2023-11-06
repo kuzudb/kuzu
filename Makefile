@@ -1,13 +1,14 @@
 .PHONY: release debug test benchmark all alldebug clean clean-all
 
-GENERATOR=
-FORCE_COLOR=
-NUM_THREADS ?= 1
-TEST_JOBS ?= 10
-SANITIZER_FLAG=
-WERROR_FLAG=
 CLANGD_DIAGNOSTIC_INSTANCES ?= 4
+FORCE_COLOR=
+GENERATOR=
+NUM_THREADS ?= 1
 ROOT_DIR=$(CURDIR)
+RUNTIME_CHECK_FLAG=
+SANITIZER_FLAG=
+TEST_JOBS ?= 10
+WERROR_FLAG=
 
 export CMAKE_BUILD_PARALLEL_LEVEL=$(NUM_THREADS)
 
@@ -32,6 +33,9 @@ ifeq ($(UBSAN), 1)
 	SANITIZER_FLAG=-DENABLE_ADDRESS_SANITIZER=FALSE -DENABLE_THREAD_SANITIZER=TRUE -DENABLE_UBSAN=TRUE
 endif
 
+ifeq ($(RUNTIME_CHECKS), 1)
+	RUNTIME_CHECK_FLAG=-DENABLE_RUNTIME_CHECKS=TRUE
+endif
 ifeq ($(WERROR), 1)
 	WERROR_FLAG=-DENABLE_WERROR=TRUE
 endif
@@ -48,61 +52,61 @@ endif
 
 release:
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) -DCMAKE_BUILD_TYPE=Release ../.. && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) $(RUNTIME_CHECK_FLAG) -DCMAKE_BUILD_TYPE=Release ../.. && \
 	cmake --build . --config Release
 
 debug:
 	$(call mkdirp,build/debug) && cd build/debug && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) -DCMAKE_BUILD_TYPE=Debug ../.. && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) $(RUNTIME_CHECK_FLAG) -DCMAKE_BUILD_TYPE=Debug ../.. && \
 	cmake --build . --config Debug
 
 all:
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE -DBUILD_BENCHMARK=TRUE -DBUILD_NODEJS=TRUE -DBUILD_EXAMPLES=TRUE ../.. && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) $(RUNTIME_CHECK_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE -DBUILD_BENCHMARK=TRUE -DBUILD_NODEJS=TRUE -DBUILD_EXAMPLES=TRUE ../.. && \
 	cmake --build . --config Release
 
 example:
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_EXAMPLES=TRUE ../.. && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) $(RUNTIME_CHECK_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_EXAMPLES=TRUE ../.. && \
 	cmake --build . --config Release
 
 alldebug:
 	$(call mkdirp,build/debug) && cd build/debug && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=TRUE -DBUILD_BENCHMARK=TRUE -DBUILD_NODEJS=TRUE -DBUILD_EXAMPLES=TRUE ../.. && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) $(RUNTIME_CHECK_FLAG) -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=TRUE -DBUILD_BENCHMARK=TRUE -DBUILD_NODEJS=TRUE -DBUILD_EXAMPLES=TRUE ../.. && \
 	cmake --build . --config Debug
 
 benchmark:
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_BENCHMARK=TRUE ../.. && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) $(RUNTIME_CHECK_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_BENCHMARK=TRUE ../.. && \
 	cmake --build . --config Release
 
 nodejs:
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_NODEJS=TRUE ../.. && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) $(RUNTIME_CHECK_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_NODEJS=TRUE ../.. && \
 	cmake --build . --config Release
 
 java:
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_JAVA=TRUE ../.. && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) $(RUNTIME_CHECK_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_JAVA=TRUE ../.. && \
 	cmake --build . --config Release
 
 test:
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE ../.. && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) $(RUNTIME_CHECK_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE ../.. && \
 	cmake --build . --config Release
 	cd $(ROOT_DIR)/build/release/test && \
 	ctest --output-on-failure -j ${TEST_JOBS}
 
 lcov:
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE -DBUILD_NODEJS=TRUE -DBUILD_LCOV=TRUE ../.. && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) $(RUNTIME_CHECK_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE -DBUILD_NODEJS=TRUE -DBUILD_LCOV=TRUE ../.. && \
 	cmake --build . --config Release
 	cd $(ROOT_DIR)/build/release/test && \
 	ctest --output-on-failure -j ${TEST_JOBS}
 
 clangd:
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) -DCMAKE_EXPORT_COMPILE_COMMANDS=1 ../..
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) $(WERROR_FLAG) $(RUNTIME_CHECK_FLAG) -DCMAKE_EXPORT_COMPILE_COMMANDS=1 ../..
 
 tidy: clangd
 	run-clang-tidy -p build/release -quiet -j $(NUM_THREADS) \

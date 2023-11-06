@@ -41,7 +41,7 @@ void ProjectionPushDownOptimizer::visitOperator(LogicalOperator* op) {
 
 void ProjectionPushDownOptimizer::visitPathPropertyProbe(planner::LogicalOperator* op) {
     auto pathPropertyProbe = (LogicalPathPropertyProbe*)op;
-    assert(
+    KU_ASSERT(
         pathPropertyProbe->getChild(0)->getOperatorType() == LogicalOperatorType::RECURSIVE_EXTEND);
     auto recursiveExtend = (LogicalRecursiveExtend*)pathPropertyProbe->getChild(0).get();
     auto boundNodeID = recursiveExtend->getBoundNode()->getInternalID();

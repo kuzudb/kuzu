@@ -16,7 +16,7 @@ public:
         internalID = std::move(expression);
     }
     inline std::shared_ptr<Expression> getInternalID() const {
-        assert(internalID != nullptr);
+        KU_ASSERT(internalID != nullptr);
         return internalID->copy();
     }
 

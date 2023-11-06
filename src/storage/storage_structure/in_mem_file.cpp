@@ -107,7 +107,7 @@ void InMemOverflowFile::copyVarSizedValuesInList(ku_list_t& resultKUList, const 
         std::vector<ku_string_t> kuStrings(listSize);
         for (auto i = 0u; i < listSize; i++) {
             auto child = NestedVal::getChildVal(&listVal, i);
-            assert(child->getDataType()->getLogicalTypeID() == LogicalTypeID::STRING);
+            KU_ASSERT(child->getDataType()->getLogicalTypeID() == LogicalTypeID::STRING);
             auto strVal = child->strVal;
             kuStrings[i] = copyString(strVal.c_str(), strVal.length(), overflowCursor);
         }
@@ -118,12 +118,12 @@ void InMemOverflowFile::copyVarSizedValuesInList(ku_list_t& resultKUList, const 
                 numBytesOfListElement);
         }
     } else {
-        assert(DT == LogicalTypeID::VAR_LIST);
+        KU_ASSERT(DT == LogicalTypeID::VAR_LIST);
         auto listSize = NestedVal::getChildrenSize(&listVal);
         std::vector<ku_list_t> kuLists(listSize);
         for (auto i = 0u; i < listSize; i++) {
             auto child = NestedVal::getChildVal(&listVal, i);
-            assert(child->getDataType()->getLogicalTypeID() == LogicalTypeID::VAR_LIST);
+            KU_ASSERT(child->getDataType()->getLogicalTypeID() == LogicalTypeID::VAR_LIST);
             kuLists[i] = copyList(*child, overflowCursor);
         }
         std::shared_lock lck(lock);
@@ -136,7 +136,7 @@ void InMemOverflowFile::copyVarSizedValuesInList(ku_list_t& resultKUList, const 
 }
 
 ku_list_t InMemOverflowFile::copyList(const Value& listValue, PageByteCursor& overflowCursor) {
-    assert(listValue.getDataType()->getLogicalTypeID() == LogicalTypeID::VAR_LIST);
+    KU_ASSERT(listValue.getDataType()->getLogicalTypeID() == LogicalTypeID::VAR_LIST);
     ku_list_t resultKUList;
     auto numBytesOfListElement =
         storage::StorageUtils::getDataTypeSize(*VarListType::getChildType(listValue.getDataType()));

@@ -7,8 +7,8 @@ namespace kuzu {
 namespace processor {
 
 void PartitionerFunctions::partitionRelData(ValueVector* key, ValueVector* partitionIdxes) {
-    assert(key->state == partitionIdxes->state &&
-           key->dataType.getPhysicalType() == PhysicalTypeID::INT64);
+    KU_ASSERT(key->state == partitionIdxes->state &&
+              key->dataType.getPhysicalType() == PhysicalTypeID::INT64);
     for (auto i = 0u; i < key->state->selVector->selectedSize; i++) {
         auto pos = key->state->selVector->selectedPositions[i];
         partition_idx_t partitionIdx =
@@ -42,7 +42,7 @@ void PartitionerSharedState::resetState() {
 void PartitionerSharedState::merge(
     std::vector<std::unique_ptr<PartitioningBuffer>> localPartitioningStates) {
     std::unique_lock xLck{mtx};
-    assert(partitioningBuffers.size() == localPartitioningStates.size());
+    KU_ASSERT(partitioningBuffers.size() == localPartitioningStates.size());
     for (auto partitioningIdx = 0u; partitioningIdx < partitioningBuffers.size();
          partitioningIdx++) {
         partitioningBuffers[partitioningIdx]->merge(
@@ -51,7 +51,7 @@ void PartitionerSharedState::merge(
 }
 
 void PartitioningBuffer::merge(std::unique_ptr<PartitioningBuffer> localPartitioningState) {
-    assert(partitions.size() == localPartitioningState->partitions.size());
+    KU_ASSERT(partitions.size() == localPartitioningState->partitions.size());
     for (auto partitionIdx = 0u; partitionIdx < partitions.size(); partitionIdx++) {
         auto sharedPartition = partitions[partitionIdx].get();
         auto localPartition = localPartitioningState->partitions[partitionIdx].get();
@@ -97,7 +97,7 @@ void Partitioner::executeInternal(ExecutionContext* context) {
 
 void Partitioner::initializePartitioningStates(
     std::vector<std::unique_ptr<PartitioningBuffer>>& partitioningBuffers) {
-    assert(infos.size() == sharedState->numPartitions.size());
+    KU_ASSERT(infos.size() == sharedState->numPartitions.size());
     partitioningBuffers.resize(infos.size());
     for (auto partitioningIdx = 0u; partitioningIdx < infos.size(); partitioningIdx++) {
         auto numPartition = sharedState->numPartitions[partitioningIdx];

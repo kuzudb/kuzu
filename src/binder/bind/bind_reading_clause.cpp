@@ -199,7 +199,7 @@ expression_vector Binder::createColumnExpressions(common::ReaderConfig& readerCo
 void Binder::validateColumnTypes(const std::vector<std::string>& columnNames,
     const std::vector<std::unique_ptr<LogicalType>>& expectedColumnTypes,
     const std::vector<std::unique_ptr<LogicalType>>& detectedColumnTypes) {
-    assert(expectedColumnTypes.size() == detectedColumnTypes.size());
+    KU_ASSERT(expectedColumnTypes.size() == detectedColumnTypes.size());
     for (auto i = 0; i < expectedColumnTypes.size(); ++i) {
         if (*expectedColumnTypes[i] != *detectedColumnTypes[i]) {
             throw BinderException(stringFormat("Column `{}` type mismatch. Expected {} but got {}.",
@@ -222,7 +222,7 @@ void Binder::validateNumColumns(uint32_t expectedNumber, uint32_t detectedNumber
 void Binder::sniffFiles(const common::ReaderConfig& readerConfig,
     std::vector<std::string>& columnNames,
     std::vector<std::unique_ptr<common::LogicalType>>& columnTypes) {
-    assert(readerConfig.getNumFiles() > 0);
+    KU_ASSERT(readerConfig.getNumFiles() > 0);
     sniffFile(readerConfig, 0, columnNames, columnTypes);
     for (auto i = 1; i < readerConfig.getNumFiles(); ++i) {
         std::vector<std::string> tmpColumnNames;

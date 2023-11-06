@@ -35,7 +35,7 @@ uint32_t getDataTypeSizeInChunk(const common::LogicalType& dataType) {
     }
     default: {
         auto size = StorageUtils::getDataTypeSize(dataType);
-        assert(size <= BufferPoolConstants::PAGE_4KB_SIZE);
+        KU_ASSERT(size <= BufferPoolConstants::PAGE_4KB_SIZE);
         return size;
     }
     }
@@ -277,7 +277,7 @@ void IntegerBitpacking<T>::setValueFromUncompressed(uint8_t* srcBuffer, common::
     auto chunkStart = (uint8_t*)getChunkStart(dstBuffer, posInDst, header.bitWidth);
     auto posInChunk = posInDst % CHUNK_SIZE;
     auto value = ((T*)srcBuffer)[posInSrc];
-    assert(canUpdateInPlace(value, header));
+    KU_ASSERT(canUpdateInPlace(value, header));
 
     U chunk[CHUNK_SIZE];
     fastunpack(chunkStart, chunk, header.bitWidth);
@@ -289,7 +289,7 @@ template<typename T>
 void IntegerBitpacking<T>::getValues(const uint8_t* chunkStart, uint8_t pos, uint8_t* dst,
     uint8_t numValuesToRead, const BitpackHeader& header) const {
     // TODO(bmwinger): optimize as in setValueFromUncompressed
-    assert(pos + numValuesToRead <= CHUNK_SIZE);
+    KU_ASSERT(pos + numValuesToRead <= CHUNK_SIZE);
 
     U chunk[CHUNK_SIZE];
     fastunpack(chunkStart, chunk, header.bitWidth);
@@ -326,8 +326,8 @@ uint64_t IntegerBitpacking<T>::compressNextPage(const uint8_t*& srcBuffer,
     // Round up to nearest byte
     auto sizeToCompress =
         numValuesToCompress * bitWidth / 8 + (numValuesToCompress * bitWidth % 8 != 0);
-    assert(dstBufferSize >= CHUNK_SIZE);
-    assert(dstBufferSize >= sizeToCompress);
+    KU_ASSERT(dstBufferSize >= CHUNK_SIZE);
+    KU_ASSERT(dstBufferSize >= sizeToCompress);
     // This might overflow the source buffer if there are fewer values remaining than the chunk size
     // so we stop at the end of the last full chunk and use a temporary array to avoid overflow.
     if (header.offset == 0) {

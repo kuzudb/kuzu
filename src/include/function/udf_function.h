@@ -96,7 +96,7 @@ struct UDF {
         function::scalar_exec_func execFunc =
             [=](const std::vector<std::shared_ptr<common::ValueVector>>& params,
                 common::ValueVector& result, void* /*dataPtr*/ = nullptr) -> void {
-            assert(params.size() == 1);
+            KU_ASSERT(params.size() == 1);
             UnaryFunctionExecutor::executeUDF<OPERAND_TYPE, RESULT_TYPE, UnaryUDFExecutor>(
                 *params[0], result, (void*)udfFunc);
         };
@@ -123,7 +123,7 @@ struct UDF {
         function::scalar_exec_func execFunc =
             [=](const std::vector<std::shared_ptr<common::ValueVector>>& params,
                 common::ValueVector& result, void* /*dataPtr*/ = nullptr) -> void {
-            assert(params.size() == 2);
+            KU_ASSERT(params.size() == 2);
             BinaryFunctionExecutor::executeUDF<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE,
                 BinaryUDFExecutor>(*params[0], *params[1], result, (void*)udfFunc);
         };
@@ -151,7 +151,7 @@ struct UDF {
         function::scalar_exec_func execFunc =
             [=](const std::vector<std::shared_ptr<common::ValueVector>>& params,
                 common::ValueVector& result, void* /*dataPtr*/ = nullptr) -> void {
-            assert(params.size() == 3);
+            KU_ASSERT(params.size() == 3);
             TernaryFunctionExecutor::executeUDF<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE,
                 TernaryUDFExecutor>(*params[0], *params[1], *params[2], result, (void*)udfFunc);
         };

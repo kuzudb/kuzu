@@ -29,7 +29,7 @@ void CountFunction::updateAll(
 }
 
 void CountFunction::paramRewriteFunc(binder::expression_vector& arguments) {
-    assert(arguments.size() == 1);
+    KU_ASSERT(arguments.size() == 1);
     if (ExpressionUtil::isNodeVariable(*arguments[0])) {
         auto node = (NodeExpression*)arguments[0].get();
         arguments[0] = node->getInternalID();

@@ -97,7 +97,7 @@ std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::visitScanNode
             auto expressionsScan = std::make_shared<LogicalDummyScan>();
             expressionsScan->computeFlatSchema();
             std::vector<std::unique_ptr<LogicalIndexScanNodeInfo>> infos;
-            assert(tableIDs.size() == 1);
+            KU_ASSERT(tableIDs.size() == 1);
             infos.push_back(std::make_unique<LogicalIndexScanNodeInfo>(
                 tableIDs[0], nodeID, rhs, rhs->getDataType().copy()));
             auto indexScan = std::make_shared<LogicalIndexScanNode>(
@@ -140,8 +140,8 @@ std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::pushDownToSca
             // Property already matched
             continue;
         }
-        assert(propertyExpression->getVariableName() ==
-               ((PropertyExpression&)*nodeID).getVariableName());
+        KU_ASSERT(propertyExpression->getVariableName() ==
+                  ((PropertyExpression&)*nodeID).getVariableName());
         propertiesSet.insert(expression);
     }
     auto scanNodeProperty = appendScanNodeProperty(std::move(nodeID), std::move(tableIDs),

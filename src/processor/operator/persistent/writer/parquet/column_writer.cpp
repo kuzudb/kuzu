@@ -304,7 +304,7 @@ void ColumnWriter::compressPage(common::BufferedSerializer& bufferedSerializer,
             bufferedSerializer.getSize(), reinterpret_cast<char*>(compressedBuf.get()),
             &compressedSize);
         compressedData = compressedBuf.get();
-        assert(compressedSize <= kuzu_snappy::MaxCompressedLength(bufferedSerializer.getSize()));
+        KU_ASSERT(compressedSize <= kuzu_snappy::MaxCompressedLength(bufferedSerializer.getSize()));
     } break;
     default:
         throw NotImplementedException{"ColumnWriter::compressPage"};

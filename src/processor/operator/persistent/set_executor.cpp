@@ -110,9 +110,9 @@ std::vector<std::unique_ptr<RelSetExecutor>> RelSetExecutor::copy(
 // Assume both input vectors are flat. Should be removed eventually.
 static void writeToPropertyVector(
     ValueVector* relIDVector, ValueVector* propertyVector, ValueVector* rhsVector) {
-    assert(propertyVector->state->selVector->selectedSize == 1);
+    KU_ASSERT(propertyVector->state->selVector->selectedSize == 1);
     auto propertyVectorPos = propertyVector->state->selVector->selectedPositions[0];
-    assert(rhsVector->state->selVector->selectedSize == 1);
+    KU_ASSERT(rhsVector->state->selVector->selectedSize == 1);
     auto rhsVectorPos = rhsVector->state->selVector->selectedPositions[0];
     writeToPropertyVector(relIDVector, propertyVector, propertyVectorPos, rhsVector, rhsVectorPos);
 }
@@ -135,7 +135,7 @@ void SingleLabelRelSetExecutor::set() {
 
 void MultiLabelRelSetExecutor::set() {
     evaluator->evaluate();
-    assert(relIDVector->state->isFlat());
+    KU_ASSERT(relIDVector->state->isFlat());
     auto pos = relIDVector->state->selVector->selectedPositions[0];
     auto relID = relIDVector->getValue<internalID_t>(pos);
     if (!tableIDToTableAndPropertyID.contains(relID.tableID)) {

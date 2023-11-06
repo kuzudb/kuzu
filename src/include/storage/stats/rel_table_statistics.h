@@ -36,7 +36,7 @@ public:
     inline void removeMetadataDAHInfoForColumn(
         common::column_id_t columnID, common::RelDataDirection direction) {
         auto& metadataDAHInfos = getDirectedPropertyMetadataDAHInfosRef(direction);
-        assert(columnID < metadataDAHInfos.size());
+        KU_ASSERT(columnID < metadataDAHInfos.size());
         metadataDAHInfos.erase(metadataDAHInfos.begin() + columnID);
     }
     inline MetadataDAHInfo* getCSROffsetMetadataDAHInfo(common::RelDataDirection direction) {
@@ -50,7 +50,7 @@ public:
     inline MetadataDAHInfo* getPropertyMetadataDAHInfo(
         common::column_id_t columnID, common::RelDataDirection direction) {
         auto& metadataDAHInfos = getDirectedPropertyMetadataDAHInfosRef(direction);
-        assert(columnID < metadataDAHInfos.size());
+        KU_ASSERT(columnID < metadataDAHInfos.size());
         return metadataDAHInfos[columnID].get();
     }
 

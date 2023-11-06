@@ -67,7 +67,7 @@ void StructPackFunctions::copyParameterValueToStructFieldVector(
     const ValueVector* parameter, ValueVector* structField, DataChunkState* structVectorState) {
     // If the parameter is unFlat, then its state must be consistent with the result's state.
     // Thus, we don't need to copy values to structFieldVector.
-    assert(parameter->state->isFlat());
+    KU_ASSERT(parameter->state->isFlat());
     auto paramPos = parameter->state->selVector->selectedPositions[0];
     if (structVectorState->isFlat()) {
         auto pos = structVectorState->selVector->selectedPositions[0];
@@ -110,7 +110,7 @@ std::unique_ptr<FunctionBindData> StructExtractFunctions::bindFunc(
 void StructExtractFunctions::compileFunc(FunctionBindData* bindData,
     const std::vector<std::shared_ptr<ValueVector>>& parameters,
     std::shared_ptr<ValueVector>& result) {
-    assert(parameters[0]->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
+    KU_ASSERT(parameters[0]->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
     auto structBindData = reinterpret_cast<StructExtractBindData*>(bindData);
     result = StructVector::getFieldVector(parameters[0].get(), structBindData->childIdx);
     result->state = parameters[0]->state;

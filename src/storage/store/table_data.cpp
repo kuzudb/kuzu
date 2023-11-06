@@ -24,12 +24,12 @@ void TableData::read(transaction::Transaction* transaction, ValueVector* nodeIDV
 
 void TableData::scan(transaction::Transaction* transaction, ValueVector* nodeIDVector,
     const std::vector<column_id_t>& columnIDs, const std::vector<ValueVector*>& outputVectors) {
-    assert(columnIDs.size() == outputVectors.size() && !nodeIDVector->state->isFlat());
+    KU_ASSERT(columnIDs.size() == outputVectors.size() && !nodeIDVector->state->isFlat());
     for (auto i = 0u; i < columnIDs.size(); i++) {
         if (columnIDs[i] == INVALID_COLUMN_ID) {
             outputVectors[i]->setAllNull();
         } else {
-            assert(columnIDs[i] < columns.size());
+            KU_ASSERT(columnIDs[i] < columns.size());
             columns[columnIDs[i]]->scan(transaction, nodeIDVector, outputVectors[i]);
         }
     }
@@ -46,7 +46,7 @@ void TableData::lookup(transaction::Transaction* transaction, ValueVector* nodeI
         if (columnID == INVALID_COLUMN_ID) {
             outputVectors[i]->setNull(pos, true);
         } else {
-            assert(columnIDs[i] < columns.size());
+            KU_ASSERT(columnIDs[i] < columns.size());
             columns[columnIDs[i]]->lookup(transaction, nodeIDVector, outputVectors[i]);
         }
     }
@@ -78,7 +78,7 @@ void TableData::insert(transaction::Transaction* transaction, ValueVector* nodeI
 
 void TableData::update(transaction::Transaction* transaction, column_id_t columnID,
     ValueVector* nodeIDVector, ValueVector* propertyVector) {
-    assert(columnID < columns.size());
+    KU_ASSERT(columnID < columns.size());
     transaction->getLocalStorage()->update(tableID, columnID, nodeIDVector, propertyVector);
 }
 
@@ -91,7 +91,7 @@ void TableData::update(transaction::Transaction* transaction, column_id_t column
 void TableData::append(kuzu::storage::NodeGroup* nodeGroup) {
     for (auto columnID = 0u; columnID < columns.size(); columnID++) {
         auto columnChunk = nodeGroup->getColumnChunk(columnID);
-        assert(columnID < columns.size());
+        KU_ASSERT(columnID < columns.size());
         columns[columnID]->append(columnChunk, nodeGroup->getNodeGroupIdx());
     }
 }

@@ -176,8 +176,8 @@ void QueryResult::writeToCSV(
     std::ofstream file;
     file.open(fileName);
     std::shared_ptr<FlatTuple> nextTuple;
-    assert(delimiter != '\0');
-    assert(newline != '\0');
+    KU_ASSERT(delimiter != '\0');
+    KU_ASSERT(newline != '\0');
     while (hasNext()) {
         nextTuple = getNext();
         for (auto idx = 0ul; idx < nextTuple->len(); idx++) {

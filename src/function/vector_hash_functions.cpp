@@ -9,7 +9,7 @@ namespace function {
 
 void VectorHashFunction::computeHash(ValueVector* operand, ValueVector* result) {
     result->state = operand->state;
-    assert(result->dataType.getLogicalTypeID() == LogicalTypeID::INT64);
+    KU_ASSERT(result->dataType.getLogicalTypeID() == LogicalTypeID::INT64);
     switch (operand->dataType.getPhysicalType()) {
     case PhysicalTypeID::INTERNAL_ID: {
         UnaryHashFunctionExecutor::execute<internalID_t, hash_t>(*operand, *result);
@@ -58,12 +58,13 @@ void VectorHashFunction::computeHash(ValueVector* operand, ValueVector* result) 
     } break;
     case PhysicalTypeID::STRUCT: {
         if (operand->dataType.getLogicalTypeID() == LogicalTypeID::NODE) {
-            assert(0 == common::StructType::getFieldIdx(&operand->dataType, InternalKeyword::ID));
+            KU_ASSERT(
+                0 == common::StructType::getFieldIdx(&operand->dataType, InternalKeyword::ID));
             UnaryHashFunctionExecutor::execute<internalID_t, hash_t>(
                 *StructVector::getFieldVector(operand, 0), *result);
             break;
         } else if (operand->dataType.getLogicalTypeID() == LogicalTypeID::REL) {
-            assert(3 == StructType::getFieldIdx(&operand->dataType, InternalKeyword::ID));
+            KU_ASSERT(3 == StructType::getFieldIdx(&operand->dataType, InternalKeyword::ID));
             UnaryHashFunctionExecutor::execute<internalID_t, hash_t>(
                 *StructVector::getFieldVector(operand, 3), *result);
             break;
@@ -78,9 +79,9 @@ void VectorHashFunction::computeHash(ValueVector* operand, ValueVector* result) 
 }
 
 void VectorHashFunction::combineHash(ValueVector* left, ValueVector* right, ValueVector* result) {
-    assert(left->dataType.getLogicalTypeID() == LogicalTypeID::INT64);
-    assert(left->dataType.getLogicalTypeID() == right->dataType.getLogicalTypeID());
-    assert(left->dataType.getLogicalTypeID() == result->dataType.getLogicalTypeID());
+    KU_ASSERT(left->dataType.getLogicalTypeID() == LogicalTypeID::INT64);
+    KU_ASSERT(left->dataType.getLogicalTypeID() == right->dataType.getLogicalTypeID());
+    KU_ASSERT(left->dataType.getLogicalTypeID() == result->dataType.getLogicalTypeID());
     // TODO(Xiyang/Guodong): we should resolve result state of hash vector at compile time.
     result->state = !right->state->isFlat() ? right->state : left->state;
     BinaryFunctionExecutor::execute<hash_t, hash_t, hash_t, CombineHash>(*left, *right, *result);

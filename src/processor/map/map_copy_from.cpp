@@ -125,7 +125,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRelFrom(
     auto outFSchema = copyFrom->getSchema();
     auto tableSchema = reinterpret_cast<RelTableSchema*>(copyFromInfo->tableSchema);
     auto prevOperator = mapOperator(copyFrom->getChild(0).get());
-    assert(prevOperator->getOperatorType() == PhysicalOperatorType::PARTITIONER);
+    KU_ASSERT(prevOperator->getOperatorType() == PhysicalOperatorType::PARTITIONER);
     auto partitionerSharedState = dynamic_cast<Partitioner*>(prevOperator.get())->getSharedState();
     partitionerSharedState->numPartitions.resize(2);
     std::vector<std::unique_ptr<LogicalType>> columnTypes;

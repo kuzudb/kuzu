@@ -50,7 +50,7 @@ template<>
 void ArrowRowBatch::templateInitializeVector<LogicalTypeID::VAR_LIST>(
     ArrowVector* vector, const main::DataTypeInfo& typeInfo, std::int64_t capacity) {
     initializeNullBits(vector->validity, capacity);
-    assert(typeInfo.childrenTypesInfo.size() == 1);
+    KU_ASSERT(typeInfo.childrenTypesInfo.size() == 1);
     auto childTypeInfo = typeInfo.childrenTypesInfo[0].get();
     // Initialize offsets and child buffer.
     vector->data.reserve((capacity + 1) * sizeof(std::uint32_t));

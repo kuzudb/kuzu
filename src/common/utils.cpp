@@ -17,7 +17,7 @@ void LoggerUtils::createLogger(LoggerConstants::LoggerEnum loggerEnum) {
 std::shared_ptr<spdlog::logger> LoggerUtils::getLogger(LoggerConstants::LoggerEnum loggerEnum) {
     auto loggerName = getLoggerName(loggerEnum);
     std::shared_ptr<spdlog::logger> logger = spdlog::get(loggerName);
-    assert(logger);
+    KU_ASSERT(logger);
     return logger;
 }
 

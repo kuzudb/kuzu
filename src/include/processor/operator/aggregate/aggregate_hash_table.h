@@ -167,7 +167,7 @@ private:
     void fillHashSlot(common::hash_t hash, uint8_t* groupByKeysAndAggregateStateBuffer);
 
     inline HashSlot* getHashSlot(uint64_t slotIdx) {
-        assert(slotIdx < maxNumHashSlots);
+        KU_ASSERT(slotIdx < maxNumHashSlots);
         // If the slotIdx is smaller than the numHashSlotsPerBlock, then the hashSlot must be
         // in the first hashSlotsBlock. We don't need to compute the blockIdx and blockOffset.
         return slotIdx < ((uint64_t)1 << numSlotsPerBlockLog2) ?

@@ -76,7 +76,7 @@ protected:
     inline bool isCurrentFrontierEmpty() const { return currentFrontier->nodeIDs.empty(); }
     inline bool isUpperBoundReached() const { return currentLevel == upperBound; }
     inline void initStartFrontier() {
-        assert(frontiers.empty());
+        KU_ASSERT(frontiers.empty());
         frontiers.push_back(std::make_unique<Frontier>());
         currentFrontier = frontiers[frontiers.size() - 1].get();
     }

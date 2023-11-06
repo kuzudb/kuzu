@@ -11,7 +11,7 @@ static FactorizedTableScan* getTableScanForAccHashJoin(PhysicalOperator* probe) 
     while (op->getOperatorType() == PhysicalOperatorType::FLATTEN) {
         op = op->getChild(0);
     }
-    assert(op->getOperatorType() == PhysicalOperatorType::FACTORIZED_TABLE_SCAN);
+    KU_ASSERT(op->getOperatorType() == PhysicalOperatorType::FACTORIZED_TABLE_SCAN);
     return (FactorizedTableScan*)op;
 }
 

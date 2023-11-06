@@ -48,7 +48,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(LogicalOperator* logica
     for (auto& expression : keyExpressions) {
         keysPos.emplace_back(inSchema->getExpressionPos(*expression));
         keyTypes.push_back(expression->getDataType().copy());
-        assert(payloadToColIdx.contains(expression));
+        KU_ASSERT(payloadToColIdx.contains(expression));
         keyInPayloadPos.push_back(payloadToColIdx.at(expression));
     }
     std::vector<DataPos> outPos;

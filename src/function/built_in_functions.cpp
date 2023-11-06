@@ -103,7 +103,7 @@ AggregateFunction* BuiltInFunctions::matchAggregateFunction(
         candidateFunctions.push_back(aggregateFunction);
     }
     validateNonEmptyCandidateFunctions(candidateFunctions, name, inputTypes, isDistinct);
-    assert(candidateFunctions.size() == 1);
+    KU_ASSERT(candidateFunctions.size() == 1);
     return candidateFunctions[0];
 }
 
@@ -369,7 +369,7 @@ uint32_t BuiltInFunctions::castSerial(LogicalTypeID targetTypeID) {
 // Additionally, we prefer function with string parameter because string is most permissive and can
 // be cast to any type.
 Function* BuiltInFunctions::getBestMatch(std::vector<Function*>& functionsToMatch) {
-    assert(functionsToMatch.size() > 1);
+    KU_ASSERT(functionsToMatch.size() > 1);
     Function* result = nullptr;
     auto cost = UNDEFINED_CAST_COST;
     for (auto& function : functionsToMatch) {
@@ -389,7 +389,7 @@ Function* BuiltInFunctions::getBestMatch(std::vector<Function*>& functionsToMatc
             result = function;
         }
     }
-    assert(result != nullptr);
+    KU_ASSERT(result != nullptr);
     return result;
 }
 
@@ -399,7 +399,7 @@ uint32_t BuiltInFunctions::getFunctionCost(
     case FunctionType::SCALAR: {
         auto scalarFunction = reinterpret_cast<ScalarFunction*>(function);
         if (scalarFunction->isVarLength) {
-            assert(function->parameterTypeIDs.size() == 1);
+            KU_ASSERT(function->parameterTypeIDs.size() == 1);
             return matchVarLengthParameters(inputTypes, function->parameterTypeIDs[0], isOverload);
         } else {
             return matchParameters(inputTypes, function->parameterTypeIDs, isOverload);

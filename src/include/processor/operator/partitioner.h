@@ -37,7 +37,7 @@ struct PartitionerLocalState {
     std::vector<std::unique_ptr<PartitioningBuffer>> partitioningBuffers;
 
     PartitioningBuffer* getPartitioningBuffer(common::partition_idx_t partitioningIdx) {
-        assert(partitioningIdx < partitioningBuffers.size());
+        KU_ASSERT(partitioningIdx < partitioningBuffers.size());
         return partitioningBuffers[partitioningIdx].get();
     }
 };

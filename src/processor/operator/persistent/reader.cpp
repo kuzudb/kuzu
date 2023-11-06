@@ -24,9 +24,9 @@ void Reader::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* cont
     readFunc = ReaderFunctions::getReadRowsFunc(*sharedState->readerConfig);
     if (info->offsetPos.dataChunkPos != INVALID_DATA_CHUNK_POS) {
         offsetVector = resultSet->getValueVector(info->offsetPos).get();
-        assert(offsetVector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
+        KU_ASSERT(offsetVector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
     }
-    assert(!sharedState->readerConfig->filePaths.empty());
+    KU_ASSERT(!sharedState->readerConfig->filePaths.empty());
     if (sharedState->readerConfig->fileType == FileType::CSV &&
         !sharedState->readerConfig->csvReaderConfig->parallel) {
         readFuncData = sharedState->readFuncData;

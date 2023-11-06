@@ -148,7 +148,7 @@ void Database::commit(Transaction* transaction, bool skipCheckpointForTestingRec
         transactionManager->commit(transaction);
         return;
     }
-    assert(transaction->isWriteTransaction());
+    KU_ASSERT(transaction->isWriteTransaction());
     catalog->prepareCommitOrRollback(TransactionAction::COMMIT);
     transaction->getLocalStorage()->prepareCommit();
     storageManager->prepareCommit();
@@ -179,7 +179,7 @@ void Database::rollback(
         transactionManager->rollback(transaction);
         return;
     }
-    assert(transaction->isWriteTransaction());
+    KU_ASSERT(transaction->isWriteTransaction());
     catalog->prepareCommitOrRollback(TransactionAction::ROLLBACK);
     storageManager->prepareRollback();
     if (skipCheckpointForTestingRecovery) {
@@ -191,8 +191,8 @@ void Database::rollback(
 }
 
 void Database::checkpointAndClearWAL(WALReplayMode replayMode) {
-    assert(replayMode == WALReplayMode::COMMIT_CHECKPOINT ||
-           replayMode == WALReplayMode::RECOVERY_CHECKPOINT);
+    KU_ASSERT(replayMode == WALReplayMode::COMMIT_CHECKPOINT ||
+              replayMode == WALReplayMode::RECOVERY_CHECKPOINT);
     auto walReplayer = std::make_unique<WALReplayer>(
         wal.get(), storageManager.get(), bufferManager.get(), catalog.get(), replayMode);
     walReplayer->replay();

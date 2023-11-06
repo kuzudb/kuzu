@@ -97,7 +97,7 @@ void QueryPlanner::planRegularMatch(const QueryGraphCollection& queryGraphCollec
 
 void QueryPlanner::planExistsSubquery(
     std::shared_ptr<Expression> expression, LogicalPlan& outerPlan) {
-    assert(expression->expressionType == EXISTENTIAL_SUBQUERY);
+    KU_ASSERT(expression->expressionType == EXISTENTIAL_SUBQUERY);
     auto subquery = static_pointer_cast<ExistentialSubqueryExpression>(expression);
     auto predicates = subquery->getPredicatesSplitOnAnd();
     auto correlatedExpressions = outerPlan.getSchema()->getSubExpressionsInScope(subquery);

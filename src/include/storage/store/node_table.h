@@ -27,7 +27,7 @@ public:
     }
     inline void setSelVectorForDeletedOffsets(
         transaction::Transaction* trx, std::shared_ptr<common::ValueVector>& vector) const {
-        assert(vector->isSequential());
+        KU_ASSERT(vector->isSequential());
         nodesStatisticsAndDeletedIDs->setDeletedNodeOffsetsForMorsel(trx, vector, tableID);
     }
 

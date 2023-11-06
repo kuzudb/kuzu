@@ -26,8 +26,8 @@ static bool isAllInternalIDDistinct(common::ValueVector* dataVector, common::off
 struct UnaryPathExecutor {
     static void executeNodeIDs(common::ValueVector& input, common::ValueVector& result) {
         auto nodesFieldIdx = 0;
-        assert(nodesFieldIdx ==
-               common::StructType::getFieldIdx(&input.dataType, common::InternalKeyword::NODES));
+        KU_ASSERT(nodesFieldIdx ==
+                  common::StructType::getFieldIdx(&input.dataType, common::InternalKeyword::NODES));
         auto nodesVector = common::StructVector::getFieldVector(&input, nodesFieldIdx).get();
         auto internalIDFieldIdx = 0;
         execute(*input.state->selVector, *nodesVector, internalIDFieldIdx, result);
@@ -35,8 +35,8 @@ struct UnaryPathExecutor {
 
     static void executeRelIDs(common::ValueVector& input, common::ValueVector& result) {
         auto relsFieldIdx = 1;
-        assert(relsFieldIdx ==
-               common::StructType::getFieldIdx(&input.dataType, common::InternalKeyword::RELS));
+        KU_ASSERT(relsFieldIdx ==
+                  common::StructType::getFieldIdx(&input.dataType, common::InternalKeyword::RELS));
         auto relsVector = common::StructVector::getFieldVector(&input, relsFieldIdx).get();
         auto internalIDFieldIdx = 3;
         execute(*input.state->selVector, *relsVector, internalIDFieldIdx, result);
@@ -45,8 +45,8 @@ struct UnaryPathExecutor {
     static bool selectNodeIDs(
         common::ValueVector& input, common::SelectionVector& selectionVector) {
         auto nodesFieldIdx = 0;
-        assert(nodesFieldIdx ==
-               common::StructType::getFieldIdx(&input.dataType, common::InternalKeyword::NODES));
+        KU_ASSERT(nodesFieldIdx ==
+                  common::StructType::getFieldIdx(&input.dataType, common::InternalKeyword::NODES));
         auto nodesVector = common::StructVector::getFieldVector(&input, nodesFieldIdx).get();
         auto internalIDFieldIdx = 0;
         return select(*input.state->selVector, *nodesVector, internalIDFieldIdx, selectionVector);
@@ -54,8 +54,8 @@ struct UnaryPathExecutor {
 
     static bool selectRelIDs(common::ValueVector& input, common::SelectionVector& selectionVector) {
         auto relsFieldIdx = 1;
-        assert(relsFieldIdx ==
-               common::StructType::getFieldIdx(&input.dataType, common::InternalKeyword::RELS));
+        KU_ASSERT(relsFieldIdx ==
+                  common::StructType::getFieldIdx(&input.dataType, common::InternalKeyword::RELS));
         auto relsVector = common::StructVector::getFieldVector(&input, relsFieldIdx).get();
         auto internalIDFieldIdx = 3;
         return select(*input.state->selVector, *relsVector, internalIDFieldIdx, selectionVector);
@@ -66,8 +66,8 @@ private:
         common::ValueVector& listVector, common::struct_field_idx_t fieldIdx,
         common::ValueVector& result) {
         auto listDataVector = common::ListVector::getDataVector(&listVector);
-        assert(fieldIdx == common::StructType::getFieldIdx(
-                               &listDataVector->dataType, common::InternalKeyword::ID));
+        KU_ASSERT(fieldIdx == common::StructType::getFieldIdx(
+                                  &listDataVector->dataType, common::InternalKeyword::ID));
         auto internalIDsVector =
             common::StructVector::getFieldVector(listDataVector, fieldIdx).get();
         std::unordered_set<common::nodeID_t, InternalIDHasher> internalIDSet;
@@ -93,8 +93,8 @@ private:
         common::ValueVector& listVector, common::struct_field_idx_t fieldIdx,
         common::SelectionVector& selectionVector) {
         auto listDataVector = common::ListVector::getDataVector(&listVector);
-        assert(fieldIdx == common::StructType::getFieldIdx(
-                               &listDataVector->dataType, common::InternalKeyword::ID));
+        KU_ASSERT(fieldIdx == common::StructType::getFieldIdx(
+                                  &listDataVector->dataType, common::InternalKeyword::ID));
         auto internalIDsVector =
             common::StructVector::getFieldVector(listDataVector, fieldIdx).get();
         std::unordered_set<common::nodeID_t, InternalIDHasher> internalIDSet;

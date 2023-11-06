@@ -19,7 +19,7 @@ function_set UnionValueFunction::getFunctionSet() {
 
 std::unique_ptr<FunctionBindData> UnionValueFunction::bindFunc(
     const binder::expression_vector& arguments, kuzu::function::Function* /*function*/) {
-    assert(arguments.size() == 1);
+    KU_ASSERT(arguments.size() == 1);
     std::vector<std::unique_ptr<StructField>> fields;
     // TODO(Ziy): Use UINT8 to represent tag value.
     fields.push_back(std::make_unique<StructField>(
@@ -43,7 +43,7 @@ void UnionValueFunction::execFunc(const std::vector<std::shared_ptr<ValueVector>
 void UnionValueFunction::compileFunc(FunctionBindData* /*bindData*/,
     const std::vector<std::shared_ptr<ValueVector>>& parameters,
     std::shared_ptr<ValueVector>& result) {
-    assert(parameters.size() == 1);
+    KU_ASSERT(parameters.size() == 1);
     result->setState(parameters[0]->state);
     UnionVector::getTagVector(result.get())->setState(parameters[0]->state);
     UnionVector::referenceVector(result.get(), UnionType::TAG_FIELD_IDX, parameters[0]);

@@ -1,3 +1,4 @@
+#include "common/assert.h"
 #include "parser/query/graph_pattern/pattern_element.h"
 #include "parser/transformer.h"
 
@@ -156,7 +157,7 @@ std::unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
 std::vector<std::pair<std::string, std::unique_ptr<ParsedExpression>>>
 Transformer::transformProperties(CypherParser::KU_PropertiesContext& ctx) {
     std::vector<std::pair<std::string, std::unique_ptr<ParsedExpression>>> result;
-    assert(ctx.oC_PropertyKeyName().size() == ctx.oC_Expression().size());
+    KU_ASSERT(ctx.oC_PropertyKeyName().size() == ctx.oC_Expression().size());
     for (auto i = 0u; i < ctx.oC_PropertyKeyName().size(); ++i) {
         auto propertyKeyName = transformPropertyKeyName(*ctx.oC_PropertyKeyName(i));
         auto expression = transformExpression(*ctx.oC_Expression(i));

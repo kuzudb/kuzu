@@ -69,7 +69,7 @@ void QueryPlanner::planMergeClause(binder::BoundUpdatingClause& updatingClause, 
     planOptionalMatch(*mergeClause.getQueryGraphCollection(), predicates, plan);
     std::shared_ptr<Expression> mark;
     auto& createInfos = mergeClause.getInsertInfosRef();
-    assert(!createInfos.empty());
+    KU_ASSERT(!createInfos.empty());
     auto createInfo = createInfos[0].get();
     switch (createInfo->updateTableType) {
     case binder::UpdateTableType::NODE: {

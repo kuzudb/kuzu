@@ -1,7 +1,9 @@
 #pragma once
+
 #include <cstring>
 #include <list>
 
+#include "common/assert.h"
 #include "common/file_utils.h"
 #include "thrift/transport/TVirtualTransport.h"
 
@@ -125,7 +127,7 @@ public:
         auto prefetch_buffer = ra_buffer.GetReadHead(location);
         if (prefetch_buffer != nullptr &&
             location - prefetch_buffer->location + len <= prefetch_buffer->size) {
-            assert(location - prefetch_buffer->location + len <= prefetch_buffer->size);
+            KU_ASSERT(location - prefetch_buffer->location + len <= prefetch_buffer->size);
 
             if (!prefetch_buffer->data_isset) {
                 prefetch_buffer->Allocate();
@@ -139,8 +141,8 @@ public:
                 Prefetch(location, std::min<uint64_t>(PREFETCH_FALLBACK_BUFFERSIZE,
                                        handle->getFileSize() - location));
                 auto prefetch_buffer_fallback = ra_buffer.GetReadHead(location);
-                assert(location - prefetch_buffer_fallback->location + len <=
-                       prefetch_buffer_fallback->size);
+                KU_ASSERT(location - prefetch_buffer_fallback->location + len <=
+                          prefetch_buffer_fallback->size);
                 memcpy(buf,
                     prefetch_buffer_fallback->data.get() + location -
                         prefetch_buffer_fallback->location,

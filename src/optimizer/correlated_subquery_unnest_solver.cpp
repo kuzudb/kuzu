@@ -35,7 +35,7 @@ void CorrelatedSubqueryUnnestSolver::solveAccHashJoin(LogicalOperator* op) const
 
 void CorrelatedSubqueryUnnestSolver::visitExpressionsScan(LogicalOperator* op) {
     auto expressionsScan = (LogicalExpressionsScan*)op;
-    assert(accumulateOp != nullptr);
+    KU_ASSERT(accumulateOp != nullptr);
     expressionsScan->setOuterAccumulate(accumulateOp);
 }
 

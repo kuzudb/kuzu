@@ -155,7 +155,7 @@ void QueryGraph::addQueryNode(std::shared_ptr<NodeExpression> queryNode) {
 }
 
 void QueryGraph::addQueryRel(std::shared_ptr<RelExpression> queryRel) {
-    assert(!containsQueryRel(queryRel->getUniqueName()));
+    KU_ASSERT(!containsQueryRel(queryRel->getUniqueName()));
     queryRelNameToPosMap.insert({queryRel->getUniqueName(), queryRels.size()});
     queryRels.push_back(queryRel);
 }
@@ -273,7 +273,7 @@ bool PropertyKeyValCollection::hasKeyVal(
 
 expression_pair PropertyKeyValCollection::getKeyVal(
     std::shared_ptr<Expression> variable, const std::string& propertyName) const {
-    assert(hasKeyVal(variable, propertyName));
+    KU_ASSERT(hasKeyVal(variable, propertyName));
     return propertyKeyValMap.at(variable).at(propertyName);
 }
 

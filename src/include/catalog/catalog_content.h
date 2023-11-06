@@ -44,15 +44,15 @@ public:
         return containsTable(tableName, common::TableType::REL);
     }
     inline std::string getTableName(common::table_id_t tableID) const {
-        assert(tableSchemas.contains(tableID));
+        KU_ASSERT(tableSchemas.contains(tableID));
         return getTableSchema(tableID)->tableName;
     }
     inline TableSchema* getTableSchema(common::table_id_t tableID) const {
-        assert(tableSchemas.contains(tableID));
+        KU_ASSERT(tableSchemas.contains(tableID));
         return tableSchemas.at(tableID).get();
     }
     inline common::table_id_t getTableID(const std::string& tableName) const {
-        assert(tableNameToIDMap.contains(tableName));
+        KU_ASSERT(tableNameToIDMap.contains(tableName));
         return tableNameToIDMap.at(tableName);
     }
 

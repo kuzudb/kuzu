@@ -23,12 +23,12 @@ public:
           expressionNameToPos{other.expressionNameToPos} {}
 
     inline void setFlat() {
-        assert(!flat);
+        KU_ASSERT(!flat);
         flat = true;
     }
     inline bool isFlat() const { return flat; }
     inline void setSingleState() {
-        assert(!singleState);
+        KU_ASSERT(!singleState);
         singleState = true;
         setFlat();
     }
@@ -38,13 +38,13 @@ public:
     inline double getMultiplier() const { return cardinalityMultiplier; }
 
     inline void insertExpression(const std::shared_ptr<binder::Expression>& expression) {
-        assert(!expressionNameToPos.contains(expression->getUniqueName()));
+        KU_ASSERT(!expressionNameToPos.contains(expression->getUniqueName()));
         expressionNameToPos.insert({expression->getUniqueName(), expressions.size()});
         expressions.push_back(expression);
     }
     inline binder::expression_vector getExpressions() const { return expressions; }
     inline uint32_t getExpressionPos(const binder::Expression& expression) {
-        assert(expressionNameToPos.contains(expression.getUniqueName()));
+        KU_ASSERT(expressionNameToPos.contains(expression.getUniqueName()));
         return expressionNameToPos.at(expression.getUniqueName());
     }
 
@@ -91,7 +91,7 @@ public:
     }
 
     inline f_group_pos getGroupPos(const std::string& expressionName) const {
-        assert(expressionNameToGroupPos.contains(expressionName));
+        KU_ASSERT(expressionNameToGroupPos.contains(expressionName));
         return expressionNameToGroupPos.at(expressionName);
     }
 

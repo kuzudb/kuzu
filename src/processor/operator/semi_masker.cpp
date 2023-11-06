@@ -9,7 +9,7 @@ void BaseSemiMasker::initGlobalStateInternal(ExecutionContext* /*context*/) {
     for (auto& [table, masks] : info->masksPerTable) {
         for (auto& maskWithIdx : masks) {
             auto maskIdx = maskWithIdx.first->getNumMasks();
-            assert(maskIdx < UINT8_MAX);
+            KU_ASSERT(maskIdx < UINT8_MAX);
             maskWithIdx.first->incrementNumMasks();
             maskWithIdx.second = maskIdx;
         }

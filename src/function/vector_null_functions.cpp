@@ -26,7 +26,7 @@ void VectorNullFunction::bindExecFunction(ExpressionType expressionType,
 
 void VectorNullFunction::bindSelectFunction(ExpressionType expressionType,
     const binder::expression_vector& children, scalar_select_func& func) {
-    assert(children.size() == 1);
+    KU_ASSERT(children.size() == 1);
     (void)children;
     switch (expressionType) {
     case IS_NULL: {

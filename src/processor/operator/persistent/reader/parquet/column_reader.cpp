@@ -32,11 +32,11 @@ ColumnReader::ColumnReader(ParquetReader& reader, std::unique_ptr<common::Logica
 void ColumnReader::initializeRead(uint64_t /*rowGroupIdx*/,
     const std::vector<kuzu_parquet::format::ColumnChunk>& columns,
     kuzu_apache::thrift::protocol::TProtocol& protocol) {
-    assert(fileIdx < columns.size());
+    KU_ASSERT(fileIdx < columns.size());
     chunk = &columns[fileIdx];
     this->protocol = &protocol;
-    assert(chunk);
-    assert(chunk->__isset.meta_data);
+    KU_ASSERT(chunk);
+    KU_ASSERT(chunk->__isset.meta_data);
 
     if (chunk->__isset.file_path) {
         throw std::runtime_error("Only inlined data files are supported (no references)");
@@ -119,18 +119,18 @@ uint64_t ColumnReader::read(uint64_t numValues, parquet_filter_t& filter, uint8_
             prepareRead(filter);
         }
 
-        assert(block);
+        KU_ASSERT(block);
         auto readNow = std::min<uint64_t>(toRead, pageRowsAvailable);
 
-        assert(readNow <= common::DEFAULT_VECTOR_CAPACITY);
+        KU_ASSERT(readNow <= common::DEFAULT_VECTOR_CAPACITY);
 
         if (hasRepeats()) {
-            assert(repeatedDecoder);
+            KU_ASSERT(repeatedDecoder);
             repeatedDecoder->GetBatch<uint8_t>(repeatOut + resultOffset, readNow);
         }
 
         if (hasDefines()) {
-            assert(defineDecoder);
+            KU_ASSERT(defineDecoder);
             defineDecoder->GetBatch<uint8_t>(defineOut + resultOffset, readNow);
         }
 
@@ -170,7 +170,7 @@ uint64_t ColumnReader::read(uint64_t numValues, parquet_filter_t& filter, uint8_
             plain(readBuf, defineOut, readNow, filter, resultOffset, resultOut);
         } else if (rleDecoder) {
             // RLE encoding for boolean
-            assert(type->getLogicalTypeID() == common::LogicalTypeID::BOOL);
+            KU_ASSERT(type->getLogicalTypeID() == common::LogicalTypeID::BOOL);
             auto readBuf = std::make_shared<ResizeableBuffer>();
             readBuf->resize(sizeof(bool) * (readNow - nullCount));
             rleDecoder->GetBatch<uint8_t>(readBuf->ptr, readNow - nullCount);
@@ -352,7 +352,7 @@ void ColumnReader::decompressInternal(kuzu_parquet::format::CompressionCodec::ty
 }
 
 void ColumnReader::preparePageV2(kuzu_parquet::format::PageHeader& pageHdr) {
-    assert(pageHdr.type == PageType::DATA_PAGE_V2);
+    KU_ASSERT(pageHdr.type == PageType::DATA_PAGE_V2);
 
     auto& trans = reinterpret_cast<ThriftFileTransport&>(*protocol->getTransport());
 

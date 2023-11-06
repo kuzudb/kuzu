@@ -129,7 +129,7 @@ bool LogicalHashJoin::isNodeIDOnlyJoin() const {
 
 binder::expression_vector LogicalHashJoin::getJoinNodeIDs() const {
     binder::expression_vector result;
-    assert(isNodeIDOnlyJoin());
+    KU_ASSERT(isNodeIDOnlyJoin());
     for (auto& [probeKey, _] : joinConditions) {
         result.push_back(probeKey);
     }

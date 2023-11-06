@@ -129,12 +129,12 @@ void CastFunction::bindImplicitCastFunc(
         return;
     }
     case LogicalTypeID::DATE: {
-        assert(sourceTypeID == LogicalTypeID::STRING);
+        KU_ASSERT(sourceTypeID == LogicalTypeID::STRING);
         func = &ScalarFunction::UnaryCastStringExecFunction<ku_string_t, date_t, CastString>;
         return;
     }
     case LogicalTypeID::TIMESTAMP: {
-        assert(sourceTypeID == LogicalTypeID::STRING || sourceTypeID == LogicalTypeID::DATE);
+        KU_ASSERT(sourceTypeID == LogicalTypeID::STRING || sourceTypeID == LogicalTypeID::DATE);
         func =
             sourceTypeID == LogicalTypeID::STRING ?
                 &ScalarFunction::UnaryCastStringExecFunction<ku_string_t, timestamp_t, CastString> :
@@ -142,7 +142,7 @@ void CastFunction::bindImplicitCastFunc(
         return;
     }
     case LogicalTypeID::INTERVAL: {
-        assert(sourceTypeID == LogicalTypeID::STRING);
+        KU_ASSERT(sourceTypeID == LogicalTypeID::STRING);
         func = &ScalarFunction::UnaryCastStringExecFunction<ku_string_t, interval_t, CastString>;
         return;
     }
@@ -202,7 +202,7 @@ void castFixedListToString(
 
 void fixedListCastExecFunction(const std::vector<std::shared_ptr<ValueVector>>& params,
     common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
-    assert(params.size() == 1);
+    KU_ASSERT(params.size() == 1);
     auto param = params[0];
     if (param->state->isFlat()) {
         castFixedListToString(*param, param->state->selVector->selectedPositions[0], result,

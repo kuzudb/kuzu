@@ -29,7 +29,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfNodeFrom(
             std::make_unique<RdfReaderConfig>(RdfReaderMode::RESOURCE, nullptr /* index */);
         columns.push_back(createVariable(columnName, stringType));
     } else {
-        assert(tableSchema->tableName.ends_with(rdf::LITERAL_TABLE_SUFFIX));
+        KU_ASSERT(tableSchema->tableName.ends_with(rdf::LITERAL_TABLE_SUFFIX));
         containsSerial = true;
         readerConfig->columnTypes.push_back(RdfVariantType::getType());
         readerConfig->rdfReaderConfig =

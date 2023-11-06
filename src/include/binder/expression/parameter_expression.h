@@ -15,7 +15,7 @@ public:
           parameterName(parameterName), value{std::move(value)} {}
 
     inline void setDataType(const common::LogicalType& targetType) {
-        assert(dataType.getLogicalTypeID() == common::LogicalTypeID::ANY);
+        KU_ASSERT(dataType.getLogicalTypeID() == common::LogicalTypeID::ANY);
         dataType = targetType;
         value->setDataType(targetType);
     }

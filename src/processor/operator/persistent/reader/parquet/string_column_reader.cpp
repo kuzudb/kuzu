@@ -17,7 +17,7 @@ StringColumnReader::StringColumnReader(ParquetReader& reader,
           reader, std::move(type), schema, schemaIdx, maxDefine, maxRepeat) {
     fixedWidthStringLength = 0;
     if (schema.type == Type::FIXED_LEN_BYTE_ARRAY) {
-        assert(schema.__isset.type_length);
+        KU_ASSERT(schema.__isset.type_length);
         fixedWidthStringLength = schema.type_length;
     }
 }

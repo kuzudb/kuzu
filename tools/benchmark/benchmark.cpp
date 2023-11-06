@@ -20,7 +20,7 @@ Benchmark::Benchmark(const std::string& benchmarkPath, Database* database, Bench
 
 void Benchmark::loadBenchmark(const std::string& benchmarkPath) {
     auto queryConfigs = testing::TestHelper::parseTestFile(benchmarkPath);
-    assert(queryConfigs.size() == 1);
+    KU_ASSERT(queryConfigs.size() == 1);
     auto queryConfig = queryConfigs[0].get();
     query = queryConfig->query;
     name = queryConfig->name;

@@ -15,7 +15,7 @@ StructColumn::StructColumn(LogicalType dataType, const MetadataDAHInfo& metaDAHe
     : Column{std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
           transaction, propertyStatistics, enableCompression, true /* requireNullColumn */} {
     auto fieldTypes = StructType::getFieldTypes(&this->dataType);
-    assert(metaDAHeaderInfo.childrenInfos.size() == fieldTypes.size());
+    KU_ASSERT(metaDAHeaderInfo.childrenInfos.size() == fieldTypes.size());
     childColumns.resize(fieldTypes.size());
     for (auto i = 0u; i < fieldTypes.size(); i++) {
         childColumns[i] =
@@ -59,7 +59,7 @@ void StructColumn::write(
 
 void StructColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
     Column::append(columnChunk, nodeGroupIdx);
-    assert(columnChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
+    KU_ASSERT(columnChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
     auto structColumnChunk = static_cast<StructColumnChunk*>(columnChunk);
     for (auto i = 0u; i < childColumns.size(); i++) {
         childColumns[i]->append(structColumnChunk->getChild(i), nodeGroupIdx);

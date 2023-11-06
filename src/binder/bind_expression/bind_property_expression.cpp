@@ -52,7 +52,7 @@ expression_vector ExpressionBinder::bindRelPropertyStarExpression(const Expressi
 
 expression_vector ExpressionBinder::bindStructPropertyStarExpression(
     std::shared_ptr<Expression> child) {
-    assert(child->getDataType().getLogicalTypeID() == LogicalTypeID::STRUCT);
+    KU_ASSERT(child->getDataType().getLogicalTypeID() == LogicalTypeID::STRUCT);
     expression_vector result;
     auto childType = child->getDataType();
     for (auto field : StructType::getFields(&childType)) {

@@ -83,7 +83,7 @@ static void sortSelectedPos(ValueVector* nodeIDVector) {
 void JoinHashTable::appendVectorWithSorting(
     ValueVector* keyVector, std::vector<ValueVector*> payloadVectors) {
     auto numTuplesToAppend = 1;
-    assert(keyVector->state->selVector->selectedSize == 1);
+    KU_ASSERT(keyVector->state->selVector->selectedSize == 1);
     // Based on the way we are planning, we assume that the first and second vectors are both
     // nodeIDs from extending, while the first one is key, and the second one is payload.
     auto payloadNodeIDVector = payloadVectors[0];
@@ -94,7 +94,7 @@ void JoinHashTable::appendVectorWithSorting(
     }
     // A single appendInfo will return from `allocateFlatTupleBlocks` when numTuplesToAppend is 1.
     auto appendInfos = factorizedTable->allocateFlatTupleBlocks(numTuplesToAppend);
-    assert(appendInfos.size() == 1);
+    KU_ASSERT(appendInfos.size() == 1);
     auto colIdx = 0u;
     factorizedTable->copyVectorToColumn(*keyVector, appendInfos[0], numTuplesToAppend, colIdx++);
     for (auto& vector : payloadVectors) {
@@ -129,7 +129,7 @@ void JoinHashTable::buildHashSlots() {
 
 void JoinHashTable::probe(const std::vector<ValueVector*>& keyVectors, ValueVector* hashVector,
     ValueVector* tmpHashVector, uint8_t** probedTuples) {
-    assert(keyVectors.size() == keyTypes.size());
+    KU_ASSERT(keyVectors.size() == keyTypes.size());
     if (getNumTuples() == 0) {
         return;
     }
@@ -143,7 +143,7 @@ void JoinHashTable::probe(const std::vector<ValueVector*>& keyVectors, ValueVect
     }
     for (auto i = 0u; i < hashVector->state->selVector->selectedSize; i++) {
         auto pos = hashVector->state->selVector->selectedPositions[i];
-        assert(i < DEFAULT_VECTOR_CAPACITY);
+        KU_ASSERT(i < DEFAULT_VECTOR_CAPACITY);
         probedTuples[i] = getTupleForHash(hashVector->getValue<hash_t>(pos));
     }
 }
@@ -211,7 +211,7 @@ bool JoinHashTable::compareFlatKeys(
     uint8_t equal = false;
     for (auto i = 0u; i < keyVectors.size(); i++) {
         auto keyVector = keyVectors[i];
-        assert(keyVector->state->selVector->selectedSize == 1);
+        KU_ASSERT(keyVector->state->selVector->selectedSize == 1);
         auto pos = keyVector->state->selVector->selectedPositions[0];
         entryCompareFunctions[i](*keyVector, pos, tuple + tableSchema->getColOffset(i), equal);
         if (!equal) {
