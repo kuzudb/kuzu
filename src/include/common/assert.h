@@ -13,7 +13,7 @@ namespace common {
     // LCOV_EXCL_END
 }
 
-#ifdef KUZU_RUNTIME_CHECKS
+#if defined(KUZU_RUNTIME_CHECKS) || !defined(NDEBUG)
 #define KU_ASSERT(condition)                                                                       \
     if (!(condition)) {                                                                            \
         [[unlikely]] kuzu::common::kuAssertFailureInternal(#condition, __FILE__, __LINE__);        \
