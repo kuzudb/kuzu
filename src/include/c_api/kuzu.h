@@ -114,8 +114,9 @@ typedef struct {
     uint64_t max_num_threads;
     // Whether or not to compress data on-disk for supported types
     bool enable_compression;
-    // Access mode to the database (READ_ONLY or READ_WRITE)
-    uint8_t access_mode;
+    // If true, open the database in read-only mode. No write transaction is allowed in the Database
+    // object. If false, the access mode is set to READ_WRITE.
+    bool readOnly;
 } kuzu_system_config;
 
 /**

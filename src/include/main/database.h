@@ -21,11 +21,13 @@ struct KUZU_API SystemConfig {
      *        reducing the amount of File I/O
      *  @param maxNumThreads The maximum number of threads to use during query execution
      *  @param enableCompression Whether or not to compress data on-disk for supported types
-     *  @param accessMode Access mode to the database (READ_ONLY or READ_WRITE)
+     *  @param readOnly If true, the access mode is set to `READ_ONLY`. No write transactions is
+     * allowed in the `Database` object. Multiple `Database` objects can be created with the same
+     * database path under `READ_ONLY` mode. If false, the access mode is set to `READ_WRITE`. Under
+     * this mode, there can not be multiple `Database` objects created with the same database path.
      */
     explicit SystemConfig(uint64_t bufferPoolSize = -1u, uint64_t maxNumThreads = 0,
-        bool enableCompression = true,
-        common::AccessMode accessMode = common::AccessMode::READ_WRITE);
+        bool enableCompression = true, bool readOnly = false);
 
     uint64_t bufferPoolSize;
     uint64_t maxNumThreads;

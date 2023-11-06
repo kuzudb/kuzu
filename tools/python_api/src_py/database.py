@@ -21,7 +21,7 @@ class Database:
     """
 
     def __init__(self, database_path, buffer_pool_size=0, max_num_threads=0, compression=True, lazy_init=False,
-                    access_mode=AccessMode.READ_WRITE):
+                 read_only=False):
         """
         Parameters
         ----------
@@ -34,13 +34,22 @@ class Database:
             If True, the database will not be initialized until the first query.
             This is useful when the database is not used in the main thread or
             when the main process is forked.
-            Deefault to False.
+            Default to False.
+        read_only : bool
+            If true, the access mode is set to `READ_ONLY`. No write transactions is allowed in the `Database` object.
+            Multiple `Database` objects can be created with the same database path under `READ_ONLY` mode. If false,
+            the access mode is set to `READ_WRITE`. Under this mode, there can not be multiple `Database` objects
+            created with the same database path.
+            Default to False.
         """
         self.database_path = database_path
         self.buffer_pool_size = buffer_pool_size
         self.max_num_threads = max_num_threads
         self.compression = compression
-        self.access_mode = access_mode.value
+        if read_only:
+            self.access_mode = AccessMode.READ_ONLY
+        else:
+            self.access_mode = AccessMode.READ_WRITE
         self._database = None
         if not lazy_init:
             self.init_database()
@@ -61,7 +70,8 @@ class Database:
         """
         if self._database is None:
             self._database = _kuzu.Database(self.database_path,
-                                            self.buffer_pool_size, self.max_num_threads, self.compression, self.access_mode)
+                                            self.buffer_pool_size, self.max_num_threads, self.compression,
+                                            self.access_mode)
 
     def resize_buffer_manager(self, new_size):
         """

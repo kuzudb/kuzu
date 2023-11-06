@@ -41,12 +41,16 @@ public class KuzuDatabase {
     * @param databasePath: Database path. If the database does not already exist, it will be created.
     * @param bufferPoolSize: Max size of the buffer pool in bytes.
     * @param enableCompression: Enable compression in storage.
+    * @param readOnly: Open the database in READ_ONLY mode.
     */
-    public KuzuDatabase(String databasePath, long bufferPoolSize, boolean enableCompression, AccessMode accessMode) {
+    public KuzuDatabase(String databasePath, long bufferPoolSize, boolean enableCompression, boolean readOnly) {
         this.db_path = databasePath;
         this.buffer_size = bufferPoolSize;
         this.enableCompression = enableCompression;
-        this.accessMode = accessMode;
+        this.accessMode = AccessMode.READ_WRITE;
+        if (readOnly) {
+            this.accessMode = AccessMode.READ_ONLY;
+        }
         int accessModeValue = accessMode.getValue();
         db_ref = KuzuNative.kuzu_database_init(databasePath, bufferPoolSize, enableCompression, accessModeValue);
     }
