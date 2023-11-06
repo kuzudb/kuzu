@@ -56,7 +56,7 @@ struct TableFunction : public Function {
                                                                               initSharedFunc} {}
 
     inline std::string signatureToString() const override {
-        return common::LogicalTypeUtils::dataTypesToString(parameterTypeIDs);
+        return common::LogicalTypeUtils::toString(parameterTypeIDs);
     }
 };
 

@@ -188,9 +188,8 @@ template<class T, bool IS_SIGNED = true>
 static void simpleIntegerCast(const char* input, uint64_t len, T& result,
     const common::LogicalType& type = common::LogicalType{common::LogicalTypeID::ANY}) {
     if (!trySimpleIntegerCast<T, IS_SIGNED>(input, len, result)) {
-        throw common::ConversionException(
-            "Cast failed. " + std::string{input, len} + " is not in " +
-            common::LogicalTypeUtils::dataTypeToString(type) + " range.");
+        throw common::ConversionException("Cast failed. " + std::string{input, len} +
+                                          " is not in " + type.toString() + " range.");
     }
 }
 
@@ -218,9 +217,8 @@ template<class T>
 static void doubleCast(const char* input, uint64_t len, T& result,
     const common::LogicalType& type = common::LogicalType{common::LogicalTypeID::ANY}) {
     if (!tryDoubleCast<T>(input, len, result)) {
-        throw common::ConversionException(
-            "Cast failed. " + std::string{input, len} + " is not in " +
-            common::LogicalTypeUtils::dataTypeToString(type) + " range.");
+        throw common::ConversionException("Cast failed. " + std::string{input, len} +
+                                          " is not in " + type.toString() + " range.");
     }
 }
 

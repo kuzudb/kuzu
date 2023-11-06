@@ -113,8 +113,7 @@ void CopyNode::populatePKIndex(
             }
         } break;
         default: {
-            throw CopyException(ExceptionMessage::invalidPKType(
-                LogicalTypeUtils::dataTypeToString(chunk->getDataType())));
+            throw CopyException(ExceptionMessage::invalidPKType(chunk->getDataType().toString()));
         }
         }
     } catch (Exception& e) {

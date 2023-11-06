@@ -1,7 +1,6 @@
 #include "common/types/value/value.h"
 
 #include "common/exception/not_implemented.h"
-#include "common/exception/runtime.h"
 #include "common/null_buffer.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
@@ -113,9 +112,10 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
         }
         return Value(dataType, std::move(children));
     }
+        // LCOV_EXCL_START
     default:
-        throw RuntimeException("Data type " + LogicalTypeUtils::dataTypeToString(dataType) +
-                               " is not supported for Value::createDefaultValue");
+        throw NotImplementedException("Value::createDefaultValue.");
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -296,9 +296,10 @@ void Value::copyValueFrom(const uint8_t* value) {
     case LogicalTypeID::RDF_VARIANT: {
         copyFromStruct(value);
     } break;
+        // LCOV_EXCL_START
     default:
-        throw RuntimeException("Data type " + LogicalTypeUtils::dataTypeToString(*dataType) +
-                               " is not supported for Value::set");
+        throw NotImplementedException("Value::copyValueFrom.");
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -364,9 +365,7 @@ void Value::copyValueFrom(const Value& other) {
     } break;
     default:
         // LCOV_EXCL_START
-        throw NotImplementedException("Value::Value(const Value&) for type " +
-                                      LogicalTypeUtils::dataTypeToString(*dataType) +
-                                      " is not implemented.");
+        KU_UNREACHABLE;
         // LCOV_EXCL_STOP
     }
 }
@@ -439,9 +438,7 @@ std::string Value::toString() const {
     }
     default:
         // LCOV_EXCL_START
-        throw NotImplementedException("Value::toString for type " +
-                                      LogicalTypeUtils::dataTypeToString(*dataType) +
-                                      " is not implemented.");
+        KU_UNREACHABLE;
         // LCOV_EXCL_STOP
     }
 }

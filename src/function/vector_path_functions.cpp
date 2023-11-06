@@ -68,8 +68,8 @@ std::unique_ptr<FunctionBindData> PropertiesFunction::bindFunc(
             throw BinderException(stringFormat("Invalid property name: {}.", key));
         }
     } else {
-        throw BinderException(stringFormat(
-            "Cannot extract properties from {}.", LogicalTypeUtils::dataTypeToString(listType)));
+        throw BinderException(
+            stringFormat("Cannot extract properties from {}.", listType.toString()));
     }
     auto field = StructType::getField(childType, fieldIdx);
     auto returnType = std::make_unique<LogicalType>(

@@ -202,9 +202,9 @@ void Binder::validateColumnTypes(const std::vector<std::string>& columnNames,
     KU_ASSERT(expectedColumnTypes.size() == detectedColumnTypes.size());
     for (auto i = 0; i < expectedColumnTypes.size(); ++i) {
         if (*expectedColumnTypes[i] != *detectedColumnTypes[i]) {
-            throw BinderException(stringFormat("Column `{}` type mismatch. Expected {} but got {}.",
-                columnNames[i], LogicalTypeUtils::dataTypeToString(*expectedColumnTypes[i]),
-                LogicalTypeUtils::dataTypeToString(*detectedColumnTypes[i])));
+            throw BinderException(
+                stringFormat("Column `{}` type mismatch. Expected {} but got {}.", columnNames[i],
+                    expectedColumnTypes[i]->toString(), detectedColumnTypes[i]->toString()));
         }
     }
 }

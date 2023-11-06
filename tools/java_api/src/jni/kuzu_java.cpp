@@ -113,8 +113,7 @@ internalID_t getInternalID(JNIEnv* env, jobject id) {
 }
 
 std::string dataTypeToString(const LogicalType& dataType) {
-    auto typeId = dataType.getLogicalTypeID();
-    return LogicalTypeUtils::dataTypeToString(typeId);
+    return LogicalTypeUtils::toString(dataType.getLogicalTypeID());
 }
 
 void javaMapToCPPMap(

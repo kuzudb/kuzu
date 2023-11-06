@@ -50,8 +50,8 @@ struct BaseScalarFunction : public Function {
           returnTypeID{returnTypeID}, bindFunc{std::move(bindFunc)} {}
 
     inline std::string signatureToString() const override {
-        std::string result = common::LogicalTypeUtils::dataTypesToString(parameterTypeIDs);
-        result += " -> " + common::LogicalTypeUtils::dataTypeToString(returnTypeID);
+        std::string result = common::LogicalTypeUtils::toString(parameterTypeIDs);
+        result += " -> " + common::LogicalTypeUtils::toString(returnTypeID);
         return result;
     }
 

@@ -110,13 +110,13 @@ void QueryGraphLabelAnalyzer::pruneRel(RelExpression& rel) {
     }
     // Note the pruning for node should guarantee the following exception won't be triggered.
     // For safety (and consistency) reason, we still write the check but skip coverage check.
-    // LCOV_EXEL_START
+    // LCOV_EXCL_START
     if (prunedTableIDs.empty()) {
         throw BinderException(stringFormat(
             "Cannot find a label for relationship {} that connects to all of its neighbour nodes.",
             rel.toString()));
     }
-    // LCOV_EXEL_STOP
+    // LCOV_EXCL_STOP
     rel.setTableIDs(std::move(prunedTableIDs));
 }
 

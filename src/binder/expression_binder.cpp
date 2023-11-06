@@ -78,8 +78,7 @@ static std::string unsupportedImplicitCastException(
     const Expression& expression, const common::LogicalType& targetType) {
     return stringFormat(
         "Expression {} has data type {} but expected {}. Implicit cast is not supported.",
-        expression.toString(), LogicalTypeUtils::dataTypeToString(expression.dataType),
-        LogicalTypeUtils::dataTypeToString(targetType));
+        expression.toString(), expression.dataType.toString(), targetType.toString());
 }
 
 std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
@@ -114,8 +113,7 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
 std::shared_ptr<Expression> ExpressionBinder::implicitCast(
     const std::shared_ptr<Expression>& expression, const LogicalType& targetType) {
     if (CastFunction::hasImplicitCast(expression->dataType, targetType)) {
-        auto functionName =
-            stringFormat("CAST_TO({})", LogicalTypeUtils::dataTypeToString(targetType));
+        auto functionName = stringFormat("CAST_TO({})", targetType.toString());
         auto children = expression_vector{expression};
         auto bindData = std::make_unique<FunctionBindData>(targetType);
         auto scalarFunction = CastFunction::bindCastFunction(
@@ -144,8 +142,8 @@ void ExpressionBinder::validateExpectedDataType(
     auto targetsSet = std::unordered_set<LogicalTypeID>{targets.begin(), targets.end()};
     if (!targetsSet.contains(dataType.getLogicalTypeID())) {
         throw BinderException(stringFormat("{} has data type {} but {} was expected.",
-            expression.toString(), LogicalTypeUtils::dataTypeToString(dataType.getLogicalTypeID()),
-            LogicalTypeUtils::dataTypesToString(targets)));
+            expression.toString(), LogicalTypeUtils::toString(dataType.getLogicalTypeID()),
+            LogicalTypeUtils::toString(targets)));
     }
 }
 

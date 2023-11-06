@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/exception/copy.h"
 #include "hash_index_header.h"
 #include "hash_index_slot.h"
 #include "storage/index/hash_index_utils.h"
@@ -126,23 +125,7 @@ private:
 
 class PrimaryKeyIndexBuilder {
 public:
-    PrimaryKeyIndexBuilder(const std::string& fName, const common::LogicalType& keyDataType)
-        : keyDataTypeID{keyDataType.getLogicalTypeID()} {
-        switch (keyDataTypeID) {
-        case common::LogicalTypeID::INT64: {
-            hashIndexBuilderForInt64 =
-                std::make_unique<HashIndexBuilder<int64_t>>(fName, keyDataType);
-        } break;
-        case common::LogicalTypeID::STRING: {
-            hashIndexBuilderForString =
-                std::make_unique<HashIndexBuilder<common::ku_string_t>>(fName, keyDataType);
-        } break;
-        default: {
-            throw common::CopyException("Unsupported data type for primary key index: " +
-                                        common::LogicalTypeUtils::dataTypeToString(keyDataTypeID));
-        }
-        }
-    }
+    PrimaryKeyIndexBuilder(const std::string& fName, const common::LogicalType& keyDataType);
 
     inline void lock() { mtx.lock(); }
 

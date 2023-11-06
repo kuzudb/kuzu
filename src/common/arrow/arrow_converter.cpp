@@ -110,9 +110,11 @@ void ArrowConverter::setArrowFormat(
     case LogicalTypeID::REL: {
         setArrowFormatForStruct(rootHolder, child, typeInfo);
     } break;
+        // LCOV_EXCL_START
     default:
         throw InternalException(
-            "Unsupported Arrow type " + LogicalTypeUtils::dataTypeToString(typeInfo.typeID));
+            "Unsupported Arrow type " + LogicalTypeUtils::toString(typeInfo.typeID));
+        // LCOV_EXCL_STOP
     }
 }
 

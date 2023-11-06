@@ -48,8 +48,7 @@ public:
                 auto columnDataTypes = nodeQueryResult->queryResult->getColumnDataTypes();
                 result = std::vector<std::string>(columnDataTypes.size());
                 for (auto i = 0u; i < columnDataTypes.size(); ++i) {
-                    result[i] =
-                        kuzu::common::LogicalTypeUtils::dataTypeToString(columnDataTypes[i]);
+                    result[i] = columnDataTypes[i].toString();
                 }
             } else {
                 result = nodeQueryResult->queryResult->getColumnNames();

@@ -504,11 +504,10 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     case PhysicalTypeID::STRUCT: {
         return std::make_unique<StructColumnChunk>(dataType, capacity, enableCompression);
     }
-    default: {
-        throw NotImplementedException("ColumnChunkFactory::createColumnChunk for data type " +
-                                      LogicalTypeUtils::dataTypeToString(dataType) +
-                                      " is not supported.");
-    }
+        // LCOV_EXCL_START
+    default:
+        throw NotImplementedException("ColumnChunkFactory::createColumnChunk.");
+        // LCOV_EXCL_STOP
     }
 }
 

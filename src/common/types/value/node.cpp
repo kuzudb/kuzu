@@ -77,10 +77,12 @@ std::string NodeVal::toString(const Value* val) {
 }
 
 void NodeVal::throwIfNotNode(const Value* val) {
+    // LCOV_EXCL_START
     if (val->dataType->getLogicalTypeID() != LogicalTypeID::NODE) {
-        auto actualType = LogicalTypeUtils::dataTypeToString(val->dataType->getLogicalTypeID());
-        throw Exception(stringFormat("Expected NODE type, but got {} type", actualType));
+        throw Exception(
+            stringFormat("Expected NODE type, but got {} type", val->dataType->toString()));
     }
+    // LCOV_EXCL_STOP
 }
 
 } // namespace common

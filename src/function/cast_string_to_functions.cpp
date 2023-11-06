@@ -289,7 +289,7 @@ static inline void startListCast(const char* input, uint64_t len, T split,
     const CSVReaderConfig* csvReaderConfig, ValueVector* vector) {
     if (!splitCStringList(input, len, split, csvReaderConfig)) {
         throw ConversionException("Cast failed. " + std::string{input, len} + " is not in " +
-                                  LogicalTypeUtils::dataTypeToString(vector->dataType) + " range.");
+                                  vector->dataType.toString() + " range.");
     }
 }
 
@@ -494,7 +494,7 @@ void CastStringHelper::cast(const char* input, uint64_t len, map_entry_t& /*resu
     SplitStringMapOperation split{list_entry.offset, structVector};
     if (!splitCStringMap(input, len, split, csvReaderConfig)) {
         throw ConversionException("Cast failed. " + std::string{input, len} + " is not in " +
-                                  LogicalTypeUtils::dataTypeToString(vector->dataType) + " range.");
+                                  vector->dataType.toString() + " range.");
     }
 }
 
@@ -600,7 +600,7 @@ void CastStringHelper::cast(const char* input, uint64_t len, struct_entry_t& /*r
     ValueVector* vector, uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig) {
     if (!tryCastStringToStruct(input, len, vector, rowToAdd, csvReaderConfig)) {
         throw ConversionException("Cast failed. " + std::string{input, len} + " is not in " +
-                                  LogicalTypeUtils::dataTypeToString(vector->dataType) + " range.");
+                                  vector->dataType.toString() + " range.");
     }
 }
 
@@ -729,8 +729,8 @@ void CastStringHelper::cast(const char* input, uint64_t len, union_entry_t& /*re
     }
 
     if (selectedFieldIdx == INVALID_STRUCT_FIELD_IDX) {
-        throw ConversionException{stringFormat("Could not convert to union type {}: {}.",
-            LogicalTypeUtils::dataTypeToString(type), std::string{input, len})};
+        throw ConversionException{stringFormat(
+            "Could not convert to union type {}: {}.", type.toString(), std::string{input, len})};
     }
     StructVector::getFieldVector(vector, UnionType::TAG_FIELD_IDX)
         ->setValue(rowToAdd, selectedFieldIdx);
