@@ -87,13 +87,18 @@ struct CastFunction {
         }
     }
 
+    static void getNumericalCastFunc(
+        common::LogicalTypeID srcTypeID, common::LogicalTypeID dstTypeID, scalar_exec_func& func);
+
+    static void getCastStringExecFunc(common::LogicalTypeID dstTypeID, scalar_exec_func& func);
+
     template<typename TARGET_TYPE>
     inline static std::unique_ptr<ScalarFunction> bindCastStringToFunction(
         const std::string& funcName, common::LogicalTypeID targetTypeID) {
         return std::make_unique<ScalarFunction>(funcName,
             std::vector<common::LogicalTypeID>{common::LogicalTypeID::STRING}, targetTypeID,
-            ScalarFunction::UnaryStringExecFunction<common::ku_string_t, TARGET_TYPE,
-                CastStringToTypes>);
+            ScalarFunction::UnaryCastStringExecFunction<common::ku_string_t, TARGET_TYPE,
+                CastString>);
     }
 };
 
@@ -168,6 +173,14 @@ struct CastToUInt16Function {
 };
 
 struct CastToUInt8Function {
+    static function_set getFunctionSet();
+};
+
+struct CastAnyFunction {
+    static void getUnaryCastExecFunction(
+        common::LogicalTypeID srcTypeID, common::LogicalTypeID dstTypeID, scalar_exec_func& func);
+    static std::unique_ptr<FunctionBindData> bindFunc(
+        const binder::expression_vector& arguments, Function* function);
     static function_set getFunctionSet();
 };
 

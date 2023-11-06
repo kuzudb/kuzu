@@ -579,13 +579,14 @@ std::string Transformer::transformPropertyKeyName(CypherParser::OC_PropertyKeyNa
 std::unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
     CypherParser::OC_IntegerLiteralContext& ctx) {
     auto text = ctx.DecimalInteger()->getText();
+    ku_string_t literal{text.c_str(), text.length()};
     int64_t result;
-    if (function::CastStringToTypes::tryCast(text.c_str(), text.length(), result)) {
+    if (function::CastString::tryCast(literal, result)) {
         return std::make_unique<ParsedLiteralExpression>(
             std::make_unique<Value>(result), ctx.getText());
     }
     int128_t result128;
-    function::CastStringToTypes::operation(text.c_str(), text.length(), result128);
+    function::CastString::operation(literal, result128);
     return std::make_unique<ParsedLiteralExpression>(
         std::make_unique<Value>(result128), ctx.getText());
 }
@@ -593,8 +594,9 @@ std::unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
 std::unique_ptr<ParsedExpression> Transformer::transformDoubleLiteral(
     CypherParser::OC_DoubleLiteralContext& ctx) {
     auto text = ctx.RegularDecimalReal()->getText();
+    ku_string_t literal{text.c_str(), text.length()};
     double_t result;
-    function::CastStringToTypes::operation(text.c_str(), text.length(), result);
+    function::CastString::operation(literal, result);
     return std::make_unique<ParsedLiteralExpression>(
         std::make_unique<Value>(result), ctx.getText());
 }

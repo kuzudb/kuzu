@@ -23,7 +23,7 @@ function_set EncodeFunctions::getFunctionSet() {
     function_set definitions;
     definitions.push_back(make_unique<ScalarFunction>(ENCODE_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::BLOB,
-        VectorStringFunction::UnaryStringExecFunction<ku_string_t, blob_t, Encode>, nullptr,
+        ScalarFunction::UnaryStringExecFunction<ku_string_t, blob_t, Encode>, nullptr,
         false /* isVarLength */));
     return definitions;
 }
@@ -32,7 +32,7 @@ function_set DecodeFunctions::getFunctionSet() {
     function_set definitions;
     definitions.push_back(make_unique<ScalarFunction>(DECODE_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::BLOB}, LogicalTypeID::STRING,
-        VectorStringFunction::UnaryStringExecFunction<blob_t, ku_string_t, Decode>, nullptr,
+        ScalarFunction::UnaryStringExecFunction<blob_t, ku_string_t, Decode>, nullptr,
         false /* isVarLength */));
     return definitions;
 }

@@ -398,12 +398,14 @@ std::pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
     const kuzu::parser::RelPattern& relPattern) {
     auto recursiveInfo = relPattern.getRecursiveInfo();
     uint32_t lowerBound;
-    function::CastStringToTypes::operation(
-        recursiveInfo->lowerBound.c_str(), recursiveInfo->lowerBound.length(), lowerBound);
+    function::CastString::operation(
+        ku_string_t{recursiveInfo->lowerBound.c_str(), recursiveInfo->lowerBound.length()},
+        lowerBound);
     auto upperBound = clientContext->varLengthExtendMaxDepth;
     if (!recursiveInfo->upperBound.empty()) {
-        function::CastStringToTypes::operation(
-            recursiveInfo->upperBound.c_str(), recursiveInfo->upperBound.length(), upperBound);
+        function::CastString::operation(
+            ku_string_t{recursiveInfo->upperBound.c_str(), recursiveInfo->upperBound.length()},
+            upperBound);
     }
     if (lowerBound > upperBound) {
         throw BinderException(

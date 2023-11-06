@@ -12,7 +12,7 @@ struct StructPackFunctions {
     static std::unique_ptr<FunctionBindData> bindFunc(
         const binder::expression_vector& arguments, Function* function);
     static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
-        common::ValueVector& result);
+        common::ValueVector& result, void* /*dataPtr*/ = nullptr);
     static void compileFunc(FunctionBindData* bindData,
         const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
         std::shared_ptr<common::ValueVector>& result);

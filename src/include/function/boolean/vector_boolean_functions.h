@@ -18,7 +18,7 @@ private:
     template<typename FUNC>
     static void BinaryBooleanExecFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result) {
+        common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
         assert(params.size() == 2);
         BinaryBooleanFunctionExecutor::execute<FUNC>(*params[0], *params[1], result);
     }
@@ -34,7 +34,7 @@ private:
     template<typename FUNC>
     static void UnaryBooleanExecFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result) {
+        common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
         assert(params.size() == 1);
         UnaryBooleanOperationExecutor::execute<FUNC>(*params[0], result);
     }

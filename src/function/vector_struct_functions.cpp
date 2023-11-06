@@ -35,8 +35,8 @@ std::unique_ptr<FunctionBindData> StructPackFunctions::bindFunc(
     return std::make_unique<FunctionBindData>(resultType);
 }
 
-void StructPackFunctions::execFunc(
-    const std::vector<std::shared_ptr<ValueVector>>& parameters, ValueVector& result) {
+void StructPackFunctions::execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
+    ValueVector& result, void* /*dataPtr*/) {
     for (auto i = 0u; i < parameters.size(); i++) {
         auto& parameter = parameters[i];
         if (parameter->state == result.state) {

@@ -6,7 +6,7 @@ namespace kuzu {
 namespace binder {
 
 std::string ScalarFunctionExpression::getUniqueName(
-    const std::string& functionName, kuzu::binder::expression_vector& children) {
+    const std::string& functionName, const kuzu::binder::expression_vector& children) {
     auto result = functionName + "(";
     for (auto& child : children) {
         result += child->getUniqueName() + ", ";
@@ -18,6 +18,10 @@ std::string ScalarFunctionExpression::getUniqueName(
 std::string ScalarFunctionExpression::toStringInternal() const {
     auto result = functionName + "(";
     result += ExpressionUtil::toString(children);
+    if (functionName == "CAST") {
+        result += ", ";
+        result += common::LogicalTypeUtils::dataTypeToString(bindData->resultType);
+    }
     result += ")";
     return result;
 }

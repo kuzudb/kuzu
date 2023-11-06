@@ -13,27 +13,119 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
+// ---------------------- cast String Helper ------------------------------ //
+struct CastStringHelper {
+    template<typename T>
+    static void cast(const char* input, uint64_t len, T& result, ValueVector* /*vector*/ = nullptr,
+        uint64_t /*rowToAdd*/ = 0, const CSVReaderConfig* /*csvReaderConfig*/ = nullptr) {
+        simpleIntegerCast<int64_t>(input, len, result, LogicalType{LogicalTypeID::INT64});
+    }
+};
+
+template<>
+inline void CastStringHelper::cast(const char* input, uint64_t len, int128_t& result,
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    simpleInt128Cast(input, len, result);
+}
+
+template<>
+inline void CastStringHelper::cast(const char* input, uint64_t len, int32_t& result,
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    simpleIntegerCast<int32_t>(input, len, result, LogicalType{LogicalTypeID::INT32});
+}
+
+template<>
+inline void CastStringHelper::cast(const char* input, uint64_t len, int16_t& result,
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    simpleIntegerCast<int16_t>(input, len, result, LogicalType{LogicalTypeID::INT16});
+}
+
+template<>
+inline void CastStringHelper::cast(const char* input, uint64_t len, int8_t& result,
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    simpleIntegerCast<int8_t>(input, len, result, LogicalType{LogicalTypeID::INT8});
+}
+
+template<>
+inline void CastStringHelper::cast(const char* input, uint64_t len, uint64_t& result,
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    simpleIntegerCast<uint64_t, false>(input, len, result, LogicalType{LogicalTypeID::UINT64});
+}
+
+template<>
+inline void CastStringHelper::cast(const char* input, uint64_t len, uint32_t& result,
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    simpleIntegerCast<uint32_t, false>(input, len, result, LogicalType{LogicalTypeID::UINT32});
+}
+
+template<>
+inline void CastStringHelper::cast(const char* input, uint64_t len, uint16_t& result,
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    simpleIntegerCast<uint16_t, false>(input, len, result, LogicalType{LogicalTypeID::UINT16});
+}
+
+template<>
+inline void CastStringHelper::cast(const char* input, uint64_t len, uint8_t& result,
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    simpleIntegerCast<uint8_t, false>(input, len, result, LogicalType{LogicalTypeID::UINT8});
+}
+
+template<>
+inline void CastStringHelper::cast(const char* input, uint64_t len, float_t& result,
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    doubleCast<float_t>(input, len, result, LogicalType{LogicalTypeID::FLOAT});
+}
+
+template<>
+inline void CastStringHelper::cast(const char* input, uint64_t len, double_t& result,
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    doubleCast<double_t>(input, len, result, LogicalType{LogicalTypeID::DOUBLE});
+}
+
+template<>
+inline void CastStringHelper::cast(const char* input, uint64_t len, bool& result,
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    castStringToBool(input, len, result);
+}
+
+template<>
+inline void CastStringHelper::cast(const char* input, uint64_t len, date_t& result,
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    result = Date::fromCString(input, len);
+}
+
+template<>
+inline void CastStringHelper::cast(const char* input, uint64_t len, timestamp_t& result,
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    result = Timestamp::fromCString(input, len);
+}
+
+template<>
+inline void CastStringHelper::cast(const char* input, uint64_t len, interval_t& result,
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    result = Interval::fromCString(input, len);
+}
+
 // ---------------------- cast String to Blob ------------------------------ //
 template<>
-void CastStringToTypes::operation(
-    common::ku_string_t& input, common::blob_t& result, common::ValueVector& resultVector) {
-    result.value.len = common::Blob::getBlobSize(input);
-    if (!common::ku_string_t::isShortString(result.value.len)) {
-        auto overflowBuffer = common::StringVector::getInMemOverflowBuffer(&resultVector);
+void CastString::operation(const ku_string_t& input, blob_t& result, ValueVector* resultVector,
+    uint64_t /*rowToAdd*/, const CSVReaderConfig* /*CSVReaderConfig*/) {
+    result.value.len = Blob::getBlobSize(input);
+    if (!ku_string_t::isShortString(result.value.len)) {
+        auto overflowBuffer = StringVector::getInMemOverflowBuffer(resultVector);
         auto overflowPtr = overflowBuffer->allocateSpace(result.value.len);
         result.value.overflowPtr = reinterpret_cast<int64_t>(overflowPtr);
-        common::Blob::fromString(
-            reinterpret_cast<const char*>(input.getData()), input.len, overflowPtr);
-        memcpy(result.value.prefix, overflowPtr, common::ku_string_t::PREFIX_LENGTH);
+        Blob::fromString(reinterpret_cast<const char*>(input.getData()), input.len, overflowPtr);
+        memcpy(result.value.prefix, overflowPtr, ku_string_t::PREFIX_LENGTH);
     } else {
-        common::Blob::fromString(
+        Blob::fromString(
             reinterpret_cast<const char*>(input.getData()), input.len, result.value.prefix);
     }
 }
 
 template<>
-void CastStringToTypes::operation(const char* input, uint64_t len, common::blob_t& /*result*/,
-    ValueVector* vector, uint64_t rowToAdd, const CSVReaderConfig* /*CSVReaderConfig*/) {
+void CastStringHelper::cast(const char* input, uint64_t len, blob_t& /*result*/,
+    ValueVector* vector, uint64_t rowToAdd, const CSVReaderConfig* /*csvReaderConfig*/) {
     // base case: blob
     storage::TableCopyUtils::validateStrLen(len);
     auto blobBuffer = std::make_unique<uint8_t[]>(len);
@@ -137,7 +229,7 @@ struct SplitStringListOperation {
     ValueVector* resultVector;
 
     void handleValue(const char* start, const char* end, const CSVReaderConfig* csvReaderConfig) {
-        CastStringToTypes::copyStringToVector(resultVector, offset,
+        CastString::copyStringToVector(resultVector, offset,
             std::string_view{start, (uint32_t)(end - start)}, csvReaderConfig);
         offset++;
     }
@@ -200,7 +292,7 @@ static inline void startListCast(const char* input, uint64_t len, T split,
 }
 
 template<>
-void CastStringToTypes::operation(const char* input, uint64_t len, list_entry_t& /*result*/,
+void CastStringHelper::cast(const char* input, uint64_t len, list_entry_t& /*result*/,
     ValueVector* vector, uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig) {
     // calculate the number of elements in array
     CountPartOperation state;
@@ -212,6 +304,13 @@ void CastStringToTypes::operation(const char* input, uint64_t len, list_entry_t&
 
     SplitStringListOperation split{list_entry.offset, listDataVector};
     startListCast(input, len, split, csvReaderConfig, vector);
+}
+
+template<>
+void CastString::operation(const ku_string_t& input, list_entry_t& result,
+    ValueVector* resultVector, uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig) {
+    CastStringHelper::cast(reinterpret_cast<const char*>(input.getData()), input.len, result,
+        resultVector, rowToAdd, csvReaderConfig);
 }
 
 // ---------------------- cast String to FixedList ------------------------------ //
@@ -231,7 +330,7 @@ struct SplitStringFixedListOperation {
             throw ConversionException("Cast failed. NULL is not allowed for FIXEDLIST.");
         }
         auto type = FixedListType::getChildType(&resultVector->dataType);
-        function::CastStringToTypes::operation(start, str.length(), value);
+        CastStringHelper::cast(start, str.length(), value);
         resultVector->setValue(offset, value);
         offset++;
     }
@@ -296,15 +395,15 @@ struct SplitStringMapOperation {
     inline bool handleKey(
         const char* start, const char* end, const CSVReaderConfig* csvReaderConfig) {
         trimRightWhitespace(start, end);
-        CastStringToTypes::copyStringToVector(StructVector::getFieldVector(resultVector, 0).get(),
-            offset, std::string_view{start, (uint32_t)(end - start)}, csvReaderConfig);
+        CastString::copyStringToVector(StructVector::getFieldVector(resultVector, 0).get(), offset,
+            std::string_view{start, (uint32_t)(end - start)}, csvReaderConfig);
         return true;
     }
 
     inline void handleValue(
         const char* start, const char* end, const CSVReaderConfig* csvReaderConfig) {
         trimRightWhitespace(start, end);
-        CastStringToTypes::copyStringToVector(StructVector::getFieldVector(resultVector, 1).get(),
+        CastString::copyStringToVector(StructVector::getFieldVector(resultVector, 1).get(),
             offset++, std::string_view{start, (uint32_t)(end - start)}, csvReaderConfig);
     }
 };
@@ -379,7 +478,7 @@ static bool splitCStringMap(
 }
 
 template<>
-void CastStringToTypes::operation(const char* input, uint64_t len, common::map_entry_t& /*result*/,
+void CastStringHelper::cast(const char* input, uint64_t len, map_entry_t& /*result*/,
     ValueVector* vector, uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig) {
     // count the number of maps in map
     CountPartOperation state;
@@ -394,6 +493,13 @@ void CastStringToTypes::operation(const char* input, uint64_t len, common::map_e
         throw ConversionException("Cast failed. " + std::string{input, len} + " is not in " +
                                   LogicalTypeUtils::dataTypeToString(vector->dataType) + " range.");
     }
+}
+
+template<>
+void CastString::operation(const ku_string_t& input, map_entry_t& result, ValueVector* resultVector,
+    uint64_t rowToAdd, const CSVReaderConfig* CSVReaderConfig) {
+    CastStringHelper::cast(reinterpret_cast<const char*>(input.getData()), input.len, result,
+        resultVector, rowToAdd, CSVReaderConfig);
 }
 
 // ---------------------- cast String to Struct ------------------------------ //
@@ -475,7 +581,7 @@ static bool tryCastStringToStruct(const char* input, uint64_t len, ValueVector* 
         trimRightWhitespace(valStart, valEnd);
         skipWhitespace(++input, end);
 
-        CastStringToTypes::copyStringToVector(StructVector::getFieldVector(vector, fieldIdx).get(),
+        CastString::copyStringToVector(StructVector::getFieldVector(vector, fieldIdx).get(),
             rowToAdd, std::string_view{valStart, (uint32_t)(valEnd - valStart)}, csvReaderConfig);
 
         if (closeBracket) {
@@ -486,12 +592,19 @@ static bool tryCastStringToStruct(const char* input, uint64_t len, ValueVector* 
 }
 
 template<>
-void CastStringToTypes::operation(const char* input, uint64_t len, struct_entry_t& /*result*/,
+void CastStringHelper::cast(const char* input, uint64_t len, struct_entry_t& /*result*/,
     ValueVector* vector, uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig) {
     if (!tryCastStringToStruct(input, len, vector, rowToAdd, csvReaderConfig)) {
         throw ConversionException("Cast failed. " + std::string{input, len} + " is not in " +
                                   LogicalTypeUtils::dataTypeToString(vector->dataType) + " range.");
     }
+}
+
+template<>
+void CastString::operation(const ku_string_t& input, struct_entry_t& result,
+    ValueVector* resultVector, uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig) {
+    CastStringHelper::cast(reinterpret_cast<const char*>(input.getData()), input.len, result,
+        resultVector, rowToAdd, csvReaderConfig);
 }
 
 // ---------------------- cast String to Union ------------------------------ //
@@ -510,6 +623,11 @@ static bool tryCastUnionField(
     case LogicalTypeID::BOOL: {
         bool result;
         success = function::tryCastToBool(input, len, result);
+        testAndSetValue(vector, rowToAdd, result, success);
+    } break;
+    case LogicalTypeID::INT128: {
+        int128_t result;
+        success = function::trySimpleInt128Cast(input, len, result);
         testAndSetValue(vector, rowToAdd, result, success);
     } break;
     case LogicalTypeID::INT64: {
@@ -589,8 +707,8 @@ static bool tryCastUnionField(
 }
 
 template<>
-void CastStringToTypes::operation(const char* input, uint64_t len, union_entry_t& /*result*/,
-    ValueVector* vector, uint64_t rowToAdd, const CSVReaderConfig* /*CSVReaderConfig**/) {
+void CastStringHelper::cast(const char* input, uint64_t len, union_entry_t& /*result*/,
+    ValueVector* vector, uint64_t rowToAdd, const CSVReaderConfig* /*csvReaderConfig*/) {
     auto& type = vector->dataType;
     union_field_idx_t selectedFieldIdx = INVALID_STRUCT_FIELD_IDX;
 
@@ -616,8 +734,15 @@ void CastStringToTypes::operation(const char* input, uint64_t len, union_entry_t
         ->setNull(rowToAdd, false /* isNull */);
 }
 
-void CastStringToTypes::copyStringToVector(ValueVector* vector, uint64_t rowToAdd,
-    std::string_view strVal, const CSVReaderConfig* csvReaderConfig) {
+template<>
+void CastString::operation(const ku_string_t& input, union_entry_t& result,
+    ValueVector* resultVector, uint64_t rowToAdd, const CSVReaderConfig* CSVReaderConfig) {
+    CastStringHelper::cast(reinterpret_cast<const char*>(input.getData()), input.len, result,
+        resultVector, rowToAdd, CSVReaderConfig);
+}
+
+void CastString::copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std::string_view strVal,
+    const CSVReaderConfig* csvReaderConfig) {
     auto& type = vector->dataType;
 
     if (strVal.empty() || isNull(strVal)) {
@@ -629,67 +754,68 @@ void CastStringToTypes::copyStringToVector(ValueVector* vector, uint64_t rowToAd
     switch (type.getLogicalTypeID()) {
     case LogicalTypeID::INT128: {
         int128_t val;
-        operation(strVal.data(), strVal.length(), val);
+        CastStringHelper::cast(strVal.data(), strVal.length(), val);
         vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::INT64: {
         int64_t val;
-        operation(strVal.data(), strVal.length(), val);
+        CastStringHelper::cast(strVal.data(), strVal.length(), val);
         vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::INT32: {
         int32_t val;
-        operation(strVal.data(), strVal.length(), val);
+        CastStringHelper::cast(strVal.data(), strVal.length(), val);
         vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::INT16: {
         int16_t val;
-        operation(strVal.data(), strVal.length(), val);
+        CastStringHelper::cast(strVal.data(), strVal.length(), val);
         vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::INT8: {
         int8_t val;
-        operation(strVal.data(), strVal.length(), val);
+        CastStringHelper::cast(strVal.data(), strVal.length(), val);
         vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::UINT64: {
         uint64_t val;
-        operation(strVal.data(), strVal.length(), val);
+        CastStringHelper::cast(strVal.data(), strVal.length(), val);
         vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::UINT32: {
         uint32_t val;
-        operation(strVal.data(), strVal.length(), val);
+        CastStringHelper::cast(strVal.data(), strVal.length(), val);
         vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::UINT16: {
         uint16_t val;
-        operation(strVal.data(), strVal.length(), val);
+        CastStringHelper::cast(strVal.data(), strVal.length(), val);
         vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::UINT8: {
         uint8_t val;
-        operation(strVal.data(), strVal.length(), val);
+        CastStringHelper::cast(strVal.data(), strVal.length(), val);
         vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::FLOAT: {
         float_t val;
-        operation(strVal.data(), strVal.length(), val);
+        CastStringHelper::cast(strVal.data(), strVal.length(), val);
         vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::DOUBLE: {
         double_t val;
-        operation(strVal.data(), strVal.length(), val);
+        CastStringHelper::cast(strVal.data(), strVal.length(), val);
         vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::BOOL: {
         bool val;
-        operation(strVal.data(), strVal.length(), val);
+        CastStringHelper::cast(strVal.data(), strVal.length(), val);
         vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::BLOB: {
         blob_t val;
-        operation(strVal.data(), strVal.length(), val, vector, rowToAdd, csvReaderConfig);
+        CastStringHelper::cast(
+            strVal.data(), strVal.length(), val, vector, rowToAdd, csvReaderConfig);
     } break;
     case LogicalTypeID::STRING: {
         storage::TableCopyUtils::validateStrLen(strVal.length());
@@ -700,26 +826,28 @@ void CastStringToTypes::copyStringToVector(ValueVector* vector, uint64_t rowToAd
     } break;
     case LogicalTypeID::DATE: {
         date_t val;
-        operation(strVal.data(), strVal.length(), val);
+        CastStringHelper::cast(strVal.data(), strVal.length(), val);
         vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::TIMESTAMP: {
         timestamp_t val;
-        operation(strVal.data(), strVal.length(), val);
+        CastStringHelper::cast(strVal.data(), strVal.length(), val);
         vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::INTERVAL: {
         interval_t val;
-        operation(strVal.data(), strVal.length(), val);
+        CastStringHelper::cast(strVal.data(), strVal.length(), val);
         vector->setValue(rowToAdd, val);
     } break;
     case LogicalTypeID::MAP: {
         map_entry_t val;
-        operation(strVal.data(), strVal.length(), val, vector, rowToAdd, csvReaderConfig);
+        CastStringHelper::cast(
+            strVal.data(), strVal.length(), val, vector, rowToAdd, csvReaderConfig);
     } break;
     case LogicalTypeID::VAR_LIST: {
         list_entry_t val;
-        operation(strVal.data(), strVal.length(), val, vector, rowToAdd, csvReaderConfig);
+        CastStringHelper::cast(
+            strVal.data(), strVal.length(), val, vector, rowToAdd, csvReaderConfig);
     } break;
     case LogicalTypeID::FIXED_LIST: {
         // TODO: add fix list function wrapper
@@ -727,14 +855,16 @@ void CastStringToTypes::copyStringToVector(ValueVector* vector, uint64_t rowToAd
     } break;
     case LogicalTypeID::STRUCT: {
         struct_entry_t val;
-        operation(strVal.data(), strVal.length(), val, vector, rowToAdd, csvReaderConfig);
+        CastStringHelper::cast(
+            strVal.data(), strVal.length(), val, vector, rowToAdd, csvReaderConfig);
     } break;
     case LogicalTypeID::UNION: {
         union_entry_t val;
-        operation(strVal.data(), strVal.length(), val, vector, rowToAdd, csvReaderConfig);
+        CastStringHelper::cast(
+            strVal.data(), strVal.length(), val, vector, rowToAdd, csvReaderConfig);
     } break;
     default: { // LCOV_EXCL_START
-        throw NotImplementedException("CastStringToTypes::operation");
+        throw NotImplementedException("CastString::operation");
     } // LCOV_EXCL_STOP
     }
 }

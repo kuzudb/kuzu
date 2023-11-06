@@ -35,7 +35,7 @@ private:
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
     static void BinaryComparisonExecFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result) {
+        common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
         assert(params.size() == 2);
         BinaryFunctionExecutor::executeComparison<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
             *params[0], *params[1], result);

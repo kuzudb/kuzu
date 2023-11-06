@@ -9,7 +9,7 @@ namespace function {
 struct OffsetFunction {
     static function_set getFunctionSet();
     static void execFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result) {
+        common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
         assert(params.size() == 1);
         UnaryFunctionExecutor::execute<common::internalID_t, int64_t, Offset>(*params[0], result);
     }

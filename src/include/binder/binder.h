@@ -82,6 +82,8 @@ public:
         return expressionBinder.parameterMap;
     }
 
+    static std::unique_ptr<common::LogicalType> bindDataType(const std::string& dataType);
+
 private:
     std::shared_ptr<Expression> bindWhereExpression(
         const parser::ParsedExpression& parsedExpression);
@@ -92,8 +94,6 @@ private:
         const std::string& name, common::LogicalTypeID logicalTypeID);
     std::shared_ptr<Expression> createVariable(
         const std::string& name, const common::LogicalType& dataType);
-
-    static std::unique_ptr<common::LogicalType> bindDataType(const std::string& dataType);
 
     /*** bind DDL ***/
     std::unique_ptr<BoundCreateTableInfo> bindCreateTableInfo(const parser::CreateTableInfo* info);

@@ -13,7 +13,7 @@ namespace function {
 struct UnaryFunctionWrapper {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
     static inline void operation(OPERAND_TYPE& input, RESULT_TYPE& result, void* /*inputVector*/,
-        void* /*resultVector*/, void* /*dataPtr*/) {
+        void* /*resultVector*/, uint64_t /*operand_pos*/, void* /*dataPtr*/) {
         FUNC::operation(input, result);
     }
 };
@@ -21,15 +21,24 @@ struct UnaryFunctionWrapper {
 struct UnaryStringFunctionWrapper {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
     static void operation(OPERAND_TYPE& input, RESULT_TYPE& result, void* /*inputVector*/,
-        void* resultVector, void* /*dataPtr*/) {
+        void* resultVector, uint64_t /*operand_pos*/, void* /*dataPtr*/) {
         FUNC::operation(input, result, *(common::ValueVector*)resultVector);
+    }
+};
+
+struct UnaryCastStringFunctionWrapper {
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void operation(OPERAND_TYPE& input, RESULT_TYPE& result, void* /*inputVector*/,
+        void* resultVector, uint64_t operand_pos, void* dataPtr) {
+        FUNC::operation(input, result, (common::ValueVector*)resultVector, operand_pos,
+            &reinterpret_cast<StringCastFunctionBindData*>(dataPtr)->csvConfig);
     }
 };
 
 struct UnaryListFunctionWrapper {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
     static inline void operation(OPERAND_TYPE& input, RESULT_TYPE& result, void* leftValueVector,
-        void* resultValueVector, void* /*dataPtr*/) {
+        void* resultValueVector, uint64_t /*operand_pos*/, void* /*dataPtr*/) {
         FUNC::operation(input, result, *(common::ValueVector*)leftValueVector,
             *(common::ValueVector*)resultValueVector);
     }
@@ -38,7 +47,7 @@ struct UnaryListFunctionWrapper {
 struct UnaryCastFunctionWrapper {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
     static void operation(OPERAND_TYPE& input, RESULT_TYPE& result, void* inputVector,
-        void* resultVector, void* /*dataPtr*/) {
+        void* resultVector, uint64_t /*operand_pos*/, void* /*dataPtr*/) {
         FUNC::operation(
             input, result, *(common::ValueVector*)inputVector, *(common::ValueVector*)resultVector);
     }
@@ -47,7 +56,7 @@ struct UnaryCastFunctionWrapper {
 struct UnaryUDFFunctionWrapper {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
     static inline void operation(OPERAND_TYPE& input, RESULT_TYPE& result, void* /*inputVector*/,
-        void* /*resultVector*/, void* dataPtr) {
+        void* /*resultVector*/, uint64_t /*operand_pos*/, void* dataPtr) {
         FUNC::operation(input, result, dataPtr);
     }
 };
@@ -58,7 +67,7 @@ struct UnaryFunctionExecutor {
         RESULT_TYPE& resultValue, common::ValueVector& resultValueVector, void* dataPtr) {
         OP_WRAPPER::template operation<OPERAND_TYPE, RESULT_TYPE, FUNC>(
             ((OPERAND_TYPE*)operand.getData())[operandPos], resultValue, (void*)&operand,
-            (void*)&resultValueVector, dataPtr);
+            (void*)&resultValueVector, operandPos, dataPtr);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
@@ -127,6 +136,13 @@ struct UnaryFunctionExecutor {
     static void executeListStruct(common::ValueVector& operand, common::ValueVector& result) {
         executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, UnaryListFunctionWrapper>(
             operand, result, nullptr /* dataPtr */);
+    }
+
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void executeCastString(
+        common::ValueVector& operand, common::ValueVector& result, void* dataPtr) {
+        executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, UnaryCastStringFunctionWrapper>(
+            operand, result, dataPtr);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>

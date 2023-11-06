@@ -36,7 +36,7 @@ void ParsingDriver::addValue(
                 reader->filePath, reader->getLineNumber(), reader->expectedNumColumns));
     }
 
-    function::CastStringToTypes::copyStringToVector(
+    function::CastString::copyStringToVector(
         chunk.getValueVector(columnIdx).get(), rowNum, value, &reader->csvReaderConfig);
 }
 

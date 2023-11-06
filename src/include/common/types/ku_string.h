@@ -21,6 +21,7 @@ struct ku_string_t {
     };
 
     ku_string_t() : len{0}, overflowPtr{0} {}
+    ku_string_t(const char* value, uint64_t length);
 
     static bool isShortString(uint32_t len) { return len <= SHORT_STR_LENGTH; }
 

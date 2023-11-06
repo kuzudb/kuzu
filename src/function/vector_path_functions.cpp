@@ -87,8 +87,8 @@ void PropertiesFunction::compileFunc(FunctionBindData* bindData,
     ListVector::setDataVector(result.get(), fieldVector);
 }
 
-void PropertiesFunction::execFunc(
-    const std::vector<std::shared_ptr<ValueVector>>& parameters, ValueVector& result) {
+void PropertiesFunction::execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
+    ValueVector& result, void* /*dataPtr*/) {
     if (parameters[0]->state->isFlat()) {
         auto inputPos = parameters[0]->state->selVector->selectedPositions[0];
         if (parameters[0]->isNull(inputPos)) {
@@ -123,8 +123,8 @@ function_set IsTrailFunction::getFunctionSet() {
     return functionSet;
 }
 
-void IsTrailFunction::execFunc(
-    const std::vector<std::shared_ptr<ValueVector>>& parameters, ValueVector& result) {
+void IsTrailFunction::execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
+    ValueVector& result, void* /*dataPtr*/) {
     UnaryPathExecutor::executeRelIDs(*parameters[0], result);
 }
 
@@ -141,8 +141,8 @@ function_set IsACyclicFunction::getFunctionSet() {
     return functionSet;
 }
 
-void IsACyclicFunction::execFunc(
-    const std::vector<std::shared_ptr<ValueVector>>& parameters, ValueVector& result) {
+void IsACyclicFunction::execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,
+    ValueVector& result, void* /*dataPtr*/) {
     UnaryPathExecutor::executeNodeIDs(*parameters[0], result);
 }
 
