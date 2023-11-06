@@ -304,9 +304,11 @@ jobs:
           yum install https://rpm.nodesource.com/pub_20.x/nodistro/repo/nodesource-release-nodistro-1.noarch.rpm -y
           dnf install --setopt=nodesource-nodejs.module_hotfixes=1 -y git cmake ${{ matrix.image == 'rockylinux:8' && 'gcc-toolset-12 python39 python39-devel' || 'gcc gcc-c++ python3-devel' }} java-17-openjdk-devel ccache nodejs
 
-      - name: Enable gcc-toolset-12 for Rocky Linux 8
+      - name: Enable gcc-toolset-12 and python39 on Rocky Linux 8
         if: matrix.image == 'rockylinux:8'
-        run: echo "/opt/rh/gcc-toolset-12/root/usr/bin" >> $GITHUB_PATH
+        run: |
+          alternatives --set python /usr/bin/python3.9
+          echo "/opt/rh/gcc-toolset-12/root/usr/bin" >> $GITHUB_PATH
 
       - uses: actions/checkout@v3
 
