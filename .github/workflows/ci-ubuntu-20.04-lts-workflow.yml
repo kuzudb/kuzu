@@ -13,11 +13,12 @@ jobs:
       CC: gcc-10
       CXX: g++-10
     steps:
-      - uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: true
-
       - uses: actions/checkout@v3
+
+      - name: Install packages
+        run: |
+          apt-get update
+          apt-get install -y ccache
 
       - name: Ensure Python dependencies
         run: |
@@ -71,6 +72,11 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v3
+
+      - name: Install packages
+        run: |
+          brew update
+          brew install ccache
 
       - uses: actions/setup-python@v4
         with:
@@ -129,6 +135,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - uses: mozilla-actions/sccache-action@v0.0.3
+
       - uses: ilammy/msvc-dev-cmd@v1
 
       - uses: actions/setup-python@v4
@@ -137,54 +145,45 @@ jobs:
 
       - name: Ensure Python dependencies
         shell: cmd
-        working-directory: C:\kuzu
         run: |
           pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
           pip install --user -r tools\python_api\requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
 
       - name: Ensure Node.js dependencies
         shell: cmd
-        working-directory: C:\kuzu\tools\nodejs_api
+        working-directory: .\tools\nodejs_api
         run: npm install --include=dev
 
       - name: Build
         shell: cmd
-        working-directory: C:\kuzu
         run: make release NUM_THREADS=%NUMBER_OF_PROCESSORS%
 
       - name: Test
         shell: cmd
-        working-directory: C:\kuzu
         run: make test NUM_THREADS=%NUMBER_OF_PROCESSORS%
 
       - name: C and C++ examples
         shell: cmd
-        working-directory: C:\kuzu
         run: make example NUM_THREADS=%NUMBER_OF_PROCESSORS%
 
       - name: Python test
         shell: cmd
-        working-directory: C:\kuzu
         run: make pytest NUM_THREADS=%NUMBER_OF_PROCESSORS%
 
       - name: Node.js test
         shell: cmd
-        working-directory: C:\kuzu
         run: make nodejstest NUM_THREADS=%NUMBER_OF_PROCESSORS%
 
       - name: Java test
         shell: cmd
-        working-directory: C:\kuzu
         run: make javatest NUM_THREADS=%NUMBER_OF_PROCESSORS%
 
       - name: Rust share build
         shell: cmd
-        working-directory: C:\kuzu
         run: (echo [workspace]& echo members = ["tools/rust_api","examples/rust"]) > Cargo.toml
 
       - name: Rust test
         shell: cmd
-        working-directory: C:\kuzu\tools\rust_api
         run: |
           set OPENSSL_DIR=C:\Program Files\OpenSSL-Win64
           set KUZU_TESTING=1
@@ -197,7 +196,6 @@ jobs:
 
       - name: Rust example
         shell: cmd
-        working-directory: C:\kuzu\examples\rust
         run: |
           set CARGO_BUILD_JOBS=%NUMBER_OF_PROCESSORS%
           cargo build --release --features arrow
