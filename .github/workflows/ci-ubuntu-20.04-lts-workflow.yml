@@ -148,7 +148,7 @@ jobs:
           Set-MpPreference -DisableIntrusionPreventionSystem $true
           Set-MpPreference -DisableScriptScanning $true
           Set-MpPreference -SubmitSamplesConsent NeverSend
-          
+
       - uses: actions/checkout@v3
 
       - uses: ilammy/msvc-dev-cmd@v1
@@ -325,6 +325,8 @@ jobs:
           alternatives --set python /usr/bin/python3.9
           alternatives --set python3 /usr/bin/python3.9
           echo "/opt/rh/gcc-toolset-12/root/usr/bin" >> $GITHUB_PATH
+          echo "PYTHON_EXECUTABLE=/usr/bin/python3.9" >> $GITHUB_ENV
+          echp "PYBIND11_PYTHON_VERSION=3.9" >> $GITHUB_ENV
 
       - uses: actions/checkout@v3
 
