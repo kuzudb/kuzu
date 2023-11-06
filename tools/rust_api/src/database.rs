@@ -51,7 +51,7 @@ pub struct SystemConfig {
     /// When true, new columns will be compressed if possible
     /// Defaults to true
     enable_compression: bool,
-    access_mode: AccessMode,
+    read_only : bool,
 }
 
 impl Default for SystemConfig {
@@ -60,7 +60,7 @@ impl Default for SystemConfig {
             buffer_pool_size: 0,
             max_num_threads: 0,
             enable_compression: true,
-            access_mode: AccessMode::ReadWrite,
+            read_only: false,
         }
     }
 }
@@ -78,8 +78,8 @@ impl SystemConfig {
         self.enable_compression = enable_compression;
         self
     }
-    pub fn access_mode(mut self, access_mode: AccessMode) -> Self {
-        self.access_mode = access_mode;
+    pub fn access_mode(mut self, read_only : bool) -> Self {
+        self.read_only = read_only;
         self
     }
 }
@@ -90,6 +90,9 @@ impl Database {
     /// # Arguments:
     /// * `path`: Path of the database. If the database does not already exist, it will be created.
     /// * `buffer_pool_size`: Max size of the buffer pool in bytes
+    /// * `max_num_threads`: The maximum number of threads to use in the system
+    /// * `enable_compression`: When true, table data will be compressed if possible
+    /// * `read_only`: When true, the database will be opened in READ_ONLY mode, otherwise in READ_WRITE mode.
     pub fn new<P: AsRef<Path>>(path: P, config: SystemConfig) -> Result<Self, Error> {
         let_cxx_string!(path = path.as_ref().display().to_string());
         Ok(Database {
@@ -98,7 +101,7 @@ impl Database {
                 config.buffer_pool_size,
                 config.max_num_threads,
                 config.enable_compression,
-                config.access_mode.into(),
+                if config.read_only { ffi::AccessMode::READ_ONLY} else {ffi::AccessMode::READ_WRITE},
             )?),
         })
     }

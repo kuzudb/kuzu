@@ -26,8 +26,9 @@ namespace kuzu {
 namespace main {
 
 SystemConfig::SystemConfig(
-    uint64_t bufferPoolSize_, uint64_t maxNumThreads, bool enableCompression, AccessMode accessMode)
-    : maxNumThreads{maxNumThreads}, enableCompression{enableCompression}, accessMode{accessMode} {
+    uint64_t bufferPoolSize_, uint64_t maxNumThreads, bool enableCompression, bool readOnly)
+    : maxNumThreads{maxNumThreads}, enableCompression{enableCompression},
+      accessMode{readOnly ? AccessMode::READ_ONLY : AccessMode::READ_WRITE} {
     if (bufferPoolSize_ == -1u || bufferPoolSize_ == 0) {
 #if defined(_WIN32)
         MEMORYSTATUSEX status;
