@@ -13,13 +13,15 @@ namespace common {
     // LCOV_EXCL_END
 }
 
+// Roughly copy the definition in <assert.h>. Specifically, we make `assert` an expression that
+// evaluates to void(0).
 #if defined(KUZU_RUNTIME_CHECKS) || !defined(NDEBUG)
 #define KU_ASSERT(condition)                                                                       \
-    if (!(condition)) {                                                                            \
-        [[unlikely]] kuzu::common::kuAssertFailureInternal(#condition, __FILE__, __LINE__);        \
-    }
+    static_cast<bool>(condition) ?                                                                 \
+        void(0) :                                                                                  \
+        kuzu::common::kuAssertFailureInternal(#condition, __FILE__, __LINE__)
 #else
-#define KU_ASSERT(condition)
+#define KU_ASSERT(condition) void(0)
 #endif
 
 } // namespace common

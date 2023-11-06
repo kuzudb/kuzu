@@ -1,7 +1,7 @@
 #include "common/copier_config/copier_config.h"
 
-#include "common/assert.h"
 #include "common/exception/copy.h"
+#include "common/exception/not_implemented.h"
 
 namespace kuzu {
 namespace common {
@@ -34,11 +34,11 @@ std::string FileTypeUtils::toString(FileType fileType) {
     case FileType::TURTLE: {
         return "TURTLE";
     }
-        // LCOV_EXCL_START
     default: {
-        KU_ASSERT(false)
-    }
+        // LCOV_EXCL_START
+        throw NotImplementedException("Unknown file type in FileTypeUtils::toString");
         // LCOV_EXCL_END
+    }
     }
 }
 

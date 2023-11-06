@@ -38,7 +38,7 @@ void NodeGroup::resetToEmpty() {
 }
 
 void NodeGroup::setChunkToAllNull(common::vector_idx_t chunkIdx) {
-    KU_ASSERT(chunkIdx < chunks.size())
+    KU_ASSERT(chunkIdx < chunks.size());
     chunks[chunkIdx]->getNullChunk()->resetToAllNull();
 }
 
