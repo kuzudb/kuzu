@@ -1,0 +1,76 @@
+-GROUP TCKMatch8
+-DATASET CSV tck
+
+--
+
+# Pattern independent of bound variables results in cross product
+-CASE Scenario1
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A), (:B);
+---- ok
+-STATEMENT MATCH (a)
+           WITH a
+           MATCH (b)
+           RETURN a, b;
+---- 4
+{_ID: 0:0, _LABEL: A, ID: 0}|{_ID: 0:0, _LABEL: A, ID: 0}
+{_ID: 0:0, _LABEL: A, ID: 0}|{_ID: 1:0, _LABEL: B, ID: 0}
+{_ID: 1:0, _LABEL: B, ID: 0}|{_ID: 0:0, _LABEL: A, ID: 0}
+{_ID: 1:0, _LABEL: B, ID: 0}|{_ID: 1:0, _LABEL: B, ID: 0}
+
+# Counting rows after MATCH, MERGE, OPTIONAL MATCH
+-CASE Scenario2
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T1(FROM A TO B);
+---- ok
+-STATEMENT CREATE REL TABLE T2(FROM B TO A);
+---- ok
+-STATEMENT CREATE (a:A), (b:B)
+           CREATE (a)-[:T1]->(b),
+                  (b)-[:T2]->(a);
+---- ok
+-STATEMENT MATCH (a)
+           MERGE (b)
+           WITH *
+           OPTIONAL MATCH (a)--(b)
+           RETURN count(*);
+---- 1
+6
+
+# Matching and disregarding output, then matching again
+-CASE Scenario3
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, type STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE ATE(FROM A TO B, times INT64);
+---- ok
+-STATEMENT CREATE (andres:A {name: 'Andres'}),
+                  (michael:A {name: 'Michael'}),
+                  (peter:A {name: 'Peter'}),
+                  (bread:B {type: 'Bread'}),
+                  (veggies:B {type: 'Veggies'}),
+                  (meat:B {type: 'Meat'})
+           CREATE (andres)-[:ATE {times: 10}]->(bread),
+                  (andres)-[:ATE {times: 8}]->(veggies),
+                  (michael)-[:ATE {times: 4}]->(veggies),
+                  (michael)-[:ATE {times: 6}]->(bread),
+                  (michael)-[:ATE {times: 9}]->(meat),
+                  (peter)-[:ATE {times: 7}]->(veggies),
+                  (peter)-[:ATE {times: 7}]->(bread),
+                  (peter)-[:ATE {times: 4}]->(meat);
+---- ok
+-STATEMENT MATCH ()-->()
+           WITH 1 AS x
+           MATCH ()-[r1]->()<--()
+           RETURN sum(r1.times);
+---- 1
+776

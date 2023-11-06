@@ -384,7 +384,7 @@ n01111
                   (d)-[:LIKES_D_E]->(e2);
 ---- ok
 -STATEMENT MATCH (a:A)
-           MATCH (a)-[:LIKES]->()<-[:LIKES*3]->(c)
+           MATCH (a)-[:LIKES]->()-[:LIKES*3]-(c)
            RETURN c.name;
 ---- 16
 n00000
