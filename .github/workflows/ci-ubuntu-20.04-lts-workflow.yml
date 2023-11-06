@@ -368,8 +368,8 @@ jobs:
     env:
       CC: gcc
       CXX: g++
-      PYBIND11_PYTHON_VERSION: 3.9
-      PYTHON_EXECUTABLE: /usr/local/bin/python3.9
+      PYBIND11_PYTHON_VERSION: 3.10
+      PYTHON_EXECUTABLE: /usr/local/bin/python3.10
       JAVA_HOME: /usr/lib/jvm/java-11-openjdk
     steps:
       - name: Install packages
@@ -381,7 +381,7 @@ jobs:
 
       - name: Ensure Python dependencies
         run: |
-          ln -s /usr/local/bin/python3.9 /usr/bin/python3
+          ln -s /usr/local/bin/python3.10 /usr/bin/python3
           python3 -m pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
           python3 -m pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
 
