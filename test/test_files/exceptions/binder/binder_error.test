@@ -292,6 +292,12 @@ Binder exception: No file found that matches the pattern: wrong_path.parquet.
 -STATEMENT COPY person FROM "person_0_0.csv" (pk=",")
 ---- error
 Binder exception: Unrecognized csv parsing option: PK.
+-STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, struct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/change_config.csv" (HEADER=true, DELIM="|", ESCAPE="~", QUOTE="'", LIST_BEGIN="(", LIST_END=")") RETURN * ;
+---- error
+Binder exception: Unrecognized csv parsing option: LIST_END.
+-STATEMENT LOAD WITH HEADERS (map MAP(STRING, MAP(STRING, INT16))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/nested_map_correct.csv" (YES="c") RETURN *;
+---- error
+Binder exception: Unrecognized csv parsing option: YES.
 
 -LOG CopyCSVInvalidSchemaName
 -STATEMENT COPY university FROM "person_0_0.csv" (pk=",")

@@ -25,7 +25,7 @@ struct CastString {
     template<typename T>
     static inline void operation(const ku_string_t& input, T& result,
         ValueVector* /*resultVector*/ = nullptr, uint64_t /*rowToAdd*/ = 0,
-        const CSVReaderConfig* /*CSVReaderConfig*/ = nullptr) {
+        const CSVReaderConfig* /*csvReaderConfig*/ = nullptr) {
         // base case: int64
         simpleIntegerCast<T, true>(reinterpret_cast<const char*>(input.getData()), input.len,
             result, LogicalType{LogicalTypeID::INT64});
@@ -35,14 +35,14 @@ struct CastString {
 template<>
 inline void CastString::operation(const ku_string_t& input, int128_t& result,
     ValueVector* /*resultVector*/, uint64_t /*rowToAdd*/,
-    const CSVReaderConfig* /*CSVReaderConfig*/) {
+    const CSVReaderConfig* /*csvReaderConfig*/) {
     simpleInt128Cast(reinterpret_cast<const char*>(input.getData()), input.len, result);
 }
 
 template<>
 inline void CastString::operation(const ku_string_t& input, int32_t& result,
     ValueVector* /*resultVector*/, uint64_t /*rowToAdd*/,
-    const CSVReaderConfig* /*CSVReaderConfig*/) {
+    const CSVReaderConfig* /*csvReaderConfig*/) {
     simpleIntegerCast<int32_t>(reinterpret_cast<const char*>(input.getData()), input.len, result,
         LogicalType{LogicalTypeID::INT32});
 }
@@ -50,7 +50,7 @@ inline void CastString::operation(const ku_string_t& input, int32_t& result,
 template<>
 inline void CastString::operation(const ku_string_t& input, int16_t& result,
     ValueVector* /*resultVector*/, uint64_t /*rowToAdd*/,
-    const CSVReaderConfig* /*CSVReaderConfig*/) {
+    const CSVReaderConfig* /*csvReaderConfig*/) {
     simpleIntegerCast<int16_t>(reinterpret_cast<const char*>(input.getData()), input.len, result,
         LogicalType{LogicalTypeID::INT16});
 }
@@ -58,7 +58,7 @@ inline void CastString::operation(const ku_string_t& input, int16_t& result,
 template<>
 inline void CastString::operation(const ku_string_t& input, int8_t& result,
     ValueVector* /*resultVector*/, uint64_t /*rowToAdd*/,
-    const CSVReaderConfig* /*CSVReaderConfig*/) {
+    const CSVReaderConfig* /*csvReaderConfig*/) {
     simpleIntegerCast<int8_t>(reinterpret_cast<const char*>(input.getData()), input.len, result,
         LogicalType{LogicalTypeID::INT8});
 }
@@ -66,7 +66,7 @@ inline void CastString::operation(const ku_string_t& input, int8_t& result,
 template<>
 inline void CastString::operation(const ku_string_t& input, uint64_t& result,
     ValueVector* /*resultVector*/, uint64_t /*rowToAdd*/,
-    const CSVReaderConfig* /*CSVReaderConfig*/) {
+    const CSVReaderConfig* /*csvReaderConfig*/) {
     simpleIntegerCast<uint64_t, false>(reinterpret_cast<const char*>(input.getData()), input.len,
         result, LogicalType{LogicalTypeID::UINT64});
 }
@@ -74,7 +74,7 @@ inline void CastString::operation(const ku_string_t& input, uint64_t& result,
 template<>
 inline void CastString::operation(const ku_string_t& input, uint32_t& result,
     ValueVector* /*resultVector*/, uint64_t /*rowToAdd*/,
-    const CSVReaderConfig* /*CSVReaderConfig*/) {
+    const CSVReaderConfig* /*csvReaderConfig*/) {
     simpleIntegerCast<uint32_t, false>(reinterpret_cast<const char*>(input.getData()), input.len,
         result, LogicalType{LogicalTypeID::UINT32});
 }
@@ -82,7 +82,7 @@ inline void CastString::operation(const ku_string_t& input, uint32_t& result,
 template<>
 inline void CastString::operation(const ku_string_t& input, uint16_t& result,
     ValueVector* /*resultVector*/, uint64_t /*rowToAdd*/,
-    const CSVReaderConfig* /*CSVReaderConfig*/) {
+    const CSVReaderConfig* /*csvReaderConfig*/) {
     simpleIntegerCast<uint16_t, false>(reinterpret_cast<const char*>(input.getData()), input.len,
         result, LogicalType{LogicalTypeID::UINT16});
 }
@@ -90,7 +90,7 @@ inline void CastString::operation(const ku_string_t& input, uint16_t& result,
 template<>
 inline void CastString::operation(const ku_string_t& input, uint8_t& result,
     ValueVector* /*resultVector*/, uint64_t /*rowToAdd*/,
-    const CSVReaderConfig* /*CSVReaderConfig*/) {
+    const CSVReaderConfig* /*csvReaderConfig*/) {
     simpleIntegerCast<uint8_t, false>(reinterpret_cast<const char*>(input.getData()), input.len,
         result, LogicalType{LogicalTypeID::UINT8});
 }
@@ -98,7 +98,7 @@ inline void CastString::operation(const ku_string_t& input, uint8_t& result,
 template<>
 inline void CastString::operation(const ku_string_t& input, float_t& result,
     ValueVector* /*resultVector*/, uint64_t /*rowToAdd*/,
-    const CSVReaderConfig* /*CSVReaderConfig*/) {
+    const CSVReaderConfig* /*csvReaderConfig*/) {
     doubleCast<float_t>(reinterpret_cast<const char*>(input.getData()), input.len, result,
         LogicalType{LogicalTypeID::FLOAT});
 }
@@ -106,7 +106,7 @@ inline void CastString::operation(const ku_string_t& input, float_t& result,
 template<>
 inline void CastString::operation(const ku_string_t& input, double_t& result,
     ValueVector* /*resultVector*/, uint64_t /*rowToAdd*/,
-    const CSVReaderConfig* /*CSVReaderConfig*/) {
+    const CSVReaderConfig* /*csvReaderConfig*/) {
     doubleCast<double_t>(reinterpret_cast<const char*>(input.getData()), input.len, result,
         LogicalType{LogicalTypeID::DOUBLE});
 }
@@ -114,50 +114,50 @@ inline void CastString::operation(const ku_string_t& input, double_t& result,
 template<>
 inline void CastString::operation(const ku_string_t& input, date_t& result,
     ValueVector* /*resultVector*/, uint64_t /*rowToAdd*/,
-    const CSVReaderConfig* /*CSVReaderConfig*/) {
+    const CSVReaderConfig* /*csvReaderConfig*/) {
     result = Date::fromCString((const char*)input.getData(), input.len);
 }
 
 template<>
 inline void CastString::operation(const ku_string_t& input, timestamp_t& result,
     ValueVector* /*resultVector*/, uint64_t /*rowToAdd*/,
-    const CSVReaderConfig* /*CSVReaderConfig*/) {
+    const CSVReaderConfig* /*csvReaderConfig*/) {
     result = Timestamp::fromCString((const char*)input.getData(), input.len);
 }
 
 template<>
 inline void CastString::operation(const ku_string_t& input, interval_t& result,
     ValueVector* /*resultVector*/, uint64_t /*rowToAdd*/,
-    const CSVReaderConfig* /*CSVReaderConfig*/) {
+    const CSVReaderConfig* /*csvReaderConfig*/) {
     result = Interval::fromCString((const char*)input.getData(), input.len);
 }
 
 template<>
 inline void CastString::operation(const ku_string_t& input, bool& result,
     ValueVector* /*resultVector*/, uint64_t /*rowToAdd*/,
-    const CSVReaderConfig* /*CSVReaderConfig*/) {
+    const CSVReaderConfig* /*csvReaderConfig*/) {
     castStringToBool(reinterpret_cast<const char*>(input.getData()), input.len, result);
 }
 
 template<>
 void CastString::operation(const ku_string_t& input, blob_t& result, ValueVector* resultVector,
-    uint64_t rowToAdd, const CSVReaderConfig* CSVReaderConfig);
+    uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig);
 
 template<>
 void CastString::operation(const ku_string_t& input, list_entry_t& result,
-    ValueVector* resultVector, uint64_t rowToAdd, const CSVReaderConfig* CSVReaderConfig);
+    ValueVector* resultVector, uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig);
 
 template<>
 void CastString::operation(const ku_string_t& input, map_entry_t& result, ValueVector* resultVector,
-    uint64_t rowToAdd, const CSVReaderConfig* CSVReaderConfig);
+    uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig);
 
 template<>
 void CastString::operation(const ku_string_t& input, struct_entry_t& result,
-    ValueVector* resultVector, uint64_t rowToAdd, const CSVReaderConfig* CSVReaderConfig);
+    ValueVector* resultVector, uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig);
 
 template<>
 void CastString::operation(const ku_string_t& input, union_entry_t& result,
-    ValueVector* resultVector, uint64_t rowToAdd, const CSVReaderConfig* CSVReaderConfig);
+    ValueVector* resultVector, uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig);
 
 } // namespace function
 } // namespace kuzu

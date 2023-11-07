@@ -367,7 +367,7 @@ unquote:
         escapePositions.push_back(position - start);
         goto in_quotes;
     } else if (buffer[position] == csvReaderConfig.delimiter ||
-               buffer[position] == csvReaderConfig.listEndChar) {
+               buffer[position] == CopyConstants::DEFAULT_CSV_LIST_END_CHAR) {
         // delimiter, add value
         goto add_value;
     } else if (isNewLine(buffer[position])) {
