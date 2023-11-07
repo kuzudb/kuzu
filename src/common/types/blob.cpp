@@ -61,7 +61,7 @@ uint64_t Blob::fromString(const char* str, uint64_t length, uint8_t* resultBuffe
             // LCOV_EXCL_START
             throw InternalException("Invalid byte encountered in STRING -> BLOB conversion that "
                                     "should have been caught during getBlobSize");
-            // LCOV_EXCL_END
+            // LCOV_EXCL_STOP
         }
     }
     return resultPos;

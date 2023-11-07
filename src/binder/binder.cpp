@@ -2,7 +2,6 @@
 
 #include "binder/bound_statement_rewriter.h"
 #include "common/exception/binder.h"
-#include "common/exception/not_implemented.h"
 #include "common/string_format.h"
 
 using namespace kuzu::common;
@@ -48,8 +47,11 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::TRANSACTION: {
         boundStatement = bindTransaction(statement);
     } break;
-    default:
-        throw NotImplementedException("Binder::bind");
+        // LCOV_EXCL_START
+    default: {
+        KU_UNREACHABLE;
+    }
+        // LCOV_EXCL_STOP
     }
     BoundStatementRewriter::rewrite(*boundStatement, catalog);
     return boundStatement;

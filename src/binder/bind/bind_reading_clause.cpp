@@ -40,7 +40,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindReadingClause(const ReadingClaus
         return bindLoadFrom(readingClause);
     }
     default:
-        throw NotImplementedException("bindReadingClause().");
+        KU_UNREACHABLE;
     }
 }
 
@@ -243,10 +243,10 @@ void Binder::sniffFiles(const common::ReaderConfig& readerConfig,
         } break;
         case FileType::TURTLE:
             break;
-        default:
             // LCOV_EXCL_START
-            throw NotImplementedException("Binder::sniffFiles");
-            // LCOV_EXCL_END
+        default:
+            KU_UNREACHABLE;
+            // LCOV_EXCL_STOP
         }
     }
 }

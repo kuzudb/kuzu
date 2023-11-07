@@ -220,7 +220,7 @@ ExpressionType CatalogContent::getFunctionType(const std::string& name) const {
         default:
             // LCOV_EXCL_START
             throw NotImplementedException("CatalogContent::getFunctionType");
-            // LCOV_EXCL_END
+            // LCOV_EXCL_STOP
         }
     }
 }
@@ -257,7 +257,7 @@ void CatalogContent::validateStorageVersion(storage_version_t savedStorageVersio
             stringFormat("Trying to read a database file with a different version. "
                          "Database file version: {}, Current build storage version: {}",
                 savedStorageVersion, storageVersion));
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 }
 

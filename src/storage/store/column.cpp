@@ -613,7 +613,7 @@ std::unique_ptr<Column> ColumnFactory::createColumn(const common::LogicalType& d
     default: {
         throw NotImplementedException("ColumnFactory::createColumn");
     }
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 }
 

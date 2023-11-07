@@ -71,7 +71,7 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getEvaluator(
         // LCOV_EXCL_START
         throw NotImplementedException(stringFormat(
             "Cannot evaluate expression with type {}.", expressionTypeToString(expressionType)));
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -89,7 +89,7 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getConstantEvaluator(
         // LCOV_EXCL_START
         throw NotImplementedException(stringFormat(
             "Cannot evaluate expression with type {}.", expressionTypeToString(expressionType)));
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 }
 

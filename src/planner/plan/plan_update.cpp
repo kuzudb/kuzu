@@ -40,7 +40,7 @@ void QueryPlanner::planUpdatingClause(BoundUpdatingClause& updatingClause, Logic
     default:
         // LCOV_EXCL_START
         throw NotImplementedException("QueryPlanner::planUpdatingClause");
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -83,7 +83,7 @@ void QueryPlanner::planMergeClause(binder::BoundUpdatingClause& updatingClause, 
     default:
         // LCOV_EXCL_START
         throw NotImplementedException("QueryPlanner::planMergeClause");
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
     std::vector<std::unique_ptr<LogicalInsertNodeInfo>> logicalInsertNodeInfos;
     if (mergeClause.hasInsertNodeInfo()) {

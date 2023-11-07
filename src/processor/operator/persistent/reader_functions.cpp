@@ -38,7 +38,7 @@ count_rows_func_t ReaderFunctions::getCountRowsFunc(
     }
     default: { // LCOV_EXCL_START
         throw NotImplementedException{"ReaderFunctions::getCountBlocksFunc"};
-    } // LCOV_EXCL_END
+    } // LCOV_EXCL_STOP
     }
 }
 

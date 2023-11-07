@@ -23,7 +23,7 @@ uint32_t BaseLowerUpperFunction::getResultLen(char* inputStr, uint32_t inputLen,
                 std::string funcName = isUpper ? "UPPER" : "LOWER";
                 throw RuntimeException(
                     common::stringFormat("Failed calling {}: Invalid UTF-8.", funcName));
-                // LCOV_EXCL_END
+                // LCOV_EXCL_STOP
             }
             int convertedCodepoint =
                 isUpper ? utf8proc_toupper(codepoint) : utf8proc_tolower(codepoint);

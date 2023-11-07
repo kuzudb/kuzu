@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstring>
 
+#include "common/exception/not_implemented.h"
 #include "common/string_format.h"
 #include "common/utils.h"
 #include "storage/storage_utils.h"
@@ -261,7 +262,7 @@ void OrderByKeyEncoder::getEncodingFunction(PhysicalTypeID physicalType, encode_
     default:
         // LCOV_EXCL_START
         throw NotImplementedException("OrderByKeyEncoder::getEncodingFunction");
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 }
 

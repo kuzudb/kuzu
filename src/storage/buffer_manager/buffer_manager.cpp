@@ -114,7 +114,7 @@ uint8_t* BufferManager::pin(
         default: {
             // LCOV_EXCL_START
             throw NotImplementedException("Invalid PageState in BufferManager::pin!");
-            // LCOV_EXCL_END
+            // LCOV_EXCL_STOP
         }
         }
     }

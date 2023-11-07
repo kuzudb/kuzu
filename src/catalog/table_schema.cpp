@@ -40,7 +40,7 @@ property_id_t TableSchema::getPropertyID(const std::string& propertyName) const 
     // LCOV_EXCL_START
     throw RuntimeException(stringFormat(
         "Table: {} doesn't have a property with propertyName={}.", tableName, propertyName));
-    // LCOV_EXCL_END
+    // LCOV_EXCL_STOP
 }
 
 // TODO(Guodong): Instead of looping over properties, cache a map between propertyID and columnID.
@@ -62,7 +62,7 @@ Property* TableSchema::getProperty(property_id_t propertyID) const {
     // LCOV_EXCL_START
     throw RuntimeException(stringFormat(
         "Table: {} doesn't have a property with propertyID={}.", tableName, propertyID));
-    // LCOV_EXCL_END
+    // LCOV_EXCL_STOP
 }
 
 void TableSchema::renameProperty(property_id_t propertyID, const std::string& newName) {
@@ -74,7 +74,7 @@ void TableSchema::renameProperty(property_id_t propertyID, const std::string& ne
     }
     // LCOV_EXCL_START
     throw InternalException(stringFormat("Property with id={} not found.", propertyID));
-    // LCOV_EXCL_END
+    // LCOV_EXCL_STOP
 }
 
 void TableSchema::serialize(Serializer& serializer) {
@@ -117,7 +117,7 @@ std::unique_ptr<TableSchema> TableSchema::deserialize(Deserializer& deserializer
     default: {
         // LCOV_EXCL_START
         throw NotImplementedException{"TableSchema::deserialize"};
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
     }
     result->tableName = tableName;

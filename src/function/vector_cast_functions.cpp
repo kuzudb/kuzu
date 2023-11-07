@@ -124,7 +124,7 @@ static std::unique_ptr<ScalarFunction> bindCastFromStringFunction(
         throw common::NotImplementedException{
             stringFormat("Unimplemented casting function from STRING to {}.",
                 LogicalTypeUtils::dataTypeToString(targetTypeID))};
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
     return std::make_unique<ScalarFunction>(
         functionName, std::vector<LogicalTypeID>{LogicalTypeID::STRING}, targetTypeID, execFunc);
@@ -204,7 +204,7 @@ static std::unique_ptr<ScalarFunction> bindCastFromRdfVariantFunction(
         throw common::NotImplementedException{
             stringFormat("Unimplemented casting function from RDF_VARIANT to {}.",
                 LogicalTypeUtils::dataTypeToString(targetTypeID))};
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
     return std::make_unique<ScalarFunction>(functionName,
         std::vector<LogicalTypeID>{LogicalTypeID::RDF_VARIANT}, targetTypeID, execFunc);
@@ -328,7 +328,7 @@ static std::unique_ptr<ScalarFunction> bindCastToStringFunction(
         throw common::NotImplementedException{
             stringFormat("Unimplemented casting function from {} to STRING.",
                 LogicalTypeUtils::dataTypeToString(sourceTypeID))};
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
     return std::make_unique<ScalarFunction>(
         functionName, std::vector<LogicalTypeID>{sourceTypeID}, LogicalTypeID::STRING, func);
@@ -379,7 +379,7 @@ static std::unique_ptr<ScalarFunction> bindCastToNumericFunction(
             stringFormat("Unimplemented casting function from {} to {}.",
                 LogicalTypeUtils::dataTypeToString(sourceTypeID),
                 LogicalTypeUtils::dataTypeToString(targetTypeID))};
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
     return std::make_unique<ScalarFunction>(
         functionName, std::vector<common::LogicalTypeID>{sourceTypeID}, targetTypeID, func);
@@ -395,7 +395,7 @@ static std::unique_ptr<ScalarFunction> bindCastToTimestampFunction(
     default:
         // LCOV_EXCL_START
         throw common::NotImplementedException{"bindCastToTimestampFunction"};
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
     return std::make_unique<ScalarFunction>(functionName,
         std::vector<common::LogicalTypeID>{sourceTypeID}, LogicalTypeID::TIMESTAMP, func);
@@ -467,7 +467,7 @@ std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(const std::string
         // LCOV_EXCL_START
     default: {
         throw common::NotImplementedException{"bindCastFunction"};
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
     }
 }

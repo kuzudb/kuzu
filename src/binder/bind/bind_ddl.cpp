@@ -6,7 +6,6 @@
 #include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
-#include "common/exception/not_implemented.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
 #include "parser/ddl/alter.h"
@@ -85,9 +84,13 @@ std::unique_ptr<BoundCreateTableInfo> Binder::bindCreateTableInfo(
     case TableType::RDF: {
         return bindCreateRdfGraphInfo(info);
     }
-    default:                                                      // LCOV_EXCL_START
-        throw NotImplementedException("Binder::bindCreateTable"); // LCOV_EXCL_STOP
+        // LCOV_EXCL_START
+    default: {
+        KU_UNREACHABLE;
     }
+        // LCOV_EXCL_STOP
+    }
+    return nullptr;
 }
 
 std::unique_ptr<BoundCreateTableInfo> Binder::bindCreateNodeTableInfo(const CreateTableInfo* info) {
@@ -211,11 +214,13 @@ std::unique_ptr<BoundStatement> Binder::bindAlter(const parser::Statement& state
     case AlterType::RENAME_PROPERTY: {
         return bindRenameProperty(statement);
     }
-    default:
         // LCOV_EXCL_START
-        throw NotImplementedException("Binder::bindAlter");
-        // LCOV_EXCL_END
+    default: {
+        KU_UNREACHABLE;
     }
+        // LCOV_EXCL_STOP
+    }
+    return nullptr;
 }
 
 std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& statement) {

@@ -1,6 +1,6 @@
 #include "common/enums/expression_type.h"
 
-#include "common/exception/not_implemented.h"
+#include "common/assert.h"
 
 namespace kuzu {
 namespace common {
@@ -84,8 +84,9 @@ std::string expressionTypeToString(ExpressionType type) {
     case EXISTENTIAL_SUBQUERY:
         return "EXISTENTIAL_SUBQUERY";
     default:
-        throw NotImplementedException("Cannot convert expression type to string");
+        KU_UNREACHABLE;
     }
+    return "";
 }
 // LCOV_EXCL_STOP
 

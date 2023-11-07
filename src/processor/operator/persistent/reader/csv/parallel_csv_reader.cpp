@@ -54,7 +54,7 @@ void ParallelCSVReader::seekToBlockStart() {
         // LCOV_EXCL_START
         throw CopyException(stringFormat("Failed to seek to block {} in file {}: {}",
             currentBlockIdx, filePath, posixErrMessage()));
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 
     if (currentBlockIdx == 0) {

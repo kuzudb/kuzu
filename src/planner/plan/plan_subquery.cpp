@@ -105,7 +105,7 @@ void QueryPlanner::planExistsSubquery(
         // LCOV_EXCL_START
         throw NotImplementedException(
             "Exists subquery with no correlated join conditions is not yet supported.");
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
     // See planOptionalMatch for un-nesting logic.
     bool isInternalIDCorrelated = ExpressionUtil::isExpressionsWithDataType(

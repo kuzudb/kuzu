@@ -6,8 +6,8 @@
 #include "binder/query/updating_clause/bound_merge_clause.h"
 #include "binder/query/updating_clause/bound_set_clause.h"
 #include "catalog/node_table_schema.h"
+#include "common/assert.h"
 #include "common/exception/binder.h"
-#include "common/exception/not_implemented.h"
 #include "common/string_format.h"
 #include "parser/query/updating_clause/delete_clause.h"
 #include "parser/query/updating_clause/insert_clause.h"
@@ -36,8 +36,10 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindUpdatingClause(
     case ClauseType::DELETE_: {
         return bindDeleteClause(updatingClause);
     }
+        // LCOV_EXCL_START
     default:
-        throw NotImplementedException("Binder::bindUpdatingClause");
+        KU_UNREACHABLE;
+        // LCOV_EXCL_STOP
     }
 }
 

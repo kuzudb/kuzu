@@ -1,6 +1,5 @@
 #include "common/utils.h"
 
-#include "common/exception/not_implemented.h"
 #include "spdlog/sinks/stdout_sinks.h"
 #include "spdlog/spdlog.h"
 
@@ -55,9 +54,11 @@ std::string LoggerUtils::getLoggerName(LoggerConstants::LoggerEnum loggerEnum) {
     case LoggerConstants::LoggerEnum::WAL: {
         return "wal";
     } break;
+        // LCOV_EXCL_START
     default: {
-        throw NotImplementedException("LoggerUtils::getLoggerName");
+        KU_UNREACHABLE;
     }
+        // LCOV_EXCL_STOP
     }
 }
 } // namespace common

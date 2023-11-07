@@ -73,7 +73,7 @@ inline void Modulo::operation(
         // and INT128 % 0.0(DOUBLE) are well-defined).
         throw common::RuntimeException("Modulo by zero.");
     }
-    // LCOV_EXCL_END
+    // LCOV_EXCL_STOP
     result = left % right;
 }
 

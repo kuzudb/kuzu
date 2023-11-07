@@ -14,7 +14,7 @@ storage_version_t StorageVersionInfo::getStorageVersion() {
         // LCOV_EXCL_START
         throw RuntimeException(
             stringFormat("Invalid storage version name: {}", KUZU_STORAGE_VERSION));
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
     return storageVersionInfo.at(KUZU_STORAGE_VERSION);
 }

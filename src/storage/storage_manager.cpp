@@ -64,7 +64,7 @@ void StorageManager::createTable(common::table_id_t tableID,
     } break;
         // LCOV_EXCL_START
     default: {
-        KU_NOT_REACHABLE();
+        KU_UNREACHABLE;
     }
         // LCOV_EXCL_STOP
     }
@@ -89,7 +89,7 @@ void StorageManager::dropTable(table_id_t tableID) {
     } break;
         // LCOV_EXCL_START
     default: {
-        KU_NOT_REACHABLE();
+        KU_UNREACHABLE;
     }
         // LCOV_EXCL_STOP
     }
