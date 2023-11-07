@@ -4,7 +4,6 @@
 #include "common/constants.h"
 #include "common/keyword/rdf_keyword.h"
 #include "common/types/rdf_variant_type.h"
-#include "storage/storage_manager.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;
@@ -56,7 +55,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfRelFrom(
     }
     auto relTableSchema = reinterpret_cast<RelTableSchema*>(tableSchema);
     auto resourceTableID = relTableSchema->getSrcTableID();
-    auto index = storageManager->getNodesStore().getPKIndex(resourceTableID);
+    auto index = storageManager->getPKIndex(resourceTableID);
     if (tableSchema->tableName.ends_with(rdf::RESOURCE_TRIPLE_TABLE_SUFFIX)) {
         readerConfig->rdfReaderConfig =
             std::make_unique<RdfReaderConfig>(RdfReaderMode::RESOURCE_TRIPLE, index);

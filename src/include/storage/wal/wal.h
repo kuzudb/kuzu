@@ -102,17 +102,15 @@ public:
 
     void logCatalogRecord();
 
-    void logNodeTableRecord(common::table_id_t tableID);
-    void logRelTableRecord(common::table_id_t tableID);
+    void logCreateNodeTableRecord(common::table_id_t tableID);
+    void logCreateRelTableRecord(common::table_id_t tableID);
     void logRdfGraphRecord(common::table_id_t rdfGraphID, common::table_id_t resourceTableID,
         common::table_id_t literalTableID, common::table_id_t resourceTripleTableID,
         common::table_id_t literalTripleTableID);
 
     void logOverflowFileNextBytePosRecord(DBFileID dbFileID, uint64_t prevNextByteToWriteTo);
 
-    void logCopyNodeRecord(common::table_id_t tableID, common::page_idx_t startPageIdx);
-
-    void logCopyRelRecord(common::table_id_t tableID);
+    void logCopyTableRecord(common::table_id_t tableID, common::TableType tableType);
 
     void logDropTableRecord(common::table_id_t tableID);
 
@@ -139,12 +137,8 @@ public:
     inline std::string getDirectory() const { return directory; }
     inline BufferManager* getBufferManager() const { return &bufferManager; }
 
-    inline void addToUpdatedNodeTables(common::table_id_t nodeTableID) {
-        updatedNodeTables.insert(nodeTableID);
-    }
-
-    inline void addToUpdatedRelTables(common::table_id_t relTableID) {
-        updatedRelTables.insert(relTableID);
+    inline void addToUpdatedTables(common::table_id_t nodeTableID) {
+        updatedTables.insert(nodeTableID);
     }
 
 private:
@@ -161,8 +155,7 @@ private:
 public:
     // Node/Rel tables that might have changes to their in-memory data structures that need to be
     // committed/rolled back accordingly during the wal replaying.
-    std::unordered_set<common::table_id_t> updatedNodeTables;
-    std::unordered_set<common::table_id_t> updatedRelTables;
+    std::unordered_set<common::table_id_t> updatedTables;
 
 private:
     std::shared_ptr<spdlog::logger> logger;

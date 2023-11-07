@@ -18,12 +18,11 @@ void CreateRelTableGroup::executeDDLInternal() {
         (RelTableGroupSchema*)writeCatalog->getTableSchema(newRelTableGroupID);
     for (auto& relTableID : newRelTableGroupSchema->getRelTableIDs()) {
         auto newRelTableSchema = writeCatalog->getTableSchema(relTableID);
-        storageManager->getRelsStore().getRelsStatistics()->addTableStatistic(
-            (RelTableSchema*)newRelTableSchema);
+        storageManager->getRelsStatistics()->addTableStatistic((RelTableSchema*)newRelTableSchema);
     }
     // TODO(Ziyi): remove this when we can log variable size record. See also wal_record.h
     for (auto relTableID : newRelTableGroupSchema->getRelTableIDs()) {
-        storageManager->getWAL()->logRelTableRecord(relTableID);
+        storageManager->getWAL()->logCreateRelTableRecord(relTableID);
     }
 }
 

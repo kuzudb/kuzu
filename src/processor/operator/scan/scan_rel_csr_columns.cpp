@@ -6,14 +6,14 @@ namespace processor {
 bool ScanRelCSRColumns::getNextTuplesInternal(ExecutionContext* context) {
     while (true) {
         if (scanState->hasMoreToRead()) {
-            info->table->read(
-                transaction, *scanState, info->direction, inVector, info->columnIDs, outVectors);
+            info->table->read(transaction, *scanState, inVector, outVectors);
             return true;
         }
         if (!children[0]->getNextTuple(context)) {
             return false;
         }
-        info->table->initializeReadState(transaction, info->direction, inVector, scanState.get());
+        info->table->initializeReadState(
+            transaction, info->direction, info->columnIDs, inVector, scanState.get());
     }
 }
 

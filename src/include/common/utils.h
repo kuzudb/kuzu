@@ -24,16 +24,6 @@ private:
     static std::string getLoggerName(LoggerConstants::LoggerEnum loggerEnum);
 };
 
-template<typename FROM, typename TO>
-std::unique_ptr<TO> ku_static_unique_pointer_cast(std::unique_ptr<FROM>&& old) {
-    return std::unique_ptr<TO>{static_cast<TO*>(old.release())};
-}
-template<class FROM, class TO>
-std::shared_ptr<TO> ku_reinterpret_pointer_cast(const std::shared_ptr<FROM>& r) {
-    return std::shared_ptr<TO>(
-        r, reinterpret_cast<typename std::shared_ptr<TO>::element_type*>(r.get()));
-}
-
 class BitmaskUtils {
 
 public:

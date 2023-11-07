@@ -15,6 +15,12 @@ public:
               std::move(outVectorsPos), std::move(prevOperator), id, paramsString},
           tables{std::move(tables)} {}
 
+    inline void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override {
+        ScanTable::initLocalStateInternal(resultSet, context);
+        for (auto& [tableID, _] : tables) {
+            readStates[tableID] = std::make_unique<storage::TableReadState>();
+        }
+    }
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
@@ -28,6 +34,7 @@ public:
 
 private:
     std::unordered_map<common::table_id_t, std::unique_ptr<ScanNodeTableInfo>> tables;
+    std::unordered_map<common::table_id_t, std::unique_ptr<storage::TableReadState>> readStates;
 };
 
 } // namespace processor

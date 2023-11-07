@@ -12,7 +12,7 @@ static std::shared_ptr<RecursiveJoinSharedState> createSharedState(
     const binder::NodeExpression& nbrNode, const storage::StorageManager& storageManager) {
     std::vector<std::unique_ptr<NodeOffsetSemiMask>> semiMasks;
     for (auto tableID : nbrNode.getTableIDs()) {
-        auto nodeTable = storageManager.getNodesStore().getNodeTable(tableID);
+        auto nodeTable = storageManager.getNodeTable(tableID);
         semiMasks.push_back(std::make_unique<NodeOffsetSemiMask>(nodeTable));
     }
     return std::make_shared<RecursiveJoinSharedState>(std::move(semiMasks));

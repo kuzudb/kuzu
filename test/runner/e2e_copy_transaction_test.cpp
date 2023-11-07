@@ -50,10 +50,8 @@ public:
                       ->query("MATCH (p:person) return *")
                       ->getNumTuples(),
             0);
-        ASSERT_EQ(getStorageManager(*database)
-                      ->getNodesStore()
-                      .getNodesStatisticsAndDeletedIDs()
-                      ->getMaxNodeOffset(&transaction::DUMMY_READ_TRANSACTION, tableID),
+        ASSERT_EQ(getStorageManager(*database)->getNodesStatisticsAndDeletedIDs()->getMaxNodeOffset(
+                      &transaction::DUMMY_READ_TRANSACTION, tableID),
             UINT64_MAX);
     }
 
@@ -61,10 +59,8 @@ public:
         auto nodeTableSchema =
             (NodeTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(tableID);
         validateTinysnbPersonAgeProperty();
-        ASSERT_EQ(getStorageManager(*database)
-                      ->getNodesStore()
-                      .getNodesStatisticsAndDeletedIDs()
-                      ->getMaxNodeOffset(&transaction::DUMMY_READ_TRANSACTION, tableID),
+        ASSERT_EQ(getStorageManager(*database)->getNodesStatisticsAndDeletedIDs()->getMaxNodeOffset(
+                      &transaction::DUMMY_READ_TRANSACTION, tableID),
             7);
     }
 
@@ -122,9 +118,8 @@ public:
         auto relTableSchema =
             (RelTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(tableID);
         auto dummyWriteTrx = transaction::Transaction::getDummyWriteTrx();
-        ASSERT_EQ(
-            getStorageManager(*database)->getRelsStore().getRelsStatistics()->getNextRelOffset(
-                dummyWriteTrx.get(), tableID),
+        ASSERT_EQ(getStorageManager(*database)->getRelsStatistics()->getNextRelOffset(
+                      dummyWriteTrx.get(), tableID),
             14);
     }
 
@@ -132,7 +127,7 @@ public:
         auto relTableSchema =
             (RelTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(knowsTableID);
         validateTinysnbKnowsDateProperty();
-        auto relsStatistics = getStorageManager(*database)->getRelsStore().getRelsStatistics();
+        auto relsStatistics = getStorageManager(*database)->getRelsStatistics();
         auto dummyWriteTrx = transaction::Transaction::getDummyWriteTrx();
         ASSERT_EQ(relsStatistics->getNextRelOffset(dummyWriteTrx.get(), knowsTableID), 14);
         ASSERT_EQ(relsStatistics->getReadOnlyVersion()->tableStatisticPerTable.size(), 1);

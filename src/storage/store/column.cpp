@@ -5,7 +5,6 @@
 #include "common/exception/not_implemented.h"
 #include "storage/stats/property_statistics.h"
 #include "storage/store/column_chunk.h"
-#include "storage/store/compression.h"
 #include "storage/store/string_column.h"
 #include "storage/store/struct_column.h"
 #include "storage/store/var_list_column.h"

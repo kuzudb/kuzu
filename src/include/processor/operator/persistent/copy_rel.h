@@ -22,14 +22,15 @@ struct CopyRelInfo {
     DataPos srcOffsetPos;
     DataPos relIDPos;
     storage::WAL* wal;
+    bool compressionEnabled;
 
     CopyRelInfo(catalog::RelTableSchema* schema, common::vector_idx_t partitioningIdx,
         common::RelDataDirection dataDirection, common::ColumnDataFormat dataFormat,
         std::vector<DataPos> dataPose, const DataPos& srcOffsetPos, const DataPos& relIDPos,
-        storage::WAL* wal)
+        storage::WAL* wal, bool compressionEnabled)
         : schema{schema}, partitioningIdx{partitioningIdx}, dataDirection{dataDirection},
-          dataFormat{dataFormat}, dataPoses{std::move(dataPose)},
-          srcOffsetPos{srcOffsetPos}, relIDPos{relIDPos}, wal{wal} {}
+          dataFormat{dataFormat}, dataPoses{std::move(dataPose)}, srcOffsetPos{srcOffsetPos},
+          relIDPos{relIDPos}, wal{wal}, compressionEnabled{compressionEnabled} {}
     CopyRelInfo(const CopyRelInfo& other)
         : schema{other.schema}, partitioningIdx{other.partitioningIdx},
           dataDirection{other.dataDirection},
@@ -57,13 +58,11 @@ public:
     inline std::shared_ptr<FactorizedTable> getFTable() { return fTable; }
 
 private:
-    std::mutex mtx;
     common::table_id_t tableID;
     storage::RelTable* table;
     std::vector<std::unique_ptr<common::LogicalType>> columnTypes;
     storage::RelsStoreStats* relsStatistics;
     std::shared_ptr<FactorizedTable> fTable;
-    bool hasLoggedWAL;
     std::atomic<common::row_idx_t> numRows;
 };
 

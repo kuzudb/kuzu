@@ -4,8 +4,8 @@
 
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
-#include "compression.h"
 #include "storage/buffer_manager/bm_file_handle.h"
+#include "storage/compression/compression.h"
 
 namespace kuzu {
 namespace storage {

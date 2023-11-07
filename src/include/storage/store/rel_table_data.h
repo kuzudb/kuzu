@@ -1,12 +1,14 @@
 #pragma once
 
 #include "catalog/rel_table_schema.h"
+#include "common/cast.h"
 #include "storage/store/table_data.h"
 
 namespace kuzu {
 namespace storage {
 
-struct RelDataReadState {
+struct RelDataReadState : public TableReadState {
+    common::RelDataDirection direction;
     common::ColumnDataFormat dataFormat;
     common::offset_t startNodeOffsetInState;
     common::offset_t numNodesInState;
@@ -40,16 +42,18 @@ public:
         common::RelDataDirection direction, bool enableCompression);
 
     void initializeReadState(transaction::Transaction* transaction,
+        common::RelDataDirection direction, std::vector<common::column_id_t> columnIDs,
         common::ValueVector* inNodeIDVector, RelDataReadState* readState);
-    inline void scan(transaction::Transaction* transaction, RelDataReadState& readState,
-        common::ValueVector* inNodeIDVector, const std::vector<common::column_id_t>& columnIDs,
-        const std::vector<common::ValueVector*>& outputVectors) {
+    inline void scan(transaction::Transaction* transaction, TableReadState& readState,
+        common::ValueVector* inNodeIDVector,
+        const std::vector<common::ValueVector*>& outputVectors) final {
+        auto& relReadState = common::ku_dynamic_cast<TableReadState&, RelDataReadState&>(readState);
         dataFormat == common::ColumnDataFormat::REGULAR ?
-            scanRegularColumns(transaction, readState, inNodeIDVector, columnIDs, outputVectors) :
-            scanCSRColumns(transaction, readState, inNodeIDVector, columnIDs, outputVectors);
+            scanRegularColumns(transaction, relReadState, inNodeIDVector, outputVectors) :
+            scanCSRColumns(transaction, relReadState, inNodeIDVector, outputVectors);
     }
-    void lookup(transaction::Transaction* transaction, common::ValueVector* inNodeIDVector,
-        const std::vector<common::column_id_t>& columnIDs,
+    void lookup(transaction::Transaction* transaction, TableReadState& readState,
+        common::ValueVector* inNodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors) final;
     void append(NodeGroup* nodeGroup) final;
 
@@ -60,10 +64,10 @@ public:
 
 private:
     void scanRegularColumns(transaction::Transaction* transaction, RelDataReadState& readState,
-        common::ValueVector* inNodeIDVector, const std::vector<common::column_id_t>& columnIDs,
+        common::ValueVector* inNodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors);
     void scanCSRColumns(transaction::Transaction* transaction, RelDataReadState& readState,
-        common::ValueVector* inNodeIDVector, const std::vector<common::column_id_t>& columnIDs,
+        common::ValueVector* inNodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors);
 
     static inline common::ColumnDataFormat getDataFormatFromSchema(

@@ -1,4 +1,4 @@
-#include "storage/store/compression.h"
+#include "storage/compression/compression.h"
 
 #include <string>
 
@@ -8,8 +8,8 @@
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "fastpfor/bitpackinghelpers.h"
+#include "storage/compression/sign_extend.h"
 #include "storage/store/column.h"
-#include "storage/store/sign_extend.h"
 #include <bit>
 
 using namespace kuzu::common;

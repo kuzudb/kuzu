@@ -16,7 +16,7 @@ CopyRelSharedState::CopyRelSharedState(table_id_t tableID, RelTable* table,
     std::vector<std::unique_ptr<common::LogicalType>> columnTypes, RelsStoreStats* relsStatistics,
     MemoryManager* memoryManager)
     : tableID{tableID}, table{table}, columnTypes{std::move(columnTypes)},
-      relsStatistics{relsStatistics}, hasLoggedWAL{false}, numRows{0} {
+      relsStatistics{relsStatistics}, numRows{0} {
     auto ftTableSchema = std::make_unique<FactorizedTableSchema>();
     ftTableSchema->appendColumn(
         std::make_unique<ColumnSchema>(false /* flat */, 0 /* dataChunkPos */,
@@ -25,19 +25,14 @@ CopyRelSharedState::CopyRelSharedState(table_id_t tableID, RelTable* table,
 }
 
 void CopyRelSharedState::logCopyRelWALRecord(WAL* wal) {
-    std::unique_lock xLck{mtx};
-    if (!hasLoggedWAL) {
-        wal->logCopyRelRecord(tableID);
-        wal->flushAllPages();
-        hasLoggedWAL = true;
-    }
+    wal->logCopyTableRecord(tableID, TableType::REL);
+    wal->flushAllPages();
 }
 
 void CopyRel::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* /*context*/) {
     localState = std::make_unique<CopyRelLocalState>();
-    localState->nodeGroup =
-        NodeGroupFactory::createNodeGroup(info->dataFormat, sharedState->columnTypes,
-            sharedState->table->compressionEnabled(), true /* needFinalize */);
+    localState->nodeGroup = NodeGroupFactory::createNodeGroup(info->dataFormat,
+        sharedState->columnTypes, info->compressionEnabled, true /* needFinalize */);
 }
 
 void CopyRel::initGlobalStateInternal(ExecutionContext* /*context*/) {

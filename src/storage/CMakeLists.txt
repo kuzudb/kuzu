@@ -1,4 +1,5 @@
 add_subdirectory(buffer_manager)
+add_subdirectory(compression)
 add_subdirectory(index)
 add_subdirectory(stats)
 add_subdirectory(storage_structure)

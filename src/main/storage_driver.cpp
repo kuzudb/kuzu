@@ -21,7 +21,7 @@ void StorageDriver::scan(const std::string& nodeName, const std::string& propert
     auto catalogContent = catalog->getReadOnlyVersion();
     auto nodeTableID = catalogContent->getTableID(nodeName);
     auto propertyID = catalogContent->getTableSchema(nodeTableID)->getPropertyID(propertyName);
-    auto nodeTable = storageManager->getNodesStore().getNodeTable(nodeTableID);
+    auto nodeTable = storageManager->getNodeTable(nodeTableID);
     auto column = nodeTable->getColumn(propertyID);
     auto current_buffer = result;
     std::vector<std::thread> threads;
@@ -44,16 +44,16 @@ void StorageDriver::scan(const std::string& nodeName, const std::string& propert
 uint64_t StorageDriver::getNumNodes(const std::string& nodeName) {
     auto catalogContent = catalog->getReadOnlyVersion();
     auto nodeTableID = catalogContent->getTableID(nodeName);
-    auto nodeStatistics = storageManager->getNodesStore()
-                              .getNodesStatisticsAndDeletedIDs()
-                              ->getNodeStatisticsAndDeletedIDs(nodeTableID);
+    auto nodeStatistics =
+        storageManager->getNodesStatisticsAndDeletedIDs()->getNodeStatisticsAndDeletedIDs(
+            nodeTableID);
     return nodeStatistics->getNumTuples();
 }
 
 uint64_t StorageDriver::getNumRels(const std::string& relName) {
     auto catalogContent = catalog->getReadOnlyVersion();
     auto relTableID = catalogContent->getTableID(relName);
-    auto relStatistics = storageManager->getRelsStore().getRelsStatistics()->getRelStatistics(
+    auto relStatistics = storageManager->getRelsStatistics()->getRelStatistics(
         relTableID, Transaction::getDummyReadOnlyTrx().get());
     return relStatistics->getNumTuples();
 }

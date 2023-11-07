@@ -12,18 +12,18 @@ namespace kuzu {
 namespace processor {
 
 static std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(
-    NodesStore* store, const NodeExpression& node, const Schema& inSchema) {
+    StorageManager& storageManager, const NodeExpression& node, const Schema& inSchema) {
     auto nodeIDPos = DataPos(inSchema.getExpressionPos(*node.getInternalID()));
     if (node.isMultiLabeled()) {
         std::unordered_map<table_id_t, NodeTable*> tableIDToTableMap;
         for (auto tableID : node.getTableIDs()) {
-            auto table = store->getNodeTable(tableID);
+            auto table = storageManager.getNodeTable(tableID);
             tableIDToTableMap.insert({tableID, table});
         }
         return std::make_unique<MultiLabelNodeDeleteExecutor>(
             std::move(tableIDToTableMap), nodeIDPos);
     } else {
-        auto table = store->getNodeTable(node.getSingleTableID());
+        auto table = storageManager.getNodeTable(node.getSingleTableID());
         return std::make_unique<SingleLabelNodeDeleteExecutor>(table, nodeIDPos);
     }
 }
@@ -32,32 +32,32 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDeleteNode(LogicalOperator* log
     auto logicalDeleteNode = (LogicalDeleteNode*)logicalOperator;
     auto inSchema = logicalDeleteNode->getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
-    auto nodesStore = &storageManager.getNodesStore();
     std::vector<std::unique_ptr<NodeDeleteExecutor>> executors;
     for (auto& node : logicalDeleteNode->getNodesRef()) {
-        executors.push_back(getNodeDeleteExecutor(nodesStore, *node, *inSchema));
+        executors.push_back(getNodeDeleteExecutor(storageManager, *node, *inSchema));
     }
     return std::make_unique<DeleteNode>(std::move(executors), std::move(prevOperator),
         getOperatorID(), logicalDeleteNode->getExpressionsForPrinting());
 }
 
 static std::unique_ptr<RelDeleteExecutor> getRelDeleteExecutor(
-    storage::RelsStore* store, const binder::RelExpression& rel, const Schema& inSchema) {
+    storage::StorageManager& storageManager, const binder::RelExpression& rel,
+    const Schema& inSchema) {
     auto srcNodePos = DataPos(inSchema.getExpressionPos(*rel.getSrcNode()->getInternalID()));
     auto dstNodePos = DataPos(inSchema.getExpressionPos(*rel.getDstNode()->getInternalID()));
     auto relIDPos = DataPos(inSchema.getExpressionPos(*rel.getInternalIDProperty()));
-    auto statistics = store->getRelsStatistics();
+    auto statistics = storageManager.getRelsStatistics();
     if (rel.isMultiLabeled()) {
         std::unordered_map<table_id_t, std::pair<storage::RelTable*, storage::RelsStoreStats*>>
             tableIDToTableMap;
         for (auto tableID : rel.getTableIDs()) {
-            auto table = store->getRelTable(tableID);
+            auto table = storageManager.getRelTable(tableID);
             tableIDToTableMap.insert({tableID, std::make_pair(table, statistics)});
         }
         return std::make_unique<MultiLabelRelDeleteExecutor>(
             std::move(tableIDToTableMap), srcNodePos, dstNodePos, relIDPos);
     } else {
-        auto table = store->getRelTable(rel.getSingleTableID());
+        auto table = storageManager.getRelTable(rel.getSingleTableID());
         return std::make_unique<SingleLabelRelDeleteExecutor>(
             statistics, table, srcNodePos, dstNodePos, relIDPos);
     }
@@ -67,10 +67,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDeleteRel(LogicalOperator* logi
     auto logicalDeleteRel = (LogicalDeleteRel*)logicalOperator;
     auto inSchema = logicalDeleteRel->getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
-    auto relStore = &storageManager.getRelsStore();
     std::vector<std::unique_ptr<RelDeleteExecutor>> Executors;
     for (auto& rel : logicalDeleteRel->getRelsRef()) {
-        Executors.push_back(getRelDeleteExecutor(relStore, *rel, *inSchema));
+        Executors.push_back(getRelDeleteExecutor(storageManager, *rel, *inSchema));
     }
     return std::make_unique<DeleteRel>(std::move(Executors), std::move(prevOperator),
         getOperatorID(), logicalOperator->getExpressionsForPrinting());

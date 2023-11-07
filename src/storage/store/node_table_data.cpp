@@ -27,5 +27,48 @@ NodeTableData::NodeTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, tab
     }
 }
 
+void NodeTableData::scan(transaction::Transaction* transaction, TableReadState& readState,
+    ValueVector* nodeIDVector, const std::vector<ValueVector*>& outputVectors) {
+    KU_ASSERT(readState.columnIDs.size() == outputVectors.size() && !nodeIDVector->state->isFlat());
+    for (auto i = 0u; i < readState.columnIDs.size(); i++) {
+        if (readState.columnIDs[i] == INVALID_COLUMN_ID) {
+            outputVectors[i]->setAllNull();
+        } else {
+            KU_ASSERT(readState.columnIDs[i] < columns.size());
+            columns[readState.columnIDs[i]]->scan(transaction, nodeIDVector, outputVectors[i]);
+        }
+    }
+    if (transaction->isWriteTransaction()) {
+        transaction->getLocalStorage()->scan(
+            tableID, nodeIDVector, readState.columnIDs, outputVectors);
+    }
+}
+
+void NodeTableData::lookup(transaction::Transaction* transaction, TableReadState& readState,
+    ValueVector* nodeIDVector, const std::vector<ValueVector*>& outputVectors) {
+    auto pos = nodeIDVector->state->selVector->selectedPositions[0];
+    for (auto i = 0u; i < readState.columnIDs.size(); i++) {
+        auto columnID = readState.columnIDs[i];
+        if (columnID == INVALID_COLUMN_ID) {
+            outputVectors[i]->setNull(pos, true);
+        } else {
+            KU_ASSERT(readState.columnIDs[i] < columns.size());
+            columns[readState.columnIDs[i]]->lookup(transaction, nodeIDVector, outputVectors[i]);
+        }
+    }
+    if (transaction->isWriteTransaction()) {
+        transaction->getLocalStorage()->lookup(
+            tableID, nodeIDVector, readState.columnIDs, outputVectors);
+    }
+}
+
+void NodeTableData::append(kuzu::storage::NodeGroup* nodeGroup) {
+    for (auto columnID = 0u; columnID < columns.size(); columnID++) {
+        auto columnChunk = nodeGroup->getColumnChunk(columnID);
+        KU_ASSERT(columnID < columns.size());
+        columns[columnID]->append(columnChunk, nodeGroup->getNodeGroupIdx());
+    }
+}
+
 } // namespace storage
 } // namespace kuzu

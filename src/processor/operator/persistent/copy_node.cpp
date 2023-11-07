@@ -4,7 +4,6 @@
 #include "common/exception/message.h"
 #include "common/string_format.h"
 #include "processor/result/factorized_table.h"
-#include "storage/stats/nodes_store_statistics.h"
 #include "storage/store/string_column_chunk.h"
 
 using namespace kuzu::catalog;
@@ -23,7 +22,7 @@ void CopyNodeSharedState::init() {
         // of slots when copying turtle files.
         pkIndex->bulkReserve(numRows);
     }
-    wal->logCopyNodeRecord(table->getTableID(), table->getDataFH()->getNumPages());
+    wal->logCopyTableRecord(table->getTableID(), TableType::NODE);
     wal->flushAllPages();
 }
 
@@ -62,8 +61,8 @@ void CopyNode::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*
     for (auto& pos : info->columnPositions) {
         columnVectors.push_back(resultSet->getValueVector(pos).get());
     }
-    localNodeGroup = NodeGroupFactory::createNodeGroup(ColumnDataFormat::REGULAR,
-        sharedState->columnTypes, sharedState->table->compressionEnabled());
+    localNodeGroup = NodeGroupFactory::createNodeGroup(
+        ColumnDataFormat::REGULAR, sharedState->columnTypes, info->compressionEnabled);
     columnState = resultSet->getDataChunk(info->columnPositions[0].dataChunkPos)->state.get();
 }
 

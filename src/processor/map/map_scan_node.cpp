@@ -10,11 +10,10 @@ namespace processor {
 std::unique_ptr<PhysicalOperator> PlanMapper::mapScanInternalID(LogicalOperator* logicalOperator) {
     auto scan = reinterpret_cast<LogicalScanInternalID*>(logicalOperator);
     auto outSchema = scan->getSchema();
-    auto& nodesStore = storageManager.getNodesStore();
     auto dataPos = DataPos(outSchema->getExpressionPos(*scan->getInternalID()));
     auto sharedState = std::make_shared<ScanNodeIDSharedState>();
     for (auto& tableID : scan->getTableIDs()) {
-        auto nodeTable = nodesStore.getNodeTable(tableID);
+        auto nodeTable = storageManager.getNodeTable(tableID);
         sharedState->addTableState(nodeTable);
     }
     return std::make_unique<ScanNodeID>(

@@ -13,12 +13,12 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-NodeTable::NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH, AccessMode accessMode,
+NodeTable::NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH,
+    catalog::NodeTableSchema* nodeTableSchema,
     NodesStoreStatsAndDeletedIDs* nodesStatisticsAndDeletedIDs, BufferManager& bufferManager,
-    WAL* wal, NodeTableSchema* nodeTableSchema, bool enableCompression)
-    : nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs},
-      pkColumnID{nodeTableSchema->getColumnID(nodeTableSchema->getPrimaryKeyPropertyID())},
-      tableID{nodeTableSchema->tableID}, bufferManager{bufferManager}, wal{wal} {
+    WAL* wal, common::AccessMode accessMode, bool enableCompression)
+    : Table{nodeTableSchema, nodesStatisticsAndDeletedIDs, bufferManager, wal},
+      pkColumnID{nodeTableSchema->getColumnID(nodeTableSchema->getPrimaryKeyPropertyID())} {
     tableData = std::make_unique<NodeTableData>(dataFH, metadataFH, tableID, &bufferManager, wal,
         nodeTableSchema->getProperties(), nodesStatisticsAndDeletedIDs, enableCompression);
     initializePKIndex(nodeTableSchema, accessMode);
@@ -33,12 +33,23 @@ void NodeTable::initializePKIndex(NodeTableSchema* nodeTableSchema, AccessMode a
     }
 }
 
+void NodeTable::read(Transaction* transaction, TableReadState& readState, ValueVector* nodeIDVector,
+    const std::vector<ValueVector*>& outputVectors) {
+    if (nodeIDVector->isSequential()) {
+        tableData->scan(transaction, readState, nodeIDVector, outputVectors);
+    } else {
+        tableData->lookup(transaction, readState, nodeIDVector, outputVectors);
+    }
+}
+
 void NodeTable::insert(Transaction* transaction, ValueVector* nodeIDVector,
     const std::vector<common::ValueVector*>& propertyVectors) {
     // We assume that offsets are given in the ascending order, thus lastOffset is the max one.
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[i];
-        auto offset = nodesStatisticsAndDeletedIDs->addNode(tableID);
+        auto offset =
+            ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics)
+                ->addNode(tableID);
         nodeIDVector->setValue(pos, nodeID_t{offset, tableID});
         nodeIDVector->setNull(pos, false);
     }
@@ -46,12 +57,14 @@ void NodeTable::insert(Transaction* transaction, ValueVector* nodeIDVector,
         insertPK(nodeIDVector, propertyVectors[pkColumnID]);
     }
     tableData->insert(transaction, nodeIDVector, propertyVectors);
-    wal->addToUpdatedNodeTables(tableID);
+    wal->addToUpdatedTables(tableID);
 }
 
 void NodeTable::delete_(
     Transaction* transaction, ValueVector* nodeIDVector, ValueVector* pkVector) {
-    read(transaction, nodeIDVector, {pkColumnID}, {pkVector});
+    auto readState = std::make_unique<TableReadState>();
+    tableData->initializeReadState(transaction, {pkColumnID}, nodeIDVector, readState.get());
+    read(transaction, *readState, nodeIDVector, {pkVector});
     if (pkIndex) {
         pkIndex->delete_(pkVector);
     }
@@ -61,17 +74,20 @@ void NodeTable::delete_(
             continue;
         }
         auto nodeOffset = nodeIDVector->readNodeOffset(pos);
-        nodesStatisticsAndDeletedIDs->deleteNode(tableID, nodeOffset);
+        ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics)
+            ->deleteNode(tableID, nodeOffset);
     }
 }
 
-void NodeTable::addColumn(const catalog::Property& property,
-    common::ValueVector* defaultValueVector, transaction::Transaction* transaction) {
-    nodesStatisticsAndDeletedIDs->setPropertyStatisticsForTable(tableID, property.getPropertyID(),
+void NodeTable::addColumn(transaction::Transaction* transaction, const catalog::Property& property,
+    common::ValueVector* defaultValueVector) {
+    auto nodesStats =
+        ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics);
+    nodesStats->setPropertyStatisticsForTable(tableID, property.getPropertyID(),
         PropertyStatistics(!defaultValueVector->hasNoNullsGuarantee()));
-    nodesStatisticsAndDeletedIDs->addMetadataDAHInfo(tableID, *property.getDataType());
-    tableData->addColumn(transaction, property, defaultValueVector, nodesStatisticsAndDeletedIDs);
-    wal->addToUpdatedNodeTables(tableID);
+    nodesStats->addMetadataDAHInfo(tableID, *property.getDataType());
+    tableData->addColumn(transaction, property, defaultValueVector, nodesStats);
+    wal->addToUpdatedTables(tableID);
 }
 
 void NodeTable::prepareCommit() {

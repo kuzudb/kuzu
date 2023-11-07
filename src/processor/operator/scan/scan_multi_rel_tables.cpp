@@ -20,8 +20,8 @@ bool RelTableCollectionScanner::scan(ValueVector* inVector,
         if (readStates[currentTableIdx]->hasMoreToRead()) {
             KU_ASSERT(readStates[currentTableIdx]->dataFormat == ColumnDataFormat::CSR);
             auto scanInfo = scanInfos[currentTableIdx].get();
-            scanInfo->table->read(transaction, *readStates[currentTableIdx], scanInfo->direction,
-                inVector, scanInfo->columnIDs, outputVectors);
+            scanInfo->table->read(
+                transaction, *readStates[currentTableIdx], inVector, outputVectors);
             if (outputVectors[0]->state->selVector->selectedSize > 0) {
                 return true;
             }
@@ -30,22 +30,19 @@ bool RelTableCollectionScanner::scan(ValueVector* inVector,
             if (currentTableIdx == readStates.size()) {
                 return false;
             }
+            auto scanInfo = scanInfos[currentTableIdx].get();
+            scanInfo->table->initializeReadState(transaction, scanInfo->direction,
+                scanInfo->columnIDs, inVector, readStates[currentTableIdx].get());
+            nextTableIdx++;
             if (readStates[currentTableIdx]->dataFormat == ColumnDataFormat::REGULAR) {
                 outputVectors[0]->state->selVector->resetSelectorToValuePosBufferWithSize(1);
                 outputVectors[0]->state->selVector->selectedPositions[0] =
                     inVector->state->selVector->selectedPositions[0];
-                auto scanInfo = scanInfos[currentTableIdx].get();
-                scanInfo->table->read(transaction, *readStates[currentTableIdx],
-                    scanInfo->direction, inVector, scanInfo->columnIDs, outputVectors);
-                nextTableIdx++;
+                scanInfo->table->read(
+                    transaction, *readStates[currentTableIdx], inVector, outputVectors);
                 if (outputVectors[0]->state->selVector->selectedSize > 0) {
                     return true;
                 }
-            } else {
-                auto scanInfo = scanInfos[currentTableIdx].get();
-                scanInfo->table->initializeReadState(
-                    transaction, scanInfo->direction, inVector, readStates[currentTableIdx].get());
-                nextTableIdx++;
             }
         }
     }

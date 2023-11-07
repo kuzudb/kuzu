@@ -12,7 +12,7 @@ using namespace kuzu::evaluator;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(storage::NodesStore* store,
+std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(
     planner::LogicalSetPropertyInfo* info, const planner::Schema& inSchema) {
     auto node = (NodeExpression*)info->nodeOrRel.get();
     auto nodeIDPos = DataPos(inSchema.getExpressionPos(*node->getInternalID()));
@@ -29,7 +29,7 @@ std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(storage::NodesSt
                 continue;
             }
             auto propertyID = property->getPropertyID(tableID);
-            auto table = store->getNodeTable(tableID);
+            auto table = storageManager.getNodeTable(tableID);
             auto columnID =
                 catalog->getReadOnlyVersion()->getTableSchema(tableID)->getColumnID(propertyID);
             tableIDToSetInfo.insert({tableID, NodeSetInfo{table, columnID}});
@@ -38,7 +38,7 @@ std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(storage::NodesSt
             std::move(tableIDToSetInfo), nodeIDPos, propertyPos, std::move(evaluator));
     } else {
         auto tableID = node->getSingleTableID();
-        auto table = store->getNodeTable(tableID);
+        auto table = storageManager.getNodeTable(tableID);
         auto columnID = INVALID_COLUMN_ID;
         if (property->hasPropertyID(tableID)) {
             auto propertyID = property->getPropertyID(tableID);
@@ -54,16 +54,15 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSetNodeProperty(LogicalOperator
     auto& logicalSetNodeProperty = (LogicalSetNodeProperty&)*logicalOperator;
     auto inSchema = logicalSetNodeProperty.getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
-    auto nodeStore = &storageManager.getNodesStore();
     std::vector<std::unique_ptr<NodeSetExecutor>> executors;
     for (auto& info : logicalSetNodeProperty.getInfosRef()) {
-        executors.push_back(getNodeSetExecutor(nodeStore, info.get(), *inSchema));
+        executors.push_back(getNodeSetExecutor(info.get(), *inSchema));
     }
     return std::make_unique<SetNodeProperty>(std::move(executors), std::move(prevOperator),
         getOperatorID(), logicalSetNodeProperty.getExpressionsForPrinting());
 }
 
-std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(storage::RelsStore* store,
+std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(
     planner::LogicalSetPropertyInfo* info, const planner::Schema& inSchema) {
     auto rel = (RelExpression*)info->nodeOrRel.get();
     auto srcNodePos = DataPos(inSchema.getExpressionPos(*rel->getSrcNode()->getInternalID()));
@@ -82,7 +81,7 @@ std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(storage::RelsStore
             if (!property->hasPropertyID(tableID)) {
                 continue;
             }
-            auto table = store->getRelTable(tableID);
+            auto table = storageManager.getRelTable(tableID);
             auto propertyID = property->getPropertyID(tableID);
             tableIDToTableAndPropertyID.insert({tableID, std::make_pair(table, propertyID)});
         }
@@ -90,7 +89,7 @@ std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(storage::RelsStore
             srcNodePos, dstNodePos, relIDPos, propertyPos, std::move(evaluator));
     } else {
         auto tableID = rel->getSingleTableID();
-        auto table = store->getRelTable(tableID);
+        auto table = storageManager.getRelTable(tableID);
         auto propertyID = common::INVALID_PROPERTY_ID;
         if (property->hasPropertyID(tableID)) {
             propertyID = property->getPropertyID(tableID);
@@ -104,10 +103,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSetRelProperty(LogicalOperator*
     auto& logicalSetRelProperty = (LogicalSetRelProperty&)*logicalOperator;
     auto inSchema = logicalSetRelProperty.getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
-    auto relStore = &storageManager.getRelsStore();
     std::vector<std::unique_ptr<RelSetExecutor>> executors;
     for (auto& info : logicalSetRelProperty.getInfosRef()) {
-        executors.push_back(getRelSetExecutor(relStore, info.get(), *inSchema));
+        executors.push_back(getRelSetExecutor(info.get(), *inSchema));
     }
     return make_unique<SetRelProperty>(std::move(executors), std::move(prevOperator),
         getOperatorID(), logicalSetRelProperty.getExpressionsForPrinting());

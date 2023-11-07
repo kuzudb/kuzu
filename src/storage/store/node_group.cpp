@@ -2,11 +2,9 @@
 
 #include "common/assert.h"
 #include "common/constants.h"
-#include "storage/store/table_data.h"
+#include "storage/store/column.h"
 
 using namespace kuzu::common;
-using namespace kuzu::catalog;
-using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace storage {
@@ -21,11 +19,12 @@ NodeGroup::NodeGroup(const std::vector<std::unique_ptr<common::LogicalType>>& co
     }
 }
 
-NodeGroup::NodeGroup(TableData* table) : nodeGroupIdx{UINT64_MAX}, numNodes{0} {
-    chunks.reserve(table->getNumColumns());
-    for (auto columnID = 0u; columnID < table->getNumColumns(); columnID++) {
+NodeGroup::NodeGroup(const std::vector<std::unique_ptr<Column>>& columns, bool enableCompression)
+    : nodeGroupIdx{UINT64_MAX}, numNodes{0} {
+    chunks.reserve(columns.size());
+    for (auto columnID = 0u; columnID < columns.size(); columnID++) {
         chunks.push_back(ColumnChunkFactory::createColumnChunk(
-            table->getColumn(columnID)->getDataType(), table->compressionEnabled()));
+            columns[columnID]->getDataType(), enableCompression));
     }
 }
 
@@ -38,7 +37,7 @@ void NodeGroup::resetToEmpty() {
 }
 
 void NodeGroup::setChunkToAllNull(common::vector_idx_t chunkIdx) {
-    KU_ASSERT(chunkIdx < chunks.size())
+    KU_ASSERT(chunkIdx < chunks.size());
     chunks[chunkIdx]->getNullChunk()->resetToAllNull();
 }
 

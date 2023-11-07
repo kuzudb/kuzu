@@ -45,6 +45,7 @@ void WAL::logCommit(uint64_t transactionID) {
     addNewWALRecordNoLock(walRecord);
 }
 
+// TODO(Guodong): Turn the boolean into enum, TableType.
 void WAL::logTableStatisticsRecord(bool isNodeTable) {
     lock_t lck{mtx};
     WALRecord walRecord = WALRecord::newTableStatisticsRecord(isNodeTable);
@@ -57,15 +58,15 @@ void WAL::logCatalogRecord() {
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logNodeTableRecord(table_id_t tableID) {
+void WAL::logCreateNodeTableRecord(table_id_t tableID) {
     lock_t lck{mtx};
-    WALRecord walRecord = WALRecord::newNodeTableRecord(tableID);
+    WALRecord walRecord = WALRecord::newCreateTableRecord(tableID, TableType::NODE);
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logRelTableRecord(table_id_t tableID) {
+void WAL::logCreateRelTableRecord(table_id_t tableID) {
     lock_t lck{mtx};
-    WALRecord walRecord = WALRecord::newRelTableRecord(tableID);
+    WALRecord walRecord = WALRecord::newCreateTableRecord(tableID, TableType::REL);
     addNewWALRecordNoLock(walRecord);
 }
 
@@ -84,17 +85,10 @@ void WAL::logOverflowFileNextBytePosRecord(DBFileID dbFileID, uint64_t prevNextB
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logCopyNodeRecord(table_id_t tableID, page_idx_t startPageIdx) {
+void WAL::logCopyTableRecord(table_id_t tableID, TableType tableType) {
     lock_t lck{mtx};
-    WALRecord walRecord = WALRecord::newCopyNodeRecord(tableID, startPageIdx);
-    updatedNodeTables.insert(tableID);
-    addNewWALRecordNoLock(walRecord);
-}
-
-void WAL::logCopyRelRecord(table_id_t tableID) {
-    lock_t lck{mtx};
-    WALRecord walRecord = WALRecord::newCopyRelRecord(tableID);
-    updatedRelTables.insert(tableID);
+    WALRecord walRecord = WALRecord::newCopyTableRecord(tableID, tableType);
+    updatedTables.insert(tableID);
     addNewWALRecordNoLock(walRecord);
 }
 
@@ -121,8 +115,7 @@ void WAL::clearWAL() {
     fileHandle->resetToZeroPagesAndPageCapacity();
     initCurrentPage();
     StorageUtils::removeAllWALFiles(directory);
-    updatedNodeTables.clear();
-    updatedRelTables.clear();
+    updatedTables.clear();
 }
 
 void WAL::flushAllPages() {

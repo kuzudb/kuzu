@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include "storage/store/compression.h"
+#include "storage/compression/compression.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;

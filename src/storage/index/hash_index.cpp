@@ -392,7 +392,7 @@ template<typename T>
 void HashIndex<T>::prepareCommit() {
     std::unique_lock xlock{localStorage->localStorageSharedMutex};
     if (localStorage->hasUpdates()) {
-        wal->addToUpdatedNodeTables(dbFileIDAndName.dbFileID.nodeIndexID.tableID);
+        wal->addToUpdatedTables(dbFileIDAndName.dbFileID.nodeIndexID.tableID);
         localStorage->applyLocalChanges(
             [this](const uint8_t* key) -> void { this->deleteFromPersistentIndex(key); },
             [this](const uint8_t* key, offset_t value) -> void {
@@ -405,7 +405,7 @@ template<typename T>
 void HashIndex<T>::prepareRollback() {
     std::unique_lock xlock{localStorage->localStorageSharedMutex};
     if (localStorage->hasUpdates()) {
-        wal->addToUpdatedNodeTables(dbFileIDAndName.dbFileID.nodeIndexID.tableID);
+        wal->addToUpdatedTables(dbFileIDAndName.dbFileID.nodeIndexID.tableID);
     }
 }
 

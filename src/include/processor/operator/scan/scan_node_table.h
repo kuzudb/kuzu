@@ -28,6 +28,12 @@ public:
         : ScanSingleNodeTable{PhysicalOperatorType::SCAN_NODE_TABLE, std::move(info), inVectorPos,
               outVectorsPos, std::move(child), id, paramsString} {}
 
+    inline void initLocalStateInternal(
+        ResultSet* resultSet, ExecutionContext* executionContext) final {
+        ScanTable::initLocalStateInternal(resultSet, executionContext);
+        readState = std::make_unique<storage::TableReadState>();
+    }
+
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
@@ -45,6 +51,7 @@ protected:
 
 private:
     std::unique_ptr<ScanNodeTableInfo> info;
+    std::unique_ptr<storage::TableReadState> readState;
 };
 
 } // namespace processor

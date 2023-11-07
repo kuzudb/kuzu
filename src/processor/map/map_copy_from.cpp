@@ -40,7 +40,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     auto prevOperator = mapOperator(copyFrom->getChild(0).get());
     auto reader = reinterpret_cast<Reader*>(prevOperator.get());
     // Map copy node.
-    auto nodeTable = storageManager.getNodesStore().getNodeTable(tableSchema->tableID);
+    auto nodeTable = storageManager.getNodeTable(tableSchema->tableID);
     auto sharedState =
         std::make_shared<CopyNodeSharedState>(reader->getSharedState()->getNumRowsRef());
     sharedState->wal = storageManager.getWAL();
@@ -60,7 +60,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     std::vector<DataPos> dataColumnPoses =
         getExpressionsDataPos(copyFromInfo->columns, *outFSchema);
     auto info = std::make_unique<CopyNodeInfo>(std::move(dataColumnPoses), nodeTable,
-        tableSchema->tableName, copyFromInfo->containsSerial);
+        tableSchema->tableName, copyFromInfo->containsSerial, storageManager.compressionEnabled());
     std::unique_ptr<PhysicalOperator> copyNode;
     auto readerConfig = copyFromInfo->fileScanInfo->readerConfig.get();
     if (readerConfig->fileType == FileType::TURTLE &&
@@ -86,10 +86,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRel(
     auto outFSchema = copyFrom->getSchema();
     auto tableSchema = dynamic_cast<RelTableSchema*>(copyFromInfo->tableSchema);
     auto partitioningIdx = direction == FWD ? 0 : 1;
-    auto maxBoundNodeOffset =
-        storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs()->getMaxNodeOffset(
-            transaction::Transaction::getDummyReadOnlyTrx().get(),
-            tableSchema->getBoundTableID(direction));
+    auto maxBoundNodeOffset = storageManager.getNodesStatisticsAndDeletedIDs()->getMaxNodeOffset(
+        transaction::Transaction::getDummyReadOnlyTrx().get(),
+        tableSchema->getBoundTableID(direction));
     // TODO(Guodong/Xiyang): Consider moving this to Partitioner::initGlobalStateInternal.
     auto numPartitions = (maxBoundNodeOffset + StorageConstants::NODE_GROUP_SIZE) /
                          StorageConstants::NODE_GROUP_SIZE;
@@ -112,7 +111,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRel(
                           ColumnDataFormat::CSR;
     auto copyRelInfo = std::make_unique<CopyRelInfo>(tableSchema, partitioningIdx, direction,
         dataFormat, dataColumnPositions, direction == FWD ? srcOffsetPos : dstOffsetPos,
-        relIDDataPos, storageManager.getWAL());
+        relIDDataPos, storageManager.getWAL(), storageManager.compressionEnabled());
     return std::make_unique<CopyRel>(std::move(copyRelInfo), std::move(partitionerSharedState),
         std::move(sharedState), std::make_unique<ResultSetDescriptor>(outFSchema), getOperatorID(),
         copyFrom->getExpressionsForPrinting());
@@ -135,8 +134,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRelFrom(
         columnTypes.push_back(property->getDataType()->copy());
     }
     auto copyRelSharedState = std::make_shared<CopyRelSharedState>(tableSchema->tableID,
-        storageManager.getRelsStore().getRelTable(tableSchema->tableID), std::move(columnTypes),
-        storageManager.getRelsStore().getRelsStatistics(), memoryManager);
+        storageManager.getRelTable(tableSchema->tableID), std::move(columnTypes),
+        storageManager.getRelsStatistics(), memoryManager);
     auto copyRelFWD = createCopyRel(partitionerSharedState, copyRelSharedState, copyFrom, FWD);
     auto copyRelBWD = createCopyRel(partitionerSharedState, copyRelSharedState, copyFrom, BWD);
     auto outputExpressions = expression_vector{copyFrom->getOutputExpression()->copy()};

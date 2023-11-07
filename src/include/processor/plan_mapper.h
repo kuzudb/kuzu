@@ -1,6 +1,8 @@
 #pragma once
 
+#include "common/enums/rel_direction.h"
 #include "expression_mapper.h"
+#include "function/aggregate_function.h"
 #include "planner/operator/logical_plan.h"
 #include "processor/operator/result_collector.h"
 #include "processor/physical_plan.h"
@@ -127,15 +129,13 @@ private:
         planner::Schema* outSchema, std::unique_ptr<PhysicalOperator> prevOperator,
         const std::string& paramsString);
 
-    std::unique_ptr<NodeInsertExecutor> getNodeInsertExecutor(storage::NodesStore* nodesStore,
-        storage::RelsStore* relsStore, planner::LogicalInsertNodeInfo* info,
+    std::unique_ptr<NodeInsertExecutor> getNodeInsertExecutor(planner::LogicalInsertNodeInfo* info,
         const planner::Schema& inSchema, const planner::Schema& outSchema) const;
-    std::unique_ptr<RelInsertExecutor> getRelInsertExecutor(storage::RelsStore* relsStore,
-        planner::LogicalInsertRelInfo* info, const planner::Schema& inSchema,
-        const planner::Schema& outSchema);
-    std::unique_ptr<NodeSetExecutor> getNodeSetExecutor(storage::NodesStore* store,
+    std::unique_ptr<RelInsertExecutor> getRelInsertExecutor(planner::LogicalInsertRelInfo* info,
+        const planner::Schema& inSchema, const planner::Schema& outSchema);
+    std::unique_ptr<NodeSetExecutor> getNodeSetExecutor(
         planner::LogicalSetPropertyInfo* info, const planner::Schema& inSchema);
-    std::unique_ptr<RelSetExecutor> getRelSetExecutor(storage::RelsStore* store,
+    std::unique_ptr<RelSetExecutor> getRelSetExecutor(
         planner::LogicalSetPropertyInfo* info, const planner::Schema& inSchema);
 
     std::shared_ptr<FactorizedTable> getSingleStringColumnFTable();

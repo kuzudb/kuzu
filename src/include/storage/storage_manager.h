@@ -1,55 +1,66 @@
 #pragma once
 
+#include "catalog/catalog.h"
 #include "common/enums/access_mode.h"
-#include "storage/store/nodes_store.h"
-#include "storage/store/rels_store.h"
+#include "storage/index/hash_index.h"
+#include "storage/stats/nodes_store_statistics.h"
+#include "storage/stats/rels_store_statistics.h"
+#include "storage/store/node_table.h"
+#include "storage/store/rel_table.h"
 #include "storage/wal/wal.h"
 
 namespace kuzu {
 namespace storage {
 
-// TODO(Guodong): NodesStore, RelsStore and StorageManager should be merged together.
 class StorageManager {
 public:
-    StorageManager(common::AccessMode accessMode, catalog::Catalog& catalog,
+    StorageManager(common::AccessMode accessMode, const catalog::Catalog& catalog,
         MemoryManager& memoryManager, WAL* wal, bool enableCompression);
 
-    ~StorageManager() = default;
+    void createTable(
+        common::table_id_t tableID, BufferManager* bufferManager, catalog::Catalog* catalog);
+    void dropTable(common::table_id_t tableID);
 
-    inline RelsStore& getRelsStore() const { return *relsStore; }
-    inline NodesStore& getNodesStore() const { return *nodesStore; }
-    inline catalog::Catalog* getCatalog() { return &catalog; }
-    inline void prepareCommit() {
-        nodesStore->prepareCommit();
-        relsStore->prepareCommit();
+    void prepareCommit();
+    void prepareRollback();
+    void checkpointInMemory();
+    void rollbackInMemory();
+
+    PrimaryKeyIndex* getPKIndex(common::table_id_t tableID);
+
+    inline NodeTable* getNodeTable(common::table_id_t tableID) const {
+        KU_ASSERT(tables.contains(tableID) &&
+                  tables.at(tableID)->getTableType() == common::TableType::NODE);
+        return common::ku_dynamic_cast<Table*, NodeTable*>(tables.at(tableID).get());
     }
-    inline void prepareRollback() {
-        nodesStore->prepareRollback();
-        relsStore->prepareRollback();
+    inline RelTable* getRelTable(common::table_id_t tableID) const {
+        KU_ASSERT(tables.contains(tableID) &&
+                  tables.at(tableID)->getTableType() == common::TableType::REL);
+        return common::ku_dynamic_cast<Table*, RelTable*>(tables.at(tableID).get());
     }
-    inline void checkpointInMemory() {
-        nodesStore->checkpointInMemory(wal->updatedNodeTables);
-        relsStore->checkpointInMemory(wal->updatedRelTables);
-    }
-    inline void rollbackInMemory() {
-        nodesStore->rollbackInMemory(wal->updatedNodeTables);
-        relsStore->rollbackInMemory(wal->updatedRelTables);
-    }
+
     inline std::string getDirectory() const { return wal->getDirectory(); }
     inline WAL* getWAL() const { return wal; }
     inline BMFileHandle* getDataFH() const { return dataFH.get(); }
     inline BMFileHandle* getMetadataFH() const { return metadataFH.get(); }
-
+    inline NodesStoreStatsAndDeletedIDs* getNodesStatisticsAndDeletedIDs() {
+        return nodesStatisticsAndDeletedIDs.get();
+    }
+    inline RelsStoreStats* getRelsStatistics() { return relsStatistics.get(); }
     inline bool compressionEnabled() const { return enableCompression; }
+
+private:
+    void loadTables(common::AccessMode accessMode, const catalog::Catalog& catalog,
+        BufferManager* bufferManager);
 
 private:
     std::unique_ptr<BMFileHandle> dataFH;
     std::unique_ptr<BMFileHandle> metadataFH;
-    catalog::Catalog& catalog;
+    std::unique_ptr<NodesStoreStatsAndDeletedIDs> nodesStatisticsAndDeletedIDs;
+    std::unique_ptr<RelsStoreStats> relsStatistics;
+    std::unordered_map<common::table_id_t, std::unique_ptr<Table>> tables;
     MemoryManager& memoryManager;
     WAL* wal;
-    std::unique_ptr<RelsStore> relsStore;
-    std::unique_ptr<NodesStore> nodesStore;
     bool enableCompression;
 };
 
