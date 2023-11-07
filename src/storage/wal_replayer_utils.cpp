@@ -1,7 +1,6 @@
 #include "storage/wal_replayer_utils.h"
 
 #include "catalog/node_table_schema.h"
-#include "common/exception/not_implemented.h"
 #include "storage/index/hash_index_builder.h"
 
 using namespace kuzu::catalog;
@@ -33,9 +32,11 @@ void WALReplayerUtils::createEmptyHashIndexFiles(
     case LogicalTypeID::SERIAL: {
         // DO NOTHING.
     } break;
+        // LCOV_EXCL_START
     default: {
-        throw NotImplementedException("Only INT64, STRING and SERIAL primary keys are supported");
+        KU_UNREACHABLE;
     }
+        // LCOV_EXCL_STOP
     }
 }
 

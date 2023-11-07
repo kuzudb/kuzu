@@ -40,7 +40,7 @@ public:
         common::ValueVector* /*offsetInChunkVector*/) override {
         // LCOV_EXCL_START
         throw common::NotImplementedException("VarListColumnChunk::write");
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 
     inline VarListDataColumnChunk* getVarListDataColumnChunk() {

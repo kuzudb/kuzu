@@ -1,25 +1,23 @@
 #include "storage/wal/wal_record.h"
 
-#include "common/exception/not_implemented.h"
-
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
 
 bool DBFileID::operator==(const DBFileID& rhs) const {
-    if (dbFileType != rhs.dbFileType) {
+    if (dbFileType != rhs.dbFileType || isOverflow != rhs.isOverflow) {
         return false;
     }
     switch (dbFileType) {
     case DBFileType::NODE_INDEX: {
         return nodeIndexID == rhs.nodeIndexID;
     }
-    default: {
         // LCOV_EXCL_START
-        throw NotImplementedException("DBFileID::operator==");
-        // LCOV_EXCL_END
+    default: {
+        KU_UNREACHABLE;
     }
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -34,11 +32,11 @@ std::string dbFileTypeToString(DBFileType dbFileType) {
     case DBFileType::NODE_INDEX: {
         return "NODE_INDEX";
     }
-    default: {
         // LCOV_EXCL_START
-        throw NotImplementedException("dbFileTypeToString");
-        // LCOV_EXCL_END
+    default: {
+        KU_UNREACHABLE;
     }
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -66,11 +64,11 @@ bool WALRecord::operator==(const WALRecord& rhs) const {
     case WALRecordType::PAGE_UPDATE_OR_INSERT_RECORD: {
         return pageInsertOrUpdateRecord == rhs.pageInsertOrUpdateRecord;
     }
-    case WALRecordType::COMMIT_RECORD: {
-        return commitRecord == rhs.commitRecord;
-    }
     case WALRecordType::TABLE_STATISTICS_RECORD: {
         return tableStatisticsRecord == rhs.tableStatisticsRecord;
+    }
+    case WALRecordType::COMMIT_RECORD: {
+        return commitRecord == rhs.commitRecord;
     }
     case WALRecordType::CATALOG_RECORD: {
         // CatalogRecords are empty so are always equal
@@ -97,12 +95,11 @@ bool WALRecord::operator==(const WALRecord& rhs) const {
     case WALRecordType::ADD_PROPERTY_RECORD: {
         return addPropertyRecord == rhs.addPropertyRecord;
     }
-    default: {
         // LCOV_EXCL_START
-        throw NotImplementedException("Unrecognized WAL record type inside ==. recordType: " +
-                                      walRecordTypeToString(recordType));
-        // LCOV_EXCL_END
+    default: {
+        KU_UNREACHABLE;
     }
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -126,6 +123,9 @@ std::string walRecordTypeToString(WALRecordType walRecordType) {
     case WALRecordType::CREATE_REL_TABLE_GROUP_RECORD: {
         return "REL_TABLE_GROUP_RECORD";
     }
+    case WALRecordType::CREATE_RDF_GRAPH_RECORD: {
+        return "CREATE_RDF_GRAPH_RECORD";
+    }
     case WALRecordType::OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
         return "OVERFLOW_FILE_NEXT_BYTE_POS_RECORD";
     }
@@ -135,14 +135,17 @@ std::string walRecordTypeToString(WALRecordType walRecordType) {
     case WALRecordType::DROP_TABLE_RECORD: {
         return "DROP_TABLE_RECORD";
     }
+    case WALRecordType::ADD_PROPERTY_RECORD: {
+        return "ADD_PROPERTY_RECORD";
+    }
     case WALRecordType::DROP_PROPERTY_RECORD: {
         return "DROP_PROPERTY_RECORD";
     }
-    default: {
         // LCOV_EXCL_START
-        throw NotImplementedException("walRecordTypeToString");
-        // LCOV_EXCL_END
+    default: {
+        KU_UNREACHABLE;
     }
+        // LCOV_EXCL_STOP
     }
 }
 

@@ -1,6 +1,5 @@
 #include "optimizer/acc_hash_join_optimizer.h"
 
-#include "common/exception/not_implemented.h"
 #include "optimizer/logical_operator_collector.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_accumulate.h"
@@ -235,8 +234,10 @@ std::shared_ptr<planner::LogicalOperator> HashJoinSIPOptimizer::appendNodeSemiMa
         key = extend->getNbrNode()->getInternalID();
         nodeTableIDs = extend->getNbrNode()->getTableIDs();
     } break;
+        // LCOV_EXCL_START
     default:
-        throw NotImplementedException("HashJoinSIPOptimizer::appendSemiMask");
+        KU_UNREACHABLE;
+        // LCOV_EXCL_STOP
     }
     auto semiMasker = std::make_shared<LogicalSemiMasker>(SemiMaskType::NODE, std::move(key),
         std::move(nodeTableIDs), opsToApplySemiMask, std::move(child));

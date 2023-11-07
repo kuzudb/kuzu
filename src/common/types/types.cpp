@@ -40,7 +40,7 @@ std::string PhysicalTypeUtils::physicalTypeToString(PhysicalTypeID physicalType)
     // LCOV_EXCL_START
     case PhysicalTypeID::INT128:
         return "INT128";
-    // LCOV_EXCL_END
+    // LCOV_EXCL_STOP
     case PhysicalTypeID::DOUBLE:
         return "DOUBLE";
     case PhysicalTypeID::FLOAT:
@@ -57,8 +57,10 @@ std::string PhysicalTypeUtils::physicalTypeToString(PhysicalTypeID physicalType)
         return "STRUCT";
     case PhysicalTypeID::VAR_LIST:
         return "VAR_LIST";
+        // LCOV_EXCL_START
     default:
-        throw NotImplementedException{"Unrecognized physicalType."};
+        KU_UNREACHABLE;
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -92,8 +94,10 @@ uint32_t PhysicalTypeUtils::getFixedTypeSize(PhysicalTypeID physicalType) {
         return sizeof(interval_t);
     case PhysicalTypeID::INTERNAL_ID:
         return sizeof(internalID_t);
+        // LCOV_EXCL_START
     default:
-        throw NotImplementedException{"PhysicalTypeUtils::getFixedTypeSize."};
+        KU_UNREACHABLE;
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -433,8 +437,10 @@ void LogicalType::setPhysicalType() {
     case LogicalTypeID::RDF_VARIANT: {
         physicalType = PhysicalTypeID::STRUCT;
     } break;
+        // LCOV_EXCL_START
     default:
-        throw NotImplementedException{"LogicalType::setPhysicalType()."};
+        KU_UNREACHABLE;
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -572,8 +578,10 @@ std::string LogicalTypeUtils::dataTypeToString(const LogicalType& dataType) {
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::RDF_VARIANT:
         return dataTypeToString(dataType.typeID);
+        // LCOV_EXCL_START
     default:
-        throw NotImplementedException("LogicalTypeUtils::dataTypeToString.");
+        KU_UNREACHABLE;
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -637,8 +645,10 @@ std::string LogicalTypeUtils::dataTypeToString(LogicalTypeID dataTypeID) {
         return "MAP";
     case LogicalTypeID::UNION:
         return "UNION";
+        // LCOV_EXCL_START
     default:
-        throw NotImplementedException("LogicalTypeUtils::dataTypeToString.");
+        KU_UNREACHABLE;
+        // LCOV_EXCL_STOP
     }
 }
 

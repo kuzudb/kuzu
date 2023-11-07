@@ -85,7 +85,7 @@ void VMRegion::releaseFrame(frame_idx_t frameIdx) {
         throw BufferManagerException(stringFormat(
             "Releasing physical memory associated with a frame failed with error code {}: {}.",
             error, posixErrMessage()));
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 #endif
 }
@@ -95,7 +95,7 @@ frame_group_idx_t VMRegion::addNewFrameGroup() {
     if (numFrameGroups >= maxNumFrameGroups) {
         // LCOV_EXCL_START
         throw BufferManagerException("No more frame groups can be added to the allocator.");
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
     return numFrameGroups++;
 }

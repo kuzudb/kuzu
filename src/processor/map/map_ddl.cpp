@@ -45,7 +45,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateTable(LogicalOperator* lo
     default:
         // LCOV_EXCL_START
         throw NotImplementedException("PlanMapper::mapCreateTable");
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -102,7 +102,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAlter(LogicalOperator* logicalO
     default:
         // LCOV_EXCL_START
         throw NotImplementedException("PlanMapper::mapAlter");
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -133,7 +133,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAddProperty(LogicalOperator* lo
     default:
         // LCOV_EXCL_START
         throw NotImplementedException("PlanMapper::mapAddProperty");
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 }
 

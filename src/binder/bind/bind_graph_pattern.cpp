@@ -6,7 +6,6 @@
 #include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
-#include "common/exception/not_implemented.h"
 #include "common/keyword/rdf_keyword.h"
 #include "common/string_format.h"
 #include "function/cast/functions/cast_string_to_functions.h"
@@ -117,8 +116,10 @@ std::shared_ptr<Expression> Binder::createPath(
             extraFieldFromStructType(
                 recursiveInfo->rel->getDataType(), relFieldNameSet, relFieldNames, relFieldTypes);
         } break;
+            // LOCV_EXCL_START
         default:
-            throw NotImplementedException("Binder::createPath");
+            KU_UNREACHABLE;
+            // LCOV_EXCL_STOP
         }
     }
     auto nodeExtraInfo = std::make_unique<StructTypeInfo>(nodeFieldNames, nodeFieldTypes);
@@ -213,8 +214,10 @@ std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern
         dstNode = rightNode;
         directionType = RelDirectionType::BOTH;
     } break;
+        // LCOV_EXCL_START
     default:
-        throw NotImplementedException("Binder::bindQueryRel");
+        KU_UNREACHABLE;
+        // LCOV_EXCL_STOP
     }
     // bind variable length
     std::shared_ptr<RelExpression> queryRel;
@@ -562,8 +565,10 @@ std::vector<table_id_t> Binder::getNodeTableIDs(const std::vector<table_id_t>& t
     case TableType::NODE: {
         return tableIDs;
     }
+        // LCOV_EXCL_START
     default:
-        throw NotImplementedException("Binder::getNodeTableIDs");
+        KU_UNREACHABLE;
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -595,8 +600,10 @@ std::vector<table_id_t> Binder::getRelTableIDs(const std::vector<table_id_t>& ta
     case TableType::REL: {
         return tableIDs;
     }
+        // LCOV_EXCL_START
     default:
-        throw NotImplementedException("Binder::getRelTableIDs");
+        KU_UNREACHABLE;
+        // LCOV_EXCL_STOP
     }
 }
 

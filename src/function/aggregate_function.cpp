@@ -1,6 +1,5 @@
 #include "function/aggregate_function.h"
 
-#include "common/exception/not_implemented.h"
 #include "common/types/interval_t.h"
 #include "function/aggregate/avg.h"
 #include "function/aggregate/min_max.h"
@@ -50,9 +49,9 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getSumFunc(const std::
     case common::LogicalTypeID::FLOAT:
         return getAggFunc<SumFunction<float_t>>(
             name, std::move(inputType), std::move(resultType), isDistinct);
-    default:
         // LCOV_EXCL_START
-        throw common::NotImplementedException{"AggregateFunctionUtil::getSumFunc"};
+    default:
+        KU_UNREACHABLE;
         // LCOV_EXCL_STOP
     }
 }
@@ -94,9 +93,9 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getAvgFunc(const std::
     case common::LogicalTypeID::FLOAT:
         return getAggFunc<AvgFunction<float_t>>(
             name, std::move(inputType), std::move(resultType), isDistinct);
-    default:
         // LCOV_EXCL_START
-        throw common::NotImplementedException{"AggregateFunctionUtil::getAvgFunc"};
+    default:
+        KU_UNREACHABLE;
         // LCOV_EXCL_STOP
     }
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/exception/not_implemented.h"
+#include "common/assert.h"
 #include "parsed_expression.h"
 
 namespace kuzu {
@@ -16,16 +16,22 @@ public:
 
     static std::unique_ptr<ParsedParameterExpression> deserialize(
         common::Deserializer& /*deserializer*/) {
-        throw common::NotImplementedException{"ParsedParameterExpression::deserialize()"};
+        // LCOV_EXCL_START
+        KU_UNREACHABLE;
+        // LCOV_EXCL_STOP
     }
 
     inline std::unique_ptr<ParsedExpression> copy() const override {
-        throw common::NotImplementedException{"ParsedParameterExpression::copy()"};
+        // LCOV_EXCL_START
+        KU_UNREACHABLE;
+        // LCOV_EXCL_STOP
     }
 
 private:
     void serializeInternal(common::Serializer& /*serializer*/) const override {
-        throw common::NotImplementedException{"ParsedParameterExpression::serializeInternal()"};
+        // LCOV_EXCL_START
+        KU_UNREACHABLE;
+        // LCOV_EXCL_STOP
     }
 
 private:

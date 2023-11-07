@@ -132,7 +132,7 @@ void FileUtils::writeToFile(
                              "numBytesToWrite: {} numBytesWritten: {}. Error: {}",
                     fileInfo->path, fileInfo->fd, offset, numBytesToWrite, numBytesWritten,
                     posixErrMessage()));
-            // LCOV_EXCL_END
+            // LCOV_EXCL_STOP
         }
 #endif
         remainingNumBytesToWrite -= numBytesWritten;
@@ -150,7 +150,7 @@ void FileUtils::copyFile(
         // LCOV_EXCL_START
         throw Exception(stringFormat(
             "Error copying file {} to {}.  ErrorMessage: {}", from, to, errorCode.message()));
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -187,7 +187,7 @@ void FileUtils::readFromFile(
         throw Exception(stringFormat("Cannot read from file: {} fileDescriptor: {} "
                                      "numBytesRead: {} numBytesToRead: {} position: {}",
             fileInfo->path, fileInfo->fd, numBytesRead, numBytes, position));
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 #endif
 }
@@ -197,18 +197,18 @@ void FileUtils::createDir(const std::string& dir) {
         if (std::filesystem::exists(dir)) {
             // LCOV_EXCL_START
             throw Exception(stringFormat("Directory {} already exists.", dir));
-            // LCOV_EXCL_END
+            // LCOV_EXCL_STOP
         }
         if (!std::filesystem::create_directory(dir)) {
             // LCOV_EXCL_START
             throw Exception(stringFormat(
                 "Directory {} cannot be created. Check if it exists and remove it.", dir));
-            // LCOV_EXCL_END
+            // LCOV_EXCL_STOP
         }
     } catch (std::exception& e) {
         // LCOV_EXCL_START
         throw Exception(stringFormat("Failed to create directory {} due to: {}", dir, e.what()));
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -226,7 +226,7 @@ void FileUtils::removeDir(const std::string& dir) {
         // LCOV_EXCL_START
         throw Exception(stringFormat(
             "Error removing directory {}. Error Message: {}", dir, removeErrorCode.message()));
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -240,7 +240,7 @@ void FileUtils::renameFileIfExists(const std::string& oldName, const std::string
         // LCOV_EXCL_START
         throw Exception(stringFormat("Error replacing file {} to {}.  ErrorMessage: {}", oldName,
             newName, errorCode.message()));
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -251,7 +251,7 @@ void FileUtils::removeFileIfExists(const std::string& path) {
         // LCOV_EXCL_START
         throw Exception(stringFormat(
             "Error removing directory or file {}.  Error Message: {}", path, posixErrMessage()));
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -289,7 +289,7 @@ void FileUtils::truncateFileToSize(FileInfo* fileInfo, uint64_t size) {
         // LCOV_EXCL_START
         throw Exception(
             stringFormat("Failed to truncate file {}: {}", fileInfo->path, posixErrMessage()));
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 #endif
 }

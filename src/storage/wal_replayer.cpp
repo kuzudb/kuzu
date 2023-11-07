@@ -1,7 +1,6 @@
 #include "storage/wal_replayer.h"
 
 #include "catalog/node_table_schema.h"
-#include "common/exception/not_implemented.h"
 #include "common/exception/storage.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
@@ -278,11 +277,11 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
                 storageManager->dropTable(tableID);
                 // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
             } break;
-            default: {
                 // LCOV_EXCL_START
-                throw NotImplementedException("WALReplayer::replayDropTableRecord");
-                // LCOV_EXCL_END
+            default: {
+                KU_UNREACHABLE;
             }
+                // LCOV_EXCL_STOP
             }
         } else {
             if (!wal->isLastLoggedRecordCommit()) {
@@ -300,11 +299,11 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
             case TableType::REL: {
                 // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
             } break;
-            default: {
                 // LCOV_EXCL_START
-                throw NotImplementedException("WALReplayer::replayDropTableRecord");
-                // LCOV_EXCL_END
+            default: {
+                KU_UNREACHABLE;
             }
+                // LCOV_EXCL_STOP
             }
         }
     } else {
@@ -329,30 +328,18 @@ void WALReplayer::replayDropPropertyRecord(const kuzu::storage::WALRecord& walRe
                     tableSchema->getColumnID(propertyID));
                 // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
             } break;
-            default: {
                 // LCOV_EXCL_START
-                throw NotImplementedException("WALReplayer::replayDropPropertyRecord");
-                // LCOV_EXCL_END
+            default: {
+                KU_UNREACHABLE;
             }
+                // LCOV_EXCL_STOP
             }
         } else {
             if (!wal->isLastLoggedRecordCommit()) {
                 // Nothing to undo.
                 return;
             }
-            auto catalogForRecovery = getCatalogForRecovery(FileVersionType::WAL_VERSION);
-            auto tableSchema = catalogForRecovery->getReadOnlyVersion()->getTableSchema(tableID);
-            switch (tableSchema->getTableType()) {
-            case TableType::NODE:
-            case TableType::REL: {
-                // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
-            } break;
-            default: {
-                // LCOV_EXCL_START
-                throw NotImplementedException("WALReplayer::replayDropPropertyRecord");
-                // LCOV_EXCL_END
-            }
-            }
+            // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
         }
     } else {
         // See comments for COPY_NODE_RECORD.
@@ -362,39 +349,7 @@ void WALReplayer::replayDropPropertyRecord(const kuzu::storage::WALRecord& walRe
 void WALReplayer::replayAddPropertyRecord(const kuzu::storage::WALRecord& walRecord) {
     auto tableID = walRecord.addPropertyRecord.tableID;
     auto propertyID = walRecord.addPropertyRecord.propertyID;
-    if (isCheckpoint) {
-        if (!isRecovering) {
-            auto tableSchema = catalog->getWriteVersion()->getTableSchema(tableID);
-            switch (tableSchema->getTableType()) {
-            case TableType::NODE:
-            case TableType::REL: {
-            } break;
-            default: {
-                // LCOV_EXCL_START
-                throw NotImplementedException("WALReplayer::replayDropPropertyRecord");
-                // LCOV_EXCL_END
-            }
-            }
-        } else {
-            auto catalogForRecovery = getCatalogForRecovery(FileVersionType::WAL_VERSION);
-            if (!wal->isLastLoggedRecordCommit()) {
-                // Nothing to undo.
-                return;
-            }
-            auto tableSchema = catalogForRecovery->getReadOnlyVersion()->getTableSchema(tableID);
-            switch (tableSchema->getTableType()) {
-            case TableType::NODE:
-            case TableType::REL: {
-                // DO NOTHING.
-            } break;
-            default: {
-                // LCOV_EXCL_START
-                throw NotImplementedException{"WALReplayer::replayDropPropertyRecord"};
-                // LCOV_EXCL_END
-            }
-            }
-        }
-    } else {
+    if (!isCheckpoint) {
         auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(tableID);
         switch (tableSchema->getTableType()) {
         case TableType::NODE: {
@@ -403,11 +358,11 @@ void WALReplayer::replayAddPropertyRecord(const kuzu::storage::WALRecord& walRec
         case TableType::REL: {
             storageManager->getRelTable(tableID)->dropColumn(tableSchema->getColumnID(propertyID));
         } break;
-        default: {
             // LCOV_EXCL_START
-            throw NotImplementedException{"WALReplayer::replayDropPropertyRecord"};
-            // LCOV_EXCL_END
+        default: {
+            KU_UNREACHABLE;
         }
+            // LCOV_EXCL_STOP
         }
     }
 }
@@ -463,11 +418,11 @@ BMFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleare
         return dbFileID.isOverflow ? index->getDiskOverflowFile()->getFileHandle() :
                                      index->getFileHandle();
     }
-    default:
         // LCOV_EXCL_START
-        throw NotImplementedException(
-            "WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleared");
-        // LCOV_EXCL_END
+    default: {
+        KU_UNREACHABLE;
+    }
+        // LCOV_EXCL_STOP
     }
 }
 

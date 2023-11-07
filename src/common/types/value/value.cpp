@@ -367,7 +367,7 @@ void Value::copyValueFrom(const Value& other) {
         throw NotImplementedException("Value::Value(const Value&) for type " +
                                       LogicalTypeUtils::dataTypeToString(*dataType) +
                                       " is not implemented.");
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -442,7 +442,7 @@ std::string Value::toString() const {
         throw NotImplementedException("Value::toString for type " +
                                       LogicalTypeUtils::dataTypeToString(*dataType) +
                                       " is not implemented.");
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -585,7 +585,7 @@ void Value::serialize(Serializer& serializer) const {
     default: {
         // LCOV_EXCL_START
         throw NotImplementedException("Value::serialize");
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
     }
     serializer.serializeValue(childrenSize);
@@ -650,7 +650,7 @@ std::unique_ptr<Value> Value::deserialize(Deserializer& deserializer) {
     default: {
         // LCOV_EXCL_START
         throw NotImplementedException("Value::deserializeValue");
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
     }
     deserializer.deserializeValue(val->childrenSize);

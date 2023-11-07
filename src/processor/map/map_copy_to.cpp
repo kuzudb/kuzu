@@ -40,7 +40,7 @@ std::unique_ptr<CopyToInfo> getCopyToInfo(Schema* childSchema, ReaderConfig* con
         // LCOV_EXCL_START
     default:
         throw NotImplementedException{"getCopyToInfo"};
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -53,7 +53,7 @@ std::shared_ptr<CopyToSharedState> getCopyToSharedState(ReaderConfig* config) {
         // LCOV_EXCL_START
     default:
         throw NotImplementedException{"getCopyToSharedState"};
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 }
 

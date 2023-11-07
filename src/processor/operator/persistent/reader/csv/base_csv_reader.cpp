@@ -33,7 +33,7 @@ BaseCSVReader::BaseCSVReader(const std::string& filePath, const common::ReaderCo
         // LCOV_EXCL_START
         throw CopyException(
             stringFormat("Could not open file {}: {}", filePath, posixErrMessage()));
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -132,13 +132,13 @@ bool BaseCSVReader::isEOF() const {
         // LCOV_EXCL_START
         throw CopyException(
             stringFormat("Could not seek to end of file {}: {}", filePath, posixErrMessage()));
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
     if (lseek(fd, offset, SEEK_SET) == -1) {
         // LCOV_EXCL_START
         throw CopyException(
             stringFormat("Could not reset position of file {}: {}", filePath, posixErrMessage()));
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
     return offset >= end;
 }
@@ -220,7 +220,7 @@ bool BaseCSVReader::readBuffer(uint64_t* start) {
         // LCOV_EXCL_START
         throw CopyException(
             stringFormat("Could not read from file {}: {}", filePath, posixErrMessage()));
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 
     bufferSize = remaining + readCount;
@@ -440,7 +440,7 @@ uint64_t BaseCSVReader::getFileOffset() const {
         // LCOV_EXCL_START
         throw CopyException(stringFormat(
             "Could not get current file position for file {}: {}", filePath, posixErrMessage()));
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
     KU_ASSERT(offset >= bufferSize);
     return offset - bufferSize + position;
@@ -455,7 +455,7 @@ uint64_t BaseCSVReader::getLineNumber() {
         // LCOV_EXCL_START
         throw CopyException(stringFormat(
             "Could not seek to beginning of file {}: {}", filePath, posixErrMessage()));
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 
     bool carriageReturn = false;
@@ -466,7 +466,7 @@ uint64_t BaseCSVReader::getLineNumber() {
             // LCOV_EXCL_START
             throw CopyException(
                 stringFormat("Could not read from file {}: {}", filePath, posixErrMessage()));
-            // LCOV_EXCL_END
+            // LCOV_EXCL_STOP
         }
         totalBytes += bytesRead;
 

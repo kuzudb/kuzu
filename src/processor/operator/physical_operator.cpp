@@ -1,7 +1,5 @@
 #include "processor/operator/physical_operator.h"
 
-#include "common/exception/not_implemented.h"
-
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -193,10 +191,10 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
         return "PROFILE";
     }
     default:
-        throw NotImplementedException("physicalOperatorTypeToString()");
+        KU_UNREACHABLE;
     }
 }
-// LCOV_EXCL_END
+// LCOV_EXCL_STOP
 
 PhysicalOperator::PhysicalOperator(PhysicalOperatorType operatorType,
     std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)

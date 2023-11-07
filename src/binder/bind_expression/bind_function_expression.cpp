@@ -4,7 +4,6 @@
 #include "binder/expression/property_expression.h"
 #include "binder/expression_binder.h"
 #include "common/exception/binder.h"
-#include "common/exception/not_implemented.h"
 #include "common/string_utils.h"
 #include "function/schema/vector_label_functions.h"
 #include "parser/expression/parsed_function_expression.h"
@@ -34,9 +33,12 @@ std::shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
             parsedExpression, functionName, parsedFunctionExpression.getIsDistinct());
     case MACRO:
         return bindMacroExpression(parsedExpression, functionName);
+        // LOCV_EXCL_START
     default:
-        throw NotImplementedException{"ExpressionBinder::bindFunctionExpression"};
+        KU_UNREACHABLE;
+        // LOCV_EXCL_STOP
     }
+    return nullptr;
 }
 
 std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
@@ -252,8 +254,10 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
             std::make_unique<Value>(*listType, populateLabelValues(relTableIDs, *catalogContent));
         children.push_back(createLiteralExpression(std::move(labelsValue)));
     } break;
+        // LCOV_EXCL_START
     default:
-        throw NotImplementedException("ExpressionBinder::bindLabelFunction");
+        KU_UNREACHABLE;
+        // LCOV_EXCL_STOP
     }
     auto execFunc = function::LabelFunction::execFunction;
     auto bindData =

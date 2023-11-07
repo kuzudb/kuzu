@@ -1,6 +1,5 @@
 #include "parser/expression/parsed_expression.h"
 
-#include "common/exception/not_implemented.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "parser/expression/parsed_case_expression.h"
@@ -78,8 +77,11 @@ std::unique_ptr<ParsedExpression> ParsedExpression::deserialize(Deserializer& de
     case ExpressionType::VARIABLE: {
         parsedExpression = ParsedVariableExpression::deserialize(deserializer);
     } break;
-    default:
-        throw NotImplementedException{"ParsedExpression::deserialize"};
+        // LCOV_EXCL_START
+    default: {
+        KU_UNREACHABLE;
+    }
+        // LCOV_EXCL_STOP
     }
     parsedExpression->alias = std::move(alias);
     parsedExpression->rawName = std::move(rawName);

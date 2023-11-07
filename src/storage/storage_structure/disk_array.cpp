@@ -75,7 +75,7 @@ void BaseDiskArray<U>::checkOutOfBoundAccess(TransactionType trxType, uint64_t i
         throw RuntimeException(stringFormat(
             "idx: {} of the DiskArray to be accessed is >= numElements in DiskArray{}.", idx,
             currentNumElements));
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 }
 

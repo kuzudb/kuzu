@@ -32,20 +32,20 @@ public:
         std::shared_ptr<ResizeableBuffer> /*data*/, uint64_t /*num_entries*/) {
         // LCOV_EXCL_START
         throw common::NotImplementedException("Dictionary");
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
     virtual inline void offsets(uint32_t* /*offsets*/, uint8_t* /*defines*/, uint64_t /*numValues*/,
         parquet_filter_t& /*filter*/, uint64_t /*resultOffset*/, common::ValueVector* /*result*/) {
         // LCOV_EXCL_START
         throw common::NotImplementedException("ColumnReader::offsets");
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
     virtual inline void plain(std::shared_ptr<ByteBuffer> /*plainData*/, uint8_t* /*defines*/,
         uint64_t /*numValues*/, parquet_filter_t& /*filter*/, uint64_t /*resultOffset*/,
         common::ValueVector* /*result*/) {
         // LCOV_EXCL_START
         throw common::NotImplementedException("ColumnReader::plain");
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
     virtual inline void resetPage() {}
     virtual inline uint64_t getGroupRowsAvailable() { return groupRowsAvailable; }

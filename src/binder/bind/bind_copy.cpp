@@ -6,7 +6,6 @@
 #include "common/enums/table_type.h"
 #include "common/exception/binder.h"
 #include "common/exception/message.h"
-#include "common/exception/not_implemented.h"
 #include "common/string_format.h"
 #include "parser/copy.h"
 
@@ -110,10 +109,11 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
             return bindCopyRelFrom(std::move(readerConfig), tableSchema);
         }
     }
-    default:
         // LCOV_EXCL_START
-        throw NotImplementedException("bindCopyFromClause");
-        // LCOV_EXCL_END
+    default: {
+        KU_UNREACHABLE;
+    }
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -185,11 +185,11 @@ expression_vector Binder::bindExpectedNodeFileColumns(
             expectedColumnTypes.push_back(property->getDataType()->copy());
         }
     } break;
-    default: {
         // LCOV_EXCL_START
-        throw NotImplementedException("Binder::bindCopyNodeFileColumns");
-        // LCOV_EXCL_END
+    default: {
+        KU_UNREACHABLE;
     }
+        // LCOV_EXCL_STOP
     }
     // Detect columns from file.
     std::vector<std::string> detectedColumnNames;
@@ -246,11 +246,11 @@ expression_vector Binder::bindExpectedRelFileColumns(
             readerConfig.columnTypes.push_back(std::move(columnType));
         }
     } break;
-    default: {
         // LCOV_EXCL_START
-        throw NotImplementedException("Binder::bindCopyRelColumns");
-        // LCOV_EXCL_END
+    default: {
+        KU_UNREACHABLE;
     }
+        // LCOV_EXCL_STOP
     }
     // Detect columns from file.
     std::vector<std::string> detectedColumnNames;

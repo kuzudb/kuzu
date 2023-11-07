@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/exception/not_implemented.h"
+#include "common/assert.h"
 #include "parsed_expression.h"
 #include "parser/query/graph_pattern/pattern_element.h"
 
@@ -33,16 +33,22 @@ public:
 
     static std::unique_ptr<ParsedSubqueryExpression> deserialize(
         common::Deserializer& /*deserializer*/) {
-        throw common::NotImplementedException{"ParsedSubqueryExpression::deserialize()"};
+        // LCOV_EXCL_START
+        KU_UNREACHABLE;
+        // LCOV_EXCL_STOP
     }
 
     std::unique_ptr<ParsedExpression> copy() const override {
-        throw common::NotImplementedException{"ParsedPropertyExpression::copy()"};
+        // LCOV_EXCL_START
+        KU_UNREACHABLE;
+        // LCOV_EXCL_STOP
     }
 
 private:
     void serializeInternal(common::Serializer& /*serializer*/) const override {
-        throw common::NotImplementedException{"ParsedSubqueryExpression::serializeInternal()"};
+        // LCOV_EXCL_START
+        KU_UNREACHABLE;
+        // LCOV_EXCL_STOP
     }
 
 private:

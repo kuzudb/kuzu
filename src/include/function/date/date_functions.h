@@ -13,7 +13,7 @@ struct DayName {
     static inline void operation(T& /*input*/, common::ku_string_t& /*result*/) {
         // LCOV_EXCL_START
         throw common::NotImplementedException("Invalid DayName() call on non-datetime object");
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 };
 
@@ -37,7 +37,7 @@ struct MonthName {
     static inline void operation(T& /*input*/, common::ku_string_t& /*result*/) {
         // LCOV_EXCL_START
         throw common::NotImplementedException("Invalid MonthName() call on non-datetime object");
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 };
 
@@ -62,7 +62,7 @@ struct LastDay {
     static inline void operation(T& /*input*/, common::date_t& /*result*/) {
         // LCOV_EXCL_START
         throw common::NotImplementedException("Invalid LastDay() call on non-datetime object");
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 };
 
@@ -85,7 +85,7 @@ struct DatePart {
         LEFT_TYPE& /*partSpecifier*/, RIGHT_TYPE& /*input*/, int64_t& /*result*/) {
         // LCOV_EXCL_START
         throw common::NotImplementedException("Invalid DatePart() call on non-datetime object");
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 };
 
@@ -119,7 +119,7 @@ struct DateTrunc {
         LEFT_TYPE& /*partSpecifier*/, RIGHT_TYPE& /*input*/, RIGHT_TYPE& /*result*/) {
         // LCOV_EXCL_START
         throw common::NotImplementedException("Invalid DatePart() call on non-datetime object");
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 };
 
