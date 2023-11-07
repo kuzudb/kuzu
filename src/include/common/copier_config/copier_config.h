@@ -14,8 +14,6 @@ struct CSVReaderConfig {
     char escapeChar;
     char delimiter;
     char quoteChar;
-    char listBeginChar;
-    char listEndChar;
     bool hasHeader;
     bool parallel;
 
@@ -23,15 +21,12 @@ struct CSVReaderConfig {
         : escapeChar{CopyConstants::DEFAULT_CSV_ESCAPE_CHAR},
           delimiter{CopyConstants::DEFAULT_CSV_DELIMITER},
           quoteChar{CopyConstants::DEFAULT_CSV_QUOTE_CHAR},
-          listBeginChar{CopyConstants::DEFAULT_CSV_LIST_BEGIN_CHAR},
-          listEndChar{CopyConstants::DEFAULT_CSV_LIST_END_CHAR},
           hasHeader{CopyConstants::DEFAULT_CSV_HAS_HEADER},
           parallel{CopyConstants::DEFAULT_CSV_PARALLEL} {}
 
     CSVReaderConfig(const CSVReaderConfig& other)
         : escapeChar{other.escapeChar}, delimiter{other.delimiter}, quoteChar{other.quoteChar},
-          listBeginChar{other.listBeginChar},
-          listEndChar{other.listEndChar}, hasHeader{other.hasHeader}, parallel{other.parallel} {}
+          hasHeader{other.hasHeader}, parallel{other.parallel} {}
 
     inline std::unique_ptr<CSVReaderConfig> copy() const {
         return std::make_unique<CSVReaderConfig>(*this);

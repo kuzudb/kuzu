@@ -80,10 +80,6 @@ static void bindStringParsingOption(
         csvReaderConfig.delimiter = parsingOptionValue;
     } else if (optionName == "QUOTE") {
         csvReaderConfig.quoteChar = parsingOptionValue;
-    } else if (optionName == "LIST_BEGIN") {
-        csvReaderConfig.listBeginChar = parsingOptionValue;
-    } else if (optionName == "LIST_END") {
-        csvReaderConfig.listEndChar = parsingOptionValue;
     }
 }
 

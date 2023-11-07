@@ -109,7 +109,7 @@ inline void CastStringHelper::cast(const char* input, uint64_t len, interval_t& 
 // ---------------------- cast String to Blob ------------------------------ //
 template<>
 void CastString::operation(const ku_string_t& input, blob_t& result, ValueVector* resultVector,
-    uint64_t /*rowToAdd*/, const CSVReaderConfig* /*CSVReaderConfig*/) {
+    uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
     result.value.len = Blob::getBlobSize(input);
     if (!ku_string_t::isShortString(result.value.len)) {
         auto overflowBuffer = StringVector::getInMemOverflowBuffer(resultVector);
@@ -171,13 +171,14 @@ static bool skipToClose(const char*& input, const char* end, uint64_t& lvl, char
             if (!skipToClose(input, end, lvl, '}', csvReaderConfig)) {
                 return false;
             }
-        } else if (*input == csvReaderConfig->listBeginChar) {
-            if (!skipToClose(input, end, lvl, csvReaderConfig->listEndChar, csvReaderConfig)) {
+        } else if (*input == CopyConstants::DEFAULT_CSV_LIST_BEGIN_CHAR) {
+            if (!skipToClose(
+                    input, end, lvl, CopyConstants::DEFAULT_CSV_LIST_END_CHAR, csvReaderConfig)) {
                 return false;
             }
             lvl++; // nested one more level
         } else if (*input == target) {
-            if (target == csvReaderConfig->listEndChar) {
+            if (target == CopyConstants::DEFAULT_CSV_LIST_END_CHAR) {
                 lvl--;
             }
             return true;
@@ -244,7 +245,7 @@ static bool splitCStringList(
 
     // locate [
     skipWhitespace(input, end);
-    if (input == end || *input != csvReaderConfig->listBeginChar) {
+    if (input == end || *input != CopyConstants::DEFAULT_CSV_LIST_BEGIN_CHAR) {
         return false;
     }
     input++;
@@ -252,8 +253,9 @@ static bool splitCStringList(
     auto start_ptr = input;
     while (input < end) {
         auto ch = *input;
-        if (ch == csvReaderConfig->listBeginChar) {
-            if (!skipToClose(input, end, ++lvl, csvReaderConfig->listEndChar, csvReaderConfig)) {
+        if (ch == CopyConstants::DEFAULT_CSV_LIST_BEGIN_CHAR) {
+            if (!skipToClose(
+                    input, end, ++lvl, CopyConstants::DEFAULT_CSV_LIST_END_CHAR, csvReaderConfig)) {
                 return false;
             }
         } else if (ch == '\'' || ch == '"') {
@@ -264,12 +266,12 @@ static bool splitCStringList(
             uint64_t struct_lvl = 0;
             skipToClose(input, end, struct_lvl, '}', csvReaderConfig);
         } else if (ch == csvReaderConfig->delimiter ||
-                   ch == csvReaderConfig->listEndChar) { // split
-            if (ch != csvReaderConfig->listEndChar || start_ptr < input || seen_value) {
+                   ch == CopyConstants::DEFAULT_CSV_LIST_END_CHAR) { // split
+            if (ch != CopyConstants::DEFAULT_CSV_LIST_END_CHAR || start_ptr < input || seen_value) {
                 state.handleValue(start_ptr, input, csvReaderConfig);
                 seen_value = true;
             }
-            if (ch == csvReaderConfig->listEndChar) { // last ]
+            if (ch == CopyConstants::DEFAULT_CSV_LIST_END_CHAR) { // last ]
                 lvl--;
                 break;
             }
@@ -323,7 +325,7 @@ struct SplitStringFixedListOperation {
     ValueVector* resultVector;
 
     void handleValue(
-        const char* start, const char* end, const CSVReaderConfig* /*CSVReaderConfig*/) {
+        const char* start, const char* end, const CSVReaderConfig* /*csvReaderConfig*/) {
         T value;
         auto str = std::string_view{start, (uint32_t)(end - start)};
         if (str.empty() || isNull(str)) {
@@ -423,8 +425,9 @@ static bool parseKeyOrValue(const char*& input, const char* end, T& state, bool 
             if (!skipToClose(input, end, lvl, '}', csvReaderConfig)) {
                 return false;
             }
-        } else if (*input == csvReaderConfig->listBeginChar) {
-            if (!skipToClose(input, end, lvl, csvReaderConfig->listEndChar, csvReaderConfig)) {
+        } else if (*input == CopyConstants::DEFAULT_CSV_LIST_BEGIN_CHAR) {
+            if (!skipToClose(
+                    input, end, lvl, CopyConstants::DEFAULT_CSV_LIST_END_CHAR, csvReaderConfig)) {
                 return false;
             };
         } else if (isKey && *input == '=') {
@@ -525,8 +528,9 @@ static bool parseStructFieldValue(
             if (!skipToClose(input, end, lvl, '}', csvReaderConfig)) {
                 return false;
             }
-        } else if (*input == csvReaderConfig->listBeginChar) {
-            if (!skipToClose(input, end, ++lvl, csvReaderConfig->listEndChar, csvReaderConfig)) {
+        } else if (*input == CopyConstants::DEFAULT_CSV_LIST_BEGIN_CHAR) {
+            if (!skipToClose(
+                    input, end, ++lvl, CopyConstants::DEFAULT_CSV_LIST_END_CHAR, csvReaderConfig)) {
                 return false;
             }
         } else if (*input == csvReaderConfig->delimiter || *input == '}') {
