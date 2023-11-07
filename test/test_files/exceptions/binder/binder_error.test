@@ -38,12 +38,12 @@ Binder exception: Expression in WITH must be aliased (use AS).
 -LOG BindToDifferentVariableType1
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WITH e1 AS a MATCH (a) RETURN *
 ---- error
-Binder exception: a has data type REL but (NODE) was expected.
+Binder exception: Cannot bind a as node pattern.
 
 -LOG BindToDifferentVariableType2
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WITH a.age + 1 AS a MATCH (a) RETURN *
 ---- error
-Binder exception: a has data type INT64 but (NODE) was expected.
+Binder exception: Cannot bind a as node pattern.
 
 -LOG BindEmptyStar
 -STATEMENT RETURN *
@@ -261,7 +261,7 @@ Binder exception: Expression 12 has data type INT64 but expected DATE. Implicit 
 -LOG DeleteNodeProperty
 -STATEMENT MATCH (a:person) DELETE a.age
 ---- error
-Binder exception: Delete PROPERTY is not supported.
+Binder exception: Cannot delete expression a.age with type PROPERTY. Expect node or rel pattern.
 
 -LOG CreateNodeTableUsedName
 -STATEMENT CREATE NODE TABLE person(NAME STRING, ID INT64, PRIMARY KEY(NAME))

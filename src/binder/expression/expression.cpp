@@ -7,7 +7,7 @@ namespace binder {
 
 expression_vector Expression::splitOnAND() {
     expression_vector result;
-    if (AND == expressionType) {
+    if (ExpressionType::AND == expressionType) {
         for (auto& child : children) {
             for (auto& exp : child->splitOnAND()) {
                 result.push_back(exp);

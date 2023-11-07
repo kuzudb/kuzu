@@ -45,7 +45,7 @@ private:
 
 private:
     binder::expression_set propertiesInUse;
-    binder::expression_set variablesInUse;
+    binder::expression_set patternInUse;
 };
 
 } // namespace optimizer

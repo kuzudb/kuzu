@@ -11,7 +11,7 @@ class NodeOrRelExpression : public Expression {
 public:
     NodeOrRelExpression(common::LogicalType dataType, std::string uniqueName,
         std::string variableName, std::vector<common::table_id_t> tableIDs)
-        : Expression{common::VARIABLE, std::move(dataType), std::move(uniqueName)},
+        : Expression{common::ExpressionType::PATTERN, std::move(dataType), std::move(uniqueName)},
           variableName(std::move(variableName)), tableIDs{std::move(tableIDs)} {}
     virtual ~NodeOrRelExpression() override = default;
 

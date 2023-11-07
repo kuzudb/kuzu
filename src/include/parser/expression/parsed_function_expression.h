@@ -8,28 +8,29 @@ namespace parser {
 class ParsedFunctionExpression : public ParsedExpression {
 public:
     ParsedFunctionExpression(std::string functionName, std::string rawName, bool isDistinct = false)
-        : ParsedExpression{common::FUNCTION, std::move(rawName)}, isDistinct{isDistinct},
-          functionName{std::move(functionName)} {}
+        : ParsedExpression{common::ExpressionType::FUNCTION, std::move(rawName)},
+          isDistinct{isDistinct}, functionName{std::move(functionName)} {}
 
     ParsedFunctionExpression(std::string functionName, std::unique_ptr<ParsedExpression> child,
         std::string rawName, bool isDistinct = false)
-        : ParsedExpression{common::FUNCTION, std::move(child), std::move(rawName)},
+        : ParsedExpression{common::ExpressionType::FUNCTION, std::move(child), std::move(rawName)},
           isDistinct{isDistinct}, functionName{std::move(functionName)} {}
 
     ParsedFunctionExpression(std::string functionName, std::unique_ptr<ParsedExpression> left,
         std::unique_ptr<ParsedExpression> right, std::string rawName, bool isDistinct = false)
-        : ParsedExpression{common::FUNCTION, std::move(left), std::move(right), std::move(rawName)},
+        : ParsedExpression{common::ExpressionType::FUNCTION, std::move(left), std::move(right),
+              std::move(rawName)},
           isDistinct{isDistinct}, functionName{std::move(functionName)} {}
 
     ParsedFunctionExpression(std::string alias, std::string rawName,
         parsed_expression_vector children, bool isDistinct, std::string functionName)
-        : ParsedExpression{common::FUNCTION, std::move(alias), std::move(rawName),
+        : ParsedExpression{common::ExpressionType::FUNCTION, std::move(alias), std::move(rawName),
               std::move(children)},
           isDistinct{isDistinct}, functionName{std::move(functionName)} {}
 
     ParsedFunctionExpression(bool isDistinct, std::string functionName)
-        : ParsedExpression{common::FUNCTION}, isDistinct{isDistinct}, functionName{std::move(
-                                                                          functionName)} {}
+        : ParsedExpression{common::ExpressionType::FUNCTION}, isDistinct{isDistinct},
+          functionName{std::move(functionName)} {}
 
     inline bool getIsDistinct() const { return isDistinct; }
 

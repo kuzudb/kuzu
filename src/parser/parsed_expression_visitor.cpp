@@ -1,6 +1,5 @@
 #include "parser/parsed_expression_visitor.h"
 
-#include "common/exception/not_implemented.h"
 #include "parser/expression/parsed_case_expression.h"
 
 using namespace kuzu::common;
@@ -14,19 +13,13 @@ std::vector<ParsedExpression*> ParsedExpressionChildrenVisitor::collectChildren(
     case ExpressionType::CASE_ELSE: {
         return collectCaseChildren(expression);
     }
-    case ExpressionType::FUNCTION:
-    case ExpressionType::LITERAL:
-    case ExpressionType::PROPERTY:
-    case ExpressionType::VARIABLE: {
+    default: {
         std::vector<ParsedExpression*> parsedExpressions;
         parsedExpressions.reserve(expression.getNumChildren());
         for (auto& child : expression.children) {
             parsedExpressions.push_back(child.get());
         }
         return parsedExpressions;
-    }
-    default: {
-        throw NotImplementedException{"ParsedExpressionChildrenCollector::collectChildren"};
     }
     }
 }
@@ -37,14 +30,8 @@ void ParsedExpressionChildrenVisitor::setChild(kuzu::parser::ParsedExpression& e
     case ExpressionType::CASE_ELSE: {
         setCaseChild(expression, idx, std::move(expressionToSet));
     } break;
-    case ExpressionType::FUNCTION:
-    case ExpressionType::LITERAL:
-    case ExpressionType::PROPERTY:
-    case ExpressionType::VARIABLE: {
-        expression.children[idx] = std::move(expressionToSet);
-    } break;
     default: {
-        throw NotImplementedException{"ParsedExpressionChildrenVisitor::setChild"};
+        expression.children[idx] = std::move(expressionToSet);
     }
     }
 }

@@ -1,6 +1,6 @@
 #include "binder/expression/expression_util.h"
+#include "binder/expression/node_rel_expression.h"
 #include "binder/expression/property_expression.h"
-#include "binder/expression/rel_expression.h"
 #include "binder/expression_binder.h"
 #include "catalog/table_schema.h"
 #include "common/exception/binder.h"
@@ -14,45 +14,44 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace binder {
 
+static bool isNodeOrRelPattern(const Expression& expression) {
+    return ExpressionUtil::isNodePattern(expression) || ExpressionUtil::isRelPattern(expression);
+}
+
+static bool isStructPattern(const Expression& expression) {
+    auto logicalTypeID = expression.getDataType().getLogicalTypeID();
+    return logicalTypeID == LogicalTypeID::NODE || logicalTypeID == LogicalTypeID::REL ||
+           logicalTypeID == LogicalTypeID::STRUCT;
+}
+
 expression_vector ExpressionBinder::bindPropertyStarExpression(
     const parser::ParsedExpression& parsedExpression) {
     auto child = bindExpression(*parsedExpression.getChild(0));
-    validateExpectedDataType(*child,
-        std::vector<LogicalTypeID>{LogicalTypeID::NODE, LogicalTypeID::REL, LogicalTypeID::STRUCT});
-    if (ExpressionUtil::isNodeVariable(*child)) {
-        return bindNodePropertyStarExpression(*child);
-    } else if (ExpressionUtil::isRelVariable(*child)) {
-        return bindRelPropertyStarExpression(*child);
-    } else {
+    if (isNodeOrRelPattern(*child)) {
+        return bindNodeOrRelPropertyStarExpression(*child);
+    } else if (isStructPattern(*child)) {
         return bindStructPropertyStarExpression(child);
+    } else {
+        throw BinderException(stringFormat("Cannot bind property for expression {} with type {}.",
+            child->toString(), expressionTypeToString(child->expressionType)));
     }
 }
 
-expression_vector ExpressionBinder::bindNodePropertyStarExpression(const Expression& child) {
+expression_vector ExpressionBinder::bindNodeOrRelPropertyStarExpression(const Expression& child) {
     expression_vector result;
-    auto& node = (NodeExpression&)child;
-    for (auto& property : node.getPropertyExpressions()) {
-        result.push_back(property->copy());
-    }
-    return result;
-}
-
-expression_vector ExpressionBinder::bindRelPropertyStarExpression(const Expression& child) {
-    expression_vector result;
-    auto& node = (RelExpression&)child;
-    for (auto& property : node.getPropertyExpressions()) {
-        auto propertyExpression = (PropertyExpression*)property.get();
+    auto& nodeOrRel = (NodeOrRelExpression&)child;
+    for (auto& expression : nodeOrRel.getPropertyExpressions()) {
+        auto propertyExpression = (PropertyExpression*)expression.get();
         if (TableSchema::isReservedPropertyName(propertyExpression->getPropertyName())) {
             continue;
         }
-        result.push_back(property->copy());
+        result.push_back(expression->copy());
     }
     return result;
 }
 
 expression_vector ExpressionBinder::bindStructPropertyStarExpression(
     std::shared_ptr<Expression> child) {
-    KU_ASSERT(child->getDataType().getLogicalTypeID() == LogicalTypeID::STRUCT);
     expression_vector result;
     auto childType = child->getDataType();
     for (auto field : StructType::getFields(&childType)) {
@@ -69,19 +68,24 @@ std::shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
             "Cannot bind {} as a single property expression.", parsedExpression.toString()));
     }
     auto propertyName = propertyExpression.getPropertyName();
-    if (TableSchema::isReservedPropertyName(propertyName)) {
-        // Note we don't expose direct access to internal properties in case user tries to modify
-        // them. However, we can expose indirect read-only access through function e.g. ID().
-        throw BinderException(
-            propertyName + " is reserved for system usage. External access is not allowed.");
-    }
     auto child = bindExpression(*parsedExpression.getChild(0));
     validateExpectedDataType(*child,
         std::vector<LogicalTypeID>{LogicalTypeID::NODE, LogicalTypeID::REL, LogicalTypeID::STRUCT});
-    if (ExpressionUtil::isNodeVariable(*child) || ExpressionUtil::isRelVariable(*child)) {
+    if (isNodeOrRelPattern(*child)) {
+        if (TableSchema::isReservedPropertyName(propertyName)) {
+            // Note we don't expose direct access to internal properties in case user tries to
+            // modify them. However, we can expose indirect read-only access through function e.g.
+            // ID().
+            throw BinderException(
+                propertyName + " is reserved for system usage. External access is not allowed.");
+        }
         return bindNodeOrRelPropertyExpression(*child, propertyName);
+    } else if (isStructPattern(*child)) {
+        return bindStructPropertyExpression(child, propertyName);
+    } else {
+        throw BinderException(stringFormat("Cannot bind property for expression {} with type {}.",
+            child->toString(), expressionTypeToString(child->expressionType)));
     }
-    return bindStructPropertyExpression(child, propertyName);
 }
 
 std::shared_ptr<Expression> ExpressionBinder::bindNodeOrRelPropertyExpression(

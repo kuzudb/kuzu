@@ -206,7 +206,7 @@ void CatalogContent::readFromFile(const std::string& directory, FileVersionType 
 ExpressionType CatalogContent::getFunctionType(const std::string& name) const {
     auto upperCaseName = StringUtils::getUpper(name);
     if (macros.contains(upperCaseName)) {
-        return MACRO;
+        return ExpressionType::MACRO;
     } else if (!builtInFunctions->containsFunction(name)) {
         throw CatalogException(name + " function does not exist.");
     } else {
@@ -214,9 +214,9 @@ ExpressionType CatalogContent::getFunctionType(const std::string& name) const {
         auto funcType = builtInFunctions->getFunctionType(upperCaseName);
         switch (funcType) {
         case function::FunctionType::SCALAR:
-            return FUNCTION;
+            return ExpressionType::FUNCTION;
         case function::FunctionType::AGGREGATE:
-            return AGGREGATE_FUNCTION;
+            return ExpressionType::AGGREGATE_FUNCTION;
         default:
             // LCOV_EXCL_START
             throw NotImplementedException("CatalogContent::getFunctionType");

@@ -1,5 +1,7 @@
 #include "binder/expression/expression_util.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace binder {
 
@@ -95,6 +97,21 @@ expression_vector ExpressionUtil::removeDuplication(const expression_vector& exp
         expressionSet.insert(expression);
     }
     return result;
+}
+
+bool ExpressionUtil::isNodePattern(const Expression& expression) {
+    return expression.expressionType == ExpressionType::PATTERN &&
+           expression.dataType.getLogicalTypeID() == LogicalTypeID::NODE;
+};
+
+bool ExpressionUtil::isRelPattern(const Expression& expression) {
+    return expression.expressionType == ExpressionType::PATTERN &&
+           expression.dataType.getLogicalTypeID() == LogicalTypeID::REL;
+}
+
+bool ExpressionUtil::isRecursiveRelPattern(const kuzu::binder::Expression& expression) {
+    return expression.expressionType == ExpressionType::PATTERN &&
+           expression.dataType.getLogicalTypeID() == LogicalTypeID::RECURSIVE_REL;
 }
 
 } // namespace binder

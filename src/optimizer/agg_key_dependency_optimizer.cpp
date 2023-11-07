@@ -48,7 +48,7 @@ AggKeyDependencyOptimizer::resolveKeysAndDependentKeys(const expression_vector& 
     // Collect primary variables from keys.
     std::unordered_set<std::string> primaryVarNames;
     for (auto& key : inputKeys) {
-        if (key->expressionType == PROPERTY) {
+        if (key->expressionType == ExpressionType::PROPERTY) {
             auto property = (PropertyExpression*)key.get();
             if (property->isPrimaryKey() || property->isInternalID()) {
                 primaryVarNames.insert(property->getVariableName());
@@ -59,7 +59,7 @@ AggKeyDependencyOptimizer::resolveKeysAndDependentKeys(const expression_vector& 
     binder::expression_vector keys;
     binder::expression_vector dependentKeys;
     for (auto& key : inputKeys) {
-        if (key->expressionType == PROPERTY) {
+        if (key->expressionType == ExpressionType::PROPERTY) {
             auto property = (PropertyExpression*)key.get();
             if (property->isPrimaryKey() ||
                 property->isInternalID()) { // NOLINT(bugprone-branch-clone): Collapsing
@@ -73,7 +73,7 @@ AggKeyDependencyOptimizer::resolveKeysAndDependentKeys(const expression_vector& 
             } else {
                 keys.push_back(key);
             }
-        } else if (ExpressionUtil::isNodeVariable(*key) || ExpressionUtil::isRelVariable(*key)) {
+        } else if (ExpressionUtil::isNodePattern(*key) || ExpressionUtil::isRelPattern(*key)) {
             if (primaryVarNames.contains(key->getUniqueName())) {
                 // e.g. a depends on a._id
                 dependentKeys.push_back(key);

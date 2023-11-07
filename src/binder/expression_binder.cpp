@@ -27,19 +27,19 @@ std::shared_ptr<Expression> ExpressionBinder::bindExpression(
         expression = bindComparisonExpression(parsedExpression);
     } else if (isExpressionNullOperator(expressionType)) {
         expression = bindNullOperatorExpression(parsedExpression);
-    } else if (FUNCTION == expressionType) {
+    } else if (ExpressionType::FUNCTION == expressionType) {
         expression = bindFunctionExpression(parsedExpression);
-    } else if (PROPERTY == expressionType) {
+    } else if (ExpressionType::PROPERTY == expressionType) {
         expression = bindPropertyExpression(parsedExpression);
-    } else if (PARAMETER == expressionType) {
+    } else if (ExpressionType::PARAMETER == expressionType) {
         expression = bindParameterExpression(parsedExpression);
     } else if (isExpressionLiteral(expressionType)) {
         expression = bindLiteralExpression(parsedExpression);
-    } else if (VARIABLE == expressionType) {
+    } else if (ExpressionType::VARIABLE == expressionType) {
         expression = bindVariableExpression(parsedExpression);
-    } else if (EXISTENTIAL_SUBQUERY == expressionType) {
+    } else if (ExpressionType::EXISTENTIAL_SUBQUERY == expressionType) {
         expression = bindExistentialSubqueryExpression(parsedExpression);
-    } else if (CASE_ELSE == expressionType) {
+    } else if (ExpressionType::CASE_ELSE == expressionType) {
         expression = bindCaseExpression(parsedExpression);
     } else {
         throw NotImplementedException(
@@ -119,7 +119,7 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCast(
         auto scalarFunction = CastFunction::bindCastFunction(
             functionName, expression->dataType.getLogicalTypeID(), targetType.getLogicalTypeID());
         auto uniqueName = ScalarFunctionExpression::getUniqueName(functionName, children);
-        return std::make_shared<ScalarFunctionExpression>(functionName, FUNCTION,
+        return std::make_shared<ScalarFunctionExpression>(functionName, ExpressionType::FUNCTION,
             std::move(bindData), std::move(children), scalarFunction->execFunc,
             nullptr /* selectFunc */, std::move(uniqueName));
     } else {
@@ -128,10 +128,10 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCast(
 }
 
 void ExpressionBinder::resolveAnyDataType(Expression& expression, const LogicalType& targetType) {
-    if (expression.expressionType == PARAMETER) { // expression is parameter
+    if (expression.expressionType == ExpressionType::PARAMETER) { // expression is parameter
         ((ParameterExpression&)expression).setDataType(targetType);
     } else { // expression is null literal
-        KU_ASSERT(expression.expressionType == LITERAL);
+        KU_ASSERT(expression.expressionType == ExpressionType::LITERAL);
         ((LiteralExpression&)expression).setDataType(targetType);
     }
 }

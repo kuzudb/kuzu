@@ -55,15 +55,15 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getEvaluator(
         return getReferenceEvaluator(expression, schema);
     } else if (isExpressionLiteral(expressionType)) {
         return getLiteralEvaluator(*expression);
-    } else if (ExpressionUtil::isNodeVariable(*expression)) {
+    } else if (ExpressionUtil::isNodePattern(*expression)) {
         return getNodeEvaluator(expression, schema);
-    } else if (ExpressionUtil::isRelVariable(*expression)) {
+    } else if (ExpressionUtil::isRelPattern(*expression)) {
         return getRelEvaluator(expression, schema);
     } else if (expressionType == ExpressionType::PATH) {
         return getPathEvaluator(expression, schema);
     } else if (expressionType == ExpressionType::PARAMETER) {
         return getParameterEvaluator(*expression);
-    } else if (CASE_ELSE == expressionType) {
+    } else if (ExpressionType::CASE_ELSE == expressionType) {
         return getCaseEvaluator(expression, schema);
     } else if (canEvaluateAsFunction(expressionType)) {
         return getFunctionEvaluator(expression, schema);
@@ -81,7 +81,7 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getConstantEvaluator(
     auto expressionType = expression->expressionType;
     if (isExpressionLiteral(expressionType)) {
         return getLiteralEvaluator(*expression);
-    } else if (CASE_ELSE == expressionType) {
+    } else if (ExpressionType::CASE_ELSE == expressionType) {
         return getCaseEvaluator(expression, nullptr);
     } else if (canEvaluateAsFunction(expressionType)) {
         return getFunctionEvaluator(expression, nullptr);

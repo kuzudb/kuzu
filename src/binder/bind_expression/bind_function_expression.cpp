@@ -26,12 +26,12 @@ std::shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
     }
     auto functionType = binder->catalog.getFunctionType(functionName);
     switch (functionType) {
-    case FUNCTION:
+    case ExpressionType::FUNCTION:
         return bindScalarFunctionExpression(parsedExpression, functionName);
-    case AGGREGATE_FUNCTION:
+    case ExpressionType::AGGREGATE_FUNCTION:
         return bindAggregateFunctionExpression(
             parsedExpression, functionName, parsedFunctionExpression.getIsDistinct());
-    case MACRO:
+    case ExpressionType::MACRO:
         return bindMacroExpression(parsedExpression, functionName);
         // LOCV_EXCL_START
     default:
@@ -81,8 +81,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     }
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(function->name, childrenAfterCast);
-    return make_shared<ScalarFunctionExpression>(functionName, FUNCTION, std::move(bindData),
-        std::move(childrenAfterCast), function->execFunc, function->selectFunc,
+    return make_shared<ScalarFunctionExpression>(functionName, ExpressionType::FUNCTION,
+        std::move(bindData), std::move(childrenAfterCast), function->execFunc, function->selectFunc,
         function->compileFunc, uniqueExpressionName);
 }
 
@@ -186,11 +186,11 @@ std::unique_ptr<Expression> ExpressionBinder::createInternalNodeIDExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(
     std::shared_ptr<Expression> expression) {
-    if (ExpressionUtil::isNodeVariable(*expression)) {
+    if (ExpressionUtil::isNodePattern(*expression)) {
         auto& node = (NodeExpression&)*expression;
         return node.getInternalID();
     }
-    if (ExpressionUtil::isRelVariable(*expression)) {
+    if (ExpressionUtil::isRelPattern(*expression)) {
         return bindNodeOrRelPropertyExpression(*expression, InternalKeyword::ID);
     }
     KU_ASSERT(expression->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
@@ -263,7 +263,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
     auto bindData =
         std::make_unique<function::FunctionBindData>(LogicalType(LogicalTypeID::STRING));
     auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(LABEL_FUNC_NAME, children);
-    return std::make_shared<ScalarFunctionExpression>(LABEL_FUNC_NAME, FUNCTION,
+    return std::make_shared<ScalarFunctionExpression>(LABEL_FUNC_NAME, ExpressionType::FUNCTION,
         std::move(bindData), std::move(children), execFunc, nullptr, uniqueExpressionName);
 }
 
@@ -284,13 +284,13 @@ std::shared_ptr<Expression> ExpressionBinder::bindRecursiveJoinLengthFunction(
     if (expression.getDataType().getLogicalTypeID() != LogicalTypeID::RECURSIVE_REL) {
         return nullptr;
     }
-    if (expression.expressionType == common::PATH) {
+    if (expression.expressionType == common::ExpressionType::PATH) {
         int64_t numRels = 0u;
         expression_vector recursiveRels;
         for (auto& child : expression.getChildren()) {
-            if (ExpressionUtil::isRelVariable(*child)) {
+            if (ExpressionUtil::isRelPattern(*child)) {
                 numRels++;
-            } else if (ExpressionUtil::isRecursiveRelVariable(*child)) {
+            } else if (ExpressionUtil::isRecursiveRelPattern(*child)) {
                 recursiveRels.push_back(child);
             }
         }
@@ -309,7 +309,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindRecursiveJoinLengthFunction(
             result = bindScalarFunctionExpression(children, ADD_FUNC_NAME);
         }
         return result;
-    } else if (ExpressionUtil::isRecursiveRelVariable(expression)) {
+    } else if (ExpressionUtil::isRecursiveRelPattern(expression)) {
         auto& recursiveRel = reinterpret_cast<const RelExpression&>(expression);
         return recursiveRel.getLengthExpression();
     }

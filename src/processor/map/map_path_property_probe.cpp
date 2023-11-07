@@ -17,7 +17,7 @@ static std::pair<std::vector<struct_field_idx_t>, std::vector<ft_col_idx_t>> get
     const expression_vector& payloads, uint32_t numKeys, const LogicalType& structType) {
     std::unordered_map<std::string, ft_col_idx_t> propertyNameToColumnIdx;
     for (auto i = 0u; i < payloads.size(); ++i) {
-        KU_ASSERT(payloads[i]->expressionType == PROPERTY);
+        KU_ASSERT(payloads[i]->expressionType == ExpressionType::PROPERTY);
         auto propertyName = ((PropertyExpression*)payloads[i].get())->getPropertyName();
         StringUtils::toUpper(propertyName);
         propertyNameToColumnIdx.insert({propertyName, i + numKeys});

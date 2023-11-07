@@ -46,8 +46,8 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindUpdatingClause(
 static expression_set populateNodeRelScope(const BinderScope& scope) {
     expression_set result;
     for (auto& expression : scope.getExpressions()) {
-        if (ExpressionUtil::isNodeVariable(*expression) ||
-            ExpressionUtil::isRelVariable(*expression)) {
+        if (ExpressionUtil::isNodePattern(*expression) ||
+            ExpressionUtil::isRelPattern(*expression)) {
             result.insert(expression);
         }
     }
@@ -165,7 +165,7 @@ std::unique_ptr<BoundInsertInfo> Binder::bindInsertRelInfo(
             "Create rel " + rel->toString() +
             " with multiple rel labels or bound by multiple node labels is not supported.");
     }
-    if (ExpressionUtil::isRecursiveRelVariable(*rel)) {
+    if (ExpressionUtil::isRecursiveRelPattern(*rel)) {
         throw BinderException(
             common::stringFormat("Cannot create recursive rel {}.", rel->toString()));
     }
@@ -206,18 +206,16 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindSetClause(const UpdatingClause&
 std::unique_ptr<BoundSetPropertyInfo> Binder::bindSetPropertyInfo(
     parser::ParsedExpression* lhs, parser::ParsedExpression* rhs) {
     auto boundLhs = expressionBinder.bindExpression(*lhs->getChild(0));
-    switch (boundLhs->dataType.getLogicalTypeID()) {
-    case LogicalTypeID::NODE: {
+    if (ExpressionUtil::isNodePattern(*boundLhs)) {
         return std::make_unique<BoundSetPropertyInfo>(
             UpdateTableType::NODE, boundLhs, bindSetItem(lhs, rhs));
-    }
-    case LogicalTypeID::REL: {
+    } else if (ExpressionUtil::isRelPattern(*boundLhs)) {
         return std::make_unique<BoundSetPropertyInfo>(
             UpdateTableType::REL, boundLhs, bindSetItem(lhs, rhs));
-    }
-    default:
+    } else {
         throw BinderException(
-            "Set " + expressionTypeToString(boundLhs->expressionType) + " property is supported.");
+            stringFormat("Cannot set expression {} with type {}. Expect node or rel pattern.",
+                boundLhs->toString(), expressionTypeToString(boundLhs->expressionType)));
     }
 }
 
@@ -234,23 +232,21 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(
     auto boundDeleteClause = std::make_unique<BoundDeleteClause>();
     for (auto i = 0u; i < deleteClause.getNumExpressions(); ++i) {
         auto nodeOrRel = expressionBinder.bindExpression(*deleteClause.getExpression(i));
-        switch (nodeOrRel->dataType.getLogicalTypeID()) {
-        case LogicalTypeID::NODE: {
+        if (ExpressionUtil::isNodePattern(*nodeOrRel)) {
             auto deleteNodeInfo =
                 std::make_unique<BoundDeleteInfo>(UpdateTableType::NODE, nodeOrRel);
             boundDeleteClause->addInfo(std::move(deleteNodeInfo));
-        } break;
-        case LogicalTypeID::REL: {
+        } else if (ExpressionUtil::isRelPattern(*nodeOrRel)) {
             auto rel = (RelExpression*)nodeOrRel.get();
             if (rel->getDirectionType() == RelDirectionType::BOTH) {
                 throw BinderException("Delete undirected rel is not supported.");
             }
             auto deleteRel = std::make_unique<BoundDeleteInfo>(UpdateTableType::REL, nodeOrRel);
             boundDeleteClause->addInfo(std::move(deleteRel));
-        } break;
-        default:
-            throw BinderException("Delete " + expressionTypeToString(nodeOrRel->expressionType) +
-                                  " is not supported.");
+        } else {
+            throw BinderException(stringFormat(
+                "Cannot delete expression {} with type {}. Expect node or rel pattern.",
+                nodeOrRel->toString(), expressionTypeToString(nodeOrRel->expressionType)));
         }
     }
     return boundDeleteClause;

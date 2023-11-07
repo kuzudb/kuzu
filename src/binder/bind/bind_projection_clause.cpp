@@ -27,15 +27,15 @@ namespace binder {
 static expression_vector rewriteProjectionInWithClause(const expression_vector& expressions) {
     expression_vector result;
     for (auto& expression : expressions) {
-        if (ExpressionUtil::isNodeVariable(*expression)) {
+        if (ExpressionUtil::isNodePattern(*expression)) {
             auto node = (NodeExpression*)expression.get();
             result.push_back(node->getInternalID());
-        } else if (ExpressionUtil::isRelVariable(*expression)) {
+        } else if (ExpressionUtil::isRelPattern(*expression)) {
             auto rel = (RelExpression*)expression.get();
             result.push_back(rel->getSrcNode()->getInternalID());
             result.push_back(rel->getDstNode()->getInternalID());
             result.push_back(rel->getInternalIDProperty());
-        } else if (ExpressionUtil::isRecursiveRelVariable(*expression)) {
+        } else if (ExpressionUtil::isRecursiveRelPattern(*expression)) {
             auto rel = (RelExpression*)expression.get();
             result.push_back(expression);
             result.push_back(rel->getLengthExpression());
@@ -81,7 +81,7 @@ static bool isAggregateExpression(
     if (expression->hasAlias() && scope->contains(expression->getAlias())) {
         return false;
     }
-    if (expression->expressionType == AGGREGATE_FUNCTION) {
+    if (expression->expressionType == ExpressionType::AGGREGATE_FUNCTION) {
         return true;
     }
     for (auto& child : ExpressionChildrenCollector::collectChildren(*expression)) {
@@ -98,7 +98,7 @@ static expression_vector getAggregateExpressions(
     if (expression->hasAlias() && scope->contains(expression->getAlias())) {
         return result;
     }
-    if (expression->expressionType == AGGREGATE_FUNCTION) {
+    if (expression->expressionType == ExpressionType::AGGREGATE_FUNCTION) {
         result.push_back(expression);
         return result;
     }
@@ -126,22 +126,23 @@ std::unique_ptr<BoundProjectionBody> Binder::bindProjectionBody(
             groupByExpressions.push_back(expression);
         }
     }
-    if (!groupByExpressions.empty()) {
-        // TODO(Xiyang): we can remove augment group by. But make sure we test sufficient including
-        // edge case and bug before release.
-        expression_vector augmentedGroupByExpressions = groupByExpressions;
-        for (auto& expression : groupByExpressions) {
-            if (ExpressionUtil::isNodeVariable(*expression)) {
-                auto node = (NodeExpression*)expression.get();
-                augmentedGroupByExpressions.push_back(node->getInternalID());
-            } else if (ExpressionUtil::isRelVariable(*expression)) {
-                auto rel = (RelExpression*)expression.get();
-                augmentedGroupByExpressions.push_back(rel->getInternalIDProperty());
-            }
-        }
-        boundProjectionBody->setGroupByExpressions(std::move(augmentedGroupByExpressions));
-    }
+
     if (!aggregateExpressions.empty()) {
+        if (!groupByExpressions.empty()) {
+            // TODO(Xiyang): we can remove augment group by. But make sure we test sufficient
+            // including edge case and bug before release.
+            expression_vector augmentedGroupByExpressions = groupByExpressions;
+            for (auto& expression : groupByExpressions) {
+                if (ExpressionUtil::isNodePattern(*expression)) {
+                    auto node = (NodeExpression*)expression.get();
+                    augmentedGroupByExpressions.push_back(node->getInternalID());
+                } else if (ExpressionUtil::isRelPattern(*expression)) {
+                    auto rel = (RelExpression*)expression.get();
+                    augmentedGroupByExpressions.push_back(rel->getInternalIDProperty());
+                }
+            }
+            boundProjectionBody->setGroupByExpressions(std::move(augmentedGroupByExpressions));
+        }
         boundProjectionBody->setAggregateExpressions(std::move(aggregateExpressions));
     }
     // Bind order by

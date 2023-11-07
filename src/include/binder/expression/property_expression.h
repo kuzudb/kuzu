@@ -13,14 +13,14 @@ public:
         const std::string& uniqueVariableName, const std::string& rawVariableName,
         std::unordered_map<common::table_id_t, common::property_id_t> propertyIDPerTable,
         bool isPrimaryKey_)
-        : Expression{common::PROPERTY, std::move(dataType),
+        : Expression{common::ExpressionType::PROPERTY, std::move(dataType),
               uniqueVariableName + "." + propertyName},
           isPrimaryKey_{isPrimaryKey_}, propertyName{propertyName},
           uniqueVariableName{uniqueVariableName}, rawVariableName{rawVariableName},
           propertyIDPerTable{std::move(propertyIDPerTable)} {}
 
     PropertyExpression(const PropertyExpression& other)
-        : Expression{common::PROPERTY, other.dataType, other.uniqueName},
+        : Expression{common::ExpressionType::PROPERTY, other.dataType, other.uniqueName},
           isPrimaryKey_{other.isPrimaryKey_}, propertyName{other.propertyName},
           uniqueVariableName{other.uniqueVariableName}, rawVariableName{other.rawVariableName},
           propertyIDPerTable{other.propertyIDPerTable} {}

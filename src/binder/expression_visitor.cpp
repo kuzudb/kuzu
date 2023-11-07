@@ -19,7 +19,7 @@ expression_vector ExpressionChildrenCollector::collectChildren(const Expression&
     case ExpressionType::EXISTENTIAL_SUBQUERY: {
         return collectExistentialSubqueryChildren(expression);
     }
-    case ExpressionType::VARIABLE: {
+    case ExpressionType::PATTERN: {
         switch (expression.dataType.getLogicalTypeID()) {
         case LogicalTypeID::NODE: {
             return collectNodeChildren(expression);
@@ -118,6 +118,7 @@ std::unordered_set<std::string> ExpressionCollector::getDependentVariableNames(
     KU_ASSERT(expressions.empty());
     collectExpressionsInternal(expression, [&](const Expression& expression) {
         return expression.expressionType == ExpressionType::PROPERTY ||
+               expression.expressionType == ExpressionType::PATTERN ||
                expression.expressionType == ExpressionType::VARIABLE;
     });
     std::unordered_set<std::string> result;
@@ -126,7 +127,6 @@ std::unordered_set<std::string> ExpressionCollector::getDependentVariableNames(
             auto property = (PropertyExpression*)expr.get();
             result.insert(property->getVariableName());
         } else {
-            KU_ASSERT(expr->expressionType == ExpressionType::VARIABLE);
             result.insert(expr->getUniqueName());
         }
     }

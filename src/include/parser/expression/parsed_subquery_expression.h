@@ -11,7 +11,7 @@ class ParsedSubqueryExpression : public ParsedExpression {
 public:
     ParsedSubqueryExpression(
         std::vector<std::unique_ptr<PatternElement>> patternElements, std::string rawName)
-        : ParsedExpression{common::EXISTENTIAL_SUBQUERY, std::move(rawName)},
+        : ParsedExpression{common::ExpressionType::EXISTENTIAL_SUBQUERY, std::move(rawName)},
           patternElements{std::move(patternElements)} {}
 
     ParsedSubqueryExpression(common::ExpressionType type, std::string alias, std::string rawName,

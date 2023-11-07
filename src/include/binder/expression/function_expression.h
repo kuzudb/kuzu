@@ -81,7 +81,7 @@ public:
         std::unique_ptr<function::FunctionBindData> bindData, expression_vector children,
         std::unique_ptr<function::AggregateFunction> aggregateFunction,
         const std::string& uniqueName)
-        : FunctionExpression{std::move(functionName), common::AGGREGATE_FUNCTION,
+        : FunctionExpression{std::move(functionName), common::ExpressionType::AGGREGATE_FUNCTION,
               std::move(bindData), std::move(children), uniqueName},
           aggregateFunction{std::move(aggregateFunction)} {}
 

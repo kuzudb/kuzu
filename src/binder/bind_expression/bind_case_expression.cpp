@@ -33,8 +33,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindCaseExpression(
             auto boundWhen = bindExpression(*caseAlternative->whenExpression);
             boundWhen = implicitCastIfNecessary(boundWhen, boundCase->dataType);
             // rewrite "CASE a.age WHEN 1" as "CASE WHEN a.age = 1"
-            boundWhen = bindComparisonExpression(
-                EQUALS, std::vector<std::shared_ptr<Expression>>{boundCase, boundWhen});
+            boundWhen = bindComparisonExpression(ExpressionType::EQUALS,
+                std::vector<std::shared_ptr<Expression>>{boundCase, boundWhen});
             auto boundThen = bindExpression(*caseAlternative->thenExpression);
             boundThen = implicitCastIfNecessary(boundThen, outDataType);
             boundCaseExpression->addCaseAlternative(boundWhen, boundThen);
