@@ -693,7 +693,7 @@ TEST_F(CApiValueTest, GetRelVal) {
     auto relLabel = kuzu_rel_val_get_label_name(rel);
     ASSERT_STREQ(relLabel, "knows");
     auto propertiesSize = kuzu_rel_val_get_property_size(rel);
-    ASSERT_EQ(propertiesSize, 4);
+    ASSERT_EQ(propertiesSize, 6);
     free(relLabel);
     kuzu_value_destroy(rel);
     kuzu_flat_tuple_destroy(flatTuple);

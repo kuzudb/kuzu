@@ -776,7 +776,7 @@ public class ValueTest extends TestBase {
         assertTrue(label.equals("knows"));
 
         long size = KuzuValueRelUtil.getPropertySize(value);
-        assertEquals(size, 4);
+        assertEquals(size, 6);
 
         value.destroy();
         flatTuple.destroy();

@@ -188,11 +188,13 @@ def test_to_torch_geometric_homogeneous_graph(establish_connection):
         assert src != dst
         assert pos_to_idx[dst] in ground_truth.TINY_SNB_KNOWS_GROUND_TRUTH[pos_to_idx[src]]
 
-    assert len(edge_properties) == 5
+    assert len(edge_properties) == 7
     assert 'date' in edge_properties
     assert 'meetTime' in edge_properties
     assert 'validInterval' in edge_properties
     assert 'comments' in edge_properties
+    assert 'summary' in edge_properties
+    assert 'notes' in edge_properties
 
     for i in range(14):
         src, dst = torch_geometric_data.edge_index[0][i].item(
@@ -208,6 +210,10 @@ def test_to_torch_geometric_homogeneous_graph(establish_connection):
             orginal_src, orginal_dst)]['validInterval'] == edge_properties['validInterval'][i]
         assert ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(
             orginal_src, orginal_dst)]['comments'] == edge_properties['comments'][i]
+        assert ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(
+            orginal_src, orginal_dst)]['summary'] == edge_properties['summary'][i]
+        assert ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(
+            orginal_src, orginal_dst)]['notes'] == edge_properties['notes'][i]
 
 
 def test_to_torch_geometric_heterogeneous_graph(establish_connection):
@@ -310,11 +316,13 @@ def test_to_torch_geometric_heterogeneous_graph(establish_connection):
         assert src != dst
         assert pos_to_idx['person'][dst] in ground_truth.TINY_SNB_KNOWS_GROUND_TRUTH[pos_to_idx['person'][src]]
 
-    assert len(edge_properties['person', 'person']) == 5
+    assert len(edge_properties['person', 'person']) == 7
     assert 'date' in edge_properties['person', 'person']
     assert 'meetTime' in edge_properties['person', 'person']
     assert 'validInterval' in edge_properties['person', 'person']
     assert 'comments' in edge_properties['person', 'person']
+    assert 'summary' in edge_properties['person', 'person']
+    assert 'notes' in edge_properties['person', 'person']
     assert '_label' in edge_properties['person', 'person']
     for i in range(3):
         src, dst = torch_geometric_data['person', 'person'].edge_index[0][i].item(
@@ -329,6 +337,10 @@ def test_to_torch_geometric_heterogeneous_graph(establish_connection):
             original_src, original_dst)]['validInterval'] == edge_properties['person', 'person']['validInterval'][i]
         assert ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(
             original_src, original_dst)]['comments'] == edge_properties['person', 'person']['comments'][i]
+        assert ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(
+            original_src, original_dst)]['summary'] == edge_properties['person', 'person']['summary'][i]
+        assert ground_truth.TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(
+            original_src, original_dst)]['notes'] == edge_properties['person', 'person']['notes'][i]
         assert edge_properties['person', 'person']['_label'][i] == 'knows'
 
     assert torch_geometric_data['organisation'].ID.shape == torch.Size([2])

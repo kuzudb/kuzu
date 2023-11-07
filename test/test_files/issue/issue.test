@@ -76,12 +76,6 @@ Binder exception: MAP(STRING: STRING) property is not supported in rel table.
 -STATEMENT CREATE REL TABLE KIND_OF3(FROM T TO T, myprops SERIAL);
 ---- error
 Binder exception: SERIAL property is not supported in rel table.
--STATEMENT CREATE REL TABLE KIND_OF3(FROM T TO T, myprops STRUCT(v INT64));
----- error
-Binder exception: STRUCT(v:INT64) property is not supported in rel table.
--STATEMENT CREATE REL TABLE KIND_OF3(FROM T TO T, myprops UNION(v1 STRING, v2 INT64));
----- error
-Binder exception: UNION(v1:STRING, v2:INT64) property is not supported in rel table.
 
 -CASE 2293
 -STATEMENT CREATE NODE TABLE T(id INT64, PRIMARY KEY(id));

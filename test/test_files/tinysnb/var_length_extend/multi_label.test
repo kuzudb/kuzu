@@ -3,7 +3,7 @@
 
 --
 
--CASE MultiLabel
+-CASE VarLengthMultiLabel
 
 -LOG NodeMultiLabelTest
 -STATEMENT MATCH (a)-[e:knows*1..2]->(b) RETURN COUNT(*)
@@ -59,7 +59,7 @@
 -LOG MultiLabelTest
 -STATEMENT MATCH (a:person)-[e*2..2 (r, _ | WHERE offset(id(r)) > 0)]->(b:organisation) WHERE a.fName = 'Alice' RETURN rels(e)
 ---- 1
-[(0:0)-{_LABEL: knows, _ID: 3:2, date: 2021-06-30, meetTime: 2012-12-11 20:07:22, validInterval: 10 days, comments: [ioji232,jifhe8w99u43434]}->(0:3),(0:3)-{_LABEL: workAt, _ID: 5:1, year: 2010, grading: [2.100000,4.400000], rating: 7.600000}->(1:2)]
+[(0:0)-{_LABEL: knows, _ID: 3:2, date: 2021-06-30, meetTime: 2012-12-11 20:07:22, validInterval: 10 days, comments: [ioji232,jifhe8w99u43434], summary: {locations: ['shanghai'], transfer: {day: 1990-09-10, amount: [10]}}, notes: nice weather}->(0:3),(0:3)-{_LABEL: workAt, _ID: 5:1, year: 2010, grading: [2.100000,4.400000], rating: 7.600000}->(1:2)]
 
 -LOG MultiLabelSelfLoopTest
 -STATEMENT MATCH (a)-[e:studyAt|:knows*2..3]-(a) WHERE a.ID = 1 RETURN COUNT(*)

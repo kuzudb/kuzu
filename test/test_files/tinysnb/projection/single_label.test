@@ -60,8 +60,8 @@ False||
 -LOG ReturnRelStarTest
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID =7 RETURN e.*;
 ---- 2
-1905-12-12|2020-03-01 12:11:41.6552|00:47:58|[peweeeeeeeeeeeeeeeee,kowje9w0eweeeeeeeee]
-1905-12-12|2025-01-01 11:22:33.52|00:47:58|[ahu2333333333333,12weeeeeeeeeeeeeeeeee]
+1905-12-12|2020-03-01 12:11:41.6552|00:47:58|[peweeeeeeeeeeeeeeeee,kowje9w0eweeeeeeeee]|{locations: ['waterloo'], transfer: {day: 2000-01-01, amount: [1000,5000]}}|10
+1905-12-12|2025-01-01 11:22:33.52|00:47:58|[ahu2333333333333,12weeeeeeeeeeeeeeeeee]|{locations: ['toronto','thisisalongcityname'], transfer: {day: 1930-11-22, amount: [18,323]}}|8
 
 -LOG PersonNodesTestNull
 -STATEMENT MATCH (a:person) RETURN a.ID, a.fName STARTS WITH NULL, a.isWorker, a.isWorker AND null
@@ -682,3 +682,38 @@ grade1
 -STATEMENT RETURN list_append([${STRUCT_VAL}{a: 99}], {a: 200})
 ---- 1
 <FILE>:large_list_of_struct_answer.txt
+
+-CASE NestedPropertyManyToManyRel
+-STATEMENT MATCH (:person)-[e:knows]->(:person) RETURN e.summary
+---- 14
+{locations: ['london','toronto'], transfer: {day: 2012-11-21, amount: [223,5230]}}
+{locations: ['paris','beijing'], transfer: {day: 2011-03-11, amount: [2323,50]}}
+{locations: ['paris'], transfer: {day: 2000-01-01, amount: [20,5000]}}
+{locations: ['paris'], transfer: {day: 2000-01-01, amount: [20,5000]}}
+{locations: ['paris'], transfer: {day: 2000-01-01, amount: [20,5000]}}
+{locations: ['paris'], transfer: {day: 2011-05-01, amount: [2000,5340]}}
+{locations: ['shanghai','nanjing'], transfer: {day: 1998-11-12, amount: [22,53240]}}
+{locations: ['shanghai'], transfer: {day: 1990-09-10, amount: [10]}}
+{locations: ['toronto','thisisalongcityname'], transfer: {day: 1930-11-22, amount: [18,323]}}
+{locations: ['toronto','waterloo'], transfer: {day: 2021-01-02, amount: [100,200]}}
+{locations: ['vancouver'], transfer: {day: 2020-01-01, amount: [120,50]}}
+{locations: ['waterloo'], transfer: {day: 2000-01-01, amount: [1000,5000]}}
+{locations: [], transfer: {day: 1970-01-01, amount: []}}
+{locations: [], transfer: {day: 1980-11-21, amount: [20,5]}}
+
+-STATEMENT MATCH (:person)-[e:knows]->(:person) RETURN e.notes
+---- 14
+1
+1
+10
+10
+15
+2
+2020-10-10
+4
+4
+8
+cool stuff found
+happy new year
+matthew perry
+nice weather
