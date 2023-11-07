@@ -119,6 +119,9 @@ uint32_t BuiltInFunctions::getCastCost(LogicalTypeID inputTypeID, LogicalTypeID 
         case LogicalTypeID::ANY:
             // ANY type can be any type
             return 0;
+        case LogicalTypeID::RDF_VARIANT:
+            // RDF_VARIANT can be cast to any type.
+            return 1;
         case LogicalTypeID::INT64:
             return castInt64(targetTypeID);
         case LogicalTypeID::INT32:

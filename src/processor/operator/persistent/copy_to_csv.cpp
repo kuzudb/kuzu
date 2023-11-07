@@ -30,8 +30,9 @@ void CopyToCSVLocalState::init(CopyToInfo* info, MemoryManager* mm, ResultSet* r
     castFuncs.resize(info->dataPoses.size());
     for (auto i = 0u; i < info->dataPoses.size(); i++) {
         auto vectorToCast = resultSet->getValueVector(info->dataPoses[i]);
-        function::CastToStringFunction::getUnaryCastToStringExecFunction(
-            vectorToCast->dataType.getLogicalTypeID(), castFuncs[i]);
+        castFuncs[i] = function::CastFunction::bindCastFunction(
+            "cast", vectorToCast->dataType.getLogicalTypeID(), LogicalTypeID::STRING)
+                           ->execFunc;
         vectorsToCast.push_back(std::move(vectorToCast));
         auto castVector = std::make_unique<ValueVector>(LogicalTypeID::STRING, mm);
         castVectors.push_back(castVector.get());

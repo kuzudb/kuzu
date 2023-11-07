@@ -583,7 +583,7 @@ Conversion exception: Cast failed. [[231|4324] is not in INT64[][] range.
 Binder exception: Invalid number of arguments for given function CAST.
 -STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return cast(e, "INT64");
 ---- error
-Unimplemented casting Function from REL to numeric.
+Unimplemented casting function from REL to INT64.
 -STATEMENT RETURN cast("dfsdfasdgv", "INTERNAL_ID");
 ---- error
-Unimplemented casting Function from string to INTERNAL_ID.
+Unimplemented casting function from STRING to INTERNAL_ID.
