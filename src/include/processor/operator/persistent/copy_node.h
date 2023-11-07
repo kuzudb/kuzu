@@ -1,5 +1,6 @@
 #pragma once
 
+#include "processor/operator/call/in_query_call.h"
 #include "processor/operator/sink.h"
 #include "storage/store/node_group.h"
 #include "storage/store/node_table.h"
@@ -13,8 +14,9 @@ class CopyNodeSharedState {
     friend class CopyRdfResource;
 
 public:
-    CopyNodeSharedState(const uint64_t& numRows)
-        : numRows{numRows}, pkIndex{nullptr}, currentNodeGroupIdx{0}, sharedNodeGroup{nullptr} {};
+    CopyNodeSharedState(InQueryCallSharedState* readerSharedState)
+        : readerSharedState{readerSharedState}, pkIndex{nullptr}, currentNodeGroupIdx{0},
+          sharedNodeGroup{nullptr} {};
 
     void init();
 
@@ -40,7 +42,7 @@ private:
     std::unique_ptr<common::LogicalType> pkType;
     std::unique_ptr<storage::PrimaryKeyIndexBuilder> pkIndex;
 
-    const uint64_t& numRows;
+    InQueryCallSharedState* readerSharedState;
     // Table storing result message.
     std::shared_ptr<FactorizedTable> fTable;
 

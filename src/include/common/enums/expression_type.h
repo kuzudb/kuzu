@@ -227,6 +227,11 @@ const std::string DB_VERSION_FUNC_NAME = "DB_VERSION";
 const std::string CURRENT_SETTING_FUNC_NAME = "CURRENT_SETTING";
 const std::string SHOW_TABLES_FUNC_NAME = "SHOW_TABLES";
 const std::string SHOW_CONNECTION_FUNC_NAME = "SHOW_CONNECTION";
+const std::string READ_PARQUET_FUNC_NAME = "READ_PARQUET";
+const std::string READ_NPY_FUNC_NAME = "READ_NPY";
+const std::string READ_CSV_SERIAL_FUNC_NAME = "READ_CSV_SERIAL";
+const std::string READ_CSV_PARALLEL_FUNC_NAME = "READ_CSV_PARALLEL";
+const std::string READ_RDF_FUNC_NAME = "READ_RDF";
 
 enum class ExpressionType : uint8_t {
 

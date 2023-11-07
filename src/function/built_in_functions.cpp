@@ -21,6 +21,11 @@
 #include "function/table_functions/call_functions.h"
 #include "function/timestamp/vector_timestamp_functions.h"
 #include "function/union/vector_union_functions.h"
+#include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
+#include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
+#include "processor/operator/persistent/reader/npy/npy_reader.h"
+#include "processor/operator/persistent/reader/parquet/parquet_reader.h"
+#include "processor/operator/persistent/reader/rdf/rdf_reader.h"
 
 using namespace kuzu::common;
 
@@ -754,6 +759,11 @@ void BuiltInFunctions::registerTableFunctions() {
     functions.insert({SHOW_TABLES_FUNC_NAME, ShowTablesFunction::getFunctionSet()});
     functions.insert({TABLE_INFO_FUNC_NAME, TableInfoFunction::getFunctionSet()});
     functions.insert({SHOW_CONNECTION_FUNC_NAME, ShowConnectionFunction::getFunctionSet()});
+    functions.insert({READ_PARQUET_FUNC_NAME, processor::ParquetScanFunction::getFunctionSet()});
+    functions.insert({READ_NPY_FUNC_NAME, processor::NpyScanFunction::getFunctionSet()});
+    functions.insert({READ_CSV_SERIAL_FUNC_NAME, processor::SerialCSVScan::getFunctionSet()});
+    functions.insert({READ_CSV_PARALLEL_FUNC_NAME, processor::ParallelCSVScan::getFunctionSet()});
+    functions.insert({READ_RDF_FUNC_NAME, processor::RdfScan::getFunctionSet()});
 }
 
 void BuiltInFunctions::addFunction(std::string name, function::function_set definitions) {

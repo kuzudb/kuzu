@@ -13,10 +13,15 @@ using namespace kuzu::common;
 using namespace kuzu::catalog;
 using namespace kuzu::main;
 
+std::unique_ptr<TableFuncLocalState> initLocalState(
+    TableFunctionInitInput& /*input*/, TableFuncSharedState* /*state*/) {
+    return std::make_unique<TableFuncLocalState>();
+}
+
 function_set CurrentSettingFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(std::make_unique<TableFunction>("current_setting", tableFunc, bindFunc,
-        initSharedState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
+        initSharedState, initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
     return functionSet;
 }
 
@@ -32,105 +37,102 @@ CallFuncMorsel CallFuncSharedState::getMorsel() {
     }
 }
 
-std::unique_ptr<SharedTableFuncState> CallFunction::initSharedState(TableFunctionInitInput& input) {
+std::unique_ptr<TableFuncSharedState> CallFunction::initSharedState(TableFunctionInitInput& input) {
     auto callTableFuncBindData = reinterpret_cast<CallTableFuncBindData*>(input.bindData);
     return std::make_unique<CallFuncSharedState>(callTableFuncBindData->maxOffset);
 }
 
-void CurrentSettingFunction::tableFunc(TableFunctionInput& data, std::vector<ValueVector*> output) {
+void CurrentSettingFunction::tableFunc(TableFunctionInput& data, DataChunk& output) {
     auto sharedState = reinterpret_cast<CallFuncSharedState*>(data.sharedState);
-    auto outputVector = output[0];
+    auto outputVector = output.getValueVector(0);
     if (!sharedState->getMorsel().hasMoreToOutput()) {
-        outputVector->state->selVector->selectedSize = 0;
+        output.state->selVector->selectedSize = 0;
         return;
     }
     auto currentSettingBindData = reinterpret_cast<CurrentSettingBindData*>(data.bindData);
-    auto pos = outputVector->state->selVector->selectedPositions[0];
+    auto pos = output.state->selVector->selectedPositions[0];
     outputVector->setValue(pos, currentSettingBindData->result);
     outputVector->setNull(pos, false);
-    outputVector->state->selVector->selectedSize = 1;
+    output.state->selVector->selectedSize = 1;
 }
 
 std::unique_ptr<TableFuncBindData> CurrentSettingFunction::bindFunc(
-    ClientContext* context, TableFuncBindInput input, CatalogContent* /*catalog*/) {
-    auto optionName = input.inputs[0]->getValue<std::string>();
+    ClientContext* context, TableFuncBindInput* input, CatalogContent* /*catalog*/) {
+    auto optionName = input->inputs[0]->getValue<std::string>();
     std::vector<std::string> returnColumnNames;
-    std::vector<LogicalType> returnTypes;
+    std::vector<std::unique_ptr<LogicalType>> returnTypes;
     returnColumnNames.emplace_back(optionName);
-    returnTypes.emplace_back(LogicalTypeID::STRING);
+    returnTypes.push_back(std::make_unique<LogicalType>(LogicalTypeID::STRING));
     return std::make_unique<CurrentSettingBindData>(context->getCurrentSetting(optionName),
         std::move(returnTypes), std::move(returnColumnNames), 1 /* one row result */);
 }
 
 function_set DBVersionFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(std::make_unique<TableFunction>(
-        "db_version", tableFunc, bindFunc, initSharedState, std::vector<LogicalTypeID>{}));
+    functionSet.push_back(std::make_unique<TableFunction>("db_version", tableFunc, bindFunc,
+        initSharedState, initLocalState, std::vector<LogicalTypeID>{}));
     return functionSet;
 }
 
-void DBVersionFunction::tableFunc(
-    TableFunctionInput& input, std::vector<ValueVector*> outputVectors) {
+void DBVersionFunction::tableFunc(TableFunctionInput& input, DataChunk& outputChunk) {
     auto sharedState = reinterpret_cast<CallFuncSharedState*>(input.sharedState);
-    auto outputVector = outputVectors[0];
+    auto outputVector = outputChunk.getValueVector(0);
     if (!sharedState->getMorsel().hasMoreToOutput()) {
-        outputVector->state->selVector->selectedSize = 0;
+        outputChunk.state->selVector->selectedSize = 0;
         return;
     }
-    auto pos = outputVector->state->selVector->selectedPositions[0];
+    auto pos = outputChunk.state->selVector->selectedPositions[0];
     outputVector->setValue(pos, std::string(KUZU_VERSION));
     outputVector->setNull(pos, false);
-    outputVector->state->selVector->selectedSize = 1;
+    outputChunk.state->selVector->selectedSize = 1;
 }
 
 std::unique_ptr<TableFuncBindData> DBVersionFunction::bindFunc(
-    ClientContext* /*context*/, TableFuncBindInput /*input*/, CatalogContent* /*catalog*/) {
+    ClientContext* /*context*/, TableFuncBindInput* /*input*/, CatalogContent* /*catalog*/) {
     std::vector<std::string> returnColumnNames;
-    std::vector<LogicalType> returnTypes;
+    std::vector<std::unique_ptr<LogicalType>> returnTypes;
     returnColumnNames.emplace_back("version");
-    returnTypes.emplace_back(LogicalTypeID::STRING);
+    returnTypes.emplace_back(std::make_unique<LogicalType>(LogicalTypeID::STRING));
     return std::make_unique<CallTableFuncBindData>(
         std::move(returnTypes), std::move(returnColumnNames), 1 /* one row result */);
 }
 
 function_set ShowTablesFunction::getFunctionSet() {
     function_set functionSet;
-    functionSet.push_back(std::make_unique<TableFunction>(
-        "show_tables", tableFunc, bindFunc, initSharedState, std::vector<LogicalTypeID>{}));
+    functionSet.push_back(std::make_unique<TableFunction>("show_tables", tableFunc, bindFunc,
+        initSharedState, initLocalState, std::vector<LogicalTypeID>{}));
     return functionSet;
 }
 
-void ShowTablesFunction::tableFunc(
-    TableFunctionInput& input, std::vector<ValueVector*> outputVectors) {
+void ShowTablesFunction::tableFunc(TableFunctionInput& input, DataChunk& outputChunk) {
     auto sharedState = reinterpret_cast<CallFuncSharedState*>(input.sharedState);
     auto morsel = sharedState->getMorsel();
     if (!morsel.hasMoreToOutput()) {
-        outputVectors[0]->state->selVector->selectedSize = 0;
+        outputChunk.getValueVector(0)->state->selVector->selectedSize = 0;
         return;
     }
     auto tables = reinterpret_cast<function::ShowTablesBindData*>(input.bindData)->tables;
     auto numTablesToOutput = morsel.endOffset - morsel.startOffset;
     for (auto i = 0u; i < numTablesToOutput; i++) {
         auto tableSchema = tables[morsel.startOffset + i];
-        outputVectors[0]->setValue(i, tableSchema->tableName);
+        outputChunk.getValueVector(0)->setValue(i, tableSchema->tableName);
         std::string typeString = TableTypeUtils::toString(tableSchema->tableType);
-        outputVectors[1]->setValue(i, typeString);
-        outputVectors[2]->setValue(i, tableSchema->comment);
+        outputChunk.getValueVector(1)->setValue(i, typeString);
+        outputChunk.getValueVector(2)->setValue(i, tableSchema->comment);
     }
-    outputVectors[0]->state->selVector->selectedSize = numTablesToOutput;
+    outputChunk.state->selVector->selectedSize = numTablesToOutput;
 }
 
 std::unique_ptr<TableFuncBindData> ShowTablesFunction::bindFunc(
-    ClientContext* /*context*/, TableFuncBindInput /*input*/, CatalogContent* catalog) {
+    ClientContext* /*context*/, TableFuncBindInput* /*input*/, CatalogContent* catalog) {
     std::vector<std::string> returnColumnNames;
-    std::vector<LogicalType> returnTypes;
+    std::vector<std::unique_ptr<LogicalType>> returnTypes;
     returnColumnNames.emplace_back("name");
-    returnTypes.emplace_back(LogicalTypeID::STRING);
+    returnTypes.emplace_back(std::make_unique<LogicalType>(LogicalTypeID::STRING));
     returnColumnNames.emplace_back("type");
-    returnTypes.emplace_back(LogicalTypeID::STRING);
+    returnTypes.emplace_back(std::make_unique<LogicalType>(LogicalTypeID::STRING));
     returnColumnNames.emplace_back("comment");
-    returnTypes.emplace_back(LogicalTypeID::STRING);
-
+    returnTypes.emplace_back(std::make_unique<LogicalType>(LogicalTypeID::STRING));
     return std::make_unique<ShowTablesBindData>(catalog->getTableSchemas(), std::move(returnTypes),
         std::move(returnColumnNames), catalog->getTableCount());
 }
@@ -138,15 +140,14 @@ std::unique_ptr<TableFuncBindData> ShowTablesFunction::bindFunc(
 function_set TableInfoFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(std::make_unique<TableFunction>("table_info", tableFunc, bindFunc,
-        initSharedState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
+        initSharedState, initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
     return functionSet;
 }
 
-void TableInfoFunction::tableFunc(
-    TableFunctionInput& input, std::vector<ValueVector*> outputVectors) {
+void TableInfoFunction::tableFunc(TableFunctionInput& input, DataChunk& outputChunk) {
     auto morsel = reinterpret_cast<CallFuncSharedState*>(input.sharedState)->getMorsel();
     if (!morsel.hasMoreToOutput()) {
-        outputVectors[0]->state->selVector->selectedSize = 0;
+        outputChunk.getValueVector(0)->state->selVector->selectedSize = 0;
         return;
     }
     auto tableSchema = reinterpret_cast<function::TableInfoBindData*>(input.bindData)->tableSchema;
@@ -158,37 +159,37 @@ void TableInfoFunction::tableFunc(
             property->getName() == InternalKeyword::ID) {
             continue;
         }
-        outputVectors[0]->setValue(outVectorPos, (int64_t)property->getPropertyID());
-        outputVectors[1]->setValue(outVectorPos, property->getName());
-        outputVectors[2]->setValue(outVectorPos, property->getDataType()->toString());
+        outputChunk.getValueVector(0)->setValue(outVectorPos, (int64_t)property->getPropertyID());
+        outputChunk.getValueVector(1)->setValue(outVectorPos, property->getName());
+        outputChunk.getValueVector(2)->setValue(outVectorPos, property->getDataType()->toString());
+
         if (tableSchema->tableType == TableType::NODE) {
             auto primaryKeyID =
                 reinterpret_cast<NodeTableSchema*>(tableSchema)->getPrimaryKeyPropertyID();
-            outputVectors[3]->setValue(outVectorPos, primaryKeyID == property->getPropertyID());
+            outputChunk.getValueVector(3)->setValue(
+                outVectorPos, primaryKeyID == property->getPropertyID());
         }
         outVectorPos++;
     }
-    for (auto& outputVector : outputVectors) {
-        outputVector->state->selVector->selectedSize = outVectorPos;
-    }
+    outputChunk.state->selVector->selectedSize = outVectorPos;
 }
 
 std::unique_ptr<TableFuncBindData> TableInfoFunction::bindFunc(
-    ClientContext* /*context*/, TableFuncBindInput input, CatalogContent* catalog) {
+    ClientContext* /*context*/, TableFuncBindInput* input, CatalogContent* catalog) {
     std::vector<std::string> returnColumnNames;
-    std::vector<LogicalType> returnTypes;
-    auto tableName = input.inputs[0]->getValue<std::string>();
+    std::vector<std::unique_ptr<LogicalType>> returnTypes;
+    auto tableName = input->inputs[0]->getValue<std::string>();
     auto tableID = catalog->getTableID(tableName);
     auto schema = catalog->getTableSchema(tableID);
     returnColumnNames.emplace_back("property id");
-    returnTypes.emplace_back(LogicalTypeID::INT64);
+    returnTypes.push_back(std::make_unique<LogicalType>(LogicalTypeID::INT64));
     returnColumnNames.emplace_back("name");
-    returnTypes.emplace_back(LogicalTypeID::STRING);
+    returnTypes.push_back(std::make_unique<LogicalType>(LogicalTypeID::STRING));
     returnColumnNames.emplace_back("type");
-    returnTypes.emplace_back(LogicalTypeID::STRING);
+    returnTypes.push_back(std::make_unique<LogicalType>(LogicalTypeID::STRING));
     if (schema->tableType == TableType::NODE) {
         returnColumnNames.emplace_back("primary key");
-        returnTypes.emplace_back(LogicalTypeID::BOOL);
+        returnTypes.push_back(std::make_unique<LogicalType>(LogicalTypeID::BOOL));
     }
     return std::make_unique<TableInfoBindData>(
         schema, std::move(returnTypes), std::move(returnColumnNames), schema->getNumProperties());
@@ -197,7 +198,7 @@ std::unique_ptr<TableFuncBindData> TableInfoFunction::bindFunc(
 function_set ShowConnectionFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(std::make_unique<TableFunction>("db_version", tableFunc, bindFunc,
-        initSharedState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
+        initSharedState, initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
     return functionSet;
 }
 
@@ -212,11 +213,10 @@ void ShowConnectionFunction::outputRelTableConnection(ValueVector* srcTableNameV
     dstTableNameVector->setValue(outputPos, catalog->getTableName(dstTableID));
 }
 
-void ShowConnectionFunction::tableFunc(
-    TableFunctionInput& input, std::vector<ValueVector*> outputVectors) {
+void ShowConnectionFunction::tableFunc(TableFunctionInput& input, DataChunk& outputChunk) {
     auto morsel = reinterpret_cast<CallFuncSharedState*>(input.sharedState)->getMorsel();
     if (!morsel.hasMoreToOutput()) {
-        outputVectors[0]->state->selVector->selectedSize = 0;
+        outputChunk.state->selVector->selectedSize = 0;
         return;
     }
     auto showConnectionBindData =
@@ -227,15 +227,16 @@ void ShowConnectionFunction::tableFunc(
     auto vectorPos = 0;
     switch (tableSchema->getTableType()) {
     case TableType::REL: {
-        outputRelTableConnection(
-            outputVectors[0], outputVectors[1], vectorPos, catalog, tableSchema->tableID);
+        outputRelTableConnection(outputChunk.getValueVector(0).get(),
+            outputChunk.getValueVector(1).get(), vectorPos, catalog, tableSchema->tableID);
         vectorPos++;
     } break;
     case TableType::REL_GROUP: {
         auto schema = reinterpret_cast<RelTableGroupSchema*>(tableSchema);
         auto relTableIDs = schema->getRelTableIDs();
         for (; vectorPos < numRelationsToOutput; vectorPos++) {
-            outputRelTableConnection(outputVectors[0], outputVectors[1], vectorPos, catalog,
+            outputRelTableConnection(outputChunk.getValueVector(0).get(),
+                outputChunk.getValueVector(1).get(), vectorPos, catalog,
                 relTableIDs[morsel.startOffset + vectorPos]);
         }
     } break;
@@ -244,16 +245,14 @@ void ShowConnectionFunction::tableFunc(
         throw NotImplementedException{"ShowConnectionFunction::tableFunc"};
         // LCOV_EXCL_STOP
     }
-    for (auto& outputVector : outputVectors) {
-        outputVector->state->selVector->selectedSize = vectorPos;
-    }
+    outputChunk.state->selVector->selectedSize = vectorPos;
 }
 
 std::unique_ptr<TableFuncBindData> ShowConnectionFunction::bindFunc(
-    ClientContext* /*context*/, TableFuncBindInput input, CatalogContent* catalog) {
+    ClientContext* /*context*/, TableFuncBindInput* input, CatalogContent* catalog) {
     std::vector<std::string> returnColumnNames;
-    std::vector<LogicalType> returnTypes;
-    auto tableName = input.inputs[0]->getValue<std::string>();
+    std::vector<std::unique_ptr<LogicalType>> returnTypes;
+    auto tableName = input->inputs[0]->getValue<std::string>();
     auto tableID = catalog->getTableID(tableName);
     auto schema = catalog->getTableSchema(tableID);
     auto tableType = schema->getTableType();
@@ -261,9 +260,9 @@ std::unique_ptr<TableFuncBindData> ShowConnectionFunction::bindFunc(
         throw BinderException{"Show connection can only be called on a rel table!"};
     }
     returnColumnNames.emplace_back("source table name");
-    returnTypes.emplace_back(LogicalTypeID::STRING);
+    returnTypes.emplace_back(std::make_unique<LogicalType>(LogicalTypeID::STRING));
     returnColumnNames.emplace_back("destination table name");
-    returnTypes.emplace_back(LogicalTypeID::STRING);
+    returnTypes.emplace_back(std::make_unique<LogicalType>(LogicalTypeID::STRING));
     return std::make_unique<ShowConnectionBindData>(catalog, schema, std::move(returnTypes),
         std::move(returnColumnNames),
         schema->tableType == TableType::REL ?

@@ -9,12 +9,14 @@
 #include "common/string_format.h"
 #include "common/vector/value_vector.h"
 #include "function/cast/functions/cast_string_non_nested_functions.h"
+#include "function/table_functions/scan_functions.h"
 #include "serd.h"
 #include "storage/index/hash_index.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
 using namespace kuzu::common::rdf;
+using namespace kuzu::function;
 
 namespace kuzu {
 namespace processor {
@@ -276,6 +278,46 @@ offset_t RDFReader::read(DataChunk* dataChunk) {
     }
     dataChunk->state->selVector->selectedSize = vectorSize;
     return rowOffset;
+}
+
+function::function_set RdfScan::getFunctionSet() {
+    function_set functionSet;
+    auto func = std::make_unique<TableFunction>(READ_RDF_FUNC_NAME, tableFunc, bindFunc,
+        initSharedState, initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING});
+    func->canParallelFunc = [] { return false; };
+    functionSet.push_back(std::move(func));
+    return functionSet;
+}
+
+void RdfScan::tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk) {
+    auto localState = reinterpret_cast<RdfScanLocalState*>(input.localState);
+    localState->reader->read(&outputChunk);
+}
+
+std::unique_ptr<function::TableFuncBindData> RdfScan::bindFunc(main::ClientContext* /*context*/,
+    function::TableFuncBindInput* input, catalog::CatalogContent* /*catalog*/) {
+    auto rdfScanBindData = reinterpret_cast<function::ScanTableFuncBindInput*>(input);
+    return std::make_unique<function::ScanBindData>(
+        common::LogicalType::copy(rdfScanBindData->config.columnTypes),
+        rdfScanBindData->config.columnNames, rdfScanBindData->config, rdfScanBindData->mm);
+}
+
+std::unique_ptr<function::TableFuncSharedState> RdfScan::initSharedState(
+    function::TableFunctionInitInput& input) {
+    auto bindData = reinterpret_cast<function::ScanBindData*>(input.bindData);
+    auto reader = make_unique<RDFReader>(
+        bindData->config.filePaths[0], bindData->config.rdfReaderConfig->copy());
+    return std::make_unique<function::ScanSharedTableFuncState>(
+        bindData->config, reader->countLine());
+}
+
+std::unique_ptr<function::TableFuncLocalState> RdfScan::initLocalState(
+    function::TableFunctionInitInput& input, function::TableFuncSharedState* /*state*/) {
+    auto bindData = reinterpret_cast<function::ScanBindData*>(input.bindData);
+    auto localState = std::make_unique<RdfScanLocalState>();
+    localState->reader = std::make_unique<RDFReader>(
+        bindData->config.filePaths[0], bindData->config.rdfReaderConfig->copy());
+    return localState;
 }
 
 } // namespace processor

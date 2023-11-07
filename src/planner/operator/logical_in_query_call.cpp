@@ -9,6 +9,7 @@ void LogicalInQueryCall::computeFlatSchema() {
     for (auto& outputExpression : outputExpressions) {
         schema->insertToGroupAndScope(outputExpression, 0);
     }
+    schema->insertToGroupAndScope(rowIDExpression, 0);
 }
 
 void LogicalInQueryCall::computeFactorizedSchema() {
@@ -17,6 +18,7 @@ void LogicalInQueryCall::computeFactorizedSchema() {
     for (auto& outputExpression : outputExpressions) {
         schema->insertToGroupAndScope(outputExpression, groupPos);
     }
+    schema->insertToGroupAndScope(rowIDExpression, groupPos);
 }
 
 } // namespace planner

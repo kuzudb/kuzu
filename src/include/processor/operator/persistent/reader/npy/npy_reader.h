@@ -6,6 +6,10 @@
 #include "common/data_chunk/data_chunk.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
+#include "function/scalar_function.h"
+#include "function/table_functions/bind_data.h"
+#include "function/table_functions/bind_input.h"
+#include "function/table_functions/scan_functions.h"
 
 namespace kuzu {
 namespace processor {
@@ -49,10 +53,31 @@ class NpyMultiFileReader {
 public:
     explicit NpyMultiFileReader(const std::vector<std::string>& filePaths);
 
-    void readBlock(common::block_idx_t blockIdx, common::DataChunk* dataChunkToRead) const;
+    void readBlock(common::block_idx_t blockIdx, common::DataChunk& dataChunkToRead) const;
 
 private:
     std::vector<std::unique_ptr<NpyReader>> fileReaders;
+};
+
+struct NpyScanSharedState final : public function::ScanSharedTableFuncState {
+    explicit NpyScanSharedState(const common::ReaderConfig readerConfig, uint64_t numRows);
+
+    std::unique_ptr<NpyMultiFileReader> npyMultiFileReader;
+};
+
+struct NpyScanFunction {
+    static function::function_set getFunctionSet();
+
+    static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
+
+    static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
+        function::TableFuncBindInput* input, catalog::CatalogContent* catalog);
+
+    static std::unique_ptr<function::TableFuncSharedState> initSharedState(
+        function::TableFunctionInitInput& input);
+
+    static std::unique_ptr<function::TableFuncLocalState> initLocalState(
+        function::TableFunctionInitInput& /*input*/, function::TableFuncSharedState* /*state*/);
 };
 
 } // namespace processor

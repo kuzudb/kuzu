@@ -1,11 +1,11 @@
 #include "binder/copy/bound_copy_from.h"
 #include "catalog/node_table_schema.h"
 #include "planner/operator/persistent/logical_copy_from.h"
+#include "processor/operator/call/in_query_call.h"
 #include "processor/operator/partitioner.h"
 #include "processor/operator/persistent/copy_node.h"
 #include "processor/operator/persistent/copy_rdf_resource.h"
 #include "processor/operator/persistent/copy_rel.h"
-#include "processor/operator/persistent/reader.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::binder;
@@ -26,7 +26,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logic
         return mapCopyRelFrom(logicalOperator);
         // LCOV_EXCL_START
     default:
-        throw NotImplementedException{"PlanMapper::mapCopy"};
+        KU_UNREACHABLE;
     }
     // LCOV_EXCL_STOP
 }
@@ -38,11 +38,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     auto tableSchema = (catalog::NodeTableSchema*)copyFromInfo->tableSchema;
     // Map reader.
     auto prevOperator = mapOperator(copyFrom->getChild(0).get());
-    auto reader = reinterpret_cast<Reader*>(prevOperator.get());
+    auto inQueryCall = reinterpret_cast<InQueryCall*>(prevOperator.get());
     // Map copy node.
     auto nodeTable = storageManager.getNodeTable(tableSchema->tableID);
-    auto sharedState =
-        std::make_shared<CopyNodeSharedState>(reader->getSharedState()->getNumRowsRef());
+    auto sharedState = std::make_shared<CopyNodeSharedState>(inQueryCall->getSharedState());
     sharedState->wal = storageManager.getWAL();
     sharedState->table = nodeTable;
     for (auto& property : tableSchema->getProperties()) {
@@ -62,9 +61,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     auto info = std::make_unique<CopyNodeInfo>(std::move(dataColumnPoses), nodeTable,
         tableSchema->tableName, copyFromInfo->containsSerial, storageManager.compressionEnabled());
     std::unique_ptr<PhysicalOperator> copyNode;
-    auto readerConfig = copyFromInfo->fileScanInfo->readerConfig.get();
-    if (readerConfig->fileType == FileType::TURTLE &&
-        readerConfig->rdfReaderConfig->mode == RdfReaderMode::RESOURCE) {
+    auto readerConfig = reinterpret_cast<function::ScanBindData*>(
+        copyFromInfo->fileScanInfo->copyFuncBindData.get())
+                            ->config;
+    if (readerConfig.fileType == FileType::TURTLE &&
+        readerConfig.rdfReaderConfig->mode == RdfReaderMode::RESOURCE) {
         copyNode = std::make_unique<CopyRdfResource>(sharedState, std::move(info),
             std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), std::move(prevOperator),
             getOperatorID(), copyFrom->getExpressionsForPrinting());
@@ -96,7 +97,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRel(
     auto relIDDataPos =
         DataPos{outFSchema->getExpressionPos(*copyFromInfo->fileScanInfo->internalID)};
     DataPos srcOffsetPos, dstOffsetPos;
-    if (copyFromInfo->fileScanInfo->readerConfig->fileType == FileType::TURTLE) {
+    auto readerConfig = reinterpret_cast<function::ScanBindData*>(
+        copyFromInfo->fileScanInfo->copyFuncBindData.get())
+                            ->config;
+    if (readerConfig.fileType == FileType::TURTLE) {
         auto extraInfo = reinterpret_cast<ExtraBoundCopyRdfRelInfo*>(copyFromInfo->extraInfo.get());
         srcOffsetPos = DataPos{outFSchema->getExpressionPos(*extraInfo->subjectOffset)};
         dstOffsetPos = DataPos{outFSchema->getExpressionPos(*extraInfo->objectOffset)};

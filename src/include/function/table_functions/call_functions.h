@@ -24,7 +24,7 @@ struct CallFuncMorsel {
     }
 };
 
-struct CallFuncSharedState : public SharedTableFuncState {
+struct CallFuncSharedState : public TableFuncSharedState {
     common::offset_t maxOffset;
     common::offset_t curOffset;
     std::mutex mtx;
@@ -37,115 +37,114 @@ struct CallFuncSharedState : public SharedTableFuncState {
 struct CallTableFuncBindData : public TableFuncBindData {
     common::offset_t maxOffset;
 
-    CallTableFuncBindData(std::vector<common::LogicalType> returnTypes,
+    CallTableFuncBindData(std::vector<std::unique_ptr<common::LogicalType>> returnTypes,
         std::vector<std::string> returnColumnNames, common::offset_t maxOffset)
         : TableFuncBindData{std::move(returnTypes), std::move(returnColumnNames)}, maxOffset{
                                                                                        maxOffset} {}
 
     inline std::unique_ptr<TableFuncBindData> copy() override {
-        return std::make_unique<CallTableFuncBindData>(returnTypes, returnColumnNames, maxOffset);
+        return std::make_unique<CallTableFuncBindData>(
+            common::LogicalType::copy(returnTypes), returnColumnNames, maxOffset);
     }
 };
 
 struct CallFunction {
-    static std::unique_ptr<SharedTableFuncState> initSharedState(TableFunctionInitInput& input);
+    static std::unique_ptr<TableFuncSharedState> initSharedState(TableFunctionInitInput& input);
 };
 
 struct CurrentSettingBindData : public CallTableFuncBindData {
     std::string result;
 
-    CurrentSettingBindData(std::string result, std::vector<common::LogicalType> returnTypes,
+    CurrentSettingBindData(std::string result,
+        std::vector<std::unique_ptr<common::LogicalType>> returnTypes,
         std::vector<std::string> returnColumnNames, common::offset_t maxOffset)
         : result{std::move(result)}, CallTableFuncBindData{std::move(returnTypes),
                                          std::move(returnColumnNames), maxOffset} {}
 
     inline std::unique_ptr<TableFuncBindData> copy() override {
         return std::make_unique<CurrentSettingBindData>(
-            result, returnTypes, returnColumnNames, maxOffset);
+            result, common::LogicalType::copy(returnTypes), returnColumnNames, maxOffset);
     }
 };
 
 struct CurrentSettingFunction : public CallFunction {
     static function_set getFunctionSet();
 
-    static void tableFunc(TableFunctionInput& data, std::vector<common::ValueVector*> output);
+    static void tableFunc(TableFunctionInput& data, common::DataChunk& outputChunk);
 
     static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
-        TableFuncBindInput input, catalog::CatalogContent* /*catalog*/);
+        TableFuncBindInput* input, catalog::CatalogContent* /*catalog*/);
 };
 
 struct DBVersionFunction : public CallFunction {
     static function_set getFunctionSet();
 
-    static void tableFunc(
-        TableFunctionInput& input, std::vector<common::ValueVector*> outputVectors);
+    static void tableFunc(TableFunctionInput& input, common::DataChunk& outputChunk);
 
     static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-        TableFuncBindInput /*input*/, catalog::CatalogContent* /*catalog*/);
+        TableFuncBindInput* /*input*/, catalog::CatalogContent* /*catalog*/);
 };
 
 struct ShowTablesBindData : public CallTableFuncBindData {
     std::vector<catalog::TableSchema*> tables;
 
     ShowTablesBindData(std::vector<catalog::TableSchema*> tables,
-        std::vector<common::LogicalType> returnTypes, std::vector<std::string> returnColumnNames,
-        common::offset_t maxOffset)
+        std::vector<std::unique_ptr<common::LogicalType>> returnTypes,
+        std::vector<std::string> returnColumnNames, common::offset_t maxOffset)
         : tables{std::move(tables)}, CallTableFuncBindData{std::move(returnTypes),
                                          std::move(returnColumnNames), maxOffset} {}
 
     inline std::unique_ptr<TableFuncBindData> copy() override {
         return std::make_unique<ShowTablesBindData>(
-            tables, returnTypes, returnColumnNames, maxOffset);
+            tables, common::LogicalType::copy(returnTypes), returnColumnNames, maxOffset);
     }
 };
 
 struct ShowTablesFunction : public CallFunction {
     static function_set getFunctionSet();
 
-    static void tableFunc(
-        TableFunctionInput& input, std::vector<common::ValueVector*> outputVectors);
+    static void tableFunc(TableFunctionInput& input, common::DataChunk& outputChunk);
 
     static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-        TableFuncBindInput /*input*/, catalog::CatalogContent* catalog);
+        TableFuncBindInput* /*input*/, catalog::CatalogContent* catalog);
 };
 
 struct TableInfoBindData : public CallTableFuncBindData {
     catalog::TableSchema* tableSchema;
 
     TableInfoBindData(catalog::TableSchema* tableSchema,
-        std::vector<common::LogicalType> returnTypes, std::vector<std::string> returnColumnNames,
-        common::offset_t maxOffset)
+        std::vector<std::unique_ptr<common::LogicalType>> returnTypes,
+        std::vector<std::string> returnColumnNames, common::offset_t maxOffset)
         : tableSchema{tableSchema}, CallTableFuncBindData{std::move(returnTypes),
                                         std::move(returnColumnNames), maxOffset} {}
 
     inline std::unique_ptr<TableFuncBindData> copy() override {
         return std::make_unique<TableInfoBindData>(
-            tableSchema, returnTypes, returnColumnNames, maxOffset);
+            tableSchema, common::LogicalType::copy(returnTypes), returnColumnNames, maxOffset);
     }
 };
 
 struct TableInfoFunction : public CallFunction {
     static function_set getFunctionSet();
 
-    static void tableFunc(
-        TableFunctionInput& input, std::vector<common::ValueVector*> outputVectors);
+    static void tableFunc(TableFunctionInput& input, common::DataChunk& outputChunk);
 
     static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-        TableFuncBindInput input, catalog::CatalogContent* catalog);
+        TableFuncBindInput* input, catalog::CatalogContent* catalog);
 };
 
 struct ShowConnectionBindData : public TableInfoBindData {
     catalog::CatalogContent* catalog;
 
     ShowConnectionBindData(catalog::CatalogContent* catalog, catalog::TableSchema* tableSchema,
-        std::vector<common::LogicalType> returnTypes, std::vector<std::string> returnColumnNames,
-        common::offset_t maxOffset)
+        std::vector<std::unique_ptr<common::LogicalType>> returnTypes,
+        std::vector<std::string> returnColumnNames, common::offset_t maxOffset)
         : catalog{catalog}, TableInfoBindData{tableSchema, std::move(returnTypes),
                                 std::move(returnColumnNames), maxOffset} {}
 
     inline std::unique_ptr<TableFuncBindData> copy() override {
-        return std::make_unique<ShowConnectionBindData>(
-            catalog, tableSchema, returnTypes, returnColumnNames, maxOffset);
+        return std::make_unique<ShowConnectionBindData>(catalog, tableSchema,
+            common::LogicalType::copy(returnTypes), returnColumnNames, maxOffset);
     }
 };
 
@@ -156,11 +155,10 @@ struct ShowConnectionFunction : public CallFunction {
         common::ValueVector* dstTableNameVector, uint64_t outputPos,
         catalog::CatalogContent* catalog, common::table_id_t tableID);
 
-    static void tableFunc(
-        TableFunctionInput& input, std::vector<common::ValueVector*> outputVectors);
+    static void tableFunc(TableFunctionInput& input, common::DataChunk& outputChunk);
 
     static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-        TableFuncBindInput input, catalog::CatalogContent* catalog);
+        TableFuncBindInput* input, catalog::CatalogContent* catalog);
 };
 
 } // namespace function

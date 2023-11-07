@@ -209,5 +209,30 @@ void Binder::restoreScope(std::unique_ptr<BinderScope> prevVariableScope) {
     scope = std::move(prevVariableScope);
 }
 
+function::TableFunction* Binder::getScanFunction(
+    common::FileType fileType, std::vector<common::LogicalType*> inputTypes, bool isParallel) {
+    switch (fileType) {
+    case common::FileType::PARQUET:
+        return reinterpret_cast<function::TableFunction*>(
+            catalog.getBuiltInFunctions()->matchScalarFunction(
+                READ_PARQUET_FUNC_NAME, std::move(inputTypes)));
+    case common::FileType::NPY:
+        return reinterpret_cast<function::TableFunction*>(
+            catalog.getBuiltInFunctions()->matchScalarFunction(
+                READ_NPY_FUNC_NAME, std::move(inputTypes)));
+    case common::FileType::CSV:
+        return reinterpret_cast<function::TableFunction*>(
+            catalog.getBuiltInFunctions()->matchScalarFunction(
+                isParallel ? READ_CSV_PARALLEL_FUNC_NAME : READ_CSV_SERIAL_FUNC_NAME,
+                std::move(inputTypes)));
+    case common::FileType::TURTLE:
+        return reinterpret_cast<function::TableFunction*>(
+            catalog.getBuiltInFunctions()->matchScalarFunction(
+                READ_RDF_FUNC_NAME, std::move(inputTypes)));
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
 } // namespace binder
 } // namespace kuzu

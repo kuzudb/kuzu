@@ -1,4 +1,4 @@
-#include "processor/operator/persistent/reader/npy_reader.h"
+#include "processor/operator/persistent/reader/npy/npy_reader.h"
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -21,6 +21,7 @@
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
+using namespace kuzu::function;
 
 namespace kuzu {
 namespace processor {
@@ -224,10 +225,58 @@ NpyMultiFileReader::NpyMultiFileReader(const std::vector<std::string>& filePaths
     }
 }
 
-void NpyMultiFileReader::readBlock(block_idx_t blockIdx, common::DataChunk* dataChunkToRead) const {
+void NpyMultiFileReader::readBlock(block_idx_t blockIdx, common::DataChunk& dataChunkToRead) const {
     for (auto i = 0u; i < fileReaders.size(); i++) {
-        fileReaders[i]->readBlock(blockIdx, dataChunkToRead->getValueVector(i).get());
+        fileReaders[i]->readBlock(blockIdx, dataChunkToRead.getValueVector(i).get());
     }
+}
+
+NpyScanSharedState::NpyScanSharedState(const common::ReaderConfig readerConfig, uint64_t numRows)
+    : ScanSharedTableFuncState{std::move(readerConfig), numRows} {
+    npyMultiFileReader = std::make_unique<NpyMultiFileReader>(this->readerConfig.filePaths);
+}
+
+function_set NpyScanFunction::getFunctionSet() {
+    function_set functionSet;
+    functionSet.push_back(std::make_unique<TableFunction>(READ_NPY_FUNC_NAME, tableFunc, bindFunc,
+        initSharedState, initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
+    return functionSet;
+}
+
+void NpyScanFunction::tableFunc(TableFunctionInput& input, DataChunk& outputChunk) {
+    auto sharedState = reinterpret_cast<NpyScanSharedState*>(input.sharedState);
+    auto [_, blockIdx] = sharedState->getNext();
+    sharedState->npyMultiFileReader->readBlock(blockIdx, outputChunk);
+}
+
+std::unique_ptr<function::TableFuncBindData> NpyScanFunction::bindFunc(
+    main::ClientContext* /*context*/, function::TableFuncBindInput* input,
+    catalog::CatalogContent* /*catalog*/) {
+    auto bindInput = reinterpret_cast<function::ScanTableFuncBindInput*>(input);
+    auto config = bindInput->config;
+    KU_ASSERT(!config.filePaths.empty() && config.getNumFiles() == config.getNumColumns());
+    row_idx_t numRows;
+    for (auto i = 0u; i < config.getNumFiles(); i++) {
+        auto reader = make_unique<NpyReader>(config.filePaths[i]);
+        if (i == 0) {
+            numRows = reader->getNumRows();
+        }
+        reader->validate(*config.columnTypes[i], numRows);
+    }
+    return std::make_unique<function::ScanBindData>(
+        common::LogicalType::copy(config.columnTypes), config.columnNames, config, bindInput->mm);
+}
+
+std::unique_ptr<function::TableFuncSharedState> NpyScanFunction::initSharedState(
+    function::TableFunctionInitInput& input) {
+    auto bindData = reinterpret_cast<function::ScanBindData*>(input.bindData);
+    auto reader = make_unique<NpyReader>(bindData->config.filePaths[0]);
+    return std::make_unique<NpyScanSharedState>(bindData->config, reader->getNumRows());
+}
+
+std::unique_ptr<function::TableFuncLocalState> NpyScanFunction::initLocalState(
+    function::TableFunctionInitInput& /*input*/, function::TableFuncSharedState* /*state*/) {
+    return std::make_unique<function::TableFuncLocalState>();
 }
 
 } // namespace processor

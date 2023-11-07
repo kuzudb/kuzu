@@ -10,9 +10,9 @@
 ---- ok
 
 -LOG ExplainCopy
--STATEMENT create node table npytable (id INT64,i32 INT32, PRIMARY KEY(id));
+-STATEMENT create node table npytable (id INT64,i64 INT64, PRIMARY KEY(id));
 ---- ok
--STATEMENT EXPLAIN copy npytable from ("${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/id_int64.npy", "${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/two_dim_float.npy") BY COLUMN;
+-STATEMENT EXPLAIN copy npytable from ("${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/id_int64.npy", "${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/id_int64.npy") BY COLUMN;
 ---- ok
 
 -LOG ExplainCall
