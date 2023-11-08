@@ -54,7 +54,7 @@ void CopyRel::executeInternal(ExecutionContext* /*context*/) {
                                       ->partitions[localState->currentPartition]
                                       .get();
         auto startOffset = StorageUtils::getStartOffsetOfNodeGroup(localState->currentPartition);
-        auto offsetVectorIdx = info->dataDirection == FWD ? 0 : 1;
+        auto offsetVectorIdx = info->dataDirection == RelDataDirection::FWD ? 0 : 1;
         row_idx_t numRows = 0;
         for (auto& dataChunk : *partitioningBuffer) {
             auto offsetVector = dataChunk->getValueVector(offsetVectorIdx).get();

@@ -40,12 +40,12 @@ public:
         metadataDAHInfos.erase(metadataDAHInfos.begin() + columnID);
     }
     inline MetadataDAHInfo* getCSROffsetMetadataDAHInfo(common::RelDataDirection direction) {
-        return direction == common::FWD ? fwdCSROffsetMetadataDAHInfo.get() :
-                                          bwdCSROffsetMetadataDAHInfo.get();
+        return direction == common::RelDataDirection::FWD ? fwdCSROffsetMetadataDAHInfo.get() :
+                                                            bwdCSROffsetMetadataDAHInfo.get();
     }
     inline MetadataDAHInfo* getAdjMetadataDAHInfo(common::RelDataDirection direction) {
-        return direction == common::FWD ? fwdNbrIDMetadataDAHInfo.get() :
-                                          bwdNbrIDMetadataDAHInfo.get();
+        return direction == common::RelDataDirection::FWD ? fwdNbrIDMetadataDAHInfo.get() :
+                                                            bwdNbrIDMetadataDAHInfo.get();
     }
     inline MetadataDAHInfo* getPropertyMetadataDAHInfo(
         common::column_id_t columnID, common::RelDataDirection direction) {
@@ -65,7 +65,8 @@ public:
 private:
     inline std::vector<std::unique_ptr<MetadataDAHInfo>>& getDirectedPropertyMetadataDAHInfosRef(
         common::RelDataDirection direction) {
-        return direction == common::FWD ? fwdPropertyMetadataDAHInfos : bwdPropertyMetadataDAHInfos;
+        return direction == common::RelDataDirection::FWD ? fwdPropertyMetadataDAHInfos :
+                                                            bwdPropertyMetadataDAHInfos;
     }
 
 private:

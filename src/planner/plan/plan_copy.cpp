@@ -46,13 +46,15 @@ static void appendPartitioner(BoundCopyFromInfo* copyFromInfo, LogicalPlan& plan
         // Partitioner for FWD direction rel data.
         infos.push_back(
             std::make_unique<LogicalPartitionerInfo>(extraInfo->srcOffset, copyFromInfo->columns,
-                tableSchema->isSingleMultiplicityInDirection(FWD) ? ColumnDataFormat::REGULAR :
-                                                                    ColumnDataFormat::CSR));
+                tableSchema->isSingleMultiplicityInDirection(RelDataDirection::FWD) ?
+                    ColumnDataFormat::REGULAR :
+                    ColumnDataFormat::CSR));
         // Partitioner for BWD direction rel data.
         infos.push_back(
             std::make_unique<LogicalPartitionerInfo>(extraInfo->dstOffset, copyFromInfo->columns,
-                tableSchema->isSingleMultiplicityInDirection(BWD) ? ColumnDataFormat::REGULAR :
-                                                                    ColumnDataFormat::CSR));
+                tableSchema->isSingleMultiplicityInDirection(RelDataDirection::BWD) ?
+                    ColumnDataFormat::REGULAR :
+                    ColumnDataFormat::CSR));
     } break;
         // LCOV_EXCL_START
     default: {
