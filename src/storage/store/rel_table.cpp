@@ -45,9 +45,17 @@ void RelTable::lookup(Transaction* transaction, RelDataReadState& scanState,
 void RelTable::addColumn(
     Transaction* transaction, const Property& property, ValueVector* defaultValueVector) {
     auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
+    relsStats->setPropertyStatisticsForTable(tableID, property.getPropertyID(),
+        PropertyStatistics{!defaultValueVector->hasNoNullsGuarantee()});
     relsStats->addMetadataDAHInfo(tableID, *property.getDataType());
-    fwdRelTableData->addColumn(transaction, property, defaultValueVector, relsStats);
-    bwdRelTableData->addColumn(transaction, property, defaultValueVector, relsStats);
+    fwdRelTableData->addColumn(transaction, fwdRelTableData->getAdjColumn()->getMetadataDA(),
+        *relsStats->getPropertyMetadataDAHInfo(
+            transaction, tableID, fwdRelTableData->getNumColumns(), RelDataDirection::FWD),
+        property, defaultValueVector, relsStats);
+    bwdRelTableData->addColumn(transaction, bwdRelTableData->getAdjColumn()->getMetadataDA(),
+        *relsStats->getPropertyMetadataDAHInfo(
+            transaction, tableID, bwdRelTableData->getNumColumns(), RelDataDirection::BWD),
+        property, defaultValueVector, relsStats);
     wal->addToUpdatedTables(tableID);
 }
 

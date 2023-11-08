@@ -36,8 +36,10 @@ public:
     inline void dropColumn(common::column_id_t columnID) {
         columns.erase(columns.begin() + columnID);
     }
-    void addColumn(transaction::Transaction* transaction, const catalog::Property& property,
-        common::ValueVector* defaultValueVector, TablesStatistics* tableStats);
+    void addColumn(transaction::Transaction* transaction,
+        InMemDiskArray<ColumnChunkMetadata>* metadataDA, const MetadataDAHInfo& metadataDahInfo,
+        const catalog::Property& property, common::ValueVector* defaultValueVector,
+        TablesStatistics* tableStats);
 
     inline common::vector_idx_t getNumColumns() const { return columns.size(); }
     inline Column* getColumn(common::column_id_t columnID) {

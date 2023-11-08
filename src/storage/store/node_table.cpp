@@ -86,7 +86,9 @@ void NodeTable::addColumn(transaction::Transaction* transaction, const catalog::
     nodesStats->setPropertyStatisticsForTable(tableID, property.getPropertyID(),
         PropertyStatistics(!defaultValueVector->hasNoNullsGuarantee()));
     nodesStats->addMetadataDAHInfo(tableID, *property.getDataType());
-    tableData->addColumn(transaction, property, defaultValueVector, nodesStats);
+    tableData->addColumn(transaction, tableData->getColumn(pkColumnID)->getMetadataDA(),
+        *nodesStats->getMetadataDAHInfo(transaction, tableID, tableData->getNumColumns()), property,
+        defaultValueVector, nodesStats);
     wal->addToUpdatedTables(tableID);
 }
 
