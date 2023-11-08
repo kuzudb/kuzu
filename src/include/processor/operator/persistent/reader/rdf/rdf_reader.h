@@ -48,10 +48,6 @@ private:
     common::ValueVector* sVector; // subject
     common::ValueVector* pVector; // predicate
     common::ValueVector* oVector; // object
-
-    std::unique_ptr<common::ValueVector> sOffsetVector;
-    std::unique_ptr<common::ValueVector> pOffsetVector;
-    std::unique_ptr<common::ValueVector> oOffsetVector;
 };
 
 struct RdfScanLocalState final : public function::TableFuncLocalState {

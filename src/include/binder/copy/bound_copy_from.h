@@ -69,16 +69,13 @@ struct ExtraBoundCopyRelInfo : public ExtraBoundCopyFromInfo {
 
 struct ExtraBoundCopyRdfRelInfo : public ExtraBoundCopyFromInfo {
     std::shared_ptr<Expression> subjectOffset;
-    std::shared_ptr<Expression> predicateOffset;
     std::shared_ptr<Expression> objectOffset;
 
-    ExtraBoundCopyRdfRelInfo(std::shared_ptr<Expression> subjectOffset,
-        std::shared_ptr<Expression> predicateOffset, std::shared_ptr<Expression> objectOffset)
-        : subjectOffset{std::move(subjectOffset)}, predicateOffset{std::move(predicateOffset)},
-          objectOffset{std::move(objectOffset)} {}
+    ExtraBoundCopyRdfRelInfo(
+        std::shared_ptr<Expression> subjectOffset, std::shared_ptr<Expression> objectOffset)
+        : subjectOffset{std::move(subjectOffset)}, objectOffset{std::move(objectOffset)} {}
     ExtraBoundCopyRdfRelInfo(const ExtraBoundCopyRdfRelInfo& other)
-        : subjectOffset{other.subjectOffset}, predicateOffset{other.predicateOffset},
-          objectOffset{other.objectOffset} {}
+        : subjectOffset{other.subjectOffset}, objectOffset{other.objectOffset} {}
 
     inline std::unique_ptr<ExtraBoundCopyFromInfo> copy() final {
         return std::make_unique<ExtraBoundCopyRdfRelInfo>(*this);

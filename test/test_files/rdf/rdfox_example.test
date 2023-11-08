@@ -78,33 +78,36 @@ Peter||||||||||||||||Peter
 ||||Monday|1999-08-16a
 |||||Petera
 
--CASE tmp
--SKIP
-
--STATEMENT MATCH (a:example_resource_t)-[e:example_resource_triples_t]->(b:example_resource_t) RETURN a.iri, b.iri
+-STATEMENT MATCH (a:example_resource_t)-[e:example]->(b:example_resource_t) RETURN a.iri, e.iri, b.iri ORDER BY offset(id(e))
+-CHECK_ORDER
 ---- 10
-:peter|:Person
-:peter|:lois
-:lois|:Person
-:meg|:Person
-:meg|:lois
-:meg|:peter
-:chris|:Person
-:chris|:peter
-:stewie|:Person
-:stewie|:lois
+:peter|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person
+:peter|:marriedTo|:lois
+:lois|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person
+:meg|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person
+:meg|:hasParent|:lois
+:meg|:hasParent|:peter
+:chris|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person
+:chris|:hasParent|:peter
+:stewie|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person
+:stewie|:hasParent|:lois
 
--STATEMENT MATCH (a:example_resource_t)-[e:example_literal_triples_t]->(b:example_literal_t) RETURN a.iri, b.iri
----- 12
-:peter|Peter
-:peter|male
-:lois|Lois
-:lois|female
-:meg|Meg
-:meg|female
-:chris|Chris
-:chris|male
-:stewie|Stewie
-:stewie|male
-:brian|Brian
-:andy|12
+-STATEMENT MATCH (a:example_resource_t)-[e:example]->(b:example_literal_t) RETURN a.iri, e.iri, b.iri ORDER BY offset(id(e))
+-CHECK_ORDER
+---- 16
+:andy|:literal|12
+:andy|:literal|-14.900000
+:andy|:literal|True
+:andy|:literal|0.016630
+:andy|:literal|1999-08-16
+:peter|:forename|Peter
+:peter|:gender|male
+:lois|:forename|Lois
+:lois|:gender|female
+:meg|:forename|Meg
+:meg|:gender|female
+:chris|:forename|Chris
+:chris|:gender|male
+:stewie|:forename|Stewie
+:stewie|:gender|male
+:brian|:forename|Brian

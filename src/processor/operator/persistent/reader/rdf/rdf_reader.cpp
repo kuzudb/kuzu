@@ -31,9 +31,6 @@ RDFReader::RDFReader(std::string filePath, std::unique_ptr<common::RdfReaderConf
     serd_reader_set_strict(reader, false /* strict */);
     serd_reader_set_error_sink(reader, errorHandle, this);
     serd_reader_start_stream(reader, fp, reinterpret_cast<const uint8_t*>(fileName.c_str()), true);
-    sOffsetVector = std::make_unique<ValueVector>(LogicalTypeID::INT64);
-    pOffsetVector = std::make_unique<ValueVector>(LogicalTypeID::INT64);
-    oOffsetVector = std::make_unique<ValueVector>(LogicalTypeID::INT64);
     counter = serd_reader_new(
         SERD_TURTLE, this, nullptr, nullptr, nullptr, counterStatementSink, nullptr);
     serd_reader_set_strict(counter, false /* strict */);
@@ -180,9 +177,9 @@ SerdStatus RDFReader::readerStatementSink(void* handle, SerdStatementFlags /*fla
         auto subjectOffset = lookupResourceNode(reader->config->index, subject);
         auto predicateOffset = lookupResourceNode(reader->config->index, predicate);
         auto objectOffset = lookupResourceNode(reader->config->index, object);
-        reader->sOffsetVector->setValue<int64_t>(reader->rowOffset, subjectOffset);
-        reader->pOffsetVector->setValue<int64_t>(reader->rowOffset, predicateOffset);
-        reader->oOffsetVector->setValue<int64_t>(reader->rowOffset, objectOffset);
+        reader->sVector->setValue<int64_t>(reader->rowOffset, subjectOffset);
+        reader->pVector->setValue<int64_t>(reader->rowOffset, predicateOffset);
+        reader->oVector->setValue<int64_t>(reader->rowOffset, objectOffset);
         reader->vectorSize++;
         reader->rowOffset++;
     } break;
@@ -193,9 +190,9 @@ SerdStatus RDFReader::readerStatementSink(void* handle, SerdStatementFlags /*fla
         auto subjectOffset = lookupResourceNode(reader->config->index, subject);
         auto predicateOffset = lookupResourceNode(reader->config->index, predicate);
         auto objectOffset = reader->rowOffset;
-        reader->sOffsetVector->setValue<int64_t>(reader->rowOffset, subjectOffset);
-        reader->pOffsetVector->setValue<int64_t>(reader->rowOffset, predicateOffset);
-        reader->oOffsetVector->setValue<int64_t>(reader->rowOffset, objectOffset);
+        reader->sVector->setValue<int64_t>(reader->rowOffset, subjectOffset);
+        reader->pVector->setValue<int64_t>(reader->rowOffset, predicateOffset);
+        reader->oVector->setValue<int64_t>(reader->rowOffset, objectOffset);
         reader->vectorSize++;
         reader->rowOffset++;
     } break;
