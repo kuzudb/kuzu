@@ -18,10 +18,11 @@ public:
     inline void initializeReadState(transaction::Transaction* transaction,
         common::RelDataDirection direction, std::vector<common::column_id_t> columnIDs,
         common::ValueVector* inNodeIDVector, RelDataReadState* readState) {
-        return direction == common::FWD ? fwdRelTableData->initializeReadState(transaction,
-                                              direction, columnIDs, inNodeIDVector, readState) :
-                                          bwdRelTableData->initializeReadState(transaction,
-                                              direction, columnIDs, inNodeIDVector, readState);
+        return direction == common::RelDataDirection::FWD ?
+                   fwdRelTableData->initializeReadState(
+                       transaction, direction, columnIDs, inNodeIDVector, readState) :
+                   bwdRelTableData->initializeReadState(
+                       transaction, direction, columnIDs, inNodeIDVector, readState);
     }
     void read(transaction::Transaction* transaction, TableReadState& readState,
         common::ValueVector* inNodeIDVector,
@@ -35,12 +36,12 @@ public:
     }
 
     inline common::ColumnDataFormat getTableDataFormat(common::RelDataDirection direction) {
-        return direction == common::FWD ? fwdRelTableData->getDataFormat() :
-                                          bwdRelTableData->getDataFormat();
+        return direction == common::RelDataDirection::FWD ? fwdRelTableData->getDataFormat() :
+                                                            bwdRelTableData->getDataFormat();
     }
     inline void append(NodeGroup* nodeGroup, common::RelDataDirection direction) {
-        direction == common::FWD ? fwdRelTableData->append(nodeGroup) :
-                                   bwdRelTableData->append(nodeGroup);
+        direction == common::RelDataDirection::FWD ? fwdRelTableData->append(nodeGroup) :
+                                                     bwdRelTableData->append(nodeGroup);
     }
 
     void prepareCommit() final;
@@ -57,7 +58,8 @@ private:
         const std::vector<common::ValueVector*>& outputVectors);
 
     inline RelTableData* getDirectedTableData(common::RelDataDirection direction) {
-        return direction == common::FWD ? fwdRelTableData.get() : bwdRelTableData.get();
+        return direction == common::RelDataDirection::FWD ? fwdRelTableData.get() :
+                                                            bwdRelTableData.get();
     }
 
 private:

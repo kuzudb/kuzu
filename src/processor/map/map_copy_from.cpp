@@ -85,7 +85,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRel(
     auto copyFromInfo = copyFrom->getInfo();
     auto outFSchema = copyFrom->getSchema();
     auto tableSchema = dynamic_cast<RelTableSchema*>(copyFromInfo->tableSchema);
-    auto partitioningIdx = direction == FWD ? 0 : 1;
+    auto partitioningIdx = direction == RelDataDirection::FWD ? 0 : 1;
     auto maxBoundNodeOffset = storageManager.getNodesStatisticsAndDeletedIDs()->getMaxNodeOffset(
         transaction::Transaction::getDummyReadOnlyTrx().get(),
         tableSchema->getBoundTableID(direction));
@@ -109,9 +109,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRel(
     auto dataFormat = tableSchema->isSingleMultiplicityInDirection(direction) ?
                           ColumnDataFormat::REGULAR :
                           ColumnDataFormat::CSR;
-    auto copyRelInfo = std::make_unique<CopyRelInfo>(tableSchema, partitioningIdx, direction,
-        dataFormat, dataColumnPositions, direction == FWD ? srcOffsetPos : dstOffsetPos,
-        relIDDataPos, storageManager.getWAL(), storageManager.compressionEnabled());
+    auto copyRelInfo =
+        std::make_unique<CopyRelInfo>(tableSchema, partitioningIdx, direction, dataFormat,
+            dataColumnPositions, direction == RelDataDirection::FWD ? srcOffsetPos : dstOffsetPos,
+            relIDDataPos, storageManager.getWAL(), storageManager.compressionEnabled());
     return std::make_unique<CopyRel>(std::move(copyRelInfo), std::move(partitionerSharedState),
         std::move(sharedState), std::make_unique<ResultSetDescriptor>(outFSchema), getOperatorID(),
         copyFrom->getExpressionsForPrinting());
@@ -136,8 +137,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRelFrom(
     auto copyRelSharedState = std::make_shared<CopyRelSharedState>(tableSchema->tableID,
         storageManager.getRelTable(tableSchema->tableID), std::move(columnTypes),
         storageManager.getRelsStatistics(), memoryManager);
-    auto copyRelFWD = createCopyRel(partitionerSharedState, copyRelSharedState, copyFrom, FWD);
-    auto copyRelBWD = createCopyRel(partitionerSharedState, copyRelSharedState, copyFrom, BWD);
+    auto copyRelFWD =
+        createCopyRel(partitionerSharedState, copyRelSharedState, copyFrom, RelDataDirection::FWD);
+    auto copyRelBWD =
+        createCopyRel(partitionerSharedState, copyRelSharedState, copyFrom, RelDataDirection::BWD);
     auto outputExpressions = expression_vector{copyFrom->getOutputExpression()->copy()};
     auto fTableScan = createFactorizedTableScanAligned(outputExpressions, outFSchema,
         copyRelSharedState->getFTable(), DEFAULT_VECTOR_CAPACITY /* maxMorselSize */,

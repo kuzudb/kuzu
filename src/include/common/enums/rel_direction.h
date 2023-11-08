@@ -7,8 +7,7 @@
 namespace kuzu {
 namespace common {
 
-// TODO: Change to enum class
-enum RelDataDirection : uint8_t { FWD = 0, BWD = 1 };
+enum class RelDataDirection : uint8_t { FWD = 0, BWD = 1 };
 
 struct RelDataDirectionUtils {
     static inline std::vector<RelDataDirection> getRelDataDirections() {

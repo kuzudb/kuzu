@@ -14,9 +14,9 @@ RelTable::RelTable(BMFileHandle* dataFH, BMFileHandle* metadataFH, RelsStoreStat
     BufferManager* bufferManager, RelTableSchema* tableSchema, WAL* wal, bool enableCompression)
     : Table{tableSchema, relsStoreStats, *bufferManager, wal} {
     fwdRelTableData = std::make_unique<RelTableData>(dataFH, metadataFH, bufferManager, wal,
-        tableSchema, relsStoreStats, FWD, enableCompression);
+        tableSchema, relsStoreStats, RelDataDirection::FWD, enableCompression);
     bwdRelTableData = std::make_unique<RelTableData>(dataFH, metadataFH, bufferManager, wal,
-        tableSchema, relsStoreStats, BWD, enableCompression);
+        tableSchema, relsStoreStats, RelDataDirection::BWD, enableCompression);
 }
 
 void RelTable::read(Transaction* transaction, TableReadState& readState,

@@ -16,11 +16,11 @@ RelTableStats::RelTableStats(
     BMFileHandle* metadataFH, const TableSchema& schema, BufferManager* bufferManager, WAL* wal)
     : TableStatistics{schema}, nextRelOffset{0} {
     const auto& relTableSchema = static_cast<const RelTableSchema&>(schema);
-    if (!relTableSchema.isSingleMultiplicityInDirection(FWD)) {
+    if (!relTableSchema.isSingleMultiplicityInDirection(RelDataDirection::FWD)) {
         fwdCSROffsetMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(
             LogicalType{LogicalTypeID::INT64}, *metadataFH, bufferManager, wal);
     }
-    if (!relTableSchema.isSingleMultiplicityInDirection(BWD)) {
+    if (!relTableSchema.isSingleMultiplicityInDirection(RelDataDirection::BWD)) {
         bwdCSROffsetMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(
             LogicalType{LogicalTypeID::INT64}, *metadataFH, bufferManager, wal);
     }
