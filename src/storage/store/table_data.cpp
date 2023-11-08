@@ -1,7 +1,5 @@
 #include "storage/store/table_data.h"
 
-#include "storage/stats/nodes_store_statistics.h"
-
 using namespace kuzu::common;
 using namespace kuzu::transaction;
 
@@ -41,15 +39,14 @@ void TableData::update(transaction::Transaction* transaction, column_id_t column
         tableID, columnID, nodeOffset, propertyVector, posInPropertyVector);
 }
 
-void TableData::addColumn(transaction::Transaction* transaction, const catalog::Property& property,
+void TableData::addColumn(Transaction* transaction, InMemDiskArray<ColumnChunkMetadata>* metadataDA,
+    const MetadataDAHInfo& metadataDAHInfo, const catalog::Property& property,
     ValueVector* defaultValueVector, TablesStatistics* tablesStats) {
-    auto metadataDAHInfo = dynamic_cast<NodesStoreStatsAndDeletedIDs*>(tablesStats)
-                               ->getMetadataDAHInfo(transaction, tableID, columns.size());
-    auto column = ColumnFactory::createColumn(*property.getDataType(), *metadataDAHInfo, dataFH,
+    auto column = ColumnFactory::createColumn(*property.getDataType(), metadataDAHInfo, dataFH,
         metadataFH, bufferManager, wal, transaction,
         RWPropertyStats(tablesStats, tableID, property.getPropertyID()), enableCompression);
     column->populateWithDefaultVal(
-        property, column.get(), defaultValueVector, getNumNodeGroups(transaction));
+        property, column.get(), metadataDA, defaultValueVector, getNumNodeGroups(transaction));
     columns.push_back(std::move(column));
 }
 

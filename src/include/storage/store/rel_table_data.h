@@ -57,6 +57,7 @@ public:
         const std::vector<common::ValueVector*>& outputVectors) final;
     void append(NodeGroup* nodeGroup) final;
 
+    inline Column* getAdjColumn() const { return adjColumn.get(); }
     inline common::ColumnDataFormat getDataFormat() const { return dataFormat; }
 
     void checkpointInMemory() final;

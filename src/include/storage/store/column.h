@@ -65,12 +65,14 @@ public:
     virtual void rollbackInMemory();
 
     void populateWithDefaultVal(const catalog::Property& property, Column* column,
-        common::ValueVector* defaultValueVector, uint64_t numNodeGroups) const;
+        InMemDiskArray<ColumnChunkMetadata>* metadataDA, common::ValueVector* defaultValueVector,
+        uint64_t numNodeGroups) const;
 
     inline ColumnChunkMetadata getMetadata(
         common::node_group_idx_t nodeGroupIdx, transaction::TransactionType transaction) const {
         return metadataDA->get(nodeGroupIdx, transaction);
     }
+    inline InMemDiskArray<ColumnChunkMetadata>* getMetadataDA() const { return metadataDA.get(); }
 
     virtual void write(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
         uint32_t posInVectorToWriteFrom);

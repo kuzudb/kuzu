@@ -1,0 +1,40 @@
+-GROUP DDL
+-DATASET CSV empty
+
+--
+
+-CASE AddNodeProperty
+-STATEMENT create node table Comment (id int64, PRIMARY KEY (id));
+---- ok
+-STATEMENT copy Comment from '${KUZU_ROOT_DIRECTORY}/dataset/sf-0.1/Comment.csv' (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT alter table Comment add propx int64;
+---- ok
+-STATEMENT MATCH (c:Comment) RETURN SUM(c.propx);
+---- 1
+
+-STATEMENT alter table Comment add propy int64 default 1;
+---- ok
+-STATEMENT MATCH (c:Comment) RETURN SUM(c.propy);
+---- 1
+215488
+
+-CASE AddRelProperty
+-STATEMENT create node table Comment (id int64, PRIMARY KEY (id));
+---- ok
+-STATEMENT create rel table replyOf (FROM Comment TO Comment, MANY_ONE);
+---- ok
+-STATEMENT copy Comment from '${KUZU_ROOT_DIRECTORY}/dataset/sf-0.1/Comment.csv' (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT copy replyOf from '${KUZU_ROOT_DIRECTORY}/dataset/sf-0.1/Comment_replyOf_Comment.csv' (HEADER=true, DELIM='|');
+---- ok
+-STATEMENT alter table replyOf add propx int64;
+---- ok
+-STATEMENT MATCH (c:Comment)-[r:replyOf]->(c2:Comment) RETURN SUM(r.propx);
+---- 1
+
+-STATEMENT alter table replyOf add propy int64 default 1;
+---- ok
+-STATEMENT MATCH (c:Comment)-[r:replyOf]->(c2:Comment) RETURN SUM(r.propy);
+---- 1
+108027
