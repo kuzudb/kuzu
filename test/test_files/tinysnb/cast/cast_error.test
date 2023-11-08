@@ -578,15 +578,6 @@ Conversion exception: Cast failed. bool is not in INT64[] range.
 -STATEMENT RETURN cast("[[231|4324]", "INT64[][]");
 ---- error
 Conversion exception: Cast failed. [[231|4324] is not in INT64[][] range.
--STATEMENT RETURN cast("[sdf, fsd, fad]", "STRING[]", "3rd arg");
----- error
-Binder exception: Invalid number of arguments for given function CAST.
--STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return cast(e, "INT64");
----- error
-Unimplemented casting function from REL to INT64.
--STATEMENT RETURN cast("dfsdfasdgv", "INTERNAL_ID");
----- error
-Unimplemented casting function from STRING to INTERNAL_ID.
 
 -CASE CastStringToNestedError
 -STATEMENT LOAD WITH HEADERS (list STRING[][]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/delim_error.csv" (DELIM="|", ESCAPE="~", QUOTE="'") RETURN * ;
@@ -595,9 +586,6 @@ Conversion exception: Cast failed. "[[hello],[bdfadf],]" is not in STRING[][] ra
 -STATEMENT LOAD WITH HEADERS (list STRING[][]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/bracket_error.csv" (DELIM="|", ESCAPE="~") RETURN * ;
 ---- error
 Conversion exception: Cast failed. [[] is not in STRING[][] range.
--STATEMENT LOAD WITH HEADERS (list INT32[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/quote_error.csv" RETURN * ;
----- error
-Binder exception: Number of columns mismatch. Expected 1 but got 3.
 -STATEMENT LOAD WITH HEADERS (list STRING[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/single_quote.csv" RETURN *;
 ---- error
 Conversion exception: Cast failed. ['fdsfdsfe werw] is not in STRING[] range.
@@ -669,7 +657,7 @@ Conversion exception: Cast failed. [4324, 432] fewrew is not in INT64[2] range.
 Binder exception: The number of elements in a fixed list must be greater than 0. Given: 0.
 -STATEMENT LOAD WITH HEADERS (fixedList UINT8[1]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/unsupported_type2.csv" RETURN *;
 ---- error
-Unsupported data type: Driver::castStringToFixedList
+Unsupported data type: Function::castStringToFixedList
 -STATEMENT LOAD WITH HEADERS (fixedList INT64[1]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/fixed_list_null.csv" RETURN *;
 ---- error
 Conversion exception: Cast failed. NULL is not allowed for FIXEDLIST.
@@ -682,3 +670,35 @@ Copy exception: Invalid UTF8-encoded string.
 -STATEMENT LOAD WITH HEADERS (a UNION(v1 INT64, v2 INT32)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/union/union_error.csv" RETURN *;
 ---- error
 Conversion exception: Could not convert to union type UNION(v1:INT64, v2:INT32): fdsaf.
+-STATEMENT RETURN cast("[-32769]", "INT16[1]");
+---- error
+Conversion exception: Cast failed. -32769 is not in INT16 range.
+-STATEMENT RETURN cast("[42, 42] fdaf", "INT64[2]");
+---- error
+Conversion exception: Cast failed. [42, 42] fdaf is not in INT64[2] range.
+-STATEMENT RETURN cast("[42|42]", "DOUBLE[2]");
+---- error
+Copy exception: Each fixed list should have fixed number of elements. Expected: 2, Actual: 1.
+-STATEMENT RETURN cast("[42,42", "FLOAT[2]");
+---- error
+Copy exception: Each fixed list should have fixed number of elements. Expected: 2, Actual: 1.
+-STATEMENT RETURN cast("(42,42)", "INT32[2]");
+---- error
+Copy exception: Each fixed list should have fixed number of elements. Expected: 2, Actual: 0.
+
+-LOG InvalidCastTypeError
+-STATEMENT RETURN cast("dfsa", "INTERNAL_ID");
+---- error
+Conversion exception: Unsupported casting function from STRING to INTERNAL_ID.
+-STATEMENT RETURN cast(432, "INTERNAL_ID");
+---- error
+Conversion exception: Unsupported casting function from INT64 to INTERNAL_ID.
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return cast(e, "INT64");
+---- error
+Conversion exception: Unsupported casting function from REL to INT64.
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return cast(e, "TIMESTAMP");
+---- error
+Conversion exception: Unsupported casting function from REL to TIMESTAMP.
+-STATEMENT MATCH (:person)-[e:studyAt*1..3]->(:organisation) return cast(e, "INT64");
+---- error
+Conversion exception: Unsupported casting function from RECURSIVE_REL to INT64.

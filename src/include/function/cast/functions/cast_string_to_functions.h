@@ -30,6 +30,9 @@ struct CastString {
         simpleIntegerCast<T, true>(reinterpret_cast<const char*>(input.getData()), input.len,
             result, LogicalType{LogicalTypeID::INT64});
     }
+
+    static void castToFixedList(const ku_string_t& input, ValueVector* resultVector,
+        uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig);
 };
 
 template<>

@@ -1083,3 +1083,8 @@ False
 -STATEMENT Return cast(cast(-15, "float"), "int128"), cast(cast(-1, "double"), "int128"), cast(cast(15, "float"), "int128"), cast(cast(1, "double"), "int128")
 ---- 1
 -15|-1|15|1
+
+-LOG CastStringToFixedList
+-STATEMENT RETURN cast("[423, 321, 423]", "INT64[3]"), cast(null, "INT64[5]"), cast("[432.43214]", "FLOAT[1]"), cast("[4, -5]", "double[2]"), cast("[4234, 42312, 432, 1321]", "INT32[4]"), cast("[-32768]", "INT16[1]")
+---- 1
+[423,321,423]||[432.432129]|[4.000000,-5.000000]|[4234,42312,432,1321]|[-32768]
