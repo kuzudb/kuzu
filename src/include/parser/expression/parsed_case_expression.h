@@ -32,13 +32,13 @@ class ParsedCaseExpression : public ParsedExpression {
 
 public:
     explicit ParsedCaseExpression(std::string raw)
-        : ParsedExpression{common::CASE_ELSE, std::move(raw)} {};
+        : ParsedExpression{common::ExpressionType::CASE_ELSE, std::move(raw)} {};
 
     ParsedCaseExpression(std::string alias, std::string rawName, parsed_expression_vector children,
         std::unique_ptr<ParsedExpression> caseExpression,
         std::vector<std::unique_ptr<ParsedCaseAlternative>> caseAlternatives,
         std::unique_ptr<ParsedExpression> elseExpression)
-        : ParsedExpression{common::CASE_ELSE, std::move(alias), std::move(rawName),
+        : ParsedExpression{common::ExpressionType::CASE_ELSE, std::move(alias), std::move(rawName),
               std::move(children)},
           caseExpression{std::move(caseExpression)}, caseAlternatives{std::move(caseAlternatives)},
           elseExpression{std::move(elseExpression)} {}
@@ -46,7 +46,8 @@ public:
     ParsedCaseExpression(std::unique_ptr<ParsedExpression> caseExpression,
         std::vector<std::unique_ptr<ParsedCaseAlternative>> caseAlternatives,
         std::unique_ptr<ParsedExpression> elseExpression)
-        : ParsedExpression{common::CASE_ELSE}, caseExpression{std::move(caseExpression)},
+        : ParsedExpression{common::ExpressionType::CASE_ELSE}, caseExpression{std::move(
+                                                                   caseExpression)},
           caseAlternatives{std::move(caseAlternatives)}, elseExpression{std::move(elseExpression)} {
     }
 

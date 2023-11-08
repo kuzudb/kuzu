@@ -90,7 +90,7 @@ static bool isPrimaryKey(const Expression& expression) {
 
 uint64_t CardinalityEstimator::estimateFilter(
     const LogicalPlan& childPlan, const Expression& predicate) {
-    if (predicate.expressionType == EQUALS) {
+    if (predicate.expressionType == ExpressionType::EQUALS) {
         if (isPrimaryKey(*predicate.getChild(0)) || isPrimaryKey(*predicate.getChild(1))) {
             return 1;
         } else {

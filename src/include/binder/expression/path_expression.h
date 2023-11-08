@@ -10,7 +10,8 @@ public:
     PathExpression(common::LogicalType dataType, std::string uniqueName, std::string variableName,
         std::unique_ptr<common::LogicalType> nodeType, std::unique_ptr<common::LogicalType> relType,
         expression_vector children)
-        : Expression{common::PATH, std::move(dataType), std::move(children), std::move(uniqueName)},
+        : Expression{common::ExpressionType::PATH, std::move(dataType), std::move(children),
+              std::move(uniqueName)},
           variableName{std::move(variableName)}, nodeType{std::move(nodeType)}, relType{std::move(
                                                                                     relType)} {}
 

@@ -228,7 +228,7 @@ const std::string CURRENT_SETTING_FUNC_NAME = "CURRENT_SETTING";
 const std::string SHOW_TABLES_FUNC_NAME = "SHOW_TABLES";
 const std::string SHOW_CONNECTION_FUNC_NAME = "SHOW_CONNECTION";
 
-enum ExpressionType : uint8_t {
+enum class ExpressionType : uint8_t {
 
     // Boolean Connection Expressions
     OR = 0,
@@ -256,6 +256,7 @@ enum ExpressionType : uint8_t {
 
     VARIABLE = 90,
     PATH = 91,
+    PATTERN = 92, // Node & Rel pattern
 
     PARAMETER = 100,
 

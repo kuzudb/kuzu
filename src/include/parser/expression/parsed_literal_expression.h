@@ -9,7 +9,8 @@ namespace parser {
 class ParsedLiteralExpression : public ParsedExpression {
 public:
     ParsedLiteralExpression(std::unique_ptr<common::Value> value, std::string raw)
-        : ParsedExpression{common::LITERAL, std::move(raw)}, value{std::move(value)} {}
+        : ParsedExpression{common::ExpressionType::LITERAL, std::move(raw)}, value{std::move(
+                                                                                 value)} {}
 
     ParsedLiteralExpression(std::string alias, std::string rawName,
         parsed_expression_vector children, std::unique_ptr<common::Value> value)

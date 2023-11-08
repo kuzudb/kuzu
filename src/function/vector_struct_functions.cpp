@@ -95,7 +95,7 @@ function_set StructExtractFunctions::getFunctionSet() {
 std::unique_ptr<FunctionBindData> StructExtractFunctions::bindFunc(
     const binder::expression_vector& arguments, Function* /*function*/) {
     auto structType = arguments[0]->getDataType();
-    if (arguments[1]->expressionType != LITERAL) {
+    if (arguments[1]->expressionType != ExpressionType::LITERAL) {
         throw BinderException("Key name for struct/union extract must be STRING literal.");
     }
     auto key = ((binder::LiteralExpression&)*arguments[1]).getValue()->getValue<std::string>();

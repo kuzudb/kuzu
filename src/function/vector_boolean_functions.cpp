@@ -35,15 +35,15 @@ void VectorBooleanFunction::bindBinaryExecFunction(ExpressionType expressionType
     KU_ASSERT(leftType.getLogicalTypeID() == LogicalTypeID::BOOL &&
               rightType.getLogicalTypeID() == LogicalTypeID::BOOL);
     switch (expressionType) {
-    case AND: {
+    case ExpressionType::AND: {
         func = &BinaryBooleanExecFunction<And>;
         return;
     }
-    case OR: {
+    case ExpressionType::OR: {
         func = &BinaryBooleanExecFunction<Or>;
         return;
     }
-    case XOR: {
+    case ExpressionType::XOR: {
         func = &BinaryBooleanExecFunction<Xor>;
         return;
     }
@@ -61,15 +61,15 @@ void VectorBooleanFunction::bindBinarySelectFunction(ExpressionType expressionTy
     KU_ASSERT(leftType.getLogicalTypeID() == LogicalTypeID::BOOL &&
               rightType.getLogicalTypeID() == LogicalTypeID::BOOL);
     switch (expressionType) {
-    case AND: {
+    case ExpressionType::AND: {
         func = &BinaryBooleanSelectFunction<And>;
         return;
     }
-    case OR: {
+    case ExpressionType::OR: {
         func = &BinaryBooleanSelectFunction<Or>;
         return;
     }
-    case XOR: {
+    case ExpressionType::XOR: {
         func = &BinaryBooleanSelectFunction<Xor>;
         return;
     }
@@ -85,7 +85,7 @@ void VectorBooleanFunction::bindUnaryExecFunction(ExpressionType expressionType,
         children.size() == 1 && children[0]->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
     (void)children;
     switch (expressionType) {
-    case NOT: {
+    case ExpressionType::NOT: {
         func = &UnaryBooleanExecFunction<Not>;
         return;
     }
@@ -101,7 +101,7 @@ void VectorBooleanFunction::bindUnarySelectFunction(ExpressionType expressionTyp
         children.size() == 1 && children[0]->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
     (void)children;
     switch (expressionType) {
-    case NOT: {
+    case ExpressionType::NOT: {
         func = &UnaryBooleanSelectFunction<Not>;
         return;
     }

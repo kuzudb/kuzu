@@ -428,6 +428,6 @@ Binder exception: Bind relationship r to relationship with same name is not supp
            MATCH (users)-->(messages)
            RETURN messages;
 ---- error
-Binder exception: users has data type VAR_LIST but (NODE) was expected.
+Binder exception: Cannot bind users as node pattern.
 
 

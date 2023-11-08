@@ -25,7 +25,7 @@ static expression_vector rewriteExpressions(
     const expression_vector& expressions, const expression_vector& properties) {
     expression_set distinctResult;
     for (auto& expression : expressions) {
-        if (expression->expressionType != common::PROPERTY) {
+        if (expression->expressionType != common::ExpressionType::PROPERTY) {
             distinctResult.insert(expression);
             continue;
         }

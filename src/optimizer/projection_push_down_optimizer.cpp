@@ -47,7 +47,7 @@ void ProjectionPushDownOptimizer::visitPathPropertyProbe(planner::LogicalOperato
     auto boundNodeID = recursiveExtend->getBoundNode()->getInternalID();
     collectExpressionsInUse(boundNodeID);
     auto rel = recursiveExtend->getRel();
-    if (!variablesInUse.contains(rel)) {
+    if (!patternInUse.contains(rel)) {
         pathPropertyProbe->setJoinType(planner::RecursiveJoinType::TRACK_NONE);
         recursiveExtend->setJoinType(planner::RecursiveJoinType::TRACK_NONE);
     }
@@ -262,12 +262,12 @@ void ProjectionPushDownOptimizer::visitSetRelProperty(planner::LogicalOperator* 
 // See comments above this class for how to collect expressions in use.
 void ProjectionPushDownOptimizer::collectExpressionsInUse(
     std::shared_ptr<binder::Expression> expression) {
-    if (expression->expressionType == PROPERTY) {
+    if (expression->expressionType == ExpressionType::PROPERTY) {
         propertiesInUse.insert(std::move(expression));
         return;
     }
-    if (expression->expressionType == VARIABLE) {
-        variablesInUse.insert(expression);
+    if (expression->expressionType == ExpressionType::PATTERN) {
+        patternInUse.insert(expression);
     }
     for (auto& child : ExpressionChildrenCollector::collectChildren(*expression)) {
         collectExpressionsInUse(child);
@@ -279,12 +279,12 @@ binder::expression_vector ProjectionPushDownOptimizer::pruneExpressions(
     expression_set expressionsAfterPruning;
     for (auto& expression : expressions) {
         switch (expression->expressionType) {
-        case VARIABLE: {
-            if (variablesInUse.contains(expression)) {
+        case ExpressionType::PATTERN: {
+            if (patternInUse.contains(expression)) {
                 expressionsAfterPruning.insert(expression);
             }
         } break;
-        case PROPERTY: {
+        case ExpressionType::PROPERTY: {
             if (propertiesInUse.contains(expression)) {
                 expressionsAfterPruning.insert(expression);
             }

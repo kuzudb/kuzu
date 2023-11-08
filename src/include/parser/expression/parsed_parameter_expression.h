@@ -9,8 +9,8 @@ namespace parser {
 class ParsedParameterExpression : public ParsedExpression {
 public:
     explicit ParsedParameterExpression(std::string parameterName, std::string raw)
-        : ParsedExpression{common::PARAMETER, std::move(raw)}, parameterName{
-                                                                   std::move(parameterName)} {}
+        : ParsedExpression{common::ExpressionType::PARAMETER, std::move(raw)},
+          parameterName{std::move(parameterName)} {}
 
     inline std::string getParameterName() const { return parameterName; }
 

@@ -44,7 +44,8 @@ std::shared_ptr<Expression> ExpressionBinder::combineConjunctiveExpressions(
     } else if (right == nullptr) {
         return left;
     } else {
-        return bindBooleanExpression(AND, expression_vector{std::move(left), std::move(right)});
+        return bindBooleanExpression(
+            ExpressionType::AND, expression_vector{std::move(left), std::move(right)});
     }
 }
 

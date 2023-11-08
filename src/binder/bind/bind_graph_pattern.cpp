@@ -1,4 +1,5 @@
 #include "binder/binder.h"
+#include "binder/expression/expression_util.h"
 #include "binder/expression/path_expression.h"
 #include "binder/expression/property_expression.h"
 #include "catalog/node_table_schema.h"
@@ -6,6 +7,7 @@
 #include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
+#include "common/exception/not_implemented.h"
 #include "common/keyword/rdf_keyword.h"
 #include "common/string_format.h"
 #include "function/cast/functions/cast_string_to_functions.h"
@@ -97,29 +99,23 @@ std::shared_ptr<Expression> Binder::createPath(
     std::vector<std::string> relFieldNames;
     std::vector<std::unique_ptr<LogicalType>> relFieldTypes;
     for (auto& child : children) {
-        switch (child->getDataType().getLogicalTypeID()) {
-        case LogicalTypeID::NODE: {
+        if (ExpressionUtil::isNodePattern(*child)) {
             auto node = reinterpret_cast<NodeExpression*>(child.get());
             extraFieldFromStructType(
                 node->getDataType(), nodeFieldNameSet, nodeFieldNames, nodeFieldTypes);
-        } break;
-        case LogicalTypeID::REL: {
+        } else if (ExpressionUtil::isRelPattern(*child)) {
             auto rel = reinterpret_cast<RelExpression*>(child.get());
             extraFieldFromStructType(
                 rel->getDataType(), relFieldNameSet, relFieldNames, relFieldTypes);
-        } break;
-        case LogicalTypeID::RECURSIVE_REL: {
+        } else if (ExpressionUtil::isRecursiveRelPattern(*child)) {
             auto recursiveRel = reinterpret_cast<RelExpression*>(child.get());
             auto recursiveInfo = recursiveRel->getRecursiveInfo();
             extraFieldFromStructType(recursiveInfo->node->getDataType(), nodeFieldNameSet,
                 nodeFieldNames, nodeFieldTypes);
             extraFieldFromStructType(
                 recursiveInfo->rel->getDataType(), relFieldNameSet, relFieldNames, relFieldTypes);
-        } break;
-            // LOCV_EXCL_START
-        default:
-            KU_UNREACHABLE;
-            // LCOV_EXCL_STOP
+        } else {
+            throw NotImplementedException("Binder::createPath");
         }
     }
     auto nodeExtraInfo = std::make_unique<StructTypeInfo>(nodeFieldNames, nodeFieldTypes);
@@ -287,7 +283,7 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
 static void bindRecursiveRelProjectionList(const expression_vector& projectionList,
     std::vector<std::string>& fieldNames, std::vector<std::unique_ptr<LogicalType>>& fieldTypes) {
     for (auto& expression : projectionList) {
-        if (expression->expressionType != common::PROPERTY) {
+        if (expression->expressionType != common::ExpressionType::PROPERTY) {
             throw BinderException(stringFormat(
                 "Unsupported projection item {} on recursive rel.", expression->toString()));
         }
@@ -445,7 +441,9 @@ std::shared_ptr<NodeExpression> Binder::bindQueryNode(
     std::shared_ptr<NodeExpression> queryNode;
     if (scope->contains(parsedName)) { // bind to node in scope
         auto prevVariable = scope->getExpression(parsedName);
-        ExpressionBinder::validateExpectedDataType(*prevVariable, LogicalTypeID::NODE);
+        if (!ExpressionUtil::isNodePattern(*prevVariable)) {
+            throw BinderException(stringFormat("Cannot bind {} as node pattern.", parsedName));
+        }
         queryNode = static_pointer_cast<NodeExpression>(prevVariable);
         // E.g. MATCH (a:person) MATCH (a:organisation)
         // We bind to a single node with both labels

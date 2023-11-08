@@ -46,8 +46,7 @@ private:
         const parser::ParsedExpression& parsedExpression);
     // Property expressions.
     expression_vector bindPropertyStarExpression(const parser::ParsedExpression& parsedExpression);
-    expression_vector bindNodePropertyStarExpression(const Expression& child);
-    expression_vector bindRelPropertyStarExpression(const Expression& child);
+    expression_vector bindNodeOrRelPropertyStarExpression(const Expression& child);
     expression_vector bindStructPropertyStarExpression(std::shared_ptr<Expression> child);
     std::shared_ptr<Expression> bindPropertyExpression(
         const parser::ParsedExpression& parsedExpression);
