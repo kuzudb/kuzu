@@ -234,10 +234,8 @@ std::shared_ptr<planner::LogicalOperator> HashJoinSIPOptimizer::appendNodeSemiMa
         key = extend->getNbrNode()->getInternalID();
         nodeTableIDs = extend->getNbrNode()->getTableIDs();
     } break;
-        // LCOV_EXCL_START
     default:
         KU_UNREACHABLE;
-        // LCOV_EXCL_STOP
     }
     auto semiMasker = std::make_shared<LogicalSemiMasker>(SemiMaskType::NODE, std::move(key),
         std::move(nodeTableIDs), opsToApplySemiMask, std::move(child));

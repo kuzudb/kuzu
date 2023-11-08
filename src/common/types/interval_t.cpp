@@ -248,10 +248,8 @@ int32_t Interval::getIntervalPart(DatePartSpecifier specifier, interval_t& inter
         return (interval.micros % Interval::MICROS_PER_HOUR) / Interval::MICROS_PER_MINUTE;
     case DatePartSpecifier::HOUR:
         return interval.micros / Interval::MICROS_PER_HOUR;
-        // LCOV_EXCL_START
     default:
         KU_UNREACHABLE;
-        // LCOV_EXCL_STOP
     }
 }
 

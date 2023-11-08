@@ -212,11 +212,9 @@ void ValueVector::copyFromValue(uint64_t pos, const Value& value) {
             case PhysicalTypeID::FLOAT: {
                 memcpy(bufferToWrite, &val->getValueReference<float_t>(), numBytesPerChildValue);
             } break;
-                // LCOV_EXCL_START
             default: {
                 KU_UNREACHABLE;
             }
-                // LCOV_EXCL_STOP
             }
             bufferToWrite += numBytesPerChildValue;
         }
@@ -227,11 +225,9 @@ void ValueVector::copyFromValue(uint64_t pos, const Value& value) {
             structFields[i]->copyFromValue(pos, *NestedVal::getChildVal(&value, i));
         }
     } break;
-        // LCOV_EXCL_START
     default: {
         KU_UNREACHABLE;
     }
-        // LCOV_EXCL_STOP
     }
 }
 
@@ -315,10 +311,8 @@ std::unique_ptr<Value> ValueVector::getAsValue(uint64_t pos) {
         case PhysicalTypeID::FLOAT: {
             FixedListVector::getAsValue<float>(this, children, pos, numElements);
         } break;
-            // LCOV_EXCL_START
         default:
             KU_UNREACHABLE;
-            // LCOV_EXCL_STOP
         }
         value->childrenSize = numElements;
         value->children = std::move(children);
@@ -333,11 +327,9 @@ std::unique_ptr<Value> ValueVector::getAsValue(uint64_t pos) {
         value->childrenSize = children.size();
         value->children = std::move(children);
     } break;
-        // LCOV_EXCL_START
     default: {
         KU_UNREACHABLE;
     }
-        // LCOV_EXCL_STOP
     }
     return value;
 }

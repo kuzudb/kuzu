@@ -32,11 +32,9 @@ void WALReplayerUtils::createEmptyHashIndexFiles(
     case LogicalTypeID::SERIAL: {
         // DO NOTHING.
     } break;
-        // LCOV_EXCL_START
     default: {
         KU_UNREACHABLE;
     }
-        // LCOV_EXCL_STOP
     }
 }
 

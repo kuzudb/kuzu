@@ -34,11 +34,9 @@ std::string FileTypeUtils::toString(FileType fileType) {
     case FileType::TURTLE: {
         return "TURTLE";
     }
-        // LCOV_EXCL_START
     default: {
         KU_UNREACHABLE;
     }
-        // LCOV_EXCL_STOP
     }
 }
 

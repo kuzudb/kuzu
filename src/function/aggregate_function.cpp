@@ -50,10 +50,8 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getSumFunc(const std::
     case common::LogicalTypeID::FLOAT:
         return getAggFunc<SumFunction<float_t>>(
             name, std::move(inputType), std::move(resultType), isDistinct);
-        // LCOV_EXCL_START
     default:
         KU_UNREACHABLE;
-        // LCOV_EXCL_STOP
     }
 }
 
@@ -94,10 +92,8 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getAvgFunc(const std::
     case common::LogicalTypeID::FLOAT:
         return getAggFunc<AvgFunction<float_t>>(
             name, std::move(inputType), std::move(resultType), isDistinct);
-        // LCOV_EXCL_START
     default:
         KU_UNREACHABLE;
-        // LCOV_EXCL_STOP
     }
 }
 

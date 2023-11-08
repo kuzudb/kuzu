@@ -33,10 +33,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
             parsedExpression, functionName, parsedFunctionExpression.getIsDistinct());
     case ExpressionType::MACRO:
         return bindMacroExpression(parsedExpression, functionName);
-        // LOCV_EXCL_START
     default:
         KU_UNREACHABLE;
-        // LOCV_EXCL_STOP
     }
     return nullptr;
 }
@@ -254,10 +252,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
             std::make_unique<Value>(*listType, populateLabelValues(relTableIDs, *catalogContent));
         children.push_back(createLiteralExpression(std::move(labelsValue)));
     } break;
-        // LCOV_EXCL_START
     default:
         KU_UNREACHABLE;
-        // LCOV_EXCL_STOP
     }
     auto execFunc = function::LabelFunction::execFunction;
     auto bindData =

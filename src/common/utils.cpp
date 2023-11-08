@@ -54,11 +54,9 @@ std::string LoggerUtils::getLoggerName(LoggerConstants::LoggerEnum loggerEnum) {
     case LoggerConstants::LoggerEnum::WAL: {
         return "wal";
     } break;
-        // LCOV_EXCL_START
     default: {
         KU_UNREACHABLE;
     }
-        // LCOV_EXCL_STOP
     }
 }
 } // namespace common

@@ -56,10 +56,8 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
     case StatementType::TRANSACTION: {
         plan = planTransaction(statement);
     } break;
-        // LCOV_EXCL_START
     default:
         KU_UNREACHABLE;
-        // LCOV_EXCL_STOP
     }
     // Avoid sharing operator across plans.
     return plan->deepCopy();
@@ -75,10 +73,8 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllPlans(const Catalog& ca
         return getAllQueryPlans(catalog, nodesStatistics, relsStatistics, statement);
     case StatementType::EXPLAIN:
         return getAllExplainPlans(catalog, nodesStatistics, relsStatistics, statement);
-        // LCOV_EXCL_START
     default:
         KU_UNREACHABLE;
-        // LCOV_EXCL_STOP
     }
 }
 

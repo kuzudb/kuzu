@@ -185,11 +185,9 @@ expression_vector Binder::bindExpectedNodeFileColumns(
             expectedColumnTypes.push_back(property->getDataType()->copy());
         }
     } break;
-        // LCOV_EXCL_START
     default: {
         KU_UNREACHABLE;
     }
-        // LCOV_EXCL_STOP
     }
     // Detect columns from file.
     std::vector<std::string> detectedColumnNames;
@@ -246,11 +244,9 @@ expression_vector Binder::bindExpectedRelFileColumns(
             readerConfig.columnTypes.push_back(std::move(columnType));
         }
     } break;
-        // LCOV_EXCL_START
     default: {
         KU_UNREACHABLE;
     }
-        // LCOV_EXCL_STOP
     }
     // Detect columns from file.
     std::vector<std::string> detectedColumnNames;

@@ -60,7 +60,7 @@ jobs:
 
       - name: Generate coverage report
         run: |
-          lcov -c -d ./ --no-external -o cover.info &&\
+          lcov --config-file .lcovrc -c -d ./ --no-external -o cover.info &&\
           lcov --remove cover.info $(< .github/workflows/lcov_exclude) -o cover.info
 
       - name: Upload coverage report

@@ -36,10 +36,8 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindUpdatingClause(
     case ClauseType::DELETE_: {
         return bindDeleteClause(updatingClause);
     }
-        // LCOV_EXCL_START
     default:
         KU_UNREACHABLE;
-        // LCOV_EXCL_STOP
     }
 }
 

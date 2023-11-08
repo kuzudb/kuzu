@@ -1,0 +1,1 @@
+lcov_excl_line = LCOV_EXCL_LINE|KU_UNREACHABLE

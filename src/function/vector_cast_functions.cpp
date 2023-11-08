@@ -357,10 +357,8 @@ static std::unique_ptr<ScalarFunction> bindCastToStringFunction(
         func = ScalarFunction::UnaryCastExecFunction<union_entry_t, ku_string_t, CastToString>;
     } break;
         // ToDo(Kebing): RECURSIVE_REL to string
-        // LCOV_EXCL_START
     default:
         KU_UNREACHABLE;
-        // LCOV_EXCL_STOP
     }
     return std::make_unique<ScalarFunction>(
         functionName, std::vector<LogicalTypeID>{sourceTypeID}, LogicalTypeID::STRING, func);

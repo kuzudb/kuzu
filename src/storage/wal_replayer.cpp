@@ -277,11 +277,9 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
                 storageManager->dropTable(tableID);
                 // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
             } break;
-                // LCOV_EXCL_START
             default: {
                 KU_UNREACHABLE;
             }
-                // LCOV_EXCL_STOP
             }
         } else {
             if (!wal->isLastLoggedRecordCommit()) {
@@ -299,11 +297,9 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
             case TableType::REL: {
                 // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
             } break;
-                // LCOV_EXCL_START
             default: {
                 KU_UNREACHABLE;
             }
-                // LCOV_EXCL_STOP
             }
         }
     } else {
@@ -328,11 +324,9 @@ void WALReplayer::replayDropPropertyRecord(const kuzu::storage::WALRecord& walRe
                     tableSchema->getColumnID(propertyID));
                 // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
             } break;
-                // LCOV_EXCL_START
             default: {
                 KU_UNREACHABLE;
             }
-                // LCOV_EXCL_STOP
             }
         } else {
             if (!wal->isLastLoggedRecordCommit()) {
@@ -358,11 +352,9 @@ void WALReplayer::replayAddPropertyRecord(const kuzu::storage::WALRecord& walRec
         case TableType::REL: {
             storageManager->getRelTable(tableID)->dropColumn(tableSchema->getColumnID(propertyID));
         } break;
-            // LCOV_EXCL_START
         default: {
             KU_UNREACHABLE;
         }
-            // LCOV_EXCL_STOP
         }
     }
 }
@@ -418,11 +410,9 @@ BMFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleare
         return dbFileID.isOverflow ? index->getDiskOverflowFile()->getFileHandle() :
                                      index->getFileHandle();
     }
-        // LCOV_EXCL_START
     default: {
         KU_UNREACHABLE;
     }
-        // LCOV_EXCL_STOP
     }
 }
 
