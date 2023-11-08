@@ -95,9 +95,7 @@ private:
 
     template<typename type>
     static void encodeData(type /*data*/, uint8_t* /*resultPtr*/, bool /*swapBytes*/) {
-        // LCOV_EXCL_START
         KU_UNREACHABLE;
-        // LCOV_EXCL_STOP
     }
 
     static inline uint8_t flipSign(uint8_t key_byte) { return key_byte ^ 128; }

@@ -55,10 +55,8 @@ std::string PhysicalTypeUtils::physicalTypeToString(PhysicalTypeID physicalType)
         return "STRUCT";
     case PhysicalTypeID::VAR_LIST:
         return "VAR_LIST";
-        // LCOV_EXCL_START
     default:
         KU_UNREACHABLE;
-        // LCOV_EXCL_STOP
     }
 }
 
@@ -92,10 +90,8 @@ uint32_t PhysicalTypeUtils::getFixedTypeSize(PhysicalTypeID physicalType) {
         return sizeof(interval_t);
     case PhysicalTypeID::INTERNAL_ID:
         return sizeof(internalID_t);
-        // LCOV_EXCL_START
     default:
         KU_UNREACHABLE;
-        // LCOV_EXCL_STOP
     }
 }
 
@@ -517,10 +513,8 @@ void LogicalType::setPhysicalType() {
     case LogicalTypeID::RDF_VARIANT: {
         physicalType = PhysicalTypeID::STRUCT;
     } break;
-        // LCOV_EXCL_START
     default:
         KU_UNREACHABLE;
-        // LCOV_EXCL_STOP
     }
 }
 
@@ -650,10 +644,8 @@ std::string LogicalTypeUtils::toString(LogicalTypeID dataTypeID) {
         return "MAP";
     case LogicalTypeID::UNION:
         return "UNION";
-        // LCOV_EXCL_START
     default:
         KU_UNREACHABLE;
-        // LCOV_EXCL_STOP
     }
 }
 

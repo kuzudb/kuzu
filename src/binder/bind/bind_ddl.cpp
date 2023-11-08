@@ -84,11 +84,9 @@ std::unique_ptr<BoundCreateTableInfo> Binder::bindCreateTableInfo(
     case TableType::RDF: {
         return bindCreateRdfGraphInfo(info);
     }
-        // LCOV_EXCL_START
     default: {
         KU_UNREACHABLE;
     }
-        // LCOV_EXCL_STOP
     }
     return nullptr;
 }
@@ -213,11 +211,9 @@ std::unique_ptr<BoundStatement> Binder::bindAlter(const parser::Statement& state
     case AlterType::RENAME_PROPERTY: {
         return bindRenameProperty(statement);
     }
-        // LCOV_EXCL_START
     default: {
         KU_UNREACHABLE;
     }
-        // LCOV_EXCL_STOP
     }
     return nullptr;
 }

@@ -13,11 +13,9 @@ bool DBFileID::operator==(const DBFileID& rhs) const {
     case DBFileType::NODE_INDEX: {
         return nodeIndexID == rhs.nodeIndexID;
     }
-        // LCOV_EXCL_START
     default: {
         KU_UNREACHABLE;
     }
-        // LCOV_EXCL_STOP
     }
 }
 
@@ -32,11 +30,9 @@ std::string dbFileTypeToString(DBFileType dbFileType) {
     case DBFileType::NODE_INDEX: {
         return "NODE_INDEX";
     }
-        // LCOV_EXCL_START
     default: {
         KU_UNREACHABLE;
     }
-        // LCOV_EXCL_STOP
     }
 }
 
@@ -95,11 +91,9 @@ bool WALRecord::operator==(const WALRecord& rhs) const {
     case WALRecordType::ADD_PROPERTY_RECORD: {
         return addPropertyRecord == rhs.addPropertyRecord;
     }
-        // LCOV_EXCL_START
     default: {
         KU_UNREACHABLE;
     }
-        // LCOV_EXCL_STOP
     }
 }
 
@@ -141,11 +135,9 @@ std::string walRecordTypeToString(WALRecordType walRecordType) {
     case WALRecordType::DROP_PROPERTY_RECORD: {
         return "DROP_PROPERTY_RECORD";
     }
-        // LCOV_EXCL_START
     default: {
         KU_UNREACHABLE;
     }
-        // LCOV_EXCL_STOP
     }
 }
 

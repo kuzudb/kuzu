@@ -33,23 +33,13 @@ public:
 
     static std::unique_ptr<ParsedSubqueryExpression> deserialize(
         common::Deserializer& /*deserializer*/) {
-        // LCOV_EXCL_START
         KU_UNREACHABLE;
-        // LCOV_EXCL_STOP
     }
 
-    std::unique_ptr<ParsedExpression> copy() const override {
-        // LCOV_EXCL_START
-        KU_UNREACHABLE;
-        // LCOV_EXCL_STOP
-    }
+    std::unique_ptr<ParsedExpression> copy() const override { KU_UNREACHABLE; }
 
 private:
-    void serializeInternal(common::Serializer& /*serializer*/) const override {
-        // LCOV_EXCL_START
-        KU_UNREACHABLE;
-        // LCOV_EXCL_STOP
-    }
+    void serializeInternal(common::Serializer& /*serializer*/) const override { KU_UNREACHABLE; }
 
 private:
     std::vector<std::unique_ptr<PatternElement>> patternElements;

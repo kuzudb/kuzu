@@ -364,9 +364,7 @@ void Value::copyValueFrom(const Value& other) {
         }
     } break;
     default:
-        // LCOV_EXCL_START
         KU_UNREACHABLE;
-        // LCOV_EXCL_STOP
     }
 }
 
@@ -437,9 +435,7 @@ std::string Value::toString() const {
         return relToString();
     }
     default:
-        // LCOV_EXCL_START
         KU_UNREACHABLE;
-        // LCOV_EXCL_STOP
     }
 }
 

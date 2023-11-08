@@ -209,10 +209,8 @@ std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern
         dstNode = rightNode;
         directionType = RelDirectionType::BOTH;
     } break;
-        // LCOV_EXCL_START
     default:
         KU_UNREACHABLE;
-        // LCOV_EXCL_STOP
     }
     // bind variable length
     std::shared_ptr<RelExpression> queryRel;
@@ -562,10 +560,8 @@ std::vector<table_id_t> Binder::getNodeTableIDs(const std::vector<table_id_t>& t
     case TableType::NODE: {
         return tableIDs;
     }
-        // LCOV_EXCL_START
     default:
         KU_UNREACHABLE;
-        // LCOV_EXCL_STOP
     }
 }
 
@@ -597,10 +593,8 @@ std::vector<table_id_t> Binder::getRelTableIDs(const std::vector<table_id_t>& ta
     case TableType::REL: {
         return tableIDs;
     }
-        // LCOV_EXCL_START
     default:
         KU_UNREACHABLE;
-        // LCOV_EXCL_STOP
     }
 }
 

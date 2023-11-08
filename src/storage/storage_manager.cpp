@@ -62,11 +62,9 @@ void StorageManager::createTable(common::table_id_t tableID,
         tables[tableID] = std::make_unique<RelTable>(dataFH.get(), metadataFH.get(),
             relsStatistics.get(), bufferManager, relTableSchema, wal, enableCompression);
     } break;
-        // LCOV_EXCL_START
     default: {
         KU_UNREACHABLE;
     }
-        // LCOV_EXCL_STOP
     }
 }
 
@@ -87,11 +85,9 @@ void StorageManager::dropTable(table_id_t tableID) {
     case TableType::REL: {
         relsStatistics->removeTableStatistic(tableID);
     } break;
-        // LCOV_EXCL_START
     default: {
         KU_UNREACHABLE;
     }
-        // LCOV_EXCL_STOP
     }
     tables.erase(tableID);
 }

@@ -243,10 +243,8 @@ void Binder::sniffFiles(const common::ReaderConfig& readerConfig,
         } break;
         case FileType::TURTLE:
             break;
-            // LCOV_EXCL_START
         default:
             KU_UNREACHABLE;
-            // LCOV_EXCL_STOP
         }
     }
 }

@@ -47,11 +47,9 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::TRANSACTION: {
         boundStatement = bindTransaction(statement);
     } break;
-        // LCOV_EXCL_START
     default: {
         KU_UNREACHABLE;
     }
-        // LCOV_EXCL_STOP
     }
     BoundStatementRewriter::rewrite(*boundStatement, catalog);
     return boundStatement;

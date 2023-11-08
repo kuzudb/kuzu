@@ -77,11 +77,9 @@ std::unique_ptr<ParsedExpression> ParsedExpression::deserialize(Deserializer& de
     case ExpressionType::VARIABLE: {
         parsedExpression = ParsedVariableExpression::deserialize(deserializer);
     } break;
-        // LCOV_EXCL_START
     default: {
         KU_UNREACHABLE;
     }
-        // LCOV_EXCL_STOP
     }
     parsedExpression->alias = std::move(alias);
     parsedExpression->rawName = std::move(rawName);
