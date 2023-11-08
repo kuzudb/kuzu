@@ -183,8 +183,7 @@ void QueryResult::writeToCSV(
         for (auto idx = 0ul; idx < nextTuple->len(); idx++) {
             std::string resultVal = nextTuple->getValue(idx)->toString();
             bool isStringList = false;
-            if (LogicalTypeUtils::dataTypeToString(*nextTuple->getValue(idx)->getDataType()) ==
-                "STRING[]") {
+            if (nextTuple->getValue(idx)->getDataType()->toString() == "STRING[]") {
                 isStringList = true;
             }
             bool surroundQuotes = false;

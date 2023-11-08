@@ -75,7 +75,7 @@ insert_function_t HashIndexUtils::initializeInsertFunc(LogicalTypeID dataTypeID)
     }
     default: {
         throw StorageException(
-            "Type " + LogicalTypeUtils::dataTypeToString(dataTypeID) + " not supported.");
+            "Type " + LogicalTypeUtils::toString(dataTypeID) + " not supported.");
     }
     }
 }
@@ -90,7 +90,7 @@ hash_function_t HashIndexUtils::initializeHashFunc(LogicalTypeID dataTypeID) {
     }
     default: {
         throw StorageException(
-            "Type " + LogicalTypeUtils::dataTypeToString(dataTypeID) + " not supported.");
+            "Type " + LogicalTypeUtils::toString(dataTypeID) + " not supported.");
     }
     }
 }

@@ -212,7 +212,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     }
     default:
         throw NotImplementedException(
-            "Unsupported type: " + LogicalTypeUtils::dataTypeToString(*dataType));
+            "Unsupported type: " + dataType->toString());
     }
 }
 
@@ -261,7 +261,7 @@ py::list PyQueryResult::getColumnDataTypes() {
     auto columnDataTypes = queryResult->getColumnDataTypes();
     py::tuple result(columnDataTypes.size());
     for (auto i = 0u; i < columnDataTypes.size(); ++i) {
-        result[i] = py::cast(LogicalTypeUtils::dataTypeToString(columnDataTypes[i]));
+        result[i] = py::cast(columnDataTypes[i].toString());
     }
     return std::move(result);
 }

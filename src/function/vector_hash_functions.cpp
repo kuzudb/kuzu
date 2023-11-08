@@ -70,11 +70,11 @@ void VectorHashFunction::computeHash(ValueVector* operand, ValueVector* result) 
             break;
         }
     }
+        // LCOV_EXCL_START
     default: {
-        throw RuntimeException(
-            "Cannot hash data type " +
-            LogicalTypeUtils::dataTypeToString(operand->dataType.getLogicalTypeID()));
+        throw RuntimeException("Cannot hash data type " + operand->dataType.toString());
     }
+        // LCOV_EXCL_STOP
     }
 }
 

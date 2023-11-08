@@ -129,10 +129,11 @@ std::unique_ptr<ArrowVector> ArrowRowBatch::createVector(
     case LogicalTypeID::REL: {
         templateInitializeVector<LogicalTypeID::REL>(result.get(), typeInfo, capacity);
     } break;
+        // LCOV_EXCL_START
     default: {
-        throw RuntimeException("Invalid data type " +
-                               LogicalTypeUtils::dataTypeToString(typeInfo.typeID) +
+        throw RuntimeException("Invalid data type " + LogicalTypeUtils::toString(typeInfo.typeID) +
                                " for arrow export.");
+        // LCOV_EXCL_STOP
     }
     }
     return std::move(result);
@@ -306,10 +307,11 @@ void ArrowRowBatch::copyNonNullValue(
     case LogicalTypeID::REL: {
         templateCopyNonNullValue<LogicalTypeID::REL>(vector, typeInfo, value, pos);
     } break;
+        // LCOV_EXCL_START
     default: {
-        throw RuntimeException("Invalid data type " +
-                               LogicalTypeUtils::dataTypeToString(*value->dataType) +
-                               " for arrow export.");
+        throw RuntimeException(
+            "Invalid data type " + value->dataType->toString() + " for arrow export.");
+        // LCOV_EXCL_STOP
     }
     }
 }
@@ -380,10 +382,11 @@ void ArrowRowBatch::copyNullValue(ArrowVector* vector, Value* value, std::int64_
     case LogicalTypeID::REL: {
         templateCopyNullValue<LogicalTypeID::REL>(vector, pos);
     } break;
+        // LCOV_EXCL_START
     default: {
-        throw RuntimeException("Invalid data type " +
-                               LogicalTypeUtils::dataTypeToString(*value->dataType) +
-                               " for arrow export.");
+        throw RuntimeException(
+            "Invalid data type " + value->dataType->toString() + " for arrow export.");
+        // LCOV_EXCL_STOP
     }
     }
 }
@@ -519,10 +522,11 @@ ArrowArray* ArrowRowBatch::convertVectorToArray(
     case LogicalTypeID::REL: {
         return templateCreateArray<LogicalTypeID::REL>(vector, typeInfo);
     }
+        // LCOV_EXCL_START
     default: {
-        throw RuntimeException("Invalid data type " +
-                               LogicalTypeUtils::dataTypeToString(typeInfo.typeID) +
+        throw RuntimeException("Invalid data type " + LogicalTypeUtils::toString(typeInfo.typeID) +
                                " for arrow export.");
+        // LCOV_EXCL_STOP
     }
     }
 }

@@ -182,9 +182,8 @@ void Connection::bindParametersNoLock(PreparedStatement* preparedStatement,
         auto expectParam = parameterMap.at(name);
         if (*expectParam->getDataType() != *value->getDataType()) {
             throw Exception("Parameter " + name + " has data type " +
-                            LogicalTypeUtils::dataTypeToString(*value->getDataType()) +
-                            " but expects " +
-                            LogicalTypeUtils::dataTypeToString(*expectParam->getDataType()) + ".");
+                            value->getDataType()->toString() + " but expects " +
+                            expectParam->getDataType()->toString() + ".");
         }
         parameterMap.at(name)->copyValueFrom(*value);
     }

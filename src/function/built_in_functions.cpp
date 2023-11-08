@@ -184,8 +184,8 @@ void BuiltInFunctions::validateNonEmptyCandidateFunctions(
         }
         throw BinderException("Cannot match a built-in function for given function " + name +
                               (isDistinct ? "DISTINCT " : "") +
-                              LogicalTypeUtils::dataTypesToString(inputTypes) +
-                              ". Supported inputs are\n" + supportedInputsString);
+                              LogicalTypeUtils::toString(inputTypes) + ". Supported inputs are\n" +
+                              supportedInputsString);
     }
 }
 
@@ -456,8 +456,8 @@ void BuiltInFunctions::validateNonEmptyCandidateFunctions(
             supportedInputsString += baseScalarFunction->signatureToString() + "\n";
         }
         throw BinderException("Cannot match a built-in function for given function " + name +
-                              LogicalTypeUtils::dataTypesToString(inputTypes) +
-                              ". Supported inputs are\n" + supportedInputsString);
+                              LogicalTypeUtils::toString(inputTypes) + ". Supported inputs are\n" +
+                              supportedInputsString);
     }
 }
 

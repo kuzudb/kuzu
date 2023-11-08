@@ -1,5 +1,7 @@
 #include "storage/index/hash_index_builder.h"
 
+#include "common/exception/not_implemented.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -174,6 +176,23 @@ void HashIndexBuilder<T>::flush() {
 
 template class HashIndexBuilder<int64_t>;
 template class HashIndexBuilder<ku_string_t>;
+
+PrimaryKeyIndexBuilder::PrimaryKeyIndexBuilder(
+    const std::string& fName, const LogicalType& keyDataType)
+    : keyDataTypeID{keyDataType.getLogicalTypeID()} {
+    switch (keyDataTypeID) {
+    case LogicalTypeID::INT64: {
+        hashIndexBuilderForInt64 = std::make_unique<HashIndexBuilder<int64_t>>(fName, keyDataType);
+    } break;
+    case LogicalTypeID::STRING: {
+        hashIndexBuilderForString =
+            std::make_unique<HashIndexBuilder<ku_string_t>>(fName, keyDataType);
+    } break;
+    default: {
+        throw NotImplementedException("PrimaryKeyIndexBuilder::PrimaryKeyIndexBuilder");
+    }
+    }
+}
 
 } // namespace storage
 } // namespace kuzu

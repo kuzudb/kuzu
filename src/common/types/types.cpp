@@ -37,10 +37,8 @@ std::string PhysicalTypeUtils::physicalTypeToString(PhysicalTypeID physicalType)
         return "UINT16";
     case PhysicalTypeID::UINT8:
         return "UINT8";
-    // LCOV_EXCL_START
     case PhysicalTypeID::INT128:
         return "INT128";
-    // LCOV_EXCL_STOP
     case PhysicalTypeID::DOUBLE:
         return "DOUBLE";
     case PhysicalTypeID::FLOAT:
@@ -201,6 +199,10 @@ StructField* StructTypeInfo::getStructField(const std::string& fieldName) const 
     return fields[idx].get();
 }
 
+LogicalType* StructTypeInfo::getChildType(kuzu::common::struct_field_idx_t idx) const {
+    return fields[idx]->getType();
+}
+
 std::vector<LogicalType*> StructTypeInfo::getChildrenTypes() const {
     std::vector<LogicalType*> childrenTypesToReturn{fields.size()};
     for (auto i = 0u; i < fields.size(); i++) {
@@ -315,6 +317,80 @@ LogicalType& LogicalType::operator=(LogicalType&& other) noexcept {
     return *this;
 }
 
+std::string LogicalType::toString() const {
+    switch (typeID) {
+    case LogicalTypeID::MAP: {
+        auto structType = reinterpret_cast<VarListTypeInfo*>(extraTypeInfo.get())->getChildType();
+        auto fieldTypes = StructType::getFieldTypes(structType);
+        return "MAP(" + fieldTypes[0]->toString() + ": " + fieldTypes[1]->toString() + ")";
+    }
+    case LogicalTypeID::VAR_LIST: {
+        auto varListTypeInfo = reinterpret_cast<VarListTypeInfo*>(extraTypeInfo.get());
+        return varListTypeInfo->getChildType()->toString() + "[]";
+    }
+    case LogicalTypeID::FIXED_LIST: {
+        auto fixedListTypeInfo = reinterpret_cast<FixedListTypeInfo*>(extraTypeInfo.get());
+        return fixedListTypeInfo->getChildType()->toString() + "[" +
+               std::to_string(fixedListTypeInfo->getNumElementsInList()) + "]";
+    }
+    case LogicalTypeID::UNION: {
+        auto unionTypeInfo = reinterpret_cast<StructTypeInfo*>(extraTypeInfo.get());
+        std::string dataTypeStr = LogicalTypeUtils::toString(typeID) + "(";
+        auto numFields = unionTypeInfo->getChildrenTypes().size();
+        auto fieldNames = unionTypeInfo->getChildrenNames();
+        for (auto i = 1u; i < numFields; i++) {
+            dataTypeStr += fieldNames[i] + ":";
+            dataTypeStr += unionTypeInfo->getChildType(i)->toString();
+            dataTypeStr += (i == numFields - 1 ? ")" : ", ");
+        }
+        return dataTypeStr;
+    }
+    case LogicalTypeID::STRUCT: {
+        auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(extraTypeInfo.get());
+        std::string dataTypeStr = LogicalTypeUtils::toString(typeID) + "(";
+        auto numFields = structTypeInfo->getChildrenTypes().size();
+        auto fieldNames = structTypeInfo->getChildrenNames();
+        for (auto i = 0u; i < numFields - 1; i++) {
+            dataTypeStr += fieldNames[i] + ":";
+            dataTypeStr += structTypeInfo->getChildType(i)->toString();
+            dataTypeStr += ", ";
+        }
+        dataTypeStr += fieldNames[numFields - 1] + ":";
+        dataTypeStr += structTypeInfo->getChildType(numFields - 1)->toString();
+        return dataTypeStr + ")";
+    }
+    case LogicalTypeID::ANY:
+    case LogicalTypeID::NODE:
+    case LogicalTypeID::REL:
+    case LogicalTypeID::RECURSIVE_REL:
+    case LogicalTypeID::INTERNAL_ID:
+    case LogicalTypeID::BOOL:
+    case LogicalTypeID::INT64:
+    case LogicalTypeID::INT32:
+    case LogicalTypeID::INT16:
+    case LogicalTypeID::INT8:
+    case LogicalTypeID::UINT64:
+    case LogicalTypeID::UINT32:
+    case LogicalTypeID::UINT16:
+    case LogicalTypeID::UINT8:
+    case LogicalTypeID::INT128:
+    case LogicalTypeID::DOUBLE:
+    case LogicalTypeID::FLOAT:
+    case LogicalTypeID::DATE:
+    case LogicalTypeID::TIMESTAMP:
+    case LogicalTypeID::INTERVAL:
+    case LogicalTypeID::BLOB:
+    case LogicalTypeID::STRING:
+    case LogicalTypeID::SERIAL:
+    case LogicalTypeID::RDF_VARIANT:
+        return LogicalTypeUtils::toString(typeID);
+        // LCOV_EXCL_START
+    default:
+        throw NotImplementedException("LogicalType::toString");
+        // LCOV_EXCL_STOP
+    }
+}
+
 void LogicalType::serialize(Serializer& serializer) const {
     serializer.serializeValue(typeID);
     serializer.serializeValue(physicalType);
@@ -347,7 +423,11 @@ std::unique_ptr<LogicalType> LogicalType::deserialize(Deserializer& deserializer
     default:
         extraTypeInfo = nullptr;
     }
-    return std::make_unique<LogicalType>(typeID, physicalType, std::move(extraTypeInfo));
+    auto result = std::make_unique<LogicalType>();
+    result->typeID = typeID;
+    result->physicalType = physicalType;
+    result->extraTypeInfo = std::move(extraTypeInfo);
+    return result;
 }
 
 std::unique_ptr<LogicalType> LogicalType::copy() const {
@@ -510,82 +590,7 @@ LogicalTypeID LogicalTypeUtils::dataTypeIDFromString(const std::string& dataType
     }
 }
 
-std::string LogicalTypeUtils::dataTypeToString(const LogicalType& dataType) {
-    switch (dataType.typeID) {
-    case LogicalTypeID::MAP: {
-        auto structType = VarListType::getChildType(&dataType);
-        auto fieldTypes = StructType::getFieldTypes(structType);
-        return "MAP(" + dataTypeToString(*fieldTypes[0]) + ": " + dataTypeToString(*fieldTypes[1]) +
-               ")";
-    }
-    case LogicalTypeID::VAR_LIST: {
-        auto varListTypeInfo = reinterpret_cast<VarListTypeInfo*>(dataType.extraTypeInfo.get());
-        return dataTypeToString(*varListTypeInfo->getChildType()) + "[]";
-    }
-    case LogicalTypeID::FIXED_LIST: {
-        auto fixedListTypeInfo = reinterpret_cast<FixedListTypeInfo*>(dataType.extraTypeInfo.get());
-        return dataTypeToString(*fixedListTypeInfo->getChildType()) + "[" +
-               std::to_string(fixedListTypeInfo->getNumElementsInList()) + "]";
-    }
-    case LogicalTypeID::UNION: {
-        auto unionTypeInfo = reinterpret_cast<StructTypeInfo*>(dataType.extraTypeInfo.get());
-        std::string dataTypeStr = dataTypeToString(dataType.typeID) + "(";
-        auto numFields = unionTypeInfo->getChildrenTypes().size();
-        auto fieldNames = unionTypeInfo->getChildrenNames();
-        for (auto i = 1u; i < numFields; i++) {
-            dataTypeStr += fieldNames[i] + ":";
-            dataTypeStr += dataTypeToString(*unionTypeInfo->getChildrenTypes()[i]);
-            dataTypeStr += (i == numFields - 1 ? ")" : ", ");
-        }
-        return dataTypeStr;
-    }
-    case LogicalTypeID::STRUCT: {
-        auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(dataType.extraTypeInfo.get());
-        std::string dataTypeStr = dataTypeToString(dataType.typeID) + "(";
-        auto numFields = structTypeInfo->getChildrenTypes().size();
-        auto fieldNames = structTypeInfo->getChildrenNames();
-        for (auto i = 0u; i < numFields - 1; i++) {
-            dataTypeStr += fieldNames[i] + ":";
-            dataTypeStr += dataTypeToString(*structTypeInfo->getChildrenTypes()[i]);
-            dataTypeStr += ", ";
-        }
-        dataTypeStr += fieldNames[numFields - 1] + ":";
-        dataTypeStr += dataTypeToString(*structTypeInfo->getChildrenTypes()[numFields - 1]);
-        return dataTypeStr + ")";
-    }
-    case LogicalTypeID::ANY:
-    case LogicalTypeID::NODE:
-    case LogicalTypeID::REL:
-    case LogicalTypeID::RECURSIVE_REL:
-    case LogicalTypeID::INTERNAL_ID:
-    case LogicalTypeID::BOOL:
-    case LogicalTypeID::INT64:
-    case LogicalTypeID::INT32:
-    case LogicalTypeID::INT16:
-    case LogicalTypeID::INT8:
-    case LogicalTypeID::UINT64:
-    case LogicalTypeID::UINT32:
-    case LogicalTypeID::UINT16:
-    case LogicalTypeID::UINT8:
-    case LogicalTypeID::INT128:
-    case LogicalTypeID::DOUBLE:
-    case LogicalTypeID::FLOAT:
-    case LogicalTypeID::DATE:
-    case LogicalTypeID::TIMESTAMP:
-    case LogicalTypeID::INTERVAL:
-    case LogicalTypeID::BLOB:
-    case LogicalTypeID::STRING:
-    case LogicalTypeID::SERIAL:
-    case LogicalTypeID::RDF_VARIANT:
-        return dataTypeToString(dataType.typeID);
-        // LCOV_EXCL_START
-    default:
-        KU_UNREACHABLE;
-        // LCOV_EXCL_STOP
-    }
-}
-
-std::string LogicalTypeUtils::dataTypeToString(LogicalTypeID dataTypeID) {
+std::string LogicalTypeUtils::toString(LogicalTypeID dataTypeID) {
     switch (dataTypeID) {
     case LogicalTypeID::ANY:
         return "ANY";
@@ -652,21 +657,21 @@ std::string LogicalTypeUtils::dataTypeToString(LogicalTypeID dataTypeID) {
     }
 }
 
-std::string LogicalTypeUtils::dataTypesToString(const std::vector<LogicalType*>& dataTypes) {
+std::string LogicalTypeUtils::toString(const std::vector<LogicalType*>& dataTypes) {
     std::vector<LogicalTypeID> dataTypeIDs;
     for (auto& dataType : dataTypes) {
         dataTypeIDs.push_back(dataType->typeID);
     }
-    return dataTypesToString(dataTypeIDs);
+    return toString(dataTypeIDs);
 }
 
-std::string LogicalTypeUtils::dataTypesToString(const std::vector<LogicalTypeID>& dataTypeIDs) {
+std::string LogicalTypeUtils::toString(const std::vector<LogicalTypeID>& dataTypeIDs) {
     if (dataTypeIDs.empty()) {
         return {""};
     }
-    std::string result = "(" + LogicalTypeUtils::dataTypeToString(dataTypeIDs[0]);
+    std::string result = "(" + LogicalTypeUtils::toString(dataTypeIDs[0]);
     for (auto i = 1u; i < dataTypeIDs.size(); ++i) {
-        result += "," + LogicalTypeUtils::dataTypeToString(dataTypeIDs[i]);
+        result += "," + LogicalTypeUtils::toString(dataTypeIDs[i]);
     }
     result += ")";
     return result;

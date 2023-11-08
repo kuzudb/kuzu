@@ -28,9 +28,8 @@ namespace function {
 
 static std::string getListFunctionIncompatibleChildrenTypeErrorMsg(
     const std::string& functionName, const LogicalType& left, const LogicalType& right) {
-    return std::string("Cannot bind " + functionName + " with parameter type " +
-                       LogicalTypeUtils::dataTypeToString(left) + " and " +
-                       LogicalTypeUtils::dataTypeToString(right) + ".");
+    return std::string("Cannot bind " + functionName + " with parameter type " + left.toString() +
+                       " and " + right.toString() + ".");
 }
 
 void ListCreationFunction::execFunc(const std::vector<std::shared_ptr<ValueVector>>& parameters,

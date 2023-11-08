@@ -160,8 +160,7 @@ void TableInfoFunction::tableFunc(
         }
         outputVectors[0]->setValue(outVectorPos, (int64_t)property->getPropertyID());
         outputVectors[1]->setValue(outVectorPos, property->getName());
-        outputVectors[2]->setValue(
-            outVectorPos, LogicalTypeUtils::dataTypeToString(*property->getDataType()));
+        outputVectors[2]->setValue(outVectorPos, property->getDataType()->toString());
         if (tableSchema->tableType == TableType::NODE) {
             auto primaryKeyID =
                 reinterpret_cast<NodeTableSchema*>(tableSchema)->getPrimaryKeyPropertyID();

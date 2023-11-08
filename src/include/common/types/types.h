@@ -149,7 +149,6 @@ protected:
 };
 
 class VarListTypeInfo : public ExtraTypeInfo {
-
 public:
     VarListTypeInfo() = default;
     explicit VarListTypeInfo(std::unique_ptr<LogicalType> childType)
@@ -170,7 +169,6 @@ protected:
 };
 
 class FixedListTypeInfo : public VarListTypeInfo {
-
 public:
     FixedListTypeInfo() = default;
     explicit FixedListTypeInfo(
@@ -189,7 +187,6 @@ private:
 };
 
 class StructField {
-
 public:
     StructField() : type{std::make_unique<LogicalType>()} {}
     StructField(std::string name, std::unique_ptr<LogicalType> type)
@@ -213,7 +210,6 @@ private:
 };
 
 class StructTypeInfo : public ExtraTypeInfo {
-
 public:
     StructTypeInfo() = default;
     explicit StructTypeInfo(std::vector<std::unique_ptr<StructField>> fields);
@@ -224,6 +220,7 @@ public:
     struct_field_idx_t getStructFieldIdx(std::string fieldName) const;
     StructField* getStructField(struct_field_idx_t idx) const;
     StructField* getStructField(const std::string& fieldName) const;
+    LogicalType* getChildType(struct_field_idx_t idx) const;
     std::vector<LogicalType*> getChildrenTypes() const;
     std::vector<std::string> getChildrenNames() const;
     std::vector<StructField*> getStructFields() const;
@@ -252,10 +249,6 @@ public:
     };
     explicit KUZU_API LogicalType(LogicalTypeID typeID);
     KUZU_API LogicalType(LogicalTypeID typeID, std::unique_ptr<ExtraTypeInfo> extraTypeInfo);
-    // For deserialize only.
-    LogicalType(LogicalTypeID typeID, PhysicalTypeID physicalType,
-        std::unique_ptr<ExtraTypeInfo> extraTypeInfo)
-        : typeID{typeID}, physicalType{physicalType}, extraTypeInfo{std::move(extraTypeInfo)} {}
     KUZU_API LogicalType(const LogicalType& other);
     KUZU_API LogicalType(LogicalType&& other) noexcept;
 
@@ -266,6 +259,8 @@ public:
     KUZU_API bool operator!=(const LogicalType& other) const;
 
     KUZU_API LogicalType& operator=(LogicalType&& other) noexcept;
+
+    KUZU_API std::string toString() const;
 
     KUZU_API inline LogicalTypeID getLogicalTypeID() const { return typeID; }
 
@@ -427,10 +422,9 @@ struct PhysicalTypeUtils {
 
 class LogicalTypeUtils {
 public:
-    KUZU_API static std::string dataTypeToString(const LogicalType& dataType);
-    KUZU_API static std::string dataTypeToString(LogicalTypeID dataTypeID);
-    static std::string dataTypesToString(const std::vector<LogicalType*>& dataTypes);
-    KUZU_API static std::string dataTypesToString(const std::vector<LogicalTypeID>& dataTypeIDs);
+    KUZU_API static std::string toString(LogicalTypeID dataTypeID);
+    static std::string toString(const std::vector<LogicalType*>& dataTypes);
+    KUZU_API static std::string toString(const std::vector<LogicalTypeID>& dataTypeIDs);
     KUZU_API static LogicalType dataTypeFromString(const std::string& dataTypeString);
     static uint32_t getRowLayoutSize(const LogicalType& logicalType);
     static bool isNumerical(const LogicalType& dataType);

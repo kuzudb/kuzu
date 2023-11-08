@@ -97,7 +97,7 @@ std::unique_ptr<LogicalType> Binder::bindDataType(const std::string& dataType) {
         if (find(validNumericTypes.begin(), validNumericTypes.end(),
                 childType->getLogicalTypeID()) == validNumericTypes.end()) {
             throw BinderException("The child type of a fixed list must be a numeric type. Given: " +
-                                  LogicalTypeUtils::dataTypeToString(*childType) + ".");
+                                  childType->toString() + ".");
         }
         if (numElementsInList == 0) {
             // Note: the parser already guarantees that the number of elements is a non-negative

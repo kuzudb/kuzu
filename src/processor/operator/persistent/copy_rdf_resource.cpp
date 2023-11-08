@@ -17,11 +17,11 @@ static bool isEmptyTable(NodeTable* nodeTable) {
 }
 
 void CopyRdfResource::initGlobalStateInternal(ExecutionContext* /*context*/) {
-    // LCOV_EXEL_START
+    // LCOV_EXCL_START
     if (!isEmptyTable(info->table)) {
         throw CopyException("aa");
     }
-    // LCOV_EXEL_STOP
+    // LCOV_EXCL_STOP
     sharedState->init();
 }
 

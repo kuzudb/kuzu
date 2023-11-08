@@ -157,7 +157,7 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
         return napiObj;
     }
     default:
-        throw Exception("Unsupported type: " + LogicalTypeUtils::dataTypeToString(*dataType));
+        throw Exception("Unsupported type: " + dataType->toString());
     }
     return Napi::Value();
 }
@@ -267,7 +267,7 @@ Value Util::TransformNapiValue(
     }
     default:
         throw Exception("Unsupported type " +
-                        LogicalTypeUtils::dataTypeToString(*expectedDataType) +
+                        expectedDataType->toString() +
                         " for parameter: " + key);
     }
 }

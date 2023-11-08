@@ -123,7 +123,7 @@ static std::unique_ptr<ScalarFunction> bindCastFromStringFunction(
     default:
         throw common::NotImplementedException{
             stringFormat("Unimplemented casting function from STRING to {}.",
-                LogicalTypeUtils::dataTypeToString(targetTypeID))};
+                LogicalTypeUtils::toString(targetTypeID))};
         // LCOV_EXCL_STOP
     }
     return std::make_unique<ScalarFunction>(
@@ -203,7 +203,7 @@ static std::unique_ptr<ScalarFunction> bindCastFromRdfVariantFunction(
     default:
         throw common::NotImplementedException{
             stringFormat("Unimplemented casting function from RDF_VARIANT to {}.",
-                LogicalTypeUtils::dataTypeToString(targetTypeID))};
+                LogicalTypeUtils::toString(targetTypeID))};
         // LCOV_EXCL_STOP
     }
     return std::make_unique<ScalarFunction>(functionName,
@@ -327,7 +327,7 @@ static std::unique_ptr<ScalarFunction> bindCastToStringFunction(
     default:
         throw common::NotImplementedException{
             stringFormat("Unimplemented casting function from {} to STRING.",
-                LogicalTypeUtils::dataTypeToString(sourceTypeID))};
+                LogicalTypeUtils::toString(sourceTypeID))};
         // LCOV_EXCL_STOP
     }
     return std::make_unique<ScalarFunction>(
@@ -375,10 +375,9 @@ static std::unique_ptr<ScalarFunction> bindCastToNumericFunction(
     } break;
         // LCOV_EXCL_START
     default:
-        throw common::NotImplementedException{
-            stringFormat("Unimplemented casting function from {} to {}.",
-                LogicalTypeUtils::dataTypeToString(sourceTypeID),
-                LogicalTypeUtils::dataTypeToString(targetTypeID))};
+        throw common::NotImplementedException{stringFormat(
+            "Unimplemented casting function from {} to {}.",
+            LogicalTypeUtils::toString(sourceTypeID), LogicalTypeUtils::toString(targetTypeID))};
         // LCOV_EXCL_STOP
     }
     return std::make_unique<ScalarFunction>(
