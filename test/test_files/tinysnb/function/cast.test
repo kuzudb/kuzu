@@ -64,10 +64,10 @@
 -LOG CastFromFLOAT
 -STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN to_int16(p.height), to_int32(p.height), to_int64(p.height), to_int128(p.height), to_double(p.height)
 ---- 1
-2|2|2|1|1.731000
+2|2|2|2|1.731000
 -STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN cast(p.height, "uint8"), cast(p.height, "int16"), cast(p.height, "int32"), cast(p.height, "int64"), cast(p.height, "int128"), cast(p.height, "double"), cast(p.height, "float")
 ---- 1
-2|2|2|2|1|1.731000|1.731000
+2|2|2|2|2|1.731000|1.731000
 
 -LOG CastFromDOUBLE
 -STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN to_int16(p.eyeSight), to_int32(p.eyeSight), to_int64(p.eyeSight), to_int128(p.eyeSight), to_float(p.eyeSight)
@@ -1088,3 +1088,10 @@ False
 -STATEMENT RETURN cast("[423, 321, 423]", "INT64[3]"), cast(null, "INT64[5]"), cast("[432.43214]", "FLOAT[1]"), cast("[4, -5]", "double[2]"), cast("[4234, 42312, 432, 1321]", "INT32[4]"), cast("[-32768]", "INT16[1]")
 ---- 1
 [423,321,423]||[432.432129]|[4.000000,-5.000000]|[4234,42312,432,1321]|[-32768]
+-STATEMENT Return cast(cast(-4324324, "int128"), "int64")
+---- 1
+-4324324
+
+-STATEMENT Return to_int64(to_int128(-4324324))
+---- 1
+-4324324
