@@ -3,7 +3,7 @@
 #include "binder/binder.h"
 #include "binder/expression/literal_expression.h"
 #include "common/exception/binder.h"
-#include "common/exception/not_implemented.h"
+#include "common/exception/conversion.h"
 #include "function/cast/functions/cast_functions.h"
 #include "function/cast/functions/cast_rdf_variant.h"
 #include "function/cast/functions/cast_string_to_functions.h"
@@ -12,6 +12,79 @@ using namespace kuzu::common;
 
 namespace kuzu {
 namespace function {
+
+static void castFixedListToString(
+    ValueVector& param, uint64_t pos, ValueVector& resultVector, uint64_t resultPos) {
+    resultVector.setNull(resultPos, param.isNull(pos));
+    if (param.isNull(pos)) {
+        return;
+    }
+    std::string result = "[";
+    auto numValuesPerList = FixedListType::getNumElementsInList(&param.dataType);
+    auto childType = FixedListType::getChildType(&param.dataType);
+    auto values = param.getData() + pos * param.getNumBytesPerValue();
+    for (auto i = 0u; i < numValuesPerList - 1; ++i) {
+        // Note: FixedList can only store numeric types and doesn't allow nulls.
+        result += TypeUtils::castValueToString(*childType, values, nullptr /* vector */);
+        result += ",";
+        values += PhysicalTypeUtils::getFixedTypeSize(childType->getPhysicalType());
+    }
+    result += TypeUtils::castValueToString(*childType, values, nullptr /* vector */);
+    result += "]";
+    resultVector.setValue(resultPos, result);
+}
+
+static void fixedListCastExecFunction(const std::vector<std::shared_ptr<ValueVector>>& params,
+    ValueVector& result, void* /*dataPtr*/ = nullptr) {
+    assert(params.size() == 1);
+    auto param = params[0];
+    if (param->state->isFlat()) {
+        castFixedListToString(*param, param->state->selVector->selectedPositions[0], result,
+            result.state->selVector->selectedPositions[0]);
+    } else if (param->state->selVector->isUnfiltered()) {
+        for (auto i = 0u; i < param->state->selVector->selectedSize; i++) {
+            castFixedListToString(*param, i, result, i);
+        }
+    } else {
+        for (auto i = 0u; i < param->state->selVector->selectedSize; i++) {
+            castFixedListToString(*param, param->state->selVector->selectedPositions[i], result,
+                result.state->selVector->selectedPositions[i]);
+        }
+    }
+}
+
+static void StringtoFixedListCastExecFunction(
+    const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
+    assert(params.size() == 1);
+    auto param = params[0];
+    auto csvReaderConfig = &reinterpret_cast<StringCastFunctionBindData*>(dataPtr)->csvConfig;
+    if (param->state->isFlat()) {
+        auto inputPos = param->state->selVector->selectedPositions[0];
+        auto resultPos = result.state->selVector->selectedPositions[0];
+        result.setNull(resultPos, param->isNull(inputPos));
+        if (!result.isNull(inputPos)) {
+            CastString::castToFixedList(
+                param->getValue<ku_string_t>(inputPos), &result, resultPos, csvReaderConfig);
+        }
+    } else if (param->state->selVector->isUnfiltered()) {
+        for (auto i = 0u; i < param->state->selVector->selectedSize; i++) {
+            result.setNull(i, param->isNull(i));
+            if (!result.isNull(i)) {
+                CastString::castToFixedList(
+                    param->getValue<ku_string_t>(i), &result, i, csvReaderConfig);
+            }
+        }
+    } else {
+        for (auto i = 0u; i < param->state->selVector->selectedSize; i++) {
+            auto pos = param->state->selVector->selectedPositions[i];
+            result.setNull(pos, param->isNull(pos));
+            if (!result.isNull(pos)) {
+                CastString::castToFixedList(
+                    param->getValue<ku_string_t>(pos), &result, pos, csvReaderConfig);
+            }
+        }
+    }
+}
 
 bool CastFunction::hasImplicitCast(const LogicalType& srcType, const LogicalType& dstType) {
     // We allow cast between any numerical types
@@ -103,28 +176,28 @@ static std::unique_ptr<ScalarFunction> bindCastFromStringFunction(
     case LogicalTypeID::UINT8: {
         execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, uint8_t, CastString>;
     } break;
-    case common::LogicalTypeID::VAR_LIST: {
-        execFunc = ScalarFunction::UnaryCastStringExecFunction<common::ku_string_t, list_entry_t,
-            CastString>;
+    case LogicalTypeID::VAR_LIST: {
+        execFunc =
+            ScalarFunction::UnaryCastStringExecFunction<ku_string_t, list_entry_t, CastString>;
     } break;
-    case common::LogicalTypeID::MAP: {
-        execFunc = ScalarFunction::UnaryCastStringExecFunction<common::ku_string_t, map_entry_t,
-            CastString>;
+    case LogicalTypeID::FIXED_LIST: {
+        execFunc = StringtoFixedListCastExecFunction;
     } break;
-    case common::LogicalTypeID::STRUCT: {
-        execFunc = ScalarFunction::UnaryCastStringExecFunction<common::ku_string_t, struct_entry_t,
-            CastString>;
+    case LogicalTypeID::MAP: {
+        execFunc =
+            ScalarFunction::UnaryCastStringExecFunction<ku_string_t, map_entry_t, CastString>;
     } break;
-    case common::LogicalTypeID::UNION: {
-        execFunc = ScalarFunction::UnaryCastStringExecFunction<common::ku_string_t, union_entry_t,
-            CastString>;
+    case LogicalTypeID::STRUCT: {
+        execFunc =
+            ScalarFunction::UnaryCastStringExecFunction<ku_string_t, struct_entry_t, CastString>;
     } break;
-        // LCOV_EXCL_START
+    case LogicalTypeID::UNION: {
+        execFunc =
+            ScalarFunction::UnaryCastStringExecFunction<ku_string_t, union_entry_t, CastString>;
+    } break;
     default:
-        throw common::NotImplementedException{
-            stringFormat("Unimplemented casting function from STRING to {}.",
-                LogicalTypeUtils::toString(targetTypeID))};
-        // LCOV_EXCL_STOP
+        throw ConversionException{stringFormat("Unsupported casting function from STRING to {}.",
+            LogicalTypeUtils::toString(targetTypeID))};
     }
     return std::make_unique<ScalarFunction>(
         functionName, std::vector<LogicalTypeID>{LogicalTypeID::STRING}, targetTypeID, execFunc);
@@ -201,53 +274,13 @@ static std::unique_ptr<ScalarFunction> bindCastFromRdfVariantFunction(
     } break;
         // LCOV_EXCL_START
     default:
-        throw common::NotImplementedException{
-            stringFormat("Unimplemented casting function from RDF_VARIANT to {}.",
+        throw ConversionException{
+            stringFormat("Unsupported casting function from RDF_VARIANT to {}.",
                 LogicalTypeUtils::toString(targetTypeID))};
         // LCOV_EXCL_STOP
     }
     return std::make_unique<ScalarFunction>(functionName,
         std::vector<LogicalTypeID>{LogicalTypeID::RDF_VARIANT}, targetTypeID, execFunc);
-}
-
-static void castFixedListToString(
-    ValueVector& param, uint64_t pos, ValueVector& resultVector, uint64_t resultPos) {
-    resultVector.setNull(resultPos, param.isNull(pos));
-    if (param.isNull(pos)) {
-        return;
-    }
-    std::string result = "[";
-    auto numValuesPerList = FixedListType::getNumElementsInList(&param.dataType);
-    auto childType = FixedListType::getChildType(&param.dataType);
-    auto values = param.getData() + pos * param.getNumBytesPerValue();
-    for (auto i = 0u; i < numValuesPerList - 1; ++i) {
-        // Note: FixedList can only store numeric types and doesn't allow nulls.
-        result += TypeUtils::castValueToString(*childType, values, nullptr /* vector */);
-        result += ",";
-        values += PhysicalTypeUtils::getFixedTypeSize(childType->getPhysicalType());
-    }
-    result += TypeUtils::castValueToString(*childType, values, nullptr /* vector */);
-    result += "]";
-    resultVector.setValue(resultPos, result);
-}
-
-static void fixedListCastExecFunction(const std::vector<std::shared_ptr<ValueVector>>& params,
-    common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
-    assert(params.size() == 1);
-    auto param = params[0];
-    if (param->state->isFlat()) {
-        castFixedListToString(*param, param->state->selVector->selectedPositions[0], result,
-            result.state->selVector->selectedPositions[0]);
-    } else if (param->state->selVector->isUnfiltered()) {
-        for (auto i = 0u; i < param->state->selVector->selectedSize; i++) {
-            castFixedListToString(*param, i, result, i);
-        }
-    } else {
-        for (auto i = 0u; i < param->state->selVector->selectedSize; i++) {
-            castFixedListToString(*param, param->state->selVector->selectedPositions[i], result,
-                result.state->selVector->selectedPositions[i]);
-        }
-    }
 }
 
 static std::unique_ptr<ScalarFunction> bindCastToStringFunction(
@@ -323,11 +356,10 @@ static std::unique_ptr<ScalarFunction> bindCastToStringFunction(
     case LogicalTypeID::UNION: {
         func = ScalarFunction::UnaryCastExecFunction<union_entry_t, ku_string_t, CastToString>;
     } break;
+        // ToDo(Kebing): RECURSIVE_REL to string
         // LCOV_EXCL_START
     default:
-        throw common::NotImplementedException{
-            stringFormat("Unimplemented casting function from {} to STRING.",
-                LogicalTypeUtils::toString(sourceTypeID))};
+        KU_UNREACHABLE;
         // LCOV_EXCL_STOP
     }
     return std::make_unique<ScalarFunction>(
@@ -339,69 +371,65 @@ static std::unique_ptr<ScalarFunction> bindCastToNumericFunction(
     const std::string& functionName, LogicalTypeID sourceTypeID, LogicalTypeID targetTypeID) {
     scalar_exec_func func;
     switch (sourceTypeID) {
-    case common::LogicalTypeID::INT8: {
+    case LogicalTypeID::INT8: {
         func = ScalarFunction::UnaryExecFunction<int8_t, DST_TYPE, OP>;
     } break;
-    case common::LogicalTypeID::INT16: {
+    case LogicalTypeID::INT16: {
         func = ScalarFunction::UnaryExecFunction<int16_t, DST_TYPE, OP>;
     } break;
-    case common::LogicalTypeID::INT32: {
+    case LogicalTypeID::INT32: {
         func = ScalarFunction::UnaryExecFunction<int32_t, DST_TYPE, OP>;
     } break;
-    case common::LogicalTypeID::SERIAL:
-    case common::LogicalTypeID::INT64: {
+    case LogicalTypeID::SERIAL:
+    case LogicalTypeID::INT64: {
         func = ScalarFunction::UnaryExecFunction<int64_t, DST_TYPE, OP>;
     } break;
-    case common::LogicalTypeID::UINT8: {
+    case LogicalTypeID::UINT8: {
         func = ScalarFunction::UnaryExecFunction<uint8_t, DST_TYPE, OP>;
     } break;
-    case common::LogicalTypeID::UINT16: {
+    case LogicalTypeID::UINT16: {
         func = ScalarFunction::UnaryExecFunction<uint16_t, DST_TYPE, OP>;
     } break;
-    case common::LogicalTypeID::UINT32: {
+    case LogicalTypeID::UINT32: {
         func = ScalarFunction::UnaryExecFunction<uint32_t, DST_TYPE, OP>;
     } break;
-    case common::LogicalTypeID::UINT64: {
+    case LogicalTypeID::UINT64: {
         func = ScalarFunction::UnaryExecFunction<uint64_t, DST_TYPE, OP>;
     } break;
-    case common::LogicalTypeID::INT128: {
-        func = ScalarFunction::UnaryExecFunction<common::int128_t, DST_TYPE, OP>;
+    case LogicalTypeID::INT128: {
+        func = ScalarFunction::UnaryExecFunction<int128_t, DST_TYPE, OP>;
     } break;
-    case common::LogicalTypeID::FLOAT: {
+    case LogicalTypeID::FLOAT: {
         func = ScalarFunction::UnaryExecFunction<float_t, DST_TYPE, OP>;
     } break;
-    case common::LogicalTypeID::DOUBLE: {
+    case LogicalTypeID::DOUBLE: {
         func = ScalarFunction::UnaryExecFunction<double_t, DST_TYPE, OP>;
     } break;
-        // LCOV_EXCL_START
     default:
-        throw common::NotImplementedException{stringFormat(
-            "Unimplemented casting function from {} to {}.",
+        throw ConversionException{stringFormat("Unsupported casting function from {} to {}.",
             LogicalTypeUtils::toString(sourceTypeID), LogicalTypeUtils::toString(targetTypeID))};
-        // LCOV_EXCL_STOP
     }
     return std::make_unique<ScalarFunction>(
-        functionName, std::vector<common::LogicalTypeID>{sourceTypeID}, targetTypeID, func);
+        functionName, std::vector<LogicalTypeID>{sourceTypeID}, targetTypeID, func);
 }
 
 static std::unique_ptr<ScalarFunction> bindCastToTimestampFunction(
     const std::string& functionName, LogicalTypeID sourceTypeID) {
     scalar_exec_func func;
     switch (sourceTypeID) {
-    case common::LogicalTypeID::DATE: {
+    case LogicalTypeID::DATE: {
         func = ScalarFunction::UnaryExecFunction<date_t, timestamp_t, CastDateToTimestamp>;
     } break;
     default:
-        // LCOV_EXCL_START
-        throw common::NotImplementedException{"bindCastToTimestampFunction"};
-        // LCOV_EXCL_STOP
+        throw ConversionException{stringFormat("Unsupported casting function from {} to TIMESTAMP.",
+            LogicalTypeUtils::toString(sourceTypeID))};
     }
-    return std::make_unique<ScalarFunction>(functionName,
-        std::vector<common::LogicalTypeID>{sourceTypeID}, LogicalTypeID::TIMESTAMP, func);
+    return std::make_unique<ScalarFunction>(
+        functionName, std::vector<LogicalTypeID>{sourceTypeID}, LogicalTypeID::TIMESTAMP, func);
 }
 
-std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(const std::string& functionName,
-    common::LogicalTypeID sourceTypeID, common::LogicalTypeID targetTypeID) {
+std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(
+    const std::string& functionName, LogicalTypeID sourceTypeID, LogicalTypeID targetTypeID) {
     if (sourceTypeID == LogicalTypeID::STRING) {
         return bindCastFromStringFunction(functionName, targetTypeID);
     }
@@ -463,10 +491,9 @@ std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(const std::string
     case LogicalTypeID::TIMESTAMP: {
         return bindCastToTimestampFunction(functionName, sourceTypeID);
     }
-        // LCOV_EXCL_START
     default: {
-        throw common::NotImplementedException{"bindCastFunction"};
-        // LCOV_EXCL_STOP
+        throw ConversionException{stringFormat("Unsupported casting function from {} to {}.",
+            LogicalTypeUtils::toString(sourceTypeID), LogicalTypeUtils::toString(targetTypeID))};
     }
     }
 }
@@ -684,7 +711,9 @@ std::unique_ptr<FunctionBindData> CastAnyFunction::bindFunc(
     const binder::expression_vector& arguments, Function* function) {
     // check the size of the arguments
     if (arguments.size() != 2) {
-        throw BinderException("Invalid number of arguments for given function CAST.");
+        throw BinderException(stringFormat(
+            "Invalid number of arguments for given function CAST. Expected: 2, Actual: {}.",
+            arguments.size()));
     }
 
     auto inputTypeID = arguments[0]->dataType.getLogicalTypeID();

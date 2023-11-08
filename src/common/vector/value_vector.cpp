@@ -294,6 +294,35 @@ std::unique_ptr<Value> ValueVector::getAsValue(uint64_t pos) {
         value->childrenSize = children.size();
         value->children = std::move(children);
     } break;
+    case PhysicalTypeID::FIXED_LIST: {
+        auto childDataType = FixedListType::getChildType(&dataType);
+        auto numElements = FixedListType::getNumElementsInList(&dataType);
+        std::vector<std::unique_ptr<Value>> children;
+        children.reserve(numElements);
+        switch (childDataType->getPhysicalType()) {
+        case PhysicalTypeID::INT64: {
+            FixedListVector::getAsValue<int64_t>(this, children, pos, numElements);
+        } break;
+        case PhysicalTypeID::INT32: {
+            FixedListVector::getAsValue<int32_t>(this, children, pos, numElements);
+        } break;
+        case PhysicalTypeID::INT16: {
+            FixedListVector::getAsValue<int16_t>(this, children, pos, numElements);
+        } break;
+        case PhysicalTypeID::DOUBLE: {
+            FixedListVector::getAsValue<double>(this, children, pos, numElements);
+        } break;
+        case PhysicalTypeID::FLOAT: {
+            FixedListVector::getAsValue<float>(this, children, pos, numElements);
+        } break;
+            // LCOV_EXCL_START
+        default:
+            KU_UNREACHABLE;
+            // LCOV_EXCL_STOP
+        }
+        value->childrenSize = numElements;
+        value->children = std::move(children);
+    } break;
     case PhysicalTypeID::STRUCT: {
         auto& fieldVectors = StructVector::getFieldVectors(this);
         std::vector<std::unique_ptr<Value>> children;
@@ -533,6 +562,57 @@ void ListVector::sliceDataVector(
     ValueVector* vectorToSlice, uint64_t childIdx, uint64_t numValues) {
     for (auto i = 0u; i < numValues - childIdx; i++) {
         vectorToSlice->copyFromVectorData(i, vectorToSlice, i + childIdx);
+    }
+}
+
+template<>
+void FixedListVector::getAsValue<int64_t>(ValueVector* vector,
+    std::vector<std::unique_ptr<Value>>& children, uint64_t pos, uint64_t numElements) {
+    for (auto i = 0u; i < numElements; ++i) {
+        children.push_back(Value::createDefaultValue(LogicalType{LogicalTypeID::INT64}).copy());
+        children[i]->val.int64Val =
+            reinterpret_cast<int64_t*>(vector->getData() + vector->getNumBytesPerValue() * pos)[i];
+    }
+}
+
+template<>
+void FixedListVector::getAsValue<int32_t>(ValueVector* vector,
+    std::vector<std::unique_ptr<Value>>& children, uint64_t pos, uint64_t numElements) {
+    for (auto i = 0u; i < numElements; ++i) {
+        children.push_back(Value::createDefaultValue(LogicalType{LogicalTypeID::INT32}).copy());
+        children[i]->val.int32Val =
+            reinterpret_cast<int32_t*>(vector->getData() + vector->getNumBytesPerValue() * pos)[i];
+    }
+}
+
+template<>
+void FixedListVector::getAsValue<int16_t>(ValueVector* vector,
+    std::vector<std::unique_ptr<Value>>& children, uint64_t pos, uint64_t numElements) {
+    for (auto i = 0u; i < numElements; ++i) {
+        children.push_back(Value::createDefaultValue(LogicalType{LogicalTypeID::INT16}).copy());
+        children[i]->val.int16Val =
+            reinterpret_cast<int16_t*>(vector->getData() + vector->getNumBytesPerValue() * pos)[i];
+    }
+}
+
+template<>
+void FixedListVector::getAsValue<float>(ValueVector* vector,
+    std::vector<std::unique_ptr<Value>>& children, uint64_t pos, uint64_t numElements) {
+    for (auto i = 0u; i < numElements; ++i) {
+        children.push_back(Value::createDefaultValue(LogicalType{LogicalTypeID::FLOAT}).copy());
+        children[i]->val.floatVal =
+            reinterpret_cast<float*>(vector->getData() + vector->getNumBytesPerValue() * pos)[i];
+    }
+}
+
+template<>
+void FixedListVector::getAsValue<double>(ValueVector* vector,
+    std::vector<std::unique_ptr<Value>>& children, uint64_t pos, uint64_t numElements) {
+    // default: int64
+    for (auto i = 0u; i < numElements; ++i) {
+        children.push_back(Value::createDefaultValue(LogicalType{LogicalTypeID::DOUBLE}).copy());
+        children[i]->val.doubleVal =
+            reinterpret_cast<double*>(vector->getData() + vector->getNumBytesPerValue() * pos)[i];
     }
 }
 

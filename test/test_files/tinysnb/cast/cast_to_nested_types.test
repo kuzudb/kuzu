@@ -16,7 +16,7 @@
 []||[111,0,0]
 ||[0,111,12]
 |{num: 0, str: }|[0,0,0]
--STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, struct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/change_config.csv" (HEADER=true, DELIM="|", ESCAPE="~", QUOTE="'") RETURN * ;
+-STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, struct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/change_config.csv" (HEADER=true, DELIM="|", DELIM="|", ESCAPE="~", QUOTE="'") RETURN * ;
 ---- 3
 [escape , is escape success? ~]| ' [ ] do not need to escape sepeical | []|{a: {b: {c: []}}}
 [this , is a word , normal not escape , ' [ ] | , ~ ' ]|try escape ~|{a: {b: {c: [3432423,-43423,31231,]}}}
@@ -105,6 +105,25 @@ False|-4325||18446744073709551616.000000|  dfsa
 ---- 1
 [1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1.000000,2.000000,3.000000]|[1.000000,2.000000,3.000000]
 # timestamp/date/... list
+
+-LOG CastToFixedList
+-STATEMENT LOAD WITH HEADERS (fixedList STRING, bool BOOLEAN, intv INTERVAL) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/fixed_list_correct.csv" RETURN cast(fixedList, "FLOAT[1]");
+---- 6
+[23123.433594]
+[-4321312.500000]
+[-1.344455]
+[43213123584.000000]
+[-4212.423340]
+[-2.000000]
+-STATEMENT LOAD WITH HEADERS (stockPrice STRING) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/fixed_list_with_null.csv" RETURN cast(stockPrice, "DOUBLE[3]");
+---- 3
+[3324.123000,342423.437500,432.123000]
+
+[1.000000,4231.000000,432.123000]
+-STATEMENT LOAD WITH HEADERS (stockPrice STRING) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/fixed_list_with_null.csv" where size(stockPrice) > 10 RETURN cast(stockPrice, "FLOAT[3]");
+---- 2
+[3324.123047,342423.437500,432.122986]
+[1.000000,4231.000000,432.122986]
 
 -LOG CastToMap
 -STATEMENT RETURN cast(" { c= {a =  3423 },  b =  {  g = 3421 }  } ", "MAP(STRING, MAP(STRING, INT16))"), cast("{}", "MAP(STRING, MAP(STRING, INT16))"), cast("{d = {}}", "MAP(STRING, MAP(STRING, INT16))");

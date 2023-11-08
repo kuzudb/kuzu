@@ -17,6 +17,7 @@ class Value;
 //! The capacity of a ValueVector is either 1 (sequence) or DEFAULT_VECTOR_CAPACITY.
 class ValueVector {
     friend class ListVector;
+    friend class FixedListVector;
     friend class ListAuxiliaryBuffer;
     friend class StructVector;
     friend class StringVector;
@@ -70,8 +71,8 @@ public:
     void copyFromVectorData(
         uint8_t* dstData, const ValueVector* srcVector, const uint8_t* srcVectorData);
     void copyFromVectorData(uint64_t dstPos, const ValueVector* srcVector, uint64_t srcPos);
-
     void copyFromValue(uint64_t pos, const Value& value);
+
     std::unique_ptr<Value> getAsValue(uint64_t pos);
 
     inline uint8_t* getData() const { return valueBuffer.get(); }
@@ -180,6 +181,29 @@ public:
         ValueVector* dstVector, ValueVector* srcDataVector, uint64_t numValuesToAppend);
     static void sliceDataVector(ValueVector* vectorToSlice, uint64_t childIdx, uint64_t numValues);
 };
+
+class FixedListVector {
+public:
+    template<typename T>
+    static void getAsValue(ValueVector* vector, std::vector<std::unique_ptr<Value>>& children,
+        uint64_t pos, uint64_t numElements);
+};
+
+template<>
+void FixedListVector::getAsValue<int64_t>(ValueVector* vector,
+    std::vector<std::unique_ptr<Value>>& children, uint64_t pos, uint64_t numElements);
+template<>
+void FixedListVector::getAsValue<int32_t>(ValueVector* vector,
+    std::vector<std::unique_ptr<Value>>& children, uint64_t pos, uint64_t numElements);
+template<>
+void FixedListVector::getAsValue<int16_t>(ValueVector* vector,
+    std::vector<std::unique_ptr<Value>>& children, uint64_t pos, uint64_t numElements);
+template<>
+void FixedListVector::getAsValue<double>(ValueVector* vector,
+    std::vector<std::unique_ptr<Value>>& children, uint64_t pos, uint64_t numElements);
+template<>
+void FixedListVector::getAsValue<float>(ValueVector* vector,
+    std::vector<std::unique_ptr<Value>>& children, uint64_t pos, uint64_t numElements);
 
 class StructVector {
 public:

@@ -20,6 +20,9 @@ struct CastStringHelper {
         uint64_t /*rowToAdd*/ = 0, const CSVReaderConfig* /*csvReaderConfig*/ = nullptr) {
         simpleIntegerCast<int64_t>(input, len, result, LogicalType{LogicalTypeID::INT64});
     }
+
+    static void castToFixedList(const char* input, uint64_t len, ValueVector* vector,
+        uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig);
 };
 
 template<>
@@ -167,7 +170,7 @@ static bool skipToClose(const char*& input, const char* end, uint64_t& lvl, char
             if (!skipToCloseQuotes(input, end)) {
                 return false;
             }
-        } else if (*input == '{') { // must have closing brackets fro {, ] if they are not quoted
+        } else if (*input == '{') { // must have closing brackets {, ] if they are not quoted
             if (!skipToClose(input, end, lvl, '}', csvReaderConfig)) {
                 return false;
             }
@@ -331,7 +334,6 @@ struct SplitStringFixedListOperation {
         if (str.empty() || isNull(str)) {
             throw ConversionException("Cast failed. NULL is not allowed for FIXEDLIST.");
         }
-        auto type = FixedListType::getChildType(&resultVector->dataType);
         CastStringHelper::cast(start, str.length(), value);
         resultVector->setValue(offset, value);
         offset++;
@@ -347,8 +349,8 @@ static void validateNumElementsInList(uint64_t numElementsRead, const LogicalTyp
     }
 }
 
-void castStringToFixedList(const char* input, uint64_t len, ValueVector* vector, uint64_t rowToAdd,
-    const CSVReaderConfig* csvReaderConfig) {
+void CastStringHelper::castToFixedList(const char* input, uint64_t len, ValueVector* vector,
+    uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig) {
     KU_ASSERT(vector->dataType.getLogicalTypeID() == LogicalTypeID::FIXED_LIST);
     auto childDataType = FixedListType::getChildType(&vector->dataType);
 
@@ -359,7 +361,7 @@ void castStringToFixedList(const char* input, uint64_t len, ValueVector* vector,
 
     auto startOffset = state.count * rowToAdd;
     switch (childDataType->getLogicalTypeID()) {
-    // TODO: currently only allow these type
+    // TODO(Kebing): currently only allow these type
     case LogicalTypeID::INT64: {
         SplitStringFixedListOperation<int64_t> split{startOffset, vector};
         startListCast(input, len, split, csvReaderConfig, vector);
@@ -381,9 +383,15 @@ void castStringToFixedList(const char* input, uint64_t len, ValueVector* vector,
         startListCast(input, len, split, csvReaderConfig, vector);
     } break;
     default: {
-        throw NotImplementedException("Unsupported data type: Driver::castStringToFixedList");
+        throw NotImplementedException("Unsupported data type: Function::castStringToFixedList");
     }
     }
+}
+
+void CastString::castToFixedList(const ku_string_t& input, ValueVector* resultVector,
+    uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig) {
+    CastStringHelper::castToFixedList(reinterpret_cast<const char*>(input.getData()), input.len,
+        resultVector, rowToAdd, csvReaderConfig);
 }
 
 // ---------------------- cast String to Map ------------------------------ //
@@ -420,7 +428,7 @@ static bool parseKeyOrValue(const char*& input, const char* end, T& state, bool 
         if (*input == '"' || *input == '\'') {
             if (!skipToCloseQuotes(input, end)) {
                 return false;
-            };
+            }
         } else if (*input == '{') {
             if (!skipToClose(input, end, lvl, '}', csvReaderConfig)) {
                 return false;
@@ -429,7 +437,7 @@ static bool parseKeyOrValue(const char*& input, const char* end, T& state, bool 
             if (!skipToClose(
                     input, end, lvl, CopyConstants::DEFAULT_CSV_LIST_END_CHAR, csvReaderConfig)) {
                 return false;
-            };
+            }
         } else if (isKey && *input == '=') {
             return state.handleKey(start, input, csvReaderConfig);
         } else if (!isKey && (*input == csvReaderConfig->delimiter || *input == '}')) {
@@ -500,9 +508,9 @@ void CastStringHelper::cast(const char* input, uint64_t len, map_entry_t& /*resu
 
 template<>
 void CastString::operation(const ku_string_t& input, map_entry_t& result, ValueVector* resultVector,
-    uint64_t rowToAdd, const CSVReaderConfig* CSVReaderConfig) {
+    uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig) {
     CastStringHelper::cast(reinterpret_cast<const char*>(input.getData()), input.len, result,
-        resultVector, rowToAdd, CSVReaderConfig);
+        resultVector, rowToAdd, csvReaderConfig);
 }
 
 // ---------------------- cast String to Struct ------------------------------ //
@@ -854,8 +862,8 @@ void CastString::copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std:
             strVal.data(), strVal.length(), val, vector, rowToAdd, csvReaderConfig);
     } break;
     case LogicalTypeID::FIXED_LIST: {
-        // TODO: add fix list function wrapper
-        castStringToFixedList(strVal.data(), strVal.length(), vector, rowToAdd, csvReaderConfig);
+        CastStringHelper::castToFixedList(
+            strVal.data(), strVal.length(), vector, rowToAdd, csvReaderConfig);
     } break;
     case LogicalTypeID::STRUCT: {
         struct_entry_t val;
