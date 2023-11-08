@@ -14,6 +14,23 @@
 
 -CASE VarLengthExtendNNTests
 
+-LOG ZeroHop
+-STATEMENT MATCH p = (a:person)-[e:knows*0..0]->(b:person) RETURN properties(nodes(p),'fName'), rels(p), a.fName, b.fName, nodes(e), rels(e)
+---- 8
+[Alice]|[]|Alice|Alice|[]|[]
+[Bob]|[]|Bob|Bob|[]|[]
+[Carol]|[]|Carol|Carol|[]|[]
+[Dan]|[]|Dan|Dan|[]|[]
+[Elizabeth]|[]|Elizabeth|Elizabeth|[]|[]
+[Farooq]|[]|Farooq|Farooq|[]|[]
+[Greg]|[]|Greg|Greg|[]|[]
+[Hubert Blaine Wolfeschlegelsteinhausenbergerdorff]|[]|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|[]|[]
+-STATEMENT MATCH p = (a:person)-[e:knows*0..1]->(b:person) WHERE a.ID = 7 RETURN properties(nodes(p),'fName'), properties(rels(p), 'meetTime'), a.fName, b.fName, properties(nodes(e),'ID'), properties(rels(e), 'meetTime')
+---- 3
+[Elizabeth,Farooq]|[2025-01-01 11:22:33.52]|Elizabeth|Farooq|[]|[2025-01-01 11:22:33.52]
+[Elizabeth,Greg]|[2020-03-01 12:11:41.6552]|Elizabeth|Greg|[]|[2020-03-01 12:11:41.6552]
+[Elizabeth]|[]|Elizabeth|Elizabeth|[]|[]
+
 -LOG KnowsThreeHopMinLenEqualsMaxLen
 -STATEMENT MATCH (a:person)-[e:knows*3..3]->(b:person) RETURN COUNT(*)
 ---- 1

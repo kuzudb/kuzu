@@ -92,10 +92,11 @@ void PathScanner::scanFromDstOffset(RecursiveJoinVectors* vectors, sel_t& vector
 void PathScanner::initDfs(const frontier::node_rel_id_t& nodeAndRelID, size_t currentDepth) {
     nodeIDs[currentDepth] = nodeAndRelID.first;
     relIDs[currentDepth] = nodeAndRelID.second;
+    if (k == 0) {
+        return;
+    }
     if (currentDepth == 0) {
-        if (k != 0) {
-            cursorStack.top() = -1;
-        }
+        cursorStack.top() = -1;
         return;
     }
     auto nbrs = &frontiers[currentDepth]->bwdEdges.at(nodeAndRelID.first);
