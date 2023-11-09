@@ -357,9 +357,9 @@ bool TryCastInt128Template(int128_t input, DST& result) {
             throw common::OverflowException(
                 "Cast failed. Cannot cast " + Int128_t::ToString(input) + " to unsigned type.");
         }
-        if (input.low >= uint64_t(function::NumericLimits<DST>::maximum()) -
+        if (input.low >= function::NumericLimits<uint64_t>::maximum() -
                              uint64_t(function::NumericLimits<DST>::maximum())) {
-            result = static_cast<DST>(function::NumericLimits<DST>::maximum() - input.low) - 1;
+            result = -DST(function::NumericLimits<uint64_t>::maximum() - input.low) - 1;
             return true;
         }
         break;
@@ -520,6 +520,7 @@ bool castFloatingToInt128(REAL_T value, int128_t& result) {
     if (negative) {
         value = -value;
     }
+    value = std::nearbyint(value);
     result.low = (uint64_t)fmod(value, REAL_T(function::NumericLimits<uint64_t>::maximum()));
     result.high = (uint64_t)(value / REAL_T(function::NumericLimits<uint64_t>::maximum()));
     if (negative) {
