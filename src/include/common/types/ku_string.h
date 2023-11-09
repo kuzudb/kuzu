@@ -66,6 +66,7 @@ struct ku_string_t {
 
     std::string getAsShortString() const;
     std::string getAsString() const;
+    std::string_view getAsStringView() const;
 
     bool operator==(const ku_string_t& rhs) const;
 

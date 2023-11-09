@@ -25,21 +25,20 @@ StringColumn::StringColumn(std::unique_ptr<LogicalType> dataType,
 }
 
 void StringColumn::scanOffsets(Transaction* transaction, const ReadState& state,
-    string_offset_t* offsets, uint64_t index, uint64_t dataSize) {
+    string_offset_t* offsets, uint64_t index, uint64_t numValues, uint64_t dataSize) {
     // We either need to read the next value, or store the maximum string offset at the end.
     // Otherwise we won't know what the length of the last string is.
-    if (index < state.metadata.numValues - 1) {
-        offsetColumn->scan(transaction, state, index, index + 2, (uint8_t*)offsets);
+    if (index + numValues < state.metadata.numValues) {
+        offsetColumn->scan(transaction, state, index, index + numValues + 1, (uint8_t*)offsets);
     } else {
-        offsetColumn->scan(transaction, state, index, index + 1, (uint8_t*)offsets);
-        offsets[1] = dataSize;
+        offsetColumn->scan(transaction, state, index, index + numValues, (uint8_t*)offsets);
+        offsets[numValues] = dataSize;
     }
 }
 
 void StringColumn::scanValueToVector(Transaction* transaction, const ReadState& dataState,
     string_offset_t startOffset, string_offset_t endOffset, ValueVector* resultVector,
     uint64_t offsetInVector) {
-    // TODO: don't scan the same string multiple times when values are duplicated
     KU_ASSERT(endOffset >= startOffset);
     // Add string to vector first and read directly into the vector
     auto& kuString =
@@ -136,22 +135,73 @@ void StringColumn::scanInternal(
 
 void StringColumn::scanUnfiltered(transaction::Transaction* transaction,
     node_group_idx_t nodeGroupIdx, offset_t startOffsetInGroup, offset_t endOffsetInGroup,
-    common::ValueVector* resultVector, uint64_t startPosInVector) {
+    common::ValueVector* resultVector, sel_t startPosInVector) {
     auto numValuesToRead = endOffsetInGroup - startOffsetInGroup;
     auto indices = std::make_unique<string_index_t[]>(numValuesToRead);
     auto indexState = getReadState(transaction->getType(), nodeGroupIdx);
-    auto offsetState = offsetColumn->getReadState(transaction->getType(), nodeGroupIdx);
-    auto dataState = dataColumn->getReadState(transaction->getType(), nodeGroupIdx);
     Column::scan(
         transaction, indexState, startOffsetInGroup, endOffsetInGroup, (uint8_t*)indices.get());
+
+    std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
     for (auto i = 0u; i < numValuesToRead; i++) {
-        if (resultVector->isNull(startPosInVector + i)) {
-            continue;
+        if (!resultVector->isNull(startPosInVector + i)) {
+            offsetsToScan.emplace_back(indices[i], startPosInVector + i);
         }
-        string_offset_t offsets[2];
-        scanOffsets(transaction, offsetState, offsets, indices[i], dataState.metadata.numValues);
-        scanValueToVector(
-            transaction, dataState, offsets[0], offsets[1], resultVector, startPosInVector + i);
+    }
+    if (offsetsToScan.size() == 0) {
+        // All scanned values are null
+        return;
+    }
+    scanValuesToVector(transaction, nodeGroupIdx, offsetsToScan, resultVector, indexState);
+}
+
+void StringColumn::scanValuesToVector(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    std::vector<std::pair<string_index_t, uint64_t>>& offsetsToScan, ValueVector* resultVector,
+    const ReadState& indexState) {
+    auto offsetState = offsetColumn->getReadState(transaction->getType(), nodeGroupIdx);
+    auto dataState = dataColumn->getReadState(transaction->getType(), nodeGroupIdx);
+
+    string_index_t firstOffsetToScan, lastOffsetToScan;
+    auto comp = [](auto pair1, auto pair2) { return pair1.first < pair2.first; };
+    auto duplicationFactor = (double)offsetState.metadata.numValues / indexState.metadata.numValues;
+    if (duplicationFactor <= 0.5) {
+        // If at least 50% of strings are duplicated, sort the offsets so we can re-use scanned
+        // strings
+        std::sort(offsetsToScan.begin(), offsetsToScan.end(), comp);
+        firstOffsetToScan = offsetsToScan.front().first;
+        lastOffsetToScan = offsetsToScan.back().first;
+    } else {
+        const auto& [min, max] = std::ranges::minmax_element(offsetsToScan, comp);
+        firstOffsetToScan = min->first;
+        lastOffsetToScan = max->first;
+    }
+    // TODO(bmwinger): scan batches of adjacent values.
+    // Ideally we scan values together until we reach empty pages
+    // This would also let us use the same optimization for the data column,
+    // where the worst case for the current method is much worse
+
+    // Note that the list will contain duplicates when indices are duplicated.
+    // Each distinct value is scanned once, and re-used when writing to each output value
+    auto numOffsetsToScan = lastOffsetToScan - firstOffsetToScan + 1;
+    // One extra offset to scan for the end offset of the last string
+    std::vector<string_offset_t> offsets(numOffsetsToScan + 1);
+    scanOffsets(transaction, offsetState, offsets.data(), firstOffsetToScan, numOffsetsToScan,
+        dataState.metadata.numValues);
+
+    auto pos = 0;
+    for (; pos < offsetsToScan.size(); pos++) {
+        auto startOffset = offsets[offsetsToScan[pos].first - firstOffsetToScan];
+        auto endOffset = offsets[offsetsToScan[pos].first - firstOffsetToScan + 1];
+        scanValueToVector(transaction, dataState, startOffset, endOffset, resultVector,
+            offsetsToScan[pos].second);
+        auto& scannedString = resultVector->getValue<ku_string_t>(offsetsToScan[pos].second);
+        // For each string which has the same index in the dictionary as the one we scanned,
+        // copy the scanned string to its position in the result vector
+        while (pos + 1 < offsetsToScan.size() &&
+               offsetsToScan[pos + 1].first == offsetsToScan[pos].first) {
+            pos++;
+            resultVector->setValue<ku_string_t>(offsetsToScan[pos].second, scannedString);
+        }
     }
 }
 
@@ -160,21 +210,24 @@ void StringColumn::scanFiltered(transaction::Transaction* transaction,
     common::ValueVector* nodeIDVector, common::ValueVector* resultVector) {
 
     auto indexState = getReadState(transaction->getType(), nodeGroupIdx);
-    auto offsetState = offsetColumn->getReadState(transaction->getType(), nodeGroupIdx);
-    auto dataState = dataColumn->getReadState(transaction->getType(), nodeGroupIdx);
+
+    std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[i];
-        if (resultVector->isNull(pos)) {
-            // Ignore positions which were scanned as null
-            continue;
+        if (!resultVector->isNull(pos)) {
+            // TODO(bmwinger): optimize index scans by grouping them when adjacent
+            auto offsetInGroup = startOffsetInGroup + pos;
+            string_index_t index;
+            Column::scan(
+                transaction, indexState, offsetInGroup, offsetInGroup + 1, (uint8_t*)&index);
+            offsetsToScan.emplace_back(index, pos);
         }
-        auto offsetInGroup = startOffsetInGroup + pos;
-        string_index_t index;
-        Column::scan(transaction, indexState, offsetInGroup, offsetInGroup + 1, (uint8_t*)&index);
-        string_offset_t offsets[2];
-        scanOffsets(transaction, offsetState, offsets, index, dataState.metadata.numValues);
-        scanValueToVector(transaction, dataState, offsets[0], offsets[1], resultVector, pos);
     }
+    if (offsetsToScan.size() == 0) {
+        // All scanned values are null
+        return;
+    }
+    scanValuesToVector(transaction, nodeGroupIdx, offsetsToScan, resultVector, indexState);
 }
 
 void StringColumn::lookupInternal(
@@ -184,22 +237,23 @@ void StringColumn::lookupInternal(
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(startNodeOffset);
 
     auto indexState = getReadState(transaction->getType(), nodeGroupIdx);
-    auto offsetState = offsetColumn->getReadState(transaction->getType(), nodeGroupIdx);
-    auto dataState = dataColumn->getReadState(transaction->getType(), nodeGroupIdx);
+    std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
-        auto pos = resultVector->state->selVector->selectedPositions[i];
-        if (resultVector->isNull(pos)) {
-            // Ignore positions which were scanned as null
-            continue;
+        auto pos = nodeIDVector->state->selVector->selectedPositions[i];
+        if (!nodeIDVector->isNull(pos)) {
+            auto offsetInGroup =
+                startNodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx) + pos;
+            string_index_t index;
+            Column::scan(
+                transaction, indexState, offsetInGroup, offsetInGroup + 1, (uint8_t*)&index);
+            offsetsToScan.emplace_back(index, pos);
         }
-        string_offset_t offsets[2];
-        auto offsetInGroup =
-            startNodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx) + pos;
-        string_index_t index;
-        Column::scan(transaction, indexState, offsetInGroup, offsetInGroup + 1, (uint8_t*)&index);
-        scanOffsets(transaction, offsetState, offsets, index, dataState.metadata.numValues);
-        scanValueToVector(transaction, dataState, offsets[0], offsets[1], resultVector, pos);
     }
+    if (offsetsToScan.size() == 0) {
+        // All scanned values are null
+        return;
+    }
+    scanValuesToVector(transaction, nodeGroupIdx, offsetsToScan, resultVector, indexState);
 }
 
 bool StringColumn::canCommitInPlace(transaction::Transaction* transaction,
