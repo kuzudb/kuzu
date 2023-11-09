@@ -48,6 +48,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Update nightly version
+        if: ${{ github.event.inputs.isNightly == 'true' }}
+        run: /opt/python/cp310-cp310/bin/python update-nightly-build-version.py
+        working-directory: scripts
+
       - name: Create source distribution
         working-directory: ./scripts/pip-package/
         run: |

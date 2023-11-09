@@ -5,9 +5,12 @@ CMAKE_SUFFIX = " LANGUAGES CXX C)\n"
 import urllib.request
 import json
 import os
-from packaging.version import Version
 
 def main():
+    try:
+        from packaging.version import Version
+    except ImportError:
+        from distutils.version import LooseVersion as Version
     with urllib.request.urlopen(PYPI_URL) as url:
         data = json.loads(url.read().decode())
     releases = data["releases"]
