@@ -5,6 +5,7 @@ CMAKE_SUFFIX = " LANGUAGES CXX C)\n"
 import urllib.request
 import json
 import os
+import sys
 
 def main():
     try:
@@ -50,9 +51,15 @@ def main():
     with open(cmake_lists_path, "w") as cmake_lists_file:
         cmake_lists_file.writelines(cmake_lists)
     print("Committing changes...")
+    sys.stdout.flush()
+    os.system("git config user.email ci@kuzudb.com")
+    os.system("git config user.name \"Kuzu CI\"")
     os.system("git add %s" % cmake_lists_path)
     os.system("git commit -m \"Update CMake version to %s.\"" % cmake_version)
+    sys.stdout.flush()
+    sys.stderr.flush()
     print("All done!")
+    sys.stdout.flush()
 
 if __name__ == "__main__":
     main()
