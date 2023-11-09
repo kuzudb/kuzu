@@ -17,7 +17,7 @@ def get_kuzu_version():
                 # Make version semver-compatible
                 components = version.split(".")
                 if len(components) >= 4:
-                    version = ".".join(components[0:3]) + "-pre" + ".".join(components[3:])
+                    version = ".".join(components[0:3]) + "-pre." + ".".join(components[3:])
                 return version
 
 
