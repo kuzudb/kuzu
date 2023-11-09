@@ -98,7 +98,7 @@ jobs:
       - name: Upload jar
         uses: actions/upload-artifact@v3
         with:
-          name: kuzu-java-jar
+          name: kuzu-java-multiplatform-jar
           path: java-bins/kuzu_java.jar
 
   build-nodejs-mac:
