@@ -28,7 +28,10 @@ static void appendIndexScan(
 
 static void appendPartitioner(BoundCopyFromInfo* copyFromInfo, LogicalPlan& plan) {
     std::vector<std::unique_ptr<LogicalPartitionerInfo>> infos;
-    auto fileType = copyFromInfo->fileScanInfo->readerConfig->fileType;
+    auto readerConfig = reinterpret_cast<function::ScanBindData*>(
+        copyFromInfo->fileScanInfo->copyFuncBindData.get())
+                            ->config;
+    auto fileType = readerConfig.fileType;
     // TODO(Xiyang): Merge TURTLE case with other data types.
     switch (fileType) {
     case FileType::TURTLE: {
@@ -71,7 +74,10 @@ static void appendPartitioner(BoundCopyFromInfo* copyFromInfo, LogicalPlan& plan
 std::unique_ptr<LogicalPlan> Planner::planCopyFrom(const BoundStatement& statement) {
     auto& copyFrom = dynamic_cast<const BoundCopyFrom&>(statement);
     auto copyFromInfo = copyFrom.getInfo();
-    auto fileType = copyFromInfo->fileScanInfo->readerConfig->fileType;
+    auto readerConfig = reinterpret_cast<function::ScanBindData*>(
+        copyFromInfo->fileScanInfo->copyFuncBindData.get())
+                            ->config;
+    auto fileType = readerConfig.fileType;
     auto plan = std::make_unique<LogicalPlan>();
     QueryPlanner::appendScanFile(copyFromInfo->fileScanInfo.get(), *plan);
     auto tableType = copyFromInfo->tableSchema->tableType;

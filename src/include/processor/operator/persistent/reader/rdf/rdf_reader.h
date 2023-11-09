@@ -2,6 +2,10 @@
 
 #include "common/copier_config/rdf_config.h"
 #include "common/data_chunk/data_chunk.h"
+#include "function/scalar_function.h"
+#include "function/table_functions.h"
+#include "function/table_functions/bind_data.h"
+#include "function/table_functions/bind_input.h"
 #include "serd.h"
 
 namespace kuzu {
@@ -9,7 +13,7 @@ namespace processor {
 
 class RDFReader {
 public:
-    explicit RDFReader(std::string filePath, std::unique_ptr<common::RdfReaderConfig> config);
+    RDFReader(std::string filePath, std::unique_ptr<common::RdfReaderConfig> config);
 
     ~RDFReader();
 
@@ -48,6 +52,25 @@ private:
     std::unique_ptr<common::ValueVector> sOffsetVector;
     std::unique_ptr<common::ValueVector> pOffsetVector;
     std::unique_ptr<common::ValueVector> oOffsetVector;
+};
+
+struct RdfScanLocalState final : public function::TableFuncLocalState {
+    std::unique_ptr<RDFReader> reader;
+};
+
+struct RdfScan {
+    static function::function_set getFunctionSet();
+
+    static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
+
+    static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
+        function::TableFuncBindInput* input, catalog::CatalogContent* /*catalog*/);
+
+    static std::unique_ptr<function::TableFuncSharedState> initSharedState(
+        function::TableFunctionInitInput& input);
+
+    static std::unique_ptr<function::TableFuncLocalState> initLocalState(
+        function::TableFunctionInitInput& input, function::TableFuncSharedState* /*state*/);
 };
 
 } // namespace processor

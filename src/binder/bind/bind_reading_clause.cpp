@@ -1,4 +1,5 @@
 #include "binder/binder.h"
+#include "binder/expression/variable_expression.h"
 #include "binder/query/reading_clause/bound_in_query_call.h"
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
@@ -14,7 +15,7 @@
 #include "parser/query/reading_clause/match_clause.h"
 #include "parser/query/reading_clause/unwind_clause.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
-#include "processor/operator/persistent/reader/npy_reader.h"
+#include "processor/operator/persistent/reader/npy/npy_reader.h"
 #include "processor/operator/persistent/reader/parquet/parquet_reader.h"
 
 using namespace kuzu::common;
@@ -117,15 +118,20 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     StringUtils::toUpper(funcNameToMatch);
     auto tableFunction = reinterpret_cast<function::TableFunction*>(
         catalog.getBuiltInFunctions()->matchScalarFunction(std::move(funcNameToMatch), inputTypes));
-    auto bindData = tableFunction->bindFunc(clientContext,
-        function::TableFuncBindInput{std::move(inputValues)}, catalog.getReadOnlyVersion());
+    std::unique_ptr<function::TableFuncBindInput> tableFuncBindInput;
+    tableFuncBindInput = std::make_unique<function::TableFuncBindInput>(std::move(inputValues));
+    auto bindData = tableFunction->bindFunc(
+        clientContext, tableFuncBindInput.get(), catalog.getReadOnlyVersion());
     expression_vector outputExpressions;
     for (auto i = 0u; i < bindData->returnColumnNames.size(); i++) {
         outputExpressions.push_back(
-            createVariable(bindData->returnColumnNames[i], bindData->returnTypes[i]));
+            createVariable(bindData->returnColumnNames[i], *bindData->returnTypes[i]));
     }
-    return std::make_unique<BoundInQueryCall>(
-        std::move(tableFunction), std::move(bindData), std::move(outputExpressions));
+    return std::make_unique<BoundInQueryCall>(std::move(tableFunction), std::move(bindData),
+        std::move(outputExpressions),
+        std::make_shared<VariableExpression>(LogicalType{LogicalTypeID::INT64},
+            getUniqueExpressionName(CopyConstants::ROW_IDX_COLUMN_NAME),
+            CopyConstants::ROW_IDX_COLUMN_NAME));
 }
 
 static std::unique_ptr<LogicalType> bindFixedListType(
@@ -172,8 +178,23 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(
         }
         columns = createColumnExpressions(*readerConfig, expectedColumnNames, expectedColumnTypes);
     }
-    auto info = std::make_unique<BoundFileScanInfo>(
-        std::move(readerConfig), std::move(columns), nullptr /* offset */, TableType::UNKNOWN);
+    auto inputType = std::make_unique<LogicalType>(LogicalTypeID::STRING);
+    std::vector<LogicalType*> inputTypes;
+    inputTypes.push_back(inputType.get());
+    auto scanFunction = getScanFunction(
+        readerConfig->fileType, std::move(inputTypes), readerConfig->csvReaderConfig->parallel);
+    std::vector<std::unique_ptr<Value>> inputValues;
+    inputValues.push_back(std::make_unique<Value>(Value::createValue(readerConfig->filePaths[0])));
+    std::unique_ptr<function::TableFuncBindInput> tableFuncBindInput =
+        std::make_unique<function::ScanTableFuncBindInput>(*readerConfig, memoryManager);
+    auto bindData = scanFunction->bindFunc(
+        clientContext, tableFuncBindInput.get(), catalog.getReadOnlyVersion());
+    auto info =
+        std::make_unique<BoundFileScanInfo>(scanFunction, std::move(bindData), std::move(columns),
+            std::make_shared<VariableExpression>(LogicalType{LogicalTypeID::INT64},
+                getUniqueExpressionName(CopyConstants::ROW_IDX_COLUMN_NAME),
+                CopyConstants::ROW_IDX_COLUMN_NAME),
+            TableType::UNKNOWN);
     auto boundLoadFrom = std::make_unique<BoundLoadFrom>(std::move(info));
     if (loadFrom.hasWherePredicate()) {
         auto wherePredicate = expressionBinder.bindExpression(*loadFrom.getWherePredicate());

@@ -7,6 +7,8 @@
 #include "common/exception/binder.h"
 #include "common/exception/message.h"
 #include "common/string_format.h"
+#include "function/table_functions.h"
+#include "function/table_functions/bind_input.h"
 #include "parser/copy.h"
 
 using namespace kuzu::binder;
@@ -91,6 +93,15 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     auto fileType = bindFileType(filePaths);
     auto readerConfig =
         std::make_unique<ReaderConfig>(fileType, std::move(filePaths), std::move(csvReaderConfig));
+    auto inputType = std::make_unique<LogicalType>(LogicalTypeID::STRING);
+    std::vector<LogicalType*> inputTypes;
+    inputTypes.push_back(inputType.get());
+    auto scanFunction =
+        getScanFunction(fileType, std::move(inputTypes), readerConfig->csvReaderConfig->parallel);
+    std::vector<std::unique_ptr<Value>> inputValues;
+    inputValues.push_back(std::make_unique<Value>(Value::createValue(readerConfig->filePaths[0])));
+    auto tableFuncBindInput =
+        std::make_unique<function::ScanTableFuncBindInput>(*readerConfig, memoryManager);
     validateByColumnKeyword(readerConfig->fileType, copyStatement.byColumn());
     if (readerConfig->fileType == FileType::NPY) {
         validateCopyNpyNotForRelTables(tableSchema);
@@ -98,15 +109,15 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     switch (tableSchema->tableType) {
     case TableType::NODE:
         if (readerConfig->fileType == FileType::TURTLE) {
-            return bindCopyRdfNodeFrom(std::move(readerConfig), tableSchema);
+            return bindCopyRdfNodeFrom(scanFunction, std::move(readerConfig), tableSchema);
         } else {
-            return bindCopyNodeFrom(std::move(readerConfig), tableSchema);
+            return bindCopyNodeFrom(scanFunction, std::move(readerConfig), tableSchema);
         }
     case TableType::REL: {
         if (readerConfig->fileType == FileType::TURTLE) {
-            return bindCopyRdfRelFrom(std::move(readerConfig), tableSchema);
+            return bindCopyRdfRelFrom(scanFunction, std::move(readerConfig), tableSchema);
         } else {
-            return bindCopyRelFrom(std::move(readerConfig), tableSchema);
+            return bindCopyRelFrom(scanFunction, std::move(readerConfig), tableSchema);
         }
     }
         // LCOV_EXCL_START
@@ -117,28 +128,36 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     }
 }
 
-std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(
-    std::unique_ptr<ReaderConfig> readerConfig, TableSchema* tableSchema) {
+std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(function::TableFunction* copyFunc,
+    std::unique_ptr<common::ReaderConfig> readerConfig, TableSchema* tableSchema) {
     // For table with SERIAL columns, we need to read in serial from files.
     auto containsSerial = bindContainsSerial(tableSchema);
     auto columns = bindExpectedNodeFileColumns(tableSchema, *readerConfig);
+    auto tableFuncBindInput =
+        std::make_unique<function::ScanTableFuncBindInput>(std::move(*readerConfig), memoryManager);
+    auto copyFuncBindData =
+        copyFunc->bindFunc(clientContext, tableFuncBindInput.get(), catalog.getReadOnlyVersion());
     auto nodeID = createVariable(std::string(Property::INTERNAL_ID_NAME), LogicalTypeID::INT64);
     auto boundFileScanInfo = std::make_unique<BoundFileScanInfo>(
-        std::move(readerConfig), columns, std::move(nodeID), TableType::NODE);
+        copyFunc, copyFuncBindData->copy(), columns, std::move(nodeID), TableType::NODE);
     auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(tableSchema,
         std::move(boundFileScanInfo), containsSerial, std::move(columns), nullptr /* extraInfo */);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
-std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(
-    std::unique_ptr<ReaderConfig> readerConfig, TableSchema* tableSchema) {
+std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(function::TableFunction* copyFunc,
+    std::unique_ptr<common::ReaderConfig> readerConfig, TableSchema* tableSchema) {
     // For table with SERIAL columns, we need to read in serial from files.
     auto containsSerial = bindContainsSerial(tableSchema);
     KU_ASSERT(containsSerial == false);
     auto columnsToRead = bindExpectedRelFileColumns(tableSchema, *readerConfig);
+    auto tableFuncBindInput =
+        std::make_unique<function::ScanTableFuncBindInput>(std::move(*readerConfig), memoryManager);
+    auto copyFuncBindData =
+        copyFunc->bindFunc(clientContext, tableFuncBindInput.get(), catalog.getReadOnlyVersion());
     auto relID = createVariable(std::string(Property::INTERNAL_ID_NAME), LogicalTypeID::INT64);
     auto boundFileScanInfo = std::make_unique<BoundFileScanInfo>(
-        std::move(readerConfig), columnsToRead, relID->copy(), TableType::REL);
+        copyFunc, copyFuncBindData->copy(), columnsToRead, relID->copy(), TableType::REL);
     auto relTableSchema = reinterpret_cast<RelTableSchema*>(tableSchema);
     auto srcTableSchema =
         catalog.getReadOnlyVersion()->getTableSchema(relTableSchema->getSrcTableID());

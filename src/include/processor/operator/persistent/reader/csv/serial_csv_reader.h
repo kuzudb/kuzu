@@ -1,6 +1,10 @@
 #pragma once
 
 #include "base_csv_reader.h"
+#include "function/scalar_function.h"
+#include "function/table_functions/bind_data.h"
+#include "function/table_functions/bind_input.h"
+#include "function/table_functions/scan_functions.h"
 
 namespace kuzu {
 namespace processor {
@@ -16,6 +20,34 @@ public:
 
 protected:
     void handleQuotedNewline() override {}
+};
+
+struct SerialCSVScanSharedState final : public function::ScanSharedTableFuncState {
+    explicit SerialCSVScanSharedState(const common::ReaderConfig readerConfig, uint64_t numRows)
+        : ScanSharedTableFuncState{std::move(readerConfig), numRows} {
+        initReader();
+    }
+
+    void read(common::DataChunk& outputChunk);
+
+    void initReader();
+
+    std::unique_ptr<SerialCSVReader> reader;
+};
+
+struct SerialCSVScan {
+    static function::function_set getFunctionSet();
+
+    static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
+
+    static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
+        function::TableFuncBindInput* input, catalog::CatalogContent* /*catalog*/);
+
+    static std::unique_ptr<function::TableFuncSharedState> initSharedState(
+        function::TableFunctionInitInput& input);
+
+    static std::unique_ptr<function::TableFuncLocalState> initLocalState(
+        function::TableFunctionInitInput& /*input*/, function::TableFuncSharedState* /*state*/);
 };
 
 } // namespace processor

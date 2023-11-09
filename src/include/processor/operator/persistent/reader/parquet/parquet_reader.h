@@ -3,6 +3,10 @@
 #include "column_reader.h"
 #include "common/data_chunk/data_chunk.h"
 #include "common/types/types.h"
+#include "function/scalar_function.h"
+#include "function/table_functions/bind_data.h"
+#include "function/table_functions/bind_input.h"
+#include "function/table_functions/scan_functions.h"
 #include "parquet/parquet_types.h"
 #include "resizable_buffer.h"
 #include "thrift/protocol/TCompactProtocol.h"
@@ -44,6 +48,7 @@ public:
     void initializeScan(ParquetReaderScanState& state, std::vector<uint64_t> groups_to_read);
     bool scanInternal(ParquetReaderScanState& state, common::DataChunk& result);
     void scan(ParquetReaderScanState& state, common::DataChunk& result);
+    inline uint64_t getNumRowsGroups() { return metadata->row_groups.size(); }
 
     inline uint32_t getNumColumns() const { return columnNames.size(); }
     inline std::string getColumnName(uint32_t idx) const { return columnNames[idx]; }
@@ -71,7 +76,7 @@ private:
     std::unique_ptr<ColumnReader> createReader();
     std::unique_ptr<ColumnReader> createReaderRecursive(uint64_t depth, uint64_t maxDefine,
         uint64_t maxRepeat, uint64_t& nextSchemaIdx, uint64_t& nextFileIdx);
-    void prepareRowGroupBuffer(ParquetReaderScanState& state, uint64_t col_idx);
+    void prepareRowGroupBuffer(ParquetReaderScanState& state, uint64_t colIdx);
     // Group span is the distance between the min page offset and the max page offset plus the max
     // page compressed size
     uint64_t getGroupSpan(ParquetReaderScanState& state);
@@ -85,6 +90,36 @@ private:
     std::vector<std::unique_ptr<common::LogicalType>> columnTypes;
     std::unique_ptr<kuzu_parquet::format::FileMetaData> metadata;
     storage::MemoryManager* memoryManager;
+};
+
+struct ParquetScanSharedState final : public function::ScanSharedTableFuncState {
+    explicit ParquetScanSharedState(const common::ReaderConfig readerConfig,
+        storage::MemoryManager* memoryManager, uint64_t numRows);
+
+    std::vector<std::unique_ptr<ParquetReader>> readers;
+    storage::MemoryManager* memoryManager;
+};
+
+struct ParquetScanLocalState final : public function::TableFuncLocalState {
+    ParquetScanLocalState() { state = std::make_unique<ParquetReaderScanState>(); }
+
+    ParquetReader* reader;
+    std::unique_ptr<ParquetReaderScanState> state;
+};
+
+struct ParquetScanFunction {
+    static function::function_set getFunctionSet();
+
+    static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
+
+    static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
+        function::TableFuncBindInput* input, catalog::CatalogContent* catalog);
+
+    static std::unique_ptr<function::TableFuncSharedState> initSharedState(
+        function::TableFunctionInitInput& input);
+
+    static std::unique_ptr<function::TableFuncLocalState> initLocalState(
+        function::TableFunctionInitInput& input, function::TableFuncSharedState* state);
 };
 
 } // namespace processor

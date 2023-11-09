@@ -4,6 +4,7 @@
 #include "common/constants.h"
 #include "common/keyword/rdf_keyword.h"
 #include "common/types/rdf_variant_type.h"
+#include "function/table_functions/bind_input.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;
@@ -13,7 +14,7 @@ using namespace kuzu::parser;
 namespace kuzu {
 namespace binder {
 
-std::unique_ptr<BoundStatement> Binder::bindCopyRdfNodeFrom(
+std::unique_ptr<BoundStatement> Binder::bindCopyRdfNodeFrom(function::TableFunction* copyFunc,
     std::unique_ptr<ReaderConfig> readerConfig, TableSchema* tableSchema) {
     bool containsSerial;
     auto stringType = LogicalType{LogicalTypeID::STRING};
@@ -35,14 +36,18 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfNodeFrom(
             std::make_unique<RdfReaderConfig>(RdfReaderMode::LITERAL, nullptr /* index */);
         columns.push_back(createVariable(columnName, *RdfVariantType::getType()));
     }
+    auto tableFuncBindInput =
+        std::make_unique<function::ScanTableFuncBindInput>(*readerConfig, memoryManager);
+    auto bindData =
+        copyFunc->bindFunc(clientContext, tableFuncBindInput.get(), catalog.getReadOnlyVersion());
     auto boundFileScanInfo = std::make_unique<BoundFileScanInfo>(
-        std::move(readerConfig), columns, std::move(nodeID), TableType::NODE);
+        copyFunc, std::move(bindData), columns, std::move(nodeID), TableType::NODE);
     auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(tableSchema,
         std::move(boundFileScanInfo), containsSerial, std::move(columns), nullptr /* extraInfo */);
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 
-std::unique_ptr<BoundStatement> Binder::bindCopyRdfRelFrom(
+std::unique_ptr<BoundStatement> Binder::bindCopyRdfRelFrom(function::TableFunction* copyFunc,
     std::unique_ptr<ReaderConfig> readerConfig, TableSchema* tableSchema) {
     auto containsSerial = false;
     auto offsetType = std::make_unique<LogicalType>(LogicalTypeID::INT64);
@@ -64,8 +69,12 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfRelFrom(
             std::make_unique<RdfReaderConfig>(RdfReaderMode::LITERAL_TRIPLE, index);
     }
     auto relID = createVariable(std::string(Property::INTERNAL_ID_NAME), LogicalTypeID::INT64);
+    auto tableFuncBindInput =
+        std::make_unique<function::ScanTableFuncBindInput>(*readerConfig, memoryManager);
+    auto bindData =
+        copyFunc->bindFunc(clientContext, tableFuncBindInput.get(), catalog.getReadOnlyVersion());
     auto boundFileScanInfo = std::make_unique<BoundFileScanInfo>(
-        std::move(readerConfig), columns, relID, TableType::REL);
+        copyFunc, std::move(bindData), columns, relID, TableType::REL);
     auto extraInfo = std::make_unique<ExtraBoundCopyRdfRelInfo>(columns[0], columns[1], columns[2]);
     columns.push_back(std::move(relID));
     auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(tableSchema,

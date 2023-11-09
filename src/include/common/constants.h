@@ -122,6 +122,7 @@ struct CopyConstants {
     static constexpr char DEFAULT_CSV_LIST_BEGIN_CHAR = '[';
     static constexpr char DEFAULT_CSV_LIST_END_CHAR = ']';
     static constexpr char DEFAULT_CSV_LINE_BREAK = '\n';
+    static constexpr const char* ROW_IDX_COLUMN_NAME = "ROW_IDX";
 };
 
 struct LoggerConstants {

@@ -8,20 +8,34 @@ namespace kuzu {
 namespace processor {
 
 struct InQueryCallSharedState {
-    std::unique_ptr<function::SharedTableFuncState> sharedState;
+    std::unique_ptr<function::TableFuncSharedState> sharedState;
+    common::row_idx_t nextRowIdx = 0;
+    std::mutex mtx;
+
+    common::row_idx_t getAndIncreaseRowIdx(uint64_t numRows);
+};
+
+struct InQueryCallLocalState {
+    std::unique_ptr<common::DataChunk> outputChunk;
+    common::ValueVector* rowIDVector;
+    std::unique_ptr<function::TableFuncLocalState> localState;
+    function::TableFunctionInput tableFunctionInput;
 };
 
 struct InQueryCallInfo {
     function::TableFunction* function;
     std::unique_ptr<function::TableFuncBindData> bindData;
     std::vector<DataPos> outputPoses;
+    DataPos rowIDPos;
 
     InQueryCallInfo(function::TableFunction* function,
-        std::unique_ptr<function::TableFuncBindData> bindData, std::vector<DataPos> outputPoses)
-        : function{function}, bindData{std::move(bindData)}, outputPoses{std::move(outputPoses)} {}
+        std::unique_ptr<function::TableFuncBindData> bindData, std::vector<DataPos> outputPoses,
+        DataPos rowIDPos)
+        : function{function}, bindData{std::move(bindData)},
+          outputPoses{std::move(outputPoses)}, rowIDPos{std::move(rowIDPos)} {}
 
     std::unique_ptr<InQueryCallInfo> copy() {
-        return std::make_unique<InQueryCallInfo>(function, bindData->copy(), outputPoses);
+        return std::make_unique<InQueryCallInfo>(function, bindData->copy(), outputPoses, rowIDPos);
     }
 };
 
@@ -35,6 +49,10 @@ public:
 
     inline bool isSource() const override { return true; }
 
+    inline bool canParallel() const override {
+        return inQueryCallInfo->function->canParallelFunc();
+    }
+
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     void initGlobalStateInternal(ExecutionContext* context) override;
@@ -46,10 +64,12 @@ public:
             inQueryCallInfo->copy(), sharedState, operatorType, id, paramsString);
     }
 
+    inline InQueryCallSharedState* getSharedState() { return sharedState.get(); }
+
 protected:
     std::unique_ptr<InQueryCallInfo> inQueryCallInfo;
     std::shared_ptr<InQueryCallSharedState> sharedState;
-    std::vector<common::ValueVector*> outputVectors;
+    std::unique_ptr<InQueryCallLocalState> localState;
 };
 
 } // namespace processor
