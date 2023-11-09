@@ -25,7 +25,7 @@ TEST_F(DBLockingTest, testReadLock) {
     // test read write db
     pid_t pid = fork();
     if (pid == 0) {
-        systemConfig->accessMode = AccessMode::READ_ONLY;
+        systemConfig->readOnly = true;
         EXPECT_NO_THROW(createDBAndConn());
         (*count)++;
         ASSERT_TRUE(conn->query("MATCH (:Person) RETURN COUNT(*)")->isSuccess());
@@ -37,11 +37,11 @@ TEST_F(DBLockingTest, testReadLock) {
         while (*count == 0) {
             usleep(100);
         }
-        systemConfig->accessMode = AccessMode::READ_WRITE;
+        systemConfig->readOnly = false;
         // try to open db for writing, this should fail
         EXPECT_ANY_THROW(createDBAndConn());
         // but opening db for reading should work
-        systemConfig->accessMode = AccessMode::READ_ONLY;
+        systemConfig->readOnly = true;
         EXPECT_NO_THROW(createDBAndConn());
         ASSERT_TRUE(conn->query("MATCH (:Person) RETURN COUNT(*)")->isSuccess());
         // kill the child
@@ -61,7 +61,7 @@ TEST_F(DBLockingTest, testWriteLock) {
     if (pid == 0) {
         // child process
         // open db for writing
-        systemConfig->accessMode = AccessMode::READ_WRITE;
+        systemConfig->readOnly = false;
         EXPECT_NO_THROW(createDBAndConn());
         // opened db for writing
         // insert some values
@@ -81,10 +81,10 @@ TEST_F(DBLockingTest, testWriteLock) {
             usleep(100);
         }
         // try to open db for writing, this should fail
-        systemConfig->accessMode = AccessMode::READ_WRITE;
+        systemConfig->readOnly = false;
         EXPECT_ANY_THROW(createDBAndConn());
         // try to open db for reading, this should fail
-        systemConfig->accessMode = AccessMode::READ_ONLY;
+        systemConfig->readOnly = true;
         EXPECT_ANY_THROW(createDBAndConn());
         // kill the child
         if (kill(pid, SIGKILL) != 0) {
@@ -98,13 +98,13 @@ TEST_F(DBLockingTest, testReadOnly) {
         NULL, sizeof(uint64_t), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED, 0, 0);
     *count = 0;
     // cannot create a read-only database in a new directory
-    systemConfig->accessMode = AccessMode::READ_ONLY;
+    systemConfig->readOnly = true;
     EXPECT_ANY_THROW(createDBAndConn());
 
     // create the database file and initialize it with data
     pid_t create_pid = fork();
     if (create_pid == 0) {
-        systemConfig->accessMode = AccessMode::READ_WRITE;
+        systemConfig->readOnly = false;
         EXPECT_NO_THROW(createDBAndConn());
         ASSERT_TRUE(
             conn->query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")
@@ -115,7 +115,7 @@ TEST_F(DBLockingTest, testReadOnly) {
     waitpid(create_pid, NULL, 0);
 
     // now connect in read-only mode
-    systemConfig->accessMode = AccessMode::READ_ONLY;
+    systemConfig->readOnly = true;
     EXPECT_NO_THROW(createDBAndConn());
     // we can query the database
     ASSERT_TRUE(conn->query("MATCH (:Person) RETURN COUNT(*)")->isSuccess());

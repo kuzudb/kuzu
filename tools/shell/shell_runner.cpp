@@ -35,12 +35,10 @@ int main(int argc, char* argv[]) {
         systemConfig.enableCompression = false;
     }
     if (readOnlyMode) {
-        systemConfig.accessMode = kuzu::common::AccessMode::READ_ONLY;
+        systemConfig.readOnly = true;
     }
     std::cout << "Opened the database at path: " << databasePath << " in "
-              << (systemConfig.accessMode == kuzu::common::AccessMode::READ_ONLY ? "READ_ONLY mode" :
-                                                                     "READ_WRITE mode")
-              << "." << std::endl;
+              << (readOnlyMode ? "read-only mode" : "read-write mode") << "." << std::endl;
     std::cout << "Enter \":help\" for usage hints." << std::endl;
     try {
         auto shell = EmbeddedShell(databasePath, systemConfig);

@@ -28,15 +28,15 @@ TEST_F(CApiDatabaseTest, CreationReadOnly) {
 #endif
     auto databasePathCStr = databasePath.c_str();
     auto systemConfig = kuzu_default_system_config();
-    // First, create a database with read-write access mode.
+    // First, create a read-write database.
     auto database = kuzu_database_init(databasePathCStr, systemConfig);
     ASSERT_NE(database, nullptr);
     ASSERT_NE(database->_database, nullptr);
     auto databaseCpp = static_cast<Database*>(database->_database);
     ASSERT_NE(databaseCpp, nullptr);
     kuzu_database_destroy(database);
-    // Now, access the same database with read-only access mode.
-    systemConfig.access_mode = kuzu_access_mode::READ_ONLY;
+    // Now, access the same database read-only.
+    systemConfig.read_only = true;
     database = kuzu_database_init(databasePathCStr, systemConfig);
     ASSERT_NE(database, nullptr);
     ASSERT_NE(database->_database, nullptr);

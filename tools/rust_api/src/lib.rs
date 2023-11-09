@@ -47,7 +47,7 @@ mod query_result;
 mod value;
 
 pub use connection::{Connection, PreparedStatement};
-pub use database::{AccessMode, Database, LoggingLevel, SystemConfig};
+pub use database::{Database, LoggingLevel, SystemConfig};
 pub use error::Error;
 pub use logical_type::LogicalType;
 pub use query_result::{CSVOptions, QueryResult};

@@ -65,8 +65,8 @@ describe("Database constructor", function () {
     const testDbReadOnly = new kuzu.Database(
       tmpDbPath,
       1 << 28 /* 256MB */,
-      true,
-      kuzu.AccessMode.READ_ONLY
+      true, /* compression */
+      true, /* readOnly */
     );
     assert.exists(testDbReadOnly);
     assert.equal(testDbReadOnly.constructor.name, "Database");
@@ -91,7 +91,7 @@ describe("Database constructor", function () {
     } catch (e) {
       assert.equal(
         e.message,
-        "Cannot execute write operations in a read-only access mode database!"
+        "Cannot execute write operations in a read-only database!"
       );
     }
   });

@@ -1,6 +1,5 @@
 from . import _kuzu
 from .types import Type
-from .access_mode import AccessMode
 
 
 class Database:
@@ -36,20 +35,18 @@ class Database:
             when the main process is forked.
             Default to False.
         read_only : bool
-            If true, the access mode is set to `READ_ONLY`. No write transactions is allowed in the `Database` object.
-            Multiple `Database` objects can be created with the same database path under `READ_ONLY` mode. If false,
-            the access mode is set to `READ_WRITE`. Under this mode, there can not be multiple `Database` objects
-            created with the same database path.
+            If true, the database is opened read-only. No write transactions is
+            allowed on the `Database` object. Multiple read-only `Database`
+            objects can be created with the same database path. However, there
+            cannot be multiple `Database` objects created with the same
+            database path.
             Default to False.
         """
         self.database_path = database_path
         self.buffer_pool_size = buffer_pool_size
         self.max_num_threads = max_num_threads
         self.compression = compression
-        if read_only:
-            self.access_mode = AccessMode.READ_ONLY
-        else:
-            self.access_mode = AccessMode.READ_WRITE
+        self.read_only = read_only
         self._database = None
         if not lazy_init:
             self.init_database()
@@ -59,7 +56,7 @@ class Database:
             "database_path": self.database_path,
             "buffer_pool_size": self.buffer_pool_size,
             "compression": self.compression,
-            "access_mode": self.access_mode,
+            "read_only": self.read_only,
             "_database": None
         }
         return state
@@ -71,7 +68,7 @@ class Database:
         if self._database is None:
             self._database = _kuzu.Database(self.database_path,
                                             self.buffer_pool_size, self.max_num_threads, self.compression,
-                                            self.access_mode)
+                                            self.read_only)
 
     def resize_buffer_manager(self, new_size):
         """

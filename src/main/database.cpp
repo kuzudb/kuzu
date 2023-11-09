@@ -27,8 +27,7 @@ namespace main {
 
 SystemConfig::SystemConfig(
     uint64_t bufferPoolSize_, uint64_t maxNumThreads, bool enableCompression, bool readOnly)
-    : maxNumThreads{maxNumThreads}, enableCompression{enableCompression},
-      accessMode{readOnly ? AccessMode::READ_ONLY : AccessMode::READ_WRITE} {
+    : maxNumThreads{maxNumThreads}, enableCompression{enableCompression}, readOnly(readOnly) {
     if (bufferPoolSize_ == -1u || bufferPoolSize_ == 0) {
 #if defined(_WIN32)
         MEMORYSTATUSEX status;
@@ -48,13 +47,12 @@ SystemConfig::SystemConfig(
     }
 }
 
-static void getLockFileFlagsAndType(
-    AccessMode accessMode, bool createNew, int& flags, FileLockType& lock) {
-    flags = accessMode == AccessMode::READ_ONLY ? O_RDONLY : O_RDWR;
-    if (createNew) {
+static void getLockFileFlagsAndType(bool readOnly, bool createNew, int& flags, FileLockType& lock) {
+    flags = readOnly ? O_RDONLY : O_RDWR;
+    if (createNew && !readOnly) {
         flags |= O_CREAT;
     }
-    lock = accessMode == AccessMode::READ_ONLY ? FileLockType::READ_LOCK : FileLockType::WRITE_LOCK;
+    lock = readOnly ? FileLockType::READ_LOCK : FileLockType::WRITE_LOCK;
 }
 
 Database::Database(std::string databasePath) : Database{std::move(databasePath), SystemConfig()} {}
@@ -67,11 +65,11 @@ Database::Database(std::string databasePath, SystemConfig systemConfig)
     memoryManager = std::make_unique<MemoryManager>(bufferManager.get());
     queryProcessor = std::make_unique<processor::QueryProcessor>(this->systemConfig.maxNumThreads);
     initDBDirAndCoreFilesIfNecessary();
-    wal = std::make_unique<WAL>(this->databasePath, systemConfig.accessMode, *bufferManager);
+    wal = std::make_unique<WAL>(this->databasePath, systemConfig.readOnly, *bufferManager);
     recoverIfNecessary();
     catalog = std::make_unique<catalog::Catalog>(wal.get());
-    storageManager = std::make_unique<storage::StorageManager>(systemConfig.accessMode, *catalog,
-        *memoryManager, wal.get(), systemConfig.enableCompression);
+    storageManager = std::make_unique<storage::StorageManager>(
+        systemConfig.readOnly, *catalog, *memoryManager, wal.get(), systemConfig.enableCompression);
     transactionManager = std::make_unique<transaction::TransactionManager>(
         *wal, storageManager.get(), memoryManager.get());
 }
@@ -90,16 +88,16 @@ void Database::openLockFile() {
     FileLockType lock;
     auto lockFilePath = StorageUtils::getLockFilePath(databasePath);
     if (!FileUtils::fileOrPathExists(lockFilePath)) {
-        getLockFileFlagsAndType(systemConfig.accessMode, true, flags, lock);
+        getLockFileFlagsAndType(systemConfig.readOnly, true, flags, lock);
     } else {
-        getLockFileFlagsAndType(systemConfig.accessMode, false, flags, lock);
+        getLockFileFlagsAndType(systemConfig.readOnly, false, flags, lock);
     }
     lockFile = FileUtils::openFile(lockFilePath, flags, lock);
 }
 
 void Database::initDBDirAndCoreFilesIfNecessary() {
     if (!FileUtils::fileOrPathExists(databasePath)) {
-        if (systemConfig.accessMode == AccessMode::READ_ONLY) {
+        if (systemConfig.readOnly) {
             throw Exception("Cannot create an empty database under READ ONLY mode.");
         }
         FileUtils::createDir(databasePath);

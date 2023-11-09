@@ -1,7 +1,6 @@
 #pragma once
 
 #include "catalog/catalog.h"
-#include "common/enums/access_mode.h"
 #include "storage/index/hash_index.h"
 #include "storage/stats/nodes_store_statistics.h"
 #include "storage/stats/rels_store_statistics.h"
@@ -14,8 +13,8 @@ namespace storage {
 
 class StorageManager {
 public:
-    StorageManager(common::AccessMode accessMode, const catalog::Catalog& catalog,
-        MemoryManager& memoryManager, WAL* wal, bool enableCompression);
+    StorageManager(bool readOnly, const catalog::Catalog& catalog, MemoryManager& memoryManager,
+        WAL* wal, bool enableCompression);
 
     void createTable(
         common::table_id_t tableID, BufferManager* bufferManager, catalog::Catalog* catalog);
@@ -50,8 +49,7 @@ public:
     inline bool compressionEnabled() const { return enableCompression; }
 
 private:
-    void loadTables(common::AccessMode accessMode, const catalog::Catalog& catalog,
-        BufferManager* bufferManager);
+    void loadTables(bool readOnly, const catalog::Catalog& catalog, BufferManager* bufferManager);
 
 private:
     std::unique_ptr<BMFileHandle> dataFH;

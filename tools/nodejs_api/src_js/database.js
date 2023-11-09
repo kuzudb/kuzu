@@ -2,7 +2,6 @@
 
 const KuzuNative = require("./kuzujs.node");
 const LoggingLevel = require("./logging_level.js");
-const AccessMode = require("./access_mode.js");
 
 class Database {
   /**
@@ -14,7 +13,7 @@ class Database {
    * @param {String} databasePath path to the database file.
    * @param {Number} bufferManagerSize size of the buffer manager in bytes.
    * @param {Boolean} enableCompression whether to enable compression.
-   * @param {Boolean} readOnly if true, access mode is set to `READ_ONLY`; otherwise, set to `READ_WRITE`.
+   * @param {Boolean} readOnly if true, database will be opened in read-only mode.
    */
   constructor(
     databasePath,
@@ -29,15 +28,11 @@ class Database {
       throw new Error("Buffer manager size must be a positive integer.");
     }
     bufferManagerSize = Math.floor(bufferManagerSize);
-    accessMode = AccessMode.READ_WRITE;
-    if (readOnly) {
-      accessMode = AccessMode.READ_ONLY;
-    }
     this._database = new KuzuNative.NodeDatabase(
       databasePath,
       bufferManagerSize,
       enableCompression,
-      accessMode
+      readOnly,
     );
     this._isInitialized = false;
     this._initPromise = null;

@@ -114,9 +114,9 @@ typedef struct {
     uint64_t max_num_threads;
     // Whether or not to compress data on-disk for supported types
     bool enable_compression;
-    // If true, open the database in read-only mode. No write transaction is allowed in the Database
-    // object. If false, the access mode is set to READ_WRITE.
-    bool readOnly;
+    // If true, open the database in read-only mode. No write transaction is allowed on the Database
+    // object. If false, open the database read-write.
+    bool read_only;
 } kuzu_system_config;
 
 /**
@@ -257,11 +257,6 @@ typedef enum {
     KUZU_MAP = 54,
     KUZU_UNION = 55,
 } kuzu_data_type_id;
-
-typedef enum {
-    READ_ONLY = 0,
-    READ_WRITE = 1,
-} kuzu_access_mode;
 
 // Database
 /**

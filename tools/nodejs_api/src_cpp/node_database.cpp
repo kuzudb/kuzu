@@ -19,7 +19,7 @@ NodeDatabase::NodeDatabase(const Napi::CallbackInfo& info) : Napi::ObjectWrap<No
     databasePath = info[0].ToString();
     bufferPoolSize = info[1].As<Napi::Number>().Int64Value();
     enableCompression = info[2].As<Napi::Boolean>().Value();
-    accessMode = static_cast<kuzu::common::AccessMode>(info[3].As<Napi::Number>().Int32Value());
+    readOnly = info[3].As<Napi::Boolean>().Value();
 }
 
 Napi::Value NodeDatabase::InitAsync(const Napi::CallbackInfo& info) {
@@ -41,7 +41,7 @@ void NodeDatabase::InitCppDatabase() {
     if (!enableCompression) {
         systemConfig.enableCompression = enableCompression;
     }
-    systemConfig.accessMode = accessMode;
+    systemConfig.readOnly = readOnly;
     this->database = std::make_shared<Database>(databasePath, systemConfig);
 }
 

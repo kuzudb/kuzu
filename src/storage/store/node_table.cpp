@@ -16,19 +16,19 @@ namespace storage {
 NodeTable::NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH,
     catalog::NodeTableSchema* nodeTableSchema,
     NodesStoreStatsAndDeletedIDs* nodesStatisticsAndDeletedIDs, BufferManager& bufferManager,
-    WAL* wal, common::AccessMode accessMode, bool enableCompression)
+    WAL* wal, bool readOnly, bool enableCompression)
     : Table{nodeTableSchema, nodesStatisticsAndDeletedIDs, bufferManager, wal},
       pkColumnID{nodeTableSchema->getColumnID(nodeTableSchema->getPrimaryKeyPropertyID())} {
     tableData = std::make_unique<NodeTableData>(dataFH, metadataFH, tableID, &bufferManager, wal,
         nodeTableSchema->getProperties(), nodesStatisticsAndDeletedIDs, enableCompression);
-    initializePKIndex(nodeTableSchema, accessMode);
+    initializePKIndex(nodeTableSchema, readOnly);
 }
 
-void NodeTable::initializePKIndex(NodeTableSchema* nodeTableSchema, AccessMode accessMode) {
+void NodeTable::initializePKIndex(NodeTableSchema* nodeTableSchema, bool readOnly) {
     if (nodeTableSchema->getPrimaryKey()->getDataType()->getLogicalTypeID() !=
         LogicalTypeID::SERIAL) {
         pkIndex = std::make_unique<PrimaryKeyIndex>(
-            StorageUtils::getNodeIndexIDAndFName(wal->getDirectory(), tableID), accessMode,
+            StorageUtils::getNodeIndexIDAndFName(wal->getDirectory(), tableID), readOnly,
             *nodeTableSchema->getPrimaryKey()->getDataType(), bufferManager, wal);
     }
 }

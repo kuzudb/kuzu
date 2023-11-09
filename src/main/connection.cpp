@@ -254,10 +254,8 @@ void Connection::addScalarFunction(std::string name, function::function_set defi
 }
 
 void Connection::checkPreparedStatementAccessMode(PreparedStatement* preparedStatement) {
-    bool isInReadOnlyMode = database->systemConfig.accessMode == AccessMode::READ_ONLY;
-    if (isInReadOnlyMode && !preparedStatement->isReadOnly()) {
-        throw ConnectionException(
-            "Cannot execute write operations in a read-only access mode database!");
+    if (database->systemConfig.readOnly && !preparedStatement->isReadOnly()) {
+        throw ConnectionException("Cannot execute write operations in a read-only database!");
     }
 }
 

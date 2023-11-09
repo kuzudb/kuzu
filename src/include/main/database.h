@@ -4,7 +4,6 @@
 #include <string>
 
 #include "common/api.h"
-#include "common/enums/access_mode.h"
 #include "kuzu_fwd.h"
 
 namespace kuzu {
@@ -21,10 +20,10 @@ struct KUZU_API SystemConfig {
      *        reducing the amount of File I/O
      *  @param maxNumThreads The maximum number of threads to use during query execution
      *  @param enableCompression Whether or not to compress data on-disk for supported types
-     *  @param readOnly If true, the access mode is set to `READ_ONLY`. No write transactions is
-     * allowed in the `Database` object. Multiple `Database` objects can be created with the same
-     * database path under `READ_ONLY` mode. If false, the access mode is set to `READ_WRITE`. Under
-     * this mode, there can not be multiple `Database` objects created with the same database path.
+     *  @param readOnly If true, the database is opened read-only. No write transaction is
+     * allowed on the `Database` object. Multiple read-only `Database` objects can be created with
+     * the same database path. If false, the database is opened read-write. Under this mode,
+     * there must not be multiple `Database` objects created with the same database path.
      */
     explicit SystemConfig(uint64_t bufferPoolSize = -1u, uint64_t maxNumThreads = 0,
         bool enableCompression = true, bool readOnly = false);
@@ -32,7 +31,7 @@ struct KUZU_API SystemConfig {
     uint64_t bufferPoolSize;
     uint64_t maxNumThreads;
     bool enableCompression;
-    common::AccessMode accessMode;
+    bool readOnly;
 };
 
 /**

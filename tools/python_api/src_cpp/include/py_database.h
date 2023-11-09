@@ -2,7 +2,7 @@
 
 #include "main/kuzu.h"
 #include "main/storage_driver.h"
-#include "pybind_include.h"
+#include "pybind_include.h" // IWYU pragma: keep (used for py:: namespace)
 #define PYBIND11_DETAILED_ERROR_MESSAGES
 using namespace kuzu::main;
 
@@ -17,7 +17,7 @@ public:
     static void initialize(py::handle& m);
 
     explicit PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize,
-        uint64_t maxNumThreads, bool compression, uint8_t accessMode);
+        uint64_t maxNumThreads, bool compression, bool readOnly);
 
     ~PyDatabase() = default;
 

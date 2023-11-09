@@ -29,9 +29,9 @@ def test_read_only_exception(establish_connection):
         pytest.skip("Read-only mode has not been implemented on Windows yet")
     _, db = establish_connection
     path = db.database_path
-    read_only_db = kuzu.Database(path, access_mode=kuzu.AccessMode.READ_ONLY)
+    read_only_db = kuzu.Database(path, read_only=True)
     conn = kuzu.Connection(read_only_db)
-    with pytest.raises(RuntimeError, match="Cannot execute write operations in a read-only access mode database!"):
+    with pytest.raises(RuntimeError, match="Cannot execute write operations in a read-only database!"):
         conn.execute("CREATE NODE TABLE test (id INT64, PRIMARY KEY(id));")
 
 def test_query_exception(establish_connection):

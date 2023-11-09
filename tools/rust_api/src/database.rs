@@ -21,21 +21,6 @@ pub enum LoggingLevel {
 }
 
 #[derive(Clone, Debug)]
-pub enum AccessMode {
-    ReadWrite,
-    ReadOnly,
-}
-
-impl From<AccessMode> for ffi::AccessMode {
-    fn from(other: AccessMode) -> Self {
-        match other {
-            AccessMode::ReadWrite => ffi::AccessMode::READ_WRITE,
-            AccessMode::ReadOnly => ffi::AccessMode::READ_ONLY,
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
 /// Configuration options for the database.
 pub struct SystemConfig {
     /// Max size of the buffer pool in bytes
@@ -51,7 +36,7 @@ pub struct SystemConfig {
     /// When true, new columns will be compressed if possible
     /// Defaults to true
     enable_compression: bool,
-    read_only : bool,
+    read_only: bool,
 }
 
 impl Default for SystemConfig {
@@ -78,7 +63,7 @@ impl SystemConfig {
         self.enable_compression = enable_compression;
         self
     }
-    pub fn access_mode(mut self, read_only : bool) -> Self {
+    pub fn read_only(mut self, read_only: bool) -> Self {
         self.read_only = read_only;
         self
     }
@@ -101,7 +86,7 @@ impl Database {
                 config.buffer_pool_size,
                 config.max_num_threads,
                 config.enable_compression,
-                if config.read_only { ffi::AccessMode::READ_ONLY} else {ffi::AccessMode::READ_WRITE},
+                config.read_only,
             )?),
         })
     }
@@ -133,7 +118,7 @@ impl fmt::Debug for Database {
 #[cfg(test)]
 mod tests {
     use crate::connection::Connection;
-    use crate::database::{AccessMode, Database, LoggingLevel, SystemConfig};
+    use crate::database::{Database, LoggingLevel, SystemConfig};
     use anyhow::{Error, Result};
     // Note: Cargo runs tests in parallel by default, however kuzu does not support
     // working with multiple databases in parallel.
@@ -190,10 +175,7 @@ mod tests {
         {
             Database::new(temp_dir.path(), SystemConfig::default())?;
         }
-        let db = Database::new(
-            temp_dir.path(),
-            SystemConfig::default().access_mode(AccessMode::ReadOnly),
-        )?;
+        let db = Database::new(temp_dir.path(), SystemConfig::default().read_only(true))?;
         let conn = Connection::new(&db)?;
         let result: Error = conn
             .query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")
@@ -202,7 +184,7 @@ mod tests {
 
         assert_eq!(
             result.to_string(),
-            "Cannot execute write operations in a read-only access mode database!"
+            "Cannot execute write operations in a read-only database!"
         );
         Ok(())
     }

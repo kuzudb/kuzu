@@ -15,13 +15,13 @@ class DiskOverflowFile {
 
 public:
     DiskOverflowFile(const DBFileIDAndName& dbFileIdAndName, BufferManager* bufferManager, WAL* wal,
-        common::AccessMode accessMode)
+        bool readOnly)
         : bufferManager{bufferManager}, wal{wal}, loggedNewOverflowFileNextBytePosRecord{false} {
         auto overflowFileIDAndName = constructDBFileIDAndName(dbFileIdAndName);
         dbFileID = overflowFileIDAndName.dbFileID;
         fileHandle = bufferManager->getBMFileHandle(overflowFileIDAndName.fName,
-            accessMode == common::AccessMode::READ_ONLY ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
-                                                          FileHandle::O_PERSISTENT_FILE_NO_CREATE,
+            readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
+                       FileHandle::O_PERSISTENT_FILE_NO_CREATE,
             BMFileHandle::FileVersionedType::VERSIONED_FILE);
         nextBytePosToWriteTo =
             fileHandle->getNumPages() * common::BufferPoolConstants::PAGE_4KB_SIZE;
