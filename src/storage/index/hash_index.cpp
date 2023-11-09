@@ -120,13 +120,13 @@ void HashIndexLocalStorage::clear() {
 }
 
 template<typename T>
-HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName, AccessMode accessMode,
+HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName, bool readOnly,
     const LogicalType& keyDataType, BufferManager& bufferManager, WAL* wal)
     : BaseHashIndex{keyDataType}, dbFileIDAndName{dbFileIDAndName}, bm{bufferManager}, wal{wal} {
     slotCapacity = getSlotCapacity<T>();
     fileHandle = bufferManager.getBMFileHandle(dbFileIDAndName.fName,
-        accessMode == AccessMode::READ_ONLY ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
-                                              FileHandle::O_PERSISTENT_FILE_NO_CREATE,
+        readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
+                   FileHandle::O_PERSISTENT_FILE_NO_CREATE,
         BMFileHandle::FileVersionedType::VERSIONED_FILE);
     headerArray =
         std::make_unique<BaseDiskArray<HashIndexHeader>>(*fileHandle, dbFileIDAndName.dbFileID,
@@ -145,8 +145,7 @@ HashIndex<T>::HashIndex(const DBFileIDAndName& dbFileIDAndName, AccessMode acces
     keyEqualsFunc = HashIndexUtils::initializeEqualsFunc(indexHeader->keyDataTypeID);
     localStorage = std::make_unique<HashIndexLocalStorage>(keyDataType);
     if (keyDataType.getLogicalTypeID() == LogicalTypeID::STRING) {
-        diskOverflowFile =
-            std::make_unique<DiskOverflowFile>(dbFileIDAndName, &bm, wal, accessMode);
+        diskOverflowFile = std::make_unique<DiskOverflowFile>(dbFileIDAndName, &bm, wal, readOnly);
     }
 }
 

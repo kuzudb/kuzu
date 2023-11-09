@@ -10,33 +10,33 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-StorageManager::StorageManager(AccessMode accessMode, const Catalog& catalog,
-    MemoryManager& memoryManager, WAL* wal, bool enableCompression)
+StorageManager::StorageManager(bool readOnly, const Catalog& catalog, MemoryManager& memoryManager,
+    WAL* wal, bool enableCompression)
     : memoryManager{memoryManager}, wal{wal}, enableCompression{enableCompression} {
     dataFH = memoryManager.getBufferManager()->getBMFileHandle(
         StorageUtils::getDataFName(wal->getDirectory()),
-        accessMode == AccessMode::READ_ONLY ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
-                                              FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
+        readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
+                   FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
         BMFileHandle::FileVersionedType::VERSIONED_FILE);
     metadataFH = memoryManager.getBufferManager()->getBMFileHandle(
         StorageUtils::getMetadataFName(wal->getDirectory()),
-        accessMode == AccessMode::READ_ONLY ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
-                                              FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
+        readOnly ? FileHandle::O_PERSISTENT_FILE_READ_ONLY :
+                   FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
         BMFileHandle::FileVersionedType::VERSIONED_FILE);
     nodesStatisticsAndDeletedIDs = std::make_unique<NodesStoreStatsAndDeletedIDs>(
         metadataFH.get(), memoryManager.getBufferManager(), wal);
     relsStatistics =
         std::make_unique<RelsStoreStats>(metadataFH.get(), memoryManager.getBufferManager(), wal);
-    loadTables(accessMode, catalog, memoryManager.getBufferManager());
+    loadTables(readOnly, catalog, memoryManager.getBufferManager());
 }
 
 void StorageManager::loadTables(
-    AccessMode accessMode, const catalog::Catalog& catalog, BufferManager* bufferManager) {
+    bool readOnly, const catalog::Catalog& catalog, BufferManager* bufferManager) {
     for (auto& schema : catalog.getReadOnlyVersion()->getNodeTableSchemas()) {
         KU_ASSERT(!tables.contains(schema->tableID));
         auto nodeTableSchema = reinterpret_cast<NodeTableSchema*>(schema);
         tables[schema->tableID] = std::make_unique<NodeTable>(dataFH.get(), metadataFH.get(),
-            nodeTableSchema, nodesStatisticsAndDeletedIDs.get(), *bufferManager, wal, accessMode,
+            nodeTableSchema, nodesStatisticsAndDeletedIDs.get(), *bufferManager, wal, readOnly,
             enableCompression);
     }
     for (auto schema : catalog.getReadOnlyVersion()->getRelTableSchemas()) {
@@ -55,7 +55,7 @@ void StorageManager::createTable(common::table_id_t tableID,
         auto nodeTableSchema = reinterpret_cast<NodeTableSchema*>(tableSchema);
         tables[tableID] = std::make_unique<NodeTable>(dataFH.get(), metadataFH.get(),
             nodeTableSchema, nodesStatisticsAndDeletedIDs.get(), *bufferManager, wal,
-            common::AccessMode::READ_WRITE, enableCompression);
+            false /* readOnly */, enableCompression);
     } break;
     case TableType::REL: {
         auto relTableSchema = reinterpret_cast<RelTableSchema*>(tableSchema);

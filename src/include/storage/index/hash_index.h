@@ -80,7 +80,7 @@ template<typename T>
 class HashIndex : public BaseHashIndex {
 
 public:
-    HashIndex(const DBFileIDAndName& dbFileIDAndName, common::AccessMode accessMode,
+    HashIndex(const DBFileIDAndName& dbFileIDAndName, bool readOnly,
         const common::LogicalType& keyDataType, BufferManager& bufferManager, WAL* wal);
 
 public:
@@ -146,15 +146,15 @@ public:
 class PrimaryKeyIndex {
 
 public:
-    PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, common::AccessMode accessMode,
+    PrimaryKeyIndex(const DBFileIDAndName& dbFileIDAndName, bool readOnly,
         const common::LogicalType& keyDataType, BufferManager& bufferManager, WAL* wal)
         : keyDataTypeID{keyDataType.getLogicalTypeID()} {
         if (keyDataTypeID == common::LogicalTypeID::INT64) {
             hashIndexForInt64 = std::make_unique<HashIndex<int64_t>>(
-                dbFileIDAndName, accessMode, keyDataType, bufferManager, wal);
+                dbFileIDAndName, readOnly, keyDataType, bufferManager, wal);
         } else {
             hashIndexForString = std::make_unique<HashIndex<common::ku_string_t>>(
-                dbFileIDAndName, accessMode, keyDataType, bufferManager, wal);
+                dbFileIDAndName, readOnly, keyDataType, bufferManager, wal);
         }
     }
 

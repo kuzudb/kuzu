@@ -19,10 +19,9 @@ public:
     NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH,
         catalog::NodeTableSchema* nodeTableSchema,
         NodesStoreStatsAndDeletedIDs* nodesStatisticsAndDeletedIDs, BufferManager& bufferManager,
-        WAL* wal, common::AccessMode accessMode, bool enableCompression);
+        WAL* wal, bool readOnly, bool enableCompression);
 
-    void initializePKIndex(
-        catalog::NodeTableSchema* nodeTableSchema, common::AccessMode accessMode);
+    void initializePKIndex(catalog::NodeTableSchema* nodeTableSchema, bool readOnly);
 
     inline common::offset_t getMaxNodeOffset(transaction::Transaction* transaction) const {
         auto nodesStats = common::ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(

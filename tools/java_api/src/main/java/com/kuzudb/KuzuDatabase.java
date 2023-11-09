@@ -4,27 +4,12 @@ package com.kuzudb;
 * The KuzuDatabase class is the main class of KuzuDB. It manages all database components.
 */
 public class KuzuDatabase {
-    public enum AccessMode {
-        READ_ONLY(0),
-        READ_WRITE(1);
-
-        private final int value;
-
-        AccessMode(int value) {
-            this.value = value;
-        }
-
-        public int getValue() {
-            return value;
-        }
-    }
-
     long db_ref;
     String db_path;
     long buffer_size;
     boolean enableCompression = true;
     boolean destroyed = false;
-    AccessMode accessMode = AccessMode.READ_WRITE;
+    boolean readOnly = false;
 
     /**
      * Creates a database object.
@@ -33,7 +18,7 @@ public class KuzuDatabase {
     public KuzuDatabase(String databasePath) {
         this.db_path = databasePath;
         this.buffer_size = 0;
-        db_ref = KuzuNative.kuzu_database_init(databasePath, 0, true, AccessMode.READ_WRITE.getValue());
+        db_ref = KuzuNative.kuzu_database_init(databasePath, 0, true /*compression*/, false /*readOnly*/);
     }
 
     /**
@@ -47,12 +32,8 @@ public class KuzuDatabase {
         this.db_path = databasePath;
         this.buffer_size = bufferPoolSize;
         this.enableCompression = enableCompression;
-        this.accessMode = AccessMode.READ_WRITE;
-        if (readOnly) {
-            this.accessMode = AccessMode.READ_ONLY;
-        }
-        int accessModeValue = accessMode.getValue();
-        db_ref = KuzuNative.kuzu_database_init(databasePath, bufferPoolSize, enableCompression, accessModeValue);
+        this.readOnly = readOnly;
+        db_ref = KuzuNative.kuzu_database_init(databasePath, bufferPoolSize, enableCompression, readOnly);
     }
 
     /**

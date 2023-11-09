@@ -246,7 +246,7 @@ void WALReplayer::replayCopyTableRecord(const kuzu::storage::WALRecord& walRecor
                 auto nodeTableSchema = reinterpret_cast<NodeTableSchema*>(
                     catalog->getReadOnlyVersion()->getTableSchema(tableID));
                 storageManager->getNodeTable(tableID)->initializePKIndex(
-                    nodeTableSchema, AccessMode::READ_WRITE);
+                    nodeTableSchema, false /* readOnly */);
             }
         } else {
             // RECOVERY.
