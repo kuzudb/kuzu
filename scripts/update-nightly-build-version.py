@@ -49,6 +49,10 @@ def main():
             break
     with open(cmake_lists_path, "w") as cmake_lists_file:
         cmake_lists_file.writelines(cmake_lists)
+    print("Committing changes...")
+    os.system("git add %s" % cmake_lists_path)
+    os.system("git commit -m \"Update CMake version to %s.\"" % cmake_version)
+    print("All done!")
 
 if __name__ == "__main__":
     main()
