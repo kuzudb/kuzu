@@ -79,8 +79,7 @@ std::shared_ptr<Expression> Binder::createVariable(
     if (scope->contains(name)) {
         throw BinderException("Variable " + name + " already exists.");
     }
-    auto uniqueName = getUniqueExpressionName(name);
-    auto expression = expressionBinder.createVariableExpression(dataType, uniqueName, name);
+    auto expression = expressionBinder.createVariableExpression(dataType, name);
     expression->setAlias(name);
     scope->addExpression(name, expression);
     return expression;

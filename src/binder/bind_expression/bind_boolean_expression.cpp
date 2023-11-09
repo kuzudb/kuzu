@@ -37,15 +37,16 @@ std::shared_ptr<Expression> ExpressionBinder::bindBooleanExpression(
         uniqueExpressionName);
 }
 
-std::shared_ptr<Expression> ExpressionBinder::combineConjunctiveExpressions(
-    std::shared_ptr<Expression> left, std::shared_ptr<Expression> right) {
+std::shared_ptr<Expression> ExpressionBinder::combineBooleanExpressions(
+    common::ExpressionType expressionType, std::shared_ptr<Expression> left,
+    std::shared_ptr<Expression> right) {
     if (left == nullptr) {
         return right;
     } else if (right == nullptr) {
         return left;
     } else {
         return bindBooleanExpression(
-            ExpressionType::AND, expression_vector{std::move(left), std::move(right)});
+            expressionType, expression_vector{std::move(left), std::move(right)});
     }
 }
 

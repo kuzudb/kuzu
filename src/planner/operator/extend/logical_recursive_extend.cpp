@@ -75,14 +75,16 @@ void LogicalScanFrontier::computeFlatSchema() {
     createEmptySchema();
     schema->createGroup();
     schema->setGroupAsSingleState(0);
-    schema->insertToGroupAndScope(node->getInternalID(), 0);
+    schema->insertToGroupAndScope(nodeID, 0);
+    schema->insertToGroupAndScope(nodePredicateExecFlag, 0);
 }
 
 void LogicalScanFrontier::computeFactorizedSchema() {
     createEmptySchema();
     auto groupPos = schema->createGroup();
     schema->setGroupAsSingleState(groupPos);
-    schema->insertToGroupAndScope(node->getInternalID(), groupPos);
+    schema->insertToGroupAndScope(nodeID, groupPos);
+    schema->insertToGroupAndScope(nodePredicateExecFlag, groupPos);
 }
 
 } // namespace planner

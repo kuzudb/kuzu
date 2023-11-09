@@ -178,6 +178,7 @@ void RecursiveJoin::computeBFS(ExecutionContext* context) {
     auto nodeID = vectors->srcNodeIDVector->getValue<nodeID_t>(
         vectors->srcNodeIDVector->state->selVector->selectedPositions[0]);
     bfsState->markSrc(nodeID);
+    scanFrontier->setNodePredicateExecFlag(true);
     while (!bfsState->isComplete()) {
         auto boundNodeID = bfsState->getNextNodeID();
         if (boundNodeID.offset != INVALID_OFFSET) {
@@ -189,6 +190,7 @@ void RecursiveJoin::computeBFS(ExecutionContext* context) {
         } else {
             // Otherwise move to the next frontier.
             bfsState->finalizeCurrentLevel();
+            scanFrontier->setNodePredicateExecFlag(false);
         }
     }
 }

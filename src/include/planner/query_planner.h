@@ -190,10 +190,8 @@ private:
     void appendRecursiveExtend(std::shared_ptr<binder::NodeExpression> boundNode,
         std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,
         ExtendDirection direction, LogicalPlan& plan);
-    void createRecursivePlan(std::shared_ptr<binder::NodeExpression> boundNode,
-        std::shared_ptr<binder::NodeExpression> recursiveNode,
-        std::shared_ptr<binder::RelExpression> recursiveRel, ExtendDirection direction,
-        const binder::expression_vector& predicates, LogicalPlan& plan);
+    void createRecursivePlan(
+        const binder::RecursiveInfo& recursiveInfo, ExtendDirection direction, LogicalPlan& plan);
     void createPathNodePropertyScanPlan(std::shared_ptr<binder::NodeExpression> node,
         const binder::expression_vector& properties, LogicalPlan& plan);
     void createPathRelPropertyScanPlan(std::shared_ptr<binder::NodeExpression> boundNode,
