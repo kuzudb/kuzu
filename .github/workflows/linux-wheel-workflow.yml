@@ -3,6 +3,11 @@ name: Build-Linux-Wheels
 on:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      isNightly:
+        type: boolean
+        required: true
+        default: false
 
 jobs:
   build-linux-wheels-x86_64:
@@ -10,11 +15,16 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Build Wheels
+      - name: Update nightly version
+        if: ${{ github.event.inputs.isNightly == 'true' }}
+        run: python3 update-nightly-build-version.py
+        working-directory: scripts
+
+      - name: Build wheels
         working-directory: ./scripts/pip-package/
         run: |
-           cp Dockerfiles/x86_64/build_all_packages.sh .
-           bash build_all_packages.sh
+          cp Dockerfiles/x86_64/build_all_packages.sh .
+          bash build_all_packages.sh
 
       - uses: actions/upload-artifact@v3
         with:
@@ -26,11 +36,16 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Build Wheels
+      - name: Update nightly version
+        if: ${{ github.event.inputs.isNightly == 'true' }}
+        run: python3 update-nightly-build-version.py
+        working-directory: scripts
+
+      - name: Build wheels
         working-directory: ./scripts/pip-package/
         run: |
-           cp Dockerfiles/aarch64/build_all_packages.sh .
-           bash build_all_packages.sh
+          cp Dockerfiles/aarch64/build_all_packages.sh .
+          bash build_all_packages.sh
 
       - uses: actions/upload-artifact@v3
         with:

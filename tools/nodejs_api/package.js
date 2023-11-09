@@ -159,7 +159,11 @@ const KUZU_VERSION_TEXT = "Kuzu VERSION";
   const lines = CMakeListsTxt.split("\n");
   for (const line of lines) {
     if (line.includes(KUZU_VERSION_TEXT)) {
-      const version = line.split(" ")[2].trim();
+      const versionSplit = line.split(" ")[2].trim().split(".");
+      let version = versionSplit.slice(0, 3).join(".");
+      if (versionSplit.length >= 4) {
+        version += "-dev." + versionSplit.slice(3).join(".");
+      }
       console.log("Found version string from CMakeLists.txt: " + version);
       packageJson.version = version;
       break;
@@ -176,7 +180,9 @@ const KUZU_VERSION_TEXT = "Kuzu VERSION";
   console.log("Removing symlink...");
   // There is a symlink in the rust_api directory, so we need to remove it.
   // Otherwise, the tarball will be rejected by npm.
-  await fs.unlink(path.join(ARCHIVE_DIR_PATH, "kuzu-source", "tools", "rust_api", "kuzu-src"))
+  await fs.unlink(
+    path.join(ARCHIVE_DIR_PATH, "kuzu-source", "tools", "rust_api", "kuzu-src")
+  );
 
   console.log("Creating tarball...");
   // Create the tarball
