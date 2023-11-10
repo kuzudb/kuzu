@@ -15,11 +15,11 @@ namespace storage {
 
 NodeTable::NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH,
     catalog::NodeTableSchema* nodeTableSchema,
-    NodesStoreStatsAndDeletedIDs* nodesStatisticsAndDeletedIDs, BufferManager& bufferManager,
+    NodesStoreStatsAndDeletedIDs* nodesStatisticsAndDeletedIDs, MemoryManager* memoryManager,
     WAL* wal, bool readOnly, bool enableCompression)
-    : Table{nodeTableSchema, nodesStatisticsAndDeletedIDs, bufferManager, wal},
+    : Table{nodeTableSchema, nodesStatisticsAndDeletedIDs, memoryManager, wal},
       pkColumnID{nodeTableSchema->getColumnID(nodeTableSchema->getPrimaryKeyPropertyID())} {
-    tableData = std::make_unique<NodeTableData>(dataFH, metadataFH, tableID, &bufferManager, wal,
+    tableData = std::make_unique<NodeTableData>(dataFH, metadataFH, tableID, bufferManager, wal,
         nodeTableSchema->getProperties(), nodesStatisticsAndDeletedIDs, enableCompression);
     initializePKIndex(nodeTableSchema, readOnly);
 }
@@ -29,7 +29,7 @@ void NodeTable::initializePKIndex(NodeTableSchema* nodeTableSchema, bool readOnl
         LogicalTypeID::SERIAL) {
         pkIndex = std::make_unique<PrimaryKeyIndex>(
             StorageUtils::getNodeIndexIDAndFName(wal->getDirectory(), tableID), readOnly,
-            *nodeTableSchema->getPrimaryKey()->getDataType(), bufferManager, wal);
+            *nodeTableSchema->getPrimaryKey()->getDataType(), *bufferManager, wal);
     }
 }
 
@@ -57,7 +57,18 @@ void NodeTable::insert(Transaction* transaction, ValueVector* nodeIDVector,
         insertPK(nodeIDVector, propertyVectors[pkColumnID]);
     }
     tableData->insert(transaction, nodeIDVector, propertyVectors);
-    wal->addToUpdatedTables(tableID);
+}
+
+void NodeTable::update(transaction::Transaction* transaction, common::column_id_t columnID,
+    common::ValueVector* nodeIDVector, common::ValueVector* propertyVector) {
+    // NOTE: We assume all input all flatten now. This is to simplify the implementation.
+    // We should optimize this to take unflat input later.
+    KU_ASSERT(nodeIDVector->state->selVector->selectedSize == 1 &&
+              propertyVector->state->selVector->selectedSize == 1);
+    if (columnID == pkColumnID && pkIndex) {
+        updatePK(transaction, columnID, nodeIDVector, propertyVector);
+    }
+    tableData->update(transaction, columnID, nodeIDVector, propertyVector);
 }
 
 void NodeTable::delete_(
@@ -68,6 +79,8 @@ void NodeTable::delete_(
     if (pkIndex) {
         pkIndex->delete_(pkVector);
     }
+    // TODO(Guodong): We actually have flatten the input here. But the code is left unchanged for
+    // now, so we can remove the flattenAll logic later.
     for (auto i = 0; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[i];
         if (nodeIDVector->isNull(pos)) {
@@ -77,6 +90,7 @@ void NodeTable::delete_(
         ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics)
             ->deleteNode(tableID, nodeOffset);
     }
+    tableData->delete_(transaction, nodeIDVector);
 }
 
 void NodeTable::addColumn(transaction::Transaction* transaction, const catalog::Property& property,
@@ -89,19 +103,24 @@ void NodeTable::addColumn(transaction::Transaction* transaction, const catalog::
     tableData->addColumn(transaction, tableData->getColumn(pkColumnID)->getMetadataDA(),
         *nodesStats->getMetadataDAHInfo(transaction, tableID, tableData->getNumColumns()), property,
         defaultValueVector, nodesStats);
+    // TODO(Guodong): addColumn is not going through localStorage design for now. So it needs to add
+    // tableID into the wal's updated table set separately, as it won't trigger prepareCommit.
     wal->addToUpdatedTables(tableID);
 }
 
-void NodeTable::prepareCommit() {
+void NodeTable::prepareCommit(LocalTable* localTable) {
     if (pkIndex) {
         pkIndex->prepareCommit();
     }
+    tableData->prepareLocalTableToCommit(localTable);
+    wal->addToUpdatedTables(tableID);
 }
 
-void NodeTable::prepareRollback() {
+void NodeTable::prepareRollback(LocalTable* localTable) {
     if (pkIndex) {
         pkIndex->prepareRollback();
     }
+    localTable->clear();
 }
 
 void NodeTable::checkpointInMemory() {
@@ -116,6 +135,18 @@ void NodeTable::rollbackInMemory() {
     if (pkIndex) {
         pkIndex->rollbackInMemory();
     }
+}
+
+void NodeTable::updatePK(Transaction* transaction, column_id_t columnID,
+    common::ValueVector* keyVector, common::ValueVector* payloadVector) {
+    auto pkVector =
+        std::make_unique<ValueVector>(getColumn(pkColumnID)->getDataType(), memoryManager);
+    pkVector->state = keyVector->state;
+    auto readState = std::make_unique<storage::TableReadState>();
+    initializeReadState(transaction, {columnID}, keyVector, readState.get());
+    read(transaction, *readState, keyVector, {pkVector.get()});
+    pkIndex->delete_(pkVector.get());
+    insertPK(keyVector, payloadVector);
 }
 
 void NodeTable::insertPK(ValueVector* nodeIDVector, ValueVector* primaryKeyVector) {

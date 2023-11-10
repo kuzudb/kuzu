@@ -12,7 +12,7 @@ namespace storage {
 class RelTable : public Table {
 public:
     RelTable(BMFileHandle* dataFH, BMFileHandle* metadataFH, RelsStoreStats* relsStoreStats,
-        BufferManager* bufferManager, catalog::RelTableSchema* schema, WAL* wal,
+        MemoryManager* memoryManager, catalog::RelTableSchema* schema, WAL* wal,
         bool enableCompression);
 
     inline void initializeReadState(transaction::Transaction* transaction,
@@ -44,8 +44,8 @@ public:
                                                      bwdRelTableData->append(nodeGroup);
     }
 
-    void prepareCommit() final;
-    void prepareRollback() final;
+    void prepareCommit(LocalTable* localTable) final;
+    void prepareRollback(LocalTable* localTable) final;
     void checkpointInMemory() final;
     void rollbackInMemory() final;
 

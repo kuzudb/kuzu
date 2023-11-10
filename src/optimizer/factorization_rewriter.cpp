@@ -136,24 +136,10 @@ void FactorizationRewriter::visitFilter(planner::LogicalOperator* op) {
 
 void FactorizationRewriter::visitSetNodeProperty(planner::LogicalOperator* op) {
     auto setNodeProperty = (LogicalSetNodeProperty*)op;
-    for (auto& info : setNodeProperty->getInfosRef()) {
-        auto node = reinterpret_cast<NodeExpression*>(info->nodeOrRel.get());
-        auto lhsNodeID = node->getInternalID();
-        auto rhs = info->setItem.second;
-        // flatten rhs
-        auto rhsDependentGroupsPos = op->getChild(0)->getSchema()->getDependentGroupsPos(rhs);
-        auto rhsGroupsPosToFlatten = factorization::FlattenAllButOne::getGroupsPosToFlatten(
-            rhsDependentGroupsPos, op->getChild(0)->getSchema());
+    for (auto i = 0u; i < setNodeProperty->getInfosRef().size(); ++i) {
+        auto groupsPosToFlatten = setNodeProperty->getGroupsPosToFlatten(i);
         setNodeProperty->setChild(
-            0, appendFlattens(setNodeProperty->getChild(0), rhsGroupsPosToFlatten));
-        // flatten lhs if needed
-        auto lhsGroupPos = op->getChild(0)->getSchema()->getGroupPos(*lhsNodeID);
-        auto rhsLeadingGroupPos =
-            SchemaUtils::getLeadingGroupPos(rhsDependentGroupsPos, *op->getChild(0)->getSchema());
-        if (lhsGroupPos != rhsLeadingGroupPos) {
-            setNodeProperty->setChild(
-                0, appendFlattenIfNecessary(setNodeProperty->getChild(0), lhsGroupPos));
-        }
+            0, appendFlattens(setNodeProperty->getChild(0), groupsPosToFlatten));
     }
 }
 

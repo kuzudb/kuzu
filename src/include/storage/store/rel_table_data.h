@@ -78,6 +78,8 @@ private:
                    common::ColumnDataFormat::CSR;
     }
 
+    void prepareLocalTableToCommit(LocalTable* localTable);
+
 private:
     std::unique_ptr<Column> adjColumn;
     std::unique_ptr<Column> csrOffsetColumn;

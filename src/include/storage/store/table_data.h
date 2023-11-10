@@ -23,14 +23,6 @@ public:
         common::ValueVector* nodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors) = 0;
 
-    void insert(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        const std::vector<common::ValueVector*>& propertyVectors);
-    void update(transaction::Transaction* transaction, common::column_id_t columnID,
-        common::ValueVector* nodeIDVector, common::ValueVector* propertyVector);
-    void update(transaction::Transaction* transaction, common::column_id_t columnID,
-        common::offset_t nodeOffset, common::ValueVector* propertyVector,
-        common::sel_t posInPropertyVector) const;
-
     virtual void append(NodeGroup* nodeGroup) = 0;
 
     inline void dropColumn(common::column_id_t columnID) {
@@ -51,6 +43,7 @@ public:
         return columns[0]->getNumNodeGroups(transaction);
     }
 
+    virtual void prepareLocalTableToCommit(LocalTable* localTable) = 0;
     virtual void checkpointInMemory();
     virtual void rollbackInMemory();
 

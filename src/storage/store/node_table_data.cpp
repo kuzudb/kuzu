@@ -17,17 +17,16 @@ NodeTableData::NodeTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, tab
     columns.reserve(properties.size());
     for (auto i = 0u; i < properties.size(); i++) {
         auto property = properties[i];
-        auto metadataDAHInfo =
-            dynamic_cast<NodesStoreStatsAndDeletedIDs*>(tablesStatistics)
-                ->getMetadataDAHInfo(Transaction::getDummyWriteTrx().get(), tableID, i);
+        auto metadataDAHInfo = dynamic_cast<NodesStoreStatsAndDeletedIDs*>(tablesStatistics)
+                                   ->getMetadataDAHInfo(&DUMMY_WRITE_TRANSACTION, tableID, i);
         columns.push_back(ColumnFactory::createColumn(*property->getDataType(), *metadataDAHInfo,
-            dataFH, metadataFH, bufferManager, wal, Transaction::getDummyReadOnlyTrx().get(),
+            dataFH, metadataFH, bufferManager, wal, &DUMMY_WRITE_TRANSACTION,
             RWPropertyStats(tablesStatistics, tableID, property->getPropertyID()),
             enableCompression));
     }
 }
 
-void NodeTableData::scan(transaction::Transaction* transaction, TableReadState& readState,
+void NodeTableData::scan(Transaction* transaction, TableReadState& readState,
     ValueVector* nodeIDVector, const std::vector<ValueVector*>& outputVectors) {
     KU_ASSERT(readState.columnIDs.size() == outputVectors.size() && !nodeIDVector->state->isFlat());
     for (auto i = 0u; i < readState.columnIDs.size(); i++) {
@@ -44,7 +43,38 @@ void NodeTableData::scan(transaction::Transaction* transaction, TableReadState& 
     }
 }
 
-void NodeTableData::lookup(transaction::Transaction* transaction, TableReadState& readState,
+void NodeTableData::insert(Transaction* transaction, ValueVector* nodeIDVector,
+    const std::vector<ValueVector*>& propertyVectors) {
+    // We assume that offsets are given in the ascending order, thus lastOffset is the max one.
+    KU_ASSERT(nodeIDVector->state->selVector->selectedSize == 1);
+    offset_t lastOffset =
+        nodeIDVector->readNodeOffset(nodeIDVector->state->selVector->selectedPositions[0]);
+    auto currentNumNodeGroups = getNumNodeGroups(transaction);
+    if (lastOffset >= StorageUtils::getStartOffsetOfNodeGroup(currentNumNodeGroups)) {
+        auto newNodeGroup = std::make_unique<NodeGroup>(columns, enableCompression);
+        newNodeGroup->finalize(currentNumNodeGroups);
+        append(newNodeGroup.get());
+    }
+    auto localStorage = transaction->getLocalStorage();
+    localStorage->initializeLocalTable(tableID, columns);
+    localStorage->insert(tableID, nodeIDVector, propertyVectors);
+}
+
+void NodeTableData::update(Transaction* transaction, column_id_t columnID,
+    ValueVector* nodeIDVector, ValueVector* propertyVector) {
+    KU_ASSERT(columnID < columns.size());
+    auto localStorage = transaction->getLocalStorage();
+    localStorage->initializeLocalTable(tableID, columns);
+    localStorage->update(tableID, nodeIDVector, columnID, propertyVector);
+}
+
+void NodeTableData::delete_(Transaction* transaction, ValueVector* nodeIDVector) {
+    auto localStorage = transaction->getLocalStorage();
+    localStorage->initializeLocalTable(tableID, columns);
+    localStorage->delete_(tableID, nodeIDVector);
+}
+
+void NodeTableData::lookup(Transaction* transaction, TableReadState& readState,
     ValueVector* nodeIDVector, const std::vector<ValueVector*>& outputVectors) {
     auto pos = nodeIDVector->state->selVector->selectedPositions[0];
     for (auto i = 0u; i < readState.columnIDs.size(); i++) {
@@ -67,6 +97,20 @@ void NodeTableData::append(kuzu::storage::NodeGroup* nodeGroup) {
         auto columnChunk = nodeGroup->getColumnChunk(columnID);
         KU_ASSERT(columnID < columns.size());
         columns[columnID]->append(columnChunk, nodeGroup->getNodeGroupIdx());
+    }
+}
+
+void NodeTableData::prepareLocalTableToCommit(LocalTable* localTable) {
+    auto numNodeGroups = getNumNodeGroups(&DUMMY_WRITE_TRANSACTION);
+    for (auto& [nodeGroupIdx, nodeGroup] : localTable->nodeGroups) {
+        for (auto columnID = 0; columnID < columns.size(); columnID++) {
+            auto column = columns[columnID].get();
+            auto columnChunk = nodeGroup->getLocalColumnChunk(columnID);
+            if (columnChunk->getNumRows() == 0) {
+                continue;
+            }
+            column->prepareCommitForChunk(nodeGroupIdx, columnChunk, nodeGroupIdx >= numNodeGroups);
+        }
     }
 }
 

@@ -80,11 +80,11 @@ void VarListColumnChunk::append(ValueVector* vector) {
     numValues += vector->state->selVector->selectedSize;
 }
 
-void VarListColumnChunk::appendEmptyList(bool isNull) {
+void VarListColumnChunk::appendNullList() {
     auto nextListOffsetInChunk = getListOffset(numValues);
     auto offsetBufferToWrite = (offset_t*)(buffer.get());
     offsetBufferToWrite[numValues] = nextListOffsetInChunk;
-    nullChunk->setNull(numValues, isNull);
+    nullChunk->setNull(numValues, true);
     numValues++;
 }
 
@@ -111,6 +111,22 @@ void VarListColumnChunk::write(ValueVector* valueVector, ValueVector* offsetInCh
     }
     KU_ASSERT(currentIndex == numValues &&
               indicesColumnChunk->getNumValues() < indicesColumnChunk->getCapacity());
+}
+
+void VarListColumnChunk::write(
+    ValueVector* vector, offset_t /*offsetInVector*/, offset_t offsetInChunk) {
+    needFinalize = true;
+    if (!indicesColumnChunk) {
+        initializeIndices();
+    }
+    auto currentIndex = numValues;
+    append(vector);
+    KU_ASSERT(offsetInChunk < capacity);
+    indicesColumnChunk->setValue(currentIndex, offsetInChunk);
+    indicesColumnChunk->getNullChunk()->setNull(offsetInChunk, false);
+    if (indicesColumnChunk->getNumValues() <= offsetInChunk) {
+        indicesColumnChunk->setNumValues(offsetInChunk + 1);
+    }
 }
 
 void VarListColumnChunk::copyListValues(const list_entry_t& entry, ValueVector* dataVector) {
@@ -140,17 +156,17 @@ void VarListColumnChunk::finalize() {
     newVarListChunk->getDataColumnChunk()->resize(totalListLen);
     for (auto i = 0u; i < indicesColumnChunk->getNumValues(); i++) {
         if (indicesColumnChunk->getNullChunk()->isNull(i)) {
-            newVarListChunk->appendEmptyList(true /* isNull */);
+            newVarListChunk->appendNullList();
         } else {
             auto index = indicesColumnChunk->getValue<offset_t>(i);
             newColumnChunk->append(this, index, 1);
         }
     }
     // Move offsets, null, data from newVarListChunk to this column chunk. And release indices.
-    moveFromOtherChunk(newVarListChunk);
+    resetFromOtherChunk(newVarListChunk);
 }
 
-void VarListColumnChunk::moveFromOtherChunk(VarListColumnChunk* other) {
+void VarListColumnChunk::resetFromOtherChunk(VarListColumnChunk* other) {
     buffer = std::move(other->buffer);
     nullChunk = std::move(other->nullChunk);
     varListDataColumnChunk = std::move(other->varListDataColumnChunk);

@@ -17,9 +17,7 @@ f_group_pos_set LogicalDeleteNode::getGroupsPosToFlatten() {
     f_group_pos_set dependentGroupPos;
     auto childSchema = children[0]->getSchema();
     for (auto& node : nodes) {
-        if (node->isMultiLabeled()) {
-            dependentGroupPos.insert(childSchema->getGroupPos(*node->getInternalID()));
-        }
+        dependentGroupPos.insert(childSchema->getGroupPos(*node->getInternalID()));
     }
     return factorization::FlattenAll::getGroupsPosToFlatten(dependentGroupPos, childSchema);
 }

@@ -52,16 +52,25 @@ void StructColumnChunk::resize(uint64_t newCapacity) {
     }
 }
 
-void StructColumnChunk::write(ValueVector* vector, offset_t startOffsetInChunk) {
+void StructColumnChunk::write(
+    ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
+    nullChunk->setNull(offsetInChunk, vector->isNull(offsetInVector));
     auto fields = StructVector::getFieldVectors(vector);
     for (auto i = 0u; i < fields.size(); i++) {
-        childChunks[i]->write(fields[i].get(), startOffsetInChunk);
+        fields[i]->state = vector->state;
+        childChunks[i]->write(fields[i].get(), offsetInVector, offsetInChunk);
     }
 }
 
 void StructColumnChunk::write(ValueVector* valueVector, ValueVector* offsetInChunkVector) {
     KU_ASSERT(valueVector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
+    auto offsets = reinterpret_cast<offset_t*>(offsetInChunkVector->getData());
+    for (auto i = 0u; i < offsetInChunkVector->state->selVector->selectedSize; i++) {
+        auto offsetInChunk = offsets[offsetInChunkVector->state->selVector->selectedPositions[i]];
+        KU_ASSERT(offsetInChunk < capacity);
+        nullChunk->setNull(offsetInChunk, valueVector->isNull(i));
+    }
     auto fields = StructVector::getFieldVectors(valueVector);
     for (auto i = 0u; i < fields.size(); i++) {
         childChunks[i]->write(fields[i].get(), offsetInChunkVector);

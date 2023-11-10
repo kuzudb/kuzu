@@ -133,12 +133,13 @@ public:
         return currentHeaderPageIdx == 0 && (getNumRecordsInCurrentHeaderPage() == 0);
     }
 
+    // TODO(Guodong): I feel this interface is used in a abused way. Should revisit and clean up.
     inline std::string getDirectory() const { return directory; }
-    inline BufferManager* getBufferManager() const { return &bufferManager; }
 
     inline void addToUpdatedTables(common::table_id_t nodeTableID) {
         updatedTables.insert(nodeTableID);
     }
+    inline std::unordered_set<common::table_id_t>& getUpdatedTables() { return updatedTables; }
 
 private:
     inline void flushHeaderPages() {
@@ -151,12 +152,10 @@ private:
     void addNewWALRecordNoLock(WALRecord& walRecord);
     void setIsLastRecordCommit();
 
-public:
+private:
     // Node/Rel tables that might have changes to their in-memory data structures that need to be
     // committed/rolled back accordingly during the wal replaying.
     std::unordered_set<common::table_id_t> updatedTables;
-
-private:
     std::shared_ptr<spdlog::logger> logger;
     std::string directory;
     std::mutex mtx;

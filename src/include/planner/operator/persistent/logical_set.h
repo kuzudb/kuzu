@@ -37,6 +37,8 @@ public:
         return infos;
     }
 
+    f_group_pos_set getGroupsPosToFlatten(uint32_t idx);
+
     std::string getExpressionsForPrinting() const final;
 
     inline std::unique_ptr<LogicalOperator> copy() final {

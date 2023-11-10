@@ -1,5 +1,6 @@
 #include "storage/store/struct_column.h"
 
+#include "common/cast.h"
 #include "storage/store/struct_column_chunk.h"
 
 using namespace kuzu::catalog;
@@ -24,7 +25,22 @@ StructColumn::StructColumn(LogicalType dataType, const MetadataDAHInfo& metaDAHe
     }
 }
 
-void StructColumn::scan(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
+void StructColumn::scan(node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) {
+    KU_ASSERT(columnChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
+    nullColumn->scan(nodeGroupIdx, columnChunk->getNullChunk());
+    if (nodeGroupIdx >= metadataDA->getNumElements()) {
+        columnChunk->setNumValues(0);
+    } else {
+        auto chunkMetadata = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
+        columnChunk->setNumValues(chunkMetadata.numValues);
+    }
+    auto structColumnChunk = ku_dynamic_cast<ColumnChunk*, StructColumnChunk*>(columnChunk);
+    for (auto i = 0u; i < childColumns.size(); i++) {
+        childColumns[i]->scan(nodeGroupIdx, structColumnChunk->getChild(i));
+    }
+}
+
+void StructColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
     uint64_t offsetInVector) {
     nullColumn->scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup, resultVector,
@@ -54,7 +70,13 @@ void StructColumn::lookupInternal(
 
 void StructColumn::write(
     offset_t nodeOffset, ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
+    KU_ASSERT(vectorToWriteFrom->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
     nullColumn->write(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
+    KU_ASSERT(childColumns.size() == StructVector::getFieldVectors(vectorToWriteFrom).size());
+    for (auto i = 0u; i < childColumns.size(); i++) {
+        auto fieldVector = StructVector::getFieldVector(vectorToWriteFrom, i).get();
+        childColumns[i]->write(nodeOffset, fieldVector, posInVectorToWriteFrom);
+    }
 }
 
 void StructColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {

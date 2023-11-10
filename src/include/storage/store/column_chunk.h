@@ -86,7 +86,10 @@ public:
     inline uint64_t getNumBytesPerValue() const { return numBytesPerValue; }
     inline uint8_t* getData() { return buffer.get(); }
 
-    virtual void write(common::ValueVector* vector, common::offset_t startOffsetInChunk);
+    // TODO(Guodong): In general, this is not a good interface. Instead of passing in
+    // `offsetInVector`, we should flatten the vector to pos at `offsetInVector`.
+    virtual void write(common::ValueVector* vector, common::offset_t offsetInVector,
+        common::offset_t offsetInChunk);
     virtual void write(common::ValueVector* vector, common::ValueVector* offsetsInChunk);
 
     // numValues must be at least the number of values the ColumnChunk was first initialized
@@ -158,6 +161,8 @@ public:
     void append(common::ValueVector* vector) final;
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
+    void write(common::ValueVector* vector, common::offset_t offsetInVector,
+        common::offset_t offsetInChunk) final;
     void write(common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector) final;
 };
 

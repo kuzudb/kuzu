@@ -92,3 +92,33 @@ Binder exception: SERIAL property is not supported in rel table.
 -STATEMENT MATCH (t1:T)-[e]-(t2:T) RETURN COUNT(*);
 ---- 1
 0
+
+-CASE 2376
+-STATEMENT CREATE NODE TABLE thing(name STRING, PRIMARY KEY (name));
+---- ok
+-STATEMENT MATCH (n) DELETE n
+---- ok
+-STATEMENT MERGE (n:thing {name: 'original'})
+---- ok
+-STATEMENT MATCH (n:thing) RETURN n
+---- 1
+{_ID: 0:0, _LABEL: thing, name: original}
+-STATEMENT MATCH (n:thing {name: 'original'}) SET n.name = 'rename 1x' RETURN n
+---- 1
+{_ID: 0:0, _LABEL: thing, name: rename 1x}
+-STATEMENT MATCH (n:thing {name: 'rename 1x'}) SET n.name = 'rename 2x' RETURN n
+---- 1
+{_ID: 0:0, _LABEL: thing, name: rename 2x}
+-STATEMENT CREATE (n:thing {name: 'original'})
+---- ok
+-STATEMENT CREATE (n:thing {name: 'rename 1x'})
+---- ok
+-STATEMENT CREATE (n:thing {name: 'rename 2x'})
+---- error
+Runtime exception: Found duplicated primary key value rename 2x, which violates the uniqueness constraint of the primary key column.
+-STATEMENT MATCH (n:thing) WHERE n.name='rename 1x' DELETE n
+---- ok
+-STATEMENT MATCH (n:thing) RETURN n
+---- 2
+{_ID: 0:1, _LABEL: thing, name: original}
+{_ID: 0:0, _LABEL: thing, name: rename 2x}

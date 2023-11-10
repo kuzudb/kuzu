@@ -1,6 +1,5 @@
 #include "storage/storage_manager.h"
 
-#include "storage/buffer_manager/buffer_manager.h"
 #include "storage/stats/nodes_store_statistics.h"
 #include "storage/wal_replayer.h"
 
@@ -27,40 +26,38 @@ StorageManager::StorageManager(bool readOnly, const Catalog& catalog, MemoryMana
         metadataFH.get(), memoryManager.getBufferManager(), wal);
     relsStatistics =
         std::make_unique<RelsStoreStats>(metadataFH.get(), memoryManager.getBufferManager(), wal);
-    loadTables(readOnly, catalog, memoryManager.getBufferManager());
+    loadTables(readOnly, catalog);
 }
 
-void StorageManager::loadTables(
-    bool readOnly, const catalog::Catalog& catalog, BufferManager* bufferManager) {
+void StorageManager::loadTables(bool readOnly, const catalog::Catalog& catalog) {
     for (auto& schema : catalog.getReadOnlyVersion()->getNodeTableSchemas()) {
         KU_ASSERT(!tables.contains(schema->tableID));
         auto nodeTableSchema = reinterpret_cast<NodeTableSchema*>(schema);
         tables[schema->tableID] = std::make_unique<NodeTable>(dataFH.get(), metadataFH.get(),
-            nodeTableSchema, nodesStatisticsAndDeletedIDs.get(), *bufferManager, wal, readOnly,
+            nodeTableSchema, nodesStatisticsAndDeletedIDs.get(), &memoryManager, wal, readOnly,
             enableCompression);
     }
     for (auto schema : catalog.getReadOnlyVersion()->getRelTableSchemas()) {
         KU_ASSERT(!tables.contains(schema->tableID));
         auto relTableSchema = dynamic_cast<RelTableSchema*>(schema);
         tables[schema->tableID] = std::make_unique<RelTable>(dataFH.get(), metadataFH.get(),
-            relsStatistics.get(), bufferManager, relTableSchema, wal, enableCompression);
+            relsStatistics.get(), &memoryManager, relTableSchema, wal, enableCompression);
     }
 }
 
-void StorageManager::createTable(common::table_id_t tableID,
-    kuzu::storage::BufferManager* bufferManager, catalog::Catalog* catalog) {
+void StorageManager::createTable(common::table_id_t tableID, catalog::Catalog* catalog) {
     auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(tableID);
     switch (tableSchema->tableType) {
     case TableType::NODE: {
         auto nodeTableSchema = reinterpret_cast<NodeTableSchema*>(tableSchema);
         tables[tableID] = std::make_unique<NodeTable>(dataFH.get(), metadataFH.get(),
-            nodeTableSchema, nodesStatisticsAndDeletedIDs.get(), *bufferManager, wal,
+            nodeTableSchema, nodesStatisticsAndDeletedIDs.get(), &memoryManager, wal,
             false /* readOnly */, enableCompression);
     } break;
     case TableType::REL: {
         auto relTableSchema = reinterpret_cast<RelTableSchema*>(tableSchema);
         tables[tableID] = std::make_unique<RelTable>(dataFH.get(), metadataFH.get(),
-            relsStatistics.get(), bufferManager, relTableSchema, wal, enableCompression);
+            relsStatistics.get(), &memoryManager, relTableSchema, wal, enableCompression);
     } break;
     default: {
         KU_UNREACHABLE;
@@ -92,7 +89,12 @@ void StorageManager::dropTable(table_id_t tableID) {
     tables.erase(tableID);
 }
 
-void StorageManager::prepareCommit() {
+void StorageManager::prepareCommit(transaction::Transaction* transaction) {
+    auto localStorage = transaction->getLocalStorage();
+    for (auto tableID : localStorage->getTableIDsWithUpdates()) {
+        KU_ASSERT(tables.contains(tableID));
+        tables.at(tableID)->prepareCommit(localStorage->getLocalTable(tableID));
+    }
     if (nodesStatisticsAndDeletedIDs->hasUpdates()) {
         wal->logTableStatisticsRecord(true /* isNodeTable */);
         nodesStatisticsAndDeletedIDs->writeTablesStatisticsFileForWALRecord(wal->getDirectory());
@@ -101,32 +103,31 @@ void StorageManager::prepareCommit() {
         wal->logTableStatisticsRecord(false /* isNodeTable */);
         relsStatistics->writeTablesStatisticsFileForWALRecord(wal->getDirectory());
     }
-    for (auto& [_, table] : tables) {
-        table->prepareCommit();
-    }
 }
 
-void StorageManager::prepareRollback() {
+void StorageManager::prepareRollback(transaction::Transaction* transaction) {
     if (nodesStatisticsAndDeletedIDs->hasUpdates()) {
         wal->logTableStatisticsRecord(true /* isNodeTable */);
     }
     if (relsStatistics->hasUpdates()) {
         wal->logTableStatisticsRecord(false /* isNodeTable */);
     }
-    for (auto& [_, table] : tables) {
-        table->prepareRollback();
+    auto localStorage = transaction->getLocalStorage();
+    for (auto tableID : localStorage->getTableIDsWithUpdates()) {
+        KU_ASSERT(tables.contains(tableID));
+        tables.at(tableID)->prepareRollback(localStorage->getLocalTable(tableID));
     }
 }
 
 void StorageManager::checkpointInMemory() {
-    for (auto tableID : wal->updatedTables) {
+    for (auto tableID : wal->getUpdatedTables()) {
         KU_ASSERT(tables.contains(tableID));
         tables.at(tableID)->checkpointInMemory();
     }
 }
 
 void StorageManager::rollbackInMemory() {
-    for (auto tableID : wal->updatedTables) {
+    for (auto tableID : wal->getUpdatedTables()) {
         KU_ASSERT(tables.contains(tableID));
         tables.at(tableID)->rollbackInMemory();
     }

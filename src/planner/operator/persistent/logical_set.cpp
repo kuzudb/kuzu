@@ -26,6 +26,18 @@ std::string LogicalSetNodeProperty::getExpressionsForPrinting() const {
     return result;
 }
 
+f_group_pos_set LogicalSetNodeProperty::getGroupsPosToFlatten(uint32_t idx) {
+    f_group_pos_set result;
+    auto node = reinterpret_cast<NodeExpression*>(infos[idx]->nodeOrRel.get());
+    auto rhs = infos[idx]->setItem.second;
+    auto childSchema = children[0]->getSchema();
+    result.insert(childSchema->getGroupPos(*node->getInternalID()));
+    for (auto groupPos : childSchema->getDependentGroupsPos(rhs)) {
+        result.insert(groupPos);
+    }
+    return factorization::FlattenAll::getGroupsPosToFlatten(result, childSchema);
+}
+
 std::string LogicalSetRelProperty::getExpressionsForPrinting() const {
     std::string result;
     for (auto& info : infos) {

@@ -1,7 +1,6 @@
 #include "storage/local_storage.h"
 
-#include "storage/storage_manager.h"
-#include "storage/storage_utils.h"
+#include "storage/store/column.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -9,9 +8,7 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-LocalStorage::LocalStorage(StorageManager* storageManager, MemoryManager* mm)
-    : storageManager{storageManager}, mm{mm}, enableCompression{
-                                                  storageManager->compressionEnabled()} {}
+LocalStorage::LocalStorage(MemoryManager* mm) : mm{mm} {}
 
 void LocalStorage::scan(table_id_t tableID, ValueVector* nodeIDVector,
     const std::vector<column_id_t>& columnIDs, const std::vector<ValueVector*>& outputVectors) {
@@ -29,33 +26,34 @@ void LocalStorage::lookup(table_id_t tableID, ValueVector* nodeIDVector,
     tables.at(tableID)->lookup(nodeIDVector, columnIDs, outputVectors);
 }
 
-void LocalStorage::update(table_id_t tableID, column_id_t columnID, ValueVector* nodeIDVector,
+void LocalStorage::insert(table_id_t tableID, ValueVector* nodeIDVector,
+    const std::vector<ValueVector*>& propertyVectors) {
+    KU_ASSERT(tables.contains(tableID));
+    tables.at(tableID)->insert(nodeIDVector, propertyVectors);
+}
+
+void LocalStorage::update(table_id_t tableID, ValueVector* nodeIDVector, column_id_t columnID,
     ValueVector* propertyVector) {
+    KU_ASSERT(tables.contains(tableID));
+    tables.at(tableID)->update(nodeIDVector, columnID, propertyVector);
+}
+
+void LocalStorage::delete_(common::table_id_t tableID, common::ValueVector* nodeIDVector) {
     if (!tables.contains(tableID)) {
-        tables.emplace(tableID,
-            std::make_unique<LocalTable>(storageManager->getNodeTable(tableID), enableCompression));
+        return;
     }
-    tables.at(tableID)->update(columnID, nodeIDVector, propertyVector, mm);
+    tables.at(tableID)->delete_(nodeIDVector);
 }
 
-void LocalStorage::update(table_id_t tableID, column_id_t columnID, offset_t nodeOffset,
-    ValueVector* propertyVector, sel_t posInPropertyVector) {
+void LocalStorage::initializeLocalTable(
+    table_id_t tableID, const std::vector<std::unique_ptr<Column>>& columns) {
     if (!tables.contains(tableID)) {
-        tables.emplace(tableID,
-            std::make_unique<LocalTable>(storageManager->getNodeTable(tableID), enableCompression));
+        std::vector<std::unique_ptr<LogicalType>> dataTypes;
+        for (auto& column : columns) {
+            dataTypes.emplace_back(column->getDataType().copy());
+        }
+        tables.emplace(tableID, std::make_unique<LocalTable>(tableID, std::move(dataTypes), mm));
     }
-    tables.at(tableID)->update(columnID, nodeOffset, propertyVector, posInPropertyVector, mm);
-}
-
-void LocalStorage::prepareCommit() {
-    for (auto& [_, table] : tables) {
-        table->prepareCommit();
-    }
-    tables.clear();
-}
-
-void LocalStorage::prepareRollback() {
-    tables.clear();
 }
 
 } // namespace storage

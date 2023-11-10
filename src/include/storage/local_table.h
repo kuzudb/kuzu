@@ -1,169 +1,148 @@
 #pragma once
 
-#include <bitset>
 #include <map>
 
 #include "common/vector/value_vector.h"
 
 namespace kuzu {
 namespace storage {
-class Column;
-class NodeTable;
+class TableData;
 
+// TODO(Guodong): Instead of using ValueVector, we should switch to ColumnChunk.
+// This class is used to store a chunk of local changes to a column in a node group.
+// Values are stored inside `vector`.
 class LocalVector {
 public:
-    LocalVector(const common::LogicalType& dataType, MemoryManager* mm) {
+    LocalVector(const common::LogicalType& dataType, MemoryManager* mm) : numValues{0} {
         vector = std::make_unique<common::ValueVector>(dataType, mm);
-        vector->setState(std::make_shared<common::DataChunkState>());
-        vector->state->selVector->resetSelectorToValuePosBuffer();
+        vector->state = std::make_unique<common::DataChunkState>();
+        vector->state->selVector->resetSelectorToValuePosBufferWithSize(1);
     }
 
-    virtual ~LocalVector() = default;
-
-    virtual void scan(common::ValueVector* resultVector) const;
-    virtual void lookup(common::sel_t offsetInLocalVector, common::ValueVector* resultVector,
+    void read(common::sel_t offsetInLocalVector, common::ValueVector* resultVector,
         common::sel_t offsetInResultVector);
-    virtual void update(common::sel_t offsetInLocalVector, common::ValueVector* updateVector,
-        common::sel_t offsetInUpdateVector);
+    void append(common::ValueVector* valueVector);
 
-    std::unique_ptr<common::ValueVector> vector;
-    // This mask is mainly to speed the lookup operation up. Otherwise, we have to do binary search
-    // to check if the value at an offset has been updated or not.
-    std::bitset<common::DEFAULT_VECTOR_CAPACITY> validityMask;
-};
-
-class StringLocalVector : public LocalVector {
-public:
-    explicit StringLocalVector(MemoryManager* mm)
-        : LocalVector{common::LogicalType(common::LogicalTypeID::STRING), mm}, ovfStringLength{
-                                                                                   0} {};
-
-    void update(common::sel_t offsetInLocalVector, common::ValueVector* updateVector,
-        common::sel_t offsetInUpdateVector) final;
-
-    uint64_t ovfStringLength;
-};
-
-class StructLocalVector : public LocalVector {
-public:
-    explicit StructLocalVector(MemoryManager* mm)
-        : LocalVector{common::LogicalType{common::LogicalTypeID::STRUCT,
-                          std::make_unique<common::StructTypeInfo>()},
-              mm} {}
-
-    void scan(common::ValueVector* resultVector) const final;
-    void lookup(common::sel_t offsetInLocalVector, common::ValueVector* resultVector,
-        common::sel_t offsetInResultVector) final;
-    void update(common::sel_t offsetInLocalVector, common::ValueVector* updateVector,
-        common::sel_t offsetInUpdateVector) final;
-};
-
-struct LocalVectorFactory {
-    static std::unique_ptr<LocalVector> createLocalVectorData(
-        const common::LogicalType& logicalType, MemoryManager* mm);
-};
-
-class LocalColumnChunk {
-public:
-    explicit LocalColumnChunk(const common::LogicalType& dataType, MemoryManager* mm)
-        : dataType{dataType}, mm{mm} {};
-
-    void scan(common::vector_idx_t vectorIdx, common::ValueVector* resultVector);
-    void lookup(common::vector_idx_t vectorIdx, common::sel_t offsetInLocalVector,
-        common::ValueVector* resultVector, common::sel_t offsetInResultVector);
-    void update(common::vector_idx_t vectorIdx, common::sel_t offsetInVector,
-        common::ValueVector* vectorToWriteFrom, common::sel_t pos);
-
-    std::map<common::vector_idx_t, std::unique_ptr<LocalVector>> vectors;
-    common::LogicalType dataType;
-    MemoryManager* mm;
-};
-
-class LocalColumn {
-public:
-    explicit LocalColumn(Column* column, bool enableCompression)
-        : column{column}, enableCompression{enableCompression} {};
-    virtual ~LocalColumn() = default;
-
-    virtual void scan(common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
-    virtual void lookup(common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
-    virtual void update(
-        common::ValueVector* nodeIDVector, common::ValueVector* propertyVector, MemoryManager* mm);
-    virtual void update(common::offset_t nodeOffset, common::ValueVector* propertyVector,
-        common::sel_t posInPropertyVector, MemoryManager* mm);
-
-    virtual void prepareCommit();
-
-    virtual void prepareCommitForChunk(common::node_group_idx_t nodeGroupIdx);
-    void commitLocalChunkOutOfPlace(
-        common::node_group_idx_t nodeGroupIdx, LocalColumnChunk* localChunk);
-    void commitLocalChunkInPlace(
-        common::node_group_idx_t nodeGroupIdx, LocalColumnChunk* localChunk);
-
-protected:
-    std::map<common::node_group_idx_t, std::unique_ptr<LocalColumnChunk>> chunks;
-    Column* column;
-    bool enableCompression;
-};
-
-class StringLocalColumn : public LocalColumn {
-public:
-    explicit StringLocalColumn(Column* column, bool enableCompression)
-        : LocalColumn{column, enableCompression} {};
-
-    void prepareCommitForChunk(common::node_group_idx_t nodeGroupIdx) final;
-};
-
-class VarListLocalColumn : public LocalColumn {
-public:
-    explicit VarListLocalColumn(Column* column, bool enableCompression)
-        : LocalColumn{column, enableCompression} {};
-
-    void prepareCommitForChunk(common::node_group_idx_t nodeGroupIdx) final;
-};
-
-class StructLocalColumn : public LocalColumn {
-public:
-    explicit StructLocalColumn(Column* column, bool enableCompression);
-
-    void scan(common::ValueVector* nodeIDVector, common::ValueVector* resultVector) final;
-    void lookup(common::ValueVector* nodeIDVector, common::ValueVector* resultVector) final;
-    void update(common::ValueVector* nodeIDVector, common::ValueVector* propertyVector,
-        MemoryManager* mm) final;
-    void update(common::offset_t nodeOffset, common::ValueVector* propertyVector,
-        common::sel_t posInPropertyVector, MemoryManager* mm) final;
-
-    void prepareCommitForChunk(common::node_group_idx_t nodeGroupIdx) final;
+    inline common::ValueVector* getVector() { return vector.get(); }
+    inline bool isFull() { return numValues == common::DEFAULT_VECTOR_CAPACITY; }
 
 private:
-    std::vector<std::unique_ptr<LocalColumn>> fields;
+    std::unique_ptr<common::ValueVector> vector;
+    common::sel_t numValues;
 };
 
-struct LocalColumnFactory {
-    static std::unique_ptr<LocalColumn> createLocalColumn(Column* column, bool enableCompression);
+// This class is used to store local changes of a column in a node group.
+// It consists of a collection of LocalVector, each of which is a chunk of the local changes.
+// By default, the size of each vector (chunk) is DEFAULT_VECTOR_CAPACITY, and the collection
+// contains 64 vectors (chunks).
+class LocalVectorCollection {
+public:
+    LocalVectorCollection(const common::LogicalType* dataType, MemoryManager* mm)
+        : dataType{dataType}, mm{mm}, numRows{0} {}
+
+    void read(common::row_idx_t rowIdx, common::ValueVector* outputVector,
+        common::sel_t posInOutputVector);
+    void insert(common::ValueVector* nodeIDVector, common::ValueVector* propertyVectors);
+    void update(common::ValueVector* nodeIDVector, common::ValueVector* propertyVector);
+    inline void delete_(common::offset_t nodeOffset) {
+        insertInfo.erase(nodeOffset);
+        updateInfo.erase(nodeOffset);
+    }
+    inline std::map<common::offset_t, common::row_idx_t>& getInsertInfoRef() { return insertInfo; }
+    inline std::map<common::offset_t, common::row_idx_t>& getUpdateInfoRef() { return updateInfo; }
+    inline uint64_t getNumRows() { return numRows; }
+    inline LocalVector* getLocalVector(common::row_idx_t rowIdx) {
+        auto vectorIdx = rowIdx >> common::DEFAULT_VECTOR_CAPACITY_LOG_2;
+        KU_ASSERT(vectorIdx < vectors.size());
+        return vectors[vectorIdx].get();
+    }
+
+    common::row_idx_t getRowIdx(common::offset_t nodeOffset);
+
+private:
+    void prepareAppend();
+    void append(common::ValueVector* vector);
+
+private:
+    const common::LogicalType* dataType;
+    MemoryManager* mm;
+    std::vector<std::unique_ptr<LocalVector>> vectors;
+    common::row_idx_t numRows;
+    // TODO: Do we need to differentiate between insert and update?
+    // New nodes to be inserted into the persistent storage.
+    std::map<common::offset_t, common::row_idx_t> insertInfo;
+    // Nodes in the persistent storage to be updated.
+    std::map<common::offset_t, common::row_idx_t> updateInfo;
+};
+
+class LocalNodeGroup {
+    friend class NodeTableData;
+
+public:
+    LocalNodeGroup(
+        const std::vector<std::unique_ptr<common::LogicalType>>& dataTypes, MemoryManager* mm) {
+        columns.resize(dataTypes.size());
+        for (auto i = 0u; i < dataTypes.size(); ++i) {
+            // To avoid unnecessary memory consumption, we chunk local changes of each column in the
+            // node group into chunks of size DEFAULT_VECTOR_CAPACITY.
+            columns[i] = std::make_unique<LocalVectorCollection>(dataTypes[i].get(), mm);
+        }
+    }
+
+    void scan(common::ValueVector* nodeIDVector, const std::vector<common::column_id_t>& columnIDs,
+        const std::vector<common::ValueVector*>& outputVectors);
+    void lookup(common::offset_t nodeOffset, common::column_id_t columnID,
+        common::ValueVector* outputVector, common::sel_t posInOutputVector);
+    void insert(common::ValueVector* nodeIDVector,
+        const std::vector<common::ValueVector*>& propertyVectors);
+    void update(common::ValueVector* nodeIDVector, common::column_id_t columnID,
+        common::ValueVector* propertyVector);
+    void delete_(common::ValueVector* nodeIDVector);
+
+    inline LocalVectorCollection* getLocalColumnChunk(common::column_id_t columnID) {
+        return columns[columnID].get();
+    }
+
+private:
+    inline common::row_idx_t getRowIdx(common::column_id_t columnID, common::offset_t nodeOffset) {
+        KU_ASSERT(columnID < columns.size());
+        return columns[columnID]->getRowIdx(nodeOffset);
+    }
+
+private:
+    std::vector<std::unique_ptr<LocalVectorCollection>> columns;
 };
 
 class LocalTable {
+    friend class NodeTableData;
+
 public:
-    explicit LocalTable(NodeTable* table, bool enableCompression)
-        : table{table}, enableCompression{enableCompression} {};
+    explicit LocalTable(common::table_id_t tableID,
+        std::vector<std::unique_ptr<common::LogicalType>> dataTypes, MemoryManager* mm)
+        : tableID{tableID}, dataTypes{std::move(dataTypes)}, mm{mm} {};
 
     void scan(common::ValueVector* nodeIDVector, const std::vector<common::column_id_t>& columnIDs,
         const std::vector<common::ValueVector*>& outputVectors);
     void lookup(common::ValueVector* nodeIDVector,
         const std::vector<common::column_id_t>& columnIDs,
         const std::vector<common::ValueVector*>& outputVectors);
-    void update(common::column_id_t columnID, common::ValueVector* nodeIDVector,
-        common::ValueVector* propertyVector, MemoryManager* mm);
-    void update(common::column_id_t columnID, common::offset_t nodeOffset,
-        common::ValueVector* propertyVector, common::sel_t posInPropertyVector, MemoryManager* mm);
+    void insert(common::ValueVector* nodeIDVector,
+        const std::vector<common::ValueVector*>& propertyVectors);
+    void update(common::ValueVector* nodeIDVector, common::column_id_t columnID,
+        common::ValueVector* propertyVector);
+    void delete_(common::ValueVector* nodeIDVector);
 
-    void prepareCommit();
+    inline void clear() { nodeGroups.clear(); }
 
 private:
-    std::map<common::column_id_t, std::unique_ptr<LocalColumn>> columns;
-    NodeTable* table;
-    bool enableCompression;
+    common::node_group_idx_t initializeLocalNodeGroup(common::ValueVector* nodeIDVector);
+    common::node_group_idx_t initializeLocalNodeGroup(common::offset_t nodeOffset);
+
+private:
+    common::table_id_t tableID;
+    std::vector<std::unique_ptr<common::LogicalType>> dataTypes;
+    MemoryManager* mm;
+    std::unordered_map<common::node_group_idx_t, std::unique_ptr<LocalNodeGroup>> nodeGroups;
 };
 
 } // namespace storage
