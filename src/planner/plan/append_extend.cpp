@@ -1,3 +1,4 @@
+#include "binder/expression/expression_util.h"
 #include "binder/expression/property_expression.h"
 #include "binder/expression_visitor.h"
 #include "catalog/rel_table_schema.h"
@@ -140,8 +141,7 @@ void QueryPlanner::appendRecursiveExtend(std::shared_ptr<NodeExpression> boundNo
     appendAccumulate(AccumulateType::REGULAR, plan);
     // Create recursive plan
     auto recursivePlan = std::make_unique<LogicalPlan>();
-    createRecursivePlan(recursiveInfo->node, recursiveInfo->nodeCopy, recursiveInfo->rel, direction,
-        recursiveInfo->predicates, *recursivePlan);
+    createRecursivePlan(*recursiveInfo, direction, *recursivePlan);
     // Create recursive extend
     if (boundNode->getNumTableIDs() > recursiveInfo->node->getNumTableIDs()) {
         appendNodeLabelFilter(
@@ -194,26 +194,37 @@ void QueryPlanner::appendRecursiveExtend(std::shared_ptr<NodeExpression> boundNo
     }
 }
 
-void QueryPlanner::createRecursivePlan(std::shared_ptr<NodeExpression> boundNode,
-    std::shared_ptr<NodeExpression> recursiveNode, std::shared_ptr<RelExpression> recursiveRel,
-    ExtendDirection direction, const expression_vector& predicates, LogicalPlan& plan) {
-    auto scanFrontier = std::make_shared<LogicalScanFrontier>(boundNode);
+static expression_vector collectPropertiesToRead(const std::shared_ptr<Expression>& expression) {
+    if (expression == nullptr) {
+        return expression_vector{};
+    }
+    return ExpressionCollector().collectPropertyExpressions(expression);
+}
+
+void QueryPlanner::createRecursivePlan(
+    const RecursiveInfo& recursiveInfo, ExtendDirection direction, LogicalPlan& plan) {
+    auto boundNode = recursiveInfo.node;
+    auto nbrNode = recursiveInfo.nodeCopy;
+    auto rel = recursiveInfo.rel;
+    auto scanFrontier = std::make_shared<LogicalScanFrontier>(
+        boundNode->getInternalID(), recursiveInfo.nodePredicateExecFlag);
     scanFrontier->computeFactorizedSchema();
     plan.setLastOperator(std::move(scanFrontier));
-    expression_set propertiesSet;
-    propertiesSet.insert(recursiveRel->getInternalIDProperty());
-    for (auto& predicate : predicates) {
-        auto expressionCollector = std::make_unique<binder::ExpressionCollector>();
-        for (auto& property : expressionCollector->collectPropertyExpressions(predicate)) {
-            propertiesSet.insert(property);
-        }
+    auto nodeProperties = collectPropertiesToRead(recursiveInfo.nodePredicate);
+    if (!nodeProperties.empty()) {
+        appendScanNodeProperties(boundNode->getInternalID(), boundNode->getTableIDs(),
+            ExpressionUtil::removeDuplication(nodeProperties), plan);
     }
-    expression_vector properties;
-    for (auto& property : propertiesSet) {
-        properties.push_back(property);
+    if (recursiveInfo.nodePredicate) {
+        appendFilters(recursiveInfo.nodePredicate->splitOnAND(), plan);
     }
-    appendNonRecursiveExtend(boundNode, recursiveNode, recursiveRel, direction, properties, plan);
-    appendFilters(predicates, plan);
+    auto relProperties = collectPropertiesToRead(recursiveInfo.relPredicate);
+    relProperties.push_back(rel->getInternalIDProperty());
+    appendNonRecursiveExtend(
+        boundNode, nbrNode, rel, direction, ExpressionUtil::removeDuplication(relProperties), plan);
+    if (recursiveInfo.relPredicate) {
+        appendFilters(recursiveInfo.relPredicate->splitOnAND(), plan);
+    }
 }
 
 void QueryPlanner::createPathNodePropertyScanPlan(

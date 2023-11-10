@@ -72,7 +72,7 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindMergeClause(
         bindGraphPattern(mergeClause.getPatternElementsRef());
     std::shared_ptr<Expression> predicate = nullptr;
     for (auto& [key, val] : propertyCollection->getKeyVals()) {
-        predicate = expressionBinder.combineConjunctiveExpressions(
+        predicate = expressionBinder.combineBooleanExpressions(ExpressionType::AND,
             expressionBinder.createEqualityComparisonExpression(key, val), predicate);
     }
     auto createInfos = bindCreateInfos(*queryGraphCollection, *propertyCollection, nodeRelScope);

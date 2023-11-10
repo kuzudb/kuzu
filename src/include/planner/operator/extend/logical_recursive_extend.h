@@ -77,22 +77,28 @@ private:
 
 class LogicalScanFrontier : public LogicalOperator {
 public:
-    LogicalScanFrontier(std::shared_ptr<binder::NodeExpression> node)
-        : LogicalOperator{LogicalOperatorType::SCAN_FRONTIER}, node{std::move(node)} {}
+    LogicalScanFrontier(std::shared_ptr<binder::Expression> nodeID,
+        std::shared_ptr<binder::Expression> nodePredicateExecFlag)
+        : LogicalOperator{LogicalOperatorType::SCAN_FRONTIER}, nodeID{std::move(nodeID)},
+          nodePredicateExecFlag{std::move(nodePredicateExecFlag)} {}
 
     void computeFactorizedSchema() final;
     void computeFlatSchema() final;
 
     std::string getExpressionsForPrinting() const override { return std::string(); }
 
-    inline std::shared_ptr<binder::NodeExpression> getNode() const { return node; }
+    inline std::shared_ptr<binder::Expression> getNodeID() const { return nodeID; }
+    inline std::shared_ptr<binder::Expression> getNodePredicateExecutionFlag() const {
+        return nodePredicateExecFlag;
+    }
 
-    std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalScanFrontier>(node);
+    inline std::unique_ptr<LogicalOperator> copy() final {
+        return std::make_unique<LogicalScanFrontier>(nodeID, nodePredicateExecFlag);
     }
 
 private:
-    std::shared_ptr<binder::NodeExpression> node;
+    std::shared_ptr<binder::Expression> nodeID;
+    std::shared_ptr<binder::Expression> nodePredicateExecFlag;
 };
 
 } // namespace planner

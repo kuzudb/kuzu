@@ -76,14 +76,14 @@ std::unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause&
         }
     }
     for (auto& predicate : selfLoopEdgePredicates) {
-        whereExpression =
-            expressionBinder.combineConjunctiveExpressions(predicate, whereExpression);
+        whereExpression = expressionBinder.combineBooleanExpressions(
+            ExpressionType::AND, predicate, whereExpression);
     }
     // Rewrite key value pairs in MATCH clause as predicate
     for (auto& [key, val] : propertyCollection->getKeyVals()) {
         auto predicate = expressionBinder.createEqualityComparisonExpression(key, val);
-        whereExpression =
-            expressionBinder.combineConjunctiveExpressions(predicate, whereExpression);
+        whereExpression = expressionBinder.combineBooleanExpressions(
+            ExpressionType::AND, predicate, whereExpression);
     }
 
     boundMatchClause->setWherePredicate(std::move(whereExpression));

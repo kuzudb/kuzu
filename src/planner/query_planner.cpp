@@ -1,8 +1,8 @@
 #include "planner/query_planner.h"
 
+#include "binder/expression/expression_util.h"
 #include "binder/expression/property_expression.h"
 #include "binder/query/bound_regular_query.h"
-#include "common/exception/not_implemented.h"
 #include "planner/operator/logical_union.h"
 
 using namespace kuzu::binder;
@@ -98,10 +98,7 @@ std::vector<std::unique_ptr<LogicalPlan>> QueryPlanner::getInitialEmptyPlans() {
 }
 
 expression_vector QueryPlanner::getProperties(const binder::Expression& nodeOrRel) {
-    auto typeID = nodeOrRel.getDataType().getLogicalTypeID();
-    if (typeID != LogicalTypeID::NODE && typeID != LogicalTypeID::REL) {
-        throw NotImplementedException("QueryPlanner::getProperties");
-    }
+    KU_ASSERT(ExpressionUtil::isNodePattern(nodeOrRel) || ExpressionUtil::isRelPattern(nodeOrRel));
     expression_vector result;
     for (auto& expression : propertiesToScan) {
         auto property = (PropertyExpression*)expression.get();

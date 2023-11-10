@@ -21,9 +21,9 @@ std::shared_ptr<Expression> ExpressionBinder::bindVariableExpression(
 }
 
 std::shared_ptr<Expression> ExpressionBinder::createVariableExpression(
-    LogicalType logicalType, std::string uniqueName, std::string name) {
+    LogicalType logicalType, std::string name) {
     return std::make_shared<VariableExpression>(
-        std::move(logicalType), std::move(uniqueName), std::move(name));
+        std::move(logicalType), binder->getUniqueExpressionName(name), std::move(name));
 }
 
 } // namespace binder
