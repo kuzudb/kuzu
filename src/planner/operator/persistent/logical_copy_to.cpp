@@ -15,12 +15,7 @@ void LogicalCopyTo::computeFlatSchema() {
 
 f_group_pos_set LogicalCopyTo::getGroupsPosToFlatten() {
     auto childSchema = children[0]->getSchema();
-    f_group_pos_set dependentGroupsPos;
-    for (auto& expression : childSchema->getExpressionsInScope()) {
-        for (auto& grouPos : childSchema->getDependentGroupsPos(expression)) {
-            dependentGroupsPos.insert(grouPos);
-        }
-    }
+    auto dependentGroupsPos = childSchema->getGroupsPosInScope();
     return factorization::FlattenAllButOne::getGroupsPosToFlatten(dependentGroupsPos, childSchema);
 }
 

@@ -8,17 +8,28 @@ namespace binder {
 
 class BoundCopyTo : public BoundStatement {
 public:
-    BoundCopyTo(std::unique_ptr<common::ReaderConfig> config,
+    BoundCopyTo(std::string filePath, common::FileType fileType,
+        std::vector<std::string> columnNames,
+        std::vector<std::unique_ptr<common::LogicalType>> columnTypes,
         std::unique_ptr<BoundRegularQuery> regularQuery)
         : BoundStatement{common::StatementType::COPY_TO, BoundStatementResult::createEmptyResult()},
-          config{std::move(config)}, regularQuery{std::move(regularQuery)} {}
+          filePath{std::move(filePath)}, fileType{fileType}, columnNames{std::move(columnNames)},
+          columnTypes{std::move(columnTypes)}, regularQuery{std::move(regularQuery)} {}
 
-    inline common::ReaderConfig* getConfig() const { return config.get(); }
+    inline std::string getFilePath() const { return filePath; }
+    inline common::FileType getFileType() const { return fileType; }
+    inline std::vector<std::string> getColumnNames() const { return columnNames; }
+    inline const std::vector<std::unique_ptr<common::LogicalType>>& getColumnTypesRef() const {
+        return columnTypes;
+    }
 
     inline BoundRegularQuery* getRegularQuery() const { return regularQuery.get(); }
 
 private:
-    std::unique_ptr<common::ReaderConfig> config;
+    std::string filePath;
+    common::FileType fileType;
+    std::vector<std::string> columnNames;
+    std::vector<std::unique_ptr<common::LogicalType>> columnTypes;
     std::unique_ptr<BoundRegularQuery> regularQuery;
 };
 

@@ -19,10 +19,10 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-BaseCSVReader::BaseCSVReader(const std::string& filePath, const common::ReaderConfig& readerConfig)
-    : filePath{filePath}, csvReaderConfig{*readerConfig.csvReaderConfig},
-      expectedNumColumns(readerConfig.getNumColumns()), numColumnsDetected(-1), fd(-1),
-      buffer(nullptr), bufferSize(0), position(0), rowEmpty(false) {
+BaseCSVReader::BaseCSVReader(
+    const std::string& filePath, const common::ReaderConfig& readerConfig, uint64_t numColumns)
+    : filePath{filePath}, csvReaderConfig{*readerConfig.csvReaderConfig}, numColumns(numColumns),
+      fd(-1), buffer(nullptr), bufferSize(0), position(0), rowEmpty(false) {
     // TODO(Ziyi): should we wrap this fd using kuzu file handler?
     fd = open(filePath.c_str(), O_RDONLY
 #ifdef _WIN32
@@ -54,7 +54,7 @@ line_start:
     }
 
     // If the number of columns is 1, every line start indicates a row.
-    if (expectedNumColumns == 1) {
+    if (numColumns == 1) {
         rows++;
     }
 
@@ -66,7 +66,7 @@ line_start:
         goto line_start;
     } else {
         // If we have more than one column, every non-empty line is a row.
-        if (expectedNumColumns != 1) {
+        if (numColumns != 1) {
             rows++;
         }
         goto normal;

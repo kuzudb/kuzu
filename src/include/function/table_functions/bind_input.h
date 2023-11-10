@@ -13,19 +13,22 @@ struct TableFuncBindInput {
     std::vector<std::unique_ptr<common::Value>> inputs;
 
     TableFuncBindInput() = default;
-    explicit TableFuncBindInput(std::vector<std::unique_ptr<common::Value>> inputs)
-        : inputs{std::move(inputs)} {}
     virtual ~TableFuncBindInput() = default;
 };
 
 struct ScanTableFuncBindInput final : public TableFuncBindInput {
-    const common::ReaderConfig config;
     storage::MemoryManager* mm;
+    common::ReaderConfig config;
+    std::vector<std::string> expectedColumnNames;
+    std::vector<std::unique_ptr<common::LogicalType>> expectedColumnTypes;
 
-    ScanTableFuncBindInput(const common::ReaderConfig config, storage::MemoryManager* mm)
-        : TableFuncBindInput{}, config{config}, mm{mm} {
-        inputs.push_back(
-            std::make_unique<common::Value>(common::Value::createValue(this->config.filePaths[0])));
+    ScanTableFuncBindInput(storage::MemoryManager* mm, const common::ReaderConfig& config,
+        std::vector<std::string> expectedColumnNames,
+        std::vector<std::unique_ptr<common::LogicalType>> expectedColumnTypes)
+        : TableFuncBindInput{}, mm{mm}, config{config},
+          expectedColumnNames{std::move(expectedColumnNames)}, expectedColumnTypes{
+                                                                   std::move(expectedColumnTypes)} {
+        inputs.push_back(common::Value::createValue(config.filePaths[0]).copy());
     }
 };
 

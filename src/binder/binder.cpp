@@ -208,29 +208,34 @@ void Binder::restoreScope(std::unique_ptr<BinderScope> prevVariableScope) {
     scope = std::move(prevVariableScope);
 }
 
-function::TableFunction* Binder::getScanFunction(
-    common::FileType fileType, std::vector<common::LogicalType*> inputTypes, bool isParallel) {
+function::TableFunction* Binder::getScanFunction(common::FileType fileType, bool isParallel) {
+    function::Function* func;
+    auto stringType = LogicalType(LogicalTypeID::STRING);
+    std::vector<LogicalType*> inputTypes;
+    inputTypes.push_back(&stringType);
     switch (fileType) {
-    case common::FileType::PARQUET:
-        return reinterpret_cast<function::TableFunction*>(
-            catalog.getBuiltInFunctions()->matchScalarFunction(
-                READ_PARQUET_FUNC_NAME, std::move(inputTypes)));
-    case common::FileType::NPY:
-        return reinterpret_cast<function::TableFunction*>(
-            catalog.getBuiltInFunctions()->matchScalarFunction(
-                READ_NPY_FUNC_NAME, std::move(inputTypes)));
-    case common::FileType::CSV:
-        return reinterpret_cast<function::TableFunction*>(
-            catalog.getBuiltInFunctions()->matchScalarFunction(
-                isParallel ? READ_CSV_PARALLEL_FUNC_NAME : READ_CSV_SERIAL_FUNC_NAME,
-                std::move(inputTypes)));
-    case common::FileType::TURTLE:
-        return reinterpret_cast<function::TableFunction*>(
-            catalog.getBuiltInFunctions()->matchScalarFunction(
-                READ_RDF_FUNC_NAME, std::move(inputTypes)));
+    case common::FileType::PARQUET: {
+        func =
+            catalog.getBuiltInFunctions()->matchScalarFunction(READ_PARQUET_FUNC_NAME, inputTypes);
+    } break;
+
+    case common::FileType::NPY: {
+        func = catalog.getBuiltInFunctions()->matchScalarFunction(
+            READ_NPY_FUNC_NAME, std::move(inputTypes));
+    } break;
+    case common::FileType::CSV: {
+        func = catalog.getBuiltInFunctions()->matchScalarFunction(
+            isParallel ? READ_CSV_PARALLEL_FUNC_NAME : READ_CSV_SERIAL_FUNC_NAME,
+            std::move(inputTypes));
+    } break;
+    case common::FileType::TURTLE: {
+        func = catalog.getBuiltInFunctions()->matchScalarFunction(
+            READ_RDF_FUNC_NAME, std::move(inputTypes));
+    } break;
     default:
         KU_UNREACHABLE;
     }
+    return reinterpret_cast<function::TableFunction*>(func);
 }
 
 } // namespace binder

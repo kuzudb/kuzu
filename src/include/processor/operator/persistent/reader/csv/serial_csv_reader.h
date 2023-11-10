@@ -12,7 +12,8 @@ namespace processor {
 //! Serial CSV reader is a class that reads values from a stream in a single thread.
 class SerialCSVReader final : public BaseCSVReader {
 public:
-    SerialCSVReader(const std::string& filePath, const common::ReaderConfig& readerConfig);
+    SerialCSVReader(
+        const std::string& filePath, const common::ReaderConfig& readerConfig, uint64_t numColumns);
 
     //! Sniffs CSV dialect and determines skip rows, header row, column types and column names
     std::vector<std::pair<std::string, common::LogicalType>> sniffCSV();
@@ -23,8 +24,9 @@ protected:
 };
 
 struct SerialCSVScanSharedState final : public function::ScanSharedTableFuncState {
-    explicit SerialCSVScanSharedState(const common::ReaderConfig readerConfig, uint64_t numRows)
-        : ScanSharedTableFuncState{std::move(readerConfig), numRows} {
+    explicit SerialCSVScanSharedState(
+        const common::ReaderConfig readerConfig, uint64_t numRows, uint64_t numColumns)
+        : ScanSharedTableFuncState{std::move(readerConfig), numRows}, numColumns{numColumns} {
         initReader();
     }
 
@@ -33,6 +35,7 @@ struct SerialCSVScanSharedState final : public function::ScanSharedTableFuncStat
     void initReader();
 
     std::unique_ptr<SerialCSVReader> reader;
+    uint64_t numColumns;
 };
 
 struct SerialCSVScan {
@@ -48,6 +51,13 @@ struct SerialCSVScan {
 
     static std::unique_ptr<function::TableFuncLocalState> initLocalState(
         function::TableFunctionInitInput& /*input*/, function::TableFuncSharedState* /*state*/);
+
+    static void bindColumns(const common::ReaderConfig& readerConfig,
+        std::vector<std::string>& columnNames,
+        std::vector<std::unique_ptr<common::LogicalType>>& columnTypes);
+    static void bindColumns(const common::ReaderConfig& readerConfig, uint32_t fileIdx,
+        std::vector<std::string>& columnNames,
+        std::vector<std::unique_ptr<common::LogicalType>>& columnTypes);
 };
 
 } // namespace processor

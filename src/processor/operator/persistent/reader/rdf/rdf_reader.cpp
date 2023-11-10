@@ -293,10 +293,10 @@ void RdfScan::tableFunc(function::TableFunctionInput& input, common::DataChunk& 
 
 std::unique_ptr<function::TableFuncBindData> RdfScan::bindFunc(main::ClientContext* /*context*/,
     function::TableFuncBindInput* input, catalog::CatalogContent* /*catalog*/) {
-    auto rdfScanBindData = reinterpret_cast<function::ScanTableFuncBindInput*>(input);
+    auto scanInput = reinterpret_cast<function::ScanTableFuncBindInput*>(input);
     return std::make_unique<function::ScanBindData>(
-        common::LogicalType::copy(rdfScanBindData->config.columnTypes),
-        rdfScanBindData->config.columnNames, rdfScanBindData->config, rdfScanBindData->mm);
+        common::LogicalType::copy(scanInput->expectedColumnTypes), scanInput->expectedColumnNames,
+        scanInput->mm, scanInput->config);
 }
 
 std::unique_ptr<function::TableFuncSharedState> RdfScan::initSharedState(

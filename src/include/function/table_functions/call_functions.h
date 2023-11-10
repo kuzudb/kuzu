@@ -44,7 +44,7 @@ struct CallTableFuncBindData : public TableFuncBindData {
 
     inline std::unique_ptr<TableFuncBindData> copy() override {
         return std::make_unique<CallTableFuncBindData>(
-            common::LogicalType::copy(returnTypes), returnColumnNames, maxOffset);
+            common::LogicalType::copy(columnTypes), columnNames, maxOffset);
     }
 };
 
@@ -63,7 +63,7 @@ struct CurrentSettingBindData : public CallTableFuncBindData {
 
     inline std::unique_ptr<TableFuncBindData> copy() override {
         return std::make_unique<CurrentSettingBindData>(
-            result, common::LogicalType::copy(returnTypes), returnColumnNames, maxOffset);
+            result, common::LogicalType::copy(columnTypes), columnNames, maxOffset);
     }
 };
 
@@ -96,7 +96,7 @@ struct ShowTablesBindData : public CallTableFuncBindData {
 
     inline std::unique_ptr<TableFuncBindData> copy() override {
         return std::make_unique<ShowTablesBindData>(
-            tables, common::LogicalType::copy(returnTypes), returnColumnNames, maxOffset);
+            tables, common::LogicalType::copy(columnTypes), columnNames, maxOffset);
     }
 };
 
@@ -120,7 +120,7 @@ struct TableInfoBindData : public CallTableFuncBindData {
 
     inline std::unique_ptr<TableFuncBindData> copy() override {
         return std::make_unique<TableInfoBindData>(
-            tableSchema, common::LogicalType::copy(returnTypes), returnColumnNames, maxOffset);
+            tableSchema, common::LogicalType::copy(columnTypes), columnNames, maxOffset);
     }
 };
 
@@ -143,8 +143,8 @@ struct ShowConnectionBindData : public TableInfoBindData {
                                 std::move(returnColumnNames), maxOffset} {}
 
     inline std::unique_ptr<TableFuncBindData> copy() override {
-        return std::make_unique<ShowConnectionBindData>(catalog, tableSchema,
-            common::LogicalType::copy(returnTypes), returnColumnNames, maxOffset);
+        return std::make_unique<ShowConnectionBindData>(
+            catalog, tableSchema, common::LogicalType::copy(columnTypes), columnNames, maxOffset);
     }
 };
 

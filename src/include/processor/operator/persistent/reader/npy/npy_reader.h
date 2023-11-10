@@ -78,6 +78,13 @@ struct NpyScanFunction {
 
     static std::unique_ptr<function::TableFuncLocalState> initLocalState(
         function::TableFunctionInitInput& /*input*/, function::TableFuncSharedState* /*state*/);
+
+    static void bindColumns(const common::ReaderConfig& readerConfig,
+        std::vector<std::string>& columnNames,
+        std::vector<std::unique_ptr<common::LogicalType>>& columnTypes);
+    static void bindColumns(const common::ReaderConfig& readerConfig, uint32_t fileIdx,
+        std::vector<std::string>& columnNames,
+        std::vector<std::unique_ptr<common::LogicalType>>& columnTypes);
 };
 
 } // namespace processor

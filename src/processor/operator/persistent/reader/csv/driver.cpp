@@ -26,14 +26,14 @@ void ParsingDriver::addValue(
         rowEmpty = false;
     }
     BaseCSVReader* reader = getReader();
-    if (columnIdx == reader->expectedNumColumns && length == 0) {
+    if (columnIdx == reader->numColumns && length == 0) {
         // skip a single trailing delimiter in last columnIdx
         return;
     }
-    if (columnIdx >= reader->expectedNumColumns) {
+    if (columnIdx >= reader->numColumns) {
         throw CopyException(
             stringFormat("Error in file {}, on line {}: expected {} values per row, but got more.",
-                reader->filePath, reader->getLineNumber(), reader->expectedNumColumns));
+                reader->filePath, reader->getLineNumber(), reader->numColumns));
     }
 
     function::CastString::copyStringToVector(
@@ -44,16 +44,16 @@ bool ParsingDriver::addRow(uint64_t /*rowNum*/, common::column_id_t columnCount)
     BaseCSVReader* reader = getReader();
     if (rowEmpty) {
         rowEmpty = false;
-        if (reader->expectedNumColumns != 1) {
+        if (reader->numColumns != 1) {
             return false;
         }
         // Otherwise, treat it as null.
     }
-    if (columnCount < reader->expectedNumColumns) {
+    if (columnCount < reader->numColumns) {
         // Column number mismatch.
-        throw CopyException(stringFormat(
-            "Error in file {} on line {}: expected {} values per row, but got {}", reader->filePath,
-            reader->getLineNumber(), reader->expectedNumColumns, columnCount));
+        throw CopyException(
+            stringFormat("Error in file {} on line {}: expected {} values per row, but got {}",
+                reader->filePath, reader->getLineNumber(), reader->numColumns, columnCount));
     }
     return true;
 }

@@ -61,7 +61,7 @@ Greg|0|1994-01-12
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0|1994-01-12
 -STATEMENT LOAD FROM  "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/rdf/taxonomy.ttl" RETURN COUNT(*)
 ---- error
-Binder exception: Cannot sniff header of file type TURTLE
+Binder exception: Cannot load from file type TURTLE.
 -STATEMENT LOAD WITH HEADERS (a INT64, b INT64) FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/user.parquet" RETURN *;
 ---- error
 Binder exception: Column `a` type mismatch. Expected INT64 but got STRING.
