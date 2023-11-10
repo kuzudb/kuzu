@@ -75,6 +75,11 @@ std::string RelVal::getLabelName(const Value* val) {
     return val->children[fieldIdx]->getValue<std::string>();
 }
 
+Value* RelVal::getLabelVal(const Value* val) {
+    auto fieldIdx = StructType::getFieldIdx(val->dataType.get(), InternalKeyword::LABEL);
+    return val->children[fieldIdx].get();
+}
+
 std::string RelVal::toString(const Value* val) {
     throwIfNotRel(val);
     return val->toString();

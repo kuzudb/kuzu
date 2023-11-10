@@ -126,8 +126,13 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
             auto val = ConvertToNapiObject(*NodeVal::getPropertyVal(&value, i), env);
             napiObj.Set(key, val);
         }
-        napiObj.Set("_label", Napi::String::New(env, NodeVal::getLabelName(&value)));
-        napiObj.Set("_id", ConvertNodeIdToNapiObject(NodeVal::getNodeID(&value), env));
+        auto labelVal = NodeVal::getLabelVal(&value);
+        auto idVal = NodeVal::getNodeIDVal(&value);
+        auto label =
+            labelVal ? Napi::String::New(env, labelVal->getValue<std::string>()) : env.Null();
+        auto id = idVal ? ConvertToNapiObject(*idVal, env) : env.Null();
+        napiObj.Set("_label", label);
+        napiObj.Set("_id", id);
         return napiObj;
     }
     case LogicalTypeID::REL: {
@@ -138,9 +143,18 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
             auto val = ConvertToNapiObject(*RelVal::getPropertyVal(&value, i), env);
             napiObj.Set(key, val);
         }
-        napiObj.Set("_src", ConvertNodeIdToNapiObject(RelVal::getSrcNodeID(&value), env));
-        napiObj.Set("_dst", ConvertNodeIdToNapiObject(RelVal::getDstNodeID(&value), env));
-        napiObj.Set("_label", Napi::String::New(env, RelVal::getLabelName(&value)));
+        auto srcIdVal = RelVal::getSrcNodeIDVal(&value);
+        auto dstIdVal = RelVal::getDstNodeIDVal(&value);
+        auto labelVal = RelVal::getLabelVal(&value);
+        auto srcId =
+            srcIdVal ? ConvertNodeIdToNapiObject(srcIdVal->getValue<nodeID_t>(), env) : env.Null();
+        auto dstId =
+            dstIdVal ? ConvertNodeIdToNapiObject(dstIdVal->getValue<nodeID_t>(), env) : env.Null();
+        auto label =
+            labelVal ? Napi::String::New(env, labelVal->getValue<std::string>()) : env.Null();
+        napiObj.Set("_src", srcId);
+        napiObj.Set("_dst", dstId);
+        napiObj.Set("_label", label);
         return napiObj;
     }
     case LogicalTypeID::INTERNAL_ID: {

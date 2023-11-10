@@ -58,6 +58,10 @@ public:
     // TODO(Change): REMOVE ME and use getDstNodeIDVal.
     KUZU_API static nodeID_t getDstNodeID(const Value* val);
     /**
+     * @return the label value of the RelVal.
+     */
+    KUZU_API static Value* getLabelVal(const Value* val);
+    /**
      * @return the name of the RelVal.
      */
     // TODO(Change): REMOVE ME and create getLabelVal.
