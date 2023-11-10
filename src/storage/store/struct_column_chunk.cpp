@@ -16,26 +16,25 @@ StructColumnChunk::StructColumnChunk(
     }
 }
 
-void StructColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
-    offset_t startPosInChunk, uint32_t numValuesToAppend) {
+void StructColumnChunk::append(
+    ColumnChunk* other, offset_t startPosInOtherChunk, uint32_t numValuesToAppend) {
     auto otherStructChunk = dynamic_cast<StructColumnChunk*>(other);
-    nullChunk->append(
-        other->getNullChunk(), startPosInOtherChunk, startPosInChunk, numValuesToAppend);
+    nullChunk->append(other->getNullChunk(), startPosInOtherChunk, numValuesToAppend);
     for (auto i = 0u; i < childChunks.size(); i++) {
-        childChunks[i]->append(otherStructChunk->childChunks[i].get(), startPosInOtherChunk,
-            startPosInChunk, numValuesToAppend);
+        childChunks[i]->append(
+            otherStructChunk->childChunks[i].get(), startPosInOtherChunk, numValuesToAppend);
     }
     numValues += numValuesToAppend;
 }
 
-void StructColumnChunk::append(ValueVector* vector, offset_t startPosInChunk) {
+void StructColumnChunk::append(ValueVector* vector) {
     auto numFields = StructType::getNumFields(&dataType);
     for (auto i = 0u; i < numFields; i++) {
-        childChunks[i]->append(StructVector::getFieldVector(vector, i).get(), startPosInChunk);
+        childChunks[i]->append(StructVector::getFieldVector(vector, i).get());
     }
     for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
         nullChunk->setNull(
-            startPosInChunk + i, vector->isNull(vector->state->selVector->selectedPositions[i]));
+            numValues + i, vector->isNull(vector->state->selVector->selectedPositions[i]));
     }
     numValues += vector->state->selVector->selectedSize;
 }

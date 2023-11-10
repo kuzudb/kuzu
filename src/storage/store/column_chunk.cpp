@@ -176,25 +176,25 @@ void ColumnChunk::initializeFunction(bool enableCompression) {
 
 void ColumnChunk::resetToEmpty() {
     if (nullChunk) {
-        nullChunk->resetToNoNull();
+        nullChunk->resetToEmpty();
     }
     numValues = 0;
 }
 
-void ColumnChunk::append(ValueVector* vector, offset_t startPosInChunk) {
+void ColumnChunk::append(ValueVector* vector) {
     KU_ASSERT(vector->dataType.getPhysicalType() == dataType.getPhysicalType());
-    copyVectorToBuffer(vector, startPosInChunk);
+    copyVectorToBuffer(vector, numValues);
     numValues += vector->state->selVector->selectedSize;
 }
 
-void ColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
-    offset_t startPosInChunk, uint32_t numValuesToAppend) {
+void ColumnChunk::append(
+    ColumnChunk* other, offset_t startPosInOtherChunk, uint32_t numValuesToAppend) {
     KU_ASSERT(other->dataType.getPhysicalType() == dataType.getPhysicalType());
     if (nullChunk) {
-        nullChunk->append(
-            other->nullChunk.get(), startPosInOtherChunk, startPosInChunk, numValuesToAppend);
+        KU_ASSERT(nullChunk->getNumValues() == getNumValues());
+        nullChunk->append(other->nullChunk.get(), startPosInOtherChunk, numValuesToAppend);
     }
-    memcpy(buffer.get() + startPosInChunk * numBytesPerValue,
+    memcpy(buffer.get() + numValues * numBytesPerValue,
         other->buffer.get() + startPosInOtherChunk * numBytesPerValue,
         numValuesToAppend * numBytesPerValue);
     numValues += numValuesToAppend;
@@ -273,7 +273,7 @@ void ColumnChunk::populateWithDefaultVal(ValueVector* defaultValueVector) {
         auto numValuesToAppend = std::min(
             DEFAULT_VECTOR_CAPACITY, StorageConstants::NODE_GROUP_SIZE - numValuesAppended);
         defaultValueVector->state->selVector->selectedSize = numValuesToAppend;
-        append(defaultValueVector, numValuesAppended);
+        append(defaultValueVector);
         numValuesAppended += numValuesToAppend;
     }
 }
@@ -294,12 +294,14 @@ void ColumnChunk::copyVectorToBuffer(ValueVector* vector, offset_t startPosInChu
     if (vector->state->selVector->isUnfiltered()) {
         memcpy(bufferToWrite, vectorDataToWriteFrom,
             vector->state->selVector->selectedSize * numBytesPerValue);
+        // TODO(Guodong): Should be wrapped into nullChunk->append(vector);
         for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
             nullChunk->setNull(startPosInChunk + i, vector->isNull(i));
         }
     } else {
         for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
             auto pos = vector->state->selVector->selectedPositions[i];
+            // TODO(Guodong): Should be wrapped into nullChunk->append(vector);
             nullChunk->setNull(startPosInChunk + i, vector->isNull(pos));
             memcpy(bufferToWrite, vectorDataToWriteFrom + pos * numBytesPerValue, numBytesPerValue);
             bufferToWrite += numBytesPerValue;
@@ -358,24 +360,22 @@ uint64_t ColumnChunk::getBufferSize() const {
     }
 }
 
-void BoolColumnChunk::append(ValueVector* vector, offset_t startPosInChunk) {
+void BoolColumnChunk::append(ValueVector* vector) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::BOOL);
     for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
         auto pos = vector->state->selVector->selectedPositions[i];
-        nullChunk->setNull(startPosInChunk + i, vector->isNull(pos));
-        NullMask::setNull(
-            (uint64_t*)buffer.get(), startPosInChunk + i, vector->getValue<bool>(pos));
+        nullChunk->setNull(numValues + i, vector->isNull(pos));
+        NullMask::setNull((uint64_t*)buffer.get(), numValues + i, vector->getValue<bool>(pos));
     }
     numValues += vector->state->selVector->selectedSize;
 }
 
-void BoolColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
-    offset_t startPosInChunk, uint32_t numValuesToAppend) {
+void BoolColumnChunk::append(
+    ColumnChunk* other, offset_t startPosInOtherChunk, uint32_t numValuesToAppend) {
     NullMask::copyNullMask((uint64_t*)static_cast<BoolColumnChunk*>(other)->buffer.get(),
-        startPosInOtherChunk, (uint64_t*)buffer.get(), startPosInChunk, numValuesToAppend);
+        startPosInOtherChunk, (uint64_t*)buffer.get(), numValues, numValuesToAppend);
     if (nullChunk) {
-        nullChunk->append(
-            other->getNullChunk(), startPosInOtherChunk, startPosInChunk, numValuesToAppend);
+        nullChunk->append(other->getNullChunk(), startPosInOtherChunk, numValuesToAppend);
     }
     numValues += numValuesToAppend;
 }
@@ -400,10 +400,11 @@ void BoolColumnChunk::write(
     }
 }
 
-void NullColumnChunk::append(ColumnChunk* other, offset_t startOffsetInOtherChunk,
-    offset_t startOffsetInChunk, uint32_t numValuesToAppend) {
+void NullColumnChunk::append(
+    ColumnChunk* other, offset_t startOffsetInOtherChunk, uint32_t numValuesToAppend) {
     copyFromBuffer((uint64_t*)static_cast<NullColumnChunk*>(other)->buffer.get(),
-        startOffsetInOtherChunk, startOffsetInChunk, numValuesToAppend);
+        startOffsetInOtherChunk, numValues, numValuesToAppend);
+    numValues += numValuesToAppend;
 }
 
 class FixedListColumnChunk : public ColumnChunk {
@@ -411,16 +412,15 @@ public:
     FixedListColumnChunk(LogicalType dataType, uint64_t capacity, bool enableCompression)
         : ColumnChunk(std::move(dataType), capacity, enableCompression, true /* hasNullChunk */) {}
 
-    void append(ColumnChunk* other, offset_t startPosInOtherChunk, offset_t startPosInChunk,
-        uint32_t numValuesToAppend) final {
+    void append(
+        ColumnChunk* other, offset_t startPosInOtherChunk, uint32_t numValuesToAppend) final {
         auto otherChunk = (FixedListColumnChunk*)other;
         if (nullChunk) {
-            nullChunk->append(otherChunk->nullChunk.get(), startPosInOtherChunk, startPosInChunk,
-                numValuesToAppend);
+            nullChunk->append(otherChunk->nullChunk.get(), startPosInOtherChunk, numValuesToAppend);
         }
         // TODO(Guodong): This can be optimized to not copy one by one.
         for (auto i = 0u; i < numValuesToAppend; i++) {
-            memcpy(buffer.get() + getOffsetInBuffer(startPosInChunk + i),
+            memcpy(buffer.get() + getOffsetInBuffer(numValues + i),
                 otherChunk->buffer.get() + getOffsetInBuffer(startPosInOtherChunk + i),
                 numBytesPerValue);
         }

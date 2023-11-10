@@ -22,10 +22,10 @@ void StringColumnChunk::resetToEmpty() {
     overflowCursor.resetValue();
 }
 
-void StringColumnChunk::append(ValueVector* vector, offset_t startPosInChunk) {
+void StringColumnChunk::append(ValueVector* vector) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
-    ColumnChunk::copyVectorToBuffer(vector, startPosInChunk);
-    auto stringsToSetOverflow = (ku_string_t*)(buffer.get() + startPosInChunk * numBytesPerValue);
+    ColumnChunk::copyVectorToBuffer(vector, numValues);
+    auto stringsToSetOverflow = (ku_string_t*)(buffer.get() + numValues * numBytesPerValue);
     for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
         auto& stringToSet = stringsToSetOverflow[i];
         if (!ku_string_t::isShortString(stringToSet.len)) {
@@ -36,16 +36,14 @@ void StringColumnChunk::append(ValueVector* vector, offset_t startPosInChunk) {
     numValues += vector->state->selVector->selectedSize;
 }
 
-void StringColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
-    offset_t startPosInChunk, uint32_t numValuesToAppend) {
+void StringColumnChunk::append(
+    ColumnChunk* other, offset_t startPosInOtherChunk, uint32_t numValuesToAppend) {
     auto otherChunk = reinterpret_cast<StringColumnChunk*>(other);
-    nullChunk->append(
-        otherChunk->getNullChunk(), startPosInOtherChunk, startPosInChunk, numValuesToAppend);
+    nullChunk->append(otherChunk->getNullChunk(), startPosInOtherChunk, numValuesToAppend);
     switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING: {
-        appendStringColumnChunk(
-            otherChunk, startPosInOtherChunk, startPosInChunk, numValuesToAppend);
+        appendStringColumnChunk(otherChunk, startPosInOtherChunk, numValuesToAppend);
     } break;
     default: {
         throw NotImplementedException("VarSizedColumnChunk::append");
@@ -93,12 +91,12 @@ page_idx_t StringColumnChunk::flushOverflowBuffer(BMFileHandle* dataFH, page_idx
     return overflowFile->getNumPages();
 }
 
-void StringColumnChunk::appendStringColumnChunk(StringColumnChunk* other,
-    offset_t startPosInOtherChunk, offset_t startPosInChunk, uint32_t numValuesToAppend) {
+void StringColumnChunk::appendStringColumnChunk(
+    StringColumnChunk* other, offset_t startPosInOtherChunk, uint32_t numValuesToAppend) {
     auto otherKuVals = reinterpret_cast<ku_string_t*>(other->buffer.get());
     auto kuVals = reinterpret_cast<ku_string_t*>(buffer.get());
     for (auto i = 0u; i < numValuesToAppend; i++) {
-        auto posInChunk = i + startPosInChunk;
+        auto posInChunk = i + numValues;
         auto posInOtherChunk = i + startPosInOtherChunk;
         kuVals[posInChunk] = otherKuVals[posInOtherChunk];
         if (other->nullChunk->isNull(posInOtherChunk) ||

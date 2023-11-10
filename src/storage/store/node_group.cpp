@@ -61,7 +61,7 @@ uint64_t NodeGroup::append(const std::vector<ValueVector*>& columnVectors,
             continue;
         }
         KU_ASSERT(chunk->getDataType() == columnVectors[i - serialSkip]->dataType);
-        chunk->append(columnVectors[i - serialSkip], numNodes);
+        chunk->append(columnVectors[i - serialSkip]);
     }
     columnState->selVector->selectedSize = originalSize;
     numNodes += numValuesToAppendInChunk;
@@ -73,8 +73,7 @@ offset_t NodeGroup::append(NodeGroup* other, offset_t offsetInOtherNodeGroup) {
     auto numNodesToAppend = std::min(
         other->numNodes - offsetInOtherNodeGroup, StorageConstants::NODE_GROUP_SIZE - numNodes);
     for (auto i = 0u; i < chunks.size(); i++) {
-        chunks[i]->append(
-            other->chunks[i].get(), offsetInOtherNodeGroup, numNodes, numNodesToAppend);
+        chunks[i]->append(other->chunks[i].get(), offsetInOtherNodeGroup, numNodesToAppend);
     }
     numNodes += numNodesToAppend;
     return numNodesToAppend;
