@@ -18,5 +18,5 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          name: libkuzu-java-win-x86_64
+          name: java-lib-win-x86_64
           path: tools/java_api/build/libkuzu_java_native*

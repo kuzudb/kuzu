@@ -18,7 +18,7 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          name: libkuzu-java-osx-arm64
+          name: java-lib-osx-arm64
           path: tools/java_api/build/libkuzu_java_native*
 
   build-mac-java-x86:
@@ -35,5 +35,5 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          name: libkuzu-java-osx-x86_64
+          name: java-lib-osx-x86_64
           path: tools/java_api/build/libkuzu_java_native*
