@@ -75,10 +75,11 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfRelFrom(function::TableFuncti
         copyFunc->bindFunc(clientContext, tableFuncBindInput.get(), catalog.getReadOnlyVersion());
     auto boundFileScanInfo = std::make_unique<BoundFileScanInfo>(
         copyFunc, std::move(bindData), columns, relID, TableType::REL);
-    auto extraInfo = std::make_unique<ExtraBoundCopyRdfRelInfo>(columns[0], columns[1], columns[2]);
-    columns.push_back(std::move(relID));
-    auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(tableSchema,
-        std::move(boundFileScanInfo), containsSerial, std::move(columns), std::move(extraInfo));
+    auto extraInfo = std::make_unique<ExtraBoundCopyRdfRelInfo>(columns[0], columns[2]);
+    expression_vector columnsToCopy = {columns[0], columns[2], relID, columns[1]};
+    auto boundCopyFromInfo =
+        std::make_unique<BoundCopyFromInfo>(tableSchema, std::move(boundFileScanInfo),
+            containsSerial, std::move(columnsToCopy), std::move(extraInfo));
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));
 }
 

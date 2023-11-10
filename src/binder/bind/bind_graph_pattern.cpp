@@ -266,8 +266,15 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
     if (readVersion->getTableSchema(tableIDs[0])->getTableType() == TableType::RDF) {
         auto predicateID =
             expressionBinder.bindNodeOrRelPropertyExpression(*queryRel, std::string(rdf::PID));
-        auto resourceTableIDs = getNodeTableIDs(tableIDs);
-        auto resourceTableSchemas = readVersion->getTableSchemas(resourceTableIDs);
+        std::vector<common::table_id_t> resourceTableIDs;
+        std::vector<TableSchema*> resourceTableSchemas;
+        for (auto& tableID : tableIDs) {
+            auto rdfGraphSchema =
+                reinterpret_cast<RdfGraphSchema*>(readVersion->getTableSchema(tableID));
+            auto resourceTableID = rdfGraphSchema->getResourceTableID();
+            resourceTableIDs.push_back(resourceTableID);
+            resourceTableSchemas.push_back(readVersion->getTableSchema(resourceTableID));
+        }
         auto predicateIRI = createPropertyExpression(std::string(rdf::IRI),
             queryRel->getUniqueName(), queryRel->getVariableName(), resourceTableSchemas);
         auto rdfInfo =

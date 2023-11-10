@@ -121,12 +121,12 @@ void QueryPlanner::appendNonRecursiveExtend(std::shared_ptr<NodeExpression> boun
         appendNodeLabelFilter(nbrNode->getInternalID(), nbrNode->getTableIDsSet(), plan);
     }
     if (iri) {
+        auto rdfInfo = rel->getRdfPredicateInfo();
+        appendFillTableID(rdfInfo->predicateID, rdfInfo->resourceTableIDs[0], plan);
         // Append hash join for remaining properties
         auto tmpPlan = std::make_unique<LogicalPlan>();
-        auto rdfInfo = rel->getRdfPredicateInfo();
         cardinalityEstimator->addNodeIDDom(*rdfInfo->predicateID, rdfInfo->resourceTableIDs);
         appendScanInternalID(rdfInfo->predicateID, rdfInfo->resourceTableIDs, *tmpPlan);
-        appendFillTableID(rdfInfo->predicateID, rel->getSingleTableID(), *tmpPlan);
         appendScanNodeProperties(
             rdfInfo->predicateID, rdfInfo->resourceTableIDs, expression_vector{iri}, *tmpPlan);
         appendHashJoin(expression_vector{rdfInfo->predicateID}, JoinType::INNER, plan, *tmpPlan);

@@ -18,6 +18,7 @@ struct CopyRelInfo {
     common::vector_idx_t partitioningIdx;
     common::RelDataDirection dataDirection;
     common::ColumnDataFormat dataFormat;
+    // TODO(Guodong): the following 3 fields are not being used.
     std::vector<DataPos> dataPoses;
     DataPos srcOffsetPos;
     DataPos relIDPos;
