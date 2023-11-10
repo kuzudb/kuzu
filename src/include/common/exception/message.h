@@ -5,6 +5,7 @@
 
 namespace kuzu {
 namespace common {
+
 struct ExceptionMessage {
     static std::string existedPKException(const std::string& pkString);
     static std::string nonExistPKException(const std::string& pkString);

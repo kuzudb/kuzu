@@ -1,11 +1,12 @@
 #pragma once
 
+#include "common/api.h"
 #include "exception.h"
 
 namespace kuzu {
 namespace common {
 
-class ParserException : public Exception {
+class KUZU_API ParserException : public Exception {
 public:
     explicit ParserException(const std::string& msg) : Exception("Parser exception: " + msg){};
 };
