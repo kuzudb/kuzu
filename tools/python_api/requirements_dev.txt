@@ -3,5 +3,5 @@ pytest
 pandas
 networkx~=3.0.0
 numpy
-pyarrow~=13.0.0
+pyarrow~=14.0.1
 torch-geometric~=2.3.0
