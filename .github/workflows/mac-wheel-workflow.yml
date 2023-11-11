@@ -19,6 +19,7 @@ jobs:
         run: |
           echo "isNightly: ${{ inputs.isNightly }}"
           echo "isNightly == 'true': ${{ inputs.isNightly == 'true' }}"
+          echo "isNightly == true: ${{ inputs.isNightly == true }}"
 
       - name: Update nightly version
         if: ${{ inputs.isNightly == 'true' }}
