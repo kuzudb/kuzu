@@ -15,8 +15,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Check param
+        run: |
+          echo "isNightly: ${{ inputs.isNightly }}"
+          echo "isNightly == 'true': ${{ inputs.isNightly == 'true' }}"
+
       - name: Update nightly version
-        if: ${{ github.event.inputs.isNightly == 'true' || inputs.isNightly == 'true' }}
+        if: ${{ inputs.isNightly == 'true' }}
         run: python3 update-nightly-build-version.py
         working-directory: scripts
 
@@ -49,7 +54,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Update nightly version
-        if: ${{ github.event.inputs.isNightly == 'true' || inputs.isNightly == 'true' }}
+        if: ${{ inputs.isNightly == 'true' }}
         run: python3 update-nightly-build-version.py
         working-directory: scripts
 
