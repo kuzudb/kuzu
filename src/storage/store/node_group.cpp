@@ -10,12 +10,11 @@ namespace kuzu {
 namespace storage {
 
 NodeGroup::NodeGroup(const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes,
-    bool enableCompression, bool needFinalize, uint64_t capacity)
+    bool enableCompression, uint64_t capacity)
     : nodeGroupIdx{UINT64_MAX}, numNodes{0} {
     chunks.reserve(columnTypes.size());
     for (auto& type : columnTypes) {
-        chunks.push_back(ColumnChunkFactory::createColumnChunk(
-            *type, enableCompression, needFinalize, capacity));
+        chunks.push_back(ColumnChunkFactory::createColumnChunk(*type, enableCompression, capacity));
     }
 }
 
@@ -97,19 +96,16 @@ void NodeGroup::write(DataChunk* dataChunk, vector_idx_t offsetVectorIdx) {
 void NodeGroup::finalize(uint64_t nodeGroupIdx_) {
     nodeGroupIdx = nodeGroupIdx_;
     for (auto i = 0u; i < chunks.size(); i++) {
-        auto finalizedChunk = chunks[i]->finalize();
-        if (finalizedChunk) {
-            chunks[i] = std::move(finalizedChunk);
-        }
+        chunks[i]->finalize();
     }
 }
 
 std::unique_ptr<NodeGroup> NodeGroupFactory::createNodeGroup(common::ColumnDataFormat dataFormat,
     const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes, bool enableCompression,
-    bool needFinalize, uint64_t capacity) {
+    uint64_t capacity) {
     return dataFormat == ColumnDataFormat::REGULAR ?
-               std::make_unique<NodeGroup>(columnTypes, enableCompression, needFinalize, capacity) :
-               std::make_unique<CSRNodeGroup>(columnTypes, enableCompression, needFinalize);
+               std::make_unique<NodeGroup>(columnTypes, enableCompression, capacity) :
+               std::make_unique<CSRNodeGroup>(columnTypes, enableCompression);
 }
 
 } // namespace storage

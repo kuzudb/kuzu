@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/exception/not_implemented.h"
 #include "storage/store/column_chunk.h"
 
 namespace kuzu {
@@ -26,6 +25,7 @@ struct VarListDataColumnChunk {
 };
 
 class VarListColumnChunk : public ColumnChunk {
+
 public:
     VarListColumnChunk(common::LogicalType dataType, uint64_t capacity, bool enableCompression);
 
@@ -36,16 +36,8 @@ public:
     void resetToEmpty() final;
 
     void append(common::ValueVector* vector) final;
-    inline void write(common::ValueVector* /*valueVector*/,
-        common::ValueVector* /*offsetInChunkVector*/) override {
-        // LCOV_EXCL_START
-        throw common::NotImplementedException("VarListColumnChunk::write");
-        // LCOV_EXCL_STOP
-    }
+    void write(common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector) final;
 
-    inline VarListDataColumnChunk* getVarListDataColumnChunk() {
-        return varListDataColumnChunk.get();
-    }
     inline void resizeDataColumnChunk(uint64_t numBytesForBuffer) {
         // TODO(bmwinger): This won't work properly for booleans (will be one eighth as many values
         // as could fit)
@@ -56,6 +48,8 @@ public:
         varListDataColumnChunk->resizeBuffer(numValues);
     }
 
+    void finalize() final;
+
 protected:
     void copyListValues(const common::list_entry_t& entry, common::ValueVector* dataVector);
 
@@ -63,6 +57,11 @@ private:
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) final;
 
+    inline void initializeIndices() {
+        indicesColumnChunk = ColumnChunkFactory::createColumnChunk(
+            common::LogicalType{common::LogicalTypeID::INT64}, false /* enableCompression */);
+        indicesColumnChunk->getNullChunk()->resetToAllNull();
+    }
     inline uint64_t getListLen(common::offset_t offset) const {
         return getListOffset(offset + 1) - getListOffset(offset);
     }
@@ -70,25 +69,19 @@ private:
         return offset == 0 ? 0 : getValue<uint64_t>(offset - 1);
     }
 
+    void moveFromOtherChunk(VarListColumnChunk* other);
+    void appendEmptyList(bool isNull);
+
 protected:
     bool enableCompression;
     std::unique_ptr<VarListDataColumnChunk> varListDataColumnChunk;
-};
-
-class AuxVarListColumnChunk : public VarListColumnChunk {
-public:
-    AuxVarListColumnChunk(common::LogicalType dataType, uint64_t capacity, bool enableCompression)
-        : VarListColumnChunk{dataType, capacity * 2 /* for sizeof(list_entry_t) */,
-              enableCompression},
-          lastDataOffset{0} {}
-
-    void resize(uint64_t newCapacity) final;
-    void write(common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector) final;
-
-    std::unique_ptr<ColumnChunk> finalize() final;
-
-private:
-    uint64_t lastDataOffset;
+    // The following is needed to write var list to random positions in the column chunk.
+    // We first append var list to the end of the column chunk. Then use indicesColumnChunk to track
+    // where each var list data is inside the column chunk.
+    // `needFinalize` is set to true whenever `write` is called.
+    // During `finalize`, the whole column chunk will be re-written according to indices.
+    bool needFinalize;
+    std::unique_ptr<ColumnChunk> indicesColumnChunk;
 };
 
 } // namespace storage
