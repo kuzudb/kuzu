@@ -111,8 +111,6 @@ std::unique_ptr<BoundCreateTableInfo> Binder::bindCreateRelTableInfo(const Creat
     auto boundProperties = bindProperties(info->propertyNameDataTypes);
     for (auto& boundProperty : boundProperties) {
         if (boundProperty->getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL ||
-            boundProperty->getDataType()->getLogicalTypeID() == LogicalTypeID::UNION ||
-            boundProperty->getDataType()->getLogicalTypeID() == LogicalTypeID::STRUCT ||
             boundProperty->getDataType()->getLogicalTypeID() == LogicalTypeID::MAP) {
             throw BinderException(stringFormat("{} property is not supported in rel table.",
                 boundProperty->getDataType()->toString()));

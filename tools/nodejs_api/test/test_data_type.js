@@ -403,6 +403,8 @@ describe("RECURSIVE_REL", function () {
           usedAddress: null,
           address: null,
           note: null,
+          notes: null,
+          summary: null,
           _label: "studyAt",
           _src: {
             offset: 0,

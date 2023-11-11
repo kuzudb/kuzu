@@ -176,8 +176,10 @@ public:
         "COPY person FROM \"" +
         TestHelper::appendKuzuRootPath("dataset/tinysnb/vPerson.csv\" (HEADER=true)");
     std::string createKnowsTableCMD =
-        "CREATE REL TABLE knows (FROM person TO person, date DATE, meetTime TIMESTAMP, "
-        "validInterval INTERVAL, comments STRING[], MANY_MANY)";
+        "create rel table knows (FROM person TO person, date DATE, meetTime TIMESTAMP, "
+        "validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer "
+        "STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment "
+        "STRING), MANY_MANY);";
     std::string copyKnowsTableCMD =
         "COPY knows FROM \"" + TestHelper::appendKuzuRootPath("dataset/tinysnb/eKnows.csv\"");
     std::unique_ptr<Profiler> profiler;
