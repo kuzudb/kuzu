@@ -13,6 +13,7 @@ public:
         KU_ASSERT(childIdx < childChunks.size());
         return childChunks[childIdx].get();
     }
+    void finalize();
 
 protected:
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,

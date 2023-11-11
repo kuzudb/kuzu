@@ -12,7 +12,7 @@ class Column;
 class NodeGroup {
 public:
     NodeGroup(const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes,
-        bool enableCompression, bool needFinalize, uint64_t capacity);
+        bool enableCompression, uint64_t capacity);
     explicit NodeGroup(const std::vector<std::unique_ptr<Column>>& columns, bool enableCompression);
     virtual ~NodeGroup() = default;
 
@@ -44,10 +44,10 @@ private:
 class CSRNodeGroup : public NodeGroup {
 public:
     CSRNodeGroup(const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes,
-        bool enableCompression, bool needFinalize)
+        bool enableCompression)
         // By default, initialize all column chunks except for the csrOffsetChunk to empty, as they
         // should be resized after csr offset calculation (e.g., during CopyRel).
-        : NodeGroup{columnTypes, enableCompression, needFinalize, 0 /* capacity */} {
+        : NodeGroup{columnTypes, enableCompression, 0 /* capacity */} {
         csrOffsetChunk = ColumnChunkFactory::createColumnChunk(
             common::LogicalType{common::LogicalTypeID::INT64}, enableCompression);
     }
@@ -61,8 +61,7 @@ private:
 struct NodeGroupFactory {
     static std::unique_ptr<NodeGroup> createNodeGroup(common::ColumnDataFormat dataFormat,
         const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes,
-        bool enableCompression, bool needFinalize = false,
-        uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE);
+        bool enableCompression, uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE);
 };
 
 } // namespace storage

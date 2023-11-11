@@ -459,7 +459,7 @@ public:
 };
 
 std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
-    const LogicalType& dataType, bool enableCompression, bool needFinalize, uint64_t capacity) {
+    const LogicalType& dataType, bool enableCompression, uint64_t capacity) {
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
         return std::make_unique<BoolColumnChunk>(capacity);
@@ -477,8 +477,8 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     case PhysicalTypeID::FLOAT:
     case PhysicalTypeID::INTERVAL: {
         if (dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
-            return std::make_unique<ColumnChunk>(LogicalType(LogicalTypeID::SERIAL), capacity,
-                false /*enableCompression*/, false /* hasNullChunk */);
+            return std::make_unique<ColumnChunk>(
+                dataType, capacity, false /*enableCompression*/, false /* hasNullChunk */);
         } else {
             return std::make_unique<ColumnChunk>(dataType, capacity, enableCompression);
         }
@@ -495,11 +495,7 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
         return std::make_unique<StringColumnChunk>(dataType, capacity);
     }
     case PhysicalTypeID::VAR_LIST: {
-        if (needFinalize) {
-            return std::make_unique<AuxVarListColumnChunk>(dataType, capacity, enableCompression);
-        } else {
-            return std::make_unique<VarListColumnChunk>(dataType, capacity, enableCompression);
-        }
+        return std::make_unique<VarListColumnChunk>(dataType, capacity, enableCompression);
     }
     case PhysicalTypeID::STRUCT: {
         return std::make_unique<StructColumnChunk>(dataType, capacity, enableCompression);

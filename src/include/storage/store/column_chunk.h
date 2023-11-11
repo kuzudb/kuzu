@@ -99,8 +99,7 @@ public:
     }
 
     void populateWithDefaultVal(common::ValueVector* defaultValueVector);
-    virtual std::unique_ptr<ColumnChunk> finalize() {
-        return nullptr; // Nothing to be finalized.
+    virtual void finalize() { // DO NOTHING.
     }
 
     inline uint64_t getCapacity() const { return capacity; }
@@ -211,8 +210,7 @@ protected:
 
 struct ColumnChunkFactory {
     static std::unique_ptr<ColumnChunk> createColumnChunk(const common::LogicalType& dataType,
-        bool enableCompression, bool needFinalize = false,
-        uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE);
+        bool enableCompression, uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE);
 };
 
 } // namespace storage

@@ -12,7 +12,13 @@ StructColumnChunk::StructColumnChunk(
     childChunks.resize(fieldTypes.size());
     for (auto i = 0u; i < fieldTypes.size(); i++) {
         childChunks[i] =
-            ColumnChunkFactory::createColumnChunk(*fieldTypes[i], capacity, enableCompression);
+            ColumnChunkFactory::createColumnChunk(*fieldTypes[i], enableCompression, capacity);
+    }
+}
+
+void StructColumnChunk::finalize() {
+    for (auto& childChunk : childChunks) {
+        childChunk->finalize();
     }
 }
 

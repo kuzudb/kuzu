@@ -31,8 +31,8 @@ void CopyRelSharedState::logCopyRelWALRecord(WAL* wal) {
 
 void CopyRel::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* /*context*/) {
     localState = std::make_unique<CopyRelLocalState>();
-    localState->nodeGroup = NodeGroupFactory::createNodeGroup(info->dataFormat,
-        sharedState->columnTypes, info->compressionEnabled, true /* needFinalize */);
+    localState->nodeGroup = NodeGroupFactory::createNodeGroup(
+        info->dataFormat, sharedState->columnTypes, info->compressionEnabled);
 }
 
 void CopyRel::initGlobalStateInternal(ExecutionContext* /*context*/) {
