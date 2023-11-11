@@ -32,22 +32,21 @@ VarListColumnChunk::VarListColumnChunk(
     KU_ASSERT(this->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
 }
 
-void VarListColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
-    offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    nullChunk->append(
-        other->getNullChunk(), startPosInOtherChunk, startPosInChunk, numValuesToAppend);
+void VarListColumnChunk::append(
+    ColumnChunk* other, offset_t startPosInOtherChunk, uint32_t numValuesToAppend) {
+    nullChunk->append(other->getNullChunk(), startPosInOtherChunk, numValuesToAppend);
     auto otherListChunk = reinterpret_cast<VarListColumnChunk*>(other);
     auto offsetInDataChunkToAppend = varListDataColumnChunk->getNumValues();
     for (auto i = 0u; i < numValuesToAppend; i++) {
         offsetInDataChunkToAppend += otherListChunk->getListLen(startPosInOtherChunk + i);
-        setValue(offsetInDataChunkToAppend, startPosInChunk + i);
+        setValue(offsetInDataChunkToAppend, numValues + i);
     }
     auto startOffset = otherListChunk->getListOffset(startPosInOtherChunk);
     auto endOffset = otherListChunk->getListOffset(startPosInOtherChunk + numValuesToAppend);
     varListDataColumnChunk->resizeBuffer(offsetInDataChunkToAppend);
     varListDataColumnChunk->dataColumnChunk->append(
         otherListChunk->varListDataColumnChunk->dataColumnChunk.get(), startOffset,
-        varListDataColumnChunk->getNumValues(), endOffset - startOffset);
+        endOffset - startOffset);
     numValues += numValuesToAppend;
 }
 
@@ -56,20 +55,19 @@ void VarListColumnChunk::resetToEmpty() {
     varListDataColumnChunk.reset();
 }
 
-void VarListColumnChunk::append(ValueVector* vector, offset_t startPosInChunk) {
-    auto nextListOffsetInChunk = getListOffset(startPosInChunk);
+void VarListColumnChunk::append(ValueVector* vector) {
+    auto nextListOffsetInChunk = getListOffset(numValues);
     auto offsetBufferToWrite = (offset_t*)(buffer.get());
     for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
         auto pos = vector->state->selVector->selectedPositions[i];
         uint64_t listLen = vector->isNull(pos) ? 0 : vector->getValue<list_entry_t>(pos).size;
-        nullChunk->setNull(startPosInChunk + i, vector->isNull(pos));
+        nullChunk->setNull(numValues + i, vector->isNull(pos));
         nextListOffsetInChunk += listLen;
-        offsetBufferToWrite[startPosInChunk + i] = nextListOffsetInChunk;
+        offsetBufferToWrite[numValues + i] = nextListOffsetInChunk;
     }
     varListDataColumnChunk->resizeBuffer(nextListOffsetInChunk);
     auto dataVector = ListVector::getDataVector(vector);
     dataVector->setState(std::make_unique<DataChunkState>());
-    // TODO(Guodong/Ziyi): Is sel_t enough for list?
     dataVector->state->selVector->resetSelectorToValuePosBuffer();
     for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
         auto pos = vector->state->selVector->selectedPositions[i];
@@ -142,7 +140,7 @@ std::unique_ptr<ColumnChunk> AuxVarListColumnChunk::finalize() {
         dataType, enableCompression, false /* needFinalize */, capacity / 2);
     KU_ASSERT(result->getDataType().getPhysicalType() == PhysicalTypeID::VAR_LIST);
     auto resultVarListChunk = reinterpret_cast<VarListColumnChunk*>(result.get());
-    resultVarListChunk->getNullChunk()->append(nullChunk.get(), 0, 0, numValues);
+    resultVarListChunk->getNullChunk()->append(nullChunk.get(), 0, numValues);
     auto resultOffsets = reinterpret_cast<offset_t*>(resultVarListChunk->getData());
     resultVarListChunk->getVarListDataColumnChunk()->resizeBuffer(lastDataOffset);
     auto listEntries = (list_entry_t*)buffer.get();
@@ -151,7 +149,7 @@ std::unique_ptr<ColumnChunk> AuxVarListColumnChunk::finalize() {
         if (listEntries[i].size > 0) {
             resultVarListChunk->getDataColumnChunk()->append(
                 varListDataColumnChunk->dataColumnChunk.get(), listEntries[i].offset,
-                offsetInResultDataChunk, listEntries[i].size);
+                listEntries[i].size);
         }
         offsetInResultDataChunk += listEntries[i].size;
         resultOffsets[i] = offsetInResultDataChunk;

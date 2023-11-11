@@ -16,8 +16,8 @@ public:
 
 protected:
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
-        common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
-    void append(common::ValueVector* vector, common::offset_t startPosInChunk) final;
+        uint32_t numValuesToAppend) final;
+    void append(common::ValueVector* vector) final;
 
     void write(common::ValueVector* vector, common::offset_t startOffsetInChunk) final;
     void write(common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector) final;

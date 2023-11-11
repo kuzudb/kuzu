@@ -268,17 +268,17 @@ void VarListLocalColumn::prepareCommitForChunk(node_group_idx_t nodeGroupIdx) {
             if (offsetInChunk > nextOffsetToWrite) {
                 // Fill non-updated data from listColumnChunkInStorage.
                 columnChunkToUpdate->append(listColumnChunkInStorage.get(), nextOffsetToWrite,
-                    nextOffsetToWrite, offsetInChunk - nextOffsetToWrite);
+                    offsetInChunk - nextOffsetToWrite);
             }
             listVector->state->selVector->selectedPositions[0] = i;
-            columnChunkToUpdate->append(listVector, offsetInChunk);
+            columnChunkToUpdate->append(listVector);
             nextOffsetToWrite = offsetInChunk + 1;
         }
     }
 
     if (nextOffsetToWrite < numNodesInGroup) {
-        columnChunkToUpdate->append(listColumnChunkInStorage.get(), nextOffsetToWrite,
-            nextOffsetToWrite, numNodesInGroup - nextOffsetToWrite);
+        columnChunkToUpdate->append(
+            listColumnChunkInStorage.get(), nextOffsetToWrite, numNodesInGroup - nextOffsetToWrite);
     }
 
     column->append(columnChunkToUpdate.get(), nodeGroupIdx);

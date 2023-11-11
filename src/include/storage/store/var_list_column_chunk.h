@@ -19,7 +19,7 @@ struct VarListDataColumnChunk {
     void resizeBuffer(uint64_t numValues);
 
     inline void append(common::ValueVector* dataVector) const {
-        dataColumnChunk->append(dataVector, dataColumnChunk->getNumValues());
+        dataColumnChunk->append(dataVector);
     }
 
     inline uint64_t getNumValues() const { return dataColumnChunk->getNumValues(); }
@@ -35,7 +35,7 @@ public:
 
     void resetToEmpty() final;
 
-    void append(common::ValueVector* vector, common::offset_t startPosInChunk) final;
+    void append(common::ValueVector* vector) final;
     inline void write(common::ValueVector* /*valueVector*/,
         common::ValueVector* /*offsetInChunkVector*/) override {
         // LCOV_EXCL_START
@@ -61,7 +61,7 @@ protected:
 
 private:
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
-        common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
+        uint32_t numValuesToAppend) final;
 
     inline uint64_t getListLen(common::offset_t offset) const {
         return getListOffset(offset + 1) - getListOffset(offset);

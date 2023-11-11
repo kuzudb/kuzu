@@ -71,9 +71,9 @@ public:
     // Note that the startPageIdx is not known, so it will always be common::INVALID_PAGE_IDX
     virtual ColumnChunkMetadata getMetadataToFlush() const;
 
-    virtual void append(common::ValueVector* vector, common::offset_t startPosInChunk);
-    virtual void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
-        common::offset_t startPosInChunk, uint32_t numValuesToAppend);
+    virtual void append(common::ValueVector* vector);
+    virtual void append(
+        ColumnChunk* other, common::offset_t startPosInOtherChunk, uint32_t numValuesToAppend);
 
     ColumnChunkMetadata flushBuffer(
         BMFileHandle* dataFH, common::page_idx_t startPageIdx, const ColumnChunkMetadata& metadata);
@@ -156,9 +156,9 @@ public:
               // Booleans are always compressed
               false /* enableCompression */, hasNullChunk) {}
 
-    void append(common::ValueVector* vector, common::offset_t startPosInChunk) final;
+    void append(common::ValueVector* vector) final;
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
-        common::offset_t startPosInChunk, uint32_t numValuesToAppend) override;
+        uint32_t numValuesToAppend) override;
     void write(common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector) final;
 };
 
@@ -173,10 +173,18 @@ public:
         if (isNull) {
             mayHaveNullValue = true;
         }
+        // TODO(Guodong): Better let NullColumnChunk also support `append` a vector.
+        if (pos >= numValues) {
+            numValues = pos + 1;
+        }
     }
 
     inline bool mayHaveNull() const { return mayHaveNullValue; }
 
+    inline void resetToEmpty() final {
+        resetToNoNull();
+        numValues = 0;
+    }
     inline void resetToNoNull() {
         memset(buffer.get(), 0 /* non null */, bufferSize);
         mayHaveNullValue = false;
@@ -195,7 +203,7 @@ public:
     }
 
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
-        common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
+        uint32_t numValuesToAppend) final;
 
 protected:
     bool mayHaveNullValue;
