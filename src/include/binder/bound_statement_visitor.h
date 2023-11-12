@@ -1,6 +1,6 @@
 #pragma once
 
-#include "binder/query/bound_regular_query.h"
+#include "binder/query/normalized_single_query.h"
 #include "bound_statement.h"
 
 namespace kuzu {
@@ -13,9 +13,7 @@ public:
 
     void visit(const BoundStatement& statement);
 
-    virtual void visitRegularQuery(const BoundRegularQuery& regularQuery);
     virtual void visitSingleQuery(const NormalizedSingleQuery& singleQuery);
-    virtual void visitQueryPart(const NormalizedQueryPart& queryPart);
 
 protected:
     virtual void visitCreateTable(const BoundStatement& statement) {}
@@ -29,6 +27,8 @@ protected:
     virtual void visitCreateMacro(const BoundStatement& statement) {}
     virtual void visitTransaction(const BoundStatement& statement) {}
 
+    virtual void visitRegularQuery(const BoundStatement& statement);
+    virtual void visitQueryPart(const NormalizedQueryPart& queryPart);
     void visitReadingClause(const BoundReadingClause& readingClause);
     virtual void visitMatch(const BoundReadingClause& readingClause) {}
     virtual void visitUnwind(const BoundReadingClause& readingClause) {}
