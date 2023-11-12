@@ -2,7 +2,6 @@
 
 #include "catalog/rel_table_schema.h"
 #include "common/enums/rel_direction.h"
-#include "processor/data_pos.h"
 #include "processor/operator/partitioner.h"
 #include "processor/operator/sink.h"
 #include "storage/stats/rels_store_statistics.h"
@@ -18,25 +17,18 @@ struct CopyRelInfo {
     common::vector_idx_t partitioningIdx;
     common::RelDataDirection dataDirection;
     common::ColumnDataFormat dataFormat;
-    // TODO(Guodong): the following 3 fields are not being used.
-    std::vector<DataPos> dataPoses;
-    DataPos srcOffsetPos;
-    DataPos relIDPos;
+
     storage::WAL* wal;
     bool compressionEnabled;
 
     CopyRelInfo(catalog::RelTableSchema* schema, common::vector_idx_t partitioningIdx,
         common::RelDataDirection dataDirection, common::ColumnDataFormat dataFormat,
-        std::vector<DataPos> dataPose, const DataPos& srcOffsetPos, const DataPos& relIDPos,
         storage::WAL* wal, bool compressionEnabled)
         : schema{schema}, partitioningIdx{partitioningIdx}, dataDirection{dataDirection},
-          dataFormat{dataFormat}, dataPoses{std::move(dataPose)}, srcOffsetPos{srcOffsetPos},
-          relIDPos{relIDPos}, wal{wal}, compressionEnabled{compressionEnabled} {}
+          dataFormat{dataFormat}, wal{wal}, compressionEnabled{compressionEnabled} {}
     CopyRelInfo(const CopyRelInfo& other)
         : schema{other.schema}, partitioningIdx{other.partitioningIdx},
-          dataDirection{other.dataDirection},
-          dataFormat{other.dataFormat}, dataPoses{other.dataPoses},
-          srcOffsetPos{other.srcOffsetPos}, relIDPos{other.relIDPos}, wal{other.wal} {}
+          dataDirection{other.dataDirection}, dataFormat{other.dataFormat}, wal{other.wal} {}
 
     inline std::unique_ptr<CopyRelInfo> copy() { return std::make_unique<CopyRelInfo>(*this); }
 };

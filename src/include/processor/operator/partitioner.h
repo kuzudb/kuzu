@@ -44,15 +44,17 @@ struct PartitionerLocalState {
 
 struct PartitioningInfo {
     DataPos keyDataPos;
-    std::vector<DataPos> columnDataPos;
+    std::vector<DataPos> columnDataPositions;
+    common::logical_types_t columnTypes;
     partitioner_func_t partitionerFunc;
 
-    PartitioningInfo(
-        DataPos keyDataPos, std::vector<DataPos> columnDataPos, partitioner_func_t partitionerFunc)
-        : keyDataPos{keyDataPos}, columnDataPos{std::move(columnDataPos)}, partitionerFunc{
-                                                                               partitionerFunc} {}
+    PartitioningInfo(DataPos keyDataPos, std::vector<DataPos> columnDataPositions,
+        common::logical_types_t columnTypes, partitioner_func_t partitionerFunc)
+        : keyDataPos{keyDataPos}, columnDataPositions{std::move(columnDataPositions)},
+          columnTypes{std::move(columnTypes)}, partitionerFunc{partitionerFunc} {}
     inline std::unique_ptr<PartitioningInfo> copy() {
-        return std::make_unique<PartitioningInfo>(keyDataPos, columnDataPos, partitionerFunc);
+        return std::make_unique<PartitioningInfo>(keyDataPos, columnDataPositions,
+            common::LogicalType::copy(columnTypes), partitionerFunc);
     }
 
     static std::vector<std::unique_ptr<PartitioningInfo>> copy(
@@ -77,9 +79,6 @@ public:
 private:
     void initializePartitioningStates(
         std::vector<std::unique_ptr<PartitioningBuffer>>& partitioningBuffers);
-
-    static void constructDataChunk(common::DataChunk* dataChunk,
-        const std::vector<DataPos>& dataPoses, processor::ResultSet* resultSet);
 
     // TODO: For now, CopyRel will guarantee all data are inside one data chunk. Should be
     //  generalized to resultSet later if needed.

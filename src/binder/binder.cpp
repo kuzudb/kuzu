@@ -3,6 +3,7 @@
 #include "binder/bound_statement_rewriter.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
+#include "function/table_functions.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -218,7 +219,6 @@ function::TableFunction* Binder::getScanFunction(common::FileType fileType, bool
         func =
             catalog.getBuiltInFunctions()->matchScalarFunction(READ_PARQUET_FUNC_NAME, inputTypes);
     } break;
-
     case common::FileType::NPY: {
         func = catalog.getBuiltInFunctions()->matchScalarFunction(
             READ_NPY_FUNC_NAME, std::move(inputTypes));

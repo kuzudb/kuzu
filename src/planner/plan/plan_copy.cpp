@@ -13,6 +13,7 @@ using namespace kuzu::binder;
 using namespace kuzu::storage;
 using namespace kuzu::catalog;
 using namespace kuzu::common;
+using namespace kuzu::function;
 
 namespace kuzu {
 namespace planner {
@@ -27,36 +28,40 @@ static void appendIndexScan(
 
 static void appendPartitioner(BoundCopyFromInfo* copyFromInfo, LogicalPlan& plan) {
     std::vector<std::unique_ptr<LogicalPartitionerInfo>> infos;
-    auto readerConfig = reinterpret_cast<function::ScanBindData*>(
-        copyFromInfo->fileScanInfo->copyFuncBindData.get())
-                            ->config;
+    auto readerConfig =
+        reinterpret_cast<function::ScanBindData*>(copyFromInfo->fileScanInfo->bindData.get())
+            ->config;
     auto fileType = readerConfig.fileType;
+    auto payloads = copyFromInfo->fileScanInfo->columns;
+    payloads.push_back(copyFromInfo->fileScanInfo->offset);
     // TODO(Xiyang): Merge TURTLE case with other data types.
     switch (fileType) {
     case FileType::TURTLE: {
         auto extraInfo = reinterpret_cast<ExtraBoundCopyRdfRelInfo*>(copyFromInfo->extraInfo.get());
         infos.push_back(std::make_unique<LogicalPartitionerInfo>(
-            extraInfo->subjectOffset, copyFromInfo->columns, ColumnDataFormat::CSR));
+            extraInfo->subjectOffset, payloads, ColumnDataFormat::CSR, copyFromInfo->tableSchema));
         infos.push_back(std::make_unique<LogicalPartitionerInfo>(
-            extraInfo->objectOffset, copyFromInfo->columns, ColumnDataFormat::CSR));
+            extraInfo->objectOffset, payloads, ColumnDataFormat::CSR, copyFromInfo->tableSchema));
     } break;
     case FileType::CSV:
     case FileType::NPY:
     case FileType::PARQUET: {
         auto extraInfo = reinterpret_cast<ExtraBoundCopyRelInfo*>(copyFromInfo->extraInfo.get());
         auto tableSchema = reinterpret_cast<RelTableSchema*>(copyFromInfo->tableSchema);
+        payloads.push_back(extraInfo->srcOffset);
+        payloads.push_back(extraInfo->dstOffset);
         // Partitioner for FWD direction rel data.
-        infos.push_back(
-            std::make_unique<LogicalPartitionerInfo>(extraInfo->srcOffset, copyFromInfo->columns,
-                tableSchema->isSingleMultiplicityInDirection(RelDataDirection::FWD) ?
-                    ColumnDataFormat::REGULAR :
-                    ColumnDataFormat::CSR));
+        infos.push_back(std::make_unique<LogicalPartitionerInfo>(extraInfo->srcOffset, payloads,
+            tableSchema->isSingleMultiplicityInDirection(RelDataDirection::FWD) ?
+                ColumnDataFormat::REGULAR :
+                ColumnDataFormat::CSR,
+            tableSchema));
         // Partitioner for BWD direction rel data.
-        infos.push_back(
-            std::make_unique<LogicalPartitionerInfo>(extraInfo->dstOffset, copyFromInfo->columns,
-                tableSchema->isSingleMultiplicityInDirection(RelDataDirection::BWD) ?
-                    ColumnDataFormat::REGULAR :
-                    ColumnDataFormat::CSR));
+        infos.push_back(std::make_unique<LogicalPartitionerInfo>(extraInfo->dstOffset, payloads,
+            tableSchema->isSingleMultiplicityInDirection(RelDataDirection::BWD) ?
+                ColumnDataFormat::REGULAR :
+                ColumnDataFormat::CSR,
+            tableSchema));
     } break;
     default: {
         KU_UNREACHABLE;
@@ -71,9 +76,8 @@ static void appendPartitioner(BoundCopyFromInfo* copyFromInfo, LogicalPlan& plan
 std::unique_ptr<LogicalPlan> Planner::planCopyFrom(const BoundStatement& statement) {
     auto& copyFrom = dynamic_cast<const BoundCopyFrom&>(statement);
     auto copyFromInfo = copyFrom.getInfo();
-    auto readerConfig = reinterpret_cast<function::ScanBindData*>(
-        copyFromInfo->fileScanInfo->copyFuncBindData.get())
-                            ->config;
+    auto scanInfo = copyFromInfo->fileScanInfo.get();
+    auto readerConfig = reinterpret_cast<ScanBindData*>(scanInfo->bindData.get())->config;
     auto fileType = readerConfig.fileType;
     auto plan = std::make_unique<LogicalPlan>();
     QueryPlanner::appendScanFile(copyFromInfo->fileScanInfo.get(), *plan);

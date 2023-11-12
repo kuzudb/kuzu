@@ -12,6 +12,8 @@ public:
         : Expression{common::ExpressionType::VARIABLE, std::move(dataType), std::move(uniqueName)},
           variableName{std::move(variableName)} {}
 
+    inline std::string getVariableName() const { return variableName; }
+
     inline std::string toStringInternal() const final { return variableName; }
 
     inline std::unique_ptr<Expression> copy() const final {

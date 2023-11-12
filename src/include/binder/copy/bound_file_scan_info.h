@@ -1,7 +1,6 @@
 #pragma once
 
 #include "binder/expression/expression.h"
-#include "common/enums/table_type.h"
 #include "function/table_functions.h"
 #include "function/table_functions/bind_data.h"
 
@@ -10,22 +9,18 @@ namespace binder {
 
 struct BoundFileScanInfo {
     function::TableFunction* copyFunc;
-    std::unique_ptr<function::TableFuncBindData> copyFuncBindData;
+    std::unique_ptr<function::TableFuncBindData> bindData;
     binder::expression_vector columns;
-    std::shared_ptr<Expression> internalID;
-
-    // TODO: remove the following field
-    common::TableType tableType;
+    std::shared_ptr<Expression> offset;
 
     BoundFileScanInfo(function::TableFunction* copyFunc,
-        std::unique_ptr<function::TableFuncBindData> copyFuncBindData,
-        binder::expression_vector columns, std::shared_ptr<Expression> internalID,
-        common::TableType tableType)
-        : copyFunc{copyFunc}, copyFuncBindData{std::move(copyFuncBindData)},
-          columns{std::move(columns)}, internalID{std::move(internalID)}, tableType{tableType} {}
+        std::unique_ptr<function::TableFuncBindData> bindData, binder::expression_vector columns,
+        std::shared_ptr<Expression> offset)
+        : copyFunc{copyFunc}, bindData{std::move(bindData)}, columns{std::move(columns)},
+          offset{std::move(offset)} {}
     BoundFileScanInfo(const BoundFileScanInfo& other)
-        : copyFunc{other.copyFunc}, copyFuncBindData{other.copyFuncBindData->copy()},
-          columns{other.columns}, internalID{other.internalID}, tableType{other.tableType} {}
+        : copyFunc{other.copyFunc}, bindData{other.bindData->copy()}, columns{other.columns},
+          offset{other.offset} {}
 
     inline std::unique_ptr<BoundFileScanInfo> copy() const {
         return std::make_unique<BoundFileScanInfo>(*this);

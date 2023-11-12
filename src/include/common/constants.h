@@ -37,6 +37,10 @@ struct InternalKeyword {
     static constexpr char PLACE_HOLDER[] = "_PLACE_HOLDER";
     static constexpr char MAP_KEY[] = "KEY";
     static constexpr char MAP_VALUE[] = "VALUE";
+
+    static constexpr char ROW_OFFSET[] = "_row_offset";
+    static constexpr char SRC_OFFSET[] = "_src_offset";
+    static constexpr char DST_OFFSET[] = "_dst_offset";
 };
 
 enum PageSizeClass : uint8_t {

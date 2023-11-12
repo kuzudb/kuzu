@@ -33,7 +33,6 @@ add_library(kuzu_processor_mapper
         map_merge.cpp
         map_multiplicity_reducer.cpp
         map_order_by.cpp
-        map_partitioner.cpp
         map_path_property_probe.cpp
         map_projection.cpp
         map_recursive_extend.cpp

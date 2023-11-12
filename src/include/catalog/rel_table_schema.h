@@ -47,15 +47,10 @@ public:
     inline common::table_id_t getBoundTableID(common::RelDataDirection relDirection) const {
         return relDirection == common::RelDataDirection::FWD ? srcTableID : dstTableID;
     }
-
     inline common::table_id_t getNbrTableID(common::RelDataDirection relDirection) const {
         return relDirection == common::RelDataDirection::FWD ? dstTableID : srcTableID;
     }
-
-    inline RelMultiplicity getRelMultiplicity() const { return relMultiplicity; }
-
     inline common::table_id_t getSrcTableID() const { return srcTableID; }
-
     inline common::table_id_t getDstTableID() const { return dstTableID; }
 
     static std::unique_ptr<RelTableSchema> deserialize(common::Deserializer& deserializer);

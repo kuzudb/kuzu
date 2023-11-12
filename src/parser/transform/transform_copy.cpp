@@ -9,32 +9,42 @@ namespace parser {
 std::unique_ptr<Statement> Transformer::transformCopyTo(CypherParser::KU_CopyTOContext& ctx) {
     std::string filePath = transformStringLiteral(*ctx.StringLiteral());
     auto regularQuery = transformQuery(*ctx.oC_Query());
-    parsing_option_t parsingOptions;
+    auto copyTo = std::make_unique<CopyTo>(std::move(filePath), std::move(regularQuery));
     if (ctx.kU_ParsingOptions()) {
-        parsingOptions = transformParsingOptions(*ctx.kU_ParsingOptions());
+        copyTo->setParsingOption(transformParsingOptions(*ctx.kU_ParsingOptions()));
     }
-    return std::make_unique<CopyTo>(
-        std::move(filePath), std::move(regularQuery), std::move(parsingOptions));
+    return copyTo;
 }
 
 std::unique_ptr<Statement> Transformer::transformCopyFrom(CypherParser::KU_CopyFromContext& ctx) {
     auto filePaths = transformFilePaths(ctx.kU_FilePaths()->StringLiteral());
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
-    parsing_option_t parsingOptions;
-    if (ctx.kU_ParsingOptions()) {
-        parsingOptions = transformParsingOptions(*ctx.kU_ParsingOptions());
+    auto copyFrom = std::make_unique<CopyFrom>(std::move(filePaths), std::move(tableName));
+    if (ctx.kU_ColumnNames()) {
+        copyFrom->setColumnNames(transformColumnNames(*ctx.kU_ColumnNames()));
     }
-    return std::make_unique<CopyFrom>(false /* byColumn */, std::move(filePaths),
-        std::move(tableName), std::move(parsingOptions));
+    if (ctx.kU_ParsingOptions()) {
+        copyFrom->setParsingOption(transformParsingOptions(*ctx.kU_ParsingOptions()));
+    }
+    return copyFrom;
 }
 
 std::unique_ptr<Statement> Transformer::transformCopyFromByColumn(
     CypherParser::KU_CopyFromByColumnContext& ctx) {
     auto filePaths = transformFilePaths(ctx.StringLiteral());
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
-    auto parsingOptions = std::unordered_map<std::string, std::unique_ptr<ParsedExpression>>();
-    return std::make_unique<CopyFrom>(
-        true /* byColumn */, std::move(filePaths), std::move(tableName), std::move(parsingOptions));
+    auto copyFrom = std::make_unique<CopyFrom>(std::move(filePaths), std::move(tableName));
+    copyFrom->setByColumn();
+    return copyFrom;
+}
+
+std::vector<std::string> Transformer::transformColumnNames(
+    CypherParser::KU_ColumnNamesContext& ctx) {
+    std::vector<std::string> columnNames;
+    for (auto& schemaName : ctx.oC_SchemaName()) {
+        columnNames.push_back(transformSchemaName(*schemaName));
+    }
+    return columnNames;
 }
 
 std::vector<std::string> Transformer::transformFilePaths(

@@ -30,6 +30,28 @@ std::vector<Property*> TableSchema::getProperties() const {
     return propertiesToReturn;
 }
 
+bool TableSchema::containProperty(const std::string& propertyName) const {
+    return std::any_of(properties.begin(), properties.end(),
+        [&propertyName](const std::unique_ptr<Property>& property) {
+            return property->getName() == propertyName;
+        });
+}
+
+bool TableSchema::containsColumnType(const common::LogicalType& logicalType) const {
+    return std::any_of(properties.begin(), properties.end(),
+        [&logicalType](const std::unique_ptr<Property>& property) {
+            return *property->getDataType() == logicalType;
+        });
+}
+
+void TableSchema::dropProperty(common::property_id_t propertyID) {
+    properties.erase(std::remove_if(properties.begin(), properties.end(),
+                         [propertyID](const std::unique_ptr<Property>& property) {
+                             return property->getPropertyID() == propertyID;
+                         }),
+        properties.end());
+}
+
 property_id_t TableSchema::getPropertyID(const std::string& propertyName) const {
     for (auto& property : properties) {
         if (property->getName() == propertyName) {

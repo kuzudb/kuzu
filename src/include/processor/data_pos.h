@@ -24,6 +24,11 @@ struct DataPos {
 
     DataPos(const DataPos& other) : DataPos(other.dataChunkPos, other.valueVectorPos) {}
 
+    static DataPos getInvalidPos() { return DataPos(); }
+    bool isValid() const {
+        return dataChunkPos != INVALID_DATA_CHUNK_POS && valueVectorPos != INVALID_VALUE_VECTOR_POS;
+    }
+
     inline bool operator==(const DataPos& rhs) const {
         return (dataChunkPos == rhs.dataChunkPos) && (valueVectorPos == rhs.valueVectorPos);
     }
