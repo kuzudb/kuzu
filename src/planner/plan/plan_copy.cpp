@@ -109,13 +109,14 @@ std::unique_ptr<LogicalPlan> Planner::planCopyFrom(const BoundStatement& stateme
 std::unique_ptr<LogicalPlan> Planner::planCopyTo(const Catalog& catalog,
     const NodesStoreStatsAndDeletedIDs& nodesStatistics, const RelsStoreStats& relsStatistics,
     const BoundStatement& statement) {
-    auto& copyClause = reinterpret_cast<const BoundCopyTo&>(statement);
-    auto regularQuery = copyClause.getRegularQuery();
+    auto& boundCopy = reinterpret_cast<const BoundCopyTo&>(statement);
+    auto regularQuery = boundCopy.getRegularQuery();
     KU_ASSERT(regularQuery->getStatementType() == StatementType::QUERY);
     auto plan = QueryPlanner(catalog, nodesStatistics, relsStatistics).getBestPlan(*regularQuery);
-    auto logicalCopyTo =
-        make_shared<LogicalCopyTo>(plan->getLastOperator(), copyClause.getConfig()->copy());
-    plan->setLastOperator(std::move(logicalCopyTo));
+    auto copyTo = make_shared<LogicalCopyTo>(boundCopy.getFilePath(), boundCopy.getFileType(),
+        boundCopy.getColumnNames(), LogicalType::copy(boundCopy.getColumnTypesRef()),
+        plan->getLastOperator());
+    plan->setLastOperator(std::move(copyTo));
     return plan;
 }
 

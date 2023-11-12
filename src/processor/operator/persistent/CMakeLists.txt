@@ -1,7 +1,4 @@
-add_subdirectory(reader/parquet)
-add_subdirectory(reader/csv)
-add_subdirectory(reader/rdf)
-add_subdirectory(reader/npy)
+add_subdirectory(reader)
 add_subdirectory(writer/parquet)
 
 add_library(kuzu_processor_operator_persistent

@@ -8,12 +8,12 @@ namespace kuzu {
 namespace function {
 
 struct TableFuncBindData {
-    std::vector<std::unique_ptr<common::LogicalType>> returnTypes;
-    std::vector<std::string> returnColumnNames;
+    std::vector<std::unique_ptr<common::LogicalType>> columnTypes;
+    std::vector<std::string> columnNames;
 
-    TableFuncBindData(std::vector<std::unique_ptr<common::LogicalType>> returnTypes,
-        std::vector<std::string> returnColumnNames)
-        : returnTypes{std::move(returnTypes)}, returnColumnNames{std::move(returnColumnNames)} {}
+    TableFuncBindData(std::vector<std::unique_ptr<common::LogicalType>> columnTypes,
+        std::vector<std::string> columnNames)
+        : columnTypes{std::move(columnTypes)}, columnNames{std::move(columnNames)} {}
 
     virtual ~TableFuncBindData() = default;
 
@@ -21,18 +21,18 @@ struct TableFuncBindData {
 };
 
 struct ScanBindData : public TableFuncBindData {
-    common::ReaderConfig config;
     storage::MemoryManager* mm;
+    common::ReaderConfig config;
 
-    ScanBindData(std::vector<std::unique_ptr<common::LogicalType>> returnTypes,
-        std::vector<std::string> returnColumnNames, const common::ReaderConfig config,
-        storage::MemoryManager* mm)
-        : TableFuncBindData{std::move(returnTypes), std::move(returnColumnNames)}, config{config},
-          mm{mm} {}
+    ScanBindData(std::vector<std::unique_ptr<common::LogicalType>> columnTypes,
+        std::vector<std::string> columnNames, storage::MemoryManager* mm,
+        const common::ReaderConfig& config)
+        : TableFuncBindData{std::move(columnTypes), std::move(columnNames)}, mm{mm}, config{
+                                                                                         config} {}
 
     std::unique_ptr<TableFuncBindData> copy() override {
         return std::make_unique<ScanBindData>(
-            common::LogicalType::copy(returnTypes), returnColumnNames, config, mm);
+            common::LogicalType::copy(columnTypes), columnNames, mm, config);
     }
 };
 

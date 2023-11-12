@@ -1,5 +1,7 @@
 #include "common/copier_config/copier_config.h"
 
+#include <unordered_map>
+
 #include "common/assert.h"
 #include "common/exception/copy.h"
 

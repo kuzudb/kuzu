@@ -15,7 +15,8 @@ class BaseCSVReader {
     friend class ParsingDriver;
 
 public:
-    BaseCSVReader(const std::string& filePath, const common::ReaderConfig& readerConfig);
+    BaseCSVReader(
+        const std::string& filePath, const common::ReaderConfig& readerConfig, uint64_t numColumns);
 
     virtual ~BaseCSVReader();
 
@@ -64,8 +65,7 @@ protected:
     std::string filePath;
     common::CSVReaderConfig csvReaderConfig;
 
-    uint64_t expectedNumColumns;
-    uint64_t numColumnsDetected;
+    uint64_t numColumns;
     int fd;
 
     common::block_idx_t currentBlockIdx;

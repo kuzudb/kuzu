@@ -120,6 +120,13 @@ struct ParquetScanFunction {
 
     static std::unique_ptr<function::TableFuncLocalState> initLocalState(
         function::TableFunctionInitInput& input, function::TableFuncSharedState* state);
+
+    static void bindColumns(const common::ReaderConfig& readerConfig, storage::MemoryManager* mm,
+        std::vector<std::string>& columnNames,
+        std::vector<std::unique_ptr<common::LogicalType>>& columnTypes);
+    static void bindColumns(const common::ReaderConfig& readerConfig, uint32_t fileIdx,
+        storage::MemoryManager* mm, std::vector<std::string>& columnNames,
+        std::vector<std::unique_ptr<common::LogicalType>>& columnTypes);
 };
 
 } // namespace processor
