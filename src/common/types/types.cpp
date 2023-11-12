@@ -18,6 +18,7 @@ namespace kuzu {
 namespace common {
 
 std::string PhysicalTypeUtils::physicalTypeToString(PhysicalTypeID physicalType) {
+    // LCOV_EXCL_START
     switch (physicalType) {
     case PhysicalTypeID::BOOL:
         return "BOOL";
@@ -55,9 +56,12 @@ std::string PhysicalTypeUtils::physicalTypeToString(PhysicalTypeID physicalType)
         return "STRUCT";
     case PhysicalTypeID::VAR_LIST:
         return "VAR_LIST";
+    case PhysicalTypeID::POINTER:
+        return "POINTER";
     default:
         KU_UNREACHABLE;
     }
+    // LCOV_EXCL_STOP
 }
 
 uint32_t PhysicalTypeUtils::getFixedTypeSize(PhysicalTypeID physicalType) {
@@ -511,6 +515,9 @@ void LogicalType::setPhysicalType() {
     case LogicalTypeID::RDF_VARIANT: {
         physicalType = PhysicalTypeID::STRUCT;
     } break;
+    case LogicalTypeID::POINTER: {
+        physicalType = PhysicalTypeID::POINTER;
+    } break;
     default:
         KU_UNREACHABLE;
     }
@@ -583,6 +590,7 @@ LogicalTypeID LogicalTypeUtils::dataTypeIDFromString(const std::string& dataType
 }
 
 std::string LogicalTypeUtils::toString(LogicalTypeID dataTypeID) {
+    // LCOV_EXCL_START
     switch (dataTypeID) {
     case LogicalTypeID::ANY:
         return "ANY";
@@ -642,9 +650,12 @@ std::string LogicalTypeUtils::toString(LogicalTypeID dataTypeID) {
         return "MAP";
     case LogicalTypeID::UNION:
         return "UNION";
+    case LogicalTypeID::POINTER:
+        return "POINTER";
     default:
         KU_UNREACHABLE;
     }
+    // LCOV_EXCL_STOP
 }
 
 std::string LogicalTypeUtils::toString(const std::vector<LogicalType*>& dataTypes) {

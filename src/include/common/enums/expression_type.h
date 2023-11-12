@@ -232,6 +232,7 @@ const std::string READ_NPY_FUNC_NAME = "READ_NPY";
 const std::string READ_CSV_SERIAL_FUNC_NAME = "READ_CSV_SERIAL";
 const std::string READ_CSV_PARALLEL_FUNC_NAME = "READ_CSV_PARALLEL";
 const std::string READ_RDF_FUNC_NAME = "READ_RDF";
+const std::string READ_PANDAS_FUNC_NAME = "READ_PANDAS";
 
 enum class ExpressionType : uint8_t {
 

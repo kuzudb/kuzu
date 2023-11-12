@@ -3,6 +3,8 @@
 #include <unordered_map>
 
 #include "parser/expression/parsed_expression.h"
+#include "parser/expression/parsed_function_expression.h"
+#include "parser/expression/parsed_literal_expression.h"
 
 namespace kuzu {
 namespace parser {
@@ -32,6 +34,18 @@ public:
 
 private:
     const std::unordered_map<std::string, ParsedExpression*>& expressionNamesToReplace;
+};
+
+class InQueryCallParameterReplacer {
+public:
+    explicit InQueryCallParameterReplacer(
+        std::pair<std::string, ParsedLiteralExpression*> literalExpressionToReplace)
+        : literalExpressionToReplace{std::move(literalExpressionToReplace)} {}
+
+    ParsedFunctionExpression* visit(ParsedFunctionExpression* tableFuncExpression) const;
+
+private:
+    std::pair<std::string, ParsedLiteralExpression*> literalExpressionToReplace;
 };
 
 } // namespace parser

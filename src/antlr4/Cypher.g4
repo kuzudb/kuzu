@@ -264,7 +264,7 @@ LOAD : ( 'L' | 'l' ) ( 'O' | 'o' ) ( 'A' | 'a' ) ( 'D' | 'd' )  ;
 HEADERS : ( 'H' | 'h' ) ( 'E' | 'e' ) ( 'A' | 'a' ) ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'R' | 'r' ) ( 'S' | 's' ) ;
 
 kU_InQueryCall
-    : CALL SP oC_FunctionInvocation ;
+    : CALL SP oC_FunctionInvocation (SP? oC_Where)? ;
 
 oC_Match
     : ( OPTIONAL SP )? MATCH SP? oC_Pattern (SP? oC_Where)? ;

@@ -564,7 +564,7 @@ uint64_t ParquetReader::getGroupOffset(ParquetReaderScanState& state) {
 
 ParquetScanSharedState::ParquetScanSharedState(const common::ReaderConfig readerConfig,
     storage::MemoryManager* memoryManager, uint64_t numRows)
-    : ScanSharedTableFuncState{std::move(readerConfig), numRows}, memoryManager{memoryManager} {
+    : ScanSharedState{std::move(readerConfig), numRows}, memoryManager{memoryManager} {
     readers.push_back(
         std::make_unique<ParquetReader>(this->readerConfig.filePaths[fileIdx], memoryManager));
 }

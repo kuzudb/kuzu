@@ -1,4 +1,5 @@
 #include "binder/expression_visitor.h"
+#include "binder/query/reading_clause/bound_in_query_call.h"
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
 #include "planner/query_planner.h"
@@ -65,19 +66,6 @@ void QueryPlanner::planUnwindClause(
     }
 }
 
-void QueryPlanner::planInQueryCall(
-    BoundReadingClause* boundReadingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
-    for (auto& plan : plans) {
-        if (!plan->isEmpty()) {
-            auto tmpPlan = std::make_unique<LogicalPlan>();
-            appendInQueryCall(*boundReadingClause, *tmpPlan);
-            appendCrossProduct(AccumulateType::REGULAR, *plan, *tmpPlan);
-        } else {
-            appendInQueryCall(*boundReadingClause, *plan);
-        }
-    }
-}
-
 static bool hasExternalDependency(const std::shared_ptr<Expression>& expression,
     const std::unordered_set<std::string>& variableNameSet) {
     auto collector = ExpressionCollector();
@@ -87,6 +75,42 @@ static bool hasExternalDependency(const std::shared_ptr<Expression>& expression,
         }
     }
     return false;
+}
+
+void QueryPlanner::planInQueryCall(
+    BoundReadingClause* readingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
+    auto inQueryCall = reinterpret_cast<BoundInQueryCall*>(readingClause);
+    std::unordered_set<std::string> columnNameSet;
+    for (auto& column : inQueryCall->getOutputExpressions()) {
+        columnNameSet.insert(column->getUniqueName());
+    }
+    expression_vector predicatesToPushDown;
+    expression_vector predicatesToPullUp;
+    for (auto& predicate : inQueryCall->getPredicatesSplitOnAnd()) {
+        if (hasExternalDependency(predicate, columnNameSet)) {
+            predicatesToPullUp.push_back(predicate);
+        } else {
+            predicatesToPushDown.push_back(predicate);
+        }
+    }
+    for (auto& plan : plans) {
+        if (!plan->isEmpty()) {
+            auto tmpPlan = std::make_unique<LogicalPlan>();
+            appendInQueryCall(*readingClause, *tmpPlan);
+            if (!predicatesToPushDown.empty()) {
+                appendFilters(predicatesToPushDown, *tmpPlan);
+            }
+            appendCrossProduct(AccumulateType::REGULAR, *plan, *tmpPlan);
+        } else {
+            appendInQueryCall(*readingClause, *plan);
+            if (!predicatesToPushDown.empty()) {
+                appendFilters(predicatesToPushDown, *plan);
+            }
+        }
+        if (!predicatesToPullUp.empty()) {
+            appendFilter(inQueryCall->getWherePredicate(), *plan);
+        }
+    }
 }
 
 void QueryPlanner::planLoadFrom(

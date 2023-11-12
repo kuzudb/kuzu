@@ -10,7 +10,6 @@ namespace planner {
 void QueryPlanner::appendInQueryCall(
     const BoundReadingClause& boundReadingClause, LogicalPlan& plan) {
     auto& boundInQueryCall = (BoundInQueryCall&)boundReadingClause;
-
     auto logicalInQueryCall = make_shared<LogicalInQueryCall>(boundInQueryCall.getTableFunc(),
         boundInQueryCall.getBindData()->copy(), boundInQueryCall.getOutputExpressions(),
         boundInQueryCall.getRowIdxExpression());

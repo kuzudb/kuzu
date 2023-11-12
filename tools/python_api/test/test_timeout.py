@@ -1,6 +1,3 @@
-import pytest
-import kuzu
-
 def test_timeout(establish_connection):
     conn, _ = establish_connection
     conn.set_query_timeout(1000)

@@ -59,7 +59,7 @@ private:
     std::vector<std::unique_ptr<NpyReader>> fileReaders;
 };
 
-struct NpyScanSharedState final : public function::ScanSharedTableFuncState {
+struct NpyScanSharedState final : public function::ScanSharedState {
     explicit NpyScanSharedState(const common::ReaderConfig readerConfig, uint64_t numRows);
 
     std::unique_ptr<NpyMultiFileReader> npyMultiFileReader;

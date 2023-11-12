@@ -23,10 +23,10 @@ protected:
     void handleQuotedNewline() override {}
 };
 
-struct SerialCSVScanSharedState final : public function::ScanSharedTableFuncState {
+struct SerialCSVScanSharedState final : public function::ScanSharedState {
     explicit SerialCSVScanSharedState(
         const common::ReaderConfig readerConfig, uint64_t numRows, uint64_t numColumns)
-        : ScanSharedTableFuncState{std::move(readerConfig), numRows}, numColumns{numColumns} {
+        : ScanSharedState{std::move(readerConfig), numRows}, numColumns{numColumns} {
         initReader();
     }
 

@@ -301,8 +301,7 @@ std::unique_ptr<function::TableFuncSharedState> RdfScan::initSharedState(
     auto bindData = reinterpret_cast<function::ScanBindData*>(input.bindData);
     auto reader = make_unique<RDFReader>(
         bindData->config.filePaths[0], bindData->config.rdfReaderConfig->copy());
-    return std::make_unique<function::ScanSharedTableFuncState>(
-        bindData->config, reader->countLine());
+    return std::make_unique<function::ScanSharedState>(bindData->config, reader->countLine());
 }
 
 std::unique_ptr<function::TableFuncLocalState> RdfScan::initLocalState(

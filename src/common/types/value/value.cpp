@@ -201,6 +201,11 @@ Value::Value(const char* val_) : isNull_{false} {
     strVal = std::string(val_);
 }
 
+Value::Value(uint8_t* val_) : isNull_{false} {
+    dataType = std::make_unique<LogicalType>(LogicalTypeID::POINTER);
+    val.pointer = val_;
+}
+
 Value::Value(LogicalType type, const std::string& val_) : isNull_{false} {
     dataType = type.copy();
     strVal = val_;
@@ -210,11 +215,6 @@ Value::Value(LogicalType dataType_, std::vector<std::unique_ptr<Value>> children
     dataType = dataType_.copy();
     this->children = std::move(children);
     childrenSize = this->children.size();
-}
-
-Value::Value(LogicalType dataType_, const uint8_t* val_) : isNull_{false} {
-    dataType = dataType_.copy();
-    copyValueFrom(val_);
 }
 
 Value::Value(const Value& other) : isNull_{other.isNull_} {
@@ -293,6 +293,9 @@ void Value::copyValueFrom(const uint8_t* value) {
     case LogicalTypeID::RDF_VARIANT: {
         copyFromStruct(value);
     } break;
+    case LogicalTypeID::POINTER: {
+        val.pointer = *((uint8_t**)value);
+    } break;
     default:
         KU_UNREACHABLE;
     }
@@ -357,6 +360,9 @@ void Value::copyValueFrom(const Value& other) {
         for (auto& child : other.children) {
             children.push_back(child->copy());
         }
+    } break;
+    case PhysicalTypeID::POINTER: {
+        val.pointer = other.val.pointer;
     } break;
     default:
         KU_UNREACHABLE;

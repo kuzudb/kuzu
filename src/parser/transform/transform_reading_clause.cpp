@@ -43,8 +43,12 @@ std::unique_ptr<ReadingClause> Transformer::transformUnwind(CypherParser::OC_Unw
 
 std::unique_ptr<ReadingClause> Transformer::transformInQueryCall(
     CypherParser::KU_InQueryCallContext& ctx) {
-    return std::make_unique<InQueryCallClause>(
+    auto inQueryCall = std::make_unique<InQueryCallClause>(
         Transformer::transformFunctionInvocation(*ctx.oC_FunctionInvocation()));
+    if (ctx.oC_Where()) {
+        inQueryCall->setWherePredicate(transformWhere(*ctx.oC_Where()));
+    }
+    return inQueryCall;
 }
 
 std::unique_ptr<ReadingClause> Transformer::transformLoadFrom(

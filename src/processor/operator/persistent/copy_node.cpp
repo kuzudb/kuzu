@@ -19,8 +19,8 @@ void CopyNodeSharedState::init() {
         auto indexFName = StorageUtils::getNodeIndexFName(
             wal->getDirectory(), table->getTableID(), FileVersionType::ORIGINAL);
         pkIndex = std::make_unique<PrimaryKeyIndexBuilder>(indexFName, *pkType);
-        auto sharedState = reinterpret_cast<function::ScanSharedTableFuncState*>(
-            readerSharedState->sharedState.get());
+        auto sharedState =
+            reinterpret_cast<function::ScanSharedState*>(readerSharedState->sharedState.get());
         pkIndex->bulkReserve(sharedState->numRows);
     }
     wal->logCopyTableRecord(table->getTableID(), TableType::NODE);

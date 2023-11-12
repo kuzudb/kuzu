@@ -1,6 +1,7 @@
 #include "binder/visitor/property_collector.h"
 
 #include "binder/expression_visitor.h"
+#include "binder/query/reading_clause/bound_in_query_call.h"
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
 #include "binder/query/reading_clause/bound_unwind_clause.h"
@@ -43,6 +44,13 @@ void PropertyCollector::visitLoadFrom(const BoundReadingClause& readingClause) {
     auto& loadFromClause = reinterpret_cast<const BoundLoadFrom&>(readingClause);
     if (loadFromClause.hasWherePredicate()) {
         collectPropertyExpressions(loadFromClause.getWherePredicate());
+    }
+}
+
+void PropertyCollector::visitInQueryCall(const BoundReadingClause& readingClause) {
+    auto& inQueryCallClause = reinterpret_cast<const BoundInQueryCall&>(readingClause);
+    if (inQueryCallClause.hasWherePredicate()) {
+        collectPropertyExpressions(inQueryCallClause.getWherePredicate());
     }
 }
 

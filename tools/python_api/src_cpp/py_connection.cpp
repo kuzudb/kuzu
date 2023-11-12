@@ -5,6 +5,7 @@
 #include "datetime.h" // from Python
 #include "main/connection.h"
 #include "planner/operator/logical_plan.h"
+#include "pandas/pandas_scan.h"
 #include "processor/result/factorized_table.h"
 
 using namespace kuzu::common;
@@ -29,6 +30,8 @@ void PyConnection::initialize(py::handle& m) {
 PyConnection::PyConnection(PyDatabase* pyDatabase, uint64_t numThreads) {
     storageDriver = std::make_unique<kuzu::main::StorageDriver>(pyDatabase->database.get());
     conn = std::make_unique<Connection>(pyDatabase->database.get());
+    //TODO(Xiyang): We should implement a generic replacement framework in binder.
+    conn->setReplaceFunc(kuzu::replacePD);
     if (numThreads > 0) {
         conn->setMaxNumThreadForExec(numThreads);
     }
@@ -38,8 +41,8 @@ void PyConnection::setQueryTimeout(uint64_t timeoutInMS) {
     conn->setQueryTimeOut(timeoutInMS);
 }
 
-std::unique_ptr<PyQueryResult> PyConnection::execute(
-    PyPreparedStatement* preparedStatement, py::dict params) {
+std::unique_ptr<PyQueryResult> PyConnection::execute(PyPreparedStatement* preparedStatement,
+    py::dict params) {
     auto parameters = transformPythonParameters(params);
     py::gil_scoped_release release;
     auto queryResult =
@@ -140,6 +143,12 @@ void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
         }
     }
     conn->setMaxNumThreadForExec(numThreadsForExec);
+}
+
+bool PyConnection::isPandasDataframe(const py::object& object) {
+    // TODO(Ziyi): introduce PythonCachedImport to avoid unnecessary import.
+    py::module pandas = py::module::import("pandas");
+    return py::isinstance(object, pandas.attr("DataFrame"));
 }
 
 std::unordered_map<std::string, std::shared_ptr<Value>> PyConnection::transformPythonParameters(
