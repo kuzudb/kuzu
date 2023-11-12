@@ -1,10 +1,10 @@
 #include "main/connection.h"
 
 #include "binder/binder.h"
-#include "binder/visitor/statement_read_write_analyzer.h"
 #include "common/exception/connection.h"
 #include "main/database.h"
 #include "optimizer/optimizer.h"
+#include "parser//visitor/statement_read_write_analyzer.h"
 #include "parser/parser.h"
 #include "planner/operator/logical_plan_util.h"
 #include "planner/planner.h"
@@ -96,13 +96,12 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
     try {
         // parsing
         auto statement = Parser::parseQuery(query);
+        preparedStatement->readOnly = parser::StatementReadWriteAnalyzer().isReadOnly(*statement);
         // binding
         auto binder = Binder(*database->catalog, database->memoryManager.get(),
             database->storageManager.get(), clientContext.get());
         auto boundStatement = binder.bind(*statement);
         preparedStatement->preparedSummary.statementType = boundStatement->getStatementType();
-        preparedStatement->readOnly =
-            binder::StatementReadWriteAnalyzer().isReadOnly(*boundStatement);
         preparedStatement->parameterMap = binder.getParameterMap();
         preparedStatement->statementResult = boundStatement->getStatementResult()->copy();
         // planning

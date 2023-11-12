@@ -1,7 +1,7 @@
 #include "binder/bound_statement_visitor.h"
 
 #include "binder/bound_explain.h"
-#include "common/exception/not_implemented.h"
+#include "binder/query/bound_regular_query.h"
 
 using namespace kuzu::common;
 
@@ -11,7 +11,7 @@ namespace binder {
 void BoundStatementVisitor::visit(const kuzu::binder::BoundStatement& statement) {
     switch (statement.getStatementType()) {
     case StatementType::QUERY: {
-        visitRegularQuery((BoundRegularQuery&)statement);
+        visitRegularQuery(statement);
     } break;
     case StatementType::CREATE_TABLE: {
         visitCreateTable(statement);
@@ -44,11 +44,12 @@ void BoundStatementVisitor::visit(const kuzu::binder::BoundStatement& statement)
         visitTransaction(statement);
     } break;
     default:
-        throw NotImplementedException("BoundStatementVisitor::visit");
+        KU_UNREACHABLE;
     }
 }
 
-void BoundStatementVisitor::visitRegularQuery(const BoundRegularQuery& regularQuery) {
+void BoundStatementVisitor::visitRegularQuery(const BoundStatement& statement) {
+    auto& regularQuery = reinterpret_cast<const BoundRegularQuery&>(statement);
     for (auto i = 0u; i < regularQuery.getNumSingleQueries(); ++i) {
         visitSingleQuery(*regularQuery.getSingleQuery(i));
     }
@@ -94,7 +95,7 @@ void BoundStatementVisitor::visitReadingClause(const BoundReadingClause& reading
         visitLoadFrom(readingClause);
     } break;
     default:
-        throw NotImplementedException("BoundStatementVisitor::visitReadingClause");
+        KU_UNREACHABLE;
     }
 }
 
@@ -113,7 +114,7 @@ void BoundStatementVisitor::visitUpdatingClause(const BoundUpdatingClause& updat
         visitMerge(updatingClause);
     } break;
     default:
-        throw NotImplementedException("BoundStatementVisitor::visitUpdatingClause");
+        KU_UNREACHABLE;
     }
 }
 
