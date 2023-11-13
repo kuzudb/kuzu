@@ -3,7 +3,6 @@
 #include <memory>
 
 #include "common/assert.h"
-#include "common/exception/not_implemented.h"
 #include "storage/stats/property_statistics.h"
 #include "storage/store/column_chunk.h"
 #include "storage/store/string_column.h"
@@ -634,11 +633,9 @@ std::unique_ptr<Column> ColumnFactory::createColumn(const common::LogicalType& d
         return std::make_unique<SerialColumn>(
             metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal, transaction);
     }
-        // LCOV_EXCL_START
     default: {
-        throw NotImplementedException("ColumnFactory::createColumn");
+        KU_UNREACHABLE;
     }
-        // LCOV_EXCL_STOP
     }
 }
 

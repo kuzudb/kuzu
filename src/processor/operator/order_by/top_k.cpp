@@ -1,6 +1,5 @@
 #include "processor/operator/order_by/top_k.h"
 
-#include "common/exception/not_implemented.h"
 #include "function/binary_function_executor.h"
 #include "function/comparison/comparison_functions.h"
 
@@ -155,7 +154,7 @@ void TopKBuffer::getSelectComparisonFunction(
             common::interval_t, FUNC>;
     } break;
     default:
-        throw common::NotImplementedException{"TopKBuffer::getSelectComparisonFunction"};
+        KU_UNREACHABLE;
     }
 }
 

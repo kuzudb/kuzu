@@ -1,7 +1,5 @@
 #include "planner/operator/logical_explain.h"
 
-#include "common/exception/not_implemented.h"
-
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -16,7 +14,7 @@ void LogicalExplain::computeSchema() {
         createEmptySchema();
         break;
     default:
-        throw NotImplementedException{"LogicalExplain::computeFlatSchema"};
+        KU_UNREACHABLE;
     }
 }
 

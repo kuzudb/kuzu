@@ -1,6 +1,5 @@
 #include "processor/plan_mapper.h"
 
-#include "common/exception/not_implemented.h"
 #include "processor/operator/profile.h"
 
 using namespace kuzu::common;
@@ -170,7 +169,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
         physicalOperator = mapTransaction(logicalOperator);
     } break;
     default:
-        throw NotImplementedException("PlanMapper::mapLogicalOperatorToPhysical()");
+        KU_UNREACHABLE;
     }
     logicalOpToPhysicalOpMap.insert({logicalOperator, physicalOperator.get()});
     return physicalOperator;

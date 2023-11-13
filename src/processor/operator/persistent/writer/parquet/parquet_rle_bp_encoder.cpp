@@ -1,7 +1,6 @@
 #include "processor/operator/persistent/writer/parquet/parquet_rle_bp_encoder.h"
 
 #include "common/assert.h"
-#include "common/exception/not_implemented.h"
 
 namespace kuzu {
 namespace processor {
@@ -90,7 +89,7 @@ void RleBpEncoder::writeRun(common::Serializer& writer) {
         writer.write<uint32_t>(lastValue);
         break;
     default:
-        throw common::NotImplementedException("RleBpEncoder::WriteRun");
+        KU_UNREACHABLE;
     }
     currentRunCount = 1;
 }

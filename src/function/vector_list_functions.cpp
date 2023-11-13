@@ -2,7 +2,6 @@
 
 #include "binder/expression_binder.h"
 #include "common/exception/binder.h"
-#include "common/exception/not_implemented.h"
 #include "common/exception/runtime.h"
 #include "function/list/functions/list_any_value_function.h"
 #include "function/list/functions/list_append_function.h"
@@ -219,7 +218,7 @@ std::unique_ptr<FunctionBindData> ListExtractFunction::bindFunc(
             BinaryExecListExtractFunction<list_entry_t, int64_t, internalID_t, ListExtract>;
     } break;
     default: {
-        throw NotImplementedException("ListExtractFunction::bindFunc");
+        KU_UNREACHABLE;
     }
     }
     return std::make_unique<FunctionBindData>(*resultType);
@@ -429,7 +428,7 @@ std::unique_ptr<FunctionBindData> ListSortFunction::bindFunc(
         getExecFunction<interval_t>(arguments, scalarFunction->execFunc);
     } break;
     default: {
-        throw NotImplementedException("ListSortFunction::bindFunc");
+        KU_UNREACHABLE;
     }
     }
     return std::make_unique<FunctionBindData>(arguments[0]->getDataType());
@@ -519,7 +518,7 @@ std::unique_ptr<FunctionBindData> ListReverseSortFunction::bindFunc(
         getExecFunction<interval_t>(arguments, scalarFunction->execFunc);
     } break;
     default: {
-        throw NotImplementedException("ListReverseSortFunction::bindFunc");
+        KU_UNREACHABLE;
     }
     }
     return std::make_unique<FunctionBindData>(arguments[0]->getDataType());
@@ -639,7 +638,7 @@ std::unique_ptr<FunctionBindData> ListDistinctFunction::bindFunc(
             list_entry_t, ListDistinct<internalID_t>>;
     } break;
     default: {
-        throw NotImplementedException("ListDistinctFunction::bindFunc");
+        KU_UNREACHABLE;
     }
     }
     return std::make_unique<FunctionBindData>(arguments[0]->getDataType());
@@ -727,7 +726,7 @@ std::unique_ptr<FunctionBindData> ListUniqueFunction::bindFunc(
             int64_t, ListUnique<internalID_t>>;
     } break;
     default: {
-        throw NotImplementedException("ListUniqueFunction::bindFunc");
+        KU_UNREACHABLE;
     }
     }
     return std::make_unique<FunctionBindData>(LogicalType(LogicalTypeID::INT64));
@@ -820,7 +819,7 @@ std::unique_ptr<FunctionBindData> ListAnyValueFunction::bindFunc(
             ScalarFunction::UnaryExecListStructFunction<list_entry_t, internalID_t, ListAnyValue>;
     } break;
     default: {
-        throw NotImplementedException("ListAnyValueFunction::bindFunc");
+        KU_UNREACHABLE;
     }
     }
     return std::make_unique<FunctionBindData>(*resultType);

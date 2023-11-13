@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/api.h"
-#include "common/exception/not_implemented.h"
 #include "common/types/ku_string.h"
 #include "common/vector/value_vector.h"
 
@@ -12,7 +11,7 @@ struct Concat {
     template<class A, class B, class R>
     static inline void operation(
         A& /*left*/, B& /*right*/, R& /*result*/, common::ValueVector& /*valueVector*/) {
-        throw common::NotImplementedException("Concat called on non-strings");
+        KU_UNREACHABLE;
     }
 
     KUZU_API static void concat(const char* left, uint32_t leftLen, const char* right,

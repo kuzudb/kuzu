@@ -1,6 +1,5 @@
 #include "function/aggregate_function.h"
 
-#include "common/exception/not_implemented.h"
 #include "common/types/interval_t.h"
 #include "function/aggregate/avg.h"
 #include "function/aggregate/min_max.h"
@@ -199,10 +198,8 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinMaxFunction(cons
             MinMaxFunction<internalID_t>::updatePos<FUNC>,
             MinMaxFunction<internalID_t>::combine<FUNC>, MinMaxFunction<internalID_t>::finalize,
             isDistinct);
-        // LCOV_EXCL_START
     default:
-        throw NotImplementedException("AggregateFunctionUtil::getMinMaxFunction.");
-        // LCOV_EXCL_STOP
+        KU_UNREACHABLE;
     }
 }
 

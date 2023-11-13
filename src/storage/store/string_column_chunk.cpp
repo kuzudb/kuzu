@@ -1,6 +1,5 @@
 #include "storage/store/string_column_chunk.h"
 
-#include "common/exception/not_implemented.h"
 #include "common/type_utils.h"
 #include "storage/store/table_copy_utils.h"
 
@@ -46,7 +45,7 @@ void StringColumnChunk::append(
         appendStringColumnChunk(otherChunk, startPosInOtherChunk, numValuesToAppend);
     } break;
     default: {
-        throw NotImplementedException("VarSizedColumnChunk::append");
+        KU_UNREACHABLE;
     }
     }
     numValues += numValuesToAppend;

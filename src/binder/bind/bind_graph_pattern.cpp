@@ -8,7 +8,6 @@
 #include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
-#include "common/exception/not_implemented.h"
 #include "common/keyword/rdf_keyword.h"
 #include "common/string_format.h"
 #include "function/cast/functions/cast_string_to_functions.h"
@@ -116,7 +115,7 @@ std::shared_ptr<Expression> Binder::createPath(
             extraFieldFromStructType(
                 recursiveInfo->rel->getDataType(), relFieldNameSet, relFieldNames, relFieldTypes);
         } else {
-            throw NotImplementedException("Binder::createPath");
+            KU_UNREACHABLE;
         }
     }
     auto nodeExtraInfo = std::make_unique<StructTypeInfo>(nodeFieldNames, nodeFieldTypes);

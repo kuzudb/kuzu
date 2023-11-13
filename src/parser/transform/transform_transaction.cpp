@@ -1,4 +1,4 @@
-#include "common/exception/not_implemented.h"
+#include "common/assert.h"
 #include "parser/transaction_statement.h"
 #include "parser/transformer.h"
 
@@ -25,8 +25,8 @@ std::unique_ptr<Statement> Transformer::transformTransaction(
     } else if (ctx.ROLLBACK_SKIP_CHECKPOINT()) {
         return std::make_unique<TransactionStatement>(
             TransactionAction::ROLLBACK_SKIP_CHECKPOINTING);
-    } else {                                                                // LCOV_EXCL_START
-        throw NotImplementedException("Transformer::transformTransaction"); // LCOV_EXCL_STOP
+    } else {
+        KU_UNREACHABLE;
     }
 }
 

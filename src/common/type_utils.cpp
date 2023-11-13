@@ -1,6 +1,5 @@
 #include "common/type_utils.h"
 
-#include "common/exception/not_implemented.h"
 #include "common/types/blob.h"
 #include "common/vector/value_vector.h"
 
@@ -49,10 +48,8 @@ std::string TypeUtils::castValueToString(
         return TypeUtils::toString(*reinterpret_cast<const list_entry_t*>(value), valueVector);
     case LogicalTypeID::STRUCT:
         return TypeUtils::toString(*reinterpret_cast<const struct_entry_t*>(value), valueVector);
-        // LCOV_EXCL_START
     default:
-        throw NotImplementedException("TypeUtils::castValueToString.");
-        // LCOV_EXCL_STOP
+        KU_UNREACHABLE;
     }
 }
 

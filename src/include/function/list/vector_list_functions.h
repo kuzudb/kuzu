@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-#include "common/exception/not_implemented.h"
+#include "common/exception/binder.h"
 #include "common/types/int128_t.h"
 #include "common/types/interval_t.h"
 #include "function/scalar_function.h"
@@ -83,10 +83,8 @@ struct ListFunction {
             execFunc = ScalarFunction::BinaryExecListStructFunction<common::list_entry_t,
                 common::struct_entry_t, RESULT_TYPE, OPERATION>;
         } break;
-            // LCOV_EXCL_START
         default: {
-            throw common::NotImplementedException{"ListFunction::getBinaryListOperationDefinition"};
-            // LCOV_EXCL_STOP
+            KU_UNREACHABLE;
         }
         }
         return execFunc;
@@ -112,10 +110,8 @@ struct ListFunction {
             execFunc = ScalarFunction::BinaryExecListStructFunction<int8_t, int8_t, RESULT_TYPE,
                 OPERATION>;
         } break;
-            // LCOV_EXCL_START
         default: {
-            throw common::NotImplementedException{"ListFunction::getBinaryListOperationDefinition"};
-            // LCOV_EXCL_STOP
+            KU_UNREACHABLE;
         }
         }
         return execFunc;
@@ -141,11 +137,8 @@ struct ListFunction {
             execFunc = ScalarFunction::TernaryExecListStructFunction<int8_t, int8_t, int8_t,
                 RESULT_TYPE, OPERATION>;
         } break;
-            // LCOV_EXCL_START
         default: {
-            throw common::NotImplementedException{
-                "ListFunction::getTernaryListOperationDefinition"};
-            // LCOV_EXCL_STOP
+            KU_UNREACHABLE;
         }
         }
         return execFunc;
@@ -214,7 +207,9 @@ struct ListFunction {
                     OPERATION>;
         } break;
         default: {
-            throw common::NotImplementedException(function->name + "::bindFunc");
+            throw common::BinderException(
+                common::stringFormat("Unsupported inner data type for {}: {}", function->name,
+                    common::LogicalTypeUtils::toString(resultType->getLogicalTypeID())));
         }
         }
         return std::make_unique<FunctionBindData>(*resultType);

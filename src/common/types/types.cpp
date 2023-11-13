@@ -380,10 +380,8 @@ std::string LogicalType::toString() const {
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::RDF_VARIANT:
         return LogicalTypeUtils::toString(typeID);
-        // LCOV_EXCL_START
     default:
-        throw NotImplementedException("LogicalType::toString");
-        // LCOV_EXCL_STOP
+        KU_UNREACHABLE;
     }
 }
 

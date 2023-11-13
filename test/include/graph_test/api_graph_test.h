@@ -8,7 +8,7 @@ namespace testing {
 
 // This class starts database without initializing graph.
 class APIEmptyDBTest : public BaseGraphTest {
-    std::string getInputDir() override { throw common::NotImplementedException("getInputDir()"); }
+    std::string getInputDir() override { KU_UNREACHABLE; }
 };
 
 // This class starts database in on-disk mode.

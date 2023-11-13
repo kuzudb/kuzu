@@ -1,6 +1,5 @@
 #include "planner/operator/logical_hash_join.h"
 
-#include "common/exception/not_implemented.h"
 #include "planner/operator/factorization/flatten_resolver.h"
 #include "planner/operator/factorization/sink_util.h"
 #include "planner/operator/scan/logical_scan_internal_id.h"
@@ -79,7 +78,7 @@ void LogicalHashJoin::computeFactorizedSchema() {
         schema->insertToGroupAndScope(mark, markPos);
     } break;
     default:
-        throw NotImplementedException("HashJoin::computeFactorizedSchema()");
+        KU_UNREACHABLE;
     }
 }
 
@@ -99,7 +98,7 @@ void LogicalHashJoin::computeFlatSchema() {
         schema->insertToGroupAndScope(mark, 0);
     } break;
     default:
-        throw NotImplementedException("HashJoin::computeFlatSchema()");
+        KU_UNREACHABLE;
     }
 }
 
@@ -113,7 +112,7 @@ binder::expression_vector LogicalHashJoin::getExpressionsToMaterialize() const {
         return binder::expression_vector{};
     }
     default:
-        throw NotImplementedException("HashJoin::getExpressionsToMaterialize");
+        KU_UNREACHABLE;
     }
 }
 

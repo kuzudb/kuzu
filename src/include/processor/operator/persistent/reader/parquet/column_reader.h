@@ -3,7 +3,6 @@
 #include <bitset>
 
 #include "common/constants.h"
-#include "common/exception/not_implemented.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "parquet/parquet_types.h"
@@ -30,22 +29,16 @@ public:
     virtual inline void skip(uint64_t numValues) { pendingSkips += numValues; }
     virtual inline void dictionary(
         std::shared_ptr<ResizeableBuffer> /*data*/, uint64_t /*num_entries*/) {
-        // LCOV_EXCL_START
-        throw common::NotImplementedException("Dictionary");
-        // LCOV_EXCL_STOP
+        KU_UNREACHABLE;
     }
     virtual inline void offsets(uint32_t* /*offsets*/, uint8_t* /*defines*/, uint64_t /*numValues*/,
         parquet_filter_t& /*filter*/, uint64_t /*resultOffset*/, common::ValueVector* /*result*/) {
-        // LCOV_EXCL_START
-        throw common::NotImplementedException("ColumnReader::offsets");
-        // LCOV_EXCL_STOP
+        KU_UNREACHABLE;
     }
     virtual inline void plain(std::shared_ptr<ByteBuffer> /*plainData*/, uint8_t* /*defines*/,
         uint64_t /*numValues*/, parquet_filter_t& /*filter*/, uint64_t /*resultOffset*/,
         common::ValueVector* /*result*/) {
-        // LCOV_EXCL_START
-        throw common::NotImplementedException("ColumnReader::plain");
-        // LCOV_EXCL_STOP
+        KU_UNREACHABLE;
     }
     virtual inline void resetPage() {}
     virtual inline uint64_t getGroupRowsAvailable() { return groupRowsAvailable; }

@@ -1,6 +1,6 @@
 #include "common/enums/rel_direction.h"
 
-#include "common/exception/not_implemented.h"
+#include "common/assert.h"
 
 namespace kuzu {
 namespace common {
@@ -14,7 +14,7 @@ std::string RelDataDirectionUtils::relDataDirectionToString(RelDataDirection dir
         return "backward";
     }
     default:
-        throw NotImplementedException("RelDataDirectionUtils::relDataDirectionToString");
+        KU_UNREACHABLE;
     }
 }
 

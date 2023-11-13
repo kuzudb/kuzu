@@ -1,5 +1,4 @@
 #include "binder/expression/property_expression.h"
-#include "common/exception/not_implemented.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "processor/operator/scan/scan_multi_rel_tables.h"
 #include "processor/operator/scan/scan_rel_csr_columns.h"
@@ -74,7 +73,7 @@ static std::unique_ptr<RelTableCollectionScanner> populateRelTableCollectionScan
             }
         } break;
         default:
-            throw NotImplementedException("populateRelTableCollectionScanner");
+            KU_UNREACHABLE;
         }
     }
     if (scanInfos.empty()) {

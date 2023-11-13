@@ -6,7 +6,6 @@
 #include "catalog/rel_table_schema.h"
 #include "common/constants.h"
 #include "common/exception/internal.h"
-#include "common/exception/not_implemented.h"
 #include "common/exception/runtime.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
@@ -115,9 +114,7 @@ std::unique_ptr<TableSchema> TableSchema::deserialize(Deserializer& deserializer
         result = RdfGraphSchema::deserialize(deserializer);
     } break;
     default: {
-        // LCOV_EXCL_START
-        throw NotImplementedException{"TableSchema::deserialize"};
-        // LCOV_EXCL_STOP
+        KU_UNREACHABLE;
     }
     }
     result->tableName = tableName;

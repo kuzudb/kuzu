@@ -1,6 +1,5 @@
 #include "processor/operator/transaction.h"
 
-#include "common/exception/not_implemented.h"
 #include "transaction/transaction_context.h"
 
 using namespace kuzu::common;
@@ -33,8 +32,8 @@ bool Transaction::getNextTuplesInternal(ExecutionContext* context) {
     case transaction::TransactionAction::ROLLBACK_SKIP_CHECKPOINTING: {
         transactionContext->rollbackSkipCheckPointing();
     } break;
-    default:                                                                 // LCOV_EXCL_START
-        throw NotImplementedException("Transaction::getNextTuplesInternal"); // LCOV_EXCL_STOP
+    default:
+        KU_UNREACHABLE;
     }
     return true;
 }

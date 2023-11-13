@@ -38,10 +38,8 @@ std::unique_ptr<CopyToInfo> getCopyToInfo(Schema* childSchema, const std::string
         return std::make_unique<CopyToCSVInfo>(
             columnNames, vectorsToCopyPos, filePath, std::move(isFlat));
     }
-        // LCOV_EXCL_START
     default:
-        throw NotImplementedException{"getCopyToInfo"};
-        // LCOV_EXCL_STOP
+        KU_UNREACHABLE;
     }
 }
 
@@ -51,10 +49,8 @@ static std::shared_ptr<CopyToSharedState> getCopyToSharedState(FileType fileType
         return std::make_shared<CopyToCSVSharedState>();
     case FileType::PARQUET:
         return std::make_shared<CopyToParquetSharedState>();
-        // LCOV_EXCL_START
     default:
-        throw NotImplementedException{"getCopyToSharedState"};
-        // LCOV_EXCL_STOP
+        KU_UNREACHABLE;
     }
 }
 

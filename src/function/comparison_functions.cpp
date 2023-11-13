@@ -2,7 +2,6 @@
 
 #include <cmath>
 
-#include "common/exception/not_implemented.h"
 #include "common/types/int128_t.h"
 #include "common/types/interval_t.h"
 
@@ -99,7 +98,7 @@ static void executeNestedOperation(uint8_t& result, ValueVector* leftVector,
             rightVector->getValue<struct_entry_t>(rightPos), result, leftVector, rightVector);
     } break;
     default: {
-        throw NotImplementedException("comparison operation");
+        KU_UNREACHABLE;
     }
     }
 }

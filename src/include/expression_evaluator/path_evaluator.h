@@ -1,7 +1,6 @@
 #pragma once
 
 #include "binder/expression/expression.h"
-#include "common/exception/not_implemented.h"
 #include "expression_evaluator.h"
 
 namespace kuzu {
@@ -17,9 +16,7 @@ public:
 
     void evaluate();
 
-    bool select(common::SelectionVector& /*selVector*/) {
-        throw common::NotImplementedException("PathExpressionEvaluator::select");
-    }
+    bool select(common::SelectionVector& /*selVector*/) { KU_UNREACHABLE; }
 
     inline std::unique_ptr<ExpressionEvaluator> clone() {
         std::vector<std::unique_ptr<ExpressionEvaluator>> clonedChildren;

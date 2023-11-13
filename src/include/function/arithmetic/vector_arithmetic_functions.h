@@ -2,7 +2,6 @@
 
 #include <cmath>
 
-#include "common/exception/not_implemented.h"
 #include "common/types/int128_t.h"
 #include "function/scalar_function.h"
 
@@ -95,10 +94,8 @@ private:
             func = ScalarFunction::UnaryExecFunction<float_t, float_t, FUNC>;
             return;
         }
-            // LCOV_EXCL_START
         default:
-            throw common::NotImplementedException{"ArithmeticFunction::getUnaryExecFunc"};
-            // LCOC_EXCL_STOP
+            KU_UNREACHABLE;
         }
     }
 
@@ -151,10 +148,8 @@ private:
             func = ScalarFunction::BinaryExecFunction<float_t, float_t, float_t, FUNC>;
             return;
         }
-            // LCOV_EXCL_START
         default:
-            throw common::NotImplementedException{"ArithmeticFunction::getBinaryExecFunc"};
-            // LCOC_EXCL_STOP
+            KU_UNREACHABLE;
         }
     }
 };

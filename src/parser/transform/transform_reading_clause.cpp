@@ -1,4 +1,4 @@
-#include "common/exception/not_implemented.h"
+#include "common/assert.h"
 #include "parser/query/reading_clause/in_query_call_clause.h"
 #include "parser/query/reading_clause/load_from.h"
 #include "parser/query/reading_clause/match_clause.h"
@@ -21,9 +21,7 @@ std::unique_ptr<ReadingClause> Transformer::transformReadingClause(
     } else if (ctx.kU_LoadFrom()) {
         return transformLoadFrom(*ctx.kU_LoadFrom());
     }
-    // LCOV_EXCL_START
-    throw common::NotImplementedException("Transformer::transformReadingClause");
-    // LCOV_EXCL_STOP
+    KU_UNREACHABLE;
 }
 
 std::unique_ptr<ReadingClause> Transformer::transformMatch(CypherParser::OC_MatchContext& ctx) {

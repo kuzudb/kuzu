@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/exception/not_implemented.h"
 #include "storage/storage_structure/in_mem_file.h"
 #include "storage/store/column_chunk.h"
 
@@ -21,7 +20,7 @@ public:
 
     template<typename T>
     T getValue(common::offset_t /*pos*/) const {
-        throw common::NotImplementedException("VarSizedColumnChunk::getValue");
+        KU_UNREACHABLE;
     }
 
     common::page_idx_t flushOverflowBuffer(BMFileHandle* dataFH, common::page_idx_t startPageIdx);

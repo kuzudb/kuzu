@@ -2,7 +2,6 @@
 #include "binder/query/updating_clause/bound_insert_clause.h"
 #include "binder/query/updating_clause/bound_merge_clause.h"
 #include "binder/query/updating_clause/bound_set_clause.h"
-#include "common/exception/not_implemented.h"
 #include "planner/operator/persistent/logical_merge.h"
 #include "planner/query_planner.h"
 
@@ -38,9 +37,7 @@ void QueryPlanner::planUpdatingClause(BoundUpdatingClause& updatingClause, Logic
         return;
     }
     default:
-        // LCOV_EXCL_START
-        throw NotImplementedException("QueryPlanner::planUpdatingClause");
-        // LCOV_EXCL_STOP
+        KU_UNREACHABLE;
     }
 }
 
@@ -81,9 +78,7 @@ void QueryPlanner::planMergeClause(binder::BoundUpdatingClause& updatingClause, 
         mark = rel->getInternalIDProperty();
     } break;
     default:
-        // LCOV_EXCL_START
-        throw NotImplementedException("QueryPlanner::planMergeClause");
-        // LCOV_EXCL_STOP
+        KU_UNREACHABLE;
     }
     std::vector<std::unique_ptr<LogicalInsertNodeInfo>> logicalInsertNodeInfos;
     if (mergeClause.hasInsertNodeInfo()) {

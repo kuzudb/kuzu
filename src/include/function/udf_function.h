@@ -4,7 +4,6 @@
 
 #include "common/exception/binder.h"
 #include "common/exception/catalog.h"
-#include "common/exception/not_implemented.h"
 #include "common/types/blob.h"
 #include "common/types/ku_string.h"
 #include "function/scalar_function.h"
@@ -66,7 +65,7 @@ struct UDF {
         case common::LogicalTypeID::BLOB:
             return std::is_same<T, common::blob_t>();
         default:
-            throw common::NotImplementedException{"function::validateType"};
+            KU_UNREACHABLE;
         }
     }
 
@@ -81,7 +80,7 @@ struct UDF {
     template<typename RESULT_TYPE, typename... Args>
     static function::scalar_exec_func createUnaryExecFunc(RESULT_TYPE (*/*udfFunc*/)(Args...),
         std::vector<common::LogicalTypeID> /*parameterTypes*/) {
-        throw common::NotImplementedException{"function::createUnaryExecFunc()"};
+        KU_UNREACHABLE;
     }
 
     template<typename RESULT_TYPE, typename OPERAND_TYPE>
@@ -106,7 +105,7 @@ struct UDF {
     template<typename RESULT_TYPE, typename... Args>
     static function::scalar_exec_func createBinaryExecFunc(RESULT_TYPE (*/*udfFunc*/)(Args...),
         std::vector<common::LogicalTypeID> /*parameterTypes*/) {
-        throw common::NotImplementedException{"function::createBinaryExecFunc()"};
+        KU_UNREACHABLE;
     }
 
     template<typename RESULT_TYPE, typename LEFT_TYPE, typename RIGHT_TYPE>
@@ -133,7 +132,7 @@ struct UDF {
     template<typename RESULT_TYPE, typename... Args>
     static function::scalar_exec_func createTernaryExecFunc(RESULT_TYPE (*/*udfFunc*/)(Args...),
         std::vector<common::LogicalTypeID> /*parameterTypes*/) {
-        throw common::NotImplementedException{"function::createTernaryExecFunc()"};
+        KU_UNREACHABLE;
     }
 
     template<typename RESULT_TYPE, typename A_TYPE, typename B_TYPE, typename C_TYPE>
@@ -191,7 +190,7 @@ struct UDF {
         } else if (std::is_same<T, common::ku_string_t>()) {
             return common::LogicalTypeID::STRING;
         } else {
-            throw common::NotImplementedException{"function::getParameterType"};
+            KU_UNREACHABLE;
         }
     }
 
@@ -218,7 +217,7 @@ struct UDF {
         std::vector<common::LogicalTypeID> parameterTypes, common::LogicalTypeID returnType) {
         function_set definitions;
         if (returnType == common::LogicalTypeID::STRING) {
-            throw common::NotImplementedException{"function::getFunction"};
+            KU_UNREACHABLE;
         }
         validateType<TR>(returnType);
         scalar_exec_func scalarExecFunc = getScalarExecFunc<TR, Args...>(udfFunc, parameterTypes);
