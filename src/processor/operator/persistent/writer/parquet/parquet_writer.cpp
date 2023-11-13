@@ -1,7 +1,6 @@
 #include "processor/operator/persistent/writer/parquet/parquet_writer.h"
 
 #include "common/data_chunk/data_chunk.h"
-#include "common/exception/not_implemented.h"
 #include "thrift/protocol/TCompactProtocol.h"
 
 namespace kuzu {
@@ -74,7 +73,7 @@ Type::type ParquetWriter::convertToParquetType(LogicalType* type) {
     case LogicalTypeID::INTERVAL:
         return Type::FIXED_LEN_BYTE_ARRAY;
     default:
-        throw NotImplementedException("ParquetWriter::convertToParquetType");
+        KU_UNREACHABLE;
     }
 }
 

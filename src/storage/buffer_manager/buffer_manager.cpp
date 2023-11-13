@@ -4,7 +4,6 @@
 
 #include "common/constants.h"
 #include "common/exception/buffer_manager.h"
-#include "common/exception/not_implemented.h"
 
 #if defined(_WIN32)
 #include <exception>
@@ -112,9 +111,7 @@ uint8_t* BufferManager::pin(
             continue;
         }
         default: {
-            // LCOV_EXCL_START
-            throw NotImplementedException("Invalid PageState in BufferManager::pin!");
-            // LCOV_EXCL_STOP
+            KU_UNREACHABLE;
         }
         }
     }

@@ -1,7 +1,6 @@
 #include "transaction/transaction_context.h"
 
 #include "common/exception/connection.h"
-#include "common/exception/not_implemented.h"
 #include "common/exception/transaction_manager.h"
 #include "main/database.h"
 #include "transaction/transaction_manager.h"
@@ -101,9 +100,8 @@ void TransactionContext::beginTransactionInternal(TransactionType transactionTyp
     case TransactionType::WRITE: {
         activeTransaction = database->transactionManager->beginWriteTransaction();
     } break;
-    default: // LCOV_EXCL_START
-        throw NotImplementedException(
-            "TransactionContext::beginTransactionInternal"); // LCOV_EXCL_STOP
+    default:
+        KU_UNREACHABLE;
     }
 }
 

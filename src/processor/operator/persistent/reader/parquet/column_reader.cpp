@@ -251,10 +251,8 @@ std::unique_ptr<ColumnReader> ColumnReader::createReader(ParquetReader& reader,
     case common::LogicalTypeID::TIMESTAMP:
         return createTimestampReader(
             reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
-        // LCOV_EXCL_START
     default:
-        throw common::NotImplementedException{"ColumnReader::createReader"};
-        // LCOV_EXCL_STOP
+        KU_UNREACHABLE;
     }
 }
 
@@ -468,13 +466,13 @@ void ColumnReader::prepareDataPage(kuzu_parquet::format::PageHeader& pageHdr) {
     }
     case Encoding::DELTA_LENGTH_BYTE_ARRAY:
     case Encoding::DELTA_BYTE_ARRAY: {
-        throw common::NotImplementedException("ColumnReader::prepareDataPage");
+        KU_UNREACHABLE;
     }
     case Encoding::PLAIN:
         // nothing to do here, will be read directly below
         break;
     default:
-        throw std::runtime_error("Unsupported page encoding");
+        throw common::NotImplementedException("Parquet: unsupported page encoding");
     }
 }
 
@@ -522,14 +520,14 @@ std::unique_ptr<ColumnReader> ColumnReader::createTimestampReader(ParquetReader&
                     ParquetTimeStampUtils::parquetTimestampMsToTimestamp>>(
                     reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
             default:
-                throw common::NotImplementedException{"ColumnReader::createReader"};
+                KU_UNREACHABLE;
             }
             // LCOV_EXCL_STOP
         }
     }
-    default: { // LCOV_EXCL_START
-        throw common::NotImplementedException{"ColumnReader::createReader"};
-    } // LCOV_EXCL_STOP
+    default: {
+        KU_UNREACHABLE;
+    }
     }
 }
 

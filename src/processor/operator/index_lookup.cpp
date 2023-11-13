@@ -1,7 +1,6 @@
 #include "processor/operator/index_lookup.h"
 
 #include "common/exception/message.h"
-#include "common/exception/not_implemented.h"
 #include "storage/index/hash_index.h"
 
 using namespace kuzu::common;
@@ -82,11 +81,9 @@ void IndexLookup::fillOffsetArraysFromVector(transaction::Transaction* transacti
             offsets[i] = keyVector->getValue<int64_t>(pos);
         }
     } break;
-        // LCOV_EXCL_START
     default: {
-        throw NotImplementedException("IndexLookup::fillOffsetArraysFromVector");
+        KU_UNREACHABLE;
     }
-        // LCOV_EXCL_STOP
     }
 }
 

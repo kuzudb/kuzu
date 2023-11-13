@@ -61,7 +61,7 @@ void NPArrayWrapper::appendElement(Value* value) {
             break;
         }
         default: {
-            throw NotImplementedException("NPArrayWrapper::appendElement");
+            KU_UNREACHABLE;
         }
         }
     }
@@ -100,7 +100,7 @@ py::dtype NPArrayWrapper::convertToArrayType(const LogicalType& type) {
         break;
     }
     default: {
-        throw NotImplementedException("NPArrayWrapper::convertToArrayType");
+        KU_UNREACHABLE;
     }
     }
     return py::dtype(dtype);

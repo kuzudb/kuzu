@@ -1,4 +1,3 @@
-#include "common/exception/not_implemented.h"
 #include "planner/operator/ddl/logical_alter.h"
 #include "planner/operator/ddl/logical_create_table.h"
 #include "planner/operator/ddl/logical_drop_table.h"
@@ -43,9 +42,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateTable(LogicalOperator* lo
         return mapCreateRdfGraph(logicalOperator);
     }
     default:
-        // LCOV_EXCL_START
-        throw NotImplementedException("PlanMapper::mapCreateTable");
-        // LCOV_EXCL_STOP
+        KU_UNREACHABLE;
     }
 }
 
@@ -100,9 +97,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAlter(LogicalOperator* logicalO
         return mapRenameProperty(logicalOperator);
     }
     default:
-        // LCOV_EXCL_START
-        throw NotImplementedException("PlanMapper::mapAlter");
-        // LCOV_EXCL_STOP
+        KU_UNREACHABLE;
     }
 }
 
@@ -131,9 +126,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAddProperty(LogicalOperator* lo
             extraInfo->dataType->copy(), std::move(expressionEvaluator), storageManager,
             getOutputPos(alter), getOperatorID(), alter->getExpressionsForPrinting());
     default:
-        // LCOV_EXCL_START
-        throw NotImplementedException("PlanMapper::mapAddProperty");
-        // LCOV_EXCL_STOP
+        KU_UNREACHABLE;
     }
 }
 

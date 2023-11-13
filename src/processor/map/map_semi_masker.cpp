@@ -1,4 +1,3 @@
-#include "common/exception/not_implemented.h"
 #include "planner/operator/sip/logical_semi_masker.h"
 #include "processor/operator/recursive_extend/recursive_join.h"
 #include "processor/operator/scan_node_id.h"
@@ -40,7 +39,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
             }
         } break;
         default:
-            throw NotImplementedException("PlanMapper::mapLogicalSemiMaskerToPhysical");
+            KU_UNREACHABLE;
         }
     }
     auto keyPos = DataPos(inSchema->getExpressionPos(*semiMasker->getKey()));
@@ -65,7 +64,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* log
         }
     }
     default:
-        throw NotImplementedException("PlanMapper::mapLogicalSemiMaskerToPhysical");
+        KU_UNREACHABLE;
     }
 }
 

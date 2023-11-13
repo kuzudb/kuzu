@@ -1,7 +1,6 @@
 #include "parser/transformer.h"
 
 #include "common/assert.h"
-#include "common/exception/not_implemented.h"
 #include "common/string_utils.h"
 #include "parser/explain_statement.h"
 #include "parser/query/regular_query.h" // IWYU pragma: keep (fixes a forward declaration error)
@@ -41,8 +40,8 @@ std::unique_ptr<Statement> Transformer::transformStatement(CypherParser::OC_Stat
         return transformCommentOn(*ctx.kU_CommentOn());
     } else if (ctx.kU_Transaction()) {
         return transformTransaction(*ctx.kU_Transaction());
-    } else {                                                                // LCOV_EXCL_START
-        throw NotImplementedException("Transformer::transformOcStatement"); // LCOV_EXCL_STOP
+    } else {
+        KU_UNREACHABLE;
     }
 }
 

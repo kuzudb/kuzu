@@ -1,7 +1,6 @@
 #include "binder/expression_visitor.h"
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
-#include "common/exception/not_implemented.h"
 #include "planner/query_planner.h"
 
 using namespace kuzu::binder;
@@ -27,9 +26,7 @@ void QueryPlanner::planReadingClause(
         planLoadFrom(boundReadingClause, prevPlans);
     } break;
     default:
-        // LCOV_EXCL_START
-        throw NotImplementedException("QueryPlanner::planReadingClause");
-        // LCOV_EXCL_STOP
+        KU_UNREACHABLE;
     }
 }
 
@@ -54,7 +51,7 @@ void QueryPlanner::planMatchClause(
         }
     } break;
     default:
-        throw NotImplementedException("QueryPlanner::planMatchClause");
+        KU_UNREACHABLE;
     }
 }
 

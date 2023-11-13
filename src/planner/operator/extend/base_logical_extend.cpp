@@ -1,7 +1,5 @@
 #include "planner/operator/extend/base_logical_extend.h"
 
-#include "common/exception/not_implemented.h"
-
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -46,7 +44,7 @@ std::string BaseLogicalExtend::getExpressionsForPrinting() const {
         result += "->";
     } break;
     default:
-        throw NotImplementedException("BaseLogicalExtend::getExpressionsForPrinting");
+        KU_UNREACHABLE;
     }
     result += nbrNode->toString();
     return result;

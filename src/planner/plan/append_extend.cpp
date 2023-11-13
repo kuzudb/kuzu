@@ -2,7 +2,6 @@
 #include "binder/expression/property_expression.h"
 #include "binder/expression_visitor.h"
 #include "catalog/rel_table_schema.h"
-#include "common/exception/not_implemented.h"
 #include "planner/join_order/cost_model.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
@@ -51,7 +50,7 @@ static std::unordered_set<table_id_t> getBoundNodeTableIDSet(
             result.insert(tableSchema->getBoundTableID(RelDataDirection::BWD));
         } break;
         default:
-            throw NotImplementedException("getBoundNodeTableIDSet");
+            KU_UNREACHABLE;
         }
     }
     return result;
@@ -75,7 +74,7 @@ static std::unordered_set<table_id_t> getNbrNodeTableIDSet(
             result.insert(tableSchema->getNbrTableID(RelDataDirection::BWD));
         } break;
         default:
-            throw NotImplementedException("getNbrNodeTableIDSet");
+            KU_UNREACHABLE;
         }
     }
     return result;

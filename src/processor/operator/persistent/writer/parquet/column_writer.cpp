@@ -1,6 +1,5 @@
 #include "processor/operator/persistent/writer/parquet/column_writer.h"
 
-#include "common/exception/not_implemented.h"
 #include "common/string_format.h"
 #include "function/cast/functions/numeric_limits.h"
 #include "processor/operator/persistent/writer/parquet/boolean_column_writer.h"
@@ -230,10 +229,8 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
             return std::make_unique<IntervalColumnWriter>(writer, schemaIdx,
                 std::move(schemaPathToCreate), maxRepeatToCreate, maxDefineToCreate,
                 canHaveNullsToCreate);
-            // LCOV_EXCL_START
         default:
-            throw NotImplementedException("ParquetWriter::createWriterRecursive");
-            // LCOV_EXCL_STOP
+            KU_UNREACHABLE;
         }
     }
     }
@@ -307,7 +304,7 @@ void ColumnWriter::compressPage(common::BufferedSerializer& bufferedSerializer,
         KU_ASSERT(compressedSize <= kuzu_snappy::MaxCompressedLength(bufferedSerializer.getSize()));
     } break;
     default:
-        throw NotImplementedException{"ColumnWriter::compressPage"};
+        KU_UNREACHABLE;
     }
 
     if (compressedSize > uint64_t(function::NumericLimits<int32_t>::maximum())) {

@@ -415,10 +415,8 @@ uint32_t BuiltInFunctions::getFunctionCost(
     }
     case FunctionType::TABLE:
         return matchParameters(inputTypes, function->parameterTypeIDs, isOverload);
-        // LCOV_EXCL_START
     default:
-        throw NotImplementedException{"BuiltInFunctions::getFunctionCost"};
-        // LCOC_EXCL_STOP
+        KU_UNREACHABLE;
     }
 }
 

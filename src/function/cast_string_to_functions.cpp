@@ -875,9 +875,9 @@ void CastString::copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std:
         CastStringHelper::cast(
             strVal.data(), strVal.length(), val, vector, rowToAdd, csvReaderConfig);
     } break;
-    default: { // LCOV_EXCL_START
-        throw NotImplementedException("CastString::operation");
-    } // LCOV_EXCL_STOP
+    default: {
+        KU_UNREACHABLE;
+    }
     }
 }
 

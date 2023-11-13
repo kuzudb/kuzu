@@ -1,7 +1,5 @@
 #include "storage/index/hash_index_builder.h"
 
-#include "common/exception/not_implemented.h"
-
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -189,7 +187,7 @@ PrimaryKeyIndexBuilder::PrimaryKeyIndexBuilder(
             std::make_unique<HashIndexBuilder<ku_string_t>>(fName, keyDataType);
     } break;
     default: {
-        throw NotImplementedException("PrimaryKeyIndexBuilder::PrimaryKeyIndexBuilder");
+        KU_UNREACHABLE;
     }
     }
 }

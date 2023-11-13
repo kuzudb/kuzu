@@ -3,7 +3,6 @@
 #include <fcntl.h>
 
 #include "common/constants.h"
-#include "common/exception/not_implemented.h"
 #include "common/file_utils.h"
 #include "common/string_utils.h"
 #include "common/type_utils.h"
@@ -104,7 +103,7 @@ void CSVFileWriter::writeValue(common::ValueVector* vector) {
     case LogicalTypeID::STRUCT:
         return writeToBuffer<struct_entry_t>(vector, true /* escapeStringValue */);
     default: {
-        throw NotImplementedException("CSVFileWriter::writeValue");
+        KU_UNREACHABLE;
     }
     }
 }

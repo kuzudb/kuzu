@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/exception/not_implemented.h"
 #include "common/serializer/buffered_serializer.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
@@ -76,12 +75,10 @@ public:
     virtual bool hasAnalyze() { return false; }
     virtual void analyze(ColumnWriterState& /*state*/, ColumnWriterState* /*parent*/,
         common::ValueVector* /*vector*/, uint64_t /*count*/) {
-        throw common::NotImplementedException{"ColumnWriter::analyze"};
+        KU_UNREACHABLE;
     }
     // Called after all data has been passed to Analyze.
-    virtual void finalizeAnalyze(ColumnWriterState& /*state*/) {
-        throw common::NotImplementedException{"ColumnWriter::finalizeAnalyze"};
-    }
+    virtual void finalizeAnalyze(ColumnWriterState& /*state*/) { KU_UNREACHABLE; }
     virtual void prepare(ColumnWriterState& state, ColumnWriterState* parent,
         common::ValueVector* vector, uint64_t count) = 0;
     virtual void beginWrite(ColumnWriterState& state) = 0;

@@ -1,6 +1,6 @@
 #include "common/enums/table_type.h"
 
-#include "common/exception/not_implemented.h"
+#include "common/assert.h"
 
 namespace kuzu {
 namespace common {
@@ -22,8 +22,8 @@ std::string TableTypeUtils::toString(TableType tableType) {
     case TableType::REL_GROUP: {
         return "REL_GROUP";
     }
-    default:                                                       // LCOV_EXCL_START
-        throw NotImplementedException("TableTypeUtils::toString"); // LCOV_EXCL_STOP
+    default:
+        KU_UNREACHABLE;
     }
 }
 

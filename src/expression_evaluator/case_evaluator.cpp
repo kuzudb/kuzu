@@ -2,7 +2,6 @@
 
 #include <cmath>
 
-#include "common/exception/not_implemented.h"
 #include "common/types/date_t.h"
 #include "common/types/interval_t.h"
 #include "common/types/ku_string.h"
@@ -136,10 +135,8 @@ void CaseExpressionEvaluator::fillAllSwitch(const ValueVector& thenVector) {
     case LogicalTypeID::VAR_LIST: {
         fillAll<list_entry_t>(thenVector);
     } break;
-        // LCOV_EXCL_START
     default:
-        throw NotImplementedException("CaseExpressionEvaluator::fillAllSwitch");
-        // LCOV_EXCL_STOP
+        KU_UNREACHABLE;
     }
 }
 
@@ -170,10 +167,8 @@ void CaseExpressionEvaluator::fillSelectedSwitch(
     case LogicalTypeID::VAR_LIST: {
         fillSelected<list_entry_t>(selVector, thenVector);
     } break;
-        // LCOV_EXCL_START
     default:
-        throw NotImplementedException("CaseExpressionEvaluator::fillSelectedSwitch");
-        // LCOV_EXCL_STOP
+        KU_UNREACHABLE;
     }
 }
 

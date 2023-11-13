@@ -1,6 +1,5 @@
 #include "processor/operator/recursive_extend/recursive_join.h"
 
-#include "common/exception/not_implemented.h"
 #include "processor/operator/recursive_extend/all_shortest_path_state.h"
 #include "processor/operator/recursive_extend/scan_frontier.h"
 #include "processor/operator/recursive_extend/shortest_path_state.h"
@@ -39,7 +38,7 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionC
             }
         } break;
         default:
-            throw NotImplementedException("BaseRecursiveJoin::initLocalStateInternal");
+            KU_UNREACHABLE;
         }
     } break;
     case QueryRelType::SHORTEST: {
@@ -61,7 +60,7 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionC
             }
         } break;
         default:
-            throw NotImplementedException("BaseRecursiveJoin::initLocalStateInternal");
+            KU_UNREACHABLE;
         }
     } break;
     case QueryRelType::ALL_SHORTEST: {
@@ -84,11 +83,11 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionC
             }
         } break;
         default:
-            throw NotImplementedException("BaseRecursiveJoin::initLocalStateInternal");
+            KU_UNREACHABLE;
         }
     } break;
     default:
-        throw NotImplementedException("BaseRecursiveJoin::initLocalStateInternal");
+        KU_UNREACHABLE;
     }
     if (vectors->pathVector != nullptr) {
         auto pathNodesFieldIdx =

@@ -1,7 +1,5 @@
 #include "planner/operator/logical_operator.h"
 
-#include "common/exception/not_implemented.h"
-
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -148,7 +146,7 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "UNWIND";
     }
     default:
-        throw NotImplementedException("LogicalOperatorUtils::logicalOperatorTypeToString");
+        KU_UNREACHABLE;
     }
 }
 

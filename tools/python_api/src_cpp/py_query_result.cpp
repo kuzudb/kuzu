@@ -3,13 +3,12 @@
 #include <string>
 
 #include "common/arrow/arrow_converter.h"
+#include "common/exception/not_implemented.h"
 #include "common/types/value/nested.h"
 #include "common/types/value/node.h"
 #include "common/types/value/rel.h"
 #include "datetime.h" // python lib
 #include "include/py_query_result_converter.h"
-#include "processor/result/factorized_table.h"
-#include "processor/result/flat_tuple.h"
 
 using namespace kuzu::common;
 
@@ -211,8 +210,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         return convertNodeIdToPyDict(value.getValue<nodeID_t>());
     }
     default:
-        throw NotImplementedException(
-            "Unsupported type: " + dataType->toString());
+        throw NotImplementedException("Unsupported type: " + dataType->toString());
     }
 }
 

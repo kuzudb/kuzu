@@ -72,7 +72,7 @@ void PathExpressionEvaluator::init(
                 recursiveRel->dataType, *pathExpression->getRelType(), vectors->relsDataInput);
         } break;
         default:
-            throw NotImplementedException("PathExpressionEvaluator::init");
+            KU_UNREACHABLE;
         }
         inputVectorsPerChild.push_back(std::move(vectors));
     }

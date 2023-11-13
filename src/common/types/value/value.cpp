@@ -1,6 +1,5 @@
 #include "common/types/value/value.h"
 
-#include "common/exception/not_implemented.h"
 #include "common/null_buffer.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
@@ -112,10 +111,8 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
         }
         return Value(dataType, std::move(children));
     }
-        // LCOV_EXCL_START
     default:
-        throw NotImplementedException("Value::createDefaultValue.");
-        // LCOV_EXCL_STOP
+        KU_UNREACHABLE;
     }
 }
 
@@ -296,10 +293,8 @@ void Value::copyValueFrom(const uint8_t* value) {
     case LogicalTypeID::RDF_VARIANT: {
         copyFromStruct(value);
     } break;
-        // LCOV_EXCL_START
     default:
-        throw NotImplementedException("Value::copyValueFrom.");
-        // LCOV_EXCL_STOP
+        KU_UNREACHABLE;
     }
 }
 
@@ -576,9 +571,7 @@ void Value::serialize(Serializer& serializer) const {
         }
     } break;
     default: {
-        // LCOV_EXCL_START
-        throw NotImplementedException("Value::serialize");
-        // LCOV_EXCL_STOP
+        KU_UNREACHABLE;
     }
     }
     serializer.serializeValue(childrenSize);
@@ -641,9 +634,7 @@ std::unique_ptr<Value> Value::deserialize(Deserializer& deserializer) {
         deserializer.deserializeVectorOfPtrs(val->children);
     } break;
     default: {
-        // LCOV_EXCL_START
-        throw NotImplementedException("Value::deserializeValue");
-        // LCOV_EXCL_STOP
+        KU_UNREACHABLE;
     }
     }
     deserializer.deserializeValue(val->childrenSize);

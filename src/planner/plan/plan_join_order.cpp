@@ -1,5 +1,4 @@
 #include "binder/expression_visitor.h"
-#include "common/exception/not_implemented.h"
 #include "planner/join_order/cost_model.h"
 #include "planner/operator/scan/logical_scan_internal_id.h"
 #include "planner/query_planner.h"
@@ -94,7 +93,7 @@ std::vector<std::unique_ptr<LogicalPlan>> QueryPlanner::enumerateQueryGraphColle
             }
         } break;
         default:
-            throw NotImplementedException("QueryPlanner::enumerateQueryGraphCollection");
+            KU_UNREACHABLE;
         }
         plansPerQueryGraph.push_back(std::move(plans));
     }
@@ -231,7 +230,7 @@ void QueryPlanner::planBaseTableScans(
         planCorrelatedExpressionsScan(correlatedExpressions);
     } break;
     default:
-        throw NotImplementedException("QueryPlanner::planBaseTableScan");
+        KU_UNREACHABLE;
     }
     for (auto relPos = 0u; relPos < queryGraph->getNumQueryRels(); ++relPos) {
         planRelScan(relPos);
@@ -323,7 +322,7 @@ void QueryPlanner::appendExtendAndFilter(std::shared_ptr<NodeExpression> boundNo
         appendRecursiveExtend(boundNode, nbrNode, rel, direction, plan);
     } break;
     default:
-        throw NotImplementedException("JoinOrderEnumerator::appendExtendAndFilter");
+        KU_UNREACHABLE;
     }
     appendFilters(predicates, plan);
 }

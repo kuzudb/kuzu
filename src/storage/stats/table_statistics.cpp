@@ -1,7 +1,6 @@
 #include "storage/stats/table_statistics.h"
 
 #include "catalog/table_schema.h"
-#include "common/exception/not_implemented.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "storage/stats/node_table_statistics.h"
@@ -62,11 +61,9 @@ std::unique_ptr<TableStatistics> TableStatistics::deserialize(Deserializer& dese
     case TableType::REL: {
         result = RelTableStats::deserialize(numTuples, tableID, deserializer);
     } break;
-    // LCOV_EXCL_START
     default: {
-        throw NotImplementedException("TableStatistics::deserialize");
+        KU_UNREACHABLE;
     }
-        // LCOV_EXCL_STOP
     }
     result->tableType = tableType;
     result->numTuples = numTuples;

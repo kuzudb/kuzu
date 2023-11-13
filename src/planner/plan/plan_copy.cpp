@@ -2,7 +2,6 @@
 #include "binder/copy/bound_copy_to.h"
 #include "catalog/node_table_schema.h"
 #include "catalog/rel_table_schema.h"
-#include "common/exception/not_implemented.h"
 #include "planner/operator/logical_partitioner.h"
 #include "planner/operator/persistent/logical_copy_from.h"
 #include "planner/operator/persistent/logical_copy_to.h"
@@ -59,11 +58,9 @@ static void appendPartitioner(BoundCopyFromInfo* copyFromInfo, LogicalPlan& plan
                     ColumnDataFormat::REGULAR :
                     ColumnDataFormat::CSR));
     } break;
-        // LCOV_EXCL_START
     default: {
-        throw NotImplementedException("PlanMapper::appendIndexScan");
+        KU_UNREACHABLE;
     }
-        // LCOV_EXCL_STOP
     }
     auto partitioner =
         std::make_shared<LogicalPartitioner>(std::move(infos), plan.getLastOperator());
