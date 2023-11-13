@@ -702,3 +702,14 @@ Conversion exception: Unsupported casting function from REL to TIMESTAMP.
 -STATEMENT MATCH (:person)-[e:studyAt*1..3]->(:organisation) return cast(e, "INT64");
 ---- error
 Conversion exception: Unsupported casting function from RECURSIVE_REL to INT64.
+
+-LOG InvalidVarListToVarList
+-STATEMENT RETURN cast([31231], "INT64[][]");
+---- error
+Conversion exception: Unsupported casting function from INT64 to VAR_LIST.
+-STATEMENT RETURN cast([-1], "UINT8[]");
+---- error
+Overflow exception: Value -1 is not within UINT8 range
+-STATEMENT RETURN cast([[1, 1]], "UINT8[]");
+---- error
+Conversion exception: Unsupported casting function from VAR_LIST to UINT8.

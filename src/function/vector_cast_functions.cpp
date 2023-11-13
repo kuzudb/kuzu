@@ -34,9 +34,10 @@ static void castFixedListToString(
     resultVector.setValue(resultPos, result);
 }
 
+template<typename /*EXECUTOR*/ = UnaryFunctionExecutor>
 static void fixedListCastExecFunction(const std::vector<std::shared_ptr<ValueVector>>& params,
     ValueVector& result, void* /*dataPtr*/ = nullptr) {
-    assert(params.size() == 1);
+    KU_ASSERT(params.size() == 1);
     auto param = params[0];
     if (param->state->isFlat()) {
         castFixedListToString(*param, param->state->selVector->selectedPositions[0], result,
@@ -53,9 +54,25 @@ static void fixedListCastExecFunction(const std::vector<std::shared_ptr<ValueVec
     }
 }
 
+template<>
+void fixedListCastExecFunction<CastChildFunctionExecutor>(
+    const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result,
+    void* /*dataPtr*/) {
+    KU_ASSERT(params.size() == 1);
+
+    auto inputVector = params[0].get();
+    auto numOfChild = ListVector::getDataVectorSize(inputVector);
+    auto inputChildVector = (ListVector::getDataVector(inputVector));
+    auto resultChildVector = (ListVector::getDataVector(&result));
+    for (auto i = 0u; i < numOfChild; i++) {
+        castFixedListToString(*inputChildVector, i, *resultChildVector, i);
+    }
+}
+
+template<typename /*EXECUTOR*/ = UnaryFunctionExecutor>
 static void StringtoFixedListCastExecFunction(
     const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
-    assert(params.size() == 1);
+    KU_ASSERT(params.size() == 1);
     auto param = params[0];
     auto csvReaderConfig = &reinterpret_cast<StringCastFunctionBindData*>(dataPtr)->csvConfig;
     if (param->state->isFlat()) {
@@ -84,6 +101,67 @@ static void StringtoFixedListCastExecFunction(
             }
         }
     }
+}
+
+template<>
+void StringtoFixedListCastExecFunction<CastChildFunctionExecutor>(
+    const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
+    KU_ASSERT(params.size() == 1 &&
+              params[0]->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST &&
+              result.dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST);
+    auto csvReaderConfig = &reinterpret_cast<StringCastFunctionBindData*>(dataPtr)->csvConfig;
+
+    auto inputVector = params[0].get();
+    auto numOfChild = ListVector::getDataVectorSize(inputVector);
+    auto inputChildVector = (ListVector::getDataVector(inputVector));
+    auto resultChildVector = (ListVector::getDataVector(&result));
+    for (auto i = 0u; i < numOfChild; i++) {
+        resultChildVector->setNull(i, inputChildVector->isNull(i));
+        if (!resultChildVector->isNull(i)) {
+            CastString::castToFixedList(
+                inputChildVector->getValue<ku_string_t>(i), resultChildVector, i, csvReaderConfig);
+        }
+    }
+}
+
+static void varListCastExecFunction(
+    const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
+    KU_ASSERT(params.size() == 1);
+    result.resetAuxiliaryBuffer();
+    auto inputVector = params[0];
+    auto resultVector = &result;
+
+    auto numOfChild = ListVector::getDataVectorSize(inputVector.get());
+    ListVector::resizeDataVector(&result, numOfChild);
+    auto numOfListEntry = inputVector->state->selVector
+                              ->selectedPositions[inputVector->state->selVector->selectedSize - 1] +
+                          1;
+    memcpy(resultVector->getData(), inputVector->getData(),
+        numOfListEntry * resultVector->getNumBytesPerValue());
+    resultVector->setNullFromBits(inputVector->getNullMaskData(), 0, 0, numOfListEntry);
+
+    // resolve to the lowest level dataVector
+    auto inputChildTypeID = VarListType::getChildType(&inputVector->dataType)->getLogicalTypeID();
+    auto resultChildTypeID = VarListType::getChildType(&resultVector->dataType)->getLogicalTypeID();
+    while (inputChildTypeID == LogicalTypeID::VAR_LIST &&
+           resultChildTypeID == LogicalTypeID::VAR_LIST) {
+        inputVector = ListVector::getSharedDataVector(inputVector.get());
+        resultVector = ListVector::getDataVector(resultVector);
+        inputChildTypeID = VarListType::getChildType(&inputVector->dataType)->getLogicalTypeID();
+        resultChildTypeID = VarListType::getChildType(&resultVector->dataType)->getLogicalTypeID();
+
+        // copy NULL musk and list entry
+        memcpy(resultVector->getData(), inputVector->getData(),
+            numOfChild * resultVector->getNumBytesPerValue());
+        resultVector->setNullFromBits(inputVector->getNullMaskData(), 0, 0, numOfChild);
+        numOfChild = ListVector::getDataVectorSize(inputVector.get());
+        ListVector::resizeDataVector(resultVector, numOfChild);
+    }
+    scalar_exec_func func = CastFunction::bindCastFunction<CastChildFunctionExecutor>(
+        "CAST", inputChildTypeID, resultChildTypeID)
+                                ->execFunc;
+    std::vector<std::shared_ptr<ValueVector>> childParams{inputVector};
+    func(childParams, *resultVector, dataPtr);
 }
 
 bool CastFunction::hasImplicitCast(const LogicalType& srcType, const LogicalType& dstType) {
@@ -119,81 +197,98 @@ bool CastFunction::hasImplicitCast(const LogicalType& srcType, const LogicalType
     }
 }
 
+template<typename EXECUTOR = UnaryFunctionExecutor>
 static std::unique_ptr<ScalarFunction> bindCastFromStringFunction(
     const std::string& functionName, LogicalTypeID targetTypeID) {
     scalar_exec_func execFunc;
     switch (targetTypeID) {
     case LogicalTypeID::DATE: {
-        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, date_t, CastString>;
+        execFunc =
+            ScalarFunction::UnaryCastStringExecFunction<ku_string_t, date_t, CastString, EXECUTOR>;
     } break;
     case LogicalTypeID::TIMESTAMP: {
-        execFunc =
-            ScalarFunction::UnaryCastStringExecFunction<ku_string_t, timestamp_t, CastString>;
+        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, timestamp_t, CastString,
+            EXECUTOR>;
     } break;
     case LogicalTypeID::INTERVAL: {
-        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, interval_t, CastString>;
+        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, interval_t, CastString,
+            EXECUTOR>;
     } break;
     case LogicalTypeID::BLOB: {
-        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, blob_t, CastString>;
+        execFunc =
+            ScalarFunction::UnaryCastStringExecFunction<ku_string_t, blob_t, CastString, EXECUTOR>;
     } break;
     case LogicalTypeID::STRING: {
-        execFunc = ScalarFunction::UnaryCastExecFunction<ku_string_t, ku_string_t, CastToString>;
+        execFunc =
+            ScalarFunction::UnaryCastExecFunction<ku_string_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::BOOL: {
-        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, bool, CastString>;
+        execFunc =
+            ScalarFunction::UnaryCastStringExecFunction<ku_string_t, bool, CastString, EXECUTOR>;
     } break;
     case LogicalTypeID::DOUBLE: {
-        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, double_t, CastString>;
+        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, double_t, CastString,
+            EXECUTOR>;
     } break;
     case LogicalTypeID::FLOAT: {
-        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, float, CastString>;
+        execFunc =
+            ScalarFunction::UnaryCastStringExecFunction<ku_string_t, float, CastString, EXECUTOR>;
     } break;
     case LogicalTypeID::INT128: {
-        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, int128_t, CastString>;
+        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, int128_t, CastString,
+            EXECUTOR>;
     } break;
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64: {
-        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, int64_t, CastString>;
+        execFunc =
+            ScalarFunction::UnaryCastStringExecFunction<ku_string_t, int64_t, CastString, EXECUTOR>;
     } break;
     case LogicalTypeID::INT32: {
-        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, int32_t, CastString>;
+        execFunc =
+            ScalarFunction::UnaryCastStringExecFunction<ku_string_t, int32_t, CastString, EXECUTOR>;
     } break;
     case LogicalTypeID::INT16: {
-        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, int16_t, CastString>;
+        execFunc =
+            ScalarFunction::UnaryCastStringExecFunction<ku_string_t, int16_t, CastString, EXECUTOR>;
     } break;
     case LogicalTypeID::INT8: {
-        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, int8_t, CastString>;
+        execFunc =
+            ScalarFunction::UnaryCastStringExecFunction<ku_string_t, int8_t, CastString, EXECUTOR>;
     } break;
     case LogicalTypeID::UINT64: {
-        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, uint64_t, CastString>;
+        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, uint64_t, CastString,
+            EXECUTOR>;
     } break;
     case LogicalTypeID::UINT32: {
-        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, uint32_t, CastString>;
+        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, uint32_t, CastString,
+            EXECUTOR>;
     } break;
     case LogicalTypeID::UINT16: {
-        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, uint16_t, CastString>;
+        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, uint16_t, CastString,
+            EXECUTOR>;
     } break;
     case LogicalTypeID::UINT8: {
-        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, uint8_t, CastString>;
+        execFunc =
+            ScalarFunction::UnaryCastStringExecFunction<ku_string_t, uint8_t, CastString, EXECUTOR>;
     } break;
     case LogicalTypeID::VAR_LIST: {
-        execFunc =
-            ScalarFunction::UnaryCastStringExecFunction<ku_string_t, list_entry_t, CastString>;
+        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, list_entry_t,
+            CastString, EXECUTOR>;
     } break;
     case LogicalTypeID::FIXED_LIST: {
-        execFunc = StringtoFixedListCastExecFunction;
+        execFunc = StringtoFixedListCastExecFunction<EXECUTOR>;
     } break;
     case LogicalTypeID::MAP: {
-        execFunc =
-            ScalarFunction::UnaryCastStringExecFunction<ku_string_t, map_entry_t, CastString>;
+        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, map_entry_t, CastString,
+            EXECUTOR>;
     } break;
     case LogicalTypeID::STRUCT: {
-        execFunc =
-            ScalarFunction::UnaryCastStringExecFunction<ku_string_t, struct_entry_t, CastString>;
+        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, struct_entry_t,
+            CastString, EXECUTOR>;
     } break;
     case LogicalTypeID::UNION: {
-        execFunc =
-            ScalarFunction::UnaryCastStringExecFunction<ku_string_t, union_entry_t, CastString>;
+        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, union_entry_t,
+            CastString, EXECUTOR>;
     } break;
     default:
         throw ConversionException{stringFormat("Unsupported casting function from STRING to {}.",
@@ -203,74 +298,75 @@ static std::unique_ptr<ScalarFunction> bindCastFromStringFunction(
         functionName, std::vector<LogicalTypeID>{LogicalTypeID::STRING}, targetTypeID, execFunc);
 }
 
+template<typename EXECUTOR = UnaryFunctionExecutor>
 static std::unique_ptr<ScalarFunction> bindCastFromRdfVariantFunction(
     const std::string& functionName, LogicalTypeID targetTypeID) {
     scalar_exec_func execFunc;
     switch (targetTypeID) {
     case LogicalTypeID::DATE: {
-        execFunc =
-            ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, date_t, CastFromRdfVariant>;
+        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, date_t,
+            CastFromRdfVariant, EXECUTOR>;
     } break;
     case LogicalTypeID::TIMESTAMP: {
         execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, timestamp_t,
-            CastFromRdfVariant>;
+            CastFromRdfVariant, EXECUTOR>;
     } break;
     case LogicalTypeID::INTERVAL: {
         execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, interval_t,
-            CastFromRdfVariant>;
+            CastFromRdfVariant, EXECUTOR>;
     } break;
     case LogicalTypeID::BLOB: {
-        execFunc =
-            ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, blob_t, CastFromRdfVariant>;
+        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, blob_t,
+            CastFromRdfVariant, EXECUTOR>;
     } break;
     case LogicalTypeID::STRING: {
         execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, ku_string_t,
-            CastFromRdfVariant>;
+            CastFromRdfVariant, EXECUTOR>;
     } break;
     case LogicalTypeID::BOOL: {
-        execFunc =
-            ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, bool, CastFromRdfVariant>;
+        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, bool,
+            CastFromRdfVariant, EXECUTOR>;
     } break;
     case LogicalTypeID::DOUBLE: {
-        execFunc =
-            ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, double_t, CastFromRdfVariant>;
+        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, double_t,
+            CastFromRdfVariant, EXECUTOR>;
     } break;
     case LogicalTypeID::FLOAT: {
-        execFunc =
-            ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, float_t, CastFromRdfVariant>;
+        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, float_t,
+            CastFromRdfVariant, EXECUTOR>;
     } break;
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64: {
-        execFunc =
-            ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, int64_t, CastFromRdfVariant>;
+        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, int64_t,
+            CastFromRdfVariant, EXECUTOR>;
     } break;
     case LogicalTypeID::INT32: {
-        execFunc =
-            ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, int32_t, CastFromRdfVariant>;
+        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, int32_t,
+            CastFromRdfVariant, EXECUTOR>;
     } break;
     case LogicalTypeID::INT16: {
-        execFunc =
-            ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, int16_t, CastFromRdfVariant>;
+        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, int16_t,
+            CastFromRdfVariant, EXECUTOR>;
     } break;
     case LogicalTypeID::INT8: {
-        execFunc =
-            ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, int8_t, CastFromRdfVariant>;
+        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, int8_t,
+            CastFromRdfVariant, EXECUTOR>;
     } break;
     case LogicalTypeID::UINT64: {
-        execFunc =
-            ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, uint64_t, CastFromRdfVariant>;
+        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, uint64_t,
+            CastFromRdfVariant, EXECUTOR>;
     } break;
     case LogicalTypeID::UINT32: {
-        execFunc =
-            ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, uint32_t, CastFromRdfVariant>;
+        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, uint32_t,
+            CastFromRdfVariant, EXECUTOR>;
     } break;
     case LogicalTypeID::UINT16: {
-        execFunc =
-            ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, uint16_t, CastFromRdfVariant>;
+        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, uint16_t,
+            CastFromRdfVariant, EXECUTOR>;
     } break;
     case LogicalTypeID::UINT8: {
-        execFunc =
-            ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, uint8_t, CastFromRdfVariant>;
+        execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, uint8_t,
+            CastFromRdfVariant, EXECUTOR>;
     } break;
         // LCOV_EXCL_START
     default:
@@ -283,78 +379,86 @@ static std::unique_ptr<ScalarFunction> bindCastFromRdfVariantFunction(
         std::vector<LogicalTypeID>{LogicalTypeID::RDF_VARIANT}, targetTypeID, execFunc);
 }
 
+template<typename EXECUTOR = UnaryFunctionExecutor>
 static std::unique_ptr<ScalarFunction> bindCastToStringFunction(
     const std::string& functionName, LogicalTypeID sourceTypeID) {
     scalar_exec_func func;
     switch (sourceTypeID) {
     case LogicalTypeID::BOOL: {
-        func = ScalarFunction::UnaryCastExecFunction<bool, ku_string_t, CastToString>;
+        func = ScalarFunction::UnaryCastExecFunction<bool, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64: {
-        func = ScalarFunction::UnaryCastExecFunction<int64_t, ku_string_t, CastToString>;
+        func = ScalarFunction::UnaryCastExecFunction<int64_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::INT32: {
-        func = ScalarFunction::UnaryCastExecFunction<int32_t, ku_string_t, CastToString>;
+        func = ScalarFunction::UnaryCastExecFunction<int32_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::INT16: {
-        func = ScalarFunction::UnaryCastExecFunction<int16_t, ku_string_t, CastToString>;
+        func = ScalarFunction::UnaryCastExecFunction<int16_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::INT8: {
-        func = ScalarFunction::UnaryCastExecFunction<int8_t, ku_string_t, CastToString>;
+        func = ScalarFunction::UnaryCastExecFunction<int8_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::UINT64: {
-        func = ScalarFunction::UnaryCastExecFunction<uint64_t, ku_string_t, CastToString>;
+        func = ScalarFunction::UnaryCastExecFunction<uint64_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::UINT32: {
-        func = ScalarFunction::UnaryCastExecFunction<uint32_t, ku_string_t, CastToString>;
+        func = ScalarFunction::UnaryCastExecFunction<uint32_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::UINT16: {
-        func = ScalarFunction::UnaryCastExecFunction<uint16_t, ku_string_t, CastToString>;
+        func = ScalarFunction::UnaryCastExecFunction<uint16_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::INT128: {
-        func = ScalarFunction::UnaryCastExecFunction<int128_t, ku_string_t, CastToString>;
+        func = ScalarFunction::UnaryCastExecFunction<int128_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::UINT8: {
-        func = ScalarFunction::UnaryCastExecFunction<uint8_t, ku_string_t, CastToString>;
+        func = ScalarFunction::UnaryCastExecFunction<uint8_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::DOUBLE: {
-        func = ScalarFunction::UnaryCastExecFunction<double_t, ku_string_t, CastToString>;
+        func = ScalarFunction::UnaryCastExecFunction<double_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::FLOAT: {
-        func = ScalarFunction::UnaryCastExecFunction<float_t, ku_string_t, CastToString>;
+        func = ScalarFunction::UnaryCastExecFunction<float_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::DATE: {
-        func = ScalarFunction::UnaryCastExecFunction<date_t, ku_string_t, CastToString>;
+        func = ScalarFunction::UnaryCastExecFunction<date_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::TIMESTAMP: {
-        func = ScalarFunction::UnaryCastExecFunction<timestamp_t, ku_string_t, CastToString>;
+        func =
+            ScalarFunction::UnaryCastExecFunction<timestamp_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::INTERVAL: {
-        func = ScalarFunction::UnaryCastExecFunction<interval_t, ku_string_t, CastToString>;
+        func =
+            ScalarFunction::UnaryCastExecFunction<interval_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::INTERNAL_ID: {
-        func = ScalarFunction::UnaryCastExecFunction<internalID_t, ku_string_t, CastToString>;
+        func = ScalarFunction::UnaryCastExecFunction<internalID_t, ku_string_t, CastToString,
+            EXECUTOR>;
     } break;
     case LogicalTypeID::BLOB: {
-        func = ScalarFunction::UnaryCastExecFunction<blob_t, ku_string_t, CastToString>;
+        func = ScalarFunction::UnaryCastExecFunction<blob_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::VAR_LIST: {
-        func = ScalarFunction::UnaryCastExecFunction<list_entry_t, ku_string_t, CastToString>;
+        func = ScalarFunction::UnaryCastExecFunction<list_entry_t, ku_string_t, CastToString,
+            EXECUTOR>;
     } break;
     case LogicalTypeID::FIXED_LIST: {
-        func = fixedListCastExecFunction;
+        func = fixedListCastExecFunction<EXECUTOR>;
     } break;
     case LogicalTypeID::MAP: {
-        func = ScalarFunction::UnaryCastExecFunction<map_entry_t, ku_string_t, CastToString>;
+        func =
+            ScalarFunction::UnaryCastExecFunction<map_entry_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::NODE:
     case LogicalTypeID::REL:
     case LogicalTypeID::STRUCT: {
-        func = ScalarFunction::UnaryCastExecFunction<struct_entry_t, ku_string_t, CastToString>;
+        func = ScalarFunction::UnaryCastExecFunction<struct_entry_t, ku_string_t, CastToString,
+            EXECUTOR>;
     } break;
     case LogicalTypeID::UNION: {
-        func = ScalarFunction::UnaryCastExecFunction<union_entry_t, ku_string_t, CastToString>;
+        func = ScalarFunction::UnaryCastExecFunction<union_entry_t, ku_string_t, CastToString,
+            EXECUTOR>;
     } break;
         // ToDo(Kebing): RECURSIVE_REL to string
     default:
@@ -364,44 +468,44 @@ static std::unique_ptr<ScalarFunction> bindCastToStringFunction(
         functionName, std::vector<LogicalTypeID>{sourceTypeID}, LogicalTypeID::STRING, func);
 }
 
-template<typename DST_TYPE, typename OP>
+template<typename DST_TYPE, typename OP, typename EXECUTOR = UnaryFunctionExecutor>
 static std::unique_ptr<ScalarFunction> bindCastToNumericFunction(
     const std::string& functionName, LogicalTypeID sourceTypeID, LogicalTypeID targetTypeID) {
     scalar_exec_func func;
     switch (sourceTypeID) {
     case LogicalTypeID::INT8: {
-        func = ScalarFunction::UnaryExecFunction<int8_t, DST_TYPE, OP>;
+        func = ScalarFunction::UnaryExecFunction<int8_t, DST_TYPE, OP, EXECUTOR>;
     } break;
     case LogicalTypeID::INT16: {
-        func = ScalarFunction::UnaryExecFunction<int16_t, DST_TYPE, OP>;
+        func = ScalarFunction::UnaryExecFunction<int16_t, DST_TYPE, OP, EXECUTOR>;
     } break;
     case LogicalTypeID::INT32: {
-        func = ScalarFunction::UnaryExecFunction<int32_t, DST_TYPE, OP>;
+        func = ScalarFunction::UnaryExecFunction<int32_t, DST_TYPE, OP, EXECUTOR>;
     } break;
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64: {
-        func = ScalarFunction::UnaryExecFunction<int64_t, DST_TYPE, OP>;
+        func = ScalarFunction::UnaryExecFunction<int64_t, DST_TYPE, OP, EXECUTOR>;
     } break;
     case LogicalTypeID::UINT8: {
-        func = ScalarFunction::UnaryExecFunction<uint8_t, DST_TYPE, OP>;
+        func = ScalarFunction::UnaryExecFunction<uint8_t, DST_TYPE, OP, EXECUTOR>;
     } break;
     case LogicalTypeID::UINT16: {
-        func = ScalarFunction::UnaryExecFunction<uint16_t, DST_TYPE, OP>;
+        func = ScalarFunction::UnaryExecFunction<uint16_t, DST_TYPE, OP, EXECUTOR>;
     } break;
     case LogicalTypeID::UINT32: {
-        func = ScalarFunction::UnaryExecFunction<uint32_t, DST_TYPE, OP>;
+        func = ScalarFunction::UnaryExecFunction<uint32_t, DST_TYPE, OP, EXECUTOR>;
     } break;
     case LogicalTypeID::UINT64: {
-        func = ScalarFunction::UnaryExecFunction<uint64_t, DST_TYPE, OP>;
+        func = ScalarFunction::UnaryExecFunction<uint64_t, DST_TYPE, OP, EXECUTOR>;
     } break;
     case LogicalTypeID::INT128: {
-        func = ScalarFunction::UnaryExecFunction<int128_t, DST_TYPE, OP>;
+        func = ScalarFunction::UnaryExecFunction<int128_t, DST_TYPE, OP, EXECUTOR>;
     } break;
     case LogicalTypeID::FLOAT: {
-        func = ScalarFunction::UnaryExecFunction<float_t, DST_TYPE, OP>;
+        func = ScalarFunction::UnaryExecFunction<float_t, DST_TYPE, OP, EXECUTOR>;
     } break;
     case LogicalTypeID::DOUBLE: {
-        func = ScalarFunction::UnaryExecFunction<double_t, DST_TYPE, OP>;
+        func = ScalarFunction::UnaryExecFunction<double_t, DST_TYPE, OP, EXECUTOR>;
     } break;
     default:
         throw ConversionException{stringFormat("Unsupported casting function from {} to {}.",
@@ -411,12 +515,33 @@ static std::unique_ptr<ScalarFunction> bindCastToNumericFunction(
         functionName, std::vector<LogicalTypeID>{sourceTypeID}, targetTypeID, func);
 }
 
+template<typename /*DST_TYPE*/>
+static std::unique_ptr<ScalarFunction> bindCastBetweenNested(
+    const std::string& functionName, LogicalTypeID sourceTypeID, LogicalTypeID targetTypeID) {
+    scalar_exec_func func;
+    switch (sourceTypeID) {
+    case LogicalTypeID::VAR_LIST: {
+        func = varListCastExecFunction;
+    } break;
+    default:
+        // lcov_excl_start
+        // TODO(kebing): implement more
+        throw ConversionException{stringFormat("Unsupported casting function from {} to {}.",
+            LogicalTypeUtils::toString(sourceTypeID), LogicalTypeUtils::toString(targetTypeID))};
+        // lcov_excl_end
+    }
+    return std::make_unique<ScalarFunction>(
+        functionName, std::vector<LogicalTypeID>{sourceTypeID}, targetTypeID, func);
+}
+
+template<typename EXECUTOR = UnaryFunctionExecutor>
 static std::unique_ptr<ScalarFunction> bindCastToTimestampFunction(
     const std::string& functionName, LogicalTypeID sourceTypeID) {
     scalar_exec_func func;
     switch (sourceTypeID) {
     case LogicalTypeID::DATE: {
-        func = ScalarFunction::UnaryExecFunction<date_t, timestamp_t, CastDateToTimestamp>;
+        func =
+            ScalarFunction::UnaryExecFunction<date_t, timestamp_t, CastDateToTimestamp, EXECUTOR>;
     } break;
     default:
         throw ConversionException{stringFormat("Unsupported casting function from {} to TIMESTAMP.",
@@ -426,68 +551,72 @@ static std::unique_ptr<ScalarFunction> bindCastToTimestampFunction(
         functionName, std::vector<LogicalTypeID>{sourceTypeID}, LogicalTypeID::TIMESTAMP, func);
 }
 
+template<typename EXECUTOR>
 std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(
     const std::string& functionName, LogicalTypeID sourceTypeID, LogicalTypeID targetTypeID) {
     if (sourceTypeID == LogicalTypeID::STRING) {
-        return bindCastFromStringFunction(functionName, targetTypeID);
+        return bindCastFromStringFunction<EXECUTOR>(functionName, targetTypeID);
     }
     if (sourceTypeID == LogicalTypeID::RDF_VARIANT) {
-        return bindCastFromRdfVariantFunction(functionName, targetTypeID);
+        return bindCastFromRdfVariantFunction<EXECUTOR>(functionName, targetTypeID);
     }
     switch (targetTypeID) {
     case LogicalTypeID::STRING: {
-        return bindCastToStringFunction(functionName, sourceTypeID);
+        return bindCastToStringFunction<EXECUTOR>(functionName, sourceTypeID);
     }
     case LogicalTypeID::DOUBLE: {
-        return bindCastToNumericFunction<double_t, CastToDouble>(
+        return bindCastToNumericFunction<double_t, CastToDouble, EXECUTOR>(
             functionName, sourceTypeID, targetTypeID);
     }
     case LogicalTypeID::FLOAT: {
-        return bindCastToNumericFunction<float_t, CastToFloat>(
+        return bindCastToNumericFunction<float_t, CastToFloat, EXECUTOR>(
             functionName, sourceTypeID, targetTypeID);
     }
     case LogicalTypeID::INT128: {
-        return bindCastToNumericFunction<int128_t, CastToInt128>(
+        return bindCastToNumericFunction<int128_t, CastToInt128, EXECUTOR>(
             functionName, sourceTypeID, targetTypeID);
     }
     case LogicalTypeID::SERIAL: {
-        return bindCastToNumericFunction<int64_t, CastToSerial>(
+        return bindCastToNumericFunction<int64_t, CastToSerial, EXECUTOR>(
             functionName, sourceTypeID, targetTypeID);
     }
     case LogicalTypeID::INT64: {
-        return bindCastToNumericFunction<int64_t, CastToInt64>(
+        return bindCastToNumericFunction<int64_t, CastToInt64, EXECUTOR>(
             functionName, sourceTypeID, targetTypeID);
     }
     case LogicalTypeID::INT32: {
-        return bindCastToNumericFunction<int32_t, CastToInt32>(
+        return bindCastToNumericFunction<int32_t, CastToInt32, EXECUTOR>(
             functionName, sourceTypeID, targetTypeID);
     }
     case LogicalTypeID::INT16: {
-        return bindCastToNumericFunction<int16_t, CastToInt16>(
+        return bindCastToNumericFunction<int16_t, CastToInt16, EXECUTOR>(
             functionName, sourceTypeID, targetTypeID);
     }
     case LogicalTypeID::INT8: {
-        return bindCastToNumericFunction<int8_t, CastToInt8>(
+        return bindCastToNumericFunction<int8_t, CastToInt8, EXECUTOR>(
             functionName, sourceTypeID, targetTypeID);
     }
     case LogicalTypeID::UINT64: {
-        return bindCastToNumericFunction<uint64_t, CastToUInt64>(
+        return bindCastToNumericFunction<uint64_t, CastToUInt64, EXECUTOR>(
             functionName, sourceTypeID, targetTypeID);
     }
     case LogicalTypeID::UINT32: {
-        return bindCastToNumericFunction<uint32_t, CastToUInt32>(
+        return bindCastToNumericFunction<uint32_t, CastToUInt32, EXECUTOR>(
             functionName, sourceTypeID, targetTypeID);
     }
     case LogicalTypeID::UINT16: {
-        return bindCastToNumericFunction<uint16_t, CastToUInt16>(
+        return bindCastToNumericFunction<uint16_t, CastToUInt16, EXECUTOR>(
             functionName, sourceTypeID, targetTypeID);
     }
     case LogicalTypeID::UINT8: {
-        return bindCastToNumericFunction<uint8_t, CastToUInt8>(
+        return bindCastToNumericFunction<uint8_t, CastToUInt8, EXECUTOR>(
             functionName, sourceTypeID, targetTypeID);
     }
     case LogicalTypeID::TIMESTAMP: {
-        return bindCastToTimestampFunction(functionName, sourceTypeID);
+        return bindCastToTimestampFunction<EXECUTOR>(functionName, sourceTypeID);
+    }
+    case LogicalTypeID::VAR_LIST: {
+        return bindCastBetweenNested<list_entry_t>(functionName, sourceTypeID, targetTypeID);
     }
     default: {
         throw ConversionException{stringFormat("Unsupported casting function from {} to {}.",
@@ -726,10 +855,7 @@ std::unique_ptr<FunctionBindData> CastAnyFunction::bindFunc(
     func->execFunc =
         CastFunction::bindCastFunction(func->name, inputTypeID, outputType->getLogicalTypeID())
             ->execFunc;
-    if (inputTypeID == LogicalTypeID::STRING) {
-        return std::make_unique<function::StringCastFunctionBindData>(*outputType);
-    }
-    return std::make_unique<function::FunctionBindData>(*outputType);
+    return std::make_unique<function::StringCastFunctionBindData>(*outputType);
 }
 
 function_set CastAnyFunction::getFunctionSet() {

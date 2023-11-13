@@ -115,7 +115,7 @@ public:
 
     // const because updates to the data must set mayContainNulls if any value
     // becomes non-null
-    // Modifying the underlying data shuld be done with setNull or copyFromNullData
+    // Modifying the underlying data should be done with setNull or copyFromNullData
     inline const uint64_t* getData() { return data; }
 
     static inline uint64_t getNumNullEntries(uint64_t numNullBits) {
