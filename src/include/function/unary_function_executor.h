@@ -89,6 +89,27 @@ struct UnaryUDFFunctionWrapper {
     }
 };
 
+struct CastChildFunctionExecutor {
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
+    static void executeSwitch(
+        common::ValueVector& operand, common::ValueVector& result, void* dataPtr) {
+        // this vector is of var list type and the child vector is of non-nested types then cast
+        KU_ASSERT(operand.dataType.getLogicalTypeID() == common::LogicalTypeID::VAR_LIST &&
+                  result.dataType.getLogicalTypeID() == common::LogicalTypeID::VAR_LIST);
+        auto childNum = common::ListVector::getDataVectorSize(&operand);
+        auto inputChildVector = common::ListVector::getDataVector(&operand);
+        auto resultChildVector = (common::ListVector::getDataVector(&result));
+        for (auto i = 0u; i < childNum; i++) {
+            resultChildVector->setNull(i, inputChildVector->isNull(i));
+            if (!resultChildVector->isNull(i)) {
+                // cast position i in child data vector
+                OP_WRAPPER::template operation<OPERAND_TYPE, RESULT_TYPE, FUNC>(
+                    (void*)(inputChildVector), i, (void*)(resultChildVector), i, dataPtr);
+            }
+        }
+    }
+};
+
 struct UnaryFunctionExecutor {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
     static void executeOnValue(common::ValueVector& inputVector, uint64_t inputPos,
@@ -150,19 +171,6 @@ struct UnaryFunctionExecutor {
     static void execute(common::ValueVector& operand, common::ValueVector& result) {
         executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, UnaryFunctionWrapper>(
             operand, result, nullptr /* dataPtr */);
-    }
-
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void executeString(common::ValueVector& operand, common::ValueVector& result) {
-        executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, UnaryStringFunctionWrapper>(
-            operand, result, nullptr /* dataPtr */);
-    }
-
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void executeCastString(
-        common::ValueVector& operand, common::ValueVector& result, void* dataPtr) {
-        executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, UnaryCastStringFunctionWrapper>(
-            operand, result, dataPtr);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>

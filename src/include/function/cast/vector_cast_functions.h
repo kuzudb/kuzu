@@ -16,6 +16,7 @@ struct CastFunction {
     static bool hasImplicitCast(
         const common::LogicalType& srcType, const common::LogicalType& dstType);
 
+    template<typename EXECUTOR = UnaryFunctionExecutor>
     static std::unique_ptr<ScalarFunction> bindCastFunction(const std::string& functionName,
         common::LogicalTypeID sourceTypeID, common::LogicalTypeID targetTypeID);
 };

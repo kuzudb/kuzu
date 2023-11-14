@@ -22,10 +22,8 @@ void FunctionExpressionEvaluator::evaluate() {
         child->evaluate();
     }
     auto expr = reinterpret_cast<binder::ScalarFunctionExpression*>(expression.get());
-    if (expr->getFunctionName() == CAST_FUNC_NAME &&
-        parameters[0]->dataType.getLogicalTypeID() == LogicalTypeID::STRING) {
-        execFunc(parameters, *resultVector,
-            reinterpret_cast<function::StringCastFunctionBindData*>(expr->getBindData()));
+    if (expr->getFunctionName() == CAST_FUNC_NAME) {
+        execFunc(parameters, *resultVector, expr->getBindData());
         return;
     }
     if (execFunc != nullptr) {

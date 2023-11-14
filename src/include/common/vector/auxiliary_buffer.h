@@ -73,6 +73,7 @@ public:
         dataVector = std::move(vector);
     }
     inline ValueVector* getDataVector() const { return dataVector.get(); }
+    inline std::shared_ptr<ValueVector> getSharedDataVector() const { return dataVector; }
 
     list_entry_t addList(uint64_t listSize);
 

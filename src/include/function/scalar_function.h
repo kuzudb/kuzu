@@ -92,11 +92,12 @@ struct ScalarFunction : public BaseScalarFunction {
             *params[0], *params[1], selVector);
     }
 
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC,
+        typename EXECUTOR = UnaryFunctionExecutor>
     static void UnaryExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/) {
         KU_ASSERT(params.size() == 1);
-        UnaryFunctionExecutor::executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, UnaryFunctionWrapper>(
+        EXECUTOR::template executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, UnaryFunctionWrapper>(
             *params[0], result, nullptr /* dataPtr */);
     }
 
@@ -109,30 +110,33 @@ struct ScalarFunction : public BaseScalarFunction {
             UnaryStringFunctionWrapper>(*params[0], result, nullptr /* dataPtr */);
     }
 
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC,
+        typename EXECUTOR = UnaryFunctionExecutor>
     static void UnaryCastStringExecFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* dataPtr) {
         KU_ASSERT(params.size() == 1);
-        UnaryFunctionExecutor::executeCastString<OPERAND_TYPE, RESULT_TYPE, FUNC>(
-            *params[0], result, dataPtr);
+        EXECUTOR::template executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC,
+            UnaryCastStringFunctionWrapper>(*params[0], result, dataPtr);
     }
 
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC,
+        typename EXECUTOR = UnaryFunctionExecutor>
     static void UnaryCastExecFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
         KU_ASSERT(params.size() == 1);
-        UnaryFunctionExecutor::executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC,
-            UnaryCastFunctionWrapper>(*params[0], result, nullptr /* dataPtr */);
+        EXECUTOR::template executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, UnaryCastFunctionWrapper>(
+            *params[0], result, nullptr /* dataPtr */);
     }
 
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC,
+        typename EXECUTOR = UnaryFunctionExecutor>
     static void UnaryTryCastExecFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
         KU_ASSERT(params.size() == 1);
-        UnaryFunctionExecutor::executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC,
+        EXECUTOR::template executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC,
             UnaryTryCastFunctionWrapper>(*params[0], result, nullptr /* dataPtr */);
     }
 
