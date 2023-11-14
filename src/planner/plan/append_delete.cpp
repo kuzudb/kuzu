@@ -14,6 +14,8 @@ void QueryPlanner::appendDeleteNode(
         nodes.push_back(std::static_pointer_cast<NodeExpression>(boundInfo->nodeOrRel));
     }
     auto deleteNode = std::make_shared<LogicalDeleteNode>(std::move(nodes), plan.getLastOperator());
+    appendFlattens(deleteNode->getGroupsPosToFlatten(), plan);
+    deleteNode->setChild(0, plan.getLastOperator());
     deleteNode->computeFactorizedSchema();
     plan.setLastOperator(std::move(deleteNode));
 }

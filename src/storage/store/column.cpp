@@ -535,6 +535,117 @@ void Column::setNull(offset_t nodeOffset) {
     }
 }
 
+void Column::prepareCommitForChunk(
+    node_group_idx_t nodeGroupIdx, LocalVectorCollection* localColumnChunk, bool isNewNodeGroup) {
+    if (isNewNodeGroup) {
+        // If this is a new node group, updateInfo should be empty. We should perform out-of-place
+        // commit with a new column chunk.
+        commitLocalChunkOutOfPlace(nodeGroupIdx, localColumnChunk, isNewNodeGroup);
+    } else {
+        // If this is not a new node group, we should first check if we can perform in-place commit.
+        if (canCommitInPlace(nodeGroupIdx, localColumnChunk)) {
+            commitLocalChunkInPlace(localColumnChunk);
+        } else {
+            commitLocalChunkOutOfPlace(nodeGroupIdx, localColumnChunk, isNewNodeGroup);
+        }
+    }
+}
+
+bool Column::containsVarList(LogicalType& dataType) {
+    switch (dataType.getPhysicalType()) {
+    case PhysicalTypeID::VAR_LIST: {
+        return true;
+    }
+    case PhysicalTypeID::STRUCT: {
+        for (auto field : StructType::getFieldTypes(&dataType)) {
+            if (containsVarList(*field)) {
+                return true;
+            }
+        }
+    } break;
+    default:
+        return false;
+    }
+    return false;
+}
+
+// TODO(Guodong): This should be moved inside `LocalVectorCollection`.
+bool Column::canCommitInPlace(node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk) {
+    if (containsVarList(dataType)) {
+        // Always perform out of place commit for VAR_LIST data type.
+        return false;
+    }
+    auto metadata = getMetadata(nodeGroupIdx, TransactionType::WRITE);
+    if (metadata.compMeta.canAlwaysUpdateInPlace()) {
+        return true;
+    }
+    std::vector<row_idx_t> rowIdxesToRead;
+    for (auto& [nodeOffset, rowIdx] : localChunk->getUpdateInfoRef()) {
+        rowIdxesToRead.push_back(rowIdx);
+    }
+    for (auto& [nodeOffset, rowIdx] : localChunk->getInsertInfoRef()) {
+        rowIdxesToRead.push_back(rowIdx);
+    }
+    std::sort(rowIdxesToRead.begin(), rowIdxesToRead.end());
+    for (auto rowIdx : rowIdxesToRead) {
+        auto localVector = localChunk->getLocalVector(rowIdx);
+        auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
+        if (!metadata.compMeta.canUpdateInPlace(
+                *localVector->getVector(), offsetInVector, dataType.getPhysicalType())) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void Column::commitLocalChunkInPlace(LocalVectorCollection* localChunk) {
+    applyLocalChunkToColumn(localChunk, localChunk->getUpdateInfoRef());
+    applyLocalChunkToColumn(localChunk, localChunk->getInsertInfoRef());
+}
+
+void Column::commitLocalChunkOutOfPlace(
+    node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk, bool isNewNodeGroup) {
+    auto columnChunk = ColumnChunkFactory::createColumnChunk(dataType, enableCompression);
+    if (isNewNodeGroup) {
+        KU_ASSERT(localChunk->getUpdateInfoRef().empty());
+        // Apply inserts from the local chunk.
+        applyLocalChunkToColumnChunk(localChunk, columnChunk.get(),
+            nodeGroupIdx << StorageConstants::NODE_GROUP_SIZE_LOG2, localChunk->getInsertInfoRef());
+    } else {
+        // First, scan the whole column chunk from persistent storage.
+        scan(nodeGroupIdx, columnChunk.get());
+        // Then, apply updates from the local chunk.
+        applyLocalChunkToColumnChunk(localChunk, columnChunk.get(),
+            nodeGroupIdx << StorageConstants::NODE_GROUP_SIZE_LOG2, localChunk->getUpdateInfoRef());
+        // Lastly, apply inserts from the local chunk.
+        applyLocalChunkToColumnChunk(localChunk, columnChunk.get(),
+            nodeGroupIdx << StorageConstants::NODE_GROUP_SIZE_LOG2, localChunk->getInsertInfoRef());
+    }
+    columnChunk->finalize();
+    append(columnChunk.get(), nodeGroupIdx);
+}
+
+void Column::applyLocalChunkToColumnChunk(LocalVectorCollection* localChunk,
+    ColumnChunk* columnChunk, offset_t nodeGroupStartOffset,
+    const std::map<offset_t, row_idx_t>& updateInfo) {
+    for (auto& [nodeOffset, rowIdx] : updateInfo) {
+        auto localVector = localChunk->getLocalVector(rowIdx);
+        auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
+        auto offsetInChunk = nodeOffset - nodeGroupStartOffset;
+        localVector->getVector()->state->selVector->selectedPositions[0] = offsetInVector;
+        columnChunk->write(localVector->getVector(), offsetInVector, offsetInChunk);
+    }
+}
+
+void Column::applyLocalChunkToColumn(
+    LocalVectorCollection* localChunk, const std::map<offset_t, row_idx_t>& updateInfo) {
+    for (auto& [nodeOffset, rowIdx] : updateInfo) {
+        auto localVector = localChunk->getLocalVector(rowIdx);
+        auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
+        write(nodeOffset, localVector->getVector(), offsetInVector);
+    }
+}
+
 void Column::checkpointInMemory() {
     metadataDA->checkpointInMemoryIfNecessary();
     if (nullColumn) {
@@ -585,7 +696,7 @@ PageElementCursor Column::getPageCursorForOffset(
     return pageCursor;
 }
 
-std::unique_ptr<Column> ColumnFactory::createColumn(const common::LogicalType& dataType,
+std::unique_ptr<Column> ColumnFactory::createColumn(const LogicalType& dataType,
     const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
     BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
     RWPropertyStats propertyStatistics, bool enableCompression) {

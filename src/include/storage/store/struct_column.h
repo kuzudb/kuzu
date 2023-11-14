@@ -12,6 +12,7 @@ public:
         transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
         bool enableCompression);
 
+    void scan(common::node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) final;
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector) final;

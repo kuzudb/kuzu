@@ -15,7 +15,8 @@ public:
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) final;
 
-    void write(common::ValueVector* vector, common::offset_t startOffsetInChunk) final;
+    void write(common::ValueVector* vector, common::offset_t offsetInVector,
+        common::offset_t offsetInChunk) final;
     void write(common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector) final;
 
     template<typename T>

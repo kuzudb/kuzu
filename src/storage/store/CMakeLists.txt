@@ -11,7 +11,6 @@ add_library(kuzu_storage_store
         string_column.cpp
         struct_column_chunk.cpp
         struct_column.cpp
-        table.cpp
         table_copy_utils.cpp
         table_data.cpp
         var_list_column_chunk.cpp

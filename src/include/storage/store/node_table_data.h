@@ -11,6 +11,7 @@ public:
         BufferManager* bufferManager, WAL* wal, const std::vector<catalog::Property*>& properties,
         TablesStatistics* tablesStatistics, bool enableCompression);
 
+    // This interface is node table specific, as rel table requires also relDataDirection.
     inline virtual void initializeReadState(transaction::Transaction* /*transaction*/,
         std::vector<common::column_id_t> columnIDs, common::ValueVector* /*inNodeIDVector*/,
         TableReadState* readState) {
@@ -23,7 +24,16 @@ public:
         common::ValueVector* nodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors) final;
 
+    // These two interfaces are node table specific, as rel table requires also relIDVector.
+    void insert(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
+        const std::vector<common::ValueVector*>& propertyVectors);
+    void update(transaction::Transaction* transaction, common::column_id_t columnID,
+        common::ValueVector* nodeIDVector, common::ValueVector* propertyVector);
+    void delete_(transaction::Transaction* transaction, common::ValueVector* nodeIDVector);
+
     void append(NodeGroup* nodeGroup) final;
+
+    void prepareLocalTableToCommit(LocalTable* localTable);
 };
 
 } // namespace storage

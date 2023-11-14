@@ -35,6 +35,7 @@ struct ListOffsetInfoInStorage {
     common::offset_t getListOffset(uint64_t nodePos) const;
 
     inline uint64_t getListLength(uint64_t nodePos) const {
+        KU_ASSERT(getListOffset(nodePos + 1) >= getListOffset(nodePos));
         return getListOffset(nodePos + 1) - getListOffset(nodePos);
     }
 };

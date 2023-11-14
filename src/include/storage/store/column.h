@@ -61,6 +61,8 @@ public:
         return metadataDA->getNumElements(transaction->getType());
     }
 
+    void prepareCommitForChunk(common::node_group_idx_t nodeGroupIdx,
+        LocalVectorCollection* localColumnChunk, bool isNewNodeGroup);
     virtual void checkpointInMemory();
     virtual void rollbackInMemory();
 
@@ -102,6 +104,18 @@ protected:
     WALPageIdxPosInPageAndFrame createWALVersionOfPageForValue(common::offset_t nodeOffset);
 
 private:
+    static bool containsVarList(common::LogicalType& dataType);
+    bool canCommitInPlace(common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk);
+    void commitLocalChunkInPlace(LocalVectorCollection* localChunk);
+    void commitLocalChunkOutOfPlace(common::node_group_idx_t nodeGroupIdx,
+        LocalVectorCollection* localChunk, bool isNewNodeGroup);
+
+    void applyLocalChunkToColumnChunk(LocalVectorCollection* localChunk, ColumnChunk* columnChunk,
+        common::offset_t nodeGroupStartOffset,
+        const std::map<common::offset_t, common::row_idx_t>& updateInfo);
+    void applyLocalChunkToColumn(LocalVectorCollection* localChunk,
+        const std::map<common::offset_t, common::row_idx_t>& updateInfo);
+
     // check if val is in range [start, end)
     static inline bool isInRange(uint64_t val, uint64_t start, uint64_t end) {
         return val >= start && val < end;

@@ -13,7 +13,7 @@ class NodeGroup {
 public:
     NodeGroup(const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes,
         bool enableCompression, uint64_t capacity);
-    explicit NodeGroup(const std::vector<std::unique_ptr<Column>>& columns, bool enableCompression);
+    NodeGroup(const std::vector<std::unique_ptr<Column>>& columns, bool enableCompression);
     virtual ~NodeGroup() = default;
 
     inline uint64_t getNodeGroupIdx() const { return nodeGroupIdx; }

@@ -36,6 +36,9 @@ public:
     void resetToEmpty() final;
 
     void append(common::ValueVector* vector) final;
+    // Note: `write` assumes that no `append` will be called afterward.
+    void write(common::ValueVector* vector, common::offset_t offsetInVector,
+        common::offset_t offsetInChunk) final;
     void write(common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector) final;
 
     inline void resizeDataColumnChunk(uint64_t numBytesForBuffer) {
@@ -61,6 +64,11 @@ private:
         indicesColumnChunk = ColumnChunkFactory::createColumnChunk(
             common::LogicalType{common::LogicalTypeID::INT64}, false /* enableCompression */);
         indicesColumnChunk->getNullChunk()->resetToAllNull();
+        for (auto i = 0u; i < numValues; i++) {
+            indicesColumnChunk->setValue<common::offset_t>(i, i);
+            indicesColumnChunk->getNullChunk()->setNull(i, nullChunk->isNull(i));
+        }
+        indicesColumnChunk->setNumValues(numValues);
     }
     inline uint64_t getListLen(common::offset_t offset) const {
         return getListOffset(offset + 1) - getListOffset(offset);
@@ -69,8 +77,8 @@ private:
         return offset == 0 ? 0 : getValue<uint64_t>(offset - 1);
     }
 
-    void moveFromOtherChunk(VarListColumnChunk* other);
-    void appendEmptyList(bool isNull);
+    void resetFromOtherChunk(VarListColumnChunk* other);
+    void appendNullList();
 
 protected:
     bool enableCompression;

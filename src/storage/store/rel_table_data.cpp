@@ -173,6 +173,10 @@ void RelTableData::append(NodeGroup* nodeGroup) {
     }
 }
 
+void RelTableData::prepareLocalTableToCommit(LocalTable* /*localTable*/) {
+    KU_UNREACHABLE;
+}
+
 void RelTableData::checkpointInMemory() {
     if (csrOffsetColumn) {
         csrOffsetColumn->checkpointInMemory();

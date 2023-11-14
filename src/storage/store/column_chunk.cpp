@@ -226,20 +226,16 @@ void ColumnChunk::write(ValueVector* vector, ValueVector* offsetsInChunk) {
 // skipped. Also, VAR_LIST has a different logic for handling out-of-place committing as it has to
 // be slided. However, this is unsafe, as this function can also be used for other purposes later.
 // Thus, an assertion is added at the first line.
-void ColumnChunk::write(ValueVector* vector, offset_t startOffsetInChunk) {
+void ColumnChunk::write(ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) {
     KU_ASSERT(dataType.getPhysicalType() != PhysicalTypeID::BOOL &&
               dataType.getPhysicalType() != PhysicalTypeID::VAR_LIST);
-    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
-        auto pos = vector->state->selVector->selectedPositions[i];
-        auto offsetInChunk = startOffsetInChunk + pos;
-        nullChunk->setNull(offsetInChunk, vector->isNull(pos));
-        if (!vector->isNull(pos)) {
-            memcpy(buffer.get() + offsetInChunk * numBytesPerValue,
-                vector->getData() + pos * numBytesPerValue, numBytesPerValue);
-        }
-        if (pos >= numValues) {
-            numValues = pos + 1;
-        }
+    nullChunk->setNull(offsetInChunk, vector->isNull(offsetInVector));
+    if (!vector->isNull(offsetInVector)) {
+        memcpy(buffer.get() + offsetInChunk * numBytesPerValue,
+            vector->getData() + offsetInVector * numBytesPerValue, numBytesPerValue);
+    }
+    if (offsetInChunk >= numValues) {
+        numValues = offsetInChunk + 1;
     }
 }
 
@@ -380,8 +376,7 @@ void BoolColumnChunk::append(
     numValues += numValuesToAppend;
 }
 
-void BoolColumnChunk::write(
-    common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector) {
+void BoolColumnChunk::write(ValueVector* valueVector, ValueVector* offsetInChunkVector) {
     KU_ASSERT(valueVector->dataType.getPhysicalType() == PhysicalTypeID::BOOL &&
               offsetInChunkVector->dataType.getPhysicalType() == PhysicalTypeID::INT64 &&
               valueVector->state->selVector->selectedSize ==
@@ -398,6 +393,17 @@ void BoolColumnChunk::write(
         }
         numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
     }
+}
+
+void BoolColumnChunk::write(ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) {
+    KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::BOOL);
+    KU_ASSERT(offsetInChunk < capacity);
+    NullMask::copyNullMask(
+        (uint64_t*)vector->getData(), offsetInVector, (uint64_t*)buffer.get(), offsetInChunk, 1);
+    if (nullChunk) {
+        nullChunk->setNull(offsetInChunk, vector->isNull(offsetInVector));
+    }
+    numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
 }
 
 void NullColumnChunk::append(
@@ -427,7 +433,7 @@ public:
         numValues += numValuesToAppend;
     }
 
-    void write(ValueVector* valueVector, ValueVector* offsetInChunkVector) {
+    void write(ValueVector* valueVector, ValueVector* offsetInChunkVector) final {
         KU_ASSERT(valueVector->dataType.getPhysicalType() == PhysicalTypeID::FIXED_LIST &&
                   offsetInChunkVector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
         auto offsets = (offset_t*)offsetInChunkVector->getData();
@@ -445,6 +451,18 @@ public:
             }
             numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
         }
+    }
+
+    void write(common::ValueVector* vector, common::offset_t offsetInVector,
+        common::offset_t offsetInChunk) final {
+        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::FIXED_LIST);
+        KU_ASSERT(offsetInChunk < capacity);
+        nullChunk->setNull(offsetInChunk, vector->isNull(offsetInVector));
+        if (!vector->isNull(offsetInVector)) {
+            memcpy(buffer.get() + getOffsetInBuffer(offsetInChunk),
+                vector->getData() + offsetInVector * numBytesPerValue, numBytesPerValue);
+        }
+        numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
     }
 
     void copyVectorToBuffer(ValueVector* vector, offset_t startPosInChunk) final {

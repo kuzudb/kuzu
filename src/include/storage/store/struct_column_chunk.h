@@ -21,7 +21,8 @@ protected:
         uint32_t numValuesToAppend) final;
     void append(common::ValueVector* vector) final;
 
-    void write(common::ValueVector* vector, common::offset_t startOffsetInChunk) final;
+    void write(common::ValueVector* vector, common::offset_t offsetInVector,
+        common::offset_t offsetInChunk) final;
     void write(common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector) final;
 
     void resize(uint64_t newCapacity) final;

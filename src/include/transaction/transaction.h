@@ -16,10 +16,9 @@ class Transaction {
     friend class TransactionManager;
 
 public:
-    Transaction(TransactionType transactionType, uint64_t transactionID,
-        storage::StorageManager* storageManager, storage::MemoryManager* mm)
+    Transaction(TransactionType transactionType, uint64_t transactionID, storage::MemoryManager* mm)
         : type{transactionType}, ID{transactionID} {
-        localStorage = std::make_unique<storage::LocalStorage>(storageManager, mm);
+        localStorage = std::make_unique<storage::LocalStorage>(mm);
     }
 
     constexpr explicit Transaction(TransactionType transactionType)

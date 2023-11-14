@@ -44,9 +44,8 @@ void WALReplayer::replay() {
             replayWALRecord(walRecord);
         }
     }
-
     // We next perform an in-memory checkpointing or rolling back of node/relTables.
-    if (!wal->updatedTables.empty()) {
+    if (!wal->getUpdatedTables().empty()) {
         if (isCheckpoint) {
             storageManager->checkpointInMemory();
         } else {
@@ -175,7 +174,7 @@ void WALReplayer::replayCreateTableRecord(const WALRecord& walRecord) {
             // Therefore, this effectively fixes the in-memory data structures (i.e., performs
             // the in-memory checkpointing).
             storageManager->createTable(
-                walRecord.createTableRecord.tableID, bufferManager, catalogForCheckpointing.get());
+                walRecord.createTableRecord.tableID, catalogForCheckpointing.get());
         }
     } else {
         // Since DDL statements are single statements that are auto committed, it is

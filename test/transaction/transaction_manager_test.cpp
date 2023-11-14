@@ -18,8 +18,8 @@ protected:
         bufferManager = getBufferManager(*database);
         std::make_unique<BufferManager>(BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
         wal = std::make_unique<WAL>(databasePath, false /* readOnly */, *bufferManager);
-        transactionManager = std::make_unique<TransactionManager>(
-            *wal, getStorageManager(*database), getMemoryManager(*database));
+        transactionManager =
+            std::make_unique<TransactionManager>(*wal, getMemoryManager(*database));
     }
 
     void TearDown() override { EmptyDBTest::TearDown(); }

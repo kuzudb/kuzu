@@ -16,12 +16,11 @@ public:
     StorageManager(bool readOnly, const catalog::Catalog& catalog, MemoryManager& memoryManager,
         WAL* wal, bool enableCompression);
 
-    void createTable(
-        common::table_id_t tableID, BufferManager* bufferManager, catalog::Catalog* catalog);
+    void createTable(common::table_id_t tableID, catalog::Catalog* catalog);
     void dropTable(common::table_id_t tableID);
 
-    void prepareCommit();
-    void prepareRollback();
+    void prepareCommit(transaction::Transaction* transaction);
+    void prepareRollback(transaction::Transaction* transaction);
     void checkpointInMemory();
     void rollbackInMemory();
 
@@ -49,7 +48,7 @@ public:
     inline bool compressionEnabled() const { return enableCompression; }
 
 private:
-    void loadTables(bool readOnly, const catalog::Catalog& catalog, BufferManager* bufferManager);
+    void loadTables(bool readOnly, const catalog::Catalog& catalog);
 
 private:
     std::unique_ptr<BMFileHandle> dataFH;

@@ -1,5 +1,6 @@
-#include "planner/operator/factorization/flatten_resolver.h"
 #include "planner/operator/persistent/logical_insert.h"
+
+#include "planner/operator/factorization/flatten_resolver.h"
 
 namespace kuzu {
 namespace planner {

@@ -51,16 +51,13 @@ void StringColumnChunk::append(
     numValues += numValuesToAppend;
 }
 
-void StringColumnChunk::write(ValueVector* vector, offset_t startOffsetInChunk) {
+void StringColumnChunk::write(
+    ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
-    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
-        auto pos = vector->state->selVector->selectedPositions[i];
-        auto offsetInChunk = startOffsetInChunk + pos;
-        nullChunk->setNull(offsetInChunk, vector->isNull(pos));
-        if (!vector->isNull(pos)) {
-            auto kuStr = vector->getValue<ku_string_t>(pos);
-            setValueFromString(kuStr.getAsString().c_str(), kuStr.len, offsetInChunk);
-        }
+    nullChunk->setNull(offsetInChunk, vector->isNull(offsetInVector));
+    if (!vector->isNull(offsetInVector)) {
+        auto kuStr = vector->getValue<ku_string_t>(offsetInVector);
+        setValueFromString(kuStr.getAsString().c_str(), kuStr.len, offsetInChunk);
     }
 }
 
