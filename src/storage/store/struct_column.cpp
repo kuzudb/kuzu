@@ -25,18 +25,19 @@ StructColumn::StructColumn(LogicalType dataType, const MetadataDAHInfo& metaDAHe
     }
 }
 
-void StructColumn::scan(node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) {
+void StructColumn::scan(
+    Transaction* transaction, node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) {
     KU_ASSERT(columnChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
-    nullColumn->scan(nodeGroupIdx, columnChunk->getNullChunk());
-    if (nodeGroupIdx >= metadataDA->getNumElements()) {
+    nullColumn->scan(transaction, nodeGroupIdx, columnChunk->getNullChunk());
+    if (nodeGroupIdx >= metadataDA->getNumElements(transaction->getType())) {
         columnChunk->setNumValues(0);
     } else {
-        auto chunkMetadata = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
+        auto chunkMetadata = metadataDA->get(nodeGroupIdx, transaction->getType());
         columnChunk->setNumValues(chunkMetadata.numValues);
     }
     auto structColumnChunk = ku_dynamic_cast<ColumnChunk*, StructColumnChunk*>(columnChunk);
     for (auto i = 0u; i < childColumns.size(); i++) {
-        childColumns[i]->scan(nodeGroupIdx, structColumnChunk->getChild(i));
+        childColumns[i]->scan(transaction, nodeGroupIdx, structColumnChunk->getChild(i));
     }
 }
 

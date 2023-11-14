@@ -68,7 +68,6 @@
 9|Greg|40
 
 -CASE InsertSingleNToNRelTest
--SKIP
 -STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 9 AND b.ID = 10 CREATE (a)-[:knows {meetTime:timestamp('1976-12-23 11:21:42'), validInterval:interval('2 years'), comments:['A', 'k'], date:date('1997-03-22')}]->(b)
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 8 RETURN a.ID, b.ID, e, ID(e)
@@ -76,7 +75,6 @@
 9|10|(0:6)-{_LABEL: knows, _ID: 3:14, date: 1997-03-22, meetTime: 1976-12-23 11:21:42, validInterval: 2 years, comments: [A,k]}->(0:7)|3:14
 
 -CASE InsertSingleNTo1RelTest
--SKIP
 -STATEMENT MATCH (a:person), (b:organisation) WHERE a.ID = 9 AND b.orgCode = 934 CREATE (a)-[:studyAt {year:2022}]->(b)
 ---- ok
 -STATEMENT MATCH (a:person)-[e:studyAt]->(b:organisation) WHERE a.ID > 5 RETURN a.ID, b.orgCode, e, ID(e)
@@ -85,7 +83,6 @@
 9|934|(0:6)-{_LABEL: studyAt, _ID: 4:3, year: 2022}->(1:1)|4:3
 
 -CASE InsertRepeatedNToNRelTest
--SKIP
 -STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 7 AND b.ID = 8 CREATE (a)-[:knows {validInterval:interval('3 years')}]->(b)
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID=7 RETURN b.ID, e.validInterval
@@ -95,7 +92,6 @@
 9|00:47:58
 
 -CASE InsertMixedRelTest
--SKIP
 -STATEMENT MATCH (a:person), (b:person), (c:organisation) WHERE a.ID = 0 AND b.ID = 9 AND c.ID = 4 CREATE (b)-[:studyAt]->(c), (a)<-[:knows]-(b)
 ---- ok
 -STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:studyAt]->(c:organisation) RETURN COUNT(*)
@@ -103,7 +99,6 @@
 9
 
 -CASE InsertMultipleRelsTest
--SKIP
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE a.ID = 7 CREATE (a)<-[:knows]-(b)
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 6 RETURN a.ID, b.ID, ID(e)
@@ -114,7 +109,6 @@
 9|7|3:15
 
 -CASE InsertNodeAndRelTest
--SKIP
 -STATEMENT CREATE (a:person {ID:100})-[:knows {date:date('1997-03-22')}]->(b:person {ID:202})
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 50 RETURN a.ID, b.ID, e.date
@@ -122,7 +116,6 @@
 100|202|1997-03-22
 
 -CASE InsertNodeAndRelTest2
--SKIP
 -STATEMENT CREATE (c:organisation {ID:50})<-[:workAt]-(a:person {ID:100}), (a)-[:studyAt]->(c)
 ---- ok
 -STATEMENT MATCH (a:person)-[e1:studyAt]->(b:organisation), (a)-[e2:workAt]->(b) RETURN a.ID, b.ID, ID(e1), ID(e2)

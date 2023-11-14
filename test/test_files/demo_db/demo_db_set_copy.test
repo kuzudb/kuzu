@@ -35,7 +35,6 @@ Kitchener|0
 Guelph|0
 
 -CASE SetSingleLabelRelTest
--SKIP
 -LOG SetRelSince
 -STATEMENT MATCH (u:User)-[f:Follows]->(u1:User) WHERE u.name = 'Adam' AND u1.name = 'Karissa' SET f.since=2012
 ---- ok
@@ -49,7 +48,6 @@ Guelph|0
 ---- ok
 
 -CASE SetMultipleLabelRelTest
--SKIP
 -LOG SetRelSince
 -STATEMENT MATCH (u0)-[f]->() WHERE u0.name = 'Adam' SET f.since = 1999 RETURN f;
 ---- 3

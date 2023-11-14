@@ -16,6 +16,9 @@ class TableData {
 public:
     virtual ~TableData() = default;
 
+    virtual void initializeReadState(transaction::Transaction* /*transaction*/,
+        std::vector<common::column_id_t> columnIDs, common::ValueVector* /*inNodeIDVector*/,
+        TableReadState* readState) = 0;
     virtual void scan(transaction::Transaction* transaction, TableReadState& readState,
         common::ValueVector* nodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors) = 0;
@@ -43,7 +46,7 @@ public:
         return columns[0]->getNumNodeGroups(transaction);
     }
 
-    virtual void prepareLocalTableToCommit(LocalTable* localTable) = 0;
+    virtual void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) = 0;
     virtual void checkpointInMemory();
     virtual void rollbackInMemory();
 

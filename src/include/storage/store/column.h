@@ -23,14 +23,7 @@ using read_values_to_page_func_t =
 // This is a special usage for the `batchLookup` interface.
 using batch_lookup_func_t = read_values_to_page_func_t;
 
-class NullColumn;
-class StructColumn;
 class Column {
-    friend class LocalColumn;
-    friend class StringLocalColumn;
-    friend class VarListLocalColumn;
-    friend class StructColumn;
-
 public:
     Column(common::LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
         BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
@@ -47,7 +40,8 @@ public:
     virtual void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector);
-    virtual void scan(common::node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk);
+    virtual void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
+        ColumnChunk* columnChunk);
     virtual void lookup(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector);
 
@@ -61,8 +55,11 @@ public:
         return metadataDA->getNumElements(transaction->getType());
     }
 
-    void prepareCommitForChunk(common::node_group_idx_t nodeGroupIdx,
-        LocalVectorCollection* localColumnChunk, bool isNewNodeGroup);
+    void prepareCommitForChunk(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
+        const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo,
+        const std::unordered_set<common::offset_t>& deleteInfo);
+
     virtual void checkpointInMemory();
     virtual void rollbackInMemory();
 
@@ -105,16 +102,23 @@ protected:
 
 private:
     static bool containsVarList(common::LogicalType& dataType);
-    bool canCommitInPlace(common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk);
-    void commitLocalChunkInPlace(LocalVectorCollection* localChunk);
-    void commitLocalChunkOutOfPlace(common::node_group_idx_t nodeGroupIdx,
-        LocalVectorCollection* localChunk, bool isNewNodeGroup);
 
-    void applyLocalChunkToColumnChunk(LocalVectorCollection* localChunk, ColumnChunk* columnChunk,
+    bool canCommitInPlace(common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
+        const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo);
+    void commitLocalChunkInPlace(LocalVectorCollection* localChunk,
+        const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo,
+        const std::unordered_set<common::offset_t>& deleteInfo);
+    void commitLocalChunkOutOfPlace(transaction::Transaction* transaction,
+        LocalVectorCollection* localChunk, const offset_to_row_idx_t& insertInfo,
+        const offset_to_row_idx_t& updateInfo,
+        const std::unordered_set<common::offset_t>& deleteInfo,
+        common::node_group_idx_t nodeGroupIdx, bool isNewChunk);
+
+    void writeToColumnChunk(LocalVectorCollection* localChunk, ColumnChunk* columnChunk,
         common::offset_t nodeGroupStartOffset,
-        const std::map<common::offset_t, common::row_idx_t>& updateInfo);
-    void applyLocalChunkToColumn(LocalVectorCollection* localChunk,
-        const std::map<common::offset_t, common::row_idx_t>& updateInfo);
+        const std::map<common::offset_t, common::row_idx_t>& writeInfo);
+    void writeToColumn(LocalVectorCollection* localChunk,
+        const std::map<common::offset_t, common::row_idx_t>& writeInfo);
 
     // check if val is in range [start, end)
     static inline bool isInRange(uint64_t val, uint64_t start, uint64_t end) {

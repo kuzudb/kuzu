@@ -1,6 +1,5 @@
 -GROUP TinySnbDeleteRelTest
 -DATASET CSV tinysnb
--SKIP
 --
 
 -CASE DeleteRelMultiLabel1
@@ -56,5 +55,15 @@ Binder exception: Delete undirected rel is not supported.
 -STATEMENT OPTIONAL MATCH (a) WHERE a.ID =1 OPTIONAL MATCH (a)<-[e]-(b) DELETE e
 ---- ok
 -STATEMENT MATCH (a)<-[e]-(b) WHERE a.ID=1 RETURN COUNT(*)
+---- 1
+0
+
+-CASE DeleteMarriesRel
+-STATEMENT MATCH (a:person)-[e:marries]->(b:person) WHERE a.ID = 0 RETURN COUNT(*)
+---- 1
+1
+-STATEMENT MATCH (a:person)-[e:marries]->(b:person) WHERE a.ID = 0 DELETE e
+---- ok
+-STATEMENT MATCH (a:person)-[e:marries]->(b:person) WHERE a.ID = 0 RETURN COUNT(*)
 ---- 1
 0

@@ -1,6 +1,5 @@
 -GROUP EmptyCreateRelTest
 -DATASET CSV empty
--SKIP
 --
 
 -CASE CreateOneToOneRel
@@ -9,9 +8,9 @@
 ---- ok
 -STATEMENT CREATE NODE TABLE N2(ID INT64, PRIMARY KEY(ID));
 ---- ok
--STATEMENT CREATE REL TABLE Rel1(FROM N1 TO N2, ONE_ONE);
+-STATEMENT CREATE REL TABLE Rel1(FROM N1 TO N2, MANY_MANY);
 ---- ok
--STATEMENT CREATE (:N1 {ID: 10}), (:N1 {ID: 1}), (:N2 {ID: 12}), (:N2 {ID: 8})
+-STATEMENT CREATE (:N1 {ID: 10}), (:N1 {ID: 1}), (:N2 {ID: 12}), (:N2 {ID: 8});
 ---- ok
 -STATEMENT MATCH (n:N1) RETURN n.ID
 ---- 2
@@ -21,9 +20,43 @@
 ---- 2
 12
 8
--STATEMENT COPY Rel1 FROM '${KUZU_ROOT_DIRECTORY}/dataset/one_to_one_rel/rel.csv';
+-STATEMENT MATCH (n1:N1 {ID: 10}), (n2:N2 {ID: 12}) CREATE (n1)-[r:Rel1]->(n2);
 ---- ok
--STATEMENT MATCH (n1:N1)-[e:Rel1]->(n2:N2) RETURN e
+-STATEMENT MATCH (n1:N1 {ID: 10}), (n2:N2 {ID: 8}) CREATE (n1)-[r:Rel1]->(n2);
+---- ok
+-STATEMENT MATCH (n1:N1 {ID: 1}), (n2:N2 {ID: 12}) CREATE (n1)-[r:Rel1]->(n2);
+---- ok
+-STATEMENT MATCH (n1:N1 {ID: 1}), (n2:N2 {ID: 8}) CREATE (n1)-[r:Rel1]->(n2);
+---- ok
+-STATEMENT MATCH (n1:N1)-[r:Rel1]->(n2:N2) RETURN n1.ID, n2.ID;
+---- 4
+10|8
+10|12
+1|8
+1|12
+
+-CASE CreateOneToManyRel
+-STATEMENT CREATE NODE TABLE N1(ID INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE N2(ID INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE Rel1(FROM N1 TO N2, ONE_MANY);
+---- ok
+-STATEMENT CREATE (:N1 {ID: 10}), (:N1 {ID: 1}), (:N2 {ID: 12}), (:N2 {ID: 8});
+---- ok
+-STATEMENT MATCH (n:N1) RETURN n.ID
 ---- 2
-(0:0)-{_LABEL: Rel1, _ID: 2:0}->(1:1)
-(0:1)-{_LABEL: Rel1, _ID: 2:1}->(1:0)
+10
+1
+-STATEMENT MATCH (n:N2) RETURN n.ID
+---- 2
+12
+8
+-STATEMENT MATCH (n1:N1 {ID: 10}), (n2:N2 {ID: 12}) CREATE (n1)-[r:Rel1]->(n2);
+---- ok
+-STATEMENT MATCH (n1:N1 {ID: 10}), (n2:N2 {ID: 8}) CREATE (n1)-[r:Rel1]->(n2);
+---- ok
+-STATEMENT MATCH (n1:N1)-[r:Rel1]->(n2:N2) RETURN n1.ID, n2.ID;
+---- 2
+10|8
+10|12

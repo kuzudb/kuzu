@@ -1,6 +1,7 @@
 #include "storage/store/rel_table.h"
 
 #include "common/cast.h"
+#include "storage/local_rel_table.h"
 #include "storage/stats/rels_store_statistics.h"
 
 using namespace kuzu::catalog;
@@ -42,6 +43,30 @@ void RelTable::lookup(Transaction* transaction, RelDataReadState& scanState,
     tableData->lookup(transaction, scanState, inNodeIDVector, outputVectors);
 }
 
+void RelTable::insert(Transaction* transaction, ValueVector* srcNodeIDVector,
+    ValueVector* dstNodeIDVector, const std::vector<ValueVector*>& propertyVectors) {
+    fwdRelTableData->insert(transaction, srcNodeIDVector, dstNodeIDVector, propertyVectors);
+    bwdRelTableData->insert(transaction, dstNodeIDVector, srcNodeIDVector, propertyVectors);
+    auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
+    relsStats->updateNumRelsByValue(tableID, 1);
+}
+
+void RelTable::update(Transaction* transaction, column_id_t columnID, ValueVector* srcNodeIDVector,
+    ValueVector* dstNodeIDVector, common::ValueVector* relIDVector, ValueVector* propertyVector) {
+    fwdRelTableData->update(
+        transaction, columnID, srcNodeIDVector, dstNodeIDVector, relIDVector, propertyVector);
+    bwdRelTableData->update(
+        transaction, columnID, dstNodeIDVector, srcNodeIDVector, relIDVector, propertyVector);
+}
+
+void RelTable::delete_(Transaction* transaction, ValueVector* srcNodeIDVector,
+    ValueVector* dstNodeIDVector, ValueVector* relIDVector) {
+    fwdRelTableData->delete_(transaction, srcNodeIDVector, dstNodeIDVector, relIDVector);
+    bwdRelTableData->delete_(transaction, dstNodeIDVector, srcNodeIDVector, relIDVector);
+    auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
+    relsStats->updateNumRelsByValue(tableID, -1);
+}
+
 void RelTable::addColumn(
     Transaction* transaction, const Property& property, ValueVector* defaultValueVector) {
     auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
@@ -61,12 +86,14 @@ void RelTable::addColumn(
     wal->addToUpdatedTables(tableID);
 }
 
-void RelTable::prepareCommit(LocalTable* /*localTable*/) {
+void RelTable::prepareCommit(Transaction* transaction, LocalTable* localTable) {
+    fwdRelTableData->prepareCommit(transaction, localTable);
+    bwdRelTableData->prepareCommit(transaction, localTable);
     wal->addToUpdatedTables(tableID);
 }
 
 void RelTable::prepareRollback(LocalTable* localTable) {
-    // DO NOTHING
+    localTable->clear();
 }
 
 void RelTable::checkpointInMemory() {

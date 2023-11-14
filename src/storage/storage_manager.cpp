@@ -91,9 +91,9 @@ void StorageManager::dropTable(table_id_t tableID) {
 
 void StorageManager::prepareCommit(transaction::Transaction* transaction) {
     auto localStorage = transaction->getLocalStorage();
-    for (auto tableID : localStorage->getTableIDsWithUpdates()) {
+    for (auto tableID : localStorage->getIDOfTablesWithUpdates()) {
         KU_ASSERT(tables.contains(tableID));
-        tables.at(tableID)->prepareCommit(localStorage->getLocalTable(tableID));
+        tables.at(tableID)->prepareCommit(transaction, localStorage->getLocalTable(tableID));
     }
     if (nodesStatisticsAndDeletedIDs->hasUpdates()) {
         wal->logTableStatisticsRecord(true /* isNodeTable */);
@@ -113,7 +113,7 @@ void StorageManager::prepareRollback(transaction::Transaction* transaction) {
         wal->logTableStatisticsRecord(false /* isNodeTable */);
     }
     auto localStorage = transaction->getLocalStorage();
-    for (auto tableID : localStorage->getTableIDsWithUpdates()) {
+    for (auto tableID : localStorage->getIDOfTablesWithUpdates()) {
         KU_ASSERT(tables.contains(tableID));
         tables.at(tableID)->prepareRollback(localStorage->getLocalTable(tableID));
     }

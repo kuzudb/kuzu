@@ -94,7 +94,7 @@ public:
 
     void init(ResultSet* resultSet, ExecutionContext* context);
 
-    virtual void set() = 0;
+    virtual void set(ExecutionContext* context) = 0;
 
     virtual std::unique_ptr<RelSetExecutor> copy() const = 0;
 
@@ -128,7 +128,7 @@ public:
               other.evaluator->clone()},
           table{other.table}, propertyID{other.propertyID} {}
 
-    void set() final;
+    void set(ExecutionContext* context) final;
 
     inline std::unique_ptr<RelSetExecutor> copy() const final {
         return std::make_unique<SingleLabelRelSetExecutor>(*this);
@@ -153,7 +153,7 @@ public:
               other.evaluator->clone()},
           tableIDToTableAndPropertyID{other.tableIDToTableAndPropertyID} {}
 
-    void set() final;
+    void set(ExecutionContext* context) final;
 
     inline std::unique_ptr<RelSetExecutor> copy() const final {
         return std::make_unique<MultiLabelRelSetExecutor>(*this);

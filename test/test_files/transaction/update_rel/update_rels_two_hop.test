@@ -1,6 +1,5 @@
 -GROUP UpdateRelTest_updateRelsTwoHop
 -DATASET CSV rel-update-tests
--SKIP
 --
 
 -CASE updateRelsTwoHopCommitNormalExecution

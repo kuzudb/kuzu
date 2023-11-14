@@ -96,6 +96,8 @@ private:
     void initializeValueBuffer();
 
 public:
+    // TODO(Guodong): We should move these two to private. Currently, we can set `state` directly
+    // without going through `setState()`, which is unsafe for nested data types.
     LogicalType dataType;
     std::shared_ptr<DataChunkState> state;
 

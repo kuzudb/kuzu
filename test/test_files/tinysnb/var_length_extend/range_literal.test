@@ -44,7 +44,6 @@ Carol
 484
 
 -CASE BothBound
--SKIP
 -STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*1..1]->(b:person) RETURN b.fName;
 ---- 1
 Bob
@@ -67,7 +66,6 @@ Mike
 Mike
 
 -CASE SingleAsterisk
--SKIP
 -STATEMENT MATCH (c:person) WHERE c.fName="Dan" CREATE(c)-[:meets]->(b:person {ID: 11, fName: "Mike"});
 ---- ok
 -STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*]->(b:person) RETURN b.fName;
@@ -81,7 +79,6 @@ Alice
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 
 -CASE NoBound
--SKIP
 -STATEMENT MATCH (c:person) WHERE c.fName="Dan" CREATE(c)-[:meets]->(b:person {ID: 11, fName: "Mike"});
 ---- ok
 -STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*..]->(b:person) RETURN b.fName;

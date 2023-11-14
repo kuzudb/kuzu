@@ -20,13 +20,31 @@ public:
         common::ValueVector* inNodeIDVector, RelDataReadState* readState) {
         return direction == common::RelDataDirection::FWD ?
                    fwdRelTableData->initializeReadState(
-                       transaction, direction, columnIDs, inNodeIDVector, readState) :
+                       transaction, columnIDs, inNodeIDVector, readState) :
                    bwdRelTableData->initializeReadState(
-                       transaction, direction, columnIDs, inNodeIDVector, readState);
+                       transaction, columnIDs, inNodeIDVector, readState);
     }
     void read(transaction::Transaction* transaction, TableReadState& readState,
         common::ValueVector* inNodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors) final;
+
+    void insert(transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector,
+        common::ValueVector* dstNodeIDVector,
+        const std::vector<common::ValueVector*>& propertyVectors);
+    void update(transaction::Transaction* transaction, common::column_id_t columnID,
+        common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
+        common::ValueVector* relIDVector, common::ValueVector* propertyVector);
+    void delete_(transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector,
+        common::ValueVector* dstNodeIDVector, common::ValueVector* relIDVector);
+
+    inline void append(NodeGroup* nodeGroup, common::RelDataDirection direction) {
+        direction == common::RelDataDirection::FWD ? fwdRelTableData->append(nodeGroup) :
+                                                     bwdRelTableData->append(nodeGroup);
+    }
+    inline common::ColumnDataFormat getTableDataFormat(common::RelDataDirection direction) {
+        return direction == common::RelDataDirection::FWD ? fwdRelTableData->getDataFormat() :
+                                                            bwdRelTableData->getDataFormat();
+    }
 
     void addColumn(transaction::Transaction* transaction, const catalog::Property& property,
         common::ValueVector* defaultValueVector) final;
@@ -35,16 +53,7 @@ public:
         bwdRelTableData->dropColumn(columnID);
     }
 
-    inline common::ColumnDataFormat getTableDataFormat(common::RelDataDirection direction) {
-        return direction == common::RelDataDirection::FWD ? fwdRelTableData->getDataFormat() :
-                                                            bwdRelTableData->getDataFormat();
-    }
-    inline void append(NodeGroup* nodeGroup, common::RelDataDirection direction) {
-        direction == common::RelDataDirection::FWD ? fwdRelTableData->append(nodeGroup) :
-                                                     bwdRelTableData->append(nodeGroup);
-    }
-
-    void prepareCommit(LocalTable* localTable) final;
+    void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) final;
     void prepareRollback(LocalTable* localTable) final;
     void checkpointInMemory() final;
     void rollbackInMemory() final;

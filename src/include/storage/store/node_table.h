@@ -50,6 +50,7 @@ public:
         common::ValueVector* nodeIDVector, common::ValueVector* propertyVector);
     void delete_(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* pkVector);
+
     inline void append(NodeGroup* nodeGroup) { tableData->append(nodeGroup); }
 
     inline common::column_id_t getNumColumns() const { return tableData->getNumColumns(); }
@@ -67,7 +68,7 @@ public:
         common::ValueVector* defaultValueVector) final;
     inline void dropColumn(common::column_id_t columnID) final { tableData->dropColumn(columnID); }
 
-    void prepareCommit(LocalTable* localTable) final;
+    void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) final;
     void prepareRollback(LocalTable* localTable) final;
     void checkpointInMemory() final;
     void rollbackInMemory() final;

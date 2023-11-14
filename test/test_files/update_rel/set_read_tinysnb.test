@@ -1,6 +1,5 @@
 -GROUP TinySnbSetReadRelTest
 -DATASET CSV tinysnb
--SKIP
 --
 
 -CASE SetReadTest1
@@ -56,3 +55,14 @@
 5
 55
 22
+
+-CASE SetReadMarries
+-STATEMENT MATCH (a:person)-[e:marries]->(b:person) WHERE a.ID = 3 AND b.ID = 5 RETURN e.note;
+---- 1
+long long long string
+-STATEMENT MATCH (a:person)-[e:marries]->(b:person) WHERE a.ID = 3 AND b.ID = 5 SET e.note = "short" RETURN e.note;
+---- 1
+short
+-STATEMENT MATCH (a:person)-[e:marries]->(b:person) WHERE a.ID = 3 AND b.ID = 5 RETURN e.note;
+---- 1
+short

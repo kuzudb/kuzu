@@ -9,6 +9,8 @@ add_subdirectory(wal)
 add_library(kuzu_storage
         OBJECT
         file_handle.cpp
+        local_node_table.cpp
+        local_rel_table.cpp
         local_storage.cpp
         local_table.cpp
         storage_info.cpp

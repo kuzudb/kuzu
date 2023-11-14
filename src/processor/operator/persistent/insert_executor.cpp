@@ -107,7 +107,7 @@ void RelInsertExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
     }
 }
 
-void RelInsertExecutor::insert(transaction::Transaction* tx) {
+void RelInsertExecutor::insert(transaction::Transaction* transaction) {
     auto srcNodeIDPos = srcNodeIDVector->state->selVector->selectedPositions[0];
     auto dstNodeIDPos = dstNodeIDVector->state->selVector->selectedPositions[0];
     if (srcNodeIDVector->isNull(srcNodeIDPos) || dstNodeIDVector->isNull(dstNodeIDPos)) {
@@ -122,15 +122,13 @@ void RelInsertExecutor::insert(transaction::Transaction* tx) {
         }
         return;
     }
-    auto offset = relsStatistics.getNextRelOffset(tx, table->getTableID());
+    auto offset = relsStatistics.getNextRelOffset(transaction, table->getTableID());
     propertyRhsVectors[0]->setValue(0, offset); // internal ID property
     propertyRhsVectors[0]->setNull(0, false);
     for (auto i = 1; i < propertyRhsEvaluators.size(); ++i) {
         propertyRhsEvaluators[i]->evaluate();
     }
-    // TODO(Guodong): Fix insert.
-    //    table->insertRel(srcNodeIDVector, dstNodeIDVector, propertyRhsVectors);
-    //    relsStatistics.updateNumRelsByValue(table->getRelTableID(), 1);
+    table->insert(transaction, srcNodeIDVector, dstNodeIDVector, propertyRhsVectors);
     for (auto i = 0u; i < propertyLhsVectors.size(); ++i) {
         auto lhsVector = propertyLhsVectors[i];
         auto rhsVector = propertyRhsVectors[i];

@@ -58,7 +58,6 @@ void StructColumnChunk::write(
     nullChunk->setNull(offsetInChunk, vector->isNull(offsetInVector));
     auto fields = StructVector::getFieldVectors(vector);
     for (auto i = 0u; i < fields.size(); i++) {
-        fields[i]->state = vector->state;
         childChunks[i]->write(fields[i].get(), offsetInVector, offsetInChunk);
     }
 }

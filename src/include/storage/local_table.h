@@ -6,6 +6,9 @@
 
 namespace kuzu {
 namespace storage {
+
+using offset_to_row_idx_t = std::map<common::offset_t, common::row_idx_t>;
+
 class TableData;
 
 // TODO(Guodong): Instead of using ValueVector, we should switch to ColumnChunk.
@@ -15,7 +18,7 @@ class LocalVector {
 public:
     LocalVector(const common::LogicalType& dataType, MemoryManager* mm) : numValues{0} {
         vector = std::make_unique<common::ValueVector>(dataType, mm);
-        vector->state = std::make_unique<common::DataChunkState>();
+        vector->setState(std::make_shared<common::DataChunkState>());
         vector->state->selVector->resetSelectorToValuePosBufferWithSize(1);
     }
 
@@ -37,19 +40,13 @@ private:
 // contains 64 vectors (chunks).
 class LocalVectorCollection {
 public:
-    LocalVectorCollection(const common::LogicalType* dataType, MemoryManager* mm)
-        : dataType{dataType}, mm{mm}, numRows{0} {}
+    LocalVectorCollection(std::unique_ptr<common::LogicalType> dataType, MemoryManager* mm)
+        : dataType{std::move(dataType)}, mm{mm}, numRows{0} {}
 
     void read(common::row_idx_t rowIdx, common::ValueVector* outputVector,
         common::sel_t posInOutputVector);
-    void insert(common::ValueVector* nodeIDVector, common::ValueVector* propertyVectors);
-    void update(common::ValueVector* nodeIDVector, common::ValueVector* propertyVector);
-    inline void delete_(common::offset_t nodeOffset) {
-        insertInfo.erase(nodeOffset);
-        updateInfo.erase(nodeOffset);
-    }
-    inline std::map<common::offset_t, common::row_idx_t>& getInsertInfoRef() { return insertInfo; }
-    inline std::map<common::offset_t, common::row_idx_t>& getUpdateInfoRef() { return updateInfo; }
+    common::row_idx_t append(common::ValueVector* vector);
+
     inline uint64_t getNumRows() { return numRows; }
     inline LocalVector* getLocalVector(common::row_idx_t rowIdx) {
         auto vectorIdx = rowIdx >> common::DEFAULT_VECTOR_CAPACITY_LOG_2;
@@ -61,18 +58,12 @@ public:
 
 private:
     void prepareAppend();
-    void append(common::ValueVector* vector);
 
 private:
-    const common::LogicalType* dataType;
+    std::unique_ptr<common::LogicalType> dataType;
     MemoryManager* mm;
     std::vector<std::unique_ptr<LocalVector>> vectors;
     common::row_idx_t numRows;
-    // TODO: Do we need to differentiate between insert and update?
-    // New nodes to be inserted into the persistent storage.
-    std::map<common::offset_t, common::row_idx_t> insertInfo;
-    // Nodes in the persistent storage to be updated.
-    std::map<common::offset_t, common::row_idx_t> updateInfo;
 };
 
 class LocalNodeGroup {
@@ -83,66 +74,37 @@ public:
         const std::vector<std::unique_ptr<common::LogicalType>>& dataTypes, MemoryManager* mm) {
         columns.resize(dataTypes.size());
         for (auto i = 0u; i < dataTypes.size(); ++i) {
-            // To avoid unnecessary memory consumption, we chunk local changes of each column in the
-            // node group into chunks of size DEFAULT_VECTOR_CAPACITY.
-            columns[i] = std::make_unique<LocalVectorCollection>(dataTypes[i].get(), mm);
+            columns[i] = std::make_unique<LocalVectorCollection>(dataTypes[i]->copy(), mm);
         }
     }
-
-    void scan(common::ValueVector* nodeIDVector, const std::vector<common::column_id_t>& columnIDs,
-        const std::vector<common::ValueVector*>& outputVectors);
-    void lookup(common::offset_t nodeOffset, common::column_id_t columnID,
-        common::ValueVector* outputVector, common::sel_t posInOutputVector);
-    void insert(common::ValueVector* nodeIDVector,
-        const std::vector<common::ValueVector*>& propertyVectors);
-    void update(common::ValueVector* nodeIDVector, common::column_id_t columnID,
-        common::ValueVector* propertyVector);
-    void delete_(common::ValueVector* nodeIDVector);
 
     inline LocalVectorCollection* getLocalColumnChunk(common::column_id_t columnID) {
         return columns[columnID].get();
     }
 
-private:
-    inline common::row_idx_t getRowIdx(common::column_id_t columnID, common::offset_t nodeOffset) {
-        KU_ASSERT(columnID < columns.size());
-        return columns[columnID]->getRowIdx(nodeOffset);
-    }
-
-private:
+protected:
     std::vector<std::unique_ptr<LocalVectorCollection>> columns;
 };
 
 class LocalTable {
-    friend class NodeTableData;
-
 public:
     explicit LocalTable(common::table_id_t tableID,
         std::vector<std::unique_ptr<common::LogicalType>> dataTypes, MemoryManager* mm)
         : tableID{tableID}, dataTypes{std::move(dataTypes)}, mm{mm} {};
+    virtual ~LocalTable() = default;
 
-    void scan(common::ValueVector* nodeIDVector, const std::vector<common::column_id_t>& columnIDs,
-        const std::vector<common::ValueVector*>& outputVectors);
-    void lookup(common::ValueVector* nodeIDVector,
+    virtual void scan(common::ValueVector* nodeIDVector,
         const std::vector<common::column_id_t>& columnIDs,
-        const std::vector<common::ValueVector*>& outputVectors);
-    void insert(common::ValueVector* nodeIDVector,
-        const std::vector<common::ValueVector*>& propertyVectors);
-    void update(common::ValueVector* nodeIDVector, common::column_id_t columnID,
-        common::ValueVector* propertyVector);
-    void delete_(common::ValueVector* nodeIDVector);
+        const std::vector<common::ValueVector*>& outputVectors) = 0;
+    virtual void lookup(common::ValueVector* nodeIDVector,
+        const std::vector<common::column_id_t>& columnIDs,
+        const std::vector<common::ValueVector*>& outputVectors) = 0;
+    virtual void clear() = 0;
 
-    inline void clear() { nodeGroups.clear(); }
-
-private:
-    common::node_group_idx_t initializeLocalNodeGroup(common::ValueVector* nodeIDVector);
-    common::node_group_idx_t initializeLocalNodeGroup(common::offset_t nodeOffset);
-
-private:
+protected:
     common::table_id_t tableID;
     std::vector<std::unique_ptr<common::LogicalType>> dataTypes;
     MemoryManager* mm;
-    std::unordered_map<common::node_group_idx_t, std::unique_ptr<LocalNodeGroup>> nodeGroups;
 };
 
 } // namespace storage

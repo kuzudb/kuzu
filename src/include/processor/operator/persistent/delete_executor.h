@@ -25,17 +25,17 @@ protected:
     common::ValueVector* nodeIDVector;
 };
 
-class SingleLabelNodeDeleteExecutor : public NodeDeleteExecutor {
+class SingleLabelNodeDeleteExecutor final : public NodeDeleteExecutor {
 public:
     SingleLabelNodeDeleteExecutor(storage::NodeTable* table, const DataPos& nodeIDPos)
         : NodeDeleteExecutor(nodeIDPos), table{table} {}
     SingleLabelNodeDeleteExecutor(const SingleLabelNodeDeleteExecutor& other)
         : NodeDeleteExecutor(other.nodeIDPos), table{other.table} {}
 
-    void init(ResultSet* resultSet, ExecutionContext* context) final;
-    void delete_(ExecutionContext* context) final;
+    void init(ResultSet* resultSet, ExecutionContext* context);
+    void delete_(ExecutionContext* context);
 
-    inline std::unique_ptr<NodeDeleteExecutor> copy() const final {
+    inline std::unique_ptr<NodeDeleteExecutor> copy() const {
         return std::make_unique<SingleLabelNodeDeleteExecutor>(*this);
     }
 
@@ -44,7 +44,7 @@ private:
     std::unique_ptr<common::ValueVector> pkVector;
 };
 
-class MultiLabelNodeDeleteExecutor : public NodeDeleteExecutor {
+class MultiLabelNodeDeleteExecutor final : public NodeDeleteExecutor {
 public:
     MultiLabelNodeDeleteExecutor(
         std::unordered_map<common::table_id_t, storage::NodeTable*> tableIDToTableMap,
@@ -53,10 +53,10 @@ public:
     MultiLabelNodeDeleteExecutor(const MultiLabelNodeDeleteExecutor& other)
         : NodeDeleteExecutor(other.nodeIDPos), tableIDToTableMap{other.tableIDToTableMap} {}
 
-    void init(ResultSet* resultSet, ExecutionContext* context) final;
-    void delete_(ExecutionContext* context) final;
+    void init(ResultSet* resultSet, ExecutionContext* context);
+    void delete_(ExecutionContext* context);
 
-    inline std::unique_ptr<NodeDeleteExecutor> copy() const final {
+    inline std::unique_ptr<NodeDeleteExecutor> copy() const {
         return std::make_unique<MultiLabelNodeDeleteExecutor>(*this);
     }
 
@@ -74,8 +74,7 @@ public:
     virtual ~RelDeleteExecutor() = default;
 
     void init(ResultSet* resultSet, ExecutionContext* context);
-
-    virtual void delete_() = 0;
+    virtual void delete_(ExecutionContext* context) = 0;
 
     virtual std::unique_ptr<RelDeleteExecutor> copy() const = 0;
 
@@ -97,7 +96,7 @@ public:
           relsStatistic{relsStatistic}, table{table} {}
     SingleLabelRelDeleteExecutor(const SingleLabelRelDeleteExecutor& other) = default;
 
-    void delete_();
+    void delete_(ExecutionContext* context);
 
     inline std::unique_ptr<RelDeleteExecutor> copy() const {
         return std::make_unique<SingleLabelRelDeleteExecutor>(*this);
@@ -119,7 +118,7 @@ public:
                                                                        tableIDToTableMap)} {}
     MultiLabelRelDeleteExecutor(const MultiLabelRelDeleteExecutor& other) = default;
 
-    void delete_();
+    void delete_(ExecutionContext* context);
 
     inline std::unique_ptr<RelDeleteExecutor> copy() const {
         return std::make_unique<MultiLabelRelDeleteExecutor>(*this);

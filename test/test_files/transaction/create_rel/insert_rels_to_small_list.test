@@ -1,6 +1,5 @@
 -GROUP CreateRelTest
 -DATASET CSV rel-update-tests
--SKIP
 --
 
 -DEFINE_STATEMENT_BLOCK INSERT_RELS_TO_SMALL_LIST [

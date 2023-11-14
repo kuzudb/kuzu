@@ -1,5 +1,7 @@
 #include "storage/store/node_table_data.h"
 
+#include "common/cast.h"
+#include "storage/local_node_table.h"
 #include "storage/stats/nodes_store_statistics.h"
 
 using namespace kuzu::catalog;
@@ -51,27 +53,29 @@ void NodeTableData::insert(Transaction* transaction, ValueVector* nodeIDVector,
         nodeIDVector->readNodeOffset(nodeIDVector->state->selVector->selectedPositions[0]);
     auto currentNumNodeGroups = getNumNodeGroups(transaction);
     if (lastOffset >= StorageUtils::getStartOffsetOfNodeGroup(currentNumNodeGroups)) {
+        // TODO(Guodong): This logic should be removed.
         auto newNodeGroup = std::make_unique<NodeGroup>(columns, enableCompression);
         newNodeGroup->finalize(currentNumNodeGroups);
         append(newNodeGroup.get());
     }
-    auto localStorage = transaction->getLocalStorage();
-    localStorage->initializeLocalTable(tableID, columns);
-    localStorage->insert(tableID, nodeIDVector, propertyVectors);
+    auto localTable = transaction->getLocalStorage()->getOrCreateLocalNodeTable(tableID, columns);
+    auto localNodeTable = ku_dynamic_cast<LocalTable*, LocalNodeTable*>(localTable);
+    localNodeTable->insert(nodeIDVector, propertyVectors);
 }
 
 void NodeTableData::update(Transaction* transaction, column_id_t columnID,
     ValueVector* nodeIDVector, ValueVector* propertyVector) {
     KU_ASSERT(columnID < columns.size());
     auto localStorage = transaction->getLocalStorage();
-    localStorage->initializeLocalTable(tableID, columns);
-    localStorage->update(tableID, nodeIDVector, columnID, propertyVector);
+    auto localTable = transaction->getLocalStorage()->getOrCreateLocalNodeTable(tableID, columns);
+    auto localNodeTable = ku_dynamic_cast<LocalTable*, LocalNodeTable*>(localTable);
+    localNodeTable->update(nodeIDVector, columnID, propertyVector);
 }
 
 void NodeTableData::delete_(Transaction* transaction, ValueVector* nodeIDVector) {
-    auto localStorage = transaction->getLocalStorage();
-    localStorage->initializeLocalTable(tableID, columns);
-    localStorage->delete_(tableID, nodeIDVector);
+    auto localTable = transaction->getLocalStorage()->getOrCreateLocalNodeTable(tableID, columns);
+    auto localNodeTable = ku_dynamic_cast<LocalTable*, LocalNodeTable*>(localTable);
+    localNodeTable->delete_(nodeIDVector);
 }
 
 void NodeTableData::lookup(Transaction* transaction, TableReadState& readState,
@@ -100,16 +104,21 @@ void NodeTableData::append(kuzu::storage::NodeGroup* nodeGroup) {
     }
 }
 
-void NodeTableData::prepareLocalTableToCommit(LocalTable* localTable) {
+void NodeTableData::prepareCommit(Transaction* transaction, LocalTable* localTable) {
+    auto localNodeTable = ku_dynamic_cast<LocalTable*, LocalNodeTable*>(localTable);
+    KU_ASSERT(localNodeTable);
     auto numNodeGroups = getNumNodeGroups(&DUMMY_WRITE_TRANSACTION);
-    for (auto& [nodeGroupIdx, nodeGroup] : localTable->nodeGroups) {
+    for (auto& [nodeGroupIdx, nodeGroup] : localNodeTable->nodeGroups) {
         for (auto columnID = 0; columnID < columns.size(); columnID++) {
             auto column = columns[columnID].get();
             auto columnChunk = nodeGroup->getLocalColumnChunk(columnID);
             if (columnChunk->getNumRows() == 0) {
                 continue;
             }
-            column->prepareCommitForChunk(nodeGroupIdx, columnChunk, nodeGroupIdx >= numNodeGroups);
+            // deleteInfo is empty here as node doesn't keep local deletions.
+            column->prepareCommitForChunk(transaction, nodeGroupIdx,
+                nodeGroup->getLocalColumnChunk(columnID), nodeGroup->getInsertInfoRef(columnID),
+                nodeGroup->getUpdateInfoRef(columnID), {} /* deleteInfo */);
         }
     }
 }

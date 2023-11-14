@@ -39,7 +39,7 @@ bool DeleteRel::getNextTuplesInternal(ExecutionContext* context) {
         return false;
     }
     for (auto& executor : executors) {
-        executor->delete_();
+        executor->delete_(context);
     }
     return true;
 }

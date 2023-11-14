@@ -54,10 +54,14 @@ void StringColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     }
 }
 
-void StringColumn::scan(node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) {
-    Column::scan(nodeGroupIdx, columnChunk);
+void StringColumn::scan(
+    Transaction* transaction, node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) {
+    Column::scan(transaction, nodeGroupIdx, columnChunk);
     auto stringColumnChunk = reinterpret_cast<StringColumnChunk*>(columnChunk);
-    auto overflowMetadata = overflowMetadataDA->get(nodeGroupIdx, TransactionType::WRITE);
+    if (overflowMetadataDA->getNumElements(transaction->getType()) <= nodeGroupIdx) {
+        return;
+    }
+    auto overflowMetadata = overflowMetadataDA->get(nodeGroupIdx, transaction->getType());
     auto inMemOverflowFile = stringColumnChunk->getOverflowFile();
     inMemOverflowFile->addNewPages(overflowMetadata.numPages);
     for (auto i = 0u; i < overflowMetadata.numPages; i++) {

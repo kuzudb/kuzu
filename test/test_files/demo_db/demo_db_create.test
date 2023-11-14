@@ -31,7 +31,6 @@ Alice|35
 Dimitri|
 
 -CASE CreateRelTest1
--SKIP
 -STATEMENT CREATE (u:User {name: 'Alice'})
 ---- ok
 -STATEMENT MATCH (a:User) WHERE a.name = 'Adam' WITH a  MATCH (b:User) WHERE b.name = 'Alice' WITH a, b CREATE (a)-[e:Follows {since:1990}]->(b)
@@ -44,7 +43,6 @@ Karissa
 Zhang
 
 -CASE CreateRelTest2
--SKIP
 -STATEMENT MATCH (a:User), (b:User) WHERE a.name='Zhang' AND b.name='Karissa' CREATE (a)-[:Follows {since:2022}]->(b)
 ---- ok
 -CHECK_ORDER
@@ -54,7 +52,6 @@ Karissa
 Noura
 
 -CASE CreateAvgNullTest
--SKIP
 -STATEMENT MATCH (a:User) WHERE a.name = 'Adam' CREATE (a)-[:Follows]->(b:User {name:'Alice'})
 ---- ok
 -CHECK_ORDER
@@ -67,7 +64,6 @@ Noura
 {_ID: 0:3, _LABEL: User, name: Noura, age: 25}|25.000000|25|1|1
 
 -CASE MergeComplexPattern
--SKIP
 -STATEMENT MERGE (a:User {name:'A'})-[e:Follows]->(b:User {name:'B'})-[:LivesIn]->(:City {name:'Toronto'});
 ---- ok
 -STATEMENT MATCH (a:User)-[:Follows]->(b:User)-[:LivesIn]->(c:City) RETURN a.name, b.name, c.name;

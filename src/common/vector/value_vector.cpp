@@ -1,5 +1,6 @@
 #include "common/vector/value_vector.h"
 
+#include "common/exception/message.h"
 #include "common/null_buffer.h"
 #include "common/types/value/nested.h"
 #include "common/types/value/value.h"
@@ -451,6 +452,7 @@ void StringVector::addString(ValueVector* vector, ku_string_t& dstStr, ku_string
     if (ku_string_t::isShortString(srcStr.len)) {
         dstStr.setShortString(srcStr);
     } else {
+
         dstStr.overflowPtr = reinterpret_cast<uint64_t>(stringBuffer->allocateOverflow(srcStr.len));
         dstStr.setLongString(srcStr);
     }
