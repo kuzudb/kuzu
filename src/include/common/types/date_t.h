@@ -66,6 +66,7 @@ public:
 
     KUZU_API constexpr static const int32_t YEAR_INTERVAL = 400;
     KUZU_API constexpr static const int32_t DAYS_PER_YEAR_INTERVAL = 146097;
+    constexpr static const char* BC_SUFFIX = " (BC)";
 
     // Convert a string in the format "YYYY-MM-DD" to a date object
     KUZU_API static date_t fromCString(const char* str, uint64_t len);

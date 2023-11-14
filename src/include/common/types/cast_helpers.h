@@ -2,6 +2,7 @@
 
 #include <cstring>
 
+#include "common/types/date_t.h"
 #include "interval_t.h"
 
 namespace kuzu {
@@ -76,38 +77,38 @@ public:
 };
 
 struct DateToStringCast {
-    static uint64_t Length(int32_t date[], uint64_t& year_length, bool& add_bc) {
+    static uint64_t Length(int32_t date[], uint64_t& yearLength, bool& addBC) {
         // format is YYYY-MM-DD with optional (BC) at the end
         // regular length is 10
         uint64_t length = 6;
-        year_length = 4;
-        add_bc = false;
+        yearLength = 4;
+        addBC = false;
         if (date[0] <= 0) {
             // add (BC) suffix
-            length += 5;
+            length += strlen(Date::BC_SUFFIX);
             date[0] = -date[0] + 1;
-            add_bc = true;
+            addBC = true;
         }
 
         // potentially add extra characters depending on length of year
-        year_length += date[0] >= 10000;
-        year_length += date[0] >= 100000;
-        year_length += date[0] >= 1000000;
-        year_length += date[0] >= 10000000;
-        length += year_length;
+        yearLength += date[0] >= 10000;
+        yearLength += date[0] >= 100000;
+        yearLength += date[0] >= 1000000;
+        yearLength += date[0] >= 10000000;
+        length += yearLength;
         return length;
     }
 
-    static void Format(char* data, int32_t date[], uint64_t year_length, bool add_bc) {
+    static void Format(char* data, int32_t date[], uint64_t yearLen, bool addBC) {
         // now we write the string, first write the year
-        auto endptr = data + year_length;
+        auto endptr = data + yearLen;
         endptr = NumericHelper::FormatUnsigned(date[0], endptr);
         // add optional leading zeros
         while (endptr > data) {
             *--endptr = '0';
         }
         // now write the month and day
-        auto ptr = data + year_length;
+        auto ptr = data + yearLen;
         for (int i = 1; i <= 2; i++) {
             ptr[0] = '-';
             if (date[i] < 10) {
@@ -121,9 +122,10 @@ struct DateToStringCast {
             ptr += 3;
         }
         // optionally add BC to the end of the date
-        if (add_bc) {
-            strcpy(ptr, " (BC)"); // NOLINT(clang-analyzer-security.insecureAPI.strcpy): safety
-                                  // guaranteed by Length().
+        if (addBC) {
+            memcpy(ptr, Date::BC_SUFFIX, // NOLINT(bugprone-not-null-terminated-result): no need to
+                                         // put null terminator
+                strlen(Date::BC_SUFFIX));
         }
     }
 };

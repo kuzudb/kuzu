@@ -352,14 +352,14 @@ date_t Date::fromCString(const char* str, uint64_t len) {
 }
 
 std::string Date::toString(date_t date) {
-    int32_t date_units[3];
-    uint64_t year_length;
-    bool add_bc;
-    Date::convert(date, date_units[0], date_units[1], date_units[2]);
+    int32_t dateUnits[3];
+    uint64_t yearLength;
+    bool addBC;
+    Date::convert(date, dateUnits[0], dateUnits[1], dateUnits[2]);
 
-    auto length = DateToStringCast::Length(date_units, year_length, add_bc);
-    auto buffer = std::unique_ptr<char[]>(new char[length]);
-    DateToStringCast::Format(buffer.get(), date_units, year_length, add_bc);
+    auto length = DateToStringCast::Length(dateUnits, yearLength, addBC);
+    auto buffer = std::make_unique<char[]>(length);
+    DateToStringCast::Format(buffer.get(), dateUnits, yearLength, addBC);
     return std::string(buffer.get(), length);
 }
 
