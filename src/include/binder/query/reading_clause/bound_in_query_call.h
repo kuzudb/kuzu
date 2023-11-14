@@ -25,6 +25,15 @@ public:
 
     inline std::shared_ptr<Expression> getRowIdxExpression() const { return rowIdxExpression; }
 
+    inline void setWherePredicate(std::shared_ptr<Expression> expression) {
+        wherePredicate = std::move(expression);
+    }
+    inline bool hasWherePredicate() const { return wherePredicate != nullptr; }
+    inline std::shared_ptr<Expression> getWherePredicate() const { return wherePredicate; }
+    inline expression_vector getPredicatesSplitOnAnd() const {
+        return hasWherePredicate() ? wherePredicate->splitOnAND() : expression_vector{};
+    }
+
     inline std::unique_ptr<BoundReadingClause> copy() override {
         return std::make_unique<BoundInQueryCall>(
             tableFunc, bindData->copy(), outputExpressions, rowIdxExpression);
@@ -35,6 +44,7 @@ private:
     std::unique_ptr<function::TableFuncBindData> bindData;
     expression_vector outputExpressions;
     std::shared_ptr<Expression> rowIdxExpression;
+    std::shared_ptr<Expression> wherePredicate;
 };
 
 } // namespace binder

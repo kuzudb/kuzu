@@ -137,6 +137,10 @@ public:
                                     std::move(parameterTypes), returnType));
     }
 
+    inline void setReplaceFunc(replace_func_t replaceFunc) {
+        clientContext->setReplaceFunc(std::move(replaceFunc));
+    }
+
 private:
     std::unique_ptr<QueryResult> query(const std::string& query, const std::string& encodedJoin);
 

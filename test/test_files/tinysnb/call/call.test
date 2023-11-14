@@ -93,9 +93,8 @@ Can't execute a write query inside a read-only transaction.
 6|notes|UNION(firstmet:DATE, type:INT16, comment:STRING)
 
 -LOG ReturnNodeName
--STATEMENT CALL table_info('person') RETURN name
----- 15
-ID
+-STATEMENT CALL table_info('person') WHERE name <> 'ID' RETURN name
+---- 14
 fName
 gender
 isStudent

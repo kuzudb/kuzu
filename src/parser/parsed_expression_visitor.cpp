@@ -1,5 +1,6 @@
 #include "parser/parsed_expression_visitor.h"
 
+#include "common/string_utils.h"
 #include "parser/expression/parsed_case_expression.h"
 
 using namespace kuzu::common;
@@ -82,6 +83,18 @@ std::unique_ptr<ParsedExpression> MacroParameterReplacer::visit(
         ParsedExpressionChildrenVisitor::setChild(*macroExpression, i, visit(children[i]->copy()));
     }
     return macroExpression;
+}
+
+ParsedFunctionExpression* InQueryCallParameterReplacer::visit(
+    ParsedFunctionExpression* tableFuncExpression) const {
+    auto funcName = tableFuncExpression->getFunctionName();
+    StringUtils::toUpper(funcName);
+    if (funcName == literalExpressionToReplace.first) {
+        ParsedExpressionChildrenVisitor::setChild(
+            *tableFuncExpression, 0, literalExpressionToReplace.second->copy());
+        return tableFuncExpression;
+    }
+    return tableFuncExpression;
 }
 
 } // namespace parser

@@ -1,4 +1,5 @@
 #include "include/py_database.h"
+#include "pandas/pandas_scan.h"
 
 #include <memory>
 
@@ -34,6 +35,7 @@ PyDatabase::PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize,
     uint64_t maxNumThreads, bool compression, bool readOnly) {
     auto systemConfig = SystemConfig(bufferPoolSize, maxNumThreads, compression, readOnly);
     database = std::make_unique<Database>(databasePath, systemConfig);
+    database->addFunction(READ_PANDAS_FUNC_NAME,kuzu::PandasScanFunction::getFunctionSet());
     storageDriver = std::make_unique<kuzu::main::StorageDriver>(database.get());
 }
 

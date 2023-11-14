@@ -13,7 +13,11 @@ pybind11_add_module(_kuzu
         src_cpp/py_database.cpp
         src_cpp/py_prepared_statement.cpp
         src_cpp/py_query_result.cpp
-        src_cpp/py_query_result_converter.cpp)
+        src_cpp/py_query_result_converter.cpp
+        src_cpp/pandas/pandas_bind.cpp
+        src_cpp/pandas/pandas_scan.cpp
+        src_cpp/numpy/numpy_type.cpp
+        src_cpp/numpy/numpy_scan.cpp)
 
 set_target_properties(_kuzu
         PROPERTIES
@@ -28,7 +32,8 @@ target_link_libraries(_kuzu
 target_include_directories(
         _kuzu
         PUBLIC
-        ../../src/include)
+        ../../src/include
+        src_cpp/include)
 
 get_target_property(PYTHON_DEST _kuzu LIBRARY_OUTPUT_DIRECTORY)
 

@@ -107,6 +107,7 @@ enum class KUZU_API LogicalTypeID : uint8_t {
     MAP = 54,
     UNION = 55,
     RDF_VARIANT = 56,
+    POINTER = 57,
 };
 
 enum class PhysicalTypeID : uint8_t {
@@ -132,6 +133,7 @@ enum class PhysicalTypeID : uint8_t {
     FIXED_LIST = 21,
     VAR_LIST = 22,
     STRUCT = 23,
+    POINTER = 24,
 };
 
 class LogicalType;

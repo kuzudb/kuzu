@@ -132,6 +132,11 @@ public:
      */
     KUZU_API explicit Value(const char* val_);
     /**
+     * @param val_ the uint8_t* value to set.
+     * @return a Value with POINTER type and val_ value.
+     */
+    KUZU_API explicit Value(uint8_t* val_);
+    /**
      * @param val_ the string value to set.
      * @return a Value with type and val_ value.
      */
@@ -249,6 +254,8 @@ public:
         uint8_t uint8Val;
         double doubleVal;
         float floatVal;
+        // TODO(Ziyi): Should we remove the val suffix from all values in Val? Looks redundant.
+        uint8_t* pointer;
         interval_t intervalVal;
         internalID_t internalIDVal;
     } val;
@@ -419,6 +426,15 @@ KUZU_API inline std::string Value::getValue() const {
 }
 
 /**
+ * @return uint8_t* value.
+ */
+template<>
+KUZU_API inline uint8_t* Value::getValue() const {
+    KU_ASSERT(dataType->getLogicalTypeID() == LogicalTypeID::POINTER);
+    return val.pointer;
+}
+
+/**
  * @return the reference to the boolean value.
  */
 template<>
@@ -572,6 +588,15 @@ KUZU_API inline std::string& Value::getValueReference() {
 }
 
 /**
+ * @return the reference to the uint8_t* value.
+ */
+template<>
+KUZU_API inline uint8_t*& Value::getValueReference() {
+    KU_ASSERT(dataType->getLogicalTypeID() == LogicalTypeID::POINTER);
+    return val.pointer;
+}
+
+/**
  * @param val the boolean value
  * @return a Value with BOOL type and val value.
  */
@@ -718,6 +743,15 @@ KUZU_API inline Value Value::createValue(std::string val) {
 template<>
 KUZU_API inline Value Value::createValue(const char* value) {
     return Value(LogicalType{LogicalTypeID::STRING}, std::string(value));
+}
+
+/**
+ * @param val the uint8_t* val
+ * @return a Value with POINTER type and val val.
+ */
+template<>
+KUZU_API inline Value Value::createValue(uint8_t* val) {
+    return Value(val);
 }
 
 } // namespace common

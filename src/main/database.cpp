@@ -10,6 +10,7 @@
 #include "common/file_utils.h"
 #include "common/logging_level_utils.h"
 #include "common/utils.h"
+#include "function/scalar_function.h"
 #include "processor/processor.h"
 #include "spdlog/spdlog.h"
 #include "storage/storage_manager.h"
@@ -81,6 +82,10 @@ Database::~Database() {
 
 void Database::setLoggingLevel(std::string loggingLevel) {
     spdlog::set_level(LoggingLevelUtils::convertStrToLevelEnum(std::move(loggingLevel)));
+}
+
+void Database::addFunction(std::string name, function::function_set functionSet) {
+    catalog->addFunction(std::move(name), std::move(functionSet));
 }
 
 void Database::openLockFile() {

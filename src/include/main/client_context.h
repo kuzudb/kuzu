@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <functional>
 #include <memory>
 
 #include "common/timer.h"
@@ -23,6 +24,8 @@ struct ActiveQuery {
 
     void reset();
 };
+
+using replace_func_t = std::function<std::unique_ptr<common::Value>(common::Value*)>;
 
 /**
  * @brief Contain client side configuration. We make profiler associated per query, so profiler is
@@ -62,6 +65,10 @@ public:
     transaction::Transaction* getActiveTransaction() const;
     transaction::TransactionContext* getTransactionContext() const;
 
+    inline void setReplaceFunc(replace_func_t replaceFunc) {
+        this->replaceFunc = std::move(replaceFunc);
+    }
+
 private:
     inline void resetActiveQuery() { activeQuery.reset(); }
 
@@ -71,6 +78,7 @@ private:
     uint32_t varLengthExtendMaxDepth;
     std::unique_ptr<transaction::TransactionContext> transactionContext;
     bool enableSemiMask;
+    replace_func_t replaceFunc;
 };
 
 } // namespace main

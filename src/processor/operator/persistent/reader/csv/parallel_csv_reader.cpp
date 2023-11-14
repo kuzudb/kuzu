@@ -13,7 +13,6 @@
 #include "common/string_format.h"
 #include "common/system_message.h"
 #include "processor/operator/persistent/reader/csv/driver.h"
-#include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;

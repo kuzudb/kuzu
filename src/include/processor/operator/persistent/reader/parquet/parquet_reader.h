@@ -92,7 +92,7 @@ private:
     storage::MemoryManager* memoryManager;
 };
 
-struct ParquetScanSharedState final : public function::ScanSharedTableFuncState {
+struct ParquetScanSharedState final : public function::ScanSharedState {
     explicit ParquetScanSharedState(const common::ReaderConfig readerConfig,
         storage::MemoryManager* memoryManager, uint64_t numRows);
 

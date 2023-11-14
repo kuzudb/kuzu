@@ -14,6 +14,7 @@ from test_timeout import *
 from test_torch_geometric import *
 from test_torch_geometric_remote_backend import *
 from test_write_to_csv import *
+from test_scan_pandas import *
 
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__]))

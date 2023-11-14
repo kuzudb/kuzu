@@ -8678,7 +8678,7 @@ scan_number_done:
 
         --position.chars_read_total;
 
-        // in case we "unget" a newline, we have to also decrement the lines_read
+        // in case we "unget" a newline, we have to also decrement the numLinesRead
         if (position.chars_read_current_line == 0)
         {
             if (position.lines_read > 0)

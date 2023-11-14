@@ -30,6 +30,8 @@ public:
         const std::string& srcTableName, const std::string& relName,
         const std::string& dstTableName, size_t queryBatchSize);
 
+    static bool isPandasDataframe(const py::object& object);
+
 private:
     std::unordered_map<std::string, std::shared_ptr<kuzu::common::Value>> transformPythonParameters(
         py::dict params);
