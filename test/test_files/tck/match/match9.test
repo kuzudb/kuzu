@@ -14,7 +14,7 @@
            CREATE (a)-[:T]->(b);
 ---- ok
 -STATEMENT MATCH ()-[r*0..1]-()
-           RETURN last(r) AS l
+           RETURN last(r) AS l;
 ---- 5
 (...)-[...]->(...)
 (...)-[...]->(...)
