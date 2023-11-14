@@ -1,0 +1,66 @@
+-GROUP TCKMatchWhere3
+-DATASET CSV tck
+
+--
+
+# Join between node identities
+-CASE Scenario1
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A), (:B);
+---- ok
+-STATEMENT MATCH (a), (b)
+           WHERE a = b
+           RETURN a, b;
+---- 2
+{_ID: 0:0, _LABEL: A, ID: 0}|{_ID: 0:0, _LABEL: A, ID: 0}
+{_ID: 1:0, _LABEL: B, ID: 0}|{_ID: 1:0, _LABEL: B, ID: 0}
+
+# Join between node properties of disconnected nodes
+-CASE Scenario2
+-STATEMENT CREATE NODE TABLE A(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE NODE TABLE B(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (:A {id: 1}),
+                  (:A {id: 2}),
+                  (:B {id: 2}),
+                  (:B {id: 3});
+---- ok
+-STATEMENT MATCH (a:A), (b:B)
+           WHERE a.id = b.id
+           RETURN a, b;
+---- 1
+{_ID: 0:1, _LABEL: A, id: 2}|{_ID: 1:0, _LABEL: B, id: 2}
+
+# Join between node properties of adjacent nodes
+-CASE Scenario3
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, animal STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, animal STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE C(ID SERIAL, animal STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE D(ID SERIAL, animal STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP KNOWS(FROM A TO B, FROM A TO C, FROM D TO B, FROM D TO C);
+---- ok
+-STATEMENT CREATE (a:A {animal: 'monkey'}),
+                  (b:B {animal: 'cow'}),
+                  (c:C {animal: 'monkey'}),
+                  (d:D {animal: 'cow'}),
+                  (a)-[:KNOWS_A_B]->(b),
+                  (a)-[:KNOWS_A_C]->(c),
+                  (d)-[:KNOWS_D_B]->(b),
+                  (d)-[:KNOWS_D_C]->(c);
+---- ok
+-STATEMENT MATCH (n)-[rel]->(x)
+           WHERE n.animal = x.animal
+           RETURN n, x;
+---- 2
+{_ID: 0:0, _LABEL: A, ID: 0, animal: monkey}|{_ID: 2:0, _LABEL: C, ID: 0, animal: monkey}
+{_ID: 3:0, _LABEL: D, ID: 0, animal: cow}|{_ID: 1:0, _LABEL: B, ID: 0, animal: cow}

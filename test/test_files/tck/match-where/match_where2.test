@@ -1,0 +1,65 @@
+-GROUP TCKMatchWhere2
+-DATASET CSV tck
+
+--
+
+# Filter nodes with conjunctive two-part property predicate on multi variables with multiple bindings
+-CASE Scenario1
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE D(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE NODE TABLE C(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP T(FROM A TO B, FROM A TO C, FROM A TO D, FROM B TO C, FROM B TO D, FROM C TO D);
+---- ok
+-STATEMENT CREATE (a:A), (b:B {id: 1}), (c:C {id: 2}), (d:D)
+           CREATE (a)-[:T_A_B]->(b),
+                  (a)-[:T_A_C]->(c),
+                  (a)-[:T_A_D]->(d),
+                  (b)-[:T_B_C]->(c),
+                  (b)-[:T_B_D]->(d),
+                  (c)-[:T_C_D]->(d);
+---- ok
+-STATEMENT MATCH (a)--(b)--(c)--(d)--(a), (b)--(d)
+           WHERE a.id = 1
+             AND c.id = 2
+           RETURN d;
+---- 2
+{_ID: 0:0, _LABEL: A, ID: 0}
+{_ID: 1:0, _LABEL: D, ID: 0}
+
+# Filter node with conjunctive multi-part property predicates on multi variables with multiple bindings
+-CASE Scenario2
+-SKIP
+-STATEMENT CREATE NODE TABLE A(name STRING, id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE ADV_HAS_PRODUCT(FROM A TO B);
+---- ok
+-STATEMENT CREATE REL TABLE AA_HAS_VALUE(FROM A TO B);
+---- ok
+-STATEMENT CREATE REL TABLE AP_HAS_VALUE(FROM B TO B);
+---- ok
+-STATEMENT CREATE (advertiser:A {name: 'advertiser1', id: 0}),
+                  (thing:A {name: 'Color', id: 1}),
+                  (red:B {name: 'red'}),
+                  (p1:B {name: 'product1'}),
+                  (p2:B {name: 'product4'})
+           CREATE (advertiser)-[:ADV_HAS_PRODUCT]->(p1),
+                  (advertiser)-[:ADV_HAS_PRODUCT]->(p2),
+                  (thing)-[:AA_HAS_VALUE]->(red),
+                  (p1)-[:AP_HAS_VALUE]->(red),
+                  (p2)-[:AP_HAS_VALUE]->(red);
+---- ok
+-STATEMENT MATCH (advertiser)-[:ADV_HAS_PRODUCT]->(out)-[:AP_HAS_VALUE]->(red)<-[:AA_HAS_VALUE]-(a)
+           WHERE advertiser.id = $1
+             AND a.id = $2
+             AND red.name = 'red'
+             AND out.name = 'product1'
+           RETURN out.name;
+---- 1
+product1

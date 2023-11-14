@@ -1,0 +1,267 @@
+-GROUP TCKMatchWhere1
+-DATASET CSV tck
+
+--
+
+# Filter node with node label predicate on multi variables with multiple bindings
+-CASE Scenario1
+-STATEMENT CREATE NODE TABLE A(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE NODE TABLE B(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE NODE TABLE C(id INT64, a STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP ADMIN(FROM B TO A, FROM B TO C);
+---- ok
+-STATEMENT CREATE (:A {id: 0})<-[:ADMIN_B_A]-(:B {id: 1})-[:ADMIN_B_C]->(:C {id: 2, a: 'A'});
+---- ok
+-STATEMENT MATCH (a)-[:ADMIN]-(b)
+           WHERE LABEL(a) = 'A'
+           RETURN a.id, b.id;
+---- 1
+0|1
+
+# Filter node with node label predicate on multi variables without any bindings
+-CASE Scenario2
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+-STATEMENT CREATE (:A);
+---- ok
+-STATEMENT MATCH (a)<--()<--(b)-->()-->(c)
+           WHERE LABEL(a) = 'A'
+           RETURN c;
+---- 0
+
+# Filter node with property predicate on a single variable with multiple bindings
+-CASE Scenario3
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE Bar(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A), (:B {name: 'Bar'}), (:Bar);
+---- ok
+-STATEMENT MATCH (n)
+           WHERE n.name = 'Bar'
+           RETURN n;
+---- 1
+{_ID: 1:0, _LABEL: B, ID: 0, name: Bar}
+
+# Filter start node of relationship with property predicate on multi variables with multiple bindings
+-CASE Scenario4
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM Person TO A);
+---- ok
+-STATEMENT CREATE (a:Person {name: 'Alice'}), (b:Person {name: 'Bob'}),
+                  (c:A), (d:A)
+           CREATE (a)-[:T]->(c),
+                  (b)-[:T]->(d);
+---- ok
+-STATEMENT MATCH (n:Person)-->()
+           WHERE n.name = 'Bob'
+           RETURN n;
+---- 1
+{_ID: 0:1, _LABEL: Person, ID: 1, name: Bob}
+
+# Filter end node of relationship with property predicate on multi variables with multiple bindings
+-CASE Scenario5
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE X(FROM B TO A);
+---- ok
+-STATEMENT CREATE (:A {name: 'Someone'})<-[:X]-(:B)-[:X]->(:A {name: 'Andres'});
+---- ok
+-STATEMENT MATCH ()-[rel:X]-(a)
+           WHERE a.name = 'Andres'
+           RETURN a;
+---- 1
+{_ID: 0:1, _LABEL: A, ID: 1, name: Andres}
+
+# Filter node with a parameter in a property predicate on multi variables with one binding
+-CASE Scenario6
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO B, name STRING);
+---- ok
+-STATEMENT CREATE (:A)-[:T {name: 'bar'}]->(:B {name: 'me'});
+---- ok
+
+-STATEMENT MATCH (a)-[r]->(b)
+           WHERE b.name = $param
+           RETURN r;
+---- 1
+(0:0)-{_LABEL: T, _ID: 2:0, name: bar}->(1:0)
+
+# Filter relationship with relationship type predicate on multi variables with multiple bindings
+-CASE Scenario7
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE C(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE KNOWS(FROM A TO B);
+---- ok
+-STATEMENT CREATE REL TABLE HATES(FROM A TO C);
+---- ok
+-STATEMENT CREATE (a:A {name: 'A'}),
+                  (b:B {name: 'B'}),
+                  (c:C {name: 'C'}),
+                  (a)-[:KNOWS]->(b),
+                  (a)-[:HATES]->(c);
+---- ok
+-STATEMENT MATCH (n {name: 'A'})-[r]->(x)
+           WHERE LABEL(r) = 'KNOWS'
+           RETURN x;
+---- 1
+{_ID: 1:0, _LABEL: B, ID: 0, name: B}
+
+# Filter relationship with property predicate on multi variables with multiple bindings
+-CASE Scenario8
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP KNOWS(FROM C TO A, FROM C TO B, name STRING);
+---- ok
+-STATEMENT CREATE (:A)<-[:KNOWS_C_A {name: 'monkey'}]-(:C)-[:KNOWS_C_B {name: 'woot'}]->(:B);
+---- ok
+-STATEMENT MATCH (node)-[r:KNOWS]->(a)
+           WHERE r.name = 'monkey'
+           RETURN a;
+---- 1
+{_ID: 0:0, _LABEL: A, ID: 0}
+
+# Filter relationship with a parameter in a property predicate on multi variables with one binding
+-CASE Scenario9
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO B, name STRING);
+---- ok
+-STATEMENT CREATE (:A)-[:T {name: 'bar'}]->(:B {name: 'me'});
+---- ok
+-STATEMENT MATCH (a)-[r]->(b)
+           WHERE r.name = $param
+           RETURN b;
+---- 1
+{_ID: 1:0, _LABEL: B, ID: 0, name: me}
+
+# Filter node with disjunctive property predicate on single variables with multiple bindings
+-CASE Scenario10
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, p1 INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, p2 INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (a:A {p1: 12}),
+                  (b:B {p2: 13}),
+                  (c:C);
+-STATEMENT MATCH (n)
+           WHERE n.p1 = 12 OR n.p2 = 13
+           RETURN n;
+---- 2
+{_ID: 0:0, _LABEL: A, ID: 0, p1: 12}
+{_ID: 1:0, _LABEL: B, ID: 0, p2: 13}
+
+# Filter relationship with disjunctive relationship type predicate on multi variables with multiple bindings
+-CASE Scenario11
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE C(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE KNOWS(FROM A TO B);
+---- ok
+-STATEMENT CREATE REL TABLE HATES(FROM A TO C);
+---- ok
+-STATEMENT CREATE REL TABLE WONDERS(FROM A TO C);
+---- ok
+-STATEMENT CREATE (a:A {name: 'A'}),
+                  (b:B {name: 'B'}),
+                  (c:C {name: 'C'}),
+                  (a)-[:KNOWS]->(b),
+                  (a)-[:HATES]->(c),
+                  (a)-[:WONDERS]->(c);
+---- ok
+-STATEMENT MATCH (n)-[r]->(x)
+           WHERE LABEL(r) = 'KNOWS' OR LABEL(r) = 'HATES'
+           RETURN r;
+---- 2
+(0:0)-{_LABEL: KNOWS, _ID: 3:0}->(1:0)
+(0:0)-{_LABEL: HATES, _ID: 4:0}->(2:0)
+
+# Filter path with path length predicate on multi variables with one binding
+-CASE Scenario12
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE KNOWS(FROM A TO B);
+---- ok
+-STATEMENT CREATE (a:A {name: 'A'})-[:KNOWS]->(b:B {name: 'B'});
+---- ok
+-STATEMENT MATCH p = (n)-->(x)
+           WHERE length(p) = 1
+           RETURN x;
+---- 1
+{_ID: 1:0, _LABEL: B, ID: 0, name: B}
+
+# Filter path with false path length predicate on multi variables with one binding
+-CASE Scenario13
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE KNOWS(FROM A TO B);
+---- ok
+-STATEMENT CREATE (a:A {name: 'A'})-[:KNOWS]->(b:B {name: 'B'});
+---- ok
+-STATEMENT MATCH p = (n)-->(x)
+           WHERE length(p) = 10
+           RETURN x;
+---- 0
+
+# Fail when filtering path with property predicate
+-CASE Scenario14
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+-STATEMENT MATCH (n)
+           MATCH r = (n)-[*]->()
+           WHERE r.name = 'apa'
+           RETURN r;
+---- error
+Binder exception: r has data type RECURSIVE_REL but (NODE,REL,STRUCT) was expected.
+
+# Fail on aggregation in WHERE
+-CASE Scenario15
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT MATCH (a)
+           WHERE count(a) > 10
+           RETURN a;
+---- error
+Cannot evaluate expression with type AGGREGATE_FUNCTION.
