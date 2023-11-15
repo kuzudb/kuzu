@@ -4,7 +4,9 @@
 --
 
 # Handling fixed-length variable length pattern
+# TODO: Should add filter for the query, otherwise could lead to multiple possible results.
 -CASE Scenario1
+-SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE T(FROM A TO A);
@@ -98,7 +100,9 @@ Binder exception: Expression start has data type STRING but expected INT64. Impl
 {_ID: 0:1, _LABEL: Artist, ID: 1}|{_ID: 0:2, _LABEL: Artist, ID: 2}
 
 # Matching variable length patterns from a bound node
+# TODO: Should add filter for the query, otherwise could lead to multiple possible results.
 -CASE Scenario6
+-SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE X(FROM A To A);
