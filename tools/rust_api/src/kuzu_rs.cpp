@@ -56,7 +56,7 @@ const LogicalType& logical_type_get_fixed_list_child_type(const LogicalType& log
     return *kuzu::common::FixedListType::getChildType(&logicalType);
 }
 uint64_t logical_type_get_fixed_list_num_elements(const LogicalType& logicalType) {
-    return kuzu::common::FixedListType::getNumElementsInList(&logicalType);
+    return kuzu::common::FixedListType::getNumValuesInList(&logicalType);
 }
 
 rust::Vec<rust::String> logical_type_get_struct_field_names(

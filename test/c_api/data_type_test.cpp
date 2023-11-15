@@ -21,7 +21,7 @@ TEST(CApiDataTypeTest, Create) {
     auto dataTypeCpp3 = (LogicalType*)dataType3->_data_type;
     ASSERT_EQ(dataTypeCpp3->getLogicalTypeID(), LogicalTypeID::FIXED_LIST);
     // ASSERT_EQ(dataTypeCpp3->getChildType()->getLogicalTypeID(), LogicalTypeID::INT64);
-    ASSERT_EQ(FixedListType::getNumElementsInList(dataTypeCpp3), 100);
+    ASSERT_EQ(FixedListType::getNumValuesInList(dataTypeCpp3), 100);
 
     // Since child type is copied, we should be able to destroy the original type without an error.
     kuzu_data_type_destroy(dataType);

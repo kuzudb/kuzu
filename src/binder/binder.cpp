@@ -90,7 +90,7 @@ std::unique_ptr<LogicalType> Binder::bindDataType(const std::string& dataType) {
     if (boundType.getLogicalTypeID() == LogicalTypeID::FIXED_LIST) {
         auto validNumericTypes = LogicalTypeUtils::getNumericalLogicalTypeIDs();
         auto childType = FixedListType::getChildType(&boundType);
-        auto numElementsInList = FixedListType::getNumElementsInList(&boundType);
+        auto numElementsInList = FixedListType::getNumValuesInList(&boundType);
         if (find(validNumericTypes.begin(), validNumericTypes.end(),
                 childType->getLogicalTypeID()) == validNumericTypes.end()) {
             throw BinderException("The child type of a fixed list must be a numeric type. Given: " +

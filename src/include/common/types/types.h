@@ -176,7 +176,7 @@ public:
     explicit FixedListTypeInfo(
         std::unique_ptr<LogicalType> childType, uint64_t fixedNumElementsInList)
         : VarListTypeInfo{std::move(childType)}, fixedNumElementsInList{fixedNumElementsInList} {}
-    inline uint64_t getNumElementsInList() const { return fixedNumElementsInList; }
+    inline uint64_t getNumValuesInList() const { return fixedNumElementsInList; }
     bool operator==(const FixedListTypeInfo& other) const;
     static std::unique_ptr<ExtraTypeInfo> deserialize(Deserializer& deserializer);
     std::unique_ptr<ExtraTypeInfo> copy() const override;
@@ -367,10 +367,10 @@ struct FixedListType {
         return fixedListTypeInfo->getChildType();
     }
 
-    static inline uint64_t getNumElementsInList(const LogicalType* type) {
+    static inline uint64_t getNumValuesInList(const LogicalType* type) {
         KU_ASSERT(type->getLogicalTypeID() == LogicalTypeID::FIXED_LIST);
         auto fixedListTypeInfo = reinterpret_cast<FixedListTypeInfo*>(type->extraTypeInfo.get());
-        return fixedListTypeInfo->getNumElementsInList();
+        return fixedListTypeInfo->getNumValuesInList();
     }
 };
 

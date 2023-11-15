@@ -3,7 +3,6 @@
 #include <cstring>
 
 #include "common/arrow/arrow_row_batch.h"
-#include "common/exception/internal.h"
 
 namespace kuzu {
 namespace common {
@@ -69,6 +68,9 @@ void ArrowConverter::setArrowFormat(
     case LogicalTypeID::BOOL: {
         child.format = "b";
     } break;
+    case LogicalTypeID::INT128: {
+        child.format = "d:38,0";
+    } break;
     case LogicalTypeID::INT64: {
         child.format = "l";
     } break;
@@ -78,8 +80,26 @@ void ArrowConverter::setArrowFormat(
     case LogicalTypeID::INT16: {
         child.format = "s";
     } break;
+    case LogicalTypeID::INT8: {
+        child.format = "c";
+    } break;
+    case LogicalTypeID::UINT64: {
+        child.format = "L";
+    } break;
+    case LogicalTypeID::UINT32: {
+        child.format = "I";
+    } break;
+    case LogicalTypeID::UINT16: {
+        child.format = "S";
+    } break;
+    case LogicalTypeID::UINT8: {
+        child.format = "C";
+    } break;
     case LogicalTypeID::DOUBLE: {
         child.format = "g";
+    } break;
+    case LogicalTypeID::FLOAT: {
+        child.format = "f";
     } break;
     case LogicalTypeID::DATE: {
         child.format = "tdD";
@@ -105,16 +125,27 @@ void ArrowConverter::setArrowFormat(
         child.children[0]->name = "l";
         setArrowFormat(rootHolder, **child.children, *typeInfo.childrenTypesInfo[0]);
     } break;
+    case LogicalTypeID::FIXED_LIST: {
+        auto numValuesPerList = "+w:" + std::to_string(typeInfo.numValuesPerList);
+        child.format = copyName(rootHolder, numValuesPerList);
+        child.n_children = 1;
+        rootHolder.nestedChildren.emplace_back();
+        rootHolder.nestedChildren.back().resize(1);
+        rootHolder.nestedChildrenPtr.emplace_back();
+        rootHolder.nestedChildrenPtr.back().push_back(&rootHolder.nestedChildren.back()[0]);
+        initializeChild(rootHolder.nestedChildren.back()[0]);
+        child.children = &rootHolder.nestedChildrenPtr.back()[0];
+        child.children[0]->name = "l";
+        setArrowFormat(rootHolder, **child.children, *typeInfo.childrenTypesInfo[0]);
+    } break;
+    case LogicalTypeID::STRUCT:
     case LogicalTypeID::INTERNAL_ID:
     case LogicalTypeID::NODE:
     case LogicalTypeID::REL: {
         setArrowFormatForStruct(rootHolder, child, typeInfo);
     } break;
-        // LCOV_EXCL_START
     default:
-        throw InternalException(
-            "Unsupported Arrow type " + LogicalTypeUtils::toString(typeInfo.typeID));
-        // LCOV_EXCL_STOP
+        KU_UNREACHABLE;
     }
 }
 

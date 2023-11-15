@@ -341,7 +341,7 @@ struct SplitStringFixedListOperation {
 };
 
 static void validateNumElementsInList(uint64_t numElementsRead, const LogicalType& type) {
-    auto numElementsInList = FixedListType::getNumElementsInList(&type);
+    auto numElementsInList = FixedListType::getNumValuesInList(&type);
     if (numElementsRead != numElementsInList) {
         throw CopyException(stringFormat(
             "Each fixed list should have fixed number of elements. Expected: {}, Actual: {}.",

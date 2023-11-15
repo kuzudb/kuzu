@@ -56,5 +56,5 @@ uint64_t kuzu_data_type_get_fixed_num_elements_in_list(kuzu_logical_type* data_t
     if (parent_type->getLogicalTypeID() != LogicalTypeID::FIXED_LIST) {
         return 0;
     }
-    return FixedListType::getNumElementsInList(static_cast<LogicalType*>(data_type->_data_type));
+    return FixedListType::getNumValuesInList(static_cast<LogicalType*>(data_type->_data_type));
 }
