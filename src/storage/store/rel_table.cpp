@@ -61,10 +61,15 @@ void RelTable::update(Transaction* transaction, column_id_t columnID, ValueVecto
 
 void RelTable::delete_(Transaction* transaction, ValueVector* srcNodeIDVector,
     ValueVector* dstNodeIDVector, ValueVector* relIDVector) {
-    fwdRelTableData->delete_(transaction, srcNodeIDVector, dstNodeIDVector, relIDVector);
-    bwdRelTableData->delete_(transaction, dstNodeIDVector, srcNodeIDVector, relIDVector);
-    auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
-    relsStats->updateNumRelsByValue(tableID, -1);
+    auto fwdDeleted =
+        fwdRelTableData->delete_(transaction, srcNodeIDVector, dstNodeIDVector, relIDVector);
+    auto bwdDeleted =
+        bwdRelTableData->delete_(transaction, dstNodeIDVector, srcNodeIDVector, relIDVector);
+    KU_ASSERT(fwdDeleted == bwdDeleted);
+    if (fwdDeleted && bwdDeleted) {
+        auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
+        relsStats->updateNumRelsByValue(tableID, -1);
+    }
 }
 
 void RelTable::addColumn(

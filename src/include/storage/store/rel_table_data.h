@@ -59,7 +59,7 @@ public:
     void update(transaction::Transaction* transaction, common::column_id_t columnID,
         common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
         common::ValueVector* relIDVector, common::ValueVector* propertyVector);
-    void delete_(transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector,
+    bool delete_(transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector,
         common::ValueVector* dstNodeIDVector, common::ValueVector* relIDVector);
 
     void lookup(transaction::Transaction* transaction, TableReadState& readState,

@@ -180,11 +180,11 @@ void RelTableData::update(transaction::Transaction* transaction, column_id_t col
     localTableData->update(srcNodeIDVector, dstNodeIDVector, relIDVector, columnID, propertyVector);
 }
 
-void RelTableData::delete_(transaction::Transaction* transaction, ValueVector* srcNodeIDVector,
+bool RelTableData::delete_(transaction::Transaction* transaction, ValueVector* srcNodeIDVector,
     ValueVector* dstNodeIDVector, ValueVector* relIDVector) {
     auto localTableData = transaction->getLocalStorage()->getOrCreateLocalRelTableData(
         tableID, direction, dataFormat, columns);
-    localTableData->delete_(srcNodeIDVector, dstNodeIDVector, relIDVector);
+    return localTableData->delete_(srcNodeIDVector, dstNodeIDVector, relIDVector);
 }
 
 void RelTableData::append(NodeGroup* nodeGroup) {

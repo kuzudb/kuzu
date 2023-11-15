@@ -18,7 +18,7 @@ public:
         common::row_idx_t rowIdx, const std::vector<common::row_idx_t>& columnsRowIdx) = 0;
     virtual void update(common::offset_t srcNodeOffset, common::offset_t relID,
         common::row_idx_t rowIdx, common::column_id_t columnID) = 0;
-    virtual void delete_(common::offset_t srcNodeOffset, common::offset_t relID) = 0;
+    virtual bool delete_(common::offset_t srcNodeOffset, common::offset_t relID) = 0;
 };
 
 class RegularRelNGInfo final : public RelNGInfo {
@@ -48,7 +48,7 @@ public:
         }
     }
 
-    void delete_(common::offset_t srcNodeOffset, common::offset_t /*relID*/) {
+    bool delete_(common::offset_t srcNodeOffset, common::offset_t /*relID*/) {
         if (adjInsertInfo.contains(srcNodeOffset)) {
             // Delete newly inserted rel.
             adjInsertInfo.erase(srcNodeOffset);
@@ -56,8 +56,12 @@ public:
                 insertInfoPerColumn[i].erase(srcNodeOffset);
             }
         } else {
+            if (deleteInfo.contains(srcNodeOffset)) {
+                return false;
+            }
             deleteInfo.insert(srcNodeOffset);
         }
+        return true;
     }
 
     offset_to_row_idx_t adjInsertInfo;
@@ -109,7 +113,7 @@ public:
         }
     }
 
-    void delete_(common::offset_t srcNodeOffset, common::offset_t relID) {
+    bool delete_(common::offset_t srcNodeOffset, common::offset_t relID) {
         if (adjInsertInfo.contains(srcNodeOffset) && adjInsertInfo[srcNodeOffset].contains(relID)) {
             // Delete newly inserted rel.
             adjInsertInfo[srcNodeOffset].erase(relID);
@@ -127,11 +131,15 @@ public:
             }
         } else {
             if (deleteInfo.contains(srcNodeOffset)) {
+                if (deleteInfo.at(srcNodeOffset).contains(relID)) {
+                    return false;
+                }
                 deleteInfo[srcNodeOffset].insert(relID);
             } else {
                 deleteInfo[srcNodeOffset] = {relID};
             }
         }
+        return true;
     }
 
     csr_offset_to_row_idx_t adjInsertInfo;
@@ -160,7 +168,7 @@ public:
     void update(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
         common::ValueVector* relIDVector, common::column_id_t columnID,
         common::ValueVector* propertyVector);
-    void delete_(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
+    bool delete_(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
         common::ValueVector* relIDVector);
 
     inline LocalVectorCollection* getAdjColumn() { return adjColumn.get(); }
@@ -189,7 +197,7 @@ public:
     void update(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
         common::ValueVector* relIDVector, common::column_id_t columnID,
         common::ValueVector* propertyVector);
-    void delete_(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
+    bool delete_(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
         common::ValueVector* relIDVector);
 
     inline void clear() { nodeGroups.clear(); }

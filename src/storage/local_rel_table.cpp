@@ -40,7 +40,7 @@ void LocalRelNG::update(ValueVector* srcNodeIDVector, ValueVector* dstNodeIDVect
 }
 
 // TODO: Remove dstNodeIDVector.
-void LocalRelNG::delete_(
+bool LocalRelNG::delete_(
     ValueVector* srcNodeIDVector, ValueVector* dstNodeIDVector, ValueVector* relIDVector) {
     KU_ASSERT(srcNodeIDVector->state->selVector->selectedSize == 1 &&
               dstNodeIDVector->state->selVector->selectedSize == 1 &&
@@ -94,7 +94,7 @@ void LocalRelTableData::update(ValueVector* srcNodeIDVector, ValueVector* dstNod
         ->update(srcNodeIDVector, dstNodeIDVector, relIDVector, columnID, propertyVector);
 }
 
-void LocalRelTableData::delete_(
+bool LocalRelTableData::delete_(
     ValueVector* srcNodeIDVector, ValueVector* dstNodeIDVector, ValueVector* relIDVector) {
     KU_ASSERT(srcNodeIDVector->state->selVector->selectedSize == 1 &&
               dstNodeIDVector->state->selVector->selectedSize == 1 &&
@@ -104,7 +104,7 @@ void LocalRelTableData::delete_(
     auto relIDPos = relIDVector->state->selVector->selectedPositions[0];
     if (srcNodeIDVector->isNull(srcNodeIDPos) || dstNodeIDVector->isNull(dstNodeIDPos) ||
         relIDVector->isNull(relIDPos)) {
-        return;
+        return false;
     }
     auto nodeGroupIdx = initializeLocalNodeGroup(srcNodeIDVector);
     KU_ASSERT(nodeGroups.contains(nodeGroupIdx));
