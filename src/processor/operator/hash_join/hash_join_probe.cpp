@@ -120,15 +120,26 @@ uint64_t HashJoinProbe::getLeftJoinResult() {
     return 1;
 }
 
+uint64_t HashJoinProbe::getCountJoinResult() {
+    KU_ASSERT(vectorsToReadInto.size() == 1);
+    if (getInnerJoinResult() == 0) {
+        auto pos = vectorsToReadInto[0]->state->selVector->selectedPositions[0];
+        vectorsToReadInto[0]->setValue<int64_t>(pos, 0);
+        probeState->probedTuples[0] = nullptr;
+    }
+    return 1;
+}
+
 uint64_t HashJoinProbe::getMarkJoinResult() {
     auto markValues = (bool*)markVector->getData();
     if (markVector->state->isFlat()) {
-        markValues[markVector->state->selVector->selectedPositions[0]] =
-            probeState->matchedSelVector->selectedSize != 0;
+        auto pos = markVector->state->selVector->selectedPositions[0];
+        markValues[pos] = probeState->matchedSelVector->selectedSize != 0;
     } else {
         std::fill(markValues, markValues + DEFAULT_VECTOR_CAPACITY, false);
         for (auto i = 0u; i < probeState->matchedSelVector->selectedSize; i++) {
-            markValues[probeState->matchedSelVector->selectedPositions[i]] = true;
+            auto pos = probeState->matchedSelVector->selectedPositions[i];
+            markValues[pos] = true;
         }
     }
     probeState->probedTuples[0] = nullptr;
@@ -140,6 +151,9 @@ uint64_t HashJoinProbe::getJoinResult() {
     switch (joinType) {
     case JoinType::LEFT: {
         return getLeftJoinResult();
+    }
+    case JoinType::COUNT: {
+        return getCountJoinResult();
     }
     case JoinType::MARK: {
         return getMarkJoinResult();

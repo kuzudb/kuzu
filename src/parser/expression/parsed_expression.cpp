@@ -71,7 +71,7 @@ std::unique_ptr<ParsedExpression> ParsedExpression::deserialize(Deserializer& de
     case ExpressionType::PROPERTY: {
         parsedExpression = ParsedPropertyExpression::deserialize(deserializer);
     } break;
-    case ExpressionType::EXISTENTIAL_SUBQUERY: {
+    case ExpressionType::SUBQUERY: {
         parsedExpression = ParsedSubqueryExpression::deserialize(deserializer);
     } break;
     case ExpressionType::VARIABLE: {

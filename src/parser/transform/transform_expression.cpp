@@ -1,4 +1,3 @@
-#include "common/string_utils.h"
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "parser/expression/parsed_case_expression.h"
 #include "parser/expression/parsed_function_expression.h"
@@ -382,8 +381,12 @@ std::unique_ptr<ParsedExpression> Transformer::transformAtom(CypherParser::OC_At
         return transformParenthesizedExpression(*ctx.oC_ParenthesizedExpression());
     } else if (ctx.oC_FunctionInvocation()) {
         return transformFunctionInvocation(*ctx.oC_FunctionInvocation());
-    } else if (ctx.oC_ExistentialSubquery()) {
-        return transformExistentialSubquery(*ctx.oC_ExistentialSubquery());
+    } else if (ctx.oC_PathPatterns()) {
+        return transformPathPattern(*ctx.oC_PathPatterns());
+    } else if (ctx.oC_ExistSubquery()) {
+        return transformExistSubquery(*ctx.oC_ExistSubquery());
+    } else if (ctx.kU_CountSubquery()) {
+        return transformCountSubquery(*ctx.kU_CountSubquery());
     } else {
         KU_ASSERT(ctx.oC_Variable());
         return std::make_unique<ParsedVariableExpression>(
@@ -477,11 +480,14 @@ std::unique_ptr<ParsedExpression> Transformer::transformParenthesizedExpression(
 
 std::unique_ptr<ParsedExpression> Transformer::transformFunctionInvocation(
     CypherParser::OC_FunctionInvocationContext& ctx) {
-    auto functionName = transformFunctionName(*ctx.oC_FunctionName());
     if (ctx.STAR()) {
-        StringUtils::toUpper(functionName);
-        KU_ASSERT(functionName == "COUNT");
         return std::make_unique<ParsedFunctionExpression>(COUNT_STAR_FUNC_NAME, ctx.getText());
+    }
+    std::string functionName;
+    if (ctx.COUNT()) {
+        functionName = "COUNT";
+    } else {
+        functionName = transformFunctionName(*ctx.oC_FunctionName());
     }
     auto expression = std::make_unique<ParsedFunctionExpression>(
         functionName, ctx.getText(), ctx.DISTINCT() != nullptr);
@@ -504,14 +510,36 @@ std::unique_ptr<ParsedExpression> Transformer::transformFunctionParameterExpress
     return expression;
 }
 
-std::unique_ptr<ParsedExpression> Transformer::transformExistentialSubquery(
-    CypherParser::OC_ExistentialSubqueryContext& ctx) {
-    auto existsSubquery = std::make_unique<ParsedSubqueryExpression>(
-        transformPattern(*ctx.oC_Pattern()), ctx.getText());
-    if (ctx.oC_Where()) {
-        existsSubquery->setWhereClause(transformWhere(*ctx.oC_Where()));
+std::unique_ptr<ParsedExpression> Transformer::transformPathPattern(
+    CypherParser::OC_PathPatternsContext& ctx) {
+    auto subquery = std::make_unique<ParsedSubqueryExpression>(SubqueryType::EXISTS, ctx.getText());
+    auto patternElement =
+        std::make_unique<PatternElement>(transformNodePattern(*ctx.oC_NodePattern()));
+    for (auto& chain : ctx.oC_PatternElementChain()) {
+        patternElement->addPatternElementChain(transformPatternElementChain(*chain));
     }
-    return existsSubquery;
+    subquery->addPatternElement(std::move(patternElement));
+    return subquery;
+}
+
+std::unique_ptr<ParsedExpression> Transformer::transformExistSubquery(
+    CypherParser::OC_ExistSubqueryContext& ctx) {
+    auto subquery = std::make_unique<ParsedSubqueryExpression>(SubqueryType::EXISTS, ctx.getText());
+    subquery->setPatternElements(transformPattern(*ctx.oC_Pattern()));
+    if (ctx.oC_Where()) {
+        subquery->setWhereClause(transformWhere(*ctx.oC_Where()));
+    }
+    return subquery;
+}
+
+std::unique_ptr<ParsedExpression> Transformer::transformCountSubquery(
+    CypherParser::KU_CountSubqueryContext& ctx) {
+    auto subquery = std::make_unique<ParsedSubqueryExpression>(SubqueryType::COUNT, ctx.getText());
+    subquery->setPatternElements(transformPattern(*ctx.oC_Pattern()));
+    if (ctx.oC_Where()) {
+        subquery->setWhereClause(transformWhere(*ctx.oC_Where()));
+    }
+    return subquery;
 }
 
 std::unique_ptr<ParsedExpression> Transformer::createPropertyExpression(

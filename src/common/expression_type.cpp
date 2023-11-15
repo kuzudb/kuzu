@@ -39,7 +39,7 @@ bool isExpressionAggregate(ExpressionType type) {
 }
 
 bool isExpressionSubquery(ExpressionType type) {
-    return ExpressionType::EXISTENTIAL_SUBQUERY == type;
+    return ExpressionType::SUBQUERY == type;
 }
 
 // LCOV_EXCL_START
@@ -87,8 +87,8 @@ std::string expressionTypeToString(ExpressionType type) {
         return "SCALAR_FUNCTION";
     case ExpressionType::AGGREGATE_FUNCTION:
         return "AGGREGATE_FUNCTION";
-    case ExpressionType::EXISTENTIAL_SUBQUERY:
-        return "EXISTENTIAL_SUBQUERY";
+    case ExpressionType::SUBQUERY:
+        return "SUBQUERY";
     default:
         KU_UNREACHABLE;
     }

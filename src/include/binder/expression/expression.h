@@ -53,6 +53,7 @@ public:
 
     inline void setAlias(const std::string& name) { alias = name; }
 
+    inline void setUniqueName(const std::string& name) { uniqueName = name; }
     inline std::string getUniqueName() const {
         KU_ASSERT(!uniqueName.empty());
         return uniqueName;

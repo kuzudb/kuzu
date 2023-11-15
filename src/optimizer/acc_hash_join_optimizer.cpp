@@ -32,6 +32,9 @@ void HashJoinSIPOptimizer::visitHashJoin(planner::LogicalOperator* op) {
     if (hashJoin->getSIP() == planner::SidewaysInfoPassing::PROHIBIT) {
         return;
     }
+    if (hashJoin->getJoinType() != JoinType::INNER) {
+        return;
+    }
     if (tryBuildToProbeHJSIP(op)) { // Try build to probe SIP first.
         return;
     }
@@ -79,9 +82,6 @@ static bool subPlanContainsFilter(LogicalOperator* root) {
 bool HashJoinSIPOptimizer::tryBuildToProbeHJSIP(planner::LogicalOperator* op) {
     auto hashJoin = (LogicalHashJoin*)op;
     if (hashJoin->getSIP() == planner::SidewaysInfoPassing::PROHIBIT_BUILD_TO_PROBE) {
-        return false;
-    }
-    if (hashJoin->getJoinType() != JoinType::INNER) {
         return false;
     }
     if (!subPlanContainsFilter(hashJoin->getChild(1).get())) {

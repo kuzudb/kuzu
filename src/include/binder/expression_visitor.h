@@ -12,7 +12,7 @@ public:
 private:
     static expression_vector collectCaseChildren(const Expression& expression);
 
-    static expression_vector collectExistentialSubqueryChildren(const Expression& expression);
+    static expression_vector collectSubqueryChildren(const Expression& expression);
 
     static expression_vector collectNodeChildren(const Expression& expression);
 
@@ -61,7 +61,7 @@ public:
         const std::shared_ptr<Expression>& expression) {
         KU_ASSERT(expressions.empty());
         collectExpressionsInternal(expression, [&](const Expression& expression) {
-            return expression.expressionType == common::ExpressionType::EXISTENTIAL_SUBQUERY;
+            return expression.expressionType == common::ExpressionType::SUBQUERY;
         });
         return expressions;
     }

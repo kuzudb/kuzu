@@ -270,7 +270,7 @@ enum class ExpressionType : uint8_t {
 
     AGGREGATE_FUNCTION = 130,
 
-    EXISTENTIAL_SUBQUERY = 190,
+    SUBQUERY = 190,
 
     CASE_ELSE = 200,
 

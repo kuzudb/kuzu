@@ -550,7 +550,9 @@ oC_Atom
         | oC_CaseExpression
         | oC_ParenthesizedExpression
         | oC_FunctionInvocation
-        | oC_ExistentialSubquery
+        | oC_PathPatterns
+        | oC_ExistSubquery
+        | kU_CountSubquery
         | oC_Variable
         ;
 
@@ -588,8 +590,10 @@ oC_ParenthesizedExpression
     : '(' SP? oC_Expression SP? ')' ;
 
 oC_FunctionInvocation
-    : oC_FunctionName SP? '(' SP? '*' SP? ')'
+    : COUNT SP? '(' SP? '*' SP? ')'
         | oC_FunctionName SP? '(' SP? ( DISTINCT SP? )? ( kU_FunctionParameter SP? ( ',' SP? kU_FunctionParameter SP? )* )? ')' ;
+
+COUNT : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'U' | 'u' ) ( 'N' | 'n' ) ( 'T' | 't' ) ;
 
 oC_FunctionName
     : oC_SymbolicName ;
@@ -597,8 +601,14 @@ oC_FunctionName
 kU_FunctionParameter
     : ( oC_SymbolicName SP? ':' '=' SP? )? oC_Expression ;
 
-oC_ExistentialSubquery
-    :  EXISTS SP? '{' SP? MATCH SP? oC_Pattern ( SP? oC_Where )? SP? '}' ;
+oC_PathPatterns
+    : oC_NodePattern ( SP? oC_PatternElementChain )+;
+
+oC_ExistSubquery
+    : EXISTS SP? '{' SP? MATCH SP? oC_Pattern ( SP? oC_Where )? SP? '}' ;
+
+kU_CountSubquery
+    : COUNT SP? '{' SP? MATCH SP? oC_Pattern ( SP? oC_Where )? SP? '}' ;
 
 EXISTS : ( 'E' | 'e' ) ( 'X' | 'x' ) ( 'I' | 'i' ) ( 'S' | 's' ) ( 'T' | 't' ) ( 'S' | 's' ) ;
 
@@ -709,7 +719,8 @@ oC_SymbolicName
         ;
 
 kU_NonReservedKeywords
-    : COMMENT ;
+    : COMMENT
+        | COUNT ;
 
 UnescapedSymbolicName
     : IdentifierStart ( IdentifierPart )* ;

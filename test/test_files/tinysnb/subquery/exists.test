@@ -10,6 +10,19 @@
 -ENUMERATE
 ---- 1
 5
+-STATEMENT MATCH (a:person) WHERE  (a)-[:knows]->(b:person) RETURN COUNT(*)
+---- 1
+5
+-STATEMENT MATCH (a:person) WHERE a.ID < 3 RETURN EXISTS { MATCH (b)-[:knows]->(c) }
+---- 2
+True
+True
+-STATEMENT MATCH (a:person) WHERE a.ID < 3 RETURN EXISTS { MATCH (b)-[:knows]->(c) WHERE b.ID = 1 }
+---- 2
+False
+False
+
+
 
 -LOG ExistSubqueryTest2
 -STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WHERE b.fName='Farooq' } RETURN COUNT(*)
