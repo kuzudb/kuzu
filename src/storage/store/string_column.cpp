@@ -22,12 +22,13 @@ struct StringColumnFunc {
     }
 };
 
-StringColumn::StringColumn(LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
-    BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-    transaction::Transaction* transaction, RWPropertyStats stats)
+StringColumn::StringColumn(std::unique_ptr<LogicalType> dataType,
+    const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
+    BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
+    RWPropertyStats stats)
     : Column{std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
           transaction, stats, false /* enableCompression */, true /* requireNullColumn */} {
-    if (this->dataType.getLogicalTypeID() == LogicalTypeID::STRING) {
+    if (this->dataType->getLogicalTypeID() == LogicalTypeID::STRING) {
         writeFromVectorFunc = StringColumnFunc::writeStringValuesToPage;
     }
     overflowMetadataDA = std::make_unique<InMemDiskArray<OverflowColumnChunkMetadata>>(*metadataFH,
@@ -130,7 +131,7 @@ void StringColumn::scanInternal(
 
 void StringColumn::lookupInternal(
     Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
-    KU_ASSERT(dataType.getPhysicalType() == PhysicalTypeID::STRING);
+    KU_ASSERT(dataType->getPhysicalType() == PhysicalTypeID::STRING);
     auto startNodeOffset = nodeIDVector->readNodeOffset(0);
     auto overflowPageIdx =
         overflowMetadataDA

@@ -8,7 +8,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-StringColumnChunk::StringColumnChunk(LogicalType dataType, uint64_t capacity)
+StringColumnChunk::StringColumnChunk(std::unique_ptr<LogicalType> dataType, uint64_t capacity)
     : ColumnChunk{std::move(dataType), capacity} {
     overflowFile = std::make_unique<InMemOverflowFile>();
     overflowCursor.pageIdx = 0;
@@ -39,7 +39,7 @@ void StringColumnChunk::append(
     ColumnChunk* other, offset_t startPosInOtherChunk, uint32_t numValuesToAppend) {
     auto otherChunk = reinterpret_cast<StringColumnChunk*>(other);
     nullChunk->append(otherChunk->getNullChunk(), startPosInOtherChunk, numValuesToAppend);
-    switch (dataType.getLogicalTypeID()) {
+    switch (dataType->getLogicalTypeID()) {
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING: {
         appendStringColumnChunk(otherChunk, startPosInOtherChunk, numValuesToAppend);

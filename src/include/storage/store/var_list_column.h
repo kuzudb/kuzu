@@ -44,16 +44,16 @@ class VarListColumn : public Column {
     friend class VarListLocalColumn;
 
 public:
-    VarListColumn(common::LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
-        BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
-        bool enableCompression)
+    VarListColumn(std::unique_ptr<common::LogicalType> dataType,
+        const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
+        BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
+        RWPropertyStats propertyStatistics, bool enableCompression)
         : Column{std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
               transaction, propertyStatistics, enableCompression, true /* requireNullColumn */} {
-        dataColumn =
-            ColumnFactory::createColumn(*common::VarListType::getChildType(&this->dataType),
-                *metaDAHeaderInfo.childrenInfos[0], dataFH, metadataFH, bufferManager, wal,
-                transaction, propertyStatistics, enableCompression);
+        dataColumn = ColumnFactory::createColumn(
+            common::VarListType::getChildType(this->dataType.get())->copy(),
+            *metaDAHeaderInfo.childrenInfos[0], dataFH, metadataFH, bufferManager, wal, transaction,
+            propertyStatistics, enableCompression);
     }
 
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,

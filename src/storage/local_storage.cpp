@@ -50,7 +50,7 @@ void LocalStorage::initializeLocalTable(
     if (!tables.contains(tableID)) {
         std::vector<std::unique_ptr<LogicalType>> dataTypes;
         for (auto& column : columns) {
-            dataTypes.emplace_back(column->getDataType().copy());
+            dataTypes.emplace_back(column->getDataType()->copy());
         }
         tables.emplace(tableID, std::make_unique<LocalTable>(tableID, std::move(dataTypes), mm));
     }

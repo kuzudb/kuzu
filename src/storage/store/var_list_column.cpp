@@ -149,7 +149,7 @@ offset_t VarListColumn::readOffset(
     offsetVector->state = DataChunkState::getSingleValueDataChunkState();
     auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
     auto pageCursor = PageUtils::getPageElementCursorForPos(offsetInNodeGroup,
-        chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType));
+        chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType));
     pageCursor.pageIdx += chunkMeta.pageIdx;
     readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
         readToVectorFunc(frame, pageCursor, offsetVector.get(), 0 /* posInVector */,

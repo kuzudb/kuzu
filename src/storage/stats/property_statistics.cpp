@@ -25,20 +25,26 @@ std::unique_ptr<PropertyStatistics> PropertyStatistics::deserialize(
 // Read/write statistics cannot be cached since functions like checkpointInMemoryIfNecessary may
 // overwrite them and invalidate the reference
 bool RWPropertyStats::mayHaveNull(const transaction::Transaction& transaction) {
-    // TODO(Guodong): INVALID_PROPERTY_ID is used here because we have some columns not exposed as
-    // property in table schema. Should be fixed once we properly align properties and columns.
+    // Columns internal to the storage, i.e., not mapping to a property in table schema, are not
+    // tracked in statistics. For example, offset of var list column, csr offset column, etc.
+    // TODO(Guodong): INVALID_PROPERTY_ID is used here because we have a column, i.e., adjColumn,
+    // not exposed as property in table schema, but still have nullColumn. Should be fixed once we
+    // properly align properties and columns.
     if (propertyID == common::INVALID_PROPERTY_ID) {
         return true;
     }
+    KU_ASSERT(tablesStatistics);
     auto statistics =
         tablesStatistics->getPropertyStatisticsForTable(transaction, tableID, propertyID);
     return statistics.mayHaveNull();
 }
 
 void RWPropertyStats::setHasNull(const transaction::Transaction& transaction) {
-    // TODO(Guodong): INVALID_PROPERTY_ID is used here because we have some columns not exposed as
-    // property in table schema. Should be fixed once we properly align properties and columns.
+    // TODO(Guodong): INVALID_PROPERTY_ID is used here because we have a column, i.e., adjColumn,
+    // not exposed as property in table schema, but still have nullColumn. Should be fixed once we
+    // properly align properties and columns.
     if (propertyID != common::INVALID_PROPERTY_ID) {
+        KU_ASSERT(tablesStatistics);
         tablesStatistics->getPropertyStatisticsForTable(transaction, tableID, propertyID)
             .setHasNull();
     }

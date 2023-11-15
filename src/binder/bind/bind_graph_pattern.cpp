@@ -248,8 +248,8 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
     std::vector<std::unique_ptr<LogicalType>> fieldTypes;
     fieldNames.emplace_back(InternalKeyword::SRC);
     fieldNames.emplace_back(InternalKeyword::DST);
-    fieldTypes.push_back(std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID));
-    fieldTypes.push_back(std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID));
+    fieldTypes.push_back(LogicalType::INTERNAL_ID());
+    fieldTypes.push_back(LogicalType::INTERNAL_ID());
     // Bind internal expressions.
     queryRel->setLabelExpression(expressionBinder.bindLabelFunction(*queryRel));
     fieldNames.emplace_back(InternalKeyword::LABEL);
@@ -360,10 +360,10 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     relFieldNames.emplace_back(InternalKeyword::DST);
     relFieldNames.emplace_back(InternalKeyword::LABEL);
     relFieldNames.emplace_back(InternalKeyword::ID);
-    relFieldTypes.push_back(std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID));
-    relFieldTypes.push_back(std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID));
+    relFieldTypes.push_back(LogicalType::INTERNAL_ID());
+    relFieldTypes.push_back(LogicalType::INTERNAL_ID());
     relFieldTypes.push_back(rel->getLabelExpression()->getDataType().copy());
-    relFieldTypes.push_back(std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID));
+    relFieldTypes.push_back(LogicalType::INTERNAL_ID());
     bindRecursiveRelProjectionList(relProjectionList, relFieldNames, relFieldTypes);
     auto relExtraInfo = std::make_unique<StructTypeInfo>(relFieldNames, relFieldTypes);
     rel->getDataTypeReference().setExtraTypeInfo(std::move(relExtraInfo));

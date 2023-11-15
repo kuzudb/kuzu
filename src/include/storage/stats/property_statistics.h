@@ -38,7 +38,10 @@ public:
     RWPropertyStats(TablesStatistics* tablesStatistics, common::table_id_t tableID,
         common::property_id_t propertyID);
 
-    static RWPropertyStats empty() { return RWPropertyStats(nullptr, 0, 0); }
+    // This is used for columns that don't have nullColumn. For example, the serial column.
+    inline static RWPropertyStats empty() {
+        return RWPropertyStats(nullptr, common::INVALID_PROPERTY_ID, common::INVALID_PROPERTY_ID);
+    }
 
     bool mayHaveNull(const transaction::Transaction& transaction);
     void setHasNull(const transaction::Transaction& transaction);

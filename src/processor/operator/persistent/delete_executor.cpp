@@ -13,7 +13,7 @@ void NodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* /*context*
 void SingleLabelNodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
     NodeDeleteExecutor::init(resultSet, context);
     auto pkDataType = table->getColumn(table->getPKColumnID())->getDataType();
-    pkVector = std::make_unique<ValueVector>(pkDataType, context->memoryManager);
+    pkVector = std::make_unique<ValueVector>(*pkDataType, context->memoryManager);
     pkVector->state = nodeIDVector->state;
 }
 
@@ -27,7 +27,7 @@ void MultiLabelNodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* 
     NodeDeleteExecutor::init(resultSet, context);
     for (auto& [tableID, table] : tableIDToTableMap) {
         auto pkDataType = table->getColumn(table->getPKColumnID())->getDataType();
-        pkVectors[tableID] = std::make_unique<ValueVector>(pkDataType, context->memoryManager);
+        pkVectors[tableID] = std::make_unique<ValueVector>(*pkDataType, context->memoryManager);
         pkVectors[tableID]->state = nodeIDVector->state;
     }
 }

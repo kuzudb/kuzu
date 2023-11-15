@@ -282,6 +282,67 @@ public:
     static std::vector<std::unique_ptr<LogicalType>> copy(
         const std::vector<std::unique_ptr<LogicalType>>& types);
 
+    static std::unique_ptr<LogicalType> BOOL() {
+        return std::make_unique<LogicalType>(LogicalTypeID::BOOL);
+    }
+    static std::unique_ptr<LogicalType> INT64() {
+        return std::make_unique<LogicalType>(LogicalTypeID::INT64);
+    }
+    static std::unique_ptr<LogicalType> INT32() {
+        return std::make_unique<LogicalType>(LogicalTypeID::INT32);
+    }
+    static std::unique_ptr<LogicalType> INT16() {
+        return std::make_unique<LogicalType>(LogicalTypeID::INT16);
+    }
+    static std::unique_ptr<LogicalType> INT8() {
+        return std::make_unique<LogicalType>(LogicalTypeID::INT8);
+    }
+    static std::unique_ptr<LogicalType> UINT64() {
+        return std::make_unique<LogicalType>(LogicalTypeID::UINT64);
+    }
+    static std::unique_ptr<LogicalType> UINT32() {
+        return std::make_unique<LogicalType>(LogicalTypeID::UINT32);
+    }
+    static std::unique_ptr<LogicalType> UINT16() {
+        return std::make_unique<LogicalType>(LogicalTypeID::UINT16);
+    }
+    static std::unique_ptr<LogicalType> UINT8() {
+        return std::make_unique<LogicalType>(LogicalTypeID::UINT8);
+    }
+    static std::unique_ptr<LogicalType> INT128() {
+        return std::make_unique<LogicalType>(LogicalTypeID::INT128);
+    }
+    static std::unique_ptr<LogicalType> DOUBLE() {
+        return std::make_unique<LogicalType>(LogicalTypeID::DOUBLE);
+    }
+    static std::unique_ptr<LogicalType> FLOAT() {
+        return std::make_unique<LogicalType>(LogicalTypeID::FLOAT);
+    }
+    static std::unique_ptr<LogicalType> DATE() {
+        return std::make_unique<LogicalType>(LogicalTypeID::DATE);
+    }
+    static std::unique_ptr<LogicalType> TIMESTAMP() {
+        return std::make_unique<LogicalType>(LogicalTypeID::TIMESTAMP);
+    }
+    static std::unique_ptr<LogicalType> INTERVAL() {
+        return std::make_unique<LogicalType>(LogicalTypeID::INTERVAL);
+    }
+    static std::unique_ptr<LogicalType> INTERNAL_ID() {
+        return std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID);
+    }
+    static std::unique_ptr<LogicalType> SERIAL() {
+        return std::make_unique<LogicalType>(LogicalTypeID::SERIAL);
+    }
+    static std::unique_ptr<LogicalType> STRING() {
+        return std::make_unique<LogicalType>(LogicalTypeID::STRING);
+    }
+    static std::unique_ptr<LogicalType> BLOB() {
+        return std::make_unique<LogicalType>(LogicalTypeID::BLOB);
+    }
+    static std::unique_ptr<LogicalType> POINTER() {
+        return std::make_unique<LogicalType>(LogicalTypeID::POINTER);
+    }
+
 private:
     void setPhysicalType();
 

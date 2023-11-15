@@ -152,8 +152,8 @@ public:
     NullColumn(page_idx_t metaDAHPageIdx, BMFileHandle* dataFH, BMFileHandle* metadataFH,
         BufferManager* bufferManager, WAL* wal, Transaction* transaction,
         RWPropertyStats propertyStatistics, bool enableCompression)
-        : Column{LogicalType(LogicalTypeID::BOOL), MetadataDAHInfo{metaDAHPageIdx}, dataFH,
-              metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression,
+        : Column{LogicalType::BOOL(), MetadataDAHInfo{metaDAHPageIdx}, dataFH, metadataFH,
+              bufferManager, wal, transaction, propertyStatistics, enableCompression,
               false /*requireNullColumn*/} {
         readToVectorFunc = NullColumnFunc::readValuesFromPageToVector;
         writeFromVectorFunc = NullColumnFunc::writeValueToPage;
@@ -237,7 +237,7 @@ class SerialColumn : public Column {
 public:
     SerialColumn(const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
         BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal, Transaction* transaction)
-        : Column{LogicalType(LogicalTypeID::SERIAL), metaDAHeaderInfo, dataFH, metadataFH,
+        : Column{LogicalType::SERIAL(), metaDAHeaderInfo, dataFH, metadataFH,
               // Serials can't be null, so they don't need PropertyStatistics
               bufferManager, wal, transaction, RWPropertyStats::empty(),
               false /* enableCompression */, false /*requireNullColumn*/} {}
@@ -271,8 +271,8 @@ public:
 InternalIDColumn::InternalIDColumn(const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
     BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
     transaction::Transaction* transaction, RWPropertyStats stats)
-    : Column{LogicalType{LogicalTypeID::INTERNAL_ID}, metaDAHeaderInfo, dataFH, metadataFH,
-          bufferManager, wal, transaction, stats, false /* enableCompression */},
+    : Column{LogicalType::INTERNAL_ID(), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
+          transaction, stats, false /* enableCompression */},
       commonTableID{INVALID_TABLE_ID} {}
 
 void InternalIDColumn::populateCommonTableID(ValueVector* resultVector) const {
@@ -283,21 +283,21 @@ void InternalIDColumn::populateCommonTableID(ValueVector* resultVector) const {
     }
 }
 
-Column::Column(LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
-    BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-    transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
-    bool enableCompression, bool requireNullColumn)
+Column::Column(std::unique_ptr<common::LogicalType> dataType,
+    const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
+    BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
+    RWPropertyStats propertyStatistics, bool enableCompression, bool requireNullColumn)
     : dbFileID{DBFileID::newDataFileID()}, dataType{std::move(dataType)}, dataFH{dataFH},
       metadataFH{metadataFH}, bufferManager{bufferManager},
       propertyStatistics{propertyStatistics}, wal{wal}, enableCompression{enableCompression} {
     metadataDA = std::make_unique<InMemDiskArray<ColumnChunkMetadata>>(*metadataFH,
         DBFileID::newMetadataFileID(), metaDAHeaderInfo.dataDAHPageIdx, bufferManager, wal,
         transaction);
-    numBytesPerFixedSizedValue = getDataTypeSizeInChunk(this->dataType);
-    readToVectorFunc = getReadValuesToVectorFunc(this->dataType);
-    readToPageFunc = getWriteValuesToPageFunc(this->dataType);
-    batchLookupFunc = getBatchLookupFromPageFunc(this->dataType);
-    writeFromVectorFunc = getWriteValuesFromVectorFunc(this->dataType);
+    numBytesPerFixedSizedValue = getDataTypeSizeInChunk(*this->dataType);
+    readToVectorFunc = getReadValuesToVectorFunc(*this->dataType);
+    readToPageFunc = getWriteValuesToPageFunc(*this->dataType);
+    batchLookupFunc = getBatchLookupFromPageFunc(*this->dataType);
+    writeFromVectorFunc = getWriteValuesFromVectorFunc(*this->dataType);
     KU_ASSERT(numBytesPerFixedSizedValue <= BufferPoolConstants::PAGE_4KB_SIZE);
     if (requireNullColumn) {
         nullColumn = std::make_unique<NullColumn>(metaDAHeaderInfo.nullDAHPageIdx, dataFH,
@@ -335,7 +335,7 @@ void Column::scan(transaction::Transaction* transaction, node_group_idx_t nodeGr
     }
     auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
     auto pageCursor = PageUtils::getPageElementCursorForPos(startOffsetInGroup,
-        chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType));
+        chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType));
     pageCursor.pageIdx += chunkMeta.pageIdx;
     auto numValuesToScan = endOffsetInGroup - startOffsetInGroup;
     scanUnfiltered(
@@ -352,7 +352,7 @@ void Column::scan(node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) {
         auto chunkMetadata = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
         auto cursor = PageElementCursor(chunkMetadata.pageIdx, 0);
         uint64_t numValuesPerPage =
-            chunkMetadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+            chunkMetadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType);
         uint64_t numValuesScanned = 0u;
         while (numValuesScanned < columnChunk->getCapacity()) {
             auto numValuesToReadInPage =
@@ -389,7 +389,7 @@ void Column::scanUnfiltered(Transaction* transaction, PageElementCursor& pageCur
     uint64_t startPosInVector) {
     uint64_t numValuesScanned = 0;
     auto numValuesPerPage =
-        chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+        chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType);
     while (numValuesScanned < numValuesToScan) {
         uint64_t numValuesToScanInPage =
             std::min((uint64_t)numValuesPerPage - pageCursor.elemPosInPage,
@@ -410,7 +410,7 @@ void Column::scanFiltered(Transaction* transaction, PageElementCursor& pageCurso
     auto numValuesScanned = 0u;
     auto posInSelVector = 0u;
     auto numValuesPerPage =
-        chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
+        chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType);
     while (numValuesScanned < numValuesToScan) {
         uint64_t numValuesToScanInPage =
             std::min((uint64_t)numValuesPerPage - pageCursor.elemPosInPage,
@@ -571,7 +571,7 @@ bool Column::containsVarList(LogicalType& dataType) {
 
 // TODO(Guodong): This should be moved inside `LocalVectorCollection`.
 bool Column::canCommitInPlace(node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk) {
-    if (containsVarList(dataType)) {
+    if (containsVarList(*dataType)) {
         // Always perform out of place commit for VAR_LIST data type.
         return false;
     }
@@ -591,7 +591,7 @@ bool Column::canCommitInPlace(node_group_idx_t nodeGroupIdx, LocalVectorCollecti
         auto localVector = localChunk->getLocalVector(rowIdx);
         auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
         if (!metadata.compMeta.canUpdateInPlace(
-                *localVector->getVector(), offsetInVector, dataType.getPhysicalType())) {
+                *localVector->getVector(), offsetInVector, dataType->getPhysicalType())) {
             return false;
         }
     }
@@ -605,7 +605,7 @@ void Column::commitLocalChunkInPlace(LocalVectorCollection* localChunk) {
 
 void Column::commitLocalChunkOutOfPlace(
     node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk, bool isNewNodeGroup) {
-    auto columnChunk = ColumnChunkFactory::createColumnChunk(dataType, enableCompression);
+    auto columnChunk = ColumnChunkFactory::createColumnChunk(dataType->copy(), enableCompression);
     if (isNewNodeGroup) {
         KU_ASSERT(localChunk->getUpdateInfoRef().empty());
         // Apply inserts from the local chunk.
@@ -664,7 +664,7 @@ void Column::populateWithDefaultVal(const Property& property, Column* column,
     InMemDiskArray<ColumnChunkMetadata>* metadataDA_, ValueVector* defaultValueVector,
     uint64_t numNodeGroups) const {
     auto columnChunk =
-        ColumnChunkFactory::createColumnChunk(*property.getDataType(), enableCompression);
+        ColumnChunkFactory::createColumnChunk(property.getDataType()->copy(), enableCompression);
     columnChunk->populateWithDefaultVal(defaultValueVector);
     for (auto i = 0u; i < numNodeGroups; i++) {
         auto chunkMeta = metadataDA_->get(i, TransactionType::WRITE);
@@ -673,8 +673,8 @@ void Column::populateWithDefaultVal(const Property& property, Column* column,
             capacity *= VAR_LIST_RESIZE_RATIO;
         }
         if (capacity > columnChunk->getCapacity()) {
-            auto newColumnChunk =
-                ColumnChunkFactory::createColumnChunk(*property.getDataType(), enableCompression);
+            auto newColumnChunk = ColumnChunkFactory::createColumnChunk(
+                property.getDataType()->copy(), enableCompression);
             newColumnChunk->populateWithDefaultVal(defaultValueVector);
             newColumnChunk->setNumValues(chunkMeta.numValues);
             column->append(newColumnChunk.get(), i);
@@ -691,16 +691,16 @@ PageElementCursor Column::getPageCursorForOffset(
     auto offsetInNodeGroup = nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     auto chunkMeta = metadataDA->get(nodeGroupIdx, transactionType);
     auto pageCursor = PageUtils::getPageElementCursorForPos(offsetInNodeGroup,
-        chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType));
+        chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType));
     pageCursor.pageIdx += chunkMeta.pageIdx;
     return pageCursor;
 }
 
-std::unique_ptr<Column> ColumnFactory::createColumn(const LogicalType& dataType,
+std::unique_ptr<Column> ColumnFactory::createColumn(std::unique_ptr<common::LogicalType> dataType,
     const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
     BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
     RWPropertyStats propertyStatistics, bool enableCompression) {
-    switch (dataType.getLogicalTypeID()) {
+    switch (dataType->getLogicalTypeID()) {
     case LogicalTypeID::BOOL:
     case LogicalTypeID::INT64:
     case LogicalTypeID::INT32:
@@ -717,7 +717,7 @@ std::unique_ptr<Column> ColumnFactory::createColumn(const LogicalType& dataType,
     case LogicalTypeID::TIMESTAMP:
     case LogicalTypeID::INTERVAL:
     case LogicalTypeID::FIXED_LIST: {
-        return std::make_unique<Column>(dataType, metaDAHeaderInfo, dataFH, metadataFH,
+        return std::make_unique<Column>(std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH,
             bufferManager, wal, transaction, propertyStatistics, enableCompression);
     }
     case LogicalTypeID::INTERNAL_ID: {
@@ -726,19 +726,19 @@ std::unique_ptr<Column> ColumnFactory::createColumn(const LogicalType& dataType,
     }
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING: {
-        return std::make_unique<StringColumn>(dataType, metaDAHeaderInfo, dataFH, metadataFH,
-            bufferManager, wal, transaction, propertyStatistics);
+        return std::make_unique<StringColumn>(std::move(dataType), metaDAHeaderInfo, dataFH,
+            metadataFH, bufferManager, wal, transaction, propertyStatistics);
     }
     case LogicalTypeID::MAP:
     case LogicalTypeID::VAR_LIST: {
-        return std::make_unique<VarListColumn>(dataType, metaDAHeaderInfo, dataFH, metadataFH,
-            bufferManager, wal, transaction, propertyStatistics, enableCompression);
+        return std::make_unique<VarListColumn>(std::move(dataType), metaDAHeaderInfo, dataFH,
+            metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
     }
     case LogicalTypeID::UNION:
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::RDF_VARIANT: {
-        return std::make_unique<StructColumn>(dataType, metaDAHeaderInfo, dataFH, metadataFH,
-            bufferManager, wal, transaction, propertyStatistics, enableCompression);
+        return std::make_unique<StructColumn>(std::move(dataType), metaDAHeaderInfo, dataFH,
+            metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
     }
     case LogicalTypeID::SERIAL: {
         return std::make_unique<SerialColumn>(

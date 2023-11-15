@@ -53,7 +53,7 @@ public:
 
     // ColumnChunks must be initialized after construction, so this constructor should only be used
     // through the ColumnChunkFactory
-    explicit ColumnChunk(common::LogicalType dataType, uint64_t capacity,
+    ColumnChunk(std::unique_ptr<common::LogicalType> dataType, uint64_t capacity,
         bool enableCompression = true, bool hasNullChunk = true);
 
     virtual ~ColumnChunk() = default;
@@ -64,7 +64,7 @@ public:
     }
 
     inline NullColumnChunk* getNullChunk() { return nullChunk.get(); }
-    inline common::LogicalType getDataType() const { return dataType; }
+    inline common::LogicalType* getDataType() const { return dataType.get(); }
 
     virtual void resetToEmpty();
 
@@ -124,7 +124,7 @@ private:
     static uint32_t getDataTypeSizeInChunk(common::LogicalType& dataType);
 
 protected:
-    common::LogicalType dataType;
+    std::unique_ptr<common::LogicalType> dataType;
     uint32_t numBytesPerValue;
     uint64_t bufferSize;
     uint64_t capacity;
@@ -154,7 +154,7 @@ inline bool ColumnChunk::getValue(common::offset_t pos) const {
 class BoolColumnChunk : public ColumnChunk {
 public:
     explicit BoolColumnChunk(uint64_t capacity, bool hasNullChunk = true)
-        : ColumnChunk(common::LogicalType(common::LogicalTypeID::BOOL), capacity,
+        : ColumnChunk(common::LogicalType::BOOL(), capacity,
               // Booleans are always compressed
               false /* enableCompression */, hasNullChunk) {}
 
@@ -214,8 +214,9 @@ protected:
 };
 
 struct ColumnChunkFactory {
-    static std::unique_ptr<ColumnChunk> createColumnChunk(const common::LogicalType& dataType,
-        bool enableCompression, uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE);
+    static std::unique_ptr<ColumnChunk> createColumnChunk(
+        std::unique_ptr<common::LogicalType> dataType, bool enableCompression,
+        uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE);
 };
 
 } // namespace storage

@@ -14,7 +14,8 @@ NodeGroup::NodeGroup(const std::vector<std::unique_ptr<common::LogicalType>>& co
     : nodeGroupIdx{UINT64_MAX}, numNodes{0} {
     chunks.reserve(columnTypes.size());
     for (auto& type : columnTypes) {
-        chunks.push_back(ColumnChunkFactory::createColumnChunk(*type, enableCompression, capacity));
+        chunks.push_back(
+            ColumnChunkFactory::createColumnChunk(type->copy(), enableCompression, capacity));
     }
 }
 
@@ -23,7 +24,7 @@ NodeGroup::NodeGroup(const std::vector<std::unique_ptr<Column>>& columns, bool e
     chunks.reserve(columns.size());
     for (auto columnID = 0u; columnID < columns.size(); columnID++) {
         chunks.push_back(ColumnChunkFactory::createColumnChunk(
-            columns[columnID]->getDataType(), enableCompression));
+            columns[columnID]->getDataType()->copy(), enableCompression));
     }
 }
 
@@ -55,11 +56,11 @@ uint64_t NodeGroup::append(const std::vector<ValueVector*>& columnVectors,
     columnState->selVector->selectedSize = numValuesToAppendInChunk;
     for (auto i = 0u; i < chunks.size(); i++) {
         auto chunk = chunks[i].get();
-        if (chunk->getDataType().getLogicalTypeID() == common::LogicalTypeID::SERIAL) {
+        if (chunk->getDataType()->getLogicalTypeID() == common::LogicalTypeID::SERIAL) {
             serialSkip++;
             continue;
         }
-        KU_ASSERT(chunk->getDataType() == columnVectors[i - serialSkip]->dataType);
+        KU_ASSERT(*chunk->getDataType() == columnVectors[i - serialSkip]->dataType);
         chunk->append(columnVectors[i - serialSkip]);
     }
     columnState->selVector->selectedSize = originalSize;

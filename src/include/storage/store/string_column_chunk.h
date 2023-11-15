@@ -8,7 +8,7 @@ namespace storage {
 
 class StringColumnChunk : public ColumnChunk {
 public:
-    explicit StringColumnChunk(common::LogicalType dataType, uint64_t capacity);
+    explicit StringColumnChunk(std::unique_ptr<common::LogicalType> dataType, uint64_t capacity);
 
     void resetToEmpty() final;
     void append(common::ValueVector* vector) final;

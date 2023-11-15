@@ -10,23 +10,24 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-StructColumn::StructColumn(LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
-    BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-    Transaction* transaction, RWPropertyStats propertyStatistics, bool enableCompression)
+StructColumn::StructColumn(std::unique_ptr<LogicalType> dataType,
+    const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
+    BufferManager* bufferManager, WAL* wal, Transaction* transaction,
+    RWPropertyStats propertyStatistics, bool enableCompression)
     : Column{std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
           transaction, propertyStatistics, enableCompression, true /* requireNullColumn */} {
-    auto fieldTypes = StructType::getFieldTypes(&this->dataType);
+    auto fieldTypes = StructType::getFieldTypes(this->dataType.get());
     KU_ASSERT(metaDAHeaderInfo.childrenInfos.size() == fieldTypes.size());
     childColumns.resize(fieldTypes.size());
     for (auto i = 0u; i < fieldTypes.size(); i++) {
-        childColumns[i] =
-            ColumnFactory::createColumn(*fieldTypes[i], *metaDAHeaderInfo.childrenInfos[i], dataFH,
-                metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
+        childColumns[i] = ColumnFactory::createColumn(fieldTypes[i]->copy(),
+            *metaDAHeaderInfo.childrenInfos[i], dataFH, metadataFH, bufferManager, wal, transaction,
+            propertyStatistics, enableCompression);
     }
 }
 
 void StructColumn::scan(node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) {
-    KU_ASSERT(columnChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
+    KU_ASSERT(columnChunk->getDataType()->getPhysicalType() == PhysicalTypeID::STRUCT);
     nullColumn->scan(nodeGroupIdx, columnChunk->getNullChunk());
     if (nodeGroupIdx >= metadataDA->getNumElements()) {
         columnChunk->setNumValues(0);
@@ -81,7 +82,7 @@ void StructColumn::write(
 
 void StructColumn::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
     Column::append(columnChunk, nodeGroupIdx);
-    KU_ASSERT(columnChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
+    KU_ASSERT(columnChunk->getDataType()->getPhysicalType() == PhysicalTypeID::STRUCT);
     auto structColumnChunk = static_cast<StructColumnChunk*>(columnChunk);
     for (auto i = 0u; i < childColumns.size(); i++) {
         childColumns[i]->append(structColumnChunk->getChild(i), nodeGroupIdx);

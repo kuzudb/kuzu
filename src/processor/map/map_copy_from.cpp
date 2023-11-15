@@ -134,7 +134,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRelFrom(
     partitionerSharedState->numPartitions.resize(2);
     std::vector<std::unique_ptr<LogicalType>> columnTypes;
     // TODO(Xiyang): Move binding of column types to binder.
-    columnTypes.push_back(std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID)); // ADJ COLUMN.
+    columnTypes.push_back(LogicalType::INTERNAL_ID()); // ADJ COLUMN.
     for (auto& property : tableSchema->properties) {
         columnTypes.push_back(property->getDataType()->copy());
     }

@@ -27,7 +27,8 @@ struct VarListDataColumnChunk {
 class VarListColumnChunk : public ColumnChunk {
 
 public:
-    VarListColumnChunk(common::LogicalType dataType, uint64_t capacity, bool enableCompression);
+    VarListColumnChunk(
+        std::unique_ptr<common::LogicalType> dataType, uint64_t capacity, bool enableCompression);
 
     inline ColumnChunk* getDataColumnChunk() const {
         return varListDataColumnChunk->dataColumnChunk.get();
@@ -62,7 +63,7 @@ private:
 
     inline void initializeIndices() {
         indicesColumnChunk = ColumnChunkFactory::createColumnChunk(
-            common::LogicalType{common::LogicalTypeID::INT64}, false /* enableCompression */);
+            common::LogicalType::INT64(), false /* enableCompression */);
         indicesColumnChunk->getNullChunk()->resetToAllNull();
         for (auto i = 0u; i < numValues; i++) {
             indicesColumnChunk->setValue<common::offset_t>(i, i);
