@@ -46,8 +46,8 @@ private:
     void resolveResultVector(
         const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager);
 
-    void copyNodes(common::sel_t resultPos);
-    void copyRels(common::sel_t resultPos);
+    void copyNodes(common::sel_t resultPos, bool isEmptyRels);
+    uint64_t copyRels(common::sel_t resultPos);
 
     void copyFieldVectors(common::offset_t inputVectorPos,
         const std::vector<common::ValueVector*>& inputFieldVectors,
