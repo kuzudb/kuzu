@@ -47,13 +47,6 @@ void BaseFrontierScanner::resetState(const BaseBFSState& bfsState) {
     }
 }
 
-void DstNodeScanner::scanFromDstOffset(RecursiveJoinVectors* vectors, sel_t& vectorPos,
-    sel_t& /*nodeIDDataVectorPos*/, sel_t& /*relIDDataVectorPos*/) {
-    KU_ASSERT(vectorPos < DEFAULT_VECTOR_CAPACITY);
-    writeDstNodeOffsetAndLength(vectors->dstNodeIDVector, vectors->pathLengthVector, vectorPos);
-    vectorPos++;
-}
-
 void PathScanner::scanFromDstOffset(RecursiveJoinVectors* vectors, sel_t& vectorPos,
     sel_t& nodeIDDataVectorPos, sel_t& relIDDataVectorPos) {
     // when bound node is 0

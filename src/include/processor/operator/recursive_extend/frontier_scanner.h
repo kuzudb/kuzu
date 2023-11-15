@@ -48,20 +48,6 @@ protected:
 };
 
 /*
- * DstNodeScanner scans dst node offset & length of path.
- */
-class DstNodeScanner : public BaseFrontierScanner {
-public:
-    DstNodeScanner(TargetDstNodes* targetDstNodes, size_t k)
-        : BaseFrontierScanner{targetDstNodes, k} {}
-
-private:
-    inline void initScanFromDstOffset() final {}
-    void scanFromDstOffset(RecursiveJoinVectors* vectors, common::sel_t& vectorPos,
-        common::sel_t& nodeIDDataVectorPos, common::sel_t& relIDDataVectorPos) final;
-};
-
-/*
  * PathScanner scans all paths of a fixed length k (also dst node offsets & length of path). This is
  * done by starting a backward traversals from only the destination nodes in the k'th frontier
  * (assuming the first frontier has index 0) over the backwards edges stored between the frontiers

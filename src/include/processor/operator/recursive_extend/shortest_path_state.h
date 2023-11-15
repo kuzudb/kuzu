@@ -26,7 +26,7 @@ public:
         if (targetDstNodes->contains(nodeID)) {
             numVisitedDstNodes++;
         }
-        currentFrontier->addNode(nodeID);
+        currentFrontier->addNodeWithMultiplicity(nodeID, 1);
     }
 
     inline void markVisited(common::nodeID_t boundNodeID, common::nodeID_t nbrNodeID,
@@ -41,7 +41,7 @@ public:
         if constexpr (TRACK_PATH) {
             nextFrontier->addEdge(boundNodeID, nbrNodeID, relID);
         } else {
-            nextFrontier->addNode(nbrNodeID);
+            nextFrontier->addNodeWithMultiplicity(nbrNodeID, 1);
         }
     }
 
