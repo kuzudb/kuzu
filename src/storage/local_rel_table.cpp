@@ -49,7 +49,7 @@ bool LocalRelNG::delete_(
     auto srcNodeOffset = srcNodeIDVector->getValue<nodeID_t>(srcNodeIDPos).offset;
     auto relIDPos = relIDVector->state->selVector->selectedPositions[0];
     auto relID = relIDVector->getValue<relID_t>(relIDPos).offset;
-    relNGInfo->delete_(srcNodeOffset, relID);
+    return relNGInfo->delete_(srcNodeOffset, relID);
 }
 
 void LocalRelTableData::scan(ValueVector* nodeIDVector, const std::vector<column_id_t>& columnIDs,
@@ -108,7 +108,7 @@ bool LocalRelTableData::delete_(
     }
     auto nodeGroupIdx = initializeLocalNodeGroup(srcNodeIDVector);
     KU_ASSERT(nodeGroups.contains(nodeGroupIdx));
-    nodeGroups.at(nodeGroupIdx)->delete_(srcNodeIDVector, dstNodeIDVector, relIDVector);
+    return nodeGroups.at(nodeGroupIdx)->delete_(srcNodeIDVector, dstNodeIDVector, relIDVector);
 }
 
 node_group_idx_t LocalRelTableData::initializeLocalNodeGroup(ValueVector* nodeIDVector) {
