@@ -35,7 +35,7 @@
 ---- 1
 2
 
--LOG StructuredTimestampArithmeticAddInterval1
+-LOG TimestampArithmeticAddInterval1
 -STATEMENT MATCH (a:person) RETURN a.registerTime + interval('47 hours 30 minutes 30 seconds')
 ---- 8
 1911-08-22 02:02:51
@@ -48,7 +48,7 @@
 2031-12-02 11:56:00
 
 
--LOG StructuredTimestampArithmeticAddInterval2
+-LOG TimestampArithmeticAddInterval2
 -STATEMENT MATCH (a:person) RETURN a.registerTime + interval('2 years 3 days 34 h 28 minutes 300 milliseconds 20 us')
 ---- 8
 1913-08-24 13:00:21.30002
@@ -60,7 +60,7 @@
 2025-02-25 23:53:30.30002
 2033-12-04 22:53:30.30002
 
--LOG StructuredTimestampArithmeticSubtractInterval
+-LOG TimestampArithmeticSubtractInterval
 -STATEMENT MATCH (a:person) RETURN a.registerTime - interval('12 years 7 months 10 days 20 h 30 m 100 us')
 ---- 8
 1899-01-09 06:02:20.9999
@@ -72,7 +72,7 @@
 2010-07-10 16:55:29.9999
 2019-04-19 15:55:29.9999
 
--LOG StructuredTimestampArithmeticSubtractTimestamp
+-LOG TimestampArithmeticSubtractTimestamp
 -STATEMENT MATCH (a:person) RETURN a.registerTime - timestamp('2013-01-02 14:22:31.45612')
 ---- 8
 -37026 days -11:50:10.45612
@@ -84,7 +84,7 @@
 3701 days 23:02:58.54388
 6905 days 22:02:58.54388
 
--LOG StructuredTimestampMixedArithmeticOperations
+-LOG TimestampMixedArithmeticOperations
 -STATEMENT MATCH (a:person) RETURN a.registerTime + interval('2 hours 48 minutes 1000 seconds') - interval('188 days 48 hours') - timestamp('1976-01-02 13:44:12')
 ---- 8
 -23701 days -08:07:11
@@ -96,7 +96,7 @@
 17027 days 02:45:58
 20231 days 01:45:58
 
--LOG StructuredTimestampConcatenateString
+-LOG TimestampConcatenateString
 -STATEMENT MATCH (a:person) RETURN concat(concat('Register Time: ', string(a.registerTime)), ' test')
 ---- 8
 Register Time: 1911-08-20 02:32:21 test
@@ -108,7 +108,7 @@ Register Time: 2011-08-20 11:25:30 test
 Register Time: 2023-02-21 13:25:30 test
 Register Time: 2031-11-30 12:25:30 test
 
--LOG StructuredTimestampExtractYearFuncTest
+-LOG TimestampExtractYearFuncTest
 -STATEMENT MATCH (p:person) RETURN date_part("yeAr", p.registerTime)
 ---- 8
 2011
@@ -120,7 +120,7 @@ Register Time: 2031-11-30 12:25:30 test
 1976
 2023
 
--LOG StructuredTimestampExtractMicroFuncTest
+-LOG TimestampExtractMicroFuncTest
 -STATEMENT MATCH (p:person) RETURN date_part("microSeconds", p.registerTime)
 ---- 8
 30000000
@@ -132,7 +132,7 @@ Register Time: 2031-11-30 12:25:30 test
 42000000
 30000000
 
--LOG StructuredTimestampExtractMsFuncTest
+-LOG TimestampExtractMsFuncTest
 -STATEMENT MATCH (p:person) RETURN date_part("millisEcond", p.registerTime)
 ---- 8
 30000
@@ -144,7 +144,7 @@ Register Time: 2031-11-30 12:25:30 test
 42000
 30000
 
--LOG StructuredTimestampExtractSecondFuncTest
+-LOG TimestampExtractSecondFuncTest
 -STATEMENT MATCH (p:person) RETURN date_part("seConds", p.registerTime)
 ---- 8
 30
@@ -156,7 +156,7 @@ Register Time: 2031-11-30 12:25:30 test
 42
 30
 
--LOG StructuredTimestampExtractMinuteFuncTest
+-LOG TimestampExtractMinuteFuncTest
 -STATEMENT MATCH (p:person) RETURN date_part("minute", p.registerTime)
 ---- 8
 25
@@ -168,7 +168,7 @@ Register Time: 2031-11-30 12:25:30 test
 41
 25
 
--LOG StructuredTimestampExtractHourFuncTest
+-LOG TimestampExtractHourFuncTest
 -STATEMENT MATCH (p:person) RETURN date_part("hours", p.registerTime)
 ---- 8
 11
@@ -180,7 +180,7 @@ Register Time: 2031-11-30 12:25:30 test
 4
 13
 
--LOG StructuredTimestampTruncDayFuncTest
+-LOG TimestampTruncDayFuncTest
 -STATEMENT MATCH (p:person) RETURN date_trunc("Day", p.registerTime)
 ---- 8
 2011-08-20 00:00:00
@@ -192,7 +192,7 @@ Register Time: 2031-11-30 12:25:30 test
 1976-12-23 00:00:00
 2023-02-21 00:00:00
 
--LOG StructuredTimestampTruncMicrosecondsFuncTest
+-LOG TimestampTruncMicrosecondsFuncTest
 -STATEMENT MATCH (p:person) RETURN date_trunc("MIcroseCond", p.registerTime)
 ---- 8
 2011-08-20 11:25:30
@@ -204,7 +204,7 @@ Register Time: 2031-11-30 12:25:30 test
 1976-12-23 04:41:42
 2023-02-21 13:25:30
 
--LOG StructuredTimestampTruncMillisecondsFuncTest
+-LOG TimestampTruncMillisecondsFuncTest
 -STATEMENT MATCH (p:person) RETURN date_trunc("mIlliSecond", p.registerTime)
 ---- 8
 2011-08-20 11:25:30
@@ -216,7 +216,7 @@ Register Time: 2031-11-30 12:25:30 test
 1976-12-23 04:41:42
 2023-02-21 13:25:30
 
--LOG StructuredTimestampTruncSecondsFuncTest
+-LOG TimestampTruncSecondsFuncTest
 -STATEMENT MATCH (p:person) RETURN date_trunc("secOnds", p.registerTime)
 ---- 8
 2011-08-20 11:25:30
@@ -228,7 +228,7 @@ Register Time: 2031-11-30 12:25:30 test
 1976-12-23 04:41:42
 2023-02-21 13:25:30
 
--LOG StructuredTimestampTruncMinuteFuncTest
+-LOG TimestampTruncMinuteFuncTest
 -STATEMENT MATCH (p:person) RETURN date_trunc("Minutes", p.registerTime)
 ---- 8
 2011-08-20 11:25:00
@@ -240,7 +240,7 @@ Register Time: 2031-11-30 12:25:30 test
 1976-12-23 04:41:00
 2023-02-21 13:25:00
 
--LOG StructuredTimestampTruncHourFuncTest
+-LOG TimestampTruncHourFuncTest
 -STATEMENT MATCH (p:person) RETURN date_trunc("Hours", p.registerTime)
 ---- 8
 2011-08-20 11:00:00
@@ -252,7 +252,7 @@ Register Time: 2031-11-30 12:25:30 test
 1976-12-23 04:00:00
 2023-02-21 13:00:00
 
--LOG StructuredTimestampCenturyFuncTest
+-LOG TimestampCenturyFuncTest
 -STATEMENT MATCH (p:person) RETURN century(p.registerTime)
 ---- 8
 21
@@ -264,7 +264,7 @@ Register Time: 2031-11-30 12:25:30 test
 20
 21
 
--LOG StructuredTimestampDaynameFuncTest
+-LOG TimestampDaynameFuncTest
 -STATEMENT MATCH (p:person) RETURN dayname(p.registerTime)
 ---- 8
 Saturday
@@ -276,7 +276,7 @@ Monday
 Thursday
 Tuesday
 
--LOG StructuredTimestampMonthNameFuncTest
+-LOG TimestampMonthNameFuncTest
 -STATEMENT MATCH (p:person) RETURN monthname(p.registerTime)
 ---- 8
 August
@@ -288,7 +288,7 @@ July
 December
 February
 
--LOG StructuredTimestampLastDayFuncTest
+-LOG TimestampLastDayFuncTest
 -STATEMENT MATCH (p:person) RETURN last_day(p.registerTime)
 ---- 8
 2011-08-31
@@ -300,7 +300,7 @@ February
 1976-12-31
 2023-02-28
 
--LOG StructuredInt64EpochMsFuncTest
+-LOG Int64EpochMsFuncTest
 -STATEMENT MATCH (p:person) RETURN epoch_ms(p.age)
 ---- 8
 1970-01-01 00:00:00.035
@@ -312,7 +312,7 @@ February
 1970-01-01 00:00:00.04
 1970-01-01 00:00:00.083
 
--LOG StructuredInt64ToTimestampFuncTest
+-LOG Int64ToTimestampFuncTest
 -STATEMENT MATCH (p:person) RETURN to_timestamp(p.age)
 ---- 8
 1970-01-01 00:00:35
@@ -324,7 +324,17 @@ February
 1970-01-01 00:00:40
 1970-01-01 00:01:23
 
--LOG StructuredTimestampGreatestFuncTest
+-LOG LargeInt64ToTimestampFuncTest
+-STATEMENT RETURN to_timestamp(to_int128(9223372036854)), to_timestamp(-224372936854)
+---- 1
+294247-01-10 04:00:53.999616|5142-11-27 (BC) 00:12:26
+
+-LOG LargeInt64ToTimestampErrorTest
+-STATEMENT RETURN to_timestamp(9223372036854775808)
+---- error
+Conversion exception: Could not convert epoch seconds to TIMESTAMP
+
+-LOG TimestampGreatestFuncTest
 -STATEMENT MATCH (p:person) RETURN greatest(p.registerTime, timestamp("2006-02-12 11:25:33"))
 ---- 8
 2011-08-20 11:25:30
@@ -336,7 +346,7 @@ February
 2006-02-12 11:25:33
 2023-02-21 13:25:30
 
--LOG StructuredTimestampLeastFuncTest
+-LOG TimestampLeastFuncTest
 -STATEMENT MATCH (p:person) RETURN least(p.registerTime, timestamp("2006-02-12 11:25:33"))
 ---- 8
 2006-02-12 11:25:33
@@ -348,22 +358,22 @@ February
 1976-12-23 04:41:42
 2006-02-12 11:25:33
 
--LOG StructuredTimestampComparisonAcrossNodesNonEquality
+-LOG TimestampComparisonAcrossNodesNonEquality
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.registerTime <> b.registerTime RETURN COUNT(*)
 ---- 1
 14
 
--LOG StructuredTimestampComparisonAcrossNodesLessThan
+-LOG TimestampComparisonAcrossNodesLessThan
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.registerTime < b.registerTime RETURN COUNT(*)
 ---- 1
 6
 
--LOG StructuredTimestampComparisonAcrossNodesLessThanOrEqualTo
+-LOG TimestampComparisonAcrossNodesLessThanOrEqualTo
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.registerTime <= b.registerTime RETURN COUNT(*)
 ---- 1
 6
 
--LOG StructuredTimestampComparisonAcrossNodesGreaterThan
+-LOG TimestampComparisonAcrossNodesGreaterThan
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.registerTime > b.registerTime RETURN COUNT(*)
 ---- 1
 8
@@ -380,25 +390,25 @@ February
 ---- 1
 4
 
--LOG StructuredTimestampComparisonAcrossNodesEquality
+-LOG TimestampComparisonAcrossNodesEquality
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.registerTime = b.registerTime RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 0
 
--LOG StructuredTimestampComparisonAcrossNodesGreaterThanOrEqualTo
+-LOG TimestampComparisonAcrossNodesGreaterThanOrEqualTo
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.registerTime >= b.registerTime RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 8
 
--LOG StructuredTimestampComparisonAcrossEdges
+-LOG TimestampComparisonAcrossEdges
 -STATEMENT MATCH (a:person)<-[e1:knows]-(b:person)-[e2:knows]->(c:person) WHERE e1.meetTime = e2.meetTime AND id(a) <> id(c) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 2
 
--LOG StructuredTimestampComparisonAcrossEdgeAndNode
+-LOG TimestampComparisonAcrossEdgeAndNode
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.registerTime > e1.meetTime  RETURN COUNT(*)
 -ENUMERATE
 ---- 1

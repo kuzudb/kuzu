@@ -1,7 +1,10 @@
 #pragma once
 
+#include "common/exception/conversion.h"
 #include "common/types/date_t.h"
+#include "common/types/interval_t.h"
 #include "common/types/timestamp_t.h"
+#include "function/cast/functions/numeric_cast.h"
 
 namespace kuzu {
 namespace function {
@@ -19,8 +22,12 @@ struct EpochMs {
 };
 
 struct ToTimestamp {
-    static inline void operation(int64_t& sec, common::timestamp_t& result) {
-        result = common::Timestamp::fromEpochSeconds(sec);
+    static inline void operation(double_t& sec, common::timestamp_t& result) {
+        int64_t ms;
+        if (!tryCastWithOverflowCheck(sec * common::Interval::MICROS_PER_SEC, ms)) {
+            throw common::ConversionException("Could not convert epoch seconds to TIMESTAMP");
+        }
+        result = common::timestamp_t(ms);
     }
 };
 
