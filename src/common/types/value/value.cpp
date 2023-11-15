@@ -117,92 +117,92 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
 }
 
 Value::Value(bool val_) : isNull_{false} {
-    dataType = std::make_unique<LogicalType>(LogicalTypeID::BOOL);
+    dataType = LogicalType::BOOL();
     val.booleanVal = val_;
 }
 
 Value::Value(int8_t val_) : isNull_{false} {
-    dataType = std::make_unique<LogicalType>(LogicalTypeID::INT8);
+    dataType = LogicalType::INT8();
     val.int8Val = val_;
 }
 
 Value::Value(int16_t val_) : isNull_{false} {
-    dataType = std::make_unique<LogicalType>(LogicalTypeID::INT16);
+    dataType = LogicalType::INT16();
     val.int16Val = val_;
 }
 
 Value::Value(int32_t val_) : isNull_{false} {
-    dataType = std::make_unique<LogicalType>(LogicalTypeID::INT32);
+    dataType = LogicalType::INT32();
     val.int32Val = val_;
 }
 
 Value::Value(int64_t val_) : isNull_{false} {
-    dataType = std::make_unique<LogicalType>(LogicalTypeID::INT64);
+    dataType = LogicalType::INT64();
     val.int64Val = val_;
 }
 
 Value::Value(uint8_t val_) : isNull_{false} {
-    dataType = std::make_unique<LogicalType>(LogicalTypeID::UINT8);
+    dataType = LogicalType::UINT8();
     val.uint8Val = val_;
 }
 
 Value::Value(uint16_t val_) : isNull_{false} {
-    dataType = std::make_unique<LogicalType>(LogicalTypeID::UINT16);
+    dataType = LogicalType::UINT16();
     val.uint16Val = val_;
 }
 
 Value::Value(uint32_t val_) : isNull_{false} {
-    dataType = std::make_unique<LogicalType>(LogicalTypeID::UINT32);
+    dataType = LogicalType::UINT32();
     val.uint32Val = val_;
 }
 
 Value::Value(uint64_t val_) : isNull_{false} {
-    dataType = std::make_unique<LogicalType>(LogicalTypeID::UINT64);
+    dataType = LogicalType::UINT64();
     val.uint64Val = val_;
 }
 
 Value::Value(int128_t val_) : isNull_{false} {
-    dataType = std::make_unique<LogicalType>(LogicalTypeID::INT128);
+    dataType = LogicalType::INT128();
     val.int128Val = val_;
 }
 
 Value::Value(float_t val_) : isNull_{false} {
-    dataType = std::make_unique<LogicalType>(LogicalTypeID::FLOAT);
+    dataType = LogicalType::FLOAT();
     val.floatVal = val_;
 }
 
 Value::Value(double val_) : isNull_{false} {
-    dataType = std::make_unique<LogicalType>(LogicalTypeID::DOUBLE);
+    dataType = LogicalType::DOUBLE();
     val.doubleVal = val_;
 }
 
 Value::Value(date_t val_) : isNull_{false} {
-    dataType = std::make_unique<LogicalType>(LogicalTypeID::DATE);
+    dataType = LogicalType::DATE();
     val.int32Val = val_.days;
 }
 
 Value::Value(timestamp_t val_) : isNull_{false} {
-    dataType = std::make_unique<LogicalType>(LogicalTypeID::TIMESTAMP);
+    dataType = LogicalType::TIMESTAMP();
     val.int64Val = val_.value;
 }
 
 Value::Value(interval_t val_) : isNull_{false} {
-    dataType = std::make_unique<LogicalType>(LogicalTypeID::INTERVAL);
+    dataType = LogicalType::INTERVAL();
     val.intervalVal = val_;
 }
 
 Value::Value(internalID_t val_) : isNull_{false} {
-    dataType = std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID);
+    dataType = LogicalType::INTERNAL_ID();
     val.internalIDVal = val_;
 }
 
 Value::Value(const char* val_) : isNull_{false} {
-    dataType = std::make_unique<LogicalType>(LogicalTypeID::STRING);
+    dataType = LogicalType::STRING();
     strVal = std::string(val_);
 }
 
 Value::Value(uint8_t* val_) : isNull_{false} {
-    dataType = std::make_unique<LogicalType>(LogicalTypeID::POINTER);
+    dataType = LogicalType::POINTER();
     val.pointer = val_;
 }
 

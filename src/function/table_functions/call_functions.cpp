@@ -61,7 +61,7 @@ std::unique_ptr<TableFuncBindData> CurrentSettingFunction::bindFunc(
     std::vector<std::string> returnColumnNames;
     std::vector<std::unique_ptr<LogicalType>> returnTypes;
     returnColumnNames.emplace_back(optionName);
-    returnTypes.push_back(std::make_unique<LogicalType>(LogicalTypeID::STRING));
+    returnTypes.push_back(LogicalType::STRING());
     return std::make_unique<CurrentSettingBindData>(context->getCurrentSetting(optionName),
         std::move(returnTypes), std::move(returnColumnNames), 1 /* one row result */);
 }
@@ -91,7 +91,7 @@ std::unique_ptr<TableFuncBindData> DBVersionFunction::bindFunc(
     std::vector<std::string> returnColumnNames;
     std::vector<std::unique_ptr<LogicalType>> returnTypes;
     returnColumnNames.emplace_back("version");
-    returnTypes.emplace_back(std::make_unique<LogicalType>(LogicalTypeID::STRING));
+    returnTypes.emplace_back(LogicalType::STRING());
     return std::make_unique<CallTableFuncBindData>(
         std::move(returnTypes), std::move(returnColumnNames), 1 /* one row result */);
 }
@@ -127,11 +127,11 @@ std::unique_ptr<TableFuncBindData> ShowTablesFunction::bindFunc(
     std::vector<std::string> returnColumnNames;
     std::vector<std::unique_ptr<LogicalType>> returnTypes;
     returnColumnNames.emplace_back("name");
-    returnTypes.emplace_back(std::make_unique<LogicalType>(LogicalTypeID::STRING));
+    returnTypes.emplace_back(LogicalType::STRING());
     returnColumnNames.emplace_back("type");
-    returnTypes.emplace_back(std::make_unique<LogicalType>(LogicalTypeID::STRING));
+    returnTypes.emplace_back(LogicalType::STRING());
     returnColumnNames.emplace_back("comment");
-    returnTypes.emplace_back(std::make_unique<LogicalType>(LogicalTypeID::STRING));
+    returnTypes.emplace_back(LogicalType::STRING());
     return std::make_unique<ShowTablesBindData>(catalog->getTableSchemas(), std::move(returnTypes),
         std::move(returnColumnNames), catalog->getTableCount());
 }
@@ -181,14 +181,14 @@ std::unique_ptr<TableFuncBindData> TableInfoFunction::bindFunc(
     auto tableID = catalog->getTableID(tableName);
     auto schema = catalog->getTableSchema(tableID);
     returnColumnNames.emplace_back("property id");
-    returnTypes.push_back(std::make_unique<LogicalType>(LogicalTypeID::INT64));
+    returnTypes.push_back(LogicalType::INT64());
     returnColumnNames.emplace_back("name");
-    returnTypes.push_back(std::make_unique<LogicalType>(LogicalTypeID::STRING));
+    returnTypes.push_back(LogicalType::STRING());
     returnColumnNames.emplace_back("type");
-    returnTypes.push_back(std::make_unique<LogicalType>(LogicalTypeID::STRING));
+    returnTypes.push_back(LogicalType::STRING());
     if (schema->tableType == TableType::NODE) {
         returnColumnNames.emplace_back("primary key");
-        returnTypes.push_back(std::make_unique<LogicalType>(LogicalTypeID::BOOL));
+        returnTypes.push_back(LogicalType::BOOL());
     }
     return std::make_unique<TableInfoBindData>(
         schema, std::move(returnTypes), std::move(returnColumnNames), schema->getNumProperties());
@@ -257,9 +257,9 @@ std::unique_ptr<TableFuncBindData> ShowConnectionFunction::bindFunc(
         throw BinderException{"Show connection can only be called on a rel table!"};
     }
     returnColumnNames.emplace_back("source table name");
-    returnTypes.emplace_back(std::make_unique<LogicalType>(LogicalTypeID::STRING));
+    returnTypes.emplace_back(LogicalType::STRING());
     returnColumnNames.emplace_back("destination table name");
-    returnTypes.emplace_back(std::make_unique<LogicalType>(LogicalTypeID::STRING));
+    returnTypes.emplace_back(LogicalType::STRING());
     return std::make_unique<ShowConnectionBindData>(catalog, schema, std::move(returnTypes),
         std::move(returnColumnNames),
         schema->tableType == TableType::REL ?

@@ -48,8 +48,8 @@ public:
         // By default, initialize all column chunks except for the csrOffsetChunk to empty, as they
         // should be resized after csr offset calculation (e.g., during CopyRel).
         : NodeGroup{columnTypes, enableCompression, 0 /* capacity */} {
-        csrOffsetChunk = ColumnChunkFactory::createColumnChunk(
-            common::LogicalType{common::LogicalTypeID::INT64}, enableCompression);
+        csrOffsetChunk =
+            ColumnChunkFactory::createColumnChunk(common::LogicalType::INT64(), enableCompression);
     }
 
     inline ColumnChunk* getCSROffsetChunk() { return csrOffsetChunk.get(); }

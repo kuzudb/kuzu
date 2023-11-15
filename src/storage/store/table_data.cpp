@@ -9,8 +9,8 @@ namespace storage {
 void TableData::addColumn(Transaction* transaction, InMemDiskArray<ColumnChunkMetadata>* metadataDA,
     const MetadataDAHInfo& metadataDAHInfo, const catalog::Property& property,
     ValueVector* defaultValueVector, TablesStatistics* tablesStats) {
-    auto column = ColumnFactory::createColumn(*property.getDataType(), metadataDAHInfo, dataFH,
-        metadataFH, bufferManager, wal, transaction,
+    auto column = ColumnFactory::createColumn(property.getDataType()->copy(), metadataDAHInfo,
+        dataFH, metadataFH, bufferManager, wal, transaction,
         RWPropertyStats(tablesStats, tableID, property.getPropertyID()), enableCompression);
     column->populateWithDefaultVal(
         property, column.get(), metadataDA, defaultValueVector, getNumNodeGroups(transaction));

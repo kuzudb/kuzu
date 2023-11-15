@@ -14,8 +14,8 @@ RelDataReadState::RelDataReadState(ColumnDataFormat dataFormat)
     : dataFormat{dataFormat}, startNodeOffsetInState{0}, numNodesInState{0},
       currentCSRNodeOffset{0}, posInCurrentCSR{0} {
     csrListEntries.resize(StorageConstants::NODE_GROUP_SIZE, {0, 0});
-    csrOffsetChunk = ColumnChunkFactory::createColumnChunk(
-        LogicalType{LogicalTypeID::INT64}, false /* enableCompression */);
+    csrOffsetChunk =
+        ColumnChunkFactory::createColumnChunk(LogicalType::INT64(), false /* enableCompression */);
 }
 
 void RelDataReadState::populateCSRListEntries() {
@@ -47,18 +47,15 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
         auto csrOffsetMetadataDAHInfo = relsStoreStats->getCSROffsetMetadataDAHInfo(
             Transaction::getDummyWriteTrx().get(), tableID, direction);
         // No NULL values is allowed for the csr offset column.
-        csrOffsetColumn =
-            std::make_unique<Column>(LogicalType{LogicalTypeID::INT64}, *csrOffsetMetadataDAHInfo,
-                dataFH, metadataFH, bufferManager, wal, Transaction::getDummyReadOnlyTrx().get(),
-                RWPropertyStats(relsStoreStats, tableID, INVALID_PROPERTY_ID), enableCompression,
-                false /* requireNUllColumn */);
+        csrOffsetColumn = std::make_unique<Column>(LogicalType::INT64(), *csrOffsetMetadataDAHInfo,
+            dataFH, metadataFH, bufferManager, wal, Transaction::getDummyReadOnlyTrx().get(),
+            RWPropertyStats::empty(), enableCompression, false /* requireNUllColumn */);
     }
     auto adjMetadataDAHInfo = relsStoreStats->getAdjMetadataDAHInfo(
         Transaction::getDummyWriteTrx().get(), tableID, direction);
-    adjColumn =
-        ColumnFactory::createColumn(LogicalType{LogicalTypeID::INTERNAL_ID}, *adjMetadataDAHInfo,
-            dataFH, metadataFH, bufferManager, wal, Transaction::getDummyReadOnlyTrx().get(),
-            RWPropertyStats(relsStoreStats, tableID, INVALID_PROPERTY_ID), enableCompression);
+    adjColumn = ColumnFactory::createColumn(LogicalType::INTERNAL_ID(), *adjMetadataDAHInfo, dataFH,
+        metadataFH, bufferManager, wal, Transaction::getDummyReadOnlyTrx().get(),
+        RWPropertyStats::empty(), enableCompression);
     auto properties = tableSchema->getProperties();
     columns.reserve(properties.size());
     for (auto i = 0u; i < properties.size(); i++) {
@@ -66,8 +63,8 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
         auto metadataDAHInfo = relsStoreStats->getPropertyMetadataDAHInfo(
             Transaction::getDummyWriteTrx().get(), tableID, i, direction);
         columns.push_back(
-            ColumnFactory::createColumn(*properties[i]->getDataType(), *metadataDAHInfo, dataFH,
-                metadataFH, bufferManager, wal, Transaction::getDummyReadOnlyTrx().get(),
+            ColumnFactory::createColumn(properties[i]->getDataType()->copy(), *metadataDAHInfo,
+                dataFH, metadataFH, bufferManager, wal, Transaction::getDummyReadOnlyTrx().get(),
                 RWPropertyStats(relsStoreStats, tableID, property->getPropertyID()),
                 enableCompression));
     }

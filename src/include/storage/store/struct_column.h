@@ -7,10 +7,10 @@ namespace storage {
 
 class StructColumn : public Column {
 public:
-    StructColumn(common::LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
-        BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
-        bool enableCompression);
+    StructColumn(std::unique_ptr<common::LogicalType> dataType,
+        const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
+        BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
+        RWPropertyStats propertyStatistics, bool enableCompression);
 
     void scan(common::node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) final;
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,

@@ -19,8 +19,8 @@ NodeTableData::NodeTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, tab
         auto property = properties[i];
         auto metadataDAHInfo = dynamic_cast<NodesStoreStatsAndDeletedIDs*>(tablesStatistics)
                                    ->getMetadataDAHInfo(&DUMMY_WRITE_TRANSACTION, tableID, i);
-        columns.push_back(ColumnFactory::createColumn(*property->getDataType(), *metadataDAHInfo,
-            dataFH, metadataFH, bufferManager, wal, &DUMMY_WRITE_TRANSACTION,
+        columns.push_back(ColumnFactory::createColumn(property->getDataType()->copy(),
+            *metadataDAHInfo, dataFH, metadataFH, bufferManager, wal, &DUMMY_WRITE_TRANSACTION,
             RWPropertyStats(tablesStatistics, tableID, property->getPropertyID()),
             enableCompression));
     }

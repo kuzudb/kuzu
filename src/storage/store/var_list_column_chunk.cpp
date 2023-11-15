@@ -24,13 +24,14 @@ void VarListDataColumnChunk::resizeBuffer(uint64_t numValues) {
 }
 
 VarListColumnChunk::VarListColumnChunk(
-    LogicalType dataType, uint64_t capacity, bool enableCompression)
+    std::unique_ptr<LogicalType> dataType, uint64_t capacity, bool enableCompression)
     : ColumnChunk{std::move(dataType), capacity, enableCompression, true /* hasNullChunk */},
       enableCompression{enableCompression}, needFinalize{false} {
     varListDataColumnChunk =
         std::make_unique<VarListDataColumnChunk>(ColumnChunkFactory::createColumnChunk(
-            *VarListType::getChildType(&this->dataType), enableCompression, 0 /* capacity */));
-    KU_ASSERT(this->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+            VarListType::getChildType(this->dataType.get())->copy(), enableCompression,
+            0 /* capacity */));
+    KU_ASSERT(this->dataType->getPhysicalType() == PhysicalTypeID::VAR_LIST);
 }
 
 void VarListColumnChunk::append(
@@ -93,7 +94,7 @@ void VarListColumnChunk::write(ValueVector* valueVector, ValueVector* offsetInCh
     if (!indicesColumnChunk) {
         initializeIndices();
     }
-    KU_ASSERT(valueVector->dataType.getPhysicalType() == dataType.getPhysicalType() &&
+    KU_ASSERT(valueVector->dataType.getPhysicalType() == dataType->getPhysicalType() &&
               offsetInChunkVector->dataType.getPhysicalType() == PhysicalTypeID::INT64 &&
               valueVector->state->selVector->selectedSize ==
                   offsetInChunkVector->state->selVector->selectedSize);
@@ -150,7 +151,7 @@ void VarListColumnChunk::finalize() {
         return;
     }
     auto newColumnChunk =
-        ColumnChunkFactory::createColumnChunk(dataType, enableCompression, capacity);
+        ColumnChunkFactory::createColumnChunk(dataType->copy(), enableCompression, capacity);
     auto totalListLen = getListOffset(numValues);
     auto newVarListChunk = ku_dynamic_cast<ColumnChunk*, VarListColumnChunk*>(newColumnChunk.get());
     newVarListChunk->getDataColumnChunk()->resize(totalListLen);

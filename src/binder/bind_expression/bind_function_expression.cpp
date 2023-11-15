@@ -220,8 +220,7 @@ static std::vector<std::unique_ptr<Value>> populateLabelValues(
 
 std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression& expression) {
     auto catalogContent = binder->catalog.getReadOnlyVersion();
-    auto varListTypeInfo =
-        std::make_unique<VarListTypeInfo>(std::make_unique<LogicalType>(LogicalTypeID::STRING));
+    auto varListTypeInfo = std::make_unique<VarListTypeInfo>(LogicalType::STRING());
     auto listType =
         std::make_unique<LogicalType>(LogicalTypeID::VAR_LIST, std::move(varListTypeInfo));
     expression_vector children;

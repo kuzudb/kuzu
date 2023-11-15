@@ -58,7 +58,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfRelFrom(function::TableFuncti
     for (auto i = 0u; i < 3; ++i) {
         auto columnName = std::string(InternalKeyword::ANONYMOUS) + std::to_string(i);
         columnNames.push_back(columnName);
-        columnTypes.push_back(std::make_unique<LogicalType>(LogicalTypeID::INT64));
+        columnTypes.push_back(LogicalType::INT64());
     }
     auto relTableSchema = reinterpret_cast<RelTableSchema*>(tableSchema);
     auto resourceTableID = relTableSchema->getSrcTableID();

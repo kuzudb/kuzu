@@ -314,8 +314,8 @@ function_set RegexpExtractAllFunction::getFunctionSet() {
 
 std::unique_ptr<FunctionBindData> RegexpExtractAllFunction::bindFunc(
     const binder::expression_vector& /*arguments*/, Function* /*definition*/) {
-    return std::make_unique<FunctionBindData>(LogicalType(LogicalTypeID::VAR_LIST,
-        std::make_unique<VarListTypeInfo>(std::make_unique<LogicalType>(LogicalTypeID::STRING))));
+    return std::make_unique<FunctionBindData>(LogicalType(
+        LogicalTypeID::VAR_LIST, std::make_unique<VarListTypeInfo>(LogicalType::STRING())));
 }
 
 } // namespace function

@@ -32,7 +32,7 @@ class Column {
     friend class StructColumn;
 
 public:
-    Column(common::LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
+    Column(std::unique_ptr<common::LogicalType> dataType, const MetadataDAHInfo& metaDAHeaderInfo,
         BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
         transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
         bool enableCompression, bool requireNullColumn = true);
@@ -55,7 +55,7 @@ public:
 
     virtual void setNull(common::offset_t nodeOffset);
 
-    inline const common::LogicalType& getDataType() const { return dataType; }
+    inline common::LogicalType* getDataType() const { return dataType.get(); }
     inline uint32_t getNumBytesPerValue() const { return numBytesPerFixedSizedValue; }
     inline uint64_t getNumNodeGroups(transaction::Transaction* transaction) const {
         return metadataDA->getNumElements(transaction->getType());
@@ -123,7 +123,7 @@ private:
 
 protected:
     DBFileID dbFileID;
-    common::LogicalType dataType;
+    std::unique_ptr<common::LogicalType> dataType;
     // TODO(bmwinger): Remove. Only used by var_list_column_chunk for something which should be
     // rewritten
     uint32_t numBytesPerFixedSizedValue;
@@ -178,7 +178,7 @@ private:
 };
 
 struct ColumnFactory {
-    static std::unique_ptr<Column> createColumn(const common::LogicalType& dataType,
+    static std::unique_ptr<Column> createColumn(std::unique_ptr<common::LogicalType> dataType,
         const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
         BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
         RWPropertyStats propertyStatistics, bool enableCompression);

@@ -6,13 +6,13 @@ namespace kuzu {
 namespace storage {
 
 StructColumnChunk::StructColumnChunk(
-    LogicalType dataType, uint64_t capacity, bool enableCompression)
+    std::unique_ptr<LogicalType> dataType, uint64_t capacity, bool enableCompression)
     : ColumnChunk{std::move(dataType), capacity} {
-    auto fieldTypes = StructType::getFieldTypes(&this->dataType);
+    auto fieldTypes = StructType::getFieldTypes(this->dataType.get());
     childChunks.resize(fieldTypes.size());
     for (auto i = 0u; i < fieldTypes.size(); i++) {
-        childChunks[i] =
-            ColumnChunkFactory::createColumnChunk(*fieldTypes[i], enableCompression, capacity);
+        childChunks[i] = ColumnChunkFactory::createColumnChunk(
+            fieldTypes[i]->copy(), enableCompression, capacity);
     }
 }
 
@@ -34,7 +34,7 @@ void StructColumnChunk::append(
 }
 
 void StructColumnChunk::append(ValueVector* vector) {
-    auto numFields = StructType::getNumFields(&dataType);
+    auto numFields = StructType::getNumFields(dataType.get());
     for (auto i = 0u; i < numFields; i++) {
         childChunks[i]->append(StructVector::getFieldVector(vector, i).get());
     }

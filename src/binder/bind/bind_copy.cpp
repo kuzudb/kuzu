@@ -218,11 +218,11 @@ void Binder::bindExpectedRelColumns(catalog::TableSchema* tableSchema,
     columnNames.push_back(dstColumnName);
     auto srcPKColumnType = srcTable->getPrimaryKey()->getDataType()->copy();
     if (srcPKColumnType->getLogicalTypeID() == LogicalTypeID::SERIAL) {
-        srcPKColumnType = std::make_unique<LogicalType>(LogicalTypeID::INT64);
+        srcPKColumnType = LogicalType::INT64();
     }
     auto dstPKColumnType = dstTable->getPrimaryKey()->getDataType()->copy();
     if (dstPKColumnType->getLogicalTypeID() == LogicalTypeID::SERIAL) {
-        dstPKColumnType = std::make_unique<LogicalType>(LogicalTypeID::INT64);
+        dstPKColumnType = LogicalType::INT64();
     }
     columnTypes.push_back(std::move(srcPKColumnType));
     columnTypes.push_back(std::move(dstPKColumnType));

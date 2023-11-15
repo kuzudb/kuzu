@@ -97,7 +97,7 @@ void CopyNode::populatePKIndex(
     std::string errorPKValueStr;
     pkIndex->lock();
     try {
-        switch (chunk->getDataType().getPhysicalType()) {
+        switch (chunk->getDataType()->getPhysicalType()) {
         case PhysicalTypeID::INT64: {
             auto numAppendedNodes = appendToPKIndex<int64_t>(pkIndex, chunk, startOffset, numNodes);
             if (numAppendedNodes < numNodes) {
@@ -114,7 +114,7 @@ void CopyNode::populatePKIndex(
             }
         } break;
         default: {
-            throw CopyException(ExceptionMessage::invalidPKType(chunk->getDataType().toString()));
+            throw CopyException(ExceptionMessage::invalidPKType(chunk->getDataType()->toString()));
         }
         }
     } catch (Exception& e) {

@@ -7,9 +7,10 @@ namespace storage {
 
 class StringColumn : public Column {
 public:
-    StringColumn(common::LogicalType dataType, const MetadataDAHInfo& metaDAHeaderInfo,
-        BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction, RWPropertyStats propertyStatistics);
+    StringColumn(std::unique_ptr<common::LogicalType> dataType,
+        const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
+        BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
+        RWPropertyStats propertyStatistics);
 
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,

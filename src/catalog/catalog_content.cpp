@@ -51,8 +51,8 @@ table_id_t CatalogContent::addNodeTableSchema(const BoundCreateTableInfo& info) 
 
 // TODO(Xiyang): move this to binding stage
 static void addRelInternalIDProperty(std::vector<std::unique_ptr<Property>>& properties) {
-    auto relInternalIDProperty = std::make_unique<Property>(
-        InternalKeyword::ID, std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID));
+    auto relInternalIDProperty =
+        std::make_unique<Property>(InternalKeyword::ID, LogicalType::INTERNAL_ID());
     properties.insert(properties.begin(), std::move(relInternalIDProperty));
 }
 

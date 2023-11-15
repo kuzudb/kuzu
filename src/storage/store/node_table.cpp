@@ -140,7 +140,7 @@ void NodeTable::rollbackInMemory() {
 void NodeTable::updatePK(Transaction* transaction, column_id_t columnID,
     common::ValueVector* keyVector, common::ValueVector* payloadVector) {
     auto pkVector =
-        std::make_unique<ValueVector>(getColumn(pkColumnID)->getDataType(), memoryManager);
+        std::make_unique<ValueVector>(*getColumn(pkColumnID)->getDataType(), memoryManager);
     pkVector->state = keyVector->state;
     auto readState = std::make_unique<storage::TableReadState>();
     initializeReadState(transaction, {columnID}, keyVector, readState.get());
