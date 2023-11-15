@@ -24,7 +24,7 @@ public:
     }
 
     inline void markSrc(common::nodeID_t nodeID) override {
-        visitedNodeToDistance.insert({nodeID, 0});
+        visitedNodeToDistance.insert({nodeID, -1});
         if (targetDstNodes->contains(nodeID)) {
             numVisitedDstNodes++;
         }
@@ -34,7 +34,7 @@ public:
     void markVisited(common::nodeID_t boundNodeID, common::nodeID_t nbrNodeID,
         common::relID_t relID, uint64_t multiplicity) final {
         if (!visitedNodeToDistance.contains(nbrNodeID)) {
-            visitedNodeToDistance.insert({nbrNodeID, currentLevel});
+            visitedNodeToDistance.insert({nbrNodeID, (int64_t)currentLevel});
             if (targetDstNodes->contains(nbrNodeID)) {
                 minDistance = currentLevel;
                 numVisitedDstNodes++;
@@ -61,7 +61,7 @@ private:
 private:
     uint32_t minDistance; // Min distance to add dst nodes that have been reached.
     uint64_t numVisitedDstNodes;
-    frontier::node_id_map_t<uint32_t> visitedNodeToDistance;
+    frontier::node_id_map_t<int64_t> visitedNodeToDistance;
 };
 
 } // namespace processor

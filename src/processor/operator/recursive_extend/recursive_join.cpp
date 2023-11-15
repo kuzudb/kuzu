@@ -56,7 +56,8 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionC
             bfsState = std::make_unique<ShortestPathState<false /* TRACK_PATH */>>(
                 upperBound, targetDstNodes.get());
             for (auto i = lowerBound; i <= upperBound; ++i) {
-                scanners.push_back(std::make_unique<DstNodeScanner>(targetDstNodes.get(), i));
+                scanners.push_back(
+                    std::make_unique<DstNodeWithMultiplicityScanner>(targetDstNodes.get(), i));
             }
         } break;
         default:

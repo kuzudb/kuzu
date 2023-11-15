@@ -14,7 +14,15 @@
 
 --
 
--CASE VarLengthExtendLargeAdjListTest
+-CASE LargeListTest
+
+-LOG ShortestPath
+-STATEMENT MATCH (a:person)-[:knows* SHORTEST 1..30]->(b:person) WHERE a.ID = 0 RETURN COUNT(*)
+---- 1
+5000
+-STATEMENT MATCH (a:person)-[:knows* ALL SHORTEST 1..30]->(b:person) WHERE a.ID = 0 RETURN COUNT(*)
+---- 1
+5000
 
 -LOG KnowsVeryLargeAdjListTest
 -STATEMENT MATCH (a:person)-[:knows*2..4]->(b:person) RETURN COUNT(*)
@@ -24,6 +32,5 @@
 # By the above formula, 28th, 29th, and 30th levels will contain 29*5K + 1, 30*5K + 1, and 31*5K+1 = 90*5K+3=450003.
 -LOG KnowsVeryLargeAdjListLongPathTest
 -STATEMENT MATCH (a:person)-[:knows*28..30]->(b:person) RETURN COUNT(*)
--PARALLELISM 2
 ---- 1
 450003

@@ -33,8 +33,6 @@ public:
         nodeIDToMultiplicity.clear();
     }
 
-    inline void addNode(common::nodeID_t nodeID) { nodeIDs.push_back(nodeID); }
-
     void addEdge(common::nodeID_t boundNodeID, common::nodeID_t nbrNodeID, common::nodeID_t relID);
 
     void addNodeWithMultiplicity(common::nodeID_t nodeID, uint64_t multiplicity);
