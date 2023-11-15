@@ -52,7 +52,7 @@ public:
     /**
      * @return the nodeID of the node as a nodeID struct.
      */
-     // TODO(Change): REMOVE ME and use getNodeIDVal.
+    // TODO(Change): REMOVE ME and use getNodeIDVal.
     KUZU_API static nodeID_t getNodeID(const Value* val);
     /**
      * @return the name of the node in string format.

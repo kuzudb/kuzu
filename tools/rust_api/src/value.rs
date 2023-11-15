@@ -490,6 +490,11 @@ impl TryFrom<&ffi::Value> for Value {
             }
             LogicalTypeID::NODE => {
                 let id = ffi::node_value_get_node_id(value);
+                if id.isNull() {
+                    return Ok(Value::Null(value.into()));
+                }
+                let id = ffi::value_get_internal_id(id);
+
                 let id = InternalID {
                     offset: id[0],
                     table_id: id[1],
@@ -506,6 +511,11 @@ impl TryFrom<&ffi::Value> for Value {
             }
             LogicalTypeID::REL => {
                 let src_node = ffi::rel_value_get_src_id(value);
+                if (src_node).isNull() {
+                    return Ok(Value::Null(value.into()));
+                }
+                let src_node = ffi::value_get_internal_id(src_node);
+
                 let dst_node = ffi::rel_value_get_dst_id(value);
                 let src_node = InternalID {
                     offset: src_node[0],

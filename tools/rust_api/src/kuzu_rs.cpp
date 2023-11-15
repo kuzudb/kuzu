@@ -143,11 +143,11 @@ rust::Vec<rust::String> query_result_column_names(const kuzu::main::QueryResult&
 }
 
 rust::String node_value_get_label_name(const kuzu::common::Value& val) {
-    return rust::String(kuzu::common::NodeVal::getLabelName(&val));
+    return rust::String(kuzu::common::NodeVal::getLabelVal(&val)->getValue<std::string>());
 }
 
 rust::String rel_value_get_label_name(const kuzu::common::Value& val) {
-    return rust::String(kuzu::common::RelVal::getLabelName(&val));
+    return rust::String(kuzu::common::RelVal::getLabelVal(&val)->getValue<std::string>());
 }
 
 size_t node_value_get_num_properties(const Value& value) {
@@ -171,17 +171,16 @@ const kuzu::common::Value& rel_value_get_property_value(const Value& value, size
     return *RelVal::getPropertyVal(&value, index);
 }
 
-std::array<uint64_t, 2> node_value_get_node_id(const kuzu::common::Value& val) {
-    auto internalID = kuzu::common::NodeVal::getNodeID(&val);
-    return std::array{internalID.offset, internalID.tableID};
+const Value& node_value_get_node_id(const kuzu::common::Value& val) {
+    return *kuzu::common::NodeVal::getNodeIDVal(&val);
 }
 
-std::array<uint64_t, 2> rel_value_get_src_id(const kuzu::common::Value& val) {
-    auto internalID = kuzu::common::RelVal::getSrcNodeID(&val);
-    return std::array{internalID.offset, internalID.tableID};
+const Value& rel_value_get_src_id(const kuzu::common::Value& val) {
+    return *kuzu::common::RelVal::getSrcNodeIDVal(&val);
 }
 std::array<uint64_t, 2> rel_value_get_dst_id(const kuzu::common::Value& val) {
-    auto internalID = kuzu::common::RelVal::getDstNodeID(&val);
+    auto internalID =
+        kuzu::common::RelVal::getDstNodeIDVal(&val)->getValue<kuzu::common::internalID_t>();
     return std::array{internalID.offset, internalID.tableID};
 }
 
