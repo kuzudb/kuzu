@@ -292,7 +292,7 @@ std::unique_ptr<Value> ValueVector::getAsValue(uint64_t pos) {
     } break;
     case PhysicalTypeID::FIXED_LIST: {
         auto childDataType = FixedListType::getChildType(&dataType);
-        auto numElements = FixedListType::getNumElementsInList(&dataType);
+        auto numElements = FixedListType::getNumValuesInList(&dataType);
         std::vector<std::unique_ptr<Value>> children;
         children.reserve(numElements);
         switch (childDataType->getPhysicalType()) {
@@ -366,7 +366,7 @@ uint32_t ValueVector::getDataTypeSize(const LogicalType& type) {
     }
     case PhysicalTypeID::FIXED_LIST: {
         return getDataTypeSize(*FixedListType::getChildType(&type)) *
-               FixedListType::getNumElementsInList(&type);
+               FixedListType::getNumValuesInList(&type);
     }
     case PhysicalTypeID::STRUCT: {
         return sizeof(struct_entry_t);

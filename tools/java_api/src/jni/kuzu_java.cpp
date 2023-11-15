@@ -623,7 +623,7 @@ Java_com_kuzudb_KuzuNative_kuzu_1data_1type_1get_1fixed_1num_1elements_1in_1list
     if (dt->getLogicalTypeID() != LogicalTypeID::FIXED_LIST) {
         return 0;
     }
-    return static_cast<jlong>(FixedListType::getNumElementsInList(dt));
+    return static_cast<jlong>(FixedListType::getNumValuesInList(dt));
 }
 
 /**

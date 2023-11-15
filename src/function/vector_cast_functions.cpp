@@ -20,7 +20,7 @@ static void castFixedListToString(
         return;
     }
     std::string result = "[";
-    auto numValuesPerList = FixedListType::getNumElementsInList(&param.dataType);
+    auto numValuesPerList = FixedListType::getNumValuesInList(&param.dataType);
     auto childType = FixedListType::getChildType(&param.dataType);
     auto values = param.getData() + pos * param.getNumBytesPerValue();
     for (auto i = 0u; i < numValuesPerList - 1; ++i) {

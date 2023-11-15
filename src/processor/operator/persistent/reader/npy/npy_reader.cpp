@@ -194,7 +194,7 @@ void NpyReader::validate(const LogicalType& type_, offset_t numRows) {
                                              "match the expected type.",
                 filePath));
         }
-        if (getNumElementsPerRow() != FixedListType::getNumElementsInList(&type_)) {
+        if (getNumElementsPerRow() != FixedListType::getNumValuesInList(&type_)) {
             throw CopyException(
                 stringFormat("The shape of {} does not match {}.", filePath, type_.toString()));
         }

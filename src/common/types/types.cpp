@@ -331,7 +331,7 @@ std::string LogicalType::toString() const {
     case LogicalTypeID::FIXED_LIST: {
         auto fixedListTypeInfo = reinterpret_cast<FixedListTypeInfo*>(extraTypeInfo.get());
         return fixedListTypeInfo->getChildType()->toString() + "[" +
-               std::to_string(fixedListTypeInfo->getNumElementsInList()) + "]";
+               std::to_string(fixedListTypeInfo->getNumValuesInList()) + "]";
     }
     case LogicalTypeID::UNION: {
         auto unionTypeInfo = reinterpret_cast<StructTypeInfo*>(extraTypeInfo.get());
@@ -685,7 +685,7 @@ uint32_t LogicalTypeUtils::getRowLayoutSize(const LogicalType& type) {
     }
     case PhysicalTypeID::FIXED_LIST: {
         return getRowLayoutSize(*FixedListType::getChildType(&type)) *
-               FixedListType::getNumElementsInList(&type);
+               FixedListType::getNumValuesInList(&type);
     }
     case PhysicalTypeID::VAR_LIST: {
         return sizeof(ku_list_t);

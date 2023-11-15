@@ -30,6 +30,20 @@ std::unique_ptr<DataTypeInfo> DataTypeInfo::getInfoForDataType(
         auto childType = VarListType::getChildType(&type);
         parentTypeInfo->childrenTypesInfo.push_back(getInfoForDataType(*childType, ""));
     } break;
+    case LogicalTypeID::FIXED_LIST: {
+        auto parentTypeInfo = columnTypeInfo.get();
+        parentTypeInfo->numValuesPerList = FixedListType::getNumValuesInList(&type);
+        auto childType = FixedListType::getChildType(&type);
+        parentTypeInfo->childrenTypesInfo.push_back(getInfoForDataType(*childType, ""));
+    } break;
+    case LogicalTypeID::STRUCT: {
+        auto parentTypeInfo = columnTypeInfo.get();
+        for (auto i = 0u; i < StructType::getNumFields(&type); i++) {
+            auto structField = StructType::getField(&type, i);
+            parentTypeInfo->childrenTypesInfo.push_back(
+                getInfoForDataType(*structField->getType(), structField->getName()));
+        }
+    } break;
     default: {
         // DO NOTHING
     }

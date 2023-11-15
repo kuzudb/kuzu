@@ -86,7 +86,7 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
     case LogicalTypeID::FIXED_LIST: {
         std::vector<std::unique_ptr<Value>> children;
         auto childType = FixedListType::getChildType(&dataType);
-        for (auto i = 0u; i < FixedListType::getNumElementsInList(&dataType); ++i) {
+        for (auto i = 0u; i < FixedListType::getNumValuesInList(&dataType); ++i) {
             children.push_back(std::make_unique<Value>(createDefaultValue(*childType)));
         }
         return Value(dataType, std::move(children));

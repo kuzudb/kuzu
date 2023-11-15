@@ -226,6 +226,7 @@ bool PyQueryResult::getNextArrowChunk(const std::vector<std::unique_ptr<DataType
     ArrowArray data;
     ArrowConverter::toArrowArray(*queryResult, &data, chunkSize);
 
+    // TODO(Ziyi): use import cache to improve performance.
     auto pyarrowLibModule = py::module::import("pyarrow").attr("lib");
     auto batchImportFunc = pyarrowLibModule.attr("RecordBatch").attr("_import_from_c");
     auto schema = ArrowConverter::toArrowSchema(typesInfo);

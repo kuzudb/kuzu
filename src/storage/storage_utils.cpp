@@ -51,7 +51,7 @@ uint32_t StorageUtils::getDataTypeSize(const LogicalType& type) {
     }
     case PhysicalTypeID::FIXED_LIST: {
         return getDataTypeSize(*FixedListType::getChildType(&type)) *
-               FixedListType::getNumElementsInList(&type);
+               FixedListType::getNumValuesInList(&type);
     }
     case PhysicalTypeID::VAR_LIST: {
         return sizeof(ku_list_t);
