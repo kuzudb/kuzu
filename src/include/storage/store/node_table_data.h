@@ -5,6 +5,8 @@
 namespace kuzu {
 namespace storage {
 
+class LocalTableData;
+
 class NodeTableData : public TableData {
 public:
     NodeTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, common::table_id_t tableID,
@@ -33,7 +35,7 @@ public:
 
     void append(NodeGroup* nodeGroup) final;
 
-    void prepareLocalTableToCommit(LocalTable* localTable);
+    void prepareLocalTableToCommit(LocalTableData* localTable);
 };
 
 } // namespace storage

@@ -12,6 +12,7 @@ struct TableReadState {
     std::vector<common::column_id_t> columnIDs;
 };
 
+class LocalTableData;
 class TableData {
 public:
     virtual ~TableData() = default;
@@ -43,7 +44,7 @@ public:
         return columns[0]->getNumNodeGroups(transaction);
     }
 
-    virtual void prepareLocalTableToCommit(LocalTable* localTable) = 0;
+    virtual void prepareLocalTableToCommit(LocalTableData* localTable) = 0;
     virtual void checkpointInMemory();
     virtual void rollbackInMemory();
 

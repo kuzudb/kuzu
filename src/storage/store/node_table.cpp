@@ -108,7 +108,7 @@ void NodeTable::addColumn(transaction::Transaction* transaction, const catalog::
     wal->addToUpdatedTables(tableID);
 }
 
-void NodeTable::prepareCommit(LocalTable* localTable) {
+void NodeTable::prepareCommit(LocalTableData* localTable) {
     if (pkIndex) {
         pkIndex->prepareCommit();
     }
@@ -116,7 +116,7 @@ void NodeTable::prepareCommit(LocalTable* localTable) {
     wal->addToUpdatedTables(tableID);
 }
 
-void NodeTable::prepareRollback(LocalTable* localTable) {
+void NodeTable::prepareRollback(LocalTableData* localTable) {
     if (pkIndex) {
         pkIndex->prepareRollback();
     }

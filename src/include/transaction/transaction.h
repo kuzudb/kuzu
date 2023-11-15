@@ -2,11 +2,14 @@
 
 #include <memory>
 
-#include "storage/local_storage.h"
+#include "storage/local_storage/local_storage.h"
 
 namespace kuzu {
+namespace storage {
+class LocalStorage;
+class MemoryManager;
+} // namespace storage
 namespace transaction {
-
 class TransactionManager;
 
 enum class TransactionType : uint8_t { READ_ONLY, WRITE };

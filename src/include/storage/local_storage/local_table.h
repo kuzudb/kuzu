@@ -2,6 +2,7 @@
 
 #include <map>
 
+#include "common/enums/table_type.h"
 #include "common/vector/value_vector.h"
 
 namespace kuzu {
@@ -79,15 +80,7 @@ class LocalNodeGroup {
     friend class NodeTableData;
 
 public:
-    LocalNodeGroup(
-        const std::vector<std::unique_ptr<common::LogicalType>>& dataTypes, MemoryManager* mm) {
-        columns.resize(dataTypes.size());
-        for (auto i = 0u; i < dataTypes.size(); ++i) {
-            // To avoid unnecessary memory consumption, we chunk local changes of each column in the
-            // node group into chunks of size DEFAULT_VECTOR_CAPACITY.
-            columns[i] = std::make_unique<LocalVectorCollection>(dataTypes[i].get(), mm);
-        }
-    }
+    LocalNodeGroup(std::vector<common::LogicalType*> dataTypes, MemoryManager* mm);
 
     void scan(common::ValueVector* nodeIDVector, const std::vector<common::column_id_t>& columnIDs,
         const std::vector<common::ValueVector*>& outputVectors);
@@ -113,13 +106,12 @@ private:
     std::vector<std::unique_ptr<LocalVectorCollection>> columns;
 };
 
-class LocalTable {
+class LocalTableData {
     friend class NodeTableData;
 
 public:
-    explicit LocalTable(common::table_id_t tableID,
-        std::vector<std::unique_ptr<common::LogicalType>> dataTypes, MemoryManager* mm)
-        : tableID{tableID}, dataTypes{std::move(dataTypes)}, mm{mm} {};
+    LocalTableData(std::vector<common::LogicalType*> dataTypes, MemoryManager* mm)
+        : dataTypes{std::move(dataTypes)}, mm{mm} {}
 
     void scan(common::ValueVector* nodeIDVector, const std::vector<common::column_id_t>& columnIDs,
         const std::vector<common::ValueVector*>& outputVectors);
@@ -139,10 +131,25 @@ private:
     common::node_group_idx_t initializeLocalNodeGroup(common::offset_t nodeOffset);
 
 private:
-    common::table_id_t tableID;
-    std::vector<std::unique_ptr<common::LogicalType>> dataTypes;
+    std::vector<common::LogicalType*> dataTypes;
     MemoryManager* mm;
     std::unordered_map<common::node_group_idx_t, std::unique_ptr<LocalNodeGroup>> nodeGroups;
+};
+
+class Column;
+class LocalTable {
+public:
+    LocalTable(common::table_id_t tableID, common::TableType tableType)
+        : tableID{tableID}, tableType{tableType} {};
+
+    LocalTableData* getOrCreateLocalTableData(
+        const std::vector<std::unique_ptr<Column>>& columns, MemoryManager* mm);
+    inline LocalTableData* getLocalTableData() { return localTableData.get(); }
+
+private:
+    common::table_id_t tableID;
+    common::TableType tableType;
+    std::unique_ptr<LocalTableData> localTableData;
 };
 
 } // namespace storage

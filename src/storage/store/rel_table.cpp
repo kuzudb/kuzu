@@ -61,11 +61,11 @@ void RelTable::addColumn(
     wal->addToUpdatedTables(tableID);
 }
 
-void RelTable::prepareCommit(LocalTable* /*localTable*/) {
+void RelTable::prepareCommit(LocalTableData* /*localTable*/) {
     wal->addToUpdatedTables(tableID);
 }
 
-void RelTable::prepareRollback(LocalTable* localTable) {
+void RelTable::prepareRollback(LocalTableData* localTable) {
     // DO NOTHING
 }
 
