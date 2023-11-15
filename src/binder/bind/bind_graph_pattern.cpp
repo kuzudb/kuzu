@@ -10,7 +10,7 @@
 #include "common/exception/binder.h"
 #include "common/keyword/rdf_keyword.h"
 #include "common/string_format.h"
-#include "function/cast/functions/cast_string_to_functions.h"
+#include "function/cast/functions/cast_from_string_functions.h"
 #include "main/client_context.h"
 
 using namespace kuzu::common;

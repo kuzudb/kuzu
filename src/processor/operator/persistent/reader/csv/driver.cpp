@@ -2,7 +2,7 @@
 
 #include "common/exception/copy.h"
 #include "common/string_format.h"
-#include "function/cast/functions/cast_string_to_functions.h"
+#include "function/cast/functions/cast_from_string_functions.h"
 #include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 

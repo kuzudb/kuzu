@@ -436,6 +436,12 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 {audience1=52, audience53=42}
 {}
 
+-LOG CastMapToMap
+-STATEMENT MATCH(m:movies) where m.length < 2000 RETURN cast(m.audience, "MAP(STRING, INT8)"), cast(m.audience, "MAP(STRING, INT16)"), cast(m.audience, "MAP(STRING, INT32)"), cast(m.audience, "MAP(STRING, INT64)"), cast(m.audience, "MAP(STRING, INT128)"), cast(m.audience, "MAP(STRING, DOUBLE)"), cast(m.audience, "MAP(STRING, FLOAT)"), cast(m.audience, "MAP(STRING, UINT8)"), cast(m.audience, "MAP(STRING, UINT16)"), cast(m.audience, "MAP(STRING, UINT32)"), cast(m.audience, "MAP(STRING, UINT64)"), cast(m.audience, "MAP(STRING, STRING)");
+---- 2
+{audience1=52, audience53=42}|{audience1=52, audience53=42}|{audience1=52, audience53=42}|{audience1=52, audience53=42}|{audience1=52, audience53=42}|{audience1=52.000000, audience53=42.000000}|{audience1=52.000000, audience53=42.000000}|{audience1=52, audience53=42}|{audience1=52, audience53=42}|{audience1=52, audience53=42}|{audience1=52, audience53=42}|{audience1=52, audience53=42}
+{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}
+
 -LOG CastInternalIDToString
 -STATEMENT MATCH (p:person) RETURN string(id(p))
 ---- 9
@@ -473,6 +479,12 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 {revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}
 {revenue: 558, location: ['very long city name', 'new york'], stock: {price: [22], volume: 99}}
 
+
+-LOG CastStructToStruct
+-STATEMENT MATCH (o:organisation) where o.ID < 6 RETURN cast(cast(o.state, "STRUCT(revenue DOUBLE, location STRING, stock STRUCT(price INT128[], volume UINT64))"), "STRUCT(revenue DOUBLE, location STRING, stock STRING)"), cast(o.state, "STRUCT(revenue FLOAT, location STRING, stock STRUCT(price DOUBLE[], volume UINT32))");
+---- 2
+{revenue: 138.000000, location: ['toronto', 'montr,eal'], stock: {price: [96,56], volume: 1000}}|{revenue: 138.000000, location: ['toronto', 'montr,eal'], stock: {price: [96.000000,56.000000], volume: 1000}}
+{revenue: 152.000000, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}|{revenue: 152.000000, location: ["vanco,uver north area"], stock: {price: [15.000000,78.000000,671.000000], volume: 432}}
 
 -LOG CastUnionToString
 -STATEMENT MATCH (o:organisation) RETURN string(o.info)

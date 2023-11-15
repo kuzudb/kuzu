@@ -41,7 +41,7 @@ struct UnaryCastStringFunctionWrapper {
         auto resultVector_ = (common::ValueVector*)resultVector;
         FUNC::operation(inputVector_.getValue<OPERAND_TYPE>(inputPos),
             resultVector_->getValue<RESULT_TYPE>(resultPos), resultVector_, inputPos,
-            &reinterpret_cast<StringCastFunctionBindData*>(dataPtr)->csvConfig);
+            &reinterpret_cast<CastFunctionBindData*>(dataPtr)->csvConfig);
     }
 };
 
@@ -93,18 +93,12 @@ struct CastChildFunctionExecutor {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
     static void executeSwitch(
         common::ValueVector& operand, common::ValueVector& result, void* dataPtr) {
-        // this vector is of var list type and the child vector is of non-nested types then cast
-        KU_ASSERT(operand.dataType.getLogicalTypeID() == common::LogicalTypeID::VAR_LIST &&
-                  result.dataType.getLogicalTypeID() == common::LogicalTypeID::VAR_LIST);
-        auto childNum = common::ListVector::getDataVectorSize(&operand);
-        auto inputChildVector = common::ListVector::getDataVector(&operand);
-        auto resultChildVector = (common::ListVector::getDataVector(&result));
-        for (auto i = 0u; i < childNum; i++) {
-            resultChildVector->setNull(i, inputChildVector->isNull(i));
-            if (!resultChildVector->isNull(i)) {
-                // cast position i in child data vector
+        auto numOfEntry = reinterpret_cast<CastFunctionBindData*>(dataPtr)->numOfEntries;
+        for (auto i = 0u; i < numOfEntry; i++) {
+            result.setNull(i, operand.isNull(i));
+            if (!result.isNull(i)) {
                 OP_WRAPPER::template operation<OPERAND_TYPE, RESULT_TYPE, FUNC>(
-                    (void*)(inputChildVector), i, (void*)(resultChildVector), i, dataPtr);
+                    (void*)(&operand), i, (void*)(&result), i, dataPtr);
             }
         }
     }

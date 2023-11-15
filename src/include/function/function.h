@@ -14,11 +14,11 @@ struct FunctionBindData {
     virtual ~FunctionBindData() = default;
 };
 
-struct StringCastFunctionBindData : public FunctionBindData {
+struct CastFunctionBindData : public FunctionBindData {
     common::CSVReaderConfig csvConfig;
+    uint64_t numOfEntries;
 
-    StringCastFunctionBindData(common::LogicalType dataType)
-        : FunctionBindData{std::move(dataType)} {}
+    CastFunctionBindData(common::LogicalType dataType) : FunctionBindData{std::move(dataType)} {}
 };
 
 struct Function;

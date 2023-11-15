@@ -95,10 +95,10 @@ struct ScalarFunction : public BaseScalarFunction {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC,
         typename EXECUTOR = UnaryFunctionExecutor>
     static void UnaryExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result, void* /*dataPtr*/) {
+        common::ValueVector& result, void* dataPtr) {
         KU_ASSERT(params.size() == 1);
         EXECUTOR::template executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, UnaryFunctionWrapper>(
-            *params[0], result, nullptr /* dataPtr */);
+            *params[0], result, dataPtr);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
@@ -124,10 +124,10 @@ struct ScalarFunction : public BaseScalarFunction {
         typename EXECUTOR = UnaryFunctionExecutor>
     static void UnaryCastExecFunction(
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result, void* /*dataPtr*/ = nullptr) {
+        common::ValueVector& result, void* dataPtr) {
         KU_ASSERT(params.size() == 1);
         EXECUTOR::template executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, UnaryCastFunctionWrapper>(
-            *params[0], result, nullptr /* dataPtr */);
+            *params[0], result, dataPtr);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC,
