@@ -713,3 +713,37 @@ Overflow exception: Value -1 is not within UINT8 range
 -STATEMENT RETURN cast([[1, 1]], "UINT8[]");
 ---- error
 Conversion exception: Unsupported casting function from VAR_LIST to UINT8.
+
+-LOG InvalidMapToMap
+-STATEMENT RETURN cast(cast("{-1=3}", "MAP(INT64, INT64)"), "MAP(UINT8, UINT8)");
+---- error
+Overflow exception: Value -1 is not within UINT8 range
+-STATEMENT RETURN cast(cast("{NULL=3}", "MAP(MAP(INT8, INT8), INT64)"), "MAP(UINT8, UINT8)");
+---- error
+Conversion exception: Unsupported casting function from MAP to UINT8.
+-STATEMENT RETURN cast(cast("{NULL=3}", "MAP(MAP(INT8, INT8), INT64)"), "MAP(MAP(INT8, MAP(INT8, INT8)), UINT8)");
+---- error
+Conversion exception: Unsupported casting function from INT8 to MAP.
+
+-LOG InvalidStructToStruct
+-STATEMENT RETURN cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b STRING, c STRING)"), "STRUCT(a INT128, b INT128)");
+---- error
+Conversion exception: Unsupported casting function from STRUCT(a:STRING, b:STRING, c:STRING) to STRUCT(a:INT128, b:INT128).
+-STATEMENT RETURN cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b STRING)"), "STRUCT(a INT128, b INT128, c STRING)");
+---- error
+Conversion exception: Unsupported casting function from STRUCT(a:STRING, b:STRING) to STRUCT(a:INT128, b:INT128, c:STRING).
+-STATEMENT RETURN cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b STRING)"), "STRUCT(a INT128, b STRUCT(a STRING, b STRING))");
+---- error
+Conversion exception: Cast failed. 0 is not in STRUCT(a:STRING, b:STRING) range.
+-STATEMENT RETURN cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b INT8)"), "STRUCT(a INT128, b STRUCT(a STRING, b STRING))");
+---- error
+Conversion exception: Unsupported casting function from INT8 to STRUCT.
+-STATEMENT RETURN cast(cast("{a: 12}", "STRUCT(a STRING, b STRUCT(a STRING, b STRING))"), "STRUCT(a INT128, b INT8)");
+---- error
+Conversion exception: Unsupported casting function from STRUCT to INT8.
+-STATEMENT RETURN cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b STRING)"), "STRUCT(c INT128, b INT128)");
+---- error
+Conversion exception: Unsupported casting function from STRUCT(a:STRING, b:STRING) to STRUCT(c:INT128, b:INT128).
+-STATEMENT RETURN cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b STRING)"), "STRUCT(a STRING, c STRING)");
+---- error
+Conversion exception: Unsupported casting function from STRUCT(a:STRING, b:STRING) to STRUCT(a:STRING, c:STRING).

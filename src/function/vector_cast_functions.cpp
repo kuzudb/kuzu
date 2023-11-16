@@ -4,9 +4,9 @@
 #include "binder/expression/literal_expression.h"
 #include "common/exception/binder.h"
 #include "common/exception/conversion.h"
+#include "function/cast/functions/cast_from_string_functions.h"
 #include "function/cast/functions/cast_functions.h"
 #include "function/cast/functions/cast_rdf_variant.h"
-#include "function/cast/functions/cast_string_to_functions.h"
 
 using namespace kuzu::common;
 
@@ -56,16 +56,13 @@ static void fixedListCastExecFunction(const std::vector<std::shared_ptr<ValueVec
 
 template<>
 void fixedListCastExecFunction<CastChildFunctionExecutor>(
-    const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result,
-    void* /*dataPtr*/) {
+    const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
     KU_ASSERT(params.size() == 1);
 
     auto inputVector = params[0].get();
-    auto numOfChild = ListVector::getDataVectorSize(inputVector);
-    auto inputChildVector = (ListVector::getDataVector(inputVector));
-    auto resultChildVector = (ListVector::getDataVector(&result));
-    for (auto i = 0u; i < numOfChild; i++) {
-        castFixedListToString(*inputChildVector, i, *resultChildVector, i);
+    auto numOfEntries = reinterpret_cast<CastFunctionBindData*>(dataPtr)->numOfEntries;
+    for (auto i = 0u; i < numOfEntries; i++) {
+        castFixedListToString(*inputVector, i, result, i);
     }
 }
 
@@ -74,7 +71,7 @@ static void StringtoFixedListCastExecFunction(
     const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
     KU_ASSERT(params.size() == 1);
     auto param = params[0];
-    auto csvReaderConfig = &reinterpret_cast<StringCastFunctionBindData*>(dataPtr)->csvConfig;
+    auto csvReaderConfig = &reinterpret_cast<CastFunctionBindData*>(dataPtr)->csvConfig;
     if (param->state->isFlat()) {
         auto inputPos = param->state->selVector->selectedPositions[0];
         auto resultPos = result.state->selVector->selectedPositions[0];
@@ -106,62 +103,91 @@ static void StringtoFixedListCastExecFunction(
 template<>
 void StringtoFixedListCastExecFunction<CastChildFunctionExecutor>(
     const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
-    KU_ASSERT(params.size() == 1 &&
-              params[0]->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST &&
-              result.dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST);
-    auto csvReaderConfig = &reinterpret_cast<StringCastFunctionBindData*>(dataPtr)->csvConfig;
+    KU_ASSERT(params.size() == 1);
+    auto numOfEntries = reinterpret_cast<CastFunctionBindData*>(dataPtr)->numOfEntries;
+    auto csvReaderConfig = &reinterpret_cast<CastFunctionBindData*>(dataPtr)->csvConfig;
 
     auto inputVector = params[0].get();
-    auto numOfChild = ListVector::getDataVectorSize(inputVector);
-    auto inputChildVector = (ListVector::getDataVector(inputVector));
-    auto resultChildVector = (ListVector::getDataVector(&result));
-    for (auto i = 0u; i < numOfChild; i++) {
-        resultChildVector->setNull(i, inputChildVector->isNull(i));
-        if (!resultChildVector->isNull(i)) {
+    for (auto i = 0u; i < numOfEntries; i++) {
+        result.setNull(i, inputVector->isNull(i));
+        if (!result.isNull(i)) {
             CastString::castToFixedList(
-                inputChildVector->getValue<ku_string_t>(i), resultChildVector, i, csvReaderConfig);
+                inputVector->getValue<ku_string_t>(i), &result, i, csvReaderConfig);
         }
     }
 }
 
-static void varListCastExecFunction(
+static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueVector* resultVector,
+    uint64_t numOfEntries, CastFunctionBindData* dataPtr) {
+    auto inputType = &inputVector->dataType;
+    auto resultType = &resultVector->dataType;
+    while (true) {
+        if (inputType->getPhysicalType() == PhysicalTypeID::VAR_LIST &&
+            resultType->getPhysicalType() == PhysicalTypeID::VAR_LIST) {
+            // copy data and nullmask from input
+            memcpy(resultVector->getData(), inputVector->getData(),
+                numOfEntries * resultVector->getNumBytesPerValue());
+            resultVector->setNullFromBits(inputVector->getNullMaskData(), 0, 0, numOfEntries);
+
+            numOfEntries = ListVector::getDataVectorSize(inputVector.get());
+            ListVector::resizeDataVector(resultVector, numOfEntries);
+
+            inputVector = ListVector::getSharedDataVector(inputVector.get());
+            resultVector = ListVector::getDataVector(resultVector);
+            inputType = &inputVector->dataType;
+            resultType = &resultVector->dataType;
+        } else if (inputType->getLogicalTypeID() == LogicalTypeID::STRUCT &&
+                   resultType->getLogicalTypeID() == LogicalTypeID::STRUCT) {
+            // check if struct type can be cast
+            auto errorMsg = stringFormat("Unsupported casting function from {} to {}.",
+                inputType->toString(), resultType->toString());
+            auto inputTypeNames = StructType::getFieldNames(inputType);
+            auto resultTypeNames = StructType::getFieldNames(resultType);
+            if (inputTypeNames.size() != resultTypeNames.size()) {
+                throw ConversionException{errorMsg};
+            }
+            for (auto i = 0u; i < inputTypeNames.size(); i++) {
+                if (inputTypeNames[i] != resultTypeNames[i]) {
+                    throw ConversionException{errorMsg};
+                }
+            }
+
+            // copy data and nullmask from input
+            memcpy(resultVector->getData(), inputVector->getData(),
+                numOfEntries * resultVector->getNumBytesPerValue());
+            resultVector->setNullFromBits(inputVector->getNullMaskData(), 0, 0, numOfEntries);
+
+            auto inputFieldVectors = StructVector::getFieldVectors(inputVector.get());
+            auto resultFieldVectors = StructVector::getFieldVectors(resultVector);
+            for (auto i = 0u; i < inputFieldVectors.size(); i++) {
+                resolveNestedVector(
+                    inputFieldVectors[i], resultFieldVectors[i].get(), numOfEntries, dataPtr);
+            }
+            return;
+        } else {
+            break;
+        }
+    }
+
+    // non-nested types
+    scalar_exec_func func = CastFunction::bindCastFunction<CastChildFunctionExecutor>(
+        "CAST", inputType->getLogicalTypeID(), resultType->getLogicalTypeID())
+                                ->execFunc;
+    std::vector<std::shared_ptr<ValueVector>> childParams{inputVector};
+    dataPtr->numOfEntries = numOfEntries;
+    func(childParams, *resultVector, (void*)dataPtr);
+}
+
+static void nestedTypesCastExecFunction(
     const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
     KU_ASSERT(params.size() == 1);
     result.resetAuxiliaryBuffer();
     auto inputVector = params[0];
-    auto resultVector = &result;
-
-    auto numOfChild = ListVector::getDataVectorSize(inputVector.get());
-    ListVector::resizeDataVector(&result, numOfChild);
-    auto numOfListEntry = inputVector->state->selVector
-                              ->selectedPositions[inputVector->state->selVector->selectedSize - 1] +
-                          1;
-    memcpy(resultVector->getData(), inputVector->getData(),
-        numOfListEntry * resultVector->getNumBytesPerValue());
-    resultVector->setNullFromBits(inputVector->getNullMaskData(), 0, 0, numOfListEntry);
-
-    // resolve to the lowest level dataVector
-    auto inputChildTypeID = VarListType::getChildType(&inputVector->dataType)->getLogicalTypeID();
-    auto resultChildTypeID = VarListType::getChildType(&resultVector->dataType)->getLogicalTypeID();
-    while (inputChildTypeID == LogicalTypeID::VAR_LIST &&
-           resultChildTypeID == LogicalTypeID::VAR_LIST) {
-        inputVector = ListVector::getSharedDataVector(inputVector.get());
-        resultVector = ListVector::getDataVector(resultVector);
-        inputChildTypeID = VarListType::getChildType(&inputVector->dataType)->getLogicalTypeID();
-        resultChildTypeID = VarListType::getChildType(&resultVector->dataType)->getLogicalTypeID();
-
-        // copy NULL musk and list entry
-        memcpy(resultVector->getData(), inputVector->getData(),
-            numOfChild * resultVector->getNumBytesPerValue());
-        resultVector->setNullFromBits(inputVector->getNullMaskData(), 0, 0, numOfChild);
-        numOfChild = ListVector::getDataVectorSize(inputVector.get());
-        ListVector::resizeDataVector(resultVector, numOfChild);
-    }
-    scalar_exec_func func = CastFunction::bindCastFunction<CastChildFunctionExecutor>(
-        "CAST", inputChildTypeID, resultChildTypeID)
-                                ->execFunc;
-    std::vector<std::shared_ptr<ValueVector>> childParams{inputVector};
-    func(childParams, *resultVector, dataPtr);
+    auto numOfEntries = inputVector->state->selVector
+                            ->selectedPositions[inputVector->state->selVector->selectedSize - 1] +
+                        1;
+    resolveNestedVector(
+        inputVector, &result, numOfEntries, reinterpret_cast<CastFunctionBindData*>(dataPtr));
 }
 
 bool CastFunction::hasImplicitCast(const LogicalType& srcType, const LogicalType& dstType) {
@@ -515,14 +541,18 @@ static std::unique_ptr<ScalarFunction> bindCastToNumericFunction(
         functionName, std::vector<LogicalTypeID>{sourceTypeID}, targetTypeID, func);
 }
 
-template<typename /*DST_TYPE*/>
 static std::unique_ptr<ScalarFunction> bindCastBetweenNested(
     const std::string& functionName, LogicalTypeID sourceTypeID, LogicalTypeID targetTypeID) {
-    scalar_exec_func func;
     switch (sourceTypeID) {
-    case LogicalTypeID::VAR_LIST: {
-        func = varListCastExecFunction;
-    } break;
+    case LogicalTypeID::VAR_LIST:
+    case LogicalTypeID::MAP:
+    case LogicalTypeID::STRUCT: {
+        if (sourceTypeID == targetTypeID) {
+            return std::make_unique<ScalarFunction>(functionName,
+                std::vector<LogicalTypeID>{sourceTypeID}, targetTypeID,
+                nestedTypesCastExecFunction);
+        }
+    }
     default:
         // lcov_excl_start
         // TODO(kebing): implement more
@@ -530,8 +560,6 @@ static std::unique_ptr<ScalarFunction> bindCastBetweenNested(
             LogicalTypeUtils::toString(sourceTypeID), LogicalTypeUtils::toString(targetTypeID))};
         // lcov_excl_end
     }
-    return std::make_unique<ScalarFunction>(
-        functionName, std::vector<LogicalTypeID>{sourceTypeID}, targetTypeID, func);
 }
 
 template<typename EXECUTOR = UnaryFunctionExecutor>
@@ -615,8 +643,10 @@ std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(
     case LogicalTypeID::TIMESTAMP: {
         return bindCastToTimestampFunction<EXECUTOR>(functionName, sourceTypeID);
     }
-    case LogicalTypeID::VAR_LIST: {
-        return bindCastBetweenNested<list_entry_t>(functionName, sourceTypeID, targetTypeID);
+    case LogicalTypeID::VAR_LIST:
+    case LogicalTypeID::MAP:
+    case LogicalTypeID::STRUCT: {
+        return bindCastBetweenNested(functionName, sourceTypeID, targetTypeID);
     }
     default: {
         throw ConversionException{stringFormat("Unsupported casting function from {} to {}.",
@@ -855,7 +885,7 @@ std::unique_ptr<FunctionBindData> CastAnyFunction::bindFunc(
     func->execFunc =
         CastFunction::bindCastFunction(func->name, inputTypeID, outputType->getLogicalTypeID())
             ->execFunc;
-    return std::make_unique<function::StringCastFunctionBindData>(*outputType);
+    return std::make_unique<function::CastFunctionBindData>(*outputType);
 }
 
 function_set CastAnyFunction::getFunctionSet() {

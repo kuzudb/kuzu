@@ -698,7 +698,7 @@ grade1
 {locations: ['toronto','waterloo'], transfer: {day: 2021-01-02, amount: [100,200]}}
 {locations: ['vancouver'], transfer: {day: 2020-01-01, amount: [120,50]}}
 {locations: ['waterloo'], transfer: {day: 2000-01-01, amount: [1000,5000]}}
-{locations: [], transfer: {day: 1970-01-01, amount: []}}
+{locations: , transfer: }
 {locations: [], transfer: {day: 1980-11-21, amount: [20,5]}}
 
 -STATEMENT MATCH (:person)-[e:knows]->(:person) RETURN e.notes

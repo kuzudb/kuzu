@@ -8,7 +8,7 @@
 #include "common/types/value/node.h"
 #include "common/types/value/recursive_rel.h"
 #include "common/types/value/rel.h"
-#include "function/cast/functions/cast_string_to_functions.h"
+#include "function/cast/functions/cast_from_string_functions.h"
 
 using namespace kuzu::common;
 

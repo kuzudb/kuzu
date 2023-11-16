@@ -172,7 +172,7 @@ TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH = {
              'meetTime': datetime.datetime(1946, 8, 25, 19, 7, 22),
              'validInterval': datetime.timedelta(days=7232),
              'comments': ['njnojppo9u0jkmf', 'fjiojioh9h9h89hph'],
-             'summary': {'locations': [], 'transfer': {'day': datetime.date(1970,1,1), 'amount': []}},
+             'summary': {'locations': None, 'transfer': None},
              'notes': {'tag': datetime.date(2020, 10, 10)}},
     (0, 5): {'date': datetime.date(2021, 6, 30),
              'meetTime': datetime.datetime(2012, 12, 11, 20, 7, 22),

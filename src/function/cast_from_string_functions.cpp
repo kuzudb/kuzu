@@ -1,4 +1,4 @@
-#include "function/cast/functions/cast_string_to_functions.h"
+#include "function/cast/functions/cast_from_string_functions.h"
 
 #include "common/exception/copy.h"
 #include "common/exception/not_implemented.h"
@@ -554,6 +554,12 @@ static bool parseStructFieldValue(
 
 static bool tryCastStringToStruct(const char* input, uint64_t len, ValueVector* vector,
     uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig) {
+    // default values to NULL
+    auto fieldVectors = StructVector::getFieldVectors(vector);
+    for (auto fieldVector : fieldVectors) {
+        fieldVector->setNull(rowToAdd, true);
+    }
+
     // check if start with {
     auto end = input + len;
     auto type = vector->dataType;
@@ -593,8 +599,10 @@ static bool tryCastStringToStruct(const char* input, uint64_t len, ValueVector* 
         trimRightWhitespace(valStart, valEnd);
         skipWhitespace(++input, end);
 
-        CastString::copyStringToVector(StructVector::getFieldVector(vector, fieldIdx).get(),
-            rowToAdd, std::string_view{valStart, (uint32_t)(valEnd - valStart)}, csvReaderConfig);
+        auto fieldVector = StructVector::getFieldVector(vector, fieldIdx).get();
+        fieldVector->setNull(rowToAdd, false);
+        CastString::copyStringToVector(fieldVector, rowToAdd,
+            std::string_view{valStart, (uint32_t)(valEnd - valStart)}, csvReaderConfig);
 
         if (closeBracket) {
             return (input == end);
