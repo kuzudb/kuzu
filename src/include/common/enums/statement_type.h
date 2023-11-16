@@ -27,9 +27,9 @@ struct StatementTypeUtils {
         case StatementType::ALTER:
         case StatementType::CREATE_MACRO:
         case StatementType::COPY_FROM:
-            return true;
-        default:
             return false;
+        default:
+            return true;
         }
     }
 };

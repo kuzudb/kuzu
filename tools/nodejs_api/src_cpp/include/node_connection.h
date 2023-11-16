@@ -1,7 +1,5 @@
 #pragma once
 
-#include <iostream>
-
 #include "main/kuzu.h"
 #include "node_database.h"
 #include "node_prepared_statement.h"
@@ -65,15 +63,15 @@ class ConnectionExecuteAsyncWorker : public Napi::AsyncWorker {
 public:
     ConnectionExecuteAsyncWorker(Napi::Function& callback, std::shared_ptr<Connection>& connection,
         std::shared_ptr<PreparedStatement> preparedStatement, NodeQueryResult* nodeQueryResult,
-        std::unordered_map<std::string, std::shared_ptr<Value>>& params)
+        std::unordered_map<std::string, std::unique_ptr<Value>> params)
         : Napi::AsyncWorker(callback), preparedStatement(preparedStatement),
-          nodeQueryResult(nodeQueryResult), connection(connection), params(params) {}
+          nodeQueryResult(nodeQueryResult), connection(connection), params(std::move(params)) {}
     ~ConnectionExecuteAsyncWorker() = default;
 
     inline void Execute() override {
         try {
             std::shared_ptr<QueryResult> result =
-                std::move(connection->executeWithParams(preparedStatement.get(), params));
+                connection->executeWithParams(preparedStatement.get(), std::move(params));
             nodeQueryResult->SetQueryResult(result);
             if (!result->isSuccess()) {
                 SetError(result->getErrorMessage());
@@ -90,5 +88,5 @@ private:
     std::shared_ptr<Connection> connection;
     std::shared_ptr<PreparedStatement> preparedStatement;
     NodeQueryResult* nodeQueryResult;
-    std::unordered_map<std::string, std::shared_ptr<Value>> params;
+    std::unordered_map<std::string, std::unique_ptr<Value>> params;
 };

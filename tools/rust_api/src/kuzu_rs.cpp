@@ -101,7 +101,7 @@ std::unique_ptr<kuzu::main::Connection> database_connect(kuzu::main::Database& d
 
 std::unique_ptr<kuzu::main::QueryResult> connection_execute(kuzu::main::Connection& connection,
     kuzu::main::PreparedStatement& query, std::unique_ptr<QueryParams> params) {
-    return connection.executeWithParams(&query, params->inputParams);
+    return connection.executeWithParams(&query, std::move(params->inputParams));
 }
 
 rust::String prepared_statement_error_message(const kuzu::main::PreparedStatement& statement) {

@@ -33,12 +33,6 @@ public:
     static bool isPandasDataframe(const py::object& object);
 
 private:
-    std::unordered_map<std::string, std::shared_ptr<kuzu::common::Value>> transformPythonParameters(
-        py::dict params);
-
-    kuzu::common::Value transformPythonValue(py::handle val);
-
-private:
     std::unique_ptr<StorageDriver> storageDriver;
     std::unique_ptr<Connection> conn;
 };

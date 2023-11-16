@@ -10,7 +10,7 @@ namespace kuzu {
 namespace main {
 
 bool PreparedStatement::allowActiveTransaction() const {
-    return !StatementTypeUtils::allowActiveTransaction(preparedSummary.statementType);
+    return StatementTypeUtils::allowActiveTransaction(preparedSummary.statementType);
 }
 
 bool PreparedStatement::isTransactionStatement() const {

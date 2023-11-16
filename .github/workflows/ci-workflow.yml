@@ -359,7 +359,6 @@ jobs:
         run: |
           ulimit -n 10240
           source /Users/runner/.cargo/env
-          cargo update -p cc --precise '1.0.83'
           make rusttest
 
       - name: Rust example

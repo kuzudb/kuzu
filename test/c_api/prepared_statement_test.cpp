@@ -71,7 +71,7 @@ TEST_F(CApiPreparedStatementTest, BindBool) {
     auto connection = getConnection();
     auto query = "MATCH (a:person) WHERE a.isStudent = $1 RETURN COUNT(*)";
     auto preparedStatement = kuzu_connection_prepare(connection, query);
-    kuzu_prepared_statement_bind_bool(preparedStatement, (char*)"1", true);
+    kuzu_prepared_statement_bind_bool(preparedStatement, "1", true);
     auto result = kuzu_connection_execute(connection, preparedStatement);
     ASSERT_NE(result, nullptr);
     ASSERT_NE(result->_query_result, nullptr);
@@ -91,7 +91,7 @@ TEST_F(CApiPreparedStatementTest, BindInt64) {
     auto connection = getConnection();
     auto query = "MATCH (a:person) WHERE a.age > $1 RETURN COUNT(*)";
     auto preparedStatement = kuzu_connection_prepare(connection, query);
-    kuzu_prepared_statement_bind_int64(preparedStatement, (char*)"1", 30);
+    kuzu_prepared_statement_bind_int64(preparedStatement, "1", 30);
     auto result = kuzu_connection_execute(connection, preparedStatement);
     ASSERT_NE(result, nullptr);
     ASSERT_NE(result->_query_result, nullptr);
@@ -111,7 +111,7 @@ TEST_F(CApiPreparedStatementTest, BindInt32) {
     auto connection = getConnection();
     auto query = "MATCH (a:movies) WHERE a.length > $1 RETURN COUNT(*)";
     auto preparedStatement = kuzu_connection_prepare(connection, query);
-    kuzu_prepared_statement_bind_int32(preparedStatement, (char*)"1", 200);
+    kuzu_prepared_statement_bind_int32(preparedStatement, "1", 200);
     auto result = kuzu_connection_execute(connection, preparedStatement);
     ASSERT_NE(result, nullptr);
     ASSERT_NE(result->_query_result, nullptr);
@@ -132,7 +132,7 @@ TEST_F(CApiPreparedStatementTest, BindInt16) {
     auto query =
         "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE s.length > $1 RETURN COUNT(*)";
     auto preparedStatement = kuzu_connection_prepare(connection, query);
-    kuzu_prepared_statement_bind_int16(preparedStatement, (char*)"1", 10);
+    kuzu_prepared_statement_bind_int16(preparedStatement, "1", 10);
     auto result = kuzu_connection_execute(connection, preparedStatement);
     ASSERT_NE(result, nullptr);
     ASSERT_NE(result->_query_result, nullptr);
@@ -153,7 +153,7 @@ TEST_F(CApiPreparedStatementTest, BindInt8) {
     auto query =
         "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE s.level > $1 RETURN COUNT(*)";
     auto preparedStatement = kuzu_connection_prepare(connection, query);
-    kuzu_prepared_statement_bind_int8(preparedStatement, (char*)"1", 3);
+    kuzu_prepared_statement_bind_int8(preparedStatement, "1", 3);
     auto result = kuzu_connection_execute(connection, preparedStatement);
     ASSERT_NE(result, nullptr);
     ASSERT_NE(result->_query_result, nullptr);
@@ -174,7 +174,7 @@ TEST_F(CApiPreparedStatementTest, BindUInt64) {
     auto query =
         "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE s.code > $1 RETURN COUNT(*)";
     auto preparedStatement = kuzu_connection_prepare(connection, query);
-    kuzu_prepared_statement_bind_uint64(preparedStatement, (char*)"1", 100);
+    kuzu_prepared_statement_bind_uint64(preparedStatement, "1", 100);
     auto result = kuzu_connection_execute(connection, preparedStatement);
     ASSERT_NE(result, nullptr);
     ASSERT_NE(result->_query_result, nullptr);
@@ -195,7 +195,7 @@ TEST_F(CApiPreparedStatementTest, BindUInt32) {
     auto query =
         "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE s.temprature> $1 RETURN COUNT(*)";
     auto preparedStatement = kuzu_connection_prepare(connection, query);
-    kuzu_prepared_statement_bind_uint32(preparedStatement, (char*)"1", 10);
+    kuzu_prepared_statement_bind_uint32(preparedStatement, "1", 10);
     auto result = kuzu_connection_execute(connection, preparedStatement);
     ASSERT_NE(result, nullptr);
     ASSERT_NE(result->_query_result, nullptr);
@@ -216,7 +216,7 @@ TEST_F(CApiPreparedStatementTest, BindUInt16) {
     auto query =
         "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE s.ulength> $1 RETURN COUNT(*)";
     auto preparedStatement = kuzu_connection_prepare(connection, query);
-    kuzu_prepared_statement_bind_uint16(preparedStatement, (char*)"1", 100);
+    kuzu_prepared_statement_bind_uint16(preparedStatement, "1", 100);
     auto result = kuzu_connection_execute(connection, preparedStatement);
     ASSERT_NE(result, nullptr);
     ASSERT_NE(result->_query_result, nullptr);
@@ -237,7 +237,7 @@ TEST_F(CApiPreparedStatementTest, BindUInt8) {
     auto query =
         "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE s.ulevel> $1 RETURN COUNT(*)";
     auto preparedStatement = kuzu_connection_prepare(connection, query);
-    kuzu_prepared_statement_bind_uint8(preparedStatement, (char*)"1", 14);
+    kuzu_prepared_statement_bind_uint8(preparedStatement, "1", 14);
     auto result = kuzu_connection_execute(connection, preparedStatement);
     ASSERT_NE(result, nullptr);
     ASSERT_NE(result->_query_result, nullptr);
@@ -257,7 +257,7 @@ TEST_F(CApiPreparedStatementTest, BindDouble) {
     auto connection = getConnection();
     auto query = "MATCH (a:person) WHERE a.eyeSight > $1 RETURN COUNT(*)";
     auto preparedStatement = kuzu_connection_prepare(connection, query);
-    kuzu_prepared_statement_bind_double(preparedStatement, (char*)"1", 4.5);
+    kuzu_prepared_statement_bind_double(preparedStatement, "1", 4.5);
     auto result = kuzu_connection_execute(connection, preparedStatement);
     ASSERT_NE(result, nullptr);
     ASSERT_NE(result->_query_result, nullptr);
@@ -277,7 +277,7 @@ TEST_F(CApiPreparedStatementTest, BindFloat) {
     auto connection = getConnection();
     auto query = "MATCH (a:person) WHERE a.height < $1 RETURN COUNT(*)";
     auto preparedStatement = kuzu_connection_prepare(connection, query);
-    kuzu_prepared_statement_bind_float(preparedStatement, (char*)"1", 1.0);
+    kuzu_prepared_statement_bind_float(preparedStatement, "1", 1.0);
     auto result = kuzu_connection_execute(connection, preparedStatement);
     ASSERT_NE(result, nullptr);
     ASSERT_NE(result->_query_result, nullptr);
@@ -298,7 +298,7 @@ TEST_F(CApiPreparedStatementTest, BindString) {
     auto query = "MATCH (a:person) WHERE a.fName = $1 RETURN COUNT(*)";
     auto preparedStatement = kuzu_connection_prepare(connection, query);
     ASSERT_TRUE(kuzu_prepared_statement_is_success(preparedStatement));
-    kuzu_prepared_statement_bind_string(preparedStatement, (char*)"1", (char*)"Alice");
+    kuzu_prepared_statement_bind_string(preparedStatement, "1", "Alice");
     auto result = kuzu_connection_execute(connection, preparedStatement);
     ASSERT_NE(result, nullptr);
     ASSERT_NE(result->_query_result, nullptr);
@@ -320,7 +320,7 @@ TEST_F(CApiPreparedStatementTest, BindDate) {
     auto preparedStatement = kuzu_connection_prepare(connection, query);
     ASSERT_TRUE(kuzu_prepared_statement_is_success(preparedStatement));
     auto date = kuzu_date_t{0};
-    kuzu_prepared_statement_bind_date(preparedStatement, (char*)"1", date);
+    kuzu_prepared_statement_bind_date(preparedStatement, "1", date);
     auto result = kuzu_connection_execute(connection, preparedStatement);
     ASSERT_NE(result, nullptr);
     ASSERT_NE(result->_query_result, nullptr);
@@ -342,7 +342,7 @@ TEST_F(CApiPreparedStatementTest, BindTimestamp) {
     auto preparedStatement = kuzu_connection_prepare(connection, query);
     ASSERT_TRUE(kuzu_prepared_statement_is_success(preparedStatement));
     auto timestamp = kuzu_timestamp_t{0};
-    kuzu_prepared_statement_bind_timestamp(preparedStatement, (char*)"1", timestamp);
+    kuzu_prepared_statement_bind_timestamp(preparedStatement, "1", timestamp);
     auto result = kuzu_connection_execute(connection, preparedStatement);
     ASSERT_NE(result, nullptr);
     ASSERT_NE(result->_query_result, nullptr);
@@ -364,7 +364,7 @@ TEST_F(CApiPreparedStatementTest, BindInteval) {
     auto preparedStatement = kuzu_connection_prepare(connection, query);
     ASSERT_TRUE(kuzu_prepared_statement_is_success(preparedStatement));
     auto interval = kuzu_interval_t{0, 0, 0};
-    kuzu_prepared_statement_bind_interval(preparedStatement, (char*)"1", interval);
+    kuzu_prepared_statement_bind_interval(preparedStatement, "1", interval);
     auto result = kuzu_connection_execute(connection, preparedStatement);
     ASSERT_NE(result, nullptr);
     ASSERT_NE(result->_query_result, nullptr);
@@ -387,7 +387,7 @@ TEST_F(CApiPreparedStatementTest, BindValue) {
     ASSERT_TRUE(kuzu_prepared_statement_is_success(preparedStatement));
     auto timestamp = kuzu_timestamp_t{0};
     auto timestampValue = kuzu_value_create_timestamp(timestamp);
-    kuzu_prepared_statement_bind_value(preparedStatement, (char*)"1", timestampValue);
+    kuzu_prepared_statement_bind_value(preparedStatement, "1", timestampValue);
     kuzu_value_destroy(timestampValue);
     auto result = kuzu_connection_execute(connection, preparedStatement);
     ASSERT_NE(result, nullptr);

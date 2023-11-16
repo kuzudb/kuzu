@@ -27,7 +27,7 @@ struct TypeListBuilder {
 std::unique_ptr<TypeListBuilder> create_type_list();
 
 struct QueryParams {
-    std::unordered_map<std::string, std::shared_ptr<kuzu::common::Value>> inputParams;
+    std::unordered_map<std::string, std::unique_ptr<kuzu::common::Value>> inputParams;
 
     void insert(const rust::Str key, std::unique_ptr<kuzu::common::Value> value) {
         inputParams.insert(std::make_pair(key, std::move(value)));

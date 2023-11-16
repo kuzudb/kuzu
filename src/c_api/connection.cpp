@@ -67,7 +67,7 @@ kuzu_prepared_statement* kuzu_connection_prepare(kuzu_connection* connection, co
     auto* c_prepared_statement = new kuzu_prepared_statement;
     c_prepared_statement->_prepared_statement = prepared_statement;
     c_prepared_statement->_bound_values =
-        new std::unordered_map<std::string, std::shared_ptr<Value>>;
+        new std::unordered_map<std::string, std::unique_ptr<Value>>;
     return c_prepared_statement;
 }
 
@@ -75,11 +75,20 @@ kuzu_query_result* kuzu_connection_execute(
     kuzu_connection* connection, kuzu_prepared_statement* prepared_statement) {
     auto prepared_statement_ptr =
         static_cast<PreparedStatement*>(prepared_statement->_prepared_statement);
-    auto bound_values = static_cast<std::unordered_map<std::string, std::shared_ptr<Value>>*>(
+    auto bound_values = static_cast<std::unordered_map<std::string, std::unique_ptr<Value>>*>(
         prepared_statement->_bound_values);
-    auto query_result = static_cast<Connection*>(connection->_connection)
-                            ->executeWithParams(prepared_statement_ptr, *bound_values)
-                            .release();
+
+    // Must copy the parameters for safety, and so that the parameters in the prepared statement
+    // stay the same.
+    std::unordered_map<std::string, std::unique_ptr<Value>> copied_bound_values;
+    for (auto& [name, value] : *bound_values) {
+        copied_bound_values.emplace(name, value->copy());
+    }
+
+    auto query_result =
+        static_cast<Connection*>(connection->_connection)
+            ->executeWithParams(prepared_statement_ptr, std::move(copied_bound_values))
+            .release();
     if (query_result == nullptr) {
         return nullptr;
     }
