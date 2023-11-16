@@ -1,9 +1,8 @@
 import os
-import sys
 import pytest
 import shutil
+from test_helper import KUZU_ROOT
 
-sys.path.append('../build/')
 import kuzu
 
 
@@ -12,18 +11,18 @@ def init_npy(conn):
         'create node table npyoned (i64 INT64,i32 INT32,i16 INT16,f64 DOUBLE,f32 FLOAT, PRIMARY KEY(i64));'
     )
     conn.execute(
-        'copy npyoned from ("../../../dataset/npy-1d/one_dim_int64.npy",  "../../../dataset/npy-1d/one_dim_int32.npy", '
-        ' "../../../dataset/npy-1d/one_dim_int16.npy",  "../../../dataset/npy-1d/one_dim_double.npy", '
-        '"../../../dataset/npy-1d/one_dim_float.npy") by column;'
+        f'copy npyoned from ("{KUZU_ROOT}/dataset/npy-1d/one_dim_int64.npy",  "{KUZU_ROOT}/dataset/npy-1d/one_dim_int32.npy", '
+        f' "{KUZU_ROOT}/dataset/npy-1d/one_dim_int16.npy",  "{KUZU_ROOT}/dataset/npy-1d/one_dim_double.npy", '
+        f'"{KUZU_ROOT}/dataset/npy-1d/one_dim_float.npy") by column;'
     )
     conn.execute(
         'create node table npytwod (id INT64, i64 INT64[3], i32 INT32[3], i16 INT16[3], f64 DOUBLE[3], f32 FLOAT[3],'
         'PRIMARY KEY(id));'
     )
     conn.execute(
-        'copy npytwod from ("../../../dataset/npy-2d/id_int64.npy", "../../../dataset/npy-2d/two_dim_int64.npy", '
-        '"../../../dataset/npy-2d/two_dim_int32.npy",  "../../../dataset/npy-2d/two_dim_int16.npy", '
-        ' "../../../dataset/npy-2d/two_dim_double.npy", "../../../dataset/npy-2d/two_dim_float.npy") by column;'
+        f'copy npytwod from ("{KUZU_ROOT}/dataset/npy-2d/id_int64.npy", "{KUZU_ROOT}/dataset/npy-2d/two_dim_int64.npy", '
+        f'"{KUZU_ROOT}/dataset/npy-2d/two_dim_int32.npy",  "{KUZU_ROOT}/dataset/npy-2d/two_dim_int16.npy", '
+        f' "{KUZU_ROOT}/dataset/npy-2d/two_dim_double.npy", "{KUZU_ROOT}/dataset/npy-2d/two_dim_float.npy") by column;'
     )
 
 
@@ -31,25 +30,25 @@ def init_tensor(conn):
     conn.execute('create node table tensor (ID INT64, boolTensor BOOLEAN[], doubleTensor DOUBLE[][], '
                  'intTensor INT64[][][], oneDimInt INT64, PRIMARY KEY (ID));')
     conn.execute(
-        'COPY tensor FROM "../../../dataset/tensor-list/vTensor.csv" (HEADER=true)')
+        f'COPY tensor FROM "{KUZU_ROOT}/dataset/tensor-list/vTensor.csv" (HEADER=true)')
 
 
 def init_long_str(conn):
     conn.execute(
-        "CREATE NODE TABLE personLongString (name STRING, spouse STRING, PRIMARY KEY(name))")
+        f"CREATE NODE TABLE personLongString (name STRING, spouse STRING, PRIMARY KEY(name))")
     conn.execute(
-        'COPY personLongString FROM "../../../dataset/long-string-pk-tests/vPerson.csv"')
+        f'COPY personLongString FROM "{KUZU_ROOT}/dataset/long-string-pk-tests/vPerson.csv"')
     conn.execute(
-        "CREATE REL TABLE knowsLongString (FROM personLongString TO personLongString, MANY_MANY)")
+        f"CREATE REL TABLE knowsLongString (FROM personLongString TO personLongString, MANY_MANY)")
     conn.execute(
-        'COPY knowsLongString FROM "../../../dataset/long-string-pk-tests/eKnows.csv"')
+        f'COPY knowsLongString FROM "{KUZU_ROOT}/dataset/long-string-pk-tests/eKnows.csv"')
 
 
 def init_tinysnb(conn):
     tiny_snb_path = os.path.abspath(
         os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
-            "../../../dataset/tinysnb")
+            f"{KUZU_ROOT}/dataset/tinysnb")
     )
     schema_path = os.path.join(tiny_snb_path, "schema.cypher")
     with open(schema_path, "r") as f:
@@ -61,7 +60,7 @@ def init_tinysnb(conn):
     with open(copy_path, "r") as f:
         for line in f.readlines():
             line = line.strip()
-            line = line.replace("dataset/tinysnb", "../../../dataset/tinysnb")
+            line = line.replace("dataset/tinysnb", f"{KUZU_ROOT}/dataset/tinysnb")
             if line:
                 conn.execute(line)
 
@@ -71,7 +70,7 @@ def init_movie_serial(conn):
         "create node table moviesSerial (ID SERIAL, name STRING, length INT32, note STRING, PRIMARY KEY (ID));"
     )
     conn.execute(
-        'copy moviesSerial from "../../../dataset/tinysnb-serial/vMovies.csv"'
+        f'copy moviesSerial from "{KUZU_ROOT}/dataset/tinysnb-serial/vMovies.csv"'
     )
 
 

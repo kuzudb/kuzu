@@ -2,7 +2,7 @@ import torch
 import random
 import sys
 
-sys.path.append('../build/')
+from test_helper import KUZU_ROOT
 import kuzu
 
 TINY_SNB_KNOWS_GROUND_TRUTH = {
@@ -103,7 +103,7 @@ def test_remote_backend_20k(establish_connection):
     _, db = establish_connection
     conn = kuzu.Connection(db, num_threads=1)
     conn.execute('create node table npy20k (id INT64,f32 FLOAT[10],PRIMARY KEY(id));')
-    conn.execute('copy npy20k from ("../../../dataset/npy-20k/id_int64.npy", "../../../dataset/npy-20k/two_dim_float.npy") by column;')
+    conn.execute(f'copy npy20k from ("{KUZU_ROOT}/dataset/npy-20k/id_int64.npy", "{KUZU_ROOT}/dataset/npy-20k/two_dim_float.npy") by column;')
     del conn
     fs, _ = db.get_torch_geometric_remote_backend(8)
     for i in range(20000):

@@ -1,7 +1,5 @@
-import sys
 import time
 
-sys.path.append('../build/')
 import kuzu
 import pyarrow as pa
 import datetime

@@ -129,8 +129,7 @@ nodejstest: nodejs
 	npm test
 
 pytest: python
-	cd tools/python_api/test
-	python3 -m pytest -v test_main.py
+	cmake -E env PYTHONPATH=tools/python_api/build python3 -m pytest -v tools/python_api/test
 
 rusttest: rust
 	cd tools/rust_api
