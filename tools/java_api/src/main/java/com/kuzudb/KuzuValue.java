@@ -74,6 +74,7 @@ public class KuzuValue {
             KuzuNative.kuzu_value_destroy(this);
             destroyed = true;
         }
+        System.gc();
     }
 
     /**

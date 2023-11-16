@@ -16,7 +16,8 @@ public class KuzuConnection {
     * @param db: KuzuDatabase instance.
     */
     public KuzuConnection(KuzuDatabase db) {
-        assert db != null : "Cannot create connection, database is null.";
+        if (db == null)
+            throw new AssertionError("Cannot create connection, database is null.");
         conn_ref = KuzuNative.kuzu_connection_init(db);
     }
 
