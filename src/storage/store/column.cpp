@@ -179,9 +179,10 @@ public:
         }
     }
 
-    void scan(node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) final {
+    void scan(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
+        ColumnChunk* columnChunk) final {
         if (propertyStatistics.mayHaveNull(DUMMY_WRITE_TRANSACTION)) {
-            Column::scan(nodeGroupIdx, columnChunk);
+            Column::scan(transaction, nodeGroupIdx, columnChunk);
         } else {
             static_cast<NullColumnChunk*>(columnChunk)->resetToNoNull();
         }
@@ -342,14 +343,15 @@ void Column::scan(transaction::Transaction* transaction, node_group_idx_t nodeGr
         transaction, pageCursor, numValuesToScan, resultVector, chunkMeta, offsetInVector);
 }
 
-void Column::scan(node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) {
+void Column::scan(
+    Transaction* transaction, node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) {
     if (nullColumn) {
-        nullColumn->scan(nodeGroupIdx, columnChunk->getNullChunk());
+        nullColumn->scan(transaction, nodeGroupIdx, columnChunk->getNullChunk());
     }
-    if (nodeGroupIdx >= metadataDA->getNumElements()) {
+    if (nodeGroupIdx >= metadataDA->getNumElements(transaction->getType())) {
         columnChunk->setNumValues(0);
     } else {
-        auto chunkMetadata = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
+        auto chunkMetadata = metadataDA->get(nodeGroupIdx, transaction->getType());
         auto cursor = PageElementCursor(chunkMetadata.pageIdx, 0);
         uint64_t numValuesPerPage =
             chunkMetadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType);
@@ -535,18 +537,18 @@ void Column::setNull(offset_t nodeOffset) {
     }
 }
 
-void Column::prepareCommitForChunk(
-    node_group_idx_t nodeGroupIdx, LocalVectorCollection* localColumnChunk, bool isNewNodeGroup) {
+void Column::prepareCommitForChunk(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    LocalVectorCollection* localColumnChunk, bool isNewNodeGroup) {
     if (isNewNodeGroup) {
         // If this is a new node group, updateInfo should be empty. We should perform out-of-place
         // commit with a new column chunk.
-        commitLocalChunkOutOfPlace(nodeGroupIdx, localColumnChunk, isNewNodeGroup);
+        commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, localColumnChunk, isNewNodeGroup);
     } else {
         // If this is not a new node group, we should first check if we can perform in-place commit.
-        if (canCommitInPlace(nodeGroupIdx, localColumnChunk)) {
+        if (canCommitInPlace(transaction, nodeGroupIdx, localColumnChunk)) {
             commitLocalChunkInPlace(localColumnChunk);
         } else {
-            commitLocalChunkOutOfPlace(nodeGroupIdx, localColumnChunk, isNewNodeGroup);
+            commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, localColumnChunk, isNewNodeGroup);
         }
     }
 }
@@ -570,12 +572,13 @@ bool Column::containsVarList(LogicalType& dataType) {
 }
 
 // TODO(Guodong): This should be moved inside `LocalVectorCollection`.
-bool Column::canCommitInPlace(node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk) {
+bool Column::canCommitInPlace(
+    Transaction* transaction, node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk) {
     if (containsVarList(*dataType)) {
         // Always perform out of place commit for VAR_LIST data type.
         return false;
     }
-    auto metadata = getMetadata(nodeGroupIdx, TransactionType::WRITE);
+    auto metadata = getMetadata(nodeGroupIdx, transaction->getType());
     if (metadata.compMeta.canAlwaysUpdateInPlace()) {
         return true;
     }
@@ -603,8 +606,8 @@ void Column::commitLocalChunkInPlace(LocalVectorCollection* localChunk) {
     applyLocalChunkToColumn(localChunk, localChunk->getInsertInfoRef());
 }
 
-void Column::commitLocalChunkOutOfPlace(
-    node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk, bool isNewNodeGroup) {
+void Column::commitLocalChunkOutOfPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    LocalVectorCollection* localChunk, bool isNewNodeGroup) {
     auto columnChunk = ColumnChunkFactory::createColumnChunk(dataType->copy(), enableCompression);
     if (isNewNodeGroup) {
         KU_ASSERT(localChunk->getUpdateInfoRef().empty());
@@ -613,7 +616,7 @@ void Column::commitLocalChunkOutOfPlace(
             nodeGroupIdx << StorageConstants::NODE_GROUP_SIZE_LOG2, localChunk->getInsertInfoRef());
     } else {
         // First, scan the whole column chunk from persistent storage.
-        scan(nodeGroupIdx, columnChunk.get());
+        scan(transaction, nodeGroupIdx, columnChunk.get());
         // Then, apply updates from the local chunk.
         applyLocalChunkToColumnChunk(localChunk, columnChunk.get(),
             nodeGroupIdx << StorageConstants::NODE_GROUP_SIZE_LOG2, localChunk->getUpdateInfoRef());

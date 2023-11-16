@@ -67,7 +67,7 @@ public:
         common::ValueVector* defaultValueVector) final;
     inline void dropColumn(common::column_id_t columnID) final { tableData->dropColumn(columnID); }
 
-    void prepareCommit(LocalTableData* localTable) final;
+    void prepareCommit(transaction::Transaction* transaction, LocalTableData* localTable) final;
     void prepareRollback(LocalTableData* localTable) final;
     void checkpointInMemory() final;
     void rollbackInMemory() final;

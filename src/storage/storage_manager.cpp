@@ -93,7 +93,7 @@ void StorageManager::prepareCommit(transaction::Transaction* transaction) {
     auto localStorage = transaction->getLocalStorage();
     for (auto tableID : localStorage->getTableIDsWithUpdates()) {
         KU_ASSERT(tables.contains(tableID));
-        tables.at(tableID)->prepareCommit(localStorage->getLocalTableData(tableID));
+        tables.at(tableID)->prepareCommit(transaction, localStorage->getLocalTableData(tableID));
     }
     if (nodesStatisticsAndDeletedIDs->hasUpdates()) {
         wal->logTableStatisticsRecord(true /* isNodeTable */);

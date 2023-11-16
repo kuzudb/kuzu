@@ -105,7 +105,8 @@ void NodeTableData::append(kuzu::storage::NodeGroup* nodeGroup) {
     }
 }
 
-void NodeTableData::prepareLocalTableToCommit(LocalTableData* localTable) {
+void NodeTableData::prepareLocalTableToCommit(
+    Transaction* transaction, LocalTableData* localTable) {
     auto numNodeGroups = getNumNodeGroups(&DUMMY_WRITE_TRANSACTION);
     for (auto& [nodeGroupIdx, nodeGroup] : localTable->nodeGroups) {
         for (auto columnID = 0; columnID < columns.size(); columnID++) {
@@ -114,7 +115,8 @@ void NodeTableData::prepareLocalTableToCommit(LocalTableData* localTable) {
             if (columnChunk->getNumRows() == 0) {
                 continue;
             }
-            column->prepareCommitForChunk(nodeGroupIdx, columnChunk, nodeGroupIdx >= numNodeGroups);
+            column->prepareCommitForChunk(
+                transaction, nodeGroupIdx, columnChunk, nodeGroupIdx >= numNodeGroups);
         }
     }
 }

@@ -44,7 +44,7 @@ public:
                                                      bwdRelTableData->append(nodeGroup);
     }
 
-    void prepareCommit(LocalTableData* localTable) final;
+    void prepareCommit(transaction::Transaction* transaction, LocalTableData* localTable) final;
     void prepareRollback(LocalTableData* localTable) final;
     void checkpointInMemory() final;
     void rollbackInMemory() final;

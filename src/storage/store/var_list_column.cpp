@@ -45,17 +45,17 @@ void VarListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx
         offsetToWriteListData);
 }
 
-void VarListColumn::scan(node_group_idx_t nodeGroupIdx, kuzu::storage::ColumnChunk* columnChunk) {
+void VarListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    kuzu::storage::ColumnChunk* columnChunk) {
     auto varListColumnChunk = reinterpret_cast<VarListColumnChunk*>(columnChunk);
-    if (nodeGroupIdx >= metadataDA->getNumElements()) {
+    if (nodeGroupIdx >= metadataDA->getNumElements(transaction->getType())) {
         varListColumnChunk->setNumValues(0);
     } else {
-        Column::scan(nodeGroupIdx, columnChunk);
-        auto dataColumnMetadata =
-            dataColumn->getMetadata(nodeGroupIdx, transaction::TransactionType::WRITE);
+        Column::scan(transaction, nodeGroupIdx, columnChunk);
+        auto dataColumnMetadata = dataColumn->getMetadata(nodeGroupIdx, transaction->getType());
         varListColumnChunk->resizeDataColumnChunk(
             dataColumnMetadata.numPages * BufferPoolConstants::PAGE_4KB_SIZE);
-        dataColumn->scan(nodeGroupIdx, varListColumnChunk->getDataColumnChunk());
+        dataColumn->scan(transaction, nodeGroupIdx, varListColumnChunk->getDataColumnChunk());
     }
 }
 
