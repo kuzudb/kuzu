@@ -1,11 +1,13 @@
 #pragma once
 
+#define TO_STRING(ARG) #ARG
+
 #include <cstdint>
 
 namespace kuzu {
 namespace common {
 
-constexpr char KUZU_VERSION[] = "v0.0.12.1";
+constexpr char KUZU_VERSION[] = TO_STRING(KUZU_CMAKE_VERSION);
 
 constexpr uint64_t DEFAULT_VECTOR_CAPACITY_LOG_2 = 11;
 constexpr uint64_t DEFAULT_VECTOR_CAPACITY = (uint64_t)1 << DEFAULT_VECTOR_CAPACITY_LOG_2;
