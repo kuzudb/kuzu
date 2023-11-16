@@ -19,11 +19,12 @@ uint64_t CopyToCSVInfo::getNumFlatVectors() {
 }
 
 void CopyToCSVLocalState::init(CopyToInfo* info, MemoryManager* mm, ResultSet* resultSet) {
-    auto csvInfo = reinterpret_cast<CopyToCSVInfo*>(info);
+    auto copyToCSVInfo = reinterpret_cast<CopyToCSVInfo*>(info);
     serializer = std::make_unique<BufferedSerializer>();
     vectorsToCast.reserve(info->dataPoses.size());
-    auto numFlatVectors = csvInfo->getNumFlatVectors();
-    unflatCastDataChunk = std::make_unique<DataChunk>(csvInfo->isFlat.size() - numFlatVectors);
+    auto numFlatVectors = copyToCSVInfo->getNumFlatVectors();
+    unflatCastDataChunk =
+        std::make_unique<DataChunk>(copyToCSVInfo->isFlat.size() - numFlatVectors);
     flatCastDataChunk =
         std::make_unique<DataChunk>(numFlatVectors, DataChunkState::getSingleValueDataChunkState());
     uint64_t numInsertedFlatVector = 0;
@@ -36,13 +37,14 @@ void CopyToCSVLocalState::init(CopyToInfo* info, MemoryManager* mm, ResultSet* r
         vectorsToCast.push_back(std::move(vectorToCast));
         auto castVector = std::make_unique<ValueVector>(LogicalTypeID::STRING, mm);
         castVectors.push_back(castVector.get());
-        if (csvInfo->isFlat[i]) {
+        if (copyToCSVInfo->isFlat[i]) {
             flatCastDataChunk->insert(numInsertedFlatVector, std::move(castVector));
             numInsertedFlatVector++;
         } else {
             unflatCastDataChunk->insert(i - numInsertedFlatVector, std::move(castVector));
         }
     }
+    copyToOption = copyToCSVInfo->copyToOption.get();
 }
 
 void CopyToCSVLocalState::sink(CopyToSharedState* sharedState) {
@@ -69,17 +71,16 @@ bool CopyToCSVLocalState::requireQuotes(const uint8_t* str, uint64_t len) {
         return true;
     }
     for (auto i = 0u; i < len; i++) {
-        if (str[i] == CopyToCSVConstants::DEFAULT_QUOTE[0] ||
+        if (str[i] == copyToOption->quoteChar ||
             str[i] == CopyToCSVConstants::DEFAULT_CSV_NEWLINE[0] ||
-            str[i] == CopyToCSVConstants::DEFAULT_CSV_DELIMITER[0]) {
+            str[i] == copyToOption->delimiter) {
             return true;
         }
     }
     return false;
 }
 
-std::string CopyToCSVLocalState::addEscapes(
-    const char* toEscape, const char* escape, const std::string& val) {
+std::string CopyToCSVLocalState::addEscapes(char toEscape, char escape, const std::string& val) {
     uint64_t i = 0;
     std::string escapedStr = "";
     auto found = val.find(toEscape);
@@ -90,7 +91,7 @@ std::string CopyToCSVLocalState::addEscapes(
             i++;
         }
         escapedStr += escape;
-        found = val.find(toEscape, found + strlen(escape));
+        found = val.find(toEscape, found + sizeof(escape));
     }
     while (i < val.length()) {
         escapedStr += val[i];
@@ -106,30 +107,29 @@ void CopyToCSVLocalState::writeString(const uint8_t* strData, uint64_t strLen, b
     if (forceQuote) {
         bool requiresEscape = false;
         for (auto i = 0; i < strLen; i++) {
-            if (strData[i] == CopyToCSVConstants::DEFAULT_QUOTE[0] ||
-                strData[i] == CopyToCSVConstants::DEFAULT_ESCAPE[0]) {
+            if (strData[i] == copyToOption->quoteChar || strData[i] == copyToOption->escapeChar) {
                 requiresEscape = true;
                 break;
             }
         }
 
         if (!requiresEscape) {
-            serializer->writeBufferData(std::string(CopyToCSVConstants::DEFAULT_QUOTE));
+            serializer->writeBufferData(copyToOption->quoteChar);
             serializer->write(strData, strLen);
-            serializer->writeBufferData(std::string(CopyToCSVConstants::DEFAULT_QUOTE));
+            serializer->writeBufferData(copyToOption->quoteChar);
             return;
         }
 
         std::string strValToWrite = std::string(reinterpret_cast<const char*>(strData), strLen);
-        strValToWrite = addEscapes(
-            CopyToCSVConstants::DEFAULT_ESCAPE, CopyToCSVConstants::DEFAULT_ESCAPE, strValToWrite);
-        if (CopyToCSVConstants::DEFAULT_ESCAPE != CopyToCSVConstants::DEFAULT_QUOTE) {
-            strValToWrite = addEscapes(CopyToCSVConstants::DEFAULT_QUOTE,
-                CopyToCSVConstants::DEFAULT_ESCAPE, strValToWrite);
+        strValToWrite =
+            addEscapes(copyToOption->escapeChar, copyToOption->escapeChar, strValToWrite);
+        if (copyToOption->escapeChar != copyToOption->quoteChar) {
+            strValToWrite =
+                addEscapes(copyToOption->quoteChar, copyToOption->escapeChar, strValToWrite);
         }
-        serializer->writeBufferData(std::string(CopyToCSVConstants::DEFAULT_QUOTE));
+        serializer->writeBufferData(copyToOption->quoteChar);
         serializer->writeBufferData(strValToWrite);
-        serializer->writeBufferData(std::string(CopyToCSVConstants::DEFAULT_QUOTE));
+        serializer->writeBufferData(copyToOption->quoteChar);
     } else {
         serializer->write(strData, strLen);
     }
@@ -150,7 +150,7 @@ void CopyToCSVLocalState::writeRows() {
     for (auto i = 0; i < numRowsToWrite; i++) {
         for (auto j = 0u; j < castVectors.size(); j++) {
             if (j != 0) {
-                serializer->writeBufferData(CopyToCSVConstants::DEFAULT_CSV_DELIMITER);
+                serializer->writeBufferData(copyToOption->delimiter);
             }
             auto vector = castVectors[j];
             auto pos = vector->state->isFlat() ? vector->state->selVector->selectedPositions[0] :

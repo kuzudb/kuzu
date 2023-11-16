@@ -11,11 +11,10 @@ public:
     LogicalCopyTo(std::string filePath, common::FileType fileType,
         std::vector<std::string> columnNames,
         std::vector<std::unique_ptr<common::LogicalType>> columnTypes,
-        std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::COPY_TO, std::move(child)}, filePath{std::move(
-                                                                               filePath)},
-          fileType{fileType}, columnNames{std::move(columnNames)}, columnTypes{
-                                                                       std::move(columnTypes)} {}
+        std::unique_ptr<common::CSVOption> copyToOption, std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{LogicalOperatorType::COPY_TO, std::move(child)},
+          filePath{std::move(filePath)}, fileType{fileType}, columnNames{std::move(columnNames)},
+          columnTypes{std::move(columnTypes)}, copyToOption{std::move(copyToOption)} {}
 
     f_group_pos_set getGroupsPosToFlatten();
 
@@ -30,10 +29,12 @@ public:
     inline const std::vector<std::unique_ptr<common::LogicalType>>& getColumnTypesRef() const {
         return columnTypes;
     }
+    inline common::CSVOption* getCopyOption() const { return copyToOption.get(); }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalCopyTo>(filePath, fileType, columnNames,
-            common::LogicalType::copy(columnTypes), children[0]->copy());
+            common::LogicalType::copy(columnTypes), copyToOption->copyCSVOption(),
+            children[0]->copy());
     }
 
 private:
@@ -41,6 +42,7 @@ private:
     common::FileType fileType;
     std::vector<std::string> columnNames;
     std::vector<std::unique_ptr<common::LogicalType>> columnTypes;
+    std::unique_ptr<common::CSVOption> copyToOption;
 };
 
 } // namespace planner

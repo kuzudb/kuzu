@@ -9,13 +9,18 @@ namespace parser {
 std::unique_ptr<Statement> Transformer::transformCopyTo(CypherParser::KU_CopyTOContext& ctx) {
     std::string filePath = transformStringLiteral(*ctx.StringLiteral());
     auto regularQuery = transformQuery(*ctx.oC_Query());
-    return std::make_unique<CopyTo>(std::move(filePath), std::move(regularQuery));
+    parsing_option_t parsingOptions;
+    if (ctx.kU_ParsingOptions()) {
+        parsingOptions = transformParsingOptions(*ctx.kU_ParsingOptions());
+    }
+    return std::make_unique<CopyTo>(
+        std::move(filePath), std::move(regularQuery), std::move(parsingOptions));
 }
 
 std::unique_ptr<Statement> Transformer::transformCopyFrom(CypherParser::KU_CopyFromContext& ctx) {
     auto filePaths = transformFilePaths(ctx.kU_FilePaths()->StringLiteral());
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
-    std::unordered_map<std::string, std::unique_ptr<ParsedExpression>> parsingOptions;
+    parsing_option_t parsingOptions;
     if (ctx.kU_ParsingOptions()) {
         parsingOptions = transformParsingOptions(*ctx.kU_ParsingOptions());
     }

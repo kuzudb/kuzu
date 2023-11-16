@@ -178,12 +178,9 @@ struct ParquetConstants {
 };
 
 struct CopyToCSVConstants {
-    static constexpr const char* DEFAULT_CSV_DELIMITER = ",";
     static constexpr const char* DEFAULT_CSV_NEWLINE = "\n";
     static constexpr const char* DEFAULT_NULL_STR = "";
     static constexpr const bool DEFAULT_FORCE_QUOTE = false;
-    static constexpr const char* DEFAULT_QUOTE = "\"";
-    static constexpr const char* DEFAULT_ESCAPE = "\\";
     static constexpr const uint64_t DEFAULT_CSV_FLUSH_SIZE = 4096 * 8;
 };
 

@@ -22,7 +22,7 @@ namespace binder {
 static constexpr uint64_t NUM_COLUMNS_TO_SKIP_IN_REL_FILE = 2;
 
 std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statement) {
-    auto& copyToStatement = (CopyTo&)statement;
+    auto& copyToStatement = reinterpret_cast<const CopyTo&>(statement);
     auto boundFilePath = copyToStatement.getFilePath();
     auto fileType = bindFileType(boundFilePath);
     std::vector<std::string> columnNames;
@@ -37,8 +37,12 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     if (fileType != FileType::CSV && fileType != FileType::PARQUET) {
         throw BinderException(ExceptionMessage::validateCopyToCSVParquetExtensionsException());
     }
-    return std::make_unique<BoundCopyTo>(
-        boundFilePath, fileType, std::move(columnNames), std::move(columnTypes), std::move(query));
+    if (fileType != FileType::CSV && copyToStatement.getParsingOptionsRef().size() != 0) {
+        throw BinderException{"Only copy to csv can have options."};
+    }
+    auto csvOption = bindParsingOptions(copyToStatement.getParsingOptionsRef());
+    return std::make_unique<BoundCopyTo>(boundFilePath, fileType, std::move(columnNames),
+        std::move(columnTypes), std::move(query), std::move(csvOption));
 }
 
 // As a temporary constraint, we require npy files loaded with COPY FROM BY COLUMN keyword.

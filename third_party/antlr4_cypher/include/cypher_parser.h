@@ -326,6 +326,7 @@ public:
     OC_QueryContext *oC_Query();
     antlr4::tree::TerminalNode *TO();
     antlr4::tree::TerminalNode *StringLiteral();
+    KU_ParsingOptionsContext *kU_ParsingOptions();
 
    
   };
