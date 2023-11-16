@@ -38,7 +38,7 @@ public:
     RWPropertyStats(TablesStatistics* tablesStatistics, common::table_id_t tableID,
         common::property_id_t propertyID);
 
-    // This is used for columns that don't have nullColumn. For example, the serial column.
+    // This is used for chunks that don't have nullColumn. For example, the serial column.
     inline static RWPropertyStats empty() {
         return RWPropertyStats(nullptr, common::INVALID_PROPERTY_ID, common::INVALID_PROPERTY_ID);
     }

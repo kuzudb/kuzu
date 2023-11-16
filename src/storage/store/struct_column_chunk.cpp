@@ -5,6 +5,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
+// TODO: need to handle this case, when the whole struct entry is null, should set all fields to
+// null too.
 StructColumnChunk::StructColumnChunk(
     std::unique_ptr<LogicalType> dataType, uint64_t capacity, bool enableCompression)
     : ColumnChunk{std::move(dataType), capacity} {
@@ -58,7 +60,6 @@ void StructColumnChunk::write(
     nullChunk->setNull(offsetInChunk, vector->isNull(offsetInVector));
     auto fields = StructVector::getFieldVectors(vector);
     for (auto i = 0u; i < fields.size(); i++) {
-        fields[i]->state = vector->state;
         childChunks[i]->write(fields[i].get(), offsetInVector, offsetInChunk);
     }
 }

@@ -30,7 +30,7 @@ bool SetRelProperty::getNextTuplesInternal(ExecutionContext* context) {
         return false;
     }
     for (auto& executor : executors) {
-        executor->set();
+        executor->set(context);
     }
     return true;
 }

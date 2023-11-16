@@ -33,10 +33,11 @@ struct RelDataReadState : public TableReadState {
 };
 
 class RelsStoreStats;
+class LocalRelTableData;
+struct CSRRelNGInfo;
+class LocalRelNG;
 class RelTableData final : public TableData {
 public:
-    static constexpr common::column_id_t REL_ID_COLUMN_ID = 0;
-
     RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager,
         WAL* wal, catalog::RelTableSchema* tableSchema, RelsStoreStats* relsStoreStats,
         common::RelDataDirection direction, bool enableCompression);
@@ -55,11 +56,18 @@ public:
     void lookup(transaction::Transaction* transaction, TableReadState& readState,
         common::ValueVector* inNodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors);
+
+    void update(transaction::Transaction* transaction, common::column_id_t columnID,
+        common::ValueVector* srcNodeIDVector, common::ValueVector* relIDVector,
+        common::ValueVector* propertyVector);
+
     void append(NodeGroup* nodeGroup);
 
     inline Column* getAdjColumn() const { return adjColumn.get(); }
     inline common::ColumnDataFormat getDataFormat() const { return dataFormat; }
 
+    void prepareLocalTableToCommit(
+        transaction::Transaction* transaction, LocalTableData* localTable);
     void checkpointInMemory();
     void rollbackInMemory();
 
@@ -71,17 +79,27 @@ private:
         common::ValueVector* inNodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors);
 
+    void prepareCommitForRegularColumns(
+        transaction::Transaction* transaction, LocalRelTableData* localTableData);
+    void prepareCommitForCSRColumns(
+        transaction::Transaction* transaction, LocalRelTableData* localTableData);
+
+    void prepareCommitCSRNGWithoutSliding(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, CSRRelNGInfo* relNodeGroupInfo,
+        ColumnChunk* csrOffsetChunk, ColumnChunk* relIDChunk, LocalRelNG* localNodeGroup);
+
     static inline common::ColumnDataFormat getDataFormatFromSchema(
         catalog::RelTableSchema* tableSchema, common::RelDataDirection direction) {
         return tableSchema->isSingleMultiplicityInDirection(direction) ?
                    common::ColumnDataFormat::REGULAR :
                    common::ColumnDataFormat::CSR;
     }
-
-    void prepareLocalTableToCommit(
-        transaction::Transaction* transaction, LocalTableData* localTable);
+    static inline common::vector_idx_t getDataIdxFromDirection(common::RelDataDirection direction) {
+        return direction == common::RelDataDirection::FWD ? 0 : 1;
+    }
 
 private:
+    common::RelDataDirection direction;
     std::unique_ptr<Column> adjColumn;
     std::unique_ptr<Column> csrOffsetColumn;
 };

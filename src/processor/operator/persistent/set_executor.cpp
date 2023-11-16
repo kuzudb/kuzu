@@ -111,8 +111,8 @@ static void writeToPropertyVector(
     writeToPropertyVector(relIDVector, propertyVector, propertyVectorPos, rhsVector, rhsVectorPos);
 }
 
-void SingleLabelRelSetExecutor::set() {
-    if (propertyID == INVALID_PROPERTY_ID) {
+void SingleLabelRelSetExecutor::set(ExecutionContext* context) {
+    if (columnID == INVALID_COLUMN_ID) {
         if (lhsVector != nullptr) {
             auto pos = relIDVector->state->selVector->selectedPositions[0];
             lhsVector->setNull(pos, true);
@@ -120,27 +120,27 @@ void SingleLabelRelSetExecutor::set() {
         return;
     }
     evaluator->evaluate();
-    // TODO(Guodong): Fix set.
-    //    table->updateRel(srcNodeIDVector, dstNodeIDVector, relIDVector, rhsVector, propertyID);
+    table->update(context->clientContext->getActiveTransaction(), columnID, srcNodeIDVector,
+        dstNodeIDVector, relIDVector, rhsVector);
     if (lhsVector != nullptr) {
         writeToPropertyVector(relIDVector, lhsVector, rhsVector);
     }
 }
 
-void MultiLabelRelSetExecutor::set() {
+void MultiLabelRelSetExecutor::set(ExecutionContext* context) {
     evaluator->evaluate();
     KU_ASSERT(relIDVector->state->isFlat());
     auto pos = relIDVector->state->selVector->selectedPositions[0];
     auto relID = relIDVector->getValue<internalID_t>(pos);
-    if (!tableIDToTableAndPropertyID.contains(relID.tableID)) {
+    if (!tableIDToTableAndColumnID.contains(relID.tableID)) {
         if (lhsVector != nullptr) {
             lhsVector->setNull(pos, true);
         }
         return;
     }
-    auto [table, propertyID] = tableIDToTableAndPropertyID.at(relID.tableID);
-    // TODO(Guodong): Fix set.
-    //    table->updateRel(srcNodeIDVector, dstNodeIDVector, relIDVector, rhsVector, propertyID);
+    auto [table, propertyID] = tableIDToTableAndColumnID.at(relID.tableID);
+    table->update(context->clientContext->getActiveTransaction(), propertyID, srcNodeIDVector,
+        dstNodeIDVector, relIDVector, rhsVector);
     if (lhsVector != nullptr) {
         writeToPropertyVector(relIDVector, lhsVector, rhsVector);
     }

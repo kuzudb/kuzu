@@ -1,5 +1,7 @@
 #include "storage/store/node_table_data.h"
 
+#include "common/cast.h"
+#include "storage/local_storage/local_node_table.h"
 #include "storage/local_storage/local_table.h"
 #include "storage/stats/nodes_store_statistics.h"
 
@@ -41,7 +43,10 @@ void NodeTableData::scan(Transaction* transaction, TableReadState& readState,
     if (transaction->isWriteTransaction()) {
         auto localTableData = transaction->getLocalStorage()->getLocalTableData(tableID);
         if (localTableData) {
-            localTableData->scan(nodeIDVector, readState.columnIDs, outputVectors);
+            auto localRelTableData =
+                ku_dynamic_cast<LocalTableData*, LocalNodeTableData*>(localTableData);
+            KU_ASSERT(localRelTableData);
+            localRelTableData->scan(nodeIDVector, readState.columnIDs, outputVectors);
         }
     }
 }
@@ -58,22 +63,25 @@ void NodeTableData::insert(Transaction* transaction, ValueVector* nodeIDVector,
         newNodeGroup->finalize(currentNumNodeGroups);
         append(newNodeGroup.get());
     }
-    auto localTableData =
-        transaction->getLocalStorage()->getOrCreateLocalTableData(tableID, columns);
+    auto localTableData = ku_dynamic_cast<LocalTableData*, LocalNodeTableData*>(
+        transaction->getLocalStorage()->getOrCreateLocalTableData(tableID, columns));
+    KU_ASSERT(localTableData);
     localTableData->insert(nodeIDVector, propertyVectors);
 }
 
 void NodeTableData::update(Transaction* transaction, column_id_t columnID,
     ValueVector* nodeIDVector, ValueVector* propertyVector) {
     KU_ASSERT(columnID < columns.size());
-    auto localTableData =
-        transaction->getLocalStorage()->getOrCreateLocalTableData(tableID, columns);
+    auto localTableData = ku_dynamic_cast<LocalTableData*, LocalNodeTableData*>(
+        transaction->getLocalStorage()->getOrCreateLocalTableData(tableID, columns));
+    KU_ASSERT(localTableData);
     localTableData->update(nodeIDVector, columnID, propertyVector);
 }
 
 void NodeTableData::delete_(Transaction* transaction, ValueVector* nodeIDVector) {
-    auto localTableData =
-        transaction->getLocalStorage()->getOrCreateLocalTableData(tableID, columns);
+    auto localTableData = ku_dynamic_cast<LocalTableData*, LocalNodeTableData*>(
+        transaction->getLocalStorage()->getOrCreateLocalTableData(tableID, columns));
+    KU_ASSERT(localTableData);
     localTableData->delete_(nodeIDVector);
 }
 
@@ -92,7 +100,10 @@ void NodeTableData::lookup(Transaction* transaction, TableReadState& readState,
     if (transaction->isWriteTransaction()) {
         auto localTableData = transaction->getLocalStorage()->getLocalTableData(tableID);
         if (localTableData) {
-            localTableData->lookup(nodeIDVector, readState.columnIDs, outputVectors);
+            auto localRelTableData =
+                ku_dynamic_cast<LocalTableData*, LocalNodeTableData*>(localTableData);
+            KU_ASSERT(localRelTableData);
+            localRelTableData->lookup(nodeIDVector, readState.columnIDs, outputVectors);
         }
     }
 }
@@ -107,7 +118,6 @@ void NodeTableData::append(kuzu::storage::NodeGroup* nodeGroup) {
 
 void NodeTableData::prepareLocalTableToCommit(
     Transaction* transaction, LocalTableData* localTable) {
-    auto numNodeGroups = getNumNodeGroups(&DUMMY_WRITE_TRANSACTION);
     for (auto& [nodeGroupIdx, nodeGroup] : localTable->nodeGroups) {
         for (auto columnID = 0; columnID < columns.size(); columnID++) {
             auto column = columns[columnID].get();
@@ -115,8 +125,10 @@ void NodeTableData::prepareLocalTableToCommit(
             if (columnChunk->getNumRows() == 0) {
                 continue;
             }
-            column->prepareCommitForChunk(
-                transaction, nodeGroupIdx, columnChunk, nodeGroupIdx >= numNodeGroups);
+            auto localNodeGroup = ku_dynamic_cast<LocalNodeGroup*, LocalNodeNG*>(nodeGroup.get());
+            column->prepareCommitForChunk(transaction, nodeGroupIdx, columnChunk,
+                localNodeGroup->getInsertInfoRef(columnID),
+                localNodeGroup->getUpdateInfoRef(columnID), {} /* deleteInfo */);
         }
     }
 }

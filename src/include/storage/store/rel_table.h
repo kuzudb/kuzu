@@ -28,6 +28,10 @@ public:
         common::ValueVector* inNodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors) final;
 
+    void update(transaction::Transaction* transaction, common::column_id_t columnID,
+        common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
+        common::ValueVector* relIDVector, common::ValueVector* propertyVector);
+
     void addColumn(transaction::Transaction* transaction, const catalog::Property& property,
         common::ValueVector* defaultValueVector) final;
     inline void dropColumn(common::column_id_t columnID) final {
@@ -44,7 +48,7 @@ public:
                                                      bwdRelTableData->append(nodeGroup);
     }
 
-    void prepareCommit(transaction::Transaction* transaction, LocalTableData* localTable) final;
+    void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) final;
     void prepareRollback(LocalTableData* localTable) final;
     void checkpointInMemory() final;
     void rollbackInMemory() final;
