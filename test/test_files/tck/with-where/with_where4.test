@@ -1,0 +1,41 @@
+-GROUP TCKWithWhere4
+-DATASET CSV tck
+
+--
+
+# Join nodes on inequality
+-CASE Scenario1
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A), (:B);
+---- ok
+-STATEMENT MATCH (a), (b)
+           WITH a, b
+           WHERE a <> b
+           RETURN a, b;
+---- 2
+{_ID: 0:0, _LABEL: A, ID: 0}|{_ID: 1:0, _LABEL: B, ID: 0}
+{_ID: 0:0, _LABEL: A, ID: 0}|{_ID: 1:0, _LABEL: B, ID: 0}
+
+# Join with disjunctive multi-part predicates including patterns
+-CASE Scenario2
+-SKIP
+-STATEMENT CREATE NODE TABLE TheLabel(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM TheLabel TO TheLabel);
+---- ok
+-STATEMENT CREATE (a:TheLabel {id: 0}), (b:TheLabel {id: 1}), (c:TheLabel {id: 2})
+           CREATE (a)-[:T]->(b),
+                  (b)-[:T]->(c);
+---- ok
+-STATEMENT MATCH (a), (b)
+           WITH a, b
+           WHERE a.id = 0
+             AND (a)-[:T]->(b:TheLabel)
+             OR (a)-[:T*]->(b:MissingLabel)
+           RETURN DISTINCT b;
+---- 1
+{_ID: 0:1, _LABEL: TheLabel, id: 1}

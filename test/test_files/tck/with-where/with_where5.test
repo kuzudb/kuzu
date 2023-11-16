@@ -1,0 +1,98 @@
+-GROUP TCKWithWhere5
+-DATASET CSV tck
+
+--
+
+# Filter out on null
+-CASE Scenario1
+-STATEMENT CREATE NODE TABLE Root(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE TextNode(ID SERIAL, var STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE IntNode(ID SERIAL, var INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP T(FROM Root TO TextNode, FROM Root TO IntNode);
+---- ok
+-STATEMENT CREATE (root:Root {name: 'x'}),
+                  (child1:TextNode {var: 'text'}),
+                  (child2:IntNode {var: 0})
+           CREATE (root)-[:T_Root_TextNode]->(child1),
+                  (root)-[:T_Root_IntNode]->(child2);
+---- ok
+-STATEMENT MATCH (:Root {name: 'x'})-->(i:TextNode)
+           WITH i
+           WHERE i.var > 'te'
+           RETURN i;
+---- 1
+{_ID: 1:0, _LABEL: TextNode, ID: 0, var: text}
+
+# Filter out on null if the AND'd predicate evaluates to false
+-CASE Scenario2
+-STATEMENT CREATE NODE TABLE Root(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE TextNode(ID SERIAL, var STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE IntNode(ID SERIAL, var INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP T(FROM Root TO TextNode, FROM Root TO IntNode);
+---- ok
+-STATEMENT CREATE (root:Root {name: 'x'}),
+                  (child1:TextNode {var: 'text'}),
+                  (child2:IntNode {var: 0})
+           CREATE (root)-[:T_Root_TextNode]->(child1),
+                  (root)-[:T_Root_IntNode]->(child2);
+---- ok
+-STATEMENT MATCH (:Root {name: 'x'})-->(i:TextNode)
+           WITH i
+           WHERE i.var > 'te' AND LABEL(i) = 'TextNode'
+           RETURN i;
+---- 1
+{_ID: 1:0, _LABEL: TextNode, ID: 0, var: text}
+
+# Filter out on null if the AND'd predicate evaluates to true
+-CASE Scenario3
+-STATEMENT CREATE NODE TABLE Root(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE TextNode(ID SERIAL, var STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE IntNode(ID SERIAL, var INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP T(FROM Root TO TextNode, FROM Root TO IntNode);
+---- ok
+-STATEMENT CREATE (root:Root {name: 'x'}),
+                  (child1:TextNode {var: 'text'}),
+                  (child2:IntNode {var: 0})
+           CREATE (root)-[:T_Root_TextNode]->(child1),
+                  (root)-[:T_Root_IntNode]->(child2);
+---- ok
+-STATEMENT MATCH (:Root {name: 'x'})-->(i:TextNode)
+           WITH i
+           WHERE i.var > 'te' AND i.var IS NOT NULL
+           RETURN i;
+---- 1
+{_ID: 1:0, _LABEL: TextNode, ID: 0, var: text}
+
+# Do not filter out on null if the OR'd predicate evaluates to true
+-CASE Scenario4
+-SKIP
+-STATEMENT CREATE NODE TABLE Root(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE TextNode(ID SERIAL, var STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE IntNode(ID SERIAL, var INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP T(FROM Root TO TextNode, FROM Root TO IntNode);
+---- ok
+-STATEMENT CREATE (root:Root {name: 'x'}),
+                  (child1:TextNode {var: 'text'}),
+                  (child2:IntNode {var: 0})
+           CREATE (root)-[:T_Root_TextNode]->(child1),
+                  (root)-[:T_Root_IntNode]->(child2);
+---- ok
+-STATEMENT MATCH (:Root {name: 'x'})-->(i)
+           WITH i
+           WHERE i.var > 'te' OR i.var IS NOT NULL
+           RETURN i;
+---- 2
+{_ID: 1:0, _LABEL: TextNode, ID: 0, var: text}
+{_ID: 2:0, _LABEL: IntNode, ID: 0, var: 0}

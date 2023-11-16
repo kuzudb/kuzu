@@ -1,0 +1,73 @@
+-GROUP TCKWithWhere1
+-DATASET CSV tck
+
+--
+
+# Filter node with property predicate on a single variable with multiple bindings
+-CASE Scenario1
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {name: 'A'}),
+                  (:A {name: 'B'}),
+                  (:A {name: 'C'});
+---- ok
+-STATEMENT MATCH (a)
+           WITH a
+           WHERE a.name = 'B'
+           RETURN a;
+---- 1
+{_ID: 0:1, _LABEL: A, ID: 1, name: B}
+
+# Filter node with property predicate on a single variable with multiple distinct bindings
+-CASE Scenario2
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name2 STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {name2: 'A'}),
+                  (:A {name2: 'A'}),
+                  (:A {name2: 'B'});
+---- ok
+-STATEMENT MATCH (a)
+           WITH DISTINCT a.name2 AS name
+           WHERE a.name2 = 'B'
+           RETURN *;
+---- 1
+B
+
+# Filter for an unbound relationship variable
+-CASE Scenario3
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO B);
+---- ok
+-STATEMENT CREATE (a:A), (b:B {id: 1}), (:B {id: 2})
+           CREATE (a)-[:T]->(b);
+---- ok
+-STATEMENT MATCH (a:A), (other:B)
+           OPTIONAL MATCH (a)-[r]->(other)
+           WITH other WHERE r IS NULL
+           RETURN other;
+---- 1
+{_ID: 1:1, _LABEL: B, id: 2}
+
+# Filter for an unbound node variable
+-CASE Scenario4
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO B);
+---- ok
+-STATEMENT CREATE (a:A), (b:B {id: 1}), (:B {id: 2})
+           CREATE (a)-[:T]->(b);
+---- ok
+-STATEMENT MATCH (other:B)
+           OPTIONAL MATCH (a)-[r]->(other)
+           WITH other WHERE a IS NULL
+           RETURN other;
+---- 1
+{_ID: 1:1, _LABEL: B, id: 2}
