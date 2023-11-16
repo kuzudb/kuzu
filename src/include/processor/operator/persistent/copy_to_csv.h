@@ -8,7 +8,7 @@
 namespace kuzu {
 namespace processor {
 
-struct CopyToCSVInfo : public CopyToInfo {
+struct CopyToCSVInfo final : public CopyToInfo {
     std::vector<bool> isFlat;
     std::unique_ptr<common::CSVOption> copyToOption;
 
@@ -26,22 +26,24 @@ struct CopyToCSVInfo : public CopyToInfo {
     }
 };
 
-class CopyToCSVLocalState : public CopyToLocalState {
+class CopyToCSVLocalState final : public CopyToLocalState {
 public:
-    void init(CopyToInfo* info, storage::MemoryManager* mm, ResultSet* resultSet) final;
+    void init(CopyToInfo* info, storage::MemoryManager* mm, ResultSet* resultSet) override;
 
-    void sink(CopyToSharedState* sharedState) final;
+    void sink(CopyToSharedState* sharedState, CopyToInfo* info) override;
 
-    void finalize(CopyToSharedState* sharedState) final;
+    void finalize(CopyToSharedState* sharedState) override;
 
 private:
-    bool requireQuotes(const uint8_t* str, uint64_t len);
+    bool requireQuotes(CopyToCSVInfo* info, const uint8_t* str, uint64_t len);
 
     std::string addEscapes(char toEscape, char escape, const std::string& val);
 
-    void writeString(const uint8_t* strData, uint64_t strLen, bool forceQuote);
+    void writeString(CopyToCSVInfo* info, const uint8_t* strData, uint64_t strLen, bool forceQuote);
 
-    void writeRows();
+    void writeRows(CopyToCSVInfo* info);
+
+    void writeHeader(CopyToSharedState* sharedState, CopyToCSVInfo* info);
 
 private:
     std::unique_ptr<common::BufferedSerializer> serializer;
@@ -50,24 +52,26 @@ private:
     std::vector<common::ValueVector*> castVectors;
     std::vector<function::scalar_exec_func> castFuncs;
     std::vector<std::shared_ptr<common::ValueVector>> vectorsToCast;
-    common::CSVOption* copyToOption;
 };
 
-class CopyToCSVSharedState : public CopyToSharedState {
+class CopyToCSVSharedState final : public CopyToSharedState {
 public:
-    void init(CopyToInfo* info, storage::MemoryManager* mm) final;
+    void init(CopyToInfo* info, storage::MemoryManager* mm) override;
 
-    void finalize() final {}
+    void finalize() override {}
 
     void writeRows(const uint8_t* data, uint64_t size);
+
+    bool writeHeader();
 
 private:
     std::mutex mtx;
     std::unique_ptr<common::FileInfo> fileInfo;
     common::offset_t offset = 0;
+    bool outputHeader;
 };
 
-class CopyToCSV : public CopyTo {
+class CopyToCSV final : public CopyTo {
 public:
     CopyToCSV(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::unique_ptr<CopyToInfo> info, std::shared_ptr<CopyToSharedState> sharedState,
@@ -76,7 +80,7 @@ public:
               std::make_unique<CopyToCSVLocalState>(), std::move(sharedState),
               PhysicalOperatorType::COPY_TO_CSV, std::move(child), id, paramsString} {}
 
-    inline std::unique_ptr<PhysicalOperator> clone() final {
+    inline std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<CopyToCSV>(resultSetDescriptor->copy(), info->copy(), sharedState,
             children[0]->clone(), id, paramsString);
     }

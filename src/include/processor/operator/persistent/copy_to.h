@@ -27,7 +27,7 @@ public:
 
     virtual void init(CopyToInfo* info, storage::MemoryManager* mm, ResultSet* resultSet) = 0;
 
-    virtual void sink(CopyToSharedState* sharedState) = 0;
+    virtual void sink(CopyToSharedState* sharedState, CopyToInfo* info) = 0;
 
     virtual void finalize(CopyToSharedState* sharedState) = 0;
 };

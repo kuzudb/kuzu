@@ -17,7 +17,7 @@ void CopyTo::finalize(ExecutionContext* /*context*/) {
 
 void CopyTo::executeInternal(processor::ExecutionContext* context) {
     while (children[0]->getNextTuple(context)) {
-        localState->sink(sharedState.get());
+        localState->sink(sharedState.get(), info.get());
     }
     localState->finalize(sharedState.get());
 }

@@ -8,7 +8,7 @@
 namespace kuzu {
 namespace processor {
 
-struct CopyToParquetInfo : public CopyToInfo {
+struct CopyToParquetInfo final : public CopyToInfo {
     kuzu_parquet::format::CompressionCodec::type codec =
         kuzu_parquet::format::CompressionCodec::SNAPPY;
     std::unique_ptr<FactorizedTableSchema> tableSchema;
@@ -27,12 +27,12 @@ struct CopyToParquetInfo : public CopyToInfo {
     }
 };
 
-class CopyToParquetLocalState : public CopyToLocalState {
-    void init(CopyToInfo* info, storage::MemoryManager* mm, ResultSet* resultSet) final;
+class CopyToParquetLocalState final : public CopyToLocalState {
+    void init(CopyToInfo* info, storage::MemoryManager* mm, ResultSet* resultSet) override;
 
-    void sink(CopyToSharedState* sharedState) final;
+    void sink(CopyToSharedState* sharedState, CopyToInfo* info) override;
 
-    void finalize(CopyToSharedState* sharedState) final;
+    void finalize(CopyToSharedState* sharedState) override;
 
 private:
     std::unique_ptr<FactorizedTable> ft;
@@ -40,11 +40,11 @@ private:
     storage::MemoryManager* mm;
 };
 
-class CopyToParquetSharedState : public CopyToSharedState {
+class CopyToParquetSharedState final : public CopyToSharedState {
 public:
-    void init(CopyToInfo* info, storage::MemoryManager* mm) final;
+    void init(CopyToInfo* info, storage::MemoryManager* mm) override;
 
-    void finalize() final;
+    void finalize() override;
 
     void flush(FactorizedTable& ft);
 
@@ -52,7 +52,7 @@ private:
     std::unique_ptr<ParquetWriter> writer;
 };
 
-class CopyToParquet : public CopyTo {
+class CopyToParquet final : public CopyTo {
 public:
     CopyToParquet(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::unique_ptr<CopyToInfo> info, std::shared_ptr<CopyToSharedState> sharedState,
@@ -61,7 +61,7 @@ public:
               std::make_unique<CopyToParquetLocalState>(), std::move(sharedState),
               PhysicalOperatorType::COPY_TO_PARQUET, std::move(child), id, paramsString} {}
 
-    std::unique_ptr<PhysicalOperator> clone() final {
+    std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<CopyToParquet>(resultSetDescriptor->copy(), info->copy(),
             sharedState, children[0]->clone(), id, paramsString);
     }
