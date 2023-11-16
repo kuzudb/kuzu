@@ -1,10 +1,8 @@
 #include "include/py_connection.h"
 
-#include "binder/bound_statement_result.h"
 #include "common/string_format.h"
 #include "datetime.h" // from Python
 #include "main/connection.h"
-#include "planner/operator/logical_plan.h"
 #include "pandas/pandas_scan.h"
 #include "processor/result/factorized_table.h"
 
@@ -30,7 +28,7 @@ void PyConnection::initialize(py::handle& m) {
 PyConnection::PyConnection(PyDatabase* pyDatabase, uint64_t numThreads) {
     storageDriver = std::make_unique<kuzu::main::StorageDriver>(pyDatabase->database.get());
     conn = std::make_unique<Connection>(pyDatabase->database.get());
-    //TODO(Xiyang): We should implement a generic replacement framework in binder.
+    // TODO(Xiyang): We should implement a generic replacement framework in binder.
     conn->setReplaceFunc(kuzu::replacePD);
     if (numThreads > 0) {
         conn->setMaxNumThreadForExec(numThreads);
@@ -41,12 +39,15 @@ void PyConnection::setQueryTimeout(uint64_t timeoutInMS) {
     conn->setQueryTimeOut(timeoutInMS);
 }
 
-std::unique_ptr<PyQueryResult> PyConnection::execute(PyPreparedStatement* preparedStatement,
-    py::dict params) {
+static std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonParameters(
+    py::dict params);
+
+std::unique_ptr<PyQueryResult> PyConnection::execute(
+    PyPreparedStatement* preparedStatement, py::dict params) {
     auto parameters = transformPythonParameters(params);
     py::gil_scoped_release release;
     auto queryResult =
-        conn->executeWithParams(preparedStatement->preparedStatement.get(), parameters);
+        conn->executeWithParams(preparedStatement->preparedStatement.get(), std::move(parameters));
     py::gil_scoped_acquire acquire;
     if (!queryResult->isSuccess()) {
         throw std::runtime_error(queryResult->getErrorMessage());
@@ -103,10 +104,10 @@ void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
         int64_t start = batch * queryBatchSize;
         int64_t end = (batch + 1) * queryBatchSize;
         end = end > numDstNodes ? numDstNodes : end;
-        std::unordered_map<std::string, std::shared_ptr<Value>> parameters;
-        parameters["s"] = std::make_shared<Value>(start);
-        parameters["e"] = std::make_shared<Value>(end);
-        auto result = conn->executeWithParams(preparedStatement.get(), parameters);
+        std::unordered_map<std::string, std::unique_ptr<Value>> parameters;
+        parameters["s"] = std::make_unique<Value>(start);
+        parameters["e"] = std::make_unique<Value>(end);
+        auto result = conn->executeWithParams(preparedStatement.get(), std::move(parameters));
         if (!result->isSuccess()) {
             throw std::runtime_error(result->getErrorMessage());
         }
@@ -151,22 +152,23 @@ bool PyConnection::isPandasDataframe(const py::object& object) {
     return py::isinstance(object, pandas.attr("DataFrame"));
 }
 
-std::unordered_map<std::string, std::shared_ptr<Value>> PyConnection::transformPythonParameters(
-    py::dict params) {
-    std::unordered_map<std::string, std::shared_ptr<Value>> result;
+static Value transformPythonValue(py::handle val);
+
+std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonParameters(py::dict params) {
+    std::unordered_map<std::string, std::unique_ptr<Value>> result;
     for (auto& [key, value] : params) {
         if (!py::isinstance<py::str>(key)) {
             throw std::runtime_error("Parameter name must be of type string but get " +
                                      py::str(key.get_type()).cast<std::string>());
         }
         auto name = key.cast<std::string>();
-        auto val = std::make_shared<Value>(transformPythonValue(value));
-        result.insert({name, val});
+        auto val = std::make_unique<Value>(transformPythonValue(value));
+        result.insert({name, std::move(val)});
     }
     return result;
 }
 
-Value PyConnection::transformPythonValue(py::handle val) {
+Value transformPythonValue(py::handle val) {
     auto datetime_mod = py::module::import("datetime");
     auto datetime_datetime = datetime_mod.attr("datetime");
     auto time_delta = datetime_mod.attr("timedelta");

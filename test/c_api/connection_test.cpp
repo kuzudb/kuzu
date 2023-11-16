@@ -82,7 +82,7 @@ TEST_F(CApiConnectionTest, Execute) {
     auto connection = getConnection();
     auto query = "MATCH (a:person) WHERE a.isStudent = $1 RETURN COUNT(*)";
     auto statement = kuzu_connection_prepare(connection, query);
-    kuzu_prepared_statement_bind_bool(statement, (char*)"1", true);
+    kuzu_prepared_statement_bind_bool(statement, "1", true);
     auto result = kuzu_connection_execute(connection, statement);
     ASSERT_NE(result, nullptr);
     ASSERT_NE(result->_query_result, nullptr);

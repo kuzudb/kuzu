@@ -75,10 +75,10 @@ Napi::Value NodeConnection::ExecuteAsync(const Napi::CallbackInfo& info) {
     auto nodeQueryResult = Napi::ObjectWrap<NodeQueryResult>::Unwrap(info[1].As<Napi::Object>());
     auto callback = info[3].As<Napi::Function>();
     try {
-        auto parameterMap = nodePreparedStatement->preparedStatement->getParameterMap();
+        const auto& parameterMap = nodePreparedStatement->preparedStatement->getParameterMap();
         auto params = Util::TransformParametersForExec(info[2].As<Napi::Array>(), parameterMap);
         auto asyncWorker = new ConnectionExecuteAsyncWorker(callback, connection,
-            nodePreparedStatement->preparedStatement, nodeQueryResult, params);
+            nodePreparedStatement->preparedStatement, nodeQueryResult, std::move(params));
         asyncWorker->Queue();
     } catch (const std::exception& exc) {
         Napi::Error::New(env, std::string(exc.what())).ThrowAsJavaScriptException();

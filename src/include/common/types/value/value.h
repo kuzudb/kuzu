@@ -156,6 +156,14 @@ public:
      * @return a Value with the same value as other.
      */
     KUZU_API Value(const Value& other);
+
+    /**
+     * @param other the value to move from.
+     * @return a Value with the same value as other.
+     */
+    KUZU_API Value(Value&& other) = default;
+    KUZU_API Value& operator=(Value&& other) = default;
+
     /**
      * @brief Sets the data type of the Value.
      * @param dataType_ the data type to set to.

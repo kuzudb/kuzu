@@ -256,8 +256,10 @@ public class ConnectionTest extends TestBase {
     void ConnPrepareMultiParam() throws KuzuObjectRefDestroyedException {
         String query = "MATCH (a:person) WHERE a.lastJobDuration > $1 AND a.fName = $2 RETURN COUNT(*)";
         Map<String, KuzuValue> m = new HashMap<String, KuzuValue>();
-        m.put("1", new KuzuValue(Duration.ofDays(730)));
-        m.put("2", new KuzuValue("Alice"));
+        KuzuValue v1 = new KuzuValue(Duration.ofDays(730));
+        KuzuValue v2 = new KuzuValue("Alice");
+        m.put("1", v1);
+        m.put("2", v2);
         KuzuPreparedStatement statement = conn.prepare(query);
         assertNotNull(statement);
         KuzuQueryResult result = conn.execute(statement, m);
@@ -270,6 +272,11 @@ public class ConnectionTest extends TestBase {
         assertEquals(((long) tuple.getValue(0).getValue()), 1);
         statement.destroy();
         result.destroy();
+
+        // Not strictly necessary, but this makes sure if we freed v1 or v2 in
+        // the execute() call, we segfault here.
+        v1.destroy();
+        v2.destroy();
     }
 
     @Test

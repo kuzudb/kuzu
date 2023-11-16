@@ -82,8 +82,8 @@ public:
     template<typename... Args>
     inline std::unique_ptr<QueryResult> execute(
         PreparedStatement* preparedStatement, std::pair<std::string, Args>... args) {
-        std::unordered_map<std::string, std::shared_ptr<common::Value>> inputParameters;
-        return executeWithParams(preparedStatement, inputParameters, args...);
+        std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParameters;
+        return executeWithParams(preparedStatement, std::move(inputParameters), args...);
     }
     /**
      * @brief Executes the given prepared statement with inputParams and returns the result.
@@ -93,7 +93,7 @@ public:
      * @return the result of the query.
      */
     KUZU_API std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
-        std::unordered_map<std::string, std::shared_ptr<common::Value>>& inputParams);
+        std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams);
     /**
      * @brief interrupts all queries currently executing within this connection.
      */
@@ -151,16 +151,16 @@ private:
 
     template<typename T, typename... Args>
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
-        std::unordered_map<std::string, std::shared_ptr<common::Value>>& params,
+        std::unordered_map<std::string, std::unique_ptr<common::Value>> params,
         std::pair<std::string, T> arg, std::pair<std::string, Args>... args) {
         auto name = arg.first;
-        auto val = std::make_shared<common::Value>((T)arg.second);
-        params.insert({name, val});
-        return executeWithParams(preparedStatement, params, args...);
+        auto val = std::make_unique<common::Value>((T)arg.second);
+        params.insert({name, std::move(val)});
+        return executeWithParams(preparedStatement, std::move(params), args...);
     }
 
     void bindParametersNoLock(PreparedStatement* preparedStatement,
-        std::unordered_map<std::string, std::shared_ptr<common::Value>>& inputParams);
+        std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams);
 
     std::unique_ptr<QueryResult> executeAndAutoCommitIfNecessaryNoLock(
         PreparedStatement* preparedStatement, uint32_t planIdx = 0u);

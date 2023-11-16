@@ -1,7 +1,5 @@
-#include <iostream>
 #include <unordered_map>
 
-#include "binder/bound_statement_result.h"
 // This header is generated at build time. See CMakeLists.txt.
 #include "com_kuzudb_KuzuNative.h"
 #include "common/exception/conversion.h"
@@ -11,10 +9,8 @@
 #include "common/types/value/node.h"
 #include "common/types/value/rel.h"
 #include "common/types/value/value.h"
-#include "json.hpp"
 #include "main/kuzu.h"
 #include "main/query_summary.h"
-#include "planner/operator/logical_plan.h"
 #include <jni.h>
 
 using namespace kuzu::main;
@@ -116,8 +112,8 @@ std::string dataTypeToString(const LogicalType& dataType) {
     return LogicalTypeUtils::toString(dataType.getLogicalTypeID());
 }
 
-void javaMapToCPPMap(
-    JNIEnv* env, jobject javaMap, std::unordered_map<std::string, std::shared_ptr<Value>>& cppMap) {
+std::unordered_map<std::string, std::unique_ptr<Value>> javaMapToCPPMap(
+    JNIEnv* env, jobject javaMap) {
 
     jclass mapClass = env->FindClass("java/util/Map");
     jmethodID entrySet = env->GetMethodID(mapClass, "entrySet", "()Ljava/util/Set;");
@@ -132,20 +128,22 @@ void javaMapToCPPMap(
     jmethodID entryGetKey = env->GetMethodID(entryClass, "getKey", "()Ljava/lang/Object;");
     jmethodID entryGetValue = env->GetMethodID(entryClass, "getValue", "()Ljava/lang/Object;");
 
+    std::unordered_map<std::string, std::unique_ptr<Value>> result;
     while (env->CallBooleanMethod(iter, hasNext)) {
         jobject entry = env->CallObjectMethod(iter, next);
         jstring key = (jstring)env->CallObjectMethod(entry, entryGetKey);
         jobject value = env->CallObjectMethod(entry, entryGetValue);
         const char* keyStr = env->GetStringUTFChars(key, JNI_FALSE);
-        Value* v = getValue(env, value);
-        std::shared_ptr<Value> value_ptr(v);
-        cppMap.insert({keyStr, value_ptr});
+        const Value* v = getValue(env, value);
+        // Java code can keep a reference to the value, so we cannot move.
+        result.insert({keyStr, v->copy()});
 
         env->DeleteLocalRef(entry);
         env->ReleaseStringUTFChars(key, keyStr);
         env->DeleteLocalRef(key);
         env->DeleteLocalRef(value);
     }
+    return result;
 }
 
 /**
@@ -301,14 +299,10 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1connection_1execute(
     Connection* conn = getConnection(env, thisConn);
     PreparedStatement* ps = getPreparedStatement(env, preStm);
 
-    std::unordered_map<std::string, std::shared_ptr<Value>> param;
-    javaMapToCPPMap(env, param_map, param);
+    std::unordered_map<std::string, std::unique_ptr<Value>> params =
+        javaMapToCPPMap(env, param_map);
 
-    for (auto const& pair : param) {
-        std::cout << "{" << pair.first << ": " << pair.second.get()->toString() << "}\n";
-    }
-
-    auto query_result = conn->executeWithParams(ps, param).release();
+    auto query_result = conn->executeWithParams(ps, std::move(params)).release();
     if (query_result == nullptr) {
         return nullptr;
     }

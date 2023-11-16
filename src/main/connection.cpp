@@ -157,13 +157,13 @@ uint64_t Connection::getQueryTimeOut() {
 }
 
 std::unique_ptr<QueryResult> Connection::executeWithParams(PreparedStatement* preparedStatement,
-    std::unordered_map<std::string, std::shared_ptr<Value>>& inputParams) {
+    std::unordered_map<std::string, std::unique_ptr<Value>> inputParams) {
     lock_t lck{mtx};
     if (!preparedStatement->isSuccess()) {
         return queryResultWithError(preparedStatement->errMsg);
     }
     try {
-        bindParametersNoLock(preparedStatement, inputParams);
+        bindParametersNoLock(preparedStatement, std::move(inputParams));
     } catch (Exception& exception) {
         std::string errMsg = exception.what();
         return queryResultWithError(errMsg);
@@ -172,7 +172,7 @@ std::unique_ptr<QueryResult> Connection::executeWithParams(PreparedStatement* pr
 }
 
 void Connection::bindParametersNoLock(PreparedStatement* preparedStatement,
-    std::unordered_map<std::string, std::shared_ptr<Value>>& inputParams) {
+    std::unordered_map<std::string, std::unique_ptr<Value>> inputParams) {
     auto& parameterMap = preparedStatement->parameterMap;
     for (auto& [name, value] : inputParams) {
         if (!parameterMap.contains(name)) {
@@ -184,7 +184,10 @@ void Connection::bindParametersNoLock(PreparedStatement* preparedStatement,
                             value->getDataType()->toString() + " but expects " +
                             expectParam->getDataType()->toString() + ".");
         }
-        parameterMap.at(name)->copyValueFrom(*value);
+        // The much more natural `parameterMap.at(name) = std::move(v)` fails.
+        // The reason is that other parts of the code rely on the existing Value object to be
+        // modified in-place, not replaced in this map.
+        *parameterMap.at(name) = std::move(*value);
     }
 }
 

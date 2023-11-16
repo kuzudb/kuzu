@@ -176,9 +176,10 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
     return Napi::Value();
 }
 
-std::unordered_map<std::string, std::shared_ptr<Value>> Util::TransformParametersForExec(
-    Napi::Array params, std::unordered_map<std::string, std::shared_ptr<Value>>& parameterMap) {
-    std::unordered_map<std::string, std::shared_ptr<Value>> result;
+std::unordered_map<std::string, std::unique_ptr<Value>> Util::TransformParametersForExec(
+    Napi::Array params,
+    const std::unordered_map<std::string, std::shared_ptr<Value>>& parameterMap) {
+    std::unordered_map<std::string, std::unique_ptr<Value>> result;
     for (size_t i = 0; i < params.Length(); i++) {
         auto param = params.Get(i).As<Napi::Array>();
         KU_ASSERT(param.Length() == 2);
@@ -187,11 +188,10 @@ std::unordered_map<std::string, std::shared_ptr<Value>> Util::TransformParameter
         if (!parameterMap.count(key)) {
             throw Exception("Parameter " + key + " is not defined in the prepared statement");
         }
-        auto paramValue = parameterMap[key];
         auto napiValue = param.Get(uint32_t(1));
-        auto expectedDataType = paramValue->getDataType();
+        auto expectedDataType = parameterMap.at(key)->getDataType();
         auto transformedVal = TransformNapiValue(napiValue, expectedDataType, key);
-        result[key] = std::make_shared<Value>(transformedVal);
+        result[key] = std::make_unique<Value>(transformedVal);
     }
     return result;
 }
@@ -280,8 +280,7 @@ Value Util::TransformNapiValue(
         return Value(normalizedInterval);
     }
     default:
-        throw Exception("Unsupported type " +
-                        expectedDataType->toString() +
-                        " for parameter: " + key);
+        throw Exception(
+            "Unsupported type " + expectedDataType->toString() + " for parameter: " + key);
     }
 }
