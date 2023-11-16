@@ -126,9 +126,10 @@ nodejstest: nodejs
 	npm test
 
 javatest: java
-	java -jar tools/java_api/third_party/junit-platform-console-standalone-1.9.3.jar \
-		   -cp .:build/release/tools/java_api/kuzu_java.jar:build/release/tools/java_api/kuzu_java_test.jar \
-		   --scan-classpath --include-package=com.kuzudb.java_test --details=verbose
+	$(call mkdirp,tools/java_api/build/test)  && cd tools/java_api/ && \
+	javac -d build/test -cp ".:../../build/release/tools/java_api/kuzu_java.jar:third_party/junit-platform-console-standalone-1.9.3.jar" src/test/java/com/kuzudb/test/*.java && \
+	java -jar third_party/junit-platform-console-standalone-1.9.3.jar -cp ".:../../build/release/tools/java_api/kuzu_java.jar:build/test/" --scan-classpath --include-package=com.kuzudb.java_test --details=verbose
+
 rusttest:
 ifeq ($(OS),Windows_NT)
 	cd $(ROOT_DIR)/tools/rust_api && \
