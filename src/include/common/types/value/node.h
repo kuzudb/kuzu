@@ -50,16 +50,6 @@ public:
      */
     KUZU_API static Value* getLabelVal(const Value* val);
     /**
-     * @return the nodeID of the node as a nodeID struct.
-     */
-    // TODO(Change): REMOVE ME and use getNodeIDVal.
-    KUZU_API static nodeID_t getNodeID(const Value* val);
-    /**
-     * @return the name of the node in string format.
-     */
-    // TODO(Change): REMOVE ME and use getLabelVal.
-    KUZU_API static std::string getLabelName(const Value* val);
-    /**
      * @return the current node values in string format.
      */
     KUZU_API static std::string toString(const Value* val);

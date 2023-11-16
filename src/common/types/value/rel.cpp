@@ -58,23 +58,6 @@ Value* RelVal::getDstNodeIDVal(const Value* val) {
     return val->children[fieldIdx].get();
 }
 
-nodeID_t RelVal::getSrcNodeID(const Value* val) {
-    throwIfNotRel(val);
-    auto srcNodeIDVal = getSrcNodeIDVal(val);
-    return srcNodeIDVal->getValue<nodeID_t>();
-}
-
-nodeID_t RelVal::getDstNodeID(const Value* val) {
-    throwIfNotRel(val);
-    auto dstNodeIDVal = getDstNodeIDVal(val);
-    return dstNodeIDVal->getValue<nodeID_t>();
-}
-
-std::string RelVal::getLabelName(const Value* val) {
-    auto fieldIdx = StructType::getFieldIdx(val->dataType.get(), InternalKeyword::LABEL);
-    return val->children[fieldIdx]->getValue<std::string>();
-}
-
 Value* RelVal::getLabelVal(const Value* val) {
     auto fieldIdx = StructType::getFieldIdx(val->dataType.get(), InternalKeyword::LABEL);
     return val->children[fieldIdx].get();
