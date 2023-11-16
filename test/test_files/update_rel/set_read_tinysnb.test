@@ -19,7 +19,6 @@
 ---- 1
 
 -CASE SetReadTest2
--SKIP
 -STATEMENT CREATE REL TABLE play(FROM person TO person, date DATE, year INT64);
 ---- ok
 -STATEMENT MATCH (a:person), (b:person) WHERE a.ID=0 AND b.ID = 2 CREATE (a)-[e:play {date:date('2023-01-01'), year:2023}]->(b);

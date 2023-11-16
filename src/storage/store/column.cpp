@@ -388,17 +388,15 @@ void Column::scan(
         columnChunk->setNumValues(0);
     } else {
         auto chunkMetadata = metadataDA->get(nodeGroupIdx, transaction->getType());
-        KU_ASSERT(chunkMetadata.numValues <= columnChunk->getCapacity());
         auto cursor = PageElementCursor(chunkMetadata.pageIdx, 0);
         uint64_t numValuesPerPage =
             chunkMetadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType);
         uint64_t numValuesScanned = 0u;
-        auto numValuesToScan = columnChunk->getCapacity();
-        if (chunkMetadata.numValues < numValuesToScan) {
-            numValuesToScan = chunkMetadata.numValues;
+        if (chunkMetadata.numValues > columnChunk->getCapacity()) {
+            columnChunk->resize(std::bit_ceil(chunkMetadata.numValues));
         }
+        auto numValuesToScan = chunkMetadata.numValues;
         KU_ASSERT(chunkMetadata.numValues <= columnChunk->getCapacity());
-        // TODO(Guodong): We should resize as needed here.
         while (numValuesScanned < numValuesToScan) {
             auto numValuesToReadInPage =
                 std::min(numValuesPerPage, numValuesToScan - numValuesScanned);
@@ -677,29 +675,43 @@ bool Column::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGro
 
 void Column::commitLocalChunkInPlace(Transaction* /*transaction*/,
     LocalVectorCollection* localChunk, const offset_to_row_idx_t& insertInfo,
-    const offset_to_row_idx_t& updateInfo, const offset_set_t& /*deleteInfo*/) {
+    const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) {
     applyLocalChunkToColumn(localChunk, updateInfo);
     applyLocalChunkToColumn(localChunk, insertInfo);
+    // Set nulls based on deleteInfo. Note that this code path actually only gets executed when the
+    // column is a regular format one. This is not a good design, should be unified with csr one in
+    // the future.
+    for (auto nodeOffset : deleteInfo) {
+        setNull(nodeOffset);
+    }
 }
 
 void Column::commitLocalChunkOutOfPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     LocalVectorCollection* localChunk, bool isNewNodeGroup, const offset_to_row_idx_t& insertInfo,
-    const offset_to_row_idx_t& updateInfo, const offset_set_t& /*deleteInfo*/) {
+    const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) {
     auto columnChunk = ColumnChunkFactory::createColumnChunk(dataType->copy(), enableCompression);
+    auto startNodeOffsetInChunk = nodeGroupIdx << StorageConstants::NODE_GROUP_SIZE_LOG2;
     if (isNewNodeGroup) {
-        KU_ASSERT(updateInfo.empty());
+        KU_ASSERT(updateInfo.empty() && deleteInfo.empty());
         // Apply inserts from the local chunk.
-        applyLocalChunkToColumnChunk(localChunk, columnChunk.get(),
-            nodeGroupIdx << StorageConstants::NODE_GROUP_SIZE_LOG2, insertInfo);
+        applyLocalChunkToColumnChunk(
+            localChunk, columnChunk.get(), startNodeOffsetInChunk, insertInfo);
     } else {
         // First, scan the whole column chunk from persistent storage.
         scan(transaction, nodeGroupIdx, columnChunk.get());
         // Then, apply updates from the local chunk.
-        applyLocalChunkToColumnChunk(localChunk, columnChunk.get(),
-            nodeGroupIdx << StorageConstants::NODE_GROUP_SIZE_LOG2, updateInfo);
+        applyLocalChunkToColumnChunk(
+            localChunk, columnChunk.get(), startNodeOffsetInChunk, updateInfo);
         // Lastly, apply inserts from the local chunk.
-        applyLocalChunkToColumnChunk(localChunk, columnChunk.get(),
-            nodeGroupIdx << StorageConstants::NODE_GROUP_SIZE_LOG2, insertInfo);
+        applyLocalChunkToColumnChunk(
+            localChunk, columnChunk.get(), startNodeOffsetInChunk, insertInfo);
+        if (columnChunk->getNullChunk()) {
+            // Set nulls based on deleteInfo.
+            for (auto nodeOffset : deleteInfo) {
+                columnChunk->getNullChunk()->setNull(
+                    nodeOffset - startNodeOffsetInChunk, true /* isNull */);
+            }
+        }
     }
     columnChunk->finalize();
     append(columnChunk.get(), nodeGroupIdx);

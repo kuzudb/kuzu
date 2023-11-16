@@ -44,8 +44,8 @@ private:
 // contains 64 vectors (chunks).
 class LocalVectorCollection {
 public:
-    LocalVectorCollection(const common::LogicalType* dataType, MemoryManager* mm)
-        : dataType{dataType}, mm{mm}, numRows{0} {}
+    LocalVectorCollection(std::unique_ptr<common::LogicalType> dataType, MemoryManager* mm)
+        : dataType{std::move(dataType)}, mm{mm}, numRows{0} {}
 
     void read(common::row_idx_t rowIdx, common::ValueVector* outputVector,
         common::sel_t posInOutputVector);
@@ -65,7 +65,7 @@ private:
     void prepareAppend();
 
 private:
-    const common::LogicalType* dataType;
+    std::unique_ptr<common::LogicalType> dataType;
     MemoryManager* mm;
     std::vector<std::unique_ptr<LocalVector>> vectors;
     common::row_idx_t numRows;

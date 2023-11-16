@@ -128,9 +128,7 @@ void RelInsertExecutor::insert(transaction::Transaction* tx) {
     for (auto i = 1; i < propertyRhsEvaluators.size(); ++i) {
         propertyRhsEvaluators[i]->evaluate();
     }
-    // TODO(Guodong): Fix insert.
-    //    table->insertRel(srcNodeIDVector, dstNodeIDVector, propertyRhsVectors);
-    //    relsStatistics.updateNumRelsByValue(table->getRelTableID(), 1);
+    table->insert(tx, srcNodeIDVector, dstNodeIDVector, propertyRhsVectors);
     for (auto i = 0u; i < propertyLhsVectors.size(); ++i) {
         auto lhsVector = propertyLhsVectors[i];
         auto rhsVector = propertyRhsVectors[i];

@@ -1,6 +1,5 @@
 -GROUP TinySnbSetRelTest
 -DATASET CSV tinysnb
--SKIP
 --
 
 -CASE SETMultiLabelNodePropTest

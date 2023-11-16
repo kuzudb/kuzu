@@ -75,7 +75,7 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
     dynamic_cast<InternalIDColumn*>(columns[REL_ID_COLUMN_ID].get())->setCommonTableID(tableID);
 }
 
-void RelTableData::initializeReadState(Transaction* transaction, RelDataDirection /*direction*/,
+void RelTableData::initializeReadState(Transaction* transaction,
     std::vector<common::column_id_t> columnIDs, ValueVector* inNodeIDVector,
     RelDataReadState* readState) {
     readState->direction = direction;
@@ -159,6 +159,14 @@ void RelTableData::lookup(Transaction* transaction, TableReadState& readState,
     }
 }
 
+void RelTableData::insert(transaction::Transaction* transaction, ValueVector* srcNodeIDVector,
+    ValueVector* dstNodeIDVector, const std::vector<ValueVector*>& propertyVectors) {
+    auto localTableData = ku_dynamic_cast<LocalTableData*, LocalRelTableData*>(
+        transaction->getLocalStorage()->getOrCreateLocalTableData(
+            tableID, columns, TableType::REL, dataFormat, getDataIdxFromDirection(direction)));
+    localTableData->insert(srcNodeIDVector, dstNodeIDVector, propertyVectors);
+}
+
 void RelTableData::update(transaction::Transaction* transaction, column_id_t columnID,
     ValueVector* srcNodeIDVector, ValueVector* relIDVector, ValueVector* propertyVector) {
     KU_ASSERT(columnID < columns.size() && columnID != REL_ID_COLUMN_ID);
@@ -166,6 +174,14 @@ void RelTableData::update(transaction::Transaction* transaction, column_id_t col
         transaction->getLocalStorage()->getOrCreateLocalTableData(
             tableID, columns, TableType::REL, dataFormat, getDataIdxFromDirection(direction)));
     localTableData->update(srcNodeIDVector, relIDVector, columnID, propertyVector);
+}
+
+bool RelTableData::delete_(transaction::Transaction* transaction, ValueVector* srcNodeIDVector,
+    ValueVector* dstNodeIDVector, ValueVector* relIDVector) {
+    auto localTableData = ku_dynamic_cast<LocalTableData*, LocalRelTableData*>(
+        transaction->getLocalStorage()->getOrCreateLocalTableData(
+            tableID, columns, TableType::REL, dataFormat, getDataIdxFromDirection(direction)));
+    return localTableData->delete_(srcNodeIDVector, dstNodeIDVector, relIDVector);
 }
 
 void RelTableData::append(NodeGroup* nodeGroup) {
@@ -191,14 +207,14 @@ void RelTableData::prepareLocalTableToCommit(
 }
 
 void RelTableData::prepareCommitForRegularColumns(
-    transaction::Transaction* transaction, kuzu::storage::LocalRelTableData* localTableData) {
+    Transaction* transaction, LocalRelTableData* localTableData) {
     for (auto& [nodeGroupIdx, nodeGroup] : localTableData->nodeGroups) {
         auto relNG = ku_dynamic_cast<LocalNodeGroup*, LocalRelNG*>(nodeGroup.get());
         KU_ASSERT(relNG);
         auto relNodeGroupInfo =
             ku_dynamic_cast<RelNGInfo*, RegularRelNGInfo*>(relNG->getRelNGInfo());
         adjColumn->prepareCommitForChunk(transaction, nodeGroupIdx, relNG->getAdjChunk(),
-            relNodeGroupInfo->adjInsertInfo, {}, relNodeGroupInfo->deleteInfo);
+            relNodeGroupInfo->adjInsertInfo, {} /* updateInfo */, relNodeGroupInfo->deleteInfo);
         for (auto columnID = 0u; columnID < columns.size(); columnID++) {
             columns[columnID]->prepareCommitForChunk(transaction, nodeGroupIdx,
                 relNG->getPropertyChunk(columnID), relNodeGroupInfo->insertInfoPerChunk[columnID],
@@ -208,7 +224,7 @@ void RelTableData::prepareCommitForRegularColumns(
 }
 
 void RelTableData::prepareCommitForCSRColumns(
-    transaction::Transaction* transaction, kuzu::storage::LocalRelTableData* localTableData) {
+    Transaction* transaction, LocalRelTableData* localTableData) {
     for (auto& [nodeGroupIdx, nodeGroup] : localTableData->nodeGroups) {
         auto relNG = ku_dynamic_cast<LocalNodeGroup*, LocalRelNG*>(nodeGroup.get());
         KU_ASSERT(relNG);
@@ -239,7 +255,8 @@ void RelTableData::prepareCommitForCSRColumns(
         } else {
             // We need to update the csr offset column. Thus, we cannot simply fall back to directly
             // update the adj column and property columns based on csr offsets.
-            KU_UNREACHABLE;
+            prepareCommitCSRNGWithSliding(transaction, nodeGroupIdx, relNodeGroupInfo,
+                csrOffsetChunk.get(), relIDChunk.get(), relNG);
         }
     }
 }
@@ -289,6 +306,160 @@ void RelTableData::prepareCommitCSRNGWithoutSliding(Transaction* transaction,
                 {} /* insertInfo */, csrOffsetToRowIdx, {} /* deleteInfo */);
         }
     }
+}
+
+void RelTableData::prepareCommitCSRNGWithSliding(Transaction* transaction,
+    node_group_idx_t nodeGroupIdx, CSRRelNGInfo* relNodeGroupInfo, ColumnChunk* csrOffsetChunk,
+    ColumnChunk* relIDChunk, LocalRelNG* localNodeGroup) {
+    // We need to update the csr offset column. Thus, we cannot simply fall back to directly update
+    // the adj column and property columns based on csr offsets. Instead, we need to for loop each
+    // node in the node group, slide accordingly, and update the csr offset column, adj column and
+    // property columns.
+    auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+    // Slide column by column.
+    // First we slide the csr offset column chunk, and keep the slided csr offset column chunk in
+    // memory, so it can be used for assertion checking later.
+    auto slidedCSROffsetChunk =
+        slideCSROffsetColumnChunk(csrOffsetChunk, relNodeGroupInfo, nodeGroupStartOffset);
+    csrOffsetColumn->append(slidedCSROffsetChunk.get(), nodeGroupIdx);
+    // Then we slide the adj column chunk, rel id column chunk, and all property column chunks.
+    auto slidedAdjColumnChunk =
+        slideCSRColumnChunk(transaction, csrOffsetChunk, slidedCSROffsetChunk.get(), relIDChunk,
+            relNodeGroupInfo->adjInsertInfo, {} /* updateInfo */, relNodeGroupInfo->deleteInfo,
+            nodeGroupStartOffset, adjColumn.get(), localNodeGroup->getAdjChunk());
+    adjColumn->append(slidedAdjColumnChunk.get(), nodeGroupIdx);
+    slidedAdjColumnChunk.reset();
+    for (auto columnID = 0u; columnID < columns.size(); columnID++) {
+        auto slidedColumnChunk = slideCSRColumnChunk(transaction, csrOffsetChunk,
+            slidedCSROffsetChunk.get(), relIDChunk, relNodeGroupInfo->insertInfoPerChunk[columnID],
+            relNodeGroupInfo->updateInfoPerChunk[columnID], relNodeGroupInfo->deleteInfo,
+            nodeGroupStartOffset, columns[columnID].get(),
+            localNodeGroup->getLocalColumnChunk(columnID));
+        columns[columnID]->append(slidedColumnChunk.get(), nodeGroupIdx);
+        slidedColumnChunk.reset();
+    }
+}
+
+std::unique_ptr<ColumnChunk> RelTableData::slideCSROffsetColumnChunk(
+    ColumnChunk* csrOffsetChunk, CSRRelNGInfo* relNodeGroupInfo, offset_t nodeGroupStartOffset) {
+    auto csrOffsets = (offset_t*)csrOffsetChunk->getData();
+    auto slidedCSRChunk =
+        ColumnChunkFactory::createColumnChunk(LogicalType::INT64(), enableCompression);
+    int64_t currentCSROffset = 0;
+    auto currentNumSrcNodesInNG = csrOffsetChunk->getNumValues();
+    auto newNumSrcNodesInNG = currentNumSrcNodesInNG;
+    for (auto i = 0; i < currentNumSrcNodesInNG; i++) {
+        auto nodeOffset = nodeGroupStartOffset + i;
+        int64_t numRowsInCSR = i == 0 ? csrOffsets[i] : csrOffsets[i] - csrOffsets[i - 1];
+        KU_ASSERT(numRowsInCSR >= 0);
+        int64_t numDeletions = relNodeGroupInfo->deleteInfo.contains(nodeOffset) ?
+                                   relNodeGroupInfo->deleteInfo[nodeOffset].size() :
+                                   0;
+        int64_t numInsertions = relNodeGroupInfo->adjInsertInfo.contains(nodeOffset) ?
+                                    relNodeGroupInfo->adjInsertInfo[nodeOffset].size() :
+                                    0;
+        int64_t numRowsAfterSlide = numRowsInCSR + numInsertions - numDeletions;
+        KU_ASSERT(numRowsAfterSlide >= 0);
+        currentCSROffset += numRowsAfterSlide;
+        slidedCSRChunk->setValue<offset_t>(currentCSROffset, i);
+    }
+    for (auto i = currentNumSrcNodesInNG; i < StorageConstants::NODE_GROUP_SIZE; i++) {
+        auto nodeOffset = nodeGroupStartOffset + i;
+        // Assert that should only have insertions for these nodes.
+        KU_ASSERT(!relNodeGroupInfo->deleteInfo.contains(nodeOffset));
+        for (auto columnID = 0u; columnID < columns.size(); columnID++) {
+            KU_ASSERT(!relNodeGroupInfo->updateInfoPerChunk[columnID].contains(nodeOffset));
+        }
+        auto numRowsInCSR = 0;
+        if (relNodeGroupInfo->adjInsertInfo.contains(nodeOffset)) {
+            // This node is inserted now. Update csr offset accordingly.
+            numRowsInCSR += relNodeGroupInfo->adjInsertInfo.at(nodeOffset).size();
+            newNumSrcNodesInNG = i + 1;
+        }
+        currentCSROffset += numRowsInCSR;
+        slidedCSRChunk->setValue<offset_t>(currentCSROffset, i);
+    }
+    slidedCSRChunk->setNumValues(newNumSrcNodesInNG);
+    return slidedCSRChunk;
+}
+
+std::unique_ptr<ColumnChunk> RelTableData::slideCSRColumnChunk(Transaction* transaction,
+    ColumnChunk* csrOffsetChunk, ColumnChunk* slidedCSROffsetChunkForCheck, ColumnChunk* relIDChunk,
+    const offset_to_offset_to_row_idx_t& insertInfo,
+    const offset_to_offset_to_row_idx_t& updateInfo, const offset_to_offset_set_t& deleteInfo,
+    node_group_idx_t nodeGroupIdx, Column* column, LocalVectorCollection* localChunk) {
+    auto oldCapacity = csrOffsetChunk->getNumValues() == 0 ?
+                           0 :
+                           csrOffsetChunk->getValue<offset_t>(csrOffsetChunk->getNumValues() - 1);
+    auto newCapacity = slidedCSROffsetChunkForCheck->getNumValues() == 0 ?
+                           0 :
+                           slidedCSROffsetChunkForCheck->getValue<offset_t>(
+                               slidedCSROffsetChunkForCheck->getNumValues() - 1);
+    // TODO: No need to allocate the new column chunk if this is relID.
+    auto columnChunk = ColumnChunkFactory::createColumnChunk(
+        column->getDataType()->copy(), enableCompression, oldCapacity);
+    column->scan(transaction, nodeGroupIdx, columnChunk.get());
+    auto newColumnChunk = ColumnChunkFactory::createColumnChunk(
+        column->getDataType()->copy(), enableCompression, newCapacity);
+    auto currentNumSrcNodesInNG = csrOffsetChunk->getNumValues();
+    auto csrOffsets = (offset_t*)csrOffsetChunk->getData();
+    auto relIDs = (offset_t*)relIDChunk->getData();
+    auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+    for (auto i = 0; i < currentNumSrcNodesInNG; i++) {
+        auto nodeOffset = nodeGroupStartOffset + i;
+        auto [startCSROffset, endCSROffset] =
+            getCSRStartAndEndOffset(nodeGroupStartOffset, csrOffsets, nodeOffset);
+        auto hasDeletions = deleteInfo.contains(nodeOffset);
+        auto hasUpdates = updateInfo.contains(nodeOffset);
+        auto hasInsertions = insertInfo.contains(nodeOffset);
+        if (!hasDeletions && !hasUpdates && !hasInsertions) {
+            // Append the whole csr.
+            newColumnChunk->append(
+                columnChunk.get(), startCSROffset, endCSROffset - startCSROffset);
+            continue;
+        }
+        for (auto csrOffset = startCSROffset; csrOffset < endCSROffset; csrOffset++) {
+            auto relID = relIDs[csrOffset];
+            if (hasDeletions && deleteInfo.at(nodeOffset).contains(relID)) {
+                // This rel is deleted now. Skip.
+            } else if (hasUpdates && updateInfo.at(nodeOffset).contains(relID)) {
+                // This rel is inserted or updated. Append from local data to the column chunk.
+                auto rowIdx = insertInfo.at(nodeOffset).at(relID);
+                auto localVector = localChunk->getLocalVector(rowIdx)->getVector();
+                auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
+                localVector->state->selVector->selectedPositions[0] = offsetInVector;
+                newColumnChunk->append(localVector);
+            } else {
+                // This rel is not updated. Append to the column chunk.
+                newColumnChunk->append(columnChunk.get(), csrOffset, 1 /* numValuesToAppend */);
+            }
+        }
+        if (hasInsertions) {
+            // Append the newly inserted rels.
+            for (auto [_, rowIdx] : insertInfo.at(nodeOffset)) {
+                auto localVector = localChunk->getLocalVector(rowIdx)->getVector();
+                auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
+                localVector->state->selVector->selectedPositions[0] = offsetInVector;
+                newColumnChunk->append(localVector);
+            }
+        }
+    }
+    if (!insertInfo.empty()) {
+        // Append the newly inserted rels.
+        for (auto i = currentNumSrcNodesInNG; i < StorageConstants::NODE_GROUP_SIZE; i++) {
+            auto nodeOffset = nodeGroupStartOffset + i;
+            if (insertInfo.contains(nodeOffset)) {
+                for (auto [relID, rowIdx] : insertInfo.at(nodeOffset)) {
+                    auto localVector = localChunk->getLocalVector(rowIdx)->getVector();
+                    auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
+                    localVector->state->selVector->selectedPositions[0] = offsetInVector;
+                    newColumnChunk->append(localVector);
+                }
+            }
+        }
+    }
+    KU_ASSERT(newColumnChunk->getNumValues() == newCapacity);
+    return newColumnChunk;
 }
 
 void RelTableData::checkpointInMemory() {

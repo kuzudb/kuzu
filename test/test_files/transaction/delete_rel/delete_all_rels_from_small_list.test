@@ -1,6 +1,5 @@
 -GROUP DeleteRelTest
 -DATASET CSV rel-update-tests
--SKIP
 --
 
 -CASE deleteAllRelsFromSmallListCommitNormalExecution

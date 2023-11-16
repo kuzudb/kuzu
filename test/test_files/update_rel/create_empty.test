@@ -1,10 +1,8 @@
 -GROUP EmptyCreateRelTest
 -DATASET CSV empty
--SKIP
 --
 
 -CASE CreateOneToOneRel
--PARALLELISM 1
 -STATEMENT CREATE NODE TABLE N1(ID INT64, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE N2(ID INT64, PRIMARY KEY(ID));
@@ -21,9 +19,3 @@
 ---- 2
 12
 8
--STATEMENT COPY Rel1 FROM '${KUZU_ROOT_DIRECTORY}/dataset/one_to_one_rel/rel.csv';
----- ok
--STATEMENT MATCH (n1:N1)-[e:Rel1]->(n2:N2) RETURN e
----- 2
-(0:0)-{_LABEL: Rel1, _ID: 2:0}->(1:1)
-(0:1)-{_LABEL: Rel1, _ID: 2:1}->(1:0)

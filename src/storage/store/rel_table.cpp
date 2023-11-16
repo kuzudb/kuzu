@@ -30,11 +30,32 @@ void RelTable::read(Transaction* transaction, TableReadState& readState,
     }
 }
 
+void RelTable::insert(Transaction* transaction, ValueVector* srcNodeIDVector,
+    ValueVector* dstNodeIDVector, const std::vector<ValueVector*>& propertyVectors) {
+    fwdRelTableData->insert(transaction, srcNodeIDVector, dstNodeIDVector, propertyVectors);
+    bwdRelTableData->insert(transaction, dstNodeIDVector, srcNodeIDVector, propertyVectors);
+    auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
+    relsStats->updateNumRelsByValue(tableID, 1);
+}
+
 void RelTable::update(transaction::Transaction* transaction, column_id_t columnID,
     ValueVector* srcNodeIDVector, ValueVector* dstNodeIDVector, ValueVector* relIDVector,
     ValueVector* propertyVector) {
     fwdRelTableData->update(transaction, columnID, srcNodeIDVector, relIDVector, propertyVector);
     bwdRelTableData->update(transaction, columnID, dstNodeIDVector, relIDVector, propertyVector);
+}
+
+void RelTable::delete_(Transaction* transaction, ValueVector* srcNodeIDVector,
+    ValueVector* dstNodeIDVector, ValueVector* relIDVector) {
+    auto fwdDeleted =
+        fwdRelTableData->delete_(transaction, srcNodeIDVector, dstNodeIDVector, relIDVector);
+    auto bwdDeleted =
+        bwdRelTableData->delete_(transaction, dstNodeIDVector, srcNodeIDVector, relIDVector);
+    KU_ASSERT(fwdDeleted == bwdDeleted);
+    if (fwdDeleted && bwdDeleted) {
+        auto relsStats = ku_dynamic_cast<TablesStatistics*, RelsStoreStats*>(tablesStatistics);
+        relsStats->updateNumRelsByValue(tableID, -1);
+    }
 }
 
 void RelTable::scan(Transaction* transaction, RelDataReadState& scanState,

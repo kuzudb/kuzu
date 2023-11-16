@@ -48,22 +48,19 @@ void RelDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* /*context*/
     relIDVector = resultSet->getValueVector(relIDPos).get();
 }
 
-void SingleLabelRelDeleteExecutor::delete_() {
-    // TODO(Guodong): Fix delete.
-    //    table->deleteRel(srcNodeIDVector, dstNodeIDVector, relIDVector);
-    //    relsStatistic->updateNumRelsByValue(table->getTableID(), -1);
+void SingleLabelRelDeleteExecutor::delete_(ExecutionContext* context) {
+    table->delete_(context->clientContext->getActiveTransaction(), srcNodeIDVector, dstNodeIDVector,
+        relIDVector);
 }
 
-void MultiLabelRelDeleteExecutor::delete_() {
+void MultiLabelRelDeleteExecutor::delete_(ExecutionContext* context) {
     KU_ASSERT(relIDVector->state->isFlat());
     auto pos = relIDVector->state->selVector->selectedPositions[0];
     auto relID = relIDVector->getValue<internalID_t>(pos);
     KU_ASSERT(tableIDToTableMap.contains(relID.tableID));
     auto [table, statistic] = tableIDToTableMap.at(relID.tableID);
-    // TODO(Guodong): Fix delete.
-    //    table->deleteRel(srcNodeIDVector, dstNodeIDVector, relIDVector);
-    //    KU_ASSERT(table->getTableID() == relID.tableID);
-    //    statistic->updateNumRelsByValue(table->getTableID(), -1);
+    table->delete_(context->clientContext->getActiveTransaction(), srcNodeIDVector, dstNodeIDVector,
+        relIDVector);
 }
 
 } // namespace processor

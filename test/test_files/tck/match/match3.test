@@ -1,11 +1,10 @@
--GROUP TCK
+-GROUP TCKMatch3
 -DATASET CSV tck
 
 --
 
 # Get neighbours
 -CASE Scenario1
--SKIP
 -STATEMENT CREATE NODE TABLE A(num INT64, PRIMARY KEY(num));
 ---- ok
 -STATEMENT CREATE NODE TABLE B(num INT64, PRIMARY KEY(num));
@@ -20,7 +19,6 @@
 
 # Directed match of a simple relationship
 -CASE Scenario2
--SKIP
 -LOG Scenario2
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
@@ -36,7 +34,6 @@
 
 # Undirected match on simple relationship graph
 -CASE Scenario3
--SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
@@ -71,7 +68,6 @@
 
 # Return two subgraphs with bound undirected relationship
 -CASE Scenario5
--SKIP
 -STATEMENT CREATE NODE TABLE A(num INT64, PRIMARY KEY(num));
 ---- ok
 -STATEMENT CREATE NODE TABLE B(num INT64, PRIMARY KEY(num));
@@ -87,7 +83,6 @@
 
 # Matching a relationship pattern using a label predicate
 -CASE Scenario6
--SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE Foo(ID SERIAL, PRIMARY KEY(ID));
@@ -95,15 +90,14 @@
 -STATEMENT CREATE REL TABLE T(FROM A TO Foo);
 ---- ok
 -STATEMENT CREATE (a)-[:T]->(b1), (a)-[:T]->(b2)
----- 0
-# not implemented
+---- error
+Binder exception: Create node a with multiple node labels is not supported.
 
 # Matching nodes with many labels
 #-CASE Scenario7
 
 # Matching using relationship predicate with multiples of the same type
 -CASE Scenario8
--SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
@@ -118,7 +112,6 @@
 
 # Get related to related to
 -CASE Scenario9
--SKIP
 -STATEMENT CREATE NODE TABLE A(num INT64, PRIMARY KEY(num));
 ---- ok
 -STATEMENT CREATE NODE TABLE B(num INT64, PRIMARY KEY(num));
@@ -137,7 +130,6 @@
 
 # Matching using self-referencing pattern returns no result
 -CASE Scenario10
--SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE T(FROM A TO A);
@@ -168,7 +160,6 @@
 # Directed match on self-relationship graph
 # Directed match of self-relationship on self-relationship graph
 -CASE Scenario13&14
--SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE LOOP(FROM A TO A);
@@ -216,7 +207,6 @@
 # handle cyclic patterns
 # Handling cyclic patterns when separated into two parts
 -CASE Scenario17&18
--SKIP
 -STATEMENT CREATE NODE TABLE T1(ID SERIAL, name STRING, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE T2(ID SERIAL, name STRING, PRIMARY KEY(ID));
@@ -238,7 +228,6 @@ a
 # Two bound nodes pointing to the same node
 # -- is equiv to <--> so do not implement
 -CASE Scenario19
--SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE KNOWS(FROM A TO A);
@@ -255,7 +244,6 @@ a
 
 # Three bound nodes pointing to the same node
 -CASE Scenario20
--SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE KNOWS(FROM A TO A);
@@ -273,7 +261,6 @@ a
 
 # Three bound nodes pointing to the same node with extra connections
 -CASE Scenario21
--SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE KNOWS(FROM A TO A);
@@ -295,7 +282,6 @@ a
 
 # Returning bound nodes that are not part of the pattern
 -CASE Scenario22
--SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE KNOWS(FROM A TO A);
@@ -312,7 +298,6 @@ a
 
 # Matching disconnected patterns
 -CASE Scenario23
--SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
@@ -336,7 +321,6 @@ a
 
 # Matching twice with duplicate relationship types on same relationship
 -CASE Scenario24
--SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
@@ -361,7 +345,6 @@ Binder exception: Bind relationship r to relationship with same name is not supp
 
 # Matching twice with an additional node label
 -CASE Scenario25
--SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE T (FROM A TO A);
@@ -377,7 +360,6 @@ Binder exception: Bind relationship r to relationship with same name is not supp
 
 # Matching twice with a duplicate predicate
 -CASE Scenario26
--SKIP
 -STATEMENT CREATE NODE TABLE X(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE Y(ID SERIAL, PRIMARY KEY(ID));
@@ -395,14 +377,14 @@ Binder exception: Bind relationship r to relationship with same name is not supp
 
 # Matching from null nodes should return no results owing to finding no matches
 -CASE Scenario27
--SKIP
 -STATEMENT CREATE NODE TABLE X(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT OPTIONAL MATCH (a)
            WITH a
            MATCH (a)-->(b)
            RETURN b
----- 0
+---- error
+Binder exception: No rel table exists in database.
 
 # Matching from null nodes should return no results owing to matches being filtered out
 #-CASE Scenario28

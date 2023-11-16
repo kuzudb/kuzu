@@ -3,6 +3,7 @@
 -SKIP
 --
 
+# This test should be added back once support read under write transaction.
 -DEFINE_STATEMENT_BLOCK DELETE_REL_TEST_DELETE_ALL_INSERTED_RELS [
 -STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 1 AND p2.ID = 51 create (p1)-[:knows {length: 51}]->(p2);
 ---- ok
