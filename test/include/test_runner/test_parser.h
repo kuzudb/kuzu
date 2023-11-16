@@ -125,7 +125,7 @@ private:
     // Example: ${KUZU_ROOT_DIRECTORY} will be replaced by
     // KUZU_ROOT_DIRECTORY
     std::unordered_map<std::string, std::string> variableMap = {
-        {"KUZU_ROOT_DIRECTORY", KUZU_ROOT_DIRECTORY}};
+        {"KUZU_ROOT_DIRECTORY", KUZU_ROOT_DIRECTORY}, {"KUZU_VERSION", common::KUZU_VERSION}};
 };
 
 } // namespace testing
