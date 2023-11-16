@@ -59,18 +59,6 @@ Value* NodeVal::getLabelVal(const Value* val) {
     return val->children[fieldIdx].get();
 }
 
-nodeID_t NodeVal::getNodeID(const Value* val) {
-    throwIfNotNode(val);
-    auto nodeIDVal = getNodeIDVal(val);
-    return nodeIDVal->getValue<nodeID_t>();
-}
-
-std::string NodeVal::getLabelName(const Value* val) {
-    throwIfNotNode(val);
-    auto labelVal = getLabelVal(val);
-    return labelVal->getValue<std::string>();
-}
-
 std::string NodeVal::toString(const Value* val) {
     throwIfNotNode(val);
     return val->toString();

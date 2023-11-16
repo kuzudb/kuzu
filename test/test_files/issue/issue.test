@@ -122,3 +122,13 @@ Runtime exception: Found duplicated primary key value rename 2x, which violates 
 ---- 2
 {_ID: 0:1, _LABEL: thing, name: original}
 {_ID: 0:0, _LABEL: thing, name: rename 2x}
+
+
+-CASE 2294
+-STATEMENT CREATE NODE TABLE T(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE KNOWS(FROM T TO T);
+---- ok
+-STATEMENT OPTIONAL MATCH (a)-[b:KNOWS]->(c) return a,b,c;
+---- 1
+||

@@ -684,17 +684,23 @@ TEST_F(CApiValueTest, GetRelVal) {
     auto flatTuple = kuzu_query_result_get_next(result);
     auto rel = kuzu_flat_tuple_get_value(flatTuple, 0);
     ASSERT_TRUE(rel->_is_owned_by_cpp);
-    auto relSrcID = kuzu_rel_val_get_src_id(rel);
+    auto relSrcIDVal = kuzu_rel_val_get_src_id_val(rel);
+    auto relSrcID = kuzu_value_get_internal_id(relSrcIDVal);
     ASSERT_EQ(relSrcID.table_id, 0);
     ASSERT_EQ(relSrcID.offset, 0);
-    auto relDstID = kuzu_rel_val_get_dst_id(rel);
+    auto relDstIDVal = kuzu_rel_val_get_dst_id_val(rel);
+    auto relDstID = kuzu_value_get_internal_id(relDstIDVal);
     ASSERT_EQ(relDstID.table_id, 0);
     ASSERT_EQ(relDstID.offset, 1);
-    auto relLabel = kuzu_rel_val_get_label_name(rel);
-    ASSERT_STREQ(relLabel, "knows");
+    auto relLabel = kuzu_rel_val_get_label_val(rel);
+    auto relLabelStr = kuzu_value_get_string(relLabel);
+    ASSERT_STREQ(relLabelStr, "knows");
     auto propertiesSize = kuzu_rel_val_get_property_size(rel);
     ASSERT_EQ(propertiesSize, 6);
-    free(relLabel);
+    free(relLabelStr);
+    kuzu_value_destroy(relLabel);
+    kuzu_value_destroy(relSrcIDVal);
+    kuzu_value_destroy(relDstIDVal);
     kuzu_value_destroy(rel);
     kuzu_flat_tuple_destroy(flatTuple);
     kuzu_query_result_destroy(result);
@@ -850,9 +856,12 @@ TEST_F(CApiValueTest, NodeValGetID) {
 
     auto flatTuple = kuzu_query_result_get_next(result);
     auto nodeVal = kuzu_flat_tuple_get_value(flatTuple, 0);
-    auto nodeID = kuzu_node_val_get_id(nodeVal);
-    ASSERT_EQ(nodeID.table_id, 0);
-    ASSERT_EQ(nodeID.offset, 0);
+    auto nodeIDVal = kuzu_node_val_get_id_val(nodeVal);
+    ASSERT_NE(nodeIDVal, nullptr);
+    auto internalID = kuzu_value_get_internal_id(nodeIDVal);
+    ASSERT_EQ(internalID.table_id, 0);
+    ASSERT_EQ(internalID.offset, 0);
+    kuzu_value_destroy(nodeIDVal);
     kuzu_value_destroy(nodeVal);
     kuzu_flat_tuple_destroy(flatTuple);
     kuzu_query_result_destroy(result);
@@ -867,9 +876,11 @@ TEST_F(CApiValueTest, NodeValGetLabelName) {
 
     auto flatTuple = kuzu_query_result_get_next(result);
     auto nodeVal = kuzu_flat_tuple_get_value(flatTuple, 0);
-    auto labelStr = kuzu_node_val_get_label_name(nodeVal);
+    auto labelVal = kuzu_node_val_get_label_val(nodeVal);
+    auto labelStr = kuzu_value_get_string(labelVal);
     ASSERT_STREQ(labelStr, "person");
     free(labelStr);
+    kuzu_value_destroy(labelVal);
     kuzu_value_destroy(nodeVal);
     kuzu_flat_tuple_destroy(flatTuple);
     kuzu_query_result_destroy(result);

@@ -183,8 +183,10 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     }
     case LogicalTypeID::NODE: {
         py::dict dict;
-        dict["_label"] = py::cast(NodeVal::getLabelName(&value));
-        dict["_id"] = convertNodeIdToPyDict(NodeVal::getNodeID(&value));
+        auto nodeIdVal = NodeVal::getNodeIDVal(&value);
+        dict["_id"] = nodeIdVal ? convertValueToPyObject(*nodeIdVal) : py::none();
+        auto labelVal = NodeVal::getLabelVal(&value);
+        dict["_label"] = labelVal ? convertValueToPyObject(*labelVal) : py::none();
         auto numProperties = NodeVal::getNumProperties(&value);
         for (auto i = 0u; i < numProperties; ++i) {
             auto key = py::str(NodeVal::getPropertyName(&value, i));
@@ -195,9 +197,12 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     }
     case LogicalTypeID::REL: {
         py::dict dict;
-        dict["_src"] = convertNodeIdToPyDict(RelVal::getSrcNodeID(&value));
-        dict["_dst"] = convertNodeIdToPyDict(RelVal::getDstNodeID(&value));
-        dict["_label"] = py::cast(RelVal::getLabelName(&value));
+        auto srcIdVal = RelVal::getSrcNodeIDVal(&value);
+        dict["_src"] = srcIdVal ? convertValueToPyObject(*srcIdVal) : py::none();
+        auto dstIdVal = RelVal::getDstNodeIDVal(&value);
+        dict["_dst"] = dstIdVal ? convertValueToPyObject(*dstIdVal) : py::none();
+        auto labelVal = RelVal::getLabelVal(&value);
+        dict["_label"] = labelVal ? convertValueToPyObject(*labelVal) : py::none();
         auto numProperties = RelVal::getNumProperties(&value);
         for (auto i = 0u; i < numProperties; ++i) {
             auto key = py::str(RelVal::getPropertyName(&value, i));

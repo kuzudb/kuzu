@@ -710,6 +710,11 @@ std::string Value::structToString() const {
 }
 
 std::string Value::nodeToString() const {
+    if (children[0]->isNull_) {
+        // NODE is represented as STRUCT. We don't have a way to represent STRUCT as null.
+        // Instead, we check the internal ID entry to decide if a NODE is NULL.
+        return "";
+    }
     std::string result = "{";
     auto fieldNames = StructType::getFieldNames(dataType.get());
     for (auto i = 0u; i < childrenSize; ++i) {
@@ -727,6 +732,11 @@ std::string Value::nodeToString() const {
 }
 
 std::string Value::relToString() const {
+    if (children[3]->isNull_) {
+        // REL is represented as STRUCT. We don't have a way to represent STRUCT as null.
+        // Instead, we check the internal ID entry to decide if a REL is NULL.
+        return "";
+    }
     std::string result = "(" + children[0]->toString() + ")-{";
     auto fieldNames = StructType::getFieldNames(dataType.get());
     for (auto i = 2u; i < childrenSize; ++i) {

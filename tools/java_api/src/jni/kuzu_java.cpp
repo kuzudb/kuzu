@@ -929,8 +929,11 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1to_1string(
 JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1node_1val_1get_1id(
     JNIEnv* env, jclass, jobject thisNV) {
     auto nv = getValue(env, thisNV);
-    auto id = NodeVal::getNodeID(nv);
-
+    auto idVal = NodeVal::getNodeIDVal(nv);
+    if (idVal == nullptr) {
+        return NULL;
+    }
+    auto id = idVal->getValue<internalID_t>();
     jclass retClass = env->FindClass("com/kuzudb/KuzuInternalID");
     jmethodID ctor = env->GetMethodID(retClass, "<init>", "(JJ)V");
     jobject ret = env->NewObject(retClass, ctor, id.tableID, id.offset);
@@ -940,7 +943,11 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1node_1val_1get_1id(
 JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1node_1val_1get_1label_1name(
     JNIEnv* env, jclass, jobject thisNV) {
     auto* nv = getValue(env, thisNV);
-    auto label = NodeVal::getLabelName(nv);
+    auto labelVal = NodeVal::getLabelVal(nv);
+    if (labelVal == nullptr) {
+        return NULL;
+    }
+    auto label = labelVal->getValue<std::string>();
     return env->NewStringUTF(label.c_str());
 }
 
@@ -980,8 +987,11 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1node_1val_1to_1string
 JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1rel_1val_1get_1src_1id(
     JNIEnv* env, jclass, jobject thisRV) {
     auto* rv = getValue(env, thisRV);
-    internalID_t id = RelVal::getSrcNodeID(rv);
-
+    auto srcIdVal = RelVal::getSrcNodeIDVal(rv);
+    if (srcIdVal == nullptr) {
+        return NULL;
+    }
+    internalID_t id = srcIdVal->getValue<internalID_t>();
     jclass retClass = env->FindClass("com/kuzudb/KuzuInternalID");
     jmethodID ctor = env->GetMethodID(retClass, "<init>", "(JJ)V");
     jobject ret = env->NewObject(retClass, ctor, id.tableID, id.offset);
@@ -991,8 +1001,11 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1rel_1val_1get_1src_1i
 JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1rel_1val_1get_1dst_1id(
     JNIEnv* env, jclass, jobject thisRV) {
     auto* rv = getValue(env, thisRV);
-    internalID_t id = RelVal::getDstNodeID(rv);
-
+    auto dstIdVal = RelVal::getDstNodeIDVal(rv);
+    if (dstIdVal == nullptr) {
+        return NULL;
+    }
+    internalID_t id = dstIdVal->getValue<internalID_t>();
     jclass retClass = env->FindClass("com/kuzudb/KuzuInternalID");
     jmethodID ctor = env->GetMethodID(retClass, "<init>", "(JJ)V");
     jobject ret = env->NewObject(retClass, ctor, id.tableID, id.offset);
@@ -1002,7 +1015,11 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1rel_1val_1get_1dst_1i
 JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1rel_1val_1get_1label_1name(
     JNIEnv* env, jclass, jobject thisRV) {
     auto* rv = getValue(env, thisRV);
-    auto label = RelVal::getLabelName(rv);
+    auto labelVal = RelVal::getLabelVal(rv);
+    if (labelVal == nullptr) {
+        return NULL;
+    }
+    auto label = labelVal->getValue<std::string>();
     return env->NewStringUTF(label.c_str());
 }
 

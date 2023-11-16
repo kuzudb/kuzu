@@ -7,7 +7,6 @@
 #include <vector>
 
 #include "common/api.h"
-#include "common/types/internal_id_t.h"
 
 namespace kuzu {
 namespace common {
@@ -48,17 +47,9 @@ public:
      */
     KUZU_API static Value* getDstNodeIDVal(const Value* val);
     /**
-     * @return the src nodeID value of the RelVal as nodeID struct.
+     * @return the label value of the RelVal.
      */
-    KUZU_API static nodeID_t getSrcNodeID(const Value* val);
-    /**
-     * @return the dst nodeID value of the RelVal as nodeID struct.
-     */
-    KUZU_API static nodeID_t getDstNodeID(const Value* val);
-    /**
-     * @return the name of the RelVal.
-     */
-    KUZU_API static std::string getLabelName(const Value* val);
+    KUZU_API static Value* getLabelVal(const Value* val);
     /**
      * @return the value of the RelVal in string format.
      */

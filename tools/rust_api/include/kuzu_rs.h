@@ -102,10 +102,10 @@ const kuzu::common::Value& rel_value_get_property_value(
     const kuzu::common::Value& value, size_t index);
 
 /* NodeVal */
-std::array<uint64_t, 2> node_value_get_node_id(const kuzu::common::Value& val);
+const kuzu::common::Value& node_value_get_node_id(const kuzu::common::Value& val);
 
 /* RelVal */
-std::array<uint64_t, 2> rel_value_get_src_id(const kuzu::common::Value& val);
+const kuzu::common::Value& rel_value_get_src_id(const kuzu::common::Value& val);
 std::array<uint64_t, 2> rel_value_get_dst_id(const kuzu::common::Value& val);
 
 /* RecursiveRel */

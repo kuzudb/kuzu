@@ -353,18 +353,6 @@ kuzu_value* kuzu_node_val_get_label_val(kuzu_value* node_val) {
     return c_value;
 }
 
-kuzu_internal_id_t kuzu_node_val_get_id(kuzu_value* node_val) {
-    auto id = NodeVal::getNodeID(static_cast<Value*>(node_val->_value));
-    kuzu_internal_id_t c_id;
-    c_id.offset = id.offset;
-    c_id.table_id = id.tableID;
-    return c_id;
-}
-
-char* kuzu_node_val_get_label_name(kuzu_value* node_val) {
-    return convertToOwnedCString(NodeVal::getLabelName(static_cast<Value*>(node_val->_value)));
-}
-
 uint64_t kuzu_node_val_get_property_size(kuzu_value* node_val) {
     return NodeVal::getNumProperties(static_cast<Value*>(node_val->_value));
 }
@@ -402,24 +390,12 @@ kuzu_value* kuzu_rel_val_get_dst_id_val(kuzu_value* rel_val) {
     return c_value;
 }
 
-kuzu_internal_id_t kuzu_rel_val_get_src_id(kuzu_value* rel_val) {
-    auto id = RelVal::getSrcNodeID(static_cast<Value*>(rel_val->_value));
-    kuzu_internal_id_t c_id;
-    c_id.offset = id.offset;
-    c_id.table_id = id.tableID;
-    return c_id;
-}
-
-kuzu_internal_id_t kuzu_rel_val_get_dst_id(kuzu_value* rel_val) {
-    auto id = RelVal::getDstNodeID(static_cast<Value*>(rel_val->_value));
-    kuzu_internal_id_t c_id;
-    c_id.offset = id.offset;
-    c_id.table_id = id.tableID;
-    return c_id;
-}
-
-char* kuzu_rel_val_get_label_name(kuzu_value* rel_val) {
-    return convertToOwnedCString(RelVal::getLabelName(static_cast<Value*>(rel_val->_value)));
+kuzu_value* kuzu_rel_val_get_label_val(kuzu_value* rel_val) {
+    auto label_val = RelVal::getLabelVal(static_cast<Value*>(rel_val->_value));
+    auto* c_value = (kuzu_value*)malloc(sizeof(kuzu_value));
+    c_value->_value = label_val;
+    c_value->_is_owned_by_cpp = true;
+    return c_value;
 }
 
 uint64_t kuzu_rel_val_get_property_size(kuzu_value* rel_val) {

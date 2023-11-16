@@ -957,16 +957,6 @@ KUZU_C_API kuzu_value* kuzu_node_val_get_id_val(kuzu_value* node_val);
  */
 KUZU_C_API kuzu_value* kuzu_node_val_get_label_val(kuzu_value* node_val);
 /**
- * @brief Returns the internal id value of the given node value as internal_id.
- * @param node_val The node value to return.
- */
-KUZU_C_API kuzu_internal_id_t kuzu_node_val_get_id(kuzu_value* node_val);
-/**
- * @brief Returns the label value of the given node value as string.
- * @param node_val The node value to return.
- */
-KUZU_C_API char* kuzu_node_val_get_label_name(kuzu_value* node_val);
-/**
  * @brief Returns the number of properties of the given node value.
  * @param node_val The node value to return.
  */
@@ -1000,20 +990,10 @@ KUZU_C_API kuzu_value* kuzu_rel_val_get_src_id_val(kuzu_value* rel_val);
  */
 KUZU_C_API kuzu_value* kuzu_rel_val_get_dst_id_val(kuzu_value* rel_val);
 /**
- * @brief Returns the internal id value of the source node of the given rel value.
+ * @brief Returns the label value of the given rel value.
  * @param rel_val The rel value to return.
  */
-KUZU_C_API kuzu_internal_id_t kuzu_rel_val_get_src_id(kuzu_value* rel_val);
-/**
- * @brief Returns the internal id value of the destination node of the given rel value.
- * @param rel_val The rel value to return.
- */
-KUZU_C_API kuzu_internal_id_t kuzu_rel_val_get_dst_id(kuzu_value* rel_val);
-/**
- * @brief Returns the label of the given rel value.
- * @param rel_val The rel value to return.
- */
-KUZU_C_API char* kuzu_rel_val_get_label_name(kuzu_value* rel_val);
+KUZU_C_API kuzu_value* kuzu_rel_val_get_label_val(kuzu_value* rel_val);
 /**
  * @brief Returns the number of properties of the given rel value.
  * @param rel_val The rel value to return.
