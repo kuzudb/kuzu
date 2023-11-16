@@ -1,5 +1,6 @@
 #include "storage/store/node_table_data.h"
 
+#include "storage/local_storage/local_table.h"
 #include "storage/stats/nodes_store_statistics.h"
 
 using namespace kuzu::catalog;
@@ -38,8 +39,10 @@ void NodeTableData::scan(Transaction* transaction, TableReadState& readState,
         }
     }
     if (transaction->isWriteTransaction()) {
-        transaction->getLocalStorage()->scan(
-            tableID, nodeIDVector, readState.columnIDs, outputVectors);
+        auto localTableData = transaction->getLocalStorage()->getLocalTableData(tableID);
+        if (localTableData) {
+            localTableData->scan(nodeIDVector, readState.columnIDs, outputVectors);
+        }
     }
 }
 
@@ -55,23 +58,23 @@ void NodeTableData::insert(Transaction* transaction, ValueVector* nodeIDVector,
         newNodeGroup->finalize(currentNumNodeGroups);
         append(newNodeGroup.get());
     }
-    auto localStorage = transaction->getLocalStorage();
-    localStorage->initializeLocalTable(tableID, columns);
-    localStorage->insert(tableID, nodeIDVector, propertyVectors);
+    auto localTableData =
+        transaction->getLocalStorage()->getOrCreateLocalTableData(tableID, columns);
+    localTableData->insert(nodeIDVector, propertyVectors);
 }
 
 void NodeTableData::update(Transaction* transaction, column_id_t columnID,
     ValueVector* nodeIDVector, ValueVector* propertyVector) {
     KU_ASSERT(columnID < columns.size());
-    auto localStorage = transaction->getLocalStorage();
-    localStorage->initializeLocalTable(tableID, columns);
-    localStorage->update(tableID, nodeIDVector, columnID, propertyVector);
+    auto localTableData =
+        transaction->getLocalStorage()->getOrCreateLocalTableData(tableID, columns);
+    localTableData->update(nodeIDVector, columnID, propertyVector);
 }
 
 void NodeTableData::delete_(Transaction* transaction, ValueVector* nodeIDVector) {
-    auto localStorage = transaction->getLocalStorage();
-    localStorage->initializeLocalTable(tableID, columns);
-    localStorage->delete_(tableID, nodeIDVector);
+    auto localTableData =
+        transaction->getLocalStorage()->getOrCreateLocalTableData(tableID, columns);
+    localTableData->delete_(nodeIDVector);
 }
 
 void NodeTableData::lookup(Transaction* transaction, TableReadState& readState,
@@ -87,8 +90,10 @@ void NodeTableData::lookup(Transaction* transaction, TableReadState& readState,
         }
     }
     if (transaction->isWriteTransaction()) {
-        transaction->getLocalStorage()->lookup(
-            tableID, nodeIDVector, readState.columnIDs, outputVectors);
+        auto localTableData = transaction->getLocalStorage()->getLocalTableData(tableID);
+        if (localTableData) {
+            localTableData->lookup(nodeIDVector, readState.columnIDs, outputVectors);
+        }
     }
 }
 
@@ -100,7 +105,7 @@ void NodeTableData::append(kuzu::storage::NodeGroup* nodeGroup) {
     }
 }
 
-void NodeTableData::prepareLocalTableToCommit(LocalTable* localTable) {
+void NodeTableData::prepareLocalTableToCommit(LocalTableData* localTable) {
     auto numNodeGroups = getNumNodeGroups(&DUMMY_WRITE_TRANSACTION);
     for (auto& [nodeGroupIdx, nodeGroup] : localTable->nodeGroups) {
         for (auto columnID = 0; columnID < columns.size(); columnID++) {

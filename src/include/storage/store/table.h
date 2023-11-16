@@ -31,8 +31,8 @@ public:
         common::ValueVector* defaultValueVector) = 0;
     virtual void dropColumn(common::column_id_t columnID) = 0;
 
-    virtual void prepareCommit(LocalTable* localTable) = 0;
-    virtual void prepareRollback(LocalTable* localTable) = 0;
+    virtual void prepareCommit(LocalTableData* localTable) = 0;
+    virtual void prepareRollback(LocalTableData* localTable) = 0;
     virtual void checkpointInMemory() = 0;
     virtual void rollbackInMemory() = 0;
 

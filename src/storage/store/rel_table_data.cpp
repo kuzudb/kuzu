@@ -45,28 +45,27 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
       csrOffsetColumn{nullptr} {
     if (dataFormat == ColumnDataFormat::CSR) {
         auto csrOffsetMetadataDAHInfo = relsStoreStats->getCSROffsetMetadataDAHInfo(
-            Transaction::getDummyWriteTrx().get(), tableID, direction);
+            &DUMMY_WRITE_TRANSACTION, tableID, direction);
         // No NULL values is allowed for the csr offset column.
         csrOffsetColumn = std::make_unique<Column>(LogicalType::INT64(), *csrOffsetMetadataDAHInfo,
-            dataFH, metadataFH, bufferManager, wal, Transaction::getDummyReadOnlyTrx().get(),
+            dataFH, metadataFH, bufferManager, wal, &DUMMY_READ_TRANSACTION,
             RWPropertyStats::empty(), enableCompression, false /* requireNUllColumn */);
     }
-    auto adjMetadataDAHInfo = relsStoreStats->getAdjMetadataDAHInfo(
-        Transaction::getDummyWriteTrx().get(), tableID, direction);
+    auto adjMetadataDAHInfo =
+        relsStoreStats->getAdjMetadataDAHInfo(&DUMMY_WRITE_TRANSACTION, tableID, direction);
     adjColumn = ColumnFactory::createColumn(LogicalType::INTERNAL_ID(), *adjMetadataDAHInfo, dataFH,
-        metadataFH, bufferManager, wal, Transaction::getDummyReadOnlyTrx().get(),
-        RWPropertyStats::empty(), enableCompression);
+        metadataFH, bufferManager, wal, &DUMMY_READ_TRANSACTION, RWPropertyStats::empty(),
+        enableCompression);
     auto properties = tableSchema->getProperties();
     columns.reserve(properties.size());
     for (auto i = 0u; i < properties.size(); i++) {
         auto property = tableSchema->getProperties()[i];
         auto metadataDAHInfo = relsStoreStats->getPropertyMetadataDAHInfo(
-            Transaction::getDummyWriteTrx().get(), tableID, i, direction);
-        columns.push_back(
-            ColumnFactory::createColumn(properties[i]->getDataType()->copy(), *metadataDAHInfo,
-                dataFH, metadataFH, bufferManager, wal, Transaction::getDummyReadOnlyTrx().get(),
-                RWPropertyStats(relsStoreStats, tableID, property->getPropertyID()),
-                enableCompression));
+            &DUMMY_WRITE_TRANSACTION, tableID, i, direction);
+        columns.push_back(ColumnFactory::createColumn(properties[i]->getDataType()->copy(),
+            *metadataDAHInfo, dataFH, metadataFH, bufferManager, wal, &DUMMY_READ_TRANSACTION,
+            RWPropertyStats(relsStoreStats, tableID, property->getPropertyID()),
+            enableCompression));
     }
     // Set common tableID for adjColumn and relIDColumn.
     dynamic_cast<InternalIDColumn*>(adjColumn.get())
@@ -170,7 +169,7 @@ void RelTableData::append(NodeGroup* nodeGroup) {
     }
 }
 
-void RelTableData::prepareLocalTableToCommit(LocalTable* /*localTable*/) {
+void RelTableData::prepareLocalTableToCommit(LocalTableData* /*localTable*/) {
     KU_UNREACHABLE;
 }
 

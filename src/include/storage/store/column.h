@@ -25,6 +25,7 @@ using batch_lookup_func_t = read_values_to_page_func_t;
 
 class NullColumn;
 class StructColumn;
+class LocalVectorCollection;
 class Column {
     friend class LocalColumn;
     friend class StringLocalColumn;

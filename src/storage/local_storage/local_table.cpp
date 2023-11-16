@@ -1,7 +1,8 @@
-#include "storage/local_table.h"
+#include "storage/local_storage/local_table.h"
 
 #include "common/exception/message.h"
 #include "storage/storage_utils.h"
+#include "storage/store/column.h"
 
 using namespace kuzu::common;
 
@@ -87,6 +88,15 @@ void LocalVectorCollection::prepareAppend() {
     }
 }
 
+LocalNodeGroup::LocalNodeGroup(std::vector<LogicalType*> dataTypes, MemoryManager* mm) {
+    columns.resize(dataTypes.size());
+    for (auto i = 0u; i < dataTypes.size(); ++i) {
+        // To avoid unnecessary memory consumption, we chunk local changes of each column in the
+        // node group into chunks of size DEFAULT_VECTOR_CAPACITY.
+        columns[i] = std::make_unique<LocalVectorCollection>(dataTypes[i], mm);
+    }
+}
+
 void LocalNodeGroup::scan(ValueVector* nodeIDVector, const std::vector<column_id_t>& columnIDs,
     const std::vector<ValueVector*>& outputVectors) {
     KU_ASSERT(columnIDs.size() == outputVectors.size());
@@ -146,13 +156,13 @@ void LocalNodeGroup::delete_(ValueVector* nodeIDVector) {
     }
 }
 
-void LocalTable::scan(ValueVector* nodeIDVector, const std::vector<column_id_t>& columnIDs,
+void LocalTableData::scan(ValueVector* nodeIDVector, const std::vector<column_id_t>& columnIDs,
     const std::vector<ValueVector*>& outputVectors) {
     auto nodeGroupIdx = initializeLocalNodeGroup(nodeIDVector);
     nodeGroups.at(nodeGroupIdx)->scan(nodeIDVector, columnIDs, outputVectors);
 }
 
-void LocalTable::lookup(ValueVector* nodeIDVector, const std::vector<column_id_t>& columnIDs,
+void LocalTableData::lookup(ValueVector* nodeIDVector, const std::vector<column_id_t>& columnIDs,
     const std::vector<ValueVector*>& outputVectors) {
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[i];
@@ -168,20 +178,20 @@ void LocalTable::lookup(ValueVector* nodeIDVector, const std::vector<column_id_t
     }
 }
 
-void LocalTable::insert(
+void LocalTableData::insert(
     ValueVector* nodeIDVector, const std::vector<ValueVector*>& propertyVectors) {
     KU_ASSERT(nodeIDVector->state->selVector->selectedSize == 1);
     auto nodeGroupIdx = initializeLocalNodeGroup(nodeIDVector);
     nodeGroups.at(nodeGroupIdx)->insert(nodeIDVector, propertyVectors);
 }
 
-void LocalTable::update(
+void LocalTableData::update(
     ValueVector* nodeIDVector, column_id_t columnID, ValueVector* propertyVector) {
     auto nodeGroupIdx = initializeLocalNodeGroup(nodeIDVector);
     nodeGroups.at(nodeGroupIdx)->update(nodeIDVector, columnID, propertyVector);
 }
 
-void LocalTable::delete_(ValueVector* nodeIDVector) {
+void LocalTableData::delete_(ValueVector* nodeIDVector) {
     auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[0];
     auto nodeOffset = nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
@@ -191,18 +201,30 @@ void LocalTable::delete_(ValueVector* nodeIDVector) {
     nodeGroups.at(nodeGroupIdx)->delete_(nodeIDVector);
 }
 
-node_group_idx_t LocalTable::initializeLocalNodeGroup(ValueVector* nodeIDVector) {
+node_group_idx_t LocalTableData::initializeLocalNodeGroup(ValueVector* nodeIDVector) {
     auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[0];
     auto nodeOffset = nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
     return initializeLocalNodeGroup(nodeOffset);
 }
 
-node_group_idx_t LocalTable::initializeLocalNodeGroup(offset_t nodeOffset) {
+node_group_idx_t LocalTableData::initializeLocalNodeGroup(offset_t nodeOffset) {
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     if (!nodeGroups.contains(nodeGroupIdx)) {
         nodeGroups.emplace(nodeGroupIdx, std::make_unique<LocalNodeGroup>(dataTypes, mm));
     }
     return nodeGroupIdx;
+}
+
+LocalTableData* LocalTable::getOrCreateLocalTableData(
+    const std::vector<std::unique_ptr<Column>>& columns, MemoryManager* mm) {
+    if (!localTableData) {
+        std::vector<LogicalType*> dataTypes;
+        for (auto& column : columns) {
+            dataTypes.push_back(column->getDataType());
+        }
+        localTableData = std::make_unique<LocalTableData>(std::move(dataTypes), mm);
+    }
+    return localTableData.get();
 }
 
 } // namespace storage

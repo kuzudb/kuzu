@@ -78,7 +78,7 @@ private:
                    common::ColumnDataFormat::CSR;
     }
 
-    void prepareLocalTableToCommit(LocalTable* localTable);
+    void prepareLocalTableToCommit(LocalTableData* localTable);
 
 private:
     std::unique_ptr<Column> adjColumn;
