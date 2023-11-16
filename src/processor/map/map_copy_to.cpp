@@ -11,9 +11,9 @@ namespace kuzu {
 namespace processor {
 
 std::unique_ptr<CopyToInfo> getCopyToInfo(Schema* childSchema, const std::string& filePath,
-    common::FileType fileType, std::vector<std::string> columnNames,
-    std::vector<std::unique_ptr<LogicalType>> columnsTypes, std::vector<DataPos> vectorsToCopyPos,
-    std::vector<bool> isFlat) {
+    common::FileType fileType, std::unique_ptr<common::CSVOption> copyToOption,
+    std::vector<std::string> columnNames, std::vector<std::unique_ptr<LogicalType>> columnsTypes,
+    std::vector<DataPos> vectorsToCopyPos, std::vector<bool> isFlat) {
     switch (fileType) {
     case FileType::PARQUET: {
         auto copyToSchema = std::make_unique<FactorizedTableSchema>();
@@ -36,7 +36,7 @@ std::unique_ptr<CopyToInfo> getCopyToInfo(Schema* childSchema, const std::string
     }
     case FileType::CSV: {
         return std::make_unique<CopyToCSVInfo>(
-            columnNames, vectorsToCopyPos, filePath, std::move(isFlat));
+            columnNames, vectorsToCopyPos, filePath, std::move(isFlat), std::move(copyToOption));
     }
     default:
         KU_UNREACHABLE;
@@ -67,7 +67,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyTo(LogicalOperator* logical
         isFlat.push_back(childSchema->getGroup(expression)->isFlat());
     }
     std::unique_ptr<CopyToInfo> copyToInfo =
-        getCopyToInfo(childSchema, copy->getFilePath(), copy->getFileType(), std::move(columnNames),
+        getCopyToInfo(childSchema, copy->getFilePath(), copy->getFileType(),
+            std::make_unique<CSVOption>(*copy->getCopyOption()), std::move(columnNames),
             std::move(columnTypes), std::move(vectorsToCopyPos), std::move(isFlat));
     auto sharedState = getCopyToSharedState(copy->getFileType());
     std::unique_ptr<CopyTo> copyTo;

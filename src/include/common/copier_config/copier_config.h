@@ -10,25 +10,32 @@
 namespace kuzu {
 namespace common {
 
-struct CSVReaderConfig {
+struct CSVOption {
+    CSVOption()
+        : escapeChar{CopyConstants::DEFAULT_CSV_ESCAPE_CHAR},
+          delimiter{CopyConstants::DEFAULT_CSV_DELIMITER},
+          quoteChar{CopyConstants::DEFAULT_CSV_QUOTE_CHAR},
+          hasHeader{CopyConstants::DEFAULT_CSV_HAS_HEADER} {}
+
+    virtual ~CSVOption() = default;
+
+    virtual std::unique_ptr<CSVOption> copyCSVOption() const {
+        return std::make_unique<CSVOption>(*this);
+    }
+
+    // TODO(Xiyang): Add newline character option and delimiter can be a string.
     char escapeChar;
     char delimiter;
     char quoteChar;
     bool hasHeader;
+};
+
+struct CSVReaderConfig : public CSVOption {
     bool parallel;
 
-    CSVReaderConfig()
-        : escapeChar{CopyConstants::DEFAULT_CSV_ESCAPE_CHAR},
-          delimiter{CopyConstants::DEFAULT_CSV_DELIMITER},
-          quoteChar{CopyConstants::DEFAULT_CSV_QUOTE_CHAR},
-          hasHeader{CopyConstants::DEFAULT_CSV_HAS_HEADER},
-          parallel{CopyConstants::DEFAULT_CSV_PARALLEL} {}
+    CSVReaderConfig() : CSVOption{}, parallel{CopyConstants::DEFAULT_CSV_PARALLEL} {}
 
-    CSVReaderConfig(const CSVReaderConfig& other)
-        : escapeChar{other.escapeChar}, delimiter{other.delimiter}, quoteChar{other.quoteChar},
-          hasHeader{other.hasHeader}, parallel{other.parallel} {}
-
-    inline std::unique_ptr<CSVReaderConfig> copy() const {
+    inline std::unique_ptr<CSVReaderConfig> copy() {
         return std::make_unique<CSVReaderConfig>(*this);
     }
 };

@@ -112,7 +112,7 @@ std::unique_ptr<LogicalPlan> Planner::planCopyTo(const Catalog& catalog,
     auto plan = QueryPlanner(catalog, nodesStatistics, relsStatistics).getBestPlan(*regularQuery);
     auto copyTo = make_shared<LogicalCopyTo>(boundCopy.getFilePath(), boundCopy.getFileType(),
         boundCopy.getColumnNames(), LogicalType::copy(boundCopy.getColumnTypesRef()),
-        plan->getLastOperator());
+        std::make_unique<common::CSVOption>(*boundCopy.getCopyOption()), plan->getLastOperator());
     plan->setLastOperator(std::move(copyTo));
     return plan;
 }

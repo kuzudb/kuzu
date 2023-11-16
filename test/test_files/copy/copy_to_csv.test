@@ -67,3 +67,15 @@ Roma|298|the movie is very interesting and funny|{rating: 1223.000000, stars: 10
 -STATEMENT LOAD FROM '${DATABASE_PATH}/string.csv' RETURN *
 ---- 1
 100|a string with "quotes"|5.600000|","|,
+
+-CASE StringCopyToWithOption
+-STATEMENT COPY (RETURN 100,'kuzu is # a |graph database') TO "${DATABASE_PATH}/copy_to_with_option.csv" (delim = '|', QUOTE='#', Escape = '!')
+---- ok
+-STATEMENT LOAD FROM '${DATABASE_PATH}/copy_to_with_option.csv' (delim = '|', QUOTE='#', Escape = '!') RETURN *
+---- 1
+100|kuzu is # a |graph database
+
+-CASE StringCopyToWithOptionError
+-STATEMENT COPY (RETURN 100) TO "${DATABASE_PATH}/copy_to_with_option.parquet" (delim = '|', QUOTE='#', Escape = '!')
+---- error
+Binder exception: Only copy to csv can have options.

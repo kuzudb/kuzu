@@ -46,6 +46,10 @@ public:
         write(reinterpret_cast<const uint8_t*>(str.c_str()), str.size());
     }
 
+    inline void writeBufferData(const char& ch) {
+        write(reinterpret_cast<const uint8_t*>(&ch), sizeof(char));
+    }
+
 private:
     uint64_t maximumSize;
     uint8_t* data;
