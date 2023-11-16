@@ -13,6 +13,7 @@ namespace storage {
 
 ColumnChunkMetadata fixedSizedFlushBuffer(const uint8_t* buffer, uint64_t bufferSize,
     BMFileHandle* dataFH, page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
+    KU_ASSERT(dataFH->getNumPages() >= startPageIdx + metadata.numPages);
     FileUtils::writeToFile(dataFH->getFileInfo(), buffer, bufferSize,
         startPageIdx * BufferPoolConstants::PAGE_4KB_SIZE);
     return ColumnChunkMetadata(
@@ -49,7 +50,8 @@ public:
         auto numPages = 0;
         auto numValuesPerPage =
             metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
-        do {
+        KU_ASSERT(numValuesPerPage * metadata.numPages >= metadata.numValues);
+        while (valuesRemaining > 0) {
             auto compressedSize = alg->compressNextPage(bufferStart, valuesRemaining,
                 compressedBuffer.get(), BufferPoolConstants::PAGE_4KB_SIZE, metadata.compMeta);
             // Avoid underflows (when data is compressed to nothing, numValuesPerPage may be
@@ -63,10 +65,12 @@ public:
                 memset(compressedBuffer.get() + compressedSize, 0,
                     BufferPoolConstants::PAGE_4KB_SIZE - compressedSize);
             }
+            KU_ASSERT(numPages < metadata.numPages);
+            KU_ASSERT(dataFH->getNumPages() > startPageIdx + numPages);
             FileUtils::writeToFile(dataFH->getFileInfo(), compressedBuffer.get(), compressedSize,
                 (startPageIdx + numPages) * BufferPoolConstants::PAGE_4KB_SIZE);
             numPages++;
-        } while (valuesRemaining > 0);
+        }
         // Make sure that the file is the right length
         if (numPages < metadata.numPages) {
             memset(compressedBuffer.get(), 0, BufferPoolConstants::PAGE_4KB_SIZE);
