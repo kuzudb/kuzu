@@ -44,7 +44,8 @@ public:
         return columns[0]->getNumNodeGroups(transaction);
     }
 
-    virtual void prepareLocalTableToCommit(LocalTableData* localTable) = 0;
+    virtual void prepareLocalTableToCommit(
+        transaction::Transaction* transaction, LocalTableData* localTable) = 0;
     virtual void checkpointInMemory();
     virtual void rollbackInMemory();
 

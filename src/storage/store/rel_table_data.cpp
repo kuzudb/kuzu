@@ -73,7 +73,7 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
     dynamic_cast<InternalIDColumn*>(columns[REL_ID_COLUMN_ID].get())->setCommonTableID(tableID);
 }
 
-void RelTableData::initializeReadState(Transaction* /*transaction*/, RelDataDirection direction,
+void RelTableData::initializeReadState(Transaction* transaction, RelDataDirection direction,
     std::vector<common::column_id_t> columnIDs, ValueVector* inNodeIDVector,
     RelDataReadState* readState) {
     readState->direction = direction;
@@ -89,7 +89,7 @@ void RelTableData::initializeReadState(Transaction* /*transaction*/, RelDataDire
     if (readState->isOutOfRange(nodeOffset)) {
         // Scan csr offsets and populate csr list entries for the new node group.
         readState->startNodeOffsetInState = startNodeOffset;
-        csrOffsetColumn->scan(nodeGroupIdx, readState->csrOffsetChunk.get());
+        csrOffsetColumn->scan(transaction, nodeGroupIdx, readState->csrOffsetChunk.get());
         readState->numNodesInState = readState->csrOffsetChunk->getNumValues();
         readState->populateCSRListEntries();
     }
@@ -169,7 +169,8 @@ void RelTableData::append(NodeGroup* nodeGroup) {
     }
 }
 
-void RelTableData::prepareLocalTableToCommit(LocalTableData* /*localTable*/) {
+void RelTableData::prepareLocalTableToCommit(
+    Transaction* /*transaction*/, LocalTableData* /*localTable*/) {
     KU_UNREACHABLE;
 }
 

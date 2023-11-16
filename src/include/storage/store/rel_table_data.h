@@ -33,7 +33,7 @@ struct RelDataReadState : public TableReadState {
 };
 
 class RelsStoreStats;
-class RelTableData : public TableData {
+class RelTableData final : public TableData {
 public:
     static constexpr common::column_id_t REL_ID_COLUMN_ID = 0;
 
@@ -46,7 +46,7 @@ public:
         common::ValueVector* inNodeIDVector, RelDataReadState* readState);
     inline void scan(transaction::Transaction* transaction, TableReadState& readState,
         common::ValueVector* inNodeIDVector,
-        const std::vector<common::ValueVector*>& outputVectors) final {
+        const std::vector<common::ValueVector*>& outputVectors) {
         auto& relReadState = common::ku_dynamic_cast<TableReadState&, RelDataReadState&>(readState);
         dataFormat == common::ColumnDataFormat::REGULAR ?
             scanRegularColumns(transaction, relReadState, inNodeIDVector, outputVectors) :
@@ -54,14 +54,14 @@ public:
     }
     void lookup(transaction::Transaction* transaction, TableReadState& readState,
         common::ValueVector* inNodeIDVector,
-        const std::vector<common::ValueVector*>& outputVectors) final;
-    void append(NodeGroup* nodeGroup) final;
+        const std::vector<common::ValueVector*>& outputVectors);
+    void append(NodeGroup* nodeGroup);
 
     inline Column* getAdjColumn() const { return adjColumn.get(); }
     inline common::ColumnDataFormat getDataFormat() const { return dataFormat; }
 
-    void checkpointInMemory() final;
-    void rollbackInMemory() final;
+    void checkpointInMemory();
+    void rollbackInMemory();
 
 private:
     void scanRegularColumns(transaction::Transaction* transaction, RelDataReadState& readState,
@@ -78,7 +78,8 @@ private:
                    common::ColumnDataFormat::CSR;
     }
 
-    void prepareLocalTableToCommit(LocalTableData* localTable);
+    void prepareLocalTableToCommit(
+        transaction::Transaction* transaction, LocalTableData* localTable);
 
 private:
     std::unique_ptr<Column> adjColumn;

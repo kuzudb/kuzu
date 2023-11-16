@@ -61,7 +61,7 @@ void RelTable::addColumn(
     wal->addToUpdatedTables(tableID);
 }
 
-void RelTable::prepareCommit(LocalTableData* /*localTable*/) {
+void RelTable::prepareCommit(Transaction* /*transaction*/, LocalTableData* /*localTable*/) {
     wal->addToUpdatedTables(tableID);
 }
 

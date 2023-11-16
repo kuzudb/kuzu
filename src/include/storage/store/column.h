@@ -48,7 +48,8 @@ public:
     virtual void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector);
-    virtual void scan(common::node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk);
+    virtual void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
+        ColumnChunk* columnChunk);
     virtual void lookup(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector);
 
@@ -62,8 +63,9 @@ public:
         return metadataDA->getNumElements(transaction->getType());
     }
 
-    void prepareCommitForChunk(common::node_group_idx_t nodeGroupIdx,
-        LocalVectorCollection* localColumnChunk, bool isNewNodeGroup);
+    void prepareCommitForChunk(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localColumnChunk,
+        bool isNewNodeGroup);
     virtual void checkpointInMemory();
     virtual void rollbackInMemory();
 
@@ -106,10 +108,12 @@ protected:
 
 private:
     static bool containsVarList(common::LogicalType& dataType);
-    bool canCommitInPlace(common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk);
+    bool canCommitInPlace(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk);
     void commitLocalChunkInPlace(LocalVectorCollection* localChunk);
-    void commitLocalChunkOutOfPlace(common::node_group_idx_t nodeGroupIdx,
-        LocalVectorCollection* localChunk, bool isNewNodeGroup);
+    void commitLocalChunkOutOfPlace(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
+        bool isNewNodeGroup);
 
     void applyLocalChunkToColumnChunk(LocalVectorCollection* localChunk, ColumnChunk* columnChunk,
         common::offset_t nodeGroupStartOffset,

@@ -15,7 +15,8 @@ public:
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector = 0) final;
-    void scan(common::node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) final;
+    void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
+        ColumnChunk* columnChunk) final;
 
     void append(ColumnChunk* columnChunk, common::node_group_idx_t nodeGroupIdx) final;
 
