@@ -86,7 +86,7 @@
            CREATE (root)-[:T_Root_TextNode]->(child1),
                   (root)-[:T_Root_IntNode]->(child2);
 ---- ok
--STATEMENT MATCH (:Root {name: 'x'})-->(i:TextNode)
+-STATEMENT MATCH (:Root {name: 'x'})-->(i)
            WHERE i.var > 'te' OR i.var IS NOT NULL
            RETURN i;
 ---- 2
