@@ -67,7 +67,8 @@ public:
             }
             KU_ASSERT(numPages < metadata.numPages);
             KU_ASSERT(dataFH->getNumPages() > startPageIdx + numPages);
-            FileUtils::writeToFile(dataFH->getFileInfo(), compressedBuffer.get(), compressedSize,
+            FileUtils::writeToFile(dataFH->getFileInfo(), compressedBuffer.get(),
+                BufferPoolConstants::PAGE_4KB_SIZE,
                 (startPageIdx + numPages) * BufferPoolConstants::PAGE_4KB_SIZE);
             numPages++;
         }
