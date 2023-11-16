@@ -7,7 +7,6 @@
 #include <vector>
 
 #include "common/api.h"
-#include "common/types/internal_id_t.h"
 
 namespace kuzu {
 namespace common {
