@@ -123,7 +123,7 @@ template<>
 uint64_t CopyNode::appendToPKIndex<int64_t>(storage::PrimaryKeyIndexBuilder* pkIndex,
     storage::ColumnChunk* chunk, common::offset_t startOffset, common::offset_t numNodes);
 template<>
-uint64_t CopyNode::appendToPKIndex<common::ku_string_t>(storage::PrimaryKeyIndexBuilder* pkIndex,
+uint64_t CopyNode::appendToPKIndex<std::string>(storage::PrimaryKeyIndexBuilder* pkIndex,
     storage::ColumnChunk* chunk, common::offset_t startOffset, common::offset_t numNodes);
 
 } // namespace processor

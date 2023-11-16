@@ -1,5 +1,7 @@
 #include "storage/store/column_chunk.h"
 
+#include "storage/compression/compression.h"
+#include "storage/storage_utils.h"
 #include "storage/store/string_column_chunk.h"
 #include "storage/store/struct_column_chunk.h"
 #include "storage/store/var_list_column_chunk.h"
@@ -11,6 +13,7 @@ namespace storage {
 
 ColumnChunkMetadata fixedSizedFlushBuffer(const uint8_t* buffer, uint64_t bufferSize,
     BMFileHandle* dataFH, page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
+    KU_ASSERT(dataFH->getNumPages() >= startPageIdx + metadata.numPages);
     FileUtils::writeToFile(dataFH->getFileInfo(), buffer, bufferSize,
         startPageIdx * BufferPoolConstants::PAGE_4KB_SIZE);
     return ColumnChunkMetadata(
@@ -47,7 +50,8 @@ public:
         auto numPages = 0;
         auto numValuesPerPage =
             metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
-        do {
+        KU_ASSERT(numValuesPerPage * metadata.numPages >= metadata.numValues);
+        while (valuesRemaining > 0) {
             auto compressedSize = alg->compressNextPage(bufferStart, valuesRemaining,
                 compressedBuffer.get(), BufferPoolConstants::PAGE_4KB_SIZE, metadata.compMeta);
             // Avoid underflows (when data is compressed to nothing, numValuesPerPage may be
@@ -57,10 +61,23 @@ public:
             } else {
                 valuesRemaining -= numValuesPerPage;
             }
+            if (compressedSize < BufferPoolConstants::PAGE_4KB_SIZE) {
+                memset(compressedBuffer.get() + compressedSize, 0,
+                    BufferPoolConstants::PAGE_4KB_SIZE - compressedSize);
+            }
+            KU_ASSERT(numPages < metadata.numPages);
+            KU_ASSERT(dataFH->getNumPages() > startPageIdx + numPages);
             FileUtils::writeToFile(dataFH->getFileInfo(), compressedBuffer.get(), compressedSize,
                 (startPageIdx + numPages) * BufferPoolConstants::PAGE_4KB_SIZE);
             numPages++;
-        } while (valuesRemaining > 0);
+        }
+        // Make sure that the file is the right length
+        if (numPages < metadata.numPages) {
+            memset(compressedBuffer.get(), 0, BufferPoolConstants::PAGE_4KB_SIZE);
+            FileUtils::writeToFile(dataFH->getFileInfo(), compressedBuffer.get(),
+                BufferPoolConstants::PAGE_4KB_SIZE,
+                (startPageIdx + metadata.numPages - 1) * BufferPoolConstants::PAGE_4KB_SIZE);
+        }
         return ColumnChunkMetadata(
             startPageIdx, metadata.numPages, metadata.numValues, metadata.compMeta);
     }
@@ -107,6 +124,7 @@ static std::shared_ptr<CompressionAlg> getCompression(
     case PhysicalTypeID::UINT64: {
         return std::make_shared<IntegerBitpacking<uint64_t>>();
     }
+    case PhysicalTypeID::STRING:
     case PhysicalTypeID::UINT32: {
         return std::make_shared<IntegerBitpacking<uint32_t>>();
     }
@@ -152,6 +170,7 @@ void ColumnChunk::initializeFunction(bool enableCompression) {
         getMetadataFunction = booleanGetMetadata;
         break;
     }
+    case PhysicalTypeID::STRING:
     case PhysicalTypeID::INT64:
     case PhysicalTypeID::INT32:
     case PhysicalTypeID::INT16:
@@ -306,36 +325,13 @@ void ColumnChunk::copyVectorToBuffer(ValueVector* vector, offset_t startPosInChu
 }
 
 ColumnChunkMetadata ColumnChunk::getMetadataToFlush() const {
+    KU_ASSERT(numValues <= capacity);
     return getMetadataFunction(buffer.get(), bufferSize, capacity, numValues);
 }
 
 ColumnChunkMetadata ColumnChunk::flushBuffer(
     BMFileHandle* dataFH, page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
     return flushBufferFunction(buffer.get(), bufferSize, dataFH, startPageIdx, metadata);
-}
-
-uint32_t ColumnChunk::getDataTypeSizeInChunk(LogicalType& dataType) {
-    switch (dataType.getLogicalTypeID()) {
-    case LogicalTypeID::SERIAL:
-    case LogicalTypeID::STRUCT: {
-        return 0;
-    }
-    case LogicalTypeID::STRING: {
-        return sizeof(ku_string_t);
-    }
-    case LogicalTypeID::VAR_LIST:
-    case LogicalTypeID::INTERNAL_ID: {
-        return sizeof(offset_t);
-    }
-    // Used by NodeColumn to represent the de-compressed size of booleans in-memory
-    // Does not reflect the size of booleans on-disk in BoolColumnChunk
-    case LogicalTypeID::BOOL: {
-        return 1;
-    }
-    default: {
-        return StorageUtils::getDataTypeSize(dataType);
-    }
-    }
 }
 
 uint64_t ColumnChunk::getBufferSize() const {

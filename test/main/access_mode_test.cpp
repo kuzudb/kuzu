@@ -6,14 +6,17 @@ using namespace kuzu::main;
 
 class AccessModeTest : public ApiTest {};
 
+void assertQuery(QueryResult& result) {
+    ASSERT_TRUE(result.isSuccess()) << result.toString();
+}
+
 TEST_F(AccessModeTest, testAccessMode) {
     systemConfig->readOnly = false;
     auto db = std::make_unique<Database>(databasePath, *systemConfig);
     auto con = std::make_unique<Connection>(db.get());
-    ASSERT_TRUE(con->query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name))")
-                    ->isSuccess());
-    ASSERT_TRUE(con->query("CREATE (:Person {name: 'Alice', age: 25})")->isSuccess());
-    ASSERT_TRUE(con->query("MATCH (:Person) RETURN COUNT(*)")->isSuccess());
+    assertQuery(*con->query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name))"));
+    assertQuery(*con->query("CREATE (:Person {name: 'Alice', age: 25})"));
+    assertQuery(*con->query("MATCH (:Person) RETURN COUNT(*)"));
     db.reset();
     systemConfig->readOnly = true;
     std::unique_ptr<Database> db2;

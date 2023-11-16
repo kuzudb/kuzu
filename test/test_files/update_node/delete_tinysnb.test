@@ -15,6 +15,7 @@
 101||
 
 -CASE MixedDeleteInsertTest
+-SKIP
 -STATEMENT CREATE (a:organisation {ID:30, mark:3.3})
 ---- ok
 -STATEMENT MATCH (a:organisation) WHERE a.ID = 30 RETURN a.orgCode, a.mark

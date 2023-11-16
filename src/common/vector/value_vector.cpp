@@ -445,6 +445,17 @@ void StringVector::addString(
     }
 }
 
+ku_string_t& StringVector::reserveString(ValueVector* vector, uint32_t vectorPos, uint64_t length) {
+    KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
+    auto stringBuffer = reinterpret_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
+    auto& dstStr = vector->getValue<ku_string_t>(vectorPos);
+    dstStr.len = length;
+    if (!ku_string_t::isShortString(length)) {
+        dstStr.overflowPtr = reinterpret_cast<uint64_t>(stringBuffer->allocateOverflow(length));
+    }
+    return dstStr;
+}
+
 void StringVector::addString(ValueVector* vector, ku_string_t& dstStr, ku_string_t& srcStr) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     auto stringBuffer = reinterpret_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());

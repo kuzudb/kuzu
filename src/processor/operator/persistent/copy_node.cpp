@@ -1,5 +1,7 @@
 #include "processor/operator/persistent/copy_node.h"
 
+#include <optional>
+
 #include "common/exception/copy.h"
 #include "common/exception/message.h"
 #include "common/string_format.h"
@@ -94,23 +96,24 @@ void CopyNode::writeAndResetNodeGroup(node_group_idx_t nodeGroupIdx,
 void CopyNode::populatePKIndex(
     PrimaryKeyIndexBuilder* pkIndex, ColumnChunk* chunk, offset_t startOffset, offset_t numNodes) {
     checkNonNullConstraint(chunk->getNullChunk(), numNodes);
-    std::string errorPKValueStr;
+    std::optional<std::string> errorPKValueStr;
     pkIndex->lock();
     try {
         switch (chunk->getDataType()->getPhysicalType()) {
         case PhysicalTypeID::INT64: {
             auto numAppendedNodes = appendToPKIndex<int64_t>(pkIndex, chunk, startOffset, numNodes);
             if (numAppendedNodes < numNodes) {
-                errorPKValueStr =
-                    std::to_string(chunk->getValue<int64_t>(startOffset + numAppendedNodes));
+                // TODO(bmwinger): This should be tested where there are multiple node groups
+                errorPKValueStr = std::to_string(chunk->getValue<int64_t>(numAppendedNodes));
             }
         } break;
         case PhysicalTypeID::STRING: {
             auto numAppendedNodes =
-                appendToPKIndex<ku_string_t>(pkIndex, chunk, startOffset, numNodes);
+                appendToPKIndex<std::string>(pkIndex, chunk, startOffset, numNodes);
             if (numAppendedNodes < numNodes) {
+                // TODO(bmwinger): This should be tested where there are multiple node groups
                 errorPKValueStr =
-                    chunk->getValue<ku_string_t>(startOffset + numAppendedNodes).getAsString();
+                    static_cast<StringColumnChunk*>(chunk)->getValue<std::string>(numAppendedNodes);
             }
         } break;
         default: {
@@ -122,8 +125,8 @@ void CopyNode::populatePKIndex(
         throw;
     }
     pkIndex->unlock();
-    if (!errorPKValueStr.empty()) {
-        throw CopyException(ExceptionMessage::existedPKException(errorPKValueStr));
+    if (errorPKValueStr) {
+        throw CopyException(ExceptionMessage::existedPKException(*errorPKValueStr));
     }
 }
 
@@ -168,7 +171,7 @@ uint64_t CopyNode::appendToPKIndex<int64_t>(
 }
 
 template<>
-uint64_t CopyNode::appendToPKIndex<ku_string_t>(
+uint64_t CopyNode::appendToPKIndex<std::string>(
     PrimaryKeyIndexBuilder* pkIndex, ColumnChunk* chunk, offset_t startOffset, uint64_t numValues) {
     auto stringColumnChunk = (StringColumnChunk*)chunk;
     for (auto i = 0u; i < numValues; i++) {

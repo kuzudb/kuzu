@@ -3,6 +3,7 @@
 #include <memory>
 #include <shared_mutex>
 
+#include "common/assert.h"
 #include "common/constants.h"
 #include "common/file_utils.h"
 #include "common/types/types.h"
@@ -32,10 +33,12 @@ public:
     common::page_idx_t addNewPages(common::page_idx_t numPages);
 
     inline void readPage(uint8_t* frame, common::page_idx_t pageIdx) const {
+        KU_ASSERT(pageIdx < numPages);
         common::FileUtils::readFromFile(
             fileInfo.get(), frame, getPageSize(), pageIdx * getPageSize());
     }
     inline void writePage(uint8_t* buffer, common::page_idx_t pageIdx) const {
+        KU_ASSERT(pageIdx < numPages);
         common::FileUtils::writeToFile(
             fileInfo.get(), buffer, getPageSize(), pageIdx * getPageSize());
     }

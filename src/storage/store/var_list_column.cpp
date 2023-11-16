@@ -145,17 +145,16 @@ void VarListColumn::rollbackInMemory() {
 
 offset_t VarListColumn::readOffset(
     Transaction* transaction, node_group_idx_t nodeGroupIdx, offset_t offsetInNodeGroup) {
-    auto offsetVector = std::make_unique<ValueVector>(LogicalTypeID::INT64);
-    offsetVector->state = DataChunkState::getSingleValueDataChunkState();
     auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
     auto pageCursor = PageUtils::getPageElementCursorForPos(offsetInNodeGroup,
         chunkMeta.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType));
     pageCursor.pageIdx += chunkMeta.pageIdx;
+    offset_t value;
     readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
-        readToVectorFunc(frame, pageCursor, offsetVector.get(), 0 /* posInVector */,
+        readToPageFunc(frame, pageCursor, (uint8_t*)&value, 0 /* posInVector */,
             1 /* numValuesToRead */, chunkMeta.compMeta);
     });
-    return offsetVector->getValue<offset_t>(0);
+    return value;
 }
 
 ListOffsetInfoInStorage VarListColumn::getListOffsetInfoInStorage(Transaction* transaction,

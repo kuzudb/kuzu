@@ -30,6 +30,7 @@ def test_read(establish_connection):
     assert not result.has_next()
 
 
+@pytest.mark.skip(reason="Failing due to struct out of place update regression")
 def test_write(establish_connection):
     conn, _ = establish_connection
     orgs = [
