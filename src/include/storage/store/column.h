@@ -70,7 +70,7 @@ public:
         return metadataDA->getNumElements(transaction->getType());
     }
 
-    void prepareCommitForChunk(transaction::Transaction* transaction,
+    virtual void prepareCommitForChunk(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localColumnChunk,
         const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo,
         const offset_set_t& deleteInfo);

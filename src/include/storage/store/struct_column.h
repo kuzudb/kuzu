@@ -5,7 +5,7 @@
 namespace kuzu {
 namespace storage {
 
-class StructColumn : public Column {
+class StructColumn final : public Column {
 public:
     StructColumn(std::unique_ptr<common::LogicalType> dataType,
         const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
@@ -13,28 +13,33 @@ public:
         RWPropertyStats propertyStatistics, bool enableCompression);
 
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        ColumnChunk* columnChunk) final;
+        ColumnChunk* columnChunk) override;
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
-        common::ValueVector* resultVector, uint64_t offsetInVector) final;
+        common::ValueVector* resultVector, uint64_t offsetInVector) override;
 
-    void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) final;
+    void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) override;
 
-    void checkpointInMemory() final;
-    void rollbackInMemory() final;
+    void checkpointInMemory() override;
+    void rollbackInMemory() override;
 
     inline Column* getChild(common::vector_idx_t childIdx) {
         KU_ASSERT(childIdx < childColumns.size());
         return childColumns[childIdx].get();
     }
     void write(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
-        uint32_t posInVectorToWriteFrom) final;
+        uint32_t posInVectorToWriteFrom) override;
+
+    void prepareCommitForChunk(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localColumnChunk,
+        const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo,
+        const offset_set_t& deleteInfo) override;
 
 protected:
     void scanInternal(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) final;
+        common::ValueVector* resultVector) override;
     void lookupInternal(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) final;
+        common::ValueVector* resultVector) override;
 
 private:
     std::vector<std::unique_ptr<Column>> childColumns;
