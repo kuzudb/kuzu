@@ -1,6 +1,7 @@
 #include "storage/store/string_column.h"
 
 #include "storage/store/string_column_chunk.h"
+#include <bit>
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

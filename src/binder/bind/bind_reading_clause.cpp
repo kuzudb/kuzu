@@ -134,7 +134,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         columns.push_back(createVariable(bindData->columnNames[i], *bindData->columnTypes[i]));
     }
     auto offset = expressionBinder.createVariableExpression(
-        LogicalType(LogicalTypeID::INT64), common::InternalKeyword::ANONYMOUS);
+        *LogicalType::INT64(), std::string(InternalKeyword::ROW_OFFSET));
     auto boundInQueryCall = std::make_unique<BoundInQueryCall>(
         std::move(tableFunction), std::move(bindData), std::move(columns), offset);
     if (call.hasWherePredicate()) {
@@ -182,9 +182,9 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(
         columns.push_back(createVariable(bindData->columnNames[i], *bindData->columnTypes[i]));
     }
     auto offset = expressionBinder.createVariableExpression(
-        LogicalType(LogicalTypeID::INT64), common::InternalKeyword::ANONYMOUS);
-    auto info = std::make_unique<BoundFileScanInfo>(scanFunction, std::move(bindData),
-        std::move(columns), std::move(offset), TableType::UNKNOWN);
+        LogicalType(LogicalTypeID::INT64), std::string(InternalKeyword::ROW_OFFSET));
+    auto info = std::make_unique<BoundFileScanInfo>(
+        scanFunction, std::move(bindData), std::move(columns), std::move(offset));
     auto boundLoadFrom = std::make_unique<BoundLoadFrom>(std::move(info));
     if (loadFrom.hasWherePredicate()) {
         auto wherePredicate = expressionBinder.bindExpression(*loadFrom.getWherePredicate());

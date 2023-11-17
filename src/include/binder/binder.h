@@ -5,7 +5,6 @@
 #include "catalog/catalog.h"
 #include "common/copier_config/copier_config.h"
 #include "expression_binder.h"
-#include "function/table_functions.h"
 #include "parser/query/graph_pattern/pattern_element.h"
 #include "parser/query/regular_query.h"
 #include "storage/storage_manager.h"
@@ -17,6 +16,10 @@ struct CreateTableInfo;
 
 namespace main {
 class ClientContext;
+}
+
+namespace function {
+class TableFunction;
 }
 
 namespace binder {
@@ -120,20 +123,20 @@ private:
 
     /*** bind copy ***/
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindCopyNodeFrom(function::TableFunction* copyFunc,
-        std::unique_ptr<common::ReaderConfig> readerConfig, catalog::TableSchema* tableSchema);
-    std::unique_ptr<BoundStatement> bindCopyRdfNodeFrom(function::TableFunction* copyFunc,
-        std::unique_ptr<common::ReaderConfig> readerConfig, catalog::TableSchema* tableSchema);
-    std::unique_ptr<BoundStatement> bindCopyRelFrom(function::TableFunction* copyFunc,
-        std::unique_ptr<common::ReaderConfig> readerConfig, catalog::TableSchema* tableSchema);
-    std::unique_ptr<BoundStatement> bindCopyRdfRelFrom(function::TableFunction* copyFunc,
-        std::unique_ptr<common::ReaderConfig> readerConfig, catalog::TableSchema* tableSchema);
+    std::unique_ptr<BoundStatement> bindCopyNodeFrom(const parser::Statement& statement,
+        std::unique_ptr<common::ReaderConfig> config, catalog::TableSchema* tableSchema);
+    std::unique_ptr<BoundStatement> bindCopyRdfNodeFrom(const parser::Statement& statement,
+        std::unique_ptr<common::ReaderConfig> config, catalog::TableSchema* tableSchema);
+    std::unique_ptr<BoundStatement> bindCopyRelFrom(const parser::Statement& statement,
+        std::unique_ptr<common::ReaderConfig> config, catalog::TableSchema* tableSchema);
+    std::unique_ptr<BoundStatement> bindCopyRdfRelFrom(const parser::Statement& statement,
+        std::unique_ptr<common::ReaderConfig> config, catalog::TableSchema* tableSchema);
     void bindExpectedNodeColumns(catalog::TableSchema* tableSchema,
-        std::vector<std::string>& columnNames,
-        std::vector<std::unique_ptr<common::LogicalType>>& columnTypes);
+        const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
+        common::logical_types_t& columnTypes);
     void bindExpectedRelColumns(catalog::TableSchema* tableSchema,
-        std::vector<std::string>& columnNames,
-        std::vector<std::unique_ptr<common::LogicalType>>& columnTypes);
+        const std::vector<std::string>& inputColumnNames, std::vector<std::string>& columnNames,
+        common::logical_types_t& columnTypes);
 
     std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
 
@@ -174,7 +177,6 @@ private:
     std::unique_ptr<BoundReadingClause> bindLoadFrom(const parser::ReadingClause& readingClause);
 
     /*** bind updating clause ***/
-    // TODO(Guodong/Xiyang): Is update clause an accurate name? How about (data)modificationClause?
     std::unique_ptr<BoundUpdatingClause> bindUpdatingClause(
         const parser::UpdatingClause& updatingClause);
     std::unique_ptr<BoundUpdatingClause> bindInsertClause(

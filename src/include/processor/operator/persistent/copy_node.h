@@ -115,6 +115,7 @@ protected:
     std::unique_ptr<CopyNodeInfo> info;
 
     common::DataChunkState* columnState;
+    std::vector<std::shared_ptr<common::ValueVector>> nullColumnVectors;
     std::vector<common::ValueVector*> columnVectors;
     std::unique_ptr<storage::NodeGroup> localNodeGroup;
 };

@@ -352,6 +352,8 @@ private:
     std::unique_ptr<ExtraTypeInfo> extraTypeInfo;
 };
 
+using logical_types_t = std::vector<std::unique_ptr<LogicalType>>;
+
 struct VarListType {
     static inline LogicalType* getChildType(const LogicalType* type) {
         KU_ASSERT(type->getPhysicalType() == PhysicalTypeID::VAR_LIST);

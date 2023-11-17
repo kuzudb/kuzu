@@ -79,6 +79,21 @@ void Partitioner::initLocalStateInternal(ResultSet* /*resultSet*/, ExecutionCont
     initializePartitioningStates(localState->partitioningBuffers);
 }
 
+static void constructDataChunk(DataChunk* dataChunk, const std::vector<DataPos>& columnPositions,
+    const logical_types_t& columnTypes, const ResultSet& resultSet) {
+    for (auto i = 0u; i < columnPositions.size(); i++) {
+        auto pos = columnPositions[i];
+        if (pos.isValid()) {
+            dataChunk->insert(i, resultSet.getValueVector(pos));
+        } else {
+            auto columnType = columnTypes[i].get();
+            auto nullVector = std::make_shared<ValueVector>(*columnType);
+            nullVector->setAllNull();
+            dataChunk->insert(i, nullVector);
+        }
+    }
+}
+
 void Partitioner::executeInternal(ExecutionContext* context) {
     while (children[0]->getNextTuple(context)) {
         for (auto partitioningIdx = 0u; partitioningIdx < infos.size(); partitioningIdx++) {
@@ -87,8 +102,9 @@ void Partitioner::executeInternal(ExecutionContext* context) {
             partitionIdxes->state = resultSet->getValueVector(info->keyDataPos)->state;
             info->partitionerFunc(keyVector.get(), partitionIdxes.get());
             auto columnDataChunk =
-                std::make_unique<DataChunk>(info->columnDataPos.size(), keyVector->state);
-            constructDataChunk(columnDataChunk.get(), info->columnDataPos, resultSet);
+                std::make_unique<DataChunk>(info->columnTypes.size(), keyVector->state);
+            constructDataChunk(
+                columnDataChunk.get(), info->columnDataPositions, info->columnTypes, *resultSet);
             copyDataToPartitions(partitioningIdx, columnDataChunk.get(), context->memoryManager);
         }
     }
@@ -107,13 +123,6 @@ void Partitioner::initializePartitioningStates(
             partitioningBuffer->partitions.push_back(std::make_unique<data_partition_t>());
         }
         partitioningBuffers[partitioningIdx] = std::move(partitioningBuffer);
-    }
-}
-
-void Partitioner::constructDataChunk(
-    DataChunk* dataChunk, const std::vector<DataPos>& dataPoses, ResultSet* resultSet) {
-    for (auto i = 0u; i < dataPoses.size(); i++) {
-        dataChunk->insert(i, resultSet->getValueVector(dataPoses[i]));
     }
 }
 

@@ -18,8 +18,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapScanFile(LogicalOperator* logic
         dataColumnsPos.emplace_back(outSchema->getExpressionPos(*expression));
     }
     auto inQueryCallFuncInfo =
-        std::make_unique<InQueryCallInfo>(info->copyFunc, info->copyFuncBindData->copy(),
-            std::move(dataColumnsPos), DataPos(outSchema->getExpressionPos(*info->internalID)));
+        std::make_unique<InQueryCallInfo>(info->copyFunc, info->bindData->copy(),
+            std::move(dataColumnsPos), DataPos(outSchema->getExpressionPos(*info->offset)));
     return std::make_unique<InQueryCall>(std::move(inQueryCallFuncInfo),
         std::make_shared<InQueryCallSharedState>(), PhysicalOperatorType::IN_QUERY_CALL,
         getOperatorID(), scanFile->getExpressionsForPrinting());

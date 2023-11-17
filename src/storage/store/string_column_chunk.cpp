@@ -1,5 +1,7 @@
 #include "storage/store/string_column_chunk.h"
 
+#include <bit>
+
 using namespace kuzu::common;
 
 namespace kuzu {

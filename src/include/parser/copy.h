@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "parser/expression/parsed_expression.h"
 #include "parser/query/regular_query.h"
 #include "parser/statement.h"
@@ -9,9 +11,9 @@ namespace parser {
 
 class Copy : public Statement {
 public:
-    explicit Copy(common::StatementType type, parsing_option_t parsingOptions)
-        : Statement{type}, parsingOptions{std::move(parsingOptions)} {}
+    explicit Copy(common::StatementType type) : Statement{type} {}
 
+    inline void setParsingOption(parsing_option_t options) { parsingOptions = std::move(options); }
     inline const parsing_option_t& getParsingOptionsRef() const { return parsingOptions; }
 
 protected:
@@ -20,26 +22,30 @@ protected:
 
 class CopyFrom : public Copy {
 public:
-    explicit CopyFrom(bool byColumn_, std::vector<std::string> filePaths, std::string tableName,
-        parsing_option_t parsingOptions)
-        : Copy{common::StatementType::COPY_FROM, std::move(parsingOptions)}, byColumn_{byColumn_},
-          filePaths{std::move(filePaths)}, tableName{std::move(tableName)} {}
+    CopyFrom(std::vector<std::string> filePaths, std::string tableName)
+        : Copy{common::StatementType::COPY_FROM}, byColumn_{false}, filePaths{std::move(filePaths)},
+          tableName{std::move(tableName)} {}
 
+    inline void setByColumn() { byColumn_ = true; }
     inline bool byColumn() const { return byColumn_; }
+
     inline std::vector<std::string> getFilePaths() const { return filePaths; }
     inline std::string getTableName() const { return tableName; }
+
+    inline void setColumnNames(std::vector<std::string> names) { columnNames = std::move(names); }
+    inline std::vector<std::string> getColumnNames() const { return columnNames; }
 
 private:
     bool byColumn_;
     std::vector<std::string> filePaths;
     std::string tableName;
+    std::vector<std::string> columnNames;
 };
 
 class CopyTo : public Copy {
 public:
-    explicit CopyTo(std::string filePath, std::unique_ptr<RegularQuery> regularQuery,
-        parsing_option_t parsingOptions)
-        : Copy{common::StatementType::COPY_TO, std::move(parsingOptions)},
+    CopyTo(std::string filePath, std::unique_ptr<RegularQuery> regularQuery)
+        : Copy{common::StatementType::COPY_TO},
           regularQuery{std::move(regularQuery)}, filePath{std::move(filePath)} {}
 
     inline std::string getFilePath() const { return filePath; }
