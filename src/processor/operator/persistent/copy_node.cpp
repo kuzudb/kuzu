@@ -42,7 +42,7 @@ void CopyNodeSharedState::appendLocalNodeGroup(std::unique_ptr<NodeGroup> localN
         CopyNode::writeAndResetNodeGroup(
             nodeGroupIdx, pkIndex.get(), pkColumnIdx, table, sharedNodeGroup.get());
     }
-    if (numNodesAppended < localNodeGroup->getNumNodes()) {
+    if (numNodesAppended < localNodeGroup->getNumRows()) {
         sharedNodeGroup->append(localNodeGroup.get(), numNodesAppended);
     }
 }
@@ -92,7 +92,7 @@ void CopyNode::executeInternal(ExecutionContext* context) {
         copyToNodeGroup();
         columnState->selVector = std::move(originalSelVector);
     }
-    if (localNodeGroup->getNumNodes() > 0) {
+    if (localNodeGroup->getNumRows() > 0) {
         sharedState->appendLocalNodeGroup(std::move(localNodeGroup));
     }
 }
@@ -104,7 +104,7 @@ void CopyNode::writeAndResetNodeGroup(node_group_idx_t nodeGroupIdx,
     auto startOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     if (pkIndex) {
         populatePKIndex(pkIndex, nodeGroup->getColumnChunk(pkColumnID), startOffset,
-            nodeGroup->getNumNodes() /* startPageIdx */);
+            nodeGroup->getNumRows() /* startPageIdx */);
     }
     table->append(nodeGroup);
     nodeGroup->resetToEmpty();
@@ -158,7 +158,7 @@ void CopyNode::checkNonNullConstraint(NullColumnChunk* nullChunk, offset_t numNo
 void CopyNode::finalize(ExecutionContext* context) {
     uint64_t numNodes = StorageUtils::getStartOffsetOfNodeGroup(sharedState->getCurNodeGroupIdx());
     if (sharedState->sharedNodeGroup) {
-        numNodes += sharedState->sharedNodeGroup->getNumNodes();
+        numNodes += sharedState->sharedNodeGroup->getNumRows();
         auto nodeGroupIdx = sharedState->getNextNodeGroupIdx();
         writeAndResetNodeGroup(nodeGroupIdx, sharedState->pkIndex.get(), sharedState->pkColumnIdx,
             sharedState->table, sharedState->sharedNodeGroup.get());

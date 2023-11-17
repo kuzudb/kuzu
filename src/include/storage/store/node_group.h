@@ -17,15 +17,16 @@ public:
     virtual ~NodeGroup() = default;
 
     inline uint64_t getNodeGroupIdx() const { return nodeGroupIdx; }
-    inline common::offset_t getNumNodes() const { return numNodes; }
+    inline common::row_idx_t getNumRows() const { return numRows; }
     inline ColumnChunk* getColumnChunk(common::column_id_t columnID) {
         KU_ASSERT(columnID < chunks.size());
         return chunks[columnID].get();
     }
-    inline bool isFull() const { return numNodes == common::StorageConstants::NODE_GROUP_SIZE; }
+    inline bool isFull() const { return numRows == common::StorageConstants::NODE_GROUP_SIZE; }
 
     void resetToEmpty();
-    void setChunkToAllNull(common::vector_idx_t chunkIdx);
+    void setAllNull();
+    void setNumValues(common::offset_t numValues);
     void resizeChunks(uint64_t newSize);
 
     uint64_t append(const std::vector<common::ValueVector*>& columnVectors,
@@ -37,7 +38,7 @@ public:
 
 private:
     uint64_t nodeGroupIdx;
-    common::offset_t numNodes;
+    common::row_idx_t numRows;
     std::vector<std::unique_ptr<ColumnChunk>> chunks;
 };
 
@@ -59,9 +60,13 @@ private:
 };
 
 struct NodeGroupFactory {
-    static std::unique_ptr<NodeGroup> createNodeGroup(common::ColumnDataFormat dataFormat,
+    static inline std::unique_ptr<NodeGroup> createNodeGroup(common::ColumnDataFormat dataFormat,
         const std::vector<std::unique_ptr<common::LogicalType>>& columnTypes,
-        bool enableCompression, uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE);
+        bool enableCompression, uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE) {
+        return dataFormat == common::ColumnDataFormat::REGULAR ?
+                   std::make_unique<NodeGroup>(columnTypes, enableCompression, capacity) :
+                   std::make_unique<CSRNodeGroup>(columnTypes, enableCompression);
+    }
 };
 
 } // namespace storage

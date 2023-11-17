@@ -29,6 +29,7 @@ public:
     }
     void write(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
         uint32_t posInVectorToWriteFrom) override;
+    void setNull(common::offset_t nodeOffset) override;
 
     void prepareCommitForChunk(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localColumnChunk,
