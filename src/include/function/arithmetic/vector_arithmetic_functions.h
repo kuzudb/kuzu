@@ -51,49 +51,38 @@ private:
         case common::LogicalTypeID::SERIAL:
         case common::LogicalTypeID::INT64: {
             func = ScalarFunction::UnaryExecFunction<int64_t, int64_t, FUNC>;
-            return;
-        }
+        } break;
         case common::LogicalTypeID::INT32: {
             func = ScalarFunction::UnaryExecFunction<int32_t, int32_t, FUNC>;
-            return;
-        }
+        } break;
         case common::LogicalTypeID::INT16: {
             func = ScalarFunction::UnaryExecFunction<int16_t, int16_t, FUNC>;
-            return;
-        }
+        } break;
         case common::LogicalTypeID::INT8: {
             func = ScalarFunction::UnaryExecFunction<int8_t, int8_t, FUNC>;
-            return;
-        }
+        } break;
         case common::LogicalTypeID::UINT64: {
             func = ScalarFunction::UnaryExecFunction<uint64_t, uint64_t, FUNC>;
-            return;
-        }
+        } break;
         case common::LogicalTypeID::UINT32: {
             func = ScalarFunction::UnaryExecFunction<uint32_t, uint32_t, FUNC>;
-            return;
-        }
+        } break;
         case common::LogicalTypeID::UINT16: {
             func = ScalarFunction::UnaryExecFunction<uint16_t, uint16_t, FUNC>;
-            return;
-        }
+        } break;
         case common::LogicalTypeID::UINT8: {
             func = ScalarFunction::UnaryExecFunction<uint8_t, uint8_t, FUNC>;
-            return;
-        }
+        } break;
         case common::LogicalTypeID::INT128: {
             func = ScalarFunction::UnaryExecFunction<kuzu::common::int128_t, kuzu::common::int128_t,
                 FUNC>;
-            return;
-        }
+        } break;
         case common::LogicalTypeID::DOUBLE: {
             func = ScalarFunction::UnaryExecFunction<double_t, double_t, FUNC>;
-            return;
-        }
+        } break;
         case common::LogicalTypeID::FLOAT: {
             func = ScalarFunction::UnaryExecFunction<float_t, float_t, FUNC>;
-            return;
-        }
+        } break;
         default:
             KU_UNREACHABLE;
         }
@@ -105,49 +94,38 @@ private:
         case common::LogicalTypeID::SERIAL:
         case common::LogicalTypeID::INT64: {
             func = ScalarFunction::BinaryExecFunction<int64_t, int64_t, int64_t, FUNC>;
-            return;
-        }
+        } break;
         case common::LogicalTypeID::INT32: {
             func = ScalarFunction::BinaryExecFunction<int32_t, int32_t, int32_t, FUNC>;
-            return;
-        }
+        } break;
         case common::LogicalTypeID::INT16: {
             func = ScalarFunction::BinaryExecFunction<int16_t, int16_t, int16_t, FUNC>;
-            return;
-        }
+        } break;
         case common::LogicalTypeID::INT8: {
             func = ScalarFunction::BinaryExecFunction<int8_t, int8_t, int8_t, FUNC>;
-            return;
-        }
+        } break;
         case common::LogicalTypeID::UINT64: {
             func = ScalarFunction::BinaryExecFunction<uint64_t, uint64_t, uint64_t, FUNC>;
-            return;
-        }
+        } break;
         case common::LogicalTypeID::UINT32: {
             func = ScalarFunction::BinaryExecFunction<uint32_t, uint32_t, uint32_t, FUNC>;
-            return;
-        }
+        } break;
         case common::LogicalTypeID::UINT16: {
             func = ScalarFunction::BinaryExecFunction<uint16_t, uint16_t, uint16_t, FUNC>;
-            return;
-        }
+        } break;
         case common::LogicalTypeID::UINT8: {
             func = ScalarFunction::BinaryExecFunction<uint8_t, uint8_t, uint8_t, FUNC>;
-            return;
-        }
+        } break;
         case common::LogicalTypeID::INT128: {
             func = ScalarFunction::BinaryExecFunction<kuzu::common::int128_t,
                 kuzu::common::int128_t, kuzu::common::int128_t, FUNC>;
-            return;
-        }
+        } break;
         case common::LogicalTypeID::DOUBLE: {
             func = ScalarFunction::BinaryExecFunction<double_t, double_t, double_t, FUNC>;
-            return;
-        }
+        } break;
         case common::LogicalTypeID::FLOAT: {
             func = ScalarFunction::BinaryExecFunction<float_t, float_t, float_t, FUNC>;
-            return;
-        }
+        } break;
         default:
             KU_UNREACHABLE;
         }

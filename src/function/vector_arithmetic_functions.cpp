@@ -4,6 +4,9 @@
 #include "common/types/interval_t.h"
 #include "common/types/timestamp_t.h"
 #include "function/arithmetic/arithmetic_functions.h"
+#include "function/list/functions/list_concat_function.h"
+#include "function/list/vector_list_functions.h"
+#include "function/string/functions/concat_function.h"
 
 using namespace kuzu::common;
 
@@ -15,6 +18,19 @@ function_set AddFunction::getFunctionSet() {
     for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
         result.push_back(ArithmeticFunction::getBinaryFunction<Add>(ADD_FUNC_NAME, typeID));
     }
+    // list + list -> list
+    result.push_back(std::make_unique<ScalarFunction>(ADD_FUNC_NAME,
+        std::vector<LogicalTypeID>{LogicalTypeID::VAR_LIST, LogicalTypeID::VAR_LIST},
+        LogicalTypeID::VAR_LIST,
+        ScalarFunction::BinaryExecListStructFunction<list_entry_t, list_entry_t, list_entry_t,
+            ListConcat>,
+        nullptr, ListConcatFunction::bindFunc, false /* isVarlength*/));
+    // string + string -> string
+    result.push_back(std::make_unique<ScalarFunction>(ADD_FUNC_NAME,
+        std::vector<common::LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
+        LogicalTypeID::STRING,
+        ScalarFunction::BinaryStringExecFunction<common::ku_string_t, common::ku_string_t,
+            common::ku_string_t, Concat>));
     // interval + interval → interval
     result.push_back(ArithmeticFunction::getBinaryFunction<Add, interval_t, interval_t>(
         ADD_FUNC_NAME, LogicalTypeID::INTERVAL, LogicalTypeID::INTERVAL));
