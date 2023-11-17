@@ -2,12 +2,18 @@
 
 #include <map>
 
+#include "common/column_data_format.h"
 #include "common/enums/table_type.h"
 #include "common/vector/value_vector.h"
 
 namespace kuzu {
 namespace storage {
 class TableData;
+
+using offset_to_row_idx_t = std::map<common::offset_t, common::row_idx_t>;
+using offset_set_t = std::unordered_set<common::offset_t>;
+using offset_to_offset_to_row_idx_t = std::map<common::offset_t, offset_to_row_idx_t>;
+using offset_to_offset_set_t = std::map<common::offset_t, std::unordered_set<common::offset_t>>;
 
 // TODO(Guodong): Instead of using ValueVector, we should switch to ColumnChunk.
 // This class is used to store a chunk of local changes to a column in a node group.
@@ -16,7 +22,7 @@ class LocalVector {
 public:
     LocalVector(const common::LogicalType& dataType, MemoryManager* mm) : numValues{0} {
         vector = std::make_unique<common::ValueVector>(dataType, mm);
-        vector->state = std::make_unique<common::DataChunkState>();
+        vector->setState(std::make_shared<common::DataChunkState>());
         vector->state->selVector->resetSelectorToValuePosBufferWithSize(1);
     }
 
@@ -43,14 +49,6 @@ public:
 
     void read(common::row_idx_t rowIdx, common::ValueVector* outputVector,
         common::sel_t posInOutputVector);
-    void insert(common::ValueVector* nodeIDVector, common::ValueVector* propertyVectors);
-    void update(common::ValueVector* nodeIDVector, common::ValueVector* propertyVector);
-    inline void delete_(common::offset_t nodeOffset) {
-        insertInfo.erase(nodeOffset);
-        updateInfo.erase(nodeOffset);
-    }
-    inline std::map<common::offset_t, common::row_idx_t>& getInsertInfoRef() { return insertInfo; }
-    inline std::map<common::offset_t, common::row_idx_t>& getUpdateInfoRef() { return updateInfo; }
     inline uint64_t getNumRows() { return numRows; }
     inline LocalVector* getLocalVector(common::row_idx_t rowIdx) {
         auto vectorIdx = rowIdx >> common::DEFAULT_VECTOR_CAPACITY_LOG_2;
@@ -58,22 +56,16 @@ public:
         return vectors[vectorIdx].get();
     }
 
-    common::row_idx_t getRowIdx(common::offset_t nodeOffset);
+    common::row_idx_t append(common::ValueVector* vector);
 
 private:
     void prepareAppend();
-    void append(common::ValueVector* vector);
 
 private:
     const common::LogicalType* dataType;
     MemoryManager* mm;
     std::vector<std::unique_ptr<LocalVector>> vectors;
     common::row_idx_t numRows;
-    // TODO: Do we need to differentiate between insert and update?
-    // New nodes to be inserted into the persistent storage.
-    std::map<common::offset_t, common::row_idx_t> insertInfo;
-    // Nodes in the persistent storage to be updated.
-    std::map<common::offset_t, common::row_idx_t> updateInfo;
 };
 
 class LocalNodeGroup {
@@ -81,58 +73,34 @@ class LocalNodeGroup {
 
 public:
     LocalNodeGroup(std::vector<common::LogicalType*> dataTypes, MemoryManager* mm);
-
-    void scan(common::ValueVector* nodeIDVector, const std::vector<common::column_id_t>& columnIDs,
-        const std::vector<common::ValueVector*>& outputVectors);
-    void lookup(common::offset_t nodeOffset, common::column_id_t columnID,
-        common::ValueVector* outputVector, common::sel_t posInOutputVector);
-    void insert(common::ValueVector* nodeIDVector,
-        const std::vector<common::ValueVector*>& propertyVectors);
-    void update(common::ValueVector* nodeIDVector, common::column_id_t columnID,
-        common::ValueVector* propertyVector);
-    void delete_(common::ValueVector* nodeIDVector);
+    virtual ~LocalNodeGroup() = default;
 
     inline LocalVectorCollection* getLocalColumnChunk(common::column_id_t columnID) {
-        return columns[columnID].get();
+        return chunks[columnID].get();
     }
 
-private:
-    inline common::row_idx_t getRowIdx(common::column_id_t columnID, common::offset_t nodeOffset) {
-        KU_ASSERT(columnID < columns.size());
-        return columns[columnID]->getRowIdx(nodeOffset);
-    }
-
-private:
-    std::vector<std::unique_ptr<LocalVectorCollection>> columns;
+protected:
+    std::vector<std::unique_ptr<LocalVectorCollection>> chunks;
 };
 
 class LocalTableData {
     friend class NodeTableData;
 
 public:
-    LocalTableData(std::vector<common::LogicalType*> dataTypes, MemoryManager* mm)
-        : dataTypes{std::move(dataTypes)}, mm{mm} {}
-
-    void scan(common::ValueVector* nodeIDVector, const std::vector<common::column_id_t>& columnIDs,
-        const std::vector<common::ValueVector*>& outputVectors);
-    void lookup(common::ValueVector* nodeIDVector,
-        const std::vector<common::column_id_t>& columnIDs,
-        const std::vector<common::ValueVector*>& outputVectors);
-    void insert(common::ValueVector* nodeIDVector,
-        const std::vector<common::ValueVector*>& propertyVectors);
-    void update(common::ValueVector* nodeIDVector, common::column_id_t columnID,
-        common::ValueVector* propertyVector);
-    void delete_(common::ValueVector* nodeIDVector);
+    LocalTableData(std::vector<common::LogicalType*> dataTypes, MemoryManager* mm,
+        common::ColumnDataFormat dataFormat)
+        : dataTypes{std::move(dataTypes)}, mm{mm}, dataFormat{dataFormat} {}
+    virtual ~LocalTableData() = default;
 
     inline void clear() { nodeGroups.clear(); }
 
-private:
-    common::node_group_idx_t initializeLocalNodeGroup(common::ValueVector* nodeIDVector);
-    common::node_group_idx_t initializeLocalNodeGroup(common::offset_t nodeOffset);
+protected:
+    virtual LocalNodeGroup* getOrCreateLocalNodeGroup(common::ValueVector* nodeIDVector) = 0;
 
-private:
+protected:
     std::vector<common::LogicalType*> dataTypes;
     MemoryManager* mm;
+    common::ColumnDataFormat dataFormat;
     std::unordered_map<common::node_group_idx_t, std::unique_ptr<LocalNodeGroup>> nodeGroups;
 };
 
@@ -142,14 +110,20 @@ public:
     LocalTable(common::table_id_t tableID, common::TableType tableType)
         : tableID{tableID}, tableType{tableType} {};
 
-    LocalTableData* getOrCreateLocalTableData(
-        const std::vector<std::unique_ptr<Column>>& columns, MemoryManager* mm);
-    inline LocalTableData* getLocalTableData() { return localTableData.get(); }
+    LocalTableData* getOrCreateLocalTableData(const std::vector<std::unique_ptr<Column>>& columns,
+        MemoryManager* mm, common::ColumnDataFormat dataFormat = common::ColumnDataFormat::REGULAR,
+        common::vector_idx_t dataIdx = 0);
+    inline LocalTableData* getLocalTableData(common::vector_idx_t dataIdx) {
+        KU_ASSERT(dataIdx < localTableDataCollection.size());
+        return localTableDataCollection[dataIdx].get();
+    }
 
 private:
     common::table_id_t tableID;
     common::TableType tableType;
-    std::unique_ptr<LocalTableData> localTableData;
+    // For a node table, it should only contain one LocalTableData, while a rel table should contain
+    // two, one for each direction.
+    std::vector<std::unique_ptr<LocalTableData>> localTableDataCollection;
 };
 
 } // namespace storage

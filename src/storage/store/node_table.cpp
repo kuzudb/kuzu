@@ -108,11 +108,11 @@ void NodeTable::addColumn(transaction::Transaction* transaction, const catalog::
     wal->addToUpdatedTables(tableID);
 }
 
-void NodeTable::prepareCommit(Transaction* transaction, LocalTableData* localTable) {
+void NodeTable::prepareCommit(Transaction* transaction, LocalTable* localTable) {
     if (pkIndex) {
         pkIndex->prepareCommit();
     }
-    tableData->prepareLocalTableToCommit(transaction, localTable);
+    tableData->prepareLocalTableToCommit(transaction, localTable->getLocalTableData(0));
     wal->addToUpdatedTables(tableID);
 }
 

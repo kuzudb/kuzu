@@ -30,8 +30,6 @@ class NullColumn;
 class StructColumn;
 class LocalVectorCollection;
 class Column {
-    friend class LocalColumn;
-    friend class StringLocalColumn;
     friend class StringColumn;
     friend class VarListLocalColumn;
     friend class StructColumn;
@@ -74,7 +72,8 @@ public:
 
     void prepareCommitForChunk(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localColumnChunk,
-        bool isNewNodeGroup);
+        const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo,
+        const offset_set_t& deleteInfo);
     virtual void checkpointInMemory();
     virtual void rollbackInMemory();
 
@@ -135,17 +134,20 @@ protected:
 private:
     static bool containsVarList(common::LogicalType& dataType);
     virtual bool canCommitInPlace(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk);
-    void commitLocalChunkInPlace(LocalVectorCollection* localChunk);
+        common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
+        const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo);
+    void commitLocalChunkInPlace(transaction::Transaction* transaction,
+        LocalVectorCollection* localChunk, const offset_to_row_idx_t& insertInfo,
+        const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo);
     void commitLocalChunkOutOfPlace(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
-        bool isNewNodeGroup);
+        bool isNewNodeGroup, const offset_to_row_idx_t& insertInfo,
+        const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo);
 
     void applyLocalChunkToColumnChunk(LocalVectorCollection* localChunk, ColumnChunk* columnChunk,
-        common::offset_t nodeGroupStartOffset,
-        const std::map<common::offset_t, common::row_idx_t>& updateInfo);
-    void applyLocalChunkToColumn(LocalVectorCollection* localChunk,
-        const std::map<common::offset_t, common::row_idx_t>& updateInfo);
+        common::offset_t nodeGroupStartOffset, const offset_to_row_idx_t& info);
+    void applyLocalChunkToColumn(
+        LocalVectorCollection* localChunk, const offset_to_row_idx_t& info);
 
     // check if val is in range [start, end)
     static inline bool isInRange(uint64_t val, uint64_t start, uint64_t end) {

@@ -61,6 +61,9 @@ void StringColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
 void StringColumn::scan(
     Transaction* transaction, node_group_idx_t nodeGroupIdx, ColumnChunk* columnChunk) {
     Column::scan(transaction, nodeGroupIdx, columnChunk);
+    if (columnChunk->getNumValues() == 0) {
+        return;
+    }
     auto stringColumnChunk = reinterpret_cast<StringColumnChunk*>(columnChunk);
 
     auto dataMetadata = dataColumn->getMetadata(nodeGroupIdx, transaction->getType());
@@ -198,12 +201,13 @@ void StringColumn::lookupInternal(
 }
 
 bool StringColumn::canCommitInPlace(transaction::Transaction* transaction,
-    node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk) {
+    common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
+    const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo) {
     std::vector<row_idx_t> rowIdxesToRead;
-    for (auto& [nodeOffset, rowIdx] : localChunk->getUpdateInfoRef()) {
+    for (auto& [nodeOffset, rowIdx] : updateInfo) {
         rowIdxesToRead.push_back(rowIdx);
     }
-    for (auto& [nodeOffset, rowIdx] : localChunk->getInsertInfoRef()) {
+    for (auto& [nodeOffset, rowIdx] : insertInfo) {
         rowIdxesToRead.push_back(rowIdx);
     }
     std::sort(rowIdxesToRead.begin(), rowIdxesToRead.end());

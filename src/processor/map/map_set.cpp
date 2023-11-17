@@ -75,27 +75,31 @@ std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(
     }
     auto evaluator = ExpressionMapper::getEvaluator(info->setItem.second, &inSchema);
     if (rel->isMultiLabeled()) {
-        std::unordered_map<table_id_t, std::pair<storage::RelTable*, property_id_t>>
-            tableIDToTableAndPropertyID;
+        std::unordered_map<table_id_t, std::pair<storage::RelTable*, column_id_t>>
+            tableIDToTableAndColumnID;
         for (auto tableID : rel->getTableIDs()) {
             if (!property->hasPropertyID(tableID)) {
                 continue;
             }
             auto table = storageManager.getRelTable(tableID);
             auto propertyID = property->getPropertyID(tableID);
-            tableIDToTableAndPropertyID.insert({tableID, std::make_pair(table, propertyID)});
+            auto columnID =
+                catalog->getReadOnlyVersion()->getTableSchema(tableID)->getColumnID(propertyID);
+            tableIDToTableAndColumnID.insert({tableID, std::make_pair(table, columnID)});
         }
-        return std::make_unique<MultiLabelRelSetExecutor>(std::move(tableIDToTableAndPropertyID),
+        return std::make_unique<MultiLabelRelSetExecutor>(std::move(tableIDToTableAndColumnID),
             srcNodePos, dstNodePos, relIDPos, propertyPos, std::move(evaluator));
     } else {
         auto tableID = rel->getSingleTableID();
         auto table = storageManager.getRelTable(tableID);
-        auto propertyID = common::INVALID_PROPERTY_ID;
+        auto columnID = common::INVALID_COLUMN_ID;
         if (property->hasPropertyID(tableID)) {
-            propertyID = property->getPropertyID(tableID);
+            auto propertyID = property->getPropertyID(tableID);
+            columnID =
+                catalog->getReadOnlyVersion()->getTableSchema(tableID)->getColumnID(propertyID);
         }
         return std::make_unique<SingleLabelRelSetExecutor>(
-            table, propertyID, srcNodePos, dstNodePos, relIDPos, propertyPos, std::move(evaluator));
+            table, columnID, srcNodePos, dstNodePos, relIDPos, propertyPos, std::move(evaluator));
     }
 }
 

@@ -30,6 +30,13 @@ void RelTable::read(Transaction* transaction, TableReadState& readState,
     }
 }
 
+void RelTable::update(transaction::Transaction* transaction, column_id_t columnID,
+    ValueVector* srcNodeIDVector, ValueVector* dstNodeIDVector, ValueVector* relIDVector,
+    ValueVector* propertyVector) {
+    fwdRelTableData->update(transaction, columnID, srcNodeIDVector, relIDVector, propertyVector);
+    bwdRelTableData->update(transaction, columnID, dstNodeIDVector, relIDVector, propertyVector);
+}
+
 void RelTable::scan(Transaction* transaction, RelDataReadState& scanState,
     ValueVector* inNodeIDVector, const std::vector<ValueVector*>& outputVectors) {
     auto tableData = getDirectedTableData(scanState.direction);
@@ -61,12 +68,14 @@ void RelTable::addColumn(
     wal->addToUpdatedTables(tableID);
 }
 
-void RelTable::prepareCommit(Transaction* /*transaction*/, LocalTableData* /*localTable*/) {
+void RelTable::prepareCommit(Transaction* transaction, LocalTable* localTable) {
     wal->addToUpdatedTables(tableID);
+    fwdRelTableData->prepareLocalTableToCommit(transaction, localTable->getLocalTableData(0));
+    bwdRelTableData->prepareLocalTableToCommit(transaction, localTable->getLocalTableData(1));
 }
 
-void RelTable::prepareRollback(LocalTableData* localTable) {
-    // DO NOTHING
+void RelTable::prepareRollback(LocalTableData* localTableData) {
+    localTableData->clear();
 }
 
 void RelTable::checkpointInMemory() {

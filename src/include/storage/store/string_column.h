@@ -5,7 +5,7 @@
 namespace kuzu {
 namespace storage {
 
-class StringColumn : public Column {
+class StringColumn final : public Column {
 public:
     using string_offset_t = uint64_t;
     using string_index_t = uint32_t;
@@ -16,24 +16,24 @@ public:
 
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
-        common::ValueVector* resultVector, uint64_t offsetInVector = 0) final;
+        common::ValueVector* resultVector, uint64_t offsetInVector = 0);
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        ColumnChunk* columnChunk) final;
+        ColumnChunk* columnChunk);
 
-    void append(ColumnChunk* columnChunk, common::node_group_idx_t nodeGroupIdx) final;
+    void append(ColumnChunk* columnChunk, common::node_group_idx_t nodeGroupIdx);
 
     void writeValue(const ColumnChunkMetadata& chunkMeta, common::offset_t nodeOffset,
-        common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) final;
+        common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
 
     inline Column* getDataColumn() { return dataColumn.get(); }
     inline Column* getOffsetColumn() { return offsetColumn.get(); }
 
-    void checkpointInMemory() final;
-    void rollbackInMemory() final;
+    void checkpointInMemory();
+    void rollbackInMemory();
 
 protected:
     void scanInternal(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) final;
+        common::ValueVector* resultVector);
     void scanUnfiltered(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::offset_t startOffsetInGroup,
         common::offset_t endOffsetInGroup, common::ValueVector* resultVector,
@@ -43,7 +43,7 @@ protected:
         common::ValueVector* resultVector);
 
     void lookupInternal(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) final;
+        common::ValueVector* resultVector);
 
     void scanValueToVector(transaction::Transaction* transaction, const ReadState& dataState,
         uint64_t startOffset, uint64_t endOffset, common::ValueVector* resultVector,
@@ -52,10 +52,9 @@ protected:
         uint64_t* offsets, uint64_t index, uint64_t dataSize);
 
 private:
-    void readStringValueFromOvf(transaction::Transaction* transaction, common::ku_string_t& kuStr,
-        common::ValueVector* resultVector, common::page_idx_t overflowPageIdx);
     bool canCommitInPlace(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk) final;
+        common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
+        const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo);
 
 private:
     // Main column stores indices of values in the dictionary

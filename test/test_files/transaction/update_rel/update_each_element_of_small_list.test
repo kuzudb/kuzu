@@ -1,6 +1,5 @@
 -GROUP UpdateRelTest
 -DATASET CSV rel-update-tests
--SKIP
 --
 
 -CASE updateEachElementOfSmallListCommitNormalExecution

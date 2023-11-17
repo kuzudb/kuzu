@@ -11,19 +11,27 @@ namespace storage {
 
 LocalStorage::LocalStorage(MemoryManager* mm) : mm{mm} {}
 
-LocalTableData* LocalStorage::getOrCreateLocalTableData(
-    common::table_id_t tableID, const std::vector<std::unique_ptr<Column>>& columns) {
+LocalTableData* LocalStorage::getOrCreateLocalTableData(table_id_t tableID,
+    const std::vector<std::unique_ptr<Column>>& columns, TableType tableType,
+    ColumnDataFormat dataFormat, vector_idx_t dataIdx) {
     if (!tables.contains(tableID)) {
-        tables.emplace(tableID, std::make_unique<LocalTable>(tableID, TableType::NODE));
+        tables[tableID] = std::make_unique<LocalTable>(tableID, tableType);
     }
-    return tables.at(tableID)->getOrCreateLocalTableData(columns, mm);
+    return tables.at(tableID)->getOrCreateLocalTableData(columns, mm, dataFormat, dataIdx);
 }
 
-LocalTableData* LocalStorage::getLocalTableData(common::table_id_t tableID) {
+LocalTable* LocalStorage::getLocalTable(table_id_t tableID) {
     if (!tables.contains(tableID)) {
         return nullptr;
     }
-    return tables.at(tableID)->getLocalTableData();
+    return tables.at(tableID).get();
+}
+
+LocalTableData* LocalStorage::getLocalTableData(table_id_t tableID, vector_idx_t dataIdx) {
+    if (!tables.contains(tableID)) {
+        return nullptr;
+    }
+    return tables.at(tableID)->getLocalTableData(dataIdx);
 }
 
 std::unordered_set<table_id_t> LocalStorage::getTableIDsWithUpdates() {

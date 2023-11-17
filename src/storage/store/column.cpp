@@ -393,9 +393,15 @@ void Column::scan(
         uint64_t numValuesPerPage =
             chunkMetadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType);
         uint64_t numValuesScanned = 0u;
-        while (numValuesScanned < columnChunk->getCapacity()) {
+        auto numValuesToScan = columnChunk->getCapacity();
+        if (chunkMetadata.numValues < numValuesToScan) {
+            numValuesToScan = chunkMetadata.numValues;
+        }
+        KU_ASSERT(chunkMetadata.numValues <= columnChunk->getCapacity());
+        // TODO(Guodong): We should resize as needed here.
+        while (numValuesScanned < numValuesToScan) {
             auto numValuesToReadInPage =
-                std::min(numValuesPerPage, columnChunk->getCapacity() - numValuesScanned);
+                std::min(numValuesPerPage, numValuesToScan - numValuesScanned);
             KU_ASSERT(cursor.pageIdx < chunkMetadata.pageIdx + chunkMetadata.numPages);
             readFromPage(&DUMMY_READ_TRANSACTION, cursor.pageIdx, [&](uint8_t* frame) -> void {
                 readToPageFunc(frame, cursor, columnChunk->getData(), numValuesScanned,
@@ -599,17 +605,23 @@ void Column::setNull(offset_t nodeOffset) {
 }
 
 void Column::prepareCommitForChunk(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    LocalVectorCollection* localColumnChunk, bool isNewNodeGroup) {
+    LocalVectorCollection* localColumnChunk, const offset_to_row_idx_t& insertInfo,
+    const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) {
+    auto currentNumNodeGroups = metadataDA->getNumElements(transaction->getType());
+    auto isNewNodeGroup = nodeGroupIdx >= currentNumNodeGroups;
     if (isNewNodeGroup) {
         // If this is a new node group, updateInfo should be empty. We should perform out-of-place
         // commit with a new column chunk.
-        commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, localColumnChunk, isNewNodeGroup);
+        commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, localColumnChunk, isNewNodeGroup,
+            insertInfo, updateInfo, deleteInfo);
     } else {
         // If this is not a new node group, we should first check if we can perform in-place commit.
-        if (canCommitInPlace(transaction, nodeGroupIdx, localColumnChunk)) {
-            commitLocalChunkInPlace(localColumnChunk);
+        if (canCommitInPlace(transaction, nodeGroupIdx, localColumnChunk, insertInfo, updateInfo)) {
+            commitLocalChunkInPlace(
+                transaction, localColumnChunk, insertInfo, updateInfo, deleteInfo);
         } else {
-            commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, localColumnChunk, isNewNodeGroup);
+            commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, localColumnChunk, isNewNodeGroup,
+                insertInfo, updateInfo, deleteInfo);
         }
     }
 }
@@ -633,8 +645,9 @@ bool Column::containsVarList(LogicalType& dataType) {
 }
 
 // TODO(Guodong): This should be moved inside `LocalVectorCollection`.
-bool Column::canCommitInPlace(
-    Transaction* transaction, node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk) {
+bool Column::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    LocalVectorCollection* localChunk, const offset_to_row_idx_t& insertInfo,
+    const offset_to_row_idx_t& updateInfo) {
     if (containsVarList(*dataType)) {
         // Always perform out of place commit for VAR_LIST data type.
         return false;
@@ -644,10 +657,10 @@ bool Column::canCommitInPlace(
         return true;
     }
     std::vector<row_idx_t> rowIdxesToRead;
-    for (auto& [nodeOffset, rowIdx] : localChunk->getUpdateInfoRef()) {
+    for (auto& [nodeOffset, rowIdx] : updateInfo) {
         rowIdxesToRead.push_back(rowIdx);
     }
-    for (auto& [nodeOffset, rowIdx] : localChunk->getInsertInfoRef()) {
+    for (auto& [nodeOffset, rowIdx] : insertInfo) {
         rowIdxesToRead.push_back(rowIdx);
     }
     std::sort(rowIdxesToRead.begin(), rowIdxesToRead.end());
@@ -662,28 +675,31 @@ bool Column::canCommitInPlace(
     return true;
 }
 
-void Column::commitLocalChunkInPlace(LocalVectorCollection* localChunk) {
-    applyLocalChunkToColumn(localChunk, localChunk->getUpdateInfoRef());
-    applyLocalChunkToColumn(localChunk, localChunk->getInsertInfoRef());
+void Column::commitLocalChunkInPlace(Transaction* /*transaction*/,
+    LocalVectorCollection* localChunk, const offset_to_row_idx_t& insertInfo,
+    const offset_to_row_idx_t& updateInfo, const offset_set_t& /*deleteInfo*/) {
+    applyLocalChunkToColumn(localChunk, updateInfo);
+    applyLocalChunkToColumn(localChunk, insertInfo);
 }
 
 void Column::commitLocalChunkOutOfPlace(Transaction* transaction, node_group_idx_t nodeGroupIdx,
-    LocalVectorCollection* localChunk, bool isNewNodeGroup) {
+    LocalVectorCollection* localChunk, bool isNewNodeGroup, const offset_to_row_idx_t& insertInfo,
+    const offset_to_row_idx_t& updateInfo, const offset_set_t& /*deleteInfo*/) {
     auto columnChunk = ColumnChunkFactory::createColumnChunk(dataType->copy(), enableCompression);
     if (isNewNodeGroup) {
-        KU_ASSERT(localChunk->getUpdateInfoRef().empty());
+        KU_ASSERT(updateInfo.empty());
         // Apply inserts from the local chunk.
         applyLocalChunkToColumnChunk(localChunk, columnChunk.get(),
-            nodeGroupIdx << StorageConstants::NODE_GROUP_SIZE_LOG2, localChunk->getInsertInfoRef());
+            nodeGroupIdx << StorageConstants::NODE_GROUP_SIZE_LOG2, insertInfo);
     } else {
         // First, scan the whole column chunk from persistent storage.
         scan(transaction, nodeGroupIdx, columnChunk.get());
         // Then, apply updates from the local chunk.
         applyLocalChunkToColumnChunk(localChunk, columnChunk.get(),
-            nodeGroupIdx << StorageConstants::NODE_GROUP_SIZE_LOG2, localChunk->getUpdateInfoRef());
+            nodeGroupIdx << StorageConstants::NODE_GROUP_SIZE_LOG2, updateInfo);
         // Lastly, apply inserts from the local chunk.
         applyLocalChunkToColumnChunk(localChunk, columnChunk.get(),
-            nodeGroupIdx << StorageConstants::NODE_GROUP_SIZE_LOG2, localChunk->getInsertInfoRef());
+            nodeGroupIdx << StorageConstants::NODE_GROUP_SIZE_LOG2, insertInfo);
     }
     columnChunk->finalize();
     append(columnChunk.get(), nodeGroupIdx);

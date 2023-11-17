@@ -19,10 +19,14 @@ public:
     LocalStorage(storage::MemoryManager* mm);
 
     // This function will create the local table data if not exists.
-    LocalTableData* getOrCreateLocalTableData(
-        common::table_id_t tableID, const std::vector<std::unique_ptr<Column>>& columns);
-    // This function will return nullptr if the local table data does not exist.
-    LocalTableData* getLocalTableData(common::table_id_t tableID);
+    LocalTableData* getOrCreateLocalTableData(common::table_id_t tableID,
+        const std::vector<std::unique_ptr<Column>>& columns,
+        common::TableType tableType = common::TableType::NODE,
+        common::ColumnDataFormat dataFormat = common::ColumnDataFormat::REGULAR,
+        common::vector_idx_t dataIdx = 0);
+    LocalTable* getLocalTable(common::table_id_t tableID);
+    // This function will return nullptr if the local table does not exist.
+    LocalTableData* getLocalTableData(common::table_id_t tableID, common::vector_idx_t dataIdx = 0);
     std::unordered_set<common::table_id_t> getTableIDsWithUpdates();
 
 private:

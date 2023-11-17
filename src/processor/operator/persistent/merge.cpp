@@ -36,7 +36,7 @@ bool Merge::getNextTuplesInternal(ExecutionContext* context) {
             executor->set(context);
         }
         for (auto& executor : onMatchRelSetExecutors) {
-            executor->set();
+            executor->set(context);
         }
     } else {
         for (auto& executor : nodeInsertExecutors) {
@@ -49,7 +49,7 @@ bool Merge::getNextTuplesInternal(ExecutionContext* context) {
             executor->set(context);
         }
         for (auto& executor : onCreateRelSetExecutors) {
-            executor->set();
+            executor->set(context);
         }
     }
     return true;

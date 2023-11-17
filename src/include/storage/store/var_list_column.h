@@ -2,7 +2,7 @@
 
 #include "column.h"
 
-// List is a nested data type which is stored as two columns:
+// List is a nested data type which is stored as two chunks:
 // 1. Offset column (type: INT64). Using offset to partition the data column into multiple lists.
 // 2. Data column. Stores the actual data of the list.
 // Similar to other data types, nulls are stored in the null column.

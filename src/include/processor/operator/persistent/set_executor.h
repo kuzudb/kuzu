@@ -94,7 +94,7 @@ public:
 
     void init(ResultSet* resultSet, ExecutionContext* context);
 
-    virtual void set() = 0;
+    virtual void set(ExecutionContext* context) = 0;
 
     virtual std::unique_ptr<RelSetExecutor> copy() const = 0;
 
@@ -118,17 +118,17 @@ protected:
 
 class SingleLabelRelSetExecutor : public RelSetExecutor {
 public:
-    SingleLabelRelSetExecutor(storage::RelTable* table, common::property_id_t propertyID,
+    SingleLabelRelSetExecutor(storage::RelTable* table, common::column_id_t columnID,
         const DataPos& srcNodeIDPos, const DataPos& dstNodeIDPos, const DataPos& relIDPos,
         const DataPos& lhsVectorPos, std::unique_ptr<evaluator::ExpressionEvaluator> evaluator)
         : RelSetExecutor{srcNodeIDPos, dstNodeIDPos, relIDPos, lhsVectorPos, std::move(evaluator)},
-          table{table}, propertyID{propertyID} {}
+          table{table}, columnID{columnID} {}
     SingleLabelRelSetExecutor(const SingleLabelRelSetExecutor& other)
         : RelSetExecutor{other.srcNodeIDPos, other.dstNodeIDPos, other.relIDPos, other.lhsVectorPos,
               other.evaluator->clone()},
-          table{other.table}, propertyID{other.propertyID} {}
+          table{other.table}, columnID{other.columnID} {}
 
-    void set() final;
+    void set(ExecutionContext* context) final;
 
     inline std::unique_ptr<RelSetExecutor> copy() const final {
         return std::make_unique<SingleLabelRelSetExecutor>(*this);
@@ -136,32 +136,32 @@ public:
 
 private:
     storage::RelTable* table;
-    common::property_id_t propertyID;
+    common::column_id_t columnID;
 };
 
 class MultiLabelRelSetExecutor : public RelSetExecutor {
 public:
     MultiLabelRelSetExecutor(
-        std::unordered_map<common::table_id_t, std::pair<storage::RelTable*, common::property_id_t>>
-            tableIDToTableAndPropertyID,
+        std::unordered_map<common::table_id_t, std::pair<storage::RelTable*, common::column_id_t>>
+            tableIDToTableAndColumnID,
         const DataPos& srcNodeIDPos, const DataPos& dstNodeIDPos, const DataPos& relIDPos,
         const DataPos& lhsVectorPos, std::unique_ptr<evaluator::ExpressionEvaluator> evaluator)
         : RelSetExecutor{srcNodeIDPos, dstNodeIDPos, relIDPos, lhsVectorPos, std::move(evaluator)},
-          tableIDToTableAndPropertyID{std::move(tableIDToTableAndPropertyID)} {}
+          tableIDToTableAndColumnID{std::move(tableIDToTableAndColumnID)} {}
     MultiLabelRelSetExecutor(const MultiLabelRelSetExecutor& other)
         : RelSetExecutor{other.srcNodeIDPos, other.dstNodeIDPos, other.relIDPos, other.lhsVectorPos,
               other.evaluator->clone()},
-          tableIDToTableAndPropertyID{other.tableIDToTableAndPropertyID} {}
+          tableIDToTableAndColumnID{other.tableIDToTableAndColumnID} {}
 
-    void set() final;
+    void set(ExecutionContext* context) final;
 
     inline std::unique_ptr<RelSetExecutor> copy() const final {
         return std::make_unique<MultiLabelRelSetExecutor>(*this);
     }
 
 private:
-    std::unordered_map<common::table_id_t, std::pair<storage::RelTable*, common::property_id_t>>
-        tableIDToTableAndPropertyID;
+    std::unordered_map<common::table_id_t, std::pair<storage::RelTable*, common::column_id_t>>
+        tableIDToTableAndColumnID;
 };
 
 } // namespace processor
