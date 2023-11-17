@@ -90,7 +90,7 @@ private:
         const binder::expression_vector& predicates, LogicalPlan& leftPlan);
     void planRegularMatch(const binder::QueryGraphCollection& queryGraphCollection,
         const binder::expression_vector& predicates, LogicalPlan& leftPlan);
-    void planExistsSubquery(std::shared_ptr<binder::Expression> subquery, LogicalPlan& outerPlan);
+    void planSubquery(std::shared_ptr<binder::Expression> subquery, LogicalPlan& outerPlan);
     void planSubqueryIfNecessary(
         const std::shared_ptr<binder::Expression>& expression, LogicalPlan& plan);
 

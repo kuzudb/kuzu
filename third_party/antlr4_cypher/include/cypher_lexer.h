@@ -32,12 +32,12 @@ public:
     DESC = 103, WHERE = 104, SHORTEST = 105, OR = 106, XOR = 107, AND = 108, 
     NOT = 109, INVALID_NOT_EQUAL = 110, MINUS = 111, FACTORIAL = 112, STARTS = 113, 
     ENDS = 114, CONTAINS = 115, IS = 116, NULL_ = 117, TRUE = 118, FALSE = 119, 
-    EXISTS = 120, CASE = 121, ELSE = 122, END = 123, WHEN = 124, THEN = 125, 
-    StringLiteral = 126, EscapedChar = 127, DecimalInteger = 128, HexLetter = 129, 
-    HexDigit = 130, Digit = 131, NonZeroDigit = 132, NonZeroOctDigit = 133, 
-    ZeroDigit = 134, RegularDecimalReal = 135, UnescapedSymbolicName = 136, 
-    IdentifierStart = 137, IdentifierPart = 138, EscapedSymbolicName = 139, 
-    SP = 140, WHITESPACE = 141, Comment = 142, Unknown = 143
+    COUNT = 120, EXISTS = 121, CASE = 122, ELSE = 123, END = 124, WHEN = 125, 
+    THEN = 126, StringLiteral = 127, EscapedChar = 128, DecimalInteger = 129, 
+    HexLetter = 130, HexDigit = 131, Digit = 132, NonZeroDigit = 133, NonZeroOctDigit = 134, 
+    ZeroDigit = 135, RegularDecimalReal = 136, UnescapedSymbolicName = 137, 
+    IdentifierStart = 138, IdentifierPart = 139, EscapedSymbolicName = 140, 
+    SP = 141, WHITESPACE = 142, Comment = 143, Unknown = 144
   };
 
   explicit CypherLexer(antlr4::CharStream *input);

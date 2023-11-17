@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/assert.h"
+#include "common/enums/subquery_type.h"
 #include "parsed_expression.h"
 #include "parser/query/graph_pattern/pattern_element.h"
 
@@ -9,18 +10,18 @@ namespace parser {
 
 class ParsedSubqueryExpression : public ParsedExpression {
 public:
-    ParsedSubqueryExpression(
-        std::vector<std::unique_ptr<PatternElement>> patternElements, std::string rawName)
-        : ParsedExpression{common::ExpressionType::EXISTENTIAL_SUBQUERY, std::move(rawName)},
-          patternElements{std::move(patternElements)} {}
+    ParsedSubqueryExpression(common::SubqueryType subqueryType, std::string rawName)
+        : ParsedExpression{common::ExpressionType::SUBQUERY, std::move(rawName)},
+          subqueryType{subqueryType} {}
 
-    ParsedSubqueryExpression(common::ExpressionType type, std::string alias, std::string rawName,
-        parsed_expression_vector children,
-        std::vector<std::unique_ptr<PatternElement>> patternElements,
-        std::unique_ptr<ParsedExpression> whereClause)
-        : ParsedExpression{type, std::move(alias), std::move(rawName), std::move(children)},
-          patternElements{std::move(patternElements)}, whereClause{std::move(whereClause)} {}
+    inline common::SubqueryType getSubqueryType() const { return subqueryType; }
 
+    inline void addPatternElement(std::unique_ptr<PatternElement> element) {
+        patternElements.push_back(std::move(element));
+    }
+    inline void setPatternElements(std::vector<std::unique_ptr<PatternElement>> elements) {
+        patternElements = std::move(elements);
+    }
     inline const std::vector<std::unique_ptr<PatternElement>>& getPatternElements() const {
         return patternElements;
     }
@@ -42,6 +43,7 @@ private:
     void serializeInternal(common::Serializer& /*serializer*/) const override { KU_UNREACHABLE; }
 
 private:
+    common::SubqueryType subqueryType;
     std::vector<std::unique_ptr<PatternElement>> patternElements;
     std::unique_ptr<ParsedExpression> whereClause;
 };

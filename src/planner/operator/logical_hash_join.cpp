@@ -36,7 +36,8 @@ void LogicalHashJoin::computeFactorizedSchema() {
     schema = probeSchema->copy();
     switch (joinType) {
     case JoinType::INNER:
-    case JoinType::LEFT: {
+    case JoinType::LEFT:
+    case JoinType::COUNT: {
         // Populate group position mapping
         std::unordered_map<f_group_pos, f_group_pos> buildToProbeKeyGroupPositionMap;
         for (auto& [probeKey, buildKey] : joinConditions) {
@@ -88,7 +89,8 @@ void LogicalHashJoin::computeFlatSchema() {
     schema = probeSchema->copy();
     switch (joinType) {
     case JoinType::INNER:
-    case JoinType::LEFT: {
+    case JoinType::LEFT:
+    case JoinType::COUNT: {
         for (auto& expression : buildSchema->getExpressionsInScope()) {
             // Join key may repeat for internal ID based joins.
             schema->insertToGroupAndScopeMayRepeat(expression, 0);
@@ -105,7 +107,8 @@ void LogicalHashJoin::computeFlatSchema() {
 binder::expression_vector LogicalHashJoin::getExpressionsToMaterialize() const {
     switch (joinType) {
     case JoinType::INNER:
-    case JoinType::LEFT: {
+    case JoinType::LEFT:
+    case JoinType::COUNT: {
         return children[1]->getSchema()->getExpressionsInScope();
     }
     case JoinType::MARK: {
@@ -141,7 +144,7 @@ bool LogicalHashJoin::requireFlatProbeKeys() {
         return true;
     }
     // Flatten for left join.
-    if (joinType == JoinType::LEFT) {
+    if (joinType == JoinType::LEFT || joinType == JoinType::COUNT) {
         return true; // TODO(Guodong): fix this. We shouldn't require flatten.
     }
     auto& [probeKey, buildKey] = joinConditions[0];

@@ -37,8 +37,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindExpression(
         expression = bindLiteralExpression(parsedExpression);
     } else if (ExpressionType::VARIABLE == expressionType) {
         expression = bindVariableExpression(parsedExpression);
-    } else if (ExpressionType::EXISTENTIAL_SUBQUERY == expressionType) {
-        expression = bindExistentialSubqueryExpression(parsedExpression);
+    } else if (ExpressionType::SUBQUERY == expressionType) {
+        expression = bindSubqueryExpression(parsedExpression);
     } else if (ExpressionType::CASE_ELSE == expressionType) {
         expression = bindCaseExpression(parsedExpression);
     } else {

@@ -92,6 +92,7 @@ private:
     uint64_t getInnerJoinResultForUnFlatKey();
     uint64_t getLeftJoinResult();
     uint64_t getMarkJoinResult();
+    uint64_t getCountJoinResult();
     uint64_t getJoinResult();
 
 private:

@@ -1,7 +1,6 @@
-#include "binder/expression/existential_subquery_expression.h"
 #include "binder/expression/expression_util.h"
+#include "binder/expression/subquery_expression.h"
 #include "binder/expression_visitor.h"
-#include "common/exception/not_implemented.h"
 #include "planner/query_planner.h"
 
 using namespace kuzu::binder;
@@ -95,33 +94,55 @@ void QueryPlanner::planRegularMatch(const QueryGraphCollection& queryGraphCollec
     }
 }
 
-void QueryPlanner::planExistsSubquery(
-    std::shared_ptr<Expression> expression, LogicalPlan& outerPlan) {
-    KU_ASSERT(expression->expressionType == ExpressionType::EXISTENTIAL_SUBQUERY);
-    auto subquery = static_pointer_cast<ExistentialSubqueryExpression>(expression);
+void QueryPlanner::planSubquery(std::shared_ptr<Expression> expression, LogicalPlan& outerPlan) {
+    KU_ASSERT(expression->expressionType == ExpressionType::SUBQUERY);
+    auto subquery = static_pointer_cast<SubqueryExpression>(expression);
     auto predicates = subquery->getPredicatesSplitOnAnd();
-    auto correlatedExpressions = outerPlan.getSchema()->getSubExpressionsInScope(subquery);
-    if (correlatedExpressions.empty()) {
-        // LCOV_EXCL_START
-        throw NotImplementedException(
-            "Exists subquery with no correlated join conditions is not yet supported.");
-        // LCOV_EXCL_STOP
-    }
-    // See planOptionalMatch for un-nesting logic.
-    bool isInternalIDCorrelated = ExpressionUtil::isExpressionsWithDataType(
-        correlatedExpressions, LogicalTypeID::INTERNAL_ID);
+    auto correlatedExprs = outerPlan.getSchema()->getSubExpressionsInScope(expression);
     std::unique_ptr<LogicalPlan> innerPlan;
-    if (isInternalIDCorrelated) {
-        innerPlan = planQueryGraphCollectionInNewContext(SubqueryType::INTERNAL_ID_CORRELATED,
-            correlatedExpressions, outerPlan.getCardinality(), *subquery->getQueryGraphCollection(),
-            predicates);
+    if (correlatedExprs.empty()) {
+        innerPlan = planQueryGraphCollectionInNewContext(SubqueryType::NONE, correlatedExprs,
+            outerPlan.getCardinality(), *subquery->getQueryGraphCollection(), predicates);
+        switch (subquery->getSubqueryType()) {
+        case common::SubqueryType::EXISTS: {
+            appendAggregate(
+                expression_vector{}, expression_vector{subquery->getCountStarExpr()}, *innerPlan);
+            appendProjection(expression_vector{subquery->getProjectionExpr()}, *innerPlan);
+        } break;
+        case common::SubqueryType::COUNT: {
+            appendAggregate(
+                expression_vector{}, expression_vector{subquery->getProjectionExpr()}, *innerPlan);
+        } break;
+        default:
+            KU_UNREACHABLE;
+        }
+        appendCrossProduct(AccumulateType::REGULAR, outerPlan, *innerPlan);
     } else {
-        appendAccumulate(AccumulateType::REGULAR, correlatedExpressions, outerPlan);
-        innerPlan =
-            planQueryGraphCollectionInNewContext(SubqueryType::CORRELATED, correlatedExpressions,
-                outerPlan.getCardinality(), *subquery->getQueryGraphCollection(), predicates);
+        auto isInternalIDCorrelated =
+            ExpressionUtil::isExpressionsWithDataType(correlatedExprs, LogicalTypeID::INTERNAL_ID);
+        if (isInternalIDCorrelated) {
+            innerPlan = planQueryGraphCollectionInNewContext(SubqueryType::INTERNAL_ID_CORRELATED,
+                correlatedExprs, outerPlan.getCardinality(), *subquery->getQueryGraphCollection(),
+                predicates);
+        } else {
+            innerPlan =
+                planQueryGraphCollectionInNewContext(SubqueryType::CORRELATED, correlatedExprs,
+                    outerPlan.getCardinality(), *subquery->getQueryGraphCollection(), predicates);
+            appendAccumulate(AccumulateType::REGULAR, correlatedExprs, outerPlan);
+        }
+        switch (subquery->getSubqueryType()) {
+        case common::SubqueryType::EXISTS: {
+            appendMarkJoin(correlatedExprs, expression, outerPlan, *innerPlan);
+        } break;
+        case common::SubqueryType::COUNT: {
+            appendAggregate(
+                correlatedExprs, expression_vector{subquery->getProjectionExpr()}, *innerPlan);
+            appendHashJoin(correlatedExprs, common::JoinType::COUNT, outerPlan, *innerPlan);
+        } break;
+        default:
+            KU_UNREACHABLE;
+        }
     }
-    appendMarkJoin(correlatedExpressions, expression, outerPlan, *innerPlan);
 }
 
 void QueryPlanner::planSubqueryIfNecessary(
@@ -129,7 +150,7 @@ void QueryPlanner::planSubqueryIfNecessary(
     if (ExpressionVisitor::hasSubquery(*expression)) {
         auto expressionCollector = std::make_unique<ExpressionCollector>();
         for (auto& expr : expressionCollector->collectTopLevelSubqueryExpressions(expression)) {
-            planExistsSubquery(expr, plan);
+            planSubquery(expr, plan);
         }
     }
 }

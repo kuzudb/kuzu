@@ -90,7 +90,7 @@ private:
     std::shared_ptr<Expression> createVariableExpression(
         common::LogicalType logicalType, std::string name);
     // Subquery expressions.
-    std::shared_ptr<Expression> bindExistentialSubqueryExpression(
+    std::shared_ptr<Expression> bindSubqueryExpression(
         const parser::ParsedExpression& parsedExpression);
     // Case expressions.
     std::shared_ptr<Expression> bindCaseExpression(

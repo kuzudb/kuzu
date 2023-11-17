@@ -1,10 +1,10 @@
 #include "binder/expression_visitor.h"
 
 #include "binder/expression/case_expression.h"
-#include "binder/expression/existential_subquery_expression.h"
 #include "binder/expression/node_expression.h"
 #include "binder/expression/property_expression.h"
 #include "binder/expression/rel_expression.h"
+#include "binder/expression/subquery_expression.h"
 
 using namespace kuzu::common;
 
@@ -16,8 +16,8 @@ expression_vector ExpressionChildrenCollector::collectChildren(const Expression&
     case ExpressionType::CASE_ELSE: {
         return collectCaseChildren(expression);
     }
-    case ExpressionType::EXISTENTIAL_SUBQUERY: {
-        return collectExistentialSubqueryChildren(expression);
+    case ExpressionType::SUBQUERY: {
+        return collectSubqueryChildren(expression);
     }
     case ExpressionType::PATTERN: {
         switch (expression.dataType.getLogicalTypeID()) {
@@ -50,10 +50,10 @@ expression_vector ExpressionChildrenCollector::collectCaseChildren(const Express
     return result;
 }
 
-expression_vector ExpressionChildrenCollector::collectExistentialSubqueryChildren(
+expression_vector ExpressionChildrenCollector::collectSubqueryChildren(
     const Expression& expression) {
     expression_vector result;
-    auto& subqueryExpression = (ExistentialSubqueryExpression&)expression;
+    auto& subqueryExpression = (SubqueryExpression&)expression;
     for (auto& node : subqueryExpression.getQueryGraphCollection()->getQueryNodes()) {
         result.push_back(node->getInternalID());
     }

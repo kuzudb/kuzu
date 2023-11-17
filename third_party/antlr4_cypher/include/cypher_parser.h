@@ -32,12 +32,12 @@ public:
     DESC = 103, WHERE = 104, SHORTEST = 105, OR = 106, XOR = 107, AND = 108, 
     NOT = 109, INVALID_NOT_EQUAL = 110, MINUS = 111, FACTORIAL = 112, STARTS = 113, 
     ENDS = 114, CONTAINS = 115, IS = 116, NULL_ = 117, TRUE = 118, FALSE = 119, 
-    EXISTS = 120, CASE = 121, ELSE = 122, END = 123, WHEN = 124, THEN = 125, 
-    StringLiteral = 126, EscapedChar = 127, DecimalInteger = 128, HexLetter = 129, 
-    HexDigit = 130, Digit = 131, NonZeroDigit = 132, NonZeroOctDigit = 133, 
-    ZeroDigit = 134, RegularDecimalReal = 135, UnescapedSymbolicName = 136, 
-    IdentifierStart = 137, IdentifierPart = 138, EscapedSymbolicName = 139, 
-    SP = 140, WHITESPACE = 141, Comment = 142, Unknown = 143
+    COUNT = 120, EXISTS = 121, CASE = 122, ELSE = 123, END = 124, WHEN = 125, 
+    THEN = 126, StringLiteral = 127, EscapedChar = 128, DecimalInteger = 129, 
+    HexLetter = 130, HexDigit = 131, Digit = 132, NonZeroDigit = 133, NonZeroOctDigit = 134, 
+    ZeroDigit = 135, RegularDecimalReal = 136, UnescapedSymbolicName = 137, 
+    IdentifierStart = 138, IdentifierPart = 139, EscapedSymbolicName = 140, 
+    SP = 141, WHITESPACE = 142, Comment = 143, Unknown = 144
   };
 
   enum {
@@ -82,13 +82,13 @@ public:
     RuleOC_Atom = 111, RuleOC_Literal = 112, RuleOC_BooleanLiteral = 113, 
     RuleOC_ListLiteral = 114, RuleKU_ListEntry = 115, RuleKU_StructLiteral = 116, 
     RuleKU_StructField = 117, RuleOC_ParenthesizedExpression = 118, RuleOC_FunctionInvocation = 119, 
-    RuleOC_FunctionName = 120, RuleKU_FunctionParameter = 121, RuleOC_ExistentialSubquery = 122, 
-    RuleOC_PropertyLookup = 123, RuleOC_CaseExpression = 124, RuleOC_CaseAlternative = 125, 
-    RuleOC_Variable = 126, RuleOC_NumberLiteral = 127, RuleOC_Parameter = 128, 
-    RuleOC_PropertyExpression = 129, RuleOC_PropertyKeyName = 130, RuleOC_IntegerLiteral = 131, 
-    RuleOC_DoubleLiteral = 132, RuleOC_SchemaName = 133, RuleOC_SymbolicName = 134, 
-    RuleKU_NonReservedKeywords = 135, RuleOC_LeftArrowHead = 136, RuleOC_RightArrowHead = 137, 
-    RuleOC_Dash = 138
+    RuleOC_FunctionName = 120, RuleKU_FunctionParameter = 121, RuleOC_PathPatterns = 122, 
+    RuleOC_ExistSubquery = 123, RuleKU_CountSubquery = 124, RuleOC_PropertyLookup = 125, 
+    RuleOC_CaseExpression = 126, RuleOC_CaseAlternative = 127, RuleOC_Variable = 128, 
+    RuleOC_NumberLiteral = 129, RuleOC_Parameter = 130, RuleOC_PropertyExpression = 131, 
+    RuleOC_PropertyKeyName = 132, RuleOC_IntegerLiteral = 133, RuleOC_DoubleLiteral = 134, 
+    RuleOC_SchemaName = 135, RuleOC_SymbolicName = 136, RuleKU_NonReservedKeywords = 137, 
+    RuleOC_LeftArrowHead = 138, RuleOC_RightArrowHead = 139, RuleOC_Dash = 140
   };
 
   explicit CypherParser(antlr4::TokenStream *input);
@@ -230,7 +230,9 @@ public:
   class OC_FunctionInvocationContext;
   class OC_FunctionNameContext;
   class KU_FunctionParameterContext;
-  class OC_ExistentialSubqueryContext;
+  class OC_PathPatternsContext;
+  class OC_ExistSubqueryContext;
+  class KU_CountSubqueryContext;
   class OC_PropertyLookupContext;
   class OC_CaseExpressionContext;
   class OC_CaseAlternativeContext;
@@ -1888,7 +1890,9 @@ public:
     OC_CaseExpressionContext *oC_CaseExpression();
     OC_ParenthesizedExpressionContext *oC_ParenthesizedExpression();
     OC_FunctionInvocationContext *oC_FunctionInvocation();
-    OC_ExistentialSubqueryContext *oC_ExistentialSubquery();
+    OC_PathPatternsContext *oC_PathPatterns();
+    OC_ExistSubqueryContext *oC_ExistSubquery();
+    KU_CountSubqueryContext *kU_CountSubquery();
     OC_VariableContext *oC_Variable();
 
    
@@ -1997,10 +2001,11 @@ public:
   public:
     OC_FunctionInvocationContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    OC_FunctionNameContext *oC_FunctionName();
+    antlr4::tree::TerminalNode *COUNT();
     antlr4::tree::TerminalNode *STAR();
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
+    OC_FunctionNameContext *oC_FunctionName();
     antlr4::tree::TerminalNode *DISTINCT();
     std::vector<KU_FunctionParameterContext *> kU_FunctionParameter();
     KU_FunctionParameterContext* kU_FunctionParameter(size_t i);
@@ -2035,9 +2040,24 @@ public:
 
   KU_FunctionParameterContext* kU_FunctionParameter();
 
-  class  OC_ExistentialSubqueryContext : public antlr4::ParserRuleContext {
+  class  OC_PathPatternsContext : public antlr4::ParserRuleContext {
   public:
-    OC_ExistentialSubqueryContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    OC_PathPatternsContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    OC_NodePatternContext *oC_NodePattern();
+    std::vector<OC_PatternElementChainContext *> oC_PatternElementChain();
+    OC_PatternElementChainContext* oC_PatternElementChain(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
+
+   
+  };
+
+  OC_PathPatternsContext* oC_PathPatterns();
+
+  class  OC_ExistSubqueryContext : public antlr4::ParserRuleContext {
+  public:
+    OC_ExistSubqueryContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *EXISTS();
     antlr4::tree::TerminalNode *MATCH();
@@ -2049,7 +2069,23 @@ public:
    
   };
 
-  OC_ExistentialSubqueryContext* oC_ExistentialSubquery();
+  OC_ExistSubqueryContext* oC_ExistSubquery();
+
+  class  KU_CountSubqueryContext : public antlr4::ParserRuleContext {
+  public:
+    KU_CountSubqueryContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *COUNT();
+    antlr4::tree::TerminalNode *MATCH();
+    OC_PatternContext *oC_Pattern();
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
+    OC_WhereContext *oC_Where();
+
+   
+  };
+
+  KU_CountSubqueryContext* kU_CountSubquery();
 
   class  OC_PropertyLookupContext : public antlr4::ParserRuleContext {
   public:
@@ -2211,6 +2247,7 @@ public:
     KU_NonReservedKeywordsContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *COMMENT();
+    antlr4::tree::TerminalNode *COUNT();
 
    
   };
