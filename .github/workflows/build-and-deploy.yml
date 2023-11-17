@@ -176,7 +176,6 @@ jobs:
         with:
           name: kuzu-deploy-nodejs
           path: tools/nodejs_api/kuzu-source.tar.gz
-
       - name: Deploy to npm.js dry run
         if: ${{ github.event_name != 'schedule' && github.event.inputs.isDeploy != 'true' }}
         run: npm publish kuzu-source.tar.gz --access public --dry-run

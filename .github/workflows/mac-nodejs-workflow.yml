@@ -69,7 +69,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: mac-nodejs-module-x86_64
-          path: tools/nodejs_api/kuzujs-darwin-*.node
+          path: tools/nodejs_api/kuzujs-darwin-x64.node
 
       - name: Clean up
         working-directory: tools/nodejs_api/

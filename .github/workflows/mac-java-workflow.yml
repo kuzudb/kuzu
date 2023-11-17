@@ -12,6 +12,7 @@ jobs:
       - name: Build Java lib for Apple Silicon
         run: |
           arch -arm64 env JAVA_HOME=$(/usr/libexec/java_home) make java NUM_THREADS=8
+          make install
         env:
           MACOSX_DEPLOYMENT_TARGET: 11.0
           ARCHFLAGS: "-arch arm64"
@@ -19,7 +20,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: java-lib-osx-arm64
-          path: tools/java_api/build/libkuzu_java_native*
+          path: install/lib/java/libkuzu_java_native*
 
   build-mac-java-x86:
     runs-on: self-hosted-mac-x64
@@ -29,6 +30,7 @@ jobs:
       - name: Build Java lib for Intel
         run: |
           env JAVA_HOME=$(/usr/libexec/java_home) make java NUM_THREADS=48
+          make install
         env:
           MACOSX_DEPLOYMENT_TARGET: 10.15
           ARCHFLAGS: "-arch x86_64"
@@ -36,4 +38,4 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: java-lib-osx-x86_64
-          path: tools/java_api/build/libkuzu_java_native*
+          path: install/lib/java/libkuzu_java_native*

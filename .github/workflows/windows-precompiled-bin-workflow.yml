@@ -10,26 +10,24 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install networkx
-        run: python.exe -m pip install networkx --user
-
       - name: Build precompiled binaries
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
-          python.exe build.py
-        working-directory: ./scripts/pre-compiled-bins/
+          make release
+          make install
 
       - uses: actions/upload-artifact@v3
         with:
           name: libkuzu-windows-x86_64
           path: |
-            ./scripts/pre-compiled-bins/kuzu.h
-            ./scripts/pre-compiled-bins/kuzu.hpp
-            ./scripts/pre-compiled-bins/kuzu_shared.dll
-            ./scripts/pre-compiled-bins/kuzu_shared.lib
+            ./install/include/kuzu.h
+            ./install/include/kuzu.hpp
+            ./install/lib/kuzu_shared.dll
+            ./install/lib/kuzu_shared.lib
+            ./install/lib/kuzu.lib
 
       - uses: actions/upload-artifact@v3
         with:
           name: kuzu_cli-windows-x86_64
-          path: ./scripts/pre-compiled-bins/kuzu.exe
+          path: ./install/bin/kuzu_shell.exe

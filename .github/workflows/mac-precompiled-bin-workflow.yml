@@ -10,53 +10,45 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install networkx
-        run: python3 -m pip install networkx --user
-
-      - name: Build precompiled binaries for Apple Silicon
-        run: python3 build.py
-        working-directory: ./scripts/pre-compiled-bins/
-        env:
-          MACOSX_DEPLOYMENT_TARGET: 11.0
-          ARCHFLAGS: "-arch arm64"
+      - name: Build precompiled binaries
+        run: |
+          make release
+          make install
 
       - uses: actions/upload-artifact@v3
         with:
           name: libkuzu-osx-arm64
           path: |
-            ./scripts/pre-compiled-bins/kuzu.h
-            ./scripts/pre-compiled-bins/kuzu.hpp
-            ./scripts/pre-compiled-bins/libkuzu.dylib
+            ./install/include/kuzu.h
+            ./install/include/kuzu.hpp
+            ./install/lib/libkuzu.dylib
+            ./install/lib/kuzu.a
 
       - uses: actions/upload-artifact@v3
         with:
           name: kuzu_cli-osx-arm64
-          path: ./scripts/pre-compiled-bins/kuzu
+          path: ./install/bin/kuzu_shell
 
   build-precompiled-bin-x86_64:
     runs-on: self-hosted-mac-x64
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install networkx
-        run: python3 -m pip install networkx --user
-
-      - name: Build precompiled binaries for Intel
-        run: python3 build.py
-        working-directory: ./scripts/pre-compiled-bins/
-        env:
-          MACOSX_DEPLOYMENT_TARGET: 10.15
-          ARCHFLAGS: "-arch x86_64"
+      - name: Build precompiled binaries
+        run: |
+          make release
+          make install
 
       - uses: actions/upload-artifact@v3
         with:
           name: libkuzu-osx-x86_64
           path: |
-            ./scripts/pre-compiled-bins/kuzu.h
-            ./scripts/pre-compiled-bins/kuzu.hpp
-            ./scripts/pre-compiled-bins/libkuzu.dylib
+            ./install/include/kuzu.h
+            ./install/include/kuzu.hpp
+            ./install/lib/libkuzu.dylib
+            ./install/lib/kuzu.a
 
       - uses: actions/upload-artifact@v3
         with:
           name: kuzu_cli-osx-x86_64
-          path: ./scripts/pre-compiled-bins/kuzu
+          path: ./install/bin/kuzu_shell
