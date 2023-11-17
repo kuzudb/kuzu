@@ -1,10 +1,9 @@
 import datetime
+import kuzu
 import math
 import sys
 from decimal import Decimal
 
-sys.path.append('../build/')
-import kuzu
 from pandas import Timestamp, Timedelta, isna
 
 

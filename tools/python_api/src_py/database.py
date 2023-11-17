@@ -119,7 +119,7 @@ class Database:
                 num_workers=4,
                 filter_per_worker=False,
             )
-        
+
         Please note that the database instance is not fork-safe, so if more than
         one worker is used, `filter_per_worker` must be set to False.
 

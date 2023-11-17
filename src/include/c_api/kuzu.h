@@ -18,10 +18,9 @@
 
 #ifdef KUZU_STATIC_DEFINE
 #define KUZU_API
-#define KUZU_NO_EXPORT
 #else
 #ifndef KUZU_API
-#ifdef kuzu_shared_EXPORTS
+#ifdef KUZU_EXPORTS
 /* We are building this library */
 #define KUZU_API KUZU_HELPER_DLL_EXPORT
 #else
@@ -29,7 +28,6 @@
 #define KUZU_API KUZU_HELPER_DLL_IMPORT
 #endif
 #endif
-
 #endif
 
 #ifndef KUZU_DEPRECATED

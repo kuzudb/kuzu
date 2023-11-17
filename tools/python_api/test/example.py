@@ -1,6 +1,5 @@
-import sys
-sys.path.append('/home/lc/Developer/guodong/kuzu/tools/python_api/build')
 import kuzu
+import sys
 
 DB_PATH = '/home/lc/Developer/kuzu_ogb_mag'
 db = kuzu.Database(DB_PATH, (10*1024**3))

@@ -8,7 +8,6 @@ target_include_directories(
         test_helper
         PUBLIC
         ../include/
-        ../../src/include
 )
 
 target_link_libraries(test_helper PUBLIC kuzu)
@@ -23,7 +22,6 @@ target_include_directories(
         api_test_helper
         PUBLIC
         ../include/
-        ../../src/include
 )
 
 target_link_libraries(api_test_helper PUBLIC kuzu_shared)

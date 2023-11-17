@@ -118,13 +118,20 @@ childProcess.execSync("make nodejs NUM_THREADS=" + THREADS, {
   stdio: "inherit",
 });
 
+childProcess.execSync("make install", {
+  env,
+  cwd: path.join(__dirname, "kuzu-source"),
+  stdio: "inherit",
+});
+
 // Copy the built files to the package directory
 const BUILT_DIR = path.join(
   __dirname,
   "kuzu-source",
-  "tools",
-  "nodejs_api",
-  "build"
+  "install",
+  "lib",
+  "nodejs",
+  "kuzu",
 );
 // Get all the js and node files
 const files = fs.readdirSync(BUILT_DIR).filter((file) => {
@@ -144,7 +151,7 @@ console.log("Cleaning up...");
 childProcess.execSync("npm run clean-all", {
   cwd: path.join(__dirname, "kuzu-source", "tools", "nodejs_api"),
 });
-childProcess.execSync("make clean-all", {
+childProcess.execSync("make clean", {
   cwd: path.join(__dirname, "kuzu-source"),
 });
 console.log("Done!");

@@ -4,8 +4,6 @@ import sys
 
 def test_query_result_close(get_tmp_path):
     code = [
-        'import sys',
-        'sys.path.append("../build/")',
         'import kuzu',
         # Note: Windows paths include backslashes, which need to be raw strings or escaped.
         'db = kuzu.Database(r"' + get_tmp_path + '")',

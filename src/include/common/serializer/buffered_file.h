@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <memory>
@@ -20,18 +21,17 @@ public:
           fileInfo(std::move(fileInfo)) {}
 
     inline void write(const uint8_t* data, uint64_t size) final {
-        if (bufferOffset + size <= BUFFER_SIZE) {
-            memcpy(&buffer[bufferOffset], data, size);
-            bufferOffset += size;
-        } else {
-            auto toCopy = BUFFER_SIZE - bufferOffset;
-            memcpy(&buffer[bufferOffset], data, toCopy);
-            bufferOffset += toCopy;
-            flush();
-            auto remaining = size - toCopy;
-            memcpy(buffer.get(), data + toCopy, remaining);
-            bufferOffset += remaining;
-        }
+        uint64_t remaining = size;
+        do {
+            uint64_t copyBytes = std::min(remaining, BUFFER_SIZE - bufferOffset);
+            memcpy(&buffer[bufferOffset], data, copyBytes);
+            data += copyBytes;
+            remaining -= copyBytes;
+            bufferOffset += copyBytes;
+            if (bufferOffset == BUFFER_SIZE) {
+                flush();
+            }
+        } while (remaining > 0);
     }
 
 protected:
@@ -52,18 +52,17 @@ public:
     }
 
     inline void read(uint8_t* data, uint64_t size) final {
-        if (bufferOffset + size <= BUFFER_SIZE) {
-            memcpy(data, &buffer[bufferOffset], size);
-            bufferOffset += size;
-        } else {
-            auto toCopy = BUFFER_SIZE - bufferOffset;
-            memcpy(data, &buffer[bufferOffset], toCopy);
-            bufferOffset += toCopy;
-            readNextPage();
-            auto remaining = size - toCopy;
-            memcpy(data + toCopy, buffer.get(), remaining);
-            bufferOffset += remaining;
-        }
+        uint64_t remaining = size;
+        do {
+            uint64_t copyBytes = std::min(remaining, BUFFER_SIZE - bufferOffset);
+            memcpy(data, &buffer[bufferOffset], copyBytes);
+            data += copyBytes;
+            remaining -= copyBytes;
+            bufferOffset += copyBytes;
+            if (bufferOffset == BUFFER_SIZE) {
+                readNextPage();
+            }
+        } while (remaining > 0);
     }
 
 private:

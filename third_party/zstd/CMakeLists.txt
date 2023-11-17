@@ -33,6 +33,9 @@ add_library(zstd STATIC
         decompress/zstd_decompress.cpp
         decompress/zstd_decompress_block.cpp)
 
+# Hide all zstd symbols, since we are importing the library.
+add_compile_definitions(zstd ZSTDLIB_VISIBILITY= ZSTDERRORLIB_VISIBILITY=)
+
 target_include_directories(
         zstd
         PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)

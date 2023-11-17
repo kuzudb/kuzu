@@ -1,6 +1,6 @@
 FROM quay.io/pypa/manylinux_2_28_aarch64
 
-# Install dependencies 
+# Install dependencies
 RUN yum upgrade curl ca-certificates
 RUN yum install -y epel-release
 RUN yum update -y

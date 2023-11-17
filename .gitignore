@@ -10,6 +10,7 @@ test/test_files/test_list
 
 test_temp/
 build/
+install/
 
 compile_commands.json
 
@@ -41,9 +42,6 @@ tools/nodejs_api/prebuilt/
 # Archive files
 *.zip
 *.tar.gz
-scripts/pre-compiled-bins/headers
-scripts/pre-compiled-bins/lib*
-scripts/pre-compiled-bins/kuzu*
 
 # Java API
 tools/java_api/build

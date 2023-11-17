@@ -27,35 +27,25 @@ public class TestHelper {
         conn = new KuzuConnection(db);
         KuzuQueryResult result;
 
-        reader = new BufferedReader(new FileReader("../../dataset/tinysnb/schema.cypher"));
+        reader = new BufferedReader(new FileReader("dataset/tinysnb/schema.cypher"));
         String line;
-        do {
-            line = reader.readLine();
-            if (line == null) {
-                break;
-            }
-            line = line.replace("dataset/tinysnb", "../../dataset/tinysnb");
+        while((line = reader.readLine()) != null) {
             result = conn.query(line);
             result.destroy();
-        } while (line != null);
+        }
         reader.close();
 
 
-        reader = new BufferedReader(new FileReader("../../dataset/tinysnb/copy.cypher"));
-        do {
-            line = reader.readLine();
-            if (line == null) {
-                break;
-            }
-            line = line.replace("dataset/tinysnb", "../../dataset/tinysnb");
+        reader = new BufferedReader(new FileReader("dataset/tinysnb/copy.cypher"));
+        while((line = reader.readLine()) != null) {
             result = conn.query(line);
             result.destroy();
-        } while (line != null);
+        }
         reader.close();
 
         result = conn.query("create node table moviesSerial (ID SERIAL, name STRING, length INT32, note STRING, PRIMARY KEY (ID));");
         result.destroy();
-        result = conn.query("copy moviesSerial from \"../../dataset/tinysnb-serial/vMovies.csv\"");
+        result = conn.query("copy moviesSerial from \"dataset/tinysnb-serial/vMovies.csv\"");
         result.destroy();
     }
 }

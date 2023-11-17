@@ -1,11 +1,8 @@
+import kuzu
 import os
 import sys
 import pytest
 import shutil
-
-sys.path.append('../build/')
-import kuzu
-
 
 def init_npy(conn):
     conn.execute(

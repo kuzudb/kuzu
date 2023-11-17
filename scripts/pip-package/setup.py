@@ -80,13 +80,15 @@ class CMakeBuild(build_ext):
         subprocess.run(['make', 'clean'], check=True, cwd=build_dir)
 
         # Build the native extension.
-        full_cmd = ['make', 'release', 'NUM_THREADS=%d' % num_cores]
+        full_cmd = ['make', 'python', 'NUM_THREADS=%d' % num_cores]
+        subprocess.run(full_cmd, cwd=build_dir, check=True, env=env_vars)
+        full_cmd = ['make', 'install']
         subprocess.run(full_cmd, cwd=build_dir, check=True, env=env_vars)
         self.announce("Done building native extension.")
         self.announce("Copying native extension...")
         dst = os.path.join(ext.sourcedir, ext.name)
         shutil.rmtree(dst, ignore_errors=True)
-        shutil.copytree(os.path.join(build_dir, 'tools', 'python_api', 'build',
+        shutil.copytree(os.path.join(build_dir, 'install', 'lib', 'python',
                                      ext.name), dst)
         self.announce("Done copying native extension.")
 

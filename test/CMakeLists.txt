@@ -1,22 +1,4 @@
-include(FetchContent)
-
-# Disable WERROR for gtest
-if(ENABLE_WERROR)
-        set(CMAKE_COMPILE_WARNING_AS_ERROR FALSE)
-endif()
-FetchContent_Declare(
-        googletest
-        GIT_REPOSITORY https://github.com/google/googletest.git
-        GIT_TAG v1.13.0
-)
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
-add_library(GTest::GTest INTERFACE IMPORTED)
-target_link_libraries(GTest::GTest INTERFACE gtest_main)
-target_link_libraries(GTest::GTest INTERFACE gmock_main)
-if(ENABLE_WERROR)
-        set(CMAKE_COMPILE_WARNING_AS_ERROR TRUE)
-endif()
+add_subdirectory(gtest EXCLUDE_FROM_ALL)
 
 enable_testing()
 add_subdirectory(test_helper)

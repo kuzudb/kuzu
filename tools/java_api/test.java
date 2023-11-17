@@ -33,13 +33,13 @@ public class test {
         KuzuDatabase db = new KuzuDatabase(db_path);
         KuzuConnection conn = new KuzuConnection(db);
         try {
-			reader = new BufferedReader(new FileReader("../../dataset/tinysnb/schema.cypher"));
-			String line = reader.readLine();
-			while (line != null) {
+            reader = new BufferedReader(new FileReader("../../dataset/tinysnb/schema.cypher"));
+            String line = reader.readLine();
+            while (line != null) {
                 System.out.println(line);
-				conn.query(line);
-				line = reader.readLine();
-			}
+                conn.query(line);
+                line = reader.readLine();
+            }
 
             reader.close();
 
@@ -48,13 +48,13 @@ public class test {
             while (line != null) {
                 line = line.replace("dataset/tinysnb", "../../dataset/tinysnb");
                 System.out.println(line);
-				conn.query(line);
-				line = reader.readLine();
-			}
-			reader.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+                conn.query(line);
+                line = reader.readLine();
+            }
+            reader.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         String query = "MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName";
         System.out.println(query);
@@ -68,9 +68,7 @@ public class test {
             System.out.println("row: " + row);
             row.destroy();
         }
-        
 
         result.destroy();
-    
     }
 }

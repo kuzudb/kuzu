@@ -92,7 +92,3 @@ add_library(re2 STATIC ${RE2_SOURCES})
 target_include_directories(
         re2
         PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-
-install(TARGETS re2
-        LIBRARY DESTINATION "${INSTALL_LIB_DIR}"
-        ARCHIVE DESTINATION "${INSTALL_LIB_DIR}")

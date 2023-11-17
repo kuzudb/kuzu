@@ -20,27 +20,25 @@
 #ifndef _THRIFT_THRIFT_H_
 #define _THRIFT_THRIFT_H_ 1
 
-#include <thrift/transport/PlatformSocket.h>
+#include <assert.h>
+#include <stdio.h>
+#include <sys/types.h>
 
 #include <thrift/thrift-config.h>
-
-#include <stdio.h>
-#include <assert.h>
-
-#include <sys/types.h>
+#include <thrift/transport/PlatformSocket.h>
 #ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
 #ifdef HAVE_INTTYPES_H
 #include <inttypes.h>
 #endif
-#include <string>
-#include <map>
-#include <list>
-#include <set>
-#include <vector>
 #include <exception>
+#include <list>
+#include <map>
+#include <set>
+#include <string>
 #include <typeinfo>
+#include <vector>
 
 #include <thrift/TLogging.h>
 //#include <thrift/TOutput.h>
@@ -50,74 +48,81 @@
 namespace kuzu_apache {
 namespace thrift {
 
-class TEnumIterator
-    : public std::iterator<std::forward_iterator_tag, std::pair<int, const char*> > {
+class TEnumIterator {
 public:
-  TEnumIterator(int n, int* enums, const char** names)
-    : ii_(0), n_(n), enums_(enums), names_(names) {}
+    using iterator_category = std::forward_iterator_tag;
+    using value_type = int;
+    using difference_type = int;
+    using pointer = int*;
+    using reference = int&;
 
-  int operator++() { return ++ii_; }
+    TEnumIterator(int n, int* enums, const char** names)
+        : ii_(0), n_(n), enums_(enums), names_(names) {}
 
-  bool operator!=(const TEnumIterator& end) {
-    THRIFT_UNUSED_VARIABLE(end);
-    assert(end.n_ == -1);
-    return (ii_ != n_);
-  }
+    int operator++() { return ++ii_; }
 
-  std::pair<int, const char*> operator*() const { return std::make_pair(enums_[ii_], names_[ii_]); }
+    bool operator!=(const TEnumIterator& end) {
+        THRIFT_UNUSED_VARIABLE(end);
+        assert(end.n_ == -1);
+        return (ii_ != n_);
+    }
+
+    std::pair<int, const char*> operator*() const {
+        return std::make_pair(enums_[ii_], names_[ii_]);
+    }
 
 private:
-  int ii_;
-  const int n_;
-  int* enums_;
-  const char** names_;
+    int ii_;
+    const int n_;
+    int* enums_;
+    const char** names_;
 };
 
 class TException : public std::exception {
 public:
-  TException() : message_() {}
+    TException() : message_() {}
 
-  TException(const std::string& message) : message_(message) {}
+    TException(const std::string& message) : message_(message) {}
 
-  ~TException() noexcept override = default;
+    ~TException() noexcept override = default;
 
-  const char* what() const noexcept override {
-    if (message_.empty()) {
-      return "Default TException.";
-    } else {
-      return message_.c_str();
+    const char* what() const noexcept override {
+        if (message_.empty()) {
+            return "Default TException.";
+        } else {
+            return message_.c_str();
+        }
     }
-  }
 
 protected:
-  std::string message_;
+    std::string message_;
 };
 
 class TDelayedException {
 public:
-  template <class E>
-  static TDelayedException* delayException(const E& e);
-  virtual void throw_it() = 0;
-  virtual ~TDelayedException() = default;
+    template<class E>
+    static TDelayedException* delayException(const E& e);
+    virtual void throw_it() = 0;
+    virtual ~TDelayedException() = default;
 };
 
-template <class E>
+template<class E>
 class TExceptionWrapper : public TDelayedException {
 public:
-  TExceptionWrapper(const E& e) : e_(e) {}
-  void throw_it() override {
-    E temp(e_);
-    delete this;
-    throw temp;
-  }
+    TExceptionWrapper(const E& e) : e_(e) {}
+    void throw_it() override {
+        E temp(e_);
+        delete this;
+        throw temp;
+    }
 
 private:
-  E e_;
+    E e_;
 };
 
-template <class E>
+template<class E>
 TDelayedException* TDelayedException::delayException(const E& e) {
-  return new TExceptionWrapper<E>(e);
+    return new TExceptionWrapper<E>(e);
 }
 
 #if T_GLOBAL_DEBUG_VIRTUAL > 1
@@ -127,7 +132,7 @@ void profile_print_info(FILE* f);
 void profile_print_info();
 void profile_write_pprof(FILE* gen_calls_f, FILE* virtual_calls_f);
 #endif
-}
-} // kuzu_apache::thrift
+} // namespace thrift
+} // namespace kuzu_apache
 
 #endif // #ifndef _THRIFT_THRIFT_H_

@@ -11,7 +11,7 @@ if (TEST_INSTALLED) {
   global.kuzu = require("kuzu");
 } else {
   console.log("Testing locally built version...");
-  global.kuzu = require("../build/");
+  global.kuzu = require(process.env.NODEJS_KUZU_PATH);
 }
 
 const tmp = require("tmp");
