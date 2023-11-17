@@ -127,18 +127,7 @@ jobs:
       - name: Test with ASAN
         run: make test ASAN=1
         env:
-          ASAN_OPTIONS: "detect_leaks=1:log_path=/tmp/asan.log"
-
-      - name: Report ASan log
-        run: |
-          if ls /tmp/asan.log* 1>/dev/null 2>&1;
-            then cat /tmp/asan.log*;
-            rm -rf /tmp/asan.log*
-            exit 1;
-          else
-            exit 0;
-          fi
-        shell: bash
+          ASAN_OPTIONS: "detect_leaks=1"
 
   clang-build-test:
     name: clang build, test & tidy
