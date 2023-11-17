@@ -165,13 +165,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRel(
     auto outFSchema = copyFrom->getSchema();
     auto tableSchema = dynamic_cast<RelTableSchema*>(copyFromInfo->tableSchema);
     auto partitioningIdx = direction == RelDataDirection::FWD ? 0 : 1;
-    auto maxBoundNodeOffset = storageManager.getNodesStatisticsAndDeletedIDs()->getMaxNodeOffset(
-        transaction::Transaction::getDummyReadOnlyTrx().get(),
-        tableSchema->getBoundTableID(direction));
-    // TODO(Guodong/Xiyang): Consider moving this to Partitioner::initGlobalStateInternal.
-    auto numPartitions = (maxBoundNodeOffset + StorageConstants::NODE_GROUP_SIZE) /
-                         StorageConstants::NODE_GROUP_SIZE;
-    partitionerSharedState->numPartitions[partitioningIdx] = numPartitions;
     auto dataFormat = tableSchema->isSingleMultiplicityInDirection(direction) ?
                           ColumnDataFormat::REGULAR :
                           ColumnDataFormat::CSR;
@@ -190,10 +183,17 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRelFrom(
     auto tableSchema = reinterpret_cast<RelTableSchema*>(copyFromInfo->tableSchema);
     auto prevOperator = mapOperator(copyFrom->getChild(0).get());
     KU_ASSERT(prevOperator->getOperatorType() == PhysicalOperatorType::PARTITIONER);
+    auto nodesStats = storageManager.getNodesStatisticsAndDeletedIDs();
     auto partitionerSharedState = dynamic_cast<Partitioner*>(prevOperator.get())->getSharedState();
-    partitionerSharedState->numPartitions.resize(2);
-    std::vector<std::unique_ptr<LogicalType>> columnTypes;
+    partitionerSharedState->maxNodeOffsets.resize(2);
+    partitionerSharedState->maxNodeOffsets[0] =
+        nodesStats->getMaxNodeOffset(transaction::Transaction::getDummyReadOnlyTrx().get(),
+            tableSchema->getBoundTableID(RelDataDirection::FWD));
+    partitionerSharedState->maxNodeOffsets[1] =
+        nodesStats->getMaxNodeOffset(transaction::Transaction::getDummyReadOnlyTrx().get(),
+            tableSchema->getBoundTableID(RelDataDirection::BWD));
     // TODO(Xiyang): Move binding of column types to binder.
+    std::vector<std::unique_ptr<LogicalType>> columnTypes;
     columnTypes.push_back(LogicalType::INTERNAL_ID()); // ADJ COLUMN.
     for (auto& property : tableSchema->properties) {
         columnTypes.push_back(property->getDataType()->copy());

@@ -55,23 +55,28 @@ void CopyRel::executeInternal(ExecutionContext* /*context*/) {
                                       .get();
         auto startOffset = StorageUtils::getStartOffsetOfNodeGroup(localState->currentPartition);
         auto offsetVectorIdx = info->dataDirection == RelDataDirection::FWD ? 0 : 1;
-        row_idx_t numRows = 0;
+        row_idx_t numRels = 0;
         for (auto& dataChunk : *partitioningBuffer) {
             auto offsetVector = dataChunk->getValueVector(offsetVectorIdx).get();
             setOffsetToWithinNodeGroup(offsetVector, startOffset);
-            numRows += offsetVector->state->selVector->selectedSize;
+            numRels += offsetVector->state->selVector->selectedSize;
         }
         ColumnChunk* csrOffsetChunk = nullptr;
+        // Calculate num of source nodes in this node group.
+        // This will be used to set the num of values of the node group.
+        auto numNodes = std::min(StorageConstants::NODE_GROUP_SIZE,
+            partitionerSharedState->maxNodeOffsets[info->partitioningIdx] - startOffset + 1);
         if (info->dataFormat == ColumnDataFormat::CSR) {
             auto csrNodeGroup = static_cast<CSRNodeGroup*>(localState->nodeGroup.get());
             csrOffsetChunk = csrNodeGroup->getCSROffsetChunk();
-            csrOffsetChunk->setNumValues(StorageConstants::NODE_GROUP_SIZE);
+            // CSR offset chunk should be aligned with num of source nodes in this node group.
+            csrOffsetChunk->setNumValues(numNodes);
             populateCSROffsets(csrOffsetChunk, partitioningBuffer, offsetVectorIdx);
             // Resize csr data column chunks.
-            localState->nodeGroup->resizeChunks(numRows);
+            localState->nodeGroup->resizeChunks(numRels);
         } else {
-            // Set adj column chunk to all null.
-            localState->nodeGroup->setChunkToAllNull(0 /* chunkIdx */);
+            localState->nodeGroup->setAllNull();
+            localState->nodeGroup->getColumnChunk(0)->setNumValues(numNodes);
         }
         for (auto& dataChunk : *partitioningBuffer) {
             if (info->dataFormat == ColumnDataFormat::CSR) {
@@ -84,7 +89,7 @@ void CopyRel::executeInternal(ExecutionContext* /*context*/) {
         localState->nodeGroup->finalize(localState->currentPartition);
         // Flush node group to table.
         sharedState->table->append(localState->nodeGroup.get(), info->dataDirection);
-        sharedState->incrementNumRows(localState->nodeGroup->getNumNodes());
+        sharedState->incrementNumRows(localState->nodeGroup->getNumRows());
         localState->nodeGroup->resetToEmpty();
     }
 }
@@ -111,22 +116,21 @@ void CopyRel::populateCSROffsets(
     }
 }
 
-// TODO(Guodong): Can we guarantee vector is not filtered and get rid of access to selVector?
 void CopyRel::setOffsetToWithinNodeGroup(ValueVector* vector, offset_t startOffset) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
+    KU_ASSERT(vector->state->selVector->isUnfiltered());
     auto offsets = (offset_t*)vector->getData();
     for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
-        auto pos = vector->state->selVector->selectedPositions[i];
-        offsets[pos] -= startOffset;
+        offsets[i] -= startOffset;
     }
 }
 
 void CopyRel::setOffsetFromCSROffsets(ValueVector* offsetVector, offset_t* csrOffsets) {
     KU_ASSERT(offsetVector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
+    KU_ASSERT(offsetVector->state->selVector->isUnfiltered());
     for (auto i = 0u; i < offsetVector->state->selVector->selectedSize; i++) {
-        auto pos = offsetVector->state->selVector->selectedPositions[i];
-        auto nodeOffset = offsetVector->getValue<offset_t>(pos);
-        offsetVector->setValue(pos, csrOffsets[nodeOffset]);
+        auto nodeOffset = offsetVector->getValue<offset_t>(i);
+        offsetVector->setValue(i, csrOffsets[nodeOffset]);
         csrOffsets[nodeOffset]++;
     }
 }

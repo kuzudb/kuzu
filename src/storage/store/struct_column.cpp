@@ -73,11 +73,22 @@ void StructColumn::lookupInternal(
 void StructColumn::write(
     offset_t nodeOffset, ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
     KU_ASSERT(vectorToWriteFrom->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
+    if (vectorToWriteFrom->isNull(posInVectorToWriteFrom)) {
+        setNull(posInVectorToWriteFrom);
+        return;
+    }
     nullColumn->write(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
     KU_ASSERT(childColumns.size() == StructVector::getFieldVectors(vectorToWriteFrom).size());
     for (auto i = 0u; i < childColumns.size(); i++) {
         auto fieldVector = StructVector::getFieldVector(vectorToWriteFrom, i).get();
         childColumns[i]->write(nodeOffset, fieldVector, posInVectorToWriteFrom);
+    }
+}
+
+void StructColumn::setNull(common::offset_t nodeOffset) {
+    nullColumn->setNull(nodeOffset);
+    for (const auto& childColumn : childColumns) {
+        childColumn->setNull(nodeOffset);
     }
 }
 

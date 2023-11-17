@@ -22,12 +22,16 @@ struct PartitioningBuffer {
     void merge(std::unique_ptr<PartitioningBuffer> localPartitioningStates);
 };
 
+// NOTE: Currently, Partitioner is tightly coupled with CopyRel. We should generalize it later when
+// necessary. Here, each partition is essentially a node group.
 struct PartitionerSharedState {
     std::mutex mtx;
-    std::vector<common::partition_idx_t> numPartitions;
+    std::vector<common::offset_t> maxNodeOffsets;       // max node offset in each direction.
+    std::vector<common::partition_idx_t> numPartitions; // num of partitions in each direction.
     std::vector<std::unique_ptr<PartitioningBuffer>> partitioningBuffers;
     common::partition_idx_t nextPartitionIdx = 0;
 
+    void initialize();
     common::partition_idx_t getNextPartition(common::vector_idx_t partitioningIdx);
     void resetState();
     void merge(std::vector<std::unique_ptr<PartitioningBuffer>> localPartitioningStates);
@@ -76,10 +80,11 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() final;
 
-private:
-    void initializePartitioningStates(
-        std::vector<std::unique_ptr<PartitioningBuffer>>& partitioningBuffers);
+    static void initializePartitioningStates(
+        std::vector<std::unique_ptr<PartitioningBuffer>>& partitioningBuffers,
+        std::vector<common::partition_idx_t> numPartitions);
 
+private:
     // TODO: For now, CopyRel will guarantee all data are inside one data chunk. Should be
     //  generalized to resultSet later if needed.
     void copyDataToPartitions(common::partition_idx_t partitioningIdx,

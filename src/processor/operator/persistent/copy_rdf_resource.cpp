@@ -47,7 +47,7 @@ void CopyRdfResource::executeInternal(ExecutionContext* context) {
         copyToNodeGroup(vector);
         columnState->selVector = std::move(originalSelVector);
     }
-    if (localNodeGroup->getNumNodes() > 0) {
+    if (localNodeGroup->getNumRows() > 0) {
         sharedState->appendLocalNodeGroup(std::move(localNodeGroup));
     }
 }
@@ -55,7 +55,7 @@ void CopyRdfResource::executeInternal(ExecutionContext* context) {
 void CopyRdfResource::finalize(ExecutionContext* context) {
     uint64_t numNodes = StorageUtils::getStartOffsetOfNodeGroup(sharedState->getCurNodeGroupIdx());
     if (sharedState->sharedNodeGroup) {
-        numNodes += sharedState->sharedNodeGroup->getNumNodes();
+        numNodes += sharedState->sharedNodeGroup->getNumRows();
         auto nodeGroupIdx = sharedState->getNextNodeGroupIdx();
         writeNodeGroup(nodeGroupIdx, sharedState->table, sharedState->sharedNodeGroup.get());
     }
@@ -76,7 +76,7 @@ void CopyRdfResource::insertIndex(ValueVector* vector) {
     common::sel_t nextPos = 0;
     common::offset_t result;
     auto offset = StorageUtils::getStartOffsetOfNodeGroup(sharedState->getCurNodeGroupIdx()) +
-                  localNodeGroup->getNumNodes();
+                  localNodeGroup->getNumRows();
     for (auto i = 0u; i < vector->state->getNumSelectedValues(); i++) {
         auto uriStr = vector->getValue<common::ku_string_t>(i).getAsString();
         if (!sharedState->pkIndex->lookup(uriStr.c_str(), result)) {
