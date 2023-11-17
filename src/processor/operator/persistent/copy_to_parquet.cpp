@@ -17,7 +17,7 @@ void CopyToParquetLocalState::init(
     this->mm = mm;
 }
 
-void CopyToParquetLocalState::sink(CopyToSharedState* sharedState) {
+void CopyToParquetLocalState::sink(CopyToSharedState* sharedState, CopyToInfo* /*info*/) {
     ft->append(vectorsToAppend);
     if (ft->getTotalNumFlatTuples() > StorageConstants::NODE_GROUP_SIZE) {
         reinterpret_cast<CopyToParquetSharedState*>(sharedState)->flush(*ft);
