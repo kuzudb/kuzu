@@ -104,5 +104,41 @@ void StructColumn::rollbackInMemory() {
     }
 }
 
+void StructColumn::prepareCommitForChunk(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    LocalVectorCollection* localColumnChunk, const offset_to_row_idx_t& insertInfo,
+    const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) {
+    auto currentNumNodeGroups = metadataDA->getNumElements(transaction->getType());
+    auto isNewNodeGroup = nodeGroupIdx >= currentNumNodeGroups;
+    if (isNewNodeGroup) {
+        // If this is a new node group, updateInfo should be empty. We should perform out-of-place
+        // commit with a new column chunk.
+        commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, localColumnChunk, isNewNodeGroup,
+            insertInfo, updateInfo, deleteInfo);
+    } else {
+        // Update null data (currently always works in-place)
+        KU_ASSERT(nullColumn->canCommitInPlace(
+            transaction, nodeGroupIdx, localColumnChunk, insertInfo, updateInfo));
+        nullColumn->commitLocalChunkInPlace(
+            transaction, localColumnChunk, insertInfo, updateInfo, deleteInfo);
+        // Update each child column separately
+        for (int i = 0; i < childColumns.size(); i++) {
+            const auto& childColumn = childColumns[i];
+            auto childLocalColumnChunk = localColumnChunk->getStructChildVectorCollection(i);
+
+            // If this is not a new node group, we should first check if we can perform in-place
+            // commit.
+            if (childColumn->canCommitInPlace(transaction, nodeGroupIdx,
+                    childLocalColumnChunk.get(), insertInfo, updateInfo)) {
+                childColumn->commitLocalChunkInPlace(
+                    transaction, childLocalColumnChunk.get(), insertInfo, updateInfo, deleteInfo);
+            } else {
+                childColumn->commitLocalChunkOutOfPlace(transaction, nodeGroupIdx,
+                    childLocalColumnChunk.get(), isNewNodeGroup, insertInfo, updateInfo,
+                    deleteInfo);
+            }
+        }
+    }
+}
+
 } // namespace storage
 } // namespace kuzu

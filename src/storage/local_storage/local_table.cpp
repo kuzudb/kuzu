@@ -54,6 +54,19 @@ void LocalVectorCollection::prepareAppend() {
     }
 }
 
+std::unique_ptr<LocalVectorCollection> LocalVectorCollection::getStructChildVectorCollection(
+    common::struct_field_idx_t idx) {
+    auto childCollection = std::make_unique<LocalVectorCollection>(
+        common::StructType::getField(dataType, idx)->getType(), mm);
+
+    for (int i = 0; i < numRows; i++) {
+        auto fieldVector =
+            common::StructVector::getFieldVector(getLocalVector(i)->getVector(), idx);
+        childCollection->append(fieldVector.get());
+    }
+    return childCollection;
+}
+
 LocalNodeGroup::LocalNodeGroup(std::vector<LogicalType*> dataTypes, MemoryManager* mm) {
     chunks.resize(dataTypes.size());
     for (auto i = 0u; i < dataTypes.size(); ++i) {
