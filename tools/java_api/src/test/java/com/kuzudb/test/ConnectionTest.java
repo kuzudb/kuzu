@@ -199,7 +199,7 @@ public class ConnectionTest extends TestBase {
     void ConnPrepareDate() throws KuzuObjectRefDestroyedException {
         String query = "MATCH (a:person) WHERE a.birthdate > $1 RETURN COUNT(*)";
         Map<String, KuzuValue> m = new HashMap<String, KuzuValue>();
-        m.put("1", new KuzuValue(LocalDate.EPOCH));
+        m.put("1", new KuzuValue(LocalDate.ofEpochDay(0)));
         KuzuPreparedStatement statement = conn.prepare(query);
         assertNotNull(statement);
         KuzuQueryResult result = conn.execute(statement, m);
