@@ -5,6 +5,18 @@
 
 -CASE FunctionString
 
+-LOG StrAddOperation
+-STATEMENT MATCH (a:person) RETURN a.fName + "suffix"
+---- 8
+Alicesuffix
+Bobsuffix
+Carolsuffix
+Dansuffix
+Elizabethsuffix
+Farooqsuffix
+Gregsuffix
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorffsuffix
+
 -LOG StrVarAndStrLiteralConcat
 -STATEMENT MATCH (a:person) WHERE concat(a.fName, 'xyz') = 'Farooqxyz' RETURN COUNT(*)
 ---- 1

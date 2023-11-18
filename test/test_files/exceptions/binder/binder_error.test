@@ -111,6 +111,8 @@ Binder exception: Cannot match a built-in function for given function +(INTERNAL
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
 (SERIAL,SERIAL) -> SERIAL
+(VAR_LIST,VAR_LIST) -> VAR_LIST
+(STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
 (DATE,INT64) -> DATE
 (INT64,DATE) -> DATE
@@ -135,6 +137,8 @@ Binder exception: Cannot match a built-in function for given function +(DATE,DAT
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
 (SERIAL,SERIAL) -> SERIAL
+(VAR_LIST,VAR_LIST) -> VAR_LIST
+(STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
 (DATE,INT64) -> DATE
 (INT64,DATE) -> DATE
@@ -159,6 +163,8 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
 (SERIAL,SERIAL) -> SERIAL
+(VAR_LIST,VAR_LIST) -> VAR_LIST
+(STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
 (DATE,INT64) -> DATE
 (INT64,DATE) -> DATE
@@ -183,6 +189,8 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
 (SERIAL,SERIAL) -> SERIAL
+(VAR_LIST,VAR_LIST) -> VAR_LIST
+(STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
 (DATE,INT64) -> DATE
 (INT64,DATE) -> DATE
@@ -507,6 +515,8 @@ Binder exception: Cannot match a built-in function for given function +(INT64,ST
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
 (SERIAL,SERIAL) -> SERIAL
+(VAR_LIST,VAR_LIST) -> VAR_LIST
+(STRING,STRING) -> STRING
 (INTERVAL,INTERVAL) -> INTERVAL
 (DATE,INT64) -> DATE
 (INT64,DATE) -> DATE
