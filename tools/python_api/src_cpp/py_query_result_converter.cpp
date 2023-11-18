@@ -18,48 +18,76 @@ void NPArrayWrapper::appendElement(Value* value) {
         switch (type.getLogicalTypeID()) {
         case LogicalTypeID::BOOL: {
             ((uint8_t*)dataBuffer)[numElements] = value->getValue<bool>();
-            break;
-        }
+        } break;
+        case LogicalTypeID::INT128: {
+            Int128_t::tryCast(value->getValue<int128_t>(), ((double_t*)dataBuffer)[numElements]);
+        } break;
         case LogicalTypeID::INT64: {
             ((int64_t*)dataBuffer)[numElements] = value->getValue<int64_t>();
-            break;
-        }
+        } break;
+        case LogicalTypeID::INT32: {
+            ((int32_t*)dataBuffer)[numElements] = value->getValue<int32_t>();
+        } break;
+        case LogicalTypeID::INT16: {
+            ((int16_t*)dataBuffer)[numElements] = value->getValue<int16_t>();
+        } break;
+        case LogicalTypeID::INT8: {
+            ((int8_t*)dataBuffer)[numElements] = value->getValue<int8_t>();
+        } break;
+        case LogicalTypeID::UINT64: {
+            ((uint64_t*)dataBuffer)[numElements] = value->getValue<uint64_t>();
+        } break;
+        case LogicalTypeID::UINT32: {
+            ((uint32_t*)dataBuffer)[numElements] = value->getValue<uint32_t>();
+        } break;
+        case LogicalTypeID::UINT16: {
+            ((uint16_t*)dataBuffer)[numElements] = value->getValue<uint16_t>();
+        } break;
+        case LogicalTypeID::UINT8: {
+            ((uint8_t*)dataBuffer)[numElements] = value->getValue<uint8_t>();
+        } break;
         case LogicalTypeID::DOUBLE: {
             ((double_t*)dataBuffer)[numElements] = value->getValue<double>();
-            break;
-        }
+        } break;
+        case LogicalTypeID::FLOAT: {
+            ((float_t*)dataBuffer)[numElements] = value->getValue<float>();
+        } break;
         case LogicalTypeID::DATE: {
             ((int64_t*)dataBuffer)[numElements] =
                 Date::getEpochNanoSeconds(value->getValue<date_t>());
-            break;
-        }
+        } break;
         case LogicalTypeID::TIMESTAMP: {
             ((int64_t*)dataBuffer)[numElements] =
                 Timestamp::getEpochNanoSeconds(value->getValue<timestamp_t>());
-            break;
-        }
+        } break;
         case LogicalTypeID::INTERVAL: {
             ((int64_t*)dataBuffer)[numElements] =
                 Interval::getNanoseconds(value->getValue<interval_t>());
-            break;
-        }
+        } break;
         case LogicalTypeID::STRING: {
             auto val = value->getValue<std::string>();
             auto result = PyUnicode_New(val.length(), 127);
             auto target_data = PyUnicode_DATA(result);
             memcpy(target_data, val.c_str(), val.length());
             ((PyObject**)dataBuffer)[numElements] = result;
-            break;
-        }
+        } break;
+        case LogicalTypeID::BLOB: {
+            ((py::bytes*)dataBuffer)[numElements] = PyQueryResult::convertValueToPyObject(*value);
+        } break;
+        case LogicalTypeID::UNION:
+        case LogicalTypeID::MAP:
+        case LogicalTypeID::STRUCT:
         case LogicalTypeID::NODE:
         case LogicalTypeID::REL: {
-            ((py::dict*)dataBuffer)[numElements] = PyQueryResult::convertValueToPyObject(*value);
-            break;
-        }
+            ((py::object*)dataBuffer)[numElements] = PyQueryResult::convertValueToPyObject(*value);
+        } break;
+        case LogicalTypeID::FIXED_LIST:
         case LogicalTypeID::VAR_LIST: {
             ((py::list*)dataBuffer)[numElements] = PyQueryResult::convertValueToPyObject(*value);
-            break;
-        }
+        } break;
+        case LogicalTypeID::RECURSIVE_REL: {
+            ((py::dict*)dataBuffer)[numElements] = PyQueryResult::convertValueToPyObject(*value);
+        } break;
         default: {
             KU_UNREACHABLE;
         }
@@ -71,23 +99,41 @@ void NPArrayWrapper::appendElement(Value* value) {
 py::dtype NPArrayWrapper::convertToArrayType(const LogicalType& type) {
     std::string dtype;
     switch (type.getLogicalTypeID()) {
+    case LogicalTypeID::INT128: {
+        dtype = "float64";
+    } break;
     case LogicalTypeID::INT64: {
         dtype = "int64";
-        break;
-    }
+    } break;
+    case LogicalTypeID::INT32: {
+        dtype = "int32";
+    } break;
+    case LogicalTypeID::INT16: {
+        dtype = "int16";
+    } break;
+    case LogicalTypeID::INT8: {
+        dtype = "int8";
+    } break;
+    case LogicalTypeID::UINT64: {
+        dtype = "uint64";
+    } break;
+    case LogicalTypeID::UINT32: {
+        dtype = "uint32";
+    } break;
+    case LogicalTypeID::UINT16: {
+        dtype = "uint16";
+    } break;
+    case LogicalTypeID::UINT8: {
+        dtype = "uint8";
+    } break;
     case LogicalTypeID::DOUBLE: {
         dtype = "float64";
-        break;
-    }
+    } break;
+    case LogicalTypeID::FLOAT: {
+        dtype = "float32";
+    } break;
     case LogicalTypeID::BOOL: {
         dtype = "bool";
-        break;
-    }
-    case LogicalTypeID::NODE:
-    case LogicalTypeID::REL:
-    case LogicalTypeID::VAR_LIST:
-    case LogicalTypeID::STRING: {
-        dtype = "object";
         break;
     }
     case LogicalTypeID::DATE:
@@ -97,6 +143,19 @@ py::dtype NPArrayWrapper::convertToArrayType(const LogicalType& type) {
     }
     case LogicalTypeID::INTERVAL: {
         dtype = "timedelta64[ns]";
+        break;
+    }
+    case LogicalTypeID::UNION:
+    case LogicalTypeID::BLOB:
+    case LogicalTypeID::STRUCT:
+    case LogicalTypeID::NODE:
+    case LogicalTypeID::REL:
+    case LogicalTypeID::VAR_LIST:
+    case LogicalTypeID::FIXED_LIST:
+    case LogicalTypeID::STRING:
+    case LogicalTypeID::MAP:
+    case LogicalTypeID::RECURSIVE_REL: {
+        dtype = "object";
         break;
     }
     default: {

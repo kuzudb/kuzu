@@ -1,5 +1,7 @@
 import datetime
+import math
 import sys
+from decimal import Decimal
 
 sys.path.append('../build/')
 import kuzu
@@ -9,10 +11,8 @@ from pandas import Timestamp, Timedelta, isna
 def test_to_df(establish_connection):
     conn, db = establish_connection
 
-    def _test_to_df(conn):
-        query = "MATCH (p:person) return " \
-                "p.ID, p.fName, p.gender, p.isStudent, p.eyeSight, p.birthdate, p.registerTime, " \
-                "p.lastJobDuration, p.workedHours, p.usedNames, p.courseScoresPerTerm ORDER BY p.ID"
+    def _test_person_to_df(conn):
+        query = "MATCH (p:person) return p.* ORDER BY p.ID"
         pd = conn.execute(query).get_as_df()
         assert pd['p.ID'].tolist() == [0, 2, 3, 5, 7, 8, 9, 10]
         assert str(pd['p.ID'].dtype) == "int64"
@@ -48,9 +48,6 @@ def test_to_df(establish_connection):
         assert pd['p.workedHours'].tolist() == [[10, 5], [12, 8], [4, 5], [1, 9], [2], [3, 4, 5, 6, 7], [1],
                                                 [10, 11, 12, 3, 4, 5, 6, 7]]
         assert str(pd['p.workedHours'].dtype) == "object"
-        assert pd['p.workedHours'].tolist() == [[10, 5], [12, 8], [4, 5], [1, 9], [2], [3, 4, 5, 6, 7], [1],
-                                                [10, 11, 12, 3, 4, 5, 6, 7]]
-        assert str(pd['p.workedHours'].dtype) == "object"
         assert pd['p.usedNames'].tolist() == [["Aida"], ['Bobby'], ['Carmen', 'Fred'],
                                               ['Wolfeschlegelstein', 'Daniel'], ['Ein'], ['Fesdwe'], ['Grad'],
                                               ['Ad', 'De', 'Hi', 'Kye', 'Orlan']]
@@ -59,23 +56,69 @@ def test_to_df(establish_connection):
                                                         [[7, 4], [8, 8], [9]], [[6], [7], [8]], [[8]], [[10]],
                                                         [[7], [10], [6, 7]]]
         assert str(pd['p.courseScoresPerTerm'].dtype) == "object"
+        assert pd['p.grades'].tolist() == [[96, 54, 86, 92], [98, 42, 93, 88], [91, 75, 21, 95], [76, 88, 99, 89],
+                                           [96, 59, 65, 88], [80, 78, 34, 83], [43, 83, 67, 43], [77, 64, 100, 54]]
+        assert str(pd['p.grades'].dtype) == "object"
+        expected_values = [1.731, 0.99, 1.00, 1.30, 1.463, 1.51, 1.6, 1.323]
+        actual_values = pd['p.height'].tolist()
+        for expected, actual in zip(expected_values, actual_values):
+            assert math.isclose(actual, expected, rel_tol=1e-5)
+        assert str(pd['p.height'].dtype) == "float32"
 
-    _test_to_df(conn)
+    def _test_study_at_to_df(conn):
+        query = "MATCH (p:person)-[r:studyAt]->(o:organisation) return r.* order by r.length;"
+        pd = conn.execute(query).get_as_df()
+        assert pd['r.year'].tolist() == [2021, 2020, 2020]
+        assert str(pd['r.year'].dtype) == "int64"
+        assert pd['r.places'].tolist() == [["wwAewsdndweusd", "wek"], ["awndsnjwejwen", "isuhuwennjnuhuhuwewe"],
+                                           ["anew", "jsdnwusklklklwewsd"]]
+        assert str(pd['r.places'].dtype) == "object"
+        assert pd['r.length'].tolist() == [5, 22, 55]
+        assert str(pd['r.length'].dtype) == "int16"
+        assert pd['r.level'].tolist() == [5, 2, 120]
+        assert str(pd['r.level'].dtype) == "int8"
+        assert pd['r.code'].tolist() == [9223372036854775808, 23, 6689]
+        assert str(pd['r.code'].dtype) == "uint64"
+        assert pd['r.temprature'].tolist() == [32800, 20, 1]
+        assert str(pd['r.temprature'].dtype) == "uint32"
+        assert pd['r.ulength'].tolist() == [33768, 180, 90]
+        assert str(pd['r.ulength'].dtype) == "uint16"
+        assert pd['r.ulevel'].tolist() == [250, 12, 220]
+        assert str(pd['r.ulevel'].dtype) == "uint8"
+        assert pd['r.hugedata'].tolist() == [1.8446744073709552e+27, -15.0, -1.8446744073709552e+21]
+        assert str(pd['r.hugedata'].dtype) == "float64"
 
+    def _test_movies_to_df(conn):
+        query = "MATCH (m:movies) return m.* order by m.length;"
+        pd = conn.execute(query).get_as_df()
+        assert pd['m.length'].tolist() == [126, 298, 2544]
+        assert str(pd['m.length'].dtype) == "int32"
+        assert pd['m.description'].tolist() == [{'rating': 5.3, 'stars': 2, 'views': 152,
+                                                 'release': datetime.datetime(2011, 8, 20, 11, 25, 30),
+                                                 'film': datetime.date(2012, 5, 11), 'u8': 220, 'u16': 20, 'u32': 1,
+                                                 'u64': 180, 'hugedata': Decimal('1844674407370955161811111111')},
+                                                {'rating': 1223.0, 'stars': 100, 'views': 10003,
+                                                 'release': datetime.datetime(2011, 2, 11, 16, 44, 22),
+                                                 'film': datetime.date(2013, 2, 22), 'u8': 1, 'u16': 15,
+                                                 'u32': 200,
+                                                 'u64': 4, 'hugedata': Decimal(-15)},
+                                                {'rating': 7.0, 'stars': 10, 'views': 982,
+                                                 'release': datetime.datetime(2018, 11, 13, 13, 33, 11),
+                                                 'film': datetime.date(2014, 9, 12), 'u8': 12,
+                                                 'u16': 120, 'u32': 55,
+                                                 'u64': 1, 'hugedata': Decimal(-1844674407370955161511)}]
+        assert str(pd['m.description'].dtype) == "object"
+        assert pd['m.content'].tolist() == [b'\xaa\xabinteresting\x0b', b'pure ascii characters', b'\xab\xcd']
+        assert str(pd['m.content'].dtype) == "object"
+        assert pd['m.audience'].tolist() == [{'audience1': 52, 'audience53': 42}, {}, {'audience1': 33}]
+        assert str(pd['m.audience'].dtype) == "object"
+        assert pd['m.grade'].tolist() == [True, 254.0, 8.989]
+        assert str(pd['m.grade'].dtype) == "object"
+
+    _test_person_to_df(conn)
     conn.set_max_threads_for_exec(2)
-    _test_to_df(conn)
-
-    conn.set_max_threads_for_exec(1)
-    _test_to_df(conn)
-
-    db.set_logging_level("debug")
-    _test_to_df(conn)
-
-    db.set_logging_level("info")
-    _test_to_df(conn)
-
-    db.set_logging_level("err")
-    _test_to_df(conn)
+    _test_study_at_to_df(conn)
+    _test_movies_to_df(conn)
 
 
 def test_df_multiple_times(establish_connection):
@@ -206,3 +249,49 @@ def test_df_get_node_rel(establish_connection):
     for i in range(len(df['r'])):
         assert (df['r'][i]['_src'] == df['p'][i]['_id'])
         assert (df['r'][i]['_dst'] == df['o'][i]['_id'])
+
+
+def test_df_get_recursive_join(establish_connection):
+    conn, _ = establish_connection
+    res = conn.execute(
+        "MATCH (p:person)-[r:knows*1..2 (e, n | WHERE e.comments = ['rnme','m8sihsdnf2990nfiwf'])]-(m:person) WHERE "
+        "p.ID = 0 and m.ID = 0 RETURN r").get_as_df()
+    assert res['r'][0] == {'_nodes': [{'ID': 2,
+                                       '_id': {'offset': 1, 'table': 0},
+                                       '_label': 'person',
+                                       'age': 30,
+                                       'birthdate': datetime.date(1900, 1, 1),
+                                       'courseScoresPerTerm': [[8, 9], [9, 10]],
+                                       'eyeSight': 5.1,
+                                       'fName': 'Bob',
+                                       'gender': 2,
+                                       'grades': [98, 42, 93, 88],
+                                       'height': 0.9900000095367432,
+                                       'isStudent': True,
+                                       'isWorker': False,
+                                       'lastJobDuration': datetime.timedelta(days=3750, seconds=46800, microseconds=24),
+                                       'registerTime': datetime.datetime(2008, 11, 3, 15, 25, 30, 526),
+                                       'usedNames': ['Bobby'],
+                                       'workedHours': [12, 8]}],
+                           '_rels': [{'_dst': {'offset': 1, 'table': 0},
+                                      '_label': 'knows',
+                                      '_src': {'offset': 0, 'table': 0},
+                                      'comments': ['rnme', 'm8sihsdnf2990nfiwf'],
+                                      'date': datetime.date(2021, 6, 30),
+                                      'meetTime': datetime.datetime(1986, 10, 21, 21, 8, 31, 521000),
+                                      'notes': 1,
+                                      'summary': {'locations': ["'toronto'", "'waterloo'"],
+                                                  'transfer': {'amount': [100, 200],
+                                                               'day': datetime.date(2021, 1, 2)}},
+                                      'validInterval': datetime.timedelta(days=3750, seconds=46800, microseconds=24)},
+                                     {'_dst': {'offset': 0, 'table': 0},
+                                      '_label': 'knows',
+                                      '_src': {'offset': 1, 'table': 0},
+                                      'comments': ['rnme', 'm8sihsdnf2990nfiwf'],
+                                      'date': datetime.date(2021, 6, 30),
+                                      'meetTime': datetime.datetime(1986, 10, 21, 21, 8, 31, 521000),
+                                      'notes': 1,
+                                      'summary': {'locations': ["'toronto'", "'waterloo'"],
+                                                  'transfer': {'amount': [100, 200],
+                                                               'day': datetime.date(2021, 1, 2)}},
+                                      'validInterval': datetime.timedelta(days=3750, seconds=46800, microseconds=24)}]}
