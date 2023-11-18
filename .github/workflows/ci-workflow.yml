@@ -186,7 +186,7 @@ jobs:
         run: |
           pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
           pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
-      
+
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
         working-directory: tools/nodejs_api
@@ -195,6 +195,7 @@ jobs:
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          make all
           make test
 
       - name: Python test
@@ -202,7 +203,7 @@ jobs:
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
           make pytest
-        
+
       - name: Node.js test
         shell: cmd
         run: |
