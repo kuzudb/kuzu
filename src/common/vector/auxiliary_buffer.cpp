@@ -23,7 +23,7 @@ list_entry_t ListAuxiliaryBuffer::addList(uint64_t listSize) {
     auto listEntry = list_entry_t{size, listSize};
     bool needResizeDataVector = size + listSize > capacity;
     while (size + listSize > capacity) {
-        capacity *= VAR_LIST_RESIZE_RATIO;
+        capacity *= CHUNK_RESIZE_RATIO;
     }
     if (needResizeDataVector) {
         resizeDataVector(dataVector.get());

@@ -12,7 +12,7 @@ public:
     StringColumn(std::unique_ptr<common::LogicalType> dataType,
         const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
         BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
-        RWPropertyStats propertyStatistics);
+        RWPropertyStats propertyStatistics, bool enableCompression);
 
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
@@ -38,7 +38,7 @@ protected:
     void scanUnfiltered(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::offset_t startOffsetInGroup,
         common::offset_t endOffsetInGroup, common::ValueVector* resultVector,
-        uint64_t startPosInVector = 0);
+        common::sel_t startPosInVector = 0);
     void scanFiltered(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::offset_t startOffsetInGroup, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector);
@@ -50,7 +50,14 @@ protected:
         uint64_t startOffset, uint64_t endOffset, common::ValueVector* resultVector,
         uint64_t offsetInVector);
     void scanOffsets(transaction::Transaction* transaction, const ReadState& state,
-        uint64_t* offsets, uint64_t index, uint64_t dataSize);
+        uint64_t* offsets, uint64_t index, uint64_t numValues, uint64_t dataSize);
+    // Offsets to scan should be a sorted list of pairs mapping the index of the entry in the string
+    // dictionary (as read from the index column) to the output index in the result vector to store
+    // the string.
+    void scanValuesToVector(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx,
+        std::vector<std::pair<string_index_t, uint64_t>>& offsetsToScan,
+        common::ValueVector* resultVector, const ReadState& indexState);
 
 private:
     bool canCommitInPlace(transaction::Transaction* transaction,
