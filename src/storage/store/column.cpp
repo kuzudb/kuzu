@@ -9,6 +9,7 @@
 #include "storage/store/struct_column.h"
 #include "storage/store/var_list_column.h"
 #include "transaction/transaction.h"
+#include <bit>
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
