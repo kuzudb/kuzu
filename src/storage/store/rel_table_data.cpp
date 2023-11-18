@@ -184,6 +184,24 @@ bool RelTableData::delete_(transaction::Transaction* transaction, ValueVector* s
     return localTableData->delete_(srcNodeIDVector, dstNodeIDVector, relIDVector);
 }
 
+bool RelTableData::checkIfNodeHasRels(Transaction* transaction, ValueVector* srcNodeIDVector) {
+    auto nodeIDPos = srcNodeIDVector->state->selVector->selectedPositions[0];
+    auto nodeOffset = srcNodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
+    auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
+    if (dataFormat == ColumnDataFormat::CSR) {
+        auto readState = csrOffsetColumn->getReadState(transaction->getType(), nodeGroupIdx);
+        std::vector<offset_t> offsets;
+        offsets.resize(2);
+        csrOffsetColumn->scan(transaction, readState, offsetInChunk == 0 ? 0 : offsetInChunk - 1,
+            offsetInChunk + 1, reinterpret_cast<uint8_t*>(&offsets[0]));
+        int64_t csrSize =
+            offsetInChunk == 0 ? offsets[0] : (int64_t)(offsets[1]) - (int64_t)(offsets[0]);
+        return csrSize > 0;
+    } else {
+        return !adjColumn->isNull(transaction, nodeGroupIdx, offsetInChunk);
+    }
+}
+
 void RelTableData::append(NodeGroup* nodeGroup) {
     if (dataFormat == ColumnDataFormat::CSR) {
         auto csrNodeGroup = static_cast<CSRNodeGroup*>(nodeGroup);

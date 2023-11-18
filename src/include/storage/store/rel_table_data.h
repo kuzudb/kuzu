@@ -66,6 +66,9 @@ public:
     bool delete_(transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector,
         common::ValueVector* dstNodeIDVector, common::ValueVector* relIDVector);
 
+    bool checkIfNodeHasRels(
+        transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector);
+
     void append(NodeGroup* nodeGroup);
 
     inline Column* getAdjColumn() const { return adjColumn.get(); }

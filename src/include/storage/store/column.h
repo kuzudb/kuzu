@@ -62,6 +62,8 @@ public:
 
     virtual void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx);
 
+    virtual bool isNull(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk);
     virtual void setNull(common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk);
 
     inline common::LogicalType* getDataType() const { return dataType.get(); }
@@ -97,6 +99,9 @@ public:
     common::offset_t appendValues(
         common::node_group_idx_t nodeGroupIdx, const uint8_t* data, common::offset_t numValues);
 
+    ReadState getReadState(
+        transaction::TransactionType transactionType, common::node_group_idx_t nodeGroupIdx) const;
+
 protected:
     virtual void scanInternal(transaction::Transaction* transaction,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
@@ -123,9 +128,6 @@ protected:
     // Produces a page cursor for the offset relative to the given node group
     PageElementCursor getPageCursorForOffsetInGroup(
         common::offset_t nodeOffset, const ReadState& state);
-
-    ReadState getReadState(
-        transaction::TransactionType transactionType, common::node_group_idx_t nodeGroupIdx) const;
 
     // Produces a page cursor for the absolute node offset
     PageElementCursor getPageCursorForOffset(transaction::TransactionType transactionType,

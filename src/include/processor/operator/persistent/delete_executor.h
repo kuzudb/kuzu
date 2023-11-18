@@ -2,7 +2,6 @@
 
 #include "processor/execution_context.h"
 #include "processor/result/result_set.h"
-#include "storage/stats/rels_store_statistics.h"
 #include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
 
@@ -27,10 +26,14 @@ protected:
 
 class SingleLabelNodeDeleteExecutor final : public NodeDeleteExecutor {
 public:
-    SingleLabelNodeDeleteExecutor(storage::NodeTable* table, const DataPos& nodeIDPos)
-        : NodeDeleteExecutor(nodeIDPos), table{table} {}
+    SingleLabelNodeDeleteExecutor(storage::NodeTable* table,
+        std::unordered_set<storage::RelTable*> fwdRelTables,
+        std::unordered_set<storage::RelTable*> bwdRelTables, const DataPos& nodeIDPos)
+        : NodeDeleteExecutor(nodeIDPos), table{table}, fwdRelTables{fwdRelTables},
+          bwdRelTables{bwdRelTables} {}
     SingleLabelNodeDeleteExecutor(const SingleLabelNodeDeleteExecutor& other)
-        : NodeDeleteExecutor(other.nodeIDPos), table{other.table} {}
+        : NodeDeleteExecutor(other.nodeIDPos), table{other.table}, fwdRelTables{other.fwdRelTables},
+          bwdRelTables{other.bwdRelTables} {}
 
     void init(ResultSet* resultSet, ExecutionContext* context) override;
     void delete_(ExecutionContext* context) override;
@@ -42,16 +45,26 @@ public:
 private:
     storage::NodeTable* table;
     std::unique_ptr<common::ValueVector> pkVector;
+    std::unordered_set<storage::RelTable*> fwdRelTables;
+    std::unordered_set<storage::RelTable*> bwdRelTables;
 };
 
 class MultiLabelNodeDeleteExecutor final : public NodeDeleteExecutor {
+    using rel_tables_set_t = std::unordered_set<storage::RelTable*>;
+
 public:
     MultiLabelNodeDeleteExecutor(
         std::unordered_map<common::table_id_t, storage::NodeTable*> tableIDToTableMap,
+        std::unordered_map<common::table_id_t, rel_tables_set_t> tableIDToFwdRelTablesMap,
+        std::unordered_map<common::table_id_t, rel_tables_set_t> tableIDToBwdRelTablesMap,
         const DataPos& nodeIDPos)
-        : NodeDeleteExecutor(nodeIDPos), tableIDToTableMap{std::move(tableIDToTableMap)} {}
+        : NodeDeleteExecutor(nodeIDPos), tableIDToTableMap{std::move(tableIDToTableMap)},
+          tableIDToFwdRelTablesMap{std::move(tableIDToFwdRelTablesMap)},
+          tableIDToBwdRelTablesMap{std::move(tableIDToBwdRelTablesMap)} {}
     MultiLabelNodeDeleteExecutor(const MultiLabelNodeDeleteExecutor& other)
-        : NodeDeleteExecutor(other.nodeIDPos), tableIDToTableMap{other.tableIDToTableMap} {}
+        : NodeDeleteExecutor(other.nodeIDPos), tableIDToTableMap{other.tableIDToTableMap},
+          tableIDToFwdRelTablesMap{other.tableIDToFwdRelTablesMap},
+          tableIDToBwdRelTablesMap{other.tableIDToBwdRelTablesMap} {}
 
     void init(ResultSet* resultSet, ExecutionContext* context) override;
     void delete_(ExecutionContext* context) override;
@@ -62,6 +75,8 @@ public:
 
 private:
     std::unordered_map<common::table_id_t, storage::NodeTable*> tableIDToTableMap;
+    std::unordered_map<common::table_id_t, rel_tables_set_t> tableIDToFwdRelTablesMap;
+    std::unordered_map<common::table_id_t, rel_tables_set_t> tableIDToBwdRelTablesMap;
     std::unordered_map<common::table_id_t, std::unique_ptr<common::ValueVector>> pkVectors;
 };
 
@@ -91,10 +106,9 @@ protected:
 
 class SingleLabelRelDeleteExecutor final : public RelDeleteExecutor {
 public:
-    SingleLabelRelDeleteExecutor(storage::RelsStoreStats* relsStatistic, storage::RelTable* table,
-        const DataPos& srcNodeIDPos, const DataPos& dstNodeIDPos, const DataPos& relIDPos)
-        : RelDeleteExecutor(srcNodeIDPos, dstNodeIDPos, relIDPos),
-          relsStatistic{relsStatistic}, table{table} {}
+    SingleLabelRelDeleteExecutor(storage::RelTable* table, const DataPos& srcNodeIDPos,
+        const DataPos& dstNodeIDPos, const DataPos& relIDPos)
+        : RelDeleteExecutor(srcNodeIDPos, dstNodeIDPos, relIDPos), table{table} {}
     SingleLabelRelDeleteExecutor(const SingleLabelRelDeleteExecutor& other) = default;
 
     void delete_(ExecutionContext* context) override;
@@ -104,16 +118,14 @@ public:
     }
 
 private:
-    storage::RelsStoreStats* relsStatistic;
     storage::RelTable* table;
 };
 
 class MultiLabelRelDeleteExecutor final : public RelDeleteExecutor {
-    using rel_table_statistic_pair = std::pair<storage::RelTable*, storage::RelsStoreStats*>;
 
 public:
     MultiLabelRelDeleteExecutor(
-        std::unordered_map<common::table_id_t, rel_table_statistic_pair> tableIDToTableMap,
+        std::unordered_map<common::table_id_t, storage::RelTable*> tableIDToTableMap,
         const DataPos& srcNodeIDPos, const DataPos& dstNodeIDPos, const DataPos& relIDPos)
         : RelDeleteExecutor(srcNodeIDPos, dstNodeIDPos, relIDPos), tableIDToTableMap{std::move(
                                                                        tableIDToTableMap)} {}
@@ -126,7 +138,7 @@ public:
     }
 
 private:
-    std::unordered_map<common::table_id_t, rel_table_statistic_pair> tableIDToTableMap;
+    std::unordered_map<common::table_id_t, storage::RelTable*> tableIDToTableMap;
 };
 
 } // namespace processor
