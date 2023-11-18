@@ -130,7 +130,7 @@ void StructColumn::prepareCommitForChunk(Transaction* transaction, node_group_id
         KU_ASSERT(nullColumn->canCommitInPlace(
             transaction, nodeGroupIdx, localColumnChunk, insertInfo, updateInfo));
         nullColumn->commitLocalChunkInPlace(
-            transaction, localColumnChunk, insertInfo, updateInfo, deleteInfo);
+            transaction, nodeGroupIdx, localColumnChunk, insertInfo, updateInfo, deleteInfo);
         // Update each child column separately
         for (int i = 0; i < childColumns.size(); i++) {
             const auto& childColumn = childColumns[i];
@@ -140,8 +140,8 @@ void StructColumn::prepareCommitForChunk(Transaction* transaction, node_group_id
             // commit.
             if (childColumn->canCommitInPlace(transaction, nodeGroupIdx,
                     childLocalColumnChunk.get(), insertInfo, updateInfo)) {
-                childColumn->commitLocalChunkInPlace(
-                    transaction, childLocalColumnChunk.get(), insertInfo, updateInfo, deleteInfo);
+                childColumn->commitLocalChunkInPlace(transaction, nodeGroupIdx,
+                    childLocalColumnChunk.get(), insertInfo, updateInfo, deleteInfo);
             } else {
                 childColumn->commitLocalChunkOutOfPlace(transaction, nodeGroupIdx,
                     childLocalColumnChunk.get(), isNewNodeGroup, insertInfo, updateInfo,

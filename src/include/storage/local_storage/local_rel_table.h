@@ -26,6 +26,7 @@ protected:
 };
 
 // Info of node groups with regular chunks for rel tables.
+// Note that srcNodeOffset here are the relative offset within each node group.
 struct RegularRelNGInfo final : public RelNGInfo {
     // Note that adj chunk cannot be directly updated. It can only be inserted or deleted.
     offset_to_row_idx_t adjInsertInfo;                   // insert info for adj chunk.
@@ -47,6 +48,7 @@ struct RegularRelNGInfo final : public RelNGInfo {
 };
 
 // Info of node groups with CSR chunks for rel tables.
+// Note that srcNodeOffset here are the relative offset within each node group.
 struct CSRRelNGInfo final : public RelNGInfo {
     offset_to_offset_to_row_idx_t adjInsertInfo;
     std::vector<offset_to_offset_to_row_idx_t> insertInfoPerChunk;
@@ -68,8 +70,8 @@ struct CSRRelNGInfo final : public RelNGInfo {
 
 class LocalRelNG final : public LocalNodeGroup {
 public:
-    LocalRelNG(common::ColumnDataFormat dataFormat, std::vector<common::LogicalType*> dataTypes,
-        MemoryManager* mm);
+    LocalRelNG(common::offset_t nodeGroupStartOffset, common::ColumnDataFormat dataFormat,
+        std::vector<common::LogicalType*> dataTypes, MemoryManager* mm);
 
     void insert(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
         const std::vector<common::ValueVector*>& propertyVectors);

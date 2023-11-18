@@ -1,0 +1,10 @@
+-GROUP LDBCSF01CreateReadRelTest
+-DATASET CSV ldbc-sf01
+--
+
+-CASE SetLikeComment
+-STATEMENT MATCH (n:Person)-[e:likes_Comment]->(m:Comment) WHERE n.id=32985348834107 AND m.id=343597407147 SET e.creationDate=202311180116;
+---- ok
+-STATEMENT MATCH (n:Person)-[r:likes_Comment]->(m:Comment) WHERE n.id=32985348834107 AND m.id=343597407147 RETURN r.creationDate;
+---- 1
+202311180116
