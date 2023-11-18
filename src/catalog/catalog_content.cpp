@@ -4,6 +4,7 @@
 #include "catalog/rdf_graph_schema.h"
 #include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
+#include "common/cast.h"
 #include "common/exception/catalog.h"
 #include "common/exception/runtime.h"
 #include "common/serializer/buffered_file.h"
@@ -63,9 +64,10 @@ table_id_t CatalogContent::addRelTableSchema(const BoundCreateTableInfo& info) {
     addRelInternalIDProperty(properties);
     assignPropertyIDAndTableID(properties, tableID);
     auto srcNodeTableSchema =
-        reinterpret_cast<NodeTableSchema*>(getTableSchema(extraInfo->srcTableID));
+        ku_dynamic_cast<TableSchema*, NodeTableSchema*>(getTableSchema(extraInfo->srcTableID));
     auto dstNodeTableSchema =
-        reinterpret_cast<NodeTableSchema*>(getTableSchema(extraInfo->dstTableID));
+        ku_dynamic_cast<TableSchema*, NodeTableSchema*>(getTableSchema(extraInfo->dstTableID));
+    KU_ASSERT(srcNodeTableSchema && dstNodeTableSchema);
     srcNodeTableSchema->addFwdRelTableID(tableID);
     dstNodeTableSchema->addBwdRelTableID(tableID);
     auto relTableSchema =

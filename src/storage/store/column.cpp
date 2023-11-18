@@ -176,7 +176,7 @@ static batch_lookup_func_t getBatchLookupFromPageFunc(const LogicalType& logical
     }
 }
 
-class NullColumn : public Column {
+class NullColumn final : public Column {
     friend StructColumn;
 
 public:
@@ -196,7 +196,7 @@ public:
     }
 
     void scan(
-        Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) final {
+        Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) override {
         if (propertyStatistics.mayHaveNull(*transaction)) {
             scanInternal(transaction, nodeIDVector, resultVector);
         } else {
@@ -206,7 +206,7 @@ public:
 
     void scan(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
         offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
-        uint64_t offsetInVector) final {
+        uint64_t offsetInVector) override {
         if (propertyStatistics.mayHaveNull(*transaction)) {
             Column::scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup,
                 resultVector, offsetInVector);
@@ -216,7 +216,7 @@ public:
     }
 
     void scan(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
-        ColumnChunk* columnChunk) final {
+        ColumnChunk* columnChunk) override {
         if (propertyStatistics.mayHaveNull(DUMMY_WRITE_TRANSACTION)) {
             Column::scan(transaction, nodeGroupIdx, columnChunk);
         } else {
@@ -225,7 +225,7 @@ public:
     }
 
     void lookup(
-        Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) final {
+        Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) override {
         if (propertyStatistics.mayHaveNull(*transaction)) {
             lookupInternal(transaction, nodeIDVector, resultVector);
         } else {
@@ -236,7 +236,7 @@ public:
         }
     }
 
-    void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) final {
+    void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) override {
         auto preScanMetadata = columnChunk->getMetadataToFlush();
         auto startPageIdx = dataFH->addNewPages(preScanMetadata.numPages);
         auto metadata = columnChunk->flushBuffer(dataFH, startPageIdx, preScanMetadata);
@@ -247,7 +247,19 @@ public:
         }
     }
 
-    void setNull(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk) final {
+    bool isNull(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
+        offset_t offsetInChunk) override {
+        auto cursor = getPageCursorForOffset(transaction->getType(), nodeGroupIdx, offsetInChunk);
+        auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
+        KU_ASSERT(cursor.pageIdx < chunkMeta.pageIdx + chunkMeta.numPages);
+        bool result = false;
+        readFromPage(transaction, cursor.pageIdx, [&](uint8_t* frame) -> void {
+            result = NullMask::isNull((uint64_t*)frame, cursor.elemPosInPage);
+        });
+        return result;
+    }
+
+    void setNull(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk) override {
         auto walPageInfo = createWALVersionOfPageForValue(nodeGroupIdx, offsetInChunk);
         try {
             propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
@@ -262,7 +274,7 @@ public:
     }
 
     void write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk,
-        ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) final {
+        ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override {
         auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
         writeValue(
             chunkMeta, nodeGroupIdx, offsetInChunk, vectorToWriteFrom, posInVectorToWriteFrom);
@@ -272,7 +284,7 @@ public:
     }
 };
 
-class SerialColumn : public Column {
+class SerialColumn final : public Column {
 public:
     SerialColumn(const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
         BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal, Transaction* transaction)
@@ -281,8 +293,8 @@ public:
               bufferManager, wal, transaction, RWPropertyStats::empty(),
               false /* enableCompression */, false /*requireNullColumn*/} {}
 
-    void scan(
-        Transaction* /*transaction*/, ValueVector* nodeIDVector, ValueVector* resultVector) final {
+    void scan(Transaction* /*transaction*/, ValueVector* nodeIDVector,
+        ValueVector* resultVector) override {
         // Serial column cannot contain null values.
         for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
             auto pos = nodeIDVector->state->selVector->selectedPositions[i];
@@ -292,8 +304,8 @@ public:
         }
     }
 
-    void lookup(
-        Transaction* /*transaction*/, ValueVector* nodeIDVector, ValueVector* resultVector) final {
+    void lookup(Transaction* /*transaction*/, ValueVector* nodeIDVector,
+        ValueVector* resultVector) override {
         // Serial column cannot contain null values.
         for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
             auto pos = nodeIDVector->state->selVector->selectedPositions[i];
@@ -302,7 +314,7 @@ public:
         }
     }
 
-    void append(ColumnChunk* /*columnChunk*/, uint64_t nodeGroupIdx) final {
+    void append(ColumnChunk* /*columnChunk*/, uint64_t nodeGroupIdx) override {
         metadataDA->resize(nodeGroupIdx + 1);
     }
 };
@@ -665,6 +677,14 @@ Column::ReadState Column::getReadState(
     TransactionType transactionType, node_group_idx_t nodeGroupIdx) const {
     auto metadata = metadataDA->get(nodeGroupIdx, transactionType);
     return {metadata, metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType)};
+}
+
+bool Column::isNull(
+    Transaction* transaction, node_group_idx_t nodeGroupIdx, offset_t offsetInChunk) {
+    if (nullColumn) {
+        return nullColumn->isNull(transaction, nodeGroupIdx, offsetInChunk);
+    }
+    return false;
 }
 
 void Column::setNull(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk) {

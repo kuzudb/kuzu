@@ -80,3 +80,11 @@
 -STATEMENT MATCH (a) RETURN COUNT(*)
 ---- 1
 14
+
+-CASE DeleteNodeWithConnectedRels
+-STATEMENT MATCH (a:person {ID: 0}) DELETE a
+---- error
+Runtime exception: Deleted nodes has outgoing edges in the forward direction.
+-STATEMENT MATCH (o:organisation {ID: 6}) DELETE o
+---- error
+Runtime exception: Deleted nodes has outgoing edges in the backward direction.

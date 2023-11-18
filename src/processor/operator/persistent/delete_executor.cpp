@@ -20,6 +20,22 @@ void SingleLabelNodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext*
 void SingleLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
     KU_ASSERT(nodeIDVector->state->selVector->selectedSize == 1 &&
               pkVector->state == nodeIDVector->state);
+    auto nodeIDPos = nodeIDVector->state->selVector->selectedPositions[0];
+    if (nodeIDVector->isNull(nodeIDPos)) {
+        return;
+    }
+    for (auto& relTable : fwdRelTables) {
+        if (relTable->checkIfNodeHasRels(context->clientContext->getActiveTransaction(),
+                RelDataDirection::FWD, nodeIDVector)) {
+            throw RuntimeException("Deleted nodes has outgoing edges in the forward direction.");
+        }
+    }
+    for (auto& relTable : bwdRelTables) {
+        if (relTable->checkIfNodeHasRels(context->clientContext->getActiveTransaction(),
+                RelDataDirection::BWD, nodeIDVector)) {
+            throw RuntimeException("Deleted nodes has outgoing edges in the backward direction.");
+        }
+    }
     table->delete_(context->clientContext->getActiveTransaction(), nodeIDVector, pkVector.get());
 }
 
@@ -35,9 +51,26 @@ void MultiLabelNodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* 
 void MultiLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
     KU_ASSERT(nodeIDVector->state->selVector->selectedSize == 1);
     auto pos = nodeIDVector->state->selVector->selectedPositions[0];
+    if (nodeIDVector->isNull(pos)) {
+        return;
+    }
     auto nodeID = nodeIDVector->getValue<internalID_t>(pos);
     KU_ASSERT(tableIDToTableMap.contains(nodeID.tableID) && pkVectors.contains(nodeID.tableID));
     auto table = tableIDToTableMap.at(nodeID.tableID);
+    auto fwdRelTables = tableIDToFwdRelTablesMap.at(nodeID.tableID);
+    auto bwdRelTables = tableIDToBwdRelTablesMap.at(nodeID.tableID);
+    for (auto& relTable : fwdRelTables) {
+        if (relTable->checkIfNodeHasRels(context->clientContext->getActiveTransaction(),
+                RelDataDirection::FWD, nodeIDVector)) {
+            throw RuntimeException("Deleted nodes has outgoing edges in the forward direction.");
+        }
+    }
+    for (auto& relTable : bwdRelTables) {
+        if (relTable->checkIfNodeHasRels(context->clientContext->getActiveTransaction(),
+                RelDataDirection::BWD, nodeIDVector)) {
+            throw RuntimeException("Deleted nodes has outgoing edges in the backward direction.");
+        }
+    }
     table->delete_(context->clientContext->getActiveTransaction(), nodeIDVector,
         pkVectors.at(nodeID.tableID).get());
 }
@@ -58,7 +91,7 @@ void MultiLabelRelDeleteExecutor::delete_(ExecutionContext* context) {
     auto pos = relIDVector->state->selVector->selectedPositions[0];
     auto relID = relIDVector->getValue<internalID_t>(pos);
     KU_ASSERT(tableIDToTableMap.contains(relID.tableID));
-    auto [table, statistic] = tableIDToTableMap.at(relID.tableID);
+    auto table = tableIDToTableMap.at(relID.tableID);
     table->delete_(context->clientContext->getActiveTransaction(), srcNodeIDVector, dstNodeIDVector,
         relIDVector);
 }

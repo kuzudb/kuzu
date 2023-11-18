@@ -11,20 +11,51 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-static std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(
+static std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(catalog::Catalog* catalog,
     StorageManager& storageManager, const NodeExpression& node, const Schema& inSchema) {
     auto nodeIDPos = DataPos(inSchema.getExpressionPos(*node.getInternalID()));
     if (node.isMultiLabeled()) {
         std::unordered_map<table_id_t, NodeTable*> tableIDToTableMap;
+        std::unordered_map<table_id_t, std::unordered_set<RelTable*>> tableIDToFwdRelTablesMap;
+        std::unordered_map<table_id_t, std::unordered_set<RelTable*>> tableIDToBwdRelTablesMap;
         for (auto tableID : node.getTableIDs()) {
+            auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(tableID);
+            auto nodeTableSchema =
+                ku_dynamic_cast<catalog::TableSchema*, catalog::NodeTableSchema*>(tableSchema);
             auto table = storageManager.getNodeTable(tableID);
+            auto fwdRelTableIDs = nodeTableSchema->getFwdRelTableIDSet();
+            auto bwdRelTableIDs = nodeTableSchema->getBwdRelTableIDSet();
+            std::unordered_set<RelTable*> fwdRelTables;
+            std::unordered_set<RelTable*> bwdRelTables;
+            for (auto relTableID : fwdRelTableIDs) {
+                fwdRelTables.insert(storageManager.getRelTable(relTableID));
+            }
+            for (auto relTableID : bwdRelTableIDs) {
+                bwdRelTables.insert(storageManager.getRelTable(relTableID));
+            }
             tableIDToTableMap.insert({tableID, table});
+            tableIDToFwdRelTablesMap[tableID] = fwdRelTables;
+            tableIDToBwdRelTablesMap[tableID] = bwdRelTables;
         }
-        return std::make_unique<MultiLabelNodeDeleteExecutor>(
-            std::move(tableIDToTableMap), nodeIDPos);
+        return std::make_unique<MultiLabelNodeDeleteExecutor>(std::move(tableIDToTableMap),
+            std::move(tableIDToFwdRelTablesMap), std::move(tableIDToBwdRelTablesMap), nodeIDPos);
     } else {
         auto table = storageManager.getNodeTable(node.getSingleTableID());
-        return std::make_unique<SingleLabelNodeDeleteExecutor>(table, nodeIDPos);
+        auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(node.getSingleTableID());
+        auto nodeTableSchema =
+            ku_dynamic_cast<catalog::TableSchema*, catalog::NodeTableSchema*>(tableSchema);
+        auto fwdRelTableIDs = nodeTableSchema->getFwdRelTableIDSet();
+        auto bwdRelTableIDs = nodeTableSchema->getBwdRelTableIDSet();
+        std::unordered_set<RelTable*> fwdRelTables;
+        std::unordered_set<RelTable*> bwdRelTables;
+        for (auto tableID : fwdRelTableIDs) {
+            fwdRelTables.insert(storageManager.getRelTable(tableID));
+        }
+        for (auto tableID : bwdRelTableIDs) {
+            bwdRelTables.insert(storageManager.getRelTable(tableID));
+        }
+        return std::make_unique<SingleLabelNodeDeleteExecutor>(
+            table, std::move(fwdRelTables), std::move(bwdRelTables), nodeIDPos);
     }
 }
 
@@ -34,7 +65,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDeleteNode(LogicalOperator* log
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     std::vector<std::unique_ptr<NodeDeleteExecutor>> executors;
     for (auto& node : logicalDeleteNode->getNodesRef()) {
-        executors.push_back(getNodeDeleteExecutor(storageManager, *node, *inSchema));
+        executors.push_back(getNodeDeleteExecutor(catalog, storageManager, *node, *inSchema));
     }
     return std::make_unique<DeleteNode>(std::move(executors), std::move(prevOperator),
         getOperatorID(), logicalDeleteNode->getExpressionsForPrinting());
@@ -46,20 +77,18 @@ static std::unique_ptr<RelDeleteExecutor> getRelDeleteExecutor(
     auto srcNodePos = DataPos(inSchema.getExpressionPos(*rel.getSrcNode()->getInternalID()));
     auto dstNodePos = DataPos(inSchema.getExpressionPos(*rel.getDstNode()->getInternalID()));
     auto relIDPos = DataPos(inSchema.getExpressionPos(*rel.getInternalIDProperty()));
-    auto statistics = storageManager.getRelsStatistics();
     if (rel.isMultiLabeled()) {
-        std::unordered_map<table_id_t, std::pair<storage::RelTable*, storage::RelsStoreStats*>>
-            tableIDToTableMap;
+        std::unordered_map<table_id_t, storage::RelTable*> tableIDToTableMap;
         for (auto tableID : rel.getTableIDs()) {
             auto table = storageManager.getRelTable(tableID);
-            tableIDToTableMap.insert({tableID, std::make_pair(table, statistics)});
+            tableIDToTableMap.insert({tableID, table});
         }
         return std::make_unique<MultiLabelRelDeleteExecutor>(
             std::move(tableIDToTableMap), srcNodePos, dstNodePos, relIDPos);
     } else {
         auto table = storageManager.getRelTable(rel.getSingleTableID());
         return std::make_unique<SingleLabelRelDeleteExecutor>(
-            statistics, table, srcNodePos, dstNodePos, relIDPos);
+            table, srcNodePos, dstNodePos, relIDPos);
     }
 }
 

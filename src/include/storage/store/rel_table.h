@@ -37,6 +37,13 @@ public:
     void delete_(transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector,
         common::ValueVector* dstNodeIDVector, common::ValueVector* relIDVector);
 
+    inline bool checkIfNodeHasRels(transaction::Transaction* transaction,
+        common::RelDataDirection direction, common::ValueVector* srcNodeIDVector) {
+        return direction == common::RelDataDirection::FWD ?
+                   fwdRelTableData->checkIfNodeHasRels(transaction, srcNodeIDVector) :
+                   bwdRelTableData->checkIfNodeHasRels(transaction, srcNodeIDVector);
+    }
+
     void addColumn(transaction::Transaction* transaction, const catalog::Property& property,
         common::ValueVector* defaultValueVector) final;
     inline void dropColumn(common::column_id_t columnID) final {
