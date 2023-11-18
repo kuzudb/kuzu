@@ -20,7 +20,7 @@ using scalar_select_func = std::function<bool(
     const std::vector<std::shared_ptr<common::ValueVector>>&, common::SelectionVector&)>;
 using function_set = std::vector<std::unique_ptr<Function>>;
 
-struct ScalarFunction : public BaseScalarFunction {
+struct ScalarFunction final : public BaseScalarFunction {
 
     ScalarFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
         common::LogicalTypeID returnTypeID, scalar_exec_func execFunc, bool isVarLength = false)
@@ -173,6 +173,10 @@ struct ScalarFunction : public BaseScalarFunction {
         KU_ASSERT(params.size() == 2);
         BinaryFunctionExecutor::executeListStruct<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
             *params[0], *params[1], result);
+    }
+
+    std::unique_ptr<Function> copy() const override {
+        return std::make_unique<ScalarFunction>(*this);
     }
 
     scalar_exec_func execFunc;

@@ -12,6 +12,8 @@ static int32_t add5(int32_t x) {
 
 TEST_F(ApiTest, UnaryUDFInt64) {
     conn->createScalarFunction("add5", &add5);
+    // Dummy query to ensure the add5 function is persistent after a write transaction.
+    conn->query("CREATE NODE TABLE PERSON1(ID INT64, PRIMARY KEY(ID))");
     auto actualResult = TestHelper::convertResultToString(
         *conn->query("MATCH (p:person) return add5(to_int32(p.age))"));
     auto expectedResult = std::vector<std::string>{"40", "35", "50", "25", "25", "30", "45", "88"};

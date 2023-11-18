@@ -40,6 +40,8 @@ public:
         const std::string& name, const std::vector<common::LogicalType*>& inputTypes,
         bool isDistinct);
 
+    std::unique_ptr<BuiltInFunctions> copy();
+
 private:
     static uint32_t getTargetTypeCost(common::LogicalTypeID typeID);
 

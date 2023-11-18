@@ -194,6 +194,18 @@ void BuiltInFunctions::validateNonEmptyCandidateFunctions(
     }
 }
 
+std::unique_ptr<BuiltInFunctions> BuiltInFunctions::copy() {
+    auto result = std::make_unique<BuiltInFunctions>();
+    for (auto& [name, functionSet] : functions) {
+        std::vector<std::unique_ptr<Function>> functionSetToCopy;
+        for (auto& function : functionSet) {
+            functionSetToCopy.push_back(function->copy());
+        }
+        result->functions.emplace(name, std::move(functionSetToCopy));
+    }
+    return result;
+}
+
 uint32_t BuiltInFunctions::getTargetTypeCost(LogicalTypeID typeID) {
     switch (typeID) {
     case LogicalTypeID::INT16:

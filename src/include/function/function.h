@@ -36,6 +36,8 @@ struct Function {
 
     virtual std::string signatureToString() const = 0;
 
+    virtual std::unique_ptr<Function> copy() const = 0;
+
     // TODO(Ziyi): Move to catalog entry once we have implemented the catalog entry.
     FunctionType type;
     std::string name;

@@ -61,9 +61,6 @@ public:
     void renameProperty(
         common::table_id_t tableID, common::property_id_t propertyID, const std::string& newName);
 
-    std::unordered_set<TableSchema*> getAllRelTableSchemasContainBoundTable(
-        common::table_id_t boundTableID) const;
-
     void addFunction(std::string name, function::function_set functionSet);
 
     void addScalarMacroFunction(

@@ -1,8 +1,6 @@
 #include "catalog/catalog.h"
 
-#include "catalog/node_table_schema.h"
 #include "catalog/rel_table_group_schema.h"
-#include "catalog/rel_table_schema.h"
 #include "storage/wal/wal.h"
 #include "transaction/transaction_action.h"
 
@@ -111,22 +109,6 @@ void Catalog::renameProperty(
     table_id_t tableID, property_id_t propertyID, const std::string& newName) {
     initCatalogContentForWriteTrxIfNecessary();
     catalogContentForWriteTrx->getTableSchema(tableID)->renameProperty(propertyID, newName);
-}
-
-std::unordered_set<TableSchema*> Catalog::getAllRelTableSchemasContainBoundTable(
-    table_id_t boundTableID) const {
-    std::unordered_set<TableSchema*> relTableSchemas;
-    auto nodeTableSchema =
-        reinterpret_cast<NodeTableSchema*>(getReadOnlyVersion()->getTableSchema(boundTableID));
-    for (auto& fwdRelTableID : nodeTableSchema->getFwdRelTableIDSet()) {
-        relTableSchemas.insert(
-            reinterpret_cast<RelTableSchema*>(getReadOnlyVersion()->getTableSchema(fwdRelTableID)));
-    }
-    for (auto& bwdRelTableID : nodeTableSchema->getBwdRelTableIDSet()) {
-        relTableSchemas.insert(
-            reinterpret_cast<RelTableSchema*>(getReadOnlyVersion()->getTableSchema(bwdRelTableID)));
-    }
-    return relTableSchemas;
 }
 
 void Catalog::addFunction(std::string name, function::function_set functionSet) {

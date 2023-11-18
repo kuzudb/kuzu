@@ -71,7 +71,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAggregate(LogicalOperator* logi
     std::vector<std::unique_ptr<AggregateFunction>> aggregateFunctions;
     for (auto& expression : logicalAggregate.getAggregateExpressions()) {
         aggregateFunctions.push_back(
-            ((AggregateFunctionExpression&)*expression).aggregateFunction->copy());
+            ((AggregateFunctionExpression&)*expression).aggregateFunction->clone());
     }
     auto aggregatesOutputPos =
         getExpressionsDataPos(logicalAggregate.getAggregateExpressions(), *outSchema);

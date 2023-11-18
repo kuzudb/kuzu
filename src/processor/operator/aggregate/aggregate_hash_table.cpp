@@ -151,16 +151,16 @@ void AggregateHashTable::initializeFT(
     }
     aggStateColOffsetInFT = numBytesForKeys + numBytesForDependentKeys;
 
-    aggregateFunctions.resize(aggFuncs.size());
-    updateAggFuncs.resize(aggFuncs.size());
+    aggregateFunctions.reserve(aggFuncs.size());
+    updateAggFuncs.reserve(aggFuncs.size());
     for (auto i = 0u; i < aggFuncs.size(); i++) {
         auto& aggFunc = aggFuncs[i];
         tableSchema->appendColumn(std::make_unique<ColumnSchema>(
             isUnflat, dataChunkPos, aggFunc->getAggregateStateSize()));
-        aggregateFunctions[i] = aggFunc->copy();
-        updateAggFuncs[i] = aggFunc->isFunctionDistinct() ?
-                                &AggregateHashTable::updateDistinctAggState :
-                                &AggregateHashTable::updateAggState;
+        aggregateFunctions.push_back(aggFunc->clone());
+        updateAggFuncs.push_back(aggFunc->isFunctionDistinct() ?
+                                     &AggregateHashTable::updateDistinctAggState :
+                                     &AggregateHashTable::updateAggState);
     }
     tableSchema->appendColumn(
         std::make_unique<ColumnSchema>(isUnflat, dataChunkPos, sizeof(hash_t)));
