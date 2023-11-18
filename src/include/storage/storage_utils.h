@@ -87,28 +87,14 @@ public:
         common::node_group_idx_t nodeGroupIdx) {
         return nodeGroupIdx << common::StorageConstants::NODE_GROUP_SIZE_LOG2;
     }
-    static inline common::offset_t getStartOffsetOfVectorInChunk(common::vector_idx_t vectorIdx) {
-        return vectorIdx << common::DEFAULT_VECTOR_CAPACITY_LOG_2;
-    }
     static inline common::node_group_idx_t getNodeGroupIdx(common::offset_t nodeOffset) {
         return nodeOffset >> common::StorageConstants::NODE_GROUP_SIZE_LOG2;
     }
-
-    static inline common::vector_idx_t getVectorIdx(common::offset_t offsetInChunk) {
-        return offsetInChunk >> common::DEFAULT_VECTOR_CAPACITY_LOG_2;
-    }
-    static inline common::vector_idx_t getVectorIdxInChunk(
-        common::offset_t nodeOffset, common::node_group_idx_t nodeGroupIdx) {
-        return (nodeOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx)) >>
-               common::DEFAULT_VECTOR_CAPACITY_LOG_2;
-    }
-    static inline std::pair<common::vector_idx_t, common::offset_t>
-    getVectorIdxInChunkAndOffsetInVector(
-        common::offset_t nodeOffset, common::node_group_idx_t nodeGroupIdx) {
-        auto startOffsetOfNodeGroup = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-        auto offsetInChunk = nodeOffset - startOffsetOfNodeGroup;
-        auto vectorIdx = getVectorIdx(offsetInChunk);
-        return std::make_pair(vectorIdx, offsetInChunk - getStartOffsetOfVectorInChunk(vectorIdx));
+    static inline std::pair<common::node_group_idx_t, common::offset_t>
+    getNodeGroupIdxAndOffsetInChunk(common::offset_t nodeOffset) {
+        auto nodeGroupIdx = getNodeGroupIdx(nodeOffset);
+        auto offsetInChunk = nodeOffset - getStartOffsetOfNodeGroup(nodeGroupIdx);
+        return std::make_pair(nodeGroupIdx, offsetInChunk);
     }
 
     static std::string getNodeIndexFName(const std::string& directory,

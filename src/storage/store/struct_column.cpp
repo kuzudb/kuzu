@@ -70,25 +70,25 @@ void StructColumn::lookupInternal(
     }
 }
 
-void StructColumn::write(
-    offset_t nodeOffset, ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
+void StructColumn::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk,
+    ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
     KU_ASSERT(vectorToWriteFrom->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
     if (vectorToWriteFrom->isNull(posInVectorToWriteFrom)) {
-        setNull(posInVectorToWriteFrom);
+        setNull(nodeGroupIdx, offsetInChunk);
         return;
     }
-    nullColumn->write(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
+    nullColumn->write(nodeGroupIdx, offsetInChunk, vectorToWriteFrom, posInVectorToWriteFrom);
     KU_ASSERT(childColumns.size() == StructVector::getFieldVectors(vectorToWriteFrom).size());
     for (auto i = 0u; i < childColumns.size(); i++) {
         auto fieldVector = StructVector::getFieldVector(vectorToWriteFrom, i).get();
-        childColumns[i]->write(nodeOffset, fieldVector, posInVectorToWriteFrom);
+        childColumns[i]->write(nodeGroupIdx, offsetInChunk, fieldVector, posInVectorToWriteFrom);
     }
 }
 
-void StructColumn::setNull(common::offset_t nodeOffset) {
-    nullColumn->setNull(nodeOffset);
+void StructColumn::setNull(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk) {
+    nullColumn->setNull(nodeGroupIdx, offsetInChunk);
     for (const auto& childColumn : childColumns) {
-        childColumn->setNull(nodeOffset);
+        childColumn->setNull(nodeGroupIdx, offsetInChunk);
     }
 }
 

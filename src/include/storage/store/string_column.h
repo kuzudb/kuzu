@@ -16,24 +16,25 @@ public:
 
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
-        common::ValueVector* resultVector, uint64_t offsetInVector = 0);
+        common::ValueVector* resultVector, uint64_t offsetInVector = 0) override;
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        ColumnChunk* columnChunk);
+        ColumnChunk* columnChunk) override;
 
-    void append(ColumnChunk* columnChunk, common::node_group_idx_t nodeGroupIdx);
+    void append(ColumnChunk* columnChunk, common::node_group_idx_t nodeGroupIdx) override;
 
-    void writeValue(const ColumnChunkMetadata& chunkMeta, common::offset_t nodeOffset,
-        common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
+    void writeValue(const ColumnChunkMetadata& chunkMeta, common::node_group_idx_t nodeGroupIdx,
+        common::offset_t offsetInChunk, common::ValueVector* vectorToWriteFrom,
+        uint32_t posInVectorToWriteFrom) override;
 
     inline Column* getDataColumn() { return dataColumn.get(); }
     inline Column* getOffsetColumn() { return offsetColumn.get(); }
 
-    void checkpointInMemory();
-    void rollbackInMemory();
+    void checkpointInMemory() override;
+    void rollbackInMemory() override;
 
 protected:
     void scanInternal(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector);
+        common::ValueVector* resultVector) override;
     void scanUnfiltered(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::offset_t startOffsetInGroup,
         common::offset_t endOffsetInGroup, common::ValueVector* resultVector,
@@ -43,7 +44,7 @@ protected:
         common::ValueVector* resultVector);
 
     void lookupInternal(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector);
+        common::ValueVector* resultVector) override;
 
     void scanValueToVector(transaction::Transaction* transaction, const ReadState& dataState,
         uint64_t startOffset, uint64_t endOffset, common::ValueVector* resultVector,
@@ -54,7 +55,7 @@ protected:
 private:
     bool canCommitInPlace(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
-        const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo);
+        const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo) override;
 
 private:
     // Main column stores indices of values in the dictionary
