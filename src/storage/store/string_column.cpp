@@ -89,20 +89,17 @@ void StringColumn::append(ColumnChunk* columnChunk, node_group_idx_t nodeGroupId
     offsetColumn->append(stringColumnChunk->getOffsetChunk(), nodeGroupIdx);
 }
 
-void StringColumn::writeValue(const ColumnChunkMetadata& chunkMeta, offset_t nodeOffset,
-    ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
+void StringColumn::writeValue(const ColumnChunkMetadata& chunkMeta, node_group_idx_t nodeGroupIdx,
+    offset_t offsetInChunk, ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
     auto& kuStr = vectorToWriteFrom->getValue<ku_string_t>(posInVectorToWriteFrom);
     // Write string data to end of dataColumn
-    auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     auto startOffset =
         dataColumn->appendValues(nodeGroupIdx, (const uint8_t*)kuStr.getData(), kuStr.len);
-
     // Write offset
     string_index_t index =
         offsetColumn->appendValues(nodeGroupIdx, (const uint8_t*)&startOffset, 1);
-
     // Write index to main column
-    Column::writeValue(chunkMeta, nodeOffset, (uint8_t*)&index);
+    Column::writeValue(chunkMeta, nodeGroupIdx, offsetInChunk, (uint8_t*)&index);
 }
 
 void StringColumn::checkpointInMemory() {

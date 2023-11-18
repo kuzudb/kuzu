@@ -62,7 +62,7 @@ public:
 
     virtual void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx);
 
-    virtual void setNull(common::offset_t nodeOffset);
+    virtual void setNull(common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk);
 
     inline common::LogicalType* getDataType() const { return dataType.get(); }
     inline uint32_t getNumBytesPerValue() const { return numBytesPerFixedSizedValue; }
@@ -90,8 +90,8 @@ public:
     virtual void scan(transaction::Transaction* transaction, const ReadState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup, uint8_t* result);
 
-    virtual void write(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
-        uint32_t posInVectorToWriteFrom);
+    virtual void write(common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk,
+        common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
 
     // Append values to the end of the node group, resizing it if necessary
     common::offset_t appendValues(
@@ -114,10 +114,11 @@ protected:
     void readFromPage(transaction::Transaction* transaction, common::page_idx_t pageIdx,
         const std::function<void(uint8_t*)>& func);
 
-    virtual void writeValue(const ColumnChunkMetadata& chunkMeta, common::offset_t nodeOffset,
+    virtual void writeValue(const ColumnChunkMetadata& chunkMeta,
+        common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk,
         common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
-    virtual void writeValue(
-        const ColumnChunkMetadata& chunkMeta, common::offset_t nodeOffset, const uint8_t* data);
+    virtual void writeValue(const ColumnChunkMetadata& chunkMeta, common::offset_t offsetInChunk,
+        common::offset_t nodeOffset, const uint8_t* data);
 
     // Produces a page cursor for the offset relative to the given node group
     PageElementCursor getPageCursorForOffsetInGroup(
@@ -127,9 +128,10 @@ protected:
         transaction::TransactionType transactionType, common::node_group_idx_t nodeGroupIdx) const;
 
     // Produces a page cursor for the absolute node offset
-    PageElementCursor getPageCursorForOffset(
-        transaction::TransactionType transactionType, common::offset_t nodeOffset);
-    WALPageIdxPosInPageAndFrame createWALVersionOfPageForValue(common::offset_t nodeOffset);
+    PageElementCursor getPageCursorForOffset(transaction::TransactionType transactionType,
+        common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk);
+    WALPageIdxPosInPageAndFrame createWALVersionOfPageForValue(
+        common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk);
 
 private:
     static bool containsVarList(common::LogicalType& dataType);

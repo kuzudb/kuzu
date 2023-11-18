@@ -27,9 +27,9 @@ public:
         KU_ASSERT(childIdx < childColumns.size());
         return childColumns[childIdx].get();
     }
-    void write(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
-        uint32_t posInVectorToWriteFrom) override;
-    void setNull(common::offset_t nodeOffset) override;
+    void write(common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk,
+        common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
+    void setNull(common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk) override;
 
     void prepareCommitForChunk(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localColumnChunk,
