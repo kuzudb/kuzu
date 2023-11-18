@@ -1,8 +1,9 @@
--GROUP TCK
+-GROUP TCKMatch4
 -DATASET CSV tck
 
 --
 
+# TODO: Should add filter for the query, otherwise could lead to multiple possible results.
 # Handling fixed-length variable length pattern
 -CASE Scenario1
 -SKIP
@@ -19,7 +20,6 @@
 
 # Simple variable length pattern
 -CASE Scenario2
--SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE CONTAIN(FROM A TO A);
@@ -39,7 +39,6 @@
 
 # Zero-length variable length pattern in the middle of the pattern
 -CASE Scenario3
--SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE CONTAIN(FROM A TO A);
@@ -59,6 +58,7 @@
 {_ID: 0:0, _LABEL: A, ID: 0, name: A}|{_ID: 0:1, _LABEL: A, ID: 1, name: B}|{_ID: 0:1, _LABEL: A, ID: 1, name: B}
 {_ID: 0:0, _LABEL: A, ID: 0, name: A}|{_ID: 0:1, _LABEL: A, ID: 1, name: B}|{_ID: 0:2, _LABEL: A, ID: 2, name: C}
 
+# TODO: Catalog exception: LEN function does not exist.
 # Matching longer variable length paths
 -CASE Scenario4
 -SKIP
@@ -78,12 +78,11 @@
 ---- ok
 -STATEMENT MATCH (n {var: 'start'})-[:T*]->(m {var: 'end'})
            RETURN m
----- 1
-{_ID: 0:1, _LABEL: A, ID: 1, var: end}
+---- error
+Binder exception: Expression start has data type STRING but expected INT64. Implicit cast is not supported.
 
 # Matching variable length pattern with property predicate
 -CASE Scenario5
--SKIP
 -STATEMENT CREATE NODE TABLE Artist(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE WORKED_WITH(FROM Artist TO Artist, year INT64);
@@ -101,6 +100,7 @@
 ---- 1
 {_ID: 0:1, _LABEL: Artist, ID: 1}|{_ID: 0:2, _LABEL: Artist, ID: 2}
 
+# TODO: Should add filter for the query, otherwise could lead to multiple possible results.
 # Matching variable length patterns from a bound node
 -CASE Scenario6
 -SKIP
@@ -122,7 +122,6 @@
 
 # Matching variable length patterns including a bound relationship
 -CASE Scenario7
--SKIP
 -STATEMENT CREATE NODE TABLE Node1(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE EDGE(FROM Node1 TO Node1);
@@ -138,12 +137,11 @@
 -STATEMENT MATCH ()-[r:EDGE]-()
            MATCH p = (n)-[*0..1]-()-[r:EDGE]-()-[*0..1]-(m)
            RETURN count(p) AS c
----- 1
-32
+---- error
+Binder exception: Bind relationship r to relationship with same name is not supported.
 
 # Matching relationships into a list and matching variable length using the list
 -CASE Scenario8
--SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
@@ -155,19 +153,19 @@
 -STATEMENT CREATE (a:A), (b:B), (c:C)
            CREATE (a)-[:Y]->(b),
                   (b)-[:Y]->(c)
----- ok
+---- error
+Binder exception: Create rel  with multiple rel labels or bound by multiple node labels is not supported.
 -STATEMENT  MATCH ()-[r1]->()-[r2]->()
             WITH [r1, r2] AS rs
             LIMIT 1
             MATCH (first)-[rs*]->(second)
             RETURN first, second;
----- 1
-{_ID: 0:0, _LABEL: A, ID: 0}|{_ID: 2:0, _LABEL: C, ID: 0}
+---- error
+Binder exception: rs has data type VAR_LIST but (RECURSIVE_REL) was expected.
 
 # Fail when asterisk operator is missing
 # Fail on negative bound
 -CASE Scenario9&10
--SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE B(ID SERIAL, name STRING, PRIMARY KEY(ID));

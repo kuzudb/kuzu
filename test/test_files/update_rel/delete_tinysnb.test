@@ -1,6 +1,5 @@
 -GROUP TinySnbDeleteRelTest
 -DATASET CSV tinysnb
--SKIP
 --
 
 -CASE DeleteRelMultiLabel1

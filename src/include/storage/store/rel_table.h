@@ -20,17 +20,22 @@ public:
         common::ValueVector* inNodeIDVector, RelDataReadState* readState) {
         return direction == common::RelDataDirection::FWD ?
                    fwdRelTableData->initializeReadState(
-                       transaction, direction, columnIDs, inNodeIDVector, readState) :
+                       transaction, columnIDs, inNodeIDVector, readState) :
                    bwdRelTableData->initializeReadState(
-                       transaction, direction, columnIDs, inNodeIDVector, readState);
+                       transaction, columnIDs, inNodeIDVector, readState);
     }
     void read(transaction::Transaction* transaction, TableReadState& readState,
         common::ValueVector* inNodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors) final;
 
+    void insert(transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector,
+        common::ValueVector* dstNodeIDVector,
+        const std::vector<common::ValueVector*>& propertyVectors);
     void update(transaction::Transaction* transaction, common::column_id_t columnID,
         common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
         common::ValueVector* relIDVector, common::ValueVector* propertyVector);
+    void delete_(transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector,
+        common::ValueVector* dstNodeIDVector, common::ValueVector* relIDVector);
 
     void addColumn(transaction::Transaction* transaction, const catalog::Property& property,
         common::ValueVector* defaultValueVector) final;

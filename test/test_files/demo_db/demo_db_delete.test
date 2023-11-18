@@ -16,7 +16,6 @@
 4
 
 -CASE DeleteRelTest
--SKIP
 -STATEMENT MATCH (u:User)-[f:Follows]->(u1:User) WHERE u.name = 'Adam' AND u1.name = 'Karissa' DELETE f
 ---- ok
 -STATEMENT MATCH (u:User)-[f:Follows]->(u1:User) WHERE u.name='Adam' RETURN u1.name

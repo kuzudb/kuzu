@@ -42,7 +42,7 @@ struct NodeSetInfo {
     common::column_id_t columnID;
 };
 
-class SingleLabelNodeSetExecutor : public NodeSetExecutor {
+class SingleLabelNodeSetExecutor final : public NodeSetExecutor {
 public:
     SingleLabelNodeSetExecutor(NodeSetInfo setInfo, const DataPos& nodeIDPos,
         const DataPos& lhsVectorPos, std::unique_ptr<evaluator::ExpressionEvaluator> evaluator)
@@ -52,9 +52,9 @@ public:
         : NodeSetExecutor{other.nodeIDPos, other.lhsVectorPos, other.evaluator->clone()},
           setInfo(other.setInfo) {}
 
-    void set(ExecutionContext* context) final;
+    void set(ExecutionContext* context) override;
 
-    inline std::unique_ptr<NodeSetExecutor> copy() const final {
+    inline std::unique_ptr<NodeSetExecutor> copy() const override {
         return std::make_unique<SingleLabelNodeSetExecutor>(*this);
     }
 
@@ -62,7 +62,7 @@ private:
     NodeSetInfo setInfo;
 };
 
-class MultiLabelNodeSetExecutor : public NodeSetExecutor {
+class MultiLabelNodeSetExecutor final : public NodeSetExecutor {
 public:
     MultiLabelNodeSetExecutor(std::unordered_map<common::table_id_t, NodeSetInfo> tableIDToSetInfo,
         const DataPos& nodeIDPos, const DataPos& lhsVectorPos,
@@ -73,9 +73,9 @@ public:
         : NodeSetExecutor{other.nodeIDPos, other.lhsVectorPos, other.evaluator->clone()},
           tableIDToSetInfo{other.tableIDToSetInfo} {}
 
-    void set(ExecutionContext* context) final;
+    void set(ExecutionContext* context) override;
 
-    inline std::unique_ptr<NodeSetExecutor> copy() const final {
+    inline std::unique_ptr<NodeSetExecutor> copy() const override {
         return std::make_unique<MultiLabelNodeSetExecutor>(*this);
     }
 
@@ -116,7 +116,7 @@ protected:
     common::ValueVector* rhsVector = nullptr;
 };
 
-class SingleLabelRelSetExecutor : public RelSetExecutor {
+class SingleLabelRelSetExecutor final : public RelSetExecutor {
 public:
     SingleLabelRelSetExecutor(storage::RelTable* table, common::column_id_t columnID,
         const DataPos& srcNodeIDPos, const DataPos& dstNodeIDPos, const DataPos& relIDPos,
@@ -128,9 +128,9 @@ public:
               other.evaluator->clone()},
           table{other.table}, columnID{other.columnID} {}
 
-    void set(ExecutionContext* context) final;
+    void set(ExecutionContext* context) override;
 
-    inline std::unique_ptr<RelSetExecutor> copy() const final {
+    inline std::unique_ptr<RelSetExecutor> copy() const override {
         return std::make_unique<SingleLabelRelSetExecutor>(*this);
     }
 
@@ -139,7 +139,7 @@ private:
     common::column_id_t columnID;
 };
 
-class MultiLabelRelSetExecutor : public RelSetExecutor {
+class MultiLabelRelSetExecutor final : public RelSetExecutor {
 public:
     MultiLabelRelSetExecutor(
         std::unordered_map<common::table_id_t, std::pair<storage::RelTable*, common::column_id_t>>
@@ -153,9 +153,9 @@ public:
               other.evaluator->clone()},
           tableIDToTableAndColumnID{other.tableIDToTableAndColumnID} {}
 
-    void set(ExecutionContext* context) final;
+    void set(ExecutionContext* context) override;
 
-    inline std::unique_ptr<RelSetExecutor> copy() const final {
+    inline std::unique_ptr<RelSetExecutor> copy() const override {
         return std::make_unique<MultiLabelRelSetExecutor>(*this);
     }
 

@@ -43,8 +43,8 @@ public:
         common::RelDataDirection direction, bool enableCompression);
 
     void initializeReadState(transaction::Transaction* transaction,
-        common::RelDataDirection direction, std::vector<common::column_id_t> columnIDs,
-        common::ValueVector* inNodeIDVector, RelDataReadState* readState);
+        std::vector<common::column_id_t> columnIDs, common::ValueVector* inNodeIDVector,
+        RelDataReadState* readState);
     inline void scan(transaction::Transaction* transaction, TableReadState& readState,
         common::ValueVector* inNodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors) {
@@ -57,9 +57,14 @@ public:
         common::ValueVector* inNodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors);
 
+    void insert(transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector,
+        common::ValueVector* dstNodeIDVector,
+        const std::vector<common::ValueVector*>& propertyVectors);
     void update(transaction::Transaction* transaction, common::column_id_t columnID,
         common::ValueVector* srcNodeIDVector, common::ValueVector* relIDVector,
         common::ValueVector* propertyVector);
+    bool delete_(transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector,
+        common::ValueVector* dstNodeIDVector, common::ValueVector* relIDVector);
 
     void append(NodeGroup* nodeGroup);
 
@@ -87,6 +92,17 @@ private:
     void prepareCommitCSRNGWithoutSliding(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, CSRRelNGInfo* relNodeGroupInfo,
         ColumnChunk* csrOffsetChunk, ColumnChunk* relIDChunk, LocalRelNG* localNodeGroup);
+    void prepareCommitCSRNGWithSliding(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, CSRRelNGInfo* relNodeGroupInfo,
+        ColumnChunk* csrOffsetChunk, ColumnChunk* relIDChunk, LocalRelNG* localNodeGroup);
+
+    std::unique_ptr<ColumnChunk> slideCSROffsetColumnChunk(ColumnChunk* csrOffsetChunk,
+        CSRRelNGInfo* relNodeGroupInfo, common::offset_t nodeGroupStartOffset);
+    std::unique_ptr<ColumnChunk> slideCSRColumnChunk(transaction::Transaction* transaction,
+        ColumnChunk* csrOffsetChunk, ColumnChunk* slidedCSROffsetChunkForCheck,
+        ColumnChunk* relIDChunk, const offset_to_offset_to_row_idx_t& insertInfo,
+        const offset_to_offset_to_row_idx_t& updateInfo, const offset_to_offset_set_t& deleteInfo,
+        common::node_group_idx_t nodeGroupIdx, Column* column, LocalVectorCollection* localChunk);
 
     static inline common::ColumnDataFormat getDataFormatFromSchema(
         catalog::RelTableSchema* tableSchema, common::RelDataDirection direction) {

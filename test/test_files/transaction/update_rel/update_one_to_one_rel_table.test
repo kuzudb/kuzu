@@ -1,6 +1,5 @@
 -GROUP UpdateRelTest
 -DATASET CSV rel-update-tests
--SKIP
 --
 
 -DEFINE_STATEMENT_BLOCK UPDATE_ONE_TO_ONE_REL_TABLE [

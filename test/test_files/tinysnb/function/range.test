@@ -131,7 +131,6 @@ Binder exception: Cannot match a built-in function for given function RANGE(STRI
 -STATEMENT RETURN range(3, 4, 0);
 ---- error
 Runtime exception: Step of range cannot be 0.
--SKIP
 -STATEMENT RETURN range(0, -1, 9223372036854775807);
 ---- 1
 []

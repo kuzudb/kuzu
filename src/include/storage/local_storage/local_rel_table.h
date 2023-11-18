@@ -39,10 +39,11 @@ struct RegularRelNGInfo final : public RelNGInfo {
     }
 
     void insert(common::offset_t srcNodeOffset, common::offset_t relOffset,
-        common::row_idx_t adjNodeRowIdx, const std::vector<common::row_idx_t>& propertyNodesRowIdx);
+        common::row_idx_t adjNodeRowIdx,
+        const std::vector<common::row_idx_t>& propertyNodesRowIdx) override;
     void update(common::offset_t srcNodeOffset, common::offset_t relOffset,
-        common::column_id_t columnID, common::row_idx_t rowIdx);
-    bool delete_(common::offset_t srcNodeOffset, common::offset_t relOffset);
+        common::column_id_t columnID, common::row_idx_t rowIdx) override;
+    bool delete_(common::offset_t srcNodeOffset, common::offset_t relOffset) final;
 };
 
 // Info of node groups with CSR chunks for rel tables.
@@ -58,10 +59,11 @@ struct CSRRelNGInfo final : public RelNGInfo {
     }
 
     void insert(common::offset_t srcNodeOffset, common::offset_t relOffset,
-        common::row_idx_t adjNodeRowIdx, const std::vector<common::row_idx_t>& propertyNodesRowIdx);
+        common::row_idx_t adjNodeRowIdx,
+        const std::vector<common::row_idx_t>& propertyNodesRowIdx) override;
     void update(common::offset_t srcNodeOffset, common::offset_t relOffset,
-        common::column_id_t columnID, common::row_idx_t rowIdx);
-    bool delete_(common::offset_t srcNodeOffset, common::offset_t relOffset);
+        common::column_id_t columnID, common::row_idx_t rowIdx) override;
+    bool delete_(common::offset_t srcNodeOffset, common::offset_t relOffset) override;
 };
 
 class LocalRelNG final : public LocalNodeGroup {
@@ -73,7 +75,7 @@ public:
         const std::vector<common::ValueVector*>& propertyVectors);
     void update(common::ValueVector* srcNodeIDVector, common::ValueVector* relIDVector,
         common::column_id_t columnID, common::ValueVector* propertyVector);
-    void delete_(common::ValueVector* srcNodeIDVector, common::ValueVector* relIDVector);
+    bool delete_(common::ValueVector* srcNodeIDVector, common::ValueVector* relIDVector);
 
     inline LocalVectorCollection* getAdjChunk() { return adjChunk.get(); }
     inline LocalVectorCollection* getPropertyChunk(common::column_id_t columnID) {
@@ -99,7 +101,8 @@ public:
         const std::vector<common::ValueVector*>& propertyVectors);
     void update(common::ValueVector* srcNodeIDVector, common::ValueVector* relIDVector,
         common::column_id_t columnID, common::ValueVector* propertyVector);
-    void delete_(common::ValueVector* srcNodeIDVector, common::ValueVector* relIDVector);
+    bool delete_(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
+        common::ValueVector* relIDVector);
 
 private:
     LocalNodeGroup* getOrCreateLocalNodeGroup(common::ValueVector* nodeIDVector);

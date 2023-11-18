@@ -57,7 +57,7 @@ void LocalVectorCollection::prepareAppend() {
 std::unique_ptr<LocalVectorCollection> LocalVectorCollection::getStructChildVectorCollection(
     common::struct_field_idx_t idx) {
     auto childCollection = std::make_unique<LocalVectorCollection>(
-        common::StructType::getField(dataType, idx)->getType(), mm);
+        StructType::getField(dataType.get(), idx)->getType()->copy(), mm);
 
     for (int i = 0; i < numRows; i++) {
         auto fieldVector =
@@ -72,7 +72,7 @@ LocalNodeGroup::LocalNodeGroup(std::vector<LogicalType*> dataTypes, MemoryManage
     for (auto i = 0u; i < dataTypes.size(); ++i) {
         // To avoid unnecessary memory consumption, we chunk local changes of each column in the
         // node group into chunks of size DEFAULT_VECTOR_CAPACITY.
-        chunks[i] = std::make_unique<LocalVectorCollection>(dataTypes[i], mm);
+        chunks[i] = std::make_unique<LocalVectorCollection>(dataTypes[i]->copy(), mm);
     }
 }
 

@@ -170,7 +170,6 @@ Runtime exception: Maximum length of strings is 4096. Input string's length is 2
 9|2
 
 -CASE SetRelInt16PropTest
--SKIP
 -STATEMENT MATCH (a:person)-[e:studyAt]->(b:organisation) WHERE a.ID = 0 SET e.length=99
 ---- ok
 -STATEMENT MATCH (a:person)-[e:studyAt]->(b:organisation) RETURN e.length
@@ -232,7 +231,6 @@ Runtime exception: Maximum length of strings is 4096. Input string's length is 2
 1|10
 
 -CASE SETMultiLabelWithPruning
--SKIP
 -STATEMENT MATCH (a:person)-[:knows]->(b) WHERE a.ID=0 SET b.name = "a", b.fName = "XX" RETURN b.name, b.fName;
 ---- 3
 |XX
