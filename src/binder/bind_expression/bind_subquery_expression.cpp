@@ -33,7 +33,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindSubqueryExpression(
         COUNT_STAR_FUNC_NAME, std::vector<LogicalType*>{}, false);
     auto bindData = std::make_unique<FunctionBindData>(LogicalType(function->returnTypeID));
     auto countStarExpr = std::make_shared<AggregateFunctionExpression>(COUNT_STAR_FUNC_NAME,
-        std::move(bindData), expression_vector{}, function->copy(),
+        std::move(bindData), expression_vector{}, function->clone(),
         binder->getUniqueExpressionName(COUNT_STAR_FUNC_NAME));
     boundSubqueryExpr->setCountStarExpr(countStarExpr);
     std::shared_ptr<Expression> projectionExpr;

@@ -25,11 +25,11 @@ public:
         std::unordered_map<common::table_id_t, std::unique_ptr<TableSchema>> tableSchemas,
         std::unordered_map<std::string, common::table_id_t> tableNameToIDMap,
         common::table_id_t nextTableID,
+        std::unique_ptr<function::BuiltInFunctions> builtInFunctions,
         std::unordered_map<std::string, std::unique_ptr<function::ScalarMacroFunction>> macros)
         : tableSchemas{std::move(tableSchemas)}, tableNameToIDMap{std::move(tableNameToIDMap)},
-          nextTableID{nextTableID}, macros{std::move(macros)} {
-        registerBuiltInFunctions();
-    }
+          nextTableID{nextTableID}, builtInFunctions{std::move(builtInFunctions)}, macros{std::move(
+                                                                                       macros)} {}
 
     /*
      * Single schema lookup.

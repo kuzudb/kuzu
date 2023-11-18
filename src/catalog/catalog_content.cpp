@@ -242,8 +242,8 @@ std::unique_ptr<CatalogContent> CatalogContent::copy() const {
     for (auto& macro : macros) {
         macrosToCopy.emplace(macro.first, macro.second->copy());
     }
-    return std::make_unique<CatalogContent>(
-        std::move(tableSchemasToCopy), tableNameToIDMap, nextTableID, std::move(macrosToCopy));
+    return std::make_unique<CatalogContent>(std::move(tableSchemasToCopy), tableNameToIDMap,
+        nextTableID, builtInFunctions->copy(), std::move(macrosToCopy));
 }
 
 void CatalogContent::validateStorageVersion(storage_version_t savedStorageVersion) {

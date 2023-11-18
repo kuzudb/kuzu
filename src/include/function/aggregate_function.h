@@ -29,7 +29,7 @@ using aggr_combine_function_t =
     std::function<void(uint8_t* state, uint8_t* otherState, storage::MemoryManager* memoryManager)>;
 using aggr_finalize_function_t = std::function<void(uint8_t* state)>;
 
-struct AggregateFunction : public BaseScalarFunction {
+struct AggregateFunction final : public BaseScalarFunction {
     AggregateFunction(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
         common::LogicalTypeID returnTypeID, aggr_initialize_function_t initializeFunc,
         aggr_update_all_function_t updateAllFunc, aggr_update_pos_function_t updatePosFunc,
@@ -83,7 +83,13 @@ struct AggregateFunction : public BaseScalarFunction {
 
     inline bool isFunctionDistinct() const { return isDistinct; }
 
-    inline std::unique_ptr<AggregateFunction> copy() {
+    inline std::unique_ptr<Function> copy() const override {
+        return std::make_unique<AggregateFunction>(name, parameterTypeIDs, returnTypeID,
+            initializeFunc, updateAllFunc, updatePosFunc, combineFunc, finalizeFunc, isDistinct,
+            bindFunc, paramRewriteFunc);
+    }
+
+    inline std::unique_ptr<AggregateFunction> clone() const {
         return std::make_unique<AggregateFunction>(name, parameterTypeIDs, returnTypeID,
             initializeFunc, updateAllFunc, updatePosFunc, combineFunc, finalizeFunc, isDistinct,
             bindFunc, paramRewriteFunc);

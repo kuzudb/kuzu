@@ -100,7 +100,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
         children.push_back(std::move(child));
     }
     auto function =
-        builtInFunctions->matchAggregateFunction(functionName, childrenTypes, isDistinct)->copy();
+        builtInFunctions->matchAggregateFunction(functionName, childrenTypes, isDistinct)->clone();
     if (function->paramRewriteFunc) {
         function->paramRewriteFunc(children);
     }

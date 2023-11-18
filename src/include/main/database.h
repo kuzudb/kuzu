@@ -76,7 +76,8 @@ public:
 
     // TODO(Ziyi): Instead of exposing a dedicated API for adding a new function, we should consider
     // add function through the extension module.
-    void addFunction(std::string name, std::vector<std::unique_ptr<function::Function>> tableFunc);
+    void addBuiltInFunction(
+        std::string name, std::vector<std::unique_ptr<function::Function>> functionSet);
 
 private:
     void openLockFile();

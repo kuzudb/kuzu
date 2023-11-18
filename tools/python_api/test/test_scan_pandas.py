@@ -62,6 +62,8 @@ def test_scan_pandas_with_filter(get_tmp_path):
         'weight': np.array([23.2, 31.7, 42.9], dtype=np.float64)
     }
     df = pd.DataFrame(data)
+    # Dummy query to ensure the READ_PANDAS function is persistent after a write transaction.
+    conn.execute("CREATE NODE TABLE PERSON1(ID INT64, PRIMARY KEY(ID))")
     results = conn.execute("CALL READ_PANDAS('df') WHERE id > 20 RETURN id + 5, weight")
     assert results.get_next() == [27, 23.2]
     assert results.get_next() == [105, 42.9]
