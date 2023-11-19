@@ -1,4 +1,5 @@
 #include "common/assert.h"
+#include "common/enums/clause_type.h"
 #include "parser/query/updating_clause/delete_clause.h"
 #include "parser/query/updating_clause/insert_clause.h"
 #include "parser/query/updating_clause/merge_clause.h"
@@ -56,7 +57,9 @@ parsed_expression_pair Transformer::transformSetItem(CypherParser::OC_SetItemCon
 }
 
 std::unique_ptr<UpdatingClause> Transformer::transformDelete(CypherParser::OC_DeleteContext& ctx) {
-    auto deleteClause = std::make_unique<DeleteClause>();
+    auto deleteClauseType =
+        ctx.DETACH() ? common::DeleteClauseType::DETACH_DELETE : common::DeleteClauseType::DELETE;
+    auto deleteClause = std::make_unique<DeleteClause>(deleteClauseType);
     for (auto& expression : ctx.oC_Expression()) {
         deleteClause->addExpression(transformExpression(*expression));
     }

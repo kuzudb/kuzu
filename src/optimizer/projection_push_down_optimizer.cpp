@@ -181,8 +181,8 @@ void ProjectionPushDownOptimizer::visitInsertRel(planner::LogicalOperator* op) {
 
 void ProjectionPushDownOptimizer::visitDeleteNode(planner::LogicalOperator* op) {
     auto deleteNode = (LogicalDeleteNode*)op;
-    for (auto& node : deleteNode->getNodesRef()) {
-        collectExpressionsInUse(node->getInternalID());
+    for (auto info : deleteNode->getInfos()) {
+        collectExpressionsInUse(info->node->getInternalID());
     }
 }
 

@@ -307,7 +307,9 @@ oC_SetItem
     : ( oC_PropertyExpression SP? '=' SP? oC_Expression ) ;
 
 oC_Delete
-    : DELETE SP? oC_Expression ( SP? ',' SP? oC_Expression )*;
+    : ( DETACH SP )? DELETE SP? oC_Expression ( SP? ',' SP? oC_Expression )*;
+
+DETACH : ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'T' | 't' ) ( 'A' | 'a' ) ( 'C' | 'c' ) ( 'H' | 'h' ) ;
 
 DELETE : ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'L' | 'l' ) ( 'E' | 'e' ) ( 'T' | 't' ) ( 'E' | 'e' ) ;
 

@@ -1,6 +1,7 @@
 add_subdirectory(arrow)
 add_subdirectory(copier_config)
 add_subdirectory(data_chunk)
+add_subdirectory(enums)
 add_subdirectory(exception)
 add_subdirectory(serializer)
 add_subdirectory(task_system)
@@ -18,8 +19,7 @@ add_library(kuzu_common
         profiler.cpp
         type_utils.cpp
         utils.cpp
-        string_utils.cpp
-        table_type.cpp)
+        string_utils.cpp)
 
 target_link_libraries(kuzu_common Glob)
 

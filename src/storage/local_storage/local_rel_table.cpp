@@ -211,6 +211,7 @@ void LocalRelTableData::update(ValueVector* srcNodeIDVector, ValueVector* relIDV
 bool LocalRelTableData::delete_(
     ValueVector* srcNodeIDVector, ValueVector* dstNodeIDVector, ValueVector* relIDVector) {
     KU_ASSERT(srcNodeIDVector->state->selVector->selectedSize == 1 &&
+              dstNodeIDVector->state->selVector->selectedSize == 1 &&
               relIDVector->state->selVector->selectedSize == 1);
     auto srcNodeIDPos = srcNodeIDVector->state->selVector->selectedPositions[0];
     auto dstNodeIDPos = dstNodeIDVector->state->selVector->selectedPositions[0];

@@ -231,15 +231,20 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(
     for (auto i = 0u; i < deleteClause.getNumExpressions(); ++i) {
         auto nodeOrRel = expressionBinder.bindExpression(*deleteClause.getExpression(i));
         if (ExpressionUtil::isNodePattern(*nodeOrRel)) {
-            auto deleteNodeInfo =
-                std::make_unique<BoundDeleteInfo>(UpdateTableType::NODE, nodeOrRel);
+            auto deleteNodeInfo = std::make_unique<BoundDeleteInfo>(
+                UpdateTableType::NODE, nodeOrRel, deleteClause.getDeleteClauseType());
             boundDeleteClause->addInfo(std::move(deleteNodeInfo));
         } else if (ExpressionUtil::isRelPattern(*nodeOrRel)) {
+            if (deleteClause.getDeleteClauseType() == DeleteClauseType::DETACH_DELETE) {
+                // TODO(Xiyang): Dummy check here. Make sure this is the correct semantic.
+                throw BinderException("Detach delete on rel tables is not supported.");
+            }
             auto rel = (RelExpression*)nodeOrRel.get();
             if (rel->getDirectionType() == RelDirectionType::BOTH) {
                 throw BinderException("Delete undirected rel is not supported.");
             }
-            auto deleteRel = std::make_unique<BoundDeleteInfo>(UpdateTableType::REL, nodeOrRel);
+            auto deleteRel = std::make_unique<BoundDeleteInfo>(
+                UpdateTableType::REL, nodeOrRel, DeleteClauseType::DELETE);
             boundDeleteClause->addInfo(std::move(deleteRel));
         } else {
             throw BinderException(stringFormat(

@@ -13,5 +13,5 @@ enum class AlterType : uint8_t {
     RENAME_PROPERTY = 12,
 };
 
-}
+} // namespace common
 } // namespace kuzu
