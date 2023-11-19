@@ -63,12 +63,13 @@ public:
     void update(transaction::Transaction* transaction, common::column_id_t columnID,
         common::ValueVector* srcNodeIDVector, common::ValueVector* relIDVector,
         common::ValueVector* propertyVector);
+
+    // Return true if deletion succeeds. Note that we should return num of rels deleted later when
+    // we remove the restriction of flatten all tuples.
     bool delete_(transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector,
         common::ValueVector* dstNodeIDVector, common::ValueVector* relIDVector);
-
     bool checkIfNodeHasRels(
         transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector);
-
     void append(NodeGroup* nodeGroup);
 
     inline Column* getAdjColumn() const { return adjColumn.get(); }

@@ -5,10 +5,19 @@
 namespace kuzu {
 namespace planner {
 
+std::vector<std::unique_ptr<LogicalDeleteNodeInfo>> LogicalDeleteNodeInfo::copy(
+    const std::vector<std::unique_ptr<LogicalDeleteNodeInfo>>& infos) {
+    std::vector<std::unique_ptr<LogicalDeleteNodeInfo>> result;
+    for (auto& info : infos) {
+        result.push_back(info->copy());
+    }
+    return result;
+}
+
 std::string LogicalDeleteNode::getExpressionsForPrinting() const {
     std::string result;
-    for (auto& node : nodes) {
-        result += node->toString() + ",";
+    for (auto& info : infos) {
+        result += info->node->toString() + ",";
     }
     return result;
 }
@@ -16,8 +25,8 @@ std::string LogicalDeleteNode::getExpressionsForPrinting() const {
 f_group_pos_set LogicalDeleteNode::getGroupsPosToFlatten() {
     f_group_pos_set dependentGroupPos;
     auto childSchema = children[0]->getSchema();
-    for (auto& node : nodes) {
-        dependentGroupPos.insert(childSchema->getGroupPos(*node->getInternalID()));
+    for (auto& info : infos) {
+        dependentGroupPos.insert(childSchema->getGroupPos(*info->node->getInternalID()));
     }
     return factorization::FlattenAll::getGroupsPosToFlatten(dependentGroupPos, childSchema);
 }

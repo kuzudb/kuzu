@@ -142,6 +142,7 @@ void RelTableData::scanCSRColumns(Transaction* transaction, RelDataReadState& re
 
 void RelTableData::lookup(Transaction* transaction, TableReadState& readState,
     ValueVector* inNodeIDVector, const std::vector<ValueVector*>& outputVectors) {
+    KU_ASSERT(dataFormat == ColumnDataFormat::REGULAR);
     // Note: The scan operator should guarantee that the first property in the output is adj column.
     adjColumn->lookup(transaction, inNodeIDVector, outputVectors[0]);
     if (!ValueVector::discardNull(*outputVectors[0])) {

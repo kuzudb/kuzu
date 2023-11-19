@@ -24,5 +24,10 @@ enum class MatchClauseType : uint8_t {
     OPTIONAL_MATCH = 1,
 };
 
+enum class DeleteClauseType : uint8_t {
+    DELETE = 0,
+    DETACH_DELETE = 1,
+};
+
 } // namespace common
 } // namespace kuzu

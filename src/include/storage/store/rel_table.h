@@ -9,6 +9,13 @@
 namespace kuzu {
 namespace storage {
 
+struct RelDetachDeleteState {
+    std::unique_ptr<common::ValueVector> dstNodeIDVector;
+    std::unique_ptr<common::ValueVector> relIDVector;
+
+    explicit RelDetachDeleteState();
+};
+
 class RelTable : public Table {
 public:
     RelTable(BMFileHandle* dataFH, BMFileHandle* metadataFH, RelsStoreStats* relsStoreStats,
@@ -36,7 +43,8 @@ public:
         common::ValueVector* relIDVector, common::ValueVector* propertyVector);
     void delete_(transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector,
         common::ValueVector* dstNodeIDVector, common::ValueVector* relIDVector);
-
+    void detachDelete(transaction::Transaction* transaction, common::RelDataDirection direction,
+        common::ValueVector* srcNodeIDVector, RelDetachDeleteState* deleteState);
     inline bool checkIfNodeHasRels(transaction::Transaction* transaction,
         common::RelDataDirection direction, common::ValueVector* srcNodeIDVector) {
         return direction == common::RelDataDirection::FWD ?
@@ -72,6 +80,15 @@ private:
     void lookup(transaction::Transaction* transaction, RelDataReadState& scanState,
         common::ValueVector* inNodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors);
+
+    common::row_idx_t detachDeleteForRegularRels(transaction::Transaction* transaction,
+        RelTableData* tableData, RelTableData* reverseTableData,
+        common::ValueVector* srcNodeIDVector, RelDataReadState* relDataReadState,
+        RelDetachDeleteState* deleteState);
+    common::row_idx_t detachDeleteForCSRRels(transaction::Transaction* transaction,
+        RelTableData* tableData, RelTableData* reverseTableData,
+        common::ValueVector* srcNodeIDVector, RelDataReadState* relDataReadState,
+        RelDetachDeleteState* deleteState);
 
     inline RelTableData* getDirectedTableData(common::RelDataDirection direction) {
         return direction == common::RelDataDirection::FWD ? fwdRelTableData.get() :
