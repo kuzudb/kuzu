@@ -182,9 +182,14 @@ jobs:
         run: npm publish kuzu-source.tar.gz --access public --dry-run
         working-directory: tools/nodejs_api
 
+      - name: Deploy nightly to npm.js
+        if: ${{ github.event_name == 'schedule' || (github.event.inputs.isDeploy == 'true' && github.event.inputs.isNightly == 'true') }}
+        run: npm publish kuzu-source.tar.gz --access public --tag next
+        working-directory: tools/nodejs_api
+
       - name: Deploy to npm.js
-        if: ${{ github.event_name == 'schedule' ||  github.event.inputs.isDeploy == 'true' }}
-        run: npm publish kuzu-source.tar.gz --access public
+        if: ${{ github.event.inputs.isDeploy == 'true' && github.event.inputs.isNightly != 'true' }}
+        run: npm publish kuzu-source.tar.gz --access public --tag latest
         working-directory: tools/nodejs_api
 
   build-wheel-mac:
