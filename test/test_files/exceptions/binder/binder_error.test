@@ -554,12 +554,12 @@ Binder exception: Invalid number of arguments for macro ADD5.
 ---- error
 Binder exception: Invalid number of arguments for macro ADD4.
 
--CASE CopyToNPYFormat
+-LOG CopyToNPYFormat
 -STATEMENT COPY (MATCH (a:person) RETURN a) TO 'person.npy';
 ---- error
 Binder exception: COPY TO currently only supports csv and parquet files.
 
--CASE InvalidArgCast
+-LOG InvalidArgCast
 -STATEMENT RETURN cast("[sdf, fsd, fad]", "STRING[]", "3rd arg");
 ---- error
 Binder exception: Invalid number of arguments for given function CAST. Expected: 2, Actual: 3.

@@ -5,6 +5,14 @@
 
 -CASE DemoDBTest
 
+-LOG CountSubquery
+-STATEMENT MATCH (a:User) RETURN a.name, COUNT { MATCH (a)<-[:Follows]-(b:User) } AS num_follower ORDER BY num_follower;
+---- 4
+Adam|0
+Karissa|1
+Noura|1
+Zhang|2
+
 -LOG Limit1
 -STATEMENT MATCH (u:User) RETURN u.name ORDER BY u.age DESC LIMIT 3;
 ---- 3
@@ -119,13 +127,14 @@ Noura|{_NODES: [{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}], _RELS: [(0:0)-{
 Zhang|{_NODES: [], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2)]}
 Zhang|{_NODES: [{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1),(0:1)-{_LABEL: Follows, _ID: 2:2, since: 2021}->(0:2)]}
 
--LOG VarLengthFilter
--STATEMENT MATCH p = (a:User)-[:Follows*1..2 (r, _ | WHERE r.since < 2022) ]->(b:User) WHERE a.name = 'Adam' RETURN DISTINCT b.name;
+-LOG RecursiveJoinFilter
+-STATEMENT MATCH p = (a:User)-[:Follows*1..2 (r, n | WHERE r.since < 2022 AND n.age > 45) ]->(b:User)
+        WHERE a.name = 'Adam' RETURN DISTINCT b.name, COUNT(*);
 ---- 2
-Karissa
-Zhang
+Karissa|1
+Zhang|1
 
--LOG VarLengthFilter2
+-LOG RecursiveJoinFilter2
 -STATEMENT MATCH (a:User)-[e:Follows*1..2 (r, n | WHERE r.since > 2020 | {r.since}, {n.name})]->(b:User)
            WHERE a.age > 0
            RETURN nodes(e), rels(e);
