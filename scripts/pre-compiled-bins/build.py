@@ -72,6 +72,17 @@ def build():
         return_code = e.returncode
         logging.error("Failed with return code %d" % return_code)
         sys.exit(1)
+
+    full_cmd = ['make', 'install']
+    logging.info("Stripping kuzu binaries...")
+    try:
+        subprocess.run(full_cmd, cwd=workspace_root,
+                       check=True, env=env_vars)
+    except subprocess.CalledProcessError as e:
+        return_code = e.returncode
+        logging.error("Failed with return code %d" % return_code)
+        sys.exit(1)
+
     logging.info("Build completed")
 
 
@@ -89,59 +100,66 @@ def collect_and_merge_headers():
     logging.info("Files collected")
 
 
+def quit_with(msg):
+    logging.error(msg)
+    sys.exit(1)
+
+def assert_exists(path, msg):
+    if not os.path.exists(path):
+        quit_with(msg)
+
+def find_stripped_library(filename):
+    install_dir = os.path.join(workspace_root, "install")
+    for lib_dir in ["lib", "lib64"]:
+        path = os.path.join(install_dir, lib_dir, filename)
+        if os.path.exists(path):
+            return path
+
+    return None
+
+def find_stripped_library_or(filename, msg):
+    path = find_stripped_library(filename)
+    if path is None:
+        quit_with(msg)
+    return path
+
+def find_stripped_binary_or(filename, msg):
+    path = os.path.join(workspace_root, "install", "bin", filename)
+    assert_exists(path, msg)
+    return path
+
+def copy_and_log(path, filename):
+    shutil.copy(path, os.path.join(base_dir, filename))
+    logging.info(f"Copied {filename}")
+
 def collect_binaries():
     logging.info("Collecting binaries...")
     c_header_path = os.path.join(workspace_root, "src", "include", "c_api",
                                  "kuzu.h")
-    so_path = os.path.join(workspace_root, "build",
-                           "release", "src", "libkuzu.so")
-    dylib_path = os.path.join(workspace_root, "build",
-                              "release", "src", "libkuzu.dylib")
-    if not os.path.exists(c_header_path):
-        logging.error("No C header file found")
-        sys.exit(1)
+    assert_exists(c_header_path, "No C header file found")
     shutil.copy(c_header_path, os.path.join(base_dir, "kuzu.h"))
     logging.info("Copied kuzu.h")
+
     if sys.platform == "win32":
-        dll_path = os.path.join(workspace_root, "build",
-                                "release", "src", "kuzu_shared.dll")
-        lib_path = os.path.join(workspace_root, "build",
-                                "release", "src", "kuzu_shared.lib")
-        if not os.path.exists(dll_path):
-            logging.error("No dll found")
-            sys.exit(1)
-        if not os.path.exists(lib_path):
-            logging.error("No import library found")
-            sys.exit(1)
-        shutil.copy(dll_path, os.path.join(base_dir, "kuzu_shared.dll"))
-        logging.info("Copied kuzu_shared.dll")
-        shutil.copy(lib_path, os.path.join(base_dir, "kuzu_shared.lib"))
-        logging.info("Copied kuzu_shared.lib")
-        shell_path = os.path.join(workspace_root, "build", "release",
-                                  "src", "kuzu_shell.exe")
-        if not os.path.exists(shell_path):
-            logging.error("No shell binary found")
-            sys.exit(1)
-        shutil.copy(shell_path, os.path.join(base_dir, "kuzu.exe"))
+        dll_path = find_stripped_binary_or("kuzu_shared.dll", "No dll found")
+        lib_path = find_stripped_library_or("kuzu_shared.lib", "No import library found")
+        shell_path = find_stripped_binary_or("kuzu_shell.exe", "No shell binary found")
+
+        copy_and_log(dll_path, "kuzu_shared.dll")
+        copy_and_log(lib_path, "kuzu_shared.lib")
+        copy_and_log(shell_path, "kuzu.exe")
     else:
-        so_exists = os.path.exists(so_path)
-        dylib_exists = os.path.exists(dylib_path)
-        if not so_exists and not dylib_exists:
-            logging.error("No shared object file found")
-            sys.exit(1)
-        if so_exists:
-            shutil.copy(so_path, os.path.join(base_dir, "libkuzu.so"))
-            logging.info("Copied libkuzu.so")
-        if dylib_exists:
-            shutil.copy(dylib_path, os.path.join(base_dir, "libkuzu.dylib"))
-            logging.info("Copied libkuzu.so")
-        shell_path = os.path.join(workspace_root, "build",
-                                  "release", "tools", "shell", "kuzu_shell")
-        if not os.path.exists(shell_path):
-            logging.error("No shell binary found")
-            sys.exit(1)
-        shutil.copy(shell_path, os.path.join(base_dir, "kuzu"))
-    logging.info("Copied kuzu")
+        so_path = find_stripped_library("libkuzu.so")
+        dylib_path = find_stripped_library("libkuzu.dylib")
+        if so_path is not None:
+            copy_and_log(so_path, "libkuzu.so")
+        elif dylib_path is not None:
+            copy_and_log(dylib_path, "libkuzu.dylib")
+        else:
+            quit_with("No shared object file found")
+
+        shell_path = find_stripped_binary_or("kuzu_shell", "No shell binary found")
+        copy_and_log(shell_path, "kuzu")
     logging.info("Binaries collected")
 
 
