@@ -99,7 +99,7 @@ fn build_bundled_cmake() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
     build
         .no_build_target(true)
         .define("BUILD_SHELL", "OFF")
-        .define("BUILD_PYTHON_API", "OFF");
+        .define("BUILD_PYTHON", "OFF");
     if cfg!(windows) {
         build.generator("Ninja");
         build.cxxflag("/EHsc");

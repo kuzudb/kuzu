@@ -9,7 +9,6 @@ target_include_directories(
         test_runner
         PUBLIC
         ../include/
-        ../../src/include
 )
 
 target_link_libraries(test_runner PUBLIC GTest::GTest kuzu)

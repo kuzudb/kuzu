@@ -32,7 +32,6 @@ target_link_libraries(_kuzu
 target_include_directories(
         _kuzu
         PUBLIC
-        ../../src/include
         src_cpp/include)
 
 get_target_property(PYTHON_DEST _kuzu LIBRARY_OUTPUT_DIRECTORY)

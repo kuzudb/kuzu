@@ -21,7 +21,7 @@
 #define KUZU_NO_EXPORT
 #else
 #ifndef KUZU_API
-#ifdef kuzu_shared_EXPORTS
+#ifdef KUZU_EXPORTS
 /* We are building this library */
 #define KUZU_API KUZU_HELPER_DLL_EXPORT
 #else

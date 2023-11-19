@@ -1,8 +1,3 @@
-cmake_minimum_required(VERSION 3.15)
-project (kuzujs)
-
-set(CMAKE_CXX_STANDARD 20)
-
 add_definitions(-DNAPI_VERSION=6)
 add_definitions(-DNODE_RUNTIME=node)
 add_definitions(-DBUILDING_NODE_EXTENSION)
@@ -46,14 +41,14 @@ file(GLOB CPP_SOURCE_FILES ./src_cpp/*)
 file(GLOB JS_SOURCE_FILES ./src_js/*.js)
 file(COPY ${JS_SOURCE_FILES} DESTINATION  "${CMAKE_CURRENT_SOURCE_DIR}/build")
 
-add_library(${PROJECT_NAME} SHARED ${CPP_SOURCE_FILES} ${CMAKE_JS_SRC})
-set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "" SUFFIX ".node")
-set_target_properties(${PROJECT_NAME}
+add_library(kuzujs SHARED ${CPP_SOURCE_FILES} ${CMAKE_JS_SRC})
+set_target_properties(kuzujs PROPERTIES PREFIX "" SUFFIX ".node")
+set_target_properties(kuzujs
   PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build"
   ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build")
 if(APPLE)
-  target_link_options(${PROJECT_NAME} PRIVATE -undefined dynamic_lookup)
+  target_link_options(kuzujs PRIVATE -undefined dynamic_lookup)
 endif()
-target_link_libraries(${PROJECT_NAME} PRIVATE kuzu ${CMAKE_JS_LIB})
+target_link_libraries(kuzujs PRIVATE kuzu ${CMAKE_JS_LIB})

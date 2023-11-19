@@ -1,9 +1,9 @@
 .PHONY: release debug test benchmark all alldebug clean clean-all
 
 CLANGD_DIAGNOSTIC_INSTANCES ?= 4
-FORCE_COLOR=
 GENERATOR=
 NUM_THREADS ?= 1
+PREFIX ?= install
 ROOT_DIR=$(CURDIR)
 RUNTIME_CHECK_FLAG=
 SANITIZER_FLAG=
@@ -20,7 +20,6 @@ endif
 
 ifeq ($(GEN),ninja)
 	GENERATOR=-G "Ninja"
-	FORCE_COLOR=-DFORCE_COLORED_OUTPUT=1
 endif
 
 ifeq ($(ASAN), 1)
@@ -147,6 +146,9 @@ else
 	cd $(ROOT_DIR)/tools/rust_api && \
 	CARGO_BUILD_JOBS=$(NUM_THREADS) cargo test --features arrow -- --test-threads=1
 endif
+
+install:
+	cmake --install build/release --prefix $(PREFIX) --strip
 
 clean-python-api:
 ifeq ($(OS),Windows_NT)

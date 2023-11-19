@@ -18,5 +18,5 @@ Checks:
 
   misc-unused-parameters,
 
-HeaderFilterRegex: src/include|tools/benchmark/include|tools/nodejs_api/src_cpp/include|tools/python_api/src_cpp/include|tools/rust_api/include|tools/shell/include
+HeaderFilterRegex: src/include|tools/benchmark/include|tools/nodejs_api/src_cpp/include|tools/python_api/src_cpp/include|tools/rust_api/include|tools/shell/include/(?!linenoise.h)
 WarningsAsErrors: "*"

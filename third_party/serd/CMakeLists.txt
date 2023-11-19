@@ -48,10 +48,7 @@ set(SERD_SOURCES
         src/writer.c)
 
 add_library(serd STATIC ${SERD_SOURCES})
+add_compile_definitions(serd SERD_API=) # Don't expose symbols to public API.
 target_include_directories(
         serd
         PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-
-install(TARGETS serd
-        LIBRARY DESTINATION "${INSTALL_LIB_DIR}"
-        ARCHIVE DESTINATION "${INSTALL_LIB_DIR}")

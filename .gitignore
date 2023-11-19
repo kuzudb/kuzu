@@ -10,6 +10,7 @@ test/test_files/test_list
 
 test_temp/
 build/
+install/
 
 compile_commands.json
 

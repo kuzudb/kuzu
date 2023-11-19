@@ -31,7 +31,7 @@ jobs:
         with:
           name: kuzu_cli-linux-x86_64
           path: ./scripts/pre-compiled-bins/kuzu
-    
+
   build-precompiled-bin-aarch64:
     runs-on: kuzu-self-hosted-linux-building-aarch64
     steps:
@@ -55,4 +55,4 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: kuzu_cli-linux-aarch64
-          path: ./scripts/pre-compiled-bins/kuzu      
+          path: ./scripts/pre-compiled-bins/kuzu
