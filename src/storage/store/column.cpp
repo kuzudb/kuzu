@@ -464,7 +464,9 @@ void Column::scan(Transaction* transaction, const ColumnScanState& state,
 void Column::scanInternal(Transaction* transaction, ValueVector* nodeIDVector,
     ValueVector* resultVector, ColumnScanState* state) {
     if (nodeIDVector->state->selVector->isUnfiltered()) {
-        scanUnfiltered(transaction, state->cursor, nodeIDVector->state->selVector->selectedSize,
+        KU_ASSERT(
+            nodeIDVector->state->selVector->selectedSize == nodeIDVector->state->getOriginalSize());
+        scanUnfiltered(transaction, state->cursor, nodeIDVector->state->getOriginalSize(),
             resultVector, state->metadata);
     } else {
         scanFiltered(transaction, state->cursor, nodeIDVector, resultVector, state->metadata);
