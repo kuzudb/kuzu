@@ -28,8 +28,10 @@ StructColumn::StructColumn(std::unique_ptr<LogicalType> dataType,
 
 void StructColumn::initializeScanState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     offset_t offsetInGroup, ColumnScanState* readState) {
+    Column::initializeScanState(transaction, nodeGroupIdx, offsetInGroup, readState);
     readState->childStates.resize(childColumns.size());
     for (auto i = 0u; i < childColumns.size(); i++) {
+        readState->childStates[i] = std::make_unique<ColumnScanState>();
         childColumns[i]->initializeScanState(
             transaction, nodeGroupIdx, offsetInGroup, readState->childStates[i].get());
     }
