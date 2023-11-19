@@ -2,7 +2,6 @@
 
 PLATFORM="manylinux_2_28_aarch64"
 
-chmod +x ./package_tar.sh
 rm -rf wheelhouse kuzu.tar.gz && /opt/python/cp311-cp311/bin/python ./package_tar.py kuzu.tar.gz
 mkdir wheelhouse
 
