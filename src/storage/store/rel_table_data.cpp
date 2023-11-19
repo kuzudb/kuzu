@@ -105,8 +105,7 @@ void RelTableData::scanRegularColumns(Transaction* transaction, RelDataReadState
     KU_ASSERT(dataFormat == ColumnDataFormat::REGULAR);
     // TODO: Should move to rel table scan state init.
     auto adjColumnScanState = std::make_unique<ColumnScanState>();
-    auto nodeOffset =
-        inNodeIDVector->readNodeOffset(inNodeIDVector->state->selVector->selectedPositions[0]);
+    auto nodeOffset = inNodeIDVector->readNodeOffset(0);
     auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
     adjColumn->initializeScanState(
         transaction, nodeGroupIdx, offsetInChunk, adjColumnScanState.get());

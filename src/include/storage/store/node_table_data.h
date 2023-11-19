@@ -22,7 +22,7 @@ public:
 
     void initializeScanState(transaction::Transaction* transaction,
         std::vector<common::column_id_t> columnIDs, common::ValueVector* inNodeIDVector,
-        TableReadState* readState);
+        NodeTableScanState* readState);
     void scan(transaction::Transaction* transaction, TableReadState& readState,
         common::ValueVector* nodeIDVector, const std::vector<common::ValueVector*>& outputVectors);
     void lookup(transaction::Transaction* transaction, TableReadState& readState,

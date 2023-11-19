@@ -51,7 +51,7 @@ protected:
 
 private:
     std::unique_ptr<ScanNodeTableInfo> info;
-    std::unique_ptr<storage::TableReadState> readState;
+    std::unique_ptr<storage::NodeTableScanState> readState;
 };
 
 } // namespace processor

@@ -67,7 +67,6 @@ void StructColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
 
 void StructColumn::scanInternal(Transaction* transaction, ValueVector* nodeIDVector,
     ValueVector* resultVector, ColumnScanState* state) {
-    nullColumn->scan(transaction, nodeIDVector, resultVector, state->nullState.get());
     for (auto i = 0u; i < childColumns.size(); i++) {
         auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
         childColumns[i]->scan(transaction, nodeIDVector, fieldVector, state->childStates[i].get());
@@ -76,7 +75,6 @@ void StructColumn::scanInternal(Transaction* transaction, ValueVector* nodeIDVec
 
 void StructColumn::lookupInternal(
     Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
-    nullColumn->lookup(transaction, nodeIDVector, resultVector);
     for (auto i = 0u; i < childColumns.size(); i++) {
         auto fieldVector = StructVector::getFieldVector(resultVector, i).get();
         childColumns[i]->lookup(transaction, nodeIDVector, fieldVector);

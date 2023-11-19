@@ -31,28 +31,23 @@ NodeTableData::NodeTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, tab
 
 void NodeTableData::initializeScanState(transaction::Transaction* transaction,
     std::vector<common::column_id_t> columnIDs, common::ValueVector* inNodeIDVector,
-    TableReadState* readState) {
-    KU_ASSERT(!inNodeIDVector->state->isFlat());
-    auto nodeTableReadState =
-        common::ku_dynamic_cast<TableReadState*, NodeTableScanState*>(readState);
-    KU_ASSERT(nodeTableReadState);
-    nodeTableReadState->columnIDs = std::move(columnIDs);
-    auto nodeIDPos = inNodeIDVector->state->selVector->selectedPositions[0];
-    auto nodeOffset = inNodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
-//    KU_ASSERT(nodeOffset % DEFAULT_VECTOR_CAPACITY == 0);
+    NodeTableScanState* readState) {
+    KU_ASSERT(readState);
+    readState->columnIDs = std::move(columnIDs);
+    auto nodeOffset = inNodeIDVector->readNodeOffset(0);
     auto [nodeGroupIdx, offsetInNodeGroup] =
         StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
-    nodeTableReadState->nodeGroupIdx = nodeGroupIdx;
-    nodeTableReadState->offsetInNodeGroup = offsetInNodeGroup;
-    nodeTableReadState->columnStates.resize(nodeTableReadState->columnIDs.size());
-    for (auto i = 0u; i < nodeTableReadState->columnIDs.size(); i++) {
-        if (nodeTableReadState->columnIDs[i] == INVALID_COLUMN_ID) {
+    readState->nodeGroupIdx = nodeGroupIdx;
+    readState->offsetInNodeGroup = offsetInNodeGroup;
+    readState->columnStates.resize(readState->columnIDs.size());
+    for (auto i = 0u; i < readState->columnIDs.size(); i++) {
+        if (readState->columnIDs[i] == INVALID_COLUMN_ID) {
             continue;
         }
-        KU_ASSERT(nodeTableReadState->columnIDs[i] < columns.size());
-        nodeTableReadState->columnStates[i] = std::make_unique<ColumnScanState>();
-        columns[nodeTableReadState->columnIDs[i]]->initializeScanState(transaction, nodeGroupIdx,
-            offsetInNodeGroup, nodeTableReadState->columnStates[i].get());
+        KU_ASSERT(readState->columnIDs[i] < columns.size());
+        readState->columnStates[i] = std::make_unique<ColumnScanState>();
+        columns[readState->columnIDs[i]]->initializeScanState(
+            transaction, nodeGroupIdx, offsetInNodeGroup, readState->columnStates[i].get());
     }
 }
 

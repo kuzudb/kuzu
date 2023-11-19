@@ -42,6 +42,7 @@ class Column {
     friend class StringColumn;
     friend class VarListLocalColumn;
     friend class StructColumn;
+
 public:
     Column(std::unique_ptr<common::LogicalType> dataType, const MetadataDAHInfo& metaDAHeaderInfo,
         BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,

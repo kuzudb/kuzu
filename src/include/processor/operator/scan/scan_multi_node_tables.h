@@ -34,7 +34,7 @@ public:
 
 private:
     std::unordered_map<common::table_id_t, std::unique_ptr<ScanNodeTableInfo>> tables;
-    std::unordered_map<common::table_id_t, std::unique_ptr<storage::TableReadState>> readStates;
+    std::unordered_map<common::table_id_t, std::unique_ptr<storage::NodeTableScanState>> readStates;
 };
 
 } // namespace processor
