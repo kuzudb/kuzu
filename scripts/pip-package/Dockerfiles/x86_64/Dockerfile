@@ -19,10 +19,5 @@ RUN tar xzf ./actions-runner-linux-x64-2.311.0.tar.gz
 COPY --chown=runner:runner listener.sh listener.sh
 RUN chmod +x listener.sh
 
-# Install pydoc-markdown
-RUN /opt/python/cp310-cp310/bin/python -m pip install --user pipx
-RUN /opt/python/cp310-cp310/bin/python -m pipx ensurepath
-RUN /opt/python/cp310-cp310/bin/python -m pipx install pydoc-markdown
-
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk
 ENTRYPOINT ["./listener.sh"]
