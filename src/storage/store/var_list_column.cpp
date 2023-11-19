@@ -9,13 +9,12 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-common::offset_t ListOffsetInfoInStorage::getListOffset(uint64_t nodePos) const {
+offset_t ListOffsetInfoInStorage::getListOffset(uint64_t nodePos) const {
     if (nodePos == 0) {
         return prevNodeListOffset;
     } else {
-        auto offsetVector = offsetVectors[(nodePos - 1) / common::DEFAULT_VECTOR_CAPACITY].get();
-        return offsetVector->getValue<common::offset_t>(
-            (nodePos - 1) % common::DEFAULT_VECTOR_CAPACITY);
+        auto offsetVector = offsetVectors[(nodePos - 1) / DEFAULT_VECTOR_CAPACITY].get();
+        return offsetVector->getValue<offset_t>((nodePos - 1) % DEFAULT_VECTOR_CAPACITY);
     }
 }
 
@@ -59,8 +58,8 @@ void VarListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx
     }
 }
 
-void VarListColumn::scanInternal(
-    Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
+void VarListColumn::scanInternal(Transaction* transaction, ValueVector* nodeIDVector,
+    ValueVector* resultVector, ColumnScanState* state) {
     resultVector->resetAuxiliaryBuffer();
     auto startNodeOffset = nodeIDVector->readNodeOffset(0);
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(startNodeOffset);

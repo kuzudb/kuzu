@@ -38,7 +38,7 @@ public:
     inline void initializeReadState(transaction::Transaction* transaction,
         std::vector<common::column_id_t> columnIDs, common::ValueVector* inNodeIDVector,
         TableReadState* readState) {
-        tableData->initializeReadState(transaction, columnIDs, inNodeIDVector, readState);
+        tableData->initializeScanState(transaction, columnIDs, inNodeIDVector, readState);
     }
     void read(transaction::Transaction* transaction, TableReadState& readState,
         common::ValueVector* nodeIDVector,

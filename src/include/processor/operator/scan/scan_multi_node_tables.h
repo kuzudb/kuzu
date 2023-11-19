@@ -18,7 +18,7 @@ public:
     inline void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override {
         ScanTable::initLocalStateInternal(resultSet, context);
         for (auto& [tableID, _] : tables) {
-            readStates[tableID] = std::make_unique<storage::TableReadState>();
+            readStates[tableID] = std::make_unique<storage::NodeTableScanState>();
         }
     }
     bool getNextTuplesInternal(ExecutionContext* context) override;

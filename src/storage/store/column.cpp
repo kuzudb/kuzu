@@ -195,18 +195,17 @@ public:
         writeFunc = NullColumnFunc::writeValuesToPage;
     }
 
-    void scan(
-        Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) override {
+    void scan(Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector,
+        ColumnScanState* state) override {
         if (propertyStatistics.mayHaveNull(*transaction)) {
-            scanInternal(transaction, nodeIDVector, resultVector);
+            scanInternal(transaction, nodeIDVector, resultVector, state);
         } else {
             resultVector->setAllNonNull();
         }
     }
 
-    void scan(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
-        offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
-        uint64_t offsetInVector) override {
+    void scan(Transaction* transaction, node_group_idx_t nodeGroupIdx, offset_t startOffsetInGroup,
+        offset_t endOffsetInGroup, ValueVector* resultVector, uint64_t offsetInVector) override {
         if (propertyStatistics.mayHaveNull(*transaction)) {
             Column::scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup,
                 resultVector, offsetInVector);
@@ -215,7 +214,7 @@ public:
         }
     }
 
-    void scan(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    void scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
         ColumnChunk* columnChunk) override {
         if (propertyStatistics.mayHaveNull(DUMMY_WRITE_TRANSACTION)) {
             Column::scan(transaction, nodeGroupIdx, columnChunk);
@@ -247,8 +246,8 @@ public:
         }
     }
 
-    bool isNull(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
-        offset_t offsetInChunk) override {
+    bool isNull(
+        Transaction* transaction, node_group_idx_t nodeGroupIdx, offset_t offsetInChunk) override {
         auto cursor = getPageCursorForOffset(transaction->getType(), nodeGroupIdx, offsetInChunk);
         auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
         KU_ASSERT(cursor.pageIdx < chunkMeta.pageIdx + chunkMeta.numPages);
@@ -293,8 +292,8 @@ public:
               bufferManager, wal, transaction, RWPropertyStats::empty(),
               false /* enableCompression */, false /*requireNullColumn*/} {}
 
-    void scan(Transaction* /*transaction*/, ValueVector* nodeIDVector,
-        ValueVector* resultVector) override {
+    void scan(Transaction* /*transaction*/, ValueVector* nodeIDVector, ValueVector* resultVector,
+        ColumnScanState* /*state*/) override {
         // Serial column cannot contain null values.
         for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
             auto pos = nodeIDVector->state->selVector->selectedPositions[i];
@@ -320,8 +319,8 @@ public:
 };
 
 InternalIDColumn::InternalIDColumn(const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
-    BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-    transaction::Transaction* transaction, RWPropertyStats stats)
+    BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal, Transaction* transaction,
+    RWPropertyStats stats)
     : Column{LogicalType::INTERNAL_ID(), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
           transaction, stats, false /* enableCompression */},
       commonTableID{INVALID_TABLE_ID} {}
@@ -336,8 +335,8 @@ void InternalIDColumn::populateCommonTableID(ValueVector* resultVector) const {
 
 Column::Column(std::unique_ptr<LogicalType> dataType, const MetadataDAHInfo& metaDAHeaderInfo,
     BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-    transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
-    bool enableCompression, bool requireNullColumn)
+    Transaction* transaction, RWPropertyStats propertyStatistics, bool enableCompression,
+    bool requireNullColumn)
     : dbFileID{DBFileID::newDataFileID()}, dataType{std::move(dataType)}, dataFH{dataFH},
       metadataFH{metadataFH}, bufferManager{bufferManager},
       propertyStatistics{propertyStatistics}, wal{wal}, enableCompression{enableCompression} {
@@ -373,14 +372,29 @@ void Column::batchLookup(
     }
 }
 
-void Column::scan(Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
+void Column::initializeScanState(Transaction* transaction, node_group_idx_t nodeGroupIdx,
+    offset_t offsetInGroup, ColumnScanState* readState) {
+    readState->metadata = metadataDA->get(nodeGroupIdx, transaction->getType());
+    readState->numValuesPerPage =
+        readState->metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType);
+    readState->cursor = getPageCursorForOffsetInGroup(
+        offsetInGroup, readState->metadata.pageIdx, readState->numValuesPerPage);
     if (nullColumn) {
-        nullColumn->scan(transaction, nodeIDVector, resultVector);
+        readState->nullState = std::make_unique<ColumnScanState>();
+        nullColumn->initializeScanState(
+            transaction, nodeGroupIdx, offsetInGroup, readState->nullState.get());
     }
-    scanInternal(transaction, nodeIDVector, resultVector);
 }
 
-void Column::scan(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
+void Column::scan(Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector,
+    ColumnScanState* state) {
+    if (nullColumn) {
+        nullColumn->scan(transaction, nodeIDVector, resultVector, state->nullState.get());
+    }
+    scanInternal(transaction, nodeIDVector, resultVector, state);
+}
+
+void Column::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
     uint64_t offsetInVector) {
     if (nullColumn) {
@@ -388,7 +402,8 @@ void Column::scan(transaction::Transaction* transaction, node_group_idx_t nodeGr
             resultVector, offsetInVector);
     }
     auto state = getReadState(transaction->getType(), nodeGroupIdx);
-    auto pageCursor = getPageCursorForOffsetInGroup(startOffsetInGroup, state);
+    auto pageCursor = getPageCursorForOffsetInGroup(
+        startOffsetInGroup, state.metadata.pageIdx, state.numValuesPerPage);
     auto numValuesToScan = endOffsetInGroup - startOffsetInGroup;
     scanUnfiltered(
         transaction, pageCursor, numValuesToScan, resultVector, state.metadata, offsetInVector);
@@ -427,9 +442,10 @@ void Column::scan(
     }
 }
 
-void Column::scan(Transaction* transaction, const ReadState& state, offset_t startOffsetInGroup,
-    offset_t endOffsetInGroup, uint8_t* result) {
-    auto cursor = getPageCursorForOffsetInGroup(startOffsetInGroup, state);
+void Column::scan(Transaction* transaction, const ColumnScanState& state,
+    offset_t startOffsetInGroup, offset_t endOffsetInGroup, uint8_t* result) {
+    auto cursor = getPageCursorForOffsetInGroup(
+        startOffsetInGroup, state.metadata.pageIdx, state.numValuesPerPage);
     auto numValuesToScan = endOffsetInGroup - startOffsetInGroup;
     uint64_t numValuesScanned = 0;
     while (numValuesScanned < numValuesToScan) {
@@ -445,20 +461,13 @@ void Column::scan(Transaction* transaction, const ReadState& state, offset_t sta
     }
 }
 
-void Column::scanInternal(
-    Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
-    auto startNodeOffset = nodeIDVector->readNodeOffset(0);
-    KU_ASSERT(startNodeOffset % DEFAULT_VECTOR_CAPACITY == 0);
-    // TODO: replace with state
-    auto [nodeGroupIdx, offsetInChunk] =
-        StorageUtils::getNodeGroupIdxAndOffsetInChunk(startNodeOffset);
-    auto cursor = getPageCursorForOffset(transaction->getType(), nodeGroupIdx, offsetInChunk);
-    auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
+void Column::scanInternal(Transaction* transaction, ValueVector* nodeIDVector,
+    ValueVector* resultVector, ColumnScanState* state) {
     if (nodeIDVector->state->selVector->isUnfiltered()) {
-        scanUnfiltered(transaction, cursor, nodeIDVector->state->selVector->selectedSize,
-            resultVector, chunkMeta);
+        scanUnfiltered(transaction, state->cursor, nodeIDVector->state->selVector->selectedSize,
+            resultVector, state->metadata);
     } else {
-        scanFiltered(transaction, cursor, nodeIDVector, resultVector, chunkMeta);
+        scanFiltered(transaction, state->cursor, nodeIDVector, resultVector, state->metadata);
     }
 }
 
@@ -520,7 +529,7 @@ void Column::lookup(
 }
 
 void Column::lookupInternal(
-    transaction::Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
+    Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
     for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[i];
         if (nodeIDVector->isNull(pos)) {
@@ -531,8 +540,8 @@ void Column::lookupInternal(
     }
 }
 
-void Column::lookupValue(transaction::Transaction* transaction, offset_t nodeOffset,
-    ValueVector* resultVector, uint32_t posInVector) {
+void Column::lookupValue(Transaction* transaction, offset_t nodeOffset, ValueVector* resultVector,
+    uint32_t posInVector) {
     auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
     auto cursor = getPageCursorForOffset(transaction->getType(), nodeGroupIdx, offsetInChunk);
     auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
@@ -615,7 +624,8 @@ offset_t Column::appendValues(
     node_group_idx_t nodeGroupIdx, const uint8_t* data, offset_t numValues) {
     auto state = getReadState(TransactionType::WRITE, nodeGroupIdx);
     auto startOffset = state.metadata.numValues;
-    auto cursor = getPageCursorForOffsetInGroup(startOffset, state);
+    auto cursor =
+        getPageCursorForOffsetInGroup(startOffset, state.metadata.pageIdx, state.numValuesPerPage);
     offset_t valuesWritten = 0;
     while (valuesWritten < numValues) {
         bool insertingNewPage = false;
@@ -652,9 +662,9 @@ offset_t Column::appendValues(
 }
 
 PageElementCursor Column::getPageCursorForOffsetInGroup(
-    offset_t offsetInChunk, const ReadState& state) {
-    auto pageCursor = PageUtils::getPageElementCursorForPos(offsetInChunk, state.numValuesPerPage);
-    pageCursor.pageIdx += state.metadata.pageIdx;
+    offset_t offsetInChunk, page_idx_t chunkStartPageIdx, uint64_t numValuesPerPage) {
+    auto pageCursor = PageUtils::getPageElementCursorForPos(offsetInChunk, numValuesPerPage);
+    pageCursor.pageIdx += chunkStartPageIdx;
     return pageCursor;
 }
 
@@ -673,7 +683,7 @@ WALPageIdxPosInPageAndFrame Column::createWALVersionOfPageForValue(
     return {walPageIdxAndFrame, originalPageCursor.elemPosInPage};
 }
 
-Column::ReadState Column::getReadState(
+ColumnScanState Column::getReadState(
     TransactionType transactionType, node_group_idx_t nodeGroupIdx) const {
     auto metadata = metadataDA->get(nodeGroupIdx, transactionType);
     return {metadata, metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType)};
@@ -874,13 +884,15 @@ void Column::populateWithDefaultVal(const Property& property, Column* column,
 
 PageElementCursor Column::getPageCursorForOffset(
     TransactionType transactionType, node_group_idx_t nodeGroupIdx, offset_t offsetInChunk) {
-    auto state = getReadState(transactionType, nodeGroupIdx);
-    return getPageCursorForOffsetInGroup(offsetInChunk, state);
+    auto metadata = metadataDA->get(nodeGroupIdx, transactionType);
+    auto numValuesPerPage =
+        metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, *dataType);
+    return getPageCursorForOffsetInGroup(offsetInChunk, metadata.pageIdx, numValuesPerPage);
 }
 
 std::unique_ptr<Column> ColumnFactory::createColumn(std::unique_ptr<LogicalType> dataType,
     const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
-    BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
+    BufferManager* bufferManager, WAL* wal, Transaction* transaction,
     RWPropertyStats propertyStatistics, bool enableCompression) {
     switch (dataType->getLogicalTypeID()) {
     case LogicalTypeID::BOOL:

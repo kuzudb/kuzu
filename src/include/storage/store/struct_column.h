@@ -12,6 +12,9 @@ public:
         BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
         RWPropertyStats propertyStatistics, bool enableCompression);
 
+    void initializeScanState(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInGroup,
+        ColumnScanState* readState) override;
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         ColumnChunk* columnChunk) override;
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
@@ -38,7 +41,7 @@ public:
 
 protected:
     void scanInternal(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) override;
+        common::ValueVector* resultVector, ColumnScanState* state) override;
     void lookupInternal(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector) override;
 

@@ -40,7 +40,7 @@ struct ListOffsetInfoInStorage {
     }
 };
 
-class VarListColumn : public Column {
+class VarListColumn final : public Column {
     friend class VarListLocalColumn;
 
 public:
@@ -58,17 +58,17 @@ public:
 
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
-        common::ValueVector* resultVector, uint64_t offsetInVector = 0) final;
+        common::ValueVector* resultVector, uint64_t offsetInVector = 0) override;
 
     void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        ColumnChunk* columnChunk) final;
+        ColumnChunk* columnChunk) override;
 
 protected:
     void scanInternal(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) final;
+        common::ValueVector* resultVector, ColumnScanState* state) override;
 
     void lookupValue(transaction::Transaction* transaction, common::offset_t nodeOffset,
-        common::ValueVector* resultVector, uint32_t posInVector) final;
+        common::ValueVector* resultVector, uint32_t posInVector) override;
 
     void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) override;
 
@@ -87,9 +87,9 @@ private:
     void scanFiltered(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::ValueVector* offsetVector, const ListOffsetInfoInStorage& listOffsetInfoInStorage);
 
-    void checkpointInMemory() final;
+    void checkpointInMemory() override;
 
-    void rollbackInMemory() final;
+    void rollbackInMemory() override;
 
     common::offset_t readOffset(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInNodeGroup);

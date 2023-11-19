@@ -29,16 +29,19 @@ using batch_lookup_func_t = read_values_to_page_func_t;
 class NullColumn;
 class StructColumn;
 class LocalVectorCollection;
+
+struct ColumnScanState {
+    ColumnChunkMetadata metadata;
+    uint64_t numValuesPerPage;
+    PageElementCursor cursor;
+    std::unique_ptr<ColumnScanState> nullState;
+    std::vector<std::unique_ptr<ColumnScanState>> childStates;
+};
+
 class Column {
     friend class StringColumn;
     friend class VarListLocalColumn;
     friend class StructColumn;
-
-    struct ReadState {
-        ColumnChunkMetadata metadata;
-        uint64_t numValuesPerPage;
-    };
-
 public:
     Column(std::unique_ptr<common::LogicalType> dataType, const MetadataDAHInfo& metaDAHeaderInfo,
         BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
@@ -50,8 +53,11 @@ public:
     virtual void batchLookup(transaction::Transaction* transaction,
         const common::offset_t* nodeOffsets, size_t size, uint8_t* result);
 
+    virtual void initializeScanState(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInGroup,
+        ColumnScanState* readState);
     virtual void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector);
+        common::ValueVector* resultVector, ColumnScanState* state);
     virtual void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
         common::ValueVector* resultVector, uint64_t offsetInVector);
@@ -89,7 +95,7 @@ public:
     }
     inline InMemDiskArray<ColumnChunkMetadata>* getMetadataDA() const { return metadataDA.get(); }
 
-    virtual void scan(transaction::Transaction* transaction, const ReadState& state,
+    virtual void scan(transaction::Transaction* transaction, const ColumnScanState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup, uint8_t* result);
 
     virtual void write(common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk,
@@ -99,12 +105,13 @@ public:
     common::offset_t appendValues(
         common::node_group_idx_t nodeGroupIdx, const uint8_t* data, common::offset_t numValues);
 
-    ReadState getReadState(
+    ColumnScanState getReadState(
         transaction::TransactionType transactionType, common::node_group_idx_t nodeGroupIdx) const;
 
 protected:
     virtual void scanInternal(transaction::Transaction* transaction,
-        common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
+        common::ValueVector* nodeIDVector, common::ValueVector* resultVector,
+        ColumnScanState* state);
     void scanUnfiltered(transaction::Transaction* transaction, PageElementCursor& pageCursor,
         uint64_t numValuesToScan, common::ValueVector* resultVector,
         const ColumnChunkMetadata& chunkMeta, uint64_t startPosInVector = 0);
@@ -126,8 +133,8 @@ protected:
         common::offset_t nodeOffset, const uint8_t* data);
 
     // Produces a page cursor for the offset relative to the given node group
-    PageElementCursor getPageCursorForOffsetInGroup(
-        common::offset_t nodeOffset, const ReadState& state);
+    PageElementCursor getPageCursorForOffsetInGroup(common::offset_t nodeOffset,
+        common::page_idx_t chunkStartPageIdx, uint64_t numValuesPerPage);
 
     // Produces a page cursor for the absolute node offset
     PageElementCursor getPageCursorForOffset(transaction::TransactionType transactionType,
@@ -186,8 +193,8 @@ public:
         transaction::Transaction* transaction, RWPropertyStats stats);
 
     inline void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) {
-        Column::scan(transaction, nodeIDVector, resultVector);
+        common::ValueVector* resultVector, ColumnScanState* state) {
+        Column::scan(transaction, nodeIDVector, resultVector, state);
         populateCommonTableID(resultVector);
     }
 

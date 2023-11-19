@@ -102,7 +102,15 @@ void RelTableData::initializeReadState(Transaction* transaction,
 
 void RelTableData::scanRegularColumns(Transaction* transaction, RelDataReadState& readState,
     ValueVector* inNodeIDVector, const std::vector<ValueVector*>& outputVectors) {
-    adjColumn->scan(transaction, inNodeIDVector, outputVectors[0]);
+    KU_ASSERT(dataFormat == ColumnDataFormat::REGULAR);
+    // TODO: Should move to rel table scan state init.
+    auto adjColumnScanState = std::make_unique<ColumnScanState>();
+    auto nodeOffset =
+        inNodeIDVector->readNodeOffset(inNodeIDVector->state->selVector->selectedPositions[0]);
+    auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
+    adjColumn->initializeScanState(
+        transaction, nodeGroupIdx, offsetInChunk, adjColumnScanState.get());
+    adjColumn->scan(transaction, inNodeIDVector, outputVectors[0], adjColumnScanState.get());
     if (!ValueVector::discardNull(*outputVectors[0])) {
         return;
     }
@@ -113,8 +121,11 @@ void RelTableData::scanRegularColumns(Transaction* transaction, RelDataReadState
             outputVectors[outputVectorId]->setAllNull();
             continue;
         }
+        auto columnScanState = std::make_unique<ColumnScanState>();
+        columns[readState.columnIDs[i]]->initializeScanState(
+            transaction, nodeGroupIdx, offsetInChunk, columnScanState.get());
         columns[readState.columnIDs[i]]->scan(
-            transaction, inNodeIDVector, outputVectors[outputVectorId]);
+            transaction, inNodeIDVector, outputVectors[outputVectorId], columnScanState.get());
     }
 }
 

@@ -24,7 +24,7 @@ StringColumn::StringColumn(std::unique_ptr<LogicalType> dataType,
         stats, enableCompression, false /*requireNullColumn*/);
 }
 
-void StringColumn::scanOffsets(Transaction* transaction, const ReadState& state,
+void StringColumn::scanOffsets(Transaction* transaction, const ColumnScanState& state,
     string_offset_t* offsets, uint64_t index, uint64_t numValues, uint64_t dataSize) {
     // We either need to read the next value, or store the maximum string offset at the end.
     // Otherwise we won't know what the length of the last string is.
@@ -36,7 +36,7 @@ void StringColumn::scanOffsets(Transaction* transaction, const ReadState& state,
     }
 }
 
-void StringColumn::scanValueToVector(Transaction* transaction, const ReadState& dataState,
+void StringColumn::scanValueToVector(Transaction* transaction, const ColumnScanState& dataState,
     string_offset_t startOffset, string_offset_t endOffset, ValueVector* resultVector,
     uint64_t offsetInVector) {
     KU_ASSERT(endOffset >= startOffset);
@@ -114,8 +114,8 @@ void StringColumn::rollbackInMemory() {
     offsetColumn->rollbackInMemory();
 }
 
-void StringColumn::scanInternal(
-    Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
+void StringColumn::scanInternal(Transaction* transaction, ValueVector* nodeIDVector,
+    ValueVector* resultVector, ColumnScanState* state) {
     KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
     auto startNodeOffset = nodeIDVector->readNodeOffset(0);
     KU_ASSERT(startNodeOffset % DEFAULT_VECTOR_CAPACITY == 0);
@@ -154,7 +154,7 @@ void StringColumn::scanUnfiltered(transaction::Transaction* transaction,
 
 void StringColumn::scanValuesToVector(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     std::vector<std::pair<string_index_t, uint64_t>>& offsetsToScan, ValueVector* resultVector,
-    const ReadState& indexState) {
+    const ColumnScanState& indexState) {
     auto offsetState = offsetColumn->getReadState(transaction->getType(), nodeGroupIdx);
     auto dataState = dataColumn->getReadState(transaction->getType(), nodeGroupIdx);
 

@@ -34,7 +34,7 @@ public:
 
 protected:
     void scanInternal(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) override;
+        common::ValueVector* resultVector, ColumnScanState* state) override;
     void scanUnfiltered(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::offset_t startOffsetInGroup,
         common::offset_t endOffsetInGroup, common::ValueVector* resultVector,
@@ -46,10 +46,10 @@ protected:
     void lookupInternal(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector) override;
 
-    void scanValueToVector(transaction::Transaction* transaction, const ReadState& dataState,
+    void scanValueToVector(transaction::Transaction* transaction, const ColumnScanState& dataState,
         uint64_t startOffset, uint64_t endOffset, common::ValueVector* resultVector,
         uint64_t offsetInVector);
-    void scanOffsets(transaction::Transaction* transaction, const ReadState& state,
+    void scanOffsets(transaction::Transaction* transaction, const ColumnScanState& state,
         uint64_t* offsets, uint64_t index, uint64_t numValues, uint64_t dataSize);
     // Offsets to scan should be a sorted list of pairs mapping the index of the entry in the string
     // dictionary (as read from the index column) to the output index in the result vector to store
@@ -57,7 +57,7 @@ protected:
     void scanValuesToVector(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx,
         std::vector<std::pair<string_index_t, uint64_t>>& offsetsToScan,
-        common::ValueVector* resultVector, const ReadState& indexState);
+        common::ValueVector* resultVector, const ColumnScanState& indexState);
 
 private:
     bool canCommitInPlace(transaction::Transaction* transaction,

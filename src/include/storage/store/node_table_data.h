@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/cast.h"
 #include "storage/store/table_data.h"
 
 namespace kuzu {
@@ -7,18 +8,21 @@ namespace storage {
 
 class LocalTableData;
 
+struct NodeTableScanState : public TableReadState {
+    common::node_group_idx_t nodeGroupIdx;
+    common::offset_t offsetInNodeGroup;
+    std::vector<std::unique_ptr<ColumnScanState>> columnStates;
+};
+
 class NodeTableData final : public TableData {
 public:
     NodeTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, common::table_id_t tableID,
         BufferManager* bufferManager, WAL* wal, const std::vector<catalog::Property*>& properties,
         TablesStatistics* tablesStatistics, bool enableCompression);
 
-    // This interface is node table specific, as rel table requires also relDataDirection.
-    inline virtual void initializeReadState(transaction::Transaction* /*transaction*/,
-        std::vector<common::column_id_t> columnIDs, common::ValueVector* /*inNodeIDVector*/,
-        TableReadState* readState) {
-        readState->columnIDs = std::move(columnIDs);
-    }
+    void initializeScanState(transaction::Transaction* transaction,
+        std::vector<common::column_id_t> columnIDs, common::ValueVector* inNodeIDVector,
+        TableReadState* readState);
     void scan(transaction::Transaction* transaction, TableReadState& readState,
         common::ValueVector* nodeIDVector, const std::vector<common::ValueVector*>& outputVectors);
     void lookup(transaction::Transaction* transaction, TableReadState& readState,

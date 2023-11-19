@@ -74,7 +74,7 @@ void NodeTable::update(transaction::Transaction* transaction, common::column_id_
 void NodeTable::delete_(
     Transaction* transaction, ValueVector* nodeIDVector, ValueVector* pkVector) {
     auto readState = std::make_unique<TableReadState>();
-    tableData->initializeReadState(transaction, {pkColumnID}, nodeIDVector, readState.get());
+    tableData->initializeScanState(transaction, {pkColumnID}, nodeIDVector, readState.get());
     read(transaction, *readState, nodeIDVector, {pkVector});
     if (pkIndex) {
         pkIndex->delete_(pkVector);
