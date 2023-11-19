@@ -113,3 +113,10 @@ Runtime exception: Deleted nodes has connected edges in the backward direction.
 -STATEMENT MATCH (a)-[e]->(b) RETURN COUNT(*)
 ---- 1
 0
+
+-CASE OptionalDetachDeleteNode
+-STATEMENT OPTIONAL MATCH (a:person) WHERE a.ID > 100 DETACH DELETE a;
+---- ok
+-STATEMENT MATCH (a:person) RETURN COUNT(*)
+---- 1
+8
