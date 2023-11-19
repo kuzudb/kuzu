@@ -1,19 +1,19 @@
 #include "storage/storage_info.h"
 
-#include "common/exception/runtime.h"
-#include "common/string_format.h"
-
-using namespace kuzu::common;
-
 namespace kuzu {
 namespace storage {
 
 storage_version_t StorageVersionInfo::getStorageVersion() {
     auto storageVersionInfo = getStorageVersionInfo();
     if (!storageVersionInfo.contains(KUZU_STORAGE_VERSION)) {
+        // If the current KUZU_STORAGE_VERSION is not in the map,
+        // then we must run the newest version of kuzu
         // LCOV_EXCL_START
-        throw RuntimeException(
-            stringFormat("Invalid storage version name: {}", KUZU_STORAGE_VERSION));
+        storage_version_t maxVersion = 0;
+        for (auto& [_, versionNumber] : storageVersionInfo) {
+            maxVersion = std::max(maxVersion, versionNumber);
+        }
+        return maxVersion;
         // LCOV_EXCL_STOP
     }
     return storageVersionInfo.at(KUZU_STORAGE_VERSION);
