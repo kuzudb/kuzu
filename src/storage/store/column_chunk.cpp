@@ -1,5 +1,6 @@
 #include "storage/store/column_chunk.h"
 
+#include "common/exception/copy.h"
 #include "storage/compression/compression.h"
 #include "storage/storage_utils.h"
 #include "storage/store/string_column_chunk.h"
@@ -220,7 +221,7 @@ void ColumnChunk::append(
     numValues += numValuesToAppend;
 }
 
-void ColumnChunk::write(ValueVector* vector, ValueVector* offsetsInChunk) {
+void ColumnChunk::write(ValueVector* vector, ValueVector* offsetsInChunk, bool isCSR) {
     KU_ASSERT(
         vector->dataType.getPhysicalType() == dataType->getPhysicalType() &&
         offsetsInChunk->dataType.getPhysicalType() == PhysicalTypeID::INT64 &&
@@ -229,6 +230,11 @@ void ColumnChunk::write(ValueVector* vector, ValueVector* offsetsInChunk) {
     for (auto i = 0u; i < offsetsInChunk->state->selVector->selectedSize; i++) {
         auto offsetInChunk = offsets[offsetsInChunk->state->selVector->selectedPositions[i]];
         KU_ASSERT(offsetInChunk < capacity);
+        if (!isCSR && !nullChunk->isNull(offsetInChunk)) {
+            throw CopyException(stringFormat("Node with offset: {} can only have one neighbour due "
+                                             "to the MANY-ONE/ONE-ONE relationship constraint.",
+                offsetInChunk));
+        }
         auto offsetInVector = vector->state->selVector->selectedPositions[i];
         if (!vector->isNull(offsetInVector)) {
             memcpy(buffer.get() + offsetInChunk * numBytesPerValue,
@@ -373,7 +379,8 @@ void BoolColumnChunk::append(
     numValues += numValuesToAppend;
 }
 
-void BoolColumnChunk::write(ValueVector* valueVector, ValueVector* offsetInChunkVector) {
+void BoolColumnChunk::write(
+    ValueVector* valueVector, ValueVector* offsetInChunkVector, bool /*isCSR*/) {
     KU_ASSERT(valueVector->dataType.getPhysicalType() == PhysicalTypeID::BOOL &&
               offsetInChunkVector->dataType.getPhysicalType() == PhysicalTypeID::INT64 &&
               valueVector->state->selVector->selectedSize ==
@@ -431,7 +438,7 @@ public:
         numValues += numValuesToAppend;
     }
 
-    void write(ValueVector* valueVector, ValueVector* offsetInChunkVector) final {
+    void write(ValueVector* valueVector, ValueVector* offsetInChunkVector, bool /*isCSR*/) final {
         KU_ASSERT(valueVector->dataType.getPhysicalType() == PhysicalTypeID::FIXED_LIST &&
                   offsetInChunkVector->dataType.getPhysicalType() == PhysicalTypeID::INT64);
         auto offsets = (offset_t*)offsetInChunkVector->getData();

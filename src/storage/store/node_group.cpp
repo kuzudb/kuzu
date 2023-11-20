@@ -96,7 +96,9 @@ void NodeGroup::write(DataChunk* dataChunk, vector_idx_t offsetVectorIdx) {
             continue;
         }
         KU_ASSERT(vectorIdx < dataChunk->getNumValueVectors());
-        chunks[chunkIdx++]->write(dataChunk->getValueVector(vectorIdx++).get(), offsetVector);
+        writeToColumnChunk(chunkIdx, vectorIdx, dataChunk, offsetVector);
+        chunkIdx++;
+        vectorIdx++;
     }
     numRows += offsetVector->state->selVector->selectedSize;
 }

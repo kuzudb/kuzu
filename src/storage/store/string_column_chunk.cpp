@@ -76,7 +76,8 @@ void StringColumnChunk::write(
     }
 }
 
-void StringColumnChunk::write(ValueVector* valueVector, ValueVector* offsetInChunkVector) {
+void StringColumnChunk::write(
+    ValueVector* valueVector, ValueVector* offsetInChunkVector, bool /*isCSR*/) {
     KU_ASSERT(valueVector->dataType.getPhysicalType() == PhysicalTypeID::STRING &&
               offsetInChunkVector->dataType.getPhysicalType() == PhysicalTypeID::INT64 &&
               valueVector->state->selVector->selectedSize ==
