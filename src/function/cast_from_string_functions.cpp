@@ -332,7 +332,7 @@ struct SplitStringFixedListOperation {
         T value;
         auto str = std::string_view{start, (uint32_t)(end - start)};
         if (str.empty() || isNull(str)) {
-            throw ConversionException("Cast failed. NULL is not allowed for FIXEDLIST.");
+            throw ConversionException("Cast failed. NULL is not allowed for FIXED_LIST.");
         }
         CastStringHelper::cast(start, str.length(), value);
         resultVector->setValue(offset, value);

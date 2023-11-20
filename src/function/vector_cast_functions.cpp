@@ -4,6 +4,7 @@
 #include "binder/expression/literal_expression.h"
 #include "common/exception/binder.h"
 #include "common/exception/conversion.h"
+#include "common/exception/runtime.h"
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "function/cast/functions/cast_functions.h"
 #include "function/cast/functions/cast_rdf_variant.h"
@@ -35,8 +36,9 @@ static void castFixedListToString(
 }
 
 template<typename /*EXECUTOR*/ = UnaryFunctionExecutor>
-static void fixedListCastExecFunction(const std::vector<std::shared_ptr<ValueVector>>& params,
-    ValueVector& result, void* /*dataPtr*/ = nullptr) {
+static void fixedListToStringCastExecFunction(
+    const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result,
+    void* /*dataPtr*/) {
     KU_ASSERT(params.size() == 1);
     auto param = params[0];
     if (param->state->isFlat()) {
@@ -55,7 +57,7 @@ static void fixedListCastExecFunction(const std::vector<std::shared_ptr<ValueVec
 }
 
 template<>
-void fixedListCastExecFunction<CastChildFunctionExecutor>(
+void fixedListToStringCastExecFunction<CastChildFunctionExecutor>(
     const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
     KU_ASSERT(params.size() == 1);
 
@@ -67,7 +69,7 @@ void fixedListCastExecFunction<CastChildFunctionExecutor>(
 }
 
 template<typename /*EXECUTOR*/ = UnaryFunctionExecutor>
-static void StringtoFixedListCastExecFunction(
+static void stringtoFixedListCastExecFunction(
     const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
     KU_ASSERT(params.size() == 1);
     auto param = params[0];
@@ -101,7 +103,7 @@ static void StringtoFixedListCastExecFunction(
 }
 
 template<>
-void StringtoFixedListCastExecFunction<CastChildFunctionExecutor>(
+void stringtoFixedListCastExecFunction<CastChildFunctionExecutor>(
     const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
     KU_ASSERT(params.size() == 1);
     auto numOfEntries = reinterpret_cast<CastFunctionBindData*>(dataPtr)->numOfEntries;
@@ -113,6 +115,262 @@ void StringtoFixedListCastExecFunction<CastChildFunctionExecutor>(
         if (!result.isNull(i)) {
             CastString::castToFixedList(
                 inputVector->getValue<ku_string_t>(i), &result, i, csvReaderConfig);
+        }
+    }
+}
+
+template<typename /*EXECUTOR*/ = UnaryFunctionExecutor>
+static void fixedListToListCastExecFunction(
+    const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
+    KU_ASSERT(params.size() == 1);
+    auto inputVector = params[0];
+
+    auto numValuesPerList = FixedListType::getNumValuesInList(&inputVector->dataType);
+    for (auto i = 0u; i < inputVector->state->selVector->selectedSize; i++) {
+        auto pos = inputVector->state->selVector->selectedPositions[i];
+        result.setNull(pos, inputVector->isNull(pos));
+        if (!result.isNull(pos)) {
+            list_entry_t listEntry{pos * numValuesPerList, numValuesPerList};
+            result.setValue(pos, listEntry);
+        }
+    }
+    auto numOfEntries = inputVector->state->selVector
+                            ->selectedPositions[inputVector->state->selVector->selectedSize - 1] +
+                        1;
+    ListVector::resizeDataVector(&result, numOfEntries * numValuesPerList);
+
+    auto resultVector = ListVector::getDataVector(&result);
+    scalar_exec_func func = CastFunction::bindCastFunction<CastFixedListToListFunctionExecutor>(
+        "CAST", FixedListType::getChildType(&inputVector->dataType)->getLogicalTypeID(),
+        resultVector->dataType.getLogicalTypeID())
+                                ->execFunc;
+    reinterpret_cast<CastFunctionBindData*>(dataPtr)->numOfEntries = numOfEntries;
+    func(params, *resultVector, dataPtr);
+}
+
+template<>
+void fixedListToListCastExecFunction<CastChildFunctionExecutor>(
+    const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
+    KU_ASSERT(params.size() == 1);
+    auto inputVector = params[0];
+
+    auto numOfEntries = reinterpret_cast<CastFunctionBindData*>(dataPtr)->numOfEntries;
+    result.setNullFromBits(inputVector->getNullMaskData(), 0, 0, numOfEntries);
+    auto numValuesPerList = FixedListType::getNumValuesInList(&inputVector->dataType);
+    ListVector::resizeDataVector(&result, numOfEntries * numValuesPerList);
+
+    for (auto i = 0u; i < numOfEntries; i++) {
+        result.setNull(i, inputVector->isNull(i));
+        if (!result.isNull(i)) {
+            list_entry_t listEntry{i * numValuesPerList, numValuesPerList};
+            result.setValue(i, listEntry);
+        }
+    }
+
+    auto resultVector = ListVector::getDataVector(&result);
+    scalar_exec_func func = CastFunction::bindCastFunction<CastFixedListToListFunctionExecutor>(
+        "CAST", FixedListType::getChildType(&inputVector->dataType)->getLogicalTypeID(),
+        resultVector->dataType.getLogicalTypeID())
+                                ->execFunc;
+    func(params, *resultVector, dataPtr);
+}
+
+static bool containsListToFixedList(const LogicalType* srcType, const LogicalType* dstType) {
+    if (srcType->getLogicalTypeID() == LogicalTypeID::VAR_LIST &&
+        dstType->getLogicalTypeID() == LogicalTypeID::FIXED_LIST) {
+        return true;
+    }
+
+    while (srcType->getLogicalTypeID() == dstType->getLogicalTypeID()) {
+        switch (srcType->getPhysicalType()) {
+        case PhysicalTypeID::VAR_LIST: {
+            return containsListToFixedList(
+                VarListType::getChildType(srcType), VarListType::getChildType(dstType));
+        }
+        case PhysicalTypeID::STRUCT: {
+            auto srcFieldTypes = StructType::getFieldTypes(srcType);
+            auto dstFieldTypes = StructType::getFieldTypes(dstType);
+            if (srcFieldTypes.size() != dstFieldTypes.size()) {
+                throw ConversionException{
+                    stringFormat("Unsupported casting function from {} to {}.", srcType->toString(),
+                        dstType->toString())};
+            }
+
+            auto result = false;
+            std::vector<struct_field_idx_t> fields;
+            for (auto i = 0u; i < srcFieldTypes.size(); i++) {
+                if (containsListToFixedList(srcFieldTypes[i], dstFieldTypes[i])) {
+                    return true;
+                }
+            }
+        }
+        default:
+            return false;
+        }
+    }
+    return false;
+}
+
+static void validateListEntry(ValueVector* inputVector, LogicalType* resultType, uint64_t pos) {
+    if (inputVector->isNull(pos)) {
+        return;
+    }
+
+    switch (resultType->getPhysicalType()) {
+    case PhysicalTypeID::FIXED_LIST: {
+        auto listEntry = inputVector->getValue<list_entry_t>(pos);
+        if (listEntry.size != FixedListType::getNumValuesInList(resultType)) {
+            throw ConversionException{stringFormat(
+                "Unsupported casting VAR_LIST with incorrect list entry to FIXED_LIST. "
+                "Expected: {}, Actual: {}.",
+                FixedListType::getNumValuesInList(resultType),
+                inputVector->getValue<list_entry_t>(pos).size)};
+        }
+
+        auto inputChildVector = ListVector::getDataVector(inputVector);
+        for (auto i = listEntry.offset; i < listEntry.offset + listEntry.size; i++) {
+            if (inputChildVector->isNull(i)) {
+                throw ConversionException("Cast failed. NULL is not allowed for FIXED_LIST.");
+            }
+        }
+    } break;
+    case PhysicalTypeID::VAR_LIST: {
+        auto listEntry = inputVector->getValue<list_entry_t>(pos);
+        for (auto i = listEntry.offset; i < listEntry.offset + listEntry.size; i++) {
+            validateListEntry(
+                ListVector::getDataVector(inputVector), VarListType::getChildType(resultType), i);
+        }
+    } break;
+    case PhysicalTypeID::STRUCT: {
+        auto fieldVectors = StructVector::getFieldVectors(inputVector);
+        auto fieldTypes = StructType::getFieldTypes(resultType);
+
+        auto structEntry = inputVector->getValue<struct_entry_t>(pos);
+        for (auto i = 0u; i < fieldVectors.size(); i++) {
+            validateListEntry(fieldVectors[i].get(), fieldTypes[i], structEntry.pos);
+        }
+    } break;
+    default: {
+        return;
+    }
+    }
+}
+
+template<typename /*EXECUTOR*/ = UnaryFunctionExecutor>
+static void listToFixedListCastExecFunction(
+    const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
+    KU_ASSERT(params.size() == 1);
+    auto inputVector = params[0];
+
+    for (auto i = 0u; i < inputVector->state->selVector->selectedSize; i++) {
+        auto pos = inputVector->state->selVector->selectedPositions[i];
+        validateListEntry(inputVector.get(), &result.dataType, pos);
+    }
+
+    auto numOfEntries = inputVector->state->selVector
+                            ->selectedPositions[inputVector->state->selVector->selectedSize - 1] +
+                        1;
+    reinterpret_cast<CastFunctionBindData*>(dataPtr)->numOfEntries = numOfEntries;
+    listToFixedListCastExecFunction<CastChildFunctionExecutor>(params, result, dataPtr);
+}
+
+using scalar_cast_func = std::function<void(void*, uint64_t, void*, uint64_t, void*)>;
+
+template<typename DST_TYPE, typename OP>
+static void getFixedListChildFuncHelper(scalar_cast_func& func, LogicalTypeID inputTypeID) {
+    switch (inputTypeID) {
+    case LogicalTypeID::STRING: {
+        func = UnaryCastStringFunctionWrapper::operation<ku_string_t, DST_TYPE, CastString>;
+    } break;
+    case LogicalTypeID::INT128: {
+        func = UnaryFunctionWrapper::operation<int128_t, DST_TYPE, OP>;
+    } break;
+    case LogicalTypeID::INT64: {
+        func = UnaryFunctionWrapper::operation<int64_t, DST_TYPE, OP>;
+    } break;
+    case LogicalTypeID::INT32: {
+        func = UnaryFunctionWrapper::operation<int32_t, DST_TYPE, OP>;
+    } break;
+    case LogicalTypeID::INT16: {
+        func = UnaryFunctionWrapper::operation<int16_t, DST_TYPE, OP>;
+    } break;
+    case LogicalTypeID::INT8: {
+        func = UnaryFunctionWrapper::operation<int8_t, DST_TYPE, OP>;
+    } break;
+    case LogicalTypeID::UINT8: {
+        func = UnaryFunctionWrapper::operation<uint8_t, DST_TYPE, OP>;
+    } break;
+    case LogicalTypeID::UINT16: {
+        func = UnaryFunctionWrapper::operation<uint16_t, DST_TYPE, OP>;
+    } break;
+    case LogicalTypeID::UINT32: {
+        func = UnaryFunctionWrapper::operation<uint32_t, DST_TYPE, OP>;
+    } break;
+    case LogicalTypeID::UINT64: {
+        func = UnaryFunctionWrapper::operation<uint64_t, DST_TYPE, OP>;
+    } break;
+    case LogicalTypeID::FLOAT: {
+        func = UnaryFunctionWrapper::operation<float_t, DST_TYPE, OP>;
+    } break;
+    case LogicalTypeID::DOUBLE: {
+        func = UnaryFunctionWrapper::operation<double_t, DST_TYPE, OP>;
+    } break;
+    default: {
+        throw ConversionException{
+            stringFormat("Unsupported casting function from {} to numerical type.",
+                LogicalTypeUtils::toString(inputTypeID))};
+    }
+    }
+}
+
+static void getFixedListChildCastFunc(
+    scalar_cast_func& func, LogicalTypeID inputType, LogicalTypeID resultType) {
+    // only support limited Fixed List Types
+    switch (resultType) {
+    case LogicalTypeID::INT64: {
+        return getFixedListChildFuncHelper<int64_t, CastToInt64>(func, inputType);
+    }
+    case LogicalTypeID::INT32: {
+        return getFixedListChildFuncHelper<int32_t, CastToInt32>(func, inputType);
+    }
+    case LogicalTypeID::INT16: {
+        return getFixedListChildFuncHelper<int16_t, CastToInt16>(func, inputType);
+    }
+    case LogicalTypeID::DOUBLE: {
+        return getFixedListChildFuncHelper<double_t, CastToDouble>(func, inputType);
+    }
+    case LogicalTypeID::FLOAT: {
+        return getFixedListChildFuncHelper<float_t, CastToFloat>(func, inputType);
+    }
+    default: {
+        throw RuntimeException("Unsupported FIXED_LIST type: Function::getFixedListChildCastFunc");
+    }
+    }
+}
+
+template<>
+void listToFixedListCastExecFunction<CastChildFunctionExecutor>(
+    const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
+    auto inputVector = params[0];
+    auto numOfEntries = reinterpret_cast<CastFunctionBindData*>(dataPtr)->numOfEntries;
+
+    auto inputChildId = VarListType::getChildType(&inputVector->dataType)->getLogicalTypeID();
+    auto outputChildID = FixedListType::getChildType(&result.dataType)->getLogicalTypeID();
+    auto numValuesPerList = FixedListType::getNumValuesInList(&result.dataType);
+    scalar_cast_func func;
+    getFixedListChildCastFunc(func, inputChildId, outputChildID);
+
+    result.setNullFromBits(inputVector->getNullMaskData(), 0, 0, numOfEntries);
+    auto inputChildVector = ListVector::getDataVector(inputVector.get());
+    for (auto i = 0u; i < numOfEntries; i++) {
+        if (!result.isNull(i)) {
+            auto listEntry = inputVector->getValue<list_entry_t>(i);
+            if (listEntry.size == numValuesPerList) {
+                for (auto j = 0u; j < listEntry.size; j++) {
+                    func((void*)(inputChildVector), listEntry.offset + j, (void*)(&result),
+                        i * numValuesPerList + j, nullptr);
+                }
+            }
         }
     }
 }
@@ -183,6 +441,15 @@ static void nestedTypesCastExecFunction(
     KU_ASSERT(params.size() == 1);
     result.resetAuxiliaryBuffer();
     auto inputVector = params[0];
+
+    // check if all selcted list entry have the requried fixed list size
+    if (containsListToFixedList(&inputVector->dataType, &result.dataType)) {
+        for (auto i = 0u; i < inputVector->state->selVector->selectedSize; i++) {
+            auto pos = inputVector->state->selVector->selectedPositions[i];
+            validateListEntry(inputVector.get(), &result.dataType, pos);
+        }
+    };
+
     auto numOfEntries = inputVector->state->selVector
                             ->selectedPositions[inputVector->state->selVector->selectedSize - 1] +
                         1;
@@ -302,7 +569,7 @@ static std::unique_ptr<ScalarFunction> bindCastFromStringFunction(
             CastString, EXECUTOR>;
     } break;
     case LogicalTypeID::FIXED_LIST: {
-        execFunc = StringtoFixedListCastExecFunction<EXECUTOR>;
+        execFunc = stringtoFixedListCastExecFunction<EXECUTOR>;
     } break;
     case LogicalTypeID::MAP: {
         execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, map_entry_t, CastString,
@@ -470,7 +737,7 @@ static std::unique_ptr<ScalarFunction> bindCastToStringFunction(
             EXECUTOR>;
     } break;
     case LogicalTypeID::FIXED_LIST: {
-        func = fixedListCastExecFunction<EXECUTOR>;
+        func = fixedListToStringCastExecFunction<EXECUTOR>;
     } break;
     case LogicalTypeID::MAP: {
         func =
@@ -541,16 +808,30 @@ static std::unique_ptr<ScalarFunction> bindCastToNumericFunction(
         functionName, std::vector<LogicalTypeID>{sourceTypeID}, targetTypeID, func);
 }
 
+template<typename EXECUTOR = UnaryFunctionExecutor>
 static std::unique_ptr<ScalarFunction> bindCastBetweenNested(
     const std::string& functionName, LogicalTypeID sourceTypeID, LogicalTypeID targetTypeID) {
     switch (sourceTypeID) {
-    case LogicalTypeID::VAR_LIST:
+    case LogicalTypeID::VAR_LIST: {
+        if (targetTypeID == LogicalTypeID::FIXED_LIST) {
+            return std::make_unique<ScalarFunction>(functionName,
+                std::vector<LogicalTypeID>{sourceTypeID}, targetTypeID,
+                listToFixedListCastExecFunction<EXECUTOR>);
+        }
+    }
     case LogicalTypeID::MAP:
     case LogicalTypeID::STRUCT: {
         if (sourceTypeID == targetTypeID) {
             return std::make_unique<ScalarFunction>(functionName,
                 std::vector<LogicalTypeID>{sourceTypeID}, targetTypeID,
                 nestedTypesCastExecFunction);
+        }
+    }
+    case LogicalTypeID::FIXED_LIST: {
+        if (targetTypeID == LogicalTypeID::VAR_LIST) {
+            return std::make_unique<ScalarFunction>(functionName,
+                std::vector<LogicalTypeID>{sourceTypeID}, targetTypeID,
+                fixedListToListCastExecFunction<EXECUTOR>);
         }
     }
     default:
@@ -644,9 +925,10 @@ std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(
         return bindCastToTimestampFunction<EXECUTOR>(functionName, sourceTypeID);
     }
     case LogicalTypeID::VAR_LIST:
+    case LogicalTypeID::FIXED_LIST:
     case LogicalTypeID::MAP:
     case LogicalTypeID::STRUCT: {
-        return bindCastBetweenNested(functionName, sourceTypeID, targetTypeID);
+        return bindCastBetweenNested<EXECUTOR>(functionName, sourceTypeID, targetTypeID);
     }
     default: {
         throw ConversionException{stringFormat("Unsupported casting function from {} to {}.",
