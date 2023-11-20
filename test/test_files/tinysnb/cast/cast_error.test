@@ -550,10 +550,6 @@ Overflow exception: Value 18446744073709551615 is not within UINT16 range
 ---- error
 Overflow exception: Value 256 is not within UINT8 range
 
--LOG CastFunctionError
--STATEMENT RETURN cast('T', "bool")
----- error
-Cannot parse dataTypeID: BOOL
 -STATEMENT RETURN cast("fd", "UNION(uint64, int128, BOOLEAN)");
 ---- error
 Conversion exception: Could not convert to union type UNION(uint64:UINT64, int128:INT128, BOOLEAN:BOOL): fd.
