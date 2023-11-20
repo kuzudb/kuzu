@@ -12,6 +12,9 @@ void ScanNumpyColumn(
     py::array& npArray, uint64_t offset, ValueVector* outputVector, uint64_t count) {
     auto srcData = (T*)npArray.data();
     memcpy(outputVector->getData(), srcData + offset, count * sizeof(T));
+    for (auto i = 0u; i < count; i++) {
+        outputVector->setNull(i, false /* isNull */);
+    }
 }
 
 template<class T>
@@ -36,6 +39,9 @@ template<class T>
 void ScanNumpyFpColumn(
     const T* srcData, uint64_t count, uint64_t offset, ValueVector* outputVector) {
     memcpy(outputVector->getData(), srcData + offset, count * sizeof(T));
+    for (auto i = 0u; i < count; i++) {
+        outputVector->setNull(i, false /* isNull */);
+    }
     for (auto i = 0u; i < count; i++) {
         setNullIfNan(outputVector->getValue<T>(i), i, outputVector);
     }
