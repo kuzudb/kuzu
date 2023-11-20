@@ -64,7 +64,8 @@ void StructColumnChunk::write(
     }
 }
 
-void StructColumnChunk::write(ValueVector* valueVector, ValueVector* offsetInChunkVector) {
+void StructColumnChunk::write(
+    ValueVector* valueVector, ValueVector* offsetInChunkVector, bool isCSR) {
     KU_ASSERT(valueVector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
     auto offsets = reinterpret_cast<offset_t*>(offsetInChunkVector->getData());
     for (auto i = 0u; i < offsetInChunkVector->state->selVector->selectedSize; i++) {
@@ -74,7 +75,7 @@ void StructColumnChunk::write(ValueVector* valueVector, ValueVector* offsetInChu
     }
     auto fields = StructVector::getFieldVectors(valueVector);
     for (auto i = 0u; i < fields.size(); i++) {
-        childChunks[i]->write(fields[i].get(), offsetInChunkVector);
+        childChunks[i]->write(fields[i].get(), offsetInChunkVector, isCSR);
     }
 }
 

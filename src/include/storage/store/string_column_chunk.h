@@ -30,7 +30,8 @@ public:
 
     void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) final;
-    void write(common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector) final;
+    void write(common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector,
+        bool isCSR) final;
 
     template<typename T>
     T getValue(common::offset_t /*pos*/) const {

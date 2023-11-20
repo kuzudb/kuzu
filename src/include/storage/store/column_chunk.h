@@ -71,7 +71,8 @@ public:
     // `offsetInVector`, we should flatten the vector to pos at `offsetInVector`.
     virtual void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk);
-    virtual void write(common::ValueVector* vector, common::ValueVector* offsetsInChunk);
+    virtual void write(
+        common::ValueVector* vector, common::ValueVector* offsetsInChunk, bool isCSR);
 
     // numValues must be at least the number of values the ColumnChunk was first initialized
     // with
@@ -142,7 +143,8 @@ public:
         uint32_t numValuesToAppend) override;
     void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) final;
-    void write(common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector) final;
+    void write(common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector,
+        bool isCSR) final;
 };
 
 class NullColumnChunk : public BoolColumnChunk {

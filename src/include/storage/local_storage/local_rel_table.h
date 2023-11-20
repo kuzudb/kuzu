@@ -11,7 +11,7 @@ static constexpr common::column_id_t REL_ID_COLUMN_ID = 0;
 struct RelNGInfo {
     virtual ~RelNGInfo() = default;
 
-    virtual void insert(common::offset_t srcNodeOffset, common::offset_t relOffset,
+    virtual bool insert(common::offset_t srcNodeOffset, common::offset_t relOffset,
         common::row_idx_t adjNodeRowIdx,
         const std::vector<common::row_idx_t>& propertyNodesRowIdx) = 0;
     virtual void update(common::offset_t srcNodeOffset, common::offset_t relOffset,
@@ -39,7 +39,7 @@ struct RegularRelNGInfo final : public RelNGInfo {
         updateInfoPerChunk.resize(numChunks);
     }
 
-    void insert(common::offset_t srcNodeOffset, common::offset_t relOffset,
+    bool insert(common::offset_t srcNodeOffset, common::offset_t relOffset,
         common::row_idx_t adjNodeRowIdx,
         const std::vector<common::row_idx_t>& propertyNodesRowIdx) override;
     void update(common::offset_t srcNodeOffset, common::offset_t relOffset,
@@ -60,7 +60,7 @@ struct CSRRelNGInfo final : public RelNGInfo {
         updateInfoPerChunk.resize(numChunks);
     }
 
-    void insert(common::offset_t srcNodeOffset, common::offset_t relOffset,
+    bool insert(common::offset_t srcNodeOffset, common::offset_t relOffset,
         common::row_idx_t adjNodeRowIdx,
         const std::vector<common::row_idx_t>& propertyNodesRowIdx) override;
     void update(common::offset_t srcNodeOffset, common::offset_t relOffset,
@@ -73,7 +73,7 @@ public:
     LocalRelNG(common::offset_t nodeGroupStartOffset, common::ColumnDataFormat dataFormat,
         std::vector<common::LogicalType*> dataTypes, MemoryManager* mm);
 
-    void insert(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
+    bool insert(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
         const std::vector<common::ValueVector*>& propertyVectors);
     void update(common::ValueVector* srcNodeIDVector, common::ValueVector* relIDVector,
         common::column_id_t columnID, common::ValueVector* propertyVector);
@@ -99,7 +99,7 @@ public:
         common::ColumnDataFormat dataFormat)
         : LocalTableData{dataTypes, mm, dataFormat} {}
 
-    void insert(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
+    bool insert(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
         const std::vector<common::ValueVector*>& propertyVectors);
     void update(common::ValueVector* srcNodeIDVector, common::ValueVector* relIDVector,
         common::column_id_t columnID, common::ValueVector* propertyVector);

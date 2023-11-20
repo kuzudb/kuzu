@@ -36,10 +36,19 @@ public:
 
     void finalize(uint64_t nodeGroupIdx_);
 
+    virtual inline void writeToColumnChunk(common::vector_idx_t chunkIdx,
+        common::vector_idx_t vectorIdx, common::DataChunk* dataChunk,
+        common::ValueVector* offsetVector) {
+        chunks[chunkIdx]->write(
+            dataChunk->getValueVector(vectorIdx).get(), offsetVector, false /* isCSR */);
+    }
+
+protected:
+    std::vector<std::unique_ptr<ColumnChunk>> chunks;
+
 private:
     uint64_t nodeGroupIdx;
     common::row_idx_t numRows;
-    std::vector<std::unique_ptr<ColumnChunk>> chunks;
 };
 
 class CSRNodeGroup : public NodeGroup {
@@ -54,6 +63,13 @@ public:
     }
 
     inline ColumnChunk* getCSROffsetChunk() { return csrOffsetChunk.get(); }
+
+    virtual inline void writeToColumnChunk(common::vector_idx_t chunkIdx,
+        common::vector_idx_t vectorIdx, common::DataChunk* dataChunk,
+        common::ValueVector* offsetVector) override {
+        chunks[chunkIdx]->write(
+            dataChunk->getValueVector(vectorIdx).get(), offsetVector, true /* isCSR */);
+    }
 
 private:
     std::unique_ptr<ColumnChunk> csrOffsetChunk;

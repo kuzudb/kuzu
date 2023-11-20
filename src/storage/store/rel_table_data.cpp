@@ -165,7 +165,14 @@ void RelTableData::insert(transaction::Transaction* transaction, ValueVector* sr
     auto localTableData = ku_dynamic_cast<LocalTableData*, LocalRelTableData*>(
         transaction->getLocalStorage()->getOrCreateLocalTableData(
             tableID, columns, TableType::REL, dataFormat, getDataIdxFromDirection(direction)));
-    localTableData->insert(srcNodeIDVector, dstNodeIDVector, propertyVectors);
+    auto checkPersistentStorage =
+        localTableData->insert(srcNodeIDVector, dstNodeIDVector, propertyVectors);
+    auto [nodeGroupIdx, offset] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(
+        srcNodeIDVector->getValue<nodeID_t>(srcNodeIDVector->state->selVector->selectedPositions[0])
+            .offset);
+    if (checkPersistentStorage && !adjColumn->isNull(transaction, nodeGroupIdx, offset)) {
+        throw RuntimeException{"Many-one, one-one relationship violated."};
+    }
 }
 
 void RelTableData::update(transaction::Transaction* transaction, column_id_t columnID,

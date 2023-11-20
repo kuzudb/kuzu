@@ -1,6 +1,6 @@
 -GROUP CreateRelTest_ViolateError
 -DATASET CSV rel-update-tests
--SKIP
+
 --
 
 
@@ -9,11 +9,31 @@
 ---- ok
 -STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 11 AND p2.ID = 10 CREATE (p1)-[:teaches]->(p2);
 ---- error
-Runtime exception: Node in RelTable 4 cannot have more than one neighbour in the forward direction.
+Runtime exception: Many-one, one-one relationship violated.
 
 -CASE ViolateOneOneMultiplicityError
 -STATEMENT BEGIN TRANSACTION
 ---- ok
 -STATEMENT MATCH (a:animal), (p:person) WHERE a.ID = 2 AND p.ID = 10 CREATE (a)-[:hasOwner]->(p);
 ---- error
-Runtime exception: Node in RelTable 3 cannot have more than one neighbour in the forward direction.
+Runtime exception: Many-one, one-one relationship violated.
+
+-CASE InsertAfterDeleteRel
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p1:person)-[r:teaches]->(p2:person) WHERE p1.ID = 11 AND p2.ID = 1 DELETE r;
+---- ok
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 11 AND p2.ID = 10 CREATE (p1)-[:teaches]->(p2);
+---- ok
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 11 AND p2.ID = 10 RETURN count(*);
+---- 1
+1
+-STATEMENT MATCH (p1:person)-[r:teaches]->(p2:person) WHERE p1.ID = 11 AND p2.ID = 10 DELETE r;
+---- ok
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 11 AND p2.ID = 12 CREATE (p1)-[:teaches]->(p2);
+---- ok
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 11 AND p2.ID = 12 RETURN count(*);
+---- 1
+1
+-STATEMENT COMMIT
+

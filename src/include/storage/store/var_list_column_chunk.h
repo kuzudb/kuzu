@@ -40,7 +40,8 @@ public:
     // Note: `write` assumes that no `append` will be called afterward.
     void write(common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) final;
-    void write(common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector) final;
+    void write(common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector,
+        bool isCSR) final;
 
     inline void resizeDataColumnChunk(uint64_t numBytesForBuffer) {
         // TODO(bmwinger): This won't work properly for booleans (will be one eighth as many values

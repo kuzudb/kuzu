@@ -89,7 +89,8 @@ void VarListColumnChunk::appendNullList() {
     numValues++;
 }
 
-void VarListColumnChunk::write(ValueVector* valueVector, ValueVector* offsetInChunkVector) {
+void VarListColumnChunk::write(
+    ValueVector* valueVector, ValueVector* offsetInChunkVector, bool /*isCSR*/) {
     needFinalize = true;
     if (!indicesColumnChunk) {
         initializeIndices();
