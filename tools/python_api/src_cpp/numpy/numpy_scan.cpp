@@ -11,7 +11,13 @@ template<class T>
 void ScanNumpyColumn(
     py::array& npArray, uint64_t offset, ValueVector* outputVector, uint64_t count) {
     auto srcData = (T*)npArray.data();
+    if (sizeof(T) != outputVector->getNumBytesPerValue() || count > DEFAULT_VECTOR_CAPACITY) {
+        exit(3);
+    }
     memcpy(outputVector->getData(), srcData + offset, count * sizeof(T));
+    for (auto i = 0u; i < count; i++) {
+        outputVector->setNull(i, false /* isNull */);
+    }
 }
 
 template<class T>
@@ -29,6 +35,8 @@ template<typename T>
 void setNullIfNan(T value, uint64_t pos, ValueVector* outputVector) {
     if (std::isnan(value)) {
         outputVector->setNull(pos, true /* isNull */);
+    } else {
+        outputVector->setNull(pos, false /* isNull */);
     }
 }
 
