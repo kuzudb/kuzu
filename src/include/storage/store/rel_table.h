@@ -59,6 +59,11 @@ public:
         bwdRelTableData->dropColumn(columnID);
     }
 
+    // This is to make sure for X_TO_ONE table, the adj column is aligned with its src node table in
+    // terms of num of node groups, and be correctly filled with initialized null values.
+    void resizeColumns(transaction::Transaction* transaction, common::RelDataDirection direction,
+        common::node_group_idx_t nodeGroupIdx);
+
     inline common::ColumnDataFormat getTableDataFormat(common::RelDataDirection direction) {
         return direction == common::RelDataDirection::FWD ? fwdRelTableData->getDataFormat() :
                                                             bwdRelTableData->getDataFormat();

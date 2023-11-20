@@ -1,6 +1,7 @@
 #include "processor/operator/persistent/insert_executor.h"
 
 #include "storage/stats/rels_store_statistics.h"
+#include "storage/storage_utils.h"
 
 using namespace kuzu::common;
 
@@ -8,9 +9,9 @@ namespace kuzu {
 namespace processor {
 
 NodeInsertExecutor::NodeInsertExecutor(const NodeInsertExecutor& other)
-    : table{other.table}, relTablesToInit{other.relTablesToInit},
-      nodeIDVectorPos{other.nodeIDVectorPos}, propertyLhsPositions{other.propertyLhsPositions},
-      nodeIDVector{nullptr} {
+    : table{other.table}, fwdRelTablesToInit{other.fwdRelTablesToInit},
+      bwdRelTabkesToInit{other.bwdRelTabkesToInit}, nodeIDVectorPos{other.nodeIDVectorPos},
+      propertyLhsPositions{other.propertyLhsPositions}, nodeIDVector{nullptr} {
     for (auto& evaluator : other.propertyRhsEvaluators) {
         propertyRhsEvaluators.push_back(evaluator->clone());
     }
@@ -49,7 +50,7 @@ void NodeInsertExecutor::insert(transaction::Transaction* transaction) {
         evaluator->evaluate();
     }
     KU_ASSERT(nodeIDVector->state->selVector->selectedSize == 1);
-    table->insert(transaction, nodeIDVector, propertyRhsVectors);
+    auto maxNodeOffset = table->insert(transaction, nodeIDVector, propertyRhsVectors);
     for (auto i = 0u; i < propertyLhsVectors.size(); ++i) {
         auto lhsVector = propertyLhsVectors[i];
         auto rhsVector = propertyRhsVectors[i];
@@ -69,6 +70,13 @@ void NodeInsertExecutor::insert(transaction::Transaction* transaction) {
         } else {
             writeLhsVector(lhsVector, rhsVector);
         }
+    }
+    auto nodeGroupIdx = storage::StorageUtils::getNodeGroupIdx(maxNodeOffset);
+    for (auto relTable : fwdRelTablesToInit) {
+        relTable->resizeColumns(transaction, RelDataDirection::FWD, nodeGroupIdx);
+    }
+    for (auto relTable : bwdRelTabkesToInit) {
+        relTable->resizeColumns(transaction, RelDataDirection::BWD, nodeGroupIdx);
     }
 }
 

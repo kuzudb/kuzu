@@ -42,14 +42,17 @@ void NodeTable::read(Transaction* transaction, TableReadState& readState, ValueV
     }
 }
 
-void NodeTable::insert(Transaction* transaction, ValueVector* nodeIDVector,
+offset_t NodeTable::insert(Transaction* transaction, ValueVector* nodeIDVector,
     const std::vector<common::ValueVector*>& propertyVectors) {
-    // We assume that offsets are given in the ascending order, thus lastOffset is the max one.
+    auto maxNodeOffset = 0;
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[i];
         auto offset =
             ku_dynamic_cast<TablesStatistics*, NodesStoreStatsAndDeletedIDs*>(tablesStatistics)
                 ->addNode(tableID);
+        if (offset > maxNodeOffset) {
+            maxNodeOffset = offset;
+        }
         nodeIDVector->setValue(pos, nodeID_t{offset, tableID});
         nodeIDVector->setNull(pos, false);
     }
@@ -57,6 +60,7 @@ void NodeTable::insert(Transaction* transaction, ValueVector* nodeIDVector,
         insertPK(nodeIDVector, propertyVectors[pkColumnID]);
     }
     tableData->insert(transaction, nodeIDVector, propertyVectors);
+    return maxNodeOffset;
 }
 
 void NodeTable::update(transaction::Transaction* transaction, common::column_id_t columnID,

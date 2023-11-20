@@ -44,7 +44,9 @@ public:
         common::ValueVector* nodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors) final;
 
-    void insert(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
+    // Return the max node offset during insertions.
+    common::offset_t insert(transaction::Transaction* transaction,
+        common::ValueVector* nodeIDVector,
         const std::vector<common::ValueVector*>& propertyVectors);
     void update(transaction::Transaction* transaction, common::column_id_t columnID,
         common::ValueVector* nodeIDVector, common::ValueVector* propertyVector);

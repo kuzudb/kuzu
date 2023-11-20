@@ -168,6 +168,14 @@ void CopyNode::finalize(ExecutionContext* context) {
     }
     sharedState->table->getNodeStatisticsAndDeletedIDs()->setNumTuplesForTable(
         sharedState->table->getTableID(), numNodes);
+    for (auto relTable : info->fwdRelTables) {
+        relTable->resizeColumns(context->clientContext->getActiveTransaction(),
+            RelDataDirection::FWD, sharedState->getCurNodeGroupIdx());
+    }
+    for (auto relTable : info->bwdRelTables) {
+        relTable->resizeColumns(context->clientContext->getActiveTransaction(),
+            RelDataDirection::BWD, sharedState->getCurNodeGroupIdx());
+    }
     auto outputMsg = stringFormat(
         "{} number of tuples has been copied to table: {}.", numNodes, info->tableName.c_str());
     FactorizedTableUtils::appendStringToTable(

@@ -4,6 +4,7 @@
 #include "processor/operator/sink.h"
 #include "storage/store/node_group.h"
 #include "storage/store/node_table.h"
+#include "storage/store/rel_table.h"
 
 namespace kuzu {
 namespace processor {
@@ -54,14 +55,18 @@ private:
 struct CopyNodeInfo {
     std::vector<DataPos> columnPositions;
     storage::NodeTable* table;
+    std::unordered_set<storage::RelTable*> fwdRelTables;
+    std::unordered_set<storage::RelTable*> bwdRelTables;
     std::string tableName;
     bool containsSerial;
     bool compressionEnabled;
 
     CopyNodeInfo(std::vector<DataPos> columnPositions, storage::NodeTable* table,
-        std::string tableName, bool containsSerial, bool compressionEnabled)
-        : columnPositions{std::move(columnPositions)}, table{table}, tableName{std::move(
-                                                                         tableName)},
+        std::unordered_set<storage::RelTable*> fwdRelTables,
+        std::unordered_set<storage::RelTable*> bwdRelTables, std::string tableName,
+        bool containsSerial, bool compressionEnabled)
+        : columnPositions{std::move(columnPositions)}, table{table}, fwdRelTables{fwdRelTables},
+          bwdRelTables{bwdRelTables}, tableName{std::move(tableName)},
           containsSerial{containsSerial}, compressionEnabled{compressionEnabled} {}
     CopyNodeInfo(const CopyNodeInfo& other) = default;
 

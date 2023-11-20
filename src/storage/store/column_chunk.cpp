@@ -331,6 +331,13 @@ void ColumnChunk::copyVectorToBuffer(ValueVector* vector, offset_t startPosInChu
     }
 }
 
+void ColumnChunk::setNumValues(uint64_t numValues_) {
+    numValues = numValues_;
+    if (nullChunk) {
+        nullChunk->setNumValues(numValues_);
+    }
+}
+
 ColumnChunkMetadata ColumnChunk::getMetadataToFlush() const {
     KU_ASSERT(numValues <= capacity);
     return getMetadataFunction(buffer.get(), bufferSize, capacity, numValues);
