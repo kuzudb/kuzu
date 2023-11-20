@@ -747,6 +747,9 @@ Conversion exception: Unsupported casting function from STRUCT(a:STRING, b:STRIN
 -STATEMENT RETURN cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b STRING)"), "STRUCT(a STRING, c STRING)");
 ---- error
 Conversion exception: Unsupported casting function from STRUCT(a:STRING, b:STRING) to STRUCT(a:STRING, c:STRING).
+-STATEMENT RETURN cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b STRING)"), "MAP(STRING, STRING)");
+---- error
+Conversion exception: Unsupported casting function from STRUCT to MAP.
 
 -LOG InvalidFixedListToList
 -STATEMENT RETURN cast(cast("[1, -1]", "INT64[2]"), "UINT8[]");
@@ -787,3 +790,15 @@ Conversion exception: Cast failed. NULL is not allowed for FIXED_LIST.
 -STATEMENT RETURN cast(cast("{3={}, 3= {a: 12}, 3={a:32, b:[1, 2, 3]}}", "MAP(STRING, STRUCT(a INT64, b INT64[]))"), "MAP(STRING, STRUCT(a INT64, b INT64[1]))");
 ---- error
 Conversion exception: Unsupported casting VAR_LIST with incorrect list entry to FIXED_LIST. Expected: 1, Actual: 3.
+
+-LOG InvalidFixedListToList
+-STATEMENT RETURN cast(cast([4, 1], "INT16[2]"), "FLOAT[3]");
+---- error
+Conversion exception: Unsupported casting function from INT16[2] to FLOAT[3].
+-STATEMENT RETURN cast(cast([4, 1], "INT16[2]"), "FLOAT[1]");
+---- error
+Conversion exception: Unsupported casting function from INT16[2] to FLOAT[1].
+-STATEMENT RETURN cast(cast([4, 1], "INT16[2]"), "UINT8[2]");
+---- error
+Runtime exception: Unsupported FIXED_LIST type: Function::getFixedListChildCastFunc
+
