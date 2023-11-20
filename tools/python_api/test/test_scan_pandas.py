@@ -85,9 +85,9 @@ def test_large_pd(get_tmp_path):
     odd_numbers = [2 * i + 1 for i in range(num_rows)]
     even_numbers = [2 * i for i in range(num_rows)]
     df = pd.DataFrame({'odd': odd_numbers, 'even': even_numbers})
-    result = conn.execute("CALL READ_PANDAS('df') RETURN *").get_as_df()
-    assert result['odd'].to_list() == odd_numbers
-    assert result['even'].to_list() == even_numbers
+    result = conn.execute("CALL READ_PANDAS('df') RETURN *").get_as_arrow(40000)
+    assert result.column(0).to_pylist() == odd_numbers
+    assert result.column(1).to_pylist() == even_numbers
 
 
 def test_pandas_scan_demo(get_tmp_path):
@@ -108,16 +108,16 @@ def test_pandas_scan_demo(get_tmp_path):
 
     result = conn.execute(
         'CALL READ_PANDAS("person") with avg(height / 2.54) as height_in_inch MATCH (s:student) WHERE s.height > '
-        'height_in_inch RETURN s').get_as_df()
-    assert len(result) == 2
-    assert result['s'][0] == {'ID': 0, '_id': {'offset': 0, 'table': 0}, '_label': 'student', 'height': 70}
-    assert result['s'][1] == {'ID': 4, '_id': {'offset': 2, 'table': 0}, '_label': 'student', 'height': 67}
+        'height_in_inch RETURN s').get_as_arrow(100)
+    result_list = result[0].to_pylist()
+    assert result_list[0] == {'ID': 0, '_id': {'offset': 0, 'tableID': 0}, '_label': 'student', 'height': 70}
+    assert result_list[1] == {'ID': 4, '_id': {'offset': 2, 'tableID': 0}, '_label': 'student', 'height': 67}
 
     conn.execute('CREATE NODE TABLE person(ID INT64, age UINT16, height UINT32, is_student BOOLean, PRIMARY KEY(ID))')
     conn.execute(
         'CALL READ_PANDAS("person") CREATE (p:person {ID: id, age: age, height: height, is_student: is_student})')
-    result = conn.execute("MATCH (p:person) return p.*").get_as_df()
-    assert np.all(result['p.ID'].to_list() == id)
-    assert np.all(result['p.age'].to_list() == age)
-    assert np.all(result['p.height'].to_list() == height_in_cm)
-    assert np.all(result['p.is_student'].to_list() == is_student)
+    result = conn.execute("MATCH (p:person) return p.*").get_as_arrow(100)
+    assert np.all(result[0].to_pylist() == id)
+    assert np.all(result[1].to_pylist() == age)
+    assert np.all(result[2].to_pylist() == height_in_cm)
+    assert np.all(result[3].to_pylist() == is_student)

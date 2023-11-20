@@ -5,7 +5,7 @@ namespace kuzu {
 
 class RegisteredObject {
 public:
-    explicit RegisteredObject(py::object obj) : obj(std::move(obj)) {}
+    explicit RegisteredObject(py::object obj) : obj{std::move(obj)} {}
     virtual ~RegisteredObject() {
         py::gil_scoped_acquire acquire;
         obj = py::none();

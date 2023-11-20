@@ -41,7 +41,7 @@ enum class ExternalDependenciesType : uint8_t { PYTHON_DEPENDENCY };
 class ExternalDependency {
 public:
     explicit ExternalDependency(ExternalDependenciesType type) : type(std::move(type)){};
-    virtual ~ExternalDependency(){};
+    virtual ~ExternalDependency() = default;
 
     ExternalDependenciesType type;
 };
