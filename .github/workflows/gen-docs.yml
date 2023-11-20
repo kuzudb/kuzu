@@ -14,6 +14,7 @@ jobs:
         working-directory: scripts/pip-package/
         run: |
           mkdir wheelhouse
+          source /opt/rh/devtoolset-11/enable
           /opt/python/cp310-cp310/bin/python package_tar.py kuzu.tar.gz
           /opt/python/cp310-cp310/bin/pip wheel kuzu.tar.gz --no-deps -w wheelhouse/
           auditwheel repair wheelhouse/kuzu-*.whl -w wheelhouse/
