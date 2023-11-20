@@ -171,7 +171,7 @@ function(add_kuzu_api_test TEST_NAME)
 endfunction()
 
 add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")
-add_definitions(-DKUZU_STORAGE_VERSION="${CMAKE_PROJECT_VERSION}")
+add_definitions(-DKUZU_CMAKE_VERSION="${CMAKE_PROJECT_VERSION}")
 
 include_directories(src/include)
 include_directories(third_party/antlr4_cypher/include)

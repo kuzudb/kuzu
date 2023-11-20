@@ -7,7 +7,7 @@
 namespace kuzu {
 namespace common {
 
-constexpr char KUZU_VERSION[] = TO_STRING(KUZU_STORAGE_VERSION);
+constexpr char KUZU_VERSION[] = TO_STRING(KUZU_CMAKE_VERSION);
 
 constexpr uint64_t DEFAULT_VECTOR_CAPACITY_LOG_2 = 11;
 constexpr uint64_t DEFAULT_VECTOR_CAPACITY = (uint64_t)1 << DEFAULT_VECTOR_CAPACITY_LOG_2;
