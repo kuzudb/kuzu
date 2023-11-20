@@ -130,3 +130,30 @@ Runtime exception: Found duplicated primary key value rename 2x, which violates 
 -STATEMENT OPTIONAL MATCH (a)-[b:KNOWS]->(c) return a,b,c;
 ---- 1
 ||
+
+-CASE 2303
+-STATEMENT CREATE NODE TABLE T (id STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE AFTER (FROM T TO T, id STRING);
+---- ok
+-STATEMENT CREATE (t1:T {id: "t1"})-[e1:AFTER {id: "e1"}]->(t2:T {id: "t2"})-[e2:AFTER {id: "e2"}]->(t3:T {id: "t3"}),
+        (t4:T {id: "t4"})-[e3:AFTER {id: "e3"}]->(t5:T {id: "t5"})-[e4:AFTER {id: "e4"}]->(t6:T {id: "t6"})-[e5:AFTER {id: "e5"}]->(t7:T {id: "t7"})
+---- ok
+-STATEMENT MATCH p = (a:T {id:"t4"})-[e*]->(b:T {id:"t7"}) RETURN COUNT(*);
+---- 1
+1
+-STATEMENT MATCH (s:T {id: "t2"}), (a:T {id: "t6"}),
+           (t1:T)-[e1:AFTER]->(s),
+           (s)-[e2:AFTER]->(t3:T),
+           (t5:T)-[e4:AFTER]->(a)
+           DELETE e1,e2,e4
+           CREATE (s)-[e7:AFTER]->(a)
+           CREATE (t1)-[e8:AFTER]->(t3)
+           CREATE (t5)-[e9:AFTER]->(s);
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) RETURN COUNT(*);
+---- 1
+5
+-STATEMENT MATCH p = (a:T {id:"t4"})-[e*]->(b:T {id:"t7"}) RETURN COUNT(*);
+---- 1
+1

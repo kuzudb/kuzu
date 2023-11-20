@@ -59,7 +59,7 @@ bool RegularRelNGInfo::delete_(offset_t srcNodeOffset, offset_t /*relOffset*/) {
 void CSRRelNGInfo::insert(offset_t srcNodeOffset, offset_t relOffset, row_idx_t adjNodeRowIdx,
     const std::vector<row_idx_t>& propertyNodesRowIdx) {
     KU_ASSERT(propertyNodesRowIdx.size() == insertInfoPerChunk.size());
-    if (deleteInfo.contains(srcNodeOffset) && !contains(deleteInfo.at(srcNodeOffset), relOffset)) {
+    if (deleteInfo.contains(srcNodeOffset) && contains(deleteInfo.at(srcNodeOffset), relOffset)) {
         // We choose to ignore the insert operation if the node is deleted.
         return;
     }
@@ -81,7 +81,7 @@ void CSRRelNGInfo::update(
     offset_t srcNodeOffset, offset_t relOffset, column_id_t columnID, row_idx_t rowIdx) {
     // REL_ID_COLUMN_ID is immutable.
     KU_ASSERT(columnID != REL_ID_COLUMN_ID && columnID < updateInfoPerChunk.size());
-    if (deleteInfo.contains(srcNodeOffset) && !contains(deleteInfo.at(srcNodeOffset), relOffset)) {
+    if (deleteInfo.contains(srcNodeOffset) && contains(deleteInfo.at(srcNodeOffset), relOffset)) {
         // We choose to ignore the update operation if the node is deleted.
         return;
     }
