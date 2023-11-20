@@ -85,9 +85,9 @@ def test_large_pd(get_tmp_path):
     odd_numbers = [2 * i + 1 for i in range(num_rows)]
     even_numbers = [2 * i for i in range(num_rows)]
     df = pd.DataFrame({'odd': odd_numbers, 'even': even_numbers})
-    result = conn.execute("CALL READ_PANDAS('df') RETURN *").get_as_df()
-    assert result['odd'].to_list() == odd_numbers
-    assert result['even'].to_list() == even_numbers
+    result = conn.execute("CALL READ_PANDAS('df') RETURN *").get_as_arrow(40000)
+    assert result.column(0).to_pylist() == odd_numbers
+    assert result.column(1).to_pylist() == even_numbers
 
 
 def test_pandas_scan_demo(get_tmp_path):
