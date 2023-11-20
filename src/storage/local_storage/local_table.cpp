@@ -67,7 +67,9 @@ std::unique_ptr<LocalVectorCollection> LocalVectorCollection::getStructChildVect
     return childCollection;
 }
 
-LocalNodeGroup::LocalNodeGroup(std::vector<LogicalType*> dataTypes, MemoryManager* mm) {
+LocalNodeGroup::LocalNodeGroup(
+    offset_t nodeGroupStartOffset, std::vector<LogicalType*> dataTypes, MemoryManager* mm)
+    : nodeGroupStartOffset{nodeGroupStartOffset} {
     chunks.resize(dataTypes.size());
     for (auto i = 0u; i < dataTypes.size(); ++i) {
         // To avoid unnecessary memory consumption, we chunk local changes of each column in the

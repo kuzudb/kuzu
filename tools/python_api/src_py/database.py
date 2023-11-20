@@ -5,18 +5,6 @@ from .types import Type
 class Database:
     """
     Kùzu database instance.
-
-    Methods
-    -------
-    resize_buffer_manager(new_size)
-        Resize the mamimum size of buffer pool.
-
-    set_logging_level(level)
-        Set the logging level.
-
-    get_torch_geometric_remote_backend(num_threads)
-        Use the database as the remote backend for torch_geometric.
-
     """
 
     def __init__(self, database_path, buffer_pool_size=0, max_num_threads=0, compression=True, lazy_init=False,
@@ -26,14 +14,17 @@ class Database:
         ----------
         database_path : str
             The path to database files
+
         buffer_pool_size : int
             The maximum size of buffer pool in bytes (Optional). Default to 80%
             of system memory.
+
         lazy_init : bool
             If True, the database will not be initialized until the first query.
             This is useful when the database is not used in the main thread or
             when the main process is forked.
             Default to False.
+
         read_only : bool
             If true, the database is opened read-only. No write transactions is
             allowed on the `Database` object. Multiple read-only `Database`
@@ -41,6 +32,7 @@ class Database:
             cannot be multiple `Database` objects created with the same
             database path.
             Default to False.
+
         """
         self.database_path = database_path
         self.buffer_pool_size = buffer_pool_size
@@ -78,6 +70,7 @@ class Database:
         ----------
         new_size : int
             New maximum size of buffer pool (in bytes).
+
         """
 
         self._database.resize_buffer_manager(new_size)
@@ -90,6 +83,7 @@ class Database:
         ----------
         level : str
             Logging level. One of "debug", "info", "err".
+            
         """
 
         self._database.set_logging_level(level)
@@ -109,8 +103,7 @@ class Database:
         The remote backend can also be plugged into the data loader of 
         torch_geometric, which is useful for mini-batch training. For example:
 
-        .. code-block:: python
-
+        ```python
             loader_kuzu = NeighborLoader(
                 data=(feature_store, graph_store),
                 num_neighbors={('paper', 'cites', 'paper'): [12, 12, 12]},
@@ -119,6 +112,7 @@ class Database:
                 num_workers=4,
                 filter_per_worker=False,
             )
+        ```
         
         Please note that the database instance is not fork-safe, so if more than
         one worker is used, `filter_per_worker` must be set to False.

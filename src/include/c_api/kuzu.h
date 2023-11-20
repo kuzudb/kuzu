@@ -264,7 +264,7 @@ typedef enum {
  * bufferPoolSize=buffer_pool_size. Caller is responsible for calling kuzu_database_destroy() to
  * release the allocated memory.
  * @param database_path The path to the database.
- * @param buffer_pool_size The size of the buffer pool in bytes.
+ * @param system_config The runtime configuration for creating or opening the database.
  * @return The database instance.
  */
 KUZU_C_API kuzu_database* kuzu_database_init(
@@ -409,6 +409,7 @@ KUZU_C_API void kuzu_prepared_statement_bind_int8(
  * @brief Binds the given uint64_t value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
  * @param param_name The parameter name to bind the value.
+ * @param value The uint64_t value to bind.
  */
 KUZU_C_API void kuzu_prepared_statement_bind_uint64(
     kuzu_prepared_statement* prepared_statement, const char* param_name, uint64_t value);
@@ -571,7 +572,7 @@ KUZU_C_API void kuzu_query_result_reset_iterator(kuzu_query_result* query_result
 
 /**
  * @brief Returns the query result's schema as ArrowSchema.
- * @praam query_result The query result instance to return.
+ * @param query_result The query result instance to return.
  * @return datatypes of the columns as an arrow schema
  *
  * It is the caller's responsibility to call the release function to release the underlying data

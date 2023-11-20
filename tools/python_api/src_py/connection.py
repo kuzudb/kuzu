@@ -6,20 +6,6 @@ from . import _kuzu
 class Connection:
     """
     Connection to a database.
-
-    Methods
-    -------
-    set_max_threads_for_exec(num_threads)
-        Set the maximum number of threads for executing queries.
-
-    execute(query, parameters=[])
-        Execute a query.
-
-    prepare(query)
-        Create a prepared statement for a query.
-
-    set_query_timeout(timeout_in_ms)
-        Set the query timeout in milliseconds.
     """
 
     def __init__(self, database, num_threads=0):
@@ -28,8 +14,10 @@ class Connection:
         ----------
         database : Database
             Database to connect to.
+
         num_threads : int
             Maximum number of threads to use for executing queries.
+
         """
 
         self.database = database
@@ -59,6 +47,7 @@ class Connection:
         ----------
         num_threads : int
             Maximum number of threads to use for executing queries.
+
         """
         self.init_connection()
         self._connection.set_max_threads_for_exec(num_threads)
@@ -73,6 +62,7 @@ class Connection:
             A prepared statement or a query string.
             If a query string is given, a prepared statement will be created
             automatically.
+
         parameters : dict[str, Any]
             Parameters for the query.
 
@@ -80,6 +70,7 @@ class Connection:
         -------
         QueryResult
             Query result.
+
         """
         self.init_connection()
         if type(parameters) != dict:
@@ -106,6 +97,7 @@ class Connection:
         -------
         PreparedStatement
             Prepared statement.
+
         """
 
         return PreparedStatement(self, query)
@@ -179,6 +171,7 @@ class Connection:
         ----------
         timeout_in_ms : int
             query timeout value in ms for executing queries.
+            
         """
         self.init_connection()
         self._connection.set_query_timeout(timeout_in_ms)

@@ -4,7 +4,7 @@ const assert = require("assert");
 
 class PreparedStatement {
   /**
-   * @private Internal constructor. Use `Connection.prepare` to get a
+   * Internal constructor. Use `Connection.prepare` to get a
    * `PreparedStatement` object.
    * @param {Connection} connection the connection object.
    * @param {KuzuNative.NodePreparedStatement} preparedStatement the native prepared statement object.

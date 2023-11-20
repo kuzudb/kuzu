@@ -4,7 +4,7 @@ const assert = require("assert");
 
 class QueryResult {
   /**
-   * @private Internal constructor. Use `Connection.query` or `Connection.execute`
+   * Internal constructor. Use `Connection.query` or `Connection.execute`
    * to get a `QueryResult` object.
    * @param {Connection} connection the connection object.
    * @param {KuzuNative.NodeQueryResult} queryResult the native query result object.

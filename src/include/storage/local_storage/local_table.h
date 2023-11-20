@@ -75,7 +75,8 @@ class LocalNodeGroup {
     friend class NodeTableData;
 
 public:
-    LocalNodeGroup(std::vector<common::LogicalType*> dataTypes, MemoryManager* mm);
+    LocalNodeGroup(common::offset_t nodeGroupStartOffset,
+        std::vector<common::LogicalType*> dataTypes, MemoryManager* mm);
     virtual ~LocalNodeGroup() = default;
 
     inline LocalVectorCollection* getLocalColumnChunk(common::column_id_t columnID) {
@@ -83,6 +84,7 @@ public:
     }
 
 protected:
+    common::offset_t nodeGroupStartOffset;
     std::vector<std::unique_ptr<LocalVectorCollection>> chunks;
 };
 

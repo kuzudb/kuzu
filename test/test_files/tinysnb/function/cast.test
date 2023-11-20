@@ -356,6 +356,17 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 [4,5]
 [10,11,12,3,4,5,6,7]
 
+-LOG CastListOfIntsToFixedList
+-STATEMENT MATCH (p:person) WHERE size(p.workedHours) = 2 RETURN cast(p.workedHours, "INT64[2]"), cast(p.workedHours, "INT32[2]"), cast(p.workedHours, "INT16[2]"), cast(p.workedHours, "DOUBLE[2]"), cast(p.workedHours, "FLOAT[2]");
+---- 4
+[1,9]|[1,9]|[1,9]|[1.000000,9.000000]|[1.000000,9.000000]
+[10,5]|[10,5]|[10,5]|[10.000000,5.000000]|[10.000000,5.000000]
+[12,8]|[12,8]|[12,8]|[12.000000,8.000000]|[12.000000,8.000000]
+[4,5]|[4,5]|[4,5]|[4.000000,5.000000]|[4.000000,5.000000]
+-STATEMENT MATCH(p:person) WHERE size(p.workedHours) = 8 RETURN cast(cast(cast(p.workedHours, "INT64[8]"), "INT64[]"), "DOUBLE[8]");
+---- 1
+[10.000000,11.000000,12.000000,3.000000,4.000000,5.000000,6.000000,7.000000]
+
 -LOG CastListOfListOfIntsToString
 -STATEMENT MATCH (p:person) RETURN string(p.courseScoresPerTerm)
 ---- 9
@@ -378,6 +389,12 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 [[8]]
 [[10]]
 [[7],[10],[6,7]]
+
+-STATEMENT MATCH (p:person) WHERE 5 < p.ID and p.ID < 10 RETURN cast(p.courseScoresPerTerm, "INT16[1][]")
+---- 3
+[[10]]
+[[6],[7],[8]]
+[[8]]
 
 -LOG CastListOfListOfIntsToListOfLists
 -STATEMENT MATCH (p:person) RETURN cast(p.courseScoresPerTerm, "INT128[][]"), cast(p.courseScoresPerTerm, "INT64[][]"), cast(p.courseScoresPerTerm, "INT32[][]"), cast(p.courseScoresPerTerm, "INT16[][]"), cast(p.courseScoresPerTerm, "INT8[][]"), cast(p.courseScoresPerTerm, "UINT8[][]"), cast(p.courseScoresPerTerm, "UINT16[][]"), cast(p.courseScoresPerTerm, "UINT32[][]"), cast(p.courseScoresPerTerm, "UINT64[][]"), cast(p.courseScoresPerTerm, "DOUBLE[][]"), cast(p.courseScoresPerTerm, "FLOAT[][]")
@@ -402,9 +419,18 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 [[6],[7],[8]]
 [[7],[10],[6,7]]
 
+-LOG CastListOfListOfIntsToListOfFixedList
+-STATEMENT MATCH (p:person) WHERE p.ID > 6 and p.ID < 10 RETURN cast(cast(p.courseScoresPerTerm, "INT128[][]"), "INT16[1][]");
+---- 3
+[[6],[7],[8]]
+[[8]]
+[[10]]
+
+
 -LOG CastFixedListToString
 -STATEMENT MATCH (p:person) where p.ID > 1 RETURN string(p.grades)
 ---- 8
+
 [98,42,93,88]
 [91,75,21,95]
 [76,88,99,89]
@@ -415,6 +441,7 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 
 -STATEMENT MATCH (p:person) where p.ID > 1 RETURN cast(p.grades, "string")
 ---- 8
+
 [98,42,93,88]
 [91,75,21,95]
 [76,88,99,89]
@@ -423,6 +450,22 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 [43,83,67,43]
 [77,64,100,54]
 
+-LOG CastFixedListToList
+-STATEMENT MATCH(p:person) where p.ID > 4 RETURN cast(p.grades, "UINT64[]"), cast(p.grades, "UINT32[]"), cast(p.grades, "UINT16[]"), cast(p.grades, "UINT8[]"), cast(p.grades, "INT8[]"), cast(p.grades, "INT16[]"), cast(p.grades, "INT32[]"), cast(p.grades, "INT64[]"), cast(p.grades, "INT128[]"), cast(p.grades, "STRING[]"), cast(p.grades, "DOUBLE[]"), cast(p.grades, "FLOAT[]");
+---- 6
+[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43.000000,83.000000,67.000000,43.000000]|[43.000000,83.000000,67.000000,43.000000]
+[76,88,99,89]|[76,88,99,89]|[76,88,99,89]|[76,88,99,89]|[76,88,99,89]|[76,88,99,89]|[76,88,99,89]|[76,88,99,89]|[76,88,99,89]|[76,88,99,89]|[76.000000,88.000000,99.000000,89.000000]|[76.000000,88.000000,99.000000,89.000000]
+[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77.000000,64.000000,100.000000,54.000000]|[77.000000,64.000000,100.000000,54.000000]
+[80,78,34,83]|[80,78,34,83]|[80,78,34,83]|[80,78,34,83]|[80,78,34,83]|[80,78,34,83]|[80,78,34,83]|[80,78,34,83]|[80,78,34,83]|[80,78,34,83]|[80.000000,78.000000,34.000000,83.000000]|[80.000000,78.000000,34.000000,83.000000]
+[96,59,65,88]|[96,59,65,88]|[96,59,65,88]|[96,59,65,88]|[96,59,65,88]|[96,59,65,88]|[96,59,65,88]|[96,59,65,88]|[96,59,65,88]|[96,59,65,88]|[96.000000,59.000000,65.000000,88.000000]|[96.000000,59.000000,65.000000,88.000000]
+|||||||||||
+
+-LOG CastFixedListToFixedList
+-STATEMENT MATCH(p:person) where p.ID > 8 RETURN cast(p.grades, "UINT64[]"), cast(p.grades, "UINT32[]"), cast(p.grades, "UINT16[]"), cast(p.grades, "UINT8[]"), cast(p.grades, "INT8[]"), cast(p.grades, "INT16[]"), cast(p.grades, "INT32[]"), cast(p.grades, "INT64[]"), cast(p.grades, "INT128[]"), cast(p.grades, "STRING[]"), cast(p.grades, "DOUBLE[]"), cast(p.grades, "FLOAT[]");
+---- 3
+[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43.000000,83.000000,67.000000,43.000000]|[43.000000,83.000000,67.000000,43.000000]
+[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77.000000,64.000000,100.000000,54.000000]|[77.000000,64.000000,100.000000,54.000000]
+|||||||||||
 
 -LOG CastMapToString
 -STATEMENT MATCH (m:movies) RETURN string(m.audience)

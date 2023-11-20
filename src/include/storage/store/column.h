@@ -122,12 +122,12 @@ protected:
     virtual void writeValue(const ColumnChunkMetadata& chunkMeta,
         common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk,
         common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
-    virtual void writeValue(const ColumnChunkMetadata& chunkMeta, common::offset_t offsetInChunk,
-        common::offset_t nodeOffset, const uint8_t* data);
+    virtual void writeValue(const ColumnChunkMetadata& chunkMeta,
+        common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk, const uint8_t* data);
 
     // Produces a page cursor for the offset relative to the given node group
     PageElementCursor getPageCursorForOffsetInGroup(
-        common::offset_t nodeOffset, const ReadState& state);
+        common::offset_t offsetInChunk, const ReadState& state);
 
     // Produces a page cursor for the absolute node offset
     PageElementCursor getPageCursorForOffset(transaction::TransactionType transactionType,
@@ -141,16 +141,17 @@ private:
         common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
         const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo);
     void commitLocalChunkInPlace(transaction::Transaction* transaction,
-        LocalVectorCollection* localChunk, const offset_to_row_idx_t& insertInfo,
-        const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo);
+        common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
+        const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo,
+        const offset_set_t& deleteInfo);
     void commitLocalChunkOutOfPlace(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
         bool isNewNodeGroup, const offset_to_row_idx_t& insertInfo,
         const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo);
 
     void applyLocalChunkToColumnChunk(LocalVectorCollection* localChunk, ColumnChunk* columnChunk,
-        common::offset_t nodeGroupStartOffset, const offset_to_row_idx_t& info);
-    void applyLocalChunkToColumn(
+        const offset_to_row_idx_t& info);
+    void applyLocalChunkToColumn(common::node_group_idx_t nodeGroupIdx,
         LocalVectorCollection* localChunk, const offset_to_row_idx_t& info);
 
     // check if val is in range [start, end)

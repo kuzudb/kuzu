@@ -89,12 +89,31 @@ struct UnaryUDFFunctionWrapper {
     }
 };
 
+struct CastFixedListToListFunctionExecutor {
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
+    static void executeSwitch(
+        common::ValueVector& operand, common::ValueVector& result, void* dataPtr) {
+        auto numOfEntries = reinterpret_cast<CastFunctionBindData*>(dataPtr)->numOfEntries;
+        auto numValuesPerList = common::FixedListType::getNumValuesInList(&operand.dataType);
+
+        for (auto i = 0u; i < numOfEntries; i++) {
+            if (!operand.isNull(i)) {
+                for (auto j = 0u; j < numValuesPerList; j++) {
+                    OP_WRAPPER::template operation<OPERAND_TYPE, RESULT_TYPE, FUNC>(
+                        (void*)(&operand), i * numValuesPerList + j, (void*)(&result),
+                        i * numValuesPerList + j, nullptr);
+                }
+            }
+        }
+    }
+};
+
 struct CastChildFunctionExecutor {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
     static void executeSwitch(
         common::ValueVector& operand, common::ValueVector& result, void* dataPtr) {
-        auto numOfEntry = reinterpret_cast<CastFunctionBindData*>(dataPtr)->numOfEntries;
-        for (auto i = 0u; i < numOfEntry; i++) {
+        auto numOfEntries = reinterpret_cast<CastFunctionBindData*>(dataPtr)->numOfEntries;
+        for (auto i = 0u; i < numOfEntries; i++) {
             result.setNull(i, operand.isNull(i));
             if (!result.isNull(i)) {
                 OP_WRAPPER::template operation<OPERAND_TYPE, RESULT_TYPE, FUNC>(

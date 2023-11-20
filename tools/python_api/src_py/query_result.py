@@ -5,51 +5,6 @@ from .types import Type
 class QueryResult:
     """
     QueryResult stores the result of a query execution.
-
-    Methods
-    -------
-    check_for_query_result_close()
-        Check if the query result is closed and raise an exception if it is.
-
-    has_next()
-        Check if there are more rows in the query result.
-
-    get_next()
-        Get the next row in the query result.
-
-    write_to_csv(filename, delimiter=',', escape_character='"', newline='\n')
-        Write the query result to a CSV file.
-
-    close()
-        Close the query result.
-
-    get_as_df()
-        Get the query result as a Pandas DataFrame.
-
-    get_as_arrow(chunk_size)
-        Get the query result as a PyArrow Table.
-
-    get_column_data_types()
-        Get the data types of the columns in the query result.
-
-    get_column_names()
-        Get the names of the columns in the query result.
-
-    get_as_networkx(directed=True)
-        Converts the nodes and rels in query result into a NetworkX graph representation.
-
-    get_as_torch_geometric()
-        Converts the nodes and rels in query result into a PyTorch Geometric graph representation
-        torch_geometric.data.Data or torch_geometric.data.HeteroData.
-
-    get_execution_time()
-        Get the time in ms which was required for executing the query.
-
-    get_compiling_time()
-        Get the time in ms which was required for compiling the query.
-
-    def get_num_tuples(self):
-        Get the number of tuples which the query returned.
     """
 
     def __init__(self, connection, query_result):
@@ -57,9 +12,11 @@ class QueryResult:
         Parameters
         ----------
         connection : _kuzu.Connection
-            Connection to the database.
+            The underlying C++ connection object from pybind11.
+
         query_result : _kuzu.QueryResult
-            Query result.
+            The underlying C++ query result object from pybind11.
+
         """
 
         self.connection = connection
@@ -77,6 +34,7 @@ class QueryResult:
         ------
         Exception
             If the query result is closed.
+
         """
 
         if self.is_closed:
@@ -90,6 +48,7 @@ class QueryResult:
         -------
         bool
             True if there are more rows in the query result, False otherwise.
+
         """
 
         self.check_for_query_result_close()
@@ -103,6 +62,7 @@ class QueryResult:
         -------
         list
             Next row in the query result.
+
         """
 
         self.check_for_query_result_close()
@@ -116,12 +76,15 @@ class QueryResult:
         ----------
         filename : str
             Name of the CSV file to write to.
+
         delimiter : str
             Delimiter to use in the CSV file. Defaults to ','.
+
         escape_character : str
             Escape character to use in the CSV file. Defaults to '"'.
+
         newline : str
-            Newline character to use in the CSV file. Defaults to '\n'.
+            Newline character to use in the CSV file. Defaults to '\\n'.
         """
 
         self.check_for_query_result_close()
@@ -149,6 +112,7 @@ class QueryResult:
         -------
         pandas.DataFrame
             Query result as a Pandas DataFrame.
+
         """
 
         self.check_for_query_result_close()
@@ -185,6 +149,7 @@ class QueryResult:
         -------
         list
             Data types of the columns in the query result.
+
         """
 
         self.check_for_query_result_close()
@@ -198,6 +163,7 @@ class QueryResult:
         -------
         list
             Names of the columns in the query result.
+
         """
 
         self.check_for_query_result_close()
@@ -227,6 +193,7 @@ class QueryResult:
         -------
         networkx.DiGraph or networkx.Graph
             Query result as a NetworkX graph.
+
         """
 
         self.check_for_query_result_close()
@@ -347,12 +314,15 @@ class QueryResult:
         torch_geometric.data.Data or torch_geometric.data.HeteroData
             Query result as a PyTorch Geometric graph. Containing numeric or boolean node properties
             and edge_index tensor.
+
         dict
             A dictionary that maps the positional offset of each node in Data/HeteroData to its primary
             key in the database.
+
         dict
             A dictionary contains node properties that cannot be converted into tensor automatically. The
             order of values for each property is aligned with nodes in Data/HeteroData.
+
         dict
             A dictionary contains edge properties. The order of values for each property is aligned with
             edge_index in Data/HeteroData.
@@ -377,6 +347,7 @@ class QueryResult:
         -------
         double
             Query execution time as double in ms.
+
         """
         self.check_for_query_result_close()
         return self._query_result.getExecutionTime()
@@ -389,6 +360,7 @@ class QueryResult:
         -------
         double
             Query compile time as double in ms.
+
         """
         self.check_for_query_result_close()
         return self._query_result.getCompilingTime()
@@ -401,6 +373,7 @@ class QueryResult:
         -------
         int
             Number of tuples.
+            
         """
         self.check_for_query_result_close()
         return self._query_result.getNumTuples()

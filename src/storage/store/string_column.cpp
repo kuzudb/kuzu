@@ -168,7 +168,8 @@ void StringColumn::scanValuesToVector(Transaction* transaction, node_group_idx_t
         firstOffsetToScan = offsetsToScan.front().first;
         lastOffsetToScan = offsetsToScan.back().first;
     } else {
-        const auto& [min, max] = std::ranges::minmax_element(offsetsToScan, comp);
+        const auto& [min, max] =
+            std::minmax_element(offsetsToScan.begin(), offsetsToScan.end(), comp);
         firstOffsetToScan = min->first;
         lastOffsetToScan = max->first;
     }

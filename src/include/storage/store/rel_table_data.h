@@ -100,8 +100,8 @@ private:
         common::node_group_idx_t nodeGroupIdx, CSRRelNGInfo* relNodeGroupInfo,
         ColumnChunk* csrOffsetChunk, ColumnChunk* relIDChunk, LocalRelNG* localNodeGroup);
 
-    std::unique_ptr<ColumnChunk> slideCSROffsetColumnChunk(ColumnChunk* csrOffsetChunk,
-        CSRRelNGInfo* relNodeGroupInfo, common::offset_t nodeGroupStartOffset);
+    std::unique_ptr<ColumnChunk> slideCSROffsetChunk(
+        ColumnChunk* csrOffsetChunk, CSRRelNGInfo* relNodeGroupInfo);
     std::unique_ptr<ColumnChunk> slideCSRColumnChunk(transaction::Transaction* transaction,
         ColumnChunk* csrOffsetChunk, ColumnChunk* slidedCSROffsetChunkForCheck,
         ColumnChunk* relIDChunk, const offset_to_offset_to_row_idx_t& insertInfo,

@@ -24,7 +24,9 @@ jobs:
         working-directory: ./scripts/pip-package/
         run: |
           cp Dockerfiles/x86_64/build_all_packages.sh .
-          bash build_all_packages.sh
+          source /opt/rh/devtoolset-11/enable
+          chmod +x build_all_packages.sh
+          ./build_all_packages.sh
 
       - uses: actions/upload-artifact@v3
         with:

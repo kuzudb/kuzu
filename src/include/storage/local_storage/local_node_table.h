@@ -7,8 +7,9 @@ namespace storage {
 
 class LocalNodeNG final : public LocalNodeGroup {
 public:
-    LocalNodeNG(std::vector<common::LogicalType*> dataTypes, MemoryManager* mm)
-        : LocalNodeGroup{dataTypes, mm} {
+    LocalNodeNG(common::offset_t nodeGroupStartOffset, std::vector<common::LogicalType*> dataTypes,
+        MemoryManager* mm)
+        : LocalNodeGroup{nodeGroupStartOffset, dataTypes, mm} {
         insertInfo.resize(dataTypes.size());
         updateInfo.resize(dataTypes.size());
     }

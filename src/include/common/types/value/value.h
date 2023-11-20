@@ -48,118 +48,98 @@ public:
     KUZU_API static Value createDefaultValue(const LogicalType& dataType);
     /**
      * @param val_ the boolean value to set.
-     * @return a Value with BOOL type and val_ value.
      */
     KUZU_API explicit Value(bool val_);
     /**
      * @param val_ the int8_t value to set.
-     * @return a Value with INT8 type and val_ value.
      */
     KUZU_API explicit Value(int8_t val_);
     /**
      * @param val_ the int16_t value to set.
-     * @return a Value with INT16 type and val_ value.
      */
     KUZU_API explicit Value(int16_t val_);
     /**
      * @param val_ the int32_t value to set.
-     * @return a Value with INT32 type and val_ value.
      */
     KUZU_API explicit Value(int32_t val_);
     /**
      * @param val_ the int64_t value to set.
-     * @return a Value with INT64 type and val_ value.
      */
     KUZU_API explicit Value(int64_t val_);
     /**
      * @param val_ the uint8_t value to set.
-     * @return a Value with UINT8 type and val_ value.
      */
     KUZU_API explicit Value(uint8_t val_);
     /**
      * @param val_ the uint16_t value to set.
-     * @return a Value with UINT16 type and val_ value.
      */
     KUZU_API explicit Value(uint16_t val_);
     /**
      * @param val_ the uint32_t value to set.
-     * @return a Value with UINT32 type and val_ value.
      */
     KUZU_API explicit Value(uint32_t val_);
     /**
      * @param val_ the uint64_t value to set.
-     * @return a Value with UINT64 type and val_ value.
      */
     KUZU_API explicit Value(uint64_t val_);
     /**
      * @param val_ the int128_t value to set.
-     * @return a Value with INT128 type and val_ value.
      */
     KUZU_API explicit Value(int128_t val_);
     /**
      * @param val_ the double value to set.
-     * @return a Value with DOUBLE type and val_ value.
      */
     KUZU_API explicit Value(double val_);
     /**
      * @param val_ the float value to set.
-     * @return a Value with FLOAT type and val_ value.
      */
     KUZU_API explicit Value(float_t val_);
     /**
      * @param val_ the date value to set.
-     * @return a Value with DATE type and val_ value.
      */
     KUZU_API explicit Value(date_t val_);
     /**
      * @param val_ the timestamp value to set.
-     * @return a Value with TIMESTAMP type and val_ value.
      */
     KUZU_API explicit Value(timestamp_t val_);
     /**
      * @param val_ the interval value to set.
-     * @return a Value with INTERVAL type and val_ value.
      */
     KUZU_API explicit Value(interval_t val_);
     /**
      * @param val_ the internalID value to set.
-     * @return a Value with INTERNAL_ID type and val_ value.
      */
     KUZU_API explicit Value(internalID_t val_);
     /**
      * @param val_ the string value to set.
-     * @return a Value with STRING type and val_ value.
      */
     KUZU_API explicit Value(const char* val_);
     /**
      * @param val_ the uint8_t* value to set.
-     * @return a Value with POINTER type and val_ value.
      */
     KUZU_API explicit Value(uint8_t* val_);
     /**
+     * @param type the logical type of the value.
      * @param val_ the string value to set.
-     * @return a Value with type and val_ value.
      */
     KUZU_API explicit Value(LogicalType type, const std::string& val_);
     /**
-     * @param vals the list value to set.
-     * @return a Value with dataType type and vals value.
+     * @param dataType the logical type of the value.
+     * @param children a vector of children values.
      */
     KUZU_API explicit Value(LogicalType dataType, std::vector<std::unique_ptr<Value>> children);
     /**
-     * @param val_ the value to set.
-     * @return a Value with dataType type and val_ value.
+     * @param dataType the logical type of the value.
+     * @param val_ the uint8_t* value to set.
      */
     KUZU_API explicit Value(LogicalType dataType, const uint8_t* val_);
     /**
      * @param other the value to copy from.
-     * @return a Value with the same value as other.
      */
     KUZU_API Value(const Value& other);
 
     /**
      * @param other the value to move from.
-     * @return a Value with the same value as other.
      */
     KUZU_API Value(Value&& other) = default;
     KUZU_API Value& operator=(Value&& other) = default;
@@ -211,7 +191,6 @@ public:
         throw std::runtime_error("Unimplemented template for Value::getValueReference()");
     }
     /**
-     * @param value the value to Value object.
      * @return a Value object based on value.
      */
     template<class T>
@@ -745,7 +724,7 @@ KUZU_API inline Value Value::createValue(std::string val) {
 }
 
 /**
- * @param val the string value
+ * @param value the string value
  * @return a Value with STRING type and val value.
  */
 template<>
