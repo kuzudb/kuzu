@@ -330,3 +330,17 @@ False|-4325|14|18446744073709551616.000000|  dfsa
 {a: 1999, b: {[]=true}}
 {a: 2341, b: {[,[,[1],[2],[3],,[4]],[[8],,[7]],,[,[5]],[[6],],]=true}}
 
+-LOG CastFixedListToFixedList
+-STATEMENT Return cast(Cast([1,2,3], "INT32[3]"), "INT64[3]"), cast(Cast([1,2,3], "INT32[3]"), "INT32[3]"), cast(Cast([1,2,3], "INT32[3]"), "INT16[3]"), cast(Cast([1,2,3], "INT32[3]"), "DOUBLE[3]"), cast(Cast([1,2,3], "INT32[3]"), "FLOAT[3]");
+---- 1
+[1,2,3]|[1,2,3]|[1,2,3]|[1.000000,2.000000,3.000000]|[1.000000,2.000000,3.000000]
+-STATEMENT Return cast(cast(cast(cast(Cast([0,-1,1], "INT32[3]"), "INT64[3]"), "INT16[3]"), "DOUBLE[3]"), "FLOAT[3]");
+---- 1
+[0.000000,-1.000000,1.000000]
+-STATEMENT LOAD WITH HEADERS (struct STRUCT(a INT64, b MAP(INT64[][][], STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_with_fixed_list.csv" where struct_extract(struct, 'a') > 0 RETURN cast(cast(struct, "STRUCT(a INT64,b MAP(DOUBLE[1][][], STRING))"), "STRUCT(a INT64,b MAP(INT16[1][][], STRING))");
+---- 4
+{a: 1999, b: {[[[1],[2],[3]]]=true}}
+{a: 1999, b: {[[]]=true}}
+{a: 1999, b: {[]=true}}
+{a: 2341, b: {[,[,[1],[2],[3],,[4]],[[8],,[7]],,[,[5]],[[6],],]=true}}
+
