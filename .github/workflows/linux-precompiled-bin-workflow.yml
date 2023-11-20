@@ -14,7 +14,9 @@ jobs:
         run: /opt/python/cp310-cp310/bin/python -m pip install networkx --user
 
       - name: Build precompiled binaries
-        run: /opt/python/cp310-cp310/bin/python build.py
+        run: |
+          source /opt/rh/devtoolset-11/enable
+          /opt/python/cp310-cp310/bin/python build.py
         working-directory: ./scripts/pre-compiled-bins/
 
       - uses: actions/upload-artifact@v3
