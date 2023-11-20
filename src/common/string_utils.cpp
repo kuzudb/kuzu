@@ -21,7 +21,7 @@ std::vector<std::string> StringUtils::splitComma(const std::string& input) {
         currentPos++;
     }
     result.push_back(input.substr(0, currentPos));
-    result.push_back(input.substr(currentPos + 1));
+    result.push_back(input.substr(currentPos == input.length() ? input.length() : currentPos + 1));
     return result;
 }
 
