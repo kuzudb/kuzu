@@ -102,11 +102,13 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     auto funcExpr = reinterpret_cast<ParsedFunctionExpression*>(call.getFunctionExpression());
     auto funcName = funcExpr->getFunctionName();
     StringUtils::toUpper(funcName);
+    std::unique_ptr<function::ExternalDependency> externalDependency;
     if (funcName == common::READ_PANDAS_FUNC_NAME && clientContext->replaceFunc) {
         auto replacedValue = clientContext->replaceFunc(
             reinterpret_cast<ParsedLiteralExpression*>(funcExpr->getChild(0))->getValue());
         auto parameterExpression =
-            std::make_unique<ParsedLiteralExpression>(std::move(replacedValue), "pd");
+            std::make_unique<ParsedLiteralExpression>(std::move(replacedValue.first), "pd");
+        externalDependency = std::move(replacedValue.second);
         auto inQueryCallParameterReplacer = std::make_unique<InQueryCallParameterReplacer>(
             std::make_pair(funcName, parameterExpression.get()));
         funcExpr = inQueryCallParameterReplacer->visit(funcExpr);
@@ -129,6 +131,10 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     bindInput->inputs = std::move(inputValues);
     auto bindData =
         tableFunction->bindFunc(clientContext, bindInput.get(), catalog.getReadOnlyVersion());
+    if (tableFunction->name == common::READ_PANDAS_FUNC_NAME && clientContext->replaceFunc) {
+        auto tableFuncData = reinterpret_cast<function::PyTableFunctionData*>(bindData.get());
+        tableFuncData->externalDependency = std::move(externalDependency);
+    }
     expression_vector columns;
     for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
         columns.push_back(createVariable(bindData->columnNames[i], *bindData->columnTypes[i]));

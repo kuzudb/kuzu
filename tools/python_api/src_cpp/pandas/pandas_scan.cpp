@@ -3,6 +3,7 @@
 #include "function/table_functions/bind_input.h"
 #include "numpy/numpy_scan.h"
 #include "py_connection.h"
+#include "py_dependency.h"
 #include "pybind11/pytypes.h"
 
 using namespace kuzu::function;
@@ -112,19 +113,24 @@ std::vector<std::unique_ptr<PandasColumnBindData>> PandasScanFunctionData::copyC
     return result;
 }
 
-std::unique_ptr<Value> tryReplacePD(py::dict& dict, py::str& tableName) {
+std::pair<std::unique_ptr<Value>, std::unique_ptr<ExternalDependency>> tryReplacePD(
+    py::dict& dict, py::str& tableName) {
     if (!dict.contains(tableName)) {
-        return nullptr;
+        return std::make_pair(nullptr, nullptr);
     }
     auto entry = dict[tableName];
     if (PyConnection::isPandasDataframe(entry)) {
-        return Value::createValue(reinterpret_cast<uint8_t*>(entry.ptr())).copy();
+        auto pythonDependency =
+            std::make_unique<PythonDependencies>(std::make_unique<RegisteredObject>(entry));
+        return std::make_pair(Value::createValue(reinterpret_cast<uint8_t*>(entry.ptr())).copy(),
+            std::move(pythonDependency));
     } else {
         throw RuntimeException{"Only pandas dataframe is supported."};
     }
 }
 
-std::unique_ptr<common::Value> replacePD(common::Value* value) {
+std::pair<std::unique_ptr<Value>, std::unique_ptr<ExternalDependency>> replacePD(
+    common::Value* value) {
     py::gil_scoped_acquire acquire;
     auto pyTableName = py::str(value->getValue<std::string>());
     // Here we do an exhaustive search on the frame lineage.
@@ -133,20 +139,20 @@ std::unique_ptr<common::Value> replacePD(common::Value* value) {
         auto localDict = py::reinterpret_borrow<py::dict>(currentFrame.attr("f_locals"));
         if (localDict) {
             auto result = tryReplacePD(localDict, pyTableName);
-            if (result) {
+            if (result.first != nullptr) {
                 return result;
             }
         }
         auto globalDict = py::reinterpret_borrow<py::dict>(currentFrame.attr("f_globals"));
         if (globalDict) {
             auto result = tryReplacePD(globalDict, pyTableName);
-            if (result) {
+            if (result.first != nullptr) {
                 return result;
             }
         }
         currentFrame = currentFrame.attr("f_back");
     }
-    return value->copy();
+    return std::make_pair(value->copy(), nullptr);
 }
 
 } // namespace kuzu

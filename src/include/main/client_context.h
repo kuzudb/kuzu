@@ -14,6 +14,10 @@ namespace binder {
 class Binder;
 }
 
+namespace function {
+class ExternalDependency;
+}
+
 namespace main {
 class Database;
 
@@ -25,7 +29,8 @@ struct ActiveQuery {
     void reset();
 };
 
-using replace_func_t = std::function<std::unique_ptr<common::Value>(common::Value*)>;
+using replace_func_t = std::function<std::pair<std::unique_ptr<common::Value>,
+    std::unique_ptr<function::ExternalDependency>>(common::Value*)>;
 
 /**
  * @brief Contain client side configuration. We make profiler associated per query, so profiler is

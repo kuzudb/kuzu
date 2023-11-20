@@ -36,5 +36,24 @@ struct ScanBindData : public TableFuncBindData {
     }
 };
 
+enum class ExternalDependenciesType : uint8_t { PYTHON_DEPENDENCY };
+
+class ExternalDependency {
+public:
+    explicit ExternalDependency(ExternalDependenciesType type) : type(std::move(type)){};
+    virtual ~ExternalDependency(){};
+
+    ExternalDependenciesType type;
+};
+
+struct PyTableFunctionData : public TableFuncBindData {
+    PyTableFunctionData(std::vector<std::unique_ptr<common::LogicalType>> columnTypes,
+        std::vector<std::string> columnNames)
+        : TableFuncBindData{std::move(columnTypes), std::move(columnNames)} {}
+
+    //! External dependencies of this table function
+    std::unique_ptr<ExternalDependency> externalDependency;
+};
+
 } // namespace function
 } // namespace kuzu

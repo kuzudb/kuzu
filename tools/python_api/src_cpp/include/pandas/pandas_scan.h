@@ -44,7 +44,7 @@ struct PandasScanFunction {
         uint64_t offset, common::ValueVector* outputVector);
 };
 
-struct PandasScanFunctionData : public function::TableFuncBindData {
+struct PandasScanFunctionData : public function::PyTableFunctionData {
     py::handle df;
     uint64_t numRows;
     std::vector<std::unique_ptr<PandasColumnBindData>> columnBindData;
@@ -52,7 +52,7 @@ struct PandasScanFunctionData : public function::TableFuncBindData {
     PandasScanFunctionData(std::vector<std::unique_ptr<common::LogicalType>> columnTypes,
         std::vector<std::string> columnNames, py::handle df, uint64_t numRows,
         std::vector<std::unique_ptr<PandasColumnBindData>> columnBindData)
-        : TableFuncBindData{std::move(columnTypes), std::move(columnNames)}, df{df},
+        : PyTableFunctionData{std::move(columnTypes), std::move(columnNames)}, df{df},
           numRows{numRows}, columnBindData{std::move(columnBindData)} {}
 
     ~PandasScanFunctionData() override {
@@ -68,6 +68,7 @@ struct PandasScanFunctionData : public function::TableFuncBindData {
     }
 };
 
-std::unique_ptr<common::Value> replacePD(common::Value* value);
+std::pair<std::unique_ptr<common::Value>, std::unique_ptr<function::ExternalDependency>> replacePD(
+    common::Value* value);
 
 } // namespace kuzu
