@@ -2,16 +2,6 @@ class PreparedStatement:
     """
     A prepared statement is a parameterized query which can avoid planning the 
     same query for repeated execution.
-
-    Methods
-    -------
-
-    is_success()
-        Check if the prepared statement is successfully prepared.
-
-    get_error_message()
-        Get the error message if the query is not prepared successfully.
-
     """
 
     def __init__(self, connection, query):
