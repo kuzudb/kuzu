@@ -45,3 +45,24 @@
 6:0||
 7:0||
 8:0|2023-10-10|2024
+
+-CASE SetOneToOneTable
+-SKIP
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person {ID: 0})-[e:marries]->(b:person) WHERE b.ID = 2 SET e.note='nothing';
+---- ok
+-STATEMENT MATCH (a:person {ID: 0})-[e:marries]->(b:person) WHERE b.ID = 2 RETURN e.note;
+---- 1
+nothing
+-STATEMENT MATCH (a:person {ID: 0})-[e:marries]->(b:person) WHERE b.ID = 2 SET e.note='nothing2';
+---- ok
+-STATEMENT MATCH (a:person {ID: 0})-[e:marries]->(b:person) WHERE b.ID = 2 RETURN e.note;
+---- 1
+nothing2
+-STATEMENT MATCH (a:person {ID: 0})-[e:marries]->(b:person) WHERE b.ID = 2 DELETE e;
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (a:person {ID: 0})-[e:marries]->(b:person) WHERE b.ID = 2 RETURN e.note;
+---- 0

@@ -122,6 +122,7 @@ void RelTableData::initializeReadState(Transaction* transaction,
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     if (dataFormat == ColumnDataFormat::CSR) {
         auto startNodeOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+        // Reset to read from beginning for the csr of the new node offset.
         readState->posInCurrentCSR = 0;
         if (readState->isOutOfRange(nodeOffset)) {
             // Scan csr offsets and populate csr list entries for the new node group.
@@ -130,17 +131,7 @@ void RelTableData::initializeReadState(Transaction* transaction,
             readState->numNodes = readState->csrOffsetChunk->getNumValues();
             readState->populateCSRListEntries();
             if (transaction->isWriteTransaction()) {
-                auto localTableData = transaction->getLocalStorage()->getLocalTableData(
-                    tableID, getDataIdxFromDirection(direction));
-                if (localTableData) {
-                    auto localRelTableData =
-                        ku_dynamic_cast<LocalTableData*, LocalRelTableData*>(localTableData);
-                    readState->localNodeGroup =
-                        localRelTableData->nodeGroups.contains(nodeGroupIdx) ?
-                            ku_dynamic_cast<LocalNodeGroup*, LocalRelNG*>(
-                                localRelTableData->nodeGroups.at(nodeGroupIdx).get()) :
-                            nullptr;
-                }
+                readState->localNodeGroup = getLocalNodeGroup(transaction, nodeGroupIdx);
             }
         }
         if (nodeOffset != readState->currentNodeOffset) {
@@ -151,10 +142,26 @@ void RelTableData::initializeReadState(Transaction* transaction,
     readState->readFromLocalStorage = false;
 }
 
+LocalRelNG* RelTableData::getLocalNodeGroup(
+    transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx) {
+    auto localTableData = transaction->getLocalStorage()->getLocalTableData(
+        tableID, getDataIdxFromDirection(direction));
+    LocalRelNG* localNodeGroup = nullptr;
+    if (localTableData) {
+        auto localRelTableData =
+            ku_dynamic_cast<LocalTableData*, LocalRelTableData*>(localTableData);
+        if (localRelTableData->nodeGroups.contains(nodeGroupIdx)) {
+            localNodeGroup = ku_dynamic_cast<LocalNodeGroup*, LocalRelNG*>(
+                localRelTableData->nodeGroups.at(nodeGroupIdx).get());
+        }
+    }
+    return localNodeGroup;
+}
+
 void RelTableData::scanRegularColumns(Transaction* transaction, RelDataReadState& readState,
     ValueVector* inNodeIDVector, const std::vector<ValueVector*>& outputVectors) {
     adjColumn->scan(transaction, inNodeIDVector, outputVectors[0]);
-    if (!ValueVector::discardNull(*outputVectors[0])) {
+    if (transaction->isReadOnly() && !ValueVector::discardNull(*outputVectors[0])) {
         return;
     }
     for (auto i = 0u; i < readState.columnIDs.size(); i++) {
@@ -166,6 +173,16 @@ void RelTableData::scanRegularColumns(Transaction* transaction, RelDataReadState
         }
         columns[readState.columnIDs[i]]->scan(
             transaction, inNodeIDVector, outputVectors[outputVectorId]);
+    }
+    if (transaction->isWriteTransaction()) {
+        auto nodeOffset = inNodeIDVector->readNodeOffset(0);
+        auto localNodeGroup =
+            getLocalNodeGroup(transaction, StorageUtils::getNodeGroupIdx(nodeOffset));
+        if (localNodeGroup) {
+            localNodeGroup->applyLocalChangesForRegularColumns(
+                inNodeIDVector, readState.columnIDs, outputVectors);
+        }
+        ValueVector::discardNull(*outputVectors[0]);
     }
 }
 
@@ -205,7 +222,7 @@ void RelTableData::scanCSRColumns(Transaction* transaction, RelDataReadState& re
             inNodeIDVector->readNodeOffset(inNodeIDVector->state->selVector->selectedPositions[0]);
         KU_ASSERT(relIDVectorIdx != INVALID_VECTOR_IDX);
         auto relIDVector = outputVectors[relIDVectorIdx];
-        readState.localNodeGroup->applyCSRUpdatesAndDeletions(
+        readState.localNodeGroup->applyLocalChangesForCSRColumns(
             nodeOffset - readState.startNodeOffset, readState.columnIDs, relIDVector,
             outputVectors);
     }
@@ -216,7 +233,7 @@ void RelTableData::lookup(Transaction* transaction, TableReadState& readState,
     KU_ASSERT(dataFormat == ColumnDataFormat::REGULAR);
     // Note: The scan operator should guarantee that the first property in the output is adj column.
     adjColumn->lookup(transaction, inNodeIDVector, outputVectors[0]);
-    if (!ValueVector::discardNull(*outputVectors[0])) {
+    if (transaction->isReadOnly() && !ValueVector::discardNull(*outputVectors[0])) {
         return;
     }
     for (auto i = 0u; i < readState.columnIDs.size(); i++) {
@@ -228,6 +245,20 @@ void RelTableData::lookup(Transaction* transaction, TableReadState& readState,
         }
         columns[readState.columnIDs[i]]->lookup(
             transaction, inNodeIDVector, outputVectors[outputVectorId]);
+    }
+    if (transaction->isWriteTransaction()) {
+        for (auto pos = 0u; pos < inNodeIDVector->state->selVector->selectedSize; pos++) {
+            auto selPos = inNodeIDVector->state->selVector->selectedPositions[pos];
+            auto nodeOffset = inNodeIDVector->readNodeOffset(selPos);
+            auto [nodeGroupIdx, offsetInChunk] =
+                StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
+            auto localNodeGroup = getLocalNodeGroup(transaction, nodeGroupIdx);
+            if (localNodeGroup) {
+                localNodeGroup->applyLocalChangesForRegularColumns(
+                    offsetInChunk, readState.columnIDs, outputVectors, selPos);
+            }
+        }
+        ValueVector::discardNull(*outputVectors[0]);
     }
 }
 
