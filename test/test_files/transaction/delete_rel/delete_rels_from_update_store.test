@@ -1,9 +1,7 @@
 -GROUP DeleteRelTest
 -DATASET CSV rel-update-tests
--SKIP
 --
 
-# This test should be added back once support read under write transaction.
 -DEFINE_STATEMENT_BLOCK DELETE_RELS_FROM_UPDATE_STORE [
 -STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 51 AND p2.ID = 0 create (p1)-[:knows]->(p2);
 ---- ok
