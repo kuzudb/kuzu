@@ -1,6 +1,5 @@
 #include "storage/local_storage/local_table.h"
 
-#include "common/exception/message.h"
 #include "storage/local_storage/local_node_table.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/store/column.h"
@@ -18,12 +17,6 @@ void LocalVector::read(
 void LocalVector::append(ValueVector* valueVector) {
     KU_ASSERT(valueVector->state->selVector->selectedSize == 1);
     auto pos = valueVector->state->selVector->selectedPositions[0];
-    if (valueVector->dataType.getPhysicalType() == PhysicalTypeID::STRING) {
-        auto kuStr = valueVector->getValue<ku_string_t>(pos);
-        if (kuStr.len > BufferPoolConstants::PAGE_4KB_SIZE) {
-            throw RuntimeException(ExceptionMessage::overLargeStringValueException(kuStr.len));
-        }
-    }
     vector->copyFromVectorData(numValues, valueVector, pos);
     numValues++;
 }

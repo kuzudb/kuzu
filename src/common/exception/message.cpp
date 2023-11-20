@@ -21,8 +21,14 @@ std::string ExceptionMessage::invalidPKType(const std::string& type) {
         type);
 }
 
+std::string ExceptionMessage::overLargeStringPKValueException(uint64_t length) {
+    return stringFormat("The maximum length of primary key strings is 4096 bytes. The input "
+                        "string's length was {}.",
+        length);
+}
 std::string ExceptionMessage::overLargeStringValueException(uint64_t length) {
-    return stringFormat("Maximum length of strings is 4096. Input string's length is {}.", length);
+    return stringFormat(
+        "The maximum length of strings is 262144 bytes. The input string's length was {}.", length);
 }
 
 std::string ExceptionMessage::violateUniquenessOfRelAdjColumn(const std::string& tableName,

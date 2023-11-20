@@ -5,7 +5,6 @@
 #include "common/exception/parser.h"
 #include "common/string_format.h"
 #include "common/types/blob.h"
-#include "storage/store/table_copy_utils.h"
 #include "utf8proc_wrapper.h"
 
 using namespace kuzu::common;
@@ -130,7 +129,6 @@ template<>
 void CastStringHelper::cast(const char* input, uint64_t len, blob_t& /*result*/,
     ValueVector* vector, uint64_t rowToAdd, const CSVReaderConfig* /*csvReaderConfig*/) {
     // base case: blob
-    storage::TableCopyUtils::validateStrLen(len);
     auto blobBuffer = std::make_unique<uint8_t[]>(len);
     auto blobLen = Blob::fromString(input, len, blobBuffer.get());
     BlobVector::addBlob(vector, rowToAdd, blobBuffer.get(), blobLen);
@@ -712,7 +710,6 @@ static bool tryCastUnionField(
         testAndSetValue(vector, rowToAdd, result, success);
     } break;
     case LogicalTypeID::STRING: {
-        storage::TableCopyUtils::validateStrLen(len);
         if (!utf8proc::Utf8Proc::isValid(input, len)) {
             throw CopyException{"Invalid UTF8-encoded string."};
         }
@@ -838,7 +835,6 @@ void CastString::copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std:
             strVal.data(), strVal.length(), val, vector, rowToAdd, csvReaderConfig);
     } break;
     case LogicalTypeID::STRING: {
-        storage::TableCopyUtils::validateStrLen(strVal.length());
         if (!utf8proc::Utf8Proc::isValid(strVal.data(), strVal.length())) {
             throw CopyException{"Invalid UTF8-encoded string."};
         }
