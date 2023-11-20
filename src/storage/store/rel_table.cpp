@@ -112,10 +112,9 @@ common::row_idx_t RelTable::detachDeleteForCSRRels(Transaction* transaction,
     RelDataReadState* relDataReadState, RelDetachDeleteState* deleteState) {
     row_idx_t numRelsDeleted = 0;
     auto tempState = deleteState->dstNodeIDVector->state.get();
-    while (relDataReadState->hasMoreToRead()) {
+    while (relDataReadState->hasMoreToRead(transaction)) {
         scan(transaction, *relDataReadState, srcNodeIDVector,
             {deleteState->dstNodeIDVector.get(), deleteState->relIDVector.get()});
-        KU_ASSERT(tempState->selVector->isUnfiltered());
         auto numRelsScanned = tempState->selVector->selectedSize;
         tempState->selVector->resetSelectorToValuePosBufferWithSize(1);
         for (auto i = 0u; i < numRelsScanned; i++) {

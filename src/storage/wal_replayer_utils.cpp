@@ -18,7 +18,7 @@ void WALReplayerUtils::createEmptyHashIndexFiles(
             StorageUtils::getNodeIndexFName(
                 directory, nodeTableSchema->tableID, FileVersionType::ORIGINAL),
             *pk->getDataType());
-        pkIndex->bulkReserve(0 /* numNodesInState */);
+        pkIndex->bulkReserve(0 /* numNodes */);
         pkIndex->flush();
     } break;
     case LogicalTypeID::STRING: {
@@ -26,7 +26,7 @@ void WALReplayerUtils::createEmptyHashIndexFiles(
             StorageUtils::getNodeIndexFName(
                 directory, nodeTableSchema->tableID, FileVersionType::ORIGINAL),
             *pk->getDataType());
-        pkIndex->bulkReserve(0 /* numNodesInState */);
+        pkIndex->bulkReserve(0 /* numNodes */);
         pkIndex->flush();
     } break;
     case LogicalTypeID::SERIAL: {

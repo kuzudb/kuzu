@@ -1,9 +1,7 @@
 -GROUP DeleteRelTest
 -DATASET CSV rel-update-tests
--SKIP
 --
 
-# This test should be added back once support read under write transaction.
 -CASE MixedDeleteAndCreateRelsCommitNormalExecution
 -STATEMENT BEGIN TRANSACTION
 ---- ok

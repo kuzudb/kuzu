@@ -8,125 +8,125 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-bool RegularRelNGInfo::insert(offset_t srcNodeOffset, offset_t /*relOffset*/,
+bool RegularRelNGInfo::insert(offset_t srcOffsetInChunk, offset_t /*relOffset*/,
     row_idx_t adjNodeRowIdx, const std::vector<row_idx_t>& propertyNodesRowIdx) {
     KU_ASSERT(propertyNodesRowIdx.size() == insertInfoPerChunk.size());
-    bool isDeleted = deleteInfo.contains(srcNodeOffset);
-    adjInsertInfo[srcNodeOffset] = adjNodeRowIdx;
-    if (updateInfoPerChunk[0].contains(srcNodeOffset) && !isDeleted) {
+    bool wasDeleted = deleteInfo.contains(srcOffsetInChunk);
+    if (adjInsertInfo.contains(srcOffsetInChunk) && !wasDeleted) {
         throw RuntimeException{"Many-one, one-one relationship violated."};
     }
+    adjInsertInfo[srcOffsetInChunk] = adjNodeRowIdx;
     for (auto i = 0u; i < propertyNodesRowIdx.size(); ++i) {
-        KU_ASSERT(!updateInfoPerChunk[i].contains(srcNodeOffset));
-        insertInfoPerChunk[i][srcNodeOffset] = propertyNodesRowIdx[i];
+        KU_ASSERT(!updateInfoPerChunk[i].contains(srcOffsetInChunk));
+        insertInfoPerChunk[i][srcOffsetInChunk] = propertyNodesRowIdx[i];
     }
-    return !isDeleted;
+    return !wasDeleted;
 }
 
 void RegularRelNGInfo::update(
-    offset_t srcNodeOffset, offset_t /*relOffset*/, column_id_t columnID, row_idx_t rowIdx) {
-    if (deleteInfo.contains(srcNodeOffset)) {
+    offset_t srcOffsetInChunk, offset_t /*relOffset*/, column_id_t columnID, row_idx_t rowIdx) {
+    if (deleteInfo.contains(srcOffsetInChunk)) {
         // We choose to ignore the update operation if the node is deleted.
         return;
     }
     KU_ASSERT(columnID != REL_ID_COLUMN_ID); // Rel ID is immutable.
     KU_ASSERT(columnID < updateInfoPerChunk.size());
-    if (insertInfoPerChunk[columnID].contains(srcNodeOffset)) {
+    if (insertInfoPerChunk[columnID].contains(srcOffsetInChunk)) {
         // Update newly inserted value.
-        insertInfoPerChunk[columnID][srcNodeOffset] = rowIdx;
+        insertInfoPerChunk[columnID][srcOffsetInChunk] = rowIdx;
     } else {
-        updateInfoPerChunk[columnID][srcNodeOffset] = rowIdx;
+        updateInfoPerChunk[columnID][srcOffsetInChunk] = rowIdx;
     }
 }
 
-bool RegularRelNGInfo::delete_(offset_t srcNodeOffset, offset_t /*relOffset*/) {
-    if (adjInsertInfo.contains(srcNodeOffset)) {
+bool RegularRelNGInfo::delete_(offset_t srcOffsetInChunk, offset_t /*relOffset*/) {
+    if (adjInsertInfo.contains(srcOffsetInChunk)) {
         // Delete newly inserted tuple.
-        adjInsertInfo.erase(srcNodeOffset);
-        for (auto& insertInfo : insertInfoPerChunk) {
-            insertInfo.erase(srcNodeOffset);
-        }
+        adjInsertInfo.erase(srcOffsetInChunk);
     } else {
-        if (deleteInfo.contains(srcNodeOffset)) {
+        if (deleteInfo.contains(srcOffsetInChunk)) {
             // The node is already deleted.
             return false;
         } else {
-            deleteInfo.insert(srcNodeOffset);
+            deleteInfo.insert(srcOffsetInChunk);
         }
     }
     return true;
 }
 
-bool CSRRelNGInfo::insert(offset_t srcNodeOffset, offset_t relOffset, row_idx_t adjNodeRowIdx,
+uint64_t RegularRelNGInfo::getNumInsertedTuples(offset_t srcOffsetInChunk) {
+    return adjInsertInfo.contains(srcOffsetInChunk) ? 1 : 0;
+}
+
+bool CSRRelNGInfo::insert(offset_t srcOffsetInChunk, offset_t relOffset, row_idx_t adjNodeRowIdx,
     const std::vector<row_idx_t>& propertyNodesRowIdx) {
     KU_ASSERT(propertyNodesRowIdx.size() == insertInfoPerChunk.size());
-    if (deleteInfo.contains(srcNodeOffset) && contains(deleteInfo.at(srcNodeOffset), relOffset)) {
-        // We choose to ignore the insert operation if the node is deleted.
-        return false;
+    if (deleteInfo.contains(srcOffsetInChunk) &&
+        contains(deleteInfo.at(srcOffsetInChunk), relOffset)) {
+        deleteInfo.at(srcOffsetInChunk).erase(relOffset);
     }
-    if (adjInsertInfo.contains(srcNodeOffset)) {
-        adjInsertInfo.at(srcNodeOffset)[relOffset] = adjNodeRowIdx;
+    if (adjInsertInfo.contains(srcOffsetInChunk)) {
+        adjInsertInfo.at(srcOffsetInChunk)[relOffset] = adjNodeRowIdx;
     } else {
-        adjInsertInfo[srcNodeOffset] = {{relOffset, adjNodeRowIdx}};
+        adjInsertInfo[srcOffsetInChunk] = {{relOffset, adjNodeRowIdx}};
     }
     for (auto i = 0u; i < propertyNodesRowIdx.size(); ++i) {
-        if (insertInfoPerChunk[i].contains(srcNodeOffset)) {
-            insertInfoPerChunk[i].at(srcNodeOffset)[relOffset] = propertyNodesRowIdx[i];
+        if (insertInfoPerChunk[i].contains(srcOffsetInChunk)) {
+            insertInfoPerChunk[i].at(srcOffsetInChunk)[relOffset] = propertyNodesRowIdx[i];
         } else {
-            insertInfoPerChunk[i][srcNodeOffset] = {{relOffset, propertyNodesRowIdx[i]}};
+            insertInfoPerChunk[i][srcOffsetInChunk] = {{relOffset, propertyNodesRowIdx[i]}};
         }
     }
     return false;
 }
 
 void CSRRelNGInfo::update(
-    offset_t srcNodeOffset, offset_t relOffset, column_id_t columnID, row_idx_t rowIdx) {
+    offset_t srcOffsetInChunk, offset_t relOffset, column_id_t columnID, row_idx_t rowIdx) {
     // REL_ID_COLUMN_ID is immutable.
     KU_ASSERT(columnID != REL_ID_COLUMN_ID && columnID < updateInfoPerChunk.size());
-    if (deleteInfo.contains(srcNodeOffset) && contains(deleteInfo.at(srcNodeOffset), relOffset)) {
+    if (deleteInfo.contains(srcOffsetInChunk) &&
+        contains(deleteInfo.at(srcOffsetInChunk), relOffset)) {
         // We choose to ignore the update operation if the node is deleted.
         return;
     }
-    if (insertInfoPerChunk[columnID].contains(srcNodeOffset) &&
-        insertInfoPerChunk[columnID].at(srcNodeOffset).contains(relOffset)) {
+    if (insertInfoPerChunk[columnID].contains(srcOffsetInChunk) &&
+        insertInfoPerChunk[columnID].at(srcOffsetInChunk).contains(relOffset)) {
         // Update newly inserted value.
-        insertInfoPerChunk[columnID].at(srcNodeOffset)[relOffset] = rowIdx;
+        insertInfoPerChunk[columnID].at(srcOffsetInChunk)[relOffset] = rowIdx;
     } else {
-        if (updateInfoPerChunk[columnID].contains(srcNodeOffset)) {
-            updateInfoPerChunk[columnID].at(srcNodeOffset)[relOffset] = rowIdx;
+        if (updateInfoPerChunk[columnID].contains(srcOffsetInChunk)) {
+            updateInfoPerChunk[columnID].at(srcOffsetInChunk)[relOffset] = rowIdx;
         } else {
-            updateInfoPerChunk[columnID][srcNodeOffset] = {{relOffset, rowIdx}};
+            updateInfoPerChunk[columnID][srcOffsetInChunk] = {{relOffset, rowIdx}};
         }
     }
 }
 
-bool CSRRelNGInfo::delete_(offset_t srcNodeOffset, offset_t relOffset) {
-    if (adjInsertInfo.contains(srcNodeOffset) &&
-        adjInsertInfo.at(srcNodeOffset).contains(relOffset)) {
+bool CSRRelNGInfo::delete_(offset_t srcOffsetInChunk, offset_t relOffset) {
+    if (adjInsertInfo.contains(srcOffsetInChunk) &&
+        adjInsertInfo.at(srcOffsetInChunk).contains(relOffset)) {
         // Delete newly inserted tuple.
-        adjInsertInfo.at(srcNodeOffset).erase(relOffset);
-        if (adjInsertInfo.at(srcNodeOffset).empty()) {
-            adjInsertInfo.erase(srcNodeOffset);
-        }
+        adjInsertInfo.at(srcOffsetInChunk).erase(relOffset);
         for (auto& insertInfo : insertInfoPerChunk) {
-            insertInfo.at(srcNodeOffset).erase(relOffset);
-            if (insertInfo.at(srcNodeOffset).empty()) {
-                insertInfo.erase(srcNodeOffset);
-            }
+            insertInfo.at(srcOffsetInChunk).erase(relOffset);
         }
     } else {
-        if (deleteInfo.contains(srcNodeOffset)) {
-            if (deleteInfo.at(srcNodeOffset).contains(relOffset)) {
+        if (deleteInfo.contains(srcOffsetInChunk)) {
+            if (deleteInfo.at(srcOffsetInChunk).contains(relOffset)) {
                 // The node is already deleted.
                 return false;
             } else {
-                deleteInfo.at(srcNodeOffset).insert(relOffset);
+                deleteInfo.at(srcOffsetInChunk).insert(relOffset);
             }
         } else {
-            deleteInfo[srcNodeOffset] = {relOffset};
+            deleteInfo[srcOffsetInChunk] = {relOffset};
         }
     }
     return true;
+}
+
+uint64_t CSRRelNGInfo::getNumInsertedTuples(offset_t srcOffsetInChunk) {
+    return adjInsertInfo.contains(srcOffsetInChunk) ? adjInsertInfo.at(srcOffsetInChunk).size() : 0;
 }
 
 LocalRelNG::LocalRelNG(offset_t nodeGroupStartOffset, ColumnDataFormat dataFormat,
@@ -144,6 +144,103 @@ LocalRelNG::LocalRelNG(offset_t nodeGroupStartOffset, ColumnDataFormat dataForma
     }
     }
     adjChunk = std::make_unique<LocalVectorCollection>(LogicalType::INTERNAL_ID(), mm);
+}
+
+// TODO(Guodong): We should change the map between relID and rowIdx to a vector of pairs, which is
+// more friendly for scan.
+row_idx_t LocalRelNG::scanCSR(offset_t srcOffsetInChunk, offset_t posToReadForOffset,
+    const std::vector<column_id_t>& columnIDs, const std::vector<ValueVector*>& outputVectors) {
+    KU_ASSERT(columnIDs.size() + 1 == outputVectors.size());
+    auto csrRelNGInfo = ku_dynamic_cast<RelNGInfo*, CSRRelNGInfo*>(relNGInfo.get());
+    KU_ASSERT(csrRelNGInfo);
+    KU_ASSERT(csrRelNGInfo->adjInsertInfo.contains(srcOffsetInChunk));
+    uint64_t posInVector = 0;
+    auto iteratorIdx = 0u;
+    for (auto& [relID, rowIdx] : csrRelNGInfo->adjInsertInfo.at(srcOffsetInChunk)) {
+        if (iteratorIdx++ < posToReadForOffset) {
+            continue;
+        }
+        auto posInLocalVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
+        outputVectors[0]->copyFromVectorData(
+            posInVector++, adjChunk->getLocalVector(rowIdx)->getVector(), posInLocalVector);
+    }
+    for (auto i = 0u; i < columnIDs.size(); ++i) {
+        auto columnID = columnIDs[i];
+        posInVector = 0;
+        iteratorIdx = 0u;
+        auto& insertInfo = csrRelNGInfo->insertInfoPerChunk[columnID];
+        KU_ASSERT(insertInfo.contains(srcOffsetInChunk));
+        for (auto& [relID, rowIdx] : insertInfo.at(srcOffsetInChunk)) {
+            if (iteratorIdx++ < posToReadForOffset) {
+                continue;
+            }
+            auto posInLocalVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
+            outputVectors[i + 1]->copyFromVectorData(posInVector++,
+                chunks[columnID]->getLocalVector(rowIdx)->getVector(), posInLocalVector);
+        }
+    }
+    outputVectors[0]->state->selVector->resetSelectorToUnselectedWithSize(posInVector);
+    return posInVector;
+}
+
+void LocalRelNG::applyCSRUpdatesAndDeletions(offset_t srcOffsetInChunk,
+    const std::vector<column_id_t>& columnIDs, ValueVector* relIDVector,
+    const std::vector<ValueVector*>& outputVector) {
+    KU_ASSERT(columnIDs.size() + 1 == outputVector.size());
+    auto csrRelNGInfo = ku_dynamic_cast<RelNGInfo*, CSRRelNGInfo*>(relNGInfo.get());
+    KU_ASSERT(csrRelNGInfo);
+    // Apply updates first, as applying deletions might change selected state.
+    for (auto i = 0u; i < columnIDs.size(); ++i) {
+        auto columnID = columnIDs[i];
+        applyCSRUpdates(srcOffsetInChunk, columnID, csrRelNGInfo->updateInfoPerChunk[columnID],
+            relIDVector, outputVector);
+    }
+    // Apply deletions and update selVector if necessary.
+    if (csrRelNGInfo->deleteInfo.contains(srcOffsetInChunk) &&
+        csrRelNGInfo->deleteInfo.at(srcOffsetInChunk).size() > 0) {
+        applyCSRDeletions(srcOffsetInChunk, csrRelNGInfo->deleteInfo, relIDVector);
+    }
+}
+
+void LocalRelNG::applyCSRUpdates(offset_t srcOffsetInChunk, column_id_t columnID,
+    const offset_to_offset_to_row_idx_t& updateInfo, ValueVector* relIDVector,
+    const std::vector<ValueVector*>& outputVector) {
+    if (!updateInfo.contains(srcOffsetInChunk) || updateInfo.at(srcOffsetInChunk).empty()) {
+        return;
+    }
+    auto& updateInfoForOffset = updateInfo.at(srcOffsetInChunk);
+    for (auto i = 0u; i < relIDVector->state->selVector->selectedSize; i++) {
+        auto pos = relIDVector->state->selVector->selectedPositions[i];
+        auto relOffset = relIDVector->getValue<relID_t>(pos).offset;
+        if (updateInfoForOffset.contains(relOffset)) {
+            auto rowIdx = updateInfoForOffset.at(relOffset);
+            auto posInLocalVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
+            outputVector[i + 1]->copyFromVectorData(
+                pos, chunks[columnID]->getLocalVector(rowIdx)->getVector(), posInLocalVector);
+        }
+    }
+}
+
+void LocalRelNG::applyCSRDeletions(
+    offset_t srcOffsetInChunk, const offset_to_offset_set_t& deleteInfo, ValueVector* relIDVector) {
+    auto& deleteInfoForOffset = deleteInfo.at(srcOffsetInChunk);
+    auto selectPos = 0u;
+    auto selVector = std::make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
+    selVector->resetSelectorToValuePosBuffer();
+    for (auto i = 0u; i < relIDVector->state->selVector->selectedSize; i++) {
+        auto relIDPos = relIDVector->state->selVector->selectedPositions[i];
+        auto relOffset = relIDVector->getValue<relID_t>(relIDPos).offset;
+        if (deleteInfoForOffset.contains(relOffset)) {
+            continue;
+        }
+        selVector->selectedPositions[selectPos++] = relIDPos;
+    }
+    if (selectPos != relIDVector->state->selVector->selectedSize) {
+        relIDVector->state->selVector->resetSelectorToValuePosBuffer();
+        memcpy(relIDVector->state->selVector->selectedPositions, selVector->selectedPositions,
+            selectPos * sizeof(sel_t));
+        relIDVector->state->selVector->selectedSize = selectPos;
+    }
 }
 
 bool LocalRelNG::insert(ValueVector* srcNodeIDVector, ValueVector* dstNodeIDVector,

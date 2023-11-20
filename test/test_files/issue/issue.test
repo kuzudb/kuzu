@@ -131,6 +131,7 @@ Runtime exception: Found duplicated primary key value rename 2x, which violates 
 ---- 1
 ||
 
+
 -CASE 2303
 -STATEMENT CREATE NODE TABLE T (id STRING, PRIMARY KEY(id));
 ---- ok

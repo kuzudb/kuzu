@@ -7,35 +7,40 @@
 namespace kuzu {
 namespace storage {
 
+class LocalRelNG;
 struct RelDataReadState : public TableReadState {
     common::RelDataDirection direction;
     common::ColumnDataFormat dataFormat;
-    common::offset_t startNodeOffsetInState;
-    common::offset_t numNodesInState;
-    common::offset_t currentCSRNodeOffset;
+    common::offset_t startNodeOffset;
+    common::offset_t numNodes;
+    common::offset_t currentNodeOffset;
     common::offset_t posInCurrentCSR;
     std::vector<common::list_entry_t> csrListEntries;
     // Temp auxiliary data structure to scan the offset of each CSR node in the offset column chunk.
     std::unique_ptr<ColumnChunk> csrOffsetChunk;
 
+    // Following fields are used for local storage.
+    bool readFromLocalStorage;
+    LocalRelNG* localNodeGroup;
+
     RelDataReadState(common::ColumnDataFormat dataFormat);
     inline bool isOutOfRange(common::offset_t nodeOffset) {
-        return nodeOffset < startNodeOffsetInState ||
-               nodeOffset >= (startNodeOffsetInState + numNodesInState);
+        return nodeOffset < startNodeOffset || nodeOffset >= (startNodeOffset + numNodes);
     }
-    inline bool hasMoreToRead() {
-        return dataFormat == common::ColumnDataFormat::CSR &&
-               posInCurrentCSR <
-                   csrListEntries[(currentCSRNodeOffset - startNodeOffsetInState)].size;
-    }
+    bool hasMoreToRead(transaction::Transaction* transaction);
     void populateCSRListEntries();
     std::pair<common::offset_t, common::offset_t> getStartAndEndOffset();
+
+    inline bool hasMoreToReadInPersistentStorage() {
+        return posInCurrentCSR < csrListEntries[(currentNodeOffset - startNodeOffset)].size;
+    }
+    bool hasMoreToReadFromLocalStorage();
+    bool trySwitchToLocalStorage();
 };
 
 class RelsStoreStats;
 class LocalRelTableData;
 struct CSRRelNGInfo;
-class LocalRelNG;
 class RelTableData final : public TableData {
 public:
     RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager,

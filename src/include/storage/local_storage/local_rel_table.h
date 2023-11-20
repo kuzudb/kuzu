@@ -11,12 +11,14 @@ static constexpr common::column_id_t REL_ID_COLUMN_ID = 0;
 struct RelNGInfo {
     virtual ~RelNGInfo() = default;
 
-    virtual bool insert(common::offset_t srcNodeOffset, common::offset_t relOffset,
+    virtual bool insert(common::offset_t srcOffsetInChunk, common::offset_t relOffset,
         common::row_idx_t adjNodeRowIdx,
         const std::vector<common::row_idx_t>& propertyNodesRowIdx) = 0;
-    virtual void update(common::offset_t srcNodeOffset, common::offset_t relOffset,
+    virtual void update(common::offset_t srcOffsetInChunk, common::offset_t relOffset,
         common::column_id_t columnID, common::row_idx_t rowIdx) = 0;
-    virtual bool delete_(common::offset_t srcNodeOffset, common::offset_t relOffset) = 0;
+    virtual bool delete_(common::offset_t srcOffsetInChunk, common::offset_t relOffset) = 0;
+
+    virtual uint64_t getNumInsertedTuples(common::offset_t srcOffsetInChunk) = 0;
 
 protected:
     inline static bool contains(
@@ -39,12 +41,14 @@ struct RegularRelNGInfo final : public RelNGInfo {
         updateInfoPerChunk.resize(numChunks);
     }
 
-    bool insert(common::offset_t srcNodeOffset, common::offset_t relOffset,
+    bool insert(common::offset_t srcOffsetInChunk, common::offset_t relOffset,
         common::row_idx_t adjNodeRowIdx,
         const std::vector<common::row_idx_t>& propertyNodesRowIdx) override;
-    void update(common::offset_t srcNodeOffset, common::offset_t relOffset,
+    void update(common::offset_t srcOffsetInChunk, common::offset_t relOffset,
         common::column_id_t columnID, common::row_idx_t rowIdx) override;
-    bool delete_(common::offset_t srcNodeOffset, common::offset_t relOffset) final;
+    bool delete_(common::offset_t srcOffsetInChunk, common::offset_t relOffset) override;
+
+    uint64_t getNumInsertedTuples(common::offset_t srcOffsetInChunk) override;
 };
 
 // Info of node groups with CSR chunks for rel tables.
@@ -60,18 +64,27 @@ struct CSRRelNGInfo final : public RelNGInfo {
         updateInfoPerChunk.resize(numChunks);
     }
 
-    bool insert(common::offset_t srcNodeOffset, common::offset_t relOffset,
+    bool insert(common::offset_t srcOffsetInChunk, common::offset_t relOffset,
         common::row_idx_t adjNodeRowIdx,
         const std::vector<common::row_idx_t>& propertyNodesRowIdx) override;
-    void update(common::offset_t srcNodeOffset, common::offset_t relOffset,
+    void update(common::offset_t srcOffsetInChunk, common::offset_t relOffset,
         common::column_id_t columnID, common::row_idx_t rowIdx) override;
-    bool delete_(common::offset_t srcNodeOffset, common::offset_t relOffset) override;
+    bool delete_(common::offset_t srcOffsetInChunk, common::offset_t relOffset) override;
+
+    uint64_t getNumInsertedTuples(common::offset_t srcOffsetInChunk) override;
 };
 
 class LocalRelNG final : public LocalNodeGroup {
 public:
     LocalRelNG(common::offset_t nodeGroupStartOffset, common::ColumnDataFormat dataFormat,
         std::vector<common::LogicalType*> dataTypes, MemoryManager* mm);
+
+    common::row_idx_t scanCSR(common::offset_t srcOffsetInChunk,
+        common::offset_t posToReadForOffset, const std::vector<common::column_id_t>& columnIDs,
+        const std::vector<common::ValueVector*>& outputVector);
+    void applyCSRUpdatesAndDeletions(common::offset_t srcOffsetInChunk,
+        const std::vector<common::column_id_t>& columnIDs, common::ValueVector* relIDVector,
+        const std::vector<common::ValueVector*>& outputVector);
 
     bool insert(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
         const std::vector<common::ValueVector*>& propertyVectors);
@@ -85,6 +98,13 @@ public:
         return chunks[columnID].get();
     }
     inline RelNGInfo* getRelNGInfo() { return relNGInfo.get(); }
+
+private:
+    void applyCSRUpdates(common::offset_t srcOffsetInChunk, common::column_id_t columnID,
+        const offset_to_offset_to_row_idx_t& updateInfo, common::ValueVector* relIDVector,
+        const std::vector<common::ValueVector*>& outputVector);
+    void applyCSRDeletions(common::offset_t srcOffsetInChunk,
+        const offset_to_offset_set_t& deleteInfo, common::ValueVector* relIDVector);
 
 private:
     std::unique_ptr<LocalVectorCollection> adjChunk;
