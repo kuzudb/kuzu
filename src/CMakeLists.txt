@@ -1,5 +1,4 @@
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
-add_compile_definitions(KUZU_CMAKE_VERSION=v${CMAKE_PROJECT_VERSION})
 # Avoid the import annotation when building on windows
 # Really this should be set per target,
 # but the targets are split among many files and only the object files are linked against here

@@ -10,6 +10,7 @@ add_subdirectory(vector)
 
 add_library(kuzu_common
         OBJECT
+        constants.cpp
         expression_type.cpp
         file_utils.cpp
         in_mem_overflow_buffer.cpp
