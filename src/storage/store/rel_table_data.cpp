@@ -281,8 +281,7 @@ void RelTableData::prepareCommitForCSRColumns(
 }
 
 static std::pair<offset_t, offset_t> getCSRStartAndEndOffset(
-    offset_t nodeGroupStartOffset, offset_t* csrOffsets, offset_t nodeOffset) {
-    auto offsetInNodeGroup = nodeOffset - nodeGroupStartOffset;
+    offset_t offsetInNodeGroup, offset_t* csrOffsets) {
     return offsetInNodeGroup == 0 ?
                std::make_pair((offset_t)0, csrOffsets[offsetInNodeGroup]) :
                std::make_pair(csrOffsets[offsetInNodeGroup - 1], csrOffsets[offsetInNodeGroup]);
@@ -305,14 +304,13 @@ void RelTableData::prepareCommitCSRNGWithoutSliding(Transaction* transaction,
     // chunks.
     auto csrOffsets = (offset_t*)csrOffsetChunk->getData();
     auto relIDs = (offset_t*)relIDChunk->getData();
-    auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     for (auto columnID = 0u; columnID < columns.size(); columnID++) {
         std::map<offset_t, row_idx_t> csrOffsetToRowIdx;
         auto& updateInfo = relNodeGroupInfo->updateInfoPerChunk[columnID];
-        for (auto& [nodeOffset, relIDToRowIdx] : updateInfo) {
+        for (auto& [offsetInChunk, relIDToRowIdx] : updateInfo) {
+            auto [startCSROffset, endCSROffset] =
+                getCSRStartAndEndOffset(offsetInChunk, csrOffsets);
             for (auto [relID, rowIdx] : relIDToRowIdx) {
-                auto [startCSROffset, endCSROffset] =
-                    getCSRStartAndEndOffset(nodeGroupStartOffset, csrOffsets, nodeOffset);
                 auto csrOffset =
                     findPosOfRelIDFromArray(relIDs, startCSROffset, endCSROffset, relID);
                 KU_ASSERT(csrOffset != UINT64_MAX);
@@ -338,8 +336,7 @@ void RelTableData::prepareCommitCSRNGWithSliding(Transaction* transaction,
     // Slide column by column.
     // First we slide the csr offset column chunk, and keep the slided csr offset column chunk in
     // memory, so it can be used for assertion checking later.
-    auto slidedCSROffsetChunk =
-        slideCSROffsetColumnChunk(csrOffsetChunk, relNodeGroupInfo, nodeGroupStartOffset);
+    auto slidedCSROffsetChunk = slideCSROffsetChunk(csrOffsetChunk, relNodeGroupInfo);
     csrOffsetColumn->append(slidedCSROffsetChunk.get(), nodeGroupIdx);
     // Then we slide the adj column chunk, rel id column chunk, and all property column chunks.
     auto slidedAdjColumnChunk =
@@ -359,44 +356,45 @@ void RelTableData::prepareCommitCSRNGWithSliding(Transaction* transaction,
     }
 }
 
-std::unique_ptr<ColumnChunk> RelTableData::slideCSROffsetColumnChunk(
-    ColumnChunk* csrOffsetChunk, CSRRelNGInfo* relNodeGroupInfo, offset_t nodeGroupStartOffset) {
+std::unique_ptr<ColumnChunk> RelTableData::slideCSROffsetChunk(
+    ColumnChunk* csrOffsetChunk, CSRRelNGInfo* relNodeGroupInfo) {
     auto csrOffsets = (offset_t*)csrOffsetChunk->getData();
     auto slidedCSRChunk =
         ColumnChunkFactory::createColumnChunk(LogicalType::INT64(), enableCompression);
     int64_t currentCSROffset = 0;
     auto currentNumSrcNodesInNG = csrOffsetChunk->getNumValues();
     auto newNumSrcNodesInNG = currentNumSrcNodesInNG;
-    for (auto i = 0; i < currentNumSrcNodesInNG; i++) {
-        auto nodeOffset = nodeGroupStartOffset + i;
-        int64_t numRowsInCSR = i == 0 ? csrOffsets[i] : csrOffsets[i] - csrOffsets[i - 1];
+    for (auto offsetInNG = 0; offsetInNG < currentNumSrcNodesInNG; offsetInNG++) {
+        int64_t numRowsInCSR = offsetInNG == 0 ?
+                                   csrOffsets[offsetInNG] :
+                                   csrOffsets[offsetInNG] - csrOffsets[offsetInNG - 1];
         KU_ASSERT(numRowsInCSR >= 0);
-        int64_t numDeletions = relNodeGroupInfo->deleteInfo.contains(nodeOffset) ?
-                                   relNodeGroupInfo->deleteInfo[nodeOffset].size() :
+        int64_t numDeletions = relNodeGroupInfo->deleteInfo.contains(offsetInNG) ?
+                                   relNodeGroupInfo->deleteInfo[offsetInNG].size() :
                                    0;
-        int64_t numInsertions = relNodeGroupInfo->adjInsertInfo.contains(nodeOffset) ?
-                                    relNodeGroupInfo->adjInsertInfo[nodeOffset].size() :
+        int64_t numInsertions = relNodeGroupInfo->adjInsertInfo.contains(offsetInNG) ?
+                                    relNodeGroupInfo->adjInsertInfo[offsetInNG].size() :
                                     0;
         int64_t numRowsAfterSlide = numRowsInCSR + numInsertions - numDeletions;
         KU_ASSERT(numRowsAfterSlide >= 0);
         currentCSROffset += numRowsAfterSlide;
-        slidedCSRChunk->setValue<offset_t>(currentCSROffset, i);
+        slidedCSRChunk->setValue<offset_t>(currentCSROffset, offsetInNG);
     }
-    for (auto i = currentNumSrcNodesInNG; i < StorageConstants::NODE_GROUP_SIZE; i++) {
-        auto nodeOffset = nodeGroupStartOffset + i;
+    for (auto offsetInNG = currentNumSrcNodesInNG; offsetInNG < StorageConstants::NODE_GROUP_SIZE;
+         offsetInNG++) {
         // Assert that should only have insertions for these nodes.
-        KU_ASSERT(!relNodeGroupInfo->deleteInfo.contains(nodeOffset));
+        KU_ASSERT(!relNodeGroupInfo->deleteInfo.contains(offsetInNG));
         for (auto columnID = 0u; columnID < columns.size(); columnID++) {
-            KU_ASSERT(!relNodeGroupInfo->updateInfoPerChunk[columnID].contains(nodeOffset));
+            KU_ASSERT(!relNodeGroupInfo->updateInfoPerChunk[columnID].contains(offsetInNG));
         }
         auto numRowsInCSR = 0;
-        if (relNodeGroupInfo->adjInsertInfo.contains(nodeOffset)) {
+        if (relNodeGroupInfo->adjInsertInfo.contains(offsetInNG)) {
             // This node is inserted now. Update csr offset accordingly.
-            numRowsInCSR += relNodeGroupInfo->adjInsertInfo.at(nodeOffset).size();
-            newNumSrcNodesInNG = i + 1;
+            numRowsInCSR += relNodeGroupInfo->adjInsertInfo.at(offsetInNG).size();
+            newNumSrcNodesInNG = offsetInNG + 1;
         }
         currentCSROffset += numRowsInCSR;
-        slidedCSRChunk->setValue<offset_t>(currentCSROffset, i);
+        slidedCSRChunk->setValue<offset_t>(currentCSROffset, offsetInNG);
     }
     slidedCSRChunk->setNumValues(newNumSrcNodesInNG);
     return slidedCSRChunk;
@@ -423,14 +421,11 @@ std::unique_ptr<ColumnChunk> RelTableData::slideCSRColumnChunk(Transaction* tran
     auto currentNumSrcNodesInNG = csrOffsetChunk->getNumValues();
     auto csrOffsets = (offset_t*)csrOffsetChunk->getData();
     auto relIDs = (offset_t*)relIDChunk->getData();
-    auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    for (auto i = 0; i < currentNumSrcNodesInNG; i++) {
-        auto nodeOffset = nodeGroupStartOffset + i;
-        auto [startCSROffset, endCSROffset] =
-            getCSRStartAndEndOffset(nodeGroupStartOffset, csrOffsets, nodeOffset);
-        auto hasDeletions = deleteInfo.contains(nodeOffset);
-        auto hasUpdates = updateInfo.contains(nodeOffset);
-        auto hasInsertions = insertInfo.contains(nodeOffset);
+    for (auto offsetInNG = 0; offsetInNG < currentNumSrcNodesInNG; offsetInNG++) {
+        auto [startCSROffset, endCSROffset] = getCSRStartAndEndOffset(offsetInNG, csrOffsets);
+        auto hasDeletions = deleteInfo.contains(offsetInNG);
+        auto hasUpdates = updateInfo.contains(offsetInNG);
+        auto hasInsertions = insertInfo.contains(offsetInNG);
         if (!hasDeletions && !hasUpdates && !hasInsertions) {
             // Append the whole csr.
             newColumnChunk->append(
@@ -439,11 +434,11 @@ std::unique_ptr<ColumnChunk> RelTableData::slideCSRColumnChunk(Transaction* tran
         }
         for (auto csrOffset = startCSROffset; csrOffset < endCSROffset; csrOffset++) {
             auto relID = relIDs[csrOffset];
-            if (hasDeletions && deleteInfo.at(nodeOffset).contains(relID)) {
+            if (hasDeletions && deleteInfo.at(offsetInNG).contains(relID)) {
                 // This rel is deleted now. Skip.
-            } else if (hasUpdates && updateInfo.at(nodeOffset).contains(relID)) {
+            } else if (hasUpdates && updateInfo.at(offsetInNG).contains(relID)) {
                 // This rel is inserted or updated. Append from local data to the column chunk.
-                auto rowIdx = insertInfo.at(nodeOffset).at(relID);
+                auto rowIdx = insertInfo.at(offsetInNG).at(relID);
                 auto localVector = localChunk->getLocalVector(rowIdx)->getVector();
                 auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
                 localVector->state->selVector->selectedPositions[0] = offsetInVector;
@@ -455,7 +450,7 @@ std::unique_ptr<ColumnChunk> RelTableData::slideCSRColumnChunk(Transaction* tran
         }
         if (hasInsertions) {
             // Append the newly inserted rels.
-            for (auto [_, rowIdx] : insertInfo.at(nodeOffset)) {
+            for (auto [_, rowIdx] : insertInfo.at(offsetInNG)) {
                 auto localVector = localChunk->getLocalVector(rowIdx)->getVector();
                 auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
                 localVector->state->selVector->selectedPositions[0] = offsetInVector;
@@ -465,10 +460,10 @@ std::unique_ptr<ColumnChunk> RelTableData::slideCSRColumnChunk(Transaction* tran
     }
     if (!insertInfo.empty()) {
         // Append the newly inserted rels.
-        for (auto i = currentNumSrcNodesInNG; i < StorageConstants::NODE_GROUP_SIZE; i++) {
-            auto nodeOffset = nodeGroupStartOffset + i;
-            if (insertInfo.contains(nodeOffset)) {
-                for (auto [relID, rowIdx] : insertInfo.at(nodeOffset)) {
+        for (auto offsetInNG = currentNumSrcNodesInNG;
+             offsetInNG < StorageConstants::NODE_GROUP_SIZE; offsetInNG++) {
+            if (insertInfo.contains(offsetInNG)) {
+                for (auto [relID, rowIdx] : insertInfo.at(offsetInNG)) {
                     auto localVector = localChunk->getLocalVector(rowIdx)->getVector();
                     auto offsetInVector = rowIdx & (DEFAULT_VECTOR_CAPACITY - 1);
                     localVector->state->selVector->selectedPositions[0] = offsetInVector;

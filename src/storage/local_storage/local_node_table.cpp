@@ -26,7 +26,7 @@ void LocalNodeNG::scan(ValueVector* nodeIDVector, const std::vector<column_id_t>
 void LocalNodeNG::lookup(
     offset_t nodeOffset, column_id_t columnID, ValueVector* outputVector, sel_t posInOutputVector) {
     KU_ASSERT(columnID < chunks.size());
-    row_idx_t rowIdx = getRowIdx(columnID, nodeOffset);
+    row_idx_t rowIdx = getRowIdx(columnID, nodeOffset - nodeGroupStartOffset);
     if (rowIdx != INVALID_ROW_IDX) {
         chunks[columnID]->read(rowIdx, outputVector, posInOutputVector);
     }
@@ -40,7 +40,8 @@ void LocalNodeNG::insert(
     if (nodeIDVector->isNull(nodeIDPos)) {
         return;
     }
-    auto nodeOffset = nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
+    auto nodeOffset = nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset - nodeGroupStartOffset;
+    KU_ASSERT(nodeOffset < StorageConstants::NODE_GROUP_SIZE);
     for (auto columnID = 0u; columnID < chunks.size(); columnID++) {
         auto rowIdx = chunks[columnID]->append(propertyVectors[columnID]);
         KU_ASSERT(!updateInfo[columnID].contains(nodeOffset));
@@ -55,7 +56,8 @@ void LocalNodeNG::update(
     if (nodeIDVector->isNull(nodeIDPos)) {
         return;
     }
-    auto nodeOffset = nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
+    auto nodeOffset = nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset - nodeGroupStartOffset;
+    KU_ASSERT(nodeOffset < StorageConstants::NODE_GROUP_SIZE);
     auto rowIdx = chunks[columnID]->append(propertyVector);
     if (insertInfo[columnID].contains(nodeOffset)) {
         // This node is in local storage, and had been newly inserted.
@@ -71,21 +73,22 @@ void LocalNodeNG::delete_(ValueVector* nodeIDVector) {
     if (nodeIDVector->isNull(nodeIDPos)) {
         return;
     }
-    auto nodeOffset = nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
+    auto nodeOffset = nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset - nodeGroupStartOffset;
+    KU_ASSERT(nodeOffset < StorageConstants::NODE_GROUP_SIZE);
     for (auto i = 0u; i < chunks.size(); i++) {
         insertInfo[i].erase(nodeOffset);
         updateInfo[i].erase(nodeOffset);
     }
 }
 
-row_idx_t LocalNodeNG::getRowIdx(column_id_t columnID, offset_t nodeOffset) {
+row_idx_t LocalNodeNG::getRowIdx(column_id_t columnID, offset_t offsetInChunk) {
     KU_ASSERT(columnID < chunks.size());
-    if (updateInfo[columnID].contains(nodeOffset)) {
+    if (updateInfo[columnID].contains(offsetInChunk)) {
         // This node is in persistent storage, and had been updated.
-        return updateInfo[columnID][nodeOffset];
-    } else if (insertInfo[columnID].contains(nodeOffset)) {
+        return updateInfo[columnID][offsetInChunk];
+    } else if (insertInfo[columnID].contains(offsetInChunk)) {
         // This node is in local storage, and had been newly inserted.
-        return insertInfo[columnID][nodeOffset];
+        return insertInfo[columnID][offsetInChunk];
     } else {
         return INVALID_ROW_IDX;
     }
@@ -156,7 +159,9 @@ LocalNodeGroup* LocalNodeTableData::getOrCreateLocalNodeGroup(common::ValueVecto
     auto nodeOffset = nodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
     auto nodeGroupIdx = StorageUtils::getNodeGroupIdx(nodeOffset);
     if (!nodeGroups.contains(nodeGroupIdx)) {
-        nodeGroups[nodeGroupIdx] = std::make_unique<LocalNodeNG>(dataTypes, mm);
+        auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
+        nodeGroups[nodeGroupIdx] =
+            std::make_unique<LocalNodeNG>(nodeGroupStartOffset, dataTypes, mm);
     }
     return nodeGroups.at(nodeGroupIdx).get();
 }
