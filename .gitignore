@@ -51,3 +51,9 @@ tools/java_api/test_db/
 tools/java_api/*.jar
 tools/java_api/*.class
 tools/java_api/*.log
+
+# Generated docs
+scripts/generate-cpp-docs/c/kuzu.h
+scripts/generate-cpp-docs/cpp/headers
+scripts/generate-cpp-docs/cpp/docs
+scripts/generate-cpp-docs/c/docs

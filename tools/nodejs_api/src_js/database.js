@@ -70,7 +70,7 @@ class Database {
   }
 
   /**
-   * @private Internal function to get the underlying native database object.
+   * Internal function to get the underlying native database object.
    * @returns {KuzuNative.NodeDatabase} the underlying native database.
    */
   async _getDatabase() {

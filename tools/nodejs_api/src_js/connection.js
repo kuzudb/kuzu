@@ -70,7 +70,7 @@ class Connection {
   }
 
   /**
-   * @private Internal function to get the underlying native connection object.
+   * Internal function to get the underlying native connection object.
    * @returns {KuzuNative.NodeConnection} the underlying native connection.
    */
   async _getConnection() {

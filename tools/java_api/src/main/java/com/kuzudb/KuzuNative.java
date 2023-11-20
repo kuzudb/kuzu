@@ -11,6 +11,11 @@ import java.nio.file.StandardCopyOption;
 import java.sql.SQLException;
 import java.util.Properties;
 
+/**
+ * KuzuNative is a wrapper class for the native library.
+ * It is used to load the native library and call the native functions.
+ * This class is not intended to be used by end users.
+ */
 public class KuzuNative {
     static {
         try {

@@ -1,7 +1,7 @@
 # `pip install` from the source
 ```
-chmod +x package_tar.sh
-./package_tar.sh
+chmod +x package_tar.py
+./package_tar.py
 pip install kuzu.tar.gz    
 ```
 
