@@ -570,7 +570,7 @@ LogicalTypeID LogicalTypeUtils::dataTypeIDFromString(const std::string& dataType
         return LogicalTypeID::DOUBLE;
     } else if ("FLOAT" == upperDataTypeIDString) {
         return LogicalTypeID::FLOAT;
-    } else if ("BOOLEAN" == upperDataTypeIDString) {
+    } else if ("BOOLEAN" == upperDataTypeIDString || "BOOL" == upperDataTypeIDString) {
         return LogicalTypeID::BOOL;
     } else if ("BYTEA" == upperDataTypeIDString || "BLOB" == upperDataTypeIDString) {
         return LogicalTypeID::BLOB;

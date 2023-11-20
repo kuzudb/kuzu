@@ -76,3 +76,48 @@ def test_scan_invalid_pandas(get_tmp_path):
                        match=re.escape("Binder exception: Cannot match a built-in function for given function "
                                        "READ_PANDAS(STRING). Supported inputs are\n(POINTER)\n")):
         conn.execute("CALL READ_PANDAS('df213') WHERE id > 20 RETURN id + 5, weight")
+
+
+def test_large_pd(get_tmp_path):
+    db = kuzu.Database(get_tmp_path)
+    conn = kuzu.Connection(db)
+    num_rows = 40000
+    odd_numbers = [2 * i + 1 for i in range(num_rows)]
+    even_numbers = [2 * i for i in range(num_rows)]
+    df = pd.DataFrame({'odd': odd_numbers, 'even': even_numbers})
+    result = conn.execute("CALL READ_PANDAS('df') RETURN *").get_as_df()
+    assert result['odd'].to_list() == odd_numbers
+    assert result['even'].to_list() == even_numbers
+
+
+def test_pandas_scan_demo(get_tmp_path):
+    db = kuzu.Database(get_tmp_path)
+    conn = kuzu.Connection(db)
+
+    conn.execute("CREATE NODE TABLE student (ID int64, height int32, PRIMARY KEY(ID))")
+    conn.execute("CREATE (s:student {ID: 0, height: 70})")
+    conn.execute("CREATE (s:student {ID: 2, height: 64})")
+    conn.execute("CREATE (s:student {ID: 4, height: 67})")
+    conn.execute("CREATE (s:student {ID: 5, height: 64})")
+
+    id = np.array([0, 2, 3, 5, 7, 11, 13], dtype=np.int64)
+    age = np.array([42, 23, 33, 57, 67, 39, 11], dtype=np.uint16)
+    height_in_cm = np.array([167, 172, 183, 199, 149, 154, 165], dtype=np.uint32)
+    is_student = np.array([False, True, False, False, False, False, True], dtype=bool)
+    person = pd.DataFrame({'id': id, 'age': age, 'height': height_in_cm, 'is_student': is_student})
+
+    result = conn.execute(
+        'CALL READ_PANDAS("person") with avg(height / 2.54) as height_in_inch MATCH (s:student) WHERE s.height > '
+        'height_in_inch RETURN s').get_as_df()
+    assert len(result) == 2
+    assert result['s'][0] == {'ID': 0, '_id': {'offset': 0, 'table': 0}, '_label': 'student', 'height': 70}
+    assert result['s'][1] == {'ID': 4, '_id': {'offset': 2, 'table': 0}, '_label': 'student', 'height': 67}
+
+    conn.execute('CREATE NODE TABLE person(ID INT64, age UINT16, height UINT32, is_student BOOLean, PRIMARY KEY(ID))')
+    conn.execute(
+        'CALL READ_PANDAS("person") CREATE (p:person {ID: id, age: age, height: height, is_student: is_student})')
+    result = conn.execute("MATCH (p:person) return p.*").get_as_df()
+    assert np.all(result['p.ID'].to_list() == id)
+    assert np.all(result['p.age'].to_list() == age)
+    assert np.all(result['p.height'].to_list() == height_in_cm)
+    assert np.all(result['p.is_student'].to_list() == is_student)
