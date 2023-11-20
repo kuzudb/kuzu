@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.11)
 
 project(Kuzu VERSION 0.0.12.3 LANGUAGES CXX C)
 
-add_definitions(-DKUZU_CMAKE_VERSION="${CMAKE_PROJECT_VERSION}")
-
 find_package(Threads REQUIRED)
 
 set(CMAKE_FIND_PACKAGE_RESOLVE_SYMLINKS TRUE)
