@@ -163,6 +163,15 @@ void RelTable::addColumn(
     wal->addToUpdatedTables(tableID);
 }
 
+void RelTable::resizeColumns(
+    Transaction* /*transaction*/, RelDataDirection direction, node_group_idx_t nodeGroupIdx) {
+    auto tableData = getDirectedTableData(direction);
+    if (tableData->getDataFormat() == ColumnDataFormat::REGULAR) {
+        tableData->resizeColumns(nodeGroupIdx);
+        wal->addToUpdatedTables(tableID);
+    }
+}
+
 void RelTable::prepareCommit(Transaction* transaction, LocalTable* localTable) {
     wal->addToUpdatedTables(tableID);
     fwdRelTableData->prepareLocalTableToCommit(transaction, localTable->getLocalTableData(0));

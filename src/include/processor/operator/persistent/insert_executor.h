@@ -11,11 +11,14 @@ namespace processor {
 // TODO(Guodong): the following class should be moved to storage.
 class NodeInsertExecutor {
 public:
-    NodeInsertExecutor(storage::NodeTable* table, std::vector<storage::RelTable*> relTablesToInit,
-        const DataPos& nodeIDVectorPos, std::vector<DataPos> propertyLhsPositions,
+    NodeInsertExecutor(storage::NodeTable* table,
+        std::unordered_set<storage::RelTable*> fwdRelTablesToInit,
+        std::unordered_set<storage::RelTable*> bwdRelTabkesToInit, const DataPos& nodeIDVectorPos,
+        std::vector<DataPos> propertyLhsPositions,
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> propertyRhsEvaluators)
-        : table{table}, relTablesToInit{std::move(relTablesToInit)},
-          nodeIDVectorPos{nodeIDVectorPos}, propertyLhsPositions{std::move(propertyLhsPositions)},
+        : table{table}, fwdRelTablesToInit{std::move(fwdRelTablesToInit)},
+          bwdRelTabkesToInit{std::move(bwdRelTabkesToInit)}, nodeIDVectorPos{nodeIDVectorPos},
+          propertyLhsPositions{std::move(propertyLhsPositions)},
           propertyRhsEvaluators{std::move(propertyRhsEvaluators)}, nodeIDVector{nullptr} {}
     NodeInsertExecutor(const NodeInsertExecutor& other);
 
@@ -32,7 +35,8 @@ public:
 
 private:
     storage::NodeTable* table;
-    std::vector<storage::RelTable*> relTablesToInit;
+    std::unordered_set<storage::RelTable*> fwdRelTablesToInit;
+    std::unordered_set<storage::RelTable*> bwdRelTabkesToInit;
     DataPos nodeIDVectorPos;
     std::vector<DataPos> propertyLhsPositions;
     std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> propertyRhsEvaluators;

@@ -1,3 +1,4 @@
+#include "common/cast.h"
 #include "planner/operator/persistent/logical_insert.h"
 #include "processor/operator/persistent/insert.h"
 #include "processor/plan_mapper.h"
@@ -29,12 +30,18 @@ std::unique_ptr<NodeInsertExecutor> PlanMapper::getNodeInsertExecutor(
     auto node = info->node;
     auto nodeTableID = node->getSingleTableID();
     auto table = storageManager.getNodeTable(nodeTableID);
-    std::vector<RelTable*> relTablesToInit;
-    for (auto& schema : catalog->getReadOnlyVersion()->getRelTableSchemas()) {
-        auto relTableSchema = reinterpret_cast<RelTableSchema*>(schema);
-        if (relTableSchema->isSrcOrDstTable(nodeTableID)) {
-            relTablesToInit.push_back(storageManager.getRelTable(schema->tableID));
-        }
+    std::unordered_set<RelTable*> fwdRelTablesToInit;
+    std::unordered_set<RelTable*> bwdRelTablesToInit;
+    auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(nodeTableID);
+    auto nodeTableSchema =
+        common::ku_dynamic_cast<catalog::TableSchema*, catalog::NodeTableSchema*>(tableSchema);
+    auto fwdRelTableIDs = nodeTableSchema->getFwdRelTableIDSet();
+    auto bwdRelTableIDs = nodeTableSchema->getBwdRelTableIDSet();
+    for (auto relTableID : fwdRelTableIDs) {
+        fwdRelTablesToInit.insert(storageManager.getRelTable(relTableID));
+    }
+    for (auto relTableID : bwdRelTableIDs) {
+        bwdRelTablesToInit.insert(storageManager.getRelTable(relTableID));
     }
     auto nodeIDPos = DataPos(outSchema.getExpressionPos(*node->getInternalID()));
     std::vector<DataPos> lhsVectorPositions = populateLhsVectorPositions(info->setItems, outSchema);
@@ -42,8 +49,9 @@ std::unique_ptr<NodeInsertExecutor> PlanMapper::getNodeInsertExecutor(
     for (auto& [_, rhs] : info->setItems) {
         evaluators.push_back(ExpressionMapper::getEvaluator(rhs, &inSchema));
     }
-    return std::make_unique<NodeInsertExecutor>(table, std::move(relTablesToInit), nodeIDPos,
-        std::move(lhsVectorPositions), std::move(evaluators));
+    return std::make_unique<NodeInsertExecutor>(table, std::move(fwdRelTablesToInit),
+        std::move(bwdRelTablesToInit), nodeIDPos, std::move(lhsVectorPositions),
+        std::move(evaluators));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapInsertNode(LogicalOperator* logicalOperator) {

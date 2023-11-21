@@ -293,6 +293,32 @@ void RelTableData::append(NodeGroup* nodeGroup) {
     }
 }
 
+void RelTableData::resizeColumns(node_group_idx_t nodeGroupIdx) {
+    if (dataFormat == ColumnDataFormat::CSR) {
+        // TODO(Guodong): This is a special logic for regular columns only, and should be organized
+        // in a better way.
+        return;
+    }
+    auto currentNumNodeGroups = adjColumn->getNumNodeGroups(&DUMMY_WRITE_TRANSACTION);
+    if (nodeGroupIdx < currentNumNodeGroups) {
+        return;
+    }
+    std::vector<std::unique_ptr<LogicalType>> columnTypes;
+    columnTypes.reserve(columns.size() + 1);
+    columnTypes.push_back(LogicalType::INTERNAL_ID());
+    for (auto& column : columns) {
+        columnTypes.push_back(column->getDataType()->copy());
+    }
+    auto nodeGroup = std::make_unique<NodeGroup>(
+        columnTypes, enableCompression, StorageConstants::NODE_GROUP_SIZE);
+    nodeGroup->setAllNull();
+    nodeGroup->setNumValues(0);
+    for (auto i = currentNumNodeGroups; i <= nodeGroupIdx; i++) {
+        nodeGroup->finalize(i);
+        append(nodeGroup.get());
+    }
+}
+
 void RelTableData::prepareLocalTableToCommit(
     Transaction* transaction, LocalTableData* localTableData) {
     auto localRelTableData = ku_dynamic_cast<LocalTableData*, LocalRelTableData*>(localTableData);

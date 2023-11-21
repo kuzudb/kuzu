@@ -111,11 +111,20 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     }
     auto inputColumns = copyFromInfo->fileScanInfo->columns;
     inputColumns.push_back(copyFromInfo->fileScanInfo->offset);
+    std::unordered_set<storage::RelTable*> fwdRelTables;
+    std::unordered_set<storage::RelTable*> bwdRelTables;
+    for (auto relTableID : tableSchema->getFwdRelTableIDSet()) {
+        fwdRelTables.insert(storageManager.getRelTable(relTableID));
+    }
+    for (auto relTableID : tableSchema->getBwdRelTableIDSet()) {
+        bwdRelTables.insert(storageManager.getRelTable(relTableID));
+    }
     auto columnPositions =
         getColumnDataPositions(columnNamesExcludingSerial, inputColumns, *outFSchema);
     sharedState->columnTypes = std::move(columnTypes);
-    auto info = std::make_unique<CopyNodeInfo>(std::move(columnPositions), nodeTable,
-        tableSchema->tableName, copyFromInfo->containsSerial, storageManager.compressionEnabled());
+    auto info = std::make_unique<CopyNodeInfo>(std::move(columnPositions), nodeTable, fwdRelTables,
+        bwdRelTables, tableSchema->tableName, copyFromInfo->containsSerial,
+        storageManager.compressionEnabled());
     std::unique_ptr<PhysicalOperator> copyNode;
     auto readerConfig =
         reinterpret_cast<function::ScanBindData*>(copyFromInfo->fileScanInfo->bindData.get())

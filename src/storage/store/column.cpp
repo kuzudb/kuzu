@@ -251,6 +251,9 @@ public:
         offset_t offsetInChunk) override {
         auto cursor = getPageCursorForOffset(transaction->getType(), nodeGroupIdx, offsetInChunk);
         auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
+        if (offsetInChunk >= chunkMeta.numValues) {
+            return true;
+        }
         KU_ASSERT(cursor.pageIdx < chunkMeta.pageIdx + chunkMeta.numPages);
         bool result = false;
         readFromPage(transaction, cursor.pageIdx, [&](uint8_t* frame) -> void {
@@ -767,9 +770,8 @@ bool Column::canCommitInPlace(Transaction* transaction, node_group_idx_t nodeGro
 void Column::commitLocalChunkInPlace(Transaction* /*transaction*/, node_group_idx_t nodeGroupIdx,
     LocalVectorCollection* localChunk, const offset_to_row_idx_t& insertInfo,
     const offset_to_row_idx_t& updateInfo, const offset_set_t& deleteInfo) {
-    auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    applyLocalChunkToColumn(nodeGroupStartOffset, localChunk, updateInfo);
-    applyLocalChunkToColumn(nodeGroupStartOffset, localChunk, insertInfo);
+    applyLocalChunkToColumn(nodeGroupIdx, localChunk, updateInfo);
+    applyLocalChunkToColumn(nodeGroupIdx, localChunk, insertInfo);
     // Set nulls based on deleteInfo. Note that this code path actually only gets executed when the
     // column is a regular format one. This is not a good design, should be unified with csr one in
     // the future.

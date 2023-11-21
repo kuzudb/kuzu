@@ -89,7 +89,7 @@ public:
 
     inline uint64_t getCapacity() const { return capacity; }
     inline uint64_t getNumValues() const { return numValues; }
-    inline void setNumValues(uint64_t numValues_) { this->numValues = numValues_; }
+    void setNumValues(uint64_t numValues_);
 
 protected:
     // Initializes the data buffer. Is (and should be) only called in constructor.

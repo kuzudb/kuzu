@@ -76,6 +76,7 @@ public:
     bool checkIfNodeHasRels(
         transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector);
     void append(NodeGroup* nodeGroup);
+    void resizeColumns(common::node_group_idx_t nodeGroupIdx);
 
     inline Column* getAdjColumn() const { return adjColumn.get(); }
     inline common::ColumnDataFormat getDataFormat() const { return dataFormat; }
