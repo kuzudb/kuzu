@@ -27,6 +27,7 @@ public:
         : PandasColumn{PandasColumnBackend::NUMPY}, array{std::move(array)} {}
 
     std::unique_ptr<PandasColumn> copy() const override {
+        py::gil_scoped_acquire acquire;
         return std::make_unique<PandasNumpyColumn>(array);
     }
 
