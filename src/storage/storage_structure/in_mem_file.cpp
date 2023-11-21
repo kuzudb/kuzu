@@ -3,6 +3,7 @@
 #include <mutex>
 
 #include "common/exception/copy.h"
+#include "common/exception/message.h"
 #include "common/type_utils.h"
 #include "common/types/value/nested.h"
 
@@ -56,6 +57,9 @@ ku_string_t InMemOverflowFile::appendString(const char* rawString) {
     std::memcpy(result.prefix, rawString,
         length <= ku_string_t::SHORT_STR_LENGTH ? length : ku_string_t::PREFIX_LENGTH);
     if (length > ku_string_t::SHORT_STR_LENGTH) {
+        if (length > BufferPoolConstants::PAGE_4KB_SIZE) {
+            throw CopyException(ExceptionMessage::overLargeStringPKValueException(length));
+        }
         std::unique_lock lck{lock};
         // Allocate a new page if necessary.
         if (nextOffsetInPageToAppend + length >= BufferPoolConstants::PAGE_4KB_SIZE) {
