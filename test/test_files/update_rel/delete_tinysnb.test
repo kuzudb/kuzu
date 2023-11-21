@@ -62,3 +62,27 @@ Binder exception: Delete undirected rel is not supported.
 -STATEMENT MATCH (a:person)-[e]->(b:person) DETACH DELETE e
 ---- error
 Binder exception: Detach delete on rel tables is not supported.
+
+-CASE MixedDeleteInsertAndSetOneToOneRel
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:marries]->(b:person) WHERE a.ID = 3 AND b.ID = 5 DELETE e
+---- ok
+-STATEMENT MATCH (a:person)-[e:marries]->(b:person) WHERE a.ID = 3 AND b.ID = 5 RETURN COUNT(*)
+---- 1
+0
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 3 AND b.ID =10 CREATE (a)-[:marries]->(b)
+---- ok
+-STATEMENT MATCH (a:person)-[e:marries]->(b:person) WHERE a.ID = 3 AND b.ID =10 RETURN COUNT(*)
+---- 1
+1
+-STATEMENT MATCH (a:person)-[e:marries]->(b:person) WHERE a.ID = 3 AND b.ID =10 SET e.note='new one';
+---- ok
+-STATEMENT MATCH (a:person)-[e:marries]->(b:person) WHERE a.ID = 3 AND b.ID =10 RETURN e.note
+---- 1
+new one
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (a:person)-[e:marries]->(b:person) WHERE a.ID = 3 AND b.ID =10 RETURN e.note
+---- 1
+new one

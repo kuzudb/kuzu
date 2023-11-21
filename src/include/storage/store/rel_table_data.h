@@ -87,6 +87,9 @@ public:
     void rollbackInMemory();
 
 private:
+    LocalRelNG* getLocalNodeGroup(
+        transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx);
+
     void scanRegularColumns(transaction::Transaction* transaction, RelDataReadState& readState,
         common::ValueVector* inNodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors);

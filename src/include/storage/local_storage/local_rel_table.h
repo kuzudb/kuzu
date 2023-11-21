@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/column_data_format.h"
+#include "common/vector/value_vector.h"
 #include "storage/local_storage/local_table.h"
 
 namespace kuzu {
@@ -82,9 +83,19 @@ public:
     common::row_idx_t scanCSR(common::offset_t srcOffsetInChunk,
         common::offset_t posToReadForOffset, const std::vector<common::column_id_t>& columnIDs,
         const std::vector<common::ValueVector*>& outputVector);
-    void applyCSRUpdatesAndDeletions(common::offset_t srcOffsetInChunk,
+    // For CSR, we need to apply updates and deletions here, while insertions are handled by
+    // `scanCSR`.
+    void applyLocalChangesForCSRColumns(common::offset_t srcOffsetInChunk,
         const std::vector<common::column_id_t>& columnIDs, common::ValueVector* relIDVector,
         const std::vector<common::ValueVector*>& outputVector);
+    void applyLocalChangesForRegularColumns(common::ValueVector* srcNodeIDVector,
+        const std::vector<common::column_id_t>& columnIDs,
+        const std::vector<common::ValueVector*>& outputVector);
+    // Note that there is an implicit assumption that all outputVectors share the same state, thus
+    // only one posInVector is passed.
+    void applyLocalChangesForRegularColumns(common::offset_t offsetInChunk,
+        const std::vector<common::column_id_t>& columnIDs,
+        const std::vector<common::ValueVector*>& outputVectors, common::sel_t posInVector);
 
     bool insert(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
         const std::vector<common::ValueVector*>& propertyVectors);
@@ -105,6 +116,14 @@ private:
         const std::vector<common::ValueVector*>& outputVector);
     void applyCSRDeletions(common::offset_t srcOffsetInChunk,
         const offset_to_offset_set_t& deleteInfo, common::ValueVector* relIDVector);
+    void applyRegularChangesToVector(common::ValueVector* srcNodeIDVector,
+        LocalVectorCollection* chunk, const offset_to_row_idx_t& updateInfo,
+        const offset_to_row_idx_t& insertInfo, const offset_set_t& deleteInfo,
+        common::ValueVector* outputVector);
+    void applyRegularChangesForOffset(common::offset_t offsetInChunk, LocalVectorCollection* chunk,
+        const offset_to_row_idx_t& updateInfo, const offset_to_row_idx_t& insertInfo,
+        const offset_set_t& deleteInfo, common::ValueVector* outputVector,
+        common::sel_t posInVector);
 
 private:
     std::unique_ptr<LocalVectorCollection> adjChunk;
