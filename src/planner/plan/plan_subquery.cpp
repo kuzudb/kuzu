@@ -150,6 +150,9 @@ void QueryPlanner::planSubqueryIfNecessary(
     if (ExpressionVisitor::hasSubquery(*expression)) {
         auto expressionCollector = std::make_unique<ExpressionCollector>();
         for (auto& expr : expressionCollector->collectTopLevelSubqueryExpressions(expression)) {
+            if (plan.getSchema()->isExpressionInScope(*expr)) {
+                continue;
+            }
             planSubquery(expr, plan);
         }
     }
