@@ -1,6 +1,7 @@
 #include "storage/store/dictionary_column.h"
 
 #include "storage/storage_structure/disk_array_collection.h"
+#include "storage/store/column_chunk.h"
 #include "storage/store/string_column.h"
 #include <bit>
 
@@ -67,52 +68,81 @@ void DictionaryColumn::scan(Transaction* transaction, const Column::ChunkState& 
         StringColumn::getChildState(state, StringColumn::ChildStateIndex::OFFSET), offsetChunk);
 }
 
+std::span<std::pair<string_index_t, uint64_t>> getNextRange(
+    std::vector<std::pair<string_index_t, uint64_t>>& data, uint64_t startPos,
+    uint64_t numValuesPerPage) {
+    auto endPos = startPos + 1;
+    auto lastOffsetToScan = data[endPos - 1].first;
+    while (endPos < data.size() &&
+           // Include gaps of up to one page
+           data[endPos].first <= lastOffsetToScan + numValuesPerPage) {
+        endPos++;
+        lastOffsetToScan = data[endPos - 1].first;
+    }
+    return std::span(&*data.begin() + startPos, &*data.begin() + endPos);
+}
+
 void DictionaryColumn::scan(Transaction* transaction, const Column::ChunkState& offsetState,
     const Column::ChunkState& dataState,
     std::vector<std::pair<string_index_t, uint64_t>>& offsetsToScan, ValueVector* resultVector,
     const ColumnChunkMetadata& indexMeta) {
-    string_index_t firstOffsetToScan, lastOffsetToScan;
-    auto comp = [](auto pair1, auto pair2) { return pair1.first < pair2.first; };
-    auto duplicationFactor = (double)offsetState.metadata.numValues / indexMeta.numValues;
-    if (duplicationFactor <= 0.5) {
-        // If at least 50% of strings are duplicated, sort the offsets so we can re-use scanned
-        // strings
-        std::sort(offsetsToScan.begin(), offsetsToScan.end(), comp);
-        firstOffsetToScan = offsetsToScan.front().first;
-        lastOffsetToScan = offsetsToScan.back().first;
-    } else {
-        const auto& [min, max] =
-            std::minmax_element(offsetsToScan.begin(), offsetsToScan.end(), comp);
-        firstOffsetToScan = min->first;
-        lastOffsetToScan = max->first;
+
+    auto comp = [](const auto& pair1, const auto& pair2) { return pair1.first < pair2.first; };
+    auto hasHighDuplication = ((double)offsetState.metadata.numValues / indexMeta.numValues) <= 0.5;
+    // If at least 50% of strings are duplicated, sort the offsets so we can re-use scanned
+    // strings, and scan offsets in chunks of adjacent pages. Values which are less than one page
+    // apart are scanned together. Otherwise, offsets are not sorted and are scanned in a single
+    // chunk since likely that the time spent sorting will outweigh the time saved by
+    // de-duplication.
+    if (hasHighDuplication) {
+        std::sort(&*offsetsToScan.begin(), &*offsetsToScan.end(), comp);
     }
-    // TODO(bmwinger): scan batches of adjacent values.
-    // Ideally we scan values together until we reach empty pages
-    // This would also let us use the same optimization for the data column,
-    // where the worst case for the current method is much worse
-
-    // Note that the list will contain duplicates when indices are duplicated.
-    // Each distinct value is scanned once, and re-used when writing to each output value
-    auto numOffsetsToScan = lastOffsetToScan - firstOffsetToScan + 1;
-    // One extra offset to scan for the end offset of the last string
-    std::vector<string_offset_t> offsets(numOffsetsToScan + 1);
-    scanOffsets(transaction, offsetState, offsets.data(), firstOffsetToScan, numOffsetsToScan,
-        dataState.metadata.numValues);
-
-    for (auto pos = 0u; pos < offsetsToScan.size(); pos++) {
-        auto startOffset = offsets[offsetsToScan[pos].first - firstOffsetToScan];
-        auto endOffset = offsets[offsetsToScan[pos].first - firstOffsetToScan + 1];
-        scanValueToVector(transaction, dataState, startOffset, endOffset, resultVector,
-            offsetsToScan[pos].second);
-        auto& scannedString = resultVector->getValue<ku_string_t>(offsetsToScan[pos].second);
-        // For each string which has the same index in the dictionary as the one we scanned,
-        // copy the scanned string to its position in the result vector
-        while (pos + 1 < offsetsToScan.size() &&
-               offsetsToScan[pos + 1].first == offsetsToScan[pos].first) {
-            pos++;
-            resultVector->setValue<ku_string_t>(offsetsToScan[pos].second, scannedString);
+    std::vector<string_offset_t> offsets;
+    auto numOffsetsPerPage = offsetState.metadata.compMeta.numValues(
+        BufferPoolConstants::PAGE_4KB_SIZE, offsetColumn->getDataType());
+    auto startPos = 0u;
+    do {
+        auto chunkToScan = std::span(&*offsetsToScan.begin(), &*offsetsToScan.end());
+        // Note that the list will contain duplicates when indices are duplicated.
+        // Each distinct value is scanned once, and re-used when writing to each output value
+        offset_t numOffsetsToScan, chunkStartOffset;
+        if (hasHighDuplication) {
+            chunkToScan = getNextRange(offsetsToScan, startPos, numOffsetsPerPage);
+            numOffsetsToScan = chunkToScan.back().first - chunkToScan.front().first + 1;
+            chunkStartOffset = chunkToScan.begin()->first;
+        } else {
+            // If there isn't much duplication, just scan the entire range of offsets at once
+            // The outer loop will only execute once.
+            const auto& [min, max] =
+                std::minmax_element(chunkToScan.begin(), chunkToScan.end(), comp);
+            numOffsetsToScan = max->first - min->first + 1;
+            chunkStartOffset = min->first;
         }
-    }
+        // One extra offset to scan for the end offset of the last string
+        if (numOffsetsToScan + 1 > offsets.size()) {
+            offsets.resize(numOffsetsToScan + 1);
+        }
+        auto chunkSize = chunkToScan.size();
+        scanOffsets(transaction, offsetState, offsets.data(), chunkStartOffset, numOffsetsToScan,
+            dataState.metadata.numValues);
+
+        while (!chunkToScan.empty()) {
+            auto& iter = chunkToScan.front();
+            auto startOffset = offsets[iter.first - chunkStartOffset];
+            auto endOffset = offsets[iter.first - chunkStartOffset + 1];
+            scanValueToVector(transaction, dataState, startOffset, endOffset, resultVector,
+                iter.second);
+            auto& scannedString = resultVector->getValue<ku_string_t>(iter.second);
+            // For each string which has the same index in the dictionary as the one we scanned,
+            // copy the scanned string to its position in the result vector
+            chunkToScan = chunkToScan.subspan(1);
+            while (chunkToScan.size() > 0 && chunkToScan.begin()->first == iter.first) {
+                resultVector->setValue<ku_string_t>(chunkToScan.begin()->second, scannedString);
+                chunkToScan = chunkToScan.subspan(1);
+            }
+        }
+        startPos += chunkSize;
+    } while (startPos < offsetsToScan.size());
 }
 
 string_index_t DictionaryColumn::append(Column::ChunkState& state, std::string_view val) {
