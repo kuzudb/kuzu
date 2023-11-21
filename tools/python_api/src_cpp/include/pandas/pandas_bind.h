@@ -27,6 +27,7 @@ struct PandasColumnBindData {
         : npType{npType}, pandasCol{std::move(pandasCol)}, mask{std::move(mask)} {}
 
     std::unique_ptr<PandasColumnBindData> copy() {
+        py::gil_scoped_acquire acquire;
         return std::make_unique<PandasColumnBindData>(npType, pandasCol->copy(),
             mask == nullptr ? nullptr : std::make_unique<RegisteredArray>(mask->npArray));
     }
