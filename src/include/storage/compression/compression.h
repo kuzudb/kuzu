@@ -47,6 +47,8 @@ struct CompressionMetadata {
         const uint8_t* data, uint32_t pos, common::PhysicalTypeID physicalType) const;
     bool canAlwaysUpdateInPlace() const;
     inline bool isConstant() const { return compression == CompressionType::CONSTANT; }
+
+    std::string toString() const;
 };
 
 class CompressionAlg {

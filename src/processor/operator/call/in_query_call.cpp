@@ -12,7 +12,7 @@ common::row_idx_t InQueryCallSharedState::getAndIncreaseRowIdx(uint64_t numRows)
     return curRowIdx;
 }
 
-void InQueryCall::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {
+void InQueryCall::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     localState = std::make_unique<InQueryCallLocalState>();
     localState->outputChunk = std::make_unique<DataChunk>(inQueryCallInfo->outputPoses.size(),
         resultSet->getDataChunk(inQueryCallInfo->outputPoses[0].dataChunkPos)->state);
@@ -23,7 +23,7 @@ void InQueryCall::initLocalStateInternal(ResultSet* resultSet, ExecutionContext*
     localState->rowIDVector = resultSet->getValueVector(inQueryCallInfo->rowIDPos).get();
     function::TableFunctionInitInput tableFunctionInitInput{inQueryCallInfo->bindData.get()};
     localState->localState = inQueryCallInfo->function->initLocalStateFunc(
-        tableFunctionInitInput, sharedState->sharedState.get());
+        tableFunctionInitInput, sharedState->sharedState.get(), context->memoryManager);
     localState->tableFunctionInput = function::TableFunctionInput{inQueryCallInfo->bindData.get(),
         localState->localState.get(), sharedState->sharedState.get()};
 }

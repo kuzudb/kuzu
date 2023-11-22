@@ -76,7 +76,7 @@ public:
     bool checkIfNodeHasRels(
         transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector);
     void append(NodeGroup* nodeGroup) override;
-    void resizeColumns(common::node_group_idx_t nodeGroupIdx);
+    void resizeColumns(common::node_group_idx_t numNodeGroups);
 
     inline Column* getAdjColumn() const { return adjColumn.get(); }
     inline common::ColumnDataFormat getDataFormat() const { return dataFormat; }
@@ -85,6 +85,11 @@ public:
         transaction::Transaction* transaction, LocalTableData* localTable) override;
     void checkpointInMemory() override;
     void rollbackInMemory() override;
+
+    inline common::node_group_idx_t getNumNodeGroups(
+        transaction::Transaction* transaction) const override {
+        return adjColumn->getNumNodeGroups(transaction);
+    }
 
 private:
     LocalRelNG* getLocalNodeGroup(

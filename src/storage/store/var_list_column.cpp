@@ -19,6 +19,19 @@ common::offset_t ListOffsetInfoInStorage::getListOffset(uint64_t nodePos) const 
     }
 }
 
+VarListColumn::VarListColumn(std::string name, std::unique_ptr<LogicalType> dataType,
+    const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
+    BufferManager* bufferManager, WAL* wal, Transaction* transaction,
+    RWPropertyStats propertyStatistics, bool enableCompression)
+    : Column{name, std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
+          transaction, propertyStatistics, enableCompression, true /* requireNullColumn */} {
+    auto dataColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::DATA, "");
+    dataColumn = ColumnFactory::createColumn(dataColName,
+        common::VarListType::getChildType(this->dataType.get())->copy(),
+        *metaDAHeaderInfo.childrenInfos[0], dataFH, metadataFH, bufferManager, wal, transaction,
+        propertyStatistics, enableCompression);
+}
+
 void VarListColumn::scan(Transaction* transaction, node_group_idx_t nodeGroupIdx,
     offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
     uint64_t offsetInVector) {

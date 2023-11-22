@@ -82,7 +82,7 @@ void SerialCSVScan::tableFunc(TableFunctionInput& input, DataChunk& outputChunk)
 
 std::unique_ptr<function::TableFuncBindData> SerialCSVScan::bindFunc(
     main::ClientContext* /*context*/, function::TableFuncBindInput* input,
-    catalog::Catalog* /*catalog*/) {
+    catalog::Catalog* /*catalog*/, storage::StorageManager* /*storageManager*/) {
     auto scanInput = reinterpret_cast<function::ScanTableFuncBindInput*>(input);
     std::vector<std::string> detectedColumnNames;
     std::vector<std::unique_ptr<common::LogicalType>> detectedColumnTypes;
@@ -110,7 +110,8 @@ std::unique_ptr<function::TableFuncSharedState> SerialCSVScan::initSharedState(
 }
 
 std::unique_ptr<function::TableFuncLocalState> SerialCSVScan::initLocalState(
-    function::TableFunctionInitInput& /*input*/, function::TableFuncSharedState* /*state*/) {
+    function::TableFunctionInitInput& /*input*/, function::TableFuncSharedState* /*state*/,
+    storage::MemoryManager* /*mm*/) {
     return std::make_unique<function::TableFuncLocalState>();
 }
 

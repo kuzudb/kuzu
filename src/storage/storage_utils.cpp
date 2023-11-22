@@ -11,6 +11,40 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
+std::string StorageUtils::getColumnName(
+    const std::string& propertyName, StorageUtils::ColumnType type, const std::string& prefix) {
+    switch (type) {
+    case StorageUtils::ColumnType::DATA: {
+        return stringFormat("{}_data", propertyName);
+    } break;
+    case StorageUtils::ColumnType::NULL_MASK: {
+        return stringFormat("{}_null", propertyName);
+    } break;
+    case StorageUtils::ColumnType::INDEX: {
+        return stringFormat("{}_index", propertyName);
+    } break;
+    case StorageUtils::ColumnType::OFFSET: {
+        return stringFormat("{}_offset", propertyName);
+    } break;
+    case StorageUtils::ColumnType::CSR_OFFSET: {
+        return stringFormat("{}_csr_offset", propertyName);
+    } break;
+    case StorageUtils::ColumnType::ADJ: {
+        return stringFormat("{}_adj", prefix);
+    } break;
+    case StorageUtils::ColumnType::STRUCT_CHILD: {
+        return stringFormat("{}_{}_child", propertyName, prefix);
+    } break;
+    default: {
+        if (prefix.empty()) {
+            return propertyName;
+        } else {
+            return stringFormat("{}_{}", prefix, propertyName);
+        }
+    }
+    }
+}
+
 std::string StorageUtils::getNodeIndexFName(
     const std::string& directory, const table_id_t& tableID, FileVersionType fileVersionType) {
     auto fName = stringFormat("n-{}", tableID);

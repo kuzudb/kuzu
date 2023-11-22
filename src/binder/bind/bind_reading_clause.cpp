@@ -127,7 +127,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         catalog.getBuiltInFunctions()->matchScalarFunction(funcName, inputTypes));
     auto bindInput = std::make_unique<function::TableFuncBindInput>();
     bindInput->inputs = std::move(inputValues);
-    auto bindData = tableFunction->bindFunc(clientContext, bindInput.get(), (Catalog*)&catalog);
+    auto bindData =
+        tableFunction->bindFunc(clientContext, bindInput.get(), (Catalog*)&catalog, storageManager);
     expression_vector columns;
     for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
         columns.push_back(createVariable(bindData->columnNames[i], *bindData->columnTypes[i]));
@@ -173,7 +174,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(
     auto scanFunction = getScanFunction(readerConfig->fileType, *readerConfig);
     auto bindInput = std::make_unique<function::ScanTableFuncBindInput>(memoryManager,
         *readerConfig, std::move(expectedColumnNames), std::move(expectedColumnTypes));
-    auto bindData = scanFunction->bindFunc(clientContext, bindInput.get(), (Catalog*)&catalog);
+    auto bindData =
+        scanFunction->bindFunc(clientContext, bindInput.get(), (Catalog*)&catalog, storageManager);
     expression_vector columns;
     for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
         columns.push_back(createVariable(bindData->columnNames[i], *bindData->columnTypes[i]));

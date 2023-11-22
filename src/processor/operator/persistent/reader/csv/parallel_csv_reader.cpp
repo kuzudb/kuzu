@@ -161,7 +161,7 @@ void ParallelCSVScan::tableFunc(TableFunctionInput& input, common::DataChunk& ou
 
 std::unique_ptr<function::TableFuncBindData> ParallelCSVScan::bindFunc(
     main::ClientContext* /*context*/, function::TableFuncBindInput* input,
-    catalog::Catalog* /*catalog*/) {
+    catalog::Catalog* /*catalog*/, storage::StorageManager* /*storageManager*/) {
     auto scanInput = reinterpret_cast<function::ScanTableFuncBindInput*>(input);
     std::vector<std::string> detectedColumnNames;
     std::vector<std::unique_ptr<common::LogicalType>> detectedColumnTypes;
@@ -189,7 +189,8 @@ std::unique_ptr<function::TableFuncSharedState> ParallelCSVScan::initSharedState
 }
 
 std::unique_ptr<function::TableFuncLocalState> ParallelCSVScan::initLocalState(
-    function::TableFunctionInitInput& /*input*/, function::TableFuncSharedState* state) {
+    function::TableFunctionInitInput& /*input*/, function::TableFuncSharedState* state,
+    storage::MemoryManager* /*mm*/) {
     auto localState = std::make_unique<ParallelCSVLocalState>();
     auto sharedState = reinterpret_cast<ParallelCSVScanSharedState*>(state);
     auto csvConfig =

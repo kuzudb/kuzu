@@ -252,7 +252,7 @@ void NpyScanFunction::tableFunc(TableFunctionInput& input, DataChunk& outputChun
 
 std::unique_ptr<function::TableFuncBindData> NpyScanFunction::bindFunc(
     main::ClientContext* /*context*/, function::TableFuncBindInput* input,
-    catalog::Catalog* /*catalog*/) {
+    catalog::Catalog* /*catalog*/, storage::StorageManager* /*storageManager*/) {
     auto scanInput = reinterpret_cast<function::ScanTableFuncBindInput*>(input);
 
     std::vector<std::string> detectedColumnNames;
@@ -284,7 +284,8 @@ std::unique_ptr<function::TableFuncSharedState> NpyScanFunction::initSharedState
 }
 
 std::unique_ptr<function::TableFuncLocalState> NpyScanFunction::initLocalState(
-    function::TableFunctionInitInput& /*input*/, function::TableFuncSharedState* /*state*/) {
+    function::TableFunctionInitInput& /*input*/, function::TableFuncSharedState* /*state*/,
+    storage::MemoryManager* /*mm*/) {
     return std::make_unique<function::TableFuncLocalState>();
 }
 

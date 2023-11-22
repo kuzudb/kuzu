@@ -622,7 +622,7 @@ void ParquetScanFunction::tableFunc(TableFunctionInput& input, DataChunk& output
 
 std::unique_ptr<function::TableFuncBindData> ParquetScanFunction::bindFunc(
     main::ClientContext* /*context*/, function::TableFuncBindInput* input,
-    catalog::Catalog* /*catalog*/) {
+    catalog::Catalog* /*catalog*/, storage::StorageManager* /*storageManager*/) {
     auto scanInput = reinterpret_cast<function::ScanTableFuncBindInput*>(input);
     std::vector<std::string> detectedColumnNames;
     std::vector<std::unique_ptr<common::LogicalType>> detectedColumnTypes;
@@ -652,7 +652,8 @@ std::unique_ptr<function::TableFuncSharedState> ParquetScanFunction::initSharedS
 }
 
 std::unique_ptr<function::TableFuncLocalState> ParquetScanFunction::initLocalState(
-    TableFunctionInitInput& /*input*/, TableFuncSharedState* state) {
+    TableFunctionInitInput& /*input*/, TableFuncSharedState* state,
+    storage::MemoryManager* /*mm*/) {
     auto parquetScanSharedState = reinterpret_cast<ParquetScanSharedState*>(state);
     auto localState = std::make_unique<ParquetScanLocalState>();
     if (!parquetSharedStateNext(*localState, *parquetScanSharedState)) {

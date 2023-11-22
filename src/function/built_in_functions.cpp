@@ -782,6 +782,7 @@ void BuiltInFunctions::registerTableFunctions() {
     functions.insert({READ_CSV_SERIAL_FUNC_NAME, processor::SerialCSVScan::getFunctionSet()});
     functions.insert({READ_CSV_PARALLEL_FUNC_NAME, processor::ParallelCSVScan::getFunctionSet()});
     functions.insert({READ_RDF_FUNC_NAME, processor::RdfScan::getFunctionSet()});
+    functions.insert({STORAGE_INFO_FUNC_NAME, StorageInfoFunction::getFunctionSet()});
 }
 
 void BuiltInFunctions::addFunction(std::string name, function::function_set definitions) {

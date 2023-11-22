@@ -29,13 +29,14 @@ struct PandasScanFunction {
     static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
 
     static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-        function::TableFuncBindInput* input, catalog::Catalog* catalog);
+        function::TableFuncBindInput* input, catalog::Catalog* catalog, storage::StorageManager* /*storageManager*/);
 
     static std::unique_ptr<function::TableFuncSharedState> initSharedState(
         function::TableFunctionInitInput& input);
 
     static std::unique_ptr<function::TableFuncLocalState> initLocalState(
-        function::TableFunctionInitInput& input, function::TableFuncSharedState* state);
+        function::TableFunctionInitInput& input, function::TableFuncSharedState* state,
+        storage::MemoryManager* /*mm*/);
 
     static bool sharedStateNext(const function::TableFuncBindData* bindData,
         PandasScanLocalState* localState, function::TableFuncSharedState* sharedState);

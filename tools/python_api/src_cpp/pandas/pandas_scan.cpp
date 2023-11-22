@@ -20,7 +20,8 @@ function_set PandasScanFunction::getFunctionSet() {
 }
 
 std::unique_ptr<function::TableFuncBindData> PandasScanFunction::bindFunc(
-    main::ClientContext* /*context*/, TableFuncBindInput* input, Catalog* /*catalog*/) {
+    main::ClientContext* /*context*/, TableFuncBindInput* input, Catalog* /*catalog*/,
+    storage::StorageManager* /*storageManager*/) {
     py::gil_scoped_acquire acquire;
     py::handle df(reinterpret_cast<PyObject*>(input->inputs[0]->getValue<uint8_t*>()));
     std::vector<std::unique_ptr<PandasColumnBindData>> columnBindData;
@@ -54,7 +55,8 @@ bool PandasScanFunction::sharedStateNext(const TableFuncBindData* /*bindData*/,
 }
 
 std::unique_ptr<function::TableFuncLocalState> PandasScanFunction::initLocalState(
-    function::TableFunctionInitInput& input, function::TableFuncSharedState* sharedState) {
+    function::TableFunctionInitInput& input, function::TableFuncSharedState* sharedState,
+    storage::MemoryManager* /*mm*/) {
     auto localState = std::make_unique<PandasScanLocalState>(0 /* start */, 0 /* end */);
     sharedStateNext(input.bindData, localState.get(), sharedState);
     return std::move(localState);

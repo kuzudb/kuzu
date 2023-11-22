@@ -9,7 +9,7 @@ class StringColumn final : public Column {
 public:
     using string_offset_t = uint64_t;
     using string_index_t = uint32_t;
-    StringColumn(std::unique_ptr<common::LogicalType> dataType,
+    StringColumn(std::string name, std::unique_ptr<common::LogicalType> dataType,
         const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
         BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
         RWPropertyStats propertyStatistics, bool enableCompression);

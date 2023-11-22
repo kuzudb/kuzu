@@ -83,6 +83,20 @@ struct PageUtils {
 
 class StorageUtils {
 public:
+    enum class ColumnType {
+        DEFAULT = 0,
+        INDEX = 1,  // This is used for index columns in STRING columns.
+        OFFSET = 2, // This is used for offset columns in VAR_LIST and STRING columns.
+        DATA = 3,   // This is used for data columns in VAR_LIST and STRING columns.
+        CSR_OFFSET = 4,
+        ADJ = 5,
+        STRUCT_CHILD = 6,
+        NULL_MASK = 7,
+    };
+
+    static std::string getColumnName(
+        const std::string& propertyName, ColumnType type, const std::string& prefix);
+
     static inline common::offset_t getStartOffsetOfNodeGroup(
         common::node_group_idx_t nodeGroupIdx) {
         return nodeGroupIdx << common::StorageConstants::NODE_GROUP_SIZE_LOG2;
