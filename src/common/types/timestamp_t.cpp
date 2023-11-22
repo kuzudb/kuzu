@@ -2,6 +2,7 @@
 
 #include "common/exception/conversion.h"
 #include "common/string_utils.h"
+#include "function/arithmetic/multiply.h"
 
 namespace kuzu {
 namespace common {
@@ -261,12 +262,19 @@ timestamp_t Timestamp::fromEpochMicroSeconds(int64_t micros) {
 }
 
 timestamp_t Timestamp::fromEpochMilliSeconds(int64_t ms) {
-    return fromEpochMicroSeconds(ms * Interval::MICROS_PER_MSEC);
+    int64_t microSeconds;
+    function::Multiply::operation(ms, Interval::MICROS_PER_MSEC, microSeconds);
+    return fromEpochMicroSeconds(microSeconds);
 }
 
+// LCOV_EXCL_START
+// TODO(Kebing): will add the tests in the timestamp PR
 timestamp_t Timestamp::fromEpochSeconds(int64_t sec) {
-    return fromEpochMicroSeconds(sec * Interval::MICROS_PER_SEC);
+    int64_t microSeconds;
+    function::Multiply::operation(sec, Interval::MICROS_PER_SEC, microSeconds);
+    return fromEpochMicroSeconds(microSeconds);
 }
+// LCOV_EXCL_STOP
 
 timestamp_t Timestamp::fromEpochNanoSeconds(int64_t ns) {
     return fromEpochMicroSeconds(ns / 1000);
@@ -320,7 +328,9 @@ timestamp_t Timestamp::trunc(DatePartSpecifier specifier, timestamp_t& timestamp
 }
 
 int64_t Timestamp::getEpochNanoSeconds(const timestamp_t& timestamp) {
-    return timestamp.value * Interval::NANOS_PER_MICRO;
+    int64_t result;
+    function::Multiply::operation(timestamp.value, Interval::NANOS_PER_MICRO, result);
+    return result;
 }
 
 } // namespace common

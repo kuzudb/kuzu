@@ -4,6 +4,7 @@
 #include "common/types/interval_t.h"
 #include "common/types/timestamp_t.h"
 #include "function/arithmetic/arithmetic_functions.h"
+#include "function/arithmetic/multiply.h"
 #include "function/list/functions/list_concat_function.h"
 #include "function/list/vector_list_functions.h"
 #include "function/string/functions/concat_function.h"

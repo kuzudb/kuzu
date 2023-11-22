@@ -4,8 +4,6 @@
 --
 
 -CASE FunctionArithmetic
-
-
 -LOG moduloFunctionOnUINT16UINT8Test
 -STATEMENT MATCH (:person)-[a:studyAt]->(:organisation) RETURN a.ulength % a.ulevel
 ---- 3
@@ -535,4 +533,16 @@
 ---- 1
 170141183460469231731687303715884105727
 
+-LOG MultiplyTest
+-STATEMENT RETURN cast(-2, "INT8") * cast(64, "INT8"), cast(-2, "INT16") * cast(16384, "INT16"), cast(-5, "INT32") * cast(5, "INT32"), cast(-5, "INT64") * cast(5, "INT64"), cast(-5, "INT128") * cast(5, "INT128"), cast(10, "UINT8") * cast(12, "UINT8"), cast(10, "UINT16") * cast(12, "UINT16"), cast(10, "UINT32") * cast(12, "UINT32"), cast(10, "UINT64") * cast(12, "UINT64"), cast(4324.123, "FLOAT") * cast(4324.123, "FLOAT"), cast(4324.123, "DOUBLE") * cast(4324.123, "DOUBLE");
+---- 1
+-128|-32768|-25|-25|-25|120|120|120|120|18698040.000000|18698039.719129
+-STATEMENT MATCH (:person)-[a:studyAt]->(:organisation) WHERE a.ulength > 3 RETURN a.ulength, a.ulevel, cast(a.ulength, "INT64") * cast(a.ulevel, "INT64");
+---- 3
+180|12|2160
+33768|250|8442000
+90|220|19800
+-STATEMENT RETURN cast(4294967295, "UINT64") * cast(4294967295, "UINT64");
+---- 1
+18446744065119617025
 
