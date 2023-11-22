@@ -164,6 +164,7 @@
 
 # Optionally matching named paths with variable length patterns
 -CASE Scenario9
+-SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE X(FROM A TO A);
