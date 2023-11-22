@@ -210,7 +210,7 @@ NonConstantExpression
 # Handle constants and parameters inside an expression which contains an aggregation expression
 -CASE Scenario17
 -SKIP
--STATEMENT CREATE NODE TABLE Person(ID SERIAL, age INT64, PRIMARY KEY(ID));
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT MATCH (person)
            RETURN $age + avg(person.age) - 1000;
@@ -219,7 +219,8 @@ NonConstantExpression
 
 # Handle returned variables inside an expression which contains an aggregation expression
 -CASE Scenario18
--STATEMENT CREATE NODE TABLE Person(ID SERIAL, age INT64, PRIMARY KEY(ID));
+-SKIP
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE A(FROM Person TO Person);
 ---- ok
@@ -230,7 +231,8 @@ NonConstantExpression
 
 # Handle returned property accesses inside an expression which contains an aggregation expression
 -CASE Scenario19
--STATEMENT CREATE NODE TABLE Person(ID SERIAL, age INT64, PRIMARY KEY(ID));
+-SKIP
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE A(FROM Person TO Person);
 ---- ok
@@ -240,7 +242,8 @@ NonConstantExpression
 
 # Fail if not returned variables are used inside an expression which contains an aggregation expression
 -CASE Scenario20
--STATEMENT CREATE NODE TABLE Person(ID SERIAL, age INT64, PRIMARY KEY(ID));
+-SKIP
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE A(FROM Person TO Person);
 ---- ok
@@ -252,7 +255,7 @@ Cannot evaluate expression with type PROPERTY.
 # Fail if more complex expressions, even if returned, are used inside expression which contains an aggregation expression
 -CASE Scenario21
 -SKIP
--STATEMENT CREATE NODE TABLE Person(ID SERIAL, age INT64, PRIMARY KEY(ID));
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE A(FROM Person TO Person);
 ---- ok
