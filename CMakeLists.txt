@@ -4,12 +4,12 @@ project(Kuzu VERSION 0.1.0 LANGUAGES CXX C)
 
 find_package(Threads REQUIRED)
 
-set(CMAKE_FIND_PACKAGE_RESOLVE_SYMLINKS TRUE)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_C_VISIBILITY_PRESET hidden)
+set(CMAKE_FIND_PACKAGE_RESOLVE_SYMLINKS TRUE)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
 
 option(ENABLE_WERROR "Treat all warnings as errors" FALSE)
@@ -76,6 +76,7 @@ option(ENABLE_ADDRESS_SANITIZER "Enable address sanitizer." FALSE)
 option(ENABLE_THREAD_SANITIZER "Enable thread sanitizer." FALSE)
 option(ENABLE_UBSAN "Enable undefined behavior sanitizer." FALSE)
 option(ENABLE_RUNTIME_CHECKS "Enable runtime coherency checks (e.g. asserts)" FALSE)
+option(ENABLE_LTO "Enable Link-Time Optimization" FALSE)
 if(MSVC)
     # Required for M_PI on Windows
     add_compile_definitions(_USE_MATH_DEFINES)
@@ -131,6 +132,10 @@ endif()
 
 if(${ENABLE_RUNTIME_CHECKS})
     add_compile_definitions(KUZU_RUNTIME_CHECKS)
+endif()
+
+if(${ENABLE_LTO})
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()
 
 option(BUILD_BENCHMARK "Build benchmarks." FALSE)
