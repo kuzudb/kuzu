@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include <optional>
 
 #include "common/types/types.h"
 
@@ -12,6 +13,7 @@ class ValueVector;
 }
 
 namespace storage {
+class ColumnChunk;
 
 struct PageElementCursor;
 
@@ -19,12 +21,12 @@ struct PageElementCursor;
 uint32_t getDataTypeSizeInChunk(const common::LogicalType& dataType);
 
 // Compression type is written to the data header both so we can usually catch issues when we
-// decompress uncompressed data by mistake, and to allow for runtime-configurable compression in
-// future.
+// decompress uncompressed data by mistake, and to allow for runtime-configurable compression.
 enum class CompressionType : uint8_t {
     UNCOMPRESSED = 0,
     INTEGER_BITPACKING = 1,
     BOOLEAN_BITPACKING = 2,
+    CONSTANT = 3,
 };
 
 struct CompressionMetadata {
@@ -44,6 +46,7 @@ struct CompressionMetadata {
     bool canUpdateInPlace(
         const uint8_t* data, uint32_t pos, common::PhysicalTypeID physicalType) const;
     bool canAlwaysUpdateInPlace() const;
+    inline bool isConstant() const { return compression == CompressionType::CONSTANT; }
 };
 
 class CompressionAlg {
@@ -89,11 +92,51 @@ public:
         const CompressionMetadata& metadata) const = 0;
 };
 
+class ConstantCompression final : public CompressionAlg {
+public:
+    explicit ConstantCompression(const common::LogicalType& logicalType)
+        : numBytesPerValue{static_cast<uint8_t>(getDataTypeSizeInChunk(logicalType))},
+          dataType{logicalType.getPhysicalType()} {}
+    static std::optional<CompressionMetadata> analyze(const ColumnChunk& chunk);
+    template<typename T>
+    static const T& getValue(const CompressionMetadata& metadata) {
+        return *reinterpret_cast<const T*>(metadata.data.data());
+    }
+
+    // Shouldn't be used, there's a special case when compressing which ends early for constant
+    // compression
+    uint64_t compressNextPage(const uint8_t*&, uint64_t, uint8_t*, uint64_t,
+        const struct CompressionMetadata&) const override {
+        return 0;
+    };
+
+    void decompressFromPage(const uint8_t* /*srcBuffer*/, uint64_t /*srcOffset*/,
+        uint8_t* dstBuffer, uint64_t dstOffset, uint64_t numValues,
+        const CompressionMetadata& metadata) const override;
+
+    void copyFromPage(const uint8_t* /*srcBuffer*/, uint64_t /*srcOffset*/, uint8_t* dstBuffer,
+        uint64_t dstOffset, uint64_t numValues, const CompressionMetadata& metadata) const;
+
+    // Shouldn't be used. No type exclusively uses constant compression
+    CompressionMetadata getCompressionMetadata(
+        const uint8_t* /*srcBuffer*/, uint64_t /*numValues*/) const override {
+        KU_UNREACHABLE;
+    }
+
+    // Nothing to do; constant compressed data is only updated if the update is to the same value
+    void setValuesFromUncompressed(const uint8_t*, common::offset_t, uint8_t*, common::offset_t,
+        common::offset_t, const CompressionMetadata&) const override{};
+
+private:
+    uint8_t numBytesPerValue;
+    common::PhysicalTypeID dataType;
+};
+
 // Compression alg which does not compress values and instead just copies them.
 class Uncompressed : public CompressionAlg {
 public:
     explicit Uncompressed(const common::LogicalType& logicalType)
-        : logicalType{logicalType}, numBytesPerValue{getDataTypeSizeInChunk(this->logicalType)} {}
+        : numBytesPerValue{getDataTypeSizeInChunk(logicalType)} {}
 
     Uncompressed(const Uncompressed&) = default;
 
@@ -136,7 +179,6 @@ public:
     }
 
 protected:
-    common::LogicalType logicalType;
     const uint32_t numBytesPerValue;
 };
 
@@ -254,7 +296,9 @@ public:
 
 protected:
     explicit CompressedFunctor(const common::LogicalType& logicalType)
-        : uncompressed{logicalType}, physicalType{logicalType.getPhysicalType()} {}
+        : constant{logicalType}, uncompressed{logicalType}, physicalType{
+                                                                logicalType.getPhysicalType()} {}
+    const ConstantCompression constant;
     const Uncompressed uncompressed;
     const BooleanBitpacking booleanBitpacking;
     const common::PhysicalTypeID physicalType;
@@ -266,7 +310,7 @@ public:
         : CompressedFunctor(logicalType) {}
     ReadCompressedValuesFromPageToVector(const ReadCompressedValuesFromPageToVector&) = default;
 
-    void operator()(uint8_t* frame, PageElementCursor& pageCursor,
+    void operator()(const uint8_t* frame, PageElementCursor& pageCursor,
         common::ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead,
         const CompressionMetadata& metadata);
 };
@@ -277,7 +321,7 @@ public:
         : CompressedFunctor(logicalType) {}
     ReadCompressedValuesFromPage(const ReadCompressedValuesFromPage&) = default;
 
-    void operator()(uint8_t* frame, PageElementCursor& pageCursor, uint8_t* result,
+    void operator()(const uint8_t* frame, PageElementCursor& pageCursor, uint8_t* result,
         uint32_t startPosInResult, uint64_t numValuesToRead, const CompressionMetadata& metadata);
 };
 
@@ -290,19 +334,9 @@ public:
     void operator()(uint8_t* frame, uint16_t posInFrame, const uint8_t* data,
         common::offset_t dataOffset, common::offset_t numValues,
         const CompressionMetadata& metadata);
-};
-
-class WriteCompressedValueToPageFromVector {
-public:
-    explicit WriteCompressedValueToPageFromVector(const common::LogicalType& logicalType)
-        : writeFunc(logicalType) {}
-    WriteCompressedValueToPageFromVector(const WriteCompressedValueToPageFromVector&) = default;
 
     void operator()(uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector,
         uint32_t posInVector, const CompressionMetadata& metadata);
-
-private:
-    WriteCompressedValuesToPage writeFunc;
 };
 
 } // namespace storage

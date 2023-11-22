@@ -18,10 +18,10 @@ static const uint64_t OFFSET_CHUNK_INITIAL_CAPACITY = StorageConstants::NODE_GRO
 
 StringColumnChunk::StringColumnChunk(
     std::unique_ptr<LogicalType> dataType, uint64_t capacity, bool enableCompression)
-    : ColumnChunk{std::move(dataType), capacity, enableCompression},
-      enableCompression(enableCompression), needFinalize{false} {
+    : ColumnChunk{std::move(dataType), capacity, enableCompression}, needFinalize{false} {
     // Bitpacking might save 1 bit per value with regular ascii compared to UTF-8
-    stringDataChunk = ColumnChunkFactory::createColumnChunk(LogicalType::UINT8(), false);
+    stringDataChunk =
+        ColumnChunkFactory::createColumnChunk(LogicalType::UINT8(), false /*enableCompression*/);
     offsetChunk = ColumnChunkFactory::createColumnChunk(
         LogicalType::UINT64(), enableCompression, OFFSET_CHUNK_INITIAL_CAPACITY);
 }

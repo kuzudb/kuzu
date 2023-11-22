@@ -40,8 +40,8 @@ public:
     inline void setAllNonNull() { nullMask->setAllNonNull(); }
     // On return true, there are no null. On return false, there may or may not be nulls.
     inline bool hasNoNullsGuarantee() const { return nullMask->hasNoNullsGuarantee(); }
-    inline void setRangeNonNull(uint32_t startPos, uint32_t len) {
-        nullMask->setNullFromRange(startPos, len, false);
+    inline void setNullRange(uint32_t startPos, uint32_t len, bool value) {
+        nullMask->setNullFromRange(startPos, len, value);
     }
     inline const uint64_t* getNullMaskData() { return nullMask->getData(); }
     KUZU_API void setNull(uint32_t pos, bool isNull);

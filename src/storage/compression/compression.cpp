@@ -19,18 +19,18 @@ namespace kuzu {
 namespace storage {
 
 uint32_t getDataTypeSizeInChunk(const common::LogicalType& dataType) {
-    using namespace common;
-    switch (dataType.getLogicalTypeID()) {
-    case LogicalTypeID::SERIAL:
-    case LogicalTypeID::STRUCT: {
+    if (dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
         return 0;
     }
-    case LogicalTypeID::STRING:
-    case LogicalTypeID::BLOB: {
+    switch (dataType.getPhysicalType()) {
+    case PhysicalTypeID::STRUCT: {
+        return 0;
+    }
+    case PhysicalTypeID::STRING: {
         return sizeof(uint32_t);
     }
-    case LogicalTypeID::VAR_LIST:
-    case LogicalTypeID::INTERNAL_ID: {
+    case PhysicalTypeID::VAR_LIST:
+    case PhysicalTypeID::INTERNAL_ID: {
         return sizeof(offset_t);
     }
     default: {
@@ -47,6 +47,7 @@ bool CompressionMetadata::canAlwaysUpdateInPlace() const {
     case CompressionType::UNCOMPRESSED: {
         return true;
     }
+    case CompressionType::CONSTANT:
     case CompressionType::INTEGER_BITPACKING: {
         return false;
     }
@@ -62,6 +63,11 @@ bool CompressionMetadata::canUpdateInPlace(
         return true;
     }
     switch (compression) {
+    case CompressionType::CONSTANT: {
+        // Value can be updated in place only if it is identical to the value already stored.
+        auto size = PhysicalTypeUtils::getFixedTypeSize(physicalType);
+        return memcmp(data + pos * size, this->data.data(), size) == 0;
+    }
     case CompressionType::BOOLEAN_BITPACKING:
     case CompressionType::UNCOMPRESSED: {
         return true;
@@ -127,6 +133,9 @@ bool CompressionMetadata::canUpdateInPlace(
 
 uint64_t CompressionMetadata::numValues(uint64_t pageSize, const LogicalType& dataType) const {
     switch (compression) {
+    case CompressionType::CONSTANT: {
+        return std::numeric_limits<uint64_t>::max();
+    }
     case CompressionType::UNCOMPRESSED: {
         return Uncompressed::numValues(pageSize, dataType);
     }
@@ -168,6 +177,88 @@ uint64_t CompressionMetadata::numValues(uint64_t pageSize, const LogicalType& da
         throw common::StorageException(
             "Unknown compression type with ID " + std::to_string((uint8_t)compression));
     }
+    }
+}
+
+std::optional<CompressionMetadata> ConstantCompression::analyze(const ColumnChunk& chunk) {
+    switch (chunk.getDataType()->getPhysicalType()) {
+    // Only values that can fit in the CompressionMetadata's data field can use constant compression
+    case PhysicalTypeID::BOOL: {
+        if (chunk.getCapacity() == 0) {
+            std::array<uint8_t, CompressionMetadata::DATA_SIZE> value;
+            std::fill(value.data(), value.data() + value.size(), 0);
+            return std::optional(CompressionMetadata(CompressionType::CONSTANT, value));
+        }
+        auto firstValue = chunk.getValue<bool>(0);
+
+        // TODO(bmwinger): This could be optimized. We could do bytewise comparison with memcmp,
+        // but we need to make sure to stop at the end of the values to avoid false positives
+        for (auto i = 1u; i < chunk.getNumValues(); i++) {
+            // If any value is different from the first one, we can't use constant compression
+            if (firstValue != chunk.getValue<bool>(i)) {
+                return std::nullopt;
+            }
+        }
+        std::array<uint8_t, CompressionMetadata::DATA_SIZE> value;
+        std::fill(value.data(), value.data() + value.size(), 0);
+        if (chunk.getNumValues() > 0) {
+            value[0] = firstValue;
+        }
+        return std::optional(CompressionMetadata(CompressionType::CONSTANT, value));
+    }
+    case PhysicalTypeID::VAR_LIST:
+    case PhysicalTypeID::STRING:
+    case PhysicalTypeID::INTERNAL_ID:
+    case PhysicalTypeID::DOUBLE:
+    case PhysicalTypeID::FLOAT:
+    case PhysicalTypeID::UINT8:
+    case PhysicalTypeID::UINT16:
+    case PhysicalTypeID::UINT32:
+    case PhysicalTypeID::UINT64:
+    case PhysicalTypeID::INT8:
+    case PhysicalTypeID::INT16:
+    case PhysicalTypeID::INT32:
+    case PhysicalTypeID::INT64: {
+        uint8_t size = chunk.getNumBytesPerValue();
+        KU_ASSERT(size <= CompressionMetadata::DATA_SIZE);
+        // If there are no values, or only one value, we will always use constant compression
+        // since the loop won't execute
+        for (auto i = 1u; i < chunk.getNumValues(); i++) {
+            // If any value is different from the first one, we can't use constant compression
+            if (std::memcmp(chunk.getData(), chunk.getData() + i * size, size) != 0) {
+                return std::nullopt;
+            }
+        }
+        std::array<uint8_t, CompressionMetadata::DATA_SIZE> value;
+        std::fill(value.data(), value.data() + value.size(), 0);
+        if (chunk.getNumValues() > 0) {
+            std::memcpy(value.data(), chunk.getData(), size);
+        }
+        return std::optional(CompressionMetadata(CompressionType::CONSTANT, value));
+    }
+    default: {
+        return std::optional<CompressionMetadata>();
+    }
+    }
+}
+
+void ConstantCompression::decompressFromPage(const uint8_t* /*srcBuffer*/, uint64_t /*srcOffset*/,
+    uint8_t* dstBuffer, uint64_t dstOffset, uint64_t numValues,
+    const CompressionMetadata& metadata) const {
+    for (auto i = 0u; i < numValues; i++) {
+        memcpy(
+            dstBuffer + (dstOffset + i) * numBytesPerValue, metadata.data.data(), numBytesPerValue);
+    }
+}
+
+void ConstantCompression::copyFromPage(const uint8_t* srcBuffer, uint64_t srcOffset,
+    uint8_t* dstBuffer, uint64_t dstOffset, uint64_t numValues,
+    const CompressionMetadata& metadata) const {
+    if (dataType == common::PhysicalTypeID::BOOL) {
+        common::NullMask::setNullRange(
+            reinterpret_cast<uint64_t*>(dstBuffer), dstOffset, numValues, metadata.data[0]);
+    } else {
+        decompressFromPage(srcBuffer, srcOffset, dstBuffer, dstOffset, numValues, metadata);
     }
 }
 
@@ -477,10 +568,13 @@ BitpackHeader BitpackHeader::readHeader(
     return header;
 }
 
-void ReadCompressedValuesFromPageToVector::operator()(uint8_t* frame, PageElementCursor& pageCursor,
-    common::ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead,
-    const CompressionMetadata& metadata) {
+void ReadCompressedValuesFromPageToVector::operator()(const uint8_t* frame,
+    PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
+    uint32_t numValuesToRead, const CompressionMetadata& metadata) {
     switch (metadata.compression) {
+    case CompressionType::CONSTANT:
+        return constant.decompressFromPage(frame, pageCursor.elemPosInPage, resultVector->getData(),
+            posInVector, numValuesToRead, metadata);
     case CompressionType::UNCOMPRESSED:
         return uncompressed.decompressFromPage(frame, pageCursor.elemPosInPage,
             resultVector->getData(), posInVector, numValuesToRead, metadata);
@@ -529,13 +623,18 @@ void ReadCompressedValuesFromPageToVector::operator()(uint8_t* frame, PageElemen
     case CompressionType::BOOLEAN_BITPACKING:
         return booleanBitpacking.decompressFromPage(frame, pageCursor.elemPosInPage,
             resultVector->getData(), posInVector, numValuesToRead, metadata);
+    default:
+        KU_UNREACHABLE;
     }
 }
 
-void ReadCompressedValuesFromPage::operator()(uint8_t* frame, PageElementCursor& pageCursor,
+void ReadCompressedValuesFromPage::operator()(const uint8_t* frame, PageElementCursor& pageCursor,
     uint8_t* result, uint32_t startPosInResult, uint64_t numValuesToRead,
     const CompressionMetadata& metadata) {
     switch (metadata.compression) {
+    case CompressionType::CONSTANT:
+        return constant.copyFromPage(
+            frame, pageCursor.elemPosInPage, result, startPosInResult, numValuesToRead, metadata);
     case CompressionType::UNCOMPRESSED:
         return uncompressed.decompressFromPage(
             frame, pageCursor.elemPosInPage, result, startPosInResult, numValuesToRead, metadata);
@@ -585,6 +684,8 @@ void ReadCompressedValuesFromPage::operator()(uint8_t* frame, PageElementCursor&
         // Reading into ColumnChunks should be done without decompressing for booleans
         return booleanBitpacking.copyFromPage(
             frame, pageCursor.elemPosInPage, result, startPosInResult, numValuesToRead, metadata);
+    default:
+        KU_UNREACHABLE;
     }
 }
 
@@ -592,6 +693,9 @@ void WriteCompressedValuesToPage::operator()(uint8_t* frame, uint16_t posInFrame
     const uint8_t* data, offset_t dataOffset, offset_t numValues,
     const CompressionMetadata& metadata) {
     switch (metadata.compression) {
+    case CompressionType::CONSTANT:
+        return constant.setValuesFromUncompressed(
+            data, dataOffset, frame, posInFrame, numValues, metadata);
     case CompressionType::UNCOMPRESSED:
         return uncompressed.setValuesFromUncompressed(
             data, dataOffset, frame, posInFrame, numValues, metadata);
@@ -640,12 +744,15 @@ void WriteCompressedValuesToPage::operator()(uint8_t* frame, uint16_t posInFrame
     case CompressionType::BOOLEAN_BITPACKING:
         return booleanBitpacking.setValuesFromUncompressed(
             data, dataOffset, frame, posInFrame, numValues, metadata);
+
+    default:
+        KU_UNREACHABLE;
     }
 }
 
-void WriteCompressedValueToPageFromVector::operator()(uint8_t* frame, uint16_t posInFrame,
+void WriteCompressedValuesToPage::operator()(uint8_t* frame, uint16_t posInFrame,
     common::ValueVector* vector, uint32_t posInVector, const CompressionMetadata& metadata) {
-    writeFunc(frame, posInFrame, vector->getData(), posInVector, 1, metadata);
+    (*this)(frame, posInFrame, vector->getData(), posInVector, 1, metadata);
 }
 
 } // namespace storage

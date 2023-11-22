@@ -58,8 +58,8 @@ private:
     // that will be written to. The position of the value, which determines the original page to
     // update, is computed from the given elementOffset and numElementsPerPage argument. Obtains
     // *and does not release* the lock original page. Pins and updates the WAL version of the
-    // page. Note that caller must ensure to unpin and release the WAL version of the page by
-    // calling StorageStructureUtils::unpinWALPageAndReleaseOriginalPageLock.
+    // page. The original page lock will be released when the WALPageIdxPosInPageAndFrame goes out
+    // of scope
     WALPageIdxPosInPageAndFrame createWALVersionOfPageIfNecessaryForElement(
         uint64_t elementOffset, uint64_t numElementsPerPage);
 

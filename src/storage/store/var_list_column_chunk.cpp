@@ -26,7 +26,7 @@ void VarListDataColumnChunk::resizeBuffer(uint64_t numValues) {
 VarListColumnChunk::VarListColumnChunk(
     std::unique_ptr<LogicalType> dataType, uint64_t capacity, bool enableCompression)
     : ColumnChunk{std::move(dataType), capacity, enableCompression, true /* hasNullChunk */},
-      enableCompression{enableCompression}, needFinalize{false} {
+      needFinalize{false} {
     varListDataColumnChunk =
         std::make_unique<VarListDataColumnChunk>(ColumnChunkFactory::createColumnChunk(
             VarListType::getChildType(this->dataType.get())->copy(), enableCompression,

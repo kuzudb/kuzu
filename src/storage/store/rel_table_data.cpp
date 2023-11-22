@@ -58,12 +58,12 @@ bool RelDataReadState::hasMoreToRead(transaction::Transaction* transaction) {
 }
 
 void RelDataReadState::populateCSRListEntries() {
-    auto csrOffsets = (offset_t*)csrOffsetChunk->getData();
     csrListEntries[0].offset = 0;
-    csrListEntries[0].size = csrOffsets[0];
+    csrListEntries[0].size = numNodes > 0 ? csrOffsetChunk->getValue<offset_t>(0) : 0;
     for (auto i = 1u; i < numNodes; i++) {
-        csrListEntries[i].offset = csrOffsets[i - 1];
-        csrListEntries[i].size = csrOffsets[i] - csrOffsets[i - 1];
+        csrListEntries[i].offset = csrOffsetChunk->getValue<offset_t>(i - 1);
+        csrListEntries[i].size =
+            csrOffsetChunk->getValue<offset_t>(i) - csrOffsetChunk->getValue<offset_t>(i - 1);
     }
 }
 
@@ -416,10 +416,11 @@ void RelTableData::prepareCommitForCSRColumns(
 }
 
 static std::pair<offset_t, offset_t> getCSRStartAndEndOffset(
-    offset_t offsetInNodeGroup, offset_t* csrOffsets) {
+    offset_t offsetInNodeGroup, const ColumnChunk& csrOffsets) {
     return offsetInNodeGroup == 0 ?
-               std::make_pair((offset_t)0, csrOffsets[offsetInNodeGroup]) :
-               std::make_pair(csrOffsets[offsetInNodeGroup - 1], csrOffsets[offsetInNodeGroup]);
+               std::make_pair((offset_t)0, csrOffsets.getValue<offset_t>(offsetInNodeGroup)) :
+               std::make_pair(csrOffsets.getValue<offset_t>(offsetInNodeGroup - 1),
+                   csrOffsets.getValue<offset_t>(offsetInNodeGroup));
 }
 
 static uint64_t findPosOfRelIDFromArray(
@@ -437,14 +438,13 @@ void RelTableData::prepareCommitCSRNGWithoutSliding(Transaction* transaction,
     ColumnChunk* relIDChunk, LocalRelNG* localNodeGroup) {
     // We can figure out the actual csr offset of each value to be updated based on csr and relID
     // chunks.
-    auto csrOffsets = (offset_t*)csrOffsetChunk->getData();
     auto relIDs = (offset_t*)relIDChunk->getData();
     for (auto columnID = 0u; columnID < columns.size(); columnID++) {
         std::map<offset_t, row_idx_t> csrOffsetToRowIdx;
         auto& updateInfo = relNodeGroupInfo->updateInfoPerChunk[columnID];
         for (auto& [offsetInChunk, relIDToRowIdx] : updateInfo) {
             auto [startCSROffset, endCSROffset] =
-                getCSRStartAndEndOffset(offsetInChunk, csrOffsets);
+                getCSRStartAndEndOffset(offsetInChunk, *csrOffsetChunk);
             for (auto [relID, rowIdx] : relIDToRowIdx) {
                 auto csrOffset =
                     findPosOfRelIDFromArray(relIDs, startCSROffset, endCSROffset, relID);
@@ -493,7 +493,6 @@ void RelTableData::prepareCommitCSRNGWithSliding(Transaction* transaction,
 
 std::unique_ptr<ColumnChunk> RelTableData::slideCSROffsetChunk(
     ColumnChunk* csrOffsetChunk, CSRRelNGInfo* relNodeGroupInfo) {
-    auto csrOffsets = (offset_t*)csrOffsetChunk->getData();
     auto slidedCSRChunk =
         ColumnChunkFactory::createColumnChunk(LogicalType::INT64(), enableCompression);
     int64_t currentCSROffset = 0;
@@ -501,8 +500,9 @@ std::unique_ptr<ColumnChunk> RelTableData::slideCSROffsetChunk(
     auto newNumSrcNodesInNG = currentNumSrcNodesInNG;
     for (auto offsetInNG = 0u; offsetInNG < currentNumSrcNodesInNG; offsetInNG++) {
         int64_t numRowsInCSR = offsetInNG == 0 ?
-                                   csrOffsets[offsetInNG] :
-                                   csrOffsets[offsetInNG] - csrOffsets[offsetInNG - 1];
+                                   csrOffsetChunk->getValue<offset_t>(offsetInNG) :
+                                   csrOffsetChunk->getValue<offset_t>(offsetInNG) -
+                                       csrOffsetChunk->getValue<offset_t>(offsetInNG - 1);
         KU_ASSERT(numRowsInCSR >= 0);
         int64_t numDeletions = relNodeGroupInfo->deleteInfo.contains(offsetInNG) ?
                                    relNodeGroupInfo->deleteInfo[offsetInNG].size() :
@@ -554,10 +554,9 @@ std::unique_ptr<ColumnChunk> RelTableData::slideCSRColumnChunk(Transaction* tran
     auto newColumnChunk = ColumnChunkFactory::createColumnChunk(
         column->getDataType()->copy(), enableCompression, newCapacity);
     auto currentNumSrcNodesInNG = csrOffsetChunk->getNumValues();
-    auto csrOffsets = (offset_t*)csrOffsetChunk->getData();
     auto relIDs = (offset_t*)relIDChunk->getData();
     for (auto offsetInNG = 0u; offsetInNG < currentNumSrcNodesInNG; offsetInNG++) {
-        auto [startCSROffset, endCSROffset] = getCSRStartAndEndOffset(offsetInNG, csrOffsets);
+        auto [startCSROffset, endCSROffset] = getCSRStartAndEndOffset(offsetInNG, *csrOffsetChunk);
         auto hasDeletions = deleteInfo.contains(offsetInNG);
         auto hasUpdates = updateInfo.contains(offsetInNG);
         auto hasInsertions = insertInfo.contains(offsetInNG);

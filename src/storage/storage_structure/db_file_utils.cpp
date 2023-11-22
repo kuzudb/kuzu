@@ -85,8 +85,10 @@ void DBFileUtils::unpinWALPageAndReleaseOriginalPageLock(WALPageIdxAndFrame& wal
 
 void DBFileUtils::unpinPageIdxInWALAndReleaseOriginalPageLock(page_idx_t pageIdxInWAL,
     page_idx_t originalPageIdx, BMFileHandle& fileHandle, BufferManager& bufferManager, WAL& wal) {
-    bufferManager.unpin(*wal.fileHandle, pageIdxInWAL);
-    fileHandle.releaseWALPageIdxLock(originalPageIdx);
+    if (originalPageIdx != INVALID_PAGE_IDX) {
+        bufferManager.unpin(*wal.fileHandle, pageIdxInWAL);
+        fileHandle.releaseWALPageIdxLock(originalPageIdx);
+    }
 }
 } // namespace storage
 } // namespace kuzu

@@ -66,7 +66,6 @@ private:
     std::unique_ptr<ColumnChunk> stringDataChunk;
     std::unique_ptr<ColumnChunk> offsetChunk;
     std::unordered_map<std::string, string_index_t, string_hash, std::equal_to<>> indexTable;
-    bool enableCompression;
     // If we never update a value, we don't need to prune unused strings in finalize
     bool needFinalize;
 };

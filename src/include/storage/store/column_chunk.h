@@ -41,6 +41,7 @@ public:
 
     template<typename T>
     inline T getValue(common::offset_t pos) const {
+        KU_ASSERT(pos < numValues);
         return ((T*)buffer.get())[pos];
     }
 
@@ -65,7 +66,7 @@ public:
     }
 
     inline uint64_t getNumBytesPerValue() const { return numBytesPerValue; }
-    inline uint8_t* getData() { return buffer.get(); }
+    inline uint8_t* getData() const { return buffer.get(); }
 
     // TODO(Guodong): In general, this is not a good interface. Instead of passing in
     // `offsetInVector`, we should flatten the vector to pos at `offsetInVector`.
@@ -94,7 +95,7 @@ public:
 protected:
     // Initializes the data buffer. Is (and should be) only called in constructor.
     void initializeBuffer(common::offset_t capacity);
-    void initializeFunction(bool enableCompression);
+    void initializeFunction();
 
     common::offset_t getOffsetInBuffer(common::offset_t pos) const;
 
@@ -116,6 +117,7 @@ protected:
         flushBufferFunction;
     std::function<ColumnChunkMetadata(const uint8_t*, uint64_t, uint64_t, uint64_t)>
         getMetadataFunction;
+    bool enableCompression;
 };
 
 template<>
@@ -133,24 +135,25 @@ inline bool ColumnChunk::getValue(common::offset_t pos) const {
 // Stored as bitpacked booleans in-memory and on-disk
 class BoolColumnChunk : public ColumnChunk {
 public:
-    explicit BoolColumnChunk(uint64_t capacity, bool hasNullChunk = true)
+    explicit BoolColumnChunk(uint64_t capacity, bool enableCompression, bool hasNullChunk = true)
         : ColumnChunk(common::LogicalType::BOOL(), capacity,
-              // Booleans are always compressed
-              false /* enableCompression */, hasNullChunk) {}
+              // Booleans are always bitpacked, but this can also enable constant compression
+              enableCompression, hasNullChunk) {}
 
     void append(common::ValueVector* vector) final;
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
     void write(common::ValueVector* vector, common::offset_t offsetInVector,
-        common::offset_t offsetInChunk) final;
+        common::offset_t offsetInChunk) override;
     void write(common::ValueVector* valueVector, common::ValueVector* offsetInChunkVector,
         bool isCSR) final;
 };
 
 class NullColumnChunk : public BoolColumnChunk {
 public:
-    explicit NullColumnChunk(uint64_t capacity)
-        : BoolColumnChunk(capacity, false /*hasNullChunk*/), mayHaveNullValue{false} {}
+    explicit NullColumnChunk(uint64_t capacity, bool enableCompression)
+        : BoolColumnChunk(capacity, enableCompression, false /*hasNullChunk*/), mayHaveNullValue{
+                                                                                    false} {}
     // Maybe this should be combined with BoolColumnChunk if the only difference is these functions?
     inline bool isNull(common::offset_t pos) const { return getValue<bool>(pos); }
     inline void setNull(common::offset_t pos, bool isNull) {
@@ -190,6 +193,9 @@ public:
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) final;
 
+    void write(common::ValueVector* vector, common::offset_t offsetInVector,
+        common::offset_t offsetInChunk) final;
+
 protected:
     bool mayHaveNullValue;
 };
@@ -198,6 +204,11 @@ struct ColumnChunkFactory {
     static std::unique_ptr<ColumnChunk> createColumnChunk(
         std::unique_ptr<common::LogicalType> dataType, bool enableCompression,
         uint64_t capacity = common::StorageConstants::NODE_GROUP_SIZE);
+
+    static std::unique_ptr<ColumnChunk> createNullColumnChunk(bool enableCompression) {
+        return std::make_unique<NullColumnChunk>(
+            common::StorageConstants::NODE_GROUP_SIZE, enableCompression);
+    }
 };
 
 } // namespace storage
