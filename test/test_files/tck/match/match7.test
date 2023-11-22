@@ -10,7 +10,7 @@
 -STATEMENT OPTIONAL MATCH (n)
            RETURN n;
 ---- 1
-{, _LABEL: A}
+
 
 # OPTIONAL MATCH with previously bound nodes
 -CASE Scenario2
@@ -24,7 +24,7 @@
            OPTIONAL MATCH (n)-[:NOT_EXIST]->(x)
            RETURN n, x;
 ---- 1
-{_ID: 0:0, _LABEL: A, ID: 0}|{, _LABEL: A}
+{_ID: 0:0, _LABEL: A, ID: 0}|
 
 # OPTIONAL MATCH and bound nodes
 -CASE Scenario3
@@ -194,7 +194,7 @@
            OPTIONAL MATCH (a)-->(b)
            RETURN b;
 ---- 1
-{, _LABEL: A}
+
 
 # Return two subgraphs with bound undirected relationship and optional relationship
 -CASE Scenario11
@@ -321,7 +321,7 @@
            OPTIONAL MATCH (b)<-[:BAR*]-(c:B)
            RETURN a, b, c;
 ---- 1
-{_ID: 0:0, _LABEL: A, ID: 0}|{, _LABEL: B}|{, _LABEL: B}
+{_ID: 0:0, _LABEL: A, ID: 0}||
 
 # Optionally matching named paths - null result
 -CASE Scenario16
@@ -366,7 +366,7 @@
            RETURN x, p;
 ---- 2
 {_ID: 0:1, _LABEL: A, ID: 1, name: B}|{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 0:1, _LABEL: A, ID: 1, name: B}], _RELS: [(0:0)-{_LABEL: X, _ID: 1:0}->(0:1)]}
-{_ID: 0:2, _LABEL: A, ID: 2, name: C}|{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 0:2, _LABEL: A, ID: 2, name: C}], _RELS: [(0:0)-{_LABEL: X}->(0:2)]}
+{_ID: 0:2, _LABEL: A, ID: 2, name: C}|{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 0:2, _LABEL: A, ID: 2, name: C}], _RELS: []}
 
 # Named paths inside optional matches with node predicates
 -CASE Scenario18
@@ -409,7 +409,7 @@
            OPTIONAL MATCH p = (a)-->(b)-[*]->(c)
            RETURN p;
 ---- 1
-{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{, _LABEL: A},{, _LABEL: A}], _RELS: [(0:0)-{_LABEL: X}->()]}
+{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},,], _RELS: []}
 
 # Variable length optional relationships with bound nodes, no matches
 -CASE Scenario20
@@ -664,7 +664,6 @@
 
 # Satisfies the open world assumption, relationships between same nodes
 -CASE Scenario29
--SKIP
 -STATEMENT CREATE NODE TABLE Player(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE Team(ID SERIAL, PRIMARY KEY(ID));

@@ -177,4 +177,4 @@
            RETURN r, x, p;
 ---- 2
 {_NODES: [], _RELS: [(0:0)-{_LABEL: X, _ID: 1:0}->(0:1)]}|{_ID: 0:1, _LABEL: A, ID: 1, name: B}|{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 0:1, _LABEL: A, ID: 1, name: B}], _RELS: [(0:0)-{_LABEL: X, _ID: 1:0}->(0:1)]}
-|{_ID: 0:2, _LABEL: A, ID: 2, name: C}|{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 0:2, _LABEL: A, ID: 2, name: C}], _RELS: []}
+|{_ID: 0:2, _LABEL: A, ID: 2, name: C}|{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A}], _RELS: []}
