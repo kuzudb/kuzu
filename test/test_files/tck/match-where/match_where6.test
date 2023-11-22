@@ -147,7 +147,7 @@ Mark
 ---- 3
 {_ID: 0:0, _LABEL: X, ID: 0, val: 1}|{_ID: 1:0, _LABEL: Y, ID: 0, val: 2}
 {_ID: 0:1, _LABEL: X, ID: 1, val: 4}|{_ID: 1:1, _LABEL: Y, ID: 1, val: 5}
-{_ID: 0:2, _LABEL: X, ID: 2, val: 6}|{, _LABEL: Y}
+{_ID: 0:2, _LABEL: X, ID: 2, val: 6}|
 
 # Join nodes on non-equality of properties – OPTIONAL MATCH on two relationships and WHERE
 -CASE Scenario7
@@ -171,8 +171,8 @@ Mark
            RETURN x, y, z;
 ---- 3
 {_ID: 0:0, _LABEL: X, ID: 0, val: 1}|{_ID: 1:0, _LABEL: Y, ID: 0, val: 2}|{_ID: 2:0, _LABEL: Z, ID: 0, val: 3}
-{_ID: 0:1, _LABEL: X, ID: 1, val: 4}|{, _LABEL: Y}|{, _LABEL: Z}
-{_ID: 0:2, _LABEL: X, ID: 2, val: 6}|{, _LABEL: Y}|{, _LABEL: Z}
+{_ID: 0:1, _LABEL: X, ID: 1, val: 4}||
+{_ID: 0:2, _LABEL: X, ID: 2, val: 6}||
 
 # Join nodes on non-equality of properties – Two OPTIONAL MATCH clauses and WHERE
 -CASE Scenario8
@@ -197,5 +197,5 @@ Mark
           RETURN x, y, z;
 ---- 3
 {_ID: 0:0, _LABEL: X, ID: 0, val: 1}|{_ID: 1:0, _LABEL: Y, ID: 0, val: 2}|{_ID: 2:0, _LABEL: Z, ID: 0, val: 3}
-{_ID: 0:1, _LABEL: X, ID: 1, val: 4}|{_ID: 1:1, _LABEL: Y, ID: 1, val: 5}|{, _LABEL: Z}
-{_ID: 0:2, _LABEL: X, ID: 2, val: 6}|{, _LABEL: Y}|{, _LABEL: Z}
+{_ID: 0:1, _LABEL: X, ID: 1, val: 4}|{_ID: 1:1, _LABEL: Y, ID: 1, val: 5}|
+{_ID: 0:2, _LABEL: X, ID: 2, val: 6}||
