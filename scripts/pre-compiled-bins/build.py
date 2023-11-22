@@ -24,7 +24,7 @@ elif sys.platform == "darwin":
 def cleanup():
     logging.info("Cleaning up workspace...")
     try:
-        subprocess.run(['make', 'clean-all'], cwd=workspace_root,
+        subprocess.run(['make', 'clean'], cwd=workspace_root,
                        check=True, env=env_vars)
         shutil.rmtree(os.path.join(base_dir, "headers"), ignore_errors=True)
         for f in ["kuzu", "kuzu.hpp", "kuzu.h", "libkuzu.so", "libkuzu.dylib"]:
