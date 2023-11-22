@@ -56,11 +56,6 @@ public:
         uint8_t* dstBuffer, common::offset_t dstOffset, common::offset_t numValues,
         const CompressionMetadata& metadata) const = 0;
 
-    // Reads a value from the buffer at the given position and stores it at the given memory address
-    // dst should point to an uncompressed value
-    virtual inline void getValue(const uint8_t* buffer, common::offset_t posInBuffer, uint8_t* dst,
-        common::offset_t posInDst, const CompressionMetadata& metadata) const = 0;
-
     // Returns compression metadata, including any relevant parameters specific to this dataset
     // which will need to be passed to compressNextPage. Since this may need to scan the entire
     // buffer, which is slow, it should only be called once for each set of data to compress.
@@ -107,12 +102,6 @@ public:
         const CompressionMetadata& /*metadata*/) const final {
         memcpy(dstBuffer + dstOffset * numBytesPerValue, srcBuffer + srcOffset * numBytesPerValue,
             numBytesPerValue * numValues);
-    }
-
-    inline void getValue(const uint8_t* buffer, common::offset_t posInBuffer, uint8_t* dst,
-        common::offset_t posInDst, const CompressionMetadata& /*metadata*/) const override {
-        memcpy(dst + posInDst * numBytesPerValue, buffer + posInBuffer * numBytesPerValue,
-            numBytesPerValue);
     }
 
     static inline uint64_t numValues(uint64_t dataSize, const common::LogicalType& logicalType) {
@@ -189,10 +178,6 @@ public:
         uint8_t* dstBuffer, common::offset_t dstOffset, common::offset_t numValues,
         const CompressionMetadata& metadata) const final;
 
-    // Read a single value from the buffer
-    void getValue(const uint8_t* buffer, common::offset_t posInBuffer, uint8_t* dst,
-        common::offset_t posInDst, const CompressionMetadata& metadata) const final;
-
     BitpackHeader getBitWidth(const uint8_t* srcBuffer, uint64_t numValues) const;
 
     static inline uint64_t numValues(uint64_t dataSize, const BitpackHeader& header) {
@@ -245,9 +230,6 @@ public:
     void setValuesFromUncompressed(const uint8_t* srcBuffer, common::offset_t srcOffset,
         uint8_t* dstBuffer, common::offset_t dstOffset, common::offset_t numValues,
         const CompressionMetadata& metadata) const final;
-
-    void getValue(const uint8_t* buffer, common::offset_t posInBuffer, uint8_t* dst,
-        common::offset_t posInDst, const CompressionMetadata& metadata) const final;
 
     static inline uint64_t numValues(uint64_t dataSize) { return dataSize * 8; }
 
