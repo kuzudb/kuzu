@@ -319,14 +319,7 @@ target_include_directories(${ANTLR4_RUNTIME} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-if (WIN32)
-    target_compile_definitions(${ANTLR4_RUNTIME} PRIVATE
-        -DANTLR4CPP_EXPORTS
-        -DANTLR4CPP_STATIC
-    )
-    set_property(TARGET ${ANTLR4_RUNTIME} PROPERTY CXX_STANDARD 17)
-endif()
-
+target_compile_definitions(${ANTLR4_RUNTIME} PUBLIC -DANTLR4CPP_STATIC)
 
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     if(MSVC)
