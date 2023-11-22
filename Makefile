@@ -1,9 +1,19 @@
-.PHONY: release debug test benchmark all alldebug clean clean-all
+.PHONY: \
+	release debug all alldebug \
+	test lcov \
+	java nodejs python rust \
+	javatest nodejstest pytest rusttest \
+	benchmark example \
+	clangd tidy clangd-diagnostics \
+	install \
+	clean-python-api clean-java clean \
+
+.ONESHELL:
+.SHELLFLAGS = -ec
 
 CLANGD_DIAGNOSTIC_INSTANCES ?= 4
 NUM_THREADS ?= 1
 PREFIX ?= install
-ROOT_DIR=$(CURDIR)
 SANITIZER_FLAG=
 TEST_JOBS ?= 10
 
@@ -39,73 +49,105 @@ ifeq ($(LTO), 1)
 	CMAKE_FLAGS += -DENABLE_LTO=TRUE
 endif
 
-ifeq ($(OS),Windows_NT)
-define mkdirp
-	(if not exist "$(1)" mkdir "$(1)")
-endef
-else
-define mkdirp
-	mkdir -p $(1)
-endef
-endif
-
+# Must be first in the Makefile so that it is the default target.
 release:
-	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(SANITIZER_FLAG) $(CMAKE_FLAGS) -DCMAKE_BUILD_TYPE=Release ../.. && \
-	cmake --build . --config Release
+	$(call run-cmake-release,)
 
 debug:
-	$(call mkdirp,build/debug) && cd build/debug && \
-	cmake $(SANITIZER_FLAG) $(CMAKE_FLAGS) -DCMAKE_BUILD_TYPE=Debug ../.. && \
-	cmake --build . --config Debug
+	$(call run-cmake-debug,)
 
 all:
-	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(SANITIZER_FLAG) $(CMAKE_FLAGS) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE -DBUILD_BENCHMARK=TRUE -DBUILD_NODEJS=TRUE -DBUILD_EXAMPLES=TRUE ../.. && \
-	cmake --build . --config Release
-
-example:
-	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(SANITIZER_FLAG) $(CMAKE_FLAGS) -DCMAKE_BUILD_TYPE=Release -DBUILD_EXAMPLES=TRUE ../.. && \
-	cmake --build . --config Release
+	$(call run-cmake-release, \
+		-DBUILD_BENCHMARK=TRUE \
+		-DBUILD_EXAMPLES=TRUE \
+		-DBUILD_JAVA=TRUE \
+		-DBUILD_NODEJS=TRUE \
+		-DBUILD_PYTHON=TRUE \
+		-DBUILD_SHELL=TRUE \
+		-DBUILD_TESTS=TRUE \
+	)
 
 alldebug:
-	$(call mkdirp,build/debug) && cd build/debug && \
-	cmake $(SANITIZER_FLAG) $(CMAKE_FLAGS) -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=TRUE -DBUILD_BENCHMARK=TRUE -DBUILD_NODEJS=TRUE -DBUILD_EXAMPLES=TRUE ../.. && \
-	cmake --build . --config Debug
+	$(call run-cmake-debug, \
+		-DBUILD_BENCHMARK=TRUE \
+		-DBUILD_EXAMPLES=TRUE \
+		-DBUILD_JAVA=TRUE \
+		-DBUILD_NODEJS=TRUE \
+		-DBUILD_PYTHON=TRUE \
+		-DBUILD_SHELL=TRUE \
+		-DBUILD_TESTS=TRUE \
+	)
 
-benchmark:
-	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(SANITIZER_FLAG) $(CMAKE_FLAGS) -DCMAKE_BUILD_TYPE=Release -DBUILD_BENCHMARK=TRUE ../.. && \
-	cmake --build . --config Release
 
-nodejs:
-	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(SANITIZER_FLAG) $(CMAKE_FLAGS) -DCMAKE_BUILD_TYPE=Release -DBUILD_NODEJS=TRUE ../.. && \
-	cmake --build . --config Release
-
-java:
-	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(SANITIZER_FLAG) $(CMAKE_FLAGS) -DCMAKE_BUILD_TYPE=Release -DBUILD_JAVA=TRUE ../.. && \
-	cmake --build . --config Release
-
+# Main tests
 test:
-	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(SANITIZER_FLAG) $(CMAKE_FLAGS) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE ../.. && \
-	cmake --build . --config Release
-	cd $(ROOT_DIR)/build/release/test && \
-	ctest --output-on-failure -j ${TEST_JOBS}
+	$(call run-cmake-release, -DBUILD_TESTS=TRUE)
+	ctest --test-dir build/release/test --output-on-failure -j ${TEST_JOBS}
 
 lcov:
-	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(SANITIZER_FLAG) $(CMAKE_FLAGS) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE -DBUILD_NODEJS=TRUE -DBUILD_LCOV=TRUE ../.. && \
-	cmake --build . --config Release
-	cd $(ROOT_DIR)/build/release/test && \
-	ctest --output-on-failure -j ${TEST_JOBS}
+	$(call run-cmake-release, -DBUILD_TESTS=TRUE -DBUILD_LCOV=TRUE)
+	ctest --test-dir build/release/test --output-on-failure -j ${TEST_JOBS}
 
+
+# Language APIs
+java:
+	$(call run-cmake-release, -DBUILD_JAVA=TRUE)
+
+nodejs:
+	$(call run-cmake-release, -DBUILD_NODEJS=TRUE)
+
+python:
+	$(call run-cmake-release, -DBUILD_PYTHON=TRUE)
+
+rust:
+	cd tools/rust_api
+ifeq ($(OS),Windows_NT)
+	set KUZU_TESTING=1
+	set CFLAGS=/MDd
+	set CXXFLAGS=/MDd /std:c++20
+	set CARGO_BUILD_JOBS=$(NUM_THREADS)
+else
+	export CARGO_BUILD_JOBS=$(NUM_THREADS)
+endif
+	cargo build --all-features
+
+
+# Language API tests
+javatest: java
+	cmake -E make_directory tools/java_api/build/test
+	cd tools/java_api
+ifeq ($(OS),Windows_NT)
+	javac -d build/test -cp ".;build/kuzu_java.jar;third_party/junit-platform-console-standalone-1.9.3.jar" src/test/java/com/kuzudb/test/*.java
+	java -jar third_party/junit-platform-console-standalone-1.9.3.jar -cp ".;build/kuzu_java.jar;build/test/" --scan-classpath --include-package=com.kuzudb.java_test --details=verbose
+else
+	javac -d build/test -cp ".:build/kuzu_java.jar:third_party/junit-platform-console-standalone-1.9.3.jar" src/test/java/com/kuzudb/test/*.java
+	java -jar third_party/junit-platform-console-standalone-1.9.3.jar -cp ".:build/kuzu_java.jar:build/test/" --scan-classpath --include-package=com.kuzudb.java_test --details=verbose
+endif
+
+nodejstest: nodejs
+	cd tools/nodejs_api
+	npm test
+
+pytest: python
+	cd tools/python_api/test
+	python3 -m pytest -v test_main.py
+
+rusttest: rust
+	cd tools/rust_api
+	cargo test --all-features -- --test-threads=1
+
+
+# Other misc build targets
+benchmark:
+	$(call run-cmake-release, -DBUILD_BENCHMARK=TRUE)
+
+example:
+	$(call run-cmake-release, -DBUILD_EXAMPLES=TRUE)
+
+
+# Clang-related tools and checks
 clangd:
-	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(SANITIZER_FLAG) $(CMAKE_FLAGS) -DCMAKE_EXPORT_COMPILE_COMMANDS=1 ../..
+	$(call config-cmake-release, -DCMAKE_EXPORT_COMPILE_COMMANDS=1)
 
 tidy: clangd
 	run-clang-tidy -p build/release -quiet -j $(NUM_THREADS) \
@@ -116,57 +158,45 @@ clangd-diagnostics: clangd
 		./scripts/get-clangd-diagnostics.py --compile-commands-dir build/release \
 		-j $(NUM_THREADS) --instances $(CLANGD_DIAGNOSTIC_INSTANCES)
 
-pytest: release
-	cd $(ROOT_DIR)/tools/python_api/test && \
-	python3 -m pytest -v test_main.py
 
-nodejstest: nodejs
-	cd $(ROOT_DIR)/tools/nodejs_api/ && \
-	npm test
-
-javatest: java
-ifeq ($(OS),Windows_NT)
-	$(call mkdirp,tools/java_api/build/test)  && cd tools/java_api/ && \
-	javac -d build/test -cp ".;build/kuzu_java.jar;third_party/junit-platform-console-standalone-1.9.3.jar" src/test/java/com/kuzudb/test/*.java && \
-	java -jar third_party/junit-platform-console-standalone-1.9.3.jar -cp ".;build/kuzu_java.jar;build/test/" --scan-classpath --include-package=com.kuzudb.java_test --details=verbose
-else
-	$(call mkdirp,tools/java_api/build/test)  && cd tools/java_api/ && \
-	javac -d build/test -cp ".:build/kuzu_java.jar:third_party/junit-platform-console-standalone-1.9.3.jar" src/test/java/com/kuzudb/test/*.java && \
-	java -jar third_party/junit-platform-console-standalone-1.9.3.jar -cp ".:build/kuzu_java.jar:build/test/" --scan-classpath --include-package=com.kuzudb.java_test --details=verbose
-endif
-
-rusttest:
-ifeq ($(OS),Windows_NT)
-	cd $(ROOT_DIR)/tools/rust_api && \
-	set KUZU_TESTING=1 && \
-	set CFLAGS=/MDd && \
-	set CXXFLAGS=/MDd /std:c++20 && \
-	cargo test --features arrow -- --test-threads=1
-else
-	cd $(ROOT_DIR)/tools/rust_api && \
-	CARGO_BUILD_JOBS=$(NUM_THREADS) cargo test --features arrow -- --test-threads=1
-endif
-
+# Installation
 install:
 	cmake --install build/release --prefix $(PREFIX) --strip
 
+
+# Cleaning
 clean-python-api:
-ifeq ($(OS),Windows_NT)
-	if exist tools\python_api\build rmdir /s /q tools\python_api\build
-else
-	rm -rf tools/python_api/build
-endif
+	cmake -E rm -rf tools/python_api/build
 
 clean-java:
-ifeq ($(OS),Windows_NT)
-	if exist tools\java_api\build rmdir /s /q tools\java_api\build
-else
-	rm -rf tools/java_api/build
-endif
+	cmake -E rm -rf tools/java_api/build
 
 clean: clean-python-api clean-java
-ifeq ($(OS),Windows_NT)
-	if exist build rmdir /s /q build
-else
-	rm -rf build
-endif
+	cmake -E rm -rf build
+
+
+# Utils
+define config-cmake
+	cmake -B build/$1 $(SANITIZER_FLAG) $(CMAKE_FLAGS) -DCMAKE_BUILD_TYPE=$2 $3 .
+endef
+
+define build-cmake
+	cmake --build build/$1 --config $2
+endef
+
+define run-cmake
+	$(call config-cmake,$1,$2,$3)
+	$(call build-cmake,$1,$2)
+endef
+
+define run-cmake-debug
+	$(call run-cmake,debug,Debug,$1)
+endef
+
+define run-cmake-release
+	$(call run-cmake,release,Release,$1)
+endef
+
+define config-cmake-release
+	$(call config-cmake,release,Release,$1)
+endef

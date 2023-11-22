@@ -144,7 +144,7 @@ console.log("Cleaning up...");
 childProcess.execSync("npm run clean-all", {
   cwd: path.join(__dirname, "kuzu-source", "tools", "nodejs_api"),
 });
-childProcess.execSync("make clean-all", {
+childProcess.execSync("make clean", {
   cwd: path.join(__dirname, "kuzu-source"),
 });
 console.log("Done!");
