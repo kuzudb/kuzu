@@ -1,0 +1,151 @@
+-GROUP TCKReturnSkipLimit1
+-DATASET CSV tck
+
+--
+
+# Start the result from the second row
+-CASE Scenario1
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {name: 'A'}),
+                  (:A {name: 'B'}),
+                  (:A {name: 'C'}),
+                  (:A {name: 'D'}),
+                  (:A {name: 'E'});
+---- ok
+-STATEMENT MATCH (n)
+           RETURN n
+           ORDER BY n.name ASC
+           SKIP 2;
+-CHECK_ORDER
+---- 3
+{_ID: 0:2, _LABEL: A, ID: 2, name: C}
+{_ID: 0:3, _LABEL: A, ID: 3, name: D}
+{_ID: 0:4, _LABEL: A, ID: 4, name: E}
+
+# Start the result from the second row by param
+-CASE Scenario2
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {name: 'A'}),
+                  (:A {name: 'B'}),
+                  (:A {name: 'C'}),
+                  (:A {name: 'D'}),
+                  (:A {name: 'E'});
+---- ok
+-STATEMENT MATCH (n)
+           RETURN n
+           ORDER BY n.name ASC
+           SKIP $skipAmount;
+-CHECK_ORDER
+---- 3
+{_ID: 0:2, _LABEL: A, ID: 2, name: C}
+{_ID: 0:3, _LABEL: A, ID: 3, name: D}
+{_ID: 0:4, _LABEL: A, ID: 4, name: E}
+
+# SKIP with an expression that does not depend on variables
+-CASE Scenario3
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, nr INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT UNWIND range(1, 10) AS i
+           CREATE (:A {nr: i});
+---- ok
+-STATEMENT MATCH (n)
+           WITH n SKIP to_int64(rand()*9)
+           WITH count(*) AS count
+           RETURN count > 0 AS nonEmpty;
+---- 1
+True
+
+# Accept skip zero
+-CASE Scenario4
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT MATCH (n)
+           WHERE 1 = 0
+           RETURN n SKIP 0;
+---- 0
+
+# SKIP with an expression that depends on variables should fail
+-CASE Scenario5
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, count INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT MATCH (n) RETURN n SKIP n.count;
+---- error
+Binder exception: The number of rows to skip/limit must be a non-negative integer.
+
+# Negative parameter for SKIP should fail
+-CASE Scenario6
+-SKIP
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (s:Person {name: 'Steven'}),
+                  (c:Person {name: 'Craig'});
+---- ok
+-STATEMENT MATCH (p:Person)
+           RETURN p.name AS name
+           SKIP $_skip;
+---- error
+Binder exception: The number of rows to skip/limit must be a non-negative integer.
+
+# Negative SKIP should fail
+-CASE Scenario7
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (s:Person {name: 'Steven'}),
+                  (c:Person {name: 'Craig'});
+---- ok
+-STATEMENT MATCH (p:Person)
+           RETURN p.name AS name
+           SKIP -1;
+---- error
+Binder exception: The number of rows to skip/limit must be a non-negative integer.
+
+# Floating point parameter for SKIP should fail
+-CASE Scenario8
+-SKIP
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (s:Person {name: 'Steven'}),
+                  (c:Person {name: 'Craig'});
+---- ok
+-STATEMENT MATCH (p:Person)
+           RETURN p.name AS name
+           SKIP $_limit;
+---- error
+Binder exception: The number of rows to skip/limit must be a non-negative integer.
+
+# Floating point SKIP should fail
+-CASE Scenario9
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (s:Person {name: 'Steven'}),
+                  (c:Person {name: 'Craig'});
+---- ok
+-STATEMENT MATCH (p:Person)
+           RETURN p.name AS name
+           SKIP 1.5;
+---- error
+Binder exception: The number of rows to skip/limit must be a non-negative integer.
+
+# Floating point SKIP should fail
+-CASE Scenario10
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, count INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT MATCH (n)
+           RETURN n
+           SKIP n.count;
+---- error
+Binder exception: The number of rows to skip/limit must be a non-negative integer.
+
+# Fail when using negative value in SKIP
+-CASE Scenario11
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT MATCH (n)
+           RETURN n
+           SKIP -1;
+---- error
+Binder exception: The number of rows to skip/limit must be a non-negative integer.
