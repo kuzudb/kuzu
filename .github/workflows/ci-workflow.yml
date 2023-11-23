@@ -72,9 +72,6 @@ jobs:
           file: cover.info
           functionalities: "search"
 
-      - name: Check for clangd diagnostics
-        run: make clangd-diagnostics
-
   rust-build-test:
     name: rust build & test
     needs: [rustfmt-check]
@@ -129,7 +126,7 @@ jobs:
           ASAN_OPTIONS: "detect_leaks=1"
 
   clang-build-test:
-    name: clang build, test & tidy
+    name: clang build and test
     needs: [clang-formatting-check, include-guard-and-no-std-assert]
     runs-on: kuzu-self-hosted-testing
     env:
@@ -163,9 +160,6 @@ jobs:
 
       - name: Java test
         run: make javatest
-
-      - name: Run clang-tidy
-        run: make tidy
 
   msvc-build-test:
     name: msvc build & test
@@ -232,6 +226,27 @@ jobs:
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
           make javatest
+
+  tidy-and-diagnostics:
+    name: clang tidy & clangd diagnostics check
+    needs: [clang-formatting-check, include-guard-and-no-std-assert]
+    runs-on: kuzu-self-hosted-testing
+    env:
+      NUM_THREADS: 32
+
+    steps:
+      - uses: actions/checkout@v3
+
+      # For `napi.h` header.
+      - name: Ensure Node.js dependencies
+        run: npm install --include=dev
+        working-directory: tools/nodejs_api
+
+      - name: Check for clangd diagnostics
+        run: make clangd-diagnostics
+
+      - name: Run clang-tidy
+        run: make tidy
 
   include-guard-and-no-std-assert:
     name: include guard & no std::assert check

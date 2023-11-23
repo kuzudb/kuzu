@@ -56,8 +56,8 @@ release:
 debug:
 	$(call run-cmake-debug,)
 
-all:
-	$(call run-cmake-release, \
+allconfig:
+	$(call config-cmake-release, \
 		-DBUILD_BENCHMARK=TRUE \
 		-DBUILD_EXAMPLES=TRUE \
 		-DBUILD_JAVA=TRUE \
@@ -66,6 +66,9 @@ all:
 		-DBUILD_SHELL=TRUE \
 		-DBUILD_TESTS=TRUE \
 	)
+
+all: allconfig
+	$(call build-cmake-release)
 
 alldebug:
 	$(call run-cmake-debug, \
@@ -90,6 +93,11 @@ lcov:
 
 
 # Language APIs
+
+# Required for clangd-related tools.
+java_native_header:
+	cmake --build build/release --target kuzu_java
+
 java:
 	$(call run-cmake-release, -DBUILD_JAVA=TRUE)
 
@@ -152,11 +160,14 @@ shell:
 clangd:
 	$(call config-cmake-release, -DCMAKE_EXPORT_COMPILE_COMMANDS=1)
 
-tidy: clangd
+# Must build the java native header to avoid missing includes. Pipe character
+# `|` ensures these targets build in this order, even in the presence of
+# parallelism.
+tidy: | allconfig clangd java_native_header
 	run-clang-tidy -p build/release -quiet -j $(NUM_THREADS) \
 		"^$(realpath src)|$(realpath tools)/(?!shell/linenoise.cpp)|$(realpath examples)"
 
-clangd-diagnostics: clangd
+clangd-diagnostics: | allconfig clangd java_native_header
 	find src -name *.h -or -name *.cpp | xargs \
 		./scripts/get-clangd-diagnostics.py --compile-commands-dir build/release \
 		-j $(NUM_THREADS) --instances $(CLANGD_DIAGNOSTIC_INSTANCES)
@@ -196,10 +207,15 @@ define run-cmake-debug
 	$(call run-cmake,debug,Debug,$1)
 endef
 
-define run-cmake-release
-	$(call run-cmake,release,Release,$1)
+define build-cmake-release
+	$(call build-cmake,release,Release,$1)
 endef
 
 define config-cmake-release
 	$(call config-cmake,release,Release,$1)
+endef
+
+define run-cmake-release
+	$(call config-cmake-release,$1)
+	$(call build-cmake-release,$1)
 endef
