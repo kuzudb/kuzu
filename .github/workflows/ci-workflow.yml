@@ -46,6 +46,9 @@ jobs:
         run: npm install --include=dev
         working-directory: tools/nodejs_api
 
+      - name: Build
+        run: make all
+
       - name: Test with coverage
         run: make lcov
 
@@ -71,10 +74,6 @@ jobs:
 
       - name: Check for clangd diagnostics
         run: make clangd-diagnostics
-
-      - name: C and C++ Examples
-        run: |
-          make example
 
   rust-build-test:
     name: rust build & test
@@ -151,7 +150,7 @@ jobs:
         working-directory: tools/nodejs_api
 
       - name: Build
-        run: make release
+        run: make all
 
       - name: Test
         run: make test
@@ -186,12 +185,18 @@ jobs:
         run: |
           pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
           pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
-      
+
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
         working-directory: tools/nodejs_api
 
-      - name: Build and test
+      - name: Build
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          make all
+
+      - name: Test
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
@@ -202,7 +207,7 @@ jobs:
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
           make pytest
-        
+
       - name: Node.js test
         shell: cmd
         run: |
@@ -227,12 +232,6 @@ jobs:
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
           make javatest
-
-      - name: C and C++ Examples
-        shell: cmd
-        run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
-          make example
 
   include-guard-and-no-std-assert:
     name: include guard & no std::assert check
@@ -313,7 +312,7 @@ jobs:
         working-directory: tools/nodejs_api
 
       - name: Build
-        run: make release
+        run: make all
 
       - name: Test
         run: |
