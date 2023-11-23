@@ -96,10 +96,7 @@ fn build_bundled_cmake() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
     };
 
     let mut build = cmake::Config::new(&kuzu_root);
-    build
-        .no_build_target(true)
-        .define("BUILD_SHELL", "OFF")
-        .define("BUILD_PYTHON", "OFF");
+    build.no_build_target(true).define("BUILD_SHELL", "OFF");
     if cfg!(windows) {
         build.generator("Ninja");
         build.cxxflag("/EHsc");
