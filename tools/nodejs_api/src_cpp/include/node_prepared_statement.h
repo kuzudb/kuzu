@@ -16,7 +16,7 @@ class NodePreparedStatement : public Napi::ObjectWrap<NodePreparedStatement> {
 public:
     static Napi::Object Init(Napi::Env env, Napi::Object exports);
     NodePreparedStatement(const Napi::CallbackInfo& info);
-    ~NodePreparedStatement() = default;
+    ~NodePreparedStatement() override = default;
 
 private:
     Napi::Value InitAsync(const Napi::CallbackInfo& info);
@@ -37,7 +37,7 @@ public:
         Napi::Function& callback, NodePreparedStatement* nodePreparedStatement)
         : AsyncWorker(callback), nodePreparedStatement(nodePreparedStatement) {}
 
-    ~PreparedStatementInitAsyncWorker() = default;
+    ~PreparedStatementInitAsyncWorker() override = default;
 
     inline void Execute() override {
         try {

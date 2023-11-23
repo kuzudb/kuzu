@@ -146,7 +146,7 @@ public:
         common::ValueVector* relIDVector);
 
 private:
-    LocalNodeGroup* getOrCreateLocalNodeGroup(common::ValueVector* nodeIDVector);
+    LocalNodeGroup* getOrCreateLocalNodeGroup(common::ValueVector* nodeIDVector) override;
 };
 
 } // namespace storage

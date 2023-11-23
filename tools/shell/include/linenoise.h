@@ -1,3 +1,4 @@
+#pragma once
 /* linenoise.h -- VERSION 1.0
  *
  * Guerrilla line editing library against the idea that a line editing lib
@@ -36,11 +37,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __LINENOISE_H
-#define __LINENOISE_H
-
 #include <cstdint>
-#include <string>
 
 #ifdef __cplusplus
 extern "C" {
@@ -79,5 +76,3 @@ uint32_t linenoiseComputeRenderWidth(const char* buf, size_t len);
 #ifdef __cplusplus
 }
 #endif
-
-#endif /* __LINENOISE_H */

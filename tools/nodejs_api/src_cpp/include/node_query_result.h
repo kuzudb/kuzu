@@ -18,7 +18,7 @@ public:
     static Napi::Object Init(Napi::Env env, Napi::Object exports);
     NodeQueryResult(const Napi::CallbackInfo& info);
     void SetQueryResult(std::shared_ptr<QueryResult>& queryResult);
-    ~NodeQueryResult() = default;
+    ~NodeQueryResult() override = default;
 
 private:
     void ResetIterator(const Napi::CallbackInfo& info);
@@ -40,7 +40,7 @@ public:
         Napi::Function& callback, NodeQueryResult* nodeQueryResult, GetColumnMetadataType type)
         : AsyncWorker(callback), nodeQueryResult(nodeQueryResult), type(type) {}
 
-    ~NodeQueryResultGetColumnMetadataAsyncWorker() = default;
+    ~NodeQueryResultGetColumnMetadataAsyncWorker() override = default;
 
     inline void Execute() override {
         try {
@@ -78,7 +78,7 @@ public:
     NodeQueryResultGetNextAsyncWorker(Napi::Function& callback, NodeQueryResult* nodeQueryResult)
         : AsyncWorker(callback), nodeQueryResult(nodeQueryResult) {}
 
-    ~NodeQueryResultGetNextAsyncWorker() = default;
+    ~NodeQueryResultGetNextAsyncWorker() override = default;
 
     inline void Execute() override {
         try {

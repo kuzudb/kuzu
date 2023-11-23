@@ -10,7 +10,7 @@ public:
     LiteralExpressionEvaluator(std::shared_ptr<common::Value> value)
         : ExpressionEvaluator{true /* isResultFlat */}, value{std::move(value)} {}
 
-    ~LiteralExpressionEvaluator() = default;
+    ~LiteralExpressionEvaluator() override = default;
 
     inline void evaluate() override {}
 

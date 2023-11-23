@@ -20,9 +20,11 @@ public:
         readState->columnIDs = std::move(columnIDs);
     }
     void scan(transaction::Transaction* transaction, TableReadState& readState,
-        common::ValueVector* nodeIDVector, const std::vector<common::ValueVector*>& outputVectors);
+        common::ValueVector* nodeIDVector,
+        const std::vector<common::ValueVector*>& outputVectors) override;
     void lookup(transaction::Transaction* transaction, TableReadState& readState,
-        common::ValueVector* nodeIDVector, const std::vector<common::ValueVector*>& outputVectors);
+        common::ValueVector* nodeIDVector,
+        const std::vector<common::ValueVector*>& outputVectors) override;
 
     // These two interfaces are node table specific, as rel table requires also relIDVector.
     void insert(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
@@ -31,10 +33,10 @@ public:
         common::ValueVector* nodeIDVector, common::ValueVector* propertyVector);
     void delete_(transaction::Transaction* transaction, common::ValueVector* nodeIDVector);
 
-    void append(NodeGroup* nodeGroup);
+    void append(NodeGroup* nodeGroup) override;
 
     void prepareLocalTableToCommit(
-        transaction::Transaction* transaction, LocalTableData* localTable);
+        transaction::Transaction* transaction, LocalTableData* localTable) override;
 };
 
 } // namespace storage

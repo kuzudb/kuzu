@@ -52,7 +52,7 @@ public:
         RelDataReadState* readState);
     inline void scan(transaction::Transaction* transaction, TableReadState& readState,
         common::ValueVector* inNodeIDVector,
-        const std::vector<common::ValueVector*>& outputVectors) {
+        const std::vector<common::ValueVector*>& outputVectors) override {
         auto& relReadState = common::ku_dynamic_cast<TableReadState&, RelDataReadState&>(readState);
         dataFormat == common::ColumnDataFormat::REGULAR ?
             scanRegularColumns(transaction, relReadState, inNodeIDVector, outputVectors) :
@@ -60,7 +60,7 @@ public:
     }
     void lookup(transaction::Transaction* transaction, TableReadState& readState,
         common::ValueVector* inNodeIDVector,
-        const std::vector<common::ValueVector*>& outputVectors);
+        const std::vector<common::ValueVector*>& outputVectors) override;
 
     void insert(transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector,
         common::ValueVector* dstNodeIDVector,
@@ -75,16 +75,16 @@ public:
         common::ValueVector* dstNodeIDVector, common::ValueVector* relIDVector);
     bool checkIfNodeHasRels(
         transaction::Transaction* transaction, common::ValueVector* srcNodeIDVector);
-    void append(NodeGroup* nodeGroup);
+    void append(NodeGroup* nodeGroup) override;
     void resizeColumns(common::node_group_idx_t nodeGroupIdx);
 
     inline Column* getAdjColumn() const { return adjColumn.get(); }
     inline common::ColumnDataFormat getDataFormat() const { return dataFormat; }
 
     void prepareLocalTableToCommit(
-        transaction::Transaction* transaction, LocalTableData* localTable);
-    void checkpointInMemory();
-    void rollbackInMemory();
+        transaction::Transaction* transaction, LocalTableData* localTable) override;
+    void checkpointInMemory() override;
+    void rollbackInMemory() override;
 
 private:
     LocalRelNG* getLocalNodeGroup(

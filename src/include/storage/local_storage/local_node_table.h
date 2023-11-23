@@ -58,7 +58,7 @@ public:
     void delete_(common::ValueVector* nodeIDVector);
 
 private:
-    LocalNodeGroup* getOrCreateLocalNodeGroup(common::ValueVector* nodeIDVector);
+    LocalNodeGroup* getOrCreateLocalNodeGroup(common::ValueVector* nodeIDVector) override;
 };
 
 } // namespace storage

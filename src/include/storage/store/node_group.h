@@ -64,9 +64,8 @@ public:
 
     inline ColumnChunk* getCSROffsetChunk() { return csrOffsetChunk.get(); }
 
-    virtual inline void writeToColumnChunk(common::vector_idx_t chunkIdx,
-        common::vector_idx_t vectorIdx, common::DataChunk* dataChunk,
-        common::ValueVector* offsetVector) override {
+    inline void writeToColumnChunk(common::vector_idx_t chunkIdx, common::vector_idx_t vectorIdx,
+        common::DataChunk* dataChunk, common::ValueVector* offsetVector) override {
         chunks[chunkIdx]->write(
             dataChunk->getValueVector(vectorIdx).get(), offsetVector, true /* isCSR */);
     }

@@ -494,13 +494,13 @@ public:
     InternalIDColumnChunk(uint64_t capacity)
         : ColumnChunk(LogicalType::INT64(), capacity, false /* enableCompression */) {}
 
-    void append(ValueVector* vector) {
+    void append(ValueVector* vector) override {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
         copyVectorToBuffer(vector, numValues);
         numValues += vector->state->selVector->selectedSize;
     }
 
-    void copyVectorToBuffer(ValueVector* vector, offset_t startPosInChunk) {
+    void copyVectorToBuffer(ValueVector* vector, offset_t startPosInChunk) override {
         auto relIDsInVector = (internalID_t*)vector->getData();
         for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
             auto pos = vector->state->selVector->selectedPositions[i];

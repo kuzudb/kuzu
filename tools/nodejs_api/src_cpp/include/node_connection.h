@@ -17,7 +17,7 @@ class NodeConnection : public Napi::ObjectWrap<NodeConnection> {
 public:
     static Napi::Object Init(Napi::Env env, Napi::Object exports);
     NodeConnection(const Napi::CallbackInfo& info);
-    ~NodeConnection() = default;
+    ~NodeConnection() override = default;
 
 private:
     Napi::Value InitAsync(const Napi::CallbackInfo& info);
@@ -36,7 +36,7 @@ public:
     ConnectionInitAsyncWorker(Napi::Function& callback, NodeConnection* nodeConnection)
         : Napi::AsyncWorker(callback), nodeConnection(nodeConnection) {}
 
-    ~ConnectionInitAsyncWorker() = default;
+    ~ConnectionInitAsyncWorker() override = default;
 
     inline void Execute() override {
         try {
@@ -66,7 +66,7 @@ public:
         std::unordered_map<std::string, std::unique_ptr<Value>> params)
         : Napi::AsyncWorker(callback), preparedStatement(preparedStatement),
           nodeQueryResult(nodeQueryResult), connection(connection), params(std::move(params)) {}
-    ~ConnectionExecuteAsyncWorker() = default;
+    ~ConnectionExecuteAsyncWorker() override = default;
 
     inline void Execute() override {
         try {
