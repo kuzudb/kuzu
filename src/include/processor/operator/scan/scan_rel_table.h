@@ -32,7 +32,7 @@ public:
         scanState = std::make_unique<storage::RelDataReadState>(
             this->info->table->getTableDataFormat(this->info->direction));
     }
-    virtual ~ScanRelTable() = default;
+    ~ScanRelTable() override = default;
 
 protected:
     ScanRelTable(PhysicalOperatorType operatorType, std::unique_ptr<ScanRelTableInfo> info,

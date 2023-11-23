@@ -187,21 +187,21 @@ public:
         transaction::Transaction* transaction, RWPropertyStats stats);
 
     inline void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) {
+        common::ValueVector* resultVector) override {
         Column::scan(transaction, nodeIDVector, resultVector);
         populateCommonTableID(resultVector);
     }
 
     inline void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
-        common::ValueVector* resultVector, uint64_t offsetInVector) {
+        common::ValueVector* resultVector, uint64_t offsetInVector) override {
         Column::scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup, resultVector,
             offsetInVector);
         populateCommonTableID(resultVector);
     }
 
     inline void lookup(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) {
+        common::ValueVector* resultVector) override {
         Column::lookup(transaction, nodeIDVector, resultVector);
         populateCommonTableID(resultVector);
     }

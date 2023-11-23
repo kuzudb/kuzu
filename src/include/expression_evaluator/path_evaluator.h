@@ -12,13 +12,14 @@ public:
         std::vector<std::unique_ptr<ExpressionEvaluator>> children)
         : ExpressionEvaluator{std::move(children)}, expression{std::move(expression)} {}
 
-    void init(const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager);
+    void init(
+        const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) override;
 
-    void evaluate();
+    void evaluate() override;
 
-    bool select(common::SelectionVector& /*selVector*/) { KU_UNREACHABLE; }
+    bool select(common::SelectionVector& /*selVector*/) override { KU_UNREACHABLE; }
 
-    inline std::unique_ptr<ExpressionEvaluator> clone() {
+    inline std::unique_ptr<ExpressionEvaluator> clone() override {
         std::vector<std::unique_ptr<ExpressionEvaluator>> clonedChildren;
         for (auto& child : children) {
             clonedChildren.push_back(child->clone());
@@ -44,7 +45,7 @@ private:
     };
 
     void resolveResultVector(
-        const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager);
+        const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) override;
 
     void copyNodes(common::sel_t resultPos, bool isEmptyRels);
     uint64_t copyRels(common::sel_t resultPos);

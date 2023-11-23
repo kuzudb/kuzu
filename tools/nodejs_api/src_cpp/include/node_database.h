@@ -14,7 +14,7 @@ class NodeDatabase : public Napi::ObjectWrap<NodeDatabase> {
 public:
     static Napi::Object Init(Napi::Env env, Napi::Object exports);
     NodeDatabase(const Napi::CallbackInfo& info);
-    ~NodeDatabase() = default;
+    ~NodeDatabase() override = default;
 
 private:
     Napi::Value InitAsync(const Napi::CallbackInfo& info);
@@ -34,7 +34,7 @@ public:
     DatabaseInitAsyncWorker(Napi::Function& callback, NodeDatabase* nodeDatabase)
         : AsyncWorker(callback), nodeDatabase(nodeDatabase) {}
 
-    ~DatabaseInitAsyncWorker() = default;
+    ~DatabaseInitAsyncWorker() override = default;
 
     inline void Execute() override {
         try {

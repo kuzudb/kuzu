@@ -27,7 +27,8 @@ public:
               reader, std::move(type_p), schema_p, file_idx_p, max_define_p, max_repeat_p) {}
 
 protected:
-    void dictionary(std::shared_ptr<ResizeableBuffer> dictionaryData, uint64_t numEntries) {
+    void dictionary(
+        std::shared_ptr<ResizeableBuffer> dictionaryData, uint64_t numEntries) override {
         BaseType::allocateDict(numEntries * sizeof(KU_PHYSICAL_TYPE));
         auto dictPtr = (KU_PHYSICAL_TYPE*)this->dict->ptr;
         for (auto i = 0u; i < numEntries; i++) {

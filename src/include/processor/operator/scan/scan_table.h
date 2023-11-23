@@ -13,7 +13,7 @@ public:
         : PhysicalOperator{operatorType, std::move(child), id, paramString},
           inVectorPos{inVectorPos}, outVectorsPos{std::move(outVectorsPos)} {}
 
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* executionContext);
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* executionContext) override;
 
 protected:
     DataPos inVectorPos;

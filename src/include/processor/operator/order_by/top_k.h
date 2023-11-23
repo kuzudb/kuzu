@@ -146,17 +146,17 @@ public:
           info(std::move(info)), sharedState{std::move(sharedState)}, skipNumber{skipNumber},
           limitNumber{limitNumber} {}
 
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context);
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
-    inline void initGlobalStateInternal(ExecutionContext* context) {
+    inline void initGlobalStateInternal(ExecutionContext* context) override {
         sharedState->init(*info, context->memoryManager, skipNumber, limitNumber);
     }
 
-    void executeInternal(ExecutionContext* context);
+    void executeInternal(ExecutionContext* context) override;
 
-    void finalize(ExecutionContext* /*context*/) { sharedState->finalize(); }
+    void finalize(ExecutionContext* /*context*/) override { sharedState->finalize(); }
 
-    std::unique_ptr<PhysicalOperator> clone() {
+    std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<TopK>(resultSetDescriptor->copy(), info->copy(), sharedState,
             skipNumber, limitNumber, children[0]->clone(), id, paramsString);
     }

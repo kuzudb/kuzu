@@ -26,7 +26,7 @@ public:
         : Expression{expressionType, bindData->resultType, std::move(children), uniqueName},
           functionName{std::move(functionName)}, bindData{std::move(bindData)} {}
 
-    virtual ~FunctionExpression() = default;
+    ~FunctionExpression() override = default;
 
     inline std::string getFunctionName() const { return functionName; }
     inline function::FunctionBindData* getBindData() const { return bindData.get(); }

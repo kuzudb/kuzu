@@ -14,7 +14,7 @@ struct FileInfo;
 
 class BufferedFileWriter : public Writer {
 public:
-    ~BufferedFileWriter() { flush(); }
+    ~BufferedFileWriter() override { flush(); }
     explicit BufferedFileWriter(std::unique_ptr<FileInfo> fileInfo)
         : buffer(std::make_unique<uint8_t[]>(BUFFER_SIZE)), fileOffset(0), bufferOffset(0),
           fileInfo(std::move(fileInfo)) {}

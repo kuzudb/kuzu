@@ -7,7 +7,7 @@ namespace optimizer {
 
 class LogicalOperatorCollector : public LogicalOperatorVisitor {
 public:
-    ~LogicalOperatorCollector() = default;
+    ~LogicalOperatorCollector() override = default;
 
     void collect(planner::LogicalOperator* op);
 
