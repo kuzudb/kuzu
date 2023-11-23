@@ -63,7 +63,7 @@ def build():
                          deploy_target)
             env_vars['CMAKE_OSX_DEPLOYMENT_TARGET'] = deploy_target
 
-    full_cmd = ['make', 'release', 'LTO=1', 'NUM_THREADS=%d' % concurrency]
+    full_cmd = ['make', 'shell', 'LTO=1', 'NUM_THREADS=%d' % concurrency]
     logging.info("Running command: %s" % full_cmd)
     try:
         subprocess.run(full_cmd, cwd=workspace_root,
