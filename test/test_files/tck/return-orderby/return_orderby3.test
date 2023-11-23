@@ -1,0 +1,26 @@
+-GROUP TCKReturnOrderBy3
+-DATASET CSV tck
+
+--
+
+# Sort on aggregate function and normal property
+-CASE Scenario1
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, division STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {division: 'Sweden'});
+---- ok
+-STATEMENT CREATE (:A {division: 'Germany'});
+---- ok
+-STATEMENT CREATE (:A {division: 'England'});
+---- ok
+-STATEMENT CREATE (:A {division: 'Sweden'});
+---- ok
+-STATEMENT MATCH (n)
+           RETURN n.division, count(*)
+           ORDER BY count(*) DESC, n.division ASC;
+-CHECK_ORDER
+---- 3
+Sweden|2
+England|1
+Germany|1

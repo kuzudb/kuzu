@@ -1,0 +1,22 @@
+-GROUP TCKReturnOrderBy5
+-DATASET CSV tck
+
+--
+
+# Renaming columns before ORDER BY should return results in ascending order
+-CASE Scenario1
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (n1:A {num: 1}),
+                  (n2:A {num: 3}),
+                  (n3:A {num: -5});
+---- ok
+-STATEMENT MATCH (n)
+           RETURN n.num AS n
+           ORDER BY n + 2;
+-CHECK_ORDER
+---- 3
+-5
+1
+3

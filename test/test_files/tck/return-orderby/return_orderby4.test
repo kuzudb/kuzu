@@ -1,0 +1,39 @@
+-GROUP TCKReturnOrderBy4
+-DATASET CSV tck
+
+--
+
+# ORDER BY of a column introduced in RETURN should return salient results in ascending order
+-CASE Scenario1
+-STATEMENT WITH [1, 2] AS prows, [[2], [3, 4]] AS qrows
+           UNWIND prows AS p
+           UNWIND qrows[p] AS q
+           WITH p, count(q) AS rng
+           RETURN p
+           ORDER BY rng;
+-CHECK_ORDER
+---- 2
+1
+2
+
+# Handle projections with ORDER BY
+-CASE Scenario2
+-STATEMENT CREATE NODE TABLE Crew(ID SERIAL, name STRING, rank INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (c1:Crew {name: 'Neo', rank: 1}),
+           (c2:Crew {name: 'Neo', rank: 2}),
+           (c3:Crew {name: 'Neo', rank: 3}),
+           (c4:Crew {name: 'Neo', rank: 4}),
+           (c5:Crew {name: 'Neo', rank: 5});
+---- ok
+-STATEMENT MATCH (c:Crew {name: 'Neo'})
+           WITH c, 0 AS relevance
+           RETURN c.rank AS rank
+           ORDER BY relevance, c.rank;
+-CHECK_ORDER
+---- 5
+1
+2
+3
+4
+5

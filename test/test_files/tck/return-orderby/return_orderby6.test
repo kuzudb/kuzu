@@ -1,0 +1,65 @@
+-GROUP TCKReturnOrderBy6
+-DATASET CSV tck
+
+--
+
+# Handle constants and parameters inside an order by item which contains an aggregation expression
+-CASE Scenario1
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT MATCH (person)
+           RETURN avg(person.age) AS avgAge
+           ORDER BY $age + avg(person.age) - 1000;
+---- 1
+
+
+# Handle returned aliases inside an order by item which contains an aggregation expression
+-CASE Scenario2
+-SKIP
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM Person TO Person);
+---- ok
+-STATEMENT MATCH (me: Person)--(you: Person)
+           RETURN me.age AS age, count(you.age) AS cnt
+           ORDER BY age, age + count(you.age);
+---- 0
+
+# Handle returned property accesses inside an order by item which contains an aggregation expression
+-CASE Scenario3
+-SKIP
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM Person TO Person);
+---- ok
+-STATEMENT MATCH (me: Person)--(you: Person)
+           RETURN me.age AS age, count(you.age) AS cnt
+           ORDER BY me.age + count(you.age);
+---- 0
+
+# Fail if not returned variables are used inside an order by item which contains an aggregation expression
+-CASE Scenario4
+-SKIP
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM Person TO Person);
+---- ok
+-STATEMENT MATCH (me: Person)--(you: Person)
+           RETURN count(you.age) AS agg
+           ORDER BY me.age + count(you.age);
+---- error
+Cannot evaluate expression with type PROPERTY.
+
+# Fail if more complex expressions, even if returned, are used inside an order by item which contains an aggregation expression
+-CASE Scenario5
+-SKIP
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM Person TO Person);
+---- ok
+-STATEMENT MATCH (me: Person)--(you: Person)
+           RETURN me.age + you.age, count(*) AS cnt
+           ORDER BY me.age + you.age + count(*);
+---- error
+AmbiguousAggregationExpression
