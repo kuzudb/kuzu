@@ -11,6 +11,7 @@ public:
         currentSelVector =
             std::make_shared<common::SelectionVector>(common::DEFAULT_VECTOR_CAPACITY);
     }
+    virtual ~SelVectorOverWriter() = default;
 
 protected:
     void restoreSelVector(std::shared_ptr<common::SelectionVector>& selVector);

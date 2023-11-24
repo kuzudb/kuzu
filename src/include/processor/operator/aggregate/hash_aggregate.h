@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace processor {
 
-class HashAggregateSharedState : public BaseAggregateSharedState {
+class HashAggregateSharedState final : public BaseAggregateSharedState {
 
 public:
     explicit HashAggregateSharedState(

@@ -66,6 +66,7 @@ private:
 class NodeSemiMask {
 public:
     explicit NodeSemiMask(storage::NodeTable* nodeTable) : nodeTable{nodeTable} {}
+    virtual ~NodeSemiMask() = default;
 
     virtual void init(transaction::Transaction* trx) = 0;
 

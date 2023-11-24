@@ -141,7 +141,7 @@ public:
     BMFileHandle(const std::string& path, uint8_t flags, BufferManager* bm,
         common::PageSizeClass pageSizeClass, FileVersionedType fileVersionedType);
 
-    ~BMFileHandle();
+    ~BMFileHandle() override;
 
     // This function assumes the page is already LOCKED.
     inline void setLockedPageDirty(common::page_idx_t pageIdx) {

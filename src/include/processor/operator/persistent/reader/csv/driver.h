@@ -15,6 +15,7 @@ class ParsingDriver {
 
 public:
     ParsingDriver(common::DataChunk& chunk);
+    virtual ~ParsingDriver() = default;
 
     bool done(uint64_t rowNum);
     void addValue(uint64_t rowNum, common::column_id_t columnIdx, std::string_view value);
