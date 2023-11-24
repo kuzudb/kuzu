@@ -1,5 +1,4 @@
 # Bugprone exception escape is super unhelpful.
-# NewDeleteLeaks has many false positives w.r.t smart pointers.
 Checks:
   -*,
 
@@ -10,9 +9,6 @@ Checks:
   -bugprone-implicit-widening-of-multiplication-result,
   -bugprone-narrowing-conversions,
   -bugprone-signed-char-misuse,
-
-  clang-analyzer-*,
-  -clang-analyzer-cplusplus.NewDeleteLeaks,
 
   concurrency-*,
 

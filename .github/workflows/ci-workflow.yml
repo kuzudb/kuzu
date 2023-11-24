@@ -248,6 +248,9 @@ jobs:
       - name: Run clang-tidy
         run: make tidy
 
+      - name: Run clang-tidy analyzer
+        run: make tidy-analyzer
+
   include-guard-and-no-std-assert:
     name: include guard & no std::assert check
     runs-on: ubuntu-22.04
