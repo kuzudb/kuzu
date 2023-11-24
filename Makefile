@@ -157,17 +157,15 @@ shell:
 
 
 # Clang-related tools and checks
-clangd:
-	$(call config-cmake-release, -DCMAKE_EXPORT_COMPILE_COMMANDS=1)
 
 # Must build the java native header to avoid missing includes. Pipe character
 # `|` ensures these targets build in this order, even in the presence of
 # parallelism.
-tidy: | allconfig clangd java_native_header
+tidy: | allconfig java_native_header
 	run-clang-tidy -p build/release -quiet -j $(NUM_THREADS) \
 		"^$(realpath src)|$(realpath tools)/(?!shell/linenoise.cpp)|$(realpath examples)"
 
-clangd-diagnostics: | allconfig clangd java_native_header
+clangd-diagnostics: | allconfig java_native_header
 	find src -name *.h -or -name *.cpp | xargs \
 		./scripts/get-clangd-diagnostics.py --compile-commands-dir build/release \
 		-j $(NUM_THREADS) --instances $(CLANGD_DIAGNOSTIC_INSTANCES)
