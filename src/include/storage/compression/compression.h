@@ -243,6 +243,9 @@ public:
 
     void decompressFromPage(const uint8_t* srcBuffer, uint64_t srcOffset, uint8_t* dstBuffer,
         uint64_t dstOffset, uint64_t numValues, const CompressionMetadata& metadata) const final;
+
+    void copyFromPage(const uint8_t* srcBuffer, uint64_t srcOffset, uint8_t* dstBuffer,
+        uint64_t dstOffset, uint64_t numValues, const CompressionMetadata& metadata) const;
 };
 
 class CompressedFunctor {

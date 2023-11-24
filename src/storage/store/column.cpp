@@ -75,72 +75,12 @@ struct NullColumnFunc {
     }
 };
 
-struct BoolColumnFunc {
-    static void readValuesFromPageToVector(uint8_t* frame, PageElementCursor& pageCursor,
-        ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead,
-        const CompressionMetadata& /*metadata*/) {
-        // Read bit-packed null flags from the frame into the result vector
-        // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
-        // Otherwise, it could read off the end of the page.
-        //
-        // Currently, the frame stores bitpacked bools, but the value_vector does not
-        for (auto i = 0; i < numValuesToRead; i++) {
-            resultVector->setValue(
-                posInVector + i, NullMask::isNull((uint64_t*)frame, pageCursor.elemPosInPage + i));
-        }
-    }
-
-    static void writeValueToPageFromVector(uint8_t* frame, uint16_t posInFrame, ValueVector* vector,
-        uint32_t posInVector, const CompressionMetadata& /*metadata*/) {
-        // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
-        // Otherwise, it could read/write off the end of the page.
-        NullMask::setNull((uint64_t*)frame, posInFrame, vector->getValue<bool>(posInVector));
-    }
-
-    static void writeValuesToPage(uint8_t* frame, uint16_t posInFrame, const uint8_t* data,
-        offset_t dataOffset, offset_t numValues, const CompressionMetadata& /*metadata*/) {
-        // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
-        // Otherwise, it could read/write off the end of the page.
-        for (offset_t i = 0; i < numValues; i++) {
-            NullMask::setNull(
-                (uint64_t*)frame, posInFrame, NullMask::isNull((uint64_t*)data, dataOffset));
-        }
-    }
-
-    static void copyValuesFromPage(uint8_t* frame, PageElementCursor& pageCursor, uint8_t* result,
-        uint32_t startPosInResult, uint64_t numValuesToRead,
-        const CompressionMetadata& /*metadata*/) {
-        NullMask::copyNullMask((uint64_t*)frame, pageCursor.elemPosInPage, (uint64_t*)result,
-            startPosInResult, numValuesToRead);
-    }
-
-    static void batchLookupFromPage(uint8_t* frame, PageElementCursor& pageCursor, uint8_t* result,
-        uint32_t startPosInResult, uint64_t numValuesToRead,
-        const CompressionMetadata& /*metadata*/) {
-        for (auto i = 0; i < numValuesToRead; i++) {
-            result[startPosInResult + i] =
-                NullMask::isNull((uint64_t*)frame, pageCursor.elemPosInPage + i);
-        }
-    }
-};
-
 static read_values_to_vector_func_t getReadValuesToVectorFunc(const LogicalType& logicalType) {
     switch (logicalType.getLogicalTypeID()) {
     case LogicalTypeID::INTERNAL_ID:
         return InternalIDColumnFunc::readValuesFromPageToVector;
-    case LogicalTypeID::BOOL:
-        return BoolColumnFunc::readValuesFromPageToVector;
     default:
         return ReadCompressedValuesFromPageToVector(logicalType);
-    }
-}
-
-static read_values_to_page_func_t getReadValuesToPageFunc(const LogicalType& logicalType) {
-    switch (logicalType.getLogicalTypeID()) {
-    case LogicalTypeID::BOOL:
-        return BoolColumnFunc::copyValuesFromPage;
-    default:
-        return ReadCompressedValuesFromPage(logicalType);
     }
 }
 
@@ -148,8 +88,6 @@ static write_values_from_vector_func_t getWriteValueFromVectorFunc(const Logical
     switch (logicalType.getLogicalTypeID()) {
     case LogicalTypeID::INTERNAL_ID:
         return InternalIDColumnFunc::writeValueToPageFromVector;
-    case LogicalTypeID::BOOL:
-        return BoolColumnFunc::writeValueToPageFromVector;
     default:
         return WriteCompressedValueToPageFromVector(logicalType);
     }
@@ -159,20 +97,8 @@ static write_values_func_t getWriteValuesFunc(const LogicalType& logicalType) {
     switch (logicalType.getLogicalTypeID()) {
     case LogicalTypeID::INTERNAL_ID:
         return InternalIDColumnFunc::writeValuesToPage;
-    case LogicalTypeID::BOOL:
-        return BoolColumnFunc::writeValuesToPage;
     default:
         return WriteCompressedValuesToPage(logicalType);
-    }
-}
-
-static batch_lookup_func_t getBatchLookupFromPageFunc(const LogicalType& logicalType) {
-    switch (logicalType.getLogicalTypeID()) {
-    case LogicalTypeID::BOOL:
-        return BoolColumnFunc::batchLookupFromPage;
-    default: {
-        return ReadCompressedValuesFromPage(logicalType);
-    }
     }
 }
 
@@ -249,31 +175,24 @@ public:
 
     bool isNull(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
         offset_t offsetInChunk) override {
-        auto cursor = getPageCursorForOffset(transaction->getType(), nodeGroupIdx, offsetInChunk);
-        auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
-        if (offsetInChunk >= chunkMeta.numValues) {
+        auto state = getReadState(transaction->getType(), nodeGroupIdx);
+        // Must be aligned to an 8-byte chunk for NullMask read to not overflow
+        uint64_t result = false;
+        if (offsetInChunk >= state.metadata.numValues) {
             return true;
         }
-        KU_ASSERT(cursor.pageIdx < chunkMeta.pageIdx + chunkMeta.numPages);
-        bool result = false;
-        readFromPage(transaction, cursor.pageIdx, [&](uint8_t* frame) -> void {
-            result = NullMask::isNull((uint64_t*)frame, cursor.elemPosInPage);
-        });
+        Column::scan(transaction, state, offsetInChunk, offsetInChunk + 1,
+            reinterpret_cast<uint8_t*>(&result));
         return result;
     }
 
     void setNull(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk) override {
-        auto walPageInfo = createWALVersionOfPageForValue(nodeGroupIdx, offsetInChunk);
-        try {
-            propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
-            NullMask::setNull((uint64_t*)walPageInfo.frame, walPageInfo.posInPage, true);
-        } catch (Exception& e) {
-            bufferManager->unpin(*wal->fileHandle, walPageInfo.pageIdxInWAL);
-            dataFH->releaseWALPageIdxLock(walPageInfo.originalPageIdx);
-            throw;
-        }
-        bufferManager->unpin(*wal->fileHandle, walPageInfo.pageIdxInWAL);
-        dataFH->releaseWALPageIdxLock(walPageInfo.originalPageIdx);
+        auto chunkMeta = metadataDA->get(nodeGroupIdx, TransactionType::WRITE);
+        propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
+        // Must be aligned to an 8-byte chunk for NullMask read to not overflow
+        uint64_t value = true;
+        writeValue(
+            chunkMeta, nodeGroupIdx, offsetInChunk, reinterpret_cast<const uint8_t*>(&value));
     }
 
     void write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk,
@@ -349,8 +268,8 @@ Column::Column(std::unique_ptr<LogicalType> dataType, const MetadataDAHInfo& met
         transaction);
     numBytesPerFixedSizedValue = getDataTypeSizeInChunk(*this->dataType);
     readToVectorFunc = getReadValuesToVectorFunc(*this->dataType);
-    readToPageFunc = getReadValuesToPageFunc(*this->dataType);
-    batchLookupFunc = getBatchLookupFromPageFunc(*this->dataType);
+    readToPageFunc = ReadCompressedValuesFromPage(*this->dataType);
+    batchLookupFunc = ReadCompressedValuesFromPage(*this->dataType);
     writeFromVectorFunc = getWriteValueFromVectorFunc(*this->dataType);
     writeFunc = getWriteValuesFunc(*this->dataType);
     KU_ASSERT(numBytesPerFixedSizedValue <= BufferPoolConstants::PAGE_4KB_SIZE);
