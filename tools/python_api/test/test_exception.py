@@ -1,6 +1,5 @@
 import pytest
 import sys
-sys.path.append('../build/')
 import kuzu
 
 
