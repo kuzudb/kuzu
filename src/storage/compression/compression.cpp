@@ -452,6 +452,13 @@ void BooleanBitpacking::decompressFromPage(const uint8_t* srcBuffer, uint64_t sr
     }
 }
 
+void BooleanBitpacking::copyFromPage(const uint8_t* srcBuffer, uint64_t srcOffset,
+    uint8_t* dstBuffer, uint64_t dstOffset, uint64_t numValues,
+    const CompressionMetadata& /*metadata*/) const {
+    NullMask::copyNullMask(reinterpret_cast<const uint64_t*>(srcBuffer), srcOffset,
+        reinterpret_cast<uint64_t*>(dstBuffer), dstOffset, numValues);
+}
+
 std::array<uint8_t, CompressionMetadata::DATA_SIZE> BitpackHeader::getData() const {
     std::array<uint8_t, CompressionMetadata::DATA_SIZE> data = {bitWidth};
     *(uint64_t*)&data[1] = offset;
@@ -575,7 +582,8 @@ void ReadCompressedValuesFromPage::operator()(uint8_t* frame, PageElementCursor&
         }
     }
     case CompressionType::BOOLEAN_BITPACKING:
-        return booleanBitpacking.decompressFromPage(
+        // Reading into ColumnChunks should be done without decompressing for booleans
+        return booleanBitpacking.copyFromPage(
             frame, pageCursor.elemPosInPage, result, startPosInResult, numValuesToRead, metadata);
     }
 }

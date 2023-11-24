@@ -270,9 +270,6 @@ void ColumnChunk::resize(uint64_t newCapacity) {
     auto numBytesAfterResize = getBufferSize();
     if (numBytesAfterResize > bufferSize) {
         auto resizedBuffer = std::make_unique<uint8_t[]>(numBytesAfterResize);
-        if (dataType->getPhysicalType() == PhysicalTypeID::BOOL) {
-            memset(resizedBuffer.get(), 0 /* non null */, numBytesAfterResize);
-        }
         memcpy(resizedBuffer.get(), buffer.get(), bufferSize);
         bufferSize = numBytesAfterResize;
         buffer = std::move(resizedBuffer);
