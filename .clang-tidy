@@ -12,6 +12,8 @@ Checks:
 
   concurrency-*,
 
+  cppcoreguidelines-virtual-class-destructor,
+
   misc-unused-parameters,
 
   modernize-use-override,

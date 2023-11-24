@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace processor {
 
-class SimpleAggregateSharedState : public BaseAggregateSharedState {
+class SimpleAggregateSharedState final : public BaseAggregateSharedState {
 public:
     explicit SimpleAggregateSharedState(
         const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions);

@@ -28,6 +28,7 @@ public:
     constexpr static uint8_t O_IN_MEM_TEMP_FILE{0b0000'0011};
 
     FileHandle(const std::string& path, uint8_t flags);
+    virtual ~FileHandle() = default;
 
     common::page_idx_t addNewPage();
     common::page_idx_t addNewPages(common::page_idx_t numPages);
