@@ -44,7 +44,7 @@ struct SerialCSVScan {
     static void tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk);
 
     static std::unique_ptr<function::TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-        function::TableFuncBindInput* input, catalog::CatalogContent* /*catalog*/);
+        function::TableFuncBindInput* input, catalog::Catalog* /*catalog*/);
 
     static std::unique_ptr<function::TableFuncSharedState> initSharedState(
         function::TableFunctionInitInput& input);

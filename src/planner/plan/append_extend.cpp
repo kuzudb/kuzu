@@ -9,10 +9,12 @@
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_node_label_filter.h"
 #include "planner/query_planner.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
 using namespace kuzu::catalog;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace planner {
@@ -30,7 +32,7 @@ static bool extendHasAtMostOneNbrGuarantee(RelExpression& rel, NodeExpression& b
     }
     auto relDirection = ExtendDirectionUtils::getRelDataDirection(direction);
     auto relTableSchema = reinterpret_cast<RelTableSchema*>(
-        catalog.getReadOnlyVersion()->getTableSchema(rel.getSingleTableID()));
+        catalog.getTableSchema(&DUMMY_READ_TRANSACTION, rel.getSingleTableID()));
     return relTableSchema->isSingleMultiplicityInDirection(relDirection);
 }
 
@@ -39,7 +41,7 @@ static std::unordered_set<table_id_t> getBoundNodeTableIDSet(
     std::unordered_set<table_id_t> result;
     for (auto tableID : rel.getTableIDs()) {
         auto tableSchema = reinterpret_cast<RelTableSchema*>(
-            catalog.getReadOnlyVersion()->getTableSchema(tableID));
+            catalog.getTableSchema(&DUMMY_READ_TRANSACTION, tableID));
         switch (extendDirection) {
         case ExtendDirection::FWD: {
             result.insert(tableSchema->getBoundTableID(RelDataDirection::FWD));
@@ -63,7 +65,7 @@ static std::unordered_set<table_id_t> getNbrNodeTableIDSet(
     std::unordered_set<table_id_t> result;
     for (auto tableID : rel.getTableIDs()) {
         auto tableSchema = reinterpret_cast<RelTableSchema*>(
-            catalog.getReadOnlyVersion()->getTableSchema(tableID));
+            catalog.getTableSchema(&DUMMY_READ_TRANSACTION, tableID));
         switch (extendDirection) {
         case ExtendDirection::FWD: {
             result.insert(tableSchema->getNbrTableID(RelDataDirection::FWD));

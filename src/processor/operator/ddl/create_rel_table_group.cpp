@@ -11,13 +11,13 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace processor {
 
-void CreateRelTableGroup::executeDDLInternal() {
+void CreateRelTableGroup::executeDDLInternal(ExecutionContext* context) {
     auto newRelTableGroupID = catalog->addRelTableGroupSchema(*info);
-    auto writeCatalog = catalog->getWriteVersion();
+    auto tx = context->clientContext->getTx();
     auto newRelTableGroupSchema =
-        (RelTableGroupSchema*)writeCatalog->getTableSchema(newRelTableGroupID);
+        reinterpret_cast<RelTableGroupSchema*>(catalog->getTableSchema(tx, newRelTableGroupID));
     for (auto& relTableID : newRelTableGroupSchema->getRelTableIDs()) {
-        auto newRelTableSchema = writeCatalog->getTableSchema(relTableID);
+        auto newRelTableSchema = catalog->getTableSchema(tx, relTableID);
         storageManager->getRelsStatistics()->addTableStatistic((RelTableSchema*)newRelTableSchema);
     }
     // TODO(Ziyi): remove this when we can log variable size record. See also wal_record.h

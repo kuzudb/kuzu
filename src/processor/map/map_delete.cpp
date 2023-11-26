@@ -1,6 +1,7 @@
 #include "planner/operator/persistent/logical_delete.h"
 #include "processor/operator/persistent/delete.h"
 #include "processor/plan_mapper.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -18,7 +19,8 @@ static std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(catalog::Catalo
         std::unordered_map<table_id_t, std::unordered_set<RelTable*>> tableIDToFwdRelTablesMap;
         std::unordered_map<table_id_t, std::unordered_set<RelTable*>> tableIDToBwdRelTablesMap;
         for (auto tableID : info->node->getTableIDs()) {
-            auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(tableID);
+            auto tableSchema =
+                catalog->getTableSchema(&transaction::DUMMY_READ_TRANSACTION, tableID);
             auto nodeTableSchema =
                 ku_dynamic_cast<catalog::TableSchema*, catalog::NodeTableSchema*>(tableSchema);
             auto table = storageManager.getNodeTable(tableID);
@@ -41,8 +43,8 @@ static std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(catalog::Catalo
             info->deleteType, nodeIDPos);
     } else {
         auto table = storageManager.getNodeTable(info->node->getSingleTableID());
-        auto tableSchema =
-            catalog->getReadOnlyVersion()->getTableSchema(info->node->getSingleTableID());
+        auto tableSchema = catalog->getTableSchema(
+            &transaction::DUMMY_READ_TRANSACTION, info->node->getSingleTableID());
         auto nodeTableSchema =
             ku_dynamic_cast<catalog::TableSchema*, catalog::NodeTableSchema*>(tableSchema);
         auto fwdRelTableIDs = nodeTableSchema->getFwdRelTableIDSet();

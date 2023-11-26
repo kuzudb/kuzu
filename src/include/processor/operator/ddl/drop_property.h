@@ -14,7 +14,7 @@ public:
         : DDL{PhysicalOperatorType::DROP_PROPERTY, catalog, outputPos, id, paramsString},
           storageManager{storageManager}, tableID{tableID}, propertyID{propertyID} {}
 
-    void executeDDLInternal() final;
+    void executeDDLInternal(ExecutionContext* context) final;
 
     std::string getOutputMsg() final { return {"Drop succeed."}; }
 

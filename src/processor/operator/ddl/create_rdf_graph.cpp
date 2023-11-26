@@ -9,26 +9,26 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace processor {
 
-void CreateRdfGraph::executeDDLInternal() {
+void CreateRdfGraph::executeDDLInternal(ExecutionContext* context) {
+    auto tx = context->clientContext->getTx();
     auto newRdfGraphID = catalog->addRdfGraphSchema(*info);
-    auto writeCatalog = catalog->getWriteVersion();
     auto rdfGraphSchema =
-        reinterpret_cast<RdfGraphSchema*>(writeCatalog->getTableSchema(newRdfGraphID));
+        reinterpret_cast<RdfGraphSchema*>(catalog->getTableSchema(tx, newRdfGraphID));
     auto resourceTableID = rdfGraphSchema->getResourceTableID();
     auto resourceTableSchema =
-        reinterpret_cast<NodeTableSchema*>(writeCatalog->getTableSchema(resourceTableID));
+        reinterpret_cast<NodeTableSchema*>(catalog->getTableSchema(tx, resourceTableID));
     nodesStatistics->addNodeStatisticsAndDeletedIDs(resourceTableSchema);
     auto literalTableID = rdfGraphSchema->getLiteralTableID();
     auto literalTableSchema =
-        reinterpret_cast<NodeTableSchema*>(writeCatalog->getTableSchema(literalTableID));
+        reinterpret_cast<NodeTableSchema*>(catalog->getTableSchema(tx, literalTableID));
     nodesStatistics->addNodeStatisticsAndDeletedIDs(literalTableSchema);
     auto resourceTripleTableID = rdfGraphSchema->getResourceTripleTableID();
     auto resourceTripleTableSchema =
-        reinterpret_cast<RelTableSchema*>(writeCatalog->getTableSchema(resourceTripleTableID));
+        reinterpret_cast<RelTableSchema*>(catalog->getTableSchema(tx, resourceTripleTableID));
     relsStatistics->addTableStatistic(resourceTripleTableSchema);
     auto literalTripleTableID = rdfGraphSchema->getLiteralTripleTableID();
     auto literalTripleTableSchema =
-        reinterpret_cast<RelTableSchema*>(writeCatalog->getTableSchema(literalTripleTableID));
+        reinterpret_cast<RelTableSchema*>(catalog->getTableSchema(tx, literalTripleTableID));
     relsStatistics->addTableStatistic(literalTripleTableSchema);
     storageManager->getWAL()->logRdfGraphRecord(newRdfGraphID, resourceTableID, literalTableID,
         resourceTripleTableID, literalTripleTableID);

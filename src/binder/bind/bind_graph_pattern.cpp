@@ -262,18 +262,19 @@ std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::str
     }
     auto extraInfo = std::make_unique<StructTypeInfo>(fieldNames, fieldTypes);
     RelType::setExtraTypeInfo(queryRel->getDataTypeReference(), std::move(extraInfo));
-    auto readVersion = catalog.getReadOnlyVersion();
-    if (readVersion->getTableSchema(tableIDs[0])->getTableType() == TableType::RDF) {
+    auto tableSchema = catalog.getTableSchema(clientContext->getTx(), tableIDs[0]);
+    if (tableSchema->getTableType() == TableType::RDF) {
         auto predicateID =
             expressionBinder.bindNodeOrRelPropertyExpression(*queryRel, std::string(rdf::PID));
         std::vector<common::table_id_t> resourceTableIDs;
         std::vector<TableSchema*> resourceTableSchemas;
         for (auto& tableID : tableIDs) {
-            auto rdfGraphSchema =
-                reinterpret_cast<RdfGraphSchema*>(readVersion->getTableSchema(tableID));
+            auto rdfGraphSchema = reinterpret_cast<RdfGraphSchema*>(
+                catalog.getTableSchema(clientContext->getTx(), tableID));
             auto resourceTableID = rdfGraphSchema->getResourceTableID();
             resourceTableIDs.push_back(resourceTableID);
-            resourceTableSchemas.push_back(readVersion->getTableSchema(resourceTableID));
+            resourceTableSchemas.push_back(
+                catalog.getTableSchema(clientContext->getTx(), resourceTableID));
         }
         auto predicateIRI = createPropertyExpression(std::string(rdf::IRI),
             queryRel->getUniqueName(), queryRel->getVariableName(), resourceTableSchemas);
@@ -305,7 +306,7 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     std::unordered_set<table_id_t> nodeTableIDs;
     for (auto relTableID : relTableIDs) {
         auto relTableSchema = reinterpret_cast<RelTableSchema*>(
-            catalog.getReadOnlyVersion()->getTableSchema(relTableID));
+            catalog.getTableSchema(clientContext->getTx(), relTableID));
         nodeTableIDs.insert(relTableSchema->getSrcTableID());
         nodeTableIDs.insert(relTableSchema->getDstTableID());
     }
@@ -463,7 +464,7 @@ std::pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
 void Binder::bindQueryRelProperties(RelExpression& rel) {
     std::vector<TableSchema*> tableSchemas;
     for (auto tableID : rel.getTableIDs()) {
-        tableSchemas.push_back(catalog.getReadOnlyVersion()->getTableSchema(tableID));
+        tableSchemas.push_back(catalog.getTableSchema(clientContext->getTx(), tableID));
     }
     auto propertyNames = getPropertyNames(tableSchemas);
     for (auto& propertyName : propertyNames) {
@@ -539,7 +540,7 @@ std::shared_ptr<NodeExpression> Binder::createQueryNode(
 }
 
 void Binder::bindQueryNodeProperties(NodeExpression& node) {
-    auto tableSchemas = catalog.getReadOnlyVersion()->getTableSchemas(node.getTableIDs());
+    auto tableSchemas = catalog.getTableSchemas(clientContext->getTx(), node.getTableIDs());
     auto propertyNames = getPropertyNames(tableSchemas);
     for (auto& propertyName : propertyNames) {
         auto property = createPropertyExpression(
@@ -550,26 +551,26 @@ void Binder::bindQueryNodeProperties(NodeExpression& node) {
 
 std::vector<table_id_t> Binder::bindTableIDs(
     const std::vector<std::string>& tableNames, bool nodePattern) {
-    auto catalogContent = catalog.getReadOnlyVersion();
+    auto tx = clientContext->getTx();
     std::unordered_set<common::table_id_t> tableIDSet;
     if (tableNames.empty()) { // Rewrite empty table names as all tables.
-        if (catalogContent->containsRdfGraph()) {
+        if (catalog.containsRdfGraph(tx)) {
             // If catalog contains rdf graph then it should NOT have any property graph table.
-            for (auto tableID : catalogContent->getRdfGraphIDs()) {
+            for (auto tableID : catalog.getRdfGraphIDs(tx)) {
                 tableIDSet.insert(tableID);
             }
         } else if (nodePattern) {
-            if (!catalogContent->containsNodeTable()) {
+            if (!catalog.containsNodeTable(tx)) {
                 throw BinderException("No node table exists in database.");
             }
-            for (auto tableID : catalogContent->getNodeTableIDs()) {
+            for (auto tableID : catalog.getNodeTableIDs(tx)) {
                 tableIDSet.insert(tableID);
             }
         } else { // rel
-            if (!catalogContent->containsRelTable()) {
+            if (!catalog.containsRelTable(tx)) {
                 throw BinderException("No rel table exists in database.");
             }
-            for (auto tableID : catalogContent->getRelTableIDs()) {
+            for (auto tableID : catalog.getRelTableIDs(tx)) {
                 tableIDSet.insert(tableID);
             }
         }
@@ -584,14 +585,13 @@ std::vector<table_id_t> Binder::bindTableIDs(
 }
 
 std::vector<table_id_t> Binder::getNodeTableIDs(const std::vector<table_id_t>& tableIDs) {
-    auto readVersion = catalog.getReadOnlyVersion();
-    auto tableType = readVersion->getTableSchema(tableIDs[0])->getTableType();
+    auto tableType = catalog.getTableSchema(clientContext->getTx(), tableIDs[0])->getTableType();
     switch (tableType) {
     case TableType::RDF: { // extract node table ID from rdf graph schema.
         std::vector<table_id_t> result;
         for (auto& tableID : tableIDs) {
-            auto rdfGraphSchema =
-                reinterpret_cast<RdfGraphSchema*>(readVersion->getTableSchema(tableID));
+            auto rdfGraphSchema = reinterpret_cast<RdfGraphSchema*>(
+                catalog.getTableSchema(clientContext->getTx(), tableID));
             result.push_back(rdfGraphSchema->getResourceTableID());
             result.push_back(rdfGraphSchema->getLiteralTableID());
         }
@@ -606,14 +606,13 @@ std::vector<table_id_t> Binder::getNodeTableIDs(const std::vector<table_id_t>& t
 }
 
 std::vector<table_id_t> Binder::getRelTableIDs(const std::vector<table_id_t>& tableIDs) {
-    auto readVersion = catalog.getReadOnlyVersion();
-    auto tableType = readVersion->getTableSchema(tableIDs[0])->getTableType();
+    auto tableType = catalog.getTableSchema(clientContext->getTx(), tableIDs[0])->getTableType();
     switch (tableType) {
     case TableType::RDF: { // extract rel table ID from rdf graph schema.
         std::vector<table_id_t> result;
         for (auto& tableID : tableIDs) {
-            auto rdfGraphSchema =
-                reinterpret_cast<RdfGraphSchema*>(readVersion->getTableSchema(tableID));
+            auto rdfGraphSchema = reinterpret_cast<RdfGraphSchema*>(
+                catalog.getTableSchema(clientContext->getTx(), tableID));
             result.push_back(rdfGraphSchema->getResourceTripleTableID());
             result.push_back(rdfGraphSchema->getLiteralTripleTableID());
         }
@@ -622,8 +621,8 @@ std::vector<table_id_t> Binder::getRelTableIDs(const std::vector<table_id_t>& ta
     case TableType::REL_GROUP: { // extract rel table ID from rel group schema.
         std::vector<table_id_t> result;
         for (auto& tableID : tableIDs) {
-            auto relGroupSchema =
-                reinterpret_cast<RelTableGroupSchema*>(readVersion->getTableSchema(tableID));
+            auto relGroupSchema = reinterpret_cast<RelTableGroupSchema*>(
+                catalog.getTableSchema(clientContext->getTx(), tableID));
             for (auto& relTableID : relGroupSchema->getRelTableIDs()) {
                 result.push_back(relTableID);
             }

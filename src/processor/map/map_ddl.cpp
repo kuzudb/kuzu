@@ -12,6 +12,7 @@
 #include "processor/operator/ddl/rename_property.h"
 #include "processor/operator/ddl/rename_table.h"
 #include "processor/plan_mapper.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -77,8 +78,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateRdfGraph(LogicalOperator*
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapDropTable(LogicalOperator* logicalOperator) {
     auto dropTable = (LogicalDropTable*)logicalOperator;
-    return std::make_unique<DropTable>(catalog, dropTable->getTableID(), getOutputPos(dropTable),
-        getOperatorID(), dropTable->getExpressionsForPrinting());
+    return std::make_unique<DropTable>(catalog, dropTable->getTableName(), dropTable->getTableID(),
+        getOutputPos(dropTable), getOperatorID(), dropTable->getExpressionsForPrinting());
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapAlter(LogicalOperator* logicalOperator) {
@@ -115,7 +116,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAddProperty(LogicalOperator* lo
     auto extraInfo = reinterpret_cast<BoundExtraAddPropertyInfo*>(info->extraInfo.get());
     auto expressionEvaluator =
         ExpressionMapper::getEvaluator(extraInfo->defaultValue, alter->getSchema());
-    auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(info->tableID);
+    auto tableSchema = catalog->getTableSchema(&transaction::DUMMY_READ_TRANSACTION, info->tableID);
     switch (tableSchema->getTableType()) {
     case TableType::NODE:
         return std::make_unique<AddNodeProperty>(catalog, info->tableID, extraInfo->propertyName,

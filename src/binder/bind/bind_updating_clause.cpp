@@ -9,6 +9,7 @@
 #include "common/assert.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
+#include "main/client_context.h"
 #include "parser/query/updating_clause/delete_clause.h"
 #include "parser/query/updating_clause/insert_clause.h"
 #include "parser/query/updating_clause/merge_clause.h"
@@ -149,7 +150,7 @@ std::unique_ptr<BoundInsertInfo> Binder::bindInsertNodeInfo(
             "Create node " + node->toString() + " with multiple node labels is not supported.");
     }
     auto tableID = node->getSingleTableID();
-    auto tableSchema = catalog.getReadOnlyVersion()->getTableSchema(tableID);
+    auto tableSchema = catalog.getTableSchema(clientContext->getTx(), tableID);
     validatePrimaryKeyExistence(collection, tableSchema, node);
     auto setItems = bindSetItems(collection, tableSchema, node);
     return std::make_unique<BoundInsertInfo>(
@@ -168,7 +169,7 @@ std::unique_ptr<BoundInsertInfo> Binder::bindInsertRelInfo(
             common::stringFormat("Cannot create recursive rel {}.", rel->toString()));
     }
     auto relTableID = rel->getSingleTableID();
-    auto tableSchema = catalog.getReadOnlyVersion()->getTableSchema(relTableID);
+    auto tableSchema = catalog.getTableSchema(clientContext->getTx(), relTableID);
     auto setItems = bindSetItems(collection, tableSchema, rel);
     return std::make_unique<BoundInsertInfo>(
         UpdateTableType::REL, std::move(rel), std::move(setItems));

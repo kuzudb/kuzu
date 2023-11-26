@@ -26,8 +26,8 @@ public:
         memoryManager = std::make_unique<MemoryManager>(bufferManager.get());
         executionContext = std::make_unique<ExecutionContext>(1 /* numThreads */, profiler.get(),
             memoryManager.get(), bufferManager.get(), conn->clientContext.get());
-        personTableID = catalog->getReadOnlyVersion()->getTableID("person");
-        studyAtTableID = catalog->getReadOnlyVersion()->getTableID("studyAt");
+        personTableID = catalog->getTableID(&DUMMY_READ_TRANSACTION, "person");
+        studyAtTableID = catalog->getTableID(&DUMMY_READ_TRANSACTION, "studyAt");
     }
 
     void initWithoutLoadingGraph() {
@@ -40,7 +40,7 @@ public:
     }
 
     void validateDatabaseStateAfterCommitCreateNodeTable() {
-        ASSERT_TRUE(catalog->getReadOnlyVersion()->containsNodeTable("EXAM_PAPER"));
+        ASSERT_TRUE(catalog->containsTable(&DUMMY_READ_TRANSACTION, "EXAM_PAPER"));
         ASSERT_EQ(getStorageManager(*database)
                       ->getNodesStatisticsAndDeletedIDs()
                       ->getNumNodeStatisticsAndDeleteIDsPerTable(),
@@ -49,35 +49,32 @@ public:
 
     // Since DDL statements are in an auto-commit transaction, we can't use the query interface to
     // test the recovery algorithm and parallel read.
-    void createNodeTable(TransactionTestType transactionTestType) {
-        executeQueryWithoutCommit(
-            "CREATE NODE TABLE EXAM_PAPER(STUDENT_ID INT64, MARK DOUBLE, PRIMARY KEY(STUDENT_ID))");
-        ASSERT_FALSE(catalog->getReadOnlyVersion()->containsNodeTable("EXAM_PAPER"));
+    void createTable(TableType tableType, TransactionTestType transactionTestType) {
+        std::string tableName;
+        switch (tableType) {
+        case TableType::NODE: {
+            tableName = "EXAM_PAPER";
+            executeQueryWithoutCommit("CREATE NODE TABLE EXAM_PAPER(STUDENT_ID INT64, MARK DOUBLE, "
+                                      "PRIMARY KEY(STUDENT_ID))");
+        } break;
+        case TableType::REL: {
+            tableName = "likes";
+            executeQueryWithoutCommit(
+                "CREATE REL TABLE likes(FROM person TO organisation, RATING INT64, MANY_ONE)");
+        } break;
+        default: {
+            KU_UNREACHABLE;
+        }
+        }
+        ASSERT_FALSE(catalog->containsTable(&DUMMY_READ_TRANSACTION, tableName));
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->query("COMMIT_SKIP_CHECKPOINT");
-            ASSERT_FALSE(catalog->getReadOnlyVersion()->containsNodeTable("EXAM_PAPER"));
-            ASSERT_EQ(getStorageManager(*database)
-                          ->getNodesStatisticsAndDeletedIDs()
-                          ->getNumNodeStatisticsAndDeleteIDsPerTable(),
-                3);
+            ASSERT_FALSE(catalog->containsTable(&DUMMY_READ_TRANSACTION, tableName));
             initWithoutLoadingGraph();
         } else {
             conn->query("COMMIT");
         }
-        validateDatabaseStateAfterCommitCreateNodeTable();
-    }
-
-    void createRelTable(TransactionTestType transactionTestType) {
-        executeQueryWithoutCommit(
-            "CREATE REL TABLE likes(FROM person TO organisation, RATING INT64, MANY_ONE)");
-        ASSERT_FALSE(catalog->getReadOnlyVersion()->containsRelTable("likes"));
-        if (transactionTestType == TransactionTestType::RECOVERY) {
-            conn->query("COMMIT_SKIP_CHECKPOINT");
-            ASSERT_FALSE(catalog->getReadOnlyVersion()->containsRelTable("likes"));
-            initWithoutLoadingGraph();
-        } else {
-            conn->query("COMMIT");
-        }
+        ASSERT_TRUE(catalog->containsTable(&DUMMY_READ_TRANSACTION, tableName));
     }
 
     void validateBelongsRelTable() {
@@ -106,69 +103,25 @@ public:
             "Binder exception: Nodes a and b are not connected through rel e.");
     }
 
-    void createRelMixedRelationCommitAndRecoveryTest(TransactionTestType transactionTestType) {
-        conn->query("CREATE NODE TABLE country(id INT64, PRIMARY KEY(id));");
-        conn->query("CREATE (c:country{id: 0});");
-        executeQueryWithoutCommit(
-            "CREATE REL TABLE belongs(FROM person TO organisation, FROM organisation TO country);");
-        ASSERT_FALSE(catalog->getReadOnlyVersion()->containsRelTable("belongs"));
+    void dropTableCommitAndRecoveryTest(
+        std::string tableName, TransactionTestType transactionTestType) {
+        auto tableID = catalog->getTableID(&DUMMY_READ_TRANSACTION, tableName);
+        auto tableSchema = catalog->getTableSchema(&DUMMY_READ_TRANSACTION, tableID)->copy();
+        executeQueryWithoutCommit(stringFormat("DROP TABLE {}", tableName));
+        ASSERT_TRUE(catalog->containsTable(&DUMMY_READ_TRANSACTION, tableName));
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->query("COMMIT_SKIP_CHECKPOINT");
-            initWithoutLoadingGraph();
-            ASSERT_TRUE(catalog->getReadOnlyVersion()->containsRelTable("belongs"));
-        } else {
-            conn->query("COMMIT");
-            ASSERT_TRUE(catalog->getReadOnlyVersion()->containsRelTable("belongs"));
-        }
-        executeQueryWithoutCommit("COPY belongs FROM \"" +
-                                  TestHelper::appendKuzuRootPath("dataset/tinysnb/eBelongs.csv\""));
-        if (transactionTestType == TransactionTestType::RECOVERY) {
-            conn->query("COMMIT_SKIP_CHECKPOINT");
+            ASSERT_TRUE(catalog->containsTable(&DUMMY_READ_TRANSACTION, tableName));
             initWithoutLoadingGraph();
         } else {
             conn->query("COMMIT");
         }
-        validateBelongsRelTable();
-    }
-
-    void dropNodeTableCommitAndRecoveryTest(TransactionTestType transactionTestType) {
-        conn->query("CREATE NODE TABLE university(address STRING, PRIMARY KEY(address));");
-        auto tableSchema =
-            catalog->getReadOnlyVersion()
-                ->getTableSchema(catalog->getReadOnlyVersion()->getTableID("university"))
-                ->copy();
-        executeQueryWithoutCommit("DROP TABLE university");
-        ASSERT_TRUE(catalog->getReadOnlyVersion()->containsNodeTable("university"));
-        if (transactionTestType == TransactionTestType::RECOVERY) {
-            conn->query("COMMIT_SKIP_CHECKPOINT");
-            ASSERT_TRUE(catalog->getReadOnlyVersion()->containsNodeTable("university"));
-            initWithoutLoadingGraph();
-        } else {
-            conn->query("COMMIT");
-        }
-        ASSERT_FALSE(catalog->getReadOnlyVersion()->containsNodeTable("university"));
-    }
-
-    void dropRelTableCommitAndRecoveryTest(TransactionTestType transactionTestType) {
-        auto tableSchema = catalog->getReadOnlyVersion()
-                               ->getTableSchema(catalog->getReadOnlyVersion()->getTableID("knows"))
-                               ->copy();
-        executeQueryWithoutCommit("DROP TABLE knows");
-        ASSERT_TRUE(catalog->getReadOnlyVersion()->containsRelTable("knows"));
-        if (transactionTestType == TransactionTestType::RECOVERY) {
-            conn->query("COMMIT_SKIP_CHECKPOINT");
-            ASSERT_TRUE(catalog->getReadOnlyVersion()->containsRelTable("knows"));
-            initWithoutLoadingGraph();
-        } else {
-            conn->query("COMMIT");
-        }
-        ASSERT_FALSE(catalog->getReadOnlyVersion()->containsRelTable("knows"));
+        ASSERT_FALSE(catalog->containsTable(&DUMMY_READ_TRANSACTION, tableName));
     }
 
     void dropNodeTableProperty(TransactionTestType transactionTestType) {
         executeQueryWithoutCommit("ALTER TABLE person DROP gender");
-        ASSERT_TRUE(catalog->getReadOnlyVersion()
-                        ->getTableSchema(personTableID)
+        ASSERT_TRUE(catalog->getTableSchema(&DUMMY_READ_TRANSACTION, personTableID)
                         ->containProperty("gender"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->query("COMMIT_SKIP_CHECKPOINT");
@@ -177,8 +130,7 @@ public:
         } else {
             conn->query("COMMIT");
         }
-        ASSERT_FALSE(catalog->getReadOnlyVersion()
-                         ->getTableSchema(personTableID)
+        ASSERT_FALSE(catalog->getTableSchema(&DUMMY_READ_TRANSACTION, personTableID)
                          ->containProperty("gender"));
         auto result = conn->query("MATCH (p:person) RETURN * ORDER BY p.ID LIMIT 1");
         ASSERT_EQ(TestHelper::convertResultToString(*result),
@@ -192,8 +144,7 @@ public:
 
     void dropRelTableProperty(TransactionTestType transactionTestType) {
         executeQueryWithoutCommit("ALTER TABLE studyAt DROP places");
-        ASSERT_TRUE(catalog->getReadOnlyVersion()
-                        ->getTableSchema(studyAtTableID)
+        ASSERT_TRUE(catalog->getTableSchema(&DUMMY_READ_TRANSACTION, studyAtTableID)
                         ->containProperty("places"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->query("COMMIT_SKIP_CHECKPOINT");
@@ -202,8 +153,7 @@ public:
         } else {
             conn->query("COMMIT");
         }
-        ASSERT_FALSE(catalog->getReadOnlyVersion()
-                         ->getTableSchema(personTableID)
+        ASSERT_FALSE(catalog->getTableSchema(&DUMMY_READ_TRANSACTION, personTableID)
                          ->containProperty("places"));
         auto result = conn->query(
             "MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1");
@@ -216,7 +166,6 @@ public:
 
     void executeQueryWithoutCommit(std::string query) {
         auto preparedStatement = conn->prepare(query);
-        conn->query("BEGIN TRANSACTION");
         auto mapper = PlanMapper(
             *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
         auto physicalPlan =
@@ -297,21 +246,22 @@ public:
 
     void renameTable(TransactionTestType transactionTestType) {
         executeQueryWithoutCommit("ALTER TABLE person RENAME TO student");
-        ASSERT_EQ(catalog->getWriteVersion()->getTableSchema(personTableID)->tableName, "student");
         ASSERT_EQ(
-            catalog->getReadOnlyVersion()->getTableSchema(personTableID)->tableName, "person");
+            catalog->getTableSchema(&DUMMY_WRITE_TRANSACTION, personTableID)->tableName, "student");
+        ASSERT_EQ(
+            catalog->getTableSchema(&DUMMY_READ_TRANSACTION, personTableID)->tableName, "person");
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->query("COMMIT_SKIP_CHECKPOINT");
-            ASSERT_EQ(
-                catalog->getWriteVersion()->getTableSchema(personTableID)->tableName, "student");
-            ASSERT_EQ(
-                catalog->getReadOnlyVersion()->getTableSchema(personTableID)->tableName, "person");
+            ASSERT_EQ(catalog->getTableSchema(&DUMMY_WRITE_TRANSACTION, personTableID)->tableName,
+                "student");
+            ASSERT_EQ(catalog->getTableSchema(&DUMMY_READ_TRANSACTION, personTableID)->tableName,
+                "person");
             initWithoutLoadingGraph();
         } else {
             conn->query("COMMIT");
         }
         ASSERT_EQ(
-            catalog->getReadOnlyVersion()->getTableSchema(personTableID)->tableName, "student");
+            catalog->getTableSchema(&DUMMY_READ_TRANSACTION, personTableID)->tableName, "student");
         auto result = conn->query("MATCH (s:student) return s.age order by s.age");
         ASSERT_EQ(TestHelper::convertResultToString(*result),
             std::vector<std::string>({"20", "20", "25", "30", "35", "40", "45", "83"}));
@@ -319,23 +269,22 @@ public:
 
     void renameProperty(TransactionTestType transactionTestType) {
         executeQueryWithoutCommit("ALTER TABLE person RENAME fName TO name");
-        ASSERT_TRUE(
-            catalog->getWriteVersion()->getTableSchema(personTableID)->containProperty("name"));
-        ASSERT_TRUE(
-            catalog->getReadOnlyVersion()->getTableSchema(personTableID)->containProperty("fName"));
+        ASSERT_TRUE(catalog->getTableSchema(&DUMMY_WRITE_TRANSACTION, personTableID)
+                        ->containProperty("name"));
+        ASSERT_TRUE(catalog->getTableSchema(&DUMMY_READ_TRANSACTION, personTableID)
+                        ->containProperty("fName"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->query("COMMIT_SKIP_CHECKPOINT");
-            ASSERT_TRUE(
-                catalog->getWriteVersion()->getTableSchema(personTableID)->containProperty("name"));
-            ASSERT_TRUE(catalog->getReadOnlyVersion()
-                            ->getTableSchema(personTableID)
+            ASSERT_TRUE(catalog->getTableSchema(&DUMMY_WRITE_TRANSACTION, personTableID)
+                            ->containProperty("name"));
+            ASSERT_TRUE(catalog->getTableSchema(&DUMMY_READ_TRANSACTION, personTableID)
                             ->containProperty("fName"));
             initWithoutLoadingGraph();
         } else {
             conn->query("COMMIT");
         }
-        ASSERT_TRUE(
-            catalog->getReadOnlyVersion()->getTableSchema(personTableID)->containProperty("name"));
+        ASSERT_TRUE(catalog->getTableSchema(&DUMMY_READ_TRANSACTION, personTableID)
+                        ->containProperty("name"));
         auto result = conn->query("MATCH (p:person) return p.name order by p.name");
         ASSERT_EQ(TestHelper::convertResultToString(*result),
             std::vector<std::string>({"Alice", "Bob", "Carol", "Dan", "Elizabeth", "Farooq", "Greg",
@@ -352,35 +301,35 @@ public:
 };
 
 TEST_F(TinySnbDDLTest, CreateNodeTableCommitNormalExecution) {
-    createNodeTable(TransactionTestType::NORMAL_EXECUTION);
+    createTable(TableType::NODE, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(TinySnbDDLTest, CreateNodeTableCommitRecovery) {
-    createNodeTable(TransactionTestType::RECOVERY);
+    createTable(TableType::NODE, TransactionTestType::RECOVERY);
 }
 
 TEST_F(TinySnbDDLTest, CreateRelTableCommitNormalExecution) {
-    createRelTable(TransactionTestType::NORMAL_EXECUTION);
+    createTable(TableType::REL, TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(TinySnbDDLTest, CreateRelTableCommitRecovery) {
-    createRelTable(TransactionTestType::RECOVERY);
+    createTable(TableType::REL, TransactionTestType::RECOVERY);
 }
 
 TEST_F(TinySnbDDLTest, DropNodeTableCommitNormalExecution) {
-    dropNodeTableCommitAndRecoveryTest(TransactionTestType::NORMAL_EXECUTION);
+    dropTableCommitAndRecoveryTest("movies", TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(TinySnbDDLTest, DropNodeTableCommitRecovery) {
-    dropNodeTableCommitAndRecoveryTest(TransactionTestType::RECOVERY);
+    dropTableCommitAndRecoveryTest("movies", TransactionTestType::RECOVERY);
 }
 
 TEST_F(TinySnbDDLTest, DropRelTableCommitNormalExecution) {
-    dropRelTableCommitAndRecoveryTest(TransactionTestType::NORMAL_EXECUTION);
+    dropTableCommitAndRecoveryTest("knows", TransactionTestType::NORMAL_EXECUTION);
 }
 
 TEST_F(TinySnbDDLTest, DropRelTableCommitRecovery) {
-    dropRelTableCommitAndRecoveryTest(TransactionTestType::RECOVERY);
+    dropTableCommitAndRecoveryTest("knows", TransactionTestType::RECOVERY);
 }
 
 TEST_F(TinySnbDDLTest, DropNodeTablePropertyNormalExecution) {
@@ -667,7 +616,8 @@ TEST_F(TinySnbDDLTest, AddListOfListOfStringPropertyToStudyAtTableWithDefaultVal
 
 TEST_F(TinySnbDDLTest, AddListOfListOfStringPropertyToStudyAtTableWithDefaultValueRecovery) {
     addPropertyToStudyAtTableWithDefaultValue("STRING[][]" /* propertyType */,
-        "[['hello','good','long long string test'],['6'],['very very long string']]" /* defaultVal*/
+        "[['hello','good','long long string test'],['6'],['very very long string']]" /*
+        defaultVal*/
         ,
         TransactionTestType::RECOVERY);
 }

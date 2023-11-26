@@ -52,7 +52,7 @@ void SingleLabelNodeSetExecutor::set(ExecutionContext* context) {
     auto lhsPos = nodeIDVector->state->selVector->selectedPositions[0];
     auto rhsPos = rhsVector->state->selVector->selectedPositions[0];
     setInfo.table->update(
-        context->clientContext->getActiveTransaction(), setInfo.columnID, nodeIDVector, rhsVector);
+        context->clientContext->getTx(), setInfo.columnID, nodeIDVector, rhsVector);
     if (lhsVector != nullptr) {
         writeToPropertyVector(nodeIDVector, lhsVector, lhsPos, rhsVector, rhsPos);
     }
@@ -73,7 +73,7 @@ void MultiLabelNodeSetExecutor::set(ExecutionContext* context) {
     auto rhsPos = rhsVector->state->selVector->selectedPositions[0];
     auto& setInfo = tableIDToSetInfo.at(nodeID.tableID);
     setInfo.table->update(
-        context->clientContext->getActiveTransaction(), setInfo.columnID, nodeIDVector, rhsVector);
+        context->clientContext->getTx(), setInfo.columnID, nodeIDVector, rhsVector);
     if (lhsVector != nullptr) {
         KU_ASSERT(lhsVector->state->selVector->selectedSize == 1);
         writeToPropertyVector(nodeIDVector, lhsVector, lhsPos, rhsVector, rhsPos);
@@ -120,8 +120,8 @@ void SingleLabelRelSetExecutor::set(ExecutionContext* context) {
         return;
     }
     evaluator->evaluate();
-    table->update(context->clientContext->getActiveTransaction(), columnID, srcNodeIDVector,
-        dstNodeIDVector, relIDVector, rhsVector);
+    table->update(context->clientContext->getTx(), columnID, srcNodeIDVector, dstNodeIDVector,
+        relIDVector, rhsVector);
     if (lhsVector != nullptr) {
         writeToPropertyVector(relIDVector, lhsVector, rhsVector);
     }
@@ -139,8 +139,8 @@ void MultiLabelRelSetExecutor::set(ExecutionContext* context) {
         return;
     }
     auto [table, propertyID] = tableIDToTableAndColumnID.at(relID.tableID);
-    table->update(context->clientContext->getActiveTransaction(), propertyID, srcNodeIDVector,
-        dstNodeIDVector, relIDVector, rhsVector);
+    table->update(context->clientContext->getTx(), propertyID, srcNodeIDVector, dstNodeIDVector,
+        relIDVector, rhsVector);
     if (lhsVector != nullptr) {
         writeToPropertyVector(relIDVector, lhsVector, rhsVector);
     }

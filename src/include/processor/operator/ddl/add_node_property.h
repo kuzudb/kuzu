@@ -5,7 +5,7 @@
 namespace kuzu {
 namespace processor {
 
-class AddNodeProperty : public AddProperty {
+class AddNodeProperty final : public AddProperty {
 public:
     AddNodeProperty(catalog::Catalog* catalog, common::table_id_t tableID, std::string propertyName,
         std::unique_ptr<common::LogicalType> dataType,
@@ -15,7 +15,7 @@ public:
         : AddProperty{catalog, tableID, std::move(propertyName), std::move(dataType),
               std::move(defaultValueEvaluator), storageManager, outputPos, id, paramsString} {}
 
-    void executeDDLInternal() final;
+    void executeDDLInternal(ExecutionContext* context) final;
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<AddNodeProperty>(catalog, tableID, propertyName, dataType->copy(),

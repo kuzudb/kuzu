@@ -15,7 +15,7 @@ bool IndexLookup::getNextTuplesInternal(ExecutionContext* context) {
     }
     for (auto& info : infos) {
         KU_ASSERT(info);
-        indexLookup(context->clientContext->getActiveTransaction(), *info);
+        indexLookup(context->clientContext->getTx(), *info);
     }
     return true;
 }

@@ -12,6 +12,7 @@
 #include "common/serializer/serializer.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
+#include "storage/storage_info.h"
 #include "storage/storage_utils.h"
 
 using namespace kuzu::binder;
@@ -126,25 +127,6 @@ table_id_t CatalogContent::addRdfGraphSchema(const BoundCreateTableInfo& info) {
     return rdfGraphID;
 }
 
-std::vector<TableSchema*> CatalogContent::getTableSchemas() const {
-    std::vector<TableSchema*> result;
-    result.reserve(tableSchemas.size());
-    for (auto&& [_, schema] : tableSchemas) {
-        result.push_back(schema.get());
-    }
-    return result;
-}
-
-std::vector<TableSchema*> CatalogContent::getTableSchemas(
-    const std::vector<table_id_t>& tableIDs) const {
-    std::vector<TableSchema*> result;
-    for (auto tableID : tableIDs) {
-        KU_ASSERT(tableSchemas.contains(tableID));
-        result.push_back(tableSchemas.at(tableID).get());
-    }
-    return result;
-}
-
 void CatalogContent::dropTableSchema(table_id_t tableID) {
     auto tableSchema = getTableSchema(tableID);
     switch (tableSchema->tableType) {
@@ -166,6 +148,37 @@ void CatalogContent::renameTable(table_id_t tableID, const std::string& newName)
     tableNameToIDMap.erase(tableSchema->tableName);
     tableNameToIDMap.emplace(newName, tableID);
     tableSchema->updateTableName(newName);
+}
+
+static void validateStorageVersion(storage_version_t savedStorageVersion) {
+    auto storageVersion = StorageVersionInfo::getStorageVersion();
+    if (savedStorageVersion != storageVersion) {
+        // LCOV_EXCL_START
+        throw RuntimeException(
+            stringFormat("Trying to read a database file with a different version. "
+                         "Database file version: {}, Current build storage version: {}",
+                savedStorageVersion, storageVersion));
+        // LCOV_EXCL_STOP
+    }
+}
+
+static void validateMagicBytes(Deserializer& deserializer) {
+    auto numMagicBytes = strlen(StorageVersionInfo::MAGIC_BYTES);
+    uint8_t magicBytes[4];
+    for (auto i = 0u; i < numMagicBytes; i++) {
+        deserializer.deserializeValue<uint8_t>(magicBytes[i]);
+    }
+    if (memcmp(magicBytes, StorageVersionInfo::MAGIC_BYTES, numMagicBytes) != 0) {
+        throw RuntimeException(
+            "This is not a valid Kuzu database directory for the current version of Kuzu.");
+    }
+}
+
+static void writeMagicBytes(Serializer& serializer) {
+    auto numMagicBytes = strlen(StorageVersionInfo::MAGIC_BYTES);
+    for (auto i = 0u; i < numMagicBytes; i++) {
+        serializer.serializeValue<uint8_t>(StorageVersionInfo::MAGIC_BYTES[i]);
+    }
 }
 
 void CatalogContent::saveToFile(const std::string& directory, FileVersionType dbFileType) {
@@ -249,47 +262,12 @@ std::unique_ptr<CatalogContent> CatalogContent::copy() const {
         nextTableID, builtInFunctions->copy(), std::move(macrosToCopy));
 }
 
-void CatalogContent::validateStorageVersion(storage_version_t savedStorageVersion) {
-    auto storageVersion = StorageVersionInfo::getStorageVersion();
-    if (savedStorageVersion != storageVersion) {
-        // LCOV_EXCL_START
-        throw RuntimeException(
-            stringFormat("Trying to read a database file with a different version. "
-                         "Database file version: {}, Current build storage version: {}",
-                savedStorageVersion, storageVersion));
-        // LCOV_EXCL_STOP
-    }
-}
-
-void CatalogContent::validateMagicBytes(Deserializer& deserializer) {
-    auto numMagicBytes = strlen(StorageVersionInfo::MAGIC_BYTES);
-    uint8_t magicBytes[4];
-    for (auto i = 0u; i < numMagicBytes; i++) {
-        deserializer.deserializeValue<uint8_t>(magicBytes[i]);
-    }
-    if (memcmp(magicBytes, StorageVersionInfo::MAGIC_BYTES, numMagicBytes) != 0) {
-        throw RuntimeException(
-            "This is not a valid Kuzu database directory for the current version of Kuzu.");
-    }
-}
-
-void CatalogContent::writeMagicBytes(Serializer& serializer) {
-    auto numMagicBytes = strlen(StorageVersionInfo::MAGIC_BYTES);
-    for (auto i = 0u; i < numMagicBytes; i++) {
-        serializer.serializeValue<uint8_t>(StorageVersionInfo::MAGIC_BYTES[i]);
-    }
-}
-
 void CatalogContent::registerBuiltInFunctions() {
     builtInFunctions = std::make_unique<function::BuiltInFunctions>();
 }
 
-bool CatalogContent::containsTable(const std::string& tableName, TableType tableType) const {
-    if (!tableNameToIDMap.contains(tableName)) {
-        return false;
-    }
-    auto tableID = getTableID(tableName);
-    return tableSchemas.at(tableID)->tableType == tableType;
+bool CatalogContent::containsTable(const std::string& tableName) const {
+    return tableNameToIDMap.contains(tableName);
 }
 
 bool CatalogContent::containsTable(common::TableType tableType) const {
@@ -301,6 +279,15 @@ bool CatalogContent::containsTable(common::TableType tableType) const {
     return false;
 }
 
+std::string CatalogContent::getTableName(table_id_t tableID) const {
+    return getTableSchema(tableID)->tableName;
+}
+
+TableSchema* CatalogContent::getTableSchema(table_id_t tableID) const {
+    KU_ASSERT(tableSchemas.contains(tableID));
+    return tableSchemas.at(tableID).get();
+}
+
 std::vector<TableSchema*> CatalogContent::getTableSchemas(TableType tableType) const {
     std::vector<TableSchema*> result;
     for (auto& [id, schema] : tableSchemas) {
@@ -309,6 +296,11 @@ std::vector<TableSchema*> CatalogContent::getTableSchemas(TableType tableType) c
         }
     }
     return result;
+}
+
+table_id_t CatalogContent::getTableID(const std::string& tableName) const {
+    KU_ASSERT(tableNameToIDMap.contains(tableName));
+    return tableNameToIDMap.at(tableName);
 }
 
 std::vector<table_id_t> CatalogContent::getTableIDs(TableType tableType) const {

@@ -252,7 +252,7 @@ void NpyScanFunction::tableFunc(TableFunctionInput& input, DataChunk& outputChun
 
 std::unique_ptr<function::TableFuncBindData> NpyScanFunction::bindFunc(
     main::ClientContext* /*context*/, function::TableFuncBindInput* input,
-    catalog::CatalogContent* /*catalog*/) {
+    catalog::Catalog* /*catalog*/) {
     auto scanInput = reinterpret_cast<function::ScanTableFuncBindInput*>(input);
 
     std::vector<std::string> detectedColumnNames;

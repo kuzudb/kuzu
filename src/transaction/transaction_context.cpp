@@ -32,7 +32,9 @@ void TransactionContext::beginWriteTransaction() {
 }
 
 void TransactionContext::beginAutoTransaction(bool readOnlyStatement) {
-    KU_ASSERT(!hasActiveTransaction() && mode == TransactionMode::AUTO);
+    if (mode == TransactionMode::AUTO && hasActiveTransaction()) {
+        activeTransaction.reset();
+    }
     beginTransactionInternal(
         readOnlyStatement ? TransactionType::READ_ONLY : TransactionType::WRITE);
 }

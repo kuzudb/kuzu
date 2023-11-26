@@ -4,6 +4,7 @@
 #include "graph_test/graph_test.h"
 #include "processor/plan_mapper.h"
 #include "processor/processor.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -11,6 +12,7 @@ using namespace kuzu::main;
 using namespace kuzu::processor;
 using namespace kuzu::storage;
 using namespace kuzu::testing;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace testing {
@@ -44,8 +46,6 @@ public:
     }
 
     void validateDatabaseStateBeforeCheckPointCopyNode(table_id_t tableID) {
-        auto nodeTableSchema =
-            (NodeTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(tableID);
         ASSERT_EQ(std::make_unique<Connection>(database.get())
                       ->query("MATCH (p:person) return *")
                       ->getNumTuples(),
@@ -56,8 +56,6 @@ public:
     }
 
     void validateDatabaseStateAfterCheckPointCopyNode(table_id_t tableID) {
-        auto nodeTableSchema =
-            (NodeTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(tableID);
         validateTinysnbPersonAgeProperty();
         ASSERT_EQ(getStorageManager(*database)->getNodesStatisticsAndDeletedIDs()->getMaxNodeOffset(
                       &transaction::DUMMY_READ_TRANSACTION, tableID),
@@ -67,7 +65,6 @@ public:
     void copyNodeCSVCommitAndRecoveryTest(TransactionTestType transactionTestType) {
         conn->query(createPersonTableCMD);
         auto preparedStatement = conn->prepare(copyPersonTableCMD);
-        conn->query("BEGIN TRANSACTION");
         auto mapper = PlanMapper(
             *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
         auto physicalPlan =
@@ -75,7 +72,7 @@ public:
                 preparedStatement->statementResult->getColumns());
         executionContext->clientContext->resetActiveQuery();
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
-        auto tableID = catalog->getReadOnlyVersion()->getTableID("person");
+        auto tableID = catalog->getTableID(&DUMMY_READ_TRANSACTION, "person");
         validateDatabaseStateBeforeCheckPointCopyNode(tableID);
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->query("COMMIT_SKIP_CHECKPOINT");
@@ -115,8 +112,6 @@ public:
     }
 
     void validateDatabaseStateBeforeCheckPointCopyRel(table_id_t tableID) {
-        auto relTableSchema =
-            (RelTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(tableID);
         auto dummyWriteTrx = transaction::Transaction::getDummyWriteTrx();
         ASSERT_EQ(getStorageManager(*database)->getRelsStatistics()->getNextRelOffset(
                       dummyWriteTrx.get(), tableID),
@@ -124,8 +119,6 @@ public:
     }
 
     void validateDatabaseStateAfterCheckPointCopyRel(table_id_t knowsTableID) {
-        auto relTableSchema =
-            (RelTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(knowsTableID);
         validateTinysnbKnowsDateProperty();
         auto relsStatistics = getStorageManager(*database)->getRelsStatistics();
         auto dummyWriteTrx = transaction::Transaction::getDummyWriteTrx();
@@ -142,7 +135,6 @@ public:
         conn->query(copyPersonTableCMD);
         conn->query(createKnowsTableCMD);
         auto preparedStatement = conn->prepare(copyKnowsTableCMD);
-        conn->query("BEGIN TRANSACTION");
         auto mapper = PlanMapper(
             *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
         auto physicalPlan =
@@ -150,7 +142,7 @@ public:
                 preparedStatement->statementResult->getColumns());
         executionContext->clientContext->resetActiveQuery();
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
-        auto tableID = catalog->getReadOnlyVersion()->getTableID("knows");
+        auto tableID = catalog->getTableID(&DUMMY_READ_TRANSACTION, "knows");
         validateDatabaseStateBeforeCheckPointCopyRel(tableID);
         if (transactionTestType == TransactionTestType::RECOVERY) {
             conn->query("COMMIT_SKIP_CHECKPOINT");

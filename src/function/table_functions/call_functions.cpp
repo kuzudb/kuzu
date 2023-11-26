@@ -1,16 +1,20 @@
 #include "function/table_functions/call_functions.h"
 
+#include "catalog/catalog.h"
 #include "catalog/node_table_schema.h"
 #include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
+#include "main/client_context.h"
+#include "transaction/transaction.h"
 
-namespace kuzu {
-namespace function {
-
+using namespace kuzu::transaction;
 using namespace kuzu::common;
 using namespace kuzu::catalog;
 using namespace kuzu::main;
+
+namespace kuzu {
+namespace function {
 
 std::unique_ptr<TableFuncLocalState> initLocalState(
     TableFunctionInitInput& /*input*/, TableFuncSharedState* /*state*/) {
@@ -56,7 +60,7 @@ void CurrentSettingFunction::tableFunc(TableFunctionInput& data, DataChunk& outp
 }
 
 std::unique_ptr<TableFuncBindData> CurrentSettingFunction::bindFunc(
-    ClientContext* context, TableFuncBindInput* input, CatalogContent* /*catalog*/) {
+    ClientContext* context, TableFuncBindInput* input, Catalog* /*catalog*/) {
     auto optionName = input->inputs[0]->getValue<std::string>();
     std::vector<std::string> returnColumnNames;
     std::vector<std::unique_ptr<LogicalType>> returnTypes;
@@ -87,7 +91,7 @@ void DBVersionFunction::tableFunc(TableFunctionInput& input, DataChunk& outputCh
 }
 
 std::unique_ptr<TableFuncBindData> DBVersionFunction::bindFunc(
-    ClientContext* /*context*/, TableFuncBindInput* /*input*/, CatalogContent* /*catalog*/) {
+    ClientContext* /*context*/, TableFuncBindInput* /*input*/, Catalog* /*catalog*/) {
     std::vector<std::string> returnColumnNames;
     std::vector<std::unique_ptr<LogicalType>> returnTypes;
     returnColumnNames.emplace_back("version");
@@ -123,7 +127,7 @@ void ShowTablesFunction::tableFunc(TableFunctionInput& input, DataChunk& outputC
 }
 
 std::unique_ptr<TableFuncBindData> ShowTablesFunction::bindFunc(
-    ClientContext* /*context*/, TableFuncBindInput* /*input*/, CatalogContent* catalog) {
+    ClientContext* context, TableFuncBindInput* /*input*/, Catalog* catalog) {
     std::vector<std::string> returnColumnNames;
     std::vector<std::unique_ptr<LogicalType>> returnTypes;
     returnColumnNames.emplace_back("name");
@@ -132,8 +136,9 @@ std::unique_ptr<TableFuncBindData> ShowTablesFunction::bindFunc(
     returnTypes.emplace_back(LogicalType::STRING());
     returnColumnNames.emplace_back("comment");
     returnTypes.emplace_back(LogicalType::STRING());
-    return std::make_unique<ShowTablesBindData>(catalog->getTableSchemas(), std::move(returnTypes),
-        std::move(returnColumnNames), catalog->getTableCount());
+    return std::make_unique<ShowTablesBindData>(catalog->getTableSchemas(context->getTx()),
+        std::move(returnTypes), std::move(returnColumnNames),
+        catalog->getTableCount(context->getTx()));
 }
 
 function_set TableInfoFunction::getFunctionSet() {
@@ -174,12 +179,12 @@ void TableInfoFunction::tableFunc(TableFunctionInput& input, DataChunk& outputCh
 }
 
 std::unique_ptr<TableFuncBindData> TableInfoFunction::bindFunc(
-    ClientContext* /*context*/, TableFuncBindInput* input, CatalogContent* catalog) {
+    ClientContext* context, TableFuncBindInput* input, Catalog* catalog) {
     std::vector<std::string> returnColumnNames;
     std::vector<std::unique_ptr<LogicalType>> returnTypes;
     auto tableName = input->inputs[0]->getValue<std::string>();
-    auto tableID = catalog->getTableID(tableName);
-    auto schema = catalog->getTableSchema(tableID);
+    auto tableID = catalog->getTableID(context->getTx(), tableName);
+    auto schema = catalog->getTableSchema(context->getTx(), tableID);
     returnColumnNames.emplace_back("property id");
     returnTypes.push_back(LogicalType::INT64());
     returnColumnNames.emplace_back("name");
@@ -202,14 +207,15 @@ function_set ShowConnectionFunction::getFunctionSet() {
 }
 
 void ShowConnectionFunction::outputRelTableConnection(ValueVector* srcTableNameVector,
-    ValueVector* dstTableNameVector, uint64_t outputPos, CatalogContent* catalog,
-    table_id_t tableID) {
-    auto tableSchema = catalog->getTableSchema(tableID);
+    ValueVector* dstTableNameVector, uint64_t outputPos, Catalog* catalog, table_id_t tableID) {
+    auto tableSchema = catalog->getTableSchema(&DUMMY_READ_TRANSACTION, tableID);
     KU_ASSERT(tableSchema->tableType == TableType::REL);
     auto srcTableID = reinterpret_cast<RelTableSchema*>(tableSchema)->getSrcTableID();
     auto dstTableID = reinterpret_cast<RelTableSchema*>(tableSchema)->getDstTableID();
-    srcTableNameVector->setValue(outputPos, catalog->getTableName(srcTableID));
-    dstTableNameVector->setValue(outputPos, catalog->getTableName(dstTableID));
+    srcTableNameVector->setValue(
+        outputPos, catalog->getTableName(&DUMMY_READ_TRANSACTION, srcTableID));
+    dstTableNameVector->setValue(
+        outputPos, catalog->getTableName(&DUMMY_READ_TRANSACTION, dstTableID));
 }
 
 void ShowConnectionFunction::tableFunc(TableFunctionInput& input, DataChunk& outputChunk) {
@@ -246,12 +252,12 @@ void ShowConnectionFunction::tableFunc(TableFunctionInput& input, DataChunk& out
 }
 
 std::unique_ptr<TableFuncBindData> ShowConnectionFunction::bindFunc(
-    ClientContext* /*context*/, TableFuncBindInput* input, CatalogContent* catalog) {
+    ClientContext* context, TableFuncBindInput* input, Catalog* catalog) {
     std::vector<std::string> returnColumnNames;
     std::vector<std::unique_ptr<LogicalType>> returnTypes;
     auto tableName = input->inputs[0]->getValue<std::string>();
-    auto tableID = catalog->getTableID(tableName);
-    auto schema = catalog->getTableSchema(tableID);
+    auto tableID = catalog->getTableID(context->getTx(), tableName);
+    auto schema = catalog->getTableSchema(context->getTx(), tableID);
     auto tableType = schema->getTableType();
     if (tableType != TableType::REL && tableType != TableType::REL_GROUP) {
         throw BinderException{"Show connection can only be called on a rel table!"};

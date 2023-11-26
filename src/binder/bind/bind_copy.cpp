@@ -8,6 +8,7 @@
 #include "common/exception/message.h"
 #include "common/string_format.h"
 #include "function/table_functions/bind_input.h"
+#include "main/client_context.h"
 #include "parser/copy.h"
 
 using namespace kuzu::binder;
@@ -62,12 +63,11 @@ static void validateCopyNpyNotForRelTables(TableSchema* schema) {
 
 std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& statement) {
     auto& copyStatement = reinterpret_cast<const CopyFrom&>(statement);
-    auto catalogContent = catalog.getReadOnlyVersion();
     auto tableName = copyStatement.getTableName();
     validateTableExist(tableName);
     // Bind to table schema.
-    auto tableID = catalogContent->getTableID(tableName);
-    auto tableSchema = catalogContent->getTableSchema(tableID);
+    auto tableID = catalog.getTableID(clientContext->getTx(), tableName);
+    auto tableSchema = catalog.getTableSchema(clientContext->getTx(), tableID);
     switch (tableSchema->tableType) {
     case TableType::REL_GROUP:
     case TableType::RDF: {
@@ -120,7 +120,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
         tableSchema, copyStatement.getColumnNames(), expectedColumnNames, expectedColumnTypes);
     auto bindInput = std::make_unique<function::ScanTableFuncBindInput>(
         memoryManager, *config, std::move(expectedColumnNames), std::move(expectedColumnTypes));
-    auto bindData = func->bindFunc(clientContext, bindInput.get(), catalog.getReadOnlyVersion());
+    auto bindData = func->bindFunc(clientContext, bindInput.get(), (Catalog*)&catalog);
     expression_vector columns;
     for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
         columns.push_back(createVariable(bindData->columnNames[i], *bindData->columnTypes[i]));
@@ -147,7 +147,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
         tableSchema, copyStatement.getColumnNames(), expectedColumnNames, expectedColumnTypes);
     auto bindInput = std::make_unique<function::ScanTableFuncBindInput>(memoryManager,
         std::move(*config), std::move(expectedColumnNames), std::move(expectedColumnTypes));
-    auto bindData = func->bindFunc(clientContext, bindInput.get(), catalog.getReadOnlyVersion());
+    auto bindData = func->bindFunc(clientContext, bindInput.get(), (Catalog*)&catalog);
     expression_vector columns;
     for (auto i = 0u; i < bindData->columnTypes.size(); i++) {
         columns.push_back(createVariable(bindData->columnNames[i], *bindData->columnTypes[i]));
@@ -158,9 +158,9 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
         std::make_unique<BoundFileScanInfo>(func, std::move(bindData), columns, offset);
     auto relTableSchema = reinterpret_cast<RelTableSchema*>(tableSchema);
     auto srcTableSchema =
-        catalog.getReadOnlyVersion()->getTableSchema(relTableSchema->getSrcTableID());
+        catalog.getTableSchema(clientContext->getTx(), relTableSchema->getSrcTableID());
     auto dstTableSchema =
-        catalog.getReadOnlyVersion()->getTableSchema(relTableSchema->getDstTableID());
+        catalog.getTableSchema(clientContext->getTx(), relTableSchema->getDstTableID());
     auto srcKey = columns[0];
     auto dstKey = columns[1];
     auto srcNodeID = createVariable(std::string(InternalKeyword::SRC_OFFSET), LogicalTypeID::INT64);
@@ -228,9 +228,9 @@ void Binder::bindExpectedRelColumns(TableSchema* tableSchema,
     KU_ASSERT(columnNames.empty() && columnTypes.empty());
     auto relTableSchema = reinterpret_cast<RelTableSchema*>(tableSchema);
     auto srcTable = reinterpret_cast<NodeTableSchema*>(
-        catalog.getReadOnlyVersion()->getTableSchema(relTableSchema->getSrcTableID()));
+        catalog.getTableSchema(clientContext->getTx(), relTableSchema->getSrcTableID()));
     auto dstTable = reinterpret_cast<NodeTableSchema*>(
-        catalog.getReadOnlyVersion()->getTableSchema(relTableSchema->getDstTableID()));
+        catalog.getTableSchema(clientContext->getTx(), relTableSchema->getDstTableID()));
     columnNames.push_back("from");
     columnNames.push_back("to");
     auto srcPKColumnType = srcTable->getPrimaryKey()->getDataType()->copy();

@@ -4,6 +4,7 @@
 #include "common/exception/binder.h"
 #include "common/string_format.h"
 #include "function/table_functions.h"
+#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -63,11 +64,10 @@ std::shared_ptr<Expression> Binder::bindWhereExpression(const ParsedExpression& 
 }
 
 common::table_id_t Binder::bindTableID(const std::string& tableName) const {
-    auto catalogContent = catalog.getReadOnlyVersion();
-    if (!catalogContent->containsTable(tableName)) {
+    if (!catalog.containsTable(clientContext->getTx(), tableName)) {
         throw BinderException(common::stringFormat("Table {} does not exist.", tableName));
     }
-    return catalogContent->getTableID(tableName);
+    return catalog.getTableID(clientContext->getTx(), tableName);
 }
 
 std::shared_ptr<Expression> Binder::createVariable(
@@ -186,13 +186,13 @@ void Binder::validateReadNotFollowUpdate(const NormalizedSingleQuery& singleQuer
 }
 
 void Binder::validateTableType(table_id_t tableID, TableType expectedTableType) {
-    if (catalog.getReadOnlyVersion()->getTableSchema(tableID)->tableType != expectedTableType) {
+    if (catalog.getTableSchema(clientContext->getTx(), tableID)->tableType != expectedTableType) {
         throw BinderException("aa");
     }
 }
 
 void Binder::validateTableExist(const std::string& tableName) {
-    if (!catalog.getReadOnlyVersion()->containsTable(tableName)) {
+    if (!catalog.containsTable(clientContext->getTx(), tableName)) {
         throw BinderException("Table " + tableName + " does not exist.");
     }
 }

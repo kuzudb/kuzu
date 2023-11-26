@@ -5,7 +5,7 @@ namespace processor {
 
 bool ScanRelCSRColumns::getNextTuplesInternal(ExecutionContext* context) {
     while (true) {
-        if (scanState->hasMoreToRead(context->clientContext->getActiveTransaction())) {
+        if (scanState->hasMoreToRead(context->clientContext->getTx())) {
             info->table->read(transaction, *scanState, inVector, outVectors);
             return true;
         }

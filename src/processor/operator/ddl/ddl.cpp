@@ -7,12 +7,12 @@ void DDL::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*conte
     outputVector = resultSet->getValueVector(outputPos).get();
 }
 
-bool DDL::getNextTuplesInternal(ExecutionContext* /*context*/) {
+bool DDL::getNextTuplesInternal(ExecutionContext* context) {
     if (hasExecuted) {
         return false;
     }
     hasExecuted = true;
-    executeDDLInternal();
+    executeDDLInternal(context);
     outputVector->setValue<std::string>(0, getOutputMsg());
     metrics->numOutputTuple.increase(1);
     return true;

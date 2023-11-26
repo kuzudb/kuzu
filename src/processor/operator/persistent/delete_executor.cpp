@@ -25,12 +25,12 @@ static void deleteFromRelTable(ExecutionContext* context, DeleteNodeType deleteT
     RelDetachDeleteState* detachDeleteState) {
     switch (deleteType) {
     case DeleteNodeType::DETACH_DELETE: {
-        relTable->detachDelete(context->clientContext->getActiveTransaction(), direction,
-            nodeIDVector, detachDeleteState);
+        relTable->detachDelete(
+            context->clientContext->getTx(), direction, nodeIDVector, detachDeleteState);
     } break;
     case DeleteNodeType::DELETE: {
         if (relTable->checkIfNodeHasRels(
-                context->clientContext->getActiveTransaction(), direction, nodeIDVector)) {
+                context->clientContext->getTx(), direction, nodeIDVector)) {
             throw RuntimeException(
                 stringFormat("Deleted nodes has connected edges in the {} direction.",
                     RelDataDirectionUtils::relDirectionToString(direction)));
@@ -57,7 +57,7 @@ void SingleLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
         deleteFromRelTable(context, deleteType, RelDataDirection::BWD, relTable, nodeIDVector,
             detachDeleteState.get());
     }
-    table->delete_(context->clientContext->getActiveTransaction(), nodeIDVector, pkVector.get());
+    table->delete_(context->clientContext->getTx(), nodeIDVector, pkVector.get());
 }
 
 void MultiLabelNodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
@@ -88,8 +88,8 @@ void MultiLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
         deleteFromRelTable(context, deleteType, RelDataDirection::BWD, relTable, nodeIDVector,
             detachDeleteState.get());
     }
-    table->delete_(context->clientContext->getActiveTransaction(), nodeIDVector,
-        pkVectors.at(nodeID.tableID).get());
+    table->delete_(
+        context->clientContext->getTx(), nodeIDVector, pkVectors.at(nodeID.tableID).get());
 }
 
 void RelDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* /*context*/) {
@@ -99,8 +99,7 @@ void RelDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* /*context*/
 }
 
 void SingleLabelRelDeleteExecutor::delete_(ExecutionContext* context) {
-    table->delete_(context->clientContext->getActiveTransaction(), srcNodeIDVector, dstNodeIDVector,
-        relIDVector);
+    table->delete_(context->clientContext->getTx(), srcNodeIDVector, dstNodeIDVector, relIDVector);
 }
 
 void MultiLabelRelDeleteExecutor::delete_(ExecutionContext* context) {
@@ -109,8 +108,7 @@ void MultiLabelRelDeleteExecutor::delete_(ExecutionContext* context) {
     auto relID = relIDVector->getValue<internalID_t>(pos);
     KU_ASSERT(tableIDToTableMap.contains(relID.tableID));
     auto table = tableIDToTableMap.at(relID.tableID);
-    table->delete_(context->clientContext->getActiveTransaction(), srcNodeIDVector, dstNodeIDVector,
-        relIDVector);
+    table->delete_(context->clientContext->getTx(), srcNodeIDVector, dstNodeIDVector, relIDVector);
 }
 
 } // namespace processor

@@ -6,6 +6,7 @@
 #include "common/exception/binder.h"
 #include "common/string_utils.h"
 #include "function/schema/vector_label_functions.h"
+#include "main/client_context.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/parsed_expression_visitor.h"
 
@@ -199,8 +200,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(
         STRUCT_EXTRACT_FUNC_NAME);
 }
 
-static std::vector<std::unique_ptr<Value>> populateLabelValues(
-    std::vector<table_id_t> tableIDs, const catalog::CatalogContent& catalogContent) {
+static std::vector<std::unique_ptr<Value>> populateLabelValues(std::vector<table_id_t> tableIDs,
+    const catalog::Catalog& catalog, transaction::Transaction* tx) {
     auto tableIDsSet = std::unordered_set<table_id_t>(tableIDs.begin(), tableIDs.end());
     table_id_t maxTableID = *std::max_element(tableIDsSet.begin(), tableIDsSet.end());
     std::vector<std::unique_ptr<Value>> labels;
@@ -208,7 +209,7 @@ static std::vector<std::unique_ptr<Value>> populateLabelValues(
     for (auto i = 0; i < labels.size(); ++i) {
         if (tableIDsSet.contains(i)) {
             labels[i] = std::make_unique<Value>(
-                LogicalType{LogicalTypeID::STRING}, catalogContent.getTableName(i));
+                LogicalType{LogicalTypeID::STRING}, catalog.getTableName(tx, i));
         } else {
             // TODO(Xiyang/Guodong): change to null literal once we support null in LIST type.
             labels[i] =
@@ -219,7 +220,6 @@ static std::vector<std::unique_ptr<Value>> populateLabelValues(
 }
 
 std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression& expression) {
-    auto catalogContent = binder->catalog.getReadOnlyVersion();
     auto varListTypeInfo = std::make_unique<VarListTypeInfo>(LogicalType::STRING());
     auto listType =
         std::make_unique<LogicalType>(LogicalTypeID::VAR_LIST, std::move(varListTypeInfo));
@@ -228,27 +228,29 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
     case LogicalTypeID::NODE: {
         auto& node = (NodeExpression&)expression;
         if (!node.isMultiLabeled()) {
-            auto labelName = catalogContent->getTableName(node.getSingleTableID());
+            auto labelName = binder->catalog.getTableName(
+                binder->clientContext->getTx(), node.getSingleTableID());
             return createLiteralExpression(
                 std::make_unique<Value>(LogicalType{LogicalTypeID::STRING}, labelName));
         }
-        auto nodeTableIDs = catalogContent->getNodeTableIDs();
+        auto nodeTableIDs = binder->catalog.getNodeTableIDs(binder->clientContext->getTx());
         children.push_back(node.getInternalID());
-        auto labelsValue =
-            std::make_unique<Value>(*listType, populateLabelValues(nodeTableIDs, *catalogContent));
+        auto labelsValue = std::make_unique<Value>(*listType,
+            populateLabelValues(nodeTableIDs, binder->catalog, binder->clientContext->getTx()));
         children.push_back(createLiteralExpression(std::move(labelsValue)));
     } break;
     case LogicalTypeID::REL: {
         auto& rel = (RelExpression&)expression;
         if (!rel.isMultiLabeled()) {
-            auto labelName = catalogContent->getTableName(rel.getSingleTableID());
+            auto labelName = binder->catalog.getTableName(
+                binder->clientContext->getTx(), rel.getSingleTableID());
             return createLiteralExpression(
                 std::make_unique<Value>(LogicalType{LogicalTypeID::STRING}, labelName));
         }
-        auto relTableIDs = catalogContent->getRelTableIDs();
+        auto relTableIDs = binder->catalog.getRelTableIDs(binder->clientContext->getTx());
         children.push_back(rel.getInternalIDProperty());
-        auto labelsValue =
-            std::make_unique<Value>(*listType, populateLabelValues(relTableIDs, *catalogContent));
+        auto labelsValue = std::make_unique<Value>(*listType,
+            populateLabelValues(relTableIDs, binder->catalog, binder->clientContext->getTx()));
         children.push_back(createLiteralExpression(std::move(labelsValue)));
     } break;
     default:

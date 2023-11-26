@@ -16,9 +16,9 @@ StorageDriver::StorageDriver(Database* database)
 void StorageDriver::scan(const std::string& nodeName, const std::string& propertyName,
     offset_t* offsets, size_t size, uint8_t* result, size_t numThreads) {
     // Resolve files to read from
-    auto catalogContent = catalog->getReadOnlyVersion();
-    auto nodeTableID = catalogContent->getTableID(nodeName);
-    auto propertyID = catalogContent->getTableSchema(nodeTableID)->getPropertyID(propertyName);
+    auto nodeTableID = catalog->getTableID(&DUMMY_READ_TRANSACTION, nodeName);
+    auto propertyID =
+        catalog->getTableSchema(&DUMMY_READ_TRANSACTION, nodeTableID)->getPropertyID(propertyName);
     auto nodeTable = storageManager->getNodeTable(nodeTableID);
     auto column = nodeTable->getColumn(propertyID);
     auto current_buffer = result;
@@ -40,8 +40,7 @@ void StorageDriver::scan(const std::string& nodeName, const std::string& propert
 }
 
 uint64_t StorageDriver::getNumNodes(const std::string& nodeName) {
-    auto catalogContent = catalog->getReadOnlyVersion();
-    auto nodeTableID = catalogContent->getTableID(nodeName);
+    auto nodeTableID = catalog->getTableID(&DUMMY_READ_TRANSACTION, nodeName);
     auto nodeStatistics =
         storageManager->getNodesStatisticsAndDeletedIDs()->getNodeStatisticsAndDeletedIDs(
             nodeTableID);
@@ -49,8 +48,7 @@ uint64_t StorageDriver::getNumNodes(const std::string& nodeName) {
 }
 
 uint64_t StorageDriver::getNumRels(const std::string& relName) {
-    auto catalogContent = catalog->getReadOnlyVersion();
-    auto relTableID = catalogContent->getTableID(relName);
+    auto relTableID = catalog->getTableID(&DUMMY_READ_TRANSACTION, relName);
     auto relStatistics = storageManager->getRelsStatistics()->getRelStatistics(
         relTableID, Transaction::getDummyReadOnlyTrx().get());
     return relStatistics->getNumTuples();

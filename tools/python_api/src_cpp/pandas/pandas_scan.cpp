@@ -20,7 +20,7 @@ function_set PandasScanFunction::getFunctionSet() {
 }
 
 std::unique_ptr<function::TableFuncBindData> PandasScanFunction::bindFunc(
-    main::ClientContext* /*context*/, TableFuncBindInput* input, CatalogContent* /*catalog*/) {
+    main::ClientContext* /*context*/, TableFuncBindInput* input, Catalog* /*catalog*/) {
     py::gil_scoped_acquire acquire;
     py::handle df(reinterpret_cast<PyObject*>(input->inputs[0]->getValue<uint8_t*>()));
     std::vector<std::unique_ptr<PandasColumnBindData>> columnBindData;

@@ -7,12 +7,11 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void AddRelProperty::executeDDLInternal() {
+void AddRelProperty::executeDDLInternal(ExecutionContext* context) {
     catalog->addRelProperty(tableID, propertyName, dataType->copy());
-    auto tableSchema = catalog->getWriteVersion()->getTableSchema(tableID);
+    auto tableSchema = catalog->getTableSchema(context->clientContext->getTx(), tableID);
     auto addedPropertyID = tableSchema->getPropertyID(propertyName);
-    auto addedProp =
-        catalog->getWriteVersion()->getTableSchema(tableID)->getProperty(addedPropertyID);
+    auto addedProp = tableSchema->getProperty(addedPropertyID);
     storageManager.getRelTable(tableID)->addColumn(transaction, *addedProp, getDefaultValVector());
     storageManager.getWAL()->logAddPropertyRecord(tableID, addedProp->getPropertyID());
 }

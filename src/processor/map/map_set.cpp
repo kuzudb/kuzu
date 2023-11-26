@@ -3,11 +3,13 @@
 #include "planner/operator/persistent/logical_set.h"
 #include "processor/operator/persistent/set.h"
 #include "processor/plan_mapper.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
 using namespace kuzu::planner;
 using namespace kuzu::evaluator;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace processor {
@@ -31,7 +33,7 @@ std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(
             auto propertyID = property->getPropertyID(tableID);
             auto table = storageManager.getNodeTable(tableID);
             auto columnID =
-                catalog->getReadOnlyVersion()->getTableSchema(tableID)->getColumnID(propertyID);
+                catalog->getTableSchema(&DUMMY_READ_TRANSACTION, tableID)->getColumnID(propertyID);
             tableIDToSetInfo.insert({tableID, NodeSetInfo{table, columnID}});
         }
         return std::make_unique<MultiLabelNodeSetExecutor>(
@@ -43,7 +45,7 @@ std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(
         if (property->hasPropertyID(tableID)) {
             auto propertyID = property->getPropertyID(tableID);
             columnID =
-                catalog->getReadOnlyVersion()->getTableSchema(tableID)->getColumnID(propertyID);
+                catalog->getTableSchema(&DUMMY_READ_TRANSACTION, tableID)->getColumnID(propertyID);
         }
         return std::make_unique<SingleLabelNodeSetExecutor>(
             NodeSetInfo{table, columnID}, nodeIDPos, propertyPos, std::move(evaluator));
@@ -84,7 +86,7 @@ std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(
             auto table = storageManager.getRelTable(tableID);
             auto propertyID = property->getPropertyID(tableID);
             auto columnID =
-                catalog->getReadOnlyVersion()->getTableSchema(tableID)->getColumnID(propertyID);
+                catalog->getTableSchema(&DUMMY_READ_TRANSACTION, tableID)->getColumnID(propertyID);
             tableIDToTableAndColumnID.insert({tableID, std::make_pair(table, columnID)});
         }
         return std::make_unique<MultiLabelRelSetExecutor>(std::move(tableIDToTableAndColumnID),
@@ -96,7 +98,7 @@ std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(
         if (property->hasPropertyID(tableID)) {
             auto propertyID = property->getPropertyID(tableID);
             columnID =
-                catalog->getReadOnlyVersion()->getTableSchema(tableID)->getColumnID(propertyID);
+                catalog->getTableSchema(&DUMMY_READ_TRANSACTION, tableID)->getColumnID(propertyID);
         }
         return std::make_unique<SingleLabelRelSetExecutor>(
             table, columnID, srcNodePos, dstNodePos, relIDPos, propertyPos, std::move(evaluator));

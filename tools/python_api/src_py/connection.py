@@ -74,6 +74,8 @@ class Connection:
         """
         self.init_connection()
         if type(parameters) != dict:
+            # TODO(Chang): remove ROLLBACK once we can guarantee database is deleted after conn
+            self._connection.execute(self.prepare("ROLLBACK")._prepared_statement, {})
             raise RuntimeError("Parameters must be a dict")
         prepared_statement = self.prepare(
             query) if type(query) == str else query

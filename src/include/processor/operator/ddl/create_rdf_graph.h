@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace processor {
 
-class CreateRdfGraph : public DDL {
+class CreateRdfGraph final : public DDL {
 public:
     CreateRdfGraph(catalog::Catalog* catalog, storage::StorageManager* storageManager,
         std::unique_ptr<binder::BoundCreateTableInfo> info, const DataPos& outputPos, uint32_t id,
@@ -16,11 +16,11 @@ public:
           nodesStatistics{storageManager->getNodesStatisticsAndDeletedIDs()},
           relsStatistics{storageManager->getRelsStatistics()}, info{std::move(info)} {}
 
-    void executeDDLInternal() final;
+    void executeDDLInternal(ExecutionContext* context) override;
 
-    std::string getOutputMsg() final;
+    std::string getOutputMsg() override;
 
-    inline std::unique_ptr<PhysicalOperator> clone() final {
+    inline std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<CreateRdfGraph>(
             catalog, storageManager, info->copy(), outputPos, id, paramsString);
     }

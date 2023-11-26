@@ -13,7 +13,7 @@ public:
         : DDL{PhysicalOperatorType::CREATE_REL_TABLE, catalog, outputPos, id, paramsString},
           info{std::move(info)}, storageManager{storageManager} {}
 
-    void executeDDLInternal() override;
+    void executeDDLInternal(ExecutionContext* context) override;
 
     std::string getOutputMsg() override;
 

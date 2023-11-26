@@ -8,14 +8,12 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void DropTable::executeDDLInternal() {
+void DropTable::executeDDLInternal(ExecutionContext* /*context*/) {
     catalog->dropTableSchema(tableID);
 }
 
 std::string DropTable::getOutputMsg() {
-    auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(tableID);
-    return stringFormat("{} table: {} has been dropped.",
-        tableSchema->tableType == TableType::NODE ? "Node" : "Rel", tableSchema->tableName);
+    return stringFormat("Table: {} has been dropped.", tableName);
 }
 
 } // namespace processor
