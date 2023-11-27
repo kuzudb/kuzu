@@ -123,7 +123,8 @@ endif
 javatest: java
 	cmake -E make_directory tools/java_api/build/test
 ifeq ($(OS),Windows_NT)
-	javac -d build/test -cp ".;build/kuzu_java.jar;third_party/junit-platform-console-standalone-1.9.3.jar" src/test/java/com/kuzudb/test/*.java
+	cd tools/java_api &&\
+	javac -d build/test -cp ".;build/kuzu_java.jar;third_party/junit-platform-console-standalone-1.9.3.jar" src/test/java/com/kuzudb/test/*.java &&\
 	java -jar third_party/junit-platform-console-standalone-1.9.3.jar -cp ".;build/kuzu_java.jar;build/test/" --scan-classpath --include-package=com.kuzudb.java_test --details=verbose
 else
 	cd tools/java_api &&\
