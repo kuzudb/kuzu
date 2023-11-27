@@ -1,0 +1,27 @@
+-GROUP TCKWithWhere6
+-DATASET CSV tck
+
+--
+
+# Filter a single aggregate
+-CASE Scenario1
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE REL(FROM A TO B);
+---- ok
+-STATEMENT CREATE (a:A {name: 'A'}),
+                  (b:A {name: 'B'})
+           CREATE (a)-[:REL]->(:B),
+                  (a)-[:REL]->(:B),
+                  (a)-[:REL]->(:B),
+                  (b)-[:REL]->(:B);
+---- ok
+-STATEMENT MATCH (a)-->()
+           WITH a, count(*) AS relCount
+           WHERE relCount > 1
+           RETURN a;
+---- 1
+{_ID: 0:0, _LABEL: A, ID: 0, name: A}
