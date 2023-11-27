@@ -1,0 +1,265 @@
+-GROUP TCKReturn6
+-DATASET CSV tck
+
+--
+
+# Return count aggregation over nodes
+-CASE Scenario1
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {num: 42});
+---- ok
+-STATEMENT MATCH (n) RETURN n.num AS n, count(n) AS count;
+---- 1
+42|1
+
+# Projecting an arithmetic expression with aggregation
+-CASE Scenario2
+-STATEMENT CREATE NODE TABLE A(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (:A {id: 42});
+---- ok
+-STATEMENT MATCH (a) RETURN a, count(a) + 3;
+---- 1
+{_ID: 0:0, _LABEL: A, id: 42}|4
+
+# Aggregating by a list property has a correct definition of equality
+-CASE Scenario3
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, a INT64[], PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {a: [1, 2, 3]}), (:A {a: [1, 2, 3]});
+---- ok
+-STATEMENT MATCH (a) WITH a.num AS a, count(*) AS count RETURN count;
+---- 1
+2
+
+# Support multiple divisions in aggregate function
+-CASE Scenario4
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT UNWIND range(0, 7250) AS i CREATE (:A);
+---- ok
+-STATEMENT MATCH (n) RETURN count(n) / 60 / 60 AS count;
+---- 1
+2
+
+# Aggregates inside normal functions
+-CASE Scenario5
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT UNWIND range(0, 10) AS i CREATE (:A);
+---- ok
+-STATEMENT MATCH (a) RETURN size(collect(a));
+---- 1
+11
+
+# Handle aggregates inside non-aggregate expressions
+-CASE Scenario6
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE FATHER(FROM A TO A);
+---- ok
+-STATEMENT MATCH (a:A {name: 'Andres'})<-[:FATHER]-(child:A)
+           RETURN a.name, {foo: a.name='Andres', kids: collect(child.name)};
+---- 0
+
+# Aggregate on property
+-CASE Scenario7
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {num: 33}),
+                  (:A {num: 33}),
+                  (:A {num: 42});
+---- ok
+-STATEMENT MATCH (n) RETURN n.num, count(*);
+---- 2
+42|1
+33|2
+
+# Handle aggregation on functions
+-CASE Scenario8
+-STATEMENT CREATE NODE TABLE L(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE A(FROM L TO B);
+---- ok
+-STATEMENT CREATE (a:L), (b1:B), (b2:B) CREATE (a)-[:A]->(b1), (a)-[:A]->(b2);
+---- ok
+-STATEMENT MATCH p=(a:L)-[*]->(b) RETURN b, avg(length(p));
+---- 2
+{_ID: 1:0, _LABEL: B, ID: 0}|1.000000
+{_ID: 1:1, _LABEL: B, ID: 1}|1.000000
+
+# Aggregates with arithmetics
+-CASE Scenario9
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A);
+---- ok
+-STATEMENT MATCH () RETURN count(*) * 10 AS c;
+---- 1
+10
+
+# Multiple aggregates on same variable
+-CASE Scenario10
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A);
+---- ok
+-STATEMENT MATCH (n) RETURN count(n), collect(n);
+---- 1
+1|[{_ID: 0:0, _LABEL: A, ID: 0}]
+
+# Counting matches
+-CASE Scenario11
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT UNWIND range(1, 100) AS i CREATE (:A);
+---- ok
+-STATEMENT MATCH () RETURN count(*);
+---- 1
+100
+
+# Counting matches per group
+-CASE Scenario12
+-SKIP
+-STATEMENT CREATE NODE TABLE L(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE A(FROM L TO B);
+---- ok
+-STATEMENT CREATE (a:L), (b1:B), (b2:B) CREATE (a)-[:A]->(b1), (a)-[:A]->(b2);
+---- ok
+-STATEMENT MATCH (a:L)-[rel]->(b) RETURN a, count(*);
+---- 1
+{_ID: 0:0, _LABEL: L, ID: 0}|2
+
+# Returning the minimum length of paths
+-CASE Scenario13
+-SKIP
+-STATEMENT CREATE NODE TABLE T(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE R(FROM T TO T);
+---- ok
+-STATEMENT CREATE (a:T {name: 'a'}), (b:T {name: 'b'}), (c:T {name: 'c'})
+           CREATE (a)-[:R]->(b), (a)-[:R]->(c), (c)-[:R]->(b);
+---- ok
+-STATEMENT MATCH p = (a:T {name: 'a'})-[:R*]->(other:T)
+           WHERE other <> a
+           WITH a, other, min(length(p)) AS len
+           RETURN a.name AS name, collect(other.name) AS others, len;
+---- 1
+a|[c,b]|1
+
+# Aggregates in aggregates
+-CASE Scenario14
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN count(count(*));
+---- error
+Binder exception: Expression COUNT(COUNT_STAR()) contains nested aggregation.
+
+# Using `rand()` in aggregations
+-CASE Scenario15
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN count(rand());
+---- error
+NonConstantExpression
+
+# Aggregation on complex expressions
+-CASE Scenario16
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, type STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE ATE(FROM A TO B, times INT64);
+---- ok
+-STATEMENT CREATE (andres:A {name: 'Andres'}),
+                  (michael:A {name: 'Michael'}),
+                  (peter:A {name: 'Peter'}),
+                  (bread:B {type: 'Bread'}),
+                  (veggies:B {type: 'Veggies'}),
+                  (meat:B {type: 'Meat'})
+           CREATE (andres)-[:ATE {times: 10}]->(bread),
+                  (andres)-[:ATE {times: 8}]->(veggies),
+                  (michael)-[:ATE {times: 4}]->(veggies),
+                  (michael)-[:ATE {times: 6}]->(bread),
+                  (michael)-[:ATE {times: 9}]->(meat),
+                  (peter)-[:ATE {times: 7}]->(veggies),
+                  (peter)-[:ATE {times: 7}]->(bread),
+                  (peter)-[:ATE {times: 4}]->(meat);
+---- ok
+-STATEMENT MATCH (me)-[r1:ATE]->()<-[r2:ATE]-(you)
+           WHERE me.name = 'Michael'
+           WITH me, count(DISTINCT r1) AS H1, count(DISTINCT r2) AS H2, you
+           MATCH (me)-[r1:ATE]->()<-[r2:ATE]-(you)
+           RETURN me, you, sum((1 - abs(r1.times / H1 - r2.times / H2)) * (r1.times + r2.times) / (H1 + H2)) AS sum;
+---- 2
+{...}|{...}|-7
+{...}|{...}|0
+
+# Handle constants and parameters inside an expression which contains an aggregation expression
+-CASE Scenario17
+-SKIP
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT MATCH (person)
+           RETURN $age + avg(person.age) - 1000;
+---- 1
+
+
+# Handle returned variables inside an expression which contains an aggregation expression
+-CASE Scenario18
+-SKIP
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE A(FROM Person TO Person);
+---- ok
+-STATEMENT MATCH (me: Person)--(you: Person)
+           WITH me.age AS age, you
+           RETURN age, age + count(you.age);
+---- 0
+
+# Handle returned property accesses inside an expression which contains an aggregation expression
+-CASE Scenario19
+-SKIP
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE A(FROM Person TO Person);
+---- ok
+-STATEMENT MATCH (me: Person)--(you: Person)
+           RETURN me.age, me.age + count(you.age);
+---- 0
+
+# Fail if not returned variables are used inside an expression which contains an aggregation expression
+-CASE Scenario20
+-SKIP
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE A(FROM Person TO Person);
+---- ok
+-STATEMENT MATCH (me: Person)--(you: Person)
+           RETURN me.age + count(you.age);
+---- error
+Cannot evaluate expression with type PROPERTY.
+
+# Fail if more complex expressions, even if returned, are used inside expression which contains an aggregation expression
+-CASE Scenario21
+-SKIP
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE A(FROM Person TO Person);
+---- ok
+-STATEMENT MATCH (me: Person)--(you: Person)
+           RETURN me.age + you.age, me.age + you.age + count(*);
+---- error
+AmbiguousAggregationExpression

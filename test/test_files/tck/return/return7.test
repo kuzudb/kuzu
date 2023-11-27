@@ -1,0 +1,26 @@
+-GROUP TCKReturn7
+-DATASET CSV tck
+
+--
+
+# Return all variables
+-CASE Scenario1
+-STATEMENT CREATE NODE TABLE Start(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM Start TO A);
+---- ok
+-STATEMENT CREATE (:Start)-[:T]->(:A);
+---- ok
+-STATEMENT MATCH p = (a:Start)-->(b) RETURN *;
+---- 1
+{_ID: 0:0, _LABEL: Start, ID: 0}|{_ID: 1:0, _LABEL: A, ID: 0}|{_NODES: [{_ID: 0:0, _LABEL: Start, ID: 0},{_ID: 1:0, _LABEL: A, ID: 0}], _RELS: [(0:0)-{_LABEL: T, _ID: 2:0}->(1:0)]}
+
+# Fail when using RETURN * without variables in scope
+-CASE Scenario2
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT MATCH () RETURN *;
+---- error
+Binder exception: RETURN or WITH * is not allowed when there are no variables in scope.

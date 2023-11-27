@@ -1,0 +1,62 @@
+-GROUP TCKReturn5
+-DATASET CSV tck
+
+--
+
+# DISTINCT inside aggregation should work with lists in maps
+-CASE Scenario1
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, list STRING[], PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {list: ['A', 'B']}), (:A {list: ['A', 'B']});
+---- ok
+-STATEMENT MATCH (n) RETURN count(DISTINCT {name: n.list}) AS count;
+---- 1
+1
+
+# DISTINCT on nullable values
+-CASE Scenario2
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {name: 'Florescu'}), (:A), (:A);
+---- ok
+-STATEMENT MATCH (n) RETURN DISTINCT n.name;
+---- 2
+Florescu
+
+
+# DISTINCT inside aggregation should work with nested lists in maps
+-CASE Scenario3
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, list STRING[], PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {list: ['A', 'B']}), (:A {list: ['A', 'B']});
+---- ok
+-STATEMENT MATCH (n) RETURN count(DISTINCT {name: [[n.list, n.list], [n.list, n.list]]}) AS count;
+---- 1
+1
+
+# DISTINCT inside aggregation should work with nested lists of maps in maps
+-CASE Scenario4
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, list STRING[], PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {list: ['A', 'B']}), (:A {list: ['A', 'B']});
+---- ok
+-STATEMENT MATCH (n) RETURN count(DISTINCT {name: [{name2: n.list}, {baz: {apa: n.list}}]}) AS count;
+---- 1
+1
+
+# Aggregate on list values
+-CASE Scenario5
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, color STRING[], PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {color: ['red']}),
+                  (:A {color: ['blue']}),
+                  (:A {color: ['red']});
+---- ok
+-STATEMENT MATCH (a) RETURN DISTINCT a.color, count(*);
+---- 2
+[red]|2
+[blue]|1
