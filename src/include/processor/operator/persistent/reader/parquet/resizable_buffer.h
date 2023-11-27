@@ -60,7 +60,7 @@ public:
 class ResizeableBuffer : public ByteBuffer {
 public:
     ResizeableBuffer() {}
-    ResizeableBuffer(uint64_t new_size) { resize(new_size); }
+    explicit ResizeableBuffer(uint64_t new_size) { resize(new_size); }
     void resize(uint64_t new_size) {
         len = new_size;
         if (new_size == 0) {

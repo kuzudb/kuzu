@@ -8,7 +8,7 @@ namespace planner {
 
 class LogicalScanFile : public LogicalOperator {
 public:
-    LogicalScanFile(std::unique_ptr<binder::BoundFileScanInfo> info)
+    explicit LogicalScanFile(std::unique_ptr<binder::BoundFileScanInfo> info)
         : LogicalOperator{LogicalOperatorType::SCAN_FILE}, info{std::move(info)} {}
 
     inline std::string getExpressionsForPrinting() const override { return std::string(); }

@@ -23,7 +23,7 @@ const uint64_t MAX_LEVEL_TO_PLAN_EXACTLY = 7;
 // Therefore, we try to be factorization aware when keeping optimal plans.
 class SubgraphPlans {
 public:
-    SubgraphPlans(const binder::SubqueryGraph& subqueryGraph);
+    explicit SubgraphPlans(const binder::SubqueryGraph& subqueryGraph);
 
     inline uint64_t getMaxCost() const { return maxCost; }
 

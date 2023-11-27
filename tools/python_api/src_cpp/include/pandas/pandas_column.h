@@ -1,6 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
+
+#include "pybind_include.h"
 
 namespace kuzu {
 
@@ -9,7 +12,7 @@ enum class PandasColumnBackend : uint8_t { NUMPY = 0 };
 
 class PandasColumn {
 public:
-    PandasColumn(PandasColumnBackend backend) : backend(backend) {}
+    explicit PandasColumn(PandasColumnBackend backend) : backend(backend) {}
     virtual ~PandasColumn() = default;
 
 public:
@@ -23,7 +26,7 @@ protected:
 
 class PandasNumpyColumn : public PandasColumn {
 public:
-    PandasNumpyColumn(py::array array)
+    explicit PandasNumpyColumn(py::array array)
         : PandasColumn{PandasColumnBackend::NUMPY}, array{std::move(array)} {}
 
     std::unique_ptr<PandasColumn> copy() const override {

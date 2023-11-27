@@ -47,7 +47,7 @@ struct ReadHeadComparator {
 // 1: register all ranges that will be read, merging ranges that are consecutive
 // 2: prefetch all registered ranges
 struct ReadAheadBuffer {
-    ReadAheadBuffer(common::FileInfo* handle) : handle(handle) {}
+    explicit ReadAheadBuffer(common::FileInfo* handle) : handle(handle) {}
 
     // The list of read heads
     std::list<ReadHead> read_heads;

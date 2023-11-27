@@ -491,7 +491,7 @@ public:
 class InternalIDColumnChunk final : public ColumnChunk {
 public:
     // Physically, we only materialize offset of INTERNAL_ID, which is same as INT64,
-    InternalIDColumnChunk(uint64_t capacity)
+    explicit InternalIDColumnChunk(uint64_t capacity)
         : ColumnChunk(LogicalType::INT64(), capacity, false /* enableCompression */) {}
 
     void append(ValueVector* vector) override {

@@ -7,7 +7,7 @@ namespace processor {
 
 class RleBpEncoder {
 public:
-    RleBpEncoder(uint32_t bitWidth);
+    explicit RleBpEncoder(uint32_t bitWidth);
 
 public:
     // NOTE: Prepare is only required if a byte count is required BEFORE writing

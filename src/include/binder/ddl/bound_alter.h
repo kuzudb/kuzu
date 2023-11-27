@@ -8,7 +8,7 @@ namespace binder {
 
 class BoundAlter : public BoundStatement {
 public:
-    BoundAlter(std::unique_ptr<BoundAlterInfo> info)
+    explicit BoundAlter(std::unique_ptr<BoundAlterInfo> info)
         : BoundStatement{common::StatementType::ALTER,
               BoundStatementResult::createSingleStringColumnResult()},
           info{std::move(info)} {}

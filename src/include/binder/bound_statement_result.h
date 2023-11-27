@@ -8,7 +8,7 @@ namespace binder {
 class BoundStatementResult {
 public:
     BoundStatementResult() = default;
-    BoundStatementResult(expression_vector columns) : columns{std::move(columns)} {}
+    explicit BoundStatementResult(expression_vector columns) : columns{std::move(columns)} {}
 
     static std::unique_ptr<BoundStatementResult> createEmptyResult() {
         return std::make_unique<BoundStatementResult>();

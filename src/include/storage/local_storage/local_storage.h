@@ -16,7 +16,7 @@ class MemoryManager;
 // thread-safe.
 class LocalStorage {
 public:
-    LocalStorage(storage::MemoryManager* mm);
+    explicit LocalStorage(storage::MemoryManager* mm);
 
     // This function will create the local table data if not exists.
     LocalTableData* getOrCreateLocalTableData(common::table_id_t tableID,

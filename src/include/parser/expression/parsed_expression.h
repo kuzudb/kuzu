@@ -36,7 +36,7 @@ public:
     ParsedExpression(common::ExpressionType type, std::string rawName)
         : type{type}, rawName{std::move(rawName)} {}
 
-    ParsedExpression(common::ExpressionType type) : type{type} {}
+    explicit ParsedExpression(common::ExpressionType type) : type{type} {}
 
     ParsedExpression(common::ExpressionType type, std::string alias, std::string rawName,
         parsed_expression_vector children)

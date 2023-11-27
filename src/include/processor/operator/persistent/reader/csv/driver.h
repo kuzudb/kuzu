@@ -14,7 +14,7 @@ class ParsingDriver {
     bool rowEmpty;
 
 public:
-    ParsingDriver(common::DataChunk& chunk);
+    explicit ParsingDriver(common::DataChunk& chunk);
     virtual ~ParsingDriver() = default;
 
     bool done(uint64_t rowNum);

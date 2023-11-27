@@ -39,7 +39,8 @@ class TopKBuffer {
         std::function<bool(common::ValueVector&, common::ValueVector&, common::SelectionVector&)>;
 
 public:
-    TopKBuffer(const OrderByDataInfo& orderByDataInfo) : orderByDataInfo{&orderByDataInfo} {
+    explicit TopKBuffer(const OrderByDataInfo& orderByDataInfo)
+        : orderByDataInfo{&orderByDataInfo} {
         sortState = std::make_unique<TopKSortState>();
     }
 

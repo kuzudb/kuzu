@@ -17,7 +17,7 @@ class CopyNodeSharedState {
     friend class CopyRdfResource;
 
 public:
-    CopyNodeSharedState(InQueryCallSharedState* readerSharedState)
+    explicit CopyNodeSharedState(InQueryCallSharedState* readerSharedState)
         : readerSharedState{readerSharedState}, pkIndex{nullptr}, currentNodeGroupIdx{0},
           sharedNodeGroup{nullptr} {};
 

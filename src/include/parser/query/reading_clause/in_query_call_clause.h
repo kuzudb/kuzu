@@ -8,7 +8,7 @@ namespace parser {
 
 class InQueryCallClause : public ReadingClause {
 public:
-    InQueryCallClause(std::unique_ptr<ParsedExpression> functionExpression)
+    explicit InQueryCallClause(std::unique_ptr<ParsedExpression> functionExpression)
         : ReadingClause{common::ClauseType::IN_QUERY_CALL}, functionExpression{
                                                                 std::move(functionExpression)} {}
     ParsedExpression* getFunctionExpression() const { return functionExpression.get(); }

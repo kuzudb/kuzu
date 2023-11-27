@@ -72,7 +72,8 @@ struct BoundExtraCreateRelTableInfo : public BoundExtraCreateTableInfo {
 struct BoundExtraCreateRelTableGroupInfo : public BoundExtraCreateTableInfo {
     std::vector<std::unique_ptr<BoundCreateTableInfo>> infos;
 
-    BoundExtraCreateRelTableGroupInfo(std::vector<std::unique_ptr<BoundCreateTableInfo>> infos)
+    explicit BoundExtraCreateRelTableGroupInfo(
+        std::vector<std::unique_ptr<BoundCreateTableInfo>> infos)
         : infos{std::move(infos)} {}
     BoundExtraCreateRelTableGroupInfo(const BoundExtraCreateRelTableGroupInfo& other)
         : infos{BoundCreateTableInfo::copy(other.infos)} {}

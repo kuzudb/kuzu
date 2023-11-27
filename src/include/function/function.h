@@ -18,7 +18,8 @@ struct CastFunctionBindData : public FunctionBindData {
     common::CSVReaderConfig csvConfig;
     uint64_t numOfEntries;
 
-    CastFunctionBindData(common::LogicalType dataType) : FunctionBindData{std::move(dataType)} {}
+    explicit CastFunctionBindData(common::LogicalType dataType)
+        : FunctionBindData{std::move(dataType)} {}
 };
 
 struct Function;

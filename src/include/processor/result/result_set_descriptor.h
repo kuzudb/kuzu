@@ -25,9 +25,10 @@ struct DataChunkDescriptor {
 struct ResultSetDescriptor {
     std::vector<std::unique_ptr<DataChunkDescriptor>> dataChunkDescriptors;
 
-    ResultSetDescriptor(std::vector<std::unique_ptr<DataChunkDescriptor>> dataChunkDescriptors)
+    explicit ResultSetDescriptor(
+        std::vector<std::unique_ptr<DataChunkDescriptor>> dataChunkDescriptors)
         : dataChunkDescriptors{std::move(dataChunkDescriptors)} {}
-    ResultSetDescriptor(planner::Schema* schema);
+    explicit ResultSetDescriptor(planner::Schema* schema);
 
     std::unique_ptr<ResultSetDescriptor> copy() const;
 };

@@ -78,7 +78,8 @@ public:
 
     NullMask() : NullMask{DEFAULT_NUM_NULL_ENTRIES} {}
 
-    NullMask(uint64_t numNullEntries) : mayContainNulls{false}, numNullEntries{numNullEntries} {
+    explicit NullMask(uint64_t numNullEntries)
+        : mayContainNulls{false}, numNullEntries{numNullEntries} {
         buffer = std::make_unique<uint64_t[]>(numNullEntries);
         data = buffer.get();
         std::fill(data, data + numNullEntries, NO_NULL_ENTRY);

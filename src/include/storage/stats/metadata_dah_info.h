@@ -12,7 +12,7 @@ struct MetadataDAHInfo {
     std::vector<std::unique_ptr<MetadataDAHInfo>> childrenInfos;
 
     MetadataDAHInfo() : MetadataDAHInfo{common::INVALID_PAGE_IDX, common::INVALID_PAGE_IDX} {}
-    MetadataDAHInfo(common::page_idx_t dataDAHPageIdx)
+    explicit MetadataDAHInfo(common::page_idx_t dataDAHPageIdx)
         : MetadataDAHInfo{dataDAHPageIdx, common::INVALID_PAGE_IDX} {}
     MetadataDAHInfo(common::page_idx_t dataDAHPageIdx, common::page_idx_t nullDAHPageIdx)
         : dataDAHPageIdx{dataDAHPageIdx}, nullDAHPageIdx{nullDAHPageIdx} {}

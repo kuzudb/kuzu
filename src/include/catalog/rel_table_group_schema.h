@@ -13,7 +13,7 @@ public:
         : TableSchema{std::move(tableName), tableID, common::TableType::REL_GROUP,
               std::vector<std::unique_ptr<Property>>{}},
           relTableIDs{std::move(relTableIDs)} {}
-    RelTableGroupSchema(std::vector<common::table_id_t> relTableIDs)
+    explicit RelTableGroupSchema(std::vector<common::table_id_t> relTableIDs)
         : TableSchema{common::InternalKeyword::ANONYMOUS, common::INVALID_TABLE_ID,
               common::TableType::REL_GROUP, std::vector<std::unique_ptr<Property>>{}},
           relTableIDs{std::move(relTableIDs)} {}
