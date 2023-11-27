@@ -10,10 +10,18 @@ jobs:
     name: ubuntu-20.04
     runs-on: ubuntu-20.04
     env:
-      CC: gcc-10
-      CXX: g++-10
+      CC: gcc-11
+      CXX: g++-11
     steps:
       - uses: actions/checkout@v3
+
+      - name: Install packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential manpages-dev software-properties-common
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo apt-get update
+          sudo apt-get install -y gcc-11 g++-11
 
       - name: Ensure Python dependencies
         run: |
@@ -206,7 +214,7 @@ jobs:
   debian-ubuntu-build-test:
     strategy:
       matrix:
-        image: ['ubuntu:23.04', 'ubuntu:23.10', 'debian:11', 'debian:12']
+        image: ['ubuntu:23.04', 'ubuntu:23.10', 'debian:12', 'debian:sid']
       fail-fast: false
     name: ${{ matrix.image }}
     runs-on: ubuntu-latest
@@ -314,9 +322,10 @@ jobs:
         run: |
           alternatives --set python /usr/bin/python3.9
           alternatives --set python3 /usr/bin/python3.9
-          echo "/opt/rh/gcc-toolset-12/root/usr/bin" >> $GITHUB_PATH
           echo "PYTHON_EXECUTABLE=/usr/bin/python3.9" >> $GITHUB_ENV
           echo "PYBIND11_PYTHON_VERSION=3.9" >> $GITHUB_ENV
+          source /opt/rh/gcc-toolset-12/enable
+          echo $PATH >> $GITHUB_PATH
 
       - uses: actions/checkout@v3
 
@@ -385,7 +394,12 @@ jobs:
       - name: Install packages
         run: |
           yum update -y
-          yum install -y npm java-11-openjdk-devel
+          yum install -y npm java-11-openjdk-devel devtoolset-11
+      
+      - name: Enable gcc-toolset-11
+        run: |
+          source /opt/rh/devtoolset-11/enable
+          echo $PATH >> $GITHUB_PATH
 
       - uses: actions/checkout@v3
 

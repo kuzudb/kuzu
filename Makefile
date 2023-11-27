@@ -108,7 +108,6 @@ python:
 	$(call run-cmake-release, -DBUILD_PYTHON=TRUE)
 
 rust:
-	cd tools/rust_api
 ifeq ($(OS),Windows_NT)
 	set KUZU_TESTING=1
 	set CFLAGS=/MDd
@@ -117,32 +116,30 @@ ifeq ($(OS),Windows_NT)
 else
 	export CARGO_BUILD_JOBS=$(NUM_THREADS)
 endif
-	cargo build --all-features
+	cd tools/rust_api && cargo build --all-features
 
 
 # Language API tests
 javatest: java
 	cmake -E make_directory tools/java_api/build/test
-	cd tools/java_api
 ifeq ($(OS),Windows_NT)
-	javac -d build/test -cp ".;build/kuzu_java.jar;third_party/junit-platform-console-standalone-1.9.3.jar" src/test/java/com/kuzudb/test/*.java
+	cd tools/java_api &&\
+	javac -d build/test -cp ".;build/kuzu_java.jar;third_party/junit-platform-console-standalone-1.9.3.jar" src/test/java/com/kuzudb/test/*.java &&\
 	java -jar third_party/junit-platform-console-standalone-1.9.3.jar -cp ".;build/kuzu_java.jar;build/test/" --scan-classpath --include-package=com.kuzudb.java_test --details=verbose
 else
-	javac -d build/test -cp ".:build/kuzu_java.jar:third_party/junit-platform-console-standalone-1.9.3.jar" src/test/java/com/kuzudb/test/*.java
+	cd tools/java_api &&\
+	javac -d build/test -cp ".:build/kuzu_java.jar:third_party/junit-platform-console-standalone-1.9.3.jar" src/test/java/com/kuzudb/test/*.java &&\
 	java -jar third_party/junit-platform-console-standalone-1.9.3.jar -cp ".:build/kuzu_java.jar:build/test/" --scan-classpath --include-package=com.kuzudb.java_test --details=verbose
 endif
 
 nodejstest: nodejs
-	cd tools/nodejs_api
-	npm test
+	cd tools/nodejs_api && npm test
 
 pytest: python
 	cmake -E env PYTHONPATH=tools/python_api/build python3 -m pytest -v tools/python_api/test
 
 rusttest: rust
-	cd tools/rust_api
-	cargo test --all-features -- --test-threads=1
-
+	cd tools/rust_api && cargo test --all-features -- --test-threads=1
 
 # Other misc build targets
 benchmark:
