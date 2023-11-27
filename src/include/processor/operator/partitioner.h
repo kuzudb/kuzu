@@ -1,7 +1,6 @@
 #pragma once
 
-#include <utility>
-
+#include "common/data_chunk/data_chunk_collection.h"
 #include "processor/operator/sink.h"
 
 namespace kuzu {
@@ -9,7 +8,6 @@ namespace processor {
 
 using partitioner_func_t =
     std::function<void(common::ValueVector* key, common::ValueVector* result)>;
-using data_partition_t = std::vector<std::unique_ptr<common::DataChunk>>;
 
 struct PartitionerFunctions {
     static void partitionRelData(common::ValueVector* key, common::ValueVector* partitionIdxes);
@@ -19,7 +17,7 @@ struct PartitionerFunctions {
 // partitioning methods. For example, copy of rel tables require partitioning on both FWD and BWD
 // direction. Each partitioning method corresponds to a PartitioningState.
 struct PartitioningBuffer {
-    std::vector<std::unique_ptr<data_partition_t>> partitions;
+    std::vector<std::unique_ptr<common::DataChunkCollection>> partitions;
 
     void merge(std::unique_ptr<PartitioningBuffer> localPartitioningStates);
 };
@@ -27,11 +25,14 @@ struct PartitioningBuffer {
 // NOTE: Currently, Partitioner is tightly coupled with CopyRel. We should generalize it later when
 // necessary. Here, each partition is essentially a node group.
 struct PartitionerSharedState {
+    storage::MemoryManager* mm;
     std::mutex mtx;
     std::vector<common::offset_t> maxNodeOffsets;       // max node offset in each direction.
     std::vector<common::partition_idx_t> numPartitions; // num of partitions in each direction.
     std::vector<std::unique_ptr<PartitioningBuffer>> partitioningBuffers;
     common::partition_idx_t nextPartitionIdx = 0;
+
+    explicit PartitionerSharedState(storage::MemoryManager* mm) : mm{mm} {}
 
     void initialize();
     common::partition_idx_t getNextPartition(common::vector_idx_t partitioningIdx);
@@ -84,13 +85,13 @@ public:
 
     static void initializePartitioningStates(
         std::vector<std::unique_ptr<PartitioningBuffer>>& partitioningBuffers,
-        std::vector<common::partition_idx_t> numPartitions);
+        std::vector<common::partition_idx_t> numPartitions, storage::MemoryManager* mm);
 
 private:
     // TODO: For now, CopyRel will guarantee all data are inside one data chunk. Should be
     //  generalized to resultSet later if needed.
-    void copyDataToPartitions(common::partition_idx_t partitioningIdx,
-        common::DataChunk* chunkToCopyFrom, storage::MemoryManager* memoryManager);
+    void copyDataToPartitions(
+        common::partition_idx_t partitioningIdx, common::DataChunk* chunkToCopyFrom);
 
 private:
     std::vector<std::unique_ptr<PartitioningInfo>> infos;

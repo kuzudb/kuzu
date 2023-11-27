@@ -82,7 +82,6 @@ public:
     inline bool isEmpty() { return blocks.empty(); }
     inline std::vector<std::unique_ptr<DataBlock>>& getBlocks() { return blocks; }
     inline DataBlock* getBlock(ft_block_idx_t blockIdx) { return blocks[blockIdx].get(); }
-    inline uint64_t getNumBlocks() const { return blocks.size(); }
 
     void merge(DataBlockCollection& other);
 
@@ -175,7 +174,6 @@ class FlatTupleIterator;
 class FactorizedTable {
     friend FlatTupleIterator;
     friend class JoinHashTable;
-    friend class IntersectHashTable;
     friend class PathPropertyProbe;
 
 public:

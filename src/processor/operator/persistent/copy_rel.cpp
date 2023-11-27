@@ -56,7 +56,7 @@ void CopyRel::executeInternal(ExecutionContext* /*context*/) {
         auto startOffset = StorageUtils::getStartOffsetOfNodeGroup(localState->currentPartition);
         auto offsetVectorIdx = info->dataDirection == RelDataDirection::FWD ? 0 : 1;
         row_idx_t numRels = 0;
-        for (auto& dataChunk : *partitioningBuffer) {
+        for (auto dataChunk : partitioningBuffer->getChunks()) {
             auto offsetVector = dataChunk->getValueVector(offsetVectorIdx).get();
             setOffsetToWithinNodeGroup(offsetVector, startOffset);
             numRels += offsetVector->state->selVector->selectedSize;
@@ -78,13 +78,13 @@ void CopyRel::executeInternal(ExecutionContext* /*context*/) {
             localState->nodeGroup->setAllNull();
             localState->nodeGroup->getColumnChunk(0)->setNumValues(numNodes);
         }
-        for (auto& dataChunk : *partitioningBuffer) {
+        for (auto dataChunk : partitioningBuffer->getChunks()) {
             if (info->dataFormat == ColumnDataFormat::CSR) {
                 KU_ASSERT(csrOffsetChunk);
                 auto offsetVector = dataChunk->getValueVector(offsetVectorIdx).get();
                 setOffsetFromCSROffsets(offsetVector, (offset_t*)csrOffsetChunk->getData());
             }
-            localState->nodeGroup->write(dataChunk.get(), offsetVectorIdx);
+            localState->nodeGroup->write(dataChunk, offsetVectorIdx);
         }
         localState->nodeGroup->finalize(localState->currentPartition);
         // Flush node group to table.
@@ -95,11 +95,11 @@ void CopyRel::executeInternal(ExecutionContext* /*context*/) {
 }
 
 void CopyRel::populateCSROffsets(
-    ColumnChunk* csrOffsetChunk, data_partition_t* partition, vector_idx_t offsetVectorIdx) {
+    ColumnChunk* csrOffsetChunk, DataChunkCollection* partition, vector_idx_t offsetVectorIdx) {
     auto csrOffsets = (offset_t*)csrOffsetChunk->getData();
     std::fill(csrOffsets, csrOffsets + csrOffsetChunk->getCapacity(), 0);
     // Calculate num of tuples for each node. Store the num of tuples of node i at csrOffsets[i+1].
-    for (auto& chunk : *partition) {
+    for (auto chunk : partition->getChunks()) {
         auto offsetVector = chunk->getValueVector(offsetVectorIdx);
         for (auto i = 0u; i < offsetVector->state->selVector->selectedSize; i++) {
             auto pos = offsetVector->state->selVector->selectedPositions[i];

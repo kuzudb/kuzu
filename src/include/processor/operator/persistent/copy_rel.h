@@ -97,7 +97,7 @@ private:
     }
 
     static void populateCSROffsets(storage::ColumnChunk* csrOffsetChunk,
-        data_partition_t* partition, common::vector_idx_t offsetVectorIdx);
+        common::DataChunkCollection* partition, common::vector_idx_t offsetVectorIdx);
     static void setOffsetToWithinNodeGroup(
         common::ValueVector* vector, common::offset_t startOffset);
     static void setOffsetFromCSROffsets(
