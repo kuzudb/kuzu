@@ -321,8 +321,7 @@ jobs:
           alternatives --set python3 /usr/bin/python3.9
           echo "PYTHON_EXECUTABLE=/usr/bin/python3.9" >> $GITHUB_ENV
           echo "PYBIND11_PYTHON_VERSION=3.9" >> $GITHUB_ENV
-          source /opt/rh/gcc-toolset-12/enable
-          echo PATH=$PATH >> $GITHUB_ENV
+          echo "PATH=/opt/rh/gcc-toolset-12/root/usr/bin:$PATH" >> $GITHUB_ENV
 
       - uses: actions/checkout@v3
 
@@ -394,9 +393,7 @@ jobs:
           yum install -y npm java-11-openjdk-devel devtoolset-11
       
       - name: Enable gcc-toolset-11
-        run: |
-          source /opt/rh/devtoolset-11/enable
-          echo PATH=$PATH >> $GITHUB_ENV
+        run: echo "PATH=/opt/rh/devtoolset-11/root/usr/bin:$PATH" >> $GITHUB_ENV
 
       - uses: actions/checkout@v3
 
