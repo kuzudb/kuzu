@@ -322,7 +322,7 @@ jobs:
           echo "PYTHON_EXECUTABLE=/usr/bin/python3.9" >> $GITHUB_ENV
           echo "PYBIND11_PYTHON_VERSION=3.9" >> $GITHUB_ENV
           source /opt/rh/gcc-toolset-12/enable
-          echo "source /opt/rh/gcc-toolset-12/enable" > /etc/profile.d/gcc-toolset-12.sh
+          echo PATH=$PATH >> $GITHUB_ENV
 
       - uses: actions/checkout@v3
 
@@ -396,7 +396,7 @@ jobs:
       - name: Enable gcc-toolset-11
         run: |
           source /opt/rh/devtoolset-11/enable
-          echo "source /opt/rh/devtoolset-11/enable" > /etc/profile.d/devtoolset-11.sh
+          echo PATH=$PATH >> $GITHUB_ENV
 
       - uses: actions/checkout@v3
 
