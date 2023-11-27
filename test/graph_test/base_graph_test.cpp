@@ -24,7 +24,7 @@ void BaseGraphTest::commitOrRollbackConnectionAndInitDBIfNecessary(
 void TestHelper::executeScript(const std::string& cypherScript, Connection& conn) {
     std::cout << "cypherScript: " << cypherScript << std::endl;
     if (!FileUtils::fileOrPathExists(cypherScript)) {
-        std::cout << "CpyherScript: " << cypherScript << " doesn't exist. Skipping..." << std::endl;
+        std::cout << "cypherScript: " << cypherScript << " doesn't exist. Skipping..." << std::endl;
         return;
     }
     std::ifstream file(cypherScript);

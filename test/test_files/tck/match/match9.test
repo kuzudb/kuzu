@@ -1,0 +1,181 @@
+-GROUP TCKMatch9
+-DATASET CSV tck
+
+--
+
+# Variable length relationship variables are lists of relationships
+-CASE Scenario1
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+-STATEMENT CREATE (a:A), (b:A), (c:A)
+           CREATE (a)-[:T]->(b);
+---- ok
+-STATEMENT MATCH ()-[r*0..1]-()
+           RETURN last(r) AS l;
+---- 5
+(...)-[...]->(...)
+(...)-[...]->(...)
+
+
+
+
+# Return relationships by collecting them as a list - directed, one way
+-CASE Scenario2
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE Endd(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP REL(FROM A TO B, FROM B TO Endd, num INT64);
+---- ok
+-STATEMENT CREATE (a:A)-[:REL_A_B {num: 1}]->(b:B)-[:REL_B_Endd {num: 2}]->(e:Endd);
+---- ok
+-STATEMENT MATCH (a)-[r:REL*2..2]->(b:Endd)
+           RETURN r;
+---- 1
+[...]
+
+# Return relationships by collecting them as a list - undirected, starting from two extremes
+-CASE Scenario3
+-SKIP
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE Endd(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP REL(FROM Endd TO B, FROM B TO Endd, num INT64);
+---- ok
+-STATEMENT CREATE (a:Endd)-[:REL_Endd_B {num: 1}]->(b:B)-[:REL_B_Endd {num: 2}]->(c:Endd);
+---- ok
+-STATEMENT MATCH (a)-[r:REL*2..2]-(b:Endd)
+           RETURN r;
+---- 2
+[...]
+[...]
+
+# Return relationships by collecting them as a list - undirected, starting from one extreme
+-CASE Scenario4
+-SKIP
+-STATEMENT CREATE NODE TABLE Start(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP REL(FROM Start TO B, FROM B TO C, num INT64);
+---- ok
+-STATEMENT CREATE (s:Start)-[:REL_Start_B {num: 1}]->(b:B)-[:REL_B_C {num: 2}]->(c:C);
+---- ok
+-STATEMENT MATCH (a:Start)-[r:REL*2..2]-(b)
+           RETURN r;
+---- 1
+[...]
+
+# Variable length pattern with label predicate on both sides
+-CASE Scenario5
+-SKIP
+-STATEMENT CREATE NODE TABLE Blue(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE Red(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE Green(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE Yellow(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP T(FROM Blue TO Red, FROM Red TO Green, FROM Red TO Yellow);
+---- ok
+-STATEMENT CREATE (a:Blue), (b:Red), (c:Green), (d:Yellow)
+           CREATE (a)-[:T_Blue_Red]->(b),
+                  (b)-[:T_Red_Green]->(c),
+                  (b)-[:T_Red_Yellow]->(d);
+---- ok
+-STATEMENT MATCH (a:Blue)-[r*]->(b:Green)
+           RETURN count(r);
+---- 1
+1
+
+# Matching relationships into a list and matching variable length using the list, with bound nodes
+-CASE Scenario6
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP Y(FROM A TO B, FROM B TO C);
+---- ok
+-STATEMENT CREATE (a:A), (b:B), (c:C)
+           CREATE (a)-[:Y_A_B]->(b),
+                  (b)-[:Y_B_C]->(c);
+---- ok
+-STATEMENT MATCH (a)-[r1]->()-[r2]->(b)
+           WITH [r1, r2] AS rs, a AS first, b AS second
+             LIMIT 1
+           MATCH (first)-[rs*]->(second)
+           RETURN first, second;
+---- 1
+{...}|{...}
+
+# Matching relationships into a list and matching variable length using the list, with bound nodes, wrong direction
+-CASE Scenario7
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP Y(FROM A TO B, FROM B TO C);
+---- ok
+-STATEMENT CREATE (a:A), (b:B), (c:C)
+           CREATE (a)-[:Y_A_B]->(b),
+                  (b)-[:Y_B_C]->(c);
+---- ok
+-STATEMENT MATCH (a)-[r1]->()-[r2]->(b)
+           WITH [r1, r2] AS rs, a AS second, b AS first
+             LIMIT 1
+           MATCH (first)-[rs*]->(second)
+           RETURN first, second;
+---- 0
+
+# Variable length relationship in OPTIONAL MATCH
+-CASE Scenario8
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+-STATEMENT CREATE (:A), (:B);
+---- ok
+-STATEMENT MATCH (a:A), (b:B)
+           OPTIONAL MATCH (a)-[r*]-(b)
+           WHERE r IS NULL
+             AND a <> b
+           RETURN b;
+---- 1
+{...}
+
+# Optionally matching named paths with variable length patterns
+-CASE Scenario9
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE X(FROM A TO A);
+---- ok
+-STATEMENT CREATE (a:A {name: 'A'}), (b:A {name: 'B'}), (c:A {name: 'C'})
+           CREATE (a)-[:X]->(b);
+---- ok
+-STATEMENT MATCH (a {name: 'A'}), (x)
+           WHERE list_contains(['B', 'C'], x.name)
+           OPTIONAL MATCH p = (a)-[r*]->(x)
+           RETURN r, x, p;
+---- 2
+{_NODES: [], _RELS: [(0:0)-{_LABEL: X, _ID: 1:0}->(0:1)]}|{_ID: 0:1, _LABEL: A, ID: 1, name: B}|{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 0:1, _LABEL: A, ID: 1, name: B}], _RELS: [(0:0)-{_LABEL: X, _ID: 1:0}->(0:1)]}
+|{_ID: 0:2, _LABEL: A, ID: 2, name: C}|{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A}], _RELS: []}
