@@ -31,7 +31,8 @@ std::pair<uint64_t, FactorizedTable*> SortSharedState::getLocalPayloadTable(
     return result;
 }
 
-void SortSharedState::appendLocalSortedKeyBlock(std::shared_ptr<MergedKeyBlocks> mergedDataBlocks) {
+void SortSharedState::appendLocalSortedKeyBlock(
+    const std::shared_ptr<MergedKeyBlocks>& mergedDataBlocks) {
     std::unique_lock lck{mtx};
     sortedKeyBlocks->emplace(mergedDataBlocks);
 }
@@ -82,7 +83,7 @@ void SortLocalState::finalize(kuzu::processor::SortSharedState& sharedState) {
 
 PayloadScanner::PayloadScanner(MergedKeyBlocks* keyBlockToScan,
     std::vector<FactorizedTable*> payloadTables, uint64_t skipNumber, uint64_t limitNumber)
-    : keyBlockToScan{std::move(keyBlockToScan)}, payloadTables{std::move(payloadTables)} {
+    : keyBlockToScan{keyBlockToScan}, payloadTables{std::move(payloadTables)} {
     if (this->keyBlockToScan == nullptr || this->keyBlockToScan->getNumTuples() == 0) {
         nextTupleIdxToReadInMergedKeyBlock = 0;
         endTuplesIdxToReadInMergedKeyBlock = 0;

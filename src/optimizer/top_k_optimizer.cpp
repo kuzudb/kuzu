@@ -12,7 +12,8 @@ void TopKOptimizer::rewrite(planner::LogicalPlan* plan) {
     plan->setLastOperator(visitOperator(plan->getLastOperator()));
 }
 
-std::shared_ptr<LogicalOperator> TopKOptimizer::visitOperator(std::shared_ptr<LogicalOperator> op) {
+std::shared_ptr<LogicalOperator> TopKOptimizer::visitOperator(
+    const std::shared_ptr<LogicalOperator>& op) {
     // bottom-up traversal
     for (auto i = 0; i < op->getNumChildren(); ++i) {
         op->setChild(i, visitOperator(op->getChild(i)));

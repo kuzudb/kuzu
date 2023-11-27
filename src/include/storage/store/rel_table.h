@@ -23,7 +23,7 @@ public:
         bool enableCompression);
 
     inline void initializeReadState(transaction::Transaction* transaction,
-        common::RelDataDirection direction, std::vector<common::column_id_t> columnIDs,
+        common::RelDataDirection direction, const std::vector<common::column_id_t>& columnIDs,
         common::ValueVector* inNodeIDVector, RelDataReadState* readState) {
         return direction == common::RelDataDirection::FWD ?
                    fwdRelTableData->initializeReadState(

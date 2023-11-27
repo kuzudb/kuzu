@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
     try {
         parser.ParseCLI(argc, argv);
     } catch (std::exception& e) {
-        std::cerr << e.what() << std::endl;
+        std::cerr << e.what() << '\n';
         std::cerr << parser;
         return 1;
     }
@@ -38,13 +38,13 @@ int main(int argc, char* argv[]) {
         systemConfig.readOnly = true;
     }
     std::cout << "Opened the database at path: " << databasePath << " in "
-              << (readOnlyMode ? "read-only mode" : "read-write mode") << "." << std::endl;
-    std::cout << "Enter \":help\" for usage hints." << std::endl;
+              << (readOnlyMode ? "read-only mode" : "read-write mode") << "." << '\n';
+    std::cout << "Enter \":help\" for usage hints." << '\n' << std::flush;
     try {
         auto shell = EmbeddedShell(databasePath, systemConfig);
         shell.run();
     } catch (std::exception& e) {
-        std::cerr << e.what() << std::endl;
+        std::cerr << e.what() << '\n';
         return 1;
     }
     return 0;

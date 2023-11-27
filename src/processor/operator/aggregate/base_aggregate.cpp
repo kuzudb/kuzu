@@ -41,6 +41,7 @@ void BaseAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
 
 std::vector<std::unique_ptr<function::AggregateFunction>> BaseAggregate::cloneAggFunctions() {
     std::vector<std::unique_ptr<AggregateFunction>> result;
+    result.reserve(aggregateFunctions.size());
     for (auto& function : aggregateFunctions) {
         result.push_back(function->clone());
     }
@@ -49,6 +50,7 @@ std::vector<std::unique_ptr<function::AggregateFunction>> BaseAggregate::cloneAg
 
 std::vector<std::unique_ptr<AggregateInputInfo>> BaseAggregate::cloneAggInputInfos() {
     std::vector<std::unique_ptr<AggregateInputInfo>> result;
+    result.reserve(aggregateInputInfos.size());
     for (auto& info : aggregateInputInfos) {
         result.push_back(info->copy());
     }

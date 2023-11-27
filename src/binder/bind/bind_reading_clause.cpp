@@ -124,7 +124,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     }
     // TODO: this is dangerous because we could match to a scan function.
     auto tableFunction = reinterpret_cast<function::TableFunction*>(
-        catalog.getBuiltInFunctions()->matchScalarFunction(std::move(funcName), inputTypes));
+        catalog.getBuiltInFunctions()->matchScalarFunction(funcName, inputTypes));
     auto bindInput = std::make_unique<function::TableFuncBindInput>();
     bindInput->inputs = std::move(inputValues);
     auto bindData =
@@ -136,7 +136,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     auto offset = expressionBinder.createVariableExpression(
         *LogicalType::INT64(), std::string(InternalKeyword::ROW_OFFSET));
     auto boundInQueryCall = std::make_unique<BoundInQueryCall>(
-        std::move(tableFunction), std::move(bindData), std::move(columns), offset);
+        tableFunction, std::move(bindData), std::move(columns), offset);
     if (call.hasWherePredicate()) {
         auto wherePredicate = expressionBinder.bindExpression(*call.getWherePredicate());
         boundInQueryCall->setWherePredicate(std::move(wherePredicate));

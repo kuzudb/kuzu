@@ -554,7 +554,7 @@ static bool tryCastStringToStruct(const char* input, uint64_t len, ValueVector* 
     uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig) {
     // default values to NULL
     auto fieldVectors = StructVector::getFieldVectors(vector);
-    for (auto fieldVector : fieldVectors) {
+    for (auto& fieldVector : fieldVectors) {
         fieldVector->setNull(rowToAdd, true);
     }
 

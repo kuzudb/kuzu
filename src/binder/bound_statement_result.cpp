@@ -8,7 +8,7 @@ namespace kuzu {
 namespace binder {
 
 std::unique_ptr<BoundStatementResult> BoundStatementResult::createSingleStringColumnResult(
-    std::string columnName) {
+    const std::string& columnName) {
     auto result = std::make_unique<BoundStatementResult>();
     auto value = std::make_unique<Value>(LogicalType{LogicalTypeID::STRING}, columnName);
     auto stringColumn = std::make_shared<LiteralExpression>(std::move(value), columnName);

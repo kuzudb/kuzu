@@ -94,8 +94,9 @@ public:
         return queryNodes[getQueryNodePos(queryNodeName)];
     }
     inline std::vector<std::shared_ptr<NodeExpression>> getQueryNodes(
-        std::vector<uint32_t> nodePoses) const {
+        const std::vector<uint32_t>& nodePoses) const {
         std::vector<std::shared_ptr<NodeExpression>> result;
+        result.reserve(nodePoses.size());
         for (auto nodePos : nodePoses) {
             result.push_back(queryNodes[nodePos]);
         }
@@ -168,13 +169,14 @@ public:
     PropertyKeyValCollection(const PropertyKeyValCollection& other)
         : propertyKeyValMap{other.propertyKeyValMap} {}
 
-    void addKeyVal(std::shared_ptr<Expression> variable, const std::string& propertyName,
+    void addKeyVal(const std::shared_ptr<Expression>& variable, const std::string& propertyName,
         expression_pair keyVal);
     std::vector<expression_pair> getKeyVals() const;
-    std::vector<expression_pair> getKeyVals(std::shared_ptr<Expression> variable) const;
-    bool hasKeyVal(std::shared_ptr<Expression> variable, const std::string& propertyName) const;
+    std::vector<expression_pair> getKeyVals(const std::shared_ptr<Expression>& variable) const;
+    bool hasKeyVal(
+        const std::shared_ptr<Expression>& variable, const std::string& propertyName) const;
     expression_pair getKeyVal(
-        std::shared_ptr<Expression> variable, const std::string& propertyName) const;
+        const std::shared_ptr<Expression>& variable, const std::string& propertyName) const;
 
     inline std::unique_ptr<PropertyKeyValCollection> copy() const {
         return std::make_unique<PropertyKeyValCollection>(*this);

@@ -159,7 +159,7 @@ offset_t VarListColumn::readOffset(
 
 ListOffsetInfoInStorage VarListColumn::getListOffsetInfoInStorage(Transaction* transaction,
     node_group_idx_t nodeGroupIdx, offset_t startOffsetInNodeGroup, offset_t endOffsetInNodeGroup,
-    std::shared_ptr<DataChunkState> state) {
+    const std::shared_ptr<DataChunkState>& state) {
     auto numOffsetsToRead = endOffsetInNodeGroup - startOffsetInNodeGroup;
     auto numOffsetVectors = numOffsetsToRead / DEFAULT_VECTOR_CAPACITY +
                             (numOffsetsToRead % DEFAULT_VECTOR_CAPACITY ? 1 : 0);

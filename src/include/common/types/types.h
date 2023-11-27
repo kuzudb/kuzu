@@ -252,7 +252,7 @@ public:
     explicit KUZU_API LogicalType(LogicalTypeID typeID);
     KUZU_API LogicalType(LogicalTypeID typeID, std::unique_ptr<ExtraTypeInfo> extraTypeInfo);
     KUZU_API LogicalType(const LogicalType& other);
-    KUZU_API LogicalType(LogicalType&& other) noexcept;
+    KUZU_API LogicalType(LogicalType&& other) = default;
 
     KUZU_API LogicalType& operator=(const LogicalType& other);
 
@@ -260,7 +260,7 @@ public:
 
     KUZU_API bool operator!=(const LogicalType& other) const;
 
-    KUZU_API LogicalType& operator=(LogicalType&& other) noexcept;
+    KUZU_API LogicalType& operator=(LogicalType&& other) = default;
 
     KUZU_API std::string toString() const;
 

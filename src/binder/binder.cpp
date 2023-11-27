@@ -220,17 +220,14 @@ function::TableFunction* Binder::getScanFunction(common::FileType fileType, bool
             catalog.getBuiltInFunctions()->matchScalarFunction(READ_PARQUET_FUNC_NAME, inputTypes);
     } break;
     case common::FileType::NPY: {
-        func = catalog.getBuiltInFunctions()->matchScalarFunction(
-            READ_NPY_FUNC_NAME, std::move(inputTypes));
+        func = catalog.getBuiltInFunctions()->matchScalarFunction(READ_NPY_FUNC_NAME, inputTypes);
     } break;
     case common::FileType::CSV: {
         func = catalog.getBuiltInFunctions()->matchScalarFunction(
-            isParallel ? READ_CSV_PARALLEL_FUNC_NAME : READ_CSV_SERIAL_FUNC_NAME,
-            std::move(inputTypes));
+            isParallel ? READ_CSV_PARALLEL_FUNC_NAME : READ_CSV_SERIAL_FUNC_NAME, inputTypes);
     } break;
     case common::FileType::TURTLE: {
-        func = catalog.getBuiltInFunctions()->matchScalarFunction(
-            READ_RDF_FUNC_NAME, std::move(inputTypes));
+        func = catalog.getBuiltInFunctions()->matchScalarFunction(READ_RDF_FUNC_NAME, inputTypes);
     } break;
     default:
         KU_UNREACHABLE;

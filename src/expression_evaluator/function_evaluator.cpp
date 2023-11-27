@@ -55,6 +55,7 @@ bool FunctionExpressionEvaluator::select(SelectionVector& selVector) {
 
 std::unique_ptr<ExpressionEvaluator> FunctionExpressionEvaluator::clone() {
     std::vector<std::unique_ptr<ExpressionEvaluator>> clonedChildren;
+    clonedChildren.reserve(children.size());
     for (auto& child : children) {
         clonedChildren.push_back(child->clone());
     }

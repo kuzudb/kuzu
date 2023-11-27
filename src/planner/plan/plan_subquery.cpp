@@ -94,7 +94,8 @@ void QueryPlanner::planRegularMatch(const QueryGraphCollection& queryGraphCollec
     }
 }
 
-void QueryPlanner::planSubquery(std::shared_ptr<Expression> expression, LogicalPlan& outerPlan) {
+void QueryPlanner::planSubquery(
+    const std::shared_ptr<Expression>& expression, LogicalPlan& outerPlan) {
     KU_ASSERT(expression->expressionType == ExpressionType::SUBQUERY);
     auto subquery = static_pointer_cast<SubqueryExpression>(expression);
     auto predicates = subquery->getPredicatesSplitOnAnd();

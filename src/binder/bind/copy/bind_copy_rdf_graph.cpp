@@ -59,6 +59,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfRelFrom(const Statement& /*st
     columnNames.emplace_back(rdf::PID);
     columnNames.emplace_back(InternalKeyword::DST_OFFSET);
     std::vector<std::unique_ptr<common::LogicalType>> columnTypes;
+    columnTypes.reserve(3);
     for (auto i = 0u; i < 3; ++i) {
         columnTypes.push_back(LogicalType::INT64());
     }

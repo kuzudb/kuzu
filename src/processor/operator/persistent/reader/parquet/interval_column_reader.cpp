@@ -22,7 +22,7 @@ common::interval_t IntervalValueConversion::plainRead(
 }
 
 void IntervalColumnReader::dictionary(
-    std::shared_ptr<ResizeableBuffer> dictionary_data, uint64_t num_entries) {
+    const std::shared_ptr<ResizeableBuffer>& dictionary_data, uint64_t num_entries) {
     allocateDict(num_entries * sizeof(common::interval_t));
     auto dict_ptr = reinterpret_cast<common::interval_t*>(this->dict->ptr);
     for (auto i = 0u; i < num_entries; i++) {

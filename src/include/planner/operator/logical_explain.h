@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "common/enums/explain_type.h"
 #include "planner/operator/logical_operator.h"
 
@@ -11,10 +13,9 @@ public:
     LogicalExplain(std::shared_ptr<LogicalOperator> child,
         std::shared_ptr<binder::Expression> outputExpression, common::ExplainType explainType,
         binder::expression_vector outputExpressionsToExplain)
-        : LogicalOperator{LogicalOperatorType::EXPLAIN, child}, outputExpression{std::move(
-                                                                    outputExpression)},
-          explainType{explainType}, outputExpressionsToExplain{
-                                        std::move(outputExpressionsToExplain)} {}
+        : LogicalOperator{LogicalOperatorType::EXPLAIN, std::move(child)},
+          outputExpression{std::move(outputExpression)}, explainType{explainType},
+          outputExpressionsToExplain{std::move(outputExpressionsToExplain)} {}
 
     void computeSchema();
     void computeFactorizedSchema() override;

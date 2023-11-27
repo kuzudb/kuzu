@@ -12,7 +12,7 @@ namespace kuzu {
 namespace main {
 
 OpProfileBox::OpProfileBox(
-    std::string opName, std::string paramsName, std::vector<std::string> attributes)
+    std::string opName, const std::string& paramsName, std::vector<std::string> attributes)
     : opName{std::move(opName)}, attributes{std::move(attributes)} {
     std::stringstream paramsStream{paramsName};
     std::string paramStr = "";
@@ -147,7 +147,7 @@ void OpProfileTree::printOpProfileBoxUpperFrame(uint32_t rowIdx, std::ostringstr
             oss << std::string(opProfileBoxWidth, ' ');
         }
     }
-    oss << std::endl;
+    oss << '\n';
 }
 
 static std::string dashedLineAccountingForIndex(uint32_t width, uint32_t indent) {
@@ -215,7 +215,7 @@ void OpProfileTree::printOpProfileBoxes(uint32_t rowIdx, std::ostringstream& oss
                 }
             }
         }
-        oss << std::endl;
+        oss << '\n';
     }
 }
 
@@ -244,20 +244,20 @@ void OpProfileTree::printOpProfileBoxLowerFrame(uint32_t rowIdx, std::ostringstr
             oss << std::string(opProfileBoxWidth, ' ');
         }
     }
-    oss << std::endl;
+    oss << '\n';
 }
 
 void OpProfileTree::prettyPrintPlanTitle(std::ostringstream& oss) const {
     const std::string physicalPlan = "Physical Plan";
-    oss << "┌" << genHorizLine(opProfileBoxWidth - 2) << "┐" << std::endl;
-    oss << "│┌" << genHorizLine(opProfileBoxWidth - 4) << "┐│" << std::endl;
+    oss << "┌" << genHorizLine(opProfileBoxWidth - 2) << "┐" << '\n';
+    oss << "│┌" << genHorizLine(opProfileBoxWidth - 4) << "┐│" << '\n';
     auto numLeftSpaces = (opProfileBoxWidth - physicalPlan.length() - 2 * (2 + INDENT_WIDTH)) / 2;
     auto numRightSpaces =
         opProfileBoxWidth - physicalPlan.length() - 2 * (2 + INDENT_WIDTH) - numLeftSpaces;
     oss << "││" << std::string(INDENT_WIDTH + numLeftSpaces, ' ') << physicalPlan
-        << std::string(INDENT_WIDTH + numRightSpaces, ' ') << "││" << std::endl;
-    oss << "│└" << genHorizLine(opProfileBoxWidth - 4) << "┘│" << std::endl;
-    oss << "└" << genHorizLine(opProfileBoxWidth - 2) << "┘" << std::endl;
+        << std::string(INDENT_WIDTH + numRightSpaces, ' ') << "││" << '\n';
+    oss << "│└" << genHorizLine(opProfileBoxWidth - 4) << "┘│" << '\n';
+    oss << "└" << genHorizLine(opProfileBoxWidth - 2) << "┘" << '\n';
 }
 
 std::string OpProfileTree::genHorizLine(uint32_t len) {

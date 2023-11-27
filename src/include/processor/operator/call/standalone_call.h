@@ -13,7 +13,7 @@ struct StandaloneCallInfo {
     bool hasExecuted = false;
 
     StandaloneCallInfo(main::ConfigurationOption option, const common::Value& optionValue)
-        : option{std::move(option)}, optionValue{optionValue} {}
+        : option{option}, optionValue{optionValue} {}
 
     std::unique_ptr<StandaloneCallInfo> copy() {
         return std::make_unique<StandaloneCallInfo>(option, optionValue);

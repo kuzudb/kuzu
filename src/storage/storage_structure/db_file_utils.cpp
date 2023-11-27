@@ -18,7 +18,7 @@ std::pair<BMFileHandle*, page_idx_t> DBFileUtils::getFileHandleAndPhysicalPageId
 }
 
 common::page_idx_t DBFileUtils::insertNewPage(BMFileHandle& fileHandle, DBFileID dbFileID,
-    BufferManager& bufferManager, WAL& wal, std::function<void(uint8_t*)> insertOp) {
+    BufferManager& bufferManager, WAL& wal, const std::function<void(uint8_t*)>& insertOp) {
     auto newOriginalPage = fileHandle.addNewPage();
     auto newWALPage = wal.logPageInsertRecord(dbFileID, newOriginalPage);
     auto walFrame = bufferManager.pin(

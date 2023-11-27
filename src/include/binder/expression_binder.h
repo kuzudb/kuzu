@@ -25,7 +25,7 @@ public:
 
 private:
     // TODO(Xiyang): move to an expression rewriter
-    std::shared_ptr<Expression> foldExpression(std::shared_ptr<Expression> expression);
+    std::shared_ptr<Expression> foldExpression(const std::shared_ptr<Expression>& expression);
 
     // Boolean expressions.
     std::shared_ptr<Expression> bindBooleanExpression(
@@ -47,7 +47,7 @@ private:
     // Property expressions.
     expression_vector bindPropertyStarExpression(const parser::ParsedExpression& parsedExpression);
     expression_vector bindNodeOrRelPropertyStarExpression(const Expression& child);
-    expression_vector bindStructPropertyStarExpression(std::shared_ptr<Expression> child);
+    expression_vector bindStructPropertyStarExpression(const std::shared_ptr<Expression>& child);
     std::shared_ptr<Expression> bindPropertyExpression(
         const parser::ParsedExpression& parsedExpression);
     std::shared_ptr<Expression> bindNodeOrRelPropertyExpression(
@@ -71,7 +71,8 @@ private:
     std::shared_ptr<Expression> rewriteFunctionExpression(
         const parser::ParsedExpression& parsedExpression, const std::string& functionName);
     std::unique_ptr<Expression> createInternalNodeIDExpression(const Expression& node);
-    std::shared_ptr<Expression> bindInternalIDExpression(std::shared_ptr<Expression> expression);
+    std::shared_ptr<Expression> bindInternalIDExpression(
+        const std::shared_ptr<Expression>& expression);
     std::shared_ptr<Expression> bindLabelFunction(const Expression& expression);
     std::unique_ptr<Expression> createInternalLengthExpression(const Expression& expression);
     std::shared_ptr<Expression> bindRecursiveJoinLengthFunction(const Expression& expression);

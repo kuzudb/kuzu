@@ -17,7 +17,7 @@ struct BaseScanSharedState : public TableFuncSharedState {
 struct ScanSharedState : public BaseScanSharedState {
     const common::ReaderConfig readerConfig;
 
-    ScanSharedState(const common::ReaderConfig readerConfig, uint64_t numRows)
+    ScanSharedState(common::ReaderConfig readerConfig, uint64_t numRows)
         : BaseScanSharedState{numRows}, readerConfig{std::move(readerConfig)} {}
 
     std::pair<uint64_t, uint64_t> getNext();

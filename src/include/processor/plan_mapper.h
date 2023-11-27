@@ -111,12 +111,12 @@ private:
         std::unique_ptr<PhysicalOperator> prevOperator);
     std::unique_ptr<PhysicalOperator> createFactorizedTableScan(
         const binder::expression_vector& expressions, std::vector<ft_col_idx_t> colIndices,
-        planner::Schema* schema, std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize,
-        std::unique_ptr<PhysicalOperator> prevOperator);
+        planner::Schema* schema, const std::shared_ptr<FactorizedTable>& table,
+        uint64_t maxMorselSize, std::unique_ptr<PhysicalOperator> prevOperator);
     // Assume scans all columns of table in the same order as given expressions.
     std::unique_ptr<PhysicalOperator> createFactorizedTableScanAligned(
         const binder::expression_vector& expressions, planner::Schema* schema,
-        std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize,
+        const std::shared_ptr<FactorizedTable>& table, uint64_t maxMorselSize,
         std::unique_ptr<PhysicalOperator> prevOperator);
     std::unique_ptr<HashJoinBuildInfo> createHashBuildInfo(const planner::Schema& buildSideSchema,
         const binder::expression_vector& keys, const binder::expression_vector& payloads);

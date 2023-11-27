@@ -10,7 +10,7 @@ class LogicalStandaloneCall : public LogicalOperator {
 public:
     LogicalStandaloneCall(
         main::ConfigurationOption option, std::shared_ptr<binder::Expression> optionValue)
-        : LogicalOperator{LogicalOperatorType::STANDALONE_CALL}, option{std::move(option)},
+        : LogicalOperator{LogicalOperatorType::STANDALONE_CALL}, option{option},
           optionValue{std::move(optionValue)} {}
 
     inline main::ConfigurationOption getOption() const { return option; }

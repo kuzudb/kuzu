@@ -10,7 +10,7 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<CopyToInfo> getCopyToInfo(Schema* childSchema, const std::string& filePath,
+std::unique_ptr<CopyToInfo> getCopyToInfo(Schema* childSchema, std::string filePath,
     common::FileType fileType, std::unique_ptr<common::CSVOption> copyToOption,
     std::vector<std::string> columnNames, std::vector<std::unique_ptr<LogicalType>> columnsTypes,
     std::vector<DataPos> vectorsToCopyPos, std::vector<bool> isFlat) {
@@ -32,11 +32,11 @@ std::unique_ptr<CopyToInfo> getCopyToInfo(Schema* childSchema, const std::string
             copyToSchema->appendColumn(std::move(columnSchema));
         }
         return std::make_unique<CopyToParquetInfo>(std::move(copyToSchema), std::move(columnsTypes),
-            columnNames, vectorsToCopyPos, filePath);
+            std::move(columnNames), std::move(vectorsToCopyPos), std::move(filePath));
     }
     case FileType::CSV: {
-        return std::make_unique<CopyToCSVInfo>(
-            columnNames, vectorsToCopyPos, filePath, std::move(isFlat), std::move(copyToOption));
+        return std::make_unique<CopyToCSVInfo>(std::move(columnNames), std::move(vectorsToCopyPos),
+            std::move(filePath), std::move(isFlat), std::move(copyToOption));
     }
     default:
         KU_UNREACHABLE;

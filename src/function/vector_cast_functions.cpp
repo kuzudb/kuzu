@@ -18,7 +18,7 @@ template<typename /*EXECUTOR*/ = UnaryFunctionExecutor>
 static void fixedListToListCastExecFunction(
     const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
     KU_ASSERT(params.size() == 1);
-    auto inputVector = params[0];
+    const auto& inputVector = params[0];
 
     auto numValuesPerList = FixedListType::getNumValuesInList(&inputVector->dataType);
     for (auto i = 0u; i < inputVector->state->selVector->selectedSize; i++) {
@@ -47,7 +47,7 @@ template<>
 void fixedListToListCastExecFunction<CastChildFunctionExecutor>(
     const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
     KU_ASSERT(params.size() == 1);
-    auto inputVector = params[0];
+    const auto& inputVector = params[0];
 
     auto numOfEntries = reinterpret_cast<CastFunctionBindData*>(dataPtr)->numOfEntries;
     result.setNullFromBits(inputVector->getNullMaskData(), 0, 0, numOfEntries);
@@ -135,7 +135,7 @@ static void nestedTypesCastExecFunction(
     const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
     KU_ASSERT(params.size() == 1);
     result.resetAuxiliaryBuffer();
-    auto inputVector = params[0];
+    const auto& inputVector = params[0];
 
     // check if all selcted list entry have the requried fixed list size
     if (CastFixedListHelper::containsListToFixedList(&inputVector->dataType, &result.dataType)) {

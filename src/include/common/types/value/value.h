@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <utility>
 
 #include "common/api.h"
 #include "common/types/date_t.h"
@@ -40,7 +41,7 @@ public:
      * @param dataType the type of the NULL value.
      * @return a NULL value of the given type.
      */
-    KUZU_API static Value createNullValue(LogicalType dataType);
+    KUZU_API static Value createNullValue(const LogicalType& dataType);
     /**
      * @param dataType the type of the non-NULL value.
      * @return a default non-NULL value of the given type.
@@ -122,17 +123,18 @@ public:
      * @param type the logical type of the value.
      * @param val_ the string value to set.
      */
-    KUZU_API explicit Value(LogicalType type, const std::string& val_);
+    KUZU_API explicit Value(const LogicalType& type, std::string val_);
     /**
      * @param dataType the logical type of the value.
      * @param children a vector of children values.
      */
-    KUZU_API explicit Value(LogicalType dataType, std::vector<std::unique_ptr<Value>> children);
+    KUZU_API explicit Value(
+        const LogicalType& dataType, std::vector<std::unique_ptr<Value>> children);
     /**
      * @param dataType the logical type of the value.
      * @param val_ the uint8_t* value to set.
      */
-    KUZU_API explicit Value(LogicalType dataType, const uint8_t* val_);
+    KUZU_API Value(LogicalType dataType, const uint8_t* val_);
     /**
      * @param other the value to copy from.
      */
@@ -212,7 +214,7 @@ public:
 
 private:
     Value();
-    explicit Value(LogicalType dataType);
+    explicit Value(const LogicalType& dataType);
 
     void copyFromFixedList(const uint8_t* fixedList);
     void copyFromVarList(ku_list_t& list, const LogicalType& childType);
@@ -720,7 +722,7 @@ KUZU_API inline Value Value::createValue(nodeID_t val) {
  */
 template<>
 KUZU_API inline Value Value::createValue(std::string val) {
-    return Value(LogicalType{LogicalTypeID::STRING}, val);
+    return Value(LogicalType{LogicalTypeID::STRING}, std::move(val));
 }
 
 /**

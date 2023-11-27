@@ -23,7 +23,7 @@ MergedKeyBlocks::MergedKeyBlocks(uint32_t numBytesPerTuple, std::shared_ptr<Data
     : numBytesPerTuple{numBytesPerTuple},
       numTuplesPerBlock{(uint32_t)(BufferPoolConstants::PAGE_256KB_SIZE / numBytesPerTuple)},
       numTuples{keyBlock->numTuples}, endTupleOffset{numTuplesPerBlock * numBytesPerTuple} {
-    keyBlocks.emplace_back(keyBlock);
+    keyBlocks.emplace_back(std::move(keyBlock));
 }
 
 uint8_t* MergedKeyBlocks::getBlockEndTuplePtr(
@@ -315,8 +315,8 @@ void KeyBlockMergeTaskDispatcher::init(MemoryManager* memoryManager,
     KU_ASSERT(this->keyBlockMerger == nullptr);
     this->memoryManager = memoryManager;
     this->sortedKeyBlocks = sortedKeyBlocks;
-    this->keyBlockMerger =
-        std::make_unique<KeyBlockMerger>(factorizedTables, strKeyColsInfo, numBytesPerTuple);
+    this->keyBlockMerger = std::make_unique<KeyBlockMerger>(
+        std::move(factorizedTables), strKeyColsInfo, numBytesPerTuple);
 }
 
 } // namespace processor

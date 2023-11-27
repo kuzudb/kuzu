@@ -51,7 +51,7 @@ public:
 
     static common::page_idx_t insertNewPage(
         BMFileHandle& fileHandle, DBFileID dbFileID, BufferManager& bufferManager, WAL& wal,
-        std::function<void(uint8_t*)> insertOp = [](uint8_t*) -> void {
+        const std::function<void(uint8_t*)>& insertOp = [](uint8_t*) -> void {
             // DO NOTHING.
         });
 

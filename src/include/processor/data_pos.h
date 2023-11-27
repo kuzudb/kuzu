@@ -22,8 +22,6 @@ struct DataPos {
     explicit DataPos(std::pair<data_chunk_pos_t, value_vector_pos_t> pos)
         : dataChunkPos{pos.first}, valueVectorPos{pos.second} {}
 
-    DataPos(const DataPos& other) : DataPos(other.dataChunkPos, other.valueVectorPos) {}
-
     static DataPos getInvalidPos() { return DataPos(); }
     bool isValid() const {
         return dataChunkPos != INVALID_DATA_CHUNK_POS && valueVectorPos != INVALID_VALUE_VECTOR_POS;

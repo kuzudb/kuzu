@@ -8,9 +8,9 @@ namespace planner {
 class LogicalUnion : public LogicalOperator {
 public:
     LogicalUnion(binder::expression_vector expressions,
-        std::vector<std::shared_ptr<LogicalOperator>> children)
-        : LogicalOperator{LogicalOperatorType::UNION_ALL, std::move(children)},
-          expressionsToUnion{std::move(expressions)} {}
+        const std::vector<std::shared_ptr<LogicalOperator>>& children)
+        : LogicalOperator{LogicalOperatorType::UNION_ALL, children}, expressionsToUnion{
+                                                                         std::move(expressions)} {}
 
     f_group_pos_set getGroupsPosToFlatten(uint32_t childIdx);
 

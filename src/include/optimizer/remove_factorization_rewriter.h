@@ -11,7 +11,7 @@ public:
     void rewrite(planner::LogicalPlan* plan);
 
     std::shared_ptr<planner::LogicalOperator> visitOperator(
-        std::shared_ptr<planner::LogicalOperator> op);
+        const std::shared_ptr<planner::LogicalOperator>& op);
 
 private:
     std::shared_ptr<planner::LogicalOperator> visitFlattenReplace(

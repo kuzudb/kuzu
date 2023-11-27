@@ -28,7 +28,7 @@ public:
 
 protected:
     void dictionary(
-        std::shared_ptr<ResizeableBuffer> dictionaryData, uint64_t numEntries) override {
+        const std::shared_ptr<ResizeableBuffer>& dictionaryData, uint64_t numEntries) override {
         BaseType::allocateDict(numEntries * sizeof(KU_PHYSICAL_TYPE));
         auto dictPtr = (KU_PHYSICAL_TYPE*)this->dict->ptr;
         for (auto i = 0u; i < numEntries; i++) {

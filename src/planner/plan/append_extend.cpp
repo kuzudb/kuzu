@@ -1,3 +1,5 @@
+#include <utility>
+
 #include "binder/expression/expression_util.h"
 #include "binder/expression/property_expression.h"
 #include "binder/expression_visitor.h"
@@ -80,8 +82,8 @@ static std::unordered_set<table_id_t> getNbrNodeTableIDSet(
     return result;
 }
 
-void QueryPlanner::appendNonRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,
-    std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
+void QueryPlanner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& boundNode,
+    const std::shared_ptr<NodeExpression>& nbrNode, const std::shared_ptr<RelExpression>& rel,
     ExtendDirection direction, const expression_vector& properties, LogicalPlan& plan) {
     // Filter bound node label if we know some incoming nodes won't have any outgoing rel. This
     // cannot be done at binding time because the pruning is affected by extend direction.
@@ -133,8 +135,8 @@ void QueryPlanner::appendNonRecursiveExtend(std::shared_ptr<NodeExpression> boun
     }
 }
 
-void QueryPlanner::appendRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,
-    std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
+void QueryPlanner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& boundNode,
+    const std::shared_ptr<NodeExpression>& nbrNode, const std::shared_ptr<RelExpression>& rel,
     ExtendDirection direction, LogicalPlan& plan) {
     auto recursiveInfo = rel->getRecursiveInfo();
     appendAccumulate(AccumulateType::REGULAR, plan);
@@ -226,14 +228,14 @@ void QueryPlanner::createRecursivePlan(
     }
 }
 
-void QueryPlanner::createPathNodePropertyScanPlan(
-    std::shared_ptr<NodeExpression> node, const expression_vector& properties, LogicalPlan& plan) {
+void QueryPlanner::createPathNodePropertyScanPlan(const std::shared_ptr<NodeExpression>& node,
+    const expression_vector& properties, LogicalPlan& plan) {
     appendScanInternalID(node->getInternalID(), node->getTableIDs(), plan);
     appendScanNodeProperties(node->getInternalID(), node->getTableIDs(), properties, plan);
 }
 
-void QueryPlanner::createPathRelPropertyScanPlan(std::shared_ptr<NodeExpression> boundNode,
-    std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
+void QueryPlanner::createPathRelPropertyScanPlan(const std::shared_ptr<NodeExpression>& boundNode,
+    const std::shared_ptr<NodeExpression>& nbrNode, const std::shared_ptr<RelExpression>& rel,
     ExtendDirection direction, const expression_vector& properties, LogicalPlan& plan) {
     appendScanInternalID(boundNode->getInternalID(), boundNode->getTableIDs(), plan);
     appendNonRecursiveExtend(boundNode, nbrNode, rel, direction, properties, plan);

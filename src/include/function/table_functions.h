@@ -66,8 +66,8 @@ struct TableFunction : public Function {
         table_func_init_shared_t initSharedFunc, table_func_init_local_t initLocalFunc,
         std::vector<common::LogicalTypeID> inputTypes)
         : Function{FunctionType::TABLE, std::move(name), std::move(inputTypes)},
-          tableFunc{std::move(tableFunc)}, bindFunc{std::move(bindFunc)},
-          initSharedStateFunc{initSharedFunc}, initLocalStateFunc{initLocalFunc} {}
+          tableFunc{tableFunc}, bindFunc{bindFunc}, initSharedStateFunc{initSharedFunc},
+          initLocalStateFunc{initLocalFunc} {}
 
     inline std::string signatureToString() const override {
         return common::LogicalTypeUtils::toString(parameterTypeIDs);

@@ -11,6 +11,7 @@ namespace planner {
 void QueryPlanner::appendDeleteNode(
     const std::vector<BoundDeleteInfo*>& boundInfos, LogicalPlan& plan) {
     std::vector<std::unique_ptr<LogicalDeleteNodeInfo>> infos;
+    infos.reserve(boundInfos.size());
     for (auto& boundInfo : boundInfos) {
         infos.push_back(std::make_unique<LogicalDeleteNodeInfo>(
             // TODO: Add kuzu_dynamic_pointer_cast, and should use that instead for safety checks.

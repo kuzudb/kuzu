@@ -1,5 +1,7 @@
 #include "main/connection.h"
 
+#include <utility>
+
 #include "binder/binder.h"
 #include "common/exception/connection.h"
 #include "main/database.h"
@@ -82,7 +84,7 @@ std::unique_ptr<QueryResult> Connection::queryResultWithError(const std::string&
 }
 
 std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
-    const std::string& query, bool enumerateAllPlans, std::string encodedJoin) {
+    const std::string& query, bool enumerateAllPlans, const std::string& encodedJoin) {
     auto preparedStatement = std::make_unique<PreparedStatement>();
     if (query.empty()) {
         preparedStatement->success = false;
@@ -157,13 +159,15 @@ uint64_t Connection::getQueryTimeOut() {
 }
 
 std::unique_ptr<QueryResult> Connection::executeWithParams(PreparedStatement* preparedStatement,
-    std::unordered_map<std::string, std::unique_ptr<Value>> inputParams) {
+    std::unordered_map<std::string, std::unique_ptr<Value>>
+        inputParams) { // NOLINT(performance-unnecessary-value-param): It doesn't make sense to pass
+                       // the map as a const reference.
     lock_t lck{mtx};
     if (!preparedStatement->isSuccess()) {
         return queryResultWithError(preparedStatement->errMsg);
     }
     try {
-        bindParametersNoLock(preparedStatement, std::move(inputParams));
+        bindParametersNoLock(preparedStatement, inputParams);
     } catch (Exception& exception) {
         std::string errMsg = exception.what();
         return queryResultWithError(errMsg);
@@ -172,7 +176,7 @@ std::unique_ptr<QueryResult> Connection::executeWithParams(PreparedStatement* pr
 }
 
 void Connection::bindParametersNoLock(PreparedStatement* preparedStatement,
-    std::unordered_map<std::string, std::unique_ptr<Value>> inputParams) {
+    const std::unordered_map<std::string, std::unique_ptr<Value>>& inputParams) {
     auto& parameterMap = preparedStatement->parameterMap;
     for (auto& [name, value] : inputParams) {
         if (!parameterMap.contains(name)) {
@@ -252,7 +256,7 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
 }
 
 void Connection::addScalarFunction(std::string name, function::function_set definitions) {
-    database->catalog->addFunction(name, std::move(definitions));
+    database->catalog->addFunction(std::move(name), std::move(definitions));
 }
 
 void Connection::checkPreparedStatementAccessMode(PreparedStatement* preparedStatement) {

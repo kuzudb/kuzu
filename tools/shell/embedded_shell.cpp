@@ -71,7 +71,8 @@ void EmbeddedShell::updateTableNames() {
     }
 }
 
-void addTableCompletion(std::string buf, const std::string& tableName, linenoiseCompletions* lc) {
+void addTableCompletion(
+    const std::string& buf, const std::string& tableName, linenoiseCompletions* lc) {
     std::string prefix, suffix;
     auto prefixPos = buf.rfind(':') + 1;
     prefix = buf.substr(0, prefixPos);
@@ -182,8 +183,9 @@ void highlight(char* buffer, char* resultBuf, uint32_t renderWidth, uint32_t cur
                     regex_search(
                         token, std::regex("^" + keyword + "\\(", std::regex_constants::icase))) {
                     token = regex_replace(token,
-                        std::regex("^(" + keyword + ")", std::regex_constants::icase),
-                        keywordColorPrefix + "$1" + keywordResetPostfix);
+                        std::regex(std::string("^(").append(keyword).append(")"),
+                            std::regex_constants::icase),
+                        std::string(keywordColorPrefix).append("$1").append(keywordResetPostfix));
                     break;
                 }
             }
@@ -215,7 +217,7 @@ void EmbeddedShell::run() {
     while ((line = linenoise(continueLine ? ALTPROMPT : PROMPT)) != nullptr) {
         auto lineStr = std::string(line);
         if (continueLine) {
-            lineStr = currLine + lineStr;
+            lineStr = std::move(currLine) + std::move(lineStr);
             currLine = "";
             continueLine = false;
         }

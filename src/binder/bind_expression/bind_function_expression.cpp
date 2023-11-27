@@ -183,7 +183,7 @@ std::unique_ptr<Expression> ExpressionBinder::createInternalNodeIDExpression(
 }
 
 std::shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(
-    std::shared_ptr<Expression> expression) {
+    const std::shared_ptr<Expression>& expression) {
     if (ExpressionUtil::isNodePattern(*expression)) {
         auto& node = (NodeExpression&)*expression;
         return node.getInternalID();

@@ -20,7 +20,7 @@ void FilterPushDownOptimizer::rewrite(planner::LogicalPlan* plan) {
 }
 
 std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::visitOperator(
-    std::shared_ptr<planner::LogicalOperator> op) {
+    const std::shared_ptr<planner::LogicalOperator>& op) {
     switch (op->getOperatorType()) {
     case LogicalOperatorType::FILTER: {
         return visitFilterReplace(op);
@@ -44,14 +44,14 @@ std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::visitOperator
 }
 
 std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitFilterReplace(
-    std::shared_ptr<LogicalOperator> op) {
+    const std::shared_ptr<LogicalOperator>& op) {
     auto filter = (LogicalFilter*)op.get();
     predicateSet->addPredicate(filter->getPredicate());
     return visitOperator(filter->getChild(0));
 }
 
 std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitCrossProductReplace(
-    std::shared_ptr<LogicalOperator> op) {
+    const std::shared_ptr<LogicalOperator>& op) {
     for (auto i = 0u; i < op->getNumChildren(); ++i) {
         auto optimizer = FilterPushDownOptimizer();
         op->setChild(i, optimizer.visitOperator(op->getChild(i)));
@@ -82,7 +82,7 @@ std::shared_ptr<LogicalOperator> FilterPushDownOptimizer::visitCrossProductRepla
 }
 
 std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::visitScanNodePropertyReplace(
-    std::shared_ptr<planner::LogicalOperator> op) {
+    const std::shared_ptr<planner::LogicalOperator>& op) {
     auto scan = (LogicalScanNodeProperty*)op.get();
     auto nodeID = scan->getNodeID();
     auto tableIDs = scan->getTableIDs();

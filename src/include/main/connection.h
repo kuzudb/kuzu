@@ -147,7 +147,7 @@ private:
     std::unique_ptr<QueryResult> queryResultWithError(const std::string& errMsg);
 
     std::unique_ptr<PreparedStatement> prepareNoLock(const std::string& query,
-        bool enumerateAllPlans = false, std::string joinOrder = std::string{});
+        bool enumerateAllPlans = false, const std::string& joinOrder = std::string{});
 
     template<typename T, typename... Args>
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
@@ -160,7 +160,7 @@ private:
     }
 
     void bindParametersNoLock(PreparedStatement* preparedStatement,
-        std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams);
+        const std::unordered_map<std::string, std::unique_ptr<common::Value>>& inputParams);
 
     std::unique_ptr<QueryResult> executeAndAutoCommitIfNecessaryNoLock(
         PreparedStatement* preparedStatement, uint32_t planIdx = 0u);

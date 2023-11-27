@@ -12,7 +12,7 @@ namespace function {
 
 struct ListFunction {
     template<typename OPERATION, typename RESULT_TYPE>
-    static scalar_exec_func getBinaryListExecFuncSwitchRight(common::LogicalType rightType) {
+    static scalar_exec_func getBinaryListExecFuncSwitchRight(const common::LogicalType& rightType) {
         scalar_exec_func execFunc;
         switch (rightType.getPhysicalType()) {
         case common::PhysicalTypeID::BOOL: {
@@ -91,7 +91,7 @@ struct ListFunction {
     }
 
     template<typename OPERATION, typename RESULT_TYPE>
-    static scalar_exec_func getBinaryListExecFuncSwitchAll(common::LogicalType type) {
+    static scalar_exec_func getBinaryListExecFuncSwitchAll(const common::LogicalType& type) {
         scalar_exec_func execFunc;
         switch (type.getPhysicalType()) {
         case common::PhysicalTypeID::INT64: {
@@ -118,7 +118,7 @@ struct ListFunction {
     }
 
     template<typename OPERATION, typename RESULT_TYPE>
-    static scalar_exec_func getTernaryListExecFuncSwitchAll(common::LogicalType type) {
+    static scalar_exec_func getTernaryListExecFuncSwitchAll(const common::LogicalType& type) {
         scalar_exec_func execFunc;
         switch (type.getPhysicalType()) {
         case common::PhysicalTypeID::INT64: {

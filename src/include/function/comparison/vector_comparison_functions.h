@@ -51,8 +51,8 @@ private:
     }
 
     template<typename FUNC>
-    static inline std::unique_ptr<ScalarFunction> getFunction(
-        const std::string& name, common::LogicalType leftType, common::LogicalType rightType) {
+    static inline std::unique_ptr<ScalarFunction> getFunction(const std::string& name,
+        const common::LogicalType& leftType, const common::LogicalType& rightType) {
         scalar_exec_func execFunc;
         getExecFunc<FUNC>(leftType.getPhysicalType(), rightType.getPhysicalType(), execFunc);
         scalar_select_func selectFunc;

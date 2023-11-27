@@ -35,6 +35,7 @@ void LogicalUnion::computeFlatSchema() {
 
 std::unique_ptr<LogicalOperator> LogicalUnion::copy() {
     std::vector<std::shared_ptr<LogicalOperator>> copiedChildren;
+    copiedChildren.reserve(getNumChildren());
     for (auto i = 0u; i < getNumChildren(); ++i) {
         copiedChildren.push_back(getChild(i)->copy());
     }

@@ -46,8 +46,9 @@ uint32_t StringColumnReader::verifyString(const char* strData, uint32_t strLen) 
         strData, strLen, getDataType()->getLogicalTypeID() == common::LogicalTypeID::STRING);
 }
 
-void StringColumnReader::dictionary(std::shared_ptr<ResizeableBuffer> data, uint64_t numEntries) {
-    dict = std::move(data);
+void StringColumnReader::dictionary(
+    const std::shared_ptr<ResizeableBuffer>& data, uint64_t numEntries) {
+    dict = data;
     dictStrs = std::unique_ptr<common::ku_string_t[]>(new common::ku_string_t[numEntries]);
     for (auto dictIdx = 0u; dictIdx < numEntries; dictIdx++) {
         uint32_t strLen;

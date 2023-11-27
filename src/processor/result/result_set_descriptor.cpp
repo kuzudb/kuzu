@@ -18,6 +18,7 @@ ResultSetDescriptor::ResultSetDescriptor(planner::Schema* schema) {
 
 std::unique_ptr<ResultSetDescriptor> ResultSetDescriptor::copy() const {
     std::vector<std::unique_ptr<DataChunkDescriptor>> dataChunkDescriptorsCopy;
+    dataChunkDescriptorsCopy.reserve(dataChunkDescriptors.size());
     for (auto& dataChunkDescriptor : dataChunkDescriptors) {
         dataChunkDescriptorsCopy.push_back(
             std::make_unique<DataChunkDescriptor>(*dataChunkDescriptor));

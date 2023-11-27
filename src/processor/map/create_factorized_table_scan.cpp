@@ -1,3 +1,5 @@
+#include <utility>
+
 #include "binder/expression/expression_util.h"
 #include "processor/operator/table_scan/factorized_table_scan.h"
 #include "processor/plan_mapper.h"
@@ -11,9 +13,10 @@ namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::createFactorizedTableScan(
     const expression_vector& expressions, std::vector<ft_col_idx_t> colIndices, Schema* schema,
-    std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize,
+    const std::shared_ptr<FactorizedTable>& table, uint64_t maxMorselSize,
     std::unique_ptr<PhysicalOperator> prevOperator) {
     std::vector<DataPos> outputPositions;
+    outputPositions.reserve(expressions.size());
     for (auto i = 0u; i < expressions.size(); ++i) {
         outputPositions.emplace_back(schema->getExpressionPos(*expressions[i]));
     }
@@ -29,9 +32,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createFactorizedTableScan(
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::createFactorizedTableScanAligned(
-    const expression_vector& expressions, Schema* schema, std::shared_ptr<FactorizedTable> table,
-    uint64_t maxMorselSize, std::unique_ptr<PhysicalOperator> prevOperator) {
+    const expression_vector& expressions, Schema* schema,
+    const std::shared_ptr<FactorizedTable>& table, uint64_t maxMorselSize,
+    std::unique_ptr<PhysicalOperator> prevOperator) {
     std::vector<ft_col_idx_t> columnIndices;
+    columnIndices.reserve(expressions.size());
     for (auto i = 0u; i < expressions.size(); ++i) {
         columnIndices.push_back(i);
     }

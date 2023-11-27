@@ -124,7 +124,7 @@ void CastFixedList::fixedListToStringCastExecFunction<UnaryFunctionExecutor>(
     const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result,
     void* /*dataPtr*/) {
     KU_ASSERT(params.size() == 1);
-    auto param = params[0];
+    const auto& param = params[0];
     if (param->state->isFlat()) {
         CastFixedListToString(*param, param->state->selVector->selectedPositions[0], result,
             result.state->selVector->selectedPositions[0]);
@@ -165,7 +165,7 @@ template<>
 void CastFixedList::stringtoFixedListCastExecFunction<UnaryFunctionExecutor>(
     const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
     KU_ASSERT(params.size() == 1);
-    auto param = params[0];
+    const auto& param = params[0];
     auto csvReaderConfig = &reinterpret_cast<CastFunctionBindData*>(dataPtr)->csvConfig;
     if (param->state->isFlat()) {
         auto inputPos = param->state->selVector->selectedPositions[0];
@@ -225,7 +225,7 @@ template<>
 void CastFixedList::listToFixedListCastExecFunction<UnaryFunctionExecutor>(
     const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
     KU_ASSERT(params.size() == 1);
-    auto inputVector = params[0];
+    const auto& inputVector = params[0];
 
     for (auto i = 0u; i < inputVector->state->selVector->selectedSize; i++) {
         auto pos = inputVector->state->selVector->selectedPositions[i];
@@ -325,7 +325,7 @@ static void getFixedListChildCastFunc(
 template<>
 void CastFixedList::listToFixedListCastExecFunction<CastChildFunctionExecutor>(
     const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
-    auto inputVector = params[0];
+    const auto& inputVector = params[0];
     auto numOfEntries = reinterpret_cast<CastFunctionBindData*>(dataPtr)->numOfEntries;
 
     auto inputChildId = VarListType::getChildType(&inputVector->dataType)->getLogicalTypeID();
@@ -352,7 +352,7 @@ void CastFixedList::listToFixedListCastExecFunction<CastChildFunctionExecutor>(
 template<>
 void CastFixedList::castBetweenFixedListExecFunc<UnaryFunctionExecutor>(
     const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
-    auto inputVector = params[0];
+    const auto& inputVector = params[0];
     auto numOfEntries = inputVector->state->selVector
                             ->selectedPositions[inputVector->state->selVector->selectedSize - 1] +
                         1;
@@ -372,7 +372,7 @@ void CastFixedList::castBetweenFixedListExecFunc<CastFixedListToListFunctionExec
 template<>
 void CastFixedList::castBetweenFixedListExecFunc<CastChildFunctionExecutor>(
     const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
-    auto inputVector = params[0];
+    const auto& inputVector = params[0];
     auto numOfEntries = reinterpret_cast<CastFunctionBindData*>(dataPtr)->numOfEntries;
 
     auto inputChildId = FixedListType::getChildType(&inputVector->dataType)->getLogicalTypeID();

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "common/column_data_format.h"
 #include "common/vector/value_vector.h"
 #include "storage/local_storage/local_table.h"
@@ -136,7 +138,7 @@ class LocalRelTableData final : public LocalTableData {
 public:
     LocalRelTableData(std::vector<common::LogicalType*> dataTypes, MemoryManager* mm,
         common::ColumnDataFormat dataFormat)
-        : LocalTableData{dataTypes, mm, dataFormat} {}
+        : LocalTableData{std::move(dataTypes), mm, dataFormat} {}
 
     bool insert(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
         const std::vector<common::ValueVector*>& propertyVectors);

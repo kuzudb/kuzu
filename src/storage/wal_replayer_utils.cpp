@@ -44,7 +44,8 @@ void WALReplayerUtils::removeColumnFilesIfExists(const std::string& fileName) {
 }
 
 void WALReplayerUtils::fileOperationOnNodeFiles(NodeTableSchema* nodeTableSchema,
-    const std::string& directory, std::function<void(std::string fileName)> columnFileOperation) {
+    const std::string& directory,
+    const std::function<void(std::string fileName)>& columnFileOperation) {
     columnFileOperation(StorageUtils::getNodeIndexFName(
         directory, nodeTableSchema->tableID, FileVersionType::ORIGINAL));
 }

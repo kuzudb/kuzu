@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <mutex>
+#include <utility>
 #include <vector>
 
 namespace kuzu {
@@ -66,7 +67,7 @@ public:
 
     inline void setException(std::exception_ptr exceptionPtr) {
         lock_t lck{mtx};
-        setExceptionNoLock(exceptionPtr);
+        setExceptionNoLock(std::move(exceptionPtr));
     }
 
     inline bool hasException() {
@@ -88,7 +89,7 @@ private:
 
     inline void setExceptionNoLock(std::exception_ptr exceptionPtr) {
         if (exceptionsPtr == nullptr) {
-            exceptionsPtr = exceptionPtr;
+            exceptionsPtr = std::move(exceptionPtr);
         }
     }
 

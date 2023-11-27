@@ -1,6 +1,7 @@
 #pragma once
 
 #include <numeric>
+#include <utility>
 
 #include "common/assert.h"
 #include "common/data_chunk/data_chunk_state.h"
@@ -33,7 +34,7 @@ public:
 
     KUZU_API ~ValueVector() = default;
 
-    void setState(std::shared_ptr<DataChunkState> state_);
+    void setState(const std::shared_ptr<DataChunkState>& state_);
 
     inline void setAllNull() { nullMask->setAllNull(); }
     inline void setAllNonNull() { nullMask->setAllNonNull(); }
@@ -230,7 +231,7 @@ public:
     static inline void referenceVector(ValueVector* vector, struct_field_idx_t idx,
         std::shared_ptr<ValueVector> vectorToReference) {
         reinterpret_cast<StructAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
-            ->referenceChildVector(idx, vectorToReference);
+            ->referenceChildVector(idx, std::move(vectorToReference));
     }
 
     static inline void initializeEntries(ValueVector* vector) {
@@ -262,7 +263,7 @@ public:
     static inline void referenceVector(ValueVector* vector, union_field_idx_t fieldIdx,
         std::shared_ptr<ValueVector> vectorToReference) {
         StructVector::referenceVector(
-            vector, UnionType::getInternalFieldIdx(fieldIdx), vectorToReference);
+            vector, UnionType::getInternalFieldIdx(fieldIdx), std::move(vectorToReference));
     }
 
     static inline void setTagField(ValueVector* vector, union_field_idx_t tag) {

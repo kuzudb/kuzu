@@ -308,8 +308,8 @@ void QueryPlanner::planRelScan(uint32_t relPos) {
     }
 }
 
-void QueryPlanner::appendExtendAndFilter(std::shared_ptr<NodeExpression> boundNode,
-    std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
+void QueryPlanner::appendExtendAndFilter(const std::shared_ptr<NodeExpression>& boundNode,
+    const std::shared_ptr<NodeExpression>& nbrNode, const std::shared_ptr<RelExpression>& rel,
     ExtendDirection direction, const expression_vector& predicates, LogicalPlan& plan) {
     switch (rel->getRelType()) {
     case QueryRelType::NON_RECURSIVE: {
@@ -411,7 +411,7 @@ static std::unique_ptr<LogicalPlan> getWCOJBuildPlanForRel(
 }
 
 void QueryPlanner::planWCOJoin(const SubqueryGraph& subgraph,
-    std::vector<std::shared_ptr<RelExpression>> rels,
+    const std::vector<std::shared_ptr<RelExpression>>& rels,
     const std::shared_ptr<NodeExpression>& intersectNode) {
     auto newSubgraph = subgraph;
     std::vector<SubqueryGraph> prevSubgraphs;
@@ -444,6 +444,7 @@ void QueryPlanner::planWCOJoin(const SubqueryGraph& subgraph,
     for (auto& leftPlan : context->getPlans(subgraph)) {
         auto leftPlanCopy = leftPlan->shallowCopy();
         std::vector<std::unique_ptr<LogicalPlan>> rightPlansCopy;
+        rightPlansCopy.reserve(relPlans.size());
         for (auto& relPlan : relPlans) {
             rightPlansCopy.push_back(relPlan->shallowCopy());
         }
@@ -519,7 +520,7 @@ bool QueryPlanner::tryPlanINLJoin(const SubqueryGraph& subgraph, const SubqueryG
     }
     KU_ASSERT(relPos != UINT32_MAX);
     auto rel = context->queryGraph->getQueryRel(relPos);
-    auto boundNode = joinNodes[0];
+    const auto& boundNode = joinNodes[0];
     auto nbrNode =
         boundNode->getUniqueName() == rel->getSrcNodeName() ? rel->getDstNode() : rel->getSrcNode();
     auto extendDirection = ExtendDirectionUtils::getExtendDirection(*rel, *boundNode);
@@ -540,8 +541,8 @@ bool QueryPlanner::tryPlanINLJoin(const SubqueryGraph& subgraph, const SubqueryG
 }
 
 void QueryPlanner::planInnerHashJoin(const SubqueryGraph& subgraph,
-    const SubqueryGraph& otherSubgraph, std::vector<std::shared_ptr<NodeExpression>> joinNodes,
-    bool flipPlan) {
+    const SubqueryGraph& otherSubgraph,
+    const std::vector<std::shared_ptr<NodeExpression>>& joinNodes, bool flipPlan) {
     auto newSubgraph = subgraph;
     newSubgraph.addSubqueryGraph(otherSubgraph);
     auto maxCost = context->subPlansTable->getMaxCost(newSubgraph);

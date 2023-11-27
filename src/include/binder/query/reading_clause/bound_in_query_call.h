@@ -13,7 +13,7 @@ public:
     BoundInQueryCall(function::TableFunction* tableFunc,
         std::unique_ptr<function::TableFuncBindData> bindData, expression_vector outputExpressions,
         std::shared_ptr<Expression> rowIdxExpression)
-        : BoundReadingClause{common::ClauseType::IN_QUERY_CALL}, tableFunc{std::move(tableFunc)},
+        : BoundReadingClause{common::ClauseType::IN_QUERY_CALL}, tableFunc{tableFunc},
           bindData{std::move(bindData)}, outputExpressions{std::move(outputExpressions)},
           rowIdxExpression{std::move(rowIdxExpression)} {}
 

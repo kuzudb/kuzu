@@ -34,6 +34,7 @@ bool Projection::getNextTuplesInternal(ExecutionContext* context) {
 
 std::unique_ptr<PhysicalOperator> Projection::clone() {
     std::vector<std::unique_ptr<ExpressionEvaluator>> rootExpressionsCloned;
+    rootExpressionsCloned.reserve(expressionEvaluators.size());
     for (auto& expressionEvaluator : expressionEvaluators) {
         rootExpressionsCloned.push_back(expressionEvaluator->clone());
     }

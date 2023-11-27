@@ -62,14 +62,15 @@ public:
         }
     }
 
-    void plain(std::shared_ptr<ByteBuffer> plainData, uint8_t* defines, uint64_t numValues,
+    void plain(const std::shared_ptr<ByteBuffer>& plainData, uint8_t* defines, uint64_t numValues,
         parquet_filter_t& filter, uint64_t resultOffset, common::ValueVector* result) override {
         plainTemplated<VALUE_TYPE, VALUE_CONVERSION>(
-            std::move(plainData), defines, numValues, filter, resultOffset, result);
+            plainData, defines, numValues, filter, resultOffset, result);
     }
 
-    void dictionary(std::shared_ptr<ResizeableBuffer> data, uint64_t /*num_entries*/) override {
-        dict = std::move(data);
+    void dictionary(
+        const std::shared_ptr<ResizeableBuffer>& data, uint64_t /*num_entries*/) override {
+        dict = data;
     }
 };
 

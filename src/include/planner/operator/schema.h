@@ -62,7 +62,8 @@ public:
     inline size_t getNumFlatGroups() const { return getNumGroups(true /* isFlat */); }
     inline size_t getNumUnFlatGroups() const { return getNumGroups(false /* isFlat */); }
 
-    inline FactorizationGroup* getGroup(std::shared_ptr<binder::Expression> expression) const {
+    inline FactorizationGroup* getGroup(
+        const std::shared_ptr<binder::Expression>& expression) const {
         return getGroup(getGroupPos(expression->getUniqueName()));
     }
 

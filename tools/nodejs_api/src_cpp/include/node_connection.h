@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "main/kuzu.h"
 #include "node_database.h"
 #include "node_prepared_statement.h"
@@ -64,7 +66,7 @@ public:
     ConnectionExecuteAsyncWorker(Napi::Function& callback, std::shared_ptr<Connection>& connection,
         std::shared_ptr<PreparedStatement> preparedStatement, NodeQueryResult* nodeQueryResult,
         std::unordered_map<std::string, std::unique_ptr<Value>> params)
-        : Napi::AsyncWorker(callback), preparedStatement(preparedStatement),
+        : Napi::AsyncWorker(callback), preparedStatement(std::move(preparedStatement)),
           nodeQueryResult(nodeQueryResult), connection(connection), params(std::move(params)) {}
     ~ConnectionExecuteAsyncWorker() override = default;
 

@@ -13,8 +13,6 @@ namespace main {
 StorageDriver::StorageDriver(Database* database)
     : catalog{database->catalog.get()}, storageManager{database->storageManager.get()} {}
 
-StorageDriver::~StorageDriver() = default;
-
 void StorageDriver::scan(const std::string& nodeName, const std::string& propertyName,
     offset_t* offsets, size_t size, uint8_t* result, size_t numThreads) {
     // Resolve files to read from

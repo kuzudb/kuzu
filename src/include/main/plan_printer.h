@@ -13,7 +13,8 @@ namespace main {
 
 class OpProfileBox {
 public:
-    OpProfileBox(std::string opName, std::string paramsName, std::vector<std::string> attributes);
+    OpProfileBox(
+        std::string opName, const std::string& paramsName, std::vector<std::string> attributes);
 
     inline std::string getOpName() const { return opName; }
 

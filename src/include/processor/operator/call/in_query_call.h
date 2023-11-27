@@ -32,7 +32,7 @@ struct InQueryCallInfo {
         std::unique_ptr<function::TableFuncBindData> bindData, std::vector<DataPos> outputPoses,
         DataPos rowIDPos)
         : function{function}, bindData{std::move(bindData)},
-          outputPoses{std::move(outputPoses)}, rowIDPos{std::move(rowIDPos)} {}
+          outputPoses{std::move(outputPoses)}, rowIDPos{rowIDPos} {}
 
     std::unique_ptr<InQueryCallInfo> copy() {
         return std::make_unique<InQueryCallInfo>(function, bindData->copy(), outputPoses, rowIDPos);
