@@ -14,7 +14,7 @@ class KUZU_API StorageDriver {
 public:
     explicit StorageDriver(Database* database);
 
-    ~StorageDriver();
+    ~StorageDriver() = default;
 
     void scan(const std::string& nodeName, const std::string& propertyName,
         common::offset_t* offsets, size_t size, uint8_t* result, size_t numThreads);

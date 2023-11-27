@@ -274,10 +274,6 @@ LogicalType::LogicalType(const LogicalType& other) {
     }
 }
 
-LogicalType::LogicalType(LogicalType&& other) noexcept
-    : typeID{other.typeID}, physicalType{other.physicalType}, extraTypeInfo{
-                                                                  std::move(other.extraTypeInfo)} {}
-
 LogicalType& LogicalType::operator=(const LogicalType& other) {
     typeID = other.typeID;
     physicalType = other.physicalType;
@@ -308,13 +304,6 @@ bool LogicalType::operator==(const LogicalType& other) const {
 
 bool LogicalType::operator!=(const LogicalType& other) const {
     return !((*this) == other);
-}
-
-LogicalType& LogicalType::operator=(LogicalType&& other) noexcept {
-    typeID = other.typeID;
-    physicalType = other.physicalType;
-    extraTypeInfo = std::move(other.extraTypeInfo);
-    return *this;
 }
 
 std::string LogicalType::toString() const {
@@ -660,6 +649,7 @@ std::string LogicalTypeUtils::toString(LogicalTypeID dataTypeID) {
 
 std::string LogicalTypeUtils::toString(const std::vector<LogicalType*>& dataTypes) {
     std::vector<LogicalTypeID> dataTypeIDs;
+    dataTypeIDs.reserve(dataTypes.size());
     for (auto& dataType : dataTypes) {
         dataTypeIDs.push_back(dataType->typeID);
     }

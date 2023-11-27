@@ -17,7 +17,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapInQueryCall(
     }
     auto rowIDPos = DataPos{outSchema->getExpressionPos(*logicalInQueryCall->getRowIDExpression())};
     auto inQueryCallFuncInfo = std::make_unique<InQueryCallInfo>(logicalInQueryCall->getTableFunc(),
-        logicalInQueryCall->getBindData()->copy(), std::move(outputPoses), std::move(rowIDPos));
+        logicalInQueryCall->getBindData()->copy(), std::move(outputPoses), rowIDPos);
     return std::make_unique<InQueryCall>(std::move(inQueryCallFuncInfo),
         std::make_shared<InQueryCallSharedState>(), PhysicalOperatorType::IN_QUERY_CALL,
         getOperatorID(), logicalInQueryCall->getExpressionsForPrinting());

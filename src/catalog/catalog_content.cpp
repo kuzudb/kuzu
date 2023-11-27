@@ -128,6 +128,7 @@ table_id_t CatalogContent::addRdfGraphSchema(const BoundCreateTableInfo& info) {
 
 std::vector<TableSchema*> CatalogContent::getTableSchemas() const {
     std::vector<TableSchema*> result;
+    result.reserve(tableSchemas.size());
     for (auto&& [_, schema] : tableSchemas) {
         result.push_back(schema.get());
     }

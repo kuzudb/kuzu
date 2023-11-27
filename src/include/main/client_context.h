@@ -60,7 +60,7 @@ public:
 
     void startTimingIfEnabled();
 
-    std::string getCurrentSetting(std::string optionName);
+    std::string getCurrentSetting(const std::string& optionName);
 
     transaction::Transaction* getActiveTransaction() const;
     transaction::TransactionContext* getTransactionContext() const;

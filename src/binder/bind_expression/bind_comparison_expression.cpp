@@ -15,7 +15,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
         auto child = bindExpression(*parsedExpression.getChild(i));
         children.push_back(std::move(child));
     }
-    return bindComparisonExpression(parsedExpression.getExpressionType(), std::move(children));
+    return bindComparisonExpression(parsedExpression.getExpressionType(), children);
 }
 
 std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(

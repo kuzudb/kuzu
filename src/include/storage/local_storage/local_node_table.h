@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "local_table.h"
 
 namespace kuzu {
@@ -7,8 +9,8 @@ namespace storage {
 
 class LocalNodeNG final : public LocalNodeGroup {
 public:
-    LocalNodeNG(common::offset_t nodeGroupStartOffset, std::vector<common::LogicalType*> dataTypes,
-        MemoryManager* mm)
+    LocalNodeNG(common::offset_t nodeGroupStartOffset,
+        const std::vector<common::LogicalType*>& dataTypes, MemoryManager* mm)
         : LocalNodeGroup{nodeGroupStartOffset, dataTypes, mm} {
         insertInfo.resize(dataTypes.size());
         updateInfo.resize(dataTypes.size());
@@ -44,7 +46,7 @@ class LocalNodeTableData final : public LocalTableData {
 public:
     LocalNodeTableData(std::vector<common::LogicalType*> dataTypes, MemoryManager* mm,
         common::ColumnDataFormat dataFormat)
-        : LocalTableData{dataTypes, mm, dataFormat} {}
+        : LocalTableData{std::move(dataTypes), mm, dataFormat} {}
 
     void scan(common::ValueVector* nodeIDVector, const std::vector<common::column_id_t>& columnIDs,
         const std::vector<common::ValueVector*>& outputVectors);

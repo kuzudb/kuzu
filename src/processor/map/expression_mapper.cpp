@@ -109,7 +109,7 @@ std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getParameterEvaluator(
 }
 
 std::unique_ptr<ExpressionEvaluator> ExpressionMapper::getReferenceEvaluator(
-    std::shared_ptr<Expression> expression, const Schema* schema) {
+    const std::shared_ptr<Expression>& expression, const Schema* schema) {
     KU_ASSERT(schema != nullptr);
     auto vectorPos = DataPos(schema->getExpressionPos(*expression));
     auto expressionGroup = schema->getGroup(expression->getUniqueName());

@@ -67,6 +67,7 @@ struct ReaderConfig {
             this->rdfReaderConfig = other.rdfReaderConfig->copy();
         }
     }
+    ReaderConfig(ReaderConfig&& other) = default;
 
     inline uint32_t getNumFiles() const { return filePaths.size(); }
 

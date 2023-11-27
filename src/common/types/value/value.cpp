@@ -1,5 +1,7 @@
 #include "common/types/value/value.h"
 
+#include <utility>
+
 #include "common/null_buffer.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
@@ -40,8 +42,8 @@ Value Value::createNullValue() {
     return {};
 }
 
-Value Value::createNullValue(LogicalType dataType) {
-    return Value(std::move(dataType));
+Value Value::createNullValue(const LogicalType& dataType) {
+    return Value(dataType);
 }
 
 Value Value::createDefaultValue(const LogicalType& dataType) {
@@ -86,7 +88,9 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
     case LogicalTypeID::FIXED_LIST: {
         std::vector<std::unique_ptr<Value>> children;
         auto childType = FixedListType::getChildType(&dataType);
-        for (auto i = 0u; i < FixedListType::getNumValuesInList(&dataType); ++i) {
+        auto listSize = FixedListType::getNumValuesInList(&dataType);
+        children.reserve(listSize);
+        for (auto i = 0u; i < listSize; ++i) {
             children.push_back(std::make_unique<Value>(createDefaultValue(*childType)));
         }
         return Value(dataType, std::move(children));
@@ -206,12 +210,13 @@ Value::Value(uint8_t* val_) : isNull_{false} {
     val.pointer = val_;
 }
 
-Value::Value(LogicalType type, const std::string& val_) : isNull_{false} {
+Value::Value(const LogicalType& type, std::string val_) : isNull_{false} {
     dataType = type.copy();
-    strVal = val_;
+    strVal = std::move(val_);
 }
 
-Value::Value(LogicalType dataType_, std::vector<std::unique_ptr<Value>> children) : isNull_{false} {
+Value::Value(const LogicalType& dataType_, std::vector<std::unique_ptr<Value>> children)
+    : isNull_{false} {
     dataType = dataType_.copy();
     this->children = std::move(children);
     childrenSize = this->children.size();
@@ -444,7 +449,7 @@ Value::Value() : isNull_{true} {
     dataType = std::make_unique<LogicalType>(LogicalTypeID::ANY);
 }
 
-Value::Value(LogicalType dataType_) : isNull_{true} {
+Value::Value(const LogicalType& dataType_) : isNull_{true} {
     dataType = dataType_.copy();
 }
 

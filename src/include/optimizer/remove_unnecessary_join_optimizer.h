@@ -22,7 +22,7 @@ public:
 
 private:
     std::shared_ptr<planner::LogicalOperator> visitOperator(
-        std::shared_ptr<planner::LogicalOperator> op);
+        const std::shared_ptr<planner::LogicalOperator>& op);
 
     std::shared_ptr<planner::LogicalOperator> visitHashJoinReplace(
         std::shared_ptr<planner::LogicalOperator> op) override;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "common/assert.h"
 #include "common/cast.h"
 #include "storage/index/hash_index.h"
@@ -38,7 +40,8 @@ public:
     inline void initializeReadState(transaction::Transaction* transaction,
         std::vector<common::column_id_t> columnIDs, common::ValueVector* inNodeIDVector,
         TableReadState* readState) {
-        tableData->initializeReadState(transaction, columnIDs, inNodeIDVector, readState);
+        tableData->initializeReadState(
+            transaction, std::move(columnIDs), inNodeIDVector, readState);
     }
     void read(transaction::Transaction* transaction, TableReadState& readState,
         common::ValueVector* nodeIDVector,

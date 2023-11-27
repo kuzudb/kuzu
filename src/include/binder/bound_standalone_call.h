@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "binder/bound_statement.h"
 #include "binder/expression/expression.h"
 #include "main/db_config.h"
@@ -12,7 +14,7 @@ public:
     BoundStandaloneCall(main::ConfigurationOption option, std::shared_ptr<Expression> optionValue)
         : BoundStatement{common::StatementType::STANDALONE_CALL,
               BoundStatementResult::createEmptyResult()},
-          option{option}, optionValue{optionValue} {}
+          option{option}, optionValue{std::move(optionValue)} {}
 
     inline main::ConfigurationOption getOption() const { return option; }
 

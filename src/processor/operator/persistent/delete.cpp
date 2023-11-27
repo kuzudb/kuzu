@@ -21,6 +21,7 @@ bool DeleteNode::getNextTuplesInternal(ExecutionContext* context) {
 
 std::unique_ptr<PhysicalOperator> DeleteNode::clone() {
     std::vector<std::unique_ptr<NodeDeleteExecutor>> executorsCopy;
+    executorsCopy.reserve(executors.size());
     for (auto& executor : executors) {
         executorsCopy.push_back(executor->copy());
     }
@@ -46,6 +47,7 @@ bool DeleteRel::getNextTuplesInternal(ExecutionContext* context) {
 
 std::unique_ptr<PhysicalOperator> DeleteRel::clone() {
     std::vector<std::unique_ptr<RelDeleteExecutor>> executorsCopy;
+    executorsCopy.reserve(executors.size());
     for (auto& executor : executors) {
         executorsCopy.push_back(executor->copy());
     }

@@ -68,6 +68,7 @@ bool CaseExpressionEvaluator::select(SelectionVector& selVector) {
 
 std::unique_ptr<ExpressionEvaluator> CaseExpressionEvaluator::clone() {
     std::vector<std::unique_ptr<CaseAlternativeEvaluator>> clonedAlternativeEvaluators;
+    clonedAlternativeEvaluators.reserve(alternativeEvaluators.size());
     for (auto& alternative : alternativeEvaluators) {
         clonedAlternativeEvaluators.push_back(alternative->clone());
     }

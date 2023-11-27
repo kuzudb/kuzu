@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "processor/operator/filtering_operator.h"
 #include "processor/operator/scan/scan_rel_table.h"
 
@@ -11,8 +13,8 @@ public:
     ScanRelRegularColumns(std::unique_ptr<ScanRelTableInfo> info, const DataPos& inVectorPos,
         std::vector<DataPos> outVectorsPos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
         const std::string& paramsString)
-        : ScanRelTable{
-              std::move(info), inVectorPos, outVectorsPos, std::move(child), id, paramsString} {}
+        : ScanRelTable{std::move(info), inVectorPos, std::move(outVectorsPos), std::move(child), id,
+              paramsString} {}
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
 

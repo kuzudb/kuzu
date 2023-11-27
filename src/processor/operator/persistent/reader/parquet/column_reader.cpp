@@ -274,7 +274,7 @@ void ColumnReader::prepareRead(parquet_filter_t& /*filter*/) {
         break;
     case PageType::DICTIONARY_PAGE:
         preparePage(pageHdr);
-        dictionary(std::move(block), pageHdr.dictionary_page_header.num_values);
+        dictionary(block, pageHdr.dictionary_page_header.num_values);
         break;
     default:
         break; // ignore INDEX page type and any other custom extensions

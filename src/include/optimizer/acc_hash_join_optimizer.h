@@ -41,9 +41,9 @@ private:
         std::vector<planner::LogicalOperator*> opsToApplySemiMask,
         std::shared_ptr<planner::LogicalOperator> child);
     std::shared_ptr<planner::LogicalOperator> appendPathSemiMasker(
-        std::shared_ptr<binder::Expression> pathExpression,
+        const std::shared_ptr<binder::Expression>& pathExpression,
         std::vector<planner::LogicalOperator*> opsToApplySemiMask,
-        std::shared_ptr<planner::LogicalOperator> child);
+        const std::shared_ptr<planner::LogicalOperator>& child);
     std::shared_ptr<planner::LogicalOperator> appendAccumulate(
         std::shared_ptr<planner::LogicalOperator> child);
 };

@@ -22,7 +22,7 @@ private:
         const binder::Expression& expression);
 
     static std::unique_ptr<evaluator::ExpressionEvaluator> getReferenceEvaluator(
-        std::shared_ptr<binder::Expression> expression, const planner::Schema* schema);
+        const std::shared_ptr<binder::Expression>& expression, const planner::Schema* schema);
 
     static std::unique_ptr<evaluator::ExpressionEvaluator> getCaseEvaluator(
         std::shared_ptr<binder::Expression> expression, const planner::Schema* schema);

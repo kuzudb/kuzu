@@ -45,8 +45,8 @@ function_set MapExtractFunctions::getFunctionSet() {
     return functionSet;
 }
 
-static void validateKeyType(std::shared_ptr<binder::Expression> mapExpression,
-    std::shared_ptr<binder::Expression> extractKeyExpression) {
+static void validateKeyType(const std::shared_ptr<binder::Expression>& mapExpression,
+    const std::shared_ptr<binder::Expression>& extractKeyExpression) {
     auto mapKeyType = MapType::getKeyType(&mapExpression->dataType);
     if (*mapKeyType != extractKeyExpression->dataType) {
         throw RuntimeException("Unmatched map key type and extract key type");

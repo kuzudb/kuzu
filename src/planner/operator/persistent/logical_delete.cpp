@@ -8,6 +8,7 @@ namespace planner {
 std::vector<std::unique_ptr<LogicalDeleteNodeInfo>> LogicalDeleteNodeInfo::copy(
     const std::vector<std::unique_ptr<LogicalDeleteNodeInfo>>& infos) {
     std::vector<std::unique_ptr<LogicalDeleteNodeInfo>> result;
+    result.reserve(infos.size());
     for (auto& info : infos) {
         result.push_back(info->copy());
     }

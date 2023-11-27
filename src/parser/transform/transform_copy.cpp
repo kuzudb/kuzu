@@ -48,8 +48,9 @@ std::vector<std::string> Transformer::transformColumnNames(
 }
 
 std::vector<std::string> Transformer::transformFilePaths(
-    std::vector<antlr4::tree::TerminalNode*> stringLiteral) {
+    const std::vector<antlr4::tree::TerminalNode*>& stringLiteral) {
     std::vector<std::string> csvFiles;
+    csvFiles.reserve(stringLiteral.size());
     for (auto& csvFile : stringLiteral) {
         csvFiles.push_back(transformStringLiteral(*csvFile));
     }

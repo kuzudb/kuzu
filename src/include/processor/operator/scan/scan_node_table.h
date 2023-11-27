@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "processor/operator/scan/scan_table.h"
 #include "storage/store/node_table.h"
 
@@ -26,7 +28,7 @@ public:
         std::vector<DataPos> outVectorsPos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
         const std::string& paramsString)
         : ScanSingleNodeTable{PhysicalOperatorType::SCAN_NODE_TABLE, std::move(info), inVectorPos,
-              outVectorsPos, std::move(child), id, paramsString} {}
+              std::move(outVectorsPos), std::move(child), id, paramsString} {}
 
     inline void initLocalStateInternal(
         ResultSet* resultSet, ExecutionContext* executionContext) final {

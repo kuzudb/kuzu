@@ -38,24 +38,25 @@ std::unique_ptr<QueryResult> Benchmark::runWithProfile() const {
 
 void Benchmark::logQueryInfo(
     std::ofstream& log, uint32_t runNum, std::vector<std::string>& actualOutput) const {
-    log << "Run Num: " << runNum << std::endl;
-    log << "Status: " << (actualOutput == expectedOutput ? "pass" : "error") << std::endl;
-    log << "Query: " << query << std::endl;
-    log << "Expected output: " << std::endl;
+    log << "Run Num: " << runNum << '\n';
+    log << "Status: " << (actualOutput == expectedOutput ? "pass" : "error") << '\n';
+    log << "Query: " << query << '\n';
+    log << "Expected output: " << '\n';
     for (auto& result : expectedOutput) {
-        log << result << std::endl;
+        log << result << '\n';
     }
-    log << "Actual output: " << std::endl;
+    log << "Actual output: " << '\n';
     for (auto& result : actualOutput) {
-        log << result << std::endl;
+        log << result << '\n';
     }
+    log << std::flush;
 }
 
 void Benchmark::log(uint32_t runNum, QueryResult& queryResult) const {
     auto querySummary = queryResult.getQuerySummary();
     auto actualOutput = testing::TestHelper::convertResultToString(queryResult);
     spdlog::info("Run number: {}", // NOLINT(clang-analyzer-optin.cplusplus.UninitializedObject):
-                                   // spdlog has ab unitialized object.
+                                   // spdlog has an unitialized object.
         runNum);
     spdlog::info("Compiling time {}", querySummary->getCompilingTime());
     spdlog::info("Execution time {}", querySummary->getExecutionTime());
@@ -64,8 +65,8 @@ void Benchmark::log(uint32_t runNum, QueryResult& queryResult) const {
     if (!config.outputPath.empty()) {
         std::ofstream logFile(config.outputPath + "/" + name + "_log.txt", std::ios_base::app);
         logQueryInfo(logFile, runNum, actualOutput);
-        logFile << "Compiling time: " << querySummary->getCompilingTime() << std::endl;
-        logFile << "Execution time: " << querySummary->getExecutionTime() << std::endl << std::endl;
+        logFile << "Compiling time: " << querySummary->getCompilingTime() << '\n';
+        logFile << "Execution time: " << querySummary->getExecutionTime() << "\n\n";
         logFile.flush();
         logFile.close();
     }

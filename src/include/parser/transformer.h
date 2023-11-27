@@ -37,7 +37,7 @@ private:
         CypherParser::KU_CopyFromByColumnContext& ctx);
     std::vector<std::string> transformColumnNames(CypherParser::KU_ColumnNamesContext& ctx);
     std::vector<std::string> transformFilePaths(
-        std::vector<antlr4::tree::TerminalNode*> stringLiteral);
+        const std::vector<antlr4::tree::TerminalNode*>& stringLiteral);
     std::unordered_map<std::string, std::unique_ptr<ParsedExpression>> transformParsingOptions(
         CypherParser::KU_ParsingOptionsContext& ctx);
 

@@ -151,13 +151,13 @@ void QueryGraph::addQueryNode(std::shared_ptr<NodeExpression> queryNode) {
         return;
     }
     queryNodeNameToPosMap.insert({queryNode->getUniqueName(), queryNodes.size()});
-    queryNodes.push_back(queryNode);
+    queryNodes.push_back(std::move(queryNode));
 }
 
 void QueryGraph::addQueryRel(std::shared_ptr<RelExpression> queryRel) {
     KU_ASSERT(!containsQueryRel(queryRel->getUniqueName()));
     queryRelNameToPosMap.insert({queryRel->getUniqueName(), queryRels.size()});
-    queryRels.push_back(queryRel);
+    queryRels.push_back(std::move(queryRel));
 }
 
 void QueryGraph::merge(const QueryGraph& other) {
@@ -230,8 +230,8 @@ std::unique_ptr<QueryGraphCollection> QueryGraphCollection::copy() const {
     return result;
 }
 
-void PropertyKeyValCollection::addKeyVal(
-    std::shared_ptr<Expression> variable, const std::string& propertyName, expression_pair keyVal) {
+void PropertyKeyValCollection::addKeyVal(const std::shared_ptr<Expression>& variable,
+    const std::string& propertyName, expression_pair keyVal) {
     if (!propertyKeyValMap.contains(variable)) {
         propertyKeyValMap.insert({variable, std::unordered_map<std::string, expression_pair>{}});
     }
@@ -249,7 +249,7 @@ std::vector<expression_pair> PropertyKeyValCollection::getKeyVals() const {
 }
 
 std::vector<expression_pair> PropertyKeyValCollection::getKeyVals(
-    std::shared_ptr<Expression> variable) const {
+    const std::shared_ptr<Expression>& variable) const {
     std::vector<expression_pair> result;
     if (!propertyKeyValMap.contains(variable)) {
         return result;
@@ -261,7 +261,7 @@ std::vector<expression_pair> PropertyKeyValCollection::getKeyVals(
 }
 
 bool PropertyKeyValCollection::hasKeyVal(
-    std::shared_ptr<Expression> variable, const std::string& propertyName) const {
+    const std::shared_ptr<Expression>& variable, const std::string& propertyName) const {
     if (!propertyKeyValMap.contains(variable)) {
         return false;
     }
@@ -272,7 +272,7 @@ bool PropertyKeyValCollection::hasKeyVal(
 }
 
 expression_pair PropertyKeyValCollection::getKeyVal(
-    std::shared_ptr<Expression> variable, const std::string& propertyName) const {
+    const std::shared_ptr<Expression>& variable, const std::string& propertyName) const {
     KU_ASSERT(hasKeyVal(variable, propertyName));
     return propertyKeyValMap.at(variable).at(propertyName);
 }

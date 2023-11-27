@@ -76,6 +76,7 @@ LocalTableData* LocalTable::getOrCreateLocalTableData(
     ColumnDataFormat dataFormat, vector_idx_t dataIdx) {
     if (localTableDataCollection.empty()) {
         std::vector<LogicalType*> dataTypes;
+        dataTypes.reserve(columns.size());
         for (auto& column : columns) {
             dataTypes.push_back(column->getDataType());
         }
@@ -101,6 +102,7 @@ LocalTableData* LocalTable::getOrCreateLocalTableData(
     if (!localTableDataCollection[dataIdx]) {
         KU_ASSERT(tableType == TableType::REL);
         std::vector<LogicalType*> dataTypes;
+        dataTypes.reserve(columns.size());
         for (auto& column : columns) {
             dataTypes.push_back(column->getDataType());
         }

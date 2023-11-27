@@ -28,16 +28,16 @@ public:
     inline bool hasRepeats() { return maxRepeat > 0; }
     virtual inline void skip(uint64_t numValues) { pendingSkips += numValues; }
     virtual inline void dictionary(
-        std::shared_ptr<ResizeableBuffer> /*data*/, uint64_t /*num_entries*/) {
+        const std::shared_ptr<ResizeableBuffer>& /*data*/, uint64_t /*num_entries*/) {
         KU_UNREACHABLE;
     }
     virtual inline void offsets(uint32_t* /*offsets*/, uint8_t* /*defines*/, uint64_t /*numValues*/,
         parquet_filter_t& /*filter*/, uint64_t /*resultOffset*/, common::ValueVector* /*result*/) {
         KU_UNREACHABLE;
     }
-    virtual inline void plain(std::shared_ptr<ByteBuffer> /*plainData*/, uint8_t* /*defines*/,
-        uint64_t /*numValues*/, parquet_filter_t& /*filter*/, uint64_t /*resultOffset*/,
-        common::ValueVector* /*result*/) {
+    virtual inline void plain(const std::shared_ptr<ByteBuffer>& /*plainData*/,
+        uint8_t* /*defines*/, uint64_t /*numValues*/, parquet_filter_t& /*filter*/,
+        uint64_t /*resultOffset*/, common::ValueVector* /*result*/) {
         KU_UNREACHABLE;
     }
     virtual inline void resetPage() {}
@@ -64,8 +64,9 @@ public:
     void preparePage(kuzu_parquet::format::PageHeader& pageHdr);
     void prepareDataPage(kuzu_parquet::format::PageHeader& pageHdr);
     template<class VALUE_TYPE, class CONVERSION>
-    void plainTemplated(std::shared_ptr<ByteBuffer> plainData, uint8_t* defines, uint64_t numValues,
-        parquet_filter_t& filter, uint64_t resultOffset, common::ValueVector* result) {
+    void plainTemplated(const std::shared_ptr<ByteBuffer>& plainData, uint8_t* defines,
+        uint64_t numValues, parquet_filter_t& filter, uint64_t resultOffset,
+        common::ValueVector* result) {
         for (auto i = 0u; i < numValues; i++) {
             if (hasDefines() && defines[i + resultOffset] != maxDefine) {
                 result->setNull(i + resultOffset, true);

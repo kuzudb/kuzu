@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "processor/operator/call/in_query_call.h"
 #include "processor/operator/sink.h"
 #include "storage/store/node_group.h"
@@ -65,8 +67,9 @@ struct CopyNodeInfo {
         std::unordered_set<storage::RelTable*> fwdRelTables,
         std::unordered_set<storage::RelTable*> bwdRelTables, std::string tableName,
         bool containsSerial, bool compressionEnabled)
-        : columnPositions{std::move(columnPositions)}, table{table}, fwdRelTables{fwdRelTables},
-          bwdRelTables{bwdRelTables}, tableName{std::move(tableName)},
+        : columnPositions{std::move(columnPositions)}, table{table}, fwdRelTables{std::move(
+                                                                         fwdRelTables)},
+          bwdRelTables{std::move(bwdRelTables)}, tableName{std::move(tableName)},
           containsSerial{containsSerial}, compressionEnabled{compressionEnabled} {}
     CopyNodeInfo(const CopyNodeInfo& other) = default;
 

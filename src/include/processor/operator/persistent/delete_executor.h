@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "common/enums/delete_type.h"
 #include "processor/execution_context.h"
 #include "processor/result/result_set.h"
@@ -34,8 +36,8 @@ public:
         std::unordered_set<storage::RelTable*> fwdRelTables,
         std::unordered_set<storage::RelTable*> bwdRelTables, common::DeleteNodeType deleteType,
         const DataPos& nodeIDPos)
-        : NodeDeleteExecutor(deleteType, nodeIDPos), table{table}, fwdRelTables{fwdRelTables},
-          bwdRelTables{bwdRelTables} {}
+        : NodeDeleteExecutor(deleteType, nodeIDPos), table{table},
+          fwdRelTables{std::move(fwdRelTables)}, bwdRelTables{std::move(bwdRelTables)} {}
     SingleLabelNodeDeleteExecutor(const SingleLabelNodeDeleteExecutor& other)
         : NodeDeleteExecutor(other.deleteType, other.nodeIDPos), table{other.table},
           fwdRelTables{other.fwdRelTables}, bwdRelTables{other.bwdRelTables} {}

@@ -13,10 +13,10 @@ public:
 
 private:
     std::shared_ptr<planner::LogicalOperator> visitOperator(
-        std::shared_ptr<planner::LogicalOperator> op);
+        const std::shared_ptr<planner::LogicalOperator>& op);
     // Collect predicates in FILTER
     std::shared_ptr<planner::LogicalOperator> visitFilterReplace(
-        std::shared_ptr<planner::LogicalOperator> op);
+        const std::shared_ptr<planner::LogicalOperator>& op);
     // Push primary key lookup into CROSS_PRODUCT
     // E.g.
     //      Filter(a.ID=b.ID)
@@ -24,12 +24,12 @@ private:
     //   S(a)           S(b)                            S(a)
     // This is a temporary solution in the absence of a generic hash join operator.
     std::shared_ptr<planner::LogicalOperator> visitCrossProductReplace(
-        std::shared_ptr<planner::LogicalOperator> op);
+        const std::shared_ptr<planner::LogicalOperator>& op);
 
     // Push FILTER before SCAN_NODE_PROPERTY.
     // Push index lookup into SCAN_NODE_ID.
     std::shared_ptr<planner::LogicalOperator> visitScanNodePropertyReplace(
-        std::shared_ptr<planner::LogicalOperator> op);
+        const std::shared_ptr<planner::LogicalOperator>& op);
 
     // Rewrite SCAN_NODE_ID->SCAN_NODE_PROPERTY->FILTER as
     // SCAN_NODE_ID->(SCAN_NODE_PROPERTY->FILTER)*->SCAN_NODE_PROPERTY

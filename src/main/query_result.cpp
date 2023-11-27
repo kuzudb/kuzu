@@ -231,7 +231,7 @@ void QueryResult::writeToCSV(
                 }
             }
             if (surroundQuotes) {
-                csvStr = escapeCharacter + csvStr + escapeCharacter;
+                csvStr = escapeCharacter + std::move(csvStr) + escapeCharacter;
             }
             file << csvStr;
             if (idx < nextTuple->len() - 1) {

@@ -21,6 +21,7 @@ public:
 
     inline std::unique_ptr<ExpressionEvaluator> clone() override {
         std::vector<std::unique_ptr<ExpressionEvaluator>> clonedChildren;
+        clonedChildren.reserve(children.size());
         for (auto& child : children) {
             clonedChildren.push_back(child->clone());
         }

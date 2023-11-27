@@ -244,9 +244,9 @@ std::shared_ptr<planner::LogicalOperator> HashJoinSIPOptimizer::appendNodeSemiMa
 }
 
 std::shared_ptr<planner::LogicalOperator> HashJoinSIPOptimizer::appendPathSemiMasker(
-    std::shared_ptr<binder::Expression> pathExpression,
+    const std::shared_ptr<binder::Expression>& pathExpression,
     std::vector<planner::LogicalOperator*> opsToApplySemiMask,
-    std::shared_ptr<planner::LogicalOperator> child) {
+    const std::shared_ptr<planner::LogicalOperator>& child) {
     KU_ASSERT(!opsToApplySemiMask.empty());
     auto op = opsToApplySemiMask[0];
     KU_ASSERT(op->getOperatorType() == planner::LogicalOperatorType::SCAN_INTERNAL_ID);

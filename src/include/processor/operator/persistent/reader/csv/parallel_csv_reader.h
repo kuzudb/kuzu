@@ -38,7 +38,7 @@ struct ParallelCSVLocalState final : public function::TableFuncLocalState {
 
 struct ParallelCSVScanSharedState final : public function::ScanSharedState {
     explicit ParallelCSVScanSharedState(
-        const common::ReaderConfig readerConfig, uint64_t numRows, uint64_t numColumns)
+        common::ReaderConfig readerConfig, uint64_t numRows, uint64_t numColumns)
         : ScanSharedState{std::move(readerConfig), numRows}, numColumns{numColumns} {}
 
     void setFileComplete(uint64_t completedFileIdx);

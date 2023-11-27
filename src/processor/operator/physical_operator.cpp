@@ -275,7 +275,7 @@ std::unordered_map<std::string, std::string> PhysicalOperator::getProfilerKeyVal
 std::vector<std::string> PhysicalOperator::getProfilerAttributes(Profiler& profiler) const {
     std::vector<std::string> result;
     for (auto& [key, val] : getProfilerKeyValAttributes(profiler)) {
-        result.emplace_back(key + ": " + val);
+        result.emplace_back(key + ": " + std::move(val));
     }
     return result;
 }

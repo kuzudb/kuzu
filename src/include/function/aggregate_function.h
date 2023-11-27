@@ -36,7 +36,7 @@ struct AggregateFunction final : public BaseScalarFunction {
         aggr_combine_function_t combineFunc, aggr_finalize_function_t finalizeFunc, bool isDistinct,
         scalar_bind_func bindFunc = nullptr, param_rewrite_function_t paramRewriteFunc = nullptr)
         : BaseScalarFunction{FunctionType::AGGREGATE, std::move(name), std::move(parameterTypeIDs),
-              returnTypeID, bindFunc},
+              returnTypeID, std::move(bindFunc)},
           initializeFunc{std::move(initializeFunc)}, updateAllFunc{std::move(updateAllFunc)},
           updatePosFunc{std::move(updatePosFunc)}, combineFunc{std::move(combineFunc)},
           finalizeFunc{std::move(finalizeFunc)}, isDistinct{isDistinct}, paramRewriteFunc{std::move(
@@ -52,7 +52,7 @@ struct AggregateFunction final : public BaseScalarFunction {
         : AggregateFunction{std::move(name), std::move(parameterTypeIDs), returnTypeID,
               std::move(initializeFunc), std::move(updateAllFunc), std::move(updatePosFunc),
               std::move(combineFunc), std::move(finalizeFunc), isDistinct, nullptr /* bindFunc */,
-              paramRewriteFunc} {}
+              std::move(paramRewriteFunc)} {}
 
     inline uint32_t getAggregateStateSize() { return initialNullAggregateState->getStateSize(); }
 
@@ -110,12 +110,12 @@ class AggregateFunctionUtil {
 
 public:
     template<typename T>
-    static std::unique_ptr<AggregateFunction> getAggFunc(const std::string name,
+    static std::unique_ptr<AggregateFunction> getAggFunc(std::string name,
         common::LogicalTypeID inputType, common::LogicalTypeID resultType, bool isDistinct,
         param_rewrite_function_t paramRewriteFunc = nullptr) {
         return std::make_unique<AggregateFunction>(std::move(name),
-            std::vector<common::LogicalTypeID>{inputType}, std::move(resultType), T::initialize,
-            T::updateAll, T::updatePos, T::combine, T::finalize, isDistinct, paramRewriteFunc);
+            std::vector<common::LogicalTypeID>{inputType}, resultType, T::initialize, T::updateAll,
+            T::updatePos, T::combine, T::finalize, isDistinct, paramRewriteFunc);
     }
     static std::unique_ptr<AggregateFunction> getSumFunc(const std::string name,
         common::LogicalTypeID inputType, common::LogicalTypeID resultType, bool isDistinct);

@@ -60,8 +60,9 @@ double BenchmarkRunner::computeAverageOfLastRuns(
 }
 
 void BenchmarkRunner::runBenchmark(Benchmark* benchmark) const {
-    spdlog::info("Running benchmark {} with {} thread", // NOLINT(clang-analyzer-optin.cplusplus.UninitializedObject):
-                                                        // spdlog has an unitialized object.
+    spdlog::info(
+        "Running benchmark {} with {} thread", // NOLINT(clang-analyzer-optin.cplusplus.UninitializedObject):
+                                               // spdlog has an unitialized object.
         benchmark->name, config->numThreads);
     for (auto i = 0u; i < config->numWarmups; ++i) {
         spdlog::info("Warm up");
@@ -84,7 +85,7 @@ void BenchmarkRunner::profileQueryIfEnabled(Benchmark* benchmark) const {
         auto profileInfo = benchmark->runWithProfile();
         std::ofstream profileFile(
             config->outputPath + "/" + benchmark->name + "_profile.txt", std::ios_base::app);
-        profileFile << profileInfo->getNext()->toString() << std::endl;
+        profileFile << profileInfo->getNext()->toString() << '\n';
         profileFile.flush();
         profileFile.close();
     }

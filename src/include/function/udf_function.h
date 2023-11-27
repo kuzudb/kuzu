@@ -79,13 +79,13 @@ struct UDF {
 
     template<typename RESULT_TYPE, typename... Args>
     static function::scalar_exec_func createUnaryExecFunc(RESULT_TYPE (*/*udfFunc*/)(Args...),
-        std::vector<common::LogicalTypeID> /*parameterTypes*/) {
+        const std::vector<common::LogicalTypeID>& /*parameterTypes*/) {
         KU_UNREACHABLE;
     }
 
     template<typename RESULT_TYPE, typename OPERAND_TYPE>
-    static function::scalar_exec_func createUnaryExecFunc(
-        RESULT_TYPE (*udfFunc)(OPERAND_TYPE), std::vector<common::LogicalTypeID> parameterTypes) {
+    static function::scalar_exec_func createUnaryExecFunc(RESULT_TYPE (*udfFunc)(OPERAND_TYPE),
+        const std::vector<common::LogicalTypeID>& parameterTypes) {
         if (parameterTypes.size() != 1) {
             throw common::CatalogException{
                 "Expected exactly one parameter type for unary udf. Got: " +
@@ -104,14 +104,14 @@ struct UDF {
 
     template<typename RESULT_TYPE, typename... Args>
     static function::scalar_exec_func createBinaryExecFunc(RESULT_TYPE (*/*udfFunc*/)(Args...),
-        std::vector<common::LogicalTypeID> /*parameterTypes*/) {
+        const std::vector<common::LogicalTypeID>& /*parameterTypes*/) {
         KU_UNREACHABLE;
     }
 
     template<typename RESULT_TYPE, typename LEFT_TYPE, typename RIGHT_TYPE>
     static function::scalar_exec_func createBinaryExecFunc(
         RESULT_TYPE (*udfFunc)(LEFT_TYPE, RIGHT_TYPE),
-        std::vector<common::LogicalTypeID> parameterTypes) {
+        const std::vector<common::LogicalTypeID>& parameterTypes) {
         if (parameterTypes.size() != 2) {
             throw common::CatalogException{
                 "Expected exactly two parameter types for binary udf. Got: " +
@@ -131,7 +131,7 @@ struct UDF {
 
     template<typename RESULT_TYPE, typename... Args>
     static function::scalar_exec_func createTernaryExecFunc(RESULT_TYPE (*/*udfFunc*/)(Args...),
-        std::vector<common::LogicalTypeID> /*parameterTypes*/) {
+        const std::vector<common::LogicalTypeID>& /*parameterTypes*/) {
         KU_UNREACHABLE;
     }
 

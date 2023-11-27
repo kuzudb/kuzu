@@ -1,5 +1,7 @@
 #include "include/py_connection.h"
 
+#include <utility>
+
 #include "common/string_format.h"
 #include "datetime.h" // from Python
 #include "main/connection.h"
@@ -40,10 +42,10 @@ void PyConnection::setQueryTimeout(uint64_t timeoutInMS) {
 }
 
 static std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonParameters(
-    py::dict params);
+    const py::dict& params);
 
 std::unique_ptr<PyQueryResult> PyConnection::execute(
-    PyPreparedStatement* preparedStatement, py::dict params) {
+    PyPreparedStatement* preparedStatement, const py::dict& params) {
     auto parameters = transformPythonParameters(params);
     py::gil_scoped_release release;
     auto queryResult =
@@ -154,7 +156,8 @@ bool PyConnection::isPandasDataframe(const py::object& object) {
 
 static Value transformPythonValue(py::handle val);
 
-std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonParameters(py::dict params) {
+std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonParameters(
+    const py::dict& params) {
     std::unordered_map<std::string, std::unique_ptr<Value>> result;
     for (auto& [key, value] : params) {
         if (!py::isinstance<py::str>(key)) {

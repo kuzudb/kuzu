@@ -96,7 +96,8 @@ private:
 
     ListOffsetInfoInStorage getListOffsetInfoInStorage(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::offset_t startOffsetInNodeGroup,
-        common::offset_t endOffsetInNodeGroup, std::shared_ptr<common::DataChunkState> state);
+        common::offset_t endOffsetInNodeGroup,
+        const std::shared_ptr<common::DataChunkState>& state);
 
 private:
     std::unique_ptr<Column> dataColumn;

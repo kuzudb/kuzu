@@ -18,7 +18,7 @@ public:
     Profile(DataPos outputPos, ProfileInfo info, ProfileLocalState localState, uint32_t id,
         const std::string& paramsString, std::unique_ptr<PhysicalOperator> child)
         : PhysicalOperator{PhysicalOperatorType::PROFILE, std::move(child), id, paramsString},
-          outputPos{outputPos}, info{std::move(info)}, localState{std::move(localState)} {}
+          outputPos{outputPos}, info{info}, localState{localState} {}
 
     inline bool isSource() const override { return true; }
     inline bool canParallel() const final { return false; }

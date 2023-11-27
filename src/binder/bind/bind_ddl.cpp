@@ -20,7 +20,7 @@ namespace kuzu {
 namespace binder {
 
 std::vector<std::unique_ptr<Property>> Binder::bindProperties(
-    std::vector<std::pair<std::string, std::string>> propertyNameDataTypes) {
+    const std::vector<std::pair<std::string, std::string>>& propertyNameDataTypes) {
     std::vector<std::unique_ptr<Property>> boundPropertyNameDataTypes;
     std::unordered_set<std::string> boundPropertyNames;
     boundPropertyNames.reserve(propertyNameDataTypes.size());
@@ -135,7 +135,11 @@ std::unique_ptr<BoundCreateTableInfo> Binder::bindCreateRelTableGroupInfo(
     auto relMultiplicity = extraInfo->relMultiplicity;
     std::vector<std::unique_ptr<BoundCreateTableInfo>> boundCreateRelTableInfos;
     for (auto& [srcTableName, dstTableName] : extraInfo->srcDstTablePairs) {
-        auto relTableName = relGroupName + "_" + srcTableName + "_" + dstTableName;
+        auto relTableName = std::string(relGroupName)
+                                .append("_")
+                                .append(srcTableName)
+                                .append("_")
+                                .append(dstTableName);
         auto relExtraInfo =
             std::make_unique<ExtraCreateRelTableInfo>(relMultiplicity, srcTableName, dstTableName);
         auto relCreateInfo = std::make_unique<CreateTableInfo>(

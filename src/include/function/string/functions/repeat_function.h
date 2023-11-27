@@ -15,7 +15,7 @@ public:
         common::ku_string_t& result, common::ValueVector& resultValueVector);
 
 private:
-    static void repeatStr(char* data, std::string pattern, uint64_t count) {
+    static void repeatStr(char* data, const std::string& pattern, uint64_t count) {
         for (auto i = 0u; i < count; i++) {
             memcpy(data + i * pattern.length(), pattern.c_str(), pattern.length());
         }

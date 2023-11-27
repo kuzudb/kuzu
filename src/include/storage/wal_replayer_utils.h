@@ -27,7 +27,7 @@ private:
 
     static void fileOperationOnNodeFiles(catalog::NodeTableSchema* nodeTableSchema,
         const std::string& directory,
-        std::function<void(std::string fileName)> columnFileOperation);
+        const std::function<void(std::string fileName)>& columnFileOperation);
 };
 
 } // namespace storage

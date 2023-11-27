@@ -43,7 +43,7 @@ void ListCreationFunction::execFunc(const std::vector<std::shared_ptr<ValueVecto
         auto resultDataVector = ListVector::getDataVector(&result);
         auto resultPos = resultEntry.offset;
         for (auto i = 0u; i < parameters.size(); i++) {
-            auto parameter = parameters[i];
+            const auto& parameter = parameters[i];
             auto paramPos = parameter->state->isFlat() ?
                                 parameter->state->selVector->selectedPositions[0] :
                                 pos;

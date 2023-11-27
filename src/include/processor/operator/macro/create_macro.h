@@ -15,7 +15,7 @@ struct CreateMacroInfo {
 
     CreateMacroInfo(std::string macroName, std::unique_ptr<function::ScalarMacroFunction> macro,
         DataPos outputPos, catalog::Catalog* catalog)
-        : macroName{std::move(macroName)}, macro{std::move(macro)}, outputPos{std::move(outputPos)},
+        : macroName{std::move(macroName)}, macro{std::move(macro)}, outputPos{outputPos},
           catalog{catalog} {}
 
     inline std::unique_ptr<CreateMacroInfo> copy() {

@@ -37,7 +37,7 @@ void ClientContext::startTimingIfEnabled() {
     }
 }
 
-std::string ClientContext::getCurrentSetting(std::string optionName) {
+std::string ClientContext::getCurrentSetting(const std::string& optionName) {
     auto option = main::DBConfig::getOptionByName(optionName);
     if (option == nullptr) {
         throw RuntimeException{"Invalid option name: " + optionName + "."};

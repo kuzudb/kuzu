@@ -15,7 +15,7 @@ public:
     }
 
     static std::unique_ptr<BoundStatementResult> createSingleStringColumnResult(
-        std::string columnName = "result");
+        const std::string& columnName = "result");
 
     inline void addColumn(std::shared_ptr<Expression> column) {
         columns.push_back(std::move(column));

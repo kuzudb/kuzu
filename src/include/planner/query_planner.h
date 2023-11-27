@@ -90,7 +90,7 @@ private:
         const binder::expression_vector& predicates, LogicalPlan& leftPlan);
     void planRegularMatch(const binder::QueryGraphCollection& queryGraphCollection,
         const binder::expression_vector& predicates, LogicalPlan& leftPlan);
-    void planSubquery(std::shared_ptr<binder::Expression> subquery, LogicalPlan& outerPlan);
+    void planSubquery(const std::shared_ptr<binder::Expression>& subquery, LogicalPlan& outerPlan);
     void planSubqueryIfNecessary(
         const std::shared_ptr<binder::Expression>& expression, LogicalPlan& plan);
 
@@ -116,9 +116,10 @@ private:
     void planNodeScan(uint32_t nodePos);
     void planNodeIDScan(uint32_t nodePos);
     void planRelScan(uint32_t relPos);
-    void appendExtendAndFilter(std::shared_ptr<binder::NodeExpression> boundNode,
-        std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,
-        ExtendDirection direction, const binder::expression_vector& predicates, LogicalPlan& plan);
+    void appendExtendAndFilter(const std::shared_ptr<binder::NodeExpression>& boundNode,
+        const std::shared_ptr<binder::NodeExpression>& nbrNode,
+        const std::shared_ptr<binder::RelExpression>& rel, ExtendDirection direction,
+        const binder::expression_vector& predicates, LogicalPlan& plan);
 
     // Plan dp level
     void planLevel(uint32_t level);
@@ -128,7 +129,7 @@ private:
     // Plan worst case optimal join
     void planWCOJoin(uint32_t leftLevel, uint32_t rightLevel);
     void planWCOJoin(const binder::SubqueryGraph& subgraph,
-        std::vector<std::shared_ptr<binder::RelExpression>> rels,
+        const std::vector<std::shared_ptr<binder::RelExpression>>& rels,
         const std::shared_ptr<binder::NodeExpression>& intersectNode);
 
     // Plan index-nested-loop join / hash join
@@ -138,7 +139,7 @@ private:
         const std::vector<std::shared_ptr<binder::NodeExpression>>& joinNodes);
     void planInnerHashJoin(const binder::SubqueryGraph& subgraph,
         const binder::SubqueryGraph& otherSubgraph,
-        std::vector<std::shared_ptr<binder::NodeExpression>> joinNodes, bool flipPlan);
+        const std::vector<std::shared_ptr<binder::NodeExpression>>& joinNodes, bool flipPlan);
 
     std::vector<std::unique_ptr<LogicalPlan>> planCrossProduct(
         std::vector<std::unique_ptr<LogicalPlan>> leftPlans,
@@ -184,19 +185,21 @@ private:
         LogicalPlan& plan);
 
     // Append extend operators
-    void appendNonRecursiveExtend(std::shared_ptr<binder::NodeExpression> boundNode,
-        std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,
-        ExtendDirection direction, const binder::expression_vector& properties, LogicalPlan& plan);
-    void appendRecursiveExtend(std::shared_ptr<binder::NodeExpression> boundNode,
-        std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,
-        ExtendDirection direction, LogicalPlan& plan);
+    void appendNonRecursiveExtend(const std::shared_ptr<binder::NodeExpression>& boundNode,
+        const std::shared_ptr<binder::NodeExpression>& nbrNode,
+        const std::shared_ptr<binder::RelExpression>& rel, ExtendDirection direction,
+        const binder::expression_vector& properties, LogicalPlan& plan);
+    void appendRecursiveExtend(const std::shared_ptr<binder::NodeExpression>& boundNode,
+        const std::shared_ptr<binder::NodeExpression>& nbrNode,
+        const std::shared_ptr<binder::RelExpression>& rel, ExtendDirection direction,
+        LogicalPlan& plan);
     void createRecursivePlan(
         const binder::RecursiveInfo& recursiveInfo, ExtendDirection direction, LogicalPlan& plan);
-    void createPathNodePropertyScanPlan(std::shared_ptr<binder::NodeExpression> node,
+    void createPathNodePropertyScanPlan(const std::shared_ptr<binder::NodeExpression>& node,
         const binder::expression_vector& properties, LogicalPlan& plan);
-    void createPathRelPropertyScanPlan(std::shared_ptr<binder::NodeExpression> boundNode,
-        std::shared_ptr<binder::NodeExpression> nbrNode,
-        std::shared_ptr<binder::RelExpression> recursiveRel, ExtendDirection direction,
+    void createPathRelPropertyScanPlan(const std::shared_ptr<binder::NodeExpression>& boundNode,
+        const std::shared_ptr<binder::NodeExpression>& nbrNode,
+        const std::shared_ptr<binder::RelExpression>& recursiveRel, ExtendDirection direction,
         const binder::expression_vector& properties, LogicalPlan& plan);
     void appendNodeLabelFilter(std::shared_ptr<binder::Expression> nodeID,
         std::unordered_set<common::table_id_t> tableIDSet, LogicalPlan& plan);

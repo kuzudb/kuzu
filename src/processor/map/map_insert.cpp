@@ -46,6 +46,7 @@ std::unique_ptr<NodeInsertExecutor> PlanMapper::getNodeInsertExecutor(
     auto nodeIDPos = DataPos(outSchema.getExpressionPos(*node->getInternalID()));
     std::vector<DataPos> lhsVectorPositions = populateLhsVectorPositions(info->setItems, outSchema);
     std::vector<std::unique_ptr<ExpressionEvaluator>> evaluators;
+    evaluators.reserve(info->setItems.size());
     for (auto& [_, rhs] : info->setItems) {
         evaluators.push_back(ExpressionMapper::getEvaluator(rhs, &inSchema));
     }
@@ -79,6 +80,7 @@ std::unique_ptr<RelInsertExecutor> PlanMapper::getRelInsertExecutor(
     auto dstNodePos = DataPos(inSchema.getExpressionPos(*dstNode->getInternalID()));
     auto lhsVectorPositions = populateLhsVectorPositions(info->setItems, outSchema);
     std::vector<std::unique_ptr<ExpressionEvaluator>> evaluators;
+    evaluators.reserve(info->setItems.size());
     for (auto& [lhs, rhs] : info->setItems) {
         evaluators.push_back(ExpressionMapper::getEvaluator(rhs, &inSchema));
     }

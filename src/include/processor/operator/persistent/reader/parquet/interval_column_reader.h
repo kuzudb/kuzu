@@ -33,7 +33,7 @@ public:
 
 protected:
     void dictionary(
-        std::shared_ptr<ResizeableBuffer> dictionary_data, uint64_t num_entries) override;
+        const std::shared_ptr<ResizeableBuffer>& dictionary_data, uint64_t num_entries) override;
 };
 
 } // namespace processor

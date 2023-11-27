@@ -15,7 +15,7 @@ struct CommentOnInfo {
     CommentOnInfo(common::table_id_t tableID, std::string tableName, std::string comment,
         DataPos outputPos, catalog::Catalog* catalog)
         : tableID(tableID), tableName(std::move(tableName)), comment(std::move(comment)),
-          outputPos(std::move(outputPos)), catalog(catalog) {}
+          outputPos(outputPos), catalog(catalog) {}
 
     inline std::unique_ptr<CommentOnInfo> copy() {
         return std::make_unique<CommentOnInfo>(tableID, tableName, comment, outputPos, catalog);

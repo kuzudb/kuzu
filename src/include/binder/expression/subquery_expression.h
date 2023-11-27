@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "binder/query/query_graph.h"
 #include "common/enums/subquery_type.h"
 #include "expression.h"
@@ -12,7 +14,7 @@ public:
     SubqueryExpression(common::SubqueryType subqueryType, common::LogicalType dataType,
         std::unique_ptr<QueryGraphCollection> queryGraphCollection, std::string uniqueName,
         std::string rawName)
-        : Expression{common::ExpressionType::SUBQUERY, dataType, std::move(uniqueName)},
+        : Expression{common::ExpressionType::SUBQUERY, std::move(dataType), std::move(uniqueName)},
           subqueryType{subqueryType},
           queryGraphCollection{std::move(queryGraphCollection)}, rawName{std::move(rawName)} {}
 

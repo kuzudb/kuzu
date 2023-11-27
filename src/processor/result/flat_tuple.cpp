@@ -51,7 +51,7 @@ std::string FlatTuple::toString(
             value = value.substr(0, maxWidth - 3) + "...";
         }
         if (colsWidth[i] != 0) {
-            value = " " + value + " ";
+            value = " " + std::move(value) + " ";
         }
         uint32_t fieldLen = 0;
         uint32_t chrIter = 0;

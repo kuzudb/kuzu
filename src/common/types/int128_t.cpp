@@ -118,7 +118,7 @@ std::string Int128_t::ToString(int128_t input) {
             break;
         }
         input = divModPositive(input, 10, remainder);
-        result = std::string(1, '0' + remainder) + result;
+        result = std::string(1, '0' + remainder) + std::move(result);
     }
     if (result.empty()) {
         result = "0";

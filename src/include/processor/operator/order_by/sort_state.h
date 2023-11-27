@@ -27,7 +27,7 @@ public:
     std::pair<uint64_t, FactorizedTable*> getLocalPayloadTable(
         storage::MemoryManager& memoryManager, const FactorizedTableSchema& payloadTableSchema);
 
-    void appendLocalSortedKeyBlock(std::shared_ptr<MergedKeyBlocks> mergedDataBlocks);
+    void appendLocalSortedKeyBlock(const std::shared_ptr<MergedKeyBlocks>& mergedDataBlocks);
 
     void combineFTHasNoNullGuarantee();
 

@@ -24,6 +24,7 @@ static std::vector<std::vector<std::unique_ptr<LogicalPlan>>> cartesianProductCh
             } else {
                 for (auto& resultChildPlans : resultChildrenPlans) {
                     std::vector<std::unique_ptr<LogicalPlan>> logicalPlans;
+                    logicalPlans.reserve(resultChildPlans.size());
                     for (auto& resultChildPlan : resultChildPlans) {
                         logicalPlans.push_back(resultChildPlan->shallowCopy());
                     }
@@ -73,6 +74,7 @@ std::unique_ptr<LogicalPlan> QueryPlanner::createUnionPlan(
     KU_ASSERT(!childrenPlans.empty());
     auto plan = std::make_unique<LogicalPlan>();
     std::vector<std::shared_ptr<LogicalOperator>> children;
+    children.reserve(childrenPlans.size());
     for (auto& childPlan : childrenPlans) {
         children.push_back(childPlan->getLastOperator());
     }

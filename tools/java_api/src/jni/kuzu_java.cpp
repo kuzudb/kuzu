@@ -18,7 +18,7 @@ using namespace kuzu::common;
 using namespace kuzu::processor;
 
 jobject createJavaObject(
-    JNIEnv* env, void* memAddress, std::string classPath, std::string refFieldName) {
+    JNIEnv* env, void* memAddress, const std::string& classPath, const std::string& refFieldName) {
     auto address = reinterpret_cast<uint64_t>(memAddress);
     auto ref = static_cast<jlong>(address);
 

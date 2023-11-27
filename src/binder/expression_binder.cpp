@@ -58,7 +58,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindExpression(
 }
 
 std::shared_ptr<Expression> ExpressionBinder::foldExpression(
-    std::shared_ptr<Expression> expression) {
+    const std::shared_ptr<Expression>& expression) {
     auto value = evaluator::ExpressionEvaluatorUtils::evaluateConstantExpression(
         expression, binder->memoryManager);
     auto result = createLiteralExpression(std::move(value));
