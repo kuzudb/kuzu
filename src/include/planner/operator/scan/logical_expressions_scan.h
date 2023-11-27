@@ -9,7 +9,7 @@ namespace planner {
 // LogicalExpressionsScan scans from an outer factorize table
 class LogicalExpressionsScan : public LogicalOperator {
 public:
-    LogicalExpressionsScan(binder::expression_vector expressions)
+    explicit LogicalExpressionsScan(binder::expression_vector expressions)
         : LogicalOperator{LogicalOperatorType::EXPRESSIONS_SCAN}, expressions{
                                                                       std::move(expressions)} {}
 

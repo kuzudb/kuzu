@@ -29,7 +29,7 @@ enum class TransactionMode : uint8_t { AUTO = 0, MANUAL = 1 };
 
 class TransactionContext {
 public:
-    TransactionContext(main::Database* database);
+    explicit TransactionContext(main::Database* database);
     ~TransactionContext();
 
     inline bool isAutoTransaction() const { return mode == TransactionMode::AUTO; }

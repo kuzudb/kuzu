@@ -23,7 +23,7 @@ struct RelDataReadState : public TableReadState {
     bool readFromLocalStorage;
     LocalRelNG* localNodeGroup;
 
-    RelDataReadState(common::ColumnDataFormat dataFormat);
+    explicit RelDataReadState(common::ColumnDataFormat dataFormat);
     inline bool isOutOfRange(common::offset_t nodeOffset) {
         return nodeOffset < startNodeOffset || nodeOffset >= (startNodeOffset + numNodes);
     }

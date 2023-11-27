@@ -39,7 +39,7 @@ struct RegularRelNGInfo final : public RelNGInfo {
     std::vector<offset_to_row_idx_t> updateInfoPerChunk; // insert info for property chunks.
     offset_set_t deleteInfo;                             // the set of deleted node offsets.
 
-    RegularRelNGInfo(common::column_id_t numChunks) {
+    explicit RegularRelNGInfo(common::column_id_t numChunks) {
         insertInfoPerChunk.resize(numChunks);
         updateInfoPerChunk.resize(numChunks);
     }
@@ -62,7 +62,7 @@ struct CSRRelNGInfo final : public RelNGInfo {
     std::vector<offset_to_offset_to_row_idx_t> updateInfoPerChunk;
     offset_to_offset_set_t deleteInfo;
 
-    CSRRelNGInfo(common::column_id_t numChunks) {
+    explicit CSRRelNGInfo(common::column_id_t numChunks) {
         insertInfoPerChunk.resize(numChunks);
         updateInfoPerChunk.resize(numChunks);
     }

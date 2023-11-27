@@ -14,12 +14,11 @@ Checks:
 
   cppcoreguidelines-virtual-class-destructor,
 
+  google-explicit-constructor
+
   misc-unused-parameters,
 
   modernize-use-override,
-
-  performance-*,
-  -performance-no-int-to-ptr,
 
 HeaderFilterRegex:
   src/include|tools/benchmark/include|tools/nodejs_api/src_cpp/include|tools/python_api/src_cpp/include|tools/rust_api/include|tools/shell/include

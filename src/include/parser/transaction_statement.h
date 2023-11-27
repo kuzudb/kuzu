@@ -8,7 +8,7 @@ namespace parser {
 
 class TransactionStatement : public Statement {
 public:
-    TransactionStatement(transaction::TransactionAction transactionAction)
+    explicit TransactionStatement(transaction::TransactionAction transactionAction)
         : Statement{common::StatementType::TRANSACTION}, transactionAction{transactionAction} {}
 
     inline transaction::TransactionAction getTransactionAction() const { return transactionAction; }

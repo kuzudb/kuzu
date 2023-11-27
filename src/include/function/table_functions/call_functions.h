@@ -29,7 +29,7 @@ struct CallFuncSharedState : public TableFuncSharedState {
     common::offset_t curOffset;
     std::mutex mtx;
 
-    CallFuncSharedState(common::offset_t maxOffset) : maxOffset{maxOffset}, curOffset{0} {}
+    explicit CallFuncSharedState(common::offset_t maxOffset) : maxOffset{maxOffset}, curOffset{0} {}
 
     CallFuncMorsel getMorsel();
 };

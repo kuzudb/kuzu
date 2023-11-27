@@ -19,7 +19,7 @@ public:
               std::move(children)},
           variableName{std::move(variableName)} {}
 
-    ParsedVariableExpression(std::string variableName)
+    explicit ParsedVariableExpression(std::string variableName)
         : ParsedExpression{common::ExpressionType::VARIABLE}, variableName{
                                                                   std::move(variableName)} {}
 

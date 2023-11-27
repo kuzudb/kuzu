@@ -7,7 +7,7 @@ namespace optimizer {
 
 class CorrelatedSubqueryUnnestSolver : public LogicalOperatorVisitor {
 public:
-    CorrelatedSubqueryUnnestSolver(planner::LogicalOperator* accumulateOp)
+    explicit CorrelatedSubqueryUnnestSolver(planner::LogicalOperator* accumulateOp)
         : accumulateOp{accumulateOp} {}
     void solve(planner::LogicalOperator* root_);
 

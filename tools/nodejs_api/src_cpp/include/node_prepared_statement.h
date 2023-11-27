@@ -1,10 +1,7 @@
 #pragma once
 
-#include "binder/bound_statement_result.h"
 #include "main/kuzu.h"
 #include "node_connection.h"
-#include "planner/operator/logical_plan.h"
-#include "processor/result/factorized_table.h"
 #include <napi.h>
 
 using namespace kuzu::main;
@@ -15,7 +12,7 @@ class NodePreparedStatement : public Napi::ObjectWrap<NodePreparedStatement> {
 
 public:
     static Napi::Object Init(Napi::Env env, Napi::Object exports);
-    NodePreparedStatement(const Napi::CallbackInfo& info);
+    explicit NodePreparedStatement(const Napi::CallbackInfo& info);
     ~NodePreparedStatement() override = default;
 
 private:
@@ -23,7 +20,6 @@ private:
     void InitCppPreparedStatement();
     Napi::Value IsSuccess(const Napi::CallbackInfo& info);
     Napi::Value GetErrorMessage(const Napi::CallbackInfo& info);
-
 
 private:
     std::shared_ptr<PreparedStatement> preparedStatement;

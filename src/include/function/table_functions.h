@@ -41,7 +41,7 @@ struct TableFunctionInput {
 struct TableFunctionInitInput {
     TableFuncBindData* bindData;
 
-    TableFunctionInitInput(TableFuncBindData* bindData) : bindData{bindData} {}
+    explicit TableFunctionInitInput(TableFuncBindData* bindData) : bindData{bindData} {}
 
     virtual ~TableFunctionInitInput() = default;
 };

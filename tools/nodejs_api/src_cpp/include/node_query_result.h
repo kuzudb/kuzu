@@ -16,7 +16,7 @@ class NodeQueryResult : public Napi::ObjectWrap<NodeQueryResult> {
 
 public:
     static Napi::Object Init(Napi::Env env, Napi::Object exports);
-    NodeQueryResult(const Napi::CallbackInfo& info);
+    explicit NodeQueryResult(const Napi::CallbackInfo& info);
     void SetQueryResult(std::shared_ptr<QueryResult>& queryResult);
     ~NodeQueryResult() override = default;
 

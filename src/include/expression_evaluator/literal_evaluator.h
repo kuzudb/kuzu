@@ -7,7 +7,7 @@ namespace evaluator {
 
 class LiteralExpressionEvaluator : public ExpressionEvaluator {
 public:
-    LiteralExpressionEvaluator(std::shared_ptr<common::Value> value)
+    explicit LiteralExpressionEvaluator(std::shared_ptr<common::Value> value)
         : ExpressionEvaluator{true /* isResultFlat */}, value{std::move(value)} {}
 
     ~LiteralExpressionEvaluator() override = default;

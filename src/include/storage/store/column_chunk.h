@@ -149,7 +149,7 @@ public:
 
 class NullColumnChunk : public BoolColumnChunk {
 public:
-    NullColumnChunk(uint64_t capacity)
+    explicit NullColumnChunk(uint64_t capacity)
         : BoolColumnChunk(capacity, false /*hasNullChunk*/), mayHaveNullValue{false} {}
     // Maybe this should be combined with BoolColumnChunk if the only difference is these functions?
     inline bool isNull(common::offset_t pos) const { return getValue<bool>(pos); }

@@ -15,7 +15,7 @@ class ScanFrontier;
 struct RecursiveJoinSharedState {
     std::vector<std::unique_ptr<NodeOffsetSemiMask>> semiMasks;
 
-    RecursiveJoinSharedState(std::vector<std::unique_ptr<NodeOffsetSemiMask>> semiMasks)
+    explicit RecursiveJoinSharedState(std::vector<std::unique_ptr<NodeOffsetSemiMask>> semiMasks)
         : semiMasks{std::move(semiMasks)} {}
 };
 

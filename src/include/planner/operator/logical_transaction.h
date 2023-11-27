@@ -8,7 +8,7 @@ namespace planner {
 
 class LogicalTransaction : public LogicalOperator {
 public:
-    LogicalTransaction(transaction::TransactionAction transactionAction)
+    explicit LogicalTransaction(transaction::TransactionAction transactionAction)
         : LogicalOperator{LogicalOperatorType::TRANSACTION}, transactionAction{transactionAction} {}
 
     inline std::string getExpressionsForPrinting() const final { return std::string(); }

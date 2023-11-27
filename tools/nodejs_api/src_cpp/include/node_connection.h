@@ -18,7 +18,7 @@ class NodeConnection : public Napi::ObjectWrap<NodeConnection> {
 
 public:
     static Napi::Object Init(Napi::Env env, Napi::Object exports);
-    NodeConnection(const Napi::CallbackInfo& info);
+    explicit NodeConnection(const Napi::CallbackInfo& info);
     ~NodeConnection() override = default;
 
 private:

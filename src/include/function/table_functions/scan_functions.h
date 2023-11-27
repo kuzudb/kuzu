@@ -11,7 +11,7 @@ struct BaseScanSharedState : public TableFuncSharedState {
     uint64_t blockIdx;
     uint64_t numRows;
 
-    BaseScanSharedState(uint64_t numRows) : fileIdx{0}, blockIdx{0}, numRows{numRows} {}
+    explicit BaseScanSharedState(uint64_t numRows) : fileIdx{0}, blockIdx{0}, numRows{numRows} {}
 };
 
 struct ScanSharedState : public BaseScanSharedState {

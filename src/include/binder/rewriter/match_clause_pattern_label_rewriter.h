@@ -8,7 +8,7 @@ namespace binder {
 
 class MatchClausePatternLabelRewriter : public BoundStatementVisitor {
 public:
-    MatchClausePatternLabelRewriter(const catalog::Catalog& catalog) : analyzer{catalog} {}
+    explicit MatchClausePatternLabelRewriter(const catalog::Catalog& catalog) : analyzer{catalog} {}
 
     void visitMatch(const BoundReadingClause& readingClause) final;
 
