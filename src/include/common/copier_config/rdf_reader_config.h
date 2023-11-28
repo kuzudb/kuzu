@@ -1,7 +1,8 @@
 #pragma once
 
 #include <cstdint>
-#include <memory>
+
+#include "reader_config.h"
 
 namespace kuzu {
 
@@ -18,7 +19,7 @@ enum class RdfReaderMode : uint8_t {
     LITERAL_TRIPLE = 3,
 };
 
-struct RdfReaderConfig {
+struct RdfReaderConfig final : public ExtraReaderConfig {
     RdfReaderMode mode;
     storage::PrimaryKeyIndex* index;
 
@@ -26,7 +27,7 @@ struct RdfReaderConfig {
         : mode{mode}, index{index} {}
     RdfReaderConfig(const RdfReaderConfig& other) : mode{other.mode}, index{other.index} {}
 
-    inline std::unique_ptr<RdfReaderConfig> copy() const {
+    inline std::unique_ptr<ExtraReaderConfig> copy() override {
         return std::make_unique<RdfReaderConfig>(*this);
     }
 };

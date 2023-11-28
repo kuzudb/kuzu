@@ -16,102 +16,102 @@ namespace function {
 struct CastStringHelper {
     template<typename T>
     static void cast(const char* input, uint64_t len, T& result, ValueVector* /*vector*/ = nullptr,
-        uint64_t /*rowToAdd*/ = 0, const CSVReaderConfig* /*csvReaderConfig*/ = nullptr) {
+        uint64_t /*rowToAdd*/ = 0, const CSVOption* /*option*/ = nullptr) {
         simpleIntegerCast<int64_t>(input, len, result, LogicalType{LogicalTypeID::INT64});
     }
 
     static void castToFixedList(const char* input, uint64_t len, ValueVector* vector,
-        uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig);
+        uint64_t rowToAdd, const CSVOption* option);
 };
 
 template<>
 inline void CastStringHelper::cast(const char* input, uint64_t len, int128_t& result,
-    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
     simpleInt128Cast(input, len, result);
 }
 
 template<>
 inline void CastStringHelper::cast(const char* input, uint64_t len, int32_t& result,
-    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
     simpleIntegerCast<int32_t>(input, len, result, LogicalType{LogicalTypeID::INT32});
 }
 
 template<>
 inline void CastStringHelper::cast(const char* input, uint64_t len, int16_t& result,
-    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
     simpleIntegerCast<int16_t>(input, len, result, LogicalType{LogicalTypeID::INT16});
 }
 
 template<>
 inline void CastStringHelper::cast(const char* input, uint64_t len, int8_t& result,
-    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
     simpleIntegerCast<int8_t>(input, len, result, LogicalType{LogicalTypeID::INT8});
 }
 
 template<>
 inline void CastStringHelper::cast(const char* input, uint64_t len, uint64_t& result,
-    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
     simpleIntegerCast<uint64_t, false>(input, len, result, LogicalType{LogicalTypeID::UINT64});
 }
 
 template<>
 inline void CastStringHelper::cast(const char* input, uint64_t len, uint32_t& result,
-    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
     simpleIntegerCast<uint32_t, false>(input, len, result, LogicalType{LogicalTypeID::UINT32});
 }
 
 template<>
 inline void CastStringHelper::cast(const char* input, uint64_t len, uint16_t& result,
-    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
     simpleIntegerCast<uint16_t, false>(input, len, result, LogicalType{LogicalTypeID::UINT16});
 }
 
 template<>
 inline void CastStringHelper::cast(const char* input, uint64_t len, uint8_t& result,
-    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
     simpleIntegerCast<uint8_t, false>(input, len, result, LogicalType{LogicalTypeID::UINT8});
 }
 
 template<>
 inline void CastStringHelper::cast(const char* input, uint64_t len, float_t& result,
-    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
     doubleCast<float_t>(input, len, result, LogicalType{LogicalTypeID::FLOAT});
 }
 
 template<>
 inline void CastStringHelper::cast(const char* input, uint64_t len, double_t& result,
-    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
     doubleCast<double_t>(input, len, result, LogicalType{LogicalTypeID::DOUBLE});
 }
 
 template<>
 inline void CastStringHelper::cast(const char* input, uint64_t len, bool& result,
-    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
     castStringToBool(input, len, result);
 }
 
 template<>
 inline void CastStringHelper::cast(const char* input, uint64_t len, date_t& result,
-    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
     result = Date::fromCString(input, len);
 }
 
 template<>
 inline void CastStringHelper::cast(const char* input, uint64_t len, timestamp_t& result,
-    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
     result = Timestamp::fromCString(input, len);
 }
 
 template<>
 inline void CastStringHelper::cast(const char* input, uint64_t len, interval_t& result,
-    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
     result = Interval::fromCString(input, len);
 }
 
 // ---------------------- cast String to Blob ------------------------------ //
 template<>
 void CastString::operation(const ku_string_t& input, blob_t& result, ValueVector* resultVector,
-    uint64_t /*rowToAdd*/, const CSVReaderConfig* /*csvReaderConfig*/) {
+    uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
     result.value.len = Blob::getBlobSize(input);
     if (!ku_string_t::isShortString(result.value.len)) {
         auto overflowBuffer = StringVector::getInMemOverflowBuffer(resultVector);
@@ -127,7 +127,7 @@ void CastString::operation(const ku_string_t& input, blob_t& result, ValueVector
 
 template<>
 void CastStringHelper::cast(const char* input, uint64_t len, blob_t& /*result*/,
-    ValueVector* vector, uint64_t rowToAdd, const CSVReaderConfig* /*csvReaderConfig*/) {
+    ValueVector* vector, uint64_t rowToAdd, const CSVOption* /*option*/) {
     // base case: blob
     auto blobBuffer = std::make_unique<uint8_t[]>(len);
     auto blobLen = Blob::fromString(input, len, blobBuffer.get());
@@ -160,8 +160,8 @@ static bool skipToCloseQuotes(const char*& input, const char* end) {
     return false;
 }
 
-static bool skipToClose(const char*& input, const char* end, uint64_t& lvl, char target,
-    const CSVReaderConfig* csvReaderConfig) {
+static bool skipToClose(
+    const char*& input, const char* end, uint64_t& lvl, char target, const CSVOption* option) {
     input++;
     while (input != end) {
         if (*input == '\'') {
@@ -169,12 +169,11 @@ static bool skipToClose(const char*& input, const char* end, uint64_t& lvl, char
                 return false;
             }
         } else if (*input == '{') { // must have closing brackets {, ] if they are not quoted
-            if (!skipToClose(input, end, lvl, '}', csvReaderConfig)) {
+            if (!skipToClose(input, end, lvl, '}', option)) {
                 return false;
             }
         } else if (*input == CopyConstants::DEFAULT_CSV_LIST_BEGIN_CHAR) {
-            if (!skipToClose(
-                    input, end, lvl, CopyConstants::DEFAULT_CSV_LIST_END_CHAR, csvReaderConfig)) {
+            if (!skipToClose(input, end, lvl, CopyConstants::DEFAULT_CSV_LIST_END_CHAR, option)) {
                 return false;
             }
             lvl++; // nested one more level
@@ -214,11 +213,11 @@ struct CountPartOperation {
     uint64_t count = 0;
 
     static inline bool handleKey(
-        const char* /*start*/, const char* /*end*/, const CSVReaderConfig* /*config*/) {
+        const char* /*start*/, const char* /*end*/, const CSVOption* /*config*/) {
         return true;
     }
     inline void handleValue(
-        const char* /*start*/, const char* /*end*/, const CSVReaderConfig* /*config*/) {
+        const char* /*start*/, const char* /*end*/, const CSVOption* /*config*/) {
         count++;
     }
 };
@@ -230,16 +229,15 @@ struct SplitStringListOperation {
     uint64_t& offset;
     ValueVector* resultVector;
 
-    void handleValue(const char* start, const char* end, const CSVReaderConfig* csvReaderConfig) {
-        CastString::copyStringToVector(resultVector, offset,
-            std::string_view{start, (uint32_t)(end - start)}, csvReaderConfig);
+    void handleValue(const char* start, const char* end, const CSVOption* option) {
+        CastString::copyStringToVector(
+            resultVector, offset, std::string_view{start, (uint32_t)(end - start)}, option);
         offset++;
     }
 };
 
 template<typename T>
-static bool splitCStringList(
-    const char* input, uint64_t len, T& state, const CSVReaderConfig* csvReaderConfig) {
+static bool splitCStringList(const char* input, uint64_t len, T& state, const CSVOption* option) {
     auto end = input + len;
     uint64_t lvl = 1;
     bool seen_value = false;
@@ -255,8 +253,7 @@ static bool splitCStringList(
     while (input < end) {
         auto ch = *input;
         if (ch == CopyConstants::DEFAULT_CSV_LIST_BEGIN_CHAR) {
-            if (!skipToClose(
-                    input, end, ++lvl, CopyConstants::DEFAULT_CSV_LIST_END_CHAR, csvReaderConfig)) {
+            if (!skipToClose(input, end, ++lvl, CopyConstants::DEFAULT_CSV_LIST_END_CHAR, option)) {
                 return false;
             }
         } else if (ch == '\'' || ch == '"') {
@@ -265,11 +262,11 @@ static bool splitCStringList(
             }
         } else if (ch == '{') {
             uint64_t struct_lvl = 0;
-            skipToClose(input, end, struct_lvl, '}', csvReaderConfig);
-        } else if (ch == csvReaderConfig->delimiter ||
+            skipToClose(input, end, struct_lvl, '}', option);
+        } else if (ch == option->delimiter ||
                    ch == CopyConstants::DEFAULT_CSV_LIST_END_CHAR) { // split
             if (ch != CopyConstants::DEFAULT_CSV_LIST_END_CHAR || start_ptr < input || seen_value) {
-                state.handleValue(start_ptr, input, csvReaderConfig);
+                state.handleValue(start_ptr, input, option);
                 seen_value = true;
             }
             if (ch == CopyConstants::DEFAULT_CSV_LIST_END_CHAR) { // last ]
@@ -286,9 +283,9 @@ static bool splitCStringList(
 }
 
 template<typename T>
-static inline void startListCast(const char* input, uint64_t len, T split,
-    const CSVReaderConfig* csvReaderConfig, ValueVector* vector) {
-    if (!splitCStringList(input, len, split, csvReaderConfig)) {
+static inline void startListCast(
+    const char* input, uint64_t len, T split, const CSVOption* option, ValueVector* vector) {
+    if (!splitCStringList(input, len, split, option)) {
         throw ConversionException("Cast failed. " + std::string{input, len} + " is not in " +
                                   vector->dataType.toString() + " range.");
     }
@@ -296,24 +293,24 @@ static inline void startListCast(const char* input, uint64_t len, T split,
 
 template<>
 void CastStringHelper::cast(const char* input, uint64_t len, list_entry_t& /*result*/,
-    ValueVector* vector, uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig) {
+    ValueVector* vector, uint64_t rowToAdd, const CSVOption* option) {
     // calculate the number of elements in array
     CountPartOperation state;
-    splitCStringList(input, len, state, csvReaderConfig);
+    splitCStringList(input, len, state, option);
 
     auto list_entry = ListVector::addList(vector, state.count);
     vector->setValue<list_entry_t>(rowToAdd, list_entry);
     auto listDataVector = ListVector::getDataVector(vector);
 
     SplitStringListOperation split{list_entry.offset, listDataVector};
-    startListCast(input, len, split, csvReaderConfig, vector);
+    startListCast(input, len, split, option, vector);
 }
 
 template<>
 void CastString::operation(const ku_string_t& input, list_entry_t& result,
-    ValueVector* resultVector, uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig) {
+    ValueVector* resultVector, uint64_t rowToAdd, const CSVOption* option) {
     CastStringHelper::cast(reinterpret_cast<const char*>(input.getData()), input.len, result,
-        resultVector, rowToAdd, csvReaderConfig);
+        resultVector, rowToAdd, option);
 }
 
 // ---------------------- cast String to FixedList ------------------------------ //
@@ -325,8 +322,7 @@ struct SplitStringFixedListOperation {
     uint64_t& offset;
     ValueVector* resultVector;
 
-    void handleValue(
-        const char* start, const char* end, const CSVReaderConfig* /*csvReaderConfig*/) {
+    void handleValue(const char* start, const char* end, const CSVOption* /*option*/) {
         T value;
         auto str = std::string_view{start, (uint32_t)(end - start)};
         if (str.empty() || isNull(str)) {
@@ -348,13 +344,13 @@ static void validateNumElementsInList(uint64_t numElementsRead, const LogicalTyp
 }
 
 void CastStringHelper::castToFixedList(const char* input, uint64_t len, ValueVector* vector,
-    uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig) {
+    uint64_t rowToAdd, const CSVOption* option) {
     KU_ASSERT(vector->dataType.getLogicalTypeID() == LogicalTypeID::FIXED_LIST);
     auto childDataType = FixedListType::getChildType(&vector->dataType);
 
     // calculate the number of elements in array
     CountPartOperation state;
-    splitCStringList(input, len, state, csvReaderConfig);
+    splitCStringList(input, len, state, option);
     validateNumElementsInList(state.count, vector->dataType);
 
     auto startOffset = state.count * rowToAdd;
@@ -362,23 +358,23 @@ void CastStringHelper::castToFixedList(const char* input, uint64_t len, ValueVec
     // TODO(Kebing): currently only allow these type
     case LogicalTypeID::INT64: {
         SplitStringFixedListOperation<int64_t> split{startOffset, vector};
-        startListCast(input, len, split, csvReaderConfig, vector);
+        startListCast(input, len, split, option, vector);
     } break;
     case LogicalTypeID::INT32: {
         SplitStringFixedListOperation<int32_t> split{startOffset, vector};
-        startListCast(input, len, split, csvReaderConfig, vector);
+        startListCast(input, len, split, option, vector);
     } break;
     case LogicalTypeID::INT16: {
         SplitStringFixedListOperation<int16_t> split{startOffset, vector};
-        startListCast(input, len, split, csvReaderConfig, vector);
+        startListCast(input, len, split, option, vector);
     } break;
     case LogicalTypeID::FLOAT: {
         SplitStringFixedListOperation<float_t> split{startOffset, vector};
-        startListCast(input, len, split, csvReaderConfig, vector);
+        startListCast(input, len, split, option, vector);
     } break;
     case LogicalTypeID::DOUBLE: {
         SplitStringFixedListOperation<double_t> split{startOffset, vector};
-        startListCast(input, len, split, csvReaderConfig, vector);
+        startListCast(input, len, split, option, vector);
     } break;
     default: {
         throw NotImplementedException("Unsupported data type: Function::castStringToFixedList");
@@ -387,9 +383,9 @@ void CastStringHelper::castToFixedList(const char* input, uint64_t len, ValueVec
 }
 
 void CastString::castToFixedList(const ku_string_t& input, ValueVector* resultVector,
-    uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig) {
-    CastStringHelper::castToFixedList(reinterpret_cast<const char*>(input.getData()), input.len,
-        resultVector, rowToAdd, csvReaderConfig);
+    uint64_t rowToAdd, const CSVOption* option) {
+    CastStringHelper::castToFixedList(
+        reinterpret_cast<const char*>(input.getData()), input.len, resultVector, rowToAdd, option);
 }
 
 // ---------------------- cast String to Map ------------------------------ //
@@ -400,25 +396,23 @@ struct SplitStringMapOperation {
     uint64_t& offset;
     ValueVector* resultVector;
 
-    inline bool handleKey(
-        const char* start, const char* end, const CSVReaderConfig* csvReaderConfig) {
+    inline bool handleKey(const char* start, const char* end, const CSVOption* option) {
         trimRightWhitespace(start, end);
         CastString::copyStringToVector(StructVector::getFieldVector(resultVector, 0).get(), offset,
-            std::string_view{start, (uint32_t)(end - start)}, csvReaderConfig);
+            std::string_view{start, (uint32_t)(end - start)}, option);
         return true;
     }
 
-    inline void handleValue(
-        const char* start, const char* end, const CSVReaderConfig* csvReaderConfig) {
+    inline void handleValue(const char* start, const char* end, const CSVOption* option) {
         trimRightWhitespace(start, end);
         CastString::copyStringToVector(StructVector::getFieldVector(resultVector, 1).get(),
-            offset++, std::string_view{start, (uint32_t)(end - start)}, csvReaderConfig);
+            offset++, std::string_view{start, (uint32_t)(end - start)}, option);
     }
 };
 
 template<typename T>
 static bool parseKeyOrValue(const char*& input, const char* end, T& state, bool isKey,
-    bool& closeBracket, const CSVReaderConfig* csvReaderConfig) {
+    bool& closeBracket, const CSVOption* option) {
     auto start = input;
     uint64_t lvl = 0;
 
@@ -428,18 +422,17 @@ static bool parseKeyOrValue(const char*& input, const char* end, T& state, bool 
                 return false;
             }
         } else if (*input == '{') {
-            if (!skipToClose(input, end, lvl, '}', csvReaderConfig)) {
+            if (!skipToClose(input, end, lvl, '}', option)) {
                 return false;
             }
         } else if (*input == CopyConstants::DEFAULT_CSV_LIST_BEGIN_CHAR) {
-            if (!skipToClose(
-                    input, end, lvl, CopyConstants::DEFAULT_CSV_LIST_END_CHAR, csvReaderConfig)) {
+            if (!skipToClose(input, end, lvl, CopyConstants::DEFAULT_CSV_LIST_END_CHAR, option)) {
                 return false;
             }
         } else if (isKey && *input == '=') {
-            return state.handleKey(start, input, csvReaderConfig);
-        } else if (!isKey && (*input == csvReaderConfig->delimiter || *input == '}')) {
-            state.handleValue(start, input, csvReaderConfig);
+            return state.handleKey(start, input, option);
+        } else if (!isKey && (*input == option->delimiter || *input == '}')) {
+            state.handleValue(start, input, option);
             if (*input == '}') {
                 closeBracket = true;
             }
@@ -452,8 +445,7 @@ static bool parseKeyOrValue(const char*& input, const char* end, T& state, bool 
 
 // Split map of format: {a=12,b=13}
 template<typename T>
-static bool splitCStringMap(
-    const char* input, uint64_t len, T& state, const CSVReaderConfig* csvReaderConfig) {
+static bool splitCStringMap(const char* input, uint64_t len, T& state, const CSVOption* option) {
     auto end = input + len;
     bool closeBracket = false;
 
@@ -471,11 +463,11 @@ static bool splitCStringMap(
     }
 
     while (input < end) {
-        if (!parseKeyOrValue(input, end, state, true, closeBracket, csvReaderConfig)) {
+        if (!parseKeyOrValue(input, end, state, true, closeBracket, option)) {
             return false;
         }
         skipWhitespace(++input, end);
-        if (!parseKeyOrValue(input, end, state, false, closeBracket, csvReaderConfig)) {
+        if (!parseKeyOrValue(input, end, state, false, closeBracket, option)) {
             return false;
         }
         skipWhitespace(++input, end);
@@ -488,17 +480,17 @@ static bool splitCStringMap(
 
 template<>
 void CastStringHelper::cast(const char* input, uint64_t len, map_entry_t& /*result*/,
-    ValueVector* vector, uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig) {
+    ValueVector* vector, uint64_t rowToAdd, const CSVOption* option) {
     // count the number of maps in map
     CountPartOperation state;
-    splitCStringMap(input, len, state, csvReaderConfig);
+    splitCStringMap(input, len, state, option);
 
     auto list_entry = ListVector::addList(vector, state.count);
     vector->setValue<list_entry_t>(rowToAdd, list_entry);
     auto structVector = ListVector::getDataVector(vector);
 
     SplitStringMapOperation split{list_entry.offset, structVector};
-    if (!splitCStringMap(input, len, split, csvReaderConfig)) {
+    if (!splitCStringMap(input, len, split, option)) {
         throw ConversionException("Cast failed. " + std::string{input, len} + " is not in " +
                                   vector->dataType.toString() + " range.");
     }
@@ -506,9 +498,9 @@ void CastStringHelper::cast(const char* input, uint64_t len, map_entry_t& /*resu
 
 template<>
 void CastString::operation(const ku_string_t& input, map_entry_t& result, ValueVector* resultVector,
-    uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig) {
+    uint64_t rowToAdd, const CSVOption* option) {
     CastStringHelper::cast(reinterpret_cast<const char*>(input.getData()), input.len, result,
-        resultVector, rowToAdd, csvReaderConfig);
+        resultVector, rowToAdd, option);
 }
 
 // ---------------------- cast String to Struct ------------------------------ //
@@ -523,7 +515,7 @@ static bool parseStructFieldName(const char*& input, const char* end) {
 }
 
 static bool parseStructFieldValue(
-    const char*& input, const char* end, const CSVReaderConfig* csvReaderConfig, bool& closeBrack) {
+    const char*& input, const char* end, const CSVOption* option, bool& closeBrack) {
     uint64_t lvl = 0;
     while (input < end) {
         if (*input == '"' || *input == '\'') {
@@ -531,15 +523,14 @@ static bool parseStructFieldValue(
                 return false;
             }
         } else if (*input == '{') {
-            if (!skipToClose(input, end, lvl, '}', csvReaderConfig)) {
+            if (!skipToClose(input, end, lvl, '}', option)) {
                 return false;
             }
         } else if (*input == CopyConstants::DEFAULT_CSV_LIST_BEGIN_CHAR) {
-            if (!skipToClose(
-                    input, end, ++lvl, CopyConstants::DEFAULT_CSV_LIST_END_CHAR, csvReaderConfig)) {
+            if (!skipToClose(input, end, ++lvl, CopyConstants::DEFAULT_CSV_LIST_END_CHAR, option)) {
                 return false;
             }
-        } else if (*input == csvReaderConfig->delimiter || *input == '}') {
+        } else if (*input == option->delimiter || *input == '}') {
             if (*input == '}') {
                 closeBrack = true;
             }
@@ -551,7 +542,7 @@ static bool parseStructFieldValue(
 }
 
 static bool tryCastStringToStruct(const char* input, uint64_t len, ValueVector* vector,
-    uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig) {
+    uint64_t rowToAdd, const CSVOption* option) {
     // default values to NULL
     auto fieldVectors = StructVector::getFieldVectors(vector);
     for (auto& fieldVector : fieldVectors) {
@@ -590,7 +581,7 @@ static bool tryCastStringToStruct(const char* input, uint64_t len, ValueVector* 
 
         skipWhitespace(++input, end);
         auto valStart = input;
-        if (!parseStructFieldValue(input, end, csvReaderConfig, closeBracket)) { // find value
+        if (!parseStructFieldValue(input, end, option, closeBracket)) { // find value
             return false;
         }
         auto valEnd = input;
@@ -600,7 +591,7 @@ static bool tryCastStringToStruct(const char* input, uint64_t len, ValueVector* 
         auto fieldVector = StructVector::getFieldVector(vector, fieldIdx).get();
         fieldVector->setNull(rowToAdd, false);
         CastString::copyStringToVector(fieldVector, rowToAdd,
-            std::string_view{valStart, (uint32_t)(valEnd - valStart)}, csvReaderConfig);
+            std::string_view{valStart, (uint32_t)(valEnd - valStart)}, option);
 
         if (closeBracket) {
             return (input == end);
@@ -611,8 +602,8 @@ static bool tryCastStringToStruct(const char* input, uint64_t len, ValueVector* 
 
 template<>
 void CastStringHelper::cast(const char* input, uint64_t len, struct_entry_t& /*result*/,
-    ValueVector* vector, uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig) {
-    if (!tryCastStringToStruct(input, len, vector, rowToAdd, csvReaderConfig)) {
+    ValueVector* vector, uint64_t rowToAdd, const CSVOption* option) {
+    if (!tryCastStringToStruct(input, len, vector, rowToAdd, option)) {
         throw ConversionException("Cast failed. " + std::string{input, len} + " is not in " +
                                   vector->dataType.toString() + " range.");
     }
@@ -620,9 +611,9 @@ void CastStringHelper::cast(const char* input, uint64_t len, struct_entry_t& /*r
 
 template<>
 void CastString::operation(const ku_string_t& input, struct_entry_t& result,
-    ValueVector* resultVector, uint64_t rowToAdd, const CSVReaderConfig* csvReaderConfig) {
+    ValueVector* resultVector, uint64_t rowToAdd, const CSVOption* option) {
     CastStringHelper::cast(reinterpret_cast<const char*>(input.getData()), input.len, result,
-        resultVector, rowToAdd, csvReaderConfig);
+        resultVector, rowToAdd, option);
 }
 
 // ---------------------- cast String to Union ------------------------------ //
@@ -725,7 +716,7 @@ static bool tryCastUnionField(
 
 template<>
 void CastStringHelper::cast(const char* input, uint64_t len, union_entry_t& /*result*/,
-    ValueVector* vector, uint64_t rowToAdd, const CSVReaderConfig* /*csvReaderConfig*/) {
+    ValueVector* vector, uint64_t rowToAdd, const CSVOption* /*option*/) {
     auto& type = vector->dataType;
     union_field_idx_t selectedFieldIdx = INVALID_STRUCT_FIELD_IDX;
 
@@ -753,13 +744,13 @@ void CastStringHelper::cast(const char* input, uint64_t len, union_entry_t& /*re
 
 template<>
 void CastString::operation(const ku_string_t& input, union_entry_t& result,
-    ValueVector* resultVector, uint64_t rowToAdd, const CSVReaderConfig* CSVReaderConfig) {
+    ValueVector* resultVector, uint64_t rowToAdd, const CSVOption* CSVOption) {
     CastStringHelper::cast(reinterpret_cast<const char*>(input.getData()), input.len, result,
-        resultVector, rowToAdd, CSVReaderConfig);
+        resultVector, rowToAdd, CSVOption);
 }
 
-void CastString::copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std::string_view strVal,
-    const CSVReaderConfig* csvReaderConfig) {
+void CastString::copyStringToVector(
+    ValueVector* vector, uint64_t rowToAdd, std::string_view strVal, const CSVOption* option) {
     auto& type = vector->dataType;
 
     if (strVal.empty() || isNull(strVal)) {
@@ -831,8 +822,7 @@ void CastString::copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std:
     } break;
     case LogicalTypeID::BLOB: {
         blob_t val;
-        CastStringHelper::cast(
-            strVal.data(), strVal.length(), val, vector, rowToAdd, csvReaderConfig);
+        CastStringHelper::cast(strVal.data(), strVal.length(), val, vector, rowToAdd, option);
     } break;
     case LogicalTypeID::STRING: {
         if (!utf8proc::Utf8Proc::isValid(strVal.data(), strVal.length())) {
@@ -857,27 +847,22 @@ void CastString::copyStringToVector(ValueVector* vector, uint64_t rowToAdd, std:
     } break;
     case LogicalTypeID::MAP: {
         map_entry_t val;
-        CastStringHelper::cast(
-            strVal.data(), strVal.length(), val, vector, rowToAdd, csvReaderConfig);
+        CastStringHelper::cast(strVal.data(), strVal.length(), val, vector, rowToAdd, option);
     } break;
     case LogicalTypeID::VAR_LIST: {
         list_entry_t val;
-        CastStringHelper::cast(
-            strVal.data(), strVal.length(), val, vector, rowToAdd, csvReaderConfig);
+        CastStringHelper::cast(strVal.data(), strVal.length(), val, vector, rowToAdd, option);
     } break;
     case LogicalTypeID::FIXED_LIST: {
-        CastStringHelper::castToFixedList(
-            strVal.data(), strVal.length(), vector, rowToAdd, csvReaderConfig);
+        CastStringHelper::castToFixedList(strVal.data(), strVal.length(), vector, rowToAdd, option);
     } break;
     case LogicalTypeID::STRUCT: {
         struct_entry_t val;
-        CastStringHelper::cast(
-            strVal.data(), strVal.length(), val, vector, rowToAdd, csvReaderConfig);
+        CastStringHelper::cast(strVal.data(), strVal.length(), val, vector, rowToAdd, option);
     } break;
     case LogicalTypeID::UNION: {
         union_entry_t val;
-        CastStringHelper::cast(
-            strVal.data(), strVal.length(), val, vector, rowToAdd, csvReaderConfig);
+        CastStringHelper::cast(strVal.data(), strVal.length(), val, vector, rowToAdd, option);
     } break;
     default: {
         KU_UNREACHABLE;

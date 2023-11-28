@@ -38,9 +38,9 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     if (fileType != FileType::CSV && copyToStatement.getParsingOptionsRef().size() != 0) {
         throw BinderException{"Only copy to csv can have options."};
     }
-    auto csvOption = bindParsingOptions(copyToStatement.getParsingOptionsRef());
+    auto csvConfig = bindParsingOptions(copyToStatement.getParsingOptionsRef());
     return std::make_unique<BoundCopyTo>(boundFilePath, fileType, std::move(columnNames),
-        std::move(columnTypes), std::move(query), std::move(csvOption));
+        std::move(columnTypes), std::move(query), std::move(csvConfig->option.copy()));
 }
 
 // As a temporary constraint, we require npy files loaded with COPY FROM BY COLUMN keyword.
@@ -77,11 +77,11 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     default:
         break;
     }
-    auto csvReaderConfig = bindParsingOptions(copyStatement.getParsingOptionsRef());
+    auto csvConfig = bindParsingOptions(copyStatement.getParsingOptionsRef());
     auto filePaths = bindFilePaths(copyStatement.getFilePaths());
     auto fileType = bindFileType(filePaths);
     auto readerConfig =
-        std::make_unique<ReaderConfig>(fileType, std::move(filePaths), std::move(csvReaderConfig));
+        std::make_unique<ReaderConfig>(fileType, std::move(filePaths), std::move(csvConfig));
     validateByColumnKeyword(readerConfig->fileType, copyStatement.byColumn());
     if (readerConfig->fileType == FileType::NPY) {
         validateCopyNpyNotForRelTables(tableSchema);
@@ -111,7 +111,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
 std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statement,
     std::unique_ptr<common::ReaderConfig> config, TableSchema* tableSchema) {
     auto& copyStatement = reinterpret_cast<const CopyFrom&>(statement);
-    auto func = getScanFunction(config->fileType, config->csvReaderConfig->parallel);
+    auto func = getScanFunction(config->fileType, *config);
     // For table with SERIAL columns, we need to read in serial from files.
     auto containsSerial = tableSchema->containsColumnType(LogicalType(LogicalTypeID::SERIAL));
     std::vector<std::string> expectedColumnNames;
@@ -137,7 +137,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
 std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement& statement,
     std::unique_ptr<common::ReaderConfig> config, TableSchema* tableSchema) {
     auto& copyStatement = reinterpret_cast<const CopyFrom&>(statement);
-    auto func = getScanFunction(config->fileType, config->csvReaderConfig->parallel);
+    auto func = getScanFunction(config->fileType, *config);
     // For table with SERIAL columns, we need to read in serial from files.
     auto containsSerial = tableSchema->containsColumnType(LogicalType(LogicalTypeID::SERIAL));
     KU_ASSERT(containsSerial == false);

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/copier_config/copier_config.h"
+#include "common/copier_config/csv_reader_config.h"
 #include "planner/operator/logical_operator.h"
 
 namespace kuzu {
@@ -33,8 +33,7 @@ public:
 
     inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalCopyTo>(filePath, fileType, columnNames,
-            common::LogicalType::copy(columnTypes), copyToOption->copyCSVOption(),
-            children[0]->copy());
+            common::LogicalType::copy(columnTypes), copyToOption->copy(), children[0]->copy());
     }
 
 private:

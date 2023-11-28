@@ -1,7 +1,7 @@
 #pragma once
 
 #include "binder/expression/expression.h"
-#include "common/copier_config/copier_config.h"
+#include "common/copier_config/csv_reader_config.h"
 
 namespace kuzu {
 namespace function {

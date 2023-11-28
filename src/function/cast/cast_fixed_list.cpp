@@ -166,21 +166,20 @@ void CastFixedList::stringtoFixedListCastExecFunction<UnaryFunctionExecutor>(
     const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
     KU_ASSERT(params.size() == 1);
     const auto& param = params[0];
-    auto csvReaderConfig = &reinterpret_cast<CastFunctionBindData*>(dataPtr)->csvConfig;
+    auto option = &reinterpret_cast<CastFunctionBindData*>(dataPtr)->csvConfig.option;
     if (param->state->isFlat()) {
         auto inputPos = param->state->selVector->selectedPositions[0];
         auto resultPos = result.state->selVector->selectedPositions[0];
         result.setNull(resultPos, param->isNull(inputPos));
         if (!result.isNull(inputPos)) {
             CastString::castToFixedList(
-                param->getValue<ku_string_t>(inputPos), &result, resultPos, csvReaderConfig);
+                param->getValue<ku_string_t>(inputPos), &result, resultPos, option);
         }
     } else if (param->state->selVector->isUnfiltered()) {
         for (auto i = 0u; i < param->state->selVector->selectedSize; i++) {
             result.setNull(i, param->isNull(i));
             if (!result.isNull(i)) {
-                CastString::castToFixedList(
-                    param->getValue<ku_string_t>(i), &result, i, csvReaderConfig);
+                CastString::castToFixedList(param->getValue<ku_string_t>(i), &result, i, option);
             }
         }
     } else {
@@ -189,7 +188,7 @@ void CastFixedList::stringtoFixedListCastExecFunction<UnaryFunctionExecutor>(
             result.setNull(pos, param->isNull(pos));
             if (!result.isNull(pos)) {
                 CastString::castToFixedList(
-                    param->getValue<ku_string_t>(pos), &result, pos, csvReaderConfig);
+                    param->getValue<ku_string_t>(pos), &result, pos, option);
             }
         }
     }
@@ -209,14 +208,12 @@ void CastFixedList::stringtoFixedListCastExecFunction<CastChildFunctionExecutor>
     const std::vector<std::shared_ptr<ValueVector>>& params, ValueVector& result, void* dataPtr) {
     KU_ASSERT(params.size() == 1);
     auto numOfEntries = reinterpret_cast<CastFunctionBindData*>(dataPtr)->numOfEntries;
-    auto csvReaderConfig = &reinterpret_cast<CastFunctionBindData*>(dataPtr)->csvConfig;
-
+    auto option = &reinterpret_cast<CastFunctionBindData*>(dataPtr)->csvConfig.option;
     auto inputVector = params[0].get();
     for (auto i = 0u; i < numOfEntries; i++) {
         result.setNull(i, inputVector->isNull(i));
         if (!result.isNull(i)) {
-            CastString::castToFixedList(
-                inputVector->getValue<ku_string_t>(i), &result, i, csvReaderConfig);
+            CastString::castToFixedList(inputVector->getValue<ku_string_t>(i), &result, i, option);
         }
     }
 }

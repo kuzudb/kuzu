@@ -17,7 +17,7 @@ class ParallelCSVReader final : public BaseCSVReader {
 
 public:
     ParallelCSVReader(
-        const std::string& filePath, const common::ReaderConfig& readerConfig, uint64_t numColumns);
+        const std::string& filePath, const common::CSVOption& option, uint64_t numColumns);
 
     bool hasMoreToRead() const;
     uint64_t parseBlock(common::block_idx_t blockIdx, common::DataChunk& resultChunk) override;

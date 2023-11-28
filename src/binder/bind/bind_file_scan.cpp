@@ -1,5 +1,6 @@
 #include "binder/binder.h"
 #include "binder/expression/literal_expression.h"
+#include "common/copier_config/csv_reader_config.h"
 #include "common/exception/binder.h"
 #include "common/exception/copy.h"
 #include "common/string_format.h"
@@ -63,23 +64,23 @@ static char bindParsingOptionValue(std::string value) {
 }
 
 static void bindBoolParsingOption(
-    CSVReaderConfig& csvReaderConfig, const std::string& optionName, bool optionValue) {
+    CSVReaderConfig& config, const std::string& optionName, bool optionValue) {
     if (optionName == "HEADER") {
-        csvReaderConfig.hasHeader = optionValue;
+        config.option.hasHeader = optionValue;
     } else if (optionName == "PARALLEL") {
-        csvReaderConfig.parallel = optionValue;
+        config.parallel = optionValue;
     }
 }
 
 static void bindStringParsingOption(
-    CSVReaderConfig& csvReaderConfig, const std::string& optionName, std::string& optionValue) {
+    CSVReaderConfig& config, const std::string& optionName, std::string& optionValue) {
     auto parsingOptionValue = bindParsingOptionValue(optionValue);
     if (optionName == "ESCAPE") {
-        csvReaderConfig.escapeChar = parsingOptionValue;
+        config.option.escapeChar = parsingOptionValue;
     } else if (optionName == "DELIM") {
-        csvReaderConfig.delimiter = parsingOptionValue;
+        config.option.delimiter = parsingOptionValue;
     } else if (optionName == "QUOTE") {
-        csvReaderConfig.quoteChar = parsingOptionValue;
+        config.option.quoteChar = parsingOptionValue;
     }
 }
 

@@ -13,7 +13,7 @@ namespace processor {
 class SerialCSVReader final : public BaseCSVReader {
 public:
     SerialCSVReader(
-        const std::string& filePath, const common::ReaderConfig& readerConfig, uint64_t numColumns);
+        const std::string& filePath, const common::CSVOption& option, uint64_t numColumns);
 
     //! Sniffs CSV dialect and determines skip rows, header row, column types and column names
     std::vector<std::pair<std::string, common::LogicalType>> sniffCSV();

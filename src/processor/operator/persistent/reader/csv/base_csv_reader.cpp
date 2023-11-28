@@ -20,9 +20,9 @@ namespace kuzu {
 namespace processor {
 
 BaseCSVReader::BaseCSVReader(
-    const std::string& filePath, const common::ReaderConfig& readerConfig, uint64_t numColumns)
-    : filePath{filePath}, csvReaderConfig{*readerConfig.csvReaderConfig}, numColumns(numColumns),
-      fd(-1), buffer(nullptr), bufferSize(0), position(0), rowEmpty(false) {
+    const std::string& filePath, const common::CSVOption& option, uint64_t numColumns)
+    : filePath{filePath}, option{option}, numColumns(numColumns), fd(-1), buffer(nullptr),
+      bufferSize(0), position(0), rowEmpty(false) {
     // TODO(Ziyi): should we wrap this fd using kuzu file handler?
     fd = open(filePath.c_str(), O_RDONLY
 #ifdef _WIN32
@@ -79,7 +79,7 @@ normal:
         } else if (buffer[position] == '\n') {
             position++;
             goto line_start;
-        } else if (buffer[position] == csvReaderConfig.quoteChar) {
+        } else if (buffer[position] == option.quoteChar) {
             position++;
             goto in_quotes;
         } else {
@@ -105,10 +105,10 @@ in_quotes:
     }
 
     do {
-        if (buffer[position] == csvReaderConfig.quoteChar) {
+        if (buffer[position] == option.quoteChar) {
             position++;
             goto normal;
-        } else if (buffer[position] == csvReaderConfig.escapeChar) {
+        } else if (buffer[position] == option.escapeChar) {
             position++;
             goto escape;
         } else {
@@ -166,7 +166,7 @@ void BaseCSVReader::addValue(Driver& driver, uint64_t rowNum, column_id_t column
 
 void BaseCSVReader::handleFirstBlock() {
     readBOM();
-    if (csvReaderConfig.hasHeader) {
+    if (option.hasHeader) {
         readHeader();
     }
 }
@@ -251,7 +251,7 @@ uint64_t BaseCSVReader::parseCSV(Driver& driver) {
 value_start:
     /* state: value_start */
     // this state parses the first character of a value
-    if (buffer[position] == csvReaderConfig.quoteChar) {
+    if (buffer[position] == option.quoteChar) {
         [[unlikely]]
         // quote: actual value starts in the next position
         // move to in_quotes state
@@ -270,7 +270,7 @@ normal:
     // newline
     do {
         for (; position < bufferSize; position++) {
-            if (buffer[position] == csvReaderConfig.delimiter) {
+            if (buffer[position] == option.delimiter) {
                 // delimiter: end the value and add it to the chunk
                 goto add_value;
             } else if (isNewLine(buffer[position])) {
@@ -285,7 +285,7 @@ normal:
     goto final_state;
 add_value:
     // We get here after we have a delimiter.
-    KU_ASSERT(buffer[position] == csvReaderConfig.delimiter);
+    KU_ASSERT(buffer[position] == option.delimiter);
     // Trim one character if we have quotes.
     addValue(driver, rowNum, column,
         std::string_view(buffer.get() + start, position - start - hasQuotes), escapePositions);
@@ -334,10 +334,10 @@ in_quotes:
     position++;
     do {
         for (; position < bufferSize; position++) {
-            if (buffer[position] == csvReaderConfig.quoteChar) {
+            if (buffer[position] == option.quoteChar) {
                 // quote: move to unquoted state
                 goto unquote;
-            } else if (buffer[position] == csvReaderConfig.escapeChar) {
+            } else if (buffer[position] == option.escapeChar) {
                 // escape: store the escaped position and move to handle_escape state
                 escapePositions.push_back(position - start);
                 goto handle_escape;
@@ -351,7 +351,7 @@ in_quotes:
     throw CopyException(stringFormat(
         "Error in file {} on line {}: unterminated quotes.", filePath, getLineNumber()));
 unquote:
-    KU_ASSERT(hasQuotes && buffer[position] == csvReaderConfig.quoteChar);
+    KU_ASSERT(hasQuotes && buffer[position] == option.quoteChar);
     // this state handles the state directly after we unquote
     // in this state we expect either another quote (entering the quoted state again, and
     // escaping the quote) or a delimiter/newline, ending the current value and moving on to the
@@ -361,12 +361,12 @@ unquote:
         // file ends right after unquote, go to final state
         goto final_state;
     }
-    if (buffer[position] == csvReaderConfig.quoteChar &&
-        (!csvReaderConfig.escapeChar || csvReaderConfig.escapeChar == csvReaderConfig.quoteChar)) {
+    if (buffer[position] == option.quoteChar &&
+        (!option.escapeChar || option.escapeChar == option.quoteChar)) {
         // escaped quote, return to quoted state and store escape position
         escapePositions.push_back(position - start);
         goto in_quotes;
-    } else if (buffer[position] == csvReaderConfig.delimiter ||
+    } else if (buffer[position] == option.delimiter ||
                buffer[position] == CopyConstants::DEFAULT_CSV_LIST_END_CHAR) {
         // delimiter, add value
         goto add_value;
@@ -387,8 +387,7 @@ handle_escape:
         [[unlikely]] throw CopyException(stringFormat(
             "Error in file {} on line {}: escape at end of file.", filePath, getLineNumber()));
     }
-    if (buffer[position] != csvReaderConfig.quoteChar &&
-        buffer[position] != csvReaderConfig.escapeChar) {
+    if (buffer[position] != option.quoteChar && buffer[position] != option.escapeChar) {
         [[unlikely]] throw CopyException(stringFormat(
             "Error in file {} on line {}: neither QUOTE nor ESCAPE is proceeded by ESCAPE.",
             filePath, getLineNumber()));
