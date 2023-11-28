@@ -7,8 +7,6 @@ namespace binder {
 
 class PropertyCollector : public BoundStatementVisitor {
 public:
-    PropertyCollector() : BoundStatementVisitor() {}
-
     expression_vector getProperties();
 
 private:

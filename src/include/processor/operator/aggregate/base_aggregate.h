@@ -14,7 +14,7 @@ protected:
 
     virtual std::pair<uint64_t, uint64_t> getNextRangeToRead() = 0;
 
-    ~BaseAggregateSharedState() {}
+    ~BaseAggregateSharedState() = default;
 
 protected:
     std::mutex mtx;

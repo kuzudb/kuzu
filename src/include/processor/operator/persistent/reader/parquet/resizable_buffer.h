@@ -9,7 +9,7 @@ namespace processor {
 
 class ByteBuffer { // on to the 10 thousandth impl
 public:
-    ByteBuffer(){};
+    ByteBuffer() = default;
     ByteBuffer(uint8_t* ptr, uint64_t len) : ptr{ptr}, len{len} {};
 
     uint8_t* ptr = nullptr;
@@ -59,7 +59,7 @@ public:
 
 class ResizeableBuffer : public ByteBuffer {
 public:
-    ResizeableBuffer() {}
+    ResizeableBuffer() = default;
     explicit ResizeableBuffer(uint64_t new_size) { resize(new_size); }
     void resize(uint64_t new_size) {
         len = new_size;

@@ -9,8 +9,6 @@ class LockedQueue {
     std::queue<T> q;
 
 public:
-    LockedQueue() {}
-
     void enqueue(T x) {
         std::scoped_lock lck{mtx};
         q.push(std::move(x));

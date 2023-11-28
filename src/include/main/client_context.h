@@ -7,6 +7,7 @@
 
 #include "common/timer.h"
 #include "main/kuzu_fwd.h"
+#include "transaction/transaction_context.h"
 
 namespace kuzu {
 
@@ -43,8 +44,6 @@ class ClientContext {
 
 public:
     explicit ClientContext(Database* database);
-
-    ~ClientContext();
 
     inline void interrupt() { activeQuery.interrupted = true; }
 

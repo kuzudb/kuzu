@@ -29,8 +29,6 @@ ClientContext::ClientContext(Database* database)
     transactionContext = std::make_unique<TransactionContext>(database);
 }
 
-ClientContext::~ClientContext() {}
-
 void ClientContext::startTimingIfEnabled() {
     if (isTimeOutEnabled()) {
         activeQuery.timer.start();
