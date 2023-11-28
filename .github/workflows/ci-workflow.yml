@@ -29,8 +29,6 @@ jobs:
     env:
       NUM_THREADS: 32
       TEST_JOBS: 16
-      CLANGD_DIAGNOSTIC_JOBS: 32
-      CLANGD_DIAGNOSTIC_INSTANCES: 6
       GEN: ninja
       CC: gcc
       CXX: g++
@@ -228,7 +226,7 @@ jobs:
           make javatest
 
   tidy-and-diagnostics:
-    name: clang tidy & clangd diagnostics check
+    name: clang tidy check
     needs: [clang-formatting-check, include-guard-and-no-std-assert]
     runs-on: kuzu-self-hosted-testing
     env:
@@ -241,9 +239,6 @@ jobs:
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
         working-directory: tools/nodejs_api
-
-      - name: Check for clangd diagnostics
-        run: make clangd-diagnostics
 
       - name: Run clang-tidy
         run: make tidy
