@@ -20,8 +20,6 @@ using string_map_t = std::unordered_map<common::ku_string_t, T, StringHash, Stri
 
 class StringStatisticsState : public ColumnWriterStatistics {
 public:
-    StringStatisticsState() : hasStats(false), valuesTooBig(false), min(), max() {}
-
     bool hasStats;
     bool valuesTooBig;
     std::string min;
