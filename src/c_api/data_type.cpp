@@ -1,3 +1,8 @@
+#include <cstdint>
+#include <cstdlib>
+#include <memory>
+#include <utility>
+
 #include "c_api/kuzu.h"
 #include "common/types/types.h"
 

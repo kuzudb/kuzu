@@ -1,7 +1,15 @@
 #include "processor/operator/persistent/reader/csv/driver.h"
 
+#include <cstdint>
+#include <string>
+#include <string_view>
+
+#include "common/constants.h"
+#include "common/data_chunk/data_chunk.h"
 #include "common/exception/copy.h"
+#include "common/exception/exception.h"
 #include "common/string_format.h"
+#include "common/types/types.h"
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"

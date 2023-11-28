@@ -1,5 +1,7 @@
 #include "processor/operator/ddl/drop_property.h"
 
+#include "common/enums/table_type.h"
+
 namespace kuzu {
 namespace processor {
 

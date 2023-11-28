@@ -1,8 +1,26 @@
 #include "processor/operator/persistent/copy_rdf_resource.h"
 
+#include <cstdint>
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "common/assert.h"
+#include "common/column_data_format.h"
+#include "common/constants.h"
+#include "common/data_chunk/sel_vector.h"
 #include "common/exception/copy.h"
 #include "common/string_format.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/ku_string.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
+#include "processor/result/result_set.h"
+#include "storage/storage_utils.h"
+#include "storage/store/node_group.h"
+#include "storage/store/node_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;

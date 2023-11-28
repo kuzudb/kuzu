@@ -1,5 +1,7 @@
 #include "optimizer/logical_operator_collector.h"
 
+#include "planner/operator/logical_operator.h"
+
 namespace kuzu {
 namespace optimizer {
 

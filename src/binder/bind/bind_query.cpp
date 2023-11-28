@@ -1,6 +1,18 @@
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include "binder/binder.h"
+#include "binder/bound_statement_result.h"
+#include "binder/query/bound_regular_query.h"
+#include "binder/query/normalized_query_part.h"
+#include "binder/query/normalized_single_query.h"
 #include "binder/query/return_with_clause/bound_return_clause.h"
 #include "binder/query/return_with_clause/bound_with_clause.h"
+#include "common/assert.h"
+#include "parser/query/query_part.h"
+#include "parser/query/regular_query.h"
+#include "parser/query/single_query.h"
 
 using namespace kuzu::parser;
 

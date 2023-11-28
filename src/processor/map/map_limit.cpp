@@ -1,5 +1,11 @@
+#include <atomic>
+#include <memory>
+#include <utility>
+
 #include "planner/operator/logical_limit.h"
+#include "planner/operator/logical_operator.h"
 #include "processor/operator/limit.h"
+#include "processor/operator/physical_operator.h"
 #include "processor/operator/skip.h"
 #include "processor/plan_mapper.h"
 

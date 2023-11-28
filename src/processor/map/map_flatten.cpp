@@ -1,5 +1,10 @@
+#include <memory>
+#include <utility>
+
 #include "planner/operator/logical_flatten.h"
+#include "planner/operator/logical_operator.h"
 #include "processor/operator/flatten.h"
+#include "processor/operator/physical_operator.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::planner;

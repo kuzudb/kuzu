@@ -1,9 +1,17 @@
 #include "optimizer/agg_key_dependency_optimizer.h"
 
+#include <string>
+#include <unordered_set>
+#include <utility>
+
+#include "binder/expression/expression.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/property_expression.h"
+#include "common/enums/expression_type.h"
 #include "planner/operator/logical_aggregate.h"
 #include "planner/operator/logical_distinct.h"
+#include "planner/operator/logical_operator.h"
+#include "planner/operator/logical_plan.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

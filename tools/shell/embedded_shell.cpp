@@ -2,12 +2,28 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cinttypes>
 #include <csignal>
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <exception>
+#include <memory>
 #include <regex>
 #include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "catalog/catalog.h"
+#include "common/exception/exception.h"
 #include "common/string_utils.h"
+#include "linenoise.h"
+#include "main/connection.h"
+#include "main/database.h"
+#include "main/query_result.h"
 #include "utf8proc.h"
 #include "utf8proc_wrapper.h"
 

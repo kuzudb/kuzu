@@ -1,5 +1,7 @@
 #include "processor/operator/scan/scan_rel_regular_columns.h"
 
+#include "processor/execution_context.h"
+
 namespace kuzu {
 namespace processor {
 

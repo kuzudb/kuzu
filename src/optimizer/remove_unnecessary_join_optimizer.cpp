@@ -1,6 +1,11 @@
 #include "optimizer/remove_unnecessary_join_optimizer.h"
 
+#include <memory>
+
+#include "common/enums/join_type.h"
 #include "planner/operator/logical_hash_join.h"
+#include "planner/operator/logical_operator.h"
+#include "planner/operator/logical_plan.h"
 
 using namespace kuzu::common;
 using namespace kuzu::planner;

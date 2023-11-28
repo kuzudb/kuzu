@@ -1,8 +1,12 @@
 #include "transaction/transaction_context.h"
 
+#include <mutex>
+
+#include "common/assert.h"
 #include "common/exception/connection.h"
 #include "common/exception/transaction_manager.h"
 #include "main/database.h"
+#include "transaction/transaction.h"
 #include "transaction/transaction_manager.h"
 
 using namespace kuzu::common;

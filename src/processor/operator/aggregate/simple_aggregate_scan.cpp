@@ -1,5 +1,10 @@
 #include "processor/operator/aggregate/simple_aggregate_scan.h"
 
+#include "common/assert.h"
+#include "processor/execution_context.h"
+#include "processor/operator/aggregate/base_aggregate_scan.h"
+#include "processor/result/result_set.h"
+
 namespace kuzu {
 namespace processor {
 

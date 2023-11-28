@@ -1,7 +1,20 @@
 #include "processor/operator/persistent/insert_executor.h"
 
+#include <cstdint>
+#include <memory>
+#include <vector>
+
+#include "common/assert.h"
+#include "common/enums/rel_direction.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "processor/data_pos.h"
+#include "processor/execution_context.h"
+#include "processor/result/result_set.h"
 #include "storage/stats/rels_store_statistics.h"
 #include "storage/storage_utils.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 

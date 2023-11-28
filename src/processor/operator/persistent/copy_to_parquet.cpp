@@ -1,5 +1,16 @@
 #include "processor/operator/persistent/copy_to_parquet.h"
 
+#include <memory>
+#include <utility>
+
+#include "common/constants.h"
+#include "common/types/types.h"
+#include "processor/operator/persistent/copy_to.h"
+#include "processor/operator/persistent/writer/parquet/parquet_writer.h"
+#include "processor/result/factorized_table.h"
+#include "processor/result/result_set.h"
+#include "storage/buffer_manager/memory_manager.h"
+
 namespace kuzu {
 namespace processor {
 

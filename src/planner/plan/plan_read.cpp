@@ -1,7 +1,18 @@
+#include <memory>
+#include <string>
+#include <unordered_set>
+#include <vector>
+
+#include "binder/expression/expression.h"
 #include "binder/expression_visitor.h"
 #include "binder/query/reading_clause/bound_in_query_call.h"
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
+#include "binder/query/reading_clause/bound_reading_clause.h"
+#include "common/assert.h"
+#include "common/enums/clause_type.h"
+#include "common/enums/join_type.h"
+#include "planner/operator/logical_plan.h"
 #include "planner/query_planner.h"
 
 using namespace kuzu::binder;

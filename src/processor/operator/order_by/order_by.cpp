@@ -1,5 +1,11 @@
 #include "processor/operator/order_by/order_by.h"
 
+#include <memory>
+
+#include "processor/execution_context.h"
+#include "processor/operator/order_by/sort_state.h"
+#include "processor/result/result_set.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

@@ -1,13 +1,26 @@
 #include "common/types/value/value.h"
 
+#include <cmath>
+#include <cstdint>
+#include <memory>
+#include <string>
 #include <utility>
+#include <vector>
 
+#include "common/assert.h"
 #include "common/null_buffer.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "common/type_utils.h"
 #include "common/types/blob.h"
+#include "common/types/date_t.h"
+#include "common/types/int128_t.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/interval_t.h"
+#include "common/types/ku_list.h"
 #include "common/types/ku_string.h"
+#include "common/types/timestamp_t.h"
+#include "common/types/types.h"
 #include "storage/storage_utils.h"
 
 namespace kuzu {

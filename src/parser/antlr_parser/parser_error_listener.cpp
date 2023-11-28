@@ -1,5 +1,12 @@
 #include "parser/antlr_parser/parser_error_listener.h"
 
+#include <cstddef>
+#include <exception>
+#include <string>
+
+#include "CommonTokenStream.h"
+#include "Recognizer.h"
+#include "Token.h"
 #include "common/exception/parser.h"
 #include "common/string_utils.h"
 

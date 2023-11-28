@@ -1,5 +1,14 @@
 #include "processor/operator/persistent/reader/parquet/boolean_column_reader.h"
 
+#include <cstdint>
+#include <vector>
+
+#include "parquet/parquet_types.h"
+#include "processor/operator/persistent/reader/parquet/column_reader.h"
+#include "processor/operator/persistent/reader/parquet/resizable_buffer.h"
+#include "processor/operator/persistent/reader/parquet/templated_column_reader.h"
+#include "thrift/protocol/TProtocol.h"
+
 namespace kuzu {
 namespace processor {
 

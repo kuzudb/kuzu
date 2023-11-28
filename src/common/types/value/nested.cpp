@@ -1,5 +1,7 @@
 #include "common/types/value/nested.h"
 
+#include <cstdint>
+
 #include "common/exception/runtime.h"
 #include "common/types/value/value.h"
 

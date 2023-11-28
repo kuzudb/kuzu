@@ -1,8 +1,18 @@
 #include "storage/index/hash_index_utils.h"
 
+#include <algorithm>
+#include <cstdint>
+#include <cstring>
+
 #include "common/exception/copy.h"
 #include "common/exception/storage.h"
 #include "common/type_utils.h"
+#include "common/types/ku_string.h"
+#include "common/types/types.h"
+#include "storage/storage_structure/disk_overflow_file.h"
+#include "storage/storage_structure/in_mem_file.h"
+#include "storage/storage_utils.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;

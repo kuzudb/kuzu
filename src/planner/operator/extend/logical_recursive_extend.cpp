@@ -2,6 +2,8 @@
 
 #include "optimizer/factorization_rewriter.h"
 #include "optimizer/remove_factorization_rewriter.h"
+#include "planner/operator/extend/recursive_join_type.h"
+#include "planner/operator/schema.h"
 
 namespace kuzu {
 namespace planner {

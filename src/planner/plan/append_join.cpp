@@ -1,6 +1,17 @@
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "binder/expression/expression.h"
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/enums/join_type.h"
 #include "planner/join_order/cost_model.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_intersect.h"
+#include "planner/operator/logical_operator.h"
+#include "planner/operator/logical_plan.h"
+#include "planner/operator/sip/side_way_info_passing.h"
 #include "planner/query_planner.h"
 
 using namespace kuzu::common;

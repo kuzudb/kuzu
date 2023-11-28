@@ -1,5 +1,7 @@
 #include "processor/operator/ddl/add_node_property.h"
 
+#include <utility>
+
 namespace kuzu {
 namespace processor {
 

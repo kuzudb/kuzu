@@ -1,6 +1,16 @@
 #include "common/vector/auxiliary_buffer.h"
 
+#include <cstdint>
+#include <cstring>
+#include <memory>
+#include <numeric>
+#include <utility>
+
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/types/types.h"
 #include "common/vector/value_vector.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
 namespace common {

@@ -1,5 +1,8 @@
 #include "common/task_system/task.h"
 
+#include <cstdint>
+#include <exception>
+
 namespace kuzu {
 namespace common {
 

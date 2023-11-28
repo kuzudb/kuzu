@@ -1,10 +1,23 @@
+#include <memory>
+#include <string>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+
+#include "binder/expression/expression.h"
 #include "binder/expression/function_expression.h"
+#include "function/aggregate_function.h"
 #include "planner/operator/logical_aggregate.h"
+#include "planner/operator/logical_operator.h"
+#include "planner/operator/schema.h"
+#include "processor/data_pos.h"
 #include "processor/operator/aggregate/hash_aggregate.h"
 #include "processor/operator/aggregate/hash_aggregate_scan.h"
 #include "processor/operator/aggregate/simple_aggregate.h"
 #include "processor/operator/aggregate/simple_aggregate_scan.h"
+#include "processor/operator/physical_operator.h"
 #include "processor/plan_mapper.h"
+#include "processor/result/result_set_descriptor.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

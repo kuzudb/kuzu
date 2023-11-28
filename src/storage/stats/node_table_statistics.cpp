@@ -1,8 +1,27 @@
 #include "storage/stats/node_table_statistics.h"
 
+#include <cstdint>
+#include <memory>
+#include <set>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
+#include "catalog/table_schema.h"
+#include "common/constants.h"
+#include "common/enums/table_type.h"
+#include "common/exception/runtime.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "common/string_format.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "storage/buffer_manager/bm_file_handle.h"
+#include "storage/buffer_manager/buffer_manager.h"
+#include "storage/stats/metadata_dah_info.h"
+#include "storage/stats/property_statistics.h"
+#include "storage/stats/table_statistics.h"
 #include "storage/stats/table_statistics_collection.h"
 #include "storage/storage_utils.h"
 

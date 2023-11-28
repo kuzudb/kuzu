@@ -1,9 +1,25 @@
 #include "function/cast/functions/cast_fixed_list.h"
 
+#include <cmath>
+#include <cstdint>
+#include <functional>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "common/assert.h"
 #include "common/exception/conversion.h"
+#include "common/exception/runtime.h"
+#include "common/string_format.h"
 #include "common/type_utils.h"
+#include "common/types/int128_t.h"
+#include "common/types/ku_string.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "function/cast/functions/cast_functions.h"
+#include "function/function.h"
+#include "function/unary_function_executor.h"
 
 namespace kuzu {
 namespace function {

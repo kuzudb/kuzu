@@ -1,8 +1,21 @@
 #include "storage/stats/rel_table_statistics.h"
 
+#include <cstdint>
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include "catalog/rel_table_schema.h"
+#include "catalog/table_schema.h"
+#include "common/enums/rel_direction.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
+#include "storage/buffer_manager/bm_file_handle.h"
+#include "storage/buffer_manager/buffer_manager.h"
+#include "storage/stats/metadata_dah_info.h"
+#include "storage/stats/table_statistics.h"
 #include "storage/stats/table_statistics_collection.h"
 #include "storage/wal/wal.h"
 

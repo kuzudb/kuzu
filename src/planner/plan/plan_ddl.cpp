@@ -1,9 +1,15 @@
+#include <memory>
+#include <utility>
+
+#include "binder/bound_statement.h"
 #include "binder/ddl/bound_alter.h"
 #include "binder/ddl/bound_create_table.h"
 #include "binder/ddl/bound_drop_table.h"
 #include "planner/operator/ddl/logical_alter.h"
 #include "planner/operator/ddl/logical_create_table.h"
 #include "planner/operator/ddl/logical_drop_table.h"
+#include "planner/operator/logical_operator.h"
+#include "planner/operator/logical_plan.h"
 #include "planner/planner.h"
 
 using namespace kuzu::binder;

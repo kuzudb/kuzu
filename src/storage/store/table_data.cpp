@@ -1,5 +1,16 @@
 #include "storage/store/table_data.h"
 
+#include <utility>
+
+#include "catalog/property.h"
+#include "common/vector/value_vector.h"
+#include "storage/stats/metadata_dah_info.h"
+#include "storage/stats/property_statistics.h"
+#include "storage/storage_structure/disk_array.h"
+#include "storage/store/column.h"
+#include "storage/store/column_chunk.h"
+#include "transaction/transaction.h"
+
 using namespace kuzu::common;
 using namespace kuzu::transaction;
 

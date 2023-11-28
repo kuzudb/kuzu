@@ -1,5 +1,17 @@
 #include "storage/local_storage/local_table.h"
 
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "common/assert.h"
+#include "common/column_data_format.h"
+#include "common/constants.h"
+#include "common/enums/table_type.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "storage/local_storage/local_node_table.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/store/column.h"

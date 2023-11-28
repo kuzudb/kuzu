@@ -1,10 +1,19 @@
 #include "common/arrow/arrow_row_batch.h"
 
+#include <cstdint>
 #include <cstring>
+#include <memory>
+#include <utility>
+#include <vector>
 
+#include "common/arrow/arrow.h"
+#include "common/assert.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
 #include "common/types/value/node.h"
 #include "common/types/value/rel.h"
 #include "common/types/value/value.h"
+#include "main/query_result.h"
 #include "storage/storage_utils.h"
 
 namespace kuzu {

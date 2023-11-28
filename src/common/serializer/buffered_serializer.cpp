@@ -1,6 +1,9 @@
 #include "common/serializer/buffered_serializer.h"
 
+#include <cstdint>
 #include <cstring>
+#include <memory>
+#include <utility>
 
 namespace kuzu {
 namespace common {

@@ -1,9 +1,30 @@
 #include "function/table_functions/call_functions.h"
 
+#include <algorithm>
+#include <cstdint>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "catalog/catalog_content.h"
 #include "catalog/node_table_schema.h"
 #include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/data_chunk/data_chunk.h"
+#include "common/enums/table_type.h"
 #include "common/exception/binder.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "function/scalar_function.h"
+#include "function/table_functions.h"
+#include "function/table_functions/bind_data.h"
+#include "function/table_functions/bind_input.h"
+#include "main/client_context.h"
 
 namespace kuzu {
 namespace function {

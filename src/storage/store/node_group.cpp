@@ -1,8 +1,19 @@
 #include "storage/store/node_group.h"
 
+#include <algorithm>
+#include <cstdint>
+#include <memory>
+#include <vector>
+
 #include "common/assert.h"
 #include "common/constants.h"
+#include "common/data_chunk/data_chunk.h"
+#include "common/data_chunk/data_chunk_state.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
 #include "storage/store/column.h"
+#include "storage/store/column_chunk.h"
 
 using namespace kuzu::common;
 

@@ -16,6 +16,7 @@ Checks:
 
   google-explicit-constructor
 
+  misc-include-cleaner,
   misc-unused-parameters,
 
   modernize-use-override,

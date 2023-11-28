@@ -1,5 +1,9 @@
 #include "optimizer/factorization_rewriter.h"
 
+#include <memory>
+#include <unordered_set>
+#include <utility>
+
 #include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/factorization/flatten_resolver.h"
@@ -11,7 +15,9 @@
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_intersect.h"
 #include "planner/operator/logical_limit.h"
+#include "planner/operator/logical_operator.h"
 #include "planner/operator/logical_order_by.h"
+#include "planner/operator/logical_plan.h"
 #include "planner/operator/logical_projection.h"
 #include "planner/operator/logical_union.h"
 #include "planner/operator/logical_unwind.h"
@@ -20,6 +26,7 @@
 #include "planner/operator/persistent/logical_insert.h"
 #include "planner/operator/persistent/logical_merge.h"
 #include "planner/operator/persistent/logical_set.h"
+#include "planner/operator/schema.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::planner;

@@ -1,7 +1,13 @@
 #include "binder/rewriter/with_clause_projection_rewriter.h"
 
+#include <string>
+#include <utility>
+
+#include "binder/expression/expression.h"
 #include "binder/expression/property_expression.h"
+#include "binder/query/normalized_single_query.h"
 #include "binder/visitor/property_collector.h"
+#include "common/enums/expression_type.h"
 
 using namespace kuzu::common;
 

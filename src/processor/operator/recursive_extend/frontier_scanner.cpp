@@ -1,5 +1,14 @@
 #include "processor/operator/recursive_extend/frontier_scanner.h"
 
+#include <cstddef>
+
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "processor/operator/recursive_extend/bfs_state.h"
+#include "processor/operator/recursive_extend/frontier.h"
 #include "processor/operator/recursive_extend/recursive_join.h"
 
 using namespace kuzu::common;

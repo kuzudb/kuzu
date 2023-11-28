@@ -1,7 +1,18 @@
 #include "benchmark.h"
 
+#include <cstdint>
 #include <fstream>
+#include <ios>
+#include <memory>
+#include <ostream>
+#include <string>
+#include <vector>
 
+#include "benchmark_config.h"
+#include "common/assert.h"
+#include "main/connection.h"
+#include "main/database.h"
+#include "main/query_result.h"
 #include "spdlog/spdlog.h"
 #include "test_helper.h"
 

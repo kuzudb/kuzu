@@ -1,5 +1,19 @@
 #include "processor/operator/persistent/reader/parquet/struct_column_reader.h"
 
+#include <cstdint>
+#include <memory>
+#include <stdexcept>
+#include <utility>
+#include <vector>
+
+#include "common/assert.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "parquet/parquet_types.h"
+#include "processor/operator/persistent/reader/parquet/column_reader.h"
+#include "processor/operator/persistent/reader/parquet/thrift_tools.h"
+#include "thrift/protocol/TProtocol.h"
+
 namespace kuzu {
 namespace processor {
 

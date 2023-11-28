@@ -1,5 +1,10 @@
 #include "processor/operator/persistent/reader/parquet/parquet_timestamp.h"
 
+#include <cstdint>
+
+#include "common/types/date_t.h"
+#include "common/types/timestamp_t.h"
+
 namespace kuzu {
 namespace processor {
 

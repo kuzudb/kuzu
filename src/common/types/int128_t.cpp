@@ -1,6 +1,9 @@
 #include "common/types/int128_t.h"
 
 #include <cmath>
+#include <cstdint>
+#include <string>
+#include <utility>
 
 #include "common/exception/overflow.h"
 #include "function/cast/functions/numeric_limits.h"

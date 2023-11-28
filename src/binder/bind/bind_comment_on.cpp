@@ -1,6 +1,10 @@
+#include <memory>
+
 #include "binder/binder.h"
 #include "binder/bound_comment_on.h"
+#include "binder/bound_statement.h"
 #include "parser/comment_on.h"
+#include "parser/statement.h"
 
 namespace kuzu {
 namespace binder {

@@ -1,5 +1,12 @@
 #include "processor/operator/order_by/top_k_scanner.h"
 
+#include <vector>
+
+#include "processor/data_pos.h"
+#include "processor/execution_context.h"
+#include "processor/operator/order_by/top_k.h"
+#include "processor/result/result_set.h"
+
 namespace kuzu {
 namespace processor {
 

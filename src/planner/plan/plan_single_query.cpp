@@ -1,4 +1,11 @@
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "binder/query/normalized_query_part.h"
+#include "binder/query/normalized_single_query.h"
 #include "binder/visitor/property_collector.h"
+#include "planner/operator/logical_plan.h"
 #include "planner/query_planner.h"
 
 using namespace kuzu::binder;

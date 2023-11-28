@@ -1,14 +1,34 @@
 #include "include/py_query_result.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 
+#include "arrow_array.h"
+#include "common/arrow/arrow.h"
 #include "common/arrow/arrow_converter.h"
+#include "common/assert.h"
 #include "common/exception/not_implemented.h"
+#include "common/types/date_t.h"
+#include "common/types/dtime_t.h"
+#include "common/types/int128_t.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/interval_t.h"
+#include "common/types/timestamp_t.h"
+#include "common/types/types.h"
 #include "common/types/value/nested.h"
 #include "common/types/value/node.h"
 #include "common/types/value/rel.h"
 #include "datetime.h" // python lib
 #include "include/py_query_result_converter.h"
+#include "main/query_result.h"
+#include <pybind11/cast.h>
+#include <pybind11/gil.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/pytypes.h>
 
 using namespace kuzu::common;
 

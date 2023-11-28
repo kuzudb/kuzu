@@ -1,7 +1,12 @@
 #include "catalog/rel_table_group_schema.h"
 
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
+#include "common/types/internal_id_t.h"
 
 using namespace kuzu::common;
 

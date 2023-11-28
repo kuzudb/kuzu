@@ -1,5 +1,9 @@
 #include "function/table_functions/scan_functions.h"
 
+#include <cstdint>
+#include <mutex>
+#include <utility>
+
 namespace kuzu {
 namespace function {
 

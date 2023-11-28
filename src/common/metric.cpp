@@ -1,5 +1,10 @@
 #include "common/metric.h"
 
+#include <cstdint>
+
+#include "common/exception/exception.h"
+#include "common/timer.h"
+
 namespace kuzu {
 namespace common {
 

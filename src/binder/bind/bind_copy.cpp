@@ -1,14 +1,29 @@
+#include <memory>
+#include <string>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+
 #include "binder/binder.h"
+#include "binder/bound_statement.h"
 #include "binder/copy/bound_copy_from.h"
 #include "binder/copy/bound_copy_to.h"
+#include "binder/expression/expression.h"
 #include "catalog/node_table_schema.h"
+#include "catalog/property.h"
 #include "catalog/rel_table_schema.h"
+#include "catalog/table_schema.h"
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/copier_config/copier_config.h"
 #include "common/enums/table_type.h"
 #include "common/exception/binder.h"
 #include "common/exception/message.h"
 #include "common/string_format.h"
+#include "common/types/types.h"
 #include "function/table_functions/bind_input.h"
 #include "parser/copy.h"
+#include "parser/statement.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;

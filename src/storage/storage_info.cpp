@@ -1,5 +1,7 @@
 #include "storage/storage_info.h"
 
+#include <algorithm>
+
 namespace kuzu {
 namespace storage {
 

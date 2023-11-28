@@ -1,5 +1,15 @@
 #include "processor/operator/call/in_query_call.h"
 
+#include <cstdint>
+#include <memory>
+#include <mutex>
+
+#include "common/data_chunk/data_chunk.h"
+#include "common/types/types.h"
+#include "function/table_functions.h"
+#include "processor/execution_context.h"
+#include "processor/result/result_set.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

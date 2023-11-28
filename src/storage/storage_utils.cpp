@@ -1,10 +1,21 @@
 #include "storage/storage_utils.h"
 
+#include <fcntl.h>
+
+#include <cstdint>
+#include <memory>
+#include <string>
+
+#include "common/constants.h"
 #include "common/exception/runtime.h"
+#include "common/file_utils.h"
 #include "common/null_buffer.h"
 #include "common/string_format.h"
+#include "common/types/internal_id_t.h"
 #include "common/types/ku_list.h"
 #include "common/types/ku_string.h"
+#include "common/types/types.h"
+#include "storage/wal/wal_record.h"
 
 using namespace kuzu::common;
 

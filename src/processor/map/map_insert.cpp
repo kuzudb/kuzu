@@ -1,7 +1,22 @@
+#include <memory>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+
+#include "binder/expression/expression.h"
+#include "catalog/node_table_schema.h"
+#include "catalog/table_schema.h"
 #include "common/cast.h"
+#include "expression_evaluator/expression_evaluator.h"
+#include "planner/operator/logical_operator.h"
 #include "planner/operator/persistent/logical_insert.h"
+#include "planner/operator/schema.h"
+#include "processor/data_pos.h"
+#include "processor/expression_mapper.h"
 #include "processor/operator/persistent/insert.h"
+#include "processor/operator/physical_operator.h"
 #include "processor/plan_mapper.h"
+#include "storage/store/rel_table.h"
 
 using namespace kuzu::evaluator;
 using namespace kuzu::planner;

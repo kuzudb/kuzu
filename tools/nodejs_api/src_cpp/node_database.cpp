@@ -1,5 +1,11 @@
 #include "include/node_database.h"
 
+#include <memory>
+#include <utility>
+
+#include "main/database.h"
+#include "napi.h"
+
 Napi::Object NodeDatabase::Init(Napi::Env env, Napi::Object exports) {
     Napi::HandleScope scope(env);
 

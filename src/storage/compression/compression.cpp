@@ -1,15 +1,23 @@
 #include "storage/compression/compression.h"
 
+#include <algorithm>
+#include <array>
+#include <cstdint>
 #include <limits>
 #include <string>
+#include <type_traits>
 
+#include "common/assert.h"
+#include "common/constants.h"
 #include "common/exception/not_implemented.h"
 #include "common/exception/storage.h"
 #include "common/null_mask.h"
+#include "common/types/internal_id_t.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "fastpfor/bitpackinghelpers.h"
 #include "storage/compression/sign_extend.h"
+#include "storage/storage_utils.h"
 #include "storage/store/column.h"
 #include <bit>
 

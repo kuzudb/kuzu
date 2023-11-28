@@ -1,5 +1,12 @@
 #include "processor/operator/result_collector.h"
 
+#include <memory>
+
+#include "common/enums/join_type.h"
+#include "processor/execution_context.h"
+#include "processor/result/factorized_table.h"
+#include "processor/result/result_set.h"
+
 using namespace kuzu::common;
 using namespace kuzu::storage;
 

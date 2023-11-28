@@ -1,5 +1,8 @@
 #include "processor/operator/fill_table_id.h"
 
+#include "common/types/internal_id_t.h"
+#include "processor/execution_context.h"
+
 namespace kuzu {
 namespace processor {
 

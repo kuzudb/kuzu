@@ -1,5 +1,18 @@
 #include "processor/operator/persistent/delete_executor.h"
 
+#include <memory>
+
+#include "common/assert.h"
+#include "common/enums/delete_type.h"
+#include "common/enums/rel_direction.h"
+#include "common/exception/runtime.h"
+#include "common/string_format.h"
+#include "common/types/internal_id_t.h"
+#include "common/vector/value_vector.h"
+#include "processor/execution_context.h"
+#include "processor/result/result_set.h"
+#include "storage/store/rel_table.h"
+
 using namespace kuzu::common;
 using namespace kuzu::storage;
 

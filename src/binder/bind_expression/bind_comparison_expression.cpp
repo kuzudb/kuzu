@@ -1,6 +1,16 @@
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include "binder/binder.h"
+#include "binder/expression/expression.h"
 #include "binder/expression/function_expression.h"
 #include "binder/expression_binder.h"
+#include "common/enums/expression_type.h"
+#include "common/types/types.h"
+#include "function/function.h"
+#include "function/scalar_function.h"
+#include "parser/expression/parsed_expression.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;

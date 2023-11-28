@@ -1,4 +1,11 @@
+#include <memory>
+#include <utility>
+
+#include "common/types/types.h"
+#include "planner/operator/logical_operator.h"
 #include "planner/operator/logical_unwind.h"
+#include "processor/data_pos.h"
+#include "processor/expression_mapper.h"
 #include "processor/operator/physical_operator.h"
 #include "processor/operator/unwind.h"
 #include "processor/plan_mapper.h"

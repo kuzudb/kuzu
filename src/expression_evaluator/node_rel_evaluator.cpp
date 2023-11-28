@@ -1,6 +1,13 @@
 #include "expression_evaluator/node_rel_evaluator.h"
 
+#include <memory>
+#include <vector>
+
+#include "common/vector/value_vector.h"
+#include "expression_evaluator/expression_evaluator.h"
 #include "function/struct/vector_struct_functions.h"
+#include "processor/result/result_set.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;

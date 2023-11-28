@@ -1,12 +1,34 @@
 #include "include/py_connection.h"
 
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <unordered_map>
 #include <utility>
 
 #include "common/string_format.h"
+#include "common/types/date_t.h"
+#include "common/types/dtime_t.h"
+#include "common/types/interval_t.h"
+#include "common/types/timestamp_t.h"
+#include "common/types/types.h"
+#include "common/types/value/value.h"
 #include "datetime.h" // from Python
 #include "main/connection.h"
+#include "main/storage_driver.h"
 #include "pandas/pandas_scan.h"
 #include "processor/result/factorized_table.h"
+#include "py_database.h"
+#include "py_prepared_statement.h"
+#include "py_query_result.h"
+#include <pybind11/cast.h>
+#include <pybind11/gil.h>
+#include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/pytypes.h>
 
 using namespace kuzu::common;
 

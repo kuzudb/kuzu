@@ -1,5 +1,9 @@
 #include "parser/expression/parsed_variable_expression.h"
 
+#include <memory>
+#include <string>
+#include <utility>
+
 #include "common/serializer/deserializer.h"
 
 using namespace kuzu::common;

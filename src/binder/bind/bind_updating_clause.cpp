@@ -1,18 +1,35 @@
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include "binder/binder.h"
+#include "binder/expression/expression.h"
 #include "binder/expression/expression_util.h"
+#include "binder/expression/node_expression.h"
 #include "binder/expression/property_expression.h"
+#include "binder/expression/rel_expression.h"
+#include "binder/expression_binder.h"
+#include "binder/query/query_graph.h"
 #include "binder/query/updating_clause/bound_delete_clause.h"
 #include "binder/query/updating_clause/bound_insert_clause.h"
 #include "binder/query/updating_clause/bound_merge_clause.h"
 #include "binder/query/updating_clause/bound_set_clause.h"
+#include "binder/query/updating_clause/bound_updating_clause.h"
+#include "binder/query/updating_clause/update_table_type.h"
 #include "catalog/node_table_schema.h"
+#include "catalog/table_schema.h"
 #include "common/assert.h"
+#include "common/enums/clause_type.h"
+#include "common/enums/expression_type.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
+#include "common/types/types.h"
+#include "parser/expression/parsed_expression.h"
 #include "parser/query/updating_clause/delete_clause.h"
 #include "parser/query/updating_clause/insert_clause.h"
 #include "parser/query/updating_clause/merge_clause.h"
 #include "parser/query/updating_clause/set_clause.h"
+#include "parser/query/updating_clause/updating_clause.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;

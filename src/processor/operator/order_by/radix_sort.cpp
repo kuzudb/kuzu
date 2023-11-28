@@ -1,8 +1,17 @@
 #include "processor/operator/order_by/radix_sort.h"
 
 #include <algorithm>
+#include <cstdint>
+#include <cstring>
+#include <queue>
+#include <type_traits>
+#include <vector>
 
+#include "common/types/ku_string.h"
 #include "function/comparison/comparison_functions.h"
+#include "processor/operator/order_by/key_block_merger.h"
+#include "processor/operator/order_by/order_by_key_encoder.h"
+#include "processor/result/factorized_table.h"
 
 using namespace kuzu::common;
 

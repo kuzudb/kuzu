@@ -1,8 +1,14 @@
 #include "processor/operator/order_by/order_by_merge.h"
 
+#include <chrono>
+#include <memory>
 #include <thread>
+#include <utility>
 
 #include "common/constants.h"
+#include "processor/execution_context.h"
+#include "processor/operator/order_by/key_block_merger.h"
+#include "processor/result/result_set.h"
 
 using namespace kuzu::common;
 

@@ -1,5 +1,9 @@
+#include <memory>
+
+#include "binder/expression/expression.h"
 #include "binder/expression/parameter_expression.h"
 #include "binder/expression_binder.h"
+#include "parser/expression/parsed_expression.h"
 #include "parser/expression/parsed_parameter_expression.h"
 
 using namespace kuzu::common;

@@ -1,6 +1,17 @@
 #include "function/date/vector_date_functions.h"
 
+#include <cstdint>
+#include <memory>
+#include <vector>
+
+#include "common/enums/expression_type.h"
+#include "common/types/date_t.h"
+#include "common/types/interval_t.h"
+#include "common/types/ku_string.h"
+#include "common/types/timestamp_t.h"
+#include "common/types/types.h"
 #include "function/date/date_functions.h"
+#include "function/scalar_function.h"
 
 using namespace kuzu::common;
 

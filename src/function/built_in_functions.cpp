@@ -1,6 +1,17 @@
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+
+#include "common/assert.h"
+#include "common/enums/expression_type.h"
 #include "common/exception/binder.h"
 #include "common/exception/catalog.h"
+#include "common/exception/internal.h"
 #include "common/string_format.h"
+#include "common/types/types.h"
 #include "function/aggregate/collect.h"
 #include "function/aggregate/count.h"
 #include "function/aggregate/count_star.h"
@@ -11,10 +22,12 @@
 #include "function/cast/vector_cast_functions.h"
 #include "function/comparison/vector_comparison_functions.h"
 #include "function/date/vector_date_functions.h"
+#include "function/function.h"
 #include "function/interval/vector_interval_functions.h"
 #include "function/list/vector_list_functions.h"
 #include "function/map/vector_map_functions.h"
 #include "function/path/vector_path_functions.h"
+#include "function/scalar_function.h"
 #include "function/schema/vector_node_rel_functions.h"
 #include "function/string/vector_string_functions.h"
 #include "function/struct/vector_struct_functions.h"

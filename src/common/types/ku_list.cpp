@@ -1,7 +1,10 @@
 #include "common/types/ku_list.h"
 
+#include <cstdint>
 #include <cstring>
+#include <vector>
 
+#include "common/types/types.h"
 #include "storage/storage_utils.h"
 
 namespace kuzu {

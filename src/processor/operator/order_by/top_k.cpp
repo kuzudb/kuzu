@@ -1,7 +1,28 @@
 #include "processor/operator/order_by/top_k.h"
 
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/data_chunk/data_chunk_state.h"
+#include "common/data_chunk/sel_vector.h"
+#include "common/types/interval_t.h"
+#include "common/types/ku_string.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
 #include "function/binary_function_executor.h"
 #include "function/comparison/comparison_functions.h"
+#include "processor/execution_context.h"
+#include "processor/operator/order_by/key_block_merger.h"
+#include "processor/operator/order_by/order_by_data_info.h"
+#include "processor/operator/order_by/sort_state.h"
+#include "processor/result/result_set.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 using namespace kuzu::common;
 

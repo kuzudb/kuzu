@@ -1,5 +1,8 @@
 #include "binder/ddl/bound_create_table_info.h"
 
+#include <memory>
+#include <vector>
+
 namespace kuzu {
 namespace binder {
 

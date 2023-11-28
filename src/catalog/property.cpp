@@ -1,7 +1,14 @@
 #include "catalog/property.h"
 
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
 
 using namespace kuzu::common;
 

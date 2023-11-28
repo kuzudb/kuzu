@@ -1,8 +1,17 @@
 #include "planner/operator/logical_hash_join.h"
 
+#include <unordered_map>
+#include <unordered_set>
+
+#include "binder/expression/expression.h"
+#include "common/assert.h"
+#include "common/enums/join_type.h"
+#include "common/types/types.h"
 #include "planner/operator/factorization/flatten_resolver.h"
 #include "planner/operator/factorization/sink_util.h"
+#include "planner/operator/logical_operator.h"
 #include "planner/operator/scan/logical_scan_internal_id.h"
+#include "planner/operator/schema.h"
 
 using namespace kuzu::common;
 

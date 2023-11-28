@@ -1,6 +1,14 @@
 #include "common/task_system/task_scheduler.h"
 
+#include <chrono>
+#include <cstdint>
+#include <exception>
+#include <memory>
+#include <thread>
+
 #include "common/constants.h"
+#include "common/task_system/task.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::common;
 

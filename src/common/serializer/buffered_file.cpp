@@ -1,5 +1,7 @@
 #include "common/serializer/buffered_file.h"
 
+#include <cstring>
+
 #include "common/file_utils.h"
 
 namespace kuzu {

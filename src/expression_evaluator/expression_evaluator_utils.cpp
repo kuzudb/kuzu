@@ -1,7 +1,13 @@
 #include "expression_evaluator/expression_evaluator_utils.h"
 
+#include <memory>
+
+#include "binder/expression/expression.h"
+#include "common/assert.h"
 #include "common/types/value/value.h"
 #include "processor/expression_mapper.h"
+#include "processor/result/result_set.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::processor;

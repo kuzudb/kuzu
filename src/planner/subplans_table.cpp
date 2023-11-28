@@ -1,5 +1,15 @@
 #include "planner/subplans_table.h"
 
+#include <bitset>
+#include <cstdint>
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "binder/query/query_graph.h"
+#include "common/assert.h"
+#include "planner/operator/logical_plan.h"
+
 using namespace kuzu::binder;
 
 namespace kuzu {

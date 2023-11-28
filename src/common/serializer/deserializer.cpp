@@ -1,5 +1,8 @@
 #include "common/serializer/deserializer.h"
 
+#include <cstdint>
+#include <string>
+
 namespace kuzu {
 namespace common {
 

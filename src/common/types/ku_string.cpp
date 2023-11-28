@@ -1,5 +1,11 @@
 #include "common/types/ku_string.h"
 
+#include <algorithm>
+#include <cstdint>
+#include <cstring>
+#include <string>
+#include <string_view>
+
 namespace kuzu {
 namespace common {
 

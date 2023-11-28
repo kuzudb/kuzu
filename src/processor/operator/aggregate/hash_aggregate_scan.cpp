@@ -1,5 +1,12 @@
 #include "processor/operator/aggregate/hash_aggregate_scan.h"
 
+#include <numeric>
+
+#include "function/aggregate_function.h"
+#include "processor/execution_context.h"
+#include "processor/operator/aggregate/base_aggregate_scan.h"
+#include "processor/result/result_set.h"
+
 using namespace kuzu::function;
 
 namespace kuzu {

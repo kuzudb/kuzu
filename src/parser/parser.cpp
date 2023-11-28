@@ -1,9 +1,15 @@
 #include "parser/parser.h"
 
+#include <memory>
+#include <string>
+
+#include "ANTLRInputStream.h"
+#include "CommonTokenStream.h"
 #include "cypher_lexer.h"
 #include "parser/antlr_parser/kuzu_cypher_parser.h"
 #include "parser/antlr_parser/parser_error_listener.h"
 #include "parser/antlr_parser/parser_error_strategy.h"
+#include "parser/statement.h"
 #include "parser/transformer.h"
 
 using namespace antlr4;

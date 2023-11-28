@@ -1,9 +1,24 @@
 #include "storage/wal/wal.h"
 
+#include <cstdint>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <utility>
+
+#include "common/constants.h"
+#include "common/enums/table_type.h"
 #include "common/exception/runtime.h"
+#include "common/file_utils.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
 #include "common/utils.h"
 #include "spdlog/spdlog.h" // IWYU pragma: keep: public interface to spdlog.
+#include "storage/buffer_manager/bm_file_handle.h"
+#include "storage/buffer_manager/buffer_manager.h"
+#include "storage/file_handle.h"
 #include "storage/storage_utils.h"
+#include "storage/wal/wal_record.h"
 
 using namespace kuzu::common;
 

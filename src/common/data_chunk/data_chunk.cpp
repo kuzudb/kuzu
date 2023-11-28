@@ -1,5 +1,12 @@
 #include "common/data_chunk/data_chunk.h"
 
+#include <cstdint>
+#include <memory>
+#include <utility>
+
+#include "common/assert.h"
+#include "common/vector/value_vector.h"
+
 namespace kuzu {
 namespace common {
 

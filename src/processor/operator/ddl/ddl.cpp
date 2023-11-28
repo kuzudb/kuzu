@@ -1,5 +1,10 @@
 #include "processor/operator/ddl/ddl.h"
 
+#include <string>
+
+#include "processor/execution_context.h"
+#include "processor/result/result_set.h"
+
 namespace kuzu {
 namespace processor {
 

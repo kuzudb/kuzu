@@ -1,14 +1,22 @@
 #include "binder/visitor/property_collector.h"
 
+#include <memory>
+
+#include "binder/expression/expression.h"
+#include "binder/expression/rel_expression.h"
 #include "binder/expression_visitor.h"
 #include "binder/query/reading_clause/bound_in_query_call.h"
 #include "binder/query/reading_clause/bound_load_from.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
+#include "binder/query/reading_clause/bound_reading_clause.h"
 #include "binder/query/reading_clause/bound_unwind_clause.h"
+#include "binder/query/return_with_clause/bound_projection_body.h"
 #include "binder/query/updating_clause/bound_delete_clause.h"
 #include "binder/query/updating_clause/bound_insert_clause.h"
 #include "binder/query/updating_clause/bound_merge_clause.h"
 #include "binder/query/updating_clause/bound_set_clause.h"
+#include "binder/query/updating_clause/bound_updating_clause.h"
+#include "common/enums/query_rel_type.h"
 
 using namespace kuzu::common;
 

@@ -1,5 +1,10 @@
 #include "processor/operator/limit.h"
 
+#include <cstdint>
+
+#include "common/assert.h"
+#include "processor/execution_context.h"
+
 namespace kuzu {
 namespace processor {
 

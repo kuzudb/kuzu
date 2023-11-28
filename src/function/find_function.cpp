@@ -1,5 +1,6 @@
 #include "function/string/functions/find_function.h"
 
+#include <cstdint>
 #include <cstring>
 
 using namespace kuzu::common;

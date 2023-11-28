@@ -1,5 +1,12 @@
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include "planner/operator/logical_in_query_call.h"
+#include "planner/operator/logical_operator.h"
+#include "processor/data_pos.h"
 #include "processor/operator/call/in_query_call.h"
+#include "processor/operator/physical_operator.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::planner;

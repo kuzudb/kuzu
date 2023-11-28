@@ -1,7 +1,17 @@
 #include "main/prepared_statement.h"
 
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <utility>
+
 #include "c_api/helpers.h"
 #include "c_api/kuzu.h"
+#include "common/types/date_t.h"
+#include "common/types/interval_t.h"
+#include "common/types/timestamp_t.h"
+#include "common/types/types.h"
 #include "common/types/value/value.h"
 
 using namespace kuzu::common;

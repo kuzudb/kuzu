@@ -1,6 +1,14 @@
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "planner/operator/logical_operator.h"
 #include "planner/operator/scan/logical_index_scan.h"
+#include "processor/data_pos.h"
+#include "processor/expression_mapper.h"
 #include "processor/operator/index_lookup.h"
 #include "processor/operator/index_scan.h"
+#include "processor/operator/physical_operator.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::planner;

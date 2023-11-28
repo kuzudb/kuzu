@@ -1,12 +1,33 @@
 #include "processor/operator/persistent/copy_node.h"
 
+#include <cstdint>
+#include <memory>
+#include <mutex>
 #include <optional>
+#include <string>
+#include <utility>
 
+#include "common/assert.h"
+#include "common/column_data_format.h"
+#include "common/data_chunk/data_chunk_state.h"
+#include "common/enums/rel_direction.h"
+#include "common/enums/table_type.h"
 #include "common/exception/copy.h"
+#include "common/exception/exception.h"
 #include "common/exception/message.h"
 #include "common/string_format.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
 #include "function/table_functions/scan_functions.h"
+#include "processor/execution_context.h"
 #include "processor/result/factorized_table.h"
+#include "processor/result/result_set.h"
+#include "storage/index/hash_index_builder.h"
+#include "storage/storage_utils.h"
+#include "storage/store/column_chunk.h"
+#include "storage/store/node_group.h"
+#include "storage/store/node_table.h"
 #include "storage/store/string_column_chunk.h"
 
 using namespace kuzu::catalog;

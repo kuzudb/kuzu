@@ -1,5 +1,13 @@
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "function/aggregate_function.h"
 #include "planner/operator/logical_distinct.h"
+#include "planner/operator/logical_operator.h"
+#include "processor/data_pos.h"
 #include "processor/operator/aggregate/aggregate_input.h"
+#include "processor/operator/physical_operator.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::common;

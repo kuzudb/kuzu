@@ -1,7 +1,19 @@
 #include "include/py_database.h"
-#include "pandas/pandas_scan.h"
 
+#include <cmath>
+#include <cstdint>
 #include <memory>
+#include <string>
+
+#include "common/enums/expression_type.h"
+#include "common/types/internal_id_t.h"
+#include "main/database.h"
+#include "main/storage_driver.h"
+#include "pandas/pandas_scan.h"
+#include <pybind11/cast.h>
+#include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/pytypes.h>
 
 using namespace kuzu::common;
 

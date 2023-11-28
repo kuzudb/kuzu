@@ -1,5 +1,13 @@
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "binder/expression/node_expression.h"
+#include "binder/expression/rel_expression.h"
 #include "binder/query/updating_clause/bound_delete_info.h"
 #include "common/enums/clause_type.h"
+#include "common/enums/delete_type.h"
+#include "planner/operator/logical_plan.h"
 #include "planner/operator/persistent/logical_delete.h"
 #include "planner/query_planner.h"
 

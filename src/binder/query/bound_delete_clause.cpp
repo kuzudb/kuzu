@@ -1,5 +1,12 @@
 #include "binder/query/updating_clause/bound_delete_clause.h"
 
+#include <functional>
+#include <vector>
+
+#include "binder/query/updating_clause/bound_delete_info.h"
+#include "binder/query/updating_clause/bound_updating_clause.h"
+#include "common/enums/clause_type.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

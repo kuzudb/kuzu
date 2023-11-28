@@ -1,5 +1,20 @@
 #include "storage/store/string_column_chunk.h"
 
+#include <cstdint>
+#include <cstring>
+#include <memory>
+#include <string>
+#include <string_view>
+#include <unordered_map>
+#include <utility>
+
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/ku_string.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "storage/store/column_chunk.h"
 #include <bit>
 
 using namespace kuzu::common;

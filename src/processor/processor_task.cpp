@@ -1,5 +1,12 @@
 #include "processor/processor_task.h"
 
+#include <memory>
+
+#include "common/task_system/task.h"
+#include "processor/operator/sink.h"
+#include "processor/result/result_set.h"
+#include "storage/buffer_manager/memory_manager.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

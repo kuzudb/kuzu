@@ -1,5 +1,8 @@
 #include "function/arithmetic/multiply.h"
 
+#include <cstdint>
+#include <utility>
+
 #include "common/exception/overflow.h"
 #include "common/string_format.h"
 #include "common/type_utils.h"

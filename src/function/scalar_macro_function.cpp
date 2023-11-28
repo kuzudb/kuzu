@@ -1,7 +1,15 @@
 #include "function/scalar_macro_function.h"
 
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
+#include "parser/create_macro.h"
+#include "parser/expression/parsed_expression.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;

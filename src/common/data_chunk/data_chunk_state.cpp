@@ -1,5 +1,13 @@
 #include "common/data_chunk/data_chunk_state.h"
 
+#include <memory>
+#include <utility>
+
+#include "common/constants.h"
+#include "common/data_chunk/sel_vector.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
+
 namespace kuzu {
 namespace common {
 

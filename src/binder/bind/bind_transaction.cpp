@@ -1,5 +1,9 @@
+#include <memory>
+
 #include "binder/binder.h"
+#include "binder/bound_statement.h"
 #include "binder/bound_transaction_statement.h"
+#include "parser/statement.h"
 #include "parser/transaction_statement.h"
 
 using namespace kuzu::parser;

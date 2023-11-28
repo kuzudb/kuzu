@@ -1,8 +1,23 @@
+#include <memory>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
+#include "binder/expression/node_expression.h"
 #include "binder/expression/property_expression.h"
 #include "binder/expression/rel_expression.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
+#include "planner/operator/logical_operator.h"
 #include "planner/operator/persistent/logical_set.h"
+#include "planner/operator/schema.h"
+#include "processor/data_pos.h"
+#include "processor/expression_mapper.h"
 #include "processor/operator/persistent/set.h"
+#include "processor/operator/persistent/set_executor.h"
+#include "processor/operator/physical_operator.h"
 #include "processor/plan_mapper.h"
+#include "storage/store/rel_table.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

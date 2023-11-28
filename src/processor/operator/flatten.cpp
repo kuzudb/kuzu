@@ -1,5 +1,11 @@
 #include "processor/operator/flatten.h"
 
+#include <memory>
+
+#include "common/data_chunk/sel_vector.h"
+#include "processor/execution_context.h"
+#include "processor/result/result_set.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

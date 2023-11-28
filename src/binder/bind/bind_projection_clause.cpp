@@ -1,11 +1,28 @@
+#include <cstdint>
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include "binder/binder.h"
+#include "binder/bound_statement_result.h"
+#include "binder/expression/expression.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
+#include "binder/expression/node_expression.h"
+#include "binder/expression/rel_expression.h"
+#include "binder/expression_binder.h"
 #include "binder/expression_visitor.h"
+#include "binder/query/return_with_clause/bound_projection_body.h"
 #include "binder/query/return_with_clause/bound_return_clause.h"
 #include "binder/query/return_with_clause/bound_with_clause.h"
+#include "common/enums/expression_type.h"
 #include "common/exception/binder.h"
+#include "common/types/types.h"
+#include "parser/expression/parsed_expression.h"
 #include "parser/expression/parsed_property_expression.h"
+#include "parser/query/return_with_clause/projection_body.h"
+#include "parser/query/return_with_clause/return_clause.h"
+#include "parser/query/return_with_clause/with_clause.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;

@@ -1,5 +1,10 @@
+#include <memory>
+#include <utility>
+
 #include "common/assert.h"
 #include "common/enums/clause_type.h"
+#include "cypher_parser.h"
+#include "parser/expression/parsed_expression.h"
 #include "parser/query/updating_clause/delete_clause.h"
 #include "parser/query/updating_clause/insert_clause.h"
 #include "parser/query/updating_clause/merge_clause.h"

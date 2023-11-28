@@ -1,5 +1,13 @@
 #include "storage/wal/wal_record.h"
 
+#include <cstdint>
+#include <string>
+
+#include "common/assert.h"
+#include "common/enums/table_type.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

@@ -1,6 +1,10 @@
 #include "processor/operator/persistent/writer/parquet/boolean_column_writer.h"
 
+#include <cstdint>
+
 #include "common/serializer/serializer.h"
+#include "common/vector/value_vector.h"
+#include "processor/operator/persistent/writer/parquet/column_writer.h"
 
 namespace kuzu {
 namespace processor {

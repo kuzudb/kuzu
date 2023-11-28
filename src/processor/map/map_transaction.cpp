@@ -1,4 +1,8 @@
+#include <memory>
+
+#include "planner/operator/logical_operator.h"
 #include "planner/operator/logical_transaction.h"
+#include "processor/operator/physical_operator.h"
 #include "processor/operator/transaction.h"
 #include "processor/plan_mapper.h"
 

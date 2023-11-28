@@ -1,4 +1,11 @@
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "binder/expression/node_expression.h"
+#include "binder/expression/rel_expression.h"
 #include "binder/query/updating_clause/bound_insert_info.h"
+#include "planner/operator/logical_plan.h"
 #include "planner/operator/persistent/logical_insert.h"
 #include "planner/query_planner.h"
 

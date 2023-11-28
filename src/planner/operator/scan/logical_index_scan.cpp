@@ -1,5 +1,10 @@
 #include "planner/operator/scan/logical_index_scan.h"
 
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "binder/expression/expression.h"
 #include "binder/expression/expression_util.h"
 
 namespace kuzu {

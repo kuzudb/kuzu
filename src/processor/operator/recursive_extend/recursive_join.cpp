@@ -1,9 +1,26 @@
 #include "processor/operator/recursive_extend/recursive_join.h"
 
+#include <cstdint>
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/enums/query_rel_type.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "planner/operator/extend/recursive_join_type.h"
+#include "processor/execution_context.h"
 #include "processor/operator/recursive_extend/all_shortest_path_state.h"
+#include "processor/operator/recursive_extend/bfs_state.h"
+#include "processor/operator/recursive_extend/frontier.h"
+#include "processor/operator/recursive_extend/frontier_scanner.h"
 #include "processor/operator/recursive_extend/scan_frontier.h"
 #include "processor/operator/recursive_extend/shortest_path_state.h"
 #include "processor/operator/recursive_extend/variable_length_state.h"
+#include "processor/result/result_set.h"
 
 using namespace kuzu::common;
 

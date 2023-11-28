@@ -1,17 +1,37 @@
 #include "main/connection.h"
 
+#include <cstdint>
+#include <exception>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "binder/binder.h"
+#include "common/assert.h"
 #include "common/exception/connection.h"
+#include "common/exception/exception.h"
+#include "common/metric.h"
+#include "common/profiler.h"
+#include "common/task_system/task.h"
+#include "common/types/value/value.h"
+#include "function/scalar_function.h"
 #include "main/database.h"
+#include "main/prepared_statement.h"
+#include "main/query_result.h"
 #include "optimizer/optimizer.h"
 #include "parser//visitor/statement_read_write_analyzer.h"
 #include "parser/parser.h"
+#include "planner/operator/logical_plan.h"
 #include "planner/operator/logical_plan_util.h"
 #include "planner/planner.h"
+#include "processor/execution_context.h"
+#include "processor/physical_plan.h"
 #include "processor/plan_mapper.h"
 #include "processor/processor.h"
+#include "processor/result/factorized_table.h"
 #include "transaction/transaction_context.h"
 
 using namespace kuzu::parser;

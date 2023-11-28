@@ -1,5 +1,7 @@
 #include "processor/operator/ddl/create_node_table.h"
 
+#include <string>
+
 #include "catalog/node_table_schema.h"
 #include "common/string_format.h"
 #include "storage/storage_manager.h"

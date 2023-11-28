@@ -1,6 +1,12 @@
 #include "binder/bound_statement_result.h"
 
+#include <memory>
+#include <string>
+#include <utility>
+
 #include "binder/expression/literal_expression.h"
+#include "common/types/types.h"
+#include "common/types/value/value.h"
 
 using namespace kuzu::common;
 

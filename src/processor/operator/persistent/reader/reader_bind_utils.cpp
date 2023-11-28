@@ -1,7 +1,14 @@
 #include "processor/operator/persistent/reader/reader_bind_utils.h"
 
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "common/assert.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
+#include "common/types/types.h"
 
 using namespace kuzu::common;
 

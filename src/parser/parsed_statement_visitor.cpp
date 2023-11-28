@@ -1,8 +1,11 @@
 #include "parser/parsed_statement_visitor.h"
 
 #include "common/assert.h"
+#include "common/enums/clause_type.h"
+#include "common/enums/statement_type.h"
 #include "parser/explain_statement.h"
 #include "parser/query/regular_query.h"
+#include "parser/statement.h"
 
 using namespace kuzu::common;
 

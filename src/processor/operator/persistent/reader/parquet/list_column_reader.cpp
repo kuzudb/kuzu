@@ -1,5 +1,20 @@
 #include "processor/operator/persistent/reader/parquet/list_column_reader.h"
 
+#include <algorithm>
+#include <cstdint>
+#include <memory>
+#include <utility>
+
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/exception/copy.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "parquet/parquet_types.h"
+#include "processor/operator/persistent/reader/parquet/column_reader.h"
+#include "storage/buffer_manager/memory_manager.h"
+
 namespace kuzu {
 namespace processor {
 

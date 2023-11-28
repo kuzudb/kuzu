@@ -1,5 +1,14 @@
 #include "processor/operator/projection.h"
 
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "expression_evaluator/expression_evaluator.h"
+#include "processor/execution_context.h"
+#include "processor/operator/physical_operator.h"
+#include "processor/result/result_set.h"
+
 using namespace kuzu::evaluator;
 
 namespace kuzu {

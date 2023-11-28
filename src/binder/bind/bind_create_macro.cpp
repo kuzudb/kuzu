@@ -1,9 +1,15 @@
+#include <memory>
+#include <utility>
+
 #include "binder/binder.h"
 #include "binder/bound_create_macro.h"
+#include "binder/bound_statement.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
+#include "function/scalar_macro_function.h"
 #include "parser/create_macro.h"
+#include "parser/statement.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;

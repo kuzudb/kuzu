@@ -1,4 +1,9 @@
+#include <memory>
+#include <utility>
+
 #include "common/assert.h"
+#include "common/enums/clause_type.h"
+#include "cypher_parser.h"
 #include "parser/query/reading_clause/in_query_call_clause.h"
 #include "parser/query/reading_clause/load_from.h"
 #include "parser/query/reading_clause/match_clause.h"

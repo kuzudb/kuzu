@@ -1,8 +1,21 @@
 #include "expression_evaluator/path_evaluator.h"
 
+#include <cstdint>
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include "binder/expression/path_expression.h"
 #include "binder/expression/rel_expression.h"
+#include "common/assert.h"
+#include "common/constants.h"
 #include "common/string_utils.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "expression_evaluator/expression_evaluator.h"
+#include "processor/result/result_set.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;

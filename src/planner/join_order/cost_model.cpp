@@ -1,7 +1,13 @@
 #include "planner/join_order/cost_model.h"
 
+#include <cstdint>
+#include <memory>
+#include <vector>
+
+#include "binder/expression/expression.h"
 #include "common/constants.h"
 #include "planner/join_order/join_order_util.h"
+#include "planner/operator/logical_plan.h"
 
 using namespace kuzu::common;
 

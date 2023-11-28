@@ -1,14 +1,40 @@
+#include <memory>
+#include <string>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+
 #include "binder/copy/bound_copy_from.h"
+#include "binder/expression/expression.h"
 #include "binder/expression/variable_expression.h"
 #include "catalog/node_table_schema.h"
+#include "catalog/rel_table_schema.h"
+#include "catalog/table_schema.h"
+#include "common/assert.h"
+#include "common/column_data_format.h"
+#include "common/constants.h"
+#include "common/copier_config/copier_config.h"
+#include "common/copier_config/rdf_config.h"
+#include "common/enums/expression_type.h"
+#include "common/enums/rel_direction.h"
+#include "common/enums/table_type.h"
+#include "common/types/types.h"
+#include "function/table_functions/bind_data.h"
+#include "planner/operator/logical_operator.h"
 #include "planner/operator/logical_partitioner.h"
 #include "planner/operator/persistent/logical_copy_from.h"
+#include "planner/operator/schema.h"
+#include "processor/data_pos.h"
 #include "processor/operator/call/in_query_call.h"
 #include "processor/operator/partitioner.h"
 #include "processor/operator/persistent/copy_node.h"
 #include "processor/operator/persistent/copy_rdf_resource.h"
 #include "processor/operator/persistent/copy_rel.h"
+#include "processor/operator/physical_operator.h"
 #include "processor/plan_mapper.h"
+#include "processor/result/result_set_descriptor.h"
+#include "storage/store/rel_table.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;

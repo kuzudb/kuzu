@@ -1,4 +1,9 @@
+#include <memory>
+#include <utility>
+
 #include "planner/operator/logical_flatten.h"
+#include "planner/operator/logical_plan.h"
+#include "planner/operator/schema.h"
 #include "planner/query_planner.h"
 
 namespace kuzu {

@@ -1,5 +1,6 @@
 #include "planner/operator/logical_cross_product.h"
 
+#include "common/assert.h"
 #include "planner/operator/factorization/sink_util.h"
 
 namespace kuzu {

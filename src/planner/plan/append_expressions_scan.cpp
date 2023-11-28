@@ -1,3 +1,7 @@
+#include <memory>
+
+#include "binder/expression/expression.h"
+#include "planner/operator/logical_plan.h"
 #include "planner/operator/scan/logical_expressions_scan.h"
 #include "planner/query_planner.h"
 

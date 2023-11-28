@@ -1,5 +1,21 @@
+#include <cmath>
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <utility>
+
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/enums/expression_type.h"
+#include "common/enums/subquery_type.h"
+#include "common/types/int128_t.h"
+#include "common/types/ku_string.h"
+#include "common/types/types.h"
+#include "common/types/value/value.h"
+#include "cypher_parser.h"
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "parser/expression/parsed_case_expression.h"
+#include "parser/expression/parsed_expression.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
 #include "parser/expression/parsed_parameter_expression.h"

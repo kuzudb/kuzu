@@ -1,17 +1,43 @@
+#include <algorithm>
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+
 #include "binder/binder.h"
+#include "binder/expression/expression.h"
 #include "binder/expression/expression_util.h"
+#include "binder/expression/node_expression.h"
 #include "binder/expression/path_expression.h"
 #include "binder/expression/property_expression.h"
+#include "binder/expression/rel_expression.h"
+#include "binder/expression_binder.h"
 #include "binder/expression_visitor.h"
+#include "binder/query/query_graph.h"
 #include "catalog/node_table_schema.h"
 #include "catalog/rdf_graph_schema.h"
 #include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
+#include "catalog/table_schema.h"
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/enums/expression_type.h"
+#include "common/enums/query_rel_type.h"
+#include "common/enums/table_type.h"
 #include "common/exception/binder.h"
 #include "common/keyword/rdf_keyword.h"
 #include "common/string_format.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/ku_string.h"
+#include "common/types/types.h"
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "main/client_context.h"
+#include "parser/query/graph_pattern/node_pattern.h"
+#include "parser/query/graph_pattern/pattern_element.h"
+#include "parser/query/graph_pattern/rel_pattern.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;

@@ -1,7 +1,27 @@
 #include "storage/storage_manager.h"
 
+#include <memory>
+
+#include "catalog/catalog.h"
+#include "catalog/node_table_schema.h"
+#include "catalog/rel_table_schema.h"
+#include "common/assert.h"
+#include "common/cast.h"
+#include "common/enums/table_type.h"
+#include "common/types/internal_id_t.h"
+#include "storage/buffer_manager/bm_file_handle.h"
+#include "storage/buffer_manager/memory_manager.h"
+#include "storage/file_handle.h"
+#include "storage/index/hash_index.h"
 #include "storage/stats/nodes_store_statistics.h"
+#include "storage/stats/rels_store_statistics.h"
+#include "storage/storage_utils.h"
+#include "storage/store/node_table.h"
+#include "storage/store/rel_table.h"
+#include "storage/store/table.h"
+#include "storage/wal/wal.h"
 #include "storage/wal_replayer.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

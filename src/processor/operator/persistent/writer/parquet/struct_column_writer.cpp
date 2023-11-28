@@ -1,6 +1,13 @@
 #include "processor/operator/persistent/writer/parquet/struct_column_writer.h"
 
+#include <cstdint>
+#include <memory>
+#include <utility>
+
+#include "common/constants.h"
 #include "common/vector/value_vector.h"
+#include "parquet/parquet_types.h"
+#include "processor/operator/persistent/writer/parquet/column_writer.h"
 
 namespace kuzu {
 namespace processor {

@@ -1,3 +1,6 @@
+#include <memory>
+
+#include "cypher_parser.h"
 #include "parser/query/regular_query.h"
 #include "parser/transformer.h"
 

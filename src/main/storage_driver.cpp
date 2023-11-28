@@ -1,8 +1,16 @@
 #include "main/storage_driver.h"
 
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <string>
 #include <thread>
+#include <vector>
 
+#include "common/types/internal_id_t.h"
+#include "main/database.h"
 #include "storage/storage_manager.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;

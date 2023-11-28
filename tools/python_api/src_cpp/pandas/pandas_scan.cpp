@@ -1,9 +1,35 @@
 #include "pandas/pandas_scan.h"
 
+#include <algorithm>
+#include <cstdint>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/data_chunk/data_chunk.h"
+#include "common/enums/expression_type.h"
+#include "common/exception/runtime.h"
+#include "common/types/types.h"
+#include "common/types/value/value.h"
+#include "common/vector/value_vector.h"
+#include "function/scalar_function.h"
+#include "function/table_functions.h"
+#include "function/table_functions/bind_data.h"
 #include "function/table_functions/bind_input.h"
+#include "main/client_context.h"
 #include "numpy/numpy_scan.h"
+#include "pandas/pandas_bind.h"
+#include "pandas/pandas_column.h"
 #include "py_connection.h"
 #include "pybind11/pytypes.h"
+#include <pybind11/gil.h>
+#include <pybind11/pybind11.h>
+#include <pystate.h>
+#include <pytypedefs.h>
 
 using namespace kuzu::function;
 using namespace kuzu::common;

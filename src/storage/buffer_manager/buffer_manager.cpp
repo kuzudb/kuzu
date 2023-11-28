@@ -1,9 +1,20 @@
 #include "storage/buffer_manager/buffer_manager.h"
 
+#include <cstdint>
 #include <cstring>
+#include <functional>
+#include <memory>
+#include <mutex>
+#include <shared_mutex>
+#include <vector>
 
+#include "common/assert.h"
 #include "common/constants.h"
 #include "common/exception/buffer_manager.h"
+#include "common/file_utils.h"
+#include "common/types/types.h"
+#include "storage/buffer_manager/bm_file_handle.h"
+#include "storage/buffer_manager/vm_region.h"
 
 #if defined(_WIN32)
 #include <exception>

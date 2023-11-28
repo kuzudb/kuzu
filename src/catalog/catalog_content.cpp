@@ -1,17 +1,42 @@
 #include "catalog/catalog_content.h"
 
+#include <fcntl.h>
+
+#include <cstdint>
+#include <cstring>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
+#include "binder/ddl/bound_create_table_info.h"
 #include "catalog/node_table_schema.h"
+#include "catalog/property.h"
 #include "catalog/rdf_graph_schema.h"
 #include "catalog/rel_table_group_schema.h"
 #include "catalog/rel_table_schema.h"
+#include "catalog/table_schema.h"
+#include "common/assert.h"
 #include "common/cast.h"
+#include "common/constants.h"
+#include "common/enums/expression_type.h"
+#include "common/enums/table_type.h"
 #include "common/exception/catalog.h"
 #include "common/exception/runtime.h"
+#include "common/file_utils.h"
 #include "common/serializer/buffered_file.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
+#include "function/built_in_function.h"
+#include "function/function.h"
+#include "function/scalar_function.h"
+#include "function/scalar_macro_function.h"
+#include "storage/storage_info.h"
 #include "storage/storage_utils.h"
 
 using namespace kuzu::binder;

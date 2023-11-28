@@ -1,4 +1,9 @@
+#include <memory>
+#include <utility>
+
+#include "common/enums/join_type.h"
 #include "planner/operator/logical_cross_product.h"
+#include "planner/operator/logical_plan.h"
 #include "planner/query_planner.h"
 
 using namespace kuzu::common;

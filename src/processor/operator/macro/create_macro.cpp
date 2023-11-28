@@ -1,6 +1,9 @@
 #include "processor/operator/macro/create_macro.h"
 
+#include <string>
+
 #include "common/string_format.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::common;
 

@@ -1,8 +1,16 @@
+#include <cstdint>
+#include <memory>
 #include <utility>
+#include <vector>
 
+#include "binder/expression/expression.h"
 #include "binder/expression/expression_util.h"
+#include "planner/operator/schema.h"
+#include "processor/data_pos.h"
+#include "processor/operator/physical_operator.h"
 #include "processor/operator/table_scan/factorized_table_scan.h"
 #include "processor/plan_mapper.h"
+#include "processor/result/factorized_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::planner;

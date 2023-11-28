@@ -1,8 +1,17 @@
 #include "common/arrow/arrow_converter.h"
 
+#include <cstdint>
 #include <cstring>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
+#include "common/arrow/arrow.h"
 #include "common/arrow/arrow_row_batch.h"
+#include "common/assert.h"
+#include "common/types/types.h"
+#include "main/query_result.h"
 
 namespace kuzu {
 namespace common {

@@ -1,9 +1,11 @@
 #include "include/node_query_result.h"
 
-#include <thread>
+#include <exception>
+#include <memory>
+#include <string>
 
-#include "include/node_util.h"
-#include "main/kuzu.h"
+#include "main/query_result.h"
+#include "napi.h"
 
 using namespace kuzu::main;
 

@@ -1,5 +1,13 @@
 #include "processor/operator/persistent/reader/parquet/interval_column_reader.h"
 
+#include <cstdint>
+#include <memory>
+
+#include "common/constants.h"
+#include "common/types/interval_t.h"
+#include "processor/operator/persistent/reader/parquet/column_reader.h"
+#include "processor/operator/persistent/reader/parquet/resizable_buffer.h"
+
 namespace kuzu {
 namespace processor {
 

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <memory>
 
 #include "main/kuzu.h"
 using namespace kuzu::main;

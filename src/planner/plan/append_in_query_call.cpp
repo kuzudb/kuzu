@@ -1,5 +1,9 @@
+#include <memory>
+
 #include "binder/query/reading_clause/bound_in_query_call.h"
+#include "binder/query/reading_clause/bound_reading_clause.h"
 #include "planner/operator/logical_in_query_call.h"
+#include "planner/operator/logical_plan.h"
 #include "planner/query_planner.h"
 
 using namespace kuzu::binder;

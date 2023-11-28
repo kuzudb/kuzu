@@ -1,8 +1,14 @@
 #include "function/aggregate/count.h"
 
+#include <cstdint>
+
+#include "binder/expression/expression.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/node_expression.h"
 #include "binder/expression/rel_expression.h"
+#include "common/assert.h"
+#include "common/vector/value_vector.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;

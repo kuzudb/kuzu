@@ -1,5 +1,7 @@
 #include "catalog/rdf_graph_schema.h"
 
+#include <memory>
+
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 

@@ -1,6 +1,12 @@
 #include "processor/operator/profile.h"
 
+#include <memory>
+
+#include "common/types/ku_string.h"
+#include "common/vector/value_vector.h"
 #include "main/plan_printer.h"
+#include "processor/execution_context.h"
+#include "processor/result/result_set.h"
 
 using namespace kuzu::common;
 

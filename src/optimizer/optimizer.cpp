@@ -10,6 +10,7 @@
 #include "optimizer/remove_factorization_rewriter.h"
 #include "optimizer/remove_unnecessary_join_optimizer.h"
 #include "optimizer/top_k_optimizer.h"
+#include "planner/operator/logical_plan.h"
 
 namespace kuzu {
 namespace optimizer {

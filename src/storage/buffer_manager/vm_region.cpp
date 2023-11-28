@@ -1,7 +1,14 @@
 #include "storage/buffer_manager/vm_region.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <mutex>
+#include <string>
+
+#include "common/constants.h"
 #include "common/string_format.h"
 #include "common/system_message.h"
+#include "common/types/types.h"
 
 #ifdef _WIN32
 #include <errhandlingapi.h>

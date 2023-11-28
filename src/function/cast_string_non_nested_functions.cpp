@@ -1,6 +1,12 @@
 #include "function/cast/functions/cast_string_non_nested_functions.h"
 
+#include <cctype>
+#include <cstdint>
+#include <string>
+
+#include "common/exception/conversion.h"
 #include "common/string_format.h"
+#include "common/string_utils.h"
 
 namespace kuzu {
 namespace function {

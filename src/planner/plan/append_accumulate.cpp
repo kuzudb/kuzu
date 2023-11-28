@@ -1,4 +1,10 @@
+#include <memory>
+#include <utility>
+
+#include "binder/expression/expression.h"
+#include "common/enums/join_type.h"
 #include "planner/operator/logical_accumulate.h"
+#include "planner/operator/logical_plan.h"
 #include "planner/query_planner.h"
 
 using namespace kuzu::binder;

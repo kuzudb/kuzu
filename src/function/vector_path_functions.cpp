@@ -1,9 +1,22 @@
 #include "function/path/vector_path_functions.h"
 
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "binder/expression/expression.h"
 #include "binder/expression/literal_expression.h"
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/data_chunk/sel_vector.h"
+#include "common/enums/expression_type.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "function/function.h"
 #include "function/path/path_function_executor.h"
+#include "function/scalar_function.h"
 #include "function/struct/vector_struct_functions.h"
 
 using namespace kuzu::common;

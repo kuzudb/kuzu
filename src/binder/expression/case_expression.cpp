@@ -1,5 +1,7 @@
 #include "binder/expression/case_expression.h"
 
+#include <string>
+
 namespace kuzu {
 namespace binder {
 

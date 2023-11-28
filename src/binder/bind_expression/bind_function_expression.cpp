@@ -1,11 +1,32 @@
+#include <algorithm>
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+
 #include "binder/binder.h"
+#include "binder/expression/expression.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/function_expression.h"
+#include "binder/expression/node_expression.h"
 #include "binder/expression/property_expression.h"
+#include "binder/expression/rel_expression.h"
 #include "binder/expression_binder.h"
+#include "catalog/catalog_content.h"
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/enums/expression_type.h"
 #include "common/exception/binder.h"
 #include "common/string_utils.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
+#include "function/function.h"
+#include "function/scalar_function.h"
 #include "function/schema/vector_label_functions.h"
+#include "parser/expression/parsed_expression.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/parsed_expression_visitor.h"
 

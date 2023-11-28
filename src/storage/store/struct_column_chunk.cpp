@@ -1,5 +1,15 @@
 #include "storage/store/struct_column_chunk.h"
 
+#include <cstdint>
+#include <memory>
+#include <utility>
+
+#include "common/assert.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "storage/store/column_chunk.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

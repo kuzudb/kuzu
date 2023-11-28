@@ -1,6 +1,18 @@
+#include <memory>
+
+#include "binder/expression/expression.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/subquery_expression.h"
 #include "binder/expression_visitor.h"
+#include "binder/query/query_graph.h"
+#include "common/assert.h"
+#include "common/enums/expression_type.h"
+#include "common/enums/join_type.h"
+#include "common/enums/subquery_type.h"
+#include "common/types/types.h"
+#include "planner/join_order_enumerator_context.h"
+#include "planner/operator/logical_plan.h"
+#include "planner/operator/schema.h"
 #include "planner/query_planner.h"
 
 using namespace kuzu::binder;

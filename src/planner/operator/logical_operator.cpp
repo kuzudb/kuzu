@@ -1,5 +1,13 @@
 #include "planner/operator/logical_operator.h"
 
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "common/assert.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

@@ -1,5 +1,12 @@
 #include "processor/operator/table_scan/factorized_table_scan.h"
 
+#include <algorithm>
+#include <memory>
+#include <mutex>
+
+#include "processor/execution_context.h"
+#include "processor/result/result_set.h"
+
 namespace kuzu {
 namespace processor {
 

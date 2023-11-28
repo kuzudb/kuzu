@@ -1,5 +1,11 @@
 #include "parser/antlr_parser/parser_error_strategy.h"
 
+#include <exception>
+
+#include "NoViableAltException.h"
+#include "Parser.h"
+#include "Token.h"
+
 namespace kuzu {
 namespace parser {
 

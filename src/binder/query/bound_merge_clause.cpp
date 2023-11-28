@@ -1,5 +1,13 @@
 #include "binder/query/updating_clause/bound_merge_clause.h"
 
+#include <functional>
+#include <vector>
+
+#include "binder/query/updating_clause/bound_insert_info.h"
+#include "binder/query/updating_clause/bound_set_info.h"
+#include "binder/query/updating_clause/bound_updating_clause.h"
+#include "common/enums/clause_type.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

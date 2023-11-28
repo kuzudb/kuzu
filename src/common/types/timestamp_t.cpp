@@ -1,7 +1,15 @@
 #include "common/types/timestamp_t.h"
 
+#include <cctype>
+#include <cstdint>
+#include <cstdlib>
+#include <string>
+
 #include "common/exception/conversion.h"
 #include "common/string_utils.h"
+#include "common/types/date_t.h"
+#include "common/types/dtime_t.h"
+#include "common/types/interval_t.h"
 #include "function/arithmetic/multiply.h"
 
 namespace kuzu {

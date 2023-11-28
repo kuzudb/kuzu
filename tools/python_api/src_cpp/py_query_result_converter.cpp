@@ -1,7 +1,25 @@
 #include "include/py_query_result_converter.h"
 
+#include <cmath>
+#include <cstdint>
+#include <cstring>
+#include <memory>
+#include <string>
+
+#include "common/assert.h"
+#include "common/types/date_t.h"
+#include "common/types/int128_t.h"
+#include "common/types/interval_t.h"
+#include "common/types/timestamp_t.h"
+#include "common/types/types.h"
 #include "common/types/value/value.h"
 #include "include/py_query_result.h"
+#include "main/query_result.h"
+#include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/pytypes.h>
+#include <pytypedefs.h>
+#include <unicodeobject.h>
 
 using namespace kuzu::common;
 

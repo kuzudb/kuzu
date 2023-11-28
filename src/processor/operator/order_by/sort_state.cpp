@@ -1,5 +1,23 @@
 #include "processor/operator/order_by/sort_state.h"
 
+#include <algorithm>
+#include <cstdint>
+#include <memory>
+#include <mutex>
+#include <numeric>
+#include <utility>
+#include <vector>
+
+#include "common/constants.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "processor/operator/order_by/key_block_merger.h"
+#include "processor/operator/order_by/order_by_data_info.h"
+#include "processor/operator/order_by/order_by_key_encoder.h"
+#include "processor/operator/order_by/radix_sort.h"
+#include "processor/result/factorized_table.h"
+#include "storage/buffer_manager/memory_manager.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

@@ -1,5 +1,14 @@
 #include "processor/operator/persistent/delete.h"
 
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "processor/execution_context.h"
+#include "processor/operator/persistent/delete_executor.h"
+#include "processor/operator/physical_operator.h"
+#include "processor/result/result_set.h"
+
 namespace kuzu {
 namespace processor {
 

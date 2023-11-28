@@ -1,10 +1,26 @@
+#include <cstdint>
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "binder/expression/expression.h"
+#include "common/assert.h"
+#include "common/types/types.h"
+#include "planner/operator/logical_operator.h"
 #include "planner/operator/logical_order_by.h"
+#include "processor/data_pos.h"
+#include "processor/operator/order_by/key_block_merger.h"
 #include "processor/operator/order_by/order_by.h"
+#include "processor/operator/order_by/order_by_data_info.h"
 #include "processor/operator/order_by/order_by_merge.h"
 #include "processor/operator/order_by/order_by_scan.h"
+#include "processor/operator/order_by/sort_state.h"
 #include "processor/operator/order_by/top_k.h"
 #include "processor/operator/order_by/top_k_scanner.h"
+#include "processor/operator/physical_operator.h"
 #include "processor/plan_mapper.h"
+#include "processor/result/factorized_table.h"
+#include "processor/result/result_set_descriptor.h"
 
 using namespace kuzu::common;
 using namespace kuzu::planner;

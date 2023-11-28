@@ -1,5 +1,13 @@
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "binder/expression/expression.h"
 #include "binder/expression/property_expression.h"
+#include "common/assert.h"
+#include "common/types/internal_id_t.h"
 #include "planner/operator/logical_fill_table_id.h"
+#include "planner/operator/logical_plan.h"
 #include "planner/operator/scan/logical_scan_internal_id.h"
 #include "planner/operator/scan/logical_scan_node_property.h"
 #include "planner/query_planner.h"

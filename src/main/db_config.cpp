@@ -1,5 +1,7 @@
 #include "main/db_config.h"
 
+#include <string>
+
 #include "common/string_utils.h"
 #include "main/settings.h"
 

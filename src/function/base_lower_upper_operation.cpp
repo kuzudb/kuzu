@@ -1,3 +1,8 @@
+#include <cctype>
+#include <cstdint>
+#include <string>
+
+#include "common/assert.h"
 #include "common/exception/runtime.h"
 #include "common/string_format.h"
 #include "function/string/functions/base_lower_upper_function.h"

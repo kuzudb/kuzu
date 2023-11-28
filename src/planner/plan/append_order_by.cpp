@@ -1,4 +1,10 @@
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "binder/expression/expression.h"
 #include "planner/operator/logical_order_by.h"
+#include "planner/operator/logical_plan.h"
 #include "planner/query_planner.h"
 
 using namespace kuzu::binder;

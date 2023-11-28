@@ -1,6 +1,19 @@
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "planner/operator/logical_operator.h"
 #include "planner/operator/scan/logical_dummy_scan.h"
+#include "planner/operator/schema.h"
+#include "processor/data_pos.h"
+#include "processor/expression_mapper.h"
+#include "processor/operator/physical_operator.h"
 #include "processor/operator/table_scan/factorized_table_scan.h"
 #include "processor/plan_mapper.h"
+#include "processor/result/factorized_table.h"
+#include "processor/result/result_set.h"
 
 using namespace kuzu::common;
 using namespace kuzu::planner;

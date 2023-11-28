@@ -1,5 +1,10 @@
 #include "planner/operator/logical_projection.h"
 
+#include <cstdint>
+#include <unordered_set>
+
+#include "planner/operator/schema.h"
+
 namespace kuzu {
 namespace planner {
 

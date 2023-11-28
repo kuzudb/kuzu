@@ -1,8 +1,18 @@
 #include "benchmark_runner.h"
 
+#include <exception>
 #include <filesystem>
 #include <fstream>
+#include <ios>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
+#include "benchmark.h"
+#include "benchmark_config.h"
+#include "main/database.h"
+#include "spdlog/common.h"
 #include "spdlog/spdlog.h"
 
 using namespace kuzu::main;

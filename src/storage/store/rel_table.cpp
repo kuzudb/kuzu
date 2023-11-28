@@ -1,7 +1,29 @@
 #include "storage/store/rel_table.h"
 
+#include <memory>
+#include <vector>
+
+#include "catalog/property.h"
+#include "catalog/rel_table_schema.h"
+#include "common/assert.h"
 #include "common/cast.h"
+#include "common/column_data_format.h"
+#include "common/constants.h"
+#include "common/data_chunk/data_chunk_state.h"
+#include "common/enums/rel_direction.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "storage/buffer_manager/bm_file_handle.h"
+#include "storage/buffer_manager/memory_manager.h"
+#include "storage/local_storage/local_table.h"
+#include "storage/stats/property_statistics.h"
 #include "storage/stats/rels_store_statistics.h"
+#include "storage/stats/table_statistics_collection.h"
+#include "storage/store/rel_table_data.h"
+#include "storage/store/table.h"
+#include "storage/store/table_data.h"
+#include "storage/wal/wal.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

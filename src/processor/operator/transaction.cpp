@@ -1,5 +1,8 @@
 #include "processor/operator/transaction.h"
 
+#include "common/assert.h"
+#include "processor/execution_context.h"
+#include "transaction/transaction_action.h"
 #include "transaction/transaction_context.h"
 
 using namespace kuzu::common;

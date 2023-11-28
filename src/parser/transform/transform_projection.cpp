@@ -1,3 +1,10 @@
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "common/enums/expression_type.h"
+#include "cypher_parser.h"
+#include "parser/expression/parsed_expression.h"
 #include "parser/query/return_with_clause/return_clause.h"
 #include "parser/query/return_with_clause/with_clause.h"
 #include "parser/transformer.h"

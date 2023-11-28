@@ -1,8 +1,26 @@
 #include "processor/operator/persistent/writer/parquet/string_column_writer.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/serializer/buffered_serializer.h"
+#include "common/serializer/serializer.h"
+#include "common/types/ku_string.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
 #include "function/comparison/comparison_functions.h"
 #include "function/hash/hash_functions.h"
+#include "parquet/parquet_types.h"
 #include "processor/operator/persistent/reader/parquet/parquet_rle_bp_decoder.h"
+#include "processor/operator/persistent/writer/parquet/basic_column_writer.h"
+#include "processor/operator/persistent/writer/parquet/column_writer.h"
+#include "processor/operator/persistent/writer/parquet/parquet_rle_bp_encoder.h"
 
 namespace kuzu {
 namespace processor {

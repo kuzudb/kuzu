@@ -1,5 +1,10 @@
 #include "processor/operator/filter.h"
 
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
+#include "processor/execution_context.h"
+#include "processor/result/result_set.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

@@ -1,5 +1,7 @@
 #include "common/enums/expression_type.h"
 
+#include <string>
+
 #include "common/assert.h"
 
 namespace kuzu {

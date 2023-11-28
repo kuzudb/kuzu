@@ -1,6 +1,13 @@
+#include <memory>
+#include <string>
+#include <utility>
+
 #include "binder/binder.h"
+#include "binder/expression/expression.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/expression_binder.h"
+#include "common/types/types.h"
+#include "parser/expression/parsed_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
 
 using namespace kuzu::parser;

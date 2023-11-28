@@ -1,5 +1,8 @@
 #include "common/exception/message.h"
 
+#include <cstdint>
+#include <string>
+
 #include "common/string_format.h"
 
 namespace kuzu {

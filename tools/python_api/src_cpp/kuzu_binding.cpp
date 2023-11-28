@@ -2,6 +2,8 @@
 #include "include/py_database.h"
 #include "include/py_prepared_statement.h"
 #include "include/py_query_result.h"
+#include <pybind11/detail/common.h>
+#include <pybind11/pybind11.h>
 
 void bind(py::module& m) {
     PyDatabase::initialize(m);

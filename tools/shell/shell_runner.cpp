@@ -1,7 +1,11 @@
+#include <cstdint>
+#include <exception>
 #include <iostream>
+#include <string>
 
 #include "args.hxx"
 #include "embedded_shell.h"
+#include "main/database.h"
 
 using namespace kuzu::main;
 

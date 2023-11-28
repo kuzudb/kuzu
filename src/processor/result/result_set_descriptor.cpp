@@ -1,5 +1,9 @@
 #include "processor/result/result_set_descriptor.h"
 
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include "planner/operator/schema.h"
 
 namespace kuzu {

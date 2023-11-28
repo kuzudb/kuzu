@@ -1,10 +1,21 @@
 #include "function/map/vector_map_functions.h"
 
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "binder/expression/expression.h"
+#include "common/constants.h"
+#include "common/enums/expression_type.h"
+#include "common/exception/runtime.h"
+#include "common/types/types.h"
+#include "function/function.h"
 #include "function/list/vector_list_functions.h"
 #include "function/map/functions/map_creation_function.h"
 #include "function/map/functions/map_extract_function.h"
 #include "function/map/functions/map_keys_function.h"
 #include "function/map/functions/map_values_function.h"
+#include "function/scalar_function.h"
 
 using namespace kuzu::common;
 

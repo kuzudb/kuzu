@@ -1,7 +1,13 @@
 #include "common/types/blob.h"
 
+#include <cstdint>
+#include <cstring>
+#include <string>
+
 #include "common/exception/conversion.h"
+#include "common/exception/internal.h"
 #include "common/string_format.h"
+#include "common/types/ku_string.h"
 
 namespace kuzu {
 namespace common {

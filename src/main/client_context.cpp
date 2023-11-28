@@ -1,11 +1,15 @@
 #include "main/client_context.h"
 
+#include <memory>
+#include <string>
 #include <thread>
 
 #include "common/constants.h"
 #include "common/exception/runtime.h"
+#include "common/timer.h"
 #include "main/database.h"
 #include "main/db_config.h"
+#include "transaction/transaction.h"
 #include "transaction/transaction_context.h"
 
 using namespace kuzu::common;

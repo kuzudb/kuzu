@@ -1,7 +1,12 @@
 #include "planner/operator/scan/logical_dummy_scan.h"
 
+#include <memory>
+
+#include "binder/expression/expression.h"
 #include "binder/expression/literal_expression.h"
 #include "common/constants.h"
+#include "common/types/types.h"
+#include "common/types/value/value.h"
 
 using namespace kuzu::common;
 

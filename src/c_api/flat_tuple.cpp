@@ -1,8 +1,13 @@
 #include "processor/result/flat_tuple.h"
 
+#include <cstdint>
+#include <cstdlib>
+#include <memory>
+
 #include "c_api/helpers.h"
 #include "c_api/kuzu.h"
 #include "common/exception/exception.h"
+#include "common/types/value/value.h"
 
 using namespace kuzu::common;
 using namespace kuzu::processor;

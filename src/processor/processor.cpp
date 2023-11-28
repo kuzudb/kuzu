@@ -1,8 +1,18 @@
 #include "processor/processor.h"
 
+#include <cstdint>
+#include <memory>
+#include <utility>
+
+#include "common/task_system/task.h"
+#include "common/task_system/task_scheduler.h"
+#include "processor/execution_context.h"
+#include "processor/operator/physical_operator.h"
 #include "processor/operator/result_collector.h"
 #include "processor/operator/sink.h"
+#include "processor/physical_plan.h"
 #include "processor/processor_task.h"
+#include "processor/result/factorized_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;

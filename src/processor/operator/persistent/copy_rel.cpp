@@ -1,10 +1,32 @@
 #include "processor/operator/persistent/copy_rel.h"
 
+#include <algorithm>
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "common/assert.h"
+#include "common/column_data_format.h"
+#include "common/constants.h"
+#include "common/enums/rel_direction.h"
+#include "common/enums/table_type.h"
 #include "common/exception/copy.h"
 #include "common/exception/message.h"
 #include "common/string_format.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "processor/execution_context.h"
+#include "processor/operator/partitioner.h"
 #include "processor/result/factorized_table.h"
+#include "processor/result/result_set.h"
+#include "storage/buffer_manager/memory_manager.h"
+#include "storage/stats/rels_store_statistics.h"
+#include "storage/storage_utils.h"
+#include "storage/store/column_chunk.h"
+#include "storage/store/node_group.h"
 #include "storage/store/rel_table.h"
+#include "storage/wal/wal.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;

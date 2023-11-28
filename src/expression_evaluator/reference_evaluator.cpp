@@ -1,5 +1,12 @@
 #include "expression_evaluator/reference_evaluator.h"
 
+#include <cstdint>
+
+#include "common/assert.h"
+#include "common/data_chunk/sel_vector.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

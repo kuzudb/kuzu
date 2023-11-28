@@ -1,5 +1,18 @@
 #include "storage/storage_structure/db_file_utils.h"
 
+#include <cstdint>
+#include <cstring>
+#include <functional>
+#include <utility>
+
+#include "common/constants.h"
+#include "common/types/types.h"
+#include "storage/buffer_manager/bm_file_handle.h"
+#include "storage/buffer_manager/buffer_manager.h"
+#include "storage/wal/wal.h"
+#include "storage/wal/wal_record.h"
+#include "transaction/transaction.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

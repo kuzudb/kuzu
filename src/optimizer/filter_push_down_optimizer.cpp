@@ -1,12 +1,25 @@
 #include "optimizer/filter_push_down_optimizer.h"
 
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "binder/expression/expression.h"
 #include "binder/expression/property_expression.h"
 #include "binder/expression_visitor.h"
+#include "common/assert.h"
+#include "common/enums/expression_type.h"
+#include "common/enums/join_type.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
 #include "planner/operator/logical_filter.h"
 #include "planner/operator/logical_hash_join.h"
+#include "planner/operator/logical_operator.h"
+#include "planner/operator/logical_plan.h"
 #include "planner/operator/scan/logical_dummy_scan.h"
 #include "planner/operator/scan/logical_index_scan.h"
 #include "planner/operator/scan/logical_scan_node_property.h"
+#include "planner/operator/sip/side_way_info_passing.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

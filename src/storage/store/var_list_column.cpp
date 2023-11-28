@@ -1,7 +1,21 @@
 #include "storage/store/var_list_column.h"
 
+#include <algorithm>
+#include <cstdint>
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "common/constants.h"
+#include "common/data_chunk/data_chunk_state.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "storage/storage_utils.h"
 #include "storage/store/column.h"
+#include "storage/store/column_chunk.h"
 #include "storage/store/var_list_column_chunk.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;

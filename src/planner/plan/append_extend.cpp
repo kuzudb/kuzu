@@ -1,13 +1,30 @@
+#include <cstdint>
+#include <memory>
+#include <unordered_set>
 #include <utility>
 
+#include "binder/expression/expression.h"
 #include "binder/expression/expression_util.h"
+#include "binder/expression/node_expression.h"
 #include "binder/expression/property_expression.h"
+#include "binder/expression/rel_expression.h"
 #include "binder/expression_visitor.h"
+#include "catalog/catalog.h"
 #include "catalog/rel_table_schema.h"
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/enums/join_type.h"
+#include "common/enums/rel_direction.h"
+#include "common/types/internal_id_t.h"
 #include "planner/join_order/cost_model.h"
+#include "planner/operator/extend/extend_direction.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
+#include "planner/operator/extend/recursive_join_type.h"
 #include "planner/operator/logical_node_label_filter.h"
+#include "planner/operator/logical_operator.h"
+#include "planner/operator/logical_plan.h"
+#include "planner/operator/sip/side_way_info_passing.h"
 #include "planner/query_planner.h"
 
 using namespace kuzu::common;

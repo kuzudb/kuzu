@@ -1,6 +1,18 @@
 #include "pandas/pandas_bind.h"
 
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "common/assert.h"
 #include "common/exception/runtime.h"
+#include "common/types/types.h"
+#include "numpy/numpy_type.h"
+#include "pandas/pandas_column.h"
+#include <pybind11/numpy.h>
+#include <pybind11/pytypes.h>
 
 namespace kuzu {
 

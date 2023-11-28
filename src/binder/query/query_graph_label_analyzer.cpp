@@ -1,8 +1,14 @@
 #include "binder/query/query_graph_label_analyzer.h"
 
+#include <utility>
+
+#include "binder/expression/node_expression.h"
+#include "binder/expression/rel_expression.h"
+#include "binder/query/query_graph.h"
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
+#include "common/types/internal_id_t.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;

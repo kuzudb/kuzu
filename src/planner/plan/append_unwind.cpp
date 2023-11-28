@@ -1,4 +1,8 @@
+#include <memory>
+
+#include "binder/query/reading_clause/bound_reading_clause.h"
 #include "binder/query/reading_clause/bound_unwind_clause.h"
+#include "planner/operator/logical_plan.h"
 #include "planner/operator/logical_unwind.h"
 #include "planner/query_planner.h"
 

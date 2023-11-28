@@ -1,5 +1,15 @@
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
+#include "cypher_parser.h"
 #include "parser/copy.h"
+#include "parser/expression/parsed_expression.h"
+#include "parser/statement.h"
 #include "parser/transformer.h"
+#include "tree/TerminalNode.h"
 
 using namespace kuzu::common;
 

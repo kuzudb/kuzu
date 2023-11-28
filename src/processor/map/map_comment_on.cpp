@@ -1,5 +1,11 @@
+#include <memory>
+#include <utility>
+
 #include "planner/operator/logical_comment_on.h"
+#include "planner/operator/logical_operator.h"
+#include "processor/data_pos.h"
 #include "processor/operator/comment_on.h"
+#include "processor/operator/physical_operator.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::planner;

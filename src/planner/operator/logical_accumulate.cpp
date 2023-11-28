@@ -2,6 +2,7 @@
 
 #include "planner/operator/factorization/flatten_resolver.h"
 #include "planner/operator/factorization/sink_util.h"
+#include "planner/operator/schema.h"
 
 namespace kuzu {
 namespace planner {

@@ -1,7 +1,12 @@
 #include "catalog/node_table_schema.h"
 
+#include <memory>
+#include <unordered_set>
+
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
 
 using namespace kuzu::common;
 

@@ -1,5 +1,11 @@
 #include "planner/join_order/join_order_util.h"
 
+#include <cstdint>
+
+#include "binder/expression/expression.h"
+#include "planner/operator/logical_plan.h"
+#include "planner/operator/schema.h"
+
 namespace kuzu {
 namespace planner {
 

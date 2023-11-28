@@ -1,8 +1,19 @@
 #include "processor/operator/persistent/reader/parquet/string_column_reader.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <utility>
+
+#include "common/assert.h"
+#include "common/exception/copy.h"
 #include "common/types/blob.h"
 #include "common/types/ku_string.h"
+#include "common/types/types.h"
 #include "parquet/parquet_types.h"
+#include "processor/operator/persistent/reader/parquet/column_reader.h"
+#include "processor/operator/persistent/reader/parquet/resizable_buffer.h"
+#include "processor/operator/persistent/reader/parquet/templated_column_reader.h"
 #include "utf8proc_wrapper.h"
 
 using kuzu_parquet::format::Type;

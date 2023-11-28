@@ -1,4 +1,10 @@
+#include <memory>
+#include <string>
+
 #include "planner/operator/extend/logical_recursive_extend.h"
+#include "planner/operator/logical_operator.h"
+#include "processor/data_pos.h"
+#include "processor/operator/physical_operator.h"
 #include "processor/operator/recursive_extend/scan_frontier.h"
 #include "processor/plan_mapper.h"
 

@@ -1,6 +1,8 @@
 #include "c_api/helpers.h"
 
+#include <cstdlib>
 #include <cstring>
+#include <string>
 
 char* convertToOwnedCString(const std::string& str) {
     size_t src_len = str.size();

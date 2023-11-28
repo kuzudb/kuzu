@@ -1,5 +1,9 @@
 #include "processor/operator/index_scan.h"
 
+#include "common/types/internal_id_t.h"
+#include "processor/execution_context.h"
+#include "processor/result/result_set.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

@@ -1,6 +1,11 @@
+#include <memory>
+#include <utility>
+
 #include "binder/binder.h"
 #include "binder/bound_explain.h"
+#include "binder/bound_statement.h"
 #include "parser/explain_statement.h"
+#include "parser/statement.h"
 
 namespace kuzu {
 namespace binder {

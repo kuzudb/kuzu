@@ -1,3 +1,12 @@
+#include <cstdint>
+#include <cstdio>
+#include <exception>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <utility>
+
+#include "benchmark_config.h"
 #include "benchmark_runner.h"
 #include "common/string_utils.h"
 #include "spdlog/spdlog.h"

@@ -1,10 +1,32 @@
 #include "storage/storage_structure/disk_array.h"
 
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <cstring>
+#include <functional>
+#include <mutex>
+#include <shared_mutex>
+#include <utility>
+
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/exception/runtime.h"
+#include "common/file_utils.h"
 #include "common/string_format.h"
+#include "common/types/ku_string.h"
+#include "common/types/types.h"
 #include "common/utils.h"
+#include "storage/buffer_manager/bm_file_handle.h"
+#include "storage/buffer_manager/buffer_manager.h"
 #include "storage/index/hash_index_header.h"
 #include "storage/index/hash_index_slot.h"
+#include "storage/storage_structure/db_file_utils.h"
+#include "storage/storage_utils.h"
 #include "storage/store/column_chunk.h"
+#include "storage/wal/wal.h"
+#include "storage/wal/wal_record.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;

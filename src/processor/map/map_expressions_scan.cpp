@@ -1,7 +1,16 @@
+#include <memory>
+#include <vector>
+
+#include "binder/expression/expression.h"
+#include "common/assert.h"
+#include "common/constants.h"
 #include "planner/operator/logical_accumulate.h"
+#include "planner/operator/logical_operator.h"
 #include "planner/operator/scan/logical_expressions_scan.h"
+#include "processor/operator/physical_operator.h"
 #include "processor/operator/result_collector.h"
 #include "processor/plan_mapper.h"
+#include "processor/result/factorized_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;

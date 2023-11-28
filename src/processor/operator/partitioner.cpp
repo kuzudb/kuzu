@@ -1,5 +1,27 @@
 #include "processor/operator/partitioner.h"
 
+#include <cstdint>
+#include <iterator>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/data_chunk/data_chunk.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "processor/data_pos.h"
+#include "processor/execution_context.h"
+#include "processor/operator/physical_operator.h"
+#include "processor/operator/sink.h"
+#include "processor/result/result_set.h"
+#include "processor/result/result_set_descriptor.h"
+#include "storage/buffer_manager/memory_manager.h"
+
 using namespace kuzu::common;
 using namespace kuzu::storage;
 

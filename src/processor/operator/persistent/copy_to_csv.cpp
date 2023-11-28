@@ -1,6 +1,27 @@
 #include "processor/operator/persistent/copy_to_csv.h"
 
+#include <fcntl.h>
+
+#include <cstdint>
+#include <cstring>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "common/constants.h"
+#include "common/data_chunk/data_chunk.h"
+#include "common/data_chunk/data_chunk_state.h"
+#include "common/file_utils.h"
+#include "common/serializer/buffered_serializer.h"
+#include "common/types/ku_string.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
 #include "function/cast/vector_cast_functions.h"
+#include "processor/operator/persistent/copy_to.h"
+#include "processor/result/result_set.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
 namespace processor {

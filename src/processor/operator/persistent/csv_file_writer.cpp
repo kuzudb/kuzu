@@ -2,6 +2,11 @@
 
 #include <fcntl.h>
 
+#include <cstdint>
+#include <string>
+#include <vector>
+
+#include "common/assert.h"
 #include "common/constants.h"
 #include "common/file_utils.h"
 #include "common/string_utils.h"
@@ -12,6 +17,7 @@
 #include "common/types/ku_string.h"
 #include "common/types/timestamp_t.h"
 #include "common/types/types.h"
+#include "common/vector/value_vector.h"
 
 using namespace kuzu::common;
 

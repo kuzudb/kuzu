@@ -1,5 +1,9 @@
 #include "processor/operator/scan/scan_multi_node_tables.h"
 
+#include "common/assert.h"
+#include "common/types/internal_id_t.h"
+#include "processor/execution_context.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

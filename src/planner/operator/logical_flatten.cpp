@@ -1,5 +1,7 @@
 #include "planner/operator/logical_flatten.h"
 
+#include "common/exception/internal.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

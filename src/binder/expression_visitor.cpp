@@ -1,10 +1,19 @@
 #include "binder/expression_visitor.h"
 
+#include <functional>
+#include <memory>
+#include <string>
+#include <unordered_set>
+
 #include "binder/expression/case_expression.h"
+#include "binder/expression/expression.h"
 #include "binder/expression/node_expression.h"
 #include "binder/expression/property_expression.h"
 #include "binder/expression/rel_expression.h"
 #include "binder/expression/subquery_expression.h"
+#include "common/assert.h"
+#include "common/enums/expression_type.h"
+#include "common/types/types.h"
 
 using namespace kuzu::common;
 

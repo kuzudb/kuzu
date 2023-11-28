@@ -1,4 +1,9 @@
+#include <memory>
+#include <utility>
+
+#include "cypher_parser.h"
 #include "parser/comment_on.h"
+#include "parser/statement.h"
 #include "parser/transformer.h"
 
 namespace kuzu {

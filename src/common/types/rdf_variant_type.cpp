@@ -1,5 +1,11 @@
 #include "common/types/rdf_variant_type.h"
 
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "common/types/types.h"
+
 namespace kuzu {
 namespace common {
 

@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include "Token.h"
+
 namespace kuzu {
 namespace parser {
 

@@ -1,4 +1,14 @@
+#include <memory>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
+#include "common/assert.h"
+#include "common/types/internal_id_t.h"
+#include "planner/operator/logical_operator.h"
 #include "planner/operator/sip/logical_semi_masker.h"
+#include "processor/data_pos.h"
+#include "processor/operator/physical_operator.h"
 #include "processor/operator/recursive_extend/recursive_join.h"
 #include "processor/operator/scan_node_id.h"
 #include "processor/operator/semi_masker.h"

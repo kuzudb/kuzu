@@ -1,4 +1,13 @@
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "expression_evaluator/expression_evaluator.h"
+#include "planner/operator/logical_operator.h"
 #include "planner/operator/logical_projection.h"
+#include "processor/data_pos.h"
+#include "processor/expression_mapper.h"
+#include "processor/operator/physical_operator.h"
 #include "processor/operator/projection.h"
 #include "processor/plan_mapper.h"
 

@@ -1,9 +1,12 @@
 #include "planner/operator/logical_plan_util.h"
 
+#include <string>
+
 #include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_intersect.h"
+#include "planner/operator/logical_operator.h"
 #include "planner/operator/scan/logical_scan_internal_id.h"
 
 using namespace kuzu::binder;

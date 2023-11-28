@@ -1,5 +1,8 @@
 #include "storage/stats/metadata_dah_info.h"
 
+#include <cstddef>
+#include <memory>
+
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 

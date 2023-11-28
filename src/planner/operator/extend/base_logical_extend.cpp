@@ -1,5 +1,12 @@
 #include "planner/operator/extend/base_logical_extend.h"
 
+#include <string>
+
+#include "binder/expression/rel_expression.h"
+#include "common/assert.h"
+#include "common/enums/query_rel_type.h"
+#include "planner/operator/extend/extend_direction.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

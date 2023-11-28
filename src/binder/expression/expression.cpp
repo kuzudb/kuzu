@@ -1,5 +1,7 @@
 #include "binder/expression/expression.h"
 
+#include "common/enums/expression_type.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

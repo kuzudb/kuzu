@@ -1,6 +1,15 @@
 #include "storage/local_storage/local_node_table.h"
 
+#include <memory>
+#include <vector>
+
+#include "common/assert.h"
 #include "common/cast.h"
+#include "common/constants.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "storage/local_storage/local_table.h"
 #include "storage/storage_utils.h"
 
 using namespace kuzu::common;

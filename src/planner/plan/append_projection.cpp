@@ -1,4 +1,9 @@
+#include <memory>
+#include <utility>
+
+#include "binder/expression/expression.h"
 #include "planner/operator/factorization/flatten_resolver.h"
+#include "planner/operator/logical_plan.h"
 #include "planner/operator/logical_projection.h"
 #include "planner/query_planner.h"
 

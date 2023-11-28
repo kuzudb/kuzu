@@ -1,5 +1,15 @@
 #include "processor/operator/aggregate/base_aggregate.h"
 
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "function/aggregate_function.h"
+#include "processor/data_pos.h"
+#include "processor/execution_context.h"
+#include "processor/operator/aggregate/aggregate_input.h"
+#include "processor/result/result_set.h"
+
 using namespace kuzu::function;
 
 namespace kuzu {

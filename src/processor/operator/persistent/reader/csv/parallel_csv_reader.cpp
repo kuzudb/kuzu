@@ -1,5 +1,23 @@
 #include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
 
+#include <cstdint>
+#include <cstdio>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/copier_config/copier_config.h"
+#include "common/data_chunk/data_chunk.h"
+#include "common/enums/expression_type.h"
+#include "common/types/types.h"
+#include "function/scalar_function.h"
+#include "function/table_functions.h"
+#include "function/table_functions/bind_data.h"
+#include "function/table_functions/bind_input.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 #include "processor/operator/persistent/reader/reader_bind_utils.h"
 

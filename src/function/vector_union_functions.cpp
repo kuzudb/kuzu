@@ -1,6 +1,18 @@
 #include "function/union/vector_union_functions.h"
 
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "binder/expression/expression.h"
 #include "binder/expression_binder.h"
+#include "common/assert.h"
+#include "common/enums/expression_type.h"
+#include "common/types/ku_string.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "function/function.h"
+#include "function/scalar_function.h"
 #include "function/struct/vector_struct_functions.h"
 #include "function/union/functions/union_tag.h"
 

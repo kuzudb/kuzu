@@ -1,12 +1,23 @@
 #include "expression_evaluator/case_evaluator.h"
 
 #include <cmath>
+#include <cstdint>
+#include <memory>
+#include <utility>
+#include <vector>
 
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/data_chunk/sel_vector.h"
 #include "common/types/date_t.h"
 #include "common/types/interval_t.h"
 #include "common/types/ku_string.h"
 #include "common/types/timestamp_t.h"
 #include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "expression_evaluator/expression_evaluator.h"
+#include "processor/result/result_set.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::processor;

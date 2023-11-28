@@ -1,5 +1,19 @@
 #include "processor/operator/scan_node_id.h"
 
+#include <algorithm>
+#include <mutex>
+#include <tuple>
+#include <utility>
+
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
+#include "processor/execution_context.h"
+#include "processor/operator/mask.h"
+#include "processor/result/result_set.h"
+#include "transaction/transaction.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

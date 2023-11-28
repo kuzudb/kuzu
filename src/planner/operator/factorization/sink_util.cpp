@@ -1,5 +1,12 @@
 #include "planner/operator/factorization/sink_util.h"
 
+#include <cstdint>
+#include <unordered_map>
+
+#include "binder/expression/expression.h"
+#include "common/assert.h"
+#include "planner/operator/schema.h"
+
 namespace kuzu {
 namespace planner {
 

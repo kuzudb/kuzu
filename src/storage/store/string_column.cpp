@@ -1,6 +1,30 @@
 #include "storage/store/string_column.h"
 
+#include <algorithm>
+#include <cstdint>
+#include <cstring>
+#include <limits>
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/ku_string.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "storage/buffer_manager/bm_file_handle.h"
+#include "storage/buffer_manager/buffer_manager.h"
+#include "storage/local_storage/local_table.h"
+#include "storage/stats/metadata_dah_info.h"
+#include "storage/stats/property_statistics.h"
+#include "storage/storage_utils.h"
+#include "storage/store/column.h"
+#include "storage/store/column_chunk.h"
 #include "storage/store/string_column_chunk.h"
+#include "storage/wal/wal.h"
+#include "transaction/transaction.h"
 #include <bit>
 
 using namespace kuzu::catalog;

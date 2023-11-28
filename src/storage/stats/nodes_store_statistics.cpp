@@ -1,5 +1,19 @@
 #include "storage/stats/nodes_store_statistics.h"
 
+#include <map>
+#include <memory>
+#include <mutex>
+
+#include "catalog/node_table_schema.h"
+#include "common/assert.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "storage/stats/metadata_dah_info.h"
+#include "storage/stats/node_table_statistics.h"
+#include "storage/wal/wal.h"
+#include "transaction/transaction.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

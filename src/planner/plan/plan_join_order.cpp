@@ -1,7 +1,27 @@
+#include <cmath>
+#include <cstdint>
+#include <memory>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+
+#include "binder/expression/expression.h"
+#include "binder/expression/node_expression.h"
+#include "binder/expression/rel_expression.h"
 #include "binder/expression_visitor.h"
+#include "binder/query/query_graph.h"
+#include "common/assert.h"
+#include "common/enums/join_type.h"
+#include "common/enums/query_rel_type.h"
 #include "planner/join_order/cost_model.h"
+#include "planner/join_order_enumerator_context.h"
+#include "planner/operator/extend/extend_direction.h"
+#include "planner/operator/logical_operator.h"
+#include "planner/operator/logical_plan.h"
 #include "planner/operator/scan/logical_scan_internal_id.h"
 #include "planner/query_planner.h"
+#include "planner/subplans_table.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

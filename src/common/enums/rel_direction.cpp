@@ -1,5 +1,7 @@
 #include "common/enums/rel_direction.h"
 
+#include <string>
+
 #include "common/assert.h"
 
 namespace kuzu {

@@ -1,6 +1,9 @@
 #include "processor/operator/persistent/writer/parquet/parquet_rle_bp_encoder.h"
 
+#include <cstdint>
+
 #include "common/assert.h"
+#include "common/serializer/serializer.h"
 
 namespace kuzu {
 namespace processor {

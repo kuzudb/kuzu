@@ -1,6 +1,14 @@
+#include <cstdint>
+#include <cstdlib>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <utility>
+
 #include "c_api/kuzu.h"
 #include "common/exception/exception.h"
 #include "main/kuzu.h"
+#include "main/prepared_statement.h"
 
 namespace kuzu {
 namespace common {

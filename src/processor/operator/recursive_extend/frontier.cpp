@@ -1,5 +1,10 @@
 #include "processor/operator/recursive_extend/frontier.h"
 
+#include <cstdint>
+#include <vector>
+
+#include "common/types/internal_id_t.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

@@ -1,5 +1,8 @@
 #include "include/node_prepared_statement.h"
 
+#include "include/node_connection.h"
+#include "napi.h"
+
 Napi::Object NodePreparedStatement::Init(Napi::Env env, Napi::Object exports) {
     Napi::HandleScope scope(env);
 

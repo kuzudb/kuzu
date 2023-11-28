@@ -1,5 +1,17 @@
 #include "processor/result/result_set.h"
 
+#include <cstdint>
+#include <memory>
+#include <unordered_set>
+#include <utility>
+
+#include "common/assert.h"
+#include "common/data_chunk/data_chunk.h"
+#include "common/data_chunk/data_chunk_state.h"
+#include "common/vector/value_vector.h"
+#include "processor/result/result_set_descriptor.h"
+#include "storage/buffer_manager/memory_manager.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

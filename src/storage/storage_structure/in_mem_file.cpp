@@ -1,11 +1,28 @@
 #include "storage/storage_structure/in_mem_file.h"
 
-#include <mutex>
+#include <fcntl.h>
 
+#include <cstdint>
+#include <cstring>
+#include <memory>
+#include <mutex>
+#include <shared_mutex>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "common/assert.h"
+#include "common/constants.h"
 #include "common/exception/copy.h"
 #include "common/exception/message.h"
+#include "common/file_utils.h"
 #include "common/type_utils.h"
+#include "common/types/ku_list.h"
+#include "common/types/ku_string.h"
+#include "common/types/types.h"
 #include "common/types/value/nested.h"
+#include "storage/storage_structure/in_mem_page.h"
+#include "storage/storage_utils.h"
 
 using namespace kuzu::common;
 

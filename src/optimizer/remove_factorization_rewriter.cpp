@@ -1,7 +1,11 @@
 #include "optimizer/remove_factorization_rewriter.h"
 
+#include <memory>
+
 #include "common/exception/internal.h"
 #include "optimizer/logical_operator_collector.h"
+#include "planner/operator/logical_operator.h"
+#include "planner/operator/logical_plan.h"
 
 using namespace kuzu::common;
 using namespace kuzu::planner;

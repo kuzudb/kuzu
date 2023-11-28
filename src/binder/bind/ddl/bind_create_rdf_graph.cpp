@@ -1,7 +1,17 @@
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "binder/binder.h"
+#include "binder/ddl/bound_create_table_info.h"
+#include "catalog/property.h"
 #include "catalog/rel_table_schema.h"
+#include "common/enums/table_type.h"
 #include "common/keyword/rdf_keyword.h"
+#include "common/types/internal_id_t.h"
 #include "common/types/rdf_variant_type.h"
+#include "common/types/types.h"
 #include "parser/ddl/create_table_info.h"
 
 using namespace kuzu::parser;

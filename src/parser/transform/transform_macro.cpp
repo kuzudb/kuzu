@@ -1,4 +1,11 @@
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "cypher_parser.h"
 #include "parser/create_macro.h"
+#include "parser/statement.h"
 #include "parser/transformer.h"
 
 namespace kuzu {

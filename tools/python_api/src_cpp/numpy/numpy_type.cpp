@@ -1,6 +1,11 @@
 #include "numpy/numpy_type.h"
 
-#include "common/string_utils.h"
+#include <memory>
+#include <string>
+
+#include "common/assert.h"
+#include "common/types/types.h"
+#include <pybind11/pytypes.h>
 
 namespace kuzu {
 

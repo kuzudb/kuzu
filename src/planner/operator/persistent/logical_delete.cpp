@@ -1,6 +1,12 @@
 #include "planner/operator/persistent/logical_delete.h"
 
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <vector>
+
 #include "planner/operator/factorization/flatten_resolver.h"
+#include "planner/operator/schema.h"
 
 namespace kuzu {
 namespace planner {

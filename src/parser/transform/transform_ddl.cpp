@@ -1,7 +1,20 @@
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "common/enums/alter_type.h"
+#include "common/enums/table_type.h"
+#include "common/types/value/value.h"
+#include "cypher_parser.h"
 #include "parser/ddl/alter.h"
+#include "parser/ddl/alter_info.h"
 #include "parser/ddl/create_table.h"
+#include "parser/ddl/create_table_info.h"
 #include "parser/ddl/drop.h"
+#include "parser/expression/parsed_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
+#include "parser/statement.h"
 #include "parser/transformer.h"
 
 using namespace kuzu::common;

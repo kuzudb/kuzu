@@ -1,5 +1,7 @@
 #include "processor/operator/recursive_extend/scan_frontier.h"
 
+#include "processor/execution_context.h"
+
 namespace kuzu {
 namespace processor {
 

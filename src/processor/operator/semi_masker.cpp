@@ -1,5 +1,15 @@
 #include "processor/operator/semi_masker.h"
 
+#include <cstdint>
+
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "processor/execution_context.h"
+#include "processor/result/result_set.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

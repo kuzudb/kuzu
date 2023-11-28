@@ -1,7 +1,14 @@
 #include "planner/operator/persistent/logical_set.h"
 
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "binder/expression/node_expression.h"
 #include "binder/expression/rel_expression.h"
 #include "planner/operator/factorization/flatten_resolver.h"
+#include "planner/operator/schema.h"
 
 using namespace kuzu::binder;
 

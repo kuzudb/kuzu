@@ -1,4 +1,8 @@
+#include <memory>
+#include <utility>
+
 #include "planner/operator/logical_multiplcity_reducer.h"
+#include "planner/operator/logical_plan.h"
 #include "planner/query_planner.h"
 
 namespace kuzu {

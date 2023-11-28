@@ -1,5 +1,9 @@
 #include "parser/expression/parsed_function_expression.h"
 
+#include <memory>
+#include <string>
+#include <utility>
+
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 

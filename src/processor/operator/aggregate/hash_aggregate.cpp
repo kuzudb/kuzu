@@ -1,5 +1,21 @@
 #include "processor/operator/aggregate/hash_aggregate.h"
 
+#include <algorithm>
+#include <cstdint>
+#include <memory>
+#include <mutex>
+#include <utility>
+#include <vector>
+
+#include "common/constants.h"
+#include "common/types/types.h"
+#include "common/utils.h"
+#include "processor/execution_context.h"
+#include "processor/operator/aggregate/aggregate_hash_table.h"
+#include "processor/operator/aggregate/base_aggregate.h"
+#include "processor/result/result_set.h"
+#include "storage/buffer_manager/memory_manager.h"
+
 using namespace kuzu::common;
 using namespace kuzu::function;
 using namespace kuzu::storage;

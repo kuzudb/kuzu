@@ -1,10 +1,19 @@
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "binder/expression/expression.h"
 #include "binder/expression/expression_util.h"
 #include "binder/expression/node_rel_expression.h"
 #include "binder/expression/property_expression.h"
 #include "binder/expression_binder.h"
 #include "catalog/table_schema.h"
+#include "common/enums/expression_type.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
+#include "common/types/types.h"
+#include "parser/expression/parsed_expression.h"
 #include "parser/expression/parsed_property_expression.h"
 
 using namespace kuzu::common;

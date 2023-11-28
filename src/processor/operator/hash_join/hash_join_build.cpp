@@ -1,5 +1,17 @@
 #include "processor/operator/hash_join/hash_join_build.h"
 
+#include <memory>
+#include <mutex>
+#include <utility>
+#include <vector>
+
+#include "common/assert.h"
+#include "common/data_chunk/data_chunk_state.h"
+#include "common/types/types.h"
+#include "processor/execution_context.h"
+#include "processor/operator/hash_join/join_hash_table.h"
+#include "processor/result/result_set.h"
+
 using namespace kuzu::common;
 using namespace kuzu::storage;
 

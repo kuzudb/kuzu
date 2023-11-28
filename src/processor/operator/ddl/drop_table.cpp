@@ -1,5 +1,8 @@
 #include "processor/operator/ddl/drop_table.h"
 
+#include <string>
+
+#include "common/enums/table_type.h"
 #include "common/string_format.h"
 
 using namespace kuzu::catalog;

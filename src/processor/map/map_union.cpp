@@ -1,6 +1,17 @@
+#include <cstdint>
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "common/constants.h"
+#include "common/enums/join_type.h"
+#include "planner/operator/logical_operator.h"
 #include "planner/operator/logical_union.h"
+#include "processor/data_pos.h"
+#include "processor/operator/physical_operator.h"
 #include "processor/operator/table_scan/union_all_scan.h"
 #include "processor/plan_mapper.h"
+#include "processor/result/factorized_table.h"
 
 using namespace kuzu::common;
 using namespace kuzu::planner;

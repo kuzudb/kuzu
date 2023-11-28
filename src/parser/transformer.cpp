@@ -1,9 +1,18 @@
 #include "parser/transformer.h"
 
+#include <memory>
+#include <string>
+#include <utility>
+
 #include "common/assert.h"
+#include "common/enums/explain_type.h"
 #include "common/string_utils.h"
+#include "cypher_parser.h"
 #include "parser/explain_statement.h"
+#include "parser/expression/parsed_expression.h"
 #include "parser/query/regular_query.h" // IWYU pragma: keep (fixes a forward declaration error)
+#include "parser/statement.h"
+#include "tree/TerminalNode.h"
 
 using namespace kuzu::common;
 

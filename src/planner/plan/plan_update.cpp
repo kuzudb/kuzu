@@ -1,7 +1,20 @@
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "binder/expression/expression.h"
+#include "binder/expression/node_expression.h"
+#include "binder/expression/rel_expression.h"
 #include "binder/query/updating_clause/bound_delete_clause.h"
 #include "binder/query/updating_clause/bound_insert_clause.h"
 #include "binder/query/updating_clause/bound_merge_clause.h"
 #include "binder/query/updating_clause/bound_set_clause.h"
+#include "binder/query/updating_clause/bound_updating_clause.h"
+#include "binder/query/updating_clause/update_table_type.h"
+#include "common/assert.h"
+#include "common/enums/clause_type.h"
+#include "common/enums/join_type.h"
+#include "planner/operator/logical_plan.h"
 #include "planner/operator/persistent/logical_merge.h"
 #include "planner/query_planner.h"
 

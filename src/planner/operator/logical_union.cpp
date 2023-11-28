@@ -1,7 +1,14 @@
 #include "planner/operator/logical_union.h"
 
+#include <cstdint>
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include "planner/operator/factorization/flatten_resolver.h"
 #include "planner/operator/factorization/sink_util.h"
+#include "planner/operator/logical_operator.h"
+#include "planner/operator/schema.h"
 
 namespace kuzu {
 namespace planner {

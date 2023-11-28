@@ -1,5 +1,14 @@
 #include "binder/expression/expression_util.h"
 
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "binder/expression/expression.h"
+#include "common/enums/expression_type.h"
+#include "common/types/types.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

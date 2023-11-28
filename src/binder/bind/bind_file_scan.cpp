@@ -1,9 +1,23 @@
+#include <cstdint>
+#include <filesystem>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
 #include "binder/binder.h"
 #include "binder/expression/literal_expression.h"
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/copier_config/copier_config.h"
+#include "common/enums/expression_type.h"
 #include "common/exception/binder.h"
 #include "common/exception/copy.h"
+#include "common/file_utils.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
+#include "common/types/types.h"
+#include "parser/expression/parsed_expression.h"
 
 using namespace kuzu::parser;
 using namespace kuzu::binder;

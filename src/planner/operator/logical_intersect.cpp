@@ -1,5 +1,13 @@
 #include "planner/operator/logical_intersect.h"
 
+#include <cstdint>
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "planner/operator/logical_operator.h"
+#include "planner/operator/schema.h"
+
 namespace kuzu {
 namespace planner {
 

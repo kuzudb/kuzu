@@ -1,7 +1,22 @@
 #include "processor/operator/index_lookup.h"
 
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "common/assert.h"
 #include "common/exception/message.h"
+#include "common/exception/runtime.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/ku_string.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "processor/execution_context.h"
+#include "processor/operator/physical_operator.h"
 #include "storage/index/hash_index.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;

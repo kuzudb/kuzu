@@ -1,6 +1,12 @@
 #include "function/boolean/vector_boolean_functions.h"
 
+#include "binder/expression/expression.h"
+#include "common/assert.h"
+#include "common/enums/expression_type.h"
+#include "common/exception/runtime.h"
+#include "common/types/types.h"
 #include "function/boolean/boolean_functions.h"
+#include "function/scalar_function.h"
 
 using namespace kuzu::common;
 

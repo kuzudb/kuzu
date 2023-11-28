@@ -1,6 +1,13 @@
 #include "planner/operator/schema.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <unordered_set>
+
+#include "binder/expression/expression.h"
 #include "binder/expression_visitor.h"
+#include "common/assert.h"
 #include "common/exception/internal.h"
 
 using namespace kuzu::binder;

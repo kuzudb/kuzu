@@ -1,7 +1,14 @@
+#include <memory>
+#include <utility>
+
 #include "binder/binder.h"
 #include "binder/bound_standalone_call.h"
+#include "binder/bound_statement.h"
+#include "binder/expression_binder.h"
 #include "common/exception/binder.h"
+#include "main/db_config.h"
 #include "parser/standalone_call.h"
+#include "parser/statement.h"
 
 using namespace kuzu::common;
 

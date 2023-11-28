@@ -1,5 +1,11 @@
 #include "parser/create_macro.h"
 
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "parser/expression/parsed_expression.h"
+
 namespace kuzu {
 namespace parser {
 

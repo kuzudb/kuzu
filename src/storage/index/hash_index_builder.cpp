@@ -1,5 +1,21 @@
 #include "storage/index/hash_index_builder.h"
 
+#include <cstdint>
+#include <memory>
+#include <string>
+
+#include "common/assert.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/ku_string.h"
+#include "common/types/types.h"
+#include "storage/file_handle.h"
+#include "storage/index/hash_index_header.h"
+#include "storage/index/hash_index_slot.h"
+#include "storage/index/hash_index_utils.h"
+#include "storage/storage_structure/disk_array.h"
+#include "storage/storage_structure/in_mem_file.h"
+#include "storage/storage_utils.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

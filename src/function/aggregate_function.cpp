@@ -1,6 +1,19 @@
 #include "function/aggregate_function.h"
 
+#include <cmath>
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "common/assert.h"
+#include "common/enums/expression_type.h"
+#include "common/types/int128_t.h"
+#include "common/types/internal_id_t.h"
 #include "common/types/interval_t.h"
+#include "common/types/ku_string.h"
+#include "common/types/types.h"
 #include "function/aggregate/avg.h"
 #include "function/aggregate/min_max.h"
 #include "function/aggregate/sum.h"

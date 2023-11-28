@@ -1,6 +1,10 @@
 #include "processor/operator/ddl/create_rdf_graph.h"
 
+#include <string>
+
+#include "catalog/node_table_schema.h"
 #include "catalog/rdf_graph_schema.h"
+#include "catalog/rel_table_schema.h"
 #include "common/string_format.h"
 #include "storage/storage_manager.h"
 

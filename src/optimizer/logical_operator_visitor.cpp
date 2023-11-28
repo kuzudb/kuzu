@@ -1,5 +1,9 @@
 #include "optimizer/logical_operator_visitor.h"
 
+#include <memory>
+
+#include "planner/operator/logical_operator.h"
+
 using namespace kuzu::planner;
 
 namespace kuzu {

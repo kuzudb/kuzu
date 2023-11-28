@@ -1,6 +1,11 @@
+#include <memory>
+
 #include "common/assert.h"
+#include "cypher_parser.h"
+#include "parser/statement.h"
 #include "parser/transaction_statement.h"
 #include "parser/transformer.h"
+#include "transaction/transaction_action.h"
 
 using namespace kuzu::transaction;
 using namespace kuzu::common;

@@ -1,5 +1,13 @@
 #include "storage/local_storage/local_storage.h"
 
+#include <memory>
+#include <unordered_set>
+#include <vector>
+
+#include "common/column_data_format.h"
+#include "common/enums/table_type.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/types.h"
 #include "storage/local_storage/local_table.h"
 #include "storage/store/column.h"
 

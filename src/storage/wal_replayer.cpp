@@ -1,9 +1,24 @@
 #include "storage/wal_replayer.h"
 
+#include <cstdint>
+#include <memory>
+
+#include "catalog/catalog.h"
 #include "catalog/node_table_schema.h"
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/enums/table_type.h"
+#include "common/exception/runtime.h"
 #include "common/exception/storage.h"
+#include "common/file_utils.h"
+#include "common/types/types.h"
+#include "storage/buffer_manager/bm_file_handle.h"
+#include "storage/buffer_manager/buffer_manager.h"
 #include "storage/storage_manager.h"
+#include "storage/storage_structure/disk_overflow_file.h"
 #include "storage/storage_utils.h"
+#include "storage/wal/wal.h"
+#include "storage/wal/wal_record.h"
 #include "storage/wal_replayer_utils.h"
 
 using namespace kuzu::catalog;

@@ -1,6 +1,13 @@
 #include "common/types/value/node.h"
 
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "common/constants.h"
+#include "common/exception/exception.h"
 #include "common/string_format.h"
 #include "common/types/types.h"
 #include "common/types/value/value.h"

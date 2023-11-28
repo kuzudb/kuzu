@@ -1,4 +1,9 @@
+#include <memory>
+#include <utility>
+#include <vector>
+
 #include "binder/query/updating_clause/bound_set_info.h"
+#include "planner/operator/logical_plan.h"
 #include "planner/operator/persistent/logical_set.h"
 #include "planner/query_planner.h"
 

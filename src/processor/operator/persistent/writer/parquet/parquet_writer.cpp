@@ -1,6 +1,28 @@
 #include "processor/operator/persistent/writer/parquet/parquet_writer.h"
 
+#include <fcntl.h>
+
+#include <algorithm>
+#include <cstdint>
+#include <cstring>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "common/assert.h"
+#include "common/constants.h"
 #include "common/data_chunk/data_chunk.h"
+#include "common/data_chunk/data_chunk_state.h"
+#include "common/exception/runtime.h"
+#include "common/file_utils.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "parquet/parquet_types.h"
+#include "processor/operator/persistent/writer/parquet/column_writer.h"
+#include "processor/result/factorized_table.h"
+#include "storage/buffer_manager/memory_manager.h"
 #include "thrift/protocol/TCompactProtocol.h"
 
 namespace kuzu {

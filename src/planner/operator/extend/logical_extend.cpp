@@ -1,5 +1,10 @@
 #include "planner/operator/extend/logical_extend.h"
 
+#include <cstdint>
+
+#include "common/assert.h"
+#include "planner/operator/schema.h"
+
 namespace kuzu {
 namespace planner {
 

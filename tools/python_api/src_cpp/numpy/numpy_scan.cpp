@@ -1,7 +1,15 @@
 #include "numpy/numpy_scan.h"
 
+#include <cstdint>
+
+#include "common/assert.h"
+#include "common/types/interval_t.h"
 #include "common/types/timestamp_t.h"
+#include "common/vector/value_vector.h"
+#include "numpy/numpy_type.h"
 #include "pandas/pandas_bind.h"
+#include "pandas/pandas_column.h"
+#include <pybind11/numpy.h>
 
 namespace kuzu {
 

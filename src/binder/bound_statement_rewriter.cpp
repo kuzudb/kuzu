@@ -1,7 +1,9 @@
 #include "binder/bound_statement_rewriter.h"
 
+#include "binder/bound_statement.h"
 #include "binder/rewriter/match_clause_pattern_label_rewriter.h"
 #include "binder/rewriter/with_clause_projection_rewriter.h"
+#include "catalog/catalog.h"
 
 namespace kuzu {
 namespace binder {

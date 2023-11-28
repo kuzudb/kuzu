@@ -1,13 +1,36 @@
 #include "function/cast/vector_cast_functions.h"
 
+#include <cmath>
+#include <cstdint>
+#include <cstring>
+#include <memory>
+#include <string>
+#include <vector>
+
 #include "binder/binder.h"
+#include "binder/expression/expression.h"
 #include "binder/expression/literal_expression.h"
+#include "common/assert.h"
+#include "common/enums/expression_type.h"
 #include "common/exception/binder.h"
 #include "common/exception/conversion.h"
+#include "common/string_format.h"
+#include "common/types/blob.h"
+#include "common/types/date_t.h"
+#include "common/types/int128_t.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/interval_t.h"
+#include "common/types/ku_string.h"
+#include "common/types/timestamp_t.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
 #include "function/cast/functions/cast_fixed_list.h"
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "function/cast/functions/cast_functions.h"
 #include "function/cast/functions/cast_rdf_variant.h"
+#include "function/function.h"
+#include "function/scalar_function.h"
+#include "function/unary_function_executor.h"
 
 using namespace kuzu::common;
 

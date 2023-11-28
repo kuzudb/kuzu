@@ -1,12 +1,21 @@
 #include "function/arithmetic/vector_arithmetic_functions.h"
 
+#include <cmath>
+#include <cstdint>
+#include <memory>
+#include <vector>
+
+#include "common/enums/expression_type.h"
 #include "common/types/date_t.h"
 #include "common/types/interval_t.h"
+#include "common/types/ku_string.h"
 #include "common/types/timestamp_t.h"
+#include "common/types/types.h"
 #include "function/arithmetic/arithmetic_functions.h"
 #include "function/arithmetic/multiply.h"
 #include "function/list/functions/list_concat_function.h"
 #include "function/list/vector_list_functions.h"
+#include "function/scalar_function.h"
 #include "function/string/functions/concat_function.h"
 
 using namespace kuzu::common;

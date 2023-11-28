@@ -1,8 +1,23 @@
 #include "processor/operator/persistent/writer/parquet/basic_column_writer.h"
 
+#include <algorithm>
+#include <cstdint>
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/exception/runtime.h"
+#include "common/serializer/buffered_serializer.h"
+#include "common/serializer/serializer.h"
+#include "common/string_format.h"
+#include "common/vector/value_vector.h"
 #include "function/cast/functions/numeric_limits.h"
+#include "parquet/parquet_types.h"
 #include "processor/operator/persistent/reader/parquet/parquet_rle_bp_decoder.h"
 #include "processor/operator/persistent/writer//parquet/parquet_rle_bp_encoder.h"
+#include "processor/operator/persistent/writer/parquet/column_writer.h"
 #include "processor/operator/persistent/writer/parquet/parquet_writer.h"
 
 namespace kuzu {

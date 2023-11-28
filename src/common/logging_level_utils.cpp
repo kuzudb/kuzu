@@ -1,8 +1,11 @@
 #include "common/logging_level_utils.h"
 
+#include <string>
+
 #include "common/exception/conversion.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
+#include "spdlog/common.h"
 
 namespace kuzu {
 namespace common {

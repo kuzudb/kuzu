@@ -1,5 +1,8 @@
 #include "planner/operator/logical_explain.h"
 
+#include "common/assert.h"
+#include "common/enums/explain_type.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

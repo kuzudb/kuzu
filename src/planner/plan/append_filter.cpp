@@ -1,4 +1,9 @@
+#include <memory>
+#include <utility>
+
+#include "binder/expression/expression.h"
 #include "planner/operator/logical_filter.h"
+#include "planner/operator/logical_plan.h"
 #include "planner/query_planner.h"
 
 using namespace kuzu::binder;

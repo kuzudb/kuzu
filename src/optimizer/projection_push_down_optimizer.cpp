@@ -1,13 +1,26 @@
 #include "optimizer/projection_push_down_optimizer.h"
 
+#include <cstdint>
+#include <memory>
+#include <utility>
+
+#include "binder/expression/expression.h"
+#include "binder/expression/node_expression.h"
+#include "binder/expression/rel_expression.h"
 #include "binder/expression_visitor.h"
+#include "common/assert.h"
+#include "common/enums/expression_type.h"
+#include "common/enums/join_type.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
+#include "planner/operator/extend/recursive_join_type.h"
 #include "planner/operator/logical_accumulate.h"
 #include "planner/operator/logical_filter.h"
 #include "planner/operator/logical_hash_join.h"
 #include "planner/operator/logical_intersect.h"
+#include "planner/operator/logical_operator.h"
 #include "planner/operator/logical_order_by.h"
+#include "planner/operator/logical_plan.h"
 #include "planner/operator/logical_projection.h"
 #include "planner/operator/logical_unwind.h"
 #include "planner/operator/persistent/logical_delete.h"

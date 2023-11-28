@@ -1,5 +1,8 @@
 #include "processor/operator/persistent/set.h"
 
+#include "processor/execution_context.h"
+#include "processor/result/result_set.h"
+
 namespace kuzu {
 namespace processor {
 

@@ -1,5 +1,7 @@
 #include "processor/operator/ddl/add_property.h"
 
+#include "common/vector/value_vector.h"
+
 namespace kuzu {
 namespace processor {
 

@@ -1,6 +1,9 @@
 #include "planner/operator/logical_distinct.h"
 
+#include <string>
+
 #include "planner/operator/factorization/flatten_resolver.h"
+#include "planner/operator/schema.h"
 
 namespace kuzu {
 namespace planner {

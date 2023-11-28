@@ -1,5 +1,14 @@
 #include "common/profiler.h"
 
+#include <cstdint>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "common/metric.h"
+
 namespace kuzu {
 namespace common {
 

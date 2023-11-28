@@ -1,5 +1,28 @@
 #include "main/database.h"
 
+#include <fcntl.h>
+
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <thread>
+#include <utility>
+
+#include "catalog/catalog.h"
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/types/types.h"
+#include "spdlog/common.h"
+#include "storage/buffer_manager/buffer_manager.h"
+#include "storage/buffer_manager/memory_manager.h"
+#include "storage/stats/nodes_store_statistics.h"
+#include "storage/stats/rels_store_statistics.h"
+#include "storage/storage_utils.h"
+#include "storage/wal/wal.h"
+#include "transaction/transaction.h"
+
 #if defined(_WIN32)
 #include <windows.h>
 #else

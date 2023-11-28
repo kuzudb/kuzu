@@ -1,5 +1,11 @@
+#include <memory>
+#include <utility>
+
 #include "planner/operator/logical_filter.h"
+#include "planner/operator/logical_operator.h"
+#include "processor/expression_mapper.h"
 #include "processor/operator/filter.h"
+#include "processor/operator/physical_operator.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::planner;

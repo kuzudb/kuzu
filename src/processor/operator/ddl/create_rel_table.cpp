@@ -1,5 +1,7 @@
 #include "processor/operator/ddl/create_rel_table.h"
 
+#include <string>
+
 #include "catalog/rel_table_schema.h"
 #include "common/string_format.h"
 #include "storage/storage_manager.h"

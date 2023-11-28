@@ -1,7 +1,10 @@
 #include "processor/operator/comment_on.h"
 
+#include <string>
+
 #include "catalog/catalog.h"
 #include "common/string_format.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::common;
 

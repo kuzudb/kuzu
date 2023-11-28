@@ -1,8 +1,14 @@
 #include "transaction/transaction_manager.h"
 
+#include <chrono>
+#include <cstdint>
+#include <memory>
+#include <string>
 #include <thread>
 
+#include "common/constants.h"
 #include "common/exception/transaction_manager.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 

@@ -1,8 +1,21 @@
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "binder/expression/expression.h"
 #include "binder/expression/expression_util.h"
+#include "common/types/types.h"
 #include "planner/operator/logical_intersect.h"
+#include "planner/operator/logical_operator.h"
+#include "planner/operator/sip/side_way_info_passing.h"
+#include "processor/data_pos.h"
+#include "processor/operator/hash_join/hash_join_build.h"
+#include "processor/operator/hash_join/join_hash_table.h"
 #include "processor/operator/intersect/intersect.h"
 #include "processor/operator/intersect/intersect_build.h"
+#include "processor/operator/physical_operator.h"
 #include "processor/plan_mapper.h"
+#include "processor/result/result_set_descriptor.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::planner;

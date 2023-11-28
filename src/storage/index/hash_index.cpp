@@ -1,6 +1,31 @@
 #include "storage/index/hash_index.h"
 
+#include <cstdint>
+#include <functional>
+#include <memory>
+#include <mutex>
+#include <shared_mutex>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "common/assert.h"
+#include "common/types/internal_id_t.h"
+#include "common/types/ku_string.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "storage/buffer_manager/bm_file_handle.h"
+#include "storage/buffer_manager/buffer_manager.h"
+#include "storage/file_handle.h"
+#include "storage/index/hash_index_builder.h"
+#include "storage/index/hash_index_header.h"
+#include "storage/index/hash_index_slot.h"
 #include "storage/index/hash_index_utils.h"
+#include "storage/storage_structure/disk_array.h"
+#include "storage/storage_structure/disk_overflow_file.h"
+#include "storage/storage_utils.h"
+#include "storage/wal/wal.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;

@@ -1,5 +1,8 @@
 #include "processor/operator/persistent/insert.h"
 
+#include "processor/execution_context.h"
+#include "processor/result/result_set.h"
+
 using namespace kuzu::common;
 using namespace kuzu::storage;
 

@@ -1,6 +1,10 @@
 #include "common/null_mask.h"
 
+#include <algorithm>
+#include <cstdint>
 #include <cstring>
+#include <memory>
+#include <utility>
 
 namespace kuzu {
 namespace common {

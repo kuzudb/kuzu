@@ -1,5 +1,12 @@
 #include "processor/operator/aggregate/base_aggregate_scan.h"
 
+#include <cstdint>
+
+#include "common/vector/value_vector.h"
+#include "function/aggregate_function.h"
+#include "processor/execution_context.h"
+#include "processor/result/result_set.h"
+
 using namespace kuzu::common;
 using namespace kuzu::function;
 

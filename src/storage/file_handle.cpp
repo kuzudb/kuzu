@@ -1,7 +1,16 @@
 #include "storage/file_handle.h"
 
+#include <fcntl.h>
+
 #include <cmath>
+#include <cstdint>
+#include <memory>
 #include <mutex>
+#include <string>
+
+#include "common/constants.h"
+#include "common/file_utils.h"
+#include "common/types/types.h"
 
 using namespace kuzu::common;
 

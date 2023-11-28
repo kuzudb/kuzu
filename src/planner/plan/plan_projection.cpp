@@ -1,4 +1,11 @@
+#include <memory>
+#include <vector>
+
+#include "binder/expression/expression.h"
 #include "binder/expression_visitor.h"
+#include "binder/query/return_with_clause/bound_projection_body.h"
+#include "common/assert.h"
+#include "planner/operator/logical_plan.h"
 #include "planner/query_planner.h"
 
 using namespace kuzu::binder;

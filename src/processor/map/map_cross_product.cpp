@@ -1,5 +1,14 @@
+#include <cstdint>
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "common/constants.h"
 #include "planner/operator/logical_cross_product.h"
+#include "planner/operator/logical_operator.h"
+#include "processor/data_pos.h"
 #include "processor/operator/cross_product.h"
+#include "processor/operator/physical_operator.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::common;

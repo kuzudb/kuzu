@@ -1,5 +1,11 @@
 #include "expression_evaluator/expression_evaluator.h"
 
+#include <vector>
+
+#include "common/data_chunk/data_chunk_state.h"
+#include "processor/result/result_set.h"
+#include "storage/buffer_manager/memory_manager.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

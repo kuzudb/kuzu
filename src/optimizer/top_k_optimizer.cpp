@@ -1,7 +1,12 @@
 #include "optimizer/top_k_optimizer.h"
 
+#include <memory>
+
+#include "common/assert.h"
 #include "planner/operator/logical_limit.h"
+#include "planner/operator/logical_operator.h"
 #include "planner/operator/logical_order_by.h"
+#include "planner/operator/logical_plan.h"
 
 using namespace kuzu::planner;
 

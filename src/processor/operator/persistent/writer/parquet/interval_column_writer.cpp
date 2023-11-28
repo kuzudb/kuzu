@@ -1,6 +1,14 @@
 #include "processor/operator/persistent/writer/parquet/interval_column_writer.h"
 
+#include <cstdint>
+#include <cstring>
+
+#include "common/constants.h"
+#include "common/exception/runtime.h"
 #include "common/serializer/serializer.h"
+#include "common/types/interval_t.h"
+#include "common/vector/value_vector.h"
+#include "processor/operator/persistent/writer/parquet/column_writer.h"
 
 namespace kuzu {
 namespace processor {

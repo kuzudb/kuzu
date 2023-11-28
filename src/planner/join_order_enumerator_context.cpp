@@ -1,5 +1,11 @@
 #include "planner/join_order_enumerator_context.h"
 
+#include <memory>
+
+#include "binder/expression/expression.h"
+#include "binder/query/query_graph.h"
+#include "planner/subplans_table.h"
+
 using namespace kuzu::binder;
 
 namespace kuzu {

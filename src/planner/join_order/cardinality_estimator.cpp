@@ -1,8 +1,26 @@
 #include "planner/join_order/cardinality_estimator.h"
 
+#include <algorithm>
+#include <cstdint>
+#include <memory>
+#include <vector>
+
+#include "binder/expression/expression.h"
+#include "binder/expression/node_expression.h"
 #include "binder/expression/property_expression.h"
+#include "binder/expression/rel_expression.h"
+#include "binder/query/query_graph.h"
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/enums/expression_type.h"
+#include "common/enums/query_rel_type.h"
+#include "common/types/internal_id_t.h"
 #include "planner/join_order/join_order_util.h"
+#include "planner/operator/logical_operator.h"
+#include "planner/operator/logical_plan.h"
 #include "planner/operator/scan/logical_scan_internal_id.h"
+#include "planner/operator/schema.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

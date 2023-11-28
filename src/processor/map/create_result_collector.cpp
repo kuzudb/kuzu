@@ -1,6 +1,19 @@
+#include <cstdint>
+#include <memory>
+#include <utility>
+#include <vector>
+
+#include "binder/expression/expression.h"
 #include "binder/expression/expression_util.h"
+#include "common/enums/join_type.h"
+#include "common/types/types.h"
+#include "planner/operator/schema.h"
+#include "processor/data_pos.h"
+#include "processor/operator/physical_operator.h"
 #include "processor/operator/result_collector.h"
 #include "processor/plan_mapper.h"
+#include "processor/result/factorized_table.h"
+#include "processor/result/result_set_descriptor.h"
 
 using namespace kuzu::common;
 using namespace kuzu::planner;

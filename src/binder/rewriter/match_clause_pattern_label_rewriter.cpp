@@ -1,6 +1,8 @@
 #include "binder/rewriter/match_clause_pattern_label_rewriter.h"
 
 #include "binder/query/reading_clause/bound_match_clause.h"
+#include "binder/query/reading_clause/bound_reading_clause.h"
+#include "common/enums/clause_type.h"
 
 using namespace kuzu::common;
 

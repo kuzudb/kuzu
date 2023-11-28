@@ -1,6 +1,9 @@
 #include "storage/storage_structure/in_mem_page.h"
 
+#include <algorithm>
+#include <cstdint>
 #include <cstring>
+#include <memory>
 
 #include "common/constants.h"
 #include "common/null_mask.h"

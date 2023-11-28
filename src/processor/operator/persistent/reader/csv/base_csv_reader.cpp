@@ -1,6 +1,20 @@
 #include "processor/operator/persistent/reader/csv/base_csv_reader.h"
 
 #include <fcntl.h>
+
+#include <algorithm>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
+#include <memory>
+#include <string>
+#include <string_view>
+#include <utility>
+
+#include "common/assert.h"
+#include "common/constants.h"
+#include "common/copier_config/copier_config.h"
+#include "common/types/types.h"
 #if defined(_WIN32)
 #include <io.h>
 #else
