@@ -179,12 +179,12 @@ mod tests {
         let conn = Connection::new(&db)?;
         let result: Error = conn
             .query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")
-            .expect_err("Invalid syntax in query should produce an error")
+            .expect_err("Write query should produce an error on a read-only DB")
             .into();
 
         assert_eq!(
             result.to_string(),
-            "Cannot execute write operations in a read-only database!"
+            "Query execution failed: Cannot execute write operations in a read-only database!"
         );
         Ok(())
     }
