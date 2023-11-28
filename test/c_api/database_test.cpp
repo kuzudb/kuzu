@@ -48,6 +48,7 @@ TEST_F(CApiDatabaseTest, CreationReadOnly) {
     auto queryResult = kuzu_connection_query(connection,
         "CREATE NODE TABLE User(name STRING, age INT64, reg_date DATE, PRIMARY KEY (name))");
     ASSERT_FALSE(kuzu_query_result_is_success(queryResult));
+    kuzu_query_result_destroy(queryResult);
     kuzu_connection_destroy(connection);
     kuzu_database_destroy(database);
 }
