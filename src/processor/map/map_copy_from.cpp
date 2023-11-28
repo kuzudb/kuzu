@@ -130,9 +130,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     auto readerConfig =
         reinterpret_cast<function::ScanBindData*>(copyFromInfo->fileScanInfo->bindData.get())
             ->config;
-    if (readerConfig.fileType == FileType::TURTLE &&
-        reinterpret_cast<RdfReaderConfig*>(readerConfig.extraConfig.get())->mode ==
-            RdfReaderMode::RESOURCE) {
+    bool isRdfFile =
+        readerConfig.fileType == FileType::TURTLE || readerConfig.fileType == FileType::NQUADS;
+    if (isRdfFile && reinterpret_cast<RdfReaderConfig*>(readerConfig.extraConfig.get())->mode ==
+                         RdfReaderMode::RESOURCE) {
         copyNode = std::make_unique<CopyRdfResource>(sharedState, std::move(info),
             std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), std::move(prevOperator),
             getOperatorID(), copyFrom->getExpressionsForPrinting());

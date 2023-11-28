@@ -217,19 +217,20 @@ function::TableFunction* Binder::getScanFunction(FileType fileType, const Reader
     inputTypes.push_back(&stringType);
     auto functions = catalog.getBuiltInFunctions();
     switch (fileType) {
-    case common::FileType::PARQUET: {
+    case FileType::PARQUET: {
         func = functions->matchScalarFunction(READ_PARQUET_FUNC_NAME, inputTypes);
     } break;
-    case common::FileType::NPY: {
+    case FileType::NPY: {
         func = functions->matchScalarFunction(READ_NPY_FUNC_NAME, inputTypes);
     } break;
-    case common::FileType::CSV: {
+    case FileType::CSV: {
         auto csvConfig = reinterpret_cast<CSVReaderConfig*>(config.extraConfig.get());
         func = functions->matchScalarFunction(
             csvConfig->parallel ? READ_CSV_PARALLEL_FUNC_NAME : READ_CSV_SERIAL_FUNC_NAME,
             inputTypes);
     } break;
-    case common::FileType::TURTLE: {
+    case FileType::NQUADS:
+    case FileType::TURTLE: {
         func = functions->matchScalarFunction(READ_RDF_FUNC_NAME, inputTypes);
     } break;
     default:

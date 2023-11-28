@@ -88,15 +88,21 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     }
     switch (tableSchema->tableType) {
     case TableType::NODE:
-        if (readerConfig->fileType == FileType::TURTLE) {
+        switch (readerConfig->fileType) {
+        case FileType::TURTLE:
+        case FileType::NQUADS: {
             return bindCopyRdfNodeFrom(statement, std::move(readerConfig), tableSchema);
-        } else {
+        }
+        default:
             return bindCopyNodeFrom(statement, std::move(readerConfig), tableSchema);
         }
     case TableType::REL: {
-        if (readerConfig->fileType == FileType::TURTLE) {
+        switch (readerConfig->fileType) {
+        case FileType::TURTLE:
+        case FileType::NQUADS: {
             return bindCopyRdfRelFrom(statement, std::move(readerConfig), tableSchema);
-        } else {
+        }
+        default:
             return bindCopyRelFrom(statement, std::move(readerConfig), tableSchema);
         }
     }

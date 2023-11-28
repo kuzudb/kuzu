@@ -36,6 +36,7 @@ static void appendPartitioner(BoundCopyFromInfo* copyFromInfo, LogicalPlan& plan
     payloads.push_back(copyFromInfo->fileScanInfo->offset);
     // TODO(Xiyang): Merge TURTLE case with other data types.
     switch (fileType) {
+    case FileType::NQUADS:
     case FileType::TURTLE: {
         auto extraInfo = reinterpret_cast<ExtraBoundCopyRdfRelInfo*>(copyFromInfo->extraInfo.get());
         infos.push_back(std::make_unique<LogicalPartitionerInfo>(
@@ -83,7 +84,7 @@ std::unique_ptr<LogicalPlan> Planner::planCopyFrom(const BoundStatement& stateme
     QueryPlanner::appendScanFile(copyFromInfo->fileScanInfo.get(), *plan);
     auto tableType = copyFromInfo->tableSchema->tableType;
     if (tableType == TableType::REL) {
-        if (fileType != FileType::TURTLE) {
+        if (fileType != FileType::TURTLE && fileType != FileType::NQUADS) {
             auto extraInfo = dynamic_cast<ExtraBoundCopyRelInfo*>(copyFromInfo->extraInfo.get());
             std::vector<std::unique_ptr<LogicalIndexScanNodeInfo>> infos;
             auto srcNodeTableSchema = dynamic_cast<NodeTableSchema*>(extraInfo->srcTableSchema);

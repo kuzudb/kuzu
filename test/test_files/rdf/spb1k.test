@@ -1,0 +1,16 @@
+-GROUP RdfoxExample
+-DATASET TTL rdf/spb1k
+
+--
+
+-CASE SPB
+
+-STATEMENT MATCH (s:spb_resource_t) RETURN COUNT(*);
+---- 1
+173
+-STATEMENT MATCH (s:spb_resource_t)-[]->(:spb_resource_t) WHERE s.iri = "http://www.bbc.co.uk/things/3#id" RETURN COUNT(*);
+---- 1
+16
+-STATEMENT MATCH (s:spb_resource_t)-[]->(:spb_literal_t) WHERE s.iri = "http://www.bbc.co.uk/things/3#id" RETURN COUNT(*);
+---- 1
+7

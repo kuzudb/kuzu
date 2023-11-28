@@ -54,7 +54,8 @@ void TestHelper::executeScript(const std::string& cypherScript, Connection& conn
             if (substrLower.find(".csv") != std::string::npos ||
                 substrLower.find(".parquet") != std::string::npos ||
                 substrLower.find(".npy") != std::string::npos ||
-                substrLower.find(".ttl") != std::string::npos) {
+                substrLower.find(".ttl") != std::string::npos ||
+                substrLower.find(".nq") != std::string::npos) {
                 csvFilePaths.push_back(substr);
             }
             index = end + 1;
