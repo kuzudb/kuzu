@@ -99,6 +99,9 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
         // parsing
         auto statement = Parser::parseQuery(query);
         preparedStatement->readOnly = parser::StatementReadWriteAnalyzer().isReadOnly(*statement);
+        if (database->systemConfig.readOnly && !preparedStatement->isReadOnly()) {
+            throw ConnectionException("Cannot execute write operations in a read-only database!");
+        }
         // binding
         auto binder = Binder(*database->catalog, database->memoryManager.get(),
             database->storageManager.get(), clientContext.get());
@@ -197,7 +200,6 @@ void Connection::bindParametersNoLock(PreparedStatement* preparedStatement,
 
 std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     PreparedStatement* preparedStatement, uint32_t planIdx) {
-    checkPreparedStatementAccessMode(preparedStatement);
     clientContext->resetActiveQuery();
     clientContext->startTimingIfEnabled();
     auto mapper = PlanMapper(
@@ -257,12 +259,6 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
 
 void Connection::addScalarFunction(std::string name, function::function_set definitions) {
     database->catalog->addFunction(std::move(name), std::move(definitions));
-}
-
-void Connection::checkPreparedStatementAccessMode(PreparedStatement* preparedStatement) {
-    if (database->systemConfig.readOnly && !preparedStatement->isReadOnly()) {
-        throw ConnectionException("Cannot execute write operations in a read-only database!");
-    }
 }
 
 } // namespace main

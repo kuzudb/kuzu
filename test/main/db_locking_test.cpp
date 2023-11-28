@@ -120,11 +120,12 @@ TEST_F(DBLockingTest, testReadOnly) {
     // we can query the database
     ASSERT_TRUE(conn->query("MATCH (:Person) RETURN COUNT(*)")->isSuccess());
     // however, we can't perform DDL statements
-    EXPECT_ANY_THROW(conn->query("CREATE NODE TABLE university(ID INT64, PRIMARY KEY(ID))"));
-    EXPECT_ANY_THROW(conn->query("ALTER TABLE Peron DROP name"));
-    EXPECT_ANY_THROW(conn->query("DROP TABLE Peron"));
+    ASSERT_FALSE(
+        conn->query("CREATE NODE TABLE university(ID INT64, PRIMARY KEY(ID))")->isSuccess());
+    ASSERT_FALSE(conn->query("ALTER TABLE Peron DROP name")->isSuccess());
+    ASSERT_FALSE(conn->query("DROP TABLE Peron")->isSuccess());
     // neither can we insert/update/delete data
-    EXPECT_ANY_THROW(conn->query("CREATE (:Person {name: 'Bob', age: 25});"));
-    EXPECT_ANY_THROW(conn->query("MATCH (p:Person) WHERE p.name='Alice' SET p.age=26;"));
-    EXPECT_ANY_THROW(conn->query("MATCH (p:Person) WHERE name='Alice' DELETE p;"));
+    ASSERT_FALSE(conn->query("CREATE (:Person {name: 'Bob', age: 25});")->isSuccess());
+    ASSERT_FALSE(conn->query("MATCH (p:Person) WHERE p.name='Alice' SET p.age=26;")->isSuccess());
+    ASSERT_FALSE(conn->query("MATCH (p:Person) WHERE name='Alice' DELETE p;")->isSuccess());
 }

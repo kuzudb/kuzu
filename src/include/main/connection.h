@@ -167,8 +167,6 @@ private:
 
     KUZU_API void addScalarFunction(std::string name, function::function_set definitions);
 
-    void checkPreparedStatementAccessMode(PreparedStatement* preparedStatement);
-
 private:
     Database* database;
     std::unique_ptr<ClientContext> clientContext;
