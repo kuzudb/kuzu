@@ -6,6 +6,7 @@
 namespace kuzu {
 namespace processor {
 
+// NOLINTNEXTLINE(cppcoreguidelines-virtual-class-destructor): This is a final class.
 class SimpleAggregateSharedState final : public BaseAggregateSharedState {
 public:
     explicit SimpleAggregateSharedState(

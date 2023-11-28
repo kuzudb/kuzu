@@ -309,6 +309,31 @@ jobs:
       - name: Benchmark
         run: python3 benchmark/benchmark_runner.py --dataset ldbc-sf100 --thread 10
 
+  macos-clang-tidy:
+    name: macos clang tidy & clangd diagnostics check
+    needs: [clang-formatting-check, include-guard-and-no-std-assert]
+    runs-on: self-hosted-mac-x64
+    env:
+      NUM_THREADS: 32
+      GEN: ninja
+
+    steps:
+      - uses: actions/checkout@v3
+
+      # For `napi.h` header.
+      - name: Ensure Node.js dependencies
+        run: npm install --include=dev
+        working-directory: tools/nodejs_api
+
+      - name: Check for clangd diagnostics
+        run: make clangd-diagnostics
+
+      - name: Run clang-tidy
+        run: make tidy
+
+      - name: Run clang-tidy analyzer
+        run: make tidy-analyzer
+
   macos-build-test:
     name: apple clang build & test
     needs: [clang-formatting-check, include-guard-and-no-std-assert, rustfmt-check]
