@@ -329,6 +329,9 @@ jobs:
         run: npm install --include=dev
         working-directory: tools/nodejs_api
 
+      - name: Output env for debug
+        run: env
+
       - name: Build
         run: make all
 
