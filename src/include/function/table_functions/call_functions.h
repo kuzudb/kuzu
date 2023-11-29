@@ -72,8 +72,8 @@ struct CurrentSettingFunction : public CallFunction {
 
     static void tableFunc(TableFunctionInput& data, common::DataChunk& outputChunk);
 
-    static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
-        TableFuncBindInput* input, catalog::CatalogContent* /*catalog*/);
+    static std::unique_ptr<TableFuncBindData> bindFunc(
+        main::ClientContext* context, TableFuncBindInput* input, catalog::Catalog* /*catalog*/);
 };
 
 struct DBVersionFunction : public CallFunction {
@@ -82,7 +82,7 @@ struct DBVersionFunction : public CallFunction {
     static void tableFunc(TableFunctionInput& input, common::DataChunk& outputChunk);
 
     static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-        TableFuncBindInput* /*input*/, catalog::CatalogContent* /*catalog*/);
+        TableFuncBindInput* /*input*/, catalog::Catalog* /*catalog*/);
 };
 
 struct ShowTablesBindData : public CallTableFuncBindData {
@@ -105,8 +105,8 @@ struct ShowTablesFunction : public CallFunction {
 
     static void tableFunc(TableFunctionInput& input, common::DataChunk& outputChunk);
 
-    static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-        TableFuncBindInput* /*input*/, catalog::CatalogContent* catalog);
+    static std::unique_ptr<TableFuncBindData> bindFunc(
+        main::ClientContext* /*context*/, TableFuncBindInput* /*input*/, catalog::Catalog* catalog);
 };
 
 struct TableInfoBindData : public CallTableFuncBindData {
@@ -129,14 +129,14 @@ struct TableInfoFunction : public CallFunction {
 
     static void tableFunc(TableFunctionInput& input, common::DataChunk& outputChunk);
 
-    static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-        TableFuncBindInput* input, catalog::CatalogContent* catalog);
+    static std::unique_ptr<TableFuncBindData> bindFunc(
+        main::ClientContext* /*context*/, TableFuncBindInput* input, catalog::Catalog* catalog);
 };
 
 struct ShowConnectionBindData : public TableInfoBindData {
-    catalog::CatalogContent* catalog;
+    catalog::Catalog* catalog;
 
-    ShowConnectionBindData(catalog::CatalogContent* catalog, catalog::TableSchema* tableSchema,
+    ShowConnectionBindData(catalog::Catalog* catalog, catalog::TableSchema* tableSchema,
         std::vector<std::unique_ptr<common::LogicalType>> returnTypes,
         std::vector<std::string> returnColumnNames, common::offset_t maxOffset)
         : catalog{catalog}, TableInfoBindData{tableSchema, std::move(returnTypes),
@@ -152,13 +152,13 @@ struct ShowConnectionFunction : public CallFunction {
     static function_set getFunctionSet();
 
     static void outputRelTableConnection(common::ValueVector* srcTableNameVector,
-        common::ValueVector* dstTableNameVector, uint64_t outputPos,
-        catalog::CatalogContent* catalog, common::table_id_t tableID);
+        common::ValueVector* dstTableNameVector, uint64_t outputPos, catalog::Catalog* catalog,
+        common::table_id_t tableID);
 
     static void tableFunc(TableFunctionInput& input, common::DataChunk& outputChunk);
 
-    static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* /*context*/,
-        TableFuncBindInput* input, catalog::CatalogContent* catalog);
+    static std::unique_ptr<TableFuncBindData> bindFunc(
+        main::ClientContext* /*context*/, TableFuncBindInput* input, catalog::Catalog* catalog);
 };
 
 } // namespace function

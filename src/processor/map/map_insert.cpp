@@ -2,6 +2,7 @@
 #include "planner/operator/persistent/logical_insert.h"
 #include "processor/operator/persistent/insert.h"
 #include "processor/plan_mapper.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::evaluator;
 using namespace kuzu::planner;
@@ -32,7 +33,7 @@ std::unique_ptr<NodeInsertExecutor> PlanMapper::getNodeInsertExecutor(
     auto table = storageManager.getNodeTable(nodeTableID);
     std::unordered_set<RelTable*> fwdRelTablesToInit;
     std::unordered_set<RelTable*> bwdRelTablesToInit;
-    auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(nodeTableID);
+    auto tableSchema = catalog->getTableSchema(&transaction::DUMMY_READ_TRANSACTION, nodeTableID);
     auto nodeTableSchema =
         common::ku_dynamic_cast<catalog::TableSchema*, catalog::NodeTableSchema*>(tableSchema);
     auto fwdRelTableIDs = nodeTableSchema->getFwdRelTableIDSet();

@@ -93,20 +93,42 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
     }
     auto compilingTimer = TimeMetric(true /* enable */);
     compilingTimer.start();
+    std::unique_ptr<Statement> statement;
+    try {
+        statement = Parser::parseQuery(query);
+        preparedStatement->preparedSummary.statementType = statement->getStatementType();
+        preparedStatement->readOnly = parser::StatementReadWriteAnalyzer().isReadOnly(*statement);
+        if (database->systemConfig.readOnly && !preparedStatement->isReadOnly()) {
+            throw ConnectionException("Cannot execute write operations in a read-only database!");
+        }
+    } catch (std::exception& exception) {
+        preparedStatement->success = false;
+        preparedStatement->errMsg = exception.what();
+        compilingTimer.stop();
+        preparedStatement->preparedSummary.compilingTime = compilingTimer.getElapsedTimeMS();
+        return preparedStatement;
+    }
     std::unique_ptr<ExecutionContext> executionContext;
     std::unique_ptr<LogicalPlan> logicalPlan;
     try {
         // parsing
-        auto statement = Parser::parseQuery(query);
-        preparedStatement->readOnly = parser::StatementReadWriteAnalyzer().isReadOnly(*statement);
-        if (database->systemConfig.readOnly && !preparedStatement->isReadOnly()) {
-            throw ConnectionException("Cannot execute write operations in a read-only database!");
+        if (statement->getStatementType() != StatementType::TRANSACTION) {
+            auto txContext = clientContext->transactionContext.get();
+            if (txContext->isAutoTransaction()) {
+                txContext->beginAutoTransaction(preparedStatement->readOnly);
+            } else {
+                txContext->validateManualTransaction(
+                    preparedStatement->allowActiveTransaction(), preparedStatement->readOnly);
+            }
+            if (!clientContext->getTx()->isReadOnly()) {
+                database->catalog->initCatalogContentForWriteTrxIfNecessary();
+                database->storageManager->initStatistics();
+            }
         }
         // binding
         auto binder = Binder(*database->catalog, database->memoryManager.get(),
             database->storageManager.get(), clientContext.get());
         auto boundStatement = binder.bind(*statement);
-        preparedStatement->preparedSummary.statementType = boundStatement->getStatementType();
         preparedStatement->parameterMap = binder.getParameterMap();
         preparedStatement->statementResult = boundStatement->getStatementResult()->copy();
         // planning
@@ -141,6 +163,7 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
     } catch (std::exception& exception) {
         preparedStatement->success = false;
         preparedStatement->errMsg = exception.what();
+        clientContext->transactionContext->rollback();
     }
     compilingTimer.stop();
     preparedStatement->preparedSummary.compilingTime = compilingTimer.getElapsedTimeMS();
@@ -200,6 +223,17 @@ void Connection::bindParametersNoLock(PreparedStatement* preparedStatement,
 
 std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     PreparedStatement* preparedStatement, uint32_t planIdx) {
+    if (!preparedStatement->isSuccess()) {
+        return queryResultWithError(preparedStatement->errMsg);
+    }
+    if (preparedStatement->preparedSummary.statementType != common::StatementType::TRANSACTION &&
+        clientContext->getTx() == nullptr) {
+        clientContext->transactionContext->beginAutoTransaction(preparedStatement->isReadOnly());
+        if (!preparedStatement->readOnly) {
+            database->catalog->initCatalogContentForWriteTrxIfNecessary();
+            database->storageManager->initStatistics();
+        }
+    }
     clientContext->resetActiveQuery();
     clientContext->startTimingIfEnabled();
     auto mapper = PlanMapper(
@@ -211,13 +245,9 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
                 mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[planIdx].get(),
                     preparedStatement->statementResult->getColumns());
         } catch (std::exception& exception) {
-            preparedStatement->success = false;
-            preparedStatement->errMsg = exception.what();
+            clientContext->transactionContext->rollback();
+            return queryResultWithError(exception.what());
         }
-    }
-    if (!preparedStatement->isSuccess()) {
-        clientContext->transactionContext->rollback();
-        return queryResultWithError(preparedStatement->errMsg);
     }
     auto queryResult = std::make_unique<QueryResult>(preparedStatement->preparedSummary);
     auto profiler = std::make_unique<Profiler>();
@@ -234,14 +264,10 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
                 database->queryProcessor->execute(physicalPlan.get(), executionContext.get());
         } else {
             if (clientContext->transactionContext->isAutoTransaction()) {
-                clientContext->transactionContext->beginAutoTransaction(
-                    preparedStatement->isReadOnly());
                 resultFT =
                     database->queryProcessor->execute(physicalPlan.get(), executionContext.get());
                 clientContext->transactionContext->commit();
             } else {
-                clientContext->transactionContext->validateManualTransaction(
-                    preparedStatement->allowActiveTransaction(), preparedStatement->isReadOnly());
                 resultFT =
                     database->queryProcessor->execute(physicalPlan.get(), executionContext.get());
             }

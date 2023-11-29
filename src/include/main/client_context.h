@@ -61,7 +61,7 @@ public:
 
     std::string getCurrentSetting(const std::string& optionName);
 
-    transaction::Transaction* getActiveTransaction() const;
+    transaction::Transaction* getTx() const;
     transaction::TransactionContext* getTransactionContext() const;
 
     inline void setReplaceFunc(replace_func_t replaceFunc) {

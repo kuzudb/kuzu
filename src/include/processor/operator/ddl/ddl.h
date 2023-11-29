@@ -22,7 +22,7 @@ public:
 
 protected:
     virtual std::string getOutputMsg() = 0;
-    virtual void executeDDLInternal() = 0;
+    virtual void executeDDLInternal(ExecutionContext* context) = 0;
 
 protected:
     catalog::Catalog* catalog;

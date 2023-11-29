@@ -7,20 +7,21 @@ namespace processor {
 
 class DropTable : public DDL {
 public:
-    DropTable(catalog::Catalog* catalog, common::table_id_t tableID, const DataPos& outputPos,
-        uint32_t id, const std::string& paramsString)
+    DropTable(catalog::Catalog* catalog, std::string tableName, common::table_id_t tableID,
+        const DataPos& outputPos, uint32_t id, const std::string& paramsString)
         : DDL{PhysicalOperatorType::DROP_TABLE, catalog, outputPos, id, paramsString},
-          tableID{tableID} {}
+          tableName{std::move(tableName)}, tableID{tableID} {}
 
-    void executeDDLInternal() override;
+    void executeDDLInternal(ExecutionContext* context) override;
 
     std::string getOutputMsg() override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<DropTable>(catalog, tableID, outputPos, id, paramsString);
+        return make_unique<DropTable>(catalog, tableName, tableID, outputPos, id, paramsString);
     }
 
 protected:
+    std::string tableName;
     common::table_id_t tableID;
 };
 

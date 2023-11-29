@@ -42,11 +42,11 @@ void PyConnection::setQueryTimeout(uint64_t timeoutInMS) {
 }
 
 static std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonParameters(
-    const py::dict& params);
+    const py::dict& params, Connection* conn);
 
 std::unique_ptr<PyQueryResult> PyConnection::execute(
     PyPreparedStatement* preparedStatement, const py::dict& params) {
-    auto parameters = transformPythonParameters(params);
+    auto parameters = transformPythonParameters(params, conn.get());
     py::gil_scoped_release release;
     auto queryResult =
         conn->executeWithParams(preparedStatement->preparedStatement.get(), std::move(parameters));
@@ -156,11 +156,12 @@ bool PyConnection::isPandasDataframe(const py::object& object) {
 
 static Value transformPythonValue(py::handle val);
 
-std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonParameters(
-    const py::dict& params) {
+std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonParameters(const py::dict& params, Connection* conn) {
     std::unordered_map<std::string, std::unique_ptr<Value>> result;
     for (auto& [key, value] : params) {
         if (!py::isinstance<py::str>(key)) {
+            //TODO(Chang): remove ROLLBACK once we can guarantee database is deleted after conn
+            conn->query("ROLLBACK");
             throw std::runtime_error("Parameter name must be of type string but get " +
                                      py::str(key.get_type()).cast<std::string>());
         }

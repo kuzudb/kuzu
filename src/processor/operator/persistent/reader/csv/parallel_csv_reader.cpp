@@ -159,7 +159,7 @@ void ParallelCSVScan::tableFunc(TableFunctionInput& input, common::DataChunk& ou
 
 std::unique_ptr<function::TableFuncBindData> ParallelCSVScan::bindFunc(
     main::ClientContext* /*context*/, function::TableFuncBindInput* input,
-    catalog::CatalogContent* /*catalog*/) {
+    catalog::Catalog* /*catalog*/) {
     auto scanInput = reinterpret_cast<function::ScanTableFuncBindInput*>(input);
     std::vector<std::string> detectedColumnNames;
     std::vector<std::unique_ptr<common::LogicalType>> detectedColumnTypes;

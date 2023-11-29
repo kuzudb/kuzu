@@ -5,10 +5,12 @@
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/wal_replayer_utils.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::storage;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace storage {
@@ -163,9 +165,9 @@ void WALReplayer::replayCreateTableRecord(const WALRecord& walRecord) {
         // record.
         auto catalogForCheckpointing = getCatalogForRecovery(FileVersionType::WAL_VERSION);
         if (walRecord.copyTableRecord.tableType == TableType::NODE) {
-            auto nodeTableSchema = reinterpret_cast<NodeTableSchema*>(
-                catalogForCheckpointing->getReadOnlyVersion()->getTableSchema(
-                    walRecord.createTableRecord.tableID));
+            auto nodeTableSchema =
+                reinterpret_cast<NodeTableSchema*>(catalogForCheckpointing->getTableSchema(
+                    &DUMMY_READ_TRANSACTION, walRecord.createTableRecord.tableID));
             WALReplayerUtils::createEmptyHashIndexFiles(nodeTableSchema, wal->getDirectory());
         }
         if (!isRecovering) {
@@ -173,8 +175,8 @@ void WALReplayer::replayCreateTableRecord(const WALRecord& walRecord) {
             // then we need to create the NodeTable object for the newly created node table.
             // Therefore, this effectively fixes the in-memory data structures (i.e., performs
             // the in-memory checkpointing).
-            storageManager->createTable(
-                walRecord.createTableRecord.tableID, catalogForCheckpointing.get());
+            storageManager->createTable(walRecord.createTableRecord.tableID,
+                catalogForCheckpointing.get(), &DUMMY_READ_TRANSACTION);
         }
     } else {
         // Since DDL statements are single statements that are auto committed, it is
@@ -243,7 +245,7 @@ void WALReplayer::replayCopyTableRecord(const kuzu::storage::WALRecord& walRecor
             // have likely changed they need to reconstruct their page locks).
             if (walRecord.copyTableRecord.tableType == TableType::NODE) {
                 auto nodeTableSchema = reinterpret_cast<NodeTableSchema*>(
-                    catalog->getReadOnlyVersion()->getTableSchema(tableID));
+                    catalog->getTableSchema(&DUMMY_READ_TRANSACTION, tableID));
                 storageManager->getNodeTable(tableID)->initializePKIndex(
                     nodeTableSchema, false /* readOnly */);
             }
@@ -264,7 +266,7 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
     if (isCheckpoint) {
         auto tableID = walRecord.dropTableRecord.tableID;
         if (!isRecovering) {
-            auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(tableID);
+            auto tableSchema = catalog->getTableSchema(&DUMMY_READ_TRANSACTION, tableID);
             switch (tableSchema->getTableType()) {
             case TableType::NODE: {
                 storageManager->dropTable(tableID);
@@ -286,7 +288,7 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
                 return;
             }
             auto catalogForRecovery = getCatalogForRecovery(FileVersionType::ORIGINAL);
-            auto tableSchema = catalogForRecovery->getReadOnlyVersion()->getTableSchema(tableID);
+            auto tableSchema = catalogForRecovery->getTableSchema(&DUMMY_READ_TRANSACTION, tableID);
             switch (tableSchema->getTableType()) {
             case TableType::NODE: {
                 // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
@@ -311,7 +313,7 @@ void WALReplayer::replayDropPropertyRecord(const kuzu::storage::WALRecord& walRe
         auto tableID = walRecord.dropPropertyRecord.tableID;
         auto propertyID = walRecord.dropPropertyRecord.propertyID;
         if (!isRecovering) {
-            auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(tableID);
+            auto tableSchema = catalog->getTableSchema(&DUMMY_READ_TRANSACTION, tableID);
             switch (tableSchema->getTableType()) {
             case TableType::NODE: {
                 storageManager->getNodeTable(tableID)->dropColumn(
@@ -343,7 +345,7 @@ void WALReplayer::replayAddPropertyRecord(const kuzu::storage::WALRecord& walRec
     auto tableID = walRecord.addPropertyRecord.tableID;
     auto propertyID = walRecord.addPropertyRecord.propertyID;
     if (!isCheckpoint) {
-        auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(tableID);
+        auto tableSchema = catalog->getTableSchema(&DUMMY_READ_TRANSACTION, tableID);
         switch (tableSchema->getTableType()) {
         case TableType::NODE: {
             storageManager->getNodeTable(tableID)->dropColumn(tableSchema->getColumnID(propertyID));

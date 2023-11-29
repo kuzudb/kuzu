@@ -5,7 +5,7 @@
 namespace kuzu {
 namespace processor {
 
-class CreateRelTable : public DDL {
+class CreateRelTable final : public DDL {
 public:
     CreateRelTable(catalog::Catalog* catalog, storage::StorageManager* storageManager,
         std::unique_ptr<binder::BoundCreateTableInfo> info, const DataPos& outputPos, uint32_t id,
@@ -13,7 +13,7 @@ public:
         : DDL{PhysicalOperatorType::CREATE_REL_TABLE, catalog, outputPos, id, paramsString},
           storageManager{storageManager}, info{std::move(info)} {}
 
-    void executeDDLInternal() override;
+    void executeDDLInternal(ExecutionContext* context) override;
 
     std::string getOutputMsg() override;
 

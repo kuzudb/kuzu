@@ -13,7 +13,9 @@ public:
         : DDL{PhysicalOperatorType::RENAME_PROPERTY, catalog, outputPos, id, paramsString},
           tableID{tableID}, propertyID{propertyID}, newName{std::move(newName)} {}
 
-    void executeDDLInternal() override { catalog->renameProperty(tableID, propertyID, newName); }
+    void executeDDLInternal(ExecutionContext* /*context*/) override {
+        catalog->renameProperty(tableID, propertyID, newName);
+    }
 
     std::string getOutputMsg() override { return "Property renamed"; }
 

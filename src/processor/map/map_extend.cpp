@@ -4,6 +4,7 @@
 #include "processor/operator/scan/scan_rel_csr_columns.h"
 #include "processor/operator/scan/scan_rel_regular_columns.h"
 #include "processor/plan_mapper.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -36,7 +37,7 @@ static std::unique_ptr<RelTableCollectionScanner> populateRelTableCollectionScan
     std::vector<std::unique_ptr<ScanRelTableInfo>> scanInfos;
     for (auto relTableID : rel.getTableIDs()) {
         auto relTableSchema = reinterpret_cast<RelTableSchema*>(
-            catalog.getReadOnlyVersion()->getTableSchema(relTableID));
+            catalog.getTableSchema(&transaction::DUMMY_READ_TRANSACTION, relTableID));
         switch (extendDirection) {
         case ExtendDirection::FWD: {
             if (relTableSchema->getBoundTableID(RelDataDirection::FWD) == boundNodeTableID) {
@@ -101,7 +102,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logical
     if (!rel->isMultiLabeled() && !boundNode->isMultiLabeled() &&
         extendDirection != ExtendDirection::BOTH) {
         auto tableSchema = dynamic_cast<RelTableSchema*>(
-            catalog->getReadOnlyVersion()->getTableSchema(rel->getSingleTableID()));
+            catalog->getTableSchema(&transaction::DUMMY_READ_TRANSACTION, rel->getSingleTableID()));
         auto relDataDirection = ExtendDirectionUtils::getRelDataDirection(extendDirection);
         auto scanInfo = getRelTableScanInfo(
             tableSchema, relDataDirection, storageManager, extend->getProperties());

@@ -5,6 +5,7 @@
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace storage {
@@ -30,14 +31,14 @@ StorageManager::StorageManager(bool readOnly, const Catalog& catalog, MemoryMana
 }
 
 void StorageManager::loadTables(bool readOnly, const catalog::Catalog& catalog) {
-    for (auto& schema : catalog.getReadOnlyVersion()->getNodeTableSchemas()) {
+    for (auto& schema : catalog.getNodeTableSchemas(&DUMMY_READ_TRANSACTION)) {
         KU_ASSERT(!tables.contains(schema->tableID));
         auto nodeTableSchema = reinterpret_cast<NodeTableSchema*>(schema);
         tables[schema->tableID] = std::make_unique<NodeTable>(dataFH.get(), metadataFH.get(),
             nodeTableSchema, nodesStatisticsAndDeletedIDs.get(), &memoryManager, wal, readOnly,
             enableCompression);
     }
-    for (auto schema : catalog.getReadOnlyVersion()->getRelTableSchemas()) {
+    for (auto schema : catalog.getRelTableSchemas(&DUMMY_READ_TRANSACTION)) {
         KU_ASSERT(!tables.contains(schema->tableID));
         auto relTableSchema = dynamic_cast<RelTableSchema*>(schema);
         tables[schema->tableID] = std::make_unique<RelTable>(dataFH.get(), metadataFH.get(),
@@ -45,8 +46,9 @@ void StorageManager::loadTables(bool readOnly, const catalog::Catalog& catalog) 
     }
 }
 
-void StorageManager::createTable(common::table_id_t tableID, catalog::Catalog* catalog) {
-    auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(tableID);
+void StorageManager::createTable(
+    common::table_id_t tableID, Catalog* catalog, Transaction* transaction) {
+    auto tableSchema = catalog->getTableSchema(transaction, tableID);
     switch (tableSchema->tableType) {
     case TableType::NODE: {
         auto nodeTableSchema = reinterpret_cast<NodeTableSchema*>(tableSchema);

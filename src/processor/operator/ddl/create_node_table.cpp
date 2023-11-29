@@ -10,10 +10,10 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void CreateNodeTable::executeDDLInternal() {
+void CreateNodeTable::executeDDLInternal(ExecutionContext* context) {
     auto newTableID = catalog->addNodeTableSchema(*info);
-    auto newNodeTableSchema =
-        reinterpret_cast<NodeTableSchema*>(catalog->getWriteVersion()->getTableSchema(newTableID));
+    auto newNodeTableSchema = reinterpret_cast<NodeTableSchema*>(
+        catalog->getTableSchema(context->clientContext->getTx(), newTableID));
     storageManager->getNodesStatisticsAndDeletedIDs()->addNodeStatisticsAndDeletedIDs(
         newNodeTableSchema);
     storageManager->getWAL()->logCreateNodeTableRecord(newTableID);

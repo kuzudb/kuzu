@@ -74,7 +74,7 @@ public:
 
 private:
     inline void initGlobalStateInternal(ExecutionContext* context) override {
-        sharedState->initialize(context->clientContext->getActiveTransaction());
+        sharedState->initialize(context->clientContext->getTx());
     }
 
     void setSelVector(

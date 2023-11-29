@@ -11,10 +11,10 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace processor {
 
-void CreateRelTable::executeDDLInternal() {
+void CreateRelTable::executeDDLInternal(ExecutionContext* context) {
     auto newRelTableID = catalog->addRelTableSchema(*info);
     auto newRelTableSchema = reinterpret_cast<RelTableSchema*>(
-        catalog->getWriteVersion()->getTableSchema(newRelTableID));
+        catalog->getTableSchema(context->clientContext->getTx(), newRelTableID));
     storageManager->getRelsStatistics()->addTableStatistic(newRelTableSchema);
     storageManager->getWAL()->logCreateRelTableRecord(newRelTableID);
 }

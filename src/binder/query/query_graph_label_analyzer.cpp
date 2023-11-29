@@ -3,9 +3,11 @@
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace binder {
@@ -32,7 +34,7 @@ void QueryGraphLabelAnalyzer::pruneNode(const QueryGraph& graph, NodeExpression&
             if (isSrcConnect || isDstConnect) {
                 for (auto relTableID : queryRel->getTableIDs()) {
                     auto relTableSchema = reinterpret_cast<RelTableSchema*>(
-                        catalog.getReadOnlyVersion()->getTableSchema(relTableID));
+                        catalog.getTableSchema(&DUMMY_READ_TRANSACTION, relTableID));
                     candidates.insert(relTableSchema->getSrcTableID());
                     candidates.insert(relTableSchema->getDstTableID());
                 }
@@ -41,13 +43,13 @@ void QueryGraphLabelAnalyzer::pruneNode(const QueryGraph& graph, NodeExpression&
             if (isSrcConnect) {
                 for (auto relTableID : queryRel->getTableIDs()) {
                     auto relTableSchema = reinterpret_cast<RelTableSchema*>(
-                        catalog.getReadOnlyVersion()->getTableSchema(relTableID));
+                        catalog.getTableSchema(&DUMMY_READ_TRANSACTION, relTableID));
                     candidates.insert(relTableSchema->getSrcTableID());
                 }
             } else if (isDstConnect) {
                 for (auto relTableID : queryRel->getTableIDs()) {
                     auto relTableSchema = reinterpret_cast<RelTableSchema*>(
-                        catalog.getReadOnlyVersion()->getTableSchema(relTableID));
+                        catalog.getTableSchema(&DUMMY_READ_TRANSACTION, relTableID));
                     candidates.insert(relTableSchema->getDstTableID());
                 }
             }
@@ -86,7 +88,7 @@ void QueryGraphLabelAnalyzer::pruneRel(RelExpression& rel) {
         }
         for (auto& relTableID : rel.getTableIDs()) {
             auto relTableSchema = reinterpret_cast<RelTableSchema*>(
-                catalog.getReadOnlyVersion()->getTableSchema(relTableID));
+                catalog.getTableSchema(&DUMMY_READ_TRANSACTION, relTableID));
             auto srcTableID = relTableSchema->getSrcTableID();
             auto dstTableID = relTableSchema->getDstTableID();
             if (!boundTableIDSet.contains(srcTableID) || !boundTableIDSet.contains(dstTableID)) {
@@ -99,7 +101,7 @@ void QueryGraphLabelAnalyzer::pruneRel(RelExpression& rel) {
         auto dstTableIDSet = rel.getDstNode()->getTableIDsSet();
         for (auto& relTableID : rel.getTableIDs()) {
             auto relTableSchema = reinterpret_cast<RelTableSchema*>(
-                catalog.getReadOnlyVersion()->getTableSchema(relTableID));
+                catalog.getTableSchema(&DUMMY_READ_TRANSACTION, relTableID));
             auto srcTableID = relTableSchema->getSrcTableID();
             auto dstTableID = relTableSchema->getDstTableID();
             if (!srcTableIDSet.contains(srcTableID) || !dstTableIDSet.contains(dstTableID)) {

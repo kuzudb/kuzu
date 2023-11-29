@@ -3,15 +3,16 @@
 namespace kuzu {
 namespace processor {
 
-void DropProperty::executeDDLInternal() {
-    auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(tableID);
+void DropProperty::executeDDLInternal(ExecutionContext* context) {
+    auto tableSchema = catalog->getTableSchema(context->clientContext->getTx(), tableID);
+    auto columnID = tableSchema->getColumnID(propertyID);
     catalog->dropProperty(tableID, propertyID);
     if (tableSchema->tableType == common::TableType::NODE) {
         auto nodesStats = storageManager.getNodesStatisticsAndDeletedIDs();
-        nodesStats->removeMetadataDAHInfo(tableID, tableSchema->getColumnID(propertyID));
+        nodesStats->removeMetadataDAHInfo(tableID, columnID);
     } else {
         auto relsStats = storageManager.getRelsStatistics();
-        relsStats->removeMetadataDAHInfo(tableID, tableSchema->getColumnID(propertyID));
+        relsStats->removeMetadataDAHInfo(tableID, columnID);
     }
 }
 

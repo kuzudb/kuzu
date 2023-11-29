@@ -13,12 +13,8 @@ public:
 
     inline common::StatementType getStatementType() const { return statementType; }
 
-    inline void enableProfile() { profile = true; }
-    inline bool isProfile() const { return profile; }
-
 private:
     common::StatementType statementType;
-    bool profile = false;
 };
 
 } // namespace parser

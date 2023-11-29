@@ -10,6 +10,7 @@
 #include "common/string_utils.h"
 #include "utf8proc.h"
 #include "utf8proc_wrapper.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::utf8proc;
@@ -63,10 +64,10 @@ static Connection* globalConnection;
 void EmbeddedShell::updateTableNames() {
     nodeTableNames.clear();
     relTableNames.clear();
-    for (auto& tableSchema : database->catalog->getReadOnlyVersion()->getNodeTableSchemas()) {
+    for (auto& tableSchema : database->catalog->getNodeTableSchemas(&transaction::DUMMY_READ_TRANSACTION)) {
         nodeTableNames.push_back(tableSchema->tableName);
     }
-    for (auto& tableSchema : database->catalog->getReadOnlyVersion()->getRelTableSchemas()) {
+    for (auto& tableSchema : database->catalog->getRelTableSchemas(&transaction::DUMMY_READ_TRANSACTION)) {
         relTableNames.push_back(tableSchema->tableName);
     }
 }

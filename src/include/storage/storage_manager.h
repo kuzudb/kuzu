@@ -16,7 +16,8 @@ public:
     StorageManager(bool readOnly, const catalog::Catalog& catalog, MemoryManager& memoryManager,
         WAL* wal, bool enableCompression);
 
-    void createTable(common::table_id_t tableID, catalog::Catalog* catalog);
+    void createTable(common::table_id_t tableID, catalog::Catalog* catalog,
+        transaction::Transaction* transaction);
     void dropTable(common::table_id_t tableID);
 
     void prepareCommit(transaction::Transaction* transaction);
@@ -41,6 +42,10 @@ public:
     inline WAL* getWAL() const { return wal; }
     inline BMFileHandle* getDataFH() const { return dataFH.get(); }
     inline BMFileHandle* getMetadataFH() const { return metadataFH.get(); }
+    inline void initStatistics() {
+        nodesStatisticsAndDeletedIDs->initTableStatisticsForWriteTrx();
+        relsStatistics->initTableStatisticsForWriteTrx();
+    }
     inline NodesStoreStatsAndDeletedIDs* getNodesStatisticsAndDeletedIDs() {
         return nodesStatisticsAndDeletedIDs.get();
     }

@@ -8,6 +8,7 @@
 #include "common/exception/binder.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
+#include "main/client_context.h"
 #include "parser/ddl/alter.h"
 #include "parser/ddl/create_table.h"
 #include "parser/ddl/drop.h"
@@ -155,7 +156,7 @@ std::unique_ptr<BoundCreateTableInfo> Binder::bindCreateRelTableGroupInfo(
 std::unique_ptr<BoundStatement> Binder::bindCreateTable(const parser::Statement& statement) {
     auto& createTable = reinterpret_cast<const CreateTable&>(statement);
     auto tableName = createTable.getTableName();
-    if (catalog.getReadOnlyVersion()->containsTable(tableName)) {
+    if (catalog.containsTable(clientContext->getTx(), tableName)) {
         throw BinderException(tableName + " already exists in catalog.");
     }
     auto boundCreateInfo = bindCreateTableInfo(createTable.getInfo());
@@ -166,12 +167,11 @@ std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement
     auto& dropTable = reinterpret_cast<const Drop&>(statement);
     auto tableName = dropTable.getTableName();
     validateTableExist(tableName);
-    auto catalogContent = catalog.getReadOnlyVersion();
-    auto tableID = catalogContent->getTableID(tableName);
-    auto tableSchema = catalogContent->getTableSchema(tableID);
+    auto tableID = catalog.getTableID(clientContext->getTx(), tableName);
+    auto tableSchema = catalog.getTableSchema(clientContext->getTx(), tableID);
     switch (tableSchema->tableType) {
     case TableType::NODE: {
-        for (auto& schema : catalogContent->getRelTableSchemas()) {
+        for (auto& schema : catalog.getRelTableSchemas(clientContext->getTx())) {
             auto relTableSchema = reinterpret_cast<RelTableSchema*>(schema);
             if (relTableSchema->isSrcOrDstTable(tableID)) {
                 throw BinderException(
@@ -181,7 +181,7 @@ std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement
         }
     } break;
     case TableType::REL: {
-        for (auto& schema : catalogContent->getRelTableGroupSchemas()) {
+        for (auto& schema : catalog.getRelTableGroupSchemas(clientContext->getTx())) {
             auto relTableGroupSchema = reinterpret_cast<RelTableGroupSchema*>(schema);
             for (auto& relTableID : relTableGroupSchema->getRelTableIDs()) {
                 if (relTableID == tableSchema->getTableID()) {
@@ -226,12 +226,11 @@ std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& stateme
     auto extraInfo = reinterpret_cast<ExtraRenameTableInfo*>(info->extraInfo.get());
     auto tableName = info->tableName;
     auto newName = extraInfo->newName;
-    auto catalogContent = catalog.getReadOnlyVersion();
     validateTableExist(tableName);
-    if (catalogContent->containsTable(newName)) {
+    if (catalog.containsTable(clientContext->getTx(), newName)) {
         throw BinderException("Table: " + newName + " already exists.");
     }
-    auto tableID = catalogContent->getTableID(tableName);
+    auto tableID = catalog.getTableID(clientContext->getTx(), tableName);
     auto boundExtraInfo = std::make_unique<BoundExtraRenameTableInfo>(newName);
     auto boundInfo = std::make_unique<BoundAlterInfo>(
         AlterType::RENAME_TABLE, tableName, tableID, std::move(boundExtraInfo));
@@ -273,9 +272,8 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
     auto dataType = bindDataType(extraInfo->dataType);
     auto propertyName = extraInfo->propertyName;
     validateTableExist(tableName);
-    auto catalogContent = catalog.getReadOnlyVersion();
-    auto tableID = catalogContent->getTableID(tableName);
-    auto tableSchema = catalogContent->getTableSchema(tableID);
+    auto tableID = catalog.getTableID(clientContext->getTx(), tableName);
+    auto tableSchema = catalog.getTableSchema(clientContext->getTx(), tableID);
     validatePropertyDDLOnTable(tableSchema, "add");
     validatePropertyNotExist(tableSchema, propertyName);
     if (dataType->getLogicalTypeID() == LogicalTypeID::SERIAL) {
@@ -297,9 +295,8 @@ std::unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statem
     auto tableName = info->tableName;
     auto propertyName = extraInfo->propertyName;
     validateTableExist(tableName);
-    auto catalogContent = catalog.getReadOnlyVersion();
-    auto tableID = catalogContent->getTableID(tableName);
-    auto tableSchema = catalogContent->getTableSchema(tableID);
+    auto tableID = catalog.getTableID(clientContext->getTx(), tableName);
+    auto tableSchema = catalog.getTableSchema(clientContext->getTx(), tableID);
     validatePropertyDDLOnTable(tableSchema, "drop");
     validatePropertyExist(tableSchema, propertyName);
     auto propertyID = tableSchema->getPropertyID(propertyName);
@@ -321,9 +318,8 @@ std::unique_ptr<BoundStatement> Binder::bindRenameProperty(const Statement& stat
     auto propertyName = extraInfo->propertyName;
     auto newName = extraInfo->newName;
     validateTableExist(tableName);
-    auto catalogContent = catalog.getReadOnlyVersion();
-    auto tableID = catalogContent->getTableID(tableName);
-    auto tableSchema = catalogContent->getTableSchema(tableID);
+    auto tableID = catalog.getTableID(clientContext->getTx(), tableName);
+    auto tableSchema = catalog.getTableSchema(clientContext->getTx(), tableID);
     validatePropertyDDLOnTable(tableSchema, "rename");
     validatePropertyExist(tableSchema, propertyName);
     auto propertyID = tableSchema->getPropertyID(propertyName);

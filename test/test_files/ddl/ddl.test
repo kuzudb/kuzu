@@ -42,10 +42,10 @@ Node table: university has been created.
 Rel table: nearTo has been created.
 -STATEMENT DROP TABLE nearTo;
 ---- 1
-Rel table: nearTo has been dropped.
+Table: nearTo has been dropped.
 -STATEMENT DROP TABLE university
 ---- 1
-Node table: university has been dropped.
+Table: university has been dropped.
 -STATEMENT ALTER TABLE person DROP fName
 ---- 1
 Drop succeed.

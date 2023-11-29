@@ -43,7 +43,7 @@ std::string ClientContext::getCurrentSetting(const std::string& optionName) {
     return option->getSetting(this);
 }
 
-Transaction* ClientContext::getActiveTransaction() const {
+transaction::Transaction* ClientContext::getTx() const {
     return transactionContext->getActiveTransaction();
 }
 

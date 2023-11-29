@@ -13,7 +13,7 @@ public:
         : DDL{PhysicalOperatorType::CREATE_NODE_TABLE, catalog, outputPos, id, paramsString},
           storageManager{storageManager}, info{std::move(info)} {}
 
-    void executeDDLInternal() final;
+    void executeDDLInternal(ExecutionContext* context) final;
 
     std::string getOutputMsg() final;
 

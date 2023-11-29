@@ -1,5 +1,6 @@
 #include "binder/binder.h"
 #include "binder/bound_comment_on.h"
+#include "main/client_context.h"
 #include "parser/comment_on.h"
 
 namespace kuzu {
@@ -9,11 +10,8 @@ std::unique_ptr<BoundStatement> Binder::bindCommentOn(const parser::Statement& s
     auto& commentOnStatement = reinterpret_cast<const parser::CommentOn&>(statement);
     auto tableName = commentOnStatement.getTable();
     auto comment = commentOnStatement.getComment();
-
     validateTableExist(tableName);
-    auto catalogContent = catalog.getReadOnlyVersion();
-    auto tableID = catalogContent->getTableID(tableName);
-
+    auto tableID = catalog.getTableID(clientContext->getTx(), tableName);
     return std::make_unique<BoundCommentOn>(tableID, tableName, comment);
 }
 

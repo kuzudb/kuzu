@@ -65,6 +65,8 @@ public:
     static std::unique_ptr<MetadataDAHInfo> createMetadataDAHInfo(
         const common::LogicalType& dataType, BMFileHandle& metadataFH, BufferManager* bm, WAL* wal);
 
+    void initTableStatisticsForWriteTrx();
+
 protected:
     virtual std::unique_ptr<TableStatistics> constructTableStatistic(
         catalog::TableSchema* tableSchema) = 0;
@@ -81,7 +83,6 @@ protected:
     void saveToFile(const std::string& directory, common::FileVersionType dbFileType,
         transaction::TransactionType transactionType);
 
-    void initTableStatisticsForWriteTrx();
     void initTableStatisticsForWriteTrxNoLock();
 
 protected:
