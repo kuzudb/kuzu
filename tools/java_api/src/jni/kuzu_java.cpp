@@ -186,7 +186,7 @@ JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1database_1set_1logging_1
     try {
         Database::setLoggingLevel(lvl);
         env->ReleaseStringUTFChars(logging_level, lvl);
-    } catch (ConversionException e) {
+    } catch (const ConversionException& e) {
         env->ReleaseStringUTFChars(logging_level, lvl);
         jclass Exception = env->FindClass("java/lang/Exception");
         env->ThrowNew(Exception, e.what());

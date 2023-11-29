@@ -24,7 +24,7 @@ public:
         localStorage = std::make_unique<storage::LocalStorage>(mm);
     }
 
-    constexpr explicit Transaction(TransactionType transactionType)
+    constexpr explicit Transaction(TransactionType transactionType) noexcept
         : type{transactionType}, ID{INVALID_TRANSACTION_ID} {}
 
 public:

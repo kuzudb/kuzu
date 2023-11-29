@@ -10,7 +10,7 @@
 namespace kuzu {
 namespace storage {
 
-static const std::string IN_MEM_TEMP_FILE_PATH = "";
+static const char* IN_MEM_TEMP_FILE_PATH = "";
 
 // InMemFile holds a collection of in-memory page in the memory.
 class InMemFile {

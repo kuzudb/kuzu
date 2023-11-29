@@ -14,7 +14,7 @@ std::unique_ptr<ParsedFunctionExpression> ParsedFunctionExpression::deserialize(
     deserializer.deserializeValue(isDistinct);
     std::string functionName;
     deserializer.deserializeValue(functionName);
-    return std::make_unique<ParsedFunctionExpression>(isDistinct, std::move(functionName));
+    return std::make_unique<ParsedFunctionExpression>(std::move(functionName), isDistinct);
 }
 
 void ParsedFunctionExpression::serializeInternal(Serializer& serializer) const {

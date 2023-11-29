@@ -1,22 +1,25 @@
 #include "common/copier_config/copier_config.h"
 
-#include <unordered_map>
-
 #include "common/assert.h"
 #include "common/exception/copy.h"
 
 namespace kuzu {
 namespace common {
 
-const static std::unordered_map<std::string, FileType> fileTypeMap{{".csv", FileType::CSV},
-    {".parquet", FileType::PARQUET}, {".npy", FileType::NPY}, {".ttl", FileType::TURTLE}};
-
-FileType FileTypeUtils::getFileTypeFromExtension(const std::string& extension) {
-    auto entry = fileTypeMap.find(extension);
-    if (entry == fileTypeMap.end()) {
-        throw CopyException("Unsupported file type " + extension);
+FileType FileTypeUtils::getFileTypeFromExtension(std::string_view extension) {
+    if (extension == ".csv") {
+        return FileType::CSV;
     }
-    return entry->second;
+    if (extension == ".parquet") {
+        return FileType::PARQUET;
+    }
+    if (extension == ".npy") {
+        return FileType::NPY;
+    }
+    if (extension == ".ttl") {
+        return FileType::TURTLE;
+    }
+    throw CopyException(std::string("Unsupported file type ").append(extension));
 }
 
 std::string FileTypeUtils::toString(FileType fileType) {

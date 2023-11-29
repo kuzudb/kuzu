@@ -1,4 +1,6 @@
+# Comments go at the top because otherwise clang-tidy interprets them as breaking up our list of checks.
 # Bugprone exception escape is super unhelpful.
+# cert-str34-c is an alias for signed-char-misuse.
 Checks:
   -*,
 
@@ -9,6 +11,9 @@ Checks:
   -bugprone-implicit-widening-of-multiplication-result,
   -bugprone-narrowing-conversions,
   -bugprone-signed-char-misuse,
+
+  cert-*,
+  -cert-str34-c,
 
   concurrency-*,
 

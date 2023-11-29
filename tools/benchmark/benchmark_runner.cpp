@@ -10,7 +10,7 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace benchmark {
 
-const std::string BENCHMARK_SUFFIX = ".benchmark";
+const char* BENCHMARK_SUFFIX = ".benchmark";
 
 BenchmarkRunner::BenchmarkRunner(
     const std::string& datasetPath, std::unique_ptr<BenchmarkConfig> config)

@@ -43,7 +43,7 @@ struct CSVReaderConfig : public CSVOption {
 enum class FileType : uint8_t { UNKNOWN = 0, CSV = 1, PARQUET = 2, NPY = 3, TURTLE = 4 };
 
 struct FileTypeUtils {
-    static FileType getFileTypeFromExtension(const std::string& extension);
+    static FileType getFileTypeFromExtension(std::string_view extension);
     static std::string toString(FileType fileType);
 };
 

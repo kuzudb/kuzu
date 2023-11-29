@@ -275,12 +275,9 @@ LogicalType::LogicalType(const LogicalType& other) {
 }
 
 LogicalType& LogicalType::operator=(const LogicalType& other) {
-    typeID = other.typeID;
-    physicalType = other.physicalType;
-    if (other.extraTypeInfo != nullptr) {
-        extraTypeInfo = other.extraTypeInfo->copy();
-    }
-    return *this;
+    // Reuse the copy constructor and move assignment operator.
+    LogicalType copy(other);
+    return *this = std::move(copy);
 }
 
 bool LogicalType::operator==(const LogicalType& other) const {

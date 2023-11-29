@@ -23,12 +23,12 @@ public:
           isDistinct{isDistinct}, functionName{std::move(functionName)} {}
 
     ParsedFunctionExpression(std::string alias, std::string rawName,
-        parsed_expression_vector children, bool isDistinct, std::string functionName)
+        parsed_expression_vector children, std::string functionName, bool isDistinct)
         : ParsedExpression{common::ExpressionType::FUNCTION, std::move(alias), std::move(rawName),
               std::move(children)},
           isDistinct{isDistinct}, functionName{std::move(functionName)} {}
 
-    ParsedFunctionExpression(bool isDistinct, std::string functionName)
+    ParsedFunctionExpression(std::string functionName, bool isDistinct)
         : ParsedExpression{common::ExpressionType::FUNCTION}, isDistinct{isDistinct},
           functionName{std::move(functionName)} {}
 
@@ -46,7 +46,7 @@ public:
 
     inline std::unique_ptr<ParsedExpression> copy() const override {
         return std::make_unique<ParsedFunctionExpression>(
-            alias, rawName, copyChildren(), isDistinct, functionName);
+            alias, rawName, copyChildren(), functionName, isDistinct);
     }
 
 private:
