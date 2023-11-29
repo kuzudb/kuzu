@@ -32,7 +32,7 @@ struct EvictionCandidate {
     // The version of the corresponding page at the time the candidate is enqueued.
     uint64_t pageVersion = -1u;
 
-    inline bool operator==(const EvictionCandidate& other) {
+    inline bool operator==(const EvictionCandidate& other) const {
         return fileHandle == other.fileHandle && pageIdx == other.pageIdx &&
                pageState == other.pageState && pageVersion == other.pageVersion;
     }

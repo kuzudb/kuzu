@@ -248,7 +248,7 @@ struct WALRecord {
     static void constructWALRecordFromBytes(WALRecord& retVal, uint8_t* bytes, uint64_t& offset);
     // This functions assumes that the caller ensures there is enough space in the bytes pointer
     // to write the record. This should be checked by calling numBytesToWrite.
-    void writeWALRecordToBytes(uint8_t* bytes, uint64_t& offset);
+    void writeWALRecordToBytes(uint8_t* bytes, uint64_t& offset) const;
 
 private:
     static WALRecord newPageInsertOrUpdateRecord(

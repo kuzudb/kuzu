@@ -17,11 +17,11 @@ public:
 
     void finalize();
 
-    inline uint64_t getNumTuples() { return numTuples; }
+    inline uint64_t getNumTuples() const { return numTuples; }
 
     inline SortSharedState* getSharedState() { return orderBySharedState.get(); }
 
-    std::unique_ptr<PayloadScanner> getScanner(uint64_t skip, uint64_t limit) {
+    std::unique_ptr<PayloadScanner> getScanner(uint64_t skip, uint64_t limit) const {
         return std::make_unique<PayloadScanner>(orderBySharedState->getMergedKeyBlock(),
             orderBySharedState->getPayloadTables(), skip, limit);
     }
@@ -51,11 +51,12 @@ public:
 
     void reduce();
 
+    // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
     inline void finalize() { sortState->finalize(); }
 
     void merge(TopKBuffer* other);
 
-    inline std::unique_ptr<PayloadScanner> getScanner() {
+    inline std::unique_ptr<PayloadScanner> getScanner() const {
         return sortState->getScanner(skip, limit);
     }
 
@@ -110,6 +111,7 @@ public:
     void append(const std::vector<common::ValueVector*>& keyVectors,
         const std::vector<common::ValueVector*>& payloadVectors);
 
+    // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
     inline void finalize() { buffer->finalize(); }
 
     std::unique_ptr<TopKBuffer> buffer;
@@ -128,6 +130,7 @@ public:
         buffer->merge(localState->buffer.get());
     }
 
+    // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
     inline void finalize() { buffer->finalize(); }
 
     std::unique_ptr<TopKBuffer> buffer;

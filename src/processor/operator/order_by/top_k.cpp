@@ -255,6 +255,7 @@ void TopKLocalState::init(const OrderByDataInfo& orderByDataInfo,
     buffer->init(memoryManager, skipNumber, limitNumber);
 }
 
+// NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
 void TopKLocalState::append(const std::vector<common::ValueVector*>& keyVectors,
     const std::vector<common::ValueVector*>& payloadVectors) {
     buffer->append(keyVectors, payloadVectors);

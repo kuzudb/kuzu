@@ -65,7 +65,7 @@ struct SniffCSVColumnCountDriver {
     bool emptyRow = true;
     uint64_t numColumns = 0;
 
-    bool done(uint64_t rowNum);
+    bool done(uint64_t rowNum) const;
     void addValue(uint64_t rowNum, common::column_id_t columnIdx, std::string_view value);
     bool addRow(uint64_t rowNum, common::column_id_t columntCount);
 };

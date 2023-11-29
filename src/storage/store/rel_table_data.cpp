@@ -20,7 +20,7 @@ RelDataReadState::RelDataReadState(ColumnDataFormat dataFormat)
         ColumnChunkFactory::createColumnChunk(LogicalType::INT64(), false /* enableCompression */);
 }
 
-bool RelDataReadState::hasMoreToReadFromLocalStorage() {
+bool RelDataReadState::hasMoreToReadFromLocalStorage() const {
     KU_ASSERT(localNodeGroup);
     return posInCurrentCSR < localNodeGroup->getRelNGInfo()->getNumInsertedTuples(
                                  currentNodeOffset - startNodeOffset);
@@ -423,7 +423,7 @@ static std::pair<offset_t, offset_t> getCSRStartAndEndOffset(
 }
 
 static uint64_t findPosOfRelIDFromArray(
-    offset_t* relIDArray, uint64_t startPos, uint64_t endPos, offset_t relOffset) {
+    const offset_t* relIDArray, uint64_t startPos, uint64_t endPos, offset_t relOffset) {
     for (auto i = startPos; i < endPos; i++) {
         if (relIDArray[i] == relOffset) {
             return i;

@@ -40,7 +40,7 @@ private:
         uint32_t numBytesToSort);
 
     std::vector<TieRange> findTies(uint8_t* keyBlockPtr, uint32_t numTuplesToFindTies,
-        uint32_t numBytesToSort, uint32_t baseTupleIdx);
+        uint32_t numBytesToSort, uint32_t baseTupleIdx) const;
 
     void fillTmpTuplePtrSortingBlock(TieRange& keyBlockTie, uint8_t* keyBlockPtr);
 

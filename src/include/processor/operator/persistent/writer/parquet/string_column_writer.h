@@ -26,7 +26,7 @@ public:
     std::string max;
 
 public:
-    bool hasValidStats() { return hasStats; }
+    bool hasValidStats() const { return hasStats; }
 
     void update(const common::ku_string_t& val);
 
@@ -54,7 +54,7 @@ public:
     // key_bit_width== 0 signifies the chunk is written in plain encoding
     uint32_t keyBitWidth;
 
-    bool isDictionaryEncoded() { return keyBitWidth != 0; }
+    bool isDictionaryEncoded() const { return keyBitWidth != 0; }
 };
 
 class StringWriterPageState : public ColumnWriterPageState {
@@ -64,7 +64,7 @@ public:
         KU_ASSERT(isDictionaryEncoded() || (bitWidth == 0 && dictionary.empty()));
     }
 
-    inline bool isDictionaryEncoded() { return bitWidth != 0; }
+    inline bool isDictionaryEncoded() const { return bitWidth != 0; }
     // If 0, we're writing a plain page.
     uint32_t bitWidth;
     const string_map_t<uint32_t>& dictionary;

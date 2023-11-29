@@ -19,7 +19,7 @@ namespace kuzu {
 namespace storage {
 
 struct InternalIDColumnFunc {
-    static void readValuesFromPageToVector(uint8_t* frame, PageElementCursor& pageCursor,
+    static void readValuesFromPageToVector(const uint8_t* frame, PageElementCursor& pageCursor,
         ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead,
         const CompressionMetadata& /*metadata*/) {
         KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);

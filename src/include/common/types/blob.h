@@ -39,6 +39,7 @@ struct Blob {
         return *reinterpret_cast<const T*>(data.value.getData());
     }
     template<typename T>
+    // NOLINTNEXTLINE(readability-non-const-parameter): Would cast away qualifiers.
     static inline T getValue(char* data) {
         return *reinterpret_cast<T*>(data);
     }

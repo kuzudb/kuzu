@@ -22,7 +22,7 @@ public:
 
     template<typename T>
     void GetBatch(uint8_t* values_target_ptr, uint32_t batch_size) {
-        auto values = reinterpret_cast<T*>(values_target_ptr);
+        auto* values = reinterpret_cast<T*>(values_target_ptr);
         uint32_t values_read = 0;
 
         while (values_read < batch_size) {

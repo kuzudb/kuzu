@@ -10,6 +10,7 @@ struct CountFunction : public BaseCountFunction {
     static void updateAll(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
         storage::MemoryManager* memoryManager);
 
+    // NOLINTNEXTLINE(readability-non-const-parameter): Would cast away qualifiers.
     static inline void updatePos(uint8_t* state_, common::ValueVector* /*input*/,
         uint64_t multiplicity, uint32_t /*pos*/, storage::MemoryManager* /*memoryManager*/) {
         reinterpret_cast<CountState*>(state_)->count += multiplicity;

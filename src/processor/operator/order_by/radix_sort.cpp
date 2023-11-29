@@ -97,7 +97,7 @@ void RadixSort::radixSort(uint8_t* keyBlockPtr, uint32_t numTuplesToSort, uint32
 }
 
 std::vector<TieRange> RadixSort::findTies(uint8_t* keyBlockPtr, uint32_t numTuplesToFindTies,
-    uint32_t numBytesToSort, uint32_t baseTupleIdx) {
+    uint32_t numBytesToSort, uint32_t baseTupleIdx) const {
     std::vector<TieRange> newTiesInKeyBlock;
     auto iTuplePtr = keyBlockPtr;
     for (auto i = 0u; i < numTuplesToFindTies - 1; i++) {

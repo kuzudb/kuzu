@@ -134,9 +134,9 @@ private:
     std::unique_ptr<RelInsertExecutor> getRelInsertExecutor(planner::LogicalInsertRelInfo* info,
         const planner::Schema& inSchema, const planner::Schema& outSchema);
     std::unique_ptr<NodeSetExecutor> getNodeSetExecutor(
-        planner::LogicalSetPropertyInfo* info, const planner::Schema& inSchema);
+        planner::LogicalSetPropertyInfo* info, const planner::Schema& inSchema) const;
     std::unique_ptr<RelSetExecutor> getRelSetExecutor(
-        planner::LogicalSetPropertyInfo* info, const planner::Schema& inSchema);
+        planner::LogicalSetPropertyInfo* info, const planner::Schema& inSchema) const;
 
     std::shared_ptr<FactorizedTable> getSingleStringColumnFTable();
 

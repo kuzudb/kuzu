@@ -26,7 +26,7 @@ struct MinMaxFunction {
     static void updateAll(uint8_t* state_, common::ValueVector* input, uint64_t /*multiplicity*/,
         storage::MemoryManager* memoryManager) {
         KU_ASSERT(!input->state->isFlat());
-        auto state = reinterpret_cast<MinMaxState*>(state_);
+        auto* state = reinterpret_cast<MinMaxState*>(state_);
         if (input->hasNoNullsGuarantee()) {
             for (auto i = 0u; i < input->state->selVector->selectedSize; ++i) {
                 auto pos = input->state->selVector->selectedPositions[i];
@@ -68,11 +68,11 @@ struct MinMaxFunction {
     template<class OP>
     static void combine(
         uint8_t* state_, uint8_t* otherState_, storage::MemoryManager* memoryManager) {
-        auto otherState = reinterpret_cast<MinMaxState*>(otherState_);
+        auto* otherState = reinterpret_cast<MinMaxState*>(otherState_);
         if (otherState->isNull) {
             return;
         }
-        auto state = reinterpret_cast<MinMaxState*>(state_);
+        auto* state = reinterpret_cast<MinMaxState*>(state_);
         if (state->isNull) {
             state->setVal(otherState->val, memoryManager);
             state->isNull = false;

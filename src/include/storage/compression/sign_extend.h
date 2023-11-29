@@ -29,7 +29,7 @@ void Store(const T& val, uint8_t* ptr) {
 }
 
 template<typename T>
-const T Load(const uint8_t* ptr) {
+T Load(const uint8_t* ptr) {
     T ret;
     memcpy(&ret, ptr, sizeof(ret));
     return ret;

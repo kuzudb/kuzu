@@ -39,7 +39,7 @@ public:
 
     template<typename T>
     void GetBatch(uint8_t* values_target_ptr, uint32_t batch_size) {
-        auto values = reinterpret_cast<T*>(values_target_ptr);
+        auto* values = reinterpret_cast<T*>(values_target_ptr);
 
         if (batch_size == 0) {
             return;
@@ -106,7 +106,7 @@ public:
         GetBatch<uint32_t>(reinterpret_cast<uint8_t*>(data.get()), values_left_in_miniblock);
     }
 
-    uint64_t TotalValues() { return total_value_count; }
+    uint64_t TotalValues() const { return total_value_count; }
 
 private:
     ByteBuffer buffer_;

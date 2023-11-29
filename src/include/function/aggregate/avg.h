@@ -26,7 +26,7 @@ struct AvgFunction {
 
     static void updateAll(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
         storage::MemoryManager* /*memoryManager*/) {
-        auto state = reinterpret_cast<AvgState*>(state_);
+        auto* state = reinterpret_cast<AvgState*>(state_);
         KU_ASSERT(!input->state->isFlat());
         if (input->hasNoNullsGuarantee()) {
             for (auto i = 0u; i < input->state->selVector->selectedSize; ++i) {
@@ -64,11 +64,11 @@ struct AvgFunction {
 
     static void combine(
         uint8_t* state_, uint8_t* otherState_, storage::MemoryManager* /*memoryManager*/) {
-        auto otherState = reinterpret_cast<AvgState*>(otherState_);
+        auto* otherState = reinterpret_cast<AvgState*>(otherState_);
         if (otherState->isNull) {
             return;
         }
-        auto state = reinterpret_cast<AvgState*>(state_);
+        auto* state = reinterpret_cast<AvgState*>(state_);
         if (state->isNull) {
             state->sum = otherState->sum;
             state->isNull = false;
@@ -79,7 +79,7 @@ struct AvgFunction {
     }
 
     static void finalize(uint8_t* state_) {
-        auto state = reinterpret_cast<AvgState*>(state_);
+        auto* state = reinterpret_cast<AvgState*>(state_);
         if (!state->isNull) {
             state->avg = state->sum / (double_t)state->count;
         }

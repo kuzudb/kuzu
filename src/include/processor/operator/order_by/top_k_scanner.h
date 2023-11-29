@@ -12,6 +12,7 @@ struct TopKLocalScanState {
     void init(
         std::vector<DataPos>& outVectorPos, TopKSharedState& sharedState, ResultSet& resultSet);
 
+    // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
     inline uint64_t scan() { return payloadScanner->scan(vectorsToScan); }
 };
 

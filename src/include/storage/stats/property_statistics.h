@@ -12,14 +12,10 @@ class PropertyStatistics {
 public:
     PropertyStatistics() = default;
     explicit PropertyStatistics(bool mayHaveNullValue) : mayHaveNullValue{mayHaveNullValue} {}
-    PropertyStatistics(const PropertyStatistics& other) {
-        this->mayHaveNullValue = other.mayHaveNullValue;
-    }
 
     inline bool mayHaveNull() const { return mayHaveNullValue; }
-    PropertyStatistics(PropertyStatistics& other) = default;
 
-    void serialize(common::Serializer& serializer);
+    void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<PropertyStatistics> deserialize(common::Deserializer& deserializer);
 
     inline void setHasNull() { mayHaveNullValue = true; }

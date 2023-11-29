@@ -105,7 +105,7 @@ bool SniffCSVNameAndTypeDriver::addRow(uint64_t, common::column_id_t) {
     return true;
 }
 
-bool SniffCSVColumnCountDriver::done(uint64_t) {
+bool SniffCSVColumnCountDriver::done(uint64_t) const {
     return !emptyRow;
 }
 

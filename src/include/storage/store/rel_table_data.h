@@ -24,7 +24,7 @@ struct RelDataReadState : public TableReadState {
     LocalRelNG* localNodeGroup;
 
     explicit RelDataReadState(common::ColumnDataFormat dataFormat);
-    inline bool isOutOfRange(common::offset_t nodeOffset) {
+    inline bool isOutOfRange(common::offset_t nodeOffset) const {
         return nodeOffset < startNodeOffset || nodeOffset >= (startNodeOffset + numNodes);
     }
     bool hasMoreToRead(transaction::Transaction* transaction);
@@ -34,7 +34,7 @@ struct RelDataReadState : public TableReadState {
     inline bool hasMoreToReadInPersistentStorage() {
         return posInCurrentCSR < csrListEntries[(currentNodeOffset - startNodeOffset)].size;
     }
-    bool hasMoreToReadFromLocalStorage();
+    bool hasMoreToReadFromLocalStorage() const;
     bool trySwitchToLocalStorage();
 };
 

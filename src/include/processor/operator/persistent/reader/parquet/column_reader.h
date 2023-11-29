@@ -24,8 +24,8 @@ public:
         uint64_t maxRepeat);
     virtual ~ColumnReader() = default;
     inline common::LogicalType* getDataType() const { return type.get(); }
-    inline bool hasDefines() { return maxDefine > 0; }
-    inline bool hasRepeats() { return maxRepeat > 0; }
+    inline bool hasDefines() const { return maxDefine > 0; }
+    inline bool hasRepeats() const { return maxRepeat > 0; }
     virtual inline void skip(uint64_t numValues) { pendingSkips += numValues; }
     virtual inline void dictionary(
         const std::shared_ptr<ResizeableBuffer>& /*data*/, uint64_t /*num_entries*/) {
@@ -64,7 +64,7 @@ public:
     void preparePage(kuzu_parquet::format::PageHeader& pageHdr);
     void prepareDataPage(kuzu_parquet::format::PageHeader& pageHdr);
     template<class VALUE_TYPE, class CONVERSION>
-    void plainTemplated(const std::shared_ptr<ByteBuffer>& plainData, uint8_t* defines,
+    void plainTemplated(const std::shared_ptr<ByteBuffer>& plainData, const uint8_t* defines,
         uint64_t numValues, parquet_filter_t& filter, uint64_t resultOffset,
         common::ValueVector* result) {
         for (auto i = 0u; i < numValues; i++) {

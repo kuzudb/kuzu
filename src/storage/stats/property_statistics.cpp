@@ -7,7 +7,7 @@
 namespace kuzu {
 namespace storage {
 
-void PropertyStatistics::serialize(common::Serializer& serializer) {
+void PropertyStatistics::serialize(common::Serializer& serializer) const {
     serializer.serializeValue(mayHaveNullValue);
 }
 

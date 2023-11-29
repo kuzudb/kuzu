@@ -62,7 +62,7 @@ void BlockPtrInfo::updateTuplePtrIfNecessary() {
     }
 }
 
-uint64_t KeyBlockMergeTask::findRightKeyBlockIdx(uint8_t* leftEndTuplePtr) {
+uint64_t KeyBlockMergeTask::findRightKeyBlockIdx(uint8_t* leftEndTuplePtr) const {
     // Find a tuple in the right memory block such that:
     // 1. The value of the current tuple is smaller than the value in leftEndTuple.
     // 2. Either the value of next tuple is larger than the value in leftEndTuple or

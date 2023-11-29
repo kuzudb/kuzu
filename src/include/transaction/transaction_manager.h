@@ -48,7 +48,9 @@ public:
     }
 
 private:
-    inline bool hasActiveWriteTransactionNoLock() { return activeWriteTransactionID != INT64_MAX; }
+    inline bool hasActiveWriteTransactionNoLock() const {
+        return activeWriteTransactionID != INT64_MAX;
+    }
     inline void clearActiveWriteTransactionIfWriteTransactionNoLock(Transaction* transaction) {
         if (transaction->isWriteTransaction()) {
             activeWriteTransactionID = INT64_MAX;
