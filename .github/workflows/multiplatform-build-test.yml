@@ -21,7 +21,7 @@ jobs:
           sudo apt-get install -y build-essential manpages-dev software-properties-common
           sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt-get update
-          sudo apt-get install -y gcc-11 g++-11
+          sudo apt-get install -y gcc-11 g++-11 python3.9
 
       - name: Ensure Python dependencies
         run: |
@@ -104,7 +104,7 @@ jobs:
 
       - name: Node.js test
         run: make nodejstest NUM_THREADS=$(sysctl -n hw.physicalcpu)
-      
+
       - name: Java test
         run: make javatest NUM_THREADS=$(sysctl -n hw.physicalcpu)
 
@@ -132,7 +132,7 @@ jobs:
       fail-fast: false
     name: ${{ matrix.runner }}
     runs-on: ${{ matrix.runner }}
-    steps:   
+    steps:
       - name: Disable Windows Defender
         shell: powershell
         run: |
@@ -257,7 +257,7 @@ jobs:
 
       - name: Test
         run: make test NUM_THREADS=$(nproc)
-  
+
       - name: C and C++ examples
         run: make example NUM_THREADS=$(nproc)
 
@@ -307,7 +307,7 @@ jobs:
           dnf update -y
           dnf install -y epel-release
           dnf update -y
-      
+
       - name: Enable SHA-1 on Rocky Linux 9
         if: matrix.image == 'rockylinux:9'
         run: update-crypto-policies --set LEGACY
@@ -395,7 +395,7 @@ jobs:
         run: |
           yum update -y
           yum install -y npm java-11-openjdk-devel devtoolset-11
-      
+
       - name: Enable gcc-toolset-11
         run: |
           source /opt/rh/devtoolset-11/enable

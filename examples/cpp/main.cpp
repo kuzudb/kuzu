@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "main/kuzu.h"
+#include "kuzu.hpp"
 using namespace kuzu::main;
 
 int main() {
