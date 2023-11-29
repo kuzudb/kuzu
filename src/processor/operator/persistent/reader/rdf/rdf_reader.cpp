@@ -42,7 +42,9 @@ RDFReader::~RDFReader() {
     serd_reader_free(reader);
     serd_reader_end_stream(counter);
     serd_reader_free(counter);
-    fclose(fp);
+    // Even if the close fails, the stream is in an undefined state. There really isn't anything we
+    // can do.
+    (void)fclose(fp);
 }
 
 SerdStatus RDFReader::errorHandle(void* /*handle*/, const SerdError* error) {

@@ -7,6 +7,7 @@
 
 namespace kuzu::common {
 
+// NOLINTNEXTLINE(cert-err58-cpp): This initialization won't actually throw.
 const int128_t Int128_t::powerOf10[]{
     int128_t(1),
     int128_t(10),

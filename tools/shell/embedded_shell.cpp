@@ -1,6 +1,7 @@
 #include "embedded_shell.h"
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <csignal>
 #include <regex>
@@ -26,19 +27,19 @@ const char* HISTORY_PATH = "history.txt";
 
 // build-in shell command
 struct ShellCommand {
-    const std::string HELP = ":help";
-    const std::string CLEAR = ":clear";
-    const std::string QUIT = ":quit";
-    const std::string THREAD = ":thread";
-    const std::string LOGGING_LEVEL = ":logging_level";
-    const std::string QUERY_TIMEOUT = ":timeout";
-    const std::vector<std::string> commandList = {
+    const char* HELP = ":help";
+    const char* CLEAR = ":clear";
+    const char* QUIT = ":quit";
+    const char* THREAD = ":thread";
+    const char* LOGGING_LEVEL = ":logging_level";
+    const char* QUERY_TIMEOUT = ":timeout";
+    const std::array<const char*, 6> commandList = {
         HELP, CLEAR, QUIT, THREAD, LOGGING_LEVEL, QUERY_TIMEOUT};
 } shellCommand;
 
 const char* TAB = "    ";
 
-const std::vector<std::string> keywordList = {"CALL", "CREATE", "DELETE", "DETACH", "EXISTS",
+const std::array<const char*, 82> keywordList = {"CALL", "CREATE", "DELETE", "DETACH", "EXISTS",
     "FOREACH", "LOAD", "MATCH", "MERGE", "OPTIONAL", "REMOVE", "RETURN", "SET", "START", "UNION",
     "UNWIND", "WITH", "LIMIT", "ORDER", "SKIP", "WHERE", "YIELD", "ASC", "ASCENDING", "ASSERT",
     "BY", "CSV", "DESC", "DESCENDING", "ON", "ALL", "CASE", "ELSE", "END", "THEN", "WHEN", "AND",
@@ -48,9 +49,10 @@ const std::vector<std::string> keywordList = {"CALL", "CREATE", "DELETE", "DETAC
     "REQUIRE", "SCALAR", "EXPLAIN", "PROFILE", "HEADERS", "FROM", "FIELDTERMINATOR", "STAR",
     "MINUS", "COUNT", "PRIMARY", "COPY"};
 
-const std::string keywordColorPrefix = "\033[32m\033[1m";
-const std::string keywordResetPostfix = "\033[00m";
+const char* keywordColorPrefix = "\033[32m\033[1m";
+const char* keywordResetPostfix = "\033[00m";
 
+// NOLINTNEXTLINE(cert-err58-cpp): OK to have a global regex, even if the constructor allocates.
 const std::regex specialChars{R"([-[\]{}()*+?.,\^$|#\s])"};
 
 std::vector<std::string> nodeTableNames;
@@ -90,7 +92,7 @@ void completion(const char* buffer, linenoiseCompletions* lc) {
     if (buf[0] == ':') {
         for (auto& command : shellCommand.commandList) {
             if (regex_search(command, std::regex("^" + buf))) {
-                linenoiseAddCompletion(lc, command.c_str());
+                linenoiseAddCompletion(lc, command);
             }
         }
         return;
@@ -208,7 +210,7 @@ EmbeddedShell::EmbeddedShell(const std::string& databasePath, const SystemConfig
     conn = std::make_unique<Connection>(database.get());
     globalConnection = conn.get();
     updateTableNames();
-    signal(SIGINT, interruptHandler);
+    KU_ASSERT(signal(SIGINT, interruptHandler) != SIG_ERR);
 }
 
 void EmbeddedShell::run() {
@@ -230,11 +232,11 @@ void EmbeddedShell::run() {
             free(line);
             break;
         } else if (lineStr.rfind(shellCommand.THREAD) == 0) {
-            setNumThreads(lineStr.substr(shellCommand.THREAD.length()));
+            setNumThreads(lineStr.substr(strlen(shellCommand.THREAD)));
         } else if (lineStr.rfind(shellCommand.LOGGING_LEVEL) == 0) {
-            setLoggingLevel(lineStr.substr(shellCommand.LOGGING_LEVEL.length()));
+            setLoggingLevel(lineStr.substr(strlen(shellCommand.LOGGING_LEVEL)));
         } else if (lineStr.rfind(shellCommand.QUERY_TIMEOUT) == 0) {
-            setQueryTimeout(lineStr.substr(shellCommand.QUERY_TIMEOUT.length()));
+            setQueryTimeout(lineStr.substr(strlen(shellCommand.QUERY_TIMEOUT)));
         } else if (!lineStr.empty()) {
             ss.clear();
             ss.str(lineStr);
@@ -280,16 +282,16 @@ void EmbeddedShell::setNumThreads(const std::string& numThreadsString) {
 }
 
 void EmbeddedShell::printHelp() {
-    printf("%s%s %sget command list\n", TAB, shellCommand.HELP.c_str(), TAB);
-    printf("%s%s %sclear shell\n", TAB, shellCommand.CLEAR.c_str(), TAB);
-    printf("%s%s %sexit from shell\n", TAB, shellCommand.QUIT.c_str(), TAB);
+    printf("%s%s %sget command list\n", TAB, shellCommand.HELP, TAB);
+    printf("%s%s %sclear shell\n", TAB, shellCommand.CLEAR, TAB);
+    printf("%s%s %sexit from shell\n", TAB, shellCommand.QUIT, TAB);
     printf("%s%s [num_threads] %sset number of threads for query execution\n", TAB,
-        shellCommand.THREAD.c_str(), TAB);
+        shellCommand.THREAD, TAB);
     printf("%s%s [logging_level] %sset logging level of database, available options: debug, info, "
            "err\n",
-        TAB, shellCommand.LOGGING_LEVEL.c_str(), TAB);
-    printf("%s%s [query_timeout] %sset query timeout in ms\n", TAB,
-        shellCommand.QUERY_TIMEOUT.c_str(), TAB);
+        TAB, shellCommand.LOGGING_LEVEL, TAB);
+    printf(
+        "%s%s [query_timeout] %sset query timeout in ms\n", TAB, shellCommand.QUERY_TIMEOUT, TAB);
 }
 
 void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {

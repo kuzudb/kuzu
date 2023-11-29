@@ -15,10 +15,13 @@ using hash_function_t = std::function<common::hash_t(const uint8_t*)>;
 using equals_function_t = std::function<bool(
     transaction::TransactionType trxType, const uint8_t*, const uint8_t*, DiskOverflowFile*)>;
 
+// NOLINTBEGIN(cert-err58-cpp): This is the best way to get the datatype size because it avoids
+// refactoring.
 static const uint32_t NUM_BYTES_FOR_INT64_KEY =
     storage::StorageUtils::getDataTypeSize(common::LogicalType{common::LogicalTypeID::INT64});
 static const uint32_t NUM_BYTES_FOR_STRING_KEY =
     storage::StorageUtils::getDataTypeSize(common::LogicalType{common::LogicalTypeID::STRING});
+// NOLINTEND(cert-err58-cpp)
 
 using in_mem_insert_function_t =
     std::function<void(const uint8_t*, common::offset_t, uint8_t*, InMemOverflowFile*)>;

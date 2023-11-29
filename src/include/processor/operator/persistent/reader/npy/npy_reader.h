@@ -46,7 +46,6 @@ private:
     size_t dataOffset;
     std::vector<size_t> shape;
     common::LogicalTypeID type;
-    static inline const std::string defaultFieldName = "NPY_FIELD";
 };
 
 class NpyMultiFileReader {
