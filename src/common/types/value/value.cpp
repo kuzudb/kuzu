@@ -73,6 +73,14 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
         return Value((double_t)0);
     case LogicalTypeID::DATE:
         return Value(date_t());
+    case LogicalTypeID::TIMESTAMP_NS:
+        return Value(timestamp_ns_t());
+    case LogicalTypeID::TIMESTAMP_MS:
+        return Value(timestamp_ms_t());
+    case LogicalTypeID::TIMESTAMP_SEC:
+        return Value(timestamp_sec_t());
+    case LogicalTypeID::TIMESTAMP_TZ:
+        return Value(timestamp_tz_t());
     case LogicalTypeID::TIMESTAMP:
         return Value(timestamp_t());
     case LogicalTypeID::INTERVAL:
@@ -185,6 +193,26 @@ Value::Value(date_t val_) : isNull_{false} {
     val.int32Val = val_.days;
 }
 
+Value::Value(timestamp_ns_t val_) : isNull_{false} {
+    dataType = LogicalType::TIMESTAMP_NS();
+    val.int64Val = val_.value;
+}
+
+Value::Value(timestamp_ms_t val_) : isNull_{false} {
+    dataType = LogicalType::TIMESTAMP_MS();
+    val.int64Val = val_.value;
+}
+
+Value::Value(timestamp_sec_t val_) : isNull_{false} {
+    dataType = LogicalType::TIMESTAMP_SEC();
+    val.int64Val = val_.value;
+}
+
+Value::Value(timestamp_tz_t val_) : isNull_{false} {
+    dataType = LogicalType::TIMESTAMP_TZ();
+    val.int64Val = val_.value;
+}
+
 Value::Value(timestamp_t val_) : isNull_{false} {
     dataType = LogicalType::TIMESTAMP();
     val.int64Val = val_.value;
@@ -231,6 +259,10 @@ Value::Value(const Value& other) : isNull_{other.isNull_} {
 void Value::copyValueFrom(const uint8_t* value) {
     switch (dataType->getLogicalTypeID()) {
     case LogicalTypeID::SERIAL:
+    case LogicalTypeID::TIMESTAMP_NS:
+    case LogicalTypeID::TIMESTAMP_MS:
+    case LogicalTypeID::TIMESTAMP_SEC:
+    case LogicalTypeID::TIMESTAMP_TZ:
     case LogicalTypeID::TIMESTAMP:
     case LogicalTypeID::INT64: {
         val.int64Val = *((int64_t*)value);
@@ -405,6 +437,14 @@ std::string Value::toString() const {
         return TypeUtils::toString(val.floatVal);
     case LogicalTypeID::DATE:
         return TypeUtils::toString(date_t{val.int32Val});
+    case LogicalTypeID::TIMESTAMP_NS:
+        return TypeUtils::toString(timestamp_ns_t{val.int64Val});
+    case LogicalTypeID::TIMESTAMP_MS:
+        return TypeUtils::toString(timestamp_ms_t{val.int64Val});
+    case LogicalTypeID::TIMESTAMP_SEC:
+        return TypeUtils::toString(timestamp_sec_t{val.int64Val});
+    case LogicalTypeID::TIMESTAMP_TZ:
+        return TypeUtils::toString(timestamp_tz_t{val.int64Val});
     case LogicalTypeID::TIMESTAMP:
         return TypeUtils::toString(timestamp_t{val.int64Val});
     case LogicalTypeID::INTERVAL:

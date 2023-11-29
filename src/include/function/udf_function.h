@@ -58,6 +58,10 @@ struct UDF {
             return std::is_same<T, double>();
         case common::LogicalTypeID::DATE:
             return std::is_same<T, int32_t>();
+        case common::LogicalTypeID::TIMESTAMP_NS:
+        case common::LogicalTypeID::TIMESTAMP_MS:
+        case common::LogicalTypeID::TIMESTAMP_SEC:
+        case common::LogicalTypeID::TIMESTAMP_TZ:
         case common::LogicalTypeID::TIMESTAMP:
             return std::is_same<T, int64_t>();
         case common::LogicalTypeID::STRING:

@@ -867,6 +867,16 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1value(
             env->CallStaticObjectMethod(ldClass, ofEpochDay, static_cast<jlong>(date.days));
         return ret;
     }
+    case LogicalTypeID::TIMESTAMP_TZ: {
+        timestamp_tz_t ts = v->getValue<timestamp_tz_t>();
+        int64_t seconds = ts.value / 1000000L;
+        int64_t nano = ts.value % 1000000L * 1000L;
+        jclass retClass = env->FindClass("java/time/Instant");
+        jmethodID ofEpochSecond =
+            env->GetStaticMethodID(retClass, "ofEpochSecond", "(JJ)Ljava/time/Instant;");
+        jobject ret = env->CallStaticObjectMethod(retClass, ofEpochSecond, seconds, nano);
+        return ret;
+    }
     case LogicalTypeID::TIMESTAMP: {
         timestamp_t ts = v->getValue<timestamp_t>();
         int64_t seconds = ts.value / 1000000L;
@@ -875,6 +885,34 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1value(
         jmethodID ofEpochSecond =
             env->GetStaticMethodID(retClass, "ofEpochSecond", "(JJ)Ljava/time/Instant;");
         jobject ret = env->CallStaticObjectMethod(retClass, ofEpochSecond, seconds, nano);
+        return ret;
+    }
+    case LogicalTypeID::TIMESTAMP_NS: {
+        timestamp_ns_t ts = v->getValue<timestamp_ns_t>();
+        int64_t seconds = ts.value / 1000000000L;
+        int64_t nano = ts.value % 1000000000L;
+        jclass retClass = env->FindClass("java/time/Instant");
+        jmethodID ofEpochSecond =
+            env->GetStaticMethodID(retClass, "ofEpochSecond", "(JJ)Ljava/time/Instant;");
+        jobject ret = env->CallStaticObjectMethod(retClass, ofEpochSecond, seconds, nano);
+        return ret;
+    }
+    case LogicalTypeID::TIMESTAMP_MS: {
+        timestamp_ms_t ts = v->getValue<timestamp_ms_t>();
+        int64_t seconds = ts.value / 1000L;
+        int64_t nano = ts.value % 1000L * 1000000L;
+        jclass retClass = env->FindClass("java/time/Instant");
+        jmethodID ofEpochSecond =
+            env->GetStaticMethodID(retClass, "ofEpochSecond", "(JJ)Ljava/time/Instant;");
+        jobject ret = env->CallStaticObjectMethod(retClass, ofEpochSecond, seconds, nano);
+        return ret;
+    }
+    case LogicalTypeID::TIMESTAMP_SEC: {
+        timestamp_sec_t ts = v->getValue<timestamp_sec_t>();
+        jclass retClass = env->FindClass("java/time/Instant");
+        jmethodID ofEpochSecond =
+            env->GetStaticMethodID(retClass, "ofEpochSecond", "(JJ)Ljava/time/Instant;");
+        jobject ret = env->CallStaticObjectMethod(retClass, ofEpochSecond, ts.value, 0);
         return ret;
     }
     case LogicalTypeID::INTERVAL: {

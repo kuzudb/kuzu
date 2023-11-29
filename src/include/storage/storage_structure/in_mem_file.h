@@ -2,8 +2,8 @@
 
 #include <shared_mutex>
 
+#include "common/types/ku_list.h"
 #include "common/types/ku_string.h"
-#include "common/types/value/value.h"
 #include "storage/storage_structure/in_mem_page.h"
 #include "storage/storage_utils.h"
 
@@ -60,12 +60,6 @@ public:
     // Multiple threads are coordinate by taking an exclusive lock each time it needs to copy
     // overflow values to the file and updating nextPageIdxToAppend/nextOffsetInPageToAppend.
     common::ku_string_t appendString(const char* rawString);
-    // These two functions copies a string/list value to the file according to the cursor. Multiple
-    // threads coordinate by that each thread takes the full control of a single page at a time.
-    // When the page is not exhausted, each thread can write without an exclusive lock.
-    common::ku_string_t copyString(
-        const char* rawString, common::page_offset_t length, PageByteCursor& overflowCursor);
-    common::ku_list_t copyList(const common::Value& listValue, PageByteCursor& overflowCursor);
 
     // Copy overflow data at srcOverflow into dstKUString.
     void copyStringOverflow(
@@ -80,12 +74,6 @@ public:
 
 private:
     common::page_idx_t addANewOverflowPage();
-
-    void copyFixedSizedValuesInList(const common::Value& listVal, PageByteCursor& overflowCursor,
-        uint64_t numBytesOfListElement);
-    template<common::LogicalTypeID DT>
-    void copyVarSizedValuesInList(common::ku_list_t& resultKUList, const common::Value& listVal,
-        PageByteCursor& overflowCursor, uint64_t numBytesOfListElement);
 
     void resetElementsOverflowPtrIfNecessary(PageByteCursor& pageByteCursor,
         common::LogicalType* elementType, uint64_t numElementsToReset, uint8_t* elementsToReset);

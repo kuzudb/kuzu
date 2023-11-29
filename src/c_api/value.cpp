@@ -127,6 +127,34 @@ kuzu_value* kuzu_value_create_date(kuzu_date_t val_) {
     return c_value;
 }
 
+kuzu_value* kuzu_value_create_timestamp_ns(kuzu_timestamp_ns_t val_) {
+    auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
+    auto timestamp_ns = timestamp_ns_t(val_.value);
+    c_value->_value = new Value(timestamp_ns);
+    return c_value;
+}
+
+kuzu_value* kuzu_value_create_timestamp_ms(kuzu_timestamp_ms_t val_) {
+    auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
+    auto timestamp_ms = timestamp_ms_t(val_.value);
+    c_value->_value = new Value(timestamp_ms);
+    return c_value;
+}
+
+kuzu_value* kuzu_value_create_timestamp_sec(kuzu_timestamp_sec_t val_) {
+    auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
+    auto timestamp_sec = timestamp_sec_t(val_.value);
+    c_value->_value = new Value(timestamp_sec);
+    return c_value;
+}
+
+kuzu_value* kuzu_value_create_timestamp_tz(kuzu_timestamp_tz_t val_) {
+    auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
+    auto timestamp_tz = timestamp_tz_t(val_.value);
+    c_value->_value = new Value(timestamp_tz);
+    return c_value;
+}
+
 kuzu_value* kuzu_value_create_timestamp(kuzu_timestamp_t val_) {
     auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
     auto timestamp = timestamp_t(val_.value);
@@ -311,6 +339,34 @@ kuzu_date_t kuzu_value_get_date(kuzu_value* value) {
 kuzu_timestamp_t kuzu_value_get_timestamp(kuzu_value* value) {
     auto timestamp_val = static_cast<Value*>(value->_value)->getValue<timestamp_t>();
     kuzu_timestamp_t c_timestamp;
+    c_timestamp.value = timestamp_val.value;
+    return c_timestamp;
+}
+
+kuzu_timestamp_ns_t kuzu_value_get_timestamp_ns(kuzu_value* value) {
+    auto timestamp_val = static_cast<Value*>(value->_value)->getValue<timestamp_ns_t>();
+    kuzu_timestamp_ns_t c_timestamp;
+    c_timestamp.value = timestamp_val.value;
+    return c_timestamp;
+}
+
+kuzu_timestamp_ms_t kuzu_value_get_timestamp_ms(kuzu_value* value) {
+    auto timestamp_val = static_cast<Value*>(value->_value)->getValue<timestamp_ms_t>();
+    kuzu_timestamp_ms_t c_timestamp;
+    c_timestamp.value = timestamp_val.value;
+    return c_timestamp;
+}
+
+kuzu_timestamp_sec_t kuzu_value_get_timestamp_sec(kuzu_value* value) {
+    auto timestamp_val = static_cast<Value*>(value->_value)->getValue<timestamp_sec_t>();
+    kuzu_timestamp_sec_t c_timestamp;
+    c_timestamp.value = timestamp_val.value;
+    return c_timestamp;
+}
+
+kuzu_timestamp_tz_t kuzu_value_get_timestamp_tz(kuzu_value* value) {
+    auto timestamp_val = static_cast<Value*>(value->_value)->getValue<timestamp_tz_t>();
+    kuzu_timestamp_tz_t c_timestamp;
     c_timestamp.value = timestamp_val.value;
     return c_timestamp;
 }

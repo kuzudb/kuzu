@@ -12,6 +12,10 @@
 
 using namespace kuzu::common;
 
+#define PyDateTimeTZ_FromDateAndTime(year, month, day, hour, min, sec, usec, timezone) \
+    PyDateTimeAPI->DateTime_FromDateAndTime(year, month, day, hour, \
+        min, sec, usec, timezone, PyDateTimeAPI->DateTimeType)
+
 void PyQueryResult::initialize(py::handle& m) {
     py::class_<PyQueryResult>(m, "result")
         .def("hasNext", &PyQueryResult::hasNext)
@@ -65,6 +69,17 @@ void PyQueryResult::close() {
     // expose close() interface so that users can explicitly call close() and ensure that
     // QueryResult is destroyed before Database.
     queryResult.reset();
+}
+
+static py::object converTimestampToPyObject(timestamp_t& timestamp) {
+    int32_t year, month, day, hour, min, sec, micros;
+    date_t date;
+    dtime_t time;
+    Timestamp::convert(timestamp, date, time);
+    Date::convert(date, year, month, day);
+    Time::Convert(time, hour, min, sec, micros);
+    return py::cast<py::object>(
+        PyDateTime_FromDateAndTime(year, month, day, hour, min, sec, micros));
 }
 
 py::object PyQueryResult::convertValueToPyObject(const Value& value) {
@@ -130,14 +145,31 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     }
     case LogicalTypeID::TIMESTAMP: {
         auto timestampVal = value.getValue<timestamp_t>();
+        return converTimestampToPyObject(timestampVal);
+    }
+    case LogicalTypeID::TIMESTAMP_TZ: {
+        auto timestampVal = value.getValue<timestamp_tz_t>();
         int32_t year, month, day, hour, min, sec, micros;
         date_t date;
         dtime_t time;
         Timestamp::convert(timestampVal, date, time);
         Date::convert(date, year, month, day);
         Time::Convert(time, hour, min, sec, micros);
-        return py::cast<py::object>(
-            PyDateTime_FromDateAndTime(year, month, day, hour, min, sec, micros));
+
+        return py::cast<py::object>(PyDateTimeTZ_FromDateAndTime(year, month, day, hour, min, sec,
+            micros, PyDateTime_TimeZone_UTC));
+    }
+    case LogicalTypeID::TIMESTAMP_NS: {
+        timestamp_t timestampVal = Timestamp::fromEpochNanoSeconds(value.getValue<timestamp_ns_t>().value);
+        return converTimestampToPyObject(timestampVal);
+    }
+    case LogicalTypeID::TIMESTAMP_MS: {
+        timestamp_t timestampVal = Timestamp::fromEpochMilliSeconds(value.getValue<timestamp_ms_t>().value);
+        return converTimestampToPyObject(timestampVal);
+    }
+    case LogicalTypeID::TIMESTAMP_SEC: {
+        timestamp_t timestampVal = Timestamp::fromEpochSeconds(value.getValue<timestamp_sec_t>().value);
+        return converTimestampToPyObject(timestampVal);
     }
     case LogicalTypeID::INTERVAL: {
         auto intervalVal = value.getValue<interval_t>();

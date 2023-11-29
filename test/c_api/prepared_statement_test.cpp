@@ -338,11 +338,22 @@ TEST_F(CApiPreparedStatementTest, BindDate) {
 
 TEST_F(CApiPreparedStatementTest, BindTimestamp) {
     auto connection = getConnection();
-    auto query = "MATCH (a:person) WHERE a.registerTime > $1 RETURN COUNT(*)";
+    auto query = "MATCH (a:person) WHERE a.registerTime > $1 and cast(a.registerTime, "
+                 "\"timestamp_ns\") > $2 and cast(a.registerTime, \"timestamp_ms\") > "
+                 "$3 and cast(a.registerTime, \"timestamp_sec\") > $4 and cast(a.registerTime, "
+                 "\"timestamp_tz\") > $5 RETURN COUNT(*)";
     auto preparedStatement = kuzu_connection_prepare(connection, query);
     ASSERT_TRUE(kuzu_prepared_statement_is_success(preparedStatement));
     auto timestamp = kuzu_timestamp_t{0};
+    auto timestamp_ns = kuzu_timestamp_ns_t{1};
+    auto timestamp_ms = kuzu_timestamp_ms_t{2};
+    auto timestamp_sec = kuzu_timestamp_sec_t{3};
+    auto timestamp_tz = kuzu_timestamp_tz_t{4};
     kuzu_prepared_statement_bind_timestamp(preparedStatement, "1", timestamp);
+    kuzu_prepared_statement_bind_timestamp_ns(preparedStatement, "2", timestamp_ns);
+    kuzu_prepared_statement_bind_timestamp_ms(preparedStatement, "3", timestamp_ms);
+    kuzu_prepared_statement_bind_timestamp_sec(preparedStatement, "4", timestamp_sec);
+    kuzu_prepared_statement_bind_timestamp_tz(preparedStatement, "5", timestamp_tz);
     auto result = kuzu_connection_execute(connection, preparedStatement);
     ASSERT_NE(result, nullptr);
     ASSERT_NE(result->_query_result, nullptr);

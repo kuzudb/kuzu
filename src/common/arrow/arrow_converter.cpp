@@ -104,6 +104,19 @@ void ArrowConverter::setArrowFormat(
     case LogicalTypeID::DATE: {
         child.format = "tdD";
     } break;
+    case LogicalTypeID::TIMESTAMP_MS: {
+        child.format = "tsm:";
+    } break;
+    case LogicalTypeID::TIMESTAMP_NS: {
+        child.format = "tsn:";
+    } break;
+    case LogicalTypeID::TIMESTAMP_SEC: {
+        child.format = "tss:";
+    } break;
+    case LogicalTypeID::TIMESTAMP_TZ: {
+        auto format = "tsu:UTC";
+        child.format = copyName(rootHolder, format);
+    } break;
     case LogicalTypeID::TIMESTAMP: {
         child.format = "tsu:";
     } break;

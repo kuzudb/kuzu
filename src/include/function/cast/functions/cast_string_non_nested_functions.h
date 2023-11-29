@@ -1,11 +1,15 @@
 #pragma once
 
 #include "common/exception/conversion.h"
+#include "common/string_format.h"
 #include "common/string_utils.h"
 #include "common/types/int128_t.h"
+#include "common/types/timestamp_t.h"
 #include "common/types/types.h"
 #include "fast_float.h"
 #include "function/cast/functions/numeric_limits.h"
+
+using namespace kuzu::common;
 
 namespace kuzu {
 namespace function {
@@ -56,7 +60,7 @@ static bool integerCastLoop(const char* input, uint64_t len, T& result) {
     }
     int64_t pos = start_pos;
     while (pos < len) {
-        if (!common::StringUtils::CharacterIsDigit(input[pos])) {
+        if (!StringUtils::CharacterIsDigit(input[pos])) {
             return false;
         }
         uint8_t digit = input[pos++] - '0';
@@ -72,7 +76,7 @@ static bool integerCastLoop(const char* input, uint64_t len, T& result) {
 
 template<typename T, bool IS_SIGNED = true, class OP = IntegerCastOperation>
 static bool tryIntegerCast(const char* input, uint64_t& len, T& result) {
-    common::StringUtils::removeCStringWhiteSpaces(input, len);
+    StringUtils::removeCStringWhiteSpaces(input, len);
     if (len == 0) {
         return false;
     }
@@ -99,7 +103,7 @@ static bool tryIntegerCast(const char* input, uint64_t& len, T& result) {
 }
 
 struct Int128CastData {
-    common::int128_t result;
+    int128_t result;
     int64_t intermediate;
     uint8_t digits;
     bool decimal;
@@ -112,12 +116,11 @@ struct Int128CastData {
             if (digits > 38) {
                 return false;
             }
-            if (!common::Int128_t::tryMultiply(
-                    result, common::Int128_t::powerOf10[digits], result)) {
+            if (!Int128_t::tryMultiply(result, Int128_t::powerOf10[digits], result)) {
                 return false;
             }
         }
-        if (!common::Int128_t::addInPlace(result, common::int128_t(intermediate))) {
+        if (!Int128_t::addInPlace(result, int128_t(intermediate))) {
             return false;
         }
         digits = 0;
@@ -156,7 +159,7 @@ struct Int128CastOperation {
     }
 };
 
-static bool trySimpleInt128Cast(const char* input, uint64_t len, common::int128_t& result) {
+static bool trySimpleInt128Cast(const char* input, uint64_t len, int128_t& result) {
     Int128CastData data{};
     data.result = 0;
     if (tryIntegerCast<Int128CastData, true, Int128CastOperation>(input, len, data)) {
@@ -166,10 +169,10 @@ static bool trySimpleInt128Cast(const char* input, uint64_t len, common::int128_
     return false;
 }
 
-static void simpleInt128Cast(const char* input, uint64_t len, common::int128_t& result) {
+static void simpleInt128Cast(const char* input, uint64_t len, int128_t& result) {
     if (!trySimpleInt128Cast(input, len, result)) {
-        throw common::ConversionException(
-            "Cast failed. " + std::string{input, len} + " is not within INT128 range.");
+        throw ConversionException(
+            stringFormat("Cast failed. {} is not within INT128 range.", std::string{input, len}));
     }
 }
 
@@ -185,23 +188,23 @@ static bool trySimpleIntegerCast(const char* input, uint64_t len, T& result) {
 }
 
 template<class T, bool IS_SIGNED = true>
-static void simpleIntegerCast(const char* input, uint64_t len, T& result,
-    const common::LogicalType& type = common::LogicalType{common::LogicalTypeID::ANY}) {
+static void simpleIntegerCast(
+    const char* input, uint64_t len, T& result, LogicalTypeID typeID = LogicalTypeID::ANY) {
     if (!trySimpleIntegerCast<T, IS_SIGNED>(input, len, result)) {
-        throw common::ConversionException("Cast failed. " + std::string{input, len} +
-                                          " is not in " + type.toString() + " range.");
+        throw ConversionException(stringFormat("Cast failed. {} is not in {} range.",
+            std::string{input, len}, LogicalTypeUtils::toString(typeID)));
     }
 }
 
 template<class T>
 static bool tryDoubleCast(const char* input, uint64_t len, T& result) {
-    common::StringUtils::removeCStringWhiteSpaces(input, len);
+    StringUtils::removeCStringWhiteSpaces(input, len);
     if (len == 0) {
         return false;
     }
     // not allow leading 0
     if (len > 1 && *input == '0') {
-        if (common::StringUtils::CharacterIsDigit(input[1])) {
+        if (StringUtils::CharacterIsDigit(input[1])) {
             return false;
         }
     }
@@ -214,12 +217,44 @@ static bool tryDoubleCast(const char* input, uint64_t len, T& result) {
 }
 
 template<class T>
-static void doubleCast(const char* input, uint64_t len, T& result,
-    const common::LogicalType& type = common::LogicalType{common::LogicalTypeID::ANY}) {
+static void doubleCast(
+    const char* input, uint64_t len, T& result, LogicalTypeID typeID = LogicalTypeID::ANY) {
     if (!tryDoubleCast<T>(input, len, result)) {
-        throw common::ConversionException("Cast failed. " + std::string{input, len} +
-                                          " is not in " + type.toString() + " range.");
+        throw ConversionException(stringFormat("Cast failed. {} is not in {} range.",
+            std::string{input, len}, LogicalTypeUtils::toString(typeID)));
     }
+}
+
+// ---------------------- try cast String to Timestamp -------------------- //
+struct TryCastStringToTimestamp {
+    template<typename T>
+    static bool tryCast(const char* input, uint64_t len, timestamp_t& result);
+
+    template<typename T>
+    static void cast(const char* input, uint64_t len, timestamp_t& result, LogicalTypeID typeID) {
+        if (!tryCast<T>(input, len, result)) {
+            throw ConversionException(Timestamp::getTimestampConversionExceptionMsg(
+                input, len, LogicalTypeUtils::toString(typeID)));
+        }
+    }
+};
+
+template<>
+bool TryCastStringToTimestamp::tryCast<timestamp_ns_t>(
+    const char* input, uint64_t len, timestamp_t& result);
+
+template<>
+bool TryCastStringToTimestamp::tryCast<timestamp_ms_t>(
+    const char* input, uint64_t len, timestamp_t& result);
+
+template<>
+bool TryCastStringToTimestamp::tryCast<timestamp_sec_t>(
+    const char* input, uint64_t len, timestamp_t& result);
+
+template<>
+bool inline TryCastStringToTimestamp::tryCast<timestamp_tz_t>(
+    const char* input, uint64_t len, timestamp_t& result) {
+    return Timestamp::tryConvertTimestamp(input, len, result);
 }
 
 } // namespace function

@@ -421,6 +421,18 @@ std::unique_ptr<FunctionBindData> ListSortFunction::bindFunc(
     case LogicalTypeID::DATE: {
         getExecFunction<date_t>(arguments, scalarFunction->execFunc);
     } break;
+    case LogicalTypeID::TIMESTAMP_MS: {
+        getExecFunction<timestamp_ms_t>(arguments, scalarFunction->execFunc);
+    } break;
+    case LogicalTypeID::TIMESTAMP_NS: {
+        getExecFunction<timestamp_ns_t>(arguments, scalarFunction->execFunc);
+    } break;
+    case LogicalTypeID::TIMESTAMP_SEC: {
+        getExecFunction<timestamp_sec_t>(arguments, scalarFunction->execFunc);
+    } break;
+    case LogicalTypeID::TIMESTAMP_TZ: {
+        getExecFunction<timestamp_tz_t>(arguments, scalarFunction->execFunc);
+    } break;
     case LogicalTypeID::TIMESTAMP: {
         getExecFunction<timestamp_t>(arguments, scalarFunction->execFunc);
     } break;
@@ -510,6 +522,18 @@ std::unique_ptr<FunctionBindData> ListReverseSortFunction::bindFunc(
     } break;
     case LogicalTypeID::DATE: {
         getExecFunction<date_t>(arguments, scalarFunction->execFunc);
+    } break;
+    case LogicalTypeID::TIMESTAMP_MS: {
+        getExecFunction<timestamp_ms_t>(arguments, scalarFunction->execFunc);
+    } break;
+    case LogicalTypeID::TIMESTAMP_NS: {
+        getExecFunction<timestamp_ns_t>(arguments, scalarFunction->execFunc);
+    } break;
+    case LogicalTypeID::TIMESTAMP_SEC: {
+        getExecFunction<timestamp_sec_t>(arguments, scalarFunction->execFunc);
+    } break;
+    case LogicalTypeID::TIMESTAMP_TZ: {
+        getExecFunction<timestamp_tz_t>(arguments, scalarFunction->execFunc);
     } break;
     case LogicalTypeID::TIMESTAMP: {
         getExecFunction<timestamp_t>(arguments, scalarFunction->execFunc);
@@ -625,6 +649,22 @@ std::unique_ptr<FunctionBindData> ListDistinctFunction::bindFunc(
         scalarFunction->execFunc = ScalarFunction::UnaryExecListStructFunction<list_entry_t,
             list_entry_t, ListDistinct<date_t>>;
     } break;
+    case LogicalTypeID::TIMESTAMP_MS: {
+        scalarFunction->execFunc = ScalarFunction::UnaryExecListStructFunction<list_entry_t,
+            list_entry_t, ListDistinct<timestamp_ms_t>>;
+    } break;
+    case LogicalTypeID::TIMESTAMP_NS: {
+        scalarFunction->execFunc = ScalarFunction::UnaryExecListStructFunction<list_entry_t,
+            list_entry_t, ListDistinct<timestamp_ns_t>>;
+    } break;
+    case LogicalTypeID::TIMESTAMP_SEC: {
+        scalarFunction->execFunc = ScalarFunction::UnaryExecListStructFunction<list_entry_t,
+            list_entry_t, ListDistinct<timestamp_sec_t>>;
+    } break;
+    case LogicalTypeID::TIMESTAMP_TZ: {
+        scalarFunction->execFunc = ScalarFunction::UnaryExecListStructFunction<list_entry_t,
+            list_entry_t, ListDistinct<timestamp_tz_t>>;
+    } break;
     case LogicalTypeID::TIMESTAMP: {
         scalarFunction->execFunc = ScalarFunction::UnaryExecListStructFunction<list_entry_t,
             list_entry_t, ListDistinct<timestamp_t>>;
@@ -717,6 +757,22 @@ std::unique_ptr<FunctionBindData> ListUniqueFunction::bindFunc(
         scalarFunction->execFunc = ScalarFunction::UnaryExecListStructFunction<list_entry_t,
             int64_t, ListUnique<timestamp_t>>;
     } break;
+    case LogicalTypeID::TIMESTAMP_MS: {
+        scalarFunction->execFunc = ScalarFunction::UnaryExecListStructFunction<list_entry_t,
+            int64_t, ListUnique<timestamp_ms_t>>;
+    } break;
+    case LogicalTypeID::TIMESTAMP_NS: {
+        scalarFunction->execFunc = ScalarFunction::UnaryExecListStructFunction<list_entry_t,
+            int64_t, ListUnique<timestamp_ns_t>>;
+    } break;
+    case LogicalTypeID::TIMESTAMP_SEC: {
+        scalarFunction->execFunc = ScalarFunction::UnaryExecListStructFunction<list_entry_t,
+            int64_t, ListUnique<timestamp_sec_t>>;
+    } break;
+    case LogicalTypeID::TIMESTAMP_TZ: {
+        scalarFunction->execFunc = ScalarFunction::UnaryExecListStructFunction<list_entry_t,
+            int64_t, ListUnique<timestamp_tz_t>>;
+    } break;
     case LogicalTypeID::INTERVAL: {
         scalarFunction->execFunc = ScalarFunction::UnaryExecListStructFunction<list_entry_t,
             int64_t, ListUnique<interval_t>>;
@@ -805,6 +861,22 @@ std::unique_ptr<FunctionBindData> ListAnyValueFunction::bindFunc(
     case LogicalTypeID::TIMESTAMP: {
         scalarFunction->execFunc =
             ScalarFunction::UnaryExecListStructFunction<list_entry_t, timestamp_t, ListAnyValue>;
+    } break;
+    case LogicalTypeID::TIMESTAMP_MS: {
+        scalarFunction->execFunc =
+            ScalarFunction::UnaryExecListStructFunction<list_entry_t, timestamp_ms_t, ListAnyValue>;
+    } break;
+    case LogicalTypeID::TIMESTAMP_NS: {
+        scalarFunction->execFunc =
+            ScalarFunction::UnaryExecListStructFunction<list_entry_t, timestamp_ns_t, ListAnyValue>;
+    } break;
+    case LogicalTypeID::TIMESTAMP_SEC: {
+        scalarFunction->execFunc = ScalarFunction::UnaryExecListStructFunction<list_entry_t,
+            timestamp_sec_t, ListAnyValue>;
+    } break;
+    case LogicalTypeID::TIMESTAMP_TZ: {
+        scalarFunction->execFunc =
+            ScalarFunction::UnaryExecListStructFunction<list_entry_t, timestamp_tz_t, ListAnyValue>;
     } break;
     case LogicalTypeID::INTERVAL: {
         scalarFunction->execFunc =

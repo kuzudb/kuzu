@@ -36,6 +36,14 @@ std::string TypeUtils::castValueToString(
         return TypeUtils::toString(*reinterpret_cast<const float_t*>(value));
     case LogicalTypeID::DATE:
         return TypeUtils::toString(*reinterpret_cast<const date_t*>(value));
+    case LogicalTypeID::TIMESTAMP_NS:
+        return TypeUtils::toString(*reinterpret_cast<const timestamp_ns_t*>(value));
+    case LogicalTypeID::TIMESTAMP_MS:
+        return TypeUtils::toString(*reinterpret_cast<const timestamp_ms_t*>(value));
+    case LogicalTypeID::TIMESTAMP_SEC:
+        return TypeUtils::toString(*reinterpret_cast<const timestamp_sec_t*>(value));
+    case LogicalTypeID::TIMESTAMP_TZ:
+        return TypeUtils::toString(*reinterpret_cast<const timestamp_tz_t*>(value));
     case LogicalTypeID::TIMESTAMP:
         return TypeUtils::toString(*reinterpret_cast<const timestamp_t*>(value));
     case LogicalTypeID::INTERVAL:
@@ -71,6 +79,26 @@ std::string TypeUtils::toString(const internalID_t& val, void* /*valueVector*/) 
 template<>
 std::string TypeUtils::toString(const date_t& val, void* /*valueVector*/) {
     return Date::toString(val);
+}
+
+template<>
+std::string TypeUtils::toString(const timestamp_ns_t& val, void* /*valueVector*/) {
+    return toString(Timestamp::fromEpochNanoSeconds(val.value));
+}
+
+template<>
+std::string TypeUtils::toString(const timestamp_ms_t& val, void* /*valueVector*/) {
+    return toString(Timestamp::fromEpochMilliSeconds(val.value));
+}
+
+template<>
+std::string TypeUtils::toString(const timestamp_sec_t& val, void* /*valueVector*/) {
+    return toString(Timestamp::fromEpochSeconds(val.value));
+}
+
+template<>
+std::string TypeUtils::toString(const timestamp_tz_t& val, void* /*valueVector*/) {
+    return toString(static_cast<timestamp_t>(val)) + "+00";
 }
 
 template<>

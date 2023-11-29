@@ -100,6 +100,22 @@ public:
      */
     KUZU_API explicit Value(date_t val_);
     /**
+     * @param val_ the timestamp_ns value to set.
+     */
+    KUZU_API explicit Value(timestamp_ns_t val_);
+    /**
+     * @param val_ the timestamp_ms value to set.
+     */
+    KUZU_API explicit Value(timestamp_ms_t val_);
+    /**
+     * @param val_ the timestamp_sec value to set.
+     */
+    KUZU_API explicit Value(timestamp_sec_t val_);
+    /**
+     * @param val_ the timestamp_tz value to set.
+     */
+    KUZU_API explicit Value(timestamp_tz_t val_);
+    /**
      * @param val_ the timestamp value to set.
      */
     KUZU_API explicit Value(timestamp_t val_);
@@ -387,6 +403,42 @@ KUZU_API inline timestamp_t Value::getValue() const {
 }
 
 /**
+ * @return timestamp_ns_t value.
+ */
+template<>
+KUZU_API inline timestamp_ns_t Value::getValue() const {
+    KU_ASSERT(dataType->getLogicalTypeID() == LogicalTypeID::TIMESTAMP_NS);
+    return timestamp_ns_t{val.int64Val};
+}
+
+/**
+ * @return timestamp_ms_t value.
+ */
+template<>
+KUZU_API inline timestamp_ms_t Value::getValue() const {
+    KU_ASSERT(dataType->getLogicalTypeID() == LogicalTypeID::TIMESTAMP_MS);
+    return timestamp_ms_t{val.int64Val};
+}
+
+/**
+ * @return timestamp_sec_t value.
+ */
+template<>
+KUZU_API inline timestamp_sec_t Value::getValue() const {
+    KU_ASSERT(dataType->getLogicalTypeID() == LogicalTypeID::TIMESTAMP_SEC);
+    return timestamp_sec_t{val.int64Val};
+}
+
+/**
+ * @return timestamp_tz_t value.
+ */
+template<>
+KUZU_API inline timestamp_tz_t Value::getValue() const {
+    KU_ASSERT(dataType->getLogicalTypeID() == LogicalTypeID::TIMESTAMP_TZ);
+    return timestamp_tz_t{val.int64Val};
+}
+
+/**
  * @return interval_t value.
  */
 template<>
@@ -547,6 +599,42 @@ template<>
 KUZU_API inline timestamp_t& Value::getValueReference() {
     KU_ASSERT(dataType->getLogicalTypeID() == LogicalTypeID::TIMESTAMP);
     return *reinterpret_cast<timestamp_t*>(&val.int64Val);
+}
+
+/**
+ * @return the reference to the timestamp_ms value.
+ */
+template<>
+KUZU_API inline timestamp_ms_t& Value::getValueReference() {
+    KU_ASSERT(dataType->getLogicalTypeID() == LogicalTypeID::TIMESTAMP_MS);
+    return *reinterpret_cast<timestamp_ms_t*>(&val.int64Val);
+}
+
+/**
+ * @return the reference to the timestamp_ns value.
+ */
+template<>
+KUZU_API inline timestamp_ns_t& Value::getValueReference() {
+    KU_ASSERT(dataType->getLogicalTypeID() == LogicalTypeID::TIMESTAMP_NS);
+    return *reinterpret_cast<timestamp_ns_t*>(&val.int64Val);
+}
+
+/**
+ * @return the reference to the timestamp_sec value.
+ */
+template<>
+KUZU_API inline timestamp_sec_t& Value::getValueReference() {
+    KU_ASSERT(dataType->getLogicalTypeID() == LogicalTypeID::TIMESTAMP_SEC);
+    return *reinterpret_cast<timestamp_sec_t*>(&val.int64Val);
+}
+
+/**
+ * @return the reference to the timestamp_tz value.
+ */
+template<>
+KUZU_API inline timestamp_tz_t& Value::getValueReference() {
+    KU_ASSERT(dataType->getLogicalTypeID() == LogicalTypeID::TIMESTAMP_TZ);
+    return *reinterpret_cast<timestamp_tz_t*>(&val.int64Val);
 }
 
 /**

@@ -40,6 +40,14 @@ pub enum LogicalType {
     Interval,
     /// Correponds to [Value::Timestamp](crate::value::Value::Timestamp)
     Timestamp,
+    /// Correponds to [Value::TimestampTz](crate::value::Value::TimestampTz)
+    TimestampTz,
+    /// Correponds to [Value::TimestampNs](crate::value::Value::TimestampNs)
+    TimestampNs,
+    /// Correponds to [Value::TimestampMs](crate::value::Value::TimestampMs)
+    TimestampMs,
+    /// Correponds to [Value::TimestampSec](crate::value::Value::TimestampSec)
+    TimestampSec,
     /// Correponds to [Value::InternalID](crate::value::Value::InternalID)
     InternalID,
     /// Correponds to [Value::String](crate::value::Value::String)
@@ -103,6 +111,10 @@ impl From<&ffi::LogicalType> for LogicalType {
             LogicalTypeID::INTERVAL => LogicalType::Interval,
             LogicalTypeID::DATE => LogicalType::Date,
             LogicalTypeID::TIMESTAMP => LogicalType::Timestamp,
+            LogicalTypeID::TIMESTAMP_TZ => LogicalType::TimestampTz,
+            LogicalTypeID::TIMESTAMP_NS => LogicalType::TimestampNs,
+            LogicalTypeID::TIMESTAMP_MS => LogicalType::TimestampMs,
+            LogicalTypeID::TIMESTAMP_SEC => LogicalType::TimestampSec,
             LogicalTypeID::INTERNAL_ID => LogicalType::InternalID,
             LogicalTypeID::VAR_LIST => LogicalType::VarList {
                 child_type: Box::new(
@@ -186,6 +198,10 @@ impl From<&LogicalType> for cxx::UniquePtr<ffi::LogicalType> {
             | LogicalType::Double
             | LogicalType::Date
             | LogicalType::Timestamp
+            | LogicalType::TimestampTz
+            | LogicalType::TimestampNs
+            | LogicalType::TimestampMs
+            | LogicalType::TimestampSec
             | LogicalType::Interval
             | LogicalType::InternalID
             | LogicalType::String
@@ -251,6 +267,10 @@ impl LogicalType {
             LogicalType::Interval => LogicalTypeID::INTERVAL,
             LogicalType::Date => LogicalTypeID::DATE,
             LogicalType::Timestamp => LogicalTypeID::TIMESTAMP,
+            LogicalType::TimestampTz => LogicalTypeID::TIMESTAMP_TZ,
+            LogicalType::TimestampNs => LogicalTypeID::TIMESTAMP_NS,
+            LogicalType::TimestampMs => LogicalTypeID::TIMESTAMP_MS,
+            LogicalType::TimestampSec => LogicalTypeID::TIMESTAMP_SEC,
             LogicalType::InternalID => LogicalTypeID::INTERNAL_ID,
             LogicalType::VarList { .. } => LogicalTypeID::VAR_LIST,
             LogicalType::FixedList { .. } => LogicalTypeID::FIXED_LIST,

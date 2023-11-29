@@ -363,6 +363,10 @@ std::string LogicalType::toString() const {
     case LogicalTypeID::DOUBLE:
     case LogicalTypeID::FLOAT:
     case LogicalTypeID::DATE:
+    case LogicalTypeID::TIMESTAMP_NS:
+    case LogicalTypeID::TIMESTAMP_MS:
+    case LogicalTypeID::TIMESTAMP_SEC:
+    case LogicalTypeID::TIMESTAMP_TZ:
     case LogicalTypeID::TIMESTAMP:
     case LogicalTypeID::INTERVAL:
     case LogicalTypeID::BLOB:
@@ -440,6 +444,10 @@ void LogicalType::setPhysicalType() {
     case LogicalTypeID::BOOL: {
         physicalType = PhysicalTypeID::BOOL;
     } break;
+    case LogicalTypeID::TIMESTAMP_MS:
+    case LogicalTypeID::TIMESTAMP_NS:
+    case LogicalTypeID::TIMESTAMP_TZ:
+    case LogicalTypeID::TIMESTAMP_SEC:
     case LogicalTypeID::TIMESTAMP:
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64: {
@@ -566,6 +574,14 @@ LogicalTypeID LogicalTypeUtils::dataTypeIDFromString(const std::string& dataType
         return LogicalTypeID::DATE;
     } else if ("TIMESTAMP" == upperDataTypeIDString) {
         return LogicalTypeID::TIMESTAMP;
+    } else if ("TIMESTAMP_NS" == upperDataTypeIDString) {
+        return LogicalTypeID::TIMESTAMP_NS;
+    } else if ("TIMESTAMP_MS" == upperDataTypeIDString) {
+        return LogicalTypeID::TIMESTAMP_MS;
+    } else if ("TIMESTAMP_SEC" == upperDataTypeIDString || "TIMESTAMP_S" == upperDataTypeIDString) {
+        return LogicalTypeID::TIMESTAMP_SEC;
+    } else if ("TIMESTAMP_TZ" == upperDataTypeIDString) {
+        return LogicalTypeID::TIMESTAMP_TZ;
     } else if ("INTERVAL" == upperDataTypeIDString) {
         return LogicalTypeID::INTERVAL;
     } else if ("SERIAL" == upperDataTypeIDString) {
@@ -614,6 +630,14 @@ std::string LogicalTypeUtils::toString(LogicalTypeID dataTypeID) {
         return "FLOAT";
     case LogicalTypeID::DATE:
         return "DATE";
+    case LogicalTypeID::TIMESTAMP_NS:
+        return "TIMESTAMP_NS";
+    case LogicalTypeID::TIMESTAMP_MS:
+        return "TIMESTAMP_MS";
+    case LogicalTypeID::TIMESTAMP_SEC:
+        return "TIMESTAMP_SEC";
+    case LogicalTypeID::TIMESTAMP_TZ:
+        return "TIMESTAMP_TZ";
     case LogicalTypeID::TIMESTAMP:
         return "TIMESTAMP";
     case LogicalTypeID::INTERVAL:
@@ -740,7 +764,9 @@ std::vector<LogicalType> LogicalTypeUtils::getAllValidComparableLogicalTypes() {
         LogicalType{LogicalTypeID::UINT16}, LogicalType{LogicalTypeID::UINT8},
         LogicalType{LogicalTypeID::INT128}, LogicalType{LogicalTypeID::DOUBLE},
         LogicalType{LogicalTypeID::FLOAT}, LogicalType{LogicalTypeID::DATE},
-        LogicalType{LogicalTypeID::TIMESTAMP}, LogicalType{LogicalTypeID::INTERVAL},
+        LogicalType{LogicalTypeID::TIMESTAMP}, LogicalType{LogicalTypeID::TIMESTAMP_NS},
+        LogicalType{LogicalTypeID::TIMESTAMP_MS}, LogicalType{LogicalTypeID::TIMESTAMP_SEC},
+        LogicalType{LogicalTypeID::TIMESTAMP_TZ}, LogicalType{LogicalTypeID::INTERVAL},
         LogicalType{LogicalTypeID::BLOB}, LogicalType{LogicalTypeID::STRING},
         LogicalType{LogicalTypeID::SERIAL}};
 }
@@ -766,7 +792,9 @@ std::vector<LogicalType> LogicalTypeUtils::getAllValidLogicTypes() {
         LogicalType{LogicalTypeID::UINT8}, LogicalType{LogicalTypeID::INT128},
         LogicalType{LogicalTypeID::DOUBLE}, LogicalType{LogicalTypeID::STRING},
         LogicalType{LogicalTypeID::BLOB}, LogicalType{LogicalTypeID::DATE},
-        LogicalType{LogicalTypeID::TIMESTAMP}, LogicalType{LogicalTypeID::INTERVAL},
+        LogicalType{LogicalTypeID::TIMESTAMP}, LogicalType{LogicalTypeID::TIMESTAMP_NS},
+        LogicalType{LogicalTypeID::TIMESTAMP_MS}, LogicalType{LogicalTypeID::TIMESTAMP_SEC},
+        LogicalType{LogicalTypeID::TIMESTAMP_TZ}, LogicalType{LogicalTypeID::INTERVAL},
         LogicalType{LogicalTypeID::VAR_LIST}, LogicalType{LogicalTypeID::FIXED_LIST},
         LogicalType{LogicalTypeID::MAP}, LogicalType{LogicalTypeID::FLOAT},
         LogicalType{LogicalTypeID::SERIAL}, LogicalType{LogicalTypeID::NODE},

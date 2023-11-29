@@ -1,4 +1,5 @@
 import datetime
+import pytz
 
 
 def test_bool(establish_connection):
@@ -127,6 +128,41 @@ def test_timestamp(establish_connection):
     assert not result.has_next()
     result.close()
 
+def test_timestamp_tz(establish_connection):
+    conn, db = establish_connection
+    result = conn.execute(
+        "MATCH (a:movies) WHERE a.length = 126 RETURN a.description.release_tz;")
+    assert result.has_next()
+    assert result.get_next() == [datetime.datetime(2011, 8, 20, 11, 25, 30, 123456, pytz.UTC)]
+    assert not result.has_next()
+    result.close()
+
+def test_timestamp_ns(establish_connection):
+    conn, db = establish_connection
+    result = conn.execute(
+        "MATCH (a:movies) WHERE a.length = 126 RETURN a.description.release_ns;")
+    assert result.has_next()
+    assert result.get_next() == [datetime.datetime(2011, 8, 20, 11, 25, 30, 123456)]
+    assert not result.has_next()
+    result.close()
+
+def test_timestamp_ms(establish_connection):
+    conn, db = establish_connection
+    result = conn.execute(
+        "MATCH (a:movies) WHERE a.length = 126 RETURN a.description.release_ms;")
+    assert result.has_next()
+    assert result.get_next() == [datetime.datetime(2011, 8, 20, 11, 25, 30, 123000)]
+    assert not result.has_next()
+    result.close()
+
+def test_timestamp_ns(establish_connection):
+    conn, db = establish_connection
+    result = conn.execute(
+        "MATCH (a:movies) WHERE a.length = 126 RETURN a.description.release_sec;")
+    assert result.has_next()
+    assert result.get_next() == [datetime.datetime(2011, 8, 20, 11, 25, 30)]
+    assert not result.has_next()
+    result.close()
 
 def test_interval(establish_connection):
     conn, db = establish_connection
@@ -226,6 +262,14 @@ def test_struct(establish_connection):
     assert (description['views'] == 10003)
     assert (description['release'] ==
             datetime.datetime(2011, 2, 11, 16, 44, 22))
+    assert (description['release_ns'] ==
+            datetime.datetime(2011, 2, 11, 16, 44, 22, 123456))
+    assert (description['release_ms'] ==
+            datetime.datetime(2011, 2, 11, 16, 44, 22, 123000))
+    assert (description['release_sec'] ==
+            datetime.datetime(2011, 2, 11, 16, 44, 22))
+    assert (description['release_tz'] ==
+            datetime.datetime(2011, 2, 11, 16, 44, 22, 123456, pytz.UTC))
     assert (description['film'] == datetime.date(2013, 2, 22))
     assert (description['stars'] == 100)
     assert (description['u8'] == 1)

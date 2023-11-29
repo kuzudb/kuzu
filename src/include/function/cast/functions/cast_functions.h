@@ -26,10 +26,30 @@ struct CastToString {
 };
 
 struct CastDateToTimestamp {
-    static inline void operation(common::date_t& input, common::timestamp_t& result) {
+    template<typename T>
+    static inline void operation(common::date_t& input, T& result) {
+        // base case: timestamp
         result = common::Timestamp::fromDateTime(input, common::dtime_t{});
     }
 };
+
+template<>
+inline void CastDateToTimestamp::operation(common::date_t& input, common::timestamp_ns_t& result) {
+    operation<common::timestamp_t>(input, result);
+    result = common::timestamp_ns_t{common::Timestamp::getEpochNanoSeconds(result)};
+}
+
+template<>
+inline void CastDateToTimestamp::operation(common::date_t& input, common::timestamp_ms_t& result) {
+    operation<common::timestamp_t>(input, result);
+    result.value /= common::Interval::MICROS_PER_MSEC;
+}
+
+template<>
+inline void CastDateToTimestamp::operation(common::date_t& input, common::timestamp_sec_t& result) {
+    operation<common::timestamp_t>(input, result);
+    result.value /= common::Interval::MICROS_PER_SEC;
+}
 
 struct CastToDouble {
     template<typename T>
@@ -234,6 +254,92 @@ inline void CastToUInt8::operation(common::int128_t& input, uint8_t& result) {
         throw common::OverflowException{common::stringFormat(
             "Value {} is not within UINT8 range", common::TypeUtils::toString(input))};
     };
+}
+
+struct CastBetweenTimestamp {
+    template<typename SRC_TYPE, typename DST_TYPE>
+    static void operation(const SRC_TYPE& input, DST_TYPE& result) {
+        // base case: same type
+        result.value = input.value;
+    }
+};
+
+template<>
+inline void CastBetweenTimestamp::operation(
+    const common::timestamp_t& input, common::timestamp_ns_t& output) {
+    output.value = common::Timestamp::getEpochNanoSeconds(input);
+}
+
+template<>
+inline void CastBetweenTimestamp::operation(
+    const common::timestamp_t& input, common::timestamp_ms_t& output) {
+    output.value = common::Timestamp::getEpochMilliSeconds(input);
+}
+
+template<>
+inline void CastBetweenTimestamp::operation(
+    const common::timestamp_t& input, common::timestamp_sec_t& output) {
+    output.value = common::Timestamp::getEpochSeconds(input);
+}
+
+template<>
+inline void CastBetweenTimestamp::operation(
+    const common::timestamp_ms_t& input, common::timestamp_t& output) {
+    output = common::Timestamp::fromEpochMilliSeconds(input.value);
+}
+
+template<>
+inline void CastBetweenTimestamp::operation(
+    const common::timestamp_ms_t& input, common::timestamp_ns_t& output) {
+    operation<common::timestamp_ms_t, common::timestamp_t>(input, output);
+    operation<common::timestamp_t, common::timestamp_ns_t>(output, output);
+}
+
+template<>
+inline void CastBetweenTimestamp::operation(
+    const common::timestamp_ms_t& input, common::timestamp_sec_t& output) {
+    operation<common::timestamp_ms_t, common::timestamp_t>(input, output);
+    operation<common::timestamp_t, common::timestamp_sec_t>(output, output);
+}
+
+template<>
+inline void CastBetweenTimestamp::operation(
+    const common::timestamp_ns_t& input, common::timestamp_t& output) {
+    output = common::Timestamp::fromEpochNanoSeconds(input.value);
+}
+
+template<>
+inline void CastBetweenTimestamp::operation(
+    const common::timestamp_ns_t& input, common::timestamp_ms_t& output) {
+    operation<common::timestamp_ns_t, common::timestamp_t>(input, output);
+    operation<common::timestamp_t, common::timestamp_ms_t>(output, output);
+}
+
+template<>
+inline void CastBetweenTimestamp::operation(
+    const common::timestamp_ns_t& input, common::timestamp_sec_t& output) {
+    operation<common::timestamp_ns_t, common::timestamp_t>(input, output);
+    operation<common::timestamp_t, common::timestamp_sec_t>(output, output);
+}
+
+template<>
+inline void CastBetweenTimestamp::operation(
+    const common::timestamp_sec_t& input, common::timestamp_t& output) {
+    output = common::Timestamp::fromEpochSeconds(input.value);
+}
+
+template<>
+inline void CastBetweenTimestamp::operation(
+    const common::timestamp_sec_t& input, common::timestamp_ns_t& output) {
+    operation<common::timestamp_sec_t, common::timestamp_t>(input, output);
+    operation<common::timestamp_t, common::timestamp_ns_t>(output, output);
+}
+
+template<>
+inline void CastBetweenTimestamp::operation(
+    const common::timestamp_sec_t& input, common::timestamp_ms_t& output) {
+    operation<common::timestamp_sec_t, common::timestamp_t>(input, output);
+    operation<common::timestamp_t, common::timestamp_ms_t>(output, output);
 }
 
 } // namespace function

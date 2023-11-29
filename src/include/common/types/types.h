@@ -94,10 +94,14 @@ enum class KUZU_API LogicalTypeID : uint8_t {
     FLOAT = 33,
     DATE = 34,
     TIMESTAMP = 35,
-    INTERVAL = 36,
-    FIXED_LIST = 37,
+    TIMESTAMP_SEC = 36,
+    TIMESTAMP_MS = 37,
+    TIMESTAMP_NS = 38,
+    TIMESTAMP_TZ = 39,
+    INTERVAL = 40,
+    FIXED_LIST = 41,
 
-    INTERNAL_ID = 40,
+    INTERNAL_ID = 42,
 
     STRING = 50,
     BLOB = 51,
@@ -320,6 +324,18 @@ public:
     }
     static std::unique_ptr<LogicalType> DATE() {
         return std::make_unique<LogicalType>(LogicalTypeID::DATE);
+    }
+    static std::unique_ptr<LogicalType> TIMESTAMP_NS() {
+        return std::make_unique<LogicalType>(LogicalTypeID::TIMESTAMP_NS);
+    }
+    static std::unique_ptr<LogicalType> TIMESTAMP_MS() {
+        return std::make_unique<LogicalType>(LogicalTypeID::TIMESTAMP_MS);
+    }
+    static std::unique_ptr<LogicalType> TIMESTAMP_SEC() {
+        return std::make_unique<LogicalType>(LogicalTypeID::TIMESTAMP_SEC);
+    }
+    static std::unique_ptr<LogicalType> TIMESTAMP_TZ() {
+        return std::make_unique<LogicalType>(LogicalTypeID::TIMESTAMP_TZ);
     }
     static std::unique_ptr<LogicalType> TIMESTAMP() {
         return std::make_unique<LogicalType>(LogicalTypeID::TIMESTAMP);

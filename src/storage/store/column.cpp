@@ -889,6 +889,10 @@ std::unique_ptr<Column> ColumnFactory::createColumn(std::unique_ptr<LogicalType>
     case LogicalTypeID::FLOAT:
     case LogicalTypeID::DATE:
     case LogicalTypeID::TIMESTAMP:
+    case LogicalTypeID::TIMESTAMP_MS:
+    case LogicalTypeID::TIMESTAMP_NS:
+    case LogicalTypeID::TIMESTAMP_SEC:
+    case LogicalTypeID::TIMESTAMP_TZ:
     case LogicalTypeID::INTERVAL:
     case LogicalTypeID::FIXED_LIST: {
         return std::make_unique<Column>(std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH,

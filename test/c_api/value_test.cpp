@@ -223,6 +223,39 @@ TEST(CApiValueTestEmptyDB, CreateTimeStamp) {
     kuzu_value_destroy(value);
 }
 
+TEST(CApiValueTestEmptyDB, CreateTimeStampNonStandard) {
+    kuzu_value* value_ns = kuzu_value_create_timestamp_ns(kuzu_timestamp_ns_t{12345});
+    kuzu_value* value_ms = kuzu_value_create_timestamp_ms(kuzu_timestamp_ms_t{123456});
+    kuzu_value* value_sec = kuzu_value_create_timestamp_sec(kuzu_timestamp_sec_t{1234567});
+    kuzu_value* value_tz = kuzu_value_create_timestamp_tz(kuzu_timestamp_tz_t{12345678});
+
+    ASSERT_FALSE(value_ns->_is_owned_by_cpp);
+    ASSERT_FALSE(value_ms->_is_owned_by_cpp);
+    ASSERT_FALSE(value_sec->_is_owned_by_cpp);
+    ASSERT_FALSE(value_tz->_is_owned_by_cpp);
+    auto cppValue_ns = static_cast<Value*>(value_ns->_value);
+    auto cppValue_ms = static_cast<Value*>(value_ms->_value);
+    auto cppValue_sec = static_cast<Value*>(value_sec->_value);
+    auto cppValue_tz = static_cast<Value*>(value_tz->_value);
+    ASSERT_EQ(cppValue_ns->getDataType()->getLogicalTypeID(), LogicalTypeID::TIMESTAMP_NS);
+    ASSERT_EQ(cppValue_ms->getDataType()->getLogicalTypeID(), LogicalTypeID::TIMESTAMP_MS);
+    ASSERT_EQ(cppValue_sec->getDataType()->getLogicalTypeID(), LogicalTypeID::TIMESTAMP_SEC);
+    ASSERT_EQ(cppValue_tz->getDataType()->getLogicalTypeID(), LogicalTypeID::TIMESTAMP_TZ);
+
+    auto cppTimeStamp_ns = cppValue_ns->getValue<timestamp_ns_t>();
+    auto cppTimeStamp_ms = cppValue_ms->getValue<timestamp_ms_t>();
+    auto cppTimeStamp_sec = cppValue_sec->getValue<timestamp_sec_t>();
+    auto cppTimeStamp_tz = cppValue_tz->getValue<timestamp_tz_t>();
+    ASSERT_EQ(cppTimeStamp_ns.value, 12345);
+    ASSERT_EQ(cppTimeStamp_ms.value, 123456);
+    ASSERT_EQ(cppTimeStamp_sec.value, 1234567);
+    ASSERT_EQ(cppTimeStamp_tz.value, 12345678);
+    kuzu_value_destroy(value_ns);
+    kuzu_value_destroy(value_ms);
+    kuzu_value_destroy(value_sec);
+    kuzu_value_destroy(value_tz);
+}
+
 TEST(CApiValueTestEmptyDB, CreateInterval) {
     kuzu_value* value = kuzu_value_create_interval(kuzu_interval_t{12, 3, 300});
     ASSERT_FALSE(value->_is_owned_by_cpp);
@@ -329,7 +362,7 @@ TEST_F(CApiValueTest, GetStructNumFields) {
     ASSERT_TRUE(kuzu_query_result_has_next(result));
     auto flatTuple = kuzu_query_result_get_next(result);
     auto value = kuzu_flat_tuple_get_value(flatTuple, 0);
-    ASSERT_EQ(kuzu_value_get_struct_num_fields(value), 10);
+    ASSERT_EQ(kuzu_value_get_struct_num_fields(value), 14);
 
     kuzu_value_destroy(value);
     kuzu_flat_tuple_destroy(flatTuple);
@@ -361,6 +394,22 @@ TEST_F(CApiValueTest, GetStructFieldName) {
     free(fieldName);
 
     fieldName = kuzu_value_get_struct_field_name(value, 4);
+    ASSERT_STREQ(fieldName, "release_ns");
+    free(fieldName);
+
+    fieldName = kuzu_value_get_struct_field_name(value, 5);
+    ASSERT_STREQ(fieldName, "release_ms");
+    free(fieldName);
+
+    fieldName = kuzu_value_get_struct_field_name(value, 6);
+    ASSERT_STREQ(fieldName, "release_sec");
+    free(fieldName);
+
+    fieldName = kuzu_value_get_struct_field_name(value, 7);
+    ASSERT_STREQ(fieldName, "release_tz");
+    free(fieldName);
+
+    fieldName = kuzu_value_get_struct_field_name(value, 8);
     ASSERT_STREQ(fieldName, "film");
     free(fieldName);
 
@@ -406,6 +455,38 @@ TEST_F(CApiValueTest, GetStructFieldValue) {
     kuzu_value_destroy(fieldValue);
 
     fieldValue = kuzu_value_get_struct_field_value(value, 4);
+    fieldType = kuzu_value_get_data_type(fieldValue);
+    ASSERT_EQ(kuzu_data_type_get_id(fieldType), KUZU_TIMESTAMP_NS);
+    auto timestamp_ns = kuzu_value_get_timestamp_ns(fieldValue);
+    ASSERT_EQ(timestamp_ns.value, 1297442662123456000);
+    kuzu_data_type_destroy(fieldType);
+    kuzu_value_destroy(fieldValue);
+
+    fieldValue = kuzu_value_get_struct_field_value(value, 5);
+    fieldType = kuzu_value_get_data_type(fieldValue);
+    ASSERT_EQ(kuzu_data_type_get_id(fieldType), KUZU_TIMESTAMP_MS);
+    auto timestamp_ms = kuzu_value_get_timestamp_ms(fieldValue);
+    ASSERT_EQ(timestamp_ms.value, 1297442662123);
+    kuzu_data_type_destroy(fieldType);
+    kuzu_value_destroy(fieldValue);
+
+    fieldValue = kuzu_value_get_struct_field_value(value, 6);
+    fieldType = kuzu_value_get_data_type(fieldValue);
+    ASSERT_EQ(kuzu_data_type_get_id(fieldType), KUZU_TIMESTAMP_SEC);
+    auto timestamp_sec = kuzu_value_get_timestamp_sec(fieldValue);
+    ASSERT_EQ(timestamp_sec.value, 1297442662);
+    kuzu_data_type_destroy(fieldType);
+    kuzu_value_destroy(fieldValue);
+
+    fieldValue = kuzu_value_get_struct_field_value(value, 7);
+    fieldType = kuzu_value_get_data_type(fieldValue);
+    ASSERT_EQ(kuzu_data_type_get_id(fieldType), KUZU_TIMESTAMP_TZ);
+    auto timestamp_tz = kuzu_value_get_timestamp_tz(fieldValue);
+    ASSERT_EQ(timestamp_tz.value, 1297442662123456);
+    kuzu_data_type_destroy(fieldType);
+    kuzu_value_destroy(fieldValue);
+
+    fieldValue = kuzu_value_get_struct_field_value(value, 8);
     fieldType = kuzu_value_get_data_type(fieldValue);
     ASSERT_EQ(kuzu_data_type_get_id(fieldType), KUZU_DATE);
     auto date = kuzu_value_get_date(fieldValue);

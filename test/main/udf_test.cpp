@@ -111,6 +111,57 @@ TEST_F(ApiTest, BinaryAddMicroSeconds) {
     sortAndCheckTestResults(actualResult, expectedResult);
 }
 
+TEST_F(ApiTest, BinaryAddMicroSecondsTZ) {
+    conn->createScalarFunction("addMicro",
+        std::vector<LogicalTypeID>{LogicalTypeID::TIMESTAMP_TZ, LogicalTypeID::INT32},
+        LogicalTypeID::TIMESTAMP_TZ, &addMicroSeconds);
+    auto actualResult = TestHelper::convertResultToString(
+        *conn->query("MATCH (p:person) return addMicro(cast(p.registerTime, \"TIMESTAMP_TZ\"), "
+                     "to_int32(p.ID))"));
+    auto expectedResult =
+        std::vector<std::string>{"2011-08-20 11:25:30+00", "2008-11-03 15:25:30.000528+00",
+            "1911-08-20 02:32:21.000003+00", "2031-11-30 12:25:30.000005+00",
+            "1976-12-23 11:21:42.000007+00", "1972-07-31 13:22:30.678567+00",
+            "1976-12-23 04:41:42.000009+00", "2023-02-21 13:25:30.00001+00"};
+    sortAndCheckTestResults(actualResult, expectedResult);
+}
+
+TEST_F(ApiTest, BinaryAddNanoSeconds) {
+    conn->createScalarFunction("addNano",
+        std::vector<LogicalTypeID>{LogicalTypeID::TIMESTAMP_NS, LogicalTypeID::INT32},
+        LogicalTypeID::TIMESTAMP_NS, &addMicroSeconds);
+    auto actualResult = TestHelper::convertResultToString(
+        *conn->query("MATCH (m:movies) return addNano(m.description.release_ns, "
+                     "to_int32(m.description.stars))"));
+    auto expectedResult = std::vector<std::string>{
+        "2011-08-20 11:25:30.123456", "2018-11-13 13:33:11.123456", "2011-02-11 16:44:22.123456"};
+    sortAndCheckTestResults(actualResult, expectedResult);
+}
+
+TEST_F(ApiTest, BinaryAddMilliSeconds) {
+    conn->createScalarFunction("addMilli",
+        std::vector<LogicalTypeID>{LogicalTypeID::TIMESTAMP_MS, LogicalTypeID::INT32},
+        LogicalTypeID::TIMESTAMP_MS, &addMicroSeconds);
+    auto actualResult = TestHelper::convertResultToString(
+        *conn->query("MATCH (m:movies) return addMilli(m.description.release_ms, "
+                     "to_int32(m.description.stars))"));
+    auto expectedResult = std::vector<std::string>{
+        "2011-08-20 11:25:30.125", "2018-11-13 13:33:11.133", "2011-02-11 16:44:22.223"};
+    sortAndCheckTestResults(actualResult, expectedResult);
+}
+
+TEST_F(ApiTest, BinaryAddSeconds) {
+    conn->createScalarFunction("addSec",
+        std::vector<LogicalTypeID>{LogicalTypeID::TIMESTAMP_SEC, LogicalTypeID::INT32},
+        LogicalTypeID::TIMESTAMP_SEC, &addMicroSeconds);
+    auto actualResult = TestHelper::convertResultToString(
+        *conn->query("MATCH (m:movies) return addSec(m.description.release_sec, "
+                     "to_int32(m.description.stars))"));
+    auto expectedResult = std::vector<std::string>{
+        "2011-08-20 11:25:32", "2018-11-13 13:33:21", "2011-02-11 16:46:02"};
+    sortAndCheckTestResults(actualResult, expectedResult);
+}
+
 static int64_t ternaryAdd(int16_t a, int32_t b, int64_t c) {
     return a + b + c;
 }

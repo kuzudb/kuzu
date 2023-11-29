@@ -170,7 +170,33 @@ bool CastFunction::hasImplicitCast(const LogicalType& srcType, const LogicalType
         switch (dstType.getLogicalTypeID()) {
         case LogicalTypeID::DATE:
         case LogicalTypeID::TIMESTAMP:
+        case LogicalTypeID::TIMESTAMP_MS:
+        case LogicalTypeID::TIMESTAMP_NS:
+        case LogicalTypeID::TIMESTAMP_SEC:
+        case LogicalTypeID::TIMESTAMP_TZ:
         case LogicalTypeID::INTERVAL:
+            return true;
+        default:
+            return false;
+        }
+    }
+    case LogicalTypeID::TIMESTAMP: {
+        switch (dstType.getLogicalTypeID()) {
+        case LogicalTypeID::TIMESTAMP_MS:
+        case LogicalTypeID::TIMESTAMP_NS:
+        case LogicalTypeID::TIMESTAMP_SEC:
+        case LogicalTypeID::TIMESTAMP_TZ:
+            return true;
+        default:
+            return false;
+        }
+    }
+    case LogicalTypeID::TIMESTAMP_MS:
+    case LogicalTypeID::TIMESTAMP_NS:
+    case LogicalTypeID::TIMESTAMP_SEC:
+    case LogicalTypeID::TIMESTAMP_TZ: {
+        switch (dstType.getLogicalTypeID()) {
+        case LogicalTypeID::TIMESTAMP:
             return true;
         default:
             return false;
@@ -193,6 +219,22 @@ static std::unique_ptr<ScalarFunction> bindCastFromStringFunction(
     case LogicalTypeID::DATE: {
         execFunc =
             ScalarFunction::UnaryCastStringExecFunction<ku_string_t, date_t, CastString, EXECUTOR>;
+    } break;
+    case LogicalTypeID::TIMESTAMP_SEC: {
+        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, timestamp_sec_t,
+            CastString, EXECUTOR>;
+    } break;
+    case LogicalTypeID::TIMESTAMP_MS: {
+        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, timestamp_ms_t,
+            CastString, EXECUTOR>;
+    } break;
+    case LogicalTypeID::TIMESTAMP_NS: {
+        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, timestamp_ns_t,
+            CastString, EXECUTOR>;
+    } break;
+    case LogicalTypeID::TIMESTAMP_TZ: {
+        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, timestamp_tz_t,
+            CastString, EXECUTOR>;
     } break;
     case LogicalTypeID::TIMESTAMP: {
         execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, timestamp_t, CastString,
@@ -295,6 +337,10 @@ static std::unique_ptr<ScalarFunction> bindCastFromRdfVariantFunction(
         execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, date_t,
             CastFromRdfVariant, EXECUTOR>;
     } break;
+    case LogicalTypeID::TIMESTAMP_NS:
+    case LogicalTypeID::TIMESTAMP_MS:
+    case LogicalTypeID::TIMESTAMP_SEC:
+    case LogicalTypeID::TIMESTAMP_TZ:
     case LogicalTypeID::TIMESTAMP: {
         execFunc = ScalarFunction::UnaryTryCastExecFunction<struct_entry_t, timestamp_t,
             CastFromRdfVariant, EXECUTOR>;
@@ -411,6 +457,22 @@ static std::unique_ptr<ScalarFunction> bindCastToStringFunction(
     } break;
     case LogicalTypeID::DATE: {
         func = ScalarFunction::UnaryCastExecFunction<date_t, ku_string_t, CastToString, EXECUTOR>;
+    } break;
+    case LogicalTypeID::TIMESTAMP_NS: {
+        func = ScalarFunction::UnaryCastExecFunction<timestamp_ns_t, ku_string_t, CastToString,
+            EXECUTOR>;
+    } break;
+    case LogicalTypeID::TIMESTAMP_MS: {
+        func = ScalarFunction::UnaryCastExecFunction<timestamp_ms_t, ku_string_t, CastToString,
+            EXECUTOR>;
+    } break;
+    case LogicalTypeID::TIMESTAMP_SEC: {
+        func = ScalarFunction::UnaryCastExecFunction<timestamp_sec_t, ku_string_t, CastToString,
+            EXECUTOR>;
+    } break;
+    case LogicalTypeID::TIMESTAMP_TZ: {
+        func = ScalarFunction::UnaryCastExecFunction<timestamp_tz_t, ku_string_t, CastToString,
+            EXECUTOR>;
     } break;
     case LogicalTypeID::TIMESTAMP: {
         func =
@@ -539,18 +601,34 @@ static std::unique_ptr<ScalarFunction> bindCastBetweenNested(
     }
 }
 
-template<typename EXECUTOR = UnaryFunctionExecutor>
+template<typename EXECUTOR = UnaryFunctionExecutor, typename DST_TYPE>
 static std::unique_ptr<ScalarFunction> bindCastToTimestampFunction(
-    const std::string& functionName, LogicalTypeID sourceTypeID) {
+    const std::string& functionName, LogicalTypeID sourceTypeID, LogicalTypeID dstTypeID) {
     scalar_exec_func func;
     switch (sourceTypeID) {
     case LogicalTypeID::DATE: {
-        func =
-            ScalarFunction::UnaryExecFunction<date_t, timestamp_t, CastDateToTimestamp, EXECUTOR>;
+        func = ScalarFunction::UnaryExecFunction<date_t, DST_TYPE, CastDateToTimestamp, EXECUTOR>;
+    } break;
+    case LogicalTypeID::TIMESTAMP_MS: {
+        func = ScalarFunction::UnaryExecFunction<timestamp_ms_t, DST_TYPE, CastBetweenTimestamp,
+            EXECUTOR>;
+    } break;
+    case LogicalTypeID::TIMESTAMP_NS: {
+        func = ScalarFunction::UnaryExecFunction<timestamp_ns_t, DST_TYPE, CastBetweenTimestamp,
+            EXECUTOR>;
+    } break;
+    case LogicalTypeID::TIMESTAMP_SEC: {
+        func = ScalarFunction::UnaryExecFunction<timestamp_sec_t, DST_TYPE, CastBetweenTimestamp,
+            EXECUTOR>;
+    } break;
+    case LogicalTypeID::TIMESTAMP_TZ:
+    case LogicalTypeID::TIMESTAMP: {
+        func = ScalarFunction::UnaryExecFunction<timestamp_t, DST_TYPE, CastBetweenTimestamp,
+            EXECUTOR>;
     } break;
     default:
-        throw ConversionException{stringFormat("Unsupported casting function from {} to TIMESTAMP.",
-            LogicalTypeUtils::toString(sourceTypeID))};
+        throw ConversionException{stringFormat("Unsupported casting function from {} to {}.",
+            LogicalTypeUtils::toString(sourceTypeID), LogicalTypeUtils::toString(dstTypeID))};
     }
     return std::make_unique<ScalarFunction>(
         functionName, std::vector<LogicalTypeID>{sourceTypeID}, LogicalTypeID::TIMESTAMP, func);
@@ -617,8 +695,22 @@ std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(
         return bindCastToNumericFunction<uint8_t, CastToUInt8, EXECUTOR>(
             functionName, sourceTypeID, targetTypeID);
     }
+    case LogicalTypeID::TIMESTAMP_NS: {
+        return bindCastToTimestampFunction<EXECUTOR, timestamp_ns_t>(
+            functionName, sourceTypeID, targetTypeID);
+    }
+    case LogicalTypeID::TIMESTAMP_MS: {
+        return bindCastToTimestampFunction<EXECUTOR, timestamp_ms_t>(
+            functionName, sourceTypeID, targetTypeID);
+    }
+    case LogicalTypeID::TIMESTAMP_SEC: {
+        return bindCastToTimestampFunction<EXECUTOR, timestamp_sec_t>(
+            functionName, sourceTypeID, targetTypeID);
+    }
+    case LogicalTypeID::TIMESTAMP_TZ:
     case LogicalTypeID::TIMESTAMP: {
-        return bindCastToTimestampFunction<EXECUTOR>(functionName, sourceTypeID);
+        return bindCastToTimestampFunction<EXECUTOR, timestamp_t>(
+            functionName, sourceTypeID, targetTypeID);
     }
     case LogicalTypeID::VAR_LIST:
     case LogicalTypeID::FIXED_LIST:

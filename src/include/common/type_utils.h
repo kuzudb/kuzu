@@ -53,6 +53,14 @@ std::string TypeUtils::toString(const internalID_t& val, void* valueVector);
 template<>
 std::string TypeUtils::toString(const date_t& val, void* valueVector);
 template<>
+std::string TypeUtils::toString(const timestamp_ns_t& val, void* valueVector);
+template<>
+std::string TypeUtils::toString(const timestamp_ms_t& val, void* valueVector);
+template<>
+std::string TypeUtils::toString(const timestamp_sec_t& val, void* valueVector);
+template<>
+std::string TypeUtils::toString(const timestamp_tz_t& val, void* valueVector);
+template<>
 std::string TypeUtils::toString(const timestamp_t& val, void* valueVector);
 template<>
 std::string TypeUtils::toString(const interval_t& val, void* valueVector);

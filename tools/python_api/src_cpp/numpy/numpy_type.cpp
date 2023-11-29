@@ -6,6 +6,18 @@ namespace kuzu {
 
 using namespace kuzu::common;
 
+static bool isDateTime(NumpyNullableType type) {
+    switch(type) {
+    case NumpyNullableType::DATETIME_US:
+    case NumpyNullableType::DATETIME_S:
+    case NumpyNullableType::DATETIME_NS:
+    case NumpyNullableType::DATETIME_MS:
+        return true;
+    default:
+        return false;
+    }
+}
+
 static NumpyNullableType convertNumpyTypeInternal(const std::string& colTypeStr) {
     if (colTypeStr == "bool" || colTypeStr == "boolean") {
         return NumpyNullableType::BOOL;
@@ -53,6 +65,12 @@ static NumpyNullableType convertNumpyTypeInternal(const std::string& colTypeStr)
     if (colTypeStr.starts_with("datetime64[ns")) {
         return NumpyNullableType::DATETIME_NS;
     }
+    if (colTypeStr.starts_with("datetime64[ms")) {
+        return NumpyNullableType::DATETIME_MS;
+    }
+    if (colTypeStr.starts_with("datetime64[s")) {
+        return NumpyNullableType::DATETIME_S;
+    }
     // LCOV_EXCL_START
     // Legacy datetime type indicators
     if (colTypeStr.starts_with("<M8[us")) {
@@ -69,6 +87,12 @@ NumpyType NumpyTypeUtils::convertNumpyType(const py::handle& colType) {
     auto colTypeStr = std::string(py::str(colType));
     NumpyType resultNPType;
     resultNPType.type = convertNumpyTypeInternal(colTypeStr);
+    if (isDateTime(resultNPType.type)) {
+        if (hasattr(colType, "tz")) {
+            resultNPType.hasTimezone = true;
+        }
+    }
+
     return resultNPType;
 }
 
@@ -101,8 +125,17 @@ std::unique_ptr<LogicalType> NumpyTypeUtils::numpyToLogicalType(const NumpyType&
     case NumpyNullableType::TIMEDELTA:
         return std::make_unique<LogicalType>(LogicalTypeID::INTERVAL);
     case NumpyNullableType::DATETIME_US:
-    case NumpyNullableType::DATETIME_NS:
+        // because we currently don't support object, only US with timezone is allowed
+        if (col_type.hasTimezone) {
+            return std::make_unique<LogicalType>(LogicalTypeID::TIMESTAMP_TZ);
+        }
         return std::make_unique<LogicalType>(LogicalTypeID::TIMESTAMP);
+    case NumpyNullableType::DATETIME_NS:
+        return std::make_unique<LogicalType>(LogicalTypeID::TIMESTAMP_NS);
+    case NumpyNullableType::DATETIME_MS:
+        return std::make_unique<LogicalType>(LogicalTypeID::TIMESTAMP_MS);
+    case NumpyNullableType::DATETIME_S:
+        return std::make_unique<LogicalType>(LogicalTypeID::TIMESTAMP_SEC);
     default:
         KU_UNREACHABLE;
     }

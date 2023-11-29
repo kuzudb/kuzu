@@ -72,9 +72,28 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
                             Interval::MICROS_PER_MSEC;
         return Napi::Date::New(env, milliseconds);
     }
+    case LogicalTypeID::TIMESTAMP_TZ: {
+            auto timestampVal = value.getValue<timestamp_tz_t>();
+            auto milliseconds = timestampVal.value / Interval::MICROS_PER_MSEC;
+            return Napi::Date::New(env, milliseconds);
+    }
     case LogicalTypeID::TIMESTAMP: {
         auto timestampVal = value.getValue<timestamp_t>();
         auto milliseconds = timestampVal.value / Interval::MICROS_PER_MSEC;
+        return Napi::Date::New(env, milliseconds);
+    }
+    case LogicalTypeID::TIMESTAMP_NS: {
+        auto timestampVal = value.getValue<timestamp_ns_t>();
+        auto milliseconds = timestampVal.value / Interval::NANOS_PER_MICRO / Interval::MICROS_PER_MSEC;
+        return Napi::Date::New(env, milliseconds);
+    }
+    case LogicalTypeID::TIMESTAMP_MS: {
+        auto timestampVal = value.getValue<timestamp_ms_t>();
+        return Napi::Date::New(env, timestampVal.value);
+    }
+    case LogicalTypeID::TIMESTAMP_SEC: {
+        auto timestampVal = value.getValue<timestamp_sec_t>();
+        auto milliseconds = Timestamp::getEpochMilliSeconds(Timestamp::fromEpochSeconds(timestampVal.value));
         return Napi::Date::New(env, milliseconds);
     }
     case LogicalTypeID::INTERVAL: {
@@ -264,6 +283,43 @@ Value Util::TransformNapiValue(
         }
         auto napiDate = napiValue.As<Napi::Date>();
         timestamp_t timestamp = Timestamp::fromEpochMilliSeconds(napiDate.ValueOf());
+        return Value(timestamp);
+    }
+    case LogicalTypeID::TIMESTAMP_TZ: {
+        if (!napiValue.IsDate()) {
+            throw Exception("Expected a date for parameter " + key + ".");
+        }
+        auto napiDate = napiValue.As<Napi::Date>();
+        timestamp_tz_t timestamp;
+        timestamp.value = Timestamp::fromEpochMilliSeconds(napiDate.ValueOf()).value;
+        return Value(timestamp);
+    }
+    case LogicalTypeID::TIMESTAMP_NS: {
+        if (!napiValue.IsDate()) {
+            throw Exception("Expected a date for parameter " + key + ".");
+        }
+        auto napiDate = napiValue.As<Napi::Date>();
+        timestamp_ns_t timestamp;
+        timestamp.value =
+            Timestamp::getEpochNanoSeconds(Timestamp::fromEpochMilliSeconds(napiDate.ValueOf()));
+        return Value(timestamp);
+    }
+    case LogicalTypeID::TIMESTAMP_MS: {
+        if (!napiValue.IsDate()) {
+            throw Exception("Expected a date for parameter " + key + ".");
+        }
+        auto napiDate = napiValue.As<Napi::Date>();
+        timestamp_ms_t timestamp{static_cast<int64_t>(napiDate.ValueOf())};
+        return Value(timestamp);
+    }
+    case LogicalTypeID::TIMESTAMP_SEC: {
+        if (!napiValue.IsDate()) {
+            throw Exception("Expected a date for parameter " + key + ".");
+        }
+        auto napiDate = napiValue.As<Napi::Date>();
+        timestamp_sec_t timestamp;
+        timestamp.value =
+            Timestamp::getEpochSeconds(Timestamp::fromEpochMilliSeconds(napiDate.ValueOf()));
         return Value(timestamp);
     }
     case LogicalTypeID::INTERVAL: {

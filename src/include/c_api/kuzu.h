@@ -190,6 +190,42 @@ typedef struct {
 } kuzu_date_t;
 
 /**
+ * @brief kuzu internal timestamp_ns type which stores the number of nanoseconds since 1970-01-01
+ * 00:00:00 UTC.
+ */
+typedef struct {
+    // Nanoseconds since 1970-01-01 00:00:00 UTC.
+    int64_t value;
+} kuzu_timestamp_ns_t;
+
+/**
+ * @brief kuzu internal timestamp_ms type which stores the number of milliseconds since 1970-01-01
+ * 00:00:00 UTC.
+ */
+typedef struct {
+    // Milliseconds since 1970-01-01 00:00:00 UTC.
+    int64_t value;
+} kuzu_timestamp_ms_t;
+
+/**
+ * @brief kuzu internal timestamp_sec_t type which stores the number of seconds since 1970-01-01
+ * 00:00:00 UTC.
+ */
+typedef struct {
+    // Seconds since 1970-01-01 00:00:00 UTC.
+    int64_t value;
+} kuzu_timestamp_sec_t;
+
+/**
+ * @brief kuzu internal timestamp_tz type which stores the number of microseconds since 1970-01-01
+ * with timezone 00:00:00 UTC.
+ */
+typedef struct {
+    // Microseconds since 1970-01-01 00:00:00 UTC.
+    int64_t value;
+} kuzu_timestamp_tz_t;
+
+/**
  * @brief kuzu internal timestamp type which stores the number of microseconds since 1970-01-01
  * 00:00:00 UTC.
  */
@@ -246,9 +282,13 @@ typedef enum {
     KUZU_FLOAT = 33,
     KUZU_DATE = 34,
     KUZU_TIMESTAMP = 35,
-    KUZU_INTERVAL = 36,
-    KUZU_FIXED_LIST = 37,
-    KUZU_INTERNAL_ID = 40,
+    KUZU_TIMESTAMP_SEC = 36,
+    KUZU_TIMESTAMP_MS = 37,
+    KUZU_TIMESTAMP_NS = 38,
+    KUZU_TIMESTAMP_TZ = 39,
+    KUZU_INTERVAL = 40,
+    KUZU_FIXED_LIST = 41,
+    KUZU_INTERNAL_ID = 42,
     // variable size types
     KUZU_STRING = 50,
     KUZU_BLOB = 51,
@@ -462,6 +502,39 @@ KUZU_C_API void kuzu_prepared_statement_bind_float(
  */
 KUZU_C_API void kuzu_prepared_statement_bind_date(
     kuzu_prepared_statement* prepared_statement, const char* param_name, kuzu_date_t value);
+/**
+ * @brief Binds the given timestamp_ns value to the given parameter name in the prepared statement.
+ * @param prepared_statement The prepared statement instance to bind the value.
+ * @param param_name The parameter name to bind the value.
+ * @param value The timestamp_ns value to bind.
+ */
+KUZU_C_API void kuzu_prepared_statement_bind_timestamp_ns(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, kuzu_timestamp_ns_t value);
+/**
+ * @brief Binds the given timestamp_sec value to the given parameter name in the prepared statement.
+ * @param prepared_statement The prepared statement instance to bind the value.
+ * @param param_name The parameter name to bind the value.
+ * @param value The timestamp_sec value to bind.
+ */
+KUZU_C_API void kuzu_prepared_statement_bind_timestamp_sec(
+    kuzu_prepared_statement* prepared_statement, const char* param_name,
+    kuzu_timestamp_sec_t value);
+/**
+ * @brief Binds the given timestamp_tz value to the given parameter name in the prepared statement.
+ * @param prepared_statement The prepared statement instance to bind the value.
+ * @param param_name The parameter name to bind the value.
+ * @param value The timestamp_tz value to bind.
+ */
+KUZU_C_API void kuzu_prepared_statement_bind_timestamp_tz(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, kuzu_timestamp_tz_t value);
+/**
+ * @brief Binds the given timestamp_ms value to the given parameter name in the prepared statement.
+ * @param prepared_statement The prepared statement instance to bind the value.
+ * @param param_name The parameter name to bind the value.
+ * @param value The timestamp_ms value to bind.
+ */
+KUZU_C_API void kuzu_prepared_statement_bind_timestamp_ms(
+    kuzu_prepared_statement* prepared_statement, const char* param_name, kuzu_timestamp_ms_t value);
 /**
  * @brief Binds the given timestamp value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
@@ -761,6 +834,30 @@ KUZU_C_API kuzu_value* kuzu_value_create_internal_id(kuzu_internal_id_t val_);
  */
 KUZU_C_API kuzu_value* kuzu_value_create_date(kuzu_date_t val_);
 /**
+ * @brief Creates a value with timestamp_ns type and the given timestamp value. Caller is
+ * responsible for destroying the returned value.
+ * @param val_ The timestamp_ns value of the value to create.
+ */
+KUZU_C_API kuzu_value* kuzu_value_create_timestamp_ns(kuzu_timestamp_ns_t val_);
+/**
+ * @brief Creates a value with timestamp_ms type and the given timestamp value. Caller is
+ * responsible for destroying the returned value.
+ * @param val_ The timestamp_ms value of the value to create.
+ */
+KUZU_C_API kuzu_value* kuzu_value_create_timestamp_ms(kuzu_timestamp_ms_t val_);
+/**
+ * @brief Creates a value with timestamp_sec type and the given timestamp value. Caller is
+ * responsible for destroying the returned value.
+ * @param val_ The timestamp_sec value of the value to create.
+ */
+KUZU_C_API kuzu_value* kuzu_value_create_timestamp_sec(kuzu_timestamp_sec_t val_);
+/**
+ * @brief Creates a value with timestamp_tz type and the given timestamp value. Caller is
+ * responsible for destroying the returned value.
+ * @param val_ The timestamp_tz value of the value to create.
+ */
+KUZU_C_API kuzu_value* kuzu_value_create_timestamp_tz(kuzu_timestamp_tz_t val_);
+/**
  * @brief Creates a value with timestamp type and the given timestamp value. Caller is responsible
  * for destroying the returned value.
  * @param val_ The timestamp value of the value to create.
@@ -926,6 +1023,27 @@ KUZU_C_API kuzu_date_t kuzu_value_get_date(kuzu_value* value);
  * @param value The value to return.
  */
 KUZU_C_API kuzu_timestamp_t kuzu_value_get_timestamp(kuzu_value* value);
+/**
+ * @brief Returns the timestamp_ns value of the given value. The value must be of type TIMESTAMP_NS.
+ * @param value The value to return.
+ */
+KUZU_C_API kuzu_timestamp_ns_t kuzu_value_get_timestamp_ns(kuzu_value* value);
+/**
+ * @brief Returns the timestamp_ms value of the given value. The value must be of type TIMESTAMP_MS.
+ * @param value The value to return.
+ */
+KUZU_C_API kuzu_timestamp_ms_t kuzu_value_get_timestamp_ms(kuzu_value* value);
+/**
+ * @brief Returns the timestamp_sec value of the given value. The value must be of type
+ * TIMESTAMP_SEC.
+ * @param value The value to return.
+ */
+KUZU_C_API kuzu_timestamp_sec_t kuzu_value_get_timestamp_sec(kuzu_value* value);
+/**
+ * @brief Returns the timestamp_tz value of the given value. The value must be of type TIMESTAMP_TZ.
+ * @param value The value to return.
+ */
+KUZU_C_API kuzu_timestamp_tz_t kuzu_value_get_timestamp_tz(kuzu_value* value);
 /**
  * @brief Returns the interval value of the given value. The value must be of type INTERVAL.
  * @param value The value to return.

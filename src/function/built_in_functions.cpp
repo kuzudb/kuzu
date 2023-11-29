@@ -153,6 +153,14 @@ uint32_t BuiltInFunctions::getCastCost(LogicalTypeID inputTypeID, LogicalTypeID 
             return castDate(targetTypeID);
         case LogicalTypeID::SERIAL:
             return castSerial(targetTypeID);
+        case LogicalTypeID::TIMESTAMP_SEC:
+        case LogicalTypeID::TIMESTAMP_MS:
+        case LogicalTypeID::TIMESTAMP_NS:
+        case LogicalTypeID::TIMESTAMP_TZ:
+            if (targetTypeID == LogicalTypeID::TIMESTAMP) {
+                return 101;
+            }
+        // currently don't allow timestamp to other timestamp types
         default:
             return UNDEFINED_CAST_COST;
         }
