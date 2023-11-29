@@ -43,14 +43,15 @@ public:
         return val;
     }
 
-    void copyTo(char* dest, uint64_t len) {
+    void copyTo(char* dest, uint64_t len) const {
         available(len);
         std::memcpy(dest, ptr, len);
     }
 
+    // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
     void zero() { std::memset(ptr, 0, len); }
 
-    void available(uint64_t req_len) {
+    void available(uint64_t req_len) const {
         if (req_len > len) {
             throw std::runtime_error("Out of buffer");
         }

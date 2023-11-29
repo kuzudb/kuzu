@@ -24,6 +24,7 @@ CopyRelSharedState::CopyRelSharedState(table_id_t tableID, RelTable* table,
     fTable = std::make_shared<FactorizedTable>(memoryManager, std::move(ftTableSchema));
 }
 
+// NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
 void CopyRelSharedState::logCopyRelWALRecord(WAL* wal) {
     wal->logCopyTableRecord(tableID, TableType::REL);
     wal->flushAllPages();

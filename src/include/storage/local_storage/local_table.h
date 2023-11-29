@@ -31,7 +31,7 @@ public:
     void append(common::ValueVector* valueVector);
 
     inline common::ValueVector* getVector() { return vector.get(); }
-    inline bool isFull() { return numValues == common::DEFAULT_VECTOR_CAPACITY; }
+    inline bool isFull() const { return numValues == common::DEFAULT_VECTOR_CAPACITY; }
 
 private:
     std::unique_ptr<common::ValueVector> vector;
@@ -49,7 +49,7 @@ public:
 
     void read(common::row_idx_t rowIdx, common::ValueVector* outputVector,
         common::sel_t posInOutputVector);
-    inline uint64_t getNumRows() { return numRows; }
+    inline uint64_t getNumRows() const { return numRows; }
     inline LocalVector* getLocalVector(common::row_idx_t rowIdx) {
         auto vectorIdx = rowIdx >> common::DEFAULT_VECTOR_CAPACITY_LOG_2;
         KU_ASSERT(vectorIdx < vectors.size());

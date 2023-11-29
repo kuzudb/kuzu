@@ -26,7 +26,7 @@ public:
         selVector->selectedSize = size;
     }
     inline void setOriginalSize(uint64_t size) { originalSize = size; }
-    inline uint64_t getOriginalSize() { return originalSize; }
+    inline uint64_t getOriginalSize() const { return originalSize; }
     inline bool isFlat() const { return fStateType == FStateType::FLAT; }
     inline void setToFlat() { fStateType = FStateType::FLAT; }
     inline void setToUnflat() { fStateType = FStateType::UNFLAT; }

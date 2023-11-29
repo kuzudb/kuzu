@@ -243,7 +243,7 @@ void WALRecord::constructWALRecordFromBytes(WALRecord& retVal, uint8_t* bytes, u
     offset += sizeof(WALRecord);
 }
 
-void WALRecord::writeWALRecordToBytes(uint8_t* bytes, uint64_t& offset) {
+void WALRecord::writeWALRecordToBytes(uint8_t* bytes, uint64_t& offset) const {
     ((WALRecord*)(bytes + offset))[0] = *this;
     offset += sizeof(WALRecord);
 }

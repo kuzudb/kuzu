@@ -15,7 +15,7 @@ namespace kuzu {
 namespace processor {
 
 std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(
-    planner::LogicalSetPropertyInfo* info, const planner::Schema& inSchema) {
+    planner::LogicalSetPropertyInfo* info, const planner::Schema& inSchema) const {
     auto node = (NodeExpression*)info->nodeOrRel.get();
     auto nodeIDPos = DataPos(inSchema.getExpressionPos(*node->getInternalID()));
     auto property = (PropertyExpression*)info->setItem.first.get();
@@ -65,7 +65,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSetNodeProperty(LogicalOperator
 }
 
 std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(
-    planner::LogicalSetPropertyInfo* info, const planner::Schema& inSchema) {
+    planner::LogicalSetPropertyInfo* info, const planner::Schema& inSchema) const {
     auto rel = (RelExpression*)info->nodeOrRel.get();
     auto srcNodePos = DataPos(inSchema.getExpressionPos(*rel->getSrcNode()->getInternalID()));
     auto dstNodePos = DataPos(inSchema.getExpressionPos(*rel->getDstNode()->getInternalID()));

@@ -57,7 +57,7 @@ void RleBpEncoder::finishPrepare() {
     finishRun();
 }
 
-uint64_t RleBpEncoder::getByteCount() {
+uint64_t RleBpEncoder::getByteCount() const {
     KU_ASSERT(byteCount != uint64_t(-1));
     return byteCount;
 }

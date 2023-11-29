@@ -180,7 +180,7 @@ public:
 
     void SetLocation(uint64_t location_p) { location = location_p; }
 
-    uint64_t GetLocation() { return location; }
+    uint64_t GetLocation() const { return location; }
     uint64_t GetSize() { return handle->getFileSize(); }
 
 private:

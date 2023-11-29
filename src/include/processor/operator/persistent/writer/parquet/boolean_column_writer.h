@@ -13,7 +13,7 @@ public:
     bool max;
 
 public:
-    bool hasStats() { return !(min && !max); }
+    bool hasStats() const { return !(min && !max); }
 
     std::string getMin() override { return getMinValue(); }
     std::string getMax() override { return getMaxValue(); }

@@ -135,7 +135,7 @@ public:
     }
 
 private:
-    uint64_t findRightKeyBlockIdx(uint8_t* leftEndTuplePtr);
+    uint64_t findRightKeyBlockIdx(uint8_t* leftEndTuplePtr) const;
 
 public:
     static const uint32_t batch_size = 10000;

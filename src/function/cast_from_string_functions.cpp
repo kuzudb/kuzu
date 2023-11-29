@@ -396,6 +396,7 @@ struct SplitStringMapOperation {
     uint64_t& offset;
     ValueVector* resultVector;
 
+    // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const.
     inline bool handleKey(const char* start, const char* end, const CSVOption* option) {
         trimRightWhitespace(start, end);
         CastString::copyStringToVector(StructVector::getFieldVector(resultVector, 0).get(), offset,

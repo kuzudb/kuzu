@@ -27,9 +27,9 @@ public:
     // Retrieves the data after the writing has been completed.
     inline BinaryData getData() { return std::move(blob); }
 
-    inline uint64_t getSize() { return blob.size; }
+    inline uint64_t getSize() const { return blob.size; }
 
-    inline uint8_t* getBlobData() { return blob.data.get(); }
+    inline uint8_t* getBlobData() const { return blob.data.get(); }
 
     inline void reset() { blob.size = 0; }
 

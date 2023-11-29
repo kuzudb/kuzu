@@ -54,32 +54,35 @@ struct AggregateFunction final : public BaseScalarFunction {
               std::move(combineFunc), std::move(finalizeFunc), isDistinct, nullptr /* bindFunc */,
               std::move(paramRewriteFunc)} {}
 
-    inline uint32_t getAggregateStateSize() { return initialNullAggregateState->getStateSize(); }
+    inline uint32_t getAggregateStateSize() const {
+        return initialNullAggregateState->getStateSize();
+    }
 
+    // NOLINTNEXTLINE(readability-make-member-function-const): Returns a non-const pointer.
     inline AggregateState* getInitialNullAggregateState() {
         return initialNullAggregateState.get();
     }
 
-    inline std::unique_ptr<AggregateState> createInitialNullAggregateState() {
+    inline std::unique_ptr<AggregateState> createInitialNullAggregateState() const {
         return initializeFunc();
     }
 
     inline void updateAllState(uint8_t* state, common::ValueVector* input, uint64_t multiplicity,
-        storage::MemoryManager* memoryManager) {
+        storage::MemoryManager* memoryManager) const {
         return updateAllFunc(state, input, multiplicity, memoryManager);
     }
 
     inline void updatePosState(uint8_t* state, common::ValueVector* input, uint64_t multiplicity,
-        uint32_t pos, storage::MemoryManager* memoryManager) {
+        uint32_t pos, storage::MemoryManager* memoryManager) const {
         return updatePosFunc(state, input, multiplicity, pos, memoryManager);
     }
 
     inline void combineState(
-        uint8_t* state, uint8_t* otherState, storage::MemoryManager* memoryManager) {
+        uint8_t* state, uint8_t* otherState, storage::MemoryManager* memoryManager) const {
         return combineFunc(state, otherState, memoryManager);
     }
 
-    inline void finalizeState(uint8_t* state) { return finalizeFunc(state); }
+    inline void finalizeState(uint8_t* state) const { return finalizeFunc(state); }
 
     inline bool isFunctionDistinct() const { return isDistinct; }
 

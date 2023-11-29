@@ -13,6 +13,7 @@ struct OrderByScanLocalState {
     void init(
         std::vector<DataPos>& outVectorPos, SortSharedState& sharedState, ResultSet& resultSet);
 
+    // NOLINTNEXTLINE(readability-make-member-function-const): Updates vectorsToRead.
     inline uint64_t scan() { return payloadScanner->scan(vectorsToRead); }
 };
 

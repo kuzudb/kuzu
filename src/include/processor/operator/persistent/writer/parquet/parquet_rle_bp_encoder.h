@@ -21,7 +21,7 @@ public:
     void writeValue(common::Serializer& writer, uint32_t value);
     void finishWrite(common::Serializer& writer);
 
-    uint64_t getByteCount();
+    uint64_t getByteCount() const;
 
     static uint8_t getVarintSize(uint32_t val);
 
