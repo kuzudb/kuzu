@@ -1,4 +1,5 @@
-add_subdirectory(gtest)
+# Don't install gtest libraries.
+add_subdirectory(gtest EXCLUDE_FROM_ALL)
 
 # Make gtest available to subdirectories.
 add_library(GTest::GTest INTERFACE IMPORTED)

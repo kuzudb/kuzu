@@ -2,15 +2,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "c_api/kuzu.h"
+#include "kuzu.h"
 
 int main() {
     kuzu_database* db = kuzu_database_init("" /* fill db path */, kuzu_default_system_config());
     kuzu_connection* conn = kuzu_connection_init(db);
 
-    kuzu_query_result* result;
     // Create schema.
-    result = kuzu_connection_query(
+    kuzu_query_result* result = kuzu_connection_query(
         conn, "CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));");
     kuzu_query_result_destroy(result);
     // Create nodes.
