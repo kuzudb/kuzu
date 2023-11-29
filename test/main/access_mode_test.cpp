@@ -7,6 +7,7 @@ using namespace kuzu::main;
 class AccessModeTest : public ApiTest {};
 
 void assertQuery(QueryResult& result) {
+    auto a = result.toString();
     ASSERT_TRUE(result.isSuccess()) << result.toString();
 }
 
@@ -23,6 +24,6 @@ TEST_F(AccessModeTest, testAccessMode) {
     std::unique_ptr<Connection> con2;
     EXPECT_NO_THROW(db2 = std::make_unique<Database>(databasePath, *systemConfig));
     EXPECT_NO_THROW(con2 = std::make_unique<Connection>(db2.get()));
-    EXPECT_ANY_THROW(con2->query("DROP TABLE Person"));
+    ASSERT_FALSE(con2->query("DROP TABLE Person")->isSuccess());
     EXPECT_NO_THROW(con2->query("MATCH (:Person) RETURN COUNT(*)"));
 }
