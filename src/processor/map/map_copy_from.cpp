@@ -160,7 +160,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(LogicalOperator* lo
         infos.push_back(std::make_unique<PartitioningInfo>(keyPos, columnPositions,
             std::move(columnTypes), PartitionerFunctions::partitionRelData));
     }
-    auto sharedState = std::make_shared<PartitionerSharedState>();
+    auto sharedState = std::make_shared<PartitionerSharedState>(memoryManager);
     return std::make_unique<Partitioner>(std::make_unique<ResultSetDescriptor>(outFSchema),
         std::move(infos), std::move(sharedState), std::move(prevOperator), getOperatorID(),
         logicalPartitioner->getExpressionsForPrinting());
