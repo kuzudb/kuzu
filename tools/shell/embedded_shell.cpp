@@ -224,11 +224,11 @@ void EmbeddedShell::run() {
             currLine = "";
             continueLine = false;
         }
-        if (line == shellCommand.HELP) {
+        if (lineStr == shellCommand.HELP) {
             printHelp();
-        } else if (line == shellCommand.CLEAR) {
+        } else if (lineStr == shellCommand.CLEAR) {
             linenoiseClearScreen();
-        } else if (line == shellCommand.QUIT) {
+        } else if (lineStr == shellCommand.QUIT) {
             free(line);
             break;
         } else if (lineStr.rfind(shellCommand.THREAD) == 0) {
