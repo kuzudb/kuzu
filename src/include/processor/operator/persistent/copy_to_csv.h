@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/copier_config/csv_reader_config.h"
 #include "common/file_utils.h"
 #include "common/serializer/buffered_serializer.h"
 #include "copy_to.h"
@@ -22,7 +23,7 @@ struct CopyToCSVInfo final : public CopyToInfo {
 
     inline std::unique_ptr<CopyToInfo> copy() override {
         return std::make_unique<CopyToCSVInfo>(
-            names, dataPoses, fileName, isFlat, copyToOption->copyCSVOption());
+            names, dataPoses, fileName, isFlat, copyToOption->copy());
     }
 };
 

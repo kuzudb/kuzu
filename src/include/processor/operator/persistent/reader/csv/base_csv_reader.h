@@ -4,7 +4,7 @@
 #include <string>
 #include <string_view>
 
-#include "common/copier_config/copier_config.h"
+#include "common/copier_config/csv_reader_config.h"
 #include "common/data_chunk/data_chunk.h"
 #include "common/types/types.h"
 
@@ -16,7 +16,7 @@ class BaseCSVReader {
 
 public:
     BaseCSVReader(
-        const std::string& filePath, const common::ReaderConfig& readerConfig, uint64_t numColumns);
+        const std::string& filePath, const common::CSVOption& option, uint64_t numColumns);
 
     virtual ~BaseCSVReader();
 
@@ -63,7 +63,7 @@ protected:
 
 protected:
     std::string filePath;
-    common::CSVReaderConfig csvReaderConfig;
+    common::CSVOption option;
 
     uint64_t numColumns;
     int fd;

@@ -41,7 +41,7 @@ struct UnaryCastStringFunctionWrapper {
         auto resultVector_ = (common::ValueVector*)resultVector;
         FUNC::operation(inputVector_.getValue<OPERAND_TYPE>(inputPos),
             resultVector_->getValue<RESULT_TYPE>(resultPos), resultVector_, inputPos,
-            &reinterpret_cast<CastFunctionBindData*>(dataPtr)->csvConfig);
+            &reinterpret_cast<CastFunctionBindData*>(dataPtr)->csvConfig.option);
     }
 };
 

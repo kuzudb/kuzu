@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "common/copier_config/copier_config.h"
+#include "common/copier_config/reader_config.h"
 #include "common/types/value/value.h"
 #include "storage/buffer_manager/memory_manager.h"
 

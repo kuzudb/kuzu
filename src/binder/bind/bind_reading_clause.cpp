@@ -170,8 +170,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(
         expectedColumnNames.push_back(name);
         expectedColumnTypes.push_back(bindDataType(type));
     }
-    auto scanFunction =
-        getScanFunction(readerConfig->fileType, readerConfig->csvReaderConfig->parallel);
+    auto scanFunction = getScanFunction(readerConfig->fileType, *readerConfig);
     auto bindInput = std::make_unique<function::ScanTableFuncBindInput>(memoryManager,
         *readerConfig, std::move(expectedColumnNames), std::move(expectedColumnTypes));
     auto bindData = scanFunction->bindFunc(clientContext, bindInput.get(), (Catalog*)&catalog);

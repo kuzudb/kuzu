@@ -20,8 +20,8 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace processor {
 
-RDFReader::RDFReader(std::string filePath, std::unique_ptr<common::RdfReaderConfig> config)
-    : filePath{std::move(filePath)}, config{std::move(config)}, rowOffset{0},
+RDFReader::RDFReader(std::string filePath, const common::RdfReaderConfig& config)
+    : filePath{std::move(filePath)}, mode{config.mode}, index{config.index}, rowOffset{0},
       vectorSize{0}, sVector{nullptr}, pVector{nullptr}, oVector{nullptr}, status{SERD_SUCCESS} {
     std::string fileName = this->filePath.substr(this->filePath.find_last_of("/\\") + 1);
     fp = fopen(this->filePath.c_str(), "rb");
@@ -156,7 +156,7 @@ SerdStatus RDFReader::readerStatementSink(void* handle, SerdStatementFlags /*fla
     }
     auto reader = reinterpret_cast<RDFReader*>(handle);
 
-    switch (reader->config->mode) {
+    switch (reader->mode) {
     case RdfReaderMode::RESOURCE: {
         addResourceToVector(reader->sVector, reader->vectorSize++, subject);
         addResourceToVector(reader->sVector, reader->vectorSize++, predicate);
@@ -175,9 +175,9 @@ SerdStatus RDFReader::readerStatementSink(void* handle, SerdStatementFlags /*fla
         if (object->type == SERD_LITERAL) {
             return SERD_SUCCESS;
         }
-        auto subjectOffset = lookupResourceNode(reader->config->index, subject);
-        auto predicateOffset = lookupResourceNode(reader->config->index, predicate);
-        auto objectOffset = lookupResourceNode(reader->config->index, object);
+        auto subjectOffset = lookupResourceNode(reader->index, subject);
+        auto predicateOffset = lookupResourceNode(reader->index, predicate);
+        auto objectOffset = lookupResourceNode(reader->index, object);
         reader->sVector->setValue<int64_t>(reader->rowOffset, subjectOffset);
         reader->pVector->setValue<int64_t>(reader->rowOffset, predicateOffset);
         reader->oVector->setValue<int64_t>(reader->rowOffset, objectOffset);
@@ -188,8 +188,8 @@ SerdStatus RDFReader::readerStatementSink(void* handle, SerdStatementFlags /*fla
         if (object->type != SERD_LITERAL) {
             return SERD_SUCCESS;
         }
-        auto subjectOffset = lookupResourceNode(reader->config->index, subject);
-        auto predicateOffset = lookupResourceNode(reader->config->index, predicate);
+        auto subjectOffset = lookupResourceNode(reader->index, subject);
+        auto predicateOffset = lookupResourceNode(reader->index, predicate);
         auto objectOffset = reader->rowOffset;
         reader->sVector->setValue<int64_t>(reader->rowOffset, subjectOffset);
         reader->pVector->setValue<int64_t>(reader->rowOffset, predicateOffset);
@@ -246,7 +246,7 @@ offset_t RDFReader::read(DataChunk* dataChunk) {
         return 0;
     }
 
-    switch (config->mode) {
+    switch (mode) {
     case common::RdfReaderMode::RESOURCE_TRIPLE:
     case common::RdfReaderMode::LITERAL_TRIPLE: {
         sVector = dataChunk->getValueVector(0).get();
@@ -301,17 +301,17 @@ std::unique_ptr<function::TableFuncBindData> RdfScan::bindFunc(main::ClientConte
 std::unique_ptr<function::TableFuncSharedState> RdfScan::initSharedState(
     function::TableFunctionInitInput& input) {
     auto bindData = reinterpret_cast<function::ScanBindData*>(input.bindData);
-    auto reader = make_unique<RDFReader>(
-        bindData->config.filePaths[0], bindData->config.rdfReaderConfig->copy());
+    auto rdfConfig = reinterpret_cast<RdfReaderConfig*>(bindData->config.extraConfig.get());
+    auto reader = make_unique<RDFReader>(bindData->config.filePaths[0], *rdfConfig);
     return std::make_unique<function::ScanSharedState>(bindData->config, reader->countLine());
 }
 
 std::unique_ptr<function::TableFuncLocalState> RdfScan::initLocalState(
     function::TableFunctionInitInput& input, function::TableFuncSharedState* /*state*/) {
     auto bindData = reinterpret_cast<function::ScanBindData*>(input.bindData);
+    auto rdfConfig = reinterpret_cast<RdfReaderConfig*>(bindData->config.extraConfig.get());
     auto localState = std::make_unique<RdfScanLocalState>();
-    localState->reader = std::make_unique<RDFReader>(
-        bindData->config.filePaths[0], bindData->config.rdfReaderConfig->copy());
+    localState->reader = std::make_unique<RDFReader>(bindData->config.filePaths[0], *rdfConfig);
     return localState;
 }
 

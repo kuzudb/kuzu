@@ -3,7 +3,7 @@
 #include "binder/query/bound_regular_query.h"
 #include "binder/query/query_graph.h"
 #include "catalog/catalog.h"
-#include "common/copier_config/copier_config.h"
+#include "common/copier_config/reader_config.h"
 #include "expression_binder.h"
 #include "parser/query/graph_pattern/pattern_element.h"
 #include "parser/query/regular_query.h"
@@ -285,7 +285,8 @@ private:
     std::unique_ptr<BinderScope> saveScope();
     void restoreScope(std::unique_ptr<BinderScope> prevVariableScope);
 
-    function::TableFunction* getScanFunction(common::FileType fileType, bool isParallel);
+    function::TableFunction* getScanFunction(
+        common::FileType fileType, const common::ReaderConfig& config);
 
 private:
     const catalog::Catalog& catalog;

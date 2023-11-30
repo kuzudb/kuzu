@@ -1,6 +1,7 @@
 #include "binder/binder.h"
 
 #include "binder/bound_statement_rewriter.h"
+#include "common/copier_config/csv_reader_config.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
 #include "function/table_functions.h"
@@ -209,25 +210,27 @@ void Binder::restoreScope(std::unique_ptr<BinderScope> prevVariableScope) {
     scope = std::move(prevVariableScope);
 }
 
-function::TableFunction* Binder::getScanFunction(common::FileType fileType, bool isParallel) {
+function::TableFunction* Binder::getScanFunction(FileType fileType, const ReaderConfig& config) {
     function::Function* func;
     auto stringType = LogicalType(LogicalTypeID::STRING);
     std::vector<LogicalType*> inputTypes;
     inputTypes.push_back(&stringType);
+    auto functions = catalog.getBuiltInFunctions();
     switch (fileType) {
     case common::FileType::PARQUET: {
-        func =
-            catalog.getBuiltInFunctions()->matchScalarFunction(READ_PARQUET_FUNC_NAME, inputTypes);
+        func = functions->matchScalarFunction(READ_PARQUET_FUNC_NAME, inputTypes);
     } break;
     case common::FileType::NPY: {
-        func = catalog.getBuiltInFunctions()->matchScalarFunction(READ_NPY_FUNC_NAME, inputTypes);
+        func = functions->matchScalarFunction(READ_NPY_FUNC_NAME, inputTypes);
     } break;
     case common::FileType::CSV: {
-        func = catalog.getBuiltInFunctions()->matchScalarFunction(
-            isParallel ? READ_CSV_PARALLEL_FUNC_NAME : READ_CSV_SERIAL_FUNC_NAME, inputTypes);
+        auto csvConfig = reinterpret_cast<CSVReaderConfig*>(config.extraConfig.get());
+        func = functions->matchScalarFunction(
+            csvConfig->parallel ? READ_CSV_PARALLEL_FUNC_NAME : READ_CSV_SERIAL_FUNC_NAME,
+            inputTypes);
     } break;
     case common::FileType::TURTLE: {
-        func = catalog.getBuiltInFunctions()->matchScalarFunction(READ_RDF_FUNC_NAME, inputTypes);
+        func = functions->matchScalarFunction(READ_RDF_FUNC_NAME, inputTypes);
     } break;
     default:
         KU_UNREACHABLE;

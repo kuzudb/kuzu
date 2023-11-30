@@ -1,6 +1,7 @@
 #include "binder/copy/bound_copy_from.h"
 #include "binder/expression/variable_expression.h"
 #include "catalog/node_table_schema.h"
+#include "common/copier_config/rdf_reader_config.h"
 #include "planner/operator/logical_partitioner.h"
 #include "planner/operator/persistent/logical_copy_from.h"
 #include "processor/operator/call/in_query_call.h"
@@ -130,7 +131,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
         reinterpret_cast<function::ScanBindData*>(copyFromInfo->fileScanInfo->bindData.get())
             ->config;
     if (readerConfig.fileType == FileType::TURTLE &&
-        readerConfig.rdfReaderConfig->mode == RdfReaderMode::RESOURCE) {
+        reinterpret_cast<RdfReaderConfig*>(readerConfig.extraConfig.get())->mode ==
+            RdfReaderMode::RESOURCE) {
         copyNode = std::make_unique<CopyRdfResource>(sharedState, std::move(info),
             std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), std::move(prevOperator),
             getOperatorID(), copyFrom->getExpressionsForPrinting());

@@ -2,6 +2,7 @@
 #include "binder/copy/bound_copy_from.h"
 #include "catalog/rel_table_schema.h"
 #include "common/constants.h"
+#include "common/copier_config/rdf_reader_config.h"
 #include "common/keyword/rdf_keyword.h"
 #include "common/types/rdf_variant_type.h"
 #include "function/table_functions/bind_input.h"
@@ -16,7 +17,7 @@ namespace binder {
 
 std::unique_ptr<BoundStatement> Binder::bindCopyRdfNodeFrom(const Statement& /*statement*/,
     std::unique_ptr<ReaderConfig> config, TableSchema* tableSchema) {
-    auto func = getScanFunction(config->fileType, config->csvReaderConfig->parallel);
+    auto func = getScanFunction(config->fileType, *config);
     bool containsSerial;
     auto stringType = LogicalType{LogicalTypeID::STRING};
     std::vector<std::string> columnNames;
@@ -25,13 +26,13 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfNodeFrom(const Statement& /*s
     if (tableSchema->tableName.ends_with(rdf::RESOURCE_TABLE_SUFFIX)) {
         containsSerial = false;
         columnTypes.push_back(stringType.copy());
-        config->rdfReaderConfig =
+        config->extraConfig =
             std::make_unique<RdfReaderConfig>(RdfReaderMode::RESOURCE, nullptr /* index */);
     } else {
         KU_ASSERT(tableSchema->tableName.ends_with(rdf::LITERAL_TABLE_SUFFIX));
         containsSerial = true;
         columnTypes.push_back(RdfVariantType::getType());
-        config->rdfReaderConfig =
+        config->extraConfig =
             std::make_unique<RdfReaderConfig>(RdfReaderMode::LITERAL, nullptr /* index */);
     }
     auto bindInput = std::make_unique<function::ScanTableFuncBindInput>(
@@ -52,7 +53,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfNodeFrom(const Statement& /*s
 
 std::unique_ptr<BoundStatement> Binder::bindCopyRdfRelFrom(const Statement& /*statement*/,
     std::unique_ptr<ReaderConfig> config, TableSchema* tableSchema) {
-    auto func = getScanFunction(config->fileType, config->csvReaderConfig->parallel);
+    auto func = getScanFunction(config->fileType, *config);
     auto containsSerial = false;
     std::vector<std::string> columnNames;
     columnNames.emplace_back(InternalKeyword::SRC_OFFSET);
@@ -67,10 +68,10 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfRelFrom(const Statement& /*st
     auto resourceTableID = relTableSchema->getSrcTableID();
     auto index = storageManager->getPKIndex(resourceTableID);
     if (tableSchema->tableName.ends_with(rdf::RESOURCE_TRIPLE_TABLE_SUFFIX)) {
-        config->rdfReaderConfig =
+        config->extraConfig =
             std::make_unique<RdfReaderConfig>(RdfReaderMode::RESOURCE_TRIPLE, index);
     } else {
-        config->rdfReaderConfig =
+        config->extraConfig =
             std::make_unique<RdfReaderConfig>(RdfReaderMode::LITERAL_TRIPLE, index);
     }
     auto bindInput = std::make_unique<function::ScanTableFuncBindInput>(

@@ -37,7 +37,7 @@ void ParsingDriver::addValue(
     }
 
     function::CastString::copyStringToVector(
-        chunk.getValueVector(columnIdx).get(), rowNum, value, &reader->csvReaderConfig);
+        chunk.getValueVector(columnIdx).get(), rowNum, value, &reader->option);
 }
 
 bool ParsingDriver::addRow(uint64_t /*rowNum*/, common::column_id_t columnCount) {

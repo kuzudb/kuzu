@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/copier_config/rdf_config.h"
+#include "common/copier_config/rdf_reader_config.h"
 #include "common/data_chunk/data_chunk.h"
 #include "function/scalar_function.h"
 #include "function/table_functions.h"
@@ -13,7 +13,7 @@ namespace processor {
 
 class RDFReader {
 public:
-    RDFReader(std::string filePath, std::unique_ptr<common::RdfReaderConfig> config);
+    RDFReader(std::string filePath, const common::RdfReaderConfig& config);
 
     ~RDFReader();
 
@@ -33,7 +33,8 @@ private:
 
 private:
     const std::string filePath;
-    std::unique_ptr<common::RdfReaderConfig> config;
+    common::RdfReaderMode mode;
+    storage::PrimaryKeyIndex* index;
 
     FILE* fp;
     SerdReader* reader;

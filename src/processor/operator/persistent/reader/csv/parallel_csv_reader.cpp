@@ -21,8 +21,8 @@ namespace kuzu {
 namespace processor {
 
 ParallelCSVReader::ParallelCSVReader(
-    const std::string& filePath, const common::ReaderConfig& readerConfig, uint64_t numColumns)
-    : BaseCSVReader{filePath, readerConfig, numColumns} {}
+    const std::string& filePath, const common::CSVOption& option, uint64_t numColumns)
+    : BaseCSVReader{filePath, option, numColumns} {}
 
 bool ParallelCSVReader::hasMoreToRead() const {
     // If we haven't started the first block yet or are done our block, get the next block.
@@ -35,7 +35,7 @@ uint64_t ParallelCSVReader::parseBlock(
     seekToBlockStart();
     if (blockIdx == 0) {
         readBOM();
-        if (csvReaderConfig.hasHeader) {
+        if (option.hasHeader) {
             readHeader();
         }
     }
@@ -141,9 +141,11 @@ void ParallelCSVScan::tableFunc(TableFunctionInput& input, common::DataChunk& ou
         }
         if (fileIdx != parallelCSVLocalState->fileIdx) {
             parallelCSVLocalState->fileIdx = fileIdx;
+            auto csvConfig = reinterpret_cast<CSVReaderConfig*>(
+                parallelCSVSharedState->readerConfig.extraConfig.get());
             parallelCSVLocalState->reader = std::make_unique<ParallelCSVReader>(
-                parallelCSVSharedState->readerConfig.filePaths[fileIdx],
-                parallelCSVSharedState->readerConfig, parallelCSVSharedState->numColumns);
+                parallelCSVSharedState->readerConfig.filePaths[fileIdx], csvConfig->option,
+                parallelCSVSharedState->numColumns);
         }
         auto numRowsRead = parallelCSVLocalState->reader->parseBlock(blockIdx, outputChunk);
         outputChunk.state->selVector->selectedSize = numRowsRead;
@@ -175,10 +177,11 @@ std::unique_ptr<function::TableFuncBindData> ParallelCSVScan::bindFunc(
 std::unique_ptr<function::TableFuncSharedState> ParallelCSVScan::initSharedState(
     function::TableFunctionInitInput& input) {
     auto bindData = reinterpret_cast<function::ScanBindData*>(input.bindData);
+    auto csvConfig = reinterpret_cast<CSVReaderConfig*>(bindData->config.extraConfig.get());
     common::row_idx_t numRows = 0;
     for (const auto& path : bindData->config.filePaths) {
         auto reader =
-            make_unique<SerialCSVReader>(path, bindData->config, bindData->columnNames.size());
+            make_unique<SerialCSVReader>(path, csvConfig->option, bindData->columnNames.size());
         numRows += reader->countRows();
     }
     return std::make_unique<ParallelCSVScanSharedState>(
@@ -188,10 +191,11 @@ std::unique_ptr<function::TableFuncSharedState> ParallelCSVScan::initSharedState
 std::unique_ptr<function::TableFuncLocalState> ParallelCSVScan::initLocalState(
     function::TableFunctionInitInput& /*input*/, function::TableFuncSharedState* state) {
     auto localState = std::make_unique<ParallelCSVLocalState>();
-    auto scanSharedState = reinterpret_cast<ParallelCSVScanSharedState*>(state);
-    localState->reader =
-        std::make_unique<ParallelCSVReader>(scanSharedState->readerConfig.filePaths[0],
-            scanSharedState->readerConfig, scanSharedState->numColumns);
+    auto sharedState = reinterpret_cast<ParallelCSVScanSharedState*>(state);
+    auto csvConfig =
+        reinterpret_cast<CSVReaderConfig*>(sharedState->readerConfig.extraConfig.get());
+    localState->reader = std::make_unique<ParallelCSVReader>(
+        sharedState->readerConfig.filePaths[0], csvConfig->option, sharedState->numColumns);
     localState->fileIdx = 0;
     return localState;
 }
