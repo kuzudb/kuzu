@@ -1,0 +1,374 @@
+-GROUP DemoDBTest
+-DATASET CSV demo-db/csv
+
+--
+
+-CASE DemoDBTest
+
+-LOG CountSubquery
+-STATEMENT MATCH (a:User) RETURN a.name, COUNT { MATCH (a)<-[:Follows]-(b:User) } AS num_follower ORDER BY num_follower;
+---- 4
+Adam|0
+Karissa|1
+Noura|1
+Zhang|2
+
+-LOG Limit1
+-STATEMENT MATCH (u:User) RETURN u.name ORDER BY u.age DESC LIMIT 3;
+---- 3
+Zhang
+Karissa
+Adam
+
+-LOG MatchSingleNodeLabel
+-STATEMENT MATCH (a:User) RETURN a;
+---- 4
+{_ID: 0:0, _LABEL: User, name: Adam, age: 30}
+{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}
+{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}
+{_ID: 0:3, _LABEL: User, name: Noura, age: 25}
+
+-LOG MatchMultipleNodeLabels
+-STATEMENT MATCH (a:User:City) RETURN a;
+---- 7
+{_ID: 0:0, _LABEL: User, name: Adam, age: 30}
+{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}
+{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}
+{_ID: 0:3, _LABEL: User, name: Noura, age: 25}
+{_ID: 1:0, _LABEL: City, name: Waterloo, population: 150000}
+{_ID: 1:1, _LABEL: City, name: Kitchener, population: 200000}
+{_ID: 1:2, _LABEL: City, name: Guelph, population: 75000}
+
+-LOG MatchAnyNodeLabel
+-STATEMENT MATCH (a) RETURN a;
+---- 7
+{_ID: 0:0, _LABEL: User, name: Adam, age: 30}
+{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}
+{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}
+{_ID: 0:3, _LABEL: User, name: Noura, age: 25}
+{_ID: 1:0, _LABEL: City, name: Waterloo, population: 150000}
+{_ID: 1:1, _LABEL: City, name: Kitchener, population: 200000}
+{_ID: 1:2, _LABEL: City, name: Guelph, population: 75000}
+
+-LOG MatchSingleRelLabel
+-STATEMENT MATCH (a:User)-[e:Follows]->(b:User) RETURN a.name, e, b.name;
+---- 4
+Adam|(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)|Karissa
+Adam|(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2)|Zhang
+Karissa|(0:1)-{_LABEL: Follows, _ID: 2:2, since: 2021}->(0:2)|Zhang
+Zhang|(0:2)-{_LABEL: Follows, _ID: 2:3, since: 2022}->(0:3)|Noura
+
+-LOG MatchMultipleRelLabels
+-STATEMENT MATCH (a:User)-[e:Follows|:LivesIn]->(b:User:City) RETURN a.name, e, b.name;
+---- 8
+Adam|(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)|Karissa
+Adam|(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2)|Zhang
+Adam|(0:0)-{_LABEL: LivesIn, _ID: 3:0}->(1:0)|Waterloo
+Karissa|(0:1)-{_LABEL: Follows, _ID: 2:2, since: 2021}->(0:2)|Zhang
+Karissa|(0:1)-{_LABEL: LivesIn, _ID: 3:1}->(1:0)|Waterloo
+Noura|(0:3)-{_LABEL: LivesIn, _ID: 3:3}->(1:2)|Guelph
+Zhang|(0:2)-{_LABEL: Follows, _ID: 2:3, since: 2022}->(0:3)|Noura
+Zhang|(0:2)-{_LABEL: LivesIn, _ID: 3:2}->(1:1)|Kitchener
+
+-LOG MatchAnyRelLabel
+-STATEMENT MATCH ()-[e]->() RETURN e;
+---- 8
+(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)
+(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2)
+(0:0)-{_LABEL: LivesIn, _ID: 3:0}->(1:0)
+(0:1)-{_LABEL: Follows, _ID: 2:2, since: 2021}->(0:2)
+(0:1)-{_LABEL: LivesIn, _ID: 3:1}->(1:0)
+(0:2)-{_LABEL: Follows, _ID: 2:3, since: 2022}->(0:3)
+(0:2)-{_LABEL: LivesIn, _ID: 3:2}->(1:1)
+(0:3)-{_LABEL: LivesIn, _ID: 3:3}->(1:2)
+
+-LOG MatchUndirected
+-STATEMENT MATCH (a:User)-[e:Follows]-(b:User) WHERE a.name = 'Karissa' RETURN b.name;
+---- 2
+Adam
+Zhang
+
+-LOG MatchTwoHop
+-STATEMENT MATCH (a:User)-[:Follows]->(:User)-[:LivesIn]->(c:City) WHERE a.name = "Adam" RETURN a, c.name, c.population;
+---- 2
+{_ID: 0:0, _LABEL: User, name: Adam, age: 30}|Kitchener|200000
+{_ID: 0:0, _LABEL: User, name: Adam, age: 30}|Waterloo|150000
+
+-LOG MatchCyclic
+-STATEMENT MATCH (a:User)-[:Follows]->(b:User)-[:Follows]->(c:User), (a)-[:Follows]->(c) RETURN a.name, b.name, c.name;
+---- 1
+Adam|Karissa|Zhang
+
+-LOG MatchFilter
+-STATEMENT MATCH (a:User)-[e:Follows {since: 2020}]->(b:User {name: "Zhang"}) RETURN a, e.since, b.name;
+---- 1
+{_ID: 0:0, _LABEL: User, name: Adam, age: 30}|2020|Zhang
+
+-LOG MatchVarLen
+-STATEMENT MATCH (a:User)-[e:Follows*1..2]->(b:User) WHERE a.name = 'Adam' RETURN b.name, length(e) AS length;
+---- 4
+Karissa|1
+Zhang|2
+Zhang|1
+Noura|2
+
+-LOG MatchUndirectedVarLen
+-STATEMENT MATCH (a:User)-[e*2..2]-(b) WHERE a.name = 'Noura' AND b.name <> 'Noura' RETURN b.name, length(e) AS length;
+---- 3
+Adam|2
+Karissa|2
+Kitchener|2
+
+-LOG ReturnVarLen
+-STATEMENT MATCH (a:User)-[e:Follows*1..2]->(b:User) WHERE a.name = 'Adam' RETURN b.name, e;
+---- 4
+Karissa|{_NODES: [], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)]}
+Noura|{_NODES: [{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2),(0:2)-{_LABEL: Follows, _ID: 2:3, since: 2022}->(0:3)]}
+Zhang|{_NODES: [], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2)]}
+Zhang|{_NODES: [{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1),(0:1)-{_LABEL: Follows, _ID: 2:2, since: 2021}->(0:2)]}
+
+-LOG RecursiveJoinFilter
+-STATEMENT MATCH p = (a:User)-[:Follows*1..2 (r, n | WHERE r.since < 2022 AND n.age > 45) ]->(b:User)
+        WHERE a.name = 'Adam' RETURN DISTINCT b.name, COUNT(*);
+---- 2
+Karissa|1
+Zhang|1
+
+-LOG RecursiveJoinFilter2
+-STATEMENT MATCH (a:User)-[e:Follows*1..2 (r, n | WHERE r.since > 2020 | {r.since}, {n.name})]->(b:User)
+           WHERE a.age > 0
+           RETURN nodes(e), rels(e);
+---- 3
+[]|[(0:1)-{_LABEL: Follows, _ID: 2:2, since: 2021}->(0:2)]
+[]|[(0:2)-{_LABEL: Follows, _ID: 2:3, since: 2022}->(0:3)]
+[{_ID: 0:2, _LABEL: User, name: Zhang}]|[(0:1)-{_LABEL: Follows, _ID: 2:2, since: 2021}->(0:2),(0:2)-{_LABEL: Follows, _ID: 2:3, since: 2022}->(0:3)]
+
+-LOG AllShortestPath
+-STATEMENT MATCH p = (a)-[* ALL SHORTEST 1..3 ]-(b) WHERE a.name = 'Zhang' AND b.name='Waterloo' RETURN nodes(p);
+---- 2
+[{_ID: 0:2, _LABEL: User, name: Zhang, age: 50},{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 1:0, _LABEL: City, name: Waterloo, population: 150000}]
+[{_ID: 0:2, _LABEL: User, name: Zhang, age: 50},{_ID: 0:1, _LABEL: User, name: Karissa, age: 40},{_ID: 1:0, _LABEL: City, name: Waterloo, population: 150000}]
+
+-LOG ShortestPath
+-STATEMENT MATCH (a:User)-[e* SHORTEST 1..4]->(b:City) WHERE a.name = 'Adam' RETURN b.name, length(e) AS length;
+-PARALLELISM 1
+---- 3
+Guelph|3
+Kitchener|2
+Waterloo|1
+
+-LOG OptionalMatch1
+-STATEMENT MATCH (u:User) OPTIONAL MATCH (u)-[:Follows]->(u1:User) RETURN u.name, u1.name;
+---- 5
+Adam|Karissa
+Adam|Zhang
+Karissa|Zhang
+Zhang|Noura
+Noura|
+
+-LOG Return1
+-STATEMENT MATCH (a:User)-[e:Follows]->(b:User) RETURN a, e;
+---- 4
+{_ID: 0:0, _LABEL: User, name: Adam, age: 30}|(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)
+{_ID: 0:0, _LABEL: User, name: Adam, age: 30}|(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2)
+{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}|(0:1)-{_LABEL: Follows, _ID: 2:2, since: 2021}->(0:2)
+{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}|(0:2)-{_LABEL: Follows, _ID: 2:3, since: 2022}->(0:3)
+
+-LOG Return2
+-STATEMENT MATCH (a:User)-[:Follows]->(b:User) RETURN *;
+---- 4
+{_ID: 0:0, _LABEL: User, name: Adam, age: 30}|{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}
+{_ID: 0:0, _LABEL: User, name: Adam, age: 30}|{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}
+{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}|{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}
+{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}|{_ID: 0:3, _LABEL: User, name: Noura, age: 25}
+
+-LOG Return3
+-STATEMENT MATCH (a:User)-[e:Follows]->(b:User) RETURN a.name, a.age, e.since;
+---- 4
+Adam|30|2020
+Adam|30|2020
+Karissa|40|2021
+Zhang|50|2022
+
+-LOG ReturnPath1
+-STATEMENT MATCH p = (a:User)-[:Follows]->(b:User) WHERE a.name = 'Adam' RETURN p;
+---- 2
+{_NODES: [{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)]}
+{_NODES: [{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2)]}
+
+-LOG ReturnPath2
+-STATEMENT MATCH p = (a:User)-[:Follows*1..2]->(:User)-[:LivesIn]->(:City) WHERE a.name = 'Adam' RETURN p;
+---- 4
+{_NODES: [{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:1, _LABEL: User, name: Karissa, age: 40},{_ID: 0:2, _LABEL: User, name: Zhang, age: 50},{_ID: 1:1, _LABEL: City, name: Kitchener, population: 200000}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1),(0:1)-{_LABEL: Follows, _ID: 2:2, since: 2021}->(0:2),(0:2)-{_LABEL: LivesIn, _ID: 3:2}->(1:1)]}
+{_NODES: [{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:1, _LABEL: User, name: Karissa, age: 40},{_ID: 1:0, _LABEL: City, name: Waterloo, population: 150000}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1),(0:1)-{_LABEL: LivesIn, _ID: 3:1}->(1:0)]}
+{_NODES: [{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:2, _LABEL: User, name: Zhang, age: 50},{_ID: 0:3, _LABEL: User, name: Noura, age: 25},{_ID: 1:2, _LABEL: City, name: Guelph, population: 75000}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2),(0:2)-{_LABEL: Follows, _ID: 2:3, since: 2022}->(0:3),(0:3)-{_LABEL: LivesIn, _ID: 3:3}->(1:2)]}
+{_NODES: [{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:2, _LABEL: User, name: Zhang, age: 50},{_ID: 1:1, _LABEL: City, name: Kitchener, population: 200000}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2),(0:2)-{_LABEL: LivesIn, _ID: 3:2}->(1:1)]}
+
+-LOG ReturnPath3
+-STATEMENT MATCH p1 = (a:User)-[:Follows]->(b:User), p2 = (b)-[:LivesIn]->(:City) WHERE a.name = 'Adam' RETURN p1, p2;
+---- 2
+{_NODES: [{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:0, since: 2020}->(0:1)]}|{_NODES: [{_ID: 0:1, _LABEL: User, name: Karissa, age: 40},{_ID: 1:0, _LABEL: City, name: Waterloo, population: 150000}], _RELS: [(0:1)-{_LABEL: LivesIn, _ID: 3:1}->(1:0)]}
+{_NODES: [{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}], _RELS: [(0:0)-{_LABEL: Follows, _ID: 2:1, since: 2020}->(0:2)]}|{_NODES: [{_ID: 0:2, _LABEL: User, name: Zhang, age: 50},{_ID: 1:1, _LABEL: City, name: Kitchener, population: 200000}], _RELS: [(0:2)-{_LABEL: LivesIn, _ID: 3:2}->(1:1)]}
+
+-LOG ReturnPath4
+-STATEMENT MATCH p = (a:User)-[:Follows*1..2]->(:User) WHERE a.name = 'Adam' RETURN nodes(p), (rels(p)[1]).since;
+---- 4
+[{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:1, _LABEL: User, name: Karissa, age: 40},{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}]|2020
+[{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}]|2020
+[{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:2, _LABEL: User, name: Zhang, age: 50},{_ID: 0:3, _LABEL: User, name: Noura, age: 25}]|2020
+[{_ID: 0:0, _LABEL: User, name: Adam, age: 30},{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}]|2020
+
+-LOG ReturnPath5
+-STATEMENT MATCH p = (a:User)-[:Follows*1..2]->(:User) WHERE a.name = 'Adam' RETURN properties(nodes(p), 'name'), properties(rels(p), 'since');
+---- 4
+[Adam,Karissa,Zhang]|[2020,2021]
+[Adam,Karissa]|[2020]
+[Adam,Zhang,Noura]|[2020,2022]
+[Adam,Zhang]|[2020]
+
+-LOG ReturnDistinct
+-STATEMENT MATCH (a:User)-[e:Follows]->(b:User) RETURN DISTINCT a.name, a.age, e.since;
+---- 3
+Adam|30|2020
+Karissa|40|2021
+Zhang|50|2022
+
+-LOG ReturnGroupByAgg
+-STATEMENT MATCH (a:User)-[e:Follows]->(b:User) RETURN a, avg(b.age) as avgFriendAge;
+---- 3
+{_ID: 0:0, _LABEL: User, name: Adam, age: 30}|45.000000
+{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}|50.000000
+{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}|25.000000
+
+-LOG ReturnGroupByAgg2
+-STATEMENT MATCH (u:User)-[:LivesIn]->(c:City) RETURN c.name, COUNT(*);
+---- 3
+Guelph|1
+Kitchener|1
+Waterloo|2
+
+-LOG Skip1
+-STATEMENT MATCH (u:User) RETURN u.name ORDER BY u.age SKIP 2;
+---- 2
+Karissa
+Zhang
+
+-LOG Union1
+-STATEMENT MATCH (u1:User)-[:LivesIn]->(c1:City) WHERE c1.name = "Waterloo" RETURN u1.name UNION ALL MATCH (u2:User)-[:LivesIn]->(c2:City) WHERE c2.name = "Kitchener" RETURN u2.name;
+---- 3
+Karissa
+Adam
+Zhang
+
+-LOG Union2
+-STATEMENT MATCH (u1:User)-[:Follows]->(u2:User) WHERE u2.name = 'Zhang' RETURN u1.age UNION ALL MATCH (u3:User)-[:Follows]->(u4:User) WHERE u4.name = 'Karissa' RETURN u3.age;
+---- 3
+30
+40
+30
+
+-LOG Union3
+-STATEMENT MATCH (u1:User)-[:Follows]->(u2:User) WHERE u2.name = 'Zhang' RETURN u1.age UNION MATCH (u3:User)-[:Follows]->(u4:User) WHERE u4.name = 'Karissa' RETURN u3.age;
+---- 2
+30
+40
+
+-LOG Unwind1
+-STATEMENT UNWIND ["Amy", "Bob", "Carol"] AS x RETURN 'name' as name, x;
+---- 3
+name|Amy
+name|Bob
+name|Carol
+
+-LOG Unwind2
+-STATEMENT UNWIND [["Amy"], ["Bob", "Carol"]] AS x RETURN x;
+---- 2
+[Amy]
+[Bob,Carol]
+
+-LOG Where1
+-STATEMENT MATCH (a:User) WHERE a.age > 45 OR starts_with(a.name, "Kar") RETURN *;
+---- 2
+{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}
+{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}
+
+-LOG Where2
+-STATEMENT MATCH (a:User) WHERE a.age IS NOT NULL AND starts_with(a.name, "Kar") RETURN *;
+---- 1
+{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}
+
+-LOG WhereExists1
+-STATEMENT MATCH (a:User) WHERE a.age < 100 AND EXISTS { MATCH (a)-[:Follows*3..3]->(b:User)} RETURN a.name, a.age;
+---- 1
+Adam|30
+
+-LOG WhereExists2
+-STATEMENT MATCH (a:User) WHERE a.age < 100 AND EXISTS { MATCH (a)-[:Follows*3..3]->(b:User) WHERE EXISTS {MATCH (b)-[:Follows]->(c:User)} } RETURN a.name, a.age;
+---- 0
+
+-LOG WhereExists3
+-STATEMENT MATCH (a:User) WHERE a.age < 100 AND EXISTS { MATCH (a)-[:Follows*3..3]->(b:User) WHERE EXISTS {MATCH (b)<-[:Follows]-(c:User)} } RETURN a.name, a.age;
+---- 1
+Adam|30
+
+-LOG With1
+-STATEMENT MATCH (a:User) WITH avg(a.age) as avgAge MATCH (b:User) WHERE b.age > avgAge RETURN *;
+---- 2
+36.250000|{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}
+36.250000|{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}
+
+-LOG With2
+-STATEMENT MATCH (a:User) WITH a ORDER BY a.age DESC LIMIT 1 MATCH (a)-[:Follows]->(b:User) RETURN *;
+---- 1
+{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}|{_ID: 0:3, _LABEL: User, name: Noura, age: 25}
+
+-LOG Undir1
+-STATEMENT MATCH (a:User)-[:Follows]-(b:User) RETURN a.name, b.age;
+---- 8
+Adam|40
+Adam|50
+Karissa|50
+Zhang|25
+Karissa|30
+Zhang|30
+Zhang|40
+Noura|50
+
+-LOG Undir2
+-STATEMENT MATCH (a:User)-[:LivesIn]-(c:City) RETURN a.name, c.name;
+---- 4
+Adam|Waterloo
+Karissa|Waterloo
+Zhang|Kitchener
+Noura|Guelph
+
+-LOG Undir3
+-STATEMENT MATCH ()-[]-() RETURN COUNT(*);
+---- 1
+16
+
+-LOG LoadFrom
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/user.csv"
+        RETURN *;
+---- 4
+Adam|30
+Karissa|40
+Noura|25
+Zhang|50
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/user.parquet"
+        RETURN *;
+---- 4
+Adam|30
+Karissa|40
+Noura|25
+Zhang|50
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/user.csv"
+        WHERE to_int64(column1) > 25
+        RETURN COUNT(*);
+---- 1
+3
+-STATEMENT LOAD WITH HEADERS (name STRING, age INT64) FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/user.csv"
+        WHERE name =~ 'Adam*'
+        RETURN name, age;
+---- 1
+Adam|30

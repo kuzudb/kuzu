@@ -1,0 +1,55 @@
+name: Build-Linux-Wheels
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      isNightly:
+        type: boolean
+        required: true
+        default: false
+
+jobs:
+  build-linux-wheels-x86_64:
+    runs-on: kuzu-self-hosted-linux-building
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Update nightly version
+        if: ${{ inputs.isNightly == true }}
+        run: /opt/python/cp310-cp310/bin/python update-nightly-build-version.py
+        working-directory: scripts
+
+      - name: Build wheels
+        working-directory: ./scripts/pip-package/
+        run: |
+          cp Dockerfiles/x86_64/build_all_packages.sh .
+          source /opt/rh/devtoolset-11/enable
+          chmod +x build_all_packages.sh
+          ./build_all_packages.sh
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: linux-wheels-x86_64
+          path: ./scripts/pip-package/wheelhouse/*manylinux2014_x86_64.whl
+
+  build-linux-wheels-aarch64:
+    runs-on: kuzu-self-hosted-linux-building-aarch64
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Update nightly version
+        if: ${{ inputs.isNightly == true }}
+        run: /opt/python/cp310-cp310/bin/python update-nightly-build-version.py
+        working-directory: scripts
+
+      - name: Build wheels
+        working-directory: ./scripts/pip-package/
+        run: |
+          cp Dockerfiles/aarch64/build_all_packages.sh .
+          bash build_all_packages.sh
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: linux-wheels-aarch64
+          path: ./scripts/pip-package/wheelhouse/*manylinux_2_28_aarch64.whl

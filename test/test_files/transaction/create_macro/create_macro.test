@@ -1,0 +1,155 @@
+-GROUP CreateMacroTestTrxTest
+-DATASET CSV tinysnb
+--
+
+-CASE createCaseMacro
+-STATEMENT CREATE MACRO case_macro(x) AS CASE x WHEN 35 THEN x + 1 ELSE x - 5 END
+---- ok
+-STATEMENT match (a:person) return case_macro(a.age) as age
+---- 8
+15
+15
+20
+25
+35
+36
+40
+78
+-RELOADDB
+-STATEMENT match (a:person) return case_macro(a.age) as age
+---- 8
+15
+15
+20
+25
+35
+36
+40
+78
+
+-CASE createCaseMacroWithoutElse
+-STATEMENT CREATE MACRO case_macro(x) AS CASE x WHEN 35 THEN x + 1 END
+---- ok
+-STATEMENT match (a:person) return case_macro(a.age) as age
+---- 8
+
+
+
+
+
+
+
+36
+-RELOADDB
+-STATEMENT match (a:person) return case_macro(a.age) as age
+---- 8
+
+
+
+
+
+
+
+36
+
+-CASE createFunctionMacro
+-STATEMENT CREATE MACRO func_macro(x) AS x + 3 + 2.5 + to_float(2.1)
+---- ok
+-STATEMENT match (a:person) return func_macro(a.age) as age
+---- 8
+27.600000
+27.600000
+32.600000
+37.600000
+42.600000
+47.600000
+52.600000
+90.600000
+-RELOADDB
+-STATEMENT match (a:person) return func_macro(a.age) as age
+---- 8
+27.600000
+27.600000
+32.600000
+37.600000
+42.600000
+47.600000
+52.600000
+90.600000
+
+-CASE createLiteralMacro
+-STATEMENT CREATE MACRO str_literal() AS 'result'
+---- ok
+-STATEMENT CREATE MACRO int_literal() AS to_int64(1) + to_int32(2) + to_int16(3)
+---- ok
+-STATEMENT CREATE MACRO floating_literal() AS 3.5 + to_float(2.1)
+---- ok
+-STATEMENT CREATE MACRO interval_literal() AS interval('20 minutes')
+---- ok
+-STATEMENT CREATE MACRO list_literal() AS [1,3,2]
+---- ok
+-STATEMENT return str_literal(),int_literal(),floating_literal(),interval_literal(),list_literal()
+---- 1
+result|6|5.600000|00:20:00|[1,3,2]
+-RELOADDB
+-STATEMENT return str_literal(),int_literal(),floating_literal(),interval_literal(),list_literal()
+---- 1
+result|6|5.600000|00:20:00|[1,3,2]
+
+-CASE createPropertyMacro
+-STATEMENT CREATE MACRO prop_macro(x) AS x.ID
+---- ok
+-STATEMENT match (a:person) return prop_macro(a) as age
+---- 8
+0
+10
+2
+3
+5
+7
+8
+9
+-RELOADDB
+-STATEMENT match (a:person) return prop_macro(a) as age
+---- 8
+0
+10
+2
+3
+5
+7
+8
+9
+
+
+-CASE createVariableMacro
+-STATEMENT CREATE MACRO var_macro(x) AS x
+---- ok
+-STATEMENT match (a:person) return var_macro(a.ID)
+---- 8
+0
+10
+2
+3
+5
+7
+8
+9
+-RELOADDB
+-STATEMENT match (a:person) return var_macro(a.ID)
+---- 8
+0
+10
+2
+3
+5
+7
+8
+9
+
+-CASE createMacroReadTrxError
+-STATEMENT BEGIN TRANSACTION READ ONLY
+---- ok
+-STATEMENT CREATE MACRO var_macro(x) AS x
+---- error
+Can't execute a write query inside a read-only transaction.

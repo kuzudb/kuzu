@@ -1,0 +1,32 @@
+-GROUP DDLAutoCommit
+-DATASET CSV tinysnb
+
+--
+
+-CASE CreateTableAutoTransactionError
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE NODE TABLE UNIVERSITY(NAME STRING, WEBSITE STRING, REGISTER_TIME DATE, PRIMARY KEY (NAME))
+---- error
+DDL, Copy, createMacro statements can only run in the AUTO_COMMIT mode. Please commit or rollback your previous transaction if there is any and issue the query without beginning a transaction
+
+-CASE DropTableAutoTransactionError
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT DROP TABLE knows
+---- error
+DDL, Copy, createMacro statements can only run in the AUTO_COMMIT mode. Please commit or rollback your previous transaction if there is any and issue the query without beginning a transaction
+
+-CASE AlterTableAutoTransactionError
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT ALTER TABLE person DROP gender
+---- error
+DDL, Copy, createMacro statements can only run in the AUTO_COMMIT mode. Please commit or rollback your previous transaction if there is any and issue the query without beginning a transaction
+
+-CASE CreateMacroAutoTransactionError
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE MACRO var_macro(x) AS x
+---- error
+DDL, Copy, createMacro statements can only run in the AUTO_COMMIT mode. Please commit or rollback your previous transaction if there is any and issue the query without beginning a transaction

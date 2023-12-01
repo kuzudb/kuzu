@@ -1,0 +1,17 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE OptionalMatchMultiLabel
+
+-LOG MultiLabelTest1
+-STATEMENT MATCH (a:organisation) OPTIONAL MATCH (a)<-[:knows|:studyAt]-(b:person) RETURN COUNT(*)
+---- 1
+5
+
+-LOG MultiLabelTest2
+-STATEMENT MATCH (a:organisation:person) OPTIONAL MATCH (a)-[:studyAt|:workAt]->(b:person:organisation) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+11

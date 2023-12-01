@@ -1,0 +1,38 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE ProjectionMultiLabel
+
+-LOG MultiLabelReturn
+-STATEMENT MATCH (a:person:organisation) RETURN a.ID, label(a), a.fName, a.orgCode
+---- 11
+0|person|Alice|
+1|organisation||325
+2|person|Bob|
+3|person|Carol|
+4|organisation||934
+5|person|Dan|
+6|organisation||824
+7|person|Elizabeth|
+8|person|Farooq|
+9|person|Greg|
+10|person|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|
+
+-LOG MultiLabelFilter
+-STATEMENT MATCH (a) WHERE label(a)='organisation' RETURN a.orgCode
+---- 3
+325
+934
+824
+
+-LOG MultiLabelReturnStar
+-STATEMENT MATCH (a:movies:organisation) RETURN *
+---- 6
+{_ID: 1:0, _LABEL: organisation, ID: 1, name: ABFsUni, orgCode: 325, mark: 3.700000, score: -2, history: 10 years 5 months 13 hours 24 us, licenseValidInterval: 3 years 5 days, rating: 1.000000, state: {revenue: 138, location: ['toronto', 'montr,eal'], stock: {price: [96,56], volume: 1000}}, info: 3.120000}
+{_ID: 1:1, _LABEL: organisation, ID: 4, name: CsWork, orgCode: 934, mark: 4.100000, score: -100, history: 2 years 4 days 10 hours, licenseValidInterval: 26 years 52 days 48:00:00, rating: 0.780000, state: {revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}, info: abcd}
+{_ID: 1:2, _LABEL: organisation, ID: 6, name: DEsWork, orgCode: 824, mark: 4.100000, score: 7, history: 2 years 4 hours 22 us 34 minutes, licenseValidInterval: 82:00:00.1, rating: 0.520000, state: {revenue: 558, location: ['very long city name', 'new york'], stock: {price: [22], volume: 99}}, info: 2023-12-15}
+{_ID: 2:0, _LABEL: movies, name: Sóló cón tu párejâ, length: 126, note:  this is a very very good movie, description: {rating: 5.300000, stars: 2, views: 152, release: 2011-08-20 11:25:30, film: 2012-05-11, u8: 220, u16: 20, u32: 1, u64: 180, hugedata: 1844674407370955161811111111}, content: \xAA\xABinteresting\x0B, audience: {audience1=52, audience53=42}, grade: True}
+{_ID: 2:1, _LABEL: movies, name: The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie, length: 2544, note:  the movie is very very good, description: {rating: 7.000000, stars: 10, views: 982, release: 2018-11-13 13:33:11, film: 2014-09-12, u8: 12, u16: 120, u32: 55, u64: 1, hugedata: -1844674407370955161511}, content: \xAB\xCD, audience: {audience1=33}, grade: 8.989000}
+{_ID: 2:2, _LABEL: movies, name: Roma, length: 298, note: the movie is very interesting and funny, description: {rating: 1223.000000, stars: 100, views: 10003, release: 2011-02-11 16:44:22, film: 2013-02-22, u8: 1, u16: 15, u32: 200, u64: 4, hugedata: -15}, content: pure ascii characters, audience: {}, grade: 254.000000}

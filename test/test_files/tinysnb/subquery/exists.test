@@ -1,0 +1,90 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE ExistsSubquery
+
+-LOG ExistSubqueryTest
+-STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) } RETURN COUNT(*)
+-ENUMERATE
+---- 1
+5
+-STATEMENT MATCH (a:person) WHERE  (a)-[:knows]->(b:person) RETURN COUNT(*)
+---- 1
+5
+-STATEMENT MATCH (a:person) WHERE a.ID < 3 RETURN EXISTS { MATCH (b)-[:knows]->(c) }
+---- 2
+True
+True
+-STATEMENT MATCH (a:person) WHERE a.ID < 3 RETURN EXISTS { MATCH (b)-[:knows]->(c) WHERE b.ID = 1 }
+---- 2
+False
+False
+
+
+
+-LOG ExistSubqueryTest2
+-STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WHERE b.fName='Farooq' } RETURN COUNT(*)
+-ENUMERATE
+---- 1
+1
+
+-LOG ExistSubqueryTest3
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE EXISTS { MATCH (a)-[:studyAt]->(c:organisation) } OR b.fName='Greg'  RETURN COUNT(*)
+-ENUMERATE
+---- 1
+7
+
+-LOG ExistSubqueryTest5
+-STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person)-[:knows]->(c:person), (a)-[:knows]->(d:person) } RETURN COUNT(*)
+-ENUMERATE
+---- 1
+4
+
+-LOG NotExistSubqueryTest
+-STATEMENT MATCH (a:person) WHERE NOT EXISTS { MATCH (a)-[:knows]->(b:person) } RETURN COUNT(*)
+-ENUMERATE
+---- 1
+3
+
+-LOG ExistSubqueryMultiPartCyclicTest
+-STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person), (b)-[:knows]->(a) } RETURN COUNT(*)
+-ENUMERATE
+---- 1
+4
+
+-LOG ExistsSubqueryColExtendTest
+-STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:studyAt]->(b:organisation) } RETURN COUNT(*)
+-ENUMERATE
+---- 1
+3
+
+-LOG ExistsSubqueryORTest
+-STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:studyAt]->(b:organisation) } OR EXISTS { MATCH (a)-[:workAt]->(c:organisation) } RETURN COUNT(*)
+-ENUMERATE
+---- 1
+6
+
+-LOG NestedSubqueryTest
+-STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WHERE EXISTS { MATCH (b)-[:workAt]->(c:organisation) } } RETURN COUNT(*)
+-ENUMERATE
+---- 1
+4
+
+
+-LOG ExistSubqueryAliasTest2
+-STATEMENT MATCH (a:person) WITH a AS k MATCH (k)-[:knows]->(b:person) WHERE EXISTS { MATCH (k)-[:studyAt]->(c:organisation) } OR b.fName='Greg'  RETURN COUNT(*)
+-ENUMERATE
+---- 1
+7
+
+-LOG ExistSubqueryReturnTest
+-STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) } RETURN a.fName
+-ENUMERATE
+---- 5
+Alice
+Bob
+Carol
+Dan
+Elizabeth

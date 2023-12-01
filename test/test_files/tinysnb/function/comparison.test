@@ -1,0 +1,342 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE FunctionComparison
+
+-LOG INT8Equal
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.level = 5 RETURN s.length;
+---- 1
+5
+
+-LOG INT8NotEqual
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.level <> 5 RETURN s.length;
+---- 2
+55
+22
+
+-LOG INT64Equal
+-STATEMENT MATCH (p:person) WHERE p.ID = 5 RETURN p.fName;
+---- 1
+Dan
+
+-LOG INT64NotEqual
+-STATEMENT MATCH (p:person) WHERE p.ID <> 2 RETURN p.ID;
+---- 7
+0
+3
+5
+7
+8
+9
+10
+
+-LOG UINT8Equal
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.ulevel = 250 RETURN s.level;
+---- 1
+5
+
+-LOG UINT8NotEqual
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.ulevel <> 250 RETURN s.level;
+---- 2
+120
+2
+
+-LOG UINT16NotEqual
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.ulength = 33768 RETURN s.level;
+---- 1
+5
+
+-LOG UINT16NotEqual
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.ulength <> 33768 RETURN s.level;
+---- 2
+120
+2
+
+-LOG UINT32Equal
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.temprature = 32800 RETURN s.level;
+---- 1
+5
+
+-LOG UINT32NotEqual
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.temprature <> 32800 RETURN s.level;
+---- 2
+120
+2
+
+-LOG INT128Equal
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.hugedata = -15 RETURN s.level;
+---- 1
+2
+
+-LOG INT128GreaterEqual
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.hugedata >= -15 RETURN s.level;
+---- 2
+5
+2
+
+-LOG INT128LessEqual
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.hugedata <= -15 RETURN s.level;
+---- 2
+2
+120
+
+-LOG INT128NotEqual
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.hugedata <> -15 RETURN s.level;
+---- 2
+120
+5
+
+-LOG UINT64Equal
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.code = 6689 RETURN s.level;
+---- 1
+120
+
+-LOG UINT64NotEqual
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.code <> 6689 RETURN s.level;
+---- 2
+5
+2
+
+-LOG INT64Greater
+-STATEMENT MATCH (p:person) WHERE p.ID > 5 RETURN p.fName;
+---- 4
+Elizabeth
+Farooq
+Greg
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-LOG INT64GreaterEqual
+-STATEMENT MATCH (p:person) WHERE p.ID >= 5 RETURN p.fName;
+---- 5
+Dan
+Elizabeth
+Farooq
+Greg
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-LOG INT64Less
+-STATEMENT MATCH (p:person) WHERE p.ID < 5 RETURN p.fName;
+---- 3
+Alice
+Bob
+Carol
+
+-LOG INT64LessEqual
+-STATEMENT MATCH (p:person) WHERE p.ID <= 5 RETURN p.fName;
+---- 4
+Alice
+Bob
+Carol
+Dan
+
+-LOG StringEqual
+-STATEMENT MATCH (p:person) WHERE p.fName = 'Alice' RETURN p.ID;
+---- 1
+0
+
+-LOG StringNotEqual
+-STATEMENT MATCH (p:person) WHERE p.fName <> 'Alice' RETURN p.ID;
+---- 7
+2
+3
+5
+7
+8
+9
+10
+
+-LOG StringGreater
+-STATEMENT MATCH (p:person) WHERE p.fName > 'Dan' RETURN p.fName;
+---- 4
+Elizabeth
+Farooq
+Greg
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-LOG StringGreaterEqual
+-STATEMENT MATCH (p:person) WHERE p.fName >= 'Dan' RETURN p.fName;
+---- 5
+Dan
+Elizabeth
+Farooq
+Greg
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-LOG StringLess
+-STATEMENT MATCH (p:person) WHERE p.fName < 'Dan' RETURN p.fName;
+---- 3
+Alice
+Bob
+Carol
+
+-LOG StringLessEqual
+-STATEMENT MATCH (p:person) WHERE p.fName <= 'Dan' RETURN p.fName;
+---- 4
+Alice
+Bob
+Carol
+Dan
+
+-LOG ListOfInt64Equal
+-STATEMENT MATCH (p:person) WHERE p.workedHours = [12, 8] RETURN p.ID;
+---- 1
+2
+
+-LOG ListOfInt64NotEqual
+-STATEMENT MATCH (p:person) WHERE p.workedHours <> [12, 8] RETURN p.ID;
+---- 7
+0
+3
+5
+7
+8
+9
+10
+
+-LOG ListOfInt64Greater
+-STATEMENT MATCH (p:person) WHERE p.workedHours > [2] RETURN p.fName;
+---- 5
+Alice
+Bob
+Carol
+Farooq
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-LOG ListOfInt64GreaterEqual
+-STATEMENT MATCH (p:person) WHERE p.workedHours >= [4,5] RETURN p.fName;
+---- 4
+Alice
+Bob
+Carol
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-LOG ListOfInt64Less
+-STATEMENT MATCH (p:person) WHERE p.workedHours < [3,4,5] RETURN p.fName;
+---- 3
+Dan
+Elizabeth
+Greg
+
+-LOG ListOfInt64LessEqual
+-STATEMENT MATCH (p:person) WHERE p.workedHours <= [8] RETURN p.fName;
+---- 5
+Carol
+Dan
+Elizabeth
+Farooq
+Greg
+
+-LOG ListOfListOfInt64Equal
+-STATEMENT MATCH (p:person) WHERE p.courseScoresPerTerm = [[8,9],[9,10]] RETURN p.ID;
+---- 1
+2
+
+-LOG ListOfListOfInt64NotEqual
+-STATEMENT MATCH (p:person) WHERE p.courseScoresPerTerm <> [[8,9],[9,10]] RETURN p.ID;
+---- 7
+0
+3
+5
+7
+8
+9
+10
+
+-LOG ListOfListOfInt64Greater
+-STATEMENT MATCH (p:person) WHERE p.courseScoresPerTerm > [[8,9],[6,4]] RETURN p.fName;
+---- 4
+Alice
+Bob
+Carol
+Greg
+
+-LOG ListOfListOfInt64GreaterEqual
+-STATEMENT MATCH (p:person) WHERE p.courseScoresPerTerm >= [[10,8],[6,7,8]] RETURN p.fName;
+---- 1
+Alice
+
+-LOG ListOfListOfInt64Less
+-STATEMENT MATCH (p:person) WHERE p.courseScoresPerTerm < [[8,9,2]] RETURN p.fName;
+---- 5
+Bob
+Dan
+Elizabeth
+Farooq
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-LOG ListOfListOfInt64LessEqual
+-STATEMENT MATCH (p:person) WHERE p.courseScoresPerTerm <= [[8]] RETURN p.fName;
+---- 4
+Dan
+Elizabeth
+Farooq
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-LOG ListGreaterWithNull
+-STATEMENT RETURN [3,4] > [3,NULL]
+---- 1
+False
+
+-LOG ListGreaterWithNull
+-STATEMENT RETURN [3, NULL, 2] > [3,NULL]
+---- 1
+True
+
+-LOG ListNotEqualWithNull
+-STATEMENT RETURN [NULL, 2] <> [NULL]
+---- 1
+True
+
+-LOG StructEqual
+-STATEMENT MATCH (m:movies) WHERE m.description = {a: 7.0, b: to_int8(10), c: 982, d: timestamp('2018-11-13 13:33:11'), e: date('2014-09-12'), f: to_uint8(12), g: to_uint16(120), h: to_uint32(55), i: to_uint64(1), j: to_int128(-1844674407370955161511)} RETURN m.name;
+---- 1
+The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
+
+-LOG StructNotEqual
+-STATEMENT MATCH (m:movies) WHERE m.description <> {rating: 1223.0, stars: to_int8(100), views: 10003, release: timestamp('2011-02-11 16:44:22'), film: date('2013-02-22'), u8: to_uint8(1), u16: to_uint16(15), u32: to_uint32(200), u64: to_uint64(4), hugedata: to_int128(-15)} RETURN m.name;
+---- 2
+Sóló cón tu párejâ
+The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
+
+-LOG StructGreater
+-STATEMENT MATCH (m:movies) WHERE m.description > {rating: 5.3, stars: to_int8(2), views: 152, release: timestamp('2011-08-20 11:25:30'), film: date('2012-05-11'), u8: to_uint8(220), u16: to_uint16(20), u32: to_uint32(1), u64: to_uint64(180), hugedata: to_int128(1844674407370955161811111111)} RETURN m.name;
+---- 2
+The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
+Roma
+
+-LOG StructGreaterEqual
+-STATEMENT MATCH (m:movies) WHERE m.description >= {rating: 5.3, stars: to_int8(2), views: 152, release: timestamp('2011-08-20 11:25:30'), film: date('2012-05-11'), u8: to_uint8(220), u16: to_uint16(20), u32: to_uint32(1), u64: to_uint64(180), hugedata: to_int128(1844674407370955161811111111)} RETURN m.name;
+---- 3
+Sóló cón tu párejâ
+The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
+Roma
+
+-LOG StructLess
+-STATEMENT MATCH (m:movies) WHERE m.description < {rating: 7.0, stars: to_int8(10), views: 1000, release: timestamp('2018-11-13 13:33:11'), film: date('2014-09-12'), u8: to_uint8(12), u16: to_uint16(120), u32: to_uint32(55), u64: to_uint64(1), hugedata: to_int128(-1844674407370955161511)} RETURN m.name;
+---- 2
+Sóló cón tu párejâ
+The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
+
+-LOG StructLessEqual
+-STATEMENT MATCH (m:movies) WHERE m.description <= {rating: 1223.0, stars: to_int8(100), views: 10004, release: timestamp('2011-02-11 16:44:22'), film: date('2013-02-22'), u8: to_uint8(1), u16: to_uint16(15), u32: to_uint32(200), u64: to_uint64(4), hugedata: to_int128(-15)} RETURN m.name;
+---- 3
+Sóló cón tu párejâ
+The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
+Roma
+
+-LOG StructGreaterWithNull
+-STATEMENT RETURN {a: 2, b: null} > {a: 2, b: 3}
+---- 1
+True
+
+-LOG StructGreaterWithNull
+-STATEMENT RETURN {a: 2, b: null} > {a: 2, b: null}
+---- 1
+False
+
+-LOG StructNotEqualWithNull
+-STATEMENT RETURN {a: 2, b: null} <> {a: 2, b: null}
+---- 1
+False

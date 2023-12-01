@@ -1,0 +1,64 @@
+-GROUP CreateRelTest
+-DATASET CSV rel-update-tests
+--
+
+-DEFINE_STATEMENT_BLOCK INSERT_RELS_TO_MANY_TO_ONE_REL_TABLE [
+-STATEMENT MATCH (a:person),(b:person) WHERE a.ID=704 and b.ID=2103 CREATE (a)-[e:teaches{length: 50}]->(b)
+---- ok
+-STATEMENT MATCH (a:person),(b:person) WHERE a.ID=970 and b.ID=1765 CREATE (a)-[e:teaches{length: 1000}]->(b)
+---- ok
+-STATEMENT MATCH (a:person),(b:person) WHERE a.ID=444 and b.ID=1432 CREATE (a)-[e:teaches{}]->(b)
+---- ok
+]
+
+-CASE insertRelsToManyToOneRelTableCommitNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_RELS_TO_MANY_TO_ONE_REL_TABLE
+-STATEMENT COMMIT
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:teaches]->(:person) WHERE a.ID > 200 RETURN e.length
+---- 3
+
+1000
+50
+
+-CASE insertRelsToManyToOneRelTableCommitRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_RELS_TO_MANY_TO_ONE_REL_TABLE
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:teaches]->(:person) WHERE a.ID > 200 RETURN e.length
+---- 3
+
+1000
+50
+
+-CASE insertRelsToManyToOneRelTableRollbackNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_RELS_TO_MANY_TO_ONE_REL_TABLE
+-STATEMENT Rollback
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:teaches]->(:person) WHERE a.ID > 200 RETURN e.length
+---- 0
+
+-CASE insertRelsToManyToOneRelTableRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_RELS_TO_MANY_TO_ONE_REL_TABLE
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:teaches]->(:person) WHERE a.ID > 200 RETURN e.length
+---- 0

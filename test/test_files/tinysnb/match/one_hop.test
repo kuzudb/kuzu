@@ -1,0 +1,30 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE MatchOneHop
+
+-LOG OneHopKnowsTest
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+14
+
+-LOG OneHopStudyAtTest
+-STATEMENT MATCH (a:person)-[e1:studyAt]->(b:organisation) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+3
+
+-LOG OneHopWorkAtTest
+-STATEMENT MATCH (a:person)-[e1:workAt]->(b:organisation) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+3
+
+-LOG OneHopCrossProductTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person), (c:person)-[:knows]->(d:person) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+196

@@ -1,0 +1,389 @@
+-GROUP TCKMatch2
+-DATASET CSV tck
+--
+
+# Match non-existent relationships returns empty
+-CASE Scenario1
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT MATCH ()-[r]->() RETURN r;
+---- error
+Binder exception: No rel table exists in database.
+
+# Matching a relationship pattern using a label predicate on both sides
+-CASE Scenario2
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T1(FROM A TO B);
+---- ok
+-STATEMENT CREATE REL TABLE T2(FROM B TO A);
+---- ok
+-STATEMENT CREATE REL TABLE T3(FROM B TO B);
+---- ok
+-STATEMENT CREATE REL TABLE T4(FROM A TO A);
+---- ok
+-STATEMENT CREATE (:A)-[:T1]->(:B),
+                  (:B)-[:T2]->(:A),
+                  (:B)-[:T3]->(:B),
+                  (:A)-[:T4]->(:A);
+---- ok
+-STATEMENT MATCH (:A)-[r]->(:B) RETURN r;
+---- 1
+(0:0)-{_LABEL: T1, _ID: 2:0}->(1:0)
+
+# Matching a self-loop with an undirected relationship pattern
+-CASE Scenario3&4
+-STATEMENT CREATE NODE TABLE A(name STRING, PRIMARY KEY(name));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+-STATEMENT CREATE (a:A {name:'xx'}) CREATE (a)-[:T]->(a);
+---- ok
+# Note: tck test only returns 1 tuple. Though we shouldn't do so if the semantic of undirected is to match
+# both fwd and bwd adjList.
+-STATEMENT MATCH (a)-[:T]-(a) RETURN a;
+---- 2
+{_ID: 0:0, _LABEL: A, name: xx}
+{_ID: 0:0, _LABEL: A, name: xx}
+-STATEMENT MATCH (a)-[:T]->(a) RETURN a;
+---- 1
+{_ID: 0:0, _LABEL: A, name: xx}
+
+# Match relationship with inline property value
+-CASE Scenario5
+-STATEMENT CREATE NODE TABLE A(ID INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE KNOWS(FROM A TO A, name STRING);
+---- ok
+-STATEMENT CREATE (:A {ID: 1})<-[:KNOWS {name: 'monkey'}]-(:A {ID: 3})-[:KNOWS {name: 'woot'}]->(:A {ID: 5});
+---- ok
+-STATEMENT MATCH (n)-[r:KNOWS {name: 'monkey'}]->(a) RETURN a;
+---- 1
+{_ID: 0:0, _LABEL: A, ID: 1}
+
+
+# Match relationships with multiple types
+-CASE Scenario6
+-STATEMENT CREATE NODE TABLE A(name STRING, PRIMARY KEY(name));
+---- ok
+-STATEMENT CREATE REL TABLE KNOWS(FROM A TO A, name STRING);
+---- ok
+-STATEMENT CREATE REL TABLE HATES(FROM A TO A, name STRING);
+---- ok
+-STATEMENT CREATE REL TABLE WONDERS(FROM A TO A, name STRING);
+---- ok
+-STATEMENT CREATE  (a:A {name: 'A'}),
+                   (b:A {name: 'B'}),
+                   (c:A {name: 'C'}),
+                   (a)-[:KNOWS]->(b),
+                   (a)-[:HATES]->(c),
+                   (a)-[:WONDERS]->(c)
+---- ok
+-STATEMENT MATCH (n) RETURN COUNT(*);
+---- 1
+3
+-STATEMENT MATCH ()-[]->() RETURN COUNT(*);
+---- 1
+3
+-STATEMENT MATCH (n)-[r:KNOWS|HATES]->(x) RETURN r;
+---- 2
+(0:0)-{_LABEL: HATES, _ID: 2:0}->(0:2)
+(0:0)-{_LABEL: KNOWS, _ID: 1:0}->(0:1)
+
+
+# Matching twice with conflicting relationship types on same relationship
+-CASE Scenario7
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+-STATEMENT CREATE (:A)-[:T]->(:A);
+---- ok
+## openCypher allows binding repeated rel, while we don't
+-STATEMENT MATCH (a1)-[r:T]->()
+           WITH r, a1 MATCH
+           (a1)-[r:Y]->(b2)
+           RETURN a1, r, b2;
+---- error
+Binder exception: Bind relationship r to relationship with same name is not supported.
+
+
+# Fail when using parameter as relationship predicate in MATCH
+-CASE Scenario8
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+-STATEMENT MATCH ()-[r:FOO $param]->() RETURN r;
+---- error
+Parser exception: Invalid input <MATCH ()-[r:FOO $>: expected rule oC_SingleQuery (line: 1, offset: 16)
+"MATCH ()-[r:FOO $param]->() RETURN r;"
+                 ^
+
+# Fail when a node has the same variable in a preceding MATCH
+-CASE Scenario9
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+-STATEMENT MATCH (r) MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (r)-[]-() MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (r)-[]->() MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (r)<-[]-() MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (r)-[]-(r) MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH ()-[]->(r) MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH ()<-[]-(r) MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH ()-[]-(r) MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (r)-[]->(r) MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (r)<-[]-(r) MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (r)-[]-()-[]-() MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH ()-[]-(r)-[]-() MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (r)-[]-()-[*1..30]-() MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH ()-[]-(r)-[*1..30]-() MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (r), ()-[]-() MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (r)-[]-(), ()-[]-() MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH ()-[]-(r), ()-[]-() MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH ()-[]-(), (r)-[]-() MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH ()-[]-(), ()-[]-(r) MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (r)-[]-(t), (s)-[]-(t) MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (s)-[]-(r), (s)-[]-(t) MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (s)-[]-(t), (r)-[]-(t) MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (s)-[]-(t), (s)-[]-(r) MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (s), (a)-[q]-(b), (r), (s)-[]-(t)-[]-(b) MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (s), (a)-[q]-(b), (r), (s)-[]->(t)<-[]-(b) MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (s), (a)-[q]-(b), (t), (s)-[]->(r)<-[]-(b) MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+
+# Fail when a path has the same variable in a preceding MATCH
+-CASE Scenario10
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+-STATEMENT MATCH r = ()-[]-() MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type RECURSIVE_REL but (REL) was expected.
+-STATEMENT MATCH r = ()-[]->() MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type RECURSIVE_REL but (REL) was expected.
+-STATEMENT MATCH r = ()<-[]-() MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type RECURSIVE_REL but (REL) was expected.
+-STATEMENT MATCH r = ()-[*1..30]-() MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type RECURSIVE_REL but (REL) was expected.
+-STATEMENT MATCH r = ()-[*1..30]->() MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type RECURSIVE_REL but (REL) was expected.
+-STATEMENT MATCH r = ()<-[*1..30]-() MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type RECURSIVE_REL but (REL) was expected.
+-STATEMENT MATCH r = ()-[p*1..30]-() MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type RECURSIVE_REL but (REL) was expected.
+-STATEMENT MATCH r = ()-[p*1..30]->() MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type RECURSIVE_REL but (REL) was expected.
+-STATEMENT MATCH r = ()<-[p*1..30]-() MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type RECURSIVE_REL but (REL) was expected.
+-STATEMENT MATCH (), r = ()-[]-() MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type RECURSIVE_REL but (REL) was expected.
+-STATEMENT MATCH ()-[]-(), r = ()-[]-() MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type RECURSIVE_REL but (REL) was expected.
+-STATEMENT MATCH ()-[]->(), r = ()<-[]-() MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type RECURSIVE_REL but (REL) was expected.
+-STATEMENT MATCH ()<-[]-(), r = ()-[]->() MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type RECURSIVE_REL but (REL) was expected.
+-STATEMENT MATCH ()-[*1..30]->(), r = ()<-[]-() MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type RECURSIVE_REL but (REL) was expected.
+-STATEMENT MATCH ()<-[p*1..30]-(), r = ()-[*1..30]->() MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type RECURSIVE_REL but (REL) was expected.
+-STATEMENT MATCH (x), (a)-[q]-(b), (r), (s)-[]->(t)<-[]-(b) MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (x), (a)-[q]-(b), r = (s)-[p]->(t)<-[]-(b) MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type RECURSIVE_REL but (REL) was expected.
+-STATEMENT MATCH (x), (a)-[q*1..30]-(b), r = (s)-[p]->(t)<-[]-(b) MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type RECURSIVE_REL but (REL) was expected.
+-STATEMENT MATCH (x), (a)-[q]-(b), r = (s)-[p*1..30]->(t)<-[]-(b) MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type RECURSIVE_REL but (REL) was expected.
+
+# Fail when a node has the same variable in the same pattern
+-CASE Scenario11
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+-STATEMENT MATCH (r)-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (r)-[r]->() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (r)<-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (r)-[r]-(r) RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (r)-[r]->(r) RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (r)<-[r]-(r) RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (r)-[]-()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH ()-[]-(r)-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (r)-[]-()-[r*1..30]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (RECURSIVE_REL) was expected.
+-STATEMENT MATCH ()-[]-(r)-[r*1..30]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (RECURSIVE_REL) was expected.
+-STATEMENT MATCH (r), ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (r)-[]-(), ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH ()-[]-(r), ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (r)-[]-(t), (s)-[r]-(t) RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (s)-[]-(r), (s)-[r]-(t) RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (r), (a)-[q]-(b), (s), (s)-[r]-(t)-[]-(b) RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH (r), (a)-[q]-(b), (s), (s)-[r]->(t)<-[]-(b) RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+
+# Fail when a path has the same variable in the same pattern
+-CASE Scenario12
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+-STATEMENT MATCH r = ()-[]-(), ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type RECURSIVE_REL but (REL) was expected.
+-STATEMENT MATCH r = ()-[]-(), ()-[r*1..30]-() RETURN r;
+---- error
+Binder exception: Bind relationship r to relationship with same name is not supported.
+-STATEMENT MATCH r = (a)-[p]-(s)-[]-(b), (s)-[]-(t), (t), (t)-[r]-(b) RETURN r;
+---- error
+Binder exception: r has data type RECURSIVE_REL but (REL) was expected.
+-STATEMENT MATCH r = (a)-[p]-(s)-[]-(b), (s)-[]-(t), (t), (t)-[r*1..2]-(b) RETURN r;
+---- error
+Binder exception: Bind relationship r to relationship with same name is not supported.
+-STATEMENT MATCH r = (a)-[p]-(s)-[*1..2]-(b), (s)-[]-(t), (t), (t)-[r*1..2]-(b) RETURN r;
+---- error
+Binder exception: Bind relationship r to relationship with same name is not supported.
+-STATEMENT MATCH (a)-[p]-(s)-[]-(b), r = (s)-[]-(t), (t), (t)-[r*1..2]-(b) RETURN r;
+---- error
+Binder exception: Bind relationship r to relationship with same name is not supported.
+-STATEMENT MATCH (a)-[p]-(s)-[]-(b), r = (s)-[*1..2]-(t), (t), (t)-[r]-(b) RETURN r;
+---- error
+Binder exception: r has data type RECURSIVE_REL but (REL) was expected.
+-STATEMENT MATCH (a)-[p]-(s)-[]-(b), r = (s)-[*1..2]-(t), (t), (t)-[r*1..2]-(b) RETURN r;
+---- error
+Binder exception: Bind relationship r to relationship with same name is not supported.
+
+# Fail when matching a relationship variable bound to a value
+-CASE Scenario13
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+-STATEMENT WITH true AS r MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type BOOL but (REL) was expected.
+-STATEMENT WITH 123 AS r MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type INT64 but (REL) was expected.
+-STATEMENT WITH 123.4 AS r MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type DOUBLE but (REL) was expected.
+-STATEMENT WITH 'foo' AS r MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type STRING but (REL) was expected.
+-STATEMENT WITH [10] AS r MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type VAR_LIST but (REL) was expected.
+-STATEMENT WITH {x: 1} AS r MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type STRUCT but (REL) was expected.
+-STATEMENT WITH {x: [1]} AS r MATCH ()-[r]-() RETURN r;
+---- error
+Binder exception: r has data type STRUCT but (REL) was expected.

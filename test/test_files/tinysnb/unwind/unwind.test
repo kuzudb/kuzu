@@ -1,0 +1,165 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE Unwind
+-DEFINE UNWIND_LIST ARANGE 1 4001
+
+-STATEMENT MATCH p = (a:person)-[e:knows*1..2]->(b:person) UNWIND nodes(p) AS n MATCH (a)-[]->(n) RETURN COUNT(*);
+---- error
+Binder exception: Cannot bind n as node pattern.
+-STATEMENT MATCH p = (a:person)-[e:knows*1..2]->(b:person) UNWIND nodes(p) AS n SET n.fName = 'Alice';
+---- error
+Binder exception: Cannot set expression n with type VARIABLE. Expect node or rel pattern.
+-STATEMENT MATCH p = (a:person)-[e:knows*1..2]->(b:person) UNWIND nodes(p) AS n DELETE n;
+---- error
+Binder exception: Cannot delete expression n with type VARIABLE. Expect node or rel pattern.
+
+-LOG unwind14
+-STATEMENT MATCH (a:person) WITH collect(a) as b UNWIND b AS d RETURN d;
+---- 8
+{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000}
+{_ID: 0:1, _LABEL: person, ID: 2, fName: Bob, gender: 2, isStudent: True, isWorker: False, age: 30, eyeSight: 5.100000, birthdate: 1900-01-01, registerTime: 2008-11-03 15:25:30.000526, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [12,8], usedNames: [Bobby], courseScoresPerTerm: [[8,9],[9,10]], grades: [98,42,93,88], height: 0.990000}
+{_ID: 0:2, _LABEL: person, ID: 3, fName: Carol, gender: 1, isStudent: False, isWorker: True, age: 45, eyeSight: 5.000000, birthdate: 1940-06-22, registerTime: 1911-08-20 02:32:21, lastJobDuration: 48:24:11, workedHours: [4,5], usedNames: [Carmen,Fred], courseScoresPerTerm: [[8,10]], grades: [91,75,21,95], height: 1.000000}
+{_ID: 0:3, _LABEL: person, ID: 5, fName: Dan, gender: 2, isStudent: False, isWorker: True, age: 20, eyeSight: 4.800000, birthdate: 1950-07-23, registerTime: 2031-11-30 12:25:30, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [1,9], usedNames: [Wolfeschlegelstein,Daniel], courseScoresPerTerm: [[7,4],[8,8],[9]], grades: [76,88,99,89], height: 1.300000}
+{_ID: 0:4, _LABEL: person, ID: 7, fName: Elizabeth, gender: 1, isStudent: False, isWorker: True, age: 20, eyeSight: 4.700000, birthdate: 1980-10-26, registerTime: 1976-12-23 11:21:42, lastJobDuration: 48:24:11, workedHours: [2], usedNames: [Ein], courseScoresPerTerm: [[6],[7],[8]], grades: [96,59,65,88], height: 1.463000}
+{_ID: 0:5, _LABEL: person, ID: 8, fName: Farooq, gender: 2, isStudent: True, isWorker: False, age: 25, eyeSight: 4.500000, birthdate: 1980-10-26, registerTime: 1972-07-31 13:22:30.678559, lastJobDuration: 00:18:00.024, workedHours: [3,4,5,6,7], usedNames: [Fesdwe], courseScoresPerTerm: [[8]], grades: [80,78,34,83], height: 1.510000}
+{_ID: 0:6, _LABEL: person, ID: 9, fName: Greg, gender: 2, isStudent: False, isWorker: False, age: 40, eyeSight: 4.900000, birthdate: 1980-10-26, registerTime: 1976-12-23 04:41:42, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [1], usedNames: [Grad], courseScoresPerTerm: [[10]], grades: [43,83,67,43], height: 1.600000}
+{_ID: 0:7, _LABEL: person, ID: 10, fName: Hubert Blaine Wolfeschlegelsteinhausenbergerdorff, gender: 2, isStudent: False, isWorker: True, age: 83, eyeSight: 4.900000, birthdate: 1990-11-27, registerTime: 2023-02-21 13:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,11,12,3,4,5,6,7], usedNames: [Ad,De,Hi,Kye,Orlan], courseScoresPerTerm: [[7],[10],[6,7]], grades: [77,64,100,54], height: 1.323000}
+-STATEMENT MATCH (a:person) WITH collect(a) as b UNWIND b AS d RETURN d.*;
+---- 8
+0:0|person|0|Alice|1|True|False|35|5.000000|1900-01-01|2011-08-20 11:25:30|3 years 2 days 13:02:00|[10,5]|[Aida]|[[10,8],[6,7,8]]|[96,54,86,92]|1.731000
+0:1|person|2|Bob|2|True|False|30|5.100000|1900-01-01|2008-11-03 15:25:30.000526|10 years 5 months 13:00:00.000024|[12,8]|[Bobby]|[[8,9],[9,10]]|[98,42,93,88]|0.990000
+0:2|person|3|Carol|1|False|True|45|5.000000|1940-06-22|1911-08-20 02:32:21|48:24:11|[4,5]|[Carmen,Fred]|[[8,10]]|[91,75,21,95]|1.000000
+0:3|person|5|Dan|2|False|True|20|4.800000|1950-07-23|2031-11-30 12:25:30|10 years 5 months 13:00:00.000024|[1,9]|[Wolfeschlegelstein,Daniel]|[[7,4],[8,8],[9]]|[76,88,99,89]|1.300000
+0:4|person|7|Elizabeth|1|False|True|20|4.700000|1980-10-26|1976-12-23 11:21:42|48:24:11|[2]|[Ein]|[[6],[7],[8]]|[96,59,65,88]|1.463000
+0:5|person|8|Farooq|2|True|False|25|4.500000|1980-10-26|1972-07-31 13:22:30.678559|00:18:00.024|[3,4,5,6,7]|[Fesdwe]|[[8]]|[80,78,34,83]|1.510000
+0:6|person|9|Greg|2|False|False|40|4.900000|1980-10-26|1976-12-23 04:41:42|10 years 5 months 13:00:00.000024|[1]|[Grad]|[[10]]|[43,83,67,43]|1.600000
+0:7|person|10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|False|True|83|4.900000|1990-11-27|2023-02-21 13:25:30|3 years 2 days 13:02:00|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]|[[7],[10],[6,7]]|[77,64,100,54]|1.323000
+-STATEMENT MATCH (a:person) WITH collect(a) as b UNWIND b AS d RETURN d._id, d.ID, d.fName, d.age + 3, substr(d.fName, 1, 3);
+---- 8
+0:0|0|Alice|38|Ali
+0:1|2|Bob|33|Bob
+0:2|3|Carol|48|Car
+0:3|5|Dan|23|Dan
+0:4|7|Elizabeth|23|Eli
+0:5|8|Farooq|28|Far
+0:6|9|Greg|43|Gre
+0:7|10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|86|Hub
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID = 7 WITH a, collect(e) AS es UNWIND es AS e RETURN a.fName, e._ID, e.date, e.comments
+---- 2
+Elizabeth|3:12|1905-12-12|[ahu2333333333333,12weeeeeeeeeeeeeeeeee]
+Elizabeth|3:13|1905-12-12|[peweeeeeeeeeeeeeeeee,kowje9w0eweeeeeeeee]
+-STATEMENT MATCH p = (a:person)-[e:knows]->(b:person) WHERE a.ID = 0 UNWIND nodes(p) AS n RETURN n.ID, n.fName;
+---- 6
+0|Alice
+0|Alice
+0|Alice
+2|Bob
+3|Carol
+5|Dan
+-STATEMENT MATCH p = (a:person)-[e:knows*1..2]->(b:person) WHERE a.ID = 0 AND b.ID = 2 UNWIND rels(p) AS er RETURN er._ID, er.date
+---- 5
+3:0|2021-06-30
+3:10|1950-05-14
+3:1|2021-06-30
+3:2|2021-06-30
+3:7|1950-05-14
+
+
+-LOG unwind1
+-STATEMENT UNWIND [1, 2, 3, 4] AS x RETURN x
+---- 4
+1
+2
+3
+4
+
+-LOG unwind2
+-STATEMENT UNWIND [[1, 2, 3], [2, 3, 4], [3, 4, 1], [4, 1, 2]] AS x RETURN x
+---- 4
+[1,2,3]
+[2,3,4]
+[3,4,1]
+[4,1,2]
+
+-LOG unwind3
+-STATEMENT UNWIND ["adhjsdhhhhhhhhhhhhsjsjjdhsjdhdjshdjdadhjsdhhqwrtetrehhhhsjsjjdhsjdhdjshdjd", "basdfghjkjkjhkjhkjhkj", "c", "d"] AS x RETURN x
+---- 4
+adhjsdhhhhhhhhhhhhsjsjjdhsjdhdjshdjdadhjsdhhqwrtetrehhhhsjsjjdhsjdhdjshdjd
+basdfghjkjkjhkjhkjhkj
+c
+d
+
+-LOG unwind4
+-STATEMENT UNWIND [1, 2, 3, 4] AS x RETURN x + 2
+---- 4
+3
+4
+5
+6
+
+-LOG unwind5
+-STATEMENT UNWIND [1,2,3,4] AS x WITH x AS b WHERE b > 2 RETURN b
+---- 2
+3
+4
+
+-LOG unwind6
+-STATEMENT UNWIND ${UNWIND_LIST} AS x WITH x AS b WHERE b > 4000 RETURN b
+---- 1
+4001
+
+-LOG unwind7
+-STATEMENT UNWIND [1, 2, 3] AS x UNWIND [5, 6, 7] AS y RETURN x,y
+---- 9
+1|5
+1|6
+1|7
+2|5
+2|6
+2|7
+3|5
+3|6
+3|7
+
+-LOG unwind8
+-STATEMENT MATCH (a:person) WHERE a.fName = 'Alice' UNWIND a.workedHours as x RETURN x,a.fName
+---- 2
+10|Alice
+5|Alice
+
+-LOG unwind9
+-STATEMENT MATCH (a:person)-[:studyAt]->(b:organisation) WHERE b.ID = 1 AND a.fName = 'Farooq' UNWIND a.workedHours as x RETURN x,a.fName
+---- 5
+3|Farooq
+4|Farooq
+5|Farooq
+6|Farooq
+7|Farooq
+
+-LOG unwind10
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE a.ID = 0 AND b.ID = 2 UNWIND a.usedNames as x RETURN x,a.fName,b.fName,c.fName
+---- 3
+Aida|Alice|Bob|Alice
+Aida|Alice|Bob|Carol
+Aida|Alice|Bob|Dan
+
+-LOG unwind11
+-STATEMENT MATCH (a:person) UNWIND a.workedHours as x WITH x AS hour WHERE hour < 0 RETURN COUNT(*)
+---- 1
+0
+
+-LOG unwind12
+-STATEMENT UNWIND [1,2,3,4] as val WITH val ORDER BY val SKIP 2 RETURN val
+---- 2
+3
+4
+
+-LOG unwind13
+-STATEMENT WITH [1, 1, 2, 2] AS coll UNWIND coll AS x WITH DISTINCT x return x
+---- 2
+1
+2
+

@@ -1,0 +1,38 @@
+name: Build-Linux-Java-Lib
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build-linux-java-x86_64:
+    runs-on: kuzu-self-hosted-linux-building
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build Java lib for Linux
+        run: |
+          source /opt/rh/devtoolset-11/enable
+          make java LTO=1 NUM_THREADS=$(nproc)
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: java-lib-linux-x86_64
+          path: tools/java_api/build/libkuzu_java_native*
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: kuzu-linux-jar
+          path: tools/java_api/build/*.jar
+
+  build-linux-java-aarch64:
+    runs-on: kuzu-self-hosted-linux-building-aarch64
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build Java lib for Linux
+        run: make java LTO=1 NUM_THREADS=$(nproc)
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: java-lib-linux-aarch64
+          path: tools/java_api/build/libkuzu_java_native*

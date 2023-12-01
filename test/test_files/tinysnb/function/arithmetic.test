@@ -1,0 +1,548 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE FunctionArithmetic
+-LOG moduloFunctionOnUINT16UINT8Test
+-STATEMENT MATCH (:person)-[a:studyAt]->(:organisation) RETURN a.ulength % a.ulevel
+---- 3
+0
+90
+18
+
+-LOG sinFunctionOnDoubleTest
+-STATEMENT MATCH (a:organisation) WHERE a.name <> 'abc' RETURN sin(a.mark)
+---- 3
+-0.529836
+-0.818277
+-0.818277
+
+-LOG sinFunctionOnInt64Test
+-STATEMENT MATCH (a:organisation) RETURN sin(a.orgCode)
+---- 3
+-0.988036
+-0.811656
+0.785018
+
+-LOG sinFunctionOnFloatTest
+-STATEMENT MATCH (a:person) RETURN sin(a.height)
+---- 8
+0.987195
+0.836026
+0.841471
+0.963558
+0.994196
+0.998152
+0.999574
+0.969455
+
+-LOG cosFunctionOnDoubleTest
+-STATEMENT MATCH (a:organisation) RETURN cos(a.mark)
+---- 3
+-0.848100
+-0.574824
+-0.574824
+
+-LOG cosFunctionOnInt64Test
+-STATEMENT MATCH (a:organisation) RETURN cos(a.orgCode)
+---- 3
+-0.154222
+-0.584135
+0.619473
+
+-LOG cosFunctionOnInt32Test
+-STATEMENT MATCH (m:movies) RETURN cos(m.length)
+---- 3
+0.943984
+0.771215
+-0.899880
+
+-LOG cosFunctionOnInt128Test
+-STATEMENT MATCH (m:movies) RETURN cos(to_int128(m.length))
+---- 3
+0.943984
+0.771215
+-0.899880
+
+-LOG tanFunctionOnDoubleTest
+-STATEMENT MATCH (a:organisation) RETURN tan(a.mark)
+---- 3
+0.624733
+1.423526
+1.423526
+
+-LOG tanFunctionOnInt64Test
+-STATEMENT MATCH (a:organisation) RETURN tan(a.orgCode)
+---- 3
+6.406598
+1.389500
+1.267234
+
+-LOG cotFunctionOnDoubleTest
+-STATEMENT MATCH (a:organisation) RETURN cot(a.mark)
+---- 3
+1.600684
+0.702481
+0.702481
+
+-LOG cotFunctionOnInt16Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN cot(s.length)
+---- 3
+-0.295813
+-0.022132
+112.973210
+
+-LOG cotFunctionOnInt64Test
+-STATEMENT MATCH (a:organisation) RETURN cot(a.orgCode)
+---- 3
+0.156089
+0.719683
+0.789120
+
+-LOG asinFunctionOnDoubleTest
+-STATEMENT MATCH (a:organisation) RETURN asin(a.rating)
+---- 3
+1.570796
+0.894666
+0.546851
+
+-LOG asinFunctionOnInt64Test
+-STATEMENT MATCH (a:organisation) RETURN asin(a.orgCode % 2 - 1)
+---- 3
+0.000000
+-1.570796
+-1.570796
+
+-LOG acosFunctionOnDoubleTest
+-STATEMENT MATCH (a:organisation) RETURN acos(a.rating)
+---- 3
+0.000000
+0.676131
+1.023945
+
+-LOG acosFunctionOnInt64Test
+-STATEMENT MATCH (a:organisation) RETURN acos(a.orgCode % 2 - 1)
+---- 3
+1.570796
+3.141593
+3.141593
+
+-LOG modFunctionOnINT128Test
+-STATEMENT RETURN to_int128(100) % to_int128(3)
+---- 1
+1
+
+-LOG modNegFunctionOnINT128Test
+-STATEMENT RETURN to_int128(-100) % to_int128(3)
+---- 1
+-1
+
+-LOG negModFunctionOnINT128Test
+-STATEMENT RETURN to_int128(100) % to_int128(-3)
+---- 1
+1
+
+-LOG atanFunctionOnDoubleTest
+-STATEMENT MATCH (a:organisation) RETURN atan(a.rating)
+---- 3
+0.785398
+0.662426
+0.479519
+
+-LOG atanFunctionOnInt64Test
+-STATEMENT MATCH (a:organisation) RETURN atan(a.orgCode % 2 - 1)
+---- 3
+0.000000
+-0.785398
+-0.785398
+
+-LOG evenFunctionOnDoubleTest
+-STATEMENT MATCH (a:organisation) RETURN even(a.mark)
+---- 3
+4.000000
+6.000000
+6.000000
+
+-LOG evenFunctionOnFloatTest
+-STATEMENT MATCH (a:person) RETURN even(a.height)
+---- 8
+2.000000
+2.000000
+2.000000
+2.000000
+2.000000
+2.000000
+2.000000
+2.000000
+
+-LOG evenFunctionOnInt64Test
+-STATEMENT MATCH (a:organisation) RETURN even(a.orgCode)
+---- 3
+326.000000
+934.000000
+824.000000
+
+-LOG factorialFunctionOnInt64Test
+-STATEMENT MATCH (a:organisation) RETURN factorial(a.orgCode % 20)
+---- 3
+120
+24
+87178291200
+
+-LOG factorialFunctionSyntaxInt64Test
+-STATEMENT MATCH (a:organisation) RETURN (a.orgCode % 20)!
+---- 3
+120
+24
+87178291200
+
+-LOG signFunctionOnDoubleTest
+-STATEMENT MATCH (a:organisation) RETURN sign(a.mark)
+---- 3
+1
+1
+1
+
+-LOG signFunctionOnInt64Test
+-STATEMENT MATCH (a:organisation) RETURN sign(a.orgCode)
+---- 3
+1
+1
+1
+
+-LOG sqrtFunctionOnDoubleTest
+-STATEMENT MATCH (a:organisation) RETURN sqrt(a.mark)
+---- 3
+1.923538
+2.024846
+2.024846
+
+-LOG sqrtFunctionOnInt64Test
+-STATEMENT MATCH (a:organisation) RETURN sqrt(a.orgCode)
+---- 3
+18.027756
+30.561414
+28.705400
+
+-LOG cbrtFunctionOnDoubleTest
+-STATEMENT MATCH (a:organisation) RETURN cbrt(a.mark)
+---- 3
+1.546680
+1.600521
+1.600521
+
+-LOG cbrtFunctionOnInt64Test
+-STATEMENT MATCH (a:organisation) RETURN cbrt(a.orgCode)
+---- 3
+6.875344
+9.774974
+9.375096
+
+-LOG gammaFunctionOnDoubleTest
+-STATEMENT MATCH (a:organisation) RETURN gamma(a.mark)
+---- 3
+4.170652
+6.812623
+6.812623
+
+-LOG gammaFunctionOnInt64Test
+-STATEMENT MATCH (a:organisation) RETURN gamma(a.orgCode % 10)
+---- 3
+24.000000
+6.000000
+6.000000
+
+-LOG lgammaFunctionOnDoubleTest
+-STATEMENT MATCH (a:organisation) RETURN lgamma(a.mark)
+---- 3
+1.428072
+1.918777
+1.918777
+
+-LOG lgammaFunctionOnInt64Test
+-STATEMENT MATCH (a:organisation) RETURN lgamma(a.orgCode)
+---- 3
+1552.770467
+5451.570283
+4706.038471
+
+-LOG lnFunctionOnDoubleTest
+-STATEMENT MATCH (a:organisation) RETURN ln(a.mark)
+---- 3
+1.308333
+1.410987
+1.410987
+
+-LOG lnFunctionOnInt64Test
+-STATEMENT MATCH (a:organisation) RETURN ln(a.orgCode)
+---- 3
+5.783825
+6.839476
+6.714171
+
+-LOG logFunctionOnDoubleTest
+-STATEMENT MATCH (a:organisation) RETURN log(a.mark)
+---- 3
+0.568202
+0.612784
+0.612784
+
+-LOG logFunctionOnInt64Test
+-STATEMENT MATCH (a:organisation) RETURN log(a.orgCode)
+---- 3
+2.511883
+2.970347
+2.915927
+
+-LOG log2FunctionOnDoubleTest
+-STATEMENT MATCH (a:organisation) RETURN log2(a.mark)
+---- 3
+1.887525
+2.035624
+2.035624
+
+-LOG log2FunctionOnInt64Test
+-STATEMENT MATCH (a:organisation) RETURN log2(a.orgCode)
+---- 3
+8.344296
+9.867279
+9.686501
+
+-LOG degreesFunctionOnDoubleTest
+-STATEMENT MATCH (a:organisation) RETURN degrees(a.mark)
+---- 3
+211.994384
+234.912696
+234.912696
+
+-LOG degreesFunctionOnInt64Test
+-STATEMENT MATCH (a:organisation) RETURN degrees(a.orgCode)
+---- 3
+18621.128342
+53514.258065
+47211.722319
+
+-LOG radiansFunctionOnDoubleTest
+-STATEMENT MATCH (a:organisation) RETURN radians(a.mark)
+---- 3
+0.064577
+0.071558
+0.071558
+
+-LOG radiansFunctionOnInt64Test
+-STATEMENT MATCH (a:organisation) RETURN radians(a.orgCode)
+---- 3
+5.672320
+16.301375
+14.381513
+
+-LOG atan2FunctionOnDoubleDoubleTest
+-STATEMENT MATCH (a:organisation) RETURN atan2(a.mark, a.mark)
+---- 3
+0.785398
+0.785398
+0.785398
+
+-LOG atan2FunctionOnDoubleInt64Test
+-STATEMENT MATCH (a:organisation) RETURN atan2(a.mark, a.orgCode)
+---- 3
+0.011384
+0.004390
+0.004976
+
+-LOG atan2FunctionOnInt64Int64Test
+-STATEMENT MATCH (a:organisation) RETURN atan2(a.orgCode, a.orgCode)
+---- 3
+0.785398
+0.785398
+0.785398
+
+-LOG atan2FunctionOnInt64DoubleTest
+-STATEMENT MATCH (a:organisation) RETURN atan2(a.orgCode, a.mark)
+---- 3
+1.559412
+1.566407
+1.565821
+
+-LOG atan2FunctionOnFloatDoubleTest
+-STATEMENT MATCH (a:person) RETURN atan2(a.height, a.eyeSight)
+---- 8
+0.191733
+0.197396
+0.263712
+0.264488
+0.301770
+0.315616
+0.323749
+0.333286
+
+-LOG roundFunctionOnDoubleTest
+-STATEMENT MATCH (a:organisation) WHERE a.ID <> 2 RETURN round(a.rating, 1)
+---- 3
+0.800000
+0.500000
+1.000000
+
+-LOG roundFunctionOnInt64Test
+-STATEMENT MATCH (a:organisation) RETURN round(a.orgCode, 2)
+---- 3
+325.000000
+824.000000
+934.000000
+
+-LOG piFunctionAddStrIntTest
+-STATEMENT MATCH (a:organisation) RETURN a.orgCode + pi()
+---- 3
+328.141593
+937.141593
+827.141593
+
+-LOG AbsFunctionStrInt
+-STATEMENT MATCH (a:organisation) RETURN abs(a.score)
+---- 3
+100
+2
+7
+
+-LOG AbsFunctionInt128
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN abs(e.hugedata)
+---- 3
+1844674407370955161511
+1844674407370955161811111111
+15
+
+-LOG FloorFunctionStrInt
+-STATEMENT MATCH (a:organisation) RETURN floor(a.score)
+---- 3
+-2
+-100
+7
+
+-LOG FloorFunctionInt128
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN floor(e.hugedata)
+---- 3
+-1844674407370955161511
+1844674407370955161811111111
+-15
+
+-LOG CeilFunctionStrInt
+-STATEMENT MATCH (a:organisation) RETURN ceil(a.score)
+---- 3
+-2
+-100
+7
+
+-LOG CeilFunctionInt128
+-STATEMENT MATCH (a:organisation) RETURN ceil(to_int128(a.score))
+---- 3
+-2
+-100
+7
+
+-LOG BitwiseAndFunctionTest
+-STATEMENT MATCH (p:person) RETURN p.age & 21
+---- 8
+1
+20
+5
+20
+20
+17
+0
+17
+
+-LOG BitwiseOrFunctionTest
+-STATEMENT MATCH (o:organisation) RETURN o.score | 35
+---- 3
+-1
+-65
+39
+
+-LOG BitshiftLeftFunctionTest
+-STATEMENT MATCH (p:person) RETURN p.age << 2
+---- 8
+140
+120
+180
+80
+80
+100
+160
+332
+
+-LOG BitshiftRightFunctionTest
+-STATEMENT MATCH (o:organisation) RETURN o.orgCode >> 3
+---- 3
+40
+116
+103
+
+-LOG BitwiseOperatorPrecedenceTest
+-STATEMENT MATCH (o:organisation) RETURN o.orgCode >> 2 | o.score & 2 << 1
+---- 3
+85
+237
+206
+
+-LOG NumericalOperatorPrecedenceTest1
+-STATEMENT MATCH (o:organisation) RETURN 3 & (o.score + 50)
+---- 3
+0
+2
+1
+
+-LOG NumericalOperatorPrecedenceTest2
+-STATEMENT MATCH (o:organisation) RETURN 2 + 3 << 5 + 2 & 1 + o.orgCode
+---- 3
+0
+640
+512
+
+-LOG INT8OperatorTest
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.level + 1 + to_int8(3)
+---- 3
+9
+124
+6
+
+-LOG Int128OperatorTest
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.hugedata + 1 - to_int128(3) * to_int128(2) - to_int128(9) / to_int128(3)
+---- 3
+1844674407370955161811111103
+-1844674407370955161519
+-23
+
+-LOG INT128DivTest
+-STATEMENT RETURN to_int128(6) / to_int128(3)
+---- 1
+2
+
+-LOG INT128NegDivTest
+-STATEMENT RETURN to_int128(-6) / to_int128(3)
+---- 1
+-2
+
+-LOG INT128DivNegTest
+-STATEMENT RETURN to_int128(6) / to_int128(-3)
+---- 1
+-2
+
+-LOG INT128RangeTest
+-STATEMENT RETURN to_int128(170141183460469231731687303715884105727)
+---- 1
+170141183460469231731687303715884105727
+
+-LOG MultiplyTest
+-STATEMENT RETURN cast(-2, "INT8") * cast(64, "INT8"), cast(-2, "INT16") * cast(16384, "INT16"), cast(-5, "INT32") * cast(5, "INT32"), cast(-5, "INT64") * cast(5, "INT64"), cast(-5, "INT128") * cast(5, "INT128"), cast(10, "UINT8") * cast(12, "UINT8"), cast(10, "UINT16") * cast(12, "UINT16"), cast(10, "UINT32") * cast(12, "UINT32"), cast(10, "UINT64") * cast(12, "UINT64"), cast(4324.123, "FLOAT") * cast(4324.123, "FLOAT"), cast(4324.123, "DOUBLE") * cast(4324.123, "DOUBLE");
+---- 1
+-128|-32768|-25|-25|-25|120|120|120|120|18698040.000000|18698039.719129
+-STATEMENT MATCH (:person)-[a:studyAt]->(:organisation) WHERE a.ulength > 3 RETURN a.ulength, a.ulevel, cast(a.ulength, "INT64") * cast(a.ulevel, "INT64");
+---- 3
+180|12|2160
+33768|250|8442000
+90|220|19800
+-STATEMENT RETURN cast(4294967295, "UINT64") * cast(4294967295, "UINT64");
+---- 1
+18446744065119617025
+

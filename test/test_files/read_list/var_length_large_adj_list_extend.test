@@ -1,0 +1,36 @@
+# For a node with large number of adjacent nodes, the varLengthAdjListExtend uses largeListHandler to fetch adjacent
+# nodes. We want to test whether the largeListHandler works as expected with a large adjacent list.
+
+# In the large list dataset, Node 0 extends to 0,..., 5000. Node (1...5000) extends to 5000. In level 1, there
+# are 10001 nodes (Node 0 extends to 5001 nodes and Node (1...5000) extends to another 5000 nodes). In level 2 there
+# are 15001 nodes (Node 0 from level 1 extends to 0...5000, the other 10000 nodes in level 1 all extend to Node 5000).
+# In level 3 there are 20001 nodes, and in level 4 there are 25001 nodes.
+# The total number of nodes in level 2, 3, 4 will be 15001+20001+25001=60003.
+# In general the formula is this: nth level will have 5K + (n-1)th level's number of nodes and level 1 has 10001 nodes.
+# So the nth level will contain 5K*(n+1) + 1 many number of nodes.
+
+-GROUP EndToEndReadLargeListsTest
+-DATASET CSV read-list-tests/large-list
+
+--
+
+-CASE LargeListTest
+
+-LOG ShortestPath
+-STATEMENT MATCH (a:person)-[:knows* SHORTEST 1..30]->(b:person) WHERE a.ID = 0 RETURN COUNT(*)
+---- 1
+5000
+-STATEMENT MATCH (a:person)-[:knows* ALL SHORTEST 1..30]->(b:person) WHERE a.ID = 0 RETURN COUNT(*)
+---- 1
+5000
+
+-LOG KnowsVeryLargeAdjListTest
+-STATEMENT MATCH (a:person)-[:knows*2..4]->(b:person) RETURN COUNT(*)
+---- 1
+60003
+
+# By the above formula, 28th, 29th, and 30th levels will contain 29*5K + 1, 30*5K + 1, and 31*5K+1 = 90*5K+3=450003.
+-LOG KnowsVeryLargeAdjListLongPathTest
+-STATEMENT MATCH (a:person)-[:knows*28..30]->(b:person) RETURN COUNT(*)
+---- 1
+450003

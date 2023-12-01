@@ -1,0 +1,55 @@
+-GROUP CopyNodeFromParquetTest
+-DATASET PARQUET copy-test/node/parquet
+
+--
+
+-CASE CopyNodeTest
+
+-LOG SubsetTest
+-STATEMENT MATCH (row:tableOfTypes) WHERE row.id >= 20 AND row.id <= 24 RETURN row.*;
+---- 5
+20|0|57.579280|True|2094-08-19|OdM|[85,11,98,6]|[wl7evae,lLtQIMJI,vNvYnjt27]|[[131,129]]|{ID: 717, name: 3oOf}
+21|7|64.630960|False|2090-07-13|AjbxHQThEtDDlOjbzMjCQSXlvGQEjcFLykESrnFHwPKX|[53,44,76,78]|[V0yNTz60W2i4J,LN3F2erCELm]|[[191,62],[64,259,183,130,116],[49,29,222,249,128],[222,169,22,80],[206,59]]|{ID: 956, name: GNX5sv9V}
+22|71|37.963386|True|2048-04-24|dRvHHdyNXYfSUcicaxBoQEKQUfgex|[74]|[GOLV1]|[[139,156,218],[148,187,62],[158,118],[297,151]]|{ID: 838, name: gRdEkZSI8qQ7dIH}
+23|58|42.774957|False|2043-08-19|ISImRVpUjynGMFRQyYmeIUVjM|[16,38,98,61,2]|[EzPWolZ2iCsga46o,lbhcKq7DDPeiX,yaxsyrbzolAyVWlxj,5Rlse62CKuIitVf4,yKOx0P]|[[95,209,75,7],[197],[69,244],[164,160,153,125]]|{ID: 682, name: 06SBnT}
+24|75|53.813224|False|1971-12-05|naDlQ|[94,17,22]|[gVYovI30hQyC,b6OpP]|[[81,66],[255,44],[37]]|{ID: 185, name: 7xymBThq}
+
+-LOG CheckNumLinesTest
+-STATEMENT MATCH (row:tableOfTypes) RETURN count(*)
+---- 1
+49999
+
+-LOG CountTrueTest
+-STATEMENT MATCH (row:tableOfTypes) WHERE row.booleanColumn = True RETURN count(*)
+---- 1
+24997
+
+-LOG CountFalseTest
+-STATEMENT MATCH (row:tableOfTypes) WHERE row.booleanColumn = False RETURN count(*)
+---- 1
+25002
+
+-LOG CheckSumTest
+-STATEMENT MATCH (row:tableOfTypes) RETURN sum(row.id), sum(row.int64Column), sum(row.doubleColumn)
+---- 1
+1249925001|2500180|2504542.349696
+
+-LOG EmptyStringTest
+-STATEMENT MATCH (row:tableOfTypes) WHERE row.id = 49992 RETURN row.*
+---- 1
+49992|50|31.582059|False|2056-05-02||[62,24,94]|[LpQO8OT3x45a]|[[268,281,166],[144,16,126,208,298],[22,287]]|{ID: 936, name: sGPSafxMAhKiP}
+
+-LOG FloatTest
+-STATEMENT MATCH (row:tableOfTypes) WHERE row.doubleColumn = 68.73718401556897 RETURN row.dateColumn;
+---- 1
+2055-08-09
+
+-LOG DateTest
+-STATEMENT MATCH (row:tableOfTypes) WHERE row.id = 25531 RETURN row.*;
+---- 1
+25531|77|28.417543|False|2040-07-09|XB|[0,28,9]|[tr8logjRgC]|[[101,261,4],[181,238,280]]|{ID: 817, name: GEryCr3Y68PJwpt}
+
+-LOG IntervalTest
+-STATEMENT MATCH (row:tableOfTypes) WHERE 0 <= row.doubleColumn AND row.doubleColumn <= 10 AND 0 <= row.int64Column AND row.int64Column <= 10 RETURN count(*);
+---- 1
+546

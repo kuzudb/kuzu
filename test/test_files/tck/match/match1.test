@@ -1,0 +1,348 @@
+-GROUP TCKMatch1
+-DATASET CSV tck
+
+--
+
+# Match non-existent nodes returns empty
+-CASE Scenario1
+-STATEMENT MATCH (n) RETURN n;
+---- error
+Binder exception: No node table exists in database.
+
+# Matching all nodes
+-CASE Scenario2
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A), (:B {name: 'b'});
+---- ok
+-STATEMENT MATCH (n) RETURN n;
+---- 2
+{_ID: 0:0, _LABEL: A, ID: 0}
+{_ID: 1:0, _LABEL: B, ID: 0, name: b}
+
+# Matching nodes using multiple labels
+-CASE Scenario3
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A), (:B), (:C);
+---- ok
+-STATEMENT MATCH (a:A:B) RETURN a;
+---- 2
+{_ID: 0:0, _LABEL: A, ID: 0}
+{_ID: 1:0, _LABEL: B, ID: 0}
+
+# Simple node inlnie property predicate
+-CASE Scenario4
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, firstName STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {name: 'bar'}), (:A {name: 'monkey'}), (:A {firstName: 'bar'});
+---- ok
+-STATEMENT MATCH (n {name: 'bar'}) RETURN n;
+---- 1
+{_ID: 0:0, _LABEL: A, ID: 0, name: bar}
+
+
+# Use multiple MATCH clauses to do a Cartesian product
+-CASE Scenario5
+-STATEMENT CREATE NODE TABLE A(num INT64, PRIMARY KEY(num));
+---- ok
+-STATEMENT CREATE (:A {num: 1}), (:A {num: 2}), (:A {num: 3});
+---- ok
+-STATEMENT MATCH (n), (m) RETURN n.num AS n, m.num AS m;
+---- 9
+1|1
+1|2
+1|3
+2|1
+2|2
+2|3
+3|1
+3|2
+3|3
+
+# Fail when using parameter as node predicate in MATCH
+-CASE Scenario6
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT MATCH (n $param) RETURN n;
+---- error
+Parser exception: Invalid input <MATCH (n $>: expected rule oC_SingleQuery (line: 1, offset: 9)
+"MATCH (n $param) RETURN n;"
+          ^
+
+# Fail when a relationship has the same variable in a preceding MATCH
+-CASE Scenario7
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE R(FROM A TO A);
+---- ok
+-STATEMENT MATCH ()-[r]-() MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[r]->() MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()<-[r]-() MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH (), ()-[r]-() MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[r]-(), () MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[]-(), ()-[r]-() MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[]-()-[r]-() MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[]-()-[]-(), ()-[r]-() MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[]-()-[]-(), ()-[r]-(), () MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[]-()-[]-(), (), ()-[r]-() MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH (x), (a)-[q]-(b), (s), (s)-[r]->(t)<-[]-(b) MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+
+# Fail when a path has the same variable in a preceding MATCH
+-CASE Scenario8
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE R(FROM A TO A);
+---- ok
+-STATEMENT MATCH r = ()-[]-() MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH r = ()-[]->() MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH r = ()<-[]-() MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH r = ()-[*1..30]-() MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH r = ()-[*1..30]->() MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH (), r = ()-[]-() MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH (), r = ()-[]->() MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH (), r = ()<-[]-() MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH (), r = ()-[*1..30]-() MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH (), r = ()-[*1..30]->() MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[]-(), r = ()-[]-(), () MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH r = ()-[]-(), ()-[]-(), () MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[]-()<-[]-(), r = ()-[]-() MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH (x), r = (a)-[q]-(b), (s)-[p]-(t)-[]-(b) MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH (x), (a)-[q]-(b), r = (s)-[p]-(t)-[]-(b) MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH (x), (a)-[q]-(b), r = (s)-[p]->(t)<-[]-(b) MATCH (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+
+
+# Fail when a relationship has the same variable in the same pattern
+-CASE Scenario9
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE R(FROM A TO A);
+---- ok
+-STATEMENT MATCH ()-[r]-(r) RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH ()-[r]->(r) RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH ()<-[r]-(r) RETURN r;
+---- error
+Binder exception: r has data type NODE but (REL) was expected.
+-STATEMENT MATCH ()-[r]-()-[]-(r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[r*1..30]-()-[]-(r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[r]-(), (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[r]->(), (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()<-[r]-(), (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[r]-(), (r)-[]-() RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[r]-(), ()-[]-(r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH (s)-[r]-(t), (r)-[]-(t) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH (s)-[r]-(t), (s)-[]-(r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH (), ()-[r]-(), (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[r]-(), (), (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[r]-(), (r), () RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[]-(), ()-[r]-(), (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[]-()-[r]-(), ()-[]-(r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[]-()-[]-(), ()-[r]-(), (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[]-()-[r]-(), (r), ()-[]-() RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[]-()-[r]-(), (), (r)-[]-() RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[]-()-[r*1..30]-(), (r), ()-[]-() RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[*1..30]-()-[r]-(), (), (r)-[]-() RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[*1..30]-()-[r]-(), (), (r)-[*1..30]-() RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[*1..30]-()-[r]-(), (), ()-[*1..30]-(r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH (x), (a)-[r]-(b), (s), (s)-[]->(r)<-[]-(b) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+
+# Fail when a path has the same variable in the same pattern
+-CASE Scenario10
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE R(FROM A TO A);
+---- ok
+-STATEMENT MATCH r = ()-[]-(), (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH r = ()-[]->(), (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH r = ()<-[]-(), (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH r = ()-[*1..30]-(), (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH r = ()-[*1..30]->(), (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH (), r = ()-[]-(), (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH (), r = ()-[]->(), (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH (), r = ()<-[]-(), (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH (), r = ()-[*1..30]-(), (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH (), r = ()-[*1..30]->(), (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[]-(), r = ()-[]-(), (), (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH r = ()-[]-(), ()-[]-(), (), (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH ()-[]-()<-[]-(), r = ()-[]-(), (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH (x), r = (a)-[q]-(b), (s)-[p]-(t)-[]-(b), (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH (x), (a)-[q]-(b), r = (s)-[p]-(t)-[]-(b), (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH (x), (a)-[q]-(b), r = (s)-[p]->(t)<-[]-(b), (r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH (x), r = (s)-[p]-(t)-[]-(b), (r), (a)-[q]-(b) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH (x), r = (s)-[p]->(t)<-[]-(b), (r), (a)-[q]-(b) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH (x), r = (s)-[p]-(t)-[]-(b), (a)-[q]-(r) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+-STATEMENT MATCH (x), r = (s)-[p]->(t)<-[]-(b), (r)-[q]-(b) RETURN r;
+---- error
+Binder exception: Cannot bind r as node pattern.
+
+# Fail when a path has the same variable in the same pattern
+-CASE Scenario11
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT WITH true AS n MATCH (n) RETURN n;
+---- error
+Binder exception: Cannot bind n as node pattern.
+-STATEMENT WITH 123 AS n MATCH (n) RETURN n;
+---- error
+Binder exception: Cannot bind n as node pattern.
+-STATEMENT WITH 123.4 AS n MATCH (n) RETURN n;
+---- error
+Binder exception: Cannot bind n as node pattern.
+-STATEMENT WITH 'foo' AS n MATCH (n) RETURN n;
+---- error
+Binder exception: Cannot bind n as node pattern.
+-STATEMENT WITH [10] AS n MATCH (n) RETURN n;
+---- error
+Binder exception: Cannot bind n as node pattern.
+-STATEMENT WITH {x: 1} AS n MATCH (n) RETURN n;
+---- error
+Binder exception: Cannot bind n as node pattern.
+-STATEMENT WITH {x: [1]} AS n MATCH (n) RETURN n;
+---- error
+Binder exception: Cannot bind n as node pattern.

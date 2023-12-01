@@ -1,0 +1,60 @@
+.idea/
+.vscode
+.vs
+bazel-*
+.clwb
+.cache
+.ccls-cache
+.bazelrc
+test/test_files/test_list
+
+test_temp/
+build/
+install/
+
+compile_commands.json
+
+### Python
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+cmake-build-debug/
+cmake-build-release/
+test/unittest_temp_*
+dataset/parquet_temp_*
+tools/python_api/test/test_PYTHON_CSV.csv
+
+# antlr4 jar
+scripts/antlr4/antlr4.jar
+# .antlr
+src/antlr4/.antlr/
+
+# macOS
+.DS_Store
+
+### Node.js
+tools/nodejs_api/node_modules/
+tools/nodejs_api/cmake_install.cmake
+tools/nodejs_api/package-lock.json
+tools/nodejs_api/prebuilt/
+
+# Archive files
+*.zip
+*.tar.gz
+scripts/pre-compiled-bins/headers
+scripts/pre-compiled-bins/lib*
+scripts/pre-compiled-bins/kuzu*
+
+# Java API
+tools/java_api/build
+tools/java_api/test_db/
+tools/java_api/*.jar
+tools/java_api/*.class
+tools/java_api/*.log
+
+# Generated docs
+scripts/generate-cpp-docs/c/kuzu.h
+scripts/generate-cpp-docs/cpp/headers
+scripts/generate-cpp-docs/cpp/docs
+scripts/generate-cpp-docs/c/docs

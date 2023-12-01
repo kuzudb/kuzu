@@ -1,0 +1,11 @@
+-GROUP LongStringPKTest
+-DATASET CSV long-string-pk-tests
+
+--
+
+-CASE CopyLongStringPK
+
+-LOG LongStringPKTest
+-STATEMENT MATCH (a:Person)-[e:Knows]->(b:Person) WHERE a.name = "AAAAAAAAAAAAAAAAAAAA" RETURN COUNT(*)
+---- 1
+1

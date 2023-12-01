@@ -1,0 +1,81 @@
+-GROUP CopyToCSV
+-DATASET CSV tinysnb
+
+--
+
+-CASE TinySnbCopyToCSV
+
+-STATEMENT COPY (MATCH (p:person) RETURN [id(p)], p.*) TO "${DATABASE_PATH}/tinysnb_person.csv" (header=true)
+---- ok
+-STATEMENT load from "${DATABASE_PATH}/tinysnb_person.csv"(header=true) return *
+---- 8
+[0:0]|0|Alice|1|True|False|35|5.000000|1900-01-01|2011-08-20 11:25:30|3 years 2 days 13:02:00|[10,5]|[Aida]|[[10,8],[6,7,8]]|[96,54,86,92]|1.731000
+[0:1]|2|Bob|2|True|False|30|5.100000|1900-01-01|2008-11-03 15:25:30.000526|10 years 5 months 13:00:00.000024|[12,8]|[Bobby]|[[8,9],[9,10]]|[98,42,93,88]|0.990000
+[0:2]|3|Carol|1|False|True|45|5.000000|1940-06-22|1911-08-20 02:32:21|48:24:11|[4,5]|[Carmen,Fred]|[[8,10]]|[91,75,21,95]|1.000000
+[0:3]|5|Dan|2|False|True|20|4.800000|1950-07-23|2031-11-30 12:25:30|10 years 5 months 13:00:00.000024|[1,9]|[Wolfeschlegelstein,Daniel]|[[7,4],[8,8],[9]]|[76,88,99,89]|1.300000
+[0:4]|7|Elizabeth|1|False|True|20|4.700000|1980-10-26|1976-12-23 11:21:42|48:24:11|[2]|[Ein]|[[6],[7],[8]]|[96,59,65,88]|1.463000
+[0:5]|8|Farooq|2|True|False|25|4.500000|1980-10-26|1972-07-31 13:22:30.678559|00:18:00.024|[3,4,5,6,7]|[Fesdwe]|[[8]]|[80,78,34,83]|1.510000
+[0:6]|9|Greg|2|False|False|40|4.900000|1980-10-26|1976-12-23 04:41:42|10 years 5 months 13:00:00.000024|[1]|[Grad]|[[10]]|[43,83,67,43]|1.600000
+[0:7]|10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|False|True|83|4.900000|1990-11-27|2023-02-21 13:25:30|3 years 2 days 13:02:00|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]|[[7],[10],[6,7]]|[77,64,100,54]|1.323000
+
+-STATEMENT COPY (MATCH (m:movies) RETURN m.*) TO "${DATABASE_PATH}/movies.csv"
+---- ok
+-STATEMENT load from "${DATABASE_PATH}/movies.csv"(header=false) return *
+---- 3
+Sóló cón tu párejâ|126| this is a very very good movie|{rating: 5.300000, stars: 2, views: 152, release: 2011-08-20 11:25:30, film: 2012-05-11, u8: 220, u16: 20, u32: 1, u64: 180, hugedata: 1844674407370955161811111111}|\xAA\xABinteresting\x0B|{audience1=52, audience53=42}|True
+The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|2544| the movie is very very good|{rating: 7.000000, stars: 10, views: 982, release: 2018-11-13 13:33:11, film: 2014-09-12, u8: 12, u16: 120, u32: 55, u64: 1, hugedata: -1844674407370955161511}|\xAB\xCD|{audience1=33}|8.989000
+Roma|298|the movie is very interesting and funny|{rating: 1223.000000, stars: 100, views: 10003, release: 2011-02-11 16:44:22, film: 2013-02-22, u8: 1, u16: 15, u32: 200, u64: 4, hugedata: -15}|pure ascii characters|{}|254.000000
+
+
+-STATEMENT COPY (MATCH (p:person)-[s:studyAt]->(o:organisation) RETURN p.ID, s.level, s.places, o.ID) TO "${DATABASE_PATH}/studyAt.csv" (header=true)
+---- ok
+-STATEMENT load from "${DATABASE_PATH}/studyAt.csv"(header=true) return *
+---- 3
+0|5|[wwAewsdndweusd,wek]|1
+2|120|[anew,jsdnwusklklklwewsd]|1
+8|2|[awndsnjwejwen,isuhuwennjnuhuhuwewe]|1
+
+-STATEMENT COPY (MATCH (p:person)-[e:knows]->(p1:person) RETURN p.ID, p1.ID, p.grades, p1.grades) TO "${DATABASE_PATH}/onehop.csv" (header=true)
+---- ok
+-STATEMENT load from "${DATABASE_PATH}/onehop.csv"(header=true) return *
+---- 14
+0|2|[96,54,86,92]|[98,42,93,88]
+0|3|[96,54,86,92]|[91,75,21,95]
+0|5|[96,54,86,92]|[76,88,99,89]
+2|0|[98,42,93,88]|[96,54,86,92]
+2|3|[98,42,93,88]|[91,75,21,95]
+2|5|[98,42,93,88]|[76,88,99,89]
+3|0|[91,75,21,95]|[96,54,86,92]
+3|2|[91,75,21,95]|[98,42,93,88]
+3|5|[91,75,21,95]|[76,88,99,89]
+5|0|[76,88,99,89]|[96,54,86,92]
+5|2|[76,88,99,89]|[98,42,93,88]
+5|3|[76,88,99,89]|[91,75,21,95]
+7|8|[96,59,65,88]|[80,78,34,83]
+7|9|[96,59,65,88]|[43,83,67,43]
+
+-CASE CopyToWithNullAndEmptyList
+-STATEMENT COPY (RETURN NULL,[],[1,3,NULL,5],[[2,3],[2],NULL,[1,5,6]], [['a'], []]) TO "${DATABASE_PATH}/nullAndEmptyList.csv" (header=false)
+---- ok
+-STATEMENT load from "${DATABASE_PATH}/nullAndEmptyList.csv" (header=false) return *
+---- 1
+|[]|[1,3,,5]|[[2,3],[2],,[1,5,6]]|[[a],[]]
+
+-CASE StringEscapeCopyTo
+-STATEMENT COPY (RETURN 100,'a string with "quotes"',5.6,'","',',') TO "${DATABASE_PATH}/string.csv" (header=true)
+---- ok
+-STATEMENT LOAD FROM '${DATABASE_PATH}/string.csv'(header=true) RETURN *
+---- 1
+100|a string with "quotes"|5.600000|","|,
+
+-CASE StringCopyToWithOption
+-STATEMENT COPY (RETURN 100,'kuzu is # a |graph database') TO "${DATABASE_PATH}/copy_to_with_option.csv" (delim = '|', QUOTE='#', Escape = '!', header = false)
+---- ok
+-STATEMENT LOAD FROM '${DATABASE_PATH}/copy_to_with_option.csv' (delim = '|', QUOTE='#', Escape = '!', header=false) RETURN *
+---- 1
+100|kuzu is # a |graph database
+
+-CASE StringCopyToWithOptionError
+-STATEMENT COPY (RETURN 100) TO "${DATABASE_PATH}/copy_to_with_option.parquet" (delim = '|', QUOTE='#', Escape = '!')
+---- error
+Binder exception: Only copy to csv can have options.

@@ -1,0 +1,13 @@
+-GROUP TinySnbExceptionTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE MultiLabelUpdate
+-STATEMENT CREATE (a:person:organisation {ID:0})
+---- error
+Binder exception: Create node a with multiple node labels is not supported.
+
+-STATEMENT MATCH (a:person), (b:person:organisation) CREATE (a)-[e:knows]->(b)
+---- error
+Binder exception: Create rel e with multiple rel labels or bound by multiple node labels is not supported.

@@ -1,0 +1,21 @@
+-GROUP EndToEndReadLargeListsTest
+-DATASET CSV read-list-tests/large-list
+
+--
+
+-CASE PropLists4BytesPerEdgeTest
+
+# Result is 3 and 0 is omitted because 0->0 edge's int64Prop is null.
+-LOG ReadingLargeListOneHop
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.ID = 0 AND e1.int64Prop < 4  RETURN e1.int64Prop
+-ENUMERATE
+---- 3
+1
+2
+3
+
+# Result is 5001-6 because 0 has 6 edges that have null int64Prop values.
+-LOG ReadingLargeListSymmetricTwoHop
+-STATEMENT MATCH (b:person)<-[e1:knows]-(a:person)-[e2:knows]->(c:person) WHERE a.ID = 0 AND e1.int64Prop = e2.int64Prop  RETURN COUNT(*)
+---- 1
+4995

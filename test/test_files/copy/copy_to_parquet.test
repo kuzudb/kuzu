@@ -1,0 +1,74 @@
+-GROUP CopyToParquet
+-DATASET CSV tinysnb
+
+--
+
+-CASE TinySnbCopyToParquet
+
+-CASE CopyPersonToParquet
+-STATEMENT COPY (MATCH (p:person) return p.ID, p.fName, p.gender, p.isStudent, p.isWorker, p.age, p.eyeSight, p.birthdate, p.registerTime, p.lastJobDuration, p.workedHours, p.usedNames, p.courseScoresPerTerm, p.height) to '${DATABASE_PATH}/tinysnb.parquet';
+---- ok
+-STATEMENT LOAD FROM '${DATABASE_PATH}/tinysnb.parquet' RETURN *;
+---- 8
+0|Alice|1|True|False|35|5.000000|1900-01-01|2011-08-20 11:25:30|3 years 2 days 13:02:00|[10,5]|[Aida]|[[10,8],[6,7,8]]|1.731000
+2|Bob|2|True|False|30|5.100000|1900-01-01|2008-11-03 15:25:30.000526|10 years 5 months 13:00:00|[12,8]|[Bobby]|[[8,9],[9,10]]|0.990000
+3|Carol|1|False|True|45|5.000000|1940-06-22|1911-08-20 02:32:21|48:24:11|[4,5]|[Carmen,Fred]|[[8,10]]|1.000000
+5|Dan|2|False|True|20|4.800000|1950-07-23|2031-11-30 12:25:30|10 years 5 months 13:00:00|[1,9]|[Wolfeschlegelstein,Daniel]|[[7,4],[8,8],[9]]|1.300000
+7|Elizabeth|1|False|True|20|4.700000|1980-10-26|1976-12-23 11:21:42|48:24:11|[2]|[Ein]|[[6],[7],[8]]|1.463000
+8|Farooq|2|True|False|25|4.500000|1980-10-26|1972-07-31 13:22:30.678559|00:18:00.024|[3,4,5,6,7]|[Fesdwe]|[[8]]|1.510000
+9|Greg|2|False|False|40|4.900000|1980-10-26|1976-12-23 04:41:42|10 years 5 months 13:00:00|[1]|[Grad]|[[10]]|1.600000
+10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|False|True|83|4.900000|1990-11-27|2023-02-21 13:25:30|3 years 2 days 13:02:00|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]|[[7],[10],[6,7]]|1.323000
+
+-LOG CopyOrganisationToParquet
+-STATEMENT COPY (MATCH (o:organisation) RETURN o.ID, o.state) TO "${DATABASE_PATH}/organisation.parquet"
+---- ok
+-STATEMENT LOAD FROM "${DATABASE_PATH}/organisation.parquet" RETURN *;
+---- 3
+1|{revenue: 138, location: ['toronto', 'montr,eal'], stock: {price: [96,56], volume: 1000}}
+4|{revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}
+6|{revenue: 558, location: ['very long city name', 'new york'], stock: {price: [22], volume: 99}}
+
+-LOG CopyMoviesToParquet
+-STATEMENT COPY (MATCH (m:movies) RETURN m.*) TO "${DATABASE_PATH}/movies.parquet"
+---- ok
+-STATEMENT LOAD FROM "${DATABASE_PATH}/movies.parquet" RETURN *;
+---- 3
+Sóló cón tu párejâ|126| this is a very very good movie|{rating: 5.300000, stars: 2, views: 152, release: 2011-08-20 11:25:30, film: 2012-05-11, u8: 220, u16: 20, u32: 1, u64: 180, hugedata: 1844674407370955161600000000.000000}|\xAA\xABinteresting\x0B|{audience1=52, audience53=42}|{tag: 0, credit: True, grade1: 0.000000, grade2: 0}
+The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|2544| the movie is very very good|{rating: 7.000000, stars: 10, views: 982, release: 2018-11-13 13:33:11, film: 2014-09-12, u8: 12, u16: 120, u32: 55, u64: 1, hugedata: -1844674407370955161600.000000}|\xAB\xCD|{audience1=33}|{tag: 1, credit: , grade1: 8.989000, grade2: 0}
+Roma|298|the movie is very interesting and funny|{rating: 1223.000000, stars: 100, views: 10003, release: 2011-02-11 16:44:22, film: 2013-02-22, u8: 1, u16: 15, u32: 200, u64: 4, hugedata: -15.000000}|pure ascii characters|{}|{tag: 1, credit: , grade1: 254.000000, grade2: 0}
+
+-LOG CopyStudyAtToParquet
+-STATEMENT COPY (match (:person)-[s:studyAt]->(:organisation) return s.*) to "${DATABASE_PATH}/studyAt.parquet"
+---- ok
+-STATEMENT LOAD FROM "${DATABASE_PATH}/studyAt.parquet" RETURN *;
+---- 3
+2021|[wwAewsdndweusd,wek]|5|5|9223372036854775808|32800|33768|250|1844674407370955161600000000.000000
+2020|[anew,jsdnwusklklklwewsd]|55|120|6689|1|90|220|-1844674407370955161600.000000
+2020|[awndsnjwejwen,isuhuwennjnuhuhuwewe]|22|2|23|20|180|12|-15.000000
+
+-LOG CopyEmptyListToParquet
+-STATEMENT COPY (RETURN null,[], [1,null,3], [[1],null,[3,4,5]], [[], ["a"]]) TO "${DATABASE_PATH}/emptyList.parquet"
+---- ok
+-STATEMENT LOAD FROM "${DATABASE_PATH}/emptyList.parquet" RETURN *;
+---- 1
+|[]|[1,,3]|[[1],,[3,4,5]]|[[],[a]]
+
+-LOG CopyToParquetFlatUnflat
+-STATEMENT COPY (MATCH (p:person)-[:knows]->(p1:person) return p.ID, p1.ID) TO "${DATABASE_PATH}/flatUnflat.parquet"
+---- ok
+-STATEMENT LOAD FROM "${DATABASE_PATH}/flatUnflat.parquet" RETURN *;
+---- 14
+0|2
+0|3
+0|5
+2|0
+2|3
+2|5
+3|0
+3|2
+3|5
+5|0
+5|2
+5|3
+7|8
+7|9

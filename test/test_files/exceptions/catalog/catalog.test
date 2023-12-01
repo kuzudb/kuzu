@@ -1,0 +1,19 @@
+-GROUP CatalogErrorTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE BindNonExistingFunction
+-STATEMENT MATCH (a:person) RETURN dummy(n)
+---- error
+Catalog exception: DUMMY function does not exist.
+
+-STATEMENT MATCH (a:person) WHERE dummy() < 2 RETURN COUNT(*)
+---- error
+Catalog exception: DUMMY function does not exist.
+
+-CASE CreateRelTableInvalidRelMultiplicity
+-STATEMENT CREATE REL TABLE knows_post ( FROM person TO person, MANY_LOT)
+---- error
+Catalog exception: Invalid relMultiplicity string 'MANY_LOT'.
+

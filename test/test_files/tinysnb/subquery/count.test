@@ -1,0 +1,47 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE CountSubquery
+
+-LOG CountSubqueryTest1
+-STATEMENT MATCH (a:person) RETURN a.fName, COUNT { MATCH (a)-[:knows]->(b:person) }
+---- 8
+Alice|3
+Bob|3
+Carol|3
+Dan|3
+Elizabeth|2
+Farooq|0
+Greg|0
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|0
+-LOG CountSubqueryTest2
+-STATEMENT MATCH (a:person) WHERE COUNT { MATCH (a)-[:studyAt]->(b)} = 1 RETURN a.fName
+---- 3
+Alice
+Bob
+Farooq
+-LOG CountSubqueryTest3
+-STATEMENT MATCH (a:person) RETURN a.age, COUNT { MATCH (b:person) WHERE a.age < b.age }
+---- 8
+20|6
+20|6
+25|5
+30|4
+35|3
+40|2
+45|1
+83|0
+-LOG CountSubqueryTest4
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE a.ID = 3 RETURN a.fName, b.fName, COUNT { MATCH (b)-[:knows|:workAt]->(c) WHERE a.ID < c.ID}
+---- 3
+Carol|Alice|1
+Carol|Bob|1
+Carol|Dan|1
+-LOG CountSubqueryTest5
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE a.ID = 0 RETURN a.fName, b.fName, COUNT { MATCH (b)-[:knows]->(a) WHERE a.age< b.age}
+---- 3
+Alice|Bob|0
+Alice|Carol|1
+Alice|Dan|0

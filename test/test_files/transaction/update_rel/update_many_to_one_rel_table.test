@@ -1,0 +1,83 @@
+-GROUP UpdateRelTest
+-DATASET CSV rel-update-tests
+--
+-DEFINE_STATEMENT_BLOCK UPDATE_MANY_TO_ONE_REL_TABLE [
+-STATEMENT MATCH (p1:person)-[e:teaches]->(p2:person) WHERE p1.ID = 21 AND p2.ID = 2 SET e.length=null
+---- ok
+-STATEMENT MATCH (p1:person)-[e:teaches]->(p2:person) WHERE p1.ID = 32 AND p2.ID = 3 SET e.length = 512
+---- ok
+-STATEMENT MATCH (p1:person)-[e:teaches]->(p2:person) WHERE p1.ID = 33 AND p2.ID = 3 SET e.length = 312
+---- ok
+]
+
+-CASE updateManyToOneRelTableCommitNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK UPDATE_MANY_TO_ONE_REL_TABLE
+-STATEMENT COMMIT
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:teaches]->(:person) RETURN e.length
+---- 6
+11
+
+22
+31
+512
+312
+
+-CASE updateManyToOneRelTableCommitRecovery
+-STATEMENT BEGIN TRANSACTION
+-STATEMENT CREATE (p:person {ID: 2501})
+---- ok
+-INSERT_STATEMENT_BLOCK UPDATE_MANY_TO_ONE_REL_TABLE
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:teaches]->(:person) RETURN e.length
+---- 6
+11
+
+22
+31
+512
+312
+
+
+-CASE updateManyToOneRelTableRollbackNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK UPDATE_MANY_TO_ONE_REL_TABLE
+-STATEMENT Rollback
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:teaches]->(:person) RETURN e.length
+---- 6
+11
+21
+22
+31
+32
+33
+
+-CASE updateManyToOneRelTableRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK UPDATE_MANY_TO_ONE_REL_TABLE
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:teaches]->(:person) RETURN e.length
+---- 6
+11
+21
+22
+31
+32
+33

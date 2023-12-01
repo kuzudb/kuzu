@@ -1,0 +1,57 @@
+-GROUP TinySnbSetReadRelTest
+-DATASET CSV tinysnb
+--
+
+-CASE SetReadTest1
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID=0 AND b.ID=5 RETURN e.date;
+---- 1
+2021-06-30
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID=0 AND b.ID=5 SET e.date=date('2023-01-01') RETURN e.date;
+---- 1
+2023-01-01
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID=0 AND b.ID=5 RETURN e.date;
+---- 1
+2023-01-01
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID=0 AND b.ID=5 SET e.date=NULL RETURN e.date;
+---- 1
+
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID=0 AND b.ID=5 RETURN e.date;
+---- 1
+
+-CASE SetReadTest2
+-STATEMENT CREATE REL TABLE play(FROM person TO person, date DATE, year INT64);
+---- ok
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID=0 AND b.ID = 2 CREATE (a)-[e:play {date:date('2023-01-01'), year:2023}]->(b);
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) WHERE a.ID = 0 AND b.ID=2 RETURN id(e), e.date, e.year;
+---- 4
+3:0|2021-06-30|
+6:0||
+7:0||
+8:0|2023-01-01|2023
+-STATEMENT MATCH (a:person)-[e:knows|:play]->(b:person) WHERE a.ID = 0 AND b.ID = 2 SET e.date=date('2023-10-10'), e.year=2024 RETURN e.date, e.year;
+---- 2
+2023-10-10|
+2023-10-10|2024
+-STATEMENT MATCH (a:person)-[e:knows|:play]->(b:person) WHERE a.ID = 0 AND b.ID = 2 RETURN e.date, e.year;
+---- 2
+2023-10-10|
+2023-10-10|2024
+
+-CASE OptionalSetReadTest
+-STATEMENT OPTIONAL MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID = 0 AND e.date > date("2023-01-01") SET e.date = date("2024-01-01") RETURN e.date;
+---- 1
+
+-STATEMENT OPTIONAL MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID = 0 RETURN e.date;
+---- 3
+2021-06-30
+2021-06-30
+2021-06-30
+-STATEMENT OPTIONAL MATCH (a)-[e]->(b) WHERE b.ID = 1 AND e.year > 10000 SET e.length = 100 RETURN e.length
+---- 1
+
+-STATEMENT OPTIONAL MATCH (a)-[e]->(b) WHERE b.ID = 1 RETURN e.length
+---- 3
+5
+55
+22

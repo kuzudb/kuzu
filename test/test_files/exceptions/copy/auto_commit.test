@@ -1,0 +1,25 @@
+-GROUP CopyAutoCommit
+-DATASET CSV empty
+
+--
+
+-CASE CopyCSVStatementWithActiveTransactionError
+-STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, PRIMARY KEY (ID))
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=TRUE, DELIM=',')
+---- error
+DDL, Copy, createMacro statements can only run in the AUTO_COMMIT mode. Please commit or rollback your previous transaction if there is any and issue the query without beginning a transaction
+
+-CASE CopyNodeOutputMsg
+-STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, PRIMARY KEY (ID))
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=TRUE, DELIM=',')
+---- 1
+8 number of tuples has been copied to table: person.
+-STATEMENT create rel table knows (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], summary STRUCT(locations STRING[], transfer STRUCT(day DATE, amount INT64[])), notes UNION(firstmet DATE, type INT16, comment STRING), MANY_MANY)
+---- ok
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv"
+---- 1
+14 number of tuples has been copied to table knows.

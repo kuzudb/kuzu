@@ -1,0 +1,41 @@
+-GROUP CopyOneDimensionalNpyTest
+-DATASET NPY npy-1d
+
+--
+
+-CASE CopyOneDimensionalNpyTest
+
+-LOG i64
+-STATEMENT MATCH (n:npytable) RETURN n.i64
+---- 3
+1
+2
+3
+
+-LOG i32
+-STATEMENT MATCH (n:npytable) RETURN n.i32
+---- 3
+1
+2
+3
+
+-LOG i16
+-STATEMENT MATCH (n:npytable) RETURN n.i16
+---- 3
+1
+2
+3
+
+-LOG f64
+-STATEMENT MATCH (n:npytable) RETURN n.f64
+---- 3
+1.000000
+2.000000
+3.000000
+
+-LOG f32
+-STATEMENT MATCH (n:npytable) RETURN n.f32
+---- 3
+1.000000
+2.000000
+3.000000

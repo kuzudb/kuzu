@@ -1,0 +1,37 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE FunctionOffset
+
+-LOG NodeOffsetTest1
+-STATEMENT MATCH (a:person) RETURN id(a), offset(id(a))
+---- 8
+0:0|0
+0:1|1
+0:2|2
+0:3|3
+0:4|4
+0:5|5
+0:6|6
+0:7|7
+
+-LOG NodeOffsetTest2
+-STATEMENT MATCH (a:organisation) RETURN id(a), offset(id(a))
+---- 3
+1:0|0
+1:1|1
+1:2|2
+
+-LOG NodeOffsetTest3
+-STATEMENT MATCH (a:person) WHERE  offset(id(a))=0 RETURN a.fName
+---- 1
+Alice
+
+-LOG RelOffsetTest2
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN id(e), offset(id(e))
+---- 3
+4:0|0
+4:1|1
+4:2|2

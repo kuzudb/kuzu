@@ -1,0 +1,92 @@
+-GROUP DeleteRelTest
+-DATASET CSV rel-update-tests
+--
+
+-DEFINE_STATEMENT_BLOCK DELETE_RELS_FROM_ONE_TO_ONE_TABLE [
+-STATEMENT MATCH (a:animal)-[h:hasOwner]->(p:person) WHERE a.ID = 1 AND p.ID = 51 delete h;
+---- ok
+-STATEMENT MATCH (a:animal)-[h:hasOwner]->(p:person) WHERE a.ID = 3 AND p.ID = 53 delete h;
+---- ok
+-STATEMENT MATCH (a:animal)-[h:hasOwner]->(p:person) WHERE a.ID = 5 AND p.ID = 55 delete h;
+---- ok
+-STATEMENT MATCH (a:animal)-[h:hasOwner]->(p:person) WHERE a.ID = 7 AND p.ID = 57 delete h;
+---- ok
+-STATEMENT MATCH (a:animal)-[h:hasOwner]->(p:person) WHERE a.ID = 9 AND p.ID = 59 delete h;
+---- ok
+-STATEMENT MATCH (a:animal)-[h:hasOwner]->(p:person) WHERE a.ID = 11 AND p.ID = 61 delete h;
+---- ok
+]
+
+-CASE deleteRelsFromOneToOneTableCommitNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK DELETE_RELS_FROM_ONE_TO_ONE_TABLE
+-STATEMENT COMMIT
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (:animal)-[h:hasOwner]->(:person) return h.length
+---- 4
+2
+4
+6
+8
+
+-CASE deleteRelsFromOneToOneTableCommitRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK DELETE_RELS_FROM_ONE_TO_ONE_TABLE
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (:animal)-[h:hasOwner]->(:person) return h.length
+---- 4
+2
+4
+6
+8
+
+-CASE deleteRelsFromOneToOneTableRollbackNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK DELETE_RELS_FROM_ONE_TO_ONE_TABLE
+-STATEMENT Rollback
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (:animal)-[h:hasOwner]->(:person) return h.length
+---- 10
+1
+2
+3
+4
+5
+6
+7
+8
+9
+11
+
+-CASE deleteRelsFromOneToOneTableRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK DELETE_RELS_FROM_ONE_TO_ONE_TABLE
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (:animal)-[h:hasOwner]->(:person) return h.length
+---- 10
+1
+2
+3
+4
+5
+6
+7
+8
+9
+11

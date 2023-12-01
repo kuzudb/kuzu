@@ -1,0 +1,23 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb-serial
+
+--
+
+-CASE AggSerial
+
+-LOG SimpleAggSerial
+-STATEMENT MATCH (a:person) RETURN SUM(a.ID), AVG(a.age)
+---- 1
+28|37.250000
+
+-LOG HashAggSerial
+-STATEMENT MATCH (a:person) RETURN a.ID, SUM(a.age)
+---- 8
+0|35
+1|30
+2|45
+3|20
+4|20
+5|25
+6|40
+7|83

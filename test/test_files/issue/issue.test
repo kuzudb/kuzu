@@ -1,0 +1,160 @@
+-GROUP IssueTest
+-DATASET CSV empty
+
+--
+
+-CASE 2158
+-STATEMENT CREATE NODE TABLE N1(name STRING, PRIMARY KEY(name));
+---- ok
+-STATEMENT CREATE NODE TABLE N2(name STRING, PRIMARY KEY(name));
+---- ok
+-STATEMENT CREATE REL TABLE Rel1(FROM N1 TO N2);
+---- ok
+-STATEMENT CREATE REL TABLE Rel2(FROM N1 TO N2);
+---- ok
+-STATEMENT CREATE (n1:N1 {name: "n1a"}), (n2:N2 {name: "n2a"}), (n1)-[:Rel1]->(n2);
+---- ok
+-STATEMENT MATCH p = (n1:N1)-[:Rel1]->() return length(p);
+---- 1
+1
+
+-CASE 2167
+-STATEMENT CREATE NODE TABLE Test(id SERIAL, content STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:Test {content: "mycontent"}) RETURN t;
+---- 1
+{_ID: 0:0, _LABEL: Test, id: 0, content: mycontent}
+-STATEMENT MATCH (t:Test) RETURN t;
+---- 1
+{_ID: 0:0, _LABEL: Test, id: 0, content: mycontent}
+
+-CASE Kind-Of-Fruit
+-STATEMENT CREATE NODE TABLE T(name STRING, PRIMARY KEY(name));
+---- ok
+-STATEMENT CREATE NODE TABLE Fruit(name STRING, PRIMARY KEY(name));
+---- ok
+-STATEMENT CREATE REL TABLE LIKES(FROM T TO Fruit);
+---- ok
+-STATEMENT CREATE REL TABLE KIND_OF(FROM T TO T);
+---- ok
+-STATEMENT CREATE
+        (t1:T {name: "T1"}),
+        (t2:T {name: "T2"}),
+        (t3:T {name: "T3"}),
+        (f1:Fruit {name: "Banana"}),
+        (f2:Fruit {name: "Orange"}),
+        (f3:Fruit {name: "Apple"}),
+        (t1)-[:LIKES]->(f1),
+        (t2)-[:LIKES]->(f2),
+        (t3)-[:LIKES]->(f3),
+        (t1)-[:KIND_OF]->(t2),
+        (t2)-[:KIND_OF]->(t3);
+---- ok
+-STATEMENT MATCH (t1:T)-[:KIND_OF*]->(t2:T), (t1)-[:LIKES]->(f1:Fruit), (t2)-[:LIKES]->(f2:Fruit)
+            WHERE f1.name = "Apple" and f2.name = "Banana" OR f1.name = "Banana" and f2.name = "Apple" return t1 as t
+---- 1
+{_ID: 0:0, _LABEL: T, name: T1}
+-STATEMENT MATCH (t:T)-[:LIKES]->(:Fruit {name: "Apple"}), (t)-[:LIKES]->(:Fruit {name: "Banana"}) return t;
+---- 0
+-STATEMENT MATCH (t1:T)-[:KIND_OF*]->(t2:T), (t1)-[:LIKES]->(f1:Fruit), (t2)-[:LIKES]->(f2:Fruit)
+            WHERE f1.name = "Apple" and f2.name = "Banana" OR f1.name = "Banana" and f2.name = "Apple" return t1 as t
+           UNION
+           MATCH (t:T)-[:LIKES]->(:Fruit {name: "Apple"}), (t)-[:LIKES]->(:Fruit {name: "Banana"}) return t;
+---- 1
+{_ID: 0:0, _LABEL: T, name: T1}
+
+-CASE 2184
+-STATEMENT CREATE NODE TABLE T(name STRING, PRIMARY KEY(name));
+---- ok
+-STATEMENT CREATE NODE TABLE T2(name STRING, myprops MAP(STRING,STRING), PRIMARY KEY(name));
+---- ok
+-STATEMENT CREATE REL TABLE KIND_OF3(FROM T TO T, myprops MAP(STRING,STRING));
+---- error
+Binder exception: MAP(STRING: STRING) property is not supported in rel table.
+-STATEMENT CREATE REL TABLE KIND_OF3(FROM T TO T, myprops SERIAL);
+---- error
+Binder exception: SERIAL property is not supported in rel table.
+
+-CASE 2293
+-STATEMENT CREATE NODE TABLE T(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE KNOWS(FROM T TO T);
+---- ok
+-STATEMENT CREATE (t1:T {id: 0}), (t2:T {id: 1});
+---- ok
+-STATEMENT MATCH (t1:T)-[e]-(t2:T) RETURN COUNT(*);
+---- 1
+0
+-STATEMENT MATCH (t1:T {id: 0}), (t2: T {id: 1}) OPTIONAL MATCH (t1)-[e:KNOWS]->() DELETE e;
+---- ok
+-STATEMENT MATCH (t1:T)-[e]-(t2:T) RETURN COUNT(*);
+---- 1
+0
+
+-CASE 2376
+-STATEMENT CREATE NODE TABLE thing(name STRING, PRIMARY KEY (name));
+---- ok
+-STATEMENT MATCH (n) DELETE n
+---- ok
+-STATEMENT MERGE (n:thing {name: 'original'})
+---- ok
+-STATEMENT MATCH (n:thing) RETURN n
+---- 1
+{_ID: 0:0, _LABEL: thing, name: original}
+-STATEMENT MATCH (n:thing {name: 'original'}) SET n.name = 'rename 1x' RETURN n
+---- 1
+{_ID: 0:0, _LABEL: thing, name: rename 1x}
+-STATEMENT MATCH (n:thing {name: 'rename 1x'}) SET n.name = 'rename 2x' RETURN n
+---- 1
+{_ID: 0:0, _LABEL: thing, name: rename 2x}
+-STATEMENT CREATE (n:thing {name: 'original'})
+---- ok
+-STATEMENT CREATE (n:thing {name: 'rename 1x'})
+---- ok
+-STATEMENT CREATE (n:thing {name: 'rename 2x'})
+---- error
+Runtime exception: Found duplicated primary key value rename 2x, which violates the uniqueness constraint of the primary key column.
+-STATEMENT MATCH (n:thing) WHERE n.name='rename 1x' DELETE n
+---- ok
+-STATEMENT MATCH (n:thing) RETURN n
+---- 2
+{_ID: 0:1, _LABEL: thing, name: original}
+{_ID: 0:0, _LABEL: thing, name: rename 2x}
+
+
+-CASE 2294
+-STATEMENT CREATE NODE TABLE T(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE KNOWS(FROM T TO T);
+---- ok
+-STATEMENT OPTIONAL MATCH (a)-[b:KNOWS]->(c) return a,b,c;
+---- 1
+||
+
+
+-CASE 2303
+-STATEMENT CREATE NODE TABLE T (id STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE AFTER (FROM T TO T, id STRING);
+---- ok
+-STATEMENT CREATE (t1:T {id: "t1"})-[e1:AFTER {id: "e1"}]->(t2:T {id: "t2"})-[e2:AFTER {id: "e2"}]->(t3:T {id: "t3"}),
+        (t4:T {id: "t4"})-[e3:AFTER {id: "e3"}]->(t5:T {id: "t5"})-[e4:AFTER {id: "e4"}]->(t6:T {id: "t6"})-[e5:AFTER {id: "e5"}]->(t7:T {id: "t7"})
+---- ok
+-STATEMENT MATCH p = (a:T {id:"t4"})-[e*]->(b:T {id:"t7"}) RETURN COUNT(*);
+---- 1
+1
+-STATEMENT MATCH (s:T {id: "t2"}), (a:T {id: "t6"}),
+           (t1:T)-[e1:AFTER]->(s),
+           (s)-[e2:AFTER]->(t3:T),
+           (t5:T)-[e4:AFTER]->(a)
+           DELETE e1,e2,e4
+           CREATE (s)-[e7:AFTER]->(a)
+           CREATE (t1)-[e8:AFTER]->(t3)
+           CREATE (t5)-[e9:AFTER]->(s);
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) RETURN COUNT(*);
+---- 1
+5
+-STATEMENT MATCH p = (a:T {id:"t4"})-[e*]->(b:T {id:"t7"}) RETURN COUNT(*);
+---- 1
+1

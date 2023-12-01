@@ -1,0 +1,134 @@
+-GROUP CopyWrongHeaderTest
+-DATASET CSV empty
+
+--
+
+-CASE CSVHeaderMismatch
+-STATEMENT CREATE NODE TABLE person (ID INT64, fName STRING, PRIMARY KEY (ID))
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv" (HEADER=true)
+---- ok
+-STATEMENT CREATE NODE TABLE person1 (ID STRING, fName STRING, PRIMARY KEY (ID))
+---- ok
+-STATEMENT CREATE NODE TABLE person2 (ID STRING, fName INT64, PRIMARY KEY (ID));
+---- ok
+-STATEMENT CREATE NODE TABLE person3 (ID STRING, PRIMARY KEY (ID));
+---- ok
+-STATEMENT COPY person1 FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv" (HEADER=true)
+---- ok
+-STATEMENT MATCH (a:person1) RETURN a.ID STARTS WITH '1';
+---- 3
+False
+False
+True
+-STATEMENT COPY person2 FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv" (HEADER=true)
+---- error
+Conversion exception: Cast failed. Guodong is not in INT64 range.
+-STATEMENT COPY person3 FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv" (HEADER=true)
+---- error
+Binder exception: Number of columns mismatch. Expected 1 but got 2.
+-STATEMENT COPY person FROM
+       ["${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv",
+        "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPersonMissingColumn.csv"] (HEADER=true)
+---- error
+Binder exception: Number of columns mismatch. Expected 2 but got 1.
+-STATEMENT CREATE REL TABLE knows (FROM person TO person, prop1 INTERVAL);
+---- ok
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/eKnowsWrongColumnName.csv" (HEADER=true)
+---- error
+Binder exception: Number of columns mismatch. Expected 3 but got 4.
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/eKnowsMissingColumn.csv" (HEADER=true)
+---- error
+Conversion exception: Error occurred during parsing interval. Field name is missing.
+
+-CASE ParquetHeaderMismatch
+-STATEMENT CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name));
+---- ok
+-STATEMENT CREATE NODE TABLE User1(name INT64, age INT64, PRIMARY KEY (name));
+---- ok
+-STATEMENT CREATE NODE TABLE User2(name INT64, age INT64, dummy INT32[], PRIMARY KEY (name));
+---- ok
+-STATEMENT CREATE NODE TABLE User3(name STRING, age INT16[], PRIMARY KEY (name));
+---- ok
+-STATEMENT COPY User FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/user.parquet";
+---- ok
+-STATEMENT COPY User1 FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/user.parquet";
+---- error
+Binder exception: Column `name` type mismatch. Expected INT64 but got STRING.
+-STATEMENT COPY User1 FROM ["${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/user.parquet",
+                            "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/lives-in.parquet"];
+---- error
+Binder exception: Column `f1` type mismatch. Expected INT64 but got STRING.
+-STATEMENT COPY User2 FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/user.parquet";
+---- error
+Binder exception: Number of columns mismatch. Expected 3 but got 2.
+-STATEMENT COPY User3 FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/user.parquet";
+---- error
+Binder exception: Column `age` type mismatch. Expected INT16[] but got INT64.
+-STATEMENT CREATE REL TABLE Follows1(FROM User TO User, since INT64[]);
+---- ok
+-STATEMENT COPY Follows1 FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/follows.parquet";
+---- error
+Binder exception: Column `since` type mismatch. Expected INT64[] but got INT64.
+-STATEMENT COPY Follows1 FROM ["${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/follows.parquet",
+                               "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/lives-in.parquet"];
+---- error
+Binder exception: Number of columns mismatch. Expected 3 but got 2.
+
+-CASE UnMatchedColumnTypeError
+-STATEMENT create node table person (ID INT64, fName INT64, gender INT64, isStudent BOOLEAN,
+                                     isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE,
+                                     registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[],
+                                     usedNames STRING[], courseScoresPerTerm INT64[][],
+                                     grades INT64[4], height float,
+                                     PRIMARY KEY (fName))
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=true)
+---- error
+Conversion exception: Cast failed. Alice is not in INT64 range.
+
+-CASE HeaderError
+-STATEMENT create node table person (ID INT64, fName STRING, PRIMARY KEY (ID))
+---- ok
+-STATEMENT create rel table knows (FROM person TO person, prop1 INT64, prop2 STRING, MANY_MANY);
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPersonWrongColumnName.csv" (HEADER=true)
+---- ok
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/eKnowsWrongColumnName.csv" (HEADER=true)
+---- ok
+
+-CASE CopyToNonEmptyTableErrors
+-STATEMENT create node table person (ID INT64, fName STRING, PRIMARY KEY (ID));
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPersonWrongColumnName.csv" (HEADER=true)
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPersonWrongColumnName.csv" (HEADER=true)
+---- error
+Copy exception: COPY commands can only be executed once on a table.
+
+-CASE MissingColumnErrors
+-STATEMENT create node table person (ID INT64, fName STRING, PRIMARY KEY (ID))
+---- ok
+-STATEMENT create rel table knows (FROM person TO person, prop1 INT64, prop2 STRING, MANY_MANY)
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv" (HEADER=true)
+---- ok
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/eKnowsMissingColumn.csv" (HEADER=true)
+---- error
+Binder exception: Number of columns mismatch. Expected 4 but got 3.
+
+-CASE NodeUnmatchedNumColumns
+-STATEMENT create node table person (ID1 SERIAL, ID INT64, fName INT64, age INT64, PRIMARY KEY (ID1))
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k_1.parquet" (HEADER=true)
+---- error
+Binder exception: Number of columns mismatch. Expected 3 but got 10.
+
+-CASE RelUnmatchedNumColumns
+-STATEMENT create node table person (ID1 SERIAL, ID INT64, fName INT64, age INT64, PRIMARY KEY (ID1))
+---- ok
+-STATEMENT create rel table knows (FROM person TO person, time date, age INT64)
+---- ok
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/follows.parquet" (HEADER=true)
+---- error
+Binder exception: Number of columns mismatch. Expected 4 but got 3.

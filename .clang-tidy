@@ -1,0 +1,34 @@
+# Comments go at the top because otherwise clang-tidy interprets them as breaking up our list of checks.
+# Bugprone exception escape is super unhelpful.
+# cert-str34-c is an alias for signed-char-misuse.
+Checks:
+  -*,
+
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-exception-escape,
+  -bugprone-forward-declaration-namespace,
+  -bugprone-implicit-widening-of-multiplication-result,
+  -bugprone-narrowing-conversions,
+  -bugprone-signed-char-misuse,
+
+  cert-*,
+  -cert-str34-c,
+
+  concurrency-*,
+
+  cppcoreguidelines-virtual-class-destructor,
+
+  google-explicit-constructor
+
+  misc-unused-parameters,
+
+  modernize-use-override,
+
+  readability-const-return-type,
+  readability-make-member-function-const,
+  readability-non-const-parameter,
+
+HeaderFilterRegex:
+  src/include|tools/benchmark/include|tools/nodejs_api/src_cpp/include|tools/python_api/src_cpp/include|tools/rust_api/include|tools/shell/include
+WarningsAsErrors: "*"

@@ -1,0 +1,44 @@
+-GROUP CopyPKBasics
+-DATASET CSV empty
+
+--
+
+-DEFINE_STATEMENT_BLOCK CREATE_REL_AND_COPY_NODES_AND_VALIDATE [
+-STATEMENT create rel table follows (FROM person TO org)
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/primary-key-tests/vPerson.csv";
+---- ok
+-STATEMENT COPY org FROM "${KUZU_ROOT_DIRECTORY}/dataset/primary-key-tests/vOrg.csv";
+---- ok
+-STATEMENT COPY follows FROM "${KUZU_ROOT_DIRECTORY}/dataset/primary-key-tests/eFollows.csv";
+---- ok
+-STATEMENT MATCH (p:person)-[:follows]->(o:org) return p.fName, o.ID
+---- 2
+Foo|10020
+Bar|10020
+]
+
+-CASE CopyIntPK
+
+-STATEMENT create node table person (ID INT64, fName STRING, age INT64, PRIMARY KEY (ID));
+---- ok
+-STATEMENT create node table org (ID INT64, PRIMARY KEY (ID));
+---- ok
+-INSERT_STATEMENT_BLOCK CREATE_REL_AND_COPY_NODES_AND_VALIDATE
+
+
+-CASE CopyStringPK
+
+-STATEMENT create node table person (ID STRING, fName STRING, age INT64, PRIMARY KEY (ID));
+---- ok
+-STATEMENT create node table org (ID STRING, PRIMARY KEY (ID));
+---- ok
+-INSERT_STATEMENT_BLOCK CREATE_REL_AND_COPY_NODES_AND_VALIDATE
+
+-CASE CopyMixedStringAndIntPK
+
+-STATEMENT create node table person (ID INT64, fName STRING, age INT64, PRIMARY KEY (ID));
+---- ok
+-STATEMENT create node table org (ID STRING, PRIMARY KEY (ID));
+---- ok
+-INSERT_STATEMENT_BLOCK CREATE_REL_AND_COPY_NODES_AND_VALIDATE

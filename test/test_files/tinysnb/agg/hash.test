@@ -1,0 +1,345 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE AggHash
+
+-STATEMENT MATCH (a:person)-[r:knows]->(b:person) WHERE a.ID=0 RETURN r, COUNT(*)
+-ENUMERATE
+---- 3
+(0:0)-{_LABEL: knows, _ID: 3:0, date: 2021-06-30, meetTime: 1986-10-21 21:08:31.521, validInterval: 10 years 5 months 13:00:00.000024, comments: [rnme,m8sihsdnf2990nfiwf], summary: {locations: ['toronto','waterloo'], transfer: {day: 2021-01-02, amount: [100,200]}}, notes: 1}->(0:1)|1
+(0:0)-{_LABEL: knows, _ID: 3:1, date: 2021-06-30, meetTime: 1946-08-25 19:07:22, validInterval: 20 years 30 days 48:00:00, comments: [njnojppo9u0jkmf,fjiojioh9h9h89hph], summary: {locations: , transfer: }, notes: 2020-10-10}->(0:2)|1
+(0:0)-{_LABEL: knows, _ID: 3:2, date: 2021-06-30, meetTime: 2012-12-11 20:07:22, validInterval: 10 days, comments: [ioji232,jifhe8w99u43434], summary: {locations: ['shanghai'], transfer: {day: 1990-09-10, amount: [10]}}, notes: nice weather}->(0:3)|1
+
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN a, COUNT(*)
+-ENUMERATE
+---- 5
+{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000}|3
+{_ID: 0:1, _LABEL: person, ID: 2, fName: Bob, gender: 2, isStudent: True, isWorker: False, age: 30, eyeSight: 5.100000, birthdate: 1900-01-01, registerTime: 2008-11-03 15:25:30.000526, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [12,8], usedNames: [Bobby], courseScoresPerTerm: [[8,9],[9,10]], grades: [98,42,93,88], height: 0.990000}|3
+{_ID: 0:2, _LABEL: person, ID: 3, fName: Carol, gender: 1, isStudent: False, isWorker: True, age: 45, eyeSight: 5.000000, birthdate: 1940-06-22, registerTime: 1911-08-20 02:32:21, lastJobDuration: 48:24:11, workedHours: [4,5], usedNames: [Carmen,Fred], courseScoresPerTerm: [[8,10]], grades: [91,75,21,95], height: 1.000000}|3
+{_ID: 0:3, _LABEL: person, ID: 5, fName: Dan, gender: 2, isStudent: False, isWorker: True, age: 20, eyeSight: 4.800000, birthdate: 1950-07-23, registerTime: 2031-11-30 12:25:30, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [1,9], usedNames: [Wolfeschlegelstein,Daniel], courseScoresPerTerm: [[7,4],[8,8],[9]], grades: [76,88,99,89], height: 1.300000}|3
+{_ID: 0:4, _LABEL: person, ID: 7, fName: Elizabeth, gender: 1, isStudent: False, isWorker: True, age: 20, eyeSight: 4.700000, birthdate: 1980-10-26, registerTime: 1976-12-23 11:21:42, lastJobDuration: 48:24:11, workedHours: [2], usedNames: [Ein], courseScoresPerTerm: [[6],[7],[8]], grades: [96,59,65,88], height: 1.463000}|2
+
+-LOG SingleNodeAggTest
+-STATEMENT MATCH (a:person) RETURN a.age, MIN(a.ID), AVG(a.eyeSight), COUNT(*)
+---- 7
+20|5|4.750000|2
+25|8|4.500000|1
+30|2|5.100000|1
+35|0|5.000000|1
+40|9|4.900000|1
+45|3|5.000000|1
+83|10|4.900000|1
+
+-LOG InMemOverflowBufferTest
+-STATEMENT MATCH (a:person) RETURN a.fName as name, COUNT(*) order by name desc
+-PARALLELISM 1
+---- 8
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|1
+Greg|1
+Farooq|1
+Elizabeth|1
+Dan|1
+Carol|1
+Bob|1
+Alice|1
+
+-LOG SingleNodeDistinctTest
+-STATEMENT MATCH (a:person) RETURN DISTINCT a.gender
+---- 2
+1
+2
+
+-LOG OneHopAggTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN a.age, a.gender, COUNT(*)
+-ENUMERATE
+-PARALLELISM 2
+---- 5
+20|1|2
+20|2|3
+30|2|3
+35|1|3
+45|1|3
+
+-LOG OneHopHashAggTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN a.gender, COUNT(*) + SUM(b.age)
+-ENUMERATE
+---- 2
+1|253
+2|216
+
+-LOG TwoHopAggTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN a.gender, COUNT(*), COUNT(DISTINCT b.age)
+-PARALLELISM 5
+-ENUMERATE
+---- 2
+1|18|4
+2|18|4
+
+-LOG OneHopAggFlatUnflatVecTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN a.ID, b.gender, sum(b.age)
+-PARALLELISM 6
+-ENUMERATE
+---- 9
+0|1|45
+0|2|50
+2|1|80
+2|2|20
+3|1|35
+3|2|50
+5|1|80
+5|2|30
+7|2|65
+
+-LOG OneHopAggFlatUnflatVecWithNonHashKeyTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN a.ID, a.gender, b.gender, sum(b.age)
+-ENUMERATE
+---- 9
+0|1|1|45
+0|1|2|50
+2|2|1|80
+2|2|2|20
+3|1|1|35
+3|1|2|50
+5|2|1|80
+5|2|2|30
+7|1|2|65
+
+-LOG OneHopDistinctTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN DISTINCT a.gender, b.isStudent
+-ENUMERATE
+---- 4
+1|False
+1|True
+2|False
+2|True
+
+-LOG TwoHopDistinctTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN DISTINCT a.ID + 1
+-ENUMERATE
+---- 4
+1
+3
+4
+6
+
+-LOG HashCollectINT64Test
+-STATEMENT MATCH (p:person) RETURN p.gender, collect(p.age)
+---- 2
+1|[35,45,20]
+2|[30,20,25,40,83]
+
+-LOG HashCollectFloatTest
+-STATEMENT MATCH (p:person) RETURN p.height, collect(p.eyeSight)
+---- 8
+1.731000|[5.000000]
+0.990000|[5.100000]
+1.000000|[5.000000]
+1.300000|[4.800000]
+1.463000|[4.700000]
+1.510000|[4.500000]
+1.600000|[4.900000]
+1.323000|[4.900000]
+
+-LOG HashCollectSTRINGTest
+-STATEMENT MATCH (p:person) RETURN p.age, collect(p.fName)
+---- 7
+35|[Alice]
+30|[Bob]
+45|[Carol]
+20|[Dan,Elizabeth]
+25|[Farooq]
+40|[Greg]
+83|[Hubert Blaine Wolfeschlegelsteinhausenbergerdorff]
+
+-LOG HashCollectBLOBTest
+-STATEMENT MATCH (m:movies) RETURN m.length > 130, collect(m.content)
+---- 2
+False|[\xAA\xABinteresting\x0B]
+True|[\xAB\xCD,pure ascii characters]
+
+
+-LOG HashCollectLISTOfINT64Test
+-STATEMENT MATCH (p:person) RETURN p.gender, collect(p.workedHours)
+---- 2
+1|[[10,5],[4,5],[2]]
+2|[[12,8],[1,9],[3,4,5,6,7],[1],[10,11,12,3,4,5,6,7]]
+
+-LOG HashCollectLISTOfSTRINGTest
+-STATEMENT MATCH (p:person) RETURN p.isStudent, collect(p.usedNames)
+---- 2
+True|[[Aida],[Bobby],[Fesdwe]]
+False|[[Carmen,Fred],[Wolfeschlegelstein,Daniel],[Ein],[Grad],[Ad,De,Hi,Kye,Orlan]]
+
+-LOG HashCollectLISTOfLISTOfINT64Test
+-STATEMENT MATCH (p:person) RETURN p.ID, collect(p.courseScoresPerTerm)
+---- 8
+0|[[[10,8],[6,7,8]]]
+2|[[[8,9],[9,10]]]
+3|[[[8,10]]]
+5|[[[7,4],[8,8],[9]]]
+7|[[[6],[7],[8]]]
+8|[[[8]]]
+9|[[[10]]]
+10|[[[7],[10],[6,7]]]
+
+-LOG HashCollectLISTOfSTRINGMultiThreadTest
+-STATEMENT MATCH (p:person) RETURN p.isStudent, collect(p.usedNames)
+-PARALLELISM 4
+---- 2
+True|[[Aida],[Bobby],[Fesdwe]]
+False|[[Carmen,Fred],[Wolfeschlegelstein,Daniel],[Ein],[Grad],[Ad,De,Hi,Kye,Orlan]]
+
+-LOG HashCollectOneHopTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN a.fName, collect(b.age)
+---- 5
+Alice|[30,45,20]
+Bob|[35,45,20]
+Carol|[35,30,20]
+Dan|[35,30,45]
+Elizabeth|[25,40]
+
+-LOG HashCollectOnInt32Test
+-STATEMENT MATCH (m:movies) RETURN m.length, collect(m.name)
+---- 3
+126|[Sóló cón tu párejâ]
+2544|[The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie]
+298|[Roma]
+
+-LOG HashCollectOnInt16Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.year, collect(s.length)
+---- 2
+2020|[55,22]
+2021|[5]
+
+-LOG HashCollectOnInt8Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.year, collect(s.level)
+---- 2
+2020|[120,2]
+2021|[5]
+
+-LOG HashCollectOnUInt64Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.year, collect(s.code)
+---- 2
+2020|[6689,23]
+2021|[9223372036854775808]
+
+-LOG HashCollectOnUInt32Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.year, collect(s.temprature)
+---- 2
+2020|[1,20]
+2021|[32800]
+
+-LOG HashCollectOnUInt16Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.year, collect(s.ulength)
+---- 2
+2020|[90,180]
+2021|[33768]
+
+-LOG HashCollectOnUInt8Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.year, collect(s.ulevel)
+---- 2
+2020|[220,12]
+2021|[250]
+
+-LOG HashCollectOnInt128Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.year, collect(s.hugedata)
+---- 2
+2020|[-1844674407370955161511,-15]
+2021|[1844674407370955161811111111]
+
+-LOG HashCollectOnNodeTest
+-STATEMENT MATCH (p:person) WHERE p.ID = 3 or p.ID = 5 RETURN p.gender, collect(p)
+---- 2
+1|[{_ID: 0:2, _LABEL: person, ID: 3, fName: Carol, gender: 1, isStudent: False, isWorker: True, age: 45, eyeSight: 5.000000, birthdate: 1940-06-22, registerTime: 1911-08-20 02:32:21, lastJobDuration: 48:24:11, workedHours: [4,5], usedNames: [Carmen,Fred], courseScoresPerTerm: [[8,10]], grades: [91,75,21,95], height: 1.000000}]
+2|[{_ID: 0:3, _LABEL: person, ID: 5, fName: Dan, gender: 2, isStudent: False, isWorker: True, age: 20, eyeSight: 4.800000, birthdate: 1950-07-23, registerTime: 2031-11-30 12:25:30, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [1,9], usedNames: [Wolfeschlegelstein,Daniel], courseScoresPerTerm: [[7,4],[8,8],[9]], grades: [76,88,99,89], height: 1.300000}]
+
+-LOG HashCollectOnRelTest
+-STATEMENT MATCH (p:person)-[e:knows]->(p1:person) WHERE offset(ID(e)) = 1 or offset(ID(e)) = 4 RETURN p.gender, collect(e)
+---- 2
+1|[(0:0)-{_LABEL: knows, _ID: 3:1, date: 2021-06-30, meetTime: 1946-08-25 19:07:22, validInterval: 20 years 30 days 48:00:00, comments: [njnojppo9u0jkmf,fjiojioh9h9h89hph], summary: {locations: , transfer: }, notes: 2020-10-10}->(0:2)]
+2|[(0:1)-{_LABEL: knows, _ID: 3:4, date: 1950-05-14, meetTime: 1946-08-25 19:07:22, validInterval: 00:23:00, comments: [fwehu9h9832wewew,23u9h989sdfsss], summary: {locations: ['paris'], transfer: {day: 2011-05-01, amount: [2000,5340]}}, notes: cool stuff found}->(0:2)]
+
+-LOG HashAggCountBlob
+-STATEMENT MATCH (m:movies) RETURN m.length > 2542, COUNT(m.content)
+-PARALLELISM 4
+-ENUMERATE
+---- 2
+False|2
+True|1
+
+-LOG HashAggCountINT8
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.year, COUNT(s.level)
+---- 2
+2020|2
+2021|1
+
+-LOG HashAggINT8Key
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.level, COUNT(s.year)
+---- 3
+2|1
+5|1
+120|1
+
+-LOG HashAggUINT8Key
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.ulevel, COUNT(s.year)
+---- 3
+12|1
+220|1
+250|1
+
+-LOG HashAggUINT16Key
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.ulength, COUNT(s.year)
+---- 3
+33768|1
+90|1
+180|1
+
+-LOG HashAggUINT32Key
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.temprature, COUNT(s.year)
+---- 3
+32800|1
+1|1
+20|1
+
+-LOG HashAggUINT64Key
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.code, COUNT(s.year)
+---- 3
+23|1
+9223372036854775808|1
+6689|1
+
+-LOG HashAggINT128Key
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.hugedata, COUNT(s.year)
+---- 3
+-1844674407370955161511|1
+-15|1
+1844674407370955161811111111|1
+
+-LOG HashAggMinBlob
+-STATEMENT MATCH (m:movies) RETURN m.length <> 298, MIN(m.content)
+-PARALLELISM 2
+-ENUMERATE
+---- 2
+False|pure ascii characters
+True|\xAA\xABinteresting\x0B
+
+-LOG HashAggMaxBlob
+-STATEMENT MATCH (m:movies) RETURN m.length <> 126, MAX(m.content)
+-PARALLELISM 1
+-ENUMERATE
+---- 2
+False|\xAA\xABinteresting\x0B
+True|\xAB\xCD
+
+-LOG HashAggTest
+-STATEMENT   MATCH (:person)-[r1:knows]->(influencer:person)-[r2:knows]->(:person)
+             WHERE influencer.age <= 100
+             RETURN influencer, count(*) AS numFacilitatedPaths
+---- 4
+{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000}|9
+{_ID: 0:1, _LABEL: person, ID: 2, fName: Bob, gender: 2, isStudent: True, isWorker: False, age: 30, eyeSight: 5.100000, birthdate: 1900-01-01, registerTime: 2008-11-03 15:25:30.000526, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [12,8], usedNames: [Bobby], courseScoresPerTerm: [[8,9],[9,10]], grades: [98,42,93,88], height: 0.990000}|9
+{_ID: 0:2, _LABEL: person, ID: 3, fName: Carol, gender: 1, isStudent: False, isWorker: True, age: 45, eyeSight: 5.000000, birthdate: 1940-06-22, registerTime: 1911-08-20 02:32:21, lastJobDuration: 48:24:11, workedHours: [4,5], usedNames: [Carmen,Fred], courseScoresPerTerm: [[8,10]], grades: [91,75,21,95], height: 1.000000}|9
+{_ID: 0:3, _LABEL: person, ID: 5, fName: Dan, gender: 2, isStudent: False, isWorker: True, age: 20, eyeSight: 4.800000, birthdate: 1950-07-23, registerTime: 2031-11-30 12:25:30, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [1,9], usedNames: [Wolfeschlegelstein,Daniel], courseScoresPerTerm: [[7,4],[8,8],[9]], grades: [76,88,99,89], height: 1.300000}|9
+

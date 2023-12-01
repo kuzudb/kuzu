@@ -1,0 +1,46 @@
+-GROUP DeleteRelTest
+-DATASET CSV rel-update-tests
+--
+
+-CASE MixedDeleteAndCreateRelsCommitNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 7 delete e;
+---- ok
+-STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 8 delete e;
+---- ok
+-STATEMENT MATCH (p0:person)-[e:knows]->(p1:person) where p0.ID = 0 AND p1.ID <= 10 return e.length
+---- 8
+1
+2
+3
+4
+5
+6
+9
+10
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 0 AND p2.ID = 7 create (p1)-[:knows {length: 7}]->(p2);
+---- ok
+-STATEMENT MATCH (p0:person)-[e:knows]->(p1:person) where p0.ID = 0 AND p1.ID <= 10 return e.length
+---- 9
+1
+2
+3
+4
+5
+6
+7
+9
+10
+-STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 7 delete e;
+---- ok
+-STATEMENT MATCH (p0:person)-[e:knows]->(p1:person) where p0.ID = 0 AND p1.ID <= 10 return e.length
+---- 8
+1
+2
+3
+4
+5
+6
+9
+10

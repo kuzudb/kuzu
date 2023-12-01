@@ -1,0 +1,136 @@
+-GROUP DeleteRelTest
+-DATASET CSV rel-update-tests
+--
+
+-DEFINE_STATEMENT_BLOCK DELETE_REL_TEST_DELETE_ALL_INSERTED_RELS [
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 1 AND p2.ID = 51 create (p1)-[:knows {length: 51}]->(p2);
+---- ok
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 1 AND p2.ID = 52 create (p1)-[:knows {length: 52}]->(p2);
+---- ok
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 1 AND p2.ID = 53 create (p1)-[:knows {length: 53}]->(p2);
+---- ok
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 1 AND p2.ID = 54 create (p1)-[:knows {length: 54}]->(p2);
+---- ok
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 1 AND p2.ID = 55 create (p1)-[:knows {length: 55}]->(p2);
+---- ok
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 1 AND p2.ID = 56 create (p1)-[:knows {length: 56}]->(p2);
+---- ok
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 1 AND p2.ID = 57 create (p1)-[:knows {length: 57}]->(p2);
+---- ok
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 1 AND p2.ID = 58 create (p1)-[:knows {length: 58}]->(p2);
+---- ok
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 1 AND p2.ID = 59 create (p1)-[:knows {length: 59}]->(p2);
+---- ok
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 1 AND p2.ID = 60 create (p1)-[:knows {length: 60}]->(p2);
+---- ok
+-STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 1 AND p2.ID = 51 delete e;
+---- ok
+-STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 1 AND p2.ID = 52 delete e;
+---- ok
+-STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 1 AND p2.ID = 53 delete e;
+---- ok
+-STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 1 AND p2.ID = 54 delete e;
+---- ok
+-STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 1 AND p2.ID = 55 delete e;
+---- ok
+-STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 1 AND p2.ID = 56 delete e;
+---- ok
+-STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 1 AND p2.ID = 57 delete e;
+---- ok
+-STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 1 AND p2.ID = 58 delete e;
+---- ok
+-STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 1 AND p2.ID = 59 delete e;
+---- ok
+-STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 1 AND p2.ID = 60 delete e;
+---- ok
+]
+
+-CASE deleteAllInsertedRelsCommitNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK DELETE_REL_TEST_DELETE_ALL_INSERTED_RELS
+-STATEMENT COMMIT
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows]->(p1:person) WHERE p1.ID >= 40 AND p.ID = 1 RETURN e.length
+---- 11
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+
+-CASE deleteAllInsertedRelsCommitRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK DELETE_REL_TEST_DELETE_ALL_INSERTED_RELS
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows]->(p1:person) WHERE p1.ID >= 40 AND p.ID = 1 RETURN e.length
+---- 11
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+
+-CASE deleteAllInsertedRelsRollbackNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK DELETE_REL_TEST_DELETE_ALL_INSERTED_RELS
+-STATEMENT Rollback
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows]->(p1:person) WHERE p1.ID >= 40 AND p.ID = 1 RETURN e.length
+---- 11
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+
+-CASE deleteAllInsertedRelsRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK DELETE_REL_TEST_DELETE_ALL_INSERTED_RELS
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows]->(p1:person) WHERE p1.ID >= 40 AND p.ID = 1 RETURN e.length
+---- 11
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50

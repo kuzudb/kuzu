@@ -1,0 +1,30 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE FilterMultiQuery
+
+-LOG MultiQueryOneHopKnowsFilteredTest1
+-STATEMENT MATCH (a:person) WHERE a.gender = 1 WITH a AS k MATCH (k)-[e:knows]->(b:person) WHERE b.gender = 2 RETURN COUNT(*)
+-ENUMERATE
+---- 1
+6
+
+-LOG MultiQueryOneHopKnowsFilteredTest2
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE (a.gender/2 <= 0.5) WITH b WHERE b.gender*3.5 = 7.0 RETURN COUNT(*)
+-ENUMERATE
+---- 1
+6
+
+-LOG MultiQueryTwoHopKnowsFilteredTest1
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WITH a, b WHERE b.age=35 MATCH (b)-[e2:knows]->(c:person {age:a.age}) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+3
+
+-LOG MultiQueryTwoHopKnowsFilteredTest2
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WITH a.age AS foo, b MATCH (b)-[e2:knows]->(c:person {age:foo}) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+12

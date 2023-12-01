@@ -1,0 +1,95 @@
+-GROUP EmptySetNodeTest
+-DATASET CSV empty
+
+--
+
+-CASE SetStructValueToNonNull
+-STATEMENT CREATE NODE TABLE test(id INT64, prop STRUCT(age INT64, name STRING), PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {id:1, prop:{age:10, name:'Alice'}})
+---- ok
+-STATEMENT CREATE (t:test {id:2, prop:{age:20, name:'Bobdjiweknfwhuwiehfuw'}})
+---- ok
+-STATEMENT CREATE (t:test {id:3, prop:{age:30, name:'Delta'}})
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.prop
+---- 3
+{age: 10, name: Alice}
+{age: 20, name: Bobdjiweknfwhuwiehfuw}
+{age: 30, name: Delta}
+-STATEMENT MATCH (t:test) WHERE t.id=1 SET t.prop={age:11, name:'Alicennewjfnwefwfw'}
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.prop
+---- 3
+{age: 11, name: Alicennewjfnwefwfw}
+{age: 20, name: Bobdjiweknfwhuwiehfuw}
+{age: 30, name: Delta}
+
+-CASE SetStructValueWithWriteTransaction
+-STATEMENT CREATE NODE TABLE test(id INT64, prop STRUCT(age INT64, name STRING), PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {id:1, prop:{age:10, name:'Alice'}})
+---- ok
+-STATEMENT CREATE (t:test {id:2, prop:{age:20, name:'Bobdjiweknfwhuwiehfuw'}})
+---- ok
+-STATEMENT CREATE (t:test {id:3, prop:{age:30, name:'Delta'}})
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.prop
+---- 3
+{age: 10, name: Alice}
+{age: 20, name: Bobdjiweknfwhuwiehfuw}
+{age: 30, name: Delta}
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (t:test) WHERE t.id=1 SET t.prop={age:11, name:'Alicennewjfnwefwfw'}
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.prop
+---- 3
+{age: 11, name: Alicennewjfnwefwfw}
+{age: 20, name: Bobdjiweknfwhuwiehfuw}
+{age: 30, name: Delta}
+-STATEMENT COMMIT
+---- ok
+
+-CASE SetStructValueToNull
+-STATEMENT CREATE NODE TABLE test(id INT64, prop STRUCT(age INT64, name STRING), PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {id:1, prop:{age:10, name:'Alice'}})
+---- ok
+-STATEMENT CREATE (t:test {id:2, prop:{age:20, name:'Bobdjiweknfwhuwiehfuw'}})
+---- ok
+-STATEMENT CREATE (t:test {id:3, prop:{age:30, name:'Delta'}})
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.prop
+---- 3
+{age: 10, name: Alice}
+{age: 20, name: Bobdjiweknfwhuwiehfuw}
+{age: 30, name: Delta}
+-STATEMENT MATCH (t:test) WHERE t.id=1 SET t.prop=NULL
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.prop
+---- 3
+
+{age: 20, name: Bobdjiweknfwhuwiehfuw}
+{age: 30, name: Delta}
+
+-CASE SetPK
+-STATEMENT CREATE NODE TABLE test(id INT64, name STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {id:1, name:'Alice'})
+---- ok
+-STATEMENT MATCH (t:test) SET t.id=2
+---- ok
+-STATEMENT MATCH (t:test) RETURN t
+---- 1
+{_ID: 0:0, _LABEL: test, id: 2, name: Alice}
+
+-CASE SetWithSerialPK
+-SKIP
+-STATEMENT CREATE NODE TABLE test(id SERIAL, name STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (t:test {name:'Alice'})
+---- ok
+-STATEMENT MATCH (t:test) SET t.id=NULL
+---- error
+Bind exception: Cannot set SERIAL column 'id' to a different value

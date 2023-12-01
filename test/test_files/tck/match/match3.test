@@ -1,0 +1,415 @@
+-GROUP TCKMatch3
+-DATASET CSV tck
+
+--
+
+# Get neighbours
+-CASE Scenario1
+-STATEMENT CREATE NODE TABLE A(num INT64, PRIMARY KEY(num));
+---- ok
+-STATEMENT CREATE NODE TABLE B(num INT64, PRIMARY KEY(num));
+---- ok
+-STATEMENT CREATE REL TABLE KNOWS(FROM A TO B);
+---- ok
+-STATEMENT CREATE (a:A {num: 1})-[:KNOWS]->(b:B {num: 2});
+---- ok
+-STATEMENT MATCH (n1)-[r:KNOWS]->(n2) RETURN n1, n2;
+---- 1
+{_ID: 0:0, _LABEL: A, num: 1}|{_ID: 1:0, _LABEL: B, num: 2}
+
+# Directed match of a simple relationship
+-CASE Scenario2
+-LOG Scenario2
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE LOOP(FROM A TO B);
+---- ok
+-STATEMENT CREATE (:A)-[:LOOP]->(:B);
+---- ok
+-STATEMENT MATCH (a)-[r]->(b) RETURN a, r, b;
+---- 1
+{_ID: 0:0, _LABEL: A, ID: 0}|(0:0)-{_LABEL: LOOP, _ID: 2:0}->(1:0)|{_ID: 1:0, _LABEL: B, ID: 0}
+
+# Undirected match on simple relationship graph
+-CASE Scenario3
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE LOOP(FROM A TO B);
+---- ok
+-STATEMENT CREATE (:A)-[:LOOP]->(:B);
+---- ok
+-STATEMENT MATCH (a)-[r]-(b) RETURN a, r, b;
+---- 2
+{_ID: 0:0, _LABEL: A, ID: 0}|(0:0)-{_LABEL: LOOP, _ID: 2:0}->(1:0)|{_ID: 1:0, _LABEL: B, ID: 0}
+{_ID: 1:0, _LABEL: B, ID: 0}|(1:0)-{_LABEL: LOOP, _ID: 2:0}->(0:0)|{_ID: 0:0, _LABEL: A, ID: 0}
+
+# Get two related nodes
+#-CASE Scenario4 
+#-STATEMENT CREATE NODE TABLE A(num INT64, PRIMARY KEY(num));
+#---- ok
+#-STATEMENT CREATE NODE TABLE B(num INT64, PRIMARY KEY(num));
+#---- ok
+#-STATEMENT CREATE NODE TABLE C(num INT64, PRIMARY KEY(num));
+#---- ok
+#-STATEMENT CREATE REL TABLE KNOWS(FROM A TO B, FROM A TO C);
+#---- ok
+#-STATEMENT CREATE REL TABLE KNOWS(FROM A TO C);
+#---- ok
+#-STATEMENT CREATE (a:A {num: 1}), (a)-[:KNOWS]->(b:B {num: 2}), (a)-[:KNOWS]->(c:C {num: 3});
+#---- ok
+#-STATEMENT MATCH ()-[r:KNOWS]->(x) RETURN x
+#---- 2
+#{_ID: 1:0, _LABEL: B, num: 2}
+#{_ID: 2:0, _LABEL: C, num: 3}
+
+# Return two subgraphs with bound undirected relationship
+-CASE Scenario5
+-STATEMENT CREATE NODE TABLE A(num INT64, PRIMARY KEY(num));
+---- ok
+-STATEMENT CREATE NODE TABLE B(num INT64, PRIMARY KEY(num));
+---- ok
+-STATEMENT CREATE REL TABLE RE(FROM A TO B, name STRING);
+---- ok
+-STATEMENT CREATE (a:A {num: 1})-[:RE {name: 'r'}]->(b:B {num: 2});
+---- ok
+-STATEMENT MATCH (a)-[r {name: 'r'}]-(b) RETURN a, b;
+---- 2
+{_ID: 0:0, _LABEL: A, num: 1}|{_ID: 1:0, _LABEL: B, num: 2}
+{_ID: 1:0, _LABEL: B, num: 2}|{_ID: 0:0, _LABEL: A, num: 1}
+
+# Matching a relationship pattern using a label predicate
+-CASE Scenario6
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE Foo(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO Foo);
+---- ok
+-STATEMENT CREATE (a)-[:T]->(b1), (a)-[:T]->(b2)
+---- error
+Binder exception: Create node a with multiple node labels is not supported.
+
+# Matching nodes with many labels
+#-CASE Scenario7
+
+# Matching using relationship predicate with multiples of the same type
+-CASE Scenario8
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A To B);
+---- ok
+-STATEMENT CREATE (a:A)-[:T]->(b:B);
+---- ok
+-STATEMENT MATCH (a)-[:T|:T]->(b) RETURN b;
+---- 1
+{_ID: 1:0, _LABEL: B, ID: 0}
+
+# Get related to related to
+-CASE Scenario9
+-STATEMENT CREATE NODE TABLE A(num INT64, PRIMARY KEY(num));
+---- ok
+-STATEMENT CREATE NODE TABLE B(num INT64, PRIMARY KEY(num));
+---- ok
+-STATEMENT CREATE NODE TABLE C(num INT64, PRIMARY KEY(num));
+---- ok
+-STATEMENT CREATE REL TABLE KNOWS(FROM A TO B);
+---- ok
+-STATEMENT CREATE REL TABLE FRIEND(FROM B TO C);
+---- ok
+-STATEMENT CREATE (a:A {num: 1})-[:KNOWS]->(b:B {num: 2})-[:FRIEND]->(c:C {num: 3});
+---- ok
+-STATEMENT MATCH (n)-->(a)-->(b) RETURN b;
+---- 1
+{_ID: 2:0, _LABEL: C, num: 3}
+
+# Matching using self-referencing pattern returns no result
+-CASE Scenario10
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+-STATEMENT CREATE (a:A)-[:T]->(b:A), (b:A)-[:T]->(c:A);
+---- ok
+-STATEMENT MATCH (a)-->(b), (b)-->(b) RETURN b;
+---- 0
+
+# Undirected match in self-relationship graph
+# Undirected match of self-relationship in self-relationship graph
+-CASE Scenario11&12
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE LOOP(FROM A TO A);
+---- ok
+-STATEMENT CREATE (a:A)-[:LOOP]->(a);
+---- ok
+-STATEMENT MATCH (a)-[r]-(b) RETURN a, r, b;
+---- 1
+{_ID: 0:0, _LABEL: A, ID: 0}|(0:0)-{_LABEL: LOOP, _ID: 1:0}->(0:0)|{_ID: 0:0, _LABEL: A, ID: 0}
+-STATEMENT MATCH (n)-[r]-(n) RETURN n, r;
+---- 1
+{_ID: 0:0, _LABEL: A, ID: 0}|(0:0)-{_LABEL: LOOP, _ID: 1:0}->(0:0)
+
+
+# Directed match on self-relationship graph
+# Directed match of self-relationship on self-relationship graph
+-CASE Scenario13&14
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE LOOP(FROM A TO A);
+---- ok
+-STATEMENT CREATE (a:A)-[:LOOP]->(a);
+---- ok
+-STATEMENT MATCH (a)-[r]->(b) RETURN a, r, b;
+---- 1
+{_ID: 0:0, _LABEL: A, ID: 0}|(0:0)-{_LABEL: LOOP, _ID: 1:0}->(0:0)|{_ID: 0:0, _LABEL: A, ID: 0}
+-STATEMENT MATCH (n)-[r]->(n) RETURN n, r;
+---- 1
+{_ID: 0:0, _LABEL: A, ID: 0}|(0:0)-{_LABEL: LOOP, _ID: 1:0}->(0:0)
+
+# Mixing directed and undirected pattern parts with self-relationship, simple
+# Mixing directed and undirected pattern parts with self-relationship, undirected
+-CASE Scenario15&16
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE Looper(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T1(FROM A TO Looper);
+---- ok
+-STATEMENT CREATE REL TABLE LOOP(FROM Looper TO Looper);
+---- ok
+-STATEMENT CREATE REL TABLE T2(FROM Looper TO B);
+---- ok
+-STATEMENT CREATE (:A)-[:T1]->(l:Looper), (l)-[:LOOP]->(l), (l)-[:T2]->(:B);
+---- ok
+-STATEMENT MATCH (x:A)-[r1]->(y)-[r2]-(z) RETURN x, r1, y, r2, z;
+---- 2
+{_ID: 0:1, _LABEL: A, ID: 1}|(0:1)-{_LABEL: T1, _ID: 4:0}->(2:0)|{_ID: 2:0, _LABEL: Looper, ID: 0}|(2:0)-{_LABEL: LOOP, _ID: 6:0}->(2:0)|{_ID: 2:0, _LABEL: Looper, ID: 0}
+{_ID: 0:1, _LABEL: A, ID: 1}|(0:1)-{_LABEL: T1, _ID: 4:0}->(2:0)|{_ID: 2:0, _LABEL: Looper, ID: 0}|(2:0)-{_LABEL: T2, _ID: 5:0}->(3:0)|{_ID: 3:0, _LABEL: B, ID: 0} 
+-STATEMENT MATCH (x:A)-[r1]-(y)-[r2]-(z) RETURN x, r1, y, r2, z;
+---- 6
+{_ID: 0:0, _LABEL: A, ID: 0}|(0:0)-{_LABEL: T1, _ID: 3:0}->(1:0)|{_ID: 1:0, _LABEL: Looper, ID: 0}|(1:0)-{_LABEL: LOOP, _ID: 4:0}->(1:0)|{_ID: 1:0, _LABEL: Looper, ID: 0}
+{_ID: 0:0, _LABEL: A, ID: 0}|(0:0)-{_LABEL: T1, _ID: 3:0}->(1:0)|{_ID: 1:0, _LABEL: Looper, ID: 0}|(1:0)-{_LABEL: T2, _ID: 5:0}->(2:0)|{_ID: 2:0, _LABEL: B, ID: 0} 
+{_ID: 1:0, _LABEL: Looper, ID: 0}|(1:0)-{_LABEL: LOOP, _ID: 4:0}->(1:0)|{_ID: 1:0, _LABEL: Looper, ID: 0}|(1:0)-{_LABEL: T1, _ID: 3:0}->(0:0)|{_ID: 0:0, _LABEL: A, ID: 0}
+{_ID: 1:0, _LABEL: Looper, ID: 0}|(1:0)-{_LABEL: LOOP, _ID: 4:0}->(1:0)|{_ID: 1:0, _LABEL: Looper, ID: 0}|(1:0)-{_LABEL: T2, _ID: 5:0}->(2:0)|{_ID: 2:0, _LABEL: B, ID: 0} 
+{_ID: 2:0, _LABEL: B, ID: 0}|(2:0)-{_LABEL: T2, _ID: 5:0}->(1:0)|{_ID: 1:0, _LABEL: Looper, ID: 0}|(1:0)-{_LABEL: T1, _ID: 3:0}->(0:0)|{_ID: 0:0, _LABEL: A, ID: 0}
+{_ID: 2:0, _LABEL: B, ID: 0}|(2:0)-{_LABEL: T2, _ID: 5:0}->(1:0)|{_ID: 1:0, _LABEL: Looper, ID: 0}|(1:0)-{_LABEL: LOOP, _ID: 4:0}->(1:0)|{_ID: 1:0, _LABEL: Looper, ID: 0} 
+
+# handle cyclic patterns
+# Handling cyclic patterns when separated into two parts
+-CASE Scenario17&18
+-STATEMENT CREATE NODE TABLE T1(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE T2(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE A(FROM T1 TO T2);
+---- ok
+-STATEMENT CREATE REL TABLE B(FROM T2 TO T1);
+---- ok
+-STATEMENT CREATE (a: T1 {name: 'a'})-[:A]->(b: T2 {name: 'a'}), 
+                  (b)-[:B]->(a), (b)-[:B]->(c: T1 {name: 'c'});
+---- ok
+-STATEMENT MATCH (a)-[:A]->()-[:B]->(a) RETURN a.name;
+---- 1
+a
+-STATEMENT MATCH (a)-[:A]->(b), (b)-[:B]->(a) RETURN a.name;
+---- 1
+a
+
+# Two bound nodes pointing to the same node
+# -- is equiv to <--> so do not implement
+-CASE Scenario19
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE KNOWS(FROM A TO A);
+---- ok
+-STATEMENT CREATE (a: A {name: 'A'})-[:KNOWS]->(x1: A {name: 'x1'}), (a)-[:KNOWS]->(x2: A {name: 'x2'}), 
+                  (b: A {name: 'B'})-[:KNOWS]->(x1), (b)-[:KNOWS]->(x2);
+---- ok
+-STATEMENT MATCH (a {name: 'A'}), (b {name: 'B'}) 
+           MATCH (a)-->(x)--(b) 
+           RETURN x;
+---- 2
+{_ID: 0:1, _LABEL: A, ID: 1, name: x1}
+{_ID: 0:2, _LABEL: A, ID: 2, name: x2}
+
+# Three bound nodes pointing to the same node
+-CASE Scenario20
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE KNOWS(FROM A TO A);
+---- ok
+-STATEMENT CREATE (a: A {name: 'A'})-[:KNOWS]->(x1: A {name: 'x1'}), (a)-[:KNOWS]->(x2: A {name: 'x2'}), 
+                  (b: A {name: 'B'})-[:KNOWS]->(x1), (b)-[:KNOWS]->(x2), 
+                  (c: A {name: 'C'})-[:KNOWS]->(x1), (c)-[:KNOWS]->(x2);
+---- ok
+-STATEMENT MATCH (a {name: 'A'}), (b {name: 'B'}), (c {name: 'C'}) 
+           MATCH (a)-->(x), (b)-->(x), (c)-->(x) 
+           RETURN x;
+---- 2
+{_ID: 0:1, _LABEL: A, ID: 1, name: x1}
+{_ID: 0:2, _LABEL: A, ID: 2, name: x2}
+
+# Three bound nodes pointing to the same node with extra connections
+-CASE Scenario21
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE KNOWS(FROM A TO A);
+---- ok
+-STATEMENT CREATE (a {name: 'a'}), (b {name: 'b'}), (c {name: 'c'}), (d {name: 'd'}), 
+                  (e {name: 'e'}), (f {name: 'f'}), (g {name: 'g'}), (h {name: 'h'}), 
+                  (i {name: 'i'}), (j {name: 'j'}), (k {name: 'k'}) 
+           CREATE (a)-[:KNOWS]->(d), (a)-[:KNOWS]->(e), (a)-[:KNOWS]->(f), (a)-[:KNOWS]->(g), 
+                  (a)-[:KNOWS]->(i), (b)-[:KNOWS]->(d), (b)-[:KNOWS]->(e), (b)-[:KNOWS]->(f), 
+                  (b)-[:KNOWS]->(h), (b)-[:KNOWS]->(k), (c)-[:KNOWS]->(d), (c)-[:KNOWS]->(e), 
+                  (c)-[:KNOWS]->(h), (c)-[:KNOWS]->(g), (c)-[:KNOWS]->(j);
+---- ok
+-STATEMENT MATCH (a {name: 'a'}), (b {name: 'b'}), (c {name: 'c'}) 
+           MATCH (a)-->(x), (b)-->(x), (c)-->(x) 
+           RETURN x;
+---- 2
+{_ID: 0:3, _LABEL: A, ID: 3, name: d}
+{_ID: 0:4, _LABEL: A, ID: 4, name: e}
+
+# Returning bound nodes that are not part of the pattern
+-CASE Scenario22
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE KNOWS(FROM A TO A);
+---- ok
+-STATEMENT CREATE (a {name: 'A'}), (b {name: 'B'}),
+                  (c {name: 'C'})
+           CREATE (a)-[:KNOWS]->(b);
+---- ok
+-STATEMENT MATCH (a {name: 'A'}), (c {name: 'C'})
+           MATCH (a)-->(b)
+           RETURN a, b, c;
+---- 1
+{_ID: 0:0, _LABEL: A, ID: 0, name: A}|{_ID: 0:1, _LABEL: A, ID: 1, name: B}|{_ID: 0:2, _LABEL: A, ID: 2, name: C}
+
+# Matching disconnected patterns
+-CASE Scenario23
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE C(ID SERIAL,PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP T(FROM A TO B, FROM A TO C);
+---- ok
+-STATEMENT CREATE (a:A), (b:B), (c:C)
+           CREATE (a)-[:T_A_B]->(b),
+                  (a)-[:T_A_C]->(c);
+---- ok
+-STATEMENT MATCH (a)-->(b)
+           MATCH (c)-->(d)
+           RETURN a, b, c, d;
+---- 4
+{_ID: 0:0, _LABEL: A, ID: 0}|{_ID: 1:0, _LABEL: B, ID: 0}|{_ID: 0:0, _LABEL: A, ID: 0}|{_ID: 1:0, _LABEL: B, ID: 0}
+{_ID: 0:0, _LABEL: A, ID: 0}|{_ID: 1:0, _LABEL: B, ID: 0}|{_ID: 0:0, _LABEL: A, ID: 0}|{_ID: 2:0, _LABEL: C, ID: 0}
+{_ID: 0:0, _LABEL: A, ID: 0}|{_ID: 2:0, _LABEL: C, ID: 0}|{_ID: 0:0, _LABEL: A, ID: 0}|{_ID: 1:0, _LABEL: B, ID: 0}
+{_ID: 0:0, _LABEL: A, ID: 0}|{_ID: 2:0, _LABEL: C, ID: 0}|{_ID: 0:0, _LABEL: A, ID: 0}|{_ID: 2:0, _LABEL: C, ID: 0}
+
+# Matching twice with duplicate relationship types on same relationship
+-CASE Scenario24
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO B);
+---- ok
+-STATEMENT CREATE (:A)-[:T]->(:B);
+---- ok
+-STATEMENT MATCH (a1)-[r:T]->() 
+           WITH r, a1 
+           MATCH (a1)-[r:T]->(b2) 
+           RETURN a1, r, b2;
+---- error
+Binder exception: Bind relationship r to relationship with same name is not supported.
+# Different result from openCypher standard
+-STATEMENT MATCH (a1)-[r:T]->() 
+           WITH r, a1 
+           MATCH (a1)-[t:T]->(b2) 
+           RETURN a1, r, b2;
+---- 1
+{_ID: 0:0, _LABEL: A, ID: 0}|(0:0)-{_LABEL: T, _ID: 2:0}->(1:0)|{_ID: 1:0, _LABEL: B, ID: 0}
+
+# Matching twice with an additional node label
+-CASE Scenario25
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T (FROM A TO A);
+---- ok
+-STATEMENT CREATE ()-[:T]->();
+---- ok
+-STATEMENT MATCH (a1)-[r]->()
+           WITH r, a1
+           MATCH (a1:A)-[]->(b2)
+           RETURN a1, r, b2
+---- 1
+{_ID: 0:0, _LABEL: A, ID: 0}|(0:0)-{_LABEL: T, _ID: 1:0}->(0:1)|{_ID: 0:1, _LABEL: A, ID: 1}
+
+# Matching twice with a duplicate predicate
+-CASE Scenario26
+-STATEMENT CREATE NODE TABLE X(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE Y(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T (FROM X TO X);
+---- ok
+-STATEMENT CREATE (:X)-[:T]->(:X);
+---- ok
+-STATEMENT MATCH (a1:X:Y)-[r:T]->()
+           WITH r, a1
+           MATCH (a1:Y)-[:T]->(b2)
+           RETURN a1, r, b2;
+---- 1
+{_ID: 0:0, _LABEL: X, ID: 0}|(0:0)-{_LABEL: T, _ID: 2:0}->(0:1)|{_ID: 0:1, _LABEL: X, ID: 1}
+
+# Matching from null nodes should return no results owing to finding no matches
+-CASE Scenario27
+-STATEMENT CREATE NODE TABLE X(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT OPTIONAL MATCH (a)
+           WITH a
+           MATCH (a)-->(b)
+           RETURN b
+---- error
+Binder exception: No rel table exists in database.
+
+# Matching from null nodes should return no results owing to matches being filtered out
+#-CASE Scenario28
+
+# Fail when re-using a relationship in the same pattern
+-CASE Scenario29
+-STATEMENT CREATE NODE TABLE X(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T (FROM X TO X);
+---- ok
+-STATEMENT MATCH (a)-[r]->()-[r]->(a)
+           RETURN r
+---- error
+Binder exception: Bind relationship r to relationship with same name is not supported.
+# Different result from openCypher standard
+
+# Fail when using a list or nodes as a node
+-CASE Scenario30
+-STATEMENT CREATE NODE TABLE X(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT MATCH (n)
+           WITH [n] AS users
+           MATCH (users)-->(messages)
+           RETURN messages;
+---- error
+Binder exception: Cannot bind users as node pattern.
+
+

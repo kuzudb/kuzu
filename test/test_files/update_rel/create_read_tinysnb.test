@@ -1,0 +1,50 @@
+-GROUP TinySnbCreateReadRelTest
+-DATASET CSV tinysnb
+--
+
+-CASE CreateRelRead1
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 2 CREATE (a)-[e:knows {date:date('2023-03-03')}]->(b) RETURN id(e), e.date;
+---- 1
+0:14|2023-03-03
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 2 CREATE (a)-[e:knows {date:date('2023-04-04')}]->(b) RETURN e;
+---- 1
+(0:0)-{_LABEL: knows, _ID: 0:15, date: 2023-04-04}->(0:1)
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID = 0 AND b.ID = 2 RETURN e;
+---- 3
+(0:0)-{_LABEL: knows, _ID: 3:0, date: 2021-06-30, meetTime: 1986-10-21 21:08:31.521, validInterval: 10 years 5 months 13:00:00.000024, comments: [rnme,m8sihsdnf2990nfiwf], summary: {locations: ['toronto','waterloo'], transfer: {day: 2021-01-02, amount: [100,200]}}, notes: 1}->(0:1)
+(0:0)-{_LABEL: knows, _ID: 3:14, date: 2023-03-03}->(0:1)
+(0:0)-{_LABEL: knows, _ID: 3:15, date: 2023-04-04}->(0:1)
+
+-CASE CreateRelRead2
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID = 0 CREATE (a)-[f:knows {date:date('2023-04-04')}]->(b) RETURN f;
+---- 3
+(0:0)-{_LABEL: knows, _ID: 0:14, date: 2023-04-04}->(0:1)
+(0:0)-{_LABEL: knows, _ID: 0:15, date: 2023-04-04}->(0:2)
+(0:0)-{_LABEL: knows, _ID: 0:16, date: 2023-04-04}->(0:3)
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID = 0 RETURN e;
+---- 6
+(0:0)-{_LABEL: knows, _ID: 3:0, date: 2021-06-30, meetTime: 1986-10-21 21:08:31.521, validInterval: 10 years 5 months 13:00:00.000024, comments: [rnme,m8sihsdnf2990nfiwf], summary: {locations: ['toronto','waterloo'], transfer: {day: 2021-01-02, amount: [100,200]}}, notes: 1}->(0:1)
+(0:0)-{_LABEL: knows, _ID: 3:1, date: 2021-06-30, meetTime: 1946-08-25 19:07:22, validInterval: 20 years 30 days 48:00:00, comments: [njnojppo9u0jkmf,fjiojioh9h9h89hph], summary: {locations: , transfer: }, notes: 2020-10-10}->(0:2)
+(0:0)-{_LABEL: knows, _ID: 3:2, date: 2021-06-30, meetTime: 2012-12-11 20:07:22, validInterval: 10 days, comments: [ioji232,jifhe8w99u43434], summary: {locations: ['shanghai'], transfer: {day: 1990-09-10, amount: [10]}}, notes: nice weather}->(0:3)
+(0:0)-{_LABEL: knows, _ID: 3:14, date: 2023-04-04}->(0:1)
+(0:0)-{_LABEL: knows, _ID: 3:15, date: 2023-04-04}->(0:2)
+(0:0)-{_LABEL: knows, _ID: 3:16, date: 2023-04-04}->(0:3)
+
+-CASE OptionalCreate
+-STATEMENT OPTIONAL MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 100 CREATE (a)-[e:knows {date:date("2023-01-01")}]->(b) RETURN e.date;
+---- 1
+
+-STATEMENT OPTIONAL MATCH (a:person), (b:person) WHERE a.ID = 100 AND b.ID = 0 CREATE (a)-[e:knows {date:date("2023-01-01")}]->(b) RETURN e.date;
+---- 1
+
+-STATEMENT OPTIONAL MATCH (a:person), (b:person) WHERE a.ID = 100 AND b.ID = 100 CREATE (a)-[e:knows {date:date("2023-01-01")}]->(b) RETURN e.date;
+---- 1
+
+-STATEMENT MATCH (a:person)-[e:knows]-(b:person) WHERE a.ID = 0 RETURN e.date;
+---- 6
+2021-06-30
+2021-06-30
+2021-06-30
+2021-06-30
+2021-06-30
+2021-06-30

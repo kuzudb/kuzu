@@ -1,0 +1,11 @@
+[package]
+name = "kuzu-rust-example"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+kuzu = {path="../../tools/rust_api"}
+arrow = {version="43", optional=true, default-features=false, features=[]}
+
+[features]
+arrow = ["kuzu/arrow", "dep:arrow"]

@@ -1,0 +1,49 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE MatchMultiQuery
+
+-LOG MultiQueryOneHopKnowsTest
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WITH b.age AS m RETURN m
+-ENUMERATE
+---- 14
+20
+20
+20
+25
+30
+30
+30
+35
+35
+35
+40
+45
+45
+45
+
+-LOG MultiQueryTwoHopKnowsTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WITH b AS m WITH m AS n MATCH (n)-[e2:knows]->(c:person) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+36
+
+-LOG MultiQueryThreeHopTwoKnowsOneWorkAtTest
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WITH * MATCH (b)-[e2:knows]->(c:person)-[e3:workAt]->(d:organisation) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+18
+
+-LOG OpenWedgeKnowsTest3
+-STATEMENT MATCH (b:person)<-[e1:knows]-(a:person) WITH a AS k MATCH (k)-[e2:knows]->(c:person),(k)-[e3:knows]->(d:person) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+116
+
+-LOG MultiQueryFourHopKnowsTest
+-ENUMERATE
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WITH c MATCH (c)-[e3:knows]->(d:person)-[e4:knows]->(e:person) RETURN COUNT(*)
+---- 1
+324

@@ -1,0 +1,195 @@
+name: Generate-Docs
+
+on: workflow_dispatch
+
+jobs:
+  build-python-package:
+    runs-on: kuzu-self-hosted-linux-building
+    env:
+      PLATFORM: manylinux2014_x86_64
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build Python package
+        working-directory: scripts/pip-package/
+        run: |
+          mkdir wheelhouse
+          source /opt/rh/devtoolset-11/enable
+          /opt/python/cp310-cp310/bin/python package_tar.py kuzu.tar.gz
+          /opt/python/cp310-cp310/bin/pip wheel kuzu.tar.gz --no-deps -w wheelhouse/
+          auditwheel repair wheelhouse/kuzu-*.whl -w wheelhouse/
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: kuzu-python-package
+          path: scripts/pip-package/wheelhouse/*.manylinux2014_x86_64.whl
+
+  generate-python-docs:
+    runs-on: ubuntu-latest
+    needs: build-python-package
+    container:
+      image: python:3.10-bullseye
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download Python package
+        uses: actions/download-artifact@v3
+        with:
+          name: kuzu-python-package
+
+      - name: Install Python packages
+        run: |
+          pip install *.whl
+          pip install pdoc
+          pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+
+      - name: Generate Python docs
+        run: |
+          mkdir docs
+          pdoc --docformat "numpy" -o docs kuzu
+
+      - name: Upload Python docs
+        uses: actions/upload-artifact@v3
+        with:
+          name: kuzu-python-docs
+          path: ./docs
+
+  generate-nodejs-docs:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Node.js packages
+        run: |
+          npm install -g jsdoc
+
+      - name: Generate Node.js docs
+        shell: bash
+        run: |
+          jsdoc ./tools/nodejs_api/src_js/*.js ./tools/nodejs_api/README.md --destination ./docs
+
+      - name: Upload Node.js docs
+        uses: actions/upload-artifact@v3
+        with:
+          name: kuzu-nodejs-docs
+          path: ./docs
+
+  generate-java-docs:
+    runs-on: ubuntu-latest
+    container:
+      image: openjdk:20
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Generate Java docs
+        shell: bash
+        run: |
+          mkdir docs
+          cd docs && javadoc ../tools/java_api/src/main/java/com/kuzudb/*.java
+
+      - name: Upload Java docs
+        uses: actions/upload-artifact@v3
+        with:
+          name: kuzu-java-docs
+          path: ./docs
+
+  generate-cpp-docs:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Doxygen
+        run: brew install doxygen
+      
+      - name: Install NetworkX
+        run: pip3 install networkx
+
+      - name: Generate C and C++ docs
+        shell: bash
+        working-directory: scripts/generate-cpp-docs/
+        run: |
+          chmod +x doxygen.sh
+          ./doxygen.sh
+
+      - name: Upload C++ docs
+        uses: actions/upload-artifact@v3
+        with:
+          name: kuzu-cpp-docs
+          path: ./scripts/generate-cpp-docs/cpp/docs/html
+      
+      - name: Upload C docs
+        uses: actions/upload-artifact@v3
+        with:
+          name: kuzu-c-docs
+          path: ./scripts/generate-cpp-docs/c/docs/html
+
+  update-docs:
+    runs-on: ubuntu-latest
+    needs: [generate-python-docs, generate-nodejs-docs, generate-java-docs, generate-cpp-docs]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          repository: kuzudb/kuzudb.github.io
+          token: ${{ secrets.DOC_PUSH_TOKEN }}
+          path: kuzudb.github.io
+        
+      - name: Remove old documentations
+        run: rm -rf kuzudb.github.io/api-docs
+
+      - name: Download Python docs
+        uses: actions/download-artifact@v3
+        with:
+          name: kuzu-python-docs
+          path: kuzudb.github.io/api-docs/python
+      
+      - name: Download Node.js docs
+        uses: actions/download-artifact@v3
+        with:
+          name: kuzu-nodejs-docs
+          path: kuzudb.github.io/api-docs/nodejs
+        
+      - name: Download Java docs
+        uses: actions/download-artifact@v3
+        with:
+          name: kuzu-java-docs
+          path: kuzudb.github.io/api-docs/java
+
+      - name: Download C++ docs
+        uses: actions/download-artifact@v3
+        with:
+          name: kuzu-cpp-docs
+          path: kuzudb.github.io/api-docs/cpp
+        
+      - name: Download C docs
+        uses: actions/download-artifact@v3
+        with:
+          name: kuzu-c-docs
+          path: kuzudb.github.io/api-docs/c
+        
+      - name: Push changes
+        working-directory: kuzudb.github.io
+        run: |
+          git checkout -b "api-documentation-update-${{ github.sha }}"
+          git config --global user.name "CI User"
+          git config --global user.email "contact@kuzudb.com"
+          git add .
+          git commit -m "Update API documentations"
+          git push -u origin "api-documentation-update-${{ github.sha }}"
+      
+      - name: Create pull request
+        working-directory: kuzudb.github.io
+        run: |
+          echo "${{ secrets.DOC_PUSH_TOKEN }}" > token.txt
+          gh auth login --with-token < token.txt
+          rm -rf token.txt
+          gh pr create \
+            --body "Action triggered by CI workflow." \
+            --title "Update API documentations" \
+            --head "api-documentation-update-${{ github.sha }}" \
+            --base "main"

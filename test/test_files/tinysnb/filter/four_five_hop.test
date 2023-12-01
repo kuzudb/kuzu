@@ -1,0 +1,19 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE FourHopFilter
+-LOG FourHopKnowsFilterTest
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person)-[e4:knows]->(e:person) WHERE a.fName = 'Alice' OR e.fName = 'Alice' RETURN COUNT(*)
+-ENUMERATE
+---- 1
+141
+
+-CASE FiveHopFilter
+-LOG FiveHopKnowsFilterTest
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person)-[e4:knows]->(e:person)-[:knows]->(f:person) WHERE a.age = 35 AND f.age = a.age  RETURN COUNT(*)
+-ENUMERATE
+---- 1
+60
+

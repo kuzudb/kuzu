@@ -1,0 +1,42 @@
+-GROUP TinySnbReadTest
+-DATASET CSV empty
+
+--
+
+-CASE Explain
+
+-LOG ExplainDDL
+-STATEMENT EXPLAIN create node table npytable (id INT64,i32 INT32, PRIMARY KEY(id));
+---- ok
+
+-LOG ExplainCopy
+-STATEMENT create node table npytable (id INT64,i64 INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT EXPLAIN copy npytable from ("${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/id_int64.npy", "${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/id_int64.npy") BY COLUMN;
+---- ok
+
+-LOG ExplainCall
+-STATEMENT EXPLAIN CALL threads=5
+---- ok
+
+-LOG ExplainQuery
+-STATEMENT EXPLAIN MATCH (p:npytable) RETURN p.id
+-ENUMERATE
+---- ok
+
+-LOG ProfileDDL
+-STATEMENT Profile create node table npytable1 (id INT64,i32 INT32, PRIMARY KEY(id));
+---- ok
+
+-LOG ProfileCopy
+-STATEMENT Profile copy npytable1 from ("${KUZU_ROOT_DIRECTORY}/dataset/npy-1d/one_dim_int64.npy", "${KUZU_ROOT_DIRECTORY}/dataset/npy-1d/one_dim_int32.npy") BY COLUMN;
+---- ok
+
+-LOG ProfileCall
+-STATEMENT Profile CALL threads=5
+---- ok
+
+-LOG ProfileQuery
+-STATEMENT Profile MATCH (p:npytable) RETURN p.id
+-ENUMERATE
+---- ok

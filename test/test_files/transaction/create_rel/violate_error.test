@@ -1,0 +1,25 @@
+-GROUP CreateRelTest_ViolateError
+-DATASET CSV rel-update-tests
+
+--
+
+
+-CASE InsertAfterDeleteRel
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p1:person)-[r:teaches]->(p2:person) WHERE p1.ID = 11 AND p2.ID = 1 DELETE r;
+---- ok
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 11 AND p2.ID = 10 CREATE (p1)-[:teaches]->(p2);
+---- ok
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 11 AND p2.ID = 10 RETURN count(*);
+---- 1
+1
+-STATEMENT MATCH (p1:person)-[r:teaches]->(p2:person) WHERE p1.ID = 11 AND p2.ID = 10 DELETE r;
+---- ok
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 11 AND p2.ID = 12 CREATE (p1)-[:teaches]->(p2);
+---- ok
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 11 AND p2.ID = 12 RETURN count(*);
+---- 1
+1
+-STATEMENT COMMIT
+

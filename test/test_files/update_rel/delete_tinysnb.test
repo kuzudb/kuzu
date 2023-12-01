@@ -1,0 +1,88 @@
+-GROUP TinySnbDeleteRelTest
+-DATASET CSV tinysnb
+--
+
+-CASE DeleteRelMultiLabel1
+-STATEMENT MATCH (a:person)-[e]->(b:person) WHERE a.ID = 0 RETURN COUNT(*)
+---- 1
+5
+-STATEMENT MATCH (a:person)-[e]->(b:person) WHERE a.ID = 0 DELETE e
+---- ok
+-STATEMENT MATCH (a:person)-[e]->(b:person) WHERE a.ID = 0 RETURN COUNT(*)
+---- 1
+0
+
+
+-CASE DeleteRelMultiLabel2
+-STATEMENT MATCH (a)-[e]->(b) WHERE a.ID = 0 RETURN a.ID, b.ID, id(e)
+---- 6
+0|1|4:0
+0|2|3:0
+0|2|6:0
+0|2|7:0
+0|3|3:1
+0|5|3:2
+-STATEMENT MATCH (a)-[e]->(b) WHERE a.ID = 0 AND b.ID = 2 DELETE e
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) WHERE a.ID = 0 RETURN a.ID, b.ID, id(e)
+---- 3
+0|1|4:0
+0|3|3:1
+0|5|3:2
+
+
+-STATEMENT MATCH (a)-[e]-(b) WHERE a.ID = 0 AND b.ID = 2 DELETE e
+---- error
+Binder exception: Delete undirected rel is not supported.
+
+
+-CASE RedundantRelDeletions
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[e:knows]->(c:person) DELETE e
+---- ok
+-STATEMENT MATCH (:person)-[:knows]->(:person) RETURN COUNT(*)
+---- 1
+2
+
+-CASE OptionalMatchDelete
+-STATEMENT OPTIONAL MATCH (a:person) WHERE a.ID > 5 OPTIONAL MATCH (a)-[e:knows]->(b) DELETE e
+---- ok
+-STATEMENT MATCH (:person)-[:knows]->(:person) RETURN COUNT(*)
+---- 1
+12
+-STATEMENT MATCH (a)<-[e]-(b) WHERE a.ID=1 RETURN COUNT(*)
+---- 1
+3
+-STATEMENT OPTIONAL MATCH (a) WHERE a.ID =1 OPTIONAL MATCH (a)<-[e]-(b) DELETE e
+---- ok
+-STATEMENT MATCH (a)<-[e]-(b) WHERE a.ID=1 RETURN COUNT(*)
+---- 1
+0
+
+-CASE DetachDeleteRelException
+-STATEMENT MATCH (a:person)-[e]->(b:person) DETACH DELETE e
+---- error
+Binder exception: Detach delete on rel tables is not supported.
+
+-CASE MixedDeleteInsertAndSetOneToOneRel
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:marries]->(b:person) WHERE a.ID = 3 AND b.ID = 5 DELETE e
+---- ok
+-STATEMENT MATCH (a:person)-[e:marries]->(b:person) WHERE a.ID = 3 AND b.ID = 5 RETURN COUNT(*)
+---- 1
+0
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 3 AND b.ID =10 CREATE (a)-[:marries]->(b)
+---- ok
+-STATEMENT MATCH (a:person)-[e:marries]->(b:person) WHERE a.ID = 3 AND b.ID =10 RETURN COUNT(*)
+---- 1
+1
+-STATEMENT MATCH (a:person)-[e:marries]->(b:person) WHERE a.ID = 3 AND b.ID =10 SET e.note='new one';
+---- ok
+-STATEMENT MATCH (a:person)-[e:marries]->(b:person) WHERE a.ID = 3 AND b.ID =10 RETURN e.note
+---- 1
+new one
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (a:person)-[e:marries]->(b:person) WHERE a.ID = 3 AND b.ID =10 RETURN e.note
+---- 1
+new one

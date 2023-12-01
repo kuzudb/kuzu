@@ -1,0 +1,31 @@
+-GROUP CopyLongStringTest
+-DATASET CSV empty
+
+--
+
+-CASE LongStringError
+
+-LOG LongStringSuccess
+-STATEMENT create node table person0 (ID SERIAL, fName STRING, PRIMARY KEY (ID));
+---- ok
+-STATEMENT copy person0 from '${KUZU_ROOT_DIRECTORY}/test/answers/long_string_valid.csv';
+---- ok
+-STATEMENT match (p:person0) return p.fName;
+---- 1
+<FILE>:long_string_valid.csv
+
+-LOG LongStringError
+-STATEMENT create node table person1 (ID INT64, fName STRING, gender INT64, PRIMARY KEY (ID));
+---- ok
+-STATEMENT copy person1 from '${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/long-string/vPerson.csv';
+---- error
+Runtime exception: The maximum length of strings is 262144 bytes. The input string's length was 270000.
+
+-CASE LongStringPKError
+
+-LOG LongStringPKError
+-STATEMENT create node table person1 (ID STRING, fName STRING, gender INT64, PRIMARY KEY (ID));
+---- ok
+-STATEMENT copy person1 from '${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/long-string/vPersonPK.csv';
+---- error
+Copy exception: The maximum length of primary key strings is 4096 bytes. The input string's length was 4100.

@@ -1,0 +1,196 @@
+-GROUP LDBCTest
+-DATASET CSV ldbc-sf01
+-BUFFER_POOL_SIZE 134217728
+
+--
+
+-CASE LDBCInteractiveComplex
+
+-LOG IC2
+-STATEMENT MATCH (:Person {id: 32985348834100 })-[:knows]-(friend:Person)<-[:Post_hasCreator|:Comment_hasCreator]-(message:Comment:Post)
+       WHERE message.creationDate < 20120710024241920
+       RETURN friend.id AS personId, friend.firstName AS personFirstName, friend.lastName AS personLastName, message.id AS postOrCommentId, CASE WHEN message.content is NULL THEN message.imageFile ELSE message.content END AS postOrCommentContent, message.creationDate AS postOrCommentCreationDate
+       ORDER BY postOrCommentCreationDate DESC, postOrCommentId ASC
+       LIMIT 20;
+---- 20
+1050|Rafael|Magomaev|1030792258026|fine|20120709230911818
+17592186045408|Ayesha|Iqbal|1030792234469|right|20120709161921287
+24189255811254|Abdullah|Koksal|962072813844|roflol|20120709034941312
+19791209300507|Chaim Azriel|Epstein|962072941392|yes|20120709015445748
+19791209300507|Chaim Azriel|Epstein|962072809976|I see|20120709011511248
+2199023256816|K.|Bose|962072809961|duh|20120708212641734
+1050|Rafael|Magomaev|962072849025|photo962072849025.jpg|20120708203113410
+1050|Rafael|Magomaev|962072849024|photo962072849024.jpg|20120708203112410
+19791209300507|Chaim Azriel|Epstein|962072941389|good|20120708170052621
+2199023256816|K.|Bose|962072981826|good|20120708090249458
+2199023256816|K.|Bose|962072761043|fine|20120708035130945
+2199023256816|K.|Bose|962072741683|maybe|20120708000551436
+6597069768087|Abdul Jamil|Malik|962072877313|ok|20120707205357368
+2199023256816|K.|Bose|962072934715|About Nagorno-Karabakh Republic,  Republic (Armenian: Արցախի Հանրապետություն AAbout I Ca|20120707194820997
+2199023256816|K.|Bose|962072740704|About Jimmy Carter, n (at the end of 1979), 1980 Summer Olympics boycott by the U|20120707170809626
+24189255811254|Abdullah|Koksal|962073039032|About Charles Gounod, as Faust aAbout Silvio Berlusconi,  to the OrAbout James II|20120707143307901
+2199023256816|K.|Bose|962072981859|good|20120707062325042
+19791209300507|Chaim Azriel|Epstein|962072825672|thanks|20120707043516232
+19791209300507|Chaim Azriel|Epstein|962073022942|no way!|20120707012146963
+2199023256816|K.|Bose|962072894276|great|20120706195440195
+
+-LOG IC3
+-STATEMENT MATCH (countryX:Place {name: "Tunisia" }), (countryY:Place {name: "Peru" }), (person:Person {id: 17592186045813 })
+       WITH person, countryX, countryY
+       LIMIT 1
+       MATCH (city:Place {label: "City"})-[:isPartOf]->(country:Place {label: "Country"})
+       WHERE list_contains([countryX.id, countryY.id], country.id)
+       WITH person, countryX, countryY, collect(city.id) AS cities
+       MATCH (person)-[:knows*1..2]-(friend)-[:Person_isLocatedIn]->(city)
+       WHERE NOT person.id=friend.id AND NOT list_contains(cities, city.id)
+       WITH DISTINCT friend, countryX, countryY
+       MATCH (friend)<-[:Post_hasCreator|:Comment_hasCreator]-(message), (message)-[:Post_isLocatedIn|:Comment_isLocatedIn]->(country)
+       WHERE 20120710024241920 > message.creationDate AND message.creationDate >= 20100710024241920 AND list_contains([countryX.id, countryY.id], country.id)
+       WITH friend, CASE WHEN country.id=countryX.id THEN 1 ELSE 0 END AS messageX, CASE WHEN country.id=countryY.id THEN 1 ELSE 0 END AS messageY
+       WITH friend, sum(messageX) AS xCount, sum(messageY) AS yCount
+       WHERE xCount>0 AND yCount>0
+       RETURN friend.id AS friendId, friend.firstName AS friendFirstName, friend.lastName AS friendLastName, xCount, yCount, xCount + yCount AS xyCount
+       ORDER BY xyCount DESC, friendId ASC
+       LIMIT 20;
+---- 6
+10995116278234|Arjun|Anand|1|3|4
+6597069766797|Yang|Li|1|2|3
+8796093023017|Walter|Becker|2|1|3
+94|K.|Sen|1|1|2
+6597069767398|Vichara|Sihanouk|1|1|2
+24189255811663|Chris|Hall|1|1|2
+
+-LOG IC4
+-STATEMENT MATCH (person:Person {id: 24189255812446 })-[:knows]-(friend:Person), (friend)<-[:Post_hasCreator]-(post:Post)-[:Post_hasTag]->(tag)
+       WITH DISTINCT tag, post
+       WITH tag, CASE WHEN 20120710024241920 > post.creationDate AND post.creationDate >= 20100710024241920 THEN 1 ELSE 0 END AS valid, CASE WHEN 20100710024241920 > post.creationDate THEN 1 ELSE 0 END AS inValid
+       WITH tag, sum(valid) AS postCount, sum(inValid) AS inValidPostCount
+       WHERE postCount>0 AND inValidPostCount=0
+       RETURN tag.name AS tagName, postCount
+       ORDER BY postCount DESC, tagName ASC
+       LIMIT 10;
+---- 10
+Hans_Christian_Andersen|52
+Ban_Ki-moon|47
+Sammy_Sosa|40
+Adolf_Hitler|32
+Imelda_Marcos|30
+Genghis_Khan|28
+Enrique_Iglesias|27
+Zine_El_Abidine_Ben_Ali|23
+Franz_Kafka|11
+Bobby_Hull|9
+
+-LOG IC6
+-STATEMENT MATCH (knownTag:Tag { name: "Carl_Gustaf_Emil_Mannerheim" })
+       WITH knownTag.id as knownTagId
+       MATCH (person:Person { id: 28587302322524 })-[:knows*1..2]-(friend)
+       WHERE NOT person.id=friend.id
+       WITH knownTagId, collect(distinct friend.id) as friends
+       UNWIND friends as f
+       MATCH (:Person {id: f})<-[:Post_hasCreator]-(post:Post), (post)-[:Post_hasTag]->(t:Tag{id: knownTagId}), (post)-[:Post_hasTag]->(tag:Tag)
+       WHERE NOT t.id = tag.id
+       WITH tag.name as tagName, count(post) as postCount
+       RETURN tagName, postCount
+       ORDER BY postCount DESC, tagName ASC
+       LIMIT 10;
+---- 10
+Another_One_Rides_the_Bus|1
+Assumption_of_Mary|1
+Back_Door_Man|1
+Classical_Gas|1
+Colombia|1
+Dancing_Queen|1
+David_Cameron|1
+Edgar_Allan_Poe|1
+Elvis_Costello|1
+Euripides|1
+
+-LOG IC8
+-STATEMENT MATCH (start:Person {id: 15393162789560})<-[:Post_hasCreator|:Comment_hasCreator]-(:Post:Comment)<-[:replyOf_Comment|:replyOf_Post]-(comment:Comment)-[:Comment_hasCreator]->(person:Person)
+       RETURN person.id AS personId, person.firstName AS personFirstName, person.lastName AS personLastName, comment.creationDate AS commentCreationDate, comment.id AS commentId, comment.content AS commentContent
+       ORDER BY commentCreationDate DESC, commentId ASC
+       LIMIT 20;
+---- 20
+30786325579399|Huynh Quang|Ho|20120830061452780|1030792193898|good
+26388279068034|Karthik|Khan|20120830060928195|1030792193894|good
+4398046511185|Adrian|Bravo|20120818211455193|1030792412047|About Adolf Hitler, nths of WorldAbout Camille Saint-Saëns, riccioso, andAbout Salvador Da
+296|Zaenal|Gallagher|20120808095336584|1030792324832|About Bruce Willis, ghters before their divorce in 2000, following thirteen years of marriage.About Republic of New Granada,  of today's Ecuador, a
+10995116278292|Paul|Becker|20120808083152497|1030792324834|right
+4398046511667|John|Chopra|20120804165327746|1030792170063|About Scotland, ngland to create the unitedAbout George III of the United Kingd
+26388279067551|Anand|Rao|20120804084238969|1030792170068|About Hamid Karzai, y prominent Afghan poliAbout Cossack Hetmanate, y representation from
+15393162790406|A.|Sharma|20120804011747504|1030792170073|yes
+6597069767242|Salim Ahmed|Binalshibh|20120803234001218|1030792170061|LOL
+19791209300004|John|Reddy|20120803225216374|1030792170071|About Hamid Karzai, fter the removal of the TaliAbout Hohenzollern-Sigmaringen, io
+17592186045739|Shweta|Singh|20120803214122248|1030792170064|About Hamid Karzai, 2th and current President About Trần Dynasty, ive years o
+19791209300004|John|Reddy|20120803204723977|1030792170062|maybe
+10995116278234|Arjun|Anand|20120803202820075|1030792170067|LOL
+19791209301519|Abhishek|Kumar|20120711124701377|1030792236927|About Interpol, t variable. It is often required to interpolAbout Finland, parate conf
+28587302323283|John|Sharma|20120710192848880|1030792236925|cool
+28587302322974|Zhang|Li|20120710171912519|1030792236926|no
+19791209301519|Abhishek|Kumar|20120710140748506|1030792236922|no way!
+941|Aryo|Tobing|20120623014144864|962072693417|About Bobby Hull, o ever play the About Kid A, er Thom Yorke haAbout Tubula
+13194139533535|Shweta|Singh|20120623001733081|962072693421|thx
+26388279067551|Anand|Rao|20120622142721062|962072693418|thanks
+
+-LOG IC11
+-STATEMENT MATCH (person:Person {id: 13194139534668 })-[:knows*1..2]-(friend:Person)
+       WHERE NOT person.id=friend.id
+       WITH DISTINCT friend
+       MATCH (friend)-[workAt:workAt]->(company:Organisation {label: "Company"})-[:Organisation_isLocatedIn]->(:Place {name: "Hungary", label: "Country" })
+       WHERE workAt.workFrom < 2011
+       RETURN
+               friend.id AS personId,
+               friend.firstName AS personFirstName,
+               friend.lastName AS personLastName,
+               company.name AS organizationName,
+               workAt.workFrom AS organizationWorkFromYear
+       ORDER BY
+               organizationWorkFromYear ASC,
+               personId ASC,
+               organizationName DESC
+       LIMIT 10;
+---- 10
+26388279068069|Sandor|Kovacs|ABC_Air_Hungary|2000
+30786325579035|George|Kovacs|CityLine_Hungary|2000
+30786325579035|George|Kovacs|Budapest_Aircraft_Service|2000
+26388279068069|Sandor|Kovacs|CityLine_Hungary|2001
+26388279068069|Sandor|Kovacs|Budapest_Aircraft_Service|2001
+28587302322372|Zsolt|Kiss|Budapest_Aircraft_Service|2002
+28587302322372|Zsolt|Kiss|Travel_Service_(Hungary)|2003
+28587302322372|Zsolt|Kiss|Malév_Hungarian_Airlines|2003
+2199023256689|Ferenc|Kovacs|CityLine_Hungary|2006
+28587302323430|János|Mészáros|Malév_Hungarian_Airlines|2008
+
+# IC12 should be changed to use Kleene Star relationship once that is implemented
+-LOG IC12
+-CHECK_ORDER
+-PARALLELISM 10
+-STATEMENT MATCH (tag:Tag)-[:hasType|:isSubclassOf*1..20]->(baseTagClass:TagClass)
+       WHERE tag.name = "Monarch" OR baseTagClass.name = "Monarch"
+       WITH collect(tag.id) as tags
+       MATCH (:Person {id: 6597069767300 })-[:knows]-(friend:Person)<-[:Comment_hasCreator]-(comment:Comment)-[:replyOf_Post]->(:Post)-[:Post_hasTag]->(tag:Tag)
+       WHERE list_contains(tags, tag.id)
+       RETURN friend.id AS personId, friend.firstName AS personFirstName, friend.lastName AS personLastName, list_sort(collect(DISTINCT tag.name)) AS tagNames, count(DISTINCT comment) AS replyCount
+       ORDER BY replyCount DESC, personId ASC
+       LIMIT 20;
+---- error
+Binder exception: DISTINCT is not supported for NODE or REL type.
+
+#8796093022764|Zheng|Xu|[Mahmud_of_Ghazni,Ashoka,Tiberius,Marcus_Aurelius,Genghis_Khan,Justinian_I,Hadrian,Timur]|13
+#10995116278353|Otto|Muller|[Tiberius,Genghis_Khan,Justinian_I,Constantine_the_Great,Trajan]|11
+#17592186044994|Jie|Wang|[Genghis_Khan,David]|7
+#13194139534548|Bing|Zheng|[Genghis_Khan,Hadrian,Solomon]|6
+#13194139533500|Otto|Becker|[Tiberius,Genghis_Khan,Julius_Caesar,David,Alexander_the_Great]|5
+#28587302322537|Anh|Nguyen|[Mahmud_of_Ghazni,Trajan]|3
+#30786325578932|Alexander|Hleb|[Mahmud_of_Ghazni,David]|3
+
+# To be completely correct, this query needs to have
+# (i) Unbounded shortest path
+# (ii) Return 0 if person1 and person2 are the same, and
+# (iii) Return -1 if a shortest path doesn't exist.
+-LOG IC13
+-STATEMENT MATCH (person1 {id: 768})-[path:knows* SHORTEST 1..20]-(person2 {id: 32985348833975})
+       RETURN length(path) AS shortestPathLength;
+---- 1
+3

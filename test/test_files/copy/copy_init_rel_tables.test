@@ -1,0 +1,29 @@
+-GROUP CopyNodeInitRelTablesTest
+-DATASET CSV empty
+
+--
+
+# The purpose of this test is to make sure that we correctly initialize the rel table for the
+# newly added nodes (E.g. we need to set the column entry to NULL and create listHeader for
+# each newly added node).
+-CASE CopyNodeAndQueryEmptyRelTable
+
+-STATEMENT create node table person
+             (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN,
+              isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE,
+              registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[],
+              usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float,
+              PRIMARY KEY (ID));
+---- ok
+
+-STATEMENT create rel table knows (FROM person TO person, date DATE, meetTime
+                                                          TIMESTAMP, validInterval INTERVAL,
+                                                          comments STRING[], MANY_MANY)
+---- ok
+-STATEMENT create rel table meets (FROM person TO person, MANY_ONE);
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=true);
+---- ok
+-STATEMENT MATCH (:person)-[:knows]->(:person) return count(*)
+---- 1
+0

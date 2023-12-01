@@ -1,0 +1,142 @@
+-GROUP TinySnbCreateNodeTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE InsertNodeWithBoolIntDoubleTest
+-STATEMENT CREATE (:person {ID:80, isWorker:true,age:22,eyeSight:1.1})
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID > 8 RETURN a.ID, a.gender,a.isStudent, a.isWorker, a.age, a.eyeSight
+---- 3
+10|2|False|True|83|4.900000
+80|||True|22|1.100000
+9|2|False|False|40|4.900000
+
+-CASE InsertNodeWithDateIntervalTest
+-STATEMENT CREATE (:person {ID:32, birthdate:date('1997-03-22'), lastJobDuration:interval('2 years')});
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID > 8 RETURN a.ID, a.birthdate,a.lastJobDuration
+---- 3
+10|1990-11-27|3 years 2 days 13:02:00
+32|1997-03-22|2 years
+9|1980-10-26|10 years 5 months 13:00:00.000024
+
+-CASE InsertNodeWithStringTest
+-STATEMENT CREATE (:person {ID:32, fName:'A'}), (:person {ID:33, fName:'BCD'}), (:person {ID:34, fName:'this is a long name'})
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID > 8 RETURN a.ID, a.fName
+---- 5
+10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+32|A
+33|BCD
+34|this is a long name
+9|Greg
+
+-CASE InsertNodeWithMixedLabelTest
+-STATEMENT CREATE (:person {ID:32, fName:'A'}), (:organisation {ID:33, orgCode:144})
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID > 30 RETURN a.ID, a.fName
+---- 1
+32|A
+-STATEMENT MATCH (a:organisation) RETURN a.ID, a.orgCode
+---- 4
+1|325
+33|144
+4|934
+6|824
+
+-CASE InsertNodeAfterMatchListTest
+-STATEMENT MATCH (a:person) CREATE (:person {ID:a.ID+11, age:a.age*2})
+---- ok
+-STATEMENT MATCH (a:person) RETURN a.ID, a.fName,a.age
+---- 16
+0|Alice|35
+10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|83
+11||70
+13||60
+14||90
+16||40
+18||40
+19||50
+20||80
+21||166
+2|Bob|30
+3|Carol|45
+5|Dan|20
+7|Elizabeth|20
+8|Farooq|25
+9|Greg|40
+
+-CASE InsertSingleNToNRelTest
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 9 AND b.ID = 10 CREATE (a)-[:knows {meetTime:timestamp('1976-12-23 11:21:42'), validInterval:interval('2 years'), comments:['A', 'k'], date:date('1997-03-22')}]->(b)
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 8 RETURN a.ID, b.ID, e, ID(e)
+---- 1
+9|10|(0:6)-{_LABEL: knows, _ID: 3:14, date: 1997-03-22, meetTime: 1976-12-23 11:21:42, validInterval: 2 years, comments: [A,k]}->(0:7)|3:14
+
+-CASE InsertSingleNTo1RelTest
+-STATEMENT MATCH (a:person), (b:organisation) WHERE a.ID = 9 AND b.orgCode = 934 CREATE (a)-[:studyAt {year:2022}]->(b)
+---- ok
+-STATEMENT MATCH (a:person)-[e:studyAt]->(b:organisation) WHERE a.ID > 5 RETURN a.ID, b.orgCode, e, ID(e)
+---- 2
+8|325|(0:5)-{_LABEL: studyAt, _ID: 4:2, year: 2020, places: [awndsnjwejwen,isuhuwennjnuhuhuwewe], length: 22, level: 2, code: 23, temprature: 20, ulength: 180, ulevel: 12, hugedata: -15}->(1:0)|4:2
+9|934|(0:6)-{_LABEL: studyAt, _ID: 4:3, year: 2022}->(1:1)|4:3
+
+-CASE InsertRepeatedNToNRelTest
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 7 AND b.ID = 8 CREATE (a)-[:knows {validInterval:interval('3 years')}]->(b)
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID=7 RETURN b.ID, e.validInterval
+---- 3
+8|00:47:58
+8|3 years
+9|00:47:58
+
+-CASE InsertMixedRelTest
+-STATEMENT MATCH (a:person), (b:person), (c:organisation) WHERE a.ID = 0 AND b.ID = 9 AND c.ID = 4 CREATE (b)-[:studyAt]->(c), (a)<-[:knows]-(b)
+---- ok
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:studyAt]->(c:organisation) RETURN COUNT(*)
+---- 1
+9
+
+-CASE InsertMultipleRelsTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE a.ID = 7 CREATE (a)<-[:knows]-(b)
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 6 RETURN a.ID, b.ID, ID(e)
+---- 4
+7|8|3:12
+7|9|3:13
+8|7|3:14
+9|7|3:15
+
+-CASE InsertNodeAndRelTest
+-STATEMENT CREATE (a:person {ID:100})-[:knows {date:date('1997-03-22')}]->(b:person {ID:202})
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 50 RETURN a.ID, b.ID, e.date
+---- 1
+100|202|1997-03-22
+
+-CASE InsertNodeAndRelTest2
+-STATEMENT CREATE (c:organisation {ID:50})<-[:workAt]-(a:person {ID:100}), (a)-[:studyAt]->(c)
+---- ok
+-STATEMENT MATCH (a:person)-[e1:studyAt]->(b:organisation), (a)-[e2:workAt]->(b) RETURN a.ID, b.ID, ID(e1), ID(e2)
+---- 1
+100|50|4:3|5:3
+
+# TODO: Fix issue 2257 to enable this test
+-CASE InsertNodeWithListTest
+-SKIP
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (:person {ID:11, workedHours:[1,2,3], usedNames:['A', 'this is a long name']})
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID > 8 RETURN a.ID, a.workedHours,a.usedNames
+---- 3
+10|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]
+11|[1,2,3]|[A,this is a long name]
+9|[1]|[Grad]
+#-COMMIT
+-STATEMENT MATCH (a:person) WHERE a.ID > 8 RETURN a.ID, a.workedHours,a.usedNames
+---- 3
+10|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]
+11|[1,2,3]|[A,this is a long name]
+9|[1]|[Grad]

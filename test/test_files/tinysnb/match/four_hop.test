@@ -1,0 +1,18 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE MatchFourHop
+
+-LOG FourHopKnowsTest
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person)-[e4:knows]->(e:person) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+324
+
+-LOG FourHopThreeKnowsOneStudyAtTest
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person)-[e4:studyAt]->(e:organisation) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+54

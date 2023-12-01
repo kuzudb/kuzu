@@ -1,0 +1,8 @@
+0|-this is |the first line-|2020-02-18
+1|-the " should be ignored-|2003-01-02
+2|-the #- should be escaped-|2017-09-12
+3|-this #-is ##a #mixed test-|2000-12-11
+4|-only one ## should be recognized-|2013-05-01
+5|this is a ##plain## #string|2013-05-01
+6|this is another ##plain## #string with \|2013-05-01
+7|NA|2022-01-11

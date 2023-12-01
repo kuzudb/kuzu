@@ -1,0 +1,47 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE ProjectionMultiQuery
+
+-LOG PersonNodesWithTest
+-STATEMENT MATCH (a:person) WITH a RETURN a.age
+---- 8
+35
+30
+45
+20
+20
+25
+40
+83
+
+-LOG KnowsOneHopWithTest1
+-STATEMENT MATCH (a:person) WHERE a.age>20 WITH a MATCH (a)-[e:knows]->(b:person) RETURN b.fName
+-ENUMERATE
+---- 9
+Alice
+Alice
+Bob
+Bob
+Carol
+Carol
+Dan
+Dan
+Dan
+
+-LOG  CrossProductTest
+-STATEMENT MATCH (a:person) WITH a.age AS s, a.fName as n MATCH (b:person) WHERE s=b.age RETURN n,b.fName,s
+-ENUMERATE
+---- 10
+Alice|Alice|35
+Bob|Bob|30
+Carol|Carol|45
+Dan|Dan|20
+Dan|Elizabeth|20
+Elizabeth|Dan|20
+Elizabeth|Elizabeth|20
+Farooq|Farooq|25
+Greg|Greg|40
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|83

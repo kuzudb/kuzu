@@ -1,0 +1,1 @@
+copy npytable from ("dataset/npy-2d/id_int64.npy", "dataset/npy-2d/two_dim_int64.npy", "dataset/npy-2d/two_dim_int32.npy",  "dataset/npy-2d/two_dim_int16.npy",  "dataset/npy-2d/two_dim_double.npy", "dataset/npy-2d/two_dim_float.npy") by column;

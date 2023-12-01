@@ -1,0 +1,52 @@
+-GROUP SyntaxErrorTest
+-DATASET CSV empty
+
+--
+
+-CASE QueryNotConcludeWithReturn1
+-STATEMENT MATCH (a:person);
+---- error
+Parser exception: Query must conclude with RETURN clause (line: 1, offset: 0)
+"MATCH (a:person);"
+ ^^^^^
+
+-CASE InvalidNotEqualOperator)
+-STATEMENT MATCH (a) WHERE a.age != 1 RETURN *;
+---- error
+Parser exception: Unknown operation '!=' (you probably meant to use '<>', which is the operator for inequality testing.) (line: 1, offset: 22)
+"MATCH (a) WHERE a.age != 1 RETURN *;"
+                       ^^
+
+-CASE EmptyTable
+-STATEMENT MATCH (a:``) RETURN *;
+---- error
+Parser exception: '' is not a valid token name. Token names cannot be empty or contain any null-bytes (line: 1, offset: 9)
+"MATCH (a:``) RETURN *;"
+          ^^
+
+-CASE EmptyProperty
+-STATEMENT MATCH (a) WHERE a.`` != 1 RETURN *;
+---- error
+Parser exception: '' is not a valid token name. Token names cannot be empty or contain any null-bytes (line: 1, offset: 18)
+"MATCH (a) WHERE a.`` != 1 RETURN *;"
+                   ^^
+
+-CASE ReturnNotAtEnd
+-STATEMENT RETURN a MATCH (a) RETURN a;
+---- error
+Parser exception: RETURN can only be used at the end of the query (line: 1, offset: 0)
+"RETURN a MATCH (a) RETURN a;"
+ ^^^^^^
+
+-CASE ConjunctiveComparison
+-STATEMENT MATCH (a:person)<-[e1:knows]-(b:person)-[e2:knows]->(c:person) WHERE b.fName = e1.date = e2.date AND id(a) <> id(c) RETURN COUNT(*);
+---- error
+Parser exception: Non-binary comparison (e.g. a=b=c) is not supported (line: 1, offset: 69)
+"MATCH (a:person)<-[e1:knows]-(b:person)-[e2:knows]->(c:person) WHERE b.fName = e1.date = e2.date AND id(a) <> id(c) RETURN COUNT(*);"
+                                                                      ^
+-LOG SubExpressionInMacro
+-STATEMENT CREATE MACRO add4(x) AS exists match (a:person) return a.age
+---- error
+Parser exception: Invalid input <exists match>: expected rule oC_ComparisonExpression (line: 1, offset: 31)
+"CREATE MACRO add4(x) AS exists match (a:person) return a.age"
+                                ^^^^^

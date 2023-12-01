@@ -1,0 +1,22 @@
+-GROUP ParquetCompressionTest
+-DATASET CSV empty
+
+--
+
+-CASE ZSTDDecompress
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/reader/parquet/compression/zstd.parquet' RETURN *;
+---- 5
+3||[2,4,3]
+4|longstringstring|[1]
+6||
+|longlongstring|[]
+4|abc|[3,,2]
+
+-CASE GZIPDecompress
+-STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/dataset/reader/parquet/compression/gzip.parquet' RETURN *;
+---- 5
+3||[2,4,3]
+4|longstringstring|[1]
+6||
+|longlongstring|[]
+4|abc|[3,,2]

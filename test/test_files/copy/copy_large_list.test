@@ -1,0 +1,61 @@
+-GROUP ReadLargeListTest
+-DATASET CSV read-list-tests/large-list
+
+--
+
+-CASE CopyLargeList
+# p0 has 5001 fwd edges to p0...p5000
+-LOG ForwardCheck
+-STATEMENT MATCH (p0:person)-[r:knows]->(p1:person) WHERE p0.ID = 0 RETURN COUNT(*)
+---- 1
+5001
+# TODO: Remove ID(r)
+#-STATEMENT MATCH (p0:person)-[r:knows]->(p1:person) WHERE p0.ID = 0 RETURN p0.ID, ID(r), p1.ID
+#---- 5001
+#<FILE>:copy_large_list_fwd_answer.txt
+
+# p0 has only 1 bwd edge, which from itself
+#-LOG BackwardCheck
+-STATEMENT match (p0:person)<-[r:knows]-(p1:person) WHERE p0.ID = 0 RETURN p0.ID, p1.ID
+---- 1
+0|0
+
+# TODO: Remove ID(r)
+# p1,p2,...,p5000 have a single fwd edge to p5000 and 1 bwd edge from node p0
+#-LOG OneSingleForwardEdge
+#-STATEMENT MATCH (p0:person)-[r:knows]->(p1:person) WHERE p0.ID > 0 AND p0.ID < 5001 AND p1.ID = 5000 RETURN p0.ID, ID(r), p1.ID
+#---- 1
+#<FILE>:copy_large_list_single_fwd_answer.txt
+
+# TODO: Remove ID(r)
+#-LOG OneBackwardEdge
+#-STATEMENT MATCH (p0:person)<-[r:knows]-(p1:person) WHERE p0.ID > 0 AND p0.ID < 5001 AND p1.ID = 0 RETURN p0.ID, ID(r), p1.ID;
+#---- 1
+#<FILE>:copy_large_list_single_bwd_answer.txt
+
+# p5001 to p6000 are singletons
+-LOG SingletonNodeForwardCheck
+-STATEMENT MATCH (p0:person)-[r:knows]->(p1:person) WHERE p0.ID > 5000 and p0.ID < 6000 RETURN COUNT(*)
+---- 1
+0
+
+-LOG SingletonNodeBackwardCheck
+-STATEMENT MATCH (p0:person)<-[r:knows]-(p1:person) WHERE p0.ID > 5000 and p0.ID < 6000 RETURN COUNT(*)
+---- 1
+0
+
+-CASE AddPropertyWithLargeListTest
+-SKIP
+-STATEMENT alter table knows add length INT64 DEFAULT 50
+---- ok
+-STATEMENT match (:person)-[e:knows]->(:person) return e.length
+---- 2
+10001
+50
+
+-STATEMENT match (:person)-[e:knows]->(:person) set e.length=37
+---- ok
+-STATEMENT match (p:person)-[e:knows]->(:person) return e.length
+---- 2
+10001
+37

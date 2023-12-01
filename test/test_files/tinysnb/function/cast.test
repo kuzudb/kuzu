@@ -1,0 +1,1185 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE FunctionCast
+
+-LOG CastFromINT8
+-STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN to_int16(e.level), to_int32(e.level), to_int64(e.level), to_int128(e.level), to_float(e.level), to_double(e.level)
+---- 1
+5|5|5|5|5.000000|5.000000
+-STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN CAST(e.level, "INT16"), CAST(e.level, "INT32"), CAST(e.level, "INT64"), CAST(e.level, "INT128"), CAST(e.level, "FLOAT"), CAST(e.level, "DOUBLE")
+---- 1
+5|5|5|5|5.000000|5.000000
+
+-LOG CastFromINT16
+-STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN to_int8(e.length), to_int32(e.length), to_int64(e.length), to_int128(e.length), to_float(e.length), to_double(e.length)
+---- 1
+5|5|5|5|5.000000|5.000000
+-STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN cast(e.length, "int8"), cast(e.length, "int32"), cast(e.length, "int64"), cast(e.length, "int128"), cast(e.length, "float"), cast(e.length, "double")
+---- 1
+5|5|5|5|5.000000|5.000000
+
+-LOG CastFromINT32
+-STATEMENT MATCH (m:movies) WHERE m.name='Roma' RETURN to_int16(m.length), to_int64(m.length), to_int128(m.length), to_float(m.length), to_double(m.length)
+---- 1
+298|298|298|298.000000|298.000000
+-STATEMENT MATCH (m:movies) WHERE m.name='Roma' RETURN cast(m.length, "int16"), cast(m.length, "int64"), cast(m.length, "int128"), cast(m.length, "float"), cast(m.length, "double")
+---- 1
+298|298|298|298.000000|298.000000
+
+-LOG CastFromINT64
+-STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN to_int8(p.gender), to_int16(p.gender), to_int32(p.gender), to_int128(p.gender), to_float(p.gender), to_double(p.gender)
+---- 1
+1|1|1|1|1.000000|1.000000
+-STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN cast(p.gender, "int8"), cast(p.gender, "int16"), cast(p.gender, "int32"), cast(p.gender, "int64"), cast(p.gender, "int128"), cast(p.gender, "float"), cast(p.gender, "double")
+---- 1
+1|1|1|1|1|1.000000|1.000000
+
+-LOG CastFromUINT8
+-STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN to_int16(e.ulevel), to_int32(e.ulevel), to_int64(e.ulevel), to_int128(e.ulevel), to_float(e.ulevel), to_double(e.ulevel)
+---- 1
+250|250|250|250|250.000000|250.000000
+-STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN cast(e.ulevel, "int16"), cast(e.ulevel, "int32"), cast(e.ulevel, "int64"), cast(e.ulevel, "int128"), cast(e.ulevel, "float"), cast(e.ulevel, "double")
+---- 1
+250|250|250|250|250.000000|250.000000
+
+-LOG CastFromUINT16
+-STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=2 RETURN to_int8(e.ulength), to_int32(e.ulength), to_int64(e.ulength), to_int128(e.ulength), to_float(e.ulength), to_double(e.ulength)
+---- 1
+90|90|90|90|90.000000|90.000000
+-STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=2 RETURN cast(e.ulength, "uint8"), cast(e.ulength, "uint16"), cast(e.ulength, "uint32"), cast(e.ulength, "uint64"), cast(e.ulength, "float"), cast(e.ulength, "double")
+---- 1
+90|90|90|90|90.000000|90.000000
+
+-LOG CastFromUINT32
+-STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=2 RETURN to_int8(e.temprature), to_int16(e.temprature), to_int32(e.temprature), to_int128(e.temprature), to_float(e.temprature), to_double(e.temprature)
+---- 1
+1|1|1|1|1.000000|1.000000
+-STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=2 RETURN cast(e.temprature, "int8"), cast(e.temprature, "int16"), cast(e.temprature, "int32"), cast(e.temprature, "int128"), cast(e.temprature, "float"), cast(e.temprature, "double")
+---- 1
+1|1|1|1|1.000000|1.000000
+
+-LOG CastFromFLOAT
+-STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN to_int16(p.height), to_int32(p.height), to_int64(p.height), to_int128(p.height), to_double(p.height)
+---- 1
+2|2|2|2|1.731000
+-STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN cast(p.height, "uint8"), cast(p.height, "int16"), cast(p.height, "int32"), cast(p.height, "int64"), cast(p.height, "int128"), cast(p.height, "double"), cast(p.height, "float")
+---- 1
+2|2|2|2|2|1.731000|1.731000
+
+-LOG CastFromDOUBLE
+-STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN to_int16(p.eyeSight), to_int32(p.eyeSight), to_int64(p.eyeSight), to_int128(p.eyeSight), to_float(p.eyeSight)
+---- 1
+5|5|5|5|5.000000
+-STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN cast(p.eyeSight, "uint8"), cast(p.eyeSight, "uint16"), cast(p.eyeSight, "uint32"), cast(p.eyeSight, "int32"), cast(p.eyeSight, "int64"), cast(p.eyeSight, "int128"), cast(p.eyeSight, "float"), cast(p.eyeSight, "double")
+---- 1
+5|5|5|5|5|5|5.000000|5.000000
+
+-CASE CastDataTypeToString
+
+-LOG InsertToPerson
+-STATEMENT CREATE (a:person {ID: 12})
+---- ok
+-STATEMENT CREATE (o:organisation {ID: 15})
+---- ok
+
+-LOG CastBoolToString
+-STATEMENT MATCH (p:person) RETURN string(p.isStudent)
+---- 9
+True
+True
+False
+False
+False
+True
+False
+False
+
+-STATEMENT MATCH (p:person) RETURN cast(p.isStudent, "string")
+---- 9
+True
+True
+False
+False
+False
+True
+False
+False
+
+-LOG CastInt64ToString
+-STATEMENT MATCH (p:person) RETURN string(p.age)
+---- 9
+35
+30
+45
+20
+20
+25
+40
+83
+
+-STATEMENT MATCH (p:person) RETURN cast(p.age, "string")
+---- 9
+35
+30
+45
+20
+20
+25
+40
+83
+
+
+-LOG CastInt32ToString
+-STATEMENT MATCH (m:movies) RETURN string(m.length)
+---- 3
+126
+2544
+298
+-STATEMENT MATCH (m:movies) RETURN CAST(m.length, "STRING")
+---- 3
+126
+2544
+298
+
+-LOG CastInt16ToString
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) RETURN string(s.length)
+---- 3
+5
+55
+22
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) RETURN CAST(s.length, "STRING")
+---- 3
+5
+55
+22
+
+-LOG CastInt8ToString
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) RETURN string(s.level)
+---- 3
+5
+120
+2
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) RETURN cast(s.level, "string")
+---- 3
+5
+120
+2
+
+-LOG CastDoubleToString
+-STATEMENT MATCH (p:person) RETURN string(p.eyeSight)
+---- 9
+5.000000
+5.100000
+5.000000
+4.800000
+4.700000
+4.500000
+4.900000
+4.900000
+
+-STATEMENT MATCH (p:person) RETURN cast(p.eyeSight, "string")
+---- 9
+5.000000
+5.100000
+5.000000
+4.800000
+4.700000
+4.500000
+4.900000
+4.900000
+
+
+-LOG CastFloatToString
+-STATEMENT MATCH (p:person) RETURN string(p.height)
+---- 9
+1.731000
+0.990000
+1.000000
+1.300000
+1.463000
+1.510000
+1.600000
+1.323000
+
+-STATEMENT MATCH (p:person) RETURN cast(p.height, "string")
+---- 9
+1.731000
+0.990000
+1.000000
+1.300000
+1.463000
+1.510000
+1.600000
+1.323000
+
+
+-LOG CastDateToString
+-STATEMENT MATCH (p:person) RETURN string(p.birthdate)
+---- 9
+1900-01-01
+1900-01-01
+1940-06-22
+1950-07-23
+1980-10-26
+1980-10-26
+1980-10-26
+1990-11-27
+
+-STATEMENT MATCH (p:person) RETURN cast(p.birthdate, "string")
+---- 9
+1900-01-01
+1900-01-01
+1940-06-22
+1950-07-23
+1980-10-26
+1980-10-26
+1980-10-26
+1990-11-27
+
+
+-LOG CastTimestampToString
+-STATEMENT MATCH (p:person) RETURN string(p.registerTime)
+---- 9
+2011-08-20 11:25:30
+2008-11-03 15:25:30.000526
+1911-08-20 02:32:21
+2031-11-30 12:25:30
+1976-12-23 11:21:42
+1972-07-31 13:22:30.678559
+1976-12-23 04:41:42
+2023-02-21 13:25:30
+
+-STATEMENT MATCH (p:person) RETURN cast(p.registerTime, "string")
+---- 9
+2011-08-20 11:25:30
+2008-11-03 15:25:30.000526
+1911-08-20 02:32:21
+2031-11-30 12:25:30
+1976-12-23 11:21:42
+1972-07-31 13:22:30.678559
+1976-12-23 04:41:42
+2023-02-21 13:25:30
+
+
+-LOG CastIntervalToString
+-STATEMENT MATCH (p:person) RETURN string(p.lastJobDuration)
+---- 9
+3 years 2 days 13:02:00
+10 years 5 months 13:00:00.000024
+48:24:11
+10 years 5 months 13:00:00.000024
+48:24:11
+00:18:00.024
+10 years 5 months 13:00:00.000024
+3 years 2 days 13:02:00
+
+-STATEMENT MATCH (p:person) RETURN cast(p.lastJobDuration, "string")
+---- 9
+3 years 2 days 13:02:00
+10 years 5 months 13:00:00.000024
+48:24:11
+10 years 5 months 13:00:00.000024
+48:24:11
+00:18:00.024
+10 years 5 months 13:00:00.000024
+3 years 2 days 13:02:00
+
+
+-LOG CastStringToString
+-STATEMENT MATCH (p:person) RETURN string(p.fName)
+---- 9
+Alice
+Bob
+Carol
+Dan
+Elizabeth
+Farooq
+Greg
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-STATEMENT MATCH (p:person) RETURN cast(p.fName, "string")
+---- 9
+Alice
+Bob
+Carol
+Dan
+Elizabeth
+Farooq
+Greg
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+
+-LOG CastListOfIntsToString
+-STATEMENT MATCH (p:person) RETURN string(p.workedHours)
+---- 9
+[10,5]
+[12,8]
+[4,5]
+[1,9]
+[2]
+[3,4,5,6,7]
+[1]
+[10,11,12,3,4,5,6,7]
+
+-STATEMENT MATCH (p:person) RETURN cast(p.workedHours, "string")
+---- 9
+[10,5]
+[12,8]
+[4,5]
+[1,9]
+[2]
+[3,4,5,6,7]
+[1]
+[10,11,12,3,4,5,6,7]
+
+-LOG CastListOfIntsToList
+-STATEMENT MATCH (p:person) RETURN cast(p.workedHours, "DOUBLE[]"), cast(p.workedHours, "FLOAT[]"), cast(p.workedHours, "INT128[]"), cast(p.workedHours, "INT64[]"), cast(p.workedHours, "INT32[]"), cast(p.workedHours, "INT16[]"), cast(p.workedHours, "INT8[]"), cast(p.workedHours, "UINT8[]"), cast(p.workedHours, "UINT16[]"), cast(p.workedHours, "UINT32[]"), cast(p.workedHours, "UINT64[]"), cast(p.workedHours, "STRING[]")
+---- 9
+[10.000000,5.000000]|[10.000000,5.000000]|[10,5]|[10,5]|[10,5]|[10,5]|[10,5]|[10,5]|[10,5]|[10,5]|[10,5]|[10,5]
+[12.000000,8.000000]|[12.000000,8.000000]|[12,8]|[12,8]|[12,8]|[12,8]|[12,8]|[12,8]|[12,8]|[12,8]|[12,8]|[12,8]
+[4.000000,5.000000]|[4.000000,5.000000]|[4,5]|[4,5]|[4,5]|[4,5]|[4,5]|[4,5]|[4,5]|[4,5]|[4,5]|[4,5]
+[1.000000,9.000000]|[1.000000,9.000000]|[1,9]|[1,9]|[1,9]|[1,9]|[1,9]|[1,9]|[1,9]|[1,9]|[1,9]|[1,9]
+[2.000000]|[2.000000]|[2]|[2]|[2]|[2]|[2]|[2]|[2]|[2]|[2]|[2]
+[3.000000,4.000000,5.000000,6.000000,7.000000]|[3.000000,4.000000,5.000000,6.000000,7.000000]|[3,4,5,6,7]|[3,4,5,6,7]|[3,4,5,6,7]|[3,4,5,6,7]|[3,4,5,6,7]|[3,4,5,6,7]|[3,4,5,6,7]|[3,4,5,6,7]|[3,4,5,6,7]|[3,4,5,6,7]
+[1.000000]|[1.000000]|[1]|[1]|[1]|[1]|[1]|[1]|[1]|[1]|[1]|[1]
+[10.000000,11.000000,12.000000,3.000000,4.000000,5.000000,6.000000,7.000000]|[10.000000,11.000000,12.000000,3.000000,4.000000,5.000000,6.000000,7.000000]|[10,11,12,3,4,5,6,7]|[10,11,12,3,4,5,6,7]|[10,11,12,3,4,5,6,7]|[10,11,12,3,4,5,6,7]|[10,11,12,3,4,5,6,7]|[10,11,12,3,4,5,6,7]|[10,11,12,3,4,5,6,7]|[10,11,12,3,4,5,6,7]|[10,11,12,3,4,5,6,7]|[10,11,12,3,4,5,6,7]
+|||||||||||
+-STATEMENT MATCH (p:person) WHERE size(p.workedHours) > 1 RETURN cast(p.workedHours, "STRING[]")
+---- 6
+[1,9]
+[10,5]
+[12,8]
+[3,4,5,6,7]
+[4,5]
+[10,11,12,3,4,5,6,7]
+
+-LOG CastListOfIntsToFixedList
+-STATEMENT MATCH (p:person) WHERE size(p.workedHours) = 2 RETURN cast(p.workedHours, "INT64[2]"), cast(p.workedHours, "INT32[2]"), cast(p.workedHours, "INT16[2]"), cast(p.workedHours, "DOUBLE[2]"), cast(p.workedHours, "FLOAT[2]");
+---- 4
+[1,9]|[1,9]|[1,9]|[1.000000,9.000000]|[1.000000,9.000000]
+[10,5]|[10,5]|[10,5]|[10.000000,5.000000]|[10.000000,5.000000]
+[12,8]|[12,8]|[12,8]|[12.000000,8.000000]|[12.000000,8.000000]
+[4,5]|[4,5]|[4,5]|[4.000000,5.000000]|[4.000000,5.000000]
+-STATEMENT MATCH(p:person) WHERE size(p.workedHours) = 8 RETURN cast(cast(cast(p.workedHours, "INT64[8]"), "INT64[]"), "DOUBLE[8]");
+---- 1
+[10.000000,11.000000,12.000000,3.000000,4.000000,5.000000,6.000000,7.000000]
+
+-LOG CastListOfListOfIntsToString
+-STATEMENT MATCH (p:person) RETURN string(p.courseScoresPerTerm)
+---- 9
+[[10,8],[6,7,8]]
+[[8,9],[9,10]]
+[[8,10]]
+[[7,4],[8,8],[9]]
+[[6],[7],[8]]
+[[8]]
+[[10]]
+[[7],[10],[6,7]]
+
+-STATEMENT MATCH (p:person) RETURN cast(p.courseScoresPerTerm, "string")
+---- 9
+[[10,8],[6,7,8]]
+[[8,9],[9,10]]
+[[8,10]]
+[[7,4],[8,8],[9]]
+[[6],[7],[8]]
+[[8]]
+[[10]]
+[[7],[10],[6,7]]
+
+-STATEMENT MATCH (p:person) WHERE 5 < p.ID and p.ID < 10 RETURN cast(p.courseScoresPerTerm, "INT16[1][]")
+---- 3
+[[10]]
+[[6],[7],[8]]
+[[8]]
+
+-LOG CastListOfListOfIntsToListOfLists
+-STATEMENT MATCH (p:person) RETURN cast(p.courseScoresPerTerm, "INT128[][]"), cast(p.courseScoresPerTerm, "INT64[][]"), cast(p.courseScoresPerTerm, "INT32[][]"), cast(p.courseScoresPerTerm, "INT16[][]"), cast(p.courseScoresPerTerm, "INT8[][]"), cast(p.courseScoresPerTerm, "UINT8[][]"), cast(p.courseScoresPerTerm, "UINT16[][]"), cast(p.courseScoresPerTerm, "UINT32[][]"), cast(p.courseScoresPerTerm, "UINT64[][]"), cast(p.courseScoresPerTerm, "DOUBLE[][]"), cast(p.courseScoresPerTerm, "FLOAT[][]")
+---- 9
+[[10,8],[6,7,8]]|[[10,8],[6,7,8]]|[[10,8],[6,7,8]]|[[10,8],[6,7,8]]|[[10,8],[6,7,8]]|[[10,8],[6,7,8]]|[[10,8],[6,7,8]]|[[10,8],[6,7,8]]|[[10,8],[6,7,8]]|[[10.000000,8.000000],[6.000000,7.000000,8.000000]]|[[10.000000,8.000000],[6.000000,7.000000,8.000000]]
+[[8,9],[9,10]]|[[8,9],[9,10]]|[[8,9],[9,10]]|[[8,9],[9,10]]|[[8,9],[9,10]]|[[8,9],[9,10]]|[[8,9],[9,10]]|[[8,9],[9,10]]|[[8,9],[9,10]]|[[8.000000,9.000000],[9.000000,10.000000]]|[[8.000000,9.000000],[9.000000,10.000000]]
+[[8,10]]|[[8,10]]|[[8,10]]|[[8,10]]|[[8,10]]|[[8,10]]|[[8,10]]|[[8,10]]|[[8,10]]|[[8.000000,10.000000]]|[[8.000000,10.000000]]
+[[7,4],[8,8],[9]]|[[7,4],[8,8],[9]]|[[7,4],[8,8],[9]]|[[7,4],[8,8],[9]]|[[7,4],[8,8],[9]]|[[7,4],[8,8],[9]]|[[7,4],[8,8],[9]]|[[7,4],[8,8],[9]]|[[7,4],[8,8],[9]]|[[7.000000,4.000000],[8.000000,8.000000],[9.000000]]|[[7.000000,4.000000],[8.000000,8.000000],[9.000000]]
+[[6],[7],[8]]|[[6],[7],[8]]|[[6],[7],[8]]|[[6],[7],[8]]|[[6],[7],[8]]|[[6],[7],[8]]|[[6],[7],[8]]|[[6],[7],[8]]|[[6],[7],[8]]|[[6.000000],[7.000000],[8.000000]]|[[6.000000],[7.000000],[8.000000]]
+[[8]]|[[8]]|[[8]]|[[8]]|[[8]]|[[8]]|[[8]]|[[8]]|[[8]]|[[8.000000]]|[[8.000000]]
+[[10]]|[[10]]|[[10]]|[[10]]|[[10]]|[[10]]|[[10]]|[[10]]|[[10]]|[[10.000000]]|[[10.000000]]
+[[7],[10],[6,7]]|[[7],[10],[6,7]]|[[7],[10],[6,7]]|[[7],[10],[6,7]]|[[7],[10],[6,7]]|[[7],[10],[6,7]]|[[7],[10],[6,7]]|[[7],[10],[6,7]]|[[7],[10],[6,7]]|[[7.000000],[10.000000],[6.000000,7.000000]]|[[7.000000],[10.000000],[6.000000,7.000000]]
+||||||||||
+-STATEMENT MATCH (p:person) WHERE size(p.courseScoresPerTerm) > 2 RETURN cast(p.courseScoresPerTerm, "STRING[]");
+---- 3
+[[7,4],[8,8],[9]]
+[[6],[7],[8]]
+[[7],[10],[6,7]]
+-STATEMENT MATCH (p:person) WHERE size(p.courseScoresPerTerm) > 2 RETURN cast(cast(p.courseScoresPerTerm, "INT32[][]"), "UINT8[][]");
+---- 3
+[[7,4],[8,8],[9]]
+[[6],[7],[8]]
+[[7],[10],[6,7]]
+
+-LOG CastListOfListOfIntsToListOfFixedList
+-STATEMENT MATCH (p:person) WHERE p.ID > 6 and p.ID < 10 RETURN cast(cast(p.courseScoresPerTerm, "INT128[][]"), "INT16[1][]");
+---- 3
+[[6],[7],[8]]
+[[8]]
+[[10]]
+
+
+-LOG CastFixedListToString
+-STATEMENT MATCH (p:person) where p.ID > 1 RETURN string(p.grades)
+---- 8
+
+[98,42,93,88]
+[91,75,21,95]
+[76,88,99,89]
+[96,59,65,88]
+[80,78,34,83]
+[43,83,67,43]
+[77,64,100,54]
+
+-STATEMENT MATCH (p:person) where p.ID > 1 RETURN cast(p.grades, "string")
+---- 8
+
+[98,42,93,88]
+[91,75,21,95]
+[76,88,99,89]
+[96,59,65,88]
+[80,78,34,83]
+[43,83,67,43]
+[77,64,100,54]
+
+-LOG CastFixedListToList
+-STATEMENT MATCH(p:person) where p.ID > 4 RETURN cast(p.grades, "UINT64[]"), cast(p.grades, "UINT32[]"), cast(p.grades, "UINT16[]"), cast(p.grades, "UINT8[]"), cast(p.grades, "INT8[]"), cast(p.grades, "INT16[]"), cast(p.grades, "INT32[]"), cast(p.grades, "INT64[]"), cast(p.grades, "INT128[]"), cast(p.grades, "STRING[]"), cast(p.grades, "DOUBLE[]"), cast(p.grades, "FLOAT[]");
+---- 6
+[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43.000000,83.000000,67.000000,43.000000]|[43.000000,83.000000,67.000000,43.000000]
+[76,88,99,89]|[76,88,99,89]|[76,88,99,89]|[76,88,99,89]|[76,88,99,89]|[76,88,99,89]|[76,88,99,89]|[76,88,99,89]|[76,88,99,89]|[76,88,99,89]|[76.000000,88.000000,99.000000,89.000000]|[76.000000,88.000000,99.000000,89.000000]
+[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77.000000,64.000000,100.000000,54.000000]|[77.000000,64.000000,100.000000,54.000000]
+[80,78,34,83]|[80,78,34,83]|[80,78,34,83]|[80,78,34,83]|[80,78,34,83]|[80,78,34,83]|[80,78,34,83]|[80,78,34,83]|[80,78,34,83]|[80,78,34,83]|[80.000000,78.000000,34.000000,83.000000]|[80.000000,78.000000,34.000000,83.000000]
+[96,59,65,88]|[96,59,65,88]|[96,59,65,88]|[96,59,65,88]|[96,59,65,88]|[96,59,65,88]|[96,59,65,88]|[96,59,65,88]|[96,59,65,88]|[96,59,65,88]|[96.000000,59.000000,65.000000,88.000000]|[96.000000,59.000000,65.000000,88.000000]
+|||||||||||
+
+-LOG CastFixedListToFixedList
+-STATEMENT MATCH(p:person) where p.ID > 8 RETURN cast(p.grades, "UINT64[]"), cast(p.grades, "UINT32[]"), cast(p.grades, "UINT16[]"), cast(p.grades, "UINT8[]"), cast(p.grades, "INT8[]"), cast(p.grades, "INT16[]"), cast(p.grades, "INT32[]"), cast(p.grades, "INT64[]"), cast(p.grades, "INT128[]"), cast(p.grades, "STRING[]"), cast(p.grades, "DOUBLE[]"), cast(p.grades, "FLOAT[]");
+---- 3
+[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43,83,67,43]|[43.000000,83.000000,67.000000,43.000000]|[43.000000,83.000000,67.000000,43.000000]
+[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77,64,100,54]|[77.000000,64.000000,100.000000,54.000000]|[77.000000,64.000000,100.000000,54.000000]
+|||||||||||
+
+-LOG CastMapToString
+-STATEMENT MATCH (m:movies) RETURN string(m.audience)
+---- 3
+{audience1=33}
+{audience1=52, audience53=42}
+{}
+-STATEMENT MATCH (m:movies) RETURN cast(m.audience, "string")
+---- 3
+{audience1=33}
+{audience1=52, audience53=42}
+{}
+
+-LOG CastMapToMap
+-STATEMENT MATCH(m:movies) where m.length < 2000 RETURN cast(m.audience, "MAP(STRING, INT8)"), cast(m.audience, "MAP(STRING, INT16)"), cast(m.audience, "MAP(STRING, INT32)"), cast(m.audience, "MAP(STRING, INT64)"), cast(m.audience, "MAP(STRING, INT128)"), cast(m.audience, "MAP(STRING, DOUBLE)"), cast(m.audience, "MAP(STRING, FLOAT)"), cast(m.audience, "MAP(STRING, UINT8)"), cast(m.audience, "MAP(STRING, UINT16)"), cast(m.audience, "MAP(STRING, UINT32)"), cast(m.audience, "MAP(STRING, UINT64)"), cast(m.audience, "MAP(STRING, STRING)");
+---- 2
+{audience1=52, audience53=42}|{audience1=52, audience53=42}|{audience1=52, audience53=42}|{audience1=52, audience53=42}|{audience1=52, audience53=42}|{audience1=52.000000, audience53=42.000000}|{audience1=52.000000, audience53=42.000000}|{audience1=52, audience53=42}|{audience1=52, audience53=42}|{audience1=52, audience53=42}|{audience1=52, audience53=42}|{audience1=52, audience53=42}
+{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}
+
+-LOG CastInternalIDToString
+-STATEMENT MATCH (p:person) RETURN string(id(p))
+---- 9
+0:0
+0:1
+0:2
+0:3
+0:4
+0:5
+0:6
+0:7
+0:8
+-STATEMENT MATCH (p:person) RETURN cast(id(p), "string")
+---- 9
+0:0
+0:1
+0:2
+0:3
+0:4
+0:5
+0:6
+0:7
+0:8
+
+-LOG CastStructToString
+-STATEMENT MATCH (o:organisation) RETURN string(o.state)
+---- 4
+{revenue: 138, location: ['toronto', 'montr,eal'], stock: {price: [96,56], volume: 1000}}
+{revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}
+{revenue: 558, location: ['very long city name', 'new york'], stock: {price: [22], volume: 99}}
+
+-STATEMENT MATCH (o:organisation) RETURN cast(o.state, "string")
+---- 4
+{revenue: 138, location: ['toronto', 'montr,eal'], stock: {price: [96,56], volume: 1000}}
+{revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}
+{revenue: 558, location: ['very long city name', 'new york'], stock: {price: [22], volume: 99}}
+
+
+-LOG CastStructToStruct
+-STATEMENT MATCH (o:organisation) where o.ID < 6 RETURN cast(cast(o.state, "STRUCT(revenue DOUBLE, location STRING, stock STRUCT(price INT128[], volume UINT64))"), "STRUCT(revenue DOUBLE, location STRING, stock STRING)"), cast(o.state, "STRUCT(revenue FLOAT, location STRING, stock STRUCT(price DOUBLE[], volume UINT32))");
+---- 2
+{revenue: 138.000000, location: ['toronto', 'montr,eal'], stock: {price: [96,56], volume: 1000}}|{revenue: 138.000000, location: ['toronto', 'montr,eal'], stock: {price: [96.000000,56.000000], volume: 1000}}
+{revenue: 152.000000, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}|{revenue: 152.000000, location: ["vanco,uver north area"], stock: {price: [15.000000,78.000000,671.000000], volume: 432}}
+
+-LOG CastUnionToString
+-STATEMENT MATCH (o:organisation) RETURN string(o.info)
+---- 4
+3.120000
+abcd
+2023-12-15
+
+-STATEMENT MATCH (o:organisation) RETURN cast(o.info, "string")
+---- 4
+3.120000
+abcd
+2023-12-15
+
+
+-CASE DataTypeCasting
+-LOG CastInt8ToDouble
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_double(e.level)
+---- 3
+5.000000
+120.000000
+2.000000
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN cast(e.level, "double")
+---- 3
+5.000000
+120.000000
+2.000000
+
+-LOG CastInt8ToFloat
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_float(e.level)
+---- 3
+5.000000
+120.000000
+2.000000
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN cast(e.level, "float")
+---- 3
+5.000000
+120.000000
+2.000000
+
+-LOG CastInt8ToInt64
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_int64(e.level)
+---- 3
+5
+120
+2
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN cast(e.level, "int64")
+---- 3
+5
+120
+2
+
+-LOG CastInt8ToUInt8
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_uint8(e.level)
+---- 3
+5
+120
+2
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN cast(e.level, "uint8")
+---- 3
+5
+120
+2
+
+-LOG CastInt8ToUInt32
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_uint32(e.level)
+---- 3
+5
+120
+2
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN cast(e.level, "uint32")
+---- 3
+5
+120
+2
+
+-LOG CastInt16ToDouble
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_double(e.length)
+---- 3
+5.000000
+55.000000
+22.000000
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN cast(e.length, "double")
+---- 3
+5.000000
+55.000000
+22.000000
+
+-LOG CastInt16ToFloat
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_float(e.length)
+---- 3
+5.000000
+55.000000
+22.000000
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN cast(e.length, "float")
+---- 3
+5.000000
+55.000000
+22.000000
+
+-LOG CastInt16ToInt64
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_int64(e.length)
+---- 3
+5
+55
+22
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN cast(e.length, "int64")
+---- 3
+5
+55
+22
+
+-LOG CastInt16ToInt32
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_int32(e.length)
+---- 3
+5
+55
+22
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN cast(e.length, "int32")
+---- 3
+5
+55
+22
+
+-LOG CastInt16ToInt8
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_int8(e.length)
+---- 3
+5
+55
+22
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN cast(e.length, "int8")
+---- 3
+5
+55
+22
+
+-LOG CastInt16ToUINT64
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN cast(e.length, "uint64")
+---- 3
+5
+55
+22
+
+-LOG CastInt16ToUINT32
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN cast(e.length, "uint32")
+---- 3
+5
+55
+22
+
+
+-LOG CastInt16ToUINT16
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN cast(e.length, "uint16")
+---- 3
+5
+55
+22
+
+
+-LOG CastInt16ToUINT8
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN cast(e.length, "uint8")
+---- 3
+5
+55
+22
+
+-LOG CastInt16ToINT128
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN cast(e.length, "int128")
+---- 3
+5
+55
+22
+
+-LOG CastInt32ToDouble
+-STATEMENT MATCH (m:movies) RETURN to_double(m.length)
+---- 3
+126.000000
+2544.000000
+298.000000
+-STATEMENT MATCH (m:movies) RETURN cast(m.length, "double")
+---- 3
+126.000000
+2544.000000
+298.000000
+
+-LOG CastInt32ToFloat
+-STATEMENT MATCH (m:movies) RETURN to_float(m.length)
+---- 3
+126.000000
+2544.000000
+298.000000
+-STATEMENT MATCH (m:movies) RETURN cast(m.length, "float")
+---- 3
+126.000000
+2544.000000
+298.000000
+
+-LOG CastInt32ToInt64
+-STATEMENT MATCH (m:movies) RETURN to_int64(m.length)
+---- 3
+126
+2544
+298
+-STATEMENT MATCH (m:movies) RETURN cast(m.length, "int64")
+---- 3
+126
+2544
+298
+
+-LOG CastUIntToInt
+-STATEMENT RETURN TO_INT64(TO_UINT64(9223372036854775807));
+---- 1
+9223372036854775807
+-STATEMENT RETURN cast(cast(9223372036854775807, "uint64"), "int64");
+---- 1
+9223372036854775807
+-STATEMENT RETURN TO_INT32(TO_UINT64("43242"));
+---- 1
+43242
+-STATEMENT RETURN cast(cast("43242", "uint64"), "int32");
+---- 1
+43242
+-STATEMENT RETURN TO_INT32(TO_UINT32("43242"));
+---- 1
+43242
+-STATEMENT RETURN cast(cast("43242", "uint32"), "int32");
+---- 1
+43242
+
+-LOG CastInt64ToInt8
+-STATEMENT MATCH (p:person) RETURN to_int8(p.age)
+---- 8
+35
+30
+45
+20
+20
+25
+40
+83
+-STATEMENT MATCH (p:person) RETURN cast(p.age, "int8")
+---- 8
+35
+30
+45
+20
+20
+25
+40
+83
+
+-LOG CastFloatDoubleToInt8
+-STATEMENT Return to_int8(1.1), to_int8(to_float(3.2))
+---- 1
+1|3
+-STATEMENT Return cast(1.1, "int8"), cast(cast(3.2, "float"), "int8")
+---- 1
+1|3
+
+
+-LOG CastNumericalToInt8
+-STATEMENT Return to_int8(to_int64(1)), to_int8(to_int32(2)), to_int8(to_int16(3)), to_int8(to_int8(4)), to_int8(to_uint8(5)), to_int8(to_uint16(6)), to_int8(to_uint32(7)), to_int8(to_uint64(8)), to_int8(to_int128(9))
+---- 1
+1|2|3|4|5|6|7|8|9
+-STATEMENT Return cast(cast(1, "int64"), "int8"), cast(cast(2, "int32"), "int8"), cast(cast(3, "int16"), "int8"), cast(cast(4, "int8"), "int8"), cast(cast(5, "uint8"), "int8"), cast(cast(6, "uint16"), "int8"), cast(cast(7, "uint32"), "int8"), cast(cast(8, "uint64"), "int8"), cast(cast(9, "int128"), "int8"), cast(cast(10, "float"), "int8"), cast(cast(11, "double"), "int8")
+---- 1
+1|2|3|4|5|6|7|8|9|10|11
+
+-LOG CastNumericalToUInt8
+-STATEMENT Return to_uint8(to_int64(1)), to_uint8(to_int32(2)), to_uint8(to_int16(3)), to_uint8(to_int8(4)), to_uint8(to_uint16(6)), to_uint8(to_uint32(7)), to_uint8(to_uint64(8)), to_uint8(to_int128(9))
+---- 1
+1|2|3|4|6|7|8|9
+-STATEMENT Return cast(cast(1, "int64"), "uint8"), cast(cast(2, "int32"), "uint8"), cast(cast(3, "int16"), "uint8"), cast(cast(4, "int8"), "uint8"), cast(cast(5, "uint8"), "uint8"), cast(cast(6, "uint16"), "uint8"), cast(cast(7, "uint32"), "uint8"), cast(cast(8, "uint64"), "uint8"), cast(cast(9, "int128"), "uint8"), cast(cast(10, "float"), "uint8"), cast(cast(11, "double"), "uint8")
+---- 1
+1|2|3|4|5|6|7|8|9|10|11
+
+-LOG CastNumericalToUInt16
+-STATEMENT Return to_uint16(to_int64(1)), to_uint16(to_int32(2)), to_uint16(to_int16(3)), to_uint16(to_int8(4)), to_uint16(to_uint8(5)), to_uint16(to_uint32(7)), to_uint16(to_uint64(8)), to_uint16(to_int128(9))
+---- 1
+1|2|3|4|5|7|8|9
+-STATEMENT Return cast(cast(1, "int64"), "uint16"), cast(cast(2, "int32"), "uint16"), cast(cast(3, "int16"), "uint16"), cast(cast(4, "int8"), "uint16"), cast(cast(5, "uint8"), "uint16"), cast(cast(6, "uint16"), "uint16"), cast(cast(7, "uint32"), "uint16"), cast(cast(8, "uint64"), "uint16"), cast(cast(9, "int128"), "uint16"), cast(cast(10, "float"), "uint16"), cast(cast(11, "double"), "uint16")
+---- 1
+1|2|3|4|5|6|7|8|9|10|11
+
+-LOG CastUnsignedIntToFLoatDouble
+-STATEMENT Return to_float(to_uint64(1)), to_double(to_uint64(2)), to_float(to_uint32(3)), to_double(to_uint32(4)), to_float(to_uint16(5)), to_double(to_uint16(6)), to_float(to_uint8(7)), to_double(to_uint8(8))
+---- 1
+1.000000|2.000000|3.000000|4.000000|5.000000|6.000000|7.000000|8.000000
+
+-LOG CastNumericalToUInt32
+-STATEMENT Return to_uint32(to_int64(1)), to_uint32(to_int32(2)), to_uint32(to_int16(3)), to_uint32(to_int8(4)), to_uint32(to_uint8(5)), to_uint32(to_uint16(6)), to_uint32(to_uint64(8)), to_uint32(to_int128(9))
+---- 1
+1|2|3|4|5|6|8|9
+-STATEMENT Return cast(cast(1, "int64"), "uint32"), cast(cast(2, "int32"), "uint32"), cast(cast(3, "int16"), "uint32"), cast(cast(4, "int8"), "uint32"), cast(cast(5, "uint16"), "uint32"), cast(cast(6, "uint8"), "uint32"), cast(cast(7, "uint32"), "uint32"), cast(cast(8, "uint64"), "uint32"), cast(cast(9, "int128"), "uint32"), cast(cast(10, "float"), "uint32"), cast(cast(11, "double"), "uint32")
+---- 1
+1|2|3|4|5|6|7|8|9|10|11
+
+-LOG CastNumericalToUInt64
+-STATEMENT Return to_uint64(to_int64(1)), to_uint64(to_int32(2)), to_uint64(to_int16(3)), to_uint64(to_int8(4)), to_uint64(to_uint8(5)), to_uint64(to_uint32(6)), to_uint64(to_uint32(7)), to_uint64(to_int128(9))
+---- 1
+1|2|3|4|5|6|7|9
+-STATEMENT Return cast(cast(1, "int64"), "uint64"), cast(cast(2, "int32"), "uint64"), cast(cast(3, "int64"), "uint64"), cast(cast(4, "int64"), "uint64"), cast(cast(5, "uint8"), "uint64"), cast(cast(6, "uint16"), "uint64"), cast(cast(7, "uint64"), "uint64"), cast(cast(8, "uint64"), "uint64"), cast(cast(9, "int128"), "uint64"), cast(cast(10, "float"), "uint64"), cast(cast(11, "double"), "uint64")
+---- 1
+1|2|3|4|5|6|7|8|9|10|11
+
+-LOG CastNumericalToInt128
+-STATEMENT Return to_int128(to_int64(1)), to_int128(to_int32(2)), to_int128(to_int16(3)), to_int128(to_int8(4)), to_int128(to_uint8(5)), to_int128(to_uint16(6)), to_int128(to_uint32(7)), to_int128(to_uint64(8))
+---- 1
+1|2|3|4|5|6|7|8
+-STATEMENT Return cast(cast(1, "int64"), "int128"), cast(cast(2, "int32"), "int128"), cast(cast(3, "int64"), "int128"), cast(cast(4, "int64"), "int128"), cast(cast(5, "uint8"), "int128"), cast(cast(6, "uint16"), "int128"), cast(cast(7, "uint64"), "int128"), cast(cast(8, "uint64"), "int128"), cast(cast(9, "int128"), "int128"), cast(cast(10, "float"), "int128"), cast(cast(11, "double"), "int128")
+---- 1
+1|2|3|4|5|6|7|8|9|10|11
+
+-LOG CastInt64ToDouble
+-STATEMENT MATCH (p:person) RETURN to_double(p.age)
+---- 8
+35.000000
+30.000000
+45.000000
+20.000000
+20.000000
+25.000000
+40.000000
+83.000000
+-STATEMENT MATCH (p:person) RETURN cast(p.age, "double")
+---- 8
+35.000000
+30.000000
+45.000000
+20.000000
+20.000000
+25.000000
+40.000000
+83.000000
+
+-LOG CastInt64ToFloat
+-STATEMENT MATCH (p:person) RETURN to_float(p.gender)
+---- 8
+1.000000
+2.000000
+1.000000
+2.000000
+1.000000
+2.000000
+2.000000
+2.000000
+-STATEMENT MATCH (p:person) RETURN cast(p.gender, "float")
+---- 8
+1.000000
+2.000000
+1.000000
+2.000000
+1.000000
+2.000000
+2.000000
+2.000000
+
+-LOG CastInt64ToSerial
+-STATEMENT MATCH (p:person) RETURN cast(p.gender, "Serial")
+---- 8
+1
+2
+1
+2
+1
+2
+2
+2
+
+-LOG CastDoubleToUInt
+-STATEMENT RETURN to_uint8(to_double(1)), to_uint16(to_double(2)), to_uint32(to_double(3)), to_uint64(to_double(4)), to_int128(to_double(5))
+---- 1
+1|2|3|4|5
+-STATEMENT RETURN cast(cast(1, "double"), "uint8"), cast(cast(2, "double"), "uint16"), cast(cast(3, "double"), "uint32"), cast(cast(4, "double"), "uint64"), cast(cast(5, "double"), "int128")
+---- 1
+1|2|3|4|5
+
+-LOG CastFloatToUInt
+-STATEMENT RETURN to_uint8(to_float(1)), to_uint16(to_float(2)), to_uint32(to_float(3)), to_uint64(to_float(4)), to_int128(to_float(5))
+---- 1
+1|2|3|4|5
+-LOG CastFloatToUInt
+-STATEMENT RETURN cast(cast(1, "float"), "uint8"), cast(cast(2, "float"), "uint16"), cast(cast(3, "float"), "uint32"), cast(cast(4, "float"), "uint64"), cast(cast(5, "float"), "int128")
+---- 1
+1|2|3|4|5
+
+-LOG CastFloatToDouble
+-STATEMENT MATCH (p:person) RETURN to_double(p.height)
+---- 8
+1.731000
+0.990000
+1.000000
+1.300000
+1.463000
+1.510000
+1.600000
+1.323000
+-STATEMENT MATCH (p:person) RETURN cast(p.height, "double")
+---- 8
+1.731000
+0.990000
+1.000000
+1.300000
+1.463000
+1.510000
+1.600000
+1.323000
+
+-LOG CastStringToNum
+-STATEMENT RETURN TO_INT64("12");
+---- 1
+12
+-STATEMENT RETURN TO_INT64("9223372036854775807");
+---- 1
+9223372036854775807
+-STATEMENT RETURN TO_SERIAL("9223372036854775807");
+---- 1
+9223372036854775807
+-STATEMENT RETURN TO_INT64("-9223372036854775808");
+---- 1
+-9223372036854775808
+-STATEMENT RETURN TO_INT32("2147483647");
+---- 1
+2147483647
+-STATEMENT RETURN TO_INT32("-2147483648");
+---- 1
+-2147483648
+-STATEMENT RETURN TO_INT16("32767");
+---- 1
+32767
+-STATEMENT RETURN TO_INT16("-32768");
+---- 1
+-32768
+-STATEMENT RETURN TO_INT8("0");
+---- 1
+0
+-STATEMENT RETURN TO_INT8("-128");
+---- 1
+-128
+-STATEMENT RETURN TO_UINT64("0");
+---- 1
+0
+-STATEMENT RETURN TO_UINT64("4320492");
+---- 1
+4320492
+-STATEMENT RETURN TO_UINT32("4294967295");
+---- 1
+4294967295
+-STATEMENT RETURN TO_UINT16("65535");
+---- 1
+65535
+-STATEMENT RETURN TO_UINT8("255");
+---- 1
+255
+-STATEMENT RETURN TO_INT128("1844674407370955161811111111");
+---- 1
+1844674407370955161811111111
+-STATEMENT RETURN TO_FLOAT("   3.294");
+---- 1
+3.294000
+-STATEMENT RETURN TO_FLOAT("3.294");
+---- 1
+3.294000
+-STATEMENT RETURN TO_FLOAT("0.99");
+---- 1
+0.990000
+-STATEMENT RETURN TO_FLOAT("42341.43299123");
+---- 1
+42341.433594
+-STATEMENT RETURN TO_DOUBLE("3.294   ");
+---- 1
+3.294000
+-STATEMENT RETURN TO_DOUBLE("      3.294   ");
+---- 1
+3.294000
+-STATEMENT RETURN TO_BOOL("TRUE");
+---- 1
+True
+-STATEMENT RETURN TO_BOOL("1");
+---- 1
+True
+-STATEMENT RETURN TO_BOOL("tRUE");
+---- 1
+True
+-STATEMENT RETURN TO_BOOL("  t   ");
+---- 1
+True
+-STATEMENT RETURN TO_BOOL("T  ");
+---- 1
+True
+-STATEMENT RETURN TO_BOOL("false");
+---- 1
+False
+-STATEMENT RETURN TO_BOOL("   F");
+---- 1
+False
+-STATEMENT RETURN TO_BOOL("0");
+---- 1
+False
+-STATEMENT RETURN TO_BOOL("0");
+---- 1
+False
+-STATEMENT RETURN TO_DATE("2022-10-21");
+---- 1
+2022-10-21
+-STATEMENT RETURN cast("12", "int64");
+---- 1
+12
+-STATEMENT RETURN cast("9223372036854775807", "int64");
+---- 1
+9223372036854775807
+-STATEMENT RETURN cast("9223372036854775807", "serial");
+---- 1
+9223372036854775807
+-STATEMENT RETURN cast("-9223372036854775808", "serial");
+---- 1
+-9223372036854775808
+-STATEMENT RETURN cast("2147483647", "int32");
+---- 1
+2147483647
+-STATEMENT RETURN cast("-2147483648", "int32");
+---- 1
+-2147483648
+-STATEMENT RETURN cast("32767", "int16");
+---- 1
+32767
+-STATEMENT RETURN cast("-32768", "int16");
+---- 1
+-32768
+-STATEMENT RETURN cast("0", "int8");
+---- 1
+0
+-STATEMENT RETURN cast("-128", "int8");
+---- 1
+-128
+-STATEMENT RETURN cast("0", "uint64");
+---- 1
+0
+-STATEMENT RETURN cast("4320492", "uint64");
+---- 1
+4320492
+-STATEMENT RETURN cast("4294967295", "uint32");
+---- 1
+4294967295
+-STATEMENT RETURN cast("65535", "uint16");
+---- 1
+65535
+-STATEMENT RETURN cast("255", "uint8");
+---- 1
+255
+-STATEMENT RETURN cast("1844674407370955161811111111", "int128");
+---- 1
+1844674407370955161811111111
+-STATEMENT RETURN cast("   3.294", "float");
+---- 1
+3.294000
+-STATEMENT RETURN cast("3.294", "float");
+---- 1
+3.294000
+-STATEMENT RETURN cast("0.99", "float");
+---- 1
+0.990000
+-STATEMENT RETURN cast("42341.43299123", "float");
+---- 1
+42341.433594
+-STATEMENT RETURN cast("3.294   ", "double");
+---- 1
+3.294000
+-STATEMENT RETURN cast("      3.294   ", "double");
+---- 1
+3.294000
+-STATEMENT RETURN cast("TRUE", "boolean");
+---- 1
+True
+-STATEMENT RETURN cast("1", "boolean");
+---- 1
+True
+-STATEMENT RETURN cast("tRUE", "boolean");
+---- 1
+True
+-STATEMENT RETURN cast("  t   ", "boolean");
+---- 1
+True
+-STATEMENT RETURN cast("T  ", "boolean");
+---- 1
+True
+-STATEMENT RETURN cast("false", "boolean");
+---- 1
+False
+-STATEMENT RETURN cast("   F", "boolean");
+---- 1
+False
+-STATEMENT RETURN cast("0", "boolean");
+---- 1
+False
+-STATEMENT RETURN cast("0", "boolean");
+---- 1
+False
+
+-LOG CastDoubleToFloat
+-STATEMENT MATCH (p:person) RETURN to_float(p.eyeSight)
+---- 8
+5.000000
+5.100000
+5.000000
+4.800000
+4.700000
+4.500000
+4.900000
+4.900000
+-STATEMENT MATCH (p:person) RETURN cast(p.eyeSight, "float")
+---- 8
+5.000000
+5.100000
+5.000000
+4.800000
+4.700000
+4.500000
+4.900000
+4.900000
+
+-LOG CastNumericalToINT128Test
+-STATEMENT RETURN to_int8(to_int128(1)), to_int16(to_int128(2)), to_int32(to_int128(3)), to_int64(to_int128(4)), to_uint8(to_int128(5)), to_uint16(to_int128(6)), to_uint32(to_int128(7)), to_uint64(to_int128(8))
+---- 1
+1|2|3|4|5|6|7|8
+-STATEMENT RETURN cast(cast(1, "int128"), "int8"), cast(cast(2, "int128"), "int16"), cast(cast(3, "int128"), "int32"), cast(cast(4, "int128"), "int64"), cast(cast(5, "int128"), "int128"), cast(cast(6, "int128"), "uint8"), cast(cast(7, "int128"), "uint16"), cast(cast(8, "int128"), "uint32"), cast(cast(9, "int128"), "uint64"), cast(cast(10, "int128"), "double"), cast(cast(11, "int128"), "float"), cast(cast(12, "int128"), "string")
+---- 1
+1|2|3|4|5|6|7|8|9|10.000000|11.000000|12
+
+-LOG CastInt128ToOtherTypes
+-STATEMENT RETURN TO_FLOAT(170141183460469231731687303715884105727), TO_INT64(-4324324);
+---- 1
+170141183460469231731687303715884105728.000000|-4324324
+-STATEMENT RETURN cast(170141183460469231731687303715884105727, "float"), cast(-4324324, "int64");
+---- 1
+170141183460469231731687303715884105728.000000|-4324324
+
+-LOG CastNegInt128ToFloatDouble
+-STATEMENT Return to_float(to_int128(-15)), to_double(to_int128(-1)), to_float(to_int128(15)), to_double(to_int128(1))
+---- 1
+-15.000000|-1.000000|15.000000|1.000000
+-STATEMENT Return cast(cast(-15, "int128"), "float"), cast(cast(-1, "int128"), "double"), cast(cast(15, "int128"), "float"), cast(cast(1, "int128"), "double")
+---- 1
+-15.000000|-1.000000|15.000000|1.000000
+
+-LOG CastFloatDoubleToInt128
+-STATEMENT Return to_int128(to_float(-15)), to_int128(to_double(-1)), to_int128(to_float(15)), to_int128(to_double(1))
+---- 1
+-15|-1|15|1
+-STATEMENT Return cast(cast(-15, "float"), "int128"), cast(cast(-1, "double"), "int128"), cast(cast(15, "float"), "int128"), cast(cast(1, "double"), "int128")
+---- 1
+-15|-1|15|1
+-STATEMENT Return to_int64(to_int128(-4324324))
+---- 1
+-4324324

@@ -1,0 +1,31 @@
+-GROUP DemoDBTest
+-DATASET PARQUET demo-db/parquet
+
+--
+
+-CASE DemoDBOrderedTestFromParquet
+
+-LOG OrderBy1
+-CHECK_ORDER
+-STATEMENT MATCH (u:User) RETURN u.name, u.age ORDER BY u.age;
+---- 4
+Noura|25
+Adam|30
+Karissa|40
+Zhang|50
+
+-LOG OrderBy2
+-CHECK_ORDER
+-STATEMENT MATCH (u:User)-[:LivesIn]->(c:City) WHERE c.name = "Waterloo" RETURN u.name, u.age ORDER BY u.age DESC;
+---- 2
+Karissa|40
+Adam|30
+
+-LOG OrderBy3
+-CHECK_ORDER
+-STATEMENT MATCH (a:User)-[:Follows]->(b:User) RETURN b.age, a.name ORDER BY b.age DESC, a.name DESC;
+---- 4
+50|Karissa
+50|Adam
+40|Adam
+25|Zhang

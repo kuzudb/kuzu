@@ -1,0 +1,16 @@
+-GROUP CopyThreeDimensionalNpyTest
+-DATASET NPY npy-20k
+
+--
+
+-CASE CopyLargeNpyTest
+
+-LOG ID
+-STATEMENT MATCH (n:npytable) RETURN n.id
+---- 20000
+<FILE>:copy_npy_large_id_answer.txt
+
+-LOG f32
+-STATEMENT MATCH (n:npytable) RETURN n.f32
+---- 20000
+<FILE>:copy_npy_large_f32_answer.txt

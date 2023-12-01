@@ -1,0 +1,204 @@
+-GROUP TCKReturn2
+-DATASET CSV tck
+
+--
+
+# Arithmetic expressions should propagate null values
+-CASE Scenario1
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT RETURN 1 + (2 - (3 * (4 / (5 ^ (6 % null))))) AS a;
+---- 1
+
+
+# Returning a node property value
+-CASE Scenario2
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {num: 1});
+---- ok
+-STATEMENT MATCH (a) RETURN a.num;
+---- 1
+1
+
+# Missing node property should become null
+-CASE Scenario3
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {num: 1});
+---- ok
+-STATEMENT MATCH (a) RETURN a.name;
+---- 1
+
+
+# Returning a relationship property value
+-CASE Scenario4
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A, num INT64);
+---- ok
+-STATEMENT CREATE (:A)-[:T {num: 1}]->(:A);
+---- ok
+-STATEMENT MATCH ()-[r]->() RETURN r.num;
+---- 1
+1
+
+# Missing relationship property should become null
+-CASE Scenario5
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A, name INT64);
+---- ok
+-STATEMENT CREATE (:A)-[:T {name: 1}]->(:A);
+---- ok
+-STATEMENT MATCH ()-[r]->() RETURN r.name2;
+---- 1
+
+
+# Adding a property and a literal in projection
+-CASE Scenario6
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {num: 1});
+---- ok
+-STATEMENT MATCH (a) RETURN a.num + 1 AS foo;
+---- 1
+2
+
+# Adding list properties in projection
+-CASE Scenario7
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, list1 INT64[], list2 INT64[], PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {list1: [1, 2, 3], list2: [4, 5]});
+---- ok
+-STATEMENT MATCH (a) RETURN list_concat(a.list2, a.list1) AS foo;
+---- 1
+[4,5,1,2,3]
+
+# Returning label predicate expression
+-CASE Scenario8
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE Foo(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A), (:Foo);
+---- ok
+-STATEMENT MATCH (n) RETURN LABEL(n) = 'Foo';
+---- 2
+True
+False
+
+# Returning a projected map
+-CASE Scenario9
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, numbers INT64[], PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {numbers: [1, 2, 3]});
+---- ok
+-STATEMENT RETURN {a: 1, b: 'foo'};
+---- 1
+{a: 1, b: foo}
+
+# Return count aggregation over an empty graph
+-CASE Scenario10
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT MATCH (a) RETURN count(a) > 0;
+---- 1
+False
+
+# RETURN does not lose precision on large integers
+-CASE Scenario11
+-STATEMENT CREATE NODE TABLE TheLabel(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (:TheLabel {id: 4611686018427387905});
+---- ok
+-STATEMENT MATCH (p:TheLabel) RETURN p.id;
+---- 1
+4611686018427387905
+
+# Projecting a list of nodes and relationships
+-CASE Scenario12
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A To B);
+---- ok
+-STATEMENT CREATE (a:A)-[:T]->(b:B);
+---- ok
+-STATEMENT MATCH (n)-[r]->(m) RETURN [n, r, m] AS r;
+---- 1
+[{_ID: 0:0, _LABEL: A, ID: 0},(0:0)-{_LABEL: T, _ID: 2:0}->(1:0),{_ID: 1:0, _LABEL: B, ID: 0}]
+
+# Projecting a map of nodes and relationships
+-CASE Scenario13
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A To B);
+---- ok
+-STATEMENT CREATE (a:A)-[:T]->(b:B);
+---- ok
+-STATEMENT MATCH (n)-[r]->(m) RETURN {node1: n, rel: r, node2: m} AS m;
+---- 1
+{node1: {_ID: 0:0, _LABEL: A, ID: 0}, rel: (0:0)-{_LABEL: T, _ID: 2:0}->(1:0), node2: {_ID: 1:0, _LABEL: B, ID: 0}}
+
+# Do not fail when returning type of deleted relationships
+-CASE Scenario14
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+-STATEMENT CREATE (:A)-[:T]->(:A);
+---- ok
+-STATEMENT MATCH ()-[r]->() DELETE r RETURN LABEL(r);
+---- 1
+T
+
+# Fail when returning properties of deleted nodes
+-CASE Scenario15
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {num: 0});
+---- ok
+-STATEMENT MATCH (n) DELETE n RETURN n.num;
+---- error
+EntityNotFound: DeletedEntityAccess
+
+# Fail when returning labels of deleted nodes
+-CASE Scenario16
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A);
+---- ok
+-STATEMENT MATCH (n) DELETE n RETURN LABEL(n);
+---- error
+EntityNotFound: DeletedEntityAccess
+
+# Fail when returning properties of deleted relationships
+-CASE Scenario17
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A, num INT64);
+---- ok
+-STATEMENT CREATE (:A)-[:T {num: 0}]->(:A);
+---- ok
+-STATEMENT MATCH ()-[r]->() DELETE r RETURN r.num;
+---- error
+EntityNotFound: DeletedEntityAccess
+
+# Fail on projecting a non-existent function
+-CASE Scenario18
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT MATCH (a) RETURN foo(a);
+---- error
+Catalog exception: FOO function does not exist.

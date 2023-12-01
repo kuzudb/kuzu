@@ -1,0 +1,5 @@
+-NAME q32
+-COMPARE_RESULT 1
+-QUERY MATCH (n:Person)-[:person_isLocatedIn]->(p:Place) WHERE n.ID = 1129 RETURN n.firstName AS firstName, n.lastName AS lastName,n.birthday AS birthday, n.locationIP AS locationIP, n.browserUsed AS browserUsed,p.ID AS cityId,n.gender AS gender,n.creationDate AS creationDate
+---- 1
+Carmen|Lepland|1984-02-18|195.20.151.175|Internet Explorer|519|female|2010-01-28 06:39:58.781

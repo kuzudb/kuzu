@@ -1,0 +1,83 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE VarLengthMultiLabel
+
+-LOG NodeMultiLabelTest
+-STATEMENT MATCH (a)-[e:knows*1..2]->(b) RETURN COUNT(*)
+---- 1
+50
+
+-LOG NodeUndirectedTest
+-STATEMENT MATCH (a)-[e:knows*1..2]-(b) WHERE a.fName = 'Alice' AND b.fName = 'Bob' RETURN COUNT(*)
+---- 1
+10
+
+-LOG NodeUndirectedTest2
+-STATEMENT MATCH (a)-[e:knows|:studyAt|:workAt*1..2]-(b) WHERE a.ID=7 RETURN properties(rels(e), '_id'), properties(nodes(e), 'ID'), b.ID
+---- 8
+[3:12,3:12]|[8]|7
+[3:12,4:2]|[8]|1
+[3:12]|[]|8
+[3:13,3:13]|[9]|7
+[3:13]|[]|9
+[5:2,5:1]|[6]|5
+[5:2,5:2]|[6]|7
+[5:2]|[]|6
+
+-LOG RelMultiLabelTest
+-STATEMENT MATCH (a:person)-[e*1..2]->(b:organisation) WHERE a.fName = 'Alice' RETURN b.ID, properties(rels(e), '_id'), properties(rels(e), 'year')
+---- 6
+1|[3:0,4:1]|[,2020]
+1|[4:0]|[2021]
+1|[6:0,4:1]|[,2020]
+1|[7:0,4:1]|[,2020]
+4|[3:1,5:0]|[,2015]
+6|[3:2,5:1]|[,2010]
+
+-LOG MultiLabelTest1
+-STATEMENT MATCH (a:person)-[e:meets|:marries|:studyAt*2..2]->(b) WHERE a.fName = 'Alice' RETURN b.ID, properties(rels(e), '_id'), properties(nodes(e), 'fName')
+---- 4
+1|[6:0,4:1]|[Bob]
+1|[7:0,4:1]|[Bob]
+5|[6:0,6:1]|[Bob]
+5|[7:0,6:1]|[Bob]
+
+-LOG MultiLabelTest2
+-STATEMENT MATCH (a:person)-[e:meets|:marries|:studyAt*2..2]->(b) WHERE a.fName = 'Alice' AND b.ID < 5 RETURN COUNT(*)
+-ENUMERATE
+---- 1
+2
+
+-LOG MultiLabelTest3
+-STATEMENT MATCH (a:person)-[e*2..2]->(b:organisation) WHERE a.fName = 'Alice' RETURN COUNT(*)
+---- 1
+5
+
+-LOG MultiLabelTest
+-STATEMENT MATCH (a:person)-[e*2..2 (r, _ | WHERE offset(id(r)) > 0)]->(b:organisation) WHERE a.fName = 'Alice' RETURN rels(e)
+---- 1
+[(0:0)-{_LABEL: knows, _ID: 3:2, date: 2021-06-30, meetTime: 2012-12-11 20:07:22, validInterval: 10 days, comments: [ioji232,jifhe8w99u43434], summary: {locations: ['shanghai'], transfer: {day: 1990-09-10, amount: [10]}}, notes: nice weather}->(0:3),(0:3)-{_LABEL: workAt, _ID: 5:1, year: 2010, grading: [2.100000,4.400000], rating: 7.600000}->(1:2)]
+
+-LOG MultiLabelSelfLoopTest
+-STATEMENT MATCH (a)-[e:studyAt|:knows*2..3]-(a) WHERE a.ID = 1 RETURN COUNT(*)
+---- 1
+7
+
+-LOG MultiLabelSelfLoopTest2
+-STATEMENT MATCH (a:organisation)-[e*2..2]-(a) RETURN COUNT(*)
+---- 1
+6
+
+-LOG MultiLabelFilter
+-STATEMENT MATCH p = (a)-[e*2..3 (r, n | WHERE n.ID < 3)]->(b) WHERE a.ID = 2 WITH properties(nodes(p), "ID") AS o, properties(rels(p), "_id") AS p, b.ID AS q WHERE q = 1 RETURN o, p
+---- 4
+[2,0,1]|[3:3,4:0]
+[2,0,2,1]|[3:3,3:0,4:1]
+[2,0,2,1]|[3:3,6:0,4:1]
+[2,0,2,1]|[3:3,7:0,4:1]
+-STATEMENT MATCH p = (a)-[e*2..3 (r, n | WHERE n.ID + offset(id(r)) < 3)]->(b) RETURN p
+---- error
+Binder exception: Cannot evaluate LESS_THAN(+(n.ID,OFFSET(r._ID)),3) in recursive pattern e.

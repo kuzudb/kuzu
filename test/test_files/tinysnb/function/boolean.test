@@ -1,0 +1,121 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE FunctionBoolean
+
+-LOG AndExecTest1
+-STATEMENT MATCH (a:person) RETURN a.ID, a.isStudent AND a.isWorker ORDER BY a.ID
+---- 8
+0|False
+10|False
+2|False
+3|False
+5|False
+7|False
+8|False
+9|False
+
+-LOG OrExecTest1
+-STATEMENT MATCH (a:person) RETURN a.ID, a.isStudent OR a.isWorker ORDER BY a.ID
+---- 8
+0|True
+10|True
+2|True
+3|True
+5|True
+7|True
+8|True
+9|False
+
+-LOG XorExecTest1
+-STATEMENT MATCH (a:person) RETURN a.ID, a.isStudent XOR a.isWorker ORDER BY a.ID
+---- 8
+0|True
+10|True
+2|True
+3|True
+5|True
+7|True
+8|True
+9|False
+
+-LOG BoolEqualTest
+-STATEMENT MATCH (a:person) WHERE a.isStudent = a.isWorker RETURN a.fName
+---- 1
+Greg
+
+-LOG BoolNotEqualTest
+-STATEMENT MATCH (a:person) WHERE a.isStudent <> a.isWorker RETURN count(a.fName)
+---- 1
+7
+
+-LOG BoolExecTest4
+-STATEMENT MATCH (a:person) WHERE a.fName = 'Alice' RETURN a.isStudent and a.isWorker
+---- 1
+False
+
+-LOG BoolExecTest5
+-STATEMENT MATCH (a:person) WHERE a.isWorker and (a.fName='Elizabeth' OR a.fName='Hubert Blaine Wolfeschlegelsteinhausenbergerdorff') RETURN a.fName
+---- 2
+Elizabeth
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-LOG BoolExecTest6
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE a.isWorker and (b.fName='Elizabeth' OR a.fName='Elizabeth') RETURN a.fName
+---- 2
+Elizabeth
+Elizabeth
+
+-LOG BoolExecTest7
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE a.isWorker and (a.fName='Elizabeth' OR b.fName='Elizabeth') RETURN a.fName
+---- 2
+Elizabeth
+Elizabeth
+
+-LOG BoolExecTest1
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE a.fName = 'Alice' RETURN a.fName, a.isStudent, b.fName, b.isStudent, c.fName, c.isStudent,  a.isStudent AND b.isStudent AND c.isStudent
+---- 9
+Alice|True|Bob|True|Alice|True|True
+Alice|True|Bob|True|Carol|False|False
+Alice|True|Bob|True|Dan|False|False
+Alice|True|Carol|False|Alice|True|False
+Alice|True|Carol|False|Bob|True|False
+Alice|True|Carol|False|Dan|False|False
+Alice|True|Dan|False|Alice|True|False
+Alice|True|Dan|False|Bob|True|False
+Alice|True|Dan|False|Carol|False|False
+
+-LOG BoolExecTest2
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE a.fName = 'Alice' RETURN a.fName, a.isStudent, b.fName, b.isStudent, c.fName, c.isStudent, (a.isStudent AND b.isStudent) OR c.isStudent
+-ENUMERATE
+---- 9
+Alice|True|Bob|True|Alice|True|True
+Alice|True|Bob|True|Carol|False|True
+Alice|True|Bob|True|Dan|False|True
+Alice|True|Carol|False|Alice|True|True
+Alice|True|Carol|False|Bob|True|True
+Alice|True|Carol|False|Dan|False|False
+Alice|True|Dan|False|Alice|True|True
+Alice|True|Dan|False|Bob|True|True
+Alice|True|Dan|False|Carol|False|False
+
+-LOG BoolExecTest3
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE b.fName <> 'Elizabeth' RETURN a.isStudent and b.isWorker
+-ENUMERATE
+---- 14
+False
+True
+True
+False
+True
+True
+False
+False
+False
+False
+False
+False
+False
+False

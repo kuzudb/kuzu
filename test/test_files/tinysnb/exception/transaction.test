@@ -1,0 +1,20 @@
+-GROUP TinySnbExceptionTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE ParsingErrorRollbackTest
+
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (p:person {ID: 100})
+---- ok
+-STATEMENT MATCH (:person) RETURN count(*)
+---- 1
+9
+-STATEMENT RETURN make_date(2011,1,32)
+---- error
+Conversion exception: Date out of range: 2011-1-32.
+-STATEMENT MATCH (:person) RETURN count(*)
+---- 1
+8

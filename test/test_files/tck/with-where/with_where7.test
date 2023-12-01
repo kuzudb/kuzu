@@ -1,0 +1,52 @@
+-GROUP TCKWithWhere7
+-DATASET CSV tck
+
+--
+
+# WHERE sees a variable bound before but not after WITH
+-CASE Scenario1
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name2 STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {name2: 'A'}),
+                  (:A {name2: 'B'}),
+                  (:A {name2: 'C'});
+---- ok
+-STATEMENT MATCH (a)
+           WITH a.name2 AS name
+           WHERE a.name2 = 'B'
+           RETURN *;
+---- 1
+B
+
+# WHERE sees a variable bound after but not before WITH
+-CASE Scenario2
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name2 STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {name2: 'A'}),
+                  (:A {name2: 'B'}),
+                  (:A {name2: 'C'});
+---- ok
+-STATEMENT MATCH (a)
+           WITH a.name2 AS name
+           WHERE name = 'B'
+           RETURN *;
+---- 1
+B
+
+# WHERE sees both, variable bound before but not after WITH and variable bound after but not before WITH
+-CASE Scenario3
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name2 STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {name2: 'A'}),
+                  (:A {name2: 'B'}),
+                  (:A {name2: 'C'});
+---- ok
+-STATEMENT MATCH (a)
+           WITH a.name2 AS name
+           WHERE name = 'B' OR a.name2 = 'C'
+           RETURN *;
+---- 2
+B
+C

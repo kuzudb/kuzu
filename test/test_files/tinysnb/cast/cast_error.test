@@ -1,0 +1,837 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE CastError
+-LOG CastUint64ToInt64OutOfRange
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return to_int64(e.code);
+---- error
+Overflow exception: Value 9223372036854775808 is not within INT64 range
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return cast(e.code, "int64");
+---- error
+Overflow exception: Value 9223372036854775808 is not within INT64 range
+
+-LOG CastUint64ToInt32OutOfRange
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return to_int32(e.code);
+---- error
+Overflow exception: Value 9223372036854775808 is not within INT32 range
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return cast(e.code, "int32");
+---- error
+Overflow exception: Value 9223372036854775808 is not within INT32 range
+
+-LOG CastStringToInt32OutOfRange
+-STATEMENT return to_int32("2147483648");
+---- error
+Conversion exception: Cast failed. 2147483648 is not in INT32 range.
+-STATEMENT return cast("2147483648", "int32");
+---- error
+Conversion exception: Cast failed. 2147483648 is not in INT32 range.
+
+-LOG CastUint32ToInt32OutOfRange
+-STATEMENT return to_int32(to_uint32(4294967295));
+---- error
+Overflow exception: Value 4294967295 is not within INT32 range
+-STATEMENT return cast(cast(4294967295, "uint32"), "int32");
+---- error
+Overflow exception: Value 4294967295 is not within INT32 range
+
+-LOG CastUint64ToInt16OutOfRange
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return to_int16(e.code);
+---- error
+Overflow exception: Value 9223372036854775808 is not within INT16 range
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return cast(e.code, "int16");
+---- error
+Overflow exception: Value 9223372036854775808 is not within INT16 range
+
+-LOG CastInt64ToInt16OutOfRange
+-STATEMENT RETURN to_int16("32768");
+---- error
+Conversion exception: Cast failed. 32768 is not in INT16 range.
+-STATEMENT RETURN cast("32768", "int16");
+---- error
+Conversion exception: Cast failed. 32768 is not in INT16 range.
+
+-LOG CastUint32ToInt16OutOfRange
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return to_int16(e.temprature);
+---- error
+Overflow exception: Value 32800 is not within INT16 range
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return cast(e.temprature, "int16");
+---- error
+Overflow exception: Value 32800 is not within INT16 range
+
+-LOG CastInt32ToInt16OutOfRange
+-STATEMENT RETURN to_int16(to_int32("-32770"));
+---- error
+Overflow exception: Value -32770 is not within INT16 range
+-STATEMENT RETURN cast(cast("-32770", "int32"), "int16");
+---- error
+Overflow exception: Value -32770 is not within INT16 range
+
+-LOG CastUint16ToInt16OutOfRange
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return to_int16(e.ulength);
+---- error
+Overflow exception: Value 33768 is not within INT16 range
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return cast(e.ulength, "int16");
+---- error
+Overflow exception: Value 33768 is not within INT16 range
+
+-LOG CastUint64ToInt8OutOfRange
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return to_int8(e.code);
+---- error
+Overflow exception: Value 9223372036854775808 is not within INT8 range
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return cast(e.code, "int8");
+---- error
+Overflow exception: Value 9223372036854775808 is not within INT8 range
+
+-LOG CastInt64ToInt8OutOfRange
+-STATEMENT return to_int8(-1000);
+---- error
+Overflow exception: Value -1000 is not within INT8 range
+-STATEMENT return cast(-1000, "int8");
+---- error
+Overflow exception: Value -1000 is not within INT8 range
+
+-LOG CastUint32ToInt8OutOfRange
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return to_int8(e.temprature);
+---- error
+Overflow exception: Value 32800 is not within INT8 range
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return cast(e.temprature, "int8");
+---- error
+Overflow exception: Value 32800 is not within INT8 range
+
+-LOG CastInt32ToInt8OutOfRange
+-STATEMENT return to_int8(to_int32(1000));
+---- error
+Overflow exception: Value 1000 is not within INT8 range
+-STATEMENT return cast(cast(1000, "int32"), "int8");
+---- error
+Overflow exception: Value 1000 is not within INT8 range
+
+-LOG CastUint16ToInt8OutOfRange
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return to_int8(e.ulength);
+---- error
+Overflow exception: Value 33768 is not within INT8 range
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return cast(e.ulength, "int8");
+---- error
+Overflow exception: Value 33768 is not within INT8 range
+
+-LOG CastInt16ToInt8OutOfRange
+-STATEMENT return to_int8(to_int16(520));
+---- error
+Overflow exception: Value 520 is not within INT8 range
+-STATEMENT return cast(cast(520, "int16"), "int8");
+---- error
+Overflow exception: Value 520 is not within INT8 range
+
+-LOG CastUint8ToInt8OutOfRange
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return to_int8(e.ulevel);
+---- error
+Overflow exception: Value 250 is not within INT8 range
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return cast(e.ulevel, "int8");
+---- error
+Overflow exception: Value 250 is not within INT8 range
+
+-LOG CastInt64ToUint64OutOfRange
+-STATEMENT return to_uint64(-500);
+---- error
+Overflow exception: Value -500 is not within UINT64 range
+-STATEMENT return cast(-500, "uint64");
+---- error
+Overflow exception: Value -500 is not within UINT64 range
+
+-LOG CastInt32ToUint64OutOfRange
+-STATEMENT return cast(cast(-1024, "int32"), "uint64");
+---- error
+Overflow exception: Value -1024 is not within UINT64 range
+
+-LOG CastInt16ToUint64OutOfRange
+-STATEMENT return to_uint64(to_int16(-1));
+---- error
+Overflow exception: Value -1 is not within UINT64 range
+-STATEMENT return cast(cast(-1, "int16"), "uint64");
+---- error
+Overflow exception: Value -1 is not within UINT64 range
+
+-LOG CastInt8ToUint64OutOfRange
+-STATEMENT return to_uint64(to_int8(-2));
+---- error
+Overflow exception: Value -2 is not within UINT64 range
+-STATEMENT return cast(cast(-2, "int8"), "uint64");
+---- error
+Overflow exception: Value -2 is not within UINT64 range
+
+-LOG CastUint64ToUint32OutOfRange
+-STATEMENT return to_uint32(to_uint64(922337203685477580));
+---- error
+Overflow exception: Value 922337203685477580 is not within UINT32 range
+-STATEMENT return cast(cast(922337203685477580, "uint64"), "uint32");
+---- error
+Overflow exception: Value 922337203685477580 is not within UINT32 range
+
+-LOG CastInt64ToUint32OutOfRange
+-STATEMENT return to_uint32(9223372036854775807);
+---- error
+Overflow exception: Value 9223372036854775807 is not within UINT32 range
+-STATEMENT return cast(9223372036854775807, "uint32");
+---- error
+Overflow exception: Value 9223372036854775807 is not within UINT32 range
+
+-LOG CastInt32ToUint32OutOfRange
+-STATEMENT return to_uint32(to_int32("-10244"));
+---- error
+Overflow exception: Value -10244 is not within UINT32 range
+-STATEMENT return cast(cast("-10244", "int32"), "uint32");
+---- error
+Overflow exception: Value -10244 is not within UINT32 range
+
+-LOG CastInt16ToUint32OutOfRange
+-STATEMENT return to_uint32(to_int16(-100));
+---- error
+Overflow exception: Value -100 is not within UINT32 range
+-STATEMENT return cast(cast(-100, "int16"), "uint32");
+---- error
+Overflow exception: Value -100 is not within UINT32 range
+
+-LOG CastInt8ToUint32OutOfRange
+-STATEMENT return to_uint32(to_int8(-110));
+---- error
+Overflow exception: Value -110 is not within UINT32 range
+-STATEMENT return cast(cast(-110, "int8"), "uint32");
+---- error
+Overflow exception: Value -110 is not within UINT32 range
+
+-LOG CastUint64ToUint16OutOfRange
+-STATEMENT return to_uint16(to_uint64(922337203685477580));
+---- error
+Overflow exception: Value 922337203685477580 is not within UINT16 range
+-STATEMENT return cast(cast(922337203685477580, "uint64"), "uint16");
+---- error
+Overflow exception: Value 922337203685477580 is not within UINT16 range
+
+-LOG CastInt64ToUint16OutOfRange
+-STATEMENT return to_uint16("922337203685");
+---- error
+Conversion exception: Cast failed. 922337203685 is not in UINT16 range.
+-STATEMENT return cast("922337203685", "uint16");
+---- error
+Conversion exception: Cast failed. 922337203685 is not in UINT16 range.
+
+-LOG CastUint32ToUint16OutOfRange
+-STATEMENT return to_uint16(to_uint32(65536));
+---- error
+Overflow exception: Value 65536 is not within UINT16 range
+-STATEMENT return cast(cast(65536, "uint32"), "uint16");
+---- error
+Overflow exception: Value 65536 is not within UINT16 range
+
+-LOG CastInt32ToUint16OutOfRange
+-STATEMENT return cast(cast("-10244", "int32"), "uint16");
+---- error
+Overflow exception: Value -10244 is not within UINT16 range
+
+-LOG CastInt16ToUint16OutOfRange
+-STATEMENT return cast(cast(-100, "int16"), "uint16");
+---- error
+Overflow exception: Value -100 is not within UINT16 range
+
+-LOG CastInt8ToUint16OutOfRange
+-STATEMENT return cast(cast(-110, "int8"), "uint16");
+---- error
+Overflow exception: Value -110 is not within UINT16 range
+
+-LOG CastUint64ToUint8OutOfRange
+-STATEMENT return cast(cast(922337203685477580, "uint64"), "uint8");
+---- error
+Overflow exception: Value 922337203685477580 is not within UINT8 range
+
+-LOG CastInt64ToUint8OutOfRange
+-STATEMENT return to_uint8(257);
+---- error
+Overflow exception: Value 257 is not within UINT8 range
+-STATEMENT return cast(257, "uint8");
+---- error
+Overflow exception: Value 257 is not within UINT8 range
+
+-LOG CastUint32ToUint8OutOfRange
+-STATEMENT return to_uint8(to_uint32(300));
+---- error
+Overflow exception: Value 300 is not within UINT8 range
+-STATEMENT return cast(cast(300, "uint32"), "uint8");
+---- error
+Overflow exception: Value 300 is not within UINT8 range
+
+-LOG CastInt32ToUint8OutOfRange
+-STATEMENT return to_uint8(to_int32("-10244"));
+---- error
+Overflow exception: Value -10244 is not within UINT8 range
+-STATEMENT return cast(cast("-10244", "int32"), "uint8");
+---- error
+Overflow exception: Value -10244 is not within UINT8 range
+
+-LOG CastUint16ToUint8OutOfRange
+-STATEMENT return to_uint8(to_uint16(312));
+---- error
+Overflow exception: Value 312 is not within UINT8 range
+-STATEMENT return cast(cast(312, "uint16"), "uint8");
+---- error
+Overflow exception: Value 312 is not within UINT8 range
+
+
+-LOG CastInt16ToUint8OutOfRange
+-STATEMENT return to_uint8(to_int16(-100));
+---- error
+Overflow exception: Value -100 is not within UINT8 range
+-STATEMENT return cast(cast(-100, "int16"), "uint8");
+---- error
+Overflow exception: Value -100 is not within UINT8 range
+
+-LOG CastInt8ToUint8OutOfRange
+-STATEMENT return to_uint8(to_int8(-3));
+---- error
+Overflow exception: Value -3 is not within UINT8 range
+-STATEMENT return cast(cast(-3, "int8"), "uint8");
+---- error
+Overflow exception: Value -3 is not within UINT8 range
+
+-LOG CastDoubleToInt64OutOfRange
+-STATEMENT return to_int64(9223372038854775807.452313);
+---- error
+Overflow exception: Value 9223372038854774784.000000 is not within INT64 range
+-STATEMENT return cast(9223372038854775807.452313, "int64");
+---- error
+Overflow exception: Value 9223372038854774784.000000 is not within INT64 range
+
+-LOG CastFloatToUint8OutOfRange
+-STATEMENT return to_uint8(-728.923);
+---- error
+Overflow exception: Value -728.923000 is not within UINT8 range
+-STATEMENT return cast(-728.923, "uint8");
+---- error
+Overflow exception: Value -728.923000 is not within UINT8 range
+
+-LOG CastStringOutoOfRange
+-STATEMENT RETURN TO_INT32("2147483648");
+---- error
+Conversion exception: Cast failed. 2147483648 is not in INT32 range.
+-STATEMENT RETURN TO_INT32("-2147483649");
+---- error
+Conversion exception: Cast failed. -2147483649 is not in INT32 range.
+-STATEMENT RETURN TO_INT16("32768");
+---- error
+Conversion exception: Cast failed. 32768 is not in INT16 range.
+-STATEMENT RETURN TO_INT16("-32769");
+---- error
+Conversion exception: Cast failed. -32769 is not in INT16 range.
+-STATEMENT RETURN TO_INT8("128");
+---- error
+Conversion exception: Cast failed. 128 is not in INT8 range.
+-STATEMENT RETURN TO_INT8("-129");
+---- error
+Conversion exception: Cast failed. -129 is not in INT8 range.
+-STATEMENT RETURN TO_UINT64("-1");
+---- error
+Conversion exception: Cast failed. -1 is not in UINT64 range.
+-STATEMENT RETURN TO_UINT32("4294967296");
+---- error
+Conversion exception: Cast failed. 4294967296 is not in UINT32 range.
+-STATEMENT RETURN TO_UINT16("65536");
+---- error
+Conversion exception: Cast failed. 65536 is not in UINT16 range.
+-STATEMENT RETURN TO_UINT8("256");
+---- error
+Conversion exception: Cast failed. 256 is not in UINT8 range.
+-STATEMENT RETURN TO_UINT8("-1");
+---- error
+Conversion exception: Cast failed. -1 is not in UINT8 range.
+-STATEMENT RETURN TO_INT128(170141183460469231731687303715884105728);
+---- error
+Conversion exception: Cast failed. 170141183460469231731687303715884105728 is not within INT128 range.
+-STATEMENT RETURN TO_INT128("-170141183460469231731687303715884105728");
+---- error
+Conversion exception: Cast failed. -170141183460469231731687303715884105728 is not within INT128 range.
+-STATEMENT RETURN TO_UINT8(TO_INT128(-1));
+---- error
+Overflow exception: Cast failed. Cannot cast -1 to unsigned type.
+-STATEMENT RETURN TO_UINT16(TO_INT128(-10));
+---- error
+Overflow exception: Cast failed. Cannot cast -10 to unsigned type.
+-STATEMENT RETURN TO_UINT64(TO_INT128(-15));
+---- error
+Overflow exception: Cast failed. Cannot cast -15 to unsigned type.
+-STATEMENT RETURN TO_INT128(170141183460469231731687303715884105727) + TO_INT128(10);
+---- error
+Overflow exception: INT128 is out of range: cannot add.
+-STATEMENT RETURN TO_INT128(-170141183460469231731687303715884105727) + TO_INT128(-10);
+---- error
+Overflow exception: INT128 is out of range: cannot add.
+-STATEMENT RETURN TO_INT128(170141183460469231731687303715884105727) - TO_INT128(-10);
+---- error
+Overflow exception: INT128 is out of range: cannot subtract.
+-STATEMENT RETURN TO_INT128(-170141183460469231731687303715884105727) - TO_INT128(10);
+---- error
+Overflow exception: INT128 is out of range: cannot subtract.
+-STATEMENT RETURN TO_INT128(-170141183460469231731687303715884105727) * TO_INT128(10);
+---- error
+Overflow exception: INT128 is out of range: cannot multiply.
+-STATEMENT RETURN TO_INT128(170141183460469231731687303715884105727) * TO_INT128(10);
+---- error
+Overflow exception: INT128 is out of range: cannot multiply.
+-STATEMENT RETURN TO_BOOL("fasdf");
+---- error
+Conversion exception: Value fasdf is not a valid boolean
+-STATEMENT RETURN TO_BOOL("fal");
+---- error
+Conversion exception: Value fal is not a valid boolean
+-STATEMENT RETURN cast("2147483648", "int32");
+---- error
+Conversion exception: Cast failed. 2147483648 is not in INT32 range.
+-STATEMENT RETURN cast("-2147483649", "int32");
+---- error
+Conversion exception: Cast failed. -2147483649 is not in INT32 range.
+-STATEMENT RETURN cast("32768", "int16");
+---- error
+Conversion exception: Cast failed. 32768 is not in INT16 range.
+-STATEMENT RETURN cast("-32769", "int16");
+---- error
+Conversion exception: Cast failed. -32769 is not in INT16 range.
+-STATEMENT RETURN cast("128", "int8");
+---- error
+Conversion exception: Cast failed. 128 is not in INT8 range.
+-STATEMENT RETURN cast("-129", "int8");
+---- error
+Conversion exception: Cast failed. -129 is not in INT8 range.
+-STATEMENT RETURN cast("-1", "uint64");
+---- error
+Conversion exception: Cast failed. -1 is not in UINT64 range.
+-STATEMENT RETURN cast("4294967296", "uint32");
+---- error
+Conversion exception: Cast failed. 4294967296 is not in UINT32 range.
+-STATEMENT RETURN cast("65536", "uint16");
+---- error
+Conversion exception: Cast failed. 65536 is not in UINT16 range.
+-STATEMENT RETURN cast("256", "uint8");
+---- error
+Conversion exception: Cast failed. 256 is not in UINT8 range.
+-STATEMENT RETURN cast("-1", "uint8");
+---- error
+Conversion exception: Cast failed. -1 is not in UINT8 range.
+-STATEMENT RETURN cast(170141183460469231731687303715884105728, "int128");
+---- error
+Conversion exception: Cast failed. 170141183460469231731687303715884105728 is not within INT128 range.
+-STATEMENT RETURN cast("-170141183460469231731687303715884105728", "int128");
+---- error
+Conversion exception: Cast failed. -170141183460469231731687303715884105728 is not within INT128 range.
+-STATEMENT RETURN TO_UINT8(cast(-1, "int128"));
+---- error
+Overflow exception: Cast failed. Cannot cast -1 to unsigned type.
+-STATEMENT RETURN TO_UINT16(cast(-10, "int128"));
+---- error
+Overflow exception: Cast failed. Cannot cast -10 to unsigned type.
+-STATEMENT RETURN TO_UINT64(cast(-15, "int128"));
+---- error
+Overflow exception: Cast failed. Cannot cast -15 to unsigned type.
+-STATEMENT RETURN cast(170141183460469231731687303715884105727, "int128") + cast(10, "int128");
+---- error
+Overflow exception: INT128 is out of range: cannot add.
+-STATEMENT RETURN cast(-170141183460469231731687303715884105727, "int128") + cast(-10, "int128");
+---- error
+Overflow exception: INT128 is out of range: cannot add.
+-STATEMENT RETURN cast(170141183460469231731687303715884105727, "int128") - cast(-10, "int128");
+---- error
+Overflow exception: INT128 is out of range: cannot subtract.
+-STATEMENT RETURN cast(-170141183460469231731687303715884105727, "int128") - cast(10, "int128");
+---- error
+Overflow exception: INT128 is out of range: cannot subtract.
+-STATEMENT RETURN cast(-170141183460469231731687303715884105727, "int128") * cast(10, "int128");
+---- error
+Overflow exception: INT128 is out of range: cannot multiply.
+-STATEMENT RETURN cast(170141183460469231731687303715884105727, "int128") * cast(10, "int128");
+---- error
+Overflow exception: INT128 is out of range: cannot multiply.
+-STATEMENT RETURN cast("fasdf", "boolean");
+---- error
+Conversion exception: Value fasdf is not a valid boolean
+-STATEMENT RETURN cast("fal", "boolean");
+---- error
+Conversion exception: Value fal is not a valid boolean
+
+-LOG SerialOutOfRange
+-STATEMENT RETURN TO_SERIAL(TO_UINT64(9223372036854775807) * TO_UINT64(2));
+---- error
+Overflow exception: Value 18446744073709551614 is not within INT64 range
+-STATEMENT RETURN cast(cast(9223372036854775807, "uint64") * cast(2, "uint64"), "serial");
+---- error
+Overflow exception: Value 18446744073709551614 is not within INT64 range
+-STATEMENT RETURN TO_SERIAL(TO_UINT64(18446744073709551615));
+---- error
+Overflow exception: Value 18446744073709551615 is not within INT64 range
+-STATEMENT RETURN cast(cast(18446744073709551615, "uint64"), "serial");
+---- error
+Overflow exception: Value 18446744073709551615 is not within INT64 range
+
+-LOG NonAsciiStringToBlob
+-STATEMENT RETURN BLOB('😀')
+---- error
+Conversion exception: Invalid byte encountered in STRING -> BLOB conversion. All non-ascii characters must be escaped with hex codes (e.g. \xAA)
+-STATEMENT RETURN cast('😀', "blob")
+---- error
+Conversion exception: Invalid byte encountered in STRING -> BLOB conversion. All non-ascii characters must be escaped with hex codes (e.g. \xAA)
+
+-LOG StringToBlobInvalidHexCode
+-STATEMENT RETURN BLOB('\\xgg')
+---- error
+Conversion exception: Invalid hex escape code encountered in string -> blob conversion: \xgg
+-STATEMENT RETURN cast('\\xgg', "blob")
+---- error
+Conversion exception: Invalid hex escape code encountered in string -> blob conversion: \xgg
+
+-LOG StringToBlobUnterminatedHexCode
+-STATEMENT RETURN BLOB('\\xa')
+---- error
+Conversion exception: Invalid hex escape code encountered in string -> blob conversion: unterminated escape code at end of string
+-STATEMENT RETURN cast('\\xa', "blob")
+---- error
+Conversion exception: Invalid hex escape code encountered in string -> blob conversion: unterminated escape code at end of string
+
+-LOG INT128CastToError
+-STATEMENT RETURN TO_SERIAL(TO_INT128(18446744073709551615));
+---- error
+Overflow exception: Value 18446744073709551615 is not within INT64 range
+-STATEMENT RETURN TO_INT64(TO_INT128(18446744073709551615));
+---- error
+Overflow exception: Value 18446744073709551615 is not within INT64 range
+-STATEMENT RETURN TO_INT32(TO_INT128(18446744073709551615));
+---- error
+Overflow exception: Value 18446744073709551615 is not within INT32 range
+-STATEMENT RETURN TO_INT16(TO_INT128(18446744073709551615));
+---- error
+Overflow exception: Value 18446744073709551615 is not within INT16 range
+-STATEMENT RETURN TO_INT8(TO_INT128(18446744073709551615));
+---- error
+Overflow exception: Value 18446744073709551615 is not within INT8 range
+-STATEMENT RETURN TO_UINT64(TO_INT128(184467440737095516151));
+---- error
+Overflow exception: Value 184467440737095516151 is not within UINT64 range
+-STATEMENT RETURN TO_UINT32(TO_INT128(18446744073709551615));
+---- error
+Overflow exception: Value 18446744073709551615 is not within UINT32 range
+-STATEMENT RETURN TO_UINT16(TO_INT128(18446744073709551615));
+---- error
+Overflow exception: Value 18446744073709551615 is not within UINT16 range
+-STATEMENT RETURN TO_UINT8(TO_INT128(256));
+---- error
+Overflow exception: Value 256 is not within UINT8 range
+-STATEMENT RETURN cast(cast(18446744073709551615, "int128"), "serial");
+---- error
+Overflow exception: Value 18446744073709551615 is not within INT64 range
+-STATEMENT RETURN cast(cast(18446744073709551615, "int128"), "int64");
+---- error
+Overflow exception: Value 18446744073709551615 is not within INT64 range
+-STATEMENT RETURN cast(cast(18446744073709551615, "int128"), "int32");
+---- error
+Overflow exception: Value 18446744073709551615 is not within INT32 range
+-STATEMENT RETURN cast(cast(18446744073709551615, "int128"), "int16");
+---- error
+Overflow exception: Value 18446744073709551615 is not within INT16 range
+-STATEMENT RETURN cast(cast(18446744073709551615, "int128"), "int8");
+---- error
+Overflow exception: Value 18446744073709551615 is not within INT8 range
+-STATEMENT RETURN cast(cast(184467440737095516151, "int128"), "uint64");
+---- error
+Overflow exception: Value 184467440737095516151 is not within UINT64 range
+-STATEMENT RETURN cast(cast(18446744073709551615, "int128"), "uint32");
+---- error
+Overflow exception: Value 18446744073709551615 is not within UINT32 range
+-STATEMENT RETURN cast(cast(18446744073709551615, "int128"), "uint16");
+---- error
+Overflow exception: Value 18446744073709551615 is not within UINT16 range
+-STATEMENT RETURN cast(cast(256, "int128"), "uint8");
+---- error
+Overflow exception: Value 256 is not within UINT8 range
+
+-STATEMENT RETURN cast("fd", "UNION(uint64, int128, BOOLEAN)");
+---- error
+Conversion exception: Could not convert to union type UNION(uint64:UINT64, int128:INT128, BOOLEAN:BOOL): fd.
+-STATEMENT RETURN cast("{a: 432412343242343241432432444444444444443244}", "STRUCT(a INT128)");
+---- error
+Conversion exception: Cast failed. 432412343242343241432432444444444444443244 is not within INT128 range.
+-STATEMENT RETURN cast("{a}", "STRUCT(a INT128)");
+---- error
+Conversion exception: Cast failed. {a} is not in STRUCT(a:INT128) range.
+-STATEMENT RETURN cast("{-12=34}", "MAP(UINT8, UINT16)");
+---- error
+Conversion exception: Cast failed. -12 is not in UINT8 range.
+-STATEMENT RETURN cast("{} fsdf", "MAP(UINT8, UINT16)");
+---- error
+Conversion exception: Cast failed. {} fsdf is not in MAP(UINT8: UINT16) range.
+-STATEMENT RETURN cast("[[432343243243254534554654654654234,2,3]]", "INT64[][]");
+---- error
+Conversion exception: Cast failed. 432343243243254534554654654654234 is not in INT64 range.
+-STATEMENT RETURN cast("[bool]", "INT64[][]");
+---- error
+Conversion exception: Cast failed. bool is not in INT64[] range.
+-STATEMENT RETURN cast("[[231|4324]", "INT64[][]");
+---- error
+Conversion exception: Cast failed. [[231|4324] is not in INT64[][] range.
+
+-CASE CastStringToNestedError
+-STATEMENT LOAD WITH HEADERS (list STRING[][]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/delim_error.csv" (DELIM="|", ESCAPE="~", QUOTE="'") RETURN * ;
+---- error
+Conversion exception: Cast failed. "[[hello],[bdfadf],]" is not in STRING[][] range.
+-STATEMENT LOAD WITH HEADERS (list STRING[][]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/bracket_error.csv" (DELIM="|", ESCAPE="~") RETURN * ;
+---- error
+Conversion exception: Cast failed. [[] is not in STRING[][] range.
+-STATEMENT LOAD WITH HEADERS (list STRING[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/single_quote.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. ['fdsfdsfe werw] is not in STRING[] range.
+-STATEMENT LOAD WITH HEADERS (list STRING[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/single_quote2.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. [[' this is a signle quote]] is not in STRING[] range.
+-STATEMENT LOAD WITH HEADERS (list UINT8[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/single_struct_bracket.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. [{32, 32] is not in UINT8[] range.
+-STATEMENT LOAD WITH HEADERS (list UINT8[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/conversion_error.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. 432412 is not in UINT8 range.
+-STATEMENT LOAD WITH HEADERS (q STRUCT(a STRUCT(b STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_bracket_error1.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. {a: {b: fsdf is not in STRUCT(a:STRUCT(b:STRING)) range.
+-STATEMENT LOAD WITH HEADERS (q STRUCT(a STRUCT(b STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_bracket_error2.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. {a: {b: fds} is not in STRUCT(a:STRUCT(b:STRING)) range.
+-STATEMENT LOAD WITH HEADERS (a STRUCT(c STRING)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_close_error.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. { c : 423 } c: 479, is not in STRUCT(c:STRING) range.
+-STATEMENT LOAD WITH HEADERS (a STRUCT(c INT32)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/invalid_field_name.csv" RETURN *;
+---- error
+Parser exception: Invalid struct field name: d
+-STATEMENT LOAD WITH HEADERS (a STRUCT(c INT32)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_no_field_name.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. {c 3423} is not in STRUCT(c:INT32) range.
+-STATEMENT LOAD WITH HEADERS (a STRUCT(c INT32)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_quote_error.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. { c: 'fdsfs } is not in STRUCT(c:INT32) range.
+-STATEMENT LOAD WITH HEADERS (a STRUCT(c INT32)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_noclose.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. { is not in STRUCT(c:INT32) range.
+-STATEMENT LOAD WITH HEADERS (a MAP(UINT8, UINT8)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_incorrect_type.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. -3 is not in UINT8 range.
+-STATEMENT LOAD WITH HEADERS (a MAP(UINT8, UINT8)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_val.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. {4324} is not in MAP(UINT8: UINT8) range.
+-STATEMENT LOAD WITH HEADERS (a MAP(UINT8, UINT8)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_closing1.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. {10=10, 20=20, is not in MAP(UINT8: UINT8) range.
+-STATEMENT LOAD WITH HEADERS (a MAP(UINT8, UINT8)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_closing2.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. { is not in MAP(UINT8: UINT8) range.
+-STATEMENT LOAD WITH HEADERS (a MAP(STRING, UINT8)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_quote.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. {324="} is not in MAP(STRING: UINT8) range.
+-STATEMENT LOAD WITH HEADERS (a MAP(UINT8, UINT8)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_closing3.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. {{3=3} is not in MAP(UINT8: UINT8) range.
+-STATEMENT LOAD WITH HEADERS (a MAP(UINT16, UINT16[])) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_no_closing4.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. {432=[432,432} is not in MAP(UINT16: UINT16[]) range.
+-STATEMENT LOAD WITH HEADERS (a INT64[4]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/incorrect_num.csv" RETURN *;
+---- error
+Copy exception: Each fixed list should have fixed number of elements. Expected: 4, Actual: 2.
+-STATEMENT LOAD WITH HEADERS (a STRING[2]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/unsupported_type.csv" RETURN *;
+---- error
+Binder exception: The child type of a fixed list must be a numeric type. Given: STRING.
+-STATEMENT LOAD WITH HEADERS (a INT16[1]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/error_conversion.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. 4324234543543534534524 is not in INT16 range.
+-STATEMENT LOAD WITH HEADERS (a INT64[2]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/error_conversion2.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. [4324, 432] fewrew is not in INT64[2] range.
+-STATEMENT LOAD WITH HEADERS (fixedList INT64[0]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/zero_ele.csv" RETURN *;
+---- error
+Binder exception: The number of elements in a fixed list must be greater than 0. Given: 0.
+-STATEMENT LOAD WITH HEADERS (fixedList UINT8[1]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/unsupported_type2.csv" RETURN *;
+---- error
+Unsupported data type: Function::castStringToFixedList
+-STATEMENT LOAD WITH HEADERS (fixedList INT64[1]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/fixed_list_null.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. NULL is not allowed for FIXED_LIST.
+-STATEMENT LOAD WITH HEADERS (fixedList INT64[2]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/fixed_list_null2.csv" RETURN *;
+---- error
+Conversion exception: Cast failed. NULL is not allowed for FIXED_LIST.
+-STATEMENT LOAD WITH HEADERS (a UNION(v1 INT64, v2 STRING)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/invalid-utf8/invalid-utf8.csv" RETURN *;
+---- error
+Copy exception: Invalid UTF8-encoded string.
+-STATEMENT LOAD WITH HEADERS (a UNION(v1 INT64, v2 INT32)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/union/union_error.csv" RETURN *;
+---- error
+Conversion exception: Could not convert to union type UNION(v1:INT64, v2:INT32): fdsaf.
+-STATEMENT RETURN cast("[-32769]", "INT16[1]");
+---- error
+Conversion exception: Cast failed. -32769 is not in INT16 range.
+-STATEMENT RETURN cast("[42, 42] fdaf", "INT64[2]");
+---- error
+Conversion exception: Cast failed. [42, 42] fdaf is not in INT64[2] range.
+-STATEMENT RETURN cast("[42|42]", "DOUBLE[2]");
+---- error
+Copy exception: Each fixed list should have fixed number of elements. Expected: 2, Actual: 1.
+-STATEMENT RETURN cast("[42,42", "FLOAT[2]");
+---- error
+Copy exception: Each fixed list should have fixed number of elements. Expected: 2, Actual: 1.
+-STATEMENT RETURN cast("(42,42)", "INT32[2]");
+---- error
+Copy exception: Each fixed list should have fixed number of elements. Expected: 2, Actual: 0.
+
+-LOG InvalidCastTypeError
+-STATEMENT RETURN cast("dfsa", "INTERNAL_ID");
+---- error
+Conversion exception: Unsupported casting function from STRING to INTERNAL_ID.
+-STATEMENT RETURN cast(432, "INTERNAL_ID");
+---- error
+Conversion exception: Unsupported casting function from INT64 to INTERNAL_ID.
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return cast(e, "INT64");
+---- error
+Conversion exception: Unsupported casting function from REL to INT64.
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) return cast(e, "TIMESTAMP");
+---- error
+Conversion exception: Unsupported casting function from REL to TIMESTAMP.
+-STATEMENT MATCH (:person)-[e:studyAt*1..3]->(:organisation) return cast(e, "INT64");
+---- error
+Conversion exception: Unsupported casting function from RECURSIVE_REL to INT64.
+
+-LOG InvalidVarListToVarList
+-STATEMENT RETURN cast([31231], "INT64[][]");
+---- error
+Conversion exception: Unsupported casting function from INT64 to VAR_LIST.
+-STATEMENT RETURN cast([-1], "UINT8[]");
+---- error
+Overflow exception: Value -1 is not within UINT8 range
+-STATEMENT RETURN cast([[1, 1]], "UINT8[]");
+---- error
+Conversion exception: Unsupported casting function from VAR_LIST to UINT8.
+
+-LOG InvalidMapToMap
+-STATEMENT RETURN cast(cast("{-1=3}", "MAP(INT64, INT64)"), "MAP(UINT8, UINT8)");
+---- error
+Overflow exception: Value -1 is not within UINT8 range
+-STATEMENT RETURN cast(cast("{NULL=3}", "MAP(MAP(INT8, INT8), INT64)"), "MAP(UINT8, UINT8)");
+---- error
+Conversion exception: Unsupported casting function from MAP to UINT8.
+-STATEMENT RETURN cast(cast("{NULL=3}", "MAP(MAP(INT8, INT8), INT64)"), "MAP(MAP(INT8, MAP(INT8, INT8)), UINT8)");
+---- error
+Conversion exception: Unsupported casting function from INT8 to MAP.
+
+-LOG InvalidStructToStruct
+-STATEMENT RETURN cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b STRING, c STRING)"), "STRUCT(a INT128, b INT128)");
+---- error
+Conversion exception: Unsupported casting function from STRUCT(a:STRING, b:STRING, c:STRING) to STRUCT(a:INT128, b:INT128).
+-STATEMENT RETURN cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b STRING)"), "STRUCT(a INT128, b INT128, c STRING)");
+---- error
+Conversion exception: Unsupported casting function from STRUCT(a:STRING, b:STRING) to STRUCT(a:INT128, b:INT128, c:STRING).
+-STATEMENT RETURN cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b STRING)"), "STRUCT(a INT128, b STRUCT(a STRING, b STRING))");
+---- error
+Conversion exception: Cast failed. 0 is not in STRUCT(a:STRING, b:STRING) range.
+-STATEMENT RETURN cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b INT8)"), "STRUCT(a INT128, b STRUCT(a STRING, b STRING))");
+---- error
+Conversion exception: Unsupported casting function from INT8 to STRUCT.
+-STATEMENT RETURN cast(cast("{a: 12}", "STRUCT(a STRING, b STRUCT(a STRING, b STRING))"), "STRUCT(a INT128, b INT8)");
+---- error
+Conversion exception: Unsupported casting function from STRUCT to INT8.
+-STATEMENT RETURN cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b STRING)"), "STRUCT(c INT128, b INT128)");
+---- error
+Conversion exception: Unsupported casting function from STRUCT(a:STRING, b:STRING) to STRUCT(c:INT128, b:INT128).
+-STATEMENT RETURN cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b STRING)"), "STRUCT(a STRING, c STRING)");
+---- error
+Conversion exception: Unsupported casting function from STRUCT(a:STRING, b:STRING) to STRUCT(a:STRING, c:STRING).
+-STATEMENT RETURN cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b STRING)"), "MAP(STRING, STRING)");
+---- error
+Conversion exception: Unsupported casting function from STRUCT to MAP.
+
+-LOG InvalidFixedListToList
+-STATEMENT RETURN cast(cast("[1, -1]", "INT64[2]"), "UINT8[]");
+---- error
+Overflow exception: Value -1 is not within UINT8 range
+-STATEMENT RETURN cast(cast("[[1, 2], [3, 4]]", "INT64[2][]"), "INT8[]");
+---- error
+Conversion exception: Unsupported casting function from FIXED_LIST to INT8.
+
+-LOG InvalidListToFixedList
+-STATEMENT RETURN cast([1000000000000000000], "INT16[1]");
+---- error
+Overflow exception: Value 1000000000000000000 is not within INT16 range
+-STATEMENT RETURN cast([43121], "INT8[1]")
+---- error
+Runtime exception: Unsupported FIXED_LIST type: Function::getFixedListChildCastFunc
+-STATEMENT RETURN cast([[1000000000000000000]], "INT64[1]");
+---- error
+Conversion exception: Unsupported casting function from VAR_LIST to numerical type.
+-STATEMENT RETURN cast([NULL], "DOUBLE[1]");
+---- error
+Conversion exception: Cast failed. NULL is not allowed for FIXED_LIST.
+-STATEMENT RETURN cast([NULL, 2], "DOUBLE[2]");
+---- error
+Conversion exception: Cast failed. NULL is not allowed for FIXED_LIST.
+-STATEMENT RETURN cast([1, 2], "DOUBLE[100]");
+---- error
+Conversion exception: Unsupported casting VAR_LIST with incorrect list entry to FIXED_LIST. Expected: 100, Actual: 2.
+-STATEMENT RETURN cast([[1, 2], [1, 4], [2, 4, 5], [1, 2]], "INT64[2][]");
+---- error
+Conversion exception: Unsupported casting VAR_LIST with incorrect list entry to FIXED_LIST. Expected: 2, Actual: 3.
+-STATEMENT RETURN cast([[1, 2], [1, 4], [1, NULL], [1, 2]], "INT64[2][]");
+---- error
+Conversion exception: Cast failed. NULL is not allowed for FIXED_LIST.
+-STATEMENT RETURN cast({a: 12, b: {a: [[NULL]]}, c: 2132}, "STRUCT(a INT64, b STRUCT(a INT64[1][]), c INT64)");
+---- error
+Conversion exception: Cast failed. NULL is not allowed for FIXED_LIST.
+-STATEMENT RETURN cast(cast("{3={}, 3= {a: 12}, 3={a:32, b:[1, 2, 3]}}", "MAP(STRING, STRUCT(a INT64, b INT64[]))"), "MAP(STRING, STRUCT(a INT64, b INT64[1]))");
+---- error
+Conversion exception: Unsupported casting VAR_LIST with incorrect list entry to FIXED_LIST. Expected: 1, Actual: 3.
+
+-LOG InvalidFixedListToList
+-STATEMENT RETURN cast(cast([4, 1], "INT16[2]"), "FLOAT[3]");
+---- error
+Conversion exception: Unsupported casting function from INT16[2] to FLOAT[3].
+-STATEMENT RETURN cast(cast([4, 1], "INT16[2]"), "FLOAT[1]");
+---- error
+Conversion exception: Unsupported casting function from INT16[2] to FLOAT[1].
+-STATEMENT RETURN cast(cast([4, 1], "INT16[2]"), "UINT8[2]");
+---- error
+Runtime exception: Unsupported FIXED_LIST type: Function::getFixedListChildCastFunc
+
+-LOG InvalidNestedCast
+-STATEMENT RETURN cast({a: {b: {c: [[1, 3, 4]], d: "str"}}, e: [1, 9, NULL]}, "STRUCT(a STRUCT(b STRUCT(c INT64[2][], d STRING)), e INT128[3])");
+---- error
+Conversion exception: Unsupported casting VAR_LIST with incorrect list entry to FIXED_LIST. Expected: 2, Actual: 3.
+-STATEMENT RETURN cast({a: {b: {c: [[1, 3, 4]], d: "str"}}, e: [1, 9, NULL]}, "STRUCT(a STRUCT(b STRUCT(c INT64[3][], d STRING)), e INT128[3])");
+---- error
+Conversion exception: Cast failed. NULL is not allowed for FIXED_LIST.
+-STATEMENT RETURN cast(cast("{a: {b: {c: [[1, 3, 4]], d: {18=[3, 2]}}}, e: [1, 9, 3]}", "STRUCT(a STRUCT(b STRUCT(c INT64[3][], d MAP(INT32,INT32[]))), e FLOAT[3])"), "STRUCT(a STRUCT(b STRUCT(c INT64[3][], d MAP(INT32,INT32[5]))), e INT32[3])");
+---- error
+Conversion exception: Unsupported casting VAR_LIST with incorrect list entry to FIXED_LIST. Expected: 5, Actual: 2.
+
+-LOG InvalidNameCast
+-STATEMENT RETURN cast("nop", "STRUCT()");
+---- error
+Cannot parse dataTypeID:
+-STATEMENT RETURN cast("nop", "STRUCT(a=fds)");
+---- error
+Cannot parse dataTypeID: A=FDS
+-STATEMENT RETURN cast("nop", "STRUCT(a: )");
+---- error
+Cannot parse dataTypeID:
+-STATEMENT RETURN cast("nop", "MAP()");
+---- error
+Cannot parse dataTypeID:
+-STATEMENT RETURN cast("nop", "MAP(");
+---- error
+Cannot parse map type: MAP(
+-STATEMENT RETURN cast("nop", "UNION(a:STRING)");
+---- error
+Cannot parse dataTypeID: A:STRING
+-STATEMENT RETURN cast("nop", "MAP(int)");
+---- error
+Cannot parse dataTypeID:
+-STATEMENT RETURN cast("nop", "STRUCT(a: INT, b MAP(INT, STRING, INT))");
+---- error
+Cannot parse dataTypeID: STRING, INT
+

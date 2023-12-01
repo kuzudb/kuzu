@@ -1,0 +1,16 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE AggMultiLabel
+
+-LOG MultiLabelAggTest1
+-STATEMENT MATCH (a:person)<-[e1:marries|studyAt]-(b:person)-[e2:knows]->(c:person) WHERE b.ID = 7 RETURN ID(e1), COUNT(*), MIN(e2.date)
+---- 1
+7:2|2|1905-12-12
+
+-LOG MultiLabelAggTest2
+-STATEMENT MATCH (a:person)-[e1:marries|studyAt]->(b:person) RETURN NULL, COUNT(*)
+---- 1
+|3

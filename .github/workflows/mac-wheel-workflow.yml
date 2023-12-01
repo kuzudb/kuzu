@@ -1,0 +1,77 @@
+name: Build-Mac-Wheels
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      isNightly:
+        type: boolean
+        required: true
+        default: false
+
+jobs:
+  build-wheels-arm64:
+    runs-on: self-hosted-mac-arm
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Update nightly version
+        if: ${{ inputs.isNightly == true }}
+        run: python3 update-nightly-build-version.py
+        working-directory: scripts
+
+      - name: Create source distribution
+        working-directory: ./scripts/pip-package/
+        run: |
+          rm -rf wheelhouse kuzu.tar.gz
+          mkdir wheelhouse
+          python3 package_tar.py kuzu.tar.gz
+
+      - name: Build wheels for Apple Silicon
+        uses: pypa/cibuildwheel@v2.16.2
+        env:
+          CIBW_SKIP: pp*
+          CIBW_ARCHS_MACOS: arm64
+          CIBW_BUILD_VERBOSITY: 3
+          MACOSX_DEPLOYMENT_TARGET: 11.0
+        with:
+          package-dir: ./scripts/pip-package/kuzu.tar.gz
+          output-dir: ./scripts/pip-package/wheelhouse
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: macos-wheels-arm64
+          path: ./scripts/pip-package/wheelhouse/*.whl
+
+  build-wheels-x86_64:
+    runs-on: self-hosted-mac-x64
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Update nightly version
+        if: ${{ inputs.isNightly == true }}
+        run: python3 update-nightly-build-version.py
+        working-directory: scripts
+
+      - name: Create source distribution
+        working-directory: ./scripts/pip-package/
+        run: |
+          rm -rf wheelhouse kuzu.tar.gz
+          mkdir wheelhouse
+          python3 package_tar.py kuzu.tar.gz
+
+      - name: Build wheels for Intel
+        uses: pypa/cibuildwheel@v2.16.2
+        env:
+          CIBW_SKIP: pp* cp36*
+          CIBW_ARCHS_MACOS: x86_64
+          CIBW_BUILD_VERBOSITY: 3
+          MACOSX_DEPLOYMENT_TARGET: 10.15
+        with:
+          package-dir: ./scripts/pip-package/kuzu.tar.gz
+          output-dir: ./scripts/pip-package/wheelhouse
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: macos-wheels-x86_64
+          path: ./scripts/pip-package/wheelhouse/*.whl

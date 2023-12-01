@@ -1,0 +1,38 @@
+-GROUP TinySnbListTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE NodePropertyIntColumnWithList
+-STATEMENT MATCH (p:person) RETURN p.workedHours
+---- 8
+[1,9]
+[10,11,12,3,4,5,6,7]
+[10,5]
+[12,8]
+[1]
+[2]
+[3,4,5,6,7]
+[4,5]
+
+-CASE NodePropertyStringColumnWithList
+-STATEMENT MATCH (p:person) RETURN p.usedNames
+---- 8
+[Ad,De,Hi,Kye,Orlan]
+[Aida]
+[Bobby]
+[Carmen,Fred]
+[Ein]
+[Fesdwe]
+[Grad]
+[Wolfeschlegelstein,Daniel]
+
+-CASE RelPropertyColumnWithList
+-STATEMENT MATCH ()-[s:studyAt]-() RETURN s.places
+---- 6
+[anew,jsdnwusklklklwewsd]
+[anew,jsdnwusklklklwewsd]
+[awndsnjwejwen,isuhuwennjnuhuhuwewe]
+[awndsnjwejwen,isuhuwennjnuhuhuwewe]
+[wwAewsdndweusd,wek]
+[wwAewsdndweusd,wek]

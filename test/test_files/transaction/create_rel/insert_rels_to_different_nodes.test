@@ -1,0 +1,69 @@
+-GROUP CreateRelTest
+-DATASET CSV rel-update-tests
+--
+
+-DEFINE_STATEMENT_BLOCK INSERT_RELS_TO_DIFFERENT_NODES [
+-STATEMENT MATCH (a:person),(b:person) WHERE a.ID=500 and b.ID=2200 CREATE (a)-[e:knows]->(b)
+---- ok
+-STATEMENT MATCH (a:person),(b:person) WHERE a.ID=243 and b.ID=744 CREATE (a)-[e:knows{length: 752, place: 'waterloo', tag: ['good test']}]->(b)
+---- ok
+-STATEMENT MATCH (a:person),(b:person) WHERE a.ID=67 and b.ID=43 CREATE (a)-[e:knows{length: 143,  tag: ['long long string']}]->(b)
+---- ok
+-STATEMENT MATCH (a:person),(b:person) WHERE a.ID=84 and b.ID=21 CREATE (a)-[e:knows{place: 'very very special string'}]->(b)
+---- ok
+]
+
+
+-CASE insertRelsToDifferentNodesCommitNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_RELS_TO_DIFFERENT_NODES
+-STATEMENT COMMIT
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 50 RETURN e.length, e.place, e.tag
+---- 4
+143||[long long string]
+752|waterloo|[good test]
+|very very special string|
+||
+
+-CASE insertRelsToDifferentNodesCommitRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_RELS_TO_DIFFERENT_NODES
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 50 RETURN e.length, e.place, e.tag
+---- 4
+143||[long long string]
+752|waterloo|[good test]
+|very very special string|
+||
+
+-CASE insertRelsToDifferentNodesRollbackNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_RELS_TO_DIFFERENT_NODES
+-STATEMENT Rollback
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 50 RETURN e.length, e.place, e.tag
+---- 0
+
+-CASE insertRelsToDifferentNodesRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_RELS_TO_DIFFERENT_NODES
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 50 RETURN e.length, e.place, e.tag
+---- 0

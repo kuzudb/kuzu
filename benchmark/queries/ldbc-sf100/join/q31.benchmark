@@ -1,0 +1,5 @@
+-NAME q31
+-COMPARE_RESULT 1
+-QUERY MATCH (a:Person)-[:knows]->(b:Person) WHERE a.ID=933 RETURN MIN(a.birthday), MIN(b.birthday)
+---- 1
+1989-12-03|1980-03-31

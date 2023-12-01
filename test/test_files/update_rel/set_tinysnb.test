@@ -1,0 +1,68 @@
+-GROUP TinySnbSetRelTest
+-DATASET CSV tinysnb
+--
+
+-CASE SETMultiLabelNodePropTest
+-STATEMENT MATCH (a)-[e]->(b) WHERE a.ID = 0 RETURN id(e), e.date, e.year;
+---- 6
+3:0|2021-06-30|
+3:1|2021-06-30|
+3:2|2021-06-30|
+4:0||2021
+6:0||
+7:0||
+-STATEMENT MATCH (a)-[e]->(b) WHERE a.ID = 0 SET e.date=date('2022-10-10'), e.year=2022;
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) WHERE a.ID = 0 RETURN id(e), e.date, e.year;
+---- 6
+3:0|2022-10-10|
+3:1|2022-10-10|
+3:2|2022-10-10|
+4:0||2022
+6:0||
+7:0||
+-STATEMENT CREATE REL TABLE play(FROM person TO person, date DATE, year INT64);
+---- ok
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID=0 AND b.ID = 2 CREATE (a)-[e:play {date:date('2023-01-01'), year:2023}]->(b);
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) WHERE a.ID = 0 RETURN id(e), e.date, e.year;
+---- 7
+3:0|2022-10-10|
+3:1|2022-10-10|
+3:2|2022-10-10|
+4:0||2022
+6:0||
+7:0||
+8:0|2023-01-01|2023
+-STATEMENT MATCH (a:person)-[e:knows|:play]->(b:person) WHERE a.ID = 0 SET e.date=date('2023-10-10'), e.year=2024;
+---- ok
+-STATEMENT MATCH (a)-[e]->(b) WHERE a.ID = 0 RETURN id(e), e.date, e.year;
+---- 7
+3:0|2023-10-10|
+3:1|2023-10-10|
+3:2|2023-10-10|
+4:0||2022
+6:0||
+7:0||
+8:0|2023-10-10|2024
+
+-CASE SetOneToOneTable
+-SKIP
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person {ID: 0})-[e:marries]->(b:person) WHERE b.ID = 2 SET e.note='nothing';
+---- ok
+-STATEMENT MATCH (a:person {ID: 0})-[e:marries]->(b:person) WHERE b.ID = 2 RETURN e.note;
+---- 1
+nothing
+-STATEMENT MATCH (a:person {ID: 0})-[e:marries]->(b:person) WHERE b.ID = 2 SET e.note='nothing2';
+---- ok
+-STATEMENT MATCH (a:person {ID: 0})-[e:marries]->(b:person) WHERE b.ID = 2 RETURN e.note;
+---- 1
+nothing2
+-STATEMENT MATCH (a:person {ID: 0})-[e:marries]->(b:person) WHERE b.ID = 2 DELETE e;
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (a:person {ID: 0})-[e:marries]->(b:person) WHERE b.ID = 2 RETURN e.note;
+---- 0

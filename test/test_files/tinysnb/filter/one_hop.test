@@ -1,0 +1,53 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE FilterOneHop
+
+-LOG OneHopKnowsFilteredTest3
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE (a.gender/2 <= 0.5) AND (b.gender*3.5 = 7.0) RETURN COUNT(*)
+---- 1
+6
+
+-LOG TwoHopKnowsIDLessThanTest
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE id(a) < id(b) RETURN COUNT(*)
+---- 1
+8
+
+-LOG OneHopKnowsFilteredTest
+-STATEMENT MATCH (a:person {gender:1})-[e:knows]->(b:person{gender:2}) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+6
+
+-LOG OneHopKnowsFilteredTest2
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.age > 22 RETURN COUNT(*)
+-ENUMERATE
+---- 1
+9
+
+-LOG OneHopOrgCodeFilter
+-STATEMENT MATCH (a:person)-[e1:studyAt]->(b:organisation) WHERE b.orgCode > 100 RETURN COUNT(*)
+-ENUMERATE
+---- 1
+3
+
+-LOG OneHopKnowsIDGreaterThanTest
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE id(a) > id(b) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+6
+
+#-LOG OneHopCrossProduct
+#-STATEMENT MATCH (a:person {age:30}), (c:person)-[:knows]->(d:person{fName:'Greg'}) RETURN a.ID, c.ID
+#-ENUMERATE
+#---- 1
+#2|7
+
+#-LOG EdgeFilter
+#-STATEMENT MATCH (a:person)-[e1:knows {date:date('1905-12-12')}]->(b:person) RETURN a.ID, b.ID
+#-ENUMERATE
+#---- 2
+#7|8
+#7|9

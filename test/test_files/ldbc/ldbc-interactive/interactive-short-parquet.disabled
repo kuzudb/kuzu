@@ -1,0 +1,95 @@
+# FIXME: this test is failing on Parquet dataset 
+-GROUP LDBCTest
+-DATASET PARQUET CSV_TO_PARQUET(ldbc-sf01)
+-BUFFER_POOL_SIZE 1073741824
+-SKIP
+
+--
+
+-CASE LDBCInteractiveShortParquet
+
+-LOG IS1
+-STATEMENT MATCH (n:Person {id: 933})-[:Person_isLocatedIn]->(p:Place)
+       WHERE p.label = "City"
+       RETURN n.firstName AS firstName,
+              n.lastName AS lastName,
+              n.birthday AS birthday,
+              n.locationIP AS locationIP,
+              n.browserUsed AS browserUsed,
+              p.id AS cityId,
+              n.gender AS gender,
+              n.creationDate AS creationDate;
+---- 1
+Mahinda|Perera|19891203|119.235.7.103|Firefox|1353|male|20100214153210447
+
+-LOG IS3
+-STATEMENT MATCH (n:Person {id: 1129})-[r:knows]-(friend)
+       RETURN friend.id AS personId,
+              friend.firstName AS firstName,
+              friend.lastName AS lastName,
+              r.creationDate AS friendshipCreationDate
+       ORDER BY friendshipCreationDate DESC, personId ASC
+---- 7
+32985348834375|Alfred|Hoffmann|20120803220915016
+30786325578932|Alexander|Hleb|20120529180010845
+28587302323722|Joao|Oliveira|20120415042428397
+26388279067534|Emperor of Brazil|Dom Pedro II|20120119192154433
+19791209301592|Michal|Kaminski|20110917214017976
+10995116278468|Anders|Andersson|20110102223928664
+2199023256437|Rudolf|Engel|20100413164422450
+
+# The 'Case When' statement in query IS4 should be supported as coalesce()
+-LOG IS4
+-STATEMENT MATCH (m:Post:Comment {id: 481036337190})
+       RETURN m.creationDate as messageCreationDate,
+       CASE WHEN m.content is NULL
+            THEN m.imageFile
+            ELSE m.content
+       END AS messageContent;
+---- 1
+20110407210642051|photo481036337190.jpg
+
+-LOG IS5
+-STATEMENT MATCH (m:Post:Comment {id: 1030792151050})-[:Post_hasCreator|:Comment_hasCreator]->(p:Person)
+       RETURN p.id AS personId,
+              p.firstName AS firstName,
+              p.lastName AS lastName;
+---- 1
+2199023256077|Ibrahim Bare|Ousmane
+
+# IS6 should be changed to use Kleene Star relationship once that is implemented
+# This query is currently commented out, but will work as soon as multilabelled recursive rels are merged to master.
+# -LOG IS6
+# -STATEMENT MATCH (m:Comment {id: 962072675825 })-[:replyOf_Post|:replyOf_Comment*1..2]->(p:Post)<-[:containerOf]-(f:Forum)-[:hasModerator]->(mod:Person)
+#       RETURN
+#           f.id AS forumId,
+#           f.title AS forumTitle,
+#           mod.id AS moderatorId,
+#           mod.firstName AS moderatorFirstName,
+#           mod.lastName AS moderatorLastName;
+# ---- 1
+# 687194767491|Wall of Faisal Malik|21990232556585|Faisal|Malik
+
+-LOG IS7
+-STATEMENT MATCH (m:Post:Comment {id: 962072971887})<-[:replyOf_Comment|:replyOf_Post]-(c:Comment)-[:Comment_hasCreator]->(p:Person)
+             OPTIONAL MATCH (m)-[:Comment_hasCreator|:Post_hasCreator]->(a:Person)-[r:knows]-(p)
+             RETURN c.id AS commentId,
+                    c.content AS commentContent,
+                    c.creationDate AS commentCreationDate,
+                    p.id AS replyAuthorId,
+                    p.firstName AS replyAuthorFirstName,
+                    p.lastName AS replyAuthorLastName,
+                    CASE WHEN ID(r) IS NULL
+                        THEN False
+                        ELSE True
+                    END AS replyAuthorKnowsOriginalMessageAuthor;
+---- 9
+962072971888|right|20120530134931973|4398046511734|Camila|Alves|True
+962072971889|LOL|20120530114547280|24189255811663|Chris|Hall|True
+962072971890|LOL|20120530144942604|1274|Roberto|Fernandez|True
+962072971891|no way!|20120530061910889|24189255811663|Chris|Hall|True
+962072971892|About Che Guevara, ide literacAbout Charles Gounod, 7 June 1818About Nikolaus Pevsner|20120530135318875|4398046511734|Camila|Alves|True
+962072971893|yes|20120530062212524|15393162788906|Ali|Achiou|True
+962072971896|roflol|20120530065348878|24189255811663|Chris|Hall|True
+962072971898|About D. H. Lawrence, d his moral serAbout George Washington, States from |20120530061825353|1274|Roberto|Fernandez|True
+962072971901|good|20120531013527759|1274|Roberto|Fernandez|True

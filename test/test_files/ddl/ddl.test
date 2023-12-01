@@ -1,0 +1,65 @@
+-GROUP DDL
+-DATASET CSV tinysnb
+
+--
+
+-CASE DropAndCreateTables
+-STATEMENT DROP TABLE studyAt
+---- ok
+-STATEMENT MATCH ()-[e:studyAt]->() RETURN count(*)
+---- error
+Binder exception: Table studyAt does not exist.
+-STATEMENT DROP TABLE workAt
+---- ok
+-STATEMENT MATCH ()-[e:workAt]->() RETURN count(*)
+---- error
+Binder exception: Table workAt does not exist.
+-STATEMENT DROP TABLE organisation
+---- ok
+-STATEMENT MATCH (n:organisation) RETURN count(*)
+---- error
+Binder exception: Table organisation does not exist.
+-STATEMENT DROP TABLE movies
+---- ok
+-STATEMENT MATCH (n:movies) RETURN count(*)
+---- error
+Binder exception: Table movies does not exist.
+-STATEMENT create node table organisation (ID INT64, name STRING, orgCode INT64, mark DOUBLE, score INT64, history STRING, licenseValidInterval INTERVAL, rating DOUBLE, PRIMARY KEY (ID))
+---- ok
+-STATEMENT create rel table studyAt (FROM person TO organisation, year INT64, places STRING[], MANY_ONE);
+---- ok
+-STATEMENT match (o:organisation) return o.name
+---- ok
+-STATEMENT match (:person)-[s:studyAt]->(:organisation) return s.year
+---- ok
+
+-CASE DDLOutputMessages
+-STATEMENT CREATE NODE TABLE university(ID INT64, PRIMARY KEY(ID))
+---- 1
+Node table: university has been created.
+-STATEMENT CREATE REL TABLE nearTo(FROM university TO university, MANY_MANY)
+---- 1
+Rel table: nearTo has been created.
+-STATEMENT DROP TABLE nearTo;
+---- 1
+Table: nearTo has been dropped.
+-STATEMENT DROP TABLE university
+---- 1
+Table: university has been dropped.
+-STATEMENT ALTER TABLE person DROP fName
+---- 1
+Drop succeed.
+-STATEMENT ALTER TABLE knows DROP date
+---- 1
+Drop succeed.
+
+-CASE CreateRelGroup
+-STATEMENT CREATE REL TABLE GROUP likes (FROM person TO person, FROM person TO organisation, since INT64);
+---- 1
+Rel table group: likes has been created.
+-STATEMENT Call table_info('likes_person_person') RETURN *;
+---- 1
+1|since|INT64
+-STATEMENT Call table_info('likes_person_organisation') RETURN *;
+---- 1
+1|since|INT64

@@ -1,0 +1,24 @@
+-GROUP SyntaxErrorTest
+-DATASET CSV empty
+
+--
+
+-CASE MissingStructFieldType
+-STATEMENT create node table test1(ID INT64, description STRUCT(name INT64, age INT35), PRIMARY KEY(ID))
+---- error
+Cannot parse dataTypeID: INT35
+
+-CASE MissingStructFields
+-STATEMENT create node table test1(ID INT64, description STRUCT, PRIMARY KEY(ID))
+---- error
+Cannot parse struct type: STRUCT
+
+-CASE CreateNodeTableInvalidDataType
+-STATEMENT CREATE NODE TABLE PERSON(NAME BIGINT, PRIMARY KEY(NAME))
+---- error
+Cannot parse dataTypeID: BIGINT
+
+-CASE CreateRelTableInvalidDataType
+-STATEMENT CREATE REL TABLE knows_post ( FROM person TO person, ID SMALLINT, MANY_MANY)
+---- error
+Cannot parse dataTypeID: SMALLINT

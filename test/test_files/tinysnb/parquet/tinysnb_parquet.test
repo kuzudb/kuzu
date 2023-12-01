@@ -1,0 +1,145 @@
+# one sample from each tinysnb csv test CSV_TO_PARQUET 
+# https://github.com/kuzudb/kuzu/issues/1627
+-GROUP TinySnbParquet
+-SKIP
+-DATASET PARQUET CSV_TO_PARQUET(tinysnb)
+
+--
+
+-CASE TinySnbParquet
+
+-LOG AccAspMultiLabelParquet
+-STATEMENT MATCH (a:person)-[e1:knows|:studyAt|:workAt]->(b:person:organisation) WHERE a.age > 35 RETURN b.fName, b.name
+-ENCODED_JOIN HJ(b._ID){E(b)S(a._ID)}{S(b._ID)}
+---- 4
+Alice|
+Bob|
+Dan|
+|CsWork
+
+-LOG AggOneHopAggTestParquet
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN a.age, a.gender, COUNT(*)
+-ENUMERATE
+-PARALLELISM 2
+---- 5
+20|1|2
+20|2|3
+30|2|3
+35|1|3
+45|1|3
+
+-LOG BinderErrorNodeTableNotExistParquet
+-STATEMENT MATCH (a:PERSON) RETURN COUNT(*)
+---- error
+Binder exception: Node table PERSON does not exist.
+
+-LOG CyclicMultiLabelCyclicTestParquet
+-STATEMENT MATCH (a:person)-[:workAt|:knows|:studyAt]->(b:organisation), (a)-[:workAt]->(b) RETURN COUNT(*)
+---- 1
+3
+
+-LOG ExceptionReadVarlengthRelPropertyTest2Parquet
+-STATEMENT MATCH (a:person)-[e:knows*1..3]->(b:person) WHERE ID(e) = 0 RETURN COUNT(*)
+---- error
+Binder exception: e has data type RECURSIVE_REL but (NODE,REL) was expected.
+
+-LOG FilterPersonNodesAgeFilteredTest2Parquet
+-STATEMENT MATCH (a:person) WHERE a.age < 25 RETURN COUNT(*)
+---- 1
+2
+
+-LOG FunctionRelLISTPropertyTestParquet
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) RETURN e.comments
+---- 14
+[rnme,m8sihsdnf2990nfiwf]
+[njnojppo9u0jkmf,fjiojioh9h9h89hph]
+[ioji232,jifhe8w99u43434]
+[2huh9y89fsfw23,23nsihufhw723]
+[fwehu9h9832wewew,23u9h989sdfsss]
+[fwh9y81232uisuiehuf,ewnuihxy8dyf232]
+[fnioh8323aeweae34d,osd89e2ejshuih12]
+[fwh983-sdjisdfji,ioh89y32r2huir]
+[psh989823oaaioe,nuiuah1nosndfisf]
+[fwewe]
+[fewh9182912e3,h9y8y89soidfsf,nuhudf78w78efw,hioshe0f9023sdsd]
+[23h9sdslnfowhu2932,shuhf98922323sf]
+[ahu2333333333333,12weeeeeeeeeeeeeeeeee]
+[peweeeeeeeeeeeeeeeee,kowje9w0eweeeeeeeee]
+
+-LOG MatchOpenWedgeKnowsTest3Parquet
+-STATEMENT MATCH (b:person)<-[e1:knows]-(a:person)-[e2:knows]->(c:person),(a)-[e3:knows]->(d:person) RETURN COUNT(*)
+---- 1
+116
+
+-LOG OptionalMatchMultiKeyOptionalMatchTest1Parquet
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE a.ID=0 OPTIONAL MATCH (a)-[:knows]->(c:person), (b)-[:knows]->(c) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+6
+
+-LOG OrderByInt32TestParquet
+-STATEMENT MATCH (m:movies) RETURN m.length ORDER BY m.length
+-CHECK_ORDER
+---- 3
+126
+298
+2544
+
+-LOG ProjectionReturnLiteral2Parquet
+-STATEMENT MATCH (a:person) RETURN 1 + 1, label(a) LIMIT 2
+---- 2
+2|person
+2|person
+
+-LOG ShortestPathSingleLabelTestParquet
+-STATEMENT MATCH (a:person)-[e:knows* SHORTEST 1..5]->(b:person) WHERE a.fName='Alice' RETURN b.fName, length(e)
+---- 3
+Bob|1
+Carol|1
+Dan|1
+
+-LOG ExistSubqueryTestParquet
+-STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) } RETURN COUNT(*)
+-ENUMERATE
+---- 1
+5
+
+-LOG UnionTwoQueriesTestParquet
+-STATEMENT MATCH (a:person) RETURN a.age UNION MATCH (p:person) RETURN p.age
+---- 7
+20
+25
+30
+35
+40
+45
+83
+
+-LOG Unwind2Parquet
+-STATEMENT UNWIND [[1, 2, 3], [2, 3, 4], [3, 4, 1], [4, 1, 2]] AS x RETURN x
+---- 4
+[1,2,3]
+[2,3,4]
+[3,4,1]
+[4,1,2]
+
+-LOG InsertNodeWithBoolIntDoubleTestParquet
+-STATEMENT CREATE (:person {ID:80, isWorker:true,age:22,eyeSight:1.1})
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID > 8 RETURN a.ID, a.gender,a.isStudent, a.isWorker, a.age, a.eyeSight
+---- 3
+10|2|False|True|83|4.900000
+80|||True|22|1.100000
+9|2|False|False|40|4.900000
+
+-LOG NodeUndirectedTest2Parquet
+-STATEMENT MATCH (a)-[e:knows|:studyAt|:workAt*1..2]-(b) WHERE a.ID=7 RETURN e, label(b)
+---- 8
+[0:4,3:12,0:5,3:12,0:4]|person
+[0:4,3:12,0:5,4:2,1:0]|organisation
+[0:4,3:12,0:5]|person
+[0:4,3:13,0:6,3:13,0:4]|person
+[0:4,3:13,0:6]|person
+[0:4,5:2,1:2,5:1,0:3]|person
+[0:4,5:2,1:2,5:2,0:4]|person
+[0:4,5:2,1:2]|organisation

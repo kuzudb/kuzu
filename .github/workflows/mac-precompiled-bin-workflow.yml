@@ -1,0 +1,78 @@
+name: Build-Mac-Precompiled-Binaries
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build-precompiled-bin-arm64:
+    runs-on: self-hosted-mac-arm
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install networkx
+        run: python3 -m pip install networkx --user
+
+      - name: Build precompiled binaries for Apple Silicon
+        run: |
+          make LTO=1 NUM_THREADS=$(sysctl -n hw.ncpu)
+          make install
+        env:
+          MACOSX_DEPLOYMENT_TARGET: 11.0
+          ARCHFLAGS: "-arch arm64"
+
+      - name: Collect artifacts
+        run: |
+          mv install/include/kuzu.h .
+          mv install/include/kuzu.hpp .
+          mv install/lib/libkuzu.dylib .
+          mv install/bin/kuzu_shell kuzu
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: libkuzu-osx-arm64
+          path: |
+            kuzu.h
+            kuzu.hpp
+            libkuzu.dylib
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: kuzu_cli-osx-arm64
+          path: kuzu
+
+  build-precompiled-bin-x86_64:
+    runs-on: self-hosted-mac-x64
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install networkx
+        run: python3 -m pip install networkx --user
+
+      - name: Build precompiled binaries for Intel
+        run: |
+          make LTO=1 NUM_THREADS=$(sysctl -n hw.ncpu)
+          make install
+        env:
+          MACOSX_DEPLOYMENT_TARGET: 10.15
+          ARCHFLAGS: "-arch x86_64"
+
+      - name: Collect artifacts
+        run: |
+          mv install/include/kuzu.h .
+          mv install/include/kuzu.hpp .
+          mv install/lib/libkuzu.dylib .
+          mv install/bin/kuzu_shell kuzu
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: libkuzu-osx-x86_64
+          path: |
+            kuzu.h
+            kuzu.hpp
+            libkuzu.dylib
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: kuzu_cli-osx-x86_64
+          path: kuzu

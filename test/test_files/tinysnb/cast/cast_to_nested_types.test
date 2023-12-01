@@ -1,0 +1,346 @@
+-GROUP TinySnbReadTest
+-DATASET CSV load-from-test
+
+--
+
+-CASE CastStringToList
+-STATEMENT LOAD WITH HEADERS (list INT64[][], a struct(num INT64, str STRING), fixedList INT16[3]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/should_pass.csv" RETURN *;
+---- 10
+[[1,3,423,124,43242],[432]]|{num: -423432, str: this is a string []}|[255,254,43]
+[[1,3,423,124,43242],[432]]|{num: 3423423, str: this is a string}|[250,249,21]
+[[1,3,423,124,43242],[432]]|{num: 3424231143, str: this is a normal string no space ' , , does not count'}|[0,134,255]
+[,[],[1,2,3]]|{num: 0, str: this is a string}|[0,0,0]
+[,,,,,,,,,,[1,2,3]]|{num: 1, str: yes}|
+[[],[],[]]|{num: 2341, str: }|
+[,,]|{num: , str: }|[29,21,1]
+[]||[111,0,0]
+||[0,111,12]
+|{num: , str: }|[0,0,0]
+-STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, struct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/change_config.csv" (HEADER=true, DELIM="|", DELIM="|", ESCAPE="~", QUOTE="'") RETURN * ;
+---- 3
+[escape , is escape success? ~]| ' [ ] do not need to escape sepeical | []|{a: {b: }}
+[this , is a word , normal not escape , ' [ ] | , ~ ' ]|try escape ~|{a: {b: {c: [3432423,-43423,31231,]}}}
+[~ ' not work also this '"" ]|nu|{a: {b: {c: }}}
+-STATEMENT LOAD WITH HEADERS (map MAP(STRING, MAP(STRING, INT16))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/nested_map_correct.csv" RETURN *;
+---- 3
+{c={a=3423}, b={g=3421}}
+{d={}}
+{}
+-STATEMENT LOAD WITH HEADERS (map MAP(INT32[], STRUCT(c STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_correct.csv" (HEADER=true, DELIM=">") RETURN *;
+---- 6
+{[432,24,12]={c: okay}, [90,11,43,54]={c: bad}, [0]={c: good}}
+{[]={c: }}
+{[11,43,]={c: this is a struct}}
+{[]={c: this is not empty}}
+{[1000,143245,432,43241,-43214324,-432423,-4324324,-41412,-131242143,0,-4324324,0]={c: }}
+{={c: '~~ have some > >'}}
+-STATEMENT LOAD WITH HEADERS (map MAP(MAP(INT64, INT64), MAP(STRING, STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/nested_map2.csv" RETURN *;
+---- 7
+{{18046=18046, 2=321, 3=423421}={dJ3cf6Y=dJ3cf6Y, dJ3cf6Y=dJ3cf6Y, dJ3cf6Y=dJ3cf6Y}}
+{{30099=30099, 1=0}={3mTEf=3mTEf, 3mTEf=3mTEf, 3mTEf=3mTEf}}
+{{31395=31395}={}}
+{{}={YQcmYouhyFqD3y=YQcmYouhyFqD3y, YQcmYouhyFqD3y=YQcmYouhyFqD3y, YQcmYouhyFqD3y=YQcmYouhyFqD3y}}
+{{}={}}
+{=}
+{}
+-STATEMENT LOAD WITH HEADERS (fixedList INT32[92]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/long_fixed_list2.csv" (QUOTE="'") RETURN *;
+---- 1
+[32131,0,0,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313,32131,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313,32131,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313,32131,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313,32131,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313,32131,43243,12313,432432,4324,1312,43241,432432,2342,13412,43242,23432,43242,43242,12313]
+-STATEMENT LOAD WITH HEADERS (fixedList FLOAT[1], bool BOOLEAN, intv INTERVAL) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/fixed_list_correct.csv" RETURN *;
+---- 6
+[23123.433594]|True|1 month 2 days
+[-4321312.500000]|True|1 year 3 days
+[-1.344455]|False|3 days
+[43213123584.000000]|False|12 years 3 months 30 days
+[-4212.423340]|False|
+[-2.000000]|True|10 months
+-STATEMENT LOAD WITH HEADERS (fixedList INT64[3], date DATE, timestamp TIMESTAMP) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/fixed_list_int64.csv" RETURN *;
+---- 3
+[4234234,4234535,-3242342]|2022-06-06|2022-11-22 15:12:22
+[4234234,4234535,0]|2013-02-21|1970-01-01 10:00:00.004666
+[4234234,0,-3242342]|2019-12-30|1970-01-01 00:00:00.004666
+-STATEMENT LOAD WITH HEADERS (fixedList DOUBLE[83]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/long_fixed_list.csv" RETURN *;
+---- 1
+[4123.120000,0.000000,0.000000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,4123.120000,42432.120000,435435.231000,432423.123340,43424.213400,4325245.130000,432423.123000,3242.123000,543523442342.434326]
+-STATEMENT LOAD WITH HEADERS (u UNION(v1 INT64, v2 BOOLEAN), u2 UNION(v1 UINT32, v2 INT32, v3 DATE), u3 UNION(v1 UINT8, v2 UINT16, v3 TIMESTAMP, v4 FLOAT), u4 UNION(v1 UINT64, v2 INT8, v3 INT16, v4 DOUBLE), u5 UNION(v1 STRING)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/union/union_correct.csv" RETURN *;
+---- 9
+False||255|18446744073709551615|fsdfa
+True|432|0|-1.432415|543fasf
+34234|4294967295|65535|-128|432
+-42342345|-1|-1.000000|-129|fasf
+True|2022-06-06|4324.123047|-32768|
+|2019-03-19|-12.343200|32768|
+|-2147483648|1970-01-01 10:00:00.004666|-32769.000000|fsdxcv
+0|0|2014-05-12 12:11:59|4324254534123134124032.000000|fsaf
+False|-4325||18446744073709551616.000000|  dfsa
+
+-LOG CastToVarList
+-STATEMENT RETURN cast("      [   [   1   ,3,    423   ,   124,43242     ]  ,   [   432    ]]", "INT64[][]");
+---- 1
+[[1,3,423,124,43242],[432]]
+-STATEMENT RETURN cast("[[], [], []  ]", "INT64[][]");
+---- 1
+[[],[],[]]
+-STATEMENT RETURN cast("[null, null, [1, 3]  ]", "INT64[][]");
+---- 1
+[,,[1,3]]
+-STATEMENT RETURN cast("[[null, null], [5, null], [1, 3]  ]", "INT64[][]");
+---- 1
+[[,],[5,],[1,3]]
+-STATEMENT RETURN cast("[[1,2,3]]", "INT64[][]");
+---- 1
+[[1,2,3]]
+-STATEMENT RETURN cast("[this, is, a, list, of,  string]", "STRING[]");
+---- 1
+[this, is, a, list, of, string]
+-STATEMENT RETURN cast("[x\', ,\',6]", "STRING[]");
+---- 1
+[x', ,',6]
+-STATEMENT RETURN cast("[1,2,3]", "UINT8[]"), cast("[1,2,3]", "UINT16[]"), cast("[1,2,3]", "UINT32[]"), cast("[1,2,3]", "UINT64[]"), cast("[1,2,3]", "INT8[]"), cast("[1,2,3]", "INT16[]"), cast("[1,2,3]", "INT32[]"), cast("[1,2,3]", "INT64[]"), cast("[1,2,3]", "INT128[]"), cast("[1,2,3]", "FLOAT[]"), cast("[1,2,3]", "DOUBLE[]");
+---- 1
+[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1.000000,2.000000,3.000000]|[1.000000,2.000000,3.000000]
+# timestamp/date/... list
+
+-LOG CastToFixedList
+-STATEMENT LOAD WITH HEADERS (fixedList STRING, bool BOOLEAN, intv INTERVAL) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/fixed_list_correct.csv" RETURN cast(fixedList, "FLOAT[1]");
+---- 6
+[23123.433594]
+[-4321312.500000]
+[-1.344455]
+[43213123584.000000]
+[-4212.423340]
+[-2.000000]
+-STATEMENT LOAD WITH HEADERS (stockPrice STRING) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/fixed_list_with_null.csv" RETURN cast(stockPrice, "DOUBLE[3]");
+---- 3
+[3324.123000,342423.437500,432.123000]
+
+[1.000000,4231.000000,432.123000]
+-STATEMENT LOAD WITH HEADERS (stockPrice STRING) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/fixed_list_with_null.csv" where size(stockPrice) > 10 RETURN cast(stockPrice, "FLOAT[3]");
+---- 2
+[3324.123047,342423.437500,432.122986]
+[1.000000,4231.000000,432.122986]
+-STATEMENT RETURN cast("[423, 321, 423]", "INT64[3]"), cast(null, "INT64[5]"), cast("[432.43214]", "FLOAT[1]"), cast("[4, -5]", "double[2]"), cast("[4234, 42312, 432, 1321]", "INT32[4]"), cast("[-32768]", "INT16[1]")
+---- 1
+[423,321,423]||[432.432129]|[4.000000,-5.000000]|[4234,42312,432,1321]|[-32768]
+-STATEMENT Return cast(cast(-4324324, "int128"), "int64")
+---- 1
+-4324324
+
+-LOG CastToMap
+-STATEMENT RETURN cast(" { c= {a =  3423 },  b =  {  g = 3421 }  } ", "MAP(STRING, MAP(STRING, INT16))"), cast("{}", "MAP(STRING, MAP(STRING, INT16))"), cast("{d = {}}", "MAP(STRING, MAP(STRING, INT16))");
+---- 1
+{c={a=3423}, b={g=3421}}|{}|{d={}}
+-STATEMENT LOAD WITH HEADERS (map STRING) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/nested_map2.csv" RETURN cast(map, "MAP(MAP(INT64, INT64), MAP(STRING, STRING))");
+---- 7
+{{18046=18046, 2=321, 3=423421}={dJ3cf6Y=dJ3cf6Y, dJ3cf6Y=dJ3cf6Y, dJ3cf6Y=dJ3cf6Y}}
+{{30099=30099, 1=0}={3mTEf=3mTEf, 3mTEf=3mTEf, 3mTEf=3mTEf}}
+{{31395=31395}={}}
+{{}={YQcmYouhyFqD3y=YQcmYouhyFqD3y, YQcmYouhyFqD3y=YQcmYouhyFqD3y, YQcmYouhyFqD3y=YQcmYouhyFqD3y}}
+{{}={}}
+{=}
+{}
+-STATEMENT RETURN cast("{[432,24,12]={c: okay}, [90,11,43,54]={c: bad}, [0]={c: good}}", "MAP(INT32[], STRUCT(c STRING))"), cast("{[1000,143245,432,43241,-43214324,-432423,-4324324,-41412,-131242143,0,-4324324,0]={}}", "MAP(INT32[], STRUCT(c STRING))");
+---- 1
+{[432,24,12]={c: okay}, [90,11,43,54]={c: bad}, [0]={c: good}}|{[1000,143245,432,43241,-43214324,-432423,-4324324,-41412,-131242143,0,-4324324,0]={c: }}
+-STATEMENT RETURN cast("{12=34}", "MAP(UINT8, UINT16)"), cast("{12=}", "MAP(UINT32, UINT64)"), cast("{=43}", "MAP(INT8, INT16)"), cast("{=}", "MAP(INT32, INT64)"), cast("{12=12}", "MAP(float, double)");
+---- 1
+{12=34}|{12=}|{=43}|{=}|{12.000000=12.000000}
+
+-LOG CastToStruct
+-STATEMENT RETURN cast("{ a : { b : {c:[ 3432423 ,-43423 ,31231 ,NULL ]}  } } ", "STRUCT(a STRUCT(b STRUCT(c INT64[])))"), cast("{ a : { b : {c:[]}  } } ", "STRUCT(a STRUCT(b STRUCT(c INT64[])))"), cast("{ a : { b : {c:}  } } ", "STRUCT(a STRUCT(b STRUCT(c INT64[])))"), cast("{ a : { b : {}  } } ", "STRUCT(a STRUCT(b STRUCT(c INT64[])))"), cast("{ a : {} } ", "STRUCT(a STRUCT(b STRUCT(c INT64[])))"), cast("{} ", "STRUCT(a STRUCT(b STRUCT(c INT64[])))");
+---- 1
+{a: {b: {c: [3432423,-43423,31231,]}}}|{a: {b: {c: []}}}|{a: {b: {c: }}}|{a: {b: {c: }}}|{a: {b: }}|{a: }
+-STATEMENT RETURN cast("{a: 432412343242343241}", "STRUCT(a INT128)"), cast("{a: -44332412343242343241}", "STRUCT(a INT128)");
+---- 1
+{a: 432412343242343241}|{a: -44332412343242343241}
+
+-LOG CastToUnion
+-STATEMENT RETURN cast("324324", "UNION(uint64, int128, BOOLEAN)"), cast("-324324", "UNION(uint64, int128, BOOLEAN)"), cast("false", "UNION(uint64, int128, BOOLEAN)");
+---- 1
+324324|-324324|False
+-STATEMENT LOAD WITH HEADERS (u STRING, u2 STRING, u3 STRING, u4 STRING, u5 STRING) FROM "${KUZU_ROOT_DIRECTORY}/dataset/reader/union_correct.csv" RETURN cast(u, "UNION(v1 INT64, v2 BOOLEAN)"), cast(u2, "UNION(v1 UINT32, v2 INT32, v3 DATE)"), cast(u3, "UNION(v1 UINT8, v2 UINT16, v3 TIMESTAMP, v4 FLOAT)"), cast(u4, "UNION(v1 UINT64, v2 INT8, v3 INT16, v4 DOUBLE)"), cast(u5, "UNION(v1 STRING)");
+---- 9
+False|34|255|18446744073709551615|fsdfa
+True|432|0|-1.432415|543fasf
+34234|4294967295|65535|-128|432
+-42342345|-1|-1.000000|-129|fasf
+True|2022-06-06|4324.123047|-32768|fds
+True|2019-03-19|-12.343200|32768|
+1|-2147483648|1970-01-01 10:00:00.004666|-32769.000000|fsdxcv
+0|0|2014-05-12 12:11:59|4324254534123134124032.000000|fsaf
+False|-4325|14|18446744073709551616.000000|  dfsa
+
+-LOG CastVarListToVarList
+-STATEMENT RETURN cast([321, 432], "DOUBLE[]"), cast([321, 432], "FLOAT[]"), cast([321, 432], "INT128[]"), cast([321, 432], "INT64[]"), cast([321, 432], "INT32[]"), cast([321, 432], "INT16[]"), cast([-1, -43], "INT8[]"), cast([0, 23], "UINT8[]"), cast([0, 23], "UINT16[]"), cast([0, 23], "UINT32[]"), cast([0, 23], "UINT64[]"), cast([5435234412435123, -432425341231], "STRING[]");
+---- 1
+[321.000000,432.000000]|[321.000000,432.000000]|[321,432]|[321,432]|[321,432]|[321,432]|[-1,-43]|[0,23]|[0,23]|[0,23]|[0,23]|[5435234412435123,-432425341231]
+-STATEMENT RETURN cast([], "UINT64[]"), cast([NULL,], "UINT64[]"), cast(NULL, "UINT64[]"), cast([NULL, 432124, 0, NULL], "UINT64[]");
+---- 1
+[]|[,]||[,432124,0,]
+
+-LOG CastNestedVarListToNestedVarList
+-STATEMENT RETURN cast([[4324.2312, 432.321, 43242.543], [31214.59,4132.72], NULL, [NULL,,4324.32]], "INT64[][]");
+---- 1
+[[4324,432,43243],[31215,4133],,[,,4324]]
+-STATEMENT RETURN cast(["[123, 3234]", "[124, 3241]", NULL, "[0, -4324234]"], "INT64[2][]"), cast(cast(["[123, 3234]", "[124, 3241]", NULL, "[0, -4324234]"], "DOUBLE[2][]"), "STRING[]");
+---- 1
+[[123,3234],[124,3241],,[0,-4324234]]|[[123.000000,3234.000000],[124.000000,3241.000000],,[0.000000,-4324234.000000]]
+-STATEMENT RETURN cast([NULL, NULL, NULL], "INT8[][][]"), cast([NULL], "STRING[]"), cast([], "UINT8[]");
+---- 1
+[,,]|[]|[]
+-STATEMENT RETURN cast(cast([NULL, [NULL, 13], NULL, [14, 14], NULL], "INT32[][]"), "INT128[][]"), cast([NULL, 1], "INT16[]"), cast("[1, NULL, NULL]", "UINT32[]"), cast("[NULL, 1, NULL]", "UINT64[]");
+---- 1
+[,[,13],,[14,14],]|[,1]|[1,,]|[,1,]
+-STATEMENT RETURN cast(NULL, "INT32[][]");
+---- 1
+
+-STATEMENT RETURN cast(cast(cast(cast(["[NULL, [NULL, 1, 0, 2], NULL, [1, 2, 3, 4, 5], NULL]", "[[1, 2, 3], [4, 5, 6]]"], "UINT8[][][]"), "UINT16[][][]"), "INT32[][][]"), "DOUBLE[][][]");
+---- 1
+[[,[,1.000000,0.000000,2.000000],,[1.000000,2.000000,3.000000,4.000000,5.000000],],[[1.000000,2.000000,3.000000],[4.000000,5.000000,6.000000]]]
+
+-LOG CastMapToMap
+-STATEMENT RETURN cast(cast(" { 213=1, -3123=0 } ","MAP(INT32, STRING)"), "MAP(INT64, INT64)"), cast(cast(" { 213=1, -3123=0 } ","MAP(STRING, STRING)"), "MAP(INT32, UINT8)"), cast(cast(" { 213=1, -3123=0 } ","MAP(STRING, STRING)"), "MAP(INT16, UINT16)"), cast(cast(" { 213=1, -3123=0 } ","MAP(STRING, STRING)"), "MAP(INT128, UINT32)"), cast(cast(" { 213=1, -3123=0 } ","MAP(STRING, STRING)"), "MAP(DOUBLE, UINT64)"), cast(cast(" { 213=1, -3123=0 } ","MAP(INT128, INT128)"), "MAP(STRING, FLOAT)");
+---- 1
+{213=1, -3123=0}|{213=1, -3123=0}|{213=1, -3123=0}|{213=1, -3123=0}|{213.000000=1, -3123.000000=0}|{213=1.000000, -3123=0.000000}
+-STATEMENT LOAD WITH HEADERS (map MAP(INT8, INT8)) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/map_non_nested.csv" RETURN cast(map, "MAP(INT8, INT8)"), cast(map, "MAP(INT16, INT16)"), cast(map, "MAP(INT32, INT32)"), cast(map, "MAP(INT64, INT64)"), cast(map, "MAP(INT128, INT128)"), cast(map, "MAP(UINT8, UINT8)"), cast(map, "MAP(UINT16, UINT16)"), cast(map, "MAP(UINT32, UINT32)"), cast(map, "MAP(UINT64, UINT64)"), cast(map, "MAP(DOUBLE, DOUBLE)"), cast(map, "MAP(float, float)"), cast(cast(cast(cast(map, "MAP(STRING, STRING)"), "MAP(int32, int32)"), "MAP(float, float)"), "MAP(STRING, STRING)");
+---- 10
+{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}
+{=}|{=}|{=}|{=}|{=}|{=}|{=}|{=}|{=}|{=}|{=}|{=}
+{=}|{=}|{=}|{=}|{=}|{=}|{=}|{=}|{=}|{=}|{=}|{=}
+{=}|{=}|{=}|{=}|{=}|{=}|{=}|{=}|{=}|{=}|{=}|{=}
+|||||||||||
+{=}|{=}|{=}|{=}|{=}|{=}|{=}|{=}|{=}|{=}|{=}|{=}
+{=, =}|{=, =}|{=, =}|{=, =}|{=, =}|{=, =}|{=, =}|{=, =}|{=, =}|{=, =}|{=, =}|{=, =}
+{1=, =1, =, 1=1}|{1=, =1, =, 1=1}|{1=, =1, =, 1=1}|{1=, =1, =, 1=1}|{1=, =1, =, 1=1}|{1=, =1, =, 1=1}|{1=, =1, =, 1=1}|{1=, =1, =, 1=1}|{1=, =1, =, 1=1}|{1.000000=, =1.000000, =, 1.000000=1.000000}|{1.000000=, =1.000000, =, 1.000000=1.000000}|{1.000000=, =1.000000, =, 1.000000=1.000000}
+{0=, =1, =, =, 1=4, =}|{0=, =1, =, =, 1=4, =}|{0=, =1, =, =, 1=4, =}|{0=, =1, =, =, 1=4, =}|{0=, =1, =, =, 1=4, =}|{0=, =1, =, =, 1=4, =}|{0=, =1, =, =, 1=4, =}|{0=, =1, =, =, 1=4, =}|{0=, =1, =, =, 1=4, =}|{0.000000=, =1.000000, =, =, 1.000000=4.000000, =}|{0.000000=, =1.000000, =, =, 1.000000=4.000000, =}|{0.000000=, =1.000000, =, =, 1.000000=4.000000, =}
+{1=2, 2=3, 3=4, 5=6, 6=7}|{1=2, 2=3, 3=4, 5=6, 6=7}|{1=2, 2=3, 3=4, 5=6, 6=7}|{1=2, 2=3, 3=4, 5=6, 6=7}|{1=2, 2=3, 3=4, 5=6, 6=7}|{1=2, 2=3, 3=4, 5=6, 6=7}|{1=2, 2=3, 3=4, 5=6, 6=7}|{1=2, 2=3, 3=4, 5=6, 6=7}|{1=2, 2=3, 3=4, 5=6, 6=7}|{1.000000=2.000000, 2.000000=3.000000, 3.000000=4.000000, 5.000000=6.000000, 6.000000=7.000000}|{1.000000=2.000000, 2.000000=3.000000, 3.000000=4.000000, 5.000000=6.000000, 6.000000=7.000000}|{1.000000=2.000000, 2.000000=3.000000, 3.000000=4.000000, 5.000000=6.000000, 6.000000=7.000000}
+
+-LOG CastNestedMapToMap
+-STATEMENT LOAD WITH HEADERS (map MAP(STRING, MAP(STRING, INT16))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/nested_map_correct.csv" RETURN cast(map, "MAP(STRING, MAP(STRING, INT16))"), cast(map, "MAP(STRING, MAP(STRING, INT128))"), cast(map, "MAP(STRING, MAP(STRING, DOUBLE))");
+---- 3
+{c={a=3423}, b={g=3421}}|{c={a=3423}, b={g=3421}}|{c={a=3423.000000}, b={g=3421.000000}}
+{d={}}|{d={}}|{d={}}
+{}|{}|{}
+-STATEMENT LOAD WITH HEADERS (map MAP(MAP(INT64, INT64), MAP(STRING, STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/nested_map2.csv" RETURN cast(map, "MAP(MAP(UINT64, UINT64), STRING)"), cast(cast(map, "MAP(MAP(FLOAT, INT64), MAP(STRING, STRING))"), "MAP(MAP(INT128, FLOAT), MAP(STRING, STRING))");
+---- 7
+{{18046=18046, 2=321, 3=423421}={dJ3cf6Y=dJ3cf6Y, dJ3cf6Y=dJ3cf6Y, dJ3cf6Y=dJ3cf6Y}}|{{18046=18046.000000, 2=321.000000, 3=423421.000000}={dJ3cf6Y=dJ3cf6Y, dJ3cf6Y=dJ3cf6Y, dJ3cf6Y=dJ3cf6Y}}
+{{30099=30099, 1=0}={3mTEf=3mTEf, 3mTEf=3mTEf, 3mTEf=3mTEf}}|{{30099=30099.000000, 1=0.000000}={3mTEf=3mTEf, 3mTEf=3mTEf, 3mTEf=3mTEf}}
+{{31395=31395}={}}|{{31395=31395.000000}={}}
+{{}={YQcmYouhyFqD3y=YQcmYouhyFqD3y, YQcmYouhyFqD3y=YQcmYouhyFqD3y, YQcmYouhyFqD3y=YQcmYouhyFqD3y}}|{{}={YQcmYouhyFqD3y=YQcmYouhyFqD3y, YQcmYouhyFqD3y=YQcmYouhyFqD3y, YQcmYouhyFqD3y=YQcmYouhyFqD3y}}
+{{}={}}|{{}={}}
+{=}|{=}
+{}|{}
+-STATEMENT RETURN cast(cast(cast("{=, {NULL=NULL, NULL=1.1, {}=NULL, {}=1.12}={1.23={a=10}}, {{0=0, 1=, 0=NULL, =}=1.232}={1.321={}}, {{1=1,2=2}=1.232, {3=3}=1.432}={1.321={a=0}, 2={b=1}}, =}", "MAP(MAP(MAP(INT8, INT8), FLOAT), MAP(DOUBLE, MAP(STRING, UINT8)))"), "MAP(MAP(MAP(INT8, INT8), FLOAT), MAP(DOUBLE, MAP(STRING, UINT8)))"), "MAP(MAP(MAP(INT32, UINT8), DOUBLE), MAP(FLOAT, MAP(STRING, INT128)))"), cast(cast("{=, {NULL=NULL, NULL=1.1, {}=NULL, {}=1.12}={1.23={a=10}}, {{0=0, 1=, 0=NULL, =}=1.232}={1.321={}}, {{1=1,2=2}=1.232, {3=3}=1.432}={1.321={a=0}, 2={b=1}}, =}", "MAP(MAP(MAP(INT8, INT8), FLOAT), MAP(DOUBLE, MAP(STRING, UINT8)))"), "MAP(MAP(STRING, INT16), MAP(INT128, STRING))");
+---- 1
+{=, {=, =1.100000, {}=, {}=1.120000}={1.230000={a=10}}, {{0=0, 1=, 0=, =}=1.232000}={1.321000={}}, {{1=1, 2=2}=1.232000, {3=3}=1.432000}={1.321000={a=0}, 2.000000={b=1}}, =}|{=, {=, =1, {}=, {}=1}={1={a=10}}, {{0=0, 1=0, 0=0, 0=0}=1}={1={}}, {{1=1, 2=2}=1, {3=3}=1}={1={a=0}, 2={b=1}}, =}
+
+-LOG CastStructToStruct
+-STATEMENT RETURN cast(cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b STRING, c STRING)"), "STRUCT(a INT128, b INT128, c INT128)"), "STRUCT(a INT64, b INT64, c INT64)"), cast(cast(cast("{a: 15}", "STRUCT(a STRING, b STRING)"), "STRUCT(a INT32, b INT32)"), "STRUCT(a INT16, b INT16)"), cast(cast(cast("{b: 15}", "STRUCT(a STRING, b STRING)"), "STRUCT(a INT8, b INT8)"), "STRUCT(a UINT16, b UINT16)"), cast(cast(cast("{}", "STRUCT(a STRING, b STRING)"), "STRUCT(a UINT32, b UINT32)"), "STRUCT(a UINT64, b UINT64)"), cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b STRING)"), "STRUCT(a DOUBLE, b DOUBLE)"), cast(cast("{a: 12, b: 0}", "STRUCT(a STRING, b STRING)"), "STRUCT(a FLOAT, b FLOAT)");
+---- 1
+{a: 12, b: 0, c: }|{a: 15, b: }|{a: , b: 15}|{a: , b: }|{a: 12.000000, b: 0.000000}|{a: 12.000000, b: 0.000000}
+-STATEMENT LOAD WITH HEADERS (list INT64[][], a struct(num INT64, str STRING), fixedList INT16[3]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/should_pass.csv" RETURN cast(a, "struct(num INT64, str STRING)"), cast(a, "struct(num INT128, str STRING)"), cast(a, "struct(num STRING, str STRING)"), cast(a, "struct(num DOUBLE, str STRING)"), cast(a, "struct(num FLOAT, str STRING)");
+---- 10
+{num: -423432, str: this is a string []}|{num: -423432, str: this is a string []}|{num: -423432, str: this is a string []}|{num: -423432.000000, str: this is a string []}|{num: -423432.000000, str: this is a string []}
+{num: 0, str: this is a string}|{num: 0, str: this is a string}|{num: 0, str: this is a string}|{num: 0.000000, str: this is a string}|{num: 0.000000, str: this is a string}
+{num: , str: }|{num: , str: }|{num: , str: }|{num: , str: }|{num: , str: }
+{num: , str: }|{num: , str: }|{num: , str: }|{num: , str: }|{num: , str: }
+{num: 1, str: yes}|{num: 1, str: yes}|{num: 1, str: yes}|{num: 1.000000, str: yes}|{num: 1.000000, str: yes}
+{num: 2341, str: }|{num: 2341, str: }|{num: 2341, str: }|{num: 2341.000000, str: }|{num: 2341.000000, str: }
+{num: 3423423, str: this is a string}|{num: 3423423, str: this is a string}|{num: 3423423, str: this is a string}|{num: 3423423.000000, str: this is a string}|{num: 3423423.000000, str: this is a string}
+{num: 3424231143, str: this is a normal string no space ' , , does not count'}|{num: 3424231143, str: this is a normal string no space ' , , does not count'}|{num: 3424231143, str: this is a normal string no space ' , , does not count'}|{num: 3424231143.000000, str: this is a normal string no space ' , , does not count'}|{num: 3424231168.000000, str: this is a normal string no space ' , , does not count'}
+||||
+||||
+
+-LOG CastNestedStructToStruct
+-STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, struct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/change_config.csv" (HEADER=true, DELIM="|", DELIM="|", ESCAPE="~", QUOTE="'") RETURN cast(struct, "STRUCT(a STRUCT(b STRUCT(c INT128[])))"), cast(struct, "STRUCT(a STRUCT(b STRUCT(c DOUBLE[])))"), cast(struct, "STRUCT(a STRUCT(b STRUCT(c STRING)))"), cast(struct, "STRUCT(a STRUCT(b STRING))"), cast(struct, "STRUCT(a STRING)");
+---- 3
+{a: {b: {c: [3432423,-43423,31231,]}}}|{a: {b: {c: [3432423.000000,-43423.000000,31231.000000,]}}}|{a: {b: {c: [3432423,-43423,31231,]}}}|{a: {b: {c: [3432423,-43423,31231,]}}}|{a: {b: {c: [3432423,-43423,31231,]}}}
+{a: {b: {c: }}}|{a: {b: {c: }}}|{a: {b: {c: }}}|{a: {b: {c: []}}}|{a: {b: {c: []}}}
+{a: {b: }}|{a: {b: }}|{a: {b: }}|{a: {b: }}|{a: {b: {c: []}}}
+
+-LOG CastNestedToNestedType
+-STATEMENT RETURN cast(cast("{[123, 1432, 1142]={a: -1, b: 1, c: {1=1}}}", "MAP(INT64[], STRUCT(a INT8, b UINT8, c MAP(INT8, INT8)))"), "MAP(DOUBLE[], STRUCT(a FLOAT, b FLOAT, c MAP(DOUBLE, UINT8)))");
+---- 1
+{[123.000000,1432.000000,1142.000000]={a: -1.000000, b: 1.000000, c: {1.000000=1}}}
+-STATEMENT RETURN cast(cast("{[123, 1432, 1142]={a: -1, b: 1}}", "MAP(INT64[3], STRUCT(a INT8, b STRING, c MAP(INT8, INT8)))"), "MAP(STRING, STRUCT(a INT64, b FLOAT, c MAP(INT64, INT128)))");
+---- 1
+{[123,1432,1142]={a: -1, b: 1.000000, c: }}
+-STATEMENT RETURN cast(cast("{[NULL, NULL, NULL]={a: -1, b: 1}}", "MAP(INT64[], STRING)"), "MAP(STRING, STRUCT(a INT8, b FLOAT, c MAP(DOUBLE, INT8)))");
+---- 1
+{[,,]={a: -1, b: 1.000000, c: }}
+
+-LOG CastFixedListToList
+-STATEMENT RETURN cast(cast("[1,2,3]", "INT64[3]"), "INT128[]"), cast(cast("[1,2,3]", "INT64[3]"), "INT64[]"), cast(cast("[1,2,3]", "INT64[3]"), "INT32[]"), cast(cast("[1,2,3]", "INT64[3]"), "INT16[]"), cast(cast("[1,2,3]", "INT64[3]"), "INT8[]"), cast(cast("[1,2,3]", "INT64[3]"), "UINT64[]"), cast(cast("[1,2,3]", "INT64[3]"), "UINT32[]"), cast(cast("[1,2,3]", "INT64[3]"), "UINT16[]"), cast(cast("[1,2,3]", "INT64[3]"), "UINT8[]"), cast(cast("[1,2,3]", "INT64[3]"), "DOUBLE[]"), cast(cast("[1,2,3]", "INT64[3]"), "STRING[]"), cast(cast("[1,2,3]", "INT64[3]"), "FLOAT[]");
+---- 1
+[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1.000000,2.000000,3.000000]|[1,2,3]|[1.000000,2.000000,3.000000]
+-STATEMENT LOAD WITH HEADERS (list INT64[][], a struct(num INT64, str STRING), fixedList INT16[3]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/should_pass.csv" RETURN cast(cast(cast(fixedList, "DOUBLE[]"), "STRING[]"), "FLOAT[]");
+---- 10
+
+
+[0.000000,0.000000,0.000000]
+[0.000000,0.000000,0.000000]
+[0.000000,111.000000,12.000000]
+[0.000000,134.000000,255.000000]
+[111.000000,0.000000,0.000000]
+[250.000000,249.000000,21.000000]
+[255.000000,254.000000,43.000000]
+[29.000000,21.000000,1.000000]
+
+-LOG CastNestedFixedListToList
+-STATEMENT RETURN cast(cast("[NULL, [0, -1, 1], NULL, [1, 2, -2], NULL]", "FLOAT[3][]"), "INT64[][]"), cast(cast("[NULL, NULL]", "FLOAT[3][]"), "INT32[][]"), cast(cast("[[1, 1, 1], NULL]", "FLOAT[3][]"), "INT16[][]"), cast(cast("[NULL, [1, 1, 1]]", "FLOAT[3][]"), "INT8[][]");
+---- 1
+[,[0,-1,1],,[1,2,-2],]|[,]|[[1,1,1],]|[,[1,1,1]]
+
+-LOG CastListToFixedList
+-STATEMENT RETURN cast([1], "INT64[1]"), cast([1], "INT32[1]"), cast([1], "INT16[1]"), cast([1], "DOUBLE[1]"), cast([1], "FLOAT[1]"), cast(NULL, "INT64[15]");
+---- 1
+[1]|[1]|[1]|[1.000000]|[1.000000]|
+-STATEMENT LOAD WITH HEADERS (list INT64[][], a struct(num INT64, str STRING), fixedList STRING[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/should_pass.csv" RETURN cast(cast(cast(fixedList, "INT16[3]"), "STRING[]"), "FLOAT[3]");
+---- 10
+
+
+[0.000000,0.000000,0.000000]
+[0.000000,0.000000,0.000000]
+[0.000000,111.000000,12.000000]
+[0.000000,134.000000,255.000000]
+[111.000000,0.000000,0.000000]
+[250.000000,249.000000,21.000000]
+[255.000000,254.000000,43.000000]
+[29.000000,21.000000,1.000000]
+-STATEMENT LOAD WITH HEADERS (stockPrice STRING[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/fixed_list/fixed_list_with_null.csv" RETURN cast(stockPrice, "DOUBLE[3]");
+---- 3
+[3324.123000,342423.437500,432.123000]
+
+[1.000000,4231.000000,432.123000]
+-STATEMENT RETURN cast(cast([1, 2, 3], "DOUBLE[]"), "INT32[3]"), cast(cast([4, 5, 6], "FLOAT[]"), "INT32[3]"), cast(cast([7, 8, 9], "UINT64[]"), "INT32[3]"), cast(cast([10, 11, 12], "UINT32[]"), "INT32[3]"), cast(cast([13, 14, 15], "UINT16[]"), "INT32[3]"), cast(cast([16, 17, 18], "UINT8[]"), "INT64[3]"), cast(cast([0, -1, -2], "INT8[]"), "INT64[3]"), cast(cast([-3, -4, -5], "INT16[]"), "INT64[3]"), cast(cast([-6, -7, -8], "INT32[]"), "INT64[3]");
+---- 1
+[1,2,3]|[4,5,6]|[7,8,9]|[10,11,12]|[13,14,15]|[16,17,18]|[0,-1,-2]|[-3,-4,-5]|[-6,-7,-8]
+
+-LOG CastNestedListToFixedList
+-STATEMENT RETURN cast([[1,2], [3, 4], [5, 6]], "INT32[2][]");
+---- 1
+[[1,2],[3,4],[5,6]]
+-STATEMENT RETURN cast([NULL, [1]], "INT64[1][]"), cast([NULL], "INT64[1][]"), cast([[1], NULL], "INT64[1][]"), cast([NULL], "INT64[1][][]"), cast([[NULL]], "INT64[1][][]"), cast([[[2], NULL], [NULL, [1]]], "INT64[1][][]"), cast([NULL, [NULL, [1]]], "INT64[1][][]");
+---- 1
+[,[1]]|[]|[[1],]|[]|[[]]|[[[2],],[,[1]]]|[,[,[1]]]
+-STATEMENT LOAD WITH HEADERS (struct STRUCT(a INT64, b MAP(INT64[][][], STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_with_fixed_list.csv" where struct_extract(struct, 'a') > 0 RETURN cast(struct, "STRUCT(a INT64,b MAP(INT64[1][][], STRING))");
+---- 4
+{a: 1999, b: {[[[1],[2],[3]]]=true}}
+{a: 1999, b: {[[]]=true}}
+{a: 1999, b: {[]=true}}
+{a: 2341, b: {[,[,[1],[2],[3],,[4]],[[8],,[7]],,[,[5]],[[6],],]=true}}
+
+-LOG CastFixedListToFixedList
+-STATEMENT Return cast(Cast([1,2,3], "INT32[3]"), "INT64[3]"), cast(Cast([1,2,3], "INT32[3]"), "INT32[3]"), cast(Cast([1,2,3], "INT32[3]"), "INT16[3]"), cast(Cast([1,2,3], "INT32[3]"), "DOUBLE[3]"), cast(Cast([1,2,3], "INT32[3]"), "FLOAT[3]");
+---- 1
+[1,2,3]|[1,2,3]|[1,2,3]|[1.000000,2.000000,3.000000]|[1.000000,2.000000,3.000000]
+-STATEMENT Return cast(cast(cast(cast(Cast([0,-1,1], "INT32[3]"), "INT64[3]"), "INT16[3]"), "DOUBLE[3]"), "FLOAT[3]");
+---- 1
+[0.000000,-1.000000,1.000000]
+-STATEMENT LOAD WITH HEADERS (struct STRUCT(a INT64, b MAP(INT64[][][], STRING))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/struct/struct_with_fixed_list.csv" where struct_extract(struct, 'a') > 0 RETURN cast(cast(struct, "STRUCT(a INT64,b MAP(DOUBLE[1][][], STRING))"), "STRUCT(a INT64,b MAP(INT16[1][][], STRING))");
+---- 4
+{a: 1999, b: {[[[1],[2],[3]]]=true}}
+{a: 1999, b: {[[]]=true}}
+{a: 1999, b: {[]=true}}
+{a: 2341, b: {[,[,[1],[2],[3],,[4]],[[8],,[7]],,[,[5]],[[6],],]=true}}
+

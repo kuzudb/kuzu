@@ -1,0 +1,65 @@
+-GROUP DeleteRelTest
+-DATASET CSV rel-update-tests
+--
+
+-DEFINE_STATEMENT_BLOCK DELETE_RELS_FROM_UPDATE_STORE [
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 51 AND p2.ID = 0 create (p1)-[:knows]->(p2);
+---- ok
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 52 AND p2.ID = 0 create (p1)-[:knows]->(p2);
+---- ok
+-STATEMENT MATCH (p1:person), (p2:person) WHERE p1.ID = 100 AND p2.ID = 0 create (p1)-[:knows]->(p2);
+---- ok
+-STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 51 AND p2.ID = 0 delete e;
+---- ok
+-STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 100 AND p2.ID = 10 delete e;
+---- ok
+]
+
+-CASE deleteRelsFromUpdateStoreCommitNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK DELETE_RELS_FROM_UPDATE_STORE
+-STATEMENT COMMIT
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID > 10 return e.length
+---- 2
+
+
+-CASE deleteRelsFromUpdateStoreCommitRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK DELETE_RELS_FROM_UPDATE_STORE
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID > 10 return e.length
+---- 2
+
+
+-CASE deleteRelsFromUpdateStoreRollbackNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK DELETE_RELS_FROM_UPDATE_STORE
+-STATEMENT Rollback
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID > 10 return e.length
+---- 0
+
+
+-CASE deleteRelsFromUpdateStoreRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK DELETE_RELS_FROM_UPDATE_STORE
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID > 10 return e.length
+---- 0

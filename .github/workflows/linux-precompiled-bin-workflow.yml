@@ -1,0 +1,73 @@
+name: Build-Linux-Precompiled-Binaries
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build-precompiled-bin-x86_64:
+    runs-on: kuzu-self-hosted-linux-building
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install networkx
+        run: /opt/python/cp310-cp310/bin/python -m pip install networkx --user
+
+      - name: Build precompiled binaries
+        run: |
+          source /opt/rh/devtoolset-11/enable
+          make LTO=1 NUM_THREADS=$(nproc)
+          make install
+
+      - name: Collect artifacts
+        run: |
+          mv install/include/kuzu.h .
+          mv install/include/kuzu.hpp .
+          mv install/lib64/libkuzu.so .
+          mv install/bin/kuzu_shell kuzu
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: libkuzu-linux-x86_64
+          path: |
+            kuzu.h
+            kuzu.hpp
+            libkuzu.so
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: kuzu_cli-linux-x86_64
+          path: kuzu
+
+  build-precompiled-bin-aarch64:
+    runs-on: kuzu-self-hosted-linux-building-aarch64
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install networkx
+        run: /opt/python/cp310-cp310/bin/python -m pip install networkx --user
+
+      - name: Build precompiled binaries
+        run: |
+          make LTO=1 NUM_THREADS=$(nproc)
+          make install
+
+      - name: Collect artifacts
+        run: |
+          mv install/include/kuzu.h .
+          mv install/include/kuzu.hpp .
+          mv install/lib64/libkuzu.so .
+          mv install/bin/kuzu_shell kuzu
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: libkuzu-linux-aarch64
+          path: |
+            kuzu.h
+            kuzu.hpp
+            libkuzu.so
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: kuzu_cli-linux-aarch64
+          path: kuzu

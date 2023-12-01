@@ -1,0 +1,32 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE AllShortestPath
+
+-LOG MultiLabel1
+-STATEMENT MATCH (a:person)-[e:knows|:meets|:marries* ALL SHORTEST 1..5]->(b:person) WHERE a.fName='Alice' RETURN b.fName, length(e)
+---- 9
+Bob|1
+Bob|1
+Bob|1
+Carol|1
+Dan|1
+Elizabeth|2
+Farooq|3
+Farooq|3
+Greg|3
+
+-LOG MultiLabel2
+-STATEMENT MATCH (a:person)-[e* ALL SHORTEST 1..5]->(b:organisation) WHERE a.fName='Bob' RETURN b.ID, length(e)
+---- 4
+1|1
+4|2
+6|2
+6|2
+
+-LOG MultiLabelFilter
+-STATEMENT MATCH p = (a)-[e* ALL SHORTEST 1..5 (r, n | WHERE n.ID <> 0)]->(b) WHERE a.ID=3 AND b.ID = 1 RETURN properties(nodes(p), "ID")
+---- 1
+[3,2,1]

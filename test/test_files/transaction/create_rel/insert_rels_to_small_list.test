@@ -1,0 +1,68 @@
+-GROUP CreateRelTest
+-DATASET CSV rel-update-tests
+--
+
+-DEFINE_STATEMENT_BLOCK INSERT_RELS_TO_SMALL_LIST [
+-STATEMENT MATCH (a:person),(b:person) WHERE a.ID=1 and b.ID=300 CREATE (a)-[e:knows{length: 300, place: 'this is a long str', tag: ['123', 'good']}]->(b)
+---- ok
+-STATEMENT MATCH (a:person),(b:person) WHERE a.ID=1 and b.ID=700 CREATE (a)-[e:knows{length: 45, tag: ['123', 'good']}]->(b)
+---- ok
+-STATEMENT MATCH (a:person),(b:person) WHERE a.ID=1 and b.ID=400 CREATE (a)-[e:knows{length: 34, place: 'short'}]->(b)
+---- ok
+-STATEMENT MATCH (a:person),(b:person) WHERE a.ID=1 and b.ID=600 CREATE (a)-[e:knows{}]->(b)
+---- ok
+]
+
+-CASE insertRelsToSmallListCommitNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_RELS_TO_SMALL_LIST
+-STATEMENT COMMIT
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) where b.ID > 200 AND a.ID = 1 RETURN e.length, e.place, e.tag
+---- 4
+300|this is a long str|[123,good]
+34|short|
+45||[123,good]
+||
+
+-CASE insertRelsToSmallListCommitRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_RELS_TO_SMALL_LIST
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) where b.ID > 200 AND a.ID = 1 RETURN e.length, e.place, e.tag
+---- 4
+300|this is a long str|[123,good]
+34|short|
+45||[123,good]
+||
+
+-CASE insertRelsToSmallListRollbackNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_RELS_TO_SMALL_LIST
+-STATEMENT Rollback
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) where b.ID > 200 AND a.ID = 1 RETURN e.length, e.place, e.tag
+---- 0
+
+-CASE insertRelsToSmallListRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_RELS_TO_SMALL_LIST
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) where b.ID > 200 AND a.ID = 1 RETURN e.length, e.place, e.tag
+---- 0

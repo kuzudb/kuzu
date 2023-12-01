@@ -1,0 +1,72 @@
+-GROUP EmptyCreateNodeTest
+-DATASET CSV empty
+
+--
+
+-CASE CreateSimple
+-STATEMENT CREATE NODE TABLE test(id INT64, name STRING, isTrue BOOLEAN, birthday DATE, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (a:test {id:0, name:'A', isTrue:True, birthday:'2019-01-01'})
+---- ok
+-STATEMENT MATCH (a:test) RETURN a.id, a.name, a.isTrue, a.birthday
+---- 1
+0|A|True|2019-01-01
+
+-CASE CreateStruct
+-STATEMENT CREATE NODE TABLE test(id INT64, prop STRUCT(age INT64, isTrue BOOLEAN, name STRING), PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (a:test {id:1, prop:{age:10, isTrue:True, name:'A'}})
+---- ok
+-STATEMENT MATCH (a:test) RETURN a.prop
+---- 1
+{age: 10, isTrue: True, name: A}
+
+-CASE CreateStructWithWriteTransaction
+-STATEMENT CREATE NODE TABLE test(id INT64, prop STRUCT(age INT64, name STRING), PRIMARY KEY(id));
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT CREATE (a:test {id:1, prop:{age:10, name:'A'}})
+---- ok
+-STATEMENT MATCH (a:test) RETURN a.prop
+---- 1
+{age: 10, name: A}
+-STATEMENT COMMIT
+---- ok
+
+-CASE CreateVarList
+-STATEMENT CREATE NODE TABLE test(id INT64, prop STRING[], PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (a:test {id:1, prop:['A', 'B', 'C', 'This is a long string for test']})
+---- ok
+-STATEMENT MATCH (a:test) RETURN a.prop
+---- 1
+[A,B,C,This is a long string for test]
+
+-CASE CreateDeleteNodeOnEmptyTable
+-STATEMENT CREATE NODE TABLE emptyTable(id INT64, prop INT64[], PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (e:emptyTable {id: 0, prop: [3,2]})
+---- ok
+-STATEMENT MATCH (a:emptyTable) RETURN a.*
+---- 1
+0|[3,2]
+-STATEMENT MATCH (a:emptyTable) DELETE a
+---- ok
+-STATEMENT CREATE (e:emptyTable {id: 2, prop: [1,5,6]})
+---- ok
+-STATEMENT MATCH (a:emptyTable) RETURN a.*
+---- 1
+2|[1,5,6]
+
+-CASE CreateMap
+-STATEMENT CREATE NODE TABLE test(name STRING, m MAP(STRING,STRING), PRIMARY KEY(name));
+---- ok
+-STATEMENT CREATE (t:test {name:"foo"});
+---- ok
+-STATEMENT CREATE (t:test {name:"foobar"});
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.*;
+---- 2
+foo|
+foobar|

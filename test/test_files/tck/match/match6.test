@@ -1,0 +1,742 @@
+-GROUP TCKMatch6
+-DATASET CSV tck
+
+--
+
+# Zero-length named path
+-CASE Scenario1
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A);
+---- ok
+-STATEMENT MATCH p = (a)
+           RETURN p;
+---- 1
+{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0}], _RELS: []}
+
+# Return a simple path
+-CASE Scenario2
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE KNOWS(FROM A TO B);
+---- ok
+-STATEMENT CREATE (a:A {name: 'A'})-[:KNOWS]->(b:B {name: 'B'});
+---- ok
+-STATEMENT MATCH p = (a {name: 'A'})-->(b)
+           RETURN p;
+---- 1
+{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 1:0, _LABEL: B, ID: 0, name: B}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 2:0}->(1:0)]}
+
+# Return a three node path
+-CASE Scenario3
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE C(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP KNOWS(FROM A TO B, FROM B TO C);
+---- ok
+-STATEMENT CREATE (a:A {name: 'A'})-[:KNOWS_A_B]->(b:B {name: 'B'})-[:KNOWS_B_C]->(c:C {name: 'C'});
+---- ok
+-STATEMENT MATCH p = (a {name: 'A'})-[rel1]->(b)-[rel2]->(c)
+           RETURN p;
+---- 1
+{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 1:0, _LABEL: B, ID: 0, name: B},{_ID: 2:0, _LABEL: C, ID: 0, name: C}], _RELS: [(0:0)-{_LABEL: KNOWS_A_B, _ID: 4:0}->(1:0),(1:0)-{_LABEL: KNOWS_B_C, _ID: 5:0}->(2:0)]}
+
+# Respecting direction when matching non-existent path
+-CASE Scenario4
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+-STATEMENT CREATE (a:A {name: 'a'}), (b:A {name: 'b'})
+           CREATE (a)-[:T]->(b);
+---- ok
+-STATEMENT MATCH p = ({name: 'a'})<--({name: 'b'})
+           RETURN p;
+---- 0
+
+# Path query should return results in written order
+-CASE Scenario5
+-STATEMENT CREATE NODE TABLE Label1(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE Label2(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE TYPE(FROM Label2 TO Label1);
+---- ok
+-STATEMENT CREATE (:Label1)<-[:TYPE]-(:Label2);
+---- ok
+-STATEMENT MATCH p = (a:Label1)<--(:Label2)
+           RETURN p;
+---- 1
+{_NODES: [{_ID: 0:0, _LABEL: Label1, ID: 0},{_ID: 1:0, _LABEL: Label2, ID: 0}], _RELS: [(1:0)-{_LABEL: TYPE, _ID: 2:0}->(0:0)]}
+
+# Handling direction of named paths
+-CASE Scenario6
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO B);
+---- ok
+-STATEMENT CREATE (a:A)-[:T]->(b:B);
+---- ok
+-STATEMENT MATCH p = (b)<--(a)
+           RETURN p;
+---- 1
+{_NODES: [{_ID: 1:0, _LABEL: B, ID: 0},{_ID: 0:0, _LABEL: A, ID: 0}], _RELS: [(0:0)-{_LABEL: T, _ID: 2:0}->(1:0)]}
+
+# Respecting direction when matching existing path
+-CASE Scenario7
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+-STATEMENT CREATE (a:A {name: 'a'}), (b:A {name: 'b'})
+           CREATE (a)-[:T]->(b);
+---- ok
+-STATEMENT MATCH p = ({name: 'a'})-->({name: 'b'})
+           RETURN p;
+---- 1
+{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: a},{_ID: 0:1, _LABEL: A, ID: 1, name: b}], _RELS: [(0:0)-{_LABEL: T, _ID: 1:0}->(0:1)]}
+
+# Respecting direction when matching non-existent path with multiple directions
+-CASE Scenario8
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP T(FROM A TO B, FROM B TO A);
+---- ok
+-STATEMENT CREATE (a:A), (b:B)
+           CREATE (a)-[:T_A_B]->(b),
+                  (b)-[:T_B_A]->(a);
+---- ok
+-STATEMENT MATCH p = (n)-->(k)<--(n)
+           RETURN p;
+---- 0
+
+# Longer path query should return results in written order
+-CASE Scenario9
+-SKIP
+-STATEMENT CREATE NODE TABLE Label1(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE Label2(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE Label3(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T1(FROM Label2 TO Label1);
+---- ok
+-STATEMENT CREATE REL TABLE T2(FROM Label2 TO Label3);
+---- ok
+-STATEMENT CREATE (:Label1)<-[:T1]-(:Label2)-[:T2]->(:Label3);
+---- ok
+-STATEMENT MATCH p = (a:Label1)<--(:Label2)--()
+           RETURN p;
+---- 1
+{_NODES: [{_ID: 0:0, _LABEL: Label1, ID: 0},{_ID: 1:0, _LABEL: Label2, ID: 0},{_ID: 2:0, _LABEL: Label3, ID: 0}], _RELS: [(1:0)-{_LABEL: T1, _ID: 3:0}->(0:0),(1:0)-{_LABEL: T2, _ID: 4:0}->(2:0)]}
+
+# Named path with alternating directed/undirected relationships
+-CASE Scenario10
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP T(FROM B TO A, FROM C TO B);
+---- ok
+-STATEMENT CREATE (a:A), (b:B), (c:C)
+           CREATE (b)-[:T_B_A]->(a),
+                  (c)-[:T_C_B]->(b);
+---- ok
+-STATEMENT MATCH p = (n)-->(m)--(o)
+           RETURN p;
+---- 1
+{_NODES: [{_ID: 2:0, _LABEL: C, ID: 0},{_ID: 1:0, _LABEL: B, ID: 0},{_ID: 0:0, _LABEL: A, ID: 0}], _RELS: [(2:0)-{_LABEL: T_C_B, _ID: 5:0}->(1:0),(1:0)-{_LABEL: T_B_A, _ID: 4:0}->(0:0)]}
+
+# Named path with multiple alternating directed/undirected relationships
+-CASE Scenario11
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE D(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP T(FROM B TO A, FROM C TO B, FROM D TO C);
+---- ok
+-STATEMENT CREATE (a:A), (b:B), (c:C), (d:D)
+           CREATE (b)-[:T_B_A]->(a),
+                  (c)-[:T_C_B]->(b),
+                  (d)-[:T_D_C]->(c);
+---- ok
+-STATEMENT MATCH path = (n)-->(m)--(o)--(p)
+           RETURN path;
+---- 1
+{_NODES: [{_ID: 3:0, _LABEL: D, ID: 0},{_ID: 2:0, _LABEL: C, ID: 0},{_ID: 1:0, _LABEL: B, ID: 0},{_ID: 0:0, _LABEL: A, ID: 0}], _RELS: [(3:0)-{_LABEL: T_D_C, _ID: 7:0}->(2:0),(2:0)-{_LABEL: T_C_B, _ID: 6:0}->(1:0),(1:0)-{_LABEL: T_B_A, _ID: 5:0}->(0:0)]}
+
+# Matching path with multiple bidirectional relationships
+-CASE Scenario12
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T1(FROM A TO B);
+---- ok
+-STATEMENT CREATE REL TABLE T2(FROM B TO A);
+---- ok
+-STATEMENT CREATE (a:A), (b:B)
+           CREATE (a)-[:T1]->(b),
+                  (b)-[:T2]->(a);
+---- ok
+-STATEMENT MATCH p=(n)--(k)--(n)
+           RETURN p;
+---- 4
+{...}
+{...}
+{...}
+{...}
+
+# Matching path with both directions should respect other directions
+-CASE Scenario13
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T1(FROM A TO B);
+---- ok
+-STATEMENT CREATE REL TABLE T2(FROM B TO A);
+---- ok
+-STATEMENT CREATE (a:A), (b:B)
+           CREATE (a)-[:T1]->(b),
+                  (b)-[:T2]->(a);
+---- ok
+-STATEMENT MATCH p=(n)--(k)<--(n)
+           RETURN p;
+---- 2
+{...}
+{...}
+
+# Named path with undirected fixed variable length pattern
+-CASE Scenario14
+-SKIP
+-STATEMENT CREATE NODE TABLE Start(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE End(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP CONNECTED_TO(FROM A TO Start, FROM A TO End, FROM A TO A);
+---- ok
+-STATEMENT CREATE (db1:Start), (db2:End), (mid:A), (other:A)
+           CREATE (mid)-[:CONNECTED_TO_A_Start]->(db1),
+                  (mid)-[:CONNECTED_TO_A_End]->(db2),
+                  (mid)-[:CONNECTED_TO_A_End]->(db2),
+                  (mid)-[:CONNECTED_TO_A_A]->(other),
+                  (mid)-[:CONNECTED_TO_A_A]->(other);
+---- ok
+-STATEMENT MATCH topRoute = (:Start)<-[:CONNECTED_TO]-()-[:CONNECTED_TO*3..3]-(:End)
+           RETURN topRoute;
+---- 4
+{...}
+{...}
+{...}
+{...}
+
+# Variable-length named path
+-CASE Scenario15
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+-STATEMENT CREATE (:A);
+---- ok
+-STATEMENT MATCH p = ()-[*0..]->()
+           RETURN p;
+---- 1
+{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0}], _RELS: []}
+
+# Return a var length path
+-CASE Scenario16
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE C(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP KNOWS(FROM A TO B, FROM B TO C, num INT64);
+---- ok
+-STATEMENT CREATE (a:A {name: 'A'})-[:KNOWS_A_B {num: 1}]->(b:B {name: 'B'})-[:KNOWS_B_C {num: 2}]->(c:C {name: 'C'});
+---- ok
+-STATEMENT MATCH p = (n {name: 'A'})-[:KNOWS*1..2]->(x)
+           RETURN p;
+---- 2
+{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 1:0, _LABEL: B, ID: 0, name: B},{_ID: 2:0, _LABEL: C, ID: 0, name: C}], _RELS: [(0:0)-{_LABEL: KNOWS_A_B, _ID: 4:0, num: 1}->(1:0),(1:0)-{_LABEL: KNOWS_B_C, _ID: 5:0, num: 2}->(2:0)]}
+{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 1:0, _LABEL: B, ID: 0, name: B}], _RELS: [(0:0)-{_LABEL: KNOWS_A_B, _ID: 4:0, num: 1}->(1:0)]}
+
+# Return a named var length path of length zero
+-CASE Scenario17
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE C(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE KNOWS(FROM A TO B);
+---- ok
+-STATEMENT CREATE REL TABLE FRIEND(FROM B TO C);
+---- ok
+-STATEMENT CREATE (a:A {name: 'A'})-[:KNOWS]->(b:B {name: 'B'})-[:FRIEND]->(c:C {name: 'C'});
+---- ok
+-STATEMENT MATCH p = (a {name: 'A'})-[:KNOWS*0..1]->(b)-[:FRIEND*0..1]->(c)
+           RETURN p;
+---- 3
+{...}
+{...}
+{...}
+
+# Undirected named path
+-CASE Scenario18
+-SKIP
+-STATEMENT CREATE NODE TABLE Movie(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO Movie);
+---- ok
+-STATEMENT CREATE (a:Movie), (b:A)
+           CREATE (b)-[:T]->(a);
+---- ok
+-STATEMENT MATCH p = (n:Movie)--(m)
+           RETURN p;
+---- 1
+{_NODES: [{_ID: 0:0, _LABEL: Movie, ID: 0},{_ID: 1:0, _LABEL: A, ID: 0}], _RELS: [(1:0)-{_LABEL: T, _ID: 2:0}->(0:0)]}
+
+# Variable length relationship without lower bound
+-CASE Scenario19
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE KNOWS(FROM A TO A);
+---- ok
+-STATEMENT CREATE (a:A {name: 'A'}), (b:A {name: 'B'}), (c:A {name: 'C'})
+           CREATE (a)-[:KNOWS]->(b),
+                  (b)-[:KNOWS]->(c);
+---- ok
+-STATEMENT MATCH p = ({name: 'A'})-[:KNOWS*..2]->()
+           RETURN p;
+---- 2
+{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 0:1, _LABEL: A, ID: 1, name: B},{_ID: 0:2, _LABEL: A, ID: 2, name: C}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 1:0}->(0:1),(0:1)-{_LABEL: KNOWS, _ID: 1:1}->(0:2)]}
+{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 0:1, _LABEL: A, ID: 1, name: B}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 1:0}->(0:1)]}
+
+# Variable length relationship without bounds
+-CASE Scenario20
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE KNOWS(FROM A TO A);
+---- ok
+-STATEMENT CREATE (a:A {name: 'A'}), (b:A {name: 'B'}), (c:A {name: 'C'})
+           CREATE (a)-[:KNOWS]->(b),
+                  (b)-[:KNOWS]->(c);
+---- ok
+-STATEMENT MATCH p = ({name: 'A'})-[:KNOWS*..]->()
+           RETURN p;
+---- 2
+{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 0:1, _LABEL: A, ID: 1, name: B},{_ID: 0:2, _LABEL: A, ID: 2, name: C}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 1:0}->(0:1),(0:1)-{_LABEL: KNOWS, _ID: 1:1}->(0:2)]}
+{_NODES: [{_ID: 0:0, _LABEL: A, ID: 0, name: A},{_ID: 0:1, _LABEL: A, ID: 1, name: B}], _RELS: [(0:0)-{_LABEL: KNOWS, _ID: 1:0}->(0:1)]}
+
+# Fail when a node has the same variable in a preceding MATCH
+-CASE Scenario21
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+-STATEMENT MATCH (p)-[]-()
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH (p)-[]->()
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH (p)<-[]-()
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[]-(p)
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[]->(p)
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()<-[]-(p)
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH (p)-[]-(), ()
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[]-(p), ()
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH (p)-[]-()-[]-()
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[]-(p)-[]-()
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[]-()-[]-(p)
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH (a)-[r]-(p)-[]->(b), (t), (t)-[*]-(b)
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH (a)-[r*]-(s)-[]-(b), (p), (t)-[]-(b)
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH (a)-[r]-(p)<-[*]-(b), (t), (t)-[]-(b)
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+
+# Fail when a relationship has the same variable in a preceding MATCH
+-CASE Scenario22
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+-STATEMENT MATCH ()-[p]-()
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[p]->()
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()<-[p]-()
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[p*]-()
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[p*]->()
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()<-[p*]-()
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[p]-(), ()
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[p*]-(), ()
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[p]-()-[]-()
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[p*]-()-[]-()
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[]-()-[p]-()
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[]-()-[p*]-()
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH (a)-[r]-()-[]->(b), (t), (t)-[p*]-(b)
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH (a)-[r*]-(s)-[p]-(b), (t), (t)-[]-(b)
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH (a)-[r]-(s)<-[p]-(b), (t), (t)-[]-(b)
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+
+# Fail when a node has the same variable in the same pattern
+-CASE Scenario23
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+-STATEMENT MATCH p = (p)-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH p = (p)-[]->()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH p = (p)<-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH p = ()-[]-(p)
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH p = ()-[]->(p)
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH p = ()<-[]-(p)
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH (p)-[]-(), p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH (p)-[]->(), p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH (p)<-[]-(), p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[]-(p), p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[]->(p), p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()<-[]-(p), p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH (p)-[]-(), (), p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[p]-(), (), p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[]-(p), (), p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH (p)-[]-()-[]-(), p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[]-(p)-[]-(), p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[]-()-[]-(p), p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH (a)-[r]-(p)-[]-(b), p = (s)-[]-(t), (t), (t)-[]-(b)
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH (a)-[r]-(p)<-[*]-(b), p = (s)-[]-(t), (t), (t)-[]-(b)
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+
+# Fail when a relationship has the same variable in the same pattern
+-CASE Scenario24
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+-STATEMENT MATCH p = ()-[p]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH p = ()-[p]->()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH p = ()<-[p]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH p = ()-[p*]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH p = ()-[p*]->()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH p = ()<-[p*]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[p]-(), p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[p]->(), p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()<-[p]-(), p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[p*]-(), p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[p*]->(), p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()<-[p*]-(), p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[p]-(), (), p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[p*]-(), (), p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[p]-()-[]-(), p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[p*]-()-[]-(), p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[]-()-[p]-(), p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH ()-[]-()-[p*]-(), p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH (a)-[r]-(s)-[p]-(b), p = (s)-[]-(t), (t), (t)-[]-(b)
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT MATCH (a)-[r]-(s)<-[p*]-(b), p = (s)-[]-(t), (t), (t)-[]-(b)
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+
+# Fail when matching a path variable bound to a value
+-CASE Scenario25
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+-STATEMENT WITH True AS p
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT WITH 123 AS p
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT WITH 123.4 AS p
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT WITH 'foo' AS p
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT WITH [] AS p
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT WITH [10] AS p
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT WITH {x: 1} AS p
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound
+-STATEMENT WITH {x: []} AS p
+           MATCH p = ()-[]-()
+           RETURN p;
+---- error
+SyntaxError: VariableAlreadyBound

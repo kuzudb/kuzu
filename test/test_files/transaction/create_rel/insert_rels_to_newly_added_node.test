@@ -1,0 +1,66 @@
+-GROUP CreateRelTest
+-DATASET CSV rel-update-tests
+--
+
+-DEFINE_STATEMENT_BLOCK INSERT_RELS_TO_DIFFERENT_NODES [
+-STATEMENT CREATE (a:person {ID: 3000})
+---- ok
+-STATEMENT MATCH (a:person),(b:person) WHERE a.ID=3000 and b.ID=2100 CREATE (a)-[e:knows{length: 50, place: 'long long string test'}]->(b)
+---- ok
+-STATEMENT MATCH (a:person),(b:person) WHERE a.ID=3000 and b.ID=782 CREATE (a)-[e:knows{length: 43}]->(b)
+---- ok
+-STATEMENT MATCH (a:person),(b:person) WHERE a.ID=3000 and b.ID=230 CREATE (a)-[e:knows]->(b)
+---- ok
+]
+
+-CASE insertRelsToDifferentNodesCommitNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_RELS_TO_DIFFERENT_NODES
+-STATEMENT COMMIT
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(:person) WHERE a.ID > 2600 RETURN e.length, e.place
+---- 3
+43|
+50|long long string test
+|
+
+-CASE insertRelsToNewlyAddedNodeCommitRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_RELS_TO_DIFFERENT_NODES
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(:person) WHERE a.ID > 2600 RETURN e.length, e.place
+---- 3
+43|
+50|long long string test
+|
+
+-CASE insertRelsToNewlyAddedNodeRollbackNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_RELS_TO_DIFFERENT_NODES
+-STATEMENT Rollback
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(:person) WHERE a.ID > 2600 RETURN e.length, e.place
+---- 0
+
+-CASE insertRelsToNewlyAddedNodeRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_RELS_TO_DIFFERENT_NODES
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(:person) WHERE a.ID > 2600 RETURN e.length, e.place
+---- 0

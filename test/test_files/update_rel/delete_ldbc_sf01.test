@@ -1,0 +1,20 @@
+-GROUP LDBCSF01CreateReadRelTest
+-DATASET CSV ldbc-sf01
+--
+
+# There is some ASAN issue on some platforms. https://github.com/kuzudb/kuzu/actions/runs/6912515133/job/18808478814?pr=2448
+-CASE DeleteLikeComment1
+-SKIP
+-STATEMENT MATCH (n:Person)-[e:likes_Comment]->(m:Comment) WHERE n.id=6597069767457 RETURN COUNT(*);
+---- 1
+66
+-STATEMENT MATCH (n:Person)-[e:likes_Comment]->(m:Comment) WHERE n.id=6597069767457 AND m.id=412317167195 DELETE e;
+---- ok
+-STATEMENT MATCH (n:Person)-[e:likes_Comment]->(m:Comment) WHERE n.id=6597069767457 RETURN COUNT(*);
+---- 1
+65
+-STATEMENT MATCH (n:Person)-[e:likes_Comment]->(m:Comment) WHERE n.id=6597069767457 DELETE e;
+---- ok
+-STATEMENT MATCH (n:Person)-[e:likes_Comment]->(m:Comment) WHERE n.id=6597069767457 RETURN COUNT(*);
+---- 1
+0

@@ -1,0 +1,71 @@
+-GROUP UpdateRelTest
+-DATASET CSV rel-update-tests
+
+--
+
+-DEFINE_STATEMENT_BLOCK INSERT_DELETE_AND_UPDATE_RELS_IN_SAME_LIST [
+-STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 50 delete e;
+---- ok
+-STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 612 delete e;
+---- ok
+-STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 1300 delete e;
+---- ok
+-STATEMENT MATCH (p1:person),(p2:person) WHERE p1.ID = 0 AND p2.ID = 30 CREATE (p1)-[e:knows{length:30}]->(p2);
+---- ok
+-STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 100 set e.length = 712;
+---- ok
+-STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 500 set e.length = 400;
+---- ok
+]
+
+-CASE insertDeleteAndUpdateRelsInSameListCommitNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK  INSERT_DELETE_AND_UPDATE_RELS_IN_SAME_LIST
+-STATEMENT COMMIT
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p0:person)-[e:knows]->(p1:person) WHERE p0.ID = 0 return e.length
+---- 2298
+<FILE>:insert_delete_and_update_rels_in_same_list_commit.txt
+
+-CASE insertDeleteAndUpdateRelsInSameListCommitRecovery
+-LOG insertDeleteAndUpdateRelsInSameListCommitRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK  INSERT_DELETE_AND_UPDATE_RELS_IN_SAME_LIST
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p0:person)-[e:knows]->(p1:person) WHERE p0.ID = 0 return e.length
+---- 2298
+<FILE>:insert_delete_and_update_rels_in_same_list_commit.txt
+
+-CASE insertDeleteAndUpdateRelsInSameListRollbackNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK  INSERT_DELETE_AND_UPDATE_RELS_IN_SAME_LIST
+-STATEMENT Rollback
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p0:person)-[e:knows]->(p1:person) WHERE p0.ID = 0 return e.length
+---- 2300
+<FILE>:delete_rels.txt
+
+
+-CASE insertDeleteAndUpdateRelsInSameListRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK  INSERT_DELETE_AND_UPDATE_RELS_IN_SAME_LIST
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p0:person)-[e:knows]->(p1:person) WHERE p0.ID = 0 return e.length
+---- 2300
+<FILE>:delete_rels.txt

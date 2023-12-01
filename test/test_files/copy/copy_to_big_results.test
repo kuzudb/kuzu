@@ -1,0 +1,112 @@
+-GROUP CopyToBigResults
+-DATASET CSV copy-test/node/csv
+
+--
+
+-CASE CopyBigResults
+
+-DEFINE_STATEMENT_BLOCK VALIDATE_RESULT [
+-STATEMENT MATCH (t:tableOfTypesCopyCSV) RETURN COUNT(*);
+---- 1
+49999
+
+-STATEMENT MATCH (row:tableOfTypesCopyCSV) WHERE row.id >= 20 AND row.id <= 26 RETURN row.*;
+---- 7
+20|0|57.579280|True|1731-09-26|1731-09-26 03:30:08|OdM|[93,,86,37]
+21|7|64.630960|False|1307-01-26|1307-01-26 03:31:08|AjbxHQThEtDDlOjbzMjCQSXlvGQEjcFLykESrnFHwPKX|[]
+22|71|37.963386|True|1455-07-26|1455-07-26 03:07:03|dRvHHdyNXYfSUcicaxBoQEKQUfgex|[72,,45,,81]
+23|58|42.774957|False|1181-10-16|1181-10-16 18:19:43|ISImRVpUjynGMFRQyYmeIUVjM|
+24|75|53.813224|False|1942-10-24|1942-10-24 09:30:16|naDlQ|[97,91,28,26,]
+25|21|36.697493|False|1355-11-03|1355-11-03 08:00:54|qjdFAwvauRsGXSLdATsDkhABfhDkYeyIfaHUJ|[39,91,47,25,75]
+26|33|57.068986|False|1605-01-13|1605-01-13 22:39:50|AEozbCDOKTFSAtJQjCkoEFKDztVJCMWbGIxOTDtlpoxMkHXb|[0,80,100,57]
+
+-LOG CheckSumTest
+-STATEMENT MATCH (row:tableOfTypesCopyCSV) RETURN sum(row.id), sum(row.int64Column)
+---- 1
+1249925001|2500180
+
+-LOG EmptyStringTest
+-STATEMENT MATCH (row:tableOfTypesCopyCSV) WHERE row.id = 49992 RETURN row.*;
+---- 1
+49992|50|31.582059|False|1551-07-19|1551-07-19 16:28:31||[5,67,66]
+
+-LOG DateTest
+-STATEMENT MATCH (row:tableOfTypesCopyCSV) WHERE row.id = 25531 RETURN row.*;
+---- 1
+25531|77|28.417543|False|1895-03-13|1895-03-13 04:31:22|XB|[9,66,0,15]
+
+-LOG IntervalTest
+-STATEMENT MATCH (row:tableOfTypesCopyCSV) WHERE 0 <= row.doubleColumn AND row.doubleColumn <= 10 AND 0 <= row.int64Column AND row.int64Column <= 10 RETURN count(*);
+---- 1
+546
+
+-LOG OrderByTest
+-STATEMENT MATCH (row:tableOfTypesCopyCSV) RETURN row.id ORDER BY row.id DESC LIMIT 10;
+-PARALLELISM 1
+-CHECK_ORDER
+---- 10
+49998
+49997
+49996
+49995
+49994
+49993
+49992
+49991
+49990
+49989
+
+-LOG OrderByMultiColTest
+-STATEMENT MATCH (row:tableOfTypesCopyCSV) RETURN row.id ORDER BY row.id DESC, row.booleanColumn, row.doubleColumn LIMIT 10;
+-PARALLELISM 1
+-CHECK_ORDER
+---- 10
+49998
+49997
+49996
+49995
+49994
+49993
+49992
+49991
+49990
+49989
+]
+
+
+-LOG TestCSV
+
+-STATEMENT COPY (MATCH (r:tableOfTypes) RETURN r.*) TO '${DATABASE_PATH}/out.csv';
+---- ok
+
+-STATEMENT create node table tableOfTypesCopyCSV (id INT64, int64Column INT64, doubleColumn DOUBLE, booleanColumn BOOLEAN,
+dateColumn DATE, timestampColumn TIMESTAMP, stringColumn STRING, listOfInt INT64[], PRIMARY KEY (id));
+
+---- ok
+
+-STATEMENT COPY tableOfTypesCopyCSV FROM '${DATABASE_PATH}/out.csv';
+---- ok
+
+-INSERT_STATEMENT_BLOCK VALIDATE_RESULT
+
+-LOG TestParquet
+-STATEMENT COPY (MATCH (r:tableOfTypes) RETURN r.id,
+                                               r.doubleColumn,
+                                               r.booleanColumn,
+                                               r.dateColumn,
+                                               r.stringColumn,
+                                               r.listOfInt ORDER BY r.id) TO '${DATABASE_PATH}/out.parquet';
+---- ok
+
+-STATEMENT CREATE NODE TABLE tableOfTypesCopyParquet (id int64,
+                                                      db double,
+                                                      b boolean,
+                                                      dt date,
+                                                      s string,
+                                                      l int64[], primary key (id))
+---- ok
+
+-STATEMENT COPY tableOfTypesCopyParquet FROM '${DATABASE_PATH}/out.parquet'
+---- ok
+
+-INSERT_STATEMENT_BLOCK VALIDATE_RESULT

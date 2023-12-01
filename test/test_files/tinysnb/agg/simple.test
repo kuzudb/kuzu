@@ -1,0 +1,362 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE AggSimple
+
+-LOG OneHopSimpleAggTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN COUNT(a.ID), MIN(a.fName), MAX(c.ID),count(a.grades)
+-PARALLELISM 8
+-ENUMERATE
+---- 1
+36|Alice|5|36
+
+-LOG SimpleAvgTest
+-STATEMENT MATCH (a:person) RETURN AVG(a.age), AVG(a.eyeSight)
+---- 1
+37.250000|4.862500
+
+-LOG SimpleAvgFloatTest
+-STATEMENT MATCH (a:person) RETURN AVG(a.height) + 5
+---- 1
+6.364625
+
+-LOG SimpleCountTest
+-STATEMENT MATCH (a:person) RETURN COUNT(a.age) + 1
+---- 1
+9
+
+-LOG SimpleCountTest2
+-STATEMENT MATCH (a:person)-[e1:knows]->(:person) RETURN COUNT(e1)
+---- 1
+14
+
+-LOG SimpleSumTest
+-STATEMENT MATCH (a:person) RETURN SUM(a.age), SUM(a.eyeSight)
+---- 1
+298|38.900000
+
+-LOG SimpleSumTest2
+-STATEMENT MATCH (a:person) WHERE a.birthdate = date('1980-10-26') RETURN SUM(a.age+10), SUM(a.age*2)
+---- 1
+115|170
+
+-LOG SimpleSumTest3
+-STATEMENT MATCH (a:person) WHERE a.birthdate = date('1980-10-26') RETURN SUM(a.age+10) > SUM(a.age*2)
+---- 1
+False
+
+-LOG SimpleSumTest4
+-STATEMENT MATCH (a:person) RETURN sum(a.height) + 2.2
+---- 1
+13.117001
+
+-LOG SimpleAvgTest
+-STATEMENT MATCH (a:person) RETURN AVG(a.age), AVG(a.eyeSight)
+---- 1
+37.250000|4.862500
+
+-LOG SimpleAvgTest2
+-STATEMENT MATCH (a:person) WHERE a.birthdate = date('1980-10-26') RETURN AVG(a.age), AVG(a.eyeSight)
+---- 1
+28.333333|4.700000
+
+-LOG SimpleMinMaxTest
+-STATEMENT MATCH (a:person) RETURN MIN(a.age), MAX(a.age), MIN(a.isStudent), MAX(a.isStudent), MIN(a.eyeSight), MAX(a.eyeSight), MIN(a.birthdate), MAX(a.birthdate)
+---- 1
+20|83|False|True|4.500000|5.100000|1900-01-01|1990-11-27
+
+-LOG SimpleMinTest
+-STATEMENT MATCH (m:movies) RETURN MIN(m.note)
+---- 1
+ the movie is very very good
+
+-LOG TwoHopTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN SUM(b.age), MIN(b.ID), AVG(b.eyeSight)
+-ENUMERATE
+---- 1
+455|0|4.935714
+
+-LOG INT8KeyTest
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.level = 5 RETURN p.ID, o.ID
+-ENUMERATE
+---- 1
+0|1
+
+-LOG UINT8KeyTest
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.ulevel = 220 RETURN p.ID, o.ID
+-ENUMERATE
+---- 1
+2|1
+
+-LOG UINT16KeyTest
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.ulength = 90 RETURN p.ID, o.ID
+-ENUMERATE
+---- 1
+2|1
+
+-LOG UINT32KeyTest
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.temprature = 1 RETURN p.ID, o.ID
+-ENUMERATE
+---- 1
+2|1
+
+-LOG UINT64KeyTest
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.code = 6689 RETURN p.ID, o.ID
+-ENUMERATE
+---- 1
+2|1
+
+-LOG INT128KeyTest
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) WHERE s.hugedata = 1844674407370955161811111111 RETURN p.ID, o.ID
+-ENUMERATE
+---- 1
+0|1
+
+-LOG SimpleCollectINT64Test
+-STATEMENT MATCH (p:person) RETURN collect(p.age)
+---- 1
+[35,30,45,20,20,25,40,83]
+
+-LOG SimpleCollectINT32Test
+-STATEMENT MATCH (m:movies) RETURN collect(m.length)
+---- 1
+[126,2544,298]
+
+-LOG SimpleCollectINT16Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN collect(e.length)
+---- 1
+[5,55,22]
+
+-LOG SimpleCollectINT8Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN collect(e.level)
+---- 1
+[5,120,2]
+
+-LOG SimpleCollectUINT64Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN collect(e.code)
+---- 1
+[9223372036854775808,6689,23]
+
+-LOG SimpleCollectUINT32Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN collect(e.temprature)
+---- 1
+[32800,1,20]
+
+-LOG SimpleCollectUINT16Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN collect(e.ulength)
+---- 1
+[33768,90,180]
+
+-LOG SimpleCollectUINT8Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN collect(e.ulevel)
+---- 1
+[250,220,12]
+
+-LOG SimpleCollectINT128Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN collect(e.hugedata)
+---- 1
+[1844674407370955161811111111,-1844674407370955161511,-15]
+
+-LOG SimpleCollectBLOBTest
+-STATEMENT MATCH (m:movies) RETURN collect(m.content)
+---- 1
+[\xAA\xABinteresting\x0B,\xAB\xCD,pure ascii characters]
+
+-LOG SimpleCollectSTRINGTest
+-STATEMENT MATCH (p:person) RETURN collect(p.fName)
+---- 1
+[Alice,Bob,Carol,Dan,Elizabeth,Farooq,Greg,Hubert Blaine Wolfeschlegelsteinhausenbergerdorff]
+
+-LOG SimpleCollectFLOATTest
+-STATEMENT MATCH (p:person) RETURN collect(p.height)
+---- 1
+[1.731000,0.990000,1.000000,1.300000,1.463000,1.510000,1.600000,1.323000]
+
+-LOG SimpleCollectLISTOfINT64Test
+-STATEMENT MATCH (p:person) RETURN collect(p.workedHours)
+---- 1
+[[10,5],[12,8],[4,5],[1,9],[2],[3,4,5,6,7],[1],[10,11,12,3,4,5,6,7]]
+
+-LOG SimpleCollectLISTOfSTRINGTest
+-STATEMENT MATCH (p:person) RETURN collect(p.usedNames)
+---- 1
+[[Aida],[Bobby],[Carmen,Fred],[Wolfeschlegelstein,Daniel],[Ein],[Fesdwe],[Grad],[Ad,De,Hi,Kye,Orlan]]
+
+-LOG SimpleCollectLISTOfLISTOfINT64Test
+-STATEMENT MATCH (p:person) RETURN collect(p.courseScoresPerTerm)
+---- 1
+[[[10,8],[6,7,8]],[[8,9],[9,10]],[[8,10]],[[7,4],[8,8],[9]],[[6],[7],[8]],[[8]],[[10]],[[7],[10],[6,7]]]
+
+-LOG SimpleCollectLISTOfINT64MultiThreadTest
+-STATEMENT MATCH (p:person) RETURN collect(p.workedHours)
+-PARALLELISM 8
+---- 1
+[[10,5],[12,8],[4,5],[1,9],[2],[3,4,5,6,7],[1],[10,11,12,3,4,5,6,7]]
+
+-LOG SimpleCollectNodeTest
+-STATEMENT MATCH (p:person) WHERE p.ID = 0 WITH collect(p) as friend RETURN friend;
+-PARALLELISM 8
+---- 1
+[{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000}]
+
+-LOG SimpleCollectRelTest
+-STATEMENT MATCH (p:person)-[e:knows]->(p1:person) WHERE p.ID = 0 AND p1.ID = 2 WITH collect(e) as relation RETURN relation;
+-PARALLELISM 6
+---- 1
+[(0:0)-{_LABEL: knows, _ID: 3:0, date: 2021-06-30, meetTime: 1986-10-21 21:08:31.521, validInterval: 10 years 5 months 13:00:00.000024, comments: [rnme,m8sihsdnf2990nfiwf], summary: {locations: ['toronto','waterloo'], transfer: {day: 2021-01-02, amount: [100,200]}}, notes: 1}->(0:1)]
+
+-LOG SimpleAggMinTimestampTest
+-STATEMENT MATCH (a:person) RETURN MIN(a.registerTime)
+-PARALLELISM 8
+-ENUMERATE
+---- 1
+1911-08-20 02:32:21
+
+-LOG SimpleAggMinDateTest
+-STATEMENT MATCH (a:person) RETURN MIN(a.birthdate)
+-PARALLELISM 7
+-ENUMERATE
+---- 1
+1900-01-01
+
+-LOG SimpleAggMinIntervalTest
+-STATEMENT MATCH (a:person) RETURN MIN(a.lastJobDuration)
+-PARALLELISM 4
+-ENUMERATE
+---- 1
+00:18:00.024
+
+-LOG SimpleAggMaxFloatTest
+-STATEMENT MATCH (:person)-[w:workAt]->(:organisation) RETURN MAX(w.rating)
+-PARALLELISM 3
+-ENUMERATE
+---- 1
+9.200000
+
+-LOG SimpleAggMaxInt16Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.length)
+-PARALLELISM 4
+-ENUMERATE
+---- 1
+55
+
+-LOG SimpleAggSumInt16Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.length)
+-PARALLELISM 2
+-ENUMERATE
+---- 1
+82
+
+-LOG SimpleAggAvgInt16Test
+-STATEMENT MATCH (m:movies) RETURN AVG(m.length), count(m.audience), count(m.grade)
+-PARALLELISM 7
+-ENUMERATE
+---- 1
+989.333333|3|3
+
+-LOG SimpleAggMaxInt8Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.level)
+-PARALLELISM 4
+-ENUMERATE
+---- 1
+120
+
+-LOG SimpleAggSumInt8Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.level)
+-PARALLELISM 2
+-ENUMERATE
+---- 1
+127
+
+-LOG SimpleAggMaxUInt64Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.code)
+-PARALLELISM 2
+-ENUMERATE
+---- 1
+9223372036854775808
+
+-LOG SimpleAggSumUInt64Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.code)
+-PARALLELISM 2
+-ENUMERATE
+---- 1
+9223372036854782520
+
+-LOG SimpleAggMaxUInt32Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.temprature)
+-PARALLELISM 2
+-ENUMERATE
+---- 1
+32800
+
+-LOG SimpleAggSumUInt32Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.temprature)
+-PARALLELISM 2
+-ENUMERATE
+---- 1
+32821
+
+-LOG SimpleAggMaxUInt16Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.ulength)
+-PARALLELISM 2
+-ENUMERATE
+---- 1
+33768
+
+-LOG SimpleAggSumUInt16Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.ulength)
+-PARALLELISM 2
+-ENUMERATE
+---- 1
+34038
+
+-LOG SimpleAggMaxUInt8Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.ulevel)
+-PARALLELISM 2
+-ENUMERATE
+---- 1
+250
+
+-LOG SimpleAggSumUInt8Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.ulevel)
+-PARALLELISM 2
+-ENUMERATE
+---- 1
+226
+
+-LOG SimpleAggMaxInt128Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.hugedata)
+-PARALLELISM 2
+-ENUMERATE
+---- 1
+1844674407370955161811111111
+
+-LOG SimpleAggSumInt128Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.hugedata)
+-PARALLELISM 2
+-ENUMERATE
+---- 1
+1844672562696547790855949585
+
+-LOG SimpleAggCountBlob
+-STATEMENT MATCH (m:movies) RETURN COUNT(m.content)
+-PARALLELISM 3
+-ENUMERATE
+---- 1
+3
+
+-LOG SimpleAggMinBlob
+-STATEMENT MATCH (m:movies) RETURN MIN(m.content)
+-PARALLELISM 3
+-ENUMERATE
+---- 1
+pure ascii characters
+
+-LOG SimpleAggMaxBlob
+-STATEMENT MATCH (m:movies) RETURN MAX(m.content)
+-PARALLELISM 3
+-ENUMERATE
+---- 1
+\xAB\xCD

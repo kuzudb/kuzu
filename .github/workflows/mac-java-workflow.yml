@@ -1,0 +1,39 @@
+name: Build-Mac-Java-Lib
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build-mac-java-arm:
+    runs-on: self-hosted-mac-arm
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build Java lib for Apple Silicon
+        run: |
+          arch -arm64 env JAVA_HOME=$(/usr/libexec/java_home) make java LTO=1 NUM_THREADS=8
+        env:
+          MACOSX_DEPLOYMENT_TARGET: 11.0
+          ARCHFLAGS: "-arch arm64"
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: java-lib-osx-arm64
+          path: tools/java_api/build/libkuzu_java_native*
+
+  build-mac-java-x86:
+    runs-on: self-hosted-mac-x64
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build Java lib for Intel
+        run: |
+          env JAVA_HOME=$(/usr/libexec/java_home) make java LTO=1 NUM_THREADS=48
+        env:
+          MACOSX_DEPLOYMENT_TARGET: 10.15
+          ARCHFLAGS: "-arch x86_64"
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: java-lib-osx-x86_64
+          path: tools/java_api/build/libkuzu_java_native*

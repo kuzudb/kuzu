@@ -1,0 +1,65 @@
+-GROUP EmptyDBBinderErrorTest
+-DATASET CSV empty
+
+--
+
+-CASE MissingQueryNode
+-STATEMENT MATCH () WITH NULL AS a RETURN a;
+---- error
+Binder exception: No node table exists in database.
+
+-CASE DuplicateMacro
+-STATEMENT CREATE MACRO inc(x) AS x + 1
+---- ok
+-STATEMENT CREATE MACRO INC(x, y) AS x + y
+---- error
+Binder exception: Macro INC already exists.
+
+-CASE WrongNumOfNumpyFiles
+-STATEMENT CREATE NODE TABLE temp(ID INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT COPY temp FROM ("${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/id_int64.npy", "${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/two_dim_float.npy") BY COLUMN;
+---- error
+Binder exception: Number of columns mismatch. Expected 1 but got 2.
+
+-CASE DropNodeReferencedByRel
+-STATEMENT CREATE NODE TABLE person(ID INT64, PRIMARY KEY(ID))
+---- ok
+-STATEMENT CREATE REL TABLE follows(FROM person TO person)
+---- ok
+-STATEMENT DROP TABLE person
+---- error
+Binder exception: Cannot delete node table person referenced by rel table follows.
+
+-CASE MismatchedPropertyDataTypes
+-STATEMENT CREATE NODE TABLE person(ID INT64, PRIMARY KEY(ID))
+---- ok
+-STATEMENT CREATE NODE TABLE fruit(ID STRING, PRIMARY KEY(ID))
+---- ok
+-STATEMENT MATCH (pf:person:fruit) RETURN *;
+---- error
+Binder exception: Expected the same data type for property ID but found STRING and INT64.
+
+-CASE UnsupportedRecursiveRelProjectionItem
+-STATEMENT CREATE NODE TABLE person(ID INT64, PRIMARY KEY(ID))
+---- ok
+-STATEMENT CREATE REL TABLE follows(FROM person TO person)
+---- ok
+-STATEMENT MATCH (p:person)-[:follows* SHORTEST (r, n | {r}, {n})]-(q:person) RETURN *;
+---- error
+Binder exception: Unsupported projection item n on recursive rel.
+
+-CASE PathPropertiesErrors
+-STATEMENT CREATE NODE TABLE person(ID STRING, PRIMARY KEY(ID))
+---- ok
+-STATEMENT CREATE REL TABLE follows(FROM person TO person)
+---- ok
+-STATEMENT MATCH path = (p:person)-[:follows* SHORTEST]-(q:person) RETURN properties(nodes(path), p.ID)
+---- error
+Binder exception: Expected literal input as the second argument for PROPERTIES().
+-STATEMENT MATCH path = (p:person)-[:follows* SHORTEST]-(q:person) RETURN properties(nodes(path), "abc")
+---- error
+Binder exception: Invalid property name: abc.
+-STATEMENT MATCH path = (p:person)-[:follows* SHORTEST]-(q:person) RETURN properties([], "abc")
+---- error
+Binder exception: Cannot extract properties from STRING[].

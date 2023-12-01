@@ -1,0 +1,22 @@
+-GROUP TCKReturn1
+-DATASET CSV tck
+
+--
+
+# Returning a list property
+-CASE Scenario1
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, numbers INT64[], PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {numbers: [1, 2, 3]});
+---- ok
+-STATEMENT MATCH (n) RETURN n;
+---- 1
+{_ID: 0:0, _LABEL: A, ID: 0, numbers: [1,2,3]}
+
+# Fail when returning an undefined variable
+-CASE Scenario2
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT MATCH () RETURN foo;
+---- error
+Binder exception: Variable foo is not in scope.

@@ -1,0 +1,120 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE ProjectionSkipLimit
+
+-LOG BasicSkipTest1
+-STATEMENT MATCH (a:person) RETURN a.fName Skip 5
+---- 3
+Farooq
+Greg
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-LOG BasicSkipTest2
+-STATEMENT MATCH (a:person) RETURN a.fName Skip 10
+---- 0
+
+-LOG BasicLimitTest1
+-STATEMENT MATCH (a:person) RETURN a.fName LIMIT 2
+---- 2
+Alice
+Bob
+
+-LOG BasicLimitTest2
+-STATEMENT MATCH (a:person) RETURN a.fName LIMIT 10
+---- 8
+Alice
+Bob
+Carol
+Dan
+Elizabeth
+Farooq
+Greg
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-LOG BasicLimitTest3
+-STATEMENT MATCH (a:person) RETURN a.fName ORDER BY a.fName LIMIT 1 + 1
+-CHECK_ORDER
+---- 2
+Alice
+Bob
+
+-LOG BasicSkipLimitTest
+-STATEMENT MATCH (a:person) RETURN a.fName SKIP 1 LIMIT 2
+---- 2
+Bob
+Carol
+
+-LOG BasicSkipTest3
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person)-[:knows]->(d:person) WITH d.ID as dummy SKIP 10 RETURN COUNT(*)
+-ENUMERATE
+---- 1
+98
+
+-LOG BasicSkipTest4
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person)-[:knows]->(d:person)-[:knows]->(e:person) WITH e.ID as dummy SKIP 300 RETURN COUNT(*)
+-ENUMERATE
+---- 1
+24
+
+-LOG BasicLimitTest3
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person)-[:knows]->(d:person) WITH d.fName AS k LIMIT 5 RETURN COUNT(*)
+-ENUMERATE
+---- 1
+5
+
+-LOG BasicLimitTest4
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person)-[:knows]->(d:person)-[:knows]->(e:person) WITH d.fName AS k LIMIT 5 RETURN COUNT(*)
+-ENUMERATE
+---- 1
+5
+
+-LOG KnowsTwoHopLimitTest
+-STATEMENT MATCH (a:person)-[:knows]->(:person)-[:knows]->(b:person) WHERE a.age=35 RETURN b.fName AS k ORDER BY k LIMIT 1
+-ENUMERATE
+---- 1
+Alice
+
+-LOG KnowsOneHopWithLimitTest1
+-STATEMENT MATCH (a:person) WHERE a.age>20 WITH a LIMIT 1 MATCH (a)-[e:knows]->(b:person) RETURN b.fName
+-ENUMERATE
+---- 3
+Bob
+Carol
+Dan
+
+-LOG KnowsOneHopWithSkipLimitTest1
+-STATEMENT MATCH (a:person) WHERE a.age>20 WITH a ORDER BY a.ID SKIP 2 MATCH (a)-[e:knows]->(b:person) RETURN a.fName, b.fName ORDER BY b.fName LIMIT 2
+-ENUMERATE
+---- 2
+Carol|Alice
+Carol|Bob
+
+-LOG KnowsOneHopWithSkipLimitTest2
+-STATEMENT MATCH (a:person) WHERE a.age>20 WITH a SKIP 1 LIMIT 1 MATCH (a)-[e:knows]->(b:person) RETURN b.fName
+-ENUMERATE
+---- 3
+Alice
+Carol
+Dan
+
+-LOG KnowsOneHopWithLimitTest3
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.age=35 WITH b.ID AS id, b.fName AS n ORDER BY id LIMIT 1 RETURN n
+-ENUMERATE
+---- 1
+Bob
+
+-LOG LimitFixedListNodeProp
+-STATEMENT MATCH (a:person) RETURN a.grades LIMIT 3
+---- 3
+[96,54,86,92]
+[98,42,93,88]
+[91,75,21,95]
+
+-LOG LimitFixedListRelProp
+-STATEMENT MATCH (a:person)-[e:workAt]->(o:organisation) RETURN e.grading LIMIT 2
+---- 2
+[2.100000,4.400000]
+[3.800000,2.500000]

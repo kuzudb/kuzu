@@ -1,0 +1,16 @@
+-GROUP TinySnbCopyDateTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE NodePropertyColumnWithDate
+-STATEMENT MATCH (p:person) RETURN p.birthdate
+---- 8
+1900-01-01
+1900-01-01
+1940-06-22
+1950-07-23
+1980-10-26
+1980-10-26
+1980-10-26
+1990-11-27

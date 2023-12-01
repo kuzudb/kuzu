@@ -1,0 +1,65 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE AggDistinct
+
+-LOG SingleNodeDistinctAggTest1
+-STATEMENT MATCH (a:person) RETURN COUNT(DISTINCT a.gender), COUNT(DISTINCT a.age)
+---- 1
+2|7
+
+-LOG SingleNodeDistinctAggTest2
+-STATEMENT MATCH (a:person) RETURN a.gender, COUNT(DISTINCT a.isStudent)
+---- 2
+1|2
+2|2
+
+-LOG TwoHopDistinctAggTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN a.ID, SUM(DISTINCT a.age), SUM(DISTINCT c.age)
+-ENUMERATE
+---- 4
+0|35|130
+2|30|130
+3|45|130
+5|20|130
+
+-LOG OneHopDistinctAggTest
+-STATEMENT MATCH (p:person)-[:knows]->(:person) RETURN count(distinct p.ID)
+-ENUMERATE
+---- 1
+5
+
+-LOG SimpleDistinctCollectINT64Test
+-STATEMENT MATCH (p:person) RETURN collect(distinct p.age)
+---- 1
+[35,30,45,20,25,40,83]
+
+-LOG HashDistinctCollectDoubleTest
+-STATEMENT MATCH (p:person) RETURN p.gender, collect(distinct p.isStudent)
+---- 2
+1|[True,False]
+2|[True,False]
+
+-STATEMENT MATCH (p:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN DISTINCT c;
+---- 4
+{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000}
+{_ID: 0:1, _LABEL: person, ID: 2, fName: Bob, gender: 2, isStudent: True, isWorker: False, age: 30, eyeSight: 5.100000, birthdate: 1900-01-01, registerTime: 2008-11-03 15:25:30.000526, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [12,8], usedNames: [Bobby], courseScoresPerTerm: [[8,9],[9,10]], grades: [98,42,93,88], height: 0.990000}
+{_ID: 0:2, _LABEL: person, ID: 3, fName: Carol, gender: 1, isStudent: False, isWorker: True, age: 45, eyeSight: 5.000000, birthdate: 1940-06-22, registerTime: 1911-08-20 02:32:21, lastJobDuration: 48:24:11, workedHours: [4,5], usedNames: [Carmen,Fred], courseScoresPerTerm: [[8,10]], grades: [91,75,21,95], height: 1.000000}
+{_ID: 0:3, _LABEL: person, ID: 5, fName: Dan, gender: 2, isStudent: False, isWorker: True, age: 20, eyeSight: 4.800000, birthdate: 1950-07-23, registerTime: 2031-11-30 12:25:30, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [1,9], usedNames: [Wolfeschlegelstein,Daniel], courseScoresPerTerm: [[7,4],[8,8],[9]], grades: [76,88,99,89], height: 1.300000}
+
+-STATEMENT MATCH (p:person)-[:knows]->(b:person)-[e:knows]->(c:person)-[:knows]->(:person) RETURN DISTINCT e;
+---- 12
+(0:0)-{_LABEL: knows, _ID: 3:0, date: 2021-06-30, meetTime: 1986-10-21 21:08:31.521, validInterval: 10 years 5 months 13:00:00.000024, comments: [rnme,m8sihsdnf2990nfiwf], summary: {locations: ['toronto','waterloo'], transfer: {day: 2021-01-02, amount: [100,200]}}, notes: 1}->(0:1)
+(0:0)-{_LABEL: knows, _ID: 3:1, date: 2021-06-30, meetTime: 1946-08-25 19:07:22, validInterval: 20 years 30 days 48:00:00, comments: [njnojppo9u0jkmf,fjiojioh9h9h89hph], summary: {locations: , transfer: }, notes: 2020-10-10}->(0:2)
+(0:0)-{_LABEL: knows, _ID: 3:2, date: 2021-06-30, meetTime: 2012-12-11 20:07:22, validInterval: 10 days, comments: [ioji232,jifhe8w99u43434], summary: {locations: ['shanghai'], transfer: {day: 1990-09-10, amount: [10]}}, notes: nice weather}->(0:3)
+(0:1)-{_LABEL: knows, _ID: 3:3, date: 2021-06-30, meetTime: 1946-08-25 19:07:22, validInterval: 10 years 5 months 13:00:00.000024, comments: [2huh9y89fsfw23,23nsihufhw723], summary: {locations: ['paris'], transfer: {day: 2000-01-01, amount: [20,5000]}}, notes: 4}->(0:0)
+(0:1)-{_LABEL: knows, _ID: 3:4, date: 1950-05-14, meetTime: 1946-08-25 19:07:22, validInterval: 00:23:00, comments: [fwehu9h9832wewew,23u9h989sdfsss], summary: {locations: ['paris'], transfer: {day: 2011-05-01, amount: [2000,5340]}}, notes: cool stuff found}->(0:2)
+(0:1)-{_LABEL: knows, _ID: 3:5, date: 1950-05-14, meetTime: 2012-12-11 20:07:22, validInterval: 20 years 30 days 48:00:00, comments: [fwh9y81232uisuiehuf,ewnuihxy8dyf232], summary: {locations: ['vancouver'], transfer: {day: 2020-01-01, amount: [120,50]}}, notes: matthew perry}->(0:3)
+(0:2)-{_LABEL: knows, _ID: 3:6, date: 2021-06-30, meetTime: 2002-07-31 11:42:53.12342, validInterval: 40 days 30:00:00, comments: [fnioh8323aeweae34d,osd89e2ejshuih12], summary: {locations: ['london','toronto'], transfer: {day: 2012-11-21, amount: [223,5230]}}, notes: 10}->(0:0)
+(0:2)-{_LABEL: knows, _ID: 3:7, date: 1950-05-14, meetTime: 2007-02-12 12:11:42.123, validInterval: 00:28:00.03, comments: [fwh983-sdjisdfji,ioh89y32r2huir], summary: {locations: ['paris','beijing'], transfer: {day: 2011-03-11, amount: [2323,50]}}, notes: 1}->(0:1)
+(0:2)-{_LABEL: knows, _ID: 3:8, date: 2000-01-01, meetTime: 1998-10-02 13:09:22.423, validInterval: 00:00:00.3, comments: [psh989823oaaioe,nuiuah1nosndfisf], summary: {locations: [], transfer: {day: 1980-11-21, amount: [20,5]}}, notes: 2}->(0:3)
+(0:3)-{_LABEL: knows, _ID: 3:10, date: 1950-05-14, meetTime: 1982-11-11 13:12:05.123, validInterval: 00:23:00, comments: [fewh9182912e3,h9y8y89soidfsf,nuhudf78w78efw,hioshe0f9023sdsd], summary: {locations: ['paris'], transfer: {day: 2000-01-01, amount: [20,5000]}}, notes: happy new year}->(0:1)
+(0:3)-{_LABEL: knows, _ID: 3:11, date: 2000-01-01, meetTime: 1999-04-21 15:12:11.42, validInterval: 48:00:00.052, comments: [23h9sdslnfowhu2932,shuhf98922323sf], summary: {locations: ['paris'], transfer: {day: 2000-01-01, amount: [20,5000]}}, notes: 4}->(0:2)
+(0:3)-{_LABEL: knows, _ID: 3:9, date: 2021-06-30, meetTime: 1936-11-02 11:02:01, validInterval: 00:00:00.00048, comments: [fwewe], summary: {locations: ['shanghai','nanjing'], transfer: {day: 1998-11-12, amount: [22,53240]}}, notes: 15}->(0:0)

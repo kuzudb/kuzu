@@ -1,0 +1,64 @@
+-GROUP CreateRelTest
+-DATASET CSV rel-update-tests
+--
+
+-DEFINE_STATEMENT_BLOCK INSERT_RELS_TO_ONE_TO_ONE_REL_TABLE [
+-STATEMENT MATCH (a:animal),(b:person) WHERE a.ID=64 and b.ID=2100 CREATE (a)-[e:hasOwner{length: 50, place: 'long long string test'}]->(b)
+---- ok
+-STATEMENT MATCH (a:animal),(b:person) WHERE a.ID=56 and b.ID=782 CREATE (a)-[e:hasOwner{length: 43}]->(b)
+---- ok
+-STATEMENT MATCH (a:animal),(b:person) WHERE a.ID=62 and b.ID=230 CREATE (a)-[e:hasOwner]->(b)
+---- ok
+]
+
+-CASE insertRelsToOneToOneRelTableCommitNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_RELS_TO_ONE_TO_ONE_REL_TABLE
+-STATEMENT COMMIT
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:animal)-[e:hasOwner]->(:person) WHERE a.ID > 50 RETURN e.length, e.place
+---- 3
+43|
+50|long long string test
+|
+
+-CASE insertRelsToOneToOneRelTableCommitRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_RELS_TO_ONE_TO_ONE_REL_TABLE
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:animal)-[e:hasOwner]->(:person) WHERE a.ID > 50 RETURN e.length, e.place
+---- 3
+43|
+50|long long string test
+|
+
+-CASE insertRelsToOneToOneRelTableRollbackNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_RELS_TO_ONE_TO_ONE_REL_TABLE
+-STATEMENT Rollback
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:animal)-[e:hasOwner]->(:person) WHERE a.ID > 50 RETURN e.length, e.place
+---- 0
+
+-CASE insertRelsToOneToOneRelTableRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-INSERT_STATEMENT_BLOCK INSERT_RELS_TO_ONE_TO_ONE_REL_TABLE
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:animal)-[e:hasOwner]->(:person) WHERE a.ID > 50 RETURN e.length, e.place
+---- 0

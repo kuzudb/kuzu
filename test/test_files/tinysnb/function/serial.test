@@ -1,0 +1,228 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb-serial
+
+--
+
+-CASE SerialAdd
+
+-LOG SerialAddINT64
+-STATEMENT MATCH (a:person) RETURN a.ID + a.age
+---- 8
+35
+31
+47
+23
+24
+30
+46
+90
+
+-LOG SerialAddDate
+-STATEMENT MATCH (a:person) RETURN a.ID + a.birthdate
+---- 8
+1900-01-01
+1900-01-02
+1940-06-24
+1950-07-26
+1980-10-30
+1980-10-31
+1980-11-01
+1990-12-04
+
+-LOG SerialCastToInt32
+-STATEMENT MATCH (a:person) RETURN to_int32(a.ID)
+---- 8
+0
+1
+2
+3
+4
+5
+6
+7
+
+-LOG SerialCastToInt16
+-STATEMENT MATCH (a:person) RETURN to_int16(a.ID)
+---- 8
+0
+1
+2
+3
+4
+5
+6
+7
+
+-LOG SerialCastToDouble
+-STATEMENT MATCH (a:person) RETURN to_double(a.ID)
+---- 8
+0.000000
+1.000000
+2.000000
+3.000000
+4.000000
+5.000000
+6.000000
+7.000000
+
+-LOG SerialCastToFloat
+-STATEMENT MATCH (a:person) RETURN to_float(a.ID)
+---- 8
+0.000000
+1.000000
+2.000000
+3.000000
+4.000000
+5.000000
+6.000000
+7.000000
+
+-LOG ListCreationWithSerial
+-STATEMENT MATCH (a:person) RETURN list_creation(a.ID, a.ID)
+---- 8
+[0,0]
+[1,1]
+[2,2]
+[3,3]
+[4,4]
+[5,5]
+[6,6]
+[7,7]
+
+-LOG StructCreationWithSerial
+-STATEMENT MATCH (a:person) RETURN {ID1: a.ID, ID2: id(a)}
+---- 8
+{ID1: 0, ID2: 0:0}
+{ID1: 1, ID2: 0:1}
+{ID1: 2, ID2: 0:2}
+{ID1: 3, ID2: 0:3}
+{ID1: 4, ID2: 0:4}
+{ID1: 5, ID2: 0:5}
+{ID1: 6, ID2: 0:6}
+{ID1: 7, ID2: 0:7}
+
+-LOG ListExtractSerial
+-STATEMENT MATCH (a:person) RETURN list_extract([a.ID], 1)
+---- 8
+0
+1
+2
+3
+4
+5
+6
+7
+
+-LOG ListAppendSerial
+-STATEMENT MATCH (a:person) RETURN list_append([a.ID], a.ID)
+---- 8
+[0,0]
+[1,1]
+[2,2]
+[3,3]
+[4,4]
+[5,5]
+[6,6]
+[7,7]
+
+-LOG ListPrependSerial
+-STATEMENT MATCH (a:person) RETURN list_prepend([a.ID], a.ID)
+---- 8
+[0,0]
+[1,1]
+[2,2]
+[3,3]
+[4,4]
+[5,5]
+[6,6]
+[7,7]
+
+-LOG ListSortSerial
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN list_sort([b.ID, a.ID])
+---- 14
+[0,1]
+[0,1]
+[0,2]
+[0,2]
+[0,3]
+[0,3]
+[1,2]
+[1,2]
+[1,3]
+[1,3]
+[2,3]
+[2,3]
+[4,5]
+[4,6]
+
+-LOG ListReverseSortSerial
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN list_reverse_sort([b.ID, a.ID])
+---- 14
+[1,0]
+[1,0]
+[2,0]
+[2,0]
+[2,1]
+[2,1]
+[3,0]
+[3,0]
+[3,1]
+[3,1]
+[3,2]
+[3,2]
+[5,4]
+[6,4]
+
+-LOG ListSumSerial
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN list_sum([b.ID, a.ID])
+---- 14
+1
+1
+2
+2
+3
+3
+3
+3
+4
+4
+5
+5
+9
+10
+
+-LOG ListDistinctSerial
+-STATEMENT MATCH (a:person) RETURN list_distinct([a.ID, a.ID])
+---- 8
+[0]
+[1]
+[2]
+[3]
+[4]
+[5]
+[6]
+[7]
+
+-LOG ListUniqueSerial
+-STATEMENT MATCH (a:person) RETURN list_unique([a.ID, a.ID])
+---- 8
+1
+1
+1
+1
+1
+1
+1
+1
+
+-LOG ListAnyValueSerial
+-STATEMENT MATCH (a:person) RETURN list_any_value([a.ID, a.ID])
+---- 8
+0
+1
+2
+3
+4
+5
+6
+7

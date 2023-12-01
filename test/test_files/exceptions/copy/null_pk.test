@@ -1,0 +1,23 @@
+-GROUP CopyNullPKTest
+-DATASET CSV copy-fault-tests/null-pk
+
+--
+
+-CASE NullPrimaryKeyInNodeFile
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/vPerson.csv"
+---- error
+Copy exception: Found NULL, which violates the non-null constraint of the primary key column.
+
+-CASE NullPrimaryKeyInMultiNodeFiles
+-STATEMENT COPY person FROM ["${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/vPerson.csv", "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/vPerson2.csv"]
+---- error
+Copy exception: Found NULL, which violates the non-null constraint of the primary key column.
+
+-CASE NullPrimaryKeyInRelFile
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/vPerson-valid.csv"
+---- ok
+-STATEMENT COPY movie FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/vMovie.csv"
+---- ok
+-STATEMENT COPY like FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/eLikes.csv"
+---- error
+Runtime exception: Found NULL, which violates the non-null constraint of the primary key column.

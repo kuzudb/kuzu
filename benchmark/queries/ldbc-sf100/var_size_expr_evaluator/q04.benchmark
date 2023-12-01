@@ -1,0 +1,5 @@
+-NAME q04
+-COMPARE_RESULT 1
+-QUERY MATCH (comment:Comment) RETURN MIN(substr(comment.browserUsed,1,5))
+---- 1
+Chrom

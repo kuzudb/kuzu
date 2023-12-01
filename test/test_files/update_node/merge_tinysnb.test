@@ -1,0 +1,62 @@
+-GROUP TinySnbMergeNodeTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE Merge1
+-STATEMENT MERGE (:person {ID:0})
+---- ok
+-STATEMENT MATCH (a:person) RETURN COUNT(*)
+---- 1
+8
+-STATEMENT MATCH (a:person) WHERE a.ID = 0 RETURN a.fName, a.age
+---- 1
+Alice|35
+-STATEMENT MERGE (a:person {ID:0}) ON MATCH SET a.fName = 'a', a.age = 1
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID < 3 RETURN a.ID, a.fName, a.age
+---- 2
+0|a|1
+2|Bob|30
+
+
+-CASE Merge2
+-STATEMENT MERGE (:person {ID:1})
+---- ok
+-STATEMENT MATCH (a:person) RETURN COUNT(*)
+---- 1
+9
+-STATEMENT MATCH (a:person) WHERE a.ID < 2 RETURN a.ID, a.fName, a.age
+---- 2
+0|Alice|35
+1||
+-STATEMENT MERGE (:person {ID:1, age:10})
+---- error
+Runtime exception: Found duplicated primary key value 1, which violates the uniqueness constraint of the primary key column.
+-STATEMENT MERGE (a:person {ID:11, fName:'bb', age:10})
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID = 11 RETURN a.ID, a.fName, a.age
+---- 1
+11|bb|10
+-STATEMENT MERGE (a:person {ID:11, fName:'bb', age:10}) ON MATCH SET a.age = 20, a.fName = 'aaaa'
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID = 11 RETURN a.ID, a.fName, a.age
+---- 1
+11|aaaa|20
+-STATEMENT MERGE (a:person {ID:12, fName:'bb', age:10}) ON CREATE SET a.age = 20, a.fName = 'aaaa'
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID = 12 RETURN a.ID, a.fName, a.age
+---- 1
+12|aaaa|20
+
+
+-CASE Merge3
+-STATEMENT MATCH (a:person) WHERE a.ID < 6 MERGE (b:person {ID: a.ID + 1}) RETURN b.ID;
+---- 4
+1
+3
+4
+6
+-STATEMENT MATCH (a:person) RETURN COUNT(*);
+---- 1
+11

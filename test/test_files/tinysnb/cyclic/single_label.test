@@ -1,0 +1,129 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE CyclicSingleLabel
+
+-LOG TwoNodeCycleTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person), (b)-[:knows]->(a) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+12
+
+-LOG TwoNodeCycleWithProjectionTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person), (b)-[:knows]->(a) RETURN a.fName, b.fName
+-ENUMERATE
+---- 12
+Alice|Bob
+Alice|Carol
+Alice|Dan
+Bob|Alice
+Bob|Carol
+Bob|Dan
+Carol|Alice
+Carol|Bob
+Carol|Dan
+Dan|Alice
+Dan|Bob
+Dan|Carol
+
+-LOG TriangleTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person), (a)-[:knows]->(c) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+24
+
+-LOG TriangleTestWithEdgeFilter
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person), (a)-[e3:knows]->(c) WHERE e1.date=DATE('1950-05-14') RETURN a.fName, e1.date, b.fName, e2.date, c.fName, e3.date
+-ENUMERATE
+---- 8
+Bob|1950-05-14|Carol|2021-06-30|Alice|2021-06-30
+Bob|1950-05-14|Carol|2000-01-01|Dan|1950-05-14
+Bob|1950-05-14|Dan|2021-06-30|Alice|2021-06-30
+Bob|1950-05-14|Dan|2000-01-01|Carol|1950-05-14
+Carol|1950-05-14|Bob|2021-06-30|Alice|2021-06-30
+Carol|1950-05-14|Bob|1950-05-14|Dan|2000-01-01
+Dan|1950-05-14|Bob|2021-06-30|Alice|2021-06-30
+Dan|1950-05-14|Bob|1950-05-14|Carol|2000-01-01
+
+-LOG TriangleTest3
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:studyAt]->(c:organisation), (a)-[:studyAt]->(c) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+2
+
+-LOG TriangleTest4
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person), (a)-[:knows]->(c) WHERE a.ID = b.ID + c.ID  RETURN a.ID,b.ID,c.ID
+-ENUMERATE
+---- 2
+5|3|2
+5|2|3
+
+-LOG TriangleTest5
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person), (a)-[e3:knows]->(c) WHERE e1.date = e2.date AND e2.date = e3.date  RETURN a.ID, b.ID, c.ID
+-ENUMERATE
+---- 0
+
+-LOG TriangleTest6
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person), (a)-[e3:knows]->(c) WHERE a.fName='Alice' AND e1.meetTime=timestamp('1986-10-21 21:08:31.521') RETURN b.fName, c.fName
+-ENUMERATE
+---- 2
+Bob|Carol
+Bob|Dan
+
+-LOG TriangleWithProjectionTest
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:studyAt]->(c:organisation), (a)-[e3:studyAt]->(c) RETURN a.fName, e1.date, b.fName, e2.year, c.name, e3.year
+-ENUMERATE
+---- 2
+Alice|2021-06-30|Bob|2020|ABFsUni|2021
+Bob|2021-06-30|Alice|2021|ABFsUni|2020
+
+-LOG TriangleFilterTest2
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:studyAt]->(c:organisation), (a)-[e:studyAt]->(c) WHERE a.fName='Alice' RETURN COUNT(*)
+-ENUMERATE
+---- 1
+1
+
+-LOG TriangleFilterWithProjectionTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person), (a)-[:knows]->(c) WHERE a.ID<b.ID and b.ID<c.ID RETURN a.fName, b.fName, c.fName
+-ENUMERATE
+---- 4
+Alice|Bob|Carol
+Alice|Bob|Dan
+Alice|Carol|Dan
+Bob|Carol|Dan
+
+-LOG TriangleFilterWithProjectionTest2
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:studyAt]->(c:organisation), (a)-[e3:studyAt]->(c) WHERE a.fName='Bob' RETURN a.fName, e1.date, b.fName, e2.year, c.name, e3.year
+-ENUMERATE
+---- 1
+Bob|2021-06-30|Alice|2021|ABFsUni|2020
+
+-LOG SquareTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person)-[:knows]->(d:person), (a)-[:knows]->(d) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+84
+
+-LOG SquareTest2
+-STATEMENT MATCH (a:person)<-[:knows]-(b:person)-[:knows]->(c:person)-[:studyAt]->(d:organisation), (a)-[:studyAt]->(d) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+11
+
+-LOG SquareFilterWithProjectionTest
+-STATEMENT MATCH (a:person)<-[:knows]-(b:person)-[:knows]->(c:person)-[:studyAt]->(d:organisation), (a)-[:studyAt]->(d) WHERE a.fName='Bob' RETURN a.fName, b.fName, c.fName, d.name
+-ENUMERATE
+---- 5
+Bob|Alice|Bob|ABFsUni
+Bob|Carol|Alice|ABFsUni
+Bob|Carol|Bob|ABFsUni
+Bob|Dan|Alice|ABFsUni
+Bob|Dan|Bob|ABFsUni
+
+-LOG SquareFilterTest2
+-STATEMENT MATCH (a:person)<-[:knows]-(b:person)-[:knows]->(c:person)-[:studyAt]->(d:organisation), (a)-[:studyAt]->(d) WHERE b.fName='Elizabeth' RETURN COUNT(*)
+-ENUMERATE
+---- 1
+1

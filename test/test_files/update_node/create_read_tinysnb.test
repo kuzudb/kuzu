@@ -1,0 +1,19 @@
+-GROUP TinySnbCreateReadNodeTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE CreateNodeRead1
+-STATEMENT CREATE (a:person {ID:80, isWorker:true,age:22,eyeSight:1.1}) RETURN a.ID, a.age, a.fName, a.eyeSight;
+---- 1
+80|22||1.100000
+-STATEMENT CREATE (a:organisation {ID:0, name:'test'}) RETURN a, a.history;
+---- 1
+{_ID: 1:3, _LABEL: organisation, ID: 0, name: test}|
+
+-CASE CreateNodeRead2
+-STATEMENT MATCH (a:person) WHERE a.ID < 3 CREATE (b:person {ID: a.ID + 11, fName: 'new', age:a.age * 2})
+           RETURN a.ID, a.fName, a.age, b.ID, b.fName, b.age
+---- 2
+0|Alice|35|11|new|70
+2|Bob|30|13|new|60

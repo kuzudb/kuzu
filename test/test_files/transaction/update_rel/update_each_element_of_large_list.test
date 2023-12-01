@@ -1,0 +1,57 @@
+-GROUP UpdateRelTest_updateEachElementOfLargeList
+-DATASET CSV rel-update-tests
+--
+
+-CASE updateEachElementOfLargeListCommitNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-BATCH_STATEMENTS <FILE>:update_each_element_of_large_list.cypher
+---- ok
+-STATEMENT COMMIT
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p0:person)-[e:knows]->(p1:person) WHERE p0.ID = 0 return e.length
+---- 2300
+<FILE>:update_each_element_of_large_list_commit.txt
+
+-CASE updateEachElementOfLargeListCommitRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-BATCH_STATEMENTS <FILE>:update_each_element_of_large_list.cypher
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p0:person)-[e:knows]->(p1:person) WHERE p0.ID = 0 return e.length
+---- 2300
+<FILE>:update_each_element_of_large_list_commit.txt
+
+-CASE updateEachElementOfLargeListRollbackNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-BATCH_STATEMENTS <FILE>:update_each_element_of_large_list.cypher
+---- ok
+-STATEMENT Rollback
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p0:person)-[e:knows]->(p1:person) WHERE p0.ID = 0 return e.length
+---- 2300
+<FILE>:delete_rels.txt
+
+-CASE updateEachElementOfLargeListRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-BATCH_STATEMENTS <FILE>:update_each_element_of_large_list.cypher
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p0:person)-[e:knows]->(p1:person) WHERE p0.ID = 0 return e.length
+---- 2300
+<FILE>:delete_rels.txt

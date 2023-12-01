@@ -1,0 +1,73 @@
+-GROUP TinySnbExceptionTest
+-DATASET CSV empty
+
+--
+
+-CASE EXCEPTION
+-LOG DivideBy0Error
+-STATEMENT RETURN 1 / 0
+---- error
+Runtime exception: Divide by zero.
+
+-LOG ModuloBy0Error
+-STATEMENT RETURN 1 % 0
+---- error
+Runtime exception: Modulo by zero.
+
+-LOG EmptyQuery
+-STATEMENT  
+---- error
+Connection Exception: Query is empty.
+
+-LOG Overflow
+-STATEMENT RETURN to_int16(10000000000)
+---- error
+Overflow exception: Value 10000000000 is not within INT16 range
+
+-LOG Int32PrimaryKey
+-STATEMENT CREATE NODE TABLE play(a INT32, PRIMARY KEY (a))
+---- error
+Binder exception: Invalid primary key type: INT32. Expected STRING or INT64.
+
+-LOG UnalignedKeyAndValueList
+-STATEMENT RETURN MAP([4],[3,2])
+---- error
+Runtime exception: Unaligned key list and value list.
+
+-LOG MultiplyOutOfRange
+-STATEMENT RETURN cast(2, "INT8") * cast(64, "INT8");
+---- error
+Overflow exception: Value 2 * 64 is not within INT8 range.
+-STATEMENT RETURN cast(-2, "INT8") * cast(65, "INT8");
+---- error
+Overflow exception: Value -2 * 65 is not within INT8 range.
+-STATEMENT RETURN cast(-2, "INT16") * cast(16385, "INT16");
+---- error
+Overflow exception: Value -2 * 16385 is not within INT16 range.
+-STATEMENT RETURN cast(2, "INT32") * cast(1073741824, "INT32");
+---- error
+Overflow exception: Value 2 * 1073741824 is not within INT32 range.
+-STATEMENT RETURN cast(1231232342342123123, "INT64") * cast(432432423543534534, "INT64");
+---- error
+Overflow exception: Value 1231232342342123123 * 432432423543534534 is not within INT64 range.
+-STATEMENT RETURN cast(432432423543534534, "INT64") * cast(1231232342342123123, "INT64");
+---- error
+Overflow exception: Value 432432423543534534 * 1231232342342123123 is not within INT64 range.
+-STATEMENT RETURN cast(85070591730234615865843651857942052864, "int128") * cast(2, "int128");
+---- error
+Overflow exception: INT128 is out of range: cannot multiply.
+-STATEMENT RETURN cast(100, "UINT8") * cast(100, "UINT8");
+---- error
+Overflow exception: Value 100 * 100 is not within UINT8 range.
+-STATEMENT RETURN cast(10000, "UINT16") * cast(10000, "UINT16");
+---- error
+Overflow exception: Value 10000 * 10000 is not within UINT16 range.
+-STATEMENT RETURN cast(1000000, "UINT32") * cast(1000000, "UINT32");
+---- error
+Overflow exception: Value 1000000 * 1000000 is not within UINT32 range.
+-STATEMENT RETURN cast(100000000, "UINT64") * cast(1000000000000, "UINT64");
+---- error
+Overflow exception: Value 100000000 * 1000000000000 is not within UINT64 range.
+-STATEMENT RETURN cast(1000000000000, "UINT64") * cast(100000000, "UINT64");
+---- error
+Overflow exception: Value 100000000 * 1000000000000 is not within UINT64 range.

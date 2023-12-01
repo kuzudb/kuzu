@@ -1,0 +1,167 @@
+-GROUP DeleteRelTest
+-DATASET CSV rel-update-tests
+--
+
+-CASE deleteMultipleRelsCommitNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows]->(p1:person) WHERE p.ID = 1 AND p1.ID < 45 DELETE e;
+---- ok
+-STATEMENT COMMIT
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(p:person) WHERE a.ID = 1 RETURN e.length
+---- 6
+45
+46
+47
+48
+49
+50
+
+-CASE deleteMultipleRelsCommitRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows]->(p1:person) WHERE p.ID = 1 AND p1.ID < 45 DELETE e;
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(p:person) WHERE a.ID = 1 RETURN e.length
+---- 6
+45
+46
+47
+48
+49
+50
+
+-CASE deleteMultipleRelsRollbackNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows]->(p1:person) WHERE p.ID = 1 AND p1.ID < 45 DELETE e;
+---- ok
+-STATEMENT Rollback
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(p:person) WHERE a.ID = 1 RETURN e.length
+---- 51
+0
+1
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+2
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+3
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+4
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+5
+50
+6
+7
+8
+9
+
+-CASE deleteMultipleRelsRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows]->(p1:person) WHERE p.ID = 1 AND p1.ID < 45 DELETE e;
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(p:person) WHERE a.ID = 1 RETURN e.length
+---- 51
+0
+1
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+2
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+3
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+4
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+5
+50
+6
+7
+8
+9

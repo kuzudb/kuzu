@@ -1,0 +1,14 @@
+-GROUP CopyDuplicateIDTest
+-DATASET CSV copy-fault-tests/duplicate-ids
+
+--
+
+-CASE DuplicateIntIDsError
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vPerson.csv"
+---- error
+Copy exception: Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.
+
+-CASE DuplicateStringIDsError
+-STATEMENT COPY org FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vOrg.csv"
+---- error
+Copy exception: Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.

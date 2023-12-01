@@ -1,0 +1,300 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE OrderBySingleLabel
+
+-LOG OrderByInt64Test
+-STATEMENT MATCH (p:person) RETURN p.ID, p.age ORDER BY p.age + p.ID
+-CHECK_ORDER
+-PARALLELISM 3
+---- 8
+5|20
+7|20
+2|30
+8|25
+0|35
+3|45
+9|40
+10|83
+
+-LOG OrderByInt32Test
+-STATEMENT MATCH (m:movies) RETURN m.length ORDER BY m.length
+-CHECK_ORDER
+---- 3
+126
+298
+2544
+
+-LOG OrderByInt16Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.length ORDER BY e.length
+-CHECK_ORDER
+---- 3
+5
+22
+55
+
+-LOG OrderByInt8Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.level ORDER BY e.level
+-CHECK_ORDER
+---- 3
+2
+5
+120
+
+-LOG OrderByUInt64Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.code ORDER BY e.code
+-CHECK_ORDER
+---- 3
+23
+6689
+9223372036854775808
+
+-LOG OrderByUInt32Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.temprature ORDER BY e.temprature
+-CHECK_ORDER
+---- 3
+1
+20
+32800
+
+-LOG OrderByUInt16Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.ulength ORDER BY e.ulength
+-CHECK_ORDER
+---- 3
+90
+180
+33768
+
+-LOG OrderByUInt8Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.ulevel ORDER BY e.ulevel
+-CHECK_ORDER
+---- 3
+12
+220
+250
+
+-LOG OrderByInt128Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.hugedata ORDER BY e.hugedata
+-CHECK_ORDER
+---- 3
+-1844674407370955161511
+-15
+1844674407370955161811111111
+
+-LOG OrderByBooleanTest
+-STATEMENT MATCH (p:person) RETURN p.isStudent ORDER BY p.isStudent desc
+-CHECK_ORDER
+-PARALLELISM 3
+---- 8
+True
+True
+True
+False
+False
+False
+False
+False
+
+
+-LOG OrderByDoubleTest
+-STATEMENT MATCH (p:person) RETURN p.eyeSight ORDER BY p.eyeSight
+-CHECK_ORDER
+-PARALLELISM 3
+---- 8
+4.500000
+4.700000
+4.800000
+4.900000
+4.900000
+5.000000
+5.000000
+5.100000
+
+-LOG OrderByFloatTest
+-STATEMENT MATCH (p:person) RETURN p.height ORDER BY p.height
+-CHECK_ORDER
+-PARALLELISM 3
+---- 8
+0.990000
+1.000000
+1.300000
+1.323000
+1.463000
+1.510000
+1.600000
+1.731000
+
+-LOG OrderByDateTest
+-STATEMENT MATCH (p:person) RETURN p.birthdate ORDER BY p.birthdate desc
+-CHECK_ORDER
+-PARALLELISM 3
+---- 8
+1990-11-27
+1980-10-26
+1980-10-26
+1980-10-26
+1950-07-23
+1940-06-22
+1900-01-01
+1900-01-01
+
+-LOG OrderByTimestampTest
+-STATEMENT MATCH (p:person) RETURN p.registerTime ORDER BY p.registerTime
+-CHECK_ORDER
+-PARALLELISM 3
+---- 8
+1911-08-20 02:32:21
+1972-07-31 13:22:30.678559
+1976-12-23 04:41:42
+1976-12-23 11:21:42
+2008-11-03 15:25:30.000526
+2011-08-20 11:25:30
+2023-02-21 13:25:30
+2031-11-30 12:25:30
+
+-LOG OrderByIntervalTest
+-STATEMENT MATCH (p:person) RETURN p.lastJobDuration ORDER BY p.lastJobDuration desc
+-CHECK_ORDER
+-PARALLELISM 2
+---- 8
+10 years 5 months 13:00:00.000024
+10 years 5 months 13:00:00.000024
+10 years 5 months 13:00:00.000024
+3 years 2 days 13:02:00
+3 years 2 days 13:02:00
+48:24:11
+48:24:11
+00:18:00.024
+
+-LOG OrderByStringTest
+-STATEMENT MATCH (p:person) RETURN p.fName ORDER BY p.fName desc
+-CHECK_ORDER
+-PARALLELISM 2
+---- 8
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+Greg
+Farooq
+Elizabeth
+Dan
+Carol
+Bob
+Alice
+
+-LOG OrderByBlobTest
+-STATEMENT MATCH (m:movies) RETURN m.content ORDER BY m.content DESC
+-CHECK_ORDER
+-PARALLELISM 2
+---- 3
+\xAB\xCD
+\xAA\xABinteresting\x0B
+pure ascii characters
+
+-LOG OrderByStrMultipleColTest
+-STATEMENT MATCH (p:person) RETURN p.age, p.eyeSight ORDER BY p.isWorker desc, p.age, p.eyeSight desc
+-CHECK_ORDER
+-PARALLELISM 2
+---- 8
+20|4.800000
+20|4.700000
+45|5.000000
+83|4.900000
+25|4.500000
+30|5.100000
+35|5.000000
+40|4.900000
+
+-LOG OrderByProjectionTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) with b return b.fName order by b.fName desc
+-CHECK_ORDER
+-ENUMERATE
+-PARALLELISM 7
+---- 14
+Greg
+Farooq
+Dan
+Dan
+Dan
+Carol
+Carol
+Carol
+Bob
+Bob
+Bob
+Alice
+Alice
+Alice
+
+-LOG OrderByThreeHopTest
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person) RETURN a.fName order by d.age desc, c.age asc, b.age asc, a.age desc limit 10
+-CHECK_ORDER
+-ENUMERATE
+---- 10
+Carol
+Alice
+Dan
+Carol
+Bob
+Dan
+Alice
+Bob
+Dan
+Carol
+
+#If the payload column and the orderBy key column are in different dataChunks and one of them is unflat,                                                                                        \
+#the order by scanner can only scan one tuple from factorizedTable at a time.
+-LOG OrderByScanSingleTupleTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) return a.fName order by b.fName, a.fName
+-CHECK_ORDER
+-ENUMERATE
+---- 14
+Bob
+Carol
+Dan
+Alice
+Carol
+Dan
+Alice
+Bob
+Dan
+Alice
+Bob
+Carol
+Elizabeth
+Elizabeth
+
+-LOG OrderByEmptyResult
+-STATEMENT MATCH (p:person) WHERE p.age > 100 RETURN p.age ORDER BY p.age 
+---- 0
+
+-LOG OrderByLimitEmptyResult
+-STATEMENT MATCH (p:person) WHERE p.age > 100 RETURN p.age ORDER BY p.age limit 10
+---- 0
+
+-LOG OrderByAggregateTest1
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) return a.age, COUNT(b) as c ORDER BY a.age
+-CHECK_ORDER
+-ENUMERATE
+---- 4
+20|5
+30|3
+35|3
+45|3
+
+-LOG OrderByAggregateTest2
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) return a.gender, COUNT(b) ORDER BY COUNT(b) DESC
+-CHECK_ORDER
+-ENUMERATE
+---- 2
+1|8
+2|6
+
+-LOG OrderByMultipleCols
+-STATEMENT MATCH (p:person)-[s:studyAt]->(o:organisation) return s.year ORDER BY s.length, p.lastJobDuration, o.mark, p.height limit 5
+-CHECK_ORDER
+-ENUMERATE
+---- 3
+2021
+2020
+2020

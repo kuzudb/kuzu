@@ -1,0 +1,6 @@
+-NAME q30
+-COMPARE_RESULT 1
+-QUERY MATCH (a:Person)-[:knows]->(b:Person)-[:knows]->(c:Person) RETURN MIN(a.birthday), MIN(b.birthday), MIN(c.birthday)
+-ENCODED_JOIN HJ(c._ID){HJ(a._ID){E(c)E(a)S(b._ID)}{S(a._ID)}}{S(c._ID)}
+---- 1
+1980-02-01|1980-02-01|1980-02-01

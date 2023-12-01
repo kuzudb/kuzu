@@ -1,0 +1,113 @@
+-GROUP RdfoxExample
+-DATASET TTL rdf/rdfox_example
+
+--
+
+-CASE Basic
+
+-STATEMENT CALL SHOW_TABLES() RETURN *;
+---- 5
+example_literal_triples_t|REL|
+example_literal_t|NODE|
+example_resource_triples_t|REL|
+example_resource_t|NODE|
+example|RDF|
+
+-STATEMENT MATCH (s:example_resource_t) RETURN s.iri ORDER BY offset(id(s));
+-CHECK_ORDER
+---- 14
+:andy
+:literal
+:peter
+:forename
+http://www.w3.org/1999/02/22-rdf-syntax-ns#type
+:Person
+:marriedTo
+:lois
+:gender
+:meg
+:hasParent
+:chris
+:stewie
+:brian
+
+
+-STATEMENT MATCH (s:example_literal_t) RETURN s.iri ORDER BY s.id ;
+-CHECK_ORDER
+---- 16
+12
+-14.900000
+True
+0.016630
+1999-08-16
+Peter
+male
+Lois
+female
+Meg
+female
+Chris
+male
+Stewie
+male
+Brian
+
+-STATEMENT MATCH (s:example_literal_t) RETURN s.iri,
+        to_int64(s.iri) + 1, to_int32(s.iri), to_int16(s.iri), to_int8(s.iri) * 2,
+        to_uint64(s.iri), to_uint32(s.iri), to_uint16(s.iri), to_uint8(s.iri),
+        to_double(s.iri), to_float(s.iri), to_bool(s.iri), to_blob(s.iri),
+        date(s.iri), timestamp(s.iri), interval(s.iri), to_string(s.iri)
+        ORDER BY s.id LIMIT 6;
+-CHECK_ORDER
+---- 6
+12|13|12|12|24|12|12|12|12|12.000000|12.000000||||||12
+-14.900000|-14|-15|-15|-30|||||-14.900000|-14.900000||||||-14.900000
+True|||||||||||True|||||True
+0.016630|1|0|0|0|0|0|0|0|0.016630|0.016630||||||0.016630
+1999-08-16|||||||||||||1999-08-16|||1999-08-16
+Peter||||||||||||||||Peter
+
+-STATEMENT MATCH (s:example_literal_t) RETURN s.iri +1, s.iri * 2, s.iri * 2.0, s.iri = true, dayname(s.iri), concat(s.iri, 'a')
+        ORDER BY s.id LIMIT 6;
+-CHECK_ORDER
+---- 6
+13|24|24.000000|||12a
+-14|-30|-29.800000|||-14.900000a
+|||True||Truea
+1|0|0.033260|||0.016630a
+||||Monday|1999-08-16a
+|||||Petera
+
+-STATEMENT MATCH (a:example_resource_t)-[e:example]->(b:example_resource_t) RETURN a.iri, e.iri, b.iri ORDER BY offset(id(e))
+-CHECK_ORDER
+---- 10
+:peter|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person
+:peter|:marriedTo|:lois
+:lois|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person
+:meg|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person
+:meg|:hasParent|:lois
+:meg|:hasParent|:peter
+:chris|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person
+:chris|:hasParent|:peter
+:stewie|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person
+:stewie|:hasParent|:lois
+
+-STATEMENT MATCH (a:example_resource_t)-[e:example]->(b:example_literal_t) RETURN a.iri, e.iri, b.iri ORDER BY offset(id(e))
+-CHECK_ORDER
+---- 16
+:andy|:literal|12
+:andy|:literal|-14.900000
+:andy|:literal|True
+:andy|:literal|0.016630
+:andy|:literal|1999-08-16
+:peter|:forename|Peter
+:peter|:gender|male
+:lois|:forename|Lois
+:lois|:gender|female
+:meg|:forename|Meg
+:meg|:gender|female
+:chris|:forename|Chris
+:chris|:gender|male
+:stewie|:forename|Stewie
+:stewie|:gender|male
+:brian|:forename|Brian

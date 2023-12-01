@@ -1,0 +1,1 @@
+COPY person FROM "dataset/non-empty-disk-array-db/vPerson.csv"

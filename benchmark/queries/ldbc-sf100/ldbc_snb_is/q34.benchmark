@@ -1,0 +1,4 @@
+-NAME q34
+-COMPARE_RESULT 1
+-QUERY MATCH (c:Comment {ID: 2061584302085})-[:comment_hasCreator]->(p:Person) RETURN p.ID AS personId, p.firstName AS firstName, p.lastName AS lastName;
+---- 0

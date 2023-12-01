@@ -1,0 +1,86 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE FunctionBlob
+
+-LOG ReturnBlobHexOnly
+-STATEMENT RETURN BLOB('\\xAA\\xBB\\xCD\\x1A');
+---- 1
+\xAA\xBB\xCD\x1A
+-STATEMENT RETURN TO_BLOB('\\xAA\\xBB\\xCD\\x1A');
+---- 1
+\xAA\xBB\xCD\x1A
+
+-LOG ReturnBlobASCIIOnly
+-STATEMENT RETURN BLOB('THIS IS A ASCII ONLY BLOB DATA');
+---- 1
+THIS IS A ASCII ONLY BLOB DATA
+
+-LOG ReturnBlobASCIIAndHex
+-STATEMENT RETURN BLOB('THIS IS A MIxed of ASCII and \\xB2 \\xD3ONLY BLOB DATA\\xA5');
+---- 1
+THIS IS A MIxed of ASCII and \xB2 \xD3ONLY BLOB DATA\xA5
+
+-LOG Octet_length
+-STATEMENT RETURN OCTET_LENGTH(BLOB('\\xAA\\xB3 AD NC \\xD2'))
+---- 1
+10
+
+-LOG ReturnEncodeUTF8String
+-STATEMENT RETURN encode('encode this utf-8 char: ü')
+---- 1
+encode this utf-8 char: \xC3\xBC
+
+-LOG ReturnDecodeUTF8String
+-STATEMENT RETURN decode(BLOB('decode this utf-8 char: \\xC3\\xBC'))
+---- 1
+decode this utf-8 char: ü
+
+-LOG ReturnInvalidUTF8String
+-STATEMENT RETURN decode(BLOB('decode this invalid utf-8 char: \\xA1\\xBC'))
+---- error
+Runtime exception: Failure in decode: could not convert blob to UTF8 string, the blob contained invalid UTF8 characters
+
+-LOG BlobGreaterThan
+-STATEMENT MATCH (m:movies) RETURN m.content > BLOB("test");
+---- 3
+True
+True
+False
+
+-LOG BlobGreaterThanOrEqualTo
+-STATEMENT MATCH (m:movies) RETURN m.content >= BLOB("\\xAA\\xABinteresting\\x0B");
+---- 3
+True
+True
+False
+
+-LOG BlobEqualTo
+-STATEMENT MATCH (m:movies) RETURN m.content = BLOB("\\xAA\\xABinteresting\\x0B");
+---- 3
+True
+False
+False
+
+-LOG BlobNotEqualTo
+-STATEMENT MATCH (m:movies) RETURN m.content <> BLOB("\\xAA\\xABinteresting\\x0B");
+---- 3
+False
+True
+True
+
+-LOG BlobGreaterThan
+-STATEMENT MATCH (m:movies) RETURN m.content < BLOB("\\xAB\\xCD");
+---- 3
+True
+False
+True
+
+-LOG BlobGreaterThanOrEqualTo
+-STATEMENT MATCH (m:movies) RETURN m.content <= BLOB("pure ascii characters");
+---- 3
+False
+False
+True

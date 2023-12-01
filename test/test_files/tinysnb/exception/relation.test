@@ -1,0 +1,19 @@
+-GROUP TinySnbExceptionTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE ReadVarlengthRelPropertyTest1
+-STATEMENT MATCH (a:person)-[e:knows*1..3]->(b:person) RETURN e.age
+---- error
+Binder exception: e has data type RECURSIVE_REL but (NODE,REL,STRUCT) was expected.
+
+-CASE ReadVarlengthRelPropertyTest2
+-STATEMENT MATCH (a:person)-[e:knows*1..3]->(b:person) WHERE ID(e) = 0 RETURN COUNT(*)
+---- error
+Binder exception: e has data type RECURSIVE_REL but (NODE,REL,STRUCT) was expected.
+
+-CASE AccessRelInternalIDTest
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE e._id > 1 RETURN COUNT(*)
+---- error
+Binder exception: _id is reserved for system usage. External access is not allowed.

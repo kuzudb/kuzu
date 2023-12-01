@@ -1,0 +1,11 @@
+MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 10 delete e;
+MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 11 delete e;
+MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 12 delete e;
+MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 13 delete e;
+MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 14 delete e;
+MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 15 delete e;
+MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 16 delete e;
+MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 17 delete e;
+MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 18 delete e;
+MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 19 delete e;
+MATCH (p1:person)-[e:knows]->(p2:person) WHERE p1.ID = 0 AND p2.ID = 20 delete e;

@@ -1,0 +1,57 @@
+-GROUP TinySnbSetReadNodeTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE SetReadTest1
+-STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age, a.fName
+---- 1
+35|Alice
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.age = a.age * 2, a.fName = upper(a.fName) RETURN a.age, a.gender, a.fName
+---- 1
+70|1|ALICE
+-STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age, a.gender, a.fName
+---- 1
+70|1|ALICE
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.fName = NULL RETURN a.age, a.gender, a.fName
+---- 1
+70|1|
+-STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age, a.gender, a.fName
+---- 1
+70|1|
+
+-CASE SetReadTest2
+-STATEMENT CREATE NODE TABLE play(ID INT64, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (a:play {ID: 0, name: 'AA'});
+---- ok
+-STATEMENT MATCH (a:organisation:play) SET a.name = 'X' RETURN a.ID, a.name;
+---- 4
+0|X
+1|X
+4|X
+6|X
+-STATEMENT MATCH (a:organisation:play) RETURN a.ID, a.name;
+---- 4
+0|X
+1|X
+4|X
+6|X
+
+-CASE SetReadTest3
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID=5 RETURN a.fName, b.fName, e.date
+---- 3
+Dan|Alice|2021-06-30
+Dan|Bob|1950-05-14
+Dan|Carol|2000-01-01
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID=5 SET b.fName = concat(b.fName, string(e.date)) RETURN a.fName, b.fName, e.date
+---- 3
+Dan|Alice2021-06-30|2021-06-30
+Dan|Bob1950-05-14|1950-05-14
+Dan|Carol2000-01-01|2000-01-01
+-STATEMENT MATCH (a:person) WHERE a.ID < 6 RETURN a.fName
+---- 4
+Alice2021-06-30
+Bob1950-05-14
+Carol2000-01-01
+Dan

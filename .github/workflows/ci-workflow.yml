@@ -1,0 +1,403 @@
+name: CI
+
+env:
+  RUNTIME_CHECKS: 1
+  WERROR: 1
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+
+# Only allow one run in this group to run at a time, and cancel any runs in progress in this group.
+# We use the workflow name and then add the pull request number, or (if it's a push to master), we use the name of the branch.
+# See github's docs[1] and a relevant stack overflow answer[2]
+#   [1]: https://docs.github.com/en/actions/using-jobs/using-concurrency
+#   [2]: https://stackoverflow.com/questions/66335225/how-to-cancel-previous-runs-in-the-pr-when-you-push-new-commitsupdate-the-curre
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gcc-build-test:
+    name: gcc build & test
+    needs: [clang-formatting-check, sanity-checks]
+    runs-on: kuzu-self-hosted-testing
+    env:
+      NUM_THREADS: 32
+      TEST_JOBS: 16
+      CLANGD_DIAGNOSTIC_JOBS: 32
+      CLANGD_DIAGNOSTIC_INSTANCES: 6
+      GEN: ninja
+      CC: gcc
+      CXX: g++
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Ensure Python dependencies
+        run: |
+          pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+
+      - name: Ensure Node.js dependencies
+        run: npm install --include=dev
+        working-directory: tools/nodejs_api
+
+      - name: Build
+        run: make all
+
+      - name: Test with coverage
+        run: make lcov
+
+      - name: Python test
+        run: make pytest
+
+      - name: Node.js test
+        run: make nodejstest
+
+      - name: Java test
+        run: make javatest
+
+      - name: Generate coverage report
+        run: |
+          lcov --config-file .lcovrc -c -d ./ --no-external -o cover.info &&\
+          lcov --remove cover.info $(< .github/workflows/lcov_exclude) -o cover.info
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v3
+        with:
+          file: cover.info
+          functionalities: "search"
+
+  rust-build-test:
+    name: rust build & test
+    needs: [rustfmt-check]
+    runs-on: kuzu-self-hosted-testing
+    env:
+      CARGO_BUILD_JOBS: 32
+      CC: gcc
+      CXX: g++
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Rust share build
+        # Share build cache when building rust API and the example project
+        run: echo $'[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
+
+      - name: Rust test
+        working-directory: tools/rust_api
+        run: |
+          cargo update -p half@2.3.1 --precise '2.2.1'
+          cargo update -p time --precise '0.3.23'
+          cargo test --features arrow -- --test-threads=1
+
+      - name: Rust example
+        working-directory: examples/rust
+        run: cargo build --features arrow
+
+  gcc-build-test-with-asan:
+    name: gcc build & test with asan
+    needs: [gcc-build-test]
+    runs-on: kuzu-self-hosted-testing
+    env:
+      NUM_THREADS: 32
+      TEST_JOBS: 16
+      GEN: ninja
+      CC: gcc
+      CXX: g++
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Ensure Python dependencies
+        run: |
+          pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+
+      - name: Ensure Node.js dependencies
+        run: npm install --include=dev
+        working-directory: tools/nodejs_api
+
+      - name: Test with ASAN
+        run: make test ASAN=1
+        env:
+          ASAN_OPTIONS: "detect_leaks=1"
+
+  clang-build-test:
+    name: clang build and test
+    needs: [clang-formatting-check, sanity-checks]
+    runs-on: kuzu-self-hosted-testing
+    env:
+      NUM_THREADS: 32
+      TEST_JOBS: 16
+      CC: clang
+      CXX: clang++
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Ensure Python dependencies
+        run: |
+          pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+
+      - name: Ensure Node.js dependencies
+        run: npm install --include=dev
+        working-directory: tools/nodejs_api
+
+      - name: Build
+        run: make all
+
+      - name: Test
+        run: make test
+
+      - name: Python test
+        run: make pytest
+
+      - name: Node.js test
+        run: make nodejstest
+
+      - name: Java test
+        run: make javatest
+
+  msvc-build-test:
+    name: msvc build & test
+    needs: [clang-formatting-check, sanity-checks]
+    runs-on: self-hosted-windows
+    env:
+      # Shorten build path as much as possible
+      CARGO_TARGET_DIR: ${{ github.workspace }}/rs
+      CARGO_BUILD_JOBS: 18
+      NUM_THREADS: 18
+      TEST_JOBS: 9
+      WERROR: 0
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Ensure Python dependencies
+        run: |
+          pip install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+
+      - name: Ensure Node.js dependencies
+        run: npm install --include=dev
+        working-directory: tools/nodejs_api
+
+      - name: Build
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          make all
+
+      - name: Test
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          make test
+
+      - name: Python test
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          make pytest
+
+      - name: Node.js test
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          make nodejstest
+
+      - name: Rust test
+        shell: cmd
+        working-directory: tools/rust_api
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          set OPENSSL_DIR=C:\Program Files\OpenSSL-Win64
+          set KUZU_TESTING=1
+          set CFLAGS=/MDd
+          set CXXFLAGS=/MDd /std:c++20
+          cargo update -p half@2.3.1 --precise 2.2.1
+          cargo update -p time --precise '0.3.23'
+          cargo test -- --test-threads=1
+
+      - name: Java test
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          make javatest
+
+  tidy-and-diagnostics:
+    name: clang tidy & clangd diagnostics check
+    needs: [clang-formatting-check, sanity-checks]
+    runs-on: kuzu-self-hosted-testing
+    env:
+      NUM_THREADS: 32
+
+    steps:
+      - uses: actions/checkout@v3
+
+      # For `napi.h` header.
+      - name: Ensure Node.js dependencies
+        run: npm install --include=dev
+        working-directory: tools/nodejs_api
+
+      - name: Check for clangd diagnostics
+        run: make clangd-diagnostics
+
+      - name: Run clang-tidy
+        run: make tidy
+
+      - name: Run clang-tidy analyzer
+        run: make tidy-analyzer
+
+  sanity-checks:
+    name: sanity checks
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Check headers for include guards
+        run: ./scripts/check-include-guards.sh src/include
+
+      - name: Checks files for std::assert
+        run: ./scripts/check-no-std-assert.sh src
+
+      - name: Ensure generated grammar files are up to date
+        run: cmp src/antlr4/Cypher.g4 scripts/antlr4/Cypher.g4.copy
+
+  clang-formatting-check:
+    name: clang-format check
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Install clang-format
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format-11
+
+      - uses: actions/checkout@v3
+
+      - name: Check source format
+        run: python3 scripts/run-clang-format.py --clang-format-executable /usr/bin/clang-format-11 -r src/
+
+      - name: Check test format
+        run: python3 scripts/run-clang-format.py --clang-format-executable /usr/bin/clang-format-11 -r test/
+
+  rustfmt-check:
+    name: rustfmt check
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Update Rust
+        run: rustup update
+
+      - uses: actions/checkout@v3
+
+      - name: Check Rust API format
+        working-directory: tools/rust_api
+        run: cargo fmt --check
+
+  benchmark:
+    name: benchmark
+    needs: [gcc-build-test, clang-build-test]
+    env:
+      NUM_THREADS: 30
+      GEN: ninja
+    runs-on: kuzu-self-hosted-benchmarking
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build
+        run: make benchmark LTO=1
+
+      - name: Benchmark
+        run: python3 benchmark/benchmark_runner.py --dataset ldbc-sf100 --thread 10
+
+  macos-clang-tidy:
+    name: macos clang tidy & clangd diagnostics check
+    needs: [clang-formatting-check, sanity-checks]
+    runs-on: self-hosted-mac-x64
+    env:
+      NUM_THREADS: 32
+      GEN: ninja
+
+    steps:
+      - uses: actions/checkout@v3
+
+      # For `napi.h` header.
+      - name: Ensure Node.js dependencies
+        run: npm install --include=dev
+        working-directory: tools/nodejs_api
+
+      - name: Check for clangd diagnostics
+        run: make clangd-diagnostics
+
+      - name: Run clang-tidy
+        run: make tidy
+
+      - name: Run clang-tidy analyzer
+        run: make tidy-analyzer
+
+  macos-build-test:
+    name: apple clang build & test
+    needs: [clang-formatting-check, sanity-checks, rustfmt-check]
+    runs-on: self-hosted-mac-x64
+    env:
+      NUM_THREADS: 32
+      TEST_JOBS: 16
+      GEN: ninja
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Ensure Python dependencies
+        run: |
+          pip3 install torch~=2.0.0 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip3 install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-2.0.0+cpu.html
+
+      - name: Ensure Node.js dependencies
+        run: npm install --include=dev
+        working-directory: tools/nodejs_api
+
+      - name: Build
+        run: make all
+
+      - name: Test
+        run: |
+          ulimit -n 10240
+          make test
+
+      - name: Python test
+        run: |
+          ulimit -n 10240
+          make pytest
+
+      - name: C and C++ Examples
+        run: |
+          ulimit -n 10240
+          make example
+
+      - name: Node.js test
+        run: |
+          ulimit -n 10240
+          make nodejstest
+
+      - name: Java test
+        run: |
+          ulimit -n 10240
+          make javatest
+
+      - name: Rust share build
+        # Share build cache when building rust API and the example project
+        run: echo $'[workspace]\nmembers = ["tools/rust_api","examples/rust"]' > Cargo.toml
+
+      - name: Rust test
+        run: |
+          ulimit -n 10240
+          source /Users/runner/.cargo/env
+          make rusttest
+
+      - name: Rust example
+        working-directory: examples/rust
+        run: |
+          ulimit -n 10240
+          source /Users/runner/.cargo/env
+          cargo build --features arrow

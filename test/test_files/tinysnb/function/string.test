@@ -1,0 +1,607 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE FunctionString
+
+-LOG StrAddOperation
+-STATEMENT MATCH (a:person) RETURN a.fName + "suffix"
+---- 8
+Alicesuffix
+Bobsuffix
+Carolsuffix
+Dansuffix
+Elizabethsuffix
+Farooqsuffix
+Gregsuffix
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorffsuffix
+
+-LOG StrVarAndStrLiteralConcat
+-STATEMENT MATCH (a:person) WHERE concat(a.fName, 'xyz') = 'Farooqxyz' RETURN COUNT(*)
+---- 1
+1
+
+-LOG StrVarAndStrLiteralConcat2
+-STATEMENT MATCH (a:person) WHERE concat('xyz', a.fName) = 'xyzFarooq' RETURN COUNT(*)
+---- 1
+1
+
+-LOG StrVarAndStrLiteralConcat3
+-STATEMENT MATCH (a:person) WHERE 'Farooqxyz' = concat(a.fName, 'xyz') RETURN COUNT(*)
+---- 1
+1
+
+-LOG StrVarAndStrLiteralConcat4
+-STATEMENT MATCH (a:person) WHERE 'xyzFarooq' = concat('xyz', a.fName) RETURN COUNT(*)
+---- 1
+1
+
+-LOG StrVarAndIntLiteralConcat
+-STATEMENT MATCH (a:person) WHERE concat(a.fName, string(10)) = 'Farooq10' RETURN COUNT(*)
+---- 1
+1
+
+-LOG StrVarAndIntLiteralConcat2
+-STATEMENT MATCH (a:person) WHERE 'Farooq10' = concat(a.fName, string(10)) RETURN COUNT(*)
+---- 1
+1
+
+-LOG IntLiteralAndStrVarConcat
+-STATEMENT MATCH (a:person) WHERE concat(string(10), a.fName) = '10Farooq' RETURN COUNT(*)
+---- 1
+1
+
+-LOG IntLiteralAndStrVarConcat2
+-STATEMENT MATCH (a:person) WHERE '10Farooq' = concat(string(10), a.fName) RETURN COUNT(*)
+---- 1
+1
+
+-LOG StrVarAndBoolLiteralConcat
+-STATEMENT MATCH (a:person) WHERE concat(a.fName, string(true)) = 'FarooqTrue' RETURN COUNT(*)
+---- 1
+1
+
+-LOG StrVarAndBoolLiteralConcat2
+-STATEMENT MATCH (a:person) WHERE 'FarooqTrue' = concat(a.fName, string(true)) RETURN COUNT(*)
+---- 1
+1
+
+-LOG BoolLiteralAndStrVarConcat
+-STATEMENT MATCH (a:person) WHERE concat(string(false), a.fName) = 'FalseFarooq' RETURN COUNT(*)
+---- 1
+1
+
+-LOG BoolLiteralAndStrVarConcat
+-STATEMENT MATCH (a:person) WHERE 'FalseFarooq' = concat(string(FALse), a.fName) RETURN COUNT(*)
+---- 1
+1
+
+-LOG StrVarAndDoubleLiteralConcat
+-STATEMENT MATCH (a:person) WHERE concat(a.fName, string(11.7)) = 'Farooq11.700000' RETURN COUNT(*)
+---- 1
+1
+
+-LOG StrVarAndIntegerVarConcat
+-STATEMENT MATCH (a:person) WHERE concat(a.fName, string(a.age)) = 'Farooq25' RETURN COUNT(*)
+---- 1
+1
+
+-LOG StrVarAndIntegerVarConcat2
+-STATEMENT MATCH (a:person) WHERE 'Farooq25' = concat(a.fName, string(a.age)) RETURN COUNT(*)
+---- 1
+1
+
+-LOG IntegerVarAndStrVarConcat
+-STATEMENT MATCH (a:person) WHERE concat(string(a.age), a.fName) = '25Farooq' RETURN COUNT(*)
+---- 1
+1
+
+-LOG IntegerVarAndStrVarConcat2
+-STATEMENT MATCH (a:person) WHERE '25Farooq' = concat(string(a.age), a.fName) RETURN COUNT(*)
+---- 1
+1
+
+-LOG DateVarAndStrVarConcat
+-STATEMENT MATCH (a:person) WHERE '1900-01-01Alice' = concat(string(a.birthdate), a.fName) RETURN COUNT(*)
+---- 1
+1
+
+-LOG TimestampVarAndStrVarConcat
+-STATEMENT MATCH (a:person) WHERE '2011-08-20 11:25:30Alice' = concat(string(a.registerTime), a.fName) RETURN COUNT(*)
+---- 1
+1
+
+-LOG ContainsReturn
+-STATEMENT MATCH (a:person) RETURN a.fName, a.fName CONTAINS "a" ORDER BY a.fName
+---- 8
+Alice|False
+Bob|False
+Carol|True
+Dan|True
+Elizabeth|True
+Farooq|True
+Greg|False
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|True
+
+-LOG ContainsSelect
+-STATEMENT MATCH (a:person) WHERE a.fName = 'Bob' and a.fName CONTAINS "B" RETURN a.fName
+---- 1
+Bob
+
+-LOG ContainsSelect2
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE NOT a.fName CONTAINS b.fName RETURN COUNT(*)
+---- 1
+14
+
+-LOG ContainsSelect3
+-STATEMENT MATCH (a:person) WHERE a.fName <> "Alice" and a.fName CONTAINS a.fName RETURN count(*)
+---- 1
+7
+
+-LOG StartsWithReturn1
+-STATEMENT MATCH (a:person) RETURN a.fName, a.fName STARTS WITH "A" ORDER BY a.fName
+---- 8
+Alice|True
+Bob|False
+Carol|False
+Dan|False
+Elizabeth|False
+Farooq|False
+Greg|False
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|False
+
+-LOG StartsWithAlias
+-STATEMENT MATCH (o:organisation) RETURN prefix(o.name, "ABF")
+---- 3
+True
+False
+False
+
+-LOG StartsWithSelect
+-STATEMENT MATCH (a:person) WHERE a.fName STARTS WITH "C" RETURN a.fName
+---- 1
+Carol
+
+-LOG LowerStr
+-STATEMENT MATCH (o:organisation) RETURN lower(o.name)
+---- 3
+abfsuni
+cswork
+deswork
+
+-LOG LowerUTF8String
+-STATEMENT MATCH (m:movies) RETURN lower(m.name)
+---- 3
+sóló cón tu párejâ
+the 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
+roma
+
+-LOG UpperStr
+-STATEMENT MATCH (o:organisation) RETURN upper(o.name)
+---- 3
+ABFSUNI
+CSWORK
+DESWORK
+
+-LOG UpperUTF8String
+-STATEMENT MATCH (m:movies) RETURN upper(m.name)
+---- 3
+SÓLÓ CÓN TU PÁREJÂ
+THE 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 MOVIE
+ROMA
+
+-LOG TrimStr
+-STATEMENT MATCH (o:organisation) RETURN trim(o.name)
+---- 3
+ABFsUni
+CsWork
+DEsWork
+
+-LOG LtrimStr
+-STATEMENT MATCH (o:organisation) RETURN ltrim(o.name)
+---- 3
+ABFsUni
+CsWork
+DEsWork
+
+-LOG RtrimStr
+-STATEMENT MATCH (o:organisation) RETURN rtrim(o.name)
+---- 3
+ABFsUni
+CsWork
+DEsWork
+
+-LOG ReverseStr
+-STATEMENT MATCH (o:organisation) RETURN reverse(o.name)
+---- 3
+inUsFBA
+kroWsC
+kroWsED
+
+-LOG ReverseUTF8String
+-STATEMENT MATCH (m:movies) RETURN reverse(m.name)
+---- 3
+âjeráp ut nóc ólóS
+eivom 🚗🍞🌦️🌍🧘🏻‍♂️😃😂 ehT
+amoR
+
+-LOG LengthStr
+-STATEMENT MATCH (o:organisation) RETURN size(o.name)
+---- 3
+7
+6
+7
+
+-LOG SizeStr
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN size(s.places[1])
+---- 3
+13
+14
+4
+
+-LOG RepeatStr
+-STATEMENT MATCH (o:organisation) RETURN repeat(o.name, o.ID)
+---- 3
+ABFsUni
+CsWorkCsWorkCsWorkCsWork
+DEsWorkDEsWorkDEsWorkDEsWorkDEsWorkDEsWork
+
+-LOG LpadStrAndLiteralInt
+-STATEMENT MATCH (p:person) RETURN lpad(p.fName, 5, "<")
+---- 8
+Alice
+<<Bob
+Carol
+<<Dan
+Eliza
+Faroo
+<Greg
+Huber
+
+-LOG LpadUTF8String
+-STATEMENT MATCH (m:movies) RETURN lpad(m.name, 25, "âó")
+---- 3
+âóâóâóâSóló cón tu párejâ
+âóâThe 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
+âóâóâóâóâóâóâóâóâóâóâRoma
+
+-LOG LpadNegativeCount
+-STATEMENT MATCH (m:movies) RETURN lpad(m.name, -1, ".")
+---- 3
+
+
+
+
+-LOG LpadOutOfRange
+-STATEMENT MATCH (p:person) RETURN lpad(p.fName, -10, "t")
+---- 8
+
+
+
+
+
+
+
+
+
+-LOG RpadStrAndLiteralInt
+-STATEMENT MATCH (p:person) RETURN rpad(p.fName, 15, ">")
+---- 8
+Alice>>>>>>>>>>
+Bob>>>>>>>>>>>>
+Carol>>>>>>>>>>
+Dan>>>>>>>>>>>>
+Elizabeth>>>>>>
+Farooq>>>>>>>>>
+Greg>>>>>>>>>>>
+Hubert Blaine W
+
+-LOG RpadUTF8String
+-STATEMENT MATCH (m:movies) RETURN rpad(m.name, 45, "âó😂😃🍞🚗")
+---- 3
+Sóló cón tu párejââó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂
+The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movieâó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞
+Romaâó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞
+
+-LOG RpadNegativeCount
+-STATEMENT MATCH (m:movies) RETURN rpad(m.name, -1, "âó😂😃🍞🚗")
+---- 3
+
+
+
+
+-LOG RpadStrAndInt
+-STATEMENT MATCH (p:person) RETURN rpad(p.fName, p.ID, "<")
+---- 8
+
+Bo
+Car
+Dan<<
+Elizabe
+Farooq<<
+Greg<<<<<
+Hubert Bla
+
+-LOG RpadOutOfRange
+-STATEMENT MATCH (o:organisation) RETURN rpad(o.name, -8, "y")
+---- 3
+
+
+
+
+-LOG SubStrStrAndLiteralInt
+-STATEMENT MATCH (p:person) RETURN substr(p.fName, 2, 12)
+---- 8
+lice
+ob
+arol
+an
+lizabeth
+arooq
+reg
+ubert Blaine
+
+-LOG LeftPositiveIdxStrAndLiteralInt
+-STATEMENT MATCH (p:person) RETURN left(p.fName, 11)
+---- 8
+Alice
+Bob
+Carol
+Dan
+Elizabeth
+Farooq
+Greg
+Hubert Blai
+
+-LOG LeftPositiveIdxUTF8String
+-STATEMENT MATCH (m:movies) RETURN left(m.name, 6)
+---- 3
+Sóló c
+The 😂😃
+Roma
+
+-LOG LeftPositiveIdxStrAndInt
+-STATEMENT MATCH (o:organisation) RETURN left(o.name, o.ID)
+---- 3
+A
+CsWo
+DEsWor
+
+-LOG LeftNegativeIdxStrAndLiteralInt
+-STATEMENT MATCH (p:person) RETURN left(p.fName, -4)
+---- 8
+A
+
+C
+
+Eliza
+Fa
+
+Hubert Blaine Wolfeschlegelsteinhausenbergerd
+
+-LOG LeftNegativeIdxUTF8String
+-STATEMENT MATCH (m:movies) RETURN left(m.name, -7)
+---- 3
+Sóló cón tu
+The 😂😃🧘🏻‍♂️🌍🌦️🍞
+
+-LOG RightPositiveIdxStrAndLiteralInt
+-STATEMENT MATCH (p:person) RETURN right(p.fName, 10)
+---- 8
+Alice
+Bob
+Carol
+Dan
+Elizabeth
+Farooq
+Greg
+ergerdorff
+
+-LOG RightPositiveIdxUTF8String
+-STATEMENT MATCH (m:movies) RETURN right(m.name, 5)
+---- 3
+árejâ
+movie
+Roma
+
+-LOG RightPositiveIdxStrAndInt
+-STATEMENT MATCH (o:organisation) RETURN right(o.name, o.ID)
+---- 3
+i
+Work
+EsWork
+
+-LOG RightNegativeIdxStrAndLiteralInt
+-STATEMENT MATCH (p:person) RETURN right(p.fName, -4)
+---- 8
+e
+
+l
+
+abeth
+oq
+
+rt Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-LOG RightNegativeIdxUTF8String
+-STATEMENT MATCH (m:movies) RETURN right(m.name, -3)
+---- 3
+ó cón tu párejâ
+ 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
+a
+
+-LOG ArrayExtractPositiveIdxStrAndInt
+-STATEMENT MATCH (o:organisation) RETURN array_extract(o.name, o.ID + 2)
+---- 3
+F
+k
+k
+
+-LOG ArrayExtractNegativeIdxStrAndInt
+-STATEMENT MATCH (o:organisation) RETURN array_extract(o.name, o.ID - 5)
+---- 3
+s
+k
+D
+
+-LOG ArrayExtractUTF8PositiveIdx
+-STATEMENT MATCH (m:movies) RETURN array_extract(m.name, 6)
+---- 3
+c
+😃
+a
+
+-LOG ArrayExtractUTF8NegativeIdx
+-STATEMENT MATCH (m:movies) RETURN array_extract(m.name, -5)
+---- 3
+á
+m
+R
+
+-LOG ArrayExtractUTF8ZeroIdx
+-STATEMENT MATCH (m:movies) RETURN array_extract(m.name, 0)
+---- 3
+
+
+
+
+-LOG ListExtractString
+-STATEMENT MATCH (o:organisation) RETURN o.name[2]
+---- 3
+B
+s
+E
+
+-LOG ListExtractOutOfRange
+-STATEMENT MATCH (a:person) RETURN a.fName[8]
+---- 8
+
+
+
+
+t
+
+
+B
+
+-LOG ListExtractNegativeIndex
+-STATEMENT MATCH (o:organisation) RETURN o.name[-2]
+---- 3
+n
+r
+r
+
+-LOG ListExtractUTF8PositiveIdx
+-STATEMENT MATCH (m:movies) RETURN m.name[2]
+---- 3
+ó
+h
+o
+
+-LOG ListExtractUTF8NegativeIdx
+-STATEMENT MATCH (m:movies) RETURN m.name[-5]
+---- 3
+á
+m
+R
+
+-LOG ListExtractUTF8ZeroIdx
+-STATEMENT MATCH (m:movies) RETURN m.name[0]
+---- 3
+
+
+
+
+-LOG SuffixStr
+-STATEMENT MATCH (o:organisation) RETURN suffix(o.name, "Work")
+---- 3
+False
+True
+True
+
+-LOG SuffixSelect
+-STATEMENT MATCH (p:person) WHERE suffix(p.fName, "l") RETURN p.fName
+---- 1
+Carol
+
+-LOG RegexpFullMatchString
+-STATEMENT MATCH (a:person) WHERE a.fName =~ 'Ali.*' RETURN a.ID
+---- 1
+0
+
+-LOG RegexpFullMatchAnchorString
+-STATEMENT MATCH (a:person) UNWIND a.usedNames as x WITH x AS name WHERE name =~ '^A.*$' RETURN name
+---- 2
+Ad
+Aida
+
+-LOG RegexpFullMatchUTF8String
+-STATEMENT MATCH (m:movies) WHERE m.name =~ '.*â.*' RETURN m.name
+---- 1
+Sóló cón tu párejâ
+
+-LOG RegexpFullMatchEscapeSeq1
+-STATEMENT Return REGEXP_FULL_MATCH("peter_n@example.com", ".*\\.com");
+---- 1
+True
+
+-LOG RegexpFullMatchEscapeSeq2
+-STATEMENT Return REGEXP_FULL_MATCH("Alice.*^Alice", ".*\\.\\*.*");
+---- 1
+True
+
+-LOG RegexpFullMatchEscapeSeq3
+-STATEMENT Return REGEXP_FULL_MATCH("peter_n@examplecom", ".*\\.com");
+---- 1
+False
+
+-LOG RegexpMatchesString
+-STATEMENT MATCH (a:person) WHERE REGEXP_MATCHES(a.fName, 'Ali.*') = true RETURN a.ID
+---- 1
+0
+
+-LOG RegexpMatchesSeq1
+-STATEMENT Return REGEXP_MATCHES('anabanana', '(an)*');
+---- 1
+True
+
+-LOG RegexpReplaceSeq1
+-STATEMENT Return REGEXP_REPLACE('hello', '[lo]', '-');
+---- 1
+he-lo
+
+-LOG RegexpExtractWithoutGroup
+-STATEMENT Return regexp_extract('hello_world', '([a-z ]+)_?');
+---- 1
+hello_
+
+-LOG RegexpExtractWithGroup
+-STATEMENT Return regexp_extract('hello_world', '([a-z ]+)_?', 1);
+---- 1
+hello
+
+-LOG RegexpExtractAllLongString
+-STATEMENT Return regexp_extract('hellolongstringtest_worldlongstringtest', '([a-z ]+)_?', 1);
+---- 1
+hellolongstringtest
+
+-LOG RegexpExtractAllWithoutGroup
+-STATEMENT Return regexp_extract_all('hello_world', '([a-z ]+)_?');
+---- 1
+[hello_,world]
+
+-LOG RegexpExtractAllWithGroup
+-STATEMENT Return regexp_extract_all('hello_world', '([a-z ]+)_?', 1);
+---- 1
+[hello,world]
+
+-LOG RegexpExtractAllLongString
+-STATEMENT Return regexp_extract_all('hellolongstringtest_worldlongstringtest', '([a-z ]+)_?', 1);
+---- 1
+[hellolongstringtest,worldlongstringtest]
+
+-LOG RegexpExtractAllEmptyMatch
+-STATEMENT Return regexp_extract_all('hello', '()', 1);
+---- 1
+[,,,,,]

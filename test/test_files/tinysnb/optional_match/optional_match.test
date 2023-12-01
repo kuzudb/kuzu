@@ -1,0 +1,135 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE OptionalMatch
+
+-LOG CrossProductOptionalMatch1
+-STATEMENT MATCH (a:person) WHERE a.fName = 'Alice' OPTIONAL MATCH (b:person) WHERE b.fName = 'A' RETURN a.ID, b.ID
+---- 1
+0|
+
+-LOG CrossProductOptionalMatch2
+-STATEMENT OPTIONAL MATCH (a:person) WHERE a.fName = 'a' MATCH (b:person) WHERE b.fName = 'Alice' RETURN a.ID, b.ID
+---- 1
+|0
+
+-LOG InitOptionalMatch
+-STATEMENT OPTIONAL MATCH (a:person) WHERE a.ID<0 RETURN COUNT(*)
+---- 1
+1
+
+-LOG InitOptionalMatch2
+-STATEMENT OPTIONAL MATCH (a:person) WHERE a.fName = 'a' RETURN a.age
+---- 1
+
+-LOG InitOptionalMatch2
+-STATEMENT OPTIONAL MATCH (a:person) WHERE a.ID < 6 RETURN a.fName
+---- 4
+Alice
+Bob
+Carol
+Dan
+
+-LOG MultiKeyOptionalMatchTest1
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE a.ID=0 OPTIONAL MATCH (a)-[:knows]->(c:person), (b)-[:knows]->(c) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+6
+
+-LOG MultiKeyOptionalMatchTest2
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) OPTIONAL MATCH (a)-[:studyAt]->(c:organisation), (b)-[:studyAt]->(c) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+14
+
+-LOG MixedMatchTest1
+-STATEMENT MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person) MATCH (b)-[:knows]->(c:person) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+36
+
+-LOG MixedMatchTest2
+-STATEMENT MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person) MATCH (b)-[:studyAt]->(c:organisation) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+7
+
+-LOG MixedMatchTest3
+-STATEMENT MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person) WHERE b.fName='Farooq' MATCH (b)<-[:knows]-(c:person) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+1
+
+-LOG MixedMatchTest4
+-STATEMENT match (a:person)-[:knows]->(b:person) optional match (a)-[:knows]->(c:person) match (b)-[:knows]->(c) return count(*)
+-ENUMERATE
+---- 1
+24
+
+-LOG MixedMatchHashJoinTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) OPTIONAL MATCH (b)-[:knows]->(c:person) MATCH (c)-[:knows]->(d:person)-[:knows]->(e:person) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+324
+
+-LOG OptionalReadStringPropertyTest
+-STATEMENT MATCH (a:person) WHERE a.fName='Elizabeth' OR a.fName='Hubert Blaine Wolfeschlegelsteinhausenbergerdorff' OPTIONAL MATCH (a)-[:knows]->(b:person) RETURN a.fName, b.fName
+-ENUMERATE
+---- 3
+Elizabeth|Farooq
+Elizabeth|Greg
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|
+
+-LOG OptionalReturnTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE a.fName='Alice' OPTIONAL MATCH (b)-[:studyAt]->(c:organisation) RETURN c.orgCode
+-ENUMERATE
+---- 3
+
+
+325
+
+-LOG OptionalReturnTest2
+-STATEMENT MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person) WHERE b.fName='Farooq' RETURN a.fName, b.fName
+-ENUMERATE
+---- 8
+Alice|
+Bob|
+Carol|
+Dan|
+Elizabeth|Farooq
+Farooq|
+Greg|
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|
+
+-LOG OptionalListExtendCountTest
+-STATEMENT MATCH (a:person) OPTIONAL MATCH (a)-[:studyAt]->(b:organisation) RETURN a.fName, b.name
+-ENUMERATE
+---- 8
+Alice|ABFsUni
+Bob|ABFsUni
+Carol|
+Dan|
+Elizabeth|
+Farooq|ABFsUni
+Greg|
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|
+
+-LOG OptionalListExtendTest2
+-STATEMENT MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person)-[:knows]->(c:person) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+40
+
+-LOG OptionalColExtendTest
+-STATEMENT MATCH (a:person) OPTIONAL MATCH (a)-[:workAt]->(b:organisation) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+8
+
+-LOG MultipleOptionalCountTest
+-STATEMENT MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person) OPTIONAL MATCH (b)-[:knows]->(c:person) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+41

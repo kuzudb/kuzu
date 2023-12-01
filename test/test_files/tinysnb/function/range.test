@@ -1,0 +1,136 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tck
+
+--
+
+-CASE Range
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, AGE INT64, NAME STRING, NUMBER INT32, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+-STATEMENT CREATE ({AGE: 1, NAME: "Alice", NUMBER: 1})-[]-({AGE: 2, NAME: "Alice", NUMBER: 2});
+---- ok
+-STATEMENT CREATE ({AGE: 0, NAME:"Alice", NUMBER:3});
+---- ok
+-STATEMENT MATCH (a) RETURN range(a.AGE, 3);
+---- 3
+[1,2,3]
+[2,3]
+[0,1,2,3]
+-STATEMENT MATCH(a) RETURN range(1, a.AGE, 1);
+---- 3
+[1]
+[1,2]
+[]
+-STATEMENT MATCH(a) RETURN range(a.ID, a.ID, 1);
+---- 3
+[0]
+[1]
+[2]
+#-STATEMENT MATCH (a)--() RETURN range(a.AGE, a.AGE, a.AGE);
+#---- 2
+#[1]
+#[2]
+#-STATEMENT MATCH (a)--() RETURN range(1, 5, a.AGE);
+#---- 2
+#[1,2,3,4,5]
+#[1,3,5]
+-STATEMENT MATCH (a) RETURN range(a.NUMBER, a.AGE, -1);
+---- 3
+[1]
+[2]
+[3,2,1,0]
+-STATEMENT MATCH (a) RETURN range(-4, a.AGE, a.NUMBER);
+---- 3
+[-4,-3,-2,-1,0,1]
+[-4,-2,0,2]
+[-4,-1]
+#-STATEMENT MATCH (b)--() RETURN range(b.AGE, 4, b.NUMBER);
+#---- 2
+#[1,2,3,4]
+#[2,4]
+-STATEMENT MATCH (a) RETURN range(a.NUMBER, 5, a.AGE);
+---- error
+Runtime exception: Step of range cannot be 0.
+-STATEMENT MATCH (a) RETURN range(a.NAME, 4, 1);
+---- error
+Binder exception: Cannot match a built-in function for given function RANGE(STRING,INT64,INT64). Supported inputs are
+(INT64,INT64) -> VAR_LIST
+(INT64,INT64,INT64) -> VAR_LIST
+(INT32,INT32) -> VAR_LIST
+(INT32,INT32,INT32) -> VAR_LIST
+(INT16,INT16) -> VAR_LIST
+(INT16,INT16,INT16) -> VAR_LIST
+(INT8,INT8) -> VAR_LIST
+(INT8,INT8,INT8) -> VAR_LIST
+(SERIAL,SERIAL) -> VAR_LIST
+(SERIAL,SERIAL,SERIAL) -> VAR_LIST
+-STATEMENT RETURN range(4, 3);
+---- 1
+[]
+-STATEMENT RETURN range(0, 0);
+---- 1
+[0]
+-STATEMENT RETURN range(1, 5);
+---- 1
+[1,2,3,4,5]
+-STATEMENT RETURN range(To_INT32(-3), TO_INT32(0));
+---- 1
+[-3,-2,-1,0]
+-STATEMENT RETURN range(To_INT16(-3), TO_INT16(0));
+---- 1
+[-3,-2,-1,0]
+-STATEMENT RETURN range(To_INT8(-3), TO_INT16(0));
+---- 1
+[-3,-2,-1,0]
+-STATEMENT RETURN range(To_INT8(-3), TO_INT8(0));
+---- 1
+[-3,-2,-1,0]
+-STATEMENT RETURN range(4, 4, 2);
+---- 1
+[4]
+-STATEMENT RETURN range(4, 4, -2);
+---- 1
+[4]
+-STATEMENT RETURN range(5, 1, -1);
+---- 1
+[5,4,3,2,1]
+-STATEMENT RETURN range(5, 1, -2);
+---- 1
+[5,3,1]
+-STATEMENT RETURN range(5, 1, -3);
+---- 1
+[5,2]
+-STATEMENT RETURN range(6, 2, 2);
+---- 1
+[]
+-STATEMENT RETURN range(3, 6, -5);
+---- 1
+[]
+-STATEMENT RETURN range(3, 6, -1);
+---- 1
+[]
+-STATEMENT RETURN range(TO_INT32(3), 8, 2);
+---- 1
+[3,5,7]
+-STATEMENT RETURN range(TO_INT8(0), TO_INT16(-9), TO_INT8(-2));
+---- 1
+[0,-2,-4,-6,-8]
+-STATEMENT RETURN range(TO_INT16(5), TO_INT16(6), TO_INT16(1));
+---- 1
+[5,6]
+-STATEMENT RETURN range(TO_INT32(5), 25, TO_INT32(10));
+---- 1
+[5,15,25]
+-STATEMENT RETURN range(TO_INT32(5), TO_INT32(26), TO_INT32(10));
+---- 1
+[5,15,25]
+-STATEMENT RETURN range(TO_INT8(-128), TO_INT8(127), TO_INT8(127));
+---- 1
+[-128,-1,126]
+-STATEMENT RETURN range(3, 4, 0);
+---- error
+Runtime exception: Step of range cannot be 0.
+-STATEMENT RETURN range(0, -1, 9223372036854775807);
+---- 1
+[]

@@ -1,0 +1,148 @@
+# In the knows relation of the tiny-snb dataset, Node 0,2,3,5 extends to each other, Node 7 extends to Node 8,9 and
+# all other nodes don't have adjacent nodes.
+# In level 1, there are 14 nodes (Node 0 extends to Node 2,3,5; Node 2 extends to Node 0,3,5; Node 3 extends to Node
+# 0,2,5; Node 5 extends to Node 0,3,5 and Node 7 extends to Node 8,9). So level 1 has 3 * Node 0,2,3,5 and Node 8,9.
+# In level 2,  Node 0,2,3,5 extends to each other so we have 3 * 3 * Node 0,2,3,5 = 36 nodes. Node 8,9 doesn't have
+# adjacent nodes. # In level 3, Node 0,2,3,5 extends to each other so we have 3 * 3 * 3 * Node 0,2,3,5 = 108 nodes.
+# In general the formula is this: nth level will have 4 * (3 ^ n) number of nodes (n > 1), and the first level has
+# 14 nodes.
+
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE VarLengthExtendNNTests
+
+-LOG ZeroHop
+-STATEMENT MATCH p = (a:person)-[e:knows*0..0]->(b:person) RETURN properties(nodes(p),'fName'), rels(p), a.fName, b.fName, nodes(e), rels(e)
+---- 8
+[Alice]|[]|Alice|Alice|[]|[]
+[Bob]|[]|Bob|Bob|[]|[]
+[Carol]|[]|Carol|Carol|[]|[]
+[Dan]|[]|Dan|Dan|[]|[]
+[Elizabeth]|[]|Elizabeth|Elizabeth|[]|[]
+[Farooq]|[]|Farooq|Farooq|[]|[]
+[Greg]|[]|Greg|Greg|[]|[]
+[Hubert Blaine Wolfeschlegelsteinhausenbergerdorff]|[]|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|[]|[]
+-STATEMENT MATCH p = (a:person)-[e:knows*0..1]->(b:person) WHERE a.ID = 7 RETURN properties(nodes(p),'fName'), properties(rels(p), 'meetTime'), a.fName, b.fName, properties(nodes(e),'ID'), properties(rels(e), 'meetTime')
+---- 3
+[Elizabeth,Farooq]|[2025-01-01 11:22:33.52]|Elizabeth|Farooq|[]|[2025-01-01 11:22:33.52]
+[Elizabeth,Greg]|[2020-03-01 12:11:41.6552]|Elizabeth|Greg|[]|[2020-03-01 12:11:41.6552]
+[Elizabeth]|[]|Elizabeth|Elizabeth|[]|[]
+
+-LOG KnowsThreeHopMinLenEqualsMaxLen
+-STATEMENT MATCH (a:person)-[e:knows*3..3]->(b:person) RETURN COUNT(*)
+---- 1
+108
+
+-LOG KnowsKnows2To4HopTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows*2..4]->(c:person) RETURN COUNT(*)
+---- 1
+1404
+
+-LOG KnowsLongPathTest
+-STATEMENT MATCH (a:person)-[:knows*8..11]->(b:person) RETURN COUNT(*)
+-PARALLELISM 1
+---- 1
+1049760
+
+-LOG KnowsOneToTwoHopWithFilterTest
+-STATEMENT MATCH (a:person)-[:knows*1..2]->(b:person) WHERE a.ID = 7 RETURN b.fName
+---- 2
+Farooq
+Greg
+
+-LOG KnowsWithOptionalMatch
+-STATEMENT MATCH (a:person) OPTIONAL MATCH (a)-[:knows*2..3]->(b:person) RETURN COUNT(*)
+---- 1
+148
+
+-LOG KnowsOneToTwoHopTest
+-STATEMENT MATCH (a:person)-[e:knows*1..2]->(b:person) WHERE a.fName='Alice' RETURN properties(rels(e), '_id'), b.fName
+---- 12
+[3:0,3:3]|Alice
+[3:0,3:4]|Carol
+[3:0,3:5]|Dan
+[3:0]|Bob
+[3:1,3:6]|Alice
+[3:1,3:7]|Bob
+[3:1,3:8]|Dan
+[3:1]|Carol
+[3:2,3:10]|Bob
+[3:2,3:11]|Carol
+[3:2,3:9]|Alice
+[3:2]|Dan
+
+-LOG KnowsOneToTwoHopFilterTest
+-STATEMENT MATCH (a:person)-[e:knows*1..2 {date: date("2021-06-30")}]->(b:person) WHERE a.fName='Alice' RETURN id(rels(e)[1]), size(nodes(e)), length(e)
+---- 6
+3:0|0|1
+3:0|1|2
+3:1|0|1
+3:1|1|2
+3:2|0|1
+3:2|1|2
+
+-LOG KnowsOneToTwoHopFilterTest2
+-STATEMENT MATCH (a:person)-[e:knows*1..2 (r,_ | WHERE list_contains(r.comments, 'rnme'))]->(b:person) WHERE a.fName='Alice' RETURN COUNT(*)
+---- 1
+1
+
+-LOG SelfLoop
+-STATEMENT MATCH (a:person)-[e:knows*1..3]->(a) WHERE a.fName='Alice' RETURN COUNT(*)
+---- 1
+9
+
+-STATEMENT MATCH (a:person)-[e:knows*1..2 (r, n | WHERE r.date > date("1999-01-01") | {}, {})]->(b:person) WHERE a.ID = 5 RETURN e
+---- 7
+{_NODES: [], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:11}->(0:2)]}
+{_NODES: [], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:9}->(0:0)]}
+{_NODES: [{_ID: 0:0, _LABEL: person}], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:9}->(0:0),(0:0)-{_LABEL: knows, _ID: 3:0}->(0:1)]}
+{_NODES: [{_ID: 0:0, _LABEL: person}], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:9}->(0:0),(0:0)-{_LABEL: knows, _ID: 3:1}->(0:2)]}
+{_NODES: [{_ID: 0:0, _LABEL: person}], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:9}->(0:0),(0:0)-{_LABEL: knows, _ID: 3:2}->(0:3)]}
+{_NODES: [{_ID: 0:2, _LABEL: person}], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:11}->(0:2),(0:2)-{_LABEL: knows, _ID: 3:6}->(0:0)]}
+{_NODES: [{_ID: 0:2, _LABEL: person}], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:11}->(0:2),(0:2)-{_LABEL: knows, _ID: 3:8}->(0:3)]}
+-STATEMENT MATCH (a:person)-[e:knows*1..2 (r, n | WHERE r.date > date("1999-01-01") | {r.meetTime}, {})]->(b:person) WHERE a.ID = 5 RETURN e
+---- 7
+{_NODES: [], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:11, meetTime: 1999-04-21 15:12:11.42}->(0:2)]}
+{_NODES: [], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:9, meetTime: 1936-11-02 11:02:01}->(0:0)]}
+{_NODES: [{_ID: 0:0, _LABEL: person}], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:9, meetTime: 1936-11-02 11:02:01}->(0:0),(0:0)-{_LABEL: knows, _ID: 3:0, meetTime: 1986-10-21 21:08:31.521}->(0:1)]}
+{_NODES: [{_ID: 0:0, _LABEL: person}], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:9, meetTime: 1936-11-02 11:02:01}->(0:0),(0:0)-{_LABEL: knows, _ID: 3:1, meetTime: 1946-08-25 19:07:22}->(0:2)]}
+{_NODES: [{_ID: 0:0, _LABEL: person}], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:9, meetTime: 1936-11-02 11:02:01}->(0:0),(0:0)-{_LABEL: knows, _ID: 3:2, meetTime: 2012-12-11 20:07:22}->(0:3)]}
+{_NODES: [{_ID: 0:2, _LABEL: person}], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:11, meetTime: 1999-04-21 15:12:11.42}->(0:2),(0:2)-{_LABEL: knows, _ID: 3:6, meetTime: 2002-07-31 11:42:53.12342}->(0:0)]}
+{_NODES: [{_ID: 0:2, _LABEL: person}], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:11, meetTime: 1999-04-21 15:12:11.42}->(0:2),(0:2)-{_LABEL: knows, _ID: 3:8, meetTime: 1998-10-02 13:09:22.423}->(0:3)]}
+
+-STATEMENT MATCH (a:person)-[e:knows*1..2 (r, n | WHERE r.date > date("1999-01-01") | {}, {n.fName})]->(b:person) WHERE a.ID = 5 RETURN e
+---- 7
+{_NODES: [], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:11}->(0:2)]}
+{_NODES: [], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:9}->(0:0)]}
+{_NODES: [{_ID: 0:0, _LABEL: person, fName: Alice}], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:9}->(0:0),(0:0)-{_LABEL: knows, _ID: 3:0}->(0:1)]}
+{_NODES: [{_ID: 0:0, _LABEL: person, fName: Alice}], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:9}->(0:0),(0:0)-{_LABEL: knows, _ID: 3:1}->(0:2)]}
+{_NODES: [{_ID: 0:0, _LABEL: person, fName: Alice}], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:9}->(0:0),(0:0)-{_LABEL: knows, _ID: 3:2}->(0:3)]}
+{_NODES: [{_ID: 0:2, _LABEL: person, fName: Carol}], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:11}->(0:2),(0:2)-{_LABEL: knows, _ID: 3:6}->(0:0)]}
+{_NODES: [{_ID: 0:2, _LABEL: person, fName: Carol}], _RELS: [(0:3)-{_LABEL: knows, _ID: 3:11}->(0:2),(0:2)-{_LABEL: knows, _ID: 3:8}->(0:3)]}
+-STATEMENT MATCH p = (a:person)-[e:knows*1..2 (r, n | WHERE r.date > date("1999-01-01") | {r.meetTime}, {n.ID, n.fName})]->(b:person) WHERE a.ID = 5 RETURN properties(nodes(p), 'ID'), properties(nodes(p), 'age'), rels(p)
+---- 7
+[5,0,2]|[20,,30]|[(0:3)-{_LABEL: knows, _ID: 3:9, meetTime: 1936-11-02 11:02:01}->(0:0),(0:0)-{_LABEL: knows, _ID: 3:0, meetTime: 1986-10-21 21:08:31.521}->(0:1)]
+[5,0,3]|[20,,45]|[(0:3)-{_LABEL: knows, _ID: 3:9, meetTime: 1936-11-02 11:02:01}->(0:0),(0:0)-{_LABEL: knows, _ID: 3:1, meetTime: 1946-08-25 19:07:22}->(0:2)]
+[5,0,5]|[20,,20]|[(0:3)-{_LABEL: knows, _ID: 3:9, meetTime: 1936-11-02 11:02:01}->(0:0),(0:0)-{_LABEL: knows, _ID: 3:2, meetTime: 2012-12-11 20:07:22}->(0:3)]
+[5,0]|[20,35]|[(0:3)-{_LABEL: knows, _ID: 3:9, meetTime: 1936-11-02 11:02:01}->(0:0)]
+[5,3,0]|[20,,35]|[(0:3)-{_LABEL: knows, _ID: 3:11, meetTime: 1999-04-21 15:12:11.42}->(0:2),(0:2)-{_LABEL: knows, _ID: 3:6, meetTime: 2002-07-31 11:42:53.12342}->(0:0)]
+[5,3,5]|[20,,20]|[(0:3)-{_LABEL: knows, _ID: 3:11, meetTime: 1999-04-21 15:12:11.42}->(0:2),(0:2)-{_LABEL: knows, _ID: 3:8, meetTime: 1998-10-02 13:09:22.423}->(0:3)]
+[5,3]|[20,45]|[(0:3)-{_LABEL: knows, _ID: 3:11, meetTime: 1999-04-21 15:12:11.42}->(0:2)]
+-STATEMENT MATCH p = (a:person)-[e:knows*2..2 (r, n | WHERE n.fName = 'Alice')]->(b:person) RETURN properties(nodes(p), 'fName')
+---- 9
+[Bob,Alice,Bob]
+[Bob,Alice,Carol]
+[Bob,Alice,Dan]
+[Carol,Alice,Bob]
+[Carol,Alice,Carol]
+[Carol,Alice,Dan]
+[Dan,Alice,Bob]
+[Dan,Alice,Carol]
+[Dan,Alice,Dan]
+-STATEMENT MATCH p = (a:person)-[e:knows*2..2 (r, n | WHERE n.fName = 'Dan' AND r.date > date("1999-01-01"))]->(b:person)  WHERE a.ID = 0 RETURN properties(nodes(p), 'fName'), properties(rels(p), 'date')
+---- 2
+[Alice,Dan,Alice]|[2021-06-30,2021-06-30]
+[Alice,Dan,Carol]|[2021-06-30,2000-01-01]

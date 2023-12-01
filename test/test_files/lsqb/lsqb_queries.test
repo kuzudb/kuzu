@@ -1,0 +1,52 @@
+-GROUP LSQBTest
+-DATASET CSV sf-0.1
+-BUFFER_POOL_SIZE 536870912
+
+--
+
+-CASE LSQBTest
+
+-LOG q1
+-STATEMENT MATCH (:Country)<-[:City_isPartOf_Country]-(:City)<-[:Person_isLocatedIn_City]-(:Person)<-[:Forum_hasMember_Person]-(:Forum)-[:Forum_containerOf_Post]->(:Post)<-[Comment_replyOf_Post]-(:Comment)-[:Comment_hasTag_Tag]->(:Tag)-[:Tag_hasType_TagClass]->(:TagClass) RETURN count(*) as count;
+---- 1
+8773828
+
+-LOG q2
+-STATEMENT MATCH (person1:Person)-[:Person_knows_Person]-(person2:Person), (person1)<-[:Comment_hasCreator_Person]-(comment:Comment)-[:Comment_replyOf_Post]->(Post:Post)-[:Post_hasCreator_Person]->(person2) RETURN count(*) AS count;
+---- 1
+82990
+
+-LOG q3
+-STATEMENT MATCH (country:Country) MATCH (person1:Person)-[:Person_isLocatedIn_City]->(city1:City)-[:City_isPartOf_Country]->(country) MATCH (person2:Person)-[:Person_isLocatedIn_City]->(city2:City)-[:City_isPartOf_Country]->(country) MATCH (person3:Person)-[:Person_isLocatedIn_City]->(city3:City)-[:City_isPartOf_Country]->(country) MATCH (person1)-[:Person_knows_Person]-(person2)-[:Person_knows_Person]-(person3)-[:Person_knows_Person]-(person1) RETURN count(*) AS count;
+---- 1
+30456
+
+-LOG q4
+-STATEMENT MATCH (:Tag)<-[:Post_hasTag_Tag|:Comment_hasTag_Tag]-(message:Post:Comment)-[:Post_hasCreator_Person|:Comment_hasCreator_Person]->(creator:Person), (message)<-[:Person_likes_Comment|:Person_likes_Post]-(liker:Person), (message)<-[:Comment_replyOf_Comment|:Comment_replyOf_Post]-(comment:Comment) RETURN count(*) AS count;
+---- 1
+784511
+
+-LOG q5
+-STATEMENT MATCH (tag1:Tag)<-[:Post_hasTag_Tag|:Comment_hasTag_Tag]-(message:Comment:Post)<-[:Comment_replyOf_Post|:Comment_replyOf_Comment]-(comment:Comment)-[:Comment_hasTag_Tag]->(tag2:Tag) WHERE id(tag1) <> id(tag2) RETURN count(*) AS count;
+---- 1
+1079722
+
+-LOG q6
+-STATEMENT MATCH (person1:Person)-[:Person_knows_Person]-(person2:Person)-[:Person_knows_Person]-(person3:Person)-[:Person_hasInterest_Tag]->(tag:Tag) WHERE id(person1) <> id(person3) RETURN count(*) AS count;
+---- 1
+55607896
+
+-LOG q7
+-STATEMENT MATCH (:Tag)<-[:Post_hasTag_Tag|:Comment_hasTag_Tag]-(message:Post:Comment)-[:Post_hasCreator_Person|:Comment_hasCreator_Person]->(creator:Person) OPTIONAL MATCH (message)<-[:Person_likes_Comment|:Person_likes_Post]-(liker:Person) OPTIONAL MATCH (message)<-[:Comment_replyOf_Comment|:Comment_replyOf_Post]-(comment:Comment) RETURN count(*) AS count;
+---- 1
+1628132
+
+-LOG q8
+-STATEMENT MATCH (tag1:Tag)<-[:Post_hasTag_Tag|:Comment_hasTag_Tag]-(message:Post:Comment)<-[:Comment_replyOf_Post|:Comment_replyOf_Comment]-(comment:Comment)-[:Comment_hasTag_Tag]->(tag2:Tag) WHERE NOT EXISTS {MATCH (comment)-[:Comment_hasTag_Tag]->(tag1)} AND id(tag1) <> id(tag2) RETURN count(*) AS count;
+---- 1
+537142
+
+-LOG q9
+-STATEMENT MATCH (person1:Person)-[:Person_knows_Person]-(person2:Person)-[:Person_knows_Person]-(person3:Person)-[:Person_hasInterest_Tag]->(tag:Tag) WHERE NOT EXISTS {MATCH (person1)-[:Person_knows_Person]-(person3)} AND id(person1) <> id(person3) RETURN count(*) AS count;
+---- 1
+51009398

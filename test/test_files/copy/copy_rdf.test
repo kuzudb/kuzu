@@ -1,0 +1,27 @@
+-GROUP CopyRDFTest
+-DATASET CSV copy-test/rdf
+-BUFFER_POOL_SIZE 536870912
+
+--
+
+-CASE CopyRDFTest
+
+-LOG CountRDFNodeTable
+-STATEMENT MATCH (s:taxonomy_resource_t) RETURN COUNT(s.iri)
+---- 1
+1138441
+
+-LOG QueryRDFNodeTable
+-STATEMENT MATCH (s:taxonomy_resource_t) RETURN s.iri ORDER BY s.iri LIMIT 5
+---- 5
+http://dbpedia.org/class/yago/'hood108641944
+http://dbpedia.org/class/yago/14July115200493
+http://dbpedia.org/class/yago/1530s115148787
+http://dbpedia.org/class/yago/16PF106475933
+http://dbpedia.org/class/yago/1750s115149933
+
+-LOG QueryRDFRelTable
+-STATEMENT MATCH (s:taxonomy_resource_t)-[p:taxonomy]->(o:taxonomy_resource_t) RETURN s.iri, o.iri ORDER BY s.iri LIMIT 2
+---- 2
+http://dbpedia.org/class/yago/'hood108641944|http://dbpedia.org/class/yago/Vicinity108641113
+http://dbpedia.org/class/yago/14July115200493|http://dbpedia.org/class/yago/LegalHoliday115199592

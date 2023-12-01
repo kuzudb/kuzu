@@ -1,0 +1,4 @@
+list | str | struct
+'[this | is a word | normal not escape | ~' [ ] | , ~~ ~' ]'|'try escape ~~'|' { a : { b : {c:[ 3432423 | -43423 | 31231 | NULL ]}  } } '
+'[escape | is escape success? ~~]'|' ~' [ ] do not need to escape sepeical | []'|'{a:{}}'
+'[~~ ~' not work also this ~'"" ]'|'nu'|'{a:{b:{}}}'

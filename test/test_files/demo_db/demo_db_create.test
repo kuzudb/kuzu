@@ -1,0 +1,75 @@
+-GROUP DemoDBCreateTest
+-DATASET CSV demo-db/csv
+
+--
+
+-CASE CreateNodeFromFile
+-STATEMENT CREATE NODE TABLE User2(name STRING, age INT64, PRIMARY KEY (name));
+---- ok
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/user.csv"
+        CREATE (:User2{name: column0, age: to_int64(column1)});
+---- ok
+-STATEMENT MATCH (a:User2) RETURN *;
+---- 4
+{_ID: 4:0, _LABEL: User2, name: Adam, age: 30}
+{_ID: 4:1, _LABEL: User2, name: Karissa, age: 40}
+{_ID: 4:2, _LABEL: User2, name: Zhang, age: 50}
+{_ID: 4:3, _LABEL: User2, name: Noura, age: 25}
+
+-CASE CreateNodeTest1
+-STATEMENT CREATE (u:User {name: 'Alice', age: 35})
+---- ok
+-STATEMENT MATCH (a:User) WHERE a.name = 'Alice' RETURN a.name, a.age
+---- 1
+Alice|35
+
+-CASE CreateNodeTest2
+-STATEMENT CREATE (u:User {name: 'Dimitri'})
+---- ok
+-STATEMENT MATCH (a:User) WHERE a.name = 'Dimitri' RETURN a.name, a.age
+---- 1
+Dimitri|
+
+-CASE CreateRelTest1
+-STATEMENT CREATE (u:User {name: 'Alice'})
+---- ok
+-STATEMENT MATCH (a:User) WHERE a.name = 'Adam' WITH a  MATCH (b:User) WHERE b.name = 'Alice' WITH a, b CREATE (a)-[e:Follows {since:1990}]->(b)
+---- ok
+-CHECK_ORDER
+-STATEMENT MATCH (a:User)-[:Follows]->(b:User) WHERE a.name = 'Adam' RETURN b.name ORDER BY b.name
+---- 3
+Alice
+Karissa
+Zhang
+
+-CASE CreateRelTest2
+-STATEMENT MATCH (a:User), (b:User) WHERE a.name='Zhang' AND b.name='Karissa' CREATE (a)-[:Follows {since:2022}]->(b)
+---- ok
+-CHECK_ORDER
+-STATEMENT MATCH (a:User)-[:Follows]->(b:User) WHERE a.name = 'Zhang' RETURN b.name ORDER BY b.name
+---- 2
+Karissa
+Noura
+
+-CASE CreateAvgNullTest
+-STATEMENT MATCH (a:User) WHERE a.name = 'Adam' CREATE (a)-[:Follows]->(b:User {name:'Alice'})
+---- ok
+-CHECK_ORDER
+-STATEMENT MATCH (a:User) WITH a, avg(a.age) AS b, SUM(a.age) AS c, COUNT(a.age) AS d, COUNT(*) AS e RETURN a, b, c,d, e ORDER BY c DESC
+---- 5
+{_ID: 0:4, _LABEL: User, name: Alice}|||0|1
+{_ID: 0:2, _LABEL: User, name: Zhang, age: 50}|50.000000|50|1|1
+{_ID: 0:1, _LABEL: User, name: Karissa, age: 40}|40.000000|40|1|1
+{_ID: 0:0, _LABEL: User, name: Adam, age: 30}|30.000000|30|1|1
+{_ID: 0:3, _LABEL: User, name: Noura, age: 25}|25.000000|25|1|1
+
+-CASE MergeComplexPattern
+-STATEMENT MERGE (a:User {name:'A'})-[e:Follows]->(b:User {name:'B'})-[:LivesIn]->(:City {name:'Toronto'});
+---- ok
+-STATEMENT MATCH (a:User)-[:Follows]->(b:User)-[:LivesIn]->(c:City) RETURN a.name, b.name, c.name;
+---- 5
+Adam|Karissa|Waterloo
+Adam|Zhang|Kitchener
+A|B|Toronto
+Karissa|Zhang|Kitchener
+Zhang|Noura|Guelph

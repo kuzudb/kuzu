@@ -1,0 +1,165 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE SingleUpperBound
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:knows*..2]->(b:person) RETURN COUNT(*);
+---- 1
+12
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:knows*..1]->(b:person) RETURN b.fName;
+---- 3
+Bob
+Carol
+Dan
+
+-CASE SingleLowerBound
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*2..]->(b:person) RETURN a.fName, b.fName;
+---- 1
+Alice|Dan
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*3..]->(b:person) RETURN a.fName, b.fName;
+---- 0
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*1..]->(b:person) RETURN a.fName, b.fName;
+---- 2
+Alice|Bob
+Alice|Dan
+
+-CASE SingleNodeBound
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*2]->(b:person) RETURN b.fName;
+---- 1
+Dan
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*1]->(b:person) RETURN b.fName;
+---- 1
+Bob
+-STATEMENT MATCH(a:person {fName: "Elizabeth"})-[e:meets*1]-(b:person) RETURN b.fName;
+---- 2
+Carol
+Carol
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*3]->(b:person) RETURN b.fName;
+---- 0
+-STATEMENT CALL var_length_extend_max_depth=10;
+---- ok
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*]-(b:person) RETURN COUNT(*);
+---- 1
+484
+
+-CASE BothBound
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*1..1]->(b:person) RETURN b.fName;
+---- 1
+Bob
+-STATEMENT MATCH (c:person) WHERE c.fName="Dan" CREATE(c)-[:meets]->(b:person {ID: 11, fName: "Mike"});
+---- ok
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*1..3]->(b:person) RETURN b.fName;
+---- 3
+Bob
+Dan
+Mike
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*2..3]->(b:person) RETURN b.fName;
+---- 2
+Dan
+Mike
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*3..3]->(b:person) RETURN b.fName;
+---- 1
+Mike
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*3..4]->(b:person) RETURN b.fName;
+---- 1
+Mike
+
+-CASE SingleAsterisk
+-STATEMENT MATCH (c:person) WHERE c.fName="Dan" CREATE(c)-[:meets]->(b:person {ID: 11, fName: "Mike"});
+---- ok
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*]->(b:person) RETURN b.fName;
+---- 3
+Bob
+Dan
+Mike
+-STATEMENT MATCH(a:person {fName: "Bob"})<-[e:meets*]-(b:person) RETURN b.fName;
+---- 2
+Alice
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-CASE NoBound
+-STATEMENT MATCH (c:person) WHERE c.fName="Dan" CREATE(c)-[:meets]->(b:person {ID: 11, fName: "Mike"});
+---- ok
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*..]->(b:person) RETURN b.fName;
+---- 3
+Bob
+Dan
+Mike
+-STATEMENT MATCH(a:person {fName: "Bob"})<-[e:meets*..]-(b:person) RETURN b.fName;
+---- 2
+Alice
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-CASE CreateRangeLiteralTest
+-STATEMENT MATCH (c:person) WHERE c.fName="Dan" CREATE(c)-[e:meets*]->(b:person {ID: 11, fName: "Mike"});
+---- error
+Binder exception: Cannot create recursive rel e.
+-STATEMENT MATCH (c:person) WHERE c.fName="Dan" CREATE(c)<-[e:meets*..]-(b:person {ID: 11, fName: "Mike"});
+---- error
+Binder exception: Cannot create recursive rel e.
+-STATEMENT MATCH (c:person) WHERE c.fName="Dan" CREATE(c)-[e:meets*2]-(b:person {ID: 11, fName: "Mike"});
+---- error
+Binder exception: Cannot create recursive rel e.
+-STATEMENT MATCH (c:person) WHERE c.fName="Dan" CREATE(c)-[e:meets*2..4]->(b:person {ID: 11, fName: "Mike"});
+---- error
+Binder exception: Cannot create recursive rel e.
+-STATEMENT MATCH (c:person) WHERE c.fName="Dan" CREATE(c)<-[e:meets*3..]-(b:person {ID: 11, fName: "Mike"});
+---- error
+Binder exception: Cannot create recursive rel e.
+-STATEMENT MATCH (c:person) WHERE c.fName="Dan" CREATE(c)-[e:meets*..3]->(b:person {ID: 11, fName: "Mike"});
+---- error
+Binder exception: Cannot create recursive rel e.
+
+-CASE ExceedsVarLengthExceptionTest
+-STATEMENT CALL var_length_extend_max_depth=10;
+---- ok
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*11..23]->(b:person) RETURN b.fName;
+---- error
+Binder exception: Upper bound of rel e exceeds maximum: 10.
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*..11]->(b:person) RETURN b.fName;
+---- error
+Binder exception: Upper bound of rel e exceeds maximum: 10.
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*11]->(b:person) RETURN b.fName;
+---- error
+Binder exception: Upper bound of rel e exceeds maximum: 10.
+
+-CASE ZeroBound
+-STATEMENT MATCH(a:person)-[e:knows*0]-() RETURN a.ID;
+---- 8
+0
+2
+3
+5
+7
+8
+9
+10
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*0..1]->(b:person) RETURN b.fName, length(e);
+---- 2
+Alice|0
+Bob|1
+-STATEMENT MATCH(a:person {fName: "Alice"})<-[e:meets*0..0]-(b:person) RETURN e, b.fName;
+---- 1
+{_NODES: [], _RELS: []}|Alice
+-STATEMENT MATCH(a:person)-[e:meets*0..0]-(b:person) RETURN b.ID;
+---- 8
+0
+2
+3
+5
+7
+8
+9
+10
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*0..3]->(b:person) RETURN e;
+---- 3
+{_NODES: [], _RELS: []}
+{_NODES: [], _RELS: [(0:0)-{_LABEL: meets, _ID: 6:0, location: [7.820000,3.540000], times: 5, data: \xAA\xBB\xCC\xDD}->(0:1)]}
+{_NODES: [{_ID: 0:1, _LABEL: person, ID: 2, fName: Bob, gender: 2, isStudent: True, isWorker: False, age: 30, eyeSight: 5.100000, birthdate: 1900-01-01, registerTime: 2008-11-03 15:25:30.000526, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [12,8], usedNames: [Bobby], courseScoresPerTerm: [[8,9],[9,10]], grades: [98,42,93,88], height: 0.990000}], _RELS: [(0:0)-{_LABEL: meets, _ID: 6:0, location: [7.820000,3.540000], times: 5, data: \xAA\xBB\xCC\xDD}->(0:1),(0:1)-{_LABEL: meets, _ID: 6:1, location: [2.870000,4.230000], times: 2, data: NO hex code}->(0:3)]}
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*..0]->(b:person) RETURN b.fName;
+---- error
+Binder exception: Lower bound of rel e is greater than upperBound.
+-STATEMENT MATCH(a:person {fName: "Alice"})-[e:meets*2..0]->(b:person) RETURN b.fName;
+---- error
+Binder exception: Lower bound of rel e is greater than upperBound.

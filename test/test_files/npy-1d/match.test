@@ -1,0 +1,41 @@
+-GROUP OneDimNpyReadTest
+-DATASET NPY npy-1d
+
+--
+
+-CASE MatchNpy-1d
+
+-LOG count
+-STATEMENT MATCH (n:npytable) RETURN COUNT(*)
+---- 1
+3
+
+-LOG i64
+-STATEMENT MATCH (n:npytable) RETURN n.i64 ORDER BY n.i64
+---- 3
+1
+2
+3
+
+-LOG i32
+-STATEMENT MATCH (n:npytable) RETURN n.i32 ORDER BY n.i32
+---- 3
+1
+2
+3
+
+-LOG i16
+-STATEMENT MATCH (n:npytable) RETURN n.i16 ORDER BY n.i16
+---- 3
+1
+2
+3
+
+# TODO: Foreach support
+# -FOREACH $size i64 i32 i16
+# -LOG $size
+# -STATEMENT MATCH (n:npytable) RETURN $size ORDER BY $size
+# ---- 3
+# 1
+# 2
+# 3

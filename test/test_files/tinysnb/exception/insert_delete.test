@@ -1,0 +1,32 @@
+-GROUP TinySnbExceptionTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE InsertNodeWithoutPrimaryKeyTest
+-STATEMENT CREATE (a:person {isWorker:true})
+---- error
+Binder exception: Create node a expects primary key ID as input.
+
+-CASE InsertNodeWithExistedPKError1
+-STATEMENT CREATE (a:person {ID:0, fName:'Charlie'})
+---- error
+Runtime exception: Found duplicated primary key value 0, which violates the uniqueness constraint of the primary key column.
+
+-CASE InsertNodeWithExistedPKError2
+-STATEMENT CREATE (a:person {ID:100, fName:'Charlie'})
+---- ok
+-STATEMENT CREATE (a:person {ID:100, fName:'Guodong'})
+---- error
+Runtime exception: Found duplicated primary key value 100, which violates the uniqueness constraint of the primary key column.
+
+-CASE InsertNodeWithNullPK
+-STATEMENT CREATE (a:person {ID:NULL, fName:'Guodong'})
+---- error
+Runtime exception: Found NULL, which violates the non-null constraint of the primary key column.
+
+-CASE DeleteNodeWithEdgeErrorTest
+-SKIP
+-STATEMENT MATCH (a:person) WHERE a.ID = 0 DELETE a
+---- error
+Runtime exception: Currently deleting a node with edges is not supported. node table 0 nodeOffset 0 has 3 (one-to-many or many-to-many) edges.

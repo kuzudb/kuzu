@@ -1,0 +1,27 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE OrderByMultiLabel
+
+-LOG MultiLabelTest
+-STATEMENT MATCH (a:person)-[:studyAt|:workAt]->(b:organisation) return b.orgCode order by b.ID desc
+-CHECK_ORDER
+-ENUMERATE
+---- 6
+824
+824
+934
+325
+325
+325
+
+#-LOG MultiLabelTest2
+#-STATEMENT MATCH (a:person)-[e:marries|:workAt]->(b:person) return a.ID, b.ID order by ID(e) desc LIMIT 4
+#-ENUMERATE
+#---- 4
+#7|8
+#3|5
+#0|2
+#10|2

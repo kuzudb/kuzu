@@ -1,0 +1,91 @@
+-GROUP DeleteRelTest
+-DATASET CSV rel-update-tests
+--
+
+-CASE DeleteRelsTwoHopCommitNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows]->(p1:person)-[:knows]->(p2:person) WHERE p.ID = 1 AND p2.ID = 5 DELETE e;
+---- ok
+-STATEMENT COMMIT
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(p:person) WHERE a.ID = 1 AND p.ID < 10 RETURN e.length
+---- 8
+2
+3
+4
+5
+6
+7
+8
+9
+
+
+-CASE DeleteRelsTwoHopCommitRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows]->(p1:person)-[:knows]->(p2:person) WHERE p.ID = 1 AND p2.ID = 5 DELETE e;
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(p:person) WHERE a.ID = 1 AND p.ID < 10 RETURN e.length
+---- 8
+2
+3
+4
+5
+6
+7
+8
+9
+
+-CASE DeleteRelsTwoHopRollbackNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows]->(p1:person)-[:knows]->(p2:person) WHERE p.ID = 1 AND p2.ID = 5 DELETE e;
+---- ok
+-STATEMENT Rollback
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(p:person) WHERE a.ID = 1 AND p.ID < 10 RETURN e.length
+---- 10
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+
+
+-CASE DeleteRelsTwoHopRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows]->(p1:person)-[:knows]->(p2:person) WHERE p.ID = 1 AND p2.ID = 5 DELETE e;
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person)-[e:knows]->(p:person) WHERE a.ID = 1 AND p.ID < 10 RETURN e.length
+---- 10
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9

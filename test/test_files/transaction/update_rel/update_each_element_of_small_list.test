@@ -1,0 +1,57 @@
+-GROUP UpdateRelTest
+-DATASET CSV rel-update-tests
+--
+
+-CASE updateEachElementOfSmallListCommitNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-BATCH_STATEMENTS <FILE>:update_each_element_of_small_list.cypher
+---- ok
+-STATEMENT COMMIT
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p0:person)-[e:knows]->(p1:person) WHERE p0.ID = 1 RETURN e.length
+---- 51
+<FILE>:update_each_element_of_small_list_commit.txt
+
+-CASE updateEachElementOfSmallListCommitRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-BATCH_STATEMENTS <FILE>:update_each_element_of_small_list.cypher
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p0:person)-[e:knows]->(p1:person) WHERE p0.ID = 1 RETURN e.length
+---- 51
+<FILE>:update_each_element_of_small_list_commit.txt
+
+-CASE updateEachElementOfSmallListRollbackNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-BATCH_STATEMENTS <FILE>:update_each_element_of_small_list.cypher
+---- ok
+-STATEMENT Rollback
+---- ok 
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p0:person)-[e:knows]->(p1:person) WHERE p0.ID = 1 RETURN e.length
+---- 51
+<FILE>:update_each_element_of_small_list_rollback.txt
+
+-CASE updateEachElementOfSmallListRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-BATCH_STATEMENTS <FILE>:update_each_element_of_small_list.cypher
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok 
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p0:person)-[e:knows]->(p1:person) WHERE p0.ID = 1 RETURN e.length
+---- 51
+<FILE>:update_each_element_of_small_list_rollback.txt

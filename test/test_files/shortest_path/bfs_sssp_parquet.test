@@ -1,0 +1,87 @@
+-GROUP ShortestPathTest
+-DATASET PARQUET CSV_TO_PARQUET(shortest-path-tests)
+-SKIP
+# Timestamp and Date columns are written as strings in parquet file. Parquet reader should support casting operations.
+--
+
+-CASE BfsParquet
+
+-LOG SingleSourceAllDestinationsSSP
+-STATEMENT MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice' RETURN a.fName, b.fName, rels(r), properties(nodes(r), 'fName')
+---- 7
+Alice|Bob|[(0:0)-{_LABEL: knows, _ID: 1:0}->(0:1)]|[]
+Alice|Carol|[(0:0)-{_LABEL: knows, _ID: 1:1}->(0:2)]|[]
+Alice|Dan|[(0:0)-{_LABEL: knows, _ID: 1:2}->(0:3)]|[]
+Alice|Elizabeth|[(0:0)-{_LABEL: knows, _ID: 1:0}->(0:1),(0:1)-{_LABEL: knows, _ID: 1:6}->(0:4)]|[Bob]
+Alice|Farooq|[(0:0)-{_LABEL: knows, _ID: 1:0}->(0:1),(0:1)-{_LABEL: knows, _ID: 1:6}->(0:4),(0:4)-{_LABEL: knows, _ID: 1:13}->(0:5)]|[Bob,Elizabeth]
+Alice|Greg|[(0:0)-{_LABEL: knows, _ID: 1:0}->(0:1),(0:1)-{_LABEL: knows, _ID: 1:6}->(0:4),(0:4)-{_LABEL: knows, _ID: 1:14}->(0:6)]|[Bob,Elizabeth]
+Alice|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|[(0:0)-{_LABEL: knows, _ID: 1:0}->(0:1),(0:1)-{_LABEL: knows, _ID: 1:6}->(0:4),(0:4)-{_LABEL: knows, _ID: 1:15}->(0:7)]|[Bob,Elizabeth]
+
+-LOG AllSourcesSingleDestinationQuery
+-STATEMENT MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE b.fName = 'Alice' RETURN a.fName, b.fName, rels(r), properties(nodes(r), 'usedNames')
+---- 6
+Bob|Alice|[(0:0)-{_LABEL: knows, _ID: 1:3}->(0:1)]|[]
+Carol|Alice|[(0:0)-{_LABEL: knows, _ID: 1:7}->(0:2)]|[]
+Dan|Alice|[(0:0)-{_LABEL: knows, _ID: 1:10}->(0:3)]|[]
+Elizabeth|Alice|[(0:0)-{_LABEL: knows, _ID: 1:20}->(0:7),(0:7)-{_LABEL: knows, _ID: 1:15}->(0:4)]|[[Ad,De,Hi,Kye,Orlan]]
+Farooq|Alice|[(0:0)-{_LABEL: knows, _ID: 1:20}->(0:7),(0:7)-{_LABEL: knows, _ID: 1:17}->(0:5)]|[[Ad,De,Hi,Kye,Orlan]]
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|Alice|[(0:0)-{_LABEL: knows, _ID: 1:20}->(0:7)]|[]
+
+-LOG SingleSourceWithAllProperties
+-STATEMENT MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice' RETURN length(r), b, a
+---- 7
+1|{_ID: 0:1, _LABEL: person, ID: 2, fName: Bob, gender: 2, isStudent: True, isWorker: False, age: 30, eyeSight: 5.100000, birthdate: 1900-01-01, registerTime: 2008-11-03 15:25:30.000526, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [12,8], usedNames: [Bobby], courseScoresPerTerm: [[8,9],[9,10]]}|{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]]}
+1|{_ID: 0:2, _LABEL: person, ID: 3, fName: Carol, gender: 1, isStudent: False, isWorker: True, age: 45, eyeSight: 5.000000, birthdate: 1940-06-22, registerTime: 1911-08-20 02:32:21, lastJobDuration: 48:24:11, workedHours: [4,5], usedNames: [Carmen,Fred], courseScoresPerTerm: [[8,10]]}|{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]]}
+1|{_ID: 0:3, _LABEL: person, ID: 5, fName: Dan, gender: 2, isStudent: False, isWorker: True, age: 20, eyeSight: 4.800000, birthdate: 1950-07-23, registerTime: 2031-11-30 12:25:30, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [1,9], usedNames: [Wolfeschlegelstein,Daniel], courseScoresPerTerm: [[7,4],[8,8],[9]]}|{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]]}
+2|{_ID: 0:4, _LABEL: person, ID: 7, fName: Elizabeth, gender: 1, isStudent: False, isWorker: True, age: 20, eyeSight: 4.700000, birthdate: 1980-10-26, registerTime: 1976-12-23 11:21:42, lastJobDuration: 48:24:11, workedHours: [2], usedNames: [Ein], courseScoresPerTerm: [[6],[7],[8]]}|{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]]}
+3|{_ID: 0:5, _LABEL: person, ID: 8, fName: Farooq, gender: 2, isStudent: True, isWorker: False, age: 25, eyeSight: 4.500000, birthdate: 1980-10-26, registerTime: 1972-07-31 13:22:30.678559, lastJobDuration: 00:18:00.024, workedHours: [3,4,5,6,7], usedNames: [Fesdwe], courseScoresPerTerm: [[8]]}|{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]]}
+3|{_ID: 0:6, _LABEL: person, ID: 9, fName: Greg, gender: 2, isStudent: False, isWorker: False, age: 40, eyeSight: 4.900000, birthdate: 1980-10-26, registerTime: 1976-12-23 04:41:42, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [1], usedNames: [Grad], courseScoresPerTerm: [[10]]}|{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]]}
+3|{_ID: 0:7, _LABEL: person, ID: 10, fName: Hubert Blaine Wolfeschlegelsteinhausenbergerdorff, gender: 2, isStudent: False, isWorker: True, age: 83, eyeSight: 4.900000, birthdate: 1990-11-27, registerTime: 2023-02-21 13:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,11,12,3,4,5,6,7], usedNames: [Ad,De,Hi,Kye,Orlan], courseScoresPerTerm: [[7],[10],[6,7]]}|{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]]}
+
+-LOG SingleSourceSingleDestination
+-STATEMENT MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice' AND b.fName = 'Bob' RETURN a.fName, b.fName, length(r)
+---- 1
+Alice|Bob|1
+
+-LOG SingleSourceAllDestinations2
+-STATEMENT MATCH (a:person)-[r:knows* SHORTEST 1..2]->(b:person) WHERE a.fName = 'Elizabeth' RETURN a.fName, b.fName, rels(r), properties(nodes(r), '_Label')
+---- 5
+Elizabeth|Alice|[(0:4)-{_LABEL: knows, _ID: 1:15}->(0:7),(0:7)-{_LABEL: knows, _ID: 1:20}->(0:0)]|[person]
+Elizabeth|Dan|[(0:4)-{_LABEL: knows, _ID: 1:15}->(0:7),(0:7)-{_LABEL: knows, _ID: 1:21}->(0:3)]|[person]
+Elizabeth|Farooq|[(0:4)-{_LABEL: knows, _ID: 1:13}->(0:5)]|[]
+Elizabeth|Greg|[(0:4)-{_LABEL: knows, _ID: 1:14}->(0:6)]|[]
+Elizabeth|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|[(0:4)-{_LABEL: knows, _ID: 1:15}->(0:7)]|[]
+
+-LOG SingleSourceUnreachableDestination
+-STATEMENT MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice' AND b.fName = 'Alice11' RETURN a.fName, b.fName, r
+---- 0
+
+
+-LOG MultipleSrcMultipleDstQuery
+-STATEMENT MATCH (a:person)-[r:knows* SHORTEST 1..10]->(b:person) WHERE a.isStudent = true AND b.isWorker = true RETURN a.fName, b.fName, length(r)
+---- 12
+Alice|Carol|1
+Alice|Dan|1
+Alice|Elizabeth|2
+Alice|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|3
+Bob|Carol|1
+Bob|Dan|1
+Bob|Elizabeth|1
+Bob|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2
+Farooq|Carol|3
+Farooq|Dan|2
+Farooq|Elizabeth|1
+Farooq|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|1
+
+-LOG SSPWithExtend
+-STATEMENT MATCH (c:person)<-[:knows* SHORTEST 1..30]-(a:person)-[r:knows* SHORTEST 1..30]->(b:person), (b)-[:knows]->(c) WHERE a.fName = 'Alice' AND b.ID < 6 AND c.ID > 5 RETURN a.fName, b.fName, c.fName
+---- 1
+Alice|Bob|Elizabeth
+
+-LOG MultiPart
+-STATEMENT MATCH (a)-[r:knows* SHORTEST 1..30]->(b:person) WHERE b.ID > 6 AND a.fName = 'Alice' WITH a, b, r MATCH (c:person)<-[:knows]-(a:person) RETURN b.fName, length(r), COUNT(*)
+---- 4
+Elizabeth|2|3
+Farooq|3|3
+Greg|3|3
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|3|3

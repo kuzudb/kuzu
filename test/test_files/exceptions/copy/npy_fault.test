@@ -1,0 +1,13 @@
+-GROUP CopyNpyFaultTest
+-DATASET CSV empty
+
+--
+
+-CASE CopyNpyToRelTable
+-STATEMENT create node table person(id INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT create rel table knows (FROM person TO person);
+---- ok
+-STATEMENT copy knows from ("${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/id_int64.npy") by column;
+---- error
+Binder exception: Copy from npy files to rel table knows is not supported yet.

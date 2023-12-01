@@ -1,0 +1,40 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE ShortestPath
+
+-LOG SingleLabelTest
+-STATEMENT MATCH (a:person)-[e:knows* SHORTEST 1..5]->(b:person) WHERE a.fName='Alice' RETURN b.fName, length(e)
+---- 3
+Bob|1
+Carol|1
+Dan|1
+
+-LOG MultiLabelTest
+-STATEMENT MATCH (a:person)-[e* SHORTEST 1..5]->(b) WHERE a.fName='Alice' RETURN label(b), b.ID, length(e)
+---- 9
+organisation|1|1
+organisation|4|2
+organisation|6|2
+person|2|1
+person|3|1
+person|5|1
+person|7|2
+person|8|3
+person|9|3
+
+-LOG MultiLabelTest2
+-STATEMENT MATCH (a)-[e* SHORTEST 1..5]-(b) WHERE a.ID=1 RETURN label(b), length(e), b.ID
+---- 10
+organisation|3|4
+organisation|3|6
+person|1|0
+person|1|2
+person|1|8
+person|2|10
+person|2|3
+person|2|5
+person|2|7
+person|3|9

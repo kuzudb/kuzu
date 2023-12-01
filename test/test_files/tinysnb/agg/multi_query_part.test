@@ -1,0 +1,100 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE AggMultiQueryPart
+
+-LOG SimpleAvgWithFilterMultiQueryTest
+-STATEMENT MATCH (a:person) WHERE a.birthdate = date('1980-10-26') WITH AVG(a.age) AS avgAge, AVG(a.eyeSight) AS avgEyeSight RETURN avgAge > avgEyeSight
+---- 1
+True
+
+-LOG SimpleCountMultiQueryTest2
+-STATEMENT MATCH (p:person) WITH p AS f RETURN COUNT(f);
+---- 1
+8
+
+-LOG SimpleCountMultiQueryTest3
+-STATEMENT MATCH (a:person) WITH COUNT(*) AS s MATCH (c:person) WHERE c.ID > s RETURN c.ID
+---- 2
+10
+9
+
+-LOG SimpleCountMultiQueryTest4
+-STATEMENT MATCH (a:person) WITH COUNT(*) AS s MATCH (b:person) WHERE b.ID < s RETURN COUNT(*)
+---- 1
+5
+
+-LOG GroupByMultiQueryTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WITH a.gender AS k, SUM(b.age) AS s MATCH (d:person)-[:workAt]->(c:organisation) WHERE c.orgCode > s RETURN d.ID, c.orgCode, s
+-ENUMERATE
+---- 6
+3|934|210
+3|934|245
+5|824|210
+5|824|245
+7|824|210
+7|824|245
+
+-LOG GroupByMultiQueryTest2
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WITH a, COUNT(*) AS s MATCH (a)-[:knows]->(c:person) WHERE c.ID > s RETURN a.ID, a.workedHours, c.ID, s
+---- 5
+0|[10,5]|5|3
+2|[12,8]|5|3
+3|[4,5]|5|3
+7|[2]|8|2
+7|[2]|9|2
+
+-LOG GroupByMultiQueryTest3
+-STATEMENT MATCH (a:person) WHERE a.ID > 4 WITH a, a.age AS foo MATCH (a)-[:knows]->(b:person) RETURN a.ID, foo, COUNT(*)
+---- 2
+5|20|3
+7|20|2
+
+-LOG GroupByMultiQueryTest4
+-STATEMENT  MATCH (a:person)-[r:knows]->(b:person) WHERE a.ID = 0 WITH a, r, COUNT(*) AS s MATCH (a)-[:knows]->(c:person) WHERE c.ID = s + 1 RETURN r.date, c.ID, s
+---- 3
+2021-06-30|2|1
+2021-06-30|2|1
+2021-06-30|2|1
+
+-LOG GroupByMultiQueryTest5
+-STATEMENT  MATCH (a:person)-[r1:knows]->(b:person)-[r2:knows]->(c:person)
+            WITH count(r1) AS numFollowers, b, r2
+            WHERE b.ID <= 10 AND numFollowers > 2
+            RETURN b.ID, b.fName, count(r2) AS numFollows
+            ORDER BY numFollows DESC, b.fName LIMIT 5;
+-CHECK_ORDER
+---- 4
+0|Alice|3
+2|Bob|3
+3|Carol|3
+5|Dan|3
+
+
+-LOG GroupByMultiQueryTest6
+-STATEMENT   MATCH (a:person)-[r1:knows]->(b:person)-[r2:knows]->(c:person)
+             WITH count(r1) AS numFollowers, c, b, r2
+             WHERE b.age >= 0 AND b.age <= 30 AND numFollowers > 0
+             RETURN c.ID AS id, c.fName AS name, count(r2) AS numFollowers2
+             ORDER BY numFollowers2 DESC, name LIMIT 5;
+-CHECK_ORDER
+---- 4
+0|Alice|2
+3|Carol|2
+2|Bob|1
+5|Dan|1
+
+-LOG GroupByMultiQueryTest7
+-STATEMENT   MATCH (a:person)-[r1:knows]->(b:person)-[r2:knows]->(c:person)
+             WITH count(r1) AS numFollowers, c, b, r2
+             WHERE b.age >= 0 AND b.age <= 30 AND numFollowers > 0
+             RETURN b.fName, c.fName, numFollowers
+---- 6
+Bob|Alice|3
+Bob|Carol|3
+Bob|Dan|3
+Dan|Alice|3
+Dan|Bob|3
+Dan|Carol|3

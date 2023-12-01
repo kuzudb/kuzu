@@ -1,0 +1,48 @@
+-GROUP CopyTwoDimensionalNpyTest
+-DATASET NPY npy-2d
+
+--
+
+-CASE CopyTwoDimensionalNpyTest
+
+-LOG ID
+-STATEMENT MATCH (n:npytable) RETURN n.id
+---- 3
+1
+2
+3
+
+-LOG i64
+-STATEMENT MATCH (n:npytable) RETURN n.i64
+---- 3
+[1,2,3]
+[4,5,6]
+[7,8,9]
+
+-LOG i32
+-STATEMENT MATCH (n:npytable) RETURN n.i32
+---- 3
+[1,2,3]
+[4,5,6]
+[7,8,9]
+
+-LOG i16
+-STATEMENT MATCH (n:npytable) RETURN n.i16
+---- 3
+[1,2,3]
+[4,5,6]
+[7,8,9]
+
+-LOG f64
+-STATEMENT MATCH (n:npytable) RETURN n.f64
+---- 3
+[1.000000,2.000000,3.000000]
+[4.000000,5.000000,6.000000]
+[7.000000,8.000000,9.000000]
+
+-LOG f32
+-STATEMENT MATCH (n:npytable) RETURN n.f32
+---- 3
+[1.000000,2.000000,3.000000]
+[4.000000,5.000000,6.000000]
+[7.000000,8.000000,9.000000]

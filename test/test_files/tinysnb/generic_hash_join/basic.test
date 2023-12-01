@@ -1,0 +1,60 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE BasicGenericHashJoin
+
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = b.ID AND a.ID = 7 RETURN a.fName, b.fName, a.grades, b.grades
+---- 1
+Elizabeth|Elizabeth|[96,59,65,88]|[96,59,65,88]
+
+-STATEMENT MATCH (a:person), (b:person) WHERE a.fName = b.fName AND a.ID < 6 RETURN a.fName, b.fName, a.ID, b.ID
+-ENCODED_JOIN HJ(a.fName=b.fName){S(a._ID)}{S(b._ID)}
+---- 4
+Alice|Alice|0|0
+Bob|Bob|2|2
+Carol|Carol|3|3
+Dan|Dan|5|5
+
+-STATEMENT MATCH (a:person), (b:person) WHERE a.isWorker = b.isStudent AND a.ID = 0 RETURN b.fName
+---- 5
+Carol
+Dan
+Elizabeth
+Greg
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+-STATEMENT MATCH (a:person), (b:person) WHERE a.height = b.height RETURN COUNT(*)
+---- 1
+8
+
+-STATEMENT MATCH (a:person), (b:person)
+            WHERE a.age = b.age
+            AND a.eyeSight = b.eyeSight
+            AND a.lastJobDuration = b.lastJobDuration
+            AND a.ID > 7
+            RETURN a.fName, b.fName
+---- 3
+Farooq|Farooq
+Greg|Greg
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+# Note vMovies doesn't have ID property
+-STATEMENT MATCH (a), (b) WHERE a.ID = b.ID RETURN COUNT(*)
+---- 1
+11
+
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) , (c:person)-[e2:knows]->(d:person) WHERE a.ID = 0 AND c.ID = 2 AND e1.date = e2.date RETURN id(e1), e1.date, id(e2), e2.date
+---- 3
+3:0|2021-06-30|3:3|2021-06-30
+3:1|2021-06-30|3:3|2021-06-30
+3:2|2021-06-30|3:3|2021-06-30
+
+-STATEMENT MATCH (a), (b) WHERE a.name = b.name AND a.length = b.length AND a.note = b.note RETURN a.description, b.description
+---- 3
+{rating: 1223.000000, stars: 100, views: 10003, release: 2011-02-11 16:44:22, film: 2013-02-22, u8: 1, u16: 15, u32: 200, u64: 4, hugedata: -15}|{rating: 1223.000000, stars: 100, views: 10003, release: 2011-02-11 16:44:22, film: 2013-02-22, u8: 1, u16: 15, u32: 200, u64: 4, hugedata: -15}
+{rating: 5.300000, stars: 2, views: 152, release: 2011-08-20 11:25:30, film: 2012-05-11, u8: 220, u16: 20, u32: 1, u64: 180, hugedata: 1844674407370955161811111111}|{rating: 5.300000, stars: 2, views: 152, release: 2011-08-20 11:25:30, film: 2012-05-11, u8: 220, u16: 20, u32: 1, u64: 180, hugedata: 1844674407370955161811111111}
+{rating: 7.000000, stars: 10, views: 982, release: 2018-11-13 13:33:11, film: 2014-09-12, u8: 12, u16: 120, u32: 55, u64: 1, hugedata: -1844674407370955161511}|{rating: 7.000000, stars: 10, views: 982, release: 2018-11-13 13:33:11, film: 2014-09-12, u8: 12, u16: 120, u32: 55, u64: 1, hugedata: -1844674407370955161511}
+
+

@@ -1,0 +1,12 @@
+-GROUP LongStringPKTest
+-DATASET PARQUET CSV_TO_PARQUET(long-string-pk-tests)
+-SKIP
+
+--
+
+-CASE CopyPLongStringPKParquet
+
+-LOG LongStringPKTestParquet
+-STATEMENT MATCH (a:Person)-[e:Knows]->(b:Person) WHERE a.name = "AAAAAAAAAAAAAAAAAAAA" RETURN COUNT(*)
+---- 1
+1

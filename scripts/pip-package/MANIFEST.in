@@ -1,0 +1,2 @@
+include kuzu/*.so
+include kuzu/*.pyd

@@ -1,0 +1,61 @@
+-GROUP CopyMultipleFilesTest
+-DATASET CSV copy-multiple-files-test
+
+--
+
+-DEFINE_STATEMENT_BLOCK VALIDATE_PERSON_TABLE_AFTER_COPYING [
+-STATEMENT MATCH (p:person) RETURN p.ID
+---- 11
+1
+12
+15
+20
+21
+4
+5
+6
+7
+8
+9
+]
+
+-DEFINE_STATEMENT_BLOCK VALIDATE_KNOWS_TABLE_AFTER_COPYING [
+-STATEMENT MATCH (:person)-[e:knows]->(:person) RETURN e.weight
+---- 8
+22
+25
+33
+41
+44
+79
+80
+85
+]
+
+-CASE CopyMultipleFilesTest
+
+-STATEMENT COPY person FROM ["${KUZU_ROOT_DIRECTORY}/dataset/copy-multiple-files-test/vPerson1.csv",
+                             "${KUZU_ROOT_DIRECTORY}/dataset/copy-multiple-files-test/vPerson2.csv",
+                             "${KUZU_ROOT_DIRECTORY}/dataset/copy-multiple-files-test/vPerson3.csv"]
+---- ok
+-INSERT_STATEMENT_BLOCK VALIDATE_PERSON_TABLE_AFTER_COPYING
+
+-STATEMENT COPY knows FROM ["${KUZU_ROOT_DIRECTORY}/dataset/copy-multiple-files-test/eKnows1.csv", 
+                            "${KUZU_ROOT_DIRECTORY}/dataset/copy-multiple-files-test/eKnows2.csv"]
+---- ok
+-INSERT_STATEMENT_BLOCK VALIDATE_KNOWS_TABLE_AFTER_COPYING
+
+
+-CASE CopyFilesWithWildcardPattern
+
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-multiple-files-test/vPerson?.csv"
+---- ok
+-INSERT_STATEMENT_BLOCK VALIDATE_PERSON_TABLE_AFTER_COPYING
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-multiple-files-test/eK*"
+---- ok
+-INSERT_STATEMENT_BLOCK VALIDATE_KNOWS_TABLE_AFTER_COPYING
+
+-CASE CopyFilesWithWrongPath
+-STATEMENT COPY person FROM ["1.csv", "${KUZU_ROOT_DIRECTORY}/dataset/copy-multiple-files-test/vPerson?.csv"]
+---- error
+Binder exception: No file found that matches the pattern: 1.csv.

@@ -1,0 +1,68 @@
+-GROUP DeleteRelTest
+-DATASET CSV rel-update-tests
+--
+
+-CASE deleteAllRelsFromLargeListCommitNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (:person)-[e:knows]->(:person) DELETE e
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID = 0 RETURN e.length
+---- 0
+
+
+-CASE deleteAllRelsFromLargeListCommitRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (:person)-[e:knows]->(:person) DELETE e
+---- ok
+-STATEMENT COMMIT_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID = 0 RETURN e.length
+---- 0
+
+-CASE deleteAllRelsFromLargeListRollbackNormalExecution
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (:person)-[e:knows]->(:person) DELETE e
+---- ok
+-STATEMENT Rollback
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID = 0 RETURN e.length
+---- 2300
+<FILE>:delete_rels.txt
+
+-CASE deleteAllRelsFromLargeListRollbackRecovery
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (:person)-[e:knows]->(:person) DELETE e
+---- ok
+-STATEMENT ROLLBACK_SKIP_CHECKPOINT
+---- ok
+-RELOADDB
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (p:person)-[e:knows]->(:person) WHERE p.ID = 0 RETURN e.length
+---- 2300
+<FILE>:delete_rels.txt
+
+-CASE detachDeleteNodeWithLageList
+-STATEMENT MATCH (p:person)-[e:knows]->(:person) RETURN COUNT(*);
+---- 1
+2351
+-STATEMENT MATCH (p:person) WHERE p.ID = 0 DETACH DELETE p;
+---- ok
+-STATEMENT MATCH (p:person) WHERE p.ID = 0 RETURN p;
+---- 0
+-STATEMENT MATCH (p:person)-[e:knows]->(:person) RETURN COUNT(*);
+---- 1
+50

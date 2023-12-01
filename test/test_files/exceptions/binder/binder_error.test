@@ -1,0 +1,568 @@
+-GROUP BinderErrorTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE BinderError
+
+-LOG EmptyCreateClause
+-STATEMENT MATCH (a:person) CREATE (a);
+---- error
+Binder exception: Cannot resolve any node or relationship to create.
+
+-LOG EmptyMergeClause
+-STATEMENT MATCH (a:person) MERGE (a);
+---- error
+Binder exception: Cannot resolve any node or relationship to create.
+
+-LOG NodeTableNotExist
+-STATEMENT MATCH (a:PERSON) RETURN COUNT(*)
+---- error
+Binder exception: Table PERSON does not exist.
+
+-LOG RepeatedRelName
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person)<-[e1:knows]-(:person) RETURN COUNT(*)
+---- error
+Binder exception: Bind relationship e1 to relationship with same name is not supported.
+
+-LOG RepeatedReturnColumnName
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) RETURN *, e1
+---- error
+Binder exception: Multiple result column with the same name e1 are not supported.
+
+-LOG WITHExpressionAliased
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WITH a.age RETURN *
+---- error
+Binder exception: Expression in WITH must be aliased (use AS).
+
+-LOG BindToDifferentVariableType1
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WITH e1 AS a MATCH (a) RETURN *
+---- error
+Binder exception: Cannot bind a as node pattern.
+
+-LOG BindToDifferentVariableType2
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WITH a.age + 1 AS a MATCH (a) RETURN *
+---- error
+Binder exception: Cannot bind a as node pattern.
+
+-LOG BindEmptyStar
+-STATEMENT RETURN *
+---- error
+Binder exception: RETURN or WITH * is not allowed when there are no variables in scope.
+
+-LOG BindWithTableStar
+-STATEMENT MATCH (a:person) WITH a.* RETURN *;
+---- error
+Binder exception: Expression in WITH must be aliased (use AS).
+
+-LOG BindVariableNotInScope1
+-STATEMENT WITH a MATCH (a:person)-[e1:knows]->(b:person) RETURN *
+---- error
+Binder exception: Variable a is not in scope.
+
+-LOG BindVariableNotInScope2
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.age > foo RETURN *
+---- error
+Binder exception: Variable foo is not in scope.
+
+-LOG BindVariableNotInScope3
+-STATEMENT MATCH (a:person) RETURN b
+---- error
+Binder exception: Variable b is not in scope.
+
+-LOG BindPropertyLookUpOnExpression
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) RETURN (a.age + 2).age
+---- error
+Binder exception: +(a.age,2) has data type INT64 but (NODE,REL,STRUCT) was expected.
+
+-LOG BindPropertyNotExist
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) RETURN a.foo
+---- error
+Binder exception: Cannot find property foo for a.
+
+-LOG BindPropertyNotExist2
+-STATEMENT Create (a:person {foo:'x'});
+---- error
+Binder exception: Cannot find property foo for a.
+
+-LOG BindPropertyNotExist3
+-STATEMENT WITH {a: 1} AS s RETURN s.b
+---- error
+Binder exception: Invalid struct field name: b.
+
+-LOG BindPropertyStarError
+-STATEMENT WITH {a: 1} AS s RETURN s.* + 1
+---- error
+Binder exception: Cannot bind s.* as a single property expression.
+
+-LOG BindIDArithmetic
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE id(a) + 1 < id(b) RETURN *
+---- error
+Binder exception: Cannot match a built-in function for given function +(INTERNAL_ID,INT64). Supported inputs are
+(INT64,INT64) -> INT64
+(INT32,INT32) -> INT32
+(INT16,INT16) -> INT16
+(INT8,INT8) -> INT8
+(UINT64,UINT64) -> UINT64
+(UINT32,UINT32) -> UINT32
+(UINT16,UINT16) -> UINT16
+(UINT8,UINT8) -> UINT8
+(INT128,INT128) -> INT128
+(DOUBLE,DOUBLE) -> DOUBLE
+(FLOAT,FLOAT) -> FLOAT
+(SERIAL,SERIAL) -> SERIAL
+(VAR_LIST,VAR_LIST) -> VAR_LIST
+(STRING,STRING) -> STRING
+(INTERVAL,INTERVAL) -> INTERVAL
+(DATE,INT64) -> DATE
+(INT64,DATE) -> DATE
+(DATE,INTERVAL) -> DATE
+(INTERVAL,DATE) -> DATE
+(TIMESTAMP,INTERVAL) -> TIMESTAMP
+(INTERVAL,TIMESTAMP) -> TIMESTAMP
+
+-LOG BindDateAddDate
+-STATEMENT MATCH (a:person) RETURN a.birthdate + date('2031-02-01')
+---- error
+Binder exception: Cannot match a built-in function for given function +(DATE,DATE). Supported inputs are
+(INT64,INT64) -> INT64
+(INT32,INT32) -> INT32
+(INT16,INT16) -> INT16
+(INT8,INT8) -> INT8
+(UINT64,UINT64) -> UINT64
+(UINT32,UINT32) -> UINT32
+(UINT16,UINT16) -> UINT16
+(UINT8,UINT8) -> UINT8
+(INT128,INT128) -> INT128
+(DOUBLE,DOUBLE) -> DOUBLE
+(FLOAT,FLOAT) -> FLOAT
+(SERIAL,SERIAL) -> SERIAL
+(VAR_LIST,VAR_LIST) -> VAR_LIST
+(STRING,STRING) -> STRING
+(INTERVAL,INTERVAL) -> INTERVAL
+(DATE,INT64) -> DATE
+(INT64,DATE) -> DATE
+(DATE,INTERVAL) -> DATE
+(INTERVAL,DATE) -> DATE
+(TIMESTAMP,INTERVAL) -> TIMESTAMP
+(INTERVAL,TIMESTAMP) -> TIMESTAMP
+
+-LOG BindTimestampArithmetic
+-STATEMENT MATCH (a:person) WHERE a.registerTime + 1 < 5 RETURN *
+---- error
+Binder exception: Cannot match a built-in function for given function +(TIMESTAMP,INT64). Supported inputs are
+(INT64,INT64) -> INT64
+(INT32,INT32) -> INT32
+(INT16,INT16) -> INT16
+(INT8,INT8) -> INT8
+(UINT64,UINT64) -> UINT64
+(UINT32,UINT32) -> UINT32
+(UINT16,UINT16) -> UINT16
+(UINT8,UINT8) -> UINT8
+(INT128,INT128) -> INT128
+(DOUBLE,DOUBLE) -> DOUBLE
+(FLOAT,FLOAT) -> FLOAT
+(SERIAL,SERIAL) -> SERIAL
+(VAR_LIST,VAR_LIST) -> VAR_LIST
+(STRING,STRING) -> STRING
+(INTERVAL,INTERVAL) -> INTERVAL
+(DATE,INT64) -> DATE
+(INT64,DATE) -> DATE
+(DATE,INTERVAL) -> DATE
+(INTERVAL,DATE) -> DATE
+(TIMESTAMP,INTERVAL) -> TIMESTAMP
+(INTERVAL,TIMESTAMP) -> TIMESTAMP
+
+-LOG BindTimestampAddTimestamp
+-STATEMENT MATCH (a:person) RETURN a.registerTime + timestamp('2031-02-11 01:02:03');
+---- error
+Binder exception: Cannot match a built-in function for given function +(TIMESTAMP,TIMESTAMP). Supported inputs are
+(INT64,INT64) -> INT64
+(INT32,INT32) -> INT32
+(INT16,INT16) -> INT16
+(INT8,INT8) -> INT8
+(UINT64,UINT64) -> UINT64
+(UINT32,UINT32) -> UINT32
+(UINT16,UINT16) -> UINT16
+(UINT8,UINT8) -> UINT8
+(INT128,INT128) -> INT128
+(DOUBLE,DOUBLE) -> DOUBLE
+(FLOAT,FLOAT) -> FLOAT
+(SERIAL,SERIAL) -> SERIAL
+(VAR_LIST,VAR_LIST) -> VAR_LIST
+(STRING,STRING) -> STRING
+(INTERVAL,INTERVAL) -> INTERVAL
+(DATE,INT64) -> DATE
+(INT64,DATE) -> DATE
+(DATE,INTERVAL) -> DATE
+(INTERVAL,DATE) -> DATE
+(TIMESTAMP,INTERVAL) -> TIMESTAMP
+(INTERVAL,TIMESTAMP) -> TIMESTAMP
+
+-LOG BindFunctionWithWrongNumParams
+-STATEMENT MATCH (a:person) WHERE date() < 2 RETURN COUNT(*);
+---- error
+Binder exception: Cannot match a built-in function for given function DATE. Supported inputs are
+(STRING) -> DATE
+(RDF_VARIANT) -> DATE
+
+-LOG BindFunctionWithWrongParamType
+-STATEMENT MATCH (a:person) WHERE date(2012) < 2 RETURN COUNT(*);
+---- error
+Binder exception: Cannot match a built-in function for given function DATE(INT64). Supported inputs are
+(STRING) -> DATE
+(RDF_VARIANT) -> DATE
+
+-LOG OrderByVariableNotInScope
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) RETURN SUM(a.age) ORDER BY a.ID;
+---- error
+Binder exception: Order by expression a.ID is not in RETURN or WITH clause.
+
+-LOG NestedAggregation
+-STATEMENT MATCH (a:person) RETURN SUM(SUM(a.age));
+---- error
+Binder exception: Expression SUM(SUM(a.age)) contains nested aggregation.
+
+-LOG OrderByWithoutSkipLimitInWithClause
+-STATEMENT MATCH (a:person) WITH a.age AS k ORDER BY k RETURN k
+---- error
+Binder exception: In WITH clause, ORDER BY must be followed by SKIP or LIMIT.
+
+-LOG UnionAllUnmatchedNumberOfExpressions
+-STATEMENT MATCH (p:person) RETURN p.age,p.fName UNION ALL MATCH (p1:person) RETURN p1.age
+---- error
+Binder exception: The number of columns to union/union all must be the same.
+
+-LOG UnionAllUnmatchedDataTypesOfExpressions
+-STATEMENT MATCH (p:person) RETURN p.fName UNION ALL MATCH (p1:person) RETURN p1.age
+---- error
+Binder exception: p1.age has data type INT64 but (STRING) was expected.
+
+-LOG UnionAndUnionAllInSingleQuery
+-STATEMENT MATCH (p:person) RETURN p.age UNION ALL MATCH (p1:person) RETURN p1.age UNION MATCH (p1:person) RETURN p1.age
+---- error
+Binder exception: Union and union all can't be used together.
+
+-LOG ReadAfterUpdate
+-STATEMENT MATCH (a:person) SET a.age = 35 WITH a MATCH (a)-[:knows]->(b:person) RETURN a.age
+---- error
+Binder exception: Read after update is not supported. Try query with multiple statements.
+-STATEMENT MATCH (a:person) WHERE a.age = 35 DELETE a WITH a MATCH (a)-[:knows]->(b:person) RETURN a.age
+---- error
+Binder exception: Read after update is not supported. Try query with multiple statements.
+
+-LOG SetDataTypeMisMatch
+-STATEMENT MATCH (a:person) SET a.age = 'hh'
+---- error
+Binder exception: Expression hh has data type STRING but expected INT64. Implicit cast is not supported.
+
+-LOG CreateNodeDataTypeMisMatch
+-STATEMENT CREATE (a:person {age:'hh'})
+---- error
+Binder exception: Expression hh has data type STRING but expected INT64. Implicit cast is not supported.
+
+-LOG CreateRelDataTypeMisMatch
+-STATEMENT CREATE (a:person)-[:knows {date:12}]->(b:person)
+---- error
+Binder exception: Expression 12 has data type INT64 but expected DATE. Implicit cast is not supported.
+
+-LOG DeleteNodeProperty
+-STATEMENT MATCH (a:person) DELETE a.age
+---- error
+Binder exception: Cannot delete expression a.age with type PROPERTY. Expect node or rel pattern.
+
+-LOG CreateNodeTableUsedName
+-STATEMENT CREATE NODE TABLE person(NAME STRING, ID INT64, PRIMARY KEY(NAME))
+---- error
+Binder exception: person already exists in catalog.
+
+-LOG CreateNodeTablePKColNameNotExists
+-STATEMENT CREATE NODE TABLE PERSON(NAME STRING, ID INT64, birthdate date, primary key (dummyColName))
+---- error
+Binder exception: Primary key dummyColName does not match any of the predefined node properties.
+
+-LOG CreateNodeTableDuplicatedColumnName
+-STATEMENT CREATE NODE TABLE student (id INT64, eyesight double, eyesight double, PRIMARY KEY(id))
+---- error
+Binder exception: Duplicated column name: eyesight, column name must be unique.
+
+-LOG CopyNodeWrongPathTest
+-STATEMENT CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name))
+---- ok
+-STATEMENT COPY User FROM 'wrong_path.csv'
+---- error
+Binder exception: No file found that matches the pattern: wrong_path.csv.
+-STATEMENT COPY User FROM 'wrong_path.parquet'
+---- error
+Binder exception: No file found that matches the pattern: wrong_path.parquet.
+
+-LOG CopyCSVInvalidParsingOption
+-STATEMENT COPY person FROM "person_0_0.csv" (pk=",")
+---- error
+Binder exception: Unrecognized csv parsing option: PK.
+-STATEMENT LOAD WITH HEADERS (list STRING[], str STRING, struct STRUCT(a STRUCT(b STRUCT(c INT64[])))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/change_config.csv" (HEADER=true, DELIM="|", ESCAPE="~", QUOTE="'", LIST_END=")") RETURN * ;
+---- error
+Binder exception: Unrecognized csv parsing option: LIST_END.
+-STATEMENT LOAD WITH HEADERS (map MAP(STRING, MAP(STRING, INT16))) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/nested_map_correct.csv" (LIST_BEGIN="(") RETURN *;
+---- error
+Binder exception: Unrecognized csv parsing option: LIST_BEGIN.
+
+-LOG LoadCSVInvalidCol
+-STATEMENT LOAD WITH HEADERS (list INT32[]) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/var_list/quote_error.csv" RETURN * ;
+---- error
+Binder exception: Number of columns mismatch. Expected 1 but got 3.
+
+-LOG CopyCSVInvalidSchemaName
+-STATEMENT COPY university FROM "person_0_0.csv" (pk=",")
+---- error
+Binder exception: Table university does not exist.
+
+-LOG CopyCSVInvalidEscapeChar
+-STATEMENT COPY person FROM "person_0_0.csv" (ESCAPE="..")
+---- error
+Binder exception: Copy csv option value must be a single character with an optional escape character.
+
+-LOG CopyCSVEmptyEscapeChar
+-STATEMENT COPY person FROM "person_0_0.csv" (ESCAPE="")
+---- error
+Binder exception: Copy csv option value must be a single character with an optional escape character.
+
+-LOG CopyCSVWrongOptionType1
+-STATEMENT COPY person FROM "person_0_0.csv" (ESCAPE=TRUE)
+---- error
+Binder exception: The type of csv parsing option ESCAPE must be a string.
+
+-LOG CopyCSVWrongOptionType2
+-STATEMENT COPY person FROM "person_0_0.csv" (HEADER=" ")
+---- error
+Binder exception: The type of csv parsing option HEADER must be a boolean.
+
+-LOG CreateRelTableUsedName
+-STATEMENT CREATE REL TABLE knows ( FROM person TO person)
+---- error
+Binder exception: knows already exists in catalog.
+
+-LOG CreateRelTableInvalidNodeTableName
+-STATEMENT CREATE REL TABLE knows_post ( FROM person TO post)
+---- error
+Binder exception: Table post does not exist.
+
+-LOG CreateRelTableDuplicatedColumnName
+-STATEMENT CREATE REL TABLE teaches (FROM person TO person, date DATE, date TIMESTAMP)
+---- error
+Binder exception: Duplicated column name: date, column name must be unique.
+
+-LOG CreateRelTableReservedColumnName
+-STATEMENT CREATE REL TABLE teaches (FROM person TO person, _id INT64)
+---- error
+Binder exception: PropertyName: _id is an internal reserved propertyName.
+
+-LOG DropNotExistsTable
+-STATEMENT DROP TABLE person1;
+---- error
+Binder exception: Table person1 does not exist.
+
+-LOG InvalidLimitNumberType
+-STATEMENT MATCH (a:person) RETURN a.age LIMIT "abc"
+---- error
+Binder exception: The number of rows to skip/limit must be a non-negative integer.
+
+-LOG NegativeLimitNumber
+-STATEMENT MATCH (a:person) RETURN a.age LIMIT -1
+---- error
+Binder exception: The number of rows to skip/limit must be a non-negative integer.
+
+-LOG DuplicateVariableName
+-STATEMENT MATCH (a:person) UNWIND [1,2] AS a RETURN COUNT(*)
+---- error
+Binder exception: Variable a already exists.
+
+-LOG MinNodeID
+-STATEMENT MATCH (a:person) RETURN MIN(a)
+---- error
+Binder exception: Cannot match a built-in function for given function MIN(NODE). Supported inputs are
+DISTINCT (BOOL) -> BOOL
+(BOOL) -> BOOL
+DISTINCT (INT64) -> INT64
+(INT64) -> INT64
+DISTINCT (INT32) -> INT32
+(INT32) -> INT32
+DISTINCT (INT16) -> INT16
+(INT16) -> INT16
+DISTINCT (INT8) -> INT8
+(INT8) -> INT8
+DISTINCT (UINT64) -> UINT64
+(UINT64) -> UINT64
+DISTINCT (UINT32) -> UINT32
+(UINT32) -> UINT32
+DISTINCT (UINT16) -> UINT16
+(UINT16) -> UINT16
+DISTINCT (UINT8) -> UINT8
+(UINT8) -> UINT8
+DISTINCT (INT128) -> INT128
+(INT128) -> INT128
+DISTINCT (DOUBLE) -> DOUBLE
+(DOUBLE) -> DOUBLE
+DISTINCT (FLOAT) -> FLOAT
+(FLOAT) -> FLOAT
+DISTINCT (DATE) -> DATE
+(DATE) -> DATE
+DISTINCT (TIMESTAMP) -> TIMESTAMP
+(TIMESTAMP) -> TIMESTAMP
+DISTINCT (INTERVAL) -> INTERVAL
+(INTERVAL) -> INTERVAL
+DISTINCT (BLOB) -> BLOB
+(BLOB) -> BLOB
+DISTINCT (STRING) -> STRING
+(STRING) -> STRING
+DISTINCT (SERIAL) -> SERIAL
+(SERIAL) -> SERIAL
+
+#TODO(Xiyang): Fix me
+#-LOG OrderByNodeID
+#-STATEMENT match (p:person) with p as x order by x skip 1 return x;
+#---- error
+#Binder exception: Cannot order by p. Order by node or rel is not supported.
+
+-LOG DropColumnFromNonExistedTable
+-STATEMENT alter table person1 drop k
+---- error
+Binder exception: Table person1 does not exist.
+
+-LOG DropNonExistedColumn
+-STATEMENT alter table person drop random
+---- error
+Binder exception: person table doesn't have property random.
+
+-LOG DropPrimaryKeyColumn
+-STATEMENT alter table person drop ID
+---- error
+Binder exception: Cannot drop primary key of a node table.
+
+-LOG AddPropertyDuplicateName
+-STATEMENT alter table person add fName STRING
+---- error
+Binder exception: person table already has property fName.
+
+-LOG AddPropertyUnmatchedDefaultValueType
+-STATEMENT alter table person add intCol INT64 DEFAULT '3.2'
+---- error
+Binder exception: Expression 3.2 has data type STRING but expected INT64. Implicit cast is not supported.
+
+-LOG RenameNonExistedTable
+-STATEMENT alter table person1 rename to person2
+---- error
+Binder exception: Table person1 does not exist.
+
+-LOG RenameTableDuplicateName
+-STATEMENT alter table person rename to organisation
+---- error
+Binder exception: Table: organisation already exists.
+
+-LOG RenamePropertyOfNonExistedTable
+-STATEMENT alter table person1 rename col1 to col2
+---- error
+Binder exception: Table person1 does not exist.
+
+-LOG RenamePropertyDuplicateName
+-STATEMENT alter table person rename fName to gender
+---- error
+Binder exception: person table already has property gender.
+
+-LOG InvalidFixedListChildType
+-STATEMENT create node table test1(ID INT64, marks STRING[5], PRIMARY KEY(ID))
+---- error
+Binder exception: The child type of a fixed list must be a numeric type. Given: STRING.
+
+-LOG InvalidFixedListNumElements
+-STATEMENT create node table test1(ID INT64, marks INT64[0], PRIMARY KEY(ID))
+---- error
+Binder exception: The number of elements in a fixed list must be greater than 0. Given: 0.
+
+-LOG InvalidFixedListSize
+-STATEMENT create node table test1(ID INT64, marks INT64[512], PRIMARY KEY(ID))
+---- error
+Binder exception: Cannot store a fixed list of size 4096 in a page.
+
+-LOG NonPKSerialType
+-STATEMENT CREATE NODE TABLE test(ID INT64, seq SERIAL, PRIMARY KEY(ID))
+---- error
+Binder exception: Serial property in node table must be the primary key.
+
+-LOG AddSerialProperty
+-STATEMENT ALTER TABLE person ADD seq SERIAL
+---- error
+Binder exception: Serial property in node table must be the primary key.
+
+-LOG SerialInRelTable
+-STATEMENT CREATE REL TABLE test(FROM person TO person, seq SERIAL)
+---- error
+Binder exception: SERIAL property is not supported in rel table.
+
+-LOG MatchBuiltIn
+-STATEMENT MATCH (a:person) RETURN a.age + 'hh'
+---- error
+Binder exception: Cannot match a built-in function for given function +(INT64,STRING). Supported inputs are
+(INT64,INT64) -> INT64
+(INT32,INT32) -> INT32
+(INT16,INT16) -> INT16
+(INT8,INT8) -> INT8
+(UINT64,UINT64) -> UINT64
+(UINT32,UINT32) -> UINT32
+(UINT16,UINT16) -> UINT16
+(UINT8,UINT8) -> UINT8
+(INT128,INT128) -> INT128
+(DOUBLE,DOUBLE) -> DOUBLE
+(FLOAT,FLOAT) -> FLOAT
+(SERIAL,SERIAL) -> SERIAL
+(VAR_LIST,VAR_LIST) -> VAR_LIST
+(STRING,STRING) -> STRING
+(INTERVAL,INTERVAL) -> INTERVAL
+(DATE,INT64) -> DATE
+(INT64,DATE) -> DATE
+(DATE,INTERVAL) -> DATE
+(INTERVAL,DATE) -> DATE
+(TIMESTAMP,INTERVAL) -> TIMESTAMP
+(INTERVAL,TIMESTAMP) -> TIMESTAMP
+
+-LOG InvalidCallOption
+-STATEMENT CALL thread=10
+---- error
+Binder exception: Invalid option name: thread.
+
+-LOG InvalidCallOptionValue
+-STATEMENT CALL threads='abc'
+---- error
+Binder exception: abc has data type STRING but (INT64) was expected.
+
+-LOG AllShortestPathInvalidLowerBound
+-STATEMENT MATCH p = (a)-[* ALL SHORTEST 2..3]-(b) RETURN p
+---- error
+Binder exception: Lower bound of shortest/all_shortest path must be 1.
+
+-LOG InvalidNumberOfMacroParams
+-STATEMENT CREATE MACRO add5(x) AS x + 5
+---- ok
+-STATEMENT MATCH (a:person) RETURN add5(a.age, 1)
+---- error
+Binder exception: Invalid number of arguments for macro ADD5.
+
+-LOG InvalidNumberOfMacroParamsWithDefaultVal
+-STATEMENT CREATE MACRO add4(x, y:=4, z:=3) AS x + 5
+---- ok
+-STATEMENT MATCH (a:person) RETURN add4(a.age, 1, 2,3)
+---- error
+Binder exception: Invalid number of arguments for macro ADD4.
+
+-LOG CopyToNPYFormat
+-STATEMENT COPY (MATCH (a:person) RETURN a) TO 'person.npy';
+---- error
+Binder exception: COPY TO currently only supports csv and parquet files.
+
+-LOG InvalidArgCast
+-STATEMENT RETURN cast("[sdf, fsd, fad]", "STRING[]", "3rd arg");
+---- error
+Binder exception: Invalid number of arguments for given function CAST. Expected: 2, Actual: 3.
+-STATEMENT RETURN cast("[sdf, fsd, fad]");
+---- error
+Binder exception: Invalid number of arguments for given function CAST. Expected: 2, Actual: 1.

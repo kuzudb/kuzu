@@ -1,0 +1,11 @@
+-GROUP CopyLongStringMultipleFilesTest
+-DATASET CSV long-string-multiple-files
+
+--
+
+-CASE CopyLongStringMultipleFilesTest
+
+-LOG LongStringAlice
+-STATEMENT MATCH (p:person) RETURN COUNT(*);
+---- 1
+220000

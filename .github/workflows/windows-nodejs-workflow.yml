@@ -1,0 +1,31 @@
+name: Build-Windows-NodeJS-Module
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build-windows-nodejs:
+    runs-on: self-hosted-windows
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Node.js dependencies
+        working-directory: tools/nodejs_api
+        run: |
+          npm i
+
+      - name: Build Node.js native module
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          make nodejs LTO=1 NUM_THREADS=48
+
+      - name: Move Node.js native module
+        working-directory: tools/nodejs_api/build
+        run: ren kuzujs.node kuzujs-win32-x64.node
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: windows-nodejs-module
+          path: tools/nodejs_api/build/kuzujs-win32-x64.node

@@ -1,0 +1,4 @@
+add_kuzu_test(e2e_copy_csv_transaction_test e2e_copy_transaction_test.cpp)
+add_kuzu_test(e2e_ddl_test e2e_ddl_test.cpp)
+add_kuzu_test(e2e_test e2e_test.cpp)
+add_kuzu_test(cleanup_test cleanup_test.cpp)

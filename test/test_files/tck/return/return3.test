@@ -1,0 +1,39 @@
+-GROUP TCKReturn3
+-DATASET CSV tck
+
+--
+
+# Returning multiple expressions
+-CASE Scenario1
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A);
+---- ok
+-STATEMENT MATCH (a) RETURN a.id IS NOT NULL AS a, a IS NOT NULL AS b;
+---- 1
+False|True
+
+# Returning multiple node property values
+-CASE Scenario2
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, age INT64, seasons INT64[], PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {name: 'Philip J. Fry', age: 2046, seasons: [1, 2, 3, 4, 5, 6, 7]});
+---- ok
+-STATEMENT MATCH (a) RETURN a.name, a.age, a.seasons;
+---- 1
+Philip J. Fry|2046|[1,2,3,4,5,6,7]
+
+# Projecting nodes and relationships
+-CASE Scenario3
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A To B);
+---- ok
+-STATEMENT CREATE (a:A)-[:T]->(b:B);
+---- ok
+-STATEMENT MATCH (a)-[r]->() RETURN a AS foo, r AS bar;
+---- 1
+{_ID: 0:0, _LABEL: A, ID: 0}|(0:0)-{_LABEL: T, _ID: 2:0}->(1:0)

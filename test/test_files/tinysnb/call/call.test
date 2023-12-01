@@ -1,0 +1,181 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE CallSetGetConfig
+
+-LOG SetGetThread
+-STATEMENT CALL THREADS=4
+---- ok
+-STATEMENT CALL current_setting('threads') RETURN *
+-PARALLELISM 6
+---- 1
+6
+-STATEMENT CALL current_setting('threads') RETURN *
+-PARALLELISM 10
+---- 1
+10
+
+-LOG SetGetTimeout
+-STATEMENT CALL timeout=40000
+---- ok
+-STATEMENT CALL current_setting('timeout') RETURN *
+---- 1
+40000
+-STATEMENT CALL timeout=20000
+---- ok
+-STATEMENT CALL current_setting('timeout') RETURN *
+---- 1
+20000
+
+-LOG SetGetVarLengthMaxDepth
+-STATEMENT CALL var_length_extend_max_depth=10
+---- ok
+-STATEMENT CALL current_setting('var_length_extend_max_depth') RETURN *
+---- 1
+10
+-STATEMENT MATCH (a:person)-[:knows*1..28]->(b:person) RETURN COUNT(*);
+---- error
+Binder exception: Upper bound of rel  exceeds maximum: 10.
+-STATEMENT MATCH (a:person)-[:knows*1..10]->(b:person) RETURN COUNT(*);
+---- 1
+354290
+
+-LOG disableSemihMaskOptimization
+-STATEMENT CALL enable_semi_mask=true
+---- ok
+-STATEMENT CALL current_setting('enable_semi_mask') RETURN *
+---- 1
+true
+-STATEMENT CALL enable_semi_mask=false
+---- ok
+-STATEMENT CALL current_setting('enable_semi_mask') RETURN *
+---- 1
+false
+
+-LOG CallTransaction
+-STATEMENT BEGIN TRANSACTION READ ONLY;
+---- ok
+-STATEMENT CALL var_length_extend_max_depth=10
+---- error
+Can't execute a write query inside a read-only transaction.
+
+-CASE CallFunctionTable
+
+-LOG NodeTableInfo
+-STATEMENT CALL table_info('person') RETURN *
+---- 15
+0|ID|INT64|True
+1|fName|STRING|False
+2|gender|INT64|False
+3|isStudent|BOOL|False
+4|isWorker|BOOL|False
+5|age|INT64|False
+6|eyeSight|DOUBLE|False
+7|birthdate|DATE|False
+8|registerTime|TIMESTAMP|False
+9|lastJobDuration|INTERVAL|False
+10|workedHours|INT64[]|False
+11|usedNames|STRING[]|False
+12|courseScoresPerTerm|INT64[][]|False
+13|grades|INT64[4]|False
+14|height|FLOAT|False
+
+-LOG RelTableInfo
+-STATEMENT CALL table_info('knows') RETURN *
+---- 6
+1|date|DATE
+2|meetTime|TIMESTAMP
+3|validInterval|INTERVAL
+4|comments|STRING[]
+5|summary|STRUCT(locations:STRING[], transfer:STRUCT(day:DATE, amount:INT64[]))
+6|notes|UNION(firstmet:DATE, type:INT16, comment:STRING)
+
+-LOG ReturnNodeName
+-STATEMENT CALL table_info('person') WHERE name <> 'ID' RETURN name
+---- 14
+fName
+gender
+isStudent
+isWorker
+age
+eyeSight
+birthdate
+registerTime
+lastJobDuration
+workedHours
+usedNames
+courseScoresPerTerm
+grades
+height
+
+-LOG ReturnRelName
+-STATEMENT MATCH (m:movies) CALL table_info('knows') return id(m), type
+---- 18
+2:0|DATE
+2:0|INTERVAL
+2:0|STRING[]
+2:0|TIMESTAMP
+2:0|STRUCT(locations:STRING[], transfer:STRUCT(day:DATE, amount:INT64[]))
+2:0|UNION(firstmet:DATE, type:INT16, comment:STRING)
+2:1|DATE
+2:1|INTERVAL
+2:1|STRING[]
+2:1|TIMESTAMP
+2:1|STRUCT(locations:STRING[], transfer:STRUCT(day:DATE, amount:INT64[]))
+2:1|UNION(firstmet:DATE, type:INT16, comment:STRING)
+2:2|DATE
+2:2|INTERVAL
+2:2|STRING[]
+2:2|TIMESTAMP
+2:2|STRUCT(locations:STRING[], transfer:STRUCT(day:DATE, amount:INT64[]))
+2:2|UNION(firstmet:DATE, type:INT16, comment:STRING)
+
+-CASE CallNodeTableWith300ColumnsInfo
+-DEFINE COLS REPEAT 2400 "col${count} INT64,"
+
+-STATEMENT CREATE NODE TABLE person1(${COLS} PRIMARY KEY(col1));
+---- ok
+-STATEMENT CALL TABLE_INFO("person1") RETURN *
+---- 2400
+<FILE>:function_table_info_answer.txt
+
+-LOG ReturnDBVersion
+-STATEMENT CALL db_version() RETURN version
+---- 1
+${KUZU_VERSION}
+
+-LOG ReturnTableConnection
+-STATEMENT CALL show_connection('knows') RETURN *
+---- 1
+person|person
+-STATEMENT CALL show_connection('workAt') RETURN *
+---- 1
+person|organisation
+-STATEMENT CREATE REL TABLE GROUP Knows (FROM person To person, FROM person to organisation, year INT64);
+---- ok
+-STATEMENT CALL show_connection('Knows') RETURN *
+---- 2
+person|person
+person|organisation
+-STATEMENT CALL show_connection('person') RETURN *
+---- error
+Binder exception: Show connection can only be called on a rel table!
+
+-LOG WrongNumParameter
+-STATEMENT CALL table_info('person', 'knows') RETURN *
+---- error
+Binder exception: Cannot match a built-in function for given function TABLE_INFO(STRING,STRING). Supported inputs are
+(STRING)
+
+-LOG WrongParameterType
+-STATEMENT CALL show_connection(123) RETURN *
+---- error
+Binder exception: Cannot match a built-in function for given function SHOW_CONNECTION(INT64). Supported inputs are
+(STRING)
+
+-LOG WrongParameterExprType
+-STATEMENT CALL show_connection(upper("person")) RETURN *
+---- error
+Binder exception: Parameters in table function must be a literal expression.

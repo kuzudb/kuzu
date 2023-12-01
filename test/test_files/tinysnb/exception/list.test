@@ -1,0 +1,30 @@
+-GROUP TinySnbExceptionTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE SetListPropertyError
+-STATEMENT MATCH (a:person) SET a.workedHours=['A', 'B']
+---- error
+Binder exception: Expression LIST_CREATION(A,B) has data type STRING[] but expected INT64[]. Implicit cast is not supported.
+
+-CASE ListFunctionMatchError1
+-STATEMENT MATCH (a:person) RETURN array_concat(a.workedHours, a.age)
+---- error
+Binder exception: Cannot match a built-in function for given function ARRAY_CONCAT(VAR_LIST,INT64). Supported inputs are
+(VAR_LIST,VAR_LIST) -> VAR_LIST
+
+-CASE ListFunctionMatchError2
+-STATEMENT MATCH (a:person) RETURN array_concat(a.workedHours, ['A'])
+---- error
+Binder exception: Cannot bind LIST_CONCAT with parameter type INT64[] and STRING[].
+
+-CASE ListFunctionMatchError3
+-STATEMENT MATCH (a:person) RETURN [a.age, a.fName]
+---- error
+Binder exception: Cannot bind LIST_CREATION with parameter type INT64 and STRING.
+
+-CASE ListPrepareError
+-STATEMENT MATCH (a:person) RETURN list_sort($1)
+---- error
+Binder exception: Cannot resolve recursive data type for expression $1.

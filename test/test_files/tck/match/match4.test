@@ -1,0 +1,222 @@
+-GROUP TCKMatch4
+-DATASET CSV tck
+
+--
+
+# TODO: Should add filter for the query, otherwise could lead to multiple possible results.
+# Handling fixed-length variable length pattern
+-CASE Scenario1
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+-STATEMENT CREATE ()-[:T]->();
+---- ok
+-STATEMENT MATCH (a)-[r*1..1]->(b)
+           RETURN r;
+---- 1
+{_NODES: [], _RELS: [(0:1)-{_LABEL: T, _ID: 1:0}->(0:0)]}
+
+# Simple variable length pattern
+-CASE Scenario2
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE CONTAIN(FROM A TO A);
+---- ok
+-STATEMENT CREATE (a {name: 'A'}), (b {name: 'B'}),
+                  (c {name: 'C'}), (d {name: 'D'})
+           CREATE (a)-[:CONTAIN]->(b),
+                  (b)-[:CONTAIN]->(c),
+                  (c)-[:CONTAIN]->(d);
+---- ok
+-STATEMENT MATCH (a {name: 'A'})-[*]->(x)
+           RETURN x;
+---- 3
+{_ID: 0:1, _LABEL: A, ID: 1, name: B}
+{_ID: 0:2, _LABEL: A, ID: 2, name: C}
+{_ID: 0:3, _LABEL: A, ID: 3, name: D}
+
+# Zero-length variable length pattern in the middle of the pattern
+-CASE Scenario3
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE CONTAIN(FROM A TO A);
+---- ok
+-STATEMENT CREATE REL TABLE FRIEND(FROM A TO A);
+---- ok
+-STATEMENT CREATE (a {name: 'A'}), (b {name: 'B'}),
+                  (c {name: 'C'}), ({name: 'D'}),
+                  ({name: 'E'})
+           CREATE (a)-[:CONTAIN]->(b),
+                  (b)-[:FRIEND]->(c);
+---- ok
+-STATEMENT MATCH (a {name: 'A'})-[:CONTAIN*0..1]->(b)-[:FRIEND*0..1]->(c)
+           RETURN a, b, c;
+---- 3
+{_ID: 0:0, _LABEL: A, ID: 0, name: A}|{_ID: 0:0, _LABEL: A, ID: 0, name: A}|{_ID: 0:0, _LABEL: A, ID: 0, name: A}
+{_ID: 0:0, _LABEL: A, ID: 0, name: A}|{_ID: 0:1, _LABEL: A, ID: 1, name: B}|{_ID: 0:1, _LABEL: A, ID: 1, name: B}
+{_ID: 0:0, _LABEL: A, ID: 0, name: A}|{_ID: 0:1, _LABEL: A, ID: 1, name: B}|{_ID: 0:2, _LABEL: A, ID: 2, name: C}
+
+# TODO: Catalog exception: LEN function does not exist.
+# Matching longer variable length paths
+-CASE Scenario4
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, var INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+# indexing on varlist causes segmentaion fault
+-STATEMENT CREATE (a {var: -2}), (b {var: 0})
+           WITH *
+           UNWIND range(1, 20) AS i
+           CREATE (n {var: i})
+           WITH a, b, list_cat(list_cat([a], collect(n)), [b]) AS nodeList
+           UNWIND range(0, len(nodeList) - 2, 1) AS i
+           WITH nodeList[i] AS n1, nodeList[i+1] AS n2
+           CREATE (n1)-[:T]->(n2);
+---- ok
+-STATEMENT MATCH (n {var: 'start'})-[:T*]->(m {var: 'end'})
+           RETURN m
+---- error
+Binder exception: Expression start has data type STRING but expected INT64. Implicit cast is not supported.
+
+# Matching variable length pattern with property predicate
+-CASE Scenario5
+-STATEMENT CREATE NODE TABLE Artist(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE WORKED_WITH(FROM Artist TO Artist, year INT64);
+---- ok
+-STATEMENT CREATE (a:Artist), (b:Artist), (c:Artist)
+           CREATE (a)-[:WORKED_WITH {year: 1987}]->(b),
+                  (b)-[:WORKED_WITH {year: 1988}]->(c);
+---- ok
+-STATEMENT MATCH (a:Artist)-[:WORKED_WITH*1..1 {year: 1988}]->(b:Artist)
+           RETURN *;
+---- 1
+{_ID: 0:1, _LABEL: Artist, ID: 1}|{_ID: 0:2, _LABEL: Artist, ID: 2}
+-STATEMENT MATCH (a:Artist)-[:WORKED_WITH* {year: 1988}]->(b:Artist)
+           RETURN *;
+---- 1
+{_ID: 0:1, _LABEL: Artist, ID: 1}|{_ID: 0:2, _LABEL: Artist, ID: 2}
+
+# TODO: Should add filter for the query, otherwise could lead to multiple possible results.
+# Matching variable length patterns from a bound node
+-CASE Scenario6
+-SKIP
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE X(FROM A To A);
+---- ok
+-STATEMENT CREATE REL TABLE Y(FROM A To A);
+---- ok
+-STATEMENT CREATE (a:A), (b), (c)
+           CREATE (a)-[:X]->(b),
+                  (b)-[:Y]->(c)
+---- ok
+-STATEMENT MATCH (a:A)
+           MATCH (a)-[r*2]->()
+           RETURN r
+---- 1
+{_NODES: [{_ID: 0:1, _LABEL: A, ID: 1}], _RELS: [(0:0)-{_LABEL: X, _ID: 1:0}->(0:1),(0:1)-{_LABEL: Y, _ID: 2:0}->(0:2)]}
+
+# Matching variable length patterns including a bound relationship
+-CASE Scenario7
+-STATEMENT CREATE NODE TABLE Node1(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE EDGE(FROM Node1 TO Node1);
+---- ok
+-STATEMENT CREATE (n0:Node1),
+                  (n1:Node1),
+                  (n2:Node1),
+                  (n3:Node1),
+                  (n0)-[:EDGE]->(n1),
+                  (n1)-[:EDGE]->(n2),
+                  (n2)-[:EDGE]->(n3);
+---- ok
+-STATEMENT MATCH ()-[r:EDGE]-()
+           MATCH p = (n)-[*0..1]-()-[r:EDGE]-()-[*0..1]-(m)
+           RETURN count(p) AS c
+---- error
+Binder exception: Bind relationship r to relationship with same name is not supported.
+
+# Matching relationships into a list and matching variable length using the list
+-CASE Scenario8
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP Y(FROM A TO B, FROM B TO C);
+---- ok
+-STATEMENT CREATE (a:A), (b:B), (c:C)
+           CREATE (a)-[:Y]->(b),
+                  (b)-[:Y]->(c)
+---- error
+Binder exception: Create rel  with multiple rel labels or bound by multiple node labels is not supported.
+-STATEMENT  MATCH ()-[r1]->()-[r2]->()
+            WITH [r1, r2] AS rs
+            LIMIT 1
+            MATCH (first)-[rs*]->(second)
+            RETURN first, second;
+---- error
+Binder exception: rs has data type VAR_LIST but (RECURSIVE_REL) was expected.
+
+# Fail when asterisk operator is missing
+# Fail on negative bound
+-CASE Scenario9&10
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE C(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE D(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP LIKES(FROM A TO B, FROM B TO C, FROM C TO D);
+---- ok
+-STATEMENT CREATE (n0:A {name: 'n0'}),
+                  (n00:B {name: 'n00'}),
+                  (n01:B {name: 'n01'}),
+                  (n000:C {name: 'n000'}),
+                  (n001:C {name: 'n001'}),
+                  (n010:C {name: 'n010'}),
+                  (n011:C {name: 'n011'}),
+                  (n0000:D {name: 'n0000'}),
+                  (n0001:D {name: 'n0001'}),
+                  (n0010:D {name: 'n0010'}),
+                  (n0011:D {name: 'n0011'}),
+                  (n0100:D {name: 'n0100'}),
+                  (n0101:D {name: 'n0101'}),
+                  (n0110:D {name: 'n0110'}),
+                  (n0111:D {name: 'n0111'})
+           CREATE (n0)-[:LIKES_A_B]->(n00),
+                  (n0)-[:LIKES_A_B]->(n01),
+                  (n00)-[:LIKES_B_C]->(n000),
+                  (n00)-[:LIKES_B_C]->(n001),
+                  (n01)-[:LIKES_B_C]->(n010),
+                  (n01)-[:LIKES_B_C]->(n011),
+                  (n000)-[:LIKES_C_D]->(n0000),
+                  (n000)-[:LIKES_C_D]->(n0001),
+                  (n001)-[:LIKES_C_D]->(n0010),
+                  (n001)-[:LIKES_C_D]->(n0011),
+                  (n010)-[:LIKES_C_D]->(n0100),
+                  (n010)-[:LIKES_C_D]->(n0101),
+                  (n011)-[:LIKES_C_D]->(n0110),
+                  (n011)-[:LIKES_C_D]->(n0111);
+---- ok
+-STATEMENT  MATCH (a:A)
+            MATCH (a)-[:LIKES..]->(c)
+            RETURN c.name;
+---- error
+Parser exception: Invalid input <MATCH (a:A)            MATCH (a)-[:LIKES..>: expected rule oC_SingleQuery (line: 1, offset: 40)
+"MATCH (a:A)            MATCH (a)-[:LIKES..]->(c)             RETURN c.name;"
+                                         ^^
+-STATEMENT MATCH (a:A)
+           MATCH (a)-[:LIKES*-2]->(c)
+           RETURN c.name;
+---- error
+Parser exception: Invalid input <MATCH (a:A)           MATCH (a)-[:LIKES*->: expected rule oC_SingleQuery (line: 1, offset: 40)
+"MATCH (a:A)           MATCH (a)-[:LIKES*-2]->(c)            RETURN c.name;"
+                                         ^

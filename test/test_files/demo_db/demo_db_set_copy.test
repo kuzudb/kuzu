@@ -1,0 +1,67 @@
+-GROUP DemoDBSetAndCopyTest
+-DATASET CSV demo-db/csv
+
+--
+
+-CASE SetSingleLabelNodeTest
+-LOG SetAge
+-STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
+---- ok
+-LOG ReturnAge
+-STATEMENT MATCH (u:User) WHERE u.name='Adam' RETURN u.age
+---- 1
+50
+-LOG SetAgeNull
+-STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = NULL
+---- ok
+-LOG ReturnNullAge
+-STATEMENT MATCH (u:User) WHERE u.name='Adam' RETURN u.age
+---- 1
+
+-CASE SetMultipleLabelNodeTest
+-STATEMENT MATCH (u) SET u.population = 0 RETURN label(u), u.name, u.population;
+---- 7
+User|Adam|
+User|Karissa|
+User|Zhang|
+User|Noura|
+City|Waterloo|0
+City|Kitchener|0
+City|Guelph|0
+-STATEMENT MATCH(u:City) RETURN u.name, u.population
+---- 3
+Waterloo|0
+Kitchener|0
+Guelph|0
+
+-CASE SetSingleLabelRelTest
+-LOG SetRelSince
+-STATEMENT MATCH (u:User)-[f:Follows]->(u1:User) WHERE u.name = 'Adam' AND u1.name = 'Karissa' SET f.since=2012
+---- ok
+-LOG CheckRelSince
+-STATEMENT MATCH (u:User)-[f:Follows]->(u1:User) WHERE u.name='Adam' RETURN f.since, u1.name
+---- 2
+2012|Karissa
+2020|Zhang
+-LOG CopyRelToNonEmptyTableErrorTest
+-STATEMENT MATCH (:User)-[f:Follows]->(:User) DELETE f
+---- ok
+
+-CASE SetMultipleLabelRelTest
+-LOG SetRelSince
+-STATEMENT MATCH (u0)-[f]->() WHERE u0.name = 'Adam' SET f.since = 1999 RETURN f;
+---- 3
+(0:0)-{_LABEL: Follows, _ID: 2:0, since: 1999}->(0:1)
+(0:0)-{_LABEL: Follows, _ID: 2:1, since: 1999}->(0:2)
+(0:0)-{_LABEL: LivesIn, _ID: 3:0}->(1:0)
+-LOG CheckRelSince
+-STATEMENT MATCH (u0)-[f:Follows]->() WHERE u0.name='Adam' RETURN f.since
+---- 2
+1999
+1999
+
+-CASE CopyRelToNonEmptyTableErrorTest
+
+-STATEMENT COPY Follows FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/follows.csv"
+---- error
+Copy exception: COPY commands can only be executed once on a table.

@@ -1,0 +1,98 @@
+-GROUP RelGroupTest
+-DATASET CSV rel-group
+
+--
+
+-CASE RelGroupTest1
+-STATEMENT MATCH (a)-[e:knows]->(b) WHERE a.ID = 0 AND b.ID = 2 RETURN label(e), label(b), b.*
+---- 3
+knows_personA_personB|personB|2|Bob
+knows_personA_personC|personC|2|Bob
+knows_personB_personC|personC|2|Bob
+-STATEMENT MATCH (a:personA)-[e:knows]->(b) WHERE a.ID = 0 AND b.ID = 2 RETURN label(e), label(b), b.*
+---- 2
+knows_personA_personB|personB|2|Bob
+knows_personA_personC|personC|2|Bob
+-STATEMENT MATCH (a:personA)-[e:knows]->(b:personB) WHERE a.ID = 0 AND b.ID = 2 RETURN label(e), label(b), b.*
+---- 1
+knows_personA_personB|personB|2|Bob
+-STATEMENT MATCH (a:personA)-[e:likes]->(b:personB) WHERE a.ID = 0 RETURN label(e), label(b), b.*
+---- 3
+likes_personA_personB|personB|2|Bob
+likes_personA_personB|personB|3|Carol
+likes_personA_personB|personB|5|Dan
+-STATEMENT MATCH (a)-[e:likes]-(b) WHERE a.ID = 0 RETURN COUNT(*)
+---- 1
+12
+-STATEMENT MATCH (a)-[e]->(b) WHERE a.ID = 0 AND b.ID = 2 RETURN label(e), label(b), b.*
+---- 5
+knows_personA_personB|personB|2|Bob
+knows_personA_personC|personC|2|Bob
+knows_personB_personC|personC|2|Bob
+likes_personA_personB|personB|2|Bob
+likes_personB_personA|personA|2|Bob
+-STATEMENT COPY knows FROM "a.csv";
+---- error
+Binder exception: Cannot copy into knows table with type REL_GROUP.
+-STATEMENT DROP TABLE knows_personA_personB;
+---- error
+Binder exception: Cannot delete rel table knows_personA_personB referenced by rel group knows.
+-STATEMENT CALL show_tables() RETURN *;
+---- 10
+knows_personA_personB|REL|
+knows_personA_personC|REL|
+knows_personB_personC|REL|
+knows|REL_GROUP|
+likes_personA_personB|REL|
+likes_personB_personA|REL|
+likes|REL_GROUP|
+personA|NODE|
+personB|NODE|
+personC|NODE|
+-STATEMENT DROP TABLE knows;
+---- ok
+-STATEMENT CALL show_tables() RETURN *;
+---- 6
+likes_personA_personB|REL|
+likes_personB_personA|REL|
+likes|REL_GROUP|
+personA|NODE|
+personB|NODE|
+personC|NODE|
+-STATEMENT MATCH (a:personA)-[e:knows]->(b) RETURN COUNT(*)
+---- error
+Binder exception: Table knows does not exist.
+-STATEMENT MATCH (a:personA)-[e:knows_personA_personB]->(b) RETURN COUNT(*)
+---- error
+Binder exception: Table knows_personA_personB does not exist.
+-STATEMENT ALTER TABLE likes_personA_personB RENAME TO likes_A_B;
+---- ok
+-STATEMENT ALTER TABLE likes RENAME TO hates;
+---- ok
+-STATEMENT CALL show_tables() RETURN *;
+---- 6
+likes_A_B|REL|
+likes_personB_personA|REL|
+hates|REL_GROUP|
+personA|NODE|
+personB|NODE|
+personC|NODE|
+-STATEMENT MATCH (a:personA)-[e:hates]->(b:personB) WHERE a.ID = 0 RETURN label(e), label(b), b.*
+---- 3
+likes_A_B|personB|2|Bob
+likes_A_B|personB|3|Carol
+likes_A_B|personB|5|Dan
+-STATEMENT ALTER TABLE hates ADD age INT;
+---- error
+Binder exception: Cannot add property on table hates with type REL_GROUP.
+-STATEMENT ALTER TABLE hates DROP age;
+---- error
+Binder exception: Cannot drop property on table hates with type REL_GROUP.
+-STATEMENT ALTER TABLE hates RENAME age TO s;
+---- error
+Binder exception: Cannot rename property on table hates with type REL_GROUP.
+-STATEMENT ALTER TABLE likes_A_B RENAME date TO s;
+---- ok
+-STATEMENT CALL table_info("likes_A_B") RETURN *;
+---- 1
+1|s|DATE

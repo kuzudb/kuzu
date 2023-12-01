@@ -1,0 +1,19 @@
+-GROUP CopyRelTableMultiplicityViolationTest
+-DATASET CSV copy-fault-tests/rel-table-multiplicity-violation
+
+--
+
+-CASE ManyOneMultiplicityViolationError
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/rel-table-multiplicity-violation/eKnows.csv"
+---- error
+Copy exception: Node with offset: 0 can only have one neighbour due to the MANY-ONE/ONE-ONE relationship constraint.
+
+-CASE OneManyMultiplicityViolationError
+-STATEMENT COPY teaches FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/rel-table-multiplicity-violation/eTeaches.csv"
+---- error
+Copy exception: Node with offset: 2 can only have one neighbour due to the MANY-ONE/ONE-ONE relationship constraint.
+
+-CASE OneOneMultiplicityViolationError
+-STATEMENT COPY matches FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/rel-table-multiplicity-violation/eMatches.csv"
+---- error
+Copy exception: Node with offset: 1 can only have one neighbour due to the MANY-ONE/ONE-ONE relationship constraint.

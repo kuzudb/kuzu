@@ -1,0 +1,38 @@
+add_subdirectory(aggregate)
+add_subdirectory(ddl)
+add_subdirectory(hash_join)
+add_subdirectory(intersect)
+add_subdirectory(order_by)
+add_subdirectory(persistent)
+add_subdirectory(scan)
+add_subdirectory(table_scan)
+add_subdirectory(recursive_extend)
+add_subdirectory(call)
+add_subdirectory(macro)
+
+add_library(kuzu_processor_operator
+        OBJECT
+        comment_on.cpp
+        cross_product.cpp
+        fill_table_id.cpp
+        filter.cpp
+        filtering_operator.cpp
+        flatten.cpp
+        index_lookup.cpp
+        index_scan.cpp
+        limit.cpp
+        multiplicity_reducer.cpp
+        partitioner.cpp
+        physical_operator.cpp
+        projection.cpp
+        profile.cpp
+        result_collector.cpp
+        scan_node_id.cpp
+        semi_masker.cpp
+        skip.cpp
+        transaction.cpp
+        unwind.cpp)
+
+set(ALL_OBJECT_FILES
+        ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_processor_operator>
+        PARENT_SCOPE)

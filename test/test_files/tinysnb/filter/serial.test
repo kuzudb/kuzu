@@ -1,0 +1,48 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb-serial
+
+--
+
+-CASE SerialComparison
+
+-LOG SerialGreaterThan
+-STATEMENT MATCH (a:person) WHERE a.ID > 4 RETURN a
+---- 3
+{_ID: 0:5, _LABEL: person, ID: 5, fName: Farooq, gender: 2, isStudent: True, isWorker: False, age: 25, eyeSight: 4.500000, birthdate: 1980-10-26, registerTime: 1972-07-31 13:22:30.678559, lastJobDuration: 00:18:00.024, workedHours: [3,4,5,6,7], usedNames: [Fesdwe], courseScoresPerTerm: [[8]], grades: [80,78,34,83], height: 1.510000}
+{_ID: 0:6, _LABEL: person, ID: 6, fName: Greg, gender: 2, isStudent: False, isWorker: False, age: 40, eyeSight: 4.900000, birthdate: 1980-10-26, registerTime: 1976-12-23 04:41:42, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [1], usedNames: [Grad], courseScoresPerTerm: [[10]], grades: [43,83,67,43], height: 1.600000}
+{_ID: 0:7, _LABEL: person, ID: 7, fName: Hubert Blaine Wolfeschlegelsteinhausenbergerdorff, gender: 2, isStudent: False, isWorker: True, age: 83, eyeSight: 4.900000, birthdate: 1990-11-27, registerTime: 2023-02-21 13:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,11,12,3,4,5,6,7], usedNames: [Ad,De,Hi,Kye,Orlan], courseScoresPerTerm: [[7],[10],[6,7]], grades: [77,64,100,54], height: 1.323000}
+
+-LOG SerialGreaterThanOrEqualTo
+-STATEMENT MATCH (a:person) WHERE a.ID >= 4 RETURN a
+---- 4
+{_ID: 0:4, _LABEL: person, ID: 4, fName: Elizabeth, gender: 1, isStudent: False, isWorker: True, age: 20, eyeSight: 4.700000, birthdate: 1980-10-26, registerTime: 1976-12-23 11:21:42, lastJobDuration: 48:24:11, workedHours: [2], usedNames: [Ein], courseScoresPerTerm: [[6],[7],[8]], grades: [96,59,65,88], height: 1.463000}
+{_ID: 0:5, _LABEL: person, ID: 5, fName: Farooq, gender: 2, isStudent: True, isWorker: False, age: 25, eyeSight: 4.500000, birthdate: 1980-10-26, registerTime: 1972-07-31 13:22:30.678559, lastJobDuration: 00:18:00.024, workedHours: [3,4,5,6,7], usedNames: [Fesdwe], courseScoresPerTerm: [[8]], grades: [80,78,34,83], height: 1.510000}
+{_ID: 0:6, _LABEL: person, ID: 6, fName: Greg, gender: 2, isStudent: False, isWorker: False, age: 40, eyeSight: 4.900000, birthdate: 1980-10-26, registerTime: 1976-12-23 04:41:42, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [1], usedNames: [Grad], courseScoresPerTerm: [[10]], grades: [43,83,67,43], height: 1.600000}
+{_ID: 0:7, _LABEL: person, ID: 7, fName: Hubert Blaine Wolfeschlegelsteinhausenbergerdorff, gender: 2, isStudent: False, isWorker: True, age: 83, eyeSight: 4.900000, birthdate: 1990-11-27, registerTime: 2023-02-21 13:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,11,12,3,4,5,6,7], usedNames: [Ad,De,Hi,Kye,Orlan], courseScoresPerTerm: [[7],[10],[6,7]], grades: [77,64,100,54], height: 1.323000}
+
+-LOG SerialEqualTo
+-STATEMENT MATCH (a:person) WHERE a.ID = 4 RETURN a
+---- 1
+{_ID: 0:4, _LABEL: person, ID: 4, fName: Elizabeth, gender: 1, isStudent: False, isWorker: True, age: 20, eyeSight: 4.700000, birthdate: 1980-10-26, registerTime: 1976-12-23 11:21:42, lastJobDuration: 48:24:11, workedHours: [2], usedNames: [Ein], courseScoresPerTerm: [[6],[7],[8]], grades: [96,59,65,88], height: 1.463000}
+
+-LOG SerialSmallerThan
+-STATEMENT MATCH (a:person) WHERE a.ID < 4 RETURN a
+---- 4
+{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000}
+{_ID: 0:1, _LABEL: person, ID: 1, fName: Bob, gender: 2, isStudent: True, isWorker: False, age: 30, eyeSight: 5.100000, birthdate: 1900-01-01, registerTime: 2008-11-03 15:25:30.000526, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [12,8], usedNames: [Bobby], courseScoresPerTerm: [[8,9],[9,10]], grades: [98,42,93,88], height: 0.990000}
+{_ID: 0:2, _LABEL: person, ID: 2, fName: Carol, gender: 1, isStudent: False, isWorker: True, age: 45, eyeSight: 5.000000, birthdate: 1940-06-22, registerTime: 1911-08-20 02:32:21, lastJobDuration: 48:24:11, workedHours: [4,5], usedNames: [Carmen,Fred], courseScoresPerTerm: [[8,10]], grades: [91,75,21,95], height: 1.000000}
+{_ID: 0:3, _LABEL: person, ID: 3, fName: Dan, gender: 2, isStudent: False, isWorker: True, age: 20, eyeSight: 4.800000, birthdate: 1950-07-23, registerTime: 2031-11-30 12:25:30, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [1,9], usedNames: [Wolfeschlegelstein,Daniel], courseScoresPerTerm: [[7,4],[8,8],[9]], grades: [76,88,99,89], height: 1.300000}
+
+-LOG SerialSmallerThanOrEqualTo
+-STATEMENT MATCH (a:person) WHERE a.ID <= 4 RETURN a
+---- 5
+{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000}
+{_ID: 0:1, _LABEL: person, ID: 1, fName: Bob, gender: 2, isStudent: True, isWorker: False, age: 30, eyeSight: 5.100000, birthdate: 1900-01-01, registerTime: 2008-11-03 15:25:30.000526, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [12,8], usedNames: [Bobby], courseScoresPerTerm: [[8,9],[9,10]], grades: [98,42,93,88], height: 0.990000}
+{_ID: 0:2, _LABEL: person, ID: 2, fName: Carol, gender: 1, isStudent: False, isWorker: True, age: 45, eyeSight: 5.000000, birthdate: 1940-06-22, registerTime: 1911-08-20 02:32:21, lastJobDuration: 48:24:11, workedHours: [4,5], usedNames: [Carmen,Fred], courseScoresPerTerm: [[8,10]], grades: [91,75,21,95], height: 1.000000}
+{_ID: 0:3, _LABEL: person, ID: 3, fName: Dan, gender: 2, isStudent: False, isWorker: True, age: 20, eyeSight: 4.800000, birthdate: 1950-07-23, registerTime: 2031-11-30 12:25:30, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [1,9], usedNames: [Wolfeschlegelstein,Daniel], courseScoresPerTerm: [[7,4],[8,8],[9]], grades: [76,88,99,89], height: 1.300000}
+{_ID: 0:4, _LABEL: person, ID: 4, fName: Elizabeth, gender: 1, isStudent: False, isWorker: True, age: 20, eyeSight: 4.700000, birthdate: 1980-10-26, registerTime: 1976-12-23 11:21:42, lastJobDuration: 48:24:11, workedHours: [2], usedNames: [Ein], courseScoresPerTerm: [[6],[7],[8]], grades: [96,59,65,88], height: 1.463000}
+
+-LOG SerialWithFilter
+-STATEMENT MATCH (a:person {ID:1}) RETURN a
+---- 1
+{_ID: 0:1, _LABEL: person, ID: 1, fName: Bob, gender: 2, isStudent: True, isWorker: False, age: 30, eyeSight: 5.100000, birthdate: 1900-01-01, registerTime: 2008-11-03 15:25:30.000526, lastJobDuration: 10 years 5 months 13:00:00.000024, workedHours: [12,8], usedNames: [Bobby], courseScoresPerTerm: [[8,9],[9,10]], grades: [98,42,93,88], height: 0.990000}

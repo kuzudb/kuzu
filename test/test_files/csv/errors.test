@@ -1,0 +1,39 @@
+-GROUP CSV
+-DATASET CSV empty
+
+--
+
+-CASE Errors
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/escape-then-eof.csv" RETURN COUNT(*);
+---- error
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/escape-then-eof.csv on line 2: escape at end of file.
+
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/quote-then-eof.csv" RETURN COUNT(*);
+---- error
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/quote-then-eof.csv on line 2: unterminated quotes.
+
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/escape-then-bad-char.csv" RETURN COUNT(*);
+---- error
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/escape-then-bad-char.csv on line 2: neither QUOTE nor ESCAPE is proceeded by ESCAPE.
+
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/mixed-line-count-test.csv" RETURN COUNT(*);
+---- error
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/mixed-line-count-test.csv, on line 7: expected 1 values per row, but got more.
+
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/too-few-values.csv" RETURN COUNT(*);
+---- error
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/too-few-values.csv on line 2: expected 2 values per row, but got 1
+
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/too-many-values.csv" RETURN COUNT(*);
+---- error
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/too-many-values.csv, on line 2: expected 1 values per row, but got more.
+
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/union-no-conversion.csv" (HEADER=TRUE) RETURN *
+---- error
+Conversion exception: Could not convert to union type UNION(u:UINT8, s:INT8): a.
+
+# Test that errors in serial mode don't hang the database.
+# File is large so the window for the race is large enough.
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/csv-error-tests/large-conversion-failure.csv" (HEADER=TRUE, PARALLEL=FALSE) RETURN *
+---- error
+Conversion exception: Cast failed. a is not in INT64 range.

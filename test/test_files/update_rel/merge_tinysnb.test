@@ -1,0 +1,42 @@
+-GROUP TinySnbMergeRelTest
+-DATASET CSV tinysnb
+--
+
+-CASE Merge1
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 5 MATCH (a)-[r:knows]->(b) RETURN id(r), r.date
+---- 1
+3:2|2021-06-30
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 5 MERGE (a)-[r:knows]->(b) RETURN id(r), r.date
+---- 1
+3:2|2021-06-30
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 5 MERGE (a)-[r:knows {date: date('2022-02-02')}]->(b)
+---- ok
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 5 MATCH (a)-[r:knows]->(b) RETURN id(r), r.date
+---- 2
+3:14|2022-02-02
+3:2|2021-06-30
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 5 MERGE (a)-[r:knows {date: date('2022-02-02')}]->(b) ON MATCH SET r.date = date('2011-11-11')
+---- ok
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 5 MATCH (a)-[r:knows]->(b) RETURN id(r), r.date
+---- 2
+3:14|2011-11-11
+3:2|2021-06-30
+
+-CASE Merge2
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 7 MERGE (a)-[r:knows]->(b) ON CREATE SET a.age = 0, r.date = date('2011-12-12')
+---- ok
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 7 MATCH (a)-[r:knows]->(b) RETURN id(r), r.date, a.age
+---- 1
+3:14|2011-12-12|0
+
+-CASE Merge3
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 0 AND b.ID = 7  MERGE (a)-[r:knows {date:a.birthdate}]->(b) RETURN r;
+---- 1
+(0:0)-{_LABEL: knows, _ID: 0:14, date: 1900-01-01}->(0:4)
+
+-CASE MergeOneToOne
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 9 AND b.ID = 10 MERGE (a)-[r:marries]->(b) ON CREATE SET a.age = 0, r.note = 'merged ntoes'
+---- ok
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 9 AND b.ID = 10 MATCH (a)-[r:marries]->(b) RETURN r.note, a.age
+---- 1
+merged ntoes|0

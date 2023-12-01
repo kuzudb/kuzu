@@ -1,0 +1,143 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE FilterNode
+
+-LOG PersonNodesAgeFilteredTest1
+-STATEMENT MATCH (a:person) WHERE a.age <= 25 RETURN COUNT(*)
+---- 1
+3
+
+-LOG PersonNodesAgeFilteredTest2
+-STATEMENT MATCH (a:person) WHERE a.age < 25 RETURN COUNT(*)
+---- 1
+2
+
+-LOG PersonNodesAgeFilteredTest3
+-STATEMENT MATCH (a:person) WHERE a.age >= 25 RETURN COUNT(*)
+---- 1
+6
+
+-LOG PersonNodesAgeFilteredTest4
+-STATEMENT MATCH (a:person) WHERE a.age > 25 RETURN COUNT(*)
+---- 1
+5
+
+-LOG PersonNodesAgeFilteredTest5
+-STATEMENT MATCH (a:person {age:25}) RETURN COUNT(*)
+---- 1
+1
+
+-LOG PersonNodesAgeFilteredTest6
+-STATEMENT MATCH (a:person) WHERE a.age <> 25 RETURN COUNT(*)
+---- 1
+7
+
+-LOG PersonNodesAgeFilteredTest7
+-STATEMENT MATCH (a:person) WHERE a.age IS NULL RETURN COUNT(*)
+---- 1
+0
+
+-LOG PersonNodesAgeFilteredTest8
+-STATEMENT MATCH (a:person) WHERE a.age IS NOT NULL RETURN COUNT(*)
+---- 1
+8
+
+-LOG SingletonKnowsFilteredTest
+-STATEMENT MATCH (a:person) WHERE a.gender * 2.1 = 2.1 * a.gender RETURN COUNT(*)
+---- 1
+8
+
+-LOG PersonNodesIsStudentFilteredTest
+-STATEMENT MATCH (a:person) WHERE a.isStudent RETURN COUNT(*)
+---- 1
+3
+
+-LOG PersonNodesIsWorkerFilteredTest
+-STATEMENT MATCH (a:person {isWorker:true}) RETURN COUNT(*)
+---- 1
+4
+
+-LOG PersonNodesIsWorkerFilteredTest1
+-STATEMENT MATCH (a:person) WHERE a.isWorker AND a.isStudent RETURN COUNT(*)
+---- 1
+0
+
+-LOG PersonNodesIsWorkerFilteredTest2
+-STATEMENT MATCH (a:person) WHERE a.isWorker OR a.isStudent RETURN COUNT(*)
+---- 1
+7
+
+-LOG PersonNodesIsWorkerFilteredTest3
+-STATEMENT MATCH (a:person) WHERE a.isWorker XOR a.isStudent RETURN COUNT(*)
+---- 1
+7
+
+-LOG PersonNodesIsWorkerFilteredTest4
+-STATEMENT MATCH (a:person) WHERE NOT a.isWorker RETURN COUNT(*)
+---- 1
+4
+
+-LOG OrganisationNodesMarkFilteredTest
+-STATEMENT MATCH (a:organisation) WHERE a.mark >= 3.7 RETURN COUNT(*)
+---- 1
+3
+
+-LOG PersonNodesGenderFilteredTest1
+-STATEMENT MATCH (a:person) WHERE (a.gender/2 <= 0.5) RETURN COUNT(*)
+---- 1
+3
+
+-LOG PersonNodesGenderFilteredTest2
+-STATEMENT MATCH (a:person) WHERE (a.gender*3.5 = 7.0) RETURN COUNT(*)
+---- 1
+5
+
+-LOG PersonNodesFNameFilteredTest1
+-STATEMENT MATCH (a:person) WHERE a.fName = 'Farooq' RETURN COUNT(*)
+---- 1
+1
+
+-LOG PersonNodesFNameFilteredTest2
+-STATEMENT MATCH (a:person) WHERE a.fName <> 'Farooq' RETURN COUNT(*)
+---- 1
+7
+
+-LOG PersonNodesFNameFilteredTest3
+-STATEMENT MATCH (a:person) WHERE a.fName < 'Carom' RETURN COUNT(*)
+---- 1
+3
+
+-LOG PersonNodesFNameFilteredTest4
+-STATEMENT MATCH (a:person) WHERE a.fName >= 'Eliz' RETURN COUNT(*)
+---- 1
+4
+
+-LOG FilterNullTest1
+-STATEMENT MATCH (a:person) WHERE a.age <= null RETURN COUNT(*)
+---- 1
+0
+
+-LOG FilterNullTest2
+-STATEMENT MATCH (a:person) WHERE a.age + null <= 200 RETURN COUNT(*)
+---- 1
+0
+
+-LOG FilterNullTest3
+-STATEMENT MATCH (a:person) WHERE a.isStudent OR null RETURN COUNT(*)
+---- 1
+3
+
+#-LOG nodeCrossProduct
+#-STATEMENT MATCH (a:person), (b:person {ID:a.ID}) WHERE a.ID < 4 RETURN COUNT(*)
+#-ENUMERATE
+#---- 1
+#3
+
+#-LOG nodeCrossProduct
+#-STATEMENT MATCH (a:person {ID:1000}), (b:person) RETURN COUNT(*)
+#-ENUMERATE
+#---- 1
+#0

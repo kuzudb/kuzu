@@ -1,0 +1,28 @@
+{
+  "name": "kuzu",
+  "version": "0.0.1",
+  "description": "An in-process property graph database management system built for query speed and scalability.",
+  "main": "index.js",
+  "homepage": "https://kuzudb.com/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kuzudb/kuzu.git"
+  },
+  "scripts": {
+    "test": "mocha test",
+    "clean": "node clean.js",
+    "clean-all": "node clean.js all",
+    "build": "node build.js"
+  },
+  "author": "Kùzu Team",
+  "license": "MIT",
+  "devDependencies": {
+    "chai": "^4.3.7",
+    "mocha": "^10.2.0",
+    "tmp": "^0.2.1"
+  },
+  "dependencies": {
+    "cmake-js": "^7.1.1",
+    "node-addon-api": "^6.0.0"
+  }
+}

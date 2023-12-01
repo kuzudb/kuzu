@@ -1,0 +1,16 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE MatchNode
+
+-LOG node1
+-STATEMENT MATCH (a:person /* returns all person */) RETURN COUNT(*)
+---- 1
+8
+
+-LOG node2
+-STATEMENT MATCH (a:organisation) RETURN COUNT(*) /*Returns the total number of nodes in organisation*/
+---- 1
+3

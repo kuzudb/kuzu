@@ -1,0 +1,76 @@
+name: Build-Mac-NodeJS-Module
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build-mac-nodejs-arm64:
+    runs-on: self-hosted-mac-arm
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Create Node.js source distribution
+        working-directory: tools/nodejs_api
+        run: |
+          rm -rf kuzu-source.tar.gz package *.node
+          node package
+
+      - name: Extract tarball
+        working-directory: tools/nodejs_api
+        run: tar -xvzf kuzu-source.tar.gz
+
+      - name: Build Node.js native module for Apple Silicon
+        working-directory: tools/nodejs_api/package
+        run: npm i
+        env:
+          MACOSX_DEPLOYMENT_TARGET: 11.0
+          ARCHFLAGS: "-arch arm64"
+
+      - name: Move Node.js native module
+        working-directory: tools/nodejs_api/
+        run: mv package/kuzujs.node kuzujs-darwin-arm64.node
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: mac-nodejs-module-arm64
+          path: tools/nodejs_api/kuzujs-darwin-*.node
+
+      - name: Clean up
+        working-directory: tools/nodejs_api/
+        run: rm -rf package
+
+  build-mac-nodejs-x86_64:
+    runs-on: self-hosted-mac-x64
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Create Node.js source distribution
+        working-directory: tools/nodejs_api
+        run: |
+          rm -rf kuzu-source.tar.gz package *.node
+          node package
+
+      - name: Extract tarball
+        working-directory: tools/nodejs_api
+        run: tar -xvzf kuzu-source.tar.gz
+
+      - name: Build Node.js native module for Intel
+        working-directory: tools/nodejs_api/package
+        run: npm i
+        env:
+          MACOSX_DEPLOYMENT_TARGET: 10.15
+          ARCHFLAGS: "-arch x86_64"
+
+      - name: Move Node.js native module
+        working-directory: tools/nodejs_api/
+        run: mv package/kuzujs.node kuzujs-darwin-x64.node
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: mac-nodejs-module-x86_64
+          path: tools/nodejs_api/kuzujs-darwin-*.node
+
+      - name: Clean up
+        working-directory: tools/nodejs_api/
+        run: rm -rf package

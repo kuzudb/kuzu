@@ -1,0 +1,18 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb-serial
+
+--
+
+-CASE OrderBySerial
+
+-LOG OrderBySerial
+-STATEMENT MATCH (p:person) RETURN p.ID ORDER BY p.ID DESC
+---- 8
+7
+6
+5
+4
+3
+2
+1
+0

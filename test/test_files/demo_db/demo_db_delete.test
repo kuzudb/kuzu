@@ -1,0 +1,47 @@
+-GROUP DemoDBDeleteTest
+-DATASET CSV demo-db/csv
+
+--
+
+-CASE DeleteNodeTest
+-STATEMENT CREATE (u:User {name: 'Alice', age: 35})
+---- ok
+-STATEMENT MATCH (u:User) RETURN COUNT(*)
+---- 1
+5
+-STATEMENT MATCH (u:User) WHERE u.name = 'Alice' DELETE u RETURN u.*;
+---- 1
+Alice|35
+-STATEMENT MATCH (u:User) RETURN COUNT(*)
+---- 1
+4
+
+-CASE DeleteRelTest
+-STATEMENT MATCH (u:User)-[f:Follows]->(u1:User) WHERE u.name = 'Adam' AND u1.name = 'Karissa' DELETE f RETURN f.*;
+---- 1
+2020
+-STATEMENT MATCH (u:User)-[f:Follows]->(u1:User) WHERE u.name='Adam' RETURN u1.name
+---- 1
+Zhang
+
+-CASE DetachDelete
+-STATEMENT MATCH ()-[]->() RETURN COUNT(*)
+---- 1
+8
+-STATEMENT MATCH (u:User) WHERE u.name = 'Adam' DETACH DELETE u RETURN u;
+---- 1
+{_ID: 0:0, _LABEL: User, name: Adam, age: 30}
+-STATEMENT MATCH ()-[]->() RETURN COUNT(*)
+---- 1
+5
+
+-CASE DeleteAllTest
+-STATEMENT MATCH (u:User) DETACH DELETE u RETURN u.*;
+---- 4
+Adam|30
+Karissa|40
+Noura|25
+Zhang|50
+-STATEMENT MATCH ()-[]->() RETURN COUNT(*)
+---- 1
+0

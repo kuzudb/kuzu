@@ -1,0 +1,34 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE MatchThreeHop
+
+-LOG ThreeHopTwoKnowsOneWorkAtTest
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:workAt]->(d:organisation) RETURN COUNT(*)
+---- 1
+18
+
+-LOG OpenWedgeKnowsTest3
+-STATEMENT MATCH (b:person)<-[e1:knows]-(a:person)-[e2:knows]->(c:person),(a)-[e3:knows]->(d:person) RETURN COUNT(*)
+---- 1
+116
+
+-LOG ThreeHopKnowsTest
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+108
+
+-LOG ThreeHopTwoKnowsOneStudyAtTest
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:studyAt]->(d:organisation) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+18
+
+-LOG OpenWedgeKnowsTest4
+-STATEMENT MATCH (b:person)-[e1:knows]->(a:person)<-[e2:knows]-(c:person),(a)<-[e3:knows]-(d:person) RETURN COUNT(*)
+-ENUMERATE
+---- 1
+110

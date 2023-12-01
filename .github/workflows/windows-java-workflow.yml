@@ -1,0 +1,22 @@
+name: Build-Windows-Java-Lib
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build-windows-java:
+    runs-on: self-hosted-windows
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build Java lib for Windows
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          make java LTO=1 NUM_THREADS=48
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: java-lib-win-x86_64
+          path: tools/java_api/build/libkuzu_java_native*
