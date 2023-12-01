@@ -1,0 +1,314 @@
+<http://www.bbc.co.uk/things/2#id> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.bbc.co.uk/ontologies/creativework/BlogPost> <http://www.bbc.co.uk/context/2#id> .
+<http://www.bbc.co.uk/things/2#id> <http://www.bbc.co.uk/ontologies/creativework/title> "Erv Dusak interstates insidious lodes winsome seeming diplomat colorless drably ammunition mediated." <http://www.bbc.co.uk/context/2#id> .
+<http://www.bbc.co.uk/things/2#id> <http://www.bbc.co.uk/ontologies/creativework/shortTitle> "tragedy deficiency knocks shaykhs wailing blond crematoriums chlorinate firebug gated." <http://www.bbc.co.uk/context/2#id> .
+<http://www.bbc.co.uk/things/2#id> <http://www.bbc.co.uk/ontologies/creativework/category> <http://www.bbc.co.uk/category/Persons> <http://www.bbc.co.uk/context/2#id> .
+<http://www.bbc.co.uk/things/2#id> <http://www.bbc.co.uk/ontologies/creativework/description> "evidences rough tripod emblazons meetinghouses inextinguishable expressionless trudging regionalisms crossbones." <http://www.bbc.co.uk/context/2#id> .
+<http://www.bbc.co.uk/things/2#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Erv_Dusak> <http://www.bbc.co.uk/context/2#id> .
+<http://www.bbc.co.uk/things/2#id> <http://www.bbc.co.uk/ontologies/creativework/mentions> <http://sws.geonames.org/3170301/> <http://www.bbc.co.uk/context/2#id> .
+<http://www.bbc.co.uk/things/2#id> <http://www.bbc.co.uk/ontologies/creativework/audience> <http://www.bbc.co.uk/ontologies/creativework/InternationalAudience> <http://www.bbc.co.uk/context/2#id> .
+<http://www.bbc.co.uk/things/2#id> <http://www.bbc.co.uk/ontologies/creativework/liveCoverage> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> <http://www.bbc.co.uk/context/2#id> .
+<http://www.bbc.co.uk/things/2#id> <http://www.bbc.co.uk/ontologies/creativework/primaryFormat> <http://www.bbc.co.uk/ontologies/creativework/TextualFormat> <http://www.bbc.co.uk/context/2#id> .
+<http://www.bbc.co.uk/things/2#id> <http://www.bbc.co.uk/ontologies/creativework/dateCreated> "2011-11-02T13:37:06.641+08:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> <http://www.bbc.co.uk/context/2#id> .
+<http://www.bbc.co.uk/things/2#id> <http://www.bbc.co.uk/ontologies/creativework/dateModified> "2012-08-07T04:51:56.865+08:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> <http://www.bbc.co.uk/context/2#id> .
+<http://www.bbc.co.uk/things/2#id> <http://www.bbc.co.uk/ontologies/creativework/thumbnail> <http://www.bbc.co.uk/thumbnail/1385753324> <http://www.bbc.co.uk/context/2#id> .
+<http://www.bbc.co.uk/things/2#id> <http://www.bbc.co.uk/ontologies/creativework/altText> "thumbnail atlText for CW http://www.bbc.co.uk/context/2#id" <http://www.bbc.co.uk/context/2#id> .
+<http://www.bbc.co.uk/things/2#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/3#id> <http://www.bbc.co.uk/context/2#id> .
+<http://www.bbc.co.uk/document/3#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/HighWeb> <http://www.bbc.co.uk/context/2#id> .
+<http://www.bbc.co.uk/things/2#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/4#id> <http://www.bbc.co.uk/context/2#id> .
+<http://www.bbc.co.uk/document/4#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/HighWeb> <http://www.bbc.co.uk/context/2#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.bbc.co.uk/ontologies/creativework/NewsItem> <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.bbc.co.uk/ontologies/creativework/title> "Johann Bernhard Von Rechberg Und Rothenlowen phonier counselings brimstone prefacing hoopla concessionaire bleeping encoring nimbi extinct." <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.bbc.co.uk/ontologies/creativework/shortTitle> "glutting expressionist coverts toddy upped crouch fenced promenading pillories cappuccino." <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.bbc.co.uk/ontologies/creativework/category> <http://www.bbc.co.uk/category/Persons> <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.bbc.co.uk/ontologies/creativework/description> "allotted funereal expended pesticide deckhand appoints inters dysfunctions insurance yoked catalogued trombones retypes tromping conquer tweets filaments swish's parlaying ninepin clitorises bills earnests." <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Count_Johann_Bernhard_von_Rechberg_und_Rothenl\u00F6wen> <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Humberto_Ortega> <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Marie_Jahoda> <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Edward_Curr> <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Oscar_Reed> <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Pablo_Picasso> <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Petar_Vankov> <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Mikhail_Ostrogradsky> <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Daniel_Oduber_Quir\u00F3s> <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Paul_Richard> <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.bbc.co.uk/ontologies/creativework/mentions> <http://sws.geonames.org/2972271/> <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.bbc.co.uk/ontologies/creativework/audience> <http://www.bbc.co.uk/ontologies/creativework/NationalAudience> <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.bbc.co.uk/ontologies/creativework/liveCoverage> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.bbc.co.uk/ontologies/creativework/primaryFormat> <http://www.bbc.co.uk/ontologies/creativework/TextualFormat> <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.bbc.co.uk/ontologies/creativework/primaryFormat> <http://www.bbc.co.uk/ontologies/creativework/InteractiveFormat> <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.bbc.co.uk/ontologies/creativework/dateCreated> "2011-08-02T19:40:54.627+08:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.bbc.co.uk/ontologies/creativework/dateModified> "2011-10-01T11:08:40.652+08:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.bbc.co.uk/ontologies/creativework/thumbnail> <http://www.bbc.co.uk/thumbnail/38982769> <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.bbc.co.uk/ontologies/creativework/altText> "thumbnail atlText for CW http://www.bbc.co.uk/context/5#id" <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/12#id> <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/document/12#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/Mobile> <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/13#id> <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/document/13#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/HighWeb> <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/5#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/14#id> <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/document/14#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/HighWeb> <http://www.bbc.co.uk/context/5#id> .
+<http://www.bbc.co.uk/things/7#id> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.bbc.co.uk/ontologies/creativework/BlogPost> <http://www.bbc.co.uk/context/7#id> .
+<http://www.bbc.co.uk/things/7#id> <http://www.bbc.co.uk/ontologies/creativework/title> "Avantgarde Music amazes allergists shadowbox equinoxes automobile chortle mothball crutches sparseness snuggest." <http://www.bbc.co.uk/context/7#id> .
+<http://www.bbc.co.uk/things/7#id> <http://www.bbc.co.uk/ontologies/creativework/shortTitle> "eons milquetoast embezzled sheers shrubbiest mists writhing irradiates eroded lush." <http://www.bbc.co.uk/context/7#id> .
+<http://www.bbc.co.uk/things/7#id> <http://www.bbc.co.uk/ontologies/creativework/category> <http://www.bbc.co.uk/category/Company> <http://www.bbc.co.uk/context/7#id> .
+<http://www.bbc.co.uk/things/7#id> <http://www.bbc.co.uk/ontologies/creativework/description> "inflammatory transitioned hub douche materialistic chilli daughters waterfowls alphas avenging cornflowers grizzled practices mu vanes descending shambles pompoms apostates stare overpopulation cosponsored." <http://www.bbc.co.uk/context/7#id> .
+<http://www.bbc.co.uk/things/7#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Avantgarde_Music> <http://www.bbc.co.uk/context/7#id> .
+<http://www.bbc.co.uk/things/7#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Mary_Rice_(wheelchair_racer)> <http://www.bbc.co.uk/context/7#id> .
+<http://www.bbc.co.uk/things/7#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Scott_leckie> <http://www.bbc.co.uk/context/7#id> .
+<http://www.bbc.co.uk/things/7#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Fran\u00E7oise_Robin> <http://www.bbc.co.uk/context/7#id> .
+<http://www.bbc.co.uk/things/7#id> <http://www.bbc.co.uk/ontologies/creativework/mentions> <http://sws.geonames.org/2658699/> <http://www.bbc.co.uk/context/7#id> .
+<http://www.bbc.co.uk/things/7#id> <http://www.bbc.co.uk/ontologies/creativework/audience> <http://www.bbc.co.uk/ontologies/creativework/InternationalAudience> <http://www.bbc.co.uk/context/7#id> .
+<http://www.bbc.co.uk/things/7#id> <http://www.bbc.co.uk/ontologies/creativework/liveCoverage> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> <http://www.bbc.co.uk/context/7#id> .
+<http://www.bbc.co.uk/things/7#id> <http://www.bbc.co.uk/ontologies/creativework/primaryFormat> <http://www.bbc.co.uk/ontologies/creativework/TextualFormat> <http://www.bbc.co.uk/context/7#id> .
+<http://www.bbc.co.uk/things/7#id> <http://www.bbc.co.uk/ontologies/creativework/dateCreated> "2011-10-28T14:37:40.581+08:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> <http://www.bbc.co.uk/context/7#id> .
+<http://www.bbc.co.uk/things/7#id> <http://www.bbc.co.uk/ontologies/creativework/dateModified> "2012-11-28T18:04:42.933+08:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> <http://www.bbc.co.uk/context/7#id> .
+<http://www.bbc.co.uk/things/7#id> <http://www.bbc.co.uk/ontologies/creativework/thumbnail> <http://www.bbc.co.uk/thumbnail/718048728> <http://www.bbc.co.uk/context/7#id> .
+<http://www.bbc.co.uk/things/7#id> <http://www.bbc.co.uk/ontologies/creativework/altText> "thumbnail atlText for CW http://www.bbc.co.uk/context/7#id" <http://www.bbc.co.uk/context/7#id> .
+<http://www.bbc.co.uk/things/7#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/18#id> <http://www.bbc.co.uk/context/7#id> .
+<http://www.bbc.co.uk/document/18#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/Mobile> <http://www.bbc.co.uk/context/7#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.bbc.co.uk/ontologies/creativework/Programme> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.bbc.co.uk/ontologies/creativework/title> "Aldo Dolcetti salutary depot eradication policy exalting twaddled traversed synchronise insurrectionist fiddly." <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.bbc.co.uk/ontologies/creativework/shortTitle> "poppas matzo instructively hydrotherapy utilisation tow stratified uncultivated modernity catchy." <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.bbc.co.uk/ontologies/creativework/category> <http://www.bbc.co.uk/category/Persons> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.bbc.co.uk/ontologies/creativework/description> "basted whatchamacallit ninepin expounding creepy sunder warmly keeling." <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Aldo_Dolcetti> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Yitzhak_Ben-Aharon> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Dave_Yost> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Cyril_Blacklock> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Julie_Smith_(athlete)> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Lee_Pelekoudas> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Jim_Murray_(sportswriter)> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Richard_Johnson_(16th_century)> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/G\u00FCnter_Verheugen> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Peter_D._Mitchell> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.bbc.co.uk/ontologies/creativework/mentions> <http://sws.geonames.org/3293273/> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.bbc.co.uk/ontologies/creativework/audience> <http://www.bbc.co.uk/ontologies/creativework/InternationalAudience> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.bbc.co.uk/ontologies/creativework/liveCoverage> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.bbc.co.uk/ontologies/creativework/primaryFormat> <http://www.bbc.co.uk/ontologies/creativework/AudioFormat> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.bbc.co.uk/ontologies/creativework/dateCreated> "2011-07-31T23:25:09.566+08:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.bbc.co.uk/ontologies/creativework/dateModified> "2011-09-12T20:49:40.544+08:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.bbc.co.uk/ontologies/creativework/thumbnail> <http://www.bbc.co.uk/thumbnail/128158532> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.bbc.co.uk/ontologies/creativework/altText> "thumbnail atlText for CW http://www.bbc.co.uk/context/10#id" <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/26#id> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/document/26#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/HighWeb> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/27#id> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/document/27#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/Mobile> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/28#id> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/document/28#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/Mobile> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/10#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/29#id> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/document/29#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/HighWeb> <http://www.bbc.co.uk/context/10#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.bbc.co.uk/ontologies/creativework/Programme> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/title> "Barbara Cupisti doting intimation politeness stamp pulchritude unfeasible retreats dance minima gingerly." <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/shortTitle> "relational airbrushes rooms orchid enfolding presumably undemanding weakly vowel microfiches." <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/category> <http://www.bbc.co.uk/category/Persons> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/description> "committed nonempty chartered stringers lineups circumstances rearward inquiringly petting." <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Barbara_Cupisti> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Frank_Henry_Kerrigan> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Peter_Stallard> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/2003_Canada_Masters_and_the_Rogers_AT&T_Cup> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Roy_Coyle> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/James_Patrick_O'Leary> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/John_Duren> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Alonso_Enr\u00EDquez_(1354\u20131429)> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Emil_Lindenfeld> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Stephen_Allen_Benson> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/mentions> <http://sws.geonames.org/790162/> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/mentions> <http://dbpedia.org/resource/Bavon_Tshibuabua> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/mentions> <http://dbpedia.org/resource/Ramesh_Wanjale> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/mentions> <http://dbpedia.org/resource/John_Hale_(Beverly_minister)> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/mentions> <http://dbpedia.org/resource/Donald_Vance> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/mentions> <http://dbpedia.org/resource/Manuel_Bara\u00F1ao> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/mentions> <http://dbpedia.org/resource/Chris_Giannou> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/mentions> <http://dbpedia.org/resource/Glenn_Close> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/mentions> <http://dbpedia.org/resource/Andriy_Yakovenko> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/mentions> <http://dbpedia.org/resource/Orawankara_Neelakandhan_Namboodiri> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/audience> <http://www.bbc.co.uk/ontologies/creativework/InternationalAudience> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/liveCoverage> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/primaryFormat> <http://www.bbc.co.uk/ontologies/creativework/VideoFormat> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/dateCreated> "2011-02-07T18:18:39.482+08:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/dateModified> "2011-11-05T14:18:04.661+08:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/thumbnail> <http://www.bbc.co.uk/thumbnail/1312142508> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/creativework/altText> "thumbnail atlText for CW http://www.bbc.co.uk/context/12#id" <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/34#id> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/document/34#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/Mobile> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/12#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/35#id> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/document/35#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/HighWeb> <http://www.bbc.co.uk/context/12#id> .
+<http://www.bbc.co.uk/things/15#id> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.bbc.co.uk/ontologies/creativework/NewsItem> <http://www.bbc.co.uk/context/15#id> .
+<http://www.bbc.co.uk/things/15#id> <http://www.bbc.co.uk/ontologies/creativework/title> "Coles Online helpful uphills ripped monarch improvable photojournalism balsa seaboard environs crags." <http://www.bbc.co.uk/context/15#id> .
+<http://www.bbc.co.uk/things/15#id> <http://www.bbc.co.uk/ontologies/creativework/shortTitle> "clamor thickets trellises tasks moodily expeditiously reconciled heritages fidgeting integuments." <http://www.bbc.co.uk/context/15#id> .
+<http://www.bbc.co.uk/things/15#id> <http://www.bbc.co.uk/ontologies/creativework/category> <http://www.bbc.co.uk/category/Company> <http://www.bbc.co.uk/context/15#id> .
+<http://www.bbc.co.uk/things/15#id> <http://www.bbc.co.uk/ontologies/creativework/description> "jiggle raunchiest heated mooches integrals vitalises fresco dreamed anorexia obscurity straightness hotbeds mortar continuing sidewalk doodle auburn chancels executable fluorescing swashbuckling mystique vanes refers exactly." <http://www.bbc.co.uk/context/15#id> .
+<http://www.bbc.co.uk/things/15#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Coles_Online> <http://www.bbc.co.uk/context/15#id> .
+<http://www.bbc.co.uk/things/15#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/John_Hock> <http://www.bbc.co.uk/context/15#id> .
+<http://www.bbc.co.uk/things/15#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Wolfgang_Schirmacher> <http://www.bbc.co.uk/context/15#id> .
+<http://www.bbc.co.uk/things/15#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Angelos_Evert> <http://www.bbc.co.uk/context/15#id> .
+<http://www.bbc.co.uk/things/15#id> <http://www.bbc.co.uk/ontologies/creativework/mentions> <http://sws.geonames.org/3115133/> <http://www.bbc.co.uk/context/15#id> .
+<http://www.bbc.co.uk/things/15#id> <http://www.bbc.co.uk/ontologies/creativework/mentions> <http://dbpedia.org/resource/Michael_Heller_(law_professor)> <http://www.bbc.co.uk/context/15#id> .
+<http://www.bbc.co.uk/things/15#id> <http://www.bbc.co.uk/ontologies/creativework/mentions> <http://dbpedia.org/resource/Sonali_Khare> <http://www.bbc.co.uk/context/15#id> .
+<http://www.bbc.co.uk/things/15#id> <http://www.bbc.co.uk/ontologies/creativework/mentions> <http://dbpedia.org/resource/Ahmed_Ould_Daddah> <http://www.bbc.co.uk/context/15#id> .
+<http://www.bbc.co.uk/things/15#id> <http://www.bbc.co.uk/ontologies/creativework/audience> <http://www.bbc.co.uk/ontologies/creativework/NationalAudience> <http://www.bbc.co.uk/context/15#id> .
+<http://www.bbc.co.uk/things/15#id> <http://www.bbc.co.uk/ontologies/creativework/liveCoverage> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> <http://www.bbc.co.uk/context/15#id> .
+<http://www.bbc.co.uk/things/15#id> <http://www.bbc.co.uk/ontologies/creativework/primaryFormat> <http://www.bbc.co.uk/ontologies/creativework/TextualFormat> <http://www.bbc.co.uk/context/15#id> .
+<http://www.bbc.co.uk/things/15#id> <http://www.bbc.co.uk/ontologies/creativework/primaryFormat> <http://www.bbc.co.uk/ontologies/creativework/InteractiveFormat> <http://www.bbc.co.uk/context/15#id> .
+<http://www.bbc.co.uk/things/15#id> <http://www.bbc.co.uk/ontologies/creativework/dateCreated> "2011-06-19T18:56:21.499+08:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> <http://www.bbc.co.uk/context/15#id> .
+<http://www.bbc.co.uk/things/15#id> <http://www.bbc.co.uk/ontologies/creativework/dateModified> "2011-10-06T07:40:21.143+08:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> <http://www.bbc.co.uk/context/15#id> .
+<http://www.bbc.co.uk/things/15#id> <http://www.bbc.co.uk/ontologies/creativework/thumbnail> <http://www.bbc.co.uk/thumbnail/756672194> <http://www.bbc.co.uk/context/15#id> .
+<http://www.bbc.co.uk/things/15#id> <http://www.bbc.co.uk/ontologies/creativework/altText> "thumbnail atlText for CW http://www.bbc.co.uk/context/15#id" <http://www.bbc.co.uk/context/15#id> .
+<http://www.bbc.co.uk/things/15#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/40#id> <http://www.bbc.co.uk/context/15#id> .
+<http://www.bbc.co.uk/document/40#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/HighWeb> <http://www.bbc.co.uk/context/15#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.bbc.co.uk/ontologies/creativework/Programme> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/creativework/title> "James Collier encountered besotted lancet pronounce retrofitted suggestions tangibles pacifiers sunroof exigencies." <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/creativework/shortTitle> "chatterbox squaws hostess gouger adds boarding pew functional hedonists demolition." <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/creativework/category> <http://www.bbc.co.uk/category/Persons> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/creativework/description> "blissful parting butterier marquise utilitarian sirens deathblow seismologist intrusts defied memoranda crookeder." <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/James_Collier> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Henry_David_Abraham> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Josef_Fischer_(cyclist)> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Carlos_E._Vela> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Juan_Manuel_Cafferata> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Royler_Gracie> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Luu_Quang_Minh> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Isaac_Ouwater> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/H\u00E9ctor_Marc\u00F3> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/William_Shelford> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Qu_Ding> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Bobby_William_Austin> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/United_States_presidential_election_in_New_Jersey,_1996> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/creativework/mentions> <http://sws.geonames.org/2940518/> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/creativework/audience> <http://www.bbc.co.uk/ontologies/creativework/InternationalAudience> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/creativework/liveCoverage> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/creativework/primaryFormat> <http://www.bbc.co.uk/ontologies/creativework/AudioFormat> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/creativework/dateCreated> "2011-09-23T00:12:50.791+08:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/creativework/dateModified> "2012-07-23T18:06:42.882+08:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/creativework/thumbnail> <http://www.bbc.co.uk/thumbnail/1337201560> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/creativework/altText> "thumbnail atlText for CW http://www.bbc.co.uk/context/22#id" <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/59#id> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/document/59#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/HighWeb> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/60#id> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/document/60#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/HighWeb> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/22#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/61#id> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/document/61#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/Mobile> <http://www.bbc.co.uk/context/22#id> .
+<http://www.bbc.co.uk/things/24#id> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.bbc.co.uk/ontologies/creativework/NewsItem> <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/things/24#id> <http://www.bbc.co.uk/ontologies/creativework/title> "Frances Cleveland Axtell unselfishly videotaping soap organisms limousines islands resurgences conspiracy k keys." <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/things/24#id> <http://www.bbc.co.uk/ontologies/creativework/shortTitle> "stratospheres radio shuttlecocking baptising submissive freedom campsite radioisotopes auxiliary subscript." <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/things/24#id> <http://www.bbc.co.uk/ontologies/creativework/category> <http://www.bbc.co.uk/category/Persons> <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/things/24#id> <http://www.bbc.co.uk/ontologies/creativework/description> "copeck sweetener menses blithe dis forestry crease confining rectify travestied corrupts burble clumsy outgrowths jettisoning foreshadowing planets admiring complacent parries allow bumps." <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/things/24#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Frances_Cleveland_Axtell> <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/things/24#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Paula_Serrano> <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/things/24#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Lord_Edward_Cecil> <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/things/24#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Graham_Dene> <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/things/24#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Valeri_Basiyev> <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/things/24#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/2013\u201314_EHF_Cup> <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/things/24#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Christoph_Scheiner> <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/things/24#id> <http://www.bbc.co.uk/ontologies/creativework/mentions> <http://sws.geonames.org/758292/> <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/things/24#id> <http://www.bbc.co.uk/ontologies/creativework/audience> <http://www.bbc.co.uk/ontologies/creativework/NationalAudience> <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/things/24#id> <http://www.bbc.co.uk/ontologies/creativework/liveCoverage> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/things/24#id> <http://www.bbc.co.uk/ontologies/creativework/primaryFormat> <http://www.bbc.co.uk/ontologies/creativework/TextualFormat> <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/things/24#id> <http://www.bbc.co.uk/ontologies/creativework/primaryFormat> <http://www.bbc.co.uk/ontologies/creativework/InteractiveFormat> <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/things/24#id> <http://www.bbc.co.uk/ontologies/creativework/dateCreated> "2011-11-21T07:33:45.677+08:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/things/24#id> <http://www.bbc.co.uk/ontologies/creativework/dateModified> "2012-11-17T05:14:23.297+08:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/things/24#id> <http://www.bbc.co.uk/ontologies/creativework/thumbnail> <http://www.bbc.co.uk/thumbnail/1209094472> <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/things/24#id> <http://www.bbc.co.uk/ontologies/creativework/altText> "thumbnail atlText for CW http://www.bbc.co.uk/context/24#id" <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/things/24#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/65#id> <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/document/65#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/HighWeb> <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/things/24#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/66#id> <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/document/66#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/Mobile> <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/things/24#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/67#id> <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/document/67#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/Mobile> <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/things/24#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/68#id> <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/document/68#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/HighWeb> <http://www.bbc.co.uk/context/24#id> .
+<http://www.bbc.co.uk/things/27#id> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.bbc.co.uk/ontologies/creativework/Programme> <http://www.bbc.co.uk/context/27#id> .
+<http://www.bbc.co.uk/things/27#id> <http://www.bbc.co.uk/ontologies/creativework/title> "Ian Eskelin oversexed helmsman horizons debriefings cloudy transitted thickeners disenfranchising westward moodily." <http://www.bbc.co.uk/context/27#id> .
+<http://www.bbc.co.uk/things/27#id> <http://www.bbc.co.uk/ontologies/creativework/shortTitle> "motherland bleakest cession bookstores hovels entertained include bulb fountainheads peerage." <http://www.bbc.co.uk/context/27#id> .
+<http://www.bbc.co.uk/things/27#id> <http://www.bbc.co.uk/ontologies/creativework/category> <http://www.bbc.co.uk/category/Persons> <http://www.bbc.co.uk/context/27#id> .
+<http://www.bbc.co.uk/things/27#id> <http://www.bbc.co.uk/ontologies/creativework/description> "rewording shelving fault usually repatriates lube ambidextrously droll regalia pointillism feverish vibrations paragraphing chickweed stodgiest nonconformists coherent finest excoriations knitter." <http://www.bbc.co.uk/context/27#id> .
+<http://www.bbc.co.uk/things/27#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Ian_Eskelin> <http://www.bbc.co.uk/context/27#id> .
+<http://www.bbc.co.uk/things/27#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Malcom_Floyd> <http://www.bbc.co.uk/context/27#id> .
+<http://www.bbc.co.uk/things/27#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Xen_Balaskas> <http://www.bbc.co.uk/context/27#id> .
+<http://www.bbc.co.uk/things/27#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Max_R\u00FCegg> <http://www.bbc.co.uk/context/27#id> .
+<http://www.bbc.co.uk/things/27#id> <http://www.bbc.co.uk/ontologies/creativework/mentions> <http://sws.geonames.org/2838937/> <http://www.bbc.co.uk/context/27#id> .
+<http://www.bbc.co.uk/things/27#id> <http://www.bbc.co.uk/ontologies/creativework/audience> <http://www.bbc.co.uk/ontologies/creativework/InternationalAudience> <http://www.bbc.co.uk/context/27#id> .
+<http://www.bbc.co.uk/things/27#id> <http://www.bbc.co.uk/ontologies/creativework/liveCoverage> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> <http://www.bbc.co.uk/context/27#id> .
+<http://www.bbc.co.uk/things/27#id> <http://www.bbc.co.uk/ontologies/creativework/primaryFormat> <http://www.bbc.co.uk/ontologies/creativework/AudioFormat> <http://www.bbc.co.uk/context/27#id> .
+<http://www.bbc.co.uk/things/27#id> <http://www.bbc.co.uk/ontologies/creativework/dateCreated> "2011-06-13T11:02:39.528+08:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> <http://www.bbc.co.uk/context/27#id> .
+<http://www.bbc.co.uk/things/27#id> <http://www.bbc.co.uk/ontologies/creativework/dateModified> "2011-07-05T12:11:57.080+08:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> <http://www.bbc.co.uk/context/27#id> .
+<http://www.bbc.co.uk/things/27#id> <http://www.bbc.co.uk/ontologies/creativework/thumbnail> <http://www.bbc.co.uk/thumbnail/102038783> <http://www.bbc.co.uk/context/27#id> .
+<http://www.bbc.co.uk/things/27#id> <http://www.bbc.co.uk/ontologies/creativework/altText> "thumbnail atlText for CW http://www.bbc.co.uk/context/27#id" <http://www.bbc.co.uk/context/27#id> .
+<http://www.bbc.co.uk/things/27#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/72#id> <http://www.bbc.co.uk/context/27#id> .
+<http://www.bbc.co.uk/document/72#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/HighWeb> <http://www.bbc.co.uk/context/27#id> .
+<http://www.bbc.co.uk/things/27#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/73#id> <http://www.bbc.co.uk/context/27#id> .
+<http://www.bbc.co.uk/document/73#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/Mobile> <http://www.bbc.co.uk/context/27#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.bbc.co.uk/ontologies/creativework/BlogPost> <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.bbc.co.uk/ontologies/creativework/title> "Robert Oliver Cunningham uncorrelated overtures unconvincing trademarks chars godliness soulfully pushy ransack monotheism." <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.bbc.co.uk/ontologies/creativework/shortTitle> "invalidate vamped specification blunderbuss smudged madrases paying publicise fairs messes." <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.bbc.co.uk/ontologies/creativework/category> <http://www.bbc.co.uk/category/Persons> <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.bbc.co.uk/ontologies/creativework/description> "outmanoeuvres foxtrotting nervelessly darken pronto manias spiffier deserter tweets cactus." <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Robert_Oliver_Cunningham> <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Henry_Keupper> <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Gabrielle_Tuite> <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Paul_Taylor_(referee)> <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Chike_Obi> <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/James_Kinlay> <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Mighty_Spoiler> <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/William_H._Luers> <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Amon_Liner> <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Amin_J._Barakat> <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.bbc.co.uk/ontologies/creativework/mentions> <http://sws.geonames.org/6358726/> <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.bbc.co.uk/ontologies/creativework/audience> <http://www.bbc.co.uk/ontologies/creativework/InternationalAudience> <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.bbc.co.uk/ontologies/creativework/liveCoverage> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.bbc.co.uk/ontologies/creativework/primaryFormat> <http://www.bbc.co.uk/ontologies/creativework/TextualFormat> <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.bbc.co.uk/ontologies/creativework/primaryFormat> <http://www.bbc.co.uk/ontologies/creativework/InteractiveFormat> <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.bbc.co.uk/ontologies/creativework/dateCreated> "2011-05-05T19:32:09.521+08:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.bbc.co.uk/ontologies/creativework/dateModified> "2012-03-28T03:35:19.876+08:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.bbc.co.uk/ontologies/creativework/thumbnail> <http://www.bbc.co.uk/thumbnail/464710629> <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.bbc.co.uk/ontologies/creativework/altText> "thumbnail atlText for CW http://www.bbc.co.uk/context/33#id" <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/84#id> <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/document/84#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/HighWeb> <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/85#id> <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/document/85#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/HighWeb> <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/33#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/86#id> <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/document/86#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/Mobile> <http://www.bbc.co.uk/context/33#id> .
+<http://www.bbc.co.uk/things/38#id> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.bbc.co.uk/ontologies/creativework/NewsItem> <http://www.bbc.co.uk/context/38#id> .
+<http://www.bbc.co.uk/things/38#id> <http://www.bbc.co.uk/ontologies/creativework/title> "Federal Records swashes carotid retriever pigeonhole's worrywarts savants quills morose flashed starter's." <http://www.bbc.co.uk/context/38#id> .
+<http://www.bbc.co.uk/things/38#id> <http://www.bbc.co.uk/ontologies/creativework/shortTitle> "stutterer eardrums articulately buzzers clearinghouses pedagog centipede permafrost quirk's abash." <http://www.bbc.co.uk/context/38#id> .
+<http://www.bbc.co.uk/things/38#id> <http://www.bbc.co.uk/ontologies/creativework/category> <http://www.bbc.co.uk/category/Company> <http://www.bbc.co.uk/context/38#id> .
+<http://www.bbc.co.uk/things/38#id> <http://www.bbc.co.uk/ontologies/creativework/description> "bossily autographed dishonouring aggrieve blameworthy gurgle dressiest sours dogtrotting conglomeration altimeters exhaustive upped defrosted specced padded pled shoguns gratifies cloth landlady schmuck fir backslapper." <http://www.bbc.co.uk/context/38#id> .
+<http://www.bbc.co.uk/things/38#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Federal_Records> <http://www.bbc.co.uk/context/38#id> .
+<http://www.bbc.co.uk/things/38#id> <http://www.bbc.co.uk/ontologies/creativework/mentions> <http://sws.geonames.org/717413/> <http://www.bbc.co.uk/context/38#id> .
+<http://www.bbc.co.uk/things/38#id> <http://www.bbc.co.uk/ontologies/creativework/audience> <http://www.bbc.co.uk/ontologies/creativework/NationalAudience> <http://www.bbc.co.uk/context/38#id> .
+<http://www.bbc.co.uk/things/38#id> <http://www.bbc.co.uk/ontologies/creativework/liveCoverage> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> <http://www.bbc.co.uk/context/38#id> .
+<http://www.bbc.co.uk/things/38#id> <http://www.bbc.co.uk/ontologies/creativework/primaryFormat> <http://www.bbc.co.uk/ontologies/creativework/TextualFormat> <http://www.bbc.co.uk/context/38#id> .
+<http://www.bbc.co.uk/things/38#id> <http://www.bbc.co.uk/ontologies/creativework/primaryFormat> <http://www.bbc.co.uk/ontologies/creativework/InteractiveFormat> <http://www.bbc.co.uk/context/38#id> .
+<http://www.bbc.co.uk/things/38#id> <http://www.bbc.co.uk/ontologies/creativework/dateCreated> "2011-02-23T23:51:11.836+08:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> <http://www.bbc.co.uk/context/38#id> .
+<http://www.bbc.co.uk/things/38#id> <http://www.bbc.co.uk/ontologies/creativework/dateModified> "2011-08-06T10:43:43.186+08:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> <http://www.bbc.co.uk/context/38#id> .
+<http://www.bbc.co.uk/things/38#id> <http://www.bbc.co.uk/ontologies/creativework/thumbnail> <http://www.bbc.co.uk/thumbnail/483884970> <http://www.bbc.co.uk/context/38#id> .
+<http://www.bbc.co.uk/things/38#id> <http://www.bbc.co.uk/ontologies/creativework/altText> "thumbnail atlText for CW http://www.bbc.co.uk/context/38#id" <http://www.bbc.co.uk/context/38#id> .
+<http://www.bbc.co.uk/things/38#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/98#id> <http://www.bbc.co.uk/context/38#id> .
+<http://www.bbc.co.uk/document/98#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/HighWeb> <http://www.bbc.co.uk/context/38#id> .
+<http://www.bbc.co.uk/things/41#id> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.bbc.co.uk/ontologies/creativework/BlogPost> <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/things/41#id> <http://www.bbc.co.uk/ontologies/creativework/title> "Grady Higginbotham atrocious heaping insoles appositives figured omitting cloudiest coddling impotent menfolk." <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/things/41#id> <http://www.bbc.co.uk/ontologies/creativework/shortTitle> "apathetic becalm temperaments knackwurst abolition soulless acetone incriminatory citric elicits." <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/things/41#id> <http://www.bbc.co.uk/ontologies/creativework/category> <http://www.bbc.co.uk/category/Persons> <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/things/41#id> <http://www.bbc.co.uk/ontologies/creativework/description> "disadvantaging hashish trimmings posthumous groundwork diagram awe flit hermits ladder primp parsnip grant ooze bowmen sheltered indisputable doting windshields bludgeons." <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/things/41#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Grady_Higginbotham> <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/things/41#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Robert_D._Webb> <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/things/41#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Randy_Edsall> <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/things/41#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Mary_Petty> <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/things/41#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/J._Enoch_Thompson> <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/things/41#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Mahaveer_Prasad> <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/things/41#id> <http://www.bbc.co.uk/ontologies/creativework/about> <http://dbpedia.org/resource/Juan_Carlos_Oleniak> <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/things/41#id> <http://www.bbc.co.uk/ontologies/creativework/mentions> <http://sws.geonames.org/3086451/> <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/things/41#id> <http://www.bbc.co.uk/ontologies/creativework/audience> <http://www.bbc.co.uk/ontologies/creativework/InternationalAudience> <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/things/41#id> <http://www.bbc.co.uk/ontologies/creativework/liveCoverage> "false"^^<http://www.w3.org/2001/XMLSchema#boolean> <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/things/41#id> <http://www.bbc.co.uk/ontologies/creativework/primaryFormat> <http://www.bbc.co.uk/ontologies/creativework/TextualFormat> <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/things/41#id> <http://www.bbc.co.uk/ontologies/creativework/dateCreated> "2011-11-28T19:51:49.102+08:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/things/41#id> <http://www.bbc.co.uk/ontologies/creativework/dateModified> "2012-10-04T15:14:55.328+08:00"^^<http://www.w3.org/2001/XMLSchema#dateTime> <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/things/41#id> <http://www.bbc.co.uk/ontologies/creativework/thumbnail> <http://www.bbc.co.uk/thumbnail/1453466369> <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/things/41#id> <http://www.bbc.co.uk/ontologies/creativework/altText> "thumbnail atlText for CW http://www.bbc.co.uk/context/41#id" <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/things/41#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/105#id> <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/document/105#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/Mobile> <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/things/41#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/106#id> <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/document/106#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/Mobile> <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/things/41#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/107#id> <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/document/107#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/Mobile> <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/things/41#id> <http://www.bbc.co.uk/ontologies/bbc/primaryContentOf> <http://www.bbc.co.uk/document/108#id> <http://www.bbc.co.uk/context/41#id> .
+<http://www.bbc.co.uk/document/108#id> <http://www.bbc.co.uk/ontologies/bbc/webDocumentType> <http://www.bbc.co.uk/ontologies/bbc/HighWeb> <http://www.bbc.co.uk/context/41#id> .

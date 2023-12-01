@@ -24,7 +24,7 @@ protected:
 };
 
 struct SerialCSVScanSharedState final : public function::ScanSharedState {
-    explicit SerialCSVScanSharedState(
+    SerialCSVScanSharedState(
         common::ReaderConfig readerConfig, uint64_t numRows, uint64_t numColumns)
         : ScanSharedState{std::move(readerConfig), numRows}, numColumns{numColumns} {
         initReader();

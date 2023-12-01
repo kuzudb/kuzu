@@ -8,7 +8,6 @@
 #include "common/string_format.h"
 #include "common/vector/value_vector.h"
 #include "function/cast/functions/cast_string_non_nested_functions.h"
-#include "function/table_functions/scan_functions.h"
 #include "serd.h"
 #include "storage/index/hash_index.h"
 
@@ -20,34 +19,38 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace processor {
 
-RDFReader::RDFReader(std::string filePath, const common::RdfReaderConfig& config)
-    : filePath{std::move(filePath)}, mode{config.mode}, index{config.index}, rowOffset{0},
-      vectorSize{0}, sVector{nullptr}, pVector{nullptr}, oVector{nullptr}, status{SERD_SUCCESS} {
-    std::string fileName = this->filePath.substr(this->filePath.find_last_of("/\\") + 1);
-    fp = fopen(this->filePath.c_str(), "rb");
-    reader = serd_reader_new(
-        SERD_TURTLE, this, nullptr, nullptr, prefixSink, readerStatementSink, nullptr);
-    serd_reader_set_strict(reader, false /* strict */);
-    serd_reader_set_error_sink(reader, errorHandle, this);
-    serd_reader_start_stream(reader, fp, reinterpret_cast<const uint8_t*>(fileName.c_str()), true);
-    counter = serd_reader_new(
-        SERD_TURTLE, this, nullptr, nullptr, nullptr, counterStatementSink, nullptr);
-    serd_reader_set_strict(counter, false /* strict */);
-    serd_reader_set_error_sink(counter, errorHandle, this);
-    serd_reader_start_stream(counter, fp, reinterpret_cast<const uint8_t*>(fileName.c_str()), true);
-}
-
-RDFReader::~RDFReader() {
+RdfReader::~RdfReader() {
     serd_reader_end_stream(reader);
     serd_reader_free(reader);
-    serd_reader_end_stream(counter);
-    serd_reader_free(counter);
     // Even if the close fails, the stream is in an undefined state. There really isn't anything we
     // can do.
     (void)fclose(fp);
 }
 
-SerdStatus RDFReader::errorHandle(void* /*handle*/, const SerdError* error) {
+static SerdSyntax getSerdSyntax(FileType fileType) {
+    switch (fileType) {
+    case FileType::TURTLE:
+        return SerdSyntax ::SERD_TURTLE;
+    case FileType::NQUADS:
+        return SerdSyntax ::SERD_NQUADS;
+    default:
+        KU_UNREACHABLE;
+    }
+}
+
+void RdfReader::initReader(
+    const SerdPrefixSink prefixSink_, const SerdStatementSink statementSink_) {
+    KU_ASSERT(reader == nullptr);
+    fp = fopen(this->filePath.c_str(), "rb");
+    reader = serd_reader_new(
+        getSerdSyntax(fileType), this, nullptr, nullptr, prefixSink_, statementSink_, nullptr);
+    serd_reader_set_strict(reader, false /* strict */);
+    serd_reader_set_error_sink(reader, errorHandle, this);
+    auto fileName = this->filePath.substr(this->filePath.find_last_of("/\\") + 1);
+    serd_reader_start_stream(reader, fp, reinterpret_cast<const uint8_t*>(fileName.c_str()), true);
+}
+
+SerdStatus RdfReader::errorHandle(void* /*handle*/, const SerdError* error) {
     if (error->status == SERD_ERR_BAD_SYNTAX) {
         return error->status;
     }
@@ -61,13 +64,14 @@ SerdStatus RDFReader::errorHandle(void* /*handle*/, const SerdError* error) {
 
 static bool supportSerdType(SerdType type) {
     switch (type) {
-    case SERD_BLANK:
     case SERD_URI:
     case SERD_CURIE:
     case SERD_LITERAL:
         return true;
-    default:
+    case SERD_BLANK:
         return false;
+    default:
+        KU_UNREACHABLE;
     }
 }
 
@@ -147,14 +151,14 @@ static common::offset_t lookupResourceNode(PrimaryKeyIndex* index, const SerdNod
     return offset;
 }
 
-SerdStatus RDFReader::readerStatementSink(void* handle, SerdStatementFlags /*flags*/,
+SerdStatus RdfReader::statementHandle(void* handle, SerdStatementFlags /*flags*/,
     const SerdNode* /*graph*/, const SerdNode* subject, const SerdNode* predicate,
     const SerdNode* object, const SerdNode* object_datatype, const SerdNode* /*object_lang*/) {
     if (!supportSerdType(subject->type) || !supportSerdType(predicate->type) ||
         !supportSerdType(object->type)) {
         return SERD_SUCCESS;
     }
-    auto reader = reinterpret_cast<RDFReader*>(handle);
+    auto reader = reinterpret_cast<RdfReader*>(handle);
 
     switch (reader->mode) {
     case RdfReaderMode::RESOURCE: {
@@ -204,34 +208,34 @@ SerdStatus RDFReader::readerStatementSink(void* handle, SerdStatementFlags /*fla
     return SERD_SUCCESS;
 }
 
-SerdStatus RDFReader::counterStatementSink(void* handle, SerdStatementFlags /*flags*/,
+SerdStatus RdfReader::countStatementHandle(void* handle, SerdStatementFlags /*flags*/,
     const SerdNode* /*graph*/, const SerdNode* subject, const SerdNode* predicate,
     const SerdNode* object, const SerdNode* /*object_datatype*/, const SerdNode* /*object_lang*/) {
     if (!supportSerdType(subject->type) || !supportSerdType(predicate->type) ||
         !supportSerdType(object->type)) {
         return SERD_SUCCESS;
     }
-    auto reader = reinterpret_cast<RDFReader*>(handle);
+    auto reader = reinterpret_cast<RdfReader*>(handle);
     reader->rowOffset++;
     return SERD_SUCCESS;
 }
 
-SerdStatus RDFReader::prefixSink(void* handle, const SerdNode* /*name*/, const SerdNode* uri) {
-    auto reader = reinterpret_cast<RDFReader*>(handle);
+SerdStatus RdfReader::prefixHandle(void* handle, const SerdNode* /*name*/, const SerdNode* uri) {
+    auto reader = reinterpret_cast<RdfReader*>(handle);
     reader->currentPrefix = reinterpret_cast<const char*>(uri->buf);
     return SERD_SUCCESS;
 }
 
-common::offset_t RDFReader::countLine() {
+common::offset_t RdfReader::countLine() {
     if (status) {
         return 0;
     }
     rowOffset = 0;
     while (true) {
-        status = serd_reader_read_chunk(counter);
+        status = serd_reader_read_chunk(reader);
         if (status == SERD_ERR_BAD_SYNTAX) {
             // Skip to the next line.
-            serd_reader_skip_until_byte(counter, (uint8_t)'\n');
+            serd_reader_skip_until_byte(reader, (uint8_t)'\n');
             continue;
         }
         if (status != SERD_SUCCESS) {
@@ -241,7 +245,7 @@ common::offset_t RDFReader::countLine() {
     return rowOffset;
 }
 
-offset_t RDFReader::read(DataChunk* dataChunk) {
+offset_t RdfReader::read(DataChunk* dataChunk) {
     if (status) {
         return 0;
     }
@@ -276,6 +280,30 @@ offset_t RDFReader::read(DataChunk* dataChunk) {
     return rowOffset;
 }
 
+void RdfScanSharedState::read(common::DataChunk& dataChunk) {
+    std::lock_guard<std::mutex> mtx{lock};
+    do {
+        if (fileIdx > readerConfig.getNumFiles()) {
+            return;
+        }
+        if (reader->read(&dataChunk) > 0) {
+            return;
+        }
+        fileIdx++;
+        initReader();
+    } while (true);
+}
+
+void RdfScanSharedState::initReader() {
+    if (fileIdx >= readerConfig.getNumFiles()) {
+        return;
+    }
+    auto path = readerConfig.filePaths[fileIdx];
+    auto rdfConfig = reinterpret_cast<RdfReaderConfig*>(readerConfig.extraConfig.get());
+    reader = std::make_unique<RdfReader>(path, readerConfig.fileType, *rdfConfig);
+    reader->initReader();
+}
+
 function::function_set RdfScan::getFunctionSet() {
     function_set functionSet;
     auto func = std::make_unique<TableFunction>(READ_RDF_FUNC_NAME, tableFunc, bindFunc,
@@ -286,8 +314,8 @@ function::function_set RdfScan::getFunctionSet() {
 }
 
 void RdfScan::tableFunc(function::TableFunctionInput& input, common::DataChunk& outputChunk) {
-    auto localState = reinterpret_cast<RdfScanLocalState*>(input.localState);
-    localState->reader->read(&outputChunk);
+    auto sharedState = reinterpret_cast<RdfScanSharedState*>(input.sharedState);
+    sharedState->reader->read(&outputChunk);
 }
 
 std::unique_ptr<function::TableFuncBindData> RdfScan::bindFunc(main::ClientContext* /*context*/,
@@ -302,17 +330,18 @@ std::unique_ptr<function::TableFuncSharedState> RdfScan::initSharedState(
     function::TableFunctionInitInput& input) {
     auto bindData = reinterpret_cast<function::ScanBindData*>(input.bindData);
     auto rdfConfig = reinterpret_cast<RdfReaderConfig*>(bindData->config.extraConfig.get());
-    auto reader = make_unique<RDFReader>(bindData->config.filePaths[0], *rdfConfig);
-    return std::make_unique<function::ScanSharedState>(bindData->config, reader->countLine());
+    common::row_idx_t numRows = 0u;
+    for (auto& path : bindData->config.filePaths) {
+        auto reader = std::make_unique<RdfReader>(path, bindData->config.fileType, *rdfConfig);
+        reader->initCountReader();
+        numRows += reader->countLine();
+    }
+    return std::make_unique<RdfScanSharedState>(bindData->config, numRows);
 }
 
 std::unique_ptr<function::TableFuncLocalState> RdfScan::initLocalState(
-    function::TableFunctionInitInput& input, function::TableFuncSharedState* /*state*/) {
-    auto bindData = reinterpret_cast<function::ScanBindData*>(input.bindData);
-    auto rdfConfig = reinterpret_cast<RdfReaderConfig*>(bindData->config.extraConfig.get());
-    auto localState = std::make_unique<RdfScanLocalState>();
-    localState->reader = std::make_unique<RDFReader>(bindData->config.filePaths[0], *rdfConfig);
-    return localState;
+    function::TableFunctionInitInput& /*input*/, function::TableFuncSharedState* /*state*/) {
+    return std::make_unique<TableFuncLocalState>();
 }
 
 } // namespace processor
