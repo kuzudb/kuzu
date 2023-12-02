@@ -216,6 +216,18 @@ int32_t value_get_date_days(const kuzu::common::Value& value) {
 int64_t value_get_timestamp_micros(const kuzu::common::Value& value) {
     return value.getValue<kuzu::common::timestamp_t>().value;
 }
+int64_t value_get_timestamp_ns(const kuzu::common::Value& value) {
+    return value.getValue<kuzu::common::timestamp_ns_t>().value;
+}
+int64_t value_get_timestamp_ms(const kuzu::common::Value& value) {
+    return value.getValue<kuzu::common::timestamp_ms_t>().value;
+}
+int64_t value_get_timestamp_sec(const kuzu::common::Value& value) {
+    return value.getValue<kuzu::common::timestamp_sec_t>().value;
+}
+int64_t value_get_timestamp_tz(const kuzu::common::Value& value) {
+    return value.getValue<kuzu::common::timestamp_tz_t>().value;
+}
 std::array<uint64_t, 2> value_get_int128_t(const kuzu::common::Value& value) {
     auto int128 = value.getValue<kuzu::common::int128_t>();
     auto int128_high = static_cast<uint64_t>(int128.high);
@@ -250,6 +262,18 @@ std::unique_ptr<kuzu::common::Value> create_value_string(
 }
 std::unique_ptr<kuzu::common::Value> create_value_timestamp(const int64_t timestamp) {
     return std::make_unique<kuzu::common::Value>(kuzu::common::timestamp_t(timestamp));
+}
+std::unique_ptr<kuzu::common::Value> create_value_timestamp_tz(const int64_t timestamp) {
+    return std::make_unique<kuzu::common::Value>(kuzu::common::timestamp_tz_t(timestamp));
+}
+std::unique_ptr<kuzu::common::Value> create_value_timestamp_ns(const int64_t timestamp) {
+    return std::make_unique<kuzu::common::Value>(kuzu::common::timestamp_ns_t(timestamp));
+}
+std::unique_ptr<kuzu::common::Value> create_value_timestamp_ms(const int64_t timestamp) {
+    return std::make_unique<kuzu::common::Value>(kuzu::common::timestamp_ms_t(timestamp));
+}
+std::unique_ptr<kuzu::common::Value> create_value_timestamp_sec(const int64_t timestamp) {
+    return std::make_unique<kuzu::common::Value>(kuzu::common::timestamp_sec_t(timestamp));
 }
 std::unique_ptr<kuzu::common::Value> create_value_date(const int64_t date) {
     return std::make_unique<kuzu::common::Value>(kuzu::common::date_t(date));

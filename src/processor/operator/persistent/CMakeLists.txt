@@ -9,7 +9,6 @@ add_library(kuzu_processor_operator_persistent
         copy_to.cpp
         copy_to_csv.cpp
         copy_to_parquet.cpp
-        csv_file_writer.cpp
         delete.cpp
         delete_executor.cpp
         insert.cpp

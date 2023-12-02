@@ -405,6 +405,10 @@ template KUZU_API void ValueVector::setValue<double_t>(uint32_t pos, double_t va
 template KUZU_API void ValueVector::setValue<float_t>(uint32_t pos, float_t val);
 template KUZU_API void ValueVector::setValue<date_t>(uint32_t pos, date_t val);
 template KUZU_API void ValueVector::setValue<timestamp_t>(uint32_t pos, timestamp_t val);
+template KUZU_API void ValueVector::setValue<timestamp_ns_t>(uint32_t pos, timestamp_ns_t val);
+template KUZU_API void ValueVector::setValue<timestamp_ms_t>(uint32_t pos, timestamp_ms_t val);
+template KUZU_API void ValueVector::setValue<timestamp_sec_t>(uint32_t pos, timestamp_sec_t val);
+template KUZU_API void ValueVector::setValue<timestamp_tz_t>(uint32_t pos, timestamp_tz_t val);
 template KUZU_API void ValueVector::setValue<interval_t>(uint32_t pos, interval_t val);
 template KUZU_API void ValueVector::setValue<list_entry_t>(uint32_t pos, list_entry_t val);
 

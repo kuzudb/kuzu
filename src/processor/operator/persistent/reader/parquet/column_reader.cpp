@@ -248,9 +248,11 @@ std::unique_ptr<ColumnReader> ColumnReader::createReader(ParquetReader& reader,
     case common::LogicalTypeID::INTERVAL:
         return std::make_unique<IntervalColumnReader>(
             reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+    case common::LogicalTypeID::TIMESTAMP_TZ:
     case common::LogicalTypeID::TIMESTAMP:
         return createTimestampReader(
             reader, std::move(type), schema, fileIdx, maxDefine, maxRepeat);
+    // TODO(kebing): timestamp
     default:
         KU_UNREACHABLE;
     }

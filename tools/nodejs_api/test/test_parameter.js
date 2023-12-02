@@ -356,6 +356,174 @@ describe("TIMESTAMP", function () {
   });
 });
 
+describe("TIMESTAMP_TZ", function () {
+  it("should transform date as TIMESTAMP_TZ parameter", async function () {
+    const preparedStatement = await conn.prepare(
+        "MATCH (a:movies) WHERE a.description.release_tz > $1 RETURN COUNT(*)"
+    );
+    const queryResult = await conn.execute(preparedStatement, {
+      1: new Date(0),
+    });
+    const result = await queryResult.getAll();
+    assert.equal(result[0]["COUNT_STAR()"], 3);
+  });
+
+  it("should reject other type as TIMESTAMP_TZ parameter", async function () {
+    const preparedStatement = await conn.prepare(
+        "MATCH (a:movies) WHERE a.description.release_tz > $1 RETURN COUNT(*)"
+    );
+    try {
+      await conn.execute(preparedStatement, {
+        1: "1970-01-01",
+      });
+    } catch (e) {
+      assert.equal(e.message, "Expected a date for parameter 1.");
+    }
+
+    try {
+      await conn.execute(preparedStatement, {
+        1: 0,
+      });
+    } catch (e) {
+      assert.equal(e.message, "Expected a date for parameter 1.");
+    }
+
+    try {
+      await conn.execute(preparedStatement, {
+        1: true,
+      });
+    } catch (e) {
+      assert.equal(e.message, "Expected a date for parameter 1.");
+    }
+  });
+});
+
+describe("TIMESTAMP_NS", function () {
+  it("should transform date as TIMESTAMP_NS parameter", async function () {
+    const preparedStatement = await conn.prepare(
+        "MATCH (a:movies) WHERE a.description.release_ns > $1 RETURN COUNT(*)"
+    );
+    const queryResult = await conn.execute(preparedStatement, {
+      1: new Date(0),
+    });
+    const result = await queryResult.getAll();
+    assert.equal(result[0]["COUNT_STAR()"], 3);
+  });
+
+  it("should reject other type as TIMESTAMP_NS parameter", async function () {
+    const preparedStatement = await conn.prepare(
+        "MATCH (a:movies) WHERE a.description.release_ns > $1 RETURN COUNT(*)"
+    );
+    try {
+      await conn.execute(preparedStatement, {
+        1: "1970-01-01",
+      });
+    } catch (e) {
+      assert.equal(e.message, "Expected a date for parameter 1.");
+    }
+
+    try {
+      await conn.execute(preparedStatement, {
+        1: 0,
+      });
+    } catch (e) {
+      assert.equal(e.message, "Expected a date for parameter 1.");
+    }
+
+    try {
+      await conn.execute(preparedStatement, {
+        1: true,
+      });
+    } catch (e) {
+      assert.equal(e.message, "Expected a date for parameter 1.");
+    }
+  });
+});
+
+describe("TIMESTAMP_MS", function () {
+  it("should transform date as TIMESTAMP_MS parameter", async function () {
+    const preparedStatement = await conn.prepare(
+        "MATCH (a:movies) WHERE a.description.release_ms > $1 RETURN COUNT(*)"
+    );
+    const queryResult = await conn.execute(preparedStatement, {
+      1: new Date(0),
+    });
+    const result = await queryResult.getAll();
+    assert.equal(result[0]["COUNT_STAR()"], 3);
+  });
+
+  it("should reject other type as TIMESTAMP_MS parameter", async function () {
+    const preparedStatement = await conn.prepare(
+        "MATCH (a:movies) WHERE a.description.release_ms > $1 RETURN COUNT(*)"
+    );
+    try {
+      await conn.execute(preparedStatement, {
+        1: "1970-01-01",
+      });
+    } catch (e) {
+      assert.equal(e.message, "Expected a date for parameter 1.");
+    }
+
+    try {
+      await conn.execute(preparedStatement, {
+        1: 0,
+      });
+    } catch (e) {
+      assert.equal(e.message, "Expected a date for parameter 1.");
+    }
+
+    try {
+      await conn.execute(preparedStatement, {
+        1: true,
+      });
+    } catch (e) {
+      assert.equal(e.message, "Expected a date for parameter 1.");
+    }
+  });
+});
+
+describe("TIMESTAMP_SEC", function () {
+  it("should transform date as TIMESTAMP_SEC parameter", async function () {
+    const preparedStatement = await conn.prepare(
+        "MATCH (a:movies) WHERE a.description.release_sec > $1 RETURN COUNT(*)"
+    );
+    const queryResult = await conn.execute(preparedStatement, {
+      1: new Date(0),
+    });
+    const result = await queryResult.getAll();
+    assert.equal(result[0]["COUNT_STAR()"], 3);
+  });
+
+  it("should reject other type as TIMESTAMP_SEC parameter", async function () {
+    const preparedStatement = await conn.prepare(
+        "MATCH (a:movies) WHERE a.description.release_sec > $1 RETURN COUNT(*)"
+    );
+    try {
+      await conn.execute(preparedStatement, {
+        1: "1970-01-01",
+      });
+    } catch (e) {
+      assert.equal(e.message, "Expected a date for parameter 1.");
+    }
+
+    try {
+      await conn.execute(preparedStatement, {
+        1: 0,
+      });
+    } catch (e) {
+      assert.equal(e.message, "Expected a date for parameter 1.");
+    }
+
+    try {
+      await conn.execute(preparedStatement, {
+        1: true,
+      });
+    } catch (e) {
+      assert.equal(e.message, "Expected a date for parameter 1.");
+    }
+  });
+});
+
 describe("INTERVAL", function () {
   it("should transform number as INTERVAL parameter", async function () {
     const preparedStatement = await conn.prepare(

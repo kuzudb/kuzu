@@ -576,6 +576,79 @@ public class ValueTest extends TestBase {
     }
 
     @Test
+    void ValueGetTimeStampTz() throws KuzuObjectRefDestroyedException {
+        // timestamp_tz
+        KuzuQueryResult result = conn.query("MATCH (m:movies) RETURN m.description.release_tz");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        KuzuFlatTuple flatTuple = result.getNext();
+        KuzuValue value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        assertFalse(value.isNull());
+
+        Instant stamp = value.getValue();
+        assertEquals(stamp.toEpochMilli(), 1313839530123L);
+        value.destroy();
+        flatTuple.destroy();
+        result.destroy();
+    }
+
+    @Test
+    void ValueGetTimeStampNs() throws KuzuObjectRefDestroyedException {
+        // timestamp_ns
+        KuzuQueryResult result = conn.query("MATCH (m:movies) RETURN m.description.release_ns");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        KuzuFlatTuple flatTuple = result.getNext();
+        KuzuValue value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        assertFalse(value.isNull());
+
+        Instant stamp = value.getValue();
+        assertEquals(stamp.getNano(), 123456000L);
+        value.destroy();
+        flatTuple.destroy();
+        result.destroy();
+    }
+
+    @Test
+    void ValueGetTimeStampMs() throws KuzuObjectRefDestroyedException {
+        // timestamp_ms
+        KuzuQueryResult result = conn.query("MATCH (m:movies) RETURN m.description.release_ms");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        KuzuFlatTuple flatTuple = result.getNext();
+        KuzuValue value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        assertFalse(value.isNull());
+
+        Instant stamp = value.getValue();
+        assertEquals(stamp.toEpochMilli(), 1313839530123L);
+        value.destroy();
+        flatTuple.destroy();
+        result.destroy();
+    }
+
+    @Test
+    void ValueGetTimeStampSec() throws KuzuObjectRefDestroyedException {
+        // timestamp_sec
+        KuzuQueryResult result = conn.query("MATCH (m:movies) RETURN m.description.release_sec");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        KuzuFlatTuple flatTuple = result.getNext();
+        KuzuValue value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        assertFalse(value.isNull());
+
+        Instant stamp = value.getValue();
+        assertEquals(stamp.getEpochSecond(), 1313839530L);
+        assertEquals(stamp.getNano(), 0L);
+        value.destroy();
+        flatTuple.destroy();
+        result.destroy();
+    }
+
+    @Test
     void ValueGetInterval() throws KuzuObjectRefDestroyedException {
         // Interval
         KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.lastJobDuration ORDER BY a.ID");
@@ -835,7 +908,7 @@ public class ValueTest extends TestBase {
         KuzuFlatTuple flatTuple = result.getNext();
         KuzuValue value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
-        assertEquals(KuzuValueStructUtil.getNumFields(value), 10);
+        assertEquals(KuzuValueStructUtil.getNumFields(value), 14);
         value.destroy();
         flatTuple.destroy();
         result.destroy();
@@ -854,7 +927,11 @@ public class ValueTest extends TestBase {
         assertEquals(KuzuValueStructUtil.getIndexByFieldName(value, "rating"), 0);
         assertEquals(KuzuValueStructUtil.getIndexByFieldName(value, "views"), 2);
         assertEquals(KuzuValueStructUtil.getIndexByFieldName(value, "release"), 3);
-        assertEquals(KuzuValueStructUtil.getIndexByFieldName(value, "film"), 4);
+        assertEquals(KuzuValueStructUtil.getIndexByFieldName(value, "release_ns"), 4);
+        assertEquals(KuzuValueStructUtil.getIndexByFieldName(value, "release_ms"), 5);
+        assertEquals(KuzuValueStructUtil.getIndexByFieldName(value, "release_sec"), 6);
+        assertEquals(KuzuValueStructUtil.getIndexByFieldName(value, "release_tz"), 7);
+        assertEquals(KuzuValueStructUtil.getIndexByFieldName(value, "film"), 8);
         value.destroy();
         flatTuple.destroy();
         result.destroy();
@@ -873,7 +950,11 @@ public class ValueTest extends TestBase {
         assertEquals(KuzuValueStructUtil.getFieldNameByIndex(value, 0), "rating");
         assertEquals(KuzuValueStructUtil.getFieldNameByIndex(value, 2), "views");
         assertEquals(KuzuValueStructUtil.getFieldNameByIndex(value, 3), "release");
-        assertEquals(KuzuValueStructUtil.getFieldNameByIndex(value, 4), "film");
+        assertEquals(KuzuValueStructUtil.getFieldNameByIndex(value, 4), "release_ns");
+        assertEquals(KuzuValueStructUtil.getFieldNameByIndex(value, 5), "release_ms");
+        assertEquals(KuzuValueStructUtil.getFieldNameByIndex(value, 6), "release_sec");
+        assertEquals(KuzuValueStructUtil.getFieldNameByIndex(value, 7), "release_tz");
+        assertEquals(KuzuValueStructUtil.getFieldNameByIndex(value, 8), "film");
         value.destroy();
         flatTuple.destroy();
         result.destroy();

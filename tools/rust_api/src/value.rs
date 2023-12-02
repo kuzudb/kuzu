@@ -9,6 +9,10 @@ pub enum ConversionError {
     Date(i32),
     /// Kuzu's internal timestamp as the number of microseconds since 1970-01-01
     Timestamp(i64),
+    TimestampTz(i64),
+    TimestampNs(i64),
+    TimestampMs(i64),
+    TimestampSec(i64),
 }
 
 impl std::fmt::Display for ConversionError {
@@ -23,6 +27,10 @@ impl std::fmt::Debug for ConversionError {
         match self {
             Date(days) => write!(f, "Could not convert Kuzu date offset of UNIX_EPOCH + {days} days to time::Date"),
             Timestamp(us) => write!(f, "Could not convert Kuzu timestamp offset of UNIX_EPOCH + {us} microseconds to time::OffsetDateTime"),
+            TimestampTz(us) => write!(f, "Could not convert Kuzu timestamp_tz offset of UNIX_EPOCH + {us} microseconds to time::OffsetDateTime"),
+            TimestampNs(ns) => write!(f, "Could not convert Kuzu timestamp_ns offset of UNIX_EPOCH + {ns} nanoseconds to time::OffsetDateTime"),
+            TimestampMs(ms) => write!(f, "Could not convert Kuzu timestamp_ms offset of UNIX_EPOCH + {ms} milliseconds to time::OffsetDateTime"),
+            TimestampSec(sec) => write!(f, "Could not convert Kuzu timestamp_sec offset of UNIX_EPOCH + {sec} seconds to time::OffsetDateTime"),
         }
     }
 }
@@ -221,6 +229,10 @@ pub enum Value {
     ///
     /// <https://kuzudb.com/docusaurus/cypher/data-types/timestamp.html>
     Timestamp(time::OffsetDateTime),
+    TimestampTz(time::OffsetDateTime),
+    TimestampNs(time::OffsetDateTime),
+    TimestampMs(time::OffsetDateTime),
+    TimestampSec(time::OffsetDateTime),
     InternalID(InternalID),
     /// <https://kuzudb.com/docusaurus/cypher/data-types/string.html>
     String(String),
@@ -287,6 +299,10 @@ impl std::fmt::Display for Value {
             // Note: These don't match kuzu's toString, but we probably don't want them to
             Value::Interval(x) => write!(f, "{x}"),
             Value::Timestamp(x) => write!(f, "{x}"),
+            Value::TimestampTz(x) => write!(f, "{x}"),
+            Value::TimestampNs(x) => write!(f, "{x}"),
+            Value::TimestampMs(x) => write!(f, "{x}"),
+            Value::TimestampSec(x) => write!(f, "{x}"),
             Value::Float(x) => write!(f, "{x}"),
             Value::Double(x) => write!(f, "{x}"),
             Value::Struct(x) => {
@@ -343,6 +359,10 @@ impl From<&Value> for LogicalType {
             Value::Date(_) => LogicalType::Date,
             Value::Interval(_) => LogicalType::Interval,
             Value::Timestamp(_) => LogicalType::Timestamp,
+            Value::TimestampTz(_) => LogicalType::TimestampTz,
+            Value::TimestampNs(_) => LogicalType::TimestampNs,
+            Value::TimestampMs(_) => LogicalType::TimestampMs,
+            Value::TimestampSec(_) => LogicalType::TimestampSec,
             Value::String(_) => LogicalType::String,
             Value::Blob(_) => LogicalType::Blob,
             Value::Null(x) => x.clone(),
@@ -429,6 +449,34 @@ impl TryFrom<&ffi::Value> for Value {
                     .checked_add(time::Duration::microseconds(us))
                     .map(Value::Timestamp)
                     .ok_or(ConversionError::Timestamp(us))
+            }
+            LogicalTypeID::TIMESTAMP_TZ => {
+                let us = ffi::value_get_timestamp_tz(value);
+                time::OffsetDateTime::UNIX_EPOCH
+                    .checked_add(time::Duration::microseconds(us))
+                    .map(Value::TimestampTz)
+                    .ok_or(ConversionError::TimestampTz(us))
+            }
+            LogicalTypeID::TIMESTAMP_NS => {
+                let ns = ffi::value_get_timestamp_ns(value);
+                time::OffsetDateTime::UNIX_EPOCH
+                    .checked_add(time::Duration::nanoseconds(ns))
+                    .map(Value::TimestampNs)
+                    .ok_or(ConversionError::TimestampNs(ns))
+            }
+            LogicalTypeID::TIMESTAMP_MS => {
+                let ms = ffi::value_get_timestamp_ms(value);
+                time::OffsetDateTime::UNIX_EPOCH
+                    .checked_add(time::Duration::milliseconds(ms))
+                    .map(Value::TimestampMs)
+                    .ok_or(ConversionError::TimestampMs(ms))
+            }
+            LogicalTypeID::TIMESTAMP_SEC => {
+                let sec = ffi::value_get_timestamp_sec(value);
+                time::OffsetDateTime::UNIX_EPOCH
+                    .checked_add(time::Duration::seconds(sec))
+                    .map(Value::TimestampSec)
+                    .ok_or(ConversionError::TimestampSec(sec))
             }
             LogicalTypeID::VAR_LIST => {
                 let mut result = vec![];
@@ -624,6 +672,19 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
             Value::Timestamp(value) => Ok(ffi::create_value_timestamp(
                 // Convert to microseconds since 1970-01-01
                 (value.unix_timestamp_nanos() / 1000) as i64,
+            )),
+            Value::TimestampTz(value) => Ok(ffi::create_value_timestamp_tz(
+                // Convert to microseconds since 1970-01-01
+                (value.unix_timestamp_nanos() / 1000) as i64,
+            )),
+            Value::TimestampNs(value) => Ok(ffi::create_value_timestamp_ns(
+                value.unix_timestamp_nanos() as i64,
+            )),
+            Value::TimestampMs(value) => Ok(ffi::create_value_timestamp_ms(
+                (value.unix_timestamp_nanos() / 1000000) as i64,
+            )),
+            Value::TimestampSec(value) => Ok(ffi::create_value_timestamp_sec(
+                (value.unix_timestamp_nanos() / 1000000000) as i64,
             )),
             Value::Date(value) => Ok(ffi::create_value_date(
                 // Convert to days since 1970-01-01
@@ -924,6 +985,10 @@ mod tests {
         convert_float_type: LogicalType::Float,
         convert_double_type: LogicalType::Double,
         convert_timestamp_type: LogicalType::Timestamp,
+        convert_timestamp_tz_type: LogicalType::TimestampTz,
+        convert_timestamp_ns_type: LogicalType::TimestampNs,
+        convert_timestamp_ms_type: LogicalType::TimestampMs,
+        convert_timestamp_sec_type: LogicalType::TimestampSec,
         convert_date_type: LogicalType::Date,
         convert_interval_type: LogicalType::Interval,
         convert_string_type: LogicalType::String,
@@ -955,6 +1020,10 @@ mod tests {
         convert_float: Value::Float(4.),
         convert_double: Value::Double(5.),
         convert_timestamp: Value::Timestamp(datetime!(2023-06-13 11:25:30 UTC)),
+        convert_timestamp_tz: Value::TimestampTz(datetime!(2023-06-13 11:25:30 UTC)),
+        convert_timestamp_ns: Value::TimestampNs(datetime!(2023-06-13 11:25:30.12345 UTC)),
+        convert_timestamp_ms: Value::TimestampMs(datetime!(2023-06-13 11:25:30.123 UTC)),
+        convert_timestamp_sec: Value::TimestampSec(datetime!(2023-06-13 11:25:30 UTC)),
         convert_date: Value::Date(date!(2023-06-13)),
         convert_interval: Value::Interval(time::Duration::weeks(10)),
         convert_string: Value::String("Hello World".to_string()),
@@ -1034,6 +1103,10 @@ mod tests {
         db_float: Value::Float(4.), "FLOAT",
         db_double: Value::Double(5.), "DOUBLE",
         db_timestamp: Value::Timestamp(datetime!(2023-06-13 11:25:30 UTC)), "TIMESTAMP",
+        db_timestamp_tz: Value::TimestampTz(datetime!(2023-06-13 11:25:30.12345 UTC)), "TIMESTAMP_TZ",
+        db_timestamp_ns: Value::TimestampNs(datetime!(2023-06-13 11:25:30.12345 UTC)), "TIMESTAMP_NS",
+        db_timestamp_ms: Value::TimestampMs(datetime!(2023-06-13 11:25:30.123 UTC)), "TIMESTAMP_MS",
+        db_timestamp_sec: Value::TimestampSec(datetime!(2023-06-13 11:25:30 UTC)), "TIMESTAMP_SEC",
         db_date: Value::Date(date!(2023-06-13)), "DATE",
         db_interval: Value::Interval(time::Duration::weeks(200)), "INTERVAL",
         db_string: Value::String("Hello World".to_string()), "STRING",

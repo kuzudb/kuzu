@@ -60,6 +60,10 @@ Type::type ParquetWriter::convertToParquetType(LogicalType* type) {
         return Type::INT32;
     case LogicalTypeID::UINT64:
     case LogicalTypeID::INT64:
+    case LogicalTypeID::TIMESTAMP_TZ:
+    case LogicalTypeID::TIMESTAMP_NS:
+    case LogicalTypeID::TIMESTAMP_MS:
+    case LogicalTypeID::TIMESTAMP_SEC:
     case LogicalTypeID::TIMESTAMP:
         return Type::INT64;
     case LogicalTypeID::FLOAT:
@@ -125,13 +129,25 @@ void ParquetWriter::setSchemaProperties(LogicalType* type, SchemaElement& schema
         schemaElement.__isset.type_length = true;
         schemaElement.__isset.converted_type = true;
     } break;
+    case LogicalTypeID::TIMESTAMP_TZ:
+    case LogicalTypeID::TIMESTAMP_NS:
+    case LogicalTypeID::TIMESTAMP_SEC:
     case LogicalTypeID::TIMESTAMP: {
         schemaElement.converted_type = ConvertedType::TIMESTAMP_MICROS;
         schemaElement.__isset.converted_type = true;
         schemaElement.__isset.logicalType = true;
         schemaElement.logicalType.__isset.TIMESTAMP = true;
-        schemaElement.logicalType.TIMESTAMP.isAdjustedToUTC = false;
+        schemaElement.logicalType.TIMESTAMP.isAdjustedToUTC =
+            (type->getLogicalTypeID() == LogicalTypeID::TIMESTAMP_TZ);
         schemaElement.logicalType.TIMESTAMP.unit.__isset.MICROS = true;
+    } break;
+    case LogicalTypeID::TIMESTAMP_MS: {
+        schemaElement.converted_type = ConvertedType::TIMESTAMP_MILLIS;
+        schemaElement.__isset.converted_type = true;
+        schemaElement.__isset.logicalType = true;
+        schemaElement.logicalType.__isset.TIMESTAMP = true;
+        schemaElement.logicalType.TIMESTAMP.isAdjustedToUTC = false;
+        schemaElement.logicalType.TIMESTAMP.unit.__isset.MILLIS = true;
     } break;
     default:
         break;

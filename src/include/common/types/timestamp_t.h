@@ -40,6 +40,19 @@ struct KUZU_API timestamp_t {
     interval_t operator-(const timestamp_t& rhs) const;
 };
 
+struct timestamp_tz_t : public timestamp_t { // NO LINT
+    using timestamp_t::timestamp_t;
+};
+struct timestamp_ns_t : public timestamp_t { // NO LINT
+    using timestamp_t::timestamp_t;
+};
+struct timestamp_ms_t : public timestamp_t { // NO LINT
+    using timestamp_t::timestamp_t;
+};
+struct timestamp_sec_t : public timestamp_t { // NO LINT
+    using timestamp_t::timestamp_t;
+};
+
 // Note: Aside from some minor changes, this implementation is copied from DuckDB's source code:
 // https://github.com/duckdb/duckdb/blob/master/src/include/duckdb/common/types/timestamp.hpp.
 // https://github.com/duckdb/duckdb/blob/master/src/common/types/timestamp.cpp.
@@ -86,12 +99,16 @@ public:
 
     KUZU_API static int64_t getEpochNanoSeconds(const timestamp_t& timestamp);
 
+    KUZU_API static int64_t getEpochMilliSeconds(const timestamp_t& timestamp);
+
+    KUZU_API static int64_t getEpochSeconds(const timestamp_t& timestamp);
+
     KUZU_API static bool tryParseUTCOffset(
         const char* str, uint64_t& pos, uint64_t len, int& hour_offset, int& minute_offset);
 
-private:
-    static std::string getTimestampConversionExceptionMsg(const char* str, uint64_t len) {
-        return "Error occurred during parsing timestamp. Given: \"" + std::string(str, len) +
+    static std::string getTimestampConversionExceptionMsg(
+        const char* str, uint64_t len, const std::string& typeID = "TIMESTAMP") {
+        return "Error occurred during parsing " + typeID + ". Given: \"" + std::string(str, len) +
                "\". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])";
     }
 };

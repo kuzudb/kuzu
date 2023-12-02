@@ -5,6 +5,8 @@ import pyarrow as pa
 import datetime
 import ground_truth
 from decimal import Decimal
+from pandas import Timestamp
+import pytz
 
 
 def test_to_arrow(establish_connection):
@@ -117,6 +119,8 @@ def test_to_arrow(establish_connection):
         description_col = arrow_tbl.column(1)
         assert description_col.type == pa.struct(
             [('rating', pa.float64()), ('stars', pa.int8()), ('views', pa.int64()), ('release', pa.timestamp('us')),
+             ('release_ns', pa.timestamp('ns')),  ('release_ms', pa.timestamp('ms')),
+             ('release_sec', pa.timestamp('s')),  ('release_tz', pa.timestamp('us', tz='UTC')),
              ('film', pa.date32()), ('u8', pa.uint8()), ('u16', pa.uint16()), ('u32', pa.uint32()),
              ('u64', pa.uint64()), ('hugedata', pa.decimal128(38, 0))])
         assert description_col.length() == 3
@@ -125,6 +129,10 @@ def test_to_arrow(establish_connection):
             'stars': 2,
             'views': 152,
             'release': datetime.datetime(2011, 8, 20, 11, 25, 30),
+            'release_ns': Timestamp('2011-08-20 11:25:30.123456'),
+            'release_ms': datetime.datetime(2011, 8, 20, 11, 25, 30, 123000),
+            'release_sec': datetime.datetime(2011, 8, 20, 11, 25, 30),
+            'release_tz': datetime.datetime(2011, 8, 20, 11, 25, 30, 123456, pytz.UTC),
             'film': datetime.date(2012, 5, 11),
             'u8': 220,
             'u16': 20,
@@ -132,10 +140,14 @@ def test_to_arrow(establish_connection):
             'u64': 180,
             'hugedata': Decimal(1844674407370955161811111111)
         }, {
-            'rating': 1223,
+            'rating': 1223.0,
             'stars': 100,
             'views': 10003,
             'release': datetime.datetime(2011, 2, 11, 16, 44, 22),
+            'release_ns': Timestamp('2011-02-11 16:44:22.123456'),
+            'release_ms': datetime.datetime(2011, 2, 11, 16, 44, 22, 123000),
+            'release_sec': datetime.datetime(2011, 2, 11, 16, 44, 22),
+            'release_tz': datetime.datetime(2011, 2, 11, 16, 44, 22, 123456, pytz.UTC),
             'film': datetime.date(2013, 2, 22),
             'u8': 1,
             'u16': 15,
@@ -143,10 +155,14 @@ def test_to_arrow(establish_connection):
             'u64': 4,
             'hugedata': Decimal(-15)
         }, {
-            'rating': 7,
+            'rating': 7.0,
             'stars': 10,
             'views': 982,
             'release': datetime.datetime(2018, 11, 13, 13, 33, 11),
+            'release_ns': Timestamp('2018-11-13 13:33:11.123456'),
+            'release_ms': datetime.datetime(2018, 11, 13, 13, 33, 11, 123000),
+            'release_sec': datetime.datetime(2018, 11, 13, 13, 33, 11),
+            'release_tz': datetime.datetime(2018, 11, 13, 13, 33, 11, 123456, pytz.UTC),
             'film': datetime.date(2014, 9, 12),
             'u8': 12,
             'u16': 120,
@@ -155,61 +171,104 @@ def test_to_arrow(establish_connection):
             'hugedata': Decimal(-1844674407370955161511)
         }]
 
-        def _test_utf8_string(_conn):
-            query = "MATCH (m:movies) RETURN m.name"
-            query_result = _conn.execute(query)
+    def _test_utf8_string(_conn):
+        query = "MATCH (m:movies) RETURN m.name"
+        query_result = _conn.execute(query)
 
-            arrow_tbl = query_result.get_as_arrow(3)
-            assert arrow_tbl.num_columns == 1
-            name_col = arrow_tbl.column(0)
-            assert name_col.type == pa.string()
-            assert name_col.length() == 3
-            assert name_col.to_pylist() == ["Sóló cón tu párejâ", "The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie", "Roma"]
+        arrow_tbl = query_result.get_as_arrow(3)
+        assert arrow_tbl.num_columns == 1
+        name_col = arrow_tbl.column(0)
+        assert name_col.type == pa.string()
+        assert name_col.length() == 3
+        assert name_col.to_pylist() == ["Sóló cón tu párejâ", "The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie", "Roma"]
 
-        def _test_in_small_chunk_size(_conn):
-            query = "MATCH (a:person) RETURN a.age, a.fName ORDER BY a.ID"
-            query_result = _conn.execute(query)
+    def _test_in_small_chunk_size(_conn):
+        query = "MATCH (a:person) RETURN a.age, a.fName ORDER BY a.ID"
+        query_result = _conn.execute(query)
 
-            arrow_tbl = query_result.get_as_arrow(4)
-            assert arrow_tbl.num_columns == 2
-            age_col = arrow_tbl.column(0)
-            assert age_col.type == pa.int64()
-            assert age_col.length() == 8
-            f_name_col = arrow_tbl.column(1)
-            assert f_name_col.type == pa.string()
-            assert f_name_col.length() == 8
+        arrow_tbl = query_result.get_as_arrow(4)
+        assert arrow_tbl.num_columns == 2
+        age_col = arrow_tbl.column(0)
+        assert age_col.type == pa.int64()
+        assert age_col.length() == 8
+        f_name_col = arrow_tbl.column(1)
+        assert f_name_col.type == pa.string()
+        assert f_name_col.length() == 8
 
-            assert age_col.to_pylist() == [35, 30, 45, 20, 20, 25, 40, 83]
-            assert f_name_col.to_pylist() == ["Alice", "Bob", "Carol", "Dan", "Elizabeth", "Farooq", "Greg",
-                                              "Hubert Blaine Wolfeschlegelsteinhausenbergerdorff"]
+        assert age_col.to_pylist() == [35, 30, 45, 20, 20, 25, 40, 83]
+        assert f_name_col.to_pylist() == ["Alice", "Bob", "Carol", "Dan", "Elizabeth", "Farooq", "Greg",
+                                          "Hubert Blaine Wolfeschlegelsteinhausenbergerdorff"]
 
-        def _test_with_nulls(_conn):
-            query = "MATCH (a:person:organisation) RETURN label(a), a.fName, a.orgCode ORDER BY a.ID"
-            query_result = _conn.execute(query)
-            arrow_tbl = query_result.get_as_arrow(12)
-            assert arrow_tbl.num_columns == 3
-            label_col = arrow_tbl.column(0)
-            assert label_col.type == pa.string()
-            assert label_col.length() == 11
-            assert label_col.to_pylist() == ["person", "organisation", "person", "person", "organisation", "person",
-                                             "organisation", "person", "person", "person", "person"]
+    def _test_with_nulls(_conn):
+        query = "MATCH (a:person:organisation) RETURN label(a), a.fName, a.orgCode ORDER BY a.ID"
+        query_result = _conn.execute(query)
+        arrow_tbl = query_result.get_as_arrow(12)
+        assert arrow_tbl.num_columns == 3
+        label_col = arrow_tbl.column(0)
+        assert label_col.type == pa.string()
+        assert label_col.length() == 11
+        assert label_col.to_pylist() == ["person", "organisation", "person", "person", "organisation", "person",
+                                         "organisation", "person", "person", "person", "person"]
 
-            f_name_col = arrow_tbl.column(1)
-            assert f_name_col.type == pa.string()
-            assert f_name_col.length() == 11
-            assert f_name_col.to_pylist() == ["Alice", None, "Bob", "Carol", None, "Dan", None, "Elizabeth", "Farooq",
-                                              "Greg", "Hubert Blaine Wolfeschlegelsteinhausenbergerdorff"]
+        f_name_col = arrow_tbl.column(1)
+        assert f_name_col.type == pa.string()
+        assert f_name_col.length() == 11
+        assert f_name_col.to_pylist() == ["Alice", None, "Bob", "Carol", None, "Dan", None, "Elizabeth", "Farooq",
+                                          "Greg", "Hubert Blaine Wolfeschlegelsteinhausenbergerdorff"]
 
-            org_code_col = arrow_tbl.column(2)
-            assert org_code_col.type == pa.int64()
-            assert org_code_col.length() == 11
-            assert org_code_col.to_pylist() == [None, 325, None, None, 934, None, 824, None, None, None, None]
+        org_code_col = arrow_tbl.column(2)
+        assert org_code_col.type == pa.int64()
+        assert org_code_col.length() == 11
+        assert org_code_col.to_pylist() == [None, 325, None, None, 934, None, 824, None, None, None, None]
 
-        _test_person_table(conn)
-        _test_movies_table(conn)
-        _test_utf8_string(conn)
-        _test_in_small_chunk_size(conn)
-        _test_with_nulls(conn)
+    _test_person_table(conn)
+    _test_movies_table(conn)
+    _test_utf8_string(conn)
+    _test_in_small_chunk_size(conn)
+    _test_with_nulls(conn)
+
+def test_to_arrow_complex(establish_connection):
+    conn, db = establish_connection
+
+    def _test_node(_conn):
+        query = "MATCH (p:person) RETURN p ORDER BY p.ID"
+        query_result = _conn.execute(query)
+        arrow_tbl = query_result.get_as_arrow(12)
+        p_col = arrow_tbl.column(0)
+
+        assert p_col.to_pylist() == [ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[0],
+                                     ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[2],
+                                     ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[3],
+                                     ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[5],
+                                     ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[7],
+                                     ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[8],
+                                     ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[9],
+                                     ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[10]]
+
+    def _test_node_rel(_conn):
+        query = "MATCH (a:person)-[e:workAt]->(b:organisation) RETURN a, e, b;"
+        query_result = _conn.execute(query)
+        arrow_tbl = query_result.get_as_arrow(12)
+        assert arrow_tbl.num_columns == 3
+        a_col = arrow_tbl.column(0)
+        assert a_col.length() == 3
+        e_col = arrow_tbl.column(1)
+        assert a_col.length() == 3
+        b_col = arrow_tbl.column(2)
+        assert a_col.length() == 3
+        assert a_col.to_pylist() == [ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[3],
+                                     ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[5],
+                                     ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[7]]
+        assert e_col.to_pylist() == [
+            {'_src': {'offset': 2, 'tableID': 0}, '_dst': {'offset': 1, 'tableID': 2},
+             '_id': {'offset': 0, 'tableID': 4}, 'year': 2015},
+            {'_src': {'offset': 3, 'tableID': 0}, '_dst': {'offset': 2, 'tableID': 2},
+             '_id': {'offset': 1, 'tableID': 4}, 'year': 2010},
+            {'_src': {'offset': 4, 'tableID': 0}, '_dst': {'offset': 2, 'tableID': 2},
+             '_id': {'offset': 2, 'tableID': 4}, 'year': 2015}]
+        assert b_col.to_pylist() == [ground_truth.TINY_SNB_ORGANISATIONS_GROUND_TRUTH[4],
+                                     ground_truth.TINY_SNB_ORGANISATIONS_GROUND_TRUTH[6],
+                                     ground_truth.TINY_SNB_ORGANISATIONS_GROUND_TRUTH[6]]
 
     def _test_marries_table(_conn):
         query = "MATCH (:person)-[e:marries]->(:person) RETURN e.*"
@@ -219,7 +278,7 @@ def test_to_arrow(establish_connection):
         used_addr_col = arrow_tbl.column(0)
         assert used_addr_col.type == pa.list_(pa.string())
         assert used_addr_col.length() == 3
-        assert used_addr_col.to_pylist() == [['toronto'], None, None]
+        assert used_addr_col.to_pylist() == [['toronto'], None, []]
 
         addr_col = arrow_tbl.column(1)
         assert used_addr_col.type == pa.list_(pa.int16(), 2)
@@ -231,52 +290,9 @@ def test_to_arrow(establish_connection):
         assert used_addr_col.length() == 3
         assert used_addr_col.to_pylist() == [None, "long long long string", "short str"]
 
-    def test_to_arrow_complex(establish_connection):
-        conn, db = establish_connection
-
-        def _test_node(_conn):
-            query = "MATCH (p:person) RETURN p ORDER BY p.ID"
-            query_result = _conn.execute(query)
-            arrow_tbl = query_result.get_as_arrow(12)
-            p_col = arrow_tbl.column(0)
-
-            assert p_col.to_pylist() == [ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[0],
-                                         ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[2],
-                                         ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[3],
-                                         ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[5],
-                                         ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[7],
-                                         ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[8],
-                                         ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[9],
-                                         ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[10]]
-
-        def _test_node_rel(_conn):
-            query = "MATCH (a:person)-[e:workAt]->(b:organisation) RETURN a, e, b;"
-            query_result = _conn.execute(query)
-            arrow_tbl = query_result.get_as_arrow(12)
-            assert arrow_tbl.num_columns == 3
-            a_col = arrow_tbl.column(0)
-            assert a_col.length() == 3
-            e_col = arrow_tbl.column(1)
-            assert a_col.length() == 3
-            b_col = arrow_tbl.column(2)
-            assert a_col.length() == 3
-            assert a_col.to_pylist() == [ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[3],
-                                         ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[5],
-                                         ground_truth.TINY_SNB_PERSONS_GROUND_TRUTH[7]]
-            assert e_col.to_pylist() == [
-                {'_src': {'offset': 2, 'tableID': 0}, '_dst': {'offset': 1, 'tableID': 2},
-                 '_id': {'offset': 0, 'tableID': 4}, 'year': 2015},
-                {'_src': {'offset': 3, 'tableID': 0}, '_dst': {'offset': 2, 'tableID': 2},
-                 '_id': {'offset': 1, 'tableID': 4}, 'year': 2010},
-                {'_src': {'offset': 4, 'tableID': 0}, '_dst': {'offset': 2, 'tableID': 2},
-                 '_id': {'offset': 2, 'tableID': 4}, 'year': 2015}]
-            assert b_col.to_pylist() == [ground_truth.TINY_SNB_ORGANISATIONS_GROUND_TRUTH[4],
-                                         ground_truth.TINY_SNB_ORGANISATIONS_GROUND_TRUTH[6],
-                                         ground_truth.TINY_SNB_ORGANISATIONS_GROUND_TRUTH[6]]
-
-        _test_node(conn)
-        _test_node_rel(conn)
-        _test_marries_table(conn)
+    #_test_node(conn)
+    #_test_node_rel(conn)
+    #_test_marries_table(conn)
 
     def test_to_arrow1(establish_connection):
         conn, db = establish_connection

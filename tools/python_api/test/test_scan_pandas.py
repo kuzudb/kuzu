@@ -3,6 +3,7 @@ import pandas as pd
 import datetime
 import pytest
 import re
+from zoneinfo import ZoneInfo
 
 import kuzu
 
@@ -24,11 +25,35 @@ def test_scan_pandas(get_tmp_path):
                              dtype=np.float32),
         'FLOAT_64': np.array([5132.12321, 24.222, float("nan"), 4.444], dtype=np.float64),
         'datetime_microseconds': np.array([
+            np.datetime64('1996-04-01T12:00:11.500001000'),
+            np.datetime64('1981-11-13T22:02:52.000002000'),
+            np.datetime64('1972-12-21T12:05:44.500003000'),
+            np.datetime64('2008-01-11T22:10:03.000004000')
+        ]).astype('datetime64[us]'),
+        'datetime_microseconds_tz': np.array([
+            np.datetime64('1996-04-01T12:00:11.500001000'),
+            np.datetime64('1981-11-13T22:02:52.000002000'),
+            np.datetime64('1972-12-21T12:05:44.500003000'),
+            np.datetime64('2008-01-11T22:10:03.000004000'),
+        ]).astype('datetime64[us]'),
+        'datetime_nanoseconds': np.array([
             np.datetime64('1996-04-01T12:00:11.500001'),
             np.datetime64('1981-11-13T22:02:52.000002'),
             np.datetime64('1972-12-21T12:05:44.500003'),
             np.datetime64('2008-01-11T22:10:03.000004')
-        ]).astype('datetime64[us]'),
+        ]).astype('datetime64[ns]'),
+        'datetime_milliseconds': np.array([
+            np.datetime64('1996-04-01T12:00:11.500001'),
+            np.datetime64('1981-11-13T22:02:52.000002'),
+            np.datetime64('1972-12-21T12:05:44.500003'),
+            np.datetime64('2008-01-11T22:10:03.000004')
+        ]).astype('datetime64[ms]'),
+        'datetime_seconds': np.array([
+            np.datetime64('1996-04-01T12:00:11'),
+            np.datetime64('1981-11-13T22:02:52'),
+            np.datetime64('1972-12-21T12:05:44'),
+            np.datetime64('2008-01-11T22:10:03')
+        ]).astype('datetime64[s]'),
         'timedelta_nanoseconds': [
             np.timedelta64(500000, 'ns'),
             np.timedelta64(1000000000, 'ns'),
@@ -37,18 +62,35 @@ def test_scan_pandas(get_tmp_path):
         ]
     }
     df = pd.DataFrame(data)
+    df['datetime_microseconds_tz'] = df['datetime_microseconds_tz'].dt.tz_localize("US/Eastern")
     results = conn.execute("CALL READ_PANDAS('df') RETURN *")
     assert results.get_next() == [True, 1, 10, 100, 1000, -1, -10, -100, -1000, -0.5199999809265137, 5132.12321,
                                   datetime.datetime(1996, 4, 1, 12, 0, 11, 500001),
+                                  datetime.datetime(1996, 4, 1, 12, 0, 11, 500001, ZoneInfo("US/Eastern")),
+                                  datetime.datetime(1996, 4, 1, 12, 0, 11, 500001),
+                                  datetime.datetime(1996, 4, 1, 12, 0, 11, 500000),
+                                  datetime.datetime(1996, 4, 1, 12, 0, 11),
                                   datetime.timedelta(microseconds=500)]
     assert results.get_next() == [False, 2, 20, 200, 2000, -2, -20, -200, -2000, None, 24.222,
                                   datetime.datetime(1981, 11, 13, 22, 2, 52, 2),
+                                  datetime.datetime(1981, 11, 13, 22, 2, 52, 2, ZoneInfo("US/Eastern")),
+                                  datetime.datetime(1981, 11, 13, 22, 2, 52, 2),
+                                  datetime.datetime(1981, 11, 13, 22, 2, 52),
+                                  datetime.datetime(1981, 11, 13, 22, 2, 52),
                                   datetime.timedelta(seconds=1)]
     assert results.get_next() == [True, 3, 30, 300, 3000, -3, -30, -300, -3000, -3.299999952316284, None,
                                   datetime.datetime(1972, 12, 21, 12, 5, 44, 500003),
+                                  datetime.datetime(1972, 12, 21, 12, 5, 44, 500003, ZoneInfo("US/Eastern")),
+                                  datetime.datetime(1972, 12, 21, 12, 5, 44, 500003),
+                                  datetime.datetime(1972, 12, 21, 12, 5, 44, 500000),
+                                  datetime.datetime(1972, 12, 21, 12, 5, 44),
                                   datetime.timedelta(seconds=2, milliseconds=500)]
     assert results.get_next() == [False, 4, 40, 400, 4000, -4, -40, -400, -4000, 4.400000095367432, 4.444,
                                   datetime.datetime(2008, 1, 11, 22, 10, 3, 4),
+                                  datetime.datetime(2008, 1, 11, 22, 10, 3, 4, ZoneInfo("US/Eastern")),
+                                  datetime.datetime(2008, 1, 11, 22, 10, 3, 4),
+                                  datetime.datetime(2008, 1, 11, 22, 10, 3),
+                                  datetime.datetime(2008, 1, 11, 22, 10, 3),
                                   datetime.timedelta(seconds=3, milliseconds=22)]
 
 

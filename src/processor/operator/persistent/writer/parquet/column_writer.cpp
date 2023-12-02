@@ -32,6 +32,20 @@ struct ParquetInt128Operator {
     static void handleStats(ColumnWriterStatistics* stats, SRC source, TGT target) {}
 };
 
+struct ParquetTimestampNSOperator : public BaseParquetOperator {
+    template<class SRC, class TGT>
+    static TGT Operation(SRC input) {
+        return Timestamp::fromEpochNanoSeconds(input).value;
+    }
+};
+
+struct ParquetTimestampSOperator : public BaseParquetOperator {
+    template<class SRC, class TGT>
+    static TGT Operation(SRC input) {
+        return Timestamp::fromEpochSeconds(input).value;
+    }
+};
+
 ColumnWriter::ColumnWriter(ParquetWriter& writer, uint64_t schemaIdx,
     std::vector<std::string> schemaPath, uint64_t maxRepeat, uint64_t maxDefine, bool canHaveNulls)
     : writer{writer}, schemaIdx{schemaIdx}, schemaPath{std::move(schemaPath)}, maxRepeat{maxRepeat},
@@ -187,11 +201,21 @@ std::unique_ptr<ColumnWriter> ColumnWriter::createWriterRecursive(
             return std::make_unique<StandardColumnWriter<int32_t, int32_t>>(writer, schemaIdx,
                 std::move(schemaPathToCreate), maxRepeatToCreate, maxDefineToCreate,
                 canHaveNullsToCreate);
+        case LogicalTypeID::TIMESTAMP_TZ:
+        case LogicalTypeID::TIMESTAMP_MS:
         case LogicalTypeID::TIMESTAMP:
         case LogicalTypeID::INT64:
             return std::make_unique<StandardColumnWriter<int64_t, int64_t>>(writer, schemaIdx,
                 std::move(schemaPathToCreate), maxRepeatToCreate, maxDefineToCreate,
                 canHaveNullsToCreate);
+        case LogicalTypeID::TIMESTAMP_NS:
+            return make_unique<StandardColumnWriter<int64_t, int64_t, ParquetTimestampNSOperator>>(
+                writer, schemaIdx, std::move(schemaPathToCreate), maxRepeatToCreate,
+                maxDefineToCreate, canHaveNullsToCreate);
+        case LogicalTypeID::TIMESTAMP_SEC:
+            return make_unique<StandardColumnWriter<int64_t, int64_t, ParquetTimestampSOperator>>(
+                writer, schemaIdx, std::move(schemaPathToCreate), maxRepeatToCreate,
+                maxDefineToCreate, canHaveNullsToCreate);
         case LogicalTypeID::INT128:
             return std::make_unique<StandardColumnWriter<int128_t, double, ParquetInt128Operator>>(
                 writer, schemaIdx, std::move(schemaPathToCreate), maxRepeatToCreate,

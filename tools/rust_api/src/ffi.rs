@@ -32,10 +32,14 @@ pub(crate) mod ffi {
         FLOAT = 33,
         DATE = 34,
         TIMESTAMP = 35,
-        INTERVAL = 36,
-        FIXED_LIST = 37,
+        TIMESTAMP_SEC = 36,
+        TIMESTAMP_MS = 37,
+        TIMESTAMP_NS = 38,
+        TIMESTAMP_TZ = 39,
+        INTERVAL = 40,
+        FIXED_LIST = 41,
 
-        INTERNAL_ID = 40,
+        INTERNAL_ID = 42,
 
         // variable size types
         STRING = 50,
@@ -258,6 +262,10 @@ pub(crate) mod ffi {
         fn value_get_interval_secs(value: &Value) -> i64;
         fn value_get_interval_micros(value: &Value) -> i32;
         fn value_get_timestamp_micros(value: &Value) -> i64;
+        fn value_get_timestamp_ns(value: &Value) -> i64;
+        fn value_get_timestamp_ms(value: &Value) -> i64;
+        fn value_get_timestamp_sec(value: &Value) -> i64;
+        fn value_get_timestamp_tz(value: &Value) -> i64;
         fn value_get_date_days(value: &Value) -> i32;
         fn value_get_int128_t(value: &Value) -> [u64; 2];
         fn value_get_internal_id(value: &Value) -> [u64; 2];
@@ -296,6 +304,10 @@ pub(crate) mod ffi {
         fn create_value_null(typ: UniquePtr<LogicalType>) -> UniquePtr<Value>;
         fn create_value_string(typ: LogicalTypeID, value: &[u8]) -> UniquePtr<Value>;
         fn create_value_timestamp(value: i64) -> UniquePtr<Value>;
+        fn create_value_timestamp_tz(value: i64) -> UniquePtr<Value>;
+        fn create_value_timestamp_ns(value: i64) -> UniquePtr<Value>;
+        fn create_value_timestamp_ms(value: i64) -> UniquePtr<Value>;
+        fn create_value_timestamp_sec(value: i64) -> UniquePtr<Value>;
         fn create_value_date(value: i64) -> UniquePtr<Value>;
         fn create_value_interval(months: i32, days: i32, micros: i64) -> UniquePtr<Value>;
         fn create_value_int128_t(high: i64, low: u64) -> UniquePtr<Value>;

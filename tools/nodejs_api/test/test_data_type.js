@@ -235,6 +235,78 @@ describe("TIMESTAMP", function () {
   });
 });
 
+describe("TIMESTAMP_TZ", function () {
+  it("should convert TIMESTAMP_TZ type", async function () {
+    const queryResult = await conn.query(
+        "MATCH (a:movies) WHERE a.length = 126 RETURN a.description;"
+    );
+    const result = await queryResult.getAll();
+    assert.equal(result.length, 1);
+    assert.equal(Object.keys(result[0]).length, 1);
+    assert.isTrue("a.description" in result[0]);
+    assert.isTrue("release_tz" in result[0]["a.description"]);
+    assert.equal(typeof result[0]["a.description"]["release_tz"], "object");
+    assert.equal(
+        Number(result[0]["a.description"]["release_tz"].getTime()),
+        Number(new Date("2011-08-20 11:25:30.123Z"))
+    );
+  });
+});
+
+describe("TIMESTAMP_NS", function () {
+  it("should convert TIMESTAMP_NS type", async function () {
+    const queryResult = await conn.query(
+        "MATCH (a:movies) WHERE a.length = 126 RETURN a.description;"
+    );
+    const result = await queryResult.getAll();
+    assert.equal(result.length, 1);
+    assert.equal(Object.keys(result[0]).length, 1);
+    assert.isTrue("a.description" in result[0]);
+    assert.isTrue("release_ns" in result[0]["a.description"]);
+    assert.equal(typeof result[0]["a.description"]["release_ns"], "object");
+    assert.equal(
+        Number(result[0]["a.description"]["release_ns"].getTime()),
+        Number(new Date("2011-08-20 11:25:30.123Z"))
+    );
+  });
+});
+
+describe("TIMESTAMP_MS", function () {
+  it("should convert TIMESTAMP_MS type", async function () {
+    const queryResult = await conn.query(
+        "MATCH (a:movies) WHERE a.length = 126 RETURN a.description;"
+    );
+    const result = await queryResult.getAll();
+    assert.equal(result.length, 1);
+    assert.equal(Object.keys(result[0]).length, 1);
+    assert.isTrue("a.description" in result[0]);
+    assert.isTrue("release_ms" in result[0]["a.description"]);
+    assert.equal(typeof result[0]["a.description"]["release_ms"], "object");
+    assert.equal(
+        Number(result[0]["a.description"]["release_ms"].getTime()),
+        Number(new Date("2011-08-20 11:25:30.123Z"))
+    );
+  });
+});
+
+describe("TIMESTAMP_SEC", function () {
+  it("should convert TIMESTAMP_SEC type", async function () {
+    const queryResult = await conn.query(
+        "MATCH (a:movies) WHERE a.length = 126 RETURN a.description;"
+    );
+    const result = await queryResult.getAll();
+    assert.equal(result.length, 1);
+    assert.equal(Object.keys(result[0]).length, 1);
+    assert.isTrue("a.description" in result[0]);
+    assert.isTrue("release_sec" in result[0]["a.description"]);
+    assert.equal(typeof result[0]["a.description"]["release_sec"], "object");
+    assert.equal(
+        Number(result[0]["a.description"]["release_sec"].getTime()),
+        Number(new Date("2011-08-20 11:25:30Z"))
+    );
+  });
+});
+
 describe("INTERVAL", function () {
   it("should convert INTERVAL type", async function () {
     const queryResult = await conn.query(

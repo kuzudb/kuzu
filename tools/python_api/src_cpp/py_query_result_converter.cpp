@@ -54,11 +54,22 @@ void NPArrayWrapper::appendElement(Value* value) {
         } break;
         case LogicalTypeID::DATE: {
             ((int64_t*)dataBuffer)[numElements] =
-                Date::getEpochNanoSeconds(value->getValue<date_t>());
+                Date::getEpochNanoSeconds(value->getValue<date_t>()) / Interval::NANOS_PER_MICRO;
         } break;
         case LogicalTypeID::TIMESTAMP: {
-            ((int64_t*)dataBuffer)[numElements] =
-                Timestamp::getEpochNanoSeconds(value->getValue<timestamp_t>());
+            ((int64_t*)dataBuffer)[numElements] = value->getValue<timestamp_t>().value;
+        } break;
+        case LogicalTypeID::TIMESTAMP_TZ: {
+            ((int64_t*)dataBuffer)[numElements] = value->getValue<timestamp_tz_t>().value;
+        } break;
+        case LogicalTypeID::TIMESTAMP_NS: {
+            ((int64_t*)dataBuffer)[numElements] = value->getValue<timestamp_ns_t>().value;
+        } break;
+        case LogicalTypeID::TIMESTAMP_MS: {
+            ((int64_t*)dataBuffer)[numElements] = value->getValue<timestamp_ms_t>().value;
+        } break;
+        case LogicalTypeID::TIMESTAMP_SEC: {
+            ((int64_t*)dataBuffer)[numElements] = value->getValue<timestamp_sec_t>().value;
         } break;
         case LogicalTypeID::INTERVAL: {
             ((int64_t*)dataBuffer)[numElements] =
@@ -134,17 +145,24 @@ py::dtype NPArrayWrapper::convertToArrayType(const LogicalType& type) {
     } break;
     case LogicalTypeID::BOOL: {
         dtype = "bool";
-        break;
-    }
+    } break;
     case LogicalTypeID::DATE:
+    case LogicalTypeID::TIMESTAMP_TZ:
     case LogicalTypeID::TIMESTAMP: {
+        dtype = "datetime64[us]";
+    } break;
+    case LogicalTypeID::TIMESTAMP_NS: {
         dtype = "datetime64[ns]";
-        break;
-    }
+    } break;
+	case LogicalTypeID::TIMESTAMP_MS: {
+		dtype = "datetime64[ms]";
+    } break;
+	case LogicalTypeID::TIMESTAMP_SEC: {
+		dtype = "datetime64[s]"; 
+    } break;
     case LogicalTypeID::INTERVAL: {
         dtype = "timedelta64[ns]";
-        break;
-    }
+    } break;
     case LogicalTypeID::UNION:
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRUCT:
@@ -156,8 +174,7 @@ py::dtype NPArrayWrapper::convertToArrayType(const LogicalType& type) {
     case LogicalTypeID::MAP:
     case LogicalTypeID::RECURSIVE_REL: {
         dtype = "object";
-        break;
-    }
+    } break;
     default: {
         KU_UNREACHABLE;
     }

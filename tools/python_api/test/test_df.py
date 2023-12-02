@@ -1,4 +1,5 @@
 import datetime
+import pytz
 import math
 import sys
 from decimal import Decimal
@@ -28,14 +29,14 @@ def test_to_df(establish_connection):
                                               Timestamp('1940-06-22'), Timestamp('1950-07-23 '),
                                               Timestamp('1980-10-26'), Timestamp('1980-10-26'),
                                               Timestamp('1980-10-26'), Timestamp('1990-11-27')]
-        assert str(pd['p.birthdate'].dtype) == "datetime64[ns]"
+        assert str(pd['p.birthdate'].dtype) == "datetime64[us]"
         assert pd['p.registerTime'].tolist() == [Timestamp('2011-08-20 11:25:30'),
                                                  Timestamp('2008-11-03 15:25:30.000526'),
                                                  Timestamp('1911-08-20 02:32:21'), Timestamp('2031-11-30 12:25:30'),
                                                  Timestamp('1976-12-23 11:21:42'),
                                                  Timestamp('1972-07-31 13:22:30.678559'),
                                                  Timestamp('1976-12-23 04:41:42'), Timestamp('2023-02-21 13:25:30')]
-        assert str(pd['p.registerTime'].dtype) == "datetime64[ns]"
+        assert str(pd['p.registerTime'].dtype) == "datetime64[us]"
         assert pd['p.lastJobDuration'].tolist() == [Timedelta('1082 days 13:02:00'),
                                                     Timedelta('3750 days 13:00:00.000024'),
                                                     Timedelta('2 days 00:24:11'),
@@ -87,6 +88,16 @@ def test_to_df(establish_connection):
         assert pd['r.hugedata'].tolist() == [1.8446744073709552e+27, -15.0, -1.8446744073709552e+21]
         assert str(pd['r.hugedata'].dtype) == "float64"
 
+    def _test_timestamps_to_df(conn):
+        query = ("RETURN cast(\"2012-01-01 11:12:12.12345\", \"TIMESTAMP_NS\") as A, cast(\"2012-01-01 11:12:12.12345\", "
+                 "\"TIMESTAMP_MS\") as B, cast(\"2012-01-01 11:12:12.12345\", \"TIMESTAMP_SEC\") as C, "
+                 "cast(\"2012-01-01 11:12:12.12345\", \"TIMESTAMP_TZ\") as D")
+        pd = conn.execute(query).get_as_df()
+        assert pd['A'].tolist() == [Timestamp('2012-01-01 11:12:12.123450')]
+        assert pd['B'].tolist() == [Timestamp('2012-01-01 11:12:12.123000')]
+        assert pd['C'].tolist() == [Timestamp('2012-01-01 11:12:12')]
+        assert pd['D'].tolist() == [Timestamp('2012-01-01 11:12:12.123450')]
+
     def _test_movies_to_df(conn):
         query = "MATCH (m:movies) return m.* order by m.length;"
         pd = conn.execute(query).get_as_df()
@@ -94,15 +105,30 @@ def test_to_df(establish_connection):
         assert str(pd['m.length'].dtype) == "int32"
         assert pd['m.description'].tolist() == [{'rating': 5.3, 'stars': 2, 'views': 152,
                                                  'release': datetime.datetime(2011, 8, 20, 11, 25, 30),
+                                                 'release_ns': datetime.datetime(2011, 8, 20, 11, 25, 30, 123456),
+                                                 'release_ms': datetime.datetime(2011, 8, 20, 11, 25, 30, 123000),
+                                                 'release_sec': datetime.datetime(2011, 8, 20, 11, 25, 30),
+                                                 'release_tz': datetime.datetime(2011, 8, 20, 11, 25, 30, 123456,
+                                                                                 pytz.UTC),
                                                  'film': datetime.date(2012, 5, 11), 'u8': 220, 'u16': 20, 'u32': 1,
                                                  'u64': 180, 'hugedata': Decimal('1844674407370955161811111111')},
                                                 {'rating': 1223.0, 'stars': 100, 'views': 10003,
                                                  'release': datetime.datetime(2011, 2, 11, 16, 44, 22),
+                                                 'release_ns': datetime.datetime(2011, 2, 11, 16, 44, 22, 123456),
+                                                 'release_ms': datetime.datetime(2011, 2, 11, 16, 44, 22, 123000),
+                                                 'release_sec': datetime.datetime(2011, 2, 11, 16, 44, 22),
+                                                 'release_tz': datetime.datetime(2011, 2, 11, 16, 44, 22, 123456,
+                                                                                 pytz.UTC),
                                                  'film': datetime.date(2013, 2, 22), 'u8': 1, 'u16': 15,
                                                  'u32': 200,
                                                  'u64': 4, 'hugedata': Decimal(-15)},
                                                 {'rating': 7.0, 'stars': 10, 'views': 982,
                                                  'release': datetime.datetime(2018, 11, 13, 13, 33, 11),
+                                                 'release_ns': datetime.datetime(2018, 11, 13, 13, 33, 11, 123456),
+                                                 'release_ms': datetime.datetime(2018, 11, 13, 13, 33, 11, 123000),
+                                                 'release_sec': datetime.datetime(2018, 11, 13, 13, 33, 11),
+                                                 'release_tz': datetime.datetime(2018, 11, 13, 13, 33, 11, 123456,
+                                                                                 pytz.UTC),
                                                  'film': datetime.date(2014, 9, 12), 'u8': 12,
                                                  'u16': 120, 'u32': 55,
                                                  'u64': 1, 'hugedata': Decimal(-1844674407370955161511)}]
@@ -118,7 +144,7 @@ def test_to_df(establish_connection):
     conn.set_max_threads_for_exec(2)
     _test_study_at_to_df(conn)
     _test_movies_to_df(conn)
-
+    _test_timestamps_to_df(conn)
 
 def test_df_multiple_times(establish_connection):
     conn, _ = establish_connection

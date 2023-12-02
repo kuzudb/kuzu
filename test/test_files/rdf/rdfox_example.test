@@ -56,16 +56,17 @@ Brian
         to_int64(s.iri) + 1, to_int32(s.iri), to_int16(s.iri), to_int8(s.iri) * 2,
         to_uint64(s.iri), to_uint32(s.iri), to_uint16(s.iri), to_uint8(s.iri),
         to_double(s.iri), to_float(s.iri), to_bool(s.iri), to_blob(s.iri),
-        date(s.iri), timestamp(s.iri), interval(s.iri), to_string(s.iri)
+        date(s.iri), timestamp(s.iri), cast(s.iri, "TIMESTAMP_NS"), cast(s.iri, "TIMESTAMP_MS"),
+        cast(s.iri, "TIMESTAMP_SEC"), cast(s.iri, "TIMESTAMP_TZ"), interval(s.iri), to_string(s.iri)
         ORDER BY s.id LIMIT 6;
 -CHECK_ORDER
 ---- 6
-12|13|12|12|24|12|12|12|12|12.000000|12.000000||||||12
--14.900000|-14|-15|-15|-30|||||-14.900000|-14.900000||||||-14.900000
-True|||||||||||True|||||True
-0.016630|1|0|0|0|0|0|0|0|0.016630|0.016630||||||0.016630
-1999-08-16|||||||||||||1999-08-16|||1999-08-16
-Peter||||||||||||||||Peter
+12|13|12|12|24|12|12|12|12|12.000000|12.000000||||||||||12
+-14.900000|-14|-15|-15|-30|||||-14.900000|-14.900000||||||||||-14.900000
+True|||||||||||True|||||||||True
+0.016630|1|0|0|0|0|0|0|0|0.016630|0.016630||||||||||0.016630
+1999-08-16|||||||||||||1999-08-16|||||||1999-08-16
+Peter||||||||||||||||||||Peter
 
 -STATEMENT MATCH (s:example_literal_t) RETURN s.iri +1, s.iri * 2, s.iri * 2.0, s.iri = true, dayname(s.iri), concat(s.iri, 'a')
         ORDER BY s.id LIMIT 6;

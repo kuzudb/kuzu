@@ -136,3 +136,9 @@ Conversion exception: Cast failed. [Aida] is not in INT64 range.
             RETURN a, b, fname;
 ---- 1
 3|4|Carol
+-STATEMENT LOAD WITH HEADERS (ns timestamp_ns, ms timestamp_ms, sec timestamp_sec, tz timestamp_tz, u1 union(p1 INT64, p2 TIMESTAMP_NS), u2 union(p1 INT64, p2 TIMESTAMP_MS), u3 union(p1 INT64, p2 TIMESTAMP_SEC), u4 union(p1 INT64, p2 TIMESTAMP_TZ))
+           FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/timestamp/timestamp.csv" RETURN *;
+---- 3
+1972-07-31 13:22:30.342312|1972-07-31 13:22:30.342|1972-07-31 13:22:30|1972-07-31 13:22:30.342312+00|1972-07-31 13:22:30.342312|1972-07-31 13:22:30.342|1972-07-31 13:22:30|1972-07-31 13:22:30.342312+00
+|||||||
+1972-07-31 13:22:30|1972-07-31 13:22:30|1972-07-31 13:22:30|1972-07-31 13:22:30+00|1972-07-31 13:22:30|1972-07-31 13:22:30|1972-07-31 13:22:30|1972-07-31 13:22:30+00

@@ -127,7 +127,11 @@ std::unique_ptr<T> value_get_unique(const kuzu::common::Value& value) {
 int64_t value_get_interval_secs(const kuzu::common::Value& value);
 int32_t value_get_interval_micros(const kuzu::common::Value& value);
 int32_t value_get_date_days(const kuzu::common::Value& value);
+int64_t value_get_timestamp_ns(const kuzu::common::Value& value);
+int64_t value_get_timestamp_ms(const kuzu::common::Value& value);
+int64_t value_get_timestamp_sec(const kuzu::common::Value& value);
 int64_t value_get_timestamp_micros(const kuzu::common::Value& value);
+int64_t value_get_timestamp_tz(const kuzu::common::Value& value);
 std::array<uint64_t, 2> value_get_int128_t(const kuzu::common::Value& value);
 std::array<uint64_t, 2> value_get_internal_id(const kuzu::common::Value& value);
 uint32_t value_get_children_size(const kuzu::common::Value& value);
@@ -139,6 +143,10 @@ rust::String value_to_string(const kuzu::common::Value& val);
 std::unique_ptr<kuzu::common::Value> create_value_string(
     kuzu::common::LogicalTypeID typ, const rust::Slice<const unsigned char> value);
 std::unique_ptr<kuzu::common::Value> create_value_timestamp(const int64_t timestamp);
+std::unique_ptr<kuzu::common::Value> create_value_timestamp_tz(const int64_t timestamp);
+std::unique_ptr<kuzu::common::Value> create_value_timestamp_ns(const int64_t timestamp);
+std::unique_ptr<kuzu::common::Value> create_value_timestamp_ms(const int64_t timestamp);
+std::unique_ptr<kuzu::common::Value> create_value_timestamp_sec(const int64_t timestamp);
 std::unique_ptr<kuzu::common::Value> create_value_date(const int64_t date);
 std::unique_ptr<kuzu::common::Value> create_value_interval(
     const int32_t months, const int32_t days, const int64_t micros);

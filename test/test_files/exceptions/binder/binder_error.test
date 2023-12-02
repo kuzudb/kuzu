@@ -256,6 +256,23 @@ Binder exception: Read after update is not supported. Try query with multiple st
 ---- error
 Binder exception: Expression hh has data type STRING but expected INT64. Implicit cast is not supported.
 
+-LOG TimestampMisMatch
+-STATEMENT MATCH (a:person) SET a.age = CAST("2019-01-01", "TIMESTAMP")
+---- error
+Binder exception: Expression CAST(2019-01-01, TIMESTAMP) has data type TIMESTAMP but expected INT64. Implicit cast is not supported.
+-STATEMENT MATCH (a:person) SET a.age = CAST("2019-01-01", "TIMESTAMP_TZ")
+---- error
+Binder exception: Expression CAST(2019-01-01, TIMESTAMP_TZ) has data type TIMESTAMP_TZ but expected INT64. Implicit cast is not supported.
+-STATEMENT MATCH (a:person) SET a.age = CAST("2019-01-01", "TIMESTAMP_NS")
+---- error
+Binder exception: Expression CAST(2019-01-01, TIMESTAMP_NS) has data type TIMESTAMP_NS but expected INT64. Implicit cast is not supported.
+-STATEMENT MATCH (a:person) SET a.age = CAST("2019-01-01", "TIMESTAMP_MS")
+---- error
+Binder exception: Expression CAST(2019-01-01, TIMESTAMP_MS) has data type TIMESTAMP_MS but expected INT64. Implicit cast is not supported.
+-STATEMENT MATCH (a:person) SET a.age = CAST("2019-01-01", "TIMESTAMP_SEC")
+---- error
+Binder exception: Expression CAST(2019-01-01, TIMESTAMP_SEC) has data type TIMESTAMP_SEC but expected INT64. Implicit cast is not supported.
+
 -LOG CreateNodeDataTypeMisMatch
 -STATEMENT CREATE (a:person {age:'hh'})
 ---- error
@@ -409,6 +426,14 @@ DISTINCT (DATE) -> DATE
 (DATE) -> DATE
 DISTINCT (TIMESTAMP) -> TIMESTAMP
 (TIMESTAMP) -> TIMESTAMP
+DISTINCT (TIMESTAMP_NS) -> TIMESTAMP_NS
+(TIMESTAMP_NS) -> TIMESTAMP_NS
+DISTINCT (TIMESTAMP_MS) -> TIMESTAMP_MS
+(TIMESTAMP_MS) -> TIMESTAMP_MS
+DISTINCT (TIMESTAMP_SEC) -> TIMESTAMP_SEC
+(TIMESTAMP_SEC) -> TIMESTAMP_SEC
+DISTINCT (TIMESTAMP_TZ) -> TIMESTAMP_TZ
+(TIMESTAMP_TZ) -> TIMESTAMP_TZ
 DISTINCT (INTERVAL) -> INTERVAL
 (INTERVAL) -> INTERVAL
 DISTINCT (BLOB) -> BLOB
@@ -566,3 +591,53 @@ Binder exception: Invalid number of arguments for given function CAST. Expected:
 -STATEMENT RETURN cast("[sdf, fsd, fad]");
 ---- error
 Binder exception: Invalid number of arguments for given function CAST. Expected: 2, Actual: 1.
+
+-LOG InvalidImplicitCast
+-STATEMENT RETURN timestamp("2019-11-21") + "ok";
+---- error
+Binder exception: Cannot match a built-in function for given function +(TIMESTAMP,STRING). Supported inputs are
+(INT64,INT64) -> INT64
+(INT32,INT32) -> INT32
+(INT16,INT16) -> INT16
+(INT8,INT8) -> INT8
+(UINT64,UINT64) -> UINT64
+(UINT32,UINT32) -> UINT32
+(UINT16,UINT16) -> UINT16
+(UINT8,UINT8) -> UINT8
+(INT128,INT128) -> INT128
+(DOUBLE,DOUBLE) -> DOUBLE
+(FLOAT,FLOAT) -> FLOAT
+(SERIAL,SERIAL) -> SERIAL
+(VAR_LIST,VAR_LIST) -> VAR_LIST
+(STRING,STRING) -> STRING
+(INTERVAL,INTERVAL) -> INTERVAL
+(DATE,INT64) -> DATE
+(INT64,DATE) -> DATE
+(DATE,INTERVAL) -> DATE
+(INTERVAL,DATE) -> DATE
+(TIMESTAMP,INTERVAL) -> TIMESTAMP
+(INTERVAL,TIMESTAMP) -> TIMESTAMP
+-STATEMENT RETURN cast("2019-11-21", "TIMESTAMP_MS") + "ok";
+---- error
+Binder exception: Cannot match a built-in function for given function +(TIMESTAMP_MS,STRING). Supported inputs are
+(INT64,INT64) -> INT64
+(INT32,INT32) -> INT32
+(INT16,INT16) -> INT16
+(INT8,INT8) -> INT8
+(UINT64,UINT64) -> UINT64
+(UINT32,UINT32) -> UINT32
+(UINT16,UINT16) -> UINT16
+(UINT8,UINT8) -> UINT8
+(INT128,INT128) -> INT128
+(DOUBLE,DOUBLE) -> DOUBLE
+(FLOAT,FLOAT) -> FLOAT
+(SERIAL,SERIAL) -> SERIAL
+(VAR_LIST,VAR_LIST) -> VAR_LIST
+(STRING,STRING) -> STRING
+(INTERVAL,INTERVAL) -> INTERVAL
+(DATE,INT64) -> DATE
+(INT64,DATE) -> DATE
+(DATE,INTERVAL) -> DATE
+(INTERVAL,DATE) -> DATE
+(TIMESTAMP,INTERVAL) -> TIMESTAMP
+(INTERVAL,TIMESTAMP) -> TIMESTAMP

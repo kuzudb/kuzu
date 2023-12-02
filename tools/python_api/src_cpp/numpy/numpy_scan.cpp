@@ -83,16 +83,15 @@ void NumpyScan::scan(PandasColumnBindData* bindData, uint64_t count, uint64_t of
         ScanNumpyFpColumn<double>(
             reinterpret_cast<const double*>(array.data()), count, offset, outputVector);
         break;
+    case NumpyNullableType::DATETIME_S:
+    case NumpyNullableType::DATETIME_MS:
     case NumpyNullableType::DATETIME_NS:
     case NumpyNullableType::DATETIME_US: {
         auto sourceData = reinterpret_cast<const int64_t*>(array.data());
         auto dstData = reinterpret_cast<timestamp_t*>(outputVector->getData());
-        auto timestampCastFunc = bindData->npType.type == NumpyNullableType::DATETIME_NS ?
-                                     Timestamp::fromEpochNanoSeconds :
-                                     Timestamp::fromEpochMicroSeconds;
         for (auto i = 0u; i < count; i++) {
             auto pos = offset + i;
-            dstData[i] = timestampCastFunc(sourceData[pos]);
+            dstData[i].value = sourceData[pos];
             outputVector->setNull(i, false /* isNull */);
         }
         break;

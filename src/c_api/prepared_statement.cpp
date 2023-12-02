@@ -118,6 +118,30 @@ void kuzu_prepared_statement_bind_date(
     kuzu_prepared_statement_bind_cpp_value(prepared_statement, param_name, std::move(value_ptr));
 }
 
+void kuzu_prepared_statement_bind_timestamp_ns(kuzu_prepared_statement* prepared_statement,
+    const char* param_name, kuzu_timestamp_ns_t value) {
+    auto value_ptr = std::make_unique<Value>(timestamp_ns_t(value.value));
+    kuzu_prepared_statement_bind_cpp_value(prepared_statement, param_name, std::move(value_ptr));
+}
+
+void kuzu_prepared_statement_bind_timestamp_ms(kuzu_prepared_statement* prepared_statement,
+    const char* param_name, kuzu_timestamp_ms_t value) {
+    auto value_ptr = std::make_unique<Value>(timestamp_ms_t(value.value));
+    kuzu_prepared_statement_bind_cpp_value(prepared_statement, param_name, std::move(value_ptr));
+}
+
+void kuzu_prepared_statement_bind_timestamp_sec(kuzu_prepared_statement* prepared_statement,
+    const char* param_name, kuzu_timestamp_sec_t value) {
+    auto value_ptr = std::make_unique<Value>(timestamp_sec_t(value.value));
+    kuzu_prepared_statement_bind_cpp_value(prepared_statement, param_name, std::move(value_ptr));
+}
+
+void kuzu_prepared_statement_bind_timestamp_tz(kuzu_prepared_statement* prepared_statement,
+    const char* param_name, kuzu_timestamp_tz_t value) {
+    auto value_ptr = std::make_unique<Value>(timestamp_tz_t(value.value));
+    kuzu_prepared_statement_bind_cpp_value(prepared_statement, param_name, std::move(value_ptr));
+}
+
 void kuzu_prepared_statement_bind_timestamp(
     kuzu_prepared_statement* prepared_statement, const char* param_name, kuzu_timestamp_t value) {
     auto value_ptr = std::make_unique<Value>(timestamp_t(value.value));

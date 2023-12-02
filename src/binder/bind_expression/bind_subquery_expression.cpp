@@ -2,6 +2,7 @@
 #include "binder/expression/function_expression.h"
 #include "binder/expression/subquery_expression.h"
 #include "binder/expression_binder.h"
+#include "common/types/value/value.h"
 #include "parser/expression/parsed_subquery_expression.h"
 
 using namespace kuzu::parser;

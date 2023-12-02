@@ -333,5 +333,13 @@ int64_t Timestamp::getEpochNanoSeconds(const timestamp_t& timestamp) {
     return result;
 }
 
+int64_t Timestamp::getEpochMilliSeconds(const timestamp_t& timestamp) {
+    return timestamp.value / Interval::MICROS_PER_MSEC;
+}
+
+int64_t Timestamp::getEpochSeconds(const timestamp_t& timestamp) {
+    return timestamp.value / Interval::MICROS_PER_SEC;
+}
+
 } // namespace common
 } // namespace kuzu

@@ -1,12 +1,10 @@
 #include "function/cast/functions/cast_string_non_nested_functions.h"
 
-#include "common/string_format.h"
-
 namespace kuzu {
 namespace function {
 
 bool tryCastToBool(const char* input, uint64_t len, bool& result) {
-    common::StringUtils::removeCStringWhiteSpaces(input, len);
+    StringUtils::removeCStringWhiteSpaces(input, len);
 
     switch (len) {
     case 1: {
@@ -50,9 +48,39 @@ bool tryCastToBool(const char* input, uint64_t len, bool& result) {
 
 void castStringToBool(const char* input, uint64_t len, bool& result) {
     if (!tryCastToBool(input, len, result)) {
-        throw common::ConversionException{
-            common::stringFormat("Value {} is not a valid boolean", std::string{input, len})};
+        throw ConversionException{
+            stringFormat("Value {} is not a valid boolean", std::string{input, len})};
     }
+}
+
+template<>
+bool TryCastStringToTimestamp::tryCast<timestamp_ns_t>(
+    const char* input, uint64_t len, timestamp_t& result) {
+    if (!Timestamp::tryConvertTimestamp(input, len, result)) {
+        return false;
+    }
+    result = Timestamp::getEpochNanoSeconds(result);
+    return true;
+}
+
+template<>
+bool TryCastStringToTimestamp::tryCast<timestamp_ms_t>(
+    const char* input, uint64_t len, timestamp_t& result) {
+    if (!Timestamp::tryConvertTimestamp(input, len, result)) {
+        return false;
+    }
+    result = Timestamp::getEpochMilliSeconds(result);
+    return true;
+}
+
+template<>
+bool TryCastStringToTimestamp::tryCast<timestamp_sec_t>(
+    const char* input, uint64_t len, timestamp_t& result) {
+    if (!Timestamp::tryConvertTimestamp(input, len, result)) {
+        return false;
+    }
+    result = Timestamp::getEpochSeconds(result);
+    return true;
 }
 
 } // namespace function

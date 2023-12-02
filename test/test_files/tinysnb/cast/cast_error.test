@@ -28,6 +28,11 @@ Conversion exception: Cast failed. 2147483648 is not in INT32 range.
 ---- error
 Conversion exception: Cast failed. 2147483648 is not in INT32 range.
 
+-LOG CastStringToDoubleError
+-STATEMENT return cast("fsdasrwer", "DOUBLE");
+---- error
+Conversion exception: Cast failed. fsdasrwer is not in DOUBLE range.
+
 -LOG CastUint32ToInt32OutOfRange
 -STATEMENT return to_int32(to_uint32(4294967295));
 ---- error
