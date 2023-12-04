@@ -144,16 +144,16 @@ std::unique_ptr<ArrowVector> ArrowRowBatch::createVector(
         templateInitializeVector<LogicalTypeID::DATE>(result.get(), type, capacity);
     } break;
     case LogicalTypeID::TIMESTAMP_MS: {
-        templateInitializeVector<LogicalTypeID::TIMESTAMP_MS>(result.get(), typeInfo, capacity);
+        templateInitializeVector<LogicalTypeID::TIMESTAMP_MS>(result.get(), type, capacity);
     } break;
     case LogicalTypeID::TIMESTAMP_NS: {
-        templateInitializeVector<LogicalTypeID::TIMESTAMP_NS>(result.get(), typeInfo, capacity);
+        templateInitializeVector<LogicalTypeID::TIMESTAMP_NS>(result.get(), type, capacity);
     } break;
     case LogicalTypeID::TIMESTAMP_SEC: {
-        templateInitializeVector<LogicalTypeID::TIMESTAMP_SEC>(result.get(), typeInfo, capacity);
+        templateInitializeVector<LogicalTypeID::TIMESTAMP_SEC>(result.get(), type, capacity);
     } break;
     case LogicalTypeID::TIMESTAMP_TZ: {
-        templateInitializeVector<LogicalTypeID::TIMESTAMP_TZ>(result.get(), typeInfo, capacity);
+        templateInitializeVector<LogicalTypeID::TIMESTAMP_TZ>(result.get(), type, capacity);
     } break;
     case LogicalTypeID::TIMESTAMP: {
         templateInitializeVector<LogicalTypeID::TIMESTAMP>(result.get(), type, capacity);
@@ -421,16 +421,16 @@ void ArrowRowBatch::copyNonNullValue(
         templateCopyNonNullValue<LogicalTypeID::TIMESTAMP>(vector, type, value, pos);
     } break;
     case LogicalTypeID::TIMESTAMP_TZ: {
-        templateCopyNonNullValue<LogicalTypeID::TIMESTAMP_TZ>(vector, typeInfo, value, pos);
+        templateCopyNonNullValue<LogicalTypeID::TIMESTAMP_TZ>(vector, type, value, pos);
     } break;
     case LogicalTypeID::TIMESTAMP_NS: {
-        templateCopyNonNullValue<LogicalTypeID::TIMESTAMP_NS>(vector, typeInfo, value, pos);
+        templateCopyNonNullValue<LogicalTypeID::TIMESTAMP_NS>(vector, type, value, pos);
     } break;
     case LogicalTypeID::TIMESTAMP_MS: {
-        templateCopyNonNullValue<LogicalTypeID::TIMESTAMP_MS>(vector, typeInfo, value, pos);
+        templateCopyNonNullValue<LogicalTypeID::TIMESTAMP_MS>(vector, type, value, pos);
     } break;
     case LogicalTypeID::TIMESTAMP_SEC: {
-        templateCopyNonNullValue<LogicalTypeID::TIMESTAMP_SEC>(vector, typeInfo, value, pos);
+        templateCopyNonNullValue<LogicalTypeID::TIMESTAMP_SEC>(vector, type, value, pos);
     } break;
     case LogicalTypeID::INTERVAL: {
         templateCopyNonNullValue<LogicalTypeID::INTERVAL>(vector, type, value, pos);
@@ -741,16 +741,16 @@ ArrowArray* ArrowRowBatch::convertVectorToArray(ArrowVector& vector, const Logic
         return templateCreateArray<LogicalTypeID::DATE>(vector, type);
     }
     case LogicalTypeID::TIMESTAMP_MS: {
-        return templateCreateArray<LogicalTypeID::TIMESTAMP_MS>(vector, typeInfo);
+        return templateCreateArray<LogicalTypeID::TIMESTAMP_MS>(vector, type);
     }
     case LogicalTypeID::TIMESTAMP_NS: {
-        return templateCreateArray<LogicalTypeID::TIMESTAMP_NS>(vector, typeInfo);
+        return templateCreateArray<LogicalTypeID::TIMESTAMP_NS>(vector, type);
     }
     case LogicalTypeID::TIMESTAMP_SEC: {
-        return templateCreateArray<LogicalTypeID::TIMESTAMP_SEC>(vector, typeInfo);
+        return templateCreateArray<LogicalTypeID::TIMESTAMP_SEC>(vector, type);
     }
     case LogicalTypeID::TIMESTAMP_TZ: {
-        return templateCreateArray<LogicalTypeID::TIMESTAMP_TZ>(vector, typeInfo);
+        return templateCreateArray<LogicalTypeID::TIMESTAMP_TZ>(vector, type);
     }
     case LogicalTypeID::TIMESTAMP: {
         return templateCreateArray<LogicalTypeID::TIMESTAMP>(vector, type);
