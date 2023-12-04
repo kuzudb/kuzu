@@ -187,7 +187,7 @@ std::unique_ptr<ArrowVector> ArrowRowBatch::createVector(
         KU_UNREACHABLE;
     }
     }
-    return std::move(result);
+    return result;
 }
 
 static void getBitPosition(std::int64_t pos, std::int64_t& bytePos, std::int64_t& bitOffset) {
@@ -580,7 +580,7 @@ static std::unique_ptr<ArrowArray> createArrayFromVector(ArrowVector& vector) {
         result->n_buffers++;
         result->buffers[1] = vector.data.data();
     }
-    return std::move(result);
+    return result;
 }
 
 template<LogicalTypeID DT>

@@ -66,8 +66,9 @@ public:
     ConnectionExecuteAsyncWorker(Napi::Function& callback, std::shared_ptr<Connection>& connection,
         std::shared_ptr<PreparedStatement> preparedStatement, NodeQueryResult* nodeQueryResult,
         std::unordered_map<std::string, std::unique_ptr<Value>> params)
-        : Napi::AsyncWorker(callback), preparedStatement(std::move(preparedStatement)),
-          nodeQueryResult(nodeQueryResult), connection(connection), params(std::move(params)) {}
+        : Napi::AsyncWorker(callback), connection(connection),
+          preparedStatement(std::move(preparedStatement)), nodeQueryResult(nodeQueryResult),
+          params(std::move(params)) {}
     ~ConnectionExecuteAsyncWorker() override = default;
 
     inline void Execute() override {

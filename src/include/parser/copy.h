@@ -45,8 +45,8 @@ private:
 class CopyTo : public Copy {
 public:
     CopyTo(std::string filePath, std::unique_ptr<RegularQuery> regularQuery)
-        : Copy{common::StatementType::COPY_TO},
-          regularQuery{std::move(regularQuery)}, filePath{std::move(filePath)} {}
+        : Copy{common::StatementType::COPY_TO}, filePath{std::move(filePath)},
+          regularQuery{std::move(regularQuery)} {}
 
     inline std::string getFilePath() const { return filePath; }
     inline RegularQuery* getRegularQuery() const { return regularQuery.get(); }

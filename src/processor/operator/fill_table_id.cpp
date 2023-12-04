@@ -10,7 +10,6 @@ bool FillTableID::getNextTuplesInternal(ExecutionContext* context) {
     auto data = (common::internalID_t*)internalIDVector->getData();
     for (auto i = 0u; i < internalIDVector->state->selVector->selectedSize; ++i) {
         data[i].tableID = tableID;
-        auto a = data[i];
     }
     return true;
 }

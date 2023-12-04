@@ -510,7 +510,6 @@ JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1flat_1tuple_1destroy(
 JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1flat_1tuple_1get_1value(
     JNIEnv* env, jclass, jobject thisFT, jlong index) {
     FlatTuple* ft = getFlatTuple(env, thisFT);
-    uint32_t idx = static_cast<uint32_t>(index);
     Value* value;
     try {
         value = ft->getValue(index);

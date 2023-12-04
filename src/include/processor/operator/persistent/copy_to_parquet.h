@@ -17,9 +17,8 @@ struct CopyToParquetInfo final : public CopyToInfo {
     CopyToParquetInfo(std::unique_ptr<FactorizedTableSchema> tableSchema,
         std::vector<std::unique_ptr<common::LogicalType>> types, std::vector<std::string> names,
         std::vector<DataPos> dataPoses, std::string fileName)
-        : tableSchema{std::move(tableSchema)}, types{std::move(types)}, CopyToInfo{std::move(names),
-                                                                            std::move(dataPoses),
-                                                                            std::move(fileName)} {}
+        : CopyToInfo{std::move(names), std::move(dataPoses), std::move(fileName)},
+          tableSchema{std::move(tableSchema)}, types{std::move(types)} {}
 
     inline std::unique_ptr<CopyToInfo> copy() override {
         return std::make_unique<CopyToParquetInfo>(

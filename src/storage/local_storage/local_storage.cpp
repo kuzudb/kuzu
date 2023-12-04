@@ -15,7 +15,7 @@ LocalTableData* LocalStorage::getOrCreateLocalTableData(table_id_t tableID,
     const std::vector<std::unique_ptr<Column>>& columns, TableType tableType,
     ColumnDataFormat dataFormat, vector_idx_t dataIdx) {
     if (!tables.contains(tableID)) {
-        tables[tableID] = std::make_unique<LocalTable>(tableID, tableType);
+        tables[tableID] = std::make_unique<LocalTable>(tableType);
     }
     return tables.at(tableID)->getOrCreateLocalTableData(columns, mm, dataFormat, dataIdx);
 }

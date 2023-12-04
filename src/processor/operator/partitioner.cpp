@@ -75,7 +75,7 @@ Partitioner::Partitioner(std::unique_ptr<ResultSetDescriptor> resultSetDescripto
     uint32_t id, const std::string& paramsString)
     : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::PARTITIONER, std::move(child), id,
           paramsString},
-      sharedState{std::move(sharedState)}, infos{std::move(infos)} {
+      infos{std::move(infos)}, sharedState{std::move(sharedState)} {
     partitionIdxes = std::make_unique<ValueVector>(LogicalTypeID::INT64);
 }
 

@@ -11,7 +11,7 @@ class Value;
 namespace binder {
 
 class Binder;
-class CaseAlternative;
+struct CaseAlternative;
 
 class ExpressionBinder {
     friend class Binder;

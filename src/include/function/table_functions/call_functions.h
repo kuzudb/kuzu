@@ -58,8 +58,8 @@ struct CurrentSettingBindData : public CallTableFuncBindData {
     CurrentSettingBindData(std::string result,
         std::vector<std::unique_ptr<common::LogicalType>> returnTypes,
         std::vector<std::string> returnColumnNames, common::offset_t maxOffset)
-        : result{std::move(result)}, CallTableFuncBindData{std::move(returnTypes),
-                                         std::move(returnColumnNames), maxOffset} {}
+        : CallTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
+          result{std::move(result)} {}
 
     inline std::unique_ptr<TableFuncBindData> copy() override {
         return std::make_unique<CurrentSettingBindData>(
@@ -91,8 +91,8 @@ struct ShowTablesBindData : public CallTableFuncBindData {
     ShowTablesBindData(std::vector<catalog::TableSchema*> tables,
         std::vector<std::unique_ptr<common::LogicalType>> returnTypes,
         std::vector<std::string> returnColumnNames, common::offset_t maxOffset)
-        : tables{std::move(tables)}, CallTableFuncBindData{std::move(returnTypes),
-                                         std::move(returnColumnNames), maxOffset} {}
+        : CallTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
+          tables{std::move(tables)} {}
 
     inline std::unique_ptr<TableFuncBindData> copy() override {
         return std::make_unique<ShowTablesBindData>(
@@ -115,8 +115,8 @@ struct TableInfoBindData : public CallTableFuncBindData {
     TableInfoBindData(catalog::TableSchema* tableSchema,
         std::vector<std::unique_ptr<common::LogicalType>> returnTypes,
         std::vector<std::string> returnColumnNames, common::offset_t maxOffset)
-        : tableSchema{tableSchema}, CallTableFuncBindData{std::move(returnTypes),
-                                        std::move(returnColumnNames), maxOffset} {}
+        : CallTableFuncBindData{std::move(returnTypes), std::move(returnColumnNames), maxOffset},
+          tableSchema{tableSchema} {}
 
     inline std::unique_ptr<TableFuncBindData> copy() override {
         return std::make_unique<TableInfoBindData>(
@@ -139,8 +139,9 @@ struct ShowConnectionBindData : public TableInfoBindData {
     ShowConnectionBindData(catalog::Catalog* catalog, catalog::TableSchema* tableSchema,
         std::vector<std::unique_ptr<common::LogicalType>> returnTypes,
         std::vector<std::string> returnColumnNames, common::offset_t maxOffset)
-        : catalog{catalog}, TableInfoBindData{tableSchema, std::move(returnTypes),
-                                std::move(returnColumnNames), maxOffset} {}
+        : TableInfoBindData{tableSchema, std::move(returnTypes), std::move(returnColumnNames),
+              maxOffset},
+          catalog{catalog} {}
 
     inline std::unique_ptr<TableFuncBindData> copy() override {
         return std::make_unique<ShowConnectionBindData>(

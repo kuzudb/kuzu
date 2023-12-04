@@ -105,8 +105,6 @@ protected:
 
 private:
     void setDatabasePath() {
-        const ::testing::TestInfo* const testInfo =
-            ::testing::UnitTest::GetInstance()->current_test_info();
         databasePath = TestHelper::appendKuzuRootPath(
             TestHelper::TMP_TEST_DIR + getTestGroupAndName() + TestHelper::getMillisecondsSuffix());
     }

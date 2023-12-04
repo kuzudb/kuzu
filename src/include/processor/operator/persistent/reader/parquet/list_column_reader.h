@@ -48,7 +48,6 @@ private:
     parquet_filter_t childFilter;
     uint64_t overflowChildCount;
     std::unique_ptr<common::ValueVector> vectorToRead;
-    storage::MemoryManager* memoryManager;
 };
 
 } // namespace processor

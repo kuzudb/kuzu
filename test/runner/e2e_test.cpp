@@ -15,8 +15,8 @@ public:
         const std::set<std::string>& connNames,
         std::vector<std::unique_ptr<TestStatement>> testStatements)
         : datasetType{datasetType}, dataset{std::move(dataset)}, bufferPoolSize{bufferPoolSize},
-          checkpointWaitTimeout{checkpointWaitTimeout}, connNames{connNames},
-          testStatements{std::move(testStatements)} {}
+          checkpointWaitTimeout{checkpointWaitTimeout},
+          testStatements{std::move(testStatements)}, connNames{connNames} {}
 
     void SetUp() override {
         setUpDataset();
@@ -64,7 +64,7 @@ private:
 
 void parseAndRegisterTestGroup(const std::string& path, bool generateTestList = false) {
     auto testParser = std::make_unique<TestParser>(path);
-    auto testGroup = std::move(testParser->parseTestFile());
+    auto testGroup = testParser->parseTestFile();
     if (testGroup->isValid() && testGroup->hasStatements()) {
         auto datasetType = testGroup->datasetType;
         auto dataset = testGroup->dataset;

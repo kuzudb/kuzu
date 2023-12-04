@@ -53,7 +53,7 @@ void castStringToBool(const char* input, uint64_t len, bool& result);
 // cast to numerical values
 // TODO(Kebing): support exponent + decimal
 template<typename T, bool NEGATIVE, bool ALLOW_EXPONENT = false, class OP>
-static bool integerCastLoop(const char* input, uint64_t len, T& result) {
+inline bool integerCastLoop(const char* input, uint64_t len, T& result) {
     int64_t start_pos = 0;
     if (NEGATIVE) {
         start_pos = 1;
@@ -75,7 +75,7 @@ static bool integerCastLoop(const char* input, uint64_t len, T& result) {
 }
 
 template<typename T, bool IS_SIGNED = true, class OP = IntegerCastOperation>
-static bool tryIntegerCast(const char* input, uint64_t& len, T& result) {
+inline bool tryIntegerCast(const char* input, uint64_t& len, T& result) {
     StringUtils::removeCStringWhiteSpaces(input, len);
     if (len == 0) {
         return false;
@@ -159,7 +159,7 @@ struct Int128CastOperation {
     }
 };
 
-static bool trySimpleInt128Cast(const char* input, uint64_t len, int128_t& result) {
+inline bool trySimpleInt128Cast(const char* input, uint64_t len, int128_t& result) {
     Int128CastData data{};
     data.result = 0;
     if (tryIntegerCast<Int128CastData, true, Int128CastOperation>(input, len, data)) {
@@ -169,7 +169,7 @@ static bool trySimpleInt128Cast(const char* input, uint64_t len, int128_t& resul
     return false;
 }
 
-static void simpleInt128Cast(const char* input, uint64_t len, int128_t& result) {
+inline void simpleInt128Cast(const char* input, uint64_t len, int128_t& result) {
     if (!trySimpleInt128Cast(input, len, result)) {
         throw ConversionException(
             stringFormat("Cast failed. {} is not within INT128 range.", std::string{input, len}));
@@ -177,7 +177,7 @@ static void simpleInt128Cast(const char* input, uint64_t len, int128_t& result) 
 }
 
 template<typename T, bool IS_SIGNED = true>
-static bool trySimpleIntegerCast(const char* input, uint64_t len, T& result) {
+inline bool trySimpleIntegerCast(const char* input, uint64_t len, T& result) {
     IntegerCastData<T> data;
     data.result = 0;
     if (tryIntegerCast<IntegerCastData<T>, IS_SIGNED>(input, len, data)) {
@@ -188,7 +188,7 @@ static bool trySimpleIntegerCast(const char* input, uint64_t len, T& result) {
 }
 
 template<class T, bool IS_SIGNED = true>
-static void simpleIntegerCast(
+inline void simpleIntegerCast(
     const char* input, uint64_t len, T& result, LogicalTypeID typeID = LogicalTypeID::ANY) {
     if (!trySimpleIntegerCast<T, IS_SIGNED>(input, len, result)) {
         throw ConversionException(stringFormat("Cast failed. {} is not in {} range.",
@@ -197,7 +197,7 @@ static void simpleIntegerCast(
 }
 
 template<class T>
-static bool tryDoubleCast(const char* input, uint64_t len, T& result) {
+inline bool tryDoubleCast(const char* input, uint64_t len, T& result) {
     StringUtils::removeCStringWhiteSpaces(input, len);
     if (len == 0) {
         return false;
@@ -217,7 +217,7 @@ static bool tryDoubleCast(const char* input, uint64_t len, T& result) {
 }
 
 template<class T>
-static void doubleCast(
+inline void doubleCast(
     const char* input, uint64_t len, T& result, LogicalTypeID typeID = LogicalTypeID::ANY) {
     if (!tryDoubleCast<T>(input, len, result)) {
         throw ConversionException(stringFormat("Cast failed. {} is not in {} range.",

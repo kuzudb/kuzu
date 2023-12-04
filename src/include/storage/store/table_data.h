@@ -53,8 +53,8 @@ protected:
     TableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, common::table_id_t tableID,
         BufferManager* bufferManager, WAL* wal, bool enableCompression,
         common::ColumnDataFormat dataFormat)
-        : dataFH{dataFH}, metadataFH{metadataFH}, tableID{tableID}, bufferManager{bufferManager},
-          wal{wal}, enableCompression{enableCompression}, dataFormat{dataFormat} {}
+        : dataFormat{dataFormat}, dataFH{dataFH}, metadataFH{metadataFH}, tableID{tableID},
+          bufferManager{bufferManager}, wal{wal}, enableCompression{enableCompression} {}
 
 protected:
     common::ColumnDataFormat dataFormat;

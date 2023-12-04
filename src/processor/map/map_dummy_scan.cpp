@@ -8,8 +8,7 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapDummyScan(LogicalOperator* logicalOperator) {
-    auto logicalDummyScan = (LogicalDummyScan*)logicalOperator;
+std::unique_ptr<PhysicalOperator> PlanMapper::mapDummyScan(LogicalOperator* /*logicalOperator*/) {
     auto inSchema = std::make_unique<Schema>();
     auto expression = LogicalDummyScan::getDummyExpression();
     auto tableSchema = std::make_unique<FactorizedTableSchema>();

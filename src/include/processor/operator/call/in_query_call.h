@@ -44,8 +44,8 @@ public:
     InQueryCall(std::unique_ptr<InQueryCallInfo> localState,
         std::shared_ptr<InQueryCallSharedState> sharedState, PhysicalOperatorType operatorType,
         uint32_t id, const std::string& paramsString)
-        : inQueryCallInfo{std::move(localState)}, sharedState{std::move(sharedState)},
-          PhysicalOperator{operatorType, id, paramsString} {}
+        : PhysicalOperator{operatorType, id, paramsString}, inQueryCallInfo{std::move(localState)},
+          sharedState{std::move(sharedState)} {}
 
     inline bool isSource() const override { return true; }
 
