@@ -8,7 +8,7 @@ DataChunkCollection::DataChunkCollection(storage::MemoryManager* mm) : mm{mm} {}
 void DataChunkCollection::append(DataChunk& chunk) {
     auto numTuplesToAppend = chunk.state->selVector->selectedSize;
     auto chunkToAppendInfo = chunks.empty() ? allocateChunk(chunk) : chunks.back().get();
-    auto numTuplesAppended = 0;
+    auto numTuplesAppended = 0u;
     while (numTuplesAppended < numTuplesToAppend) {
         if (chunkToAppendInfo->state->selVector->selectedSize == DEFAULT_VECTOR_CAPACITY) {
             chunkToAppendInfo = allocateChunk(chunk);

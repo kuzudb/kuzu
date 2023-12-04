@@ -32,7 +32,7 @@ void test_compression(CompressionAlg& alg, std::vector<T> src) {
     EXPECT_EQ(decompressed, src);
     EXPECT_EQ(decompressed[1], value);
 
-    for (int i = 0; i < src.size(); i++) {
+    for (auto i = 0u; i < src.size(); i++) {
         alg.decompressFromPage(
             dest.data(), i, (uint8_t*)decompressed.data(), i, 1 /*numValues*/, metadata);
         EXPECT_EQ(decompressed[i], src[i]);
@@ -150,7 +150,7 @@ void integerPackingMultiPage(const std::vector<T>& src) {
         numValuesRemaining -= numValuesPerPage;
     }
     ASSERT_EQ(srcCursor, (uint8_t*)(src.data() + src.size()));
-    for (int i = 0; i < src.size(); i++) {
+    for (auto i = 0u; i < src.size(); i++) {
         auto page = i / numValuesPerPage;
         auto indexInPage = i % numValuesPerPage;
         T value;
@@ -160,7 +160,7 @@ void integerPackingMultiPage(const std::vector<T>& src) {
         EXPECT_EQ(src[i], value);
     }
     std::vector<T> decompressed(src.size());
-    for (int i = 0; i < src.size(); i += numValuesPerPage) {
+    for (auto i = 0u; i < src.size(); i += numValuesPerPage) {
         auto page = i / numValuesPerPage;
         alg.decompressFromPage(dest[page].data(), 0, (uint8_t*)decompressed.data(), i,
             std::min(numValuesPerPage, (uint64_t)src.size() - i), metadata);

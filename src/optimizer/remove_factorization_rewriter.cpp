@@ -22,7 +22,7 @@ void RemoveFactorizationRewriter::rewrite(planner::LogicalPlan* plan) {
 std::shared_ptr<planner::LogicalOperator> RemoveFactorizationRewriter::visitOperator(
     const std::shared_ptr<planner::LogicalOperator>& op) {
     // bottom-up traversal
-    for (auto i = 0; i < op->getNumChildren(); ++i) {
+    for (auto i = 0u; i < op->getNumChildren(); ++i) {
         op->setChild(i, visitOperator(op->getChild(i)));
     }
     auto result = visitOperatorReplaceSwitch(op);

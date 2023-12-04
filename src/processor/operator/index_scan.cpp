@@ -20,7 +20,7 @@ bool IndexScan::getNextTuplesInternal(ExecutionContext* context) {
         }
         saveSelVector(outVector->state->selVector);
         numSelectedValues = 0u;
-        for (auto i = 0; i < indexVector->state->selVector->selectedSize; ++i) {
+        for (auto i = 0u; i < indexVector->state->selVector->selectedSize; ++i) {
             auto pos = indexVector->state->selVector->selectedPositions[i];
             outVector->state->selVector->getSelectedPositionsBuffer()[numSelectedValues] = pos;
             offset_t nodeOffset = INVALID_OFFSET;

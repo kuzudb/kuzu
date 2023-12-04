@@ -401,7 +401,7 @@ Function* BuiltInFunctions::getBestMatch(std::vector<Function*>& functionsToMatc
     Function* result = nullptr;
     auto cost = UNDEFINED_CAST_COST;
     for (auto& function : functionsToMatch) {
-        auto currentCost = 0;
+        auto currentCost = 0u;
         std::unordered_set<LogicalTypeID> distinctParameterTypes;
         for (auto& parameterTypeID : function->parameterTypeIDs) {
             if (parameterTypeID != LogicalTypeID::STRING) {

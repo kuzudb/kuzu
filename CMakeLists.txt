@@ -109,7 +109,7 @@ if(CMAKE_BUILD_TYPE MATCHES Release)
     endif()
 endif()
 if(NOT MSVC)
-    add_compile_options(-Wall)
+    add_compile_options(-Wall -Wextra)
 endif()
 
 if(${ENABLE_THREAD_SANITIZER})

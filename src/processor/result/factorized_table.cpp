@@ -322,10 +322,8 @@ uint64_t FactorizedTable::computeNumTuplesToAppend(
             // The caller is not allowed to append multiple unflat columns from different
             // datachunks to multiple flat columns in the factorizedTable.
             if (!tableSchema->getColumn(i)->isFlat()) {
-                if (unflatDataChunkPos != -1 &&
-                    tableSchema->getColumn(i)->getDataChunkPos() != unflatDataChunkPos) {
-                    KU_ASSERT(false);
-                }
+                KU_ASSERT(unflatDataChunkPos == (uint64_t)-1 ||
+                          tableSchema->getColumn(i)->getDataChunkPos() != unflatDataChunkPos);
                 unflatDataChunkPos = tableSchema->getColumn(i)->getDataChunkPos();
             }
             numTuplesToAppend = vectorsToAppend[i]->state->selVector->selectedSize;

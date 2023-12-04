@@ -13,7 +13,7 @@ struct ListAnyValue {
         auto inputDataVector = common::ListVector::getDataVector(&inputVector);
         auto numBytesPerValue = inputDataVector->getNumBytesPerValue();
 
-        for (auto i = 0; i < input.size; i++) {
+        for (auto i = 0u; i < input.size; i++) {
             if (!(inputDataVector->isNull(input.offset + i))) {
                 resultVector.copyFromVectorData(
                     reinterpret_cast<uint8_t*>(&result), inputDataVector, inputValues);

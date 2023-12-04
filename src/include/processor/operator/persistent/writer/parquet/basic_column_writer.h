@@ -62,7 +62,7 @@ protected:
 
     // Flushes the writer for a specific page. Only used for scalar types.
     virtual void flushPageState(
-        common::Serializer& bufferedSerializer, ColumnWriterPageState* state) {}
+        common::Serializer& /*bufferedSerializer*/, ColumnWriterPageState* /*state*/) {}
 
     // Retrieves the row size of a vector at the specified location. Only used for scalar types.
     virtual uint64_t getRowSize(

@@ -206,7 +206,7 @@ static std::vector<std::unique_ptr<Value>> populateLabelValues(std::vector<table
     table_id_t maxTableID = *std::max_element(tableIDsSet.begin(), tableIDsSet.end());
     std::vector<std::unique_ptr<Value>> labels;
     labels.resize(maxTableID + 1);
-    for (auto i = 0; i < labels.size(); ++i) {
+    for (auto i = 0u; i < labels.size(); ++i) {
         if (tableIDsSet.contains(i)) {
             labels[i] = std::make_unique<Value>(
                 LogicalType{LogicalTypeID::STRING}, catalog.getTableName(tx, i));

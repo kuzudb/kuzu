@@ -48,7 +48,7 @@ public:
         auto valuesRemaining = metadata.numValues;
         const uint8_t* bufferStart = buffer;
         auto compressedBuffer = std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_4KB_SIZE);
-        auto numPages = 0;
+        auto numPages = 0u;
         auto numValuesPerPage =
             metadata.compMeta.numValues(BufferPoolConstants::PAGE_4KB_SIZE, dataType);
         KU_ASSERT(numValuesPerPage * metadata.numPages >= metadata.numValues);

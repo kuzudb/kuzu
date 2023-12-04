@@ -41,7 +41,7 @@ struct InternalIDColumnFunc {
     static void writeValuesToPage(uint8_t* frame, uint16_t posInFrame, const uint8_t* data,
         uint32_t dataOffset, offset_t numValues, const CompressionMetadata& /*metadata*/) {
         auto internalIDs = ((internalID_t*)data);
-        for (int i = 0; i < numValues; i++) {
+        for (auto i = 0u; i < numValues; i++) {
             memcpy(frame + posInFrame * sizeof(offset_t), &internalIDs[dataOffset + i].offset,
                 sizeof(offset_t));
         }
@@ -84,7 +84,7 @@ struct BoolColumnFunc {
         // Otherwise, it could read off the end of the page.
         //
         // Currently, the frame stores bitpacked bools, but the value_vector does not
-        for (auto i = 0; i < numValuesToRead; i++) {
+        for (auto i = 0u; i < numValuesToRead; i++) {
             resultVector->setValue(
                 posInVector + i, NullMask::isNull((uint64_t*)frame, pageCursor.elemPosInPage + i));
         }
@@ -117,7 +117,7 @@ struct BoolColumnFunc {
     static void batchLookupFromPage(uint8_t* frame, PageElementCursor& pageCursor, uint8_t* result,
         uint32_t startPosInResult, uint64_t numValuesToRead,
         const CompressionMetadata& /*metadata*/) {
-        for (auto i = 0; i < numValuesToRead; i++) {
+        for (auto i = 0u; i < numValuesToRead; i++) {
             result[startPosInResult + i] =
                 NullMask::isNull((uint64_t*)frame, pageCursor.elemPosInPage + i);
         }

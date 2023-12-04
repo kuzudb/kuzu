@@ -293,7 +293,7 @@ void NpyScanFunction::bindColumns(const common::ReaderConfig& readerConfig,
     std::vector<std::unique_ptr<common::LogicalType>>& columnTypes) {
     KU_ASSERT(readerConfig.getNumFiles() > 0);
     bindColumns(readerConfig, 0, columnNames, columnTypes);
-    for (auto i = 1; i < readerConfig.getNumFiles(); ++i) {
+    for (auto i = 1u; i < readerConfig.getNumFiles(); ++i) {
         std::vector<std::string> tmpColumnNames;
         std::vector<std::unique_ptr<LogicalType>> tmpColumnTypes;
         bindColumns(readerConfig, i, tmpColumnNames, tmpColumnTypes);

@@ -2,6 +2,7 @@
 
 #include <cstring>
 
+#include "common/assert.h"
 #include "common/exception/storage.h"
 #include "common/string_format.h"
 #include "common/system_message.h"
@@ -27,7 +28,7 @@ FileInfo::~FileInfo() {
 #endif
 }
 
-int64_t FileInfo::getFileSize() {
+uint64_t FileInfo::getFileSize() {
 #ifdef _WIN32
     LARGE_INTEGER size;
     if (!GetFileSizeEx((HANDLE)handle, &size)) {
@@ -42,6 +43,7 @@ int64_t FileInfo::getFileSize() {
         throw StorageException(stringFormat(
             "Cannot read size of file. path: {} - Error {}: {}", path, errno, posixErrMessage()));
     }
+    KU_ASSERT(s.st_size >= 0);
     return s.st_size;
 #endif
 }
@@ -182,7 +184,7 @@ void FileUtils::readFromFile(
     }
 #else
     auto numBytesRead = pread(fileInfo->fd, buffer, numBytes, position);
-    if (numBytesRead != numBytes && fileInfo->getFileSize() != position + numBytesRead) {
+    if ((uint64_t)numBytesRead != numBytes && fileInfo->getFileSize() != position + numBytesRead) {
         // LCOV_EXCL_START
         throw Exception(stringFormat("Cannot read from file: {} fileDescriptor: {} "
                                      "numBytesRead: {} numBytesToRead: {} position: {}",

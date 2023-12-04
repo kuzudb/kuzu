@@ -84,7 +84,7 @@ TEST_F(NodeInsertionDeletionTests, DeleteAddMixedTest) {
 
 TEST_F(NodeInsertionDeletionTests, InsertManyNodesTest) {
     auto preparedStatement = conn->prepare("CREATE (:person {ID:$id});");
-    for (int64_t i = 0; i < BufferPoolConstants::PAGE_4KB_SIZE; i++) {
+    for (int64_t i = 0; i < (int64_t)BufferPoolConstants::PAGE_4KB_SIZE; i++) {
         auto result =
             conn->execute(preparedStatement.get(), std::make_pair(std::string("id"), 10000 + i));
         ASSERT_TRUE(result->isSuccess()) << result->toString();

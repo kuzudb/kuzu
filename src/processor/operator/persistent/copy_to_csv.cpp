@@ -109,7 +109,7 @@ void CopyToCSVLocalState::writeString(
     }
     if (forceQuote) {
         bool requiresEscape = false;
-        for (auto i = 0; i < strLen; i++) {
+        for (auto i = 0u; i < strLen; i++) {
             if (strData[i] == copyToCsvInfo->copyToOption->quoteChar ||
                 strData[i] == copyToCsvInfo->copyToOption->escapeChar) {
                 requiresEscape = true;
@@ -151,7 +151,7 @@ void CopyToCSVLocalState::writeRows(CopyToCSVInfo* copyToCsvInfo) {
             numRowsToWrite = vectorToCast->state->selVector->selectedSize;
         }
     }
-    for (auto i = 0; i < numRowsToWrite; i++) {
+    for (auto i = 0u; i < numRowsToWrite; i++) {
         for (auto j = 0u; j < castVectors.size(); j++) {
             if (j != 0) {
                 serializer->writeBufferData(copyToCsvInfo->copyToOption->delimiter);

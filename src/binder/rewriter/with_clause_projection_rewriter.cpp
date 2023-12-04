@@ -47,7 +47,7 @@ void WithClauseProjectionRewriter::visitSingleQuery(const NormalizedSingleQuery&
     auto propertyCollector = PropertyCollector();
     propertyCollector.visitSingleQuery(singleQuery);
     auto properties = propertyCollector.getProperties();
-    for (auto i = 0; i < singleQuery.getNumQueryParts() - 1; ++i) {
+    for (auto i = 0u; i < singleQuery.getNumQueryParts() - 1; ++i) {
         auto queryPart = singleQuery.getQueryPart(i);
         auto projectionBody = queryPart->getProjectionBody();
         auto newProjectionExpressions =

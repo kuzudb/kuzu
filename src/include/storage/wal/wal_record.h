@@ -31,11 +31,12 @@ std::string dbFileTypeToString(DBFileType dbFileType);
 struct DBFileID {
     DBFileType dbFileType;
     bool isOverflow;
-    union {
-        NodeIndexID nodeIndexID;
-    };
+    NodeIndexID nodeIndexID;
 
-    bool operator==(const DBFileID& rhs) const;
+    DBFileID() = default;
+    explicit DBFileID(DBFileType dbFileType)
+        : dbFileType(dbFileType), isOverflow(false), nodeIndexID(common::INVALID_TABLE_ID) {}
+    bool operator==(const DBFileID& rhs) const = default;
 
     static DBFileID newDataFileID();
     static DBFileID newMetadataFileID();

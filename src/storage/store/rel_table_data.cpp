@@ -61,7 +61,7 @@ void RelDataReadState::populateCSRListEntries() {
     auto csrOffsets = (offset_t*)csrOffsetChunk->getData();
     csrListEntries[0].offset = 0;
     csrListEntries[0].size = csrOffsets[0];
-    for (auto i = 1; i < numNodes; i++) {
+    for (auto i = 1u; i < numNodes; i++) {
         csrListEntries[i].offset = csrOffsets[i - 1];
         csrListEntries[i].size = csrOffsets[i] - csrOffsets[i - 1];
     }
@@ -318,7 +318,7 @@ void RelTableData::append(NodeGroup* nodeGroup) {
         csrOffsetColumn->append(csrNodeGroup->getCSROffsetChunk(), nodeGroup->getNodeGroupIdx());
     }
     adjColumn->append(nodeGroup->getColumnChunk(0), nodeGroup->getNodeGroupIdx());
-    for (auto columnID = 0; columnID < columns.size(); columnID++) {
+    for (auto columnID = 0u; columnID < columns.size(); columnID++) {
         columns[columnID]->append(
             nodeGroup->getColumnChunk(columnID + 1), nodeGroup->getNodeGroupIdx());
     }
@@ -499,7 +499,7 @@ std::unique_ptr<ColumnChunk> RelTableData::slideCSROffsetChunk(
     int64_t currentCSROffset = 0;
     auto currentNumSrcNodesInNG = csrOffsetChunk->getNumValues();
     auto newNumSrcNodesInNG = currentNumSrcNodesInNG;
-    for (auto offsetInNG = 0; offsetInNG < currentNumSrcNodesInNG; offsetInNG++) {
+    for (auto offsetInNG = 0u; offsetInNG < currentNumSrcNodesInNG; offsetInNG++) {
         int64_t numRowsInCSR = offsetInNG == 0 ?
                                    csrOffsets[offsetInNG] :
                                    csrOffsets[offsetInNG] - csrOffsets[offsetInNG - 1];
@@ -556,7 +556,7 @@ std::unique_ptr<ColumnChunk> RelTableData::slideCSRColumnChunk(Transaction* tran
     auto currentNumSrcNodesInNG = csrOffsetChunk->getNumValues();
     auto csrOffsets = (offset_t*)csrOffsetChunk->getData();
     auto relIDs = (offset_t*)relIDChunk->getData();
-    for (auto offsetInNG = 0; offsetInNG < currentNumSrcNodesInNG; offsetInNG++) {
+    for (auto offsetInNG = 0u; offsetInNG < currentNumSrcNodesInNG; offsetInNG++) {
         auto [startCSROffset, endCSROffset] = getCSRStartAndEndOffset(offsetInNG, csrOffsets);
         auto hasDeletions = deleteInfo.contains(offsetInNG);
         auto hasUpdates = updateInfo.contains(offsetInNG);

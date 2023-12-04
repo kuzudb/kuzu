@@ -56,7 +56,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause&
     // e.g. rewrite (a)-[e]->(a) as [a]-[e]->(b) WHERE id(a) = id(b)
     expression_vector selfLoopEdgePredicates;
     auto graphCollection = boundMatchClause->getQueryGraphCollection();
-    for (auto i = 0; i < graphCollection->getNumQueryGraphs(); ++i) {
+    for (auto i = 0u; i < graphCollection->getNumQueryGraphs(); ++i) {
         auto queryGraph = graphCollection->getQueryGraph(i);
         for (auto& queryRel : queryGraph->getQueryRels()) {
             if (!queryRel->isSelfLoop()) {

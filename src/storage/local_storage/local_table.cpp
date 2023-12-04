@@ -52,7 +52,7 @@ std::unique_ptr<LocalVectorCollection> LocalVectorCollection::getStructChildVect
     auto childCollection = std::make_unique<LocalVectorCollection>(
         StructType::getField(dataType.get(), idx)->getType()->copy(), mm);
 
-    for (int i = 0; i < numRows; i++) {
+    for (auto i = 0u; i < numRows; i++) {
         auto fieldVector =
             common::StructVector::getFieldVector(getLocalVector(i)->getVector(), idx);
         childCollection->append(fieldVector.get());

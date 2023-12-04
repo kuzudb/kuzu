@@ -49,7 +49,7 @@ void LogicalHashJoin::computeFactorizedSchema() {
         }
         // Resolve expressions to materialize in each group
         binder::expression_vector expressionsToMaterializeInNonKeyGroups;
-        for (auto groupIdx = 0; groupIdx < buildSchema->getNumGroups(); ++groupIdx) {
+        for (auto groupIdx = 0u; groupIdx < buildSchema->getNumGroups(); ++groupIdx) {
             auto expressions = buildSchema->getExpressionsInScope(groupIdx);
             bool isKeyGroup = buildToProbeKeyGroupPositionMap.contains(groupIdx);
             if (isKeyGroup) { // merge key group

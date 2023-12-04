@@ -127,7 +127,7 @@ escape:
 
 bool BaseCSVReader::isEOF() const {
     uint64_t offset = getFileOffset();
-    uint64_t end = lseek(fd, 0, SEEK_END);
+    off_t end = lseek(fd, 0, SEEK_END);
     if (end == -1) {
         // LCOV_EXCL_START
         throw CopyException(
@@ -140,7 +140,7 @@ bool BaseCSVReader::isEOF() const {
             stringFormat("Could not reset position of file {}: {}", filePath, posixErrMessage()));
         // LCOV_EXCL_STOP
     }
-    return offset >= end;
+    return offset >= (uint64_t)end;
 }
 
 template<typename Driver>
@@ -215,7 +215,7 @@ bool BaseCSVReader::readBuffer(uint64_t* start) {
         memcpy(buffer.get(), oldBuffer.get() + *start, remaining);
     }
 
-    uint64_t readCount = read(fd, buffer.get() + remaining, bufferReadSize);
+    auto readCount = read(fd, buffer.get() + remaining, bufferReadSize);
     if (readCount == -1) {
         // LCOV_EXCL_START
         throw CopyException(
@@ -434,13 +434,14 @@ template uint64_t BaseCSVReader::parseCSV<SniffCSVNameAndTypeDriver>(SniffCSVNam
 template uint64_t BaseCSVReader::parseCSV<SniffCSVColumnCountDriver>(SniffCSVColumnCountDriver&);
 
 uint64_t BaseCSVReader::getFileOffset() const {
-    uint64_t offset = lseek(fd, 0, SEEK_CUR);
-    if (offset == -1) {
+    off_t signedOffset = lseek(fd, 0, SEEK_CUR);
+    if (signedOffset == -1) {
         // LCOV_EXCL_START
         throw CopyException(stringFormat(
             "Could not get current file position for file {}: {}", filePath, posixErrMessage()));
         // LCOV_EXCL_STOP
     }
+    uint64_t offset = signedOffset;
     KU_ASSERT(offset >= bufferSize);
     return offset - bufferSize + position;
 }
@@ -460,7 +461,7 @@ uint64_t BaseCSVReader::getLineNumber() {
     bool carriageReturn = false;
     uint64_t totalBytes = 0;
     do {
-        uint64_t bytesRead = read(fd, buf, std::min(BUF_SIZE, offset - totalBytes));
+        auto bytesRead = read(fd, buf, std::min(BUF_SIZE, offset - totalBytes));
         if (bytesRead == -1) {
             // LCOV_EXCL_START
             throw CopyException(
@@ -469,7 +470,7 @@ uint64_t BaseCSVReader::getLineNumber() {
         }
         totalBytes += bytesRead;
 
-        for (uint64_t i = 0; i < bytesRead; i++) {
+        for (uint64_t i = 0; i < (uint64_t)bytesRead; i++) {
             if (buf[i] == '\n' || carriageReturn) {
                 lineNumber++;
                 carriageReturn = false;

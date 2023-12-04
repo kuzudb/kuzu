@@ -45,7 +45,7 @@ std::bitset<MAX_NUM_QUERY_VARIABLES> SubgraphPlans::encodePlan(const LogicalPlan
     auto schema = plan.getSchema();
     std::bitset<MAX_NUM_QUERY_VARIABLES> result;
     result.reset();
-    for (auto i = 0; i < nodeIDsToEncode.size(); ++i) {
+    for (auto i = 0u; i < nodeIDsToEncode.size(); ++i) {
         result[i] = schema->getGroup(schema->getGroupPos(*nodeIDsToEncode[i]))->isFlat();
     }
     return result;

@@ -124,9 +124,9 @@ std::unique_ptr<KeyBlockMergeMorsel> KeyBlockMergeTask::getMorsel() {
 
         auto keyBlockMergeMorsel = std::make_unique<KeyBlockMergeMorsel>(leftKeyBlockStartIdx,
             std::min(leftKeyBlockNextIdx, leftKeyBlock->getNumTuples()), rightKeyBlockNextIdx,
-            rightEndIdx == -1 ? rightKeyBlockNextIdx : ++rightEndIdx);
+            rightEndIdx == (uint64_t)-1 ? rightKeyBlockNextIdx : ++rightEndIdx);
 
-        if (rightEndIdx != -1) {
+        if (rightEndIdx != (uint64_t)-1) {
             rightKeyBlockNextIdx = rightEndIdx;
         }
         return keyBlockMergeMorsel;
@@ -155,7 +155,7 @@ void KeyBlockMerger::mergeKeyBlocks(KeyBlockMergeMorsel& keyBlockMergeMorsel) co
             std::min(std::min(leftBlockPtrInfo.getNumBytesLeftInCurBlock(),
                          rightBlockPtrInfo.getNumBytesLeftInCurBlock()),
                 resultBlockPtrInfo.getNumBytesLeftInCurBlock());
-        for (auto i = 0; i < nextNumBytesToMerge; i += numBytesPerTuple) {
+        for (auto i = 0u; i < nextNumBytesToMerge; i += numBytesPerTuple) {
             if (compareTuplePtr(leftBlockPtrInfo.curTuplePtr, rightBlockPtrInfo.curTuplePtr)) {
                 memcpy(resultBlockPtrInfo.curTuplePtr, rightBlockPtrInfo.curTuplePtr,
                     numBytesPerTuple);
@@ -255,7 +255,7 @@ void KeyBlockMerger::copyRemainingBlockDataToResult(
     while (blockToCopy.curBlockIdx <= blockToCopy.endBlockIdx) {
         uint64_t nextNumBytesToMerge = std::min(
             blockToCopy.getNumBytesLeftInCurBlock(), resultBlock.getNumBytesLeftInCurBlock());
-        for (int i = 0; i < nextNumBytesToMerge; i += numBytesPerTuple) {
+        for (auto i = 0u; i < nextNumBytesToMerge; i += numBytesPerTuple) {
             memcpy(resultBlock.curTuplePtr, blockToCopy.curTuplePtr, numBytesPerTuple);
             blockToCopy.curTuplePtr += numBytesPerTuple;
             resultBlock.curTuplePtr += numBytesPerTuple;

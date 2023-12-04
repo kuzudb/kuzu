@@ -9,7 +9,7 @@ namespace function {
 static bool isAllInternalIDDistinct(common::ValueVector* dataVector, common::offset_t startOffset,
     uint64_t size, std::unordered_set<common::internalID_t, InternalIDHasher>& internalIDSet) {
     internalIDSet.clear();
-    for (auto i = 0; i < size; ++i) {
+    for (auto i = 0u; i < size; ++i) {
         auto& internalID = dataVector->getValue<common::internalID_t>(startOffset + i);
         if (internalIDSet.contains(internalID)) {
             return false;
@@ -72,14 +72,14 @@ private:
             common::StructVector::getFieldVector(listDataVector, fieldIdx).get();
         std::unordered_set<common::nodeID_t, InternalIDHasher> internalIDSet;
         if (inputSelVector.isUnfiltered()) {
-            for (auto i = 0; i < inputSelVector.selectedSize; ++i) {
+            for (auto i = 0u; i < inputSelVector.selectedSize; ++i) {
                 auto& listEntry = listVector.getValue<common::list_entry_t>(i);
                 bool isTrail = isAllInternalIDDistinct(
                     internalIDsVector, listEntry.offset, listEntry.size, internalIDSet);
                 result.setValue<bool>(i, isTrail);
             }
         } else {
-            for (auto i = 0; i < inputSelVector.selectedSize; ++i) {
+            for (auto i = 0u; i < inputSelVector.selectedSize; ++i) {
                 auto pos = inputSelVector.selectedPositions[i];
                 auto& listEntry = listVector.getValue<common::list_entry_t>(pos);
                 bool isTrail = isAllInternalIDDistinct(
@@ -101,7 +101,7 @@ private:
         auto numSelectedValues = 0u;
         auto buffer = selectionVector.getSelectedPositionsBuffer();
         if (inputSelVector.isUnfiltered()) {
-            for (auto i = 0; i < inputSelVector.selectedSize; ++i) {
+            for (auto i = 0u; i < inputSelVector.selectedSize; ++i) {
                 auto& listEntry = listVector.getValue<common::list_entry_t>(i);
                 bool isTrail = isAllInternalIDDistinct(
                     internalIDsVector, listEntry.offset, listEntry.size, internalIDSet);
@@ -109,7 +109,7 @@ private:
                 numSelectedValues += isTrail;
             }
         } else {
-            for (auto i = 0; i < inputSelVector.selectedSize; ++i) {
+            for (auto i = 0u; i < inputSelVector.selectedSize; ++i) {
                 auto pos = inputSelVector.selectedPositions[i];
                 auto& listEntry = listVector.getValue<common::list_entry_t>(pos);
                 bool isTrail = isAllInternalIDDistinct(

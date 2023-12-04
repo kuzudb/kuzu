@@ -24,7 +24,7 @@ void LogicalIntersect::computeFactorizedSchema() {
     // Write intersect node and rels into a new group regardless of whether rel is n-n.
     auto outGroupPos = schema->createGroup();
     schema->insertToGroupAndScope(intersectNodeID, outGroupPos);
-    for (auto i = 1; i < children.size(); ++i) {
+    for (auto i = 1u; i < children.size(); ++i) {
         auto buildSchema = children[i]->getSchema();
         auto keyNodeID = keyNodeIDs[i - 1];
         // Write rel properties into output group.
@@ -43,7 +43,7 @@ void LogicalIntersect::computeFlatSchema() {
     schema = probeSchema->copy();
     schema->createGroup();
     schema->insertToGroupAndScope(intersectNodeID, 0);
-    for (auto i = 1; i < children.size(); ++i) {
+    for (auto i = 1u; i < children.size(); ++i) {
         auto buildSchema = children[i]->getSchema();
         auto keyNodeID = keyNodeIDs[i - 1];
         for (auto& expression : buildSchema->getExpressionsInScope()) {

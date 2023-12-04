@@ -29,7 +29,7 @@ struct ParquetInt128Operator {
     }
 
     template<class SRC, class TGT>
-    static void handleStats(ColumnWriterStatistics* stats, SRC source, TGT target) {}
+    static void handleStats(ColumnWriterStatistics* /*stats*/, SRC /*source*/, TGT /*target*/) {}
 };
 
 struct ParquetTimestampNSOperator : public BaseParquetOperator {

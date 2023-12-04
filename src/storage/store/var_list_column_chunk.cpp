@@ -133,7 +133,7 @@ void VarListColumnChunk::write(
 
 void VarListColumnChunk::copyListValues(const list_entry_t& entry, ValueVector* dataVector) {
     auto numListValuesToCopy = entry.size;
-    auto numListValuesCopied = 0;
+    auto numListValuesCopied = 0u;
     while (numListValuesCopied < numListValuesToCopy) {
         auto numListValuesToCopyInBatch =
             std::min<uint64_t>(numListValuesToCopy - numListValuesCopied, DEFAULT_VECTOR_CAPACITY);

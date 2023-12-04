@@ -11,7 +11,7 @@ struct ListSum {
         common::ValueVector& inputVector, common::ValueVector& /*resultVector*/) {
         auto inputDataVector = common::ListVector::getDataVector(&inputVector);
         result = 0;
-        for (auto i = 0; i < input.size; i++) {
+        for (auto i = 0u; i < input.size; i++) {
             if (inputDataVector->isNull(input.offset + i)) {
                 continue;
             }

@@ -229,7 +229,7 @@ void ShowConnectionFunction::tableFunc(TableFunctionInput& input, DataChunk& out
     auto tableSchema = showConnectionBindData->tableSchema;
     auto numRelationsToOutput = morsel.endOffset - morsel.startOffset;
     auto catalog = showConnectionBindData->catalog;
-    auto vectorPos = 0;
+    auto vectorPos = 0u;
     switch (tableSchema->getTableType()) {
     case TableType::REL: {
         outputRelTableConnection(outputChunk.getValueVector(0).get(),

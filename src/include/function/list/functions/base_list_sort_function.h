@@ -41,7 +41,7 @@ public:
 
         // Calculate null count.
         auto nullCount = 0;
-        for (auto i = 0; i < input.size; i++) {
+        for (auto i = 0u; i < input.size; i++) {
             if (inputDataVector->isNull(input.offset + i)) {
                 nullCount += 1;
             }
@@ -58,7 +58,7 @@ public:
         }
 
         // Add actual data.
-        for (auto i = 0; i < input.size; i++) {
+        for (auto i = 0u; i < input.size; i++) {
             if (inputDataVector->isNull(inputPos)) {
                 inputPos++;
                 continue;

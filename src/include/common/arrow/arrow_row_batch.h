@@ -21,7 +21,7 @@ namespace common {
 //  5) an optional dictionary for dictionary-encoded arrays.
 // See https://arrow.apache.org/docs/format/Columnar.html for more details.
 
-static inline std::int64_t getNumBytesForBits(std::int64_t numBits) {
+static inline uint64_t getNumBytesForBits(uint64_t numBits) {
     return (numBits + 7) / 8;
 }
 

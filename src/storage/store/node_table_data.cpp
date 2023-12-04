@@ -119,7 +119,7 @@ void NodeTableData::append(kuzu::storage::NodeGroup* nodeGroup) {
 void NodeTableData::prepareLocalTableToCommit(
     Transaction* transaction, LocalTableData* localTable) {
     for (auto& [nodeGroupIdx, nodeGroup] : localTable->nodeGroups) {
-        for (auto columnID = 0; columnID < columns.size(); columnID++) {
+        for (auto columnID = 0u; columnID < columns.size(); columnID++) {
             auto column = columns[columnID].get();
             auto columnChunk = nodeGroup->getLocalColumnChunk(columnID);
             if (columnChunk->getNumRows() == 0) {

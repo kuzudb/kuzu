@@ -82,7 +82,7 @@ std::vector<std::unique_ptr<LogicalPlan>> QueryPlanner::enumerateQueryGraphColle
                 context->correlatedExpressions, queryGraph, predicatesToEvaluate);
         } break;
         case SubqueryType::CORRELATED: {
-            if (i == queryGraphIdxToPlanExpressionsScan) {
+            if (i == (uint32_t)queryGraphIdxToPlanExpressionsScan) {
                 // Plan ExpressionsScan with current query graph.
                 plans = enumerateQueryGraph(SubqueryType::CORRELATED,
                     context->correlatedExpressions, queryGraph, predicatesToEvaluate);
@@ -467,7 +467,7 @@ static bool needPruneImplicitJoins(
     const SubqueryGraph& leftSubgraph, const SubqueryGraph& rightSubgraph, uint32_t numJoinNodes) {
     auto leftNodePositions = leftSubgraph.getNodePositionsIgnoringNodeSelector();
     auto rightNodePositions = rightSubgraph.getNodePositionsIgnoringNodeSelector();
-    auto intersectionSize = 0;
+    auto intersectionSize = 0u;
     for (auto& pos : leftNodePositions) {
         if (rightNodePositions.contains(pos)) {
             intersectionSize++;
