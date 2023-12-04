@@ -50,8 +50,7 @@ add_custom_command(
         COMMAND
                 ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/collect-single-file-header.py
         DEPENDS
-                ${PROJECT_SOURCE_DIR}/scripts/collect-single-file-header.py
-                ${CMAKE_CURRENT_SOURCE_DIR}/include/main/kuzu.h)
+                ${PROJECT_SOURCE_DIR}/scripts/collect-single-file-header.py kuzu_shared)
 add_custom_target(single_file_header ALL DEPENDS kuzu.hpp)
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/kuzu.hpp ${CMAKE_CURRENT_SOURCE_DIR}/include/c_api/kuzu.h TYPE INCLUDE)
