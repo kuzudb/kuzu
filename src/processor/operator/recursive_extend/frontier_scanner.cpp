@@ -42,7 +42,7 @@ void BaseFrontierScanner::resetState(const BaseBFSState& bfsState) {
     lastFrontierCursor = 0;
     currentDstNodeID = {INVALID_OFFSET, INVALID_TABLE_ID};
     frontiers.clear();
-    for (auto i = 0; i < bfsState.getNumFrontiers(); ++i) {
+    for (auto i = 0u; i < bfsState.getNumFrontiers(); ++i) {
         frontiers.push_back(bfsState.getFrontier(i));
     }
 }
@@ -59,7 +59,7 @@ void PathScanner::scanFromDstOffset(RecursiveJoinVectors* vectors, sel_t& vector
     while (!nbrsStack.empty()) {
         auto& cursor = cursorStack.top();
         cursor++;
-        if (cursor < nbrsStack.top()->size()) { // Found a new nbr
+        if ((uint64_t)cursor < nbrsStack.top()->size()) { // Found a new nbr
             auto& nbr = nbrsStack.top()->at(cursor);
             nodeIDs[level] = nbr.first;
             relIDs[level] = nbr.second;

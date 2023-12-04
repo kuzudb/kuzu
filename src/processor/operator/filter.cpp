@@ -44,7 +44,7 @@ bool NodeLabelFiler::getNextTuplesInternal(ExecutionContext* context) {
         saveSelVector(nodeIDVector->state->selVector);
         numSelectValue = 0;
         auto buffer = nodeIDVector->state->selVector->getSelectedPositionsBuffer();
-        for (auto i = 0; i < nodeIDVector->state->selVector->selectedSize; ++i) {
+        for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
             auto pos = nodeIDVector->state->selVector->selectedPositions[i];
             buffer[numSelectValue] = pos;
             numSelectValue +=

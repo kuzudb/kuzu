@@ -72,7 +72,7 @@ protected:
     parsed_expression_vector copyChildren() const;
 
 private:
-    virtual inline void serializeInternal(common::Serializer& serializer) const {}
+    virtual inline void serializeInternal(common::Serializer& /*serializer*/) const {}
 
 protected:
     common::ExpressionType type;

@@ -33,7 +33,7 @@ void ProjectionPushDownOptimizer::visitOperator(LogicalOperator* op) {
         return;
     }
     // top-down traversal
-    for (auto i = 0; i < op->getNumChildren(); ++i) {
+    for (auto i = 0u; i < op->getNumChildren(); ++i) {
         visitOperator(op->getChild(i).get());
     }
     op->computeFlatSchema();

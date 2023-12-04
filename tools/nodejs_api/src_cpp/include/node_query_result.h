@@ -98,7 +98,7 @@ public:
         Napi::Object nodeTuple = Napi::Object::New(env);
         try {
             auto columnNames = nodeQueryResult->queryResult->getColumnNames();
-            for (auto i = 0; i < cppTuple->len(); ++i) {
+            for (auto i = 0u; i < cppTuple->len(); ++i) {
                 Napi::Value value = Util::ConvertToNapiObject(*cppTuple->getValue(i), env);
                 nodeTuple.Set(columnNames[i], value);
             }

@@ -120,7 +120,7 @@ uint64_t ListColumnReader::read(uint64_t numValues, parquet_filter_t& /*filter*/
             common::ListVector::sliceDataVector(vectorToRead.get(), childIdx, childActualNumValues);
             overflowChildCount = childActualNumValues - childIdx;
             // move values in the child repeats and defines *backward* by child_idx
-            for (auto repdefIdx = 0; repdefIdx < overflowChildCount; repdefIdx++) {
+            for (auto repdefIdx = 0u; repdefIdx < overflowChildCount; repdefIdx++) {
                 childDefinesPtr[repdefIdx] = childDefinesPtr[childIdx + repdefIdx];
                 childRepeatsPtr[repdefIdx] = childRepeatsPtr[childIdx + repdefIdx];
             }

@@ -167,7 +167,7 @@ void StringColumnChunk::finalize() {
     // We re-write the source buffer as we go over it.
     // Each index is replaced by a new one for the de-duplicated data in the new data buffer
     auto outIndices = (string_index_t*)buffer.get();
-    for (int i = 0; i < numValues; i++) {
+    for (auto i = 0u; i < numValues; i++) {
         if (nullChunk->isNull(i)) {
             continue;
         }

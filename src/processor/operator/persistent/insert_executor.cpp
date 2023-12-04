@@ -133,7 +133,7 @@ void RelInsertExecutor::insert(transaction::Transaction* tx) {
     auto offset = relsStatistics.getNextRelOffset(tx, table->getTableID());
     propertyRhsVectors[0]->setValue(0, offset); // internal ID property
     propertyRhsVectors[0]->setNull(0, false);
-    for (auto i = 1; i < propertyRhsEvaluators.size(); ++i) {
+    for (auto i = 1u; i < propertyRhsEvaluators.size(); ++i) {
         propertyRhsEvaluators[i]->evaluate();
     }
     table->insert(tx, srcNodeIDVector, dstNodeIDVector, propertyRhsVectors);

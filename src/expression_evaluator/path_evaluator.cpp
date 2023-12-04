@@ -84,7 +84,7 @@ void PathExpressionEvaluator::evaluate() {
         child->evaluate();
     }
     auto selVector = resultVector->state->selVector;
-    for (auto i = 0; i < selVector->selectedSize; ++i) {
+    for (auto i = 0u; i < selVector->selectedSize; ++i) {
         auto pos = selVector->selectedPositions[i];
         auto numRels = copyRels(pos);
         copyNodes(pos, numRels == 0);
@@ -101,7 +101,7 @@ static inline uint32_t getCurrentPos(ValueVector* vector, uint32_t pos) {
 void PathExpressionEvaluator::copyNodes(sel_t resultPos, bool isEmptyRels) {
     auto listSize = 0u;
     // Calculate list size.
-    for (auto i = 0; i < expression->getNumChildren(); ++i) {
+    for (auto i = 0u; i < expression->getNumChildren(); ++i) {
         auto child = expression->getChild(i).get();
         switch (child->dataType.getLogicalTypeID()) {
         case LogicalTypeID::NODE: {
@@ -125,7 +125,7 @@ void PathExpressionEvaluator::copyNodes(sel_t resultPos, bool isEmptyRels) {
     // Copy field vectors
     offset_t resultDataPos = entry.offset;
     auto numChildrenToCopy = isEmptyRels ? 1 : expression->getNumChildren();
-    for (auto i = 0; i < numChildrenToCopy; ++i) {
+    for (auto i = 0u; i < numChildrenToCopy; ++i) {
         auto child = expression->getChild(i).get();
         auto vectors = inputVectorsPerChild[i].get();
         auto inputPos = getCurrentPos(vectors->input, resultPos);
@@ -136,7 +136,7 @@ void PathExpressionEvaluator::copyNodes(sel_t resultPos, bool isEmptyRels) {
         } break;
         case LogicalTypeID::RECURSIVE_REL: {
             auto& listEntry = vectors->nodesInput->getValue<list_entry_t>(inputPos);
-            for (auto j = 0; j < listEntry.size; ++j) {
+            for (auto j = 0u; j < listEntry.size; ++j) {
                 copyFieldVectors(listEntry.offset + j, vectors->nodeFieldVectors, resultDataPos,
                     resultNodesFieldVectors);
             }
@@ -150,7 +150,7 @@ void PathExpressionEvaluator::copyNodes(sel_t resultPos, bool isEmptyRels) {
 uint64_t PathExpressionEvaluator::copyRels(sel_t resultPos) {
     auto listSize = 0u;
     // Calculate list size.
-    for (auto i = 0; i < expression->getNumChildren(); ++i) {
+    for (auto i = 0u; i < expression->getNumChildren(); ++i) {
         auto child = expression->getChild(i).get();
         switch (child->dataType.getLogicalTypeID()) {
         case LogicalTypeID::REL: {
@@ -170,7 +170,7 @@ uint64_t PathExpressionEvaluator::copyRels(sel_t resultPos) {
     resultRelsVector->setValue(resultPos, entry);
     // Copy field vectors
     offset_t resultDataPos = entry.offset;
-    for (auto i = 0; i < expression->getNumChildren(); ++i) {
+    for (auto i = 0u; i < expression->getNumChildren(); ++i) {
         auto child = expression->getChild(i).get();
         auto vectors = inputVectorsPerChild[i].get();
         auto inputPos = getCurrentPos(vectors->input, resultPos);
@@ -181,7 +181,7 @@ uint64_t PathExpressionEvaluator::copyRels(sel_t resultPos) {
         } break;
         case LogicalTypeID::RECURSIVE_REL: {
             auto& listEntry = vectors->relsInput->getValue<list_entry_t>(inputPos);
-            for (auto j = 0; j < listEntry.size; ++j) {
+            for (auto j = 0u; j < listEntry.size; ++j) {
                 copyFieldVectors(listEntry.offset + j, vectors->relFieldVectors, resultDataPos,
                     resultRelsFieldVectors);
             }

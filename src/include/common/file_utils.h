@@ -26,7 +26,7 @@ struct FileInfo {
 
     ~FileInfo();
 
-    int64_t getFileSize();
+    uint64_t getFileSize();
 
     const std::string path;
 #ifdef _WIN32

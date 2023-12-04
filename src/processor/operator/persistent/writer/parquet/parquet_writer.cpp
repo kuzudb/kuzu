@@ -220,7 +220,7 @@ void ParquetWriter::prepareRowGroup(FactorizedTable& ft, PreparedRowGroup& resul
         }
     }
 
-    for (auto i = 0; i < columnWriters.size(); i++) {
+    for (auto i = 0u; i < columnWriters.size(); i++) {
         columnWriters[i]->beginWrite(*writerStates[i]);
     }
 

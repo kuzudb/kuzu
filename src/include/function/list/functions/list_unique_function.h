@@ -16,7 +16,7 @@ struct ListUnique {
             reinterpret_cast<T*>(common::ListVector::getListValues(&inputVector, input));
         auto inputDataVector = common::ListVector::getDataVector(&inputVector);
 
-        for (auto i = 0; i < input.size; i++) {
+        for (auto i = 0u; i < input.size; i++) {
             if (inputDataVector->isNull(input.offset + i)) {
                 continue;
             }

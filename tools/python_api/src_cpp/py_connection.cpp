@@ -83,7 +83,7 @@ void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
     size_t queryBatchSize) {
     // Get the number of nodes in the dst table for batching.
     auto numDstNodes = getNumNodes(dstTableName);
-    int64_t batches = numDstNodes / queryBatchSize;
+    uint64_t batches = numDstNodes / queryBatchSize;
     if (numDstNodes % queryBatchSize != 0) {
         batches += 1;
     }
@@ -102,10 +102,11 @@ void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
     auto preparedStatement = conn->prepare(query);
     auto srcBuffer = buffer;
     auto dstBuffer = buffer + numRels;
-    for (int64_t batch = 0; batch < batches; ++batch) {
+    for (uint64_t batch = 0; batch < batches; ++batch) {
+        // Must be int64_t for parameter typing.
         int64_t start = batch * queryBatchSize;
         int64_t end = (batch + 1) * queryBatchSize;
-        end = end > numDstNodes ? numDstNodes : end;
+        end = (uint64_t)end > numDstNodes ? numDstNodes : end;
         std::unordered_map<std::string, std::unique_ptr<Value>> parameters;
         parameters["s"] = std::make_unique<Value>(start);
         parameters["e"] = std::make_unique<Value>(end);
@@ -156,11 +157,12 @@ bool PyConnection::isPandasDataframe(const py::object& object) {
 
 static Value transformPythonValue(py::handle val);
 
-std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonParameters(const py::dict& params, Connection* conn) {
+std::unordered_map<std::string, std::unique_ptr<Value>> transformPythonParameters(
+    const py::dict& params, Connection* conn) {
     std::unordered_map<std::string, std::unique_ptr<Value>> result;
     for (auto& [key, value] : params) {
         if (!py::isinstance<py::str>(key)) {
-            //TODO(Chang): remove ROLLBACK once we can guarantee database is deleted after conn
+            // TODO(Chang): remove ROLLBACK once we can guarantee database is deleted after conn
             conn->query("ROLLBACK");
             throw std::runtime_error("Parameter name must be of type string but get " +
                                      py::str(key.get_type()).cast<std::string>());

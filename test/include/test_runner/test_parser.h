@@ -100,7 +100,7 @@ private:
         return static_cast<bool>(getline(fileStream, line));
     }
 
-    inline void checkMinimumParams(int minimumParams) {
+    inline void checkMinimumParams(uint64_t minimumParams) {
         if (currentToken.params.size() - 1 < minimumParams) {
             throw common::TestException("Minimum number of parameters is " +
                                         std::to_string(minimumParams) + ". [" + path + ":" + line +

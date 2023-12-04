@@ -51,7 +51,7 @@ static void getRelColumnNamesInCopyOrder(
     columnTypes.emplace_back(std::make_unique<LogicalType>(LogicalTypeID::INT64));
     columnTypes.emplace_back(std::make_unique<LogicalType>(LogicalTypeID::INT64));
     auto properties = tableSchema->getProperties();
-    for (auto i = 1; i < properties.size(); ++i) { // skip internal ID
+    for (auto i = 1u; i < properties.size(); ++i) { // skip internal ID
         columnNames.push_back(properties[i]->getName());
         columnTypes.push_back(properties[i]->getDataType()->copy());
     }

@@ -46,7 +46,7 @@ void HashIndexBuilder<T>::bulkReserve(uint32_t numEntries_) {
     // Build from scratch.
     slotCapacity = getSlotCapacity<T>();
     auto numRequiredSlots = (numRequiredEntries + slotCapacity - 1) / slotCapacity;
-    auto numSlotsOfCurrentLevel = 1 << indexHeader->currentLevel;
+    auto numSlotsOfCurrentLevel = 1u << indexHeader->currentLevel;
     while ((numSlotsOfCurrentLevel << 1) < numRequiredSlots) {
         indexHeader->incrementLevel();
         numSlotsOfCurrentLevel <<= 1;

@@ -95,7 +95,7 @@ struct CollectFunction {
         otherState->factorizedTable.reset();
     }
 
-    static void finalize(uint8_t* state_) {}
+    static void finalize(uint8_t* /*state_*/) {}
 
     static std::unique_ptr<FunctionBindData> bindFunc(
         const binder::expression_vector& arguments, Function* definition) {

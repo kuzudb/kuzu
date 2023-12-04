@@ -132,7 +132,7 @@ void StructColumn::prepareCommitForChunk(Transaction* transaction, node_group_id
         nullColumn->commitLocalChunkInPlace(
             transaction, nodeGroupIdx, localColumnChunk, insertInfo, updateInfo, deleteInfo);
         // Update each child column separately
-        for (int i = 0; i < childColumns.size(); i++) {
+        for (auto i = 0u; i < childColumns.size(); i++) {
             const auto& childColumn = childColumns[i];
             auto childLocalColumnChunk = localColumnChunk->getStructChildVectorCollection(i);
 

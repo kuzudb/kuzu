@@ -20,7 +20,7 @@ template<>
 inline void ListLen::operation(common::ku_string_t& input, int64_t& result) {
     auto totalByteLength = input.len;
     auto inputString = input.getAsString();
-    for (auto i = 0; i < totalByteLength; i++) {
+    for (auto i = 0u; i < totalByteLength; i++) {
         if (inputString[i] & 0x80) {
             int64_t length = 0;
             // Use grapheme iterator to identify bytes of utf8 char and increment once for each

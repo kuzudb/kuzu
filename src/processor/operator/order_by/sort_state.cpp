@@ -127,7 +127,7 @@ uint64_t PayloadScanner::scan(std::vector<common::ValueVector*> vectorsToRead) {
         } else {
             auto numTuplesToRead = std::min(DEFAULT_VECTOR_CAPACITY,
                 endTuplesIdxToReadInMergedKeyBlock - nextTupleIdxToReadInMergedKeyBlock);
-            auto numTuplesRead = 0;
+            auto numTuplesRead = 0u;
             while (numTuplesRead < numTuplesToRead) {
                 auto numTuplesToReadInCurBlock = std::min(
                     numTuplesToRead - numTuplesRead, blockPtrInfo->getNumTuplesLeftInCurBlock());

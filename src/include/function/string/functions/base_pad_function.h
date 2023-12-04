@@ -41,7 +41,7 @@ public:
         auto padData = pad.getData();
         auto padSize = pad.len;
         uint32_t padByteCount = 0;
-        for (auto i = 0; i < charCount; i++) {
+        for (auto i = 0u; i < charCount; i++) {
             if (padByteCount >= padSize) {
                 result.insert(result.end(), (char*)padData, (char*)(padData + padByteCount));
                 padByteCount = 0;

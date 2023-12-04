@@ -64,7 +64,7 @@ void VarListColumnWriter::prepare(ColumnWriterState& writerState, ColumnWriterSt
                 state.isEmpty.push_back(false);
             }
             state.repetitionLevels.push_back(firstRepeatLevel);
-            for (auto k = 1; k < listEntry.size; k++) {
+            for (auto k = 1u; k < listEntry.size; k++) {
                 state.repetitionLevels.push_back(maxRepeat + 1);
                 state.definitionLevels.push_back(common::ParquetConstants::PARQUET_DEFINE_VALID);
                 state.isEmpty.push_back(false);

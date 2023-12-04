@@ -54,11 +54,11 @@ void castStringToBool(const char* input, uint64_t len, bool& result);
 // TODO(Kebing): support exponent + decimal
 template<typename T, bool NEGATIVE, bool ALLOW_EXPONENT = false, class OP>
 inline bool integerCastLoop(const char* input, uint64_t len, T& result) {
-    int64_t start_pos = 0;
+    auto start_pos = 0u;
     if (NEGATIVE) {
         start_pos = 1;
     }
-    int64_t pos = start_pos;
+    auto pos = start_pos;
     while (pos < len) {
         if (!StringUtils::CharacterIsDigit(input[pos])) {
             return false;

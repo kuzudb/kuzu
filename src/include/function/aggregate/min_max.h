@@ -87,7 +87,7 @@ struct MinMaxFunction {
         otherState->overflowBuffer.reset();
     }
 
-    static void finalize(uint8_t* state_) {}
+    static void finalize(uint8_t* /*state_*/) {}
 };
 
 template<>

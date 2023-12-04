@@ -30,7 +30,7 @@ struct BaseCountFunction {
         state->count += otherState->count;
     }
 
-    static void finalize(uint8_t* state_) {}
+    static void finalize(uint8_t* /*state_*/) {}
 };
 
 } // namespace function

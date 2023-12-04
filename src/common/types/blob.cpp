@@ -27,7 +27,7 @@ uint64_t Blob::getBlobSize(const ku_string_t& blob) {
     uint64_t blobSize = 0;
     auto length = blob.len;
     auto blobStr = blob.getData();
-    for (auto i = 0; i < length; i++) {
+    for (auto i = 0u; i < length; i++) {
         if (blobStr[i] == '\\') {
             validateHexCode(blobStr, length, i);
             blobSize++;

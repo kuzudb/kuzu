@@ -1094,7 +1094,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1struct_1f
     auto* sv = getValue(env, thisSV);
     auto dataType = sv->getDataType();
     auto fieldNames = StructType::getFieldNames(dataType);
-    if (index >= fieldNames.size() || index < 0) {
+    if ((uint64_t)index >= fieldNames.size() || index < 0) {
         return nullptr;
     }
     auto name = fieldNames[index];

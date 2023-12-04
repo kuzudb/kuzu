@@ -68,7 +68,7 @@ void CopyNode::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*
         }
     }
     KU_ASSERT(state != nullptr);
-    for (auto i = 0; i < info->columnPositions.size(); ++i) {
+    for (auto i = 0u; i < info->columnPositions.size(); ++i) {
         auto pos = info->columnPositions[i];
         if (pos.isValid()) {
             columnVectors.push_back(resultSet->getValueVector(pos).get());

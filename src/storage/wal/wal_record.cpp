@@ -5,20 +5,6 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-bool DBFileID::operator==(const DBFileID& rhs) const {
-    if (dbFileType != rhs.dbFileType || isOverflow != rhs.isOverflow) {
-        return false;
-    }
-    switch (dbFileType) {
-    case DBFileType::NODE_INDEX: {
-        return nodeIndexID == rhs.nodeIndexID;
-    }
-    default: {
-        KU_UNREACHABLE;
-    }
-    }
-}
-
 std::string dbFileTypeToString(DBFileType dbFileType) {
     switch (dbFileType) {
     case DBFileType::DATA: {
@@ -37,13 +23,11 @@ std::string dbFileTypeToString(DBFileType dbFileType) {
 }
 
 DBFileID DBFileID::newDataFileID() {
-    DBFileID retVal{DBFileType::DATA, false};
-    return retVal;
+    return DBFileID{DBFileType::DATA};
 }
 
 DBFileID DBFileID::newMetadataFileID() {
-    DBFileID retVal{DBFileType::METADATA, false};
-    return retVal;
+    return DBFileID{DBFileType::METADATA};
 }
 
 DBFileID DBFileID::newPKIndexFileID(common::table_id_t tableID) {

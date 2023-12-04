@@ -18,7 +18,7 @@ public:
         auto startPos = start - 1;
         auto endPos = std::min(srcStr.size(), (size_t)(startPos + len));
         // 1 character more than length has to be scanned for diatrics case: y + ˘ = ў.
-        for (auto i = 0; i < std::min(srcStr.size(), endPos + 1); i++) {
+        for (auto i = 0u; i < std::min(srcStr.size(), endPos + 1); i++) {
             // UTF-8 character encountered.
             if (srcStr[i] & 0x80) {
                 isAscii = false;
@@ -33,7 +33,7 @@ public:
                 srcStr.c_str(), srcStr.size(), [&](int64_t gstart, int64_t /*gend*/) {
                     if (characterCount == startPos) {
                         startBytePos = gstart;
-                    } else if (characterCount == endPos) {
+                    } else if ((uint64_t)characterCount == endPos) {
                         endBytePos = gstart;
                         return false;
                     }

@@ -146,8 +146,8 @@ public:
     virtual std::unique_ptr<PhysicalOperator> clone() = 0;
 
 protected:
-    virtual void initGlobalStateInternal(ExecutionContext* context) {}
-    virtual void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) {}
+    virtual void initGlobalStateInternal(ExecutionContext* /*context*/) {}
+    virtual void initLocalStateInternal(ResultSet* /*resultSet_*/, ExecutionContext* /*context*/) {}
     // Return false if no more tuples to pull, otherwise return true
     virtual bool getNextTuplesInternal(ExecutionContext* context) = 0;
 

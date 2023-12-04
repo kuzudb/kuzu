@@ -44,7 +44,7 @@ void NodeTable::read(Transaction* transaction, TableReadState& readState, ValueV
 
 offset_t NodeTable::insert(Transaction* transaction, ValueVector* nodeIDVector,
     const std::vector<common::ValueVector*>& propertyVectors) {
-    auto maxNodeOffset = 0;
+    auto maxNodeOffset = 0u;
     for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[i];
         auto offset =
@@ -85,7 +85,7 @@ void NodeTable::delete_(
     }
     // TODO(Guodong): We actually have flatten the input here. But the code is left unchanged for
     // now, so we can remove the flattenAll logic later.
-    for (auto i = 0; i < nodeIDVector->state->selVector->selectedSize; i++) {
+    for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[i];
         if (nodeIDVector->isNull(pos)) {
             continue;

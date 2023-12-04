@@ -496,7 +496,7 @@ Value::Value(const LogicalType& dataType_) : isNull_{true} {
 void Value::copyFromFixedList(const uint8_t* fixedList) {
     auto numBytesPerElement =
         storage::StorageUtils::getDataTypeSize(*FixedListType::getChildType(dataType.get()));
-    for (auto i = 0; i < childrenSize; ++i) {
+    for (auto i = 0u; i < childrenSize; ++i) {
         auto childValue = children[i].get();
         childValue->copyValueFrom(fixedList + i * numBytesPerElement);
     }
@@ -514,7 +514,7 @@ void Value::copyFromVarList(ku_list_t& list, const LogicalType& childType) {
     auto listNullBytes = reinterpret_cast<uint8_t*>(list.overflowPtr);
     auto numBytesForNullValues = NullBuffer::getNumBytesForNullValues(list.size);
     auto listValues = listNullBytes + numBytesForNullValues;
-    for (auto i = 0; i < list.size; i++) {
+    for (auto i = 0u; i < list.size; i++) {
         auto childValue = children[i].get();
         if (NullBuffer::isNull(listNullBytes, i)) {
             childValue->setNull(true);
@@ -530,7 +530,7 @@ void Value::copyFromStruct(const uint8_t* kuStruct) {
     auto numFields = childrenSize;
     auto structNullValues = kuStruct;
     auto structValues = structNullValues + NullBuffer::getNumBytesForNullValues(numFields);
-    for (auto i = 0; i < numFields; i++) {
+    for (auto i = 0u; i < numFields; i++) {
         auto childValue = children[i].get();
         if (NullBuffer::isNull(structNullValues, i)) {
             childValue->setNull(true);

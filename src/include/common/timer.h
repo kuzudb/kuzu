@@ -3,6 +3,7 @@
 #include <chrono>
 #include <string>
 
+#include "common/assert.h"
 #include "exception/exception.h"
 
 namespace kuzu {
@@ -29,10 +30,12 @@ public:
         throw Exception("Timer is still running.");
     }
 
-    int64_t getElapsedTimeInMS() {
+    uint64_t getElapsedTimeInMS() {
         auto now = std::chrono::high_resolution_clock::now();
         auto duration = now - startTime;
-        return std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+        auto count = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+        KU_ASSERT(count >= 0);
+        return count;
     }
 
 private:

@@ -186,8 +186,7 @@ void StringColumn::scanValuesToVector(Transaction* transaction, node_group_idx_t
     scanOffsets(transaction, offsetState, offsets.data(), firstOffsetToScan, numOffsetsToScan,
         dataState.metadata.numValues);
 
-    auto pos = 0;
-    for (; pos < offsetsToScan.size(); pos++) {
+    for (auto pos = 0u; pos < offsetsToScan.size(); pos++) {
         auto startOffset = offsets[offsetsToScan[pos].first - firstOffsetToScan];
         auto endOffset = offsets[offsetsToScan[pos].first - firstOffsetToScan + 1];
         scanValueToVector(transaction, dataState, startOffset, endOffset, resultVector,

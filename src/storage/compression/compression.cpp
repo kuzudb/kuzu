@@ -185,7 +185,7 @@ template<typename T>
 BitpackHeader IntegerBitpacking<T>::getBitWidth(
     const uint8_t* srcBuffer, uint64_t numValues) const {
     T max = std::numeric_limits<T>::min(), min = std::numeric_limits<T>::max();
-    for (int i = 0; i < numValues; i++) {
+    for (auto i = 0u; i < numValues; i++) {
         T value = ((T*)srcBuffer)[i];
         if (value > max) {
             max = value;
@@ -350,7 +350,7 @@ uint64_t IntegerBitpacking<T>::compressNextPage(const uint8_t*& srcBuffer,
         U tmp[CHUNK_SIZE];
         auto lastFullChunkEnd = numValuesToCompress - numValuesToCompress % CHUNK_SIZE;
         for (auto i = 0ull; i < lastFullChunkEnd; i += CHUNK_SIZE) {
-            for (int j = 0; j < CHUNK_SIZE; j++) {
+            for (auto j = 0u; j < CHUNK_SIZE; j++) {
                 tmp[j] = (U)(((T*)srcBuffer)[i + j] - (T)header.offset);
             }
             fastpack(tmp, dstBuffer + i * bitWidth / 8, bitWidth);
@@ -359,7 +359,7 @@ uint64_t IntegerBitpacking<T>::compressNextPage(const uint8_t*& srcBuffer,
         auto remainingValues = numValuesToCompress % CHUNK_SIZE;
         if (remainingValues > 0) {
             memcpy(tmp, (const U*)srcBuffer + lastFullChunkEnd, remainingValues * sizeof(U));
-            for (int i = 0; i < remainingValues; i++) {
+            for (auto i = 0u; i < remainingValues; i++) {
                 tmp[i] = (U)((T)tmp[i] - (T)header.offset);
             }
             memset(tmp + remainingValues, 0, CHUNK_SIZE - remainingValues);
@@ -400,7 +400,7 @@ void IntegerBitpacking<T>::decompressFromPage(const uint8_t* srcBuffer, uint64_t
             SignExtend<T, U, CHUNK_SIZE>(dstBuffer + dstIndex * sizeof(U), header.bitWidth);
         }
         if (header.offset != 0) {
-            for (int i = 0; i < CHUNK_SIZE; i++) {
+            for (auto i = 0u; i < CHUNK_SIZE; i++) {
                 ((T*)dstBuffer)[dstIndex + i] += (T)header.offset;
             }
         }
@@ -425,7 +425,7 @@ template class IntegerBitpacking<uint64_t>;
 void BooleanBitpacking::setValuesFromUncompressed(const uint8_t* srcBuffer, offset_t srcOffset,
     uint8_t* dstBuffer, offset_t dstOffset, offset_t numValues,
     const CompressionMetadata& /*metadata*/) const {
-    for (auto i = 0; i < numValues; i++) {
+    for (auto i = 0u; i < numValues; i++) {
         NullMask::setNull((uint64_t*)dstBuffer, dstOffset + i, ((bool*)srcBuffer)[srcOffset + i]);
     }
 }

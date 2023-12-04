@@ -478,7 +478,7 @@ template<typename T>
 void InMemDiskArrayBuilder<T>::saveToDisk() {
     // save the header and pips.
     this->header.saveToDisk(this->fileHandle, this->headerPageIdx);
-    for (int i = 0; i < this->pips.size(); ++i) {
+    for (auto i = 0u; i < this->pips.size(); ++i) {
         this->fileHandle.writePage(
             reinterpret_cast<uint8_t*>(&this->pips[i].pipContents), this->pips[i].pipPageIdx);
     }

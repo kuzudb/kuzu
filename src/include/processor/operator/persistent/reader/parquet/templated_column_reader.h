@@ -47,7 +47,7 @@ public:
     void offsets(uint32_t* offsets, uint8_t* defines, uint64_t numValues, parquet_filter_t& filter,
         uint64_t resultOffset, common::ValueVector* result) override {
         uint64_t offsetIdx = 0;
-        for (auto rowIdx = 0; rowIdx < numValues; rowIdx++) {
+        for (auto rowIdx = 0u; rowIdx < numValues; rowIdx++) {
             if (hasDefines() && defines[rowIdx + resultOffset] != maxDefine) {
                 result->setNull(rowIdx + resultOffset, true);
                 continue;

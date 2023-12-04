@@ -2299,12 +2299,12 @@ public:
 
 private:
 
-      virtual void notifyQueryNotConcludeWithReturn(antlr4::Token* startToken) {};
-      virtual void notifyNodePatternWithoutParentheses(std::string nodeName, antlr4::Token* startToken) {};
-      virtual void notifyInvalidNotEqualOperator(antlr4::Token* startToken) {};
-      virtual void notifyEmptyToken(antlr4::Token* startToken) {};
-      virtual void notifyReturnNotAtEnd(antlr4::Token* startToken) {};
-      virtual void notifyNonBinaryComparison(antlr4::Token* startToken) {};
+      virtual void notifyQueryNotConcludeWithReturn(antlr4::Token* /*startToken*/) {};
+      virtual void notifyNodePatternWithoutParentheses(std::string /*nodeName*/, antlr4::Token* /*startToken*/) {};
+      virtual void notifyInvalidNotEqualOperator(antlr4::Token* /*startToken*/) {};
+      virtual void notifyEmptyToken(antlr4::Token* /*startToken*/) {};
+      virtual void notifyReturnNotAtEnd(antlr4::Token* /*startToken*/) {};
+      virtual void notifyNonBinaryComparison(antlr4::Token* /*startToken*/) {};
 
 };
 
