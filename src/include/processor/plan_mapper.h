@@ -18,14 +18,14 @@ class LogicalCopyFrom;
 
 namespace processor {
 
-struct HashJoinBuildInfo;
+class HashJoinBuildInfo;
 struct AggregateInputInfo;
 class NodeInsertExecutor;
 class RelInsertExecutor;
 class NodeSetExecutor;
 class RelSetExecutor;
 class CopyRelSharedState;
-class PartitionerSharedState;
+struct PartitionerSharedState;
 
 class PlanMapper {
 public:

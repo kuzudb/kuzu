@@ -73,7 +73,7 @@ std::unique_ptr<ExpressionEvaluator> CaseExpressionEvaluator::clone() {
         clonedAlternativeEvaluators.push_back(alternative->clone());
     }
     return make_unique<CaseExpressionEvaluator>(
-        expression, std::move(clonedAlternativeEvaluators), std::move(elseEvaluator->clone()));
+        expression, std::move(clonedAlternativeEvaluators), elseEvaluator->clone());
 }
 
 void CaseExpressionEvaluator::resolveResultVector(
@@ -101,7 +101,7 @@ void CaseExpressionEvaluator::fillEntry(sel_t resultPos, const ValueVector& then
     } else {
         if (thenVector.dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST) {
             auto srcListEntry = thenVector.getValue<list_entry_t>(thenPos);
-            list_entry_t resultEntry = ListVector::addList(resultVector.get(), srcListEntry.size);
+            ListVector::addList(resultVector.get(), srcListEntry.size);
             resultVector->copyFromVectorData(resultPos, &thenVector, thenPos);
         } else {
             auto val = thenVector.getValue<T>(thenPos);

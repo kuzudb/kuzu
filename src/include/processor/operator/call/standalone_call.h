@@ -24,8 +24,8 @@ class StandaloneCall : public PhysicalOperator {
 public:
     StandaloneCall(std::unique_ptr<StandaloneCallInfo> localState,
         PhysicalOperatorType operatorType, uint32_t id, const std::string& paramsString)
-        : standaloneCallInfo{std::move(localState)}, PhysicalOperator{
-                                                         operatorType, id, paramsString} {}
+        : PhysicalOperator{operatorType, id, paramsString}, standaloneCallInfo{
+                                                                std::move(localState)} {}
 
     inline bool isSource() const override { return true; }
     inline bool canParallel() const final { return false; }

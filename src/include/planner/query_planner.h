@@ -12,17 +12,17 @@
 
 namespace kuzu {
 namespace binder {
-class BoundInsertInfo;
-class BoundSetPropertyInfo;
-class BoundDeleteInfo;
+struct BoundInsertInfo;
+struct BoundSetPropertyInfo;
+struct BoundDeleteInfo;
 struct BoundFileScanInfo;
 } // namespace binder
 
 namespace planner {
 
-class LogicalInsertNodeInfo;
-class LogicalInsertRelInfo;
-class LogicalSetPropertyInfo;
+struct LogicalInsertNodeInfo;
+struct LogicalInsertRelInfo;
+struct LogicalSetPropertyInfo;
 
 class QueryPlanner {
     friend class Planner;

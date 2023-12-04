@@ -30,7 +30,6 @@ bool CastFixedListHelper::containsListToFixedList(
                         dstType->toString())};
             }
 
-            auto result = false;
             std::vector<struct_field_idx_t> fields;
             for (auto i = 0u; i < srcFieldTypes.size(); i++) {
                 if (containsListToFixedList(srcFieldTypes[i], dstFieldTypes[i])) {

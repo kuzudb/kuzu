@@ -18,7 +18,7 @@ class CopyNodeSharedState {
 
 public:
     explicit CopyNodeSharedState(InQueryCallSharedState* readerSharedState)
-        : readerSharedState{readerSharedState}, pkIndex{nullptr}, currentNodeGroupIdx{0},
+        : pkIndex{nullptr}, readerSharedState{readerSharedState}, currentNodeGroupIdx{0},
           sharedNodeGroup{nullptr} {};
 
     void init();

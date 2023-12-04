@@ -40,7 +40,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     }
     auto csvConfig = bindParsingOptions(copyToStatement.getParsingOptionsRef());
     return std::make_unique<BoundCopyTo>(boundFilePath, fileType, std::move(columnNames),
-        std::move(columnTypes), std::move(query), std::move(csvConfig->option.copy()));
+        std::move(columnTypes), std::move(query), csvConfig->option.copy());
 }
 
 // As a temporary constraint, we require npy files loaded with COPY FROM BY COLUMN keyword.

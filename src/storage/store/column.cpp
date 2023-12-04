@@ -342,8 +342,8 @@ Column::Column(std::unique_ptr<LogicalType> dataType, const MetadataDAHInfo& met
     transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
     bool enableCompression, bool requireNullColumn)
     : dbFileID{DBFileID::newDataFileID()}, dataType{std::move(dataType)}, dataFH{dataFH},
-      metadataFH{metadataFH}, bufferManager{bufferManager},
-      propertyStatistics{propertyStatistics}, wal{wal}, enableCompression{enableCompression} {
+      metadataFH{metadataFH}, bufferManager{bufferManager}, wal{wal},
+      propertyStatistics{propertyStatistics}, enableCompression{enableCompression} {
     metadataDA = std::make_unique<InMemDiskArray<ColumnChunkMetadata>>(*metadataFH,
         DBFileID::newMetadataFileID(), metaDAHeaderInfo.dataDAHPageIdx, bufferManager, wal,
         transaction);

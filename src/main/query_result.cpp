@@ -48,7 +48,7 @@ std::unique_ptr<DataTypeInfo> DataTypeInfo::getInfoForDataType(
         // DO NOTHING
     }
     }
-    return std::move(columnTypeInfo);
+    return columnTypeInfo;
 }
 
 QueryResult::QueryResult() = default;
@@ -125,7 +125,7 @@ std::vector<std::unique_ptr<DataTypeInfo>> QueryResult::getColumnTypesInfo() con
         }
         result.push_back(std::move(columnTypeInfo));
     }
-    return std::move(result);
+    return result;
 }
 
 void QueryResult::initResultTableAndIterator(

@@ -92,7 +92,7 @@ class PhysicalOperator {
 public:
     // Leaf operator
     PhysicalOperator(PhysicalOperatorType operatorType, uint32_t id, std::string paramsString)
-        : operatorType{operatorType}, id{id}, transaction{nullptr}, paramsString{
+        : id{id}, operatorType{operatorType}, transaction{nullptr}, paramsString{
                                                                         std::move(paramsString)} {}
     // Unary operator
     PhysicalOperator(PhysicalOperatorType operatorType, std::unique_ptr<PhysicalOperator> child,

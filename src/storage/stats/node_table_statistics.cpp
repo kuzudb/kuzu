@@ -40,9 +40,9 @@ NodeTableStatsAndDeletedIDs::NodeTableStatsAndDeletedIDs(const NodeTableStatsAnd
 NodeTableStatsAndDeletedIDs::NodeTableStatsAndDeletedIDs(table_id_t tableID, offset_t maxNodeOffset,
     const std::vector<offset_t>& deletedNodeOffsets,
     std::unordered_map<property_id_t, std::unique_ptr<PropertyStatistics>>&& propertyStatistics)
-    : tableID{tableID}, TableStatistics{TableType::NODE,
-                            getNumTuplesFromMaxNodeOffset(maxNodeOffset), tableID,
-                            std::move(propertyStatistics)} {
+    : TableStatistics{TableType::NODE, getNumTuplesFromMaxNodeOffset(maxNodeOffset), tableID,
+          std::move(propertyStatistics)},
+      tableID{tableID} {
     if (getNumTuples() > 0) {
         hasDeletedNodesPerMorsel.resize((getNumTuples() / DEFAULT_VECTOR_CAPACITY) + 1, false);
     }

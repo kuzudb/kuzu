@@ -17,8 +17,8 @@ public:
     RdfReader(
         std::string filePath, common::FileType fileType, const common::RdfReaderConfig& config)
         : filePath{std::move(filePath)}, fileType{fileType}, mode{config.mode}, index{config.index},
-          reader{nullptr}, rowOffset{0}, vectorSize{0}, sVector{nullptr}, pVector{nullptr},
-          oVector{nullptr}, status{SERD_SUCCESS} {}
+          reader{nullptr}, rowOffset{0}, vectorSize{0}, status{SERD_SUCCESS}, sVector{nullptr},
+          pVector{nullptr}, oVector{nullptr} {}
 
     ~RdfReader();
 

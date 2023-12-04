@@ -26,8 +26,8 @@ class CommentOn : public PhysicalOperator {
 public:
     CommentOn(
         std::unique_ptr<CommentOnInfo> localState, uint32_t id, const std::string& paramsString)
-        : commentOnInfo{std::move(localState)}, PhysicalOperator{PhysicalOperatorType::COMMENT_ON,
-                                                    id, paramsString} {}
+        : PhysicalOperator{PhysicalOperatorType::COMMENT_ON, id, paramsString},
+          commentOnInfo{std::move(localState)} {}
 
     inline bool isSource() const override { return true; }
     inline bool canParallel() const final { return false; }

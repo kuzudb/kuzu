@@ -9,8 +9,6 @@
 namespace kuzu {
 namespace function {
 
-class AggregateFunction;
-
 struct AggregateState {
     virtual inline uint32_t getStateSize() const = 0;
     virtual void moveResultToVector(common::ValueVector* outputVector, uint64_t pos) = 0;
@@ -37,10 +35,10 @@ struct AggregateFunction final : public BaseScalarFunction {
         scalar_bind_func bindFunc = nullptr, param_rewrite_function_t paramRewriteFunc = nullptr)
         : BaseScalarFunction{FunctionType::AGGREGATE, std::move(name), std::move(parameterTypeIDs),
               returnTypeID, std::move(bindFunc)},
-          initializeFunc{std::move(initializeFunc)}, updateAllFunc{std::move(updateAllFunc)},
-          updatePosFunc{std::move(updatePosFunc)}, combineFunc{std::move(combineFunc)},
-          finalizeFunc{std::move(finalizeFunc)}, isDistinct{isDistinct}, paramRewriteFunc{std::move(
-                                                                             paramRewriteFunc)} {
+          isDistinct{isDistinct}, initializeFunc{std::move(initializeFunc)},
+          updateAllFunc{std::move(updateAllFunc)}, updatePosFunc{std::move(updatePosFunc)},
+          combineFunc{std::move(combineFunc)}, finalizeFunc{std::move(finalizeFunc)},
+          paramRewriteFunc{std::move(paramRewriteFunc)} {
         initialNullAggregateState = createInitialNullAggregateState();
     }
 

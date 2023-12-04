@@ -14,11 +14,11 @@ struct BoundDeleteInfo {
 
     BoundDeleteInfo(UpdateTableType updateTableType, std::shared_ptr<Expression> nodeOrRel,
         common::DeleteClauseType deleteClauseType)
-        : updateTableType{updateTableType}, nodeOrRel{std::move(nodeOrRel)},
-          deleteClauseType{deleteClauseType} {}
+        : deleteClauseType{deleteClauseType}, updateTableType{updateTableType}, nodeOrRel{std::move(
+                                                                                    nodeOrRel)} {}
     BoundDeleteInfo(const BoundDeleteInfo& other)
-        : updateTableType{other.updateTableType}, nodeOrRel{other.nodeOrRel},
-          deleteClauseType{other.deleteClauseType} {}
+        : deleteClauseType{other.deleteClauseType},
+          updateTableType{other.updateTableType}, nodeOrRel{other.nodeOrRel} {}
 
     inline std::unique_ptr<BoundDeleteInfo> copy() {
         return std::make_unique<BoundDeleteInfo>(*this);

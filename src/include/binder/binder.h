@@ -19,17 +19,17 @@ class ClientContext;
 }
 
 namespace function {
-class TableFunction;
+struct TableFunction;
 }
 
 namespace binder {
 
-class BoundInsertInfo;
-class BoundSetPropertyInfo;
-class BoundDeleteInfo;
+struct BoundInsertInfo;
+struct BoundSetPropertyInfo;
+struct BoundDeleteInfo;
 class BoundWithClause;
 class BoundReturnClause;
-class BoundFileScanInfo;
+struct BoundFileScanInfo;
 
 // BinderScope keeps track of expressions in scope and their aliases. We maintain the order of
 // expressions in

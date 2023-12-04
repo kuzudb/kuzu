@@ -65,7 +65,7 @@ public:
 class TestParser {
 public:
     explicit TestParser(const std::string& path)
-        : testGroup{std::make_unique<TestGroup>()}, path{path} {}
+        : path{path}, testGroup{std::make_unique<TestGroup>()} {}
     std::unique_ptr<TestGroup> parseTestFile();
 
 private:

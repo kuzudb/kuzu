@@ -191,7 +191,7 @@ std::unique_ptr<ArrowSchema> ArrowConverter::toArrowSchema(
 
     outSchema->private_data = rootHolder.release();
     outSchema->release = releaseArrowSchema;
-    return std::move(outSchema);
+    return outSchema;
 }
 
 void ArrowConverter::toArrowArray(

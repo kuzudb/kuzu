@@ -18,8 +18,8 @@ WALPageIdxGroup::WALPageIdxGroup() {
 
 BMFileHandle::BMFileHandle(const std::string& path, uint8_t flags, BufferManager* bm,
     PageSizeClass pageSizeClass, FileVersionedType fileVersionedType)
-    : FileHandle{path, flags}, bm{bm}, pageSizeClass{pageSizeClass}, fileVersionedType{
-                                                                         fileVersionedType} {
+    : FileHandle{path, flags}, fileVersionedType{fileVersionedType}, bm{bm}, pageSizeClass{
+                                                                                 pageSizeClass} {
     initPageStatesAndGroups();
 }
 

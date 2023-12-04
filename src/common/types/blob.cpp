@@ -48,10 +48,10 @@ uint64_t Blob::fromString(const char* str, uint64_t length, uint8_t* resultBuffe
     for (auto i = 0u; i < length; i++) {
         if (str[i] == '\\') {
             validateHexCode(reinterpret_cast<const uint8_t*>(str), length, i);
-            auto firstByte =
-                HexFormatConstants::HEX_MAP[str[i + HexFormatConstants::FIRST_BYTE_POS]];
-            auto secondByte =
-                HexFormatConstants::HEX_MAP[str[i + HexFormatConstants::SECOND_BYTES_POS]];
+            auto firstByte = HexFormatConstants::HEX_MAP[(
+                unsigned char)str[i + HexFormatConstants::FIRST_BYTE_POS]];
+            auto secondByte = HexFormatConstants::HEX_MAP[(
+                unsigned char)str[i + HexFormatConstants::SECOND_BYTES_POS]];
             resultBuffer[resultPos++] =
                 (firstByte << HexFormatConstants::NUM_BYTES_TO_SHIFT_FOR_FIRST_BYTE) + secondByte;
             i += HexFormatConstants::LENGTH - 1;

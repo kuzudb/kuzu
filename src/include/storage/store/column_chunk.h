@@ -29,8 +29,8 @@ struct ColumnChunkMetadata {
 // Base data segment covers all fixed-sized data types.
 class ColumnChunk {
 public:
-    friend class ColumnChunkFactory;
-    friend class VarListDataColumnChunk;
+    friend struct ColumnChunkFactory;
+    friend struct VarListDataColumnChunk;
 
     // ColumnChunks must be initialized after construction, so this constructor should only be used
     // through the ColumnChunkFactory

@@ -8,8 +8,7 @@ ListColumnReader::ListColumnReader(ParquetReader& reader, std::unique_ptr<common
     uint64_t maxRepeat, std::unique_ptr<ColumnReader> childColumnReader,
     storage::MemoryManager* memoryManager)
     : ColumnReader(reader, std::move(type), schema, schemaIdx, maxDefine, maxRepeat),
-      childColumnReader(std::move(childColumnReader)),
-      overflowChildCount(0), memoryManager{memoryManager} {
+      childColumnReader(std::move(childColumnReader)), overflowChildCount(0) {
     childDefines.resize(common::DEFAULT_VECTOR_CAPACITY);
     childRepeats.resize(common::DEFAULT_VECTOR_CAPACITY);
     childDefinesPtr = (uint8_t*)childDefines.ptr;

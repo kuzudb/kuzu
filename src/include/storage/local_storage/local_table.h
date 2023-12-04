@@ -112,8 +112,7 @@ protected:
 class Column;
 class LocalTable {
 public:
-    LocalTable(common::table_id_t tableID, common::TableType tableType)
-        : tableID{tableID}, tableType{tableType} {};
+    explicit LocalTable(common::TableType tableType) : tableType{tableType} {};
 
     LocalTableData* getOrCreateLocalTableData(const std::vector<std::unique_ptr<Column>>& columns,
         MemoryManager* mm, common::ColumnDataFormat dataFormat = common::ColumnDataFormat::REGULAR,
@@ -124,7 +123,6 @@ public:
     }
 
 private:
-    common::table_id_t tableID;
     common::TableType tableType;
     // For a node table, it should only contain one LocalTableData, while a rel table should contain
     // two, one for each direction.

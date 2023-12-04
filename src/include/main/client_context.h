@@ -37,10 +37,10 @@ class ClientContext {
     friend class binder::Binder;
     friend class testing::TinySnbDDLTest;
     friend class testing::TinySnbCopyCSVTransactionTest;
-    friend class ThreadsSetting;
-    friend class TimeoutSetting;
-    friend class VarLengthExtendMaxDepthSetting;
-    friend class EnableSemiMaskSetting;
+    friend struct ThreadsSetting;
+    friend struct TimeoutSetting;
+    friend struct VarLengthExtendMaxDepthSetting;
+    friend struct EnableSemiMaskSetting;
 
 public:
     explicit ClientContext(Database* database);

@@ -11,7 +11,7 @@ public:
         std::unique_ptr<binder::BoundCreateTableInfo> info, const DataPos& outputPos, uint32_t id,
         const std::string& paramsString)
         : DDL{PhysicalOperatorType::CREATE_REL_TABLE, catalog, outputPos, id, paramsString},
-          info{std::move(info)}, storageManager{storageManager} {}
+          storageManager{storageManager}, info{std::move(info)} {}
 
     void executeDDLInternal(ExecutionContext* context) override;
 
