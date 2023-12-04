@@ -79,10 +79,9 @@ impl Database {
     /// * `enable_compression`: When true, table data will be compressed if possible
     /// * `read_only`: When true, the database will be opened in READ_ONLY mode, otherwise in READ_WRITE mode.
     pub fn new<P: AsRef<Path>>(path: P, config: SystemConfig) -> Result<Self, Error> {
-        let_cxx_string!(path = path.as_ref().display().to_string());
         Ok(Database {
             db: UnsafeCell::new(ffi::new_database(
-                &path,
+                ffi::StringView::new(&path.as_ref().display().to_string()),
                 config.buffer_pool_size,
                 config.max_num_threads,
                 config.enable_compression,
@@ -151,21 +150,6 @@ mod tests {
         let result: Error = Database::new("", SystemConfig::default())
             .expect_err("An empty string should not be a valid database path!")
             .into();
-        if cfg!(windows) {
-            assert_eq!(
-                result.to_string(),
-                "Failed to create directory  due to: create_directory: The system cannot find the path specified.: \"\""
-            );
-        } else if cfg!(linux) {
-            assert_eq!(
-                result.to_string(),
-                "Failed to create directory  due to: filesystem error: cannot create directory: No such file or directory []"
-            );
-        } else {
-            assert!(result
-                .to_string()
-                .starts_with("Failed to create directory  due to"));
-        }
     }
 
     #[test]

@@ -3,7 +3,7 @@ use crate::error::Error;
 use crate::ffi::ffi;
 use crate::query_result::QueryResult;
 use crate::value::Value;
-use cxx::{let_cxx_string, UniquePtr};
+use cxx::UniquePtr;
 use std::cell::UnsafeCell;
 use std::convert::TryInto;
 
@@ -169,8 +169,8 @@ impl<'a> Connection<'a> {
     /// * `query`: The query to prepare.
     ///            See <https://kuzudb.com/docs/cypher> for details on the query format
     pub fn prepare(&self, query: &str) -> Result<PreparedStatement, Error> {
-        let_cxx_string!(query = query);
-        let statement = unsafe { (*self.conn.get()).pin_mut() }.prepare(&query)?;
+        let statement =
+            unsafe { (*self.conn.get()).pin_mut() }.prepare(ffi::StringView::new(query))?;
         if statement.isSuccess() {
             Ok(PreparedStatement { statement })
         } else {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <memory>
-#include <string>
+#include <string_view>
 
 #include "statement.h"
 
@@ -11,7 +11,7 @@ namespace parser {
 class Parser {
 
 public:
-    static std::unique_ptr<Statement> parseQuery(const std::string& query);
+    static std::unique_ptr<Statement> parseQuery(std::string_view query);
 };
 
 } // namespace parser

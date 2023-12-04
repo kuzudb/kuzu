@@ -58,25 +58,25 @@ uint64_t Connection::getMaxNumThreadForExec() {
     return clientContext->numThreadsForExecution;
 }
 
-std::unique_ptr<PreparedStatement> Connection::prepare(const std::string& query) {
+std::unique_ptr<PreparedStatement> Connection::prepare(std::string_view query) {
     std::unique_lock<std::mutex> lck{mtx};
     return prepareNoLock(query);
 }
 
-std::unique_ptr<QueryResult> Connection::query(const std::string& query) {
+std::unique_ptr<QueryResult> Connection::query(std::string_view query) {
     lock_t lck{mtx};
     auto preparedStatement = prepareNoLock(query);
     return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
 }
 
 std::unique_ptr<QueryResult> Connection::query(
-    const std::string& query, const std::string& encodedJoin) {
+    std::string_view query, std::string_view encodedJoin) {
     lock_t lck{mtx};
     auto preparedStatement = prepareNoLock(query, true /* enumerate all plans */, encodedJoin);
     return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
 }
 
-std::unique_ptr<QueryResult> Connection::queryResultWithError(const std::string& errMsg) {
+std::unique_ptr<QueryResult> Connection::queryResultWithError(std::string_view errMsg) {
     auto queryResult = std::make_unique<QueryResult>();
     queryResult->success = false;
     queryResult->errMsg = errMsg;
@@ -84,7 +84,7 @@ std::unique_ptr<QueryResult> Connection::queryResultWithError(const std::string&
 }
 
 std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
-    const std::string& query, bool enumerateAllPlans, const std::string& encodedJoin) {
+    std::string_view query, bool enumerateAllPlans, std::string_view encodedJoin) {
     auto preparedStatement = std::make_unique<PreparedStatement>();
     if (query.empty()) {
         preparedStatement->success = false;
@@ -152,7 +152,8 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
                 }
             }
             if (match == nullptr) {
-                throw ConnectionException("Cannot find a plan matching " + encodedJoin);
+                throw ConnectionException(
+                    stringFormat("Cannot find a plan matching {}", encodedJoin));
             }
             preparedStatement->logicalPlans.push_back(std::move(match));
         } else {

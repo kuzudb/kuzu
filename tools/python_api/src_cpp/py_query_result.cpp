@@ -62,7 +62,8 @@ void PyQueryResult::writeToCSV(const py::str& filename, const py::str& delimiter
     KU_ASSERT(delimiterStr.size() == 1);
     KU_ASSERT(escapeCharacterStr.size() == 1);
     KU_ASSERT(newlineStr.size() == 1);
-    queryResult->writeToCSV(filename, delimiterStr[0], escapeCharacterStr[0], newlineStr[0]);
+    queryResult->writeToCSV(
+        std::string(filename), delimiterStr[0], escapeCharacterStr[0], newlineStr[0]);
 }
 
 void PyQueryResult::close() {

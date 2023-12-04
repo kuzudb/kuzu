@@ -62,16 +62,12 @@ class Database {
 
 public:
     /**
-     * @brief Creates a database object with default buffer pool size and max num threads.
-     * @param databasePath The path to the database.
-     */
-    KUZU_API explicit Database(std::string databasePath);
-    /**
      * @brief Creates a database object.
      * @param databasePath Database path.
      * @param systemConfig System configurations (buffer pool size and max num threads).
      */
-    KUZU_API Database(std::string databasePath, SystemConfig systemConfig);
+    KUZU_API explicit Database(
+        std::string_view databasePath, SystemConfig systemConfig = SystemConfig());
     /**
      * @brief Destructs the database object.
      */
