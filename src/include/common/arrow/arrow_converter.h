@@ -23,9 +23,9 @@ struct ArrowSchemaHolder {
 struct ArrowConverter {
 public:
     static std::unique_ptr<ArrowSchema> toArrowSchema(
-        const std::vector<std::unique_ptr<main::DataTypeInfo>>& typesInfo);
-    static void toArrowArray(main::QueryResult& queryResult, ArrowArray* out_array,
-        std::int64_t chunkSize);
+        const std::vector<LogicalType>& dataTypes, const std::vector<std::string>& columnNames);
+    static void toArrowArray(
+        main::QueryResult& queryResult, ArrowArray* out_array, std::int64_t chunkSize);
 
     static common::LogicalType fromArrowSchema(const ArrowSchema* schema);
     static void fromArrowArray(const ArrowSchema* schema, const ArrowArray* array,
@@ -36,10 +36,10 @@ public:
 
 private:
     static void initializeChild(ArrowSchema& child, const std::string& name = "");
-    static void setArrowFormatForStruct(ArrowSchemaHolder& rootHolder, ArrowSchema& child,
-        const main::DataTypeInfo& typeInfo);
-    static void setArrowFormat(ArrowSchemaHolder& rootHolder, ArrowSchema& child,
-        const main::DataTypeInfo& typeInfo);
+    static void setArrowFormatForStruct(
+        ArrowSchemaHolder& rootHolder, ArrowSchema& child, const LogicalType& dataType);
+    static void setArrowFormat(
+        ArrowSchemaHolder& rootHolder, ArrowSchema& child, const LogicalType& dataType);
 };
 
 } // namespace common
