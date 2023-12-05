@@ -19,7 +19,7 @@ jobs:
           make install
         env:
           MACOSX_DEPLOYMENT_TARGET: 11.0
-          ARCHFLAGS: "-arch arm64"
+          CMAKE_OSX_ARCHITECTURES: "arm64"
 
       - name: Collect artifacts
         run: |
@@ -27,6 +27,13 @@ jobs:
           mv install/include/kuzu.hpp .
           mv install/lib/libkuzu.dylib .
           mv install/bin/kuzu_shell kuzu
+
+      - name: Verify binary information
+        run: |
+          file -b kuzu
+          otool -l kuzu | grep minos
+          file -b libkuzu.dylib
+          otool -l libkuzu.dylib | grep minos
 
       - uses: actions/upload-artifact@v3
         with:
@@ -55,7 +62,7 @@ jobs:
           make install
         env:
           MACOSX_DEPLOYMENT_TARGET: 10.15
-          ARCHFLAGS: "-arch x86_64"
+          CMAKE_OSX_ARCHITECTURES: "x86_64"
 
       - name: Collect artifacts
         run: |
@@ -63,6 +70,13 @@ jobs:
           mv install/include/kuzu.hpp .
           mv install/lib/libkuzu.dylib .
           mv install/bin/kuzu_shell kuzu
+
+      - name: Verify binary information
+        run: |
+          file -b kuzu
+          otool -l kuzu | grep minos
+          file -b libkuzu.dylib
+          otool -l libkuzu.dylib | grep minos
 
       - uses: actions/upload-artifact@v3
         with:
