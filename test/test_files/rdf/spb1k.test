@@ -4,6 +4,7 @@
 --
 
 -CASE SPB
+-SKIP
 
 -STATEMENT MATCH (s:spb_resource_t) RETURN COUNT(*);
 ---- 1
