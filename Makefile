@@ -148,9 +148,6 @@ benchmark:
 example:
 	$(call run-cmake-release, -DBUILD_EXAMPLES=TRUE)
 
-shell:
-	$(call run-cmake-release, -DBUILD_SHELL=TRUE)
-
 
 # Clang-related tools and checks
 
