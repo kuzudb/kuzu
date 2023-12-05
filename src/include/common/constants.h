@@ -16,7 +16,7 @@ constexpr bool DEFAULT_ENABLE_SEMI_MASK = true;
 
 // This is the default thread sleep time we use when a thread,
 // e.g., a worker thread is in TaskScheduler, needs to block.
-constexpr uint64_t THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS = 500;
+constexpr uint64_t THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS = 1000;
 
 constexpr uint64_t DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEAVE_IN_MICROS = 5000000;
 
