@@ -18,6 +18,7 @@ enum class FileType : uint8_t {
 
 struct FileTypeUtils {
     static FileType getFileTypeFromExtension(std::string_view extension);
+    static bool isRdf(FileType fileType);
     static std::string toString(FileType fileType);
 };
 

@@ -21,23 +21,23 @@ std::unique_ptr<LogicalPlan> Planner::getSimplePlan(std::shared_ptr<LogicalOpera
 std::unique_ptr<LogicalPlan> Planner::planCreateTable(const BoundStatement& statement) {
     auto& creatTable = reinterpret_cast<const BoundCreateTable&>(statement);
     auto info = creatTable.getInfo();
-    auto logicalCreateTable = make_shared<LogicalCreateTable>(info->tableName, info->copy(),
-        statement.getStatementResult()->getSingleExpressionToCollect());
+    auto logicalCreateTable = make_shared<LogicalCreateTable>(
+        info->tableName, info->copy(), statement.getStatementResult()->getSingleColumnExpr());
     return getSimplePlan(std::move(logicalCreateTable));
 }
 
 std::unique_ptr<LogicalPlan> Planner::planDropTable(const BoundStatement& statement) {
     auto& dropTable = reinterpret_cast<const BoundDropTable&>(statement);
     auto logicalDropTable = make_shared<LogicalDropTable>(dropTable.getTableID(),
-        dropTable.getTableName(), statement.getStatementResult()->getSingleExpressionToCollect());
+        dropTable.getTableName(), statement.getStatementResult()->getSingleColumnExpr());
     return getSimplePlan(std::move(logicalDropTable));
 }
 
 std::unique_ptr<LogicalPlan> Planner::planAlter(const BoundStatement& statement) {
     auto& alter = reinterpret_cast<const BoundAlter&>(statement);
     auto info = alter.getInfo();
-    auto logicalAlter = std::make_shared<LogicalAlter>(info->copy(), info->tableName,
-        statement.getStatementResult()->getSingleExpressionToCollect());
+    auto logicalAlter = std::make_shared<LogicalAlter>(
+        info->copy(), info->tableName, statement.getStatementResult()->getSingleColumnExpr());
     return getSimplePlan(std::move(logicalAlter));
 }
 

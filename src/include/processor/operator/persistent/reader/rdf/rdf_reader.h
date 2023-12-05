@@ -16,36 +16,38 @@ class RdfReader {
 public:
     RdfReader(
         std::string filePath, common::FileType fileType, const common::RdfReaderConfig& config)
-        : filePath{std::move(filePath)}, fileType{fileType}, mode{config.mode}, index{config.index},
-          reader{nullptr}, rowOffset{0}, vectorSize{0}, status{SERD_SUCCESS}, sVector{nullptr},
-          pVector{nullptr}, oVector{nullptr} {}
+        : filePath{std::move(filePath)}, fileType{fileType}, mode{config.mode}, reader{nullptr},
+          rowOffset{0}, vectorSize{0}, status{SERD_SUCCESS}, sVector{nullptr}, pVector{nullptr},
+          oVector{nullptr} {}
 
     ~RdfReader();
 
-    inline void initReader() { initReader(prefixHandle, statementHandle); }
-    inline void initCountReader() { initReader(nullptr, countStatementHandle); }
+    void initReader();
 
     common::offset_t read(common::DataChunk* dataChunkToRead);
-    common::offset_t countLine();
 
 private:
     static SerdStatus errorHandle(void* handle, const SerdError* error);
-    static SerdStatus statementHandle(void* handle, SerdStatementFlags flags, const SerdNode* graph,
+
+    static SerdStatus rHandle(void* handle, SerdStatementFlags flags, const SerdNode* graph,
         const SerdNode* subject, const SerdNode* predicate, const SerdNode* object,
         const SerdNode* object_datatype, const SerdNode* object_lang);
+    static SerdStatus lHandle(void* handle, SerdStatementFlags flags, const SerdNode* graph,
+        const SerdNode* subject, const SerdNode* predicate, const SerdNode* object,
+        const SerdNode* object_datatype, const SerdNode* object_lang);
+    static SerdStatus rrrHandle(void* handle, SerdStatementFlags flags, const SerdNode* graph,
+        const SerdNode* subject, const SerdNode* predicate, const SerdNode* object,
+        const SerdNode* object_datatype, const SerdNode* object_lang);
+    static SerdStatus rrlHandle(void* handle, SerdStatementFlags flags, const SerdNode* graph,
+        const SerdNode* subject, const SerdNode* predicate, const SerdNode* object,
+        const SerdNode* object_datatype, const SerdNode* object_lang);
+
     static SerdStatus prefixHandle(void* handle, const SerdNode* name, const SerdNode* uri);
-
-    static SerdStatus countStatementHandle(void* handle, SerdStatementFlags flags,
-        const SerdNode* graph, const SerdNode* subject, const SerdNode* predicate,
-        const SerdNode* object, const SerdNode* object_datatype, const SerdNode* object_lang);
-
-    void initReader(const SerdPrefixSink prefixSink_, const SerdStatementSink statementSink_);
 
 private:
     const std::string filePath;
     common::FileType fileType;
     common::RdfReaderMode mode;
-    storage::PrimaryKeyIndex* index;
 
     FILE* fp;
     SerdReader* reader;

@@ -144,12 +144,13 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
 std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement& statement,
     std::unique_ptr<common::ReaderConfig> config, TableSchema* tableSchema) {
     auto& copyStatement = reinterpret_cast<const CopyFrom&>(statement);
+    // Bind file scan.
     auto func = getScanFunction(config->fileType, *config);
     // For table with SERIAL columns, we need to read in serial from files.
     auto containsSerial = tableSchema->containPropertyType(*LogicalType::SERIAL());
     KU_ASSERT(containsSerial == false);
     std::vector<std::string> expectedColumnNames;
-    std::vector<std::unique_ptr<common::LogicalType>> expectedColumnTypes;
+    logical_types_t expectedColumnTypes;
     bindExpectedRelColumns(
         tableSchema, copyStatement.getColumnNames(), expectedColumnNames, expectedColumnTypes);
     auto bindInput = std::make_unique<function::ScanTableFuncBindInput>(memoryManager,
@@ -161,20 +162,37 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
         columns.push_back(createVariable(bindData->columnNames[i], *bindData->columnTypes[i]));
     }
     auto offset = expressionBinder.createVariableExpression(
-        LogicalType(LogicalTypeID::INT64), std::string(InternalKeyword::ROW_OFFSET));
+        *LogicalType::INT64(), std::string(InternalKeyword::ROW_OFFSET));
     auto boundFileScanInfo =
         std::make_unique<BoundFileScanInfo>(func, std::move(bindData), columns, offset);
-    auto relTableSchema = reinterpret_cast<RelTableSchema*>(tableSchema);
-    auto srcTableSchema =
-        catalog.getTableSchema(clientContext->getTx(), relTableSchema->getSrcTableID());
-    auto dstTableSchema =
-        catalog.getTableSchema(clientContext->getTx(), relTableSchema->getDstTableID());
+    // Bind rel table copy.
+    auto relSchema = reinterpret_cast<RelTableSchema*>(tableSchema);
+    auto srcTableID = relSchema->getSrcTableID();
+    auto dstTableID = relSchema->getDstTableID();
+    auto srcSchema = reinterpret_cast<NodeTableSchema*>(
+        catalog.getTableSchema(clientContext->getTx(), srcTableID));
+    auto dstSchema = reinterpret_cast<NodeTableSchema*>(
+        catalog.getTableSchema(clientContext->getTx(), dstTableID));
     auto srcKey = columns[0];
     auto dstKey = columns[1];
-    auto srcNodeID = createVariable(std::string(InternalKeyword::SRC_OFFSET), LogicalTypeID::INT64);
-    auto dstNodeID = createVariable(std::string(InternalKeyword::DST_OFFSET), LogicalTypeID::INT64);
-    auto extraCopyRelInfo = std::make_unique<ExtraBoundCopyRelInfo>(
-        srcTableSchema, dstTableSchema, srcNodeID, dstNodeID, srcKey, dstKey);
+    expression_vector propertyColumns;
+    for (auto i = 2u; i < columns.size(); ++i) {
+        propertyColumns.push_back(columns[i]);
+    }
+    auto srcOffset = createVariable(InternalKeyword::SRC_OFFSET, LogicalTypeID::INT64);
+    auto dstOffset = createVariable(InternalKeyword::DST_OFFSET, LogicalTypeID::INT64);
+    auto srcPkType = srcSchema->getPrimaryKey()->getDataType();
+    auto dstPkType = dstSchema->getPrimaryKey()->getDataType();
+    auto srcLookUpInfo =
+        std::make_unique<IndexLookupInfo>(srcTableID, srcOffset, srcKey, srcPkType->copy());
+    auto dstLookUpInfo =
+        std::make_unique<IndexLookupInfo>(dstTableID, dstOffset, dstKey, dstPkType->copy());
+    auto extraCopyRelInfo = std::make_unique<ExtraBoundCopyRelInfo>();
+    extraCopyRelInfo->fromOffset = srcOffset;
+    extraCopyRelInfo->toOffset = dstOffset;
+    extraCopyRelInfo->propertyColumns = std::move(propertyColumns);
+    extraCopyRelInfo->infos.push_back(std::move(srcLookUpInfo));
+    extraCopyRelInfo->infos.push_back(std::move(dstLookUpInfo));
     auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(
         tableSchema, std::move(boundFileScanInfo), containsSerial, std::move(extraCopyRelInfo));
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));

@@ -8,7 +8,7 @@
 #include "join_order_enumerator_context.h"
 #include "planner/join_order/cardinality_estimator.h"
 #include "planner/operator/extend/extend_direction.h"
-#include "storage/stats/nodes_store_statistics.h"
+#include "storage/storage_manager.h"
 
 namespace kuzu {
 namespace binder {
@@ -28,12 +28,11 @@ class QueryPlanner {
     friend class Planner;
 
 public:
-    QueryPlanner(const catalog::Catalog& catalog,
-        const storage::NodesStoreStatsAndDeletedIDs& nodesStatistics,
-        const storage::RelsStoreStats& relsStatistics)
+    QueryPlanner(const catalog::Catalog& catalog, storage::StorageManager* storageManager)
         : catalog{catalog} {
-        cardinalityEstimator =
-            std::make_unique<CardinalityEstimator>(nodesStatistics, relsStatistics);
+        auto nStats = storageManager->getNodesStatisticsAndDeletedIDs();
+        auto rStats = storageManager->getRelsStatistics();
+        cardinalityEstimator = std::make_unique<CardinalityEstimator>(*nStats, *rStats);
         context = std::make_unique<JoinOrderEnumeratorContext>();
     }
 
@@ -43,6 +42,8 @@ public:
     inline std::unique_ptr<LogicalPlan> getBestPlan(const binder::BoundStatement& boundStatement) {
         return getBestPlan(getAllPlans(boundStatement));
     }
+
+    void appendDistinct(const binder::expression_vector& expressionsToDistinct, LogicalPlan& plan);
 
 private:
     std::unique_ptr<LogicalPlan> getBestPlan(std::vector<std::unique_ptr<LogicalPlan>> plans);
@@ -224,8 +225,6 @@ private:
         const binder::expression_vector& expressionsToFlatten, LogicalPlan& plan);
 
     void appendDummyScan(LogicalPlan& plan);
-
-    void appendDistinct(const binder::expression_vector& expressionsToDistinct, LogicalPlan& plan);
 
     void appendUnwind(const binder::BoundReadingClause& boundReadingClause, LogicalPlan& plan);
 

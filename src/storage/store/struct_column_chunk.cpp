@@ -54,6 +54,13 @@ void StructColumnChunk::resize(uint64_t newCapacity) {
     }
 }
 
+void StructColumnChunk::resetToEmpty() {
+    ColumnChunk::resetToEmpty();
+    for (auto& child : childChunks) {
+        child->resetToEmpty();
+    }
+}
+
 void StructColumnChunk::write(
     ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);

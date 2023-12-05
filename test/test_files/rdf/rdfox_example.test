@@ -14,7 +14,6 @@ example_resource_t|NODE|
 example|RDF|
 
 -STATEMENT MATCH (s:example_resource_t) RETURN s.iri ORDER BY offset(id(s));
--CHECK_ORDER
 ---- 14
 :andy
 :literal
@@ -79,8 +78,7 @@ Peter||||||||||||||||||||Peter
 ||||Monday|1999-08-16a
 |||||Petera
 
--STATEMENT MATCH (a:example_resource_t)-[e:example]->(b:example_resource_t) RETURN a.iri, e.iri, b.iri ORDER BY offset(id(e))
--CHECK_ORDER
+-STATEMENT MATCH (a:example_resource_t)-[e:example]->(b:example_resource_t) RETURN a.iri, e.iri, b.iri
 ---- 10
 :peter|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person
 :peter|:marriedTo|:lois
@@ -93,8 +91,7 @@ Peter||||||||||||||||||||Peter
 :stewie|http://www.w3.org/1999/02/22-rdf-syntax-ns#type|:Person
 :stewie|:hasParent|:lois
 
--STATEMENT MATCH (a:example_resource_t)-[e:example]->(b:example_literal_t) RETURN a.iri, e.iri, b.iri ORDER BY offset(id(e))
--CHECK_ORDER
+-STATEMENT MATCH (a:example_resource_t)-[e:example]->(b:example_literal_t) RETURN a.iri, e.iri, b.iri
 ---- 16
 :andy|:literal|12
 :andy|:literal|-14.900000

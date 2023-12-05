@@ -132,15 +132,12 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
         preparedStatement->parameterMap = binder.getParameterMap();
         preparedStatement->statementResult = boundStatement->getStatementResult()->copy();
         // planning
-        auto nodeStatistics = database->storageManager->getNodesStatisticsAndDeletedIDs();
-        auto relStatistics = database->storageManager->getRelsStatistics();
+        auto planner = Planner(database->catalog.get(), database->storageManager.get());
         std::vector<std::unique_ptr<LogicalPlan>> plans;
         if (enumerateAllPlans) {
-            plans = Planner::getAllPlans(
-                *database->catalog, *nodeStatistics, *relStatistics, *boundStatement);
+            plans = planner.getAllPlans(*boundStatement);
         } else {
-            plans.push_back(Planner::getBestPlan(
-                *database->catalog, *nodeStatistics, *relStatistics, *boundStatement));
+            plans.push_back(planner.getBestPlan(*boundStatement));
         }
         // optimizing
         for (auto& plan : plans) {

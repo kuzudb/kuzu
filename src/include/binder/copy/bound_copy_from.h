@@ -3,6 +3,7 @@
 #include "binder/bound_statement.h"
 #include "bound_file_scan_info.h"
 #include "catalog/table_schema.h"
+#include "index_look_up_info.h"
 
 namespace kuzu {
 namespace binder {
@@ -37,42 +38,18 @@ struct BoundCopyFromInfo {
 };
 
 struct ExtraBoundCopyRelInfo : public ExtraBoundCopyFromInfo {
-    catalog::TableSchema* srcTableSchema;
-    catalog::TableSchema* dstTableSchema;
-    std::shared_ptr<Expression> srcOffset;
-    std::shared_ptr<Expression> dstOffset;
-    std::shared_ptr<Expression> srcKey;
-    std::shared_ptr<Expression> dstKey;
+    std::vector<std::unique_ptr<IndexLookupInfo>> infos;
+    std::shared_ptr<Expression> fromOffset;
+    std::shared_ptr<Expression> toOffset;
+    expression_vector propertyColumns;
 
-    ExtraBoundCopyRelInfo(catalog::TableSchema* srcTableSchema,
-        catalog::TableSchema* dstTableSchema, std::shared_ptr<Expression> srcOffset,
-        std::shared_ptr<Expression> dstOffset, std::shared_ptr<Expression> srcKey,
-        std::shared_ptr<Expression> dstKey)
-        : srcTableSchema{srcTableSchema}, dstTableSchema{dstTableSchema}, srcOffset{std::move(
-                                                                              srcOffset)},
-          dstOffset{std::move(dstOffset)}, srcKey{std::move(srcKey)}, dstKey{std::move(dstKey)} {}
+    ExtraBoundCopyRelInfo() = default;
     ExtraBoundCopyRelInfo(const ExtraBoundCopyRelInfo& other)
-        : srcTableSchema{other.srcTableSchema},
-          dstTableSchema{other.dstTableSchema}, srcOffset{other.srcOffset},
-          dstOffset{other.dstOffset}, srcKey{other.srcKey}, dstKey{other.dstKey} {}
+        : infos{IndexLookupInfo::copy(other.infos)}, fromOffset{other.fromOffset},
+          toOffset{other.toOffset}, propertyColumns{other.propertyColumns} {}
 
     inline std::unique_ptr<ExtraBoundCopyFromInfo> copy() final {
         return std::make_unique<ExtraBoundCopyRelInfo>(*this);
-    }
-};
-
-struct ExtraBoundCopyRdfRelInfo : public ExtraBoundCopyFromInfo {
-    std::shared_ptr<Expression> subjectOffset;
-    std::shared_ptr<Expression> objectOffset;
-
-    ExtraBoundCopyRdfRelInfo(
-        std::shared_ptr<Expression> subjectOffset, std::shared_ptr<Expression> objectOffset)
-        : subjectOffset{std::move(subjectOffset)}, objectOffset{std::move(objectOffset)} {}
-    ExtraBoundCopyRdfRelInfo(const ExtraBoundCopyRdfRelInfo& other)
-        : subjectOffset{other.subjectOffset}, objectOffset{other.objectOffset} {}
-
-    inline std::unique_ptr<ExtraBoundCopyFromInfo> copy() final {
-        return std::make_unique<ExtraBoundCopyRdfRelInfo>(*this);
     }
 };
 

@@ -4,7 +4,6 @@ add_subdirectory(writer/parquet)
 add_library(kuzu_processor_operator_persistent
         OBJECT
         copy_node.cpp
-        copy_rdf_resource.cpp
         copy_rel.cpp
         copy_to.cpp
         copy_to_csv.cpp

@@ -96,9 +96,9 @@ std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::visitScanNode
             // Rewrite to index scan
             auto expressionsScan = std::make_shared<LogicalDummyScan>();
             expressionsScan->computeFlatSchema();
-            std::vector<std::unique_ptr<LogicalIndexScanNodeInfo>> infos;
+            std::vector<std::unique_ptr<IndexLookupInfo>> infos;
             KU_ASSERT(tableIDs.size() == 1);
-            infos.push_back(std::make_unique<LogicalIndexScanNodeInfo>(
+            infos.push_back(std::make_unique<IndexLookupInfo>(
                 tableIDs[0], nodeID, rhs, rhs->getDataType().copy()));
             auto indexScan = std::make_shared<LogicalIndexScanNode>(
                 std::move(infos), std::move(expressionsScan));

@@ -72,6 +72,11 @@ common::table_id_t Binder::bindTableID(const std::string& tableName) const {
 }
 
 std::shared_ptr<Expression> Binder::createVariable(
+    std::string_view name, common::LogicalTypeID typeID) {
+    return createVariable(std::string(name), LogicalType{typeID});
+}
+
+std::shared_ptr<Expression> Binder::createVariable(
     const std::string& name, LogicalTypeID logicalTypeID) {
     return createVariable(name, LogicalType{logicalTypeID});
 }
