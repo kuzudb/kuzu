@@ -135,15 +135,16 @@ protected:
     WALPageIdxPosInPageAndFrame createWALVersionOfPageForValue(
         common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk);
 
+    virtual void commitLocalChunkInPlace(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
+        const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo,
+        const offset_set_t& deleteInfo);
+
 private:
     static bool containsVarList(common::LogicalType& dataType);
     virtual bool canCommitInPlace(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
         const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo);
-    void commitLocalChunkInPlace(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
-        const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo,
-        const offset_set_t& deleteInfo);
     void commitLocalChunkOutOfPlace(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localChunk,
         bool isNewNodeGroup, const offset_to_row_idx_t& insertInfo,
@@ -158,6 +159,8 @@ private:
     static inline bool isInRange(uint64_t val, uint64_t start, uint64_t end) {
         return val >= start && val < end;
     }
+
+    virtual std::unique_ptr<ColumnChunk> getEmptyChunkForCommit();
 
 protected:
     DBFileID dbFileID;

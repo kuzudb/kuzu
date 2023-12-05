@@ -74,10 +74,8 @@ void StructColumn::write(node_group_idx_t nodeGroupIdx, offset_t offsetInChunk,
     ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
     KU_ASSERT(vectorToWriteFrom->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
     if (vectorToWriteFrom->isNull(posInVectorToWriteFrom)) {
-        setNull(nodeGroupIdx, offsetInChunk);
         return;
     }
-    nullColumn->write(nodeGroupIdx, offsetInChunk, vectorToWriteFrom, posInVectorToWriteFrom);
     KU_ASSERT(childColumns.size() == StructVector::getFieldVectors(vectorToWriteFrom).size());
     for (auto i = 0u; i < childColumns.size(); i++) {
         auto fieldVector = StructVector::getFieldVector(vectorToWriteFrom, i).get();
@@ -126,11 +124,15 @@ void StructColumn::prepareCommitForChunk(Transaction* transaction, node_group_id
         commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, localColumnChunk, isNewNodeGroup,
             insertInfo, updateInfo, deleteInfo);
     } else {
-        // Update null data (currently always works in-place)
-        KU_ASSERT(nullColumn->canCommitInPlace(
-            transaction, nodeGroupIdx, localColumnChunk, insertInfo, updateInfo));
-        nullColumn->commitLocalChunkInPlace(
-            transaction, nodeGroupIdx, localColumnChunk, insertInfo, updateInfo, deleteInfo);
+        // Update null data
+        if (nullColumn->canCommitInPlace(
+                transaction, nodeGroupIdx, localColumnChunk, insertInfo, updateInfo)) {
+            nullColumn->commitLocalChunkInPlace(
+                transaction, nodeGroupIdx, localColumnChunk, insertInfo, updateInfo, deleteInfo);
+        } else {
+            nullColumn->commitLocalChunkOutOfPlace(transaction, nodeGroupIdx, localColumnChunk,
+                isNewNodeGroup, insertInfo, updateInfo, deleteInfo);
+        }
         // Update each child column separately
         for (auto i = 0u; i < childColumns.size(); i++) {
             const auto& childColumn = childColumns[i];

@@ -64,7 +64,7 @@ private:
 
     inline void initializeIndices() {
         indicesColumnChunk = ColumnChunkFactory::createColumnChunk(
-            common::LogicalType::INT64(), false /* enableCompression */);
+            common::LogicalType::INT64(), false /*enableCompression*/);
         indicesColumnChunk->getNullChunk()->resetToAllNull();
         for (auto i = 0u; i < numValues; i++) {
             indicesColumnChunk->setValue<common::offset_t>(i, i);
@@ -83,7 +83,6 @@ private:
     void appendNullList();
 
 protected:
-    bool enableCompression;
     std::unique_ptr<VarListDataColumnChunk> varListDataColumnChunk;
     // The following is needed to write var list to random positions in the column chunk.
     // We first append var list to the end of the column chunk. Then use indicesColumnChunk to track

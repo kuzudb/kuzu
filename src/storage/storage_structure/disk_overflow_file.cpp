@@ -56,8 +56,6 @@ void DiskOverflowFile::setStringOverflowWithoutLock(
     TypeUtils::encodeOverflowPtr(diskDstString.overflowPtr,
         updatedPageInfoAndWALPageFrame.originalPageIdx, updatedPageInfoAndWALPageFrame.posInPage);
     nextBytePosToWriteTo += len;
-    DBFileUtils::unpinWALPageAndReleaseOriginalPageLock(
-        updatedPageInfoAndWALPageFrame, *fileHandle, *bufferManager, *wal);
 }
 
 ku_string_t DiskOverflowFile::writeString(const char* rawString) {

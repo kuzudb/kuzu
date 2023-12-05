@@ -145,12 +145,13 @@ static std::shared_ptr<CompressionAlg> getCompression(
 ColumnChunk::ColumnChunk(std::unique_ptr<LogicalType> dataType, uint64_t capacity,
     bool enableCompression, bool hasNullChunk)
     : dataType{std::move(dataType)},
-      numBytesPerValue{getDataTypeSizeInChunk(*this->dataType)}, numValues{0} {
+      numBytesPerValue{getDataTypeSizeInChunk(*this->dataType)}, numValues{0},
+      enableCompression(enableCompression) {
     if (hasNullChunk) {
-        nullChunk = std::make_unique<NullColumnChunk>(capacity);
+        nullChunk = std::make_unique<NullColumnChunk>(capacity, enableCompression);
     }
     initializeBuffer(capacity);
-    initializeFunction(enableCompression);
+    initializeFunction();
 }
 
 void ColumnChunk::initializeBuffer(offset_t capacity_) {
@@ -163,7 +164,7 @@ void ColumnChunk::initializeBuffer(offset_t capacity_) {
     }
 }
 
-void ColumnChunk::initializeFunction(bool enableCompression) {
+void ColumnChunk::initializeFunction() {
     switch (this->dataType->getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
         // Since we compress into memory, storage is the same as fixed-sized values,
@@ -248,8 +249,7 @@ void ColumnChunk::write(ValueVector* vector, ValueVector* offsetsInChunk, bool i
 }
 
 // NOTE: This function is only called in LocalTable right now when performing out-of-place
-// committing. While BOOL never triggers that, overriding of this function in BoolColumnChunk is
-// skipped. Also, VAR_LIST has a different logic for handling out-of-place committing as it has to
+// committing. VAR_LIST has a different logic for handling out-of-place committing as it has to
 // be slided. However, this is unsafe, as this function can also be used for other purposes later.
 // Thus, an assertion is added at the first line.
 void ColumnChunk::write(ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) {
@@ -270,9 +270,6 @@ void ColumnChunk::resize(uint64_t newCapacity) {
     auto numBytesAfterResize = getBufferSize();
     if (numBytesAfterResize > bufferSize) {
         auto resizedBuffer = std::make_unique<uint8_t[]>(numBytesAfterResize);
-        if (dataType->getPhysicalType() == PhysicalTypeID::BOOL) {
-            memset(resizedBuffer.get(), 0 /* non null */, numBytesAfterResize);
-        }
         memcpy(resizedBuffer.get(), buffer.get(), bufferSize);
         bufferSize = numBytesAfterResize;
         buffer = std::move(resizedBuffer);
@@ -340,12 +337,22 @@ void ColumnChunk::setNumValues(uint64_t numValues_) {
 
 ColumnChunkMetadata ColumnChunk::getMetadataToFlush() const {
     KU_ASSERT(numValues <= capacity);
+    if (enableCompression) {
+        // Determine if we can make use of constant compression
+        auto constantMetadata = ConstantCompression::analyze(*this);
+        if (constantMetadata) {
+            return ColumnChunkMetadata(INVALID_PAGE_IDX, 0, numValues, *constantMetadata);
+        }
+    }
     return getMetadataFunction(buffer.get(), bufferSize, capacity, numValues);
 }
 
 ColumnChunkMetadata ColumnChunk::flushBuffer(
     BMFileHandle* dataFH, page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
-    return flushBufferFunction(buffer.get(), bufferSize, dataFH, startPageIdx, metadata);
+    if (!metadata.compMeta.isConstant()) {
+        return flushBufferFunction(buffer.get(), bufferSize, dataFH, startPageIdx, metadata);
+    }
+    return metadata;
 }
 
 uint64_t ColumnChunk::getBufferSize() const {
@@ -397,10 +404,10 @@ void BoolColumnChunk::write(
         auto offsetInChunk = offsets[offsetInChunkVector->state->selVector->selectedPositions[i]];
         KU_ASSERT(offsetInChunk < capacity);
         auto offsetInVector = valueVector->state->selVector->selectedPositions[i];
-        NullMask::copyNullMask((uint64_t*)valueVector->getData(), offsetInVector,
-            (uint64_t*)buffer.get(), offsetInChunk, 1);
+        NullMask::setNull(
+            (uint64_t*)buffer.get(), offsetInChunk, valueVector->getValue<bool>(offsetInVector));
         if (nullChunk) {
-            nullChunk->setNull(offsetInChunk, valueVector->isNull(offsetInVector));
+            nullChunk->write(valueVector, offsetInVector, offsetInChunk);
         }
         numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
     }
@@ -409,11 +416,15 @@ void BoolColumnChunk::write(
 void BoolColumnChunk::write(ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) {
     KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::BOOL);
     KU_ASSERT(offsetInChunk < capacity);
-    NullMask::copyNullMask(
-        (uint64_t*)vector->getData(), offsetInVector, (uint64_t*)buffer.get(), offsetInChunk, 1);
+    setValue(vector->getValue<bool>(offsetInVector), offsetInChunk);
     if (nullChunk) {
-        nullChunk->setNull(offsetInChunk, vector->isNull(offsetInVector));
+        nullChunk->write(vector, offsetInVector, offsetInChunk);
     }
+    numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
+}
+
+void NullColumnChunk::write(ValueVector* vector, offset_t offsetInVector, offset_t offsetInChunk) {
+    setNull(offsetInChunk, vector->isNull(offsetInVector));
     numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
 }
 
@@ -456,7 +467,7 @@ public:
                 offsets[offsetInChunkVector->state->selVector->selectedPositions[i]];
             KU_ASSERT(offsetInChunk < capacity);
             auto offsetInVector = valueVector->state->selVector->selectedPositions[i];
-            nullChunk->setNull(offsetInChunk, valueVector->isNull(offsetInVector));
+            nullChunk->write(valueVector, offsetInVector, offsetInChunk);
             if (!valueVector->isNull(offsetInVector)) {
                 memcpy(buffer.get() + getOffsetInBuffer(offsetInChunk),
                     valueVector->getData() + offsetInVector * numBytesPerValue, numBytesPerValue);
@@ -469,7 +480,7 @@ public:
         common::offset_t offsetInChunk) final {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::FIXED_LIST);
         KU_ASSERT(offsetInChunk < capacity);
-        nullChunk->setNull(offsetInChunk, vector->isNull(offsetInVector));
+        nullChunk->write(vector, offsetInVector, offsetInChunk);
         if (!vector->isNull(offsetInVector)) {
             memcpy(buffer.get() + getOffsetInBuffer(offsetInChunk),
                 vector->getData() + offsetInVector * numBytesPerValue, numBytesPerValue);
@@ -492,7 +503,7 @@ class InternalIDColumnChunk final : public ColumnChunk {
 public:
     // Physically, we only materialize offset of INTERNAL_ID, which is same as INT64,
     explicit InternalIDColumnChunk(uint64_t capacity)
-        : ColumnChunk(LogicalType::INT64(), capacity, false /* enableCompression */) {}
+        : ColumnChunk(LogicalType::INT64(), capacity, false /*enableCompression*/) {}
 
     void append(ValueVector* vector) override {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
@@ -515,7 +526,7 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     std::unique_ptr<LogicalType> dataType, bool enableCompression, uint64_t capacity) {
     switch (dataType->getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
-        return std::make_unique<BoolColumnChunk>(capacity);
+        return std::make_unique<BoolColumnChunk>(capacity, enableCompression);
     }
     case PhysicalTypeID::INT64:
     case PhysicalTypeID::INT32:
