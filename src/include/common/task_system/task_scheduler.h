@@ -1,6 +1,5 @@
 #pragma once
-
-#include <atomic>
+#include <condition_variable>
 #include <deque>
 #include <thread>
 
@@ -19,7 +18,7 @@ struct ScheduledTask {
 /**
  * TaskScheduler is a library that manages a set of worker threads that can execute tasks that are
  * put into a task queue. Each task accepts a maximum number of threads. Users of TaskScheduler
- * schedule tasks to be executed by calling schedule functions, e.g., scheduleTask or
+ * schedule tasks to be executed by calling schedule functions, e.g., pushTaskIntoQueue or
  * scheduleTaskAndWaitOrError. New tasks are put at the end of the queue. Workers grab the first
  * task from the beginning of the queue that they can register themselves to work on. Any task that
  * is completed is removed automatically from the queue. If there is a task that raises an
@@ -42,8 +41,6 @@ public:
     explicit TaskScheduler(uint64_t numThreads);
     ~TaskScheduler();
 
-    // Functions for the users of the task scheduler, e.g., processor to use.
-
     // Schedules the dependencies of the given task and finally the task one after another (so
     // not concurrently), and throws an exception if any of the tasks errors. Regardless of
     // whether or not the given task or one of its dependencies errors, when this function
@@ -52,9 +49,9 @@ public:
     void scheduleTaskAndWaitOrError(
         const std::shared_ptr<Task>& task, processor::ExecutionContext* context);
 
-    std::shared_ptr<ScheduledTask> scheduleTask(const std::shared_ptr<Task>& task);
-
 private:
+    std::shared_ptr<ScheduledTask> pushTaskIntoQueue(const std::shared_ptr<Task>& task);
+
     void removeErroringTask(uint64_t scheduledTaskID);
 
     // Functions to launch worker threads and for the worker threads to use to grab task from queue.
@@ -66,8 +63,9 @@ private:
 private:
     std::mutex mtx;
     std::deque<std::shared_ptr<ScheduledTask>> taskQueue;
-    std::atomic<bool> stopThreads{false};
+    bool stopThreads;
     std::vector<std::thread> threads;
+    std::condition_variable cv;
     uint64_t nextScheduledTaskID;
 };
 
