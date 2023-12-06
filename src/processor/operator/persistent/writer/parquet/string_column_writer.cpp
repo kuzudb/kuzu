@@ -49,7 +49,7 @@ void StringStatisticsState::update(const ku_string_t& val) {
 std::unique_ptr<ColumnWriterState> StringColumnWriter::initializeWriteState(RowGroup& rowGroup) {
     auto result = std::make_unique<StringColumnWriterState>(rowGroup, rowGroup.columns.size(), mm);
     registerToRowGroup(rowGroup);
-    return std::move(result);
+    return result;
 }
 
 void StringColumnWriter::analyze(ColumnWriterState& writerState, ColumnWriterState* parent,

@@ -9,7 +9,7 @@ std::unique_ptr<ColumnWriterState> VarListColumnWriter::initializeWriteState(
     kuzu_parquet::format::RowGroup& rowGroup) {
     auto result = std::make_unique<ListColumnWriterState>(rowGroup, rowGroup.columns.size());
     result->childState = childWriter->initializeWriteState(rowGroup);
-    return std::move(result);
+    return result;
 }
 
 bool VarListColumnWriter::hasAnalyze() {
