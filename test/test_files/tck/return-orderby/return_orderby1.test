@@ -1,0 +1,181 @@
+-GROUP TCKReturnOrderBy1
+-DATASET CSV tck
+
+--
+
+# ORDER BY should order booleans in the expected order
+-CASE Scenario1
+-STATEMENT UNWIND [true, false] AS bools
+           RETURN bools
+           ORDER BY bools;
+-CHECK_ORDER
+---- 2
+False
+True
+
+# ORDER BY DESC should order booleans in the expected order
+-CASE Scenario2
+-STATEMENT UNWIND [true, false] AS bools
+           RETURN bools
+           ORDER BY bools DESC;
+-CHECK_ORDER
+---- 2
+True
+False
+
+# ORDER BY should order strings in the expected order
+-CASE Scenario3
+-STATEMENT UNWIND ['.*', '', ' ', 'one'] AS strings
+           RETURN strings
+           ORDER BY strings;
+-CHECK_ORDER
+---- 4
+
+ 
+.*
+one
+
+# ORDER BY DESC should order strings in the expected order
+-CASE Scenario4
+-STATEMENT UNWIND ['.*', '', ' ', 'one'] AS strings
+           RETURN strings
+           ORDER BY strings DESC;
+-CHECK_ORDER
+---- 4
+one
+.*
+ 
+
+# ORDER BY should order ints in the expected order
+-CASE Scenario5
+-STATEMENT UNWIND [1, 3, 2] AS ints
+           RETURN ints
+           ORDER BY ints;
+-CHECK_ORDER
+---- 3
+1
+2
+3
+
+# ORDER BY DESC should order ints in the expected order
+-CASE Scenario6
+-STATEMENT UNWIND [1, 3, 2] AS ints
+           RETURN ints
+           ORDER BY ints DESC;
+-CHECK_ORDER
+---- 3
+3
+2
+1
+
+# ORDER BY should order floats in the expected order
+-CASE Scenario7
+-STATEMENT UNWIND [1.5, 1.3, 999.99] AS floats
+           RETURN floats
+           ORDER BY floats;
+-CHECK_ORDER
+---- 3
+1.300000
+1.500000
+999.990000
+
+# ORDER BY DESC should order floats in the expected order
+-CASE Scenario8
+-STATEMENT UNWIND [1.5, 1.3, 999.99] AS floats
+           RETURN floats
+           ORDER BY floats DESC;
+-CHECK_ORDER
+---- 3
+999.990000
+1.500000
+1.300000
+
+# ORDER BY should order lists in the expected order
+-CASE Scenario9
+-SKIP
+-STATEMENT UNWIND [[], ['a'], ['a', 1], [1], [1, 'a'], [1, null], [null, 1], [null, 2]] AS lists
+           RETURN lists
+           ORDER BY lists;
+-CHECK_ORDER
+---- 8
+[]
+[a]
+[a,1]
+[1]
+[1,a]
+[1,]
+[,1]
+[,2]
+
+# ORDER BY DESC should order lists in the expected order
+-CASE Scenario10
+-SKIP
+-STATEMENT UNWIND [[], ['a'], ['a', 1], [1], [1, 'a'], [1, null], [null, 1], [null, 2]] AS lists
+           RETURN lists
+           ORDER BY lists DESC;
+-CHECK_ORDER
+---- 8
+[,2]
+[,1]
+[1,]
+[1,a]
+[1]
+[a,1]
+[a]
+[]
+
+# ORDER BY should order distinct types in the expected order
+-CASE Scenario11
+-SKIP
+-STATEMENT CREATE NODE TABLE N(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE REL(FROM N TO A);
+---- ok
+-STATEMENT CREATE (:N)-[:REL]->(:A);
+---- ok
+-STATEMENT MATCH p = (n:N)-[r:REL]->()
+           UNWIND [n, r, p, 1.5, ['list'], 'text', null, false, 0.0 / 0.0, {a: 'map'}] AS types
+           RETURN types
+           ORDER BY types;
+-CHECK_ORDER
+---- 10
+{a: map}
+{_ID: 0:0, _LABEL: N, ID: 0}
+(0:0)-{_LABEL: REL, _ID: 2:0}->(1:0)
+[list]
+{_NODES: [{_ID: 0:0, _LABEL: N, ID: 0},{_ID: 1:0, _LABEL: A, ID: 0}], _RELS: [(0:0)-{_LABEL: REL, _ID: 2:0}->(1:0)]}
+text
+False
+1.500000
+-nan
+
+
+# ORDER BY DESC should order distinct types in the expected order
+-CASE Scenario12
+-SKIP
+-STATEMENT CREATE NODE TABLE N(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE REL(FROM N TO A);
+---- ok
+-STATEMENT CREATE (:N)-[:REL]->(:A);
+---- ok
+-STATEMENT MATCH p = (n:N)-[r:REL]->()
+           UNWIND [n, r, p, 1.5, ['list'], 'text', null, false, 0.0 / 0.0, {a: 'map'}] AS types
+           RETURN types
+           ORDER BY types DESC;
+-CHECK_ORDER
+---- 10
+
+-nan
+1.500000
+False
+text
+{_NODES: [{_ID: 0:0, _LABEL: N, ID: 0},{_ID: 1:0, _LABEL: A, ID: 0}], _RELS: [(0:0)-{_LABEL: REL, _ID: 2:0}->(1:0)]}
+[list]
+(0:0)-{_LABEL: REL, _ID: 2:0}->(1:0)
+{_ID: 0:0, _LABEL: N, ID: 0}
+{a: map}
