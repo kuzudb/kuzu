@@ -88,9 +88,9 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
     case LogicalTypeID::INTERNAL_ID:
         return Value(nodeID_t());
     case LogicalTypeID::BLOB:
-        return Value(LogicalType{LogicalTypeID::BLOB}, std::string(""));
+        return Value(LogicalType::BLOB(), std::string(""));
     case LogicalTypeID::STRING:
-        return Value(LogicalType{LogicalTypeID::STRING}, std::string(""));
+        return Value(LogicalType::STRING(), std::string(""));
     case LogicalTypeID::FLOAT:
         return Value((float_t)0);
     case LogicalTypeID::FIXED_LIST: {
@@ -101,16 +101,16 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
         for (auto i = 0u; i < listSize; ++i) {
             children.push_back(std::make_unique<Value>(createDefaultValue(*childType)));
         }
-        return Value(dataType, std::move(children));
+        return Value(dataType.copy(), std::move(children));
     }
     case LogicalTypeID::MAP:
     case LogicalTypeID::VAR_LIST: {
-        return Value(dataType, std::vector<std::unique_ptr<Value>>{});
+        return Value(dataType.copy(), std::vector<std::unique_ptr<Value>>{});
     }
     case LogicalTypeID::UNION: {
         std::vector<std::unique_ptr<Value>> children;
         children.push_back(std::make_unique<Value>(createNullValue()));
-        return Value(dataType, std::move(children));
+        return Value(dataType.copy(), std::move(children));
     }
     case LogicalTypeID::NODE:
     case LogicalTypeID::REL:
@@ -121,7 +121,7 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
         for (auto& field : StructType::getFields(&dataType)) {
             children.push_back(std::make_unique<Value>(createDefaultValue(*field->getType())));
         }
-        return Value(dataType, std::move(children));
+        return Value(dataType.copy(), std::move(children));
     }
     default:
         KU_UNREACHABLE;
@@ -238,14 +238,13 @@ Value::Value(uint8_t* val_) : isNull_{false} {
     val.pointer = val_;
 }
 
-Value::Value(const LogicalType& type, std::string val_) : isNull_{false} {
-    dataType = type.copy();
+Value::Value(std::unique_ptr<LogicalType> type, std::string val_)
+    : dataType{std::move(type)}, isNull_{false} {
     strVal = std::move(val_);
 }
 
-Value::Value(const LogicalType& dataType_, std::vector<std::unique_ptr<Value>> children)
-    : isNull_{false} {
-    dataType = dataType_.copy();
+Value::Value(std::unique_ptr<LogicalType> dataType_, std::vector<std::unique_ptr<Value>> children)
+    : dataType{std::move(dataType_)}, isNull_{false} {
     this->children = std::move(children);
     childrenSize = this->children.size();
 }

@@ -17,8 +17,8 @@ public:
     explicit Deserializer(std::unique_ptr<Reader> reader) : reader(std::move(reader)) {}
 
     template<typename T>
-    void deserializeValue(T& value) {
-        static_assert(std::is_trivially_destructible<T>(), "value must be a trivial type");
+        requires std::is_trivially_destructible<T>::value ||
+        std::is_same<std::string, T>::value void deserializeValue(T& value) {
         reader->read((uint8_t*)&value, sizeof(T));
     }
 
@@ -50,7 +50,11 @@ public:
         deserializeValue(vectorSize);
         values.resize(vectorSize);
         for (auto& value : values) {
-            deserializeValue(value);
+            if constexpr (requires(Deserializer & deser) { T::deserialize(deser); }) {
+                value = T::deserialize(*this);
+            } else {
+                deserializeValue(value);
+            }
         }
     }
 

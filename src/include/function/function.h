@@ -7,9 +7,10 @@ namespace kuzu {
 namespace function {
 
 struct FunctionBindData {
-    common::LogicalType resultType;
+    std::unique_ptr<common::LogicalType> resultType;
 
-    explicit FunctionBindData(common::LogicalType dataType) : resultType{std::move(dataType)} {}
+    explicit FunctionBindData(std::unique_ptr<common::LogicalType> dataType)
+        : resultType{std::move(dataType)} {}
 
     virtual ~FunctionBindData() = default;
 };
@@ -18,7 +19,7 @@ struct CastFunctionBindData : public FunctionBindData {
     common::CSVReaderConfig csvConfig;
     uint64_t numOfEntries;
 
-    explicit CastFunctionBindData(common::LogicalType dataType)
+    explicit CastFunctionBindData(std::unique_ptr<common::LogicalType> dataType)
         : FunctionBindData{std::move(dataType)} {}
 };
 

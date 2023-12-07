@@ -144,21 +144,20 @@ void StructField::serialize(Serializer& serializer) const {
     type->serialize(serializer);
 }
 
-std::unique_ptr<StructField> StructField::deserialize(Deserializer& deserializer) {
+StructField StructField::deserialize(Deserializer& deserializer) {
     std::string name;
     deserializer.deserializeValue(name);
     auto type = LogicalType::deserialize(deserializer);
-    return std::make_unique<StructField>(std::move(name), std::move(type));
+    return StructField(std::move(name), std::move(type));
 }
 
-std::unique_ptr<StructField> StructField::copy() const {
-    return std::make_unique<StructField>(name, type->copy());
+StructField StructField::copy() const {
+    return StructField(name, type->copy());
 }
 
-StructTypeInfo::StructTypeInfo(std::vector<std::unique_ptr<StructField>> fields)
-    : fields{std::move(fields)} {
+StructTypeInfo::StructTypeInfo(std::vector<StructField>&& fields) : fields{std::move(fields)} {
     for (auto i = 0u; i < this->fields.size(); i++) {
-        auto fieldName = this->fields[i]->getName();
+        auto fieldName = this->fields[i].getName();
         StringUtils::toUpper(fieldName);
         fieldNameToIdxMap.emplace(std::move(fieldName), i);
     }
@@ -171,7 +170,7 @@ StructTypeInfo::StructTypeInfo(const std::vector<std::string>& fieldNames,
         auto normalizedFieldName = fieldName;
         StringUtils::toUpper(normalizedFieldName);
         fieldNameToIdxMap.emplace(normalizedFieldName, i);
-        fields.push_back(std::make_unique<StructField>(fieldName, fieldTypes[i]->copy()));
+        fields.emplace_back(fieldName, fieldTypes[i]->copy());
     }
 }
 
@@ -187,26 +186,26 @@ struct_field_idx_t StructTypeInfo::getStructFieldIdx(std::string fieldName) cons
     return INVALID_STRUCT_FIELD_IDX;
 }
 
-StructField* StructTypeInfo::getStructField(struct_field_idx_t idx) const {
-    return fields[idx].get();
+const StructField* StructTypeInfo::getStructField(struct_field_idx_t idx) const {
+    return &fields[idx];
 }
 
-StructField* StructTypeInfo::getStructField(const std::string& fieldName) const {
+const StructField* StructTypeInfo::getStructField(const std::string& fieldName) const {
     auto idx = getStructFieldIdx(fieldName);
     if (idx == INVALID_STRUCT_FIELD_IDX) {
         throw BinderException("Cannot find field " + fieldName + " in STRUCT.");
     }
-    return fields[idx].get();
+    return &fields[idx];
 }
 
 LogicalType* StructTypeInfo::getChildType(kuzu::common::struct_field_idx_t idx) const {
-    return fields[idx]->getType();
+    return fields[idx].getType();
 }
 
 std::vector<LogicalType*> StructTypeInfo::getChildrenTypes() const {
     std::vector<LogicalType*> childrenTypesToReturn{fields.size()};
     for (auto i = 0u; i < fields.size(); i++) {
-        childrenTypesToReturn[i] = fields[i]->getType();
+        childrenTypesToReturn[i] = fields[i].getType();
     }
     return childrenTypesToReturn;
 }
@@ -214,15 +213,15 @@ std::vector<LogicalType*> StructTypeInfo::getChildrenTypes() const {
 std::vector<std::string> StructTypeInfo::getChildrenNames() const {
     std::vector<std::string> childrenNames{fields.size()};
     for (auto i = 0u; i < fields.size(); i++) {
-        childrenNames[i] = fields[i]->getName();
+        childrenNames[i] = fields[i].getName();
     }
     return childrenNames;
 }
 
-std::vector<StructField*> StructTypeInfo::getStructFields() const {
-    std::vector<StructField*> structFields{fields.size()};
+std::vector<const StructField*> StructTypeInfo::getStructFields() const {
+    std::vector<const StructField*> structFields{fields.size()};
     for (auto i = 0u; i < fields.size(); i++) {
-        structFields[i] = fields[i].get();
+        structFields[i] = &fields[i];
     }
     return structFields;
 }
@@ -232,7 +231,7 @@ bool StructTypeInfo::operator==(const StructTypeInfo& other) const {
         return false;
     }
     for (auto i = 0u; i < fields.size(); ++i) {
-        if (*fields[i] != *other.fields[i]) {
+        if (fields[i] != other.fields[i]) {
             return false;
         }
     }
@@ -240,30 +239,36 @@ bool StructTypeInfo::operator==(const StructTypeInfo& other) const {
 }
 
 std::unique_ptr<ExtraTypeInfo> StructTypeInfo::deserialize(Deserializer& deserializer) {
-    std::vector<std::unique_ptr<StructField>> fields;
-    deserializer.deserializeVectorOfPtrs(fields);
+    std::vector<StructField> fields;
+    deserializer.deserializeVector(fields);
     return std::make_unique<StructTypeInfo>(std::move(fields));
 }
 
 std::unique_ptr<ExtraTypeInfo> StructTypeInfo::copy() const {
-    std::vector<std::unique_ptr<StructField>> structFields{fields.size()};
+    std::vector<StructField> structFields{fields.size()};
     for (auto i = 0u; i < fields.size(); i++) {
-        structFields[i] = fields[i]->copy();
+        structFields[i] = fields[i].copy();
     }
     return std::make_unique<StructTypeInfo>(std::move(structFields));
 }
 
 void StructTypeInfo::serializeInternal(Serializer& serializer) const {
-    serializer.serializeVectorOfPtrs(fields);
+    serializer.serializeVector(fields);
 }
 
 LogicalType::LogicalType(LogicalTypeID typeID) : typeID{typeID}, extraTypeInfo{nullptr} {
-    setPhysicalType();
+    physicalType = getPhysicalType(typeID);
+    // Complex types should not use this constructor as they need extra type information
+    KU_ASSERT(physicalType != PhysicalTypeID::VAR_LIST);
+    KU_ASSERT(physicalType != PhysicalTypeID::FIXED_LIST);
+    // Node/Rel types are exempted due to some complex code in bind_graph_pattern.cpp
+    KU_ASSERT(physicalType != PhysicalTypeID::STRUCT || typeID == LogicalTypeID::NODE ||
+              typeID == LogicalTypeID::REL || typeID == LogicalTypeID::RECURSIVE_REL);
 }
 
 LogicalType::LogicalType(LogicalTypeID typeID, std::unique_ptr<ExtraTypeInfo> extraTypeInfo)
     : typeID{typeID}, extraTypeInfo{std::move(extraTypeInfo)} {
-    setPhysicalType();
+    physicalType = getPhysicalType(typeID);
 }
 
 LogicalType::LogicalType(const LogicalType& other) {
@@ -419,11 +424,10 @@ std::unique_ptr<LogicalType> LogicalType::deserialize(Deserializer& deserializer
 }
 
 std::unique_ptr<LogicalType> LogicalType::copy() const {
-    auto dataType = std::make_unique<LogicalType>(typeID);
     if (extraTypeInfo != nullptr) {
-        dataType->extraTypeInfo = extraTypeInfo->copy();
+        return std::unique_ptr<LogicalType>(new LogicalType(typeID, extraTypeInfo->copy()));
     }
-    return dataType;
+    return std::make_unique<LogicalType>(typeID);
 }
 
 std::vector<std::unique_ptr<LogicalType>> LogicalType::copy(
@@ -436,13 +440,13 @@ std::vector<std::unique_ptr<LogicalType>> LogicalType::copy(
     return typesCopy;
 }
 
-void LogicalType::setPhysicalType() {
+PhysicalTypeID LogicalType::getPhysicalType(LogicalTypeID typeID) {
     switch (typeID) {
     case LogicalTypeID::ANY: {
-        physicalType = PhysicalTypeID::ANY;
+        return PhysicalTypeID::ANY;
     } break;
     case LogicalTypeID::BOOL: {
-        physicalType = PhysicalTypeID::BOOL;
+        return PhysicalTypeID::BOOL;
     } break;
     case LogicalTypeID::TIMESTAMP_MS:
     case LogicalTypeID::TIMESTAMP_NS:
@@ -451,55 +455,55 @@ void LogicalType::setPhysicalType() {
     case LogicalTypeID::TIMESTAMP:
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64: {
-        physicalType = PhysicalTypeID::INT64;
+        return PhysicalTypeID::INT64;
     } break;
     case LogicalTypeID::DATE:
     case LogicalTypeID::INT32: {
-        physicalType = PhysicalTypeID::INT32;
+        return PhysicalTypeID::INT32;
     } break;
     case LogicalTypeID::INT16: {
-        physicalType = PhysicalTypeID::INT16;
+        return PhysicalTypeID::INT16;
     } break;
     case LogicalTypeID::INT8: {
-        physicalType = PhysicalTypeID::INT8;
+        return PhysicalTypeID::INT8;
     } break;
     case LogicalTypeID::UINT64: {
-        physicalType = PhysicalTypeID::UINT64;
+        return PhysicalTypeID::UINT64;
     } break;
     case LogicalTypeID::UINT32: {
-        physicalType = PhysicalTypeID::UINT32;
+        return PhysicalTypeID::UINT32;
     } break;
     case LogicalTypeID::UINT16: {
-        physicalType = PhysicalTypeID::UINT16;
+        return PhysicalTypeID::UINT16;
     } break;
     case LogicalTypeID::UINT8: {
-        physicalType = PhysicalTypeID::UINT8;
+        return PhysicalTypeID::UINT8;
     } break;
     case LogicalTypeID::INT128: {
-        physicalType = PhysicalTypeID::INT128;
+        return PhysicalTypeID::INT128;
     } break;
     case LogicalTypeID::DOUBLE: {
-        physicalType = PhysicalTypeID::DOUBLE;
+        return PhysicalTypeID::DOUBLE;
     } break;
     case LogicalTypeID::FLOAT: {
-        physicalType = PhysicalTypeID::FLOAT;
+        return PhysicalTypeID::FLOAT;
     } break;
     case LogicalTypeID::INTERVAL: {
-        physicalType = PhysicalTypeID::INTERVAL;
+        return PhysicalTypeID::INTERVAL;
     } break;
     case LogicalTypeID::FIXED_LIST: {
-        physicalType = PhysicalTypeID::FIXED_LIST;
+        return PhysicalTypeID::FIXED_LIST;
     } break;
     case LogicalTypeID::INTERNAL_ID: {
-        physicalType = PhysicalTypeID::INTERNAL_ID;
+        return PhysicalTypeID::INTERNAL_ID;
     } break;
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING: {
-        physicalType = PhysicalTypeID::STRING;
+        return PhysicalTypeID::STRING;
     } break;
     case LogicalTypeID::MAP:
     case LogicalTypeID::VAR_LIST: {
-        physicalType = PhysicalTypeID::VAR_LIST;
+        return PhysicalTypeID::VAR_LIST;
     } break;
     case LogicalTypeID::NODE:
     case LogicalTypeID::REL:
@@ -507,10 +511,10 @@ void LogicalType::setPhysicalType() {
     case LogicalTypeID::UNION:
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::RDF_VARIANT: {
-        physicalType = PhysicalTypeID::STRUCT;
+        return PhysicalTypeID::STRUCT;
     } break;
     case LogicalTypeID::POINTER: {
-        physicalType = PhysicalTypeID::POINTER;
+        return PhysicalTypeID::POINTER;
     } break;
     default:
         KU_UNREACHABLE;
@@ -534,7 +538,7 @@ LogicalType LogicalTypeUtils::dataTypeFromString(const std::string& dataTypeStri
     } else {
         dataType.typeID = dataTypeIDFromString(upperDataTypeString);
     }
-    dataType.setPhysicalType();
+    dataType.physicalType = LogicalType::getPhysicalType(dataType.typeID);
     return dataType;
 }
 
@@ -756,19 +760,14 @@ bool LogicalTypeUtils::isNested(kuzu::common::LogicalTypeID logicalTypeID) {
     }
 }
 
-std::vector<LogicalType> LogicalTypeUtils::getAllValidComparableLogicalTypes() {
-    return std::vector<LogicalType>{LogicalType{LogicalTypeID::BOOL},
-        LogicalType{LogicalTypeID::INT64}, LogicalType{LogicalTypeID::INT32},
-        LogicalType{LogicalTypeID::INT16}, LogicalType{LogicalTypeID::INT8},
-        LogicalType{LogicalTypeID::UINT64}, LogicalType{LogicalTypeID::UINT32},
-        LogicalType{LogicalTypeID::UINT16}, LogicalType{LogicalTypeID::UINT8},
-        LogicalType{LogicalTypeID::INT128}, LogicalType{LogicalTypeID::DOUBLE},
-        LogicalType{LogicalTypeID::FLOAT}, LogicalType{LogicalTypeID::DATE},
-        LogicalType{LogicalTypeID::TIMESTAMP}, LogicalType{LogicalTypeID::TIMESTAMP_NS},
-        LogicalType{LogicalTypeID::TIMESTAMP_MS}, LogicalType{LogicalTypeID::TIMESTAMP_SEC},
-        LogicalType{LogicalTypeID::TIMESTAMP_TZ}, LogicalType{LogicalTypeID::INTERVAL},
-        LogicalType{LogicalTypeID::BLOB}, LogicalType{LogicalTypeID::STRING},
-        LogicalType{LogicalTypeID::SERIAL}};
+std::vector<LogicalTypeID> LogicalTypeUtils::getAllValidComparableLogicalTypes() {
+    return std::vector<LogicalTypeID>{LogicalTypeID::BOOL, LogicalTypeID::INT64,
+        LogicalTypeID::INT32, LogicalTypeID::INT16, LogicalTypeID::INT8, LogicalTypeID::UINT64,
+        LogicalTypeID::UINT32, LogicalTypeID::UINT16, LogicalTypeID::UINT8, LogicalTypeID::INT128,
+        LogicalTypeID::DOUBLE, LogicalTypeID::FLOAT, LogicalTypeID::DATE, LogicalTypeID::TIMESTAMP,
+        LogicalTypeID::TIMESTAMP_NS, LogicalTypeID::TIMESTAMP_MS, LogicalTypeID::TIMESTAMP_SEC,
+        LogicalTypeID::TIMESTAMP_TZ, LogicalTypeID::INTERVAL, LogicalTypeID::BLOB,
+        LogicalTypeID::STRING, LogicalTypeID::SERIAL};
 }
 
 std::vector<LogicalTypeID> LogicalTypeUtils::getNumericalLogicalTypeIDs() {
@@ -783,23 +782,17 @@ std::vector<LogicalTypeID> LogicalTypeUtils::getIntegerLogicalTypeIDs() {
         LogicalTypeID::INT16, LogicalTypeID::INT8, LogicalTypeID::SERIAL};
 }
 
-std::vector<LogicalType> LogicalTypeUtils::getAllValidLogicTypes() {
-    return std::vector<LogicalType>{LogicalType{LogicalTypeID::INTERNAL_ID},
-        LogicalType{LogicalTypeID::BOOL}, LogicalType{LogicalTypeID::INT64},
-        LogicalType{LogicalTypeID::INT32}, LogicalType{LogicalTypeID::INT16},
-        LogicalType{LogicalTypeID::INT8}, LogicalType{LogicalTypeID::UINT64},
-        LogicalType{LogicalTypeID::UINT32}, LogicalType{LogicalTypeID::UINT16},
-        LogicalType{LogicalTypeID::UINT8}, LogicalType{LogicalTypeID::INT128},
-        LogicalType{LogicalTypeID::DOUBLE}, LogicalType{LogicalTypeID::STRING},
-        LogicalType{LogicalTypeID::BLOB}, LogicalType{LogicalTypeID::DATE},
-        LogicalType{LogicalTypeID::TIMESTAMP}, LogicalType{LogicalTypeID::TIMESTAMP_NS},
-        LogicalType{LogicalTypeID::TIMESTAMP_MS}, LogicalType{LogicalTypeID::TIMESTAMP_SEC},
-        LogicalType{LogicalTypeID::TIMESTAMP_TZ}, LogicalType{LogicalTypeID::INTERVAL},
-        LogicalType{LogicalTypeID::VAR_LIST}, LogicalType{LogicalTypeID::FIXED_LIST},
-        LogicalType{LogicalTypeID::MAP}, LogicalType{LogicalTypeID::FLOAT},
-        LogicalType{LogicalTypeID::SERIAL}, LogicalType{LogicalTypeID::NODE},
-        LogicalType{LogicalTypeID::REL}, LogicalType{LogicalTypeID::STRUCT},
-        LogicalType{LogicalTypeID::UNION}, LogicalType{LogicalTypeID::RDF_VARIANT}};
+std::vector<LogicalTypeID> LogicalTypeUtils::getAllValidLogicTypes() {
+    return std::vector<LogicalTypeID>{LogicalTypeID::INTERNAL_ID, LogicalTypeID::BOOL,
+        LogicalTypeID::INT64, LogicalTypeID::INT32, LogicalTypeID::INT16, LogicalTypeID::INT8,
+        LogicalTypeID::UINT64, LogicalTypeID::UINT32, LogicalTypeID::UINT16, LogicalTypeID::UINT8,
+        LogicalTypeID::INT128, LogicalTypeID::DOUBLE, LogicalTypeID::STRING, LogicalTypeID::BLOB,
+        LogicalTypeID::DATE, LogicalTypeID::TIMESTAMP, LogicalTypeID::TIMESTAMP_NS,
+        LogicalTypeID::TIMESTAMP_MS, LogicalTypeID::TIMESTAMP_SEC, LogicalTypeID::TIMESTAMP_TZ,
+        LogicalTypeID::INTERVAL, LogicalTypeID::VAR_LIST, LogicalTypeID::FIXED_LIST,
+        LogicalTypeID::MAP, LogicalTypeID::FLOAT, LogicalTypeID::SERIAL, LogicalTypeID::NODE,
+        LogicalTypeID::REL, LogicalTypeID::STRUCT, LogicalTypeID::UNION,
+        LogicalTypeID::RDF_VARIANT};
 }
 
 std::vector<std::string> LogicalTypeUtils::parseStructFields(const std::string& structTypeStr) {
@@ -834,9 +827,7 @@ std::vector<std::string> LogicalTypeUtils::parseStructFields(const std::string& 
 }
 
 std::unique_ptr<LogicalType> LogicalTypeUtils::parseVarListType(const std::string& trimmedStr) {
-    return std::make_unique<LogicalType>(LogicalTypeID::VAR_LIST,
-        std::make_unique<VarListTypeInfo>(std::make_unique<LogicalType>(
-            dataTypeFromString(trimmedStr.substr(0, trimmedStr.size() - 2)))));
+    return LogicalType::VAR_LIST(dataTypeFromString(trimmedStr.substr(0, trimmedStr.size() - 2)));
 }
 
 std::unique_ptr<LogicalType> LogicalTypeUtils::parseFixedListType(const std::string& trimmedStr) {
@@ -847,12 +838,10 @@ std::unique_ptr<LogicalType> LogicalTypeUtils::parseFixedListType(const std::str
     auto fixedNumElementsInList = std::strtoll(
         trimmedStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1).c_str(),
         nullptr, 0 /* base */);
-    return std::make_unique<LogicalType>(LogicalTypeID::FIXED_LIST,
-        std::make_unique<FixedListTypeInfo>(std::move(childType), fixedNumElementsInList));
+    return LogicalType::FIXED_LIST(std::move(childType), fixedNumElementsInList);
 }
 
-std::vector<std::unique_ptr<StructField>> LogicalTypeUtils::parseStructTypeInfo(
-    const std::string& structTypeStr) {
+std::vector<StructField> LogicalTypeUtils::parseStructTypeInfo(const std::string& structTypeStr) {
     auto leftBracketPos = structTypeStr.find('(');
     auto rightBracketPos = structTypeStr.find_last_of(')');
     if (leftBracketPos == std::string::npos || rightBracketPos == std::string::npos) {
@@ -861,34 +850,20 @@ std::vector<std::unique_ptr<StructField>> LogicalTypeUtils::parseStructTypeInfo(
     // Remove the leading and trailing brackets.
     auto structFieldsStr =
         structTypeStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1);
-    std::vector<std::unique_ptr<StructField>> structFields;
+    std::vector<StructField> structFields;
     auto structFieldStrs = parseStructFields(structFieldsStr);
     for (auto& structFieldStr : structFieldStrs) {
         auto pos = structFieldStr.find(' ');
         auto fieldName = structFieldStr.substr(0, pos);
         auto fieldTypeString = structFieldStr.substr(pos + 1);
-        structFields.emplace_back(std::make_unique<StructField>(
-            fieldName, std::make_unique<LogicalType>(dataTypeFromString(fieldTypeString))));
+        structFields.emplace_back(
+            fieldName, std::make_unique<LogicalType>(dataTypeFromString(fieldTypeString)));
     }
     return structFields;
 }
 
 std::unique_ptr<LogicalType> LogicalTypeUtils::parseStructType(const std::string& trimmedStr) {
-    return std::make_unique<LogicalType>(
-        LogicalTypeID::STRUCT, std::make_unique<StructTypeInfo>(parseStructTypeInfo(trimmedStr)));
-}
-
-std::unique_ptr<LogicalType> MapType::createMapType(
-    std::unique_ptr<LogicalType> keyType, std::unique_ptr<LogicalType> valueType) {
-    std::vector<std::unique_ptr<StructField>> structFields;
-    structFields.push_back(
-        std::make_unique<StructField>(InternalKeyword::MAP_KEY, std::move(keyType)));
-    structFields.push_back(
-        std::make_unique<StructField>(InternalKeyword::MAP_VALUE, std::move(valueType)));
-    auto childType = std::make_unique<LogicalType>(
-        LogicalTypeID::STRUCT, std::make_unique<StructTypeInfo>(std::move(structFields)));
-    return std::make_unique<LogicalType>(
-        LogicalTypeID::MAP, std::make_unique<VarListTypeInfo>(std::move(childType)));
+    return LogicalType::STRUCT(parseStructTypeInfo(trimmedStr));
 }
 
 std::unique_ptr<LogicalType> LogicalTypeUtils::parseMapType(const std::string& trimmedStr) {
@@ -899,18 +874,65 @@ std::unique_ptr<LogicalType> LogicalTypeUtils::parseMapType(const std::string& t
     }
     auto mapTypeStr = trimmedStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1);
     auto keyValueTypes = StringUtils::splitComma(mapTypeStr);
-    return MapType::createMapType(
-        std::make_unique<LogicalType>(dataTypeFromString(keyValueTypes[0])),
-        std::make_unique<LogicalType>(dataTypeFromString(keyValueTypes[1])));
+    return LogicalType::MAP(
+        dataTypeFromString(keyValueTypes[0]), dataTypeFromString(keyValueTypes[1]));
 }
 
 std::unique_ptr<LogicalType> LogicalTypeUtils::parseUnionType(const std::string& trimmedStr) {
     auto unionFields = parseStructTypeInfo(trimmedStr);
-    auto unionTagField = std::make_unique<StructField>(
+    auto unionTagField = StructField(
         UnionType::TAG_FIELD_NAME, std::make_unique<LogicalType>(UnionType::TAG_FIELD_TYPE));
     unionFields.insert(unionFields.begin(), std::move(unionTagField));
-    return std::make_unique<LogicalType>(
-        LogicalTypeID::UNION, std::make_unique<StructTypeInfo>(std::move(unionFields)));
+    return LogicalType::UNION(std::move(unionFields));
+}
+
+std::unique_ptr<LogicalType> LogicalType::STRUCT(std::vector<StructField>&& fields) {
+    return std::unique_ptr<LogicalType>(new LogicalType(
+        LogicalTypeID::STRUCT, std::make_unique<StructTypeInfo>(std::move(fields))));
+}
+
+std::unique_ptr<LogicalType> LogicalType::RECURSIVE_REL(std::unique_ptr<StructTypeInfo> typeInfo) {
+    return std::unique_ptr<LogicalType>(
+        new LogicalType(LogicalTypeID::RECURSIVE_REL, std::move(typeInfo)));
+}
+
+std::unique_ptr<LogicalType> LogicalType::NODE(std::unique_ptr<StructTypeInfo> typeInfo) {
+    return std::unique_ptr<LogicalType>(new LogicalType(LogicalTypeID::NODE, std::move(typeInfo)));
+}
+
+std::unique_ptr<LogicalType> LogicalType::REL(std::unique_ptr<StructTypeInfo> typeInfo) {
+    return std::unique_ptr<LogicalType>(new LogicalType(LogicalTypeID::REL, std::move(typeInfo)));
+}
+
+std::unique_ptr<LogicalType> LogicalType::RDF_VARIANT(std::unique_ptr<StructTypeInfo> typeInfo) {
+    return std::unique_ptr<LogicalType>(
+        new LogicalType(LogicalTypeID::RDF_VARIANT, std::move(typeInfo)));
+}
+
+std::unique_ptr<LogicalType> LogicalType::UNION(std::vector<StructField>&& fields) {
+    return std::unique_ptr<LogicalType>(
+        new LogicalType(LogicalTypeID::UNION, std::make_unique<StructTypeInfo>(std::move(fields))));
+}
+
+std::unique_ptr<LogicalType> LogicalType::VAR_LIST(std::unique_ptr<LogicalType> childType) {
+    return std::unique_ptr<LogicalType>(new LogicalType(
+        LogicalTypeID::VAR_LIST, std::make_unique<VarListTypeInfo>(std::move(childType))));
+}
+
+std::unique_ptr<LogicalType> LogicalType::MAP(
+    std::unique_ptr<LogicalType> keyType, std::unique_ptr<LogicalType> valueType) {
+    std::vector<StructField> structFields;
+    structFields.emplace_back(InternalKeyword::MAP_KEY, std::move(keyType));
+    structFields.emplace_back(InternalKeyword::MAP_VALUE, std::move(valueType));
+    auto mapStructType = LogicalType::STRUCT(std::move(structFields));
+    return std::unique_ptr<LogicalType>(new LogicalType(
+        LogicalTypeID::MAP, std::make_unique<VarListTypeInfo>(std::move(mapStructType))));
+}
+
+std::unique_ptr<LogicalType> LogicalType::FIXED_LIST(
+    std::unique_ptr<LogicalType> childType, uint64_t fixedNumElementsInList) {
+    return std::unique_ptr<LogicalType>(new LogicalType(LogicalTypeID::FIXED_LIST,
+        std::make_unique<FixedListTypeInfo>(std::move(childType), fixedNumElementsInList)));
 }
 
 } // namespace common

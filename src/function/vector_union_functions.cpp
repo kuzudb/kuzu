@@ -20,19 +20,17 @@ function_set UnionValueFunction::getFunctionSet() {
 std::unique_ptr<FunctionBindData> UnionValueFunction::bindFunc(
     const binder::expression_vector& arguments, kuzu::function::Function* /*function*/) {
     KU_ASSERT(arguments.size() == 1);
-    std::vector<std::unique_ptr<StructField>> fields;
+    std::vector<StructField> fields;
     // TODO(Ziy): Use UINT8 to represent tag value.
-    fields.push_back(std::make_unique<StructField>(
-        UnionType::TAG_FIELD_NAME, std::make_unique<LogicalType>(UnionType::TAG_FIELD_TYPE)));
+    fields.emplace_back(
+        UnionType::TAG_FIELD_NAME, std::make_unique<LogicalType>(UnionType::TAG_FIELD_TYPE));
     if (arguments[0]->getDataType().getLogicalTypeID() == common::LogicalTypeID::ANY) {
         binder::ExpressionBinder::resolveAnyDataType(
             *arguments[0], LogicalType(LogicalTypeID::STRING));
     }
-    fields.push_back(std::make_unique<StructField>(
-        arguments[0]->getAlias(), arguments[0]->getDataType().copy()));
-    auto resultType =
-        LogicalType(LogicalTypeID::UNION, std::make_unique<StructTypeInfo>(std::move(fields)));
-    return std::make_unique<FunctionBindData>(resultType);
+    fields.emplace_back(arguments[0]->getAlias(), arguments[0]->getDataType().copy());
+    auto resultType = LogicalType::UNION(std::move(fields));
+    return std::make_unique<FunctionBindData>(std::move(resultType));
 }
 
 void UnionValueFunction::execFunc(const std::vector<std::shared_ptr<ValueVector>>& /*parameters*/,

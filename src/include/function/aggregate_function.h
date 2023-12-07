@@ -123,12 +123,12 @@ public:
     static std::unique_ptr<AggregateFunction> getAvgFunc(const std::string name,
         common::LogicalTypeID inputType, common::LogicalTypeID resultType, bool isDistinct);
     static std::unique_ptr<AggregateFunction> getMinFunc(
-        const common::LogicalType& inputType, bool isDistinct);
+        common::LogicalTypeID inputType, bool isDistinct);
     static std::unique_ptr<AggregateFunction> getMaxFunc(
-        const common::LogicalType& inputType, bool isDistinct);
+        common::LogicalTypeID inputType, bool isDistinct);
     template<typename FUNC>
     static std::unique_ptr<AggregateFunction> getMinMaxFunction(const std::string name,
-        const common::LogicalType& inputType, common::LogicalTypeID resultType, bool isDistinct);
+        common::LogicalTypeID inputType, common::LogicalTypeID resultType, bool isDistinct);
 };
 
 } // namespace function

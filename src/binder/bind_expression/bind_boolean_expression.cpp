@@ -29,7 +29,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindBooleanExpression(
     function::scalar_select_func selectFunc;
     function::VectorBooleanFunction::bindSelectFunction(
         expressionType, childrenAfterCast, selectFunc);
-    auto bindData = std::make_unique<function::FunctionBindData>(LogicalType(LogicalTypeID::BOOL));
+    auto bindData = std::make_unique<function::FunctionBindData>(LogicalType::BOOL());
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(functionName, childrenAfterCast);
     return make_shared<ScalarFunctionExpression>(functionName, expressionType, std::move(bindData),

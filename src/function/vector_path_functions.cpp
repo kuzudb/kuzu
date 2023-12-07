@@ -24,7 +24,7 @@ std::unique_ptr<FunctionBindData> NodesFunction::bindFunc(
     auto structType = arguments[0]->getDataType();
     auto fieldIdx = StructType::getFieldIdx(&structType, InternalKeyword::NODES);
     return std::make_unique<StructExtractBindData>(
-        *(StructType::getFieldTypes(&structType))[fieldIdx], fieldIdx);
+        StructType::getFieldTypes(&structType)[fieldIdx]->copy(), fieldIdx);
 }
 
 function_set RelsFunction::getFunctionSet() {
@@ -40,7 +40,7 @@ std::unique_ptr<FunctionBindData> RelsFunction::bindFunc(
     auto structType = arguments[0]->getDataType();
     auto fieldIdx = StructType::getFieldIdx(&structType, InternalKeyword::RELS);
     return std::make_unique<StructExtractBindData>(
-        *(StructType::getFieldTypes(&structType))[fieldIdx], fieldIdx);
+        StructType::getFieldTypes(&structType)[fieldIdx]->copy(), fieldIdx);
 }
 
 function_set PropertiesFunction::getFunctionSet() {
@@ -72,9 +72,8 @@ std::unique_ptr<FunctionBindData> PropertiesFunction::bindFunc(
             stringFormat("Cannot extract properties from {}.", listType.toString()));
     }
     auto field = StructType::getField(childType, fieldIdx);
-    auto returnType = std::make_unique<LogicalType>(
-        LogicalTypeID::VAR_LIST, std::make_unique<VarListTypeInfo>(field->getType()->copy()));
-    return std::make_unique<PropertiesBindData>(*returnType, fieldIdx);
+    auto returnType = LogicalType::VAR_LIST(field->getType()->copy());
+    return std::make_unique<PropertiesBindData>(std::move(returnType), fieldIdx);
 }
 
 void PropertiesFunction::compileFunc(FunctionBindData* bindData,

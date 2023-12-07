@@ -403,7 +403,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformLiteral(
     } else if (ctx.StringLiteral()) {
         return std::make_unique<ParsedLiteralExpression>(
             std::make_unique<Value>(
-                LogicalType{LogicalTypeID::STRING}, transformStringLiteral(*ctx.StringLiteral())),
+                LogicalType::STRING(), transformStringLiteral(*ctx.StringLiteral())),
             ctx.getText());
     } else if (ctx.NULL_()) {
         return std::make_unique<ParsedLiteralExpression>(

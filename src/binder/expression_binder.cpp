@@ -115,7 +115,7 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCast(
     if (CastFunction::hasImplicitCast(expression->dataType, targetType)) {
         auto functionName = stringFormat("CAST_TO({})", targetType.toString());
         auto children = expression_vector{expression};
-        auto bindData = std::make_unique<FunctionBindData>(targetType);
+        auto bindData = std::make_unique<FunctionBindData>(targetType.copy());
         auto scalarFunction = CastFunction::bindCastFunction(
             functionName, expression->dataType.getLogicalTypeID(), targetType.getLogicalTypeID());
         auto uniqueName = ScalarFunctionExpression::getUniqueName(functionName, children);
