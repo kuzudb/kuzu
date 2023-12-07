@@ -1,0 +1,234 @@
+-GROUP TCKReturnSkipLimit2
+-DATASET CSV tck
+
+--
+
+# Limit to two hits
+-CASE Scenario1
+-STATEMENT UNWIND [1, 1, 1, 1, 1] AS i
+           RETURN i
+           LIMIT 2;
+---- 2
+1
+1
+
+# Limit to two hits with explicit order
+-CASE Scenario2
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {name: 'A'}),
+                  (:A {name: 'B'}),
+                  (:A {name: 'C'}),
+                  (:A {name: 'D'}),
+                  (:A {name: 'E'});
+---- ok
+-STATEMENT MATCH (n)
+           RETURN n
+           ORDER BY n.name ASC
+           LIMIT 2;
+-CHECK_ORDER
+---- 2
+{_ID: 0:0, _LABEL: A, ID: 0, name: A}
+{_ID: 0:1, _LABEL: A, ID: 1, name: B}
+
+# LIMIT 0 should return an empty result
+-CASE Scenario3
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A), (:A), (:A);
+---- ok
+-STATEMENT MATCH (n)
+           RETURN n
+             LIMIT 0;
+---- 0
+
+# Handle ORDER BY with LIMIT 1
+-CASE Scenario4
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (s:Person {name: 'Steven'}),
+                  (c:Person {name: 'Craig'});
+---- ok
+-STATEMENT MATCH (p:Person)
+           RETURN p.name AS name
+           ORDER BY p.name
+           LIMIT 1;
+-CHECK_ORDER
+---- 1
+Craig
+
+# ORDER BY with LIMIT 0 should not generate errors
+-CASE Scenario5
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT MATCH (p:Person)
+           RETURN p.name AS name
+           ORDER BY p.name
+           LIMIT 0;
+-CHECK_ORDER
+---- 0
+
+# LIMIT with an expression that does not depend on variables
+-CASE Scenario6
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, nr INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT UNWIND range(1, 3) AS i
+           CREATE (:A {nr: i});
+---- ok
+-STATEMENT MATCH (n)
+           WITH n LIMIT to_int64(ceil(1.7))
+           RETURN count(*) AS count;
+---- 1
+2
+
+# Limit to more rows than actual results 1
+-CASE Scenario7
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {num: 1}), (:A {num: 3}), (:A {num: 2});
+---- ok
+-STATEMENT MATCH (foo)
+           RETURN foo.num AS x
+             ORDER BY x DESC
+             LIMIT 4;
+-CHECK_ORDER
+---- 3
+3
+2
+1
+
+# Limit to more rows than actual results 2
+-CASE Scenario8
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, num INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE C(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE GROUP T(FROM A TO B, FROM B TO C);
+---- ok
+-STATEMENT CREATE (a:A), (n1:B {num: 1}), (n2:B {num: 2}),
+                  (m1:C), (m2:C)
+           CREATE (a)-[:T_A_B]->(n1),
+                  (n1)-[:T_B_C]->(m1),
+                  (a)-[:T_A_B]->(n2),
+                  (n2)-[:T_B_C]->(m2);
+---- ok
+-STATEMENT MATCH (a:A)-->(n)-->(m)
+           RETURN n.num, count(*)
+             ORDER BY n.num
+             LIMIT 1000;
+-CHECK_ORDER
+---- 2
+1|1
+2|1
+
+# Fail when using non-constants in LIMIT
+-CASE Scenario9
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, count INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT MATCH (n) RETURN n LIMIT n.count;
+---- error
+Binder exception: The number of rows to skip/limit must be a non-negative integer.
+
+# Negative parameter for LIMIT should fail
+-CASE Scenario10
+-SKIP
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (s:Person {name: 'Steven'}),
+                  (c:Person {name: 'Craig'});
+---- ok
+-STATEMENT MATCH (p:Person)
+           RETURN p.name AS name
+           LIMIT $_limit;
+---- error
+Binder exception: The number of rows to skip/limit must be a non-negative integer.
+
+# Negative parameter for LIMIT with ORDER BY should fail
+-CASE Scenario11
+-SKIP
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (s:Person {name: 'Steven'}),
+                  (c:Person {name: 'Craig'});
+---- ok
+-STATEMENT MATCH (p:Person)
+           RETURN p.name AS name
+           ORDER BY name LIMIT $_limit;
+---- error
+Binder exception: The number of rows to skip/limit must be a non-negative integer.
+
+# Fail when using negative value in LIMIT 1
+-CASE Scenario12
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT MATCH (n)
+           RETURN n
+             LIMIT -1;
+---- error
+Binder exception: The number of rows to skip/limit must be a non-negative integer.
+
+# Fail when using negative value in LIMIT 2
+-CASE Scenario13
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (s:Person {name: 'Steven'}),
+                  (c:Person {name: 'Craig'});
+---- ok
+-STATEMENT MATCH (p:Person)
+           RETURN p.name AS name
+           LIMIT -1;
+---- error
+Binder exception: The number of rows to skip/limit must be a non-negative integer.
+
+# Floating point parameter for LIMIT should fail
+-CASE Scenario14
+-SKIP
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (s:Person {name: 'Steven'}),
+                  (c:Person {name: 'Craig'});
+---- ok
+-STATEMENT MATCH (p:Person)
+           RETURN p.name AS name
+           LIMIT $_limit;
+---- error
+Binder exception: The number of rows to skip/limit must be a non-negative integer.
+
+# Floating point parameter for LIMIT with ORDER BY should fail
+-CASE Scenario15
+-SKIP
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (s:Person {name: 'Steven'}),
+                  (c:Person {name: 'Craig'});
+---- ok
+-STATEMENT MATCH (p:Person)
+           RETURN p.name AS name
+           ORDER BY name LIMIT $_limit;
+---- error
+Binder exception: The number of rows to skip/limit must be a non-negative integer.
+
+# Fail when using floating point in LIMIT 1
+-CASE Scenario16
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT MATCH (n)
+           RETURN n
+             LIMIT 1.7;
+---- error
+Binder exception: The number of rows to skip/limit must be a non-negative integer.
+
+# Fail when using floating point in LIMIT 2
+-CASE Scenario17
+-STATEMENT CREATE NODE TABLE Person(ID SERIAL, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (s:Person {name: 'Steven'}),
+                  (c:Person {name: 'Craig'});
+---- ok
+-STATEMENT MATCH (p:Person)
+           RETURN p.name AS name
+           LIMIT 1.5;
+---- error
+Binder exception: The number of rows to skip/limit must be a non-negative integer.
