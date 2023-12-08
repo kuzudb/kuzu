@@ -16,7 +16,7 @@ std::unique_ptr<ColumnWriterState> StructColumnWriter::initializeWriteState(
     for (auto& child_writer : childWriters) {
         result->childStates.push_back(child_writer->initializeWriteState(rowGroup));
     }
-    return std::move(result);
+    return result;
 }
 
 bool StructColumnWriter::hasAnalyze() {

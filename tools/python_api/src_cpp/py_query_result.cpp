@@ -50,7 +50,7 @@ py::list PyQueryResult::getNext() {
     for (auto i = 0u; i < tuple->len(); ++i) {
         result[i] = convertValueToPyObject(*tuple->getValue(i));
     }
-    return std::move(result);
+    return result;
 }
 
 void PyQueryResult::writeToCSV(const py::str& filename, const py::str& delimiter,
@@ -184,7 +184,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         for (auto i = 0u; i < NestedVal::getChildrenSize(&value); ++i) {
             list.append(convertValueToPyObject(*NestedVal::getChildVal(&value, i)));
         }
-        return std::move(list);
+        return list;
     }
     case LogicalTypeID::MAP: {
         py::dict dict;
@@ -194,7 +194,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
             auto v = convertValueToPyObject(*NestedVal::getChildVal(childVal, 1));
             dict[std::move(k)] = std::move(v);
         }
-        return std::move(dict);
+        return dict;
     }
     case LogicalTypeID::UNION: {
         return convertValueToPyObject(*NestedVal::getChildVal(&value, 0 /* idx */));
@@ -227,7 +227,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
             auto val = convertValueToPyObject(*NodeVal::getPropertyVal(&value, i));
             dict[key] = val;
         }
-        return std::move(dict);
+        return dict;
     }
     case LogicalTypeID::REL: {
         py::dict dict;
@@ -243,7 +243,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
             auto val = convertValueToPyObject(*RelVal::getPropertyVal(&value, i));
             dict[key] = val;
         }
-        return std::move(dict);
+        return dict;
     }
     case LogicalTypeID::INTERNAL_ID: {
         return convertNodeIdToPyDict(value.getValue<nodeID_t>());
@@ -278,7 +278,7 @@ py::object PyQueryResult::getArrowChunks(
     auto pyarrowLibModule = py::module::import("pyarrow").attr("lib");
     py::list batches;
     while (getNextArrowChunk(typesInfo, batches, chunkSize)) {}
-    return std::move(batches);
+    return batches;
 }
 
 kuzu::pyarrow::Table PyQueryResult::getAsArrow(std::int64_t chunkSize) {
@@ -301,7 +301,7 @@ py::list PyQueryResult::getColumnDataTypes() {
     for (auto i = 0u; i < columnDataTypes.size(); ++i) {
         result[i] = py::cast(columnDataTypes[i].toString());
     }
-    return std::move(result);
+    return result;
 }
 
 py::list PyQueryResult::getColumnNames() {
@@ -310,7 +310,7 @@ py::list PyQueryResult::getColumnNames() {
     for (auto i = 0u; i < columnNames.size(); ++i) {
         result[i] = py::cast(columnNames[i]);
     }
-    return std::move(result);
+    return result;
 }
 
 void PyQueryResult::resetIterator() {

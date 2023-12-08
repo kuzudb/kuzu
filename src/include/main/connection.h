@@ -113,7 +113,7 @@ public:
 
     template<typename TR, typename... Args>
     void createScalarFunction(const std::string& name, TR (*udfFunc)(Args...)) {
-        addScalarFunction(name, std::move(function::UDF::getFunction<TR, Args...>(name, udfFunc)));
+        addScalarFunction(name, function::UDF::getFunction<TR, Args...>(name, udfFunc));
     }
 
     template<typename TR, typename... Args>

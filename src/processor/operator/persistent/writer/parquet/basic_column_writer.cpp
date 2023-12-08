@@ -15,7 +15,7 @@ std::unique_ptr<ColumnWriterState> BasicColumnWriter::initializeWriteState(
     kuzu_parquet::format::RowGroup& rowGroup) {
     auto result = std::make_unique<BasicColumnWriterState>(rowGroup, rowGroup.columns.size());
     registerToRowGroup(rowGroup);
-    return std::move(result);
+    return result;
 }
 
 void BasicColumnWriter::prepare(ColumnWriterState& stateToPrepare, ColumnWriterState* parent,
