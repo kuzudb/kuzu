@@ -1,6 +1,11 @@
 #include "parser/parser.h"
 
+// ANTLR4 generates code with unused parameters.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "cypher_lexer.h"
+#pragma GCC diagnostic pop
+
 #include "parser/antlr_parser/kuzu_cypher_parser.h"
 #include "parser/antlr_parser/parser_error_listener.h"
 #include "parser/antlr_parser/parser_error_strategy.h"
