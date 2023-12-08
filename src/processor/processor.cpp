@@ -22,7 +22,7 @@ std::shared_ptr<FactorizedTable> QueryProcessor::execute(
     lastOperator->initGlobalState(context);
     auto resultCollector = reinterpret_cast<ResultCollector*>(lastOperator);
     // The root pipeline(task) consists of operators and its prevOperator only, because we
-    // expect to have linear plans. For binary operators, e.g., HashJoin, we  keep probe and its
+    // expect to have linear plans. For binary operators, e.g., HashJoin, we keep probe and its
     // prevOperator in the same pipeline, and decompose build and its prevOperator into another
     // one.
     auto task = std::make_shared<ProcessorTask>(resultCollector, context);

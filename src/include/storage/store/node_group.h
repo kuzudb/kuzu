@@ -23,6 +23,7 @@ public:
         return chunks[columnID].get();
     }
     inline bool isFull() const { return numRows == common::StorageConstants::NODE_GROUP_SIZE; }
+    inline bool isEmpty() const { return numRows == 0; }
 
     void resetToEmpty();
     void setAllNull();

@@ -8,6 +8,7 @@
 #include <unistd.h>
 #endif
 
+#include <liburing.h>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -36,6 +37,18 @@ struct FileInfo {
 #endif
 };
 
+struct NodeGroupInfo {
+    uint64_t byteSize = 0;
+    uint8_t idx;
+    uint64_t totalReq = 0;
+
+    uint64_t receivedSize = 0;
+    uint64_t receivedReq = 0;
+
+    NodeGroupInfo(uint8_t i): idx{i}
+    {}
+};
+
 class FileUtils {
 public:
     static std::unique_ptr<FileInfo> openFile(
@@ -45,6 +58,8 @@ public:
         FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position);
     static void writeToFile(
         FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes, uint64_t offset);
+    static void writeToFileAsync(
+        FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes, uint64_t offset, io_uring* ring, NodeGroupInfo* info);
     // This function is a no-op if either file, from or to, does not exist.
     static void overwriteFile(const std::string& from, const std::string& to);
     static void copyFile(const std::string& from, const std::string& to,
@@ -74,6 +89,7 @@ public:
         return path.extension().string();
     }
 };
+
 
 } // namespace common
 } // namespace kuzu

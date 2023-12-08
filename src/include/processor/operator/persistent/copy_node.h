@@ -105,6 +105,11 @@ public:
     static void writeAndResetNodeGroup(common::node_group_idx_t nodeGroupIdx,
         storage::PrimaryKeyIndexBuilder* pkIndex, common::column_id_t pkColumnID,
         storage::NodeTable* table, storage::NodeGroup* nodeGroup);
+    void writeNodeGroup(common::node_group_idx_t nodeGroupIdx,
+        storage::PrimaryKeyIndexBuilder* pkIndex, common::column_id_t pkColumnID,
+        storage::NodeTable* table, storage::NodeGroup* nodeGroup);
+
+    uint64_t notAllReturn();
 
 private:
     static void populatePKIndex(storage::PrimaryKeyIndexBuilder* pkIndex,
@@ -125,7 +130,11 @@ protected:
     common::DataChunkState* columnState;
     std::vector<std::shared_ptr<common::ValueVector>> nullColumnVectors;
     std::vector<common::ValueVector*> columnVectors;
-    std::unique_ptr<storage::NodeGroup> localNodeGroup;
+    std::vector<std::unique_ptr<storage::NodeGroup>> localNodeGroups;
+    uint8_t k = 2;
+    io_uring ring;
+    uint8_t currentNodeGroup = 0;
+    std::vector<std::unique_ptr<common::NodeGroupInfo>> nodeGroupInfo;
 };
 
 template<>

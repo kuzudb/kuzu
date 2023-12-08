@@ -13,10 +13,15 @@ namespace kuzu {
 namespace storage {
 
 ColumnChunkMetadata fixedSizedFlushBuffer(const uint8_t* buffer, uint64_t bufferSize,
-    BMFileHandle* dataFH, page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
+    BMFileHandle* dataFH, page_idx_t startPageIdx, const ColumnChunkMetadata& metadata, io_uring* ring, NodeGroupInfo* info) {
     KU_ASSERT(dataFH->getNumPages() >= startPageIdx + metadata.numPages);
-    FileUtils::writeToFile(dataFH->getFileInfo(), buffer, bufferSize,
-        startPageIdx * BufferPoolConstants::PAGE_4KB_SIZE);
+    if (ring) {
+        FileUtils::writeToFileAsync(dataFH->getFileInfo(), buffer, bufferSize,
+            startPageIdx * BufferPoolConstants::PAGE_4KB_SIZE, ring, info);
+    } else {
+        FileUtils::writeToFile(dataFH->getFileInfo(), buffer, bufferSize,
+            startPageIdx * BufferPoolConstants::PAGE_4KB_SIZE);
+    }
     return ColumnChunkMetadata(
         startPageIdx, metadata.numPages, metadata.numValues, metadata.compMeta);
 }
@@ -44,7 +49,8 @@ public:
     CompressedFlushBuffer(const CompressedFlushBuffer& other) = default;
 
     ColumnChunkMetadata operator()(const uint8_t* buffer, uint64_t /*bufferSize*/,
-        BMFileHandle* dataFH, page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
+        BMFileHandle* dataFH, page_idx_t startPageIdx, const ColumnChunkMetadata& metadata,
+        io_uring* ring, NodeGroupInfo* info) {
         auto valuesRemaining = metadata.numValues;
         const uint8_t* bufferStart = buffer;
         auto compressedBuffer = std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_4KB_SIZE);
@@ -68,17 +74,32 @@ public:
             }
             KU_ASSERT(numPages < metadata.numPages);
             KU_ASSERT(dataFH->getNumPages() > startPageIdx + numPages);
-            FileUtils::writeToFile(dataFH->getFileInfo(), compressedBuffer.get(),
-                BufferPoolConstants::PAGE_4KB_SIZE,
-                (startPageIdx + numPages) * BufferPoolConstants::PAGE_4KB_SIZE);
-            numPages++;
+            if (ring) {
+                FileUtils::writeToFileAsync(dataFH->getFileInfo(), compressedBuffer.get(),
+                    BufferPoolConstants::PAGE_4KB_SIZE,
+                    (startPageIdx + numPages) * BufferPoolConstants::PAGE_4KB_SIZE, ring, info);
+                numPages++;
+            } else {
+                FileUtils::writeToFile(dataFH->getFileInfo(), compressedBuffer.get(),
+                    BufferPoolConstants::PAGE_4KB_SIZE,
+                    (startPageIdx + numPages) * BufferPoolConstants::PAGE_4KB_SIZE);
+                numPages++;
+            }
         }
         // Make sure that the file is the right length
         if (numPages < metadata.numPages) {
             memset(compressedBuffer.get(), 0, BufferPoolConstants::PAGE_4KB_SIZE);
-            FileUtils::writeToFile(dataFH->getFileInfo(), compressedBuffer.get(),
-                BufferPoolConstants::PAGE_4KB_SIZE,
-                (startPageIdx + metadata.numPages - 1) * BufferPoolConstants::PAGE_4KB_SIZE);
+
+            if (ring) {
+                FileUtils::writeToFileAsync(dataFH->getFileInfo(), compressedBuffer.get(),
+                    BufferPoolConstants::PAGE_4KB_SIZE,
+                    (startPageIdx + metadata.numPages - 1) * BufferPoolConstants::PAGE_4KB_SIZE,
+                    ring, info);
+            } else {
+                FileUtils::writeToFile(dataFH->getFileInfo(), compressedBuffer.get(),
+                    BufferPoolConstants::PAGE_4KB_SIZE,
+                    (startPageIdx + metadata.numPages - 1) * BufferPoolConstants::PAGE_4KB_SIZE);
+            }
         }
         return ColumnChunkMetadata(
             startPageIdx, metadata.numPages, metadata.numValues, metadata.compMeta);
@@ -350,9 +371,14 @@ ColumnChunkMetadata ColumnChunk::getMetadataToFlush() const {
 ColumnChunkMetadata ColumnChunk::flushBuffer(
     BMFileHandle* dataFH, page_idx_t startPageIdx, const ColumnChunkMetadata& metadata) {
     if (!metadata.compMeta.isConstant()) {
-        return flushBufferFunction(buffer.get(), bufferSize, dataFH, startPageIdx, metadata);
+        return flushBufferFunction(buffer.get(), bufferSize, dataFH, startPageIdx, metadata, nullptr, nullptr);
     }
     return metadata;
+}
+
+ColumnChunkMetadata ColumnChunk::flushBufferAsync(
+    BMFileHandle* dataFH, page_idx_t startPageIdx, const ColumnChunkMetadata& metadata, io_uring* ring, NodeGroupInfo* info) {
+    return flushBufferFunction(buffer.get(), bufferSize, dataFH, startPageIdx, metadata, ring, info);
 }
 
 uint64_t ColumnChunk::getBufferSize() const {

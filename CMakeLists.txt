@@ -4,6 +4,26 @@ project(Kuzu VERSION 0.1.0.1 LANGUAGES CXX C)
 
 find_package(Threads REQUIRED)
 
+# ---------------------------------------------------------------------------
+# Uring
+# ---------------------------------------------------------------------------
+
+find_path(LIBURING_INCLUDE_DIR NAMES liburing.h)
+mark_as_advanced(LIBURING_INCLUDE_DIR)
+
+find_library(LIBURING_LIBRARY NAMES uring)
+mark_as_advanced(LIBURING_LIBRARY)
+
+include(FindPackageHandleStandardArgs)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(
+        LIBURING
+        REQUIRED_VARS LIBURING_LIBRARY LIBURING_INCLUDE_DIR)
+
+if(LIBURING_FOUND)
+    set(LIBURING_LIBRARIES ${LIBURING_LIBRARY})
+    set(LIBURING_INCLUDE_DIRS ${LIBURING_INCLUDE_DIR})
+endif()
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
