@@ -2250,6 +2250,10 @@ public:
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *COMMENT();
     antlr4::tree::TerminalNode *COUNT();
+    antlr4::tree::TerminalNode *NODE();
+    antlr4::tree::TerminalNode *REL();
+    antlr4::tree::TerminalNode *BEGIN();
+    antlr4::tree::TerminalNode *END();
 
    
   };

@@ -722,7 +722,12 @@ oC_SymbolicName
 
 kU_NonReservedKeywords
     : COMMENT
-        | COUNT ;
+        | COUNT
+        | NODE
+        | REL
+        | BEGIN
+        | END
+        ;
 
 UnescapedSymbolicName
     : IdentifierStart ( IdentifierPart )* ;

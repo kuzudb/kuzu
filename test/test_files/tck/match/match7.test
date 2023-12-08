@@ -28,7 +28,6 @@
 
 # OPTIONAL MATCH and bound nodes
 -CASE Scenario3
--SKIP
 -STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
@@ -129,7 +128,6 @@
 
 # Longer pattern with bound nodes without matches
 -CASE Scenario8
--SKIP
 -STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
@@ -153,11 +151,10 @@
            OPTIONAL MATCH (a)-->(b)-->(c)
            RETURN b;
 ---- 1
-{}
+
 
 # Longer pattern with bound nodes
 -CASE Scenario9
--SKIP
 -STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
@@ -250,7 +247,6 @@
 
 # Variable length optional relationships with bound nodes
 -CASE Scenario13
--SKIP
 -STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
@@ -413,7 +409,6 @@
 
 # Variable length optional relationships with bound nodes, no matches
 -CASE Scenario20
--SKIP
 -STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
@@ -437,11 +432,10 @@
            OPTIONAL MATCH p = (a)-[*]->(b)
            RETURN p;
 ---- 1
-{_NODES: [{_ID: 1:0, _LABEL: A, ID: 0, num: 42},{_ID: 2:0, _LABEL: B, ID: 0, num: 46}], _RELS: []}
+{_NODES: [{_ID: 1:0, _LABEL: A, ID: 0, num: 42}], _RELS: []}
 
 # Handling optional matches between nulls
 -CASE Scenario21
--SKIP
 -STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
@@ -471,7 +465,7 @@
            OPTIONAL MATCH (b)-[r:NOR_THIS]->(a)
            RETURN a, b, r;
 ---- 1
-{, _LABEL: NotThere}|{, _LABEL: NotThere}|()-{_LABEL: NOR_THIS}->()
+||
 
 # MATCH after OPTIONAL MATCH
 -CASE Scenario22
@@ -539,7 +533,6 @@
 
 # Optionally matching self-loops without matches
 -CASE Scenario25
--SKIP
 -STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
@@ -564,13 +557,12 @@
            OPTIONAL MATCH (a)-[r]->(a)
            RETURN r;
 ---- 3
-(0:0)-{}->()
-(1:0)-{}->()
-(3:0)-{}->()
+
+
+
 
 # Handling correlated optional matches; first does not match implies second does not match
 -CASE Scenario26
--SKIP
 -STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
@@ -595,11 +587,10 @@
            OPTIONAL MATCH (x)-[r]->(b)
            RETURN x, r;
 ---- 1
-{_ID: 3:0, _LABEL: C, ID: 0}|(3:0)-{}->(2:0)
+{_ID: 3:0, _LABEL: C, ID: 0}|
 
 # Handling optional matches between optionally matched entities
 -CASE Scenario27
--SKIP
 -STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
@@ -630,11 +621,10 @@
            OPTIONAL MATCH (b)-[r:NOR_THIS]->(a)
            RETURN a, b, r;
 ---- 1
-{, _LABEL: NotThere}|{_ID: 2:0, _LABEL: B, ID: 0, num: 46}|(2:0)-{_LABEL: NOR_THIS}->()
+|{_ID: 2:0, _LABEL: B, ID: 0, num: 46}|
 
 # Handling optional matches with inline label predicate
 -CASE Scenario28
--SKIP
 -STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
@@ -660,7 +650,7 @@
            OPTIONAL MATCH (n)-[r]-(m:NonExistent)
            RETURN r;
 ---- 1
-(0:0)-{}->()
+
 
 # Satisfies the open world assumption, relationships between same nodes
 -CASE Scenario29

@@ -30,7 +30,6 @@ A
 
 # Filter node with false node label predicate after OPTIONAL MATCH
 -CASE Scenario2
--SKIP
 -STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
@@ -55,11 +54,10 @@ A
            WHERE LABEL(m) = 'NonExistent'
            RETURN r;
 ---- 1
-(0:0)-{}->()
+
 
 # Filter node with property predicate on multi variables with multiple bindings after OPTIONAL MATCH
 -CASE Scenario3
--SKIP
 -STATEMENT CREATE NODE TABLE Single(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));

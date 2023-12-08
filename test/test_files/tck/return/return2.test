@@ -135,7 +135,6 @@ False
 
 # Projecting a map of nodes and relationships
 -CASE Scenario13
--SKIP
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
