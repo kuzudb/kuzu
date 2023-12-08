@@ -94,9 +94,12 @@ void CopyNode::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*
 }
 
 void CopyNode::executeInternal(ExecutionContext* context) {
-    auto ret = io_uring_queue_init(700, &ring, 0);
+    struct io_uring_params params;
+    memset(&params, 0, sizeof(params));
+    params.flags |= IORING_SETUP_SQPOLL;
+    auto ret = io_uring_queue_init_params(200, &ring, &params);
     if (ret < 0) {
-        throw Exception("Queue init fails.");
+        throw Exception(strerror(-ret));
     }
 
     while (children[0]->getNextTuple(context)) {
@@ -276,7 +279,9 @@ void CopyNode::finalize(ExecutionContext* context) {
         }
 	}
 	returnNum = notAllReturn();
-   }
+    }
+
+    io_uring_queue_exit(&ring);
 }
 
 template<>

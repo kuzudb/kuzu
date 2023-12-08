@@ -8,6 +8,7 @@
 #include "common/string_format.h"
 #include "common/system_message.h"
 #include "glob/glob.hpp"
+#include <liburing/io_uring.h>
 
 #ifdef _WIN32
 #include <fileapi.h>
@@ -49,6 +50,14 @@ uint64_t FileInfo::getFileSize() {
 #endif
 }
 
+static bool hasEnding (std::string const &fullString, std::string const &ending) {
+    if (fullString.length() >= ending.length()) {
+        return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+    } else {
+        return false;
+    }
+}
+
 std::unique_ptr<FileInfo> FileUtils::openFile(
     const std::string& path, int flags, FileLockType lock_type) {
 #if defined(_WIN32)
@@ -82,6 +91,9 @@ std::unique_ptr<FileInfo> FileUtils::openFile(
     }
     return std::make_unique<FileInfo>(path, handle);
 #else
+    if (hasEnding(path, "/data.kz")) {
+    	// flags |= O_DIRECT;
+    }
     int fd = open(path.c_str(), flags, 0644);
     if (fd == -1) {
         throw Exception("Cannot open file: " + path);
@@ -171,14 +183,16 @@ void FileUtils::writeToFileAsync(
         struct io_uring_sqe* sqe;
         sqe = io_uring_get_sqe(ring);
         while (!sqe) {
-            sqe = io_uring_get_sqe(ring);
+            if (ring->flags & IORING_SQ_NEED_WAKEUP) {
+                io_uring_enter(0u, 0u, 0u, IORING_ENTER_SQ_WAKEUP, nullptr);
+                sqe = io_uring_get_sqe(ring);
+            }
         }
         io_uring_sqe_set_data64(sqe, info->idx);
         io_uring_prep_write(sqe, fileInfo->fd, buffer + bufferOffset, numBytesToWrite, offset);
         info->totalReq++;
         info->byteSize += numBytesToWrite;
-
-#endif
+    #endif
         remainingNumBytesToWrite -= numBytesToWrite;
         offset += numBytesToWrite;
         bufferOffset += numBytesToWrite;

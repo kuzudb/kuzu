@@ -1,6 +1,7 @@
 #include "storage/store/node_table_data.h"
 
 #include "common/cast.h"
+#include "common/exception/exception.h"
 #include "storage/local_storage/local_node_table.h"
 #include "storage/local_storage/local_table.h"
 #include "storage/stats/nodes_store_statistics.h"
@@ -117,11 +118,18 @@ void NodeTableData::append(kuzu::storage::NodeGroup* nodeGroup) {
 }
 
 void NodeTableData::appendAsync(kuzu::storage::NodeGroup* nodeGroup, io_uring* ring, NodeGroupInfo* info) {
+    // int fds[1];
+    // fds[0] = columns[0]->dataFH->fileInfo->fd;
+    // int ret = io_uring_register_files(ring, fds, 1);
+    // if (ret) {
+    //	    throw Exception("not registering");
+    // }
+
     for (auto columnID = 0u; columnID < columns.size(); columnID++) {
         auto columnChunk = nodeGroup->getColumnChunk(columnID);
         KU_ASSERT(columnID < columns.size());
         columns[columnID]->appendAsync(columnChunk, nodeGroup->getNodeGroupIdx(), ring, info);
-    	io_uring_submit(ring);
+        io_uring_submit(ring);
     }
 }
 

@@ -61,7 +61,7 @@ protected:
     void constructExistingFileHandle(const std::string& path);
     void constructNewFileHandle(const std::string& path);
 
-protected:
+public:
     uint8_t flags;
     std::unique_ptr<common::FileInfo> fileInfo;
     // Actually allocated/used number of pages in the file.

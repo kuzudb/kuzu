@@ -163,7 +163,7 @@ private:
 
     virtual std::unique_ptr<ColumnChunk> getEmptyChunkForCommit();
 
-protected:
+public:
     DBFileID dbFileID;
     std::unique_ptr<common::LogicalType> dataType;
     // TODO(bmwinger): Remove. Only used by var_list_column_chunk for something which should be
