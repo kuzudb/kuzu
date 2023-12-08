@@ -14,6 +14,15 @@ void NodeRelExpressionEvaluator::evaluate() {
         child->evaluate();
     }
     StructPackFunctions::execFunc(parameters, *resultVector);
+    auto structType = nodeOrRel->getDataType();
+    auto internalIDIdx = StructType::getFieldIdx(&structType, InternalKeyword::ID);
+    auto internalIDVector = StructVector::getFieldVector(resultVector.get(), internalIDIdx);
+    for (auto i = 0u; i < resultVector->state->selVector->selectedSize; ++i) {
+        auto pos = resultVector->state->selVector->selectedPositions[i];
+        if (internalIDVector->isNull(pos)) {
+            resultVector->setNull(pos, true);
+        }
+    }
 }
 
 void NodeRelExpressionEvaluator::resolveResultVector(

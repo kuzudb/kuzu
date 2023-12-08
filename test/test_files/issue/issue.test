@@ -158,3 +158,18 @@ Runtime exception: Found duplicated primary key value rename 2x, which violates 
 -STATEMENT MATCH p = (a:T {id:"t4"})-[e*]->(b:T {id:"t7"}) RETURN COUNT(*);
 ---- 1
 1
+
+-CASE 2558
+-STATEMENT CREATE NODE TABLE T(id STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE R (FROM T TO T);
+---- ok
+-STATEMENT OPTIONAL MATCH (b {id: "non existent id"}) RETURN b is NULL;
+---- 1
+True
+-STATEMENT OPTIONAL MATCH (b{id: "non existent id"}) RETURN CASE WHEN b is NULL THEN "foo" ELSE "bar" END;
+---- 1
+foo
+-STATEMENT OPTIONAL MATCH (b {id: "non existent id"})-[r]->(c) RETURN b is NULL, r is NULL, c is NULL;
+---- 1
+True|True|True
