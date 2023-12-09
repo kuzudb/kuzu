@@ -150,11 +150,15 @@ void RelTable::addColumn(
     relsStats->setPropertyStatisticsForTable(tableID, property.getPropertyID(),
         PropertyStatistics{!defaultValueVector->hasNoNullsGuarantee()});
     relsStats->addMetadataDAHInfo(tableID, *property.getDataType());
-    fwdRelTableData->addColumn(transaction, fwdRelTableData->getAdjColumn()->getMetadataDA(),
+    fwdRelTableData->addColumn(transaction,
+        RelDataDirectionUtils::relDirectionToString(RelDataDirection::FWD),
+        fwdRelTableData->getAdjColumn()->getMetadataDA(),
         *relsStats->getPropertyMetadataDAHInfo(
             transaction, tableID, fwdRelTableData->getNumColumns(), RelDataDirection::FWD),
         property, defaultValueVector, relsStats);
-    bwdRelTableData->addColumn(transaction, bwdRelTableData->getAdjColumn()->getMetadataDA(),
+    bwdRelTableData->addColumn(transaction,
+        RelDataDirectionUtils::relDirectionToString(RelDataDirection::BWD),
+        bwdRelTableData->getAdjColumn()->getMetadataDA(),
         *relsStats->getPropertyMetadataDAHInfo(
             transaction, tableID, bwdRelTableData->getNumColumns(), RelDataDirection::BWD),
         property, defaultValueVector, relsStats);
@@ -164,10 +168,10 @@ void RelTable::addColumn(
 }
 
 void RelTable::resizeColumns(
-    Transaction* /*transaction*/, RelDataDirection direction, node_group_idx_t nodeGroupIdx) {
+    Transaction* /*transaction*/, RelDataDirection direction, node_group_idx_t numNodeGroups) {
     auto tableData = getDirectedTableData(direction);
     if (tableData->getDataFormat() == ColumnDataFormat::REGULAR) {
-        tableData->resizeColumns(nodeGroupIdx);
+        tableData->resizeColumns(numNodeGroups);
         wal->addToUpdatedTables(tableID);
     }
 }

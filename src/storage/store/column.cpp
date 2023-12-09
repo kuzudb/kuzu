@@ -127,10 +127,10 @@ public:
     // without the possibility of memory errors from reading/writing off the end of a page.
     static_assert(PageUtils::getNumElementsInAPage(1, false /*requireNullColumn*/) % 8 == 0);
 
-    NullColumn(page_idx_t metaDAHPageIdx, BMFileHandle* dataFH, BMFileHandle* metadataFH,
-        BufferManager* bufferManager, WAL* wal, Transaction* transaction,
+    NullColumn(std::string name, page_idx_t metaDAHPageIdx, BMFileHandle* dataFH,
+        BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal, Transaction* transaction,
         RWPropertyStats propertyStatistics, bool enableCompression)
-        : Column{LogicalType::BOOL(), MetadataDAHInfo{metaDAHPageIdx}, dataFH, metadataFH,
+        : Column{name, LogicalType::BOOL(), MetadataDAHInfo{metaDAHPageIdx}, dataFH, metadataFH,
               bufferManager, wal, transaction, propertyStatistics, enableCompression,
               false /*requireNullColumn*/} {
         readToVectorFunc = NullColumnFunc::readValuesFromPageToVector;
@@ -287,9 +287,9 @@ private:
 
 class SerialColumn final : public Column {
 public:
-    SerialColumn(const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
+    SerialColumn(std::string name, const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
         BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal, Transaction* transaction)
-        : Column{LogicalType::SERIAL(), metaDAHeaderInfo, dataFH, metadataFH,
+        : Column{name, LogicalType::SERIAL(), metaDAHeaderInfo, dataFH, metadataFH,
               // Serials can't be null, so they don't need PropertyStatistics
               bufferManager, wal, transaction, RWPropertyStats::empty(),
               false /* enableCompression */, false /*requireNullColumn*/} {}
@@ -320,11 +320,11 @@ public:
     }
 };
 
-InternalIDColumn::InternalIDColumn(const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
-    BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
+InternalIDColumn::InternalIDColumn(std::string name, const MetadataDAHInfo& metaDAHeaderInfo,
+    BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
     transaction::Transaction* transaction, RWPropertyStats stats)
-    : Column{LogicalType::INTERNAL_ID(), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
-          transaction, stats, false /* enableCompression */},
+    : Column{name, LogicalType::INTERNAL_ID(), metaDAHeaderInfo, dataFH, metadataFH, bufferManager,
+          wal, transaction, stats, false /* enableCompression */},
       commonTableID{INVALID_TABLE_ID} {}
 
 void InternalIDColumn::populateCommonTableID(ValueVector* resultVector) const {
@@ -335,12 +335,12 @@ void InternalIDColumn::populateCommonTableID(ValueVector* resultVector) const {
     }
 }
 
-Column::Column(std::unique_ptr<LogicalType> dataType, const MetadataDAHInfo& metaDAHeaderInfo,
-    BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-    transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
-    bool enableCompression, bool requireNullColumn)
-    : dbFileID{DBFileID::newDataFileID()}, dataType{std::move(dataType)}, dataFH{dataFH},
-      metadataFH{metadataFH}, bufferManager{bufferManager}, wal{wal},
+Column::Column(std::string name, std::unique_ptr<LogicalType> dataType,
+    const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
+    BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
+    RWPropertyStats propertyStatistics, bool enableCompression, bool requireNullColumn)
+    : name{std::move(name)}, dbFileID{DBFileID::newDataFileID()}, dataType{std::move(dataType)},
+      dataFH{dataFH}, metadataFH{metadataFH}, bufferManager{bufferManager}, wal{wal},
       propertyStatistics{propertyStatistics}, enableCompression{enableCompression} {
     metadataDA = std::make_unique<InMemDiskArray<ColumnChunkMetadata>>(*metadataFH,
         DBFileID::newMetadataFileID(), metaDAHeaderInfo.dataDAHPageIdx, bufferManager, wal,
@@ -353,8 +353,11 @@ Column::Column(std::unique_ptr<LogicalType> dataType, const MetadataDAHInfo& met
     writeFunc = getWriteValuesFunc(*this->dataType);
     KU_ASSERT(numBytesPerFixedSizedValue <= BufferPoolConstants::PAGE_4KB_SIZE);
     if (requireNullColumn) {
-        nullColumn = std::make_unique<NullColumn>(metaDAHeaderInfo.nullDAHPageIdx, dataFH,
-            metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
+        auto columnName =
+            StorageUtils::getColumnName(this->name, StorageUtils::ColumnType::NULL_MASK, "");
+        nullColumn =
+            std::make_unique<NullColumn>(columnName, metaDAHeaderInfo.nullDAHPageIdx, dataFH,
+                metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
     }
 }
 
@@ -884,10 +887,11 @@ PageElementCursor Column::getPageCursorForOffset(
     return getPageCursorForOffsetInGroup(offsetInChunk, state);
 }
 
-std::unique_ptr<Column> ColumnFactory::createColumn(std::unique_ptr<LogicalType> dataType,
-    const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
-    BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
-    RWPropertyStats propertyStatistics, bool enableCompression) {
+std::unique_ptr<Column> ColumnFactory::createColumn(std::string name,
+    std::unique_ptr<LogicalType> dataType, const MetadataDAHInfo& metaDAHeaderInfo,
+    BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
+    transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
+    bool enableCompression) {
     switch (dataType->getLogicalTypeID()) {
     case LogicalTypeID::BOOL:
     case LogicalTypeID::INT64:
@@ -909,32 +913,32 @@ std::unique_ptr<Column> ColumnFactory::createColumn(std::unique_ptr<LogicalType>
     case LogicalTypeID::TIMESTAMP_TZ:
     case LogicalTypeID::INTERVAL:
     case LogicalTypeID::FIXED_LIST: {
-        return std::make_unique<Column>(std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH,
-            bufferManager, wal, transaction, propertyStatistics, enableCompression);
+        return std::make_unique<Column>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
+            metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
     }
     case LogicalTypeID::INTERNAL_ID: {
-        return std::make_unique<InternalIDColumn>(metaDAHeaderInfo, dataFH, metadataFH,
+        return std::make_unique<InternalIDColumn>(name, metaDAHeaderInfo, dataFH, metadataFH,
             bufferManager, wal, transaction, propertyStatistics);
     }
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING: {
-        return std::make_unique<StringColumn>(std::move(dataType), metaDAHeaderInfo, dataFH,
+        return std::make_unique<StringColumn>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
             metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
     }
     case LogicalTypeID::MAP:
     case LogicalTypeID::VAR_LIST: {
-        return std::make_unique<VarListColumn>(std::move(dataType), metaDAHeaderInfo, dataFH,
+        return std::make_unique<VarListColumn>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
             metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
     }
     case LogicalTypeID::UNION:
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::RDF_VARIANT: {
-        return std::make_unique<StructColumn>(std::move(dataType), metaDAHeaderInfo, dataFH,
+        return std::make_unique<StructColumn>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
             metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
     }
     case LogicalTypeID::SERIAL: {
         return std::make_unique<SerialColumn>(
-            metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal, transaction);
+            name, metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal, transaction);
     }
     default: {
         KU_UNREACHABLE;

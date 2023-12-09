@@ -242,6 +242,27 @@ std::optional<CompressionMetadata> ConstantCompression::analyze(const ColumnChun
     }
 }
 
+std::string CompressionMetadata::toString() const {
+    switch (compression) {
+    case CompressionType::UNCOMPRESSED: {
+        return "UNCOMPRESSED";
+    }
+    case CompressionType::INTEGER_BITPACKING: {
+        auto header = BitpackHeader::readHeader(data);
+        return "INTEGER_BITPACKING[" + std::to_string(header.bitWidth) + "]";
+    }
+    case CompressionType::BOOLEAN_BITPACKING: {
+        return "BOOLEAN_BITPACKING";
+    }
+    case CompressionType::CONSTANT: {
+        return "CONSTANT";
+    }
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
+}
+
 void ConstantCompression::decompressFromPage(const uint8_t* /*srcBuffer*/, uint64_t /*srcOffset*/,
     uint8_t* dstBuffer, uint64_t dstOffset, uint64_t numValues,
     const CompressionMetadata& metadata) const {

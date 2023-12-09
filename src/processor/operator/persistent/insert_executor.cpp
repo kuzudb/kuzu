@@ -71,12 +71,12 @@ void NodeInsertExecutor::insert(transaction::Transaction* transaction) {
             writeLhsVector(lhsVector, rhsVector);
         }
     }
-    auto nodeGroupIdx = storage::StorageUtils::getNodeGroupIdx(maxNodeOffset);
+    auto numNodeGroups = storage::StorageUtils::getNodeGroupIdx(maxNodeOffset) + 1;
     for (auto relTable : fwdRelTablesToInit) {
-        relTable->resizeColumns(transaction, RelDataDirection::FWD, nodeGroupIdx);
+        relTable->resizeColumns(transaction, RelDataDirection::FWD, numNodeGroups);
     }
     for (auto relTable : bwdRelTabkesToInit) {
-        relTable->resizeColumns(transaction, RelDataDirection::BWD, nodeGroupIdx);
+        relTable->resizeColumns(transaction, RelDataDirection::BWD, numNodeGroups);
     }
 }
 

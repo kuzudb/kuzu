@@ -15,6 +15,11 @@ public:
     void append(std::unique_ptr<DataChunk> chunk);
     std::vector<common::DataChunk*> getChunks() const;
 
+    inline uint64_t getNumChunks() const { return chunks.size(); }
+    inline DataChunk* getChunk(uint64_t idx) const {
+        KU_ASSERT(idx < chunks.size());
+        return chunks[idx].get();
+    }
     inline void merge(DataChunkCollection* other) {
         for (auto& chunk : other->chunks) {
             append(std::move(chunk));

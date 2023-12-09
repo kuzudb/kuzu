@@ -86,22 +86,30 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
         auto csrOffsetMetadataDAHInfo = relsStoreStats->getCSROffsetMetadataDAHInfo(
             &DUMMY_WRITE_TRANSACTION, tableID, direction);
         // No NULL values is allowed for the csr offset column.
-        csrOffsetColumn = std::make_unique<Column>(LogicalType::INT64(), *csrOffsetMetadataDAHInfo,
-            dataFH, metadataFH, bufferManager, wal, &DUMMY_READ_TRANSACTION,
-            RWPropertyStats::empty(), enableCompression, false /* requireNUllColumn */);
+        auto columnName = StorageUtils::getColumnName("", StorageUtils::ColumnType::CSR_OFFSET,
+            RelDataDirectionUtils::relDirectionToString(direction));
+        csrOffsetColumn =
+            std::make_unique<Column>(columnName, LogicalType::INT64(), *csrOffsetMetadataDAHInfo,
+                dataFH, metadataFH, bufferManager, wal, &DUMMY_READ_TRANSACTION,
+                RWPropertyStats::empty(), enableCompression, false /* requireNUllColumn */);
     }
     auto adjMetadataDAHInfo =
         relsStoreStats->getAdjMetadataDAHInfo(&DUMMY_WRITE_TRANSACTION, tableID, direction);
-    adjColumn = ColumnFactory::createColumn(LogicalType::INTERNAL_ID(), *adjMetadataDAHInfo, dataFH,
-        metadataFH, bufferManager, wal, &DUMMY_READ_TRANSACTION, RWPropertyStats::empty(),
-        enableCompression);
+    auto adjColName = StorageUtils::getColumnName(
+        "", StorageUtils::ColumnType::ADJ, RelDataDirectionUtils::relDirectionToString(direction));
+    adjColumn = ColumnFactory::createColumn(adjColName, LogicalType::INTERNAL_ID(),
+        *adjMetadataDAHInfo, dataFH, metadataFH, bufferManager, wal, &DUMMY_READ_TRANSACTION,
+        RWPropertyStats::empty(), enableCompression);
     auto properties = tableSchema->getProperties();
     columns.reserve(properties.size());
     for (auto i = 0u; i < properties.size(); i++) {
-        auto property = tableSchema->getProperties()[i];
+        auto property = properties[i];
         auto metadataDAHInfo = relsStoreStats->getPropertyMetadataDAHInfo(
             &DUMMY_WRITE_TRANSACTION, tableID, i, direction);
-        columns.push_back(ColumnFactory::createColumn(properties[i]->getDataType()->copy(),
+        auto colName =
+            StorageUtils::getColumnName(property->getName(), StorageUtils::ColumnType::DEFAULT,
+                RelDataDirectionUtils::relDirectionToString(direction));
+        columns.push_back(ColumnFactory::createColumn(colName, property->getDataType()->copy(),
             *metadataDAHInfo, dataFH, metadataFH, bufferManager, wal, &DUMMY_READ_TRANSACTION,
             RWPropertyStats(relsStoreStats, tableID, property->getPropertyID()),
             enableCompression));
@@ -324,14 +332,14 @@ void RelTableData::append(NodeGroup* nodeGroup) {
     }
 }
 
-void RelTableData::resizeColumns(node_group_idx_t nodeGroupIdx) {
+void RelTableData::resizeColumns(node_group_idx_t numNodeGroups) {
     if (dataFormat == ColumnDataFormat::CSR) {
         // TODO(Guodong): This is a special logic for regular columns only, and should be organized
         // in a better way.
         return;
     }
     auto currentNumNodeGroups = adjColumn->getNumNodeGroups(&DUMMY_WRITE_TRANSACTION);
-    if (nodeGroupIdx < currentNumNodeGroups) {
+    if (numNodeGroups < currentNumNodeGroups) {
         return;
     }
     std::vector<std::unique_ptr<LogicalType>> columnTypes;
@@ -344,8 +352,8 @@ void RelTableData::resizeColumns(node_group_idx_t nodeGroupIdx) {
         columnTypes, enableCompression, StorageConstants::NODE_GROUP_SIZE);
     nodeGroup->setAllNull();
     nodeGroup->setNumValues(0);
-    for (auto i = currentNumNodeGroups; i <= nodeGroupIdx; i++) {
-        nodeGroup->finalize(i);
+    for (auto nodeGroupIdx = currentNumNodeGroups; nodeGroupIdx < numNodeGroups; nodeGroupIdx++) {
+        nodeGroup->finalize(nodeGroupIdx);
         append(nodeGroup.get());
     }
 }

@@ -10,17 +10,19 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-StructColumn::StructColumn(std::unique_ptr<LogicalType> dataType,
+StructColumn::StructColumn(std::string name, std::unique_ptr<LogicalType> dataType,
     const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
     BufferManager* bufferManager, WAL* wal, Transaction* transaction,
     RWPropertyStats propertyStatistics, bool enableCompression)
-    : Column{std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
+    : Column{name, std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
           transaction, propertyStatistics, enableCompression, true /* requireNullColumn */} {
     auto fieldTypes = StructType::getFieldTypes(this->dataType.get());
     KU_ASSERT(metaDAHeaderInfo.childrenInfos.size() == fieldTypes.size());
     childColumns.resize(fieldTypes.size());
     for (auto i = 0u; i < fieldTypes.size(); i++) {
-        childColumns[i] = ColumnFactory::createColumn(fieldTypes[i]->copy(),
+        auto childColName = StorageUtils::getColumnName(
+            name, StorageUtils::ColumnType::STRUCT_CHILD, std::to_string(i));
+        childColumns[i] = ColumnFactory::createColumn(childColName, fieldTypes[i]->copy(),
             *metaDAHeaderInfo.childrenInfos[i], dataFH, metadataFH, bufferManager, wal, transaction,
             propertyStatistics, enableCompression);
     }

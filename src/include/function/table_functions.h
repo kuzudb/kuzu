@@ -13,6 +13,9 @@ class ValueVector;
 namespace main {
 class ClientContext;
 }
+namespace storage {
+class StorageManager;
+}
 
 namespace function {
 
@@ -46,13 +49,14 @@ struct TableFunctionInitInput {
     virtual ~TableFunctionInitInput() = default;
 };
 
-typedef std::unique_ptr<TableFuncBindData> (*table_func_bind_t)(
-    main::ClientContext* /*context*/, TableFuncBindInput* /*input*/, catalog::Catalog* /*catalog*/);
+typedef std::unique_ptr<TableFuncBindData> (*table_func_bind_t)(main::ClientContext* /*context*/,
+    TableFuncBindInput* /*input*/, catalog::Catalog* /*catalog*/,
+    storage::StorageManager* /*storageManager*/);
 typedef void (*table_func_t)(TableFunctionInput& data, common::DataChunk& output);
 typedef std::unique_ptr<TableFuncSharedState> (*table_func_init_shared_t)(
     TableFunctionInitInput& input);
 typedef std::unique_ptr<TableFuncLocalState> (*table_func_init_local_t)(
-    TableFunctionInitInput& input, TableFuncSharedState* state);
+    TableFunctionInitInput& input, TableFuncSharedState* state, storage::MemoryManager* mm);
 typedef bool (*table_func_can_parallel_t)();
 
 struct TableFunction : public Function {

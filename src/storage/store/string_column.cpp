@@ -10,16 +10,18 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-StringColumn::StringColumn(std::unique_ptr<LogicalType> dataType,
+StringColumn::StringColumn(std::string name, std::unique_ptr<LogicalType> dataType,
     const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
     BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
     RWPropertyStats stats, bool enableCompression)
-    : Column{std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
+    : Column{name, std::move(dataType), metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal,
           transaction, stats, enableCompression, true /* requireNullColumn */} {
-    dataColumn = std::make_unique<Column>(LogicalType::UINT8(), *metaDAHeaderInfo.childrenInfos[0],
-        dataFH, metadataFH, bufferManager, wal, transaction, stats, false /*enableCompression*/,
-        false /*requireNullColumn*/);
-    offsetColumn = std::make_unique<Column>(LogicalType::UINT64(),
+    auto dataColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::DATA, "");
+    dataColumn = std::make_unique<Column>(dataColName, LogicalType::UINT8(),
+        *metaDAHeaderInfo.childrenInfos[0], dataFH, metadataFH, bufferManager, wal, transaction,
+        stats, false /*enableCompression*/, false /*requireNullColumn*/);
+    auto offsetColName = StorageUtils::getColumnName(name, StorageUtils::ColumnType::OFFSET, "");
+    offsetColumn = std::make_unique<Column>(offsetColName, LogicalType::UINT64(),
         *metaDAHeaderInfo.childrenInfos[1], dataFH, metadataFH, bufferManager, wal, transaction,
         stats, enableCompression, false /*requireNullColumn*/);
 }

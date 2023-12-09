@@ -16,7 +16,7 @@ class NodeTableSchema;
 }
 namespace storage {
 
-class NodeTable : public Table {
+class NodeTable final : public Table {
 public:
     NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH,
         catalog::NodeTableSchema* nodeTableSchema,
@@ -45,7 +45,7 @@ public:
     }
     void read(transaction::Transaction* transaction, TableReadState& readState,
         common::ValueVector* nodeIDVector,
-        const std::vector<common::ValueVector*>& outputVectors) final;
+        const std::vector<common::ValueVector*>& outputVectors) override;
 
     // Return the max node offset during insertions.
     common::offset_t insert(transaction::Transaction* transaction,
@@ -69,13 +69,15 @@ public:
     }
 
     void addColumn(transaction::Transaction* transaction, const catalog::Property& property,
-        common::ValueVector* defaultValueVector) final;
-    inline void dropColumn(common::column_id_t columnID) final { tableData->dropColumn(columnID); }
+        common::ValueVector* defaultValueVector) override;
+    inline void dropColumn(common::column_id_t columnID) override {
+        tableData->dropColumn(columnID);
+    }
 
-    void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) final;
-    void prepareRollback(LocalTableData* localTable) final;
-    void checkpointInMemory() final;
-    void rollbackInMemory() final;
+    void prepareCommit(transaction::Transaction* transaction, LocalTable* localTable) override;
+    void prepareRollback(LocalTableData* localTable) override;
+    void checkpointInMemory() override;
+    void rollbackInMemory() override;
 
 private:
     void updatePK(transaction::Transaction* transaction, common::column_id_t columnID,

@@ -104,7 +104,7 @@ void NodeTable::addColumn(transaction::Transaction* transaction, const catalog::
     nodesStats->setPropertyStatisticsForTable(tableID, property.getPropertyID(),
         PropertyStatistics(!defaultValueVector->hasNoNullsGuarantee()));
     nodesStats->addMetadataDAHInfo(tableID, *property.getDataType());
-    tableData->addColumn(transaction, tableData->getColumn(pkColumnID)->getMetadataDA(),
+    tableData->addColumn(transaction, "", tableData->getColumn(pkColumnID)->getMetadataDA(),
         *nodesStats->getMetadataDAHInfo(transaction, tableID, tableData->getNumColumns()), property,
         defaultValueVector, nodesStats);
     // TODO(Guodong): addColumn is not going through localStorage design for now. So it needs to add

@@ -40,10 +40,10 @@ class Column {
     };
 
 public:
-    Column(std::unique_ptr<common::LogicalType> dataType, const MetadataDAHInfo& metaDAHeaderInfo,
-        BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
-        bool enableCompression, bool requireNullColumn = true);
+    Column(std::string name, std::unique_ptr<common::LogicalType> dataType,
+        const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
+        BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
+        RWPropertyStats propertyStatistics, bool enableCompression, bool requireNullColumn = true);
     virtual ~Column() = default;
 
     // Expose for feature store
@@ -72,6 +72,8 @@ public:
         return metadataDA->getNumElements(transaction->getType());
     }
 
+    inline Column* getNullColumn() { return nullColumn.get(); }
+
     virtual void prepareCommitForChunk(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, LocalVectorCollection* localColumnChunk,
         const offset_to_row_idx_t& insertInfo, const offset_to_row_idx_t& updateInfo,
@@ -88,6 +90,8 @@ public:
         return metadataDA->get(nodeGroupIdx, transaction);
     }
     inline InMemDiskArray<ColumnChunkMetadata>* getMetadataDA() const { return metadataDA.get(); }
+
+    inline std::string getName() const { return name; }
 
     virtual void scan(transaction::Transaction* transaction, const ReadState& state,
         common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup, uint8_t* result);
@@ -163,6 +167,7 @@ private:
     virtual std::unique_ptr<ColumnChunk> getEmptyChunkForCommit();
 
 protected:
+    std::string name;
     DBFileID dbFileID;
     std::unique_ptr<common::LogicalType> dataType;
     // TODO(bmwinger): Remove. Only used by var_list_column_chunk for something which should be
@@ -185,8 +190,8 @@ protected:
 
 class InternalIDColumn : public Column {
 public:
-    InternalIDColumn(const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
-        BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
+    InternalIDColumn(std::string name, const MetadataDAHInfo& metaDAHeaderInfo,
+        BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
         transaction::Transaction* transaction, RWPropertyStats stats);
 
     inline void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
@@ -220,10 +225,11 @@ private:
 };
 
 struct ColumnFactory {
-    static std::unique_ptr<Column> createColumn(std::unique_ptr<common::LogicalType> dataType,
-        const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
-        BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
-        RWPropertyStats propertyStatistics, bool enableCompression);
+    static std::unique_ptr<Column> createColumn(std::string name,
+        std::unique_ptr<common::LogicalType> dataType, const MetadataDAHInfo& metaDAHeaderInfo,
+        BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
+        transaction::Transaction* transaction, RWPropertyStats propertyStatistics,
+        bool enableCompression);
 };
 
 } // namespace storage

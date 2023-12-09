@@ -30,15 +30,18 @@ public:
     inline NodeTable* getNodeTable(common::table_id_t tableID) const {
         KU_ASSERT(tables.contains(tableID) &&
                   tables.at(tableID)->getTableType() == common::TableType::NODE);
-        return common::ku_dynamic_cast<Table*, NodeTable*>(tables.at(tableID).get());
+        auto table = common::ku_dynamic_cast<Table*, NodeTable*>(tables.at(tableID).get());
+        KU_ASSERT(table);
+        return table;
     }
     inline RelTable* getRelTable(common::table_id_t tableID) const {
         KU_ASSERT(tables.contains(tableID) &&
                   tables.at(tableID)->getTableType() == common::TableType::REL);
-        return common::ku_dynamic_cast<Table*, RelTable*>(tables.at(tableID).get());
+        auto table = common::ku_dynamic_cast<Table*, RelTable*>(tables.at(tableID).get());
+        KU_ASSERT(table);
+        return table;
     }
 
-    inline std::string getDirectory() const { return wal->getDirectory(); }
     inline WAL* getWAL() const { return wal; }
     inline BMFileHandle* getDataFH() const { return dataFH.get(); }
     inline BMFileHandle* getMetadataFH() const { return metadataFH.get(); }

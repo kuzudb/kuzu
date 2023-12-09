@@ -37,6 +37,11 @@ public:
 
     void prepareLocalTableToCommit(
         transaction::Transaction* transaction, LocalTableData* localTable) override;
+
+    inline common::node_group_idx_t getNumNodeGroups(
+        transaction::Transaction* transaction) const override {
+        return columns[0]->getNumNodeGroups(transaction);
+    }
 };
 
 } // namespace storage

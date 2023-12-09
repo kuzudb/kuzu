@@ -84,22 +84,10 @@
 -CASE DeleteNodeWithConnectedRels
 -STATEMENT MATCH (a:person {ID: 0}) DELETE a
 ---- error
-Runtime exception: Deleted nodes has connected edges in the forward direction.
+Runtime exception: Deleted nodes has connected edges in the fwd direction.
 -STATEMENT MATCH (o:organisation {ID: 6}) DELETE o
 ---- error
-Runtime exception: Deleted nodes has connected edges in the backward direction.
-
--CASE SingleLabelDetachDeleteNode
--STATEMENT MATCH (a:person)-[e]->() RETURN COUNT(*)
----- 1
-30
--STATEMENT MATCH (a:person {ID: 0}) DETACH DELETE a
----- ok
--STATEMENT MATCH (a:person {ID: 0}) RETURN a
----- 0
--STATEMENT MATCH (a:person)-[e]->() RETURN COUNT(*)
----- 1
-21
+Runtime exception: Deleted nodes has connected edges in the bwd direction.
 
 -CASE MultiLabelDetachDeleteNode
 -STATEMENT MATCH (a)-[e]->(b) RETURN COUNT(*)

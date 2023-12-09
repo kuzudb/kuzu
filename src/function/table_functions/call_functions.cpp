@@ -6,18 +6,23 @@
 #include "catalog/rel_table_schema.h"
 #include "common/exception/binder.h"
 #include "main/client_context.h"
+#include "storage/storage_manager.h"
+#include "storage/store/string_column.h"
+#include "storage/store/struct_column.h"
+#include "storage/store/var_list_column.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::transaction;
 using namespace kuzu::common;
 using namespace kuzu::catalog;
 using namespace kuzu::main;
+using namespace kuzu::storage;
 
 namespace kuzu {
 namespace function {
 
 std::unique_ptr<TableFuncLocalState> initLocalState(
-    TableFunctionInitInput& /*input*/, TableFuncSharedState* /*state*/) {
+    TableFunctionInitInput& /*input*/, TableFuncSharedState* /*state*/, MemoryManager* /*mm*/) {
     return std::make_unique<TableFuncLocalState>();
 }
 
@@ -59,8 +64,8 @@ void CurrentSettingFunction::tableFunc(TableFunctionInput& data, DataChunk& outp
     output.state->selVector->selectedSize = 1;
 }
 
-std::unique_ptr<TableFuncBindData> CurrentSettingFunction::bindFunc(
-    ClientContext* context, TableFuncBindInput* input, Catalog* /*catalog*/) {
+std::unique_ptr<TableFuncBindData> CurrentSettingFunction::bindFunc(ClientContext* context,
+    TableFuncBindInput* input, Catalog* /*catalog*/, StorageManager* /*storageManager*/) {
     auto optionName = input->inputs[0]->getValue<std::string>();
     std::vector<std::string> returnColumnNames;
     std::vector<std::unique_ptr<LogicalType>> returnTypes;
@@ -90,8 +95,8 @@ void DBVersionFunction::tableFunc(TableFunctionInput& input, DataChunk& outputCh
     outputChunk.state->selVector->selectedSize = 1;
 }
 
-std::unique_ptr<TableFuncBindData> DBVersionFunction::bindFunc(
-    ClientContext* /*context*/, TableFuncBindInput* /*input*/, Catalog* /*catalog*/) {
+std::unique_ptr<TableFuncBindData> DBVersionFunction::bindFunc(ClientContext* /*context*/,
+    TableFuncBindInput* /*input*/, Catalog* /*catalog*/, StorageManager* /*storageManager*/) {
     std::vector<std::string> returnColumnNames;
     std::vector<std::unique_ptr<LogicalType>> returnTypes;
     returnColumnNames.emplace_back("version");
@@ -126,8 +131,8 @@ void ShowTablesFunction::tableFunc(TableFunctionInput& input, DataChunk& outputC
     outputChunk.state->selVector->selectedSize = numTablesToOutput;
 }
 
-std::unique_ptr<TableFuncBindData> ShowTablesFunction::bindFunc(
-    ClientContext* context, TableFuncBindInput* /*input*/, Catalog* catalog) {
+std::unique_ptr<TableFuncBindData> ShowTablesFunction::bindFunc(ClientContext* context,
+    TableFuncBindInput* /*input*/, Catalog* catalog, StorageManager* /*storageManager*/) {
     std::vector<std::string> returnColumnNames;
     std::vector<std::unique_ptr<LogicalType>> returnTypes;
     returnColumnNames.emplace_back("name");
@@ -178,8 +183,8 @@ void TableInfoFunction::tableFunc(TableFunctionInput& input, DataChunk& outputCh
     outputChunk.state->selVector->selectedSize = outVectorPos;
 }
 
-std::unique_ptr<TableFuncBindData> TableInfoFunction::bindFunc(
-    ClientContext* context, TableFuncBindInput* input, Catalog* catalog) {
+std::unique_ptr<TableFuncBindData> TableInfoFunction::bindFunc(ClientContext* context,
+    TableFuncBindInput* input, Catalog* catalog, StorageManager* /*storageManager*/) {
     std::vector<std::string> returnColumnNames;
     std::vector<std::unique_ptr<LogicalType>> returnTypes;
     auto tableName = input->inputs[0]->getValue<std::string>();
@@ -251,8 +256,8 @@ void ShowConnectionFunction::tableFunc(TableFunctionInput& input, DataChunk& out
     outputChunk.state->selVector->selectedSize = vectorPos;
 }
 
-std::unique_ptr<TableFuncBindData> ShowConnectionFunction::bindFunc(
-    ClientContext* context, TableFuncBindInput* input, Catalog* catalog) {
+std::unique_ptr<TableFuncBindData> ShowConnectionFunction::bindFunc(ClientContext* context,
+    TableFuncBindInput* input, Catalog* catalog, StorageManager* /*storageManager*/) {
     std::vector<std::string> returnColumnNames;
     std::vector<std::unique_ptr<LogicalType>> returnTypes;
     auto tableName = input->inputs[0]->getValue<std::string>();
@@ -271,6 +276,183 @@ std::unique_ptr<TableFuncBindData> ShowConnectionFunction::bindFunc(
         schema->tableType == TableType::REL ?
             1 :
             reinterpret_cast<RelTableGroupSchema*>(schema)->getRelTableIDs().size());
+}
+
+std::unique_ptr<TableFuncBindData> StorageInfoFunction::bindFunc(ClientContext* context,
+    TableFuncBindInput* input, Catalog* catalog, StorageManager* storageManager) {
+    std::vector<std::string> columnNames = {"node_group_id", "column_name", "data_type",
+        "table_type", "start_page_idx", "num_pages", "num_values", "compression"};
+    std::vector<std::unique_ptr<LogicalType>> columnTypes;
+    columnTypes.emplace_back(LogicalType::INT64());
+    columnTypes.emplace_back(LogicalType::STRING());
+    columnTypes.emplace_back(LogicalType::STRING());
+    columnTypes.emplace_back(LogicalType::STRING());
+    columnTypes.emplace_back(LogicalType::INT64());
+    columnTypes.emplace_back(LogicalType::INT64());
+    columnTypes.emplace_back(LogicalType::INT64());
+    columnTypes.emplace_back(LogicalType::STRING());
+    auto tableName = input->inputs[0]->getValue<std::string>();
+    if (!catalog->containsTable(context->getTx(), tableName)) {
+        throw BinderException{"Table " + tableName + " does not exist!"};
+    }
+    auto tableID = catalog->getTableID(context->getTx(), tableName);
+    auto schema = catalog->getTableSchema(context->getTx(), tableID);
+    auto table = schema->tableType == TableType::NODE ?
+                     reinterpret_cast<Table*>(storageManager->getNodeTable(tableID)) :
+                     reinterpret_cast<Table*>(storageManager->getRelTable(tableID));
+    return std::make_unique<StorageInfoBindData>(
+        schema, std::move(columnTypes), std::move(columnNames), table);
+}
+
+StorageInfoSharedState::StorageInfoSharedState(Table* table, offset_t maxOffset)
+    : CallFuncSharedState{maxOffset} {
+    collectColumns(table);
+}
+
+void StorageInfoSharedState::collectColumns(Table* table) {
+    switch (table->getTableType()) {
+    case TableType::NODE: {
+        auto nodeTable = ku_dynamic_cast<Table*, NodeTable*>(table);
+        for (auto columnID = 0u; columnID < nodeTable->getNumColumns(); columnID++) {
+            auto collectedColumns = collectColumns(nodeTable->getColumn(columnID));
+            columns.insert(columns.end(), collectedColumns.begin(), collectedColumns.end());
+        }
+    } break;
+    case TableType::REL: {
+        auto relTable = ku_dynamic_cast<Table*, RelTable*>(table);
+        columns.push_back(relTable->getAdjColumn(RelDataDirection::FWD));
+        columns.push_back(relTable->getAdjColumn(RelDataDirection::BWD));
+        for (auto columnID = 0u; columnID < relTable->getNumColumns(); columnID++) {
+            auto column = relTable->getColumn(columnID, RelDataDirection::FWD);
+            auto collectedColumns = collectColumns(column);
+            columns.insert(columns.end(), collectedColumns.begin(), collectedColumns.end());
+            column = relTable->getColumn(columnID, RelDataDirection::BWD);
+            collectedColumns = collectColumns(column);
+            columns.insert(columns.end(), collectedColumns.begin(), collectedColumns.end());
+        }
+    } break;
+    default: {
+        KU_UNREACHABLE;
+    }
+    }
+}
+
+std::vector<Column*> StorageInfoSharedState::collectColumns(Column* column) {
+    std::vector<Column*> result;
+    result.push_back(column);
+    result.push_back(column->getNullColumn());
+    switch (column->getDataType()->getPhysicalType()) {
+    case PhysicalTypeID::STRUCT: {
+        auto structColumn = ku_dynamic_cast<Column*, StructColumn*>(column);
+        auto numChildren = StructType::getNumFields(structColumn->getDataType());
+        for (auto i = 0u; i < numChildren; i++) {
+            auto childColumn = structColumn->getChild(i);
+            auto subColumns = collectColumns(childColumn);
+            result.insert(result.end(), subColumns.begin(), subColumns.end());
+        }
+    } break;
+    case PhysicalTypeID::STRING: {
+        auto stringColumn = ku_dynamic_cast<Column*, StringColumn*>(column);
+        result.push_back(stringColumn->getDataColumn());
+        result.push_back(stringColumn->getOffsetColumn());
+    } break;
+    case PhysicalTypeID::VAR_LIST: {
+        auto varListColumn = ku_dynamic_cast<Column*, VarListColumn*>(column);
+        result.push_back(varListColumn->getDataColumn());
+    } break;
+    default: {
+        // DO NOTHING.
+    }
+    }
+    return result;
+}
+
+std::unique_ptr<TableFuncSharedState> StorageInfoFunction::initSharedState(
+    TableFunctionInitInput& input) {
+    auto storageInfoBindData = reinterpret_cast<StorageInfoBindData*>(input.bindData);
+    return std::make_unique<StorageInfoSharedState>(
+        storageInfoBindData->table, storageInfoBindData->maxOffset);
+}
+
+std::unique_ptr<TableFuncLocalState> StorageInfoFunction::initLocalState(
+    TableFunctionInitInput& /*input*/, TableFuncSharedState* /*sharedState*/, MemoryManager* mm) {
+    return std::make_unique<StorageInfoLocalState>(mm);
+}
+
+void StorageInfoFunction::tableFunc(TableFunctionInput& input, DataChunk& outputChunk) {
+    auto localState =
+        ku_dynamic_cast<TableFuncLocalState*, StorageInfoLocalState*>(input.localState);
+    auto sharedState =
+        ku_dynamic_cast<TableFuncSharedState*, StorageInfoSharedState*>(input.sharedState);
+    KU_ASSERT(outputChunk.state->selVector->isUnfiltered());
+    while (true) {
+        if (localState->currChunkIdx < localState->dataChunkCollection->getNumChunks()) {
+            // Copy from local state chunk.
+            auto chunk = localState->dataChunkCollection->getChunk(localState->currChunkIdx);
+            auto numValuesToOutput = chunk->state->selVector->selectedSize;
+            for (auto columnIdx = 0u; columnIdx < outputChunk.getNumValueVectors(); columnIdx++) {
+                auto localVector = chunk->getValueVector(columnIdx);
+                auto outputVector = outputChunk.getValueVector(columnIdx);
+                for (auto i = 0u; i < numValuesToOutput; i++) {
+                    outputVector->copyFromVectorData(i, localVector.get(), i);
+                }
+            }
+            outputChunk.state->selVector->resetSelectorToUnselectedWithSize(numValuesToOutput);
+            localState->currChunkIdx++;
+            return;
+        }
+        auto morsel = reinterpret_cast<CallFuncSharedState*>(input.sharedState)->getMorsel();
+        if (!morsel.hasMoreToOutput()) {
+            outputChunk.state->selVector->selectedSize = 0;
+            return;
+        }
+        auto storageInfoBindData = reinterpret_cast<StorageInfoBindData*>(input.bindData);
+        auto tableSchema = storageInfoBindData->schema;
+        std::string tableType = tableSchema->getTableType() == TableType::NODE ? "NODE" : "REL";
+        for (auto columnID = 0u; columnID < sharedState->columns.size(); columnID++) {
+            appendStorageInfoForColumn(
+                tableType, outputChunk, localState, sharedState->columns[columnID]);
+        }
+        localState->dataChunkCollection->append(outputChunk);
+        outputChunk.resetAuxiliaryBuffer();
+        outputChunk.state->selVector->selectedSize = 0;
+    }
+}
+
+function_set StorageInfoFunction::getFunctionSet() {
+    function_set functionSet;
+    functionSet.push_back(std::make_unique<TableFunction>("storage_info", tableFunc, bindFunc,
+        initSharedState, initLocalState, std::vector<LogicalTypeID>{LogicalTypeID::STRING}));
+    return functionSet;
+}
+
+void StorageInfoFunction::appendStorageInfoForColumn(std::string tableType, DataChunk& outputChunk,
+    StorageInfoLocalState* localState, const Column* column) {
+    auto numNodeGroups = column->getNumNodeGroups(&transaction::DUMMY_READ_TRANSACTION);
+    for (auto nodeGroupIdx = 0u; nodeGroupIdx < numNodeGroups; nodeGroupIdx++) {
+        if (outputChunk.state->selVector->selectedSize == DEFAULT_VECTOR_CAPACITY) {
+            localState->dataChunkCollection->append(outputChunk);
+            outputChunk.resetAuxiliaryBuffer();
+            outputChunk.state->selVector->selectedSize = 0;
+        }
+        appendColumnChunkStorageInfo(nodeGroupIdx, tableType, column, outputChunk);
+    }
+}
+
+void StorageInfoFunction::appendColumnChunkStorageInfo(node_group_idx_t nodeGroupIdx,
+    const std::string& tableType, const Column* column, DataChunk& outputChunk) {
+    auto vectorPos = outputChunk.state->selVector->selectedSize;
+    auto metadata = column->getMetadata(nodeGroupIdx, transaction::TransactionType::READ_ONLY);
+    auto columnType = column->getDataType()->toString();
+    outputChunk.getValueVector(0)->setValue<uint64_t>(vectorPos, nodeGroupIdx);
+    outputChunk.getValueVector(1)->setValue(vectorPos, column->getName());
+    outputChunk.getValueVector(2)->setValue(vectorPos, columnType);
+    outputChunk.getValueVector(3)->setValue(vectorPos, tableType);
+    outputChunk.getValueVector(4)->setValue<uint64_t>(vectorPos, metadata.pageIdx);
+    outputChunk.getValueVector(5)->setValue<uint64_t>(vectorPos, metadata.numPages);
+    outputChunk.getValueVector(6)->setValue<uint64_t>(vectorPos, metadata.numValues);
+    outputChunk.getValueVector(7)->setValue(vectorPos, metadata.compMeta.toString());
+    outputChunk.state->selVector->selectedSize++;
 }
 
 } // namespace function

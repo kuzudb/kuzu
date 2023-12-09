@@ -8,9 +8,9 @@ namespace common {
 std::string RelDataDirectionUtils::relDirectionToString(RelDataDirection direction) {
     switch (direction) {
     case RelDataDirection::FWD:
-        return "forward";
+        return "fwd";
     case RelDataDirection::BWD:
-        return "backward";
+        return "bwd";
     default:
         KU_UNREACHABLE;
     }

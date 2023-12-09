@@ -179,3 +179,18 @@ Binder exception: Cannot match a built-in function for given function SHOW_CONNE
 -STATEMENT CALL show_connection(upper("person")) RETURN *
 ---- error
 Binder exception: Parameters in table function must be a literal expression.
+
+-CASE StorageInfo
+-PARALLELISM 1
+-STATEMENT MATCH (p:person) RETURN COUNT(p)
+---- 1
+8
+-STATEMENT CALL storage_info('person') RETURN COUNT(*)
+---- 1
+35
+-STATEMENT CALL storage_info('knows') RETURN COUNT(*)
+---- 1
+72
+-STATEMENT CALL storage_info('workAt') RETURN COUNT(*)
+---- 1
+18

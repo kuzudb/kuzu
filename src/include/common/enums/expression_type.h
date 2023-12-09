@@ -233,6 +233,7 @@ const char* const READ_CSV_SERIAL_FUNC_NAME = "READ_CSV_SERIAL";
 const char* const READ_CSV_PARALLEL_FUNC_NAME = "READ_CSV_PARALLEL";
 const char* const READ_RDF_FUNC_NAME = "READ_RDF";
 const char* const READ_PANDAS_FUNC_NAME = "READ_PANDAS";
+const char* const STORAGE_INFO_FUNC_NAME = "STORAGE_INFO";
 
 enum class ExpressionType : uint8_t {
 

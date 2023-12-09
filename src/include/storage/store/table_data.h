@@ -29,7 +29,7 @@ public:
     inline void dropColumn(common::column_id_t columnID) {
         columns.erase(columns.begin() + columnID);
     }
-    void addColumn(transaction::Transaction* transaction,
+    void addColumn(transaction::Transaction* transaction, const std::string& colNamePrefix,
         InMemDiskArray<ColumnChunkMetadata>* metadataDA, const MetadataDAHInfo& metadataDahInfo,
         const catalog::Property& property, common::ValueVector* defaultValueVector,
         TablesStatistics* tableStats);
@@ -39,15 +39,14 @@ public:
         KU_ASSERT(columnID < columns.size());
         return columns[columnID].get();
     }
-    inline common::node_group_idx_t getNumNodeGroups(transaction::Transaction* transaction) const {
-        KU_ASSERT(!columns.empty());
-        return columns[0]->getNumNodeGroups(transaction);
-    }
 
     virtual void prepareLocalTableToCommit(
         transaction::Transaction* transaction, LocalTableData* localTable) = 0;
     virtual void checkpointInMemory();
     virtual void rollbackInMemory();
+
+    virtual common::node_group_idx_t getNumNodeGroups(
+        transaction::Transaction* transaction) const = 0;
 
 protected:
     TableData(BMFileHandle* dataFH, BMFileHandle* metadataFH, common::table_id_t tableID,
