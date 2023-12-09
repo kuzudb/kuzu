@@ -388,11 +388,11 @@ static LogicalOperator* getSequentialScan(LogicalOperator* op) {
 
 // Check whether given node ID has sequential guarantee on the plan.
 static bool isNodeSequentialOnPlan(LogicalPlan& plan, const NodeExpression& node) {
-    auto sequentialScan =
-        reinterpret_cast<LogicalScanInternalID*>(getSequentialScan(plan.getLastOperator().get()));
-    if (sequentialScan == nullptr) {
+    auto seqScan = getSequentialScan(plan.getLastOperator().get());
+    if (seqScan == nullptr) {
         return false;
     }
+    auto sequentialScan = ku_dynamic_ptr_cast<LogicalOperator, LogicalScanInternalID>(seqScan);
     return sequentialScan->getInternalID()->getUniqueName() ==
            node.getInternalID()->getUniqueName();
 }

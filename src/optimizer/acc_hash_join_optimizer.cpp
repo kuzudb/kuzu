@@ -1,5 +1,6 @@
 #include "optimizer/acc_hash_join_optimizer.h"
 
+#include "common/cast.h"
 #include "optimizer/logical_operator_collector.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_accumulate.h"
@@ -191,7 +192,7 @@ std::vector<planner::LogicalOperator*> HashJoinSIPOptimizer::resolveScanInternal
     auto collector = LogicalScanInternalIDCollector();
     collector.collect(root);
     for (auto& op : collector.getOperators()) {
-        auto scan = reinterpret_cast<LogicalScanInternalID*>(op);
+        auto scan = ku_dynamic_ptr_cast<LogicalOperator, LogicalScanInternalID>(op);
         if (nodeID.getUniqueName() == scan->getInternalID()->getUniqueName()) {
             result.push_back(op);
         }
@@ -225,12 +226,12 @@ std::shared_ptr<planner::LogicalOperator> HashJoinSIPOptimizer::appendNodeSemiMa
     std::vector<table_id_t> nodeTableIDs;
     switch (op->getOperatorType()) {
     case LogicalOperatorType::SCAN_INTERNAL_ID: {
-        auto scan = reinterpret_cast<LogicalScanInternalID*>(op);
+        auto scan = ku_dynamic_ptr_cast<LogicalOperator, LogicalScanInternalID>(op);
         key = scan->getInternalID();
         nodeTableIDs = scan->getTableIDs();
     } break;
     case LogicalOperatorType::RECURSIVE_EXTEND: {
-        auto extend = reinterpret_cast<LogicalRecursiveExtend*>(op);
+        auto extend = ku_dynamic_ptr_cast<LogicalOperator, LogicalRecursiveExtend>(op);
         key = extend->getNbrNode()->getInternalID();
         nodeTableIDs = extend->getNbrNode()->getTableIDs();
     } break;
@@ -250,7 +251,7 @@ std::shared_ptr<planner::LogicalOperator> HashJoinSIPOptimizer::appendPathSemiMa
     KU_ASSERT(!opsToApplySemiMask.empty());
     auto op = opsToApplySemiMask[0];
     KU_ASSERT(op->getOperatorType() == planner::LogicalOperatorType::SCAN_INTERNAL_ID);
-    auto scan = reinterpret_cast<LogicalScanInternalID*>(op);
+    auto scan = ku_dynamic_ptr_cast<LogicalOperator, LogicalScanInternalID>(op);
     auto semiMasker = std::make_shared<LogicalSemiMasker>(
         SemiMaskType::PATH, pathExpression, scan->getTableIDs(), opsToApplySemiMask, child);
     semiMasker->computeFlatSchema();

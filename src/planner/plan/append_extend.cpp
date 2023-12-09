@@ -31,7 +31,7 @@ static bool extendHasAtMostOneNbrGuarantee(RelExpression& rel, NodeExpression& b
         return false;
     }
     auto relDirection = ExtendDirectionUtils::getRelDataDirection(direction);
-    auto relTableSchema = reinterpret_cast<RelTableSchema*>(
+    auto relTableSchema = ku_dynamic_ptr_cast<TableSchema, RelTableSchema>(
         catalog.getTableSchema(&DUMMY_READ_TRANSACTION, rel.getSingleTableID()));
     return relTableSchema->isSingleMultiplicity(relDirection);
 }
@@ -40,7 +40,7 @@ static std::unordered_set<table_id_t> getBoundNodeTableIDSet(
     const RelExpression& rel, ExtendDirection extendDirection, const catalog::Catalog& catalog) {
     std::unordered_set<table_id_t> result;
     for (auto tableID : rel.getTableIDs()) {
-        auto tableSchema = reinterpret_cast<RelTableSchema*>(
+        auto tableSchema = ku_dynamic_ptr_cast<TableSchema, RelTableSchema>(
             catalog.getTableSchema(&DUMMY_READ_TRANSACTION, tableID));
         switch (extendDirection) {
         case ExtendDirection::FWD: {
@@ -64,7 +64,7 @@ static std::unordered_set<table_id_t> getNbrNodeTableIDSet(
     const RelExpression& rel, ExtendDirection extendDirection, const catalog::Catalog& catalog) {
     std::unordered_set<table_id_t> result;
     for (auto tableID : rel.getTableIDs()) {
-        auto tableSchema = reinterpret_cast<RelTableSchema*>(
+        auto tableSchema = ku_dynamic_ptr_cast<TableSchema, RelTableSchema>(
             catalog.getTableSchema(&DUMMY_READ_TRANSACTION, tableID));
         switch (extendDirection) {
         case ExtendDirection::FWD: {
@@ -99,7 +99,7 @@ void QueryPlanner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression
     expression_vector propertiesToScanFromRelTable;
     std::shared_ptr<Expression> iri;
     for (auto& property : properties) {
-        if (reinterpret_cast<PropertyExpression*>(property.get())->isIRI()) {
+        if (ku_dynamic_ptr_cast<Expression, PropertyExpression>(property.get())->isIRI()) {
             iri = property;
             propertiesToScanFromRelTable.push_back(rel->getRdfPredicateInfo()->predicateID);
         } else {

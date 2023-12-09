@@ -43,7 +43,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindReadingClause(const ReadingClaus
 }
 
 std::unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause& readingClause) {
-    auto& matchClause = reinterpret_cast<const MatchClause&>(readingClause);
+    auto& matchClause = ku_dynamic_cast<const ReadingClause&, const MatchClause&>(readingClause);
     auto [queryGraphCollection, propertyCollection] =
         bindGraphPattern(matchClause.getPatternElements());
     auto boundMatchClause = make_unique<BoundMatchClause>(
@@ -88,7 +88,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause&
 }
 
 std::unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause& readingClause) {
-    auto& unwindClause = reinterpret_cast<const UnwindClause&>(readingClause);
+    auto& unwindClause = ku_dynamic_cast<const ReadingClause&, const UnwindClause&>(readingClause);
     auto boundExpression = expressionBinder.bindExpression(*unwindClause.getExpression());
     boundExpression =
         ExpressionBinder::implicitCastIfNecessary(boundExpression, LogicalTypeID::VAR_LIST);
@@ -98,13 +98,15 @@ std::unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause
 }
 
 std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause& readingClause) {
-    auto& call = reinterpret_cast<const InQueryCallClause&>(readingClause);
-    auto funcExpr = reinterpret_cast<ParsedFunctionExpression*>(call.getFunctionExpression());
+    auto& call = ku_dynamic_cast<const ReadingClause&, const InQueryCallClause&>(readingClause);
+    auto funcExpr = ku_dynamic_ptr_cast<ParsedExpression, ParsedFunctionExpression>(
+        call.getFunctionExpression());
     auto funcName = funcExpr->getFunctionName();
     StringUtils::toUpper(funcName);
     if (funcName == common::READ_PANDAS_FUNC_NAME && clientContext->replaceFunc) {
         auto replacedValue = clientContext->replaceFunc(
-            reinterpret_cast<ParsedLiteralExpression*>(funcExpr->getChild(0))->getValue());
+            ku_dynamic_ptr_cast<ParsedExpression, ParsedLiteralExpression>(funcExpr->getChild(0))
+                ->getValue());
         auto parameterExpression =
             std::make_unique<ParsedLiteralExpression>(std::move(replacedValue), "pd");
         auto inQueryCallParameterReplacer = std::make_unique<InQueryCallParameterReplacer>(
@@ -118,13 +120,14 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         if (parameter->getExpressionType() != ExpressionType::LITERAL) {
             throw BinderException{"Parameters in table function must be a literal expression."};
         }
-        auto expressionValue = reinterpret_cast<ParsedLiteralExpression*>(parameter)->getValue();
+        auto expressionValue =
+            ku_dynamic_ptr_cast<ParsedExpression, ParsedLiteralExpression>(parameter)->getValue();
         inputTypes.push_back(expressionValue->getDataType());
         inputValues.push_back(expressionValue->copy());
     }
     // TODO: this is dangerous because we could match to a scan function.
-    auto tableFunction = reinterpret_cast<function::TableFunction*>(
-        catalog.getBuiltInFunctions()->matchScalarFunction(funcName, inputTypes));
+    auto tableFunction = ku_dynamic_ptr_cast<function::Function, function::TableFunction>(
+        catalog.getBuiltInFunctions()->matchFunction(funcName, inputTypes));
     auto bindInput = std::make_unique<function::TableFuncBindInput>();
     bindInput->inputs = std::move(inputValues);
     auto bindData =
@@ -144,9 +147,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     return boundInQueryCall;
 }
 
-std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(
-    const parser::ReadingClause& readingClause) {
-    auto& loadFrom = reinterpret_cast<const LoadFrom&>(readingClause);
+std::unique_ptr<BoundReadingClause> Binder::bindLoadFrom(const ReadingClause& readingClause) {
+    auto& loadFrom = ku_dynamic_cast<const ReadingClause&, const LoadFrom&>(readingClause);
     auto csvReaderConfig = bindParsingOptions(loadFrom.getParsingOptionsRef());
     auto filePaths = bindFilePaths(loadFrom.getFilePaths());
     auto fileType = bindFileType(filePaths);

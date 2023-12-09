@@ -67,7 +67,7 @@ void StringColumn::scan(
     if (columnChunk->getNumValues() == 0) {
         return;
     }
-    auto stringColumnChunk = reinterpret_cast<StringColumnChunk*>(columnChunk);
+    auto stringColumnChunk = ku_dynamic_ptr_cast<ColumnChunk, StringColumnChunk>(columnChunk);
 
     auto dataMetadata = dataColumn->getMetadata(nodeGroupIdx, transaction->getType());
     // Make sure that the chunk is large enough
@@ -86,7 +86,7 @@ void StringColumn::scan(
 
 void StringColumn::append(ColumnChunk* columnChunk, node_group_idx_t nodeGroupIdx) {
     Column::append(columnChunk, nodeGroupIdx);
-    auto stringColumnChunk = reinterpret_cast<StringColumnChunk*>(columnChunk);
+    auto stringColumnChunk = ku_dynamic_ptr_cast<ColumnChunk, StringColumnChunk>(columnChunk);
     dataColumn->append(stringColumnChunk->getDataChunk(), nodeGroupIdx);
     offsetColumn->append(stringColumnChunk->getOffsetChunk(), nodeGroupIdx);
 }

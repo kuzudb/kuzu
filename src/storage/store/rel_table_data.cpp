@@ -157,9 +157,9 @@ LocalRelNG* RelTableData::getLocalNodeGroup(
     LocalRelNG* localNodeGroup = nullptr;
     if (localTableData) {
         auto localRelTableData =
-            ku_dynamic_cast<LocalTableData*, LocalRelTableData*>(localTableData);
+            ku_dynamic_ptr_cast<LocalTableData, LocalRelTableData>(localTableData);
         if (localRelTableData->nodeGroups.contains(nodeGroupIdx)) {
-            localNodeGroup = ku_dynamic_cast<LocalNodeGroup*, LocalRelNG*>(
+            localNodeGroup = ku_dynamic_ptr_cast<LocalNodeGroup, LocalRelNG>(
                 localRelTableData->nodeGroups.at(nodeGroupIdx).get());
         }
     }
@@ -272,7 +272,7 @@ void RelTableData::lookup(Transaction* transaction, TableReadState& readState,
 
 void RelTableData::insert(transaction::Transaction* transaction, ValueVector* srcNodeIDVector,
     ValueVector* dstNodeIDVector, const std::vector<ValueVector*>& propertyVectors) {
-    auto localTableData = ku_dynamic_cast<LocalTableData*, LocalRelTableData*>(
+    auto localTableData = ku_dynamic_ptr_cast<LocalTableData, LocalRelTableData>(
         transaction->getLocalStorage()->getOrCreateLocalTableData(
             tableID, columns, TableType::REL, dataFormat, getDataIdxFromDirection(direction)));
     auto checkPersistentStorage =
@@ -288,7 +288,7 @@ void RelTableData::insert(transaction::Transaction* transaction, ValueVector* sr
 void RelTableData::update(transaction::Transaction* transaction, column_id_t columnID,
     ValueVector* srcNodeIDVector, ValueVector* relIDVector, ValueVector* propertyVector) {
     KU_ASSERT(columnID < columns.size() && columnID != REL_ID_COLUMN_ID);
-    auto localTableData = ku_dynamic_cast<LocalTableData*, LocalRelTableData*>(
+    auto localTableData = ku_dynamic_ptr_cast<LocalTableData, LocalRelTableData>(
         transaction->getLocalStorage()->getOrCreateLocalTableData(
             tableID, columns, TableType::REL, dataFormat, getDataIdxFromDirection(direction)));
     localTableData->update(srcNodeIDVector, relIDVector, columnID, propertyVector);
@@ -296,7 +296,7 @@ void RelTableData::update(transaction::Transaction* transaction, column_id_t col
 
 bool RelTableData::delete_(transaction::Transaction* transaction, ValueVector* srcNodeIDVector,
     ValueVector* dstNodeIDVector, ValueVector* relIDVector) {
-    auto localTableData = ku_dynamic_cast<LocalTableData*, LocalRelTableData*>(
+    auto localTableData = ku_dynamic_ptr_cast<LocalTableData, LocalRelTableData>(
         transaction->getLocalStorage()->getOrCreateLocalTableData(
             tableID, columns, TableType::REL, dataFormat, getDataIdxFromDirection(direction)));
     return localTableData->delete_(srcNodeIDVector, dstNodeIDVector, relIDVector);
@@ -360,7 +360,7 @@ void RelTableData::resizeColumns(node_group_idx_t numNodeGroups) {
 
 void RelTableData::prepareLocalTableToCommit(
     Transaction* transaction, LocalTableData* localTableData) {
-    auto localRelTableData = ku_dynamic_cast<LocalTableData*, LocalRelTableData*>(localTableData);
+    auto localRelTableData = ku_dynamic_ptr_cast<LocalTableData, LocalRelTableData>(localTableData);
     if (dataFormat == ColumnDataFormat::REGULAR) {
         prepareCommitForRegularColumns(transaction, localRelTableData);
     } else {
@@ -371,10 +371,10 @@ void RelTableData::prepareLocalTableToCommit(
 void RelTableData::prepareCommitForRegularColumns(
     Transaction* transaction, LocalRelTableData* localTableData) {
     for (auto& [nodeGroupIdx, nodeGroup] : localTableData->nodeGroups) {
-        auto relNG = ku_dynamic_cast<LocalNodeGroup*, LocalRelNG*>(nodeGroup.get());
+        auto relNG = ku_dynamic_ptr_cast<LocalNodeGroup, LocalRelNG>(nodeGroup.get());
         KU_ASSERT(relNG);
         auto relNodeGroupInfo =
-            ku_dynamic_cast<RelNGInfo*, RegularRelNGInfo*>(relNG->getRelNGInfo());
+            ku_dynamic_ptr_cast<RelNGInfo, RegularRelNGInfo>(relNG->getRelNGInfo());
         adjColumn->prepareCommitForChunk(transaction, nodeGroupIdx, relNG->getAdjChunk(),
             relNodeGroupInfo->adjInsertInfo, {} /* updateInfo */, relNodeGroupInfo->deleteInfo);
         for (auto columnID = 0u; columnID < columns.size(); columnID++) {
@@ -388,9 +388,9 @@ void RelTableData::prepareCommitForRegularColumns(
 void RelTableData::prepareCommitForCSRColumns(
     Transaction* transaction, LocalRelTableData* localTableData) {
     for (auto& [nodeGroupIdx, nodeGroup] : localTableData->nodeGroups) {
-        auto relNG = ku_dynamic_cast<LocalNodeGroup*, LocalRelNG*>(nodeGroup.get());
+        auto relNG = ku_dynamic_ptr_cast<LocalNodeGroup, LocalRelNG>(nodeGroup.get());
         KU_ASSERT(relNG);
-        auto relNodeGroupInfo = ku_dynamic_cast<RelNGInfo*, CSRRelNGInfo*>(relNG->getRelNGInfo());
+        auto relNodeGroupInfo = ku_dynamic_ptr_cast<RelNGInfo, CSRRelNGInfo>(relNG->getRelNGInfo());
         // First, scan the whole csr offset column chunk, whose size is NODE_GROUP_SIZE.
         auto csrOffsetChunk = ColumnChunkFactory::createColumnChunk(
             LogicalType::INT64(), false /* enableCompression */);

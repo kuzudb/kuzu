@@ -165,8 +165,8 @@ void WALReplayer::replayCreateTableRecord(const WALRecord& walRecord) {
         // record.
         auto catalogForCheckpointing = getCatalogForRecovery(FileVersionType::WAL_VERSION);
         if (walRecord.copyTableRecord.tableType == TableType::NODE) {
-            auto nodeTableSchema =
-                reinterpret_cast<NodeTableSchema*>(catalogForCheckpointing->getTableSchema(
+            auto nodeTableSchema = ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(
+                catalogForCheckpointing->getTableSchema(
                     &DUMMY_READ_TRANSACTION, walRecord.createTableRecord.tableID));
             WALReplayerUtils::createEmptyHashIndexFiles(nodeTableSchema, wal->getDirectory());
         }
@@ -244,7 +244,7 @@ void WALReplayer::replayCopyTableRecord(const kuzu::storage::WALRecord& walRecor
             // fileHandles are obsolete and should be reconstructed (e.g. since the numPages
             // have likely changed they need to reconstruct their page locks).
             if (walRecord.copyTableRecord.tableType == TableType::NODE) {
-                auto nodeTableSchema = reinterpret_cast<NodeTableSchema*>(
+                auto nodeTableSchema = ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(
                     catalog->getTableSchema(&DUMMY_READ_TRANSACTION, tableID));
                 storageManager->getNodeTable(tableID)->initializePKIndex(
                     nodeTableSchema, false /* readOnly */);
@@ -272,7 +272,8 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
                 storageManager->dropTable(tableID);
                 // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
                 WALReplayerUtils::removeHashIndexFile(
-                    reinterpret_cast<NodeTableSchema*>(tableSchema), wal->getDirectory());
+                    ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(tableSchema),
+                    wal->getDirectory());
             } break;
             case TableType::REL: {
                 storageManager->dropTable(tableID);
@@ -293,7 +294,8 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
             case TableType::NODE: {
                 // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.
                 WALReplayerUtils::removeHashIndexFile(
-                    reinterpret_cast<NodeTableSchema*>(tableSchema), wal->getDirectory());
+                    ku_dynamic_ptr_cast<TableSchema, NodeTableSchema>(tableSchema),
+                    wal->getDirectory());
             } break;
             case TableType::REL: {
                 // TODO(Guodong): Do nothing for now. Should remove metaDA and reclaim free pages.

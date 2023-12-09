@@ -1,5 +1,6 @@
 #include "planner/operator/logical_hash_join.h"
 
+#include "common/cast.h"
 #include "planner/operator/factorization/flatten_resolver.h"
 #include "planner/operator/factorization/sink_util.h"
 #include "planner/operator/scan/logical_scan_internal_id.h"
@@ -176,7 +177,7 @@ bool LogicalHashJoin::isJoinKeyUniqueOnBuildSide(const binder::Expression& joinN
     if (op->getOperatorType() != LogicalOperatorType::SCAN_INTERNAL_ID) {
         return false;
     }
-    auto scan = reinterpret_cast<LogicalScanInternalID*>(op);
+    auto scan = ku_dynamic_ptr_cast<LogicalOperator, LogicalScanInternalID>(op);
     if (scan->getInternalID()->getUniqueName() != joinNodeID.getUniqueName()) {
         return false;
     }

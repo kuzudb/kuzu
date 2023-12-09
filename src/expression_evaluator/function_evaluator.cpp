@@ -21,7 +21,8 @@ void FunctionExpressionEvaluator::evaluate() {
     for (auto& child : children) {
         child->evaluate();
     }
-    auto expr = reinterpret_cast<binder::ScalarFunctionExpression*>(expression.get());
+    auto expr =
+        ku_dynamic_ptr_cast<binder::Expression, binder::ScalarFunctionExpression>(expression.get());
     if (expr->getFunctionName() == CAST_FUNC_NAME) {
         execFunc(parameters, *resultVector, expr->getBindData());
         return;

@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "common/assert.h"
+#include "common/cast.h"
 #include "common/data_chunk/data_chunk_state.h"
 #include "common/null_mask.h"
 #include "common/types/ku_string.h"
@@ -112,7 +113,8 @@ class StringVector {
 public:
     static inline InMemOverflowBuffer* getInMemOverflowBuffer(ValueVector* vector) {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
-        return reinterpret_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
+        return ku_dynamic_ptr_cast<AuxiliaryBuffer, StringAuxiliaryBuffer>(
+            vector->auxiliaryBuffer.get())
             ->getOverflowBuffer();
     }
 
@@ -143,22 +145,27 @@ public:
     static inline void setDataVector(
         const ValueVector* vector, std::shared_ptr<ValueVector> dataVector) {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
-        auto listBuffer = reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
+        auto listBuffer = ku_dynamic_ptr_cast<AuxiliaryBuffer, ListAuxiliaryBuffer>(
+            vector->auxiliaryBuffer.get());
         listBuffer->setDataVector(std::move(dataVector));
     }
     static inline ValueVector* getDataVector(const ValueVector* vector) {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
-        return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
+        return ku_dynamic_ptr_cast<AuxiliaryBuffer, ListAuxiliaryBuffer>(
+            vector->auxiliaryBuffer.get())
             ->getDataVector();
     }
     static inline std::shared_ptr<ValueVector> getSharedDataVector(const ValueVector* vector) {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
-        return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
+        return ku_dynamic_ptr_cast<AuxiliaryBuffer, ListAuxiliaryBuffer>(
+            vector->auxiliaryBuffer.get())
             ->getSharedDataVector();
     }
     static inline uint64_t getDataVectorSize(const ValueVector* vector) {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
-        return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())->getSize();
+        return ku_dynamic_ptr_cast<AuxiliaryBuffer, ListAuxiliaryBuffer>(
+            vector->auxiliaryBuffer.get())
+            ->getSize();
     }
 
     static inline uint8_t* getListValues(const ValueVector* vector, const list_entry_t& listEntry) {
@@ -174,11 +181,13 @@ public:
     }
     static inline list_entry_t addList(ValueVector* vector, uint64_t listSize) {
         KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
-        return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
+        return ku_dynamic_ptr_cast<AuxiliaryBuffer, ListAuxiliaryBuffer>(
+            vector->auxiliaryBuffer.get())
             ->addList(listSize);
     }
     static inline void resizeDataVector(ValueVector* vector, uint64_t numValues) {
-        reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())->resize(numValues);
+        ku_dynamic_ptr_cast<AuxiliaryBuffer, ListAuxiliaryBuffer>(vector->auxiliaryBuffer.get())
+            ->resize(numValues);
     }
 
     static void copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_t* rowData);
@@ -218,19 +227,21 @@ class StructVector {
 public:
     static inline const std::vector<std::shared_ptr<ValueVector>>& getFieldVectors(
         const ValueVector* vector) {
-        return reinterpret_cast<StructAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
+        return ku_dynamic_ptr_cast<AuxiliaryBuffer, StructAuxiliaryBuffer>(
+            vector->auxiliaryBuffer.get())
             ->getFieldVectors();
     }
 
     static inline std::shared_ptr<ValueVector> getFieldVector(
         const ValueVector* vector, struct_field_idx_t idx) {
-        return reinterpret_cast<StructAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
+        return ku_dynamic_ptr_cast<AuxiliaryBuffer, StructAuxiliaryBuffer>(
+            vector->auxiliaryBuffer.get())
             ->getFieldVectors()[idx];
     }
 
     static inline void referenceVector(ValueVector* vector, struct_field_idx_t idx,
         std::shared_ptr<ValueVector> vectorToReference) {
-        reinterpret_cast<StructAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
+        ku_dynamic_ptr_cast<AuxiliaryBuffer, StructAuxiliaryBuffer>(vector->auxiliaryBuffer.get())
             ->referenceChildVector(idx, std::move(vectorToReference));
     }
 

@@ -41,14 +41,16 @@ void PropertyCollector::visitUnwind(const BoundReadingClause& readingClause) {
 }
 
 void PropertyCollector::visitLoadFrom(const BoundReadingClause& readingClause) {
-    auto& loadFromClause = reinterpret_cast<const BoundLoadFrom&>(readingClause);
+    auto& loadFromClause =
+        ku_dynamic_cast<const BoundReadingClause&, const BoundLoadFrom&>(readingClause);
     if (loadFromClause.hasWherePredicate()) {
         collectPropertyExpressions(loadFromClause.getWherePredicate());
     }
 }
 
 void PropertyCollector::visitInQueryCall(const BoundReadingClause& readingClause) {
-    auto& inQueryCallClause = reinterpret_cast<const BoundInQueryCall&>(readingClause);
+    auto& inQueryCallClause =
+        ku_dynamic_cast<const BoundReadingClause&, const BoundInQueryCall&>(readingClause);
     if (inQueryCallClause.hasWherePredicate()) {
         collectPropertyExpressions(inQueryCallClause.getWherePredicate());
     }
