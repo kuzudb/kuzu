@@ -212,6 +212,11 @@ ABFsUni
 CsWork
 DEsWork
 
+-LOG RtrimSpaces
+-STATEMENT RETURN rtrim("   ")
+---- 1
+
+
 -LOG ReverseStr
 -STATEMENT MATCH (o:organisation) RETURN reverse(o.name)
 ---- 3
