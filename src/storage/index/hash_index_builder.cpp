@@ -33,8 +33,7 @@ HashIndexBuilder<T>::HashIndexBuilder(const std::string& fName, const LogicalTyp
         *fileHandle, O_SLOTS_HEADER_PAGE_IDX, 1 /* numElements */);
     allocatePSlots(2);
     if (keyDataType.getLogicalTypeID() == LogicalTypeID::STRING) {
-        inMemOverflowFile =
-            std::make_unique<InMemOverflowFile>(StorageUtils::getOverflowFileName(fName));
+        inMemOverflowFile = std::make_unique<InMemFile>(StorageUtils::getOverflowFileName(fName));
     }
     keyInsertFunc = InMemHashIndexUtils::initializeInsertFunc(indexHeader->keyDataTypeID);
     keyEqualsFunc = InMemHashIndexUtils::initializeEqualsFunc(indexHeader->keyDataTypeID);

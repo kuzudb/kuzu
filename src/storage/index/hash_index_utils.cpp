@@ -25,8 +25,8 @@ in_mem_insert_function_t InMemHashIndexUtils::initializeInsertFunc(LogicalTypeID
     }
 }
 
-bool InMemHashIndexUtils::equalsFuncForString(const uint8_t* keyToLookup, const uint8_t* keyInEntry,
-    const InMemOverflowFile* inMemOverflowFile) {
+bool InMemHashIndexUtils::equalsFuncForString(
+    const uint8_t* keyToLookup, const uint8_t* keyInEntry, const InMemFile* inMemOverflowFile) {
     auto kuStringInEntry = (ku_string_t*)keyInEntry;
     // Checks if prefix and len matches first.
     if (!HashIndexUtils::isStringPrefixAndLenEquals(keyToLookup, kuStringInEntry)) {
