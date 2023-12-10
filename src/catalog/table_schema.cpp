@@ -17,6 +17,15 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace catalog {
 
+TableSchema::TableSchema(const TableSchema& other) {
+    tableType = other.tableType;
+    tableName = other.tableName;
+    tableID = other.tableID;
+    properties = Property::copy(other.properties);
+    comment = other.comment;
+    nextPropertyID = other.nextPropertyID;
+}
+
 bool TableSchema::isReservedPropertyName(const std::string& propertyName) {
     return StringUtils::getUpper(propertyName) == InternalKeyword::ID;
 }
@@ -37,11 +46,17 @@ bool TableSchema::containProperty(const std::string& propertyName) const {
         });
 }
 
-bool TableSchema::containsColumnType(const common::LogicalType& logicalType) const {
+bool TableSchema::containPropertyType(const common::LogicalType& logicalType) const {
     return std::any_of(properties.begin(), properties.end(),
         [&logicalType](const std::unique_ptr<Property>& property) {
             return *property->getDataType() == logicalType;
         });
+}
+
+void TableSchema::addProperty(
+    std::string propertyName, std::unique_ptr<common::LogicalType> dataType) {
+    properties.push_back(std::make_unique<Property>(
+        std::move(propertyName), std::move(dataType), nextPropertyID++, tableID));
 }
 
 void TableSchema::dropProperty(common::property_id_t propertyID) {

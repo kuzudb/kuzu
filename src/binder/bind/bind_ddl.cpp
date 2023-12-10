@@ -118,13 +118,14 @@ std::unique_ptr<BoundCreateTableInfo> Binder::bindCreateRelTableInfo(const Creat
         }
     }
     auto extraInfo = (ExtraCreateRelTableInfo*)info->extraInfo.get();
-    auto relMultiplicity = getRelMultiplicityFromString(extraInfo->relMultiplicity);
+    auto srcMultiplicity = RelMultiplicityUtils::getFwd(extraInfo->relMultiplicity);
+    auto dstMultiplicity = RelMultiplicityUtils::getBwd(extraInfo->relMultiplicity);
     auto srcTableID = bindTableID(extraInfo->srcTableName);
     validateTableType(srcTableID, TableType::NODE);
     auto dstTableID = bindTableID(extraInfo->dstTableName);
     validateTableType(dstTableID, TableType::NODE);
     auto boundExtraInfo = std::make_unique<BoundExtraCreateRelTableInfo>(
-        relMultiplicity, srcTableID, dstTableID, std::move(boundProperties));
+        srcMultiplicity, dstMultiplicity, srcTableID, dstTableID, std::move(boundProperties));
     return std::make_unique<BoundCreateTableInfo>(
         TableType::REL, info->tableName, std::move(boundExtraInfo));
 }

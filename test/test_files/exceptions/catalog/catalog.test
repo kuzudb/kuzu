@@ -3,7 +3,7 @@
 
 --
 
--CASE BindNonExistingFunction
+-CASE CatalogExeception
 -STATEMENT MATCH (a:person) RETURN dummy(n)
 ---- error
 Catalog exception: DUMMY function does not exist.
@@ -12,8 +12,7 @@ Catalog exception: DUMMY function does not exist.
 ---- error
 Catalog exception: DUMMY function does not exist.
 
--CASE CreateRelTableInvalidRelMultiplicity
 -STATEMENT CREATE REL TABLE knows_post ( FROM person TO person, MANY_LOT)
 ---- error
-Catalog exception: Invalid relMultiplicity string 'MANY_LOT'.
+Binder exception: Cannot bind MANY_LOT as relationship multiplicity.
 

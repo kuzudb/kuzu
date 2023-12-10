@@ -177,9 +177,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createCopyRel(
     auto outFSchema = copyFrom->getSchema();
     auto tableSchema = dynamic_cast<RelTableSchema*>(copyFromInfo->tableSchema);
     auto partitioningIdx = direction == RelDataDirection::FWD ? 0 : 1;
-    auto dataFormat = tableSchema->isSingleMultiplicityInDirection(direction) ?
-                          ColumnDataFormat::REGULAR :
-                          ColumnDataFormat::CSR;
+    auto dataFormat = tableSchema->isSingleMultiplicity(direction) ? ColumnDataFormat::REGULAR :
+                                                                     ColumnDataFormat::CSR;
     auto copyRelInfo = std::make_unique<CopyRelInfo>(tableSchema, partitioningIdx, direction,
         dataFormat, storageManager.getWAL(), storageManager.compressionEnabled());
     return std::make_unique<CopyRel>(std::move(copyRelInfo), std::move(partitionerSharedState),

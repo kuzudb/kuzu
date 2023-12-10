@@ -33,7 +33,7 @@ static bool extendHasAtMostOneNbrGuarantee(RelExpression& rel, NodeExpression& b
     auto relDirection = ExtendDirectionUtils::getRelDataDirection(direction);
     auto relTableSchema = reinterpret_cast<RelTableSchema*>(
         catalog.getTableSchema(&DUMMY_READ_TRANSACTION, rel.getSingleTableID()));
-    return relTableSchema->isSingleMultiplicityInDirection(relDirection);
+    return relTableSchema->isSingleMultiplicity(relDirection);
 }
 
 static std::unordered_set<table_id_t> getBoundNodeTableIDSet(

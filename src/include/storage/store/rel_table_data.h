@@ -124,9 +124,8 @@ private:
 
     static inline common::ColumnDataFormat getDataFormatFromSchema(
         catalog::RelTableSchema* tableSchema, common::RelDataDirection direction) {
-        return tableSchema->isSingleMultiplicityInDirection(direction) ?
-                   common::ColumnDataFormat::REGULAR :
-                   common::ColumnDataFormat::CSR;
+        return tableSchema->isSingleMultiplicity(direction) ? common::ColumnDataFormat::REGULAR :
+                                                              common::ColumnDataFormat::CSR;
     }
     static inline common::vector_idx_t getDataIdxFromDirection(common::RelDataDirection direction) {
         return direction == common::RelDataDirection::FWD ? 0 : 1;

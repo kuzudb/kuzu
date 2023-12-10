@@ -8,6 +8,13 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace catalog {
 
+RdfGraphSchema::RdfGraphSchema(const RdfGraphSchema& other) : TableSchema{other} {
+    resourceTableID = other.resourceTableID;
+    literalTableID = other.literalTableID;
+    resourceTripleTableID = other.resourceTripleTableID;
+    literalTripleTableID = other.literalTripleTableID;
+}
+
 void RdfGraphSchema::serializeInternal(Serializer& serializer) {
     serializer.serializeValue(resourceTableID);
     serializer.serializeValue(literalTableID);

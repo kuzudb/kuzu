@@ -1,6 +1,6 @@
 #include "catalog/rel_table_schema.h"
 
-#include "common/exception/catalog.h"
+#include "common/exception/binder.h"
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 
@@ -9,52 +9,55 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace catalog {
 
-RelMultiplicity getRelMultiplicityFromString(const std::string& relMultiplicityString) {
-    if ("ONE_ONE" == relMultiplicityString) {
-        return RelMultiplicity::ONE_ONE;
-    } else if ("MANY_ONE" == relMultiplicityString) {
-        return RelMultiplicity::MANY_ONE;
-    } else if ("ONE_MANY" == relMultiplicityString) {
-        return RelMultiplicity::ONE_MANY;
-    } else if ("MANY_MANY" == relMultiplicityString) {
-        return RelMultiplicity::MANY_MANY;
+RelMultiplicity RelMultiplicityUtils::getFwd(const std::string& multiplicityStr) {
+    if ("ONE_ONE" == multiplicityStr || "ONE_MANY" == multiplicityStr) {
+        return RelMultiplicity::ONE;
+    } else if ("MANY_ONE" == multiplicityStr || "MANY_MANY" == multiplicityStr) {
+        return RelMultiplicity::MANY;
     }
-    throw CatalogException("Invalid relMultiplicity string '" + relMultiplicityString + "'.");
+    throw BinderException(
+        stringFormat("Cannot bind {} as relationship multiplicity.", multiplicityStr));
 }
 
-std::string getRelMultiplicityAsString(RelMultiplicity relMultiplicity) {
-    switch (relMultiplicity) {
-    case RelMultiplicity::MANY_MANY: {
-        return "MANY_MANY";
+RelMultiplicity RelMultiplicityUtils::getBwd(const std::string& multiplicityStr) {
+    if ("ONE_ONE" == multiplicityStr || "MANY_ONE" == multiplicityStr) {
+        return RelMultiplicity::ONE;
+    } else if ("ONE_MANY" == multiplicityStr || "MANY_MANY" == multiplicityStr) {
+        return RelMultiplicity::MANY;
     }
-    case RelMultiplicity::MANY_ONE: {
-        return "MANY_ONE";
-    }
-    case RelMultiplicity::ONE_ONE: {
-        return "ONE_ONE";
-    }
-    case RelMultiplicity::ONE_MANY: {
-        return "ONE_MANY";
-    }
-    default:
-        throw CatalogException("Cannot convert rel multiplicity to std::string.");
-    }
+    throw BinderException(
+        stringFormat("Cannot bind {} as relationship multiplicity.", multiplicityStr));
+}
+
+RelTableSchema::RelTableSchema(const RelTableSchema& other) : TableSchema{other} {
+    srcMultiplicity = other.srcMultiplicity;
+    dstMultiplicity = other.dstMultiplicity;
+    srcTableID = other.srcTableID;
+    dstTableID = other.dstTableID;
 }
 
 void RelTableSchema::serializeInternal(Serializer& serializer) {
-    serializer.serializeValue(relMultiplicity);
+    serializer.serializeValue(srcMultiplicity);
+    serializer.serializeValue(dstMultiplicity);
     serializer.serializeValue(srcTableID);
     serializer.serializeValue(dstTableID);
 }
 
 std::unique_ptr<RelTableSchema> RelTableSchema::deserialize(Deserializer& deserializer) {
-    RelMultiplicity relMultiplicity;
+    RelMultiplicity srcMultiplicity;
+    RelMultiplicity dstMultiplicity;
     table_id_t srcTableID;
     table_id_t dstTableID;
-    deserializer.deserializeValue(relMultiplicity);
+    deserializer.deserializeValue(srcMultiplicity);
+    deserializer.deserializeValue(dstMultiplicity);
     deserializer.deserializeValue(srcTableID);
     deserializer.deserializeValue(dstTableID);
-    return std::make_unique<RelTableSchema>(relMultiplicity, srcTableID, dstTableID);
+    auto schema = std::make_unique<RelTableSchema>();
+    schema->srcMultiplicity = srcMultiplicity;
+    schema->dstMultiplicity = dstMultiplicity;
+    schema->srcTableID = srcTableID;
+    schema->dstTableID = dstTableID;
+    return schema;
 }
 
 } // namespace catalog
