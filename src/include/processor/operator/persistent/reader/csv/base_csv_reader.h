@@ -73,6 +73,7 @@ protected:
     std::unique_ptr<char[]> buffer;
     uint64_t bufferSize;
     uint64_t position;
+    uint64_t osFileOffset;
 
     bool rowEmpty = false;
 };

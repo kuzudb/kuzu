@@ -60,6 +60,7 @@ void ParallelCSVReader::seekToBlockStart() {
             currentBlockIdx, filePath, posixErrMessage()));
         // LCOV_EXCL_STOP
     }
+    osFileOffset = currentBlockIdx * CopyConstants::PARALLEL_BLOCK_SIZE;
 
     if (currentBlockIdx == 0) {
         // First block doesn't search for a newline.

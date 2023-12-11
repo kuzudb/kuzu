@@ -22,7 +22,7 @@ namespace processor {
 BaseCSVReader::BaseCSVReader(
     const std::string& filePath, const common::CSVOption& option, uint64_t numColumns)
     : filePath{filePath}, option{option}, numColumns(numColumns), fd(-1), buffer(nullptr),
-      bufferSize(0), position(0), rowEmpty(false) {
+      bufferSize(0), position(0), osFileOffset(0), rowEmpty(false) {
     // TODO(Ziyi): should we wrap this fd using kuzu file handler?
     fd = open(filePath.c_str(), O_RDONLY
 #ifdef _WIN32
@@ -222,6 +222,7 @@ bool BaseCSVReader::readBuffer(uint64_t* start) {
             stringFormat("Could not read from file {}: {}", filePath, posixErrMessage()));
         // LCOV_EXCL_STOP
     }
+    osFileOffset += readCount;
 
     bufferSize = remaining + readCount;
     buffer[bufferSize] = '\0';
@@ -434,16 +435,8 @@ template uint64_t BaseCSVReader::parseCSV<SniffCSVNameAndTypeDriver>(SniffCSVNam
 template uint64_t BaseCSVReader::parseCSV<SniffCSVColumnCountDriver>(SniffCSVColumnCountDriver&);
 
 uint64_t BaseCSVReader::getFileOffset() const {
-    off_t signedOffset = lseek(fd, 0, SEEK_CUR);
-    if (signedOffset == -1) {
-        // LCOV_EXCL_START
-        throw CopyException(stringFormat(
-            "Could not get current file position for file {}: {}", filePath, posixErrMessage()));
-        // LCOV_EXCL_STOP
-    }
-    uint64_t offset = signedOffset;
-    KU_ASSERT(offset >= bufferSize);
-    return offset - bufferSize + position;
+    KU_ASSERT(osFileOffset >= bufferSize);
+    return osFileOffset - bufferSize + position;
 }
 
 uint64_t BaseCSVReader::getLineNumber() {
