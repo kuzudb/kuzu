@@ -141,6 +141,24 @@ void Equals::operation(const struct_entry_t& left, const struct_entry_t& right, 
         result = false;
         return;
     }
+    if (leftVector->dataType.getLogicalTypeID() == LogicalTypeID::NODE) {
+        KU_ASSERT(0 == common::StructType::getFieldIdx(&leftVector->dataType, InternalKeyword::ID));
+        KU_ASSERT(
+            0 == common::StructType::getFieldIdx(&rightVector->dataType, InternalKeyword::ID));
+        auto leftField = StructVector::getFieldVector(leftVector, 0).get();
+        auto rightField = StructVector::getFieldVector(rightVector, 0).get();
+        executeNestedEqual(result, leftField, rightField, left.pos, right.pos);
+        return;
+    }
+    if (leftVector->dataType.getLogicalTypeID() == LogicalTypeID::REL) {
+        KU_ASSERT(3 == common::StructType::getFieldIdx(&leftVector->dataType, InternalKeyword::ID));
+        KU_ASSERT(
+            3 == common::StructType::getFieldIdx(&rightVector->dataType, InternalKeyword::ID));
+        auto leftField = StructVector::getFieldVector(leftVector, 3).get();
+        auto rightField = StructVector::getFieldVector(rightVector, 3).get();
+        executeNestedEqual(result, leftField, rightField, left.pos, right.pos);
+        return;
+    }
     auto leftFields = StructVector::getFieldVectors(leftVector);
     auto rightFields = StructVector::getFieldVectors(rightVector);
     for (auto i = 0u; i < leftFields.size(); i++) {
