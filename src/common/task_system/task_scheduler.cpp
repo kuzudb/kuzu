@@ -7,24 +7,20 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace common {
 
-TaskScheduler::TaskScheduler(uint64_t numThreads) : nextScheduledTaskID{0} {
+TaskScheduler::TaskScheduler(uint64_t numThreads) : stopThreads{false}, nextScheduledTaskID{0} {
     for (auto n = 0u; n < numThreads; ++n) {
         threads.emplace_back([&] { runWorkerThread(); });
     }
 }
 
 TaskScheduler::~TaskScheduler() {
-    stopThreads.store(true);
+    lock_t lck{mtx};
+    stopThreads = true;
+    lck.unlock();
+    cv.notify_all();
     for (auto& thread : threads) {
         thread.join();
     }
-}
-
-std::shared_ptr<ScheduledTask> TaskScheduler::scheduleTask(const std::shared_ptr<Task>& task) {
-    lock_t lck{mtx};
-    auto scheduledTask = std::make_shared<ScheduledTask>(task, nextScheduledTaskID++);
-    taskQueue.push_back(scheduledTask);
-    return scheduledTask;
 }
 
 void TaskScheduler::scheduleTaskAndWaitOrError(
@@ -32,7 +28,8 @@ void TaskScheduler::scheduleTaskAndWaitOrError(
     for (auto& dependency : task->children) {
         scheduleTaskAndWaitOrError(dependency, context);
     }
-    auto scheduledTask = scheduleTask(task);
+    auto scheduledTask = pushTaskIntoQueue(task);
+    cv.notify_all();
     while (!task->isCompleted()) {
         if (context->clientContext->isTimeOutEnabled()) {
             interruptTaskIfTimeOutNoLock(context);
@@ -49,8 +46,14 @@ void TaskScheduler::scheduleTaskAndWaitOrError(
     }
 }
 
-std::shared_ptr<ScheduledTask> TaskScheduler::getTaskAndRegister() {
+std::shared_ptr<ScheduledTask> TaskScheduler::pushTaskIntoQueue(const std::shared_ptr<Task>& task) {
     lock_t lck{mtx};
+    auto scheduledTask = std::make_shared<ScheduledTask>(task, nextScheduledTaskID++);
+    taskQueue.push_back(scheduledTask);
+    return scheduledTask;
+}
+
+std::shared_ptr<ScheduledTask> TaskScheduler::getTaskAndRegister() {
     if (taskQueue.empty()) {
         return nullptr;
     }
@@ -87,14 +90,16 @@ void TaskScheduler::removeErroringTask(uint64_t scheduledTaskID) {
 }
 
 void TaskScheduler::runWorkerThread() {
+    std::unique_lock<std::mutex> lck{mtx, std::defer_lock};
     while (true) {
-        if (stopThreads.load()) {
-            break;
+        lck.lock();
+        cv.wait(lck, [&] { return !taskQueue.empty() || stopThreads; });
+        if (stopThreads) {
+            return;
         }
         auto scheduledTask = getTaskAndRegister();
+        lck.unlock();
         if (!scheduledTask) {
-            std::this_thread::sleep_for(
-                std::chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
             continue;
         }
         try {
