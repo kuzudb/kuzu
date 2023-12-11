@@ -499,29 +499,6 @@ public:
     }
 };
 
-class InternalIDColumnChunk final : public ColumnChunk {
-public:
-    // Physically, we only materialize offset of INTERNAL_ID, which is same as INT64,
-    explicit InternalIDColumnChunk(uint64_t capacity)
-        : ColumnChunk(LogicalType::INT64(), capacity, false /*enableCompression*/) {}
-
-    void append(ValueVector* vector) override {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
-        copyVectorToBuffer(vector, numValues);
-        numValues += vector->state->selVector->selectedSize;
-    }
-
-    void copyVectorToBuffer(ValueVector* vector, offset_t startPosInChunk) override {
-        auto relIDsInVector = (internalID_t*)vector->getData();
-        for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
-            auto pos = vector->state->selVector->selectedPositions[i];
-            nullChunk->setNull(startPosInChunk + i, vector->isNull(pos));
-            memcpy(buffer.get() + (startPosInChunk + i) * numBytesPerValue,
-                &relIDsInVector[pos].offset, numBytesPerValue);
-        }
-    }
-};
-
 std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     std::unique_ptr<LogicalType> dataType, bool enableCompression, uint64_t capacity) {
     switch (dataType->getPhysicalType()) {
@@ -546,10 +523,6 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
         } else {
             return std::make_unique<ColumnChunk>(std::move(dataType), capacity, enableCompression);
         }
-    }
-        // Physically, we only materialize offset of INTERNAL_ID, which is same as INT64,
-    case PhysicalTypeID::INTERNAL_ID: {
-        return std::make_unique<InternalIDColumnChunk>(capacity);
     }
     case PhysicalTypeID::FIXED_LIST: {
         return std::make_unique<FixedListColumnChunk>(

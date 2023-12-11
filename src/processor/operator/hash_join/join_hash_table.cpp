@@ -228,9 +228,10 @@ static void hashEntry(const uint8_t* entry, hash_t& result) {
 
 void JoinHashTable::getHashFunction(PhysicalTypeID physicalTypeID, hash_function_t& func) {
     switch (physicalTypeID) {
+    /* Case for struct?
     case PhysicalTypeID::INTERNAL_ID: {
         func = hashEntry<nodeID_t>;
-    } break;
+    } break; */
     case PhysicalTypeID::BOOL: {
         func = hashEntry<bool>;
     } break;
@@ -290,9 +291,10 @@ static void compareEntry(
 void JoinHashTable::getCompareFunction(
     PhysicalTypeID physicalTypeID, JoinHashTable::compare_function_t& func) {
     switch (physicalTypeID) {
+    /* Struct?
     case PhysicalTypeID::INTERNAL_ID: {
         func = compareEntry<nodeID_t>;
-    } break;
+    } break; */
     case PhysicalTypeID::BOOL: {
         func = compareEntry<bool>;
     } break;

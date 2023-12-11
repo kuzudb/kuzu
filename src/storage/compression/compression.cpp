@@ -29,8 +29,7 @@ uint32_t getDataTypeSizeInChunk(const common::LogicalType& dataType) {
     case PhysicalTypeID::STRING: {
         return sizeof(uint32_t);
     }
-    case PhysicalTypeID::VAR_LIST:
-    case PhysicalTypeID::INTERNAL_ID: {
+    case PhysicalTypeID::VAR_LIST: {
         return sizeof(offset_t);
     }
     default: {
@@ -208,7 +207,6 @@ std::optional<CompressionMetadata> ConstantCompression::analyze(const ColumnChun
     }
     case PhysicalTypeID::VAR_LIST:
     case PhysicalTypeID::STRING:
-    case PhysicalTypeID::INTERNAL_ID:
     case PhysicalTypeID::DOUBLE:
     case PhysicalTypeID::FLOAT:
     case PhysicalTypeID::UINT8:

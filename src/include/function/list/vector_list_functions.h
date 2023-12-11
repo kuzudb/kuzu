@@ -71,10 +71,6 @@ struct ListFunction {
             execFunc = ScalarFunction::BinaryExecListStructFunction<common::list_entry_t,
                 common::interval_t, RESULT_TYPE, OPERATION>;
         } break;
-        case common::PhysicalTypeID::INTERNAL_ID: {
-            execFunc = ScalarFunction::BinaryExecListStructFunction<common::list_entry_t,
-                common::internalID_t, RESULT_TYPE, OPERATION>;
-        } break;
         case common::PhysicalTypeID::VAR_LIST: {
             execFunc = ScalarFunction::BinaryExecListStructFunction<common::list_entry_t,
                 common::list_entry_t, RESULT_TYPE, OPERATION>;

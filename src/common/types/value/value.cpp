@@ -384,9 +384,6 @@ void Value::copyValueFrom(const Value& other) {
     case PhysicalTypeID::INTERVAL: {
         val.intervalVal = other.val.intervalVal;
     } break;
-    case PhysicalTypeID::INTERNAL_ID: {
-        val.internalIDVal = other.val.internalIDVal;
-    } break;
     case PhysicalTypeID::STRING: {
         strVal = other.strVal;
     } break;
@@ -607,9 +604,6 @@ void Value::serialize(Serializer& serializer) const {
     case PhysicalTypeID::INTERVAL: {
         serializer.serializeValue(val.intervalVal);
     } break;
-    case PhysicalTypeID::INTERNAL_ID: {
-        serializer.serializeValue(val.internalIDVal);
-    } break;
     case PhysicalTypeID::STRING: {
         serializer.serializeValue(strVal);
     } break;
@@ -671,9 +665,6 @@ std::unique_ptr<Value> Value::deserialize(Deserializer& deserializer) {
     } break;
     case PhysicalTypeID::INTERVAL: {
         deserializer.deserializeValue(val->val.intervalVal);
-    } break;
-    case PhysicalTypeID::INTERNAL_ID: {
-        deserializer.deserializeValue(val->val.internalIDVal);
     } break;
     case PhysicalTypeID::STRING: {
         deserializer.deserializeValue(val->strVal);

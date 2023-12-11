@@ -107,9 +107,6 @@ private:
             func = BinaryComparisonExecFunction<common::ku_string_t, common::ku_string_t, uint8_t,
                 FUNC>;
         } break;
-        case common::PhysicalTypeID::INTERNAL_ID: {
-            func = BinaryComparisonExecFunction<common::nodeID_t, common::nodeID_t, uint8_t, FUNC>;
-        } break;
         case common::PhysicalTypeID::INTERVAL: {
             func =
                 BinaryComparisonExecFunction<common::interval_t, common::interval_t, uint8_t, FUNC>;
@@ -173,9 +170,6 @@ private:
         } break;
         case common::PhysicalTypeID::STRING: {
             func = BinaryComparisonSelectFunction<common::ku_string_t, common::ku_string_t, FUNC>;
-        } break;
-        case common::PhysicalTypeID::INTERNAL_ID: {
-            func = BinaryComparisonSelectFunction<common::nodeID_t, common::nodeID_t, FUNC>;
         } break;
         case common::PhysicalTypeID::INTERVAL: {
             func = BinaryComparisonSelectFunction<common::interval_t, common::interval_t, FUNC>;

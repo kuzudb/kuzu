@@ -24,10 +24,11 @@ RelTableStats::RelTableStats(
         bwdCSROffsetMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(
             LogicalType{LogicalTypeID::INT64}, *metadataFH, bufferManager, wal);
     }
-    fwdNbrIDMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(
-        LogicalType{LogicalTypeID::INTERNAL_ID}, *metadataFH, bufferManager, wal);
-    bwdNbrIDMetadataDAHInfo = TablesStatistics::createMetadataDAHInfo(
-        LogicalType{LogicalTypeID::INTERNAL_ID}, *metadataFH, bufferManager, wal);
+    auto fwBwType = LogicalType::INTERNAL_ID();
+    fwdNbrIDMetadataDAHInfo =
+        TablesStatistics::createMetadataDAHInfo(*fwBwType, *metadataFH, bufferManager, wal);
+    bwdNbrIDMetadataDAHInfo =
+        TablesStatistics::createMetadataDAHInfo(*fwBwType, *metadataFH, bufferManager, wal);
     fwdPropertyMetadataDAHInfos.clear();
     bwdPropertyMetadataDAHInfos.clear();
     fwdPropertyMetadataDAHInfos.reserve(schema.getNumProperties());

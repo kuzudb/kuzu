@@ -175,6 +175,7 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinMaxFunction(std:
             MinMaxFunction<ku_string_t>::updatePos<FUNC>,
             MinMaxFunction<ku_string_t>::combine<FUNC>, MinMaxFunction<ku_string_t>::finalize,
             isDistinct);
+    /* TODO: Do we need a struct version to replace this?
     case PhysicalTypeID::INTERNAL_ID:
         return std::make_unique<AggregateFunction>(std::move(name), std::move(inputTypes),
             resultType, MinMaxFunction<internalID_t>::initialize,
@@ -182,6 +183,7 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinMaxFunction(std:
             MinMaxFunction<internalID_t>::updatePos<FUNC>,
             MinMaxFunction<internalID_t>::combine<FUNC>, MinMaxFunction<internalID_t>::finalize,
             isDistinct);
+    */
     default:
         KU_UNREACHABLE;
     }

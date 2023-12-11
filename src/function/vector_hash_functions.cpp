@@ -11,9 +11,6 @@ void VectorHashFunction::computeHash(ValueVector* operand, ValueVector* result) 
     result->state = operand->state;
     KU_ASSERT(result->dataType.getLogicalTypeID() == LogicalTypeID::INT64);
     switch (operand->dataType.getPhysicalType()) {
-    case PhysicalTypeID::INTERNAL_ID: {
-        UnaryHashFunctionExecutor::execute<internalID_t, hash_t>(*operand, *result);
-    } break;
     case PhysicalTypeID::BOOL: {
         UnaryHashFunctionExecutor::execute<bool, hash_t>(*operand, *result);
     } break;

@@ -23,47 +23,6 @@ static inline bool isPageIdxValid(page_idx_t pageIdx, const ColumnChunkMetadata&
            (pageIdx == INVALID_PAGE_IDX && metadata.compMeta.isConstant());
 }
 
-struct ReadInternalIDValuesToVector {
-    ReadInternalIDValuesToVector() : compressedReader{LogicalType(LogicalTypeID::INTERNAL_ID)} {}
-    void operator()(const uint8_t* frame, PageElementCursor& pageCursor, ValueVector* resultVector,
-        uint32_t posInVector, uint32_t numValuesToRead, const CompressionMetadata& metadata) {
-        KU_ASSERT(resultVector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
-
-        std::unique_ptr<offset_t[]> buffer = std::make_unique<offset_t[]>(numValuesToRead);
-        compressedReader(frame, pageCursor, (uint8_t*)buffer.get(), 0, numValuesToRead, metadata);
-        auto resultData = (internalID_t*)resultVector->getData();
-        for (auto i = 0u; i < numValuesToRead; i++) {
-            resultData[posInVector + i].offset = buffer[i];
-        }
-    }
-
-private:
-    ReadCompressedValuesFromPage compressedReader;
-};
-
-struct WriteInternalIDValuesToPage {
-    WriteInternalIDValuesToPage() : compressedWriter{LogicalType(LogicalTypeID::INTERNAL_ID)} {}
-    void operator()(uint8_t* frame, uint16_t posInFrame, const uint8_t* data, uint32_t dataOffset,
-        offset_t numValues, const CompressionMetadata& metadata) {
-        auto internalIDValues = reinterpret_cast<const internalID_t*>(data);
-
-        for (auto i = 0u; i < numValues; i++) {
-            compressedWriter(frame, posInFrame,
-                reinterpret_cast<const uint8_t*>(&internalIDValues[dataOffset + i].offset),
-                0 /*dataOffset*/, 1 /*numValues*/, metadata);
-        }
-    }
-    void operator()(uint8_t* frame, uint16_t posInFrame, ValueVector* vector,
-        uint32_t offsetInVector, const CompressionMetadata& metadata) {
-        KU_ASSERT(vector->dataType.getPhysicalType() == PhysicalTypeID::INTERNAL_ID);
-        compressedWriter(
-            frame, posInFrame, vector->getData(), offsetInVector, 1 /*numValues*/, metadata);
-    }
-
-private:
-    WriteCompressedValuesToPage compressedWriter;
-};
-
 struct NullColumnFunc {
     static void readValuesFromPageToVector(const uint8_t* frame, PageElementCursor& pageCursor,
         ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead,
@@ -91,33 +50,6 @@ struct NullColumnFunc {
         NullMask::setNull((uint64_t*)frame, posInFrame, vector->isNull(posInVector));
     }
 };
-
-static read_values_to_vector_func_t getReadValuesToVectorFunc(const LogicalType& logicalType) {
-    switch (logicalType.getLogicalTypeID()) {
-    case LogicalTypeID::INTERNAL_ID:
-        return ReadInternalIDValuesToVector();
-    default:
-        return ReadCompressedValuesFromPageToVector(logicalType);
-    }
-}
-
-static write_values_from_vector_func_t getWriteValueFromVectorFunc(const LogicalType& logicalType) {
-    switch (logicalType.getLogicalTypeID()) {
-    case LogicalTypeID::INTERNAL_ID:
-        return WriteInternalIDValuesToPage();
-    default:
-        return WriteCompressedValuesToPage(logicalType);
-    }
-}
-
-static write_values_func_t getWriteValuesFunc(const LogicalType& logicalType) {
-    switch (logicalType.getLogicalTypeID()) {
-    case LogicalTypeID::INTERNAL_ID:
-        return WriteInternalIDValuesToPage();
-    default:
-        return WriteCompressedValuesToPage(logicalType);
-    }
-}
 
 class NullColumn final : public Column {
     friend StructColumn;
@@ -320,21 +252,6 @@ public:
     }
 };
 
-InternalIDColumn::InternalIDColumn(std::string name, const MetadataDAHInfo& metaDAHeaderInfo,
-    BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-    transaction::Transaction* transaction, RWPropertyStats stats)
-    : Column{name, LogicalType::INTERNAL_ID(), metaDAHeaderInfo, dataFH, metadataFH, bufferManager,
-          wal, transaction, stats, false /* enableCompression */},
-      commonTableID{INVALID_TABLE_ID} {}
-
-void InternalIDColumn::populateCommonTableID(ValueVector* resultVector) const {
-    auto nodeIDs = ((internalID_t*)resultVector->getData());
-    for (auto i = 0u; i < resultVector->state->selVector->selectedSize; i++) {
-        auto pos = resultVector->state->selVector->selectedPositions[i];
-        nodeIDs[pos].tableID = commonTableID;
-    }
-}
-
 Column::Column(std::string name, std::unique_ptr<LogicalType> dataType,
     const MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH, BMFileHandle* metadataFH,
     BufferManager* bufferManager, WAL* wal, transaction::Transaction* transaction,
@@ -346,11 +263,11 @@ Column::Column(std::string name, std::unique_ptr<LogicalType> dataType,
         DBFileID::newMetadataFileID(), metaDAHeaderInfo.dataDAHPageIdx, bufferManager, wal,
         transaction);
     numBytesPerFixedSizedValue = getDataTypeSizeInChunk(*this->dataType);
-    readToVectorFunc = getReadValuesToVectorFunc(*this->dataType);
+    readToVectorFunc = ReadCompressedValuesFromPageToVector(*this->dataType);
     readToPageFunc = ReadCompressedValuesFromPage(*this->dataType);
     batchLookupFunc = ReadCompressedValuesFromPage(*this->dataType);
-    writeFromVectorFunc = getWriteValueFromVectorFunc(*this->dataType);
-    writeFunc = getWriteValuesFunc(*this->dataType);
+    writeFromVectorFunc = WriteCompressedValuesToPage(*this->dataType);
+    writeFunc = WriteCompressedValuesToPage(*this->dataType);
     KU_ASSERT(numBytesPerFixedSizedValue <= BufferPoolConstants::PAGE_4KB_SIZE);
     if (requireNullColumn) {
         auto columnName =
@@ -916,10 +833,6 @@ std::unique_ptr<Column> ColumnFactory::createColumn(std::string name,
         return std::make_unique<Column>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
             metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
     }
-    case LogicalTypeID::INTERNAL_ID: {
-        return std::make_unique<InternalIDColumn>(name, metaDAHeaderInfo, dataFH, metadataFH,
-            bufferManager, wal, transaction, propertyStatistics);
-    }
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING: {
         return std::make_unique<StringColumn>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
@@ -930,6 +843,7 @@ std::unique_ptr<Column> ColumnFactory::createColumn(std::string name,
         return std::make_unique<VarListColumn>(name, std::move(dataType), metaDAHeaderInfo, dataFH,
             metadataFH, bufferManager, wal, transaction, propertyStatistics, enableCompression);
     }
+    case LogicalTypeID::INTERNAL_ID:
     case LogicalTypeID::UNION:
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::RDF_VARIANT: {

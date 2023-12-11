@@ -188,42 +188,6 @@ protected:
     bool enableCompression;
 };
 
-class InternalIDColumn : public Column {
-public:
-    InternalIDColumn(std::string name, const MetadataDAHInfo& metaDAHeaderInfo,
-        BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
-        transaction::Transaction* transaction, RWPropertyStats stats);
-
-    inline void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) override {
-        Column::scan(transaction, nodeIDVector, resultVector);
-        populateCommonTableID(resultVector);
-    }
-
-    inline void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
-        common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
-        common::ValueVector* resultVector, uint64_t offsetInVector) override {
-        Column::scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup, resultVector,
-            offsetInVector);
-        populateCommonTableID(resultVector);
-    }
-
-    inline void lookup(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) override {
-        Column::lookup(transaction, nodeIDVector, resultVector);
-        populateCommonTableID(resultVector);
-    }
-
-    // TODO(Guodong): Should figure out a better way to set tableID, and remove this function.
-    inline void setCommonTableID(common::table_id_t tableID) { commonTableID = tableID; }
-
-private:
-    void populateCommonTableID(common::ValueVector* resultVector) const;
-
-private:
-    common::table_id_t commonTableID;
-};
-
 struct ColumnFactory {
     static std::unique_ptr<Column> createColumn(std::string name,
         std::unique_ptr<common::LogicalType> dataType, const MetadataDAHInfo& metaDAHeaderInfo,

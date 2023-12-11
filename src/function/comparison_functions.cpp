@@ -84,11 +84,6 @@ static void executeNestedOperation(uint8_t& result, ValueVector* leftVector,
             rightVector->getValue<interval_t>(rightPos), result, nullptr /* left */,
             nullptr /* right */);
     } break;
-    case PhysicalTypeID::INTERNAL_ID: {
-        OP::operation(leftVector->getValue<internalID_t>(leftPos),
-            rightVector->getValue<internalID_t>(rightPos), result, nullptr /* left */,
-            nullptr /* right */);
-    } break;
     case PhysicalTypeID::VAR_LIST: {
         OP::operation(leftVector->getValue<list_entry_t>(leftPos),
             rightVector->getValue<list_entry_t>(rightPos), result, leftVector, rightVector);

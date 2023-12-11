@@ -639,11 +639,25 @@ static bool compareEntry(common::ValueVector* vector, uint32_t vectorPos, const 
     return result != 0;
 }
 
+static bool compareInternalIDEntry(
+    common::ValueVector* vector, uint32_t vectorPos, const uint8_t* entry) {
+    auto offsetVector = common::StructVector::getFieldVector(vector, 0).get();
+    auto tableVector = common::StructVector::getFieldVector(vector, 0).get();
+    return compareEntry<offset_t>(offsetVector, vectorPos,
+               entry + common::NullBuffer::getNumBytesForNullValues(
+                           common::StructType::getNumFields(&vector->dataType))) &&
+           compareEntry<table_id_t>(tableVector, vectorPos,
+               entry + common::NullBuffer::getNumBytesForNullValues(
+                           common::StructType::getNumFields(&vector->dataType)));
+    ;
+}
+
 static bool compareNodeEntry(
     common::ValueVector* vector, uint32_t vectorPos, const uint8_t* entry) {
     KU_ASSERT(0 == common::StructType::getFieldIdx(&vector->dataType, common::InternalKeyword::ID));
     auto idVector = common::StructVector::getFieldVector(vector, 0).get();
-    return compareEntry<common::internalID_t>(idVector, vectorPos,
+    // TODO: internalID is now a substructure
+    return compareInternalIDEntry(idVector, vectorPos,
         entry + common::NullBuffer::getNumBytesForNullValues(
                     common::StructType::getNumFields(&vector->dataType)));
 }
@@ -651,7 +665,7 @@ static bool compareNodeEntry(
 static bool compareRelEntry(common::ValueVector* vector, uint32_t vectorPos, const uint8_t* entry) {
     KU_ASSERT(3 == common::StructType::getFieldIdx(&vector->dataType, common::InternalKeyword::ID));
     auto idVector = common::StructVector::getFieldVector(vector, 3).get();
-    return compareEntry<common::internalID_t>(idVector, vectorPos,
+    return compareInternalIDEntry(idVector, vectorPos,
         entry + sizeof(common::internalID_t) * 2 + sizeof(common::ku_string_t) +
             common::NullBuffer::getNumBytesForNullValues(
                 common::StructType::getNumFields(&vector->dataType)));
@@ -660,10 +674,6 @@ static bool compareRelEntry(common::ValueVector* vector, uint32_t vectorPos, con
 void AggregateHashTable::getCompareEntryWithKeysFunc(
     const LogicalType& logicalType, compare_function_t& func) {
     switch (logicalType.getPhysicalType()) {
-    case PhysicalTypeID::INTERNAL_ID: {
-        func = compareEntry<nodeID_t>;
-        return;
-    }
     case PhysicalTypeID::BOOL: {
         func = compareEntry<bool>;
         return;
@@ -726,6 +736,9 @@ void AggregateHashTable::getCompareEntryWithKeysFunc(
             return;
         } else if (logicalType.getLogicalTypeID() == LogicalTypeID::REL) {
             func = compareRelEntry;
+            return;
+        } else if (logicalType.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID) {
+            func = compareInternalIDEntry;
             return;
         }
     }

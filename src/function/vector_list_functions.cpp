@@ -211,10 +211,6 @@ std::unique_ptr<FunctionBindData> ListExtractFunction::bindFunc(
         scalarFunction->execFunc =
             BinaryExecListExtractFunction<list_entry_t, int64_t, struct_entry_t, ListExtract>;
     } break;
-    case PhysicalTypeID::INTERNAL_ID: {
-        scalarFunction->execFunc =
-            BinaryExecListExtractFunction<list_entry_t, int64_t, internalID_t, ListExtract>;
-    } break;
     default: {
         KU_UNREACHABLE;
     }

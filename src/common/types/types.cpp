@@ -48,8 +48,6 @@ std::string PhysicalTypeUtils::physicalTypeToString(PhysicalTypeID physicalType)
         return "INTERVAL";
     case PhysicalTypeID::FIXED_LIST:
         return "FIXED_LIST";
-    case PhysicalTypeID::INTERNAL_ID:
-        return "INTERNAL_ID";
     case PhysicalTypeID::STRING:
         return "STRING";
     case PhysicalTypeID::STRUCT:
@@ -92,8 +90,6 @@ uint32_t PhysicalTypeUtils::getFixedTypeSize(PhysicalTypeID physicalType) {
         return sizeof(float_t);
     case PhysicalTypeID::INTERVAL:
         return sizeof(interval_t);
-    case PhysicalTypeID::INTERNAL_ID:
-        return sizeof(internalID_t);
     default:
         KU_UNREACHABLE;
     }
@@ -269,6 +265,9 @@ LogicalType::LogicalType(LogicalTypeID typeID) : typeID{typeID}, extraTypeInfo{n
 LogicalType::LogicalType(LogicalTypeID typeID, std::unique_ptr<ExtraTypeInfo> extraTypeInfo)
     : typeID{typeID}, extraTypeInfo{std::move(extraTypeInfo)} {
     physicalType = getPhysicalType(typeID);
+    if (typeID == LogicalTypeID::INTERNAL_ID && !this->extraTypeInfo) {
+        throw Exception("INTERNAL_ID needs extra type info!");
+    }
 }
 
 LogicalType::LogicalType(const LogicalType& other) {
@@ -495,7 +494,7 @@ PhysicalTypeID LogicalType::getPhysicalType(LogicalTypeID typeID) {
         return PhysicalTypeID::FIXED_LIST;
     } break;
     case LogicalTypeID::INTERNAL_ID: {
-        return PhysicalTypeID::INTERNAL_ID;
+        return PhysicalTypeID::STRUCT;
     } break;
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING: {
@@ -884,6 +883,16 @@ std::unique_ptr<LogicalType> LogicalTypeUtils::parseUnionType(const std::string&
         UnionType::TAG_FIELD_NAME, std::make_unique<LogicalType>(UnionType::TAG_FIELD_TYPE));
     unionFields.insert(unionFields.begin(), std::move(unionTagField));
     return LogicalType::UNION(std::move(unionFields));
+}
+
+std::unique_ptr<LogicalType> LogicalType::INTERNAL_ID() {
+    std::vector<StructField> fieldsVector;
+    fieldsVector.reserve(2);
+    fieldsVector.emplace_back("TABLE_ID", UINT64());
+    // FIXME(bmwinger): From internalID_t the offset should be a UINT64, but it's assumed to be
+    // INT64 elsewhere
+    fieldsVector.emplace_back("OFFSET", INT64());
+    return LogicalType::STRUCT(std::move(fieldsVector));
 }
 
 std::unique_ptr<LogicalType> LogicalType::STRUCT(std::vector<StructField>&& fields) {

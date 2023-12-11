@@ -4,6 +4,7 @@
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/local_storage/local_table.h"
 #include "storage/stats/rels_store_statistics.h"
+#include "storage/store/struct_column.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -114,10 +115,6 @@ RelTableData::RelTableData(BMFileHandle* dataFH, BMFileHandle* metadataFH,
             RWPropertyStats(relsStoreStats, tableID, property->getPropertyID()),
             enableCompression));
     }
-    // Set common tableID for adjColumn and relIDColumn.
-    dynamic_cast<InternalIDColumn*>(adjColumn.get())
-        ->setCommonTableID(tableSchema->getNbrTableID(direction));
-    dynamic_cast<InternalIDColumn*>(columns[REL_ID_COLUMN_ID].get())->setCommonTableID(tableID);
 }
 
 void RelTableData::initializeReadState(Transaction* transaction,
@@ -401,13 +398,13 @@ void RelTableData::prepareCommitForCSRColumns(
         auto numRels = csrOffsetChunk->getNumValues() == 0 ?
                            0 :
                            csrOffsetChunk->getValue<offset_t>(csrOffsetChunk->getNumValues() - 1);
-        // NOTE: There is an implicit trick happening. Due to the mismatch of storage type and
-        // in-memory representation of INTERNAL_ID, we only store offset as INT64 on disk. Here
-        // we directly read relID's offset part from disk into an INT64 column chunk.
-        // TODO: The term of relID and relOffset is mixed. We should use relOffset instead.
         auto relIDChunk = ColumnChunkFactory::createColumnChunk(
             LogicalType::INT64(), false /* enableCompression */, numRels);
-        columns[REL_ID_COLUMN_ID]->scan(transaction, nodeGroupIdx, relIDChunk.get());
+        // TODO(bmwinger): The column index for the IDs shouldn't be hardcoded (also may not be
+        // correct). There should be a better way to do this.
+        static_cast<StructColumn*>(columns[REL_ID_COLUMN_ID].get())
+            ->getChild(1)
+            ->scan(transaction, nodeGroupIdx, relIDChunk.get());
         if (relNodeGroupInfo->deleteInfo.empty() && relNodeGroupInfo->adjInsertInfo.empty()) {
             // We don't need to update the csr offset column if there is no deletion or insertion.
             // Thus, we can fall back to directly update the adj column and property columns based

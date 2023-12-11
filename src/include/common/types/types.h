@@ -133,7 +133,6 @@ enum class PhysicalTypeID : uint8_t {
     DOUBLE = 11,
     FLOAT = 12,
     INTERVAL = 13,
-    INTERNAL_ID = 14,
 
     // Variable size types.
     STRING = 20,
@@ -344,9 +343,6 @@ public:
     static std::unique_ptr<LogicalType> INTERVAL() {
         return std::make_unique<LogicalType>(LogicalTypeID::INTERVAL);
     }
-    static std::unique_ptr<LogicalType> INTERNAL_ID() {
-        return std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID);
-    }
     static std::unique_ptr<LogicalType> SERIAL() {
         return std::make_unique<LogicalType>(LogicalTypeID::SERIAL);
     }
@@ -359,6 +355,7 @@ public:
     static std::unique_ptr<LogicalType> POINTER() {
         return std::make_unique<LogicalType>(LogicalTypeID::POINTER);
     }
+    static KUZU_API std::unique_ptr<LogicalType> INTERNAL_ID();
     static KUZU_API std::unique_ptr<LogicalType> STRUCT(std::vector<StructField>&& fields);
 
     static KUZU_API std::unique_ptr<LogicalType> RECURSIVE_REL(
