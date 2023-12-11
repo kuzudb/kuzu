@@ -160,13 +160,13 @@ void Catalog::renameTable(table_id_t tableID, const std::string& newName) {
 void Catalog::addNodeProperty(
     table_id_t tableID, const std::string& propertyName, std::unique_ptr<LogicalType> dataType) {
     KU_ASSERT(readWriteVersion != nullptr);
-    readWriteVersion->getTableSchema(tableID)->addNodeProperty(propertyName, std::move(dataType));
+    readWriteVersion->getTableSchema(tableID)->addProperty(propertyName, std::move(dataType));
 }
 
 void Catalog::addRelProperty(
     table_id_t tableID, const std::string& propertyName, std::unique_ptr<LogicalType> dataType) {
     KU_ASSERT(readWriteVersion != nullptr);
-    readWriteVersion->getTableSchema(tableID)->addRelProperty(propertyName, std::move(dataType));
+    readWriteVersion->getTableSchema(tableID)->addProperty(propertyName, std::move(dataType));
 }
 
 void Catalog::dropProperty(table_id_t tableID, property_id_t propertyID) {

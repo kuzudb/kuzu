@@ -119,7 +119,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
     auto& copyStatement = reinterpret_cast<const CopyFrom&>(statement);
     auto func = getScanFunction(config->fileType, *config);
     // For table with SERIAL columns, we need to read in serial from files.
-    auto containsSerial = tableSchema->containsColumnType(LogicalType(LogicalTypeID::SERIAL));
+    auto containsSerial = tableSchema->containPropertyType(*LogicalType::SERIAL());
     std::vector<std::string> expectedColumnNames;
     std::vector<std::unique_ptr<common::LogicalType>> expectedColumnTypes;
     bindExpectedNodeColumns(
@@ -146,7 +146,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const parser::Statement&
     auto& copyStatement = reinterpret_cast<const CopyFrom&>(statement);
     auto func = getScanFunction(config->fileType, *config);
     // For table with SERIAL columns, we need to read in serial from files.
-    auto containsSerial = tableSchema->containsColumnType(LogicalType(LogicalTypeID::SERIAL));
+    auto containsSerial = tableSchema->containPropertyType(*LogicalType::SERIAL());
     KU_ASSERT(containsSerial == false);
     std::vector<std::string> expectedColumnNames;
     std::vector<std::unique_ptr<common::LogicalType>> expectedColumnTypes;

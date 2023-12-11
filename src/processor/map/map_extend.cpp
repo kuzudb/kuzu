@@ -106,7 +106,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logical
         auto relDataDirection = ExtendDirectionUtils::getRelDataDirection(extendDirection);
         auto scanInfo = getRelTableScanInfo(
             tableSchema, relDataDirection, storageManager, extend->getProperties());
-        if (tableSchema->isSingleMultiplicityInDirection(relDataDirection)) {
+        if (tableSchema->isSingleMultiplicity(relDataDirection)) {
             return std::make_unique<ScanRelRegularColumns>(std::move(scanInfo), inNodeVectorPos,
                 outVectorsPos, std::move(prevOperator), getOperatorID(),
                 extend->getExpressionsForPrinting());

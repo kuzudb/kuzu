@@ -9,12 +9,14 @@ class Deserializer;
 } // namespace common
 namespace catalog {
 
+class Property;
+using property_vector_t = std::vector<std::unique_ptr<Property>>;
+
 class Property {
 public:
     Property(std::string name, std::unique_ptr<common::LogicalType> dataType)
         : Property{std::move(name), std::move(dataType), common::INVALID_PROPERTY_ID,
               common::INVALID_TABLE_ID} {}
-
     Property(std::string name, std::unique_ptr<common::LogicalType> dataType,
         common::property_id_t propertyID, common::table_id_t tableID)
         : name{std::move(name)}, dataType{std::move(dataType)},
@@ -32,7 +34,7 @@ public:
 
     inline void setTableID(common::table_id_t tableID_) { this->tableID = tableID_; }
 
-    inline void rename(std::string newName) { this->name = std::move(newName); }
+    inline void rename(std::string newName) { name = std::move(newName); }
 
     void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<Property> deserialize(common::Deserializer& deserializer);

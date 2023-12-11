@@ -71,9 +71,9 @@ table_id_t CatalogContent::addRelTableSchema(const BoundCreateTableInfo& info) {
     KU_ASSERT(srcNodeTableSchema && dstNodeTableSchema);
     srcNodeTableSchema->addFwdRelTableID(tableID);
     dstNodeTableSchema->addBwdRelTableID(tableID);
-    auto relTableSchema =
-        std::make_unique<RelTableSchema>(info.tableName, tableID, extraInfo->relMultiplicity,
-            std::move(properties), extraInfo->srcTableID, extraInfo->dstTableID);
+    auto relTableSchema = std::make_unique<RelTableSchema>(info.tableName, tableID,
+        std::move(properties), extraInfo->srcMultiplicity, extraInfo->dstMultiplicity,
+        extraInfo->srcTableID, extraInfo->dstTableID);
     tableNameToIDMap.emplace(relTableSchema->tableName, tableID);
     tableSchemas.emplace(tableID, std::move(relTableSchema));
     return tableID;
@@ -147,7 +147,7 @@ void CatalogContent::renameTable(table_id_t tableID, const std::string& newName)
     auto tableSchema = getTableSchema(tableID);
     tableNameToIDMap.erase(tableSchema->tableName);
     tableNameToIDMap.emplace(newName, tableID);
-    tableSchema->updateTableName(newName);
+    tableSchema->renameTable(newName);
 }
 
 static void validateStorageVersion(storage_version_t savedStorageVersion) {

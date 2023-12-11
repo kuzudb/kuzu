@@ -53,15 +53,13 @@ static void appendPartitioner(BoundCopyFromInfo* copyFromInfo, LogicalPlan& plan
         payloads.push_back(extraInfo->dstOffset);
         // Partitioner for FWD direction rel data.
         infos.push_back(std::make_unique<LogicalPartitionerInfo>(extraInfo->srcOffset, payloads,
-            tableSchema->isSingleMultiplicityInDirection(RelDataDirection::FWD) ?
-                ColumnDataFormat::REGULAR :
-                ColumnDataFormat::CSR,
+            tableSchema->isSingleMultiplicity(RelDataDirection::FWD) ? ColumnDataFormat::REGULAR :
+                                                                       ColumnDataFormat::CSR,
             tableSchema));
         // Partitioner for BWD direction rel data.
         infos.push_back(std::make_unique<LogicalPartitionerInfo>(extraInfo->dstOffset, payloads,
-            tableSchema->isSingleMultiplicityInDirection(RelDataDirection::BWD) ?
-                ColumnDataFormat::REGULAR :
-                ColumnDataFormat::CSR,
+            tableSchema->isSingleMultiplicity(RelDataDirection::BWD) ? ColumnDataFormat::REGULAR :
+                                                                       ColumnDataFormat::CSR,
             tableSchema));
     } break;
     default: {
