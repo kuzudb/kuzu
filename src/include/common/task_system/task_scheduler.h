@@ -58,8 +58,6 @@ private:
     void runWorkerThread();
     std::shared_ptr<ScheduledTask> getTaskAndRegister();
 
-    void interruptTaskIfTimeOutNoLock(processor::ExecutionContext* context);
-
 private:
     std::deque<std::shared_ptr<ScheduledTask>> taskQueue;
     bool stopThreads;

@@ -40,7 +40,7 @@ void TaskScheduler::scheduleTaskAndWaitOrError(
         if (context->clientContext->isTimeOutEnabled()) {
             timeout = context->clientContext->getTimeoutRemainingInMS();
             if (timeout == 0) {
-                interruptTaskIfTimeOutNoLock(context);
+                context->clientContext->interrupt();
             } else {
                 timedWait = true;
             }
@@ -127,12 +127,5 @@ void TaskScheduler::runWorkerThread() {
         }
     }
 }
-
-void TaskScheduler::interruptTaskIfTimeOutNoLock(processor::ExecutionContext* context) {
-    if (context->clientContext->isTimeOut()) {
-        context->clientContext->interrupt();
-    }
-}
-
 } // namespace common
 } // namespace kuzu
