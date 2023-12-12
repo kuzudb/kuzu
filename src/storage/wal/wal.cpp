@@ -41,6 +41,9 @@ page_idx_t WAL::logPageInsertRecord(DBFileID dbFileID, page_idx_t pageIdxInOrigi
 
 void WAL::logCommit(uint64_t transactionID) {
     lock_t lck{mtx};
+    // Flush all pages before committing to make sure that commits only show up in the file when
+    // their data is also written.
+    flushAllPages();
     WALRecord walRecord = WALRecord::newCommitRecord(transactionID);
     addNewWALRecordNoLock(walRecord);
 }
@@ -195,9 +198,12 @@ void WALIterator::getNextRecord(WALRecord& retVal) {
     if ((numRecordsReadInCurrentHeaderPage == getNumRecordsInCurrentHeaderPage()) &&
         (getNextHeaderPageOfCurrentHeaderPage() != UINT32_MAX)) {
         page_idx_t nextHeaderPageIdx = getNextHeaderPageOfCurrentHeaderPage();
-        fileHandle->readPage(currentHeaderPageBuffer.get(), nextHeaderPageIdx);
-        offsetInCurrentHeaderPage = WAL_HEADER_PAGE_PREFIX_FIELD_SIZES;
-        numRecordsReadInCurrentHeaderPage = 0;
+        // If we were interrupted and pages are missing, don't try to read them
+        if (fileHandle->getNumPages() > nextHeaderPageIdx) {
+            fileHandle->readPage(currentHeaderPageBuffer.get(), nextHeaderPageIdx);
+            offsetInCurrentHeaderPage = WAL_HEADER_PAGE_PREFIX_FIELD_SIZES;
+            numRecordsReadInCurrentHeaderPage = 0;
+        }
     }
 }
 
