@@ -1,5 +1,6 @@
 #pragma once
 
+#include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <utility>
@@ -23,6 +24,7 @@ using lock_t = std::unique_lock<std::mutex>;
  * finalizeIfNecessary(). See ProcessorTask for an example of this.
  */
 class Task {
+    friend class TaskScheduler;
 
 public:
     explicit Task(uint64_t maxNumThreads);
@@ -100,6 +102,7 @@ public:
 
 protected:
     std::mutex mtx;
+    std::condition_variable cv;
     uint64_t maxNumThreads, numThreadsFinished{0}, numThreadsRegistered{0};
     std::exception_ptr exceptionsPtr = nullptr;
     uint64_t ID;

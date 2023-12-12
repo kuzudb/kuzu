@@ -30,15 +30,32 @@ void TaskScheduler::scheduleTaskAndWaitOrError(
     }
     auto scheduledTask = pushTaskIntoQueue(task);
     cv.notify_all();
-    while (!task->isCompleted()) {
+    std::unique_lock<std::mutex> taskLck{task->mtx, std::defer_lock};
+    while (true) {
+        taskLck.lock();
+        bool timedWait = false;
+        auto timeout = 0u;
+        if (task->isCompletedNoLock()) {
+            taskLck.unlock();
+            break;
+        }
         if (context->clientContext->isTimeOutEnabled()) {
-            interruptTaskIfTimeOutNoLock(context);
-        } else if (task->hasException()) {
+            timeout = context->clientContext->getTimeoutRemainingInMS();
+            if (timeout == 0) {
+                interruptTaskIfTimeOutNoLock(context);
+            } else {
+                timedWait = true;
+            }
+        } else if (task->hasExceptionNoLock()) {
             // Interrupt tasks that errored, so other threads can stop working on them early.
             context->clientContext->interrupt();
         }
-        std::this_thread::sleep_for(
-            std::chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
+        if (timedWait) {
+            task->cv.wait_for(taskLck, std::chrono::milliseconds(timeout));
+        } else {
+            task->cv.wait(taskLck);
+        }
+        taskLck.unlock();
     }
     if (task->hasException()) {
         removeErroringTask(scheduledTask->ID);

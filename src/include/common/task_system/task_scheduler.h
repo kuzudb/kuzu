@@ -61,10 +61,10 @@ private:
     void interruptTaskIfTimeOutNoLock(processor::ExecutionContext* context);
 
 private:
-    std::mutex mtx;
     std::deque<std::shared_ptr<ScheduledTask>> taskQueue;
     bool stopThreads;
     std::vector<std::thread> threads;
+    std::mutex mtx;
     std::condition_variable cv;
     uint64_t nextScheduledTaskID;
 };

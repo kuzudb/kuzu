@@ -55,6 +55,16 @@ public:
 
     inline bool isTimeOutEnabled() const { return timeoutInMS != 0; }
 
+    inline uint64_t getTimeoutRemainingInMS() {
+        if (!isTimeOutEnabled()) {
+            return UINT64_MAX;
+        }
+        if (isTimeOut()) {
+            return 0;
+        }
+        return timeoutInMS - activeQuery.timer.getElapsedTimeInMS();
+    }
+
     inline bool isEnableSemiMask() const { return enableSemiMask; }
 
     void startTimingIfEnabled();
