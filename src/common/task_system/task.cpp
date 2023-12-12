@@ -23,7 +23,7 @@ void Task::deRegisterThreadAndFinalizeTaskIfNecessary() {
         } catch (std::exception& e) { setExceptionNoLock(std::current_exception()); }
     }
     if (isCompletedNoLock()) {
-        mtx.unlock();
+        lck.unlock();
         cv.notify_all();
     }
 }
