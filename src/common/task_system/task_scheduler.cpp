@@ -34,6 +34,9 @@ void TaskScheduler::scheduleTaskAndWaitOrError(
         bool timedWait = false;
         auto timeout = 0u;
         if (task->isCompletedNoLock()) {
+            // Note: we do not remove completed tasks from the queue in this function. They will be
+            // removed by the worker threads when they traverse down the queue for a task to work on
+            // (see getTaskAndRegister()).
             taskLck.unlock();
             break;
         }

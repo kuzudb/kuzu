@@ -56,9 +56,7 @@ public:
     inline bool isTimeOutEnabled() const { return timeoutInMS != 0; }
 
     inline uint64_t getTimeoutRemainingInMS() {
-        if (!isTimeOutEnabled()) {
-            return UINT64_MAX;
-        }
+        KU_ASSERT(isTimeOutEnabled());
         auto elapsed = activeQuery.timer.getElapsedTimeInMS();
         return elapsed >= timeoutInMS ? 0 : timeoutInMS - elapsed;
     }
