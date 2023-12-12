@@ -55,6 +55,12 @@ public:
 
     inline bool isTimeOutEnabled() const { return timeoutInMS != 0; }
 
+    inline uint64_t getTimeoutRemainingInMS() {
+        KU_ASSERT(isTimeOutEnabled());
+        auto elapsed = activeQuery.timer.getElapsedTimeInMS();
+        return elapsed >= timeoutInMS ? 0 : timeoutInMS - elapsed;
+    }
+
     inline bool isEnableSemiMask() const { return enableSemiMask; }
 
     void startTimingIfEnabled();

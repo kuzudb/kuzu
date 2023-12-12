@@ -22,6 +22,10 @@ void Task::deRegisterThreadAndFinalizeTaskIfNecessary() {
             finalizeIfNecessary();
         } catch (std::exception& e) { setExceptionNoLock(std::current_exception()); }
     }
+    if (isCompletedNoLock()) {
+        lck.unlock();
+        cv.notify_all();
+    }
 }
 
 } // namespace common
