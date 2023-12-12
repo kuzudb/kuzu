@@ -59,10 +59,8 @@ public:
         if (!isTimeOutEnabled()) {
             return UINT64_MAX;
         }
-        if (isTimeOut()) {
-            return 0;
-        }
-        return timeoutInMS - activeQuery.timer.getElapsedTimeInMS();
+        auto elapsed = activeQuery.timer.getElapsedTimeInMS();
+        return elapsed >= timeoutInMS ? 0 : timeoutInMS - elapsed;
     }
 
     inline bool isEnableSemiMask() const { return enableSemiMask; }
