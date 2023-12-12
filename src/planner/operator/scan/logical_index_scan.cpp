@@ -5,16 +5,6 @@
 namespace kuzu {
 namespace planner {
 
-std::vector<std::unique_ptr<LogicalIndexScanNodeInfo>> LogicalIndexScanNodeInfo::copy(
-    const std::vector<std::unique_ptr<LogicalIndexScanNodeInfo>>& infos) {
-    std::vector<std::unique_ptr<LogicalIndexScanNodeInfo>> result;
-    result.reserve(infos.size());
-    for (auto& info : infos) {
-        result.push_back(info->copy());
-    }
-    return result;
-}
-
 std::string LogicalIndexScanNode::getExpressionsForPrinting() const {
     binder::expression_vector expressions;
     for (auto& info : infos) {

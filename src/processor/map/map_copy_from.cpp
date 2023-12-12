@@ -1,13 +1,11 @@
-#include "binder/copy/bound_copy_from.h"
 #include "binder/expression/variable_expression.h"
 #include "catalog/node_table_schema.h"
-#include "common/copier_config/rdf_reader_config.h"
 #include "planner/operator/logical_partitioner.h"
 #include "planner/operator/persistent/logical_copy_from.h"
+#include "processor/operator/aggregate/hash_aggregate_scan.h"
 #include "processor/operator/call/in_query_call.h"
 #include "processor/operator/partitioner.h"
 #include "processor/operator/persistent/copy_node.h"
-#include "processor/operator/persistent/copy_rdf_resource.h"
 #include "processor/operator/persistent/copy_rel.h"
 #include "processor/plan_mapper.h"
 
@@ -90,10 +88,17 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     auto tableSchema = (catalog::NodeTableSchema*)copyFromInfo->tableSchema;
     // Map reader.
     auto prevOperator = mapOperator(copyFrom->getChild(0).get());
-    auto inQueryCall = reinterpret_cast<InQueryCall*>(prevOperator.get());
+    auto sharedState = std::make_shared<CopyNodeSharedState>();
+    if (prevOperator->getOperatorType() == PhysicalOperatorType::IN_QUERY_CALL) {
+        auto inQueryCall = ku_dynamic_cast<PhysicalOperator*, InQueryCall*>(prevOperator.get());
+        sharedState->readerSharedState = inQueryCall->getSharedState();
+    } else {
+        KU_ASSERT(prevOperator->getOperatorType() == PhysicalOperatorType::AGGREGATE_SCAN);
+        auto hashScan = ku_dynamic_cast<PhysicalOperator*, HashAggregateScan*>(prevOperator.get());
+        sharedState->distinctSharedState = hashScan->getSharedState().get();
+    }
     // Map copy node.
     auto nodeTable = storageManager.getNodeTable(tableSchema->tableID);
-    auto sharedState = std::make_shared<CopyNodeSharedState>(inQueryCall->getSharedState());
     sharedState->wal = storageManager.getWAL();
     sharedState->table = nodeTable;
     auto pk = tableSchema->getPrimaryKey();
@@ -126,22 +131,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(LogicalOperator* l
     auto info = std::make_unique<CopyNodeInfo>(std::move(columnPositions), nodeTable, fwdRelTables,
         bwdRelTables, tableSchema->tableName, copyFromInfo->containsSerial,
         storageManager.compressionEnabled());
-    std::unique_ptr<PhysicalOperator> copyNode;
-    auto readerConfig =
-        reinterpret_cast<function::ScanBindData*>(copyFromInfo->fileScanInfo->bindData.get())
-            ->config;
-    bool isRdfFile =
-        readerConfig.fileType == FileType::TURTLE || readerConfig.fileType == FileType::NQUADS;
-    if (isRdfFile && reinterpret_cast<RdfReaderConfig*>(readerConfig.extraConfig.get())->mode ==
-                         RdfReaderMode::RESOURCE) {
-        copyNode = std::make_unique<CopyRdfResource>(sharedState, std::move(info),
-            std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), std::move(prevOperator),
-            getOperatorID(), copyFrom->getExpressionsForPrinting());
-    } else {
-        copyNode = std::make_unique<CopyNode>(sharedState, std::move(info),
-            std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), std::move(prevOperator),
-            getOperatorID(), copyFrom->getExpressionsForPrinting());
-    }
+    auto copyNode = std::make_unique<CopyNode>(sharedState, std::move(info),
+        std::make_unique<ResultSetDescriptor>(copyFrom->getSchema()), std::move(prevOperator),
+        getOperatorID(), copyFrom->getExpressionsForPrinting());
     auto outputExpressions = binder::expression_vector{copyFrom->getOutputExpression()->copy()};
     return createFactorizedTableScanAligned(outputExpressions, copyFrom->getSchema(),
         sharedState->fTable, DEFAULT_VECTOR_CAPACITY /* maxMorselSize */, std::move(copyNode));

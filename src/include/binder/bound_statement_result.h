@@ -22,7 +22,7 @@ public:
     }
     inline expression_vector getColumns() const { return columns; }
 
-    inline std::shared_ptr<Expression> getSingleExpressionToCollect() {
+    inline std::shared_ptr<Expression> getSingleColumnExpr() {
         KU_ASSERT(columns.size() == 1);
         return columns[0];
     }

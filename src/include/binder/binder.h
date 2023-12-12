@@ -94,8 +94,9 @@ private:
 
     common::table_id_t bindTableID(const std::string& tableName) const;
 
+    std::shared_ptr<Expression> createVariable(std::string_view name, common::LogicalTypeID typeID);
     std::shared_ptr<Expression> createVariable(
-        const std::string& name, common::LogicalTypeID logicalTypeID);
+        const std::string& name, common::LogicalTypeID typeID);
     std::shared_ptr<Expression> createVariable(
         const std::string& name, const common::LogicalType& dataType);
 

@@ -6,6 +6,7 @@
 #include "common/keyword/rdf_keyword.h"
 #include "common/types/rdf_variant_type.h"
 #include "function/table_functions/bind_input.h"
+#include "main/client_context.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;
@@ -19,22 +20,21 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfNodeFrom(const Statement& /*s
     std::unique_ptr<ReaderConfig> config, TableSchema* tableSchema) {
     auto func = getScanFunction(config->fileType, *config);
     bool containsSerial;
-    auto stringType = LogicalType{LogicalTypeID::STRING};
     std::vector<std::string> columnNames;
     std::vector<std::unique_ptr<common::LogicalType>> columnTypes;
     columnNames.emplace_back(rdf::IRI);
+    RdfReaderMode mode;
     if (tableSchema->tableName.ends_with(rdf::RESOURCE_TABLE_SUFFIX)) {
         containsSerial = false;
-        columnTypes.push_back(stringType.copy());
-        config->extraConfig =
-            std::make_unique<RdfReaderConfig>(RdfReaderMode::RESOURCE, nullptr /* index */);
+        columnTypes.push_back(LogicalType::STRING());
+        mode = RdfReaderMode::RESOURCE;
     } else {
         KU_ASSERT(tableSchema->tableName.ends_with(rdf::LITERAL_TABLE_SUFFIX));
         containsSerial = true;
         columnTypes.push_back(RdfVariantType::getType());
-        config->extraConfig =
-            std::make_unique<RdfReaderConfig>(RdfReaderMode::LITERAL, nullptr /* index */);
+        mode = RdfReaderMode::LITERAL;
     }
+    config->extraConfig = std::make_unique<RdfReaderConfig>(mode);
     auto bindInput = std::make_unique<function::ScanTableFuncBindInput>(
         memoryManager, *config, columnNames, std::move(columnTypes));
     auto bindData =
@@ -44,7 +44,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfNodeFrom(const Statement& /*s
         columns.push_back(createVariable(bindData->columnNames[i], *bindData->columnTypes[i]));
     }
     auto offset = expressionBinder.createVariableExpression(
-        LogicalType(LogicalTypeID::INT64), InternalKeyword::ROW_OFFSET);
+        *LogicalType::INT64(), std::string(InternalKeyword::ROW_OFFSET));
     auto boundFileScanInfo =
         std::make_unique<BoundFileScanInfo>(func, std::move(bindData), columns, std::move(offset));
     auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(
@@ -54,27 +54,26 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfNodeFrom(const Statement& /*s
 
 std::unique_ptr<BoundStatement> Binder::bindCopyRdfRelFrom(const Statement& /*statement*/,
     std::unique_ptr<ReaderConfig> config, TableSchema* tableSchema) {
+    // Bind Scan
     auto func = getScanFunction(config->fileType, *config);
     auto containsSerial = false;
     std::vector<std::string> columnNames;
-    columnNames.emplace_back(InternalKeyword::SRC_OFFSET);
-    columnNames.emplace_back(rdf::PID);
-    columnNames.emplace_back(InternalKeyword::DST_OFFSET);
-    std::vector<std::unique_ptr<common::LogicalType>> columnTypes;
-    columnTypes.reserve(3);
-    for (auto i = 0u; i < 3; ++i) {
+    logical_types_t columnTypes;
+    RdfReaderMode mode;
+    columnNames.emplace_back(rdf::SUBJECT);
+    columnNames.emplace_back(rdf::PREDICATE);
+    columnTypes.push_back(LogicalType::STRING());
+    columnTypes.push_back(LogicalType::STRING());
+    if (tableSchema->tableName.ends_with(rdf::RESOURCE_TRIPLE_TABLE_SUFFIX)) {
+        mode = RdfReaderMode::RESOURCE_TRIPLE;
+        columnNames.emplace_back(rdf::OBJECT);
+        columnTypes.push_back(LogicalType::STRING());
+    } else {
+        mode = RdfReaderMode::LITERAL_TRIPLE;
+        columnNames.emplace_back(InternalKeyword::DST_OFFSET);
         columnTypes.push_back(LogicalType::INT64());
     }
-    auto relTableSchema = reinterpret_cast<RelTableSchema*>(tableSchema);
-    auto resourceTableID = relTableSchema->getSrcTableID();
-    auto index = storageManager->getPKIndex(resourceTableID);
-    if (tableSchema->tableName.ends_with(rdf::RESOURCE_TRIPLE_TABLE_SUFFIX)) {
-        config->extraConfig =
-            std::make_unique<RdfReaderConfig>(RdfReaderMode::RESOURCE_TRIPLE, index);
-    } else {
-        config->extraConfig =
-            std::make_unique<RdfReaderConfig>(RdfReaderMode::LITERAL_TRIPLE, index);
-    }
+    config->extraConfig = std::make_unique<RdfReaderConfig>(mode);
     auto bindInput = std::make_unique<function::ScanTableFuncBindInput>(
         memoryManager, *config, columnNames, std::move(columnTypes));
     auto bindData =
@@ -84,11 +83,36 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRdfRelFrom(const Statement& /*st
         columns.push_back(createVariable(bindData->columnNames[i], *bindData->columnTypes[i]));
     }
     auto offset = expressionBinder.createVariableExpression(
-        LogicalType(LogicalTypeID::INT64), InternalKeyword::ROW_OFFSET);
+        LogicalType(LogicalTypeID::INT64), std::string(InternalKeyword::ROW_OFFSET));
     auto boundFileScanInfo =
         std::make_unique<BoundFileScanInfo>(func, std::move(bindData), columns, offset);
-    auto extraInfo = std::make_unique<ExtraBoundCopyRdfRelInfo>(columns[0], columns[2]);
-    expression_vector columnsToCopy = {columns[0], columns[2], offset, columns[1]};
+    // Bind Copy
+    auto rrrSchema = reinterpret_cast<RelTableSchema*>(tableSchema);
+    auto rTableID = rrrSchema->getSrcTableID();
+    auto extraInfo = std::make_unique<ExtraBoundCopyRelInfo>();
+    auto s = columns[0];
+    auto p = columns[1];
+    auto sOffset = createVariable(InternalKeyword::SRC_OFFSET, LogicalTypeID::INT64);
+    auto pOffset = createVariable(rdf::PID, LogicalTypeID::INT64);
+    auto sLookUpInfo =
+        std::make_unique<IndexLookupInfo>(rTableID, sOffset, s, s->getDataType().copy());
+    auto pLookUpInfo =
+        std::make_unique<IndexLookupInfo>(rTableID, pOffset, p, p->getDataType().copy());
+    extraInfo->infos.push_back(std::move(sLookUpInfo));
+    extraInfo->infos.push_back(std::move(pLookUpInfo));
+    if (mode == RdfReaderMode::RESOURCE_TRIPLE) {
+        auto o = columns[2];
+        auto oOffset = createVariable(InternalKeyword::DST_OFFSET, LogicalTypeID::INT64);
+        auto oLookUpInfo =
+            std::make_unique<IndexLookupInfo>(rTableID, oOffset, o, o->getDataType().copy());
+        extraInfo->infos.push_back(std::move(oLookUpInfo));
+        extraInfo->toOffset = oOffset;
+    } else {
+        extraInfo->toOffset = columns[2];
+        // This is a temporary hack to make sure object offset will not be projected out.
+        extraInfo->propertyColumns.push_back(columns[2]);
+    }
+    extraInfo->fromOffset = sOffset;
     auto boundCopyFromInfo = std::make_unique<BoundCopyFromInfo>(
         tableSchema, std::move(boundFileScanInfo), containsSerial, std::move(extraInfo));
     return std::make_unique<BoundCopyFrom>(std::move(boundCopyFromInfo));

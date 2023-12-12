@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "processor/operator/aggregate/hash_aggregate.h"
 #include "processor/operator/call/in_query_call.h"
 #include "processor/operator/sink.h"
 #include "storage/store/node_group.h"
@@ -14,12 +15,11 @@ namespace processor {
 class CopyNodeSharedState {
     friend class PlanMapper;
     friend class CopyNode;
-    friend class CopyRdfResource;
 
 public:
-    explicit CopyNodeSharedState(InQueryCallSharedState* readerSharedState)
-        : pkIndex{nullptr}, readerSharedState{readerSharedState}, currentNodeGroupIdx{0},
-          sharedNodeGroup{nullptr} {};
+    CopyNodeSharedState()
+        : pkIndex{nullptr}, readerSharedState{nullptr}, distinctSharedState{nullptr},
+          currentNodeGroupIdx{0}, sharedNodeGroup{nullptr} {};
 
     void init();
 
@@ -44,8 +44,11 @@ private:
     common::vector_idx_t pkColumnIdx;
     std::unique_ptr<common::LogicalType> pkType;
     std::unique_ptr<storage::PrimaryKeyIndexBuilder> pkIndex;
+    bool isIndexReserved = false;
 
     InQueryCallSharedState* readerSharedState;
+    HashAggregateSharedState* distinctSharedState;
+
     // Table storing result message.
     std::shared_ptr<FactorizedTable> fTable;
 

@@ -21,11 +21,9 @@ enum class RdfReaderMode : uint8_t {
 
 struct RdfReaderConfig final : public ExtraReaderConfig {
     RdfReaderMode mode;
-    storage::PrimaryKeyIndex* index;
 
-    RdfReaderConfig(RdfReaderMode mode, storage::PrimaryKeyIndex* index)
-        : mode{mode}, index{index} {}
-    RdfReaderConfig(const RdfReaderConfig& other) : mode{other.mode}, index{other.index} {}
+    explicit RdfReaderConfig(RdfReaderMode mode) : mode{mode} {}
+    RdfReaderConfig(const RdfReaderConfig& other) : mode{other.mode} {}
 
     inline std::unique_ptr<ExtraReaderConfig> copy() override {
         return std::make_unique<RdfReaderConfig>(*this);

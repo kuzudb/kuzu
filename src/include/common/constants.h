@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string_view>
 
 namespace kuzu {
 namespace common {
@@ -38,9 +39,9 @@ struct InternalKeyword {
     static constexpr char MAP_KEY[] = "KEY";
     static constexpr char MAP_VALUE[] = "VALUE";
 
-    static constexpr char ROW_OFFSET[] = "_row_offset";
-    static constexpr char SRC_OFFSET[] = "_src_offset";
-    static constexpr char DST_OFFSET[] = "_dst_offset";
+    static constexpr std::string_view ROW_OFFSET = "_row_offset";
+    static constexpr std::string_view SRC_OFFSET = "_src_offset";
+    static constexpr std::string_view DST_OFFSET = "_dst_offset";
 };
 
 enum PageSizeClass : uint8_t {

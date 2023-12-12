@@ -29,6 +29,8 @@ protected:
 
     void resize(uint64_t newCapacity) final;
 
+    void resetToEmpty() final;
+
 private:
     std::vector<std::unique_ptr<ColumnChunk>> childChunks;
 };

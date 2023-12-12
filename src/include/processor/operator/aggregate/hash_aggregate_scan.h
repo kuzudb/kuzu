@@ -22,6 +22,8 @@ public:
           groupByKeyVectorsPos{std::move(groupByKeyVectorsPos)}, sharedState{
                                                                      std::move(sharedState)} {}
 
+    inline std::shared_ptr<HashAggregateSharedState> getSharedState() const { return sharedState; }
+
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal(ExecutionContext* context) override;

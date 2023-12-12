@@ -25,6 +25,16 @@ FileType FileTypeUtils::getFileTypeFromExtension(std::string_view extension) {
     throw CopyException(std::string("Unsupported file type ").append(extension));
 }
 
+bool FileTypeUtils::isRdf(FileType fileType) {
+    switch (fileType) {
+    case FileType::TURTLE:
+    case FileType::NQUADS:
+        return true;
+    default:
+        return false;
+    }
+}
+
 std::string FileTypeUtils::toString(FileType fileType) {
     switch (fileType) {
     case FileType::UNKNOWN: {
