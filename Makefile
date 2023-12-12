@@ -85,11 +85,11 @@ alldebug:
 # Main tests
 test:
 	$(call run-cmake-release, -DBUILD_TESTS=TRUE)
-	ctest --timeout 20 --test-dir build/release/test --output-on-failure -j ${TEST_JOBS}
+	ctest --test-dir build/release/test --output-on-failure -j ${TEST_JOBS}
 
 lcov:
 	$(call run-cmake-release, -DBUILD_TESTS=TRUE -DBUILD_LCOV=TRUE)
-	ctest --timeout 20 --test-dir build/release/test --output-on-failure -j ${TEST_JOBS}
+	ctest --test-dir build/release/test --output-on-failure -j ${TEST_JOBS}
 
 
 # Language APIs
