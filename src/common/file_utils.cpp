@@ -214,12 +214,6 @@ void FileUtils::createDir(const std::string& dir) {
     }
 }
 
-void FileUtils::createDirIfNotExists(const std::string& path) {
-    if (!fileOrPathExists(path)) {
-        createDir(path);
-    }
-}
-
 void FileUtils::removeDir(const std::string& dir) {
     std::error_code removeErrorCode;
     if (!fileOrPathExists(dir))
@@ -228,20 +222,6 @@ void FileUtils::removeDir(const std::string& dir) {
         // LCOV_EXCL_START
         throw Exception(stringFormat(
             "Error removing directory {}. Error Message: {}", dir, removeErrorCode.message()));
-        // LCOV_EXCL_STOP
-    }
-}
-
-void FileUtils::renameFileIfExists(const std::string& oldName, const std::string& newName) {
-    // If the oldName file doesn't exist, this function does not do anything.
-    if (!fileOrPathExists(oldName))
-        return;
-    std::error_code errorCode;
-    std::filesystem::rename(oldName, newName, errorCode);
-    if (errorCode.value() != 0) {
-        // LCOV_EXCL_START
-        throw Exception(stringFormat("Error replacing file {} to {}.  ErrorMessage: {}", oldName,
-            newName, errorCode.message()));
         // LCOV_EXCL_STOP
     }
 }

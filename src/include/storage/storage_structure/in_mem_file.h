@@ -1,89 +1,35 @@
 #pragma once
 
-#include <shared_mutex>
-
-#include "common/types/ku_list.h"
 #include "common/types/ku_string.h"
+#include "common/types/types.h"
 #include "storage/storage_structure/in_mem_page.h"
-#include "storage/storage_utils.h"
 
 namespace kuzu {
 namespace storage {
 
-static const char* IN_MEM_TEMP_FILE_PATH = "";
-
 // InMemFile holds a collection of in-memory page in the memory.
 class InMemFile {
-
 public:
-    InMemFile(
-        std::string filePath, uint16_t numBytesForElement, bool hasNullMask, uint64_t numPages = 0);
-    InMemFile(uint16_t numBytesForElement, bool hasNullMask, uint64_t numPages = 0)
-        : InMemFile(IN_MEM_TEMP_FILE_PATH, numBytesForElement, hasNullMask, numPages) {}
-
-    virtual ~InMemFile() = default;
-
-    virtual void flush();
-
-    void addNewPages(uint64_t numNewPagesToAdd, bool setToZero = false);
+    explicit InMemFile(std::string filePath);
 
     uint32_t addANewPage(bool setToZero = false);
 
     inline InMemPage* getPage(common::page_idx_t pageIdx) const { return pages[pageIdx].get(); }
 
-    uint64_t getNumPages() { return pages.size(); }
-
-protected:
-    std::string filePath;
-    uint16_t numBytesForElement;
-    uint64_t numElementsInAPage;
-    bool hasNullMask;
-    std::vector<std::unique_ptr<InMemPage>> pages;
-};
-
-//  InMemFile for storing overflow of PropertyColumn or PropertyLists.
-class InMemOverflowFile : public InMemFile {
-
-public:
-    explicit InMemOverflowFile(const std::string& fName)
-        : InMemFile{fName, 1 /* numBytesForElement */, false /* hasNullMask */, 1 /* numPages */},
-          nextPageIdxToAppend{0}, nextOffsetInPageToAppend{0} {}
-    explicit InMemOverflowFile()
-        : InMemFile{1 /* numBytesForElement */, false /* hasNullMask */, 1 /* numPages */},
-          nextPageIdxToAppend{0}, nextOffsetInPageToAppend{0} {}
-
-    // NOTICE: appendString should not be called mixed with copyString/copyList. They have
-    // in-compatible locking mechanisms.
-
     // This function appends a string if the length of the string is larger than SHORT_STR_LENGTH,
     // otherwise, construct the ku_string for the rawString and return it.
-    // Multiple threads are coordinate by taking an exclusive lock each time it needs to copy
-    // overflow values to the file and updating nextPageIdxToAppend/nextOffsetInPageToAppend.
+    // Note that this function is not thread safe.
     common::ku_string_t appendString(const char* rawString);
-
-    // Copy overflow data at srcOverflow into dstKUString.
-    void copyStringOverflow(
-        PageByteCursor& dstOverflowCursor, uint8_t* srcOverflow, common::ku_string_t* dstKUString);
-    void copyListOverflowFromFile(InMemOverflowFile* srcInMemOverflowFile,
-        const PageByteCursor& srcOverflowCursor, PageByteCursor& dstOverflowCursor,
-        common::ku_list_t* dstKUList, common::LogicalType* listChildDataType);
-    void copyListOverflowToFile(PageByteCursor& pageByteCursor, common::ku_list_t* srcKUList,
-        common::LogicalType* childDataType);
 
     std::string readString(common::ku_string_t* strInInMemOvfFile);
 
-private:
-    common::page_idx_t addANewOverflowPage();
-
-    void resetElementsOverflowPtrIfNecessary(PageByteCursor& pageByteCursor,
-        common::LogicalType* elementType, uint64_t numElementsToReset, uint8_t* elementsToReset);
+    void flush();
 
 private:
-    // These two fields (currentPageIdxToAppend, currentOffsetInPageToAppend) are used when
-    // appendString to the file.
+    std::string filePath;
+    std::vector<std::unique_ptr<InMemPage>> pages;
     common::page_idx_t nextPageIdxToAppend;
     common::page_offset_t nextOffsetInPageToAppend;
-    std::shared_mutex lock;
 };
 
 } // namespace storage

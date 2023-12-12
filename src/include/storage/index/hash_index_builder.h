@@ -118,7 +118,7 @@ private:
     std::vector<std::unique_ptr<std::mutex>> pSlotsMutexes;
     in_mem_insert_function_t keyInsertFunc;
     in_mem_equals_function_t keyEqualsFunc;
-    std::unique_ptr<InMemOverflowFile> inMemOverflowFile;
+    std::unique_ptr<InMemFile> inMemOverflowFile;
     uint8_t slotCapacity;
     std::atomic<uint64_t> numEntries;
 };

@@ -24,9 +24,9 @@ static const uint32_t NUM_BYTES_FOR_STRING_KEY =
 // NOLINTEND(cert-err58-cpp)
 
 using in_mem_insert_function_t =
-    std::function<void(const uint8_t*, common::offset_t, uint8_t*, InMemOverflowFile*)>;
+    std::function<void(const uint8_t*, common::offset_t, uint8_t*, InMemFile*)>;
 using in_mem_equals_function_t =
-    std::function<bool(const uint8_t*, const uint8_t*, const InMemOverflowFile*)>;
+    std::function<bool(const uint8_t*, const uint8_t*, const InMemFile*)>;
 
 class InMemHashIndexUtils {
 public:
@@ -36,22 +36,22 @@ public:
 private:
     // InsertFunc
     inline static void insertFuncForInt64(const uint8_t* key, common::offset_t offset,
-        uint8_t* entry, InMemOverflowFile* /*inMemOverflowFile*/ = nullptr) {
+        uint8_t* entry, InMemFile* /*inMemOverflowFile*/ = nullptr) {
         memcpy(entry, key, NUM_BYTES_FOR_INT64_KEY);
         memcpy(entry + NUM_BYTES_FOR_INT64_KEY, &offset, sizeof(common::offset_t));
     }
-    inline static void insertFuncForString(const uint8_t* key, common::offset_t offset,
-        uint8_t* entry, InMemOverflowFile* inMemOverflowFile) {
+    inline static void insertFuncForString(
+        const uint8_t* key, common::offset_t offset, uint8_t* entry, InMemFile* inMemOverflowFile) {
         auto kuString = inMemOverflowFile->appendString(reinterpret_cast<const char*>(key));
         memcpy(entry, &kuString, NUM_BYTES_FOR_STRING_KEY);
         memcpy(entry + NUM_BYTES_FOR_STRING_KEY, &offset, sizeof(common::offset_t));
     }
     inline static bool equalsFuncForInt64(const uint8_t* keyToLookup, const uint8_t* keyInEntry,
-        const InMemOverflowFile* /*inMemOverflowFile*/ = nullptr) {
+        const InMemFile* /*inMemOverflowFile*/ = nullptr) {
         return memcmp(keyToLookup, keyInEntry, sizeof(int64_t)) == 0;
     }
-    static bool equalsFuncForString(const uint8_t* keyToLookup, const uint8_t* keyInEntry,
-        const InMemOverflowFile* inMemOverflowFile);
+    static bool equalsFuncForString(
+        const uint8_t* keyToLookup, const uint8_t* keyInEntry, const InMemFile* inMemOverflowFile);
 };
 
 class HashIndexUtils {

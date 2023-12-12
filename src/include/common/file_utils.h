@@ -50,14 +50,12 @@ public:
     static void copyFile(const std::string& from, const std::string& to,
         std::filesystem::copy_options options = std::filesystem::copy_options::none);
     static void createDir(const std::string& dir);
-    static void createDirIfNotExists(const std::string& path);
     static void removeDir(const std::string& dir);
 
     static inline std::string joinPath(const std::string& base, const std::string& part) {
         return (std::filesystem::path(base) / part).string();
     }
 
-    static void renameFileIfExists(const std::string& oldName, const std::string& newName);
     static void removeFileIfExists(const std::string& path);
     static inline void truncateFileToEmpty(FileInfo* fileInfo) {
         truncateFileToSize(fileInfo, 0 /* size */);
