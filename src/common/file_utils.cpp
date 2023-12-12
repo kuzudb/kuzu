@@ -1,6 +1,7 @@
 #include "common/file_utils.h"
 
 #include <cstring>
+#include <liburing.h>
 
 #include "common/assert.h"
 #include "common/exception/storage.h"
@@ -140,6 +141,34 @@ void FileUtils::writeToFile(
         remainingNumBytesToWrite -= numBytesWritten;
         offset += numBytesWritten;
         bufferOffset += numBytesWritten;
+    }
+}
+
+void FileUtils::writeToFileAsync(
+    FileInfo* fileInfo, const uint8_t* buffer, uint64_t numBytes, uint64_t offset, io_uring* ring, NodeGroupInfo* info) {
+    uint64_t remainingNumBytesToWrite = numBytes;
+    uint64_t bufferOffset = 0;
+    // Split large writes to 1GB at a time
+    uint64_t maxBytesToWriteAtOnce = 1ull << 30; // 1ull << 30 = 1G
+    while (remainingNumBytesToWrite > 0) {
+        uint64_t numBytesToWrite = std::min(remainingNumBytesToWrite, maxBytesToWriteAtOnce);
+        struct io_uring_sqe* sqe;
+        sqe = io_uring_get_sqe(ring);
+        while (!sqe) {
+            auto ret = io_uring_submit(ring);
+            if (ret < 0) {
+                throw Exception("cqe full");
+            }
+            sqe = io_uring_get_sqe(ring);
+        }
+        io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
+        io_uring_sqe_set_data64(sqe, info->idx);
+        io_uring_prep_write(sqe, fileInfo->fd, buffer + bufferOffset, numBytesToWrite, offset);
+        info->totalReq++;
+        info->byteSize += numBytesToWrite;
+        remainingNumBytesToWrite -= numBytesToWrite;
+        offset += numBytesToWrite;
+        bufferOffset += numBytesToWrite;
     }
 }
 

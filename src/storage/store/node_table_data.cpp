@@ -116,6 +116,18 @@ void NodeTableData::append(kuzu::storage::NodeGroup* nodeGroup) {
     }
 }
 
+void NodeTableData::appendAsync(kuzu::storage::NodeGroup* nodeGroup, io_uring* ring, NodeGroupInfo* info) {
+    for (auto columnID = 0u; columnID < columns.size(); columnID++) {
+        auto columnChunk = nodeGroup->getColumnChunk(columnID);
+        KU_ASSERT(columnID < columns.size());
+        columns[columnID]->appendAsync(columnChunk, nodeGroup->getNodeGroupIdx(), ring, info);
+    	auto ret = io_uring_submit(ring);
+        if (ret < 0) {
+            throw Exception("cqe full");
+        }
+    }
+}
+
 void NodeTableData::prepareLocalTableToCommit(
     Transaction* transaction, LocalTableData* localTable) {
     for (auto& [nodeGroupIdx, nodeGroup] : localTable->nodeGroups) {

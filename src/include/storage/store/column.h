@@ -61,6 +61,7 @@ public:
         common::ValueVector* resultVector);
 
     virtual void append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx);
+    virtual void appendAsync(ColumnChunk* columnChunk, uint64_t nodeGroupIdx, io_uring* ring, common::NodeGroupInfo* info);
 
     virtual bool isNull(transaction::Transaction* transaction,
         common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInChunk);
@@ -101,6 +102,7 @@ public:
 
     ReadState getReadState(
         transaction::TransactionType transactionType, common::node_group_idx_t nodeGroupIdx) const;
+    inline int getColumnDataFd() { return dataFH->getFileInfo()->fd; }
 
 protected:
     virtual void scanInternal(transaction::Transaction* transaction,

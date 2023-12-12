@@ -56,11 +56,13 @@ public:
     void delete_(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* pkVector);
     inline void append(NodeGroup* nodeGroup) { tableData->append(nodeGroup); }
+    inline void appendAsync(NodeGroup* nodeGroup, io_uring* ring, common::NodeGroupInfo* info) { tableData->appendAsync(nodeGroup, ring, info); }
 
     inline common::column_id_t getNumColumns() const { return tableData->getNumColumns(); }
     inline Column* getColumn(common::column_id_t columnID) {
         return tableData->getColumn(columnID);
     }
+    inline int getColumnDataFd() { return tableData->getColumn(0)->getColumnDataFd(); }
     inline common::column_id_t getPKColumnID() const { return pkColumnID; }
     inline PrimaryKeyIndex* getPKIndex() const { return pkIndex.get(); }
     inline NodesStoreStatsAndDeletedIDs* getNodeStatisticsAndDeletedIDs() const {

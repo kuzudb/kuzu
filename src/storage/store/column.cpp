@@ -198,6 +198,18 @@ public:
         }
     }
 
+    void appendAsync(ColumnChunk* columnChunk, uint64_t nodeGroupIdx, io_uring* ring,
+        common::NodeGroupInfo* info) override {
+        auto preScanMetadata = columnChunk->getMetadataToFlush();
+        auto startPageIdx = dataFH->addNewPages(preScanMetadata.numPages);
+        auto metadata = columnChunk->flushBufferAsync(dataFH, startPageIdx, preScanMetadata, ring, info);
+        metadataDA->resize(nodeGroupIdx + 1);
+        metadataDA->update(nodeGroupIdx, metadata);
+        if (static_cast<NullColumnChunk*>(columnChunk)->mayHaveNull()) {
+            propertyStatistics.setHasNull(DUMMY_WRITE_TRANSACTION);
+        }
+    }
+
     bool isNull(transaction::Transaction* transaction, node_group_idx_t nodeGroupIdx,
         offset_t offsetInChunk) override {
         auto state = getReadState(transaction->getType(), nodeGroupIdx);
@@ -566,6 +578,20 @@ void Column::append(ColumnChunk* columnChunk, uint64_t nodeGroupIdx) {
     if (nullColumn) {
         // Null column chunk.
         nullColumn->append(columnChunk->getNullChunk(), nodeGroupIdx);
+    }
+}
+
+void Column::appendAsync(ColumnChunk* columnChunk, uint64_t nodeGroupIdx, io_uring* ring,
+    common::NodeGroupInfo* info) {
+    auto preScanMetadata = columnChunk->getMetadataToFlush();
+    auto startPageIdx = dataFH->addNewPages(preScanMetadata.numPages);
+    uint64_t bytes;
+    auto metadata = columnChunk->flushBufferAsync(dataFH, startPageIdx, preScanMetadata, ring, info);
+    metadataDA->resize(nodeGroupIdx + 1);
+    metadataDA->update(nodeGroupIdx, metadata);
+    if (nullColumn) {
+        // Null column chunk.
+        nullColumn->appendAsync(columnChunk->getNullChunk(), nodeGroupIdx, ring, info);
     }
 }
 

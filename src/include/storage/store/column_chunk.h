@@ -8,11 +8,13 @@
 #include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/compression/compression.h"
 
+
 namespace kuzu {
 namespace storage {
 
 class NullColumnChunk;
 class CompressionAlg;
+
 
 struct ColumnChunkMetadata {
     common::page_idx_t pageIdx;
@@ -59,6 +61,8 @@ public:
 
     ColumnChunkMetadata flushBuffer(
         BMFileHandle* dataFH, common::page_idx_t startPageIdx, const ColumnChunkMetadata& metadata);
+    ColumnChunkMetadata flushBufferAsync(BMFileHandle* dataFH, common::page_idx_t startPageIdx,
+        const ColumnChunkMetadata& metadata, io_uring* ring, common::NodeGroupInfo* info);
 
     static inline common::page_idx_t getNumPagesForBytes(uint64_t numBytes) {
         return (numBytes + common::BufferPoolConstants::PAGE_4KB_SIZE - 1) /
@@ -113,7 +117,7 @@ protected:
     std::unique_ptr<NullColumnChunk> nullChunk;
     uint64_t numValues;
     std::function<ColumnChunkMetadata(
-        const uint8_t*, uint64_t, BMFileHandle*, common::page_idx_t, const ColumnChunkMetadata&)>
+        const uint8_t*, uint64_t, BMFileHandle*, common::page_idx_t, const ColumnChunkMetadata&, io_uring*, common::NodeGroupInfo*)>
         flushBufferFunction;
     std::function<ColumnChunkMetadata(const uint8_t*, uint64_t, uint64_t, uint64_t)>
         getMetadataFunction;
