@@ -1,7 +1,5 @@
 #include "common/task_system/task_scheduler.h"
 
-#include "common/constants.h"
-
 using namespace kuzu::common;
 
 namespace kuzu {
