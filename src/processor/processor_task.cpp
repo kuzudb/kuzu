@@ -9,6 +9,10 @@ void ProcessorTask::run() {
     // We need the lock when cloning because multiple threads can be accessing to clone,
     // which is not thread safe
     lock_t lck{mtx};
+    if (!sharedStateInitialized) {
+        sink->initGlobalState(executionContext);
+        sharedStateInitialized = true;
+    }
     auto clonedPipelineRoot = sink->clone();
     lck.unlock();
     auto currentSink = (Sink*)clonedPipelineRoot.get();

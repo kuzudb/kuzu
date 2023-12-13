@@ -21,15 +21,16 @@ void CopyNodeSharedState::init() {
         auto indexFName = StorageUtils::getNodeIndexFName(
             wal->getDirectory(), table->getTableID(), FileVersionType::ORIGINAL);
         pkIndex = std::make_unique<PrimaryKeyIndexBuilder>(indexFName, *pkType);
+        uint64_t numRows = 0;
         if (readerSharedState != nullptr) {
             KU_ASSERT(distinctSharedState == nullptr);
-            uint64_t numRows = 0;
             auto sharedState =
                 reinterpret_cast<function::ScanSharedState*>(readerSharedState->sharedState.get());
             numRows = sharedState->numRows;
-            pkIndex->bulkReserve(numRows);
-            isIndexReserved = true;
+        } else {
+            numRows = distinctSharedState->getFactorizedTable()->getNumTuples();
         }
+        pkIndex->bulkReserve(numRows);
     }
     wal->logCopyTableRecord(table->getTableID(), TableType::NODE);
     wal->flushAllPages();
@@ -67,15 +68,6 @@ void CopyNode::initGlobalStateInternal(ExecutionContext* /*context*/) {
 }
 
 void CopyNode::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*context*/) {
-    if (sharedState->distinctSharedState != nullptr) {
-        std::unique_lock xLck{sharedState->mtx};
-        // TODO(Xiyang): we should init shared state after the previous pipeline finishes execution.
-        if (!sharedState->isIndexReserved) {
-            auto numRows = sharedState->distinctSharedState->getFactorizedTable()->getNumTuples();
-            sharedState->pkIndex->bulkReserve(numRows);
-            sharedState->isIndexReserved = true;
-        }
-    }
     std::shared_ptr<DataChunkState> state;
     for (auto& pos : info->columnPositions) {
         if (pos.isValid()) {

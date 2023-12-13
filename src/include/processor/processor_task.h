@@ -11,7 +11,8 @@ class ProcessorTask : public common::Task {
 
 public:
     ProcessorTask(Sink* sink, ExecutionContext* executionContext)
-        : Task{executionContext->numThreads}, sink{sink}, executionContext{executionContext} {}
+        : Task{executionContext->numThreads}, sharedStateInitialized{false}, sink{sink},
+          executionContext{executionContext} {}
 
     void run() override;
     void finalizeIfNecessary() override;
@@ -21,6 +22,7 @@ private:
         Sink* op, storage::MemoryManager* memoryManager);
 
 private:
+    bool sharedStateInitialized;
     Sink* sink;
     ExecutionContext* executionContext;
 };

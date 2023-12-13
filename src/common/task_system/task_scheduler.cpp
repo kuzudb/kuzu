@@ -122,10 +122,10 @@ void TaskScheduler::runWorkerThread() {
         }
         try {
             scheduledTask->task->run();
-            scheduledTask->task->deRegisterThreadAndFinalizeTaskIfNecessary();
+            scheduledTask->task->deRegisterThreadAndFinalizeTask();
         } catch (std::exception& e) {
             scheduledTask->task->setException(std::current_exception());
-            scheduledTask->task->deRegisterThreadAndFinalizeTaskIfNecessary();
+            scheduledTask->task->deRegisterThreadAndFinalizeTask();
             continue;
         }
     }
