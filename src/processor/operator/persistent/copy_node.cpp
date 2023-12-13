@@ -96,7 +96,9 @@ void CopyNode::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*
 void CopyNode::executeInternal(ExecutionContext* context) {
     struct io_uring_params params;
     memset(&params, 0, sizeof(params));
-    auto ret = io_uring_queue_init(200, &ring, 0);
+    params.flags |= IORING_SETUP_SQPOLL;
+    params.sq_thread_idle = 2000000000000000;
+    auto ret = io_uring_queue_init_params(200, &ring, &params);
     if (ret < 0) {
         throw Exception(strerror(-ret));
     }
