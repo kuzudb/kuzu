@@ -42,16 +42,6 @@ public:
         children.push_back(std::move(child));
     }
 
-    inline bool isCompletedOrHasException() {
-        lock_t lck{mtx};
-        return hasExceptionNoLock() || isCompletedNoLock();
-    }
-
-    inline bool isCompleted() {
-        lock_t lck{mtx};
-        return isCompletedNoLock();
-    }
-
     inline bool isCompletedSuccessfully() {
         lock_t lck{mtx};
         return isCompletedNoLock() && !hasExceptionNoLock();
@@ -65,7 +55,7 @@ public:
 
     bool registerThread();
 
-    void deRegisterThreadAndFinalizeTaskIfNecessary();
+    void deRegisterThreadAndFinalizeTask();
 
     inline void setException(std::exception_ptr exceptionPtr) {
         lock_t lck{mtx};
@@ -83,7 +73,7 @@ public:
     }
 
 private:
-    bool canRegisterInternalNoLock() const {
+    bool canRegisterNoLock() const {
         return 0 == numThreadsFinished && maxNumThreads > numThreadsRegistered;
     }
 

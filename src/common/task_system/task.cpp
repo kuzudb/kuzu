@@ -7,14 +7,14 @@ Task::Task(uint64_t maxNumThreads) : maxNumThreads{maxNumThreads} {}
 
 bool Task::registerThread() {
     lock_t lck{mtx};
-    if (!hasExceptionNoLock() && canRegisterInternalNoLock()) {
+    if (!hasExceptionNoLock() && canRegisterNoLock()) {
         numThreadsRegistered++;
         return true;
     }
     return false;
 }
 
-void Task::deRegisterThreadAndFinalizeTaskIfNecessary() {
+void Task::deRegisterThreadAndFinalizeTask() {
     lock_t lck{mtx};
     ++numThreadsFinished;
     if (!hasExceptionNoLock() && isCompletedNoLock()) {

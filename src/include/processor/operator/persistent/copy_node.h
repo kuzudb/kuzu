@@ -44,7 +44,6 @@ private:
     common::vector_idx_t pkColumnIdx;
     std::unique_ptr<common::LogicalType> pkType;
     std::unique_ptr<storage::PrimaryKeyIndexBuilder> pkIndex;
-    bool isIndexReserved = false;
 
     InQueryCallSharedState* readerSharedState;
     HashAggregateSharedState* distinctSharedState;
