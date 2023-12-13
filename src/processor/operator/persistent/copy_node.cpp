@@ -96,9 +96,15 @@ void CopyNode::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* /*
 void CopyNode::executeInternal(ExecutionContext* context) {
     struct io_uring_params params;
     memset(&params, 0, sizeof(params));
-    params.flags |= IORING_SETUP_SQPOLL;
-    auto ret = io_uring_queue_init_params(200, &ring, &params);
+    auto ret = io_uring_queue_init(200, &ring, 0);
     if (ret < 0) {
+        throw Exception(strerror(-ret));
+    }
+
+    int fds[1];
+    fds[0] = sharedState->table->tableData->columns[0]->dataFH->fileInfo->fd;
+    int ret1 = io_uring_register_files(&ring, fds, 1);
+    if (ret1) {
         throw Exception(strerror(-ret));
     }
 
@@ -280,8 +286,6 @@ void CopyNode::finalize(ExecutionContext* context) {
 	}
 	returnNum = notAllReturn();
     }
-
-    io_uring_queue_exit(&ring);
 }
 
 template<>

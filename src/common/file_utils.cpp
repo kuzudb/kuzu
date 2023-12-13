@@ -91,9 +91,9 @@ std::unique_ptr<FileInfo> FileUtils::openFile(
     }
     return std::make_unique<FileInfo>(path, handle);
 #else
-    if (hasEnding(path, "/data.kz")) {
-    	// flags |= O_DIRECT;
-    }
+     // if (hasEnding(path, "/data.kz")) {
+    	//flags |= O_DIRECT;
+     // }
     int fd = open(path.c_str(), flags, 0644);
     if (fd == -1) {
         throw Exception("Cannot open file: " + path);
@@ -183,11 +183,9 @@ void FileUtils::writeToFileAsync(
         struct io_uring_sqe* sqe;
         sqe = io_uring_get_sqe(ring);
         while (!sqe) {
-            if (ring->flags & IORING_SQ_NEED_WAKEUP) {
-                io_uring_enter(0u, 0u, 0u, IORING_ENTER_SQ_WAKEUP, nullptr);
                 sqe = io_uring_get_sqe(ring);
-            }
         }
+        io_uring_sqe_set_flags(sqe, IOSQE_FIXED_FILE);
         io_uring_sqe_set_data64(sqe, info->idx);
         io_uring_prep_write(sqe, fileInfo->fd, buffer + bufferOffset, numBytesToWrite, offset);
         info->totalReq++;

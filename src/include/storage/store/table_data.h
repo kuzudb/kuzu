@@ -56,9 +56,11 @@ protected:
         : dataFormat{dataFormat}, dataFH{dataFH}, metadataFH{metadataFH}, tableID{tableID},
           bufferManager{bufferManager}, wal{wal}, enableCompression{enableCompression} {}
 
+public:
+    std::vector<std::unique_ptr<Column>> columns;
+
 protected:
     common::ColumnDataFormat dataFormat;
-    std::vector<std::unique_ptr<Column>> columns;
     BMFileHandle* dataFH;
     BMFileHandle* metadataFH;
     common::table_id_t tableID;

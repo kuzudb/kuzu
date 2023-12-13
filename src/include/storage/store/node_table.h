@@ -83,8 +83,10 @@ private:
         common::ValueVector* nodeIDVector, common::ValueVector* pkVector);
     void insertPK(common::ValueVector* nodeIDVector, common::ValueVector* primaryKeyVector);
 
-private:
+public:
     std::unique_ptr<NodeTableData> tableData;
+
+private:
     common::column_id_t pkColumnID;
     std::unique_ptr<PrimaryKeyIndex> pkIndex;
 };
