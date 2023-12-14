@@ -250,12 +250,12 @@ struct BinaryBooleanFunctionExecutor {
 struct UnaryBooleanOperationExecutor {
 
     template<typename FUNC>
-    static inline void executeOnValue(
-        common::ValueVector& operand, uint64_t operandPos, common::ValueVector& result) {
+    static inline void executeOnValue(common::ValueVector& operand, uint64_t operandPos,
+        common::ValueVector& result, uint64_t resultPos) {
         auto resultValues = (uint8_t*)result.getData();
         FUNC::operation(operand.getValue<uint8_t>(operandPos), operand.isNull(operandPos),
-            resultValues[operandPos]);
-        result.setNull(operandPos, result.getValue<uint8_t>(operandPos) == NULL_BOOL);
+            resultValues[resultPos]);
+        result.setNull(resultPos, result.getValue<uint8_t>(resultPos) == NULL_BOOL);
     }
 
     template<typename FUNC>
@@ -263,16 +263,17 @@ struct UnaryBooleanOperationExecutor {
         result.resetAuxiliaryBuffer();
         if (operand.state->isFlat()) {
             auto pos = operand.state->selVector->selectedPositions[0];
-            executeOnValue<FUNC>(operand, pos, result);
+            auto resultPos = result.state->selVector->selectedPositions[0];
+            executeOnValue<FUNC>(operand, pos, result, resultPos);
         } else {
             if (operand.state->selVector->isUnfiltered()) {
                 for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
-                    executeOnValue<FUNC>(operand, i, result);
+                    executeOnValue<FUNC>(operand, i, result, i);
                 }
             } else {
                 for (auto i = 0u; i < operand.state->selVector->selectedSize; i++) {
                     auto pos = operand.state->selVector->selectedPositions[i];
-                    executeOnValue<FUNC>(operand, pos, result);
+                    executeOnValue<FUNC>(operand, pos, result, pos);
                 }
             }
         }

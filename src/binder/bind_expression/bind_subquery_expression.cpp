@@ -17,19 +17,19 @@ std::shared_ptr<Expression> ExpressionBinder::bindSubqueryExpression(
     auto& subqueryExpr =
         ku_dynamic_cast<const ParsedExpression&, const ParsedSubqueryExpression&>(parsedExpr);
     auto prevScope = binder->saveScope();
-    auto [queryGraph, _] = binder->bindGraphPattern(subqueryExpr.getPatternElements());
+    auto boundGraphPattern = binder->bindGraphPattern(subqueryExpr.getPatternElements());
+    if (subqueryExpr.hasWhereClause()) {
+        boundGraphPattern->where = binder->bindWhereExpression(*subqueryExpr.getWhereClause());
+    }
+    binder->rewriteMatchPattern(*boundGraphPattern);
     auto subqueryType = subqueryExpr.getSubqueryType();
     auto dataType =
         subqueryType == SubqueryType::COUNT ? LogicalType::INT64() : LogicalType::BOOL();
     auto rawName = subqueryExpr.getRawName();
     auto uniqueName = binder->getUniqueExpressionName(rawName);
-    auto boundSubqueryExpr = make_shared<SubqueryExpression>(
-        subqueryType, *dataType, std::move(queryGraph), uniqueName, std::move(rawName));
-    // Bind predicate
-    if (subqueryExpr.hasWhereClause()) {
-        auto where = binder->bindWhereExpression(*subqueryExpr.getWhereClause());
-        boundSubqueryExpr->setWhereExpression(std::move(where));
-    }
+    auto boundSubqueryExpr = make_shared<SubqueryExpression>(subqueryType, *dataType,
+        std::move(boundGraphPattern->queryGraphCollection), uniqueName, std::move(rawName));
+    boundSubqueryExpr->setWhereExpression(boundGraphPattern->where);
     // Bind projection
     auto function = binder->catalog.getBuiltInFunctions()->matchAggregateFunction(
         COUNT_STAR_FUNC_NAME, std::vector<LogicalType*>{}, false);

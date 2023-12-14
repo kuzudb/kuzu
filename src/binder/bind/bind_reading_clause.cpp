@@ -44,18 +44,22 @@ std::unique_ptr<BoundReadingClause> Binder::bindReadingClause(const ReadingClaus
 
 std::unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause& readingClause) {
     auto& matchClause = ku_dynamic_cast<const ReadingClause&, const MatchClause&>(readingClause);
-    auto [queryGraphCollection, propertyCollection] =
-        bindGraphPattern(matchClause.getPatternElements());
-    auto boundMatchClause = make_unique<BoundMatchClause>(
-        std::move(queryGraphCollection), matchClause.getMatchClauseType());
-    std::shared_ptr<Expression> whereExpression;
+    auto boundGraphPattern = bindGraphPattern(matchClause.getPatternElements());
     if (matchClause.hasWherePredicate()) {
-        whereExpression = bindWhereExpression(*matchClause.getWherePredicate());
+        boundGraphPattern->where = bindWhereExpression(*matchClause.getWherePredicate());
     }
+    rewriteMatchPattern(*boundGraphPattern);
+    auto boundMatch = make_unique<BoundMatchClause>(
+        std::move(boundGraphPattern->queryGraphCollection), matchClause.getMatchClauseType());
+    boundMatch->setWherePredicate(boundGraphPattern->where);
+    return boundMatch;
+}
+
+void Binder::rewriteMatchPattern(BoundGraphPattern& boundGraphPattern) {
     // Rewrite self loop edge
     // e.g. rewrite (a)-[e]->(a) as [a]-[e]->(b) WHERE id(a) = id(b)
     expression_vector selfLoopEdgePredicates;
-    auto graphCollection = boundMatchClause->getQueryGraphCollection();
+    auto graphCollection = boundGraphPattern.queryGraphCollection.get();
     for (auto i = 0u; i < graphCollection->getNumQueryGraphs(); ++i) {
         auto queryGraph = graphCollection->getQueryGraph(i);
         for (auto& queryRel : queryGraph->getQueryRels()) {
@@ -72,19 +76,16 @@ std::unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause&
             selfLoopEdgePredicates.push_back(std::move(predicate));
         }
     }
+    auto where = boundGraphPattern.where;
     for (auto& predicate : selfLoopEdgePredicates) {
-        whereExpression = expressionBinder.combineBooleanExpressions(
-            ExpressionType::AND, predicate, whereExpression);
+        where = expressionBinder.combineBooleanExpressions(ExpressionType::AND, predicate, where);
     }
     // Rewrite key value pairs in MATCH clause as predicate
-    for (auto& [key, val] : propertyCollection->getKeyVals()) {
+    for (auto& [key, val] : boundGraphPattern.propertyKeyValCollection->getKeyVals()) {
         auto predicate = expressionBinder.createEqualityComparisonExpression(key, val);
-        whereExpression = expressionBinder.combineBooleanExpressions(
-            ExpressionType::AND, predicate, whereExpression);
+        where = expressionBinder.combineBooleanExpressions(ExpressionType::AND, predicate, where);
     }
-
-    boundMatchClause->setWherePredicate(std::move(whereExpression));
-    return boundMatchClause;
+    boundGraphPattern.where = std::move(where);
 }
 
 std::unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause& readingClause) {

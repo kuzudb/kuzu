@@ -27,15 +27,18 @@ namespace binder {
 //    - In UPDATE clause, there are properties to set.
 // We do not store key-value pairs in query graph primarily because we will merge key-value
 // std::pairs with other predicates specified in WHERE clause.
-std::pair<std::unique_ptr<QueryGraphCollection>, std::unique_ptr<PropertyKeyValCollection>>
-Binder::bindGraphPattern(const std::vector<std::unique_ptr<PatternElement>>& graphPattern) {
+std::unique_ptr<BoundGraphPattern> Binder::bindGraphPattern(
+    const std::vector<std::unique_ptr<PatternElement>>& graphPattern) {
     auto propertyCollection = std::make_unique<PropertyKeyValCollection>();
     auto queryGraphCollection = std::make_unique<QueryGraphCollection>();
     for (auto& patternElement : graphPattern) {
         queryGraphCollection->addAndMergeQueryGraphIfConnected(
             bindPatternElement(*patternElement, *propertyCollection));
     }
-    return std::make_pair(std::move(queryGraphCollection), std::move(propertyCollection));
+    auto boundPattern = std::make_unique<BoundGraphPattern>();
+    boundPattern->queryGraphCollection = std::move(queryGraphCollection);
+    boundPattern->propertyKeyValCollection = std::move(propertyCollection);
+    return boundPattern;
 }
 
 // Grammar ensures pattern element is always connected and thus can be bound as a query graph.

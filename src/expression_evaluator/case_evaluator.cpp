@@ -55,12 +55,14 @@ void CaseExpressionEvaluator::evaluate() {
 
 bool CaseExpressionEvaluator::select(SelectionVector& selVector) {
     evaluate();
+    KU_ASSERT(resultVector->state->selVector->selectedSize == selVector.selectedSize);
     auto numSelectedValues = 0u;
-    for (auto i = 0u; i < resultVector->state->selVector->selectedSize; ++i) {
-        auto pos = resultVector->state->selVector->selectedPositions[i];
-        auto selectedPosBuffer = selVector.getSelectedPositionsBuffer();
-        selectedPosBuffer[numSelectedValues] = pos;
-        numSelectedValues += resultVector->getValue<bool>(pos);
+    auto selectedPosBuffer = selVector.getSelectedPositionsBuffer();
+    for (auto i = 0u; i < selVector.selectedSize; ++i) {
+        auto selVectorPos = selVector.selectedPositions[i];
+        auto resultVectorPos = resultVector->state->selVector->selectedPositions[i];
+        selectedPosBuffer[numSelectedValues] = selVectorPos;
+        numSelectedValues += resultVector->getValue<bool>(resultVectorPos);
     }
     selVector.selectedSize = numSelectedValues;
     return numSelectedValues > 0;
