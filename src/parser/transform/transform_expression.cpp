@@ -455,7 +455,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformStructLiteral(
     for (auto& structField : ctx.kU_StructField()) {
         auto structExpr = transformExpression(*structField->oC_Expression());
         std::string alias;
-        if (structField->oC_Expression()) {
+        if (structField->oC_SymbolicName()) {
             alias = transformSymbolicName(*structField->oC_SymbolicName());
         } else {
             alias = transformStringLiteral(*structField->StringLiteral());
