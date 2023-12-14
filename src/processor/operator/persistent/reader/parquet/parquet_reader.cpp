@@ -223,7 +223,7 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
         maxRepeat++;
     }
     if (sEle.__isset.num_children && sEle.num_children > 0) {
-        std::vector<std::unique_ptr<StructField>> structFields;
+        std::vector<StructField> structFields;
         std::vector<std::unique_ptr<ColumnReader>> childrenReaders;
         uint64_t cIdx = 0;
         while (cIdx < (uint64_t)sEle.num_children) {
@@ -231,8 +231,7 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
             auto& childEle = metadata->schema[nextSchemaIdx];
             auto childReader =
                 createReaderRecursive(depth + 1, maxDefine, maxRepeat, nextSchemaIdx, nextFileIdx);
-            structFields.push_back(
-                std::make_unique<StructField>(childEle.name, childReader->getDataType()->copy()));
+            structFields.emplace_back(childEle.name, childReader->getDataType()->copy());
             childrenReaders.push_back(std::move(childReader));
             cIdx++;
         }
@@ -263,10 +262,9 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
                 throw CopyException{"MAP_KEY_VALUE needs to be repeated"};
             }
             // LCOV_EXCL_STOP
-            auto structType = std::make_unique<LogicalType>(
-                LogicalTypeID::STRUCT, std::make_unique<StructTypeInfo>(std::move(structFields)));
-            resultType = std::make_unique<LogicalType>(
-                LogicalTypeID::MAP, std::make_unique<VarListTypeInfo>(std::move(structType)));
+            auto structType = LogicalType::STRUCT(std::move(structFields));
+            resultType = std::unique_ptr<LogicalType>(new LogicalType(
+                LogicalTypeID::MAP, std::make_unique<VarListTypeInfo>(std::move(structType))));
 
             auto structReader = std::make_unique<StructColumnReader>(*this,
                 VarListType::getChildType(resultType.get())->copy(), sEle, thisIdx, maxDefine - 1,
@@ -276,19 +274,16 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
         }
 
         if (structFields.size() > 1 || (!isList && !isMap && !isRepeated)) {
-            resultType = std::make_unique<LogicalType>(
-                LogicalTypeID::STRUCT, std::make_unique<StructTypeInfo>(std::move(structFields)));
+            resultType = LogicalType::STRUCT(std::move(structFields));
             result = std::make_unique<StructColumnReader>(*this, std::move(resultType), sEle,
                 thisIdx, maxDefine, maxRepeat, std::move(childrenReaders));
         } else {
             // if we have a struct with only a single type, pull up
-            resultType = structFields[0]->getType()->copy();
+            resultType = structFields[0].getType()->copy();
             result = std::move(childrenReaders[0]);
         }
         if (isRepeated) {
-            auto varListInfo = std::make_unique<VarListTypeInfo>(std::move(resultType));
-            resultType =
-                std::make_unique<LogicalType>(LogicalTypeID::VAR_LIST, std::move(varListInfo));
+            resultType = LogicalType::VAR_LIST(std::move(resultType));
             return std::make_unique<ListColumnReader>(*this, std::move(resultType), sEle, thisIdx,
                 maxDefine, maxRepeat, std::move(result), memoryManager);
         }
@@ -302,9 +297,7 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
         // LCOV_EXCL_STOP
         if (sEle.repetition_type == FieldRepetitionType::REPEATED) {
             auto derivedType = deriveLogicalType(sEle);
-            auto varListTypeInfo = std::make_unique<VarListTypeInfo>(derivedType->copy());
-            auto listType =
-                std::make_unique<LogicalType>(LogicalTypeID::VAR_LIST, std::move(varListTypeInfo));
+            auto listType = LogicalType::VAR_LIST(derivedType->copy());
             auto elementReader = ColumnReader::createReader(
                 *this, std::move(derivedType), sEle, nextFileIdx++, maxDefine, maxRepeat);
             return std::make_unique<ListColumnReader>(*this, std::move(listType), sEle, thisIdx,
@@ -388,7 +381,7 @@ std::unique_ptr<LogicalType> ParquetReader::deriveLogicalType(
         switch (s_ele.converted_type) {
         case ConvertedType::INT_8:
             if (s_ele.type == Type::INT32) {
-                return std::make_unique<LogicalType>(LogicalTypeID::INT8);
+                return LogicalType::INT8();
             } else {
                 // LCOV_EXCL_START
                 throw CopyException{"INT8 converted type can only be set for value of Type::INT32"};
@@ -396,7 +389,7 @@ std::unique_ptr<LogicalType> ParquetReader::deriveLogicalType(
             }
         case ConvertedType::INT_16:
             if (s_ele.type == Type::INT32) {
-                return std::make_unique<LogicalType>(LogicalTypeID::INT16);
+                return LogicalType::INT16();
             } else {
                 // LCOV_EXCL_START
                 throw CopyException{
@@ -405,7 +398,7 @@ std::unique_ptr<LogicalType> ParquetReader::deriveLogicalType(
             }
         case ConvertedType::INT_32:
             if (s_ele.type == Type::INT32) {
-                return std::make_unique<LogicalType>(LogicalTypeID::INT32);
+                return LogicalType::INT32();
             } else {
                 // LCOV_EXCL_START
                 throw CopyException{
@@ -414,7 +407,7 @@ std::unique_ptr<LogicalType> ParquetReader::deriveLogicalType(
             }
         case ConvertedType::INT_64:
             if (s_ele.type == Type::INT64) {
-                return std::make_unique<LogicalType>(LogicalTypeID::INT64);
+                return LogicalType::INT64();
             } else {
                 // LCOV_EXCL_START
                 throw CopyException{
@@ -423,7 +416,7 @@ std::unique_ptr<LogicalType> ParquetReader::deriveLogicalType(
             }
         case ConvertedType::UINT_8:
             if (s_ele.type == Type::INT32) {
-                return std::make_unique<LogicalType>(LogicalTypeID::UINT8);
+                return LogicalType::UINT8();
             } else {
                 // LCOV_EXCL_START
                 throw CopyException{
@@ -432,7 +425,7 @@ std::unique_ptr<LogicalType> ParquetReader::deriveLogicalType(
             }
         case ConvertedType::UINT_16:
             if (s_ele.type == Type::INT32) {
-                return std::make_unique<LogicalType>(LogicalTypeID::UINT16);
+                return LogicalType::UINT16();
             } else {
                 // LCOV_EXCL_START
                 throw CopyException{
@@ -441,7 +434,7 @@ std::unique_ptr<LogicalType> ParquetReader::deriveLogicalType(
             }
         case ConvertedType::UINT_32:
             if (s_ele.type == Type::INT32) {
-                return std::make_unique<LogicalType>(LogicalTypeID::UINT32);
+                return LogicalType::UINT32();
             } else {
                 // LCOV_EXCL_START
                 throw CopyException{
@@ -450,7 +443,7 @@ std::unique_ptr<LogicalType> ParquetReader::deriveLogicalType(
             }
         case ConvertedType::UINT_64:
             if (s_ele.type == Type::INT64) {
-                return std::make_unique<LogicalType>(LogicalTypeID::UINT64);
+                return LogicalType::UINT64();
             } else {
                 // LCOV_EXCL_START
                 throw CopyException{
@@ -459,7 +452,7 @@ std::unique_ptr<LogicalType> ParquetReader::deriveLogicalType(
             }
         case ConvertedType::DATE:
             if (s_ele.type == Type::INT32) {
-                return std::make_unique<LogicalType>(LogicalTypeID::DATE);
+                return LogicalType::DATE();
             } else {
                 // LCOV_EXCL_START
                 throw CopyException{"DATE converted type can only be set for value of Type::INT32"};
@@ -468,7 +461,7 @@ std::unique_ptr<LogicalType> ParquetReader::deriveLogicalType(
         case ConvertedType::TIMESTAMP_MICROS:
         case ConvertedType::TIMESTAMP_MILLIS:
             if (s_ele.type == Type::INT64) {
-                return std::make_unique<LogicalType>(LogicalTypeID::TIMESTAMP);
+                return LogicalType::TIMESTAMP();
             } else {
                 // LCOV_EXCL_START
                 throw CopyException(
@@ -476,13 +469,13 @@ std::unique_ptr<LogicalType> ParquetReader::deriveLogicalType(
                 // LCOV_EXCL_STOP
             }
         case ConvertedType::INTERVAL: {
-            return std::make_unique<LogicalType>(LogicalTypeID::INTERVAL);
+            return LogicalType::INTERVAL();
         }
         case ConvertedType::UTF8:
             switch (s_ele.type) {
             case Type::BYTE_ARRAY:
             case Type::FIXED_LEN_BYTE_ARRAY:
-                return std::make_unique<LogicalType>(LogicalTypeID::STRING);
+                return LogicalType::STRING();
                 // LCOV_EXCL_START
             default:
                 throw CopyException(
@@ -499,21 +492,21 @@ std::unique_ptr<LogicalType> ParquetReader::deriveLogicalType(
         // use default type for each physical type
         switch (s_ele.type) {
         case Type::BOOLEAN:
-            return std::make_unique<LogicalType>(LogicalTypeID::BOOL);
+            return LogicalType::BOOL();
         case Type::INT32:
-            return std::make_unique<LogicalType>(LogicalTypeID::INT32);
+            return LogicalType::INT32();
         case Type::INT64:
-            return std::make_unique<LogicalType>(LogicalTypeID::INT64);
+            return LogicalType::INT64();
         case Type::INT96:
-            return std::make_unique<LogicalType>(LogicalTypeID::TIMESTAMP);
+            return LogicalType::TIMESTAMP();
         case Type::FLOAT:
-            return std::make_unique<LogicalType>(LogicalTypeID::FLOAT);
+            return LogicalType::FLOAT();
         case Type::DOUBLE:
-            return std::make_unique<LogicalType>(LogicalTypeID::DOUBLE);
+            return LogicalType::DOUBLE();
         case Type::BYTE_ARRAY:
         case Type::FIXED_LEN_BYTE_ARRAY:
             // TODO(Ziyi): Support parquet copy option(binary_as_string).
-            return std::make_unique<LogicalType>(LogicalTypeID::BLOB);
+            return LogicalType::BLOB();
         default:
             return std::make_unique<LogicalType>(LogicalTypeID::ANY);
         }

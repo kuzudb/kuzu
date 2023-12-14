@@ -756,8 +756,8 @@ function_set CastToStringFunction::getFunctionSet() {
     function_set result;
     result.reserve(LogicalTypeUtils::getAllValidLogicTypes().size());
     for (auto& type : LogicalTypeUtils::getAllValidLogicTypes()) {
-        result.push_back(CastFunction::bindCastFunction(
-            CAST_TO_STRING_FUNC_NAME, type.getLogicalTypeID(), LogicalTypeID::STRING));
+        result.push_back(
+            CastFunction::bindCastFunction(CAST_TO_STRING_FUNC_NAME, type, LogicalTypeID::STRING));
     }
     return result;
 }
@@ -955,7 +955,7 @@ std::unique_ptr<FunctionBindData> CastAnyFunction::bindFunc(
     func->execFunc =
         CastFunction::bindCastFunction(func->name, inputTypeID, outputType->getLogicalTypeID())
             ->execFunc;
-    return std::make_unique<function::CastFunctionBindData>(*outputType);
+    return std::make_unique<function::CastFunctionBindData>(std::move(outputType));
 }
 
 function_set CastAnyFunction::getFunctionSet() {

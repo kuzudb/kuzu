@@ -223,7 +223,7 @@ impl From<&LogicalType> for cxx::UniquePtr<ffi::LogicalType> {
                     names.push(name.clone());
                     builder.pin_mut().insert(typ.into());
                 }
-                ffi::create_logical_type_struct(ffi::LogicalTypeID::STRUCT, &names, builder)
+                ffi::create_logical_type_struct(&names, builder)
             }
             LogicalType::Union { types } => {
                 let mut builder = ffi::create_type_list();
@@ -234,7 +234,7 @@ impl From<&LogicalType> for cxx::UniquePtr<ffi::LogicalType> {
                     names.push(name.clone());
                     builder.pin_mut().insert(typ.into());
                 }
-                ffi::create_logical_type_struct(ffi::LogicalTypeID::UNION, &names, builder)
+                ffi::create_logical_type_union(&names, builder)
             }
             LogicalType::Map {
                 key_type,

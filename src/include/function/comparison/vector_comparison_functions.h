@@ -17,17 +17,14 @@ struct ComparisonFunction {
         for (auto& comparableType : common::LogicalTypeUtils::getAllValidComparableLogicalTypes()) {
             functionSet.push_back(getFunction<OP>(name, comparableType, comparableType));
         }
+        functionSet.push_back(getFunction<OP>(
+            name, common::LogicalTypeID::VAR_LIST, common::LogicalTypeID::VAR_LIST));
         functionSet.push_back(
-            getFunction<OP>(name, common::LogicalType{common::LogicalTypeID::VAR_LIST},
-                common::LogicalType{common::LogicalTypeID::VAR_LIST}));
-        functionSet.push_back(
-            getFunction<OP>(name, common::LogicalType{common::LogicalTypeID::STRUCT},
-                common::LogicalType{common::LogicalTypeID::STRUCT}));
+            getFunction<OP>(name, common::LogicalTypeID::STRUCT, common::LogicalTypeID::STRUCT));
         // We can only check whether two internal ids are equal or not. So INTERNAL_ID is not
         // part of the comparable logical types.
-        functionSet.push_back(
-            getFunction<OP>(name, common::LogicalType{common::LogicalTypeID::INTERNAL_ID},
-                common::LogicalType{common::LogicalTypeID::INTERNAL_ID}));
+        functionSet.push_back(getFunction<OP>(
+            name, common::LogicalTypeID::INTERNAL_ID, common::LogicalTypeID::INTERNAL_ID));
         return functionSet;
     }
 
@@ -51,16 +48,17 @@ private:
     }
 
     template<typename FUNC>
-    static inline std::unique_ptr<ScalarFunction> getFunction(const std::string& name,
-        const common::LogicalType& leftType, const common::LogicalType& rightType) {
+    static inline std::unique_ptr<ScalarFunction> getFunction(
+        const std::string& name, common::LogicalTypeID leftType, common::LogicalTypeID rightType) {
+        auto leftPhysical = common::LogicalType::getPhysicalType(leftType);
+        auto rightPhysical = common::LogicalType::getPhysicalType(rightType);
         scalar_exec_func execFunc;
-        getExecFunc<FUNC>(leftType.getPhysicalType(), rightType.getPhysicalType(), execFunc);
+        getExecFunc<FUNC>(leftPhysical, rightPhysical, execFunc);
         scalar_select_func selectFunc;
-        getSelectFunc<FUNC>(leftType.getPhysicalType(), rightType.getPhysicalType(), selectFunc);
+        getSelectFunc<FUNC>(leftPhysical, rightPhysical, selectFunc);
         return std::make_unique<ScalarFunction>(name,
-            std::vector<common::LogicalTypeID>{
-                leftType.getLogicalTypeID(), rightType.getLogicalTypeID()},
-            common::LogicalTypeID::BOOL, execFunc, selectFunc);
+            std::vector<common::LogicalTypeID>{leftType, rightType}, common::LogicalTypeID::BOOL,
+            execFunc, selectFunc);
     }
 
     // When comparing two values, we guarantee that they must have the same dataType. So we only

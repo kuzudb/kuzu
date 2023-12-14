@@ -81,22 +81,22 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getAvgFunc(std::string
 }
 
 std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinFunc(
-    const LogicalType& inputType, bool isDistinct) {
+    LogicalTypeID inputType, bool isDistinct) {
     return AggregateFunctionUtil::getMinMaxFunction<LessThan>(
-        MIN_FUNC_NAME, inputType, inputType.getLogicalTypeID(), isDistinct);
+        MIN_FUNC_NAME, inputType, inputType, isDistinct);
 }
 
 std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getMaxFunc(
-    const LogicalType& inputType, bool isDistinct) {
+    LogicalTypeID inputType, bool isDistinct) {
     return AggregateFunctionUtil::getMinMaxFunction<GreaterThan>(
-        MAX_FUNC_NAME, inputType, inputType.getLogicalTypeID(), isDistinct);
+        MAX_FUNC_NAME, inputType, inputType, isDistinct);
 }
 
 template<typename FUNC>
 std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinMaxFunction(std::string name,
-    const common::LogicalType& inputType, common::LogicalTypeID resultType, bool isDistinct) {
-    auto inputTypes = std::vector<common::LogicalTypeID>{inputType.getLogicalTypeID()};
-    switch (inputType.getPhysicalType()) {
+    common::LogicalTypeID inputType, common::LogicalTypeID resultType, bool isDistinct) {
+    auto inputTypes = std::vector<common::LogicalTypeID>{inputType};
+    switch (LogicalType::getPhysicalType(inputType)) {
     case PhysicalTypeID::BOOL:
         return std::make_unique<AggregateFunction>(std::move(name), std::move(inputTypes),
             resultType, MinMaxFunction<bool>::initialize, MinMaxFunction<bool>::updateAll<FUNC>,

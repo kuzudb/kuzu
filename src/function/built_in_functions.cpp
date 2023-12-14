@@ -710,8 +710,7 @@ void BuiltInFunctions::registerCount() {
     for (auto& type : LogicalTypeUtils::getAllValidLogicTypes()) {
         for (auto isDistinct : std::vector<bool>{true, false}) {
             functionSet.push_back(AggregateFunctionUtil::getAggFunc<CountFunction>(COUNT_FUNC_NAME,
-                type.getLogicalTypeID(), LogicalTypeID::INT64, isDistinct,
-                CountFunction::paramRewriteFunc));
+                type, LogicalTypeID::INT64, isDistinct, CountFunction::paramRewriteFunc));
         }
     }
     functions.insert({COUNT_FUNC_NAME, std::move(functionSet)});

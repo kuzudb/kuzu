@@ -139,18 +139,13 @@ public:
      * @param type the logical type of the value.
      * @param val_ the string value to set.
      */
-    KUZU_API explicit Value(const LogicalType& type, std::string val_);
+    KUZU_API explicit Value(std::unique_ptr<LogicalType> type, std::string val_);
     /**
      * @param dataType the logical type of the value.
      * @param children a vector of children values.
      */
     KUZU_API explicit Value(
-        const LogicalType& dataType, std::vector<std::unique_ptr<Value>> children);
-    /**
-     * @param dataType the logical type of the value.
-     * @param val_ the uint8_t* value to set.
-     */
-    KUZU_API Value(LogicalType dataType, const uint8_t* val_);
+        std::unique_ptr<LogicalType> dataType, std::vector<std::unique_ptr<Value>> children);
     /**
      * @param other the value to copy from.
      */
@@ -810,7 +805,7 @@ KUZU_API inline Value Value::createValue(nodeID_t val) {
  */
 template<>
 KUZU_API inline Value Value::createValue(std::string val) {
-    return Value(LogicalType{LogicalTypeID::STRING}, std::move(val));
+    return Value(LogicalType::STRING(), std::move(val));
 }
 
 /**
@@ -819,7 +814,7 @@ KUZU_API inline Value Value::createValue(std::string val) {
  */
 template<>
 KUZU_API inline Value Value::createValue(const char* value) {
-    return Value(LogicalType{LogicalTypeID::STRING}, std::string(value));
+    return Value(LogicalType::STRING(), std::string(value));
 }
 
 /**

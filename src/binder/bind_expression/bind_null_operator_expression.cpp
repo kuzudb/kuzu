@@ -20,7 +20,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindNullOperatorExpression(
     function::VectorNullFunction::bindExecFunction(expressionType, children, execFunc);
     function::scalar_select_func selectFunc;
     function::VectorNullFunction::bindSelectFunction(expressionType, children, selectFunc);
-    auto bindData = std::make_unique<function::FunctionBindData>(LogicalType(LogicalTypeID::BOOL));
+    auto bindData = std::make_unique<function::FunctionBindData>(LogicalType::BOOL());
     auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(functionName, children);
     return make_shared<ScalarFunctionExpression>(functionName, expressionType, std::move(bindData),
         std::move(children), std::move(execFunc), std::move(selectFunc), uniqueExpressionName);

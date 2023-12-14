@@ -27,7 +27,7 @@ std::shared_ptr<Expression> ExpressionBinder::createLiteralExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::createStringLiteralExpression(
     const std::string& strVal) {
-    auto value = std::make_unique<Value>(LogicalType{LogicalTypeID::STRING}, strVal);
+    auto value = std::make_unique<Value>(LogicalType::STRING(), strVal);
     return createLiteralExpression(std::move(value));
 }
 

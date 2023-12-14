@@ -311,8 +311,7 @@ static std::unique_ptr<LogicalType> bindFixedListType(
     }
     auto childShape = std::vector<size_t>{shape.begin() + 1, shape.end()};
     auto childType = bindFixedListType(childShape, typeID);
-    auto extraInfo = std::make_unique<FixedListTypeInfo>(std::move(childType), (uint32_t)shape[0]);
-    return std::make_unique<LogicalType>(LogicalTypeID::FIXED_LIST, std::move(extraInfo));
+    return LogicalType::FIXED_LIST(std::move(childType), (uint32_t)shape[0]);
 }
 
 void NpyScanFunction::bindColumns(const common::ReaderConfig& readerConfig, uint32_t fileIdx,

@@ -212,7 +212,7 @@ struct ListFunction {
                     common::LogicalTypeUtils::toString(resultType->getLogicalTypeID())));
         }
         }
-        return std::make_unique<FunctionBindData>(*resultType);
+        return std::make_unique<FunctionBindData>(resultType->copy());
     }
 };
 

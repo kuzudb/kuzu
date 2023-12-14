@@ -3,6 +3,15 @@
 
 using namespace kuzu::common;
 
+namespace kuzu::common {
+struct CAPIHelper {
+    static inline LogicalType* createLogicalType(
+        LogicalTypeID typeID, std::unique_ptr<ExtraTypeInfo> extraTypeInfo) {
+        return new LogicalType(typeID, std::move(extraTypeInfo));
+    }
+};
+} // namespace kuzu::common
+
 kuzu_logical_type* kuzu_data_type_create(
     kuzu_data_type_id id, kuzu_logical_type* child_type, uint64_t fixed_num_elements_in_list) {
     auto* c_data_type = (kuzu_logical_type*)malloc(sizeof(kuzu_logical_type));
@@ -18,7 +27,7 @@ kuzu_logical_type* kuzu_data_type_create(
                                  std::make_unique<FixedListTypeInfo>(
                                      std::move(child_type_pty), fixed_num_elements_in_list) :
                                  std::make_unique<VarListTypeInfo>(std::move(child_type_pty));
-        data_type = new LogicalType(logicalTypeID, std::move(extraTypeInfo));
+        data_type = CAPIHelper::createLogicalType(logicalTypeID, std::move(extraTypeInfo));
     }
     c_data_type->_data_type = data_type;
     return c_data_type;
